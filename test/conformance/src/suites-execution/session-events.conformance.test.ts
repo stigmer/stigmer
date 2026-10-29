@@ -91,6 +91,7 @@ import {
 import { makeSession } from "../support/sessions";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
+import { modelToolName } from "../support/plugins";
 
 let target: TargetProfile;
 let clients: ConformanceClients;
@@ -710,7 +711,7 @@ describe("the runner writes what the agent did", () => {
     const plugin = await pushFixturePlugin(clients, mcp, fixtures, { org, name: uniqueName("gated"), tools: [DESTRUCTIVE_ECHO_TOOL_NAME] });
     const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("events-gated"), plugins: [plugin.metadata!.slug] }));
     fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
-    mock.enqueue(anthropicToolUse("toolu_events_echo", DESTRUCTIVE_ECHO_TOOL_NAME, { text: "hello" }));
+    mock.enqueue(anthropicToolUse("toolu_events_echo", modelToolName(plugin, DESTRUCTIVE_ECHO_TOOL_NAME), { text: "hello" }));
     mock.enqueue(anthropicText("Echoed."));
     const runId = await turn({ org, agentRef: agentRefOf(agent), message: "echo it" });
     const gated = await awaitPhase(clients, runId, RunPhase.RUN_WAITING_FOR_APPROVAL, { label: "WAITING_FOR_APPROVAL" });
@@ -835,7 +836,7 @@ describe("the runner writes what the agent did", () => {
     // asked ten times, and the turn stops before the eleventh request
     // (run-tool-rounds' shape).
     for (let round = 1; round <= 11; round++) {
-      mock.enqueue(anthropicToolUse(`toolu_events_round_${round}`, ECHO_TOOL_NAME, { text: `round-${round}` }));
+      mock.enqueue(anthropicToolUse(`toolu_events_round_${round}`, modelToolName(plugin, ECHO_TOOL_NAME), { text: `round-${round}` }));
     }
     const runId = await turn({ org, agentRef: agentRefOf(agent), message: "echo each round", autoApproveAll: true, runConfig: { maxToolRounds: 10 } });
     const final = await awaitTerminal(clients, runId);

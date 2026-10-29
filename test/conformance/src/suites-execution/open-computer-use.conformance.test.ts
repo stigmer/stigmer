@@ -23,7 +23,7 @@ import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";
 import { agentRefOf, makeAgent } from "../support/agents";
 import { awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/runs";
-import { oneServerPlugin, pushPlugin } from "../support/plugins";
+import { modelToolName, oneServerPlugin, pushPlugin } from "../support/plugins";
 import { uniqueName } from "../support/naming";
 import { toolUsesOf, turnOfRun } from "../support/turn";
 import { createTarget, type TargetProfile } from "../targets";
@@ -84,7 +84,7 @@ describe.skipIf(!ENABLED)("Open Computer Use — desktop tool dispatch (local-on
 
     // Script: observe Finder, then end with a text turn. Approval is bypassed
     // (auto_approve_all) so the read-only observation runs immediately.
-    mock.enqueue(anthropicToolUse("call_get_app_state", "get_app_state", { app: "Finder" }));
+    mock.enqueue(anthropicToolUse("call_get_app_state", modelToolName(plugin, "get_app_state"), { app: "Finder" }));
     mock.enqueue(anthropicText("Observed Finder."));
 
     const execution = await clients.agentExecutionCommand.create(

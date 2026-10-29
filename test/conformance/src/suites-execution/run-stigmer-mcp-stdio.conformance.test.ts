@@ -34,9 +34,10 @@ import { toolUsesOf, turnOfRun } from "../support/turn";
 import { agentRefOf } from "../support/agents";
 import { uniqueName } from "../support/naming";
 import { makeSession } from "../support/sessions";
-import { pushPlugin } from "../support/plugins";
+import { modelToolName, pushPlugin } from "../support/plugins";
 import {
   STDIO_READ_TOOL,
+  STIGMER_STDIO_SERVER,
   makeStdioAgent,
   stigmerMcpPlugin,
 } from "../support/stigmer-mcp-stdio";
@@ -74,6 +75,8 @@ interface StdioAgent {
   org: string;
   slug: string;
   description: string;
+  /** The name the model calls the stdio server's read by (`modelToolName`). */
+  readTool: string;
   sessionId: string;
 }
 
@@ -99,12 +102,13 @@ async function provisionStdioAgent(): Promise<StdioAgent> {
     slug: agent.metadata!.slug,
     description,
     sessionId: session.metadata!.id,
+    readTool: modelToolName(plugin, STDIO_READ_TOOL, STIGMER_STDIO_SERVER),
   };
 }
 
 // Scripts one read: a get_agent call on the fixture agent, then an answer.
 function scriptRead(agent: StdioAgent, toolCallId: string): void {
-  mock.enqueue(anthropicToolUse(toolCallId, STDIO_READ_TOOL, { org: agent.org, slug: agent.slug }));
+  mock.enqueue(anthropicToolUse(toolCallId, agent.readTool, { org: agent.org, slug: agent.slug }));
   mock.enqueue(anthropicText(`The agent's description is ${agent.description}.`));
 }
 

@@ -70,6 +70,7 @@ import { uniqueName } from "../support/naming";
 import { awaitPhase, awaitTerminal, pushFixturePlugin, requireLlmProxy, requireMcpFixture } from "../support/runs";
 import { makeSession, type SessionSpecOptions } from "../support/sessions";
 import { createTarget, type TargetProfile } from "../targets";
+import { modelToolName } from "../support/plugins";
 
 let target: TargetProfile;
 let clients: ConformanceClients;
@@ -246,7 +247,7 @@ describe("Anthropic's SDK on a Stigmer session (the Managed Agents lane)", () =>
     const sdk = await sdkFor(org);
 
     // Allow.
-    mock.enqueue(anthropicToolUse("toolu_ma_allow", DESTRUCTIVE_ECHO_TOOL_NAME, { text: "hello" }));
+    mock.enqueue(anthropicToolUse("toolu_ma_allow", modelToolName(plugin, DESTRUCTIVE_ECHO_TOOL_NAME), { text: "hello" }));
     mock.enqueue(anthropicText("Echoed."));
     const stream = await sdk.beta.sessions.events.stream(sessionId);
     const reading = collectUntil(stream, (seen) => {
@@ -291,7 +292,7 @@ describe("Anthropic's SDK on a Stigmer session (the Managed Agents lane)", () =>
 
     // Deny, with its message.
     mcp.resetCaptured();
-    mock.enqueue(anthropicToolUse("toolu_ma_deny", DESTRUCTIVE_ECHO_TOOL_NAME, { text: "again" }));
+    mock.enqueue(anthropicToolUse("toolu_ma_deny", modelToolName(plugin, DESTRUCTIVE_ECHO_TOOL_NAME), { text: "again" }));
     mock.enqueue(anthropicText("Understood, not echoing."));
     await sdk.beta.sessions.events.send(sessionId, { events: [message("echo again")] });
     const [deniedId] = await awaitRequiresAction(clients, sessionId, 1);

@@ -90,7 +90,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
-import { ECHO_TOOL_NAME, type McpToolFixture } from "../harness/mcp-server";
+import { ECHO_TOOL_NAME, type McpToolFixture, mcpToolName } from "../harness/mcp-server";
 import { requireRegistryRow } from "../harness/model-registry";
 import {
   EVAL_RUN_LABEL,
@@ -828,7 +828,7 @@ describe.skipIf(!runnerServesTries)("EvalRun about an agent — an Eval's cases"
     fixtures.defer(() => clients.evalCommand.delete({ value: pushed.metadata!.id }).then(() => undefined));
     const agent = await agentWith([], { mcpServers: [{ name: server, url: mcp.url([ECHO_TOOL_NAME]) }] });
     mcp.resetCaptured();
-    mock.enqueue(anthropicToolUse("call_create", "create_issue", { title: "Crash on save" }));
+    mock.enqueue(anthropicToolUse("call_create", mcpToolName(server, "create_issue"), { title: "Crash on save" }));
     mock.enqueue(anthropicText(DONE));
 
     const created = await startEval(agent, { evals: [{ org: tenancy.org, slug }] });

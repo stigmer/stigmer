@@ -84,7 +84,7 @@ import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import type { McpToolFixture } from "../harness/mcp-server";
-import { DESTRUCTIVE_ECHO_TOOL_NAME } from "../harness/mcp-server";
+import { DESTRUCTIVE_ECHO_TOOL_NAME, mcpToolName } from "../harness/mcp-server";
 import type { AnthropicMessageBody, MockLlmProxy, ToolUseBlock } from "@stigmer/test-support/mock-llm";
 import { anthropicText, anthropicToolUses } from "@stigmer/test-support/mock-llm";
 import { type AgentRefInit, agentRefOf, makeAgent } from "../support/agents";
@@ -185,9 +185,10 @@ async function runToGate(
   return { executionId, gated, sessionId: sessionIdOf(gated) };
 }
 
-// A single gated echo tool_use block (the destructive echo).
-function echoBlock(toolCallId: string, text: string): ToolUseBlock {
-  return { toolCallId, toolName: DESTRUCTIVE_ECHO_TOOL_NAME, toolInput: { text } };
+// A single gated echo tool_use block (the destructive echo), called as the
+// model calls it: by its server segment's name (harness/mcp-server.ts).
+function echoBlock(mcpSlug: string, toolCallId: string, text: string): ToolUseBlock {
+  return { toolCallId, toolName: mcpToolName(mcpSlug, DESTRUCTIVE_ECHO_TOOL_NAME), toolInput: { text } };
 }
 
 // The turn's tool use for the scripted call `callId`; red when the log has none.
@@ -219,11 +220,11 @@ async function allowOnlyAsk(sessionId: string, runId: string, label: string): Pr
 describe("Run approval — spec bypass and what an ask names", () => {
   it("auto_approve_all bypasses the gate entirely (no answer needed)", async () => {
     const { org } = await target.provisionTenancy();
-    const { agentRef } = await provisionGatedAgent(org);
+    const { agentRef, mcpSlug } = await provisionGatedAgent(org);
 
     // Same gated agent, but the execution arms auto_approve_all: the gate never
     // engages even though the server marks the tool destructive.
-    mock.enqueue(anthropicToolUses([echoBlock("call_echo_bypass", "hello")]));
+    mock.enqueue(anthropicToolUses([echoBlock(mcpSlug, "call_echo_bypass", "hello")]));
     mock.enqueue(anthropicText("Done."));
     const execution = await clients.agentExecutionCommand.create(
       makeAgentExecution({ org, name: uniqueName("aex-bypass"), agentRef, autoApproveAll: true }),
@@ -243,7 +244,7 @@ describe("Run approval — spec bypass and what an ask names", () => {
   it("an ask names the tool, its MCP server, and why it asked", async () => {
     const { org } = await target.provisionTenancy();
     const { agentRef, mcpSlug } = await provisionGatedAgent(org);
-    const { executionId, sessionId } = await runToGate(org, agentRef, [echoBlock("call_echo_details", "peek")]);
+    const { executionId, sessionId } = await runToGate(org, agentRef, [echoBlock(mcpSlug, "call_echo_details", "peek")]);
     await awaitRequiresAction(clients, sessionId, 1);
 
     const ask = requireOneAsk(await turnById(clients, sessionId, executionId));
@@ -271,11 +272,11 @@ describe("Run approval — spec bypass and what an ask names", () => {
 describe("Run approval — the grant's lease, durable resume", () => {
   it("[rpc:SessionCommandController.grantPermission] a grant leases the MCP server: a later call on the same server in the turn is not asked", async () => {
     const { org } = await target.provisionTenancy();
-    const { agentRef } = await provisionGatedAgent(org);
+    const { agentRef, mcpSlug } = await provisionGatedAgent(org);
     // Request 1 gates on echo; request 2 is a SECOND echo in its own assistant
     // turn; request 3 ends the loop. A plain allow at request 1 would ask again.
-    const { executionId, sessionId } = await runToGate(org, agentRef, [echoBlock("call_lease_first", "first")], {
-      turnsBeforeDone: [anthropicToolUses([echoBlock("call_lease_second", "second")])],
+    const { executionId, sessionId } = await runToGate(org, agentRef, [echoBlock(mcpSlug, "call_lease_first", "first")], {
+      turnsBeforeDone: [anthropicToolUses([echoBlock(mcpSlug, "call_lease_second", "second")])],
     });
     const [toolUseId] = await awaitRequiresAction(clients, sessionId, 1);
     expect(toolUseId).toBe(`${executionId}.call_lease_first`);
@@ -312,8 +313,8 @@ describe("Run approval — the grant's lease, durable resume", () => {
     // gets its second request. A replay would re-emit the tool call under a
     // fresh id and consume the script out of order.
     const { org } = await target.provisionTenancy();
-    const { agentRef } = await provisionGatedAgent(org);
-    const { executionId, sessionId } = await runToGate(org, agentRef, [echoBlock("call_durable", "durable")]);
+    const { agentRef, mcpSlug } = await provisionGatedAgent(org);
+    const { executionId, sessionId } = await runToGate(org, agentRef, [echoBlock(mcpSlug, "call_durable", "durable")]);
     await awaitRequiresAction(clients, sessionId, 1);
 
     await allowOnlyAsk(sessionId, executionId, "the allow clears the gate");
@@ -338,8 +339,8 @@ describe("Run approval — the grant's lease, durable resume", () => {
 describe("the session answers a waiting call, and stops its turns", () => {
   it("[rpc:SessionCommandController.confirmToolUse] the idle names the waiting call; an allow is recorded once, and the turn resumes and completes", async () => {
     const { org } = await target.provisionTenancy();
-    const { agentRef } = await provisionGatedAgent(org);
-    const { executionId, gated } = await runToGate(org, agentRef, [echoBlock("call_confirm_allow", "hello")]);
+    const { agentRef, mcpSlug } = await provisionGatedAgent(org);
+    const { executionId, gated } = await runToGate(org, agentRef, [echoBlock(mcpSlug, "call_confirm_allow", "hello")]);
     const sessionId = sessionIdOf(gated);
     const [toolUseId] = await awaitRequiresAction(clients, sessionId, 1);
     expect(toolUseId, "the idle names the call's tool use").toBe(`${executionId}.call_confirm_allow`);
@@ -364,10 +365,10 @@ describe("the session answers a waiting call, and stops its turns", () => {
 
   it("[rpc:SessionCommandController.confirmToolUse] answering one of two re-states the idle with the remainder; the last answer resumes the turn", async () => {
     const { org } = await target.provisionTenancy();
-    const { agentRef } = await provisionGatedAgent(org);
+    const { agentRef, mcpSlug } = await provisionGatedAgent(org);
     const { executionId, gated } = await runToGate(org, agentRef, [
-      echoBlock("call_remainder_1", "one"),
-      echoBlock("call_remainder_2", "two"),
+      echoBlock(mcpSlug, "call_remainder_1", "one"),
+      echoBlock(mcpSlug, "call_remainder_2", "two"),
     ]);
     const sessionId = sessionIdOf(gated);
     const [first, second] = await awaitRequiresAction(clients, sessionId, 2);
@@ -396,8 +397,8 @@ describe("the session answers a waiting call, and stops its turns", () => {
 
   it("[rpc:SessionCommandController.confirmToolUse] a deny's message is what the agent reads, and the denied call's result is an error", async () => {
     const { org } = await target.provisionTenancy();
-    const { agentRef } = await provisionGatedAgent(org);
-    const { executionId, gated } = await runToGate(org, agentRef, [echoBlock("call_confirm_deny", "hello")]);
+    const { agentRef, mcpSlug } = await provisionGatedAgent(org);
+    const { executionId, gated } = await runToGate(org, agentRef, [echoBlock(mcpSlug, "call_confirm_deny", "hello")]);
     const sessionId = sessionIdOf(gated);
     const [toolUseId] = await awaitRequiresAction(clients, sessionId, 1);
     const reason = "use the quiet echo instead";
@@ -430,11 +431,11 @@ describe("the session answers a waiting call, and stops its turns", () => {
 
   it("[rpc:SessionCommandController.confirmToolUse] a replayed answer is success with nothing new; a contrary one is refused", async () => {
     const { org } = await target.provisionTenancy();
-    const { agentRef } = await provisionGatedAgent(org);
+    const { agentRef, mcpSlug } = await provisionGatedAgent(org);
     // Two co-pending calls keep the gate open between the answers.
     const { executionId, gated } = await runToGate(org, agentRef, [
-      echoBlock("call_replay_1", "one"),
-      echoBlock("call_replay_2", "two"),
+      echoBlock(mcpSlug, "call_replay_1", "one"),
+      echoBlock(mcpSlug, "call_replay_2", "two"),
     ]);
     const sessionId = sessionIdOf(gated);
     const [first, second] = await awaitRequiresAction(clients, sessionId, 2);
@@ -463,8 +464,8 @@ describe("the session answers a waiting call, and stops its turns", () => {
 
   it("[rpc:SessionCommandController.confirmToolUse] refuses a deny_message on an allow, and a tool use that is not one of the session's asks", async () => {
     const { org } = await target.provisionTenancy();
-    const { agentRef } = await provisionGatedAgent(org);
-    const { executionId, gated } = await runToGate(org, agentRef, [echoBlock("call_confirm_bad", "hello")]);
+    const { agentRef, mcpSlug } = await provisionGatedAgent(org);
+    const { executionId, gated } = await runToGate(org, agentRef, [echoBlock(mcpSlug, "call_confirm_bad", "hello")]);
     const sessionId = sessionIdOf(gated);
     const [toolUseId] = await awaitRequiresAction(clients, sessionId, 1);
     await expectGrpcCode(
@@ -490,10 +491,10 @@ describe("the session answers a waiting call, and stops its turns", () => {
 
   it("[rpc:SessionCommandController.grantPermission] a grant allows the co-pending calls of its class in one answer, with one grant event", async () => {
     const { org } = await target.provisionTenancy();
-    const { agentRef } = await provisionGatedAgent(org);
+    const { agentRef, mcpSlug } = await provisionGatedAgent(org);
     const { executionId, gated } = await runToGate(org, agentRef, [
-      echoBlock("call_grant_1", "one"),
-      echoBlock("call_grant_2", "two"),
+      echoBlock(mcpSlug, "call_grant_1", "one"),
+      echoBlock(mcpSlug, "call_grant_2", "two"),
     ]);
     const sessionId = sessionIdOf(gated);
     const [first, second] = await awaitRequiresAction(clients, sessionId, 2);
@@ -522,8 +523,8 @@ describe("the session answers a waiting call, and stops its turns", () => {
 
   it("[rpc:SessionCommandController.interrupt] stops a turn at its gate: CANCELLED by the person, and the session ends its turn", async () => {
     const { org } = await target.provisionTenancy();
-    const { agentRef } = await provisionGatedAgent(org);
-    const { executionId, gated } = await runToGate(org, agentRef, [echoBlock("call_interrupt_gate", "hello")], { done: false });
+    const { agentRef, mcpSlug } = await provisionGatedAgent(org);
+    const { executionId, gated } = await runToGate(org, agentRef, [echoBlock(mcpSlug, "call_interrupt_gate", "hello")], { done: false });
     const sessionId = sessionIdOf(gated);
     await awaitRequiresAction(clients, sessionId, 1);
 
@@ -539,8 +540,8 @@ describe("the session answers a waiting call, and stops its turns", () => {
 
   it("[rpc:SessionCommandController.confirmToolUse] refuses an answer once the asking turn has finished: FailedPrecondition, and nothing recorded", async () => {
     const { org } = await target.provisionTenancy();
-    const { agentRef } = await provisionGatedAgent(org);
-    const { executionId, gated } = await runToGate(org, agentRef, [echoBlock("call_confirm_finished", "hello")], { done: false });
+    const { agentRef, mcpSlug } = await provisionGatedAgent(org);
+    const { executionId, gated } = await runToGate(org, agentRef, [echoBlock(mcpSlug, "call_confirm_finished", "hello")], { done: false });
     const sessionId = sessionIdOf(gated);
     const [toolUseId] = await awaitRequiresAction(clients, sessionId, 1);
     await clients.sessionCommand.interrupt({ sessionId });
@@ -556,7 +557,7 @@ describe("the session answers a waiting call, and stops its turns", () => {
 
   it("[rpc:SessionCommandController.interrupt] stops a paused turn", async () => {
     const { org } = await target.provisionTenancy();
-    const { agentRef } = await provisionGatedAgent(org);
+    const { agentRef, mcpSlug } = await provisionGatedAgent(org);
     mock.enqueue(anthropicText("Held until paused."), { delayMs: 120_000 });
     const execution = await clients.agentExecutionCommand.create(
       makeAgentExecution({ org, name: uniqueName("aex-paused"), agentRef }),
@@ -578,8 +579,8 @@ describe("the session answers a waiting call, and stops its turns", () => {
 
   it("[rpc:RunCommandController.sendMessage] a message while the turn waits is refused, naming the waiting turn; the interrupt stops the turn", async () => {
     const { org } = await target.provisionTenancy();
-    const { agentRef } = await provisionGatedAgent(org);
-    const { executionId, gated } = await runToGate(org, agentRef, [echoBlock("call_interrupt_queue", "hello")], { done: false });
+    const { agentRef, mcpSlug } = await provisionGatedAgent(org);
+    const { executionId, gated } = await runToGate(org, agentRef, [echoBlock(mcpSlug, "call_interrupt_queue", "hello")], { done: false });
     const sessionId = sessionIdOf(gated);
     await awaitRequiresAction(clients, sessionId, 1);
 
@@ -600,8 +601,8 @@ describe("the session answers a waiting call, and stops its turns", () => {
 
   it("[rpc:SessionCommandController.interrupt] refuses to stop one thread alone", async () => {
     const { org } = await target.provisionTenancy();
-    const { agentRef } = await provisionGatedAgent(org);
-    const { executionId, gated } = await runToGate(org, agentRef, [echoBlock("call_interrupt_thread", "hello")]);
+    const { agentRef, mcpSlug } = await provisionGatedAgent(org);
+    const { executionId, gated } = await runToGate(org, agentRef, [echoBlock(mcpSlug, "call_interrupt_thread", "hello")]);
     const sessionId = sessionIdOf(gated);
     await expectGrpcCode(
       () => clients.sessionCommand.interrupt({ sessionId, sessionThreadId: `${executionId}.task_1` }),
@@ -618,7 +619,7 @@ describe("the session answers a waiting call, and stops its turns", () => {
 // destructive echo: the hook decides before the default does. Shell-form
 // commands run in bash on the runner, as Claude Code's do.
 describe("Run — an agent's hooks decide at the gate", () => {
-  async function provisionHookedAgent(org: string, command: string): Promise<AgentRefInit> {
+  async function provisionHookedAgent(org: string, command: string): Promise<{ agentRef: AgentRefInit; mcpSlug: string }> {
     const plugin = await pushFixturePlugin(clients, mcp, fixtures, {
       org,
       name: uniqueName("hooked"),
@@ -638,13 +639,13 @@ describe("Run — an agent's hooks decide at the gate", () => {
       }),
     );
     fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
-    return agentRefOf(agent);
+    return { agentRef: agentRefOf(agent), mcpSlug: toolServerSegment(plugin.metadata!.name) };
   }
 
   it("a hook's deny: the call never runs, the run completes, and its result carries the hook's reason", async () => {
     const { org } = await target.provisionTenancy();
-    const agentRef = await provisionHookedAgent(org, "echo 'echoes are not allowed' >&2; exit 2");
-    mock.enqueue(anthropicToolUses([echoBlock("call_echo_hook_deny", "hello")]));
+    const { agentRef, mcpSlug } = await provisionHookedAgent(org, "echo 'echoes are not allowed' >&2; exit 2");
+    mock.enqueue(anthropicToolUses([echoBlock(mcpSlug, "call_echo_hook_deny", "hello")]));
     mock.enqueue(anthropicText("Done."));
     const execution = await clients.agentExecutionCommand.create(
       makeAgentExecution({ org, name: uniqueName("aex-hook-deny"), agentRef }),
@@ -663,11 +664,11 @@ describe("Run — an agent's hooks decide at the gate", () => {
 
   it("a hook's ask: the run waits on an ask naming the hook, and completes once allowed", async () => {
     const { org } = await target.provisionTenancy();
-    const agentRef = await provisionHookedAgent(
+    const { agentRef, mcpSlug } = await provisionHookedAgent(
       org,
       `printf '%s' '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"ask","permissionDecisionReason":"echoes need a person"}}'`,
     );
-    const { executionId, sessionId } = await runToGate(org, agentRef, [echoBlock("call_echo_hook_ask", "hello")]);
+    const { executionId, sessionId } = await runToGate(org, agentRef, [echoBlock(mcpSlug, "call_echo_hook_ask", "hello")]);
     await awaitRequiresAction(clients, sessionId, 1);
 
     const ask = requireOneAsk(await turnById(clients, sessionId, executionId));

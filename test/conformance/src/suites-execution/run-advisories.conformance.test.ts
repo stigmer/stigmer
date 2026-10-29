@@ -49,6 +49,7 @@ import {
 } from "../support/runs";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
+import { modelToolName } from "../support/plugins";
 
 // Loop detection's consecutive threshold (runner turn-setup.ts): the seventh
 // identical call sets the warning, and the eighth request carries it.
@@ -117,7 +118,7 @@ describe("Run advisories to the model", () => {
 
     // The same arguments every time: the repetition loop detection exists for.
     for (let call = 1; call <= IDENTICAL_CALLS; call++) {
-      mock.enqueue(anthropicToolUse(`call_loop_${call}`, ECHO_TOOL_NAME, { text: "the same thing" }));
+      mock.enqueue(anthropicToolUse(`call_loop_${call}`, modelToolName(plugin, ECHO_TOOL_NAME), { text: "the same thing" }));
     }
     mock.enqueue(anthropicText("Done."));
 

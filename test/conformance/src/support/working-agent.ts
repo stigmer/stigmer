@@ -51,9 +51,9 @@ import type { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_p
 import type { SessionSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
 import type { ConformanceClients } from "../harness/clients";
 import type { FixtureTracker } from "../harness/fixtures";
-import { LOOKUP_ORDER_TOOL_NAME, type FixtureTool } from "../harness/mcp-server";
+import { LOOKUP_ORDER_TOOL_NAME, type FixtureTool, mcpToolName } from "../harness/mcp-server";
 import { type AgentRefInit, agentRefOf, createSubagents, makeAgent, subagentSlugsOf } from "./agents";
-import { oneServerPlugin, pushPlugin } from "./plugins";
+import { oneServerPlugin, pushPlugin, toolServerSegment } from "./plugins";
 import { provisionOrgWithFacts } from "./memories";
 import { localWorkspaceResources, type LocalWorkspaceOption } from "./sessions";
 import { zipFiles } from "./skills";
@@ -82,6 +82,8 @@ export const WORKING_AGENT_WORKSPACE_NAME = "orders-sync";
 
 /** The fixture tools the agent's MCP server exposes. */
 export const WORKING_AGENT_MCP_TOOLS: readonly FixtureTool[] = [LOOKUP_ORDER_TOOL_NAME];
+/** The name the model calls the order lookup by: its plugin server's (`harness/mcp-server.ts` `mcpToolName`). */
+export const WORKING_AGENT_LOOKUP_TOOL = mcpToolName(toolServerSegment(WORKING_AGENT_PLUGIN_NAME, WORKING_AGENT_MCP_SERVER_NAME), LOOKUP_ORDER_TOOL_NAME);
 
 export const WORKING_AGENT_INSTRUCTIONS = [
   "Be direct and concise. Act on requests rather than explaining steps. When you do not know something, say so.",

@@ -77,7 +77,7 @@ import {
 } from "../support/agents";
 import { provisionOrgWithFacts } from "../support/memories";
 import { uniqueName } from "../support/naming";
-import { FIXTURE_SERVER, oneServerPlugin, pluginRefOf, pluginToolName, pushPlugin } from "../support/plugins";
+import { FIXTURE_SERVER, modelToolName, oneServerPlugin, pluginRefOf, pluginToolName, pushPlugin } from "../support/plugins";
 import { RunValueDeclarerKind, runSourcesOf, sourcesFor } from "../support/run-values";
 import {
   type AgentExecutionOptions,
@@ -261,7 +261,7 @@ describe("Run — a subagent runs its own definition", () => {
     mock.enqueue(handOff("toolu_task_research", name));
     mock.enqueue(
       anthropicToolUses([
-        { toolCallId: "call_sub_echo", toolName: ECHO_TOOL_NAME, toolInput: { text: "from the subagent" } },
+        { toolCallId: "call_sub_echo", toolName: modelToolName(plugin, ECHO_TOOL_NAME), toolInput: { text: "from the subagent" } },
         { toolCallId: "call_sub_shell", toolName: STIGMER_SHELL_TOOL, toolInput: { command: "echo shell-ran-in-subagent" } },
       ]),
     );
@@ -286,10 +286,10 @@ describe("Run — a subagent runs its own definition", () => {
     // it disallows; the subagent is offered both, and never `task`.
     const parentOffered = offeredAt(0);
     expect(parentOffered, "the parent is offered the hand-off").toContain(TASK_TOOL_NAME);
-    expect(parentOffered, "the subagent's plugin tool is not the parent's").not.toContain(ECHO_TOOL_NAME);
+    expect(parentOffered, "the subagent's plugin tool is not the parent's").not.toContain(modelToolName(plugin, ECHO_TOOL_NAME));
     expect(parentOffered, "the parent's lists remove its shell").not.toContain(STIGMER_SHELL_TOOL);
     const subagentOffered = offeredAt(1);
-    expect(subagentOffered, "the subagent is offered its own plugin's tool").toContain(ECHO_TOOL_NAME);
+    expect(subagentOffered, "the subagent is offered its own plugin's tool").toContain(modelToolName(plugin, ECHO_TOOL_NAME));
     expect(subagentOffered, "the parent's lists do not reach the subagent").toContain(STIGMER_SHELL_TOOL);
     expect(subagentOffered, "one level: a subagent is never offered the hand-off").not.toContain(TASK_TOOL_NAME);
 
@@ -355,7 +355,7 @@ describe("Run — a subagent runs its own definition", () => {
     fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
 
     mock.enqueue(handOff("toolu_task_desk", name));
-    mock.enqueue(anthropicToolUse("call_desk_echo", ECHO_TOOL_NAME, { text: "ORD-4821" }));
+    mock.enqueue(anthropicToolUse("call_desk_echo", inScope, { text: "ORD-4821" }));
     mock.enqueue(anthropicText("The desk answered ORD-4821."));
     mock.enqueue(anthropicText("The clerk found ORD-4821."));
 
@@ -372,8 +372,8 @@ describe("Run — a subagent runs its own definition", () => {
       parentModel,
     ]);
     const offered = offeredAt(1);
-    expect(offered, "the tool its list names is offered").toContain(ECHO_TOOL_NAME);
-    expect(offered, "a tool its list does not name is not offered").not.toContain(FAIL_TOOL_NAME);
+    expect(offered, "the tool its list names is offered").toContain(inScope);
+    expect(offered, "a tool its list does not name is not offered").not.toContain(modelToolName(plugin, FAIL_TOOL_NAME));
     expect(offered, "one level: a plugin's agent is never offered the hand-off").not.toContain(TASK_TOOL_NAME);
     const echo = toolUseByCallId(await turnOfRun(clients, final), "call_desk_echo");
     expect(echo?.state).toBe("completed");
@@ -486,8 +486,8 @@ describe("Run — what a subagent is not given", () => {
 
     const final = await completedTurn({ org, agentRef: agentRefOf(agent), sessionSpec: { plugins: [pluginRefOf(plugin)] } });
     await subagentRecordOf(final, name);
-    expect(offeredAt(0), "the conversation's plugin is the parent's").toContain(ECHO_TOOL_NAME);
-    expect(offeredAt(1), "the conversation's plugin is not the subagent's").not.toContain(ECHO_TOOL_NAME);
+    expect(offeredAt(0), "the conversation's plugin is the parent's").toContain(modelToolName(plugin, ECHO_TOOL_NAME));
+    expect(offeredAt(1), "the conversation's plugin is not the subagent's").not.toContain(modelToolName(plugin, ECHO_TOOL_NAME));
   });
 
   describe.skipIf(!collectionTarget.capabilities.firstPartyMemoryCapture)(
