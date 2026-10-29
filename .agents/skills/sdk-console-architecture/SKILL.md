@@ -115,15 +115,17 @@ Apache-2.0-compatible dependencies. A commercial-licence dependency is isolated
 to a client app; a dependency that imposes obligations on SDK consumers is a
 blocker.
 
-**Lazy loading for optional heavy dependencies.** A large library most consumers
-will not use (`react-virtuoso` is the case in the tree,
-`sdk/react/src/internal/VirtualizedThread.tsx`) is imported through `React.lazy`
-and `Suspense` and declared as an optional peer dependency, so it is never
-bundled when the feature is unused. No module imports an optional peer
-statically, the public export included: `YamlEditor`
-(`sdk/react/src/manifest/YamlEditor.tsx`) is the loading boundary and
-`CodeMirrorYamlEditor.tsx` the implementation it imports. An app with no
-optional peer imports and builds the kit (`test/install/smoke-libs.mjs`).
+**Lazy loading for heavy dependencies.** A library most screens never use is
+imported through `React.lazy` or `import()`, so it is downloaded only on use:
+`react-virtuoso` (`sdk/react/src/internal/VirtualizedThread.tsx`) and CodeMirror
+(`YamlEditor` in `sdk/react/src/manifest/YamlEditor.tsx` is the loading
+boundary, `CodeMirrorYamlEditor.tsx` the implementation). Lazy is not optional:
+a bundler resolves every import it can reach, `import()` included, so a package
+the kit names in any import is a dependency, never an optional peer. A library
+too large to install for every host (`mermaid`) is not named by the kit at all:
+the host passes its import (`StigmerProvider`'s `loadMermaid`). An app with only
+the required peers builds the kit with Vite and webpack
+(`test/install/smoke-libs.mjs`).
 
 **Cache across mounts, reset by key.** `key={id}` remounts are the correct React
 pattern for a clean state reset; `useFetch` consumers pass a `cacheKey` for

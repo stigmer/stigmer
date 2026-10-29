@@ -37,18 +37,6 @@ export interface YamlEditorProps {
   readonly style?: CSSProperties;
 }
 
-/** The CodeMirror packages the editor needs, as the install line names them. */
-const YAML_EDITOR_PACKAGES = [
-  "@codemirror/autocomplete",
-  "@codemirror/commands",
-  "@codemirror/lang-yaml",
-  "@codemirror/language",
-  "@codemirror/lint",
-  "@codemirror/state",
-  "@codemirror/view",
-  "@lezer/highlight",
-] as const;
-
 type EditorComponent = ComponentType<YamlEditorProps>;
 
 /**
@@ -78,11 +66,11 @@ const BOX = "stg:flex stg:items-center stg:justify-center stg:rounded-md stg:bor
  * external validation (via the `diagnostics` prop). Themed via `--stgm-*`
  * CSS custom properties to respect the host application's design tokens.
  *
- * Built on CodeMirror 6, an optional peer dependency: the editor loads it
- * on first render, so an app that never opens an editor never downloads it,
- * and an app that has not installed it can still import the kit. Until it
- * arrives the editor's box says it is loading; if it cannot load, the box
- * names the packages to install.
+ * Built on CodeMirror 6, which the editor loads on first render, so an app
+ * that never opens an editor never downloads it. Until it arrives the
+ * editor's box says it is loading; if its chunk cannot load (a deploy
+ * replaced it, the network dropped), the box says so, and the next mount
+ * tries again.
  *
  * @example
  * ```tsx
@@ -115,10 +103,7 @@ export const YamlEditor = memo(function YamlEditor(props: YamlEditorProps) {
     return (
       <div role="alert" className={cn(BOX, "stg:flex-col stg:gap-1 stg:p-4 stg:text-center", props.className)} style={props.style}>
         <span>The YAML editor could not load.</span>
-        <span>
-          It needs CodeMirror installed beside the kit:{" "}
-          <code className="stg:font-mono">npm install {YAML_EDITOR_PACKAGES.join(" ")}</code>
-        </span>
+        <span>Reload the page to try again.</span>
       </div>
     );
   }

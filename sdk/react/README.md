@@ -11,9 +11,7 @@ npm install @stigmer/react-sdk @stigmer/client @stigmer/apis @bufbuild/protobuf 
 `react` and `react-dom` 19 must already be installed. Every other package the
 kit needs to draw comes with it.
 
-Peer dependencies: the required ones are on the install line. An optional one
-is needed only by the feature the table names, which loads it on first use, so
-the kit imports and draws without it.
+Peer dependencies, all on the install line:
 
 | Package | Version | Needed by |
 |---------|---------|-----------|
@@ -22,9 +20,27 @@ the kit imports and draws without it.
 | `@stigmer/apis` | `*` | everything: the API's message types |
 | `@bufbuild/protobuf` | `^2.8.0` | everything: the runtime of those types |
 | `lucide-react` | `>=0.400.0` | every component: the icons |
-| `mermaid` (optional) | `^11.0.0` | diagrams in messages; without it a diagram shows as its source |
-| `react-virtuoso` (optional) | `^4.0.0` | `MessageThread`'s `virtualized` mode for very long threads; install it before turning the mode on |
-| `@codemirror/autocomplete`, `@codemirror/commands`, `@codemirror/lang-yaml`, `@codemirror/language`, `@codemirror/lint`, `@codemirror/state`, `@codemirror/view` and `@lezer/highlight` (optional) | `^6.0.0`, `@lezer/highlight` `^1.0.0` | `YamlEditor` and the YAML dialogs (`ApplyManifestDialog`, `EditResourceYamlDialog`); without them the editor names the packages to install |
+
+The heavier parts of the kit (the YAML editor's CodeMirror, the virtualized
+thread) come with it and are downloaded only when a screen first uses them.
+
+### Diagrams
+
+A ```` ```mermaid ```` fence in an agent's reply, a file or a skill draws as a
+diagram when you hand the kit `mermaid`. It is large, so the kit does not
+install it: install it yourself and pass its import to the provider, which
+your bundler splits into a chunk fetched on the first diagram. Without it a
+diagram shows as its source.
+
+```bash
+npm install mermaid
+```
+
+```tsx
+<StigmerProvider client={client} loadMermaid={() => import("mermaid")}>
+  <App />
+</StigmerProvider>
+```
 
 ## Quick Start
 

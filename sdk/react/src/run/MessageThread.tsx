@@ -336,10 +336,10 @@ export interface MessageThreadProps {
    */
   readonly agentVersionLabel?: (versionHash: string) => string;
   /**
-   * Enable virtualized rendering for long conversations. Requires
-   * `react-virtuoso` to be installed as a peer dependency. When
+   * Enable virtualized rendering for long conversations. When
    * enabled, only visible items are rendered in the DOM, improving
-   * performance for threads with 100+ items.
+   * performance for threads with 100+ items; `react-virtuoso`, which
+   * draws them, is downloaded on first use.
    *
    * @default false
    */

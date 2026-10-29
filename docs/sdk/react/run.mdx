@@ -1480,7 +1480,7 @@ All visual properties flow through `--stgm-*` tokens.
     stoppingBackgroundToolUseIds: { type: "ReadonlySet<string>", description: "The tool uses whose background stop is in flight, by id. Only meaningful with `onStopBackgroundCommand`." },
     turnOutcome: { type: "(turn: Turn) => ReactNode", description: "What closes each ended turn (the session view passes its outcome block: how the turn ended, its time, what it changed and returned). When set, it takes the place of the ended-turn phase badge; a failure's notice and Retry stay above it." },
     turns: { type: "readonly Turn[]", description: "The conversation's turns, in order: the session's events folded (`useSessionConversation().turns`, or `useSessionEvents().fold.turns`). Each turn renders its person's message, the agent's items, its asks, to-dos and file reviews. A turn that has not ended is the live one.", required: true },
-    virtualized: { type: "boolean", description: "Enable virtualized rendering for long conversations. Requires `react-virtuoso` to be installed as a peer dependency. When enabled, only visible items are rendered in the DOM, improving performance for threads with 100+ items." },
+    virtualized: { type: "boolean", description: "Enable virtualized rendering for long conversations. When enabled, only visible items are rendered in the DOM, improving performance for threads with 100+ items; `react-virtuoso`, which draws them, is downloaded on first use." },
   }}
 />
 

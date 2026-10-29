@@ -15,6 +15,13 @@ import { useTauriRunnerAdapter } from "./hooks/useTauriRunnerAdapter";
 import { useColorModePreference } from "./hooks/useColorModePreference";
 import { API_URL, fallbackDeploymentMode } from "./config";
 
+/**
+ * The `mermaid` loader for `StigmerProvider`: the kit draws ```mermaid fences
+ * as diagrams only with a host's import, which Vite splits into a chunk
+ * fetched on the first diagram.
+ */
+const loadMermaid = () => import("mermaid");
+
 function useServerDeploymentMode(client: Stigmer): DeploymentMode {
   const [mode, setMode] = useState<DeploymentMode>(() => fallbackDeploymentMode(API_URL));
 
@@ -99,6 +106,7 @@ function RunnerAdapterBridge({
       executionTarget="local"
       runnerAdapter={runnerAdapter}
       colorMode={colorMode}
+      loadMermaid={loadMermaid}
     >
       <AppContent isInitialized={isInitialized} isAuthenticated={isAuthenticated} />
     </StigmerProvider>

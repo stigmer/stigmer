@@ -1,19 +1,17 @@
 /**
- * Lazy loader for the `mermaid` library, isolated in its own module so
+ * Loads `mermaid` through the host's loader, isolated in its own module so
  * {@link file://./MermaidDiagram.tsx} stays a pure presentation component and
  * tests can mock the load outcome (resolve, reject) without touching module
  * registries.
  *
- * `mermaid` is an optional peer dependency: it is large, so it must
- * never sit on the synchronous bundle path, and a host that has not installed
- * it must degrade gracefully (the caller falls back to a code block).
+ * The kit never imports `mermaid` itself: a bundler resolves every import it
+ * can reach, `import()` included, so naming it here would fail the build of
+ * every app that has not installed it. The host passes the import instead
+ * (`StigmerProvider`'s `loadMermaid`), and it stays off the synchronous
+ * bundle path because the host's bundler splits it.
  */
 
-/**
- * The mermaid API surface the SDK consumes, typed from the package itself so
- * it stays in lockstep with the installed version.
- */
-export type MermaidModule = typeof import("mermaid").default;
+import type { MermaidLoader, MermaidModule } from "../mermaid-loader-context.js";
 
 /**
  * Holds the in-flight import promise so concurrent diagrams share one load.
@@ -24,15 +22,16 @@ export type MermaidModule = typeof import("mermaid").default;
 let mermaidImport: Promise<MermaidModule> | null = null;
 
 /**
- * Dynamically imports `mermaid`, sharing one in-flight import across callers.
+ * Runs the host's loader, sharing one in-flight import across callers.
  *
+ * @param loader - The host's `loadMermaid`.
  * @returns The mermaid default export.
- * @throws If `mermaid` cannot be imported (not installed, or the async chunk
- *   failed to load). Callers treat this as "diagrams unavailable" and render
- *   the fenced source as a plain code block.
+ * @throws If the loader rejects (the async chunk failed to load). Callers
+ *   treat this as "diagrams unavailable" and render the fenced source as a
+ *   plain code block.
  */
-export function loadMermaid(): Promise<MermaidModule> {
-  mermaidImport ??= import("mermaid").then(
+export function loadMermaid(loader: MermaidLoader): Promise<MermaidModule> {
+  mermaidImport ??= loader().then(
     (module) => module.default,
     (error: unknown) => {
       mermaidImport = null;

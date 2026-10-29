@@ -8,6 +8,7 @@ import type { ResolvedColorMode } from "@stigmer/react-sdk";
 import { useAuth } from "@/auth/use-auth";
 import { getApiBaseUrl } from "@/config/env";
 import { useDeploymentMode } from "@/domain/_shared/hooks/useDeploymentMode";
+import { loadMermaid } from "./load-mermaid";
 
 /**
  * Bridges the console's auth system to the Stigmer SDK provider.
@@ -50,6 +51,7 @@ export function StigmerTransportBridge({ children }: { children: ReactNode }) {
       client={client}
       deploymentMode={deploymentMode}
       colorMode={colorMode}
+      loadMermaid={loadMermaid}
     >
       {children}
     </StigmerProvider>

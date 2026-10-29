@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { useIsCodeFenceIncomplete } from "streamdown";
 import { useColorMode } from "../color-mode.js";
+import { MermaidLoaderContext } from "../mermaid-loader-context.js";
 import { loadMermaid } from "./mermaid-loader.js";
 import { MERMAID_THEME_CSS } from "./mermaid-theme-css.js";
 
@@ -43,8 +44,11 @@ type RenderState =
  *   a safe no-op under react-markdown where the context defaults to `false`),
  *   the source renders as a code block; the diagram appears once the fence
  *   closes. No half-parsed error flashing mid-stream.
- * - **Library unavailable** — `mermaid` is an optional peer dependency; if the
- *   dynamic import fails the source stays a code block.
+ * - **No loader** — the kit does not ship `mermaid`; the host passes its
+ *   import as `StigmerProvider`'s `loadMermaid`. Without one the source stays
+ *   a code block, and nothing is loaded.
+ * - **Load failure** — if the host's import rejects, the source stays a code
+ *   block with a note.
  * - **Parse error** — invalid diagram source falls back to the code block plus
  *   a screen-reader-announced note, so the agent's output is never hidden.
  *
@@ -68,6 +72,7 @@ type RenderState =
 export function MermaidDiagram({ chart }: MermaidDiagramProps) {
   const isIncomplete = useIsCodeFenceIncomplete();
   const colorMode = useColorMode();
+  const loader = useContext(MermaidLoaderContext);
   const [state, setState] = useState<RenderState>({ status: "pending" });
 
   // Markdown parsers hand the fence body over with its trailing newline;
@@ -75,14 +80,14 @@ export function MermaidDiagram({ chart }: MermaidDiagramProps) {
   const source = chart.trim();
 
   useEffect(() => {
-    if (isIncomplete || source.length === 0) return;
+    if (isIncomplete || source.length === 0 || loader === null) return;
 
     let cancelled = false;
 
     void (async () => {
       const renderId = `stgm-mermaid-${++renderSequence}`;
       try {
-        const mermaid = await loadMermaid();
+        const mermaid = await loadMermaid(loader);
         // initialize() mutates a global singleton, so it runs before every
         // render call — all diagrams under one provider share a color mode,
         // and re-initializing keeps a theme switch from bleeding stale config
@@ -114,7 +119,7 @@ export function MermaidDiagram({ chart }: MermaidDiagramProps) {
     };
     // A previously rendered diagram stays visible while a re-render (theme
     // switch) is in flight — swapping to a blank pending state would flash.
-  }, [source, colorMode, isIncomplete]);
+  }, [source, colorMode, isIncomplete, loader]);
 
   if (state.status === "rendered") {
     return (

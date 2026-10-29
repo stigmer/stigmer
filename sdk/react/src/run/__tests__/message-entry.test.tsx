@@ -6,7 +6,7 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { render, cleanup, waitFor } from "@testing-library/react";
 import { MessageEntry, type ThreadMessage } from "../MessageEntry";
-import type { MermaidModule } from "../../internal/mermaid-loader";
+import { MermaidLoaderContext, type MermaidModule } from "../../mermaid-loader-context";
 
 // Stub only the library loader: the real MermaidDiagram + markdown overrides
 // run end-to-end through Streamdown, so these tests cover the full chat path
@@ -195,7 +195,13 @@ describe("MessageEntry — agent messages (Streamdown)", () => {
       "message",
       "Here is the flow:\n\n```mermaid\nflowchart LR\n  A --> B\n```",
     );
-    const { container } = render(<MessageEntry message={msg} />);
+    // The host's loader; the mocked module loader above stands in for what it loads.
+    const hostLoader = () => Promise.reject(new Error("the mocked loadMermaid never calls it"));
+    const { container } = render(
+      <MermaidLoaderContext.Provider value={hostLoader}>
+        <MessageEntry message={msg} />
+      </MermaidLoaderContext.Provider>,
+    );
 
     const article = queryArticle(container, "AI response");
     await waitFor(() =>

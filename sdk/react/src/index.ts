@@ -17,6 +17,7 @@ export * from "./headless.js";
 
 // Provider and context
 export { StigmerProvider, type StigmerProviderProps } from "./provider.js";
+export type { MermaidLoader, MermaidModule } from "./mermaid-loader-context.js";
 
 // Fetch cache
 export { FetchCacheProvider } from "./internal/FetchCacheProvider.js";

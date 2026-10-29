@@ -1,9 +1,8 @@
 // Tests for YamlEditor, the public boundary in front of the CodeMirror
-// editor, an optional peer: it says it is loading until the editor's module
-// arrives, then renders it with the props it was given; when the module
-// cannot load (CodeMirror not installed), it names the packages to install
-// instead of throwing; and a failed load is not remembered, so the next
-// mount tries again. The CodeMirror module is mocked: these tests are about
+// editor, which loads on first render: it says it is loading until the
+// editor's module arrives, then renders it with the props it was given; when
+// the module cannot load (its chunk failed), it says so instead of throwing;
+// and a failed load is not remembered, so the next mount tries again. The CodeMirror module is mocked: these tests are about
 // the boundary, not the editor (stigmer#2621).
 
 import { describe, it, expect, vi, afterEach } from "vitest";
@@ -40,25 +39,23 @@ describe("YamlEditor", () => {
     expect(screen.queryByText("Loading editor…")).toBeNull();
   });
 
-  it("names the CodeMirror packages to install when the editor cannot load", async () => {
+  it("says the editor could not load, and how to retry, when its chunk fails", async () => {
     const YamlEditor = await editorWith(() => {
-      throw new Error("Cannot find package '@codemirror/state'");
+      throw new Error("Failed to fetch dynamically imported module");
     });
 
     render(<YamlEditor value="" className="stg:h-80" />);
 
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).toContain("The YAML editor could not load.");
-    expect(alert.textContent).toContain(
-      "npm install @codemirror/autocomplete @codemirror/commands @codemirror/lang-yaml @codemirror/language @codemirror/lint @codemirror/state @codemirror/view @lezer/highlight",
-    );
+    expect(alert.textContent).toContain("Reload the page to try again.");
     expect(alert.className).toContain("stg:h-80");
   });
 
   it("tries the import again on the next mount after a failed one", async () => {
-    let installed = false;
+    let chunkLoads = false;
     const YamlEditor = await editorWith(() => {
-      if (!installed) throw new Error("Cannot find package '@codemirror/state'");
+      if (!chunkLoads) throw new Error("Failed to fetch dynamically imported module");
       return { CodeMirrorYamlEditor: () => <pre data-testid="codemirror" /> };
     });
 
@@ -66,7 +63,7 @@ describe("YamlEditor", () => {
     await screen.findByRole("alert");
     first.unmount();
 
-    installed = true;
+    chunkLoads = true;
     render(<YamlEditor value="" />);
     expect(await screen.findByTestId("codemirror")).toBeTruthy();
   });

@@ -2,13 +2,15 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, cleanup, waitFor, act } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { MermaidDiagram } from "../MermaidDiagram";
-import { loadMermaid, type MermaidModule } from "../mermaid-loader";
+import { loadMermaid } from "../mermaid-loader";
+import { MermaidLoaderContext, type MermaidLoader, type MermaidModule } from "../../mermaid-loader-context";
 import { MERMAID_THEME_CSS } from "../mermaid-theme-css";
 import { ColorModeContext, type ResolvedColorMode } from "../../color-mode";
 
 // The loader is the component's only side-effectful dependency; mocking it
-// (not the `mermaid` package) exercises the real degradation contract:
-// a rejected load must look exactly like "library not installed".
+// (not the `mermaid` package) exercises the real degradation contract: a
+// rejected load shows the source with a note, and no host loader at all
+// shows the source alone.
 vi.mock("../mermaid-loader", () => ({
   loadMermaid: vi.fn(),
 }));
@@ -35,15 +37,23 @@ function stubMermaid(svg = "<svg><g>diagram</g></svg>") {
   return mermaid;
 }
 
+/** The host's `loadMermaid`; the mocked module loader stands in for what it loads. */
+const HOST_LOADER: MermaidLoader = () => Promise.reject(new Error("the mocked loadMermaid never calls it"));
+
 function renderDiagram(
   chart: string,
-  { colorMode = "light" as ResolvedColorMode } = {},
+  {
+    colorMode = "light" as ResolvedColorMode,
+    loader = HOST_LOADER as MermaidLoader | null,
+  } = {},
 ) {
-  return render(
-    <ColorModeContext.Provider value={colorMode}>
-      <MermaidDiagram chart={chart} />
-    </ColorModeContext.Provider>,
-  );
+  return render(<MermaidDiagram chart={chart} />, {
+    wrapper: ({ children }: { children: ReactNode }) => (
+      <MermaidLoaderContext.Provider value={loader}>
+        <ColorModeContext.Provider value={colorMode}>{children}</ColorModeContext.Provider>
+      </MermaidLoaderContext.Provider>
+    ),
+  });
 }
 
 function queryDiagram(container: HTMLElement) {
@@ -137,6 +147,11 @@ describe("MermaidDiagram — security and theming configuration", () => {
       <ColorModeContext.Provider value="light">
         <MermaidDiagram chart={CHART} />
       </ColorModeContext.Provider>,
+      {
+        wrapper: ({ children }: { children: ReactNode }) => (
+          <MermaidLoaderContext.Provider value={HOST_LOADER}>{children}</MermaidLoaderContext.Provider>
+        ),
+      },
     );
     await waitFor(() => expect(queryDiagram(container)).not.toBeNull());
 
@@ -184,6 +199,24 @@ describe("MermaidDiagram — failure degrades to the code block", () => {
     );
     expect(container.querySelector("pre code")!.textContent).toBe(CHART);
     expect(queryDiagram(container)).toBeNull();
+  });
+
+  it("shows the source and loads nothing when the host passed no loader", () => {
+    stubMermaid();
+    const { container } = renderDiagram(CHART, { loader: null });
+
+    expect(loadMermaidMock).not.toHaveBeenCalled();
+    expect(container.querySelector("pre code")!.textContent).toBe(CHART);
+    // No loader is the host's choice, not a failure: no note is announced.
+    expect(container.querySelector('[role="status"]')).toBeNull();
+    expect(queryDiagram(container)).toBeNull();
+  });
+
+  it("loads through the host's loader", async () => {
+    stubMermaid();
+    renderDiagram(CHART);
+
+    await waitFor(() => expect(loadMermaidMock).toHaveBeenCalledWith(HOST_LOADER));
   });
 
   it("does not attempt to render an empty fence", () => {

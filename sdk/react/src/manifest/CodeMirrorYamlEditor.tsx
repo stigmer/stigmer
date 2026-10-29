@@ -20,8 +20,8 @@ import type { YamlEditorProps } from "./YamlEditor.js";
  * The CodeMirror 6 editor behind {@link YamlEditor}: syntax highlighting,
  * line numbers, bracket matching, folding, undo/redo and the inline
  * diagnostic markers, themed by the `--stgm-*` tokens. `YamlEditor` loads
- * this module on first render; nothing imports it statically, because
- * CodeMirror is an optional peer dependency.
+ * this module on first render; nothing imports it statically, so an app
+ * downloads CodeMirror only when it opens an editor.
  */
 export const CodeMirrorYamlEditor = memo(function CodeMirrorYamlEditor({
   value,
