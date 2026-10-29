@@ -6,8 +6,9 @@
  * sees it (`tool-view.ts`):
  *
  *  - `Bash(spec)` matches when ANY simple command of the input matches
- *    (`shell-commands.ts` splits it, nested substitutions and subshells
- *    included), with leading assignments and wrappers also tried stripped.
+ *    (`shell-commands.ts` splits it, nested substitutions, subshells, `-c`
+ *    scripts and `trap` actions included), with leading assignments and
+ *    wrappers also tried stripped.
  *    The wrappers are Claude's (`timeout`, `time`, `nice`, `nohup`,
  *    `stdbuf`, `command`, `builtin`, `noglob`, `xargs`) and a few more that
  *    run their arguments (`exec`, `env`, `sudo`, `doas`, `setsid`,
@@ -17,7 +18,9 @@
  *    may take arguments, every word after one is tried as the command's
  *    start, as is the word after `find`'s `-exec`, `-execdir`, `-ok` and
  *    `-okdir`. A command named by path (`/bin/rm`) is also tried by its
- *    last segment.
+ *    last segment. Only the command as written can match for sure: a
+ *    stripped or peeled form, and a script another program runs (`sudo
+ *    bash -c`, `su -c`, a `trap` action), is at most unsure.
  *    `*` is any text; a trailing ` *` also matches the bare command, so
  *    `git *` matches `git`, and the older `:*` is a prefix. A word the shell
  *    would expand (`$x`, `$(…)`, a glob, a brace list, a redirection) could
@@ -55,7 +58,7 @@
 
 import { join } from "node:path";
 import picomatch from "picomatch";
-import { splitShellCommands, type ShellCommand, type ShellWord } from "./shell-commands.js";
+import { splitShellCommands, type ShellWord } from "./shell-commands.js";
 import type { ToolView } from "./tool-view.js";
 
 /** Where relative rule paths are anchored. */
@@ -144,13 +147,17 @@ function bashVerdict(spec: string, command: unknown): ConditionVerdict {
   if (commands === null) return "unsure";
   const patterns = bashPatterns(spec);
   return strongest(
-    commands.map((words) => {
+    commands.map(({ words, asWritten }) => {
       const forms = commandForms(words);
       if (forms === null) return "unsure";
       // Only the command as written can match for sure: a peeled form is
       // the matcher's reading of what runs, and an assignment (`PATH=…`) or
-      // a path can change which program that is.
-      const verdict = strongest(forms.map((form) => (form === words ? formVerdict(patterns, form) : atMostUnsure(formVerdict(patterns, form)))));
+      // a path can change which program that is. A script another program
+      // runs (`sudo bash -c`, `su -c`, a `trap` action) is that program's to
+      // run, so no form of it is sure either.
+      const verdict = strongest(
+        forms.map((form) => (asWritten && form === words ? formVerdict(patterns, form) : atMostUnsure(formVerdict(patterns, form)))),
+      );
       if (verdict !== "no") return verdict;
       // On a case-insensitive disk `RM -rf build` runs `rm`: a match that
       // holds only ignoring case is unsure.
@@ -206,7 +213,7 @@ function couldContinue(pattern: string, prefix: string): boolean {
  * named by path is also tried by its last segment. `null` when there are too
  * many to try, which matches.
  */
-function commandForms(words: ShellCommand): (readonly ShellWord[])[] | null {
+function commandForms(words: readonly ShellWord[]): (readonly ShellWord[])[] | null {
   const forms: (readonly ShellWord[])[] = [];
   const pending: (readonly ShellWord[])[] = [words];
   while (pending.length > 0) {

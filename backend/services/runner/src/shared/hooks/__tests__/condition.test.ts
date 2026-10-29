@@ -11,7 +11,9 @@
  *    hook runs and decides; a word the shell expands is such a thing, and
  *    only the words before it can rule a command out;
  *  - a match the matcher cannot be sure of is `unsure`, apart from a sure
- *    one, so the evaluator can refuse it an allow;
+ *    one, so the evaluator can refuse it an allow; a peeled form and a
+ *    script another program runs (`sudo bash -c`, `su -c`, a `trap`
+ *    action) are never sure;
  *  - `*` is matched in linear time, whatever the rule and the input.
  */
 
@@ -101,6 +103,25 @@ describe("conditionMatches: Bash rules (any subcommand)", () => {
     ["Bash(rm *)", "script -q /dev/null rm -rf build", true],
     ["Bash(rm *)", "script out.log", false],
     ["Bash(rm *)", "npm run script", false],
+    ["Bash(rm *)", "flock /tmp/l -c 'rm -rf build'", true],
+    ["Bash(rm *)", "su -c 'rm -rf build'", true],
+    ["Bash(rm *)", "su root -c 'rm -rf build'", true],
+    ["Bash(rm *)", "su --command='rm -rf build'", true],
+    ["Bash(rm *)", "su --command 'rm -rf build'", true],
+    ["Bash(rm *)", "su -c 'cd build && rm -rf out'", true],
+    ["Bash(rm *)", "sudo su -c 'cd build && rm -rf out'", true],
+    ["Bash(rm *)", "runuser -l app -c 'rm -rf build'", true],
+    ["Bash(rm *)", "runuser -l app -c 'cd build && rm -rf out'", true],
+    ["Bash(rm *)", "script -qc 'rm -rf build' /dev/null", true],
+    ["Bash(rm *)", "script -qc 'cd build && rm -rf out' /dev/null", true],
+    ["Bash(rm *)", "trap 'rm -rf build' EXIT", true],
+    ["Bash(rm *)", "trap -- 'rm -rf build' EXIT", true],
+    ["Bash(rm *)", "trap 'cd build && rm -rf out' EXIT INT", true],
+    ["Bash(rm *)", "trap - EXIT", false],
+    ["Bash(rm *)", "trap 'rm -rf build'", false],
+    ["Bash(rm *)", "trap -p", false],
+    ["Bash(rm *)", "trap -p EXIT", false],
+    ["Bash(rm *)", "su -l app", false],
     ["Bash(rm *)", "find . -name rm", false],
     ["Bash(npm run build)", "npm run build > build.log", true],
     ["Bash(git push *)", "echo {a,b}", false],
@@ -135,6 +156,8 @@ describe("conditionMatches: Bash rules (any subcommand)", () => {
     ["sh -c over a variable", "sh -c \"$CMD\""],
     ["bash -lc over a variable", "bash -lc \"$CMD\""],
     ["an interpreter's -c with no script", "bash -c"],
+    ["su -c over a variable", "su -c \"$CMD\""],
+    ["a trap action over a variable", "trap \"rm -f $TMP\" EXIT"],
     ["a function definition", "function f { rm -rf build; }; f"],
     ["arithmetic that runs a substitution", "echo $(( $(rm -rf build) ))"],
     ["arithmetic that runs a backtick command", "x=$((1 + `rm -rf build`))"],
@@ -291,6 +314,23 @@ describe("conditionVerdict: sure, unsure, or no", () => {
     ["Bash(rm *)", "parallel rm ::: build", "unsure"],
     ["Bash(rm *)", "runuser -u app -- rm -rf build", "unsure"],
     ["Bash(rm *)", "script -q /dev/null rm -rf build", "unsure"],
+    ["Bash(rm *)", "flock /tmp/l -c 'rm -rf build'", "unsure"],
+    ["Bash(rm *)", "su -c 'rm -rf build'", "unsure"],
+    ["Bash(rm *)", "su root -c 'rm -rf build'", "unsure"],
+    ["Bash(rm *)", "su --command='rm -rf build'", "unsure"],
+    ["Bash(rm *)", "su -c 'cd build && rm -rf out'", "unsure"],
+    ["Bash(rm *)", "runuser -l app -c 'rm -rf build'", "unsure"],
+    ["Bash(rm *)", "script -qc 'rm -rf build' /dev/null", "unsure"],
+    ["Bash(rm *)", "trap 'rm -rf build' EXIT", "unsure"],
+    ["Bash(rm *)", "trap -- 'rm -rf build' EXIT", "unsure"],
+    ["Bash(npm test *)", "bash -c 'npm test'", "match"],
+    ["Bash(npm test *)", "bash -c 'echo $(npm test)'", "match"],
+    ["Bash(npm test *)", "sudo bash -c 'npm test'", "unsure"],
+    ["Bash(npm test *)", "timeout 60 bash -c 'npm test'", "unsure"],
+    ["Bash(npm test *)", "PATH=/tmp/evil bash -c 'npm test'", "unsure"],
+    ["Bash(npm test *)", "/tmp/evil/bash -c 'npm test'", "unsure"],
+    ["Bash(npm test *)", "sudo bash -c 'echo $(npm test)'", "unsure"],
+    ["Bash(npm test *)", "bash -c \"sudo bash -c 'npm test'\"", "unsure"],
   ])("%s on %j is %s", (rule, command, expected) => {
     expect(conditionVerdict(rule, bash(command), CTX)).toBe(expected);
   });
@@ -350,20 +390,20 @@ describe("wildcardMatch", () => {
 describe("splitShellCommands", () => {
   it("returns each simple command's words with quotes removed", () => {
     const commands = splitShellCommands(`git commit -m "fix: it's done" && echo 'a b'`);
-    expect(commands?.map((words) => words.map((w) => w.text))).toEqual([
+    expect(commands?.map(({ words }) => words.map((w) => w.text))).toEqual([
       ["git", "commit", "-m", "fix: it's done"],
       ["echo", "a b"],
     ]);
   });
 
   it("marks a word that expands as not literal", () => {
-    const [words] = splitShellCommands(`echo "$HOME" plain`) ?? [];
-    expect(words?.map((w) => w.literal)).toEqual([true, false, true]);
+    const [command] = splitShellCommands(`echo "$HOME" plain`) ?? [];
+    expect(command?.words.map((w) => w.literal)).toEqual([true, false, true]);
   });
 
   it("reads escapes and line continuations", () => {
     const commands = splitShellCommands("echo a\\ b \\\nc");
-    expect(commands?.[0]?.map((w) => w.text)).toEqual(["echo", "a b", "c"]);
+    expect(commands?.[0]?.words.map((w) => w.text)).toEqual(["echo", "a b", "c"]);
   });
 
   it("does not descend into arithmetic", () => {
@@ -373,7 +413,7 @@ describe("splitShellCommands", () => {
 
   it("reaches commands inside quotes, escapes and nested brackets", () => {
     const reaches = (line: string) =>
-      splitShellCommands(line)?.some((words) => words.map((w) => w.text).join(" ") === "git push") ?? null;
+      splitShellCommands(line)?.some(({ words }) => words.map((w) => w.text).join(" ") === "git push") ?? null;
     expect(reaches('echo "run `git push`"')).toBe(true);
     expect(reaches("echo $(echo \\) && git push)")).toBe(true);
     expect(reaches("echo $(echo 'a)b' && git push)")).toBe(true);
@@ -383,9 +423,31 @@ describe("splitShellCommands", () => {
   });
 
   it("reads escapes inside double quotes as the shell does", () => {
-    const [words] = splitShellCommands('echo "a \\"b\\" \\$c" plain*') ?? [];
-    expect(words?.map((w) => w.text)).toEqual(["echo", 'a "b" $c', "plain*"]);
-    expect(words?.map((w) => w.literal)).toEqual([true, true, false]);
+    const [command] = splitShellCommands('echo "a \\"b\\" \\$c" plain*') ?? [];
+    expect(command?.words.map((w) => w.text)).toEqual(["echo", 'a "b" $c', "plain*"]);
+    expect(command?.words.map((w) => w.literal)).toEqual([true, true, false]);
+  });
+
+  it("marks what another program runs as not as written, and what the line runs as written", () => {
+    const read = (line: string) => splitShellCommands(line)?.map(({ words, asWritten }) => [words.map((w) => w.text).join(" "), asWritten]);
+    expect(read("cd x && bash -c 'make' && (echo $(date))")).toEqual([
+      ["date", true],
+      ["echo $(date)", true],
+      ["cd x", true],
+      ["make", true],
+      ["bash -c make", true],
+    ]);
+    expect(read("sudo bash -c 'echo $(date)'")).toEqual([
+      ["date", false],
+      ["echo $(date)", false],
+      ["sudo bash -c echo $(date)", true],
+    ]);
+    expect(read("su -c 'make'; trap 'rm -f x' EXIT")).toEqual([
+      ["make", false],
+      ["su -c make", true],
+      ["rm -f x", false],
+      ["trap rm -f x EXIT", true],
+    ]);
   });
 
   it.each([
