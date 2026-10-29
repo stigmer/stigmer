@@ -12,9 +12,9 @@
  * the laptop's own identity.
  *
  * The owner's account is resolved from the row's creator stamp through the
- * identity-account domain's `accountForStamp` — as an account id (rows
- * stamped since 3.15.0) and as the raw issuer subject (rows the 3.14.x
- * verifiers stamped), the same two shapes `Person` aliases. A stamp that
+ * identity-account domain's `accountForStamp` — as an account id and as
+ * the raw issuer subject (a write made before the caller's account existed
+ * carries their subject), the same two shapes `Person` aliases. A stamp that
  * resolves to no account is a DETERMINISTIC refusal
  * (`RoutineFireRefusedError`): the empty stamp, the laptop's `"system"`, an
  * email from the trusted-local era, a deleted account — no retry will make

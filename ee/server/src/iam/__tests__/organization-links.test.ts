@@ -8,14 +8,14 @@
  *     another relation, or a link to another organization, does not;
  *   - it never resurrects: a row whose organization is gone, whose slug
  *     now belongs to an organization created after the row, or which has
- *     no creation time of its own is reported and not linked; an
- *     organization with no recorded creation time is the original, and
- *     is linked;
+ *     no creation time of its own is reported and not linked; a row whose
+ *     organization was created no later than it is linked;
  *   - each organization is looked up once, and one row's failure is
  *     reported while the rest converge;
  *   - an invitation, the second kind the boot reconciles, is linked by
  *     the same rule under its own kind name;
- *   - the in-process lookup answers a missing organization as none, and
+ *   - the in-process lookup refuses an organization that carries no
+ *     creation time as a fault, answers a missing organization as none, and
  *     any other refusal as a fresh error with the same code and copy and
  *     none of the inner response's metadata (the library's
  *     `rethrownStatusError`).
@@ -42,6 +42,7 @@ import {
   InvitationSchema,
   InvitationStatusSchema,
 } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/api_pb";
+import { OrganizationSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import { OrganizationQueryController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/query_pb";
 
 import { storedIssuer } from "../issuer/__tests__/in-memory-issuer-store.js";
@@ -93,7 +94,7 @@ function rig(options: {
   return { deps, written, lookedUp };
 }
 
-const live = (createdAt: Date | undefined): OrganizationFacts => ({
+const live = (createdAt: Date): OrganizationFacts => ({
   createdAt,
   name: "",
   slug: "",
@@ -184,24 +185,18 @@ describe("reconcileOrganizationLinks", () => {
     expect(r.written).toEqual([]);
   });
 
-  it("links a row to an organization with no recorded creation time, and to one created no later than the row", async () => {
+  it("links a row to an organization created no later than the row", async () => {
     const r = rig({
-      organizations: new Map([
-        ["legacy", live(undefined)],
-        ["sametime", live(ROW_CREATED)],
-      ]),
+      organizations: new Map([["sametime", live(ROW_CREATED)]]),
     });
 
     const report = await reconcileOrganizationLinks(
       ApiResourceKind.federation_issuer,
-      [
-        storedIssuer({ id: "fis_legacy", org: "legacy", slug: "legacy", createdAt: ROW_CREATED }),
-        storedIssuer({ id: "fis_same", org: "sametime", slug: "same", createdAt: ROW_CREATED }),
-      ],
+      [storedIssuer({ id: "fis_same", org: "sametime", slug: "same", createdAt: ROW_CREATED })],
       r.deps,
     );
 
-    expect(report).toEqual({ converged: 2, orphaned: [], failures: [] });
+    expect(report).toEqual({ converged: 1, orphaned: [], failures: [] });
   });
 
   it("looks each organization up once, and reports one row's failure while the rest converge", async () => {
@@ -272,6 +267,17 @@ describe("the in-process organization lookup", () => {
       }),
     });
   }
+
+  it("refuses an organization that carries no creation time as a fault, never as an original", async () => {
+    const lookup = newInProcessOrganizationLookup({
+      transport: createRouterTransport((router) => {
+        router.service(OrganizationQueryController, {
+          get: () => create(OrganizationSchema, { metadata: { id: "org_bare", slug: "bare" } }),
+        });
+      }),
+    });
+    await expect(lookup.find("org_bare")).rejects.toThrow("organization org_bare carries no creation time");
+  });
 
   it("answers a missing organization as none", async () => {
     const lookup = lookupRefusing(new ConnectError("Organization not found: org_gone", Code.NotFound));

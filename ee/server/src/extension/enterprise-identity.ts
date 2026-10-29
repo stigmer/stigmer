@@ -71,10 +71,8 @@
  * chain (`schema.ensure`), whose failure fails the start, so a server
  * whose tables are not there never listens; then the boot repairs, in
  * order: the missing organization links of providers,
- * invitations and teams, then the direct owner rows the two no-owner kinds
- * that once carried one must not carry (teams never recorded an owner).
- * Each is best-effort and logged row by row, and nothing serves until
- * they have run.
+ * invitations and teams. Each is best-effort and logged row by row, and
+ * nothing serves until they have run.
  *
  * Hosted by the host's own IAM unit, not threaded between units by the
  * host's entry: that unit owns the adapters this unit takes, and this is a
@@ -162,8 +160,6 @@ import {
   reconcileOrganizationLinks,
 } from "../iam/organization-links.js";
 import type { OrganizationScopedRow } from "../iam/organization-links.js";
-import { reconcileOwnerRows } from "../iam/owner-rows.js";
-import type { OwnerRowKind } from "../iam/owner-rows.js";
 import { newGrantPathClient } from "../iam/grant/grant-path-client.js";
 import { newFederationIssuerRegistrations } from "../iam/issuer/handlers.js";
 import { newIssuerRemoval } from "../iam/issuer/removal.js";
@@ -213,12 +209,6 @@ export interface EnterpriseIdentityPorts {
    */
   readonly growthGate?: GrowthGate;
 }
-
-/** The kinds this domain serves that record no owner, in the order the boot reconciles them. */
-const ENTERPRISE_OWNER_ROW_KINDS: ReadonlyArray<OwnerRowKind> = [
-  { kind: ApiResourceKind.federation_issuer, key: "federation-issuer", idField: "provider" },
-  { kind: ApiResourceKind.invitation, key: "invitation", idField: "invitation" },
-];
 
 /** The composition's instances as this unit uses them: every one present. */
 interface HandedOver {
@@ -286,14 +276,12 @@ export function newEnterpriseIdentityExtension(
       await composed().lifecycle?.onVisibilityChanged(event);
     },
   };
-  // The grant rows, read through the composition's one binding: by
-  // resource for the link repair, by kind and relation for the owner-row
-  // reconcile, the scope link for the grant gate.
+  // The grant rows, read through the composition's one binding
+  // (ComposedGrants): by resource for the link repair, the scope link for
+  // the grant gate.
   const grantStore: ComposedGrants = {
     findByResource: (kind, id) => composed().grants.findByResource(kind, id),
     findScopeTuple: (kind, id) => composed().grants.findScopeTuple(kind, id),
-    findByResourceKindAndRelation: (kind, relation) =>
-      composed().grants.findByResourceKindAndRelation(kind, relation),
   };
   // Which organization a shared resource belongs to, for the grant gate
   // where no scope link is stored (the built-in posture stores none).
@@ -419,15 +407,6 @@ export function newEnterpriseIdentityExtension(
     );
   }
 
-  // Every direct `owner` row on a provider or an invitation is revoked,
-  // read by kind and relation from the grant rows (iam/owner-rows.ts),
-  // since both kinds are managed by their organization's current admins
-  // alone; a provider's first, and one kind's failed read never skips the
-  // next.
-  async function revokeOwnerRows(): Promise<void> {
-    await reconcileOwnerRows(ENTERPRISE_OWNER_ROW_KINDS, { grantStore, grants, logger });
-  }
-
   const rowReaders = new Map<ApiResourceKind, ResourceRowReader>([
     [ApiResourceKind.federation_issuer, { findById: (id) => providers.findById(id) }],
     [ApiResourceKind.invitation, { findById: (id) => ports.invitations.findById(id) }],
@@ -550,7 +529,6 @@ export function newEnterpriseIdentityExtension(
     async start(): Promise<void> {
       await ports.schema.ensure();
       await repairOrganizationLinks();
-      await revokeOwnerRows();
     },
   };
 }

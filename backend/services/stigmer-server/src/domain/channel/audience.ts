@@ -9,12 +9,11 @@
  *     after BuildUpdateState, which rebuilds the state from the request),
  *     so every stored web channel and every echo says what it means.
  *   - channelAdmitsAnyone is the one question every reader asks (a web
- *     channel whose audience is exactly public). A row stored before the
- *     server wrote the audience out, still holding 0, therefore reads as
- *     organization-only: it narrows, never widens. A Slack or WhatsApp
- *     channel admits no anonymous visitor at all. Editions ask it through
- *     the package root instead of comparing to org, which once let an
- *     omitted audience mean public.
+ *     channel whose audience is exactly public). A row holding 0 therefore
+ *     reads as organization-only: it narrows, never widens. A Slack or
+ *     WhatsApp channel admits no anonymous visitor at all. Editions ask it
+ *     through the package root instead of comparing to org, so an omitted
+ *     audience can never read as public.
  */
 import type { ChannelSchema } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
 import {

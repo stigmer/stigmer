@@ -20,9 +20,6 @@ export const RUNNER_SECRET_NAMES: readonly string[] = [
   "STIGMER_RUNNER_HITL_SECRET",
   "STIGMER_TOKEN",
   "STIGMER_AUTH_TOKEN",
-  // The retired Cursor harness's key: a deployment that still lists it
-  // delivers it as a secret, and the runner keeps it from agent processes.
-  "CURSOR_API_KEY",
   "ANTHROPIC_API_KEY",
   "OPENAI_API_KEY",
   "ANTHROPIC_FOUNDRY_API_KEY",

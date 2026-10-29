@@ -43,7 +43,7 @@ export function newRefuseLocalProgramsStep(
       const agentId = session.status?.agentId ?? "";
       const versionHash = session.status?.agentVersionHash ?? "";
       const agentSpec =
-        agentId === "" || versionHash === ""
+        agentId === ""
           ? undefined
           : (await loadVersion(store, agentVersionBinding, agentId, versionHash)).resource.spec;
       const subagents = await runSubagents(store, agentSpec, org);

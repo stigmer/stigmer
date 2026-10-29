@@ -53,6 +53,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import { AgentVersionEntrySchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/version_pb";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import {
   RunCredentialsSchema,
@@ -279,6 +280,7 @@ async function seedExecution(init: {
   phase: RunPhase;
   sessionId?: string;
   agentId?: string;
+  agentVersionHash?: string;
   error?: string;
 }): Promise<string> {
   counter += 1;
@@ -302,6 +304,7 @@ async function seedExecution(init: {
         phase: init.phase,
         error: init.error ?? "",
         agentId: init.agentId ?? "",
+        agentVersionHash: init.agentVersionHash ?? "",
       },
     }),
   );
@@ -334,9 +337,8 @@ function stubPlannerDeps(overrides?: {
         overrides?.onAgentGet?.(agentId);
         return agent;
       },
-      getVersion: async () => {
-        throw new Error("this turn records no agent version");
-      },
+      getVersion: async (_agentId, versionHash) =>
+        create(AgentVersionEntrySchema, { versionHash, specSnapshot: {} }),
     }),
     sessionLoader: () => ({
       get: async (sessionId) =>
@@ -1074,6 +1076,9 @@ describe("lifecycle pipelines", () => {
   });
 
   describe("recover records the agent a turn runs", () => {
+    /** The version every pinned session and recorded turn here names. */
+    const PINNED_HASH = "c".repeat(64);
+
     async function storePinnedSession(
       sessionId: string,
       agentId: string,
@@ -1084,7 +1089,7 @@ describe("lifecycle pipelines", () => {
         SessionSchema,
         create(SessionSchema, {
           metadata: { id: sessionId, org: "acme" },
-          status: { agentId, agentVersionHash: "" },
+          status: { agentId, agentVersionHash: agentId === "" ? "" : PINNED_HASH },
         }),
       );
     }
@@ -1212,6 +1217,7 @@ describe("lifecycle pipelines", () => {
         phase: RunPhase.RUN_FAILED,
         sessionId: "ses_repointed",
         agentId: "agt_recorded",
+        agentVersionHash: PINNED_HASH,
       });
 
       await recoverExecution(

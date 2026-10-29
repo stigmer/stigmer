@@ -245,9 +245,9 @@ export interface SearchIndexQueryResult {
 
 /**
  * Key-value state for one-shot boot work that must run once per database.
- * Two writers today: the membership rules' reconciliations
- * (`grant/constants.ts` ROLES_RECONCILED_KEY and
- * SERVER_ORGANIZATION_ROLES_KEY) and the boot step that makes a
+ * Two writers today: the membership rules' server-organization pass
+ * (`grant/constants.ts` SERVER_ORGANIZATION_ROLES_KEY) and the boot step
+ * that makes a
  * one-organization server's organization (`domain/organization/limit.ts`
  * SINGLE_ORG_KEY). A database migrated
  * from the Go server carries that server's bootstrap keys too; the
@@ -331,8 +331,7 @@ export interface ResourceNameRename {
   readonly to: string;
   /**
    * When the names this rename demotes stop resolving; "" holds them for
-   * good. A name equal to `id` is held for good whatever this says: it is
-   * the id an earlier release filed the resource's rows under.
+   * good.
    */
   readonly fromExpiresAt: string;
   /** RFC-3339 now, the instant expiry is judged against. */
@@ -395,9 +394,7 @@ export interface ResourceNameStore {
   revertRename(rename: ResourceNameRename, takenBack?: ResourceNameEntry): Promise<void>;
   /**
    * Lets go of every name `id` holds in the kind and scope (its delete, or a
-   * create whose row never landed). A name equal to `id` is kept, as a
-   * previous name that never expires: a resource from an earlier release
-   * was filed under it. Idempotent.
+   * create whose row never landed). Idempotent.
    */
   release(kind: string, org: string, id: string): Promise<void>;
   /** Lets go of one name while `id` holds it (a resource that holds several and drops one). Idempotent. */

@@ -10,12 +10,10 @@
  *     sign-in the server acting as nobody, so the stamp is "system"), its
  *     id recorded under SINGLE_ORG_KEY, and the holder settled to it;
  *   - a store that holds one organization is left alone, filled with it,
- *     and records it as the server's, whoever made it (an older release's
- *     console or CLI, or a start of this server that died before its
- *     record); a record that names another organization is replaced;
+ *     and records it as the server's, whoever made it (a person's console
+ *     or CLI, or a start of this server that died before its record); a
+ *     record that names another organization is replaced;
  *   - a store that holds several fills nothing and warns with the count;
- *   - a store whose ledger retired the slug, holding none, warns, fills
- *     nothing, clears the roles pass it marked owed, and boots;
  *   - a create that loses the race to another replica, refused at the
  *     duplicate check (AlreadyExists) or at the limit
  *     (ORGANIZATION_LIMIT_REACHED), finds the winner's organization, fills
@@ -23,7 +21,8 @@
  *   - a loser that reads the store before the winner's row is stored
  *     re-reads for about a second and finds it;
  *   - a create refused as a duplicate that leaves the store with none (a
- *     slug claim with no organization) warns, fills nothing, and boots;
+ *     slug claim with no organization) warns, fills nothing, clears the
+ *     roles pass it marked owed, and boots;
  *   - a store that holds several clears an earlier record;
  *   - any other failure of the create is a boot throw naming the cause.
  */
@@ -63,7 +62,6 @@ import {
   encodeInProcessCaller,
   serverActingFor,
 } from "../../pipeline/interceptors/auth.js";
-import { organizationNameKey } from "../../domain/organization/names.js";
 import { newSingleOrganizationHolder } from "../../pipeline/interceptors/single-organization.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 
@@ -258,30 +256,6 @@ describe("ensureSingleOrganization", () => {
     );
   });
 
-  it("a store whose ledger retired the slug, holding none, warns, fills nothing and boots", async () => {
-    await composeWith();
-    // The upgrade carries a slug the old ledger retired as a name reserved
-    // for good: an earlier release's deleted `stigmer`, whose id it was.
-    await server.store.resourceNames.claim(organizationNameKey("stigmer"), "stigmer", new Date().toISOString());
-    await server.store.resourceNames.release("organization", "", "stigmer");
-    const { holder, run } = ensure();
-    const started = Date.now();
-    await run();
-
-    expect(Date.now() - started, "no wait for a winner that will never come").toBeLessThan(500);
-    expect(await organizations()).toHaveLength(0);
-    expect(holder.current()).toBeUndefined();
-    expect(await server.store.bootstrapState.get(SINGLE_ORG_KEY)).toBe("");
-    // Marked owed before the create, which made nothing: no longer owed.
-    expect(
-      await server.store.bootstrapState.get(SERVER_ORGANIZATION_ROLES_KEY),
-    ).toBe("");
-    expect(lines).toContainEqual(
-      expect.objectContaining({ level: "warn", slug: "stigmer" }),
-    );
-    expect(lines.some((line) => line.message.includes("is reserved for an organization an earlier release made and deleted"))).toBe(true);
-  });
-
   it.each([
     [
       "refused at the duplicate check (AlreadyExists, no reason)",
@@ -377,6 +351,10 @@ describe("ensureSingleOrganization", () => {
 
     expect(holder.current()).toBeUndefined();
     expect(await server.store.bootstrapState.get(SINGLE_ORG_KEY)).toBe("");
+    // Marked owed before the create, which made nothing: no longer owed.
+    expect(
+      await server.store.bootstrapState.get(SERVER_ORGANIZATION_ROLES_KEY),
+    ).toBe("");
     expect(lines).toContainEqual(
       expect.objectContaining({
         level: "warn",

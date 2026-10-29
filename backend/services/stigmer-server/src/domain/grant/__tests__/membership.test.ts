@@ -18,21 +18,20 @@
  *   - `admin` when the account's email is STIGMER_OPERATOR_EMAIL (and that
  *     email is configured — an empty one matches nobody);
  *   - `member` otherwise, in the open-source edition; above it nothing,
- *     at first sign-in and in the reconciliation alike, while arms 1 to 4
- *     still answer;
+ *     at first sign-in and in the server-organization pass alike, while
+ *     arms 1 to 4 still answer;
  *   - nothing on an organization being deleted (its delete revoked every
  *     row, which is the state arms 4 and 5 grant on);
  *   - nothing for a non-`user` caller class; nothing on an organization
  *     the account already holds a row on (idempotent by construction), so
  *     a run that faulted midway converges on the next;
- *   - nothing, in the reconciliation, for a federated account, whose
- *     subject and email its federation issuer chose: one asserting a
- *     founder's subject and the operator's email earns neither `owner`
- *     nor `admin`, nor `member` anywhere;
- *   - `isPersonAccount` is an allow-list: a `direct` or legacy
- *     unspecified-mode row that is not a machine account, and nothing
- *     else (machine, app user, federated, service account), so a
- *     mode added later is not a person until the rule says so.
+ *   - nothing, in the server-organization pass, for a federated account,
+ *     whose subject and email its federation issuer chose: one asserting
+ *     the operator's email earns no role there;
+ *   - `isPersonAccount` is an allow-list: a `direct` row that is not a
+ *     machine account, and nothing else (machine, app user, federated,
+ *     service account, a row that records no mode), so a mode added later
+ *     is not a person until the rule says so.
  *
  *   ensureOperatorOwnership(operator): `owner` on every organization that
  *   has NO owner row (a boot-time write never overrides a recorded
@@ -40,23 +39,20 @@
  *   the operator's account — id, email and display name — like every
  *   other trusted-local write.
  *
- *   ensureRolesForExistingAccounts(): the one-shot reconciliation for a
- *   database whose accounts were provisioned before the rules existed (a
- *   3.15.x OIDC self-host upgrading). The SAME arms, run once per person
- *   account in creation order — the order their sign-ins would have run
- *   the hook in — then a marker in the store's bootstrap state so it never
- *   runs again; a second call reads nothing and writes nothing; a machine
- *   account gets nothing; a person already holding a row on an
- *   organization is left alone there and reconciled elsewhere; a fault
- *   propagates with the marker unset so the next boot converges; a
- *   database whose rows were all revoked AFTER the marker is untouched (a
- *   revoked founder is not re-admitted by a reboot); zero accounts still
- *   set the marker. `roleFor` is the arms as one pure function, pinned as
- *   a table.
+ *   ensureRolesOnServerOrganization(): the pass over the organization a
+ *   one-organization server made on a store that already held people. It
+ *   waits while the server holds none; owed, the SAME arms run once per
+ *   person account on that organization only, in creation order — the
+ *   order their sign-ins ran in — then a marker in the store's bootstrap
+ *   state so it never runs again; a second call writes nothing; a
+ *   federated or machine account gets nothing; a fault propagates with the
+ *   pass still owed so the next boot converges; a store that already held
+ *   its organization owes nothing. `roleFor` is the arms as one pure
+ *   function, pinned as a table.
  *
  * The creator stamps the rules read are `status.audit.spec_audit.created_by
- * .id`, which for a legacy self-host is the raw issuer subject and for a
- * provisioned caller is the account id, so
+ * .id`, which for a write made before the caller's account existed is the
+ * raw issuer subject and for a provisioned caller is the account id, so
  * both spellings are seeded and both must match. A stamp is a PERSON when
  * it is non-empty and not the unconfigured laptop's "system" placeholder;
  * the rules classify stamps by shape and consult no account store.
@@ -86,7 +82,6 @@ import { accountIdFor } from "../../identityaccount/constants.js";
 import { SINGLE_ORG_KEY } from "../../organization/limit.js";
 import {
   BLUEPRINT_KINDS,
-  ROLES_RECONCILED_KEY,
   SERVER_ORGANIZATION_ROLES_KEY,
   SERVER_ORGANIZATION_ROLES_OWED,
 } from "../constants.js";
@@ -630,14 +625,6 @@ describe("membership rules", () => {
       expect(rolesOf(second.metadata!.id)).toEqual(["member@stigmer"]);
     });
 
-    it("the reconciliation reads the key too: the operator's existing account becomes owner", async () => {
-      const operator = await seedAccount("auth0|operator", OPERATOR_EMAIL, 100);
-
-      await rules.ensureRolesForExistingAccounts();
-
-      expect(rolesOf(operator.metadata!.id)).toEqual(["owner@stigmer"]);
-    });
-
     it("an organization the server did not make keeps today's answers", async () => {
       await seedOrg("acme", "system");
       const operator = account("auth0|operator", OPERATOR_EMAIL);
@@ -991,16 +978,14 @@ describe("membership rules", () => {
       expect(isPersonAccount(serviceAccount)).toBe(false);
     });
 
-    it("a legacy row from before modes were recorded is a person, unless it is a machine account", () => {
-      const legacy = account("auth0|legacy", "legacy@example.com");
-      legacy.spec!.provisioningMode =
+    it("a row that records no mode is not: every create records one, so it names nobody who signed in", () => {
+      const unrecorded = account("auth0|unrecorded", "unrecorded@example.com");
+      unrecorded.spec!.provisioningMode =
         IdentityAccountProvisioningMode.identity_account_provisioning_mode_unspecified;
-      expect(isPersonAccount(legacy)).toBe(true);
-      legacy.spec!.isMachineAccount = true;
-      expect(isPersonAccount(legacy)).toBe(false);
+      expect(isPersonAccount(unrecorded)).toBe(false);
     });
 
-    it("is an allow-list: every mode but direct and unspecified is not a person, a mode added later included", () => {
+    it("is an allow-list: every mode but direct is not a person, a mode added later included", () => {
       const persons = Object.values(IdentityAccountProvisioningMode)
         .filter((mode): mode is IdentityAccountProvisioningMode =>
           typeof mode === "number",
@@ -1010,12 +995,7 @@ describe("membership rules", () => {
           row.spec!.provisioningMode = mode;
           return isPersonAccount(row);
         });
-      expect(persons.sort()).toEqual(
-        [
-          IdentityAccountProvisioningMode.identity_account_provisioning_mode_unspecified,
-          IdentityAccountProvisioningMode.direct,
-        ].sort(),
-      );
+      expect(persons).toEqual([IdentityAccountProvisioningMode.direct]);
       const unknown = account("auth0|future", "future@example.com");
       unknown.spec!.provisioningMode = 99 as IdentityAccountProvisioningMode;
       expect(isPersonAccount(unknown)).toBe(false);
@@ -1065,14 +1045,18 @@ describe("membership rules", () => {
       ]);
     });
 
-    it("the reconciliation grants no membership either", async () => {
+    it("the server-organization pass grants no membership either", async () => {
       const enterprise = rulesOver(grants, OPERATOR_EMAIL, ServerEdition.enterprise);
-      await seedOrg("acme", "auth0|alice");
-      await seedAgent("agt_alice", "acme", "auth0|alice");
+      await store.bootstrapState.set(
+        SERVER_ORGANIZATION_ROLES_KEY,
+        SERVER_ORGANIZATION_ROLES_OWED,
+      );
+      await seedOrg("stigmer", "system");
+      await store.bootstrapState.set(SINGLE_ORG_KEY, "stigmer");
       const alice = await seedAccount("auth0|alice", "alice@example.com", 1);
       const dave = await seedAccount("auth0|dave", "dave@example.com", 2);
-      await enterprise.ensureRolesForExistingAccounts();
-      expect(rolesOf(alice.metadata!.id)).toEqual(["owner@acme"]);
+      await enterprise.ensureRolesOnServerOrganization();
+      expect(rolesOf(alice.metadata!.id)).toEqual(["admin@stigmer"]);
       expect(rolesOf(dave.metadata!.id)).toEqual([]);
     });
 
@@ -1085,179 +1069,17 @@ describe("membership rules", () => {
     });
   });
 
-  describe("ensureRolesForExistingAccounts", () => {
-    it("a 3.15.x database — accounts and no rows — gets the rows the sign-ins would have written, as each account, and the marker", async () => {
-      await seedOrg("acme", "auth0|alice");
-      await seedAgent("agt_bob", "acme", "auth0|bob");
-      const alice = await seedAccount("auth0|alice", "alice@example.com", 100);
-      const bob = await seedAccount("auth0|bob", "bob@example.com", 200);
-      const carol = await seedAccount("auth0|carol", "carol@example.com", 300);
-
-      await rules.ensureRolesForExistingAccounts();
-
-      expect(rolesOf(alice.metadata!.id)).toEqual(["owner@acme"]);
-      expect(rolesOf(bob.metadata!.id)).toEqual(["admin@acme"]);
-      expect(rolesOf(carol.metadata!.id)).toEqual(["member@acme"]);
-      expect(actorsOf()).toEqual([
-        alice.metadata!.id,
-        bob.metadata!.id,
-        carol.metadata!.id,
-      ]);
-      expect(await store.bootstrapState.get(ROLES_RECONCILED_KEY)).toMatch(
-        /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/,
-      );
-    });
-
-    it("a federated account earns no role, though its provider asserted the founder's subject and the operator's email", async () => {
-      await seedOrg("acme", "auth0|alice");
-      await seedOrg("globex", "auth0|carol");
-      const federated = await seedAccount("auth0|alice", OPERATOR_EMAIL, 100, {
-        federated: true,
-      });
-
-      await rules.ensureRolesForExistingAccounts();
-
-      expect(rolesOf(federated.metadata!.id)).toEqual([]);
-    });
-
-    it("reconciles no one into a child organization", async () => {
-      await seedOrg("acme", "auth0|alice");
-      await seedOrg("acme-cust", "auth0|alice", "acme");
-      const alice = await seedAccount("auth0|alice", "alice@example.com", 10);
-      const dave = await seedAccount("auth0|dave", "dave@example.com", 20);
-      await rules.ensureRolesForExistingAccounts();
-      expect(rolesOf(alice.metadata!.id)).toEqual(["owner@acme"]);
-      expect(rolesOf(dave.metadata!.id)).toEqual(["member@acme"]);
-    });
-
-    it("a second call is a no-op — the marker short-circuits before any read", async () => {
-      await seedOrg("acme", "auth0|alice");
-      await seedAccount("auth0|alice", "alice@example.com", 100);
-      await rules.ensureRolesForExistingAccounts();
-      const marker = await store.bootstrapState.get(ROLES_RECONCILED_KEY);
-      const before = [...grants.rows.keys()];
-      await seedAccount("auth0|late", "late@example.com", 400);
-
-      await rules.ensureRolesForExistingAccounts();
-
-      expect([...grants.rows.keys()]).toEqual(before);
-      expect(await store.bootstrapState.get(ROLES_RECONCILED_KEY)).toBe(marker);
-    });
-
-    it("a half-run database — some people already hold rows — is reconciled only where they do not", async () => {
-      await seedOrg("acme", "auth0|alice");
-      const alice = await seedAccount("auth0|alice", "alice@example.com", 100);
-      // Alice's sign-in already ran the hook when only acme existed.
-      await rules.onAccountCreated(alice, userCaller(alice.metadata!.id));
-      expect(rolesOf(alice.metadata!.id)).toEqual(["owner@acme"]);
-      await seedOrg("globex", "auth0|carol");
-      const bob = await seedAccount("auth0|bob", "bob@example.com", 200);
-
-      await rules.ensureRolesForExistingAccounts();
-
-      expect(rolesOf(alice.metadata!.id)).toEqual([
-        "member@globex",
-        "owner@acme",
-      ]);
-      expect(rolesOf(bob.metadata!.id)).toEqual([
-        "member@acme",
-        "member@globex",
-      ]);
-    });
-
-    it("a machine account gets nothing", async () => {
-      await seedOrg("acme", "system");
-      const bot = await seedAccount("bot@clients", "", 100, {
-        isMachineAccount: true,
-      });
-
-      await rules.ensureRolesForExistingAccounts();
-
-      expect(rolesOf(bot.metadata!.id)).toEqual([]);
-      expect(grants.rows.size).toBe(0);
-    });
-
-    it("accounts are reconciled in creation order — arm 4 hands an unclaimed organization to the first sign-in, not to whoever sorts first by id", async () => {
-      await seedOrg("acme", "system");
-      await seedAgent("agt_1", "acme", "system");
-      const [firstById, secondById] = [
-        accountIdFor("auth0|p"),
-        accountIdFor("auth0|q"),
-      ].sort();
-      const subOf = (id: string): string =>
-        id === accountIdFor("auth0|p") ? "auth0|p" : "auth0|q";
-      // The account that sorts FIRST by id signed in LATER.
-      const later = await seedAccount(
-        subOf(firstById!),
-        "later@example.com",
-        900,
-      );
-      const earlier = await seedAccount(
-        subOf(secondById!),
-        "earlier@example.com",
-        100,
-      );
-
-      await rules.ensureRolesForExistingAccounts();
-
-      expect(rolesOf(earlier.metadata!.id)).toEqual(["admin@acme"]);
-      expect(rolesOf(later.metadata!.id)).toEqual(["member@acme"]);
-    });
-
-    it("a store fault mid-pass propagates with the marker unset; the next call converges with no duplicate row", async () => {
-      await seedOrg("acme", "auth0|alice");
-      await seedAccount("auth0|alice", "alice@example.com", 100);
-      await seedAccount("auth0|bob", "bob@example.com", 200);
-      let faultsLeft = 1;
-      const healthy = fakeGrantStore();
-      const flaky: GrantStore = {
-        ...healthy,
-        async save(grant) {
-          if (healthy.rows.size === 1 && faultsLeft > 0) {
-            faultsLeft -= 1;
-            throw new Error("disk full");
-          }
-          await healthy.save(grant);
-        },
-      };
-      const flakyRules = rulesOver(flaky);
-
-      await expect(flakyRules.ensureRolesForExistingAccounts()).rejects.toThrow(
-        "disk full",
-      );
-      expect(healthy.rows.size).toBe(1);
-      expect(await store.bootstrapState.get(ROLES_RECONCILED_KEY)).toBe("");
-
-      await flakyRules.ensureRolesForExistingAccounts();
-
-      expect(
-        [...healthy.rows.values()]
-          .map((p) => `${p.spec?.relation}@${p.spec?.resource?.id}`)
-          .sort(),
-      ).toEqual(["member@acme", "owner@acme"]);
-      expect(await store.bootstrapState.get(ROLES_RECONCILED_KEY)).not.toBe("");
-    });
-
-    it("a database whose rows were all revoked AFTER the marker is untouched — a revoked founder is not re-admitted by a reboot", async () => {
-      await seedOrg("acme", "auth0|alice");
-      await seedAccount("auth0|alice", "alice@example.com", 100);
-      await rules.ensureRolesForExistingAccounts();
-      expect(grants.rows.size).toBe(1);
-      grants.rows.clear();
-
-      await rules.ensureRolesForExistingAccounts();
-
-      expect(grants.rows.size).toBe(0);
-    });
-
-    it("zero accounts still sets the marker — a fresh install is reconciled from its first boot", async () => {
-      await rules.ensureRolesForExistingAccounts();
-      expect(grants.rows.size).toBe(0);
-      expect(await store.bootstrapState.get(ROLES_RECONCILED_KEY)).not.toBe("");
-    });
-  });
-
   describe("ensureRolesOnServerOrganization", () => {
+    /** The server made `id` as nobody on this store, owing its people their roles. */
+    async function owe(id: string): Promise<void> {
+      await store.bootstrapState.set(
+        SERVER_ORGANIZATION_ROLES_KEY,
+        SERVER_ORGANIZATION_ROLES_OWED,
+      );
+      await seedOrg(id, "system");
+      await store.bootstrapState.set(SINGLE_ORG_KEY, id);
+    }
+
     it("waits while the server has made none: no rows and no marker", async () => {
       await seedOrg("acme", "system");
       await seedAccount("auth0|operator", OPERATOR_EMAIL, 100);
@@ -1328,6 +1150,86 @@ describe("membership rules", () => {
       expect(
         await store.bootstrapState.get(SERVER_ORGANIZATION_ROLES_KEY),
       ).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
+    });
+
+    it("a federated or machine account earns no role on it, though its provider asserted the operator's email", async () => {
+      await owe("stigmer");
+      const federated = await seedAccount("okta|00u1", OPERATOR_EMAIL, 100, {
+        federated: true,
+      });
+      const bot = await seedAccount("bot@clients", "", 200, {
+        isMachineAccount: true,
+      });
+
+      await rules.ensureRolesOnServerOrganization();
+
+      expect(rolesOf(federated.metadata!.id)).toEqual([]);
+      expect(rolesOf(bot.metadata!.id)).toEqual([]);
+      expect(grants.rows.size).toBe(0);
+    });
+
+    it("people get their roles in creation order: arm 4 hands it to the first sign-in, not to whoever sorts first by id", async () => {
+      await owe("stigmer");
+      const [firstById, secondById] = [
+        accountIdFor("auth0|p"),
+        accountIdFor("auth0|q"),
+      ].sort();
+      const subOf = (id: string): string =>
+        id === accountIdFor("auth0|p") ? "auth0|p" : "auth0|q";
+      // The account that sorts FIRST by id signed in LATER.
+      const later = await seedAccount(
+        subOf(firstById!),
+        "later@example.com",
+        900,
+      );
+      const earlier = await seedAccount(
+        subOf(secondById!),
+        "earlier@example.com",
+        100,
+      );
+
+      await rules.ensureRolesOnServerOrganization();
+
+      expect(rolesOf(earlier.metadata!.id)).toEqual(["admin@stigmer"]);
+      expect(rolesOf(later.metadata!.id)).toEqual(["member@stigmer"]);
+    });
+
+    it("a store fault mid-pass propagates with the pass still owed; the next call converges with no duplicate row", async () => {
+      await owe("stigmer");
+      await seedAccount("auth0|alice", "alice@example.com", 100);
+      await seedAccount("auth0|bob", "bob@example.com", 200);
+      let faultsLeft = 1;
+      const healthy = fakeGrantStore();
+      const flaky: GrantStore = {
+        ...healthy,
+        async save(grant) {
+          if (healthy.rows.size === 1 && faultsLeft > 0) {
+            faultsLeft -= 1;
+            throw new Error("disk full");
+          }
+          await healthy.save(grant);
+        },
+      };
+      const flakyRules = rulesOver(flaky);
+
+      await expect(flakyRules.ensureRolesOnServerOrganization()).rejects.toThrow(
+        "disk full",
+      );
+      expect(healthy.rows.size).toBe(1);
+      expect(
+        await store.bootstrapState.get(SERVER_ORGANIZATION_ROLES_KEY),
+      ).toBe(SERVER_ORGANIZATION_ROLES_OWED);
+
+      await flakyRules.ensureRolesOnServerOrganization();
+
+      expect(
+        [...healthy.rows.values()]
+          .map((p) => `${p.spec?.relation}@${p.spec?.resource?.id}`)
+          .sort(),
+      ).toEqual(["admin@stigmer", "member@stigmer"]);
+      expect(
+        await store.bootstrapState.get(SERVER_ORGANIZATION_ROLES_KEY),
+      ).not.toBe(SERVER_ORGANIZATION_ROLES_OWED);
     });
 
     it("with nobody in the store, writes nothing and still sets the marker: later people get their roles at sign-in", async () => {

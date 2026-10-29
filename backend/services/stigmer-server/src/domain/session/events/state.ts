@@ -2,7 +2,7 @@
  * A session's state, computed from its log on read and never stored: the
  * newest session status event says it. Running gives running, idle gives
  * idle, and a session with no status event yet (none of its runs ever
- * worked, or its runs predate the log) reads idle.
+ * worked) reads idle.
  *
  * The store answers it with one indexed read: the newest event of the two
  * status types (the session_events (session_id, type, seq) index).

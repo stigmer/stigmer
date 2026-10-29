@@ -210,14 +210,6 @@ export function newResourceGrantStore(
       return principals.size;
     },
 
-    findByResourceKindAndRelation(resourceKind, relation) {
-      return where(
-        (grant) =>
-          grant.spec?.resource?.kind === resourceKind &&
-          relationOf(grant) === relation,
-      );
-    },
-
     async listChanges(org, page): Promise<ReadonlyArray<GrantChange>> {
       const records = await store.listPermissionHistory(org, page);
       return records.map((record) => ({

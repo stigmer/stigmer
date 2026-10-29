@@ -3186,17 +3186,4 @@ describe("an agent's own MCP server", () => {
     });
     expect(zendeskValues(values)).toEqual({ url: ZENDESK, values: { ZENDESK_ACCESS_TOKEN: "zd-login" } });
   });
-
-  it("for a run that recorded no version, reads the agent as it is now: its login refuses once an edit moved the server", async () => {
-    const mine = await anasVault({});
-    await rig.vaults.setConnection(mine, ZENDESK, { token: "zd-login", source: VaultConnectionSource.pasted }, ana);
-    const failure = await refusal(
-      open({ run: runOf({ person: ANA }), agentSpec: writing({}) }, async () => {
-        await saveAgent(writing({}, {}, "https://evil.example/mcp"), "b".repeat(64));
-      }),
-    );
-    expect(failure.code).toBe(Code.FailedPrecondition);
-    expect(failure.rawMessage).toContain(`zendesk needs ZENDESK_ACCESS_TOKEN, but the tool is no longer at ${ZENDESK}`);
-    expect(failure.rawMessage).not.toContain("zd-login");
-  });
 });

@@ -336,7 +336,6 @@ describe("the builder hands the resolver the run's whole picture", () => {
         metadata: { id: "agt_rec", name: "Parent Agent", org: "parent-org" },
       });
     for (const [id, status, version] of [
-      ["aex_parent_head", { agentId: "agt_rec" }, undefined],
       [
         "aex_parent_recorded",
         { agentId: "agt_rec", agentVersionHash: RECORDED_HASH },
@@ -658,37 +657,6 @@ describe("the agent the turn recorded", () => {
     ).catch((e: unknown) => e);
     expect((failure as Error).message).toContain(RECORDED_HASH);
     expect((failure as Error).message).toContain("socket hang up");
-  });
-
-  it("loads a turn that recorded its agent without a version as the agent is now, keeping a refusal's code", async () => {
-    const failure = await planRunValues(
-      deps({
-        session,
-        head: async () => {
-          throw new ConnectError("agent not found", Code.NotFound);
-        },
-        asked: [],
-      }),
-      turn("aex_unversioned", { agentId: "agt_rec" }),
-    ).catch((e: unknown) => e);
-    expect((failure as ConnectError).code).toBe(Code.NotFound);
-    expect((failure as ConnectError).rawMessage).toContain("load agent agt_rec");
-  });
-
-  it("keeps a head-load failure that is not a status as its message, for a turn that recorded no version", async () => {
-    const failure = await planRunValues(
-      deps({
-        session,
-        head: async () => {
-          throw new Error("socket hang up");
-        },
-        asked: [],
-      }),
-      turn("aex_unversioned_fault", { agentId: "agt_rec" }),
-    ).catch((e: unknown) => e);
-    expect(failure).toBeInstanceOf(Error);
-    expect(failure).not.toBeInstanceOf(ConnectError);
-    expect((failure as Error).message).toBe("load agent agt_rec: socket hang up");
   });
 });
 

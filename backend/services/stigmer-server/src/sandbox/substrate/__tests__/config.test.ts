@@ -4,8 +4,7 @@
  * client certificate (only for an https:// router), the parsing of the
  * selector and the extra destinations, the platform HTTPS hosts
  * (EGRESS_HTTPS_PLATFORM, parseHosts: lower-cased, each once, a scheme,
- * port, path or pattern refused), and the settings Substrate 0.6 retired,
- * each refused at boot with where its job went.
+ * port, path or pattern refused).
  */
 import { describe, expect, it } from "vitest";
 
@@ -40,26 +39,6 @@ describe("newSubstrateSettingsFromEnv", () => {
       suspendAfterSeconds: 300,
       sweepIntervalSeconds: 30,
     });
-  });
-
-  it("refuses each setting Substrate 0.6 retired, naming where its job went", () => {
-    for (const [name, home] of [
-      ["PAUSE_AFTER_SECONDS", /STIGMER_SANDBOX_SUBSTRATE_SUSPEND_AFTER_SECONDS/],
-      ["SANDBOX_CONFIG", /WorkerPool's sandboxClasses/],
-      ["NODE_AGENT_PRINCIPAL", /system role of its own/],
-    ] as const) {
-      const variable = `STIGMER_SANDBOX_SUBSTRATE_${name}`;
-      expect(() =>
-        newSubstrateSettingsFromEnv({ ...base, [variable]: "300" }),
-      ).toThrow(new RegExp(`^${variable} is retired and nothing reads it`));
-      expect(() =>
-        newSubstrateSettingsFromEnv({ ...base, [variable]: "300" }),
-      ).toThrow(home);
-      // Set but empty is not set.
-      expect(() =>
-        newSubstrateSettingsFromEnv({ ...base, [variable]: " " }),
-      ).not.toThrow();
-    }
   });
 
   it("names each missing required value", () => {
