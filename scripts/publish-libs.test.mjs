@@ -169,16 +169,16 @@ test("generateDistPackageJson keeps which peers are optional (stigmer#2621)", ()
     writeFileSync(
       join(pkgDir, "package.json"),
       JSON.stringify({
-        name: "@stigmer/react-sdk",
-        peerDependencies: { "@stigmer/client": "*", mermaid: "^11.0.0", react: "^19.0.0" },
-        peerDependenciesMeta: { mermaid: { optional: true } },
+        name: "@stigmer/client",
+        peerDependencies: { "@stigmer/apis": "*", "@connectrpc/connect-node": "^2.0.0" },
+        peerDependenciesMeta: { "@connectrpc/connect-node": { optional: true } },
       }),
     );
 
     const dist = JSON.parse(readFileSync(generateDistPackageJson(pkgDir, "1.2.3"), "utf8"));
 
-    assert.deepEqual(dist.peerDependencies, { "@stigmer/client": "1.2.3", mermaid: "^11.0.0", react: "^19.0.0" });
-    assert.deepEqual(dist.peerDependenciesMeta, { mermaid: { optional: true } });
+    assert.deepEqual(dist.peerDependencies, { "@stigmer/apis": "1.2.3", "@connectrpc/connect-node": "^2.0.0" });
+    assert.deepEqual(dist.peerDependenciesMeta, { "@connectrpc/connect-node": { optional: true } });
   } finally {
     rmSync(pkgDir, { recursive: true, force: true });
   }

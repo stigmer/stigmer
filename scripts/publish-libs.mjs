@@ -330,8 +330,8 @@ export function generateDistPackageJson(pkgDir, version) {
     );
   }
   // Which peers are optional. Without it npm 7+ installs every peer as a
-  // required one, so an app adopting the React kit would get CodeMirror and
-  // mermaid whether or not it uses them (stigmer#2621).
+  // required one, so a browser app adopting @stigmer/client would get
+  // @connectrpc/connect-node, which only Node callers use (stigmer#2621).
   if (srcPkg.peerDependenciesMeta) {
     distPkg.peerDependenciesMeta = srcPkg.peerDependenciesMeta;
   }
