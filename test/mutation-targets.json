@@ -123,6 +123,22 @@
       ],
       "concurrency": 4
     },
+    "client-turn-activity": {
+      "title": "what a working turn is doing, for how long and how far",
+      "package": "sdk/typescript",
+      "mutate": [
+        "src/run/turn-activity.ts"
+      ],
+      "concurrency": 4
+    },
+    "react-session-outcome": {
+      "title": "what closes a turn: its Files, changes, time and cost",
+      "package": "sdk/react",
+      "mutate": [
+        "src/session/turn-outcome.ts"
+      ],
+      "concurrency": 4
+    },
     "react-model-readiness": {
       "title": "the React kit's reading of which models can run",
       "package": "sdk/react",

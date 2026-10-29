@@ -1,5 +1,7 @@
 import { useParams } from "react-router-dom";
 import {
+  SessionInspector,
+  useOrgSlugForId,
   SessionViewer,
   useAccountExecutionDefaults,
   useActiveOrgId,
@@ -38,6 +40,7 @@ function SessionPageInner({ id }: { id: string }) {
   // default_auto_approve preference (same seam as the launcher's seed;
   // served in every edition, the operator account included).
   const accountDefaults = useAccountExecutionDefaults();
+  const slugForOrg = useOrgSlugForId();
 
   return (
     <div className="flex h-full w-full flex-col">
@@ -48,9 +51,17 @@ function SessionPageInner({ id }: { id: string }) {
         enableGitHub={enableGitHub}
         enableLocal={enableLocal}
         onBrowseLocalFolder={browseLocalFolder}
-        workspaceFileLister={workspaceFileLister}
-        workspaceFileReader={workspaceFileReader}
-        workspaceContentSearcher={workspaceContentSearcher}
+        inspector={
+          <SessionInspector
+            workspaceFileLister={workspaceFileLister}
+            workspaceFileReader={workspaceFileReader}
+            workspaceContentSearcher={workspaceContentSearcher}
+          />
+        }
+        modelsHubHref="#/models"
+        routineHref={(routine) =>
+          `#/library/routines/${slugForOrg(routine.metadata?.org ?? "")}/${routine.metadata?.slug ?? ""}`
+        }
         accessSlot={
           <ManageAccessButton
             resource={{

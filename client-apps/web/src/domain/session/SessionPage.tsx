@@ -1,7 +1,9 @@
 "use client";
 
 import {
+  SessionInspector,
   SessionViewer,
+  useOrgSlugForId,
   useAccountExecutionDefaults,
   useGitHubConnection,
   useGitHubTreeLister,
@@ -37,6 +39,7 @@ export function SessionPageInner({ id }: { id: string }) {
   // Seeds session-scoped auto-approve from the account's
   // default_auto_approve preference (same seam as the launcher's seed).
   const accountDefaults = useAccountExecutionDefaults();
+  const slugForOrg = useOrgSlugForId();
 
   return (
     <div className="flex h-full w-full flex-col">
@@ -47,8 +50,10 @@ export function SessionPageInner({ id }: { id: string }) {
         gitHubConnection={enableGitHub ? gitHubConnection : undefined}
         enableGitHub={enableGitHub}
         enableLocal={enableLocal}
-        workspaceFileLister={workspaceFileLister}
-        workspaceFileReader={workspaceFileReader}
+        inspector={<SessionInspector workspaceFileLister={workspaceFileLister} workspaceFileReader={workspaceFileReader} />}
+        routineHref={(routine) =>
+          `/library/routines/${slugForOrg(routine.metadata?.org ?? "")}/${routine.metadata?.slug ?? ""}`
+        }
         accessSlot={
           <ManageAccessButton
             resource={{

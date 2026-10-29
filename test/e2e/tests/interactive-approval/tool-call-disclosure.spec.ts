@@ -68,9 +68,10 @@ test.describe("tool-call disclosure timeline (deterministic mock LLM)", () => {
 
     // The completed tool call persists as a visible row…
     await expect(toolCallRow(page).first()).toBeVisible({ timeout: 30_000 });
-    // …and its target file is shown right there (FilePathLink strips the leading
-    // slash, so match the stable basename).
-    await expect(page.getByText("e2e-disclosure.txt", { exact: false })).toBeVisible();
+    // …and its target file is shown right there, on the row (FilePathLink
+    // strips the leading slash, so match the stable basename; the turn's
+    // outcome below names the changed file too).
+    await expect(toolCallRow(page).first().getByText("e2e-disclosure.txt", { exact: false })).toBeVisible();
     // …and there is NO aggregate "Ran N tools" pill hiding the work.
     await expect(page.getByText(/Ran \d+ tool/)).toHaveCount(0);
   });

@@ -44,7 +44,7 @@ vi.mock("../../composer", async (importOriginal) => {
   };
 });
 
-vi.mock("../facets/SetupTab", () => ({ SetupTab: () => null }));
+vi.mock("../facets/SetupTab", () => ({ SetupTab: () => null, RunConfigSection: () => null }));
 
 vi.mock("../useNewSessionFlow", () => ({
   useNewSessionFlow: (options: UseNewSessionFlowOptions) => ({
@@ -114,7 +114,7 @@ describe("CON-02 a new person is led from sign-in to a provider key and a first 
     // The first screen is the step that gets them an answer: connect a provider.
     expect(await screen.findByRole("heading", { level: 1, name: "Connect a model provider to start" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Send message" })).toBeNull();
-    const card = screen.getByRole("article", { name: "Anthropic" });
+    const card = await screen.findByRole("article", { name: "Anthropic" });
 
     // An admin saves the organization's key right there.
     fireEvent.change(await within(card).findByLabelText("Anthropic API key"), { target: { value: "sk-ant-first" } });

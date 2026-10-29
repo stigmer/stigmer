@@ -68,6 +68,7 @@ vi.mock("../../environment/EnvironmentPicker.js", () => ({
 }));
 
 import { SessionComposer } from "../SessionComposer";
+import { RunSettingsIcon } from "../icons";
 
 beforeAll(() => {
   if (!("ResizeObserver" in globalThis)) {
@@ -201,5 +202,28 @@ describe("SessionComposer — the new conversation's Environment", () => {
       { wrapper: Providers },
     );
     expect(await send(onSubmit, "Train it")).toBeUndefined();
+  });
+});
+
+describe("SessionComposer — rows the host adds to the configure menu", () => {
+  it("lists a host's row after its own, with its detail, and opens the host's panel", async () => {
+    render(
+      <SessionComposer
+        onSubmit={vi.fn()}
+        {...PROPS}
+        extraSettings={[
+          {
+            item: { id: "run-settings", icon: <RunSettingsIcon />, label: "Run settings", count: 1, detail: "Stigmer · Cloud" },
+            panel: <p>How the next turn runs</p>,
+          },
+        ]}
+      />,
+      { wrapper: Providers },
+    );
+    await openConfigure();
+    const row = screen.getByRole("menuitem", { name: /Run settings/ });
+    expect(row.textContent).toContain("Stigmer · Cloud");
+    fireEvent.click(row);
+    expect(await screen.findByText("How the next turn runs")).toBeTruthy();
   });
 });

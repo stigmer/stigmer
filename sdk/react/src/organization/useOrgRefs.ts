@@ -17,6 +17,7 @@
  */
 import { useCallback } from "react";
 import { findOrgByRef, useKnownOrgs } from "./OrgProvider.js";
+import type { ResourceRef } from "@stigmer/client";
 
 /**
  * Returns a function answering the slug of the organization an id names,
@@ -67,5 +68,21 @@ export function useOrgIdForRef(): (orgRef: string) => string {
       return findOrgByRef(orgs, orgRef)?.metadata?.id || orgRef;
     },
     [orgs],
+  );
+}
+
+/**
+ * Whether two references name the same resource. A stored reference holds
+ * its target's id, and one whose target was deleted holds no slug, so two
+ * references are one by id when either holds one; references just picked by
+ * name are one when they name the same slug in the same organization, which
+ * either may name by slug or by id.
+ */
+export function useSameResourceRef(): (a: ResourceRef, b: ResourceRef) => boolean {
+  const orgIdFor = useOrgIdForRef();
+  return useCallback(
+    (a: ResourceRef, b: ResourceRef) =>
+      a.id || b.id ? a.id === b.id : orgIdFor(a.org) === orgIdFor(b.org) && a.slug === b.slug,
+    [orgIdFor],
   );
 }

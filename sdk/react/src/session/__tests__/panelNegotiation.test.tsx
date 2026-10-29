@@ -3,9 +3,9 @@ import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 
 // ---------------------------------------------------------------------------
 // Wiring-contract tests for the session panel's host-negotiation surface
-// (issue #300): `panel="none"` omission, `defaultPanelOpen`, and the
-// controlled/observed `panelOpen` + `onPanelOpenChange` pair on both session
-// organisms.
+// (issue #300) on both session organisms: no inspector means no panel; the
+// host's SessionInspector carries `defaultOpen` and the controlled/observed
+// `open` + `onOpenChange` pair; a guest never gets the panel.
 //
 // The contract under test is the one the PanelChip's aria labels already
 // promise ("Show panel"/"Hide panel") — the same seam the issue's filer
@@ -32,6 +32,7 @@ vi.mock("../../composer", async (importOriginal) => {
 
 vi.mock("../facets/SetupTab", () => ({
   SetupTab: () => <div data-testid="setup-probe" />,
+  RunConfigSection: () => <div data-testid="run-config-probe" />,
 }));
 
 vi.mock("../../run/MessageThread", () => ({
@@ -79,6 +80,28 @@ const stubNewSessionFlow = {
   submitError: null,
   submit: vi.fn(),
 };
+// Readiness has answered "unknown": the launcher draws its composer.
+vi.mock("../../models/hub/ModelsHub", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../models/hub/ModelsHub")>();
+  return {
+    ...actual,
+    useModelsHubData: () => ({
+      org: "acme",
+      orgName: "acme",
+      viewer: { canManage: false, local: false },
+      providers: null,
+      models: null,
+      keyOf: () => undefined,
+      parentOrgNameOf: () => undefined,
+      readinessOf: () => undefined,
+      isLoading: false,
+      readinessLoading: false,
+      error: null,
+      refresh: () => {},
+    }),
+  };
+});
+
 vi.mock("../useNewSessionFlow", () => ({
   useNewSessionFlow: () => stubNewSessionFlow,
 }));
@@ -175,6 +198,7 @@ vi.mock("../../hooks", () => ({
 
 import { NewSessionViewer } from "../NewSessionViewer";
 import { SessionViewer } from "../SessionViewer";
+import { SessionInspector } from "../inspector/SessionInspector";
 
 function lastComposerProps(): CapturedProps {
   expect(composerProps.length).toBeGreaterThan(0);
@@ -197,16 +221,17 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-describe("SessionViewer — panel=\"none\"", () => {
-  it("removes the chip and never renders the panel", () => {
-    render(<SessionViewer sessionId="ses_1" org="acme" panel="none" />);
+describe("SessionViewer — no inspector", () => {
+  it("has no chip and never renders the panel", () => {
+    render(<SessionViewer sessionId="ses_1" org="acme" />);
     expect(chipButton()).toBeNull();
   });
 
   it("keeps every composer capability the audience allows — the guest contrast", () => {
-    // The point of panel="none": omission WITHOUT audience="guest"'s
-    // composer strip-down. Assert the exact capabilities guest removes.
-    render(<SessionViewer sessionId="ses_1" org="acme" panel="none" />);
+    // Leaving the inspector out removes the builder mode WITHOUT
+    // audience="guest"'s composer strip-down. Assert the exact capabilities
+    // guest removes.
+    render(<SessionViewer sessionId="ses_1" org="acme" />);
 
     const props = lastComposerProps();
     expect(props.showInteractionModePicker).toBe(true);
@@ -216,30 +241,29 @@ describe("SessionViewer — panel=\"none\"", () => {
     expect(props.onPluginRefsChange).toBeDefined();
   });
 
-  it("keeps controlled props inert — panelOpen cannot force a surface that does not exist", () => {
-    const onPanelOpenChange = vi.fn();
+  it("keeps an inspector given to a guest inert — its open prop cannot force the panel", () => {
+    const onOpenChange = vi.fn();
     render(
       <SessionViewer
         sessionId="ses_1"
         org="acme"
-        panel="none"
-        panelOpen={true}
-        onPanelOpenChange={onPanelOpenChange}
+        audience="guest"
+        inspector={<SessionInspector open onOpenChange={onOpenChange} />}
       />,
     );
     expect(chipButton()).toBeNull();
-    expect(onPanelOpenChange).not.toHaveBeenCalled();
+    expect(onOpenChange).not.toHaveBeenCalled();
   });
 });
 
-describe("SessionViewer — observed panel state (uncontrolled + onPanelOpenChange)", () => {
+describe("SessionViewer — observed panel state (uncontrolled + onOpenChange)", () => {
   it("reports chip toggles — the seam that retires the aria-expanded MutationObserver", () => {
     const seen: boolean[] = [];
     render(
       <SessionViewer
         sessionId="ses_1"
         org="acme"
-        onPanelOpenChange={(open) => seen.push(open)}
+        inspector={<SessionInspector onOpenChange={(open) => seen.push(open)} />}
       />,
     );
 
@@ -249,32 +273,30 @@ describe("SessionViewer — observed panel state (uncontrolled + onPanelOpenChan
     expect(seen).toEqual([true, false]);
   });
 
-  it("starts open with defaultPanelOpen, without a spurious notification", () => {
-    const onPanelOpenChange = vi.fn();
+  it("starts open with defaultOpen, without a spurious notification", () => {
+    const onOpenChange = vi.fn();
     render(
       <SessionViewer
         sessionId="ses_1"
         org="acme"
-        defaultPanelOpen
-        onPanelOpenChange={onPanelOpenChange}
+        inspector={<SessionInspector defaultOpen onOpenChange={onOpenChange} />}
       />,
     );
 
     expect(screen.getByRole("button", { name: "Hide panel" })).toBeDefined();
-    expect(onPanelOpenChange).not.toHaveBeenCalled();
+    expect(onOpenChange).not.toHaveBeenCalled();
   });
 });
 
 describe("SessionViewer — controlled panel state", () => {
-  it("follows panelOpen and surfaces the chip's request without applying it", () => {
+  it("follows open and surfaces the chip's request without applying it", () => {
     const seen: boolean[] = [];
-    const onPanelOpenChange = (open: boolean) => seen.push(open);
+    const onOpenChange = (open: boolean) => seen.push(open);
     const { rerender } = render(
       <SessionViewer
         sessionId="ses_1"
         org="acme"
-        panelOpen={false}
-        onPanelOpenChange={onPanelOpenChange}
+        inspector={<SessionInspector open={false} onOpenChange={onOpenChange} />}
       />,
     );
 
@@ -288,8 +310,7 @@ describe("SessionViewer — controlled panel state", () => {
       <SessionViewer
         sessionId="ses_1"
         org="acme"
-        panelOpen={true}
-        onPanelOpenChange={onPanelOpenChange}
+        inspector={<SessionInspector open onOpenChange={onOpenChange} />}
       />,
     );
     expect(screen.getByRole("button", { name: "Hide panel" })).toBeDefined();
@@ -297,10 +318,8 @@ describe("SessionViewer — controlled panel state", () => {
 });
 
 describe("NewSessionViewer — panel negotiation (parity with SessionViewer)", () => {
-  it("panel=\"none\" removes the chip while the composer keeps its capabilities", () => {
-    render(
-      <NewSessionViewer org="acme" onSessionCreated={vi.fn()} panel="none" />,
-    );
+  it("no inspector: no chip, while the composer keeps its capabilities", () => {
+    render(<NewSessionViewer org="acme" onSessionCreated={vi.fn()} />);
 
     expect(chipButton()).toBeNull();
     const props = lastComposerProps();
@@ -308,13 +327,13 @@ describe("NewSessionViewer — panel negotiation (parity with SessionViewer)", (
     expect(props.lockAgent).toBe(false);
   });
 
-  it("reports chip toggles through onPanelOpenChange", () => {
+  it("reports chip toggles through the inspector's onOpenChange", () => {
     const seen: boolean[] = [];
     render(
       <NewSessionViewer
         org="acme"
         onSessionCreated={vi.fn()}
-        onPanelOpenChange={(open) => seen.push(open)}
+        inspector={<SessionInspector onOpenChange={(open) => seen.push(open)} />}
       />,
     );
 
@@ -323,10 +342,8 @@ describe("NewSessionViewer — panel negotiation (parity with SessionViewer)", (
     expect(seen).toEqual([true, false]);
   });
 
-  it("starts open with defaultPanelOpen", () => {
-    render(
-      <NewSessionViewer org="acme" onSessionCreated={vi.fn()} defaultPanelOpen />,
-    );
+  it("starts open with the inspector's defaultOpen", () => {
+    render(<NewSessionViewer org="acme" onSessionCreated={vi.fn()} inspector={<SessionInspector defaultOpen />} />);
     expect(screen.getByRole("button", { name: "Hide panel" })).toBeDefined();
   });
 });

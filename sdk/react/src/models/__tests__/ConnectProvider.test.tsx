@@ -27,6 +27,7 @@ function hub(providers: readonly ProviderReadiness[] | null, fields: Partial<Mod
     parentOrgNameOf: () => undefined,
     readinessOf: () => undefined,
     isLoading: false,
+    readinessLoading: false,
     error: null,
     refresh: () => {},
     ...fields,

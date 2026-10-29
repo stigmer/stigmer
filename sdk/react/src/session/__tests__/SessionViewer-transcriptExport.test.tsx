@@ -1,12 +1,10 @@
-// SessionViewer's built-in transcript export (stigmer/stigmer#814, placement
-// reworked with #816): export lives in the Config facet's Transcript section
-// for viewers with the session panel, and the header TranscriptExportMenu
-// remains ONLY as the panel-less fallback (guests, panel="none") — so
-// wherever a conversation is viewed, its transcript stays reachable, without
-// a floating header button on surfaces that have a proper home for it.
+// SessionViewer's built-in transcript export (stigmer/stigmer#814): the
+// header's TranscriptExportMenu, for every audience and with or without the
+// host's inspector, so wherever a conversation is viewed its transcript
+// stays reachable. The inspector no longer carries a Config facet to hold it.
 
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, screen, cleanup, fireEvent } from "@testing-library/react";
+import { render, screen, cleanup } from "@testing-library/react";
 
 vi.mock("../../composer", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../composer")>();
@@ -22,9 +20,7 @@ vi.mock("../../run/FileReviewDock", () => ({
   FileReviewDock: () => <div data-testid="file-review-dock-probe" />,
 }));
 
-// SetupTab renders for real: the facet's Transcript section is asserted
-// through its actual DOM (the "Copy transcript" action row), reached by
-// opening the panel and selecting the Config rail view.
+// The header menu is asserted through its real trigger.
 
 const stubWorkspace = {
   entries: [],
@@ -128,6 +124,7 @@ vi.mock("../../hooks", () => ({
 }));
 
 import { SessionViewer } from "../SessionViewer";
+import { SessionInspector } from "../inspector/SessionInspector";
 
 afterEach(() => {
   cleanup();
@@ -138,72 +135,34 @@ function headerExportTrigger(): HTMLElement | null {
   return screen.queryByRole("button", { name: "Export transcript" });
 }
 
-/** Selects the panel's Config facet (the rail's radio). */
-function openConfigFacet() {
-  fireEvent.click(screen.getByRole("radio", { name: "Config" }));
-}
-
-function facetCopyAction(): HTMLElement | null {
-  return screen.queryByRole("button", { name: "Copy transcript" });
-}
-
 describe("SessionViewer transcript export placement", () => {
-  it("panel-enabled viewers export from the Config facet, not the header", () => {
-    render(<SessionViewer sessionId="ses_1" org="acme" defaultPanelOpen />);
-    expect(headerExportTrigger()).toBeNull();
-    openConfigFacet();
-    expect(facetCopyAction()).not.toBeNull();
-  });
-
-  it("observers keep facet export — a bulk copy of what they already see", () => {
-    render(
-      <SessionViewer
-        sessionId="ses_1"
-        org="acme"
-        audience="observer"
-        defaultPanelOpen
-      />,
-    );
-    openConfigFacet();
-    expect(facetCopyAction()).not.toBeNull();
-  });
-
-  it("panel=\"none\" hosts fall back to the header menu", () => {
-    render(<SessionViewer sessionId="ses_1" org="acme" panel="none" />);
+  it.each(["integrator", "endUser", "guest", "observer"] as const)("a %s exports from the header", (audience) => {
+    render(<SessionViewer sessionId="ses_1" org="acme" audience={audience} />);
     expect(headerExportTrigger()).not.toBeNull();
   });
 
-  it("guests fall back to the header menu (no panel to reach the facet)", () => {
-    render(<SessionViewer sessionId="ses_1" org="acme" audience="guest" />);
+  it("a host with the inspector exports from the header too, and the inspector carries no export", () => {
+    render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector defaultOpen />} />);
     expect(headerExportTrigger()).not.toBeNull();
+    expect(screen.queryByRole("radio", { name: "Config" })).toBeNull();
   });
 
-  it("the header fallback composes with host headerActions", () => {
-    render(
-      <SessionViewer
-        sessionId="ses_1"
-        org="acme"
-        panel="none"
-        headerActions={<button>Share</button>}
-      />,
-    );
+  it("the header menu composes with host headerActions", () => {
+    render(<SessionViewer sessionId="ses_1" org="acme" headerActions={<button>Share</button>} />);
     expect(screen.getByRole("button", { name: "Share" })).toBeTruthy();
     expect(headerExportTrigger()).not.toBeNull();
   });
 
-  it("explicit opt-out removes BOTH surfaces, leaving host actions intact", () => {
+  it("explicit opt-out removes the menu, leaving host actions intact", () => {
     render(
       <SessionViewer
         sessionId="ses_1"
         org="acme"
         transcriptExport={false}
-        defaultPanelOpen
         headerActions={<button>Share</button>}
       />,
     );
     expect(headerExportTrigger()).toBeNull();
-    openConfigFacet();
-    expect(facetCopyAction()).toBeNull();
     expect(screen.getByRole("button", { name: "Share" })).toBeTruthy();
   });
 });

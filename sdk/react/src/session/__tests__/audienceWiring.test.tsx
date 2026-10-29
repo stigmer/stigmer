@@ -33,6 +33,14 @@ vi.mock("../facets/SetupTab", () => ({
     setupTabProps.push(props);
     return <div data-testid="setup-probe" />;
   },
+  RunConfigSection: (props: CapturedProps) => {
+    setupTabProps.push(props);
+    return <div data-testid="run-config-probe" />;
+  },
+}));
+
+vi.mock("../../run/FileReviewDock", () => ({
+  FileReviewDock: () => <div data-testid="file-review-dock-probe" />,
 }));
 
 const threadProps: CapturedProps[] = [];
@@ -95,7 +103,7 @@ const stubConv = {
   session: { spec: {} } as Record<string, unknown>,
   isLoading: false,
   loadError: null,
-  turns: [],
+  turns: [] as Turn[],
   runs: [],
   activeTurn: null,
   activeRun: null,
@@ -159,6 +167,29 @@ const stubSessionPageFlow = {
   sandboxWorkspaceRoot: undefined,
 };
 const mockUseSessionPageFlow = vi.fn((_options: unknown) => stubSessionPageFlow);
+// Readiness has answered "unknown": the launcher draws its composer and
+// nothing blocks Send (the readiness faces have their own suites).
+vi.mock("../../models/hub/ModelsHub", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../models/hub/ModelsHub")>();
+  return {
+    ...actual,
+    useModelsHubData: () => ({
+      org: "acme",
+      orgName: "acme",
+      viewer: { canManage: false, local: false },
+      providers: null,
+      models: null,
+      keyOf: () => undefined,
+      parentOrgNameOf: () => undefined,
+      readinessOf: () => undefined,
+      isLoading: false,
+      readinessLoading: false,
+      error: null,
+      refresh: () => {},
+    }),
+  };
+});
+
 vi.mock("../useSessionPageFlow", () => ({
   useSessionPageFlow: (options: unknown) => mockUseSessionPageFlow(options),
 }));
@@ -179,6 +210,8 @@ vi.mock("../../hooks", () => ({
   }),
 }));
 
+import { samples } from "../../test";
+import type { Turn } from "@stigmer/client";
 import { NewSessionViewer } from "../NewSessionViewer";
 import { SessionViewer } from "../SessionViewer";
 
@@ -195,15 +228,15 @@ function lastThreadProps(): CapturedProps {
 }
 
 /**
- * Reach the Config facet through the unified panel: expand it via the
- * top-right chip, pick Config in the rail, and return the props the (mocked)
- * SetupTab received.
+ * The run settings the composer's configure menu offers (engine, model,
+ * target, the auto-approve switch): the row's id, and the props its panel's
+ * (mocked) run section receives once drawn.
  */
-function openedConfigFacet(): { mutations?: unknown } {
-  fireEvent.click(screen.getByRole("button", { name: "Show panel" }));
-  fireEvent.click(screen.getByRole("radio", { name: "Config" }));
-  expect(setupTabProps.length).toBeGreaterThan(0);
-  return setupTabProps.at(-1)!;
+function offeredRunSettings(): { readonly ids: readonly string[]; readonly section: { autoApprove?: unknown } | undefined } {
+  const settings = (lastComposerProps().extraSettings ?? []) as readonly { item: { id: string }; panel: React.ReactElement }[];
+  setupTabProps.length = 0;
+  if (settings[0] !== undefined) render(settings[0].panel);
+  return { ids: settings.map((setting) => setting.item.id), section: setupTabProps.at(-1) as { autoApprove?: unknown } | undefined };
 }
 
 beforeEach(() => {
@@ -234,7 +267,10 @@ describe("NewSessionViewer — audience wiring", () => {
     expect(props.onPluginRefsChange).toBeDefined();
     expect(props.onSkillRefsChange).toBeDefined();
     expect(props.enableVaultPicker).toBe(true);
-    expect(openedConfigFacet().mutations).toBeDefined();
+    // Run settings, with the auto-approve switch, sit in the composer.
+    const run = offeredRunSettings();
+    expect(run.ids).toEqual(["run-settings"]);
+    expect(run.section?.autoApprove).toBeDefined();
   });
 
   it("endUser with a pinned agent: locked agent, integrator pickers unwired", () => {
@@ -255,8 +291,8 @@ describe("NewSessionViewer — audience wiring", () => {
     // End-user controls survive the curation.
     expect(props.showHarnessSelector).toBe(true);
     expect(props.showInteractionModePicker).toBe(true);
-    // Config facet is read-only: no remove affordances for pinned config.
-    expect(openedConfigFacet().mutations).toBeUndefined();
+    // The run settings are offered to an end user too, beside the model picker.
+    expect(offeredRunSettings().ids).toEqual(["run-settings"]);
   });
 
   it("endUser without a pinned agent: pickers hidden but agent not locked", () => {
@@ -377,7 +413,10 @@ describe("SessionViewer — audience wiring", () => {
     expect(props.onPluginRefsChange).toBeDefined();
     expect(props.onSkillRefsChange).toBeDefined();
     expect(props.enableVaultPicker).toBe(true);
-    expect(openedConfigFacet().mutations).toBeDefined();
+    // Run settings, with the auto-approve switch, sit in the composer.
+    const run = offeredRunSettings();
+    expect(run.ids).toEqual(["run-settings"]);
+    expect(run.section?.autoApprove).toBeDefined();
   });
 
   it("endUser: locked agent, integrator pickers unwired, read-only Setup tab", () => {
@@ -390,7 +429,7 @@ describe("SessionViewer — audience wiring", () => {
     expect(props.enableVaultPicker).toBe(false);
     // End-user controls survive the curation.
     expect(props.showInteractionModePicker).toBe(true);
-    expect(openedConfigFacet().mutations).toBeUndefined();
+    expect(offeredRunSettings().ids).toEqual(["run-settings"]);
   });
 
   it("guest: pure chat — every picker hidden, file uploads and workspace off", () => {
@@ -456,7 +495,7 @@ describe("SessionViewer — audience wiring", () => {
     });
   });
 
-  it("threads accessSlot into the Config facet, not the header", () => {
+  it("puts accessSlot in the header, with no inspector needed", () => {
     render(
       <SessionViewer
         sessionId="ses_1"
@@ -465,12 +504,8 @@ describe("SessionViewer — audience wiring", () => {
       />,
     );
 
-    // Collapsed panel: the slot must not surface anywhere (the header carries
-    // only headerActions and the chip).
-    expect(screen.queryByRole("button", { name: "Manage access" })).toBeNull();
-
-    const facet = openedConfigFacet() as { accessSlot?: unknown };
-    expect(facet.accessSlot).toBeDefined();
+    expect(screen.getByRole("button", { name: "Manage access" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Show panel" })).toBeNull();
   });
 
   it.each([
@@ -502,6 +537,29 @@ describe("SessionViewer — audience wiring", () => {
 
     expect(screen.getByRole("alert").textContent).toContain("This organization has no Anthropic key.");
     expect(screen.getByRole("link", { name: "Open Models & providers" }).getAttribute("href")).toBe("/models");
+  });
+
+  it("links the refusal to the host's Models & providers, as the desktop app's hash router needs (stigmer#2698)", async () => {
+    const { refusal } = await import("../../billing/__tests__/fixtures");
+    stubConv.sendError = refusal("This organization has no Anthropic key.", "PROVIDER_KEY_REQUIRED", {
+      org: "acme",
+      provider: "anthropic",
+      model: "claude-sonnet-4-6",
+    });
+    render(<SessionViewer sessionId="ses_1" org="acme" modelsHubHref="#/models" />);
+
+    expect(screen.getByRole("link", { name: "Open Models & providers" }).getAttribute("href")).toBe("#/models");
+  });
+
+  it("withholds the calls a guest credential is refused: no build from a plan, no file decisions (stigmer#1481)", () => {
+    render(<SessionViewer sessionId="ses_1" org="acme" audience="guest" />);
+    expect(threadProps.at(-1)!.onBuildFromPlan).toBeUndefined();
+    expect(screen.queryByTestId("file-review-dock-probe")).toBeNull();
+
+    cleanup();
+    render(<SessionViewer sessionId="ses_1" org="acme" />);
+    expect(threadProps.at(-1)!.onBuildFromPlan).toBeDefined();
+    expect(screen.getByTestId("file-review-dock-probe")).toBeTruthy();
   });
 
   it("renders a used-up agent hours refusal with the link to the plans", async () => {
@@ -657,7 +715,7 @@ describe("SessionViewer — the agent version notice and the personal-key disclo
     // Turns already ran on that agent: nothing new to disclose.
     mockUseSessionPageFlow.mockImplementation(() => ({
       ...stubSessionPageFlow,
-      conv: { ...stubConv, session: pinnedSession, turns: [{}] as never[] },
+      conv: { ...stubConv, session: pinnedSession, turns: [samples.turn()] },
     }));
     render(<SessionViewer sessionId="ses_1" org="acme" />);
     expect(lastComposerProps().disclosePersonalKeys).toBe(false);
@@ -667,7 +725,7 @@ describe("SessionViewer — the agent version notice and the personal-key disclo
     mockUseSessionPageFlow.mockImplementation(() => ({
       ...stubSessionPageFlow,
       agentRef: { org: "acme", slug: "other-bot" },
-      conv: { ...stubConv, session: pinnedSession, turns: [{}] as never[] },
+      conv: { ...stubConv, session: pinnedSession, turns: [samples.turn()] },
     }));
     render(<SessionViewer sessionId="ses_1" org="acme" />);
     expect(lastComposerProps().disclosePersonalKeys).toBe(true);

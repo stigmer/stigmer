@@ -4,10 +4,10 @@ import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 // ---------------------------------------------------------------------------
 // Wiring-contract tests for auto-approve placement (the #816 rework):
 //
-// - The composer carries NO auto-approve control — the session-level switch
-//   lives in the Config facet (SetupTab receives the `autoApprove` group for
-//   every audience that may submit approvals, never observers; guests never
-//   render the panel at all).
+// - The composer carries NO auto-approve prop: the session-level switch is
+//   in the run settings row of its configure menu, for every audience that
+//   may submit approvals; never observers (no composer) and never guests (no
+//   run settings).
 // - The armed-only AutoApproveIndicator above the composer is the
 //   always-visible disclosure: present exactly while the state is armed,
 //   with a one-click "Turn off"; never rendered for observers.
@@ -149,9 +149,11 @@ function lastComposerProps(): CapturedProps {
   return composerProps.at(-1)!;
 }
 
-/** Selects the panel's Config facet (the rail's radio). */
-function openConfigFacet() {
-  fireEvent.click(screen.getByRole("radio", { name: "Config" }));
+/** Draws the composer's run settings panel, as opening its row does; nothing when the composer has none. */
+function openRunSettings() {
+  const settings = (composerProps.at(-1)?.extraSettings ?? []) as readonly { item: { id: string }; panel: React.ReactElement }[];
+  const row = settings.find((setting) => setting.item.id === "run-settings");
+  if (row !== undefined) render(row.panel);
 }
 
 function facetSwitch(): HTMLElement | null {
@@ -177,10 +179,10 @@ describe("SessionViewer — composer stays clean (#816 rework)", () => {
   });
 });
 
-describe("SessionViewer — Config facet auto-approve switch (#816 rework)", () => {
+describe("SessionViewer — run settings auto-approve switch (#816 rework)", () => {
   it("renders the switch reflecting the flow state, and flipping calls the flow (integrator)", () => {
-    render(<SessionViewer sessionId="ses_1" org="acme" defaultPanelOpen />);
-    openConfigFacet();
+    render(<SessionViewer sessionId="ses_1" org="acme" />);
+    openRunSettings();
 
     const toggle = facetSwitch();
     expect(toggle).not.toBeNull();
@@ -191,8 +193,8 @@ describe("SessionViewer — Config facet auto-approve switch (#816 rework)", () 
 
   it("mirrors an armed flow state into the switch", () => {
     stubSessionPageFlow.autoApproveAll = true;
-    render(<SessionViewer sessionId="ses_1" org="acme" defaultPanelOpen />);
-    openConfigFacet();
+    render(<SessionViewer sessionId="ses_1" org="acme" />);
+    openRunSettings();
 
     expect(facetSwitch()!.getAttribute("aria-checked")).toBe("true");
   });
@@ -203,10 +205,9 @@ describe("SessionViewer — Config facet auto-approve switch (#816 rework)", () 
         sessionId="ses_1"
         org="acme"
         audience="endUser"
-        defaultPanelOpen
       />,
     );
-    openConfigFacet();
+    openRunSettings();
 
     expect(facetSwitch()).not.toBeNull();
   });
@@ -217,10 +218,9 @@ describe("SessionViewer — Config facet auto-approve switch (#816 rework)", () 
         sessionId="ses_1"
         org="acme"
         audience="observer"
-        defaultPanelOpen
       />,
     );
-    openConfigFacet();
+    openRunSettings();
 
     expect(facetSwitch()).toBeNull();
   });
@@ -235,8 +235,8 @@ describe("SessionViewer — Config facet auto-approve switch (#816 rework)", () 
         },
       },
     };
-    render(<SessionViewer sessionId="ses_1" org="acme" defaultPanelOpen />);
-    openConfigFacet();
+    render(<SessionViewer sessionId="ses_1" org="acme" />);
+    openRunSettings();
 
     expect(facetSwitch()).toBeNull();
   });

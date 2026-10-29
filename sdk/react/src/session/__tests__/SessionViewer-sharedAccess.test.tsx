@@ -9,13 +9,16 @@
  *     and plan building, but stop, approvals, edits, file decisions and
  *     auto-approve are withheld, the agent and vaults are locked, and a
  *     pending approval names the creator it waits on (file review holds no
- *     turn, so it names no one);
+ *     turn, so it names no one), and the working line says the turn waits
+ *     for an answer, with no Stop;
  *   - an owner keeps every control.
  *
  * The thread and composer are prop-capturing probes.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, cleanup } from "@testing-library/react";
+import { render, screen, cleanup, within } from "@testing-library/react";
+import type { ReactNode } from "react";
+import { conversationOf, scenarios } from "../../test";
 
 type CapturedProps = Record<string, unknown>;
 
@@ -138,6 +141,8 @@ vi.mock("../../hooks", () => ({
     run: {
       getArtifactContent: vi.fn(),
     },
+    // Server info answers the run settings' Environment row: a server that predates the field.
+    platform: { getServerInfo: async () => ({}) },
   }),
 }));
 
@@ -197,6 +202,39 @@ describe("SessionViewer — a shared conversation", () => {
     render(<SessionViewer sessionId="ses_1" org="acme" />);
 
     expect(screen.getByText("Waiting for Bob Owner to approve")).toBeTruthy();
+  });
+
+  it("tells a participant the turn waits for an answer, with no Stop and no auto-approve switch", () => {
+    access.canDecide = false;
+    stubConv.activeTurn = conversationOf(scenarios.approval).activeTurn as never;
+    stubConv.asks = [{ id: "call_1" }];
+    try {
+      render(<SessionViewer sessionId="ses_1" org="acme" />);
+      const line = screen.getAllByRole("status").find((status) => status.textContent?.includes("Waiting"))!;
+      expect(line.textContent).toContain("Waiting for an answer");
+      expect(within(line).queryByRole("button", { name: "Stop" })).toBeNull();
+      const settings = composerProps.at(-1)!.extraSettings as ReadonlyArray<{ panel: ReactNode }>;
+      render(<>{settings[0]!.panel}</>);
+      expect(screen.queryByRole("switch", { name: "Auto-approve" })).toBeNull();
+    } finally {
+      stubConv.activeTurn = null;
+    }
+  });
+
+  it("tells an owner the turn waits for them, with Stop and the auto-approve switch", () => {
+    stubConv.activeTurn = conversationOf(scenarios.approval).activeTurn as never;
+    stubConv.asks = [{ id: "call_1" }];
+    try {
+      render(<SessionViewer sessionId="ses_1" org="acme" />);
+      const line = screen.getAllByRole("status").find((status) => status.textContent?.includes("Waiting"))!;
+      expect(line.textContent).toContain("Waiting for you");
+      expect(within(line).getByRole("button", { name: "Stop" })).toBeTruthy();
+      const settings = composerProps.at(-1)!.extraSettings as ReadonlyArray<{ panel: ReactNode }>;
+      render(<>{settings[0]!.panel}</>);
+      expect(screen.getByRole("switch", { name: "Auto-approve" })).toBeTruthy();
+    } finally {
+      stubConv.activeTurn = null;
+    }
   });
 
   it("never tells a participant that file review holds the turn", () => {

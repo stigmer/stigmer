@@ -39,6 +39,13 @@ export interface FilePreviewContentProps {
    */
   readonly onApplied?: (result: ApplyResourceResult) => void;
   /**
+   * The reader may only read, copy and download the File: no Apply, no
+   * adding it as a skill and no delete, and no permission read for them.
+   * For a reader whose credential the server refuses those acts, such as a
+   * chat link's guest.
+   */
+  readonly readOnly?: boolean;
+  /**
    * Optional plan-build action. When provided, a "Build" primary button
    * appears in the action bar (used for a plan: turn the plan into a Run).
    * Clicking it calls `onImplement` then closes the modal. Omit for
@@ -106,6 +113,7 @@ export function FilePreviewContent({
   onApplied,
   onImplement,
   onDeleted,
+  readOnly = false,
   accessSlot,
   className,
 }: FilePreviewContentProps) {
@@ -156,6 +164,7 @@ export function FilePreviewContent({
         onImplement={onImplement ? handleImplement : undefined}
         onApplied={onApplied}
         onDeleted={onDeleted}
+        readOnly={readOnly}
         accessSlot={accessSlot}
       />
 
@@ -199,6 +208,13 @@ export interface FilePreviewModalProps {
    * the Library.
    */
   readonly onApplied?: (result: ApplyResourceResult) => void;
+  /**
+   * The reader may only read, copy and download the File: no Apply, no
+   * adding it as a skill and no delete, and no permission read for them.
+   * For a reader whose credential the server refuses those acts, such as a
+   * chat link's guest.
+   */
+  readonly readOnly?: boolean;
   /**
    * Optional plan-build action (see {@link FilePreviewContentProps.onImplement}).
    * When provided, a "Build" primary button appears; clicking it calls
@@ -253,6 +269,7 @@ export function FilePreviewModal({
   onApplied,
   onImplement,
   onDeleted,
+  readOnly = false,
   accessSlot,
   className,
 }: FilePreviewModalProps) {
@@ -284,6 +301,7 @@ export function FilePreviewModal({
           onApplied={onApplied}
           onImplement={onImplement}
           onDeleted={onDeleted}
+          readOnly={readOnly}
           accessSlot={accessSlot}
         />
       )}
@@ -375,6 +393,7 @@ function ActionBar({
   onImplement,
   onApplied,
   onDeleted,
+  readOnly,
   accessSlot,
 }: {
   readonly file: StigmerFile;
@@ -391,6 +410,7 @@ function ActionBar({
   readonly onImplement?: () => void;
   readonly onApplied?: (result: ApplyResourceResult) => void;
   readonly onDeleted?: () => void;
+  readonly readOnly: boolean;
   readonly accessSlot?: ReactNode;
 }) {
   const { download, isDownloading } = useFileDownload();
@@ -427,8 +447,8 @@ function ActionBar({
           <DownloadIcon />
           {isDownloading ? "Preparing…" : "Download"}
         </button>
-        <FileAddAsSkillAction file={file} onAdded={onApplied} />
-        {onDeleted && <FileDeleteAction file={file} onDeleted={onDeleted} />}
+        {!readOnly && <FileAddAsSkillAction file={file} onAdded={onApplied} />}
+        {!readOnly && onDeleted && <FileDeleteAction file={file} onDeleted={onDeleted} />}
         {accessSlot}
       </div>
 
@@ -468,7 +488,7 @@ function ActionBar({
               Retry
             </button>
           </span>
-        ) : isDetected && ctaLabel ? (
+        ) : !readOnly && isDetected && ctaLabel ? (
           <span data-cursor-target="apply-resource-button">
             <FileApplyButton
               label={ctaLabel}

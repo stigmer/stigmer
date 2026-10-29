@@ -296,7 +296,7 @@ export interface UseNewSessionFlowReturn {
    * create (stigmer/stigmer#816, the walk-away scenario). Seeded from the
    * account's `default_auto_approve` preference and the host's
    * `StigmerProvider` `approvalDefaults` (#302) — guests inherit neither;
-   * the user's explicit flip (the Config facet switch) wins from then on.
+   * the user's explicit flip (the run settings switch) wins from then on.
    * Carried into the bootstrap create as `spec.auto_approve_all` — the
    * whole-run server-side bypass — so the first run stays covered even if
    * the user closes the tab.

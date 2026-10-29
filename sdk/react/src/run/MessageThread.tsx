@@ -14,7 +14,6 @@ import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/ap
 import {
   deletedReferenceLabel,
   displayFileChangeSets,
-  isBackgroundRunning,
   isDeletedReference,
   syntheticUserPrompt,
   type CompactedItem,
@@ -34,6 +33,9 @@ import { RunScores } from "../score/RunScores.js";
 import { RunScoresProvider, useRunScoresEnabled } from "../score/RunScoresContext.js";
 import { messageFileViews, type MessageFileView } from "./MessageFiles.js";
 import { ToolCallGroup } from "./ToolCallGroup.js";
+import { backgroundCommandsHolding, hasStartedResponding, hasVisiblyRunningActivity } from "./turn-tail.js";
+import { SettledStepsRow } from "./SettledStepsRow.js";
+import { ThreadPresentationContext, useThreadPresentation, type ThreadPresentation } from "./ThreadPresentationContext.js";
 import { SubagentSection, subagentSubjectOf } from "./SubagentSection.js";
 import { RunPhaseBadge } from "./RunPhaseBadge.js";
 import { SetupProgress, type SetupProgressProps } from "./SetupProgress.js";
@@ -412,6 +414,29 @@ export interface MessageThreadProps {
    * @default false
    */
   readonly runScores?: boolean;
+  /**
+   * What closes each ended turn (the session view passes its outcome block:
+   * how the turn ended, its time, what it changed and returned). When set,
+   * it takes the place of the ended-turn phase badge; a failure's notice
+   * and Retry stay above it.
+   */
+  readonly turnOutcome?: (turn: Turn) => ReactNode;
+  /**
+   * Fold a stretch of settled tool calls into one step row that opens to
+   * them ("Read 1 file, edited invoice.ts · 56 s"), for people who want
+   * the result rather than the working. A builder keeps every row.
+   *
+   * @default false
+   */
+  readonly foldSettledSteps?: boolean;
+  /**
+   * Whether the thread's tail shows its own working indicator while a turn
+   * runs. `false` when the host shows the turn's activity itself (the
+   * session view's activity line), so one place says what the agent does.
+   *
+   * @default true
+   */
+  readonly ambientLiveness?: boolean;
 }
 
 /** Reading-column alignment for {@link MessageThread} content. */
@@ -450,6 +475,7 @@ export type ThreadItem =
   | { readonly kind: "tool-group"; readonly toolUses: readonly ToolUse[]; readonly key: string }
   | { readonly kind: "subagent"; readonly toolUse: ToolUse; readonly thread: Thread; readonly key: string }
   | { readonly kind: "phase-badge"; readonly phase: RunPhase; readonly key: string }
+  | { readonly kind: "outcome"; readonly turn: Turn; readonly key: string }
   | { readonly kind: "execution-error"; readonly error: string; readonly retryMessage?: string; readonly key: string }
   | { readonly kind: "approval-request"; readonly toolUse: ToolUse; readonly key: string }
   | { readonly kind: "file-review-record"; readonly fileReviewSet: FileReviewSet; readonly key: string }
@@ -519,6 +545,10 @@ export type ThreadItem =
 
 /** Options for {@link buildThreadItems}: everything beyond the turns and their runs. */
 export interface BuildThreadItemsOptions {
+  /** Close every ended turn with an `outcome` item, in place of the ended-turn phase badge. */
+  readonly includeOutcomes?: boolean;
+  /** Emit the tail's working indicator while a turn runs (default true). */
+  readonly includeLiveness?: boolean;
   /** The optimistic message shown before the session's events carry it. */
   readonly pendingUserMessage?: string | null;
   /** Emit a bottom approval card for a waiting tool use that has no row of its own. */
@@ -540,56 +570,6 @@ export interface BuildThreadItemsOptions {
 
 /** The phases a turn ends with a badge for: everything but a completion. */
 const BADGED_END_PHASES: ReadonlySet<string> = new Set(["failed", "cancelled", "terminated"]);
-
-/**
- * True once the agent has produced any real, renderable response in a turn —
- * a message with text, a thinking (live or with text), or a tool use.
- *
- * Gates the synthetic "Thinking…" setup placeholder: the placeholder is only
- * for the genuine pre-first-content window and must yield the moment any of
- * these appear, otherwise it would render *alongside* the real
- * ThinkingMessage / ToolCallGroup cards (the GitHub #179 duplicate-spinner).
- */
-function hasStartedResponding(turn: Turn): boolean {
-  return turn.items.some((item) => {
-    switch (item.kind) {
-      case "tool_use":
-        return true;
-      case "message":
-        return item.text.trim().length > 0;
-      case "thinking":
-        return item.live || item.text.trim().length > 0;
-      default:
-        return false;
-    }
-  });
-}
-
-/**
- * True while the live turn already shows a live signal of its own somewhere
- * in the thread — a running tool call (its row's label carries the shimmer)
- * or a working subagent (its section carries a live indicator), at any
- * depth. Suppresses the bottom liveness line: one ambient signal at a time.
- */
-function hasVisiblyRunningActivity(items: ReadonlyArray<TurnItem>): boolean {
-  return items.some(
-    (item) =>
-      item.kind === "tool_use" &&
-      (item.state === "running" ||
-        (item.thread !== undefined &&
-          (item.thread.state === "running" || hasVisiblyRunningActivity(item.thread.items)))),
-  );
-}
-
-/** The background commands running now among `items`, at any depth, oldest first. */
-function runningBackgroundCommands(items: ReadonlyArray<TurnItem>): ToolUse[] {
-  const running = items.flatMap((item): ToolUse[] =>
-    item.kind !== "tool_use"
-      ? []
-      : [...(isBackgroundRunning(item) ? [item] : []), ...(item.thread === undefined ? [] : runningBackgroundCommands(item.thread.items))],
-  );
-  return running.sort((a, b) => (a.background?.startedAt ?? "").localeCompare(b.background?.startedAt ?? ""));
-}
 
 /**
  * True for a turn that ran in Plan mode and completed — the only kind of
@@ -736,6 +716,8 @@ export function buildThreadItems(
     queued = [],
     agentVersionLabel,
     planFiles,
+    includeOutcomes = false,
+    includeLiveness = true,
   } = options;
   const runsById = new Map<string, Run>();
   for (const run of runs) {
@@ -1012,6 +994,12 @@ export function buildThreadItems(
     if (reviewSets.length > 0) {
       insertFileReviewItems(items, reviewSets, fileReviewAnchors, turn.ended);
     }
+
+    // Every ended turn but the last closes here; the last closes after its
+    // failure notice, below.
+    if (includeOutcomes && turn.ended && turn !== lastTurn) {
+      items.push({ kind: "outcome", turn, key: `outcome-${turn.runId}` });
+    }
   }
 
   const lastRun = lastTurn ? runsById.get(lastTurn.runId) : undefined;
@@ -1037,11 +1025,13 @@ export function buildThreadItems(
   }
 
   if (lastTurn?.ended && lastPhase !== undefined && BADGED_END_PHASES.has(lastPhase)) {
-    items.push({
-      kind: "phase-badge",
-      phase: runPhaseOf(lastPhase),
-      key: `phase-${lastPhase}`,
-    });
+    if (!includeOutcomes) {
+      items.push({
+        kind: "phase-badge",
+        phase: runPhaseOf(lastPhase),
+        key: `phase-${lastPhase}`,
+      });
+    }
 
     // A failed or terminated turn carries its reason; surface it beside the
     // badge so a failure that produced no messages still explains itself.
@@ -1062,6 +1052,10 @@ export function buildThreadItems(
         key: `execution-error-${lastTurn.runId}`,
       });
     }
+  }
+
+  if (includeOutcomes && lastTurn?.ended) {
+    items.push({ kind: "outcome", turn: lastTurn, key: `outcome-${lastTurn.runId}` });
   }
 
   if (includeApprovals && lastTurn) {
@@ -1089,11 +1083,12 @@ export function buildThreadItems(
   ) {
     // Held for its background commands alone: the agent's reply has ended
     // (its liveness names no wait on the model) while commands still run.
-    const waitingOn =
-      activeTurn.liveness !== undefined && activeTurn.liveness.awaitingModelMs === undefined
-        ? runningBackgroundCommands(activeTurn.items)
-        : [];
-    items.push({ kind: "liveness", key: "liveness-status", waitingOn });
+    // That line names the commands and offers a lone one's Stop, so it shows
+    // even where the host speaks for the turn otherwise.
+    const waitingOn = backgroundCommandsHolding(activeTurn);
+    if (includeLiveness || waitingOn.length > 0) {
+      items.push({ kind: "liveness", key: "liveness-status", waitingOn });
+    }
   }
 
   // Messages sent while a turn worked that no turn has read, in the order
@@ -1209,6 +1204,9 @@ export function MessageThread({
   contentColumn,
   slots,
   runScores = false,
+  turnOutcome,
+  foldSettledSteps = false,
+  ambientLiveness = true,
 }: MessageThreadProps) {
   useRenderTracer("MessageThread", { turns, runs });
 
@@ -1232,8 +1230,14 @@ export function MessageThread({
         queued,
         agentVersionLabel,
         planFiles,
+        includeOutcomes: turnOutcome !== undefined,
+        includeLiveness: ambientLiveness,
       }),
-    [turns, runs, pendingUserMessage, includeApprovals, resources, pendingMessageFailed, editableActiveTurn, showFileReviewRecords, collapseStreamingPlan, pendingFiles, queued, agentVersionLabel, planFiles],
+    [turns, runs, pendingUserMessage, includeApprovals, resources, pendingMessageFailed, editableActiveTurn, showFileReviewRecords, collapseStreamingPlan, pendingFiles, queued, agentVersionLabel, planFiles, turnOutcome, ambientLiveness],
+  );
+  const presentation = useMemo<ThreadPresentation>(
+    () => ({ foldSettledSteps, turnOutcome }),
+    [foldSettledSteps, turnOutcome],
   );
 
   useKeyStability(items);
@@ -1305,9 +1309,11 @@ export function MessageThread({
   const unresolvedApprovalCount = includeApprovals ? (turns.at(-1)?.asks.length ?? 0) : 0;
 
   const withRunScores = (thread: ReactNode): ReactNode => (
-    <BackgroundCommandContext.Provider value={backgroundCtx}>
-      {runScores ? <RunScoresProvider runs={runs}>{thread}</RunScoresProvider> : thread}
-    </BackgroundCommandContext.Provider>
+    <ThreadPresentationContext.Provider value={presentation}>
+      <BackgroundCommandContext.Provider value={backgroundCtx}>
+        {runScores ? <RunScoresProvider runs={runs}>{thread}</RunScoresProvider> : thread}
+      </BackgroundCommandContext.Provider>
+    </ThreadPresentationContext.Provider>
   );
 
   if (virtualized) {
@@ -1591,13 +1597,9 @@ export function ThreadItemRenderer({
       );
     }
     case "tool-group":
-      return (
-        <ToolCallGroup
-          toolUses={item.toolUses}
-          formatSummary={formatToolCallSummary}
-          className="stg:mx-4"
-        />
-      );
+      return <ToolGroupRow toolUses={item.toolUses} formatSummary={formatToolCallSummary} />;
+    case "outcome":
+      return <OutcomeRow turn={item.turn} />;
     case "subagent":
       return (
         <SubagentSection
@@ -1722,6 +1724,31 @@ export function ThreadItemRenderer({
       );
     }
   }
+}
+
+/** A run of tool calls: today's rows, or one step row once every call returned and the thread folds them. */
+function ToolGroupRow({
+  toolUses,
+  formatSummary,
+}: {
+  readonly toolUses: readonly ToolUse[];
+  readonly formatSummary?: (toolUses: readonly ToolUse[]) => string;
+}) {
+  const { foldSettledSteps } = useThreadPresentation();
+  if (!foldSettledSteps || toolUses.some((tool) => tool.result === undefined)) {
+    return <ToolCallGroup toolUses={toolUses} formatSummary={formatSummary} className="stg:mx-4" />;
+  }
+  return (
+    <SettledStepsRow toolUses={toolUses}>
+      <ToolCallGroup toolUses={toolUses} formatSummary={formatSummary} />
+    </SettledStepsRow>
+  );
+}
+
+/** What closes an ended turn, from the thread's host. */
+function OutcomeRow({ turn }: { readonly turn: Turn }) {
+  const { turnOutcome } = useThreadPresentation();
+  return <>{turnOutcome?.(turn)}</>;
 }
 
 // ---------------------------------------------------------------------------

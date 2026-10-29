@@ -133,6 +133,8 @@ export type {
 
 // SessionViewer — full-featured session viewer organism
 export { SessionViewer } from "./SessionViewer.js";
+export { SessionInspector } from "./inspector/SessionInspector.js";
+export type { SessionInspectorProps } from "./inspector/SessionInspector.js";
 export type { SessionViewerProps } from "./SessionViewer.js";
 
 // NewSessionViewer — launcher organism with progressive Setup panel

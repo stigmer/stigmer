@@ -1,25 +1,28 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, cleanup, fireEvent } from "@testing-library/react";
+import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
 import type { ResourceRef } from "@stigmer/client";
-import { ACME_ID, GLOBEX_ID, orgWrapper } from "../../organization/__tests__/org-fixture";
 
 // ---------------------------------------------------------------------------
-// Launcher panel behavior: the session panel chip is PERSISTENT chrome (always
-// mounted, not gated on attached context), and opening the panel homes on the
-// Config facet — the pre-session view that carries the run defaults, since the
-// Explorer has no workspace yet.
+// Launcher behavior: with the host's inspector the panel chip is PERSISTENT
+// chrome (always mounted, not gated on attached context) and the panel opens
+// on the attached workspaces' Explorer; without one there is no chip. How the
+// first turn runs (engine, model, the auto-approve switch) is a row of the
+// composer's configure menu.
 //
 // The composer is replaced with a prop-capturing probe so these tests exercise
-// only the panel chrome (chip + WorkspaceSurface rail) without pulling in the
-// full composer's provider requirements. The Config facet (SetupTab) renders
-// for real so "homes on Config" is asserted through the live rail.
+// only the launcher's chrome without pulling in the full composer's provider
+// requirements; the run-settings row it is handed is drawn for real.
 // ---------------------------------------------------------------------------
 
+const composerProps: Record<string, unknown>[] = [];
 vi.mock("../../composer", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../composer")>();
   return {
     ...actual,
-    SessionComposer: () => <div data-testid="composer-probe" />,
+    SessionComposer: (props: Record<string, unknown>) => {
+      composerProps.push(props);
+      return <div data-testid="composer-probe" />;
+    },
   };
 });
 
@@ -106,6 +109,7 @@ vi.mock("../../models/hub/ModelsHub", async (importOriginal) => {
       parentOrgNameOf: () => undefined,
       readinessOf: () => undefined,
       isLoading: true,
+      readinessLoading: false,
       error: null,
       refresh: () => {},
     }),
@@ -113,9 +117,11 @@ vi.mock("../../models/hub/ModelsHub", async (importOriginal) => {
 });
 
 import { NewSessionViewer } from "../NewSessionViewer";
+import { SessionInspector } from "../inspector/SessionInspector";
 
 beforeEach(() => {
   cleanup();
+  composerProps.length = 0;
   mockFlow = stubEmptyFlow;
 });
 
@@ -126,25 +132,41 @@ afterEach(() => {
 
 describe("NewSessionViewer — persistent panel chip", () => {
   it("renders the chip with zero attached context (not gated on hasContext)", () => {
-    render(<NewSessionViewer org="acme" onSessionCreated={vi.fn()} />);
+    render(<NewSessionViewer org="acme" onSessionCreated={vi.fn()} inspector={<SessionInspector />} />);
     expect(screen.getByRole("button", { name: "Show panel" })).toBeTruthy();
   });
 
-  it("homes on the Config facet when the panel opens", () => {
+  it("offers no chip and no panel without the host's inspector", () => {
     render(<NewSessionViewer org="acme" onSessionCreated={vi.fn()} />);
+    expect(screen.queryByRole("button", { name: "Show panel" })).toBeNull();
+  });
+
+  it("opens on the Explorer, with no Config facet", () => {
+    render(<NewSessionViewer org="acme" onSessionCreated={vi.fn()} inspector={<SessionInspector />} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Show panel" }));
 
-    // The Config rail view is the active (checked) one; Explorer is not — the
-    // launcher's `defaultView: "configure"` home view.
-    const config = screen.getByRole("radio", { name: "Config" });
-    const explorer = screen.getByRole("radio", { name: "Explorer" });
-    expect(config.getAttribute("aria-checked")).toBe("true");
-    expect(explorer.getAttribute("aria-checked")).toBe("false");
+    expect(screen.getByRole("radio", { name: "Explorer" }).getAttribute("aria-checked")).toBe("true");
+    expect(screen.queryByRole("radio", { name: "Config" })).toBeNull();
+  });
+
+  it("adds a local folder the person picks from the explorer's footer", async () => {
+    render(
+      <NewSessionViewer
+        org="acme"
+        onSessionCreated={vi.fn()}
+        enableLocal
+        onBrowseLocalFolder={async () => "/Users/ada/billing"}
+        inspector={<SessionInspector />}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Show panel" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add Folder" }));
+    await waitFor(() => expect(emptyWorkspace.addLocalPath).toHaveBeenCalledWith("/Users/ada/billing"));
   });
 
   it("keeps the chip mounted as the collapse control once the panel is open", () => {
-    render(<NewSessionViewer org="acme" onSessionCreated={vi.fn()} />);
+    render(<NewSessionViewer org="acme" onSessionCreated={vi.fn()} inspector={<SessionInspector />} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Show panel" }));
     // Chip is still present with zero context — now as the hide affordance, so
@@ -171,10 +193,12 @@ describe("NewSessionViewer — auto-approve placement (#816 rework)", () => {
     expect(setAutoApproveAll).toHaveBeenCalledExactlyOnceWith(false);
   });
 
-  it("offers the auto-approve switch in the Config facet, wired to the flow", () => {
+  it("offers the auto-approve switch in the composer's run settings, wired to the flow", () => {
     render(<NewSessionViewer org="acme" onSessionCreated={vi.fn()} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Show panel" }));
+    const settings = composerProps.at(-1)?.extraSettings as readonly { item: { id: string }; panel: React.ReactElement }[];
+    expect(settings.map((setting) => setting.item.id)).toEqual(["run-settings"]);
+    render(settings[0]!.panel);
     const toggle = screen.getByRole("switch", { name: "Auto-approve" });
     expect(toggle.getAttribute("aria-checked")).toBe("false");
 
@@ -202,47 +226,6 @@ describe("NewSessionViewer — composer stays centered", () => {
     // composer. Centering must now hold irrespective of attached context.
     expect(composerWrapper()?.className).toContain("stg:my-auto");
     expect(composerWrapper()?.className).not.toContain("stg:my-6");
-  });
-});
-
-describe("NewSessionViewer — removing an attached reference compares orgs by id", () => {
-  // The same server attached twice, once naming its org by slug (a host's
-  // seed) and once by id (a picked one), and a namesake in another org.
-  const pluginRefs: ResourceRef[] = [
-    { org: "acme", slug: "github" },
-    { org: ACME_ID, slug: "github" },
-    { org: GLOBEX_ID, slug: "github" },
-  ];
-  const skillRefs: ResourceRef[] = [
-    { org: ACME_ID, slug: "triage" },
-    { org: "acme", slug: "triage" },
-    { org: "globex", slug: "triage" },
-  ];
-
-  async function renderWithRefs() {
-    mockFlow = { ...stubEmptyFlow, pluginRefs, skillRefs };
-    render(<NewSessionViewer org={ACME_ID} onSessionCreated={vi.fn()} />, {
-      wrapper: orgWrapper({}, undefined, true),
-    });
-    fireEvent.click(await screen.findByRole("button", { name: "Show panel" }));
-  }
-
-  it("drops every attachment of the removed plugin, and only in its org", async () => {
-    await renderWithRefs();
-
-    fireEvent.click((await screen.findAllByRole("button", { name: "Remove plugin github" }))[0]);
-
-    expect(stubEmptyFlow.setPluginRefs).toHaveBeenCalledExactlyOnceWith([
-      { org: GLOBEX_ID, slug: "github" },
-    ]);
-  });
-
-  it("drops every attachment of the removed skill, and only in its org", async () => {
-    await renderWithRefs();
-
-    fireEvent.click((await screen.findAllByRole("button", { name: "Remove skill triage" }))[0]);
-
-    expect(stubEmptyFlow.setSkillRefs).toHaveBeenCalledExactlyOnceWith([{ org: "globex", slug: "triage" }]);
   });
 });
 

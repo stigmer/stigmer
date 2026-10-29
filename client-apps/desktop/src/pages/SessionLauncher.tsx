@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
+  SessionInspector,
   NewSessionViewer,
   useAccountExecutionDefaults,
   useWorkspaceSources,
@@ -87,9 +88,13 @@ export function SessionLauncher() {
       enableGitHub={enableGitHub}
       enableLocal={enableLocal}
       onBrowseLocalFolder={browseLocalFolder}
-      workspaceFileLister={workspaceFileLister}
-      workspaceFileReader={workspaceFileReader}
-      workspaceContentSearcher={workspaceContentSearcher}
+      inspector={
+        <SessionInspector
+          workspaceFileLister={workspaceFileLister}
+          workspaceFileReader={workspaceFileReader}
+          workspaceContentSearcher={workspaceContentSearcher}
+        />
+      }
       initialAgentRef={initialAgentRef}
       initialPluginRefs={initialPluginRef ? [initialPluginRef] : undefined}
       rememberPluginPicks

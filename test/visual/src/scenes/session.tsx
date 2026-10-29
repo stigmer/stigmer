@@ -1,8 +1,9 @@
 // The session view's scenes: the real `SessionViewer`, as the console and an
 // embedding product draw it, over a state of the scenario catalogue, for
-// each person who looks at it: the builder at work in the console, the end
-// user inside a customer's product (no panel), a chat link's guest, and a
-// reviewer reading a conversation they cannot take part in.
+// each person who looks at it: the builder at work in the console (with the
+// inspector), the end user inside a customer's product (the conversation
+// alone), a chat link's guest, and a reviewer reading a conversation they
+// cannot take part in.
 //
 // The viewer loads the conversation itself, so a scene answers the calls it
 // makes from the scenario: the session, its event log, then a follow that
@@ -28,9 +29,11 @@ import { SessionQueryController } from "@stigmer/apis/ai/stigmer/agentic/session
 import { VaultQueryController } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/query_pb";
 import { GrantQueryController } from "@stigmer/apis/ai/stigmer/iam/grant/v1/query_pb";
 import { IdentityAccountQueryController } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/query_pb";
+import { RoutineSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
+import { RoutineQueryController } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/query_pb";
 import { PlatformQueryController } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
 import { OrganizationQueryController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/query_pb";
-import { SessionViewer, type SessionAudience, type SessionPanelMode } from "@stigmer/react-sdk";
+import { SessionInspector, SessionViewer, type SessionAudience } from "@stigmer/react-sdk";
 import { samples, scenarios, type Scenario, type ScenarioName } from "@stigmer/react-sdk/test";
 import { ACCOUNT } from "../fixtures.ts";
 import type { Drawing } from "./drawing.ts";
@@ -38,10 +41,11 @@ import type { Drawing } from "./drawing.ts";
 /** The organization the scenarios' session lives in, as the person's organization list names it. */
 const SESSION_ORG = samples.organization({ id: samples.session().metadata!.org, slug: samples.session().metadata!.org });
 
-/** How the host frames the viewer: who looks, and whether it offers the session panel. */
+/** How the host frames the viewer: who looks, and whether it passes the builder's inspector. */
 interface Framing {
   readonly audience?: SessionAudience;
-  readonly panel?: SessionPanelMode;
+  /** The console's framing: the inspector beside the conversation. */
+  readonly inspector?: boolean;
 }
 
 /**
@@ -88,6 +92,9 @@ function sessionRoutes(scenario: Scenario) {
     router.service(IdentityAccountQueryController, { whoAmI: () => ACCOUNT });
     router.service(GrantQueryController, { checkMyPermission: () => ({ isAuthorized: true }) });
     router.service(PlatformQueryController, { getServerInfo: () => ({}) });
+    router.service(RoutineQueryController, {
+      get: (request) => create(RoutineSchema, { metadata: { id: request.value, name: "Nightly billing check", slug: "nightly-billing-check", org: SESSION_ORG.metadata!.id } }),
+    });
     router.service(VaultQueryController, {
       getMine: () => {
         throw new ConnectError("no My vault yet", Code.NotFound);
@@ -96,7 +103,7 @@ function sessionRoutes(scenario: Scenario) {
   };
 }
 
-/** The session view over the `name` state, framed as given (the console's: every control, the panel offered). */
+/** The session view over the `name` state, framed as given (an embed's by default: the conversation alone). */
 export function sessionScene(name: ScenarioName, framing: Framing = {}): Drawing {
   const scenario = scenarios[name];
   const session = scenario.session ?? samples.session();
@@ -109,7 +116,7 @@ export function sessionScene(name: ScenarioName, framing: Framing = {}): Drawing
           sessionId={session.metadata!.id}
           org={session.metadata!.org}
           audience={framing.audience}
-          panel={framing.panel}
+          inspector={framing.inspector ? <SessionInspector /> : undefined}
         />
       </div>
     ),

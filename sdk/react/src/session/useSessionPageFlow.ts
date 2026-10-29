@@ -196,7 +196,7 @@ export interface UseSessionPageFlowReturn {
    * `false` by default. `true` when any of its sources arms it — the user's
    * explicit choice always winning:
    *
-   * 1. the user's Config facet switch ({@link setAutoApproveAll});
+   * 1. the user's run settings switch ({@link setAutoApproveAll});
    * 2. "Approve all" of a class at an approval gate (see
    *    {@link answerToolUse});
    * 3. the account's `default_auto_approve` preference
@@ -217,7 +217,7 @@ export interface UseSessionPageFlowReturn {
   readonly autoApproveAll: boolean;
   /**
    * Set the user's explicit session-scoped auto-approve choice. Wired to the
-   * Config facet's switch; an explicit `false` wins over both seeds and over
+   * run settings' switch; an explicit `false` wins over both seeds and over
    * an armed in-flight run for everything the client controls (follow-up
    * carry, granting waiting calls) — an already-armed run's server-side
    * bypass cannot be revoked mid-run. Never written back to the account
@@ -383,7 +383,7 @@ export function useSessionPageFlow(
   //
   //   effective = userChoice ?? (accountSeed || hostSeed || runArmed)
   //
-  // - `userChoice`: the Config facet's switch, or the gate-time "Approve
+  // - `userChoice`: the run settings switch, or the gate-time "Approve
   //   all" of a class (which escalates the session preference too).
   // - `accountSeed`: the account's default_auto_approve preference — the
   //   user's own persisted walk-away default. Resolves async with whoAmI;

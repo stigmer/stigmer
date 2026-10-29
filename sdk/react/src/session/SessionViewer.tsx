@@ -1,87 +1,60 @@
 "use client";
-
-import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { memo, useCallback, useMemo, useRef, useState, type ReactElement, type ReactNode } from "react";
 import { cn } from "@stigmer/design-tokens";
-import { getUserMessage, type ResourceRef } from "@stigmer/client";
-import type { File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
+import { getUserMessage, type DisplayFileChange, type ResourceRef, type Turn } from "@stigmer/client";
+import { create } from "@bufbuild/protobuf";
+import { FileSchema, type File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection.js";
-import type { WorkspaceFileLister } from "../workspace/WorkspaceFileLister.js";
-import type { WorkspaceFileReader } from "../workspace/WorkspaceFileReader.js";
-import type { WorkspaceContentSearcher } from "../workspace/WorkspaceContentSearcher.js";
 import { resolveWorkspaceFileSelection } from "../workspace/resolveWorkspaceFileSelection.js";
-import {
-  WorkspaceSurface,
-  type SurfaceVirtualDocument,
-} from "../workspace/WorkspaceSurface.js";
 import type { InteractionModeOption, SessionComposerHandle, SessionComposerSubmitContext } from "../composer/index.js";
 import type { AccountExecutionDefaults } from "../identity-account/useAccountExecutionDefaults.js";
 import type { ApplyResourceResult } from "../library/useApplyResource.js";
 import { SessionViewerLayout } from "./SessionViewerLayout.js";
-import { useWorkspaceEditors, isVirtualEntryId } from "../internal/store/index.js";
+import { SessionInspectorContext } from "./inspector/SessionInspectorContext.js";
+import type { SessionInspectorProps } from "./inspector/SessionInspector.js";
+import type { SessionStreamingPlan } from "./inspector/SessionInspectorRegion.js";
 import { isTerminalPhase } from "../run/run-phases.js";
 import { MessageThread, type MessageThreadSlots } from "../run/MessageThread.js";
+import { threadSaysBackgroundWait } from "../run/turn-tail.js";
 import { FileChangeProgressBar } from "../run/FileChangeProgressBar.js";
 import { FileReviewDock } from "../run/FileReviewDock.js";
-import {
-  FilePathContext,
-  type FilePathContextValue,
-} from "../run/FilePathContext.js";
+import { FilePathContext, type FilePathContextValue } from "../run/FilePathContext.js";
 import { ThreadSkeleton } from "../run/ThreadSkeleton.js";
 import { SessionComposer } from "../composer/index.js";
 import { AgentHoursNotice, agentHoursUsedUp } from "../billing/AgentHoursNotice.js";
-import { LivenessIndicator } from "./LivenessIndicator.js";
-import { ProviderKeyNotice, providerKeyRequired } from "../billing/ProviderKeyNotice.js";
+import { TurnActivityLine } from "./TurnActivityLine.js";
+import { TurnOutcome } from "./TurnOutcome.js";
+import { turnOutcome, type TurnChange } from "./turn-outcome.js";
+import { TurnChangeDialog } from "./TurnChangeDialog.js";
+import { FilePreviewModal } from "../run/FilePreviewModal.js";
+import { deriveRunFileChanges } from "../run/deriveRunFileChanges.js";
+import { SessionSummary } from "./SessionSummary.js";
+import { useRunSettings } from "./run-settings.js";
+import { DEFAULT_MODELS_HUB_HREF, ProviderKeyNotice, providerKeyRequired } from "../billing/ProviderKeyNotice.js";
 import { SecretFlowErrorGuide, isSecretFlowError } from "../error/index.js";
 import { useStigmer } from "../hooks.js";
-import {
-  findLatestSessionPlan,
-  findPlanFile,
-  planFilesByRun,
-  type SessionPlan,
-} from "../library/detect-plan-file.js";
+import { findLatestSessionPlan, planFilesByRun } from "../library/detect-plan-file.js";
 import { useSessionFiles } from "../file/useSessionFiles.js";
 import { findStreamingPlan } from "../library/detect-streaming-plan.js";
 import { useSessionAccess } from "./useSessionAccess.js";
 import { useSessionPageFlow } from "./useSessionPageFlow.js";
-import { useOrgIdForRef } from "../organization/useOrgRefs.js";
 import { isChannelOriginSession } from "./channelOrigin.js";
 import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
-import { useOpenFileChange } from "./useOpenFileChange.js";
-import { usePlanDraft, planDraftKey, type PlanDraftController } from "./usePlanDraft.js";
-import { PlanEditor } from "./PlanEditor.js";
-import { PlanStreamingDocument } from "./PlanStreamingDocument.js";
-import { PLAN_DOCUMENT_ENTRY_ID, PLAN_DOCUMENT_PATH } from "./plan-document.js";
-import { FILE_DOCUMENT_ENTRY_ID } from "../run/file-document.js";
-import { FileDocument } from "../run/FileDocument.js";
-import { useSessionRailViews } from "./useSessionRailViews.js";
-import { useSessionPanel, type SessionPanelController } from "./useSessionPanel.js";
+import type { Routine } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
+import { usePlanDraft, planDraftKey } from "./usePlanDraft.js";
+import { useSessionPanel } from "./useSessionPanel.js";
 import { SessionPanelChip } from "./SessionPanelChip.js";
 import { TranscriptExportMenu } from "./TranscriptExportMenu.js";
 import { AutoApproveIndicator } from "./AutoApproveIndicator.js";
 import { AgentVersionNotice } from "./AgentVersionNotice.js";
 import { agentRefOfSession, isSameAgent } from "./agentRefOfSession.js";
 import { useSessionWriteBacks } from "./useSessionWriteBacks.js";
-import { useWorkspaceReadRefs } from "./useWorkspaceReadRefs.js";
-import {
-  useSessionOutputs,
-  outputKey,
-  type SessionOutputEntry,
-} from "./useSessionOutputs.js";
-import {
-  useSessionGivenFiles,
-  givenKey,
-  type SessionGivenEntry,
-} from "./useSessionGivenFiles.js";
-import type { SetupTabProps } from "./facets/SetupTab.js";
-import { conversationEnvironment } from "./conversation-environment.js";
-import { environmentsNotApplying } from "../environment/resolve.js";
-import { useEnvironmentAvailability } from "../server-info.js";
+import { useSessionOutputs, outputKey } from "./useSessionOutputs.js";
+import { useSessionGivenFiles } from "./useSessionGivenFiles.js";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
-
-import type { SessionAudience, SessionPanelMode } from "./audience.js";
+import type { SessionAudience } from "./audience.js";
 import { showsRunScores } from "./audience.js";
 import type { SessionRunConfig } from "./run-config.js";
-
 /**
  * The build turn's user message — a short human-readable label, NOT the
  * implement instruction. The agent-facing instruction is runner-injected
@@ -92,19 +65,8 @@ import type { SessionRunConfig } from "./run-config.js";
  */
 const BUILD_FROM_PLAN_MESSAGE = "Build from plan";
 
-/**
- * A plan the active run is writing right now, resolved at the viewer
- * level (from `findStreamingPlan`) so the panel's plan tab can render it
- * live. The streaming sibling of {@link SessionPlan}: `executionId` keys the
- * document (a new turn's stream resets the tab's view state) and forms the
- * `<executionId>:streaming` identity for the plan-tab auto-open trigger.
- */
-interface SessionStreamingPlan {
-  /** ID of the run writing the plan. */
-  readonly executionId: string;
-  /** The live plan text (fence-stripped display projection). */
-  readonly displayText: string;
-}
+/** The File preview's stand-in while closed: it renders nothing until a File is chosen. */
+const EMPTY_FILE = create(FileSchema, {});
 
 /**
  * Width and anchoring of the conversation reading column, shared by the
@@ -161,29 +123,6 @@ export interface SessionViewerProps {
    */
   readonly onBrowseLocalFolder?: () => Promise<string | null>;
   /**
-   * Platform-injected file lister for workspace entries. When provided,
-   * each entry in the Setup tab's workspace section renders an
-   * expandable file tree. (Capability injection, opt-in.)
-   */
-  readonly workspaceFileLister?: WorkspaceFileLister;
-  /**
-   * Platform-injected content reader for the read-only file viewer. When
-   * provided, clicking a file in the Workspace tree opens it in a contextual
-   * "Viewer" tab. GitHub Contents/blob on web, Tauri fs on desktop; `undefined`
-   * degrades the viewer to an "unavailable here" state (capability injection,
-   * opt-in).
-   */
-  readonly workspaceFileReader?: WorkspaceFileReader;
-  /**
-   * Platform-injected content (text) searcher. When provided, the session
-   * panel's Search pane gains a `Name | Text` toggle for full-text search
-   * across the workspace. Desktop injects a native ripgrep-backed searcher;
-   * web leaves it undefined (git content search needs a branch-accurate
-   * backend), keeping Search filename-only there (capability injection,
-   * opt-in).
-   */
-  readonly workspaceContentSearcher?: WorkspaceContentSearcher;
-  /**
    * Presentation audience for the viewer. `"endUser"` locks the
    * session's agent and hides the plugin, skill and vault
    * configuration in both the composer and the
@@ -227,7 +166,7 @@ export interface SessionViewerProps {
    * the `autoApprove` default applies: it seeds the session-scoped
    * auto-approve state so a declared `default_auto_approve` preference
    * covers follow-ups on existing sessions too. An explicit flip of the
-   * Config facet's switch wins for this session. Ignored for the
+   * run settings' switch wins for this session. Ignored for the
    * `"guest"` audience.
    */
   readonly accountDefaults?: AccountExecutionDefaults;
@@ -243,42 +182,27 @@ export interface SessionViewerProps {
    */
   readonly showModelSelector?: boolean;
   /**
-   * Whether the viewer offers the session panel at all. `"none"` removes the
-   * panel AND its toggle chip, suppresses plan-mode auto-open, and lets
-   * transcript file paths keep their default copy behavior — for hosts whose
-   * surrounding surface already renders the workspace — while keeping every
-   * composer capability the audience allows. This is the panel half of what
-   * `audience="guest"` does, WITHOUT guest's composer strip-down; guest
-   * still forces it regardless of this prop. A union (not a boolean) so a
-   * future mode (e.g. a host-rendered panel) extends rather than breaks it.
-   *
-   * @default "auto"
+   * The builder mode: the explorer, editor tabs, search, Changes and Files
+   * beside the conversation, with the chip that opens them. The console
+   * and the desktop app pass `<SessionInspector />`; an embed passes
+   * nothing and ships none of its code. Without it every File and change
+   * a turn produced still opens in place, from the turn. Never shown to a
+   * guest.
    */
-  readonly panel?: SessionPanelMode;
+  readonly inspector?: ReactElement<SessionInspectorProps>;
   /**
-   * Initial open state of the session panel in uncontrolled mode — a docking
-   * host that wants the workspace visible from the first paint passes `true`.
-   * Ignored when {@link SessionViewerProps.panelOpen} is provided.
-   *
-   * @default false
+   * Where Models & providers is, in the host's routing: a follow-up refused
+   * for a missing provider key links there (the desktop app's hash router
+   * passes `#/models`). Defaults to {@link DEFAULT_MODELS_HUB_HREF}.
    */
-  readonly defaultPanelOpen?: boolean;
+  readonly modelsHubHref?: string;
   /**
-   * Controlled open state of the session panel. When provided, the host owns
-   * the panel: the chip toggle, file/plan/File-document opens, and plan-mode
-   * auto-open surface through {@link SessionViewerProps.onPanelOpenChange}
-   * instead of flipping state, and the panel follows this value. Leave
-   * `undefined` for the self-managing default.
+   * A routine's page, in the host's routing: the summary of a conversation a
+   * routine started links its name there (the console's
+   * `/library/routines/<org>/<slug>`). No link when omitted, or when the
+   * reader may not see the routine.
    */
-  readonly panelOpen?: boolean;
-  /**
-   * Called on every panel open/close transition, in BOTH modes — pass it
-   * alone (uncontrolled) to simply observe the panel, e.g. widening a docked
-   * pane when a streaming plan auto-opens it and reclaiming the room on
-   * close. See {@link UseSessionPanelOptions.onOpenChange} for the exact
-   * request-vs-transition semantics in each mode.
-   */
-  readonly onPanelOpenChange?: (open: boolean) => void;
+  readonly routineHref?: (routine: Routine) => string;
   /**
    * Slot for host-injected header actions. Rendered in the top-right corner
    * of the viewer, beside the panel chip. Keeps the SDK organism
@@ -287,11 +211,9 @@ export interface SessionViewerProps {
   readonly headerActions?: ReactNode;
   /**
    * Whether the viewer offers its built-in whole-conversation export
-   * (stigmer/stigmer#814). Placement is panel-aware: viewers with the
-   * session panel export from the Config facet's Transcript section, and
-   * panel-less viewers (guests, `panel="none"`) render the header
-   * {@link TranscriptExportMenu} instead — so wherever a conversation can
-   * be viewed, its transcript stays reachable. The export carries only
+   * (stigmer/stigmer#814), as the header's {@link TranscriptExportMenu}
+   * for every audience, so wherever a conversation can be viewed its
+   * transcript stays reachable. The export carries only
    * what the current caller can already read (`can_view`-scoped). Hosts
    * that own their export surface (or inert demo scenes) opt out.
    *
@@ -300,9 +222,8 @@ export interface SessionViewerProps {
   readonly transcriptExport?: boolean;
   /**
    * Host-injected access management control (e.g. the Console's
-   * `ManageAccessButton` with its own permission gating). Rendered inside
-   * the panel's Config facet rather than the header — access is session
-   * configuration, not a moment-to-moment action (slot injection).
+   * `ManageAccessButton` with its own permission gating), rendered in the
+   * header beside the host's actions. Withheld from observers.
    */
   readonly accessSlot?: ReactNode;
   /** Called after a resource is applied, or a skill added, from the Files tab. */
@@ -323,39 +244,32 @@ export interface SessionViewerProps {
 /**
  * Full-featured agent session viewer.
  *
- * Owns `useSessionPageFlow` internally and composes:
- * - **Conversation column** (primary): `MessageThread` + error
- *   banners + `SessionComposer`
- * - **Session panel** (secondary): the unified `WorkspaceSurface` — explorer,
- *   search, read-only editor, and the session facets (Config, Changes,
- *   Files, Usage) as injected rail views. Collapsed by default
- *   to a top-right chip; opening a file (tree, search, or a transcript path)
- *   expands it.
+ * Owns `useSessionPageFlow` internally and composes the conversation: its
+ * summary, the thread (each ended turn closed by what it produced), the
+ * working turn's activity line with Stop, and the `SessionComposer` with
+ * the run settings in its configure menu. A host that passes `inspector`
+ * (`<SessionInspector />`) adds the builder mode beside it: the explorer,
+ * search, read-only editor and the Changes, Files and Usage facets,
+ * collapsed to a top-right chip until opened.
  *
- * Both regions render inside {@link SessionViewerLayout} — the frame shared
- * with {@link NewSessionViewer} — with the chat width persisted per viewer.
+ * Both regions render inside {@link SessionViewerLayout}, the frame shared
+ * with {@link NewSessionViewer}, with the chat width persisted per viewer.
  *
  * Framework-agnostic — no Next.js, no Tauri, no routing deps. Host
  * apps inject platform-specific values via props.
  *
  * @example
  * ```tsx
- * // Web (cloud run)
+ * // An embedding product's end user: the conversation alone
+ * <SessionViewer sessionId={id} org={org} audience="endUser" />
+ *
+ * // The console, with the builder mode
  * <SessionViewer
  *   sessionId={id}
  *   org={org}
  *   gitHubConnection={gitHubConnection}
  *   enableGitHub
- *   headerActions={<ShareButton sessionId={id} />}
- * />
- *
- * // Desktop (local run with native picker)
- * <SessionViewer
- *   sessionId={id}
- *   org={org}
- *   enableLocal
- *   onBrowseLocalFolder={browseLocalFolder}
- *   headerActions={<ShareButton sessionId={id} />}
+ *   inspector={<SessionInspector workspaceFileLister={lister} workspaceFileReader={reader} />}
  * />
  * ```
  */
@@ -366,17 +280,13 @@ export function SessionViewer({
   enableGitHub = true,
   enableLocal = false,
   onBrowseLocalFolder,
-  workspaceFileLister,
-  workspaceFileReader,
-  workspaceContentSearcher,
   audience = "integrator",
   runConfig,
   accountDefaults,
   showModelSelector = true,
-  panel: panelMode = "auto",
-  defaultPanelOpen,
-  panelOpen,
-  onPanelOpenChange,
+  inspector,
+  modelsHubHref = DEFAULT_MODELS_HUB_HREF,
+  routineHref,
   headerActions,
   transcriptExport = true,
   accessSlot,
@@ -441,12 +351,13 @@ export function SessionViewer({
   // people and a conversation's reviewers grade runs, an embedded end user
   // and a chat-link visitor see neither.
   const runScores = showsRunScores(isObserver ? "observer" : audience);
-  // The one flag every panel affordance keys on: the host opted out
-  // (`panel="none"`) or the audience forbids it (guests have no business
-  // with session configuration). Everything the panel touches — the chip,
+  // The one flag every panel affordance keys on: the host passed no
+  // inspector, or the audience forbids it (guests have no business with the
+  // workspace). Everything the panel touches — the chip,
   // the region, plan auto-open, transcript path clicks — gates on this, so
   // the four affordances can never drift apart.
-  const panelEnabled = panelMode !== "none" && !isGuest;
+  const panelEnabled = inspector !== undefined && !isGuest;
+  const inspectorProps = inspector?.props;
 
   const [modelId, setModelId] = flow.model;
   const [interactionMode, setInteractionMode] = flow.interactionMode;
@@ -545,9 +456,9 @@ export function SessionViewer({
   const panel = useSessionPanel({
     phase: hasPhase ? phase : null,
     hasChanges: hasWriteBacks,
-    // A streaming plan auto-opens the panel via its key — but a viewer
-    // without a panel (guest, or panel="none") suppresses the trigger
-    // along with the chip.
+    // A streaming plan auto-opens the panel via its key, but a viewer
+    // without one (no inspector, or a guest) suppresses the trigger along
+    // with the chip.
     planKey: panelEnabled ? panelPlanKey : null,
     // Plans are found among the conversation's Files, read after mount: the
     // plan present when that first read lands is an old one, never a reason
@@ -556,9 +467,9 @@ export function SessionViewer({
     // With the panel disabled the controller is pinned controlled-closed
     // and unobserved — airtight inertness, not just hidden UI: no intent
     // can flip state or reach the host's callback.
-    open: panelEnabled ? panelOpen : false,
-    defaultOpen: defaultPanelOpen,
-    onOpenChange: panelEnabled ? onPanelOpenChange : undefined,
+    open: panelEnabled ? inspectorProps?.open : false,
+    defaultOpen: inspectorProps?.defaultOpen,
+    onOpenChange: panelEnabled ? inspectorProps?.onOpenChange : undefined,
   });
 
   const handleBuildFromPlan = useCallback(() => {
@@ -626,12 +537,21 @@ export function SessionViewer({
     })();
   }, [setInteractionMode, sessionPlan, planDraft.readDraft, stigmer, org, sessionId]);
 
+  const [openChange, setOpenChange] = useState<DisplayFileChange | null>(null);
+
   // "Open plan" (a thread plan card, or the Files facet's plan.md) → the
   // panel's plan document tab. Opening the LATEST plan clears the historical
   // selection (the tab shows the editable current plan); any other run
   // id opens that turn's plan read-only in the same tab.
+  // Without an inspector the plan opens read-only in the File preview.
+  const [previewFile, setPreviewFile] = useState<StigmerFile | null>(null);
   const handleOpenPlan = useCallback(
     (executionId: string) => {
+      if (!panelEnabled) {
+        const planFile = planFiles.get(executionId) ?? sessionPlan?.file;
+        if (planFile) setPreviewFile(planFile);
+        return;
+      }
       setOpenPlanExecutionId(
         sessionPlan && executionId === sessionPlan.runId
           ? null
@@ -639,7 +559,7 @@ export function SessionViewer({
       );
       panel.openPlanDocument();
     },
-    [sessionPlan, panel.openPlanDocument],
+    [panelEnabled, planFiles, sessionPlan, panel.openPlanDocument],
   );
 
   // A Files-facet row → an editor-pane document tab, by its document key.
@@ -660,10 +580,17 @@ export function SessionViewer({
   // (which subscribes), never this streaming column.
   const handleTranscriptFilePathClick = useCallback(
     (path: string): boolean => {
-      // No panel (guest, or panel="none") means no file viewer, so paths
-      // keep their default copy behavior instead of opening a surface that
-      // cannot render.
-      if (!panelEnabled) return false;
+      // With no inspector there is no file viewer: a path a turn changed
+      // opens that change's diff; any other keeps its default copy behavior.
+      // The path is matched by its place in the workspace, never by its
+      // tail, so docs/README.md never opens a root README.md's change.
+      if (!panelEnabled) {
+        const place = workspacePlace(path, flow.sandboxWorkspaceRoot);
+        const change = deriveRunFileChanges(flow.allRuns).find((candidate) => candidate.path === place);
+        if (change === undefined) return false;
+        setOpenChange(change);
+        return true;
+      }
       const selection = resolveWorkspaceFileSelection(
         path,
         flow.workspace.entries,
@@ -673,7 +600,35 @@ export function SessionViewer({
       panel.openFile(selection.entryId, selection.path);
       return true;
     },
-    [panelEnabled, flow.workspace.entries, flow.sandboxWorkspaceRoot, panel.openFile],
+    [panelEnabled, flow.allRuns, flow.workspace.entries, flow.sandboxWorkspaceRoot, panel.openFile],
+  );
+
+  // What a turn's outcome opens: a File the turn returned as the inspector's
+  // document tab when this is its newest version there, else in the File
+  // preview; a change in the inspector, else as its diff when the run
+  // captured it.
+  const handleOpenOutputFile = useCallback(
+    (file: StigmerFile) => {
+      const id = file.metadata?.id;
+      const newest = sessionOutputs.some((entry) => entry.file.metadata?.id === id);
+      if (panelEnabled && newest) {
+        handleOpenFileDocument(outputKey(file));
+        return;
+      }
+      setPreviewFile(file);
+    },
+    [panelEnabled, sessionOutputs, handleOpenFileDocument],
+  );
+  const canOpenTurnChange = useCallback(
+    (change: TurnChange) => panelEnabled || change.captured !== undefined,
+    [panelEnabled],
+  );
+  const handleOpenTurnChange = useCallback(
+    (change: TurnChange) => {
+      if (panelEnabled && handleTranscriptFilePathClick(change.path)) return;
+      if (change.captured !== undefined) setOpenChange(change.captured);
+    },
+    [panelEnabled, handleTranscriptFilePathClick],
   );
 
   if (conv.isLoading) {
@@ -693,27 +648,25 @@ export function SessionViewer({
   }
 
   return (
+    <>
     <SessionViewerLayout
       className={className}
       // Top-right controls: host actions + the panel chip. The chip is the
       // panel's always-mounted toggle; while collapsed it carries only the
       // pending-item count. Run status is never surfaced as header
-      // chrome — the thread itself communicates run state. A viewer without
-      // a panel (guests — session configuration is not a visitor's business —
-      // or a host's panel="none") has no toggle: it is simply absent.
-      //
-      // Transcript export lives in the panel's Config facet; the header menu
-      // renders ONLY for panel-less viewers, so no audience loses export
-      // (guests and panel="none" hosts have no facet to reach it through).
+      // chrome: the activity line and each turn's outcome say it. A viewer
+      // without an inspector (an embed, or a guest) has no toggle: it is
+      // simply absent. Access and the transcript export are header actions
+      // for every viewer, inspector or not.
       headerActions={
-        transcriptExport && !panelEnabled ? (
-          <>
-            {headerActions}
-            <TranscriptExportMenu sessionId={sessionId} />
-          </>
-        ) : (
-          headerActions
-        )
+        <>
+          {headerActions}
+          {/* Observers cannot manage access (no can_grant_access /
+              can_view_access on a channel session): withheld rather than
+              left to fail server-side. */}
+          {!isObserver && accessSlot}
+          {transcriptExport && <TranscriptExportMenu sessionId={sessionId} />}
+        </>
       }
       chip={
         panelEnabled ? (
@@ -755,55 +708,65 @@ export function SessionViewer({
           runScores={runScores}
           modelSelectorVisible={modelSelectorVisible}
           threadSlots={threadSlots}
+          files={files}
+          onOpenOutputFile={handleOpenOutputFile}
+          canOpenTurnChange={canOpenTurnChange}
+          onOpenTurnChange={handleOpenTurnChange}
+          modelsHubHref={modelsHubHref}
+          routineHref={routineHref}
         />
       }
       panel={
         panel.isOpen && panelEnabled ? (
-          <SessionPanelRegion
-            flow={flow}
-            org={org}
-            panel={panel}
-            // Observers cannot manage access (no can_grant_access /
-            // can_view_access on a channel session) — the control is
-            // withheld rather than left to fail server-side.
-            accessSlot={isObserver ? undefined : accessSlot}
-            onApplied={onApplied}
-            // Implementing a plan submits a run — a write an
-            // observer or a viewer cannot make (can_create_run_in is the
-            // owners' and participants').
-            onImplementPlan={isReader ? undefined : handleBuildFromPlan}
-            implementPlanDisabled={
-              // A plan is implemented by a turn of its own, never queued
-              // behind a working one.
-              isReader || conv.activePhase !== null || !conv.canSendFollowUp || isBuildingFromPlan
-            }
-            sessionPlan={sessionPlan}
-            sessionFiles={files}
-            sessionOutputs={sessionOutputs}
-            sessionGiven={sessionGiven}
-            onFilesShown={sessionFiles.refetch}
-            streamingPlan={streamingPlan}
-            planDraft={planDraft}
-            openPlanExecutionId={openPlanExecutionId}
-            onOpenPlan={handleOpenPlan}
-            onOpenFileDocument={handleOpenFileDocument}
-            onActivateFileDocument={handleActivateFileDocument}
-            enableLocal={enableLocal}
-            onBrowseLocalFolder={onBrowseLocalFolder}
-            workspaceFileLister={workspaceFileLister}
-            workspaceFileReader={workspaceFileReader}
-            workspaceContentSearcher={workspaceContentSearcher}
-            isCurated={isCurated}
-            // Only the conversation's owners decide on its runs: arming
-            // auto-approve is withheld from readers and participants alike.
-            isObserver={isReader || isParticipant}
-            // Drives the Config facet's Transcript section only — a host
-            // that opted out of export gets no facet section either.
-            exportSessionId={transcriptExport ? sessionId : null}
-          />
+          <SessionInspectorContext.Provider
+            value={{
+              kind: "session",
+              scope: {
+                flow,
+                org,
+                panel,
+                onApplied,
+                // Implementing a plan submits a run, a write an observer or a
+                // viewer cannot make (can_create_run_in is the owners' and
+                // participants').
+                onImplementPlan: isReader ? undefined : handleBuildFromPlan,
+                // A plan is implemented by a turn of its own, never queued
+                // behind a working one.
+                implementPlanDisabled:
+                  isReader || conv.activePhase !== null || !conv.canSendFollowUp || isBuildingFromPlan,
+                sessionPlan,
+                sessionFiles: files,
+                sessionOutputs,
+                sessionGiven,
+                onFilesShown: sessionFiles.refetch,
+                streamingPlan,
+                planDraft,
+                openPlanExecutionId,
+                onOpenPlan: handleOpenPlan,
+                onOpenFileDocument: handleOpenFileDocument,
+                onActivateFileDocument: handleActivateFileDocument,
+                enableLocal,
+                onBrowseLocalFolder,
+              },
+            }}
+          >
+            {inspector}
+          </SessionInspectorContext.Provider>
         ) : null
       }
     />
+    <FilePreviewModal
+      file={previewFile ?? EMPTY_FILE}
+      org={org}
+      isTerminal
+      open={previewFile !== null}
+      onClose={() => setPreviewFile(null)}
+      // A guest's credential may read a File and nothing more (stigmer#1481).
+      readOnly={isGuest}
+      onApplied={isGuest ? undefined : onApplied}
+    />
+    <TurnChangeDialog change={openChange} onClose={() => setOpenChange(null)} />
+    </>
   );
 }
 
@@ -873,6 +836,15 @@ interface ConversationColumnProps {
    */
   readonly modelSelectorVisible: boolean;
   readonly threadSlots?: MessageThreadSlots;
+  readonly files: readonly StigmerFile[];
+  /** Opens a File a turn returned, in place. */
+  readonly onOpenOutputFile: (file: StigmerFile) => void;
+  /** Whether a turn's change can be shown here. */
+  readonly canOpenTurnChange: (change: TurnChange) => boolean;
+  /** Opens a turn's change, in place. */
+  readonly onOpenTurnChange: (change: TurnChange) => void;
+  readonly modelsHubHref: string;
+  readonly routineHref?: (routine: Routine) => string;
 }
 
 const ConversationColumn = memo(function ConversationColumn({
@@ -904,8 +876,33 @@ const ConversationColumn = memo(function ConversationColumn({
   runScores,
   modelSelectorVisible,
   threadSlots,
+  files,
+  onOpenOutputFile,
+  canOpenTurnChange,
+  onOpenTurnChange,
+  modelsHubHref,
+  routineHref,
 }: ConversationColumnProps) {
   const { conv } = flow;
+  // How the next turn runs, in the composer's configure menu: never a
+  // guest's (the share policy owns its run), and the auto-approve switch
+  // only for the conversation's owners.
+  const runSettingsRow = useRunSettings(flow, !isParticipant, isCurated);
+  const extraSettings = useMemo(() => (isGuest ? undefined : [runSettingsRow]), [isGuest, runSettingsRow]);
+
+  // Each ended turn closes with what it produced, from the conversation's
+  // Files and the turn's own run.
+  const renderTurnOutcome = useCallback(
+    (turn: Turn) => (
+      <TurnOutcome
+        outcome={turnOutcome(turn, files, conv.runs.find((run) => run.metadata?.id === turn.runId))}
+        onOpenFile={onOpenOutputFile}
+        canOpenChange={canOpenTurnChange}
+        onOpenChange={onOpenTurnChange}
+      />
+    ),
+    [files, conv.runs, onOpenOutputFile, canOpenTurnChange, onOpenTurnChange],
+  );
   // Answer failures are NOT folded into this banner: they surface in-card,
   // beside the exact gate that failed (see MessageThread's answerErrors →
   // ApprovalCard), matching the file-review card. A single banner cannot name
@@ -944,6 +941,14 @@ const ConversationColumn = memo(function ConversationColumn({
     },
     [flow.handleSubmit],
   );
+
+  const currentAgentVersion = flow.agentVersion.currentHash;
+  const ranOtherAgentVersion =
+    currentAgentVersion !== "" &&
+    flow.allRuns.some((run) => {
+      const hash = run.status?.agentVersionHash ?? "";
+      return hash !== "" && hash !== currentAgentVersion;
+    });
 
   // Stop the live turn (the session's interrupt, escalating to terminate on
   // a repeat press). Only wired while the live turn is stoppable.
@@ -1018,6 +1023,19 @@ const ConversationColumn = memo(function ConversationColumn({
 
   return (
     <div className="stg:flex stg:h-full stg:min-w-0 stg:flex-col">
+      {conv.session !== null && hasTurns && (
+        <div className={CONVERSATION_COLUMN_CLASS}>
+          <SessionSummary
+            session={conv.session}
+            turns={conv.turns}
+            runs={conv.runs}
+            files={files}
+            showCost={runScores}
+            routineHref={routineHref}
+            readsRoutine={!isGuest}
+          />
+        </div>
+      )}
       <MessageThread
         turns={conv.turns}
         runs={conv.runs}
@@ -1057,9 +1075,13 @@ const ConversationColumn = memo(function ConversationColumn({
         onFilePathClick={onFilePathClick}
         sandboxWorkspaceRoot={flow.sandboxWorkspaceRoot}
         // The agent version each turn ran, marked where it starts and
-        // wherever it changes. A guest's pure chat shows none.
-        agentVersionLabel={isGuest ? undefined : flow.agentVersion.labelOf}
-        onBuildFromPlan={isObserver ? undefined : onBuildFromPlan}
+        // wherever it changes, only when a turn ran another version than
+        // the agent's current one: a conversation on the current version
+        // throughout reads no hash. A guest's pure chat shows none.
+        agentVersionLabel={isGuest || !ranOtherAgentVersion ? undefined : flow.agentVersion.labelOf}
+        // Building from a plan uploads it, a call a guest credential is
+        // refused (stigmer#1481).
+        onBuildFromPlan={isObserver || isGuest ? undefined : onBuildFromPlan}
         onOpenPlan={onOpenPlan}
         org={org}
         planActionsDisabled={
@@ -1069,6 +1091,11 @@ const ConversationColumn = memo(function ConversationColumn({
         contentColumn="center"
         slots={threadSlots}
         runScores={runScores}
+        turnOutcome={renderTurnOutcome}
+        // The people who want the result fold a settled stretch into one
+        // step row; a builder keeps every row.
+        foldSettledSteps={isCurated}
+        ambientLiveness={false}
         className="stg:flex-1"
       />
       <div className={CONVERSATION_COLUMN_CLASS}>
@@ -1084,16 +1111,26 @@ const ConversationColumn = memo(function ConversationColumn({
         {/* What the turn is running and for how long, while its liveness
             previews arrive; the slow hint only once nothing arrives. */}
         {conv.isSlow && !conv.connectTimedOut && <SlowIndicator />}
-        {!conv.isSlow && conv.liveness && <LivenessIndicator liveness={conv.liveness} />}
+        {/* The working turn's one line, unless the thread's tail is naming
+            the background commands the turn waits on. */}
+        {conv.activeTurn !== null && !conv.connectTimedOut && !threadSaysBackgroundWait(conv.activeTurn) && (
+          <TurnActivityLine
+            turn={conv.activeTurn}
+            onStop={!isObserver && conv.isStoppable && !isParticipant ? handleStop : undefined}
+            decides={!isObserver && !isParticipant}
+            isStopping={conv.isStopping}
+            className="stg:mx-4 stg:mb-2"
+          />
+        )}
         {conv.streamError && (
           <StreamErrorBanner
             error={conv.streamError}
             onReconnect={conv.reconnectStream}
           />
         )}
-        {!isObserver && sendError && <SendErrorBanner error={sendError} />}
+        {!isObserver && sendError && <SendErrorBanner error={sendError} modelsHubHref={modelsHubHref} />}
         {/* Armed-only disclosure (#816 rework): auto-approve's way ON lives in
-            the Config facet and the account preference — this strip is the
+            the composer's run settings and the account preference; this strip is the
             always-visible proof it is on, plus the one-click way off. Never
             shown to observers (they cannot arm or disarm anything). */}
         {!isObserver && !isParticipant && flow.autoApproveAll && (
@@ -1123,7 +1160,8 @@ const ConversationColumn = memo(function ConversationColumn({
               progress shows while CAPTURING, the dock once AWAITING_REVIEW — so it
               hands off cleanly when review opens. Non-interactive. */}
           <FileChangeProgressBar progress={conv.fileChangeProgress} />
-          {!isObserver && !isParticipant && (
+          {/* A guest credential is refused file decisions (stigmer#1481). */}
+          {!isObserver && !isParticipant && !isGuest && (
             <FileReviewDock
               fileReviewSets={conv.fileReviewSets}
               captures={conv.fileChangeCaptures}
@@ -1188,6 +1226,7 @@ const ConversationColumn = memo(function ConversationColumn({
             initialIncludeMyVault={sessionIncludesMyVault}
             vaultPickCreatorId={sessionCreatorId}
             sessionId={sessionId}
+            extraSettings={extraSettings}
             className="stg:px-4 stg:py-3"
           />
         )}
@@ -1197,6 +1236,13 @@ const ConversationColumn = memo(function ConversationColumn({
 });
 
 /** The conversation's creator by name, for "Waiting for …"; a fallback when the stamp carries none. */
+/** A transcript path as its place in the workspace: below the sandbox's root when it is under it, without a leading "./". */
+function workspacePlace(path: string, root: string | undefined): string {
+  const base = root?.replace(/\/$/, "") ?? "";
+  const inWorkspace = base !== "" && path.startsWith(`${base}/`) ? path.slice(base.length + 1) : path;
+  return inWorkspace.startsWith("./") ? inWorkspace.slice(2) : inWorkspace;
+}
+
 function creatorDisplayName(session: Session | null): string {
   const creator = session?.status?.audit?.specAudit?.createdBy;
   return creator?.displayName || creator?.email || "the conversation's owner";
@@ -1217,400 +1263,6 @@ function WaitingOnOwnerNotice({ name }: { readonly name: string }) {
     <p className="stg:px-4 stg:pt-2 stg:text-xs stg:text-muted-foreground" role="status">
       Waiting for {name} to approve
     </p>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Session panel region (right/secondary) — the unified panel's subtree
-// ---------------------------------------------------------------------------
-
-interface SessionPanelRegionProps {
-  readonly flow: ReturnType<typeof useSessionPageFlow>;
-  readonly org: string;
-  /**
-   * The panel controller owned by `SessionViewer`. Its editor store is
-   * subscribed here (not at `SessionViewer`) so opening/switching files
-   * re-renders only this region, never the conversation column.
-   */
-  readonly panel: SessionPanelController;
-  /** Host access management control, surfaced in the Config facet. */
-  readonly accessSlot?: ReactNode;
-  readonly onApplied?: (result: ApplyResourceResult) => void;
-  /** Implement a plan (plan tab primary + Files preview action). */
-  readonly onImplementPlan?: () => void;
-  readonly implementPlanDisabled?: boolean;
-  /** The session's latest plan — the plan tab's editable content. */
-  readonly sessionPlan?: SessionPlan;
-  /** The conversation's Files, newest first — a superseded plan's File is found here. */
-  readonly sessionFiles: readonly StigmerFile[];
-  /** What the agent saved, one entry per output path (the Files facet and its tabs). */
-  readonly sessionOutputs: readonly SessionOutputEntry[];
-  /** What was given to the conversation (the Files facet and its tabs). */
-  readonly sessionGiven: readonly SessionGivenEntry[];
-  /** Re-read the conversation's Files (the Files facet opened, or a File was deleted). */
-  readonly onFilesShown: () => void;
-  /**
-   * The plan the active turn is writing right now. While present it OWNS the
-   * plan tab: the tab renders the live document (`PlanStreamingDocument`)
-   * instead of a published plan — the in-flight plan is the newest
-   * deliverable, and the snap-back in `SessionViewer` has already cleared any
-   * historical selection when this identity appeared.
-   */
-  readonly streamingPlan?: SessionStreamingPlan;
-  /** Viewer-owned plan draft (survives panel collapse and view switches). */
-  readonly planDraft: PlanDraftController;
-  /**
-   * Which plan the plan document tab shows: `null` for the latest (editable),
-   * or a run id whose historical plan renders read-only.
-   */
-  readonly openPlanExecutionId: string | null;
-  /** Opens a plan in the plan tab (routed to the Files facet's plan.md). */
-  readonly onOpenPlan: (executionId: string) => void;
-  /** Opens a File as an editor-pane document by its document key (routed to the Files facet). */
-  readonly onOpenFileDocument: (documentKey: string) => void;
-  /** Pins a File's document tab — the double-click half of the open/pin split. */
-  readonly onActivateFileDocument: (documentKey: string) => void;
-  readonly enableLocal: boolean;
-  readonly onBrowseLocalFolder?: () => Promise<string | null>;
-  readonly workspaceFileLister?: WorkspaceFileLister;
-  readonly workspaceFileReader?: WorkspaceFileReader;
-  readonly workspaceContentSearcher?: WorkspaceContentSearcher;
-  /** Curated audience (endUser or guest): the Setup facet renders read-only. */
-  readonly isCurated: boolean;
-  /**
-   * Observer audience (incl. channel-origin sessions): read-only viewers who
-   * must never receive the Config facet's auto-approve switch — the same
-   * withhold as approval submission. (Guests never render the panel at all.)
-   */
-  readonly isObserver: boolean;
-  /**
-   * Session id for the Config facet's Transcript export section, or `null`
-   * when the host opted out of export (`transcriptExport={false}`).
-   */
-  readonly exportSessionId: string | null;
-}
-
-function SessionPanelRegion({
-  flow,
-  org,
-  panel,
-  accessSlot,
-  onApplied,
-  onImplementPlan,
-  implementPlanDisabled,
-  sessionPlan,
-  sessionFiles,
-  sessionOutputs,
-  sessionGiven,
-  onFilesShown,
-  streamingPlan,
-  planDraft,
-  openPlanExecutionId,
-  onOpenPlan,
-  onOpenFileDocument,
-  onActivateFileDocument,
-  enableLocal,
-  onBrowseLocalFolder,
-  workspaceFileLister,
-  workspaceFileReader,
-  workspaceContentSearcher,
-  isCurated,
-  isObserver,
-  exportSessionId,
-}: SessionPanelRegionProps) {
-  const { editors, activeKey, activeFile, reveal } = useWorkspaceEditors(
-    panel.editorsStore,
-  );
-  // Honor a pending jump-to-line reveal only while it targets the active editor
-  // (an EditorReveal is structurally a RevealTarget). Switching tabs changes
-  // activeKey, so a stale reveal for another tab is naturally ignored.
-  const activeReveal =
-    reveal && reveal.key === activeKey ? reveal : undefined;
-
-  // Correlate the active file with its session change for diff-as-default
-  // (parity with the transcript's rendering of the same change). A
-  // virtual document (the plan tab) is not a workspace file — pass `null` so
-  // the hook's no-file guard skips the net-change fold entirely, rather than
-  // relying on the correlation harmlessly missing the sentinel id.
-  const openFileChange = useOpenFileChange(
-    activeFile && !isVirtualEntryId(activeFile.entryId) ? activeFile : null,
-    flow.allRuns,
-    flow.workspace.entries,
-    flow.sandboxWorkspaceRoot,
-  );
-
-  // Resolve WHICH plan the plan document tab shows: the latest (editable,
-  // buildable, draft-backed) unless a historical run id was opened —
-  // that plan renders read-only. A stale id (run gone, or its plan
-  // File missing) degrades to the latest rather than an empty tab.
-  const openPlan = useMemo<SessionPlan | undefined>(() => {
-    if (
-      openPlanExecutionId === null ||
-      openPlanExecutionId === sessionPlan?.runId
-    ) {
-      return sessionPlan;
-    }
-    const execution = flow.allRuns.find(
-      (e) => e.metadata?.id === openPlanExecutionId,
-    );
-    const file = findPlanFile(sessionFiles, execution);
-    return file ? { runId: openPlanExecutionId, file } : sessionPlan;
-  }, [openPlanExecutionId, sessionPlan, sessionFiles, flow.allRuns]);
-
-  // The plan document tab (SurfaceVirtualDocument): the panel's editor-area
-  // rendering of the session's plan. Three states, in precedence order:
-  // a STREAMING plan owns the tab (live document, no actions); otherwise the
-  // resolved `openPlan` renders in the editor (keyed by plan identity so
-  // switching plans resets view state cleanly); otherwise an honest empty
-  // notice — reachable only when a streaming plan auto-opened the
-  // tab and its turn then ended without publishing, with no earlier plan to
-  // fall back to.
-  const openPlanIsLatest = openPlan?.runId === sessionPlan?.runId;
-  const planVirtualDocument = useMemo<SurfaceVirtualDocument>(() => {
-    return {
-      entryId: PLAN_DOCUMENT_ENTRY_ID,
-      path: PLAN_DOCUMENT_PATH,
-      content: streamingPlan ? (
-        <PlanStreamingDocument
-          key={`streaming-${streamingPlan.executionId}`}
-          displayText={streamingPlan.displayText}
-        />
-      ) : openPlan ? (
-        <PlanEditor
-          key={planDraftKey(openPlan)}
-          plan={openPlan}
-          draft={openPlanIsLatest ? planDraft : undefined}
-          onBuildFromPlan={openPlanIsLatest ? onImplementPlan : undefined}
-          buildDisabled={implementPlanDisabled}
-          readOnly={!openPlanIsLatest}
-        />
-      ) : (
-        <PlanUnavailableNotice />
-      ),
-    };
-  }, [
-    streamingPlan,
-    openPlan,
-    openPlanIsLatest,
-    planDraft,
-    onImplementPlan,
-    implementPlanDisabled,
-  ]);
-
-  // The open File document tabs (the File virtual-document FAMILY).
-  // Built in a SEPARATE memo from the plan doc so File-tab churn never
-  // recreates the plan doc (and vice versa). Bounded to what is actually open:
-  // one document per editor whose entry id is the File family's, resolved
-  // back to its File by the same document key used to open it (`outputKey`
-  // for what the agent saved, `givenKey` for what was given; the two cannot
-  // alias). Only the ACTIVE doc's `content` is mounted by the surface, so
-  // building these elements is cheap; keying on the File's id remounts a
-  // tab whose path a later turn saved again. A tab whose File no longer
-  // exists degrades to an honest notice rather than vanishing.
-  const fileByKey = useMemo(() => {
-    const byKey = new Map<string, { readonly file: StigmerFile; readonly isTerminal: boolean }>();
-    for (const entry of sessionOutputs) byKey.set(outputKey(entry.file), entry);
-    for (const entry of sessionGiven) byKey.set(givenKey(entry), { file: entry.file, isTerminal: true });
-    return byKey;
-  }, [sessionOutputs, sessionGiven]);
-  const closeEditor = panel.closeEditor;
-  const fileVirtualDocuments = useMemo<readonly SurfaceVirtualDocument[]>(() => {
-    return editors
-      .filter((editor) => editor.entryId === FILE_DOCUMENT_ENTRY_ID)
-      .map((editor) => {
-        const entry = fileByKey.get(editor.path);
-        return {
-          entryId: FILE_DOCUMENT_ENTRY_ID,
-          path: editor.path,
-          content: entry ? (
-            <FileDocument
-              key={entry.file.metadata?.id || editor.path}
-              file={entry.file}
-              org={org}
-              isTerminal={entry.isTerminal}
-              onApplied={onApplied}
-              onDeleted={() => {
-                closeEditor(FILE_DOCUMENT_ENTRY_ID, editor.path);
-                onFilesShown();
-              }}
-            />
-          ) : (
-            <FileUnavailableNotice />
-          ),
-        };
-      });
-  }, [editors, fileByKey, org, onApplied, closeEditor, onFilesShown]);
-
-  const virtualDocuments = useMemo<readonly SurfaceVirtualDocument[]>(
-    () => [planVirtualDocument, ...fileVirtualDocuments],
-    [planVirtualDocument, fileVirtualDocuments],
-  );
-
-  // Dropping the agent is a real change of the conversation's binding, not a
-  // chip disappearing: the flow's clear rides the next follow-up to the server.
-  const handleRemoveAgent = flow.clearAgent;
-
-  // A reference may name its org by slug (one a host or URL supplied) or by
-  // id (a stored or picked one), so both sides are compared by id.
-  const orgIdFor = useOrgIdForRef();
-
-  // A stored reference holds its target's id, and one whose target was
-  // deleted holds no slug, so two references are one by id when either
-  // holds one; a reference just picked by name is matched by its name.
-  const sameRef = useCallback(
-    (a: ResourceRef, b: ResourceRef) =>
-      a.id || b.id
-        ? a.id === b.id
-        : orgIdFor(a.org) === orgIdFor(b.org) && a.slug === b.slug,
-    [orgIdFor],
-  );
-
-  const handleRemovePlugin = useCallback(
-    (ref: ResourceRef) => {
-      flow.setPluginRefs(flow.pluginRefs.filter((r) => !sameRef(r, ref)));
-    },
-    [flow.pluginRefs, flow.setPluginRefs, sameRef],
-  );
-
-  const handleRemoveSkill = useCallback(
-    (ref: ResourceRef) => {
-      flow.setSkillRefs(flow.skillRefs.filter((r) => !sameRef(r, ref)));
-    },
-    [flow.skillRefs, flow.setSkillRefs, sameRef],
-  );
-
-  // The Environment the conversation got, from its own record; where it has
-  // none, why none applies here. Nothing until the conversation is read.
-  const environmentAvailability = useEnvironmentAvailability();
-  const recordedEnvironment = flow.conv.session?.status?.environment;
-  const recordedEnvironmentSource = flow.conv.session?.status?.environmentSource;
-  const environment = useMemo(
-    () =>
-      recordedEnvironmentSource === undefined
-        ? undefined
-        : conversationEnvironment(
-            { environment: recordedEnvironment, environmentSource: recordedEnvironmentSource },
-            environmentsNotApplying(environmentAvailability, flow.executionTarget),
-          ),
-    [recordedEnvironment, recordedEnvironmentSource, environmentAvailability, flow.executionTarget],
-  );
-
-  const sessionConfig = useMemo<SetupTabProps>(
-    () => ({
-      agentRef: flow.agentRef,
-      pluginRefs: flow.pluginRefs,
-      skillRefs: flow.skillRefs,
-      harness: flow.harness,
-      executionTarget: flow.executionTarget,
-      environment,
-      // What the next message runs when the person picks nothing: their
-      // last pick, else the agent's default model for this engine.
-      modelId: flow.model[0] ?? flow.agentRunDefaults?.modelName,
-      // Arming auto-approve is an operator decision — withheld from
-      // observers with the same gate as approval submission (guests never
-      // render the panel). The switch stays interactive mid-run: flipping
-      // it ON releases the in-flight run's gates via the flow's standing
-      // responder (#816).
-      autoApprove: isObserver
-        ? undefined
-        : { armed: flow.autoApproveAll, onChange: flow.setAutoApproveAll },
-      // Transcript export is view-scoped, so observers keep it (#814).
-      sessionId: exportSessionId,
-      // Curated audiences see the configuration but cannot strip it — the
-      // Config facet renders read-only without mutation callbacks.
-      mutations: isCurated
-        ? undefined
-        : {
-            // Removable whenever there is one: the built-in assistant, the
-            // empty state, has nothing to remove and the tab shows it as such.
-            onRemoveAgent: flow.agentRef ? handleRemoveAgent : undefined,
-            onRemovePlugin: handleRemovePlugin,
-            onRemoveSkill: handleRemoveSkill,
-          },
-      accessSlot,
-    }),
-    [
-      flow.agentRef, flow.pluginRefs, flow.skillRefs,
-      flow.harness, flow.executionTarget, flow.model,
-      flow.agentRunDefaults, environment,
-      flow.autoApproveAll, flow.setAutoApproveAll, isObserver, exportSessionId,
-      isCurated, handleRemoveAgent, handleRemovePlugin, handleRemoveSkill,
-      accessSlot,
-    ],
-  );
-
-  // Cloud sessions with a git workspace push approved changes back to a
-  // branch/PR, so the Changes facet is offered from the start with an honest
-  // pre-push state. Deliberately NOT for local sessions: local mode edits the
-  // user's own working tree and never writes back (the runner configures no
-  // push credentials there) — promising a PR would be a lie.
-  const expectsWriteBack =
-    flow.executionTarget === "cloud" &&
-    flow.workspace.entries.some((entry) => entry.type === "git");
-  const displayPhase =
-    flow.displayRun?.status?.phase ??
-    RunPhase.RUN_PHASE_UNSPECIFIED;
-
-  // The session facets (Config / Changes / Files / Usage) as
-  // injected rail views — the full inspector feature set inside one panel.
-  const railViews = useSessionRailViews({
-    allRuns: flow.allRuns,
-    outputs: sessionOutputs,
-    given: sessionGiven,
-    onFilesShown,
-    onFileDeleted: onFilesShown,
-    org,
-    sessionConfig,
-    onApplied,
-    onImplementPlan,
-    onOpenPlan,
-    onOpenFileDocument,
-    onActivateFileDocument,
-    expectsWriteBack,
-    changesSettled: isTerminalPhase(displayPhase),
-  });
-
-  // Explorer-footer folder attach (desktop only — needs the native picker).
-  // Same wiring the retired Workspace tab used.
-  const canAddLocalFolder = enableLocal && !!onBrowseLocalFolder;
-  const handleAddLocalFolder = useCallback(async () => {
-    const path = await onBrowseLocalFolder?.();
-    if (path) flow.workspace.addLocalPath(path);
-  }, [onBrowseLocalFolder, flow.workspace.addLocalPath]);
-
-  // Entries decorated with per-entry read refs (the latest write-back commit
-  // SHA), so the surface's read-side capabilities — file viewer, tree listing,
-  // name search — resolve at the ref the agent's changes actually live on. A
-  // read-side projection only: `flow.workspace.entries` stays undecorated for
-  // setup and session input.
-  const surfaceEntries = useWorkspaceReadRefs(
-    flow.allRuns,
-    flow.workspace.entries,
-  );
-
-  return (
-    <WorkspaceSurface
-      entries={surfaceEntries}
-      lister={workspaceFileLister}
-      reader={workspaceFileReader}
-      searcher={workspaceContentSearcher}
-      view={panel.view}
-      onViewChange={panel.setView}
-      extraViews={railViews}
-      virtualDocuments={virtualDocuments}
-      onRemoveEntry={flow.workspace.remove}
-      onAddLocalFolder={canAddLocalFolder ? handleAddLocalFolder : undefined}
-      editors={editors}
-      selectedFile={activeFile}
-      onOpenFile={panel.openFile}
-      onActivateEditor={panel.activateEditor}
-      onPinEditor={panel.pinEditor}
-      onCloseEditor={panel.closeEditor}
-      onCollapse={panel.closePanel}
-      change={openFileChange ?? undefined}
-      reveal={activeReveal}
-      className="stg:h-full"
-    />
   );
 }
 
@@ -1653,50 +1305,6 @@ function SessionStarting() {
 }
 
 /**
- * The plan document tab's empty state — reachable only when a streaming plan
- * auto-opened the tab and its turn then ended without publishing (stopped or
- * failed) while the session has no earlier published plan to fall back to.
- * The partial plan reverts to the conversation (the thread un-collapses it),
- * so the notice points there. Never a blank pane.
- */
-function PlanUnavailableNotice() {
-  return (
-    <div
-      role="status"
-      className="stg:mx-auto stg:flex stg:w-full stg:max-w-3xl stg:flex-col stg:items-center stg:gap-1 stg:px-4 stg:py-8 stg:text-center"
-    >
-      <p className="stg:text-xs stg:font-medium stg:text-foreground">
-        This turn ended before a plan was completed.
-      </p>
-      <p className="stg:text-xs stg:text-muted-foreground">
-        Any partial plan text remains in the conversation.
-      </p>
-    </div>
-  );
-}
-
-/**
- * Shown in a File document tab whose File is no longer among the
- * conversation's (deleted, or replaced at its path by a later turn's). The
- * tab stays closable; the content is honest rather than blank.
- */
-function FileUnavailableNotice() {
-  return (
-    <div
-      role="status"
-      className="stg:mx-auto stg:flex stg:w-full stg:max-w-3xl stg:flex-col stg:items-center stg:gap-1 stg:px-4 stg:py-8 stg:text-center"
-    >
-      <p className="stg:text-xs stg:font-medium stg:text-foreground">
-        This file is no longer available.
-      </p>
-      <p className="stg:text-xs stg:text-muted-foreground">
-        It may have been deleted, or replaced by a newer version.
-      </p>
-    </div>
-  );
-}
-
-/**
  * Non-blocking notice for a build that fell back to message-only implement
  * (the approved plan.md could not be uploaded/attached). The build itself
  * proceeded — the agent follows the plan from conversation history — so this
@@ -1723,12 +1331,12 @@ function PlanAttachFailedNotice({ onDismiss }: { onDismiss: () => void }) {
   );
 }
 
-function SendErrorBanner({ error }: { error: Error }) {
+function SendErrorBanner({ error, modelsHubHref }: { readonly error: Error; readonly modelsHubHref: string }) {
   if (isSecretFlowError(error)) {
     return <SecretFlowErrorGuide error={error} className="stg:mx-4 stg:my-2" />;
   }
   if (providerKeyRequired(error) !== null) {
-    return <ProviderKeyNotice error={error} className="stg:mx-4 stg:my-2" />;
+    return <ProviderKeyNotice error={error} modelsHubHref={modelsHubHref} className="stg:mx-4 stg:my-2" />;
   }
   if (agentHoursUsedUp(error) !== null) {
     return <AgentHoursNotice error={error} className="stg:mx-4 stg:my-2" />;

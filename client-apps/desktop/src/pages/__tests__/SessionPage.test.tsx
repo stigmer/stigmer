@@ -19,6 +19,8 @@ const page = vi.hoisted(() => ({
 const SESSION = { metadata: { id: "ses_1", org: "org_acme" } };
 
 vi.mock("@stigmer/react-sdk", () => ({
+  SessionInspector: () => null,
+  useOrgSlugForId: () => (id: string) => (id === "org_acme" ? "acme" : id),
   SessionViewer: (props: Record<string, unknown>) => {
     page.viewer.push(props);
     return <>{props.accessSlot as React.ReactNode}</>;
@@ -81,5 +83,15 @@ describe("desktop SessionPage", () => {
 
     expect(page.viewer.at(-1)?.org).toBe("org_acme");
     expect((page.access.at(-1)?.resource as { org: string }).org).toBe("org_acme");
+  });
+
+  it("turns on the builder mode, links Models & providers and a routine through the hash router", () => {
+    renderAt("/sessions/ses_1");
+
+    const props = page.viewer.at(-1)!;
+    expect(props.inspector).toBeDefined();
+    expect(props.modelsHubHref).toBe("#/models");
+    const routineHref = props.routineHref as (routine: { metadata: { org: string; slug: string } }) => string;
+    expect(routineHref({ metadata: { org: "org_acme", slug: "nightly" } })).toBe("#/library/routines/acme/nightly");
   });
 });

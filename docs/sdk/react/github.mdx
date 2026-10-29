@@ -96,7 +96,7 @@ function useGitHubFileReader(org: string | null): WorkspaceFileReader | undefine
 ```tsx
 const gitHubConnection = useGitHubConnection(org);
 const fileReader = useGitHubFileReader(gitHubConnection.readOrg);
-<SessionViewer workspaceFileReader={fileReader} />
+<SessionViewer sessionId={id} org={org} inspector={<SessionInspector workspaceFileReader={fileReader} />} />
 ```
 
 
@@ -248,7 +248,7 @@ function useGitHubTreeLister(org: string | null): WorkspaceFileLister | undefine
 const gitHubConnection = useGitHubConnection(org);
 const fileLister = useGitHubTreeLister(gitHubConnection.readOrg);
 
-<SessionViewer workspaceFileLister={fileLister} />
+<SessionViewer sessionId={id} org={org} inspector={<SessionInspector workspaceFileLister={fileLister} />} />
 ```
 
 

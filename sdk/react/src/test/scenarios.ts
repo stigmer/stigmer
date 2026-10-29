@@ -25,6 +25,7 @@ import { create, type JsonObject, type MessageInitShape } from "@bufbuild/protob
 import { durationFromMs } from "@bufbuild/protobuf/wkt";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { StreamingUsageSummarySchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/usage_pb";
 import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/status_pb";
 import type { File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
@@ -207,6 +208,8 @@ interface Beside {
   readonly liveness?: RunLiveness;
   readonly files?: readonly StigmerFile[];
   readonly session?: Session;
+  /** The runner's estimated cost of each turn's run, in USD (display only). */
+  readonly estimatedCostUsd?: number;
 }
 
 /** The events folded, then the liveness preview the stream sent after them. */
@@ -280,8 +283,8 @@ function finishedEvents(): SessionEvent[] {
     samples.runStatusEvent("running"),
     ...call("read_file", { path: "src/billing/invoice.ts" }, 4_000, "export function invoiceTotal(lines: readonly Line[]) {"),
     ...call("edit_file", { path: "src/billing/invoice.ts" }, 18_000, "1 edit applied", 800),
-    ...call("write_file", { path: "outputs/invoice-audit.md" }, 52_000, "Wrote 4.1 KB", 300),
-    ...call("write_file", { path: "outputs/rounding-cases.csv" }, 60_000, "Wrote 1.8 KB", 300, `${RUN_ID}.tc-write_file-2`),
+    ...call("write_file", { path: "/.stigmer/outputs/invoice-audit.md" }, 52_000, "Wrote 4.1 KB", 300),
+    ...call("write_file", { path: "/.stigmer/outputs/rounding-cases.csv" }, 60_000, "Wrote 1.8 KB", 300, `${RUN_ID}.tc-write_file-2`),
     samples.agentMessageEvent(
       "Fourteen invoices were a cent off, all from rounding each line before the total. `invoiceTotal` now rounds once, at the total. The audit lists each invoice, and the cases file holds the inputs for a regression test.",
       { processedAt: sampleInstant(73_000) },
@@ -309,6 +312,11 @@ function loaded(name: ScenarioName, title: string, events: readonly SessionEvent
       message: turn.userMessage?.text ?? "",
     }),
   );
+  if (beside.estimatedCostUsd !== undefined) {
+    for (const run of runs) {
+      if (run.status !== undefined) run.status.streamingUsage = create(StreamingUsageSummarySchema, { estimatedCostUsd: beside.estimatedCostUsd });
+    }
+  }
   return {
     name,
     title,
@@ -436,6 +444,7 @@ function build(name: ScenarioName): Scenario {
           usage: { totalTokens: 41_210, llmCallCount: 7, model: "claude-sonnet-4-5", workingSeconds: 74 },
           files: FINISHED_FILES,
           session: routineSession(),
+          estimatedCostUsd: 0.42,
         },
       );
   }

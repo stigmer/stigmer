@@ -22,7 +22,7 @@ import {
 } from "@stigmer/apis/ai/stigmer/platform/v1/model_readiness_pb";
 import { PlatformQueryController } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
 import { OrganizationQueryController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/query_pb";
-import { ModelSelector, ModelsHub, NewSessionViewer, useModelReadiness } from "@stigmer/react-sdk";
+import { ModelSelector, ModelsHub, NewSessionViewer, SessionInspector, useModelReadiness } from "@stigmer/react-sdk";
 import { samples } from "@stigmer/react-sdk/test";
 import { ACCOUNT, NOTHING_ON_THE_RUNNER, ORGANIZATION, readiness } from "../fixtures.ts";
 import type { Drawing } from "./drawing.ts";
@@ -97,7 +97,7 @@ function HubPage() {
   );
 }
 
-/** The launcher on Stigmer Cloud or a laptop, with readiness as given. */
+/** The launcher on Stigmer Cloud or a laptop, with readiness as given, framed as the console frames it (with the inspector). */
 export function launcherScene(answer: GetModelReadinessOutput, viewer: Viewer, local = false): Drawing {
   return {
     deploymentMode: local ? "local" : undefined,
@@ -105,7 +105,7 @@ export function launcherScene(answer: GetModelReadinessOutput, viewer: Viewer, l
     routes: launcherRoutes(answer, viewer),
     render: () => (
       <div style={{ height: "calc(100vh - 48px)" }}>
-        <NewSessionViewer org={ORG_ID} onSessionCreated={inert} autoFocus={false} />
+        <NewSessionViewer org={ORG_ID} onSessionCreated={inert} autoFocus={false} inspector={<SessionInspector />} />
       </div>
     ),
   };

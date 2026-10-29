@@ -16,6 +16,7 @@ import { HARNESS_META, type HarnessOption } from "./harness.js";
 import { ProviderCard, providerFace, type ProviderFace } from "./hub/ProviderCard.js";
 import type { ModelsHubData } from "./hub/ModelsHub.js";
 import { keyPhrase, presentationOf, type SentencePart } from "./provider-presentation.js";
+import { LoadingRegion } from "../internal/LoadingRegion.js";
 
 /** Props for {@link ConnectProviderPanel}. */
 export interface ConnectProviderPanelProps {
@@ -64,6 +65,9 @@ export function ConnectProviderPanel({
           {runs} {then}
         </p>
       </div>
+      {hub.isLoading ? (
+        <LoadingRegion label="Checking who can connect a provider" className="stg:h-40 stg:animate-pulse stg:rounded-xl stg:bg-muted" />
+      ) : (
       <ProviderCard
         org={hub.org}
         orgName={hub.orgName}
@@ -76,6 +80,7 @@ export function ConnectProviderPanel({
         models={hub.models.filter((model) => model.provider === provider)}
         onChanged={hub.refresh}
       />
+      )}
       <p className="stg:text-center stg:text-xs stg:text-muted-foreground">
         {others.length > 0 && <>Or connect {others.map((entry) => presentationOf(entry.provider).name).join(" or ")}: </>}
         <a

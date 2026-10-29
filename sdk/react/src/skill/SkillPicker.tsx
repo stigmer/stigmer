@@ -16,7 +16,7 @@ import { useSkillSearch } from "./useSkillSearch.js";
 import { useScrollShadows } from "../internal/useScrollShadows.js";
 import { ScrollFade } from "../internal/ScrollFade.js";
 import { OrgSlugText } from "../organization/OrgSlugText.js";
-import { useOrgIdForRef } from "../organization/useOrgRefs.js";
+import { useOrgIdForRef, useSameResourceRef } from "../organization/useOrgRefs.js";
 
 /** Props for {@link SkillPicker}. */
 export interface SkillPickerProps {
@@ -119,11 +119,14 @@ export function SkillPicker({
     [value, onChange, onDisplayNameResolved],
   );
 
+  const sameRef = useSameResourceRef();
   const handleRemove = useCallback(
-    (key: string) => {
-      onChange(value.filter((r) => refKey(r) !== key));
+    (removed: ResourceRef) => {
+      // Every attachment of that resource goes, and only that resource's:
+      // compared as one reference (by id, else org and slug).
+      onChange(value.filter((r) => !sameRef(r, removed)));
     },
-    [value, onChange],
+    [value, onChange, sameRef],
   );
 
   const handleSearchKeyDown = useCallback(
@@ -162,23 +165,25 @@ export function SkillPicker({
             {selected_.canScrollUp && <ScrollFade position="top" />}
 
             <div ref={selected_.scrollRef} className="stg:max-h-28 stg:space-y-1 stg:overflow-y-auto">
-              {value.map((ref) => {
-                const key = refKey(ref);
+              {value.map((ref, index) => {
+                // A reference whose target was deleted holds no slug: it is
+                // shown, and removed, as the deleted item it is.
+                const label = ref.slug || "deleted skill";
                 return (
                   <div
-                    key={key}
+                    key={`${index}:${ref.id || refKey(ref)}`}
                     className="stg:flex stg:items-center stg:gap-2 stg:rounded-md stg:bg-muted-faint stg:px-2 stg:py-1 stg:text-xs"
                   >
                     <SkillIcon />
                     <span className="stg:min-w-0 stg:flex-1 stg:truncate stg:text-foreground">
-                      {ref.slug}
+                      {label}
                     </span>
                     <button
                       type="button"
-                      onClick={() => handleRemove(key)}
+                      onClick={() => handleRemove(ref)}
                       disabled={disabled}
                       className="stg:shrink-0 stg:text-muted-foreground stg:hover:text-destructive stg:disabled:pointer-events-none"
-                      aria-label={`Remove ${ref.slug}`}
+                      aria-label={`Remove ${label}`}
                     >
                       <XIcon />
                     </button>

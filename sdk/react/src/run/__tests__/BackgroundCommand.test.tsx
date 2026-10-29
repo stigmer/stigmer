@@ -19,6 +19,7 @@ import { LivenessStatusLine, backgroundWaitLabel } from "../LivenessStatusLine";
 import { ApprovalCardBody } from "../ApprovalCard";
 import { buildThreadItems } from "../MessageThread";
 import { toolUse, TOOL_STARTED_AT } from "./__fixtures__/fold-values";
+import { threadSaysBackgroundWait } from "../turn-tail";
 
 afterEach(cleanup);
 
@@ -206,6 +207,13 @@ describe("the thread's tail line while the turn waits on background commands", (
     });
     const liveness = (awaitingModelMs: number | undefined) =>
       buildThreadItems([turn(awaitingModelMs)], []).find((item) => item.kind === "liveness");
+    // A host that speaks for the turn itself (includeLiveness off) still gets
+    // this line, which it steps aside for (threadSaysBackgroundWait).
+    const quiet = buildThreadItems([turn(undefined)], [], { includeLiveness: false }).find((item) => item.kind === "liveness");
+    expect(quiet?.kind === "liveness" && quiet.waitingOn.map((t) => t.id)).toEqual(["run_1.bg-1"]);
+    expect(threadSaysBackgroundWait(turn(undefined))).toBe(true);
+    expect(threadSaysBackgroundWait(turn(1_000))).toBe(false);
+    expect(buildThreadItems([turn(1_000)], [], { includeLiveness: false }).some((item) => item.kind === "liveness")).toBe(false);
     const held = liveness(undefined);
     expect(held?.kind === "liveness" && held.waitingOn.map((t) => t.id)).toEqual(["run_1.bg-1"]);
     const older = backgroundStart({ startedAt: "2026-08-13T09:00:00.000Z" }, { id: "run_1.bg-0" });

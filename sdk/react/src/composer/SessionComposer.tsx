@@ -240,6 +240,12 @@ export interface SessionComposerSubmitContext {
   readonly supersedesRunId?: string;
 }
 
+/** A row the host adds to the composer's configure menu, and what it opens. */
+export interface ComposerSetting {
+  readonly item: ConfigureMenuItem;
+  readonly panel: React.ReactNode;
+}
+
 /** Props for {@link SessionComposer}. */
 export interface SessionComposerProps {
   /**
@@ -557,6 +563,12 @@ export interface SessionComposerProps {
    * is never sent with another.
    */
   readonly sessionId?: string;
+  /**
+   * Settings the host adds to the composer's configure menu, after its own
+   * (the session view's run settings: engine, model, target, environment
+   * and auto-approve). Each is a menu row and the panel it opens.
+   */
+  readonly extraSettings?: readonly ComposerSetting[];
 
   /**
    * Lock the current agent: the Agent entry is removed from the
@@ -768,6 +780,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   enableEnvironmentPicker = false,
   environmentDefaults,
   sessionId,
+  extraSettings,
   lockAgent = false,
   pluginRefs,
   onPluginRefsChange,
@@ -866,8 +879,9 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
 
   const isDisabled = disabled || isSubmitting;
 
-  // Stop-mode: an in-flight, stoppable run. The textarea/config stay
-  // disabled, but the card is kept un-dimmed so the Stop button reads as live.
+  // Stop-mode: an in-flight, stoppable run. The person can still write: a
+  // message sent now is queued for the agent's next step. Send gives way to
+  // Stop, and the card stays un-dimmed so Stop reads as live.
   const stopMode = onStop != null;
 
   const showAgent = onAgentRefChange != null && org != null;
@@ -1742,8 +1756,9 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
         detail: environmentPreview,
       });
     }
+    for (const setting of extraSettings ?? []) items.push(setting.item);
     return items;
-  }, [showAgent, lockAgent, agentRef, agentSetup.state, showPlugins, pluginCount, showSkills, skillCount, showVaults, vaultCount, showEnvironment, environmentPick, environmentPreview]);
+  }, [showAgent, lockAgent, agentRef, agentSetup.state, showPlugins, pluginCount, showSkills, skillCount, showVaults, vaultCount, showEnvironment, environmentPick, environmentPreview, extraSettings]);
 
   const renderConfigPanel = useCallback(
     (panelId: string): React.ReactNode => {
@@ -1884,10 +1899,11 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
           );
 
         default:
-          return null;
+          return extraSettings?.find((setting) => setting.item.id === panelId)?.panel ?? null;
       }
     },
     [
+      extraSettings,
       environmentPick,
       inheritedEnvironment,
       environmentNameOf,

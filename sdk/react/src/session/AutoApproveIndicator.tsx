@@ -7,7 +7,7 @@
  * always-visible safety surface: the user can never be silently
  * auto-approving without seeing this strip and its one-click "Turn off".
  *
- * The way ON lives elsewhere (the Config facet's Run Config switch, the
+ * The way ON lives elsewhere (the run settings switch in the composer, the
  * gate-time "Approve & don't ask again", the account's `default_auto_approve`
  * preference, the host's `approvalDefaults`); this strip is deliberately only
  * the way OFF plus the disclosure. Shared by `SessionViewer` and

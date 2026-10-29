@@ -22,6 +22,7 @@ const { ACME, page, record } = vi.hoisted(() => {
 });
 
 vi.mock("@stigmer/react-sdk", () => ({
+  SessionInspector: () => null,
   useActiveOrgId: () => ACME.id,
   useOrg: () => ({ activeOrg: { metadata: { id: ACME.id, slug: ACME.slug } } }),
   OperationalDashboard: ({ org }: { org: string }) => {
