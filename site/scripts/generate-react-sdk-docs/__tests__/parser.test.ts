@@ -135,6 +135,31 @@ describe("parseTypeDocJson — the package's entries", () => {
     expect(bySlug.skill).toMatchObject({ importPath: "@stigmer/react-sdk", headless: null });
   });
 
+  it("counts constants and contexts as behaviour, never a component a memo wraps, and sorts what ./headless leaves out", async () => {
+    const variable = (id: number, name: string): Reflection => ({
+      id,
+      name,
+      variant: "declaration",
+      kind: ReflectionKind.Variable,
+      flags: {},
+      sources: [{ fileName: "sdk/react/src/session/values.ts", line: 1, character: 0 }],
+      type: { type: "intrinsic", name: "unknown" },
+    });
+    const { domains } = await parse([
+      entry(100, "index", [
+        variable(1, "SESSION_PAGE_SIZE"),
+        variable(2, "SessionContext"),
+        variable(3, "SessionViewer"),
+        hook(4, "useSessionZeta", "sdk/react/src/session/useSessionZeta.ts"),
+        hook(5, "useSessionAlpha", "sdk/react/src/session/useSessionAlpha.ts"),
+      ]),
+      entry(200, "headless", [reference(201, "SESSION_PAGE_SIZE", 1)]),
+    ]);
+
+    // SessionViewer is a memo-wrapped component: never listed as left out.
+    expect(domains[0].headless).toEqual({ rootOnly: ["SessionContext", "useSessionAlpha", "useSessionZeta"] });
+  });
+
   it("reads a single-entry run's top-level exports as the root's", async () => {
     const { domains } = await parse([typeAlias(1, "SkillPickerProps", "sdk/react/src/skill/SkillPicker.tsx")]);
 

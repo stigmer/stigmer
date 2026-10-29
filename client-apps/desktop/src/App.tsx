@@ -6,6 +6,7 @@ import { StigmerProvider, OrgProvider, FetchCacheProvider } from "@stigmer/react
 import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
 import { Toaster } from "sonner";
 import { router } from "./routes";
+import { loadMermaid } from "./load-mermaid";
 import { AuthProvider, useAuth } from "./auth/AuthProvider";
 import { LoginScreen } from "./auth/LoginScreen";
 import { IdentityAccountGate } from "./identity/IdentityAccountGate";
@@ -14,13 +15,6 @@ import { EmbeddedRunnerProvider, useRunner } from "./hooks/EmbeddedRunnerContext
 import { useTauriRunnerAdapter } from "./hooks/useTauriRunnerAdapter";
 import { useColorModePreference } from "./hooks/useColorModePreference";
 import { API_URL, fallbackDeploymentMode } from "./config";
-
-/**
- * The `mermaid` loader for `StigmerProvider`: the kit draws ```mermaid fences
- * as diagrams only with a host's import, which Vite splits into a chunk
- * fetched on the first diagram.
- */
-const loadMermaid = () => import("mermaid");
 
 function useServerDeploymentMode(client: Stigmer): DeploymentMode {
   const [mode, setMode] = useState<DeploymentMode>(() => fallbackDeploymentMode(API_URL));

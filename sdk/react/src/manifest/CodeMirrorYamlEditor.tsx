@@ -40,6 +40,7 @@ export const CodeMirrorYamlEditor = memo(function CodeMirrorYamlEditor({
   const isInternalUpdate = useRef(false);
 
   useEffect(() => {
+    /* v8 ignore next -- @preserve: effects run after the commit that attaches the ref, so the container is always there */
     if (!containerRef.current) return;
 
     const updateListener = EditorView.updateListener.of((update) => {
@@ -87,6 +88,7 @@ export const CodeMirrorYamlEditor = memo(function CodeMirrorYamlEditor({
   // Sync external value changes into the editor
   useEffect(() => {
     const view = viewRef.current;
+    /* v8 ignore next -- @preserve: the first effect creates the view before this one runs, and the cleanup that clears it runs only on unmount */
     if (!view) return;
 
     if (isInternalUpdate.current) {
@@ -108,6 +110,7 @@ export const CodeMirrorYamlEditor = memo(function CodeMirrorYamlEditor({
 
   useEffect(() => {
     const view = viewRef.current;
+    /* v8 ignore next -- @preserve: the first effect creates the view before this one runs, and the cleanup that clears it runs only on unmount */
     if (!view) return;
 
     view.dispatch({
@@ -120,6 +123,7 @@ export const CodeMirrorYamlEditor = memo(function CodeMirrorYamlEditor({
   // Sync diagnostics into CodeMirror's lint system
   useEffect(() => {
     const view = viewRef.current;
+    /* v8 ignore next -- @preserve: the first effect creates the view before this one runs, and the cleanup that clears it runs only on unmount */
     if (!view) return;
 
     const cmDiags: Diagnostic[] = diagnostics
