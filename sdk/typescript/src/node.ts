@@ -131,15 +131,14 @@ export function createNodeClient(config: NodeClientConfig): Stigmer {
  *
  * Stigmer backends are configured with a bare `host:port` (e.g.
  * `localhost:7234`) or a full URL, but the Connect transport requires a URL
- * with a scheme. This helper mirrors the TLS decision of the Go server's
- * endpoint rule — loopback is plaintext, an explicit `:443` is TLS, any other
- * host without a port gets `:443` + TLS — and emits the resulting URL.
+ * with a scheme. This helper applies the endpoint rule — loopback is
+ * plaintext, an explicit `:443` is TLS, any other host without a port gets
+ * `:443` + TLS — and emits the resulting URL.
  *
- * It deliberately reproduces the Go rule's quirk of deriving TLS from the
- * *port*, not the input scheme (so `https://host:8080` resolves to `http://`),
- * so that the TS clients dial exactly where the Go MCP server and CLI do today.
- * The shape differs from Go's `(host:port, useTLS)` return because the TS
- * transport is URL-based, not dial-based.
+ * It deliberately derives TLS from the *port*, not the input scheme (so
+ * `https://host:8080` resolves to `http://`), so that every client given one
+ * configured endpoint dials the same address. It returns a URL because the
+ * Connect transport is URL-based, not dial-based.
  *
  * @example
  * normalizeEndpoint("localhost:7234")      // "http://localhost:7234"

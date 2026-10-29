@@ -300,7 +300,7 @@ export function toolKindToCategoryInfo(
  * Resolves a tool's presentation category from its name + MCP slug.
  *
  * Classification is delegated to `@stigmer/client`'s name-based resolver (the same
- * table the runner and Go CLI use), then mapped to presentation metadata. When
+ * table the runner and the CLI use), then mapped to presentation metadata. When
  * the caller holds the tool use, prefer {@link resolveToolCategoryFromCall}.
  */
 export function resolveToolCategory(

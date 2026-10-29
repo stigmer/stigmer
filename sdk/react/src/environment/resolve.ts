@@ -64,7 +64,7 @@ export interface EnvironmentChoiceInputs {
   /**
    * Why no Environment governs this conversation, when none does
    * ({@link environmentsNotApplying}); undefined when Environments govern
-   * it, or the server has not said (an older server).
+   * it, or the server has not said.
    */
   readonly notApplying?: EnvironmentsNotApplying;
 }

@@ -143,7 +143,7 @@ export function sampleDate(deltaMs = 0): Date {
  * When a default tool use returns ({@link samples.toolResultEvent}):
  * {@link SAMPLE_INSTANT} plus 1.2s, so the rendered duration chip reads a
  * stable "1.2s" — long enough to never collapse to the "0ms" that two
- * adjacent live clock reads used to produce.
+ * adjacent live clock reads can produce.
  */
 const SAMPLE_TOOL_RESULT_AT = sampleInstant(1_200);
 

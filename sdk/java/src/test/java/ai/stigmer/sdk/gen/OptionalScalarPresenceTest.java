@@ -12,15 +12,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Inputs keep a proto3 {@code optional} scalar's presence.
  *
  * <p>An {@code optional} scalar has explicit presence: unset and zero differ
- * on the wire. An absent entitlement limit is no limit and zero is refused. The
- * generated inputs used to store these fields as primitives and always call
- * their setters, so a limit the caller never set arrived as zero and was
- * refused. Each such field is now stored boxed and set only when the caller
- * set it, zero included.
+ * on the wire. An absent entitlement limit is no limit and zero is refused. A
+ * field stored as a primitive with its setter always called would send a
+ * limit the caller never set as zero, to be refused, so each such field is
+ * stored boxed and set only when the caller set it, zero included.
  *
- * <p>Every test calls only builder and {@code toProto()} entry points whose
- * signatures are the same before and after the fix, so this file also runs
- * against the earlier generated code as the red-first control.
+ * <p>Every test calls only builder and {@code toProto()} entry points, so a
+ * generator that stores primitives fails this file without failing to compile.
  */
 class OptionalScalarPresenceTest {
 

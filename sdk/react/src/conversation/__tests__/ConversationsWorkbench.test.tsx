@@ -564,8 +564,8 @@ describe("ConversationsWorkbench", () => {
     // customer never received them. Timeline authorship reads
     // "answered"; the row's awaiting_reply reads the truth, because the
     // receipt-side void re-opened it. The guard must read
-    // the fact, never re-derive it from timeline shape — the client-side
-    // twin of a re-derivation the server no longer makes.
+    // the fact, never re-derive it from timeline shape, as the server
+    // does not either.
     const user = userEvent.setup();
     const client = createMockStigmer({
       getConversation: vi.fn().mockResolvedValue(

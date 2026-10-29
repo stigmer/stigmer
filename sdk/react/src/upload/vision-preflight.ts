@@ -95,7 +95,7 @@ export interface AssessVisionPreflightOptions {
   readonly model?: ModelInfo | undefined;
   /**
    * The advertised byte budget from `useModelRegistry().visionLimits`.
-   * `undefined` (older server, still loading) disables the byte
+   * `undefined` (no limits served, or still loading) disables the byte
    * assessment, never the capability verdict.
    */
   readonly limits?: VisionLimits | undefined;

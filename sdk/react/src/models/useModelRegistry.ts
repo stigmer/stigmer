@@ -85,7 +85,7 @@ export interface UseModelRegistryReturn {
  * // Unified mode — flat picker with all models
  * const { featured, models, getByKey, isLoading } = useModelRegistry();
  *
- * // Legacy single-harness mode
+ * // Single-harness mode
  * const { models, defaultModel } = useModelRegistry({ harness: "stigmer" });
  * ```
  */

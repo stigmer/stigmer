@@ -2,10 +2,8 @@
 // (tools/codegen/schemas, extracted from the protos by the
 // protoc-gen-stigmer-schema buf plugin).
 //
-// One CLI, dispatched by --target, mirroring the Go generator's flag
-// contract exactly (Makefiles swap from `go run` to this entry target by
-// target as each port reaches byte parity). Targets not yet ported fail
-// loudly rather than guessing.
+// One CLI, dispatched by --target. An unknown target fails loudly rather
+// than guessing.
 
 import * as process from "node:process";
 
@@ -116,7 +114,7 @@ function main(): void {
       break;
     default:
       process.stderr.write(
-        `Unknown or not-yet-ported --target "${flags.target}" — remaining targets run via the Go generator until their port lands\n`,
+        `Unknown --target "${flags.target}"\n`,
       );
       process.exit(1);
   }

@@ -186,8 +186,8 @@ gen-proto-sdk-docs: ## Generate SDK resource docs from proto schemas
 # (a baseline plus ledger-derived overrides, served publicly). The bundled
 # copy here is a build-time snapshot: the server prefers a live refresh from
 # the same endpoint at runtime (see src/modelcatalog/model-registry-store.ts), so this
-# target is a convenience that keeps the offline fallback reasonably fresh —
-# it is no longer correctness-critical.
+# target is a convenience that keeps the offline fallback reasonably fresh;
+# correctness does not depend on it.
 MODEL_REGISTRY_UPSTREAM ?= https://api.stigmer.ai
 
 MODEL_REGISTRY_DATA := $(SERVER_DIR)/src/modelcatalog/data
@@ -448,9 +448,8 @@ test-extension-consumer: build-server ## Compile-proof the @stigmer/server libra
 # integration instrument: a TypeScript/vitest workspace that builds the OSS
 # server from source and drives it through generated Connect clients — the
 # shared contract that turns OSS<->cloud behavioral drift into a failing
-# test, and (since stigmer#1022) the home of the runner-behavior arms the Go
-# test/integration* suites used to hold before they retired with the Java
-# service. The two slices are deliberately separate: the
+# test, and the home of the runner-behavior arms (stigmer#1022). The two
+# slices are deliberately separate: the
 # dependency-light CRUD signal stays fast, while execution additionally needs
 # the `temporal` and `stigmer` CLIs, git, and a runner build. See
 # test/conformance/README.md.
@@ -749,7 +748,7 @@ smoke-helm-enterprise: build-server build-web stage-compose-runner-cli bundle-ee
 # target builds what its artifact's smoke builds, stamped with the checkout's
 # from-source version (scripts/lib/source-version.mjs), so the rehearsal can
 # require the upgraded server to report exactly that. REHEARSE_ARGS passes
-# through, e.g. REHEARSE_ARGS=--from=3.38.3. compose, helm and cli bind port
+# through, e.g. REHEARSE_ARGS=--from=0.1.0. compose, helm and cli bind port
 # 7234: stop any running stack first.
 SOURCE_BUILD_VERSION = $$(node $(CURDIR)/scripts/lib/source-version.mjs)
 LINUX_SLIM_PLATFORM = linux-$$(node -e "process.stdout.write(process.arch==='x64'?'x64':'arm64')")
@@ -784,8 +783,7 @@ rehearse-upgrade-cli: build-runner build-server build-web ## Rehearse the CLI's 
 
 # The `cloud` conformance targets have no target this repository can boot:
 # the cloud edition is the TypeScript composition in the private stigmer-cloud
-# repository (the Java stigmer-service the hermetic launcher booted retired on
-# 2026-09-10). The cloud readout runs FROM stigmer-cloud — its spike boots the
+# repository. The cloud readout runs FROM stigmer-cloud — its spike boots the
 # composition and sets the STIGMER_CONFORMANCE_CLOUD_* contract before running
 # `npm run test:cloud -w @stigmer/conformance` here (test/conformance/README.md).
 .PHONY: test-conformance-cloud
@@ -1165,8 +1163,7 @@ check-prep: ## Sequential prep for check: tidy, fix, build + test shared libs, b
 # builds, and a hit leaves outputs already on disk untouched (measured on turbo
 # 2.10.12: same inode and mtime; only a missing output is restored), so the
 # site bucket reading those dists through its file: links sees no rewrite.
-# The Go compile gate. `go build ./...` per module is what `bazelw build //...`
-# used to be before Bazel's retirement (oss#616's graph arm): it
+# The Go compile gate. `go build ./...` per module (oss#616's graph arm)
 # compiles and links every package, so a committed stub that no other module
 # imports (apis/stubs/go has no tests and sdk/go reaches none of it) still
 # fails here and in ci.go-sdk instead of on a consumer's machine. vet then

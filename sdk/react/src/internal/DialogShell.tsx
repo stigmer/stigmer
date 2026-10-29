@@ -76,7 +76,7 @@ export interface DialogShellProps {
 
 /**
  * The one dialog shell (stigmer#653). Owns everything every modal dialog in
- * the SDK used to re-transcribe by hand: the `<dialog>` element and its
+ * the SDK shares, so none re-transcribes it by hand: the `<dialog>` element and its
  * `showModal()`/`close()` lifecycle, cancel/Escape wiring, the token
  * backdrop (`--stgm-backdrop`), the open animation, and the base
  * positioning/chrome — parameterized by {@link DialogShellWidth}.

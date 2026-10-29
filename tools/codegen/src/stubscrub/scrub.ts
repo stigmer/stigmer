@@ -10,8 +10,7 @@
 // the end of doc blocks and tooling greps for.
 //
 // Each scrubber handles one comment syntax; kept lines are re-emitted with
-// the block's own decoration so untouched bytes stay untouched. The Go, TS
-// and Python scrubbers are a byte-parity port of the retired Go tool.
+// the block's own decoration so untouched bytes stay untouched.
 //
 // Java needs its own handling: protoc-java and grpc-java copy the proto
 // comment into javadoc inside a <pre> span and HTML-escape "@" as "&#64;",

@@ -1,7 +1,5 @@
 // ApiResourceKind metadata for the emitters, read from @stigmer/apis'
-// generated descriptors — the TS analogue of the Go generator's
-// resource_kind.go / sdk_kind_meta_ts.go init-time extension reads (which
-// used the compiled Go stubs). Values derive from api_resource_kind.proto's
+// generated descriptors. Values derive from api_resource_kind.proto's
 // kind_meta options so they can never drift from the protos.
 
 import { getOption, hasOption } from "@bufbuild/protobuf";

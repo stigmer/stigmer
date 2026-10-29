@@ -14,8 +14,8 @@
 // rendered by the file-review views, not here.
 //
 // This module has no React or framework dependency so it can be shared by
-// @stigmer/react-sdk and @stigmer/ink-ui. The Go CLI mirrors it; the shared contract
-// is test/fixtures/tool-view/. Engine result formats are version-fragile, so
+// @stigmer/react-sdk and @stigmer/ink-ui; the shared contract is
+// test/fixtures/tool-view/. Engine result formats are version-fragile, so
 // every assumption here is fixture-backed and degrades gracefully to json/text.
 
 import type { BackgroundCommandView, ToolUse } from "@stigmer/session-log";
@@ -109,7 +109,7 @@ export type ToolResultView =
   // matches carry line text (and a `file`/`line` when the engine provides them)
   // to render grouped by file. `count` is the authoritative total when the
   // engine reports it (it can exceed `matches.length` when `truncated`).
-  // `kind`/`truncated` are optional so legacy/plain-text results (which only know
+  // `kind`/`truncated` are optional so plain-text results (which only know
   // a flat match list) stay valid without them.
   | {
       readonly type: "search";
@@ -297,8 +297,8 @@ export function shellIntentFromArgs(
 
 /**
  * Extracts the model-authored intent phrase from a SHELL tool call, or null
- * when absent (legacy runs, models that skipped the optional arg, and
- * every non-shell kind). See {@link SHELL_INTENT_ARG_FIELD}.
+ * when absent (a model that skipped the optional arg, and every non-shell
+ * kind). See {@link SHELL_INTENT_ARG_FIELD}.
  */
 export function extractShellIntent(
   tool: Pick<ToolUse, "name" | "mcpServerName" | "input">,

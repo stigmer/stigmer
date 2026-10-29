@@ -170,9 +170,9 @@ describe("describeCadence", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Lexical cron validation — mirrors cron_test.go's rejection matrix.
-// The wording is the user-facing contract, pinned byte-identically in
-// the Go and Java editions; a change on any side must change all three.
+// Lexical cron validation — the server's rejection matrix
+// (domain/routine/cron.ts). The wording is the user-facing contract, the
+// server's byte for byte; a change on one side must change both.
 // ---------------------------------------------------------------------------
 
 describe("validateCron", () => {

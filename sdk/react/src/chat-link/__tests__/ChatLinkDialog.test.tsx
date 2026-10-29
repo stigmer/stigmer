@@ -605,11 +605,10 @@ describe("ChatLinkDialog", () => {
       ).toBeTruthy();
     });
 
-    it("edits a chat link written in another organization before the retirement by its own identity", () => {
-      // Such a row no longer serves, but an edit must still address the
-      // row that exists rather than re-home it under the agent's org: its
-      // link names that row's own id.
-      const legacyChannel = {
+    it("edits a chat link that lives in another organization than its agent's by its own identity", () => {
+      // An edit addresses the row that exists rather than re-home it under
+      // the agent's org: its link names that row's own id.
+      const otherOrgChannel = {
         metadata: {
           id: "chn_ext",
           org: "consumer-org",
@@ -621,7 +620,7 @@ describe("ChatLinkDialog", () => {
           enabled: true,
         },
       } as never;
-      renderOpenDialog(createMockStigmer(), { channel: legacyChannel });
+      renderOpenDialog(createMockStigmer(), { channel: otherOrgChannel });
 
       expect(
         screen.getByText("https://app.example.com/chat/chn_ext"),

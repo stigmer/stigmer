@@ -262,7 +262,7 @@ export function validateCron(cron: string): string | null {
     return null;
   }
 
-  // Matches Go's strings.Fields: split on runs of whitespace, so
+  // Split on runs of whitespace, as the server does, so
   // surrounding/duplicate whitespace never produces empty fields.
   const fields = cron.split(/\s+/).filter((f) => f.length > 0);
   if (fields.length !== 5) {

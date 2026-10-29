@@ -108,7 +108,7 @@ func assertVerdictSchemaWire(t *testing.T, run *runv1.Run) {
 
 func TestStructConversion_TypedSliceNormalizes(t *testing.T) {
 	// The issue #342 shape: []map[string]any is not in structpb's
-	// supported set, so this struct used to arrive EMPTY.
+	// supported set, so a direct conversion would leave this struct EMPTY.
 	client, capture := newRunCaptureClient(t)
 
 	_, err := client.Run.Create(context.Background(), verdictRunInput(map[string]any{

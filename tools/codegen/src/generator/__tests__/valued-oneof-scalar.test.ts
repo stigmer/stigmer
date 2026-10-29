@@ -1,12 +1,12 @@
 /**
  * Pins how the SDK generators carry a boolean or numeric member of a real
  * oneof, a member whose zero is a value the caller means: a score's
- * `passed`, where `false` is a thumbs-down. Each input used to read the
- * zero as unset (TypeScript `if (input.passed)`, Go `!= false`, Python
- * `if self.passed`) and drop it, leaving the oneof empty, or store it as a
- * primitive and always send it (Java), so a thumbs-down never reached the
- * server and a score with no value arrived as `false`. Such a member now
- * carries its presence in every input (isValuedOneofScalar), while a
+ * `passed`, where `false` is a thumbs-down. An input that reads the zero
+ * as unset (TypeScript `if (input.passed)`, Go `!= false`, Python
+ * `if self.passed`) drops it and leaves the oneof empty, and one that
+ * stores it as a primitive and always sends it (Java) sends a score with no
+ * value as `false`, so such a member carries its presence in every input
+ * (isValuedOneofScalar), while a
  * string member keeps "" as unset (a run's `session_id`). The generators
  * run over the real schemas and the tests read what they wrote.
  */

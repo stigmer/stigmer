@@ -16,8 +16,8 @@ import { cn } from "@stigmer/design-tokens";
  * Quarter-arc spinner for an in-flight item. Deliberately finer than the
  * SDK-wide `internal/SpinnerIcon` (1.5 stroke on a 12 grid vs 2 on 16) —
  * the micro-row weight this vocabulary is built around. Card-adjacent
- * surfaces that used to carry their own copies (tool-run groups, file
- * review, decision buttons) size it up via `size` instead.
+ * surfaces (tool-run groups, file review, decision buttons) share it and
+ * size it up via `size`.
  */
 export function SpinnerIcon({
   size = 10,

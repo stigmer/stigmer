@@ -143,7 +143,7 @@ export interface ToolPresentation {
   readonly label: string;
   /**
    * The model-authored intent phrase for a SHELL call (stigmer#276), or null
-   * when absent (legacy runs, skipped optional arg, non-shell kinds).
+   * when absent (a skipped optional arg, non-shell kinds).
    * Raw extraction — precedence against overrides is resolved in
    * {@link ToolPresentation.title}.
    */

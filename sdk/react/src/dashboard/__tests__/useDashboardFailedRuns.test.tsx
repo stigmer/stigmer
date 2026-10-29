@@ -62,7 +62,7 @@ describe("useDashboardFailedRuns", () => {
   });
 
   it("follows tokens past a short page until it holds five, and reads no further", async () => {
-    const failed = (n: number) => ({ metadata: { id: `aex_${n}`, name: `run ${n}` }, status: { error: "boom" } });
+    const failed = (n: number) => ({ metadata: { id: `run_${n}`, name: `run ${n}` }, status: { error: "boom" } });
     const pages: Record<string, { entries: ReturnType<typeof failed>[]; nextPageToken: string }> = {
       "": { entries: [], nextPageToken: "p2" },
       p2: { entries: [failed(1), failed(2)], nextPageToken: "p3" },
@@ -81,7 +81,7 @@ describe("useDashboardFailedRuns", () => {
   it("orders failures newest-first and names the agent each ran", async () => {
     const ts = (secs: number) => ({ seconds: BigInt(secs), nanos: 0 });
     const agentEntries = [2, 5, 1, 4, 3].map((n) => ({
-      metadata: { id: `aex_${n}`, name: `agent ${n}` },
+      metadata: { id: `run_${n}`, name: `agent ${n}` },
       status: { error: "boom", agentId: `agt_${n}`, audit: { specAudit: { createdAt: ts(n) } } },
     }));
     const client = createMockStigmer({

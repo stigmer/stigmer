@@ -139,7 +139,7 @@ describe("ToolCallDetail — search body de-duplicates the query", () => {
         primaryArgTruncated={false}
       />,
     );
-    // The legacy duplicate label is gone, and the short query is not repeated.
+    // No duplicate label, and the short query is not repeated.
     expect(container.textContent).not.toContain("Pattern:");
     expect(container.textContent).not.toContain("pipeline");
     // The result still renders its (empty) state honestly.

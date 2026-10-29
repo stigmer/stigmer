@@ -1,6 +1,6 @@
 // Proto → canonical Stigmer YAML serialization.
 //
-// Follows the platform-wide protojson parity contract (Go CLI, TS CLI
+// Follows the platform-wide protojson parity contract (the CLI's
 // output/proto.ts, mcp-server marshal.ts): `toJson` with
 // `useProtoFieldName: true` emits snake_case field names and omits unset
 // defaults, so the output round-trips through `parseManifest`'s strict

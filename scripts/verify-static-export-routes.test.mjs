@@ -178,10 +178,10 @@ test("chat resolves through the general rule without a special-case block", () =
   );
 });
 
-test("an old /chat/<org>/<slug> link no longer reaches a chat page", () => {
+test("a /chat/<org>/<slug> link reaches no chat page", () => {
   // It falls to the three-segment block, whose candidates
   // (/chat/acme/__placeholder__.html, /chat/__placeholder__/__placeholder__.html)
-  // no longer exist in the export, so it ends at the real not-found page —
+  // do not exist in the export, so it ends at the real not-found page —
   // never the chat page under another channel's id, never the blank shell.
   assert.equal(resolveProbe("/chat/acme/support-bot"), "/404.html");
 });

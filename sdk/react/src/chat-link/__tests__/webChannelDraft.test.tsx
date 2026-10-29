@@ -242,11 +242,11 @@ describe("webChannelPatch through useSaveChannel", () => {
   });
 
   it("editing an existing web channel keeps ITS identity, whatever organization it was written in", async () => {
-    // A channel written before sharing across organizations was retired
-    // may live in another organization; an edit must not re-home it.
-    const legacy = webChannel({ id: "chn_ext", org: "consumer-org", slug: "renamed-channel" });
+    // A channel may live in another organization than its agent's; an edit
+    // must not re-home it.
+    const otherOrg = webChannel({ id: "chn_ext", org: "consumer-org", slug: "renamed-channel" });
 
-    const sent = await saveEdit(legacy, FULL_DRAFT);
+    const sent = await saveEdit(otherOrg, FULL_DRAFT);
 
     // An update names the channel by its id: its organization and slug are
     // never named, so it is never re-homed.

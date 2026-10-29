@@ -5,8 +5,8 @@ import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 
 // ---------------------------------------------------------------------------
 // useOpenFileChange correlates the open file with the ONE session change that
-// touched it (diff-as-default source) — the contract that used to live on
-// the inspector's Viewer tab and now feeds the workspace surface. The fold
+// touched it (diff-as-default source) — the contract that feeds the
+// workspace surface. The fold
 // (useSessionFileChanges) is mocked; the join (findChangeForSelection) is real.
 // ---------------------------------------------------------------------------
 

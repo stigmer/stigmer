@@ -329,7 +329,7 @@ describe("SessionViewer — Build from plan hands the build turn the plan", () =
     expect(composerSubmit).toHaveBeenCalledWith("Build from plan", {
       interactionMode: "agent",
       buildFromPlan: true,
-      fileIds: ["file_plan_aex_latest"],
+      fileIds: ["file_plan_run_latest"],
     });
   });
 

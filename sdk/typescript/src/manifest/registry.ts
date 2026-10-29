@@ -1,8 +1,8 @@
 // Explicit manifest-kind registry: the single place that binds a YAML `kind`
 // to its proto schema and controller RPCs.
 //
-// This is the SDK home of the pattern the CLIs already rely on (Go CLI,
-// TS CLI `resources/apply/handlers.ts`, mcp-server): strict YAML→proto
+// This is the SDK home of the pattern the CLI (`resources/apply/handlers.ts`)
+// and mcp-server rely on: strict YAML→proto
 // marshalling against the *generated schema*, and apply through the raw
 // command controller with the full resource message. The high-level
 // `*Input` wrappers are intentionally bypassed — they are lossy (they drop
