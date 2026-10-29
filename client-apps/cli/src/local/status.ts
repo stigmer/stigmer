@@ -17,7 +17,7 @@ import { resolveApiKey } from "./llm-config.js";
 import { describeReach, providerReach } from "./provider-reach.js";
 import { tcpConnects } from "./net/tcp.js";
 import { dataDir } from "./paths.js";
-import { type ComponentState, type HealthState, loadHealthState } from "./state/health-state.js";
+import { type ComponentState, type HealthState, componentLogsHint, loadHealthState } from "./state/health-state.js";
 import { DAEMON_PID_FILE } from "./constants.js";
 import { readPidFile } from "./state/pidfile.js";
 import { isProcessAlive } from "./state/proc.js";
@@ -109,7 +109,7 @@ function addComponentSection(result: CommandResult, name: string, label: string,
     section.field("Last Error", component.last_error);
   }
   if (state === "failed" || state === "stopped") {
-    result.hint(`View ${name} logs: stigmer logs --component ${name}`);
+    result.hint(componentLogsHint(name));
   }
 }
 

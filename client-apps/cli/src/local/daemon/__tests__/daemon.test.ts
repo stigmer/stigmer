@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Logger } from "../../../logger.js";
 import { RUNNER_READY_MARKER, SERVER_PORT } from "../../constants.js";
+import { tcpConnects } from "../../net/tcp.js";
 import { isProcessAlive } from "../../state/proc.js";
 import { loadHealthState, type HealthState } from "../../state/health-state.js";
 import { readPidFile } from "../../state/pidfile.js";
@@ -95,26 +96,32 @@ describe("NodeProcessHost (real spawn)", () => {
 // ---- Integration 2: the full daemon body, with a fake process host + fake
 // Temporal, but a real TCP listener satisfying the server's gRPC gate. ----
 
-// Minimal fake host whose children exit on SIGTERM.
+// Minimal fake host whose children exit on SIGTERM, each with the stderr tail
+// the test gives its component.
 class FakeHost implements ProcessHost {
   private nextPid = 2000;
   readonly killed: NodeJS.Signals[] = [];
-  spawn(_request: SpawnRequest): ChildHandle {
-    let exited = false;
+  readonly spawned: string[] = [];
+  constructor(private readonly stderr: Record<string, string[]> = {}) {}
+  spawn(request: SpawnRequest): ChildHandle {
+    let exited: ExitInfo | null = null;
     let exitCb: ((info: ExitInfo) => void) | null = null;
     const pid = this.nextPid++;
+    this.spawned.push(request.name);
     return {
       pid,
-      hasExited: () => exited,
+      hasExited: () => exited !== null,
+      exitInfo: () => exited,
+      stderrTail: () => this.stderr[request.name] ?? [],
       onExit: (cb) => {
         exitCb = cb;
       },
       onReady: () => {},
       kill: (signal) => {
         this.killed.push(signal);
-        if (!exited) {
-          exited = true;
-          exitCb?.({ code: null, signal });
+        if (exited === null) {
+          exited = { code: null, signal };
+          exitCb?.(exited);
         }
       },
     };
@@ -212,5 +219,78 @@ describe("runInternalDaemon (full body with fakes)", () => {
     expect(host.killed).toContain("SIGTERM");
     expect(readPidFile(join(data, "daemon.pid"))).toBeNull();
     expect(loadHealthState(healthPath)).toBeNull();
+  });
+});
+
+// stigmer#1845: a server that never opens its port fails the gate while still
+// running. The daemon stops it before giving up, so nothing is left holding the
+// port, and leaves the snapshot saying why, for `stigmer up` to print.
+const serverPortBusy = await tcpConnects(SERVER_PORT, "127.0.0.1", 300);
+
+describe.skipIf(serverPortBusy)("runInternalDaemon (a server that hangs past its gate)", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("stops the hung server, keeps it failed with its last lines, and stops Temporal", async () => {
+    const data = join(tempDir(), ".stigmer", "data");
+    const config: DaemonConfig = {
+      dataDir: data,
+      logDir: join(data, "logs"),
+      temporalManaged: true,
+      temporalAddress: "127.0.0.1:7233",
+      serverOnly: true,
+      noWeb: true,
+      server: { nodeBin: "node-cmd", entryPath: join(data, "server-entry.js"), appDir: data },
+    };
+    const host = new FakeHost({ "stigmer-server": ["waiting for the database…"] });
+    const temporal = fakeTemporal();
+
+    // Only the clock the gate's deadline reads is faked: the gate polls the
+    // real (closed) port, and the clock jumps past its deadline meanwhile.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    setTimeout(() => vi.setSystemTime(Date.now() + 60_000), 300);
+
+    const code = await runInternalDaemon({ config, host, clock: fastClock, temporal, log: silent, waitForShutdown: () => new Promise(() => {}) });
+
+    expect(code).toBe(1);
+    expect(host.spawned).toEqual(["stigmer-server"]);
+    expect(host.killed).toEqual(["SIGTERM"]);
+    expect(temporal.stop).toHaveBeenCalledOnce();
+    expect(readPidFile(join(data, "stigmer-server.pid"))).toBeNull();
+    expect(loadHealthState(join(data, "health-state.json"))?.components["stigmer-server"]).toMatchObject({
+      state: "failed",
+      last_error: "the server did not become ready within 30000ms",
+      last_output: ["waiting for the database…"],
+    });
+  });
+});
+
+describe("runInternalDaemon (Temporal does not start)", () => {
+  it("records Temporal failed with its error's own message, starting nothing else", async () => {
+    const data = join(tempDir(), ".stigmer", "data");
+    const config: DaemonConfig = {
+      dataDir: data,
+      logDir: join(data, "logs"),
+      temporalManaged: true,
+      temporalAddress: "127.0.0.1:7233",
+      serverOnly: true,
+      noWeb: true,
+      server: { nodeBin: "node-cmd", entryPath: join(data, "server-entry.js"), appDir: data },
+    };
+    const host = new FakeHost();
+    const temporal = fakeTemporal();
+    temporal.start = vi.fn(async () => {
+      throw new Error("temporal dev server exited with code 1 before it was ready");
+    });
+
+    const code = await runInternalDaemon({ config, host, clock: fastClock, temporal, log: silent, waitForShutdown: () => new Promise(() => {}) });
+
+    expect(code).toBe(1);
+    expect(host.spawned).toEqual([]);
+    expect(loadHealthState(join(data, "health-state.json"))?.components.temporal).toMatchObject({
+      state: "failed",
+      last_error: "temporal dev server exited with code 1 before it was ready",
+    });
   });
 });

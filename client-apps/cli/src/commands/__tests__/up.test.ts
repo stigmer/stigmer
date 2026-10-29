@@ -8,6 +8,9 @@
 //   - The agents line names the providers the started runner reaches, the
 //     answer the launcher computed over the runner's environment, or says
 //     to run `stigmer setup` when it reaches none (stigmer#1084).
+//   - A foreground stack that does not start ends with why: the failure the
+//     daemon recorded under this process's PID, or, with none, the pointer
+//     to the logs (stigmer#1845).
 //
 // The daemon launcher and the console probe are replaced (nothing boots, no
 // port is dialled); everything after them is real: the result card and the
@@ -16,6 +19,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { expectGolden } from "../../__test-utils__/golden.js";
+import { CliExitError } from "../../errors/cli-exit-error.js";
 import { SERVER_PORT } from "../../local/constants.js";
 import type { UpReport } from "../../local/daemon/launch.js";
 import { buildProgram } from "../../program.js";
@@ -25,6 +29,9 @@ const launched = vi.hoisted(() => ({
   report: { runnerReach: [] } as UpReport,
   consoleServed: false,
   probes: 0,
+  foregroundCode: 0,
+  failure: null as Error | null,
+  failureAskedFor: [] as number[],
 }));
 
 vi.mock("../../local/daemon/launch.js", () => ({
@@ -40,8 +47,13 @@ vi.mock("../../local/daemon/launch.js", () => ({
     hooks: { readonly onReady: (report: UpReport) => Promise<void> },
   ): Promise<number> => {
     launched.runs.push(run);
+    if (launched.foregroundCode !== 0) return launched.foregroundCode;
     await hooks.onReady(launched.report);
     return 0;
+  },
+  startupFailure: (_data: string, daemonPid: number): Error | null => {
+    launched.failureAskedFor.push(daemonPid);
+    return launched.failure;
   },
 }));
 
@@ -74,6 +86,9 @@ beforeEach(() => {
   launched.report = { runnerReach: [] };
   launched.consoleServed = false;
   launched.probes = 0;
+  launched.foregroundCode = 0;
+  launched.failure = null;
+  launched.failureAskedFor.length = 0;
 });
 
 /** Run `stigmer up …` and return what it wrote to stdout and stderr. */
@@ -205,5 +220,23 @@ describe("CLI-14 stigmer up says where the console is and whether agents can run
     launched.report = { runnerReach: undefined };
 
     await expectGolden((await runUp("--server-only")).stderr, "up-server-only");
+  });
+});
+
+describe("stigmer up --foreground — a stack that does not start", () => {
+  it("ends with the failure the daemon recorded under this process", async () => {
+    launched.foregroundCode = 1;
+    launched.failure = new CliExitError("stigmer-server did not start: the server exited with code 1 before it was ready", 1, [
+      "  boot failed: bad setting",
+    ]);
+
+    await expect(runUp("--foreground")).rejects.toBe(launched.failure);
+    expect(launched.failureAskedFor).toEqual([process.pid]);
+  });
+
+  it("points at the logs when nothing was recorded", async () => {
+    launched.foregroundCode = 1;
+
+    await expect(runUp("--foreground")).rejects.toThrow("the local stack did not start");
   });
 });
