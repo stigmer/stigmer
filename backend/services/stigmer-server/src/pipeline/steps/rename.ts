@@ -317,7 +317,7 @@ export function newRenameNameStep<Desc extends DescMessage>(
         throw internalError(error, "failed to rename the resource");
       }
       if (!moved.claimed) {
-        throw nameTakenError(kind, moved.entry);
+        throw await nameTakenError(names, kind, moved.entry);
       }
       const recorded: NameMove =
         moved.takenBack === undefined

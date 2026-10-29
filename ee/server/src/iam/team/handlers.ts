@@ -75,6 +75,7 @@ import {
   newBuildUpdateStateStep,
   runGuardedWrite,
   swapOntoLoadedPortRow,
+  nameTakenError,
   newClaimNameStep,
   newResolveSlugStep,
   portRenameRows,
@@ -89,7 +90,6 @@ import { newGrowthGateStep, type GrowthGate } from "../growth-gate.js";
 import { newTeamPlanGateStep, type TeamPlanGate } from "./plan-gate.js";
 import type { TeamRemoval } from "./removal.js";
 import {
-  duplicateTeamError,
   findTeamByName,
   newCheckDuplicateTeamStep,
   newLoadExistingTeamStep,
@@ -295,13 +295,15 @@ async function insertTeam(
     case "inserted":
       break;
     case "slug-taken": {
-      const winner = await findTeamByName(
-        deps.names,
-        deps.teams,
-        team.metadata?.org ?? "",
-        team.metadata?.slug ?? "",
-      );
-      throw duplicateTeamError(winner ?? team);
+      const org = team.metadata?.org ?? "";
+      const slug = team.metadata?.slug ?? "";
+      const winner = await findTeamByName(deps.names, deps.teams, org, slug);
+      throw await nameTakenError(deps.names, ApiResourceKind.team, {
+        state: "current",
+        name: slug,
+        org,
+        id: winner?.metadata?.id ?? "",
+      });
     }
     default: {
       const exhaustive: never = outcome;

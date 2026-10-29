@@ -43,6 +43,7 @@ import {
 } from "../steps/defaults.js";
 import { newBuildUpdateStateStep } from "../steps/build-update-state.js";
 import { newCheckDuplicateStep } from "../steps/duplicate.js";
+import { nameTakenError } from "../steps/names.js";
 import {
   newDeleteResourceStep,
   newExtractResourceIdStep,
@@ -272,6 +273,38 @@ describe("CheckDuplicate (org-scoped)", () => {
     await expect(
       newCheckDuplicateStep<typeof AgentSchema>(store).execute(otherOrg),
     ).resolves.toBeUndefined();
+  });
+
+  it("names the organization by its slug, not its id", async () => {
+    await store.resourceNames.claim(
+      { kind: ApiResourceKind[ApiResourceKind.organization], org: "", name: "acme" },
+      "org_acme",
+      new Date().toISOString(),
+    );
+    await store.saveResource(
+      ApiResourceKind.agent,
+      "agt_2",
+      AgentSchema,
+      agent({ id: "agt_2", slug: "support", org: "org_acme" }),
+    );
+    const inAcme = await captureError(() =>
+      newCheckDuplicateStep<typeof AgentSchema>(store).execute(
+        agentCtx(agent({ slug: "support", org: "org_acme" })),
+      ),
+    );
+    expect((inAcme as ConnectError).rawMessage).toBe(
+      "Agent already exists: slug 'support' in org 'acme' (id: agt_2)",
+    );
+  });
+
+  it("leaves out the organization when the name has none, and the holder when the caller cannot name it", async () => {
+    const held = { state: "current", name: "orphan", org: "", id: "agt_3" } as const;
+    expect(
+      (await nameTakenError(store, ApiResourceKind.agent, held)).message,
+    ).toBe("[already_exists] Agent already exists: slug 'orphan' (id: agt_3)");
+    expect(
+      (await nameTakenError(store, ApiResourceKind.agent, { ...held, org: "tenant-a", id: "" })).message,
+    ).toBe("[already_exists] Agent already exists: slug 'orphan' in org 'tenant-a'");
   });
 });
 

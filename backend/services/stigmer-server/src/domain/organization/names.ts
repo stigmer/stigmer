@@ -373,13 +373,3 @@ export async function settleOrganizationSlug(
 
 /** How many rewrites a settle makes before leaving the rest to the next rename. */
 const SETTLE_ATTEMPTS = 3;
-
-/**
- * How copy a person reads names an organization: its current slug, or the
- * value as given when nothing holds a current name for it. For an
- * organization the reader acts in (their own), never for another
- * organization's id, which a refusal must not map to its name.
- */
-export async function organizationSlugOf(store: Store, org: string): Promise<string> {
-  return (await store.resourceNames.current(ORGANIZATION_NAME_KIND, "", org))?.name ?? org;
-}

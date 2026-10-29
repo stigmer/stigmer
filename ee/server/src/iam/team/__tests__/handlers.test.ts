@@ -65,7 +65,7 @@ import { newTeamServiceRegistrations, type TeamLaneDeps } from "../handlers.js";
 import type { TeamInsertOutcome } from "../store.js";
 import { InMemoryTeamStore, storedTeam } from "./in-memory-team-store.js";
 import { ApiResourceReferenceSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
-import { inMemoryNames } from "../../../__test-utils__/in-memory-names.js";
+import { inMemoryNames, nameOrganization } from "../../../__test-utils__/in-memory-names.js";
 import { newLoadTeamByReferenceStep } from "../steps.js";
 import type { InMemoryNames } from "../../../__test-utils__/in-memory-names.js";
 import { UNBOUND_CREDENTIAL_BINDING } from "../../../__test-utils__/unbound-credential-binding.js";
@@ -221,14 +221,15 @@ describe("create", () => {
     ]);
   });
 
-  it("refuses a slug the organization holds with the OSS copy, and allows it in another organization", async () => {
+  it("refuses a slug the organization holds with the OSS copy, naming the organization by its slug, and allows it in another organization", async () => {
     const r = rig();
+    await nameOrganization(r.names, "acme", "acme-corp");
     const first = await r.commands.create(newTeam("SRE"));
 
     const refused = await failure(r.commands.create(newTeam("SRE")));
     expect(refused.code).toBe(Code.AlreadyExists);
     expect(refused.rawMessage).toBe(
-      `Team already exists: slug 'sre' in org 'acme' (id: ${first.metadata?.id ?? ""})`,
+      `Team already exists: slug 'sre' in org 'acme-corp' (id: ${first.metadata?.id ?? ""})`,
     );
 
     const elsewhere = await r.commands.create(newTeam("SRE", "other"));
@@ -237,6 +238,7 @@ describe("create", () => {
 
   it("answers the same copy when the name claim loses the race the pre-check could not see", async () => {
     const names = inMemoryNames();
+    await nameOrganization(names, "acme", "acme-corp");
     const claim = names.resourceNames.claim;
     const racing: InMemoryNames = {
       entries: names.entries,
@@ -255,7 +257,7 @@ describe("create", () => {
     const refused = await failure(r.commands.create(newTeam("SRE")));
     expect(refused.code).toBe(Code.AlreadyExists);
     expect(refused.rawMessage).toBe(
-      "Team already exists: slug 'sre' in org 'acme' (id: tm_winner)",
+      "Team already exists: slug 'sre' in org 'acme-corp' (id: tm_winner)",
     );
     expect(r.created).toEqual([]);
   });
@@ -271,6 +273,9 @@ describe("create", () => {
 
     const refused = await failure(r.commands.create(newTeam("SRE")));
     expect(refused.code).toBe(Code.AlreadyExists);
+    expect(refused.rawMessage, "the holder the table never named goes unnamed, never the caller's own id").toBe(
+      "Team already exists: slug 'sre' in org 'acme'",
+    );
     expect(r.created).toEqual([]);
     expect([...r.names.entries.values()], "the failed create's claim is let go").toEqual([]);
   });

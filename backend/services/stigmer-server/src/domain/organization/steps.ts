@@ -172,34 +172,15 @@ export function newRefuseOrganizationOrgStep(
   };
 }
 
-/**
- * The organization a write names by id or slug, or undefined. The id is
- * read first; a slug resolves through the name table, and one the
- * organization was renamed away from is refused with SLUG_RENAMED, as
- * every write's is (pipeline/steps/names.ts findResourceForWrite): a file
- * that kept naming it would make a second organization once the hold
- * ends.
- */
-async function findOrganization(
+/** The organization filed under `id`, or undefined when none is. */
+async function readOrganization(
   store: Store,
   id: string,
-  slug: string,
 ): Promise<ResourceReadForWrite<typeof OrganizationSchema> | undefined> {
-  let byId = id;
-  if (byId === "") {
-    const entry = await liveOrganizationName(store, slug, new Date());
-    if (entry?.state === "previous") {
-      throw slugRenamedError(ApiResourceKind.organization, slug);
-    }
-    byId = entry?.id ?? "";
-  }
-  if (byId === "") {
-    return undefined;
-  }
   try {
     return await store.readResourceForWrite(
       ApiResourceKind.organization,
-      byId,
+      id,
       OrganizationSchema,
     );
   } catch (error) {
@@ -211,12 +192,47 @@ async function findOrganization(
 }
 
 /**
+ * The organization a slug names through the name table, or undefined. A
+ * slug the organization was renamed away from is refused with
+ * SLUG_RENAMED, as every write's is (pipeline/steps/names.ts
+ * findResourceForWrite): a file that kept naming it would make a second
+ * organization once the hold ends.
+ */
+async function organizationBySlug(
+  store: Store,
+  slug: string,
+): Promise<ResourceReadForWrite<typeof OrganizationSchema> | undefined> {
+  const entry = await liveOrganizationName(store, slug, new Date());
+  if (entry?.state === "previous") {
+    throw slugRenamedError(ApiResourceKind.organization, slug);
+  }
+  return entry === undefined ? undefined : readOrganization(store, entry.id);
+}
+
+/** Apply's lookup: by id when an organization holds it, else by slug. */
+async function organizationForApply(
+  store: Store,
+  id: string,
+  slug: string,
+): Promise<ResourceReadForWrite<typeof OrganizationSchema> | undefined> {
+  const byId = id === "" ? undefined : await readOrganization(store, id);
+  if (byId !== undefined || slug === "") {
+    return byId;
+  }
+  return organizationBySlug(store, slug);
+}
+
+/**
  * Apply's existence probe for an organization (the shared LoadForApply's
- * flags and name): by id when the manifest carries one, else by slug
- * through the name table. So a manifest that carries the id beside a
+ * flags and name), in every apply's order (findResourceForWrite): by the
+ * id the manifest carries, then, when no organization holds that id, by
+ * slug through the name table. So a manifest that carries the id beside a
  * changed slug updates its organization instead of making a second one,
- * and the slug itself changes only through rename; one that names an old
- * slug without the id is refused (findOrganization).
+ * and the slug itself changes only through rename; one whose id no longer
+ * names an organization (a file from another install, or one kept across
+ * a delete and a new create of the slug) updates the organization its slug
+ * names; one that names an old slug is refused. The update arm authorizes
+ * the id found here, written back to the request.
  */
 export function newLoadOrganizationForApplyStep(
   store: Store,
@@ -228,7 +244,7 @@ export function newLoadOrganizationForApplyStep(
       const existing =
         metadata === undefined
           ? undefined
-          : (await findOrganization(store, metadata.id, metadata.slug))
+          : (await organizationForApply(store, metadata.id, metadata.slug))
               ?.resource;
       if (existing === undefined) {
         ctx.set(EXISTS_IN_DATABASE_KEY, false);
@@ -247,9 +263,12 @@ export function newLoadOrganizationForApplyStep(
 
 /**
  * Update's loader for an organization (the shared LoadExisting's name,
- * failure and context keys): by id, else by slug through the name table.
- * NotFound fails the update. The row's stored bytes are kept for Persist's
- * compare-and-swap (pipeline/guarded-write.ts).
+ * failure and context keys): by id, as every update names its target
+ * (pipeline/steps/load-existing.ts), and by slug through the name table
+ * only when no id is given. An id no organization holds is NotFound, never
+ * a lookup by slug: the update's Authorize ran on that id. The row's
+ * stored bytes are kept for Persist's compare-and-swap
+ * (pipeline/guarded-write.ts).
  */
 export function newLoadExistingOrganizationStep(
   store: Store,
@@ -264,7 +283,10 @@ export function newLoadExistingOrganizationStep(
       if (metadata.id === "" && metadata.slug === "") {
         throw invalidArgumentError("resource id or slug is required for update");
       }
-      const read = await findOrganization(store, metadata.id, metadata.slug);
+      const read =
+        metadata.id !== ""
+          ? await readOrganization(store, metadata.id)
+          : await organizationBySlug(store, metadata.slug);
       if (read === undefined) {
         throw notFoundError(
           "Organization",
