@@ -2232,7 +2232,7 @@ Options for [`usePersistedModel`](#usepersistedmodel).
 <TypeTable
   type={{
     enabled: { type: "boolean", description: "When `false`, the hook is a stable no-op: it never reads or writes localStorage and always returns `undefined` with a no-op setter.  Guest (share/embed) surfaces disable persistence so a browser previously used in the Console cannot leak its stored model into a guest session, and a guest session never pollutes the Console's preference keys." },
-    harness: { type: "HarnessOption", description: "Filter the model registry by harness before validating the stored model.  The persisted model is read from that harness's own localStorage key and validated against its models. When omitted, the native key and the unified registry apply.", typeDescriptionLink: "/docs/sdk/react/models#harnessoption" },
+    harness: { type: "HarnessOption", description: "Filter the model registry by harness before validating the stored model.  The persisted model is read from that harness's own localStorage key and validated against its models. When omitted, the Stigmer harness's key and the unified registry apply.", typeDescriptionLink: "/docs/sdk/react/models#harnessoption" },
   }}
 />
 

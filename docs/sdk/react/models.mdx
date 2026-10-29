@@ -88,7 +88,7 @@ function useModelRegistry(options?: UseModelRegistryOptions): UseModelRegistryRe
     error: { type: "Error | null", description: "Non-null if the API fetch failed. Models will be empty in this case." },
     featured: { type: "readonly ModelInfo[]", description: "Curated subset of models marked as `featured` in the registry." },
     getByKey: { type: "(key: string) => ModelInfo | undefined", description: "Look up a model by its compound key (`\"stigmer/claude-sonnet-4.6\"`). Always unambiguous, even in unified mode." },
-    getModel: { type: "(modelId: string) => ModelInfo | undefined", description: "Look up a single model by its `modelId`.  In unified mode the same modelId can exist under several harnesses (e.g. `claude-sonnet-5` on native and on claude). This returns the first match. Use getByKey with a compound key for an unambiguous lookup." },
+    getModel: { type: "(modelId: string) => ModelInfo | undefined", description: "Look up a single model by its `modelId`.  In unified mode the same modelId can exist under several harnesses (e.g. `claude-sonnet-5` on Stigmer and on claude). This returns the first match. Use getByKey with a compound key for an unambiguous lookup." },
     isLoading: { type: "boolean", description: "`true` while the model registry is being fetched from the API." },
     models: { type: "readonly ModelInfo[]", description: "All enabled models for the selected mode." },
     providers: { type: "readonly Provider[]", description: "Ordered list of enabled provider identifiers." },
@@ -397,7 +397,7 @@ Platform default — resolves to the Stigmer harness (`"stigmer"`).
 
 ### DEFAULT_MODEL_ID
 
-Model ID used when no user preference is set (native harness).
+Model ID used when no user preference is set (Stigmer harness).
 
 
 ### DISABLED_PROVIDERS
@@ -506,7 +506,8 @@ const model = getModel(selectedId) ?? defaultModel;
 Build a compound key that uniquely identifies a model across harnesses.
 
 The same model name (e.g. `claude-sonnet-5`) can exist in several
-harnesses, native's and Claude's. The compound key disambiguates.
+harnesses, the Stigmer harness's and Claude's. The compound key
+disambiguates.
 
 ```tsx
 function modelKey(harness: HarnessOption, modelId: string): string
