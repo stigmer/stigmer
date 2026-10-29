@@ -24,7 +24,8 @@
  *
  * The client is doubled with scripted skills and a plugin archive; `HOME`
  * is the hermetic environment's, so mounts land under a temp platform dir;
- * the model registry is answered by a stubbed fetch.
+ * the model registry is answered by a stubbed fetch, which reads the
+ * archive's minted `data:` URL as it is.
  */
 
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -170,8 +171,11 @@ beforeEach(() => {
   primaryDir = join(env.workspaceRootDir, sessionId);
   mkdirSync(primaryDir, { recursive: true });
   _resetRegistryCache();
-  vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
-    new Response(
+  const networkFetch = globalThis.fetch;
+  vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+    const url = input instanceof Request ? input.url : String(input);
+    if (url.startsWith("data:")) return networkFetch(input, init);
+    return new Response(
       JSON.stringify({
         models: [
           { id: "claude-sonnet-4-5", provider: "anthropic", harness: "stigmer" },
@@ -179,8 +183,8 @@ beforeEach(() => {
         ],
       }),
       { status: 200, headers: { "Content-Type": "application/json" } },
-    ),
-  );
+    );
+  });
 });
 
 afterEach(() => {
