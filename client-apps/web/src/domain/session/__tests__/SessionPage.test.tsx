@@ -3,7 +3,8 @@
  * reads the session it shows and hands it to useFollowSessionOrganization,
  * so the shell follows a conversation opened from another organization,
  * and the viewer, the share dialog and the GitHub connection act in the
- * active organization the hook aligns. The hook's own behaviour is pinned
+ * active organization the hook aligns; the share button is offered only
+ * where a session can be shared with people (not the open-source edition). The hook's own behaviour is pinned
  * in @stigmer/react-sdk.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -14,6 +15,7 @@ const page = vi.hoisted(() => ({
   viewer: [] as Array<Record<string, unknown>>,
   access: [] as Array<Record<string, unknown>>,
   github: [] as string[],
+  mode: "cloud" as string,
 }));
 
 const SESSION = { metadata: { id: "ses_1", org: "org_acme" } };
@@ -43,6 +45,7 @@ vi.mock("@stigmer/react-sdk", () => ({
   useGitHubTreeLister: () => undefined,
   useGitHubFileReader: () => undefined,
   useWorkspaceSources: () => ({ enableGitHub: true, enableLocal: false }),
+  useDeploymentMode: () => page.mode,
 }));
 
 vi.mock("@/domain/_shared/hooks/useStaticRouteParam", () => ({
@@ -56,10 +59,19 @@ beforeEach(() => {
   page.viewer.length = 0;
   page.access.length = 0;
   page.github.length = 0;
+  page.mode = "cloud";
   cleanup();
 });
 
 describe("web SessionPage", () => {
+  it("offers no Manage access on the open-source edition, where a session is shared with no one", () => {
+    page.mode = "local";
+    render(<SessionPageInner id="ses_1" />);
+
+    expect(page.viewer.at(-1)?.accessSlot).toBeUndefined();
+    expect(page.access).toHaveLength(0);
+  });
+
   it("hands the session it shows to useFollowSessionOrganization", () => {
     render(<SessionPageInner id="ses_1" />);
 

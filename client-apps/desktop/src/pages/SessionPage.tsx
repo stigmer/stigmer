@@ -8,6 +8,7 @@ import {
   useFollowSessionOrganization,
   useSession,
   useWorkspaceSources,
+  useDeploymentMode,
   ManageAccessButton,
   ThreadSkeleton,
 } from "@stigmer/react-sdk";
@@ -41,6 +42,7 @@ function SessionPageInner({ id }: { id: string }) {
   // served in every edition, the operator account included).
   const accountDefaults = useAccountExecutionDefaults();
   const slugForOrg = useOrgSlugForId();
+  const deploymentMode = useDeploymentMode();
 
   return (
     <div className="flex h-full w-full flex-col">
@@ -62,15 +64,19 @@ function SessionPageInner({ id }: { id: string }) {
         routineHref={(routine) =>
           `#/library/routines/${slugForOrg(routine.metadata?.org ?? "")}/${routine.metadata?.slug ?? ""}`
         }
+        // The open-source edition shares a session with no one (its grants
+        // are on organizations only), so it offers no Manage access.
         accessSlot={
-          <ManageAccessButton
-            resource={{
-              kind: ApiResourceKind.session,
-              kindString: "session",
-              id,
-              org: orgId,
-            }}
-          />
+          deploymentMode === "local" ? undefined : (
+            <ManageAccessButton
+              resource={{
+                kind: ApiResourceKind.session,
+                kindString: "session",
+                id,
+                org: orgId,
+              }}
+            />
+          )
         }
       />
     </div>
