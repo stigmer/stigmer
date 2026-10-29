@@ -35,12 +35,14 @@ function spawnScript(source: string): { handle: ChildHandle; logFile: string; ex
 
 describe("NodeProcessHost — a child's end", () => {
   it("holds the last stderr lines and the real exit code once the child is observed exited", async () => {
-    // Many lines then an immediate exit: the last ones are the likeliest to
-    // arrive after Node's `exit` event.
+    // Many lines then the end: the last ones are the likeliest to arrive after
+    // Node's `exit` event. The child ends by `exitCode`, not `process.exit()`,
+    // which on Linux discards a burst still queued on a stderr pipe, so the
+    // child itself would never write the last line.
     const { handle, logFile, exited } = spawnScript(
       `for (let i = 0; i < 2000; i += 1) process.stderr.write("noise " + i + "\\n");\n` +
         `process.stderr.write("boot failed: schema version 14 is newer than this server supports\\n");\n` +
-        `process.exit(1);\n`,
+        `process.exitCode = 1;\n`,
     );
     expect(handle.exitInfo()).toBeNull();
 
