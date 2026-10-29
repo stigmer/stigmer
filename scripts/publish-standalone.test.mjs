@@ -35,6 +35,14 @@
 // only npm's default registry would poll npmjs.com for a version that never
 // arrives there. `configuredRegistry` is pinned on a fake `npm config get`.
 //
+// And one good read is not proof that the next agrees (stigmer#1367). On
+// v3.38.0 the wait saw every lib and the install two seconds later did not,
+// and on v3.41.0 npm took 22 minutes, past the 20-minute budget. So the
+// budget covers that, the consumer smoke runs again while it exits with the
+// registry-lag code (scripts/lib/registry-lag.mjs), and the wait and that
+// retry share one deadline and one schedule (`pollSchedule`), pinned here on
+// the same fake clock. Any other smoke failure stops at once.
+//
 // And a package's own LICENSE is its license. A standalone package under a
 // license other than the root's publishes with its own text, so the root
 // copy is made only for a package that carries none, and the rehearsal's
@@ -53,12 +61,17 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 
+import { REGISTRY_LAG_EXIT } from "./lib/registry-lag.mjs";
+
 import {
   configuredRegistry,
   INSTALL_METADATA_ACCEPT,
   installGap,
   parseArgs,
+  pollSchedule,
   registryLagMessage,
+  retryConsumerSmoke,
+  smokeLagMessage,
   REQUEST_TIMEOUT_MS,
   resolveTag,
   rootLicenseCopy,
@@ -328,8 +341,8 @@ function fakeRegistry(timelines) {
   };
 }
 
-test("the wait's budget is almost three times the worst lag measured, polled from 10 s up to a 60 s cap, each request bounded at 30 s", () => {
-  assert.equal(WAIT_BUDGET_MS, 20 * 60_000);
+test("the wait's budget outlasts the worst lag measured (22 minutes on v3.41.0), polled from 10 s up to a 60 s cap, each request bounded at 30 s", () => {
+  assert.equal(WAIT_BUDGET_MS, 35 * 60_000);
   assert.equal(WAIT_FIRST_INTERVAL_MS, 10_000);
   assert.equal(WAIT_MAX_INTERVAL_MS, 60_000);
   assert.equal(REQUEST_TIMEOUT_MS, 30_000);
@@ -645,4 +658,107 @@ test("configuredRegistry follows the @stigmer scope's registry when one is set, 
     configuredRegistry((key) => (key === "registry" ? "https://registry.npmjs.org/" : "")),
     "https://registry.npmjs.org/",
   );
+});
+
+test("pollSchedule doubles to its cap, cuts the last sleep to the deadline, and ends there", () => {
+  let clock = 0;
+  const next = pollSchedule({ deadline: 100_000, now: () => clock });
+  const steps = [];
+  for (let step = next(); step !== null; step = next()) {
+    steps.push(step);
+    clock += step.wait;
+  }
+  assert.deepEqual(steps, [
+    { wait: 10_000, remaining: 100_000 },
+    { wait: 20_000, remaining: 90_000 },
+    { wait: 40_000, remaining: 70_000 },
+    { wait: 30_000, remaining: 30_000 },
+  ]);
+  const capped = pollSchedule({ deadline: Infinity, now: () => 0 });
+  assert.deepEqual(
+    Array.from({ length: 6 }, () => capped().wait),
+    [10_000, 20_000, 40_000, 60_000, 60_000, 60_000],
+  );
+});
+
+test("waitForRegistry takes the release's deadline, so the time before the wait counts against it", async () => {
+  const registry = fakeRegistry({});
+  await assert.rejects(
+    waitForRegistry(["@stigmer/apis"], "3.41.0", {
+      ...registry.options,
+      deadline: 30_000,
+    }),
+    /after 35 minutes/,
+  );
+  assert.deepEqual(registry.sleeps, [10_000, 20_000]);
+});
+
+/** A smoke that exits with each code in turn, on the fake registry's clock. */
+function fakeSmoke(codes) {
+  const registry = fakeRegistry({});
+  const runs = [];
+  return {
+    registry,
+    runs,
+    runSmoke: () => {
+      const code = codes[runs.length] ?? codes.at(-1);
+      runs.push(code);
+      return code;
+    },
+  };
+}
+
+test("retryConsumerSmoke runs the smoke once when it passes", async () => {
+  const { registry, runs, runSmoke } = fakeSmoke([0]);
+  await retryConsumerSmoke(runSmoke, { ...registry.options, deadline: 35 * 60_000 });
+  assert.deepEqual(runs, [0]);
+  assert.deepEqual(registry.sleeps, []);
+});
+
+test("retryConsumerSmoke runs the smoke again while npm does not serve a pinned lib to it, on the wait's schedule (the v3.38.0 race)", async () => {
+  const { registry, runs, runSmoke } = fakeSmoke([REGISTRY_LAG_EXIT, REGISTRY_LAG_EXIT, 0]);
+  await retryConsumerSmoke(runSmoke, { ...registry.options, deadline: 35 * 60_000 });
+  assert.deepEqual(runs, [REGISTRY_LAG_EXIT, REGISTRY_LAG_EXIT, 0]);
+  assert.deepEqual(registry.sleeps, [10_000, 20_000]);
+  assert.deepEqual(registry.logs, [
+    "  npm does not serve a pinned lib to the install yet; next attempt in 10s (35 min left)",
+    "  npm does not serve a pinned lib to the install yet; next attempt in 20s (35 min left)",
+  ]);
+});
+
+test("retryConsumerSmoke stops at once on any other failure, lag before it or not", async () => {
+  for (const codes of [[1], [REGISTRY_LAG_EXIT, 1], [2]]) {
+    const { registry, runs, runSmoke } = fakeSmoke(codes);
+    await assert.rejects(
+      retryConsumerSmoke(runSmoke, { ...registry.options, deadline: 35 * 60_000 }),
+      new RegExp(`^Error: the consumer-install smoke failed \\(exit ${codes.at(-1)}\\)$`),
+    );
+    assert.deepEqual(runs, codes);
+  }
+});
+
+test("retryConsumerSmoke shares the wait's deadline and refuses at it with the lag and the rerun", async () => {
+  const { registry, runs, runSmoke } = fakeSmoke([REGISTRY_LAG_EXIT]);
+  // The wait used 34 minutes of the 35 before the smoke's first attempt.
+  const now = registry.options.now;
+  await registry.options.sleep(34 * 60_000);
+  await assert.rejects(
+    retryConsumerSmoke(runSmoke, { ...registry.options, now, deadline: 35 * 60_000, runId: "36717678532" }),
+    (error) => {
+      assert.equal(
+        error.message,
+        "the consumer install still finds a pinned lib missing from npm after 35 minutes " +
+          "(the last attempt above names it); the registry is lagging. " +
+          "Rerun the failed job once npm serves it: gh run rerun 36717678532 --failed",
+      );
+      return true;
+    },
+  );
+  // 34 min, then 10 + 20 s and the last sleep cut to the 30 s left.
+  assert.deepEqual(registry.sleeps.slice(1), [10_000, 20_000, 30_000]);
+  assert.equal(runs.length, 4);
+});
+
+test("smokeLagMessage names a placeholder when no run id is known", () => {
+  assert.match(smokeLagMessage(35 * 60_000, undefined), /after 35 minutes .*gh run rerun <run-id> --failed$/);
 });

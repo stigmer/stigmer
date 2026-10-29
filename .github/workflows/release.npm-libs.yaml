@@ -185,6 +185,19 @@ jobs:
             --package backend/services/runner \
             --version "${NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION}"
 
+      # npm's debug log, kept when the job fails: a failed install or publish
+      # names its log file but the runner is gone before anyone can read it
+      # (stigmer#1367). A failure before npm runs leaves no log, so none is
+      # not an error.
+      - name: Upload npm's debug log
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: npm-logs-runner
+          path: ~/.npm/_logs/
+          retention-days: 3
+          if-no-files-found: ignore
+
       # The slim embedding artifact (stigmer/stigmer#170): a bundled runner plus
       # per-platform native-bridge packages — ~85 MB installed instead of the
       # full package's ~508 MB node_modules. Built after the fat publish so a
@@ -296,6 +309,19 @@ jobs:
             --package backend/services/stigmer-server \
             --version "${NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION}"
 
+      # npm's debug log, kept when the job fails: a failed install or publish
+      # names its log file but the runner is gone before anyone can read it
+      # (stigmer#1367). A failure before npm runs leaves no log, so none is
+      # not an error.
+      - name: Upload npm's debug log
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: npm-logs-server
+          path: ~/.npm/_logs/
+          retention-days: 3
+          if-no-files-found: ignore
+
   # @stigmer/enterprise (ee/server), Stigmer Enterprise under its own license
   # (ee/LICENSE, which the tarball carries): published in lockstep with
   # @stigmer/server, at the same version on the same train, so a host pins
@@ -355,6 +381,19 @@ jobs:
           node scripts/publish-standalone.mjs \
             --package ee/server \
             --version "${NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION}"
+
+      # npm's debug log, kept when the job fails: a failed install or publish
+      # names its log file but the runner is gone before anyone can read it
+      # (stigmer#1367). A failure before npm runs leaves no log, so none is
+      # not an error.
+      - name: Upload npm's debug log
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: npm-logs-enterprise
+          path: ~/.npm/_logs/
+          retention-days: 3
+          if-no-files-found: ignore
 
   # The TS server's slim artifact: @stigmer/server-slim
   # plus per-platform native-bridge packages, the runner-slim pattern exactly.

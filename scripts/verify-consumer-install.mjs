@@ -79,11 +79,23 @@
  * because its own @stigmer/* versions are minutes old. The rule and its
  * reasons are scripts/lib/resolve-before.mjs.
  *
+ * Both installs revalidate npm's cached documents against the registry
+ * (`--prefer-online`), as a consumer installing for the first time, with no
+ * cache, does. Without it a document cached before a release published would
+ * be served stale and its new versions would look missing
+ * (scripts/lib/consumer-install-args.mjs).
+ *
+ * Exit codes: 0 pass; 75 when an install fails because npm does not serve a
+ * @stigmer/* version the manifest pins yet (ETARGET or E404 naming it; only a
+ * release's stamped manifest pins one), which publish-standalone.mjs retries
+ * within its registry deadline; 1 for every other failure. The rule is
+ * scripts/lib/registry-lag.mjs.
+ *
  * Needs network (registry install) and a prior `npm run build` of the
  * package and of every file:-linked lib. Runs in a few minutes.
  */
 
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import {
   cpSync,
   existsSync,
@@ -98,6 +110,7 @@ import { fileURLToPath } from "node:url";
 
 import { consumerInstallArgs, tarballInstallArgs } from "./lib/consumer-install-args.mjs";
 import { linkedPacker } from "./lib/linked-tarballs.mjs";
+import { REGISTRY_LAG_EXIT, registryLag } from "./lib/registry-lag.mjs";
 import { resolveBeforeFromArgv } from "./lib/resolve-before.mjs";
 
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
@@ -113,6 +126,32 @@ function npm(args, cwd) {
     encoding: "utf8",
     stdio: ["ignore", "pipe", "inherit"],
   });
+}
+
+/**
+ * Runs one of the two consumer installs. npm's stderr is printed as npm wrote
+ * it, and also read: a failure because npm does not serve a version among
+ * `pinned` yet exits REGISTRY_LAG_EXIT, so the release script can wait and
+ * retry, and any other failure exits 1.
+ */
+function npmInstall(args, cwd, pinned) {
+  const result = spawnSync("npm", args, {
+    cwd,
+    encoding: "utf8",
+    stdio: ["ignore", "ignore", "pipe"],
+    maxBuffer: 64 * 1024 * 1024,
+  });
+  if (result.error) fail(`npm ${args[0]} did not run: ${result.error.message}`);
+  process.stderr.write(result.stderr);
+  if (result.status === 0) return;
+  const lagging = registryLag(result.stderr, pinned);
+  if (lagging !== null) {
+    console.error(
+      `verify-consumer-install: NOT YET — npm does not serve the pinned ${lagging} yet (the install above); exit ${REGISTRY_LAG_EXIT} so the release retries`,
+    );
+    process.exit(REGISTRY_LAG_EXIT);
+  }
+  fail(`npm ${args[0]} exited ${result.status ?? result.signal}`);
 }
 
 function readManifest(dir) {
@@ -156,6 +195,13 @@ if (!check || !Array.isArray(check.singleCopy) || !Array.isArray(check.boot)) {
   );
 }
 console.log(`verify-consumer-install: ${manifest.name} (${packageDir})`);
+
+// The @stigmer/* libs the manifest pins to a registry version: what a
+// release's stamp leaves (publish-standalone.mjs). Anywhere else they are
+// file: links, packed below, and none can lag.
+const registryPinned = Object.entries(manifest.dependencies ?? {})
+  .filter(([name, spec]) => name.startsWith("@stigmer/") && !spec.startsWith("file:"))
+  .map(([name]) => name);
 
 // ─── Check 1: @temporalio manifest policy ────────────────────────────────────
 
@@ -231,9 +277,9 @@ try {
 const stagingDir = join(workDir, "staging");
 const tarballInstall = tarballInstallArgs(tarball, stagingDir, resolution);
 console.log(
-  `verify-consumer-install: fresh consumer install (registry resolution, ${tarballInstall.filter((arg) => arg === "--omit=dev" || arg.startsWith("--before=")).join(", ")})...`,
+  `verify-consumer-install: fresh consumer install (registry resolution, ${tarballInstall.filter((arg) => arg === "--omit=dev" || arg === "--prefer-online" || arg.startsWith("--before=")).join(", ")})...`,
 );
-npm(tarballInstall, workDir);
+npmInstall(tarballInstall, workDir, registryPinned);
 
 // ─── Check 2: exactly one physical copy of each singleCopy package ──────────
 
@@ -324,7 +370,7 @@ if (check.typecheckConsumer) {
   console.log(
     `verify-consumer-install: typechecking ${consumerManifest.name} against the packed ${manifest.name}...`,
   );
-  npm(consumerInstallArgs(resolution), consumerDir);
+  npmInstall(consumerInstallArgs(resolution), consumerDir, registryPinned);
   execFileSync("npm", ["run", "typecheck"], {
     cwd: consumerDir,
     stdio: "inherit",
