@@ -3,7 +3,8 @@ Stop the local Stigmer stack.
 `stigmer down` signals the supervised daemon started by `stigmer up` to shut
 down. The daemon traps the signal and tears down its children — the runner,
 `stigmer-server`, and managed Temporal — in order. If the daemon is already
-gone, the command falls back to cleaning up any leftover state.
+gone, the command falls back to cleaning up any leftover state. It returns once
+nothing of the stack is left running, even when the stack was still starting.
 
 `stigmer down server` is accepted as a symmetric alias of `stigmer down`. The
 daemon owns the whole stack, so stopping it stops everything either way.

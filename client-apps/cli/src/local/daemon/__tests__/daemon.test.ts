@@ -1,5 +1,5 @@
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
-import { createServer, type Server } from "node:net";
+import { createServer, type Server, type Socket } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -12,6 +12,7 @@ import { readPidFile } from "../../state/pidfile.js";
 import type { DaemonConfig } from "../env.js";
 import { NodeProcessHost } from "../host.js";
 import { runInternalDaemon, type TemporalControl } from "../process.js";
+import { SETTLE_DELAY_MS } from "../supervisor.js";
 import type { ChildHandle, Clock, ExitInfo, ProcessHost, SpawnRequest } from "../types.js";
 
 const silent: Logger = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() };
@@ -97,17 +98,22 @@ describe("NodeProcessHost (real spawn)", () => {
 // Temporal, but a real TCP listener satisfying the server's gRPC gate. ----
 
 // Minimal fake host whose children exit on SIGTERM, each with the stderr tail
-// the test gives its component.
+// the test gives its component; `onSpawn` lets a test act the moment a
+// component starts.
 class FakeHost implements ProcessHost {
   private nextPid = 2000;
   readonly killed: NodeJS.Signals[] = [];
   readonly spawned: string[] = [];
+  /** The components signalled, in order. */
+  readonly stopped: string[] = [];
+  onSpawn: (name: string) => void = () => {};
   constructor(private readonly stderr: Record<string, string[]> = {}) {}
   spawn(request: SpawnRequest): ChildHandle {
     let exited: ExitInfo | null = null;
     let exitCb: ((info: ExitInfo) => void) | null = null;
     const pid = this.nextPid++;
     this.spawned.push(request.name);
+    this.onSpawn(request.name);
     return {
       pid,
       hasExited: () => exited !== null,
@@ -119,6 +125,7 @@ class FakeHost implements ProcessHost {
       onReady: () => {},
       kill: (signal) => {
         this.killed.push(signal);
+        this.stopped.push(request.name);
         if (exited === null) {
           exited = { code: null, signal };
           exitCb?.(exited);
@@ -142,17 +149,45 @@ function fakeTemporal(): TemporalControl {
   };
 }
 
+// The listeners' open connections, dropped before closing: a probe cut short
+// can leave one behind, and close() would wait for it.
+const openSockets = new Set<Socket>();
+
 function listenOn(port: number): Promise<Server> {
   return new Promise((resolve, reject) => {
-    const server = createServer();
+    const server = createServer((socket) => {
+      openSockets.add(socket);
+      socket.once("close", () => openSockets.delete(socket));
+    });
     server.once("error", reject);
     server.listen(port, "127.0.0.1", () => resolve(server));
   });
 }
 
+function stackConfig(serverOnly: boolean): DaemonConfig {
+  const data = join(tempDir(), ".stigmer", "data");
+  return {
+    dataDir: data,
+    logDir: join(data, "logs"),
+    temporalManaged: true,
+    temporalAddress: "127.0.0.1:7233",
+    serverOnly,
+    noWeb: true,
+    server: { nodeBin: "node-cmd", entryPath: join(data, "server-entry.js"), appDir: data },
+    ...(serverOnly ? {} : { runner: { nodeBin: "node-cmd", entryPath: join(data, "entry.js"), appDir: data } }),
+  };
+}
+
+// Nothing the daemon wrote is left once it has stopped.
+function expectNothingLeft(data: string): void {
+  for (const file of ["daemon.pid", "stigmer-server.pid", "runner.pid"]) expect(readPidFile(join(data, file))).toBeNull();
+  expect(loadHealthState(join(data, "health-state.json"))).toBeNull();
+}
+
 let gateServer: Server | null = null;
 afterEach(async () => {
   if (gateServer !== null) {
+    for (const socket of openSockets) socket.destroy();
     await new Promise<void>((resolve) => gateServer?.close(() => resolve()));
     gateServer = null;
   }
@@ -185,10 +220,7 @@ describe("runInternalDaemon (full body with fakes)", () => {
     const healthPath = join(data, "health-state.json");
 
     let snapshot: HealthState | null = null;
-    let resolveShutdown!: () => void;
-    const shutdown = new Promise<void>((resolve) => {
-      resolveShutdown = resolve;
-    });
+    const stop = new AbortController();
 
     const code = await runInternalDaemon({
       config,
@@ -196,10 +228,11 @@ describe("runInternalDaemon (full body with fakes)", () => {
       clock: fastClock,
       temporal,
       log: silent,
-      waitForShutdown: () => shutdown,
+      shutdown: stop.signal,
       onStarted: () => {
         snapshot = loadHealthState(healthPath);
-        resolveShutdown();
+        // Asked for once the body is waiting, as a later `stigmer down` is.
+        setTimeout(() => stop.abort(), 10);
       },
     });
 
@@ -251,7 +284,7 @@ describe.skipIf(serverPortBusy)("runInternalDaemon (a server that hangs past its
     vi.useFakeTimers({ toFake: ["Date"] });
     setTimeout(() => vi.setSystemTime(Date.now() + 60_000), 300);
 
-    const code = await runInternalDaemon({ config, host, clock: fastClock, temporal, log: silent, waitForShutdown: () => new Promise(() => {}) });
+    const code = await runInternalDaemon({ config, host, clock: fastClock, temporal, log: silent, shutdown: new AbortController().signal });
 
     expect(code).toBe(1);
     expect(host.spawned).toEqual(["stigmer-server"]);
@@ -284,7 +317,7 @@ describe("runInternalDaemon (Temporal does not start)", () => {
       throw new Error("temporal dev server exited with code 1 before it was ready");
     });
 
-    const code = await runInternalDaemon({ config, host, clock: fastClock, temporal, log: silent, waitForShutdown: () => new Promise(() => {}) });
+    const code = await runInternalDaemon({ config, host, clock: fastClock, temporal, log: silent, shutdown: new AbortController().signal });
 
     expect(code).toBe(1);
     expect(host.spawned).toEqual([]);
@@ -292,5 +325,145 @@ describe("runInternalDaemon (Temporal does not start)", () => {
       state: "failed",
       last_error: "temporal dev server exited with code 1 before it was ready",
     });
+  });
+});
+
+// stigmer#1175: a stop asked for while the stack is still starting is honoured
+// at once: whatever started is stopped in reverse, nothing is left behind, the
+// stop is not a failure, and the stack is never reported started.
+describe("runInternalDaemon (stopped while starting)", () => {
+  it("starts nothing when the stop came before Temporal", async () => {
+    const config = stackConfig(false);
+    const host = new FakeHost();
+    const temporal = fakeTemporal();
+
+    const code = await runInternalDaemon({ config, host, clock: fastClock, temporal, log: silent, shutdown: AbortSignal.abort() });
+
+    expect(code).toBe(0);
+    expect(temporal.start).not.toHaveBeenCalled();
+    expect(temporal.stop).not.toHaveBeenCalled();
+    expect(host.spawned).toEqual([]);
+    expectNothingLeft(config.dataDir);
+  });
+
+  it("stops Temporal, starting nothing else, when the stop comes while Temporal starts", async () => {
+    const config = stackConfig(false);
+    const host = new FakeHost();
+    const temporal = fakeTemporal();
+    const stop = new AbortController();
+    temporal.start = vi.fn(async () => {
+      stop.abort();
+    });
+
+    const code = await runInternalDaemon({ config, host, clock: fastClock, temporal, log: silent, shutdown: stop.signal });
+
+    expect(code).toBe(0);
+    expect(host.spawned).toEqual([]);
+    expect(temporal.stop).toHaveBeenCalledOnce();
+    expectNothingLeft(config.dataDir);
+  });
+
+  it("still finishes the teardown when Temporal does not stop cleanly", async () => {
+    const config = stackConfig(true);
+    try {
+      gateServer = await listenOn(SERVER_PORT);
+    } catch {
+      // Port busy: the gate connects to whatever listens, which is all it needs.
+    }
+    const host = new FakeHost();
+    const temporal = fakeTemporal();
+    temporal.stop = vi.fn(async () => {
+      throw new Error("temporal did not exit");
+    });
+    const log: Logger = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() };
+    const stop = new AbortController();
+
+    // The stop lands while the started stack is being reported (a Ctrl-C as
+    // the foreground card renders).
+    const code = await runInternalDaemon({ config, host, clock: fastClock, temporal, log, shutdown: stop.signal, onStarted: () => stop.abort() });
+
+    expect(code).toBe(0);
+    expect(log.warn).toHaveBeenCalledWith("failed to stop managed Temporal cleanly", { error: "Error: temporal did not exit" });
+    expect(host.stopped).toEqual(["stigmer-server"]);
+    expectNothingLeft(config.dataDir);
+  });
+
+  it("stops every child in reverse during the settle, never reporting started", async () => {
+    const config = stackConfig(false);
+    try {
+      gateServer = await listenOn(SERVER_PORT);
+    } catch {
+      // Port busy: the gate connects to whatever listens, which is all it needs.
+    }
+    const host = new FakeHost();
+    const temporal = fakeTemporal();
+    const stop = new AbortController();
+    const settleClock: Clock = {
+      now: () => Date.now(),
+      sleep: (ms) => {
+        if (ms === SETTLE_DELAY_MS) stop.abort();
+        return Promise.resolve();
+      },
+    };
+    const onStarted = vi.fn();
+
+    const code = await runInternalDaemon({ config, host, clock: settleClock, temporal, log: silent, shutdown: stop.signal, onStarted });
+
+    expect(code).toBe(0);
+    expect(onStarted).not.toHaveBeenCalled();
+    expect(host.stopped).toEqual(["runner", "stigmer-server"]);
+    expect(temporal.stopSupervisor).toHaveBeenCalledOnce();
+    expect(temporal.stop).toHaveBeenCalledOnce();
+    expectNothingLeft(config.dataDir);
+  });
+});
+
+describe.skipIf(serverPortBusy)("runInternalDaemon (stopped while the server's gate waits)", () => {
+  it("stops the server within a poll, starts no runner, stops Temporal and records no failure", async () => {
+    const config = stackConfig(false);
+    const host = new FakeHost();
+    const temporal = fakeTemporal();
+    const stop = new AbortController();
+    host.onSpawn = (name) => {
+      if (name === "stigmer-server") setTimeout(() => stop.abort(), 50);
+    };
+    const log: Logger = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() };
+    const started = Date.now();
+
+    const code = await runInternalDaemon({ config, host, clock: fastClock, temporal, log, shutdown: stop.signal });
+
+    expect(code).toBe(0);
+    expect(Date.now() - started).toBeLessThan(2_000);
+    expect(host.spawned).toEqual(["stigmer-server"]);
+    expect(host.killed).toEqual(["SIGTERM"]);
+    expect(temporal.stop).toHaveBeenCalledOnce();
+    expect(log.error).not.toHaveBeenCalled();
+    expectNothingLeft(config.dataDir);
+  });
+
+  it("cuts the console probe short, never reporting started", async () => {
+    const config = { ...stackConfig(false), noWeb: false };
+    // Accepts and never answers, so the probe would wait out its own timeout.
+    gateServer = await listenOn(SERVER_PORT);
+    const host = new FakeHost();
+    const temporal = fakeTemporal();
+    const stop = new AbortController();
+    const settleClock: Clock = {
+      now: () => Date.now(),
+      sleep: (ms) => {
+        if (ms === SETTLE_DELAY_MS) setTimeout(() => stop.abort(), 50);
+        return Promise.resolve();
+      },
+    };
+    const onStarted = vi.fn();
+    const started = Date.now();
+
+    const code = await runInternalDaemon({ config, host, clock: settleClock, temporal, log: silent, shutdown: stop.signal, onStarted });
+
+    expect(code).toBe(0);
+    expect(Date.now() - started).toBeLessThan(2_000);
+    expect(onStarted).not.toHaveBeenCalled();
+    expect(host.stopped).toEqual(["runner", "stigmer-server"]);
+    expectNothingLeft(config.dataDir);
   });
 });

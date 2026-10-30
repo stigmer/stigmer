@@ -84,6 +84,9 @@ stigmer status   # show component health and the effective LLM configuration
 stigmer down     # stop the stack
 ```
 
+A stack that is already running, or still starting, is left alone: `stigmer up`
+says so and exits. Stop it first with `stigmer down`.
+
 ## Subcommands
 
 ### stigmer up server

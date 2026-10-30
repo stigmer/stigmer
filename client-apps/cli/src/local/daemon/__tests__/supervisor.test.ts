@@ -204,6 +204,94 @@ describe("startAll", () => {
   });
 });
 
+// stigmer#1175: a stop asked for while a component is still starting is
+// honoured at once, by the supervisor that owns the child, and is not a failure.
+describe("startAll, stopped while starting", () => {
+  // A gate like the server's: it fails as soon as its child exits, and
+  // otherwise gives up after a short deadline.
+  const exitWatchingGate: ReadinessGate = {
+    description: "exit-watching",
+    wait: async (handle) => {
+      const deadline = Date.now() + 500;
+      while (Date.now() < deadline) {
+        if (handle.hasExited()) throw new Error("the server exited before it was ready");
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      }
+      throw new Error("did not become ready");
+    },
+  };
+
+  it("stops the child its gate waits on, starts nothing more, and records no failure", async () => {
+    const { sup, host, hs } = makeSupervisor([
+      spec("stigmer-server", { critical: true, gate: exitWatchingGate }),
+      spec("runner"),
+    ]);
+    const stop = new AbortController();
+    const started = sup.startAll(stop.signal);
+    stop.abort();
+    const result = await started;
+
+    expect(result).toEqual({ ok: false, stopped: true });
+    expect(host.latest("stigmer-server").signals).toEqual(["SIGTERM"]);
+    expect(host.countOf("runner")).toBe(0);
+    expect(hs.components["stigmer-server"].state).toBe("stopped");
+    expect(hs.components["stigmer-server"].last_error).toBeUndefined();
+    expect(readPidFile(join(dir, "stigmer-server.pid"))).toBeNull();
+  });
+
+  it("escalates to SIGKILL for a gated child that ignores SIGTERM, before it resolves", async () => {
+    const { sup, host } = makeSupervisor([spec("stigmer-server", { critical: true, gate: exitWatchingGate })]);
+    const stop = new AbortController();
+    const started = sup.startAll(stop.signal);
+    host.latest("stigmer-server").termExits = false;
+    stop.abort();
+
+    expect(await started).toEqual({ ok: false, stopped: true });
+    expect(host.latest("stigmer-server").signals).toEqual(["SIGTERM", "SIGKILL"]);
+  });
+
+  it("stops a child whose gate passes as the stop arrives, and starts nothing after it", async () => {
+    const stop = new AbortController();
+    const passesAsStopped: ReadinessGate = {
+      description: "passes",
+      wait: async () => {
+        stop.abort();
+      },
+    };
+    const { sup, host, hs } = makeSupervisor([spec("stigmer-server", { critical: true, gate: passesAsStopped }), spec("runner")]);
+
+    expect(await sup.startAll(stop.signal)).toEqual({ ok: false, stopped: true });
+    expect(host.latest("stigmer-server").signals).toEqual(["SIGTERM"]);
+    expect(host.countOf("runner")).toBe(0);
+    expect(hs.components["stigmer-server"].state).toBe("stopped");
+  });
+
+  it("stops a gated child when the stop arrives during its own spawn", async () => {
+    const stop = new AbortController();
+    const server = spec("stigmer-server", { critical: true, gate: exitWatchingGate });
+    const abortingSpawn: ComponentSpec = {
+      ...server,
+      resolve: () => {
+        stop.abort();
+        return server.resolve();
+      },
+    };
+    const { sup, host } = makeSupervisor([abortingSpawn, spec("runner")]);
+
+    expect(await sup.startAll(stop.signal)).toEqual({ ok: false, stopped: true });
+    expect(host.latest("stigmer-server").signals).toEqual(["SIGTERM"]);
+    expect(host.countOf("runner")).toBe(0);
+  });
+
+  it("starts nothing when the stop came first", async () => {
+    const { sup, host, hs } = makeSupervisor([spec("stigmer-server", { critical: true, gate: okGate }), spec("runner")]);
+
+    expect(await sup.startAll(AbortSignal.abort())).toEqual({ ok: false, stopped: true });
+    expect(host.children).toEqual([]);
+    expect(hs.components["stigmer-server"].state).toBe("stopped");
+  });
+});
+
 describe("readiness marker", () => {
   it("flips ready false -> true when the child announces it", async () => {
     const { sup, host, hs } = makeSupervisor([spec("runner", { marker: "ready" })]);

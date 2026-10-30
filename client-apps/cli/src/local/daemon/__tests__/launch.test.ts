@@ -12,7 +12,7 @@
 // another program holds is refused before anything starts, naming the holder.
 
 import { spawn } from "node:child_process";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { createServer, type AddressInfo, type Server } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -23,9 +23,11 @@ import { formatError } from "../../../errors/handle.js";
 import { HEALTH_STATE_FILE, SERVER_PORT } from "../../constants.js";
 import { tcpConnects } from "../../net/tcp.js";
 import { type HealthState, writeHealthState } from "../../state/health-state.js";
+import { writePidFile } from "../../state/pidfile.js";
+import { isProcessAlive } from "../../state/proc.js";
 import { loadStartupConfig } from "../../state/startup-config.js";
 import { DaemonEnvVar } from "../env.js";
-import { type UpReport, startupFailure, upForeground, waitForStack } from "../launch.js";
+import { type UpReport, down, startupFailure, upForeground, waitForStack } from "../launch.js";
 import type { InternalDaemonDeps } from "../process.js";
 
 // The launcher refuses to start beside a stack already serving on the server
@@ -61,6 +63,7 @@ const TOUCHED = [
 ] as const;
 let saved: Record<string, string | undefined>;
 
+
 beforeEach(() => {
   saved = {};
   for (const key of TOUCHED) {
@@ -88,6 +91,7 @@ describe.skipIf(serverPortBusy)("upForeground", () => {
     const order: string[] = [];
     let captured: InternalDaemonDeps | null = null;
     let reported: UpReport | null = null;
+    const stop = new AbortController();
 
     const code = await upForeground({ noWeb: true }, home, {
       runDaemon: async (deps) => {
@@ -100,14 +104,17 @@ describe.skipIf(serverPortBusy)("upForeground", () => {
       onReady: (report) => {
         order.push("onReady");
         reported = report;
+        stop.abort();
       },
-      waitForShutdown: () => Promise.resolve(),
+      shutdown: stop.signal,
     });
 
     expect(code).toBe(0);
     expect(order).toEqual(["daemon:started", "onReady", "daemon:waiting"]);
 
     const deps = captured as unknown as InternalDaemonDeps;
+    // The stop request is the caller's, handed through to the body.
+    expect(deps.shutdown).toBe(stop.signal);
     // The config is the env contract read back — the detached daemon's view.
     expect(deps.config?.dataDir).toBe(join(home, ".stigmer", "data"));
     expect(deps.config?.temporalManaged).toBe(true);
@@ -132,7 +139,7 @@ describe.skipIf(serverPortBusy)("upForeground", () => {
       // A critical component failed to start: the body returns 1 before onStarted.
       runDaemon: async () => 1,
       onReady,
-      waitForShutdown: () => Promise.resolve(),
+      shutdown: new AbortController().signal,
     });
 
     expect(code).toBe(1);
@@ -144,7 +151,8 @@ describe.skipIf(serverPortBusy)("upForeground", () => {
     const home = tempDir("stigmer-fg-home-");
     process.env.OPENAI_API_KEY = "sk-oa";
     let captured: InternalDaemonDeps | null = null;
-    const onReady = vi.fn();
+    const stop = new AbortController();
+    const onReady = vi.fn(() => stop.abort());
 
     await upForeground({ serverOnly: true }, home, {
       runDaemon: async (deps) => {
@@ -153,7 +161,7 @@ describe.skipIf(serverPortBusy)("upForeground", () => {
         return 0;
       },
       onReady,
-      waitForShutdown: () => Promise.resolve(),
+      shutdown: stop.signal,
     });
 
     const deps = captured as unknown as InternalDaemonDeps;
@@ -309,12 +317,153 @@ describe("upForeground (a held server port)", () => {
     const { port } = holder.address() as AddressInfo;
     const runDaemon = vi.fn(async () => 0);
     try {
-      const started = upForeground({}, tempDir("stigmer-fg-home-"), { runDaemon, serverPort: port, waitForShutdown: () => Promise.resolve() });
+      const started = upForeground({}, tempDir("stigmer-fg-home-"), { runDaemon, serverPort: port, shutdown: new AbortController().signal });
       // The holder is this very process; `lsof` names it where it can.
       await expect(started).rejects.toThrow(new RegExp(`^port ${port} is already in use( by pid ${process.pid} \\(.+\\))?$`));
     } finally {
       await new Promise<void>((resolve) => holder.close(() => resolve()));
     }
     expect(runDaemon).not.toHaveBeenCalled();
+  });
+});
+
+// ---- stigmer#1175: nothing outlives a stopped stack, and `up` never touches a
+// running one. ----
+
+// A real process standing in for a leftover from a daemon that died without its
+// teardown. It is ready once its SIGTERM handler is installed; on SIGTERM it
+// exits after a short delay, as a server draining its connections does, or
+// ignores it altogether.
+const leftovers: number[] = [];
+async function leftover(onTerm: "exit-after-a-moment" | "ignore", options: { detached?: boolean } = {}): Promise<number> {
+  const handler = onTerm === "ignore" ? "() => {}" : "() => setTimeout(() => process.exit(0), 300)";
+  const child = spawn(
+    process.execPath,
+    ["-e", `process.on("SIGTERM", ${handler}); process.stdout.write("ready\\n"); setInterval(() => {}, 1000);`],
+    { stdio: ["ignore", "pipe", "ignore"], detached: options.detached === true },
+  );
+  await new Promise<void>((resolve) => child.stdout.once("data", () => resolve()));
+  leftovers.push(child.pid!);
+  return child.pid!;
+}
+
+// The PID of a process that has already exited.
+async function deadPid(): Promise<number> {
+  const child = spawn(process.execPath, ["-e", ""], { stdio: "ignore" });
+  await new Promise<void>((resolve) => child.once("exit", () => resolve()));
+  return child.pid!;
+}
+
+afterEach(() => {
+  for (const pid of leftovers.splice(0)) {
+    try {
+      process.kill(pid, "SIGKILL");
+    } catch {
+      // already gone
+    }
+  }
+});
+
+// The ~/.stigmer layout of a home whose daemon is gone, its files left behind.
+function homeWithRecords(records: { daemon: number; server?: number; runner?: number; temporal?: number }): { home: string; data: string } {
+  const home = tempDir("stigmer-left-home-");
+  const data = join(home, ".stigmer", "data");
+  mkdirSync(data, { recursive: true });
+  writePidFile(join(data, "daemon.pid"), records.daemon);
+  if (records.server !== undefined) writePidFile(join(data, "stigmer-server.pid"), records.server);
+  if (records.runner !== undefined) writePidFile(join(data, "runner.pid"), records.runner);
+  if (records.temporal !== undefined) writePidFile(join(home, ".stigmer", "temporal.pid"), records.temporal);
+  return { home, data };
+}
+
+describe("down (after a daemon that died without its teardown)", () => {
+  it("stops the recorded children and Temporal, and returns only once the children are gone", async () => {
+    const server = await leftover("exit-after-a-moment");
+    const runner = await leftover("exit-after-a-moment");
+    const temporal = await leftover("exit-after-a-moment", { detached: true });
+    const { home, data } = homeWithRecords({ daemon: await deadPid(), server, runner, temporal });
+
+    expect(await down(home)).toBe(false);
+
+    expect(isProcessAlive(server)).toBe(false);
+    expect(isProcessAlive(runner)).toBe(false);
+    await expect.poll(() => isProcessAlive(temporal)).toBe(false);
+    for (const file of ["daemon.pid", "stigmer-server.pid", "runner.pid"]) expect(existsSync(join(data, file))).toBe(false);
+  });
+
+  it("force-kills a leftover that ignores SIGTERM", async () => {
+    const runner = await leftover("ignore");
+    const { home } = homeWithRecords({ daemon: await deadPid(), runner });
+
+    await down(home);
+
+    expect(isProcessAlive(runner)).toBe(false);
+  });
+});
+
+describe("down (a running daemon)", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("stops the daemon and reports it stopped once it has exited", async () => {
+    const daemon = await leftover("exit-after-a-moment");
+    const { home, data } = homeWithRecords({ daemon });
+
+    expect(await down(home)).toBe(true);
+
+    expect(isProcessAlive(daemon)).toBe(false);
+    expect(existsSync(join(data, "daemon.pid"))).toBe(false);
+  });
+
+  it("force-kills a daemon that does not stop within its grace", async () => {
+    const daemon = await leftover("ignore");
+    const { home } = homeWithRecords({ daemon });
+    // Only the clock the grace reads is faked; it jumps past the grace.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    setTimeout(() => vi.setSystemTime(Date.now() + 60_000), 300);
+
+    expect(await down(home)).toBe(true);
+
+    vi.useRealTimers();
+    await expect.poll(() => isProcessAlive(daemon)).toBe(false);
+  });
+});
+
+describe("upForeground (a stack already on record)", () => {
+  it("refuses beside a running stack, signalling nothing", async () => {
+    const daemon = await leftover("exit-after-a-moment");
+    const { home, data } = homeWithRecords({ daemon });
+    const runDaemon = vi.fn(async () => 0);
+
+    const started = upForeground({}, home, { runDaemon, serverPort: await freePort(), shutdown: new AbortController().signal });
+
+    await expect(started).rejects.toMatchObject({
+      message: `the local Stigmer stack is already running (daemon pid ${daemon})`,
+      hints: ["Stop it with: stigmer down"],
+    });
+    expect(runDaemon).not.toHaveBeenCalled();
+    // Long enough for a SIGTERM, had one been sent, to have ended it.
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    expect(isProcessAlive(daemon)).toBe(true);
+    expect(existsSync(join(data, "daemon.pid"))).toBe(true);
+  });
+
+  it("sweeps a dead daemon's leftovers, waiting until they are gone, then starts", async () => {
+    const server = await leftover("exit-after-a-moment");
+    const { home } = homeWithRecords({ daemon: await deadPid(), server });
+    let serverAliveAtStart: boolean | null = null;
+
+    const code = await upForeground({}, home, {
+      runDaemon: async () => {
+        serverAliveAtStart = isProcessAlive(server);
+        return 0;
+      },
+      serverPort: await freePort(),
+      shutdown: new AbortController().signal,
+    });
+
+    expect(code).toBe(0);
+    expect(serverAliveAtStart).toBe(false);
   });
 });
