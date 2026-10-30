@@ -443,13 +443,19 @@ function AgentChatPopup({ name, open, onOpenChange, state, onNewConversation, cl
     [onOpenChange],
   );
 
-  // Escape closes the popup only while focus is inside it. A menu open in
-  // the composer lives in the provider's portal, outside this element, and
-  // closes itself first.
+  // Escape closes the popup only while focus is in the popup itself. A
+  // menu open in the composer lives in the provider's portal, outside this
+  // element, and closes itself first. A dialog the chat opens inside it (a
+  // File's preview, an image) closes itself too: its Escape is its own, and
+  // taking it would close the popup around a modal still open in the top
+  // layer, leaving the host's page inert.
   const handleKeyDown = useCallback(
     (event: KeyboardEvent<HTMLDivElement>) => {
       if (event.key !== "Escape" || event.defaultPrevented || !open) return;
-      if (!panelRef.current?.contains(event.target as Node)) return;
+      const panel = panelRef.current;
+      const target = event.target as Element;
+      if (panel === null || !panel.contains(target)) return;
+      if (target.closest("dialog") !== panel.closest("dialog")) return;
       event.preventDefault();
       change(false);
     },

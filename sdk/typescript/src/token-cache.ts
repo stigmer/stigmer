@@ -63,8 +63,9 @@ export interface TokenCache {
  * tokens.invalidate();
  * ```
  *
- * @throws {Error} from `getAccessToken` when a fetched `expiresAt` is
- *   not a date
+ * @throws {Error} from `getAccessToken` when the fetched value has no
+ *   `accessToken` (the token route answered an error), or its `expiresAt`
+ *   is not a date
  */
 export function createTokenCache(
   fetchToken: () => Promise<FetchedToken | null>,
@@ -72,6 +73,11 @@ export function createTokenCache(
   const cache = createExpiringTokenCache(async () => {
     const token = await fetchToken();
     if (!token) return null;
+    if (typeof token.accessToken !== "string" || token.accessToken === "") {
+      throw new Error(
+        "createTokenCache: the fetched value has no accessToken; check that your token route answered with { accessToken, expiresAt } and not an error",
+      );
+    }
     return {
       accessToken: token.accessToken,
       expiresAtMs: toEpochMs(token.expiresAt),

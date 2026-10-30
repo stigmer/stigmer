@@ -72,6 +72,14 @@ describe("createTokenCache", () => {
     );
   });
 
+  it("refuses a fetched value with no token, saying the token route answered an error", async () => {
+    const tokens = createTokenCache(async () => ({ error: "unauthorized" }) as unknown as FetchedToken);
+
+    await expect(tokens.getAccessToken()).rejects.toThrow(
+      "createTokenCache: the fetched value has no accessToken; check that your token route answered with { accessToken, expiresAt } and not an error",
+    );
+  });
+
   it("collapses concurrent callers into one fetch", async () => {
     let release!: (value: FetchedToken) => void;
     const fetchToken = vi.fn(

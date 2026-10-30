@@ -127,7 +127,7 @@ describe("SessionViewerLayout", () => {
     expect(pane.style.width).toBe("512px");
   });
 
-  it("renders headerActions beside the chip in the top-right corner", () => {
+  it("renders headerActions beside the chip in the row atop the conversation pane", () => {
     render(
       <SessionViewerLayout
         conversation={conversation()}

@@ -14,13 +14,27 @@ import "../../../dist/styles.css";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, render, screen } from "@testing-library/react";
 import { page, userEvent } from "@vitest/browser/context";
-import { useContext } from "react";
+import { useContext, useState } from "react";
 import type { Stigmer } from "@stigmer/client";
 import { COLOR_MODES, auditA11y, resetAudit } from "../../__tests__/helpers/a11y-audit.js";
+import { DialogShell } from "../../internal/DialogShell.js";
 import { StigmerProvider } from "../../provider.js";
 import { SCENARIO_CLOCK, conversationOf, scenarios } from "../../test/index.js";
 import type { ChatActivity } from "../chat-activity.js";
 import { chatActivityOf } from "../chat-activity-of.js";
+
+/** Whether the launcher probe opens a modal File preview inside the chat, as the session view does. */
+const probe = { preview: false };
+
+/** A modal dialog the chat opens inside the popup (a File's preview), on the kit's one dialog shell. */
+function FilePreview() {
+  const [open, setOpen] = useState(true);
+  return (
+    <DialogShell open={open} onOpenChange={setOpen} aria-label="ledger.csv">
+      <button type="button">Download</button>
+    </DialogShell>
+  );
+}
 
 vi.mock("../../session/NewSessionViewer.js", () => ({
   NewSessionViewer: () => (
@@ -30,6 +44,7 @@ vi.mock("../../session/NewSessionViewer.js", () => ({
         <textarea />
       </label>
       <button type="submit">Send</button>
+      {probe.preview && <FilePreview />}
     </form>
   ),
 }));
@@ -63,6 +78,7 @@ beforeEach(async () => {
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date(SCENARIO_CLOCK));
   reporter.current = null;
+  probe.preview = false;
 });
 
 afterEach(() => {
@@ -147,6 +163,27 @@ describe("AgentChat popup", () => {
     await userEvent.keyboard("{Escape}");
     expect(dialog().open).toBe(false);
     expect(document.activeElement).toBe(screen.getByRole("button", { name: "Open the chat with Billing agent" }));
+  });
+
+  it("KIT-11 leaves a File preview's Escape to the preview: it closes, the popup stays, the page stays usable", async () => {
+    probe.preview = true;
+    let hostClicks = 0;
+    render(
+      <StigmerProvider client={CLIENT} colorMode="light">
+        <button type="button" onClick={() => (hostClicks += 1)}>
+          Host action
+        </button>
+        <AgentChat agent="acme/billing-agent" title="Billing agent" variant="popup" defaultOpen />
+      </StigmerProvider>,
+    );
+    const preview = screen.getByRole("dialog", { name: "ledger.csv" }) as HTMLDialogElement;
+    expect(preview.open).toBe(true);
+    screen.getByRole("button", { name: "Download" }).focus();
+    await userEvent.keyboard("{Escape}");
+    expect(preview.open).toBe(false);
+    expect(dialog().open).toBe(true);
+    await userEvent.click(screen.getByRole("button", { name: "Host action" }));
+    expect(hostClicks).toBe(1);
   });
 
   it("fills a phone's screen, closing from its header back to the button", async () => {
