@@ -194,7 +194,7 @@ export function EvalRunResults({
           · {formatUsd(status?.costUsd ?? 0)}
         </p>
         {error !== null && (
-          <p className="stg:text-xs stg:text-warning">
+          <p className="stg:text-xs stg:text-status-degraded">
             Could not refresh the eval run ({error.message}); these are the
             last results read.
           </p>

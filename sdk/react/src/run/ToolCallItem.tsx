@@ -608,7 +608,7 @@ const ITEM_STATUS: Record<ToolUse["state"], ItemStatus> = {
 
 const STATUS_COLOR: Record<ItemStatus, string> = {
   running: "stg:text-foreground",
-  waiting: "stg:text-warning",
+  waiting: "stg:text-status-degraded",
   failed: "stg:text-destructive",
   completed: "stg:text-success",
   interrupted: "stg:text-muted-foreground",

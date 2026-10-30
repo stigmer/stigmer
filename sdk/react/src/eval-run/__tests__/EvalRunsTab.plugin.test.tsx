@@ -17,7 +17,9 @@
  * different eval runs when both pickers name one, and each read's error
  * when one fails; a failed read again of the past eval runs keeps the last
  * list with a notice, and a failed first read shows the error; a finding
- * shows its message once, which starts with its path.
+ * shows its message once, which starts with its path. Findings, that notice
+ * and the changed mark are drawn in the at-risk colour the theme contract
+ * measures on the surfaces they sit on.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
@@ -167,7 +169,11 @@ describe("EvalRunsTab on a plugin", () => {
       within(notRun).getByText(/not run yet: plugins/),
     ).toBeDefined();
     // The message starts with the path, as the library writes it: shown once.
-    expect(screen.getByText("evals/bad/prompt.md: unknown key 'foo'")).toBeDefined();
+    // A finding is drawn in the at-risk colour the theme contract measures
+    // on a card.
+    expect(
+      screen.getByText("evals/bad/prompt.md: unknown key 'foo'").className,
+    ).toContain("stg:text-status-degraded");
     expect(screen.getAllByText(/evals\/bad\/prompt\.md/)).toHaveLength(1);
     expect(await screen.findByText("No eval runs yet.")).toBeDefined();
   });
@@ -376,10 +382,12 @@ describe("EvalRunsTab on a plugin", () => {
     // A cancel reads the list again.
     fireEvent.click(await screen.findByRole("button", { name: "Cancel" }));
     expect(
-      await screen.findByText(
-        "Could not refresh the eval runs (the server is unavailable); this is the last list read.",
-      ),
-    ).toBeDefined();
+      (
+        await screen.findByText(
+          "Could not refresh the eval runs (the server is unavailable); this is the last list read.",
+        )
+      ).className,
+    ).toContain("stg:text-status-degraded");
     const list = screen.getByRole("list", { name: "Past eval runs" });
     expect(within(list).getAllByRole("button")).toHaveLength(1);
   });
@@ -456,7 +464,11 @@ describe("EvalRunsTab on a plugin", () => {
     });
     const changed = within(compare).getByRole("row", { name: /better/ });
     expect(changed.getAttribute("data-changed")).toBe("true");
-    expect(within(changed).getByText("changed")).toBeDefined();
+    // The changed mark sits on the row's muted fill, a surface the theme
+    // contract measures at-risk text on.
+    expect(within(changed).getByText("changed").className).toContain(
+      "stg:text-status-degraded",
+    );
     expect(
       within(compare)
         .getByRole("row", { name: /steady/ })

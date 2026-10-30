@@ -257,7 +257,7 @@ function CellView({
     <td
       className={cn(
         CELL_CLASS,
-        cell.passed ? "stg:text-foreground" : "stg:text-warning",
+        cell.passed ? "stg:text-foreground" : "stg:text-status-degraded",
       )}
     >
       {formatScore(cell.withScore)}

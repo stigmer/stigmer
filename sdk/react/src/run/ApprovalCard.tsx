@@ -164,7 +164,7 @@ export function ApprovalCardHeader({
         bordered && "stg:border-b stg:border-border-muted",
       )}
     >
-      <span className="stg:shrink-0 stg:text-warning" aria-hidden="true">
+      <span className="stg:shrink-0 stg:text-status-degraded" aria-hidden="true">
         <CategoryIcon />
       </span>
 
@@ -192,7 +192,7 @@ export function ApprovalCardHeader({
 
       <WaitingDuration requestedAt={toolUse.ask?.processedAt ?? toolUse.processedAt} />
 
-      <span className="stg:shrink-0 stg:text-warning" aria-hidden="true">
+      <span className="stg:shrink-0 stg:text-status-degraded" aria-hidden="true">
         <ClockIcon />
       </span>
     </div>

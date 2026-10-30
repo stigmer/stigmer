@@ -1,9 +1,10 @@
 /**
  * Pins the AI judge's chip in a thread: "Judge: grading…" while the grade
- * is pending, then "Judge: passed" or "Judge: 2 of 4 failed", which opens to
- * each rubric's result and reason and the model that graded it; a run the
- * judge could not grade says so with the reason; a run with no judge score
- * shows no chip. While a grade is pending the thread asks again, and stops
+ * is pending, then "Judge: passed" or "Judge: 2 of 4 failed" (in the
+ * at-risk colour the theme contract measures on the page and on the chip's
+ * hover), which opens to each rubric's result and reason and the model
+ * that graded it; a run the judge could not grade says so with the reason;
+ * a run with no judge score shows no chip. While a grade is pending the thread asks again, and stops
  * once none is.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -109,7 +110,9 @@ describe("the judge chip", () => {
     render(<MessageThread {...completedTurn()} runScores />, {
       wrapper: wrap(client([[judge(ScoreState.graded, { passed: false })]])),
     });
-    fireEvent.click(await screen.findByRole("button", { name: "Judge: 2 of 4 failed" }));
+    const chip = await screen.findByRole("button", { name: "Judge: 2 of 4 failed" });
+    expect(chip.className).toContain("stg:text-status-degraded");
+    fireEvent.click(chip);
     expect(
       screen.getByText("Did the task: failed — said the ticket was assigned, but the assign call failed"),
     ).toBeDefined();

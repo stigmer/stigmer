@@ -491,7 +491,7 @@ function AlreadyServedNote({
   readonly channels: readonly Channel[];
 }) {
   return (
-    <div role="status" className="stg:space-y-0.5 stg:text-xs stg:text-warning">
+    <div role="status" className="stg:space-y-0.5 stg:text-xs stg:text-status-degraded">
       {channels.map((c) => {
         const slack =
           c.status?.typeStatus?.case === "slack"

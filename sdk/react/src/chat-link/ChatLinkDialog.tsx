@@ -714,7 +714,7 @@ function ToolReadinessHint({
 
   if (readiness.status === "needs-credentials") {
     return (
-      <p className="stg:mt-2 stg:text-xs stg:text-warning" role="status">
+      <p className="stg:mt-2 stg:text-xs stg:text-status-degraded" role="status">
         Visitors&apos; chats can&apos;t use this agent&apos;s tools yet: this
         chat link names no vault. Name a shared vault under{" "}
         <span className="stg:font-medium">Tool credentials</span> in the Link
@@ -731,7 +731,7 @@ function ToolReadinessHint({
   const plural = readiness.unusableVaults.length > 1;
 
   return (
-    <p className="stg:mt-2 stg:text-xs stg:text-warning" role="status">
+    <p className="stg:mt-2 stg:text-xs stg:text-status-degraded" role="status">
       Visitors&apos; chats can&apos;t use this agent&apos;s tools yet: the
       vault{plural ? "s" : ""} <span className="stg:font-medium">{vaultList}</span>{" "}
       {plural ? "are" : "is"} not a shared vault you can read. Name a shared
@@ -893,7 +893,7 @@ function LinkTab({
           shows nothing to anyone else.
         </p>
       ) : (
-        <p className="stg:text-xs stg:text-warning">
+        <p className="stg:text-xs stg:text-status-degraded">
           Public links can be forwarded and indexed by search engines.
           Don&apos;t make public links to agents that know internal or confidential
           information — or switch the audience to organization members.

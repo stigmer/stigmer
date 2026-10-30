@@ -78,6 +78,13 @@ describe("TextContentRenderer — truncation", () => {
   });
 });
 
+describe("TextContentRenderer — JSON", () => {
+  it("colours a number in the at-risk colour the theme contract measures on the page", () => {
+    render(<TextContentRenderer content={'{"retries": 3}'} fileName="config.json" />);
+    expect(screen.getByText("3").className).toContain("stg:text-status-degraded");
+  });
+});
+
 describe("TextContentRenderer — reveal (jump-to-line)", () => {
   let scrollIntoView: ReturnType<typeof vi.fn>;
   beforeEach(() => {

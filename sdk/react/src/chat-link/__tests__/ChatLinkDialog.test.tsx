@@ -482,9 +482,10 @@ describe("ChatLinkDialog", () => {
       channel: makeChatLink({ enabled: true }),
     });
 
+    // Drawn in the at-risk colour the theme contract measures in a dialog.
     expect(
-      screen.getByText(/forwarded and indexed by search engines/),
-    ).toBeTruthy();
+      screen.getByText(/forwarded and indexed by search engines/).className,
+    ).toContain("stg:text-status-degraded");
   });
 
   describe("Audience", () => {
@@ -687,7 +688,9 @@ describe("ChatLinkDialog", () => {
         }),
       });
       expect(await screen.findByText("acme/gone-one, acme/gone-two")).toBeTruthy();
-      expect(screen.getByText(/not a shared vault you can read/i).textContent).toMatch(/vaults/);
+      const note = screen.getByText(/not a shared vault you can read/i);
+      expect(note.textContent).toMatch(/vaults/);
+      expect(note.className).toContain("stg:text-status-degraded");
     });
 
     it("warns needs-credentials for a tool-using chat link naming no vault", () => {
@@ -697,8 +700,8 @@ describe("ChatLinkDialog", () => {
       });
 
       expect(
-        screen.getByText(/this\s+chat\s+link names no vault/i),
-      ).toBeTruthy();
+        screen.getByText(/this\s+chat\s+link names no vault/i).className,
+      ).toContain("stg:text-status-degraded");
     });
 
     it("names a shared vault by saving the appended refs", async () => {

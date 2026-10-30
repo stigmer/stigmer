@@ -1617,7 +1617,7 @@ function FailureStreak({ count }: { readonly count: number }) {
   }
   return (
     <div className="stg:flex stg:flex-col stg:gap-0.5">
-      <span className="stg:text-sm stg:font-medium stg:text-warning">
+      <span className="stg:text-sm stg:font-medium stg:text-status-degraded">
         {count} consecutive failed {count === 1 ? "run" : "runs"}
       </span>
       <p className="stg:text-xs stg:text-muted-foreground">

@@ -114,6 +114,29 @@ describe("ConversationTemplatePickerDialog", () => {
     expect(sendable.disabled).toBe(false);
   });
 
+  it("dims an unsendable tile's name and preview but keeps its reason at full strength", async () => {
+    renderPicker({
+      templates: [
+        makeTemplate({
+          name: "flow_template",
+          bodyText: "Your fee is due",
+          unsupportedReason: "FLOW buttons are not supported",
+        }),
+      ],
+    });
+
+    await waitFor(() => expect(screen.getByText("flow_template")).toBeDefined());
+    const dimmed = '[class*="stg:opacity-60"]';
+    expect(screen.getByText("flow_template").closest(dimmed)).not.toBeNull();
+    expect(screen.getByText("Your fee is due").closest(dimmed)).not.toBeNull();
+    // The reason is the one line that says why the tile cannot be picked:
+    // no dimmed ancestor, drawn in the at-risk colour the theme contract
+    // measures in a dialog.
+    const reason = screen.getByText(/FLOW buttons are not supported/);
+    expect(reason.closest(dimmed)).toBeNull();
+    expect(reason.className).toContain("stg:text-status-degraded");
+  });
+
   it("phrases an empty registry answer as none FOUND, never none exist", async () => {
     renderPicker({ templates: [] });
     await waitFor(() =>

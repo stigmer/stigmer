@@ -624,7 +624,10 @@ describe("RoutineDetailView", () => {
     renderView(makeClient(makeRoutine({ consecutiveFailures: 2 })));
 
     await screen.findByRole("heading", { name: "daily-fee-reminders" });
-    expect(screen.getByText("2 consecutive failed runs")).toBeTruthy();
+    // Drawn in the at-risk colour the theme contract measures on the page.
+    expect(screen.getByText("2 consecutive failed runs").className).toContain(
+      "stg:text-status-degraded",
+    );
     // The copy stays qualitative: the pause threshold is server config
     // the API does not expose, so no hardcoded denominator.
     expect(

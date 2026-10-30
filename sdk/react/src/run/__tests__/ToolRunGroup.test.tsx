@@ -107,7 +107,7 @@ describe("ToolRunGroup", () => {
     // The gate renders inline on its row inside the opened chip, with the
     // waiting clock on the chip.
     expect(screen.getByLabelText("Approve")).toBeTruthy();
-    expect(container.querySelector("button .stg\\:text-warning")).not.toBeNull();
+    expect(container.querySelector("button .stg\\:text-status-degraded")).not.toBeNull();
   });
 
   it("stays open with a spinner while a folded call runs", () => {

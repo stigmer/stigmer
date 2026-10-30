@@ -274,6 +274,10 @@ describe("ChannelTemplatesDialog", () => {
         screen.getByText(/Not sendable: this template has a FLOW button/),
       ).toBeDefined(),
     );
+    // The verdict is drawn in the at-risk colour measured as text in a dialog.
+    expect(
+      screen.getByText(/Not sendable: this template has a FLOW button/).className,
+    ).toContain("stg:text-status-degraded");
     // Approved yet unsendable — the count must not claim it is ready.
     expect(screen.getByText(/0 ready to send/)).toBeDefined();
   });
