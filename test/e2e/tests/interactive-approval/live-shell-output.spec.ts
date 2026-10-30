@@ -8,8 +8,11 @@
 //
 // Determinism: the mock LLM scripts one `execute` call and the run is created
 // with `auto_approve_all`, so no gate holds it. The command prints a line
-// every two seconds; the spec asserts the first lines are visible while the
+// every two seconds; the spec asserts an early line is visible while the
 // row still shows the live view, which it can only be while the command runs.
+// Previews are not replayed to a page that opens late, and the run starts
+// before the page opens, so the command runs long enough for a slow page
+// (a cold console, a recorded trace) to connect while it still prints.
 //
 // Serial + a shared single-FIFO mock queue: the project runs `--workers=1` and
 // resets the queue per test.
@@ -25,8 +28,8 @@ import {
 
 const mockUrl = getMockControlUrl();
 
-/** Six lines, two seconds apart: about twelve seconds of a command that is visibly running. */
-const COMMAND = "for i in 1 2 3 4 5 6; do echo live-line-$i; sleep 2; done";
+/** Nine lines, two seconds apart: about eighteen seconds of a command that is visibly running. */
+const COMMAND = "for i in 1 2 3 4 5 6 7 8 9; do echo live-line-$i; sleep 2; done";
 
 test.describe("a running shell command's output (deterministic mock LLM)", () => {
   test.skip(
@@ -56,16 +59,16 @@ test.describe("a running shell command's output (deterministic mock LLM)", () =>
     });
     await page.goto(`/sessions/${seeded.sessionId}`);
 
-    // While the command runs: the live view, with lines it has printed and
+    // While the command runs: the live view, with a line it has printed and
     // not the last one, which is still seconds away.
     const live = page.locator('[data-cursor-target="terminal-live-output"]');
-    await expect(live).toContainText("live-line-2", { timeout: 30_000 });
-    await expect(live).not.toContainText("live-line-6");
+    await expect(live).toContainText(/live-line-[1-7]/, { timeout: 30_000 });
+    await expect(live).not.toContainText("live-line-9");
 
     // Once it returns: the row settles to its finished view (a shell row
     // collapses to the tail of its output), which ends with the last line,
     // and the live view is gone.
-    await expect(toolCallRow(page).first()).toContainText("live-line-6", { timeout: 60_000 });
+    await expect(toolCallRow(page).first()).toContainText("live-line-9", { timeout: 60_000 });
     await expect(live).toHaveCount(0);
   });
 });
