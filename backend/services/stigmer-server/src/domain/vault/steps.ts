@@ -15,6 +15,16 @@
  * stamps: an update stamps its own inside the write, so it is never older
  * than the row's, and a visibility change writes only the status audit.
  *
+ * A vault holds an external id in the name table exactly while its row
+ * carries it, however updates race (#2034). Each write lets go of only the
+ * name it took or the one its saved row stopped carrying, never every
+ * name of the kind, since a racing update's id may be among them; a move
+ * holds the old id until the row is saved; a name no row carries frees
+ * itself past the claim grace (externalIdHolder); and a delete lets go of
+ * every external id the vault holds (delete.ts releaseVaultNames). These
+ * chains are the only writers of a vault's external id; another writer
+ * keeps the same rule.
+ *
  * Proven by __tests__/controller.test.ts and __tests__/steps.test.ts.
  */
 import { create } from "@bufbuild/protobuf";
@@ -38,7 +48,7 @@ import {
 } from "../../pipeline/errors.js";
 import type { OrganizationAdmission } from "../../pipeline/steps/refuse-bound-elsewhere.js";
 import { refuseBoundElsewhere } from "../../pipeline/steps/refuse-bound-elsewhere.js";
-import { storedRowHolder } from "../../pipeline/steps/names.js";
+import { claimName } from "../../pipeline/steps/names.js";
 import { moveName } from "../../pipeline/steps/rename.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
@@ -59,7 +69,7 @@ import {
 } from "./constants.js";
 import {
   EXTERNAL_ID_NAME_KIND,
-  claimVaultName,
+  externalIdHolder,
   externalIdNameKey,
   isMyVault,
   releaseUnstoredClaim,
@@ -157,9 +167,12 @@ type ExternalIdMove =
 /**
  * Takes the external id a create sets, or moves the vault's id to the one
  * an update sets, before the row is persisted: a claim when the vault held
- * none, a rename when it held another (the old id frees at once). A taken
- * id answers ALREADY_EXISTS naming the holder. An update that clears the
- * id releases it after the persist (newReleaseClearedExternalIdStep).
+ * none, a rename when it held another. The rename holds the old id, so it
+ * keeps finding the vault, and nobody else takes it, while the row still
+ * carries it; the update lets go of it once the row no longer does
+ * (newReleaseClearedExternalIdStep). A taken id answers ALREADY_EXISTS
+ * naming the holder; a holder whose row no longer carries the id frees it
+ * past the claim grace (externalIdHolder).
  */
 export function newClaimExternalIdStep(store: Store): PipelineStep<VaultDesc> {
   return {
@@ -180,11 +193,15 @@ export function newClaimExternalIdStep(store: Store): PipelineStep<VaultDesc> {
           `external_id '${externalId}' in this organization (id: ${holder})`,
         );
       };
+      const holder = externalIdHolder(store);
+      const now = new Date();
       if (previous === "") {
-        const claim = await claimVaultName(
+        const claim = await claimName(
           store,
           externalIdNameKey(org, externalId),
           id,
+          now,
+          holder,
         );
         if (!claim.claimed) {
           taken(claim.entry.id);
@@ -192,17 +209,16 @@ export function newClaimExternalIdStep(store: Store): PipelineStep<VaultDesc> {
         ctx.set(CLAIMED_EXTERNAL_ID_KEY, { kind: "claimed", entry: claim.entry });
         return;
       }
-      const now = new Date().toISOString();
       const rename: ResourceNameRename = {
         kind: EXTERNAL_ID_NAME_KIND,
         org,
         id,
         from: previous,
         to: externalId,
-        fromExpiresAt: now,
-        now,
+        fromExpiresAt: "",
+        now: now.toISOString(),
       };
-      const moved = await moveName(store, rename, storedRowHolder(store, ApiResourceKind.vault, VaultSchema));
+      const moved = await moveName(store, rename, holder);
       if (!moved.claimed) {
         taken(moved.entry.id);
       }
@@ -217,7 +233,13 @@ export function newClaimExternalIdStep(store: Store): PipelineStep<VaultDesc> {
   };
 }
 
-/** After an update persists: frees the external id an update cleared. */
+/**
+ * After an update persists: frees the external id the saved row no longer
+ * carries, whether the update cleared it or moved it to another (a move
+ * clears the old id from the vault). Only that name: a racing update may
+ * hold another of the vault's external ids, and the row it saves carries
+ * that one.
+ */
 export function newReleaseClearedExternalIdStep(
   store: Store,
   logger: Logger,
@@ -227,13 +249,13 @@ export function newReleaseClearedExternalIdStep(
     async execute(ctx: RequestContext<VaultDesc>): Promise<void> {
       const existing = ctx.get(EXISTING_RESOURCE_KEY) as Vault | undefined;
       const previous = existing?.spec?.externalId ?? "";
-      if (previous === "" || (ctx.newState.spec?.externalId ?? "") !== "") {
+      if (previous === "" || (ctx.newState.spec?.externalId ?? "") === previous) {
         return;
       }
       const org = existing?.metadata?.org ?? "";
       const id = existing?.metadata?.id ?? "";
       try {
-        await store.resourceNames.release(EXTERNAL_ID_NAME_KIND, org, id);
+        await store.resourceNames.releaseName(externalIdNameKey(org, previous), id);
       } catch (error) {
         logger.error("vault updated but its cleared external id could not be released", {
           vaultId: id,
@@ -260,9 +282,9 @@ export async function undoExternalIdMoveAfterFailure(
       return;
     }
     if (ctx.get(EXISTING_RESOURCE_KEY) !== undefined) {
-      // An update from no external id: the vault holds no other name of
-      // this kind, so its release frees exactly this claim.
-      await store.resourceNames.release(move.entry.kind, move.entry.org, move.entry.id);
+      // An update from no external id frees exactly this claim, never a
+      // name a racing update of the same vault holds.
+      await store.resourceNames.releaseName(move.entry, move.entry.id);
       return;
     }
     await releaseUnstoredClaim(store, logger, move.entry, move.entry.id);

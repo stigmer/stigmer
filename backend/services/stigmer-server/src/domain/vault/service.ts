@@ -109,6 +109,7 @@ import {
   newClaimNameStep,
   releaseNameAfterFailure,
 } from "../../pipeline/steps/names.js";
+import type { NameHolder } from "../../pipeline/steps/names.js";
 import type { OrganizationAdmission } from "../../pipeline/steps/refuse-bound-elsewhere.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { findByReference as findReferenced } from "../../pipeline/steps/references.js";
@@ -347,7 +348,10 @@ export function externalIdNameKey(
   return { kind: EXTERNAL_ID_NAME_KIND, org: orgId, name: externalId };
 }
 
-/** Claims a name for a vault, freeing a holder whose vault row is gone (pipeline/steps/names.ts claimName). */
+/**
+ * Claims a My vault's person name for a vault, freeing a holder whose
+ * vault row is gone (pipeline/steps/names.ts claimName).
+ */
 export async function claimVaultName(
   store: Store,
   key: ResourceNameKey,
@@ -356,6 +360,20 @@ export async function claimVaultName(
   return claimName(store, key, id, new Date(), {
     holds: async (entry) => (await loadVault(store, entry.id)) !== undefined,
   });
+}
+
+/**
+ * Who holds a shared vault's external id: the vault whose row carries it,
+ * the rule findByExternalId reads by. A name the table holds but the row
+ * no longer carries (a crash between claim and save, a release that
+ * failed after the save) is free to the next claim once it is older than
+ * the claim grace (pipeline/steps/names.ts ABANDONED_NAME_AFTER_MS).
+ */
+export function externalIdHolder(store: Store): NameHolder {
+  return {
+    holds: async (entry) =>
+      (await loadVault(store, entry.id))?.spec?.externalId === entry.name,
+  };
 }
 
 /** A vault by id, or undefined when no row holds it. */

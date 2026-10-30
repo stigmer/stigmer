@@ -128,7 +128,10 @@ export async function releaseVaultNames(
   const org = vault.metadata?.org ?? "";
   const releases: Array<[string, boolean]> = [
     [MY_VAULT_NAME_KIND, personOf(vault) !== undefined],
-    [EXTERNAL_ID_NAME_KIND, (vault.spec?.externalId ?? "") !== ""],
+    // Every shared vault, whatever its row says: a write that failed to let
+    // go of an id it took leaves the name with a vault whose row does not
+    // carry it. My vault takes none (steps.ts KeepStoredOwnerAndEntries).
+    [EXTERNAL_ID_NAME_KIND, personOf(vault) === undefined],
   ];
   for (const [kind, held] of releases) {
     if (!held) {
