@@ -162,6 +162,25 @@ describe("INK-06 runInTerminal returns when the turn ends", () => {
     expect(outcome.answer).toBe("Looks safe to ship.");
   });
 
+  it("waits for its own run's turn, not another run's that already ended", async () => {
+    const earlier = samples.turn({ runId: "run_earlier", phase: "completed" });
+    store.state = conversation([earlier, samples.turn({ runId: RUN, phase: "running" })]);
+    const controller = new AbortController();
+    const run = runInTerminal(startsRun(), INPUT, { ...streams(true), signal: controller.signal });
+    await tick();
+    controller.abort();
+    expect(await run).toMatchObject({ runId: RUN, phase: "running", exitCode: 130 });
+  });
+
+  it("does not return for a turn marked ended before its status says how", async () => {
+    store.state = conversation([{ ...samples.turn({ runId: RUN, phase: "running" }), status: undefined, ended: true } as Turn]);
+    const controller = new AbortController();
+    const run = runInTerminal(startsRun(), INPUT, { ...streams(true), signal: controller.signal });
+    await tick();
+    controller.abort();
+    expect(await run).toMatchObject({ phase: "pending", exitCode: 130 });
+  });
+
   it("returns at once when the host's signal fires, with the phase then and 130", async () => {
     store.state = conversation([samples.turn({ runId: RUN, phase: "running" })]);
     const controller = new AbortController();

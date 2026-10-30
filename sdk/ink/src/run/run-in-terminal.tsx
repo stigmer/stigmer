@@ -118,6 +118,7 @@ function TerminalRun({ sessionId, org, runId, until, canAnswer, approveDefault, 
         exit();
       },
     }),
+    // Stryker disable next-line ArrayDeclaration: the props are fixed for the one render runInTerminal makes, so the memo is never rebuilt either way
     [runId, until, onTurn, onLoadError, exit],
   );
   return (
@@ -180,15 +181,18 @@ export async function runInTerminal(
         }}
       />
     </InkStigmerProvider>,
+    // Stryker disable next-line BooleanLiteral: console patching only reroutes the host's own console output; the view and the outcome are the same either way
     { stdin, stdout, stderr, interactive: live, exitOnCtrlC: true, patchConsole: false },
   );
 
   const stop = () => instance.unmount();
+  // Stryker disable next-line BooleanLiteral: unmounting twice is a no-op in Ink, so a second abort changes nothing
   options.signal?.addEventListener("abort", stop, { once: true });
   if (options.signal?.aborted === true) stop();
   try {
     await instance.waitUntilExit();
   } finally {
+    // Stryker disable next-line BlockStatement: a listener left on a spent signal only unmounts an already unmounted view; removing it keeps a long-lived host signal clean
     options.signal?.removeEventListener("abort", stop);
   }
 

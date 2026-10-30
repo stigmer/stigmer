@@ -33,6 +33,11 @@ describe("describeConnectionFailure", () => {
     expect(failure.details).toBe(error.message);
   });
 
+  it("keeps a classified failure's kind even when its message mentions a socket", () => {
+    const refusedKey = new ConnectError("upstream said ECONNRESET while checking the key", Code.Unauthenticated);
+    expect(describeConnectionFailure(refusedKey, URL, "load").next).toContain("Check STIGMER_API_KEY");
+  });
+
   it("says the cause plainly and keeps a thrown non-error as details", () => {
     expect(describeConnectionFailure(new Error("connect ECONNREFUSED 127.0.0.1:1"), URL, "load").cause).toBe("Unable to connect to the server.");
     expect(describeConnectionFailure("a string", URL, "load").details).toBe("a string");

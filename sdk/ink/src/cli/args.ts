@@ -94,7 +94,8 @@ export function parseCliArgs(argv: readonly string[], env: Readonly<Record<strin
   if (values.help === true) return { kind: "help" };
   if (positionals.length > 0) return { kind: "usage-error", message: `unexpected argument "${positionals[0]}"` };
 
-  const str = (key: string) => (typeof values[key] === "string" ? (values[key] as string) : undefined);
+  // Every option but --help (handled above) is a string option.
+  const str = (key: string) => values[key] as string | undefined;
   const agentArg = str("agent");
   const sessionId = str("session");
   const message = str("message");

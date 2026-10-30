@@ -57,6 +57,8 @@ describe("parseCliArgs", () => {
     [["--agent", "a/b/c", "-m", "x"], "--agent takes org/slug"],
     [["--agent", "/b", "-m", "x"], "--agent takes org/slug"],
     [["--agent", "a/b"], "--agent needs --message"],
+    [["--agent", "a/b", "-m", ""], "--agent needs --message"],
+    [["--session", "s", "--org", ""], "--session needs --org"],
     [["--session", "s"], "--session needs --org"],
     [["--agent", "a/b", "-m", "x", "--until", "later"], '--until must be turn or exit, not "later"'],
     [["--agent", "a/b", "-m", "x", "--approve-default", "maybe"], "--approve-default must be approve or deny"],
