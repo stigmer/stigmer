@@ -95,6 +95,7 @@ interface TerminalRunProps {
   readonly org: string;
   readonly runId: string;
   readonly until: "turn" | "exit";
+  readonly live: boolean;
   readonly canAnswer: boolean;
   readonly approveDefault: "approve" | "deny";
   readonly mode: InteractionMode | undefined;
@@ -103,7 +104,7 @@ interface TerminalRunProps {
 }
 
 /** The view, watching its own conversation for this run's turn. */
-function TerminalRun({ sessionId, org, runId, until, canAnswer, approveDefault, mode, onTurn, onLoadError }: TerminalRunProps) {
+function TerminalRun({ sessionId, org, runId, until, live, canAnswer, approveDefault, mode, onTurn, onLoadError }: TerminalRunProps) {
   const { exit } = useApp();
   const watch = useMemo<TurnWatch>(
     () => ({
@@ -123,7 +124,7 @@ function TerminalRun({ sessionId, org, runId, until, canAnswer, approveDefault, 
   );
   return (
     <TurnWatchContext.Provider value={watch}>
-      <SessionView sessionId={sessionId} org={org} mode={mode} canAnswer={canAnswer} approveDefault={approveDefault} />
+      <SessionView sessionId={sessionId} org={org} mode={mode} live={live} canAnswer={canAnswer} approveDefault={approveDefault} />
     </TurnWatchContext.Provider>
   );
 }
@@ -170,6 +171,7 @@ export async function runInTerminal(
         org={input.org}
         runId={started.runId}
         until={canAnswer ? (options.until ?? "turn") : "turn"}
+        live={live}
         canAnswer={canAnswer}
         approveDefault={options.approveDefault ?? "deny"}
         mode={options.mode}

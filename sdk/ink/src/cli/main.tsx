@@ -34,7 +34,7 @@ export interface CliDeps {
 const DEFAULT_DEPS: CliDeps = { createClient: createNodeClient, run: runInTerminal };
 
 /** Watching a session: off a terminal, return once its newest turn ended. */
-function Watch({ sessionId, org, canAnswer }: { sessionId: string; org: string; canAnswer: boolean }) {
+function Watch({ sessionId, org, live, canAnswer }: { sessionId: string; org: string; live: boolean; canAnswer: boolean }) {
   const { exit } = useApp();
   const watch = React.useMemo<TurnWatch>(
     () => ({
@@ -48,7 +48,7 @@ function Watch({ sessionId, org, canAnswer }: { sessionId: string; org: string; 
   );
   return (
     <TurnWatchContext.Provider value={watch}>
-      <SessionView sessionId={sessionId} org={org} canAnswer={canAnswer} />
+      <SessionView sessionId={sessionId} org={org} live={live} canAnswer={canAnswer} />
     </TurnWatchContext.Provider>
   );
 }
@@ -71,7 +71,7 @@ export async function runCli(argv: readonly string[], io: CliIo, deps: CliDeps =
     const { live, canAnswer } = terminalMode({ stdin: io.stdin, stdout: io.stdout, env: io.env });
     const instance = render(
       <InkStigmerProvider client={client}>
-        <Watch sessionId={request.sessionId ?? ""} org={request.org} canAnswer={canAnswer} />
+        <Watch sessionId={request.sessionId ?? ""} org={request.org} live={live} canAnswer={canAnswer} />
       </InkStigmerProvider>,
       { stdin: io.stdin, stdout: io.stdout, stderr: io.stderr, interactive: live, exitOnCtrlC: true, patchConsole: false },
     );

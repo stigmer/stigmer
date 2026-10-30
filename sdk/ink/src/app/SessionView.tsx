@@ -68,6 +68,12 @@ export interface SessionViewProps {
    * waits for one run filters by `turn.runId`.
    */
   readonly onTurnEnd?: (turn: Turn) => void;
+  /**
+   * Whether the screen redraws in place (`terminalMode`'s `live`). Off, Ink
+   * writes one final frame, and the thread renders whole inside it, once and
+   * in order. Defaults to `true`; `runInTerminal` and the bin pass it.
+   */
+  readonly live?: boolean;
 }
 
 /** An ask settled by `approveDefault` because no one could answer it. */
@@ -123,6 +129,7 @@ export function SessionView({
   canAnswer: canAnswerProp,
   approveDefault = "deny",
   onTurnEnd,
+  live = true,
 }: SessionViewProps) {
   const role = useRoles();
   const { isRawModeSupported } = useStdin();
@@ -247,6 +254,7 @@ export function SessionView({
         expandToolCalls={expandTools}
         showFileReviewRecords
         canAnswer={canAnswer}
+        live={live}
       />
 
       {settled.map((ask) => (

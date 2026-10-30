@@ -3,7 +3,8 @@
 // the order it produced them, its settled file reviews, how the last turn
 // ended, its waiting tool uses as approval prompts, and the optimistic
 // message just sent. Ended turns are written once through Ink's <Static>;
-// the live turn re-renders in place.
+// the live turn re-renders in place. Off a live screen (`live` false), where
+// Ink writes one frame at exit, the whole thread is that frame.
 import React, { useMemo } from "react";
 import { Box, Text, Static } from "ink";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
@@ -77,6 +78,13 @@ export interface MessageThreadProps {
    * Defaults to `true`.
    */
   readonly canAnswer?: boolean;
+  /**
+   * Whether the screen redraws in place. When `false` (a pipe, a CI log, where
+   * Ink writes one final frame at exit) the whole thread renders in that frame,
+   * in order, with no `<Static>` history: written beside the frame, history
+   * would appear twice and above the view's header. Defaults to `true`.
+   */
+  readonly live?: boolean;
 }
 
 /** What a message sent while a turn worked says while no turn has read it. */
@@ -280,6 +288,7 @@ export function MessageThread({
   expandToolCalls = false,
   showFileReviewRecords = false,
   canAnswer = true,
+  live = true,
 }: MessageThreadProps) {
   const includeApprovals = onAnswerToolUse != null;
   const { items, liveStart } = useMemo(
@@ -307,8 +316,8 @@ export function MessageThread({
     [items, canAnswer],
   );
 
-  const historyItems = items.slice(0, liveStart);
-  const liveItems = items.slice(liveStart);
+  const historyItems = live ? items.slice(0, liveStart) : [];
+  const liveItems = live ? items.slice(liveStart) : items;
   const render = (item: ThreadItem): React.ReactNode =>
     renderItem(item, onAnswerToolUse, answeringToolUseIds, expandToolCalls, firstApprovalKey);
 

@@ -220,11 +220,18 @@ describe("INK-06 runInTerminal returns when the turn ends", () => {
   });
 
   it("off a terminal returns at the turn's end even with until exit, writing the final frame", async () => {
-    store.state = conversation([samples.turn({ runId: RUN, phase: "completed", reply: "Done." })]);
     const io = streams(false);
+    store.state = conversation(
+      [samples.turn({ runId: "run_earlier", phase: "completed", reply: "Earlier." }), samples.turn({ runId: RUN, phase: "completed", reply: "Done." })],
+      { session: { spec: { subject: "Release check" } } as never },
+    );
     const outcome = await runInTerminal(startsRun(), INPUT, { ...io, until: "exit" });
     expect(outcome.exitCode).toBe(0);
-    expect((io.stdout as unknown as FakeStdout).frames.join("")).toContain("Done.");
+    // One frame, in order: the subject, then each turn once.
+    const written = (io.stdout as unknown as FakeStdout).frames.join("");
+    expect(written.split("Done.").length - 1).toBe(1);
+    expect(written.split("Earlier.").length - 1).toBe(1);
+    expect(written.indexOf("Release check")).toBeLessThan(written.indexOf("Earlier."));
   });
 
   it("off a terminal settles an ask by approveDefault through the view", async () => {
