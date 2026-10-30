@@ -1,10 +1,16 @@
 /**
  * Pins the vault chain steps' edges the RPC tests do not reach: create
  * refuses an owner organization other than the vault's own; an update
- * that clears an external id logs a release it cannot make; and a failed
- * write undoes its external id move whichever way it made it (a rename
- * reverted, an update's first claim released, a create's unstored claim
- * freed), logging, never throwing, when the undo itself fails. And the
+ * that clears or moves an external id lets go of the old one by name, and
+ * logs a release it cannot make; and a failed write undoes its external
+ * id move whichever way it made it (a rename reverted, an update's first
+ * claim released by name, a create's unstored claim freed), logging,
+ * never throwing, when the undo itself fails. Racing updates leave the
+ * name table holding exactly the external id the row carries (#2034): a
+ * loser's undo and a winner's late release each let go of their own name
+ * only, a move holds the old id until its row is saved, a name no row
+ * carries frees itself past the claim grace, and a delete lets go of
+ * every external id the vault holds. And the
  * update's write is a compare-and-swap on the row the chain read, so an
  * entry saved or a visibility change made after the load makes it lose
  * (the chain then runs again from a fresh read, pinned in
@@ -38,12 +44,19 @@ import {
   EXISTING_RESOURCE_BYTES_KEY,
   EXISTING_RESOURCE_KEY,
 } from "../../../pipeline/steps/load-existing.js";
-import type { ResourceNameRename, Store } from "../../../store/interface.js";
+import type {
+  ResourceNameKey,
+  ResourceNameRename,
+  Store,
+} from "../../../store/interface.js";
 
 import { OWNER_IMMUTABLE_REFUSAL } from "../constants.js";
-import { EXTERNAL_ID_NAME_KIND, loadVault } from "../service.js";
+import { releaseVaultNames } from "../delete.js";
+import { EXTERNAL_ID_NAME_KIND, externalIdNameKey, loadVault } from "../service.js";
 import { openVaultRig, seedSharedVault } from "./support.js";
+import type { VaultRig } from "./support.js";
 import {
+  newClaimExternalIdStep,
   newKeepStoredOwnerAndEntriesStep,
   newPersistVaultUpdateStep,
   newPersistVaultVisibilityStep,
@@ -116,6 +129,7 @@ function names(fail = false): { store: Store; calls: string[] } {
     },
     resourceNames: {
       release: record("release"),
+      releaseName: (key: ResourceNameKey) => record(`releaseName:${key.name}`)(),
       revertRename: record("revertRename"),
     },
   } as unknown as Store;
@@ -150,6 +164,22 @@ describe("ReleaseClearedExternalId", () => {
     );
     expect(errors).toEqual(["vault updated but its cleared external id could not be released"]);
   });
+
+  it("lets go of the cleared id by name", async () => {
+    const { store, calls } = names();
+    await newReleaseClearedExternalIdStep(store, silentLogger).execute(
+      ctxOf(vault({ externalId: "" }), vault({ externalId: "customer-1" })),
+    );
+    expect(calls).toEqual(["releaseName:customer-1"]);
+  });
+
+  it("lets go of the old id by name once a move is saved", async () => {
+    const { store, calls } = names();
+    await newReleaseClearedExternalIdStep(store, silentLogger).execute(
+      ctxOf(vault({ externalId: "new" }), vault({ externalId: "old" })),
+    );
+    expect(calls).toEqual(["releaseName:old"]);
+  });
 });
 
 describe("undoExternalIdMoveAfterFailure", () => {
@@ -180,12 +210,12 @@ describe("undoExternalIdMoveAfterFailure", () => {
     expect(calls).toEqual(["revertRename"]);
   });
 
-  it("releases an update's first claim", async () => {
+  it("releases an update's first claim by name", async () => {
     const { store, calls } = names();
     const ctx = ctxOf(vault({}), vault({}));
     ctx.set(CLAIMED_EXTERNAL_ID_KEY, { kind: "claimed", entry });
     await undoExternalIdMoveAfterFailure(store, silentLogger, ctx);
-    expect(calls).toEqual(["release"]);
+    expect(calls).toEqual(["releaseName:new"]);
   });
 
   it("frees a create's claim whose row never landed", async () => {
@@ -369,6 +399,212 @@ describe("writes that keep entries saved since the load", () => {
         (e: unknown) => e,
       );
       expect((fault as ConnectError).code).toBe(Code.Internal);
+    } finally {
+      rig.close();
+    }
+  });
+});
+
+describe("external ids under racing updates", () => {
+  const ORG = "acme";
+  const OUTSIDE_THE_CLAIM_GRACE = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+
+  /** A shared vault whose row carries `externalId` and which holds it in the name table. */
+  async function seedWithExternalId(rig: VaultRig, slug: string, externalId: string): Promise<string> {
+    const id = (await seedSharedVault(rig.store, ORG, slug)).metadata!.id;
+    if (externalId !== "") {
+      await rig.store.updateResource(ApiResourceKind.vault, id, VaultSchema, (row) => {
+        row.spec!.externalId = externalId;
+      });
+      await rig.store.resourceNames.claim(externalIdNameKey(ORG, externalId), id, new Date().toISOString());
+    }
+    return id;
+  }
+
+  /** An update that has read the row and asks for `externalId`, its claim not yet made. */
+  async function load(rig: VaultRig, id: string, externalId: string): Promise<RequestContext<typeof VaultSchema>> {
+    const ctx = await updateCtxOf(rig.store, id, (next) => {
+      next.spec!.externalId = externalId;
+    });
+    newKeepStoredOwnerAndEntriesStep().execute(ctx);
+    return ctx;
+  }
+
+  async function claim(rig: VaultRig, ctx: RequestContext<typeof VaultSchema>): Promise<void> {
+    await newClaimExternalIdStep(rig.store).execute(ctx);
+  }
+
+  /** An update through its claim, short of the save. */
+  async function begin(rig: VaultRig, id: string, externalId: string): Promise<RequestContext<typeof VaultSchema>> {
+    const ctx = await load(rig, id, externalId);
+    await claim(rig, ctx);
+    return ctx;
+  }
+
+  async function save(rig: VaultRig, ctx: RequestContext<typeof VaultSchema>): Promise<void> {
+    await newPersistVaultUpdateStep(rig.store, UNBOUND_CREDENTIAL_BINDING).execute(ctx);
+  }
+
+  async function releaseAfterSave(rig: VaultRig, ctx: RequestContext<typeof VaultSchema>): Promise<void> {
+    await newReleaseClearedExternalIdStep(rig.store, silentLogger).execute(ctx);
+  }
+
+  /** The update's swap loses to a write made since its read, and the chain undoes its move. */
+  async function lose(rig: VaultRig, ctx: RequestContext<typeof VaultSchema>): Promise<void> {
+    const conflict = await failureOf(() => save(rig, ctx));
+    expect(conflict !== undefined && isWriteConflict(conflict)).toBe(true);
+    await undoExternalIdMoveAfterFailure(rig.store, silentLogger, ctx);
+  }
+
+  /** The vault the name table resolves an external id to, or undefined. */
+  async function holderOf(rig: VaultRig, externalId: string): Promise<string | undefined> {
+    return (await rig.store.resourceNames.resolve(externalIdNameKey(ORG, externalId), new Date().toISOString()))?.id;
+  }
+
+  async function foundBy(rig: VaultRig, externalId: string): Promise<string | undefined> {
+    return (await rig.vaults.findByExternalId(ORG, externalId))?.metadata?.id;
+  }
+
+  /** Another vault's create claiming `externalId`, its row not yet stored: the failure, or undefined when it wins. */
+  async function createClaims(rig: VaultRig, externalId: string): Promise<ConnectError | undefined> {
+    const other = vault({ id: "vlt_other", externalId });
+    other.metadata!.org = ORG;
+    return failureOf(() => newClaimExternalIdStep(rig.store).execute(ctxOf(other)));
+  }
+
+  async function rowOf(rig: VaultRig, id: string): Promise<string | undefined> {
+    return (await loadVault(rig.store, id))?.spec?.externalId;
+  }
+
+  it("two updates from no id: the loser's undo lets go of its own claim and keeps the winner's", async () => {
+    const rig = openVaultRig();
+    try {
+      const id = await seedWithExternalId(rig, "team", "");
+      const a = await begin(rig, id, "customer-x");
+      const b = await begin(rig, id, "customer-y");
+      await save(rig, a);
+      await releaseAfterSave(rig, a);
+      await lose(rig, b);
+      expect(await rowOf(rig, id)).toBe("customer-x");
+      expect(await holderOf(rig, "customer-x")).toBe(id);
+      expect(await foundBy(rig, "customer-x")).toBe(id);
+      expect(await holderOf(rig, "customer-y")).toBeUndefined();
+    } finally {
+      rig.close();
+    }
+  });
+
+  it("a clear racing a move: the clear's release, landing after the move's retry, keeps the move's id", async () => {
+    const rig = openVaultRig();
+    try {
+      const id = await seedWithExternalId(rig, "team", "customer-x");
+      const clear = await begin(rig, id, "");
+      const move = await begin(rig, id, "customer-y");
+      await save(rig, clear);
+      await lose(rig, move);
+      const retry = await begin(rig, id, "customer-y");
+      await save(rig, retry);
+      await releaseAfterSave(rig, retry);
+      await releaseAfterSave(rig, clear);
+      expect(await rowOf(rig, id)).toBe("customer-y");
+      expect(await holderOf(rig, "customer-y")).toBe(id);
+      expect(await foundBy(rig, "customer-y")).toBe(id);
+      expect(await holderOf(rig, "customer-x")).toBeUndefined();
+    } finally {
+      rig.close();
+    }
+  });
+
+  it("a clear racing a move: the clear's release, landing before the move's claim, leaves nothing the row does not carry", async () => {
+    const rig = openVaultRig();
+    try {
+      const id = await seedWithExternalId(rig, "team", "customer-x");
+      const clear = await begin(rig, id, "");
+      const move = await load(rig, id, "customer-y");
+      await save(rig, clear);
+      await releaseAfterSave(rig, clear);
+      await claim(rig, move);
+      await lose(rig, move);
+      expect(await rowOf(rig, id)).toBe("");
+      expect(await holderOf(rig, "customer-x")).toBeUndefined();
+      expect(await holderOf(rig, "customer-y")).toBeUndefined();
+    } finally {
+      rig.close();
+    }
+  });
+
+  it("a move holds the old id until its row is saved: it still finds the vault, and no other vault can take it", async () => {
+    const rig = openVaultRig();
+    try {
+      const id = await seedWithExternalId(rig, "team", "customer-x");
+      const move = await begin(rig, id, "customer-y");
+      expect(await holderOf(rig, "customer-x")).toBe(id);
+      expect(await foundBy(rig, "customer-x")).toBe(id);
+      expect((await createClaims(rig, "customer-x"))?.code).toBe(Code.AlreadyExists);
+      await save(rig, move);
+      await releaseAfterSave(rig, move);
+      expect(await holderOf(rig, "customer-x")).toBeUndefined();
+      expect(await foundBy(rig, "customer-y")).toBe(id);
+      expect(await createClaims(rig, "customer-x")).toBeUndefined();
+    } finally {
+      rig.close();
+    }
+  });
+
+  it("two moves, the loser's claim second: the winner's id still finds the vault after the loser's undo, and nothing else is held", async () => {
+    const rig = openVaultRig();
+    try {
+      const id = await seedWithExternalId(rig, "team", "customer-x");
+      const a = await begin(rig, id, "customer-y");
+      const b = await begin(rig, id, "customer-z");
+      await save(rig, a);
+      await releaseAfterSave(rig, a);
+      await lose(rig, b);
+      expect(await rowOf(rig, id)).toBe("customer-y");
+      expect(await holderOf(rig, "customer-y")).toBe(id);
+      expect(await foundBy(rig, "customer-y")).toBe(id);
+      expect((await createClaims(rig, "customer-y"))?.code).toBe(Code.AlreadyExists);
+      expect(await holderOf(rig, "customer-x")).toBeUndefined();
+      expect(await holderOf(rig, "customer-z")).toBeUndefined();
+      const retry = await begin(rig, id, "customer-z");
+      await save(rig, retry);
+      await releaseAfterSave(rig, retry);
+      expect(await holderOf(rig, "customer-z")).toBe(id);
+      expect(await holderOf(rig, "customer-y")).toBeUndefined();
+    } finally {
+      rig.close();
+    }
+  });
+
+  it("an id a live vault holds but its row does not carry frees itself past the claim grace, and not inside it", async () => {
+    const rig = openVaultRig();
+    try {
+      const stray = await seedWithExternalId(rig, "stray", "");
+      await rig.store.resourceNames.claim(externalIdNameKey(ORG, "customer-old"), stray, OUTSIDE_THE_CLAIM_GRACE);
+      await rig.store.resourceNames.claim(externalIdNameKey(ORG, "customer-new"), stray, new Date().toISOString());
+      const carried = await seedWithExternalId(rig, "carried", "");
+      await rig.store.updateResource(ApiResourceKind.vault, carried, VaultSchema, (row) => {
+        row.spec!.externalId = "customer-kept";
+      });
+      await rig.store.resourceNames.claim(externalIdNameKey(ORG, "customer-kept"), carried, OUTSIDE_THE_CLAIM_GRACE);
+
+      expect(await createClaims(rig, "customer-old")).toBeUndefined();
+      expect(await holderOf(rig, "customer-old")).toBe("vlt_other");
+      expect((await createClaims(rig, "customer-new"))?.code).toBe(Code.AlreadyExists);
+      expect((await createClaims(rig, "customer-kept"))?.code).toBe(Code.AlreadyExists);
+      expect(await holderOf(rig, "customer-kept")).toBe(carried);
+    } finally {
+      rig.close();
+    }
+  });
+
+  it("a vault deleted while holding an id its row does not carry lets go of it", async () => {
+    const rig = openVaultRig();
+    try {
+      const id = await seedWithExternalId(rig, "team", "");
+      await rig.store.resourceNames.claim(externalIdNameKey(ORG, "customer-x"), id, new Date().toISOString());
+      await releaseVaultNames(rig.store, silentLogger, (await loadVault(rig.store, id))!);
+      expect(await holderOf(rig, "customer-x")).toBeUndefined();
     } finally {
       rig.close();
     }
