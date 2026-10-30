@@ -6,8 +6,8 @@ import { MemorySchema, type Memory } from "@stigmer/apis/ai/stigmer/agentic/memo
 import { MemoryLifecycleState } from "@stigmer/apis/ai/stigmer/agentic/memory/v1/enum_pb";
 import { MemoryListSchema } from "@stigmer/apis/ai/stigmer/agentic/memory/v1/io_pb";
 import { StigmerError } from "@stigmer/client";
-import { StigmerContext } from "../../context";
-import { FetchCacheContext } from "../../internal/FetchCacheProvider";
+import { StigmerContext } from "@stigmer/react-core";
+import { FetchCacheContext } from "@stigmer/react-core/internal";
 import { useMemories } from "../useMemories";
 import { useMemory } from "../useMemory";
 import { useConfirmMemory } from "../useConfirmMemory";

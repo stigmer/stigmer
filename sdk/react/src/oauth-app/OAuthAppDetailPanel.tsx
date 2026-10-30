@@ -3,7 +3,7 @@
 import { type FormEvent, useCallback, useId, useState } from "react";
 import { cn } from "@stigmer/design-tokens";
 import { buildOAuthAppProto, getUserMessage } from "@stigmer/client";
-import { maskedEdit, saveErrorMessage } from "../internal/maskedEdit.js";
+import { maskedEdit, saveErrorMessage } from "@stigmer/react-core/internal";
 import type { OAuthApp } from "@stigmer/apis/ai/stigmer/iam/oauthapp/v1/api_pb";
 import {
   TokenEndpointAuthMethod,

@@ -30,9 +30,9 @@ import {
 import { PlanSchema } from "@stigmer/apis/ai/stigmer/billing/plan/v1/api_pb";
 import { EntitlementLimitsSchema } from "@stigmer/apis/ai/stigmer/platform/v1/entitlement_pb";
 import { SubscriptionState } from "@stigmer/apis/ai/stigmer/billing/subscription/v1/status_pb";
-import { StigmerContext } from "../../context";
-import { DeploymentModeContext } from "../../deployment-mode";
-import { FetchCacheContext } from "../../internal/FetchCacheProvider";
+import { StigmerContext } from "@stigmer/react-core";
+import { DeploymentModeContext } from "@stigmer/react-core";
+import { FetchCacheContext } from "@stigmer/react-core/internal";
 import { PlanSection, type PlanSectionProps } from "../PlanSection";
 import { BUSINESS, FREE_HOURS, NOW, RETIRED, TEAM, TEAM_ESTIMATE, USD, notFound, subscription } from "./fixtures";
 

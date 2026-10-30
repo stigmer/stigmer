@@ -4,9 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { isNotFound } from "@stigmer/client";
-import { useStigmer } from "../hooks.js";
-import { useFetch } from "../internal/useFetch.js";
-import { isTerminalPhase } from "./run-phases.js";
+import { useStigmer } from "@stigmer/react-core";
+import { useFetch } from "@stigmer/react-core/internal";
+import { isTerminalPhase } from "@stigmer/react-core/internal";
 
 /** How often a run that has not ended is read again. */
 const LIVE_RUN_REFRESH_MS = 3_000;

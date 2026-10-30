@@ -6,7 +6,7 @@ import {
   type FileContent,
 } from "@stigmer/apis/ai/stigmer/agentic/run/v1/message_pb";
 import type { DisplayFileChange } from "@stigmer/client";
-import type { UseFileChangeContentReturn } from "../useFileChangeContent";
+import type { UseFileChangeContentReturn } from "@stigmer/react-core";
 
 // ---------------------------------------------------------------------------
 // Mock the content resolver so we can drive every render state.
@@ -14,7 +14,8 @@ import type { UseFileChangeContentReturn } from "../useFileChangeContent";
 
 let mockReturn: UseFileChangeContentReturn;
 
-vi.mock("../useFileChangeContent", () => ({
+vi.mock("@stigmer/react-core", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@stigmer/react-core")>()),
   useFileChangeContent: () => mockReturn,
 }));
 

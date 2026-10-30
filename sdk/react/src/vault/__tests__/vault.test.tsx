@@ -22,8 +22,8 @@ import { VaultCommandController } from "@stigmer/apis/ai/stigmer/agentic/vault/v
 import { VaultQueryController } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/query_pb";
 import { VaultListSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/io_pb";
 import { VaultConnectionSource } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/spec_pb";
-import { StigmerContext } from "../../context";
-import { FetchCacheContext } from "../../internal/FetchCacheProvider";
+import { StigmerContext } from "@stigmer/react-core";
+import { FetchCacheContext } from "@stigmer/react-core/internal";
 import { useMyVault } from "../useMyVault";
 import { VaultPicker } from "../VaultPicker";
 import { VaultEntriesEditor } from "../VaultEntriesEditor";

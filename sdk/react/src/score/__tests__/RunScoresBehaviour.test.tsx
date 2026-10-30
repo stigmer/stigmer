@@ -40,8 +40,8 @@ import {
 } from "@stigmer/apis/ai/stigmer/agentic/score/v1/enum_pb";
 import { ScoreListSchema } from "@stigmer/apis/ai/stigmer/agentic/score/v1/io_pb";
 import { buildScoreProto, type ScoreInput } from "@stigmer/client";
-import { StigmerContext } from "../../context";
-import { FetchCacheContext } from "../../internal/FetchCacheProvider";
+import { StigmerContext } from "@stigmer/react-core";
+import { FetchCacheContext } from "@stigmer/react-core/internal";
 import { RunScores } from "../RunScores";
 import { RunScoresProvider } from "../RunScoresContext";
 import { RATING_COMMENT_MAX_LENGTH } from "../rating-input";

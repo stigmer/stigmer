@@ -3,7 +3,7 @@ import { renderHook } from "@testing-library/react";
 import type { ReactNode } from "react";
 import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
 import { ChannelInstallState } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/status_pb";
-import { DeploymentModeContext } from "../../deployment-mode";
+import { DeploymentModeContext } from "@stigmer/react-core";
 import { useChannelTemplateReadiness } from "../useChannelTemplateReadiness";
 
 function makeChannel(overrides?: {

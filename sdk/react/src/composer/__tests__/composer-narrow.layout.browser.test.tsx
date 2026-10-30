@@ -11,7 +11,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import { page } from "@vitest/browser/context";
 import type { Stigmer } from "@stigmer/client";
-import { StigmerContext } from "../../context.js";
+import { StigmerContext } from "@stigmer/react-core";
 import { ModelRegistryContext } from "../../models/ModelRegistryContext.js";
 import { ComposerToolbar } from "../ComposerToolbar.js";
 

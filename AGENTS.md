@@ -42,9 +42,9 @@ skill" when it could be misread.
   Agent Plugins reader the CLI validates with and the server installs from),
   `outbound` (the egress address policy and the MCP OAuth rules the server, the
   runner and the catalogue audit dial user-supplied URLs by).
-- `sdk/`: `typescript` (`@stigmer/client`), `react`, `theme`, `ink`, `embed`,
-  `go`, `python`, `java`. Generated clients live under each SDK's `gen`
-  directory.
+- `sdk/`: `typescript` (`@stigmer/client`), `react-core`, `react`, `theme`,
+  `ink`, `embed`, `go`, `python`, `java`. Generated clients live in each SDK's
+  `gen`.
 - `client-apps/`: `cli` (the `stigmer` command), `web` (Next.js console),
   `desktop` (Tauri + Vite).
 - `mcp-server/`: Stigmer's own MCP server for IDEs.
@@ -65,9 +65,9 @@ skill" when it could be misread.
   `npm run test:scripts`.
 
 Dependency direction: `@stigmer/apis` (from `apis/stubs/ts`) ->
-`@stigmer/client` -> `@stigmer/react-sdk` -> client apps. The server and runner
-depend on `backend/libs/ts` and the protos; nothing depends on a client app or
-on `ee/`.
+`@stigmer/client` -> `@stigmer/react-core` -> kits -> client apps. Server and
+runner depend on `backend/libs/ts` and the protos; nothing depends on a client
+app or `ee/`.
 
 ## Toolchains
 

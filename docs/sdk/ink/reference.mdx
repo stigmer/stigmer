@@ -15,7 +15,7 @@ Provides the same React contexts as `StigmerProvider` from
 `@stigmer/react-sdk`, but without the DOM `<div>` wrapper used for
 CSS scoping (which is not applicable in a terminal).
 
-All hooks from `@stigmer/react-sdk` (`useStigmer`, `useSessionConversation`,
+All hooks from `@stigmer/react-core` (`useStigmer`, `useSessionConversation`,
 `useSessionEvents`, etc.) work identically under this provider.
 
 **Props** — `InkStigmerProviderProps`
@@ -582,7 +582,7 @@ the primary model. Usage is counted in tokens; no price is shown.
 
 Renders nothing when the session has no usage yet.
 
-Uses the headless `useSessionUsage` hook from `@stigmer/react-sdk`.
+Uses the headless `useSessionUsage` hook from `@stigmer/react-core`.
 
 **Props** — `UsageWidgetProps`
 
@@ -640,7 +640,7 @@ render(
 Full-featured session conversation view for the terminal.
 
 Uses the headless `useSessionConversation` hook from
-`@stigmer/react-sdk` to manage the complete conversation lifecycle,
+`@stigmer/react-core` to manage the complete conversation lifecycle,
 then renders the thread and input using Ink terminal components.
 
 This is the main composition component that platform builders

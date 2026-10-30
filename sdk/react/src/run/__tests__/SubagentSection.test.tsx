@@ -9,7 +9,7 @@ import { describe, it, expect, afterEach, vi } from "vitest";
 import { render, screen, cleanup, act, fireEvent } from "@testing-library/react";
 import type { MessageItem, NoteItem, ThinkingItem, Thread, TurnItem } from "@stigmer/client";
 import { SubagentSection } from "../SubagentSection";
-import { subagentSubjectOf } from "../tool-categories";
+import { subagentSubjectOf } from "@stigmer/react-core";
 import { ApprovalContext, type ApprovalContextValue } from "../ApprovalContext";
 import { thread, toolUse } from "./__fixtures__/fold-values";
 

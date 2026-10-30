@@ -12,7 +12,7 @@ import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { Stigmer } from "@stigmer/client";
 import { ApiKeysSchema } from "@stigmer/apis/ai/stigmer/iam/apikey/v1/io_pb";
-import { StigmerContext } from "../../context";
+import { StigmerContext } from "@stigmer/react-core";
 import { ServiceAccountKeyListPanel } from "../ServiceAccountKeyListPanel";
 
 const asked = vi.hoisted(() => ({ accounts: [] as string[] }));

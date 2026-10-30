@@ -16,7 +16,7 @@ import type { WorkspaceContentSearcher } from "../../workspace/WorkspaceContentS
 import { WorkspaceSurface, type SurfaceVirtualDocument } from "../../workspace/WorkspaceSurface.js";
 import type { ApplyResourceResult } from "../../library/useApplyResource.js";
 import { useWorkspaceEditors, isVirtualEntryId } from "../../internal/store/index.js";
-import { isTerminalPhase } from "../../run/run-phases.js";
+import { isTerminalPhase } from "@stigmer/react-core/internal";
 import { findPlanFile, type SessionPlan } from "../../library/detect-plan-file.js";
 import type { useSessionPageFlow } from "../useSessionPageFlow.js";
 import { useOpenFileChange } from "../useOpenFileChange.js";

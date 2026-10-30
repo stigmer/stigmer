@@ -25,8 +25,8 @@ import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import type { AgentSpec } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
 import { GetAgentVersionInputSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/version_pb";
 import { isNotFound, type ResourceRef } from "@stigmer/client";
-import { useStigmer } from "../hooks.js";
-import { useFetch } from "../internal/useFetch.js";
+import { useStigmer } from "@stigmer/react-core";
+import { useFetch } from "@stigmer/react-core/internal";
 import { useAgent } from "./useAgent.js";
 
 /** The pinned version's spec: absent when the agent holds no such version. */

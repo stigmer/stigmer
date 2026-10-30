@@ -199,6 +199,8 @@ const ENTRY_POINTS: ReadonlyArray<readonly [path: string, extract: (text: string
   ["sdk/go/README.md", readmeOpening],
   ["sdk/react/package.json", jsonDescription],
   ["sdk/react/README.md", readmeOpening],
+  ["sdk/react-core/package.json", jsonDescription],
+  ["sdk/react-core/README.md", readmeOpening],
   ["sdk/ink/package.json", jsonDescription],
   ["deploy/helm/stigmer/Chart.yaml", (text) => /^description:\s*(.+)$/m.exec(text)?.[1]],
   ["deploy/helm/stigmer/README.md", readmeOpening],

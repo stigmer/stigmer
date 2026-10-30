@@ -17,7 +17,7 @@ import {
   type ApiKey,
 } from "@stigmer/apis/ai/stigmer/iam/apikey/v1/api_pb";
 import { OrganizationSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
-import { StigmerContext } from "../../context";
+import { StigmerContext } from "@stigmer/react-core";
 import { OrgProvider } from "../../organization/OrgProvider";
 
 const ACME_ID = "org_01jaaaaaaaaaaaaaaaaaaaaaaa";

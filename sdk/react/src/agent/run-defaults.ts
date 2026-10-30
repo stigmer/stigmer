@@ -17,9 +17,11 @@
 
 import type { AgentSpec } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
 import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
-import { fromProtoHarness, type HarnessOption } from "../models/harness.js";
-import { fromProtoServiceTier, type ServiceTierOption } from "../models/service-tier.js";
-import { fromProtoThinkingMode, type ThinkingModeOption } from "../models/thinking-mode.js";
+import { fromProtoHarness, type HarnessOption } from "@stigmer/react-core";
+import { fromProtoServiceTier } from "@stigmer/react-core/internal";
+import { type ServiceTierOption } from "@stigmer/react-core";
+import { fromProtoThinkingMode } from "@stigmer/react-core/internal";
+import { type ThinkingModeOption } from "@stigmer/react-core";
 
 /** The choices an agent's run defaults make for a conversation on its harness. */
 export interface AgentRunDefaults {

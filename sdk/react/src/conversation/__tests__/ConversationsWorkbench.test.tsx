@@ -18,8 +18,8 @@ import {
   SendChannelMessageOutputSchema,
 } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/message_io_pb";
 import { ChannelReceiptState } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/outbound_pb";
-import { StigmerContext } from "../../context";
-import { FetchCacheContext } from "../../internal/FetchCacheProvider";
+import { StigmerContext } from "@stigmer/react-core";
+import { FetchCacheContext } from "@stigmer/react-core/internal";
 import { advanceInSlices } from "../../internal/__tests__/fake-timer-slices";
 import { ConversationsWorkbench } from "../ConversationsWorkbench";
 

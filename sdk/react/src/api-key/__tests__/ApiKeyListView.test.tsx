@@ -10,7 +10,7 @@ import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { Stigmer } from "@stigmer/client";
 import { ApiKeySchema } from "@stigmer/apis/ai/stigmer/iam/apikey/v1/api_pb";
-import { StigmerContext } from "../../context";
+import { StigmerContext } from "@stigmer/react-core";
 import { ApiKeyListView } from "../ApiKeyListPanel";
 
 const PAGER = { hasMore: false, loadMore: () => {}, isLoadingMore: false, loadMoreError: null, isRefetching: false };

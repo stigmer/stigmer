@@ -23,13 +23,13 @@ import {
   type SessionInput,
   type SessionResourceInput,
 } from "@stigmer/client";
-import type { MessageFileView } from "../run/MessageFiles.js";
+import type { MessageFileView } from "../run/message-file-view.js";
 import type { ServiceTierOption } from "../models/service-tier.js";
 import type { ThinkingModeOption } from "../models/thinking-mode.js";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 import { useFetch } from "../internal/useFetch.js";
-import { useConversationStoreRef } from "../internal/store/index.js";
+import { useConversationStoreRef } from "../internal/store/conversation-store.js";
 // Type-only import so the SharedRunFields doc links below resolve;
 // the strict tsdoc gate (tsdoc:check) guards it against removal.
 import { useCreateRun, type SharedRunFields } from "../run/useCreateRun.js";

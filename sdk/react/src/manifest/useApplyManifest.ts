@@ -7,9 +7,9 @@ import {
   type AppliedManifest,
   type ManifestDocument,
 } from "@stigmer/client";
-import { useStigmer } from "../hooks.js";
+import { useStigmer } from "@stigmer/react-core";
 import { findOrgByRef, useKnownOrgs } from "../organization/OrgProvider.js";
-import { toError } from "../internal/toError.js";
+import { toError } from "@stigmer/react-core/internal";
 
 /** Per-document apply lifecycle within one manifest. */
 export type ManifestEntryStatus =

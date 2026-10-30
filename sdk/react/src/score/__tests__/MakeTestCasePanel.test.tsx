@@ -28,10 +28,10 @@ import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { ScoreListSchema } from "@stigmer/apis/ai/stigmer/agentic/score/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { Turn } from "@stigmer/client";
-import { StigmerContext } from "../../context";
-import { FetchCacheContext } from "../../internal/FetchCacheProvider";
+import { StigmerContext } from "@stigmer/react-core";
+import { FetchCacheContext } from "@stigmer/react-core/internal";
 import { MessageThread } from "../../run/MessageThread";
-import { samples } from "../../test/samples";
+import { samples } from "@stigmer/react-core/test";
 
 const download = vi.hoisted(() => ({
   downloadBinaryFile: vi.fn(),

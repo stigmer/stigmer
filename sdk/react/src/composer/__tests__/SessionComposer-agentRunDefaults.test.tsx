@@ -23,13 +23,13 @@ import { describe, it, expect, vi, afterEach, beforeAll } from "vitest";
 import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
 import { type ReactNode } from "react";
 import type { Stigmer } from "@stigmer/client";
-import { StigmerContext } from "../../context";
+import { StigmerContext } from "@stigmer/react-core";
 import { noMyVaultClient } from "../../__tests__/helpers/no-my-vault";
 import { ModelRegistryContext } from "../../models/ModelRegistryContext";
-import type { ModelInfo } from "../../models/registry";
+import type { ModelInfo } from "@stigmer/react-core";
 import type { ResourceRef } from "@stigmer/client";
 import type { AgentRunDefaults } from "../../agent/run-defaults";
-import type { HarnessOption } from "../../models/harness";
+import type { HarnessOption } from "@stigmer/react-core";
 import { SessionComposer } from "../SessionComposer";
 
 beforeAll(() => {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { useFetch } from "../internal/useFetch.js";
+import { useFetch } from "@stigmer/react-core/internal";
 import type { WorkspaceEntry } from "./useWorkspaceEntries.js";
 import type {
   WorkspaceFileContent,
@@ -64,7 +64,7 @@ const EMPTY_CONTENT: FileContentData = { content: null };
  * Behavior hook that reads a single workspace file's content on demand.
  *
  * The byte-reading peer of {@link useWorkspaceFiles}
- * (which lists the tree), built on the same {@link useFetch} engine as the
+ * (which lists the tree), built on the same `useFetch` engine as the
  * content-fetch family ({@link useArtifactContent},
  * `useToolOutputContent`, `useFileChangeContent`) so it inherits their
  * stale-while-revalidate, cancellation, and `refetch` semantics for free.

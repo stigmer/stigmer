@@ -18,8 +18,8 @@ import {
   SetVaultSecretsInputSchema,
   VaultSecretInputSchema,
 } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/io_pb";
-import { useStigmer } from "../hooks.js";
-import { toError } from "../internal/toError.js";
+import { useStigmer } from "@stigmer/react-core";
+import { toError } from "@stigmer/react-core/internal";
 import { vaultTargetById } from "./target.js";
 import type { VaultSecretValue } from "./useMyVault.js";
 

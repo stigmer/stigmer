@@ -15,7 +15,7 @@ import {
   type WorkspaceFileContent,
   type WorkspaceFileReader,
 } from "../workspace/WorkspaceFileReader.js";
-import { useStigmer } from "../hooks.js";
+import { useStigmer } from "@stigmer/react-core";
 import { normalizeGitHubContent } from "./decodeGitHubContent.js";
 import { parseGitUrl } from "./parseGitUrl.js";
 

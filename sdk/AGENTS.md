@@ -1,11 +1,9 @@
 # Agent guide: sdk
 
-The published client surface: `typescript` (`@stigmer/client`), `react`,
-`theme`, `ink` and `embed` in TypeScript, and the `go`, `python` and `java`
-SDKs. The TypeScript packages are the product the web console and the desktop
-app are thin shells over; a platform builder embedding Stigmer consumes the same
-packages. This guide is an index; the READMEs and headers it names are the
-truth.
+The published client surface: `typescript` (`@stigmer/client`), `react-core`,
+`react`, `theme`, `ink` and `embed` in TypeScript, and the `go`, `python` and
+`java` SDKs. The console and desktop app are thin shells over the TypeScript
+packages, which platform builders embed too.
 
 ## Read in this order
 
@@ -16,7 +14,7 @@ truth.
 - `theme/README.md`, `theme/src/tokens.css`, `theme/src/presets/` and
   `theme/src/contract/`: the `--stgm-*` tokens, the presets, and the audit that
   proves every preset resolves and contrasts.
-- `react/src/internal/stream-controller.ts` and
+- `react-core/src/internal/stream-controller.ts` and
   `react/src/internal/useAutoScroll.ts` headers: the streaming pipeline and the
   sentinel-driven scroll; `react/src/internal/dev/` for the render tracer.
 - `react/eslint.config.mjs` and `tools/eslint-plugin-stigmer/rules/`: the
@@ -41,6 +39,9 @@ truth.
 - SDK first. A feature is a data hook, then a behaviour hook, then a styled
   component in `@stigmer/react-sdk`; each layer imports independently. If a
   platform builder could need it, it does not go in a client app.
+- `@stigmer/react-core` holds the conversation hooks under both kits, with no
+  rendering package; its internal entry has one consumer, the React kit
+  (`react-core/README.md`).
 - Zero framework dependencies in `@stigmer/react-sdk`: no `next/*`, no
   `@tauri-apps/*`, no client-app imports; navigation and image handling are
   callback props.

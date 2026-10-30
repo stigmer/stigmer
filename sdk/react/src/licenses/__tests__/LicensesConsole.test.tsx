@@ -14,9 +14,9 @@ import type { ReactNode } from "react";
 import { StigmerError, type LicenseInput } from "@stigmer/client";
 import { Feature } from "@stigmer/apis/ai/stigmer/platform/v1/entitlement_pb";
 import { LicenseTerm } from "@stigmer/apis/ai/stigmer/platform/v1/license_pb";
-import { StigmerContext } from "../../context";
-import { DeploymentModeContext } from "../../deployment-mode";
-import { FetchCacheContext } from "../../internal/FetchCacheProvider";
+import { StigmerContext } from "@stigmer/react-core";
+import { DeploymentModeContext } from "@stigmer/react-core";
+import { FetchCacheContext } from "@stigmer/react-core/internal";
 import { LicensesConsole } from "../LicensesConsole";
 import { license, type LicenseFixture } from "./fixtures";
 

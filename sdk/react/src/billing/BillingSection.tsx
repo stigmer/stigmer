@@ -2,7 +2,7 @@
 
 import { useId } from "react";
 import { getUserMessage } from "@stigmer/client";
-import { useDeploymentMode } from "../deployment-mode.js";
+import { useDeploymentMode } from "@stigmer/react-core";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
 import { useOrg } from "../organization/OrgProvider.js";
 import { useBillingAccount } from "./useBillingAccount.js";

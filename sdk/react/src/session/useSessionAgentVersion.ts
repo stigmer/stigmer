@@ -24,9 +24,9 @@
 
 import { useCallback, useMemo, useState } from "react";
 import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
-import { useStigmer } from "../hooks.js";
-import { useFetch } from "../internal/useFetch.js";
-import { toError } from "../internal/toError.js";
+import { useStigmer } from "@stigmer/react-core";
+import { useFetch } from "@stigmer/react-core/internal";
+import { toError } from "@stigmer/react-core/internal";
 import { agentVersionLabel, useAgentVersions } from "../agent/useAgentVersions.js";
 import { usePersonalKeys } from "../agent/usePersonalKeys.js";
 

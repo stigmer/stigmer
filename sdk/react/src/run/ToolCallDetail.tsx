@@ -7,12 +7,12 @@ import type { ToolResultView, ToolUse } from "@stigmer/client";
 import { cn } from "@stigmer/design-tokens";
 import { BoundedContent } from "../internal/BoundedContent.js";
 import { FileChangeDiff } from "./FileChangesView.js";
-import { useFileReviewRowChange } from "./FileReviewContext.js";
+import { useFileReviewRowChange } from "@stigmer/react-core";
 import { McpToolDetail } from "./McpToolDetail.js";
 import { ToolArgsView } from "./ToolArgsView.js";
 import { ResultView } from "./ResultView.js";
 import { useToolPresentation } from "./tool-presenter.js";
-import type { ToolCategory } from "./tool-categories.js";
+import type { ToolCategory } from "@stigmer/react-core";
 import { CollapsiblePre } from "./tool-rendering-primitives.js";
 import {
   describeApprovalPolicySource,

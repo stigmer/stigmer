@@ -16,7 +16,7 @@ import type { DeploymentMode, Stigmer } from "@stigmer/client";
 import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { ChannelAudience } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/spec_pb";
 import { COLOR_MODES, auditA11y, renderAudited, resetAudit } from "../../__tests__/helpers/a11y-audit.js";
-import { DeploymentModeContext } from "../../deployment-mode.js";
+import { DeploymentModeContext } from "@stigmer/react-core";
 import { PortalContainerContext } from "../../portal-container.js";
 import { ChannelsPanel } from "../ChannelsPanel.js";
 

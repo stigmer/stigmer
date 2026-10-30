@@ -21,7 +21,7 @@ import {
   FileChangeKind,
 } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import type { FileReviewSet } from "@stigmer/client";
-import { StigmerContext } from "../../context";
+import { StigmerContext } from "@stigmer/react-core";
 import { FileReviewDock } from "../FileReviewDock";
 
 function review(id: string, paths: string[]): FileReviewSet {

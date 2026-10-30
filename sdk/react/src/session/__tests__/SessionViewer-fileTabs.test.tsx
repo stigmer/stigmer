@@ -170,7 +170,8 @@ const client = vi.hoisted(() => ({
 }));
 const listAll = client.file.listAll;
 
-vi.mock("../../hooks", () => ({
+vi.mock("@stigmer/react-core", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@stigmer/react-core")>()),
   useStigmer: () => client,
 }));
 

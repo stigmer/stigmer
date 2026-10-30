@@ -30,7 +30,7 @@ import {
 } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { Stigmer, Turn } from "@stigmer/client";
-import { StigmerContext } from "../../context";
+import { StigmerContext } from "@stigmer/react-core";
 import { DROPPED_MESSAGE_LABEL, MessageThread, QUEUED_MESSAGE_LABEL, type MessageThreadProps } from "../MessageThread";
 import {
   asked,

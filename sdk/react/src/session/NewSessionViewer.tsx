@@ -4,7 +4,7 @@ import type { ResourceRef } from "@stigmer/client";
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection.js";
 import type { InteractionModeOption } from "../composer/index.js";
 import { SessionComposer } from "../composer/index.js";
-import type { HarnessOption } from "../models/harness.js";
+import type { HarnessOption } from "@stigmer/react-core";
 import type { AccountExecutionDefaults } from "../identity-account/useAccountExecutionDefaults.js";
 import { SessionViewerLayout } from "./SessionViewerLayout.js";
 import { SessionInspectorContext } from "./inspector/SessionInspectorContext.js";

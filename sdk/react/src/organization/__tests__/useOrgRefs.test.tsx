@@ -8,7 +8,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, waitFor, cleanup } from "@testing-library/react";
 import type { ReactNode } from "react";
 import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
-import { StigmerContext } from "../../context";
+import { StigmerContext } from "@stigmer/react-core";
 import { OrgProvider, findOrgByRef, useOrg } from "../OrgProvider";
 import { useOrgIdForRef, useOrgSlugForId } from "../useOrgRefs";
 

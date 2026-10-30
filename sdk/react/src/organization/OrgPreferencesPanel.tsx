@@ -3,7 +3,7 @@
 import { type FormEvent, useCallback, useEffect, useId, useMemo, useState } from "react";
 import { cn } from "@stigmer/design-tokens";
 import { getUserMessage } from "@stigmer/client";
-import { saveErrorMessage } from "../internal/maskedEdit.js";
+import { saveErrorMessage } from "@stigmer/react-core/internal";
 import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import { useOrganization } from "./useOrganization.js";
 import { useUpdateOrganization } from "./useUpdateOrganization.js";

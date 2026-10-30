@@ -22,8 +22,8 @@ import {
   ListEvalRunsByAgentRequestSchema,
   ListEvalRunsByPluginRequestSchema,
 } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/io_pb";
-import { useStigmer } from "../hooks.js";
-import { useCursorPages } from "../internal/useCursorPages.js";
+import { useStigmer } from "@stigmer/react-core";
+import { useCursorPages } from "@stigmer/react-core/internal";
 import { isEvalActive } from "./eval-view.js";
 import { EVAL_RUN_POLL_MS } from "./useEvalRun.js";
 

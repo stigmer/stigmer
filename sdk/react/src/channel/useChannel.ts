@@ -2,8 +2,8 @@
 
 import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
 import { isNotFound } from "@stigmer/client";
-import { useStigmer } from "../hooks.js";
-import { useFetch } from "../internal/useFetch.js";
+import { useStigmer } from "@stigmer/react-core";
+import { useFetch } from "@stigmer/react-core/internal";
 
 /** Return value of {@link useChannel}. */
 export interface UseChannelReturn {

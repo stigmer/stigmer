@@ -32,7 +32,7 @@ import { VaultSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
 import { VaultConnectionSource } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/spec_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 
-import { StigmerContext } from "../../context.js";
+import { StigmerContext } from "@stigmer/react-core";
 import { PluginDetailView } from "../PluginDetailView.js";
 import { reachedBy } from "../PluginServerRow.js";
 

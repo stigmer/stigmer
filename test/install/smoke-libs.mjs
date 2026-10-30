@@ -12,7 +12,8 @@
  * @stigmer/client).
  *
  * What it packs: @stigmer/ink-ui, @stigmer/react-sdk, @stigmer/embed and
- * @stigmer/design-tokens, with their @stigmer/* closure
+ * @stigmer/design-tokens, with their @stigmer/* closure (the client and the
+ * conversation core, @stigmer/react-core, among it)
  * (scripts/publish-libs.mjs --pack-dir, the same stamped dist/ a release
  * publishes, so the exports map installed is the one built from
  * `publishConfig`). What it installs beside them: every peer any packed
@@ -42,7 +43,10 @@
  *     Node, and an app importing the kit's root and `./headless` builds with
  *     the Vite and the webpack the root lockfile pins. A bundler resolves
  *     every import it can reach, `import()` included, so a package the kit
- *     names anywhere and does not install fails the build (stigmer#2621).
+ *     names anywhere and does not install fails the build (stigmer#2621);
+ *   - the terminal kit installed alone (a third folder: its own @stigmer/*
+ *     closure and its required peers) holds none of the browser kit's
+ *     packages and imports under Node.
  *
  * Two known breaks are not cases here; each is an open issue the bar lists
  * as pending, and the change that fixes one adds its case: the kit's bin
@@ -79,8 +83,8 @@ const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
 
 /** The libraries this smoke installs; their @stigmer/* closure comes with them. */
 const LIBRARIES = ["@stigmer/ink-ui", "@stigmer/react-sdk", "@stigmer/embed", "@stigmer/design-tokens"];
-/** Whose JavaScript entries must import under Node: the four, and the core SDK they are built on. */
-const IMPORTED = [...LIBRARIES, "@stigmer/client"];
+/** Whose JavaScript entries must import under Node: the four, and the client and conversation core they are built on. */
+const IMPORTED = [...LIBRARIES, "@stigmer/client", "@stigmer/react-core"];
 /** The version the pack stamps: never a published one. */
 const SMOKE_VERSION = "0.0.0-libs-smoke";
 /**
@@ -101,6 +105,28 @@ const COMPLETED_REPLY = "Fixed: invoices now round once, at the total.";
 const REACT_KIT = "@stigmer/react-sdk";
 /** What a host installs to draw the kit's diagrams; the kit names no import of it, so its app builds without it. */
 const HOST_OPT_IN = ["mermaid"];
+/** The terminal kit, which the third install takes alone with its own peers. */
+const TERMINAL_KIT = "@stigmer/ink-ui";
+/**
+ * What a browser kit needs and a terminal never draws with: the React kit
+ * itself and its design tokens, React's DOM renderer, the component library,
+ * the icon set, the editor, the table and list virtualisers, and the browser
+ * markdown stack. (highlight.js is not here: the terminal kit's own markdown
+ * renderer, marked-terminal, highlights code with it.)
+ */
+const BROWSER_PACKAGES = [
+  "@stigmer/react-sdk",
+  "@stigmer/design-tokens",
+  "react-dom",
+  "@base-ui/react",
+  "lucide-react",
+  "@codemirror/view",
+  "@tanstack/react-table",
+  "react-virtuoso",
+  "streamdown",
+  "react-markdown",
+  "mermaid",
+];
 
 function log(step) {
   console.log(`smoke-libs: ${step}`);
@@ -300,6 +326,7 @@ const CONSUMER_TS = `
 import type { SessionFold, Stigmer } from "@stigmer/client";
 import { createNodeClient } from "@stigmer/client/node";
 import { useSessionConversation, type UseSessionConversationReturn } from "@stigmer/react-sdk";
+import { useSessionConversation as useCoreConversation } from "@stigmer/react-core";
 import { conversationOf, samples, scenarios, type Scenario } from "@stigmer/react-sdk/test";
 import { MessageThread, SessionView, type MessageThreadProps } from "@stigmer/ink-ui";
 import { EMBED_PROTOCOL_VERSION, parseHostMessage } from "@stigmer/embed";
@@ -311,11 +338,12 @@ const fold: SessionFold = scenario.fold;
 const conversation: UseSessionConversationReturn = conversationOf(scenario);
 const props: MessageThreadProps = { turns: conversation.turns, runs: [samples.run()] };
 const hook: (sessionId: string | null, org: string) => UseSessionConversationReturn = useSessionConversation;
+const coreHook: typeof hook = useCoreConversation;
 const connect: (baseUrl: string) => Stigmer = (baseUrl) => createNodeClient({ baseUrl });
 const preset: ThemePresetId = THEME_PRESETS[0].id;
 const protocol: number = EMBED_PROTOCOL_VERSION;
 
-export const used = { fold, props, hook, connect, views: [MessageThread, SessionView], className: cn("a", preset), protocol, parseHostMessage };
+export const used = { fold, props, hook, coreHook, connect, views: [MessageThread, SessionView], className: cn("a", preset), protocol, parseHostMessage };
 `;
 
 test(
@@ -502,5 +530,46 @@ test(
     writeFileSync(join(bare, "webpack-build.mjs"), BARE_WEBPACK_BUILD);
     run(process.execPath, ["webpack-build.mjs"], bare);
     log("webpack built the same app");
+  }),
+);
+
+/** The @stigmer/* packages a manifest needs, through its dependencies and peers, transitively. */
+function stigmerClosure(name, manifests) {
+  const byName = new Map(manifests.map((manifest) => [manifest.name, manifest]));
+  const seen = new Set();
+  const visit = (current) => {
+    if (seen.has(current)) return;
+    seen.add(current);
+    const manifest = byName.get(current);
+    if (manifest === undefined) throw new Error(`the pack holds no tarball for ${current}`);
+    for (const dep of Object.keys({ ...manifest.dependencies, ...manifest.peerDependencies })) {
+      if (dep.startsWith("@stigmer/")) visit(dep);
+    }
+  };
+  visit(name);
+  return seen;
+}
+
+test(
+  "INK-14 the terminal kit installs without any browser package",
+  () => guarded(() => {
+    const alone = join(scratch, "terminal");
+    mkdirSync(alone, { recursive: true });
+    writeFileSync(join(alone, "package.json"), `${JSON.stringify({ name: "libs-terminal-consumer", private: true, type: "module" }, null, 2)}\n`);
+    const closure = stigmerClosure(TERMINAL_KIT, packed.manifests);
+    const tarballs = packed.tarballs.filter((_, i) => closure.has(packed.manifests[i].name));
+    const peers = peerSpecs(packed.manifests.filter((manifest) => closure.has(manifest.name)), { required: true });
+    log(`installing ${[...closure].join(", ")} and ${peers.length} required peers into ${alone}`);
+    run("npm", ["install", "--no-audit", "--no-fund", ...tarballs, ...peers], alone);
+
+    const present = BROWSER_PACKAGES.filter((name) => existsSync(join(alone, "node_modules", name, "package.json")));
+    if (present.length > 0) throw new Error(`the terminal kit's install has browser packages: ${present.join(", ")}`);
+
+    writeFileSync(join(alone, "import.mjs"), IMPORT_SCRIPT);
+    const result = spawnSync(process.execPath, ["import.mjs", JSON.stringify([TERMINAL_KIT])], { cwd: alone, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+    if (result.status !== 0) throw new Error(`import.mjs exited ${result.status ?? result.signal}:\n${result.stderr}${result.stdout}`);
+    const imported = JSON.parse(result.stdout)[TERMINAL_KIT];
+    if (imported.error !== undefined) throw new Error(`${TERMINAL_KIT} does not import on its own install:\n${imported.error}`);
+    log(`${TERMINAL_KIT} installed and imported with none of ${BROWSER_PACKAGES.join(", ")}`);
   }),
 );

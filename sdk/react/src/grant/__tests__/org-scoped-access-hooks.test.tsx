@@ -9,7 +9,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { Stigmer } from "@stigmer/client";
 
-import { StigmerContext } from "../../context";
+import { StigmerContext } from "@stigmer/react-core";
 import { usePrincipalsCount } from "../usePrincipalsCount";
 import { useRevokeOrgAccess } from "../useRevokeOrgAccess";
 

@@ -9,7 +9,7 @@
 import { vi } from "vitest";
 import type { ReactNode } from "react";
 import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
-import { StigmerContext } from "../../context";
+import { StigmerContext } from "@stigmer/react-core";
 import { OrgProvider, useOrg } from "../OrgProvider";
 
 export const ACME_ID = "org_01jaaaaaaaaaaaaaaaaaaaaaaa";

@@ -9,7 +9,7 @@ export default defineConfig({
   plugins: [react()],
   clearScreen: false,
   optimizeDeps: {
-    exclude: ["@stigmer/react-sdk", "@stigmer/client", "@stigmer/apis", "@stigmer/design-tokens"],
+    exclude: ["@stigmer/react-core", "@stigmer/react-sdk", "@stigmer/client", "@stigmer/apis", "@stigmer/design-tokens"],
   },
   build: {
     outDir: "dist",

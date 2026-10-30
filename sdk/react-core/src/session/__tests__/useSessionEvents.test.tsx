@@ -27,7 +27,7 @@ import type {
   StreamSessionEventsResponse,
 } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 import { StigmerContext } from "../../context";
-import { ConversationStore } from "../../internal/store/index";
+import { ConversationStore } from "../../internal/store/conversation-store";
 import { samples } from "../../test/samples";
 import { useSessionEvents, type UseSessionEventsOptions } from "../useSessionEvents";
 

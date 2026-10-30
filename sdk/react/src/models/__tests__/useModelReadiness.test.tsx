@@ -19,10 +19,10 @@ import {
   ProviderAvailability,
   ProviderReadinessSchema,
 } from "@stigmer/apis/ai/stigmer/platform/v1/model_readiness_pb";
-import { StigmerContext } from "../../context";
-import { FetchCacheProvider } from "../../internal/FetchCacheProvider";
-import { FetchCache } from "../../internal/fetch-cache";
-import { FetchCacheContext } from "../../internal/FetchCacheProvider";
+import { StigmerContext } from "@stigmer/react-core";
+import { FetchCacheProvider } from "@stigmer/react-core";
+import { FetchCache } from "@stigmer/react-core/internal";
+import { FetchCacheContext } from "@stigmer/react-core/internal";
 import { modelReadinessCacheKey, useModelReadiness } from "../useModelReadiness";
 import { nothingRuns } from "../readiness";
 import { ANTHROPIC_CONNECTED, NOTHING_CONNECTED, ORG_ID } from "./readiness-fixture";

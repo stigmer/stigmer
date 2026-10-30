@@ -26,7 +26,7 @@ import { PluginStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/s
 import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 import { digestArchive } from "@stigmer/plugin-package/client";
 
-import { StigmerContext } from "../../context.js";
+import { StigmerContext } from "@stigmer/react-core";
 import { PluginUploader } from "../PluginUploader.js";
 
 afterEach(cleanup);

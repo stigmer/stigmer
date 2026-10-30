@@ -11,7 +11,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { StigmerContext } from "../../context";
+import { StigmerContext } from "@stigmer/react-core";
 import {
   useCheckPermission,
   type CheckPermissionOptions,

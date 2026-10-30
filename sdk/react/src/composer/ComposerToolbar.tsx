@@ -12,9 +12,9 @@ import { ContextPopover } from "./ContextPopover.js";
 import { ConfigureMenu, type ConfigureMenuItem } from "./ConfigureMenu.js";
 import { ModelSelector, type InheritedModel } from "../models/ModelSelector.js";
 import { HarnessSelector } from "../models/HarnessSelector.js";
-import type { HarnessOption } from "../models/harness.js";
-import type { ServiceTierOption } from "../models/service-tier.js";
-import type { ThinkingModeOption } from "../models/thinking-mode.js";
+import type { HarnessOption } from "@stigmer/react-core";
+import type { ServiceTierOption } from "@stigmer/react-core";
+import type { ThinkingModeOption } from "@stigmer/react-core";
 import type { ModelReadinessLookup } from "../models/readiness.js";
 import { INTERACTION_MODES, InteractionModePicker, type InteractionModeOption } from "./InteractionModePicker.js";
 import {

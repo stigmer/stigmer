@@ -11,8 +11,8 @@ import {
 } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/conversation_io_pb";
 import type { SendChannelMessageOutput } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/message_io_pb";
 import { useCallback, useMemo } from "react";
-import { useStigmer } from "../hooks.js";
-import { useKeyedSubmission } from "../internal/useKeyedSubmission.js";
+import { useStigmer } from "@stigmer/react-core";
+import { useKeyedSubmission } from "@stigmer/react-core/internal";
 
 /** The four staff-facing participation commands. */
 export type ConversationCommand = "reply" | "takeOver" | "handBack" | "clearAttention";

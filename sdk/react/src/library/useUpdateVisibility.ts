@@ -4,8 +4,8 @@ import { useCallback, useState } from "react";
 import { create } from "@bufbuild/protobuf";
 import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 import { UpdateVisibilityInputSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
-import { useStigmer } from "../hooks.js";
-import { toError } from "../internal/toError.js";
+import { useStigmer } from "@stigmer/react-core";
+import { toError } from "@stigmer/react-core/internal";
 
 /** Resource kinds that support the `updateVisibility` RPC. */
 export type VisibilityResourceKind =

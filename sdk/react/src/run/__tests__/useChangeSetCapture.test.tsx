@@ -8,14 +8,15 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 
-vi.mock("../../hooks", () => ({
+vi.mock("@stigmer/react-core", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@stigmer/react-core")>()),
   useStigmer: vi.fn(),
 }));
 
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { FileChangeSetSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
-import { useStigmer } from "../../hooks";
-import { samples } from "../../test/samples";
+import { useStigmer } from "@stigmer/react-core";
+import { samples } from "@stigmer/react-core/test";
 import { useChangeSetCapture } from "../useChangeSetCapture";
 
 const mockUseStigmer = vi.mocked(useStigmer);

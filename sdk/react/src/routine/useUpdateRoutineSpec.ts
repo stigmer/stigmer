@@ -8,9 +8,9 @@ import {
   RoutineSpecSchema,
   type RoutineSpec,
 } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/spec_pb";
-import { useStigmer } from "../hooks.js";
+import { useStigmer } from "@stigmer/react-core";
 import { toast } from "../feedback/toast.js";
-import { saveErrorMessage } from "../internal/maskedEdit.js";
+import { saveErrorMessage } from "@stigmer/react-core/internal";
 
 /** Return value of {@link useUpdateRoutineSpec}. */
 export interface UseUpdateRoutineSpecReturn {

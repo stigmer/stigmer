@@ -59,7 +59,7 @@ import {
   type EvalRunInput,
   type EvalRunTargetInput,
 } from "@stigmer/client";
-import { toProtoHarness, type HarnessOption } from "../models/harness.js";
+import { toProtoHarness, type HarnessOption } from "@stigmer/react-core";
 
 /** The most targets an eval run runs on. */
 export const MAX_EVAL_TARGETS = 6;

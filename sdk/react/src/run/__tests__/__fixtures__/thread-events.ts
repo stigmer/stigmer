@@ -15,7 +15,7 @@ import {
   type StreamSessionEventsResponse,
 } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 import type { Turn, TurnPhase } from "@stigmer/client";
-import { SAMPLE_INSTANT, samples } from "../../../test/samples";
+import { SAMPLE_INSTANT, samples } from "@stigmer/react-core/test";
 
 type EventInit = MessageInitShape<typeof SessionEventSchema>["event"];
 

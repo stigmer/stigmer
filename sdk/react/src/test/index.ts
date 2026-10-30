@@ -4,7 +4,7 @@
 // Playwright, and the scenario catalogue: the named conversation states
 // every surface that draws a conversation is pinned against.
 
-export { samples, SAMPLE_INSTANT, sampleInstant, sampleDate } from "./samples.js";
+export { samples, SAMPLE_INSTANT, sampleInstant, sampleDate } from "@stigmer/react-core/test";
 export {
   scenarios,
   SCENARIO_NAMES,

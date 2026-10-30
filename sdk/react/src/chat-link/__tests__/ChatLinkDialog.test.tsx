@@ -10,9 +10,9 @@ import { Code } from "@connectrpc/connect";
 import { ChannelAudience } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/spec_pb";
 import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
 import { StigmerError, type ChannelInput } from "@stigmer/client";
-import { StigmerContext } from "../../context";
-import { FetchCacheContext } from "../../internal/FetchCacheProvider";
-import { DeploymentModeContext } from "../../deployment-mode";
+import { StigmerContext } from "@stigmer/react-core";
+import { FetchCacheContext } from "@stigmer/react-core/internal";
+import { DeploymentModeContext } from "@stigmer/react-core";
 import { PublicBaseUrlContext } from "../../public-base-url-context";
 import { ChatLinkDialog } from "../ChatLinkDialog";
 

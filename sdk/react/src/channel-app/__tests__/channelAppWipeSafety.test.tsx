@@ -6,7 +6,7 @@ import {
   ChannelAppSchema,
   type ChannelApp,
 } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/api_pb";
-import { StigmerContext } from "../../context";
+import { StigmerContext } from "@stigmer/react-core";
 import { ChannelAppDetailPanel } from "../ChannelAppDetailPanel";
 
 /**

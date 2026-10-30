@@ -30,8 +30,8 @@
 import { useMemo } from "react";
 import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import type { AgentSpec } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
-import { useStigmer } from "../hooks.js";
-import { useFetch } from "../internal/useFetch.js";
+import { useStigmer } from "@stigmer/react-core";
+import { useFetch } from "@stigmer/react-core/internal";
 import { declarationsOf, readAgentServers, signInKeys } from "./runServers.js";
 import { findOrgByRef, useKnownOrgs } from "../organization/OrgProvider.js";
 

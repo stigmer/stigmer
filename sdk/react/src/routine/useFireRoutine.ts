@@ -8,9 +8,9 @@ import {
   type RoutineFireResult,
 } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/io_pb";
 import { getUserMessage } from "@stigmer/client";
-import { useStigmer } from "../hooks.js";
+import { useStigmer } from "@stigmer/react-core";
 import { toast } from "../feedback/toast.js";
-import { toError } from "../internal/toError.js";
+import { toError } from "@stigmer/react-core/internal";
 
 /** Return value of {@link useFireRoutine}. */
 export interface UseFireRoutineReturn {

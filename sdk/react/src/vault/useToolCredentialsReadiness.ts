@@ -16,7 +16,7 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import type { ResourceRef } from "@stigmer/client";
-import { useStigmer } from "../hooks.js";
+import { useStigmer } from "@stigmer/react-core";
 
 /**
  * Readiness of a surface's tool credentials for its users' runs:

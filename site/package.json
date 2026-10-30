@@ -61,6 +61,7 @@
   "resolutions": {
     "@stigmer/eval-runtime": "file:../backend/libs/ts/eval-runtime",
     "@stigmer/plugin-package": "file:../backend/libs/ts/plugin-package",
+    "@stigmer/react-core": "file:../sdk/react-core",
     "@stigmer/session-log": "file:../backend/libs/ts/session-log",
     "@stigmer/design-tokens": "file:../sdk/theme",
     "@stigmer/tool-vocabulary": "file:../backend/libs/ts/tool-vocabulary"

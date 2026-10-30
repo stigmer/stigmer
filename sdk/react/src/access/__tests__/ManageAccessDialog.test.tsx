@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
-import { DeploymentModeContext } from "../../deployment-mode";
+import { DeploymentModeContext } from "@stigmer/react-core";
 import { ManageAccessDialog } from "../ManageAccessDialog";
 
 // The dialog's job is composition + conditional section rendering — not the

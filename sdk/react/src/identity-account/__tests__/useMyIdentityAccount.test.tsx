@@ -6,7 +6,7 @@ import {
   type IdentityAccount,
 } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
 import type { MessageInitShape } from "@bufbuild/protobuf";
-import { StigmerContext } from "../../context";
+import { StigmerContext } from "@stigmer/react-core";
 import { useMyIdentityAccount } from "../useMyIdentityAccount";
 import { useUpdateIdentityAccount } from "../useUpdateIdentityAccount";
 

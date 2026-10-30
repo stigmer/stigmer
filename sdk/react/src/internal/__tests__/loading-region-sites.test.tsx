@@ -20,7 +20,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import { OrganizationSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import type { Stigmer } from "@stigmer/client";
-import { StigmerContext } from "../../context.js";
+import { StigmerContext } from "@stigmer/react-core";
 import { OrgProvider } from "../../organization/OrgProvider.js";
 import { AgentDetailView } from "../../agent/AgentDetailView.js";
 import { ApiKeyListPanel } from "../../api-key/ApiKeyListPanel.js";

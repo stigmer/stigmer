@@ -15,7 +15,7 @@ import type { Stigmer } from "@stigmer/client";
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
-import { StigmerContext } from "../../../context";
+import { StigmerContext } from "@stigmer/react-core";
 import { FilesTab, type FilesTabProps } from "../FilesTab";
 import { deriveSessionOutputs } from "../../useSessionOutputs";
 import { givenKey, type SessionGivenEntry } from "../../useSessionGivenFiles";

@@ -5,7 +5,7 @@ import {
   computeDiff,
   useFileChangeContent,
   type DiffHunk,
-} from "@stigmer/react-sdk/headless";
+} from "@stigmer/react-core";
 import { toDisplayFileChange } from "@stigmer/client";
 
 /**

@@ -1,6 +1,6 @@
 import type { ToolUse } from "@stigmer/client";
-import { resolveToolCategoryFromCall } from "./tool-categories.js";
-import type { ToolCategory } from "./tool-categories.js";
+import { resolveToolCategoryFromCall } from "@stigmer/react-core";
+import type { ToolCategory } from "@stigmer/react-core";
 import { resolveRunGroupable } from "./tool-presenter.js";
 
 /**

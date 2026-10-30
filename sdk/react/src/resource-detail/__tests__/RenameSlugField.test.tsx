@@ -20,7 +20,7 @@ import {
 } from "@testing-library/react";
 import { Code, ConnectError } from "@connectrpc/connect";
 
-import { StigmerContext } from "../../context.js";
+import { StigmerContext } from "@stigmer/react-core";
 import { RESOURCE_RENAME_HINT, ResourceSlugField } from "../RenameSlugField.js";
 
 afterEach(cleanup);

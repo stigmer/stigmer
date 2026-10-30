@@ -9,10 +9,10 @@ import {
 } from "@stigmer/client";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { Copy, FileJson, FileText } from "lucide-react";
-import type { HarnessOption } from "../../models/harness.js";
-import { HARNESS_META } from "../../models/harness.js";
+import type { HarnessOption } from "@stigmer/react-core";
+import { HARNESS_META } from "@stigmer/react-core/internal";
 import { Switch } from "../../switch/Switch.js";
-import type { ExecutionTargetOption } from "../execution-target.js";
+import type { ExecutionTargetOption } from "@stigmer/react-core";
 import { describeEnvironmentChoice } from "../../environment/copy.js";
 import type { EnvironmentChoice } from "../../environment/resolve.js";
 import { useExportTranscript } from "../useExportTranscript.js";

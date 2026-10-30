@@ -6,7 +6,7 @@ import { describe, it, expect, afterEach, vi } from "vitest";
 import { render, cleanup, screen, fireEvent, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import type { Stigmer } from "@stigmer/client";
-import { StigmerContext } from "../../context";
+import { StigmerContext } from "@stigmer/react-core";
 import { McpToolDetail } from "../McpToolDetail";
 import { toolUse, type ToolUseInit } from "./__fixtures__/fold-values";
 

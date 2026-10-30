@@ -19,7 +19,7 @@ import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { AgentSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
 import { AgentStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/status_pb";
 import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
-import { samples } from "../../test/samples";
+import { samples } from "@stigmer/react-core/test";
 import { sentRefs, sentUpdate } from "../../internal/__tests__/sent-update";
 import { ACME_ID, GLOBEX_ID, orgWrapper } from "../../organization/__tests__/org-fixture";
 
@@ -29,7 +29,8 @@ const SEARCH_RESULTS = [
   { id: "agt_triage", org: ACME_ID, slug: "triager", name: "Triager", description: "" },
 ];
 
-vi.mock("../useAgentSearch.js", () => ({
+vi.mock("@stigmer/react-core", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@stigmer/react-core")>()),
   useAgentSearch: () => ({
     results: SEARCH_RESULTS,
     isLoading: false,

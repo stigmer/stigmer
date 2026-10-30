@@ -1,8 +1,8 @@
 "use client";
 
 import type { EnvironmentAvailability, ServerInfo } from "@stigmer/client";
-import { useStigmer } from "./hooks.js";
-import { useFetch } from "./internal/useFetch.js";
+import { useStigmer } from "@stigmer/react-core";
+import { useFetch } from "@stigmer/react-core/internal";
 
 /** Return value of {@link useServerInfo}. */
 export interface UseServerInfoReturn {

@@ -23,7 +23,7 @@ import { PluginStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/s
 import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 import { digestArchive } from "@stigmer/plugin-package/client";
 
-import { StigmerContext } from "../../context.js";
+import { StigmerContext } from "@stigmer/react-core";
 import { PluginInstallDialog } from "../PluginInstallDialog.js";
 import { openGitHubTree, resetGitHubListingCache } from "../sources/github.js";
 import { type OpenedMarketplace, findEntry, openMarketplace, prepareEntry } from "../sources/read.js";

@@ -3,7 +3,7 @@
 import { memo, useMemo, useState, type ReactNode } from "react";
 import { Streamdown } from "streamdown";
 import type { InteractionMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
-import type { MessageItem, NoteItem, ThinkingItem } from "@stigmer/client";
+import type { ThreadMessage } from "@stigmer/react-core";
 import { cn } from "@stigmer/design-tokens";
 import {
   MARKDOWN_COMPONENTS,
@@ -19,24 +19,7 @@ import { useRenderTracer } from "../internal/dev/index.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { useCopyFeedback } from "../internal/useCopyFeedback.js";
 
-/**
- * The message a person wrote to start a turn, as the thread renders it: the
- * turn's `user.message` (or, before the session's events carry it, the text
- * just sent).
- */
-export interface UserMessageItem {
-  readonly kind: "user";
-  /** The `user.message` event's id, or a stand-in for one not yet sent. */
-  readonly id: string;
-  readonly text: string;
-}
-
-/**
- * One message of a conversation as {@link MessageEntry} renders it: what a
- * person wrote, or an agent's message, thinking or platform note from the
- * session's fold.
- */
-export type ThreadMessage = UserMessageItem | MessageItem | ThinkingItem | NoteItem;
+export type { ThreadMessage, UserMessageItem } from "@stigmer/react-core";
 
 /** Props for {@link MessageEntry}. */
 export interface MessageEntryProps {

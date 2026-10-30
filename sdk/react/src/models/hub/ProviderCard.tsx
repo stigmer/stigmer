@@ -19,7 +19,7 @@ import { Button } from "../../button/index.js";
 import { CopyButton, useCopy } from "../../internal/CopyBlock.js";
 import { UNSTYLED_LIST } from "../../internal/element-resets.js";
 import { useProviderKeyActions, type ProviderKeyProvider } from "../../billing/useProviderKeys.js";
-import { HARNESS_META, HARNESS_OPTIONS } from "../harness.js";
+import { HARNESS_META, HARNESS_OPTIONS } from "@stigmer/react-core/internal";
 import { presentationOf } from "../provider-presentation.js";
 import type { ModelReadiness, ProviderAvailability, ProviderReadiness } from "../readiness.js";
 import { ProviderKeyForm } from "./ProviderKeyForm.js";

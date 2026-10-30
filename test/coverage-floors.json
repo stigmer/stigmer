@@ -100,6 +100,11 @@
       "branches": 55.9,
       "cases": 4265
     },
+    "sdk/react-core": {
+      "lines": 82.2,
+      "branches": 65.9,
+      "cases": 390
+    },
     "sdk/theme": {
       "lines": 90.4,
       "branches": 85.6,

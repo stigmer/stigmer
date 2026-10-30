@@ -2,8 +2,8 @@ import { describe, it, expect, vi, afterEach, beforeAll } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import { ModelSelector } from "../ModelSelector";
 import { ModelRegistryContext } from "../ModelRegistryContext";
-import type { ModelInfo } from "../registry";
-import { thinkingLocked, thinkingSelectable } from "../thinking-mode";
+import type { ModelInfo } from "@stigmer/react-core";
+import { thinkingLocked, thinkingSelectable } from "@stigmer/react-core";
 
 // Shim ResizeObserver for Base UI's positioner (the
 // routineCreation.test.tsx pattern).

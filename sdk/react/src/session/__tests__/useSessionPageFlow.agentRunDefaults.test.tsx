@@ -33,15 +33,15 @@ const mockConv = {
   answerToolUse: vi.fn(),
   sendFollowUp: vi.fn(),
 };
-vi.mock("../useSessionConversation", () => ({
-  useSessionConversation: () => mockConv,
-}));
-
 // One client for every render, as the provider gives: a fresh object per
 // call would change the agent reads' inputs on each render.
-vi.mock("../../hooks", () => {
+vi.mock("@stigmer/react-core", async (importOriginal) => {
   const stigmer = { agent: { getByReference: vi.fn().mockResolvedValue(null) } };
-  return { useStigmer: () => stigmer };
+  return {
+    ...(await importOriginal<typeof import("@stigmer/react-core")>()),
+    useSessionConversation: () => mockConv,
+    useStigmer: () => stigmer,
+  };
 });
 
 vi.mock("../../workspace", () => ({

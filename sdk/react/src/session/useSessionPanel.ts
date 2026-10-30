@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
-import { isTerminalPhase } from "../run/run-phases.js";
+import { isTerminalPhase } from "@stigmer/react-core/internal";
 import {
   useWorkspaceEditorsStoreRef,
   type OpenFileOptions,

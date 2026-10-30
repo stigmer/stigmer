@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useRef, type KeyboardEvent } from "react";
-import { HARNESS_META, HARNESS_OPTIONS as OPTIONS, type HarnessOption } from "./harness.js";
+import { type HarnessOption } from "@stigmer/react-core";
+import { HARNESS_META, HARNESS_OPTIONS as OPTIONS } from "@stigmer/react-core/internal";
 
 /** Props for {@link HarnessSelector}. */
 export interface HarnessSelectorProps {
@@ -26,7 +27,7 @@ export interface HarnessSelectorProps {
  * semantics. All visual properties flow through `--stgm-*` tokens.
  *
  * Platform builders who need different rendering use
- * {@link HarnessOption} and {@link HARNESS_META} directly.
+ * {@link HarnessOption} and `HARNESS_META` directly.
  *
  * @example
  * ```tsx

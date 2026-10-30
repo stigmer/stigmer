@@ -20,10 +20,10 @@
  * {@link UseGitHubConnectionReturn.handleCallback}.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useStigmer } from "../hooks.js";
+import { useStigmer } from "@stigmer/react-core";
 import { useMyVault } from "../vault/useMyVault.js";
 import { GITHUB_HOST } from "../vault/address.js";
-import { toError } from "../internal/toError.js";
+import { toError } from "@stigmer/react-core/internal";
 import { checkedLoginPageUrl } from "../internal/loginPageUrl.js";
 import { SESSION_REFUSED_MESSAGE, canKeepInSession } from "../internal/sessionKeeping.js";
 import { closeOAuthPopup, openOAuthPopup } from "../internal/oauthPopup.js";

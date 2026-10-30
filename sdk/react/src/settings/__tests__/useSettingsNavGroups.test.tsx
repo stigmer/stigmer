@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { DeploymentModeContext } from "../../deployment-mode";
+import { DeploymentModeContext } from "@stigmer/react-core";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { useRef, useState } from "react";
 import {

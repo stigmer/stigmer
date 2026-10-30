@@ -1,0 +1,81 @@
+{
+  "name": "@stigmer/react-core",
+  "version": "0.0.0-dev",
+  "description": "React hooks for Stigmer, the open-source backend for the agents in your product: the conversation layer, with no rendering package",
+  "license": "Apache-2.0",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./internal": "./src/internal.ts",
+    "./test": "./src/test/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json",
+    "clean": "rm -rf dist tsconfig.build.tsbuildinfo",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typedoc:json": "typedoc",
+    "tsdoc:check": "typedoc --treatValidationWarningsAsErrors"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "stigmer",
+    "react",
+    "hooks",
+    "ai-agents"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js"
+      },
+      "./internal": {
+        "types": "./dist/internal.d.ts",
+        "import": "./dist/internal.js"
+      },
+      "./test": {
+        "types": "./dist/test/index.d.ts",
+        "import": "./dist/test/index.js"
+      }
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stigmer/stigmer.git",
+    "directory": "sdk/react-core"
+  },
+  "dependencies": {
+    "diff": "^8.0.3"
+  },
+  "peerDependencies": {
+    "@bufbuild/protobuf": "^2.8.0",
+    "@stigmer/apis": "*",
+    "@stigmer/client": "*",
+    "react": "^19.0.0"
+  },
+  "devDependencies": {
+    "@stigmer/apis": "*",
+    "@stigmer/client": "*",
+    "@testing-library/react": "^16.3.2",
+    "happy-dom": "^20.8.4",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tsx": "^4.21.0",
+    "typedoc": "^0.28.18",
+    "vitest": "^3.2.4"
+  }
+}

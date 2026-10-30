@@ -16,12 +16,8 @@ import { render, screen, cleanup } from "@testing-library/react";
 import { renderHook } from "@testing-library/react";
 import type { JsonObject } from "@bufbuild/protobuf";
 import type { ToolUse } from "@stigmer/client";
-import {
-  extractIntent,
-  extractShellIntent,
-  extractShellIntentFromPreview,
-  SHELL_INTENT_ARG_FIELD,
-} from "../tool-categories";
+import { extractShellIntentFromPreview } from "@stigmer/react-core";
+import { extractIntent, extractShellIntent, SHELL_INTENT_ARG_FIELD } from "@stigmer/react-core/internal";
 import { useToolPresentation, registerToolPresenter } from "../tool-presenter";
 import { ToolCallItem } from "../ToolCallItem";
 import { ApprovalCardHeader } from "../ApprovalCard";

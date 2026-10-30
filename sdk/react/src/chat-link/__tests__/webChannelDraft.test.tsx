@@ -14,7 +14,7 @@ import {
   ServiceTier,
   ThinkingMode,
 } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
-import { StigmerContext } from "../../context";
+import { StigmerContext } from "@stigmer/react-core";
 import { useSaveChannel } from "../../channel/useSaveChannel";
 import {
   draftFromWebChannel,

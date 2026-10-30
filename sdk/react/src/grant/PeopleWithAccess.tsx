@@ -16,7 +16,7 @@ import type { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresour
 import { cn } from "@stigmer/design-tokens";
 import { getUserMessage, granteeFromView, type Grantee } from "@stigmer/client";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
-import { useDeploymentMode } from "../deployment-mode.js";
+import { useDeploymentMode } from "@stigmer/react-core";
 import { useShareFlow, type ShareFlowResource } from "./useShareFlow.js";
 import { AccessRow, accessEntryKey } from "./AccessRow.js";
 import { GrantAccessForm } from "./GrantAccessForm.js";

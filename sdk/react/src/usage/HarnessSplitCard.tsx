@@ -14,7 +14,8 @@
 
 import { cn } from "@stigmer/design-tokens";
 import type { HarnessUsage } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
-import { HARNESS_META, isNamedHarness, type HarnessOption } from "../models/harness.js";
+import { type HarnessOption } from "@stigmer/react-core";
+import { HARNESS_META, isNamedHarness } from "@stigmer/react-core/internal";
 import { formatCalls, formatTokens, sharePercent } from "./format.js";
 
 /** Props for {@link HarnessSplitCard}. */

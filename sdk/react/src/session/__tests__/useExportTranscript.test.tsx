@@ -13,7 +13,7 @@ import {
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { RunListSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
-import { samples } from "../../test/samples";
+import { samples } from "@stigmer/react-core/test";
 
 const toastSuccess = vi.fn();
 const toastError = vi.fn();
@@ -44,7 +44,8 @@ const fakeEvents = samples.sessionEventList([
 ]);
 
 let listBySession: (input: unknown) => Promise<unknown>;
-vi.mock("../../hooks", () => ({
+vi.mock("@stigmer/react-core", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@stigmer/react-core")>()),
   useStigmer: () => ({
     session: {
       get: () => Promise.resolve(fakeSession),

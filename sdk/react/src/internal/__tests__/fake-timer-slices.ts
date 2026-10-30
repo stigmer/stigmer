@@ -1,3 +1,9 @@
+// One of two copies, the other
+// `sdk/react-core/src/internal/__tests__/fake-timer-slices.ts`: neither
+// package's tests can import the other's (the conversation core never depends
+// on the React kit, and test files are not published), so a change to one is
+// made to both.
+
 import { act } from "@testing-library/react";
 import { vi } from "vitest";
 

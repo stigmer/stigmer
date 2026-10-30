@@ -6,7 +6,8 @@ import { FederationIssuerListPanel } from "../federation-issuer/FederationIssuer
 import { FederationIssuerWizard } from "../federation-issuer/FederationIssuerWizard.js";
 import { FederationIssuerDetailPanel } from "../federation-issuer/FederationIssuerDetailPanel.js";
 import { FEDERATION_ISSUERS_MANAGED_BY_ADMINS } from "../federation-issuer/copy.js";
-import { useResourceAvailable, ApiResourceKind } from "../deployment-mode.js";
+import { useResourceAvailable } from "@stigmer/react-core";
+import { ApiResourceKind } from "@stigmer/react-core/internal";
 import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
 import { useOrg } from "../organization/OrgProvider.js";

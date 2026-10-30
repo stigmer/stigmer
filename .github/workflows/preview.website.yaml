@@ -35,6 +35,7 @@ on:
       # fails when one is missing).
       - "apis/stubs/ts/**"
       - "sdk/typescript/**"
+      - "sdk/react-core/**"
       - "sdk/react/**"
       - "sdk/theme/**"
       - "sdk/embed/**"

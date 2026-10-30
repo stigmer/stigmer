@@ -28,7 +28,7 @@ import {
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { cn } from "@stigmer/design-tokens";
 import { useEvals } from "../eval-run/useEvals.js";
-import { useStigmer } from "../hooks.js";
+import { useStigmer } from "@stigmer/react-core";
 import { downloadBinaryFile } from "../internal/download.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 

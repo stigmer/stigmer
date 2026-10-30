@@ -11,8 +11,8 @@ import { create } from "@bufbuild/protobuf";
 import { MemorySchema, type Memory } from "@stigmer/apis/ai/stigmer/agentic/memory/v1/api_pb";
 import { MemoryLifecycleState } from "@stigmer/apis/ai/stigmer/agentic/memory/v1/enum_pb";
 import { StigmerError } from "@stigmer/client";
-import { StigmerContext } from "../../context";
-import { FetchCacheContext } from "../../internal/FetchCacheProvider";
+import { StigmerContext } from "@stigmer/react-core";
+import { FetchCacheContext } from "@stigmer/react-core/internal";
 import { MemoryProposalCardBody } from "../MemoryProposalCard";
 
 function wrapper(client: unknown) {

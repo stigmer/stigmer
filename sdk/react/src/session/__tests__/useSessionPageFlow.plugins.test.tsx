@@ -12,7 +12,7 @@ import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import { SessionSchema, type Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import type { Stigmer } from "@stigmer/client";
-import { StigmerContext } from "../../context";
+import { StigmerContext } from "@stigmer/react-core";
 import { useSessionPageFlow } from "../useSessionPageFlow";
 import { sessionEventStream } from "./session-event-stream";
 

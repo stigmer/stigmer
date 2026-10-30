@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useStigmer } from "../hooks.js";
-import { toError } from "../internal/toError.js";
+import { useStigmer } from "@stigmer/react-core";
+import { toError } from "@stigmer/react-core/internal";
 import { fetchAndUnpackArtifact } from "./internal/fetchAndUnpackArtifact.js";
 import { computeMultiFileDiff } from "../version-history/computeMultiFileDiff.js";
 import type { MultiFileDiffResult } from "../version-history/types.js";

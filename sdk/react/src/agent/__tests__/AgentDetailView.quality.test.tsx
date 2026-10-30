@@ -14,7 +14,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { Code } from "@connectrpc/connect";
 import { StigmerError } from "@stigmer/client";
-import { samples } from "../../test/samples";
+import { samples } from "@stigmer/react-core/test";
 import { openMenu } from "../../__tests__/helpers/open-menu";
 import { AgentDetailView } from "../AgentDetailView";
 import { ACME_ID, orgWrapper } from "../../organization/__tests__/org-fixture";

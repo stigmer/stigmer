@@ -5,16 +5,17 @@ import { getUserMessage, type ResourceRef } from "@stigmer/client";
 import { accountDefaultModel, type AccountExecutionDefaults } from "../identity-account/useAccountExecutionDefaults.js";
 import type { AgentResolution } from "../agent/index.js";
 import { useModelRegistry } from "../models/index.js";
-import { parseModelKey } from "../models/registry.js";
-import { DEFAULT_HARNESS, isHarnessOption, type HarnessOption } from "../models/harness.js";
+import { parseModelKey } from "@stigmer/react-core";
+import { DEFAULT_HARNESS, type HarnessOption } from "@stigmer/react-core";
+import { isHarnessOption } from "@stigmer/react-core/internal";
 import { modelStorageKey } from "./usePersistedModel.js";
 import { useWorkspaceEntries, type UseWorkspaceEntriesReturn } from "../workspace/index.js";
 
 import type { SessionComposerSubmitContext } from "../composer/index.js";
-import { useCreateRun } from "../run/useCreateRun.js";
-import { useExecutionTarget } from "../execution-target-context.js";
+import { useCreateRun } from "@stigmer/react-core";
+import { useExecutionTarget } from "@stigmer/react-core/internal";
 import { useApprovalDefaults } from "../approval-defaults-context.js";
-import { useRunnerAdapter } from "../runner-adapter.js";
+import { useRunnerAdapter } from "@stigmer/react-core";
 import { includesMyVaultByDefault, type SessionAudience } from "./audience.js";
 import { assertValidRunConfig, type SessionRunConfig } from "./run-config.js";
 import {
@@ -26,7 +27,7 @@ import { useRunAgentSpec } from "../agent/useRunAgentSpec.js";
 import { environmentsNotApplying, type EnvironmentReference } from "../environment/resolve.js";
 import { useOrganization } from "../organization/useOrganization.js";
 import { useEnvironmentAvailability } from "../server-info.js";
-import { toError } from "../internal/toError.js";
+import { toError } from "@stigmer/react-core/internal";
 import { readRememberedPluginPicks, rememberPluginPicks } from "../plugin/rememberedPluginPicks.js";
 
 const STORAGE_KEY_HARNESS = "stigmer:session:harness";

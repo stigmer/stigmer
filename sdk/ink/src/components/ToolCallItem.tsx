@@ -18,7 +18,7 @@ import {
   extractPrimaryArg,
   useFileReviewRowState,
   type FileReviewRowState,
-} from "@stigmer/react-sdk/headless";
+} from "@stigmer/react-core";
 import { editedPath } from "../file-review.js";
 
 /** Props for {@link ToolCallItem}. */

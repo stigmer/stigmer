@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { TreeNode } from "../internal/file-tree/index.js";
-import { toError } from "../internal/toError.js";
+import { toError } from "@stigmer/react-core/internal";
 import type { WorkspaceEntry } from "./useWorkspaceEntries.js";
 import type { WorkspaceFileLister } from "./WorkspaceFileLister.js";
 import { loadEntryFiles, peekEntryListing } from "./workspaceListingCache.js";

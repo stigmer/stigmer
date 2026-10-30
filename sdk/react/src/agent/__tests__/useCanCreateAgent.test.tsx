@@ -15,8 +15,8 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { cleanup, render, renderHook, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { StigmerContext } from "../../context";
-import { FetchCacheContext } from "../../internal/FetchCacheProvider";
+import { StigmerContext } from "@stigmer/react-core";
+import { FetchCacheContext } from "@stigmer/react-core/internal";
 import { useCanCreateAgent } from "../useCanCreateAgent";
 import { AgentCreationWizard } from "../AgentCreationWizard";
 

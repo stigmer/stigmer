@@ -12,7 +12,7 @@ import { render, screen, cleanup, waitFor, fireEvent } from "@testing-library/re
 import { create } from "@bufbuild/protobuf";
 import type { Stigmer } from "@stigmer/client";
 import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
-import { StigmerContext } from "../../context";
+import { StigmerContext } from "@stigmer/react-core";
 import { toast } from "../../feedback/toast";
 import { FileDocument } from "../FileDocument";
 

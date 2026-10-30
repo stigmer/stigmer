@@ -16,8 +16,8 @@ import {
   PricingBlockSchema,
   PricingVariantSchema,
 } from "@stigmer/apis/ai/stigmer/billing/v1/model_pricing_baseline_pb";
-import { StigmerContext } from "../../context";
-import { FetchCacheContext } from "../../internal/FetchCacheProvider";
+import { StigmerContext } from "@stigmer/react-core";
+import { FetchCacheContext } from "@stigmer/react-core/internal";
 import { ModelCatalogConsole } from "../ModelCatalogConsole";
 
 interface MockBilling {

@@ -25,7 +25,7 @@ import { ActionMenu } from "../action-menu/index.js";
 import { Button } from "../button/Button.js";
 import { Switch } from "../switch/Switch.js";
 import { useCheckPermission } from "../grant/useCheckPermission.js";
-import { saveErrorMessage } from "../internal/maskedEdit.js";
+import { saveErrorMessage } from "@stigmer/react-core/internal";
 import { ChannelCardFrame, ChannelStatePill } from "./ChannelCardFrame.js";
 import { CHANNEL_PROVIDERS, channelProviderOf } from "./providers.js";
 import {

@@ -19,14 +19,15 @@ import { StrictMode, useEffect } from "react";
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
 
-vi.mock("../../hooks", () => ({
+vi.mock("@stigmer/react-core", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@stigmer/react-core")>()),
   useStigmer: vi.fn(),
 }));
 vi.mock("../prepare-image.js", () => ({
   prepareImageForVision: vi.fn(),
 }));
 
-import { useStigmer } from "../../hooks";
+import { useStigmer } from "@stigmer/react-core";
 import { prepareImageForVision } from "../prepare-image.js";
 import { MAX_MESSAGE_FILES, useFileUploads } from "../useFileUploads.js";
 import { MAX_FILE_BYTES } from "../upload-utils.js";

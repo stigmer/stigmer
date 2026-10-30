@@ -13,8 +13,8 @@ import { UpdateOrganizationEmbeddingInputSchema } from "@stigmer/apis/ai/stigmer
 import { OrganizationEmbeddingSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/spec_pb";
 import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { useStigmer } from "../hooks.js";
-import { toError } from "../internal/toError.js";
+import { useStigmer } from "@stigmer/react-core";
+import { toError } from "@stigmer/react-core/internal";
 
 /** An organization's embedding settings, as they should stand after the save. */
 export interface OrganizationEmbeddingValue {

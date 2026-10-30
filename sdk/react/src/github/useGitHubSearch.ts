@@ -6,7 +6,7 @@
  * the token or calls api.github.com.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useStigmer } from "../hooks.js";
+import { useStigmer } from "@stigmer/react-core";
 import { toGitHubRepo, type GitHubRepo } from "./useGitHubRepos.js";
 
 const DEBOUNCE_MS = 350;

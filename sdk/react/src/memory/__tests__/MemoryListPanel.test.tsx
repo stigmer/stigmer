@@ -6,8 +6,8 @@ import { create } from "@bufbuild/protobuf";
 import { MemorySchema, type Memory } from "@stigmer/apis/ai/stigmer/agentic/memory/v1/api_pb";
 import { MemoryLifecycleState } from "@stigmer/apis/ai/stigmer/agentic/memory/v1/enum_pb";
 import { MemoryListSchema } from "@stigmer/apis/ai/stigmer/agentic/memory/v1/io_pb";
-import { StigmerContext } from "../../context";
-import { FetchCacheContext } from "../../internal/FetchCacheProvider";
+import { StigmerContext } from "@stigmer/react-core";
+import { FetchCacheContext } from "@stigmer/react-core/internal";
 import { MemoryListPanel } from "../MemoryListPanel";
 
 function Providers({

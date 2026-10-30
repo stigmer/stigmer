@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { StigmerError } from "@stigmer/client";
-import { StigmerContext } from "../../context";
+import { StigmerContext } from "@stigmer/react-core";
 import { OAUTH_CALLBACK_MESSAGE_TYPE } from "../../internal/oauthPopup";
 import { useConnectSlackChannel } from "../useConnectSlackChannel";
 

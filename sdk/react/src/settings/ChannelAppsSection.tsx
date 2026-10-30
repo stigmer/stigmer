@@ -9,7 +9,7 @@ import {
 } from "../channel-app/CreateChannelAppForm.js";
 import { ChannelAppDetailPanel } from "../channel-app/ChannelAppDetailPanel.js";
 import { CHANNEL_APPS_MANAGED_BY_ADMINS } from "../channel-app/copy.js";
-import { useDeploymentMode } from "../deployment-mode.js";
+import { useDeploymentMode } from "@stigmer/react-core";
 import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
 import { useActiveOrgId } from "../organization/OrgProvider.js";

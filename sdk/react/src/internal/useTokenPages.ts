@@ -19,8 +19,8 @@
  * @internal Not part of the public `@stigmer/react-sdk` API.
  */
 import { type DependencyList, useCallback, useMemo, useState } from "react";
-import type { CursorPage } from "./useCursorPages.js";
-import { useFetch } from "./useFetch.js";
+import type { CursorPage } from "@stigmer/react-core/internal";
+import { useFetch } from "@stigmer/react-core/internal";
 
 /** Return value of {@link useTokenPages}. */
 export interface UseTokenPagesReturn<T, P extends CursorPage<T> = CursorPage<T>> {

@@ -14,8 +14,8 @@ import { create } from "@bufbuild/protobuf";
 import type { IdentityAccount } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { CreateServiceAccountInputSchema } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/io_pb";
 import type { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
-import { useStigmer } from "../hooks.js";
-import { toError } from "../internal/toError.js";
+import { useStigmer } from "@stigmer/react-core";
+import { toError } from "@stigmer/react-core/internal";
 
 /** What a service account is created with. */
 export interface CreateServiceAccountParams {

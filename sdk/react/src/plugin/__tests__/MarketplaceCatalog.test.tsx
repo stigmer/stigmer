@@ -30,7 +30,7 @@ import { GetServerInfoOutputSchema, PlatformQueryController } from "@stigmer/api
 import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
 import { PluginListSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/io_pb";
 
-import { StigmerContext } from "../../context.js";
+import { StigmerContext } from "@stigmer/react-core";
 import { CATALOG_PAGE_SIZE, MarketplaceCatalog, filterEntries } from "../MarketplaceCatalog.js";
 import { resetGitHubListingCache } from "../sources/github.js";
 import { MARKETPLACES_STORAGE_KEY } from "../useMarketplaces.js";

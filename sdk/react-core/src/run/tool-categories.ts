@@ -9,7 +9,7 @@ import {
 } from "@stigmer/client";
 
 /** What the presentation helpers read of a tool use: its name, MCP server and input. */
-type ToolIdentity = Pick<ToolUse, "name" | "mcpServerName">;
+export type ToolIdentity = Pick<ToolUse, "name" | "mcpServerName">;
 
 /**
  * Discriminated tool categories for type-aware rendering.
@@ -61,7 +61,7 @@ export type ToolCategory =
  *   transcript at full contrast (Cursor's chat is the reference UX).
  *
  * This is the *disclosure* axis (how much of a result to show); it is
- * orthogonal to {@link isRunGroupableCategory} (whether consecutive same-kind
+ * orthogonal to `isRunGroupableCategory` (whether consecutive same-kind
  * calls fold into one chip). A category can be result-rich but never folded
  * (`shell`), or foldable but never previewed (`read`).
  */
@@ -159,7 +159,7 @@ const TAIL_CATEGORIES: ReadonlySet<ToolCategory> = new Set<ToolCategory>([
  * "Read 5 files" chip in the thread. These are the read-only, repetitive
  * operations whose individual rows are noise in bulk; everything else renders
  * as a persistent row. This is the *run-grouping* axis, orthogonal to
- * {@link ToolDisclosure} — see {@link isRunGroupableCategory}.
+ * {@link ToolDisclosure} — see `isRunGroupableCategory`.
  */
 const RUN_GROUPABLE_CATEGORIES: ReadonlySet<ToolCategory> = new Set<ToolCategory>([
   "read",
@@ -518,7 +518,7 @@ export { SHELL_INTENT_ARG_FIELD, extractShellIntent } from "@stigmer/client";
 /**
  * Preview-string twin of {@link extractShellIntent} for surfaces that carry an
  * ask's JSON `argsPreview` instead of the tool use's input; mirrors
- * {@link extractPrimaryArgFromPreview}'s kind resolution.
+ * `extractPrimaryArgFromPreview`'s kind resolution.
  */
 export function extractShellIntentFromPreview(
   toolName: string,

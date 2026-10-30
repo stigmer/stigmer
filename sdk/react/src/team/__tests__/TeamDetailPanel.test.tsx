@@ -11,7 +11,7 @@ import { sentUpdate } from "../../internal/__tests__/sent-update";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { clone, create } from "@bufbuild/protobuf";
 import { TeamSchema, type Team } from "@stigmer/apis/ai/stigmer/iam/team/v1/api_pb";
-import { StigmerContext } from "../../context";
+import { StigmerContext } from "@stigmer/react-core";
 
 vi.mock("../TeamMembersPanel.js", () => ({
   TeamMembersPanel: () => <div data-testid="members" />,

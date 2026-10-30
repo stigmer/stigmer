@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { modelStorageKey, usePersistedModel } from "../usePersistedModel";
-import { DEFAULT_MODEL_ID, parseRegistryJson } from "../../models/registry";
+import { DEFAULT_MODEL_ID, parseRegistryJson } from "@stigmer/react-core";
 import { ModelRegistryContext } from "../../models/ModelRegistryContext";
 import type { ModelRegistryState } from "../../models/ModelRegistryContext";
 

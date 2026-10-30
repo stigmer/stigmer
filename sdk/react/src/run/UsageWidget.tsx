@@ -15,10 +15,7 @@
 
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { cn } from "@stigmer/design-tokens";
-import {
-  useSessionUsage,
-  type ModelUsageEntry,
-} from "../session/useSessionUsage.js";
+import { useSessionUsage, type ModelUsageEntry } from "@stigmer/react-core";
 import { formatCalls, formatCompactCount, formatTokens } from "../usage/format.js";
 import { ServedByLine } from "../usage/ServedByLine.js";
 

@@ -64,6 +64,7 @@ const SUBJECTS = {
   "sdk/embed": { script: "test", jobs: [LIBS] },
   "sdk/ink": { script: "test", jobs: [LIBS] },
   "sdk/react": { script: "test", jobs: [["ci.ts-workspace.yaml", "react-tests"]] },
+  "sdk/react-core": { script: "test", jobs: [LIBS] },
   "sdk/theme": { script: "test", jobs: [LIBS] },
   "sdk/typescript": { script: "test", jobs: [LIBS] },
   site: { script: "test:unit", jobs: [["ci.docs.yaml", "lint-and-build"]] },

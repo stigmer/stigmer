@@ -7,8 +7,8 @@ import {
   ChannelSendOutcome,
   SendChannelMessageOutputSchema,
 } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/message_io_pb";
-import { StigmerContext } from "../../context";
-import { FetchCacheContext } from "../../internal/FetchCacheProvider";
+import { StigmerContext } from "@stigmer/react-core";
+import { FetchCacheContext } from "@stigmer/react-core/internal";
 import { ConversationTemplatePickerDialog } from "../ConversationTemplatePickerDialog";
 
 function makeTemplate(overrides?: Partial<Record<string, unknown>>) {

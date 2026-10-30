@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { isPerfLoggingEnabled } from "./enabled.js";
+import { isPerfLoggingEnabled } from "@stigmer/react-core/internal";
 
 /**
  * Sampling interval: log every Nth render to avoid flooding the

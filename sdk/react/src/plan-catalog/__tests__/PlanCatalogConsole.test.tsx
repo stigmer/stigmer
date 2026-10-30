@@ -10,9 +10,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
-import { StigmerContext } from "../../context";
-import { DeploymentModeContext } from "../../deployment-mode";
-import { FetchCacheContext } from "../../internal/FetchCacheProvider";
+import { StigmerContext } from "@stigmer/react-core";
+import { DeploymentModeContext } from "@stigmer/react-core";
+import { FetchCacheContext } from "@stigmer/react-core/internal";
 import { PlanCatalogConsole } from "../PlanCatalogConsole";
 import { BUSINESS, RETIRED, TEAM } from "../../billing/__tests__/fixtures";
 

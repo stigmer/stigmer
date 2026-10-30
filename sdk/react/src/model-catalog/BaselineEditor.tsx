@@ -12,7 +12,7 @@ import {
 } from "@stigmer/apis/ai/stigmer/billing/v1/model_pricing_baseline_pb";
 import { Button } from "../button/index.js";
 import { Field, INPUT_CLASSES } from "../internal/form-primitives.js";
-import { HARNESS_OPTIONS } from "../models/harness.js";
+import { HARNESS_OPTIONS } from "@stigmer/react-core/internal";
 import {
   ZERO,
   dollarsToMicros,

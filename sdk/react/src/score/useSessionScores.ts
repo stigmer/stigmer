@@ -4,9 +4,9 @@ import { useEffect, useMemo, useRef } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { Score } from "@stigmer/apis/ai/stigmer/agentic/score/v1/api_pb";
 import { ListScoresBySessionRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/score/v1/io_pb";
-import { useStigmer } from "../hooks.js";
-import { LIST_PAGE_MAX, readWholeList } from "../internal/everyPage.js";
-import { useFetch } from "../internal/useFetch.js";
+import { useStigmer } from "@stigmer/react-core";
+import { LIST_PAGE_MAX, readWholeList } from "@stigmer/react-core/internal";
+import { useFetch } from "@stigmer/react-core/internal";
 import { isPendingJudgeScore } from "./score-view.js";
 
 /** Return value of {@link useSessionScores}. */

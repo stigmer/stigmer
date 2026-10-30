@@ -8,8 +8,8 @@
  */
 import { useMemo } from "react";
 import type { Team } from "@stigmer/apis/ai/stigmer/iam/team/v1/api_pb";
-import { useStigmer } from "../hooks.js";
-import { useFetch } from "../internal/useFetch.js";
+import { useStigmer } from "@stigmer/react-core";
+import { useFetch } from "@stigmer/react-core/internal";
 
 /** Return value of {@link useTeam}. */
 export interface UseTeamReturn {

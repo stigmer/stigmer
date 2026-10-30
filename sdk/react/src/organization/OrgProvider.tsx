@@ -14,9 +14,9 @@ import { create } from "@bufbuild/protobuf";
 import { isNotFound, isPermissionDenied } from "@stigmer/client";
 import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import { ListMyOrganizationsInputSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/io_pb";
-import { useStigmer } from "../hooks.js";
-import { useFetchCache } from "../internal/FetchCacheProvider.js";
-import { LIST_PAGE_MAX, readEveryPage } from "../internal/everyPage.js";
+import { useStigmer } from "@stigmer/react-core";
+import { useFetchCache } from "@stigmer/react-core/internal";
+import { LIST_PAGE_MAX, readEveryPage } from "@stigmer/react-core/internal";
 
 /** Value exposed by {@link OrgProvider} via {@link useOrg}. */
 export interface OrgContextValue {

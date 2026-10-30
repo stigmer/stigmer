@@ -1,12 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { renderHook, act } from "@testing-library/react";
+import { renderHook } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { StigmerContext } from "../context";
 import { FetchCacheContext } from "../internal/FetchCacheProvider";
 import { ExecutionTargetContext } from "../execution-target-context";
 import { RunnerAdapterContext, useRunnerAdapter } from "../runner-adapter";
 import type { RunnerAdapter } from "../runner-adapter";
-import { useCreateSession } from "../session/useCreateSession";
 
 function createMockAdapter(): RunnerAdapter & {
   onSessionOpened: ReturnType<typeof vi.fn>;
@@ -69,33 +68,6 @@ describe("RunnerAdapter", () => {
         wrapper: wrapperWithAdapter(createMockStigmer(), adapter),
       });
       expect(result.current).toBe(adapter);
-    });
-  });
-
-  describe("useCreateSession is a pure resource-creation hook", () => {
-    // The worker lifecycle moved to the session view (useSessionConversation
-    // attaches on open / detaches on close) and the new-session flow's eager
-    // attach. Creating a session must NOT touch the adapter on its own.
-    it("does not drive the adapter even when target is local", async () => {
-      const adapter = createMockAdapter();
-      const client = createMockStigmer();
-
-      const { result } = renderHook(() => useCreateSession(), {
-        wrapper: wrapperWithAdapter(client, adapter, "local"),
-      });
-
-      let created: { sessionId: string } | undefined;
-      await act(async () => {
-        created = await result.current.create({
-          org: "acme",
-          agentRef: { org: "acme", slug: "helper" },
-        });
-      });
-
-      expect(created?.sessionId).toBe("ses_new-1");
-      expect(adapter.onSessionOpened).not.toHaveBeenCalled();
-      expect(adapter.onSessionClosed).not.toHaveBeenCalled();
-      expect(result.current.error).toBeNull();
     });
   });
 });

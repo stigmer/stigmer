@@ -11,7 +11,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
 import React from "react";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
-import { samples } from "../../test/samples";
+import { samples } from "@stigmer/react-core/test";
 import {
   buildThreadItems,
   ThreadItemRenderer,

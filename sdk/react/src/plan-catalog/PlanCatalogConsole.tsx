@@ -9,7 +9,8 @@ import { PlanLifecycle } from "@stigmer/apis/ai/stigmer/billing/plan/v1/status_p
 import { formatChildOrgs, formatMonthlyFee, offeredFeatures } from "../billing/plan-features.js";
 import { usePlans } from "../billing/usePlans.js";
 import { Button } from "../button/index.js";
-import { ApiResourceKind, useResourceAvailable } from "../deployment-mode.js";
+import { useResourceAvailable } from "@stigmer/react-core";
+import { ApiResourceKind } from "@stigmer/react-core/internal";
 import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";

@@ -3,12 +3,13 @@ import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/re
 import { create } from "@bufbuild/protobuf";
 import { FileContentSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/message_pb";
 import type { DisplayFileChange } from "@stigmer/client";
-import type { UseFileChangeContentReturn } from "../../run/useFileChangeContent";
+import type { UseFileChangeContentReturn } from "@stigmer/react-core";
 
 // Drive FileChangeDiff's content deterministically (it is rendered by the diff
 // pane) — same seam FileChangesView's own tests mock.
 let mockFileChangeContent: UseFileChangeContentReturn;
-vi.mock("../../run/useFileChangeContent", () => ({
+vi.mock("@stigmer/react-core", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@stigmer/react-core")>()),
   useFileChangeContent: () => mockFileChangeContent,
 }));
 

@@ -14,8 +14,8 @@ import {
   ChannelConversationSchema,
   ConversationControl,
 } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/conversation_io_pb";
-import { StigmerContext } from "../../context";
-import { FetchCacheContext } from "../../internal/FetchCacheProvider";
+import { StigmerContext } from "@stigmer/react-core";
+import { FetchCacheContext } from "@stigmer/react-core/internal";
 import { useConversationList } from "../useConversationList";
 
 function conversation(channelId: string, key: string, displayName = "") {

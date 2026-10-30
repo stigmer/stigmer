@@ -10,7 +10,7 @@ import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import type { ListPluginToolsInput } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/io_pb";
 
-import { StigmerContext } from "../../context.js";
+import { StigmerContext } from "@stigmer/react-core";
 import { usePluginTools } from "../usePluginTools.js";
 
 afterEach(cleanup);

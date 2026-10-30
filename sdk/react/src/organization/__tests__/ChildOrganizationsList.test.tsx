@@ -17,8 +17,8 @@ import {
 } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import type { CheckMyPermissionInput } from "@stigmer/apis/ai/stigmer/iam/grant/v1/io_pb";
 import type { ListChildOrgsInput } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/io_pb";
-import { StigmerContext } from "../../context";
-import { DeploymentModeContext } from "../../deployment-mode";
+import { StigmerContext } from "@stigmer/react-core";
+import { DeploymentModeContext } from "@stigmer/react-core";
 import { ChildOrganizationsList } from "../ChildOrganizationsList";
 import { OrgProvider, useActiveOrgId } from "../OrgProvider";
 

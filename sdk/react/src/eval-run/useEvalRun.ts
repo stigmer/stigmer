@@ -16,8 +16,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { isNotFound, isPermissionDenied } from "@stigmer/client";
 import type { EvalRun } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/api_pb";
-import { useStigmer } from "../hooks.js";
-import { useFetch } from "../internal/useFetch.js";
+import { useStigmer } from "@stigmer/react-core";
+import { useFetch } from "@stigmer/react-core/internal";
 import { isEvalActive } from "./eval-view.js";
 
 /** How often a pending or running eval run is read again, in milliseconds. */

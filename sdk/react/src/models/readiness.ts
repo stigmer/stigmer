@@ -4,7 +4,7 @@
 // answer (`PlatformQueryController.getModelReadiness`) is read from the same
 // rule a run is refused by, so these types carry its verdict and never
 // re-derive it; the helpers below only ask it questions.
-import type { HarnessOption } from "./harness.js";
+import type { HarnessOption } from "@stigmer/react-core";
 
 /**
  * Where a provider stands for an organization.

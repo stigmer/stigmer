@@ -27,20 +27,21 @@ import {
   FileChangeKind,
 } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import type { FileReviewDecision, FileReviewFile, FileReviewSet } from "@stigmer/client";
-import { StigmerContext } from "../../context";
-import { FetchCacheContext } from "../../internal/FetchCacheProvider";
-import type { UseFileChangeContentReturn } from "../useFileChangeContent";
+import { StigmerContext } from "@stigmer/react-core";
+import { FetchCacheContext } from "@stigmer/react-core/internal";
+import type { UseFileChangeContentReturn } from "@stigmer/react-core";
 
 // FileReviewCard renders FileChangeDiff (per file), which pulls in the
 // offload-resolving content hook transitively. Mock it so the diff path
 // renders without stored-content fetch context, then import the component.
 let mockReturn: UseFileChangeContentReturn;
-vi.mock("../useFileChangeContent", () => ({
+vi.mock("@stigmer/react-core", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@stigmer/react-core")>()),
   useFileChangeContent: () => mockReturn,
 }));
 
 const { FileReviewCard } = await import("../FileReviewCard");
-const { fileDecisionKey } = await import("../useReviewFileChanges");
+const { fileDecisionKey } = await import("@stigmer/react-core");
 
 const runGet = vi.fn();
 

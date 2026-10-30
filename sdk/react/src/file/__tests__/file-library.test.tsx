@@ -12,7 +12,7 @@ import { render, screen, fireEvent, cleanup, waitFor, within } from "@testing-li
 import { create } from "@bufbuild/protobuf";
 import type { Stigmer } from "@stigmer/client";
 import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
-import { StigmerContext } from "../../context";
+import { StigmerContext } from "@stigmer/react-core";
 import { createFileListFn, listLibraryFilesPage } from "../fileListFn";
 import { FileUploadButton, LIBRARY_UPLOAD_CONCURRENCY } from "../FileUploadButton";
 import { FilePicker } from "../FilePicker";

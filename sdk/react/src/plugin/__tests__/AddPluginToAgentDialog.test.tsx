@@ -31,7 +31,7 @@ vi.mock("../../agent/AgentPicker.js", () => ({
   ),
 }));
 
-import { StigmerContext } from "../../context.js";
+import { StigmerContext } from "@stigmer/react-core";
 import { AddPluginToAgentDialog } from "../AddPluginToAgentDialog.js";
 import type { PluginOffer } from "../useAddPluginToAgent.js";
 

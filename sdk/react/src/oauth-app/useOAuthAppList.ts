@@ -3,8 +3,8 @@
 import { create } from "@bufbuild/protobuf";
 import { ListOAuthAppsInputSchema } from "@stigmer/apis/ai/stigmer/iam/oauthapp/v1/io_pb";
 import type { OAuthApp } from "@stigmer/apis/ai/stigmer/iam/oauthapp/v1/api_pb";
-import { useStigmer } from "../hooks.js";
-import { useCursorPages } from "../internal/useCursorPages.js";
+import { useStigmer } from "@stigmer/react-core";
+import { useCursorPages } from "@stigmer/react-core/internal";
 
 /** Return value of {@link useOAuthAppList}. */
 export interface UseOAuthAppListReturn {

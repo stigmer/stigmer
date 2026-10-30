@@ -24,38 +24,38 @@ import { renderHook, act, waitFor } from "@testing-library/react";
 import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { ThinkingMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import type { ReactNode } from "react";
-import { DEFAULT_MODEL_ID, parseRegistryJson } from "../../models/registry";
+import { DEFAULT_MODEL_ID, parseRegistryJson } from "@stigmer/react-core";
 import { ModelRegistryContext } from "../../models/ModelRegistryContext";
 import type { ModelRegistryState } from "../../models/ModelRegistryContext";
-import { ExecutionTargetContext } from "../../execution-target-context";
+import { ExecutionTargetContext } from "@stigmer/react-core/internal";
 import { ApprovalDefaultsContext } from "../../approval-defaults-context";
 import type { ApprovalDefaults } from "../../approval-defaults-context";
-import { RunnerAdapterContext } from "../../runner-adapter";
-import type { RunnerAdapter } from "../../runner-adapter";
+import { RunnerAdapterContext } from "@stigmer/react-core/internal";
+import type { RunnerAdapter } from "@stigmer/react-core";
 const mockGetByReference = vi.fn();
+const mockCreateExecution = vi.fn();
 // One client for every render, as the provider gives: a fresh object per
 // call would change the agent read's inputs on each render.
 // The server's facts and the organization are read for the Environment
 // entry (useNewSessionFlow.environment.test.tsx pins it); here the server
 // predates the field and the organization names no default.
-vi.mock("../../hooks", () => {
+vi.mock("@stigmer/react-core", async (importOriginal) => {
   const stigmer = {
     agent: { getByReference: (...args: unknown[]) => mockGetByReference(...args) },
     platform: { getServerInfo: async () => ({ environments: undefined }) },
     organization: { get: async () => ({ spec: {} }) },
   };
-  return { useStigmer: () => stigmer };
+  return {
+    ...(await importOriginal<typeof import("@stigmer/react-core")>()),
+    useCreateRun: () => ({
+      create: mockCreateExecution,
+      isCreating: false,
+      error: null,
+      clearError: vi.fn(),
+    }),
+    useStigmer: () => stigmer,
+  };
 });
-
-const mockCreateExecution = vi.fn();
-vi.mock("../../run/useCreateRun", () => ({
-  useCreateRun: () => ({
-    create: mockCreateExecution,
-    isCreating: false,
-    error: null,
-    clearError: vi.fn(),
-  }),
-}));
 
 const mockWorkspace = {
   entries: [],

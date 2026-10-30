@@ -5,10 +5,10 @@ import { create } from "@bufbuild/protobuf";
 import { cn } from "@stigmer/design-tokens";
 import { getUserMessage, isNotFound, isTransientStreamError } from "@stigmer/client";
 import { CompleteConnectLinkInputSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/connect_link_pb";
-import { useStigmer } from "../hooks.js";
+import { useStigmer } from "@stigmer/react-core";
 import { isBrowserDestination } from "../internal/loginPageUrl.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
-import { toError } from "../internal/toError.js";
+import { toError } from "@stigmer/react-core/internal";
 import { DEAD_CONNECT_LINK_MESSAGE, clearPendingConnectLinkToken } from "./useConnectLink.js";
 
 /** What the customer reads when the app's return address fails the browser check. */

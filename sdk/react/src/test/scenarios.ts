@@ -38,9 +38,9 @@ import {
 import { StreamSessionEventsResponseSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 import type { FileChangeSet } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
 import { SessionLog, type FileReviewSet, type SessionFold, type ToolUse, type Turn, type TurnPhase } from "@stigmer/client";
-import type { UseSessionConversationReturn } from "../session/useSessionConversation.js";
-import type { UseSessionUsageReturn } from "../session/useSessionUsage.js";
-import { samples, sampleInstant } from "./samples.js";
+import type { UseSessionConversationReturn } from "@stigmer/react-core";
+import type { UseSessionUsageReturn } from "@stigmer/react-core";
+import { samples, sampleInstant } from "@stigmer/react-core/test";
 
 /** The catalogue's states, in the order a conversation meets them. */
 export const SCENARIO_NAMES = [

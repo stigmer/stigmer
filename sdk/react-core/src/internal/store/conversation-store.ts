@@ -47,7 +47,8 @@ const IDLE_STATE: StreamState = { stage: "idle" };
 // ConversationStore
 // ---------------------------------------------------------------------------
 
-type Listener = () => void;
+/** A store subscriber, called after every change. */
+export type Listener = () => void;
 
 /**
  * Framework-agnostic store for one session's conversation: its folded event

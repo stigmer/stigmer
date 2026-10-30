@@ -375,7 +375,7 @@ function numbered(events: readonly SessionEvent[]): SessionEvent[] {
  *
  * @example
  * ```ts
- * import { samples, sampleInstant } from "@stigmer/react-sdk/test";
+ * import { samples, sampleInstant } from "@stigmer/react-core/test";
  *
  * const scenario = buildScenario(
  *   fixtures.session.get(() => samples.session({ subject: "My topic" })),

@@ -2,8 +2,8 @@
 
 import { useMemo } from "react";
 import type { License } from "@stigmer/apis/ai/stigmer/billing/license/v1/api_pb";
-import { useStigmer } from "../hooks.js";
-import { useFetch } from "../internal/useFetch.js";
+import { useStigmer } from "@stigmer/react-core";
+import { useFetch } from "@stigmer/react-core/internal";
 
 /** Return value of {@link useLicense}. */
 export interface UseLicenseReturn {

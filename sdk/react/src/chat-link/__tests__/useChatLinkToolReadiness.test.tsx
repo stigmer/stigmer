@@ -5,8 +5,8 @@ import { create } from "@bufbuild/protobuf";
 import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
-import { StigmerContext } from "../../context";
-import { DeploymentModeContext } from "../../deployment-mode";
+import { StigmerContext } from "@stigmer/react-core";
+import { DeploymentModeContext } from "@stigmer/react-core";
 import { useChatLinkToolReadiness } from "../useChatLinkToolReadiness";
 import type { WebChannelDraft, ChatLinkAudience } from "../webChannelDraft";
 

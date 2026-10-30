@@ -24,7 +24,7 @@ import {
   type GetGitHubFileContentInput,
   type GetGitHubTreeInput,
 } from "@stigmer/apis/ai/stigmer/platform/github/v1/io_pb";
-import { StigmerContext } from "../../context";
+import { StigmerContext } from "@stigmer/react-core";
 import { WorkspaceFileNotFoundError } from "../../workspace/WorkspaceFileReader";
 import type { WorkspaceEntry } from "../../workspace/useWorkspaceEntries";
 import { useGitHubFileReader } from "../useGitHubFileReader";

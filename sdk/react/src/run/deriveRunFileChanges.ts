@@ -14,7 +14,7 @@ import {
   type DisplayFileChange,
   type DisplayFileChangeType,
 } from "@stigmer/client";
-import { computeDiff } from "../version-history/computeDiff.js";
+import { computeDiff } from "@stigmer/react-core";
 import type { DiffHunk, FileDiffEntry } from "../version-history/types.js";
 
 /**

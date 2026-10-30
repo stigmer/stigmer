@@ -21,7 +21,7 @@ import type { ReactNode } from "react";
 import type { Stigmer } from "@stigmer/client";
 import { create } from "@bufbuild/protobuf";
 import { McpServerEntrySchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
-import { StigmerContext } from "../../context";
+import { StigmerContext } from "@stigmer/react-core";
 import { noMyVaultClient } from "../../__tests__/helpers/no-my-vault";
 import { ModelRegistryContext } from "../../models/ModelRegistryContext";
 

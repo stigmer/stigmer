@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { parseUnifiedDiff } from "../parseUnifiedDiff";
-import { computeDiff } from "../computeDiff";
+import { computeDiff } from "@stigmer/react-core";
 
 describe("parseUnifiedDiff", () => {
   it("parses a /dev/null create, discarding the ---/+++ preamble", () => {

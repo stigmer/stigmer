@@ -3,8 +3,8 @@
 import { useCallback, useMemo, useState } from "react";
 import type { LicenseInput } from "@stigmer/client";
 import type { License } from "@stigmer/apis/ai/stigmer/billing/license/v1/api_pb";
-import { useStigmer } from "../hooks.js";
-import { toError } from "../internal/toError.js";
+import { useStigmer } from "@stigmer/react-core";
+import { toError } from "@stigmer/react-core/internal";
 
 /** Return value of {@link useIssueLicense}. */
 export interface UseIssueLicenseReturn {

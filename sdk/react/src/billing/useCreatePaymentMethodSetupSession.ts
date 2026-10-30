@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { useStigmer } from "../hooks.js";
-import { toError } from "../internal/toError.js";
+import { useStigmer } from "@stigmer/react-core";
+import { toError } from "@stigmer/react-core/internal";
 import { billingReturnUrl, leaveForStripe, type BillingRedirect } from "./redirect.js";
 
 /** Return value of {@link useCreatePaymentMethodSetupSession}. */

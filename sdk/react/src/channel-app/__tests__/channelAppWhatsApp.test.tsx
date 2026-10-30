@@ -4,7 +4,7 @@ import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/re
 import type { ReactNode } from "react";
 import type { ChannelAppInput } from "@stigmer/client";
 import type { ChannelApp } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/api_pb";
-import { StigmerContext } from "../../context";
+import { StigmerContext } from "@stigmer/react-core";
 import { PublicBaseUrlContext } from "../../public-base-url-context";
 import { CreateChannelAppForm, type ChannelAppCreateHandoff } from "../CreateChannelAppForm";
 import { ChannelAppDetailPanel } from "../ChannelAppDetailPanel";

@@ -28,11 +28,7 @@ export {
   type UseAccessHistoryReturn,
 } from "./useAccessHistory.js";
 
-export {
-  useWhoAmI,
-  type UseWhoAmIOptions,
-  type UseWhoAmIReturn,
-} from "./useWhoAmI.js";
+export { useWhoAmI, type UseWhoAmIOptions, type UseWhoAmIReturn } from "@stigmer/react-core";
 
 export {
   useCreateGrant,

@@ -10,14 +10,15 @@ import {
 } from "react";
 import { cn } from "@stigmer/design-tokens";
 import { getUserMessage } from "@stigmer/client";
-import { saveErrorMessage } from "../internal/maskedEdit.js";
+import { saveErrorMessage } from "@stigmer/react-core/internal";
 import type { IdentityAccount } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
 import type { IdentityAccountPreferences } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/spec_pb";
 import { useMyIdentityAccount } from "./useMyIdentityAccount.js";
 import { useUpdateIdentityAccount } from "./useUpdateIdentityAccount.js";
 import { DEFAULT_MODELS_HUB_HREF } from "../billing/ProviderKeyNotice.js";
 import { useServerInfo } from "../server-info.js";
-import { HARNESS_META, HARNESS_OPTIONS, isHarnessOption, type HarnessOption } from "../models/harness.js";
+import { type HarnessOption } from "@stigmer/react-core";
+import { HARNESS_META, HARNESS_OPTIONS, isHarnessOption } from "@stigmer/react-core/internal";
 import { MemoryEnabledRow } from "../internal/MemoryEnabledRow.js";
 import { StandingContextField } from "../internal/StandingContextField.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";

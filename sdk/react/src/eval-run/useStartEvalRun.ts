@@ -13,8 +13,8 @@
 import { useCallback, useMemo, useState } from "react";
 import type { EvalRun } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/api_pb";
 import type { EvalRunInput } from "@stigmer/client";
-import { useStigmer } from "../hooks.js";
-import { toError } from "../internal/toError.js";
+import { useStigmer } from "@stigmer/react-core";
+import { toError } from "@stigmer/react-core/internal";
 
 /** Return value of {@link useStartEvalRun}. */
 export interface UseStartEvalRunReturn {
