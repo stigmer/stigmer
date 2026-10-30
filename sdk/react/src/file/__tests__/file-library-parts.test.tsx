@@ -18,7 +18,7 @@ import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import type { Stigmer } from "@stigmer/client";
 import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
-import { StigmerContext } from "../../context";
+import { StigmerContext } from "@stigmer/react-core";
 import { createFileColumns, describeFileType, describeUploaded } from "../fileColumns";
 import { useFileCount } from "../useFileCount";
 import { useCanCreateFile } from "../useCanCreateFile";

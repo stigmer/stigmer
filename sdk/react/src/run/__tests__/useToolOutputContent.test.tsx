@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import { ToolCallOutputRefSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/message_pb";
-import type { UseArtifactContentReturn } from "../useArtifactContent";
+import type { UseArtifactContentReturn } from "@stigmer/react-core";
 
 // Mock the underlying content fetch so the test asserts the derivation logic
 // (execId from storageKey) and the lazy `enabled` gate, not the network.
@@ -13,7 +13,8 @@ const calls: Array<{
   contentHash?: string;
 }> = [];
 
-vi.mock("../useArtifactContent", () => ({
+vi.mock("@stigmer/react-core", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@stigmer/react-core")>()),
   useArtifactContent: (
     executionId: string | null,
     storageKey: string | null,

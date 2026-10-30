@@ -19,7 +19,7 @@ import { useMemo } from "react";
 import type { File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
-import { isTerminalPhase } from "../run/run-phases.js";
+import { isTerminalPhase } from "@stigmer/react-core/internal";
 
 /**
  * One output File, with what content views and Apply gating need about the

@@ -27,7 +27,7 @@ import {
 import type { GrantSpec } from "@stigmer/apis/ai/stigmer/iam/grant/v1/spec_pb";
 import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 import { personGrantee, teamGrantee, type DeploymentMode } from "@stigmer/client";
-import { DeploymentModeContext } from "../../deployment-mode";
+import { DeploymentModeContext } from "@stigmer/react-core";
 
 const stubs = vi.hoisted(() => ({
   members: [] as PrincipalAccess[],

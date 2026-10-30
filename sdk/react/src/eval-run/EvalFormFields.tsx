@@ -15,7 +15,8 @@
  * All visual properties flow through `--stgm-*` tokens.
  */
 
-import { HARNESS_OPTIONS, type HarnessOption } from "../models/harness.js";
+import { type HarnessOption } from "@stigmer/react-core";
+import { HARNESS_OPTIONS } from "@stigmer/react-core/internal";
 import { ModelSelector } from "../models/ModelSelector.js";
 import { Switch } from "../switch/Switch.js";
 import { INPUT_CLASS, QUIET_BUTTON_CLASS } from "../vault/styles.js";

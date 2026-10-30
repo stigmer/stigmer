@@ -9,8 +9,8 @@
  */
 import { useCallback, useState } from "react";
 import type { IdentityAccount } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
-import { useStigmer } from "../hooks.js";
-import { toError } from "../internal/toError.js";
+import { useStigmer } from "@stigmer/react-core";
+import { toError } from "@stigmer/react-core/internal";
 
 /** Return value of {@link useDeleteServiceAccount}. */
 export interface UseDeleteServiceAccountReturn {

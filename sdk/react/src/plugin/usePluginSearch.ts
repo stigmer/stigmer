@@ -7,11 +7,8 @@ import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/ap
  * over the plugin kind's listing, as every picker's search is.
  */
 
-import {
-  useResourceSearch,
-  type UseResourceSearchOptions,
-  type UseResourceSearchReturn,
-} from "../search/index.js";
+import { type UseResourceSearchOptions, type UseResourceSearchReturn } from "@stigmer/react-core";
+import { useResourceSearch } from "@stigmer/react-core/internal";
 
 /** Options for {@link usePluginSearch}. Delegates to the shared resource search options. */
 export type UsePluginSearchOptions = UseResourceSearchOptions;

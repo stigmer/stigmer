@@ -5,8 +5,8 @@
  */
 import type { Vault } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
 import type { ResourceRef } from "@stigmer/client";
-import { useStigmer } from "../hooks.js";
-import { useFetch } from "../internal/useFetch.js";
+import { useStigmer } from "@stigmer/react-core";
+import { useFetch } from "@stigmer/react-core/internal";
 
 /** Return value of {@link useVault}. */
 export interface UseVaultReturn {

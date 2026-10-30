@@ -13,9 +13,9 @@ import { useMemo } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { Team } from "@stigmer/apis/ai/stigmer/iam/team/v1/api_pb";
 import { ListTeamsInputSchema } from "@stigmer/apis/ai/stigmer/iam/team/v1/io_pb";
-import { LIST_PAGE_MAX, readEveryPage } from "../internal/everyPage.js";
-import { useStigmer } from "../hooks.js";
-import { useFetch } from "../internal/useFetch.js";
+import { LIST_PAGE_MAX, readEveryPage } from "@stigmer/react-core/internal";
+import { useStigmer } from "@stigmer/react-core";
+import { useFetch } from "@stigmer/react-core/internal";
 
 /** Return value of {@link useTeamList}. */
 export interface UseTeamListReturn {

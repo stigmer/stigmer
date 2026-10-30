@@ -2,9 +2,9 @@
 
 import { useCallback, useState } from "react";
 import type { ScoringRule } from "@stigmer/apis/ai/stigmer/agentic/scoringrule/v1/api_pb";
-import { useStigmer } from "../hooks.js";
+import { useStigmer } from "@stigmer/react-core";
 import { buildScoringRuleProto } from "@stigmer/client";
-import { toError } from "../internal/toError.js";
+import { toError } from "@stigmer/react-core/internal";
 import { scoringRuleInputOf, type GradingSettings } from "./grading-settings.js";
 
 /** The fields a save of the grading settings changes; the agent it grades stays as stored. */

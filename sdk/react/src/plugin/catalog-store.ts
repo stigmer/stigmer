@@ -19,7 +19,7 @@
  * newer state.
  */
 
-import { toError } from "../internal/toError.js";
+import { toError } from "@stigmer/react-core/internal";
 import type { OpenedMarketplace } from "./sources/read.js";
 import type { KnownMarketplace, MarketplaceSource } from "./sources/types.js";
 

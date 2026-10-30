@@ -3,8 +3,8 @@
 import { useCallback, useState } from "react";
 import type { ChannelAppInput } from "@stigmer/client";
 import type { ChannelApp } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/api_pb";
-import { useStigmer } from "../hooks.js";
-import { toError } from "../internal/toError.js";
+import { useStigmer } from "@stigmer/react-core";
+import { toError } from "@stigmer/react-core/internal";
 
 /** Return value of {@link useCreateChannelApp}. */
 export interface UseCreateChannelAppReturn {

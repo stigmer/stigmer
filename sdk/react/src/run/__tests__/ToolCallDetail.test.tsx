@@ -19,7 +19,7 @@ import {
   FileChangeKind,
   FileReviewBlockReason,
 } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
-import type { UseFileChangeContentReturn } from "../useFileChangeContent";
+import type { UseFileChangeContentReturn } from "@stigmer/react-core";
 import { reviewFile, reviewSet, toolUse, type ToolUseInit } from "./__fixtures__/fold-values";
 
 // Mock the diff-body content resolver (the seam FileChangesView.test.tsx also
@@ -27,14 +27,15 @@ import { reviewFile, reviewSet, toolUse, type ToolUseInit } from "./__fixtures__
 // needs a Stigmer client for offloaded bodies — irrelevant to these tests.
 let mockContent: UseFileChangeContentReturn;
 
-vi.mock("../useFileChangeContent", () => ({
+vi.mock("@stigmer/react-core", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@stigmer/react-core")>()),
   useFileChangeContent: () => mockContent,
 }));
 
 const { ToolCallDetail, formatDuration, formatHeaderDuration } = await import(
   "../ToolCallDetail"
 );
-const { FileReviewContext } = await import("../FileReviewContext");
+const { FileReviewContext } = await import("@stigmer/react-core");
 
 beforeEach(() => {
   mockContent = {

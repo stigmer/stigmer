@@ -7,8 +7,8 @@ import {
   ListPluginVersionsInputSchema,
   type PluginVersionEntry as ProtoPluginVersionEntry,
 } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/io_pb";
-import { useStigmer } from "../hooks.js";
-import { useCursorPages } from "../internal/useCursorPages.js";
+import { useStigmer } from "@stigmer/react-core";
+import { useCursorPages } from "@stigmer/react-core/internal";
 import type { VersionEntry } from "../version-history/types.js";
 
 /** Return value of {@link usePluginVersions}. */

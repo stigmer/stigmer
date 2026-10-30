@@ -8,7 +8,7 @@ import { renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import { TeamSchema } from "@stigmer/apis/ai/stigmer/iam/team/v1/api_pb";
-import { StigmerContext } from "../../context";
+import { StigmerContext } from "@stigmer/react-core";
 import { useTeamList } from "../useTeamList";
 
 function team(id: string) {

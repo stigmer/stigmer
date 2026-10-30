@@ -8,7 +8,7 @@ import { OrganizationSchema } from "@stigmer/apis/ai/stigmer/tenancy/organizatio
 import { OrganizationQueryController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/query_pb";
 import { OrganizationsSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
-import { StigmerContext } from "../../context";
+import { StigmerContext } from "@stigmer/react-core";
 import { OrgProvider } from "../../organization/OrgProvider";
 import { WorkspaceSidebar } from "../WorkspaceSidebar";
 import type { RecentActivityEntry } from "../../activity/types";

@@ -14,7 +14,7 @@ import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { AgentSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
-import { samples } from "../../test/samples";
+import { samples } from "@stigmer/react-core/test";
 import { AgentDetailView } from "../AgentDetailView";
 import { sentUpdate } from "../../internal/__tests__/sent-update";
 import { ACME_ID, orgWrapper } from "../../organization/__tests__/org-fixture";

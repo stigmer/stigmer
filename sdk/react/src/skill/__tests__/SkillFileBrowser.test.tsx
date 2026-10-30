@@ -3,7 +3,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { zipSync, strToU8 } from "fflate";
 import { StigmerError, type Stigmer } from "@stigmer/client";
-import { StigmerContext } from "../../context";
+import { StigmerContext } from "@stigmer/react-core";
 import { SkillFileBrowser } from "../SkillFileBrowser";
 
 function wrapperFor(stigmer: Stigmer) {

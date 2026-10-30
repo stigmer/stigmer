@@ -9,7 +9,7 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { fireEvent, render, renderHook, screen, waitFor, cleanup } from "@testing-library/react";
 import type { ReactNode } from "react";
 import type { WorkbenchPage, WorkbenchPageRequest } from "../types";
-import { FetchCacheContext } from "../../internal/FetchCacheProvider";
+import { FetchCacheContext } from "@stigmer/react-core/internal";
 import { ResourceWorkbench } from "../components/ResourceWorkbench";
 import { useResourceCollection } from "../hooks/useResourceCollection";
 import { GLOBEX_ID, orgWrapper } from "../../organization/__tests__/org-fixture";

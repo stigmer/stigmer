@@ -19,7 +19,7 @@ import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { EnvironmentSchema } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/api_pb";
 import { EnvironmentListSchema } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { samples } from "../../test/samples";
+import { samples } from "@stigmer/react-core/test";
 import { AgentDetailView } from "../AgentDetailView";
 import { sentUpdate } from "../../internal/__tests__/sent-update";
 import { ACME_ID, orgWrapper } from "../../organization/__tests__/org-fixture";

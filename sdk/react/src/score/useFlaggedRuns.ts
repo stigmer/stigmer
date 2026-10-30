@@ -23,9 +23,9 @@ import {
   ListFlaggedScoresByAgentRequestSchema,
   type ScoreList,
 } from "@stigmer/apis/ai/stigmer/agentic/score/v1/io_pb";
-import { useStigmer } from "../hooks.js";
-import { useFetch } from "../internal/useFetch.js";
-import { toError } from "../internal/toError.js";
+import { useStigmer } from "@stigmer/react-core";
+import { useFetch } from "@stigmer/react-core/internal";
+import { toError } from "@stigmer/react-core/internal";
 import { useActiveOrgId } from "../organization/OrgProvider.js";
 
 /** How many flagged scores one page asks for. */

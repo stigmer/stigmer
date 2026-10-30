@@ -122,6 +122,9 @@ export const PACKAGES = [
   "backend/libs/ts/session-log",
   "sdk/typescript",
   "sdk/theme",
+  // @stigmer/react-core depends on @stigmer/apis and @stigmer/client, both
+  // above it; @stigmer/react-sdk and @stigmer/ink-ui, below it, build on it.
+  "sdk/react-core",
   "sdk/react",
   // @stigmer/embed has no @stigmer/* deps (the loader must stay dependency-free
   // so the IIFE bundles nothing but itself), so its position is order-free.

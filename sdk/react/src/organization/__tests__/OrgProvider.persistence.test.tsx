@@ -18,9 +18,9 @@ import type { ReactNode } from "react";
 import { Code } from "@connectrpc/connect";
 import { StigmerError } from "@stigmer/client";
 import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
-import { StigmerContext } from "../../context";
-import { FetchCache } from "../../internal/fetch-cache";
-import { FetchCacheContext } from "../../internal/FetchCacheProvider";
+import { StigmerContext } from "@stigmer/react-core";
+import { FetchCache } from "@stigmer/react-core/internal";
+import { FetchCacheContext } from "@stigmer/react-core/internal";
 import { OrgProvider, useActiveOrgId, useActiveOrgSlug, useOrg } from "../OrgProvider";
 
 afterEach(cleanup);

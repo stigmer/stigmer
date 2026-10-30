@@ -1,5 +1,5 @@
 import React, { type ReactNode } from "react";
-import { StigmerContext, DeploymentModeContext } from "@stigmer/react-sdk/headless";
+import { StigmerContext, DeploymentModeContext } from "@stigmer/react-core";
 import type { Stigmer, DeploymentMode } from "@stigmer/client";
 
 /**
@@ -27,7 +27,7 @@ export interface InkStigmerProviderProps {
  * `@stigmer/react-sdk`, but without the DOM `<div>` wrapper used for
  * CSS scoping (which is not applicable in a terminal).
  *
- * All hooks from `@stigmer/react-sdk` (`useStigmer`, `useSessionConversation`,
+ * All hooks from `@stigmer/react-core` (`useStigmer`, `useSessionConversation`,
  * `useSessionEvents`, etc.) work identically under this provider.
  *
  * @example

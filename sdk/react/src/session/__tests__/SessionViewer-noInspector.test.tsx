@@ -142,15 +142,17 @@ vi.mock("../useSessionAccess", () => ({
   useSessionAccess: () => ({ canSend: true, canDecide: true }),
 }));
 
-vi.mock("../../hooks", () => ({
+vi.mock("@stigmer/react-core", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@stigmer/react-core")>()),
   useStigmer: () => ({
     platform: { getServerInfo: async () => ({}) },
     routine: { get: async () => Promise.reject(new Error("not found")) },
-    // A builder grades runs: the scores read who is looking.
-    identityAccount: { whoAmI: async () => Promise.reject(new Error("no account")) },
     score: { listBySession: async () => ({ entries: [], nextPageToken: "" }) },
     run: { getArtifactContent: vi.fn() },
   }),
+  // A builder grades runs: the scores read who is looking. The hook lives in
+  // the conversation core, where the mocked useStigmer above does not reach.
+  useWhoAmI: () => ({ account: null, isLoading: false, error: new Error("no account") }),
 }));
 
 import { SessionViewer } from "../SessionViewer";

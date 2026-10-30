@@ -1,8 +1,8 @@
 "use client";
 
 import type { IdentityAccount } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
-import { useStigmer } from "../hooks.js";
-import { useFetch } from "../internal/useFetch.js";
+import { useStigmer } from "@stigmer/react-core";
+import { useFetch } from "@stigmer/react-core/internal";
 
 /** Options for {@link useMyIdentityAccount}. */
 export interface UseMyIdentityAccountOptions {

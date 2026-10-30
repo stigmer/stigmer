@@ -13,7 +13,7 @@ import {
   deletedReferenceLabel,
   isDeletedReference,
 } from "@stigmer/client";
-import { maskedEdit, saveErrorMessage } from "../internal/maskedEdit.js";
+import { maskedEdit, saveErrorMessage } from "@stigmer/react-core/internal";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { VisibilityBadge } from "../library/VisibilitySelector.js";
 import { useManageAccess } from "../access/useManageAccess.js";

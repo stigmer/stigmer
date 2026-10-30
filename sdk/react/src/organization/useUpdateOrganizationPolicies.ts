@@ -10,8 +10,8 @@ import { create } from "@bufbuild/protobuf";
 import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import { UpdateOrganizationPoliciesInputSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/io_pb";
 import { OrganizationPoliciesSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/spec_pb";
-import { useStigmer } from "../hooks.js";
-import { toError } from "../internal/toError.js";
+import { useStigmer } from "@stigmer/react-core";
+import { toError } from "@stigmer/react-core/internal";
 
 /** Every policy an organization holds, as it should stand after the save. */
 export interface OrganizationPoliciesValue {

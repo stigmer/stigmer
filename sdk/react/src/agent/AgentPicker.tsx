@@ -12,7 +12,7 @@ import type { ResourceRef } from "@stigmer/client";
 import type { SearchResult } from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { cn } from "@stigmer/design-tokens";
-import { useAgentSearch } from "./useAgentSearch.js";
+import { useAgentSearch } from "@stigmer/react-core";
 import { useScrollShadows } from "../internal/useScrollShadows.js";
 import { ScrollFade } from "../internal/ScrollFade.js";
 import { OrgSlugText } from "../organization/OrgSlugText.js";

@@ -18,7 +18,7 @@ import {
   type GetOrgUsageReportOutput,
 } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import { ProviderKeySource } from "@stigmer/apis/ai/stigmer/agentic/run/v1/usage_pb";
-import type { UseSessionUsageReturn } from "../session/useSessionUsage.js";
+import type { UseSessionUsageReturn } from "@stigmer/react-core";
 
 const stubs = vi.hoisted(() => ({
   orgReport: null as GetOrgUsageReportOutput | null,
@@ -29,8 +29,8 @@ vi.mock("../usage/useOrgUsageReport.js", () => ({
   useOrgUsageReport: () => ({ report: stubs.orgReport, isLoading: false, error: null, refetch: () => {} }),
 }));
 
-vi.mock("../session/useSessionUsage.js", async (importOriginal) => ({
-  ...(await importOriginal<object>()),
+vi.mock("@stigmer/react-core", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@stigmer/react-core")>()),
   useSessionUsage: () => stubs.session,
 }));
 

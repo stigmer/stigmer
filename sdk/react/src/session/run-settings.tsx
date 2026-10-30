@@ -9,7 +9,7 @@
 
 import { useMemo } from "react";
 import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
-import { HARNESS_META } from "../models/harness.js";
+import { HARNESS_META } from "@stigmer/react-core/internal";
 import { RunSettingsIcon } from "../composer/icons.js";
 import type { ComposerSetting } from "../composer/SessionComposer.js";
 import { environmentsNotApplying } from "../environment/resolve.js";

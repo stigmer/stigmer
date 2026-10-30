@@ -1,5 +1,5 @@
-export { toProtoExecutionTarget, fromProtoExecutionTarget } from "./execution-target.js";
-export type { ExecutionTargetOption } from "./execution-target.js";
+export { toProtoExecutionTarget, fromProtoExecutionTarget } from "@stigmer/react-core/internal";
+export type { ExecutionTargetOption } from "@stigmer/react-core";
 
 export type { SessionAudience, SessionPanelMode } from "./audience.js";
 export type { SessionRunConfig } from "./run-config.js";
@@ -17,20 +17,17 @@ export type {
   UseCreateSessionReturn,
 } from "./useCreateSession.js";
 
-export { useUpdateSession } from "./useUpdateSession.js";
-export type { UseUpdateSessionReturn } from "./useUpdateSession.js";
+export { useUpdateSession } from "@stigmer/react-core";
+export type { UseUpdateSessionReturn } from "@stigmer/react-core";
 
-export { useSession } from "./useSession.js";
-export type { UseSessionReturn } from "./useSession.js";
+export { useSession } from "@stigmer/react-core";
+export type { UseSessionReturn } from "@stigmer/react-core";
 
-export { useSessionList } from "./useSessionList.js";
-export type {
-  UseSessionListOptions,
-  UseSessionListReturn,
-} from "./useSessionList.js";
+export { useSessionList } from "@stigmer/react-core";
+export type { UseSessionListOptions, UseSessionListReturn } from "@stigmer/react-core";
 
-export { useSessionRuns } from "./useSessionRuns.js";
-export type { UseSessionRunsReturn } from "./useSessionRuns.js";
+export { useSessionRuns } from "@stigmer/react-core";
+export type { UseSessionRunsReturn } from "@stigmer/react-core";
 
 export { useAttentionNotifications, noticeOf } from "./useAttentionNotifications.js";
 export type {
@@ -44,14 +41,11 @@ export {
 } from "./attentionNotificationsSetting.js";
 export type { AttentionNotificationsSetting } from "./attentionNotificationsSetting.js";
 
-export { useSessionEvents } from "./useSessionEvents.js";
-export type { UseSessionEventsOptions, UseSessionEventsReturn } from "./useSessionEvents.js";
+export { useSessionEvents } from "@stigmer/react-core";
+export type { UseSessionEventsOptions, UseSessionEventsReturn } from "@stigmer/react-core";
 
-export { useSessionConversation } from "./useSessionConversation.js";
-export type {
-  SendFollowUpOptions,
-  UseSessionConversationReturn,
-} from "./useSessionConversation.js";
+export { useSessionConversation } from "@stigmer/react-core";
+export type { SendFollowUpOptions, UseSessionConversationReturn } from "@stigmer/react-core";
 
 export { useSessionAccess } from "./useSessionAccess.js";
 export type { UseSessionAccessReturn } from "./useSessionAccess.js";
@@ -88,13 +82,13 @@ export { useWorkspaceReadRefs } from "./useWorkspaceReadRefs.js";
 export { useSessionFileChanges } from "./useSessionFileChanges.js";
 export type { UseSessionFileChangesReturn } from "./useSessionFileChanges.js";
 
-export { useSessionUsage } from "./useSessionUsage.js";
+export { useSessionUsage } from "@stigmer/react-core";
 export type {
   RunUsageEntry,
   ModelUsageEntry,
   ServedByEntry,
   UseSessionUsageReturn,
-} from "./useSessionUsage.js";
+} from "@stigmer/react-core";
 
 export { agentRefOfSession, isSameAgent } from "./agentRefOfSession.js";
 

@@ -32,8 +32,8 @@ import type { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/api
 import { inMemoryPluginFiles } from "@stigmer/plugin-package";
 import { type PreparedPlugin, preparePluginArchive } from "@stigmer/plugin-package/client";
 import { isNotFound } from "@stigmer/client";
-import { useStigmer } from "../hooks.js";
-import { toError } from "../internal/toError.js";
+import { useStigmer } from "@stigmer/react-core";
+import { toError } from "@stigmer/react-core/internal";
 import { PluginReadRefusal } from "./sources/read.js";
 
 /** What the form collects: the server's name, its address, and the headers sent with every request. */

@@ -2,7 +2,7 @@
 
 import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import type { ResourceRef } from "@stigmer/client";
-import { useDeploymentMode } from "../deployment-mode.js";
+import { useDeploymentMode } from "@stigmer/react-core";
 import {
   useToolCredentialsReadiness,
   type ToolCredentialsReadiness,

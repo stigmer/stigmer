@@ -7,12 +7,14 @@ import type { EnvVarInput } from "../vault/types.js";
 import { useComposer } from "./useComposer.js";
 import { ComposerToolbar } from "./ComposerToolbar.js";
 import { type ConfigureMenuItem } from "./ConfigureMenu.js";
-import type { HarnessOption } from "../models/harness.js";
+import type { HarnessOption } from "@stigmer/react-core";
 import type { ModelReadinessLookup } from "../models/readiness.js";
-import { FAST_SERVICE_TIER, type ServiceTierOption } from "../models/service-tier.js";
-import { thinkingLocked, thinkingSelectable, type ThinkingModeOption } from "../models/thinking-mode.js";
+import { FAST_SERVICE_TIER } from "@stigmer/react-core/internal";
+import { type ServiceTierOption } from "@stigmer/react-core";
+import { thinkingLocked, thinkingSelectable } from "@stigmer/react-core";
+import { type ThinkingModeOption } from "@stigmer/react-core";
 import type { InteractionModeOption } from "./InteractionModePicker.js";
-import { parseModelKey } from "../models/registry.js";
+import { parseModelKey } from "@stigmer/react-core";
 import { useModelRegistry } from "../models/useModelRegistry.js";
 import {
   assessVisionPreflight,
@@ -43,7 +45,7 @@ import { FILE_REF_MIME } from "../internal/file-tree/index.js";
 import { VaultPicker } from "../vault/VaultPicker.js";
 import type { ConversationVaults } from "../vault/conversationVaults.js";
 import { SYSTEM_ENV_VAR_KEYS } from "../vault/systemEnvVars.js";
-import { useWhoAmI } from "../grant/useWhoAmI.js";
+import { useWhoAmI } from "@stigmer/react-core";
 import { EnvironmentPicker } from "../environment/EnvironmentPicker.js";
 import { describeEnvironmentChoice, inheritedRowLabel } from "../environment/copy.js";
 import { resolveEnvironmentChoice, type EnvironmentReference } from "../environment/resolve.js";

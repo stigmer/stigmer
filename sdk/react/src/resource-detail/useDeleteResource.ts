@@ -2,8 +2,8 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { getUserMessage } from "@stigmer/client";
-import { useStigmer } from "../hooks.js";
-import { toError } from "../internal/toError.js";
+import { useStigmer } from "@stigmer/react-core";
+import { toError } from "@stigmer/react-core/internal";
 import { toast } from "../feedback/toast.js";
 
 /** Resource types that support deletion from detail pages. */

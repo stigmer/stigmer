@@ -29,7 +29,7 @@ import type { CreateServiceAccountKeyInput } from "@stigmer/apis/ai/stigmer/iam/
 import { IdentityAccountSchema } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
 import type { CreateServiceAccountInput } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/io_pb";
 import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
-import { StigmerContext } from "../../context";
+import { StigmerContext } from "@stigmer/react-core";
 import { CreateServiceAccountForm } from "../CreateServiceAccountForm";
 
 const sent = vi.hoisted(() => ({

@@ -12,7 +12,7 @@ import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/e
 import { InteractionMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { SessionLog, type Turn, type TurnPhase } from "@stigmer/client";
 import { findStreamingPlan } from "../detect-streaming-plan";
-import { samples } from "../../test/samples";
+import { samples } from "@stigmer/react-core/test";
 import {
   previewDelta,
   previewStart,

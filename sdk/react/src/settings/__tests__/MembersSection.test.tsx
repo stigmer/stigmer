@@ -23,7 +23,7 @@ import {
 } from "@stigmer/apis/ai/stigmer/iam/federationissuer/v1/api_pb";
 import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 import type { DeploymentMode } from "@stigmer/client";
-import { DeploymentModeContext } from "../../deployment-mode";
+import { DeploymentModeContext } from "@stigmer/react-core";
 
 vi.mock("../../organization/OrgProvider.js", () => ({
   useOrg: () => ({

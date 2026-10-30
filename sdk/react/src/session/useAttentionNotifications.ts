@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { followAttention } from "@stigmer/client";
 import type { Attention } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
-import { useStigmer } from "../hooks.js";
+import { useStigmer } from "@stigmer/react-core";
 
 /** Why a conversation needs its person, as the server says it (`Attention.reason`). */
 export type AttentionReason = "finished" | "failed" | "needs_answer";

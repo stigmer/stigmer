@@ -26,7 +26,7 @@ import {
   type OAuthApp,
 } from "@stigmer/apis/ai/stigmer/iam/oauthapp/v1/api_pb";
 import type { DeploymentMode } from "@stigmer/client";
-import { DeploymentModeContext } from "../../deployment-mode";
+import { DeploymentModeContext } from "@stigmer/react-core";
 
 const stubs = vi.hoisted(() => ({
   listedOrg: undefined as string | null | undefined,

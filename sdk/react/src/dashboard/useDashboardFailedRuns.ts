@@ -7,8 +7,8 @@ import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { ListRunsRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { everyEntry } from "@stigmer/client";
-import { useStigmer } from "../hooks.js";
-import { useFetch } from "../internal/useFetch.js";
+import { useStigmer } from "@stigmer/react-core";
+import { useFetch } from "@stigmer/react-core/internal";
 import type { DashboardFailedRun } from "./types.js";
 
 const EPOCH = new Date(0);

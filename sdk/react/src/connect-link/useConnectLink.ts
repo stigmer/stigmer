@@ -28,11 +28,11 @@ import {
   ConnectLinkTokenInputSchema,
   type ConnectLinkInfo,
 } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/connect_link_pb";
-import { useStigmer } from "../hooks.js";
+import { useStigmer } from "@stigmer/react-core";
 import { checkedLoginPageUrl } from "../internal/loginPageUrl.js";
 import { SESSION_REFUSED_MESSAGE, canKeepInSession } from "../internal/sessionKeeping.js";
-import { useFetch } from "../internal/useFetch.js";
-import { toError } from "../internal/toError.js";
+import { useFetch } from "@stigmer/react-core/internal";
+import { toError } from "@stigmer/react-core/internal";
 
 /** The session-storage key a started link's secret and state wait under for the callback page. */
 export const CONNECT_LINK_PENDING_KEY = "stigmer:connect-link:pending";

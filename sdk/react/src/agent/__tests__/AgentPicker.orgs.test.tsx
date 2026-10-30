@@ -15,7 +15,8 @@ const RESULTS = [
   { id: "agt_2", org: GLOBEX_ID, slug: "triager", name: "Triager", description: "" },
 ];
 
-vi.mock("../useAgentSearch.js", () => ({
+vi.mock("@stigmer/react-core", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@stigmer/react-core")>()),
   useAgentSearch: () => ({
     results: RESULTS,
     isLoading: false,

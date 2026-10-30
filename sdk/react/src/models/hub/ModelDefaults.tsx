@@ -11,13 +11,14 @@
 import { useCallback, useEffect, useId, useState } from "react";
 import { cn } from "@stigmer/design-tokens";
 import { getUserMessage } from "@stigmer/client";
-import { saveErrorMessage } from "../../internal/maskedEdit.js";
+import { saveErrorMessage } from "@stigmer/react-core/internal";
 import { LoadingRegion } from "../../internal/LoadingRegion.js";
 import { UNSTYLED_LIST } from "../../internal/element-resets.js";
 import { ACCOUNT_DEFAULT_MODELS } from "../../identity-account/useAccountExecutionDefaults.js";
 import { useMyIdentityAccount } from "../../identity-account/useMyIdentityAccount.js";
 import { useUpdateIdentityAccount } from "../../identity-account/useUpdateIdentityAccount.js";
-import { HARNESS_META, HARNESS_OPTIONS, type HarnessOption } from "../harness.js";
+import { type HarnessOption } from "@stigmer/react-core";
+import { HARNESS_META, HARNESS_OPTIONS } from "@stigmer/react-core/internal";
 import { needsKeyLabel } from "../provider-presentation.js";
 import type { ModelReadinessLookup } from "../readiness.js";
 import { useModelRegistry } from "../useModelRegistry.js";

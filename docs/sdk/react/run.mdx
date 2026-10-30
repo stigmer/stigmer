@@ -3521,7 +3521,7 @@ Reading-column alignment for [`MessageThread`](#messagethread) content.
 
 ### ThreadMessage
 
-One message of a conversation as [`MessageEntry`](#messageentry) renders it: what a
+One message of a conversation as a thread renders it: what a
 person wrote, or an agent's message, thinking or platform note from the
 session's fold.
 
@@ -3773,7 +3773,7 @@ The fully-resolved presentation for a tool call, returned by [`useToolPresentati
 <TypeTable
   type={{
     category: { type: "ToolCategory", description: "Presentation category (1:1 with kind).", required: true },
-    chrome: { type: "ToolChrome", description: "Default chrome tier for this tool — `\"quiet\"` renders an unboxed line, `\"card\"` a bordered card (see ToolChrome). A pending gate or a failure escalates to `\"card\"` in the component layer; this is the *settled* default.", required: true },
+    chrome: { type: "ToolChrome", description: "Default chrome tier for this tool — `\"quiet\"` renders an unboxed line, `\"card\"` a bordered card (see `ToolChrome`). A pending gate or a failure escalates to `\"card\"` in the component layer; this is the *settled* default.", required: true },
     disclosure: { type: "ToolDisclosure", description: "Default inline disclosure for this tool — `\"preview\"` keeps a bounded, persistent preview of the result, `\"summary\"` keeps a compact row. The active/awaiting state can still force a row open; this is the *settled* default.", required: true, typeDescriptionLink: "#tooldisclosure" },
     intent: { type: "string | null", description: "The model-authored intent phrase for a SHELL call (stigmer#276), or null when absent (a skipped optional arg, non-shell kinds). Raw extraction — precedence against overrides is resolved in ToolPresentation.title.", required: true },
     kind: { type: "ToolKind", description: "Harness-agnostic kind (wire field, with name fallback).", required: true },
@@ -3781,7 +3781,7 @@ The fully-resolved presentation for a tool call, returned by [`useToolPresentati
     primaryArg: { type: "string | null", description: "Primary argument (path, command, pattern...), or null.", required: true },
     result: { type: "ToolResultView", description: "Normalized result view for rendering with ResultView.", required: true },
     resultSummary: { type: "string | null", description: "One-line result summary suffix for the collapsed row (e.g. \"+40 -0\").", required: true },
-    runGroupable: { type: "boolean", description: "Whether consecutive same-kind calls fold into one collapsible chip — the run-grouping axis, orthogonal to disclosure. See isRunGroupableCategory.", required: true },
+    runGroupable: { type: "boolean", description: "Whether consecutive same-kind calls fold into one collapsible chip — the run-grouping axis, orthogonal to disclosure. See `isRunGroupableCategory`.", required: true },
     title: { type: "string", description: "The row title: a registered presenter's `label` override wins (a host's explicit wording is never displaced by model output), then the model-authored intent, then the category label. Renderers that title a row use this; label stays the short kind label for chips and badges.", required: true },
   }}
 />
@@ -3793,10 +3793,10 @@ Optional per-kind overrides for label, summary, disclosure, and run-grouping.
 
 <TypeTable
   type={{
-    chrome: { type: "(toolUse: ToolUse, result: ToolResultView) => ToolChrome", description: "Overrides the default chrome tier — quiet unboxed line vs bordered card (see ToolChrome). Use to restore the boxed look for a kind (`() => \"card\"`) or to quiet a chatty custom tool (`() => \"quiet\"`). A pending approval gate or a failure always escalates the row to a card regardless of this override — a decision surface and error output must never render frameless." },
+    chrome: { type: "(toolUse: ToolUse, result: ToolResultView) => ToolChrome", description: "Overrides the default chrome tier — quiet unboxed line vs bordered card (see `ToolChrome`). Use to restore the boxed look for a kind (`() => \"card\"`) or to quiet a chatty custom tool (`() => \"quiet\"`). A pending approval gate or a failure always escalates the row to a card regardless of this override — a decision surface and error output must never render frameless." },
     disclosure: { type: "(toolUse: ToolUse, result: ToolResultView) => ToolDisclosure", description: "Overrides the default inline disclosure. Use to keep a noisy MCP tool compact (`() => \"summary\"`) or to foreground a custom tool's output (`() => \"preview\"`) without forking the components." },
     label: { type: "(toolUse: ToolUse) => string", description: "Overrides the display label (e.g. \"Shell\" -> \"Run command\")." },
-    runGroupable: { type: "(toolUse: ToolUse) => boolean", description: "Overrides whether consecutive same-kind calls fold into one collapsible \"Read 5 files\" chip. Use to fold a chatty custom tool (`() => true`) or to keep a normally-folded category as standalone rows (`() => false`) without forking the thread layout. Defaults to isRunGroupableCategory." },
+    runGroupable: { type: "(toolUse: ToolUse) => boolean", description: "Overrides whether consecutive same-kind calls fold into one collapsible \"Read 5 files\" chip. Use to fold a chatty custom tool (`() => true`) or to keep a normally-folded category as standalone rows (`() => false`) without forking the thread layout. Defaults to `isRunGroupableCategory`." },
     summary: { type: "(toolUse: ToolUse, result: ToolResultView) => string | null", description: "Overrides the one-line result summary suffix." },
   }}
 />

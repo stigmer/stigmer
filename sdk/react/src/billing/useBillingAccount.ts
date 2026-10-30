@@ -5,8 +5,8 @@ import {
   GetOrCreateBillingAccountInputSchema,
 } from "@stigmer/apis/ai/stigmer/billing/v1/io_pb";
 import type { BillingAccount } from "@stigmer/apis/ai/stigmer/billing/v1/billing_account_pb";
-import { useStigmer } from "../hooks.js";
-import { useFetch } from "../internal/useFetch.js";
+import { useStigmer } from "@stigmer/react-core";
+import { useFetch } from "@stigmer/react-core/internal";
 
 /** Options for {@link useBillingAccount}. */
 export interface UseBillingAccountOptions {

@@ -17,9 +17,9 @@ import type { EvalRun } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/api_pb
 import { ListEvalRunsByAgentRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/io_pb";
 import { everyEntry } from "@stigmer/client";
 import { evalRunVersionOf } from "../eval-run/eval-view.js";
-import { useStigmer } from "../hooks.js";
-import { LIST_PAGE_MAX } from "../internal/everyPage.js";
-import { useFetch } from "../internal/useFetch.js";
+import { useStigmer } from "@stigmer/react-core";
+import { LIST_PAGE_MAX } from "@stigmer/react-core/internal";
+import { useFetch } from "@stigmer/react-core/internal";
 import { latestFinishedEvalByVersion, measuresVersion } from "./quality-view.js";
 
 const NONE: ReadonlyMap<string, EvalRun> = new Map();

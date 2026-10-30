@@ -9,7 +9,7 @@ import { cn } from "@stigmer/design-tokens";
 import { formatHeaderDuration } from "./ToolCallDetail.js";
 import { MessageEntry, type ThreadMessage } from "./MessageEntry.js";
 import { ToolCallGroup } from "./ToolCallGroup.js";
-import { isInternalTool } from "./tool-categories.js";
+import { isInternalTool } from "@stigmer/react-core/internal";
 import { SpinnerIcon } from "../internal/thread-card/glyphs.js";
 
 /** Props for {@link SubagentSection}. */

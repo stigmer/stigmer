@@ -1,5 +1,5 @@
-import type { ServiceTierOption } from "../models/service-tier.js";
-import type { ThinkingModeOption } from "../models/thinking-mode.js";
+import type { ServiceTierOption } from "@stigmer/react-core";
+import type { ThinkingModeOption } from "@stigmer/react-core";
 
 /**
  * Owner-pinned run config for a session surface

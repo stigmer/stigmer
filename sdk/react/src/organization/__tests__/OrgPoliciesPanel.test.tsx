@@ -20,7 +20,7 @@ import {
 import type { UpdateOrganizationPoliciesInput } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/io_pb";
 import { ConnectError, Code } from "@connectrpc/connect";
 import type { ReactNode } from "react";
-import { StigmerContext } from "../../context";
+import { StigmerContext } from "@stigmer/react-core";
 import { OrgPoliciesPanel } from "../OrgPoliciesPanel";
 import {
   organizationPoliciesOf,

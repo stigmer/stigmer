@@ -17,9 +17,9 @@
 
 import { useCallback, useMemo, useState } from "react";
 import type { File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
-import { useStigmer } from "../hooks.js";
-import { toError } from "../internal/toError.js";
-import { useFetch } from "../internal/useFetch.js";
+import { useStigmer } from "@stigmer/react-core";
+import { toError } from "@stigmer/react-core/internal";
+import { useFetch } from "@stigmer/react-core/internal";
 import { triggerBrowserDownload } from "../run/useArtifactDownload.js";
 
 /** Return value of {@link useFile}. */

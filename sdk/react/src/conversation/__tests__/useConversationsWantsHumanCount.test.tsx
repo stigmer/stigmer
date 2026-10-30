@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { ChannelConversationListFilter } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/conversation_io_pb";
-import { StigmerContext } from "../../context";
-import { FetchCacheContext } from "../../internal/FetchCacheProvider";
+import { StigmerContext } from "@stigmer/react-core";
+import { FetchCacheContext } from "@stigmer/react-core/internal";
 import { useConversationsWantsHumanCount } from "../useConversationsWantsHumanCount";
 
 // The focus-refetch test broadcasts window events, which reach EVERY

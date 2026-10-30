@@ -23,7 +23,7 @@ import { RunSchema, type Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api
 import { FileSchema, type File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { InteractionMode, RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import type { Turn } from "@stigmer/client";
-import { samples } from "../../test/samples";
+import { samples } from "@stigmer/react-core/test";
 import type { SessionComposerHandle } from "../../composer";
 import type { SessionPlan } from "../../library/detect-plan-file";
 import type { PlanDraftController } from "../usePlanDraft";
@@ -86,7 +86,8 @@ vi.mock("../useSessionAccess", () => ({
   useSessionAccess: () => ({ canSend: true, canDecide: true }),
 }));
 
-vi.mock("../../hooks", () => ({
+vi.mock("@stigmer/react-core", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@stigmer/react-core")>()),
   useStigmer: () => client,
 }));
 

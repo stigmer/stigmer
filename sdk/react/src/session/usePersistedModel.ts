@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useModelRegistry } from "../models/index.js";
-import { DEFAULT_HARNESS, type HarnessOption } from "../models/harness.js";
+import { DEFAULT_HARNESS, type HarnessOption } from "@stigmer/react-core";
 
 /** Options for {@link usePersistedModel}. */
 export interface UsePersistedModelOptions {

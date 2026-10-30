@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import type { DisplayFileChange } from "@stigmer/client";
 import { cn } from "@stigmer/design-tokens";
 import { BoundedContent } from "../internal/BoundedContent.js";
-import { computeDiff } from "../version-history/computeDiff.js";
+import { computeDiff } from "@stigmer/react-core";
 import { DiffViewer } from "../version-history/DiffViewer.js";
 import { DiffFileList } from "../version-history/DiffFileList.js";
 import { DiffSummary } from "../version-history/DiffSummary.js";
@@ -12,7 +12,7 @@ import type { DiffHunk, FileDiffEntry } from "../version-history/types.js";
 import { countHunks, toFileDiffEntry } from "./deriveRunFileChanges.js";
 import { FilePathLink } from "./FilePathLink.js";
 import { EmptyChangeNotice } from "./EmptyChangeNotice.js";
-import { useFileChangeContent } from "./useFileChangeContent.js";
+import { useFileChangeContent } from "@stigmer/react-core";
 
 /** Props for {@link FileChangesView}. */
 export interface FileChangesViewProps {

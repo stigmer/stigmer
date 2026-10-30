@@ -136,7 +136,8 @@ vi.mock("../useSessionAccess", () => ({
   useSessionAccess: () => access,
 }));
 
-vi.mock("../../hooks", () => ({
+vi.mock("@stigmer/react-core", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@stigmer/react-core")>()),
   useStigmer: () => ({
     run: {
       getArtifactContent: vi.fn(),

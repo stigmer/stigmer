@@ -7,10 +7,14 @@ import { cn } from "@stigmer/design-tokens";
 import { useStigmerPortalContainer } from "../portal-container.js";
 import { Switch } from "../switch/Switch.js";
 import { useModelRegistry } from "./useModelRegistry.js";
-import type { ModelInfo, CostTier, SpeedTier } from "./registry.js";
-import { HARNESS_META, HARNESS_OPTIONS, type HarnessOption } from "./harness.js";
-import { FAST_SERVICE_TIER, type ServiceTierOption } from "./service-tier.js";
-import { thinkingLocked, thinkingSelectable, type ThinkingModeOption } from "./thinking-mode.js";
+import type { ModelInfo, CostTier } from "@stigmer/react-core";
+import type { SpeedTier } from "@stigmer/react-core";
+import { type HarnessOption } from "@stigmer/react-core";
+import { HARNESS_META, HARNESS_OPTIONS } from "@stigmer/react-core/internal";
+import { FAST_SERVICE_TIER } from "@stigmer/react-core/internal";
+import { type ServiceTierOption } from "@stigmer/react-core";
+import { thinkingLocked, thinkingSelectable } from "@stigmer/react-core";
+import { type ThinkingModeOption } from "@stigmer/react-core";
 import { needsKeyLabel } from "./provider-presentation.js";
 import type { ModelReadinessLookup } from "./readiness.js";
 
@@ -58,7 +62,7 @@ export interface ModelSelectorProps {
   readonly onHarnessChange?: (harness: HarnessOption) => void;
   /**
    * Restrict which harnesses appear in the dropdown.
-   * When omitted, shows every harness the platform runs ({@link HARNESS_OPTIONS}).
+   * When omitted, shows every harness the platform runs (`HARNESS_OPTIONS`).
    */
   readonly availableHarnesses?: readonly HarnessOption[];
   /** Override the curated (featured) list for the current harness. */

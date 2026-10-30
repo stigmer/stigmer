@@ -9,7 +9,7 @@ import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import type { FileReviewSet, ToolUse } from "@stigmer/client";
 import { ToolCallItem } from "../ToolCallItem";
 import { ApprovalContext, type ApprovalContextValue } from "../ApprovalContext";
-import { FileReviewContext } from "../FileReviewContext";
+import { FileReviewContext } from "@stigmer/react-core";
 import { reviewFile, reviewSet, thread, toolUse } from "./__fixtures__/fold-values";
 
 afterEach(cleanup);

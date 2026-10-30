@@ -31,12 +31,12 @@ import {
 } from "@stigmer/apis/ai/stigmer/platform/v1/model_readiness_pb";
 import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import type { DeploymentMode } from "@stigmer/client";
-import { StigmerContext } from "../../context";
-import { DeploymentModeContext } from "../../deployment-mode";
-import { FetchCacheProvider } from "../../internal/FetchCacheProvider";
+import { StigmerContext } from "@stigmer/react-core";
+import { DeploymentModeContext } from "@stigmer/react-core";
+import { FetchCacheProvider } from "@stigmer/react-core";
 import { OrgProvider } from "../../organization/OrgProvider";
 import { ModelRegistryContext, type ModelRegistryState } from "../ModelRegistryContext";
-import { parseRegistryJson } from "../registry";
+import { parseRegistryJson } from "@stigmer/react-core";
 
 export const ORG_ID = "org_01jaaaaaaaaaaaaaaaaaaaaaaa";
 export const PARENT_ID = "org_01jpppppppppppppppppppppppp";

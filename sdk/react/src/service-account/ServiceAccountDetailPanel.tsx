@@ -19,7 +19,7 @@ import {
   iamRoleDisplayName,
   iamRoleToString,
 } from "@stigmer/client";
-import { saveErrorMessage } from "../internal/maskedEdit.js";
+import { saveErrorMessage } from "@stigmer/react-core/internal";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import {
   ApiResourceRefSchema,

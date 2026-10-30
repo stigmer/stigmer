@@ -219,6 +219,7 @@ jobs:
             sdk/typescript/coverage/
             sdk/theme/coverage/
             sdk/embed/coverage/
+            sdk/react-core/coverage/
             sdk/ink/coverage/
             mcp-server/coverage/
             plugins/coverage/
@@ -629,10 +630,11 @@ jobs:
       # surfaces in the shipping surface. Test-file typechecking is the locked
       # jobs' business — including it here would add @types-drift flake
       # without adding signal for this failure class.
-      - name: Typecheck the five consumer packages
+      - name: Typecheck the six consumer packages
         run: |
           npx tsc -p sdk/typescript/tsconfig.build.json --noEmit
           npx tsc -p mcp-server/tsconfig.build.json --noEmit
+          npx tsc -p sdk/react-core/tsconfig.build.json --noEmit
           npx tsc -p sdk/react/tsconfig.build.json --noEmit
           npx tsc -p sdk/ink/tsconfig.build.json --noEmit
           npx tsc -p client-apps/cli/tsconfig.build.json --noEmit

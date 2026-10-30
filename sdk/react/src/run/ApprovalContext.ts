@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext } from "react";
 import type { ToolUse } from "@stigmer/client";
-import type { ToolUseAnswer } from "./useAnswerToolUse.js";
+import type { ToolUseAnswer } from "@stigmer/react-core";
 
 /**
  * Context value that carries the answer handler and its per-gate state to the

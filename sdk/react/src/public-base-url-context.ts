@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext } from "react";
-import { useStigmer } from "./hooks.js";
+import { useStigmer } from "@stigmer/react-core";
 import { trimTrailing } from "./internal/trim.js";
 
 /**

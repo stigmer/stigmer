@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
   },
   transpilePackages: [
     "@stigmer/embed",
+    "@stigmer/react-core",
     "@stigmer/react-sdk",
     "@stigmer/client",
     "@stigmer/design-tokens",

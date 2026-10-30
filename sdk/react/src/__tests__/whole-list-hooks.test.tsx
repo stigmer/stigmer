@@ -1,19 +1,15 @@
 /**
- * The whole-list walks: readWholeList follows every page with no cap, so a
- * set that grows without bound (a session's runs and scores, an
- * organization's channels) loads whole past the SDK's 1,000-entry cap; the
- * session runs and scores hooks and the organization channel list read
- * through it.
+ * The React kit's whole-list hooks: a session's scores and an organization's
+ * channels load whole past the SDK's 1,000-entry cap, read through the
+ * conversation core's readWholeList (pinned in `sdk/react-core`).
  */
 import { describe, expect, it } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { StigmerContext } from "../../context";
-import { FetchCacheContext } from "../FetchCacheProvider";
-import { readWholeList } from "../everyPage";
-import { useSessionRuns } from "../../session/useSessionRuns";
-import { useSessionScores } from "../../score/useSessionScores";
-import { useOrgChannelList } from "../../channel/useOrgChannelList";
+import { StigmerContext } from "@stigmer/react-core";
+import { FetchCacheContext } from "@stigmer/react-core/internal";
+import { useSessionScores } from "../score/useSessionScores";
+import { useOrgChannelList } from "../channel/useOrgChannelList";
 
 const TOTAL = 1001;
 
@@ -39,26 +35,11 @@ function wrapper(client: unknown) {
   };
 }
 
-describe("readWholeList", () => {
-  it("walks every page past the SDK's cap", async () => {
-    const read = pagedRows("row");
-    const rows = await readWholeList((pageToken) => read({ pageSize: 100, pageToken }));
-    expect(rows).toHaveLength(TOTAL);
-  });
-});
-
 describe("the whole-list hooks", () => {
   const client = {
-    run: { listBySession: pagedRows("aex") },
     score: { listBySession: pagedRows("scr") },
     channel: { list: pagedRows("ach") },
   };
-
-  it("loads a session with more runs than the cap", async () => {
-    const { result } = renderHook(() => useSessionRuns("ses_1"), { wrapper: wrapper(client) });
-    await waitFor(() => expect(result.current.runs).toHaveLength(TOTAL));
-    expect(result.current.error).toBeNull();
-  });
 
   it("loads a session with more scores than the cap", async () => {
     const { result } = renderHook(() => useSessionScores("ses_1"), { wrapper: wrapper(client) });

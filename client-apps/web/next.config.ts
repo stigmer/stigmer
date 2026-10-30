@@ -3,6 +3,7 @@ import type { NextConfig } from "next";
 const stigmerLibs = [
   "@stigmer/apis",
   "@stigmer/client",
+  "@stigmer/react-core",
   "@stigmer/react-sdk",
   "@stigmer/design-tokens",
   "@stigmer/embed",

@@ -8,7 +8,7 @@
 import { useCallback } from "react";
 import type { WorkspaceFileEntry, WorkspaceFileLister } from "../workspace/WorkspaceFileLister.js";
 import type { WorkspaceEntry } from "../workspace/useWorkspaceEntries.js";
-import { useStigmer } from "../hooks.js";
+import { useStigmer } from "@stigmer/react-core";
 import { parseGitUrl } from "./parseGitUrl.js";
 
 /**

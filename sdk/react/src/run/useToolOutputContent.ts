@@ -2,8 +2,8 @@
 
 import { useMemo } from "react";
 import type { ToolFullOutput } from "@stigmer/client";
-import { useArtifactContent } from "./useArtifactContent.js";
-import { runIdFromStorageKey } from "./useFileChangeContent.js";
+import { useArtifactContent } from "@stigmer/react-core";
+import { runIdFromStorageKey } from "@stigmer/react-core/internal";
 
 /** Return value of {@link useToolOutputContent}. */
 export interface UseToolOutputContentReturn {

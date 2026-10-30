@@ -1,7 +1,7 @@
 "use client";
 
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { useResourceCount } from "../search/index.js";
+import { useResourceCount } from "@stigmer/react-core/internal";
 
 /** Options for {@link useAgentCount}. */
 export interface UseAgentCountOptions {

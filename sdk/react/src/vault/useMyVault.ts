@@ -22,9 +22,9 @@ import {
   SetVaultSecretsInputSchema,
   VaultSecretInputSchema,
 } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/io_pb";
-import { useStigmer } from "../hooks.js";
-import { useFetch } from "../internal/useFetch.js";
-import { toError } from "../internal/toError.js";
+import { useStigmer } from "@stigmer/react-core";
+import { useFetch } from "@stigmer/react-core/internal";
+import { toError } from "@stigmer/react-core/internal";
 import { myVaultTarget } from "./target.js";
 
 /** A secret to save: its value, and optionally what it is for. */

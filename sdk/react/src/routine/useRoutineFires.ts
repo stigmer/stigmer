@@ -5,7 +5,7 @@ import {
   ListRoutineFiresRequestSchema,
   type RoutineFire,
 } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/io_pb";
-import { useStigmer } from "../hooks.js";
+import { useStigmer } from "@stigmer/react-core";
 import { useTokenPages } from "../internal/useTokenPages.js";
 
 /** Options for {@link useRoutineFires}. */

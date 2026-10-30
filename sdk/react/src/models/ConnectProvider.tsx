@@ -12,7 +12,8 @@
 import { Fragment, type ReactNode } from "react";
 import { ArrowRight } from "lucide-react";
 import { DEFAULT_MODELS_HUB_HREF } from "../billing/ProviderKeyNotice.js";
-import { HARNESS_META, type HarnessOption } from "./harness.js";
+import { type HarnessOption } from "@stigmer/react-core";
+import { HARNESS_META } from "@stigmer/react-core/internal";
 import { ProviderCard, providerFace, type ProviderFace } from "./hub/ProviderCard.js";
 import type { ModelsHubData } from "./hub/ModelsHub.js";
 import { keyPhrase, presentationOf, type SentencePart } from "./provider-presentation.js";

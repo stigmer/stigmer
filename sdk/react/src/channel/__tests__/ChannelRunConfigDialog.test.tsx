@@ -13,9 +13,9 @@ import { ServiceTier, ThinkingMode } from "@stigmer/apis/ai/stigmer/agentic/run/
 import type { RunConfigInput } from "@stigmer/client";
 import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
 import { sentUpdate } from "../../internal/__tests__/sent-update";
-import { StigmerContext } from "../../context";
+import { StigmerContext } from "@stigmer/react-core";
 import { ModelRegistryContext } from "../../models/ModelRegistryContext";
-import type { ModelInfo } from "../../models/registry";
+import type { ModelInfo } from "@stigmer/react-core";
 import { ChannelRunConfigDialog } from "../ChannelRunConfigDialog";
 
 // happy-dom does not implement the native dialog show/close methods.

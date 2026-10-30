@@ -1,6 +1,6 @@
 "use client";
 
-import { useExecutionTarget } from "../execution-target-context.js";
+import { useExecutionTarget } from "@stigmer/react-core/internal";
 import { useEnvironmentAvailability } from "../server-info.js";
 import { environmentsNotApplying, type EnvironmentsNotApplying } from "./resolve.js";
 

@@ -91,7 +91,7 @@ second provider needs a written reason.
 **The streaming pipeline.** Real-time views ride one pipeline: a stream source,
 the StreamController state machine (`idle`, `connecting`, `streaming`,
 `reconnecting`, `complete`, `error`;
-`sdk/react/src/internal/stream-controller.ts`), request-animation-frame
+`sdk/react-core/src/internal/stream-controller.ts`), request-animation-frame
 coalescing (buffer the latest, commit at most once per frame), structural
 sharing (walk the tree by natural keys and keep unchanged references),
 `startTransition`, `useSyncExternalStore`, and `React.memo` on the leaves. Never

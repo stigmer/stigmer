@@ -9,16 +9,15 @@ import {
   hookApproveAllLabel,
   isInformativePolicySource,
 } from "./approval-provenance.js";
+import { resolveToolCategoryFromCall, extractShellIntentFromPreview } from "@stigmer/react-core";
 import {
-  resolveToolCategoryFromCall,
   extractPrimaryArgFromPreview,
-  extractShellIntentFromPreview,
   extractWriteContentFromArgs,
   isFileCategory,
   parseArgsPreview,
   withAuthoritativeWriteContent,
-  type ToolCategory,
-} from "./tool-categories.js";
+} from "@stigmer/react-core/internal";
+import { type ToolCategory } from "@stigmer/react-core";
 import { CATEGORY_ICON } from "./ToolCallItem.js";
 import { ToolArgsView } from "./ToolArgsView.js";
 import { EmptyChangeNotice } from "./EmptyChangeNotice.js";
@@ -27,7 +26,7 @@ import { DecisionButton } from "../internal/DecisionButton.js";
 import { InCardDecisionError } from "../internal/InCardDecisionError.js";
 import { INPUT_CLASSES } from "../internal/form-primitives.js";
 import { useElapsedSince, formatElapsed } from "../internal/useElapsedSince.js";
-import type { ToolUseAnswer } from "./useAnswerToolUse.js";
+import type { ToolUseAnswer } from "@stigmer/react-core";
 
 /** Props for {@link ApprovalCard}. */
 export interface ApprovalCardProps {

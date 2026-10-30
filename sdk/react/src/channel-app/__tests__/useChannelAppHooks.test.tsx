@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import type { ChannelAppInput } from "@stigmer/client";
-import { StigmerContext } from "../../context";
+import { StigmerContext } from "@stigmer/react-core";
 import { useChannelAppList } from "../useChannelAppList";
 import { useCreateChannelApp } from "../useCreateChannelApp";
 import { useUpdateChannelApp } from "../useUpdateChannelApp";

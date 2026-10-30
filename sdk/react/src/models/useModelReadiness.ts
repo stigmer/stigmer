@@ -16,10 +16,10 @@ import {
   type ModelReadiness as WireModelReadiness,
   type ProviderReadiness as WireProviderReadiness,
 } from "@stigmer/apis/ai/stigmer/platform/v1/model_readiness_pb";
-import { useStigmer } from "../hooks.js";
-import { useFetchCache } from "../internal/FetchCacheProvider.js";
-import { useFetch } from "../internal/useFetch.js";
-import type { HarnessOption } from "./harness.js";
+import { useStigmer } from "@stigmer/react-core";
+import { useFetchCache } from "@stigmer/react-core/internal";
+import { useFetch } from "@stigmer/react-core/internal";
+import type { HarnessOption } from "@stigmer/react-core";
 import type { ModelReadiness, ModelReadinessLookup, ProviderAvailability, ProviderReadiness } from "./readiness.js";
 
 /** Return value of {@link useModelReadiness}. */

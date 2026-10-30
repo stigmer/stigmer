@@ -44,8 +44,8 @@ import { GrantQueryController } from "@stigmer/apis/ai/stigmer/iam/grant/v1/quer
 import { OrganizationSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import { OrganizationsSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/io_pb";
 import { OrganizationQueryController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/query_pb";
-import { StigmerContext } from "../../context";
-import { DeploymentModeContext } from "../../deployment-mode";
+import { StigmerContext } from "@stigmer/react-core";
+import { DeploymentModeContext } from "@stigmer/react-core";
 import { OrgProvider } from "../../organization/OrgProvider";
 import { AccessHistorySection } from "../AccessHistorySection";
 

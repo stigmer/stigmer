@@ -12,7 +12,7 @@ import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { formatDuration } from "../../run/ToolCallDetail";
-import { samples, SAMPLE_INSTANT, sampleInstant, sampleDate } from "../samples";
+import { samples, SAMPLE_INSTANT, sampleInstant, sampleDate } from "@stigmer/react-core/test";
 
 describe("samples", () => {
   describe("session", () => {

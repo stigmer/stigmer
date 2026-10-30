@@ -20,7 +20,4 @@ export type {
   InteractionModeOption,
 } from "./InteractionModePicker.js";
 
-export {
-  toProtoInteractionMode,
-  fromProtoInteractionMode,
-} from "./interaction-mode.js";
+export { toProtoInteractionMode, fromProtoInteractionMode } from "@stigmer/react-core/internal";

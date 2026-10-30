@@ -149,7 +149,8 @@ vi.mock("../useSessionAccess", () => ({
   useSessionAccess: () => ({ canSend: true, canDecide: true }),
 }));
 
-vi.mock("../../hooks", () => ({
+vi.mock("@stigmer/react-core", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@stigmer/react-core")>()),
   useStigmer: () => ({
     // Server info answers the Environment row: a server that predates the field.
     platform: { getServerInfo: async () => ({}) },

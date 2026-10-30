@@ -1,5 +1,5 @@
 import { parsePatch } from "diff";
-import { mapPatchHunks } from "./diff-hunks.js";
+import { mapPatchHunks } from "@stigmer/react-core/internal";
 import type { DiffHunk } from "./types.js";
 
 /**
@@ -11,7 +11,7 @@ import type { DiffHunk } from "./types.js";
  * `+++ b/...`, `@@` preamble and inline `+`/`-` prefixes.
  *
  * The `---`/`+++` file headers parse into metadata and are discarded; only the
- * hunks survive, mapped through the shared {@link mapPatchHunks}. A diff input is
+ * hunks survive, mapped through the shared `mapPatchHunks`. A diff input is
  * a single file's patch, but `parsePatch` can return multiple file entries, so
  * their hunks are flattened defensively.
  *

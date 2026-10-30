@@ -11,7 +11,7 @@ import {
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import type { Score } from "@stigmer/apis/ai/stigmer/agentic/score/v1/api_pb";
-import { useWhoAmI } from "../grant/useWhoAmI.js";
+import { useWhoAmI } from "@stigmer/react-core";
 import {
   judgeScoreOf,
   runHealthScoreOf,

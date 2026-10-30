@@ -18,7 +18,7 @@ import { EvalRunQueryController } from "@stigmer/apis/ai/stigmer/agentic/evalrun
 import { EvalRunListSchema } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 
-import { StigmerContext } from "../../context.js";
+import { StigmerContext } from "@stigmer/react-core";
 import { PluginDetailView } from "../PluginDetailView.js";
 import { evalWith } from "../../eval-run/__tests__/eval-fixture.js";
 

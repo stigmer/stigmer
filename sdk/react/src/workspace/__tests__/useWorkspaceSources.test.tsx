@@ -1,10 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { renderHook } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { ExecutionTargetContext } from "../../execution-target-context";
-import { DeploymentModeContext } from "../../deployment-mode";
+import { ExecutionTargetContext } from "@stigmer/react-core/internal";
+import { DeploymentModeContext } from "@stigmer/react-core";
 import { useWorkspaceSources } from "../useWorkspaceSources";
-import type { ExecutionTargetOption } from "../../session/execution-target";
+import type { ExecutionTargetOption } from "@stigmer/react-core";
 import type { DeploymentMode } from "@stigmer/client";
 
 function wrapper({

@@ -58,8 +58,8 @@ vi.mock("../useChannelAgentProfile", () => ({
   }),
 }));
 
-import { StigmerContext } from "../../context";
-import { FetchCacheContext } from "../../internal/FetchCacheProvider";
+import { StigmerContext } from "@stigmer/react-core";
+import { FetchCacheContext } from "@stigmer/react-core/internal";
 import { VisitorChat } from "../VisitorChat";
 
 const createExecution = vi.fn(async (_input: Record<string, unknown>) => ({

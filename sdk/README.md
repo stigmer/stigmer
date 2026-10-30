@@ -26,6 +26,7 @@ references, updates and lists, the same in every language:
 | Package          | What it is                                                                     | Start here                           |
 | ---------------- | ------------------------------------------------------------------------------ | ------------------------------------ |
 | `@stigmer/react-sdk` | The provider, hooks and components of the Console, embeddable in any React app | [react/README.md](./react/README.md) |
+| `@stigmer/react-core` | The conversation hooks both kits are built on, with no rendering package      | [react-core/README.md](./react-core/README.md) |
 | `@stigmer/design-tokens` | Design tokens, color presets and utilities for those components                | [theme/README.md](./theme/README.md) |
 | `@stigmer/ink-ui`   | Ink (React for terminals) components that render agent sessions                | [`ink/`](./ink/)                     |
 | `@stigmer/embed` | A one-line `<stigmer-agent>` script embed for an Agent's chat link             | [`embed/`](./embed/)                 |

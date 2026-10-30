@@ -12,20 +12,20 @@
 
 // Provider and context
 export type { ApprovalDefaults } from "./approval-defaults-context.js";
-export { StigmerContext } from "./context.js";
+export { StigmerContext } from "@stigmer/react-core";
 
 // Runner adapter
-export { type RunnerAdapter, useRunnerAdapter } from "./runner-adapter.js";
+export { type RunnerAdapter, useRunnerAdapter } from "@stigmer/react-core";
 
 // Construction helper lives in @stigmer/client (framework-agnostic); re-exported
 // here so React embedders import it alongside the adapter interface.
 export { type RunnerWorkerHost, createRunnerAdapter } from "@stigmer/client";
 
 // Fetch cache
-export type { FetchCacheOptions } from "./internal/fetch-cache.js";
+export type { FetchCacheOptions } from "@stigmer/react-core";
 
 // Hooks
-export { useStigmer } from "./hooks.js";
+export { useStigmer } from "@stigmer/react-core";
 
 // Color mode
 export { ColorModeContext, useColorMode } from "./color-mode.js";
@@ -39,11 +39,7 @@ export { useEnvironmentAvailability, useServerInfo, useSingleOrg } from "./serve
 export type { UseServerInfoReturn } from "./server-info.js";
 
 // Deployment mode and resource availability
-export {
-  DeploymentModeContext,
-  useDeploymentMode,
-  useResourceAvailable,
-} from "./deployment-mode.js";
+export { DeploymentModeContext, useDeploymentMode, useResourceAvailable } from "@stigmer/react-core";
 export { type DeploymentMode, isResourceAvailable, ApiResourceKind } from "@stigmer/client";
 
 // Models — data hook, styled components, and registry data
@@ -1478,13 +1474,13 @@ export type {
 } from "./empty-state/index.js";
 
 // Search — shared search/list/count infrastructure re-exported for public API surface
-export { createLibraryListFn } from "./search/index.js";
+export { createLibraryListFn } from "@stigmer/react-core";
 export type {
   LibraryClient,
   LibraryKind,
   UseResourceSearchOptions,
   UseResourceSearchReturn,
-} from "./search/index.js";
+} from "@stigmer/react-core";
 
 // Usage — org-level usage report hook, dashboard panel, and date-range utilities
 export {

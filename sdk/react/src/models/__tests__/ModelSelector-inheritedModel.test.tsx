@@ -13,7 +13,7 @@ import { describe, it, expect, vi, afterEach, beforeAll } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import { ModelSelector } from "../ModelSelector";
 import { ModelRegistryContext } from "../ModelRegistryContext";
-import type { ModelInfo } from "../registry";
+import type { ModelInfo } from "@stigmer/react-core";
 
 beforeAll(() => {
   if (!("ResizeObserver" in globalThis)) {

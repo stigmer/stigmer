@@ -25,7 +25,7 @@ import {
   type PrincipalAccess,
 } from "@stigmer/apis/ai/stigmer/iam/grant/v1/io_pb";
 import { teamGrantee, type DeploymentMode, type Grantee } from "@stigmer/client";
-import { DeploymentModeContext } from "../../deployment-mode";
+import { DeploymentModeContext } from "@stigmer/react-core";
 
 const share = vi.hoisted(() => ({
   accessList: [] as PrincipalAccess[],

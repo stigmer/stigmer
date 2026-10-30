@@ -19,7 +19,7 @@ import {
   usageOf,
   type ScenarioName,
 } from "../scenarios";
-import { SAMPLE_INSTANT } from "../samples";
+import { SAMPLE_INSTANT } from "@stigmer/react-core/test";
 
 function onlyTurn(name: ScenarioName) {
   const turns = scenarios[name].fold.turns;

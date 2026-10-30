@@ -19,7 +19,7 @@ import type { ResourceRef } from "@stigmer/client";
 import { EnvironmentPicker } from "../environment/EnvironmentPicker.js";
 import { ENVIRONMENTS_NOT_APPLYING_COPY } from "../environment/copy.js";
 import { environmentName, useEnvironmentList } from "../environment/useEnvironmentList.js";
-import { saveErrorMessage } from "../internal/maskedEdit.js";
+import { saveErrorMessage } from "@stigmer/react-core/internal";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { useEnvironmentAvailability } from "../server-info.js";
 import { useUpdateOrganization } from "./useUpdateOrganization.js";

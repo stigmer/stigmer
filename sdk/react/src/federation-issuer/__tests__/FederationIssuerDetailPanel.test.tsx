@@ -8,7 +8,7 @@ import {
 import type { CheckMyPermissionInput } from "@stigmer/apis/ai/stigmer/iam/grant/v1/io_pb";
 import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 import { sentUpdate } from "../../internal/__tests__/sent-update";
-import { StigmerContext } from "../../context";
+import { StigmerContext } from "@stigmer/react-core";
 import { FederationIssuerDetailPanel } from "../FederationIssuerDetailPanel";
 
 /**

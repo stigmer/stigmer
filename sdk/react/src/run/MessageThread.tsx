@@ -27,7 +27,7 @@ import {
   type TurnItem,
 } from "@stigmer/client";
 import { cn } from "@stigmer/design-tokens";
-import { runPhaseOf } from "./run-phases.js";
+import { runPhaseOf } from "@stigmer/react-core";
 import { MessageEntry, type MessageEntryProps, type ThreadMessage } from "./MessageEntry.js";
 import { RunScores } from "../score/RunScores.js";
 import { RunScoresProvider, useRunScoresEnabled } from "../score/RunScoresContext.js";
@@ -54,15 +54,16 @@ import { PlanStreamingCard, type PlanStreamingCardProps } from "./PlanStreamingC
 import { TodoCard, type TodoCardProps } from "./TodoCard.js";
 import type { TodoRowProps } from "./TodoList.js";
 import { findStreamingPlan } from "../library/detect-streaming-plan.js";
-import { extractPrimaryArg, isInternalTool, resolveToolCategoryFromCall, subagentSubjectOf } from "./tool-categories.js";
-import { fileForRowPath } from "./file-review-status.js";
-import type { ToolUseAnswer } from "./useAnswerToolUse.js";
+import { extractPrimaryArg, resolveToolCategoryFromCall, subagentSubjectOf } from "@stigmer/react-core";
+import { isInternalTool } from "@stigmer/react-core/internal";
+import { fileForRowPath } from "@stigmer/react-core";
+import type { ToolUseAnswer } from "@stigmer/react-core";
 import { FilePathContext, type FilePathContextValue } from "./FilePathContext.js";
 import type { ResolvedPathAction } from "./file-path-resolver.js";
 import { SandboxContext, type SandboxContextValue } from "./SandboxContext.js";
 import { ApprovalContext, type ApprovalContextValue } from "./ApprovalContext.js";
 import { BackgroundCommandContext, type BackgroundCommandContextValue } from "./BackgroundCommandContext.js";
-import { FileReviewContext, type FileReviewContextValue } from "./FileReviewContext.js";
+import { FileReviewContext, type FileReviewContextValue } from "@stigmer/react-core";
 import {
   extractLeadingH1,
   unwrapEnclosingMarkdownFence,

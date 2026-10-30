@@ -5,7 +5,7 @@ import type { FileChangeSet } from "@stigmer/apis/ai/stigmer/agentic/run/v1/file
 import type { FileReviewSet } from "@stigmer/client";
 import { cn } from "@stigmer/design-tokens";
 import { FileReviewCard } from "./FileReviewCard.js";
-import type { FileReviewAction, ReviewFileChangesOptions } from "./useReviewFileChanges.js";
+import type { FileReviewAction, ReviewFileChangesOptions } from "@stigmer/react-core";
 
 /** A stable empty map so a dock without captures keeps a constant default. */
 const NO_CAPTURES: ReadonlyMap<string, FileChangeSet> = new Map();

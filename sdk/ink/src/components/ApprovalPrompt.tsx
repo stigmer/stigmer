@@ -15,7 +15,7 @@ import {
 import {
   extractShellIntentFromPreview,
   type ToolUseAnswer,
-} from "@stigmer/react-sdk/headless";
+} from "@stigmer/react-core";
 
 /** Props for {@link ApprovalPrompt}. */
 export interface ApprovalPromptProps {

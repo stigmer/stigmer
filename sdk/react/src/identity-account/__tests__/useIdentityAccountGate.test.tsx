@@ -35,7 +35,7 @@ import {
 } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { StigmerContext } from "../../context";
+import { StigmerContext } from "@stigmer/react-core";
 import { useIdentityAccountGate } from "../useIdentityAccountGate";
 
 const EXISTING: IdentityAccount = create(IdentityAccountSchema, {

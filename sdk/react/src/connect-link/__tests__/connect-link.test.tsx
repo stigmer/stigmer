@@ -32,8 +32,8 @@ import {
   StartConnectLinkOutputSchema,
   type CompleteConnectLinkInput,
 } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/connect_link_pb";
-import { StigmerContext } from "../../context";
-import { FetchCacheContext } from "../../internal/FetchCacheProvider";
+import { StigmerContext } from "@stigmer/react-core";
+import { FetchCacheContext } from "@stigmer/react-core/internal";
 import { ConnectLinkCallback } from "../ConnectLinkCallback";
 import { ConnectLinkView } from "../ConnectLinkView";
 import { CONNECT_LINK_PENDING_KEY, pendingConnectLinkToken, useConnectLink } from "../useConnectLink";

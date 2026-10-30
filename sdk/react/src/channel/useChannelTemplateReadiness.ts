@@ -2,7 +2,7 @@
 
 import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
 import { ChannelInstallState } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/status_pb";
-import { useDeploymentMode } from "../deployment-mode.js";
+import { useDeploymentMode } from "@stigmer/react-core";
 
 /**
  * Whether a channel can answer a template-registry read

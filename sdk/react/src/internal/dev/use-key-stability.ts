@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { isPerfLoggingEnabled } from "./enabled.js";
+import { isPerfLoggingEnabled } from "@stigmer/react-core/internal";
 
 /** Minimal shape expected from a keyed thread item. */
 interface KeyedItem {

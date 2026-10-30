@@ -172,6 +172,10 @@
       ]
     },
     {
+      "id": "INK-14",
+      "promise": "The terminal kit installs without any browser package."
+    },
+    {
       "id": "LIB-01",
       "promise": "Every library installs from its packed tarball and imports under Node."
     },

@@ -25,7 +25,7 @@ import {
 } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/conversation_io_pb";
 import { ChannelDeliveryStatus } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/delivery_pb";
 import { ChannelReceiptState } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/outbound_pb";
-import { StigmerContext } from "../../../context.js";
+import { StigmerContext } from "@stigmer/react-core";
 import { ConversationComposer } from "../../ConversationComposer.js";
 import { ConversationListPane } from "../../ConversationListPane.js";
 import { ConversationTimelineView } from "../../ConversationTimelineView.js";

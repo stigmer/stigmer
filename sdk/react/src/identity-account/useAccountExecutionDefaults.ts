@@ -3,7 +3,8 @@
 import { useMemo } from "react";
 import type { IdentityAccountPreferences } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/spec_pb";
 import { useMyIdentityAccount } from "./useMyIdentityAccount.js";
-import { isHarnessOption, type HarnessOption } from "../models/harness.js";
+import { type HarnessOption } from "@stigmer/react-core";
+import { isHarnessOption } from "@stigmer/react-core/internal";
 
 /**
  * The current user's account-level execution defaults, shaped for the

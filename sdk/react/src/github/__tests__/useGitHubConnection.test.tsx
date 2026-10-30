@@ -34,8 +34,8 @@ import {
   SignInReturn,
   StartSignInOutputSchema,
 } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/io_pb";
-import { StigmerContext } from "../../context";
-import { FetchCacheContext } from "../../internal/FetchCacheProvider";
+import { StigmerContext } from "@stigmer/react-core";
+import { FetchCacheContext } from "@stigmer/react-core/internal";
 import { useGitHubConnection } from "../useGitHubConnection";
 
 const popup = vi.hoisted(() => ({ blocked: false, declined: false, untilCancelled: false, closed: vi.fn() }));

@@ -3,9 +3,9 @@
 import { useMemo } from "react";
 import type { SearchResult } from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { useStigmer } from "../hooks.js";
+import { useStigmer } from "@stigmer/react-core";
 import { useActiveOrgId } from "../organization/OrgProvider.js";
-import { useCursorPages } from "../internal/useCursorPages.js";
+import { useCursorPages } from "@stigmer/react-core/internal";
 
 /** Options for {@link useSessionSearch}. */
 export interface UseSessionSearchOptions {

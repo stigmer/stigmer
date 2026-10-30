@@ -8,9 +8,9 @@ import {
   ListAgentVersionsInputSchema,
   type AgentVersionEntry as ProtoAgentVersionEntry,
 } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/version_pb";
-import { useStigmer } from "../hooks.js";
-import { useCursorPages } from "../internal/useCursorPages.js";
-import { useFetch } from "../internal/useFetch.js";
+import { useStigmer } from "@stigmer/react-core";
+import { useCursorPages } from "@stigmer/react-core/internal";
+import { useFetch } from "@stigmer/react-core/internal";
 import type { VersionEntry } from "../version-history/types.js";
 
 /** Return value of {@link useAgentVersions}. */

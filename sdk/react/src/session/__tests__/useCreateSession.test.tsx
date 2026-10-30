@@ -7,9 +7,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { StigmerContext } from "../../context";
-import { FetchCacheContext } from "../../internal/FetchCacheProvider";
-import { ExecutionTargetContext } from "../../execution-target-context";
+import { StigmerContext } from "@stigmer/react-core";
+import { FetchCacheContext } from "@stigmer/react-core/internal";
+import { ExecutionTargetContext } from "@stigmer/react-core/internal";
 import { useCreateSession } from "../useCreateSession";
 
 function createMockStigmer(overrides: {

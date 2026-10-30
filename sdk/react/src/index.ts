@@ -20,7 +20,7 @@ export { StigmerProvider, type StigmerProviderProps } from "./provider.js";
 export type { MermaidLoader, MermaidModule } from "./mermaid-loader-context.js";
 
 // Fetch cache
-export { FetchCacheProvider } from "./internal/FetchCacheProvider.js";
+export { FetchCacheProvider } from "@stigmer/react-core";
 
 // Deployment mode and resource availability
 export { CloudFeatureNotice, type CloudFeatureNoticeProps } from "./internal/CloudFeatureNotice.js";

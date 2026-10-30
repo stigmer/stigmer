@@ -8,7 +8,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { strToU8, zipSync } from "fflate";
-import { StigmerContext } from "../../context";
+import { StigmerContext } from "@stigmer/react-core";
 import { SkillUploader } from "../SkillUploader";
 
 const SKILL_MD = "---\nname: my-skill\ndescription: A test skill\n---\n# My Skill\n";

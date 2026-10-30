@@ -3,11 +3,9 @@
 import { useMemo } from "react";
 import { isSecretArgKey, redactSecretArgs } from "@stigmer/client";
 import { cn } from "@stigmer/design-tokens";
-import {
-  resolveToolCategory,
-  extractWriteContentFromArgs,
-} from "./tool-categories.js";
-import type { ToolCategory, ToolCategoryInfo } from "./tool-categories.js";
+import { resolveToolCategory } from "@stigmer/react-core";
+import { extractWriteContentFromArgs } from "@stigmer/react-core/internal";
+import type { ToolCategory, ToolCategoryInfo } from "@stigmer/react-core";
 import { FilePathLink } from "./FilePathLink.js";
 import { McpArgsView, McpMetadataRow } from "./McpToolDetail.js";
 import { TerminalSession } from "./TerminalSession.js";

@@ -12,22 +12,22 @@ import {
 import type { Stigmer, DeploymentMode } from "@stigmer/client";
 import { cn, resolvePresetClass } from "@stigmer/design-tokens";
 import type { ThemePresetId } from "@stigmer/design-tokens";
-import { StigmerContext } from "./context.js";
-import { DeploymentModeContext } from "./deployment-mode.js";
-import { ExecutionTargetContext } from "./execution-target-context.js";
+import { StigmerContext } from "@stigmer/react-core";
+import { DeploymentModeContext } from "@stigmer/react-core";
+import { ExecutionTargetContext } from "@stigmer/react-core/internal";
 import { ApprovalDefaultsContext } from "./approval-defaults-context.js";
 import { PublicBaseUrlContext } from "./public-base-url-context.js";
 import type { ApprovalDefaults } from "./approval-defaults-context.js";
-import type { ExecutionTargetOption } from "./session/execution-target.js";
-import type { RunnerAdapter } from "./runner-adapter.js";
-import { RunnerAdapterContext } from "./runner-adapter.js";
+import type { ExecutionTargetOption } from "@stigmer/react-core";
+import type { RunnerAdapter } from "@stigmer/react-core";
+import { RunnerAdapterContext } from "@stigmer/react-core/internal";
 import type { ColorMode, ResolvedColorMode } from "./color-mode.js";
 import { ColorModeContext, useSystemColorMode } from "./color-mode.js";
 import { PortalContainerContext } from "./portal-container.js";
 import { MermaidLoaderContext, type MermaidLoader } from "./mermaid-loader-context.js";
 import { ModelRegistryContext } from "./models/ModelRegistryContext.js";
 import type { ModelRegistryState } from "./models/ModelRegistryContext.js";
-import { fetchModelRegistryDocument } from "./models/registry.js";
+import { fetchModelRegistryDocument } from "@stigmer/react-core";
 
 /** Props for {@link StigmerProvider}. */
 export interface StigmerProviderProps {

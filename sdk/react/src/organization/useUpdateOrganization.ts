@@ -3,8 +3,8 @@
 import { useCallback, useState } from "react";
 import type { MessageInitShape } from "@bufbuild/protobuf";
 import type { Organization, OrganizationSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
-import { useStigmer } from "../hooks.js";
-import { toError } from "../internal/toError.js";
+import { useStigmer } from "@stigmer/react-core";
+import { toError } from "@stigmer/react-core/internal";
 
 /** Return value of {@link useUpdateOrganization}. */
 export interface UseUpdateOrganizationReturn {

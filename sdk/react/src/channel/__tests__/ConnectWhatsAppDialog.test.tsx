@@ -12,9 +12,9 @@ import type { ReactNode } from "react";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { StigmerError, type ChannelInput } from "@stigmer/client";
 import { ErrorInfoSchema } from "@stigmer/apis/google/rpc/error_details_pb";
-import { StigmerContext } from "../../context";
-import { FetchCacheContext } from "../../internal/FetchCacheProvider";
-import { DeploymentModeContext } from "../../deployment-mode";
+import { StigmerContext } from "@stigmer/react-core";
+import { FetchCacheContext } from "@stigmer/react-core/internal";
+import { DeploymentModeContext } from "@stigmer/react-core";
 import { ConnectWhatsAppDialog } from "../ConnectWhatsAppDialog";
 
 vi.mock("../../feedback/toast", () => ({

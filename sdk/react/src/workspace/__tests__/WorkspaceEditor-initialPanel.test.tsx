@@ -10,7 +10,7 @@
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
-import { StigmerContext } from "../../context";
+import { StigmerContext } from "@stigmer/react-core";
 import { WorkspaceEditor } from "../WorkspaceEditor";
 import type { UseWorkspaceEntriesReturn } from "../useWorkspaceEntries";
 import type { UseGitHubConnectionReturn } from "../../github/useGitHubConnection";

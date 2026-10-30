@@ -14,10 +14,10 @@ import { RoutineSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_p
 import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { ServiceTier } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { VaultSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
-import { StigmerContext } from "../../context";
-import { FetchCacheContext } from "../../internal/FetchCacheProvider";
+import { StigmerContext } from "@stigmer/react-core";
+import { FetchCacheContext } from "@stigmer/react-core/internal";
 import { ModelRegistryContext } from "../../models/ModelRegistryContext";
-import type { ModelInfo } from "../../models/registry";
+import type { ModelInfo } from "@stigmer/react-core";
 import { useCreateRoutine } from "../useCreateRoutine";
 import { CadenceField } from "../CadenceField";
 import { RoutineForm } from "../RoutineForm";

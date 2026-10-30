@@ -1,8 +1,8 @@
 "use client";
 
 import type { Routine } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
-import { useStigmer } from "../hooks.js";
-import { useCursorPages } from "../internal/useCursorPages.js";
+import { useStigmer } from "@stigmer/react-core";
+import { useCursorPages } from "@stigmer/react-core/internal";
 import { listRoutinesPage } from "./routineListFn.js";
 
 /** Options for {@link useRoutineList}. */

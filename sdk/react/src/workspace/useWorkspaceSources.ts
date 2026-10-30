@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-import { useExecutionTarget } from "../execution-target-context.js";
-import { useDeploymentMode } from "../deployment-mode.js";
+import { useExecutionTarget } from "@stigmer/react-core/internal";
+import { useDeploymentMode } from "@stigmer/react-core";
 
 /** Options for {@link useWorkspaceSources}. */
 export interface UseWorkspaceSourcesOptions {

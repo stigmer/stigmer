@@ -15,7 +15,7 @@ import type { ToolUse } from "@stigmer/client";
 import { McpToolDetail } from "../McpToolDetail";
 import { ToolArgsView } from "../ToolArgsView";
 import { ToolCallDetail } from "../ToolCallDetail";
-import { extractPrimaryArg } from "../tool-categories";
+import { extractPrimaryArg } from "@stigmer/react-core";
 import { toolUse } from "./__fixtures__/fold-values";
 
 afterEach(cleanup);

@@ -6,8 +6,8 @@ import {
   GetAgentHoursInputSchema,
   type AgentHours,
 } from "@stigmer/apis/ai/stigmer/billing/subscription/v1/io_pb";
-import { useStigmer } from "../hooks.js";
-import { useFetch } from "../internal/useFetch.js";
+import { useStigmer } from "@stigmer/react-core";
+import { useFetch } from "@stigmer/react-core/internal";
 
 /** Options for {@link useAgentHours}. */
 export interface UseAgentHoursOptions {

@@ -1,7 +1,7 @@
 "use client";
 
 import { Profiler, type ProfilerOnRenderCallback, type ReactNode } from "react";
-import { isPerfLoggingEnabled } from "./enabled.js";
+import { isPerfLoggingEnabled } from "@stigmer/react-core/internal";
 
 /** Log every Nth commit to avoid console flood during streaming. */
 const LOG_EVERY = 10;

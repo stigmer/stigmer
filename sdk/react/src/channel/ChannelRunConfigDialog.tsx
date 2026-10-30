@@ -9,19 +9,13 @@ import { ServiceTier, ThinkingMode } from "@stigmer/apis/ai/stigmer/agentic/run/
 import { Button } from "../button/Button.js";
 import { DialogShell } from "../internal/DialogShell.js";
 import { ModelSelector } from "../models/ModelSelector.js";
-import type { HarnessOption } from "../models/harness.js";
-import {
-  fromProtoServiceTier,
-  toProtoServiceTier,
-  type ServiceTierOption,
-} from "../models/service-tier.js";
-import {
-  fromProtoThinkingMode,
-  toProtoThinkingMode,
-  type ThinkingModeOption,
-} from "../models/thinking-mode.js";
+import type { HarnessOption } from "@stigmer/react-core";
+import { fromProtoServiceTier, toProtoServiceTier } from "@stigmer/react-core/internal";
+import { type ServiceTierOption } from "@stigmer/react-core";
+import { fromProtoThinkingMode, toProtoThinkingMode } from "@stigmer/react-core/internal";
+import { type ThinkingModeOption } from "@stigmer/react-core";
 import { useSaveChannel } from "./useSaveChannel.js";
-import { saveErrorMessage } from "../internal/maskedEdit.js";
+import { saveErrorMessage } from "@stigmer/react-core/internal";
 
 /** Props for {@link ChannelRunConfigDialog}. */
 export interface ChannelRunConfigDialogProps {

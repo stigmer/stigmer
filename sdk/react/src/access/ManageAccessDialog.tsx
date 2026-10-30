@@ -4,7 +4,7 @@ import { useCallback, useId, type ReactNode } from "react";
 import { cn } from "@stigmer/design-tokens";
 import { DialogShell } from "../internal/DialogShell.js";
 import { ApiResourceKind, hasGrantableRoles, hasTeamGrantableRoles } from "@stigmer/client";
-import { useResourceAvailable } from "../deployment-mode.js";
+import { useResourceAvailable } from "@stigmer/react-core";
 import { PeopleWithAccess } from "../grant/PeopleWithAccess.js";
 import { ResourceVisibilityControl } from "../library/ResourceVisibilityControl.js";
 import type {

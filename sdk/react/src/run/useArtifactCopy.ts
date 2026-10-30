@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { create } from "@bufbuild/protobuf";
 import { GetArtifactContentRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
-import { useStigmer } from "../hooks.js";
-import { toError } from "../internal/toError.js";
+import { useStigmer } from "@stigmer/react-core";
+import { toError } from "@stigmer/react-core/internal";
 
 /** How long the transient `copied` flag stays true after a successful copy. */
 const COPIED_FEEDBACK_MS = 2000;

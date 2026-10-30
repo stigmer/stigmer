@@ -7,9 +7,9 @@ import {
   ListChannelConversationsInputSchema,
 } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/conversation_io_pb";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useStigmer } from "../hooks.js";
-import { toError } from "../internal/toError.js";
-import { useFetch } from "../internal/useFetch.js";
+import { useStigmer } from "@stigmer/react-core";
+import { toError } from "@stigmer/react-core/internal";
+import { useFetch } from "@stigmer/react-core/internal";
 import { CONVERSATION_LIST_POLL_INTERVAL_MS } from "./polling.js";
 
 /** Options for {@link useConversationList}. */

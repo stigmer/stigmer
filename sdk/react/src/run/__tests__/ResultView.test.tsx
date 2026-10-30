@@ -7,7 +7,7 @@ import type { ReactNode } from "react";
 import { normalizeToolResult } from "@stigmer/client";
 import type { ToolResultView } from "@stigmer/client";
 import type { Stigmer } from "@stigmer/client";
-import { StigmerContext } from "../../context";
+import { StigmerContext } from "@stigmer/react-core";
 import { ResultView, summarizeResultView } from "../ResultView";
 import { toolUse } from "./__fixtures__/fold-values";
 

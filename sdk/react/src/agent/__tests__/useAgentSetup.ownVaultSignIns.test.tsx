@@ -23,8 +23,8 @@ import { VaultSchema, type Vault } from "@stigmer/apis/ai/stigmer/agentic/vault/
 import { VaultConnectionSource } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/spec_pb";
 import { EnvVarDeclarationSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/declaration_pb";
 
-import { StigmerContext } from "../../context";
-import { FetchCacheContext } from "../../internal/FetchCacheProvider";
+import { StigmerContext } from "@stigmer/react-core";
+import { FetchCacheContext } from "@stigmer/react-core/internal";
 import { useAgentSetup } from "../useAgentSetup";
 import { useMyVault } from "../../vault/useMyVault";
 import { MY_VAULT_ONLY, type ConversationVaults } from "../../vault/conversationVaults";

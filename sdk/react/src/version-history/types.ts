@@ -1,25 +1,11 @@
 import type { ReactNode } from "react";
+import type { DiffHunk } from "@stigmer/react-core";
 
 // ---------------------------------------------------------------------------
 // Diff types — generic text diff primitives for any versioned resource
 // ---------------------------------------------------------------------------
 
-/** A single line within a diff hunk. */
-export interface DiffLine {
-  readonly type: "added" | "removed" | "context";
-  readonly content: string;
-  readonly oldLineNumber?: number;
-  readonly newLineNumber?: number;
-}
-
-/** A contiguous group of changed/context lines in a unified diff. */
-export interface DiffHunk {
-  readonly oldStart: number;
-  readonly oldLines: number;
-  readonly newStart: number;
-  readonly newLines: number;
-  readonly lines: readonly DiffLine[];
-}
+export type { DiffLine, DiffHunk } from "@stigmer/react-core";
 
 /** Summary of changes to a single file between two versions. */
 export interface FileDiffEntry {

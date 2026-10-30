@@ -7,7 +7,7 @@ import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
  * do not need to import proto enums to use the SDK. Exactly the
  * harnesses the proto names; it grows only when the proto enum does.
  * A named harness is not necessarily an offered one: the pickers offer
- * {@link HARNESS_OPTIONS}.
+ * `HARNESS_OPTIONS`.
  */
 export type HarnessOption = "stigmer" | "claude";
 

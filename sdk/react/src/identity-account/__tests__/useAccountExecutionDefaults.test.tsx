@@ -7,8 +7,8 @@ import {
   type IdentityAccount,
 } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
 import type { DeploymentMode } from "@stigmer/client";
-import { StigmerContext } from "../../context";
-import { DeploymentModeContext } from "../../deployment-mode";
+import { StigmerContext } from "@stigmer/react-core";
+import { DeploymentModeContext } from "@stigmer/react-core";
 import { useAccountExecutionDefaults } from "../useAccountExecutionDefaults";
 
 function accountWithPreferences(

@@ -28,9 +28,9 @@ import {
   EvalRunPartialReason,
   EvalRunPhase,
 } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/status_pb";
-import { StigmerContext } from "../../context";
-import { DeploymentModeContext } from "../../deployment-mode";
-import { FetchCacheContext } from "../../internal/FetchCacheProvider";
+import { StigmerContext } from "@stigmer/react-core";
+import { DeploymentModeContext } from "@stigmer/react-core";
+import { FetchCacheContext } from "@stigmer/react-core/internal";
 import { EvalRunResults } from "../EvalRunResults";
 import { GPT, SONNET, evalStartOf, evalWith } from "./eval-fixture";
 

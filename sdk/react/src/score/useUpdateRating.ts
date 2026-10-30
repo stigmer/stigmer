@@ -2,8 +2,8 @@
 
 import { useCallback, useMemo, useState } from "react";
 import type { Score } from "@stigmer/apis/ai/stigmer/agentic/score/v1/api_pb";
-import { useStigmer } from "../hooks.js";
-import { toError } from "../internal/toError.js";
+import { useStigmer } from "@stigmer/react-core";
+import { toError } from "@stigmer/react-core/internal";
 import { ratingUpdate } from "./rating-input.js";
 
 /** Return value of {@link useUpdateRating}. */

@@ -13,7 +13,7 @@
 import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from "react";
 import type { MarketplaceEntry } from "@stigmer/plugin-package";
 
-import { useStigmer } from "../hooks.js";
+import { useStigmer } from "@stigmer/react-core";
 import { MarketplaceCatalogStore, type OpenSource, type SourceRead } from "./catalog-store.js";
 import { openMarketplaceSource } from "./sources/open.js";
 import type { OpenedMarketplace } from "./sources/read.js";

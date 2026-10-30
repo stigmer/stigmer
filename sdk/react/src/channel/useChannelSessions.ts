@@ -6,8 +6,8 @@ import { create } from "@bufbuild/protobuf";
 import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
 import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import { ListSessionsByChannelRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
-import { useStigmer } from "../hooks.js";
-import { useCursorPages } from "../internal/useCursorPages.js";
+import { useStigmer } from "@stigmer/react-core";
+import { useCursorPages } from "@stigmer/react-core/internal";
 
 /** Return value of {@link useChannelSessions}. */
 export interface UseChannelSessionsReturn {

@@ -12,7 +12,7 @@ import { render, screen, cleanup } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import { RoutineSchema, type Routine } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
 import type { Stigmer } from "@stigmer/client";
-import { StigmerContext } from "../../context";
+import { StigmerContext } from "@stigmer/react-core";
 import { samples, scenarios } from "../../test";
 import { CHANNEL_SESSION_LABELS } from "../channelOrigin";
 import { SessionSummary } from "../SessionSummary";

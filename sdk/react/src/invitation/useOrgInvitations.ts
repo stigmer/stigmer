@@ -3,8 +3,8 @@
 import { create } from "@bufbuild/protobuf";
 import type { Invitation } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/api_pb";
 import { ListInvitationsInputSchema } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/io_pb";
-import { useStigmer } from "../hooks.js";
-import { useCursorPages } from "../internal/useCursorPages.js";
+import { useStigmer } from "@stigmer/react-core";
+import { useCursorPages } from "@stigmer/react-core/internal";
 
 /** Options for {@link useOrgInvitations}. */
 export interface UseOrgInvitationsOptions {
