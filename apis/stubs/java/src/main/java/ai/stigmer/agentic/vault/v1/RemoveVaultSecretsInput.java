@@ -100,7 +100,8 @@ private static final long serialVersionUID = 0L;
       com.google.protobuf.LazyStringArrayList.emptyList();
   /**
    * <pre>
-   * Names of the secrets to remove.
+   * Names of the secrets to remove, each written as a saved name is: a
+   * letter or underscore, then letters, digits and underscores.
    * </pre>
    *
    * <code>repeated string names = 2 [json_name = "names", (.buf.validate.field) = { ... }</code>
@@ -112,7 +113,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Names of the secrets to remove.
+   * Names of the secrets to remove, each written as a saved name is: a
+   * letter or underscore, then letters, digits and underscores.
    * </pre>
    *
    * <code>repeated string names = 2 [json_name = "names", (.buf.validate.field) = { ... }</code>
@@ -123,7 +125,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Names of the secrets to remove.
+   * Names of the secrets to remove, each written as a saved name is: a
+   * letter or underscore, then letters, digits and underscores.
    * </pre>
    *
    * <code>repeated string names = 2 [json_name = "names", (.buf.validate.field) = { ... }</code>
@@ -135,7 +138,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Names of the secrets to remove.
+   * Names of the secrets to remove, each written as a saved name is: a
+   * letter or underscore, then letters, digits and underscores.
    * </pre>
    *
    * <code>repeated string names = 2 [json_name = "names", (.buf.validate.field) = { ... }</code>
@@ -672,7 +676,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Names of the secrets to remove.
+     * Names of the secrets to remove, each written as a saved name is: a
+     * letter or underscore, then letters, digits and underscores.
      * </pre>
      *
      * <code>repeated string names = 2 [json_name = "names", (.buf.validate.field) = { ... }</code>
@@ -685,7 +690,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Names of the secrets to remove.
+     * Names of the secrets to remove, each written as a saved name is: a
+     * letter or underscore, then letters, digits and underscores.
      * </pre>
      *
      * <code>repeated string names = 2 [json_name = "names", (.buf.validate.field) = { ... }</code>
@@ -696,7 +702,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Names of the secrets to remove.
+     * Names of the secrets to remove, each written as a saved name is: a
+     * letter or underscore, then letters, digits and underscores.
      * </pre>
      *
      * <code>repeated string names = 2 [json_name = "names", (.buf.validate.field) = { ... }</code>
@@ -708,7 +715,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Names of the secrets to remove.
+     * Names of the secrets to remove, each written as a saved name is: a
+     * letter or underscore, then letters, digits and underscores.
      * </pre>
      *
      * <code>repeated string names = 2 [json_name = "names", (.buf.validate.field) = { ... }</code>
@@ -721,7 +729,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Names of the secrets to remove.
+     * Names of the secrets to remove, each written as a saved name is: a
+     * letter or underscore, then letters, digits and underscores.
      * </pre>
      *
      * <code>repeated string names = 2 [json_name = "names", (.buf.validate.field) = { ... }</code>
@@ -740,7 +749,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Names of the secrets to remove.
+     * Names of the secrets to remove, each written as a saved name is: a
+     * letter or underscore, then letters, digits and underscores.
      * </pre>
      *
      * <code>repeated string names = 2 [json_name = "names", (.buf.validate.field) = { ... }</code>
@@ -758,7 +768,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Names of the secrets to remove.
+     * Names of the secrets to remove, each written as a saved name is: a
+     * letter or underscore, then letters, digits and underscores.
      * </pre>
      *
      * <code>repeated string names = 2 [json_name = "names", (.buf.validate.field) = { ... }</code>
@@ -776,7 +787,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Names of the secrets to remove.
+     * Names of the secrets to remove, each written as a saved name is: a
+     * letter or underscore, then letters, digits and underscores.
      * </pre>
      *
      * <code>repeated string names = 2 [json_name = "names", (.buf.validate.field) = { ... }</code>
@@ -791,7 +803,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Names of the secrets to remove.
+     * Names of the secrets to remove, each written as a saved name is: a
+     * letter or underscore, then letters, digits and underscores.
      * </pre>
      *
      * <code>repeated string names = 2 [json_name = "names", (.buf.validate.field) = { ... }</code>

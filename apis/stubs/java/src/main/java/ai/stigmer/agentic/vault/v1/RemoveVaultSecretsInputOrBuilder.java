@@ -39,7 +39,8 @@ public interface RemoveVaultSecretsInputOrBuilder extends
 
   /**
    * <pre>
-   * Names of the secrets to remove.
+   * Names of the secrets to remove, each written as a saved name is: a
+   * letter or underscore, then letters, digits and underscores.
    * </pre>
    *
    * <code>repeated string names = 2 [json_name = "names", (.buf.validate.field) = { ... }</code>
@@ -49,7 +50,8 @@ public interface RemoveVaultSecretsInputOrBuilder extends
       getNamesList();
   /**
    * <pre>
-   * Names of the secrets to remove.
+   * Names of the secrets to remove, each written as a saved name is: a
+   * letter or underscore, then letters, digits and underscores.
    * </pre>
    *
    * <code>repeated string names = 2 [json_name = "names", (.buf.validate.field) = { ... }</code>
@@ -58,7 +60,8 @@ public interface RemoveVaultSecretsInputOrBuilder extends
   int getNamesCount();
   /**
    * <pre>
-   * Names of the secrets to remove.
+   * Names of the secrets to remove, each written as a saved name is: a
+   * letter or underscore, then letters, digits and underscores.
    * </pre>
    *
    * <code>repeated string names = 2 [json_name = "names", (.buf.validate.field) = { ... }</code>
@@ -68,7 +71,8 @@ public interface RemoveVaultSecretsInputOrBuilder extends
   java.lang.String getNames(int index);
   /**
    * <pre>
-   * Names of the secrets to remove.
+   * Names of the secrets to remove, each written as a saved name is: a
+   * letter or underscore, then letters, digits and underscores.
    * </pre>
    *
    * <code>repeated string names = 2 [json_name = "names", (.buf.validate.field) = { ... }</code>

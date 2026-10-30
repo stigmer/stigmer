@@ -381,7 +381,7 @@
               "kind": "string"
             }
           },
-          "description": "Names of the secrets to remove.",
+          "description": "Names of the secrets to remove, each written as a saved name is: a\n letter or underscore, then letters, digits and underscores.",
           "required": false,
           "validation": {
             "minItems": 1,
@@ -1092,10 +1092,12 @@
           "type": {
             "kind": "string"
           },
-          "description": "The vault's external id.",
+          "description": "The vault's external id, at most 200 characters, written as a saved one\n is: a letter or digit, then letters, digits and . _ : @ / -.",
           "required": false,
           "validation": {
-            "minLength": 1
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]*$"
           }
         }
       ]

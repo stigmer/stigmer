@@ -7,7 +7,9 @@
  *     someone else (a conversation several people may send turns to, a
  *     channel, an organization's app users) refuses one. A routine may
  *     carry its owner's own My vault: the owner attaches it, and its runs,
- *     which act as the owner, use it as theirs. Only the owner changes
+ *     which act as the owner, use it as theirs; its runs of another
+ *     organization's agent read none of it (domain/vault/resolve.ts).
+ *     Only the owner changes
  *     what a routine runs (domain/routine/owners-lock.ts), so nobody else
  *     can point those runs at new work.
  *   - Who attached each vault is recorded, as a server-observed fact in the
