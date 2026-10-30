@@ -1,10 +1,10 @@
 /**
  * A console follow-up never destroys what the conversation holds: the page
  * loads each stored repository under its stored name (and no File as a
- * workspace entry), and the follow-up's workspace rewrite echoes the
- * stored token's redaction marker, which the server reads as "keep the
- * stored value", and keeps the stored Files. The composer's Files ride the
- * run, released once it exists.
+ * workspace entry), and a follow-up that rewrites the edited workspace
+ * echoes the stored token's redaction marker, which the server reads as
+ * "keep the stored value", and keeps the stored Files. The composer's Files
+ * ride the run, released once it exists.
  */
 import { describe, it, expect, vi } from "vitest";
 import { sentUpdate } from "../../internal/__tests__/sent-update";
@@ -36,7 +36,7 @@ const STORED = create(SessionSchema, {
 });
 
 describe("useSessionPageFlow — a stored repository token", () => {
-  it("is kept by a follow-up: the entry keeps its name and echoes the marker", async () => {
+  it("is kept by a follow-up that edits the workspace: the entry keeps its name and echoes the marker", async () => {
     const sessionUpdate = vi.fn().mockResolvedValue(STORED);
     const runSend = vi.fn().mockResolvedValue({ metadata: { id: "run_1" }, spec: {} });
     const releaseFiles = vi.fn().mockResolvedValue(undefined);
@@ -62,19 +62,20 @@ describe("useSessionPageFlow — a stored repository token", () => {
     await waitFor(() => expect(result.current.workspace.hasEntries).toBe(true));
     expect(result.current.workspace.entries.map((entry) => entry.name)).toEqual(["backend"]);
 
+    act(() => result.current.workspace.addLocalPath("/Users/dev/site"));
     await act(async () => {
       await result.current.handleSubmit("go", undefined, { fileIds: ["file_new"], releaseFiles });
     });
 
     await waitFor(() => expect(sessionUpdate).toHaveBeenCalledTimes(1));
     const resources = sentUpdate<Session>(sessionUpdate).resource.spec?.resources ?? [];
-    expect(resources.map((entry) => entry.resource.case)).toEqual(["gitRepository", "file"]);
+    expect(resources.map((entry) => entry.resource.case)).toEqual(["gitRepository", "localPath", "file"]);
     expect(resources[0]?.name).toBe("backend");
     expect(resources[0]?.resource).toMatchObject({
       case: "gitRepository",
       value: { url: "https://github.com/acme/api.git", branch: "main", token: MARKER },
     });
-    expect(resources[1]?.resource).toMatchObject({ case: "file", value: { fileId: "file_brief" } });
+    expect(resources[2]?.resource).toMatchObject({ case: "file", value: { fileId: "file_brief" } });
     expect(runSend.mock.calls[0][0].fileIds).toEqual(["file_new"]);
     expect(releaseFiles).toHaveBeenCalledTimes(1);
   });

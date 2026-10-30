@@ -811,7 +811,7 @@ function useSessionPageFlow(options: UseSessionPageFlowOptions): UseSessionPageF
     harness: { type: "HarnessOption", description: "Session's run harness (read-only, derived from session spec).  Use this to: - Filter the model selector for follow-up messages - Render a harness badge in the session header  Defaults to `\"stigmer\"` while the session is loading.", typeDescriptionLink: "/docs/sdk/react/models#harnessoption" },
     interactionMode: { type: "readonly [InteractionModeOption, (mode: InteractionModeOption) => void]", description: "Composer interaction mode: `[interactionMode, setInteractionMode]`.  Derived like model: the user's explicit override wins, otherwise it reflects the latest execution's mode (so a completed Plan keeps the picker on \"Plan\" while it awaits review), falling back to `\"agent\"`." },
     model: { type: "UsePersistedModelReturn", description: "Model selection: `[modelId, setModelId]`. The model is the one the last message asked for (`spec.run_config`, what the person picked, never what the server resolved), so a follow-up keeps the person's pick and never copies an agent default into the next message. Where the agent names no model for this conversation's harness, a model remembered on this device comes first. The setter remembers the pick.", typeDescriptionLink: "#usepersistedmodelreturn" },
-    pluginRefs: { type: "ResourceRef[]", description: "Plugins the conversation uses, for follow-ups." },
+    pluginRefs: { type: "ResourceRef[]", description: "Plugins the conversation uses, loaded from the conversation shown. A follow-up writes them only when they differ from what the server holds; an emptied list removes every plugin." },
     resolution: { type: "AgentResolution | null", description: "Current agent resolution state." },
     sandboxWorkspaceRoot: { type: "string | undefined", description: "Sandbox workspace root for file path normalization, or `undefined` when the session has no git-repo workspace entries." },
     setAgentRef: { type: "(ref: ResourceRef | null) => void", description: "Update the agent reference for future follow-ups. `null` is the drop: the same act as clearAgent, reached from the composer's picker." },
@@ -819,8 +819,8 @@ function useSessionPageFlow(options: UseSessionPageFlowOptions): UseSessionPageF
     setPluginRefs: { type: "(refs: ResourceRef[]) => void", description: "Update the plugins the conversation uses." },
     setResolution: { type: "(r: AgentResolution | null) => void", description: "Update the agent resolution." },
     setSkillRefs: { type: "(refs: ResourceRef[]) => void", description: "Update skill references." },
-    skillRefs: { type: "ResourceRef[]", description: "Active skill references for follow-ups." },
-    workspace: { type: "UseWorkspaceEntriesReturn", description: "Workspace entries manager (synced from session on load).", typeDescriptionLink: "/docs/sdk/react/workspace#useworkspaceentriesreturn" },
+    skillRefs: { type: "ResourceRef[]", description: "Skill references the conversation uses, loaded and written like UseSessionPageFlowReturn.pluginRefs." },
+    workspace: { type: "UseWorkspaceEntriesReturn", description: "Workspace entries manager, loaded from the conversation shown: each repository and folder under its stored name, a repository with its stored commit and write-back mode. Moving to another conversation loads that one's. A follow-up writes the workspace only when it differs from what the server holds, so an untouched one is never rewritten; a changed one is written whole, keeping every stored field of each entry it keeps, its stored tokens and Files among them, and an emptied one clears the repositories and folders.", typeDescriptionLink: "/docs/sdk/react/workspace#useworkspaceentriesreturn" },
   }}
 />
 
