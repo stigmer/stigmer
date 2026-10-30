@@ -218,8 +218,14 @@ describe("VisibilitySelector — manage mode (popover + confirmation)", () => {
     expect(onChange).not.toHaveBeenCalled();
     const alert = await screen.findByRole("alert");
     expect(alert).toBeTruthy();
+    // The prompt reads the theme: the caution fill and the kit's primary
+    // button, never a per-level palette colour (stigmer#2763).
+    expect(alert.className).toContain("stg:bg-status-degraded-subtle");
+    const confirm = within(alert).getByRole("button", { name: "Confirm" });
+    expect(confirm.className).toContain("stg:bg-primary");
+    expect(confirm.className).toContain("stg:text-primary-foreground");
 
-    fireEvent.click(within(alert).getByRole("button", { name: "Confirm" }));
+    fireEvent.click(confirm);
     expect(onChange).toHaveBeenCalledWith(ApiResourceVisibility.visibility_org);
   });
 

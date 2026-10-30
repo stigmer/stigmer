@@ -155,6 +155,18 @@ export const CONTRAST_PAIRS: readonly ContrastPair[] = [
       ),
     ),
   ),
+  // ── Caution notice (the at-risk pair with a foreground title) ─────────
+  ...PILL_SURFACES.map(({ surface, where }) =>
+    over(
+      pair(
+        "--stgm-foreground",
+        "--stgm-status-degraded-subtle",
+        "text",
+        `caution notice title (SecretFlowErrorGuide, SkillUploader no-changes strip, VisibilitySelector confirm strip) ${where}`,
+      ),
+      surface,
+    ),
+  ),
   ...STATUSES.map((status) =>
     pair(
       `--stgm-status-${status}-foreground`,

@@ -112,33 +112,33 @@ export function SecretFlowErrorGuide({
     return map;
   }, [parsed]);
 
+  // The kit's caution notice: the theme's at-risk status pair (as the
+  // conversation composer's advisory draws it) with a foreground title,
+  // each pair audited by the contrast contract in every preset and mode.
   return (
     <div
       role="alert"
-      className={cn(
-        "stg:rounded-lg stg:border stg:border-amber-500/30 stg:bg-amber-500/5 stg:p-4",
-        className,
-      )}
+      className={cn("stg:rounded-lg stg:bg-status-degraded-subtle stg:p-4", className)}
     >
       <div className="stg:flex stg:items-start stg:gap-3">
-        <KeyIcon className="stg:mt-0.5 stg:size-4 stg:shrink-0 stg:text-amber-600 stg:dark:text-amber-400" />
+        <KeyIcon className="stg:mt-0.5 stg:size-4 stg:shrink-0 stg:text-status-degraded" />
 
         <div className="stg:min-w-0 stg:flex-1 stg:space-y-2">
-          <p className="stg:text-sm stg:font-medium stg:text-amber-800 stg:dark:text-amber-200">
+          <p className="stg:text-sm stg:font-medium stg:text-foreground">
             Missing logins and secrets
           </p>
 
           <div className="stg:space-y-1.5">
             {Array.from(grouped).map(([declarer, items]) => (
               <div key={declarer}>
-                <p className="stg:text-xs stg:text-amber-700 stg:dark:text-amber-300">
+                <p className="stg:text-xs stg:text-status-degraded">
                   <span className="stg:font-medium">{declarer}</span> needs:
                 </p>
                 <ul className={cn(UNSTYLED_LIST, "stg:mt-0.5 stg:space-y-0.5")}>
                   {items.map((item) => (
                     <li
                       key={item.variableName}
-                      className="stg:text-xs stg:text-amber-800/80 stg:dark:text-amber-200/80 stg:pl-3"
+                      className="stg:pl-3 stg:text-xs stg:text-status-degraded"
                     >
                       <span className="stg:font-mono">{item.variableName}</span>
                       {" — "}

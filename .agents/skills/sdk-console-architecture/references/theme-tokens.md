@@ -103,8 +103,8 @@ the dark sidebar of the corporate and fintech presets.
 (`tools/eslint-plugin-stigmer/rules/`), which include:
 
 - `colours-from-tokens`: a fallback on a `--stgm-*` token
-  (`var(--stgm-border, #e5e5e5)`) or a Tailwind arbitrary colour
-  (`bg-[#6366f1]`), in any string.
+  (`var(--stgm-border, #e5e5e5)`), a Tailwind arbitrary colour (`bg-[#6366f1]`)
+  or a Tailwind palette colour (`bg-blue-500`, `text-white`), in any string.
 - `no-main-tokens-in-sidebar`: main-area tokens in a sidebar-context file.
 - `no-token-opacity-modifiers`: an opacity modifier on a token class.
 - `sdk-import-boundaries`: an import that crosses the package layering.

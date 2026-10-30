@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useId, useState } from "react";
 import {
   Building2,
   AlertCircle,
@@ -8,10 +8,9 @@ import {
   ChevronsUpDown,
   Plus,
 } from "lucide-react";
-import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import { cn } from "@stigmer/design-tokens";
-import { useStigmerPortalContainer } from "../portal-container.js";
+import { DialogShell } from "../internal/DialogShell.js";
 import {
   Menu,
   MenuContent,
@@ -76,7 +75,7 @@ export function OrgSwitcher({ onOrgChanged, className }: OrgSwitcherProps) {
   const { orgs, activeOrg, setActiveOrg, isLoading, error, retry, refresh } =
     useOrg();
   const [createOpen, setCreateOpen] = useState(false);
-  const portalContainer = useStigmerPortalContainer();
+  const titleId = useId();
 
   const handleOrgSwitch = useCallback(
     (id: string) => {
@@ -188,44 +187,33 @@ export function OrgSwitcher({ onOrgChanged, className }: OrgSwitcherProps) {
         </MenuContent>
       </Menu>
 
-      <DialogPrimitive.Root
+      {/* A form dialog: a stray outside click must not discard a
+          half-typed name, so only Escape and Cancel close it. */}
+      <DialogShell
         open={createOpen}
-        onOpenChange={(open) => setCreateOpen(open)}
+        onOpenChange={setCreateOpen}
+        width="md"
+        dismissOnBackdrop={false}
+        aria-labelledby={titleId}
       >
-        <DialogPrimitive.Portal container={portalContainer}>
-          <DialogPrimitive.Backdrop
-            className={cn(
-              "stg:fixed stg:inset-0 stg:z-50 stg:bg-black/50",
-              "stg:data-open:animate-in stg:data-open:fade-in-0",
-              "stg:data-closed:animate-out stg:data-closed:fade-out-0",
-              "stg:duration-150",
-            )}
-          />
-          {/* eslint-disable stigmer/no-main-tokens-in-sidebar -- The entire dialog is portaled outside the sidebar; main-area tokens are correct there. */}
-          <DialogPrimitive.Popup
-            className={cn(
-              "stg:bg-background stg:text-foreground stg:ring-border/20",
-              "stg:fixed stg:top-1/2 stg:left-1/2 stg:z-50 stg:w-full stg:max-w-md stg:-translate-x-1/2 stg:-translate-y-1/2 stg:rounded-lg stg:p-6 stg:shadow-lg stg:ring-1 stg:outline-none",
-              "stg:data-open:animate-in stg:data-open:fade-in-0 stg:data-open:zoom-in-95",
-              "stg:data-closed:animate-out stg:data-closed:fade-out-0 stg:data-closed:zoom-out-95",
-              "stg:duration-150",
-            )}
-          >
-            <DialogPrimitive.Title className="stg:text-foreground stg:text-sm stg:font-semibold">
+        {/* eslint-disable stigmer/no-main-tokens-in-sidebar -- The dialog paints in the top layer on the popover surface, outside the sidebar's tokens; main-area tokens are correct there. */}
+        {createOpen && (
+          <div className="stg:p-6">
+            <h2 id={titleId} className="stg:text-sm stg:font-semibold stg:text-foreground">
               Create organization
-            </DialogPrimitive.Title>
-            <DialogPrimitive.Description className="stg:text-muted-foreground stg:mt-1 stg:mb-4 stg:text-xs">
+            </h2>
+            <p className="stg:mt-1 stg:mb-4 stg:text-xs stg:text-muted-foreground">
               Organizations are tenancy boundaries that own agents,
               vaults, and other resources.
-            </DialogPrimitive.Description>
+            </p>
             <CreateOrganizationForm
               onCreated={handleCreated}
               onCancel={() => setCreateOpen(false)}
             />
-          </DialogPrimitive.Popup>
-          {/* eslint-enable stigmer/no-main-tokens-in-sidebar */}
-        </DialogPrimitive.Portal>
-      </DialogPrimitive.Root>
+          </div>
+        )}
+        {/* eslint-enable stigmer/no-main-tokens-in-sidebar */}
+      </DialogShell>
     </>
   );
 }

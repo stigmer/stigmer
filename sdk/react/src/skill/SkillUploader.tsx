@@ -352,15 +352,16 @@ function PreviewPhase({
         </div>
       )}
 
-      {/* Duplicate warning */}
+      {/* Duplicate warning: the kit's caution notice, the theme's audited
+          at-risk status pair with a foreground title. */}
       {isDuplicate && (
-        <div className="stg:flex stg:items-start stg:gap-2.5 stg:border-b stg:border-amber-500/20 stg:bg-amber-500/5 stg:px-4 stg:py-3" role="alert">
-          <WarningIcon className="stg:mt-0.5 stg:size-4 stg:shrink-0 stg:text-amber-600 stg:dark:text-amber-400" />
+        <div className="stg:flex stg:items-start stg:gap-2.5 stg:border-b stg:border-border stg:bg-status-degraded-subtle stg:px-4 stg:py-3" role="alert">
+          <WarningIcon className="stg:mt-0.5 stg:size-4 stg:shrink-0 stg:text-status-degraded" />
           <div className="stg:min-w-0 stg:flex-1">
-            <p className="stg:text-sm stg:font-medium stg:text-amber-700 stg:dark:text-amber-300">
+            <p className="stg:text-sm stg:font-medium stg:text-foreground">
               No changes detected
             </p>
-            <p className="stg:mt-0.5 stg:text-xs stg:text-amber-600 stg:dark:text-amber-400">
+            <p className="stg:mt-0.5 stg:text-xs stg:text-status-degraded">
               This skill&apos;s content is identical to the current version. Pushing will create a new version record with the same content.
             </p>
           </div>
