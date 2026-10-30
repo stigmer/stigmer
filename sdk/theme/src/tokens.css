@@ -99,13 +99,13 @@
   --stgm-destructive: oklch(0.53 0.2 27.325);
   /* Text on destructive-filled elements. */
   --stgm-destructive-foreground: oklch(0.985 0 0);
-  /* Positive state color (success badges, confirmations). */
+  /* Positive state fill (success badges; success text uses --stgm-status-ready). */
   --stgm-success: oklch(0.5 0.15 150);
   /* Text on success-filled elements. */
   --stgm-success-foreground: oklch(0.985 0 0);
   /* Quiet success surface (subtle badges, inline confirmations). */
   --stgm-success-subtle: oklch(0.95 0.03 150);
-  /* Caution state color (warning badges). */
+  /* Caution state fill (warning badges; caution text uses --stgm-status-degraded). */
   --stgm-warning: oklch(0.75 0.18 80);
   /* Text on warning-filled elements. */
   --stgm-warning-foreground: oklch(0.145 0 0);
@@ -217,7 +217,7 @@
   --stgm-sidebar-ring: oklch(0.15 0 0);
 
   /* @group Status */
-  /* Ready/healthy status accent (pill text, solid fills, dots). */
+  /* Ready/healthy status accent (status text and icons on a surface, pill text, solid fills, dots). */
   --stgm-status-ready: oklch(0.5 0.15 150);
   /* Text on a solid ready fill. */
   --stgm-status-ready-foreground: oklch(0.985 0 0);
@@ -235,7 +235,7 @@
   --stgm-status-pending-foreground: oklch(0.985 0 0);
   /* Quiet pending surface. */
   --stgm-status-pending-subtle: oklch(0.95 0 0);
-  /* Degraded/at-risk status accent. */
+  /* Degraded/at-risk status accent (caution text and icons on a surface, pill text, solid fills, dots). */
   --stgm-status-degraded: oklch(0.52 0.17 80);
   /* Text on a solid degraded fill. */
   --stgm-status-degraded-foreground: oklch(0.985 0 0);
