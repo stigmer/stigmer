@@ -73,6 +73,13 @@ describe("sameResources", () => {
     expect(sameResources([repo], [{ name: "backend", localPath: { path: "/a" } }])).toBe(false);
   });
 
+  it("compares a File by its id and mount path", () => {
+    const brief = { name: "brief", file: { fileId: "file_brief" } };
+    expect(sameResources([brief], [{ ...brief, file: { fileId: "file_brief", mountPath: "" } }])).toBe(true);
+    expect(sameResources([brief], [{ ...brief, file: { fileId: "file_other" } }])).toBe(false);
+    expect(sameResources([brief], [{ ...brief, file: { fileId: "file_brief", mountPath: "docs" } }])).toBe(false);
+  });
+
   it("counts order and length", () => {
     const folder = { name: "site", localPath: { path: "/Users/dev/site" } };
     expect(sameResources([repo, folder], [folder, repo])).toBe(false);
