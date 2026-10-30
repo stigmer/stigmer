@@ -51,6 +51,7 @@ import {
   invalidArgumentError,
   notFoundError,
 } from "../errors.js";
+import { GUARDED_WRITE_ATTEMPTS, writeConflictError } from "../guarded-write.js";
 import type { PipelineStep } from "../pipeline.js";
 import type { RequestContext } from "../request-context.js";
 import {
@@ -664,9 +665,9 @@ export function newLoadForTagVersionStep<
  * the source of truth and setAuditTag clears any prior holder in the same
  * write. A hash with no audit row is NotFound and leaves the prior holder
  * untouched. The head's live tag is then reconciled to the head version's
- * post-move tag, which covers tagging the head, moving a tag off it, and
- * touching only archived versions alike. The updated head lands under
- * `resultKey`.
+ * post-move tag (reconcileHeadTag), which covers tagging the head, moving
+ * a tag off it, and touching only archived versions alike. The updated
+ * head lands under `resultKey`.
  */
 export function newTagVersionStep<
   Desc extends DescMessage,
@@ -701,30 +702,76 @@ export function newTagVersionStep<
         );
       }
 
-      const headTag = await resolveHeadTag(
+      const updated = await reconcileHeadTag(
         store,
         binding,
         req.resourceId,
-        binding.headHashOf(resource),
+        resource,
       );
-
-      let updated: MessageShape<Desc>;
-      try {
-        updated = await store.updateResource(
-          binding.kind,
-          req.resourceId,
-          binding.schema,
-          (head) => binding.overlayTag(head, headTag),
-        );
-      } catch (error) {
-        throw internalError(
-          error,
-          `failed to reconcile ${binding.noun} head tag`,
-        );
-      }
       ctx.set(resultKey, updated);
     },
   };
+}
+
+/**
+ * Writes onto the head the tag its version holds in the audit column, and
+ * returns the written head once the two agree. The tag is read for a hash
+ * outside the row's write (the store's modify callback is synchronous), so
+ * two writers can land between the read and the write: an apply that
+ * repoints the head, and a second move of the same tag that reconciles the
+ * head first. The write therefore applies only while the row still holds
+ * the hash the tag was read for (the guard version-archive.ts's amendHead
+ * uses), and a read after it checks the written head against the column;
+ * on a mismatch it goes again from the written head. Every tag move checks
+ * after its own write, so the last one sees every move before it, and a
+ * wrong live tag, which getByReference would match before the column, is
+ * never left behind. A head that keeps changing is ABORTED WRITE_CONFLICT
+ * after GUARDED_WRITE_ATTEMPTS writes, the budget and answer of any hot
+ * row (pipeline/guarded-write.ts).
+ */
+async function reconcileHeadTag<Desc extends DescMessage>(
+  store: Store,
+  binding: Omit<VersionTagBinding<Desc, DescMessage>, "tagInput">,
+  resourceId: string,
+  loaded: MessageShape<Desc>,
+): Promise<MessageShape<Desc>> {
+  let hash = binding.headHashOf(loaded);
+  let tag = await resolveHeadTag(store, binding, resourceId, hash);
+  for (let attempt = 1; ; attempt += 1) {
+    const readFor = hash;
+    const writing = tag;
+    let written: MessageShape<Desc>;
+    try {
+      written = await store.updateResource(
+        binding.kind,
+        resourceId,
+        binding.schema,
+        (head) => {
+          if (binding.headHashOf(head) === readFor) {
+            binding.overlayTag(head, writing);
+          }
+        },
+      );
+    } catch (error) {
+      throw internalError(
+        error,
+        `failed to reconcile ${binding.noun} head tag`,
+      );
+    }
+    hash = binding.headHashOf(written);
+    tag = await resolveHeadTag(store, binding, resourceId, hash);
+    if (binding.liveTagOf(written) === tag) {
+      return written;
+    }
+    if (attempt >= GUARDED_WRITE_ATTEMPTS) {
+      const metadata = metadataOf(written);
+      throw writeConflictError(
+        binding.kind,
+        metadata?.org ?? "",
+        metadata?.slug ?? resourceId,
+      );
+    }
+  }
 }
 
 /**

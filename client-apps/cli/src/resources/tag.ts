@@ -4,13 +4,16 @@
 //
 // This is an id-shaped mutation, so it rides the high-level sub-clients
 // (resolve the resource by reference, then tagVersion) rather than a raw
-// controller.
+// controller. The version is named by its hash or by a unique prefix of it,
+// such as the short hash `get agent --version-history` prints; the CLI
+// resolves the prefix to the full hash the server takes.
 
 import { create } from "@bufbuild/protobuf";
 import { TagAgentVersionInputSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/version_pb";
 import type { Stigmer } from "@stigmer/client";
 import { UsageError } from "../errors/index.js";
 import { CommandResult } from "../output/index.js";
+import { resolveAgentVersionHash, shortHash } from "./version.js";
 
 /** The resource types a tag can be assigned to, by the aliases the CLI accepts. */
 const TAGGABLE: ReadonlySet<string> = new Set(["agent"]);
@@ -30,9 +33,10 @@ export async function tagVersion(
   const [refOrg, slug] = parseOrgSlug(ref, org);
   const agent = await client.agent.getByReference({ org: refOrg, slug });
   const agentId = agent.metadata?.id ?? "";
-  await client.agent.tagVersion(create(TagAgentVersionInputSchema, { agentId, versionHash: hash, tag }));
+  const versionHash = await resolveAgentVersionHash(client, refOrg, slug, hash);
+  await client.agent.tagVersion(create(TagAgentVersionInputSchema, { agentId, versionHash, tag }));
 
-  return CommandResult.success(`Tagged version ${truncateHash(hash)} as '${tag}'`);
+  return CommandResult.success(`Tagged version ${shortHash(versionHash)} as '${tag}'`);
 }
 
 // "org/slug" → [org, slug]; a bare token uses the resolved org context.
@@ -42,10 +46,4 @@ function parseOrgSlug(ref: string, defaultOrg: string): [string, string] {
     return [ref.slice(0, slash), ref.slice(slash + 1)];
   }
   return [defaultOrg, ref];
-}
-
-// The backend addresses versions by their full content hash; the CLI echoes a
-// 12-char prefix for readability.
-function truncateHash(hash: string): string {
-  return hash.length > 12 ? hash.slice(0, 12) : hash;
 }

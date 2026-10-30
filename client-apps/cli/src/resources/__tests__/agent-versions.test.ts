@@ -2,8 +2,12 @@
 // (`get agent <ref> --version-history`) lists every version newest first with
 // its short hash, tag, current marker and message; an empty history points at apply with an agent manifest; and
 // `--version` reads the agent at a hash or a tag through the reference ladder.
+// A hash-shaped argument the server finds no tag or hash for is read as a
+// short hash and asked for again in full; a tag that looks like hex still
+// wins, and a short hash no version has answers the server's not-found.
 
 import { create } from "@bufbuild/protobuf";
+import { Code, ConnectError } from "@connectrpc/connect";
 import { describe, expect, it, vi } from "vitest";
 import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentVersionEntrySchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/version_pb";
@@ -64,12 +68,51 @@ describe("renderAgentVersionHistory", () => {
 });
 
 describe("getAgentAtVersion", () => {
-  it("reads the agent at a hash or a tag through the reference ladder", async () => {
-    const getByReference = vi.fn(async () => create(AgentSchema, { metadata: { id: "agt_1" } }));
-    const client = { agent: { getByReference } } as unknown as Stigmer;
+  const NOT_FOUND = new ConnectError("agent version not found", Code.NotFound);
 
-    await getAgentAtVersion(client, "acme", "reviewer", "stable");
+  // A server holding versions V1 and V2, with the hex-looking tag
+  // "cafe1234" on V1, and the history on one page.
+  function serverWith() {
+    const agentAt = (versionHash: string) => create(AgentSchema, { metadata: { id: "agt_1" }, status: { versionHash } });
+    const getByReference = vi.fn(async ({ version }: { version: string }) => {
+      if (version === V1 || version === "cafe1234") return agentAt(V1);
+      if (version === V2) return agentAt(V2);
+      throw NOT_FOUND;
+    });
+    const listVersions = vi.fn(async () => ({
+      entries: [
+        create(AgentVersionEntrySchema, { versionHash: V2 }),
+        create(AgentVersionEntrySchema, { versionHash: V1, tag: "cafe1234" }),
+      ],
+      nextPageToken: "",
+    }));
+    return { client: { agent: { getByReference, listVersions } } as unknown as Stigmer, getByReference, listVersions };
+  }
 
-    expect(getByReference).toHaveBeenCalledWith({ org: "acme", slug: "reviewer", version: "stable" });
+  it("reads the agent at a hash or a tag through the reference ladder, a hex-looking tag first", async () => {
+    const { client, getByReference, listVersions } = serverWith();
+
+    const agent = await getAgentAtVersion(client, "acme", "reviewer", "cafe1234");
+
+    expect(agent.status?.versionHash).toBe(V1);
+    expect(getByReference).toHaveBeenCalledWith({ org: "acme", slug: "reviewer", version: "cafe1234" });
+    expect(listVersions).not.toHaveBeenCalled();
+  });
+
+  it("reads a short hash the server finds no tag for as the version it prefixes", async () => {
+    const { client, getByReference } = serverWith();
+
+    const agent = await getAgentAtVersion(client, "acme", "reviewer", "BBBBBBBBBBBB");
+
+    expect(agent.status?.versionHash).toBe(V2);
+    expect(getByReference.mock.calls.map(([req]) => req.version)).toEqual(["BBBBBBBBBBBB", V2]);
+  });
+
+  it("answers the server's not-found for a short hash no version has, and for a name that is not hex", async () => {
+    const { client, listVersions } = serverWith();
+
+    await expect(getAgentAtVersion(client, "acme", "reviewer", "dddd")).rejects.toBe(NOT_FOUND);
+    await expect(getAgentAtVersion(client, "acme", "reviewer", "nightly")).rejects.toBe(NOT_FOUND);
+    expect(listVersions).toHaveBeenCalledTimes(1);
   });
 });

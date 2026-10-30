@@ -6,6 +6,10 @@
 // rendered result shape, the special-case routing (run→cancel, which
 // interrupts the run's session and names the turns it stopped;
 // already-terminal), and that backend errors map to the right CLI exit code.
+// A tag names its version by the full hash in any case, read without the
+// history, or by a unique prefix matched across every page of it; a prefix
+// that matches nothing is not found and one several versions share is a
+// usage error naming each.
 // A File's delete names its conversation when it belongs to one, and a
 // refusal (a routine still names the File) reaches the person in the
 // server's words.
@@ -14,6 +18,7 @@ import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError, type ConnectRouter } from "@connectrpc/connect";
 import { connectNodeAdapter } from "@connectrpc/connect-node";
 import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import { AgentVersionEntrySchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/version_pb";
 import { AgentCommandController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/command_pb";
 import { AgentQueryController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/query_pb";
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
@@ -117,8 +122,26 @@ let client: Stigmer;
 const openSessions = new Set<ServerHttp2Session>();
 
 // Spies for the command-side calls, reset per test: the sessions interrupted.
+// The reviewer's history, served as an empty first page that still carries
+// a token and a second page: two hashes share the prefix "3f8a".
+const STABLE_HASH = `3f8a1c0e9b7d${"1".repeat(52)}`;
+const TWIN_HASH = `3f8a77${"2".repeat(58)}`;
+const OTHER_HASH = `c0ffee${"3".repeat(58)}`;
+const historyPages: Record<string, { entries: { versionHash: string; tag: string }[]; nextPageToken: string }> = {
+  "": { entries: [], nextPageToken: "page-2" },
+  "page-2": {
+    entries: [
+      { versionHash: OTHER_HASH, tag: "" },
+      { versionHash: TWIN_HASH, tag: "" },
+      { versionHash: STABLE_HASH, tag: "stable" },
+    ],
+    nextPageToken: "",
+  },
+};
+
 let cancelCalls: string[] = [];
 let agentTagCalls: { agentId: string; versionHash: string; tag: string }[] = [];
+let versionPageReads: { pageToken: string; pageSize: number }[] = [];
 // Force-carrying deletes record what actually rode the RPC.
 let vaultDeletes: { resourceId: string; force: boolean }[] = [];
 let channelAppDeletes: { resourceId: string; force: boolean }[] = [];
@@ -131,6 +154,7 @@ let environmentDeleteIds: string[] = [];
 beforeEach(() => {
   cancelCalls = [];
   agentTagCalls = [];
+  versionPageReads = [];
   vaultDeletes = [];
   channelAppDeletes = [];
   channelDeleteIds = [];
@@ -149,6 +173,14 @@ beforeAll(async () => {
       getByReference: (req) => {
         if (req.slug !== "reviewer") throw new ConnectError("agent not found", Code.NotFound);
         return knownAgent;
+      },
+      listVersions: (req) => {
+        versionPageReads.push({ pageToken: req.pageToken, pageSize: req.pageSize });
+        const page = historyPages[req.pageToken]!;
+        return {
+          entries: page.entries.map((entry) => create(AgentVersionEntrySchema, entry)),
+          nextPageToken: page.nextPageToken,
+        };
       },
     });
     router.service(AgentCommandController, {
@@ -531,16 +563,59 @@ describe("delete run (cancel special case)", () => {
 });
 
 describe("tag (agent versions)", () => {
-  it("tags an agent version, resolving the agent by reference, and truncates the hash in the message", async () => {
-    const result = await tagVersion(client, "agent", "acme/reviewer", "abcdef1234567890", "stable", "acme");
+  it("tags the version a full hash names in any case, without reading the history", async () => {
+    const result = await tagVersion(client, "agent", "acme/reviewer", OTHER_HASH.toUpperCase(), "stable", "acme");
     expect(result.status).toBe("success");
-    expect(result.message).toBe("Tagged version abcdef123456 as 'stable'");
-    expect(agentTagCalls).toEqual([{ agentId: "agt_1", versionHash: "abcdef1234567890", tag: "stable" }]);
+    expect(result.message).toBe("Tagged version c0ffee333333 as 'stable'");
+    expect(agentTagCalls).toEqual([{ agentId: "agt_1", versionHash: OTHER_HASH, tag: "stable" }]);
+    expect(versionPageReads).toEqual([]);
+  });
+
+  it("tags the version the history's short hash names, reading every page of the history", async () => {
+    const result = await tagVersion(client, "agent", "acme/reviewer", "3F8A1C0E9B7D", "stable", "acme");
+    expect(result.message).toBe("Tagged version 3f8a1c0e9b7d as 'stable'");
+    expect(agentTagCalls).toEqual([{ agentId: "agt_1", versionHash: STABLE_HASH, tag: "stable" }]);
+    expect(versionPageReads).toEqual([
+      { pageToken: "", pageSize: 100 },
+      { pageToken: "page-2", pageSize: 100 },
+    ]);
   });
 
   it("uses the org context for a bare slug", async () => {
-    await tagVersion(client, "agent", "reviewer", "abc", "v1", "acme");
+    await tagVersion(client, "agent", "reviewer", OTHER_HASH, "v1", "acme");
     expect(agentTagCalls[0]?.agentId).toBe("agt_1");
+  });
+
+  it("refuses a prefix no version has as not found, tagging nothing", async () => {
+    const err = await tagVersion(client, "agent", "acme/reviewer", "deadbeef", "v1", "acme").catch((e) => e);
+    expect(classify(err)?.exitCode).toBe(ExitCode.NotFound);
+    expect((err as Error).message).toBe("no version of acme/reviewer has a hash starting with deadbeef");
+    expect(agentTagCalls).toEqual([]);
+  });
+
+  it("refuses a prefix several versions share with a usage error naming each", async () => {
+    const err = await tagVersion(client, "agent", "acme/reviewer", "3f8a", "v1", "acme").catch((e) => e);
+    expect(classify(err)?.exitCode).toBe(ExitCode.Usage);
+    expect((err as Error).message).toBe(
+      [
+        "3f8a matches 2 versions of acme/reviewer:",
+        "  3f8a77222222  -",
+        "  3f8a1c0e9b7d  stable",
+        "",
+        "Give more of the hash.",
+      ].join("\n"),
+    );
+    expect(agentTagCalls).toEqual([]);
+  });
+
+  it("refuses an argument too short or not hex to be a hash, before reading the history", async () => {
+    for (const hash of ["abc", "stable"]) {
+      const err = await tagVersion(client, "agent", "acme/reviewer", hash, "v1", "acme").catch((e) => e);
+      expect(classify(err)?.exitCode).toBe(ExitCode.Usage);
+      expect((err as Error).message).toContain(`"${hash}" is not a version hash`);
+    }
+    expect(versionPageReads).toEqual([]);
+    expect(agentTagCalls).toEqual([]);
   });
 
   it("rejects unsupported resource types with a usage error naming the supported ones", async () => {

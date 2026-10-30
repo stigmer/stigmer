@@ -25,7 +25,7 @@ export function registerGet(program: Command): void {
   const get = program
     .command("get <type> <reference>")
     .description("get a resource by type and reference (slug, org/slug, or ID)")
-    .option("--version <hashOrTag>", "fetch a specific version by hash or tag (agents)")
+    .option("--version <hashOrTag>", "fetch a specific version by tag, hash, or the short hash --version-history prints (agents)")
     .option("--version-history", "show the version history timeline (agents)")
     .action((type: string, reference: string, options: GetFlags, command: Command) =>
       runGet(type, reference, options, command),

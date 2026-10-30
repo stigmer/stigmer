@@ -16,15 +16,18 @@
  *   - the tag move: a missing resource is NotFound; a failing tag write or
  *     head reconcile is Internal; the head's tag reconciles to "" when the
  *     head has no hash or no audit row, and a failing head-tag read is
- *     Internal;
+ *     Internal; a head an apply repointed mid-move keeps its own version's
+ *     tag, a second move of the same tag mid-move leaves the head with the
+ *     audit column's tag, and a head whose tag keeps moving is ABORTED
+ *     WRITE_CONFLICT after GUARDED_WRITE_ATTEMPTS writes;
  *   - the version-metadata rule leaves a head with no hash or no metadata as
  *     it is, and on an unchanged hash keeps the stored id and chain;
  *   - a version page whose head hash no audit row holds marks no version
  *     current, and a failing read of the current record is Internal.
  */
-import { create, toBinary } from "@bufbuild/protobuf";
+import { clone, create, toBinary } from "@bufbuild/protobuf";
 import { ConnectError, Code } from "@connectrpc/connect";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
 import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
@@ -35,8 +38,10 @@ import {
 import type { ListAgentVersionsResponse } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/version_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import { ErrorInfoSchema } from "@stigmer/apis/google/rpc/error_details_pb";
 
 import { agentVersionBinding } from "../../../domain/agent/versions.js";
+import { GUARDED_WRITE_ATTEMPTS, WRITE_CONFLICT_REASON } from "../../guarded-write.js";
 import { RequestContext } from "../../request-context.js";
 import { testCallerIdentity } from "../../__tests__/support.js";
 import {
@@ -240,10 +245,10 @@ describe("the tag move", () => {
     tagInput: (req) => ({ resourceId: req.agentId, versionHash: req.versionHash, tag: req.tag }),
   };
 
-  function tagContext(): RequestContext<typeof TagAgentVersionInputSchema> {
+  function tagContext(versionHash = OLD): RequestContext<typeof TagAgentVersionInputSchema> {
     return new RequestContext(
       TagAgentVersionInputSchema,
-      create(TagAgentVersionInputSchema, { agentId: "agt_1", versionHash: OLD, tag: "stable" }),
+      create(TagAgentVersionInputSchema, { agentId: "agt_1", versionHash, tag: "stable" }),
       testCallerIdentity(),
       ApiResourceKind.agent,
     );
@@ -310,6 +315,110 @@ describe("the tag move", () => {
     expect(
       (await failureOf(move(agent(HEAD), { getAuditRecordByHash: async () => Promise.reject(STORE_DOWN) }))).code,
     ).toBe(Code.Internal);
+  });
+
+  /**
+   * The store other writers share with the move: `row` is the live head,
+   * `audit` the tag column by hash, and `beforeWrite(n)` lands another
+   * writer's commit just before the move's n-th head write.
+   */
+  interface Shared {
+    row: Agent;
+    audit: Map<string, string>;
+    beforeWrite(write: number): void;
+  }
+
+  // How many head writes the last moveAmid made.
+  let writes = 0;
+  beforeEach(() => {
+    writes = 0;
+  });
+
+  async function moveAmid(loaded: Agent, versionHash: string, shared: Shared): Promise<Agent> {
+    const ctx = tagContext(versionHash);
+    ctx.set("head", loaded);
+    await newTagVersionStep(
+      storeWith({
+        setAuditTag: async (_k: unknown, _id: unknown, hash: string, tag: string) => {
+          for (const [held, heldTag] of shared.audit) {
+            if (heldTag === tag) shared.audit.set(held, "");
+          }
+          shared.audit.set(hash, tag);
+        },
+        getAuditRecordByHash: async (_k: unknown, _id: unknown, hash: string) => {
+          const tag = shared.audit.get(hash);
+          if (tag === undefined) throw new AuditNotFoundError(hash);
+          return record(hash, tag);
+        },
+        updateResource: async (_k: unknown, _id: unknown, _s: unknown, modify: (a: Agent) => void) => {
+          writes += 1;
+          shared.beforeWrite(writes);
+          modify(shared.row);
+          return clone(AgentSchema, shared.row);
+        },
+      }),
+      binding,
+      "TagAgentVersion",
+      "head",
+      "result",
+    ).execute(ctx);
+    return ctx.get("result") as Agent;
+  }
+
+  it("leaves a head an apply repointed mid-move with its own version's tag", async () => {
+    const shared: Shared = {
+      row: agent(OLD),
+      audit: new Map([
+        [OLD, ""],
+        [HEAD, "v2"],
+      ]),
+      beforeWrite: (write) => {
+        if (write === 1) shared.row = agent(HEAD, "v2");
+      },
+    };
+    const head = await moveAmid(agent(OLD), OLD, shared);
+    expect(head.status?.versionHash).toBe(HEAD);
+    expect(head.metadata?.version?.tag).toBe("v2");
+    expect(shared.row.metadata?.version?.tag).toBe("v2");
+  });
+
+  it("leaves the head with the audit column's tag when the same tag moves again mid-move", async () => {
+    const shared: Shared = {
+      row: agent(HEAD),
+      audit: new Map([
+        [HEAD, ""],
+        [OLD, ""],
+      ]),
+      beforeWrite: (write) => {
+        if (write === 1) {
+          shared.audit.set(HEAD, "");
+          shared.audit.set(OLD, "stable");
+        }
+      },
+    };
+    const head = await moveAmid(agent(HEAD), HEAD, shared);
+    expect(head.metadata?.version?.tag).toBe("");
+    expect(shared.row.metadata?.version?.tag).toBe("");
+  });
+
+  it("is ABORTED WRITE_CONFLICT when the head's tag keeps moving", async () => {
+    const shared: Shared = {
+      row: agent(HEAD),
+      audit: new Map([
+        [HEAD, ""],
+        [OLD, ""],
+      ]),
+      beforeWrite: () => {
+        const onHead = shared.audit.get(HEAD) === "stable";
+        shared.audit.set(HEAD, onHead ? "" : "stable");
+        shared.audit.set(OLD, onHead ? "stable" : "");
+      },
+    };
+    const conflict = await failureOf(moveAmid(agent(HEAD), HEAD, shared));
+    expect(conflict.code).toBe(Code.Aborted);
+    expect(conflict.rawMessage).toBe("Agent 'acme/reviewer' kept changing while this update was being saved; try again");
+    expect(conflict.findDetails(ErrorInfoSchema)[0]?.reason).toBe(WRITE_CONFLICT_REASON);
+    expect(writes).toBe(GUARDED_WRITE_ATTEMPTS);
   });
 });
 
