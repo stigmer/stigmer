@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ResourceRef } from "@stigmer/client";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import type { AgentResolution } from "../agent/index.js";
 import { useApprovalDefaults } from "../approval-defaults-context.js";
 import { useWorkspaceEntries, type UseWorkspaceEntriesReturn } from "../workspace/index.js";
@@ -18,7 +19,7 @@ import { useSessionConversation, type UseSessionConversationReturn } from "@stig
 import { agentRefOfSession, isSameAgent } from "./agentRefOfSession.js";
 import { useSessionAgentVersion, type UseSessionAgentVersionReturn } from "./useSessionAgentVersion.js";
 import { usePersistedModel, type UsePersistedModelReturn } from "./usePersistedModel.js";
-import { toResourceRefInputs } from "@stigmer/client";
+import { followUpFieldsOf, sameRefs, sameResources, type FollowUpFields } from "./follow-up-fields.js";
 import type { SessionAudience } from "./audience.js";
 import { isChannelOriginSession } from "./channelOrigin.js";
 import { assertValidRunConfig, type SessionRunConfig } from "./run-config.js";
@@ -178,17 +179,33 @@ export interface UseSessionPageFlowReturn {
    */
   readonly agentVersion: UseSessionAgentVersionReturn;
 
-  /** Plugins the conversation uses, for follow-ups. */
+  /**
+   * Plugins the conversation uses, loaded from the conversation shown. A
+   * follow-up writes them only when they differ from what the server
+   * holds; an emptied list removes every plugin.
+   */
   readonly pluginRefs: ResourceRef[];
   /** Update the plugins the conversation uses. */
   readonly setPluginRefs: (refs: ResourceRef[]) => void;
 
-  /** Active skill references for follow-ups. */
+  /**
+   * Skill references the conversation uses, loaded and written like
+   * {@link UseSessionPageFlowReturn.pluginRefs}.
+   */
   readonly skillRefs: ResourceRef[];
   /** Update skill references. */
   readonly setSkillRefs: (refs: ResourceRef[]) => void;
 
-  /** Workspace entries manager (synced from session on load). */
+  /**
+   * Workspace entries manager, loaded from the conversation shown: each
+   * repository and folder under its stored name, a repository with its
+   * stored commit and write-back mode. Moving to another conversation
+   * loads that one's. A follow-up writes the workspace only when it
+   * differs from what the server holds, so an untouched one is never
+   * rewritten; a changed one is written whole, keeping every stored field
+   * of each entry it keeps, its stored tokens and Files among them, and
+   * an emptied one clears the repositories and folders.
+   */
   readonly workspace: UseWorkspaceEntriesReturn;
 
   /**
@@ -376,7 +393,6 @@ export function useSessionPageFlow(
 
   const [pluginRefs, setPluginRefs] = useState<ResourceRef[]>([]);
   const [skillRefs, setSkillRefs] = useState<ResourceRef[]>([]);
-  const initialSyncDone = useRef(false);
 
   // Session-scoped auto-approve (#816). Derived like interactionMode above —
   // the user's explicit in-session decision wins, otherwise the truth is
@@ -561,41 +577,73 @@ export function useSessionPageFlow(
   const model: UsePersistedModelReturn = [modelId, setModelId] as const;
 
   // -------------------------------------------------------------------------
-  // Session spec sync — hydrate workspace, plugins, and skills on first load
+  // Session spec sync — the workspace, plugins and skills of the
+  // conversation shown, and the value the server holds of each
   // -------------------------------------------------------------------------
 
+  // A follow-up writes one of these fields only when the page's value
+  // differs from the value the page knows the server holds
+  // (stigmer/stigmer#2028). An untouched field is never written, so a
+  // follow-up neither drops what the page cannot show nor overwrites
+  // another participant's edit. `null` until the conversation is loaded.
+  const knownFields = useRef<FollowUpFields | null>(null);
+  // The conversation the fields belong to, and a read of the previous one
+  // still on hand after the page moved on (the session read resets a
+  // render later).
+  const fieldsFor = useRef<string | null>(null);
+  const previousRead = useRef<Session | null>(null);
+
+  const { addGitRepo, addLocalPath, clear: clearWorkspace, toInput: workspaceInput } = workspace;
   useEffect(() => {
-    if (!conv.session || initialSyncDone.current) return;
-    initialSyncDone.current = true;
-
-    const spec = conv.session.spec;
-
-    // The conversation's repositories and folders, each repository under
-    // its stored name: a follow-up that rewrites the workspace keeps a
-    // repository's stored token only for the same name and URL (see
-    // sendFollowUp). Its Files are not workspace entries; a follow-up
-    // keeps them as stored.
-    for (const stored of spec?.resources ?? []) {
-      const resource = stored.resource;
-      if (resource.case === "gitRepository") {
-        const { url, branch } = resource.value;
-        workspace.addGitRepo(url, branch || undefined, stored.name || undefined);
-      } else if (resource.case === "localPath") {
-        workspace.addLocalPath(resource.value.path);
+    if (fieldsFor.current !== sessionId) {
+      // The page moved to another conversation: drop what it showed of
+      // the last one, and load this one's from its own read.
+      if (fieldsFor.current !== null) {
+        clearWorkspace();
+        setPluginRefs([]);
+        setSkillRefs([]);
+        knownFields.current = null;
+        previousRead.current = conv.session;
       }
+      fieldsFor.current = sessionId;
+    }
+    const session = conv.session;
+    if (!session || session === previousRead.current) return;
+    previousRead.current = null;
+    const read = followUpFieldsOf(session.spec);
+    const known = knownFields.current;
+
+    if (known === null) {
+      // Each repository and folder under its stored name and with every
+      // stored field, so the loaded page equals the read: a follow-up
+      // that rewrites the workspace keeps a repository's stored token only
+      // for the same name and URL (see sendFollowUp). Its Files are not
+      // workspace entries; a follow-up keeps them as stored.
+      for (const resource of read.resources) {
+        if (resource.gitRepository) {
+          const { url, branch, commit, writeBackMode } = resource.gitRepository;
+          addGitRepo(url, branch, resource.name, { commit, writeBackMode });
+        } else if (resource.localPath) {
+          addLocalPath(resource.localPath.path ?? "", resource.name);
+        }
+      }
+      setPluginRefs(read.plugins);
+      setSkillRefs(read.skillRefs);
+      knownFields.current = read;
+      return;
     }
 
-    // Plugin and skill references, read through the SDK's proto → input
-    // lens (each keeps its id, version and kind).
-    const plugins = toResourceRefInputs(spec?.plugins);
-    if (plugins?.length) {
-      setPluginRefs(plugins);
-    }
-    const skillRefs = toResourceRefInputs(spec?.skillRefs);
-    if (skillRefs?.length) {
-      setSkillRefs(skillRefs);
-    }
-  }, [conv.session, workspace]);
+    // Once loaded, the latest read (the refetch after a write among them)
+    // decides: a field the page matches is held by the server, so it is
+    // clean again. One it does not match keeps the value the page knew,
+    // so an edit not yet written stays an edit, and another participant's
+    // change never makes an untouched page send its own copy.
+    knownFields.current = {
+      resources: sameResources(workspaceInput(), read.resources) ? read.resources : known.resources,
+      plugins: sameRefs(pluginRefs, read.plugins) ? read.plugins : known.plugins,
+      skillRefs: sameRefs(skillRefs, read.skillRefs) ? read.skillRefs : known.skillRefs,
+    };
+  }, [sessionId, conv.session, addGitRepo, addLocalPath, clearWorkspace, workspaceInput, pluginRefs, skillRefs]);
 
   // -------------------------------------------------------------------------
   // Follow-up submission with agent override
@@ -639,6 +687,11 @@ export function useSessionPageFlow(
         return;
       }
 
+      // The conversation's fields the person changed, each whole (an
+      // emptied one clears it); one left untouched is not sent, so the
+      // server keeps what it holds.
+      const known = knownFields.current;
+      const resources = workspaceInput();
       await conv.sendFollowUp(message, {
         agentRef: agentRefOverride,
         // The owner pin wins over everything the user or the SDK
@@ -648,11 +701,9 @@ export function useSessionPageFlow(
         // layer that chose the model (the agent's defaults, the operator
         // profile) keeps its own.
         modelName: pinnedModelName ?? selectedModel ?? modelId,
-        resources: workspace.hasEntries
-          ? workspace.toInput()
-          : undefined,
-        plugins: pluginRefs.length > 0 ? pluginRefs : undefined,
-        skillRefs: skillRefs.length > 0 ? skillRefs : undefined,
+        resources: known === null || sameResources(resources, known.resources) ? undefined : resources,
+        plugins: known === null || sameRefs(pluginRefs, known.plugins) ? undefined : pluginRefs,
+        skillRefs: known === null || sameRefs(skillRefs, known.skillRefs) ? undefined : skillRefs,
         // A guest never changes which vaults the conversation uses: the
         // write is the creator's, and the chat link's vaults are what a
         // guest's runs use.
@@ -672,7 +723,7 @@ export function useSessionPageFlow(
         supersedesRunId: context?.supersedesRunId,
       });
     },
-    [conv.sendFollowUp, modelId, pinnedModelName, pinnedServiceTier, pinnedThinkingMode, workspace, pluginRefs, skillRefs, resolution, agentRef, agentCleared, sessionAgentRef, autoApproveAll, isGuest, canDecide],
+    [conv.sendFollowUp, modelId, pinnedModelName, pinnedServiceTier, pinnedThinkingMode, workspaceInput, pluginRefs, skillRefs, resolution, agentRef, agentCleared, sessionAgentRef, autoApproveAll, isGuest, canDecide],
   );
 
   // -------------------------------------------------------------------------

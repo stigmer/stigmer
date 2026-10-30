@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import type { SessionResourceInput } from "@stigmer/client";
+import type { GitWriteBackMode } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 
 /**
  * A single workspace entry managed by {@link useWorkspaceEntries}.
@@ -34,6 +35,17 @@ export interface WorkspaceEntry {
   /** Branch to clone. Set when `type` is `"git"`. */
   readonly gitBranch?: string;
   /**
+   * The commit the repository is pinned to. Kept from the stored
+   * repository when a saved workspace is loaded; never set by the editor,
+   * so a repository removed and added again starts unpinned.
+   */
+  readonly gitCommit?: string;
+  /**
+   * The repository's git write-back mode. Kept from the stored repository
+   * when a saved workspace is loaded; never set by the editor.
+   */
+  readonly gitWriteBackMode?: GitWriteBackMode;
+  /**
    * The git ref (branch or commit SHA) at which read-side operations —
    * file content, tree listing, name search — resolve. Defaults to
    * `gitBranch` when absent.
@@ -56,18 +68,27 @@ export interface UseWorkspaceEntriesReturn {
    * Add a git repository by URL with an optional branch. The entry is named
    * after the URL unless `name` is given: pass the stored name when loading
    * a saved workspace, so a later write keeps the entry (and its stored
-   * token) under the name it was saved with.
+   * token) under the name it was saved with. Pass the stored commit and
+   * write-back mode as `stored` too, so a later write keeps them.
    *
    * Names stay unique, because the server refuses a workspace that repeats
    * one: a name already taken gains the branch (`acme/api@dev`), then a
    * number (`acme/api-2`), so one repository can be added at two branches.
    */
-  readonly addGitRepo: (url: string, branch?: string, name?: string) => void;
+  readonly addGitRepo: (
+    url: string,
+    branch?: string,
+    name?: string,
+    stored?: { readonly commit?: string; readonly writeBackMode?: GitWriteBackMode },
+  ) => void;
   /**
    * Add a local filesystem directory by absolute path, named after its last
-   * two path segments; a name already taken gains a number (`dev/api-2`).
+   * two path segments unless `name` is given: pass the stored name when
+   * loading a saved workspace, because a folder's name is the directory it
+   * is given in the workspace. A name already taken gains a number
+   * (`dev/api-2`).
    */
-  readonly addLocalPath: (path: string) => void;
+  readonly addLocalPath: (path: string, name?: string) => void;
   /** Remove an entry by its stable ID. */
   readonly remove: (id: string) => void;
   /** Remove all entries. */
@@ -166,18 +187,26 @@ function deriveNameFromPath(path: string): string {
 export function useWorkspaceEntries(): UseWorkspaceEntriesReturn {
   const [entries, setEntries] = useState<WorkspaceEntry[]>([]);
 
-  const addGitRepo = useCallback((url: string, branch?: string, name?: string) => {
+  const addGitRepo = useCallback<UseWorkspaceEntriesReturn["addGitRepo"]>((url, branch, name, stored) => {
     const id = uid();
     const base = name || deriveNameFromGitUrl(url);
     setEntries((prev) => [
       ...prev,
-      { id, name: uniqueName(prev, base, branch), type: "git", gitUrl: url, gitBranch: branch },
+      {
+        id,
+        name: uniqueName(prev, base, branch),
+        type: "git",
+        gitUrl: url,
+        gitBranch: branch,
+        ...(stored?.commit && { gitCommit: stored.commit }),
+        ...(stored?.writeBackMode && { gitWriteBackMode: stored.writeBackMode }),
+      },
     ]);
   }, []);
 
-  const addLocalPath = useCallback((path: string) => {
+  const addLocalPath = useCallback((path: string, name?: string) => {
     const id = uid();
-    const base = deriveNameFromPath(path);
+    const base = name || deriveNameFromPath(path);
     setEntries((prev) => [
       ...prev,
       { id, name: uniqueName(prev, base), type: "local", localPath: path },
@@ -199,7 +228,15 @@ export function useWorkspaceEntries(): UseWorkspaceEntriesReturn {
   const toInput = useCallback((): SessionResourceInput[] => {
     return entries.map((entry): SessionResourceInput =>
       entry.type === "git"
-        ? { name: entry.name, gitRepository: { url: entry.gitUrl!, branch: entry.gitBranch } }
+        ? {
+            name: entry.name,
+            gitRepository: {
+              url: entry.gitUrl!,
+              branch: entry.gitBranch,
+              ...(entry.gitCommit && { commit: entry.gitCommit }),
+              ...(entry.gitWriteBackMode && { writeBackMode: entry.gitWriteBackMode }),
+            },
+          }
         : { name: entry.name, localPath: { path: entry.localPath } },
     );
   }, [entries]);

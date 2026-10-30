@@ -22,10 +22,10 @@ terminal experience.
 npm install @stigmer/ink-ui @stigmer/react-core @stigmer/client @stigmer/apis @bufbuild/protobuf ink react
 ```
 
-`ink` and `react` 19+ are peer dependencies. `@stigmer/react-core` holds the
-hooks your own views import (it also comes with the kit). `@stigmer/apis`
-provides the protocol buffer types. `@bufbuild/protobuf` is its runtime
-dependency.
+`ink` and `react` 19+ are peer dependencies, and so is `@stigmer/react-core`,
+the hooks the kit's views and your own read, so both share one copy.
+`@stigmer/apis` provides the protocol buffer types. `@bufbuild/protobuf` is its
+runtime dependency.
 
 ## Quick start
 

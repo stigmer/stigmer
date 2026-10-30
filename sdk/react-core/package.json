@@ -19,8 +19,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typedoc:json": "typedoc",
-    "tsdoc:check": "typedoc --treatValidationWarningsAsErrors",
-    "tsdoc:coverage": "tsx scripts/tsdoc-coverage.ts"
+    "tsdoc:check": "typedoc --treatValidationWarningsAsErrors"
   },
   "files": [
     "dist",

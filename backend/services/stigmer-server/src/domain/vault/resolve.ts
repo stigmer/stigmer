@@ -255,6 +255,9 @@ export interface SignInFreshener {
    * The connection's usable access token: renewed first when expired and
    * a refresh token exists, the renewal written back to its vault. Throws
    * a SignInRenewalError naming the cause when the renewal itself fails.
+   * An expired sign-in is renewed from the login the vault holds now, so
+   * the token may be the vault's current login when the read has moved,
+   * and a login removed since the read is refused.
    */
   freshToken(
     vault: Vault,
