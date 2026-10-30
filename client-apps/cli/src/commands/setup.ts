@@ -46,7 +46,7 @@ async function runSetup(options: SetupFlags): Promise<void> {
     await import("../local/setup/wizard.js");
   const { isRunning } = await import("../local/daemon/launch.js");
   const { CliExitError } = await import("../errors/cli-exit-error.js");
-  const { ExitCode } = await import("../errors/exit-codes.js");
+  const { ExitCode } = await import("@stigmer/client/node");
 
   const config = load();
   const nonInteractive =

@@ -70,6 +70,13 @@ export interface MessageThreadProps {
    * record here — its decision surface is the docked `FileReviewPrompt`.
    */
   readonly showFileReviewRecords?: boolean;
+  /**
+   * Whether a person can answer with the keyboard. When `false` (off a
+   * terminal) every approval prompt renders inert: nothing reads keys, and
+   * the host settles each ask another way (`SessionView`'s `approveDefault`).
+   * Defaults to `true`.
+   */
+  readonly canAnswer?: boolean;
 }
 
 /** What a message sent while a turn worked says while no turn has read it. */
@@ -272,6 +279,7 @@ export function MessageThread({
   answeringToolUseIds,
   expandToolCalls = false,
   showFileReviewRecords = false,
+  canAnswer = true,
 }: MessageThreadProps) {
   const includeApprovals = onAnswerToolUse != null;
   const { items, liveStart } = useMemo(
@@ -295,8 +303,8 @@ export function MessageThread({
   // any tool use waits, so the terminal always has exactly one interactive
   // decision surface: first ask → else the file-review prompt.
   const firstApprovalKey = useMemo(
-    () => items.find((it) => it.kind === "approval")?.key,
-    [items],
+    () => (canAnswer ? items.find((it) => it.kind === "approval")?.key : undefined),
+    [items, canAnswer],
   );
 
   const historyItems = items.slice(0, liveStart);

@@ -5,8 +5,32 @@ export { InkStigmerProvider, type InkStigmerProviderProps } from "./provider.js"
 export {
   createNodeClient,
   createNodeTransport,
+  ExitCode,
+  exitCodeOf,
   type NodeClientConfig,
 } from "@stigmer/client/node";
+
+// Run a turn in the terminal and get control back
+export {
+  runInTerminal,
+  TerminalRunError,
+  type RunInTerminalOptions,
+  type TerminalOutcome,
+} from "./run/run-in-terminal.js";
+export { terminalMode, type TerminalMode, type TerminalStreams } from "./terminal-mode.js";
+export { describeConnectionFailure, type ConnectionFailure, type FailedStep } from "./errors.js";
+
+// Theme: colours by role
+export {
+  DEFAULT_INK_THEME,
+  resolveInkTheme,
+  roleStyle,
+  useInkTheme,
+  useRoles,
+  type InkRole,
+  type InkTheme,
+  type RoleStyle,
+} from "./theme.js";
 
 // Markdown
 export { renderMarkdown } from "./markdown.js";

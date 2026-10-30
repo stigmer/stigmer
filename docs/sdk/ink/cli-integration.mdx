@@ -1,227 +1,200 @@
 ---
 title: Embed in your CLI
 description:
-  Spawn @stigmer/ink-ui from a Go, Rust, or Python CLI to render agent sessions
-  in the terminal.
+  Run a Stigmer agent from a Go, Python or Rust command-line tool with the
+  stigmer-ink binary, and branch on its exit code.
 ---
 
-`@stigmer/ink-ui` ships a standalone binary that renders a Stigmer agent session
-in the terminal. Your CLI creates the session through the Stigmer API, then
-spawns this binary as a child process. The binary connects to the API on its
-own, streams execution updates, and renders the full conversation UI —
-messages, tool calls, approvals, and follow-up input.
+`@stigmer/ink-ui` ships a binary, `stigmer-ink`, that runs one agent turn in the
+terminal and exits with how it ended. Your tool spawns it as a child process,
+hands it the terminal, and reads its exit code. It works from any language that
+can spawn a process, and it needs nothing from your language but that.
 
-This is the same pattern the Stigmer CLI uses. It works from any language that
-can spawn a child process.
+A JavaScript or TypeScript tool can skip the child process and call
+`runInTerminal` from the same package: see the
+[package README](https://github.com/stigmer/stigmer/tree/main/sdk/ink#readme).
 
-**Prerequisite:** Node.js 18 or later must be installed on the user's machine.
-The binary is distributed as an npm package and runs through `npx`.
+**Prerequisites**: Node.js 18 or later on the machine that runs your tool, and a
+Stigmer server. This page uses the one `stigmer up` starts on your machine; the
+[quickstart](/docs/getting-started/quickstart) sets it up.
 
-## How it works
+## What the binary does
 
-Your CLI and the Ink process have a clear division of responsibility:
+`stigmer-ink --agent <org>/<slug> --message <text>` starts a new conversation
+with the agent, shows its work as `stigmer run` does, and exits when the turn
+ends:
 
-1. **Your CLI** handles business logic: authentication, session creation, org
-   resolution, and any pre- or post-processing. It uses the Stigmer SDK in
-   your language (Go, Python, Rust) to talk to the API.
+- On a terminal, the agent's approvals are prompts: `y` approves, `a` approves
+  that kind of action for the rest of the turn, `n` denies.
+- Off a terminal (a pipe, a CI log) it prints the conversation once, at the end,
+  and denies every approval, saying so. `--approve-default approve` approves
+  them instead; use it only for an agent you trust to run unattended.
+- `--session <id> --org <org> --message <text>` sends into a conversation you
+  already have, and `--session <id> --org <org>` alone watches one until you
+  press Ctrl+C.
 
-2. **The Ink process** handles rendering. It receives the session ID and
-   connection details as command-line flags, opens its own API connection, and
-   takes over the terminal. When the session ends, the process exits.
+It reads the API key from `STIGMER_API_KEY` and the server from
+`STIGMER_BASE_URL` (default `http://localhost:7234`). Keep the key in the
+environment: `--api-key` works, but every user of the machine can read a
+process's arguments.
 
-3. **Your CLI resumes** after the Ink process exits. It can query the final
-   execution state through the SDK to determine the outcome and set its own
-   exit code.
+| Exit code | Meaning                                                   |
+| --------- | --------------------------------------------------------- |
+| 0         | The turn completed                                        |
+| 1         | The turn failed, was cancelled or was terminated          |
+| 2         | Usage: the arguments were wrong                           |
+| 3         | Cannot connect to the server                              |
+| 4         | Not signed in, or not allowed                             |
+| 5         | The session or agent was not found                        |
+| 130       | Interrupted: Ctrl+C, or SIGINT or SIGTERM sent to it      |
 
-The two processes share the same terminal — your CLI passes its stdin, stdout,
-and stderr to the child process so Ink can read keyboard input and write
-directly to the screen.
+These are the `stigmer` CLI's codes too.
 
-## Parameters
+## Install it and start a server
 
-Pass connection details to `stigmer-ink` as command-line flags:
+```bash
+npm install --global @stigmer/ink-ui
+stigmer-ink --help
+```
 
-| Flag | Short | Required | Default | Description |
-|------|-------|----------|---------|-------------|
-| `--session` | `-s` | Yes | — | Session ID to render. |
-| `--org` | `-o` | Yes | — | Organization slug. |
-| `--base-url` | `-u` | No | `STIGMER_BASE_URL` env | Stigmer API URL (e.g. `https://api.stigmer.ai`). |
-| `--api-key` | `-k` | No | `STIGMER_API_KEY` env | API key for authentication. |
+Start Stigmer with your model key in the shell:
 
-When `--base-url` or `--api-key` are omitted, the process reads from the
-`STIGMER_BASE_URL` and `STIGMER_API_KEY` environment variables. Your CLI can
-set these in the child process environment instead of passing flags.
+```bash
+export ANTHROPIC_API_KEY=<your Anthropic API key>
+stigmer up
+```
+
+## Create the agent
+
+The bridges below run an agent that checks a release. Create
+`release-checker.yaml`:
+
+```yaml title="release-checker.yaml"
+apiVersion: agentic.stigmer.ai/v1
+kind: Agent
+metadata:
+  name: release-checker
+spec:
+  description: Checks that a release is safe to ship.
+  instructions: |
+    You check a release before it ships. Run the project's checks with the
+    shell, then say in one line whether the release is safe to ship and why.
+```
+
+Send it to Stigmer:
+
+```bash
+stigmer apply -f release-checker.yaml
+```
+
+The agent runs commands, so each one waits for a person to approve it: on a
+terminal you see the prompt, and off one the binary denies it.
 
 ## Go
 
-```go
+```go title="go.mod"
+module releasecheck
+
+go 1.22
+```
+
+```go title="main.go"
 package main
 
 import (
-	"fmt"
+	"errors"
 	"os"
 	"os/exec"
+	"strings"
 )
 
-const inkVersion = "0.1.0"
-
-func renderSession(sessionID, org, baseURL, apiKey string) error {
-	args := []string{
-		"--yes", fmt.Sprintf("@stigmer/ink-ui@%s", inkVersion),
-		"--session", sessionID,
-		"--org", org,
-		"--base-url", baseURL,
+func main() {
+	message := strings.Join(os.Args[1:], " ")
+	cmd := exec.Command("stigmer-ink",
+		"--agent", "stigmer/release-checker",
+		"--message", message)
+	// The child takes the terminal; the key and server come from the environment.
+	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
+	err := cmd.Run()
+	var exit *exec.ExitError
+	if errors.As(err, &exit) {
+		os.Exit(exit.ExitCode())
 	}
-	if apiKey != "" {
-		args = append(args, "--api-key", apiKey)
+	if err != nil {
+		os.Stderr.WriteString("could not start stigmer-ink: " + err.Error() + "\n")
+		os.Exit(1)
 	}
-
-	cmd := exec.Command("npx", args...)
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	return cmd.Run()
 }
 ```
 
-`cmd.Stdin = os.Stdin` gives Ink access to keyboard input so the user can
-type follow-up messages and respond to approval prompts. `--yes` tells `npx`
-to install the package without prompting if it is not already cached.
+```bash
+go run . Check v2.3 is safe to ship
+```
 
-After `cmd.Run()` returns, query the session through the Go SDK to determine
-the final execution outcome:
+## Python
 
-```go
-func main() {
-	// ... create session via Go SDK, get sessionID ...
+```python title="bridge.py"
+import subprocess
+import sys
 
-	if err := renderSession(sessionID, org, baseURL, apiKey); err != nil {
-		fmt.Fprintf(os.Stderr, "render failed: %v\n", err)
-	}
+message = " ".join(sys.argv[1:])
+# The child takes the terminal; the key and server come from the environment.
+result = subprocess.run(
+    ["stigmer-ink", "--agent", "stigmer/release-checker", "--message", message]
+)
+sys.exit(result.returncode)
+```
 
-	// Fetch the run's final state to set the CLI exit code.
-	run, err := client.Run.Get(ctx, runID)
-	if err != nil {
-		os.Exit(1)
-	}
-
-	switch run.GetStatus().GetPhase().String() {
-	case "RUN_FAILED":
-		os.Exit(1)
-	case "RUN_CANCELLED":
-		os.Exit(2)
-	}
-}
+```bash
+python3 bridge.py Check v2.3 is safe to ship
 ```
 
 ## Rust
 
-```rust
-use std::process::{Command, Stdio};
+```toml title="Cargo.toml"
+[package]
+name = "release-check"
+version = "0.1.0"
+edition = "2021"
+```
 
-const INK_VERSION: &str = "0.1.0";
+```rust title="src/main.rs"
+use std::process::{exit, Command};
 
-fn render_session(
-    session_id: &str,
-    org: &str,
-    base_url: &str,
-    api_key: Option<&str>,
-) -> std::io::Result<std::process::ExitStatus> {
-    let package = format!("@stigmer/ink-ui@{INK_VERSION}");
-    let mut args = vec![
-        "--yes", &package,
-        "--session", session_id,
-        "--org", org,
-        "--base-url", base_url,
-    ];
-    if let Some(key) = api_key {
-        args.push("--api-key");
-        args.push(key);
-    }
-
-    Command::new("npx")
-        .args(&args)
-        .stdin(Stdio::inherit())
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit())
+fn main() {
+    let message = std::env::args().skip(1).collect::<Vec<_>>().join(" ");
+    // The child takes the terminal; the key and server come from the environment.
+    let status = Command::new("stigmer-ink")
+        .args(["--agent", "stigmer/release-checker", "--message", &message])
         .status()
+        .unwrap_or_else(|err| {
+            eprintln!("could not start stigmer-ink: {err}");
+            exit(1)
+        });
+    exit(status.code().unwrap_or(130));
 }
 ```
 
-`Stdio::inherit()` connects the child process to the parent's terminal
-streams. Call `.status()` to block until Ink exits and get the exit code.
-
-## Python
-
-```python
-import subprocess
-
-INK_VERSION = "0.1.0"
-
-def render_session(session_id, org, base_url, api_key=None):
-    cmd = [
-        "npx", "--yes", f"@stigmer/ink-ui@{INK_VERSION}",
-        "--session", session_id,
-        "--org", org,
-        "--base-url", base_url,
-    ]
-    if api_key:
-        cmd += ["--api-key", api_key]
-
-    return subprocess.run(cmd).returncode
-```
-
-`subprocess.run` inherits stdin, stdout, and stderr by default. No extra
-configuration is needed for terminal passthrough.
-
-## Version pinning
-
-Always pin the `@stigmer/ink-ui` version in the `npx` command. Without a version,
-`npx` resolves `latest`, which can introduce breaking changes between CLI
-releases.
-
-```
-npx --yes @stigmer/ink-ui@0.1.0 --session ...
-```
-
-Store the version as a constant in your CLI source. Update it alongside CLI
-releases so the renderer and CLI stay in sync.
-
-## TTY and non-TTY behavior
-
-When stdin is a TTY (the normal case), Ink captures keyboard input and
-enables `Ctrl+C` to exit the process.
-
-When stdin is **not** a TTY, Ink reads a JSON configuration object from stdin
-instead of using command-line flags. This is useful for programmatic
-invocation where you want to avoid passing secrets as command-line arguments
-(which may be visible in process listings):
-
 ```bash
-echo '{"sessionId":"ses-abc","org":"my-org","baseUrl":"https://api.stigmer.ai","apiKey":"sk_..."}' \
-  | npx --yes @stigmer/ink-ui@0.1.0
+cargo run --quiet -- Check v2.3 is safe to ship
 ```
 
-In non-TTY mode, Ink disables `Ctrl+C` handling and suppresses the Ink debug
-output. The process still renders to stdout but does not read keyboard input.
+A child stopped by a signal has no exit code, so the bridge exits 130 for it.
 
-## What's next
+## Against Stigmer Cloud
 
-<Cards>
-  <Card
-    title="Ink SDK"
-    description="Components, providers, and hooks for building custom terminal UIs."
-    href="/docs/sdk/ink"
-  />
-  <Card
-    title="Reference"
-    description="Props, types, and signatures for every Ink SDK export."
-    href="/docs/sdk/ink/reference"
-  />
-  <Card
-    title="SDK Overview"
-    description="Client setup, authentication, and resource clients across all languages."
-    href="/docs/sdk"
-  />
-</Cards>
+Point the binary at the hosted API and an agent in your Organization, with a key
+you created there:
+
+```text
+export STIGMER_BASE_URL=https://api.stigmer.ai
+export STIGMER_API_KEY=stk_...
+stigmer-ink --agent your-org/release-checker --message "Check v2.3 is safe to ship"
+```
+
+## When the binary is not enough
+
+The binary shows Stigmer's terminal view and nothing else. To put the
+conversation inside your own frame, or to read the turn's answer and structured
+output in code, write the tool in TypeScript with `runInTerminal`, or compose
+the components yourself: [Ink SDK](/docs/sdk/ink).

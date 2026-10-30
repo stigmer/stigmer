@@ -1765,8 +1765,9 @@ jobs:
     # the version (test/install/lib/install-cli.mjs).
     needs: [determine-version, publish, publish-runner, publish-server-slim]
     runs-on: ubuntu-24.04
-    # Two journeys, each with its own `stigmer up`: the CLI smoke and the Getting Started pages.
-    timeout-minutes: 45
+    # Three journeys, each with its own `stigmer up`: the CLI smoke, the
+    # Getting Started pages and the terminal kit's pages.
+    timeout-minutes: 60
     permissions:
       contents: read
     steps:
@@ -1793,6 +1794,17 @@ jobs:
       - name: Getting Started from the published CLI and SDK, as written
         run: |
           node test/install/smoke-getting-started.mjs --published --version="${NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION}"
+        env:
+          NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION: ${{ needs.determine-version.outputs.version }}
+
+      # The terminal kit's README and CLI guide, run as written against what
+      # this release published: @stigmer/ink-ui from npm, its bin started
+      # with Node alone, and the guide's Go, Python and Rust bridges on a
+      # pseudo-terminal and through a pipe (the runner image's go, cargo and
+      # python3 build them).
+      - name: The terminal kit from npm, as its pages show it
+        run: |
+          node test/install/smoke-terminal-kit.mjs --published --version="${NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION}"
         env:
           NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION: ${{ needs.determine-version.outputs.version }}
 

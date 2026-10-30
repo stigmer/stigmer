@@ -44,6 +44,8 @@ vi.mock("@stigmer/react-core", async (importOriginal) => {
   return {
     ...actual,
     useSessionConversation: () => conversation,
+    // The view words a failure with the address the client was built with.
+    useStigmer: () => ({ baseUrl: "http://localhost:7234" }) as ReturnType<typeof actual.useStigmer>,
     useSessionUsage: () => usage,
   };
 });
@@ -62,11 +64,11 @@ afterAll(() => {
   if (realColumns) Object.defineProperty(process.stdout, "columns", realColumns);
 });
 
-/** The view over one scenario, at a width, as plain text. */
+/** The view over one scenario, at a width, as plain text, as a terminal a person answers on shows it. */
 function frame(name: ScenarioName, columns: number): string {
   conversation = conversationOf(scenarios[name]);
   usage = usageOf(scenarios[name]);
-  return stripVTControlCharacters(renderToString(<SessionView sessionId="ses_1" org="demo" />, { columns }));
+  return stripVTControlCharacters(renderToString(<SessionView sessionId="ses_1" org="demo" canAnswer />, { columns }));
 }
 
 const FRAMES = SCENARIO_NAMES.flatMap((name) => WIDTHS.map((columns) => ({ name, columns })));
@@ -121,7 +123,11 @@ describe("INK-02 an approval prompt is unmissable, keyboard-driven, and never ti
 
 describe("the frame goldens", () => {
   it("holds exactly the frames the scenarios draw, so a removed scenario leaves none behind", () => {
-    const expected = FRAMES.map(({ name, columns }) => `session-${name}-${columns}.txt`).sort();
+    const expected = [
+      ...FRAMES.map(({ name, columns }) => `session-${name}-${columns}.txt`),
+      // The view off a terminal, denying an ask by default (session-view.test.tsx).
+      "session-off-terminal-denied.txt",
+    ].sort();
     expect(readdirSync(GOLDENS).sort()).toEqual(expected);
   });
 });

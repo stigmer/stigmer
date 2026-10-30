@@ -16,6 +16,7 @@ import {
   extractShellIntentFromPreview,
   type ToolUseAnswer,
 } from "@stigmer/react-core";
+import { useInkTheme, useRoles, type InkRole } from "../theme.js";
 
 /** Props for {@link ApprovalPrompt}. */
 export interface ApprovalPromptProps {
@@ -44,7 +45,7 @@ export interface ApprovalPromptProps {
 interface ActionOption {
   readonly label: string;
   readonly answer: ToolUseAnswer;
-  readonly color: string;
+  readonly role: InkRole;
   readonly shortcut: string;
 }
 
@@ -114,15 +115,17 @@ export function ApprovalPrompt({
   isSubmitting = false,
   isActive = true,
 }: ApprovalPromptProps) {
+  const theme = useInkTheme();
+  const role = useRoles();
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [denying, setDenying] = useState(false);
   const [reason, setReason] = useState("");
 
   const options = useMemo<readonly ActionOption[]>(
     () => [
-      { label: "Approve", answer: "allow", color: "green", shortcut: "y" },
-      { label: buildApproveAllLabel(toolUse), answer: "grant", color: "green", shortcut: "a" },
-      { label: "Deny", answer: "deny", color: "red", shortcut: "n" },
+      { label: "Approve", answer: "allow", role: "success", shortcut: "y" },
+      { label: buildApproveAllLabel(toolUse), answer: "grant", role: "success", shortcut: "a" },
+      { label: "Deny", answer: "deny", role: "danger", shortcut: "n" },
     ],
     [toolUse],
   );
@@ -180,9 +183,9 @@ export function ApprovalPrompt({
       paddingTop={1}
       paddingBottom={1}
       borderStyle="round"
-      borderColor="yellow"
+      borderColor={theme.warning}
     >
-      <Text color="yellow" bold>
+      <Text {...role.warning} bold>
         ⚠ Approval required
       </Text>
 
@@ -216,7 +219,7 @@ export function ApprovalPrompt({
       {denying ? (
         <Box marginTop={1} paddingLeft={2} flexDirection="column">
           <Box gap={1}>
-            <Text color="red">Deny — reason (optional):</Text>
+            <Text {...role.danger}>Deny — reason (optional):</Text>
             <TextInput
               value={reason}
               onChange={setReason}
@@ -239,7 +242,7 @@ export function ApprovalPrompt({
             return (
               <Text
                 key={opt.shortcut}
-                color={selected ? opt.color : undefined}
+                {...(selected ? role[opt.role] : {})}
                 dimColor={!selected}
                 bold={selected}
               >

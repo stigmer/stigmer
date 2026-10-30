@@ -220,6 +220,14 @@ export const LANES = {
       "sdk/typescript/package.json",
       "scripts/publish-libs.mjs",
       "scripts/lib/**",
+      // The terminal kit run from its pages (test/install/smoke-terminal-kit.mjs):
+      // its README and CLI guide are the script, and the kit and the
+      // conversation core it installs are packed from these sources.
+      "test/install/smoke-terminal-kit.mjs",
+      "docs/sdk/ink/**",
+      "sdk/ink/**",
+      "sdk/react-core/src/**",
+      "sdk/react-core/package.json",
       // The install layer's drivers and probes, and the two test/support
       // modules it loads (the fake model and its wire); the rest of
       // test/support is the contract and e2e suites' machinery.

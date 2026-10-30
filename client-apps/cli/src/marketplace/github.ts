@@ -50,7 +50,7 @@ import {
   parseZipStructure,
 } from "@stigmer/zip-structure";
 import { CliExitError } from "../errors/cli-exit-error.js";
-import { ExitCode } from "../errors/exit-codes.js";
+import { ExitCode } from "@stigmer/client/node";
 import { log } from "../logger.js";
 
 /** ZIP compression methods this reader opens, the two the platform's gates register. */

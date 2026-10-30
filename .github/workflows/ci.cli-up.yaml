@@ -47,8 +47,9 @@ jobs:
   smoke:
     name: stigmer up (from source)
     runs-on: ubuntu-24.04
-    # Two journeys, each with its own `stigmer up`, and the SDK packed for the second.
-    timeout-minutes: 45
+    # Three journeys, each with its own `stigmer up`; the SDK packed for the
+    # second and the terminal kit for the third.
+    timeout-minutes: 60
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -76,3 +77,11 @@ jobs:
       # (test/install/smoke-getting-started.mjs); the builds above are reused.
       - name: Run the Getting Started pages
         run: make smoke-getting-started
+
+      # The terminal kit's README and CLI guide, run as written: its bin with
+      # Node alone, the runInTerminal example and the guide's Go, Python and
+      # Rust bridges on a pseudo-terminal and through a pipe
+      # (test/install/smoke-terminal-kit.mjs). The runner image's own go,
+      # cargo and python3 build the bridges.
+      - name: Run the terminal kit's pages
+        run: make smoke-terminal-kit

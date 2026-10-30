@@ -37,7 +37,7 @@ import { Command } from "commander";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CliExitError } from "../../../errors/cli-exit-error.js";
-import { ExitCode } from "../../../errors/exit-codes.js";
+import { ExitCode } from "@stigmer/client/node";
 import { registerAccessHistory } from "../index.js";
 
 const backend = vi.hoisted(() => ({

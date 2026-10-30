@@ -479,6 +479,8 @@ export {
   followSession,
   newestSeq,
   sendAndWait,
+  startTurn,
+  turnOutcomeOf,
   waitForTurn,
   type AttentionClient,
   type FollowAttentionOptions,
@@ -487,7 +489,9 @@ export {
   type SendAndWaitInput,
   type SessionEventsClient,
   type SessionPreviewType,
+  type StartedTurn,
   type TurnOutcome,
+  type TurnPlace,
   type WaitOptions,
 } from "./session-events.js";
 export {

@@ -4,13 +4,18 @@
 // changing…") whose per-file list rides the same Ctrl+O toggle that expands
 // tool calls, the docked file-review prompt that yields to a waiting tool
 // use, and the Ctrl+T switch between agent and plan mode that the follow-up
-// line announces. The conversation hook is
+// line announces. Off a terminal (INK-04) the view reads no keys, settles
+// each ask by `approveDefault` and says so, and leaves a file review pending;
+// a load failure (INK-05) says what failed, the address and the next step;
+// `onTurnEnd` hears each turn end once. The conversation hook is
 // replaced by a fixture so each state renders exactly as the hook would
 // report it, and the usage widget's hook reports no usage; every
 // component below the hooks is the real Ink tree.
 import React from "react";
 import { afterEach, describe, it, expect, vi } from "vitest";
 import { render, cleanup } from "ink-testing-library";
+import { renderToString } from "ink";
+import { stripVTControlCharacters } from "node:util";
 import { create } from "@bufbuild/protobuf";
 import {
   FileChangeProgressSchema,
@@ -30,6 +35,8 @@ vi.mock("@stigmer/react-core", async (importOriginal) => {
   return {
     ...actual,
     useSessionConversation: () => conversation,
+    // The view words a failure with the address the client was built with.
+    useStigmer: () => ({ baseUrl: "http://localhost:7234" }) as ReturnType<typeof actual.useStigmer>,
     // The usage widget reads the session usage report through the
     // client; with no runs in these fixtures it has nothing to show.
     useSessionUsage: () => ({ hasUsage: false }) as unknown as ReturnType<typeof actual.useSessionUsage>,
@@ -98,11 +105,20 @@ describe("SessionView — load states", () => {
     expect(lastFrame()).toContain("Loading session...");
   });
 
-  it("names the failure when the session cannot load", () => {
-    conversation = makeConversation({ loadError: new Error("session not found") });
-    const { lastFrame } = render(<SessionView sessionId="ses_1" org="acme" />);
-    expect(lastFrame()).toContain("Failed to load session");
-    expect(lastFrame()).toContain("session not found");
+  it("INK-05 says what failed, the address tried and what to do, keeping the raw message as details", () => {
+    conversation = makeConversation({ loadError: new Error("connect ECONNREFUSED 127.0.0.1:7234") });
+    const frame = render(<SessionView sessionId="ses_1" org="acme" />).lastFrame() ?? "";
+    expect(frame).toContain("Could not load the session from http://localhost:7234.");
+    expect(frame).toContain("Unable to connect to the server.");
+    expect(frame).toContain("Is the server running? Start one with `stigmer up`, or pass --base-url.");
+    expect(frame).toContain("Details: connect ECONNREFUSED 127.0.0.1:7234");
+  });
+
+  it("INK-05 says a dropped stream as a warning, while the conversation stays", () => {
+    conversation = makeConversation({ streamError: new Error("fetch failed") });
+    const frame = render(<SessionView sessionId="ses_1" org="acme" />).lastFrame() ?? "";
+    expect(frame).toContain("Lost the session's stream from http://localhost:7234.");
+    expect(frame).toContain("Refactor the billing module");
   });
 });
 
@@ -179,5 +195,82 @@ describe("SessionView — a loaded conversation", () => {
     stdin.write("\u0014"); // Ctrl+T
     await settle();
     expect(lastFrame()).toContain("Plan mode — read-only analysis, no file mutations");
+  });
+});
+
+describe("INK-04 SessionView off a terminal", () => {
+  it("renders read-only with no TTY stdin, without throwing", () => {
+    conversation = makeConversation();
+    const frame = stripVTControlCharacters(renderToString(<SessionView sessionId="ses_1" org="acme" />, { columns: 100 }));
+    expect(frame).toContain("Refactor the billing module");
+    expect(frame).not.toContain("Agent mode — full tool access");
+  });
+
+  it("denies an ask by default and says why, once", async () => {
+    const answers: unknown[][] = [];
+    const ask = waitingToolUse("write_file");
+    conversation = makeConversation({
+      asks: [ask],
+      answerToolUse: async (...args: unknown[]) => {
+        answers.push(args);
+      },
+    });
+    const { lastFrame, rerender } = render(<SessionView sessionId="ses_1" org="acme" canAnswer={false} />);
+    await settle();
+    rerender(<SessionView sessionId="ses_1" org="acme" canAnswer={false} />);
+    await settle();
+    expect(answers).toEqual([[ask.id, "deny", "No one could answer: the session ran without a terminal."]]);
+    expect(lastFrame()).toContain("Denied write_file: no terminal to ask on (set approveDefault to approve)");
+    await expect(stripVTControlCharacters(lastFrame() ?? "")).toMatchFileSnapshot("__goldens__/session-off-terminal-denied.txt");
+  });
+
+  it("approves an ask when approveDefault says so, and ignores the default on a terminal", async () => {
+    const answers: unknown[][] = [];
+    const ask = waitingToolUse("write_file");
+    conversation = makeConversation({ asks: [ask], answerToolUse: async (...args: unknown[]) => void answers.push(args) });
+    const off = render(<SessionView sessionId="ses_1" org="acme" canAnswer={false} approveDefault="approve" />);
+    await settle();
+    expect(answers).toEqual([[ask.id, "allow", undefined]]);
+    expect(off.lastFrame()).toContain("Approved write_file: no terminal to ask on (approveDefault is approve)");
+    off.unmount();
+
+    answers.length = 0;
+    render(<SessionView sessionId="ses_1" org="acme" canAnswer approveDefault="approve" />);
+    await settle();
+    expect(answers).toEqual([]);
+  });
+
+  it("leaves a file review pending and says it waits for a terminal", () => {
+    conversation = makeConversation({ fileReviewSets: [reviewSet([{ id: "a", path: "one.ts" }])] });
+    const frame = render(<SessionView sessionId="ses_1" org="acme" canAnswer={false} />).lastFrame() ?? "";
+    expect(frame).toContain("This review waits for a terminal");
+  });
+
+  it("reads no keys: Ctrl+T does not switch the mode", async () => {
+    conversation = makeConversation();
+    const { lastFrame, stdin } = render(<SessionView sessionId="ses_1" org="acme" canAnswer={false} />);
+    stdin.write("\u0014");
+    await settle();
+    expect(lastFrame()).not.toContain("Plan mode");
+  });
+});
+
+describe("SessionView — onTurnEnd", () => {
+  it("hears each turn end once, and a turn still working not at all", async () => {
+    const heard: string[] = [];
+    const onTurnEnd = (turn: { runId: string }) => void heard.push(turn.runId);
+    const done = samples.turn({ runId: "run_a", phase: "completed" });
+    const working = samples.turn({ runId: "run_b", phase: "running" });
+    conversation = makeConversation({ turns: [done, working] });
+    const { rerender } = render(<SessionView sessionId="ses_1" org="acme" onTurnEnd={onTurnEnd} />);
+    await settle();
+    expect(heard).toEqual(["run_a"]);
+
+    conversation = makeConversation({ turns: [done, samples.turn({ runId: "run_b", phase: "failed" })] });
+    rerender(<SessionView sessionId="ses_1" org="acme" onTurnEnd={onTurnEnd} />);
+    await settle();
+    rerender(<SessionView sessionId="ses_1" org="acme" onTurnEnd={onTurnEnd} />);
+    await settle();
+    expect(heard).toEqual(["run_a", "run_b"]);
   });
 });

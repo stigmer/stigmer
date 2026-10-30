@@ -1,161 +1,103 @@
-#!/usr/bin/env tsx
+#!/usr/bin/env node
+// stigmer-ink: a Stigmer agent turn as one child process, for a host written
+// in any language (the docs' Go, Python and Rust bridges spawn it). It starts
+// a conversation with an agent (or sends into, or watches, a session), shows
+// it as the kit's SessionView, and exits with the shared exit-code table
+// (@stigmer/client/node), so the host branches on the code alone.
+//
+// Runs on Node alone: the shebang is `node` and the published file is
+// compiled JavaScript. The process's signals are the bin's to map (a library
+// takes none): SIGINT and SIGTERM stop the wait as Ctrl+C does, leaving the
+// run going on the server, and the code is 130.
+//
+// Proven by __tests__/cli-args.test.ts (the command line) and
+// test/install/smoke-terminal-kit.mjs (the packed bin, on a terminal and off).
 
 import React from "react";
-import { Readable } from "node:stream";
-import { render } from "ink";
-import { SessionApp } from "../app/SessionApp.js";
+import { render, useApp } from "ink";
+import type { Turn } from "@stigmer/client";
+import { createNodeClient, exitCodeOf, ExitCode } from "@stigmer/client/node";
+import { InkStigmerProvider } from "../provider.js";
+import { SessionView } from "../app/SessionView.js";
+import { TurnWatchContext, type TurnWatch } from "../app/turn-watch.js";
+import { runInTerminal, TerminalRunError } from "../run/run-in-terminal.js";
+import { terminalMode } from "../terminal-mode.js";
+import { parseCliArgs, USAGE } from "./args.js";
 
-interface CliConfig {
-  sessionId: string;
-  org: string;
-  baseUrl: string;
-  apiKey?: string;
-  mode?: "agent" | "plan";
-}
-
-function parseArgs(argv: string[]): CliConfig | null {
-  const args = argv.slice(2);
-  const config: Partial<CliConfig> = {};
-
-  for (let i = 0; i < args.length; i++) {
-    switch (args[i]) {
-      case "--session":
-      case "-s":
-        config.sessionId = args[++i];
-        break;
-      case "--org":
-      case "-o":
-        config.org = args[++i];
-        break;
-      case "--base-url":
-      case "-u":
-        config.baseUrl = args[++i];
-        break;
-      case "--api-key":
-      case "-k":
-        config.apiKey = args[++i];
-        break;
-      case "--mode":
-      case "-M": {
-        const value = args[++i];
-        if (value !== "agent" && value !== "plan") {
-          console.error(`Invalid --mode value "${value}": must be "agent" or "plan"`);
-          process.exit(1);
-        }
-        config.mode = value;
-        break;
-      }
-      case "--help":
-      case "-h":
-        printUsage();
-        process.exit(0);
-      default:
-        if (args[i].startsWith("-")) {
-          console.error(`Unknown option: ${args[i]}`);
-          printUsage();
-          process.exit(1);
-        }
-    }
-  }
-
-  config.baseUrl ??= process.env.STIGMER_BASE_URL;
-  config.apiKey ??= process.env.STIGMER_API_KEY;
-
-  if (!config.sessionId || !config.org || !config.baseUrl) {
-    return null;
-  }
-
-  return config as CliConfig;
-}
-
-async function readStdinJson(): Promise<CliConfig | null> {
-  if (process.stdin.isTTY) return null;
-
-  return new Promise((resolve) => {
-    let data = "";
-    process.stdin.setEncoding("utf8");
-    process.stdin.on("data", (chunk) => (data += chunk));
-    process.stdin.on("end", () => {
-      try {
-        const parsed = JSON.parse(data);
-        if (parsed.sessionId && parsed.org && parsed.baseUrl) {
-          resolve(parsed as CliConfig);
-        } else {
-          resolve(null);
-        }
-      } catch {
-        resolve(null);
-      }
-    });
-    setTimeout(() => resolve(null), 1000);
-  });
-}
-
-function printUsage(): void {
-  console.log(`
-stigmer-ink — Terminal session viewer for the Stigmer platform
-
-Usage:
-  stigmer-ink --session <id> --org <slug> [options]
-  echo '{"sessionId":"...","org":"...","baseUrl":"..."}' | stigmer-ink
-
-Options:
-  -s, --session <id>    Session ID (required)
-  -o, --org <slug>      Organization slug (required)
-  -u, --base-url <url>  Stigmer API URL (or STIGMER_BASE_URL env)
-  -k, --api-key <key>   API key (or STIGMER_API_KEY env)
-  -M, --mode <mode>     Interaction mode for follow-ups: "agent" or "plan"
-  -h, --help            Show this help message
-
-Environment:
-  STIGMER_BASE_URL      Default API server URL
-  STIGMER_API_KEY       Default API key
-`);
-}
-
-async function main() {
-  let config = parseArgs(process.argv);
-
-  if (!config) {
-    config = await readStdinJson();
-  }
-
-  if (!config) {
-    console.error(
-      "Error: --session, --org, and --base-url are required.\n" +
-        "Run with --help for usage information.",
-    );
-    process.exit(1);
-  }
-
-  const isTTY = Boolean(process.stdin.isTTY);
-  const stdin = isTTY
-    ? process.stdin
-    : new Readable({ read() {} }) as unknown as NodeJS.ReadStream;
-
-  const instance = render(
-    <SessionApp
-      sessionId={config.sessionId}
-      org={config.org}
-      baseUrl={config.baseUrl}
-      apiKey={config.apiKey}
-      mode={config.mode}
-    />,
-    { stdin, exitOnCtrlC: isTTY, debug: !isTTY },
+/** Watching a session: off a terminal, return once its newest turn ended. */
+function Watch({ sessionId, org, canAnswer }: { sessionId: string; org: string; canAnswer: boolean }) {
+  const { exit } = useApp();
+  const watch = React.useMemo<TurnWatch>(
+    () => ({
+      onTurns: (turns: readonly Turn[]) => {
+        const newest = turns.at(-1);
+        if (!canAnswer && (newest === undefined || (newest.status !== undefined && newest.ended))) exit();
+      },
+      onLoadError: () => exit(),
+    }),
+    [canAnswer, exit],
   );
-
-  const cleanup = () => {
-    instance.unmount();
-    process.exit(0);
-  };
-
-  process.on("SIGINT", cleanup);
-  process.on("SIGTERM", cleanup);
-
-  await instance.waitUntilExit();
+  return (
+    <TurnWatchContext.Provider value={watch}>
+      <SessionView sessionId={sessionId} org={org} canAnswer={canAnswer} />
+    </TurnWatchContext.Provider>
+  );
 }
 
-main().catch((err) => {
-  console.error("Fatal error:", err);
-  process.exit(1);
-});
+async function main(): Promise<number> {
+  const request = parseCliArgs(process.argv.slice(2), process.env);
+  if (request.kind === "help") {
+    process.stdout.write(`${USAGE}\n`);
+    return ExitCode.Success;
+  }
+  if (request.kind === "usage-error") {
+    process.stderr.write(`stigmer-ink: ${request.message}\n\n${USAGE}\n`);
+    return ExitCode.Usage;
+  }
+
+  const client = createNodeClient({ baseUrl: request.baseUrl, apiKey: request.apiKey });
+  const controller = new AbortController();
+  const stop = () => controller.abort();
+  process.once("SIGINT", stop);
+  process.once("SIGTERM", stop);
+
+  if (request.message === undefined) {
+    const { live, canAnswer } = terminalMode({ stdin: process.stdin, stdout: process.stdout, env: process.env });
+    const instance = render(
+      <InkStigmerProvider client={client}>
+        <Watch sessionId={request.sessionId ?? ""} org={request.org} canAnswer={canAnswer} />
+      </InkStigmerProvider>,
+      { interactive: live, exitOnCtrlC: true, patchConsole: false },
+    );
+    controller.signal.addEventListener("abort", () => instance.unmount(), { once: true });
+    await instance.waitUntilExit();
+    return controller.signal.aborted ? ExitCode.Interrupted : ExitCode.Success;
+  }
+
+  try {
+    const outcome = await runInTerminal(
+      client,
+      request.agent === undefined
+        ? { org: request.org, sessionId: request.sessionId, message: request.message }
+        : { org: request.org, sessionSpec: { agentRef: request.agent }, message: request.message },
+      { until: request.until, approveDefault: request.approveDefault, mode: request.mode, signal: controller.signal },
+    );
+    return outcome.exitCode;
+  } catch (error) {
+    // A start failure was written to stderr, a load failure drawn in the view.
+    if (!(error instanceof TerminalRunError)) process.stderr.write(`stigmer-ink: ${String(error)}\n`);
+    return exitCodeOf(error);
+  }
+}
+
+main().then(
+  (code) => {
+    process.exitCode = code;
+    // Ink has flushed its last frame; an idle client connection must not hold the process.
+    setTimeout(() => process.exit(code), 200).unref();
+  },
+  (error: unknown) => {
+    process.stderr.write(`stigmer-ink: ${String(error)}\n`);
+    process.exit(ExitCode.General);
+  },
+);

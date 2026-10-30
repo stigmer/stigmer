@@ -1,5 +1,6 @@
 import React from "react";
 import { Text } from "ink";
+import { useRoles } from "../theme.js";
 
 /**
  * Shared presentational atoms for the terminal file-review surfaces — the single
@@ -27,11 +28,12 @@ export function FileLineStats({
   readonly linesAdded: number;
   readonly linesRemoved: number;
 }) {
+  const role = useRoles();
   if (linesAdded === 0 && linesRemoved === 0) return null;
   return (
     <Text>
-      <Text color="green">+{linesAdded}</Text>
-      <Text color="red"> -{linesRemoved}</Text>
+      <Text {...role.success}>+{linesAdded}</Text>
+      <Text {...role.danger}> -{linesRemoved}</Text>
     </Text>
   );
 }

@@ -30,7 +30,7 @@ async function runLogs(options: LogsFlags): Promise<void> {
   const { allComponents, componentByName, followAll, printTail } = await import("../local/logs/view.js");
   const { logDir } = await import("../local/paths.js");
   const { CliExitError } = await import("../errors/cli-exit-error.js");
-  const { ExitCode } = await import("../errors/exit-codes.js");
+  const { ExitCode } = await import("@stigmer/client/node");
 
   const dir = logDir(homedir());
   const tail = Number.parseInt(options.tail ?? "50", 10);

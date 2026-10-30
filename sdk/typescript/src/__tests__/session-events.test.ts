@@ -6,6 +6,9 @@
  * newest place of an existing session (the whole log of a new one), starts
  * the turn and returns its answer once its status ends it, or its asks
  * when the session waits on them; `waitForTurn` resumes after an answer.
+ * Its halves stand alone: `startTurn` names the run, its session and its
+ * place in the log, and `turnOutcomeOf` reads an outcome from any folded
+ * turn, the phase it reports when it has not ended.
  * Against a server older than the liveness preview, a follow that asked
  * for it asks again without it, once and for good. An attention follow
  * resumes from the last cursor it delivered and delivers each id once.
@@ -28,12 +31,15 @@ import {
 } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 
 import type { RunInput } from "../gen/run.js";
+import { SessionLog } from "@stigmer/session-log";
 import {
   ALL_SESSION_PREVIEWS,
   followAttention,
   followSession,
   newestSeq,
   sendAndWait,
+  startTurn,
+  turnOutcomeOf,
   waitForTurn,
   type AttentionClient,
   type SendAndWaitClient,
@@ -322,6 +328,33 @@ describe("sendAndWait and waitForTurn", () => {
     const { client: noSession } = logDouble([]);
     noSession.run.create = async () => create(RunSchema, { metadata: { id: R } });
     await expect(sendAndWait(noSession, { org: "acme", message: "hi" })).rejects.toMatchObject({ code: "internal" });
+  });
+
+  it("startTurn names the run, its session and the place its events begin, without waiting", async () => {
+    const earlier = [event(3, "run_old", { case: "userMessage", value: { id: "u0" } })];
+    const { client, requests, created } = logDouble(earlier);
+    const started = await startTurn(client, { sessionId: "ses_1", org: "acme", message: "hi" });
+    expect([started.runId, started.sessionId, started.afterSeq, started.run.metadata?.id]).toEqual([R, "ses_1", 3n, R]);
+    expect(created[0]!.name).toMatch(/^run-\d+$/);
+    expect(requests).toEqual([]);
+
+    const fresh = await startTurn(logDouble([]).client, { sessionSpec: { org: "acme" } as never, org: "acme", message: "hi" });
+    expect([fresh.sessionId, fresh.afterSeq]).toEqual(["ses_new", 0n]);
+  });
+
+  it("turnOutcomeOf reads a turn that has not ended at the phase it reports, and one with no status as pending", () => {
+    const log = new SessionLog();
+    const place = { run: undefined, runId: R, sessionId: "ses_1" };
+    log.apply([event(1, R, { case: "userMessage", value: { id: "u" } })]);
+    expect(turnOutcomeOf(log.snapshot().turns[0]!, place, 1n).phase).toBe("pending");
+    log.apply([event(2, R, { case: "stigmerRunStatus", value: { id: "s1", phase: "running" } })]);
+    log.apply([event(3, R, { case: "agentToolUse", value: { id: `${R}.c1`, name: "shell", input: {}, evaluatedPermission: "ask" } })]);
+    const running = turnOutcomeOf(log.snapshot().turns[0]!, place, 3n);
+    expect([running.phase, running.asks.map((a) => a.id), running.lastSeq]).toEqual(["running", [`${R}.c1`], 3n]);
+    expect(turnOutcomeOf(log.snapshot().turns[0]!, place, 3n, true).phase).toBe("waiting");
+    log.apply([event(4, R, { case: "stigmerRunStatus", value: { id: "s2", phase: "cancelled", stopCause: "cancelled" } })]);
+    const ended = turnOutcomeOf(log.snapshot().turns[0]!, place, 4n, true);
+    expect([ended.phase, ended.asks, ended.stopCause]).toEqual(["cancelled", [], "cancelled"]);
   });
 
   it("skips frames that change nothing and events of other turns", async () => {

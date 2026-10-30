@@ -6,7 +6,8 @@ manage agents, plugins, skills and runs from the terminal.
 Its shape, in brief:
 
 - the commander command tree (`stigmer ...`);
-- cross-cutting infrastructure: config, errors/exit-codes, unified output, the
+- cross-cutting infrastructure: config, errors (exit codes from
+  `@stigmer/client/node`), unified output, the
   backend client façade, the resource-type registry, and PKCE auth with
   refresh-token support;
 - reads and writes: `get`, `list`, `validate`, `apply`, `delete`, `diff`, plus

@@ -27,7 +27,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { expectGolden } from "../../__test-utils__/golden.js";
 import { classify } from "../../errors/classify.js";
 import { CliExitError } from "../../errors/cli-exit-error.js";
-import { ExitCode } from "../../errors/exit-codes.js";
+import { ExitCode } from "@stigmer/client/node";
 import { formatError } from "../../errors/handle.js";
 import { UsageError } from "../../errors/usage-error.js";
 import { buildProgram } from "../../program.js";

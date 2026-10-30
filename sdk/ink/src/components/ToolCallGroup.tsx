@@ -11,6 +11,7 @@ import {
 } from "@stigmer/react-core";
 import { editedPath } from "../file-review.js";
 import { ToolCallItem } from "./ToolCallItem.js";
+import { useRoles, type InkRole } from "../theme.js";
 
 /** Props for {@link ToolCallGroup}. */
 export interface ToolCallGroupProps {
@@ -36,10 +37,10 @@ function deriveAggregateStatus(toolUses: readonly ToolUse[]): AggregateStatus {
   return toolUses.some((tu) => tu.state === "waiting") ? "pending" : "completed";
 }
 
-const STATUS_STYLE: Record<AggregateStatus, { symbol: string; color?: string }> = {
-  running: { symbol: "⠋", color: "yellow" },
-  completed: { symbol: "✓", color: "green" },
-  failed: { symbol: "✗", color: "red" },
+const STATUS_STYLE: Record<AggregateStatus, { symbol: string; role?: InkRole }> = {
+  running: { symbol: "⠋", role: "warning" },
+  completed: { symbol: "✓", role: "success" },
+  failed: { symbol: "✗", role: "danger" },
   pending: { symbol: "○" },
 };
 
@@ -53,7 +54,7 @@ const STATUS_STYLE: Record<AggregateStatus, { symbol: string; color?: string }> 
  */
 function useReviewCue(
   toolUses: readonly ToolUse[],
-): { readonly label: string; readonly color: string } | null {
+): { readonly label: string; readonly role: InkRole } | null {
   const { fileReviewByRunId } = useContext(FileReviewContext);
   const counts: Record<FileReviewRowState, number> = {
     pending: 0,
@@ -66,15 +67,15 @@ function useReviewCue(
     if (state) counts[state]++;
   }
   if (counts.pending > 0) {
-    return { label: `${counts.pending} pending review`, color: "yellow" };
+    return { label: `${counts.pending} pending review`, role: "warning" };
   }
   if (counts.failed > 0) {
-    return { label: `${counts.failed} review failed`, color: "red" };
+    return { label: `${counts.failed} review failed`, role: "danger" };
   }
   const settled: string[] = [];
   if (counts.kept > 0) settled.push(`${counts.kept} kept`);
   if (counts.discarded > 0) settled.push(`${counts.discarded} discarded`);
-  if (settled.length > 0) return { label: settled.join(" · "), color: "gray" };
+  if (settled.length > 0) return { label: settled.join(" · "), role: "muted" };
   return null;
 }
 
@@ -91,6 +92,7 @@ export function ToolCallGroup({
   isFocused = false,
   defaultExpanded = false,
 }: ToolCallGroupProps) {
+  const role = useRoles();
   const [expanded, setExpanded] = useState(defaultExpanded);
   const status = deriveAggregateStatus(toolUses);
   const style = STATUS_STYLE[status];
@@ -113,11 +115,11 @@ export function ToolCallGroup({
   return (
     <Box flexDirection="column" paddingLeft={2}>
       <Box gap={1}>
-        <Text color={style.color}>{style.symbol}</Text>
+        <Text {...(style.role ? role[style.role] : {})}>{style.symbol}</Text>
         <Text dimColor>{expanded ? "▼" : "▶"}</Text>
         <Text>{summary}</Text>
         {reviewCue && (
-          <Text color={reviewCue.color}>· {reviewCue.label}</Text>
+          <Text {...role[reviewCue.role]}>· {reviewCue.label}</Text>
         )}
       </Box>
       {expanded && (

@@ -22,6 +22,7 @@ import {
 } from "../file-review.js";
 import { FileLineStats } from "./FileReviewAtoms.js";
 import { FileDiffBody } from "./FileDiffBody.js";
+import { useInkTheme, useRoles, type InkRole } from "../theme.js";
 
 /** Props for {@link FileReviewPrompt}. */
 export interface FileReviewPromptProps {
@@ -75,7 +76,7 @@ function bulkLabels(
 interface BulkOption {
   readonly label: string;
   readonly shortcut: string;
-  readonly color: string;
+  readonly role: InkRole;
   readonly run: () => void;
 }
 
@@ -104,6 +105,8 @@ export function FileReviewPrompt({
   decisionErrors,
   isActive = true,
 }: FileReviewPromptProps) {
+  const theme = useInkTheme();
+  const role = useRoles();
   const [perFile, setPerFile] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
 
@@ -170,20 +173,20 @@ export function FileReviewPrompt({
     bulkOptions.push({
       label: labels.approve,
       shortcut: "a",
-      color: "green",
+      role: "success",
       run: () => submitBulk("keep"),
     });
   }
   bulkOptions.push({
     label: labels.reject,
     shortcut: "r",
-    color: "red",
+    role: "danger",
     run: () => submitBulk("undo"),
   });
   bulkOptions.push({
     label: "Review files",
     shortcut: "f",
-    color: "cyan",
+    role: "accent",
     run: () => {
       setSelectedIndex(0);
       setPerFile(true);
@@ -234,10 +237,10 @@ export function FileReviewPrompt({
       paddingTop={1}
       paddingBottom={1}
       borderStyle="round"
-      borderColor="cyan"
+      borderColor={theme.accent}
     >
       <Box gap={1}>
-        <Text color="cyan" bold>
+        <Text {...role.accent} bold>
           ✎ {total} file{total === 1 ? "" : "s"} awaiting review
         </Text>
         <FileLineStats
@@ -256,7 +259,7 @@ export function FileReviewPrompt({
       ) : (
         <Box gap={2} marginTop={1} paddingLeft={2}>
           {bulkOptions.map((opt) => (
-            <Text key={opt.shortcut} color={opt.color}>
+            <Text key={opt.shortcut} {...role[opt.role]}>
               [{opt.shortcut}] {opt.label}
             </Text>
           ))}
@@ -271,7 +274,7 @@ export function FileReviewPrompt({
 
       {errorText && (
         <Box paddingLeft={2} marginTop={1}>
-          <Text color="red">Decision failed: {errorText}</Text>
+          <Text {...role.danger}>Decision failed: {errorText}</Text>
         </Box>
       )}
 
@@ -314,6 +317,7 @@ function PerFileList({
   selectedIndex,
   interactive,
 }: PerFileListProps) {
+  const role = useRoles();
   const selectedFile = files[selectedIndex];
   const selectedChange = selectedFile
     ? capture?.changes.find((change) => change.id === selectedFile.fileChangeId)
@@ -326,12 +330,12 @@ function PerFileList({
         const decided = DECIDED_LABEL[file.state];
         return (
           <Box key={file.fileChangeId} gap={1}>
-            <Text color={selected ? "cyan" : undefined}>
+            <Text {...(selected ? role.accent : {})}>
               {selected ? "▸" : " "}
             </Text>
             <Text dimColor>{kindLetter(fileChangeKindOf(file.change))}</Text>
             <Text
-              color={selected ? "cyan" : undefined}
+              {...(selected ? role.accent : {})}
               bold={selected}
               wrap="truncate-end"
             >
@@ -342,7 +346,7 @@ function PerFileList({
               linesRemoved={file.linesRemoved}
             />
             {decided && <Text dimColor>({decided})</Text>}
-            {!decided && note && <Text color="yellow">— {note}</Text>}
+            {!decided && note && <Text {...role.warning}>— {note}</Text>}
           </Box>
         );
       })}
