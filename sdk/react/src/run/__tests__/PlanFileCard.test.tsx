@@ -2,7 +2,10 @@
  * The compact plan card over a Plan-mode turn's plan File: title, filename
  * and size; one Build action; copy and download read the File by id at click
  * time; the open action routes to the panel or falls back to the preview
- * modal when the host has an org.
+ * modal when the host has an org. The copied tick is drawn in the ready
+ * colour the theme contract measures as text, on the card and on the icon
+ * button's hover fill (accent-hover, measured; muted is too light for the
+ * green in one preset).
  */
 
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
@@ -193,8 +196,12 @@ describe("PlanFileCard — compact document card", () => {
     // clipboard — the card never pre-fetches on mount.
     expect(getContent).toHaveBeenCalledTimes(1);
     expect(getContent.mock.calls[0][0].id).toBe("file_plan");
-    await screen.findByRole("button", { name: "Copied" });
+    const copied = await screen.findByRole("button", { name: "Copied" });
     expect(writeText).toHaveBeenCalledWith("# Plan\n\nsteps");
+    // The tick stays green while the pointer still rests on the button, so
+    // both its colour and the hover fill under it are measured pairs.
+    expect(copied.querySelector("svg")?.getAttribute("class")?.split(" ")).toContain("stg:text-status-ready");
+    expect(copied.className.split(" ")).toContain("stg:hover:bg-accent-hover");
 
     vi.unstubAllGlobals();
   });

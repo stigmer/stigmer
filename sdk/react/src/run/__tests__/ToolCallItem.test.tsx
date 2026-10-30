@@ -517,7 +517,7 @@ describe("ToolCallItem disclosure", () => {
     );
     expect(answerBadge(container)).toBe("Denied");
     expect(container.querySelector(".stg\\:animate-spin")).toBeNull();
-    expect(container.querySelector(".stg\\:text-success")).toBeNull();
+    expect(container.querySelector(".stg\\:text-status-ready")).toBeNull();
   });
 
   it("shows no answer badge on a call that never asked, or still waits", () => {
@@ -701,7 +701,7 @@ describe("ToolCallItem status vocabulary", () => {
         toolUse={toolUse({ name: "Bash", input: { command: "echo hi" }, result: "hi" })}
       />,
     );
-    expect(container.querySelector(".stg\\:text-success")).toBeNull();
+    expect(container.querySelector(".stg\\:text-status-ready")).toBeNull();
   });
 
   it("keeps the failed icon — failure shouts", () => {

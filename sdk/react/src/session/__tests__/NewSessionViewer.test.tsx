@@ -7,7 +7,8 @@ import type { ResourceRef } from "@stigmer/client";
 // chrome (always mounted, not gated on attached context) and the panel opens
 // on the attached workspaces' Explorer; without one there is no chip. How the
 // first turn runs (engine, model, the auto-approve switch) is a row of the
-// composer's configure menu.
+// composer's configure menu. The armed indicator's shield is drawn in the
+// ready colour the theme contract measures as text on the page.
 //
 // The composer is replaced with a prop-capturing probe so these tests exercise
 // only the launcher's chrome without pulling in the full composer's provider
@@ -189,6 +190,8 @@ describe("NewSessionViewer — auto-approve placement (#816 rework)", () => {
     render(<NewSessionViewer org="acme" onSessionCreated={vi.fn()} />);
 
     expect(screen.getByText(INDICATOR_TEXT)).toBeTruthy();
+    const shield = screen.getByText(INDICATOR_TEXT).closest("[role='status']")?.querySelector("svg");
+    expect(shield?.getAttribute("class")?.split(" ")).toContain("stg:text-status-ready");
     fireEvent.click(screen.getByRole("button", { name: "Turn off" }));
     expect(setAutoApproveAll).toHaveBeenCalledExactlyOnceWith(false);
   });

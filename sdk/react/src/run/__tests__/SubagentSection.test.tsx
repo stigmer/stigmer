@@ -2,9 +2,11 @@
 // while it runs or one of its calls waits for a person, at any depth;
 // settled closed), its title (the task's subject, else the agent's name),
 // its status badges (running, completed, failed with the reply as error,
-// stopped), the running counter and the static duration, the flat layout,
-// and its items as rows: messages, thinking and notes on their own, runs of
-// tool calls as groups, internal to-do calls and compactions left out.
+// stopped), the running counter and the static duration, the flat layout
+// with a completed subagent's icon in the ready colour the theme contract
+// measures as text, and its items as rows: messages, thinking and notes on
+// their own, runs of tool calls as groups, internal to-do calls and
+// compactions left out.
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { render, screen, cleanup, act, fireEvent } from "@testing-library/react";
 import type { MessageItem, NoteItem, ThinkingItem, Thread, TurnItem } from "@stigmer/client";
@@ -156,6 +158,12 @@ describe("SubagentSection flat layout and items", () => {
     const groups = container.querySelectorAll('[data-cursor-target="tool-call-group"]');
     expect(groups).toHaveLength(2);
     expect(groups[0]!.querySelectorAll('[data-cursor-target="tool-call-row"]')).toHaveLength(2);
+  });
+
+  it("draws a completed subagent's header icon in the measured ready colour", () => {
+    const { container } = renderFlat(thread({ state: "completed" }));
+    const icon = container.querySelector("span[aria-hidden='true']") as HTMLElement;
+    expect(icon.className.split(" ")).toContain("stg:text-status-ready");
   });
 
   it("shows the static duration in the flat header once finished", () => {

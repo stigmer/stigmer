@@ -17,7 +17,8 @@
  *   - a server that trusts every request gets no key line and no setup, and
  *     an unknown public address shows the shared notice instead of a
  *     command nobody can run;
- *   - the call copies whole, and the create dialog closes on cancel.
+ *   - the call copies whole, confirmed in the ready colour the theme
+ *     contract measures as text, and the create dialog closes on cancel.
  *
  * The generated client is a fake behind the one provider seam.
  */
@@ -172,6 +173,8 @@ describe("RoutineApiPanel", () => {
       await screen.findByText(/RoutineCommandController\/fire/);
       fireEvent.click(screen.getByRole("button", { name: "Copy" }));
       await waitFor(() => expect(writeText).toHaveBeenCalledWith(expect.stringContaining('"id":"rtn_01triage"')));
+      const copied = await screen.findByRole("button", { name: "Copied" });
+      expect(copied.className.split(" ")).toContain("stg:text-status-ready");
 
       fireEvent.click(await screen.findByRole("button", { name: "Create a service account" }));
       fireEvent.click(await screen.findByRole("button", { name: "Cancel" }));

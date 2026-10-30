@@ -2,7 +2,8 @@
 // create-then-direct-install flow on a registered Meta app, the retry of a
 // pending channel, the guided and verbatim refusals, and the cloud notice
 // that preempts the flow on every edition without vendor installs (open
-// source and Enterprise).
+// source and Enterprise). The connected tick is drawn in the ready colour the
+// theme contract measures as text in a dialog, never the badge-fill green.
 
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
 import { sentUpdate } from "../../internal/__tests__/sent-update";
@@ -297,9 +298,8 @@ describe("ConnectWhatsAppDialog", () => {
 
     // The success summary reads the observed install facts (fetched —
     // initiateInstall itself answers no channel).
-    expect(
-      await screen.findByText(/connected to \+1 555 025 3483/i),
-    ).toBeTruthy();
+    const connected = await screen.findByText(/connected to \+1 555 025 3483/i);
+    expect(connected.querySelector("svg")?.getAttribute("class")?.split(" ")).toContain("stg:text-status-ready");
     expect(screen.getByText(/answers come from/i)).toBeTruthy();
     expect(screen.getByText("Support Agent")).toBeTruthy();
     // Once for the created row, once for the completed install.

@@ -2,7 +2,9 @@
  * The callback page's handling of a login page's refusal: the page that
  * started the sign-in is told at once, on the broadcast channel and through
  * its opener, with the refusal and the state it belongs to, and the page
- * shows the refusal; a refusal with no state tells no one.
+ * shows the refusal; a refusal with no state tells no one. A sign-in that
+ * reaches no page to tell says it succeeded, its tick in the ready colour the
+ * theme contract measures as text on the page.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
@@ -51,5 +53,25 @@ describe("OAuthCallbackHandler when the login page refused", () => {
     expect(await screen.findByText("Authentication failed: server_error")).toBeTruthy();
     expect(posted).toEqual([]);
     expect(opener.postMessage).not.toHaveBeenCalled();
+  });
+});
+
+describe("OAuthCallbackHandler when no page can be told", () => {
+  it("says the sign-in succeeded, with its tick in the measured ready colour", async () => {
+    vi.stubGlobal("location", { ...window.location, search: "?code=c-1&state=st-1" });
+    vi.stubGlobal("opener", null);
+    vi.stubGlobal(
+      "BroadcastChannel",
+      class {
+        constructor() {
+          throw new Error("BroadcastChannel unavailable");
+        }
+      },
+    );
+    render(<OAuthCallbackHandler />);
+
+    const heading = await screen.findByText("Authentication successful");
+    const tick = heading.parentElement?.querySelector("svg");
+    expect(tick?.getAttribute("class")?.split(" ")).toContain("stg:text-status-ready");
   });
 });
