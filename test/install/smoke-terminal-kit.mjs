@@ -39,7 +39,9 @@
  *   --tarballs=<dir>  install the kit from tarballs already packed there.
  *   --docs=<dir>      read cli-integration.mdx from <dir> (a scratch copy with
  *                     a step broken is how the smoke is shown red).
- *   --keep            keep the folder (each run's terminal log is pty-<n>.log there).
+ *   --keep            keep the folder: each run's terminal log (pty-<n>.log), its
+ *                     piped output (pipe-<n>.txt) and the refused start's stderr
+ *                     (start-failure.txt).
  * Needs node, python3, go and cargo on PATH.
  */
 
@@ -275,6 +277,7 @@ test("INK-03 the published stigmer-ink starts with Node alone", () =>
 test("INK-05 a run that cannot reach a server says what was tried and what to do, and exits 3", () =>
   guarded(async () => {
     const result = await spawnCommand(["stigmer-ink"], ["--agent", "stigmer/release-checker", "--message", "hi", "--base-url", "http://127.0.0.1:1"], shell, 60_000).done;
+    if (args.keep) writeFileSync(join(scratch, "start-failure.txt"), `${result.stderr}exit ${result.status}\n`);
     if (result.status !== 3) throw new Error(`expected exit 3, got ${result.status}:\n${result.stderr}`);
     for (const text of ["Could not start the run at http://127.0.0.1:1.", "Is the server running? Start one with `stigmer up`"]) {
       if (!result.stderr.includes(text)) throw new Error(`stderr lacks "${text}":\n${result.stderr}`);
@@ -306,6 +309,7 @@ test("INK-04 off a terminal the same runs render read-only, deny the ask by defa
       scriptRun();
       log(`through a pipe: ${job.line}`);
       const result = await spawnCommand(["bash", "-c", 'cd "$0" || exit 1; eval "$1" < /dev/null'], [job.cwd, job.line], shell, COMMAND_TIMEOUT_MS).done;
+      if (args.keep) writeFileSync(join(scratch, `pipe-${jobs.indexOf(job)}.txt`), result.stdout);
       if (result.status !== 0) throw new Error(`${job.line} through a pipe exited ${result.status}:\n${result.stdout.slice(-4000)}\n${result.stderr}`);
       for (const text of ["Denied execute: no terminal to ask on (set approveDefault to approve)", CLOSING]) {
         if (!result.stdout.includes(text)) throw new Error(`${job.line} through a pipe lacks "${text}":\n${result.stdout.slice(-4000)}`);
