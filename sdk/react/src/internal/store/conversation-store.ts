@@ -7,6 +7,7 @@
 // objects by reference with the one before it and only the changed rows
 // re-render. Implements the contract `useSyncExternalStore` reads.
 
+import { useRef } from "react";
 import { SessionLog, type SessionFold } from "@stigmer/client";
 import type { StreamSessionEventsResponse } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 
@@ -183,4 +184,16 @@ function streamStateEqual(a: StreamState, b: StreamState): boolean {
   // Each reconnect bumps `attempt`, and every attempt must re-notify.
   if (a.stage === "reconnecting" && b.stage === "reconnecting") return a.attempt === b.attempt;
   return true;
+}
+
+/**
+ * Create or reuse a `ConversationStore` instance. The store is
+ * created once and preserved across re-renders via ref.
+ */
+export function useConversationStoreRef(): ConversationStore {
+  const ref = useRef<ConversationStore | null>(null);
+  if (!ref.current) {
+    ref.current = new ConversationStore();
+  }
+  return ref.current;
 }

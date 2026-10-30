@@ -1,5 +1,5 @@
 "use client";
-import { memo, useCallback, useMemo, useRef, useState, type ReactElement, type ReactNode } from "react";
+import { memo, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from "react";
 import { cn } from "@stigmer/design-tokens";
 import { getUserMessage, type DisplayFileChange, type ResourceRef, type Turn } from "@stigmer/client";
 import { create } from "@bufbuild/protobuf";
@@ -23,6 +23,8 @@ import { ThreadSkeleton } from "../run/ThreadSkeleton.js";
 import { SessionComposer } from "../composer/index.js";
 import { AgentHoursNotice, agentHoursUsedUp } from "../billing/AgentHoursNotice.js";
 import { TurnActivityLine } from "./TurnActivityLine.js";
+import { ChatActivityReporterContext } from "../agent-chat/chat-activity.js";
+import { chatActivityOf } from "../agent-chat/chat-activity-of.js";
 import { TurnOutcome } from "./TurnOutcome.js";
 import { turnOutcome, type TurnChange } from "./turn-outcome.js";
 import { TurnChangeDialog } from "./TurnChangeDialog.js";
@@ -647,36 +649,41 @@ export function SessionViewer({
     return <SessionStarting />;
   }
 
+  // The header's controls: host actions + the panel chip. The chip is the
+  // panel's always-mounted toggle; while collapsed it carries only the
+  // pending-item count. Run status is never surfaced as header
+  // chrome: the activity line and each turn's outcome say it. A viewer
+  // without an inspector (an embed, or a guest) has no toggle: it is
+  // simply absent. Access and the transcript export are header actions
+  // for every viewer, inspector or not.
+  const headerCorner = (
+    <>
+      {headerActions}
+      {/* Observers cannot manage access (no can_grant_access /
+          can_view_access on a channel session): withheld rather than
+          left to fail server-side. */}
+      {!isObserver && accessSlot}
+      {transcriptExport && <TranscriptExportMenu sessionId={sessionId} />}
+      {panelEnabled && (
+        <SessionPanelChip
+          isOpen={panel.isOpen}
+          onToggle={panel.isOpen ? panel.closePanel : panel.openPanel}
+          badgeCount={writeBackCount + outputCount + givenCount}
+        />
+      )}
+    </>
+  );
+  // They ride the conversation's title row once it has one, so they stay
+  // with the conversation column and never cover the thread or the
+  // inspector (stigmer#2709, #2726); before that, the layout gives them a
+  // row of their own.
+  const summaryShows = conv.session !== null && conv.turns.length > 0;
+
   return (
     <>
     <SessionViewerLayout
       className={className}
-      // Top-right controls: host actions + the panel chip. The chip is the
-      // panel's always-mounted toggle; while collapsed it carries only the
-      // pending-item count. Run status is never surfaced as header
-      // chrome: the activity line and each turn's outcome say it. A viewer
-      // without an inspector (an embed, or a guest) has no toggle: it is
-      // simply absent. Access and the transcript export are header actions
-      // for every viewer, inspector or not.
-      headerActions={
-        <>
-          {headerActions}
-          {/* Observers cannot manage access (no can_grant_access /
-              can_view_access on a channel session): withheld rather than
-              left to fail server-side. */}
-          {!isObserver && accessSlot}
-          {transcriptExport && <TranscriptExportMenu sessionId={sessionId} />}
-        </>
-      }
-      chip={
-        panelEnabled ? (
-          <SessionPanelChip
-            isOpen={panel.isOpen}
-            onToggle={panel.isOpen ? panel.closePanel : panel.openPanel}
-            badgeCount={writeBackCount + outputCount + givenCount}
-          />
-        ) : undefined
-      }
+      headerActions={summaryShows ? undefined : headerCorner}
       splitStorageKey="stgm-session-chat-width"
       conversation={
         <ConversationColumn
@@ -714,6 +721,7 @@ export function SessionViewer({
           onOpenTurnChange={handleOpenTurnChange}
           modelsHubHref={modelsHubHref}
           routineHref={routineHref}
+          summaryActions={summaryShows ? headerCorner : undefined}
         />
       }
       panel={
@@ -845,6 +853,20 @@ interface ConversationColumnProps {
   readonly onOpenTurnChange: (change: TurnChange) => void;
   readonly modelsHubHref: string;
   readonly routineHref?: (routine: Routine) => string;
+  /** The header's controls, drawn on the summary's title row. */
+  readonly summaryActions?: ReactNode;
+}
+
+/**
+ * Tells an <AgentChat> frame around the view what the conversation is
+ * doing, so its closed popup button can say it. A no-op elsewhere.
+ */
+function useReportChatActivity(activeTurn: Turn | null, lastTurn: Turn | undefined, files: readonly StigmerFile[]) {
+  const report = useContext(ChatActivityReporterContext);
+  const activity = useMemo(() => chatActivityOf(activeTurn, lastTurn, files, Date.now()), [activeTurn, lastTurn, files]);
+  useEffect(() => {
+    report?.(activity);
+  }, [report, activity]);
 }
 
 const ConversationColumn = memo(function ConversationColumn({
@@ -882,8 +904,10 @@ const ConversationColumn = memo(function ConversationColumn({
   onOpenTurnChange,
   modelsHubHref,
   routineHref,
+  summaryActions,
 }: ConversationColumnProps) {
   const { conv } = flow;
+  useReportChatActivity(conv.activeTurn, conv.turns.at(-1), files);
   // How the next turn runs, in the composer's configure menu: never a
   // guest's (the share policy owns its run), and the auto-approve switch
   // only for the conversation's owners.
@@ -1033,6 +1057,7 @@ const ConversationColumn = memo(function ConversationColumn({
             showCost={runScores}
             routineHref={routineHref}
             readsRoutine={!isGuest}
+            actions={summaryActions}
           />
         </div>
       )}

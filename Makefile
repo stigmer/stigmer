@@ -1067,15 +1067,18 @@ test-e2e-oauth-mcp: ## Run the plugin journey's sign-in arm against a hosted OAu
 	npm ci
 	cd test/e2e && npx playwright install --with-deps chromium && STIGMER_E2E_OAUTH_MCP=1 npx playwright test --project=functional plugin-install-journey
 
-test-e2e-console-login: ## Run the console sign-in E2E against a server in the OIDC posture (hermetic issuer, serial)
+test-e2e-console-login: ## Run the console sign-in E2E and the embedding tutorial against a server in the OIDC posture (hermetic issuer, mock model, serial)
 	# One stack shape of its own: test/support's local OIDC issuer
 	# (local-oidc-issuer-main.ts) as a process, the server booted
-	# with STIGMER_OIDC_ISSUER pointed at it, `next dev` in OIDC mode with the
-	# same coordinates (test/e2e/fixtures/oidc.ts). Root install for the same
-	# reason as test-e2e-approval; needs the built server and runner.
+	# with STIGMER_OIDC_ISSUER pointed at it and its runner on the mock model,
+	# `next dev` in OIDC mode with the same coordinates
+	# (test/e2e/fixtures/oidc.ts). The embedding tutorial packs the built
+	# libraries, so they are built first. Root install for the same reason as
+	# test-e2e-approval; needs the built server and runner.
 	npm ci
+	npm run build:libs
 	cd test/e2e && npx playwright install --with-deps chromium && \
-		STIGMER_E2E_OIDC=1 npx playwright test --project=console-login --workers=1
+		STIGMER_E2E_OIDC=1 STIGMER_E2E_MOCK_LLM=1 npx playwright test --project=console-login --project=embed-tutorial --workers=1
 
 test-e2e-single-org: ## Run the console E2E against the shipped server entry, which holds one organization (the open-source edition as a laptop runs it)
 	# One stack shape of its own: the shipped entry in the trusted-local

@@ -151,7 +151,7 @@ export function PlanEditor({
             />
           )}
         </div>
-        <span className="stg:text-2xs stg:tabular-nums stg:text-muted-foreground-faint">
+        <span className="stg:text-2xs stg:tabular-nums stg:text-muted-foreground">
           {formatFileSize(plan.file.status?.sizeBytes ?? BigInt(0))}
         </span>
         {/* The reason the Edit tab is disabled must be visible text: a

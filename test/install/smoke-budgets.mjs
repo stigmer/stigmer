@@ -13,6 +13,10 @@
  *   - react-sdk/session: an app that imports `SessionViewer` and
  *     `NewSessionViewer`, the JavaScript it loads at once (the chunks it
  *     loads later, the diagram and maths renderers, are reported, not held);
+ *   - react-sdk/chat: a page that embeds the chat, `AgentChat` from the
+ *     light `./chat` entry with the `@stigmer/client` it makes, the
+ *     JavaScript it loads before it draws (the conversation view it fetches
+ *     as the chat mounts is reported, and react-sdk/session holds it);
  *   - react-sdk/styles: the stylesheet the kit ships, dist/styles.css;
  *   - embed/loader: the `<script>` tag loader, dist/embed.global.js.
  *
@@ -43,7 +47,12 @@
  * (test/ux-bar.json), so the bar's check reads it from source and the
  * scorecard reads its result through test/install/lib/json-reporter.mjs.
  *
- * A second case holds the React kit's `./headless` entry to what its header
+ * A second case (KIT-02) reads the chat's bundle: the chat and the first
+ * message's composer load at once, the conversation view and its thread
+ * later, so a change that pulls the conversation back into the first
+ * download fails here, naming the module, even while the total fits.
+ *
+ * A third case holds the React kit's `./headless` entry to what its header
  * (sdk/react/src/headless.ts) says: the entry is bundled the same way, and
  * no chunk of it may hold a module of react-dom, lucide-react,
  * @base-ui/react or sonner, import react-dom, or carry a stylesheet. The
@@ -87,6 +96,14 @@ const SCRATCH = join(repoRoot, "node_modules", ".cache", "stigmer-budgets");
 const SCRIPT_ENTRIES = [
   { name: "react-sdk/provider", source: 'export { StigmerProvider, useStigmer } from "@stigmer/react-sdk";\n' },
   { name: "react-sdk/session", source: 'export { SessionViewer, NewSessionViewer } from "@stigmer/react-sdk";\n' },
+  // What a page that embeds the chat downloads before it draws: the client
+  // it makes and the chat. The conversation view is a later chunk, fetched
+  // as the chat mounts, and `react-sdk/session` holds its weight.
+  {
+    name: "react-sdk/chat",
+    source:
+      'export { Stigmer, createTokenCache } from "@stigmer/client";\nexport { AgentChat, StigmerProvider } from "@stigmer/react-sdk/chat";\n',
+  },
 ];
 /** The built files measured as they ship. */
 const FILE_ENTRIES = [
@@ -166,8 +183,16 @@ export default {
 `;
 }
 
+/** Each entry's bundle, once: a later case reads the one the budget case made. */
+const bundles = new Map();
+
 /** Bundles one entry and returns its eager and lazy gzip bytes and what weighs most in the eager part. */
-function bundle({ name, source }) {
+function bundle(entry) {
+  if (!bundles.has(entry.name)) bundles.set(entry.name, bundleOnce(entry));
+  return bundles.get(entry.name);
+}
+
+function bundleOnce({ name, source }) {
   const dir = join(SCRATCH, name.replace("/", "-"));
   mkdirSync(dir, { recursive: true });
   const entry = join(dir, "entry.mjs");
@@ -188,6 +213,7 @@ function bundle({ name, source }) {
     lazy: sum(chunks.map((chunk) => chunk.file).filter((file) => !eager.has(file))),
     heaviest: heaviest(chunks, eager),
     chunks,
+    eagerChunks: eager,
   };
 }
 
@@ -229,6 +255,33 @@ test("LIB-03 every library entry stays within its size budget", () => {
       ...judged.unmeasured.map((entry) => `${entry} has a budget but nothing measures it: remove it from test/bundle-budgets.json`),
     ];
     if (problems.length > 0) throw new Error(`over budget, or a budget without its entry:\n${problems.join("\n")}`);
+  } catch (error) {
+    failed = true;
+    throw error;
+  }
+});
+
+test("KIT-02 a page with the chat draws its composer before the conversation's renderers arrive", () => {
+  try {
+    const { chunks, eagerChunks: eager } = bundle(SCRIPT_ENTRIES.find((entry) => entry.name === "react-sdk/chat"));
+    const where = (module) => {
+      const chunk = chunks.find((candidate) => Object.hasOwn(candidate.modules, module));
+      return chunk === undefined ? "absent" : eager.has(chunk.file) ? "at once" : "later";
+    };
+    const expected = {
+      "sdk/react/src/agent-chat/AgentChat.tsx": "at once",
+      "sdk/react/src/session/NewSessionViewer.tsx": "at once",
+      "sdk/react/src/session/SessionViewer.tsx": "later",
+      "sdk/react/src/run/MessageThread.tsx": "later",
+    };
+    const wrong = Object.entries(expected)
+      .filter(([module, when]) => where(module) !== when)
+      .map(([module, when]) => `${module}: ${where(module)}, expected ${when}`);
+    if (wrong.length > 0) {
+      throw new Error(
+        `the chat's page loads the wrong part first (sdk/react/src/agent-chat/LazySessionViewer.tsx loads the conversation as its own chunk):\n${wrong.join("\n")}`,
+      );
+    }
   } catch (error) {
     failed = true;
     throw error;

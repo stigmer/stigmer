@@ -22,8 +22,8 @@ export interface SessionViewerLayoutProps {
    */
   readonly panel: ReactNode | null;
   /**
-   * The panel's toggle chip, rendered in the layout's top-right corner
-   * (typically the session panel chip, {@link PanelChip}). Omit it to
+   * The panel's toggle chip, rendered at the end of the layout's control
+   * row (typically the session panel chip, {@link PanelChip}). Omit it to
    * render no toggle — how hosts express audiences that must never open
    * the panel (the guest case in {@link SessionViewer} and
    * {@link NewSessionViewer}).
@@ -31,7 +31,7 @@ export interface SessionViewerLayoutProps {
   readonly chip?: ReactNode;
   /**
    * Host-injected header actions, rendered beside the chip in the
-   * top-right corner (slot injection, as {@link SessionViewerProps.headerActions}).
+   * control row at the top of the conversation pane (slot injection, as {@link SessionViewerProps.headerActions}).
    */
   readonly headerActions?: ReactNode;
   /**
@@ -82,8 +82,9 @@ export interface SessionViewerLayoutProps {
  *
  * The layout owns exactly three things:
  *
- * - **The top-right control corner** — the host's `headerActions` beside
- *   the panel toggle `chip`, absolutely positioned over the conversation.
+ * - **The control row** — the host's `headerActions` beside the panel
+ *   toggle `chip`, a row at the top of the conversation pane, so it never
+ *   covers the thread or the panel (stigmer#2709, #2726).
  * - **The split geometry** — chat fills the row while the panel is
  *   collapsed; opening makes the chat the fixed, drag-resizable pane
  *   (420px default, 320–640px) and hands the flexible region to the panel.
@@ -109,12 +110,6 @@ export function SessionViewerLayout({
 
   return (
     <div className={cn("stg:relative stg:flex stg:h-full stg:w-full stg:flex-col", className)}>
-      {(headerActions != null || chip != null) && (
-        <div className="stg:absolute stg:top-2 stg:right-6 stg:z-10 stg:flex stg:items-center stg:gap-2">
-          {headerActions}
-          {chip}
-        </div>
-      )}
 
       <ResizableSplit
         resizablePane="primary"
@@ -126,7 +121,19 @@ export function SessionViewerLayout({
         responsiveCollapse={responsive && isPanelOpen ? "primary" : "none"}
         ariaLabel={resizeAriaLabel}
         className="stg:min-h-0 stg:flex-1"
-        primary={conversation}
+        primary={
+          headerActions != null || chip != null ? (
+            <div className="stg:flex stg:h-full stg:min-w-0 stg:flex-col">
+              <div className="stg:flex stg:shrink-0 stg:items-center stg:justify-end stg:gap-2 stg:px-4 stg:pt-2">
+                {headerActions}
+                {chip}
+              </div>
+              <div className="stg:min-h-0 stg:flex-1">{conversation}</div>
+            </div>
+          ) : (
+            conversation
+          )
+        }
         secondary={panel}
       />
     </div>

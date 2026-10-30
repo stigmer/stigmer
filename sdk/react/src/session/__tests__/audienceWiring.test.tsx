@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, cleanup, fireEvent } from "@testing-library/react";
+import { act, render, screen, cleanup, fireEvent } from "@testing-library/react";
 
 // ---------------------------------------------------------------------------
 // Wiring-contract tests for the `audience` preset and the host slots on the
@@ -293,6 +293,40 @@ describe("NewSessionViewer — audience wiring", () => {
     expect(props.showInteractionModePicker).toBe(true);
     // The run settings are offered to an end user too, beside the model picker.
     expect(offeredRunSettings().ids).toEqual(["run-settings"]);
+  });
+
+  it("endUser with a pinned agent: Send waits while the agent resolves, and says when it cannot (stigmer#2748)", () => {
+    mockUseNewSessionFlow.mockImplementation(() => ({ ...stubNewSessionFlow, agentRef: null }) as unknown as typeof stubNewSessionFlow);
+    try {
+      render(<NewSessionViewer org="acme" onSessionCreated={vi.fn()} audience="endUser" initialAgentRef={AGENT_REF} />);
+      expect(lastComposerProps().sendBlockedReason).toBe("Loading the agent\u2026");
+      expect(screen.queryByRole("alert")).toBeNull();
+
+      const reportError = lastComposerProps().onAgentSetupErrorChange as (error: Error | null) => void;
+      act(() => reportError(new Error("agent not found")));
+      const unavailable = "This agent isn't available. It may have been renamed or removed.";
+      expect(lastComposerProps().sendBlockedReason).toBe(unavailable);
+      expect(screen.getByRole("alert").textContent).toBe(unavailable);
+    } finally {
+      mockUseNewSessionFlow.mockImplementation(() => stubNewSessionFlow);
+    }
+  });
+
+  it("endUser with a pinned agent that resolved: nothing holds Send", () => {
+    render(<NewSessionViewer org="acme" onSessionCreated={vi.fn()} audience="endUser" initialAgentRef={AGENT_REF} />);
+    expect(lastComposerProps().sendBlockedReason).toBeUndefined();
+    expect(lastComposerProps().onAgentSetupErrorChange).toBeDefined();
+  });
+
+  it("integrator with a pinned agent: the pin's error is the Configure menu's, and never holds Send", () => {
+    mockUseNewSessionFlow.mockImplementation(() => ({ ...stubNewSessionFlow, agentRef: null }) as unknown as typeof stubNewSessionFlow);
+    try {
+      render(<NewSessionViewer org="acme" onSessionCreated={vi.fn()} initialAgentRef={AGENT_REF} />);
+      expect(lastComposerProps().sendBlockedReason).toBeUndefined();
+      expect(lastComposerProps().onAgentSetupErrorChange).toBeUndefined();
+    } finally {
+      mockUseNewSessionFlow.mockImplementation(() => stubNewSessionFlow);
+    }
   });
 
   it("endUser without a pinned agent: pickers hidden but agent not locked", () => {

@@ -53,8 +53,8 @@ npm install
 npm install @stigmer/react-sdk @stigmer/client @stigmer/apis @bufbuild/protobuf
 ```
 
-`@stigmer/react-sdk` holds the chat components and needs React 19, which the
-Vite template already uses.
+`@stigmer/react-sdk` holds the chat and needs React 19, which the Vite template
+already uses.
 
 </Step>
 <Step>
@@ -117,61 +117,47 @@ export default defineConfig({
 Replace `src/App.tsx`:
 
 ```tsx title="src/App.tsx"
-import { useState } from "react";
-import { Stigmer } from "@stigmer/client";
-import {
-  NewSessionViewer,
-  SessionViewer,
-  StigmerProvider,
-} from "@stigmer/react-sdk";
+import { Stigmer, createTokenCache } from "@stigmer/client";
+import { AgentChat, StigmerProvider } from "@stigmer/react-sdk/chat";
 import "@stigmer/react-sdk/styles.css";
 
 const org = import.meta.env.VITE_STIGMER_ORG;
 
+const tokens = createTokenCache(async () => {
+  const res = await fetch("/api/stigmer-token");
+  return res.json();
+});
+
 const stigmer = new Stigmer({
   baseUrl: import.meta.env.VITE_STIGMER_URL ?? "https://api.stigmer.ai",
-  getAccessToken: async () => {
-    const res = await fetch("/api/stigmer-token");
-    const { accessToken } = await res.json();
-    return accessToken;
-  },
+  getAccessToken: tokens.getAccessToken,
 });
 
 export default function App() {
   return (
     <StigmerProvider client={stigmer}>
       <main style={{ height: "100vh" }}>
-        <VarianceReports />
+        <AgentChat agent={`${org}/variance-reporter`} />
       </main>
     </StigmerProvider>
   );
 }
-
-function VarianceReports() {
-  const [sessionId, setSessionId] = useState<string | null>(null);
-  if (sessionId) {
-    return <SessionViewer sessionId={sessionId} org={org} audience="endUser" />;
-  }
-  return (
-    <NewSessionViewer
-      org={org}
-      audience="endUser"
-      initialAgentRef={{ org, slug: "variance-reporter" }}
-      onSessionCreated={setSessionId}
-    />
-  );
-}
 ```
 
-- `getAccessToken` asks your backend for a token each time the client needs one.
-  A real app keeps the token until its `expiresAt`.
-- `NewSessionViewer` is where your user writes the first message and attaches
-  files. When they send it, Stigmer starts a Session (a conversation) and hands
-  you its ID.
-- `SessionViewer` takes over from there: it shows the conversation as it
-  happens, with the files given to it and the files the Agent saved.
-- `audience="endUser"` fixes the conversation to the Agent you named. Your user
-  can't swap it for another or change its tools.
+- `createTokenCache` asks your backend for a token once, and again only when it
+  is a minute from its `expiresAt`. When your user signs out, call
+  `tokens.invalidate()`, so the next person to sign in never gets their token.
+- `AgentChat` is where your user writes the first message and attaches files.
+  When they send it, Stigmer starts a Session (a conversation), and the same
+  component shows it as it happens, with the files given to it and the files the
+  Agent saved.
+- The chat is for a person signed in to your product. It stays with the Agent
+  you named: your user can't swap it for another or change its tools.
+- `variant="panel"` fills a column you dock beside your page, and
+  `variant="popup"` puts a button in the corner that opens the chat. While the
+  popup is closed, its button says what the Agent is doing.
+- To reopen the conversation after a reload, keep the ID `onSessionChange` hands
+  you, and pass it back as `defaultSessionId`.
 
 </Step>
 <Step>

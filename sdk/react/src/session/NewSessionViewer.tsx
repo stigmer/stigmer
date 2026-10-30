@@ -24,6 +24,9 @@ import { useModelsHubData } from "../models/hub/ModelsHub.js";
 import { nothingRuns } from "../models/readiness.js";
 import { useModelRegistry } from "../models/useModelRegistry.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
+/** What an end user reads when the agent their launcher is pinned to cannot be found. */
+const PIN_UNAVAILABLE = "This agent isn't available. It may have been renamed or removed.";
+
 /** Props for {@link NewSessionViewer}. */
 export interface NewSessionViewerProps {
   /** Organization id (a slug is also accepted). Required for session creation. */
@@ -258,6 +261,7 @@ export function NewSessionViewer({
   modelsHubHref = DEFAULT_MODELS_HUB_HREF,
   className,
 }: NewSessionViewerProps) {
+  const [pinError, setPinError] = useState<Error | null>(null);
   const includesMyVault = includeMyVault ?? includesMyVaultByDefault(audience);
   const flow = useNewSessionFlow({
     org,
@@ -301,8 +305,19 @@ export function NewSessionViewer({
     // drawn and then swapped for the connect step under someone's typing
     // (stigmer#2699). Only the step's own content waits for the permission.
     !isGuest && !hub.readinessLoading && nothingRuns(hub.models) && connectProvider !== undefined && connectProvider !== "";
-  const sendBlockedReason =
-    !showConnectPanel && shownMissing ? connectReason(shownReadiness.provider, shownModelName) : undefined;
+  // An end user's launcher pinned to an agent never sends without it
+  // (stigmer#2748): Send waits while the pin resolves, and a pin that cannot
+  // resolve says so here, where the locked composer's own agent panel is
+  // never opened.
+  const pinsAgent = audience === "endUser" && initialAgentRef != null;
+  const pinWaits = pinsAgent && flow.agentRef == null;
+  const sendBlockedReason = pinWaits
+    ? pinError !== null
+      ? PIN_UNAVAILABLE
+      : "Loading the agent\u2026"
+    : !showConnectPanel && shownMissing
+      ? connectReason(shownReadiness.provider, shownModelName)
+      : undefined;
   // A pinned model makes the picker a dead control (the pin wins over any
   // choice it could offer), so the pin forces it hidden; the guest strip
   // and the host's explicit opt-out compose with it (the same rule as
@@ -417,6 +432,7 @@ export function NewSessionViewer({
             onAgentRefChange={isGuest ? undefined : flow.setAgentRef}
             onAgentResolutionChange={isGuest ? undefined : flow.setResolution}
             initialAgentRef={isGuest ? undefined : initialAgentRef}
+            onAgentSetupErrorChange={pinsAgent ? setPinError : undefined}
             // Every message here starts a conversation, so the keys the
             // selected agent will read from the person's My vault are named
             // first. A guest has no vault, and brings none.
@@ -474,6 +490,12 @@ export function NewSessionViewer({
             the one-click way off. Guests never inherit either seed. */}
         {!isGuest && flow.autoApproveAll && (
           <AutoApproveIndicator onTurnOff={() => flow.setAutoApproveAll(false)} />
+        )}
+
+        {pinWaits && pinError !== null && (
+          <p role="alert" className="stg:text-center stg:text-xs stg:text-destructive">
+            {PIN_UNAVAILABLE}
+          </p>
         )}
 
         {footerContent}

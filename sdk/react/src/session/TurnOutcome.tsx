@@ -8,6 +8,7 @@
 import type { File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { cn } from "@stigmer/design-tokens";
 import { durationWords } from "./duration-words.js";
+import { endingWord } from "./turn-endings.js";
 import type { TurnChange, TurnOutcomeView } from "./turn-outcome.js";
 
 /** Props for {@link TurnOutcome}. */
@@ -23,13 +24,6 @@ export interface TurnOutcomeProps {
   readonly onOpenChange?: (change: TurnChange) => void;
   readonly className?: string;
 }
-
-const ENDINGS: Readonly<Record<string, string>> = {
-  completed: "Done",
-  failed: "Failed",
-  cancelled: "Stopped",
-  terminated: "Stopped",
-};
 
 function baseName(path: string): string {
   return path.slice(path.lastIndexOf("/") + 1);
@@ -60,7 +54,7 @@ function Chip({ label, detail, onClick }: { readonly label: string; readonly det
 /** A turn's closing block (module header). */
 export function TurnOutcome({ outcome, onOpenFile, canOpenChange, onOpenChange, className }: TurnOutcomeProps) {
   if (outcome.phase === undefined) return null;
-  const ending = ENDINGS[outcome.phase] ?? "Ended";
+  const ending = endingWord(outcome.phase);
   return (
     <section
       aria-label="What this turn produced"

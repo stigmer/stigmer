@@ -21,6 +21,13 @@ export {
   type GuestIdStorage,
 } from "./guest-auth.js";
 
+// Token cache (a signed-in embed's token, fetched once until it nears expiry)
+export {
+  createTokenCache,
+  type FetchedToken,
+  type TokenCache,
+} from "./token-cache.js";
+
 // Chat links (hosted link + embed snippet; framework-free)
 export {
   MAX_ALLOWED_ORIGINS,

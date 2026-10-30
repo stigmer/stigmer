@@ -1,7 +1,6 @@
 "use client";
 
 import { createContext, useContext, useRef, useSyncExternalStore } from "react";
-import { ConversationStore } from "./conversation-store.js";
 import {
   WorkspaceFileSelectionStore,
   type SelectedWorkspaceFile,
@@ -11,7 +10,10 @@ import {
   type WorkspaceEditorsSnapshot,
 } from "./workspace-editors-store.js";
 
-export { ConversationStore, type StreamState } from "./conversation-store.js";
+// The conversation store and its hook live beside each other, re-exported
+// here: this barrel's own code is what the launcher reaches, so it holds no
+// reference to the conversation store, which only a conversation needs.
+export { ConversationStore, useConversationStoreRef, type StreamState } from "./conversation-store.js";
 
 export { WorkspaceFileSelectionStore } from "./workspace-file-selection-store.js";
 export type { SelectedWorkspaceFile } from "./workspace-file-selection-store.js";
@@ -28,22 +30,6 @@ export type {
   EditorReveal,
   WorkspaceEditorsSnapshot,
 } from "./workspace-editors-store.js";
-
-// ---------------------------------------------------------------------------
-// Conversation store
-// ---------------------------------------------------------------------------
-
-/**
- * Create or reuse a `ConversationStore` instance. The store is
- * created once and preserved across re-renders via ref.
- */
-export function useConversationStoreRef(): ConversationStore {
-  const ref = useRef<ConversationStore | null>(null);
-  if (!ref.current) {
-    ref.current = new ConversationStore();
-  }
-  return ref.current;
-}
 
 // ---------------------------------------------------------------------------
 // Workspace file selection — the shared "which file is open" store

@@ -50,6 +50,9 @@ export type SceneId =
   | "model-selector-not-ready"
   | "dashboard-kpis"
   | `session-${SessionSceneName}`
+  | "agent-chat-panel"
+  | "agent-chat-popup-closed"
+  | "agent-chat-popup"
   | `preset-${Preset}`;
 
 /** One scene and how it is pictured. */
@@ -59,11 +62,11 @@ export interface Scene {
   readonly title: string;
   readonly widths: readonly WidthName[];
   /**
-   * The accessible name of a button the case presses before the picture and
-   * the audit: a component whose state of interest opens on a click (a
-   * picker's list) is pictured open.
+   * The accessible names of the buttons the case presses, in order, before
+   * the picture and the audit: a component whose state of interest opens on
+   * a click (a picker's list, a panel and a File in it) is pictured open.
    */
-  readonly opens?: string;
+  readonly opens?: string | readonly string[];
 }
 
 /**
@@ -111,9 +114,9 @@ const SESSION_SCENES = [
   },
   {
     id: "session-inspector",
-    title: "Session: the finished turn with the console's panel open",
+    title: "Session: the finished turn with the console's panel open on a File it returned",
     widths: ["desktop"],
-    opens: "Show panel",
+    opens: ["Show panel", "invoice-audit.md 4.1 KB"],
   },
   { id: "session-failed", title: "Session: a failed turn, in the console", widths: ["desktop"] },
   {
@@ -124,7 +127,7 @@ const SESSION_SCENES = [
   { id: "session-guest", title: "Session: the finished turn, for a chat link's guest", widths: ["desktop", "narrow"] },
   { id: "session-observer", title: "Session: the finished turn, for a reviewer who reads it", widths: ["desktop"] },
   { id: "session-load-failed", title: "Session: the conversation cannot load", widths: ["desktop"] },
-] as const satisfies readonly { readonly id: `session-${string}`; readonly title: string; readonly widths: readonly WidthName[]; readonly opens?: string }[];
+] as const satisfies readonly { readonly id: `session-${string}`; readonly title: string; readonly widths: readonly WidthName[]; readonly opens?: string | readonly string[] }[];
 
 /** The presets the `completed` thread is drawn in beyond the default look, which `thread-completed` is. */
 export const PRESETS = ["corporate", "startup", "friendly", "fintech", "monochrome"] as const satisfies readonly ThemePresetId[];
@@ -159,7 +162,7 @@ export const SCENES: readonly Scene[] = [
   },
   { id: "models-hub-local", title: "Models & providers: a laptop whose runner has no key", widths: ["desktop"] },
   { id: "models-hub-member", title: "Models & providers: a member, nothing connected yet", widths: ["desktop"] },
-  { id: "launcher-ready", title: "Launcher: a model provider connected, ready to send", widths: ["desktop"] },
+  { id: "launcher-ready", title: "Launcher: a model provider connected, ready to send", widths: ["desktop", "narrow"] },
   {
     id: "launcher-connect-admin",
     title: "Launcher: nothing can run, an admin connects a provider in place",
@@ -176,6 +179,21 @@ export const SCENES: readonly Scene[] = [
   },
   { id: "dashboard-kpis", title: "Dashboard figures", widths: ["desktop"] },
   ...SESSION_SCENES,
+  {
+    id: "agent-chat-panel",
+    title: "AgentChat: a long turn at work, in a panel docked beside a product",
+    widths: ["desktop"],
+  },
+  {
+    id: "agent-chat-popup-closed",
+    title: "AgentChat: the popup closed while a long turn works, its button saying what the agent is doing",
+    widths: ["desktop", "narrow"],
+  },
+  {
+    id: "agent-chat-popup",
+    title: "AgentChat: the popup open on a finished turn (a phone's screen is the popup)",
+    widths: ["desktop", "narrow"],
+  },
   ...PRESETS.map((preset) => ({
     id: `preset-${preset}` as const,
     title: `The completed thread in the ${preset} preset`,

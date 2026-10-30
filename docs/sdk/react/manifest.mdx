@@ -317,7 +317,7 @@ written against `@codemirror/lint` passes its results straight through.
   type={{
     from: { type: "number", description: "Start offset in the document.", required: true },
     message: { type: "string", description: "What is wrong, shown on hover.", required: true },
-    severity: { type: "\"error\" | \"hint\" | \"info\" | \"warning\"", description: "How the marker is drawn.", required: true },
+    severity: { type: "\"error\" | \"hint\" | \"warning\" | \"info\"", description: "How the marker is drawn.", required: true },
     source: { type: "string", description: "Who reported it (a linter's name), shown beside the message." },
     to: { type: "number", description: "End offset in the document.", required: true },
   }}

@@ -115,37 +115,35 @@ The Go, TypeScript, Python, and Java SDKs provide typed API clients for every St
 
 ## Put the agent in your app
 
-The React SDK ships the same chat surface the Stigmer Console uses, as drop-in
-components. One provider and two components put the variance reporter in front
-of your users:
+The React SDK ships the same chat surface the Stigmer Console uses, as one
+drop-in component. A provider, a token your backend mints, and `AgentChat` put
+the variance reporter in front of your users:
 
 ```tsx
+import { Stigmer, createTokenCache } from "@stigmer/client";
+import { AgentChat, StigmerProvider } from "@stigmer/react-sdk/chat";
+import "@stigmer/react-sdk/styles.css";
+
+const org = import.meta.env.VITE_STIGMER_ORG;
+
+const tokens = createTokenCache(async () => {
+  const res = await fetch("/api/stigmer-token");
+  return res.json();
+});
 // …
 export default function App() {
   return (
     <StigmerProvider client={stigmer}>
       <main style={{ height: "100vh" }}>
-        <VarianceReports />
+        <AgentChat agent={`${org}/variance-reporter`} />
       </main>
     </StigmerProvider>
   );
 }
-
-function VarianceReports() {
-  const [sessionId, setSessionId] = useState<string | null>(null);
-  if (sessionId) {
-    return <SessionViewer sessionId={sessionId} org={org} audience="endUser" />;
-  }
-  return (
-    <NewSessionViewer
-      org={org}
-      audience="endUser"
-      initialAgentRef={{ org, slug: "variance-reporter" }}
-      onSessionCreated={setSessionId}
-    />
-  );
-}
 ```
+
+`variant="panel"` docks the same chat beside your page, and `variant="popup"`
+puts it behind a button in the corner.
 
 Every component is themeable with design tokens, and the hooks underneath are exported for fully custom UIs. [Put the agent in your app](https://stigmer.ai/docs/getting-started/embed-agent) is the complete walkthrough, with the backend route that hands the page its token.
 

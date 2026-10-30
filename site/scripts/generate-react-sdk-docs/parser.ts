@@ -118,6 +118,11 @@ const DOMAIN_META: Record<string, { title: string; description: string }> = {
     description:
       "The unified Manage access experience — one dialog composing visibility and explicit people-grants, with a kebab hook and a button trigger.",
   },
+  "agent-chat": {
+    title: "Agent Chat",
+    description:
+      "The chat as one component, as a page, a docked panel or a corner popup. Also imports from `@stigmer/react-sdk/chat`, the lightest entry.",
+  },
   "chat-link": {
     title: "Chat Links",
     description:
@@ -355,6 +360,7 @@ const BUILTIN_TYPES = new Set([
  */
 const ENTRY_IMPORT_PATHS: Readonly<Record<string, string>> = {
   index: "@stigmer/react-sdk",
+  chat: "@stigmer/react-sdk/chat",
   headless: "@stigmer/react-sdk/headless",
   console: "@stigmer/react-sdk/console",
 };

@@ -1,6 +1,6 @@
 {
   "$schema": "https://typedoc.org/schema.json",
-  "entryPoints": ["./src/index.ts", "./src/headless.ts", "./src/console.ts"],
+  "entryPoints": ["./src/index.ts", "./src/chat.ts", "./src/headless.ts", "./src/console.ts"],
   "json": "typedoc-output.json",
   "externalSymbolLinkMappings": {
     "typescript": {

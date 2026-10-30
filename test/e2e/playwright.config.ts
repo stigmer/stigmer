@@ -128,6 +128,15 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"] },
     },
     {
+      // The same OIDC stack with the mock model (STIGMER_E2E_MOCK_LLM):
+      // the embedding tutorial run from its page, as a person signed in to
+      // the reader's app. Runs in the same invocation as console-login.
+      name: "embed-tutorial",
+      testDir: "./tests/embed-tutorial",
+      fullyParallel: false,
+      use: { ...devices["Desktop Chrome"] },
+    },
+    {
       // The single-organization stack shape: global-setup boots the shipped
       // server entry (one organization, made by the server) with nothing
       // seeded; the console as a laptop runs it.

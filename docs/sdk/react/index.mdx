@@ -32,9 +32,28 @@ components' icons.
   Without it a diagram shows as its source.
 </Callout>
 
-The hooks alone, without the components, import from
-`@stigmer/react-sdk/headless`; the Stigmer console's own parts import from
-`@stigmer/react-sdk/console`. Each reference page names its entry.
+The chat alone imports from `@stigmer/react-sdk/chat`, the lightest entry. The
+hooks alone, without the components, import from `@stigmer/react-sdk/headless`;
+the Stigmer console's own parts import from `@stigmer/react-sdk/console`. Each
+reference page names its entry.
+
+## The chat in one component
+
+`AgentChat` is the whole chat: the first message, then the conversation. Name
+the Agent as `"org/slug"` and pick a frame:
+
+```tsx
+import { AgentChat } from "@stigmer/react-sdk/chat";
+
+<AgentChat agent="acme/variance-reporter" />                  // fills its box
+<AgentChat agent="acme/variance-reporter" variant="panel" />  // a column you dock
+<AgentChat agent="acme/variance-reporter" variant="popup" />  // a corner button
+```
+
+The popup never traps focus or takes a key from your page. Escape closes it
+while focus is inside, and its button says what the Agent is doing while it is
+closed. The chat writes no storage: keep the ID `onSessionChange` hands you to
+reopen a conversation after a reload, and pass it back as `defaultSessionId`.
 
 ## Setup
 
@@ -127,27 +146,28 @@ the full walkthrough.
 
 Your backend authenticates users with your own auth system, then calls Stigmer's
 `mintUserToken` with an admin service account's API key to get a Stigmer-signed
-JWT. Your frontend fetches this
-token and passes it to `getAccessToken`.
+JWT. Your frontend fetches this token, and `createTokenCache` keeps it until a
+minute before it expires.
 
 ```tsx
 import { useMemo } from "react";
-import { Stigmer } from "@stigmer/client";
+import { Stigmer, createTokenCache } from "@stigmer/client";
 import { StigmerProvider } from "@stigmer/react-sdk";
 import "@stigmer/react-sdk/styles.css";
 
-async function getAccessToken(): Promise<string | null> {
+// Your backend answers { accessToken, expiresAt }. Call
+// tokens.invalidate() when your user signs out.
+const tokens = createTokenCache(async () => {
   const res = await fetch("/api/stigmer-token");
-  const { accessToken } = await res.json();
-  return accessToken;
-}
+  return res.json();
+});
 
 function App() {
   const client = useMemo(
     () =>
       new Stigmer({
         baseUrl: "https://api.stigmer.ai",
-        getAccessToken,
+        getAccessToken: tokens.getAccessToken,
       }),
     [],
   );

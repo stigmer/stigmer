@@ -12,14 +12,10 @@ import type { GraphicProps } from "./types";
  * app (demo/app/src/App.tsx) — the exact code the S4d take runs.
  */
 const LINES: { text: string; indent: number; accent?: boolean }[] = [
-  { text: 'import { StigmerProvider, NewSessionViewer } from "@stigmer/react-sdk";', indent: 0 },
+  { text: 'import { StigmerProvider, AgentChat } from "@stigmer/react-sdk/chat";', indent: 0 },
   { text: "", indent: 0 },
   { text: "<StigmerProvider client={stigmer}>", indent: 0 },
-  { text: "<NewSessionViewer", indent: 1, accent: true },
-  { text: 'org="meridian-travel"', indent: 2 },
-  { text: 'initialAgentRef={{ org: "meridian-travel", slug: "traveler-assist" }}', indent: 2 },
-  { text: 'audience="endUser"', indent: 2 },
-  { text: "/>", indent: 1, accent: true },
+  { text: '<AgentChat agent="meridian-travel/traveler-assist" />', indent: 1, accent: true },
   { text: "</StigmerProvider>", indent: 0 },
 ];
 

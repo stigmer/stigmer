@@ -162,7 +162,10 @@ export function ComposerToolbar({
   const showHarnessSeparate = showHarnessSelector && !showModelSelector;
 
   return (
-    <div className="stg:flex stg:items-center stg:justify-between stg:gap-2 stg:border-t stg:border-border-muted stg:px-3 stg:py-2">
+    // A named container: the controls size to the composer's width, not the
+    // viewport's, so a 390-pixel panel or popup on a wide screen narrows
+    // them too (stigmer#2709).
+    <div className="stg:@container/composer-toolbar stg:flex stg:items-center stg:justify-between stg:gap-2 stg:border-t stg:border-border-muted stg:px-3 stg:py-2">
       {/* ---- Left group: Primary state (Mode + Model) ---- */}
 
       <div className="stg:flex stg:min-w-0 stg:items-center stg:gap-1.5">

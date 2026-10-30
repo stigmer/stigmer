@@ -33,6 +33,11 @@ export const HARNESS_LINES = Object.freeze([
   { line: "npm install -g @stigmer/cli", performs: "cli" },
   { line: "npm install @stigmer/client", performs: "sdk" },
   { line: "export ANTHROPIC_API_KEY=<your Anthropic API key>", performs: "model-key" },
+  // The embedding tutorial (embed-agent.mdx), run by test/e2e's embed-tutorial project.
+  { line: "npm create vite@latest my-app -- --template react-ts", performs: "vite-app" },
+  { line: "npm install @stigmer/react-sdk @stigmer/client @stigmer/apis @bufbuild/protobuf", performs: "react-sdk" },
+  { line: "npx tsx server.ts", performs: "backend" },
+  { line: "VITE_STIGMER_ORG=$STIGMER_ORG npm run dev", performs: "dev-server" },
 ]);
 
 /** The tab the smoke never runs: the hosted target, which needs an account. */
@@ -48,7 +53,7 @@ const TAB_CLOSE = /<\/Tab>/;
  * The steps of `mdx` in document order:
  *   { kind: "file", path, content }      write `content` at `path`
  *   { kind: "command", line }            run `line` in bash
- *   { kind: "harness", line, performs }  the harness performs it ("cli" | "sdk" | "model-key")
+ *   { kind: "harness", line, performs }  the harness performs it (HARNESS_LINES' `performs`)
  * Throws on a fence left open, or a command the harness cannot run as written.
  */
 export function docSteps(mdx) {

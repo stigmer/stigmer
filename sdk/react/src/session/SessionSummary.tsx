@@ -17,6 +17,7 @@ import type { File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type { Routine } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
 import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import type { ReactNode } from "react";
 import type { Turn } from "@stigmer/client";
 import { cn } from "@stigmer/design-tokens";
 import { useStigmer } from "../hooks.js";
@@ -37,6 +38,8 @@ export interface SessionSummaryProps {
   readonly routineHref?: (routine: Routine) => string;
   /** Whether the reader may be sent the routine read; false for a guest. */
   readonly readsRoutine?: boolean;
+  /** Controls drawn at the end of the title's row (the session view's header actions). */
+  readonly actions?: ReactNode;
   readonly className?: string;
 }
 
@@ -48,7 +51,7 @@ function useRoutine(id: string): Routine | null | undefined {
 }
 
 /** The session's summary header (module header). */
-export function SessionSummary({ session, turns, runs, files, showCost, routineHref, readsRoutine = true, className }: SessionSummaryProps) {
+export function SessionSummary({ session, turns, runs, files, showCost, routineHref, readsRoutine = true, actions, className }: SessionSummaryProps) {
   const routineId = session.status?.routineId ?? "";
   const routine = useRoutine(readsRoutine ? routineId : "");
   const last = turns.at(-1);
@@ -86,7 +89,10 @@ export function SessionSummary({ session, turns, runs, files, showCost, routineH
 
   return (
     <header className={cn("stg:space-y-1 stg:border-b stg:border-border stg:px-4 stg:pb-3 stg:pt-4", className)}>
-      <h1 className="stg:truncate stg:text-base stg:font-semibold">{asked}</h1>
+      <div className="stg:flex stg:items-center stg:gap-2">
+        <h1 className="stg:min-w-0 stg:flex-1 stg:truncate stg:text-base stg:font-semibold">{asked}</h1>
+        {actions != null && <div className="stg:-my-1 stg:flex stg:shrink-0 stg:items-center stg:gap-2">{actions}</div>}
+      </div>
       {!working && (
         <p className="stg:text-xs stg:text-muted-foreground">
           {origin}

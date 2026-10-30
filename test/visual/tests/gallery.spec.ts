@@ -31,8 +31,8 @@ async function draw(page: Page, scene: Scene, mode: Mode, width: WidthName): Pro
   await page.setViewportSize(WIDTHS[width]);
   await page.goto(sceneUrl(scene.id, mode));
   await settled(page);
-  if (scene.opens !== undefined) {
-    await page.getByRole("button", { name: scene.opens }).click();
+  for (const name of [scene.opens ?? []].flat()) {
+    await page.getByRole("button", { name }).click();
     await settled(page);
   }
 }
