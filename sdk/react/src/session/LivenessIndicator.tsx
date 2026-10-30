@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { TurnLiveness } from "@stigmer/client";
-import { humanizeToolName } from "../run/tool-categories.js";
+import { humanizeToolName } from "@stigmer/react-core";
 
 /**
  * How long the turn's oldest operation, or its wait on the model, must have

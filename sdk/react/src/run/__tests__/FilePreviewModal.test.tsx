@@ -11,7 +11,7 @@ import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { Stigmer } from "@stigmer/client";
 import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
-import { StigmerContext } from "../../context";
+import { StigmerContext } from "@stigmer/react-core";
 import { FilePreviewContent } from "../FilePreviewModal";
 
 // A non-text File: FilePreviewContent skips the content read, so the

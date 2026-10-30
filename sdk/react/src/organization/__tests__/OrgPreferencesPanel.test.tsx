@@ -8,8 +8,8 @@ import {
 import { EnvironmentSchema } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/api_pb";
 import { EnvironmentListSchema } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/io_pb";
 import { sentUpdate } from "../../internal/__tests__/sent-update";
-import { StigmerContext } from "../../context";
-import { DeploymentModeContext } from "../../deployment-mode";
+import { StigmerContext } from "@stigmer/react-core";
+import { DeploymentModeContext } from "@stigmer/react-core";
 import type { UseServerInfoReturn } from "../../server-info";
 import { OrgPreferencesPanel } from "../OrgPreferencesPanel";
 

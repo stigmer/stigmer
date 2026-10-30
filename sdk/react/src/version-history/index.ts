@@ -8,7 +8,7 @@ export { DiffSummary } from "./DiffSummary.js";
 export type { DiffSummaryProps } from "./DiffSummary.js";
 export { MultiFileDiffView } from "./MultiFileDiffView.js";
 export type { MultiFileDiffViewProps } from "./MultiFileDiffView.js";
-export { computeDiff } from "./computeDiff.js";
+export { computeDiff } from "@stigmer/react-core";
 export { parseUnifiedDiff } from "./parseUnifiedDiff.js";
 export { computeMultiFileDiff } from "./computeMultiFileDiff.js";
 export type {

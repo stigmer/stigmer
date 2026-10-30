@@ -12,15 +12,15 @@ import { render, screen, cleanup } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { ServiceTier } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
-import type { UseSessionUsageReturn } from "../useSessionUsage.js";
+import type { UseSessionUsageReturn } from "@stigmer/react-core";
 
 // UsageTab's render contract is what this suite pins; the aggregation
 // itself (report mapping, polling) is
 // useSessionUsage's own suite. Mocking the hook also spares the RPC
 // provider plumbing.
 const usageMock = vi.hoisted(() => vi.fn<() => UseSessionUsageReturn>());
-vi.mock("../useSessionUsage.js", async (importOriginal) => ({
-  ...(await importOriginal<object>()),
+vi.mock("@stigmer/react-core", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@stigmer/react-core")>()),
   useSessionUsage: () => usageMock(),
 }));
 

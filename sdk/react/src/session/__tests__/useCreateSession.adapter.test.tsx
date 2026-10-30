@@ -6,11 +6,11 @@
 import { describe, it, expect, vi } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { StigmerContext } from "../../context";
-import { FetchCacheContext } from "../../internal/FetchCacheProvider";
-import { ExecutionTargetContext } from "../../execution-target-context";
-import { RunnerAdapterContext } from "../../runner-adapter";
-import type { RunnerAdapter } from "../../runner-adapter";
+import { StigmerContext } from "@stigmer/react-core";
+import { FetchCacheContext } from "@stigmer/react-core/internal";
+import { ExecutionTargetContext } from "@stigmer/react-core/internal";
+import { RunnerAdapterContext } from "@stigmer/react-core/internal";
+import type { RunnerAdapter } from "@stigmer/react-core";
 import { useCreateSession } from "../useCreateSession";
 
 function createMockAdapter(): RunnerAdapter & {

@@ -13,7 +13,7 @@ import { Code, ConnectError } from "@connectrpc/connect";
 const toastMock = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
 vi.mock("../../feedback/toast.js", () => ({ toast: toastMock }));
 
-import { StigmerContext } from "../../context.js";
+import { StigmerContext } from "@stigmer/react-core";
 import { useDeleteResource } from "../useDeleteResource.js";
 
 afterEach(() => {

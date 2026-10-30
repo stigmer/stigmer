@@ -14,18 +14,14 @@ import { FilePathLink } from "./FilePathLink.js";
 import { DiffSummary } from "../version-history/DiffSummary.js";
 import { DecisionButton } from "../internal/DecisionButton.js";
 import { InCardDecisionError } from "../internal/InCardDecisionError.js";
-import {
-  fileDecisionKey,
-  type FileReviewAction,
-  type ReviewFileChangesOptions,
-} from "./useReviewFileChanges.js";
+import { fileDecisionKey, type FileReviewAction, type ReviewFileChangesOptions } from "@stigmer/react-core";
 import { useChangeSetCapture } from "./useChangeSetCapture.js";
 import {
   changeSetReviewability,
   fileChangeKindOf,
   fileReviewability,
   type FileReviewability,
-} from "./file-review-status.js";
+} from "@stigmer/react-core";
 import { SpinnerIcon } from "../internal/thread-card/glyphs.js";
 
 /** A stable empty set so the default `submittingDecisionKeys` keeps a constant ref. */

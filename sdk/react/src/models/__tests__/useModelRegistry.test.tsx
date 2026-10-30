@@ -8,10 +8,10 @@ import {
   modelKey,
   parseRegistryDocument,
   parseRegistryJson,
-} from "../registry";
+} from "@stigmer/react-core";
 import { ModelRegistryContext } from "../ModelRegistryContext";
 import type { ModelRegistryState } from "../ModelRegistryContext";
-import type { ModelInfo } from "../registry";
+import type { ModelInfo } from "@stigmer/react-core";
 
 /**
  * Minimal inline registry data for tests. Mirrors the shape of the

@@ -7,7 +7,8 @@ import { getUserMessage, isPermissionDenied, isUnimplemented, type LicenseInput 
 import type { License } from "@stigmer/apis/ai/stigmer/billing/license/v1/api_pb";
 import { LicenseState } from "@stigmer/apis/ai/stigmer/platform/v1/license_pb";
 import { Button } from "../button/index.js";
-import { ApiResourceKind, useResourceAvailable } from "../deployment-mode.js";
+import { useResourceAvailable } from "@stigmer/react-core";
+import { ApiResourceKind } from "@stigmer/react-core/internal";
 import { EmptyState } from "../empty-state/index.js";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
 import { StatusBadge } from "../resource-workbench/components/StatusBadge.js";

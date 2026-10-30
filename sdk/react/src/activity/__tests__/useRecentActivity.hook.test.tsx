@@ -16,8 +16,8 @@ import {
   ListRecentActivityResponseSchema,
   RecentActivityEntrySchema,
 } from "@stigmer/apis/ai/stigmer/activity/v1/io_pb";
-import { StigmerContext } from "../../context";
-import { FetchCacheContext } from "../../internal/FetchCacheProvider";
+import { StigmerContext } from "@stigmer/react-core";
+import { FetchCacheContext } from "@stigmer/react-core/internal";
 
 vi.mock("../../organization/OrgProvider.js", () => ({ useActiveOrgId: () => "acme" }));
 

@@ -13,8 +13,8 @@ import { create } from "@bufbuild/protobuf";
 import type { Message } from "@bufbuild/protobuf";
 import { RenameInputSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import type { RenameInput } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
-import { useStigmer } from "../hooks.js";
-import { toError } from "../internal/toError.js";
+import { useStigmer } from "@stigmer/react-core";
+import { toError } from "@stigmer/react-core/internal";
 
 /**
  * Resource kinds a person may rename (beside the organization), by the

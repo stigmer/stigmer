@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { useDeploymentMode } from "../deployment-mode.js";
+import { useDeploymentMode } from "@stigmer/react-core";
 import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { useOptionalOrg } from "../organization/OrgProvider.js";
 import { useSingleOrg } from "../server-info.js";

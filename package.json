@@ -13,6 +13,7 @@
     "backend/libs/ts/eval-runtime",
     "sdk/typescript",
     "sdk/theme",
+    "sdk/react-core",
     "sdk/react",
     "sdk/embed",
     "sdk/ink",

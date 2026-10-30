@@ -8,9 +8,9 @@ import {
   ListSkillVersionsResponseSchema,
   type SkillVersionEntry as ProtoSkillVersionEntry,
 } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/io_pb";
-import { useStigmer } from "../hooks.js";
+import { useStigmer } from "@stigmer/react-core";
 import { isUnimplemented } from "../internal/isUnimplemented.js";
-import { useCursorPages } from "../internal/useCursorPages.js";
+import { useCursorPages } from "@stigmer/react-core/internal";
 import type { VersionEntry } from "../version-history/types.js";
 
 // ---------------------------------------------------------------------------

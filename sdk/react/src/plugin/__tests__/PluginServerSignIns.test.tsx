@@ -37,7 +37,7 @@ vi.mock("../PluginServerSignIn.js", () => ({
   ),
 }));
 
-import { StigmerContext } from "../../context.js";
+import { StigmerContext } from "@stigmer/react-core";
 import { PluginServerSignIns } from "../PluginServerSignIns.js";
 
 afterEach(cleanup);

@@ -21,7 +21,7 @@ import {
   StartSignInOutputSchema,
   type StartSignInInput,
 } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/io_pb";
-import { StigmerContext } from "../../context";
+import { StigmerContext } from "@stigmer/react-core";
 import { startSignInInput, useVaultSignIn } from "../useVaultSignIn";
 
 const popup = vi.hoisted(() => ({

@@ -12,8 +12,8 @@ import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { ConversationTimelineItemSchema } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/conversation_io_pb";
 import { ChannelDeliveryStatus } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/delivery_pb";
 import { ChannelReceiptState } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/outbound_pb";
-import { StigmerContext } from "../../context";
-import { FetchCacheContext } from "../../internal/FetchCacheProvider";
+import { StigmerContext } from "@stigmer/react-core";
+import { FetchCacheContext } from "@stigmer/react-core/internal";
 import { useConversationTimeline } from "../useConversationTimeline";
 
 function item(id: string, iso: string, overrides: Record<string, unknown> = {}) {

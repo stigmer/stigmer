@@ -7,8 +7,8 @@ import {
   InitiateChannelInstallInputSchema,
   CompleteChannelInstallInputSchema,
 } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/io_pb";
-import { useStigmer } from "../hooks.js";
-import { toError } from "../internal/toError.js";
+import { useStigmer } from "@stigmer/react-core";
+import { toError } from "@stigmer/react-core/internal";
 import {
   openOAuthPopup,
   popupBlockedError,

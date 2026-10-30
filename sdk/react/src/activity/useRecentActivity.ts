@@ -2,9 +2,9 @@
 
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { RecentActivityEntry as ProtoEntry } from "@stigmer/apis/ai/stigmer/activity/v1/io_pb";
-import { useStigmer } from "../hooks.js";
+import { useStigmer } from "@stigmer/react-core";
 import { useActiveOrgId } from "../organization/OrgProvider.js";
-import { useFetch } from "../internal/useFetch.js";
+import { useFetch } from "@stigmer/react-core/internal";
 import type { RecentActivityEntry } from "./types.js";
 
 /** Options for {@link useRecentActivity}. */

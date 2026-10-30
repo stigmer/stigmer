@@ -7,10 +7,10 @@ import {
   type IdentityAccount,
 } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
 import type { DeploymentMode } from "@stigmer/client";
-import { StigmerContext } from "../../context";
-import { DeploymentModeContext } from "../../deployment-mode";
+import { StigmerContext } from "@stigmer/react-core";
+import { DeploymentModeContext } from "@stigmer/react-core";
 import { ModelRegistryContext, type ModelRegistryState } from "../../models/ModelRegistryContext";
-import { parseRegistryJson } from "../../models/registry";
+import { parseRegistryJson } from "@stigmer/react-core";
 import type { UseServerInfoReturn } from "../../server-info";
 import { AccountPreferencesPanel } from "../AccountPreferencesPanel";
 

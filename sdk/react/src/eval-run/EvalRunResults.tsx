@@ -39,9 +39,9 @@ import {
   EvalRunPhase,
 } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/status_pb";
 import { cn } from "@stigmer/design-tokens";
-import { useDeploymentMode } from "../deployment-mode.js";
+import { useDeploymentMode } from "@stigmer/react-core";
 import { ErrorMessage } from "../error/ErrorMessage.js";
-import { useWhoAmI } from "../grant/useWhoAmI.js";
+import { useWhoAmI } from "@stigmer/react-core";
 import { downloadTextFile } from "../internal/download.js";
 import { Section } from "../resource-detail/Section.js";
 import { DANGER_BUTTON_CLASS, QUIET_BUTTON_CLASS } from "../vault/styles.js";

@@ -421,9 +421,9 @@ export async function fetchModelRegistry(
 }
 
 /**
- * The platform's last-resort model: what {@link resolveDefaultModelId}
+ * The platform's last-resort model: what `resolveDefaultModelId`
  * settles on when no preference, default or usable registry row names one.
- * For the default a picker should show, call {@link resolveDefaultModelId},
+ * For the default a picker should show, call `resolveDefaultModelId`,
  * which tries the active harness and its featured models first.
  */
 export const DEFAULT_MODEL_ID = "claude-sonnet-4.6";

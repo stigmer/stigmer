@@ -13,9 +13,9 @@ import { create } from "@bufbuild/protobuf";
 import type { IdentityAccount } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { ListServiceAccountsInputSchema } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/io_pb";
 import type { Stigmer } from "@stigmer/client";
-import { useStigmer } from "../hooks.js";
-import { LIST_PAGE_MAX, readEveryPage } from "../internal/everyPage.js";
-import { useFetch } from "../internal/useFetch.js";
+import { useStigmer } from "@stigmer/react-core";
+import { LIST_PAGE_MAX, readEveryPage } from "@stigmer/react-core/internal";
+import { useFetch } from "@stigmer/react-core/internal";
 
 
 /** Return value of {@link useServiceAccountList}. */

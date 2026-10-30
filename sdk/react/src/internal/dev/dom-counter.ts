@@ -1,5 +1,5 @@
 import { type RefObject, useEffect, useRef } from "react";
-import { isPerfLoggingEnabled } from "./enabled.js";
+import { isPerfLoggingEnabled } from "@stigmer/react-core/internal";
 
 /** Log the node count every Nth trigger. */
 const LOG_EVERY = 10;

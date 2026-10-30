@@ -17,7 +17,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, cleanup } from "@testing-library/react";
 import type { FileReviewFile, FileReviewSet, Thread, Turn } from "@stigmer/client";
 import { SubagentSection } from "../SubagentSection";
-import { FileReviewContext } from "../FileReviewContext";
+import { FileReviewContext } from "@stigmer/react-core";
 import { MessageThread } from "../MessageThread";
 import { reviewFile, reviewSet, thread, toolUse } from "./__fixtures__/fold-values";
 

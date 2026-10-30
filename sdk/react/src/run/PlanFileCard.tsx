@@ -7,7 +7,7 @@ import type { File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/
 import { GetFileContentInputSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/io_pb";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { useCopyFeedback } from "../internal/useCopyFeedback.js";
-import { useStigmer } from "../hooks.js";
+import { useStigmer } from "@stigmer/react-core";
 import { useFileDownload } from "../file/useFile.js";
 import { FilePreviewModal } from "./FilePreviewModal.js";
 import { useBuildFromPlanHotkey } from "./use-build-from-plan-hotkey.js";

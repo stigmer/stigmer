@@ -7,8 +7,9 @@ description:
 
 `@stigmer/ink-ui` provides terminal UI components for rendering Stigmer agent
 sessions in the terminal. It is built on [Ink](https://github.com/vadimdemedes/ink)
-(React for CLIs) and shares the same hook layer as `@stigmer/react-sdk` — all
-hooks for sessions, executions, streaming, and approvals work identically.
+(React for CLIs) and shares its hook layer with `@stigmer/react-sdk`: both are
+built on `@stigmer/react-core`, so the hooks for sessions, runs, streaming and
+approvals work identically, without the browser kit's components.
 
 The package includes a provider, pre-built components for every part of a
 session (message threads, tool calls, approvals, progress indicators, todo
@@ -18,11 +19,13 @@ terminal experience.
 ## Installation
 
 ```bash
-npm install @stigmer/ink-ui @stigmer/client @stigmer/apis @bufbuild/protobuf ink react
+npm install @stigmer/ink-ui @stigmer/react-core @stigmer/client @stigmer/apis @bufbuild/protobuf ink react
 ```
 
-`ink` and `react` 19+ are peer dependencies. `@stigmer/apis` provides the
-protocol buffer types. `@bufbuild/protobuf` is its runtime dependency.
+`ink` and `react` 19+ are peer dependencies. `@stigmer/react-core` holds the
+hooks your own views import (it also comes with the kit). `@stigmer/apis`
+provides the protocol buffer types. `@bufbuild/protobuf` is its runtime
+dependency.
 
 ## Quick start
 
@@ -80,14 +83,14 @@ It is re-exported from `@stigmer/client/node` for convenience.
 | `deploymentMode` | `"local" \| "cloud"` | `"cloud"` | Backend deployment mode. Controls feature availability. |
 | `children` | `ReactNode` | — | Application tree. |
 
-## Using React SDK hooks
+## Using the conversation hooks
 
-All hooks from `@stigmer/react-sdk` work under `InkStigmerProvider`. This is the
-main reason to choose `@stigmer/ink-ui` over building a terminal UI from scratch:
-you get the complete data layer for free.
+Every hook `@stigmer/react-core` exports works under `InkStigmerProvider`. This
+is the main reason to choose `@stigmer/ink-ui` over building a terminal UI from
+scratch: you get the complete data layer for free.
 
 ```tsx
-import { useStigmer, useSessionConversation } from "@stigmer/react-sdk";
+import { useSessionConversation } from "@stigmer/react-core";
 import { InkStigmerProvider, createNodeClient } from "@stigmer/ink-ui";
 import { Box, Text } from "ink";
 
@@ -108,9 +111,10 @@ function MySessionView({ sessionId, org }: { sessionId: string; org: string }) {
 }
 ```
 
-Any hook documented in the [React SDK Reference](/docs/sdk/react) is available.
-The hook reads data from the same `StigmerContext` and `DeploymentModeContext`
-that `InkStigmerProvider` provides.
+The [React SDK Reference](/docs/sdk/react) documents these hooks, because the
+React kit re-exports them; hooks that belong to the React kit's components are
+not in `@stigmer/react-core`. A hook reads data from the same `StigmerContext`
+and `DeploymentModeContext` that `InkStigmerProvider` provides.
 
 ## Composing custom views
 
@@ -126,7 +130,7 @@ import {
   RunProgress,
   FollowUpInput,
 } from "@stigmer/ink-ui";
-import { runPhaseOf, useSessionConversation } from "@stigmer/react-sdk";
+import { runPhaseOf, useSessionConversation } from "@stigmer/react-core";
 import { Box } from "ink";
 
 function CustomView({ sessionId, org }: { sessionId: string; org: string }) {

@@ -9,7 +9,7 @@ import { render, screen, fireEvent, cleanup, waitFor } from "@testing-library/re
 import { create } from "@bufbuild/protobuf";
 import type { Stigmer } from "@stigmer/client";
 import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
-import { StigmerContext } from "../../context";
+import { StigmerContext } from "@stigmer/react-core";
 import type { SessionPlan } from "../../library/detect-plan-file";
 import type { PlanDraftController } from "../usePlanDraft";
 import { PlanEditor } from "../PlanEditor";

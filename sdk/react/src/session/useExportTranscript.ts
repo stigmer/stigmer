@@ -9,10 +9,10 @@ import {
   type SessionTranscript,
 } from "@stigmer/client";
 import { toast } from "../feedback/toast.js";
-import { useStigmer } from "../hooks.js";
+import { useStigmer } from "@stigmer/react-core";
 import { downloadTextFile } from "../internal/download.js";
 import { generateSlug } from "../internal/slug.js";
-import { toError } from "../internal/toError.js";
+import { toError } from "@stigmer/react-core/internal";
 
 /** Options for {@link useExportTranscript}. */
 export interface UseExportTranscriptOptions {

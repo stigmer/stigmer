@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { toError } from "../internal/toError.js";
+import { toError } from "@stigmer/react-core/internal";
 
 /** Return value of {@link useInlineFieldSave}. */
 export interface UseInlineFieldSaveReturn<TResource, TValue> {

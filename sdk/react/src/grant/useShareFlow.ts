@@ -34,8 +34,8 @@ import {
   iamRoleToString,
   type Grantee,
 } from "@stigmer/client";
-import { useResourceAvailable } from "../deployment-mode.js";
-import { toError } from "../internal/toError.js";
+import { useResourceAvailable } from "@stigmer/react-core";
+import { toError } from "@stigmer/react-core/internal";
 import { useResourceAccess, type ResourceAccessRef } from "./useResourceAccess.js";
 import { useCreateGrant } from "./useCreateGrant.js";
 import { useDeleteGrant } from "./useDeleteGrant.js";

@@ -2,8 +2,8 @@
 
 import { useCallback, useState } from "react";
 import type { ApiKey } from "@stigmer/apis/ai/stigmer/iam/apikey/v1/api_pb";
-import { useStigmer } from "../hooks.js";
-import { toError } from "../internal/toError.js";
+import { useStigmer } from "@stigmer/react-core";
+import { toError } from "@stigmer/react-core/internal";
 
 /** Return value of {@link useDeleteApiKey}. */
 export interface UseDeleteApiKeyReturn {

@@ -1,10 +1,10 @@
 "use client";
 
 import type { ApiKey } from "@stigmer/apis/ai/stigmer/iam/apikey/v1/api_pb";
-import { useStigmer } from "../hooks.js";
+import { useStigmer } from "@stigmer/react-core";
 import { create } from "@bufbuild/protobuf";
 import { ListApiKeysInputSchema } from "@stigmer/apis/ai/stigmer/iam/apikey/v1/io_pb";
-import { useCursorPages } from "../internal/useCursorPages.js";
+import { useCursorPages } from "@stigmer/react-core/internal";
 
 /** Return value of {@link useApiKeyList}. */
 export interface UseApiKeyListReturn {

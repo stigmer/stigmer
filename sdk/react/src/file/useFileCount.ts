@@ -1,8 +1,8 @@
 "use client";
 
-import { useStigmer } from "../hooks.js";
-import { LIST_PAGE_MAX } from "../internal/everyPage.js";
-import { useFetch } from "../internal/useFetch.js";
+import { useStigmer } from "@stigmer/react-core";
+import { LIST_PAGE_MAX } from "@stigmer/react-core/internal";
+import { useFetch } from "@stigmer/react-core/internal";
 import { listLibraryFilesPage } from "./fileListFn.js";
 
 /** Options for {@link useFileCount}. */

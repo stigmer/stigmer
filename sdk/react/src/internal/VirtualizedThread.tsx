@@ -11,7 +11,7 @@ import {
 import { Virtuoso, type VirtuosoHandle } from "react-virtuoso";
 import { cn } from "@stigmer/design-tokens";
 import type { ToolUse } from "@stigmer/client";
-import type { ToolUseAnswer } from "../run/useAnswerToolUse.js";
+import type { ToolUseAnswer } from "@stigmer/react-core";
 import {
   ThreadItemRenderer,
   threadContentColumnClass,
@@ -22,7 +22,7 @@ import {
 import { FilePathContext, type FilePathContextValue } from "../run/FilePathContext.js";
 import { SandboxContext, type SandboxContextValue } from "../run/SandboxContext.js";
 import { ApprovalContext, type ApprovalContextValue } from "../run/ApprovalContext.js";
-import { FileReviewContext, type FileReviewContextValue } from "../run/FileReviewContext.js";
+import { FileReviewContext, type FileReviewContextValue } from "@stigmer/react-core";
 import { DevProfiler, useDomNodeCount } from "./dev/index.js";
 import { JumpToLatestButton } from "./JumpToLatestButton.js";
 import { usePinToLatestOnSignal } from "./useAutoScroll.js";

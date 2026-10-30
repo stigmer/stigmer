@@ -15,15 +15,11 @@
 import { useMemo } from "react";
 import { backgroundCommandText, resolveToolKind, normalizeToolResult, type ToolKind } from "@stigmer/client";
 import type { ToolResultView, ToolUse } from "@stigmer/client";
-import {
-  resolveToolCategoryFromCall,
-  extractPrimaryArg,
-  extractShellIntent,
-  defaultChromeForCategory,
-  defaultDisclosureForCategory,
-  isRunGroupableCategory,
-} from "./tool-categories.js";
-import type { ToolCategory, ToolChrome, ToolDisclosure } from "./tool-categories.js";
+import { resolveToolCategoryFromCall, extractPrimaryArg, defaultDisclosureForCategory } from "@stigmer/react-core";
+import { extractShellIntent, defaultChromeForCategory, isRunGroupableCategory } from "@stigmer/react-core/internal";
+import type { ToolDisclosure } from "@stigmer/react-core";
+import type { ToolChrome } from "@stigmer/react-core/internal";
+import type { ToolCategory } from "@stigmer/react-core";
 import { summarizeResultView } from "./ResultView.js";
 
 /** Optional per-kind overrides for label, summary, disclosure, and run-grouping. */
@@ -40,7 +36,7 @@ export interface ToolPresenter {
   readonly disclosure?: (toolUse: ToolUse, result: ToolResultView) => ToolDisclosure;
   /**
    * Overrides the default chrome tier — quiet unboxed line vs bordered card
-   * (see {@link ToolChrome}). Use to restore the boxed look for a kind
+   * (see `ToolChrome`). Use to restore the boxed look for a kind
    * (`() => "card"`) or to quiet a chatty custom tool (`() => "quiet"`).
    * A pending approval gate or a failure always escalates the row to a card
    * regardless of this override — a decision surface and error output must
@@ -51,7 +47,7 @@ export interface ToolPresenter {
    * Overrides whether consecutive same-kind calls fold into one collapsible
    * "Read 5 files" chip. Use to fold a chatty custom tool (`() => true`) or to
    * keep a normally-folded category as standalone rows (`() => false`) without
-   * forking the thread layout. Defaults to {@link isRunGroupableCategory}.
+   * forking the thread layout. Defaults to `isRunGroupableCategory`.
    */
   readonly runGroupable?: (toolUse: ToolUse) => boolean;
 }
@@ -103,7 +99,7 @@ export function getToolPresenter(kind: ToolKind): ToolPresenter | undefined {
 /**
  * Resolves whether a tool call participates in run-grouping, honouring a
  * registered {@link ToolPresenter.runGroupable} override before the
- * category default ({@link isRunGroupableCategory}).
+ * category default (`isRunGroupableCategory`).
  *
  * This is the non-hook twin of the `runGroupable` field in
  * {@link useToolPresentation}, so the pure `segmentToolCalls` layout pass and
@@ -171,7 +167,7 @@ export interface ToolPresentation {
   readonly disclosure: ToolDisclosure;
   /**
    * Default chrome tier for this tool — `"quiet"` renders an unboxed line,
-   * `"card"` a bordered card (see {@link ToolChrome}). A pending gate or a
+   * `"card"` a bordered card (see `ToolChrome`). A pending gate or a
    * failure escalates to `"card"` in the component layer; this is the
    * *settled* default.
    */
@@ -179,7 +175,7 @@ export interface ToolPresentation {
   /**
    * Whether consecutive same-kind calls fold into one collapsible chip — the
    * run-grouping axis, orthogonal to {@link disclosure}. See
-   * {@link isRunGroupableCategory}.
+   * `isRunGroupableCategory`.
    */
   readonly runGroupable: boolean;
 }

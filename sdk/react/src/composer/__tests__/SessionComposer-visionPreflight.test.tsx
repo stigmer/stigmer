@@ -2,12 +2,12 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent, act } from "@testing-library/react";
 import type { ReactNode } from "react";
 import type { Stigmer } from "@stigmer/client";
-import { StigmerContext } from "../../context";
+import { StigmerContext } from "@stigmer/react-core";
 import { noMyVaultClient } from "../../__tests__/helpers/no-my-vault";
 import { ModelRegistryContext } from "../../models/ModelRegistryContext";
 import type { ModelRegistryState } from "../../models/ModelRegistryContext";
-import { parseRegistryDocument } from "../../models/registry";
-import type { VisionLimits } from "../../models/registry";
+import { parseRegistryDocument } from "@stigmer/react-core";
+import type { VisionLimits } from "@stigmer/react-core";
 import { SessionComposer } from "../SessionComposer";
 
 // ---------------------------------------------------------------------------

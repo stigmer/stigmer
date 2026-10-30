@@ -9,9 +9,9 @@
 import { create } from "@bufbuild/protobuf";
 import type { Vault } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
 import { ListVaultsRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/io_pb";
-import { useStigmer } from "../hooks.js";
-import { LIST_PAGE_MAX, readEveryPage } from "../internal/everyPage.js";
-import { useFetch } from "../internal/useFetch.js";
+import { useStigmer } from "@stigmer/react-core";
+import { LIST_PAGE_MAX, readEveryPage } from "@stigmer/react-core/internal";
+import { useFetch } from "@stigmer/react-core/internal";
 
 /** Return value of {@link useVaultList}. */
 export interface UseVaultListReturn {

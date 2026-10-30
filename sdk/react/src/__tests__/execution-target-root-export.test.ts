@@ -5,7 +5,7 @@
  */
 import { describe, it, expect } from "vitest";
 import { ExecutionTarget } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
-import { toProtoExecutionTarget } from "../session/execution-target";
+import { toProtoExecutionTarget } from "@stigmer/react-core/internal";
 // Public-API contract guard (issue #171): ExecutionTargetOption must stay
 // re-exported from the package root so consumers can type the
 // StigmerProvider `executionTarget` prop. This guarantee is enforced at

@@ -235,4 +235,4 @@ export interface WorkbenchState {
 // Data source
 // ---------------------------------------------------------------------------
 
-export type { WorkbenchPageRequest, WorkbenchPage, WorkbenchListFn } from "../search/workbench-page.js";
+export type { WorkbenchPageRequest, WorkbenchPage, WorkbenchListFn } from "@stigmer/react-core";

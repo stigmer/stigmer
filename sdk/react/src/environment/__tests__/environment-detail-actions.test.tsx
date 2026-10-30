@@ -43,9 +43,9 @@ import {
   PlatformQueryController,
   ServerEdition,
 } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
-import { StigmerContext } from "../../context";
-import { ExecutionTargetContext } from "../../execution-target-context";
-import { FetchCacheContext } from "../../internal/FetchCacheProvider";
+import { StigmerContext } from "@stigmer/react-core";
+import { ExecutionTargetContext } from "@stigmer/react-core/internal";
+import { FetchCacheContext } from "@stigmer/react-core/internal";
 import { openMenu } from "../../__tests__/helpers/open-menu";
 
 vi.mock("../../grant/useCheckPermission", () => ({

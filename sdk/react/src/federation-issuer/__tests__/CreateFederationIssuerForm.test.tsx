@@ -18,7 +18,7 @@ import {
 } from "@stigmer/apis/ai/stigmer/iam/federationissuer/v1/api_pb";
 import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 import type { FederationIssuerInput } from "@stigmer/client";
-import { StigmerContext } from "../../context";
+import { StigmerContext } from "@stigmer/react-core";
 import { CreateFederationIssuerForm } from "../CreateFederationIssuerForm";
 
 const CREATED: FederationIssuer = create(FederationIssuerSchema, {

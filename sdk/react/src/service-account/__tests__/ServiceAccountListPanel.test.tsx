@@ -24,7 +24,7 @@ import {
   type ListServiceAccountsInput,
 } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/io_pb";
 import { ResourceAccessByPrincipalListSchema } from "@stigmer/apis/ai/stigmer/iam/grant/v1/io_pb";
-import { StigmerContext } from "../../context";
+import { StigmerContext } from "@stigmer/react-core";
 import { ServiceAccountListPanel } from "../ServiceAccountListPanel";
 
 const asked = vi.hoisted(() => ({

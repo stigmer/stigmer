@@ -9,7 +9,7 @@
 
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, cleanup } from "@testing-library/react";
-import { samples } from "../../test/samples";
+import { samples } from "@stigmer/react-core/test";
 
 const jumpToLatestSpy = vi.fn();
 

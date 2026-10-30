@@ -1,5 +1,5 @@
 import type { DiffHunk, FileDiffEntry, MultiFileDiffResult } from "./types.js";
-import { computeDiff } from "./computeDiff.js";
+import { computeDiff } from "@stigmer/react-core";
 
 /**
  * Compute a multi-file diff between two snapshots of a file tree.

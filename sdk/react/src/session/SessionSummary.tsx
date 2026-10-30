@@ -20,8 +20,8 @@ import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb
 import type { ReactNode } from "react";
 import type { Turn } from "@stigmer/client";
 import { cn } from "@stigmer/design-tokens";
-import { useStigmer } from "../hooks.js";
-import { useFetch } from "../internal/useFetch.js";
+import { useStigmer } from "@stigmer/react-core";
+import { useFetch } from "@stigmer/react-core/internal";
 import { durationWords } from "./duration-words.js";
 import { turnOutcome } from "./turn-outcome.js";
 import { isChannelOriginSession } from "./channelOrigin.js";

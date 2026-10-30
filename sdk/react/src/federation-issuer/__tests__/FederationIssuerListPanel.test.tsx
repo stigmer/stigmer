@@ -11,7 +11,7 @@ import {
   FederationIssuerSchema,
   type FederationIssuer,
 } from "@stigmer/apis/ai/stigmer/iam/federationissuer/v1/api_pb";
-import { StigmerContext } from "../../context";
+import { StigmerContext } from "@stigmer/react-core";
 import { FederationIssuerListPanel } from "../FederationIssuerListPanel";
 
 const ISSUER: FederationIssuer = create(FederationIssuerSchema, {

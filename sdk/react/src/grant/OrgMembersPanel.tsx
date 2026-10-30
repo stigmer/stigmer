@@ -20,7 +20,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { useOwnerAssignment } from "./useOwnerAssignment.js";
 import { useResourceAccess } from "./useResourceAccess.js";
-import { useWhoAmI } from "./useWhoAmI.js";
+import { useWhoAmI } from "@stigmer/react-core";
 import { useRevokeOrgAccess } from "./useRevokeOrgAccess.js";
 import { useCreateGrant } from "./useCreateGrant.js";
 import { useDeleteGrant } from "./useDeleteGrant.js";

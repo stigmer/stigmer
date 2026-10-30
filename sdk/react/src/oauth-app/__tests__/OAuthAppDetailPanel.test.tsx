@@ -8,7 +8,7 @@ import {
 import { TokenEndpointAuthMethod } from "@stigmer/apis/ai/stigmer/iam/oauthapp/v1/spec_pb";
 import type { CheckMyPermissionInput } from "@stigmer/apis/ai/stigmer/iam/grant/v1/io_pb";
 import { sentUpdate } from "../../internal/__tests__/sent-update";
-import { StigmerContext } from "../../context";
+import { StigmerContext } from "@stigmer/react-core";
 import { OAuthAppDetailPanel } from "../OAuthAppDetailPanel";
 
 /**

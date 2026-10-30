@@ -19,11 +19,12 @@ import type { RunSpec } from "@stigmer/apis/ai/stigmer/agentic/run/v1/spec_pb";
 import { SessionSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
 import { StigmerError } from "@stigmer/client";
 
-vi.mock("../../hooks", () => ({
+vi.mock("@stigmer/react-core", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@stigmer/react-core")>()),
   useStigmer: vi.fn(),
 }));
 
-import { useStigmer } from "../../hooks";
+import { useStigmer } from "@stigmer/react-core";
 import { useResolveRunSession } from "../useResolveRunSession";
 
 function turn(target: RunSpec["target"]): Run {

@@ -23,12 +23,14 @@ import { ApprovalCardBody } from "./ApprovalCard.js";
 import { MemoryProposalCardBody } from "../memory/MemoryProposalCard.js";
 import { useApproval } from "./ApprovalContext.js";
 import { BackgroundCommandTrail, BackgroundStopError } from "./BackgroundCommandStatus.js";
-import { useFileReviewRowState } from "./FileReviewContext.js";
-import type { FileReviewRowState } from "./file-review-status.js";
+import { useFileReviewRowState } from "@stigmer/react-core";
+import type { FileReviewRowState } from "@stigmer/react-core";
 import { FilePathLink } from "./FilePathLink.js";
 // ToolChrome is type-only here so the doc link below resolves; the strict
 // tsdoc gate (tsdoc:check) guards it against removal.
-import { isFileCategory, subagentSubjectOf, type ToolCategory, type ToolChrome } from "./tool-categories.js";
+import { subagentSubjectOf } from "@stigmer/react-core";
+import { isFileCategory, type ToolChrome } from "@stigmer/react-core/internal";
+import { type ToolCategory } from "@stigmer/react-core";
 import { useToolPresentation } from "./tool-presenter.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 
@@ -96,7 +98,7 @@ export interface ToolCallItemProps {
  * render as quiet unboxed lines — no card frame — while content-bearing
  * categories keep their cards. A quiet row escalates to a card while gated
  * or failed; its disclosed body renders under a light left rail instead of a
- * border. See {@link ToolChrome}.
+ * border. See `ToolChrome`.
  *
  * A call that started a command in the background (`toolUse.background`)
  * is the command's row: a "Background" chip and the command's state beside

@@ -21,9 +21,9 @@
 import { useCallback, useId, useMemo, useRef } from "react";
 import type { File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { cn } from "@stigmer/design-tokens";
-import { useStigmer } from "../hooks.js";
-import { useFetch } from "../internal/useFetch.js";
-import { LIST_PAGE_MAX, readEveryPage } from "../internal/everyPage.js";
+import { useStigmer } from "@stigmer/react-core";
+import { useFetch } from "@stigmer/react-core/internal";
+import { LIST_PAGE_MAX, readEveryPage } from "@stigmer/react-core/internal";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { listLibraryFilesPage } from "./fileListFn.js";
 import { FileUploadButton } from "./FileUploadButton.js";

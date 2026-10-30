@@ -407,6 +407,7 @@ export const LANES = {
       "docs-agent/**",
       "client-apps/cli/**",
       "sdk/ink/**",
+      "sdk/react-core/**",
       "sdk/react/**",
       // The docs site embeds the Ask AI panel through @stigmer/embed's
       // workspace source, so embed changes can break the site build/tests.
@@ -591,8 +592,9 @@ export const LANES = {
     // The published TypeScript libraries installed from their packed
     // tarballs (test/install/smoke-libs.mjs): the terminal kit, the React
     // kit, the embed and the design tokens, and the @stigmer/* closure the
-    // pack carries with them (the core SDK, session-log, tool-vocabulary,
-    // plugin-package, eval-runtime, and @stigmer/apis built from apis/).
+    // pack carries with them (the core SDK, the React conversation core,
+    // session-log, tool-vocabulary, plugin-package, eval-runtime, and
+    // @stigmer/apis built from apis/).
     // Each one's sources, manifest and build config decide what its tarball
     // ships, and the React kit's styles and the embed's loader are built by
     // their own build steps.
@@ -605,6 +607,10 @@ export const LANES = {
       "sdk/theme/package.json",
       "sdk/theme/tsconfig.json",
       "sdk/theme/tsconfig.build.json",
+      "sdk/react-core/src/**",
+      "sdk/react-core/package.json",
+      "sdk/react-core/tsconfig.json",
+      "sdk/react-core/tsconfig.build.json",
       "sdk/react/src/**",
       "sdk/react/package.json",
       "sdk/react/tsconfig.json",

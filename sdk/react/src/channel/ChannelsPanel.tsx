@@ -15,7 +15,7 @@ import { useChannelAppList } from "../channel-app/useChannelAppList.js";
 import { ConfirmDialog } from "../resource-detail/ConfirmDialog.js";
 import { useConfirmAction } from "../resource-detail/useConfirmAction.js";
 import { EditResourceYamlDialog } from "../manifest/EditResourceYamlDialog.js";
-import { useDeploymentMode } from "../deployment-mode.js";
+import { useDeploymentMode } from "@stigmer/react-core";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
 import { ChatLinkDialog } from "../chat-link/ChatLinkDialog.js";
 import { ChannelConversationsDialog } from "./ChannelConversationsDialog.js";

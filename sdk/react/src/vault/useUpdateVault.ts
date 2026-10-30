@@ -10,8 +10,8 @@
  */
 import { useCallback, useState } from "react";
 import type { Vault } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
-import { useStigmer } from "../hooks.js";
-import { toError } from "../internal/toError.js";
+import { useStigmer } from "@stigmer/react-core";
+import { toError } from "@stigmer/react-core/internal";
 
 /** The fields an update may change, on the vault it names. */
 export interface UpdateVaultInput {

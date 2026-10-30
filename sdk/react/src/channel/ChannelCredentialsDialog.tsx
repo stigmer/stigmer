@@ -9,7 +9,7 @@ import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb
 import { Button } from "../button/Button.js";
 import { ChannelToolCredentials } from "./ChannelToolCredentials.js";
 import { useSaveChannel } from "./useSaveChannel.js";
-import { saveErrorMessage } from "../internal/maskedEdit.js";
+import { saveErrorMessage } from "@stigmer/react-core/internal";
 import { keptReference } from "../internal/kept-reference.js";
 
 /** Props for {@link ChannelCredentialsDialog}. */

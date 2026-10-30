@@ -13,15 +13,15 @@ import type {
   ToolContentBlock,
 } from "@stigmer/client";
 import { cn } from "@stigmer/design-tokens";
-import { computeDiff } from "../version-history/computeDiff.js";
+import { computeDiff } from "@stigmer/react-core";
 import { DiffViewer } from "../version-history/DiffViewer.js";
 import type { DiffHunk } from "../version-history/types.js";
 import { CollapsibleCode, CollapsiblePre, formatJson } from "./tool-rendering-primitives.js";
 import { FilePathLink } from "./FilePathLink.js";
 import { EmptyChangeNotice } from "./EmptyChangeNotice.js";
 import { TerminalSession } from "./TerminalSession.js";
-import { runIdFromStorageKey } from "./useFileChangeContent.js";
-import { useArtifactDownloadUrl } from "./useArtifactDownloadUrl.js";
+import { runIdFromStorageKey } from "@stigmer/react-core/internal";
+import { useArtifactDownloadUrl } from "@stigmer/react-core";
 import { useArtifactDownload } from "./useArtifactDownload.js";
 import { useToolOutputContent } from "./useToolOutputContent.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";

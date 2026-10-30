@@ -11,9 +11,9 @@ import { renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import type { DeploymentMode } from "@stigmer/client";
 import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
-import { StigmerContext } from "../../context";
-import { FetchCacheContext } from "../../internal/FetchCacheProvider";
-import { DeploymentModeContext } from "../../deployment-mode";
+import { StigmerContext } from "@stigmer/react-core";
+import { FetchCacheContext } from "@stigmer/react-core/internal";
+import { DeploymentModeContext } from "@stigmer/react-core";
 import {
   ADD_CHANNEL_NEEDS_CLOUD,
   ADD_CHANNEL_NEEDS_PERMISSION,

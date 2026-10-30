@@ -3,7 +3,7 @@
 import { type FormEvent, useCallback, useEffect, useId, useMemo, useState } from "react";
 import { cn } from "@stigmer/design-tokens";
 import { buildOrganizationProto, getUserMessage } from "@stigmer/client";
-import { maskedEdit, saveErrorMessage } from "../internal/maskedEdit.js";
+import { maskedEdit, saveErrorMessage } from "@stigmer/react-core/internal";
 import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import { useOrganization } from "./useOrganization.js";
 import { useUpdateOrganization } from "./useUpdateOrganization.js";
@@ -12,7 +12,8 @@ import { useOptionalOrg } from "./OrgProvider.js";
 import { useSingleOrg } from "../server-info.js";
 import { useFederationIssuerList } from "../federation-issuer/useFederationIssuerList.js";
 import { FEDERATION_ISSUERS_MANAGED_BY_ADMINS } from "../federation-issuer/copy.js";
-import { useResourceAvailable, ApiResourceKind } from "../deployment-mode.js";
+import { useResourceAvailable } from "@stigmer/react-core";
+import { ApiResourceKind } from "@stigmer/react-core/internal";
 import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { useCopyFeedback } from "../internal/useCopyFeedback.js";

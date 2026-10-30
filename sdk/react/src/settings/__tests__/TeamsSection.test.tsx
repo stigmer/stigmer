@@ -18,7 +18,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import { TeamSchema, type Team } from "@stigmer/apis/ai/stigmer/iam/team/v1/api_pb";
 import type { DeploymentMode } from "@stigmer/client";
-import { DeploymentModeContext } from "../../deployment-mode";
+import { DeploymentModeContext } from "@stigmer/react-core";
 
 const stubs = vi.hoisted(() => ({
   listedOrg: undefined as string | null | undefined,

@@ -8,7 +8,7 @@ import { act, renderHook, cleanup } from "@testing-library/react";
 import type { ReactNode } from "react";
 import type { RenameInput } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
-import { StigmerContext } from "../../context";
+import { StigmerContext } from "@stigmer/react-core";
 import { useRenameOrganization } from "../useRenameOrganization";
 
 afterEach(cleanup);

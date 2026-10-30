@@ -5,7 +5,7 @@
 // progress strip reads the run's slim progress entries.
 import type { FileChangeProgressEntry } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
 import { FileChangeKind } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
-import { extractPrimaryArg, fileReviewability } from "@stigmer/react-sdk/headless";
+import { extractPrimaryArg, fileReviewability } from "@stigmer/react-core";
 import { resolveToolKind, type FileReviewFile, type FileReviewSet, type ToolUse } from "@stigmer/client";
 
 /**

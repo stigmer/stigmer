@@ -5,9 +5,9 @@ import { Popover } from "@base-ui/react/popover";
 import { cn } from "@stigmer/design-tokens";
 import { useStigmerPortalContainer } from "../portal-container.js";
 
-import type { InteractionModeOption } from "./interaction-mode.js";
+import type { InteractionModeOption } from "@stigmer/react-core";
 
-export type { InteractionModeOption } from "./interaction-mode.js";
+export type { InteractionModeOption } from "@stigmer/react-core";
 
 const OPTIONS: readonly InteractionModeOption[] = ["agent", "plan"];
 

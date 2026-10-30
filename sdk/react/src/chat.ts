@@ -8,6 +8,6 @@
 export { AgentChat } from "./agent-chat/AgentChat.js";
 export type { AgentChatProps, AgentChatVariant } from "./agent-chat/AgentChat.js";
 export { StigmerProvider, type StigmerProviderProps } from "./provider.js";
-export { useStigmer } from "./hooks.js";
+export { useStigmer } from "@stigmer/react-core";
 export type { SessionAudience } from "./session/audience.js";
 export type { SessionRunConfig } from "./session/run-config.js";

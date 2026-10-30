@@ -8,7 +8,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Stigmer } from "@stigmer/client";
 import type { GitHubRepository } from "@stigmer/apis/ai/stigmer/platform/github/v1/io_pb";
-import { useStigmer } from "../hooks.js";
+import { useStigmer } from "@stigmer/react-core";
 
 /** A GitHub repository from the API. */
 export interface GitHubRepo {

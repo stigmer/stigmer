@@ -19,9 +19,9 @@ import {
   type Session,
 } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
-import { StigmerContext } from "../../context";
-import { FetchCache } from "../../internal/fetch-cache";
-import { FetchCacheContext } from "../../internal/FetchCacheProvider";
+import { StigmerContext } from "@stigmer/react-core";
+import { FetchCache } from "@stigmer/react-core/internal";
+import { FetchCacheContext } from "@stigmer/react-core/internal";
 import { OrgProvider, useOrg } from "../OrgProvider";
 import { useFollowSessionOrganization } from "../useFollowSessionOrganization";
 

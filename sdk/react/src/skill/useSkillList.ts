@@ -2,7 +2,7 @@
 
 import type { SearchResult } from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { useResourceList } from "../search/index.js";
+import { useResourceList } from "@stigmer/react-core/internal";
 
 /** Options for {@link useSkillList}. */
 export interface UseSkillListOptions {

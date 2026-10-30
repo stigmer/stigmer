@@ -8,9 +8,9 @@ import type { ConversationMediaRef } from "@stigmer/apis/ai/stigmer/agentic/chan
 import { GetConversationMediaDownloadUrlInputSchema } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/conversation_io_pb";
 import { ImageLightbox } from "../upload/ImageLightbox.js";
 import { UNSTYLED_BUTTON } from "../internal/form-primitives.js";
-import { toError } from "../internal/toError.js";
+import { toError } from "@stigmer/react-core/internal";
 import { TruncatedText } from "../internal/truncated-text.js";
-import { useStigmer } from "../hooks.js";
+import { useStigmer } from "@stigmer/react-core";
 import { useConversationMediaUrl } from "./useConversationMediaUrl.js";
 import { formatFileSize } from "../file/file-size.js";
 

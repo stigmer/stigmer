@@ -8,7 +8,7 @@ import { InvitationSpecSchema } from "@stigmer/apis/ai/stigmer/iam/invitation/v1
 import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
-import { StigmerContext } from "../../context";
+import { StigmerContext } from "@stigmer/react-core";
 import { useCreateInvitation } from "../useCreateInvitation";
 
 function createMockInvitation(input: InvitationInput) {

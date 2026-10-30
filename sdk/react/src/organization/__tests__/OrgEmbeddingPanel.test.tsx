@@ -28,7 +28,7 @@ import {
 import type { UpdateOrganizationEmbeddingInput } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/io_pb";
 import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { StigmerContext } from "../../context";
+import { StigmerContext } from "@stigmer/react-core";
 import { OrgEmbeddingPanel, formatSignInRole } from "../OrgEmbeddingPanel";
 import {
   organizationEmbeddingOf,

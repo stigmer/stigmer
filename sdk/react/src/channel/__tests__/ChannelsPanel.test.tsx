@@ -15,9 +15,9 @@ import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb
 import { render, screen, fireEvent, waitFor, cleanup, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import type { ChannelInput } from "@stigmer/client";
-import { StigmerContext } from "../../context";
-import { FetchCacheContext } from "../../internal/FetchCacheProvider";
-import { DeploymentModeContext } from "../../deployment-mode";
+import { StigmerContext } from "@stigmer/react-core";
+import { FetchCacheContext } from "@stigmer/react-core/internal";
+import { DeploymentModeContext } from "@stigmer/react-core";
 import { openMenu } from "../../__tests__/helpers/open-menu";
 import { ChannelsPanel } from "../ChannelsPanel";
 import { toast } from "../../feedback/toast";

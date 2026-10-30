@@ -1,8 +1,8 @@
 "use client";
 
 import type { Marketplace, MarketplaceFinding } from "@stigmer/plugin-package";
-import { useStigmer } from "../hooks.js";
-import { useFetch } from "../internal/useFetch.js";
+import { useStigmer } from "@stigmer/react-core";
+import { useFetch } from "@stigmer/react-core/internal";
 import { openMarketplaceSource } from "./sources/open.js";
 import type { OpenedMarketplace } from "./sources/read.js";
 import type { FetchImpl, MarketplaceSource } from "./sources/types.js";

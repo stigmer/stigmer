@@ -51,7 +51,8 @@ vi.mock("../useResourceAccess.js", () => ({
     refetch: () => {},
   }),
 }));
-vi.mock("../useWhoAmI.js", () => ({
+vi.mock("@stigmer/react-core", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@stigmer/react-core")>()),
   useWhoAmI: () => ({ account: { metadata: { id: "ida_me" } } }),
 }));
 vi.mock("../useOwnerAssignment.js", () => ({

@@ -5,7 +5,7 @@ import { normalizeToolResult, redactSecretArgs, type ToolFullOutput, type ToolUs
 import { cn } from "@stigmer/design-tokens";
 import { TruncatedText } from "../internal/truncated-text.js";
 import { formatDuration } from "./ToolCallDetail.js";
-import { humanizeToolName } from "./tool-categories.js";
+import { humanizeToolName } from "@stigmer/react-core";
 import {
   CollapsiblePre,
   CollapsibleJsonBlock,
@@ -14,8 +14,8 @@ import {
   isScalar,
   humanizeArgKey,
 } from "./tool-rendering-primitives.js";
-import { runIdFromStorageKey } from "./useFileChangeContent.js";
-import { useArtifactDownloadUrl } from "./useArtifactDownloadUrl.js";
+import { runIdFromStorageKey } from "@stigmer/react-core/internal";
+import { useArtifactDownloadUrl } from "@stigmer/react-core";
 import { useArtifactDownload } from "./useArtifactDownload.js";
 import { useToolOutputContent } from "./useToolOutputContent.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";

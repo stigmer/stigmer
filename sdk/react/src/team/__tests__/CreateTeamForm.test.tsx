@@ -6,7 +6,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import type { Team } from "@stigmer/apis/ai/stigmer/iam/team/v1/api_pb";
-import { StigmerContext } from "../../context";
+import { StigmerContext } from "@stigmer/react-core";
 import { CreateTeamForm } from "../CreateTeamForm";
 
 afterEach(cleanup);

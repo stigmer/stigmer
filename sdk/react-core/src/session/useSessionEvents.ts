@@ -113,12 +113,12 @@ export interface UseSessionEventsOptions {
   /**
    * How long (ms) the follow may deliver nothing before the watchdog
    * reconnects once, then surfaces `connectTimedOut`. Defaults to
-   * {@link DEFAULT_CONNECT_TIMEOUT_MS}.
+   * `DEFAULT_CONNECT_TIMEOUT_MS`.
    */
   readonly connectTimeoutMs?: number;
   /**
    * How long (ms) a working turn may go without an event before `isSlow`.
-   * Defaults to {@link DEFAULT_SLOW_THRESHOLD_MS}.
+   * Defaults to `DEFAULT_SLOW_THRESHOLD_MS`.
    */
   readonly slowThresholdMs?: number;
 }

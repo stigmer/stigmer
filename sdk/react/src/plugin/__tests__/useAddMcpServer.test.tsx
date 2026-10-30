@@ -23,7 +23,7 @@ import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb"
 import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 import { digestArchive } from "@stigmer/plugin-package/client";
 
-import { StigmerContext } from "../../context.js";
+import { StigmerContext } from "@stigmer/react-core";
 import { PluginReadRefusal } from "../sources/read.js";
 import { mcpServerPluginFiles, prepareMcpServerPlugin, useAddMcpServer } from "../useAddMcpServer.js";
 

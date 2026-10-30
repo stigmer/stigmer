@@ -35,9 +35,11 @@ import { Section } from "../resource-detail/Section.js";
 import { HarnessSelector } from "../models/HarnessSelector.js";
 import { ModelSelector } from "../models/ModelSelector.js";
 import { useModelRegistry } from "../models/useModelRegistry.js";
-import { HARNESS_META, toProtoHarness, type HarnessOption } from "../models/harness.js";
-import type { ServiceTierOption } from "../models/service-tier.js";
-import { thinkingLocked, type ThinkingModeOption } from "../models/thinking-mode.js";
+import { toProtoHarness, type HarnessOption } from "@stigmer/react-core";
+import { HARNESS_META } from "@stigmer/react-core/internal";
+import type { ServiceTierOption } from "@stigmer/react-core";
+import { thinkingLocked } from "@stigmer/react-core";
+import { type ThinkingModeOption } from "@stigmer/react-core";
 import { agentHarnessOf } from "./run-defaults.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 

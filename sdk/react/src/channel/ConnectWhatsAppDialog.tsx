@@ -9,9 +9,9 @@ import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb
 import { ChannelInstallState } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/status_pb";
 import { Button } from "../button/Button.js";
 import { useChannelAppList } from "../channel-app/useChannelAppList.js";
-import { useDeploymentMode } from "../deployment-mode.js";
+import { useDeploymentMode } from "@stigmer/react-core";
 import { channelInstallsAvailable } from "./providers.js";
-import { useStigmer } from "../hooks.js";
+import { useStigmer } from "@stigmer/react-core";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
 import {
   RegisterChannelAppAffordance,

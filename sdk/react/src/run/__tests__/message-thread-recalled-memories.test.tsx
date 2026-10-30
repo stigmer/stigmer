@@ -29,7 +29,7 @@ import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apir
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { SessionEventSchema, type SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 import type { TurnPhase } from "@stigmer/client";
-import { samples } from "../../test/samples";
+import { samples } from "@stigmer/react-core/test";
 
 import { MessageThread } from "../MessageThread";
 

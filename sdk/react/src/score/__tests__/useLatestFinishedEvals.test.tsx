@@ -7,8 +7,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { StigmerContext } from "../../context";
-import { FetchCacheContext } from "../../internal/FetchCacheProvider";
+import { StigmerContext } from "@stigmer/react-core";
+import { FetchCacheContext } from "@stigmer/react-core/internal";
 import { agentEvalRunWith } from "../../eval-run/__tests__/eval-fixture.agent";
 import { useLatestFinishedEvals } from "../useLatestFinishedEvals";
 

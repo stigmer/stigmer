@@ -17,8 +17,8 @@
 import { useMemo } from "react";
 import { create } from "@bufbuild/protobuf";
 import { GetFileContentInputSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/io_pb";
-import { useStigmer } from "../hooks.js";
-import { useFetch } from "../internal/useFetch.js";
+import { useStigmer } from "@stigmer/react-core";
+import { useFetch } from "@stigmer/react-core/internal";
 
 interface FileContentData {
   readonly content: string | null;

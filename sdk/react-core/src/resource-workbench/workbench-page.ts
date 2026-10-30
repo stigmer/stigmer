@@ -1,6 +1,7 @@
 // The page contract every list function answers: what a workbench asks
 // for and the page it gets back. Kept apart from the workbench's view types
-// so a list function (the library source here) carries no component type.
+// so a list function (the library source, search/librarySource.ts) carries
+// no component type.
 
 import type { SearchResult } from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
 

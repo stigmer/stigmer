@@ -3,7 +3,7 @@
 import { type FormEvent, useCallback, useId, useState } from "react";
 import { cn } from "@stigmer/design-tokens";
 import { buildFederationIssuerProto } from "@stigmer/client";
-import { maskedEdit, saveErrorMessage } from "../internal/maskedEdit.js";
+import { maskedEdit, saveErrorMessage } from "@stigmer/react-core/internal";
 import type { FederationIssuer } from "@stigmer/apis/ai/stigmer/iam/federationissuer/v1/api_pb";
 import { timestampDate, type Timestamp } from "@bufbuild/protobuf/wkt";
 import { EXPECTED_AUDIENCE_HINT, EXPECTED_AUDIENCE_PLACEHOLDER } from "./copy.js";

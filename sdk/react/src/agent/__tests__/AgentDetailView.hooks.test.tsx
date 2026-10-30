@@ -16,7 +16,7 @@ import { ErrorInfoSchema } from "@stigmer/apis/google/rpc/error_details_pb";
 import { AgentSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { HookFormat, HookConfigSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/hooks_pb";
-import { samples } from "../../test/samples";
+import { samples } from "@stigmer/react-core/test";
 import { AgentDetailView } from "../AgentDetailView";
 import { sentRefs, sentUpdate } from "../../internal/__tests__/sent-update";
 import { ACME_ID, orgWrapper } from "../../organization/__tests__/org-fixture";

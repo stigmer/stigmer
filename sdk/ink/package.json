@@ -60,7 +60,7 @@
   },
   "dependencies": {
     "@connectrpc/connect-node": "^2.1.1",
-    "@stigmer/react-sdk": "*",
+    "@stigmer/react-core": "*",
     "ink-spinner": "^5.0.0",
     "ink-text-input": "^6.0.0",
     "marked": "^16.4.2",
@@ -76,6 +76,7 @@
   "devDependencies": {
     "@stigmer/apis": "*",
     "@stigmer/client": "*",
+    "@stigmer/react-sdk": "*",
     "@stryker-mutator/core": "10.0.0",
     "@stryker-mutator/typescript-checker": "10.0.0",
     "@stryker-mutator/vitest-runner": "10.0.0",

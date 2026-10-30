@@ -1,0 +1,20 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": ["./src/index.ts"],
+  "tsconfig": "tsconfig.typedoc.json",
+  "json": "dist/api.json",
+  "validation": {
+    "invalidLink": false
+  },
+  "externalSymbolLinkMappings": {
+    "typescript": {
+      "Error": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Error"
+    },
+    "@stigmer/apis": {
+      "*": "https://stigmer.ai/docs/api-reference"
+    },
+    "@stigmer/client": {
+      "*": "https://stigmer.ai/docs/sdk/typescript"
+    }
+  }
+}

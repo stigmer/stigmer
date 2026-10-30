@@ -6,7 +6,7 @@ import { cn } from "@stigmer/design-tokens";
 import { useRenderTracer } from "../internal/dev/index.js";
 import { useAutoDisclosure } from "../internal/useAutoDisclosure.js";
 import { ToolCallItem, CATEGORY_ICON } from "./ToolCallItem.js";
-import type { ToolCategory } from "./tool-categories.js";
+import type { ToolCategory } from "@stigmer/react-core";
 import { SpinnerIcon } from "../internal/thread-card/glyphs.js";
 
 /** Props for {@link ToolRunGroup}. */

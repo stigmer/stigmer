@@ -9,10 +9,11 @@ import { useWorkspaceEntries, type UseWorkspaceEntriesReturn } from "../workspac
 
 import type { SessionComposerSubmitContext, InteractionModeOption } from "../composer/index.js";
 import { fromProtoInteractionMode } from "../composer/index.js";
-import { fromProtoHarness, type HarnessOption } from "../models/harness.js";
+import { fromProtoHarness, type HarnessOption } from "@stigmer/react-core";
 import { Harness, ExecutionTarget } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
-import { fromProtoExecutionTarget, type ExecutionTargetOption } from "./execution-target.js";
-import { useSessionConversation, type UseSessionConversationReturn } from "./useSessionConversation.js";
+import { type ExecutionTargetOption } from "@stigmer/react-core";
+import { fromProtoExecutionTarget } from "@stigmer/react-core/internal";
+import { useSessionConversation, type UseSessionConversationReturn } from "@stigmer/react-core";
 
 import { agentRefOfSession, isSameAgent } from "./agentRefOfSession.js";
 import { useSessionAgentVersion, type UseSessionAgentVersionReturn } from "./useSessionAgentVersion.js";

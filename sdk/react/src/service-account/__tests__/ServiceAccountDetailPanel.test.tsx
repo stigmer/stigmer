@@ -35,7 +35,7 @@ import {
 import { IdentityAccountProvisioningMode } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/enum_pb";
 import { ResourceAccessByPrincipalListSchema } from "@stigmer/apis/ai/stigmer/iam/grant/v1/io_pb";
 import type { GrantSpec } from "@stigmer/apis/ai/stigmer/iam/grant/v1/spec_pb";
-import { StigmerContext } from "../../context";
+import { StigmerContext } from "@stigmer/react-core";
 import { ServiceAccountDetailPanel } from "../ServiceAccountDetailPanel";
 
 const calls = vi.hoisted(() => ({

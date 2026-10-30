@@ -7,8 +7,8 @@ import {
   CancelSubscriptionInputSchema,
   ChangePlanInputSchema,
 } from "@stigmer/apis/ai/stigmer/billing/subscription/v1/io_pb";
-import { useStigmer } from "../hooks.js";
-import { toError } from "../internal/toError.js";
+import { useStigmer } from "@stigmer/react-core";
+import { toError } from "@stigmer/react-core/internal";
 
 /** Return value of {@link useChangePlan}. */
 export interface UseChangePlanReturn {

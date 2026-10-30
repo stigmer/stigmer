@@ -3,7 +3,7 @@
 import { type FormEvent, useCallback, useId, useMemo, useState } from "react";
 import { cn } from "@stigmer/design-tokens";
 import { buildChannelAppProto, getUserMessage } from "@stigmer/client";
-import { maskedEdit, saveErrorMessage } from "../internal/maskedEdit.js";
+import { maskedEdit, saveErrorMessage } from "@stigmer/react-core/internal";
 import type { ChannelApp } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { usePublicBaseUrl } from "../public-base-url-context.js";
 import { useUpdateChannelApp } from "./useUpdateChannelApp.js";

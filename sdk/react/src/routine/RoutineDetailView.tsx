@@ -49,24 +49,14 @@ import {
 } from "./cadence.js";
 import { CadenceField } from "./CadenceField.js";
 import { VaultPicker } from "../vault/VaultPicker.js";
-import { useWhoAmI } from "../grant/useWhoAmI.js";
+import { useWhoAmI } from "@stigmer/react-core";
 import { ModelSelector } from "../models/ModelSelector.js";
-import {
-  HARNESS_META,
-  fromProtoHarness,
-  toProtoHarness,
-  type HarnessOption,
-} from "../models/harness.js";
-import {
-  fromProtoServiceTier,
-  toProtoServiceTier,
-  type ServiceTierOption,
-} from "../models/service-tier.js";
-import {
-  fromProtoThinkingMode,
-  toProtoThinkingMode,
-  type ThinkingModeOption,
-} from "../models/thinking-mode.js";
+import { fromProtoHarness, toProtoHarness, type HarnessOption } from "@stigmer/react-core";
+import { HARNESS_META } from "@stigmer/react-core/internal";
+import { fromProtoServiceTier, toProtoServiceTier } from "@stigmer/react-core/internal";
+import { type ServiceTierOption } from "@stigmer/react-core";
+import { fromProtoThinkingMode, toProtoThinkingMode } from "@stigmer/react-core/internal";
+import { type ThinkingModeOption } from "@stigmer/react-core";
 import { deriveRoutineState, formatNextFire } from "./routineState.js";
 import {
   RoutineFiresCompactList,

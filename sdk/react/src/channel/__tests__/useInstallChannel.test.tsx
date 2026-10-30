@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { StigmerError, getErrorReason } from "@stigmer/client";
 import { ErrorInfoSchema } from "@stigmer/apis/google/rpc/error_details_pb";
-import { StigmerContext } from "../../context";
+import { StigmerContext } from "@stigmer/react-core";
 import { useInstallChannel } from "../useInstallChannel";
 
 function createMockStigmer(overrides: {

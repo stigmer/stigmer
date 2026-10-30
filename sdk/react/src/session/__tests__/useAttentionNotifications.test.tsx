@@ -12,7 +12,7 @@ import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { AttentionSchema, type Attention, type StreamAttentionRequest } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 import type { Stigmer } from "@stigmer/client";
-import { StigmerContext } from "../../context";
+import { StigmerContext } from "@stigmer/react-core";
 import { noticeOf, useAttentionNotifications, type AttentionNotice } from "../useAttentionNotifications";
 
 function attention(id: string, sessionId: string, reason: string, title = `title ${sessionId}`): Attention {

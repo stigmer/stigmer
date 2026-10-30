@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext } from "react";
-import type { ModelInfo, VisionLimits } from "./registry.js";
+import type { ModelInfo, VisionLimits } from "@stigmer/react-core";
 
 /** Internal state held by the model registry context provider. */
 export interface ModelRegistryState {

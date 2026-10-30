@@ -3,8 +3,8 @@
 import { useCallback, useMemo, useState } from "react";
 import { buildEnvironmentProto, type EnvironmentInput } from "@stigmer/client";
 import type { Environment } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/api_pb";
-import { useStigmer } from "../hooks.js";
-import { maskedEdit, saveErrorMessage } from "../internal/maskedEdit.js";
+import { useStigmer } from "@stigmer/react-core";
+import { maskedEdit, saveErrorMessage } from "@stigmer/react-core/internal";
 
 /** The fields an edit of an Environment changes: a patch of its SDK input. */
 export type EnvironmentEdit = Partial<Pick<EnvironmentInput, "description" | "networking" | "packages">>;

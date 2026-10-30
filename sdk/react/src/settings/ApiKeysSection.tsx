@@ -5,7 +5,8 @@ import type { ApiKey } from "@stigmer/apis/ai/stigmer/iam/apikey/v1/api_pb";
 import { ApiKeyListPanel } from "../api-key/ApiKeyListPanel.js";
 import { CreateApiKeyForm } from "../api-key/CreateApiKeyForm.js";
 import { ApiKeyCreatedAlert } from "../api-key/ApiKeyCreatedAlert.js";
-import { useResourceAvailable, ApiResourceKind } from "../deployment-mode.js";
+import { useResourceAvailable } from "@stigmer/react-core";
+import { ApiResourceKind } from "@stigmer/react-core/internal";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
 import { useActiveOrgId } from "../organization/OrgProvider.js";
 

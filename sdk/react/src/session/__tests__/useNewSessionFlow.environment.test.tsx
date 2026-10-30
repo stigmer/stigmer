@@ -14,10 +14,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { parseRegistryJson } from "../../models/registry";
+import { parseRegistryJson } from "@stigmer/react-core";
 import { ModelRegistryContext } from "../../models/ModelRegistryContext";
 import type { ModelRegistryState } from "../../models/ModelRegistryContext";
-import { ExecutionTargetContext } from "../../execution-target-context";
+import { ExecutionTargetContext } from "@stigmer/react-core/internal";
 
 const server = vi.hoisted(() => ({
   environments: undefined as { applies: boolean; limitedNetworking: boolean; packages: boolean } | undefined,
@@ -25,7 +25,8 @@ const server = vi.hoisted(() => ({
 const AGENT_DEFAULT = { org: "org_acme", slug: "data-science", id: "env_ds" };
 const ORG_DEFAULT = { org: "org_acme", slug: "base-tools", id: "env_bt" };
 
-vi.mock("../../hooks", () => {
+const mockCreateExecution = vi.fn();
+vi.mock("@stigmer/react-core", async (importOriginal) => {
   const stigmer = {
     agent: {
       getByReference: async () => ({
@@ -36,13 +37,12 @@ vi.mock("../../hooks", () => {
     platform: { getServerInfo: async () => ({ environments: server.environments }) },
     organization: { get: async () => ({ spec: { preferences: { defaultEnvironmentRef: ORG_DEFAULT } } }) },
   };
-  return { useStigmer: () => stigmer };
+  return {
+    ...(await importOriginal<typeof import("@stigmer/react-core")>()),
+    useCreateRun: () => ({ create: mockCreateExecution, isCreating: false, error: null, clearError: vi.fn() }),
+    useStigmer: () => stigmer,
+  };
 });
-
-const mockCreateExecution = vi.fn();
-vi.mock("../../run/useCreateRun", () => ({
-  useCreateRun: () => ({ create: mockCreateExecution, isCreating: false, error: null, clearError: vi.fn() }),
-}));
 
 vi.mock("../../workspace", () => ({
   useWorkspaceEntries: () => ({

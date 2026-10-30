@@ -27,9 +27,9 @@ import {
   StartSignInInputSchema,
   type CompleteSignInOutput,
 } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/io_pb";
-import { useStigmer } from "../hooks.js";
+import { useStigmer } from "@stigmer/react-core";
 import { checkedLoginPageUrl } from "../internal/loginPageUrl.js";
-import { toError } from "../internal/toError.js";
+import { toError } from "@stigmer/react-core/internal";
 import {
   closeOAuthPopup,
   openOAuthPopup,

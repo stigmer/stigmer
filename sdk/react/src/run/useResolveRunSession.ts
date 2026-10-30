@@ -1,8 +1,8 @@
 "use client";
 
 import { isNotFound, isPermissionDenied } from "@stigmer/client";
-import { useStigmer } from "../hooks.js";
-import { useFetch } from "../internal/useFetch.js";
+import { useStigmer } from "@stigmer/react-core";
+import { useFetch } from "@stigmer/react-core/internal";
 
 /** Return value of {@link useResolveRunSession}. */
 export interface UseResolveRunSessionReturn {

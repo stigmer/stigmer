@@ -12,8 +12,8 @@
  * the organization's current name. Navigation stays the host's: it
  * replaces the URL itself.
  */
-import { useStigmer } from "../hooks.js";
-import { useFetch } from "../internal/useFetch.js";
+import { useStigmer } from "@stigmer/react-core";
+import { useFetch } from "@stigmer/react-core/internal";
 import { useKnownOrgs, useOptionalOrg } from "./OrgProvider.js";
 
 interface LookedUpSlug {

@@ -27,7 +27,7 @@
  * runner-disclosed only.
  */
 
-import type { ModelInfo, VisionLimits } from "../models/registry.js";
+import type { ModelInfo, VisionLimits } from "@stigmer/react-core";
 import { formatFileSize } from "../file/file-size.js";
 
 /**

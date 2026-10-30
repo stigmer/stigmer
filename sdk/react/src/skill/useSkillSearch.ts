@@ -1,11 +1,8 @@
 "use client";
 
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import {
-  useResourceSearch,
-  type UseResourceSearchOptions,
-  type UseResourceSearchReturn,
-} from "../search/index.js";
+import { type UseResourceSearchOptions, type UseResourceSearchReturn } from "@stigmer/react-core";
+import { useResourceSearch } from "@stigmer/react-core/internal";
 
 /** Options for {@link useSkillSearch}. Delegates to the shared resource search options. */
 export type UseSkillSearchOptions = UseResourceSearchOptions;

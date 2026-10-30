@@ -10,11 +10,8 @@ export type {
   UseAgentCountReturn,
 } from "./useAgentCount.js";
 
-export { useAgentSearch } from "./useAgentSearch.js";
-export type {
-  UseAgentSearchOptions,
-  UseAgentSearchReturn,
-} from "./useAgentSearch.js";
+export { useAgentSearch } from "@stigmer/react-core";
+export type { UseAgentSearchOptions, UseAgentSearchReturn } from "@stigmer/react-core";
 
 export { AgentPicker } from "./AgentPicker.js";
 export type { AgentPickerProps } from "./AgentPicker.js";

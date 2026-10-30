@@ -21,7 +21,7 @@ import {
   ThinkingMode,
 } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { ModelRegistryContext } from "../../models/ModelRegistryContext";
-import type { ModelInfo } from "../../models/registry";
+import type { ModelInfo } from "@stigmer/react-core";
 import { AgentRunDefaultsSection } from "../AgentRunDefaultsSection";
 
 beforeAll(() => {

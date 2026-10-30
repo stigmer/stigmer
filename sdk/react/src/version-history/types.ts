@@ -1,11 +1,11 @@
 import type { ReactNode } from "react";
-import type { DiffHunk } from "./diff-types.js";
+import type { DiffHunk } from "@stigmer/react-core";
 
 // ---------------------------------------------------------------------------
 // Diff types — generic text diff primitives for any versioned resource
 // ---------------------------------------------------------------------------
 
-export type { DiffLine, DiffHunk } from "./diff-types.js";
+export type { DiffLine, DiffHunk } from "@stigmer/react-core";
 
 /** Summary of changes to a single file between two versions. */
 export interface FileDiffEntry {

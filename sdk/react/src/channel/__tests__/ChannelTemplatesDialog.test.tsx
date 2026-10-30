@@ -3,9 +3,9 @@ import { render, screen, waitFor, cleanup, fireEvent } from "@testing-library/re
 import type { ReactNode } from "react";
 import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
 import { ChannelInstallState } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/status_pb";
-import { StigmerContext } from "../../context";
-import { DeploymentModeContext } from "../../deployment-mode";
-import { FetchCacheContext } from "../../internal/FetchCacheProvider";
+import { StigmerContext } from "@stigmer/react-core";
+import { DeploymentModeContext } from "@stigmer/react-core";
+import { FetchCacheContext } from "@stigmer/react-core/internal";
 import { ChannelTemplatesDialog } from "../ChannelTemplatesDialog";
 
 function makeChannel(overrides?: {

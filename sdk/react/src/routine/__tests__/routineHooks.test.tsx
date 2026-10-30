@@ -16,8 +16,8 @@ import {
 } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { StigmerError } from "@stigmer/client";
-import { StigmerContext } from "../../context";
-import { FetchCacheContext } from "../../internal/FetchCacheProvider";
+import { StigmerContext } from "@stigmer/react-core";
+import { FetchCacheContext } from "@stigmer/react-core/internal";
 import { useRoutine } from "../useRoutine";
 import { useRoutineList } from "../useRoutineList";
 import { useRoutineCount } from "../useRoutineCount";

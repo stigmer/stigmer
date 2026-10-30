@@ -9,8 +9,8 @@ import {
   type AppliedManifest,
   type ManifestDocument,
 } from "@stigmer/client";
-import { useStigmer } from "../hooks.js";
-import { toError } from "../internal/toError.js";
+import { useStigmer } from "@stigmer/react-core";
+import { toError } from "@stigmer/react-core/internal";
 
 /**
  * Result of validating the edited YAML against the source resource.

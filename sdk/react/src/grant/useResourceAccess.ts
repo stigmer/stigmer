@@ -6,8 +6,8 @@ import {
   ListResourceAccessInputSchema,
 } from "@stigmer/apis/ai/stigmer/iam/grant/v1/io_pb";
 import { ApiResourceRefSchema } from "@stigmer/apis/ai/stigmer/iam/grant/v1/spec_pb";
-import { useStigmer } from "../hooks.js";
-import { useFetch } from "../internal/useFetch.js";
+import { useStigmer } from "@stigmer/react-core";
+import { useFetch } from "@stigmer/react-core/internal";
 
 /** Resource reference for the access query. */
 export interface ResourceAccessRef {

@@ -23,8 +23,8 @@ import {
   type FederationIssuer,
 } from "@stigmer/apis/ai/stigmer/iam/federationissuer/v1/api_pb";
 import { sentUpdate } from "../../internal/__tests__/sent-update";
-import { StigmerContext } from "../../context";
-import { DeploymentModeContext } from "../../deployment-mode";
+import { StigmerContext } from "@stigmer/react-core";
+import { DeploymentModeContext } from "@stigmer/react-core";
 import { OrgProfilePanel } from "../OrgProfilePanel";
 import { OrgProvider, useOrg } from "../OrgProvider";
 import { OrgProfileSection } from "../../settings/OrgProfileSection";

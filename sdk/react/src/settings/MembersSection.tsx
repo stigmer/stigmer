@@ -2,7 +2,8 @@
 
 import { useId } from "react";
 import { OrgMembersPanel } from "../grant/OrgMembersPanel.js";
-import { useResourceAvailable, ApiResourceKind } from "../deployment-mode.js";
+import { useResourceAvailable } from "@stigmer/react-core";
+import { ApiResourceKind } from "@stigmer/react-core/internal";
 import { useOrg } from "../organization/OrgProvider.js";
 import { useFederationIssuerList } from "../federation-issuer/useFederationIssuerList.js";
 

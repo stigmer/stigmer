@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vite
 import { render, screen, cleanup } from "@testing-library/react";
 import type { ReactNode } from "react";
 import type { Stigmer } from "@stigmer/client";
-import { StigmerContext } from "../../context";
+import { StigmerContext } from "@stigmer/react-core";
 import { noMyVaultClient } from "../../__tests__/helpers/no-my-vault";
 import { openMenu } from "../../__tests__/helpers/open-menu";
 import { ModelRegistryContext } from "../../models/ModelRegistryContext";

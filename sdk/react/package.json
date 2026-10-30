@@ -92,6 +92,7 @@
     "@lezer/highlight": "^1.2.3",
     "@stigmer/design-tokens": "*",
     "@stigmer/plugin-package": "*",
+    "@stigmer/react-core": "*",
     "@stigmer/tool-vocabulary": "*",
     "@tanstack/react-table": "^8.21.3",
     "diff": "^8.0.3",

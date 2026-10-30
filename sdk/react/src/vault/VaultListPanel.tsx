@@ -19,7 +19,7 @@ import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/ap
 import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 import { ManageAccessButton } from "../access/ManageAccessButton.js";
 import { PermissionGate } from "../grant/PermissionGate.js";
-import { useStigmer } from "../hooks.js";
+import { useStigmer } from "@stigmer/react-core";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
 import {
   DANGER_BUTTON_CLASS,

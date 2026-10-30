@@ -24,11 +24,11 @@ import {
   ScoreState,
 } from "@stigmer/apis/ai/stigmer/agentic/score/v1/enum_pb";
 import { ScoreListSchema } from "@stigmer/apis/ai/stigmer/agentic/score/v1/io_pb";
-import { StigmerContext } from "../../context";
-import { FetchCacheContext } from "../../internal/FetchCacheProvider";
+import { StigmerContext } from "@stigmer/react-core";
+import { FetchCacheContext } from "@stigmer/react-core/internal";
 import { MessageThread } from "../../run/MessageThread";
 import type { Turn } from "@stigmer/client";
-import { samples } from "../../test/samples";
+import { samples } from "@stigmer/react-core/test";
 
 afterEach(() => {
   cleanup();

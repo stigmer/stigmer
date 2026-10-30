@@ -15,7 +15,7 @@ import {
   ChannelDeliveryStatus,
 } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/delivery_pb";
 import { ChannelReceiptState } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/outbound_pb";
-import { StigmerContext } from "../../context";
+import { StigmerContext } from "@stigmer/react-core";
 import { ConversationTimelineView } from "../ConversationTimelineView";
 
 const NOW = new Date("2026-08-07T12:00:00Z");

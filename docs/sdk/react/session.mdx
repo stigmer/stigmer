@@ -2262,9 +2262,9 @@ Options for [`useSessionEvents`](#usesessionevents).
 <TypeTable
   type={{
     autoReconnect: { type: "boolean", description: "Reconnect a dropped stream automatically, with backoff. Defaults to `true`. `false` surfaces the first drop as `error` for a manual UseSessionEventsReturn.reconnect." },
-    connectTimeoutMs: { type: "number", description: "How long (ms) the follow may deliver nothing before the watchdog reconnects once, then surfaces `connectTimedOut`. Defaults to DEFAULT_CONNECT_TIMEOUT_MS." },
+    connectTimeoutMs: { type: "number", description: "How long (ms) the follow may deliver nothing before the watchdog reconnects once, then surfaces `connectTimedOut`. Defaults to `DEFAULT_CONNECT_TIMEOUT_MS`." },
     reconnectOptions: { type: "BackoffOptions & { maxAttempts?: number }", description: "The reconnect backoff (full jitter, 1 s doubling to 30 s by default) and, optionally, the attempts allowed before the drop is surfaced as `error`. A delivered event, or a stream that stayed open 30 s, resets the count." },
-    slowThresholdMs: { type: "number", description: "How long (ms) a working turn may go without an event before `isSlow`. Defaults to DEFAULT_SLOW_THRESHOLD_MS." },
+    slowThresholdMs: { type: "number", description: "How long (ms) a working turn may go without an event before `isSlow`. Defaults to `DEFAULT_SLOW_THRESHOLD_MS`." },
     store: { type: "ConversationStore", description: "The store to fold into. `useSessionConversation` passes its own so the store outlives its consumers' renders; omitted, the hook keeps a private one." },
   }}
 />

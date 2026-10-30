@@ -30,7 +30,7 @@ import type { ReactElement } from "react";
 import axe from "axe-core";
 import { expect } from "vitest";
 import type { Stigmer } from "@stigmer/client";
-import { StigmerContext } from "../../context.js";
+import { StigmerContext } from "@stigmer/react-core";
 
 /** The color modes every state is audited under. */
 export const COLOR_MODES = ["light", "dark"] as const;

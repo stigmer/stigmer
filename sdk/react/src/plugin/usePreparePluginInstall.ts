@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import type { Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
-import { useFetch } from "../internal/useFetch.js";
+import { useFetch } from "@stigmer/react-core/internal";
 import { type OpenedMarketplace, type PreparedInstall, findEntry, prepareEntry } from "./sources/read.js";
 import { type InstallRelation, useInstallRelation } from "./useInstallRelation.js";
 

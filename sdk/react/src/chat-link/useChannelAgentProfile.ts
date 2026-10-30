@@ -6,8 +6,8 @@ import {
   type ChannelAgentProfile,
 } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/io_pb";
 import { isNotFound } from "@stigmer/client";
-import { useStigmer } from "../hooks.js";
-import { useFetch } from "../internal/useFetch.js";
+import { useStigmer } from "@stigmer/react-core";
+import { useFetch } from "@stigmer/react-core/internal";
 import type { ChatLinkAudience } from "./webChannelDraft.js";
 
 /** Options for {@link useChannelAgentProfile}. */

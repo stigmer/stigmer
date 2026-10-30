@@ -16,7 +16,7 @@ import { useMemo } from "react";
 import type { MarketplaceEntry, PluginPresentation } from "@stigmer/plugin-package";
 import { readPluginPresentationFromTree } from "@stigmer/plugin-package/client";
 
-import { useFetch } from "../internal/useFetch.js";
+import { useFetch } from "@stigmer/react-core/internal";
 import { type OpenedMarketplace, entryCandidates } from "./sources/read.js";
 
 /** Return value of {@link usePluginPresentation}. */

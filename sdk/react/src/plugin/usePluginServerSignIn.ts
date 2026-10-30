@@ -34,7 +34,7 @@ import { useCallback, useMemo, useState } from "react";
 import type { McpServerEntry } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
 import type { VaultConnection } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/spec_pb";
 import { RUNNER_FILLED_VARIABLES } from "@stigmer/plugin-package";
-import { toError } from "../internal/toError.js";
+import { toError } from "@stigmer/react-core/internal";
 import { toolAddressOf, vaultLoginServes } from "../vault/address.js";
 import { useMyVault } from "../vault/useMyVault.js";
 import { type VaultSignInPhase, useVaultSignIn } from "../vault/useVaultSignIn.js";

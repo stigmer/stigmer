@@ -23,9 +23,9 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js"
 import { TruncatedText } from "../internal/truncated-text.js";
 import { formatFileSize } from "../file/file-size.js";
 
-import type { MessageFileView } from "./message-file-view.js";
+import type { MessageFileView } from "@stigmer/react-core";
 
-export type { MessageFileView } from "./message-file-view.js";
+export type { MessageFileView } from "@stigmer/react-core";
 
 const NO_VIEWS: readonly MessageFileView[] = [];
 const viewsByBlocks = new WeakMap<readonly ContentBlock[], readonly MessageFileView[]>();

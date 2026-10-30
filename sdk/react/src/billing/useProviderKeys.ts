@@ -8,10 +8,10 @@ import {
   ListProviderKeysInputSchema,
   SetProviderKeyInputSchema,
 } from "@stigmer/apis/ai/stigmer/billing/providerkey/v1/io_pb";
-import { useStigmer } from "../hooks.js";
-import { toError } from "../internal/toError.js";
-import { LIST_PAGE_MAX, readEveryPage } from "../internal/everyPage.js";
-import { useFetch } from "../internal/useFetch.js";
+import { useStigmer } from "@stigmer/react-core";
+import { toError } from "@stigmer/react-core/internal";
+import { LIST_PAGE_MAX, readEveryPage } from "@stigmer/react-core/internal";
+import { useFetch } from "@stigmer/react-core/internal";
 
 /**
  * The providers an organization holds a key for, by their wire names.

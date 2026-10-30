@@ -21,8 +21,8 @@
 import { useCallback, useRef, useState, type DragEvent } from "react";
 import type { File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { cn } from "@stigmer/design-tokens";
-import { useStigmer } from "../hooks.js";
-import { toError } from "../internal/toError.js";
+import { useStigmer } from "@stigmer/react-core";
+import { toError } from "@stigmer/react-core/internal";
 import { TruncatedText } from "../internal/truncated-text.js";
 
 /** How many uploads run at once. */

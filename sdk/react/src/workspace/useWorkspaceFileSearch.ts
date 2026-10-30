@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { toError } from "../internal/toError.js";
+import { toError } from "@stigmer/react-core/internal";
 import type { WorkspaceEntry } from "./useWorkspaceEntries.js";
 import type { WorkspaceFileLister } from "./WorkspaceFileLister.js";
 import { loadEntryFiles, type WorkspaceListing } from "./workspaceListingCache.js";

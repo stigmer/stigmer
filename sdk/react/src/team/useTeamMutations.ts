@@ -14,8 +14,8 @@ import { useCallback, useMemo, useState } from "react";
 import type { DeleteResourceInput, TeamInput } from "@stigmer/client";
 import type { MessageInitShape } from "@bufbuild/protobuf";
 import type { Team, TeamSchema } from "@stigmer/apis/ai/stigmer/iam/team/v1/api_pb";
-import { useStigmer } from "../hooks.js";
-import { toError } from "../internal/toError.js";
+import { useStigmer } from "@stigmer/react-core";
+import { toError } from "@stigmer/react-core/internal";
 
 /** The state every team mutation hook returns beside its action. */
 interface MutationState {

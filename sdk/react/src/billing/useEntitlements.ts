@@ -7,8 +7,8 @@ import {
   type GetEntitlementsOutput,
 } from "@stigmer/apis/ai/stigmer/billing/subscription/v1/io_pb";
 import type { Feature } from "@stigmer/apis/ai/stigmer/platform/v1/entitlement_pb";
-import { useStigmer } from "../hooks.js";
-import { useFetch } from "../internal/useFetch.js";
+import { useStigmer } from "@stigmer/react-core";
+import { useFetch } from "@stigmer/react-core/internal";
 
 /** Options for {@link useEntitlements}. */
 export interface UseEntitlementsOptions {

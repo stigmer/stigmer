@@ -25,7 +25,7 @@ import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/ap
 import type { ApiResourceMetadata } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 import { type SearchResult, SearchResultSchema } from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
 import type { Stigmer } from "@stigmer/client";
-import type { WorkbenchListFn, WorkbenchPage, WorkbenchPageRequest } from "./workbench-page.js";
+import type { WorkbenchListFn, WorkbenchPage, WorkbenchPageRequest } from "../resource-workbench/workbench-page.js";
 
 /** The kinds the Library lists and searches. */
 export type LibraryKind = ApiResourceKind.agent | ApiResourceKind.skill | ApiResourceKind.plugin;

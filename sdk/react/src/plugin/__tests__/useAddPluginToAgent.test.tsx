@@ -24,7 +24,7 @@ import { AgentSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_
 import { EnvVarDeclarationSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/declaration_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 
-import { StigmerContext } from "../../context.js";
+import { StigmerContext } from "@stigmer/react-core";
 import { type PluginOffer, toolsLeaveOut, useAddPluginToAgent } from "../useAddPluginToAgent.js";
 
 afterEach(cleanup);

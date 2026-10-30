@@ -4,13 +4,13 @@ import { useMemo } from "react";
 import {
   DEFAULT_MODEL_ID,
   DISABLED_PROVIDERS,
-  resolveDefaultModelId,
   modelKey,
   type ModelInfo,
   type Provider,
   type VisionLimits,
-} from "./registry.js";
-import type { HarnessOption } from "./harness.js";
+} from "@stigmer/react-core";
+import { resolveDefaultModelId } from "@stigmer/react-core/internal";
+import type { HarnessOption } from "@stigmer/react-core";
 import { useModelRegistryContext } from "./ModelRegistryContext.js";
 
 /** Options for {@link useModelRegistry}. */

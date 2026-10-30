@@ -5,12 +5,8 @@
 import React, { useState, useEffect } from "react";
 import { Box, Text, useInput } from "ink";
 import Spinner from "ink-spinner";
-import {
-  useSessionConversation,
-  resolvedSubject,
-  runPhaseOf,
-  PENDING_SUBJECT,
-} from "@stigmer/react-sdk/headless";
+import { resolvedSubject, PENDING_SUBJECT } from "@stigmer/client";
+import { useSessionConversation, runPhaseOf } from "@stigmer/react-core";
 import { MessageThread } from "../components/MessageThread.js";
 import { TodoList } from "../components/TodoList.js";
 import { FollowUpInput } from "../components/FollowUpInput.js";
@@ -45,7 +41,7 @@ export interface SessionViewProps {
  * Full-featured session conversation view for the terminal.
  *
  * Uses the headless {@link useSessionConversation} hook from
- * `@stigmer/react-sdk` to manage the complete conversation lifecycle,
+ * `@stigmer/react-core` to manage the complete conversation lifecycle,
  * then renders the thread and input using Ink terminal components.
  *
  * This is the main composition component that platform builders

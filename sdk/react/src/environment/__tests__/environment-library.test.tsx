@@ -36,8 +36,8 @@ import {
   PlatformQueryController,
   ServerEdition,
 } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
-import { StigmerContext } from "../../context";
-import { FetchCacheContext } from "../../internal/FetchCacheProvider";
+import { StigmerContext } from "@stigmer/react-core";
+import { FetchCacheContext } from "@stigmer/react-core/internal";
 
 const permission = vi.hoisted(() => ({
   answers: new Map<string, { allowed: boolean; isLoading: boolean }>(),

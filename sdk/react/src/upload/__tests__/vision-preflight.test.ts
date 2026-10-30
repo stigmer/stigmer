@@ -4,7 +4,7 @@ import {
   visionPreflightMessage,
   type VisionPreflightFile,
 } from "../vision-preflight";
-import type { ModelInfo, VisionLimits } from "../../models/registry";
+import type { ModelInfo, VisionLimits } from "@stigmer/react-core";
 
 /** The production budget the registry advertises (3 MiB / 4 MiB / 10). */
 const LIMITS: VisionLimits = {
