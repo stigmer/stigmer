@@ -48,9 +48,9 @@ async function png(dir: string, name: string, width: number, height: number, noi
 
 /** The module, once its own run (which converts the real list into the temporary site) has finished. */
 async function load(): Promise<typeof import("../generate-screens")> {
-  const module = await import("../generate-screens");
-  await module.generation;
-  return module;
+  const screens = await import("../generate-screens");
+  await screens.generation;
+  return screens;
 }
 
 function entry(name: string, width: number, height: number): Shown {
