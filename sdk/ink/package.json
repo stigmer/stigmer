@@ -60,7 +60,6 @@
   },
   "dependencies": {
     "@connectrpc/connect-node": "^2.1.1",
-    "@stigmer/react-core": "*",
     "ink-spinner": "^5.0.0",
     "ink-text-input": "^6.0.0",
     "marked": "^16.4.2",
@@ -70,12 +69,14 @@
     "@bufbuild/protobuf": "^2.0.0",
     "@stigmer/apis": "*",
     "@stigmer/client": "*",
+    "@stigmer/react-core": "*",
     "ink": "^7.0.0",
     "react": ">=19.0.0"
   },
   "devDependencies": {
     "@stigmer/apis": "*",
     "@stigmer/client": "*",
+    "@stigmer/react-core": "*",
     "@stigmer/react-sdk": "*",
     "@stryker-mutator/core": "10.0.0",
     "@stryker-mutator/typescript-checker": "10.0.0",
