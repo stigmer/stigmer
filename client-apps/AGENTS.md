@@ -28,7 +28,7 @@ names are the truth.
   errors. `-o json` (and `yaml`, `ndjson`) prints clean, undecorated data.
 - Errors are translated, never leaked: what happened, why, what to do, through
   the one exit point in `cli/src/errors/handle.ts`; exit codes follow
-  `cli/src/errors/exit-codes.ts` so scripts branch on `$?`; `eval run` departs,
+  `cli/src/errors/index.ts` so scripts branch on `$?`; `eval run` departs,
   as its header says. Raw stacks appear only in debug mode.
 - Off a TTY there are no colours, spinners or prompts: colour honours the stream
   and `NO_COLOR`, a destructive command without `--force` aborts, and a headless

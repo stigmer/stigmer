@@ -72,6 +72,7 @@ export interface RunInTerminalOptions {
  * is undefined only when the wait stopped before the turn's first event.
  */
 export type TerminalOutcome = Omit<TurnOutcome, "lastSeq" | "turn"> & {
+  /** The whole turn, folded; undefined when the wait stopped before its first event. */
   readonly turn: Turn | undefined;
   /** 0 completed; 1 failed, cancelled or terminated; 130 when the wait stopped first. */
   readonly exitCode: ExitCode;

@@ -39,8 +39,11 @@ export type InkRole = keyof InkTheme;
 
 /** The `<Text>` props a role draws with. */
 export interface RoleStyle {
+  /** The Ink colour, when the role has one. */
   readonly color?: string;
+  /** Drawn bold: the accent, so an unset accent still stands out in monochrome. */
   readonly bold?: boolean;
+  /** Drawn dim: muted text with no colour of its own. */
   readonly dimColor?: boolean;
 }
 

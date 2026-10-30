@@ -47,9 +47,8 @@ jobs:
   smoke:
     name: stigmer up (from source)
     runs-on: ubuntu-24.04
-    # Three journeys, each with its own `stigmer up`; the SDK packed for the
-    # second and the terminal kit for the third.
-    timeout-minutes: 60
+    # Two journeys, each with its own `stigmer up`, and the SDK packed for the second.
+    timeout-minutes: 45
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -78,10 +77,33 @@ jobs:
       - name: Run the Getting Started pages
         run: make smoke-getting-started
 
-      # The terminal kit's README and CLI guide, run as written: its bin with
-      # Node alone, the runInTerminal example and the guide's Go, Python and
-      # Rust bridges on a pseudo-terminal and through a pipe
-      # (test/install/smoke-terminal-kit.mjs). The runner image's own go,
-      # cargo and python3 build the bridges.
-      - name: Run the terminal kit's pages
+
+  terminal-kit:
+    name: the terminal kit from its pages
+    runs-on: ubuntu-24.04
+    # Its own `stigmer up` and its own runner, beside `smoke`, so neither
+    # job's cap grows: the terminal kit's README and CLI guide, run as
+    # written (test/install/smoke-terminal-kit.mjs). Its bin starts with Node
+    # alone, and the runInTerminal example and the guide's Go, Python and Rust
+    # bridges run on a pseudo-terminal and through a pipe; the runner image's
+    # own go, cargo and python3 build the bridges.
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Restore the Turbo cache
+        uses: ./.github/actions/turbo-cache
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Install npm workspace dependencies
+        run: npm ci
+
+      - name: Build from source and run the terminal kit's pages
         run: make smoke-terminal-kit

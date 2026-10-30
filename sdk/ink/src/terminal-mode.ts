@@ -17,8 +17,17 @@
 
 /** The parts of a process's streams the decision reads. */
 export interface TerminalStreams {
-  readonly stdin: { readonly isTTY?: boolean };
-  readonly stdout: { readonly isTTY?: boolean };
+  /** The input a person would type into. */
+  readonly stdin: {
+    /** Whether it is a terminal, which Ink can put in raw mode. */
+    readonly isTTY?: boolean;
+  };
+  /** The output the view draws on. */
+  readonly stdout: {
+    /** Whether it is a terminal, which Ink can redraw in place. */
+    readonly isTTY?: boolean;
+  };
+  /** The environment: `TERM`, `CI` and `CONTINUOUS_INTEGRATION` are read. */
   readonly env: Readonly<Record<string, string | undefined>>;
 }
 
