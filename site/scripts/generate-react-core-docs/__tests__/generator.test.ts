@@ -2,8 +2,9 @@
  * Tests for the React core reference: contexts and providers come first, then
  * hooks, functions and constants, each sorted by name; a hook's Options and
  * Return interfaces become its tables, absent ones are skipped; a comment's
- * inline link renders as code; and the page carries its generator marker and
- * frontmatter. The input is a minimal TypeDoc JSON written to a temporary file.
+ * inline link renders as code, as does a code span, and an example is fenced;
+ * the page carries its generator marker and frontmatter; and generate()
+ * writes the page and its meta.json, refusing a missing or empty input. The input is a minimal TypeDoc JSON written to a temporary file.
  */
 
 import * as fs from "node:fs/promises";
@@ -12,6 +13,7 @@ import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { parseTypeDocJson } from "../parser";
 import { renderMetaJson, renderReferencePage } from "../renderer";
+import { generate } from "../generate";
 import { ReflectionKind } from "../../generate-react-sdk-docs/typedoc-types";
 import type { Reflection, TypeDocProject } from "../../generate-react-sdk-docs/typedoc-types";
 
@@ -89,5 +91,34 @@ describe("the React core reference", () => {
     expect(mdx).toContain("## Hooks\n\n### useSessionList\n\nLists sessions.\n\n**Returns** — `UseSessionListReturn`\n\n<TypeTable");
     expect(mdx).toContain('sessions: { type: "string", description: "", required: true },');
     expect(JSON.parse(renderMetaJson())).toEqual({ title: "React core", pages: ["reference"] });
+  });
+});
+
+describe("the comment parts, examples and the writer", () => {
+  it("renders a link and a code span as code, and fences an example", async () => {
+    const hook = fn(1, "useThing");
+    (hook.signatures![0] as { comment: unknown }).comment = {
+      summary: [
+        { kind: "text", text: "Reads " },
+        { kind: "inline-tag", tag: "@link", text: "StigmerContext" },
+        { kind: "text", text: " through " },
+        { kind: "code", text: "`useStigmer`" },
+      ],
+      blockTags: [{ tag: "@example", content: [{ kind: "code", text: "```ts\nuseThing();\n```" }] }],
+    };
+    const mdx = renderReferencePage(await parse([hook]));
+    expect(mdx).toContain("Reads `StigmerContext` through `useStigmer`");
+    expect(mdx).toContain("```tsx\nuseThing();\n```");
+  });
+
+  it("writes the page and its meta.json, and refuses a missing or empty input", async () => {
+    const out = path.join(dir, "out");
+    await parse([fn(1, "useThing", "Does it.")]);
+    expect(await generate(path.join(dir, "api.json"), out)).toBe(1);
+    expect(await fs.readFile(path.join(out, "reference.mdx"), "utf-8")).toContain("### useThing");
+    expect(JSON.parse(await fs.readFile(path.join(out, "meta.json"), "utf-8")).pages).toEqual(["reference"]);
+    await expect(generate(path.join(dir, "missing.json"), out)).rejects.toThrow("does not exist");
+    await parse([]);
+    await expect(generate(path.join(dir, "api.json"), out)).rejects.toThrow("no exports");
   });
 });

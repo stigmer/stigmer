@@ -189,6 +189,18 @@ describe("SessionView — a loaded conversation", () => {
     expect(frame).toContain("Resolve the pending approval first");
   });
 
+  it("sends a typed follow-up in the active mode", async () => {
+    const sent: unknown[][] = [];
+    conversation = makeConversation({ sendFollowUp: async (...args: unknown[]) => void sent.push(args) });
+    const { stdin } = render(<SessionView sessionId="ses_1" org="acme" />);
+    await settle();
+    stdin.write("Go on");
+    await settle();
+    stdin.write("\r");
+    await settle();
+    expect(sent).toEqual([["Go on", { interactionMode: "agent" }]]);
+  });
+
   it("switches to plan mode on Ctrl+T", async () => {
     conversation = makeConversation();
     const { lastFrame, stdin } = render(<SessionView sessionId="ses_1" org="acme" />);
@@ -221,6 +233,11 @@ describe("INK-04 SessionView off a terminal", () => {
     await settle();
     expect(answers).toEqual([[ask.id, "deny", "No one could answer: the session ran without a terminal."]]);
     expect(lastFrame()).toContain("Denied write_file: no terminal to ask on (set approveDefault to approve)");
+    // The same ask in a new list (the conversation re-read) is not settled again.
+    conversation = makeConversation({ ...conversation, asks: [ask] });
+    rerender(<SessionView sessionId="ses_1" org="acme" canAnswer={false} />);
+    await settle();
+    expect(answers).toHaveLength(1);
     await expect(stripVTControlCharacters(lastFrame() ?? "")).toMatchFileSnapshot("__goldens__/session-off-terminal-denied.txt");
   });
 

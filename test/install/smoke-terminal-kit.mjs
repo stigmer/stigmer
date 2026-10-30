@@ -39,6 +39,7 @@
  *   --tarballs=<dir>  install the kit from tarballs already packed there.
  *   --docs=<dir>      read cli-integration.mdx from <dir> (a scratch copy with
  *                     a step broken is how the smoke is shown red).
+ *   --keep            keep the folder (each run's terminal log is pty-<n>.log there).
  * Needs node, python3, go and cargo on PATH.
  */
 
@@ -74,11 +75,12 @@ function log(step) {
 }
 
 function parseArgs() {
-  const parsed = { published: false, version: "", tarballs: "", skipBuild: false, docs: join(repoRoot, "docs", "sdk", "ink") };
+  const parsed = { published: false, version: "", tarballs: "", skipBuild: false, keep: false, docs: join(repoRoot, "docs", "sdk", "ink") };
   for (const arg of process.argv.slice(2)) {
     let m;
     if (arg === "--published") parsed.published = true;
     else if (arg === "--skip-build") parsed.skipBuild = true;
+    else if (arg === "--keep") parsed.keep = true;
     else if ((m = arg.match(/^--version=(.+)$/)) !== null) parsed.version = m[1].replace(/^v/, "");
     else if ((m = arg.match(/^--tarballs=(.+)$/)) !== null) parsed.tarballs = resolve(m[1]);
     else if ((m = arg.match(/^--docs=(.+)$/)) !== null) parsed.docs = resolve(m[1]);
@@ -245,7 +247,7 @@ after(async () => {
     await stack.stop({ keepHome: failed });
   }
   await fake?.close();
-  if (failed) log(`folder kept for debugging: ${scratch}`);
+  if (failed || args.keep) log(`folder kept: ${scratch}`);
   else rmSync(scratch, { recursive: true, force: true });
 });
 

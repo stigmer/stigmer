@@ -107,6 +107,25 @@ describe("renderReferencePage", () => {
   });
 });
 
+describe("renderReferencePage — the run API", () => {
+  it("titles the run API's table Options, in its own section", () => {
+    const mdx = renderReferencePage(
+      reference([
+        inkExport({
+          name: "runInTerminal",
+          category: "run",
+          propsInterface: {
+            name: "RunInTerminalOptions",
+            description: [],
+            fields: [{ name: "until", typeString: '"turn" | "exit"', description: "", required: false, typeLink: null }],
+          },
+        }),
+      ]),
+    );
+    expect(mdx).toContain("## Run a turn\n\n### runInTerminal\n\n**Options** — `RunInTerminalOptions`\n\n");
+  });
+});
+
 describe("renderMetaJson", () => {
   it("lists the Ink SDK's two pages", () => {
     expect(JSON.parse(renderMetaJson())).toEqual({ title: "Ink SDK", pages: ["cli-integration", "reference"] });

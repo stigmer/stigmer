@@ -67,11 +67,6 @@ export function useInkTheme(): InkTheme {
   return useContext(InkThemeContext);
 }
 
-/** The `<Text>` props for a role under the theme in effect. */
-export function useRole(role: InkRole): RoleStyle {
-  return roleStyle(useInkTheme(), role);
-}
-
 /** Every role's `<Text>` props under the theme in effect, for a component that draws several. */
 export function useRoles(): Readonly<Record<InkRole, RoleStyle>> {
   const theme = useInkTheme();

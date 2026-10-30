@@ -766,9 +766,9 @@ Decides `TerminalMode` from the streams and the environment (module header).
 
 <TypeTable
   type={{
-    env: { type: "Readonly<Record<string, string | undefined>>", description: "", required: true },
-    stdin: { type: "{ isTTY?: boolean }", description: "", required: true },
-    stdout: { type: "{ isTTY?: boolean }", description: "", required: true },
+    env: { type: "Readonly<Record<string, string | undefined>>", description: "The environment: `TERM`, `CI` and `CONTINUOUS_INTEGRATION` are read.", required: true },
+    stdin: { type: "{ isTTY?: boolean }", description: "The input a person would type into.", required: true },
+    stdout: { type: "{ isTTY?: boolean }", description: "The output the view draws on.", required: true },
   }}
 />
 
