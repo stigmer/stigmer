@@ -4,6 +4,10 @@
 // `temporal` binary on demand, starts the dev server in its own process group,
 // and answers "is it really running?" with a layered check (PID present -> alive -> actually Temporal -> port listening). Start is
 // idempotent: a healthy instance — ours or another process's — is reused.
+// Stop returns only once the process itself has exited, not when its port
+// closes: the dev server goes on writing its database for a moment after it
+// stops listening, and a new one started meanwhile would open the same file
+// (stigmer#1175).
 
 import { mkdirSync, openSync } from "node:fs";
 import { homedir } from "node:os";
@@ -178,7 +182,7 @@ export class TemporalManager {
 
     const deadline = Date.now() + STOP_TIMEOUT_MS;
     while (Date.now() < deadline) {
-      if (!(await this.isRunning())) {
+      if (this.hasExited(pid)) {
         this.finishStop();
         log.info("Temporal stopped");
         return;
@@ -198,6 +202,12 @@ export class TemporalManager {
     if (!isOtherLiveProcess(pid)) return false;
     if (!isLikelyTemporal(pid, this.binPath)) return false;
     return this.isPortInUse();
+  }
+
+  // Gone, or the PID no longer names a Temporal process: a PID reused by
+  // something else is never waited on, nor force-killed.
+  private hasExited(pid: number): boolean {
+    return !isOtherLiveProcess(pid) || !isLikelyTemporal(pid, this.binPath);
   }
 
   private isPortInUse(): Promise<boolean> {

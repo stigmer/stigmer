@@ -1,9 +1,11 @@
+import { spawn } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { temporalPidFile } from "../../paths.js";
 import { writePidFile } from "../../state/pidfile.js";
+import { isProcessAlive } from "../../state/proc.js";
 import { TemporalManager } from "../manager.js";
 
 function tempHome(): string {
@@ -35,6 +37,34 @@ describe("TemporalManager", () => {
     const home = tempHome();
     writePidFile(temporalPidFile(home), process.pid);
     expect(await TemporalManager.forHome(home).isRunning()).toBe(false);
+  });
+
+  // stigmer#1175: stopped means the process has exited, not only that its port
+  // closed; the dev server goes on writing its database for a moment after.
+  it("returns from stop only once the Temporal process itself has exited", async () => {
+    const home = tempHome();
+    // Named like the dev server, in its own process group, and slow to exit.
+    const child = spawn(
+      process.execPath,
+      ["-e", `process.on("SIGTERM", () => setTimeout(() => process.exit(0), 300)); process.stdout.write("ready\\n"); setInterval(() => {}, 1000);`, "temporal", "server", "start-dev"],
+      { detached: true, stdio: ["ignore", "pipe", "ignore"] },
+    );
+    await new Promise<void>((resolve) => child.stdout.once("data", () => resolve()));
+    const pid = child.pid!;
+    writePidFile(temporalPidFile(home), pid);
+    try {
+      const manager = TemporalManager.forHome(home);
+      await manager.stop();
+
+      expect(isProcessAlive(pid)).toBe(false);
+      expect(manager.getPid()).toBeNull();
+    } finally {
+      try {
+        process.kill(pid, "SIGKILL");
+      } catch {
+        // already gone
+      }
+    }
   });
 
   describe("STIGMER_TEMPORAL_BIN", () => {

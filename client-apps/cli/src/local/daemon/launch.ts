@@ -15,6 +15,12 @@
 // how, and its last stderr lines (stigmer#1845). The detached shape watches
 // the daemon for the whole wait, so a start that has given up is reported at
 // once, not when the wait runs out.
+//
+// A running stack is never touched by `up`: it refuses while the daemon on
+// record lives, and sweeps only a dead daemon's leftovers. `down` reports a
+// stack stopped only once nothing of it is left: the daemon's own teardown,
+// then one sweep of whatever a daemon that died untidily left behind, waiting
+// for each leftover to exit (stigmer#1175).
 
 import { spawn } from "node:child_process";
 import { mkdirSync, openSync } from "node:fs";
@@ -41,7 +47,9 @@ import type { ProviderReach } from "../provider-reach.js";
 import { localRunnerReach } from "./components.js";
 import { buildDaemonEnv, type DaemonEnvInputs, readDaemonConfig } from "./env.js";
 import { NodeProcessHost, type OutputMirror } from "./host.js";
-import { type InternalDaemonDeps, runInternalDaemon, waitForShutdownSignal } from "./process.js";
+import { type InternalDaemonDeps, runInternalDaemon } from "./process.js";
+import { shutdownOnSignals } from "./signals.js";
+import { GRACEFUL_STOP_TIMEOUT_MS } from "./supervisor.js";
 
 /** How long `up` waits for the server's gRPC port after spawning the daemon. */
 const READY_TIMEOUT_MS = 60_000;
@@ -160,8 +168,12 @@ function upReport(env: NodeJS.ProcessEnv): UpReport {
 export interface UpForegroundDeps {
   /** The daemon body (default: the real one). */
   runDaemon?: (deps: InternalDaemonDeps) => Promise<number>;
-  /** Resolves when the stack should shut down (default: the first SIGTERM/SIGINT). */
-  waitForShutdown?: () => Promise<void>;
+  /**
+   * Aborted when the stack should stop (default: the first SIGTERM/SIGINT,
+   * armed just before the daemon body starts, so a Ctrl-C while dependencies
+   * are still resolving ends the launcher at once, as it always has).
+   */
+  shutdown?: AbortSignal;
   /** Receives each line the server and runner write (default: a `[component]`-prefixed stdout mirror). */
   mirror?: OutputMirror;
   /** Invoked once the stack is serving — the moment a detached `up` would have returned — with what it reports. */
@@ -195,7 +207,7 @@ export async function upForeground(
     config: readDaemonConfig(env),
     env,
     host: new NodeProcessHost({ mirror: deps.mirror ?? mirrorToStdout }),
-    waitForShutdown: deps.waitForShutdown ?? waitForShutdownSignal,
+    shutdown: deps.shutdown ?? shutdownOnSignals(),
     onStarted: async () => {
       saveStartupConfig(data, buildStartupConfig(data, logs, temporalAddress, process.pid, options));
       await deps.onReady?.(upReport(env));
@@ -217,7 +229,8 @@ async function prepareLaunch(options: UpOptions, home: string, serverPort: numbe
   const data = dataDir(home);
   const logs = logDir(home);
 
-  cleanupOrphans(data);
+  refuseRunningStack(data);
+  await cleanupOrphans(data);
   await refuseHeldPort(serverPort);
 
   mkdirSync(data, { recursive: true });
@@ -264,8 +277,7 @@ export async function down(home: string = homedir()): Promise<boolean> {
 
   if (pid === null || !isOtherLiveProcess(pid)) {
     removePidFile(join(data, DAEMON_PID_FILE));
-    await stopManagedTemporal(home);
-    cleanupOrphans(data);
+    await clearLeftovers(home, data);
     return false;
   }
 
@@ -273,22 +285,15 @@ export async function down(home: string = homedir()): Promise<boolean> {
   killProcess(pid, "SIGTERM");
   log.info("sent SIGTERM to daemon", { pid });
 
-  const deadline = Date.now() + STOP_TIMEOUT_MS;
-  while (Date.now() < deadline) {
-    if (!isProcessAlive(pid)) {
-      removePidFile(join(data, DAEMON_PID_FILE));
-      removeStartupConfig(data);
-      return true;
-    }
-    await sleep(STOP_POLL_MS);
+  if (!(await waitForExit(pid, STOP_TIMEOUT_MS))) {
+    log.warn("daemon did not stop gracefully, force killing", { pid });
+    killProcess(pid, "SIGKILL");
   }
-
-  log.warn("daemon did not stop gracefully, force killing", { pid });
-  killProcess(pid, "SIGKILL");
   removePidFile(join(data, DAEMON_PID_FILE));
   removeStartupConfig(data);
-  await stopManagedTemporal(home);
-  cleanupOrphans(data);
+  // Nothing to do after a clean teardown; after a forced one, or a daemon that
+  // could not finish its own, this is what stops the rest.
+  await clearLeftovers(home, data);
   return true;
 }
 
@@ -301,6 +306,18 @@ export async function isRunning(home: string = homedir()): Promise<boolean> {
     removePidFile(join(data, DAEMON_PID_FILE)); // stale (dead, or a previous life of our own PID)
   }
   return tcpConnects(SERVER_PORT, "127.0.0.1", 1000);
+}
+
+// Refuse to start beside a stack that is running, still starting or still
+// stopping: the daemon on record is alive. Nothing is touched; `down` is the
+// one way to stop it. A recorded PID that is our own is a leftover, never a
+// stack (see cleanupOrphans).
+function refuseRunningStack(data: string): void {
+  const pid = readPidFile(join(data, DAEMON_PID_FILE));
+  if (pid === null || !isOtherLiveProcess(pid)) return;
+  throw new CliExitError(`the local Stigmer stack is already running (daemon pid ${pid})`, ExitCode.General, [
+    "Stop it with: stigmer down",
+  ]);
 }
 
 // Refuse to start beside whatever already answers on the server's port: an
@@ -345,21 +362,49 @@ function spawnDaemon(env: NodeJS.ProcessEnv, daemonLog: string): number {
   return child.pid;
 }
 
-// Kill any daemon/server/runner left alive by a previous, improperly-stopped
-// run. A recorded PID that is our own is a leftover, never a peer (the fresh
-// PID namespace of a restarted container hands the launcher the PID its last
-// life had) — signalling it would be signalling ourselves.
-function cleanupOrphans(data: string): void {
-  for (const name of [DAEMON_PID_FILE, "stigmer-server.pid", "runner.pid"]) {
-    const pidPath = join(data, name);
-    const pid = readPidFile(pidPath);
-    if (pid === null) continue;
-    if (isOtherLiveProcess(pid)) {
-      log.warn("killing orphaned process from a previous run", { file: name, pid });
-      killProcess(pid, "SIGTERM");
-    }
-    removePidFile(pidPath);
+// Stop whatever a daemon that is gone left behind, in reverse start order: the
+// recorded children, then managed Temporal.
+async function clearLeftovers(home: string, data: string): Promise<void> {
+  await cleanupOrphans(data);
+  await stopManagedTemporal(home);
+}
+
+// Stop any daemon/server/runner left alive by a previous, improperly-stopped
+// run, and return once each has exited: SIGTERM, then SIGKILL after the
+// supervisor's grace, all in parallel, so a caller that next binds the
+// server's port never races a dying server. Only the recorded PID is
+// signalled, never its group: a PID file is trusted as it stands. A recorded
+// PID that is our own is a leftover, never a peer (the fresh PID namespace of
+// a restarted container hands the launcher the PID its last life had) —
+// signalling it would be signalling ourselves.
+async function cleanupOrphans(data: string): Promise<void> {
+  await Promise.all(
+    [DAEMON_PID_FILE, "stigmer-server.pid", "runner.pid"].map(async (name) => {
+      const pidPath = join(data, name);
+      const pid = readPidFile(pidPath);
+      if (pid === null) return;
+      if (isOtherLiveProcess(pid)) {
+        log.warn("stopping orphaned process from a previous run", { file: name, pid });
+        killProcess(pid, "SIGTERM");
+        if (!(await waitForExit(pid, GRACEFUL_STOP_TIMEOUT_MS))) {
+          log.warn("orphaned process did not stop gracefully, force killing", { file: name, pid });
+          killProcess(pid, "SIGKILL");
+          await waitForExit(pid, GRACEFUL_STOP_TIMEOUT_MS);
+        }
+      }
+      removePidFile(pidPath);
+    }),
+  );
+}
+
+// Poll until `pid` has exited; false if it outlives `timeoutMs`.
+async function waitForExit(pid: number, timeoutMs: number): Promise<boolean> {
+  const deadline = Date.now() + timeoutMs;
+  while (isProcessAlive(pid)) {
+    if (Date.now() >= deadline) return false;
+    await sleep(STOP_POLL_MS);
   }
+  return true;
 }
 
 async function stopManagedTemporal(home: string): Promise<void> {

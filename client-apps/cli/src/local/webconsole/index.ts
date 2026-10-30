@@ -13,13 +13,18 @@ import { SERVER_PORT } from "../constants.js";
 /** Keep the daemon's settle path snappy: a hung probe must not stall `stigmer up`. */
 const PROBE_TIMEOUT_MS = 3000;
 
-/** Whether the running server serves a bundled web console. */
+/**
+ * Whether the running server serves a bundled web console. `stop` ends the
+ * probe early (the daemon's stop request), answering false.
+ */
 export async function isWebConsoleAvailable(
   serverPort: number = SERVER_PORT,
+  stop?: AbortSignal,
 ): Promise<boolean> {
+  const timeout = AbortSignal.timeout(PROBE_TIMEOUT_MS);
   try {
     const response = await fetch(`http://127.0.0.1:${serverPort}/config.json`, {
-      signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
+      signal: stop === undefined ? timeout : AbortSignal.any([timeout, stop]),
     });
     return response.ok;
   } catch {

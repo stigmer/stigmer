@@ -7,6 +7,12 @@
 // record is what `stigmer status` shows and what a failed `stigmer up` prints
 // (stigmer#1845), so a stopped-after-failure component keeps its "failed".
 //
+// A stop requested while the stack is still starting is honoured at once
+// (stigmer#1175): `startAll` spawns nothing further and stops the child its
+// readiness gate is waiting on, here, in the one class that owns the children,
+// so no second flow ever stops a component while it is being started. Such a
+// stop is not a failure, and records none.
+//
 // Every side effect (spawning, time, the health probe) is injected, so this
 // whole policy is unit-testable without real processes or real waiting.
 // process.ts wires this to the real host,
@@ -44,6 +50,8 @@ export interface StartResult {
   ok: boolean;
   /** Name of the critical component that failed, if any. */
   failedCritical?: string;
+  /** True when a requested stop ended the start; nothing is left half-started. */
+  stopped?: boolean;
 }
 
 interface Managed {
@@ -83,10 +91,14 @@ export class ProcessSupervisor {
   /**
    * Start all components in order. A critical component that fails to start or
    * gate aborts startup (returns failedCritical); a non-critical failure is
-   * recorded and skipped.
+   * recorded and skipped. When `shutdown` aborts, nothing further is spawned,
+   * a child still behind its gate is stopped, and the result says `stopped`
+   * once that stop has finished; children already past their gate are left
+   * for `shutdown()`.
    */
-  async startAll(): Promise<StartResult> {
+  async startAll(shutdown: AbortSignal = new AbortController().signal): Promise<StartResult> {
     for (const m of this.managed) {
+      if (shutdown.aborted) return this.stoppedWhileStarting();
       this.log.info("starting component", { component: m.spec.name });
       try {
         this.spawn(m);
@@ -101,18 +113,42 @@ export class ProcessSupervisor {
       }
 
       if (m.spec.gate !== undefined && m.handle !== null) {
+        // A stop during the gate stops the gated child; the gate then ends at
+        // its next look at the child's exit.
+        let stopping = null as Promise<void> | null; // set by the listener, so not narrowed
+        const onStop = (): void => {
+          this.log.info("stop requested, stopping component", { component: m.spec.name, pid: m.state.pid });
+          stopping = this.killAndWait(m);
+        };
+        shutdown.addEventListener("abort", onStop, { once: true });
+        if (shutdown.aborted) onStop(); // asked for during the spawn itself
         try {
           await m.spec.gate.wait(m.handle);
-          this.log.info("component ready", { component: m.spec.name, gate: m.spec.gate.description });
+          if (!shutdown.aborted) this.log.info("component ready", { component: m.spec.name, gate: m.spec.gate.description });
         } catch (err) {
-          this.markFailed(m, errorMessage(err), m.handle);
-          this.persist();
-          if (m.spec.critical) return { ok: false, failedCritical: m.spec.name };
+          if (!shutdown.aborted) {
+            this.markFailed(m, errorMessage(err), m.handle);
+            this.persist();
+            if (m.spec.critical) return { ok: false, failedCritical: m.spec.name };
+          }
+        } finally {
+          shutdown.removeEventListener("abort", onStop);
+        }
+        if (stopping !== null) {
+          await stopping;
+          removePidFile(m.spec.pidFile);
+          m.state.state = "stopped";
         }
       }
     }
+    if (shutdown.aborted) return this.stoppedWhileStarting();
     this.persist();
     return { ok: true };
+  }
+
+  private stoppedWhileStarting(): StartResult {
+    this.persist();
+    return { ok: false, stopped: true };
   }
 
   /** After a brief settle, mark any component that already crashed as failed. */

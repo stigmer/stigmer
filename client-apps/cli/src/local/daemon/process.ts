@@ -2,15 +2,19 @@
 //
 // It brings the local stack up in the canonical order (managed Temporal, then
 // the gated server, then the runner), records a health snapshot readers can
-// trust, runs the 10s health monitor, and on a shutdown signal tears everything
-// down in reverse. Temporal, the process host, the clock, and the shutdown
-// trigger are all injectable so the whole body can be driven in a test without
-// real signals or a real Temporal.
+// trust, runs the 10s health monitor, and when a stop is requested tears down
+// in reverse whatever has started. A stop is honoured from the first instant,
+// startup included (stigmer#1175): the body looks at the request after every
+// bounded startup step, the supervisor stops a child still behind its gate,
+// and the stack is never reported started once a stop was asked for. A
+// requested stop exits 0, wherever it landed. Temporal, the process host, the
+// clock, and the stop request are all injectable so the whole body can be
+// driven in a test without real signals or a real Temporal.
 
 import { mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { type Logger, log as defaultLog } from "../../logger.js";
-import { DAEMON_PID_FILE, HEALTH_STATE_FILE } from "../constants.js";
+import { DAEMON_PID_FILE, HEALTH_STATE_FILE, SERVER_PORT } from "../constants.js";
 import { type HealthState, writeHealthState } from "../state/health-state.js";
 import { removePidFile, writePidFile } from "../state/pidfile.js";
 import { TemporalManager } from "../temporal/manager.js";
@@ -47,24 +51,19 @@ export interface InternalDaemonDeps {
   clock?: Clock;
   temporal?: TemporalControl;
   log?: Logger;
-  /** Resolves when shutdown is requested (real entry: SIGTERM/SIGINT). */
-  waitForShutdown: () => Promise<void>;
+  /**
+   * Aborted when a stop is requested (real entry: SIGTERM/SIGINT, armed by
+   * `shutdownOnSignals` before anything starts).
+   */
+  shutdown: AbortSignal;
   /**
    * Invoked once the stack is up and the monitor is running, and awaited
-   * before the daemon settles into waiting for shutdown. The foreground
-   * launcher does its post-readiness work here (the startup record, the success card);
-   * tests use it to observe "started".
+   * before the daemon settles into waiting for shutdown; never invoked once a
+   * stop has been requested. The foreground launcher does its post-readiness
+   * work here (the startup record, the success card); tests use it to observe
+   * "started".
    */
   onStarted?: () => void | Promise<void>;
-}
-
-/** Resolve on the first SIGTERM or SIGINT — the daemon's shutdown trigger. */
-export function waitForShutdownSignal(): Promise<void> {
-  return new Promise((resolve) => {
-    const onSignal = (): void => resolve();
-    process.once("SIGTERM", onSignal);
-    process.once("SIGINT", onSignal);
-  });
 }
 
 /** Run the daemon to completion. Returns the process exit code. */
@@ -73,6 +72,7 @@ export async function runInternalDaemon(deps: InternalDaemonDeps): Promise<numbe
   const host = deps.host ?? new NodeProcessHost();
   const clock = deps.clock ?? systemClock;
   const log = deps.log ?? defaultLog;
+  const { shutdown } = deps;
 
   mkdirSync(config.logDir, { recursive: true });
   mkdirSync(join(config.dataDir, "workspace"), { recursive: true });
@@ -87,6 +87,35 @@ export async function runInternalDaemon(deps: InternalDaemonDeps): Promise<numbe
   const persist = (): void => writeHealthState(healthPath, healthState);
 
   const temporal = deps.temporal ?? (config.temporalManaged ? buildTemporal(config, log) : null);
+  let temporalStarted = false;
+  let started: ProcessSupervisor | null = null;
+  let monitor: ReturnType<typeof setInterval> | null = null;
+
+  // The one teardown, in reverse start order, of whatever has started. After a
+  // failed start the daemon's record stays, for `up` to say why; after a
+  // requested stop nothing is left.
+  const stopStack = async (keepRecord: boolean): Promise<void> => {
+    if (monitor !== null) clearInterval(monitor);
+    if (started !== null) await started.shutdown();
+    if (temporal !== null && temporalStarted) {
+      temporal.stopSupervisor();
+      log.info("stopping managed Temporal");
+      await temporal.stop().catch((err) => log.warn("failed to stop managed Temporal cleanly", { error: String(err) }));
+      if (healthState.components.temporal !== undefined) healthState.components.temporal.state = "stopped";
+    }
+    persist();
+    if (keepRecord) return;
+    removePidFile(join(config.dataDir, DAEMON_PID_FILE));
+    removePidFile(healthPath);
+    log.info("daemon shutdown complete");
+  };
+  const stopRequested = async (): Promise<number> => {
+    log.info("stop requested during startup");
+    await stopStack(false);
+    return 0;
+  };
+
+  if (shutdown.aborted) return stopRequested();
 
   // --- Start managed Temporal first (the server and runner depend on it). ---
   if (temporal !== null) {
@@ -101,11 +130,13 @@ export async function runInternalDaemon(deps: InternalDaemonDeps): Promise<numbe
       log.error("failed to start managed Temporal", { error: String(err) });
       return 1;
     }
+    temporalStarted = true;
     healthState.components.temporal.pid = temporal.getPid() ?? 0;
     healthState.components.temporal.state = "running";
     healthState.components.temporal.started_at = new Date(clock.now()).toISOString();
     temporal.startSupervisor();
     persist();
+    if (shutdown.aborted) return stopRequested();
   }
 
   // --- Start the server (gated) and runner via the supervisor. ---
@@ -116,29 +147,29 @@ export async function runInternalDaemon(deps: InternalDaemonDeps): Promise<numbe
     persist,
     log,
   });
-  const result = await supervisor.startAll();
+  started = supervisor;
+  const result = await supervisor.startAll(shutdown);
+  if (result.stopped === true) return stopRequested();
   if (!result.ok) {
     const failed = result.failedCritical === undefined ? undefined : healthState.components[result.failedCritical];
     log.error("critical component failed to start", { component: result.failedCritical, error: failed?.last_error });
     // A server that hangs without opening its port is still running: stop what
     // started, in reverse, as a clean shutdown would, so a failed start leaves
     // nothing behind holding the port.
-    await supervisor.shutdown();
-    if (temporal !== null) {
-      temporal.stopSupervisor();
-      await temporal.stop().catch(() => {});
-    }
+    await stopStack(true);
     return 1;
   }
 
   // Let processes settle, then catch anything that crashed immediately.
   await clock.sleep(SETTLE_DELAY_MS);
+  if (shutdown.aborted) return stopRequested();
   supervisor.settleCheck();
 
   // Web console: the SERVER serves it from its unified port; the
   // daemon probes and records what a browser would actually find. pid 0 is
   // truthful — there is no separate console process to supervise.
-  const consoleAvailable = config.noWeb ? false : await isWebConsoleAvailable();
+  const consoleAvailable = config.noWeb ? false : await isWebConsoleAvailable(SERVER_PORT, shutdown);
+  if (shutdown.aborted) return stopRequested();
   healthState.components["web-console"] = {
     pid: 0,
     state: consoleAvailable ? "running" : "stopped",
@@ -150,7 +181,7 @@ export async function runInternalDaemon(deps: InternalDaemonDeps): Promise<numbe
   persist();
 
   // --- Health monitor: sync Temporal + drive one supervisor tick per interval. ---
-  const monitor = setInterval(() => {
+  monitor = setInterval(() => {
     void (async () => {
       if (temporal !== null) await syncTemporal(temporal, healthState);
       await supervisor.tick();
@@ -161,25 +192,17 @@ export async function runInternalDaemon(deps: InternalDaemonDeps): Promise<numbe
   log.info("daemon started", { pid: process.pid });
   await deps.onStarted?.();
 
-  // --- Wait for shutdown, then tear down in reverse order. ---
-  await deps.waitForShutdown();
+  // --- Wait for the stop request, then tear down in reverse order. ---
+  await untilAborted(shutdown);
   log.info("received shutdown signal");
-  clearInterval(monitor);
-
-  await supervisor.shutdown();
-
-  if (temporal !== null) {
-    temporal.stopSupervisor();
-    log.info("stopping managed Temporal");
-    await temporal.stop().catch((err) => log.warn("failed to stop managed Temporal cleanly", { error: String(err) }));
-    if (healthState.components.temporal !== undefined) healthState.components.temporal.state = "stopped";
-  }
-
-  persist();
-  removePidFile(join(config.dataDir, DAEMON_PID_FILE));
-  removePidFile(healthPath);
-  log.info("daemon shutdown complete");
+  await stopStack(false);
   return 0;
+}
+
+// Resolve once `signal` aborts, at once if it already has.
+function untilAborted(signal: AbortSignal): Promise<void> {
+  if (signal.aborted) return Promise.resolve();
+  return new Promise((resolve) => signal.addEventListener("abort", () => resolve(), { once: true }));
 }
 
 // Sync the Temporal component's health from its self-supervising manager.
