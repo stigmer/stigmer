@@ -6,8 +6,8 @@
  * person's My vault has the same slug in every organization and no other
  * person's can take it. The slug is not what keeps one My vault per
  * person per organization: that is the `vault_person` name claim the
- * first write takes before the row exists (service.ts
- * `MY_VAULT_NAME_KIND`). The id is hashed rather than slugified because an
+ * first write takes before the row exists (`MY_VAULT_NAME_KIND`, claimed
+ * in service.ts). The id is hashed rather than slugified because an
  * identity id may be an email (the trusted-local operator) or carry
  * characters a slug refuses; the `my-vault-` prefix is refused to shared
  * vaults so no name can take one.
@@ -19,6 +19,21 @@ export const MY_VAULT_NAME = "My vault";
 
 /** The slug prefix only My vaults carry. */
 export const MY_VAULT_SLUG_PREFIX = "my-vault";
+
+/** The name-table kind that keeps one My vault per (organization, person). */
+export const MY_VAULT_NAME_KIND = "vault_person";
+
+/** The name-table kind that keeps a shared vault's external id unique per organization. */
+export const EXTERNAL_ID_NAME_KIND = "vault_external_id";
+
+/**
+ * The refusal of a My vault in an organization the caller is not a member
+ * of: the entry RPCs' `mine` and a sign-in's save ask the organization's
+ * can_create_vault before the vault is found or created, and the service
+ * asks again once a new one is stored (service.ts `ensureMine`).
+ */
+export const MY_VAULT_MEMBERS_ONLY =
+  "unauthorized to keep a My vault in this organization: only its members do";
 
 /** The most entries (secrets and connections together) one vault holds: rows are read whole on every run. */
 export const MAX_VAULT_ENTRIES = 100;

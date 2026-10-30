@@ -17,8 +17,9 @@
 //     owner and entries; an external id is unique per organization and freed
 //     by the vault's delete;
 //   - on the enforcing lane, a person never reaches a teammate's My vault (an
-//     admin included), a member cannot create a shared vault, and the list
-//     never shows another person's My vault.
+//     admin included), and by slug cannot tell it from one that does not
+//     exist; a member cannot create a shared vault, and the list never shows
+//     another person's My vault.
 import { Code, ConnectError } from "@connectrpc/connect";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
@@ -479,6 +480,37 @@ describe("Vault conformance — a person's own vault, between people", () => {
     expect(membersList.entries.map((vault) => vault.metadata?.id)).toEqual([members.metadata!.id]);
     const foundersList = await lane.clients.vaultQuery.list({ org: tenancy.org });
     expect(foundersList.entries.map((vault) => vault.metadata?.id)).toEqual([founders.metadata!.id]);
+  });
+
+  it("[rpc:VaultQueryController.getByReference] another person's My vault by slug answers NOT_FOUND, as a My vault slug no vault holds", async (ctx) => {
+    const enforcing = await enforcingLaneOf(target);
+    if (enforcing.lane === undefined) return ctx.skip(enforcing.reason);
+    const lane = enforcing.lane;
+    const tenancy = await lane.provisionTenancy();
+    const member = await lane.provisionMember(tenancy);
+
+    const founders = await seedMine(tenancy.org, lane.clients);
+    const members = await seedMine(tenancy.org, member);
+    // A My vault's slug is computed from its person's id, which is not
+    // secret: a refusal that differs from a missing slug's would tell
+    // whether that person keeps a My vault here.
+    const nobodys = "my-vault-000000000000000000000000";
+    for (const [as, who] of [
+      [member, "a member"],
+      [lane.clients, "the founder, who administers the organization"],
+    ] as const) {
+      const others = as === member ? founders : members;
+      await expectGrpcCode(
+        () => as.vaultQuery.getByReference({ org: tenancy.org, kind: ApiResourceKind.vault, slug: others.metadata!.slug }),
+        Code.NotFound,
+        `${who} reading another person's My vault by slug`,
+      );
+      await expectGrpcCode(
+        () => as.vaultQuery.getByReference({ org: tenancy.org, kind: ApiResourceKind.vault, slug: nobodys }),
+        Code.NotFound,
+        `${who} reading a My vault slug no vault holds`,
+      );
+    }
   });
 
   it("[rpc:VaultCommandController.create] a member cannot create a shared vault; an admin can, and org visibility lets the member use it", async (ctx) => {

@@ -29,6 +29,7 @@ import { newGrantPath } from "../grant-path.js";
 import { NO_STORED_RESOURCES, fakeGrantStore, orgRole } from "./support.js";
 import type { RecordedEvent } from "./support.js";
 import { UNBOUND_CREDENTIAL_BINDING } from "../../../authorization/__tests__/unbound-credential-binding.js";
+import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/authorize.js";
 
 const ORG = "org_01jz0000000000000000000000";
 const OTHER_ORG = "org_01jz0000000000000000000001";
@@ -58,6 +59,7 @@ beforeEach(() => {
     logger: silentLogger,
     secretService,
     authorizationLifecycle: undefined,
+    authorizer: newPermissiveSingleTeamAuthorizer(),
   });
 });
 

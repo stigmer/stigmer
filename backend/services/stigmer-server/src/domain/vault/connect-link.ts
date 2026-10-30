@@ -81,7 +81,7 @@ import { refuseBoundElsewhere } from "../../pipeline/steps/refuse-bound-elsewher
 import { PENDING_OAUTH_STATE_TTL_MS, ResourceNotFoundError } from "../../store/interface.js";
 import type { ConnectLinkRecord, ConnectLinkStore, PendingOAuthState } from "../../store/interface.js";
 import { findOrganizationAppProvider } from "./login-app.js";
-import { isMyVault } from "./service.js";
+import { isMyVault } from "./row.js";
 import type { VaultService } from "./service.js";
 import { finishSignIn } from "./sign-in/complete.js";
 import { hostOf, linkLoginApp, signInAddress, startSignIn } from "./sign-in/start.js";

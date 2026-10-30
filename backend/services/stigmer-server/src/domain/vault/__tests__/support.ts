@@ -28,6 +28,7 @@ import { newVaultService } from "../service.js";
 import type { VaultService } from "../service.js";
 import { namingSaves } from "../../../store/__tests__/named-saves.js";
 import { UNBOUND_CREDENTIAL_BINDING } from "../../../authorization/__tests__/unbound-credential-binding.js";
+import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/authorize.js";
 
 export const silentLogger = createLogger({
   level: "error",
@@ -77,6 +78,7 @@ export function openVaultRig(): VaultRig {
     logger: silentLogger,
     secretService: secrets,
     authorizationLifecycle: undefined,
+    authorizer: newPermissiveSingleTeamAuthorizer(),
   });
   return {
     store,

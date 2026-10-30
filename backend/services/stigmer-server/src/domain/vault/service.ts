@@ -33,6 +33,12 @@
  *     only when asked again (`refreshToken`), which only a renewal does;
  *     `open` opens every value, refresh tokens included.
  *
+ * A My vault is created only for a member of its organization. Both
+ * callers ask the membership before `ensureMine`, and a new vault asks it
+ * again once stored, removing itself when its person left in between, so
+ * a departure racing a first write never leaves a vault nobody can reach
+ * (`refuseDepartedCreator`, stigmer#2038).
+ *
  * A login write may name the sealed token it read (`expectStoredToken`):
  * it then lands only while the vault still holds that token, so a renewal
  * never overwrites a sign-in made after it read, and it keeps the login's
@@ -58,9 +64,10 @@
  * value's place, and destroying the old value would destroy the new one;
  * the replace path would then need that codec's version-pinned destroy.
  *
- * Proven by __tests__/service.test.ts (first-write races, the atomic entry
- * write against a concurrent writer, sealing and opening, the cap,
- * departure) and the vault conformance suite.
+ * Proven by __tests__/service.test.ts (first-write races, a person who
+ * leaves during their first write, the atomic entry write against a
+ * concurrent writer, sealing and opening, the cap, departure) and the
+ * vault conformance suite.
  */
 import { create } from "@bufbuild/protobuf";
 import { timestampNow } from "@bufbuild/protobuf/wkt";
@@ -98,6 +105,7 @@ import {
 import { newPipeline } from "../../pipeline/pipeline.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import { newCreateAuthorizationTuplesStep } from "../../pipeline/steps/authorization-tuples.js";
+import { authorizeResolvedResource } from "../../pipeline/steps/authorize.js";
 import {
   assignServerId,
   generateId,
@@ -123,18 +131,17 @@ import type {
 
 import { normalizeAddress } from "./address.js";
 import {
+  EXTERNAL_ID_NAME_KIND,
   MAX_VAULT_ENTRIES,
+  MY_VAULT_MEMBERS_ONLY,
   MY_VAULT_NAME,
+  MY_VAULT_NAME_KIND,
   myVaultSlugOf,
   reservedSecretNameRefusal,
   vaultFullMessage,
 } from "./constants.js";
-
-/** The name-table kind that keeps one My vault per (organization, person). */
-export const MY_VAULT_NAME_KIND = "vault_person";
-
-/** The name-table kind that keeps a shared vault's external id unique per organization. */
-export const EXTERNAL_ID_NAME_KIND = "vault_external_id";
+import { deleteLoadedVault } from "./delete.js";
+import { personOf } from "./row.js";
 
 /** How long a first write waits for a concurrent first write's row to appear. */
 const CONCURRENT_CREATE_WAIT_MS = [10, 20, 40, 80, 160, 320, 640];
@@ -318,21 +325,10 @@ export interface VaultServiceDeps {
   readonly credentialBinding: OrganizationAdmission;
   /**
    * Asks whether a person can see the My vault a write found, so one whose
-   * tuples never landed gets them written again. Without one, a found My
-   * vault has its tuples written again on every write.
+   * tuples never landed gets them written again, and whether the person of
+   * a My vault just created is still a member of its organization.
    */
-  readonly authorizer?: Authorizer;
-}
-
-/** The person a My vault belongs to, or undefined for a shared vault. */
-export function personOf(vault: Vault | undefined): string | undefined {
-  const owner = vault?.spec?.owner;
-  return owner?.case === "person" ? owner.value : undefined;
-}
-
-/** Whether a vault is someone's My vault. */
-export function isMyVault(vault: Vault | undefined): boolean {
-  return personOf(vault) !== undefined;
+  readonly authorizer: Authorizer;
 }
 
 /** The name key of a person's My vault. */
@@ -491,7 +487,50 @@ export function newVaultService(deps: VaultServiceDeps): VaultService {
       await releaseNameAfterFailure(store, logger, ctx);
       throw error;
     }
+    await refuseDepartedCreator(ctx.newState, caller);
     return ctx.newState;
+  }
+
+  /**
+   * Asks again, once a new My vault and its tuples are stored, the
+   * membership check both callers asked before the create
+   * (`MY_VAULT_MEMBERS_ONLY`), and removes the vault when its person left
+   * in between (stigmer#2038): a departure revokes the membership before
+   * it deletes the person's My vault (grant/departure.ts), so a create
+   * stored after the departure's sweep is seen here, and one stored before
+   * it is found by the sweep. A check that cannot answer keeps the row and
+   * fails the request, as a stored row is kept on every other failure: a
+   * racing write of the same member may already be using it.
+   */
+  async function refuseDepartedCreator(vault: Vault, caller: CallerIdentity): Promise<void> {
+    const orgId = vault.metadata?.org ?? "";
+    try {
+      await authorizeResolvedResource(
+        deps.authorizer,
+        caller,
+        {
+          permission: IamPermission.can_create_vault,
+          resourceKind: ApiResourceKind.organization,
+          resourceId: orgId,
+        },
+        MY_VAULT_MEMBERS_ONLY,
+      );
+    } catch (error) {
+      const left =
+        error instanceof ConnectError &&
+        (error.code === Code.PermissionDenied || error.code === Code.NotFound);
+      if (left) {
+        try {
+          await deleteLoadedVault(deps, vault, caller);
+        } catch (cleanup) {
+          logger.error("My vault created for a person who left could not be removed", {
+            vaultId: vault.metadata?.id ?? "",
+            error: cleanup instanceof Error ? cleanup.message : String(cleanup),
+          });
+        }
+      }
+      throw error;
+    }
   }
 
   /**
@@ -505,22 +544,20 @@ export function newVaultService(deps: VaultServiceDeps): VaultService {
     if (lifecycle === undefined) {
       return vault;
     }
-    if (deps.authorizer !== undefined) {
-      const decision = await deps.authorizer.authorize(caller, {
-        permission: IamPermission.can_view,
-        resourceKind: ApiResourceKind.vault,
-        resourceId: vault.metadata?.id ?? "",
-      });
-      if (decision.kind === "allow") {
-        return vault;
-      }
-      if (decision.kind === "unavailable") {
-        throw internalError(decision.cause, "failed to check My vault's authorization");
-      }
-      logger.warn("My vault found that its person cannot see; writing its tuples again", {
-        vaultId: vault.metadata?.id ?? "",
-      });
+    const decision = await deps.authorizer.authorize(caller, {
+      permission: IamPermission.can_view,
+      resourceKind: ApiResourceKind.vault,
+      resourceId: vault.metadata?.id ?? "",
+    });
+    if (decision.kind === "allow") {
+      return vault;
     }
+    if (decision.kind === "unavailable") {
+      throw internalError(decision.cause, "failed to check My vault's authorization");
+    }
+    logger.warn("My vault found that its person cannot see; writing its tuples again", {
+      vaultId: vault.metadata?.id ?? "",
+    });
     const ctx = new RequestContext(VaultSchema, vault, caller, ApiResourceKind.vault);
     await newCreateAuthorizationTuplesStep<typeof VaultSchema>(lifecycle, logger).execute(ctx);
     return vault;
@@ -951,18 +988,6 @@ export async function releaseUnstoredClaim(
       },
     );
   }
-}
-
-/** The sealed values a vault carries: the delete chain's extractor. */
-export function sealedValuesOfVault(vault: Vault): string[] {
-  const values: string[] = [];
-  for (const secret of Object.values(vault.spec?.secrets ?? {})) {
-    values.push(secret.value);
-  }
-  for (const connection of Object.values(vault.spec?.connections ?? {})) {
-    values.push(connection.token, connection.signIn?.refreshToken ?? "");
-  }
-  return values.filter((value) => value !== "");
 }
 
 export { VaultConnectionSource };

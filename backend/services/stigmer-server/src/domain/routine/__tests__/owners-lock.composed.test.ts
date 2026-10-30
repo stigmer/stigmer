@@ -43,7 +43,7 @@ import {
 } from "../../../extensions/__tests__/composed-support.js";
 import type { ServerExtension } from "../../../extensions/registry.js";
 import { ResourceNotFoundError } from "../../../store/interface.js";
-import { personOf } from "../../vault/service.js";
+import { personOf } from "../../vault/row.js";
 import { OWNERS_LOCK_MESSAGE } from "../owners-lock.js";
 
 const ADMIN = "fake|admin";

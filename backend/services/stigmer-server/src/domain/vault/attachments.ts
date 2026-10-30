@@ -54,7 +54,7 @@ import type { SpecReference } from "../../pipeline/steps/references.js";
 import { owningOrgOf } from "../../pipeline/steps/shapes.js";
 import type { Store } from "../../store/interface.js";
 
-import { personOf } from "./service.js";
+import { personOf } from "./row.js";
 
 /** Where a kind keeps who attached each of its vaults. */
 export interface AttachersSlot<Desc extends DescMessage> {

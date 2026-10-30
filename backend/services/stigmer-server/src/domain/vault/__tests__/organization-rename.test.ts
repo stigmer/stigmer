@@ -36,6 +36,7 @@ import { loadVault, newVaultService } from "../service.js";
 import type { VaultService } from "../service.js";
 import { silentLogger } from "./support.js";
 import { UNBOUND_CREDENTIAL_BINDING } from "../../../authorization/__tests__/unbound-credential-binding.js";
+import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/authorize.js";
 
 const TEST_KEY_B64 = Buffer.alloc(32, 9).toString("base64");
 const SLUG = "rename-acme";
@@ -100,6 +101,7 @@ beforeAll(async () => {
     logger: silentLogger,
     secretService: server.secrets,
     authorizationLifecycle: undefined,
+    authorizer: newPermissiveSingleTeamAuthorizer(),
   });
 });
 

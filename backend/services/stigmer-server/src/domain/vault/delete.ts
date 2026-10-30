@@ -37,14 +37,10 @@ import { newDestroySecretBackingStateStep } from "../../pipeline/steps/secret-cl
 import type { Store } from "../../store/interface.js";
 import type { ListIndexRow } from "../../store/list-index.js";
 
-import {
-  EXTERNAL_ID_NAME_KIND,
-  MY_VAULT_NAME_KIND,
-  personOf,
-  sealedValuesOfVault,
-} from "./service.js";
-import type { VaultService } from "./service.js";
+import { EXTERNAL_ID_NAME_KIND, MY_VAULT_NAME_KIND } from "./constants.js";
 import { vaultListIndex } from "./list-index.js";
+import { personOf, sealedValuesOfVault } from "./row.js";
+import type { VaultService } from "./service.js";
 
 export interface VaultDeleteDeps {
   readonly store: Store;
@@ -179,8 +175,13 @@ export async function deleteMyVaultOf(
   return vaults.length > 0;
 }
 
-/** Runs the delete chain's tail over a vault row already read. */
-async function deleteLoadedVault(
+/**
+ * Runs the delete chain's tail over a vault row already read: a
+ * departure, an account's deletion, and a My vault created for a person
+ * who left its organization while it was created (service.ts
+ * `ensureMine`).
+ */
+export async function deleteLoadedVault(
   deps: VaultDeleteDeps,
   vault: Vault,
   caller: CallerIdentity,
