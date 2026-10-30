@@ -725,18 +725,22 @@ describe("RoutineDetailView", () => {
     const onRenamed = vi.fn();
     renderView(client, { editable: true, onRenamed });
 
-    // The field resets its value when the routine's slug arrives, so the
-    // edit waits for the routine, and the click for Rename to be enabled:
-    // on a loaded runner either can land first (stigmer#2298).
-    await screen.findByRole("heading", { name: "daily-fee-reminders" });
-    const field = await screen.findByLabelText("Slug");
+    await screen.findByLabelText("Slug");
     expect(client.grant.checkMyPermission).toHaveBeenCalledWith(
       expect.objectContaining({ relation: "can_delete" }),
     );
-    fireEvent.change(field, { target: { value: "weekly-fee-reminders" } });
-    const rename = screen.getByRole("button", { name: "Rename" }) as HTMLButtonElement;
-    await waitFor(() => expect(rename.disabled).toBe(false));
-    fireEvent.click(rename);
+    // On a loaded runner the click was lost (stigmer#2298): a click on a
+    // disabled Rename, or a typed value dropped when the field mounts
+    // again with the routine's slug. So the edit is read fresh and made
+    // again until Rename is enabled, and only then clicked.
+    await waitFor(() => {
+      const field = screen.getByLabelText("Slug") as HTMLInputElement;
+      if (field.value !== "weekly-fee-reminders") {
+        fireEvent.change(field, { target: { value: "weekly-fee-reminders" } });
+      }
+      expect((screen.getByRole("button", { name: "Rename" }) as HTMLButtonElement).disabled).toBe(false);
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Rename" }));
 
     await waitFor(() => expect(onRenamed).toHaveBeenCalledOnce());
     expect(client.routine.rename.mock.calls[0]![0]).toMatchObject({
