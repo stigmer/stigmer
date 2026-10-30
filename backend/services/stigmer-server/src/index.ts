@@ -331,6 +331,10 @@ export { sessionEventStoreContract } from "./store/session-events-contract.js";
 // composition reaches it as in-process RPCs, the doctrine.
 export type { GrantStore } from "./domain/grant/store.js";
 export { DuplicateGrantError } from "./domain/grant/store.js";
+// The one derivation of a grant's id from its triple. A driver refuses to
+// save a row under any other id (the port contract), and builds its own
+// test rows with it, so no edition writes a second copy.
+export { grantIdFor } from "./domain/grant/constants.js";
 // What the grant path hands the store beside every access row it writes or
 // deletes (who, through which door, in which organization), so an edition
 // that keeps a permission history writes it atomically with the row; and

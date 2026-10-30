@@ -17,8 +17,9 @@
  *
  * Known corners are cases from the start, not later additions:
  * every relation on a pair; distinct principals, not rows; the scope-tuple
- * exclusions verbatim; unknown-id delete a no-op; a held id refused. A
- * change record changes nothing about the row.
+ * exclusions verbatim; unknown-id delete a no-op; a held id refused; an id
+ * that is not the triple's derived id refused. A change record changes
+ * nothing about the row.
  *
  * The history. A driver says whether its store keeps one
  * (`keepsHistory`), and the kit holds it to that: a store that keeps one
@@ -35,12 +36,12 @@
  * across a batch boundary need back-dating, so they are the Store kit's
  * (store/__tests__/store-contract.ts).
  *
- * What the kit deliberately does not carry: open source's derived-id
- * refusal and its primary-key read, the cloud's column layout and SQLSTATE
- * 23505 mapping — driver-physical, each driver's own tests. Every fixture
- * row carries its triple's DERIVED id, so "a held triple" and "a held id"
- * are one case here; a composition's legacy random ids are the grant
- * path's by-triple read to converge (store.ts header), not a store promise.
+ * What the kit deliberately does not carry: how a driver reads by primary
+ * key, the cloud's column layout and SQLSTATE 23505 mapping —
+ * driver-physical, each driver's own tests. Every fixture row carries its
+ * triple's DERIVED id, so "a held triple" and "a held id" are one case
+ * here, and the derived-id refusal is the case that keeps it so: the grant
+ * path reads a triple's row by that id alone (store.ts header).
  *
  * The duplicate arm checks `instanceof DuplicateGrantError` on the
  * exported class, because that is how the grant path's race arm catches
@@ -188,6 +189,42 @@ const CASES: ReadonlyArray<PortContractDeclaration<GrantStore>> = [
         standing?.status?.audit?.specAudit?.createdBy?.id,
         ALICE,
         "the first writer's row must stand after a refused duplicate",
+      );
+    },
+  ],
+  [
+    "save refuses an id that is not the triple's derived id, and writes nothing",
+    async ({ store }) => {
+      const triple = orgRole(ALICE, "admin", "acme");
+      const strays = [
+        "grt_00000000000000000000000000",
+        grantIdFor(orgRole(ALICE, "viewer", "acme")),
+      ];
+      for (const stray of strays) {
+        const row = grantRow(triple);
+        row.metadata = create(ApiResourceMetadataSchema, { id: stray });
+        const refusal: unknown = await store.save(row).then(
+          () => undefined,
+          (error: unknown) => error ?? new Error("rejected"),
+        );
+        assert.ok(
+          refusal !== undefined,
+          `save under '${stray}' must reject: no revoke reads a triple's row by any id but its derived one`,
+        );
+        assert.ok(
+          !(refusal instanceof DuplicateGrantError),
+          "a stray id is not a held id: the grant path's race arm must not read it as one",
+        );
+        assert.equal(
+          await store.findById(stray),
+          undefined,
+          "a refused save must leave no row under the stray id",
+        );
+      }
+      assert.equal(
+        await store.findById(grantIdFor(triple)),
+        undefined,
+        "a refused save must leave no row under the derived id either",
       );
     },
   ],

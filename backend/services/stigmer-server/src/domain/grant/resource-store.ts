@@ -21,8 +21,9 @@
  * a driver's test over either edition reads the same contract.
  *
  * Writes. `save` refuses a grant whose id is not its triple's derived id
- * (constants.ts grantIdFor): open source has no legacy random ids, and a
- * stray id would break the primary key's promise of one row per triple.
+ * (constants.ts grantIdFor), the port's refusal (store.ts): the grant path
+ * reads a triple's row by that id, so a stray id would be a row no revoke
+ * finds.
  * It then stores the row through the Store's create-only
  * `insertResource`, whose answer decides a held id: false raises
  * DuplicateGrantError. The store's key decides a race, so of two

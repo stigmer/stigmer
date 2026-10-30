@@ -10,7 +10,8 @@
  * (`grantStoreContract`) where it is used
  * (extension/__tests__/enterprise-identity.built-in.test.ts), so it is held
  * to the contract every driver is held to rather than to a reading of it.
- * `disconnect` turns every read and write into the rejection an outage is,
+ * It refuses a row under any id but its triple's derived one, as every
+ * driver does. `disconnect` turns every read and write into the rejection an outage is,
  * the kit's fault arm. It keeps a history, as every store composed above
  * open source does: each change a write is handed with is numbered from 1
  * per organization, in the order the writes were made, from a head a
@@ -22,7 +23,7 @@
  * it.
  */
 import type { Grant } from "@stigmer/apis/ai/stigmer/iam/grant/v1/api_pb";
-import { DuplicateGrantError } from "@stigmer/server";
+import { DuplicateGrantError, grantIdFor } from "@stigmer/server";
 import type {
   GrantStore,
   GrantChange,
@@ -54,6 +55,9 @@ export class InMemoryGrantStore implements GrantStore {
   async save(grant: Grant, record?: GrantChangeRecord): Promise<void> {
     this.guard();
     const id = grant.metadata?.id ?? "";
+    if (grant.spec === undefined || id !== grantIdFor(grant.spec)) {
+      throw new Error("grant id must be derived from its triple");
+    }
     if (this.rows.has(id)) {
       throw new DuplicateGrantError(`grant '${id}' already exists`);
     }

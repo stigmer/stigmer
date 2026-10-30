@@ -40,8 +40,8 @@
  *
  * Every entry names its grantee exactly as the rows hold it: kind, id AND
  * the relation qualifier (`team:<id>#member`), and entries group by all
- * three. A revoke matches the qualifier exactly (grant-path.ts
- * `findByTriple`), so a list that dropped it would hand the console a
+ * three. A revoke matches the qualifier exactly (the triple's derived id,
+ * grant-path.ts), so a list that dropped it would hand the console a
  * grantee whose revoke finds no row and succeeds having deleted nothing.
  */
 import { clone, create } from "@bufbuild/protobuf";
