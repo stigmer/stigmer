@@ -16,13 +16,16 @@
  *   - external ids are claimed (ALREADY_EXISTS when taken), moved on
  *     change, freed on clear and on delete, and found by getByExternalId,
  *     which asks the organization first and answers NOT_FOUND for a vault
- *     the caller may not view, so it never tells which ids exist;
+ *     the caller may not view, so it never tells which ids exist, and
+ *     refuses an id no vault could carry (the saved id's length and
+ *     characters);
  *   - updateVisibility shares a shared vault and refuses My vault;
  *   - the entry RPCs: `mine` asks can_create_vault and creates My vault on
  *     the first write; an id asks can_edit; another organization's vault
  *     named under this one is NOT_FOUND;
  *   - a first write refused for its entries (a reserved name, an address
- *     that breaks the rule) creates no My vault;
+ *     that breaks the rule) creates no My vault; removeSecrets refuses a
+ *     name no secret could be saved under;
  *   - getByReference answers another person's My vault by slug NOT_FOUND,
  *     as a missing one, since the slug is computed from the person's id
  *     (stigmer#2036); a My vault by id and a shared vault by slug stay
@@ -463,6 +466,15 @@ describe("external ids", () => {
     );
     expect(outage.code).toBe(Code.Internal);
   });
+
+  it("getByExternalId refuses an id no vault could carry, by the rule an id is saved under", async () => {
+    for (const externalId of ["x".repeat(201), "-customer", "customer 1"]) {
+      const refused = await failureOf(queries(ADMIN).getByExternalId({ org: ORG, externalId }));
+      expect(refused.code).toBe(Code.InvalidArgument);
+    }
+    const longest = await failureOf(queries(ADMIN).getByExternalId({ org: ORG, externalId: "x".repeat(200) }));
+    expect(longest.code).toBe(Code.NotFound);
+  });
 });
 
 describe("entries, My vault and visibility", () => {
@@ -680,6 +692,18 @@ describe("reads and refusals at the edges", () => {
       commands(CARA).removeConnections({ vault: mine, addresses: ["github.com"] }),
     );
     expect(logins.code).toBe(Code.NotFound);
+  });
+
+  it("removeSecrets refuses a name no secret could be saved under", async () => {
+    const REMY = "fake|remy";
+    const mine = { org: ORG, vault: { case: "mine" as const, value: true } };
+    await commands(REMY).setSecrets({ vault: mine, secrets: { KEEP: { value: "v", description: "" } } });
+    for (const name of ["NOT-A-NAME", "1ST", "has space"]) {
+      const refused = await failureOf(commands(REMY).removeSecrets({ vault: mine, names: [name] }));
+      expect(refused.code).toBe(Code.InvalidArgument);
+    }
+    const kept = await commands(REMY).removeSecrets({ vault: mine, names: ["NOT_SAVED"] });
+    expect(Object.keys(kept.spec?.secrets ?? {})).toEqual(["KEEP"]);
   });
 
   it("a refused first write creates no My vault", async () => {
