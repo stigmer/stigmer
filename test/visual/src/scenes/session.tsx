@@ -8,8 +8,8 @@
 // The viewer loads the conversation itself, so a scene answers the calls it
 // makes from the scenario: the session, its event log, then a follow that
 // replays the events, sends the liveness preview the scenario holds, and
-// stays open as a live stream does; its runs and the Files its turns
-// returned. Beside them it answers what the console's viewer reads around
+// stays open as a live stream does; its runs, the Files its turns
+// returned and, for one opened, its first bytes. Beside them it answers what the console's viewer reads around
 // the conversation, as for its owner: the person and their organization,
 // permission to act in the session, the session's agent, no scores, no My
 // vault yet, and a server that predates the server-info fields (the panel
@@ -41,6 +41,11 @@ import type { Drawing } from "./drawing.ts";
 /** The organization the scenarios' session lives in, as the person's organization list names it. */
 const SESSION_ORG = samples.organization({ id: samples.session().metadata!.org, slug: samples.session().metadata!.org });
 
+/** What a returned File holds when the inspector opens it: the audit the finished turn wrote. */
+const AUDIT_REPORT = new TextEncoder().encode(
+  "# Invoice rounding audit\n\nFourteen invoices were a cent off. Each rounded every line before the total.\n\n| Invoice | Billed | Correct |\n| --- | --- | --- |\n| INV-1042 | 118.07 | 118.06 |\n| INV-1057 | 64.31 | 64.30 |\n",
+);
+
 /** How the host frames the viewer: who looks, and whether it passes the builder's inspector. */
 interface Framing {
   readonly audience?: SessionAudience;
@@ -70,7 +75,7 @@ function loadable<T>(scenario: Scenario, answer: T): T {
 }
 
 /** The calls the viewer makes for `scenario`, answered as for the session's owner. */
-function sessionRoutes(scenario: Scenario) {
+export function sessionRoutes(scenario: Scenario) {
   return (router: ConnectRouter) => {
     router.service(SessionQueryController, {
       get: () => loadable(scenario, scenario.session!),
@@ -85,7 +90,11 @@ function sessionRoutes(scenario: Scenario) {
         return run;
       },
     });
-    router.service(FileQueryController, { list: () => ({ entries: [...scenario.files] }) });
+    router.service(FileQueryController, {
+      list: () => ({ entries: [...scenario.files] }),
+      // A File opened in the inspector reads its first bytes.
+      getContent: () => ({ data: AUDIT_REPORT, truncated: false }),
+    });
     router.service(ScoreQueryController, { listBySession: () => ({ entries: [] }) });
     router.service(AgentQueryController, { getByReference: () => samples.agent() });
     router.service(OrganizationQueryController, { listMine: () => samples.organizationList([SESSION_ORG]) });

@@ -185,26 +185,18 @@ Your frontend fetches the token from your backend and passes it to
 
 ```tsx
 import { StigmerProvider } from "@stigmer/react-sdk";
-import { Stigmer } from "@stigmer/client";
+import { Stigmer, createTokenCache } from "@stigmer/client";
 
-let cachedToken: { accessToken: string; expiresAt: Date } | null = null;
-
-async function getAccessToken(): Promise<string | null> {
-  if (cachedToken && cachedToken.expiresAt > new Date()) {
-    return cachedToken.accessToken;
-  }
+// Fetches once, then again only a minute before expiresAt. Concurrent
+// requests at page load share one fetch, and a failed fetch is retried.
+const tokens = createTokenCache(async () => {
   const res = await fetch("/api/stigmer-token");
-  const data = await res.json();
-  cachedToken = {
-    accessToken: data.accessToken,
-    expiresAt: new Date(data.expiresAt),
-  };
-  return cachedToken.accessToken;
-}
+  return res.json(); // { accessToken, expiresAt }
+});
 
 const stigmer = new Stigmer({
   baseUrl: "https://api.stigmer.ai",
-  getAccessToken,
+  getAccessToken: tokens.getAccessToken,
 });
 
 function App() {
@@ -215,6 +207,10 @@ function App() {
   );
 }
 ```
+
+When your user signs out, or another person signs in on the same page, call
+`tokens.invalidate()`, so a token minted for one person is never sent for the
+next.
 
 ## Give embedded assistants their credentials
 

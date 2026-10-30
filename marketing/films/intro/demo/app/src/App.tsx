@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Stigmer } from "@stigmer/client";
-import { NewSessionViewer, SessionViewer, StigmerProvider } from "@stigmer/react-sdk";
+import { AgentChat, StigmerProvider } from "@stigmer/react-sdk/chat";
 import "@stigmer/react-sdk/styles.css";
 
 /**
@@ -8,14 +8,13 @@ import "@stigmer/react-sdk/styles.css";
  * integrated through @stigmer/react-sdk — the platform-builder integration
  * the film's scene-4 payoff beat records (and the same wiring shape as
  * the SDK's real product consumers): one client, one provider, one
- * session component pinned to the org's agent with the endUser audience.
+ * chat component pinned to the org's agent, for the person signed in to
+ * the product (the endUser audience, its default).
  *
  * Runs against the local stack (trusted-local identity — no token), so
  * the whole film remains reproducible from a laptop.
  */
 
-const ORG = "meridian-travel";
-const AGENT = { org: ORG, slug: "traveler-assist" };
 
 const TravelAssistant = () => {
   // Local stack, trusted-local identity: no bearer token is sent (the
@@ -24,21 +23,13 @@ const TravelAssistant = () => {
     () => new Stigmer({ baseUrl: "http://localhost:7234", getAccessToken: () => null }),
     [],
   );
-  const [sessionId, setSessionId] = useState<string | null>(null);
   return (
     <StigmerProvider client={stigmer}>
-      {sessionId === null ? (
-        <NewSessionViewer
-          org={ORG}
-          audience="endUser"
-          initialAgentRef={AGENT}
-          heading="How can we help with your trip?"
-          placeholder="e.g. Move my flight to tomorrow morning"
-          onSessionCreated={setSessionId}
-        />
-      ) : (
-        <SessionViewer sessionId={sessionId} org={ORG} audience="endUser" />
-      )}
+      <AgentChat
+        agent="meridian-travel/traveler-assist"
+        heading="How can we help with your trip?"
+        placeholder="e.g. Move my flight to tomorrow morning"
+      />
     </StigmerProvider>
   );
 };

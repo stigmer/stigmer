@@ -131,6 +131,24 @@
       ],
       "concurrency": 4
     },
+    "client-token-cache": {
+      "title": "a signed-in embed's token, fetched once until it nears expiry",
+      "package": "sdk/typescript",
+      "mutate": [
+        "src/internal/expiring-token.ts",
+        "src/token-cache.ts"
+      ],
+      "concurrency": 4
+    },
+    "react-agent-chat": {
+      "title": "the chat's frames: which conversation shows, and what the closed popup says",
+      "package": "sdk/react",
+      "mutate": [
+        "src/agent-chat/agent-chat-state.ts",
+        "src/agent-chat/chat-activity-of.ts"
+      ],
+      "concurrency": 4
+    },
     "react-session-outcome": {
       "title": "what closes a turn: its Files, changes, time and cost",
       "package": "sdk/react",

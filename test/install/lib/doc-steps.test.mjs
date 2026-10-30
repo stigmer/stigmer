@@ -93,3 +93,20 @@ test("the path pages parse, run on the machine tab, and hand the harness its lin
     ["client.ts", "variance-report.ts"],
   );
 });
+
+test("the embedding tutorial parses into the app, its install, its files and its two servers", () => {
+  const page = readFileSync(fileURLToPath(new URL("../../../docs/getting-started/embed-agent.mdx", import.meta.url)), "utf8");
+  const steps = docSteps(page);
+  assert.deepEqual(
+    steps.filter((step) => step.kind === "harness").map((step) => step.performs),
+    ["vite-app", "react-sdk", "backend", "dev-server"],
+  );
+  assert.deepEqual(
+    steps.filter((step) => step.kind === "file").map((step) => step.path),
+    ["server.ts", "vite.config.ts", "src/App.tsx"],
+  );
+  assert.deepEqual(
+    steps.filter((step) => step.kind === "command").map((step) => step.line),
+    ["cd my-app", "npm install"],
+  );
+});

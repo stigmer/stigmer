@@ -1,11 +1,10 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import { cn } from "@stigmer/design-tokens";
 import { getUserMessage, type ResourceRef } from "@stigmer/client";
 import type { ChannelAgentProfile } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/io_pb";
-import { NewSessionViewer } from "../session/NewSessionViewer.js";
-import { SessionViewer } from "../session/SessionViewer.js";
+import { AgentChat } from "../agent-chat/AgentChat.js";
 import { useChannelAgentProfile } from "./useChannelAgentProfile.js";
 import type { ChatLinkAudience } from "./webChannelDraft.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
@@ -122,14 +121,9 @@ export function VisitorChat({
     () => (profile ? channelAgentRef(profile) : null),
     [profile],
   );
-  const [sessionId, setSessionId] = useState<string | null>(null);
-  const [submitError, setSubmitError] = useState<string | null>(null);
-
-  const handleSessionCreated = useCallback(
-    (id: string) => {
-      setSubmitError(null);
-      setSessionId(id);
-      onSessionCreated?.(id);
+  const handleSessionChange = useCallback(
+    (id: string | null) => {
+      if (id !== null) onSessionCreated?.(id);
     },
     [onSessionCreated],
   );
@@ -206,36 +200,17 @@ export function VisitorChat({
       </header>
 
       <div className="stg:min-h-0 stg:flex-1">
-        {sessionId ? (
-          <SessionViewer
-            sessionId={sessionId}
-            org={org}
-            audience="guest"
-            enableGitHub={false}
-          />
-        ) : (
-          <NewSessionViewer
-            org={org}
-            audience="guest"
-            includeMyVault={linkAudience === "org"}
-            initialAgentRef={agentRef}
-            enableGitHub={false}
-            heading={heading ?? `Chat with ${profile.name || slug}`}
-            placeholder={placeholder ?? "Ask anything\u2026"}
-            onSessionCreated={handleSessionCreated}
-            onError={setSubmitError}
-            footerContent={
-              submitError ? (
-                <p
-                  role="alert"
-                  className="stg:text-center stg:text-xs stg:text-destructive"
-                >
-                  {submitError}
-                </p>
-              ) : undefined
-            }
-          />
-        )}
+        <AgentChat
+          agent={agentRef}
+          org={org}
+          audience="guest"
+          title={profile.name || slug}
+          includeMyVault={linkAudience === "org"}
+          enableGitHub={false}
+          heading={heading ?? `Chat with ${profile.name || slug}`}
+          placeholder={placeholder ?? "Ask anything\u2026"}
+          onSessionChange={handleSessionChange}
+        />
       </div>
 
       {showPoweredBy && (

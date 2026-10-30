@@ -22,6 +22,13 @@
       "components": 8
     },
     {
+      "slug": "agent-chat",
+      "title": "Agent Chat",
+      "description": "The chat as one component, as a page, a docked panel or a corner popup. Also imports from `@stigmer/react-sdk/chat`, the lightest entry.",
+      "hooks": 0,
+      "components": 1
+    },
+    {
       "slug": "api-key",
       "title": "API Key",
       "description": "Hooks and components for API key creation, listing, and deletion.",

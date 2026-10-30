@@ -69,6 +69,26 @@ Three things are required:
 2. **`<StigmerProvider>`** — distributes the client to all descendant components and scopes styles.
 3. **`@stigmer/react-sdk/styles.css`** — the compiled stylesheet. Import once at your application root.
 
+## The chat in one component
+
+`AgentChat` is the whole chat: the first message, then the conversation. It imports from `@stigmer/react-sdk/chat`, the lightest entry, which draws the composer before the conversation's renderers have loaded.
+
+```tsx
+import { AgentChat, StigmerProvider } from "@stigmer/react-sdk/chat";
+
+<StigmerProvider client={client}>
+  <AgentChat agent="acme/variance-reporter" variant="popup" />
+</StigmerProvider>
+```
+
+| `variant` | Frame |
+|-----------|-------|
+| `"page"` (default) | Fills the box it is given |
+| `"panel"` | Fills a column you dock beside your page, under a header naming the agent |
+| `"popup"` | A button in the corner that opens the chat beside it; closed, the button says what the agent is doing |
+
+The popup never traps focus or takes a key from your page: Escape closes it while focus is inside, and closing returns focus to its button. The chat writes no storage; keep the id `onSessionChange` hands you and pass it back as `defaultSessionId` to reopen a conversation after a reload. The default audience is `"endUser"`, a person signed in to your product.
+
 ## Provider
 
 `StigmerProvider` wraps your component tree, supplies the SDK client via React context, and renders a `<div class="stgm">` container that scopes all Stigmer styles.
@@ -300,6 +320,7 @@ cache is the same whichever entry it is imported from.
 
 | Import path | Content |
 |-------------|---------|
+| `@stigmer/react-sdk/chat` | The chat alone: `AgentChat`, `StigmerProvider` and `useStigmer`, with their props' types. The lightest entry, held to its own size budget |
 | `@stigmer/react-sdk` | What a product embeds: `StigmerProvider` and every component, with every hook and helper of `./headless` |
 | `@stigmer/react-sdk/headless` | The hooks, helpers, contexts and their types alone: no component, and nothing that imports `react-dom`, `lucide-react`, `@base-ui/react` or a stylesheet. For a host that draws its own chat; the terminal kit (`@stigmer/ink-ui`) builds on it |
 | `@stigmer/react-sdk/console` | The Stigmer console's own parts: the platform operator's consoles, the settings navigation and sections, the user menu and the sidebars. Versioned with the kit, shaped by the console's needs rather than an embedder's |

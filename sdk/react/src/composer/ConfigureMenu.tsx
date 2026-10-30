@@ -15,6 +15,17 @@ export interface ConfigureMenuItem {
   readonly detail?: string;
   /** Show a warning indicator (e.g., MCP server needs setup). */
   readonly hasWarning?: boolean;
+  /** Acts at once when picked (the menu closes) instead of opening the item's panel. */
+  readonly onSelect?: () => void;
+}
+
+/** A trigger of the menu's own, in place of the Configure icon. */
+export interface ConfigureMenuTrigger {
+  readonly icon: React.ReactNode;
+  /** The trigger's accessible name. */
+  readonly label: string;
+  readonly tooltip: string;
+  readonly className: string;
 }
 
 export interface ConfigureMenuProps {
@@ -33,6 +44,8 @@ export interface ConfigureMenuProps {
    */
   readonly renderPanel: (itemId: string) => React.ReactNode;
   readonly disabled?: boolean;
+  /** Draws the menu behind another trigger (the narrow composer's "+"). */
+  readonly trigger?: ConfigureMenuTrigger;
 }
 
 /**
@@ -53,6 +66,7 @@ export function ConfigureMenu({
   items,
   renderPanel,
   disabled,
+  trigger,
 }: ConfigureMenuProps) {
   const totalCount = items.reduce((sum, item) => sum + item.count, 0);
   const hasWarning = items.some((item) => item.hasWarning);
@@ -82,15 +96,18 @@ export function ConfigureMenu({
         <TooltipTrigger render={<span className="stg:inline-flex" />}>
           <Popover.Trigger
             disabled={disabled}
-            className={cn(
-              "stg:inline-flex stg:h-8 stg:w-8 stg:items-center stg:justify-center stg:rounded-md stg:text-xs stg:transition-colors",
-              "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
-              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-            )}
-            aria-label="Configure agent, tools, and skills"
+            className={
+              trigger?.className ??
+              cn(
+                "stg:inline-flex stg:h-8 stg:w-8 stg:items-center stg:justify-center stg:rounded-md stg:text-xs stg:transition-colors",
+                "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
+                "stg:disabled:pointer-events-none stg:disabled:opacity-50",
+              )
+            }
+            aria-label={trigger?.label ?? "Configure agent, tools, and skills"}
           >
             <span className="stg:relative">
-              <ConfigureIcon />
+              {trigger?.icon ?? <ConfigureIcon />}
               {totalCount > 0 && (
                 <span className="stg:absolute stg:-right-1.5 stg:-top-1.5 stg:flex stg:h-3.5 stg:min-w-3.5 stg:items-center stg:justify-center stg:rounded-full stg:bg-primary stg:px-0.5 stg:text-2xs stg:font-medium stg:leading-none stg:text-primary-foreground">
                   {totalCount}
@@ -105,7 +122,7 @@ export function ConfigureMenu({
             </span>
           </Popover.Trigger>
         </TooltipTrigger>
-        <TooltipContent side="top">Configure</TooltipContent>
+        <TooltipContent side="top">{trigger?.tooltip ?? "Configure"}</TooltipContent>
       </Tooltip>
       <Popover.Portal container={portalContainer}>
         <Popover.Positioner sideOffset={8} align="start">
@@ -124,7 +141,14 @@ export function ConfigureMenu({
                 {renderPanel(activePanel!)}
               </PanelView>
             ) : (
-              <MenuList items={items} onSelect={onActivePanelChange} />
+              <MenuList
+                items={items}
+                onSelect={onActivePanelChange}
+                onAct={(item) => {
+                  handleOpenChange(false);
+                  item.onSelect?.();
+                }}
+              />
             )}
           </Popover.Popup>
         </Popover.Positioner>
@@ -140,9 +164,11 @@ export function ConfigureMenu({
 function MenuList({
   items,
   onSelect,
+  onAct,
 }: {
   items: readonly ConfigureMenuItem[];
   onSelect: (id: string) => void;
+  onAct: (item: ConfigureMenuItem) => void;
 }) {
   return (
     <div className="stg:py-1" role="menu">
@@ -151,7 +177,7 @@ function MenuList({
           key={item.id}
           type="button"
           role="menuitem"
-          onClick={() => onSelect(item.id)}
+          onClick={() => (item.onSelect ? onAct(item) : onSelect(item.id))}
           className={cn(
             "stg:flex stg:w-full stg:items-center stg:gap-2.5 stg:px-3 stg:py-2 stg:text-sm stg:transition-colors",
             "stg:text-foreground stg:hover:bg-accent-hover",
@@ -175,7 +201,7 @@ function MenuList({
               {item.count}
             </span>
           )}
-          <ChevronRightIcon />
+          {!item.onSelect && <ChevronRightIcon />}
         </button>
       ))}
     </div>

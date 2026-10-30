@@ -11,6 +11,7 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
+    "./chat": "./src/chat.ts",
     "./headless": "./src/headless.ts",
     "./console": "./src/console.ts",
     "./styles.css": "./dist/styles.css",
@@ -53,6 +54,10 @@
       ".": {
         "types": "./dist/index.d.ts",
         "import": "./dist/index.js"
+      },
+      "./chat": {
+        "types": "./dist/chat.d.ts",
+        "import": "./dist/chat.js"
       },
       "./headless": {
         "types": "./dist/headless.d.ts",

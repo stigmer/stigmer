@@ -4,6 +4,7 @@
 import { PRESETS, THREAD_STATES, type Preset, type SceneId, type ThreadState } from "../catalog.ts";
 import { inheritedOpenAiKey, NOTHING_CONNECTED, NOTHING_ON_THE_RUNNER, ownAnthropicKey } from "../fixtures.ts";
 import { fileReviewDockScene } from "./conversation.tsx";
+import { agentChatScene } from "./agent-chat.tsx";
 import { dashboardScene } from "./dashboard.tsx";
 import type { Drawing } from "./drawing.ts";
 import {
@@ -52,5 +53,8 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "session-guest": () => sessionScene("finished", { audience: "guest" }),
   "session-observer": () => sessionScene("finished", { audience: "observer", inspector: true }),
   "session-load-failed": () => sessionScene("load-failed", { inspector: true }),
+  "agent-chat-panel": () => agentChatScene("busy", "panel", true),
+  "agent-chat-popup-closed": () => agentChatScene("busy", "popup", false),
+  "agent-chat-popup": () => agentChatScene("finished", "popup", true),
   ...presets,
 };

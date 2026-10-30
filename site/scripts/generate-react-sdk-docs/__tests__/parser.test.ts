@@ -124,10 +124,12 @@ describe("parseTypeDocJson — the package's entries", () => {
         hook(2, "useExportTranscript", "sdk/react/src/session/useExportTranscript.ts"),
         typeAlias(3, "SkillPickerProps", "sdk/react/src/skill/SkillPicker.tsx"),
       ]),
+      entry(150, "chat", [reference(151, "useSession", 1)]),
       entry(200, "headless", [reference(201, "useSession", 1)]),
       entry(300, "console", [hook(4, "useSettingsNavGroups", "sdk/react/src/settings/nav.ts")]),
     ]);
 
+    // The light ./chat entry repeats root names as references: the root's page keeps them.
     const bySlug = Object.fromEntries(domains.map((d) => [d.slug, d]));
     expect(domains.map((d) => d.slug)).toEqual(["session", "settings", "skill"]);
     expect(bySlug.session).toMatchObject({ importPath: "@stigmer/react-sdk", headless: { rootOnly: ["useExportTranscript"] } });
@@ -167,8 +169,8 @@ describe("parseTypeDocJson — the package's entries", () => {
   });
 
   it("refuses an entry it has no import path for", async () => {
-    await expect(parse([entry(100, "chat", [typeAlias(1, "Zeta", "sdk/react/src/skill/zeta.ts")])])).rejects.toThrow(
-      /entry named "chat" that ENTRY_IMPORT_PATHS/,
+    await expect(parse([entry(100, "widget", [typeAlias(1, "Zeta", "sdk/react/src/skill/zeta.ts")])])).rejects.toThrow(
+      /entry named "widget" that ENTRY_IMPORT_PATHS/,
     );
   });
 

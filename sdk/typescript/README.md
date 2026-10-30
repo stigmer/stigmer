@@ -39,6 +39,27 @@ const stigmer = new Stigmer({
 const agents = await stigmer.agent.list({ org: "my-org" });
 ```
 
+### A token your backend mints
+
+`createTokenCache` asks your backend for a token once and keeps it until a minute before it expires, instead of on every request. Concurrent requests at page load share one fetch, and a failed fetch is tried again on the next request.
+
+```typescript
+import { Stigmer, createTokenCache } from "@stigmer/client";
+
+const tokens = createTokenCache(async () => {
+  const res = await fetch("/api/stigmer-token");
+  return res.json(); // { accessToken, expiresAt }
+});
+
+const stigmer = new Stigmer({
+  baseUrl: "https://api.stigmer.ai",
+  getAccessToken: tokens.getAccessToken,
+});
+
+// When your user signs out, so their token is never sent for the next person:
+tokens.invalidate();
+```
+
 ## Resource Clients
 
 Every resource type has a typed client accessible as a property on the `Stigmer` instance:

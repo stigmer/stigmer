@@ -481,28 +481,32 @@ export function ModelSelector({
       <Popover.Trigger
         disabled={disabled}
         className={cn(
-          "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:border stg:border-border",
+          "stg:inline-flex stg:min-w-0 stg:items-center stg:gap-1.5 stg:overflow-hidden stg:rounded-md stg:border stg:border-border",
           "stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
           "stg:hover:bg-accent-hover stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
           "stg:disabled:pointer-events-none stg:disabled:opacity-50",
           // A marked selection gets the room to show the model's name whole
-          // beside its mark; on a phone the mark shrinks to its icon.
+          // beside its mark; on a phone, or in a narrow composer, the mark
+          // shrinks to its icon. It may shrink below its label, which then
+          // trims, so it never runs under the composer's buttons.
           selectedNeeds === undefined ? "stg:max-w-[20rem]" : "stg:max-w-[30rem]",
-          "stg:transition-colors stg:max-sm:max-w-[12rem]",
+          "stg:transition-colors stg:max-sm:max-w-[12rem] stg:@max-md/composer-toolbar:max-w-[12rem]",
           className,
         )}
       >
+        {/* In a narrow composer the model's name gets the room; the
+            harness shows in the list. */}
         {triggerHarness && (
-          <span className="stg:shrink-0 stg:text-muted-foreground">{triggerHarness}</span>
+          <span className="stg:shrink-0 stg:text-muted-foreground stg:@max-md/composer-toolbar:sr-only">{triggerHarness}</span>
         )}
         {triggerHarness && (
-          <span className="stg:shrink-0 stg:text-border" aria-hidden>·</span>
+          <span className="stg:shrink-0 stg:text-border stg:@max-md/composer-toolbar:hidden" aria-hidden>·</span>
         )}
-        <span className={cn("stg:truncate", selectedNeeds !== undefined && "stg:sm:shrink-0")}>{triggerLabel}</span>
+        <span className={cn("stg:truncate", selectedNeeds !== undefined && "stg:sm:shrink-0 stg:@max-md/composer-toolbar:shrink")}>{triggerLabel}</span>
         {selectedNeeds !== undefined && (
           <span className="stg:inline-flex stg:min-w-0 stg:items-center stg:gap-1 stg:text-2xs stg:text-muted-foreground">
             <KeyRound aria-hidden className="stg:size-3 stg:shrink-0" />
-            <span className="stg:truncate stg:max-sm:sr-only">{selectedNeeds}</span>
+            <span className="stg:truncate stg:max-sm:sr-only stg:@max-md/composer-toolbar:sr-only">{selectedNeeds}</span>
           </span>
         )}
         {fastActive && (

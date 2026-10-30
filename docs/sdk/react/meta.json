@@ -4,6 +4,7 @@
     "---Foundation---",
     "core",
     "---Sessions & Runs---",
+    "agent-chat",
     "session",
     "run",
     "score",

@@ -189,10 +189,7 @@
     },
     {
       "id": "KIT-02",
-      "promise": "The chat drops into an app as one component, within a size budget.",
-      "pending": [
-        "stigmer#2629"
-      ]
+      "promise": "The chat drops into an app as one component, within a size budget."
     },
     {
       "id": "KIT-03",
@@ -208,10 +205,7 @@
     },
     {
       "id": "KIT-06",
-      "promise": "Everything a turn produced (an answer, a file, a change, a plan) opens from the conversation itself, with or without the inspector.",
-      "pending": [
-        "stigmer#2629"
-      ]
+      "promise": "Everything a turn produced (an answer, a file, a change, a plan) opens from the conversation itself, with or without the inspector."
     },
     {
       "id": "KIT-07",
@@ -227,6 +221,14 @@
     {
       "id": "KIT-09",
       "promise": "A finished session opens on what was asked, what was done and what came out, with its time, and its estimated cost for builders and reviewers."
+    },
+    {
+      "id": "KIT-10",
+      "promise": "At a 390-pixel column (a phone, a docked panel or a popup) every control of the chat is reachable and none covers another."
+    },
+    {
+      "id": "KIT-11",
+      "promise": "The panel and popup never trap focus or take a key the host uses, and closing the popup returns focus to what opened it."
     },
     {
       "id": "CON-01",

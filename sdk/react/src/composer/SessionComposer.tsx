@@ -1940,6 +1940,10 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
       <div
         className={cn(
           "stg:rounded-xl stg:border stg:border-border stg:bg-card stg:shadow-sm",
+          // A named container: in a narrow composer (a phone, a panel, a
+          // popup) the box is rounder and its writing area taller, beside
+          // the toolbar's narrow row.
+          "stg:@container/composer stg:@max-md/composer:rounded-2xl",
           "stg:focus-within:ring-2 stg:focus-within:ring-ring",
           // Plan mode tints the frame so the active mode is visible at a
           // glance, without opening the picker. Themeable via --stgm-primary-muted.
@@ -1991,7 +1995,8 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
             placeholder={placeholder}
             rows={initialRows}
             autoFocus={autoFocus}
-            className="stg:block stg:w-full stg:resize-none stg:bg-transparent stg:px-4 stg:pt-3 stg:pb-2 stg:text-sm stg:text-foreground stg:placeholder:text-muted-foreground stg:focus:outline-none stg:disabled:cursor-not-allowed"
+            // Narrow, 16 px text, which also keeps a phone from zooming in on focus.
+            className="stg:block stg:w-full stg:resize-none stg:bg-transparent stg:px-4 stg:pt-3 stg:pb-2 stg:text-sm stg:text-foreground stg:placeholder:text-muted-foreground stg:focus:outline-none stg:disabled:cursor-not-allowed stg:@max-md/composer:min-h-16 stg:@max-md/composer:text-base"
           />
           {isDragOver && (
             <div className="stg:pointer-events-none stg:absolute stg:inset-0 stg:flex stg:items-center stg:justify-center stg:rounded-t-xl stg:bg-primary-subtle">

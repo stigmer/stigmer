@@ -1,6 +1,6 @@
 "use client";
 
-import { useId } from "react";
+import { useId, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { cn } from "@stigmer/design-tokens";
 import {
   Tooltip,
@@ -16,8 +16,9 @@ import type { HarnessOption } from "../models/harness.js";
 import type { ServiceTierOption } from "../models/service-tier.js";
 import type { ThinkingModeOption } from "../models/thinking-mode.js";
 import type { ModelReadinessLookup } from "../models/readiness.js";
-import { InteractionModePicker, type InteractionModeOption } from "./InteractionModePicker.js";
+import { INTERACTION_MODES, InteractionModePicker, type InteractionModeOption } from "./InteractionModePicker.js";
 import {
+  AgentIcon,
   PaperclipIcon,
   WorkspaceIcon,
   ArrowUpIcon,
@@ -161,28 +162,10 @@ export function ComposerToolbar({
   const sendBlockedId = useId();
   const showHarnessSeparate = showHarnessSelector && !showModelSelector;
 
-  return (
-    <div className="stg:flex stg:items-center stg:justify-between stg:gap-2 stg:border-t stg:border-border-muted stg:px-3 stg:py-2">
-      {/* ---- Left group: Primary state (Mode + Model) ---- */}
+  const narrowRef = useRef<HTMLDivElement>(null);
+  const narrow = useIsNarrow(narrowRef);
 
-      <div className="stg:flex stg:min-w-0 stg:items-center stg:gap-1.5">
-        {showInteractionModePicker && (
-          <InteractionModePicker
-            value={interactionMode ?? "agent"}
-            onValueChange={onInteractionModeChange}
-            disabled={disabled}
-          />
-        )}
-
-        {showHarnessSeparate && (
-          <HarnessSelector
-            value={harness ?? "stigmer"}
-            onValueChange={onHarnessChange}
-            disabled={disabled}
-          />
-        )}
-
-        {showModelSelector && (
+  const modelSelector = showModelSelector ? (
           <ModelSelector
             value={modelId}
             inheritedModel={inheritedModel}
@@ -197,99 +180,12 @@ export function ComposerToolbar({
             onThinkingModeChange={onThinkingModeChange}
             readinessOf={modelReadinessOf}
             disabled={disabled}
+            // Narrow, the model reads as plain words beside Send.
+            className={narrow ? NARROW_MODEL_CLASS : undefined}
           />
-        )}
+  ) : null;
 
-      </div>
-
-      {/* ---- Right group: Secondary actions (icon-only) + Send ----
-
-          Icon-only actions carry house tooltips (never native `title` —
-          OS-delayed and unreachable from keyboard/touch, dead entirely on
-          disabled controls). Disabled-capable buttons put the trigger on a
-          plain wrapper span: `disabled` adds `pointer-events-none`, so the
-          span, not the button, must own the hover for the tooltip to keep
-          working while disabled. The provider is context-only (no DOM node)
-          and groups the buttons' hover delay. */}
-
-      <TooltipProvider>
-        <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-1">
-          {showWorkspace && (
-            onWorkspaceDirectAction
-              ? <Tooltip>
-                  <TooltipTrigger render={<span className="stg:inline-flex" />}>
-                    <button
-                      type="button"
-                      disabled={disabled}
-                      onClick={onWorkspaceDirectAction}
-                      className={cn(
-                        "stg:inline-flex stg:h-8 stg:w-8 stg:items-center stg:justify-center stg:rounded-md stg:text-xs stg:transition-colors",
-                        "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
-                        "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-                      )}
-                      aria-label="Workspace"
-                    >
-                      <span className="stg:relative">
-                        <WorkspaceIcon />
-                        {workspaceCount > 0 && (
-                          <span className="stg:absolute stg:-right-1.5 stg:-top-1.5 stg:flex stg:h-3.5 stg:min-w-3.5 stg:items-center stg:justify-center stg:rounded-full stg:bg-primary stg:px-0.5 stg:text-2xs stg:font-medium stg:leading-none stg:text-primary-foreground">
-                            {workspaceCount}
-                          </span>
-                        )}
-                      </span>
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="top">Workspace</TooltipContent>
-                </Tooltip>
-              : <ContextPopover
-                  icon={<WorkspaceIcon />}
-                  label="Workspace"
-                  count={workspaceCount}
-                  disabled={disabled}
-                >
-                  {workspaceContent}
-                </ContextPopover>
-          )}
-
-          {showAttach && (
-            <Tooltip>
-              <TooltipTrigger render={<span className="stg:inline-flex" />}>
-                <button
-                  type="button"
-                  disabled={disabled}
-                  onClick={onAttachClick}
-                  className={cn(
-                    "stg:inline-flex stg:h-8 stg:w-8 stg:items-center stg:justify-center stg:rounded-md stg:text-xs stg:transition-colors",
-                    "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
-                    "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-                  )}
-                  aria-label="Attach files"
-                >
-                  <span className="stg:relative">
-                    <PaperclipIcon />
-                    {fileCount > 0 && (
-                      <span className="stg:absolute stg:-right-1.5 stg:-top-1.5 stg:flex stg:h-3.5 stg:min-w-3.5 stg:items-center stg:justify-center stg:rounded-full stg:bg-primary stg:px-0.5 stg:text-2xs stg:font-medium stg:leading-none stg:text-primary-foreground">
-                        {fileCount}
-                      </span>
-                    )}
-                  </span>
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="top">Attach files</TooltipContent>
-            </Tooltip>
-          )}
-
-          <ConfigureMenu
-            open={configOpen}
-            onOpenChange={onConfigOpenChange}
-            activePanel={configActivePanel}
-            onActivePanelChange={onConfigActivePanelChange}
-            items={configureItems}
-            renderPanel={renderConfigPanel}
-            disabled={disabled}
-          />
-
-          {onStop && !canSend ? (
+  const sendOrStop = onStop && !canSend ? (
             // Circular container (vs. Send's rounded-square) gives the square glyph
             // a proper home — the canonical stop affordance — and the shape morph
             // from Send→Stop signals the running state at a glance. Always
@@ -328,9 +224,358 @@ export function ComposerToolbar({
                 </span>
               )}
             </>
-          )}
+          );
+
+  const workspaceButton = showWorkspace && (
+            onWorkspaceDirectAction
+              ? <Tooltip>
+                  <TooltipTrigger render={<span className="stg:inline-flex" />}>
+                    <button
+                      type="button"
+                      disabled={disabled}
+                      onClick={onWorkspaceDirectAction}
+                      className={cn(
+                        "stg:inline-flex stg:h-8 stg:w-8 stg:items-center stg:justify-center stg:rounded-md stg:text-xs stg:transition-colors",
+                        "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
+                        "stg:disabled:pointer-events-none stg:disabled:opacity-50",
+                      )}
+                      aria-label="Workspace"
+                    >
+                      <span className="stg:relative">
+                        <WorkspaceIcon />
+                        {workspaceCount > 0 && (
+                          <span className="stg:absolute stg:-right-1.5 stg:-top-1.5 stg:flex stg:h-3.5 stg:min-w-3.5 stg:items-center stg:justify-center stg:rounded-full stg:bg-primary stg:px-0.5 stg:text-2xs stg:font-medium stg:leading-none stg:text-primary-foreground">
+                            {workspaceCount}
+                          </span>
+                        )}
+                      </span>
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">Workspace</TooltipContent>
+                </Tooltip>
+              : <ContextPopover
+                  icon={<WorkspaceIcon />}
+                  label="Workspace"
+                  count={workspaceCount}
+                  disabled={disabled}
+                >
+                  {workspaceContent}
+                </ContextPopover>
+          );
+
+  const attachButton = showAttach && (
+            <Tooltip>
+              <TooltipTrigger render={<span className="stg:inline-flex" />}>
+                <button
+                  type="button"
+                  disabled={disabled}
+                  onClick={onAttachClick}
+                  className={cn(
+                    "stg:inline-flex stg:h-8 stg:w-8 stg:items-center stg:justify-center stg:rounded-md stg:text-xs stg:transition-colors",
+                    "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
+                    "stg:disabled:pointer-events-none stg:disabled:opacity-50",
+                  )}
+                  aria-label="Attach files"
+                >
+                  <span className="stg:relative">
+                    <PaperclipIcon />
+                    {fileCount > 0 && (
+                      <span className="stg:absolute stg:-right-1.5 stg:-top-1.5 stg:flex stg:h-3.5 stg:min-w-3.5 stg:items-center stg:justify-center stg:rounded-full stg:bg-primary stg:px-0.5 stg:text-2xs stg:font-medium stg:leading-none stg:text-primary-foreground">
+                        {fileCount}
+                      </span>
+                    )}
+                  </span>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top">Attach files</TooltipContent>
+            </Tooltip>
+          );
+
+  if (narrow) {
+    return (
+      <NarrowToolbar
+        containerRef={narrowRef}
+        disabled={disabled}
+        showAttach={showAttach}
+        fileCount={fileCount}
+        onAttachClick={onAttachClick}
+        showWorkspace={showWorkspace}
+        workspaceCount={workspaceCount}
+        workspaceContent={workspaceContent}
+        onWorkspaceDirectAction={onWorkspaceDirectAction}
+        configureItems={configureItems}
+        configOpen={configOpen}
+        onConfigOpenChange={onConfigOpenChange}
+        configActivePanel={configActivePanel}
+        onConfigActivePanelChange={onConfigActivePanelChange}
+        renderConfigPanel={renderConfigPanel}
+        interactionMode={showInteractionModePicker ? (interactionMode ?? "agent") : undefined}
+        onInteractionModeChange={onInteractionModeChange}
+        harnessSelector={
+          showHarnessSeparate ? (
+            <HarnessSelector value={harness ?? "stigmer"} onValueChange={onHarnessChange} disabled={disabled} />
+          ) : null
+        }
+        modelSelector={modelSelector}
+        sendOrStop={sendOrStop}
+      />
+    );
+  }
+
+  return (
+    // A named container: the controls size to the composer's width, not the
+    // viewport's, so a 390-pixel panel or popup on a wide screen narrows
+    // them too (stigmer#2709).
+    <div ref={narrowRef} className="stg:@container/composer-toolbar stg:flex stg:items-center stg:justify-between stg:gap-2 stg:border-t stg:border-border-muted stg:px-3 stg:py-2">
+      {/* ---- Left group: Primary state (Mode + Model) ---- */}
+
+      <div className="stg:flex stg:min-w-0 stg:items-center stg:gap-1.5">
+        {showInteractionModePicker && (
+          <InteractionModePicker
+            value={interactionMode ?? "agent"}
+            onValueChange={onInteractionModeChange}
+            disabled={disabled}
+          />
+        )}
+
+        {showHarnessSeparate && (
+          <HarnessSelector
+            value={harness ?? "stigmer"}
+            onValueChange={onHarnessChange}
+            disabled={disabled}
+          />
+        )}
+
+        {modelSelector}
+
+      </div>
+
+      {/* ---- Right group: Secondary actions (icon-only) + Send ----
+
+          Icon-only actions carry house tooltips (never native `title` —
+          OS-delayed and unreachable from keyboard/touch, dead entirely on
+          disabled controls). Disabled-capable buttons put the trigger on a
+          plain wrapper span: `disabled` adds `pointer-events-none`, so the
+          span, not the button, must own the hover for the tooltip to keep
+          working while disabled. The provider is context-only (no DOM node)
+          and groups the buttons' hover delay. */}
+
+      <TooltipProvider>
+        <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-1">
+          {workspaceButton}
+          {attachButton}
+
+          <ConfigureMenu
+            open={configOpen}
+            onOpenChange={onConfigOpenChange}
+            activePanel={configActivePanel}
+            onActivePanelChange={onConfigActivePanelChange}
+            items={configureItems}
+            renderPanel={renderConfigPanel}
+            disabled={disabled}
+          />
+
+          {sendOrStop}
         </div>
       </TooltipProvider>
     </div>
   );
 }
+
+// ---------------------------------------------------------------------------
+// The narrow composer: a phone, a docked panel or a popup
+// ---------------------------------------------------------------------------
+
+/** Below this width (28 rem) the toolbar takes its narrow layout. */
+const NARROW_MAX_WIDTH = 448;
+
+/**
+ * Whether the element is narrower than {@link NARROW_MAX_WIDTH}, measured,
+ * not read from the viewport: a 390-pixel panel on a wide screen is narrow.
+ * Unmeasured (on the server, or where nothing lays out) it is wide.
+ */
+function useIsNarrow(ref: RefObject<HTMLElement | null>): boolean {
+  const [narrow, setNarrow] = useState(false);
+  useLayoutEffect(() => {
+    const element = ref.current;
+    if (element === null || typeof ResizeObserver === "undefined") return;
+    const measure = () => {
+      const width = element.getBoundingClientRect().width;
+      setNarrow(width > 0 && width < NARROW_MAX_WIDTH);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  });
+  return narrow;
+}
+
+/** The model picker as plain words: the narrow row gives it its whole name. */
+const NARROW_MODEL_CLASS = "stg:border-transparent stg:bg-transparent stg:px-2 stg:text-sm stg:font-medium";
+
+/** The "+" menu's trigger: what a person adds to the message. */
+const ADD_TRIGGER = {
+  icon: <PlusIcon />,
+  label: "Add files or a folder",
+  tooltip: "Add",
+  className:
+    "stg:inline-flex stg:h-9 stg:w-9 stg:items-center stg:justify-center stg:rounded-full stg:border stg:border-border stg:text-foreground stg:transition-colors stg:hover:bg-accent-hover stg:disabled:pointer-events-none stg:disabled:opacity-50",
+};
+
+const MODE_ITEM_ID = "interaction-mode";
+
+interface NarrowToolbarProps {
+  readonly containerRef: RefObject<HTMLDivElement | null>;
+  readonly disabled: boolean;
+  readonly showAttach: boolean;
+  readonly fileCount: number;
+  readonly onAttachClick: () => void;
+  readonly showWorkspace: boolean;
+  readonly workspaceCount: number;
+  readonly workspaceContent: ReactNode;
+  readonly onWorkspaceDirectAction?: () => void;
+  readonly configureItems: readonly ConfigureMenuItem[];
+  readonly configOpen: boolean;
+  readonly onConfigOpenChange: (open: boolean) => void;
+  readonly configActivePanel: string | null;
+  readonly onConfigActivePanelChange: (panel: string | null) => void;
+  readonly renderConfigPanel: (itemId: string) => ReactNode;
+  /** The mode, when the person picks it; it moves into Configure here. */
+  readonly interactionMode: InteractionModeOption | undefined;
+  readonly onInteractionModeChange: (mode: InteractionModeOption) => void;
+  readonly harnessSelector: ReactNode;
+  readonly modelSelector: ReactNode;
+  readonly sendOrStop: ReactNode;
+}
+
+/**
+ * The toolbar in a narrow composer: one "+" for what the person adds
+ * (files, the workspace folder), Configure (with the mode in it), and the
+ * model's whole name beside Send. Every control of the wide row is still
+ * here, one tap further for the ones a person reaches for least.
+ */
+function NarrowToolbar({
+  containerRef,
+  disabled,
+  showAttach,
+  fileCount,
+  onAttachClick,
+  showWorkspace,
+  workspaceCount,
+  workspaceContent,
+  onWorkspaceDirectAction,
+  configureItems,
+  configOpen,
+  onConfigOpenChange,
+  configActivePanel,
+  onConfigActivePanelChange,
+  renderConfigPanel,
+  interactionMode,
+  onInteractionModeChange,
+  harnessSelector,
+  modelSelector,
+  sendOrStop,
+}: NarrowToolbarProps) {
+  const [addOpen, setAddOpen] = useState(false);
+  const [addPanel, setAddPanel] = useState<string | null>(null);
+  const addItems: ConfigureMenuItem[] = [
+    ...(showAttach
+      ? [{ id: "attach", icon: <PaperclipIcon />, label: "Attach files", count: fileCount, onSelect: onAttachClick }]
+      : []),
+    ...(showWorkspace
+      ? [{ id: "workspace", icon: <WorkspaceIcon />, label: "Workspace", count: workspaceCount, onSelect: onWorkspaceDirectAction }]
+      : []),
+  ];
+  const mode = INTERACTION_MODES.find((option) => option.value === interactionMode);
+  const items: readonly ConfigureMenuItem[] =
+    mode === undefined
+      ? configureItems
+      : [{ id: MODE_ITEM_ID, icon: <AgentIcon />, label: "Mode", detail: mode.label, count: 0 }, ...configureItems];
+  const renderPanel = (id: string) =>
+    id === MODE_ITEM_ID && interactionMode !== undefined ? (
+      <ModeChoices
+        value={interactionMode}
+        onChange={(next) => {
+          onInteractionModeChange(next);
+          onConfigActivePanelChange(null);
+        }}
+      />
+    ) : (
+      renderConfigPanel(id)
+    );
+  return (
+    <div
+      ref={containerRef}
+      className="stg:@container/composer-toolbar stg:flex stg:items-center stg:justify-between stg:gap-2 stg:px-2.5 stg:pt-1 stg:pb-2.5"
+    >
+      <TooltipProvider>
+        <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-1">
+          <ConfigureMenu
+            open={addOpen}
+            onOpenChange={setAddOpen}
+            activePanel={addPanel}
+            onActivePanelChange={setAddPanel}
+            items={addItems}
+            renderPanel={() => workspaceContent}
+            disabled={disabled}
+            trigger={ADD_TRIGGER}
+          />
+          <ConfigureMenu
+            open={configOpen}
+            onOpenChange={onConfigOpenChange}
+            activePanel={configActivePanel}
+            onActivePanelChange={onConfigActivePanelChange}
+            items={items}
+            renderPanel={renderPanel}
+            disabled={disabled}
+          />
+          {harnessSelector}
+        </div>
+        <div className="stg:flex stg:min-w-0 stg:items-center stg:gap-1">
+          {modelSelector}
+          {sendOrStop}
+        </div>
+      </TooltipProvider>
+    </div>
+  );
+}
+
+/** The two modes, as Configure's panel offers them in a narrow composer. */
+function ModeChoices({
+  value,
+  onChange,
+}: {
+  readonly value: InteractionModeOption;
+  readonly onChange: (mode: InteractionModeOption) => void;
+}) {
+  return (
+    <div role="radiogroup" aria-label="Mode" className="stg:flex stg:w-64 stg:flex-col stg:gap-1">
+      {INTERACTION_MODES.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          role="radio"
+          aria-checked={option.value === value}
+          onClick={() => onChange(option.value)}
+          className={cn(
+            "stg:flex stg:flex-col stg:items-start stg:rounded-md stg:px-2.5 stg:py-2 stg:text-left stg:transition-colors stg:hover:bg-accent-hover",
+            option.value === value && "stg:bg-accent",
+          )}
+        >
+          <span className="stg:text-sm stg:font-medium stg:text-foreground">{option.label}</span>
+          <span className="stg:text-xs stg:text-muted-foreground">{option.description}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function PlusIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  );
+}
+

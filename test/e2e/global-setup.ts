@@ -77,9 +77,14 @@ async function globalSetup() {
     console.log(
       `[e2e] Issuer ready (pid: ${issuer.pid}); signs in as ${ready.person.email}`,
     );
+    // With the mock model too, the server's runner talks to it: the
+    // embedding tutorial (tests/embed-tutorial) runs a conversation a
+    // signed-in person starts, which console-login never does.
+    const mock = MOCK_LLM ? await startMockLlmProxy() : null;
     const state = await startBackendStack({
       apiPort: API_PORT,
       singleOrg: true,
+      ...(mock === null ? {} : { mockLlmEndpoint: mock.proxyUrl }),
       extraServerEnv: {
         STIGMER_OIDC_ISSUER: OIDC_ISSUER,
         STIGMER_OIDC_AUDIENCE: OIDC_AUDIENCE,
@@ -90,6 +95,7 @@ async function globalSetup() {
       throw error;
     });
     adoptStackFixture(issuer);
+    if (mock !== null) state.mockLlmControlUrl = mock.controlUrl;
     writeStackState(state);
     console.log(
       "[e2e] Backend stack ready in the OIDC posture, on the shipped entry (it makes its one organization)",

@@ -10,6 +10,11 @@ import {
   rpcMetadataInterceptor,
   errorStripInterceptor,
 } from "./internal/interceptors.js";
+import {
+  createExpiringTokenCache,
+  type ExpiringToken,
+  type ExpiringTokenCache,
+} from "./internal/expiring-token.js";
 
 /**
  * Minimal persistence contract for the visitor's guest id.
@@ -94,13 +99,6 @@ export interface GuestAuthConfig {
   readonly linkToken?: string;
 }
 
-/**
- * How long before expiry a cached guest token is considered stale.
- * Re-minting inside this window keeps long-lived streams from starting
- * with a token that expires moments later.
- */
-const EXPIRY_SKEW_MS = 60_000;
-
 /** Storage key prefix for the persisted guest id, namespaced per channel. */
 const GUEST_ID_STORAGE_PREFIX = "stigmer:guest-id:";
 
@@ -144,8 +142,13 @@ export class GuestAuth {
   private readonly embedOrigin: string;
   private readonly linkToken: string;
 
-  private cached: { accessToken: string; expiresAt: number } | null = null;
-  private pendingMint: Promise<string> | null = null;
+  // Single-flight: the provider is invoked once per request, so a
+  // burst at page load (registry fetches + profile resolution) must
+  // collapse into one mint — both for latency and because concurrent
+  // first mints would otherwise race to persist different guest ids.
+  private readonly tokens: ExpiringTokenCache = createExpiringTokenCache(
+    () => this.mint(),
+  );
 
   /** @internal Use {@link createGuestAuth} instead. */
   constructor(config: GuestAuthConfig) {
@@ -190,23 +193,9 @@ export class GuestAuth {
    * @throws {StigmerError} with code `"invalid-argument"` when the channel
    *   id is empty
    */
-  readonly getAccessToken = async (): Promise<string | null> => {
-    if (this.cached && this.cached.expiresAt - Date.now() > EXPIRY_SKEW_MS) {
-      return this.cached.accessToken;
-    }
+  readonly getAccessToken = (): Promise<string | null> => this.tokens.get();
 
-    // Single-flight: the provider is invoked once per request, so a
-    // burst at page load (registry fetches + profile resolution) must
-    // collapse into one mint — both for latency and because concurrent
-    // first mints would otherwise race to persist different guest ids.
-    this.pendingMint ??= this.mint().finally(() => {
-      this.pendingMint = null;
-    });
-
-    return this.pendingMint;
-  };
-
-  private async mint(): Promise<string> {
+  private async mint(): Promise<ExpiringToken> {
     try {
       const response = await this.tokenClient.mintGuestToken(
         create(MintGuestTokenRequestSchema, {
@@ -218,11 +207,10 @@ export class GuestAuth {
       );
 
       safeSetItem(this.storage, this.storageKey, response.guestCookieId);
-      this.cached = {
+      return {
         accessToken: response.accessToken,
-        expiresAt: Date.now() + response.expiresIn * 1000,
+        expiresAtMs: Date.now() + response.expiresIn * 1000,
       };
-      return response.accessToken;
     } catch (e) {
       throw wrapError(e);
     }

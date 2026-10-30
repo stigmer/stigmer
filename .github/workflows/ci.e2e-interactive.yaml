@@ -267,11 +267,12 @@ jobs:
       - name: Install Playwright browsers
         uses: ./.github/actions/playwright-chromium
 
-      - name: Run console-login suite (OIDC stack)
+      - name: Run console-login suite and the embedding tutorial (OIDC stack, mock model)
         working-directory: test/e2e
         env:
           STIGMER_E2E_OIDC: "1"
-        run: npx playwright test --project=console-login --workers=1
+          STIGMER_E2E_MOCK_LLM: "1"
+        run: npx playwright test --project=console-login --project=embed-tutorial --workers=1
 
       - name: Upload test results
         if: always()

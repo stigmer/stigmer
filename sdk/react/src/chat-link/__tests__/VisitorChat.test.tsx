@@ -34,6 +34,12 @@ vi.mock("../../session/SessionViewer", () => ({
   },
 }));
 
+// The chat frame names the agent through useAgent when no title is given;
+// VisitorChat always gives the profile's, so the read is never needed.
+vi.mock("../../agent/useAgent", () => ({
+  useAgent: () => ({ agent: null, isLoading: false, isRefetching: false, error: null, refetch: () => {} }),
+}));
+
 const profileState: { current: UseChannelAgentProfileReturn } = {
   current: {
     profile: null,
@@ -179,7 +185,7 @@ describe("VisitorChat", () => {
     expect(newSessionViewerProps[0]).not.toHaveProperty("initialInstanceId");
   });
 
-  it("hands off to a guest SessionViewer once the session is created", () => {
+  it("hands off to a guest SessionViewer once the session is created", async () => {
     setProfileState({ profile: PROFILE });
     const onSessionCreated = vi.fn();
     render(
@@ -191,7 +197,7 @@ describe("VisitorChat", () => {
     act(() => created("ses_1"));
 
     expect(onSessionCreated).toHaveBeenCalledWith("ses_1");
-    expect(screen.getByTestId("session-probe")).toBeTruthy();
+    expect(await screen.findByTestId("session-probe")).toBeTruthy();
     expect(sessionViewerProps[0]).toMatchObject({
       sessionId: "ses_1",
       org: "org_acme",

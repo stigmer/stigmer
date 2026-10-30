@@ -71,6 +71,10 @@ export type {
   ExplorerTreeProps,
 } from "./workspace/index.js";
 
+// The chat as one component: page, panel or popup (also at `./chat`)
+export { AgentChat } from "./agent-chat/AgentChat.js";
+export type { AgentChatProps, AgentChatVariant } from "./agent-chat/AgentChat.js";
+
 // Session — data hooks, behavior hooks, utilities (Session aggregate + conversation lifecycle)
 export {
   useExportTranscript,
