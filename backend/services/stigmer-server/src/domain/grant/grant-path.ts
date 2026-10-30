@@ -21,14 +21,11 @@
  * without the two optional hooks, the path writes rows and notifies
  * nothing (the OSS posture: rows are the record).
  *
- * The row for a triple is found BY TRIPLE, never by derived id. Open
- * source's rows carry the derived id (constants.ts grantIdFor), so the
- * two lookups would agree here; the cloud's Java-era rows carry random
- * `iamp_<ulid>` ids and must revoke and deduplicate through this same
- * code, so `findByTriple` (the pair's rows filtered by relation) is the
- * one definition of "the row for this triple" and `findById` serves the
- * `get` RPC alone. On the OSS adapter that read is one scan of the kind
- * (resource-store.ts).
+ * The row for a triple is the row under its derived id (constants.ts
+ * grantIdFor), read by primary key. Every driver refuses to save a row
+ * under any other id (the port contract, store.ts), so that read and "the
+ * row holding this exact triple" are one definition: the id is a hash of
+ * the whole triple, the principal's relation qualifier included.
  *
  * The path is the one writer, so it refuses before it writes: before any
  * read, write or hook, `grant` and
@@ -197,7 +194,7 @@ export interface GrantResult {
 export interface GrantPath {
   /**
    * Grant the triple as `caller`, through the door `cause` names: gate,
-   * find by triple, write the row when absent (the caller's audit stamp),
+   * read the triple's row, write it when absent (the caller's audit stamp),
    * then `onGranted` — on the duplicate arm too. A hook throw fails
    * the grant with the row in place.
    */
@@ -344,23 +341,9 @@ export function newGrantPath(
     };
   }
 
-  /** The row holding this exact triple — the pair's rows, filtered by relation. */
-  async function findByTriple(
-    spec: GrantSpec,
-  ): Promise<Grant | undefined> {
-    const { principal, resource } = refsOf(spec);
-    const onPair = await grants.findByPrincipalAndResource(
-      principal.kind,
-      principal.id,
-      resource.kind,
-      resource.id,
-    );
-    return onPair.find(
-      (grant) =>
-        grant.spec !== undefined &&
-        grant.spec.relation === spec.relation &&
-        grant.spec.principal?.relation === principal.relation,
-    );
+  /** The row holding this exact triple: the one under its derived id. */
+  function rowOf(spec: GrantSpec): Promise<Grant | undefined> {
+    return grants.findById(grantIdFor(spec));
   }
 
   /** The revoke order for one row: its record resolved, the hook, then the delete. */
@@ -478,7 +461,7 @@ export function newGrantPath(
           Code.InvalidArgument,
         );
       }
-      let grant = await findByTriple(spec);
+      let grant = await rowOf(spec);
       let duplicate = grant !== undefined;
       if (grant === undefined) {
         const fresh = buildRow(spec, caller);
@@ -498,7 +481,7 @@ export function newGrantPath(
           // winner's row is the grant, exactly as if it had been found
           // above. A winner that cannot be read back means the refusal
           // was not a race — propagate it.
-          const winner = await findByTriple(spec);
+          const winner = await rowOf(spec);
           if (winner === undefined) {
             throw error;
           }
@@ -526,10 +509,11 @@ export function newGrantPath(
     async revokeBySpec(spec, caller): Promise<Grant | undefined> {
       requireWellFormedTriple(spec);
       const actor = grantActorOf(caller);
-      const existing = await findByTriple(spec);
+      const existing = await rowOf(spec);
       if (existing === undefined) {
-        // No row: a composition still deletes the bare tuple (one written
-        // before the row mirror existed); converges the store either way.
+        // No row: a composition still deletes the bare tuple. A revoke
+        // racing a grant can leave one: the revoke deletes tuple and row
+        // while the grant's tuple write lands after. Converges either way.
         await lifecycle?.onRevoked?.({ spec, grant: undefined });
         const affiliation = affiliationOf(spec);
         if (affiliation !== undefined) {

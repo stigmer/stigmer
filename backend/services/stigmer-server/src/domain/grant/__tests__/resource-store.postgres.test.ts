@@ -3,9 +3,9 @@
  * OSS adapter (../resource-store.ts) on both drivers through the drivers'
  * own fixtures (sqlite always; Postgres under TEST_DATABASE_URL), opened
  * with and without the permission history, and pins the behaviours that
- * are the adapter's rather than the port's: save refuses a grant whose id
- * is not the triple's derived id, the invariant that makes "one row per
- * triple" the primary key's job in open source; a principal's rows are
+ * are the adapter's rather than the port's: the refusal's own message and
+ * an empty kind after a stray id (the kit holds every driver to the
+ * refusal itself); a principal's rows are
  * read through the kind's list index, never by decoding the whole kind,
  * because the built-in authorizer reads them on every check; two
  * concurrent saves of one triple end in one row and one winner; and the
@@ -18,7 +18,8 @@
  * would silently prove less. Known corners are cases from the start: every
  * relation on a pair; distinct
  * principals, not rows; the scope-tuple exclusions verbatim; unknown-id
- * delete a no-op; a held triple refused.
+ * delete a no-op; a held triple refused; an id that is not the triple's
+ * derived id refused.
  */
 import { DatabaseSync } from "node:sqlite";
 
@@ -55,6 +56,7 @@ import { orgRole } from "./support.js";
 const CONTRACT_CASE_NAMES = [
   "save then findById round-trips the grant",
   "a second save under a held triple is DuplicateGrantError, and the first row stands",
+  "save refuses an id that is not the triple's derived id, and writes nothing",
   "findByPrincipalAndResource answers every relation on the pair and nothing on another",
   "findByPrincipal and findByResource answer each side of a row",
   "findByResourceWithRelations filters to the allowlist; an empty allowlist matches nothing",

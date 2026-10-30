@@ -52,9 +52,8 @@ import { derivedId } from "../../pipeline/steps/defaults.js";
 export const GRANT_ID_PREFIX = "grt";
 
 /**
- * The proto's `api_version` const (api.proto). The cloud's Java-era rows
- * carry `iam.stigmer.com/v1` and are read as they are; every row
- * this domain writes carries the contract's value.
+ * The proto's `api_version` const (api.proto), the value every row this
+ * domain writes carries.
  */
 export const GRANT_API_VERSION = "iam.stigmer.ai/v1";
 export const GRANT_KIND = "Grant";

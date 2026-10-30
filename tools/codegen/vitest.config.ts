@@ -9,7 +9,15 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       include: ["src/**"],
-      exclude: [...coverageConfigDefaults.exclude, "**/__test-utils__/**", "**/__fixtures__/**", "**/__mocks__/**"],
+      // The generator's CLI entry parses argv and runs at module load, so no
+      // test can import it; what it dispatches to is measured (targets.ts).
+      exclude: [
+        ...coverageConfigDefaults.exclude,
+        "**/__test-utils__/**",
+        "**/__fixtures__/**",
+        "**/__mocks__/**",
+        "src/generator/main.ts",
+      ],
       reporter: ["json", "json-summary"],
       reportOnFailure: true,
       experimentalAstAwareRemapping: true,

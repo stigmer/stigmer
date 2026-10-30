@@ -256,8 +256,7 @@ export interface OrganizationPoliciesChangedEvent {
  * grant path — and on the duplicate arm, when the triple was already held
  * and no row was written, so a composition heals a row whose tuple never
  * landed (the inline heal). `grant` is the row as stored: on the
- * duplicate arm the FIRST writer's row, whose id may be a legacy random
- * one on a composition that predates derived ids.
+ * duplicate arm the FIRST writer's row.
  */
 export interface GrantedEvent {
   readonly grant: Grant;

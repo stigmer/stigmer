@@ -9,12 +9,7 @@ import * as process from "node:process";
 
 import { runDocsYamlCheck } from "./docs-yaml-gate.js";
 import { parseDocsYamlRuleMode } from "./docs-yaml-rules.js";
-import { runMCPTSGeneration } from "./mcp-ts.js";
-import { runSDKClientGeneration } from "./sdk-client-go.js";
-import { runSDKClientJavaGeneration } from "./sdk-client-java.js";
-import { runSDKClientPythonGeneration } from "./sdk-client-python.js";
-import { runSDKClientTSGeneration } from "./sdk-client-ts.js";
-import { runSDKDocsGeneration } from "./sdk-docs.js";
+import { runGenerationTarget } from "./targets.js";
 
 interface Flags {
   schemaDir: string;
@@ -93,31 +88,7 @@ function main(): void {
     process.exit(1);
   }
 
-  switch (flags.target) {
-    case "mcp-ts":
-      runMCPTSGeneration(flags.schemaDir, flags.outputDir);
-      break;
-    case "sdk-client-ts":
-      runSDKClientTSGeneration(flags.schemaDir, flags.outputDir);
-      break;
-    case "sdk-client-python":
-      runSDKClientPythonGeneration(flags.schemaDir, flags.outputDir);
-      break;
-    case "sdk-client-java":
-      runSDKClientJavaGeneration(flags.schemaDir, flags.outputDir);
-      break;
-    case "sdk-client":
-      runSDKClientGeneration(flags.schemaDir, flags.outputDir);
-      break;
-    case "sdk-docs":
-      runSDKDocsGeneration(flags.schemaDir, flags.outputDir, flags.apisDir);
-      break;
-    default:
-      process.stderr.write(
-        `Unknown or not-yet-ported --target "${flags.target}" — remaining targets run via the Go generator until their port lands\n`,
-      );
-      process.exit(1);
-  }
+  runGenerationTarget(flags.target, flags);
 }
 
 try {

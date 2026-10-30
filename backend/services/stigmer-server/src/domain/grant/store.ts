@@ -11,19 +11,19 @@
  *
  * What the port deliberately does not carry: `markSynced` and
  * `findUnsynced` (the cloud's tuple-mirror bookkeeping and boot backfill;
- * its store keeps them as extras) and `findByIdentityAccountInOrg` (the
- * cloud's org-column arm of revocation — the column was never stamped by
- * any writer, so it matched nothing; dropped). A port does not
- * carry methods only one edition calls or no edition needs.
+ * its store keeps them as extras). A port does not carry methods only
+ * one edition calls.
  *
  * Contract every implementation must satisfy — proven by the port-contract
  * kit (store-contract.ts, exported), which the OSS adapter's test iterates
  * on both drivers and a composition's driver test iterates too:
+ *   - `save` refuses a grant whose id is not its triple's derived id
+ *     (constants.ts grantIdFor) and writes nothing. The grant path reads
+ *     "the row for this triple" by that id (grant-path.ts), so a row under
+ *     any other id is one no revoke would find: access kept forever;
  *   - `save` is create-only in effect: a save under a held ID raises
- *     DuplicateGrantError, never a silent overwrite. Under derived ids a
- *     held triple IS a held id, which is what the kit exercises; where a
- *     composition still holds legacy random ids, "one row per triple" is
- *     the grant path's by-triple read (grant-path.ts), not this promise;
+ *     DuplicateGrantError, never a silent overwrite. With derived ids a
+ *     held triple IS a held id;
  *   - `deleteById` of an unknown id resolves;
  *   - the finds answer rows by the axes named, exactly:
  *     `findByPrincipalAndResource` every relation on the pair;
@@ -33,9 +33,8 @@
  *     principal kind meaning any (callers normalize the wire's `""`);
  *     `findScopeTuple` the resource's one structural link — a principal
  *     that is not `identity_account` or `team` and a relation that is not
- *     `owner` or `creator`, the cloud SQL's exclusion arms verbatim (`team`
- *     is a Java-era name no ApiResourceKind carries; kept so the two
- *     editions' filters read alike);
+ *     `owner` or `creator`. A `team` (an Enterprise principal) holds
+ *     access on a resource, never its structural link to a scope;
  *   - a typed not-found reads as `undefined`; any other storage failure
  *     propagates as the infrastructure fault it is (the
  *     store-fault mapping — an outage must never read as "no grant");
@@ -85,7 +84,7 @@ import type {
 
 /**
  * Raised by `save` when the id is already held, so the grant path runs its
- * race arm (re-read the winner by triple; answer it as the duplicate).
+ * race arm (re-read the winner by its id; answer it as the duplicate).
  * `cause` carries a driver's own error (the cloud's SQLSTATE 23505) for
  * the logs; the message is the port's.
  */
@@ -112,7 +111,7 @@ export interface GrantStore {
     resourceKind: string,
     resourceId: string,
   ): Promise<ReadonlyArray<Grant>>;
-  /** Every relation the principal holds on the resource — the by-triple read's candidates. */
+  /** Every relation the principal holds on the resource — a principal's roles there, and the rows an organization revoke removes. */
   findByPrincipalAndResource(
     principalKind: string,
     principalId: string,

@@ -3,7 +3,7 @@
  * steps the six command chains splice after the shared `Authorize` and
  * `ValidateProto`. The write itself is never here — every step that writes
  * calls the ONE grant and revoke path (grant-path.ts, which owns the
- * row-and-tuple orderings, the by-triple read and the wire refusals) and leaves
+ * row-and-tuple orderings, the read of a triple's row and the wire refusals) and leaves
  * its answer under GRANT_RESULT_KEY for the handler. The chains are
  * deliberately short: `Authorize → ValidateProto → <one of these>`, with
  * only the owner steps (the last section) before the write on the three

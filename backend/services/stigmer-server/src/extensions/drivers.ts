@@ -247,7 +247,7 @@ export interface ExtensionDrivers {
    * path writes, deletes or reads — user grants, the structural
    * bootstrap lanes, the access lists and counts — goes through this
    * driver (the cloud serves the domain over its own `cloud.grant`
-   * table this way, legacy random ids included). When absent, the OSS
+   * table this way). When absent, the OSS
    * adapter over the generic Store installs at the compose.ts
    * consumption site — OSS behavior byte-identical.
    */

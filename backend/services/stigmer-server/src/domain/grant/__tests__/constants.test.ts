@@ -8,9 +8,7 @@
  *     @resource.kind:resource.id#relation`, spec.proto), so the natural key
  *     has one spelling and the primary key is the one home of "one row per
  *     triple". The golden vectors are wire-adjacent constants: a change
- *     re-addresses every grant open source ever wrote. The
- *     prefix moved from `iamp` to `grt` with the kind's rename and the
- *     hash did not, so a stored id moves by its prefix alone;
+ *     re-addresses every grant ever written;
  *   - `BLUEPRINT_KINDS` — the kinds an admin authors; sessions and
  *     executions are personal and never appear here;
  *   - the byte-pinned copy (the CLI, console and SDK show it verbatim),
@@ -58,7 +56,6 @@ import {
   unknownPrincipalKindMessage,
   unknownResourceKindMessage,
 } from "../constants.js";
-import { derivedId } from "../../../pipeline/steps/defaults.js";
 
 const CROCKFORD_ID = /^grt_[0-9abcdefghjkmnpqrstvwxyz]{26}$/;
 
@@ -118,15 +115,6 @@ describe("grantIdFor — the derived grant id", () => {
         }),
       ),
     ).toBe("grt_w5wqxkyrtbspjyp3jd6ce565q2");
-  });
-
-  it("kept the hash through the rename: an iamp_ id and its grt_ id share their 26 characters", () => {
-    const triple = spec({ kind: "identity_account", id: ALICE }, "admin", {
-      kind: "organization",
-      id: "acme",
-    });
-    expect(derivedId("iamp", canonicalTripleText(triple))).toBe("iamp_vkbjb6nvqm77vtwnr2bj0x95f9");
-    expect(grantIdFor(triple)).toBe("grt_vkbjb6nvqm77vtwnr2bj0x95f9");
   });
 
   it("has the shape of every minted id: prefix, underscore, 26 Crockford chars", () => {
@@ -294,7 +282,7 @@ describe("malformedTripleField — the delimiter check the id and the writer sha
 });
 
 describe("the contract's identity strings", () => {
-  it("stamps the proto's apiVersion const, not the Java-era value", () => {
+  it("stamps the proto's apiVersion const and kind", () => {
     expect(GRANT_API_VERSION).toBe("iam.stigmer.ai/v1");
     expect(GRANT_KIND).toBe("Grant");
   });

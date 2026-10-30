@@ -443,7 +443,7 @@ const consumerGuestTokenMinting: GuestTokenMinting = {
  * this position (registered below as `drivers.grantStore`).
  * `save` is create-only in effect: a held id raises the exported
  * DuplicateGrantError so the grant path's race arm (re-read the winner by
- * triple; answer it as the duplicate) works over a consumer driver exactly
+ * its id; answer it as the duplicate) works over a consumer driver exactly
  * as over the OSS adapter.
  */
 const consumerGrantStore: GrantStore = {

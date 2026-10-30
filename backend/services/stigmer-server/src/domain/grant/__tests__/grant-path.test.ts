@@ -12,7 +12,7 @@
  *     leaves row and tuple (retry converges; the reverse order was the
  *     fail-open incident class). The absent arm fires the hook with the
  *     spec and no grant, so a composition can still delete a bare tuple
- *     written before the row mirror existed.
+ *     a revoke racing a grant left behind.
  *   - cleanupResource is bidirectional (as principal first, then as
  *     target with the owner rows last), deduplicated, revoking each row
  *     through the same revoke order; a fault stops it with the owners
@@ -32,10 +32,8 @@
  *   - With no lifecycle composed (the OSS default before the built-in
  *     posture, and any unit that implements only the three required
  *     methods), the path writes rows and notifies nothing.
- *   - The row for a triple is found BY TRIPLE, never by derived id (slice
- *     2): the cloud's legacy rows carry random `iamp_<ulid>` ids and must
- *     revoke and deduplicate through this path, so a legacy row makes a
- *     re-grant the duplicate arm and is what `revokeBySpec` deletes.
+ *   - The row for a triple is the row under its derived id; a concurrent
+ *     grant's winner is re-read by that id and answered as the duplicate.
  *   - The path is the one writer, so it is the one gate: an unknown
  *     resource or principal kind, or a triple holding a delimiter, is
  *     INVALID_ARGUMENT before any read, write or hook — on grant AND on
@@ -63,9 +61,7 @@ import { describe, expect, it } from "vitest";
 
 import { clone, create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
-import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 import { GrantSchema } from "@stigmer/apis/ai/stigmer/iam/grant/v1/api_pb";
-import type { Grant } from "@stigmer/apis/ai/stigmer/iam/grant/v1/api_pb";
 import { ApiResourceRefSchema } from "@stigmer/apis/ai/stigmer/iam/grant/v1/spec_pb";
 import type { GrantSpec } from "@stigmer/apis/ai/stigmer/iam/grant/v1/spec_pb";
 
@@ -74,7 +70,6 @@ import type { ResourceAuthorizationLifecycle } from "../../../extensions/resourc
 import {
   AFFILIATION_NOT_GRANTABLE_MESSAGE,
   GRANT_API_VERSION,
-  GRANT_KIND,
   malformedTripleMessage,
   grantIdFor,
   unknownPrincipalKindMessage,
@@ -98,8 +93,6 @@ import type { FakeGrantStore, RecordedEvent } from "./support.js";
 const ALICE = "ida_wtr3jcf281yfk9xx61kj59fsme";
 const BOB = "ida_0byc5k14t1e7b7kdxft7hwz1f7";
 const AGENT = "agt_01hzzzzzzzzzzzzzzzzzzzzzzz";
-/** A Java-era id: random, never derivable from the triple it holds. */
-const LEGACY_ID = "iamp_01hzzzzzzzzzzzzzzzzzzzzzzz";
 
 const alice: CallerIdentity = {
   identityId: ALICE,
@@ -108,16 +101,6 @@ const alice: CallerIdentity = {
   rawToken: "",
   email: "alice@example.com",
 };
-
-/** A row as the cloud's Java service wrote it: random id, no audit actor. */
-function legacyRow(spec: GrantSpec): Grant {
-  return create(GrantSchema, {
-    apiVersion: "iam.stigmer.com/v1",
-    kind: GRANT_KIND,
-    metadata: create(ApiResourceMetadataSchema, { id: LEGACY_ID }),
-    spec,
-  });
-}
 
 async function invalidArgument(
   run: () => Promise<unknown>,
@@ -229,39 +212,7 @@ describe("grant: row before onGranted", () => {
   });
 });
 
-describe("the row for a triple is found by triple, so legacy ids converge", () => {
-  it("a legacy row makes a re-grant the duplicate arm: one row, ever, and the legacy id stands", async () => {
-    const recorded: RecordedEvent[] = [];
-    const { grants, path } = pathOver(recorded, recordingLifecycle(recorded));
-    const spec = orgRole(ALICE, "admin", "acme");
-    grants.rows.set(LEGACY_ID, legacyRow(spec));
-
-    const result = await path.grant(spec, alice, "grant");
-
-    expect(result.duplicate).toBe(true);
-    expect(result.grant.metadata?.id).toBe(LEGACY_ID);
-    expect([...grants.rows.keys()]).toEqual([LEGACY_ID]);
-    expect(recorded).toEqual([
-      { kind: "granted", id: LEGACY_ID, duplicate: true },
-    ]);
-  });
-
-  it("revokeBySpec finds and deletes the legacy row", async () => {
-    const recorded: RecordedEvent[] = [];
-    const { grants, path } = pathOver(recorded, recordingLifecycle(recorded));
-    const spec = orgRole(ALICE, "admin", "acme");
-    grants.rows.set(LEGACY_ID, legacyRow(spec));
-
-    const revoked = await path.revokeBySpec(spec, alice);
-
-    expect(revoked?.metadata?.id).toBe(LEGACY_ID);
-    expect(grants.rows.size).toBe(0);
-    expect(recorded).toEqual([
-      { kind: "revoked", id: LEGACY_ID, relation: "admin" },
-      { kind: "row-delete", id: LEGACY_ID },
-    ]);
-  });
-
+describe("the row for a triple is the row under its derived id", () => {
   it("a refused save with no winner to read back is not a race: the refusal propagates", async () => {
     const grants = fakeGrantStore();
     grants.save = async () => {
