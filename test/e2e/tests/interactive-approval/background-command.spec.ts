@@ -28,8 +28,8 @@ import {
 
 const mockUrl = getMockControlUrl();
 
-/** Four ticks, two seconds apart: a command seen running, then seen to exit. */
-const TICKS = "for i in 1 2 3 4; do echo tick-$i; sleep 2; done";
+/** Eight ticks, two seconds apart: a command seen running, then seen to exit. */
+const TICKS = "for i in 1 2 3 4 5 6 7 8; do echo tick-$i; sleep 2; done";
 
 test.describe("a command the agent runs in the background (deterministic mock LLM)", () => {
   test.skip(
@@ -60,9 +60,10 @@ test.describe("a command the agent runs in the background (deterministic mock LL
     const row = toolCallRow(page).filter({ hasText: "Background" }).first();
     const status = row.locator('[data-cursor-target="background-command-status"]');
     await expect(status).toContainText("Running in the background", { timeout: 30_000 });
-    // Previews are not replayed to a page that opens late, so the first tick
-    // may have streamed before it connected: any early tick proves the live view.
-    await expect(row.locator('[data-cursor-target="terminal-live-output"]')).toContainText(/tick-[1-3]/, { timeout: 30_000 });
+    // Previews are not replayed to a page that opens late, so the first ticks
+    // may have streamed before it connected (a cold console, a recorded
+    // trace): any tick before the last proves the live view.
+    await expect(row.locator('[data-cursor-target="terminal-live-output"]')).toContainText(/tick-[1-7]/, { timeout: 30_000 });
     await expect(row).not.toContainText("Started in the background");
 
     await expect(status).toHaveText("Exited · code 0", { timeout: 60_000 });
