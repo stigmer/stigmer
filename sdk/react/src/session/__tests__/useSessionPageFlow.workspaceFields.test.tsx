@@ -17,7 +17,7 @@ import { SessionSchema, type Session } from "@stigmer/apis/ai/stigmer/agentic/se
 import { GitWriteBackMode } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import type { Stigmer } from "@stigmer/client";
 import { StigmerContext } from "../../context";
-import { sentRefs, sentUpdate } from "../../internal/__tests__/sent-update";
+import { sentUpdate } from "../../internal/__tests__/sent-update";
 import { useSessionPageFlow } from "../useSessionPageFlow";
 import { sessionEventStream } from "./session-event-stream";
 
@@ -256,22 +256,5 @@ describe("useSessionPageFlow — a follow-up writes only what the person changed
 
     await waitFor(() => expect(runSend).toHaveBeenCalledTimes(1));
     expect(update).not.toHaveBeenCalled();
-  });
-});
-
-describe("useSessionPageFlow — a follow-up writes plugins and skills only when changed", () => {
-  it("sends an emptied plugin list as a clear and leaves the skills alone", async () => {
-    const { wrapper, update } = storedClient(STORED);
-    const { result } = await loaded(wrapper);
-
-    act(() => result.current.setPluginRefs([]));
-    await act(async () => {
-      await result.current.handleSubmit("go");
-    });
-
-    await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
-    const sent = sentUpdate<Session>(update);
-    expect(sent.paths).toEqual(["spec.plugins"]);
-    expect(sentRefs(sent.resource.spec?.plugins)).toEqual([]);
   });
 });

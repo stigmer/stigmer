@@ -80,8 +80,8 @@ function useWorkspaceEntries(): UseWorkspaceEntriesReturn
 
 <TypeTable
   type={{
-    addGitRepo: { type: "(url: string, branch?: string, name?: string) => void", description: "Add a git repository by URL with an optional branch. The entry is named after the URL unless `name` is given: pass the stored name when loading a saved workspace, so a later write keeps the entry (and its stored token) under the name it was saved with.  Names stay unique, because the server refuses a workspace that repeats one: a name already taken gains the branch (`acme/api@dev`), then a number (`acme/api-2`), so one repository can be added at two branches." },
-    addLocalPath: { type: "(path: string) => void", description: "Add a local filesystem directory by absolute path, named after its last two path segments; a name already taken gains a number (`dev/api-2`)." },
+    addGitRepo: { type: "(url: string, branch?: string, name?: string, stored?: { commit?: string; writeBackMode?: GitWriteBackMode }) => void", description: "Add a git repository by URL with an optional branch. The entry is named after the URL unless `name` is given: pass the stored name when loading a saved workspace, so a later write keeps the entry (and its stored token) under the name it was saved with. Pass the stored commit and write-back mode as `stored` too, so a later write keeps them.  Names stay unique, because the server refuses a workspace that repeats one: a name already taken gains the branch (`acme/api@dev`), then a number (`acme/api-2`), so one repository can be added at two branches." },
+    addLocalPath: { type: "(path: string, name?: string) => void", description: "Add a local filesystem directory by absolute path, named after its last two path segments unless `name` is given: pass the stored name when loading a saved workspace, because a folder's name is the directory it is given in the workspace. A name already taken gains a number (`dev/api-2`)." },
     clear: { type: "() => void", description: "Remove all entries." },
     clearLocal: { type: "() => void", description: "Remove all local folder entries, keeping git entries intact." },
     entries: { type: "readonly WorkspaceEntry[]", description: "Current workspace entries." },
@@ -834,7 +834,9 @@ added by the user before starting an agent session.
 <TypeTable
   type={{
     gitBranch: { type: "string", description: "Branch to clone. Set when `type` is `\"git\"`." },
+    gitCommit: { type: "string", description: "The commit the repository is pinned to. Kept from the stored repository when a saved workspace is loaded; never set by the editor, so a repository removed and added again starts unpinned." },
     gitUrl: { type: "string", description: "Repository URL. Set when `type` is `\"git\"`." },
+    gitWriteBackMode: { type: "GitWriteBackMode", description: "The repository's git write-back mode. Kept from the stored repository when a saved workspace is loaded; never set by the editor." },
     id: { type: "string", description: "Stable client-side identifier used as a React key and for removal.", required: true },
     localPath: { type: "string", description: "Absolute filesystem path. Set when `type` is `\"local\"`." },
     name: { type: "string", description: "Display name derived from the git URL or local path.", required: true },
