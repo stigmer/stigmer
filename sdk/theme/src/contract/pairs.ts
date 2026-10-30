@@ -89,6 +89,20 @@ const STATUSES = [
 ] as const;
 
 /**
+ * Sites beyond StatusBadge that draw a status pair, named in the usage string
+ * so a failing pair points at every place a reader sees it.
+ */
+const STATUS_ALSO: Partial<Record<(typeof STATUSES)[number], string>> = {
+  ready: "; routine fire Completed pill (RoutineFiresTable)",
+  running: "; routine fire Started pill (RoutineFiresTable)",
+  degraded:
+    "; caution notice text (SecretFlowErrorGuide, SessionComposer vision and agent-setup notices, " +
+    "RoutineDetailView state banner, FederationIssuerWizard discovery notice, TextContentRenderer " +
+    "truncation strip, ApprovalPeekBar on a card frame); routine fire Refused and Target missing pills (RoutineFiresTable)",
+  failed: "; routine fire Failed and Timed out pills (RoutineFiresTable)",
+};
+
+/**
  * The surfaces a status pill rests on. The dark `-subtle` fills are
  * translucent tints (tokens.css), so a pill is measured on each of these,
  * not on a surface of its own.
@@ -149,7 +163,7 @@ export const CONTRAST_PAIRS: readonly ContrastPair[] = [
           `--stgm-status-${status}`,
           `--stgm-status-${status}-subtle`,
           "text",
-          `StatusBadge "${status}" pill ${where}`,
+          `StatusBadge "${status}" pill${STATUS_ALSO[status] ?? ""} ${where}`,
         ),
         surface,
       ),
@@ -162,7 +176,7 @@ export const CONTRAST_PAIRS: readonly ContrastPair[] = [
         "--stgm-foreground",
         "--stgm-status-degraded-subtle",
         "text",
-        `caution notice title (SecretFlowErrorGuide, SkillUploader no-changes strip, VisibilitySelector confirm strip) ${where}`,
+        `caution notice title (SecretFlowErrorGuide, SkillUploader no-changes strip, VisibilitySelector confirm strip, RoutineDetailView state banner) ${where}`,
       ),
       surface,
     ),
@@ -172,7 +186,9 @@ export const CONTRAST_PAIRS: readonly ContrastPair[] = [
       `--stgm-status-${status}-foreground`,
       `--stgm-status-${status}`,
       "text",
-      `solid "${status}" status fill with foreground text`,
+      `solid "${status}" status fill with foreground text${
+        status === "degraded" ? " (caution notice hover: SessionComposer Configure, ApprovalPeekBar)" : ""
+      }`,
     ),
   ),
 

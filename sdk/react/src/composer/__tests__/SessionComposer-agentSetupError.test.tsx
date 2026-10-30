@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vitest";
-import { render, cleanup } from "@testing-library/react";
+import { render, screen, cleanup } from "@testing-library/react";
 import type { ReactNode } from "react";
 import type { Stigmer } from "@stigmer/client";
 import { StigmerContext } from "@stigmer/react-core";
@@ -120,5 +120,27 @@ describe("SessionComposer — onAgentSetupErrorChange", () => {
     mockAgentSetup.state = { status: "idle", error: new Error("boom") };
 
     expect(() => renderComposer()).not.toThrow();
+  });
+});
+
+describe("SessionComposer — agent setup notice", () => {
+  it("draws the caution notice, and its Configure hover is the solid at-risk pair", () => {
+    mockAgentSetup.state = {
+      status: "needsEnvVars",
+      agentName: "Support Bot",
+      agentRef: { org: "acme", slug: "support-bot" },
+      missingVariables: [{ key: "API_KEY", isSecret: true }],
+      error: null,
+    };
+    renderComposer();
+
+    const notice = screen.getByText("Agent needs configuration before use").closest('[role="status"]');
+    expect(notice).toBeTruthy();
+    expect(notice?.className).toContain("stg:bg-status-degraded-subtle");
+    expect(notice?.className).toContain("stg:text-status-degraded");
+    const configure = screen.getByRole("button", { name: "Configure" });
+    expect(configure.className).toContain("stg:hover:bg-status-degraded");
+    expect(configure.className).toContain("stg:hover:text-status-degraded-foreground");
+    expect(`${notice?.className} ${configure.className}`).not.toContain("warning");
   });
 });

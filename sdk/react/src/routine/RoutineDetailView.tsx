@@ -889,12 +889,12 @@ function StateBanner({
   return (
     <div
       role="status"
-      className="stg:flex stg:items-start stg:gap-2.5 stg:rounded-lg stg:border stg:border-warning/30 stg:bg-warning/5 stg:px-4 stg:py-3"
+      className="stg:flex stg:items-start stg:gap-2.5 stg:rounded-lg stg:bg-status-degraded-subtle stg:px-4 stg:py-3"
     >
-      <WarningIcon className="stg:mt-0.5 stg:size-4 stg:shrink-0 stg:text-warning" />
+      <WarningIcon className="stg:mt-0.5 stg:size-4 stg:shrink-0 stg:text-status-degraded" />
       <div className="stg:min-w-0 stg:flex-1">
         <p className="stg:text-sm stg:font-medium stg:text-foreground">{title}</p>
-        <p className="stg:mt-0.5 stg:text-xs stg:text-muted-foreground">{children}</p>
+        <p className="stg:mt-0.5 stg:text-xs stg:text-status-degraded">{children}</p>
       </div>
       <button
         type="button"

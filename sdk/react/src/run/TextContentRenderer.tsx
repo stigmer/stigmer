@@ -457,7 +457,7 @@ function LineNumberedPre({
 
 function TruncationWarning() {
   return (
-    <div className="stg:border-t stg:border-border stg:bg-warning/10 stg:px-4 stg:py-2 stg:text-xs stg:text-warning">
+    <div className="stg:border-t stg:border-border stg:bg-status-degraded-subtle stg:px-4 stg:py-2 stg:text-xs stg:text-status-degraded">
       Content was truncated. Download the full file for complete content.
     </div>
   );

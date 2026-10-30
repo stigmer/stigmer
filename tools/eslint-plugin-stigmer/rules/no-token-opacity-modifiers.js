@@ -22,6 +22,8 @@ const TOKEN_COLOR_PREFIXES = [
   "bg-sidebar-primary",
   "bg-sidebar-muted",
   "bg-sidebar-accent",
+  "bg-warning",
+  "bg-warning-foreground",
   "text-foreground",
   "text-muted-foreground",
   "text-muted-foreground-subtle",
@@ -38,11 +40,15 @@ const TOKEN_COLOR_PREFIXES = [
   "text-sidebar-primary-foreground",
   "text-sidebar-muted-foreground",
   "text-sidebar-accent-foreground",
+  "text-warning",
+  "text-warning-foreground",
   "border-border",
   "border-input",
   "border-sidebar-border",
+  "border-warning",
   "ring-ring",
   "ring-sidebar-ring",
+  "ring-warning",
 ];
 
 const OPACITY_PATTERN = /\/\d+$/;

@@ -2066,28 +2066,28 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
             derives from the attached entries, so it appears the moment an
             image over the advertised budget lands (paste/drop/pick) or the
             selected model is explicitly blind, and disappears when the
-            offending file is removed or the model changes. Warning
-            styling (not muted): unlike the upload wait, this is a problem
+            offending file is removed or the model changes. Drawn as the
+            caution notice (not muted): unlike the upload wait, this is a problem
             the user can fix BEFORE spending the turn. Non-blocking — the
             files still upload and mount; they just won't reach the model
             as pixels. */}
         {visionNotice && (
           <div
             role="status"
-            className="stg:mx-3 stg:mb-2 stg:flex stg:items-center stg:gap-2 stg:rounded-md stg:bg-warning/10 stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-warning"
+            className="stg:mx-3 stg:mb-2 stg:flex stg:items-center stg:gap-2 stg:rounded-md stg:bg-status-degraded-subtle stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-status-degraded"
           >
             <AlertTriangleIcon />
             <span>{visionNotice}</span>
           </div>
         )}
 
-        {/* Zone 2.7: Agent setup warning */}
+        {/* Zone 2.7: Agent setup warning, the same caution notice */}
         {showAgent &&
           agentSetup.state.status === "needsEnvVars" &&
           !agentRef && (
             <div
               role="status"
-              className="stg:mx-3 stg:mb-2 stg:flex stg:items-center stg:gap-2 stg:rounded-md stg:bg-warning/10 stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-warning"
+              className="stg:mx-3 stg:mb-2 stg:flex stg:items-center stg:gap-2 stg:rounded-md stg:bg-status-degraded-subtle stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-status-degraded"
             >
               <AlertTriangleIcon />
               <span>Agent needs configuration before use</span>
@@ -2098,7 +2098,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
                   setConfigActivePanel("agent");
                 }}
                 disabled={isDisabled}
-                className="stg:ml-auto stg:shrink-0 stg:rounded stg:px-1.5 stg:py-0.5 stg:text-2xs stg:font-medium stg:hover:bg-warning/20 stg:disabled:pointer-events-none stg:disabled:opacity-50"
+                className="stg:ml-auto stg:shrink-0 stg:rounded stg:px-1.5 stg:py-0.5 stg:text-2xs stg:font-medium stg:hover:bg-status-degraded stg:hover:text-status-degraded-foreground stg:disabled:pointer-events-none stg:disabled:opacity-50"
               >
                 Configure
               </button>

@@ -125,7 +125,11 @@ describe("SessionComposer — vision preflight notice (#365, #386)", () => {
       /screenshot\.png \(3\.6 MB\) exceeds the 3\.0 MB inline-image limit/,
     );
     expect(notice).toBeTruthy();
-    expect(notice.closest('[role="status"]')).toBeTruthy();
+    const box = notice.closest('[role="status"]');
+    expect(box).toBeTruthy();
+    expect(box?.className).toContain("stg:bg-status-degraded-subtle");
+    expect(box?.className).toContain("stg:text-status-degraded");
+    expect(box?.className).not.toContain("warning");
   });
 
   it("stays silent for images within the budget", async () => {

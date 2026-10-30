@@ -20,7 +20,8 @@ import { FederationIssuerWizard } from "../FederationIssuerWizard";
  *
  * Also pins the sign-in settings the create call carries: neither account
  * creation nor a role unless chosen, and both once the admin chooses them;
- * and that Done on the success step hands the created issuer to onCreated.
+ * that Done on the success step hands the created issuer to onCreated; and
+ * that a failed auto-discovery says so in the kit's caution notice.
  */
 
 const CREATED: FederationIssuer = create(FederationIssuerSchema, {
@@ -132,6 +133,36 @@ describe("FederationIssuerWizard userinfo endpoint", () => {
     const input = createIssuer.mock.calls[0]![0];
     expect(input.userinfoEndpoint).toBe("https://acme.us.auth0.com/userinfo");
     expect(input.jwksUri).toBe("https://acme.us.auth0.com/.well-known/jwks.json");
+  });
+});
+
+describe("FederationIssuerWizard failed discovery", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("says discovery failed in the caution notice and leaves the fields to fill", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => {
+      throw new TypeError("Failed to fetch");
+    }));
+    renderWizard(vi.fn());
+
+    fireEvent.click(screen.getByRole("option", { name: /Custom OIDC/ }));
+    fireEvent.change(screen.getByLabelText("Issuer URL"), {
+      target: { value: "https://idp.example.com" },
+    });
+    fireEvent.change(screen.getByLabelText("Display name"), {
+      target: { value: "Example" },
+    });
+    fireEvent.change(screen.getByLabelText("Expected audience"), {
+      target: { value: "https://api.example.com" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+
+    const notice = await screen.findByText(/Auto-discovery could not reach the provider/);
+    expect(notice.className).toContain("stg:bg-status-degraded-subtle");
+    expect(notice.className).toContain("stg:text-status-degraded");
+    expect(notice.className).not.toContain("warning");
   });
 });
 
