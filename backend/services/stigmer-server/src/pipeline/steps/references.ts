@@ -53,7 +53,11 @@
  *        whoever names one for a conversation, a routine, an agent's
  *        default or the organization's default vouches for it, and must be
  *        able to see what it installs and reaches. A refusal is PERMISSION_DENIED with its
- *        own sentence. Judging only what a write introduces is the
+ *        own sentence, except for a target whose existence is itself
+ *        private (`existenceIsPrivate`: another person's My vault, whose
+ *        slug anyone holding the person's id can compute), which is
+ *        answered as a missing target, so a write never tells that it
+ *        exists (stigmer#2036). Judging only what a write introduces is the
  *        reserved-label guard's echo rule (guard-reserved-labels.ts): an
  *        edit that keeps an attachment someone else made passes, and the
  *        attachment keeps its attacher (domain/vault/attachments.ts
@@ -145,6 +149,7 @@ import { EvalSchema } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/api_pb";
 import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
 import { SkillSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
 import { VaultSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
+import type { Vault } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 import { reference_kind } from "@stigmer/apis/ai/stigmer/commons/apiresource/field_options_pb";
@@ -155,6 +160,7 @@ import {
 import { OrganizationSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import { IamPermission } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 
+import { isMyVault } from "../../domain/vault/row.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import type { Store } from "../../store/interface.js";
@@ -196,6 +202,13 @@ export interface ReferenceTargetKind {
    * existence and the floor alone.
    */
   readonly writerMust: IamPermission | undefined;
+  /**
+   * Whether a found target's existence is itself private: a writer the
+   * writer clause refuses is answered as if the target were missing, so a
+   * refusal never tells that it exists. Absent for a kind whose names say
+   * nothing about anyone.
+   */
+  readonly existenceIsPrivate?: (target: Message) => boolean;
 }
 
 export const REFERENCE_TARGET_KINDS: ReadonlyArray<ReferenceTargetKind> = [
@@ -241,6 +254,11 @@ export const REFERENCE_TARGET_KINDS: ReadonlyArray<ReferenceTargetKind> = [
     label: "vault(s)",
     listHint: "stigmer list vaults",
     writerMust: IamPermission.can_use,
+    // A My vault's slug is computed from its person's id, which is not
+    // secret, so a refusal that differed from a missing slug's would tell
+    // anyone holding the id whether that person keeps a My vault here
+    // (stigmer#2036). A shared vault's name says nothing about a person.
+    existenceIsPrivate: (target) => isMyVault(target as Vault),
   },
   {
     // A session, an agent's default, a routine's invocation or an
@@ -318,6 +336,8 @@ export interface ReferenceTargets {
   idOf(ref: SpecReference): string | undefined;
   /** The target's own current slug, for the copy a person reads. */
   slugOf(ref: SpecReference): string | undefined;
+  /** Whether the target was found and its kind's `existenceIsPrivate` holds for it. */
+  existenceIsPrivate(ref: SpecReference): boolean;
   /**
    * The writing organization's parent, read only when a reference names
    * another organization; "" when it has none or none was needed.
@@ -330,6 +350,7 @@ interface IndexedTarget {
   readonly visibility: ApiResourceVisibility;
   readonly id: string;
   readonly slug: string;
+  readonly existenceIsPrivate: boolean;
 }
 
 /**
@@ -383,6 +404,7 @@ export async function loadReferenceTargets(
             visibility: metadata.visibility,
             id: metadata.id,
             slug: metadata.slug,
+            existenceIsPrivate: entry.existenceIsPrivate?.(target as Message) ?? false,
           },
     );
   }
@@ -401,6 +423,9 @@ export async function loadReferenceTargets(
     },
     slugOf(ref) {
       return found.get(referenceKey(ref))?.slug;
+    },
+    existenceIsPrivate(ref) {
+      return found.get(referenceKey(ref))?.existenceIsPrivate ?? false;
     },
   };
 }
@@ -632,7 +657,7 @@ export async function checkWriter(
     return { kind: "ok" };
   }
   if (decision.kind === "deny") {
-    return { kind: "not-viewable" };
+    return targets.existenceIsPrivate(ref) ? { kind: "missing" } : { kind: "not-viewable" };
   }
   if (decision.kind === "not-found") {
     return { kind: "missing" };
