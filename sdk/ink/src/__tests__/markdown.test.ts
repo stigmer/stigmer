@@ -161,6 +161,14 @@ describe("INK-13 long markdown (lists, code, tables) reads cleanly in the termin
     expect(narrow.slice(2).join("\n")).toMatch(/rounded once$/);
   });
 
+  it("measures a table's cells by what they show: inline code, escapes and inline html", () => {
+    const table = "| Call | Says |\n| --- | --- |\n| `round(x)` & co | a \\| b <br> c |\n| \\*plain\\* | **bold** |";
+    const lines = stripVTControlCharacters(renderMarkdown(table, 100)).split("\n");
+    expect(lines[0]).toBe("Call           Says");
+    expect(lines[2]).toBe("round(x) & co  a | b <br> c");
+    expect(lines[3]).toBe("*plain*        bold");
+  });
+
   it("draws an html block as written, and a link whose text is its address once", () => {
     expect(stripVTControlCharacters(renderMarkdown("<details>open</details>"))).toBe("<details>open</details>");
     expect(stripVTControlCharacters(renderMarkdown("Mail <me@example.com> or [x](x)."))).toBe("Mail me@example.com or x.");

@@ -190,7 +190,7 @@ function span(token: Token): React.ReactNode {
     case "del":
       return <Text strikethrough>{inline((token as Tokens.Del).tokens)}</Text>;
     case "codespan":
-      return <Text bold>{decode((token as Tokens.Codespan).text)}</Text>;
+      return <Text bold>{(token as Tokens.Codespan).text}</Text>;
     case "br":
       return "\n";
     case "link": {
@@ -209,12 +209,12 @@ function span(token: Token): React.ReactNode {
     }
     case "text": {
       const text = token as Tokens.Text;
-      return text.tokens ? inline(text.tokens) : decode(text.text);
+      return text.tokens ? inline(text.tokens) : text.text;
     }
     case "escape":
-      return decode((token as Tokens.Escape).text);
+      return (token as Tokens.Escape).text;
     default:
-      return decode(token.raw);
+      return token.raw;
   }
 }
 
@@ -223,7 +223,7 @@ function plain(tokens: readonly Token[]): string {
   return tokens
     .map((token) => {
       if ("tokens" in token && Array.isArray(token.tokens)) return plain(token.tokens);
-      if (token.type === "codespan" || token.type === "text" || token.type === "escape") return decode((token as Tokens.Text).text);
+      if (token.type === "codespan" || token.type === "text" || token.type === "escape") return (token as Tokens.Text).text;
       return token.raw;
     })
     .join("");
@@ -231,11 +231,4 @@ function plain(tokens: readonly Token[]): string {
 
 function textWidth(text: string): number {
   return Math.max(0, ...text.split("\n").map((line) => [...line].length));
-}
-
-const ENTITIES: Readonly<Record<string, string>> = { "&amp;": "&", "&lt;": "<", "&gt;": ">", "&quot;": '"', "&#39;": "'" };
-
-/** The lexer's escaped text as written: it escapes `&`, `<`, `>` and quotes in inline code and text. */
-function decode(text: string): string {
-  return text.replace(/&(?:amp|lt|gt|quot|#39);/g, (entity) => ENTITIES[entity] ?? entity);
 }
