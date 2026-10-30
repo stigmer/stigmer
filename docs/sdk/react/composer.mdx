@@ -144,6 +144,7 @@ A row the host adds to the composer's configure menu, and what it opens.
     icon: { type: "ReactNode", description: "", required: true },
     id: { type: "string", description: "", required: true },
     label: { type: "string", description: "", required: true },
+    onSelect: { type: "() => void", description: "Acts at once when picked (the menu closes) instead of opening the item's panel." },
   }}
 />
 
