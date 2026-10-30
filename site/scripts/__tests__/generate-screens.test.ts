@@ -23,18 +23,17 @@ afterEach(async () => {
   root = undefined;
 });
 
-async function temp(): Promise<string> {
+/**
+ * A temporary folder holding a site, which the module's own run (it converts
+ * the real list when imported) takes for the one it builds.
+ */
+async function prepareSite(): Promise<{ readonly dir: string; readonly screens: string }> {
   root = await mkdtemp(join(tmpdir(), "stigmer-screens-test-"));
-  return root;
-}
-
-/** A temporary site whose build is the one under test. */
-async function prepareSite(): Promise<string> {
-  const site = join(await temp(), "site");
+  const site = join(root, "site");
   await mkdir(join(site, "public"), { recursive: true });
   vi.spyOn(process, "cwd").mockReturnValue(site);
   vi.spyOn(console, "log").mockImplementation(() => {});
-  return join(site, "public", "screens");
+  return { dir: root, screens: join(site, "public", "screens") };
 }
 
 /** A synthetic picture: flat, or noise that no encoder can make small. */
@@ -45,6 +44,13 @@ async function png(dir: string, name: string, width: number, height: number, noi
       })
     : sharp({ create: { width, height, channels: 3, background: "#101010" } });
   await writeFile(join(dir, `${name}.png`), await image.png().toBuffer());
+}
+
+/** The module, once its own run (which converts the real list into the temporary site) has finished. */
+async function load(): Promise<typeof import("../generate-screens")> {
+  const module = await import("../generate-screens");
+  await module.generation;
+  return module;
 }
 
 function entry(name: string, width: number, height: number): Shown {
@@ -58,7 +64,7 @@ describe("the site's screens, from the real list", () => {
   it(
     "converts every approved picture into a 1x and a 2x WebP, each its declared size and within the budget",
     async () => {
-      const outDir = await prepareSite();
+      const { screens: outDir } = await prepareSite();
       const { generation } = await import("../generate-screens");
       await generation;
       const { width, height } = shownSize(shownScreen("approval"));
@@ -93,12 +99,12 @@ describe("the site's screens, from the real list", () => {
 
 describe("generateScreens", () => {
   it("writes each density from the picture drawn at the suite's scale, and removes files the list no longer names", async () => {
-    const dir = await temp();
+    const { dir } = await prepareSite();
     const outDir = join(dir, "out");
     await mkdir(outDir);
     await writeFile(join(outDir, "dropped-2x.webp"), "stale");
     await png(dir, "card", 40, 30);
-    const { generateScreens } = await import("../generate-screens");
+    const { generateScreens } = await load();
     const written = await generateScreens({ shown: [entry("card", 20, 15)], sourceDir: dir, outDir, maxBytes: 100_000 });
     expect(written.map((w) => w.file)).toEqual(["card-1x.webp", "card-2x.webp"]);
     expect((await sharp(join(outDir, "card-1x.webp")).metadata()).width).toBe(20);
@@ -106,10 +112,10 @@ describe("generateScreens", () => {
   });
 
   it("names every problem at once: a missing picture, one of the wrong size, a file over the budget", async () => {
-    const dir = await temp();
+    const { dir } = await prepareSite();
     await png(dir, "wrong", 30, 30);
     await png(dir, "heavy", 200, 200, true);
-    const { generateScreens } = await import("../generate-screens");
+    const { generateScreens } = await load();
     const job = {
       shown: [entry("missing", 10, 10), entry("wrong", 20, 15), entry("heavy", 100, 100)],
       sourceDir: dir,
