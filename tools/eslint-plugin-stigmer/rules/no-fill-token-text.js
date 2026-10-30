@@ -5,8 +5,11 @@
  * badge's background, measured by the theme's contrast contract only under
  * its own foreground (`sdk/theme/src/contract/pairs.ts`). Drawn as text
  * straight on a page, card or dialog, such a fill is not a measured pair, and
- * the badge amber reads near 2:1 in light mode (stigmer#2776). Each refused
- * fill names the status text colour the contract measures on those surfaces.
+ * the badge amber reads near 2:1 in light mode (stigmer#2776). The badge
+ * green is refused too although it shares the ready colour's value today: a
+ * preset or a host may brighten the badge fill for its pills, and every line
+ * drawn in it would wash out unmeasured (stigmer#2779). Each refused fill
+ * names the status text colour the contract measures on those surfaces.
  *
  * Every string in the file is read, not only `className`: a status-to-colour
  * map or a record's `colorClass` holds the class in an object literal, out of
@@ -23,7 +26,10 @@
 const { utilityOf } = require("../src/class-utility");
 
 /** Each fill refused as text, and the measured text colour that replaces it. */
-const FILL_TEXT = new Map([["text-warning", "text-status-degraded"]]);
+const FILL_TEXT = new Map([
+  ["text-warning", "text-status-degraded"],
+  ["text-success", "text-status-ready"],
+]);
 
 /** The fill a class token paints as text, or undefined; an opacity suffix is ignored. */
 function fillTextOf(className) {
@@ -41,7 +47,7 @@ module.exports = {
     messages: {
       fillAsText:
         '"{{ cls }}" paints a badge fill as text, a pair the theme\'s contrast contract does not measure and ' +
-        'that reads poorly in light mode. Use "{{ replacement }}", the status text colour measured on the page, ' +
+        'that can read poorly in light mode. Use "{{ replacement }}", the status text colour measured on the page, ' +
         "cards and dialogs (sdk/theme/src/contract/pairs.ts).",
     },
     schema: [],
