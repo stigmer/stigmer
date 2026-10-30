@@ -36,7 +36,8 @@ async function prepare(): Promise<string> {
 // developer's machine and 5.2 to 5.6 s on a hosted CI runner (stigmer#2406),
 // past vitest's 5-second default there. Under the docs lane's coverage
 // instrumentation the same case took 19.5 s on an Apple-silicon Mac and once
-// passed 20 s (stigmer#2773), so the limit leaves room for a slower runner.
+// passed 20 s (stigmer#2773), and 29.6 s on the same Mac under load, so the
+// limit leaves room for a slower runner.
 const EXPORT_TIMEOUT_MS = 60_000;
 
 describe("website brand exports", () => {

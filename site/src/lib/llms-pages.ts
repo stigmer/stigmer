@@ -111,12 +111,16 @@ const SCREEN_TAG = /<Screen((?:\s+[\w-]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|\{[^{}]*\})
 /** One attribute of a `<Screen>` tag: its name, then a double- or single-quoted value, or an `{expression}`. */
 const SCREEN_ATTRIBUTE = /([\w-]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|(\{[^{}]*\})))?/g;
 
+/** An inline code span: a run of backticks, then anything up to a run of the same length. */
+const CODE_SPAN = /(`+)(?!`)[\s\S]*?(?<!`)\1(?!`)/g;
+
 /**
- * Rewrites every `<Screen name="…" alt="…" />` outside a fenced code block
- * into `![<alt>](<siteUrl>/screens/<name>-2x.webp)`: the per-page `.md`,
+ * Rewrites every `<Screen name="…" alt="…" />` outside code into
+ * `![<alt>](<siteUrl>/screens/<name>-2x.webp)`: the per-page `.md`,
  * llms-full.txt, the "Copy page" button and Ask AI read the alt text where
  * the page shows the picture, and the link resolves off the site. A tag in a
- * fence is the component's own syntax shown as code, and stays as written.
+ * fenced block or an inline code span is the component's own syntax shown as
+ * code, and stays as written.
  *
  * A tag this cannot turn into an image throws, so the export fails the
  * build instead of shipping a dangling tag: one that is not self-closing,
@@ -151,9 +155,11 @@ export function screensToMarkdown(text: string, siteUrl: string): string {
 }
 
 function rewriteScreens(prose: string, siteUrl: string): string {
+  const code = [...prose.matchAll(CODE_SPAN)].map((span) => [span.index, span.index + span[0].length] as const);
   let out = "";
   let from = 0;
   for (const start of prose.matchAll(SCREEN_START)) {
+    if (code.some(([open, close]) => start.index > open && start.index < close)) continue;
     SCREEN_TAG.lastIndex = start.index;
     const tag = SCREEN_TAG.exec(prose);
     const written = () => prose.slice(start.index, start.index + 80).replace(/\s+/g, " ");
@@ -176,9 +182,9 @@ function rewriteScreens(prose: string, siteUrl: string): string {
   return out + prose.slice(from);
 }
 
-/** Alt text as a markdown image's label: on one line, with the characters that would end the label escaped. */
+/** Alt text as a markdown image's label: on one line, with the brackets and backslashes that would break the label escaped. */
 function markdownAlt(alt: string): string {
-  return alt.replace(/\s+/g, " ").trim().replace(/[\\\]]/g, "\\$&");
+  return alt.replace(/\s+/g, " ").trim().replace(/[\\[\]]/g, "\\$&");
 }
 
 // ---------------------------------------------------------------------------

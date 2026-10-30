@@ -43,7 +43,10 @@ describe("Screen", () => {
     expect(() => render(<Screen name="dashboard" alt={ALT} />)).toThrow(/no screen named "dashboard"/);
   });
 
-  it("refuses blank alt text", () => {
+  it("refuses blank or missing alt text", () => {
     expect(() => render(<Screen name="approval" alt="  " />)).toThrow(/alt text is required/);
+    // An MDX page is not typechecked, so it can leave `alt` out entirely.
+    const props: Record<string, string> = { name: "approval" };
+    expect(() => render(<Screen {...(props as { name: string; alt: string })} />)).toThrow(/alt text is required/);
   });
 });

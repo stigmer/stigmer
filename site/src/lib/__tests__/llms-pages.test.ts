@@ -103,9 +103,14 @@ describe("a <Screen> in the export", () => {
     expect(cleanContent(body, SITE_URL)).toBe(`![The approval card](${IMAGE})`);
   });
 
-  it("keeps the alt text on one line and escapes what would end its label", () => {
-    const body = '<Screen name="approval" alt="Approve [or deny]\n  a path like C:\\work" />';
-    expect(cleanContent(body, SITE_URL)).toBe(`![Approve [or deny\\] a path like C:\\\\work](${IMAGE})`);
+  it("keeps the alt text on one line and escapes the brackets and backslashes that would break its label", () => {
+    const body = '<Screen name="approval" alt="Approve [or deny]\n  a path like C:\\work, or [one" />';
+    expect(cleanContent(body, SITE_URL)).toBe(`![Approve \\[or deny\\] a path like C:\\\\work, or \\[one](${IMAGE})`);
+  });
+
+  it("leaves a tag inside an inline code span as written, and rewrites the one after it", () => {
+    const body = 'Write `<Screen name="unknown" />` or ``<Screen>``, like this:\n\n<Screen name="approval" alt="Approval" />';
+    expect(cleanContent(body, SITE_URL)).toBe(`Write \`<Screen name="unknown" />\` or \`\`<Screen>\`\`, like this:\n\n![Approval](${IMAGE})`);
   });
 
   it("leaves a tag inside a fenced code block as written, and rewrites the one after it", () => {

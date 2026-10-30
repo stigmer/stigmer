@@ -35,7 +35,8 @@ export interface ScreenProps {
 
 export function Screen({ name, alt, sizes = DOCS_IMAGE_SIZES, zoom = true, className }: ScreenProps) {
   const shown = shownScreen(name);
-  if (alt.trim() === "") {
+  // MDX is not typechecked, so a page can leave `alt` out entirely.
+  if (!alt || alt.trim() === "") {
     throw new Error(`<Screen name="${name}">: alt text is required; it is what a reader who cannot see the screen, and the markdown exports, get`);
   }
   const { width, height } = shownSize(shown);
