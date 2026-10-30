@@ -7,8 +7,8 @@ resource type; Skills are tagged when they are pushed.
 
 The hash can be the full 64 characters or any unique prefix of at least 4, such
 as the 12-character short hash `stigmer get agent --version-history` prints. A
-prefix that matches no version, or several, is refused with the versions it
-matched.
+prefix that matches no version is refused as not found; one that several
+versions share is refused with the versions it matches.
 
 {/* AUTO_USAGE */}
 

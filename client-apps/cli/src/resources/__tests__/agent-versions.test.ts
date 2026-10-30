@@ -5,7 +5,8 @@
 // A hash-shaped argument the server finds no tag or hash for is read as a
 // short hash and asked for again in full; a tag that looks like hex still
 // wins, a short hash no version has answers the server's not-found, and one
-// several versions share is a usage error.
+// several versions share is a usage error. A history read stops at a page
+// token the server repeats.
 
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
@@ -14,7 +15,7 @@ import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentVersionEntrySchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/version_pb";
 import type { Stigmer } from "@stigmer/client";
 import { classify, ExitCode } from "../../errors/index.js";
-import { getAgentAtVersion, renderAgentVersionHistory } from "../version.js";
+import { getAgentAtVersion, renderAgentVersionHistory, resolveAgentVersionHash } from "../version.js";
 
 const V2 = "b".repeat(64);
 const V1 = "a".repeat(64);
@@ -136,5 +137,18 @@ describe("getAgentAtVersion", () => {
 
     expect(classify(err)?.exitCode).toBe(ExitCode.Usage);
     expect((err as Error).message).toContain("aaaa matches 2 versions of acme/reviewer:");
+  });
+});
+
+describe("resolveAgentVersionHash", () => {
+  it("ends the history read when the server repeats a page token", async () => {
+    const listVersions = vi
+      .fn()
+      .mockResolvedValueOnce({ entries: [create(AgentVersionEntrySchema, { versionHash: V2 })], nextPageToken: "again" })
+      .mockResolvedValueOnce({ entries: [create(AgentVersionEntrySchema, { versionHash: V1 })], nextPageToken: "again" });
+    const client = { agent: { listVersions } } as unknown as Stigmer;
+
+    await expect(resolveAgentVersionHash(client, "acme", "reviewer", "bbbb")).resolves.toBe(V2);
+    expect(listVersions).toHaveBeenCalledTimes(2);
   });
 });

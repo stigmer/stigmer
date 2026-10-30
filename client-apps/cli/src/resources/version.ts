@@ -112,7 +112,7 @@ export async function resolveAgentVersionHash(
   throw new UsageError(
     [
       `${wanted} matches ${matches.length} versions of ${handle}:`,
-      ...matches.map((entry) => `  ${shortHash(entry.versionHash)}  ${entry.tag === "" ? "-" : entry.tag}`),
+      ...matches.map((entry) => `  ${shortVersionHash(entry.versionHash)}  ${entry.tag === "" ? "-" : entry.tag}`),
       "",
       "Give more of the hash.",
     ].join("\n"),
@@ -120,22 +120,26 @@ export async function resolveAgentVersionHash(
 }
 
 /** A version hash as the CLI prints it: its first SHORT_HASH_LENGTH characters. */
-export function shortHash(hash: string): string {
+export function shortVersionHash(hash: string): string {
   return hash.slice(0, SHORT_HASH_LENGTH);
 }
 
 // Every version of the agent, following the page token until it is empty:
-// a page may be short, even empty, and still carry one.
+// a page may be short, even empty, and still carry one. A token that comes
+// back a second time ends the read, so a server that repeats one cannot
+// hold the command forever.
 async function listAllVersions(client: Stigmer, org: string, slug: string): Promise<AgentVersionEntry[]> {
   const entries: AgentVersionEntry[] = [];
+  const tokensRead = new Set<string>();
   let pageToken = "";
   do {
+    tokensRead.add(pageToken);
     const page = await client.agent.listVersions(
       create(ListAgentVersionsInputSchema, { org, slug, pageSize: VERSION_LOOKUP_PAGE_SIZE, pageToken }),
     );
     entries.push(...page.entries);
     pageToken = page.nextPageToken;
-  } while (pageToken !== "");
+  } while (pageToken !== "" && !tokensRead.has(pageToken));
   return entries;
 }
 
@@ -169,7 +173,7 @@ function renderVersionsTable(entries: readonly VersionRow[], olderFollow: boolea
   ];
 
   for (const entry of entries) {
-    const hash = shortHash(entry.versionHash);
+    const hash = shortVersionHash(entry.versionHash);
     const tag = entry.tag === "" ? "-" : entry.tag;
     const appliedAt = entry.appliedAt === undefined ? "-" : formatAppliedAt(entry.appliedAt);
     const current = entry.isCurrent ? "*" : "";

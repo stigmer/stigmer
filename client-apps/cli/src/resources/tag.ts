@@ -13,7 +13,7 @@ import { TagAgentVersionInputSchema } from "@stigmer/apis/ai/stigmer/agentic/age
 import type { Stigmer } from "@stigmer/client";
 import { UsageError } from "../errors/index.js";
 import { CommandResult } from "../output/index.js";
-import { resolveAgentVersionHash, shortHash } from "./version.js";
+import { resolveAgentVersionHash, shortVersionHash } from "./version.js";
 
 /** The resource types a tag can be assigned to, by the aliases the CLI accepts. */
 const TAGGABLE: ReadonlySet<string> = new Set(["agent"]);
@@ -36,7 +36,7 @@ export async function tagVersion(
   const versionHash = await resolveAgentVersionHash(client, refOrg, slug, hash);
   await client.agent.tagVersion(create(TagAgentVersionInputSchema, { agentId, versionHash, tag }));
 
-  return CommandResult.success(`Tagged version ${shortHash(versionHash)} as '${tag}'`);
+  return CommandResult.success(`Tagged version ${shortVersionHash(versionHash)} as '${tag}'`);
 }
 
 // "org/slug" → [org, slug]; a bare token uses the resolved org context.
