@@ -113,6 +113,40 @@ const PILL_SURFACES = [
   { surface: "--stgm-popover", where: "in a dialog (ChannelTemplatesDialog)" },
 ] as const;
 
+/**
+ * The surfaces at-risk text is drawn on with no fill of its own: warning
+ * lines, waiting icons and failing cells in `stg:text-status-degraded`. The
+ * badge amber (`--stgm-warning`) is a fill and fails as text in light mode,
+ * which is why these sites use the at-risk token. Each surface a site sits on
+ * is named; `--stgm-accent` and `--stgm-sidebar` are not, because no site
+ * draws this text there and light mode measures below 4.5:1 on both, so a
+ * new site on either registers its pair here and meets that failure.
+ */
+const AT_RISK_TEXT_SURFACES = [
+  {
+    surface: "--stgm-background",
+    where:
+      "on the page (RunPhaseBadge waiting phase, ToolCallItem and ToolRunGroup waiting icons, " +
+      "TextContentRenderer JSON numbers, RunScores flags and failing scores, RoutineDetailView failure streak, " +
+      "EvalRunResults refresh error)",
+  },
+  {
+    surface: "--stgm-card",
+    where:
+      "on a card (VendorChannelCard readiness note, ApprovalCard header icons, EvalRunsTab sections " +
+      "and EvalCaseTable failing cells; run views a host renders on a card)",
+  },
+  {
+    surface: "--stgm-popover",
+    where:
+      "in a dialog (ChannelTemplatesDialog and ConversationTemplatePickerDialog unsendable reasons, " +
+      "ChannelToolCredentials, ConnectSlackDialog and ConnectWhatsAppDialog readiness notes, ChatLinkDialog notes)",
+  },
+  { surface: "--stgm-muted", where: "in a changed comparison row (EvalRunsTab)" },
+  { surface: "--stgm-muted-subtle", where: "on a hovered tool fold (ToolRunGroup)" },
+  { surface: "--stgm-accent-hover", where: "on a hovered score pill (RunScores)" },
+] as const;
+
 const SYNTAX = [
   "keyword",
   "property",
@@ -180,6 +214,10 @@ export const CONTRAST_PAIRS: readonly ContrastPair[] = [
       ),
       surface,
     ),
+  ),
+  // ── At-risk text straight on a surface (no fill of its own) ──────────
+  ...AT_RISK_TEXT_SURFACES.map(({ surface, where }) =>
+    pair("--stgm-status-degraded", surface, "text", `at-risk text and icons straight on the surface ${where}`),
   ),
   ...STATUSES.map((status) =>
     pair(
