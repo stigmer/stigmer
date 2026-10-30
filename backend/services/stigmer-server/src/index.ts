@@ -842,11 +842,14 @@ export { PostgresStore } from "./store/postgres/store.js";
 // composition's own chain (its schema, its lock key, its steps as data) runs
 // through it, with the same ledger, digest check and refusals as the store's
 // chain, so the migration discipline lives once. The digest and the sum
-// file, and the snapshot a chain's test compares with a fresh replay, come
-// with it (store/README.md, "Schema migrations").
+// file, the snapshot a chain's test compares with a fresh replay, and the
+// review that refuses a step unsafe during a roll come with it
+// (store/README.md, "Schema migrations").
 export { runSchemaChain, currentSchemaVersion } from "./store/postgres/schema-chain.js";
 export type { PostgresSchemaChain, PostgresSchemaMigration } from "./store/postgres/schema-chain.js";
 export { migrationChecksum, renderMigrationSum } from "./store/schema-checksum.js";
+export { reviewSchemaChain } from "./store/schema-review.js";
+export type { ReviewedSchemaStep } from "./store/schema-review.js";
 export { snapshotPostgresSchema } from "./store/postgres/schema-snapshot.js";
 export type {
   ArtifactStorage,

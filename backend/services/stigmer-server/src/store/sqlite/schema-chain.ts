@@ -27,9 +27,17 @@ export interface SqliteSchemaMigration {
   /**
    * Rows the step rewrites after its statements, in the same transaction.
    * It decodes only through descriptors frozen in the step, never live
-   * generated types.
+   * generated types (`reviewSchemaChain`, schema-review.ts, refuses a
+   * chain module that reaches them).
    */
   readonly rewrite?: (db: DatabaseSync, logger: StoreLogger) => void;
+  /**
+   * Why this step is safe while the previous release still runs against the
+   * database: what no running server reads or writes any more. Required when
+   * a statement drops, renames, retypes or tightens what exists
+   * (`reviewSchemaChain`); not hashed, and the runner ignores it.
+   */
+  readonly contract?: string;
 }
 
 /** A chain and how far to run it. */
