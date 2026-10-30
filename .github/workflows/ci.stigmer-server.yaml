@@ -6,9 +6,7 @@
 # and plain-`node` boot checks of BOTH compiled artifacts (tsc dist and the
 # esbuild slim bundle).
 #
-# The service began as the parity-gated TS port of the retired Go server
-# — see the directory's README.md. Like the
-# runner, it is NOT part of the root npm workspaces: own package-lock.json,
+# Like the runner, it is NOT part of the root npm workspaces: own package-lock.json,
 # the proto stubs and the backend libraries linked with `file:`, installed and
 # built separately (this mirrors ci.runner.yaml, the per-service CI pattern).
 #
@@ -292,8 +290,8 @@ jobs:
           retention-days: 14
 
   # linux-arm64 boot smoke:
-  # when the Go server retired, arm64 Linux lost its only fallback, so this
-  # server must be PROVEN to boot there — not assumed from x64 green. The
+  # arm64 Linux has no other server to fall back to, so this one must be
+  # PROVEN to boot there — not assumed from x64 green. The
   # platform-sensitive surface is exactly what the deep slim verify
   # exercises: node:sqlite with FTS5, the per-platform Temporal core-bridge
   # (the one native component, selected by npm optionalDependencies), and
