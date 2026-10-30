@@ -92,6 +92,18 @@ describe("reviewSchemaChain, rule 2", () => {
     expect(review(statement)).toEqual([]);
   });
 
+  it("reads a doubled quote as part of its literal, and an unterminated span to the end", () => {
+    expect(review("ALTER TABLE t ADD COLUMN note TEXT DEFAULT 'it''s a DROP'")).toEqual([]);
+    expect(review("ALTER TABLE t ADD COLUMN note TEXT DEFAULT 'DROP")).toEqual([]);
+    expect(review("ALTER TABLE t ADD COLUMN note TEXT /* DROP")).toEqual([]);
+  });
+
+  it("reads a statement of many unclosed comment openers in one pass", () => {
+    const started = performance.now();
+    expect(review(`/*${"a/*".repeat(200_000)}`)).toEqual([]);
+    expect(performance.now() - started).toBeLessThan(2_000);
+  });
+
   it("still sees a DROP inside a dollar-quoted body", () => {
     expect(review("DO $$ BEGIN DROP TABLE t; END $$")).toEqual([
       expect.stringContaining("v2 statement 1 drops what exists"),
@@ -148,6 +160,16 @@ describe("reviewSchemaChain, rule 3", () => {
     ]);
   });
 
+  it("reads an import after a lone quote on an earlier line", () => {
+    const chain = module(
+      "lone-quote/chain.ts",
+      `const quote = /'/;\nimport { Agent } from "@stigmer/apis/agent_pb";\n`,
+    );
+    expect(reviewSchemaChain(chain, STEPS)).toEqual([
+      expect.stringContaining(`imports "@stigmer/apis/agent_pb"`),
+    ]);
+  });
+
   it("refuses a dynamic import of generated code", () => {
     const chain = module(
       "dynamic/chain.ts",
@@ -178,6 +200,27 @@ describe("reviewSchemaChain, rule 3", () => {
       ].join("\n"),
     );
     expect(reviewSchemaChain(chain, STEPS)).toEqual([]);
+  });
+
+  it("reads no import inside a string, an escaped quote or an unclosed one", () => {
+    const chain = module(
+      "strings/chain.ts",
+      [
+        String.raw`const a = "import { x } from \"@stigmer/apis\"";`,
+        String.raw`const b = 'it\'s import("@stigmer/apis")';`,
+        String.raw`const c = /'/;`,
+        'export const SQL = `-- an export from "./gone.js"`;',
+        "export default 1",
+      ].join("\n"),
+    );
+    expect(reviewSchemaChain(chain, STEPS)).toEqual([]);
+  });
+
+  it("reads a module of many unclosed comment openers in one pass", () => {
+    const chain = module("openers/chain.ts", `/*${"a/*".repeat(200_000)}`);
+    const started = performance.now();
+    expect(reviewSchemaChain(chain, STEPS)).toEqual([]);
+    expect(performance.now() - started).toBeLessThan(2_000);
   });
 
   it("counts inline type specifiers as a value import", () => {

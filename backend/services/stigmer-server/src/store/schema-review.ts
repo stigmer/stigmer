@@ -119,11 +119,83 @@ function statementRisks(statement: string): string[] {
 
 /** A statement with comments gone and quoted text reduced to empty quotes. */
 function stripSql(statement: string): string {
-  return statement.replace(
-    /--[^\n]*|\/\*[\s\S]*?\*\/|'(?:[^']|'')*'|"(?:[^"]|"")*"/g,
-    (token) =>
-      token.startsWith("'") ? "''" : token.startsWith('"') ? '""' : " ",
-  );
+  return maskSpans(statement, SQL, (span) => `${span[0]}${span[0]}`);
+}
+
+/** How a language spells its comments and quoted text. */
+interface Lexis {
+  readonly lineComment: string;
+  readonly quotes: string;
+  /**
+   * TypeScript escapes a quote with a backslash, and only its backtick spans
+   * lines. SQL doubles a quote, which reads as one span closing and the next
+   * opening, so it needs no rule.
+   */
+  readonly backslash: boolean;
+}
+
+const SQL: Lexis = { lineComment: "--", quotes: `'"`, backslash: false };
+const TYPESCRIPT: Lexis = {
+  lineComment: "//",
+  quotes: "'\"`",
+  backslash: true,
+};
+
+/**
+ * `text` read once, left to right: each comment becomes as many spaces and
+ * each quoted span what `quoted` makes of it; an unterminated one runs to
+ * the end. One pass, never a backtracking pattern, so no input makes it
+ * slow.
+ */
+function maskSpans(
+  text: string,
+  lexis: Lexis,
+  quoted: (span: string) => string,
+): string {
+  let out = "";
+  let index = 0;
+  while (index < text.length) {
+    const char = text[index] ?? "";
+    let end: number;
+    if (text.startsWith(lexis.lineComment, index)) {
+      end = endOrLength(text.indexOf("\n", index), text);
+      out += " ".repeat(end - index);
+    } else if (text.startsWith("/*", index)) {
+      end = endOrLength(text.indexOf("*/", index + 2), text, 2);
+      out += " ".repeat(end - index);
+    } else if (lexis.quotes.includes(char)) {
+      end = closingQuote(text, index, lexis);
+      out += quoted(text.slice(index, end));
+    } else {
+      out += char;
+      end = index + 1;
+    }
+    index = end;
+  }
+  return out;
+}
+
+function endOrLength(found: number, text: string, past = 0): number {
+  return found === -1 ? text.length : found + past;
+}
+
+/** Where the quoted span opening at `start` ends, just past its closing quote. */
+function closingQuote(text: string, start: number, lexis: Lexis): number {
+  const quote = text[start];
+  let index = start + 1;
+  while (index < text.length) {
+    const char = text[index];
+    if (lexis.backslash && char === "\\") {
+      index += 2;
+    } else if (char === quote) {
+      return index + 1;
+    } else if (lexis.backslash && char === "\n" && quote !== "`") {
+      return index;
+    } else {
+      index += 1;
+    }
+  }
+  return text.length;
 }
 
 /** An ALTER TABLE's actions: the statement split at commas outside parentheses. */
@@ -183,22 +255,35 @@ function reviewImports(module: string): string[] {
 
 /** The specifiers a module imports for their values, `import type` aside. */
 function valueImports(source: string): string[] {
-  const code = source.replace(
-    /\/\/[^\n]*|\/\*[\s\S]*?\*\/|'(?:\\.|[^'\\\n])*'|"(?:\\.|[^"\\\n])*"|`(?:\\[\s\S]|[^`\\])*`/g,
-    (token) => (token.startsWith("/") ? " " : token),
+  // Two copies, index for index: `code` keeps quoted text, `shape` keeps
+  // only each span's opening quote, so a word inside a string is no keyword.
+  const code = maskSpans(source, TYPESCRIPT, (span) => span);
+  const shape = maskSpans(
+    source,
+    TYPESCRIPT,
+    (span) => `${span[0]}${" ".repeat(span.length - 1)}`,
   );
   const specifiers: string[] = [];
-  for (const match of code.matchAll(
-    /\b(?:import|export)\s+(type\s+)?[\w$\s,{}*]*?\bfrom\s*(["'])([^"'\n]+)\2/g,
-  )) {
-    if (match[1] === undefined) {
-      specifiers.push(match[3] ?? "");
+  for (const keyword of shape.matchAll(/\b(?:import|export)\b/g)) {
+    // What sits between the keyword and its first quote: `{ a, b } from`,
+    // `* as x from`, `type { a } from`, nothing (`import "x"`) or `(`
+    // (`import("x")`). A `;` or `=` first means it is no import.
+    const after = keyword.index + keyword[0].length;
+    const stop = shape.slice(after).search(/["'`;=]/);
+    const quote = after + stop;
+    if (stop === -1 || shape[quote] === ";" || shape[quote] === "=") {
+      continue;
     }
-  }
-  for (const match of code.matchAll(
-    /\bimport\s*(?:\(\s*)?(["'`])([^"'`\n]+)\1/g,
-  )) {
-    specifiers.push(match[2] ?? "");
+    const clause = shape.slice(after, quote).trim();
+    const bare = keyword[0] === "import" && (clause === "" || clause === "(");
+    const from =
+      /^[\w$\s,{}*]*$/.test(clause) &&
+      (clause === "from" || /[\s,{}*]from$/.test(clause)) &&
+      !/^type\s/.test(clause);
+    if (bare || from) {
+      const close = code.indexOf(code[quote] ?? "", quote + 1);
+      specifiers.push(code.slice(quote + 1, close === -1 ? quote + 1 : close));
+    }
   }
   return specifiers;
 }
