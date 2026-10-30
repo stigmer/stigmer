@@ -45,6 +45,8 @@ The site will be available at [http://localhost:3000](http://localhost:3000).
 | `make preview` | Build and serve static site locally |
 | `make clean` | Remove build artifacts |
 
+The build and the dev server first run `scripts/generate-screens.ts`, which converts the screens the visual suite approves for the site (`test/visual/src/shown.ts`) into `public/screens`, a 1x and a 2x WebP each, and fails when a picture is missing, the wrong size, or over the image budget in `test/bundle-budgets.json`. `<Screen name alt />` embeds one.
+
 ### Custom Port
 
 ```bash
@@ -76,7 +78,7 @@ site/
 
 One build, `.github/workflows/build.website.yaml`, makes the static export for both of its uses:
 
-- **Production.** A merge to `main` that touches the site, the docs, the tours or a package the site links runs `release.website.yaml`, which deploys the export to the Cloudflare Worker `stigmer-website` (`wrangler.jsonc`).
+- **Production.** A merge to `main` that touches the site, the docs, the tours, a package the site links or a screen it shows runs `release.website.yaml`, which deploys the export to the Cloudflare Worker `stigmer-website` (`wrangler.jsonc`).
 - **Review sites.** Every pull request that would redeploy the site gets the same build at `https://review-<pull request number>.stigmer.ai`, linked in a comment on the pull request. `preview.website.yaml` builds it with no key; `publish.website-preview.yaml`, which runs from `main`, uploads it as a version of `stigmer-website-preview`, marks it `noindex`, and closes it when the pull request is merged or closed. A pull request from a fork waits for a maintainer's approval before its review site goes up.
 
 The deploy jobs never install the site's dependencies: they install only the pinned wrangler in `deploy/`, and `deploy/check-export-read.sh` refuses a deploy unless wrangler reads every file of the export.

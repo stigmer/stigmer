@@ -146,7 +146,7 @@ statements. See [STYLE.md](STYLE.md) for usage examples of each component.
 
 Available components: `Callout`, `Tabs`/`Tab`, `SDKTabs`, `Steps`/`Step`,
 `Term`, `Files`/`Folder`/`File`, `Accordions`/`Accordion`, `TypeTable`,
-`ImageZoom`, `Cards`/`Card`.
+`Screen`, `ImageZoom`, `Cards`/`Card`.
 
 ### Docs component directory
 

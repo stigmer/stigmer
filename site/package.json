@@ -7,9 +7,10 @@
     "node": "^20.11.0 || ^22.0.0"
   },
   "scripts": {
-    "dev": "tsx ../sdk/react/scripts/build-styles.ts && next dev",
+    "dev": "tsx scripts/generate-screens.ts && tsx ../sdk/react/scripts/build-styles.ts && next dev",
     "generate-images": "tsx scripts/generate-images.ts",
-    "build": "tsx scripts/generate-images.ts && next build && tsx scripts/generate-llms-txt.ts",
+    "generate-screens": "tsx scripts/generate-screens.ts",
+    "build": "tsx scripts/generate-screens.ts && tsx scripts/generate-images.ts && next build && tsx scripts/generate-llms-txt.ts",
     "generate-llms": "tsx scripts/generate-llms-txt.ts",
     "generate-docs-inventory": "tsx scripts/generate-docs-inventory/index.ts",
     "generate-react-sdk-docs": "tsx scripts/generate-react-sdk-docs/index.ts",

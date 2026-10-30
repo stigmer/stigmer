@@ -86,7 +86,63 @@ describe("entry classification", () => {
 describe("cleanContent", () => {
   it("strips import lines and MDX comments, keeping the prose", () => {
     const body = 'import { Hero } from "@/components/docs";\n\n{/* A note. */}\nProse stays.';
-    expect(cleanContent(body)).toBe("Prose stays.");
+    expect(cleanContent(body, SITE_URL)).toBe("Prose stays.");
+  });
+});
+
+describe("a <Screen> in the export", () => {
+  const IMAGE = `${SITE_URL}/screens/approval-2x.webp`;
+
+  it("becomes a markdown image of its alt text, linked to the sharpest file on the site", () => {
+    const body = 'Before.\n\n<Screen name="approval" alt="A tool call waits for approval" />\n\nAfter.';
+    expect(cleanContent(body, SITE_URL)).toBe(`Before.\n\n![A tool call waits for approval](${IMAGE})\n\nAfter.`);
+  });
+
+  it("reads its attributes in either order, either quote, across lines, beside the component's own", () => {
+    const body = "<Screen\n  zoom={false}\n  alt='The approval card'\n  sizes=\"100vw\"\n  name=\"approval\"\n/>";
+    expect(cleanContent(body, SITE_URL)).toBe(`![The approval card](${IMAGE})`);
+  });
+
+  it("keeps the alt text on one line and escapes the brackets and backslashes that would break its label", () => {
+    const body = '<Screen name="approval" alt="Approve [or deny]\n  a path like C:\\work, or [one" />';
+    expect(cleanContent(body, SITE_URL)).toBe(`![Approve \\[or deny\\] a path like C:\\\\work, or \\[one](${IMAGE})`);
+  });
+
+  it("leaves a tag inside an inline code span as written, and rewrites the one after it", () => {
+    const body = 'Write `<Screen name="unknown" />` or ``<Screen>``, like this:\n\n<Screen name="approval" alt="Approval" />';
+    expect(cleanContent(body, SITE_URL)).toBe(`Write \`<Screen name="unknown" />\` or \`\`<Screen>\`\`, like this:\n\n![Approval](${IMAGE})`);
+  });
+
+  it("leaves a tag inside a fenced code block as written, and rewrites the one after it", () => {
+    const shown = '```mdx\n<Screen name="unknown" alt="" />\n```';
+    const tilde = '~~~~\n<Screen name="unknown">\n```\n~~~~';
+    const body = `${shown}\n\n${tilde}\n\n<Screen name="approval" alt="Approval" />`;
+    expect(cleanContent(body, SITE_URL)).toBe(`${shown}\n\n${tilde}\n\n![Approval](${IMAGE})`);
+  });
+
+  it("leaves a component whose name only starts with Screen alone", () => {
+    expect(cleanContent("<ScreenReaderNote>text</ScreenReaderNote>", SITE_URL)).toBe("<ScreenReaderNote>text</ScreenReaderNote>");
+  });
+
+  it.each([
+    ["is not self-closing", '<Screen name="approval" alt="Approval"></Screen>', /must close itself/],
+    ["cannot be read", '<Screen name="approval" alt="Approval" {...props} />', /cannot read/],
+    ["has no alt", '<Screen name="approval" />', /needs name="…" and alt="…" as plain strings/],
+    ["gives its alt as an expression", '<Screen name="approval" alt={label} />', /as plain strings/],
+    ["gives its name as an expression", '<Screen name={name} alt="Approval" />', /as plain strings/],
+    ["has blank alt text", '<Screen name="approval" alt=" " />', /alt text is required/],
+    ["names a screen the suite does not show", '<Screen name="dashboard" alt="Figures" />', /no screen named "dashboard"/],
+  ])("fails the export when the tag %s", (_, body, message) => {
+    expect(() => cleanContent(body, SITE_URL)).toThrow(message);
+  });
+
+  it("names the page whose tag fails, so the build says where to look", async () => {
+    const dir = await setup({
+      "index.mdx": mdx("Home"),
+      "meta.json": meta({ pages: ["guide"] }),
+      "guide.mdx": `${mdx("Guide")}\n<Screen name="approval" />\n`,
+    });
+    await expect(collectDocsPages(dir, SITE_URL)).rejects.toThrow(/^docs\/guide\.mdx: a <Screen> tag needs/);
   });
 });
 

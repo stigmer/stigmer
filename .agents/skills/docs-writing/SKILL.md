@@ -64,15 +64,25 @@ yes wins. Two doctrines sit behind it:
   in the last two; it passes through as a dangling tag. Every visual therefore
   contributes text to the exports (per-step prose, alt text, or the Mermaid
   source itself), and the prose around an embed carries the information on its
-  own.
+  own. A `Screen` contributes its alt text and a link to its picture: the export
+  turns the tag into a markdown image.
 
-## Screen demonstrations are paused
+## Screens come from the visual suite
 
-No page renders a screen demonstration today: how pages show screens is being
-redecided, and each page's `medium` in `docs/_inventory/classification.yaml`
-keeps its target as input to that decision. Until then a page stays prose, code
-and diagrams. A hand-captured screenshot rots with no signal, so it is not added
-in the meantime, not even as a placeholder.
+A page shows a screen only as a picture stigmer's visual suite draws, so the
+picture fails a test the moment the product's look moves and is redrawn in the
+same pull request. To show one:
+
+1. Add an entry to `test/visual/src/shown.ts`: a gallery scene from
+   `test/visual/src/catalog.ts`, the size it is drawn at, and a `clip` when the
+   lesson is one card rather than the whole screen. A screen the gallery does
+   not draw yet needs its scene first (`test/visual/README.md`, "Add a scene").
+2. `make test-visual UPDATE=1` mints the picture; review it like any screenshot.
+3. Embed it with `<Screen name="…" alt="…" />`.
+
+A hand-captured screenshot rots with no signal, so it is never added, not even
+as a placeholder. A page whose `medium` is `animated-tour` or `interactive`
+stays prose, code and diagrams until those media are built.
 
 ## Alt text describes the screen
 

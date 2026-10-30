@@ -1,4 +1,5 @@
 import { defineConfig } from "@playwright/test";
+import { SHOWN_SCALE } from "./src/shown.ts";
 
 /**
  * The visual suite: every scene of the kit's gallery compared with its
@@ -16,30 +17,50 @@ import { defineConfig } from "@playwright/test";
  * pixels every time, and a tolerance is how a lost 1px border went unseen
  * three times (test/e2e/tests/interactive-approval/tool-card-ux.spec.ts).
  * Baselines carry no platform suffix, since there is one drawing platform.
+ *
+ * Two projects draw: `gallery`, every scene at one device pixel per CSS
+ * pixel, compared at CSS scale; and `shown`, the pictures the site and the
+ * docs show (src/shown.ts), drawn at the device scale the site serves and
+ * kept apart under tests/__shown__, because the gallery's spec holds its own
+ * folder equal to the catalogue.
  */
 const PORT = 4179;
 
+/** The comparison both projects make: no pixel may differ, and nothing moves while it is taken. */
+const EXACT = { maxDiffPixels: 0, animations: "disabled", caret: "hide" } as const;
+
 export default defineConfig({
   testDir: "./tests",
-  snapshotPathTemplate: "{testDir}/__screenshots__/{arg}{ext}",
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   // No retries: a picture that matches on a second try has not matched
   // (scripts/test-integrity.mjs refuses a config that retries).
   retries: 0,
   reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "list",
-  expect: {
-    toHaveScreenshot: { maxDiffPixels: 0, animations: "disabled", caret: "hide", scale: "css" },
-  },
   use: {
     baseURL: `http://localhost:${PORT}`,
     browserName: "chromium",
-    deviceScaleFactor: 1,
     // Dates and numbers render in one locale and zone, wherever the suite runs.
     locale: "en-US",
     timezoneId: "UTC",
     trace: "retain-on-failure",
   },
+  projects: [
+    {
+      name: "gallery",
+      testMatch: "gallery.spec.ts",
+      snapshotPathTemplate: "{testDir}/__screenshots__/{arg}{ext}",
+      expect: { toHaveScreenshot: { ...EXACT, scale: "css" } },
+      use: { deviceScaleFactor: 1 },
+    },
+    {
+      name: "shown",
+      testMatch: "shown.spec.ts",
+      snapshotPathTemplate: "{testDir}/__shown__/{arg}{ext}",
+      expect: { toHaveScreenshot: { ...EXACT, scale: "device" } },
+      use: { deviceScaleFactor: SHOWN_SCALE },
+    },
+  ],
   webServer: {
     command: "npm run gallery:serve",
     url: `http://localhost:${PORT}`,

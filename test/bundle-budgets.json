@@ -5,5 +5,8 @@
     "react-sdk/chat": 314960,
     "react-sdk/styles": 16521,
     "embed/loader": 1558
+  },
+  "images": {
+    "site/screen": 150000
   }
 }

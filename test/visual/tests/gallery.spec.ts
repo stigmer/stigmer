@@ -2,9 +2,8 @@
 // compared with its approved screenshot, in light and dark at each of its
 // widths, and audited with axe in both modes.
 //
-// A scene is drawn at the scenario catalogue's clock, so no duration moves,
-// and pictured once its calls have settled and its fonts have loaded. A
-// scene whose state opens on a click is pictured, and audited, open.
+// A scene is drawn as tests/draw.ts draws it: at the scenario catalogue's
+// clock, settled, and opened if its state opens on a click.
 //
 // A changed look fails until its screenshots are minted again
 // (`make test-visual UPDATE=1`) and the difference is approved in review.
@@ -15,39 +14,20 @@
 import { readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import { AXE_TAGS, describeJudgement, judgeAxe, type KnownViolation } from "@stigmer/test-support/axe-policy";
-import { SCENARIO_CLOCK } from "@stigmer/react-sdk/test";
-import { MODES, SCENES, WIDTHS, screenshotsOf, sceneUrl, type Mode, type Scene, type SceneId, type WidthName } from "../src/catalog.ts";
+import { MODES, SCENES, WIDTHS, screenshotsOf, type Mode, type SceneId } from "../src/catalog.ts";
+import { draw } from "./draw.ts";
 
 /** The rules each scene fails today, in each mode, against the issue that tracks each. */
 const KNOWN_VIOLATIONS: Readonly<Partial<Record<`${SceneId} ${Mode}`, readonly KnownViolation[]>>> = {};
 
 const SCREENSHOTS = fileURLToPath(new URL("./__screenshots__/", import.meta.url));
 
-/** Draws `scene` in `mode` at `width`, settled: its calls answered, its fonts loaded, and opened if it opens. */
-async function draw(page: Page, scene: Scene, mode: Mode, width: WidthName): Promise<void> {
-  await page.clock.setFixedTime(new Date(SCENARIO_CLOCK));
-  await page.setViewportSize(WIDTHS[width]);
-  await page.goto(sceneUrl(scene.id, mode));
-  await settled(page);
-  for (const name of [scene.opens ?? []].flat()) {
-    await page.getByRole("button", { name }).click();
-    await settled(page);
-  }
-}
-
-async function settled(page: Page): Promise<void> {
-  await page.waitForFunction(() => window.gallery?.idle === true);
-  await page.evaluate(async () => {
-    await document.fonts.ready;
-  });
-}
-
 test.describe("KIT-03 the look changes only on purpose", () => {
   for (const shot of screenshotsOf(SCENES)) {
     test(`${shot.scene.id} ${shot.mode} ${shot.width} looks as approved`, async ({ page }) => {
-      await draw(page, shot.scene, shot.mode, shot.width);
+      await draw(page, shot.scene, shot.mode, WIDTHS[shot.width]);
       await expect(page).toHaveScreenshot(shot.file, { fullPage: true });
     });
   }
@@ -69,7 +49,7 @@ test.describe("KIT-04 every hero screen passes the accessibility audit", () => {
   for (const scene of SCENES) {
     for (const mode of MODES) {
       test(`${scene.id} ${mode} passes the accessibility audit`, async ({ page }) => {
-        await draw(page, scene, mode, scene.widths[0] ?? "desktop");
+        await draw(page, scene, mode, WIDTHS[scene.widths[0] ?? "desktop"]);
         const results = await new AxeBuilder({ page }).withTags([...AXE_TAGS]).analyze();
         const judged = judgeAxe(results.violations, KNOWN_VIOLATIONS[`${scene.id} ${mode}`]);
         const report = describeJudgement(judged);
