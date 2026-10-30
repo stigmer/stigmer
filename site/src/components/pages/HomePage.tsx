@@ -7,8 +7,6 @@ import { Hero } from "@/components/sections/Hero";
 import { Problem } from "@/components/sections/Problem";
 import { AgentGets } from "@/components/sections/AgentGets";
 import { HowItFits } from "@/components/sections/HowItFits";
-import { UseCases } from "@/components/sections/UseCases";
-import { BuiltForPlanton } from "@/components/sections/BuiltForPlanton";
 import { OpenSource } from "@/components/sections/OpenSource";
 import { FinalCTA } from "@/components/sections/FinalCTA";
 
@@ -28,8 +26,6 @@ function HomePage({ className, ...props }: HomePageProps) {
         <Problem />
         <AgentGets />
         <HowItFits />
-        <UseCases />
-        <BuiltForPlanton />
         <OpenSource />
         <FinalCTA />
       </main>

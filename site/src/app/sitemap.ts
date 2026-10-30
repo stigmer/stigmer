@@ -33,8 +33,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
   for (const path of [
     "/pricing",
     "/contact-sales",
-    "/use-cases",
     "/compare/claude-managed-agents",
+    "/about",
     "/download",
     "/blog",
   ]) {
