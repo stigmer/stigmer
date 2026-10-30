@@ -2,7 +2,7 @@
 
 import { useCallback } from "react";
 import { cn } from "@stigmer/design-tokens";
-import type { ResourceTemplate, TemplateCategory } from "./templates/types.js";
+import type { ResourceTemplate } from "./templates/types.js";
 import { TEMPLATE_CATEGORY_LABELS } from "./templates/types.js";
 
 // ---------------------------------------------------------------------------
@@ -20,52 +20,20 @@ export interface TemplateCardProps<TData> {
 }
 
 // ---------------------------------------------------------------------------
-// Category badge colors
-// ---------------------------------------------------------------------------
-
-const CATEGORY_COLORS: Record<TemplateCategory, string> = {
-  "data-analysis": "stg:bg-amber-500/10 stg:text-amber-700 stg:dark:text-amber-400",
-  devops: "stg:bg-emerald-500/10 stg:text-emerald-700 stg:dark:text-emerald-400",
-  content: "stg:bg-pink-500/10 stg:text-pink-700 stg:dark:text-pink-400",
-  integration: "stg:bg-cyan-500/10 stg:text-cyan-700 stg:dark:text-cyan-400",
-  general: "stg:bg-muted stg:text-muted-foreground",
-};
-
-// ---------------------------------------------------------------------------
-// Initial avatar colors (deterministic from template id)
-// ---------------------------------------------------------------------------
-
-const AVATAR_COLORS = [
-  "stg:bg-blue-500/15 stg:text-blue-700 stg:dark:text-blue-400",
-  "stg:bg-violet-500/15 stg:text-violet-700 stg:dark:text-violet-400",
-  "stg:bg-emerald-500/15 stg:text-emerald-700 stg:dark:text-emerald-400",
-  "stg:bg-amber-500/15 stg:text-amber-700 stg:dark:text-amber-400",
-  "stg:bg-pink-500/15 stg:text-pink-700 stg:dark:text-pink-400",
-  "stg:bg-cyan-500/15 stg:text-cyan-700 stg:dark:text-cyan-400",
-  "stg:bg-rose-500/15 stg:text-rose-700 stg:dark:text-rose-400",
-] as const;
-
-function hashCode(str: string): number {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = ((hash << 5) - hash + str.charCodeAt(i)) | 0;
-  }
-  return Math.abs(hash);
-}
-
-// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 /**
  * A clickable card that displays a resource template's metadata.
  *
- * Renders the template's name, description, and category badge.
- * Displays a colored initial avatar derived from the template name.
+ * Renders the template's name, description, and category badge, with the
+ * name's initial on the theme's avatar colour (`--stgm-avatar`), as
+ * `ResourceAvatar` draws a resource's, so the card looks like every other
+ * resource card.
  *
  * Fully keyboard-accessible: focusable, activates on Enter/Space.
- * Uses `--stgm-*` tokens for all structural styling; category badge
- * colors use Tailwind's semantic palette with opacity for dark mode.
+ * Every colour reads a `--stgm-*` token, so a preset or a host's brand
+ * restyles the card in light and dark mode alike.
  *
  * @typeParam TData - The wizard data shape this template targets.
  */
@@ -88,8 +56,6 @@ export function TemplateCard<TData>({
     [onSelect, template],
   );
 
-  const colorIndex = hashCode(template.id) % AVATAR_COLORS.length;
-  const avatarColor = AVATAR_COLORS[colorIndex]!;
   const initial = template.name.charAt(0).toUpperCase();
   const categoryLabel =
     TEMPLATE_CATEGORY_LABELS[template.category] ?? template.category;
@@ -111,10 +77,7 @@ export function TemplateCard<TData>({
       <div className="stg:flex stg:items-start stg:gap-3">
         {/* Initial avatar */}
         <span
-          className={cn(
-            "stg:inline-flex stg:size-9 stg:shrink-0 stg:items-center stg:justify-center stg:rounded-md stg:text-sm stg:font-semibold",
-            avatarColor,
-          )}
+          className="stg:inline-flex stg:size-9 stg:shrink-0 stg:items-center stg:justify-center stg:rounded-md stg:bg-avatar stg:text-sm stg:font-semibold stg:text-muted-foreground"
           aria-hidden="true"
         >
           {initial}
@@ -122,12 +85,7 @@ export function TemplateCard<TData>({
 
         <div className="stg:min-w-0 stg:flex-1">
           <p className="stg:text-sm stg:font-medium stg:text-foreground">{template.name}</p>
-          <span
-            className={cn(
-              "stg:mt-1 stg:inline-block stg:rounded-full stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium",
-              CATEGORY_COLORS[template.category] ?? CATEGORY_COLORS.general,
-            )}
-          >
+          <span className="stg:mt-1 stg:inline-block stg:rounded-full stg:bg-muted stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-muted-foreground">
             {categoryLabel}
           </span>
         </div>

@@ -1,9 +1,10 @@
 "use strict";
 
-// Pins the `colours-from-tokens` fence: a fallback on a --stgm-* token and a
-// Tailwind arbitrary colour are reported wherever a string holds them (a
-// className, a cn() argument, a style object, a template literal, a module
-// constant), because the SDK's colours live in all of those (stigmer#1473).
+// Pins the `colours-from-tokens` fence: a fallback on a --stgm-* token, a
+// Tailwind arbitrary colour and a Tailwind palette colour are reported
+// wherever a string holds them (a className, a cn() argument, a style object,
+// a template literal, a module constant), because the SDK's colours live in
+// all of those (stigmer#1473, stigmer#2763).
 // Each valid case differs from a reported one in one respect, so none passes
 // for an unrelated reason. Run via the root `npm run test:scripts` (the
 // `test:root` globs in package.json).
@@ -27,6 +28,7 @@ const tester = new RuleTester({
 
 const fallback = [{ messageId: "fallback" }];
 const arbitraryColour = [{ messageId: "arbitraryColour" }];
+const paletteColour = [{ messageId: "paletteColour" }];
 
 tester.run("colours-from-tokens", rule, {
   valid: [
@@ -45,6 +47,17 @@ tester.run("colours-from-tokens", rule, {
     { code: '<div className="stg:has-[#panel]:bg-muted" />' },
     // A colour in prose or a non-class string is not a class token.
     { code: 'const hint = "Use #6366f1 for nothing";' },
+    // Palette near-misses: a token utility, a keyword, a hue with no shade or
+    // an off-scale shade, a utility that only starts like a colour one, prose,
+    // and a slug that ends like a palette class.
+    { code: '<div className="stg:bg-warning stg:text-status-degraded stg:bg-status-degraded-subtle" />' },
+    { code: '<div className="stg:bg-transparent stg:text-current stg:border-inherit" />' },
+    { code: '<div className="stg:bg-blue stg:bg-blue-450 stg:text-red-1000" />' },
+    { code: '<div className="stg:whitespace-nowrap stg:text-2xs stg:ring-2 stg:shadow-md stg:border-x-2" />' },
+    { code: 'const hint = "the blue-500 swatch";' },
+    { code: 'const slug = "team-red-500";' },
+    { code: 'const id = "go-to-white";' },
+    { code: '<div className="stg:bg-[var(--stgm-x)]" />' },
   ],
   invalid: [
     // Fallbacks, wherever the string sits.
@@ -71,5 +84,27 @@ tester.run("colours-from-tokens", rule, {
     { code: '<div className="stg:[color:#fff]" />', errors: arbitraryColour },
     { code: '<div className="stg:!bg-[#000]" />', errors: arbitraryColour },
     { code: "const c = `stg:rounded stg:fill-[#22c55e] ${size}`;", errors: arbitraryColour },
+    // Palette colours, one prefix family each.
+    { code: '<div className="stg:bg-blue-500" />', errors: paletteColour },
+    { code: '<div className="stg:text-amber-800" />', errors: paletteColour },
+    { code: '<div className="stg:border-x-violet-200" />', errors: paletteColour },
+    { code: '<div className="stg:border-bs-slate-50" />', errors: paletteColour },
+    { code: '<div className="stg:ring-offset-zinc-950" />', errors: paletteColour },
+    { code: '<div className="stg:text-shadow-taupe-300" />', errors: paletteColour },
+    { code: '<div className="stg:mask-linear-from-mauve-400" />', errors: paletteColour },
+    { code: '<div className="stg:fill-emerald-600" />', errors: paletteColour },
+    {
+      code: '<div className="stg:from-sky-400 stg:via-indigo-500 stg:to-pink-600" />',
+      errors: [...paletteColour, ...paletteColour, ...paletteColour],
+    },
+    // Behind variants and `!`, with any opacity, and white or black.
+    { code: '<div className="stg:dark:hover:bg-red-900" />', errors: paletteColour },
+    { code: '<div className="stg:!text-green-700" />', errors: paletteColour },
+    { code: '<div className="stg:bg-amber-900/15 stg:border-blue-800/[0.3]" />', errors: [...paletteColour, ...paletteColour] },
+    { code: '<div className="stg:text-white stg:bg-black/50" />', errors: [...paletteColour, ...paletteColour] },
+    // In a cn() argument, a template literal and a module constant.
+    { code: 'cn("stg:rounded", active && "stg:bg-violet-100")', errors: paletteColour },
+    { code: "const c = `stg:rounded stg:text-rose-500 ${size}`;", errors: paletteColour },
+    { code: 'const AVATAR_COLORS = ["stg:bg-teal-500"];', errors: paletteColour },
   ],
 });

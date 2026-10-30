@@ -41,7 +41,7 @@ export interface VisibilityLevelOption {
     /** Body copy that names the exact audience and the consequence. */
     readonly description: string;
   };
-  /** Color treatment for the selected segment and the confirmation prompt. */
+  /** Which icon the level draws in the row, the badge and the trigger. */
   readonly tone: "private" | "org" | "childOrgs";
   /**
    * When present, the level cannot be selected by the current caller and the

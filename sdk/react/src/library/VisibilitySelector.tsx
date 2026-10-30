@@ -9,7 +9,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js"
 import { ConfirmDialog } from "../resource-detail/ConfirmDialog.js";
 import { useConfirmAction } from "../resource-detail/useConfirmAction.js";
 import {
-  PROMPT_STYLES,
+  ESCALATION_PROMPT_STYLES,
   VISIBILITY_CHIP_CLASS,
   VisibilityIcon,
   VisibilityOptionRow,
@@ -360,14 +360,14 @@ export function VisibilitySelector({
                 <div
                   role="alert"
                   className={cn(
-                    "stg:mt-1 stg:flex stg:items-center stg:gap-2 stg:rounded-md stg:border stg:px-2.5 stg:py-1.5",
-                    PROMPT_STYLES[pendingOption.tone].container,
+                    "stg:mt-1 stg:flex stg:items-center stg:gap-2 stg:rounded-md stg:px-2.5 stg:py-1.5",
+                    ESCALATION_PROMPT_STYLES.container,
                   )}
                 >
                   <span
                     className={cn(
                       "stg:flex-1 stg:text-2xs stg:leading-snug",
-                      PROMPT_STYLES[pendingOption.tone].text,
+                      ESCALATION_PROMPT_STYLES.text,
                     )}
                   >
                     {pendingOption.confirmPrompt}
@@ -378,7 +378,7 @@ export function VisibilitySelector({
                     className={cn(
                       "stg:rounded stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium",
                       "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-                      PROMPT_STYLES[pendingOption.tone].cancel,
+                      ESCALATION_PROMPT_STYLES.cancel,
                     )}
                   >
                     Cancel
@@ -387,9 +387,9 @@ export function VisibilitySelector({
                     type="button"
                     onClick={() => apply(pendingOption.value)}
                     className={cn(
-                      "stg:rounded stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-white",
+                      "stg:rounded stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium",
                       "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-                      PROMPT_STYLES[pendingOption.tone].confirm,
+                      ESCALATION_PROMPT_STYLES.confirm,
                     )}
                   >
                     Confirm

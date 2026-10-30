@@ -4,7 +4,7 @@ import { forwardRef } from "react";
 import { cn } from "@stigmer/design-tokens";
 import type { VisibilityLevelOption } from "./visibilityLevels.js";
 
-/** Color treatment key shared by every visibility surface. */
+/** Icon key shared by every visibility surface. */
 export type VisibilityTone = VisibilityLevelOption["tone"];
 
 // ---------------------------------------------------------------------------
@@ -134,52 +134,21 @@ export const VisibilityOptionRow = forwardRef<
 });
 
 // ---------------------------------------------------------------------------
-// Tone styling — one row per visibility tone, keyed by VisibilityLevelOption
+// Escalation prompt — the inline confirm shown before access widens
 // ---------------------------------------------------------------------------
 
-/** Selected-segment / active-tone treatment (also used by the inline confirm). */
-export const SELECTED_STYLES: Record<VisibilityTone, string> = {
-  private:
-    "stg:bg-amber-50 stg:text-amber-800 stg:dark:bg-amber-900/30 stg:dark:text-amber-300",
-  org: "stg:bg-blue-100 stg:text-blue-800 stg:dark:bg-blue-900/40 stg:dark:text-blue-300",
-  childOrgs:
-    "stg:bg-violet-100 stg:text-violet-800 stg:dark:bg-violet-900/40 stg:dark:text-violet-300",
-};
-
-/** Inline-confirm (escalation prompt) treatment, keyed by tone. */
-export const PROMPT_STYLES: Record<
-  VisibilityTone,
-  { container: string; text: string; confirm: string; cancel: string }
-> = {
-  // Private never escalates, but the row keeps the Record total.
-  private: {
-    container:
-      "stg:border-amber-200 stg:bg-amber-50 stg:dark:border-amber-800/50 stg:dark:bg-amber-950/30",
-    text: "stg:text-amber-800 stg:dark:text-amber-200",
-    confirm:
-      "stg:bg-amber-600 stg:hover:bg-amber-700 stg:dark:bg-amber-600 stg:dark:hover:bg-amber-500",
-    cancel:
-      "stg:text-amber-700 stg:hover:text-amber-900 stg:dark:text-amber-300 stg:dark:hover:text-amber-100",
-  },
-  org: {
-    container:
-      "stg:border-blue-200 stg:bg-blue-50 stg:dark:border-blue-800/50 stg:dark:bg-blue-950/30",
-    text: "stg:text-blue-800 stg:dark:text-blue-200",
-    confirm:
-      "stg:bg-blue-600 stg:hover:bg-blue-700 stg:dark:bg-blue-600 stg:dark:hover:bg-blue-500",
-    cancel:
-      "stg:text-blue-700 stg:hover:text-blue-900 stg:dark:text-blue-300 stg:dark:hover:text-blue-100",
-  },
-  childOrgs: {
-    container:
-      "stg:border-violet-200 stg:bg-violet-50 stg:dark:border-violet-800/50 stg:dark:bg-violet-950/30",
-    text: "stg:text-violet-800 stg:dark:text-violet-200",
-    confirm:
-      "stg:bg-violet-600 stg:hover:bg-violet-700 stg:dark:bg-violet-600 stg:dark:hover:bg-violet-500",
-    cancel:
-      "stg:text-violet-700 stg:hover:text-violet-900 stg:dark:text-violet-300 stg:dark:hover:text-violet-100",
-  },
-};
+/**
+ * Inline-confirm (escalation prompt) treatment. Widening access is a
+ * caution, so every level draws the kit's caution notice: the theme's
+ * at-risk status fill with foreground text, which the contrast contract
+ * audits in every preset and mode, and the kit's primary button to confirm.
+ */
+export const ESCALATION_PROMPT_STYLES = {
+  container: "stg:bg-status-degraded-subtle",
+  text: "stg:text-foreground",
+  confirm: "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
+  cancel: "stg:text-foreground stg:hover:underline",
+} as const;
 
 // ---------------------------------------------------------------------------
 // Icons — inline SVGs following the SDK pattern (no icon library dependency)

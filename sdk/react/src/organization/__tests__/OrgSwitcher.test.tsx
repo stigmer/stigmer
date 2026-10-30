@@ -3,11 +3,12 @@
  * order the server returns them, choosing one in the menu makes it active
  * (and remembered by id) and reports the choice, choosing the active one
  * again does nothing, and an organization created from the menu becomes the
- * active one once the list is fetched again. An organization open outside
+ * active one once the list is fetched again. The create dialog is a form, so
+ * a click outside it leaves it open with what was typed. An organization open outside
  * the caller's list (a child its parent's admin opened) is the menu's first,
  * checked item, "Child of" its parent, until another is chosen.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
 import type { ReactNode } from "react";
 import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
@@ -18,6 +19,16 @@ import { OrgSwitcher } from "../OrgSwitcher";
 import { ACME_ID, GLOBEX_ID } from "./org-fixture";
 
 afterEach(cleanup);
+
+// happy-dom does not implement the native dialog show/close methods.
+beforeAll(() => {
+  HTMLDialogElement.prototype.showModal = function showModal() {
+    this.open = true;
+  };
+  HTMLDialogElement.prototype.close = function close() {
+    this.open = false;
+  };
+});
 
 const INITECH_ID = "org_01jcccccccccccccccccccccccc";
 
@@ -115,6 +126,23 @@ describe("OrgSwitcher", () => {
     expect(create).toHaveBeenCalledWith(expect.objectContaining({ name: "initech", slug: "initech" }));
     expect(onOrgChanged).toHaveBeenCalledWith(INITECH);
     expect(localStorage.getItem("stigmer:activeOrg")).toBe(INITECH_ID);
+  });
+
+  it("keeps the create dialog and its typed name open on a click outside it", async () => {
+    renderSwitcher(clientFor([[ACME, GLOBEX]]));
+    await waitFor(() => expect(screen.getByLabelText("active org").textContent).toBe(ACME_ID));
+
+    await openMenu(screen.getByRole("button", { name: "Organization menu" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Create organization" }));
+    const dialog = await screen.findByRole("dialog", { name: "Create organization" });
+    const name = screen.getByPlaceholderText("e.g. Acme Corp");
+    fireEvent.change(name, { target: { value: "initech" } });
+
+    // A backdrop click lands on the <dialog> element itself.
+    fireEvent.click(dialog);
+
+    expect((dialog as HTMLDialogElement).open).toBe(true);
+    expect((screen.getByPlaceholderText("e.g. Acme Corp") as HTMLInputElement).value).toBe("initech");
   });
 
   it("lists an opened child first, checked, as a child of its parent, until another is chosen", async () => {

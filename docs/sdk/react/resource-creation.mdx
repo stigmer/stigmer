@@ -185,12 +185,14 @@ Uses `--stgm-*` tokens exclusively. Zero Console dependencies.
 
 A clickable card that displays a resource template's metadata.
 
-Renders the template's name, description, and category badge.
-Displays a colored initial avatar derived from the template name.
+Renders the template's name, description, and category badge, with the
+name's initial on the theme's avatar colour (`--stgm-avatar`), as
+`ResourceAvatar` draws a resource's, so the card looks like every other
+resource card.
 
 Fully keyboard-accessible: focusable, activates on Enter/Space.
-Uses `--stgm-*` tokens for all structural styling; category badge
-colors use Tailwind's semantic palette with opacity for dark mode.
+Every colour reads a `--stgm-*` token, so a preset or a host's brand
+restyles the card in light and dark mode alike.
 
 **Props** — `TemplateCardProps`
 
