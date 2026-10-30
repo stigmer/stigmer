@@ -1,6 +1,6 @@
 import { structuredPatch } from "diff";
 import { mapPatchHunks } from "./diff-hunks.js";
-import type { DiffHunk } from "./types.js";
+import type { DiffHunk } from "./diff-types.js";
 
 /**
  * Compute a unified diff between two text strings.

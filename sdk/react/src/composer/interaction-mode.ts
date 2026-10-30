@@ -1,5 +1,13 @@
 import { InteractionMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
-import type { InteractionModeOption } from "./InteractionModePicker.js";
+
+/**
+ * Interaction mode options for runs.
+ *
+ * Maps to `InteractionMode` proto enum values (excluding UNSPECIFIED):
+ * - `"agent"` → `INTERACTION_MODE_AGENT` (full tool access)
+ * - `"plan"` → `INTERACTION_MODE_PLAN` (read-only analysis)
+ */
+export type InteractionModeOption = "agent" | "plan";
 
 /**
  * Convert an {@link InteractionModeOption} string to the proto

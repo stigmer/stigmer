@@ -235,29 +235,4 @@ export interface WorkbenchState {
 // Data source
 // ---------------------------------------------------------------------------
 
-/** What a workbench asks its list function for: one page of an organization's rows. */
-export interface WorkbenchPageRequest {
-  /** Organization id (a slug is also accepted). */
-  readonly org: string;
-  /** The search box's text; empty or absent when nothing is typed. */
-  readonly query?: string;
-  /** The most rows the page holds. */
-  readonly pageSize: number;
-  /** The previous page's `nextPageToken`; `""` for the first page. */
-  readonly pageToken: string;
-}
-
-/** One page of rows, as every Stigmer list answers it. */
-export interface WorkbenchPage<TData = SearchResult> {
-  readonly entries: readonly TData[];
-  /** Set when more rows follow; `""` on the last page. */
-  readonly nextPageToken: string;
-}
-
-/**
- * A workbench's data source: reads the page a request names. The
- * workbench pages by token (next and previous), so a list carries no total.
- */
-export type WorkbenchListFn<TData = SearchResult> = (
-  request: WorkbenchPageRequest,
-) => Promise<WorkbenchPage<TData>>;
+export type { WorkbenchPageRequest, WorkbenchPage, WorkbenchListFn } from "../search/workbench-page.js";

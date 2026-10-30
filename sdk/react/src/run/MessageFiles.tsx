@@ -23,21 +23,9 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js"
 import { TruncatedText } from "../internal/truncated-text.js";
 import { formatFileSize } from "../file/file-size.js";
 
-/**
- * One file given with a message, as the thread shows it.
- *
- * Built from a run's `status.messageFiles` ({@link messageFileViews}) for a
- * turn the server recorded, and from the chat box's hand-off
- * (`FileHandOff.files`) for the optimistic bubble.
- */
-export interface MessageFileView {
-  /** The File's id (`"file_01j…"`): what its name, size and link are read by. */
-  readonly fileId?: string;
-  /** The filename, when known without reading the File. */
-  readonly filename?: string;
-  /** `"image"` shows a preview tile; `"document"` a click-to-download chip. */
-  readonly kind: "image" | "document";
-}
+import type { MessageFileView } from "./message-file-view.js";
+
+export type { MessageFileView } from "./message-file-view.js";
 
 const NO_VIEWS: readonly MessageFileView[] = [];
 const viewsByBlocks = new WeakMap<readonly ContentBlock[], readonly MessageFileView[]>();

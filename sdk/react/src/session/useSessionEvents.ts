@@ -11,7 +11,7 @@ import {
 import { ALL_SESSION_PREVIEWS, followSession, type SessionFold } from "@stigmer/client";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
-import { useStreamRate } from "../internal/dev/index.js";
+import { useStreamRate } from "../internal/dev/use-stream-rate.js";
 import {
   StreamController,
   DEFAULT_CONNECT_TIMEOUT_MS,
@@ -25,7 +25,7 @@ import {
   HEALTHY_STREAM_MS,
   type BackoffOptions,
 } from "../internal/backoff.js";
-import { ConversationStore } from "../internal/store/index.js";
+import { ConversationStore } from "../internal/store/conversation-store.js";
 import { onPageReturn } from "../internal/page-return.js";
 
 /** Return value of {@link useSessionEvents}. */

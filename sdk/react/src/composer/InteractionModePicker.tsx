@@ -5,14 +5,9 @@ import { Popover } from "@base-ui/react/popover";
 import { cn } from "@stigmer/design-tokens";
 import { useStigmerPortalContainer } from "../portal-container.js";
 
-/**
- * Interaction mode options for runs.
- *
- * Maps to `InteractionMode` proto enum values (excluding UNSPECIFIED):
- * - `"agent"` → `INTERACTION_MODE_AGENT` (full tool access)
- * - `"plan"` → `INTERACTION_MODE_PLAN` (read-only analysis)
- */
-export type InteractionModeOption = "agent" | "plan";
+import type { InteractionModeOption } from "./interaction-mode.js";
+
+export type { InteractionModeOption } from "./interaction-mode.js";
 
 const OPTIONS: readonly InteractionModeOption[] = ["agent", "plan"];
 
