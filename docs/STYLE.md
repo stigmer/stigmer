@@ -103,10 +103,15 @@ seen working. Getting-started journeys and console procedures are
 `screenshot-journey`: the reader compares their own screen against the depicted
 one and sets the pace.
 
-No page renders a screen demonstration today: how pages show screens is being
-redecided, and `medium` keeps each page's target as input to that decision.
-Until then, do not add a screenshot captured by hand, not even as a placeholder:
-it goes stale with no signal.
+A page shows a screen only as a picture the visual suite draws. Add an entry to
+the shown list in `test/visual/src/shown.ts` (a gallery scene, cropped with
+`clip` when the lesson is one card), mint it with `make test-visual UPDATE=1`,
+and embed it with `<Screen>` (see [Screen](#screen)). When the product's look
+changes, the suite fails until the picture is drawn again, and the redrawn
+picture reaches the site in the same pull request. Never add a screenshot
+captured by hand, not even as a placeholder: it goes stale with no signal. Pages
+whose medium is `animated-tour` or `interactive` stay prose, code and diagrams
+until those media are built.
 
 Generated pages (the `cli/commands/`, `sdk/react/`, `sdk/resources/`,
 `sdk/ink/`, and `sdk/theme/` reference sets) are covered by cohort rules in the
@@ -234,12 +239,28 @@ Structured property tables for API reference documentation.
 />
 ```
 
-### ImageZoom
+### Screen
 
-Click-to-zoom for screenshots and diagrams.
+A screen of the product, drawn by the visual suite. `name` is an entry in
+`test/visual/src/shown.ts`; `alt` describes what the screen shows. The picture
+is sized from the list, served sharp on a retina screen, and opens larger on a
+click. In the markdown exports the tag becomes an image whose label is the alt
+text. The build fails on a name the list does not hold or on blank alt text.
 
 ```mdx
-<ImageZoom src="/docs/screenshot.png" alt="Dashboard overview" />
+<Screen
+  name="approval"
+  alt="A file edit waits for approval, with Approve and Deny"
+/>
+```
+
+### ImageZoom
+
+Click-to-zoom for an image that is not a screen of the product, such as an
+exported diagram. A screen of the product is a `Screen`, never an image file.
+
+```mdx
+<ImageZoom src="/docs/<file>.png" alt="What the image shows" />
 ```
 
 ## Prose

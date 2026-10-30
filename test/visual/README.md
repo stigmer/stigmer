@@ -26,6 +26,16 @@ In CI the `visual` job of `ci.ts-workspace.yaml` runs inside the same image, on 
 
 A new state in the scenario catalogue needs its thread scene, or a line in `THREAD_DRAWN_ELSEWHERE` saying what draws it: the scene sweep (`src/__tests__/catalog.test.ts`) fails until it has one.
 
+## Shown pictures
+
+The site and the docs show some scenes as pictures: `<Screen name="approval" alt="…" />` on a page, never a captured screenshot. `src/shown.ts` lists them as plain data, each with a name pages use, its scene, the CSS size it is drawn at and an optional `clip` for one card. The `shown` project in `playwright.config.ts` draws each one as its scene's screenshot is drawn (`tests/draw.ts`), in dark, the site's one mode, at the device scale the site serves (`SHOWN_SCALE`), and compares it with `tests/__shown__/<name>.png`. `make test-visual UPDATE=1` mints them with the rest, so a change that moves a shown scene fails both its screenshot and its shown picture until both are minted again.
+
+The site's build converts each approved picture into the files it serves (`site/scripts/generate-screens.ts`), so the redrawn picture reaches stigmer.ai in the same pull request; both website workflows trigger on `src/shown.ts` and `tests/__shown__/`. To show a new one:
+
+1. Add its entry to `SHOWN` in `src/shown.ts`. Its scene must be in the catalogue; `src/__tests__/shown.test.ts` fails otherwise, and when a clip leaves the viewport.
+2. `make test-visual UPDATE=1` mints its picture. `tests/shown.spec.ts` fails while an entry has no picture, and while a picture has no entry.
+3. Embed it with `<Screen name="…" alt="…" />`.
+
 ## The browser image
 
 `playwright-image.json` names the official Playwright image by tag and digest, in its arm64 manifest, which an Apple-silicon Mac and GitHub's arm64 runner both run natively; an x64 machine runs it under emulation, with the same pixels. `src/__tests__/image-pin.test.ts` holds the `visual` job's `container.image` and runner, and the Playwright the lockfile pins, to it. Moving the pin re-mints every screenshot in one reviewed change. The file is a gate file (`test/README.md`, rule 5).

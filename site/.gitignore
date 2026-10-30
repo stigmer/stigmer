@@ -43,6 +43,10 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# Screens, converted at build time from the visual suite's approved pictures
+# (scripts/generate-screens.ts)
+/public/screens/
+
 # Search index (generated at build time)
 out/_pagefind/
 public/_pagefind/

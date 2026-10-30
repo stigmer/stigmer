@@ -9,6 +9,7 @@ import { Accordion, Accordions } from "fumadocs-ui/components/accordion";
 import { Card, Cards } from "fumadocs-ui/components/card";
 import { Hero, Mermaid, ReactSdkDomains, SDKTabs, Term } from "@/components/docs";
 import { JobPath } from "@/components/visuals/JobPath";
+import { Screen } from "@/components/visuals/Screen";
 
 export function getMDXComponents(components?: MDXComponents) {
   return {
@@ -30,6 +31,7 @@ export function getMDXComponents(components?: MDXComponents) {
     JobPath,
     Mermaid,
     ReactSdkDomains,
+    Screen,
     SDKTabs,
     Term,
     ...components,

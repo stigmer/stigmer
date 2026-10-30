@@ -424,10 +424,15 @@ export const LANES = {
       // relative-read rule fails when one is missing): brand/ from app code,
       // the image script and tests; the blog through its content config; the
       // Getting Started smoke's page parser, which the homepage's snippet
-      // test reads the pages with.
+      // test reads the pages with; the visual suite's shown list, its
+      // approved pictures and the image budget, which the screens script
+      // converts and checks.
       "brand/**",
       "blog/**",
       "test/install/lib/doc-steps.mjs",
+      "test/visual/src/shown.ts",
+      "test/visual/tests/__shown__/**",
+      "test/bundle-budgets.json",
       ".vale.ini",
       ".prettierrc",
       ".lychee.toml",

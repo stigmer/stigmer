@@ -42,6 +42,13 @@ on:
       - "backend/libs/ts/eval-runtime/**"
       - "backend/libs/ts/session-log/**"
       - "backend/libs/ts/tool-vocabulary/**"
+      # The screens the site shows, which its build converts from the visual
+      # suite's approved pictures within the image budget
+      # (site/scripts/generate-screens.ts), so a redrawn screen reaches
+      # stigmer.ai with the change that redrew it.
+      - "test/visual/src/shown.ts"
+      - "test/visual/tests/__shown__/**"
+      - "test/bundle-budgets.json"
       - ".github/workflows/build.website.yaml"
       - ".github/workflows/release.website.yaml"
   workflow_dispatch:
