@@ -50,17 +50,28 @@ The practice, for every step after 0.1.0:
    the same database during a roll: expand now (a new nullable column, a new
    table, a new index), contract in a later release once no running server
    reads the old shape. The list index's repair at open is the example: rows
-   an older binary writes are re-derived, never refused.
+   an older binary writes are re-derived, never refused. `reviewSchemaChain`
+   (`schema-review.ts`), run by each chain's sum test, refuses a step that
+   drops, renames, retypes or tightens what exists unless the step's
+   `contract` says why the previous release no longer reads or writes it.
 3. A step that rewrites stored rows decodes them only through descriptors
    frozen in the step, never through live generated types; otherwise a
    later contract change would change what a shipped step does. `rewrite`
-   code is not hashed, so this rule is what keeps it fixed.
+   code is not hashed, so this rule is what keeps it fixed. The same review
+   refuses a chain module that reaches generated code (`@stigmer/apis`, a
+   `*_pb` path) through itself or any module it imports relatively.
 4. Every earlier release upgrades. A new baseline is cut only together with
    a release every install must pass through, announced as such; the next
    release then refuses any database below it.
 5. No downgrades. A database ahead of the build is refused before anything
    is read: "schema version N is newer than this server supports". A
    database from before the 0.1.0 baseline meets the same refusal.
+
+A known limit: each step runs in one transaction, so a step cannot build an
+index concurrently (`CREATE INDEX CONCURRENTLY` refuses a transaction block),
+and a step that indexes or backfills a large existing table holds its lock
+for the whole step. Until the runner learns otherwise, such a step is kept
+small, or its release notes name the lock.
 
 ## The list index
 

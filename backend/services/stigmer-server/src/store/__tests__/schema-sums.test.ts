@@ -5,6 +5,8 @@
  * statements in order and nothing else, and a chain's versions run 1, 2,
  * 3, … with no gap or repeat. Against the base branch's file, a branch may
  * add lines and may not change, reorder or remove one, nor delete the file.
+ * Each chain also passes `reviewSchemaChain` (../schema-review.ts): no step
+ * unsafe during a roll without its `contract`, no generated code reachable.
  */
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -19,6 +21,7 @@ import {
   renderMigrationSum,
   sumLines,
 } from "../schema-checksum.js";
+import { reviewSchemaChain } from "../schema-review.js";
 import { SQLITE_MIGRATIONS } from "../sqlite/migrations.js";
 
 const STORE = path.resolve(import.meta.dirname, "..");
@@ -34,6 +37,26 @@ describe("migrations.sum", () => {
     expect(
       readFileSync(path.join(STORE, "sqlite", "migrations.sum"), "utf8"),
     ).toBe(renderMigrationSum(SQLITE_MIGRATIONS));
+  });
+});
+
+describe("reviewSchemaChain", () => {
+  it("passes the Postgres chain", () => {
+    expect(
+      reviewSchemaChain(
+        path.join(STORE, "postgres", "migrations.ts"),
+        POSTGRES_MIGRATIONS,
+      ),
+    ).toEqual([]);
+  });
+
+  it("passes the SQLite chain", () => {
+    expect(
+      reviewSchemaChain(
+        path.join(STORE, "sqlite", "migrations.ts"),
+        SQLITE_MIGRATIONS,
+      ),
+    ).toEqual([]);
   });
 });
 
