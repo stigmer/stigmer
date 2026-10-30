@@ -27,6 +27,7 @@ import { ToolCallGroup } from "../components/ToolCallGroup.js";
 import { FileReviewPrompt } from "../components/FileReviewPrompt.js";
 import { FileReviewRecord } from "../components/FileReviewRecord.js";
 import { FileDiffBody } from "../components/FileDiffBody.js";
+import { renderOnTerminal, settle as settleTerminal } from "./fake-terminal.js";
 import { MessageThread } from "../components/MessageThread.js";
 import { FileLineStats } from "../components/FileReviewAtoms.js";
 import { blockReasonNote, changeSetLineStats, editedPath, settledCounts } from "../file-review.js";
@@ -440,19 +441,39 @@ describe("MessageThread — file-review integration", () => {
   }
 
   it("badges a settled row and appends a settled record for an ended turn", () => {
+    // Off a live screen the thread is one frame, so its rows badge.
     const out = render(
-      <MessageThread turns={[turnWithEdit("completed", true)]} showFileReviewRecords expandToolCalls />,
+      <MessageThread turns={[turnWithEdit("completed", true)]} showFileReviewRecords expandToolCalls live={false} />,
     ).lastFrame() ?? "";
     expect(out).toContain("Kept"); // per-row badge
     expect(out).toContain("File review — 1 kept"); // settled record
   });
 
+  it("writes a row to the history without a badge, and the decided set's record once", async () => {
+    const turn = turnWithEdit("completed", true);
+    const { instance, stdout } = renderOnTerminal(<MessageThread turns={[turn]} showFileReviewRecords expandToolCalls />);
+    await settleTerminal();
+    instance.rerender(<MessageThread turns={[{ ...turn }]} showFileReviewRecords expandToolCalls />);
+    await settleTerminal();
+    instance.unmount();
+    const out = stdout.output();
+    expect(out).not.toContain("Kept");
+    expect(out.split("File review — 1 kept")).toHaveLength(2);
+  });
+
   it("does not record an undecided set on a live turn (that is the prompt's job)", () => {
     const out = render(
-      <MessageThread turns={[turnWithEdit("running", false)]} showFileReviewRecords expandToolCalls />,
+      <MessageThread turns={[turnWithEdit("running", false)]} showFileReviewRecords expandToolCalls live={false} />,
     ).lastFrame() ?? "";
     expect(out).toContain("Pending review"); // the row still badges
     expect(out).not.toContain("File review —"); // but no settled record
+  });
+
+  it("does not record an undecided set once its turn ended either: the record waits for the last decision", () => {
+    const out = render(
+      <MessageThread turns={[turnWithEdit("completed", false)]} showFileReviewRecords live={false} />,
+    ).lastFrame() ?? "";
+    expect(out).not.toContain("File review —");
   });
 
   it("renders the diff of a write from its run's captured bytes", async () => {

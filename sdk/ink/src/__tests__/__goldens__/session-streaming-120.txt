@@ -1,12 +1,12 @@
  Fix invoice rounding
 
- ⠋ Running
  You
  Invoices are off by a cent. Can you fix the rounding?
 
  Agent
  Looking at how invoices are totalled. The rounding happens
 
+ ⠋ Working · 1m 30s
  Agent mode — full tool access
 
  Reply...

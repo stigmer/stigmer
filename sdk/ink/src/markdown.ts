@@ -1,48 +1,34 @@
-import { Marked } from "marked";
-import { markedTerminal } from "marked-terminal";
+// A reply's markdown as its top-level blocks, read with marked's lexer: what
+// components/Markdown.tsx draws, and what lets a streaming reply settle block
+// by block. Every block but the last of a reply still being written can no
+// longer change, because text is only ever appended: a later line starts a new
+// block, it does not reach back into one that a blank line or a new block's
+// start already closed. So the thread writes those blocks to the terminal's
+// history once and keeps only the last one live.
+//
+// Trade-offs:
+//   - The lexer runs over the whole text at each update, so a reference-style
+//     link resolves when its definition is in the text; one defined after the
+//     block that uses it settled draws as its text alone.
+//   - Spacing and link definitions are not blocks: they draw nothing.
+//
+// Proven by __tests__/markdown.test.tsx.
 
-let _marked: Marked | null = null;
+import { Lexer, type Token } from "marked";
 
-function getMarked(width?: number): Marked {
-  if (_marked && !width) return _marked;
+/** The kinds of top-level token that draw nothing. */
+const NOT_DRAWN: ReadonlySet<string> = new Set(["space", "def"]);
 
-  const instance = new Marked();
-  instance.use(
-    markedTerminal({
-      width: width ?? process.stdout.columns ?? 80,
-      reflowText: true,
-      showSectionPrefix: false,
-    }),
-  );
-
-  if (!width) _marked = instance;
-  return instance;
+/** The top-level blocks of a markdown text, in order: what draws, spacing and link definitions left out. */
+export function markdownBlocks(text: string): readonly Token[] {
+  if (text.trim() === "") return [];
+  return Lexer.lex(text).filter((token) => !NOT_DRAWN.has(token.type));
 }
 
 /**
- * Render a markdown string to ANSI-styled terminal output.
- *
- * Uses `marked` with `marked-terminal` to produce styled text suitable
- * for display in a terminal. Supports headings, code blocks (with syntax
- * highlighting), lists, bold/italic, links, tables, and blockquotes.
- *
- * @param content - Raw markdown string.
- * @param width - Terminal width for text wrapping. Defaults to `process.stdout.columns` or 80.
- * @returns ANSI-styled string ready for terminal output.
- *
- * @example
- * ```ts
- * import { renderMarkdown } from "@stigmer/ink-ui";
- *
- * const ansi = renderMarkdown("**Hello** from the agent!");
- * process.stdout.write(ansi);
- * ```
+ * How many of a text's blocks can no longer change: all of them once the text
+ * is complete, every one but the last while it is still being written.
  */
-export function renderMarkdown(content: string, width?: number): string {
-  const marked = getMarked(width);
-  const result = marked.parse(content);
-  if (typeof result !== "string") {
-    return content;
-  }
-  return result.trimEnd();
+export function settledBlockCount(blockCount: number, writing: boolean): number {
+  return writing ? Math.max(0, blockCount - 1) : blockCount;
 }

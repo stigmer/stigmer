@@ -3,11 +3,14 @@
 // its own look in one place and the default stays Stigmer's: black and white
 // on purpose (the terminal's own foreground, bold for the accent, dim for the
 // quiet text), with hue kept for status alone. A terminal's palette already
-// adapts green, yellow and red to its light or dark background.
+// adapts green, yellow and red to its light or dark background. A host whose
+// own colours differ between a light and a dark terminal passes its theme as
+// a function of the background (terminal-background.ts detects it).
 //
 // Proven by __tests__/theme.test.tsx.
 
 import { createContext, useContext } from "react";
+import type { TerminalBackground } from "./terminal-background.js";
 
 /**
  * A host's colours by role. Each is an Ink colour: a name (`"magenta"`), a
@@ -47,9 +50,16 @@ export interface RoleStyle {
   readonly dimColor?: boolean;
 }
 
-/** A partial theme over the default: what a host passes to the provider. */
-export function resolveInkTheme(theme?: Partial<InkTheme>): InkTheme {
-  return { ...DEFAULT_INK_THEME, ...theme };
+/**
+ * What a host passes as its theme: roles over the default, or a function of
+ * the terminal's background that returns them, so its colours follow a light
+ * or a dark terminal.
+ */
+export type InkThemeInput = Partial<InkTheme> | ((background: TerminalBackground) => Partial<InkTheme>);
+
+/** A host's theme over the default, under the background in effect ("unknown" when not detected). */
+export function resolveInkTheme(theme?: InkThemeInput, background: TerminalBackground = "unknown"): InkTheme {
+  return { ...DEFAULT_INK_THEME, ...(typeof theme === "function" ? theme(background) : theme) };
 }
 
 /** How a role draws under a theme: an unset accent is bold foreground, an unset muted is dim. */
@@ -61,6 +71,14 @@ export function roleStyle(theme: InkTheme, role: InkRole): RoleStyle {
 
 /** The theme in effect; the default outside a provider that sets one. */
 export const InkThemeContext = createContext<InkTheme>(DEFAULT_INK_THEME);
+
+/** The terminal's background in effect; "unknown" outside a provider that knows it. */
+export const TerminalBackgroundContext = createContext<TerminalBackground>("unknown");
+
+/** The terminal's background the nearest `InkStigmerProvider` was given, for a host's own components. */
+export function useTerminalBackground(): TerminalBackground {
+  return useContext(TerminalBackgroundContext);
+}
 
 /** The theme the nearest `InkStigmerProvider` set, or Stigmer's default. */
 export function useInkTheme(): InkTheme {

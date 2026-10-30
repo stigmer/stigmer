@@ -1,3 +1,5 @@
+ Fix invoice rounding
+
  You
  Invoices are off by a cent. Can you fix the rounding?
 
@@ -5,8 +7,6 @@
 
  Agent
  Fixed: invoices now round once, at the total.
-
- Fix invoice rounding
 
  18.4k tokens · 3 calls · claude-sonnet-4-5
  Agent mode — full tool access

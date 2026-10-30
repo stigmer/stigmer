@@ -176,11 +176,14 @@
       "concurrency": 4
     },
     "ink-logic": {
-      "title": "the terminal kit's file review, markdown, run API, failure wording, terminal mode and command line",
+      "title": "the terminal kit's file review, markdown blocks, thread split, working line, background detection, run API, failure wording, terminal mode and command line",
       "package": "sdk/ink",
       "mutate": [
         "src/file-review.ts",
         "src/markdown.ts",
+        "src/thread-items.ts",
+        "src/working.ts",
+        "src/terminal-background.ts",
         "src/run/run-in-terminal.tsx",
         "src/errors.ts",
         "src/terminal-mode.ts",

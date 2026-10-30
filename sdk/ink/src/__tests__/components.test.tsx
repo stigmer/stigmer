@@ -45,7 +45,8 @@ describe("MessageEntry", () => {
   });
 
   it("renders nothing for a thinking", () => {
-    const message: ThreadMessage = { kind: "thinking", id: "t", text: "weighing", live: false, processedAt: "" };
+    // A model that keeps its thinking to itself leaves a settled thinking with no text.
+    const message: ThreadMessage = { kind: "thinking", id: "t", text: "", live: false, processedAt: "" };
     expect(render(<MessageEntry message={message} />).lastFrame()).toBe("");
   });
 

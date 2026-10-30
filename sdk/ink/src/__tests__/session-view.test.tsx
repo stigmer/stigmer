@@ -161,7 +161,8 @@ describe("SessionView — a loaded conversation", () => {
       answerError: new Error("gate already answered"),
     });
     const frame = render(<SessionView sessionId="ses_1" org="acme" />).lastFrame() ?? "";
-    expect(frame).toContain("Running");
+    // The working line, just above the composer.
+    expect(frame).toMatch(/⠋ Working · [\dhms ]+\n Agent mode/);
     expect(frame).toContain("Read the ledger");
     expect(frame).toContain("Approval error: gate already answered");
   });
