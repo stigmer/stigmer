@@ -16,7 +16,7 @@ import { clone, create } from "@bufbuild/protobuf";
 import { SessionSchema, type Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import { GitWriteBackMode } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import type { Stigmer } from "@stigmer/client";
-import { StigmerContext } from "../../context";
+import { StigmerContext } from "@stigmer/react-core";
 import { sentUpdate } from "../../internal/__tests__/sent-update";
 import { useSessionPageFlow } from "../useSessionPageFlow";
 import { sessionEventStream } from "./session-event-stream";
