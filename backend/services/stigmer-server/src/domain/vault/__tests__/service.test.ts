@@ -25,6 +25,7 @@ import { VaultConnectionSource } from "@stigmer/apis/ai/stigmer/agentic/vault/v1
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { Code, ConnectError } from "@connectrpc/connect";
 
+import { createLogger } from "../../../boot/logger.js";
 import { SecretService } from "../../../encryption/encryption.js";
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 
@@ -578,7 +579,10 @@ describe("a person who leaves while their My vault is created", () => {
    * vault: the creation tuples are written, then the membership is gone.
    * `answer` is what the organization check says once they left.
    */
-  function leavingRig(answer: AuthzDecision) {
+  function leavingRig(
+    answer: AuthzDecision,
+    over: { store?: Store; logger?: typeof silentLogger } = {},
+  ) {
     let member = true;
     const deleted: string[] = [];
     const lifecycle: ResourceAuthorizationLifecycle = {
@@ -600,8 +604,8 @@ describe("a person who leaves while their My vault is created", () => {
     };
     const service = newVaultService({
       credentialBinding: UNBOUND_CREDENTIAL_BINDING,
-      store: rig.store,
-      logger: silentLogger,
+      store: over.store ?? rig.store,
+      logger: over.logger ?? silentLogger,
       secretService: rig.secrets,
       authorizationLifecycle: lifecycle,
       authorizer,
@@ -620,6 +624,30 @@ describe("a person who leaves while their My vault is created", () => {
       await rig.store.resourceNames.resolve(myVaultNameKey(ORG, "ida_ana"), new Date().toISOString()),
     ).toBeUndefined();
     expect(leaving.deleted).toHaveLength(1);
+  });
+
+  it("removes the vault when the organization itself is gone, answering NOT_FOUND", async () => {
+    const leaving = leavingRig({ kind: "not-found" });
+    const failure = await leaving.service.ensureMine(ORG, ana).catch((e: unknown) => e);
+    expect(failure).toBeInstanceOf(ConnectError);
+    expect((failure as ConnectError).code).toBe(Code.NotFound);
+    expect(await rig.store.listResources(ApiResourceKind.vault)).toHaveLength(0);
+    expect(leaving.deleted).toHaveLength(1);
+  });
+
+  it("refuses as the callers do when the vault cannot be removed, and logs it", async () => {
+    const lines: string[] = [];
+    const leaving = leavingRig(
+      { kind: "deny", reason: "not a member" },
+      {
+        store: storeWith({ deleteResource: failing }),
+        logger: createLogger({ level: "error", pretty: false, write: (line) => lines.push(line) }),
+      },
+    );
+    const failure = await leaving.service.ensureMine(ORG, ana).catch((e: unknown) => e);
+    expect((failure as ConnectError).code).toBe(Code.PermissionDenied);
+    expect((failure as ConnectError).rawMessage).toBe(MY_VAULT_MEMBERS_ONLY);
+    expect(lines.some((line) => line.includes("My vault created for a person who left could not be removed"))).toBe(true);
   });
 
   it("keeps the vault and fails while it cannot tell whether its person is still a member", async () => {
