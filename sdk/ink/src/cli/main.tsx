@@ -14,6 +14,7 @@ import { SessionView } from "../app/SessionView.js";
 import { TurnWatchContext, type TurnWatch } from "../app/turn-watch.js";
 import { runInTerminal, TerminalRunError } from "../run/run-in-terminal.js";
 import { terminalMode } from "../terminal-mode.js";
+import { failureExitCode } from "../errors.js";
 import { parseCliArgs, USAGE } from "./args.js";
 
 /** The process a run reads and writes, and the signal that stops it. */
@@ -33,24 +34,48 @@ export interface CliDeps {
 
 const DEFAULT_DEPS: CliDeps = { createClient: createNodeClient, run: runInTerminal };
 
-/** Watching a session: off a terminal, return once its newest turn ended. */
-function Watch({ sessionId, org, live, canAnswer }: { sessionId: string; org: string; live: boolean; canAnswer: boolean }) {
+/** What a watch saw last: the newest turn, or the error that kept the session from loading. */
+interface Watched {
+  newest?: Turn;
+  loadError?: Error;
+}
+
+/**
+ * Watching a session someone else answers: it settles no ask (a pending
+ * approval stays theirs), and off a terminal it returns once the newest turn
+ * ended. It records what it saw for the exit code.
+ */
+function Watch({ sessionId, org, live, canAnswer, seen }: { sessionId: string; org: string; live: boolean; canAnswer: boolean; seen: Watched }) {
   const { exit } = useApp();
   const watch = React.useMemo<TurnWatch>(
     () => ({
       onTurns: (turns: readonly Turn[]) => {
-        const newest = turns.at(-1);
-        if (!canAnswer && (newest === undefined || (newest.status !== undefined && newest.ended))) exit();
+        seen.newest = turns.at(-1);
+        const ended = seen.newest === undefined || (seen.newest.status !== undefined && seen.newest.ended);
+        if (!canAnswer && ended) exit();
       },
-      onLoadError: () => exit(),
+      onLoadError: (error) => {
+        seen.loadError = error;
+        exit();
+      },
     }),
-    [canAnswer, exit],
+    [canAnswer, exit, seen],
   );
   return (
     <TurnWatchContext.Provider value={watch}>
-      <SessionView sessionId={sessionId} org={org} live={live} canAnswer={canAnswer} />
+      <SessionView sessionId={sessionId} org={org} live={live} canAnswer={canAnswer} approveDefault="leave" />
     </TurnWatchContext.Provider>
   );
+}
+
+/** A watch's exit code: the load error's, else the newest turn's phase (none: 0), else 130 when stopped first. */
+function watchExitCode(seen: Watched, stopped: boolean): number {
+  if (seen.loadError !== undefined) return failureExitCode(seen.loadError);
+  const newest = seen.newest;
+  if (newest === undefined) return stopped ? ExitCode.Interrupted : ExitCode.Success;
+  const ended = newest.status !== undefined && newest.ended;
+  if (!ended) return ExitCode.Interrupted;
+  return exitCodeOf({ phase: newest.status!.phase });
 }
 
 /** Runs stigmer-ink with `argv` (without the node and script paths) and answers its exit code. */
@@ -69,15 +94,16 @@ export async function runCli(argv: readonly string[], io: CliIo, deps: CliDeps =
 
   if (request.message === undefined) {
     const { live, canAnswer } = terminalMode({ stdin: io.stdin, stdout: io.stdout, env: io.env });
+    const seen: Watched = {};
     const instance = render(
       <InkStigmerProvider client={client}>
-        <Watch sessionId={request.sessionId ?? ""} org={request.org} live={live} canAnswer={canAnswer} />
+        <Watch sessionId={request.sessionId ?? ""} org={request.org} live={live} canAnswer={canAnswer} seen={seen} />
       </InkStigmerProvider>,
       { stdin: io.stdin, stdout: io.stdout, stderr: io.stderr, interactive: live, exitOnCtrlC: true, patchConsole: false },
     );
     io.signal.addEventListener("abort", () => instance.unmount(), { once: true });
     await instance.waitUntilExit();
-    return io.signal.aborted ? ExitCode.Interrupted : ExitCode.Success;
+    return watchExitCode(seen, io.signal.aborted);
   }
 
   try {
@@ -101,6 +127,6 @@ export async function runCli(argv: readonly string[], io: CliIo, deps: CliDeps =
   } catch (error) {
     // A start failure was written to stderr, a load failure drawn in the view.
     if (!(error instanceof TerminalRunError)) io.stderr.write(`stigmer-ink: ${String(error)}\n`);
-    return exitCodeOf(error);
+    return failureExitCode(error);
   }
 }

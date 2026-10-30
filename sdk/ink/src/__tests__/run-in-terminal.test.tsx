@@ -264,6 +264,14 @@ describe("INK-06 runInTerminal returns when the turn ends", () => {
     expect(written).toContain("Is the server running?");
   });
 
+  it("a start that fails at the socket, before any RPC status, exits 3 as its words say", async () => {
+    const refused = clientThat(async () => {
+      throw new TypeError("fetch failed");
+    });
+    const error = await runInTerminal(refused, INPUT, streams(true)).catch((e: unknown) => e);
+    expect((error as TerminalRunError).exitCode).toBe(3);
+  });
+
   it("a session that cannot load rejects with its exit code", async () => {
     store.state = conversation([], { loadError: new ConnectError("no such session", Code.NotFound) });
     const error = await runInTerminal(startsRun(), INPUT, streams(false)).catch((e: unknown) => e);

@@ -4,7 +4,9 @@
  * terminal kit's `stigmer-ink` (and any host that runs a turn and exits) read
  * one table.
  *
- * {@link exitCodeOf} reads a code from what a run ended with: a turn's
+ * The table itself is exit-code-table.ts, re-exported here; it is also its
+ * own entry (`@stigmer/client/exit-codes`) for code that must load it with no
+ * import. {@link exitCodeOf} reads a code from what a run ended with: a turn's
  * outcome (completed 0; failed, cancelled or terminated 1; not ended yet,
  * because the person or the host stopped waiting, 130, the shell's code for
  * an interrupt), or an error, by its {@link classifyError} category. A
@@ -16,17 +18,9 @@
 import { classifyError, type ErrorCategory } from "./errors.js";
 import type { TurnPhase } from "@stigmer/session-log";
 
-export const ExitCode = {
-  Success: 0,
-  General: 1, // Internal, Aborted, remote Canceled, Unknown, non-gRPC errors; a turn that failed or was stopped
-  Usage: 2, // InvalidArgument, FailedPrecondition, AlreadyExists
-  Connection: 3, // Unavailable, DeadlineExceeded, ResourceExhausted
-  Auth: 4, // Unauthenticated, PermissionDenied
-  NotFound: 5, // NotFound
-  Interrupted: 130, // the person pressed Ctrl+C, or the host stopped waiting
-} as const;
+import { ExitCode } from "./exit-code-table.js";
 
-export type ExitCode = (typeof ExitCode)[keyof typeof ExitCode];
+export { ExitCode } from "./exit-code-table.js";
 
 const CATEGORY_EXIT: Record<ErrorCategory, ExitCode> = {
   auth: ExitCode.Auth,
@@ -35,7 +29,9 @@ const CATEGORY_EXIT: Record<ErrorCategory, ExitCode> = {
   validation: ExitCode.Usage,
   server: ExitCode.General,
   unavailable: ExitCode.Connection,
-  cancelled: ExitCode.Interrupted,
+  // A request cancelled on the far side failed (the CLI's rule); a wait the
+  // person or host stopped is a turn that has not ended, read by its phase.
+  cancelled: ExitCode.General,
   unknown: ExitCode.General,
 };
 

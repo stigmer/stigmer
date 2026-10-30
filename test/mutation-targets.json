@@ -135,7 +135,8 @@
       "title": "the exit code a turn's outcome or an error gives a command-line tool",
       "package": "sdk/typescript",
       "mutate": [
-        "src/exit-codes.ts"
+        "src/exit-codes.ts",
+        "src/exit-code-table.ts"
       ],
       "concurrency": 4
     },

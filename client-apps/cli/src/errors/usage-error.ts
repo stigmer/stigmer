@@ -4,7 +4,7 @@
 // "usage" exit regardless of where validation happened.
 
 import { CliExitError } from "./cli-exit-error.js";
-import { ExitCode } from "@stigmer/client/node";
+import { ExitCode } from "@stigmer/client/exit-codes";
 
 export class UsageError extends CliExitError {
   constructor(message: string) {

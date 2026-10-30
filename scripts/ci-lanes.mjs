@@ -132,7 +132,7 @@ export const LANES = {
       // library and the exit-code table it imports by package name (not
       // traced, so kept by hand).
       "backend/libs/ts/artifact-fetch/**",
-      "sdk/typescript/src/exit-codes.ts",
+      "sdk/typescript/src/exit-code-table.ts",
       "client-apps/cli/scripts/install-temporal-cli.ts",
       "client-apps/cli/src/errors/cli-exit-error.ts",
       "client-apps/cli/src/local/artifact.ts",
@@ -477,7 +477,7 @@ export const LANES = {
       "client-apps/cli/scripts/install-temporal-cli.ts",
       "client-apps/cli/src/errors/cli-exit-error.ts",
       // The exit-code table those errors read, imported by package name.
-      "sdk/typescript/src/exit-codes.ts",
+      "sdk/typescript/src/exit-code-table.ts",
       // The Chromium every job here installs: .github/actions/playwright-chromium
       // runs it (scripts/lane-triggers.test.mjs fails when it is missing).
       "scripts/playwright-chromium.mjs",

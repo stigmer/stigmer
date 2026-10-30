@@ -5,7 +5,7 @@ import { StigmerError } from "@stigmer/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { setDebug } from "../../runtime.js";
 import { classify } from "../classify.js";
-import { ExitCode } from "@stigmer/client/node";
+import { ExitCode } from "@stigmer/client/exit-codes";
 import { formatError, handle } from "../handle.js";
 import { UsageError } from "../usage-error.js";
 

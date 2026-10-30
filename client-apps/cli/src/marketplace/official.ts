@@ -25,7 +25,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { MARKETPLACE_LOCATIONS } from "@stigmer/plugin-package";
 import { CliExitError } from "../errors/cli-exit-error.js";
-import { ExitCode } from "@stigmer/client/node";
+import { ExitCode } from "@stigmer/client/exit-codes";
 import { log } from "../logger.js";
 import { runtimesDir } from "../local/paths.js";
 import {

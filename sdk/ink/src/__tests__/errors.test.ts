@@ -4,7 +4,7 @@
 // the raw message kept as details.
 import { describe, expect, it } from "vitest";
 import { Code, ConnectError } from "@connectrpc/connect";
-import { describeConnectionFailure } from "../errors.js";
+import { describeConnectionFailure, failureExitCode } from "../errors.js";
 
 const URL = "http://localhost:7234";
 
@@ -41,5 +41,15 @@ describe("describeConnectionFailure", () => {
   it("says the cause plainly and keeps a thrown non-error as details", () => {
     expect(describeConnectionFailure(new Error("connect ECONNREFUSED 127.0.0.1:1"), URL, "load").cause).toBe("Unable to connect to the server.");
     expect(describeConnectionFailure("a string", URL, "load").details).toBe("a string");
+  });
+});
+
+describe("failureExitCode", () => {
+  it("gives the code the wording promises", () => {
+    expect(failureExitCode(new Error("connect ECONNREFUSED 127.0.0.1:7234"))).toBe(3);
+    expect(failureExitCode(new ConnectError("gone", Code.Unavailable))).toBe(3);
+    expect(failureExitCode(new ConnectError("no such session", Code.NotFound))).toBe(5);
+    expect(failureExitCode(new ConnectError("bad key", Code.Unauthenticated))).toBe(4);
+    expect(failureExitCode(new Error("odd"))).toBe(1);
   });
 });

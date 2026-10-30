@@ -19,7 +19,7 @@ import { Command } from "commander";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CliExitError } from "../../../errors/cli-exit-error.js";
-import { ExitCode } from "@stigmer/client/node";
+import { ExitCode } from "@stigmer/client/exit-codes";
 import { registerApiKey } from "../index.js";
 
 // Every create request the stubbed backend received.

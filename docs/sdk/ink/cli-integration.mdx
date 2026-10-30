@@ -118,7 +118,11 @@ func main() {
 	err := cmd.Run()
 	var exit *exec.ExitError
 	if errors.As(err, &exit) {
-		os.Exit(exit.ExitCode())
+		code := exit.ExitCode()
+		if code < 0 { // stopped by a signal
+			code = 130
+		}
+		os.Exit(code)
 	}
 	if err != nil {
 		os.Stderr.WriteString("could not start stigmer-ink: " + err.Error() + "\n")
@@ -142,7 +146,8 @@ message = " ".join(sys.argv[1:])
 result = subprocess.run(
     ["stigmer-ink", "--agent", "stigmer/release-checker", "--message", message]
 )
-sys.exit(result.returncode)
+# A child stopped by a signal has a negative return code.
+sys.exit(130 if result.returncode < 0 else result.returncode)
 ```
 
 ```bash
@@ -179,7 +184,8 @@ fn main() {
 cargo run --quiet -- Check v2.3 is safe to ship
 ```
 
-A child stopped by a signal has no exit code, so the bridge exits 130 for it.
+A child stopped by a signal has no exit code of its own, so each bridge exits
+130 for it, as the table says.
 
 ## Against Stigmer Cloud
 

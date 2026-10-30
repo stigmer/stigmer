@@ -59,9 +59,10 @@ export interface SessionViewProps {
   /**
    * How an ask is settled when no one can answer it (`canAnswer` false):
    * `"approve"` allows it, `"deny"` (the default) denies it, and the view
-   * says which. Ignored on a terminal, where a person answers.
+   * says which. `"leave"` settles nothing, for a view that only watches a
+   * session someone else answers. Ignored on a terminal, where a person answers.
    */
-  readonly approveDefault?: "approve" | "deny";
+  readonly approveDefault?: "approve" | "deny" | "leave";
   /**
    * Called once for each turn the view sees end (its status says it ended),
    * including turns already ended when it loads the session; a host that
@@ -162,7 +163,7 @@ export function SessionView({
   // Off a terminal no one can answer: each ask is settled once, by the default.
   const { asks, answerToolUse } = conv;
   useEffect(() => {
-    if (canAnswer) return;
+    if (canAnswer || approveDefault === "leave") return;
     for (const ask of asks) {
       if (settling.current.has(ask.id)) continue;
       settling.current.add(ask.id);

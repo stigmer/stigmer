@@ -36,7 +36,7 @@ import { exitCodeOf, type ExitCode } from "@stigmer/client/node";
 import { InkStigmerProvider } from "../provider.js";
 import { SessionView, type InteractionMode } from "../app/SessionView.js";
 import { TurnWatchContext, type TurnWatch } from "../app/turn-watch.js";
-import { describeConnectionFailure } from "../errors.js";
+import { describeConnectionFailure, failureExitCode } from "../errors.js";
 import { terminalMode } from "../terminal-mode.js";
 import type { InkTheme } from "../theme.js";
 
@@ -159,7 +159,7 @@ export async function runInTerminal(
   } catch (error) {
     const failure = describeConnectionFailure(error, client.baseUrl, "start");
     stderr.write(`${failure.headline}\n${failure.cause}\n${failure.next}\nDetails: ${failure.details}\n`);
-    throw new TerminalRunError(`${failure.headline} ${failure.cause}`, exitCodeOf(error), error);
+    throw new TerminalRunError(`${failure.headline} ${failure.cause}`, failureExitCode(error), error);
   }
 
   let latest: Turn | undefined;
@@ -198,7 +198,7 @@ export async function runInTerminal(
 
   if (loadError !== undefined) {
     const failure = describeConnectionFailure(loadError, client.baseUrl, "load");
-    throw new TerminalRunError(`${failure.headline} ${failure.cause}`, exitCodeOf(loadError), loadError);
+    throw new TerminalRunError(`${failure.headline} ${failure.cause}`, failureExitCode(loadError), loadError);
   }
   const place = { run: started.run, runId: started.runId, sessionId: started.sessionId };
   if (latest === undefined) {

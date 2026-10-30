@@ -15,7 +15,7 @@ import { dirname, join } from "node:path";
 import { spawn } from "node:child_process";
 import { log } from "../../logger.js";
 import { CliExitError } from "../../errors/cli-exit-error.js";
-import { ExitCode } from "@stigmer/client/node";
+import { ExitCode } from "@stigmer/client/exit-codes";
 import { tcpConnects, waitForTcp } from "../net/tcp.js";
 import { binDir, logDir, temporalDataDir, temporalLockFile, temporalPidFile } from "../paths.js";
 import { TEMPORAL_PORT, TEMPORAL_UI_PORT } from "../constants.js";

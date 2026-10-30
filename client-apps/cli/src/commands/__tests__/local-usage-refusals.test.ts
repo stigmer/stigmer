@@ -1,5 +1,5 @@
 // Pins the usage refusals of two local commands, which take their exit code
-// from the shared table (@stigmer/client/node): `stigmer logs` with an
+// from the shared table (@stigmer/client/exit-codes): `stigmer logs` with an
 // unknown component and `stigmer setup` with an unknown provider exit 2
 // (Usage) and name the valid choices, before streaming or saving anything.
 // HOME is a fresh temporary folder, so no real config or log is read.
@@ -9,7 +9,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Command } from "commander";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ExitCode } from "@stigmer/client/node";
+import { ExitCode } from "@stigmer/client/exit-codes";
 import { CliExitError } from "../../errors/cli-exit-error.js";
 import { registerLogs } from "../logs.js";
 import { registerSetup } from "../setup.js";

@@ -7,6 +7,7 @@
 // Proven by __tests__/errors.test.ts.
 
 import { classifyError, getUserMessage, type ErrorCategory } from "@stigmer/client";
+import { ExitCode, exitCodeOf } from "@stigmer/client/node";
 
 /** What the kit was doing when it failed. */
 export type FailedStep = "start" | "load" | "stream";
@@ -58,4 +59,14 @@ export function describeConnectionFailure(error: unknown, baseUrl: string, step:
     next: NEXT[categoryOf(error, details)],
     details,
   };
+}
+
+/**
+ * The exit code for a failure, read the way {@link describeConnectionFailure}
+ * words it: a socket error the client leaves unclassified is "cannot
+ * connect" (3) here too, so the sentence and the code never disagree.
+ */
+export function failureExitCode(error: unknown): ExitCode {
+  const details = error instanceof Error ? error.message : String(error);
+  return categoryOf(error, details) === "unavailable" ? ExitCode.Connection : exitCodeOf(error);
 }

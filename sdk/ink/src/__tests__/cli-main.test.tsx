@@ -4,10 +4,13 @@
 // streams, signal and options passed through; a turn that could not start
 // keeps its TerminalRunError's code without a second message, and any other
 // failure is written once; watching a session off a terminal returns when
-// its newest turn ended, and a stopped watch exits 130.
+// its newest turn ended, with that turn's code (or the load failure's), and
+// settles no ask (they belong to whoever answers that session); a stopped
+// watch exits 130.
 import React from "react";
 import { EventEmitter } from "node:events";
 import { describe, expect, it, vi } from "vitest";
+import { Code, ConnectError } from "@connectrpc/connect";
 import type { Stigmer, Turn } from "@stigmer/client";
 import type { UseSessionConversationReturn } from "@stigmer/react-core";
 import { samples } from "@stigmer/react-sdk/test";
@@ -15,13 +18,16 @@ import { runCli, type CliIo } from "../cli/main.js";
 import { TerminalRunError, type TerminalOutcome } from "../run/run-in-terminal.js";
 
 let turns: readonly Turn[] = [];
+let loadError: Error | null = null;
+let asks: readonly unknown[] = [];
+const answered: unknown[][] = [];
 
 vi.mock("@stigmer/react-core", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@stigmer/react-core")>();
   return {
     ...actual,
     useSessionConversation: () =>
-      ({ isLoading: false, loadError: null, turns, runs: [], asks: [], answerToolUse: async () => {}, fileReviewSets: [], fileChangeCaptures: new Map(), answeringToolUseIds: new Set(), submittingFileDecisionKeys: new Set(), fileDecisionErrors: new Map(), queued: [], activePhase: null, canSendFollowUp: false }) as unknown as UseSessionConversationReturn,
+      ({ isLoading: false, loadError, turns, runs: [], asks, answerToolUse: async (...args: unknown[]) => void answered.push(args), fileReviewSets: [], fileChangeCaptures: new Map(), answeringToolUseIds: new Set(), submittingFileDecisionKeys: new Set(), fileDecisionErrors: new Map(), queued: [], activePhase: null, canSendFollowUp: false }) as unknown as UseSessionConversationReturn,
     useSessionUsage: () => ({ hasUsage: false }) as unknown as ReturnType<typeof actual.useSessionUsage>,
   };
 });
@@ -111,5 +117,26 @@ describe("runCli", () => {
     await new Promise((resolve) => setTimeout(resolve, 20));
     controller.abort();
     expect(await watching).toBe(130);
+  });
+
+  it("exits a watch with its newest turn's code, or the load failure's", async () => {
+    const quiet = { createClient: () => client, run: vi.fn() };
+    turns = [samples.turn({ runId: "run_a", phase: "failed" })];
+    expect(await runCli(["--session", "ses_1", "--org", "acme"], io(), quiet)).toBe(1);
+    turns = [];
+    loadError = new ConnectError("no such session", Code.NotFound);
+    expect(await runCli(["--session", "ses_1", "--org", "acme"], io(), quiet)).toBe(5);
+    loadError = new Error("connect ECONNREFUSED 127.0.0.1:7234");
+    expect(await runCli(["--session", "ses_1", "--org", "acme"], io(), quiet)).toBe(3);
+    loadError = null;
+  });
+
+  it("settles no ask in a watched session: it belongs to whoever answers there", async () => {
+    turns = [samples.turn({ runId: "run_a", phase: "completed" })];
+    asks = [samples.toolUse("execute", undefined, { runId: "run_a" })];
+    answered.length = 0;
+    await runCli(["--session", "ses_1", "--org", "acme"], io(), { createClient: () => client, run: vi.fn() });
+    expect(answered).toEqual([]);
+    asks = [];
   });
 });

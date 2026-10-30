@@ -594,15 +594,15 @@ smoke-getting-started: build-runner build-server build-web ## Run the Getting St
 # project with every peer they declare, then resolved, imported, typechecked
 # and rendered from there. build-libs builds the dist/ the pack stages, so the
 # smoke packs with --skip-build rather than building every library again.
+.PHONY: smoke-libs
+smoke-libs: build-libs ## Install the published TypeScript libraries from their packed tarballs into an empty project, then resolve, import, typecheck and render them
+	node test/install/smoke-libs.mjs --skip-build
+
 .PHONY: smoke-terminal-kit
 smoke-terminal-kit: build-runner build-server build-web build-libs ## Run the terminal kit as a developer adopts it: its bin with Node alone, the README's runInTerminal example and the CLI guide's Go, Python and Rust bridges, on a pseudo-terminal and through a pipe (needs python3, go, cargo)
 	@command -v python3 >/dev/null 2>&1 || { echo "error: python3 not found"; exit 1; }
 	@cd $(SERVER_DIR) && node scripts/bundle-slim.mjs
 	node test/install/smoke-terminal-kit.mjs --skip-build
-
-.PHONY: smoke-libs
-smoke-libs: build-libs ## Install the published TypeScript libraries from their packed tarballs into an empty project, then resolve, import, typecheck and render them
-	node test/install/smoke-libs.mjs --skip-build
 
 # What the published libraries make an app download, against the ceilings in
 # test/bundle-budgets.json (test/install/smoke-budgets.mjs): the React kit's

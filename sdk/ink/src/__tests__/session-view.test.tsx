@@ -257,6 +257,15 @@ describe("INK-04 SessionView off a terminal", () => {
     expect(answers).toEqual([]);
   });
 
+  it("settles nothing with approveDefault leave, for a view that only watches", async () => {
+    const answers: unknown[][] = [];
+    conversation = makeConversation({ asks: [waitingToolUse("write_file")], answerToolUse: async (...args: unknown[]) => void answers.push(args) });
+    const { lastFrame } = render(<SessionView sessionId="ses_1" org="acme" canAnswer={false} approveDefault="leave" />);
+    await settle();
+    expect(answers).toEqual([]);
+    expect(lastFrame()).not.toContain("no terminal to ask on");
+  });
+
   it("leaves a file review pending and says it waits for a terminal", () => {
     conversation = makeConversation({ fileReviewSets: [reviewSet([{ id: "a", path: "one.ts" }])] });
     const frame = render(<SessionView sessionId="ses_1" org="acme" canAnswer={false} />).lastFrame() ?? "";
