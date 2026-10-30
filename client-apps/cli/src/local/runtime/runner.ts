@@ -22,7 +22,7 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { CliExitError } from "../../errors/cli-exit-error.js";
-import { ExitCode } from "../../errors/exit-codes.js";
+import { ExitCode } from "@stigmer/client/exit-codes";
 import { log } from "../../logger.js";
 import { VERSION } from "../../version.js";
 import { runtimesDir } from "../paths.js";

@@ -3,7 +3,7 @@
 
 import { isDebug } from "../runtime.js";
 import { type CliError, classify, codeName } from "./classify.js";
-import { ExitCode } from "./exit-codes.js";
+import { ExitCode } from "@stigmer/client/exit-codes";
 
 /**
  * Render a CliError for stderr. In debug mode it appends the raw error chain

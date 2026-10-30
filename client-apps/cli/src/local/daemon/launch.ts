@@ -29,7 +29,7 @@ import { join } from "node:path";
 import { type Config, load as loadConfig } from "../../config/config.js";
 import { log } from "../../logger.js";
 import { CliExitError } from "../../errors/cli-exit-error.js";
-import { ExitCode } from "../../errors/exit-codes.js";
+import { ExitCode } from "@stigmer/client/exit-codes";
 import { DAEMON_PID_FILE, HEALTH_STATE_FILE, SERVER_PORT } from "../constants.js";
 import { tcpConnects, waitForTcp } from "../net/tcp.js";
 import { dataDir, logDir } from "../paths.js";

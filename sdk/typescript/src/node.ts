@@ -13,6 +13,8 @@ import { basename } from "node:path";
 import type { File } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import type { RoutedFileClient, UploadFileOptions } from "./file.js";
 
+export { ExitCode, exitCodeOf, type ExitSource } from "./exit-codes.js";
+
 /**
  * Configuration for creating a Node.js-compatible Stigmer client.
  *

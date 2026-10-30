@@ -11,6 +11,7 @@ import {
 } from "@stigmer/react-core";
 import { editedPath } from "../file-review.js";
 import { ToolCallItem } from "./ToolCallItem.js";
+import { useRoles, type InkRole } from "../theme.js";
 
 /** Props for {@link ToolCallGroup}. */
 export interface ToolCallGroupProps {
@@ -22,24 +23,27 @@ export interface ToolCallGroupProps {
   readonly defaultExpanded?: boolean;
 }
 
-type AggregateStatus = "running" | "failed" | "completed" | "pending";
+type AggregateStatus = "running" | "failed" | "denied" | "completed" | "pending";
 
 /**
  * The group's status: running wins, then failed; a group whose every call
  * settled (returned, failed, denied, or stopped when its turn ended — issue
- * #207) is completed, so a settled group never pins to a live-looking
- * "pending". A call waiting for a person leaves it pending.
+ * #207) is settled, so it never pins to a live-looking "pending". A settled
+ * group with a denied call reads as denied, not as a success. A call waiting
+ * for a person leaves it pending.
  */
 function deriveAggregateStatus(toolUses: readonly ToolUse[]): AggregateStatus {
   if (toolUses.some((tu) => tu.state === "running")) return "running";
   if (toolUses.some((tu) => tu.state === "failed")) return "failed";
-  return toolUses.some((tu) => tu.state === "waiting") ? "pending" : "completed";
+  if (toolUses.some((tu) => tu.state === "waiting")) return "pending";
+  return toolUses.some((tu) => tu.state === "denied") ? "denied" : "completed";
 }
 
-const STATUS_STYLE: Record<AggregateStatus, { symbol: string; color?: string }> = {
-  running: { symbol: "⠋", color: "yellow" },
-  completed: { symbol: "✓", color: "green" },
-  failed: { symbol: "✗", color: "red" },
+const STATUS_STYLE: Record<AggregateStatus, { symbol: string; role?: InkRole }> = {
+  running: { symbol: "⠋", role: "warning" },
+  completed: { symbol: "✓", role: "success" },
+  failed: { symbol: "✗", role: "danger" },
+  denied: { symbol: "⊘", role: "warning" },
   pending: { symbol: "○" },
 };
 
@@ -53,7 +57,7 @@ const STATUS_STYLE: Record<AggregateStatus, { symbol: string; color?: string }> 
  */
 function useReviewCue(
   toolUses: readonly ToolUse[],
-): { readonly label: string; readonly color: string } | null {
+): { readonly label: string; readonly role: InkRole } | null {
   const { fileReviewByRunId } = useContext(FileReviewContext);
   const counts: Record<FileReviewRowState, number> = {
     pending: 0,
@@ -66,15 +70,15 @@ function useReviewCue(
     if (state) counts[state]++;
   }
   if (counts.pending > 0) {
-    return { label: `${counts.pending} pending review`, color: "yellow" };
+    return { label: `${counts.pending} pending review`, role: "warning" };
   }
   if (counts.failed > 0) {
-    return { label: `${counts.failed} review failed`, color: "red" };
+    return { label: `${counts.failed} review failed`, role: "danger" };
   }
   const settled: string[] = [];
   if (counts.kept > 0) settled.push(`${counts.kept} kept`);
   if (counts.discarded > 0) settled.push(`${counts.discarded} discarded`);
-  if (settled.length > 0) return { label: settled.join(" · "), color: "gray" };
+  if (settled.length > 0) return { label: settled.join(" · "), role: "muted" };
   return null;
 }
 
@@ -91,6 +95,7 @@ export function ToolCallGroup({
   isFocused = false,
   defaultExpanded = false,
 }: ToolCallGroupProps) {
+  const role = useRoles();
   const [expanded, setExpanded] = useState(defaultExpanded);
   const status = deriveAggregateStatus(toolUses);
   const style = STATUS_STYLE[status];
@@ -113,11 +118,11 @@ export function ToolCallGroup({
   return (
     <Box flexDirection="column" paddingLeft={2}>
       <Box gap={1}>
-        <Text color={style.color}>{style.symbol}</Text>
+        <Text {...(style.role ? role[style.role] : {})}>{style.symbol}</Text>
         <Text dimColor>{expanded ? "▼" : "▶"}</Text>
         <Text>{summary}</Text>
         {reviewCue && (
-          <Text color={reviewCue.color}>· {reviewCue.label}</Text>
+          <Text {...role[reviewCue.role]}>· {reviewCue.label}</Text>
         )}
       </Box>
       {expanded && (

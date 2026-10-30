@@ -21,7 +21,12 @@
  *     `stigmer.run.status` says it ended, or it waits for a person's answer
  *     (the session idles with `requires_action` naming its tool uses). It
  *     returns the turn's answer, structured output and how it ended;
- *     {@link waitForTurn} resumes the wait after the caller answered.
+ *     {@link waitForTurn} resumes the wait after the caller answered. Its two
+ *     halves are exported for a caller that follows the turn its own way (a
+ *     view that renders it): {@link startTurn} creates the run and names its
+ *     session and place in the log, and {@link turnOutcomeOf} reads the
+ *     outcome from the folded turn, so the default run name, the session
+ *     rule and the outcome's fields are written once.
  *   - {@link followAttention} follows what needs the caller in an
  *     organization (`streamAttention`): one Attention each time a
  *     conversation they created stops working. It reconnects from the last
@@ -313,15 +318,24 @@ export type SendAndWaitInput = Omit<RunInput, "message" | "name" | "org"> & {
   readonly name?: string;
 };
 
+/** A turn {@link startTurn} started: its run, its session, and where its events begin. */
+export interface StartedTurn {
+  /** The run that is the turn, as `run.create` returned it. */
+  readonly run: Run;
+  readonly runId: string;
+  /** The session the turn runs in: the one named, or the one its `sessionSpec` bootstrapped. */
+  readonly sessionId: string;
+  /** The session log's place before the turn: its events come after it. */
+  readonly afterSeq: bigint;
+}
+
 /**
- * Sends a message as a new turn (in `sessionId`, or a session bootstrapped
- * from `sessionSpec`) and waits for its answer (module header).
+ * Starts a turn: sends the message as a new run (in `sessionId`, or a session
+ * bootstrapped from `sessionSpec`), named `run-<epoch ms>` unless `name` says
+ * otherwise. For an existing session it first reads the log's newest place,
+ * so a follow from `afterSeq` sees only this turn's events.
  */
-export async function sendAndWait(
-  client: SendAndWaitClient,
-  input: SendAndWaitInput,
-  options: Omit<WaitOptions, "afterSeq"> = {},
-): Promise<TurnOutcome> {
+export async function startTurn(client: SendAndWaitClient, input: SendAndWaitInput): Promise<StartedTurn> {
   const existing = input.sessionId ?? "";
   // A new session's log is empty; an existing one is read from its newest place.
   const afterSeq = existing === "" ? NO_PLACE : await newestSeq(client, existing);
@@ -331,6 +345,47 @@ export async function sendAndWait(
   if (sessionId === "") {
     throw new StigmerError("internal", "the created run names no session", 13);
   }
+  return { run, runId, sessionId, afterSeq };
+}
+
+/** Which turn an outcome is for: {@link StartedTurn}'s first three fields, the run when known. */
+export interface TurnPlace {
+  readonly run: Run | undefined;
+  readonly runId: string;
+  readonly sessionId: string;
+}
+
+/**
+ * The outcome of a folded turn: its answer, output and how it stands. Its
+ * phase is the status's once the turn ended, `waiting` when `waiting` says
+ * the session waits on its asks, and otherwise the phase it reports now
+ * (`pending` before its first status); its asks are empty once it ended.
+ */
+export function turnOutcomeOf(turn: Turn, place: TurnPlace, lastSeq: bigint, waiting = false): TurnOutcome {
+  const ended = turn.status !== undefined && turn.ended;
+  return {
+    ...place,
+    phase: ended ? turn.status!.phase : waiting ? "waiting" : (turn.status?.phase ?? "pending"),
+    answer: turn.answer,
+    structuredOutput: turn.structuredOutput,
+    stopCause: turn.status?.stopCause ?? "",
+    error: turn.status?.error ?? "",
+    asks: ended ? [] : turn.asks,
+    turn,
+    lastSeq,
+  };
+}
+
+/**
+ * Sends a message as a new turn (in `sessionId`, or a session bootstrapped
+ * from `sessionSpec`) and waits for its answer (module header).
+ */
+export async function sendAndWait(
+  client: SendAndWaitClient,
+  input: SendAndWaitInput,
+  options: Omit<WaitOptions, "afterSeq"> = {},
+): Promise<TurnOutcome> {
+  const { run, runId, sessionId, afterSeq } = await startTurn(client, input);
   return waitIn(client, sessionId, runId, run, { ...options, afterSeq });
 }
 
@@ -365,19 +420,7 @@ async function waitIn(
         fold.status.stopReason === "requires_action" &&
         turn.asks.some((ask) => fold.status.waitingOn.includes(ask.id));
       if (ended || waiting) {
-        return {
-          run,
-          runId,
-          sessionId,
-          phase: ended ? turn.status!.phase : "waiting",
-          answer: turn.answer,
-          structuredOutput: turn.structuredOutput,
-          stopCause: turn.status?.stopCause ?? "",
-          error: turn.status?.error ?? "",
-          asks: ended ? [] : turn.asks,
-          turn,
-          lastSeq: fold.lastSeq,
-        };
+        return turnOutcomeOf(turn, { run, runId, sessionId }, fold.lastSeq, waiting);
       }
     }
     throw new StigmerError("cancelled", "the wait for the turn was stopped", 1);

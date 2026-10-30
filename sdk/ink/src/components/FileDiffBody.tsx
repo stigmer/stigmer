@@ -7,6 +7,7 @@ import {
   type DiffHunk,
 } from "@stigmer/react-core";
 import { toDisplayFileChange } from "@stigmer/client";
+import { useRoles } from "../theme.js";
 
 /**
  * The most diff lines a single file's body renders before it is capped. A
@@ -132,14 +133,15 @@ function DiffHunks({ hunks }: { hunks: readonly DiffHunk[] }) {
 }
 
 function DiffRowText({ row }: { row: DiffRow }) {
+  const role = useRoles();
   if (row.kind === "header") {
     return <Text dimColor>{row.text}</Text>;
   }
   if (row.type === "added") {
-    return <Text color="green">+{row.content}</Text>;
+    return <Text {...role.success}>+{row.content}</Text>;
   }
   if (row.type === "removed") {
-    return <Text color="red">-{row.content}</Text>;
+    return <Text {...role.danger}>-{row.content}</Text>;
   }
   return <Text dimColor> {row.content}</Text>;
 }
@@ -152,9 +154,10 @@ function Notice({
   readonly children: React.ReactNode;
   readonly tone?: "muted" | "error";
 }) {
+  const role = useRoles();
   return (
     <Box marginTop={1}>
-      <Text color={tone === "error" ? "red" : undefined} dimColor={tone !== "error"}>
+      <Text {...(tone === "error" ? role.danger : role.muted)}>
         {children}
       </Text>
     </Box>

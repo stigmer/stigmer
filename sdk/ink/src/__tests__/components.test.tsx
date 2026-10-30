@@ -191,7 +191,7 @@ describe("ToolCallGroup", () => {
     expect(output).toContain("Read");
   });
 
-  it("reads running, then failed, then waiting as pending, then completed", () => {
+  it("reads running, then failed, then waiting as pending, then denied, then completed", () => {
     const running = samples.toolUse("write_file");
     const failed = samples.toolUse("execute", "boom", { id: "f", isError: true });
     const done = samples.toolUse("read_file", "x", { id: "d" });
@@ -201,6 +201,10 @@ describe("ToolCallGroup", () => {
     const settled = render(<ToolCallGroup toolUses={[done, done]} />).lastFrame() ?? "";
     expect(settled).toContain("✓");
     expect(settled).toContain("2 tool calls");
+    // A settled group with a denied call reads as denied, never as a success.
+    const denied = render(<ToolCallGroup toolUses={[done, { ...waitingToolUse("execute"), state: "denied" }]} />).lastFrame() ?? "";
+    expect(denied).toContain("⊘");
+    expect(denied).not.toContain("✓");
   });
 
   it("toggles expansion with Enter while focused", async () => {

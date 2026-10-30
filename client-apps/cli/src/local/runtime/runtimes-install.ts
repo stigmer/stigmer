@@ -9,7 +9,7 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { isReleaseVersion } from "@stigmer/plugin-package/client";
 import { CliExitError } from "../../errors/cli-exit-error.js";
-import { ExitCode } from "../../errors/exit-codes.js";
+import { ExitCode } from "@stigmer/client/exit-codes";
 
 /** The install implementation, injectable for tests. */
 export type NpmInstall = (installDir: string, spec: string) => void;

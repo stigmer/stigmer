@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Box, Text, useInput } from "ink";
 import TextInput from "ink-text-input";
+import { useRoles } from "../theme.js";
 
 /**
  * A single selectable entry in a {@link ResourcePicker}.
@@ -89,6 +90,7 @@ export function ResourcePicker({
   placeholder = "type to search...",
   emptyLabel = "no results",
 }: ResourcePickerProps) {
+  const role = useRoles();
   const [cursor, setCursor] = useState(0);
 
   // Reset the cursor to the top whenever the query changes — the result set is
@@ -122,7 +124,7 @@ export function ResourcePicker({
   return (
     <Box flexDirection="column">
       <Box gap={1}>
-        <Text color="cyan" bold>
+        <Text {...role.accent} bold>
           ?
         </Text>
         <Text bold>{prompt}:</Text>
@@ -131,7 +133,7 @@ export function ResourcePicker({
 
       <Box marginTop={1} flexDirection="column">
         {error !== null ? (
-          <Text color="red">{`  Error: ${error.message}`}</Text>
+          <Text {...role.danger}>{`  Error: ${error.message}`}</Text>
         ) : isLoading ? (
           <Text dimColor>  searching...</Text>
         ) : items.length === 0 ? (
@@ -153,10 +155,11 @@ export function ResourcePicker({
 
 /** One result row: a cursor glyph, the title, then optional subtitle/meta. */
 function PickerRow({ item, isActive }: { readonly item: PickerItem; readonly isActive: boolean }) {
+  const role = useRoles();
   return (
     <Box>
-      <Text color={isActive ? "cyan" : undefined}>{isActive ? "❯ " : "  "}</Text>
-      <Text color={isActive ? "cyan" : undefined} bold={isActive}>
+      <Text {...(isActive ? role.accent : {})}>{isActive ? "❯ " : "  "}</Text>
+      <Text {...(isActive ? role.accent : {})} bold={isActive}>
         {item.title}
       </Text>
       {item.subtitle !== undefined && item.subtitle !== "" ? <Text dimColor>{`  ${item.subtitle}`}</Text> : null}

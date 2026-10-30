@@ -3,6 +3,7 @@
 import React, { useMemo } from "react";
 import { Box, Text } from "ink";
 import type { Todo } from "@stigmer/client";
+import { useRoles, type InkRole } from "../theme.js";
 
 /** Props for {@link TodoList}. */
 export interface TodoListProps {
@@ -17,11 +18,11 @@ const STATUS_SORT_ORDER: Readonly<Record<Todo["status"], number>> = {
   cancelled: 3,
 };
 
-const STATUS_DISPLAY: Readonly<Record<Todo["status"], { glyph: string; color: string }>> = {
-  pending: { glyph: "○", color: "gray" },
-  in_progress: { glyph: "●", color: "cyan" },
-  completed: { glyph: "✓", color: "green" },
-  cancelled: { glyph: "⊘", color: "gray" },
+const STATUS_DISPLAY: Readonly<Record<Todo["status"], { glyph: string; role: InkRole }>> = {
+  pending: { glyph: "○", role: "muted" },
+  in_progress: { glyph: "●", role: "accent" },
+  completed: { glyph: "✓", role: "success" },
+  cancelled: { glyph: "⊘", role: "muted" },
 };
 
 /**
@@ -32,6 +33,7 @@ const STATUS_DISPLAY: Readonly<Record<Todo["status"], { glyph: string; color: st
  * TodoList component.
  */
 export function TodoList({ todos }: TodoListProps) {
+  const role = useRoles();
   const sortedTodos = useMemo(
     () => todos.slice().sort((a, b) => STATUS_SORT_ORDER[a.status] - STATUS_SORT_ORDER[b.status]),
     [todos],
@@ -52,7 +54,7 @@ export function TodoList({ todos }: TodoListProps) {
         const isCancelled = item.status === "cancelled";
         return (
           <Box key={item.id} gap={1} paddingLeft={1}>
-            <Text color={display.color}>{display.glyph}</Text>
+            <Text {...role[display.role]}>{display.glyph}</Text>
             <Text
               dimColor={isCancelled}
               strikethrough={isCancelled}

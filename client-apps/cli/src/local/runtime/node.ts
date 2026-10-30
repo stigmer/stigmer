@@ -32,7 +32,7 @@
 
 import { execFileSync } from "node:child_process";
 import { CliExitError } from "../../errors/cli-exit-error.js";
-import { ExitCode } from "../../errors/exit-codes.js";
+import { ExitCode } from "@stigmer/client/exit-codes";
 
 // Exits 0 when the binary provides `node:sqlite`, 1 otherwise.
 //

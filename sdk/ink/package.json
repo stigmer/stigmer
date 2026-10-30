@@ -21,7 +21,8 @@
     "test:watch": "vitest",
     "typedoc:json": "typedoc",
     "tsdoc:check": "typedoc --treatValidationWarningsAsErrors",
-    "tsdoc:coverage": "tsx scripts/tsdoc-coverage.ts"
+    "tsdoc:coverage": "tsx scripts/tsdoc-coverage.ts",
+    "stigmer-ink": "tsx src/cli/stigmer-ink.tsx"
   },
   "files": [
     "dist",

@@ -2,7 +2,8 @@
  * Renderer: Ink SDK reference model → single MDX page.
  *
  * Produces one reference.mdx with sections for each category:
- *   Provider and Transport → Components → Composed Views → Utilities
+ *   Provider and Transport → Run a turn → Components → Composed Views →
+ *   Theme → Utilities
  */
 
 import type { InkReference, InkExport } from "./parser";
@@ -16,8 +17,10 @@ import { escapeJsString, renderCommentParts } from "../generate-react-sdk-docs/m
 const CATEGORY_HEADINGS: Record<string, string> = {
   provider: "Provider and Transport",
   transport: "Provider and Transport",
+  run: "Run a turn",
   component: "Components",
   composedView: "Composed Views",
+  theme: "Theme",
   utility: "Utilities",
 };
 
@@ -90,7 +93,9 @@ function renderExportSection(exp: InkExport): string {
   }
 
   if (exp.propsInterface && exp.propsInterface.fields.length > 0) {
-    if (exp.category === "utility") {
+    if (exp.category === "run") {
+      s += `**Options** — \`${exp.propsInterface.name}\`\n\n`;
+    } else if (exp.category === "utility" || exp.category === "theme") {
       s += `**Parameters**\n\n`;
     } else if (exp.isReExport) {
       s += `**Config** — \`${exp.propsInterface.name}\`\n\n`;

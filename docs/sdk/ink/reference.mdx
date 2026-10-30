@@ -25,6 +25,7 @@ All hooks from `@stigmer/react-core` (`useStigmer`, `useSessionConversation`,
     children: { type: "ReactNode", description: "Child components to render.", required: true },
     client: { type: "Stigmer", description: "Pre-configured Stigmer client (use createNodeClient to create one).", required: true },
     deploymentMode: { type: "DeploymentMode", description: "Deployment mode for feature gating. - `\"cloud\"`: All features available (default). - `\"local\"`: OSS feature subset only." },
+    theme: { type: "Partial<InkTheme>", description: "The host's colours by role, over Stigmer's default (monochrome, with hue only for success, warning and danger). For example `{ accent: \"magenta\" }` or `{ accent: \"#7c3aed\" }`." },
   }}
 />
 
@@ -99,6 +100,40 @@ The wire protocol is chosen by `NodeClientConfig.protocol`
 dialing a gRPC endpoint directly.
 
 
+## Run a turn
+
+### runInTerminal
+
+Sends a message as a new turn and shows it in the terminal until it ends,
+then returns its outcome and exit code (module header).
+
+**Options** — `RunInTerminalOptions`
+
+<TypeTable
+  type={{
+    approveDefault: { type: "\"approve\" | \"deny\"", description: "How an ask is settled off a terminal, where no one can answer: denied unless `\"approve\"`." },
+    approveSetting: { type: "string", description: "The setting that approves asks, as the view names it when it settles one (`SessionView`'s `approveSetting`)." },
+    env: { type: "Readonly<Record<string, string | undefined>>", description: "The environment the terminal mode reads (CI, TERM); `process.env` by default." },
+    mode: { type: "InteractionMode", description: "Interaction mode for follow-ups typed in the view." },
+    signal: { type: "AbortSignal", description: "Stops waiting and returns at once; the run itself goes on." },
+    stderr: { type: "WriteStream", description: "Where a start failure is written; `process.stderr` by default." },
+    stdin: { type: "ReadStream", description: "Ink's input stream; `process.stdin` by default." },
+    stdout: { type: "WriteStream", description: "Ink's output stream; `process.stdout` by default." },
+    theme: { type: "Partial<InkTheme>", description: "The host's colours by role (see InkTheme)." },
+    until: { type: "\"turn\" | \"exit\"", description: "When control returns: `\"turn\"` (the default) when this turn ends; `\"exit\"` when the person quits (Ctrl+C), keeping the conversation open for follow-ups as `stigmer run` does. Off a terminal both return at the turn's end." },
+  }}
+/>
+
+```tsx
+const outcome = await runInTerminal(client, {
+  org: "acme",
+  sessionSpec: { agentRef: { org: "acme", slug: "reviewer" } },
+  message: "Review this diff",
+});
+process.exitCode = outcome.exitCode;
+```
+
+
 ## Components
 
 ### AgentPicker
@@ -153,23 +188,6 @@ class. Deny (n) opens a one-line reason the agent reads: Enter sends it
     toolUse: { type: "ToolUse", description: "The tool use that waits; its `ask` says why and carries the sanitized preview.", required: true },
   }}
 />
-
-
-### blockReasonNote
-
-The honest, one-line reason a file cannot be kept as-is, or `null` when it
-is fully reviewable. Mirrors the web card's per-file block-reason copy so
-the terminal reviewer sees the same explanation.
-
-
-### changeSetLineStats
-
-Sums a set's per-file `linesAdded`/`linesRemoved` into one aggregate, for
-the set-level `+N −M` beside the prompt header and the settled record
-summary. Counts every file regardless of verdict — it reports what
-changed, not what was kept. A file with no counts (binary,
-secret-withheld) contributes zero, so the aggregate honestly understates
-rather than guessing.
 
 
 ### FileChangeProgressBar
@@ -236,12 +254,6 @@ renders under `InkStigmerProvider`.
     change: { type: "CapturedFileChange", description: "The captured file change whose before/after diff to render.", required: true, typeDescriptionLink: "/docs/sdk/resources/run" },
   }}
 />
-
-
-### fileDisplayPath
-
-The path to show for a file of a turn's review. A rename shows
-`before → after` so both sides are visible.
 
 
 ### FileLineStats
@@ -325,14 +337,6 @@ to submit, Ctrl+C to exit the application.
 />
 
 
-### kindLetter
-
-Single-letter badge for a file change's kind, matching the web review card:
-`A` added, `M` modified, `D` deleted, `R` renamed. A binary change reads as
-`M` — "binary" is a review-completeness property (`fileReviewability`), not
-a distinct edit kind.
-
-
 ### MessageEntry
 
 Renders a single message in the terminal conversation thread.
@@ -373,7 +377,9 @@ provider so every `ToolCallItem` can badge its file edits.
 <TypeTable
   type={{
     answeringToolUseIds: { type: "ReadonlySet<string>", description: "Tool-use ids whose answer is in flight." },
+    canAnswer: { type: "boolean", description: "Whether a person can answer with the keyboard. When `false` (off a terminal) every approval prompt renders inert: nothing reads keys, and the host settles each ask another way (`SessionView`'s `approveDefault`). Defaults to `true`." },
     expandToolCalls: { type: "boolean", description: "Whether tool call groups should be rendered in expanded mode. Toggled via Ctrl+O." },
+    live: { type: "boolean", description: "Whether the screen redraws in place. When `false` (a pipe, a CI log, where Ink writes one final frame at exit) the whole thread renders in that frame, in order, with no `<Static>` history: written beside the frame, history would appear twice and above the view's header. Defaults to `true`." },
     onAnswerToolUse: { type: "(toolUseId: string, answer: ToolUseAnswer, denyMessage?: string) => void", description: "Answers a tool use that waits for a person. The last turn's waiting tool uses render as approval prompts when provided." },
     pendingUserMessage: { type: "string | null", description: "Optimistic user message shown before the session's events carry it." },
     queued: { type: "readonly QueuedMessage[]", description: "Messages sent while a turn worked that no turn has read yet, shown dimmed after the thread: queued for the agent's next step, or not read because a stop ended the turn." },
@@ -382,13 +388,6 @@ provider so every `ToolCallItem` can badge its file edits.
     turns: { type: "readonly Turn[]", description: "The conversation's turns, in order: the session's events folded.", required: true },
   }}
 />
-
-
-### progressEntryDisplayPath
-
-The path to show for a mid-run progress entry, using the same rename-aware
-rule as `fileDisplayPath`: the post-edit path, or the pre-edit path
-for a deletion.
 
 
 ### ResourcePicker
@@ -484,17 +483,6 @@ render(
   </InkStigmerProvider>,
 );
 ```
-
-
-### settledCounts
-
-Folds a set's file states into kept / discarded / failed / not-reviewed counts.
-
-
-### settledSummary
-
-A one-line summary of a settled set's outcome, e.g. `2 kept · 1
-discarded`, or `3 files changed` when nothing was decided.
 
 
 ### SubagentBlock
@@ -650,7 +638,12 @@ drop into their Ink apps for a complete agent conversation UI.
 
 <TypeTable
   type={{
+    approveDefault: { type: "\"approve\" | \"deny\" | \"leave\"", description: "How an ask is settled when no one can answer it (`canAnswer` false): `\"approve\"` allows it, `\"deny\"` (the default) denies it, and the view says which. `\"leave\"` settles nothing, for a view that only watches a session someone else answers. Ignored on a terminal, where a person answers." },
+    approveSetting: { type: "string", description: "The setting that approves asks off a terminal, in the host's own words, which the view names when it settles one: `approveDefault: \"approve\"` by default; a host CLI passes its flag (the bin passes `--approve-default approve`)." },
+    canAnswer: { type: "boolean", description: "Whether a person can answer prompts with the keyboard. Off a terminal it is `false` and the view is read-only. When omitted, Ink's own reading is used (stdin supports raw mode); `runInTerminal` passes the fuller rule, which also asks whether the screen is live (`terminalMode`)." },
+    live: { type: "boolean", description: "Whether the screen redraws in place (`terminalMode`'s `live`). Off, Ink writes one final frame, and the thread renders whole inside it, once and in order. Defaults to `true`; `runInTerminal` and the bin pass it." },
     mode: { type: "InteractionMode", description: "Initial interaction mode for follow-up runs.  - `\"agent\"` (default): full tool access. - `\"plan\"`: read-only analysis, no file mutations.  The user can toggle between modes with Ctrl+T during the session. This prop sets the initial value; subsequent toggles are managed as local state." },
+    onTurnEnd: { type: "(turn: Turn) => void", description: "Called once for each turn the view sees end (its status says it ended), including turns already ended when it loads the session; a host that waits for one run filters by `turn.runId`." },
     org: { type: "string", description: "Organization slug for creating follow-up runs.", required: true },
     sessionId: { type: "string", description: "Session ID to display and converse in.", required: true },
   }}
@@ -669,7 +662,78 @@ render(
 ```
 
 
+## Theme
+
+### resolveInkTheme
+
+A partial theme over the default: what a host passes to the provider.
+
+
+### roleStyle
+
+How a role draws under a theme: an unset accent is bold foreground, an unset muted is dim.
+
+
+### useInkTheme
+
+The theme the nearest `InkStigmerProvider` set, or Stigmer's default.
+
+
+### useRoles
+
+Every role's `<Text>` props under the theme in effect, for a component that draws several.
+
+
 ## Utilities
+
+### blockReasonNote
+
+The honest, one-line reason a file cannot be kept as-is, or `null` when it
+is fully reviewable. Mirrors the web card's per-file block-reason copy so
+the terminal reviewer sees the same explanation.
+
+
+### changeSetLineStats
+
+Sums a set's per-file `linesAdded`/`linesRemoved` into one aggregate, for
+the set-level `+N −M` beside the prompt header and the settled record
+summary. Counts every file regardless of verdict — it reports what
+changed, not what was kept. A file with no counts (binary,
+secret-withheld) contributes zero, so the aggregate honestly understates
+rather than guessing.
+
+
+### describeConnectionFailure
+
+Words a failure for a terminal: the step, the address tried, the cause and the next step.
+
+
+### exitCodeOf
+
+The exit code for a turn's outcome or an error. An error that carries its
+own numeric `exitCode` (as the terminal kit's start failure does) keeps it.
+
+
+### fileDisplayPath
+
+The path to show for a file of a turn's review. A rename shows
+`before → after` so both sides are visible.
+
+
+### kindLetter
+
+Single-letter badge for a file change's kind, matching the web review card:
+`A` added, `M` modified, `D` deleted, `R` renamed. A binary change reads as
+`M` — "binary" is a review-completeness property (`fileReviewability`), not
+a distinct edit kind.
+
+
+### progressEntryDisplayPath
+
+The path to show for a mid-run progress entry, using the same rename-aware
+rule as `fileDisplayPath`: the post-edit path, or the pre-edit path
+for a deletion.
+
 
 ### renderMarkdown
 
@@ -685,4 +749,30 @@ import { renderMarkdown } from "@stigmer/ink-ui";
 const ansi = renderMarkdown("**Hello** from the agent!");
 process.stdout.write(ansi);
 ```
+
+
+### settledCounts
+
+Folds a set's file states into kept / discarded / failed / not-reviewed counts.
+
+
+### settledSummary
+
+A one-line summary of a settled set's outcome, e.g. `2 kept · 1
+discarded`, or `3 files changed` when nothing was decided.
+
+
+### terminalMode
+
+Decides `TerminalMode` from the streams and the environment (module header).
+
+**Parameters**
+
+<TypeTable
+  type={{
+    env: { type: "Readonly<Record<string, string | undefined>>", description: "The environment: `TERM`, `CI` and `CONTINUOUS_INTEGRATION` are read.", required: true },
+    stdin: { type: "{ isTTY?: boolean }", description: "The input a person would type into.", required: true },
+    stdout: { type: "{ isTTY?: boolean }", description: "The output the view draws on.", required: true },
+  }}
+/>
 

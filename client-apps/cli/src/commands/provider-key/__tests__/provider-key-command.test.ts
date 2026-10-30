@@ -48,7 +48,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Config } from "../../../config/index.js";
 import { CliExitError } from "../../../errors/cli-exit-error.js";
-import { ExitCode } from "../../../errors/exit-codes.js";
+import { ExitCode } from "@stigmer/client/exit-codes";
 import { standingWords } from "../../../resources/provider-key.js";
 import { registerProviderKey } from "../index.js";
 
