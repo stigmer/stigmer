@@ -435,26 +435,31 @@ function StartedByLabel({ startedBy }: { readonly startedBy: FireStartedBy }) {
   );
 }
 
-/** Verbatim-label badges for a fire's outcome, colored by health. */
+/**
+ * Verbatim-label badges for a fire's outcome, colored by health: each tinted
+ * arm is a status pill pair the theme contract measures (the at-risk pair for
+ * the two outcomes that need the owner's attention), and Skipped and Unknown
+ * are the muted panel pair.
+ */
 export function fireOutcomeBadge(outcome: RoutineFireOutcome): {
   label: string;
   className: string;
 } {
   switch (outcome) {
     case RoutineFireOutcome.STARTED:
-      return { label: "Started", className: "stg:bg-info/10 stg:text-info" };
+      return { label: "Started", className: "stg:bg-status-running-subtle stg:text-status-running" };
     case RoutineFireOutcome.COMPLETED:
-      return { label: "Completed", className: "stg:bg-success/10 stg:text-success" };
+      return { label: "Completed", className: "stg:bg-status-ready-subtle stg:text-status-ready" };
     case RoutineFireOutcome.REFUSED:
-      return { label: "Refused", className: "stg:bg-warning/10 stg:text-warning" };
+      return { label: "Refused", className: "stg:bg-status-degraded-subtle stg:text-status-degraded" };
     case RoutineFireOutcome.TARGET_MISSING:
-      return { label: "Target missing", className: "stg:bg-warning/10 stg:text-warning" };
+      return { label: "Target missing", className: "stg:bg-status-degraded-subtle stg:text-status-degraded" };
     case RoutineFireOutcome.SKIPPED:
       return { label: "Skipped", className: "stg:bg-muted stg:text-muted-foreground" };
     case RoutineFireOutcome.FAILED:
-      return { label: "Failed", className: "stg:bg-destructive/10 stg:text-destructive" };
+      return { label: "Failed", className: "stg:bg-status-failed-subtle stg:text-status-failed" };
     case RoutineFireOutcome.TIMED_OUT:
-      return { label: "Timed out", className: "stg:bg-destructive/10 stg:text-destructive" };
+      return { label: "Timed out", className: "stg:bg-status-failed-subtle stg:text-status-failed" };
     default:
       return { label: "Unknown", className: "stg:bg-muted stg:text-muted-foreground" };
   }

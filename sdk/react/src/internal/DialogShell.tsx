@@ -111,7 +111,7 @@ export interface DialogShellProps {
  *
  * Internal on purpose — not exported from the package until a host needs it.
  * The `stigmer/no-handrolled-dialog` lint rule fences new `<dialog>`
- * elements onto this shell.
+ * elements and Base UI's `Dialog` and `AlertDialog` onto this shell.
  *
  * @example
  * ```tsx

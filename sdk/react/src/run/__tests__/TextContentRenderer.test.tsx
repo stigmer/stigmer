@@ -61,6 +61,23 @@ describe("TextContentRenderer — markdown", () => {
   });
 });
 
+describe("TextContentRenderer — truncation", () => {
+  it("draws the truncation strip as the caution notice under the file", () => {
+    render(<TextContentRenderer content="partial" fileName="log.txt" isTruncated />);
+
+    const strip = screen.getByText(/Content was truncated/);
+    expect(strip.className).toContain("stg:bg-status-degraded-subtle");
+    expect(strip.className).toContain("stg:text-status-degraded");
+    expect(strip.className).toContain("stg:border-t");
+    expect(strip.className).not.toContain("warning");
+  });
+
+  it("draws no strip for a whole file", () => {
+    render(<TextContentRenderer content="whole" fileName="log.txt" />);
+    expect(screen.queryByText(/Content was truncated/)).toBeNull();
+  });
+});
+
 describe("TextContentRenderer — reveal (jump-to-line)", () => {
   let scrollIntoView: ReturnType<typeof vi.fn>;
   beforeEach(() => {

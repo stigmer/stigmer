@@ -451,7 +451,7 @@ function ReviewStep({
     <form onSubmit={onSubmit} className="stg:space-y-3">
       {discoveryFailed && (
         <div
-          className="stg:rounded-md stg:border stg:border-warning/30 stg:bg-warning/5 stg:px-3 stg:py-2 stg:text-xs stg:text-warning-foreground"
+          className="stg:rounded-md stg:bg-status-degraded-subtle stg:px-3 stg:py-2 stg:text-xs stg:text-status-degraded"
           role="alert"
         >
           Auto-discovery could not reach the provider. Enter the

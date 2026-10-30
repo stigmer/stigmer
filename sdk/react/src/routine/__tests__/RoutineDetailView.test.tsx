@@ -314,7 +314,13 @@ describe("RoutineDetailView", () => {
     const client = makeClient(makeRoutine({ enabled: false }));
     renderView(client);
 
-    await screen.findByText("Routine is disabled");
+    const title = await screen.findByText("Routine is disabled");
+    // The banner is the kit's caution notice: foreground title, at-risk detail.
+    const banner = title.closest('[role="status"]');
+    expect(banner?.className).toContain("stg:bg-status-degraded-subtle");
+    expect(banner?.className).not.toContain("warning");
+    expect(title.className).toContain("stg:text-foreground");
+    expect(title.nextElementSibling?.className).toContain("stg:text-status-degraded");
     expect(screen.getByText("Disabled")).toBeTruthy();
     // Owner-disabled routines have no meaningful countdown.
     expect(screen.queryByText("in 3h")).toBeNull();
