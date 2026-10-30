@@ -17,3 +17,7 @@
 /docs/getting-started/connect-tools/ /docs/guides/integrations/connect-an-mcp-server 301
 /docs/getting-started/connect-tools.md /docs/guides/integrations/connect-an-mcp-server.md 301
 /site.webmanifest /manifest.webmanifest 301
+
+# The use-cases page is gone: the homepage tells the job story now.
+/use-cases / 301
+/use-cases/ / 301

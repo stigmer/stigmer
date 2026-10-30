@@ -174,9 +174,9 @@ export const NAV_PRIMARY: NavLink[] = [
 export const NAV_RESOURCES: NavGroup = {
   label: "Resources",
   items: [
-    { label: "Use Cases", href: "/use-cases" },
     { label: "Compare with Managed Agents", href: "/compare/claude-managed-agents" },
     { label: "Blog", href: "/blog" },
+    { label: "Why we built Stigmer", href: "/about" },
     { label: "Download", href: "/download" },
   ],
 };
@@ -195,11 +195,11 @@ export const NAV_LINKS_ALL: NavLink[] = [
  */
 export const FOOTER_LINKS = {
   product: [
-    { label: "Use Cases", href: "/use-cases" },
     { label: "Compare with Managed Agents", href: "/compare/claude-managed-agents" },
     { label: "Pricing", href: "/pricing" },
     { label: "Documentation", href: "/docs" },
     { label: "Download", href: "/download" },
+    { label: "Why we built Stigmer", href: "/about" },
     { label: "Status", href: "https://status.stigmer.ai", external: true },
   ],
   developers: [
