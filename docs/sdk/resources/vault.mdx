@@ -11,7 +11,8 @@ organization's admins can create shared vaults for a team.
 
 A login is saved by signing in to a tool or by pasting a token, and serves
 every tool at that address. A run reads My vault only when its conversation
-includes it (`include_my_vault`), or when a Routine its owner created names it.
+includes it (`include_my_vault`), or when a Routine its owner created names it
+and the Routine's Agent is of the owner's own Organization.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -1191,7 +1192,7 @@ Input for removing secrets from a vault by name.
 <TypeTable
   type={{
     vault: { type: "VaultTargetInput", description: "The vault to remove from.", required: true },
-    names: { type: "string[]", description: "Names of the secrets to remove." },
+    names: { type: "string[]", description: "Names of the secrets to remove, each written as a saved name is: a letter or underscore, then letters, digits and underscores." },
   }}
 />
 
@@ -1379,7 +1380,7 @@ Input for finding a shared vault by the integrator's own id.
 <TypeTable
   type={{
     org: { type: "string", description: "Organization, by slug or id." },
-    externalId: { type: "string", description: "The vault's external id." },
+    externalId: { type: "string", description: "The vault's external id, written as a saved one is: at most 200 characters, a letter or digit first, then letters, digits or `._:@/-`." },
   }}
 />
 

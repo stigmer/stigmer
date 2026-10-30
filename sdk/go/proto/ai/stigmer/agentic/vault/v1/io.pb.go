@@ -301,7 +301,8 @@ type RemoveVaultSecretsInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The vault to remove from.
 	Vault *VaultTarget `protobuf:"bytes,1,opt,name=vault,proto3" json:"vault,omitempty"`
-	// Names of the secrets to remove.
+	// Names of the secrets to remove, each written as a saved name is: a
+	// letter or underscore, then letters, digits and underscores.
 	Names         []string `protobuf:"bytes,2,rep,name=names,proto3" json:"names,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -537,7 +538,8 @@ type GetVaultByExternalIdInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Organization, by slug or id.
 	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
-	// The vault's external id.
+	// The vault's external id, written as a saved one is: at most 200
+	// characters, a letter or digit first, then letters, digits or `._:@/-`.
 	ExternalId    string `protobuf:"bytes,2,opt,name=external_id,json=externalId,proto3" json:"external_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1211,10 +1213,10 @@ const file_ai_stigmer_agentic_vault_v1_io_proto_rawDesc = "" +
 	"\asecrets\x18\x02 \x03(\v2>.ai.stigmer.agentic.vault.v1.SetVaultSecretsInput.SecretsEntryB+\xbaH(\x9a\x01%\b\x01\x10d\"\x1fr\x1d\x18\x80\x012\x18^[A-Za-z_][A-Za-z0-9_]*$R\asecrets\x1ai\n" +
 	"\fSecretsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12C\n" +
-	"\x05value\x18\x02 \x01(\v2-.ai.stigmer.agentic.vault.v1.VaultSecretInputR\x05value:\x028\x01\"\x8c\x01\n" +
+	"\x05value\x18\x02 \x01(\v2-.ai.stigmer.agentic.vault.v1.VaultSecretInputR\x05value:\x028\x01\"\xa6\x01\n" +
 	"\x17RemoveVaultSecretsInput\x12F\n" +
-	"\x05vault\x18\x01 \x01(\v2(.ai.stigmer.agentic.vault.v1.VaultTargetB\x06\xbaH\x03\xc8\x01\x01R\x05vault\x12)\n" +
-	"\x05names\x18\x02 \x03(\tB\x13\xbaH\x10\x92\x01\r\b\x01\x10d\"\ar\x05\x10\x01\x18\x80\x01R\x05names\"\xd6\x01\n" +
+	"\x05vault\x18\x01 \x01(\v2(.ai.stigmer.agentic.vault.v1.VaultTargetB\x06\xbaH\x03\xc8\x01\x01R\x05vault\x12C\n" +
+	"\x05names\x18\x02 \x03(\tB-\xbaH*\x92\x01'\b\x01\x10d\"!r\x1f\x10\x01\x18\x80\x012\x18^[A-Za-z_][A-Za-z0-9_]*$R\x05names\"\xd6\x01\n" +
 	"\x17SetVaultConnectionInput\x12F\n" +
 	"\x05vault\x18\x01 \x01(\v2(.ai.stigmer.agentic.vault.v1.VaultTargetB\x06\xbaH\x03\xc8\x01\x01R\x05vault\x12$\n" +
 	"\aaddress\x18\x02 \x01(\tB\n" +
@@ -1225,10 +1227,10 @@ const file_ai_stigmer_agentic_vault_v1_io_proto_rawDesc = "" +
 	"\x05vault\x18\x01 \x01(\v2(.ai.stigmer.agentic.vault.v1.VaultTargetB\x06\xbaH\x03\xc8\x01\x01R\x05vault\x121\n" +
 	"\taddresses\x18\x02 \x03(\tB\x13\xbaH\x10\x92\x01\r\b\x01\x10d\"\ar\x05\x10\x01\x18\x80\x10R\taddresses\",\n" +
 	"\x0fGetMyVaultInput\x12\x19\n" +
-	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\"`\n" +
+	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\"\x84\x01\n" +
 	"\x19GetVaultByExternalIdInput\x12\x19\n" +
-	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12(\n" +
-	"\vexternal_id\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\n" +
+	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12L\n" +
+	"\vexternal_id\x18\x02 \x01(\tB+\xbaH(r&\x10\x01\x18\xc8\x012\x1f^[A-Za-z0-9][A-Za-z0-9._:@/-]*$R\n" +
 	"externalId\"\x8c\x02\n" +
 	"\x11ListVaultsRequest\x12\x19\n" +
 	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12$\n" +

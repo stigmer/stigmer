@@ -50,7 +50,9 @@
  *     carry its id; each of another organization contributes nothing);
  *   - a run of an agent of another organization, or one whose row cannot
  *     be read, or whose agent lists a subagent of another organization,
- *     reads no My vault for any requirement;
+ *     reads no My vault for any requirement, a routine owner's own on the
+ *     routine included: it is left out before it is checked, and a key
+ *     only it holds refuses saying why;
  *   - a subagent's keys: its own requirements under a subagent declarer,
  *     planned under the SUBAGENT kind, opened into its own group by its
  *     name and never into the agent's values;
@@ -1147,6 +1149,70 @@ describe("what reaches an agent or a surface of another organization", () => {
         agentOrg: "globex",
       }),
     ).toEqual({ A: "chan" });
+  });
+
+  /**
+   * Ana's routine 'nightly' naming her My vault (A) and a shared vault (B),
+   * both attached by her; `useMine` grants her `can_use` on her My vault.
+   */
+  async function anasNightly(useMine: boolean): Promise<Run> {
+    const mine = await anasVault({ A: "ana-mine" });
+    const slug = (await rig.vaults.findById(mine))!.metadata!.slug;
+    const team = await seedSharedVault(rig.store, ORG, "team", { secrets: { B: "team" } });
+    await rig.store.saveResource(
+      ApiResourceKind.routine,
+      "rtn_nightly",
+      RoutineSchema,
+      create(RoutineSchema, {
+        metadata: { id: "rtn_nightly", name: "nightly", org: ORG },
+        spec: { agent: { vaults: [vaultRef(slug), vaultRef("team")] } },
+        status: { vaultAttachers: { [mine]: ANA, [team.metadata!.id]: ANA } },
+      }),
+    );
+    mayUse.add(`${ANA}:${team.metadata!.id}`);
+    if (useMine) {
+      mayUse.add(`${ANA}:${mine}`);
+    }
+    return runOf({ labels: { [ROUTINE_ID_LABEL_KEY]: "rtn_nightly" } });
+  }
+
+  it("a routine's run of another organization's agent reads the routine's shared vaults, never its owner's My vault on it", async () => {
+    const run = await anasNightly(true);
+    expect(await resolve({ run, agentSpec: agent({ A: MAYBE, B: KEY }), agentOrg: "globex" })).toEqual({
+      B: "team",
+    });
+    // The same routine running Ana's own organization's agent reads both.
+    expect(await resolve({ run, agentSpec: agent({ A: MAYBE, B: KEY }) })).toEqual({
+      A: "ana-mine",
+      B: "team",
+    });
+  });
+
+  it("a key only the routine owner's My vault holds refuses another organization's agent, saying why", async () => {
+    const run = await anasNightly(true);
+    const missing = await refusal(resolve({ run, agentSpec: agent({ A: KEY }), agentOrg: "globex" }));
+    expect(missing.code).toBe(Code.FailedPrecondition);
+    expect(missing.rawMessage).toBe(
+      "the agent Helper needs A: ask the owner of routine 'nightly' to put A in a shared vault on it: an agent of another organization never reads My vault",
+    );
+  });
+
+  it("a My vault left out of another organization's agent's routine run is never checked, so it cannot refuse the run", async () => {
+    const run = await anasNightly(false);
+    expect(await resolve({ run, agentSpec: agent({ B: KEY }), agentOrg: "globex" })).toEqual({ B: "team" });
+    // Read by the routine owner's own organization's agent, it is checked and refuses.
+    const refused = await refusal(resolve({ run, agentSpec: agent({ B: KEY }) }));
+    expect(refused.rawMessage).toContain("named by routine 'nightly', may no longer be used");
+  });
+
+  it("a subagent of another organization closes the routine owner's My vault to the routine's run", async () => {
+    const run = await anasNightly(true);
+    const values = await open({
+      run,
+      agentSpec: agent({ A: MAYBE, B: KEY }),
+      subagents: [{ id: "agt_researcher", name: "researcher", org: "globex", versionHash: "", spec: agent({}) }],
+    });
+    expect(agentValues(values)).toEqual({ B: "team" });
   });
 
   it("another organization's agent still takes the conversation's vaults, and a missing key says so", async () => {

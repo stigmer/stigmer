@@ -63,7 +63,8 @@ message RemoveVaultSecretsInput {
   // The vault to remove from.
   VaultTarget vault = 1 [(buf.validate.field).required = true];
 
-  // Names of the secrets to remove.
+  // Names of the secrets to remove, each written as a saved name is: a
+  // letter or underscore, then letters, digits and underscores.
   repeated string names = 2 [(buf.validate.field).repeated = {
     min_items: 1
     max_items: 100
@@ -71,6 +72,7 @@ message RemoveVaultSecretsInput {
       string: {
         min_len: 1
         max_len: 128
+        pattern: "^[A-Za-z_][A-Za-z0-9_]*$"
       }
     }
   }];
@@ -133,8 +135,13 @@ message GetVaultByExternalIdInput {
   // Organization, by slug or id.
   string org = 1 [(buf.validate.field).string.min_len = 1];
 
-  // The vault's external id.
-  string external_id = 2 [(buf.validate.field).string.min_len = 1];
+  // The vault's external id, written as a saved one is: at most 200
+  // characters, a letter or digit first, then letters, digits or `._:@/-`.
+  string external_id = 2 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 200
+    pattern: "^[A-Za-z0-9][A-Za-z0-9._:@/-]*$"
+  }];
 }
 
 // ListVaultsRequest lists the vaults the caller can see in an organization.

@@ -51,8 +51,10 @@
  * author answers to another organization, and every value the run carries
  * reaches the agent's code, whoever declared it. Only the vaults the
  * caller listed for this conversation (and, for a run with no person, its
- * surface's vaults) serve such a run; a required key missing from them
- * says so.
+ * surface's shared vaults) serve such a run; a required key missing from
+ * them says so. The rule holds for every source: a routine owner's own My
+ * vault on the routine is left out of such a run too (stigmer#2040), and
+ * the missing-key sentence then says why.
  *
  * include_my_vault is the conversation's choice, and each turn's My vault
  * is its own person's: a second person's turn never reads the first's. A
@@ -205,7 +207,7 @@ import type {
   SealedValue,
   VaultService,
 } from "./service.js";
-import { personOf } from "./row.js";
+import { isMyVault, personOf } from "./row.js";
 import { openSessionValues, repositoryTokenKey } from "./session-values.js";
 import type { SessionOwnValues } from "./session-values.js";
 
@@ -352,7 +354,7 @@ interface RunSurface {
 type WhoActs =
   | { readonly kind: "person"; readonly includesMyVault: boolean; readonly listsVaults: boolean }
   | { readonly kind: "foreignAgent" }
-  | { readonly kind: "surface"; readonly what: string }
+  | { readonly kind: "surface"; readonly what: string; readonly closedMyVault: boolean }
   | { readonly kind: "participant"; readonly creator: string }
   | { readonly kind: "none" };
 
@@ -824,7 +826,9 @@ function whoActsSentence(requirement: Requirement, who: WhoActs): string {
       : `add ${requirement.key}`;
   switch (who.kind) {
     case "surface":
-      return `ask the owner of ${who.what} to attach a vault that holds ${requirement.key}`;
+      return who.closedMyVault
+        ? `ask the owner of ${who.what} to put ${requirement.key} in a shared vault on it: an agent of another organization never reads My vault`
+        : `ask the owner of ${who.what} to attach a vault that holds ${requirement.key}`;
     case "none":
       return `list a vault that holds ${requirement.key} on the conversation`;
     case "participant":
@@ -1006,18 +1010,34 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
     return vault;
   }
 
-  /** Loads and checks the named vaults, in order, as sources of `origin`. */
+  /**
+   * Loads and checks the named vaults, in order, as sources of `origin`.
+   * When the run's agent is of another organization, a My vault among them
+   * is left out before it is checked: a vault the run never reads cannot
+   * refuse it. Today only a routine can name one (attachments.ts).
+   */
   async function namedSources(
     named: readonly NamedVault[],
     person: string | undefined,
     origin: RunValueOrigin,
-  ): Promise<Source[]> {
+    scope: { readonly myVaultClosed: boolean; readonly executionId: string },
+  ): Promise<{ readonly sources: Source[]; readonly closedMyVault: boolean }> {
     const sources: Source[] = [];
     const seen = new Set<string>();
+    let closedMyVault = false;
     for (const entry of named) {
       const vault = await findNamed(entry);
       const id = vault.metadata?.id ?? "";
       if (seen.has(id)) {
+        continue;
+      }
+      if (scope.myVaultClosed && isMyVault(vault)) {
+        logger.info("A My vault named for a run of another organization's agent is not used", {
+          vaultId: id,
+          namedBy: entry.namedBy,
+          executionId: scope.executionId,
+        });
+        closedMyVault = true;
         continue;
       }
       const refused = await refusalOf(entry, vault, person);
@@ -1027,7 +1047,7 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
       seen.add(id);
       sources.push(vaultSource(vaultLabel(vault), origin, vault));
     }
-    return sources;
+    return { sources, closedMyVault };
   }
 
   /** A vault as a source: its entries, sealed. */
@@ -1255,6 +1275,7 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
       (hasAgent && (input.agentOrg === undefined || input.agentOrg !== executionOrg)) ||
       input.subagents.some((subagent) => subagent.org !== executionOrg);
 
+    const scope = { myVaultClosed: foreignAgent, executionId: execution.metadata?.id ?? "" };
     const sources: Source[] = [repositorySource(own)];
     let who: WhoActs;
     if (person !== undefined) {
@@ -1267,27 +1288,34 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
           sources.push(vaultSource("My vault", RunValueOrigin.MY_VAULT, mine));
         }
       }
-      sources.push(...(await namedSources(named, person, RunValueOrigin.VAULT)));
+      sources.push(...(await namedSources(named, person, RunValueOrigin.VAULT, scope)).sources);
       // An eval run's try acting as its creator: the eval's vaults serve it
       // after the conversation's, checked against who attached each.
       const evalSurface = await evalRunSurfaceOf(execution);
       if (evalSurface !== undefined) {
+        const evalNamed = await namedOf([evalSurface]);
         sources.push(
-          ...(await namedSources(await namedOf([evalSurface]), person, RunValueOrigin.SURFACE_VAULT)),
+          ...(await namedSources(evalNamed, person, RunValueOrigin.SURFACE_VAULT, scope)).sources,
         );
       }
     } else if (participantSenderOf(execution, stored) !== undefined) {
       // A participant's turn: the conversation's own vaults, never a surface's.
-      sources.push(...(await namedSources(named, undefined, RunValueOrigin.VAULT)));
+      sources.push(...(await namedSources(named, undefined, RunValueOrigin.VAULT, scope)).sources);
       who = { kind: "participant", creator: creatorLabel(stored) };
     } else {
-      sources.push(...(await namedSources(named, undefined, RunValueOrigin.VAULT)));
+      sources.push(...(await namedSources(named, undefined, RunValueOrigin.VAULT, scope)).sources);
       const surface = await surfaceOf(execution, stored);
-      who = surface === undefined ? { kind: "none" } : { kind: "surface", what: surface.what };
-      if (surface !== undefined) {
-        sources.push(
-          ...(await namedSources(surface.named, undefined, RunValueOrigin.SURFACE_VAULT)),
+      if (surface === undefined) {
+        who = { kind: "none" };
+      } else {
+        const surfaceSources = await namedSources(
+          surface.named,
+          undefined,
+          RunValueOrigin.SURFACE_VAULT,
+          scope,
         );
+        sources.push(...surfaceSources.sources);
+        who = { kind: "surface", what: surface.what, closedMyVault: surfaceSources.closedMyVault };
       }
     }
 

@@ -9,7 +9,7 @@
 #   viv   - an org viewer of acme (read-only role)
 #   mal   - a member of another organization
 #
-# Vaults: mine-alice (alice's My vault, carrying two stray tuples no code
+# Vaults: mine-alice (alice's My vault, carrying three stray tuples no code
 # writes), support (shared, private, with a person grant and a team grant),
 # handbook (shared, org visibility).
 name: vault-access
@@ -38,9 +38,11 @@ tuples:
   - {user: organization:acme, relation: organization, object: vault:mine-alice}
   - {user: identity_account:alice, relation: person, object: vault:mine-alice}
 
-  # Two stray tuples on alice's My vault, which no code path writes: a
-  # person grant to bob and the org-visibility tuple. Neither reaches anyone.
+  # Three stray tuples on alice's My vault, which no code path writes: a
+  # person grant to bob, a team grant to support-team and the
+  # org-visibility tuple. None reaches anyone.
   - {user: identity_account:bob, relation: user, object: vault:mine-alice}
+  - {user: team:support-team#member, relation: user, object: vault:mine-alice}
   - {user: organization:acme#viewer, relation: viewer, object: vault:mine-alice}
 
   # A shared vault: the creation tuples (organization + org_owned) and two grants.
@@ -61,9 +63,10 @@ tests:
       - {user: identity_account:bob, object: vault:mine-alice, assertions: {can_view: false, can_use: false, can_edit: false, can_delete: false}}
       - {user: identity_account:ana, object: vault:mine-alice, assertions: {can_view: false, can_use: false, can_edit: false, can_delete: false, can_grant_access: false}}
 
-  - name: a stray grant or org-visibility tuple on a My vault grants nothing
+  - name: a stray person grant, team grant or org-visibility tuple on a My vault grants nothing
     check:
       - {user: identity_account:bob, object: vault:mine-alice, assertions: {can_view: false, can_use: false, can_edit: false, can_delete: false}}
+      - {user: identity_account:carol, object: vault:mine-alice, assertions: {can_view: false, can_use: false, can_edit: false, can_delete: false}}
       - {user: identity_account:dave, object: vault:mine-alice, assertions: {can_view: false, can_use: false, can_edit: false, can_delete: false}}
       - {user: identity_account:viv, object: vault:mine-alice, assertions: {can_view: false, can_use: false}}
       - {user: identity_account:ana, object: vault:mine-alice, assertions: {can_view: false, can_use: false}}
