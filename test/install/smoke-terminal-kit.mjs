@@ -313,8 +313,10 @@ test("INK-04 off a terminal the same runs render read-only, deny the ask by defa
       if (result.status !== 0) throw new Error(`${job.line} through a pipe exited ${result.status}:\n${result.stdout.slice(-4000)}\n${result.stderr}`);
       // The README's example names the library's setting; the bridges run the bin, which names its flag.
       const setting = job.page === "README" ? 'approveDefault: "approve"' : "--approve-default approve";
+      // Off a terminal Ink lays out at 80 columns, so a long line wraps: compare with whitespace collapsed.
+      const flat = result.stdout.replace(/\s+/g, " ");
       for (const text of [`Denied execute — nobody at a terminal to approve it. Use ${setting} to allow.`, CLOSING]) {
-        if (!result.stdout.includes(text)) throw new Error(`${job.line} through a pipe lacks "${text}":\n${result.stdout.slice(-4000)}`);
+        if (!flat.includes(text)) throw new Error(`${job.line} through a pipe lacks "${text}":\n${result.stdout.slice(-4000)}`);
       }
       if (/\x1b\[[0-9;]*[ABCDGHJK]/.test(result.stdout)) throw new Error(`${job.line} through a pipe moved the cursor`);
       log(`${job.page}: denied by default, exit 0`);
