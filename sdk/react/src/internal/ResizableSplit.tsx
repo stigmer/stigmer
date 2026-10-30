@@ -348,10 +348,10 @@ export function ResizableSplit({
         onKeyDown={handleKeyDown}
         className={cn(
           "stg:group stg:relative stg:z-10 stg:w-1 stg:shrink-0 stg:cursor-col-resize stg:touch-none stg:select-none",
-          "stg:bg-[var(--stgm-border,#e5e5e5)]",
-          "stg:hover:bg-[var(--stgm-primary,#6366f1)]",
-          "stg:focus-visible:bg-[var(--stgm-primary,#6366f1)] stg:focus-visible:outline-none",
-          "stg:active:bg-[var(--stgm-primary,#6366f1)]",
+          "stg:bg-border",
+          "stg:hover:bg-primary",
+          "stg:focus-visible:bg-primary stg:focus-visible:outline-none",
+          "stg:active:bg-primary",
           "stg:transition-colors stg:duration-100",
           responsiveCollapse !== "none" && "stg:@max-3xl/resizable-split:hidden",
           isCollapsed && "stg:hidden",

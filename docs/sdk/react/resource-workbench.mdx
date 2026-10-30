@@ -291,8 +291,9 @@ Compact resource avatar for cards, rows, and detail headers.
 
 Renders one of three states:
 1. **Image** — when `iconUrl` is a non-empty string
-2. **Initial** — colored circle with the first letter of `name`,
-   deterministic color derived from `slug`
+2. **Initial** — the first letter of `name` on the theme's avatar
+   colour (`--stgm-avatar`), as a grantee's initial is drawn, so every
+   preset themes it and the theme contract keeps the letter readable
 3. **Hidden** — nothing (for resource types that don't support icons)
 
 **Props** — `ResourceAvatarProps`
@@ -304,7 +305,7 @@ Renders one of three states:
     iconUrl: { type: "string", description: "Icon URL from the resource's spec. Empty string means no icon." },
     name: { type: "string", description: "Display name used for the initial fallback.", required: true },
     size: { type: "\"md\" | \"sm\"", description: "Size variant." },
-    slug: { type: "string", description: "Slug used to derive a deterministic background color.", required: true },
+    slug: { type: "string", description: "The resource's slug; its first letter is the initial when `name` is empty.", required: true },
   }}
 />
 

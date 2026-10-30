@@ -1,5 +1,6 @@
 "use strict";
 
+const coloursFromTokens = require("./rules/colours-from-tokens");
 const noHandrolledDialog = require("./rules/no-handrolled-dialog");
 const noHardcodedBackdrop = require("./rules/no-hardcoded-backdrop");
 const noLiteralDomIds = require("./rules/no-literal-dom-ids");
@@ -17,6 +18,7 @@ const plugin = {
     version: "0.0.0",
   },
   rules: {
+    "colours-from-tokens": coloursFromTokens,
     "no-handrolled-dialog": noHandrolledDialog,
     "no-hardcoded-backdrop": noHardcodedBackdrop,
     "no-literal-dom-ids": noLiteralDomIds,

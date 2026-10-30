@@ -71,7 +71,7 @@
     box-sizing: border-box;
     border-width: 0;
     border-style: solid;
-    border-color: var(--stgm-border, currentColor);
+    border-color: var(--stgm-border);
   }
 
   /* Scoped form-control preflight (#374). Every SDK component is authored
@@ -172,7 +172,7 @@
 @layer stgm {
   .stgm {
     --stgm-motion-duration: 150ms;
-    --stgm-motion-easing: var(--stgm-transition-timing, ease-out);
+    --stgm-motion-easing: var(--stgm-transition-timing);
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -242,10 +242,10 @@
   /* Running node border pulse — subtle glow to indicate active run */
   @keyframes stgm-running-pulse {
     0%, 100% {
-      box-shadow: 0 0 0 0 var(--stgm-primary, #6366f1);
+      box-shadow: 0 0 0 0 var(--stgm-primary);
     }
     50% {
-      box-shadow: 0 0 0 4px color-mix(in srgb, var(--stgm-primary, #6366f1) 20%, transparent);
+      box-shadow: 0 0 0 4px color-mix(in srgb, var(--stgm-primary) 20%, transparent);
     }
   }
 

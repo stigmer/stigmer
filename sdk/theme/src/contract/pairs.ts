@@ -180,7 +180,7 @@ export const CONTRAST_PAIRS: readonly ContrastPair[] = [
   ),
   // Comments are deliberately de-emphasized but must stay readable.
   pair("--stgm-syntax-comment", "--stgm-muted", "supporting", "highlighted code comments"),
-  pair("--stgm-muted-foreground", "--stgm-avatar", "supporting", "a person's initial or a team's glyph on its avatar (GranteeAvatar)"),
+  pair("--stgm-muted-foreground", "--stgm-avatar", "supporting", "a person's initial, a team's glyph or a resource's initial on its avatar (GranteeAvatar, ResourceAvatar)"),
 
   // ── Deliberately de-emphasized text (readability floor, not AA) ─────
   pair("--stgm-muted-foreground-subtle", "--stgm-background", "supporting", "tertiary captions"),
@@ -202,8 +202,8 @@ export const SURFACE_PAIRS: readonly ContrastPair[] = [
   pair("--stgm-muted", "--stgm-background", "surface", "code blocks, muted panels on the page (borderless)", ["dark"]),
   pair("--stgm-input", "--stgm-popover", "surface", "Switch off-state track on dialog surface (ChatLinkDialog)", ["dark"]),
   pair("--stgm-avatar", "--stgm-popover", "surface", "grantee avatar in the Manage access dialog and the share picker (GranteeAvatar)", ["dark"]),
-  pair("--stgm-avatar", "--stgm-card", "surface", "grantee avatar on a settings card (team members)", ["dark"]),
-  pair("--stgm-avatar", "--stgm-background", "surface", "grantee avatar on the page", ["dark"]),
+  pair("--stgm-avatar", "--stgm-card", "surface", "an avatar on a card (team members, resource cards)", ["dark"]),
+  pair("--stgm-avatar", "--stgm-background", "surface", "an avatar on the page (grantees, resource rows)", ["dark"]),
   pair("--stgm-primary", "--stgm-popover", "surface", "Switch on-state track on dialog surface (ChatLinkDialog)", ["dark"]),
   ...STATUSES.flatMap((status) =>
     PILL_SURFACES.map(({ surface, where }) =>
