@@ -6,7 +6,7 @@ import { cn } from "@stigmer/design-tokens";
 export interface ResourceAvatarProps {
   /** Display name used for the initial fallback. */
   readonly name: string;
-  /** Slug used to derive a deterministic background color. */
+  /** The resource's slug; its first letter is the initial when `name` is empty. */
   readonly slug: string;
   /** Icon URL from the resource's spec. Empty string means no icon. */
   readonly iconUrl?: string;
@@ -21,31 +21,6 @@ export interface ResourceAvatarProps {
   readonly className?: string;
 }
 
-const AVATAR_COLORS = [
-  "stg:bg-[#6366f1]",
-  "stg:bg-[#8b5cf6]",
-  "stg:bg-[#a855f7]",
-  "stg:bg-[#d946ef]",
-  "stg:bg-[#ec4899]",
-  "stg:bg-[#f43f5e]",
-  "stg:bg-[#ef4444]",
-  "stg:bg-[#f97316]",
-  "stg:bg-[#eab308]",
-  "stg:bg-[#22c55e]",
-  "stg:bg-[#14b8a6]",
-  "stg:bg-[#06b6d4]",
-  "stg:bg-[#3b82f6]",
-  "stg:bg-[#2563eb]",
-] as const;
-
-function hashSlug(slug: string): number {
-  let h = 0;
-  for (let i = 0; i < slug.length; i++) {
-    h = ((h << 5) - h + slug.charCodeAt(i)) | 0;
-  }
-  return Math.abs(h);
-}
-
 const SIZE_CLASSES = {
   sm: "stg:size-6 stg:text-2xs",
   md: "stg:size-8 stg:text-xs",
@@ -56,8 +31,9 @@ const SIZE_CLASSES = {
  *
  * Renders one of three states:
  * 1. **Image** — when `iconUrl` is a non-empty string
- * 2. **Initial** — colored circle with the first letter of `name`,
- *    deterministic color derived from `slug`
+ * 2. **Initial** — the first letter of `name` on the theme's avatar
+ *    colour (`--stgm-avatar`), as a grantee's initial is drawn, so every
+ *    preset themes it and the theme contract keeps the letter readable
  * 3. **Hidden** — nothing (for resource types that don't support icons)
  */
 export function ResourceAvatar({
@@ -91,15 +67,13 @@ export function ResourceAvatar({
   }
 
   const initial = (name || slug).charAt(0).toUpperCase();
-  const colorClass = AVATAR_COLORS[hashSlug(slug) % AVATAR_COLORS.length];
 
   return (
     <span
       aria-hidden="true"
       className={cn(
-        "stg:inline-flex stg:shrink-0 stg:items-center stg:justify-center stg:rounded-full stg:font-medium stg:text-white",
+        "stg:inline-flex stg:shrink-0 stg:items-center stg:justify-center stg:rounded-full stg:bg-avatar stg:font-medium stg:text-muted-foreground",
         sizeClass,
-        colorClass,
         className,
       )}
     >

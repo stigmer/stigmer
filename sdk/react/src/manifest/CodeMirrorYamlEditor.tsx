@@ -154,19 +154,19 @@ export const CodeMirrorYamlEditor = memo(function CodeMirrorYamlEditor({
 // ---------------------------------------------------------------------------
 
 const stigmerHighlightStyle = HighlightStyle.define([
-  { tag: tags.propertyName, color: "var(--stgm-syntax-property, #0550ae)" },
-  { tag: tags.tagName, color: "var(--stgm-syntax-tag, #cf222e)" },
-  { tag: tags.keyword, color: "var(--stgm-syntax-keyword, #8250df)", fontWeight: "bold" },
-  { tag: tags.string, color: "var(--stgm-syntax-string, #0a3069)" },
-  { tag: tags.number, color: "var(--stgm-syntax-number, #953800)" },
-  { tag: [tags.bool, tags.null], color: "var(--stgm-syntax-bool, #8250df)" },
-  { tag: tags.atom, color: "var(--stgm-syntax-atom, #cf222e)" },
-  { tag: tags.comment, color: "var(--stgm-syntax-comment, #6e7781)", fontStyle: "italic" },
-  { tag: tags.meta, color: "var(--stgm-syntax-meta, #8250df)" },
-  { tag: tags.name, color: "var(--stgm-foreground, #1a1a2e)" },
-  { tag: tags.definition(tags.name), color: "var(--stgm-syntax-property, #0550ae)" },
-  { tag: tags.separator, color: "var(--stgm-muted-foreground, #737373)" },
-  { tag: tags.punctuation, color: "var(--stgm-muted-foreground, #737373)" },
+  { tag: tags.propertyName, color: "var(--stgm-syntax-property)" },
+  { tag: tags.tagName, color: "var(--stgm-syntax-tag)" },
+  { tag: tags.keyword, color: "var(--stgm-syntax-keyword)", fontWeight: "bold" },
+  { tag: tags.string, color: "var(--stgm-syntax-string)" },
+  { tag: tags.number, color: "var(--stgm-syntax-number)" },
+  { tag: [tags.bool, tags.null], color: "var(--stgm-syntax-bool)" },
+  { tag: tags.atom, color: "var(--stgm-syntax-atom)" },
+  { tag: tags.comment, color: "var(--stgm-syntax-comment)", fontStyle: "italic" },
+  { tag: tags.meta, color: "var(--stgm-syntax-meta)" },
+  { tag: tags.name, color: "var(--stgm-foreground)" },
+  { tag: tags.definition(tags.name), color: "var(--stgm-syntax-property)" },
+  { tag: tags.separator, color: "var(--stgm-muted-foreground)" },
+  { tag: tags.punctuation, color: "var(--stgm-muted-foreground)" },
 ]);
 
 // ---------------------------------------------------------------------------
@@ -176,67 +176,67 @@ const stigmerHighlightStyle = HighlightStyle.define([
 const stigmerTheme = EditorView.theme({
   "&": {
     height: "100%",
-    backgroundColor: "var(--stgm-background, #fff)",
-    color: "var(--stgm-foreground, #1a1a2e)",
+    backgroundColor: "var(--stgm-background)",
+    color: "var(--stgm-foreground)",
     fontSize: "var(--stgm-text-sm)",
   },
   ".cm-content": {
-    caretColor: "var(--stgm-foreground, #1a1a2e)",
-    fontFamily: "var(--stgm-font-mono, ui-monospace, monospace)",
+    caretColor: "var(--stgm-foreground)",
+    fontFamily: "var(--stgm-font-mono)",
     padding: "8px 0",
   },
   ".cm-cursor, .cm-dropCursor": {
-    borderLeftColor: "var(--stgm-foreground, #1a1a2e)",
+    borderLeftColor: "var(--stgm-foreground)",
   },
   "&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection":
     {
-      backgroundColor: "var(--stgm-accent, #e0e7ff)",
+      backgroundColor: "var(--stgm-accent)",
     },
   ".cm-gutters": {
-    backgroundColor: "var(--stgm-muted, #f5f5f5)",
-    color: "var(--stgm-muted-foreground, #737373)",
+    backgroundColor: "var(--stgm-muted)",
+    color: "var(--stgm-muted-foreground)",
     border: "none",
-    borderRight: "1px solid var(--stgm-border, #e5e5e5)",
+    borderRight: "1px solid var(--stgm-border)",
   },
   ".cm-activeLineGutter": {
-    backgroundColor: "var(--stgm-accent, #e0e7ff)",
+    backgroundColor: "var(--stgm-accent)",
   },
   ".cm-activeLine": {
-    backgroundColor: "color-mix(in srgb, var(--stgm-accent, #e0e7ff) 30%, transparent)",
+    backgroundColor: "color-mix(in srgb, var(--stgm-accent) 30%, transparent)",
   },
   ".cm-foldPlaceholder": {
-    backgroundColor: "var(--stgm-muted, #f5f5f5)",
-    border: "1px solid var(--stgm-border, #e5e5e5)",
-    color: "var(--stgm-muted-foreground, #737373)",
+    backgroundColor: "var(--stgm-muted)",
+    border: "1px solid var(--stgm-border)",
+    color: "var(--stgm-muted-foreground)",
   },
   ".cm-tooltip": {
-    backgroundColor: "var(--stgm-popover, #fff)",
-    color: "var(--stgm-popover-foreground, #1a1a2e)",
-    border: "1px solid var(--stgm-border, #e5e5e5)",
+    backgroundColor: "var(--stgm-popover)",
+    color: "var(--stgm-popover-foreground)",
+    border: "1px solid var(--stgm-border)",
     borderRadius: "6px",
     boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
   },
   ".cm-tooltip-autocomplete": {
     "& > ul > li[aria-selected]": {
-      backgroundColor: "var(--stgm-accent, #e0e7ff)",
-      color: "var(--stgm-accent-foreground, #1a1a2e)",
+      backgroundColor: "var(--stgm-accent)",
+      color: "var(--stgm-accent-foreground)",
     },
   },
   ".cm-diagnostic-error": {
-    borderLeft: "3px solid var(--stgm-destructive, #ef4444)",
+    borderLeft: "3px solid var(--stgm-destructive)",
   },
   ".cm-diagnostic-warning": {
-    borderLeft: "3px solid var(--stgm-warning, #f59e0b)",
+    borderLeft: "3px solid var(--stgm-warning)",
   },
   ".cm-diagnostic-info": {
-    borderLeft: "3px solid var(--stgm-primary, #6366f1)",
+    borderLeft: "3px solid var(--stgm-primary)",
   },
   ".cm-lint-marker-error": {
     content: "'●'",
-    color: "var(--stgm-destructive, #ef4444)",
+    color: "var(--stgm-destructive)",
   },
   ".cm-lint-marker-warning": {
     content: "'●'",
-    color: "var(--stgm-warning, #f59e0b)",
+    color: "var(--stgm-warning)",
   },
 });
