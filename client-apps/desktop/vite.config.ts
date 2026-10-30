@@ -11,6 +11,7 @@ export default defineConfig({
 
   optimizeDeps: {
     exclude: [
+      "@stigmer/react-core",
       "@stigmer/react-sdk",
       "@stigmer/client",
       "@stigmer/apis",
