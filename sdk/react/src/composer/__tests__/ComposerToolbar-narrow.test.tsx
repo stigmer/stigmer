@@ -159,4 +159,10 @@ describe("ComposerToolbar, narrow", () => {
     render(<Harness />);
     expect(screen.queryByRole("button", { name: "Add files or a folder" })).toBeNull();
   });
+
+  it("stays wide where nothing can measure it", () => {
+    vi.stubGlobal("ResizeObserver", undefined);
+    render(<Harness />);
+    expect(screen.queryByRole("button", { name: "Add files or a folder" })).toBeNull();
+  });
 });
