@@ -7,6 +7,8 @@
 !.yarn/plugins
 !.yarn/releases
 !.yarn/versions
+# The site installs with yarn (yarn.lock); npm's lockfile is never this folder's
+/package-lock.json
 
 # Testing
 /coverage
