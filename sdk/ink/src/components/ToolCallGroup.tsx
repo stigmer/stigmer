@@ -23,24 +23,27 @@ export interface ToolCallGroupProps {
   readonly defaultExpanded?: boolean;
 }
 
-type AggregateStatus = "running" | "failed" | "completed" | "pending";
+type AggregateStatus = "running" | "failed" | "denied" | "completed" | "pending";
 
 /**
  * The group's status: running wins, then failed; a group whose every call
  * settled (returned, failed, denied, or stopped when its turn ended — issue
- * #207) is completed, so a settled group never pins to a live-looking
- * "pending". A call waiting for a person leaves it pending.
+ * #207) is settled, so it never pins to a live-looking "pending". A settled
+ * group with a denied call reads as denied, not as a success. A call waiting
+ * for a person leaves it pending.
  */
 function deriveAggregateStatus(toolUses: readonly ToolUse[]): AggregateStatus {
   if (toolUses.some((tu) => tu.state === "running")) return "running";
   if (toolUses.some((tu) => tu.state === "failed")) return "failed";
-  return toolUses.some((tu) => tu.state === "waiting") ? "pending" : "completed";
+  if (toolUses.some((tu) => tu.state === "waiting")) return "pending";
+  return toolUses.some((tu) => tu.state === "denied") ? "denied" : "completed";
 }
 
 const STATUS_STYLE: Record<AggregateStatus, { symbol: string; role?: InkRole }> = {
   running: { symbol: "⠋", role: "warning" },
   completed: { symbol: "✓", role: "success" },
   failed: { symbol: "✗", role: "danger" },
+  denied: { symbol: "⊘", role: "warning" },
   pending: { symbol: "○" },
 };
 
