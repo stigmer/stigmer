@@ -203,12 +203,16 @@ const CASES: ReadonlyArray<PortContractDeclaration<GrantStore>> = [
       for (const stray of strays) {
         const row = grantRow(triple);
         row.metadata = create(ApiResourceMetadataSchema, { id: stray });
-        const refusal: unknown = await store.save(row).then(
-          () => undefined,
-          (error: unknown) => error ?? new Error("rejected"),
-        );
+        let refused = false;
+        let refusal: unknown;
+        try {
+          await store.save(row);
+        } catch (error) {
+          refused = true;
+          refusal = error;
+        }
         assert.ok(
-          refusal !== undefined,
+          refused,
           `save under '${stray}' must reject: no revoke reads a triple's row by any id but its derived one`,
         );
         assert.ok(
