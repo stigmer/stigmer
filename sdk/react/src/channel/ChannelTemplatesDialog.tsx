@@ -348,7 +348,7 @@ function TemplateRow({ template }: { readonly template: ChannelTemplate }) {
         </p>
       )}
       {template.unsupportedReason && (
-        <p className="stg:mt-2 stg:text-xs stg:text-warning" role="status">
+        <p className="stg:mt-2 stg:text-xs stg:text-status-degraded" role="status">
           Not sendable: {template.unsupportedReason}
         </p>
       )}

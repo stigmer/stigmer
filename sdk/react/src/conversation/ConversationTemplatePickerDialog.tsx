@@ -269,12 +269,17 @@ function TemplateChoiceList({
               className={cn(
                 "stg:w-full stg:rounded-lg stg:border stg:border-border stg:p-3 stg:text-left",
                 "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-                unsendable === null
-                  ? "stg:hover:border-ring stg:hover:bg-muted-faint"
-                  : "stg:opacity-60",
+                unsendable === null && "stg:hover:border-ring stg:hover:bg-muted-faint",
               )}
             >
-              <div className="stg:flex stg:min-w-0 stg:flex-wrap stg:items-center stg:gap-x-2 stg:gap-y-1">
+              {/* An unsendable tile dims its name and preview, never its
+                  reason: that line is the one the person acts on. */}
+              <div
+                className={cn(
+                  "stg:flex stg:min-w-0 stg:flex-wrap stg:items-center stg:gap-x-2 stg:gap-y-1",
+                  unsendable !== null && "stg:opacity-60",
+                )}
+              >
                 <TruncatedText
                   text={template.name}
                   className="stg:text-sm stg:font-medium stg:text-foreground"
@@ -291,12 +296,17 @@ function TemplateChoiceList({
                 )}
               </div>
               {template.bodyText && (
-                <p className="stg:mt-1.5 stg:line-clamp-2 stg:whitespace-pre-wrap stg:text-xs stg:leading-relaxed stg:text-muted-foreground">
+                <p
+                  className={cn(
+                    "stg:mt-1.5 stg:line-clamp-2 stg:whitespace-pre-wrap stg:text-xs stg:leading-relaxed stg:text-muted-foreground",
+                    unsendable !== null && "stg:opacity-60",
+                  )}
+                >
                   {template.bodyText}
                 </p>
               )}
               {unsendable !== null && (
-                <p className="stg:mt-1.5 stg:text-xs stg:text-warning">{unsendable}</p>
+                <p className="stg:mt-1.5 stg:text-xs stg:text-status-degraded">{unsendable}</p>
               )}
             </button>
           </li>

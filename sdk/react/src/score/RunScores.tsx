@@ -220,7 +220,7 @@ function HealthChip({ view }: { readonly view: RunHealthView }) {
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
         className={cn(
-          "stg:inline-flex stg:h-6 stg:items-center stg:rounded-full stg:border stg:border-border stg:px-2 stg:text-xs stg:text-warning",
+          "stg:inline-flex stg:h-6 stg:items-center stg:rounded-full stg:border stg:border-border stg:px-2 stg:text-xs stg:text-status-degraded",
           "stg:hover:bg-accent-hover stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
         )}
       >
@@ -291,7 +291,7 @@ function JudgeChip({ view }: { readonly view: JudgeView }) {
         onClick={() => setOpen((value) => !value)}
         className={cn(
           "stg:inline-flex stg:h-6 stg:items-center stg:rounded-full stg:border stg:border-border stg:px-2 stg:text-xs",
-          view.passed ? "stg:text-muted-foreground" : "stg:text-warning",
+          view.passed ? "stg:text-muted-foreground" : "stg:text-status-degraded",
           "stg:hover:bg-accent-hover stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
         )}
       >
@@ -344,7 +344,7 @@ function EvalChip({ view }: { readonly view: EvalView }) {
         onClick={() => setOpen((value) => !value)}
         className={cn(
           "stg:inline-flex stg:h-6 stg:items-center stg:rounded-full stg:border stg:border-border stg:px-2 stg:text-xs",
-          view.passed ? "stg:text-muted-foreground" : "stg:text-warning",
+          view.passed ? "stg:text-muted-foreground" : "stg:text-status-degraded",
           "stg:hover:bg-accent-hover stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
         )}
       >

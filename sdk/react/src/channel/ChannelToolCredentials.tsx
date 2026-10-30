@@ -78,7 +78,7 @@ function ChannelToolReadinessHint({
 
   if (readiness.status === "needs-credentials") {
     return (
-      <p className="stg:text-xs stg:text-warning" role="status">
+      <p className="stg:text-xs stg:text-status-degraded" role="status">
         Workspace conversations can&apos;t use this agent&apos;s tools yet:
         this channel names no vault. Name a shared vault above.
       </p>
@@ -91,7 +91,7 @@ function ChannelToolReadinessHint({
 
   const plural = readiness.unusableVaults.length > 1;
   return (
-    <p className="stg:text-xs stg:text-warning" role="status">
+    <p className="stg:text-xs stg:text-status-degraded" role="status">
       Workspace conversations can&apos;t use this agent&apos;s tools yet:
       the vault{plural ? "s" : ""}{" "}
       <span className="stg:font-medium">{readiness.unusableVaults.join(", ")}</span>{" "}

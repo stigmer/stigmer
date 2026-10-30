@@ -225,7 +225,7 @@ export function EvalRunsTab(props: EvalRunsTabProps) {
         ) : evalRuns.length > 0 ? (
           <>
             {error !== null && (
-              <p className="stg:px-3 stg:pt-2.5 stg:text-xs stg:text-warning">
+              <p className="stg:px-3 stg:pt-2.5 stg:text-xs stg:text-status-degraded">
                 Could not refresh the eval runs ({error.message}); this is the
                 last list read.
               </p>
@@ -386,7 +386,7 @@ function SuiteSummary({
             {suite.findings.map((finding, index) => (
               <li
                 key={`${finding.path}:${index}`}
-                className="stg:text-xs stg:text-warning"
+                className="stg:text-xs stg:text-status-degraded"
               >
                 {finding.message}
               </li>
@@ -932,7 +932,7 @@ function CompareSectionView({
             : shortDigest(section.afterDigest)}
         </span>
         {section.digestChanged && (
-          <span className="stg:font-normal stg:text-warning">
+          <span className="stg:font-normal stg:text-status-degraded">
             {section.kind} version changed: its cases may differ
           </span>
         )}
@@ -994,7 +994,7 @@ function CompareSectionView({
                   >
                     {row.name}
                     {row.changed && (
-                      <span className="stg:ml-1 stg:text-warning">changed</span>
+                      <span className="stg:ml-1 stg:text-status-degraded">changed</span>
                     )}
                   </th>
                   <td className={cn(CELL_CLASS, "stg:font-mono")}>

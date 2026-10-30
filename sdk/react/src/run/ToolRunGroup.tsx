@@ -184,7 +184,7 @@ function deriveAggregateStatus(toolUses: readonly ToolUse[]): AggregateStatus {
 
 const STATUS_COLOR: Record<AggregateStatus, string> = {
   running: "stg:text-foreground",
-  waiting: "stg:text-warning",
+  waiting: "stg:text-status-degraded",
   failed: "stg:text-destructive",
   completed: "stg:text-success",
 };

@@ -502,6 +502,8 @@ describe("ConnectWhatsAppDialog", () => {
     const note = await screen.findByRole("status");
     expect(note.textContent).toContain("+1 555 025 3483");
     expect(note.textContent).toContain("other-agent");
+    // Drawn in the at-risk colour the theme contract measures in a dialog.
+    expect(note.className).toContain("stg:text-status-degraded");
 
     // A different number clears the advisory.
     fireEvent.change(screen.getByLabelText(/phone number id/i), {

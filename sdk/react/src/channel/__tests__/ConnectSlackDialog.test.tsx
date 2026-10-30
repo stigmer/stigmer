@@ -401,6 +401,8 @@ describe("ConnectSlackDialog", () => {
     const note = await screen.findByRole("status");
     expect(note.textContent).toContain("Acme HQ");
     expect(note.textContent).toContain("other-agent");
+    // Drawn in the at-risk colour the theme contract measures in a dialog.
+    expect(note.className).toContain("stg:text-status-degraded");
 
     // Selecting the BYO app clears the advisory — that app serves nothing.
     fireEvent.click(

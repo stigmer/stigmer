@@ -1,6 +1,8 @@
 /**
  * Pins an eval run's try in a thread: the eval chip says "Eval: passed"
- * or "Eval: 1 of 2 failed" and opens to each check's verdict and reason
+ * or "Eval: 1 of 2 failed" (in the at-risk colour the theme contract
+ * measures on the page and on the chip's hover) and opens to each check's
+ * verdict and reason
  * (an indicator-only check is not applicable, not a failure); a try that
  * was not graded says why. "Make a test case" is pinned by
  * MakeTestCasePanel.test.tsx.
@@ -123,9 +125,9 @@ describe("the eval chip", () => {
         wrapper: wrap(client([evalScore(ScoreState.graded, false)])),
       },
     );
-    fireEvent.click(
-      await screen.findByRole("button", { name: "Eval: 1 of 2 failed" }),
-    );
+    const chip = await screen.findByRole("button", { name: "Eval: 1 of 2 failed" });
+    expect(chip.className).toContain("stg:text-status-degraded");
+    fireEvent.click(chip);
     expect(
       screen.getByText("criteria: failed — the reply missed the null check"),
     ).toBeDefined();

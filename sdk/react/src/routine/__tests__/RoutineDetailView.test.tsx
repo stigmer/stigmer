@@ -624,7 +624,10 @@ describe("RoutineDetailView", () => {
     renderView(makeClient(makeRoutine({ consecutiveFailures: 2 })));
 
     await screen.findByRole("heading", { name: "daily-fee-reminders" });
-    expect(screen.getByText("2 consecutive failed runs")).toBeTruthy();
+    // Drawn in the at-risk colour the theme contract measures on the page.
+    expect(screen.getByText("2 consecutive failed runs").className).toContain(
+      "stg:text-status-degraded",
+    );
     // The copy stays qualitative: the pause threshold is server config
     // the API does not expose, so no hardcoded denominator.
     expect(
@@ -722,11 +725,21 @@ describe("RoutineDetailView", () => {
     const onRenamed = vi.fn();
     renderView(client, { editable: true, onRenamed });
 
-    const field = await screen.findByLabelText("Slug");
+    await screen.findByLabelText("Slug");
     expect(client.grant.checkMyPermission).toHaveBeenCalledWith(
       expect.objectContaining({ relation: "can_delete" }),
     );
-    fireEvent.change(field, { target: { value: "weekly-fee-reminders" } });
+    // On a loaded runner the click was lost (stigmer#2298): a click on a
+    // disabled Rename, or a typed value dropped when the field mounts
+    // again with the routine's slug. So the edit is read fresh and made
+    // again until Rename is enabled, and only then clicked.
+    await waitFor(() => {
+      const field = screen.getByLabelText("Slug") as HTMLInputElement;
+      if (field.value !== "weekly-fee-reminders") {
+        fireEvent.change(field, { target: { value: "weekly-fee-reminders" } });
+      }
+      expect((screen.getByRole("button", { name: "Rename" }) as HTMLButtonElement).disabled).toBe(false);
+    });
     fireEvent.click(screen.getByRole("button", { name: "Rename" }));
 
     await waitFor(() => expect(onRenamed).toHaveBeenCalledOnce());

@@ -317,7 +317,7 @@ function CardReadinessWarning({
       : `Vault${readiness.unusableVaults.length > 1 ? "s" : ""} ${readiness.unusableVaults.join(", ")} ${readiness.unusableVaults.length > 1 ? "are" : "is"} not a shared vault you can read — name a shared vault so workspace messages can use its keys.`;
 
   return (
-    <p className="stg:mt-2 stg:text-xs stg:text-warning" role="status">
+    <p className="stg:mt-2 stg:text-xs stg:text-status-degraded" role="status">
       {message}
       {canEdit && (
         <>

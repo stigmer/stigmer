@@ -701,9 +701,9 @@ describe("ChannelsPanel", () => {
     await waitFor(() => expect(screen.getByText("Support Slack")).toBeTruthy());
     // The card is where an owner discovers the gap — including one who
     // connected before credential binding existed.
-    expect(
-      await screen.findByText(/this channel names no vault/i),
-    ).toBeTruthy();
+    const warning = await screen.findByText(/this channel names no vault/i);
+    // Drawn in the at-risk colour the theme contract measures on a card.
+    expect(warning.className).toContain("stg:text-status-degraded");
     expect(screen.getByRole("button", { name: /bind credentials/i })).toBeTruthy();
   });
 

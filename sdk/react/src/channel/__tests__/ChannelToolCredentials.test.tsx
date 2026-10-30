@@ -1,8 +1,9 @@
 /**
  * ChannelToolCredentials' readiness hint names the vaults that cannot serve
  * the channel's runs (one or several, worded for each), and says nothing
- * when the channel is ready. The readiness hook and the picker are stood in:
- * their own suites pin them.
+ * when the channel is ready. Both notes are drawn in the at-risk colour the
+ * theme contract measures as text in a dialog. The readiness hook and the
+ * picker are stood in: their own suites pin them.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
@@ -29,6 +30,14 @@ describe("ChannelToolCredentials", () => {
     renderHint();
     expect(screen.getByText("acme/private")).toBeTruthy();
     expect(screen.getByRole("status").textContent).toMatch(/the vault acme\/private is not a shared vault/);
+    expect(screen.getByRole("status").className).toContain("stg:text-status-degraded");
+  });
+
+  it("asks for a vault when the channel names none", () => {
+    readiness.value = { status: "needs-credentials" };
+    renderHint();
+    expect(screen.getByRole("status").textContent).toMatch(/this channel names no vault/);
+    expect(screen.getByRole("status").className).toContain("stg:text-status-degraded");
   });
 
   it("names several vaults that cannot serve", () => {

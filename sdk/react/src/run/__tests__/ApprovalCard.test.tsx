@@ -1,9 +1,10 @@
 /**
  * Pins the approval card (../ApprovalCard.tsx) over a tool use that waits
  * for a person, as the session's events fold it: its neutral chrome with a
- * warning (or, for a delete, destructive) accent; the shell gate's command
- * shown once and its auto-keep note; classification from the tool's name and
- * MCP server; the why-gated line from the ask's rule word, suppressed for the
+ * warning (or, for a delete, destructive) accent, and its category and
+ * clock icons in the at-risk colour the theme contract measures; the shell
+ * gate's command shown once and its auto-keep note; classification from the
+ * tool's name and MCP server; the why-gated line from the ask's rule word, suppressed for the
  * everyday default; a file tool's restating message suppressed; the three
  * answers — Approve (`allow`), Deny with an optional reason (`deny`), and
  * Approve all of the call's class (`grant`, labelled by class, MCP server or
@@ -64,6 +65,10 @@ describe("ApprovalCard chrome", () => {
     expect(card.className).toContain("stg:border-l-warning");
     expect(card.className).not.toContain("stg:bg-warning");
     expect(card.getAttribute("aria-label")).toBe("Approval required for edit_file");
+    // The header's category and clock icons, in the at-risk colour.
+    expect(
+      card.querySelectorAll('[aria-hidden="true"].stg\\:text-status-degraded'),
+    ).toHaveLength(2);
   });
 
   it("keeps a destructive red accent for a delete approval", () => {

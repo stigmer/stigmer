@@ -374,7 +374,7 @@ function highlightJsonValue(value: string): ReactNode {
     return (
       <>
         {" "}
-        <span className="stg:text-warning">{trimmed}</span>
+        <span className="stg:text-status-degraded">{trimmed}</span>
         {trailingComma}
       </>
     );

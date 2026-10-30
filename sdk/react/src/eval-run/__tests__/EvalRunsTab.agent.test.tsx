@@ -428,7 +428,9 @@ describe("EvalRunsTab on an agent", () => {
     });
     const thermos = await screen.findByRole("region", { name: "Compare plugin thermos" });
     expect(thermos.getAttribute("data-digest-changed")).toBe("true");
-    expect(within(thermos).getByText(/plugin version changed/)).toBeDefined();
+    expect(within(thermos).getByText(/plugin version changed/).className).toContain(
+      "stg:text-status-degraded",
+    );
     expect(within(thermos).getByText("aaaa00000000 → bbbb00000000")).toBeDefined();
     expect(within(thermos).getByRole("columnheader", { name: "Before (version 11111111)" })).toBeDefined();
     expect(within(thermos).getByRole("columnheader", { name: "After (version 22222222)" })).toBeDefined();

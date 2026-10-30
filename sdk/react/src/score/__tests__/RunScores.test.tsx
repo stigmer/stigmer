@@ -2,8 +2,9 @@
  * Pins the run-score surface inside a thread: a thread with run scores off
  * (the guest and embedded audiences) makes no score request and renders no
  * control; with them on, the session's scores are read once, the final
- * answer of a completed run carries the thumbs and the health chip, the
- * chip opens to each flag's reason, a run the platform could not grade
+ * answer of a completed run carries the thumbs and the health chip (in the
+ * at-risk colour the theme contract measures on the page and on the chip's
+ * hover), the chip opens to each flag's reason, a run the platform could not grade
  * says so, and a thumbs-down is sent as a feedback score whose value is
  * false. A second rating the server refuses with SCORE_EXISTS changes the
  * existing one.
@@ -142,6 +143,7 @@ describe("run scores in a thread", () => {
     );
 
     const chip = await screen.findByRole("button", { name: "1 flag" });
+    expect(chip.className).toContain("stg:text-status-degraded");
     expect(mock.score.listBySession).toHaveBeenCalledTimes(1);
     expect(mock.score.listBySession).toHaveBeenCalledWith(
       expect.objectContaining({ sessionId: "ses_1" }),

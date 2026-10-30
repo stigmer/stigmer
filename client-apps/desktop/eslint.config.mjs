@@ -21,6 +21,10 @@ export default defineConfig([
       // and zero arbitrary colours, so every colour comes from a theme token
       // and this fence starts at zero.
       "stigmer/colours-from-tokens": "error",
+      // Error (not warn): the stigmer#2776 sweep moved every badge fill drawn
+      // as text onto the measured status text colour, so this fence starts at
+      // zero.
+      "stigmer/no-fill-token-text": "error",
       "stigmer/no-main-tokens-in-sidebar": "warn",
     },
   },

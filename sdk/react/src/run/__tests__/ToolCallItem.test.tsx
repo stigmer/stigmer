@@ -396,8 +396,9 @@ describe("ToolCallItem disclosure", () => {
     const tu = toolUse({ id: "tc-gated", name: "delete_file", ask: {} });
     const { container } = render(<ToolCallItem toolUse={tu} />);
     expect(screen.queryByLabelText("Approve")).toBeNull();
-    // The waiting call still reads as waiting: the clock, in the warning tone.
-    expect(container.querySelector(".stg\\:text-warning")).not.toBeNull();
+    // The waiting call still reads as waiting: the clock, in the at-risk
+    // colour the theme contract measures as text on the page.
+    expect(container.querySelector(".stg\\:text-status-degraded")).not.toBeNull();
   });
 
   it("renders a waiting preview tool's actions inline with no chevron", () => {

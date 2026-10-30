@@ -72,7 +72,7 @@ const PHASE_CONFIG: ReadonlyMap<RunPhase, PhaseConfig> = new Map([
     {
       label: "Waiting for approval",
       icon: ClockIcon,
-      colorClass: "stg:text-warning",
+      colorClass: "stg:text-status-degraded",
     },
   ],
   [

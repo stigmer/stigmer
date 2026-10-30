@@ -7,7 +7,9 @@
  * stopped, in words (a reason this client does not know as "stopped
  * early"); the heading, the plugin and when the eval run started; a
  * refused cancel kept as an alert; a failed read again keeping the last
- * results with a stale notice; and each try a link only where the viewer
+ * results with a stale notice; a failing score and that notice drawn in
+ * the at-risk colour the theme contract measures as text on the page and
+ * on a card; and each try a link only where the viewer
  * can open it (every viewer in Stigmer Cloud, only the eval run's creator
  * elsewhere). The tab around it is pinned in EvalRunsTab.plugin.test.tsx
  * and EvalRunsTab.agent.test.tsx.
@@ -259,10 +261,22 @@ describe("EvalRunResults", () => {
     await screen.findByRole("button", { name: "a" });
     mock.evalrun.get.mockRejectedValueOnce(new Error("the server is unavailable"));
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-    expect(
-      await screen.findByText("Could not refresh the eval run (the server is unavailable); these are the last results read."),
-    ).toBeDefined();
+    const stale = await screen.findByText(
+      "Could not refresh the eval run (the server is unavailable); these are the last results read.",
+    );
+    expect(stale.className).toContain("stg:text-status-degraded");
     expect(screen.getByRole("button", { name: "a" })).toBeDefined();
+  });
+
+  it("draws a failing score in the at-risk colour and a passing one in the body colour", async () => {
+    render(<EvalRunResults evalRunId="evr_1" />, {
+      wrapper: wrap(client(evalWith([{ name: "a", score: 0.5 }, { name: "b", score: 1 }]))),
+    });
+    const failing = await screen.findByRole("cell", { name: "0.50" });
+    expect(failing.className).toContain("stg:text-status-degraded");
+    const passing = screen.getByRole("cell", { name: "1.00" });
+    expect(passing.className).toContain("stg:text-foreground");
+    expect(passing.className).not.toContain("stg:text-status-degraded");
   });
 
   it("keeps a refused cancel as an alert", async () => {

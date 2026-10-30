@@ -23,6 +23,8 @@
  *   id that ends the same way (`team-red-500`) is left alone.
  */
 
+const { utilityOf } = require("../src/class-utility");
+
 /** A read of a --stgm-* token followed by a fallback. */
 const TOKEN_FALLBACK = /var\(\s*--stgm-([\w-]+)\s*,/g;
 /** An arbitrary value that is a colour, with or without Tailwind's `color:` type hint. */
@@ -51,24 +53,6 @@ const PALETTE_COLOUR = new RegExp(
     ].join("|") +
     ")-(?:50|[1-9]00|950)|white|black)(?:/(?:\\d+|\\[[^\\]]*\\]|\\([^)]*\\)))?$",
 );
-
-/**
- * The utility of one class token: what follows the last `:` outside
- * brackets, so variants (`stg:hover:`, `[&>p]:`, `has-[#id]:`) are dropped
- * and a value holding `:` (`color:#fff`) is kept. A scan, not a pattern, so
- * no input makes it backtrack.
- */
-function utilityOf(className) {
-  let depth = 0;
-  let start = 0;
-  for (let i = 0; i < className.length; i += 1) {
-    const ch = className[i];
-    if (ch === "[") depth += 1;
-    else if (ch === "]") depth = Math.max(0, depth - 1);
-    else if (ch === ":" && depth === 0) start = i + 1;
-  }
-  return className.slice(start).replace(/^!/, "");
-}
 
 /**
  * True when one class token paints an arbitrary colour: an arbitrary value
