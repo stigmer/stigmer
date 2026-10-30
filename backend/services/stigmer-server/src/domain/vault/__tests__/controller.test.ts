@@ -23,6 +23,10 @@
  *     named under this one is NOT_FOUND;
  *   - a first write refused for its entries (a reserved name, an address
  *     that breaks the rule) creates no My vault;
+ *   - getByReference answers another person's My vault by slug NOT_FOUND,
+ *     as a missing one, since the slug is computed from the person's id
+ *     (stigmer#2036); a My vault by id and a shared vault by slug stay
+ *     PERMISSION_DENIED;
  *   - getMine is NOT_FOUND before the first write; list shows the caller's
  *     own My vault and the shared vaults, never another person's My vault;
  *   - a login's token shaped like server ciphertext (any enc:v<N>:) is
@@ -81,9 +85,10 @@ import {
   MY_VAULT_SLUG_REFUSAL,
   OWNER_IMMUTABLE_REFUSAL,
   forgedCiphertextMessage,
+  myVaultSlugOf,
 } from "../constants.js";
 import { decodeVaultRows } from "../list-index.js";
-import { personOf } from "../service.js";
+import { personOf } from "../row.js";
 
 const ADMIN = "fake|admin";
 const ANA = "fake|ana";
@@ -638,6 +643,33 @@ describe("reads and refusals at the edges", () => {
     expect(byRef.metadata?.id).toBe(id);
     expect(Object.keys(byRef.spec?.secrets ?? {})).toEqual(["API_KEY"]);
     expectNoValues(byRef);
+  });
+
+  it("getByReference answers another person's My vault by slug as one that does not exist; by id, and a shared vault by slug, it is PERMISSION_DENIED", async () => {
+    const mine = { org: ORG, vault: { case: "mine" as const, value: true } };
+    await commands(ANA).setSecrets({
+      vault: mine,
+      secrets: { PROBE: { value: "v", description: "" } },
+    });
+    const anas = await queries(ANA).getMine({ org: ORG });
+    const bySlug = (slug: string) =>
+      failureOf(queries(BEN).getByReference({ org: ORG, kind: ApiResourceKind.vault, slug }));
+    const existing = await bySlug(anas.metadata!.slug);
+    const missing = await bySlug(myVaultSlugOf("ida_nobody"));
+    expect(missing.code).toBe(Code.NotFound);
+    expect(existing.code).toBe(Code.NotFound);
+    expect(existing.rawMessage).toBe(
+      missing.rawMessage.replace(myVaultSlugOf("ida_nobody"), anas.metadata!.slug),
+    );
+    // A read by id authorizes before it loads, so it tells nothing a slug would.
+    const byId = await failureOf(queries(BEN).get({ value: anas.metadata!.id }));
+    expect(byId.code).toBe(Code.PermissionDenied);
+    const shared = await commands(ADMIN).create(sharedInput());
+    const sharedBySlug = await failureOf(
+      queries(ANA).getByReference({ org: ORG, kind: ApiResourceKind.vault, slug: shared.metadata!.slug }),
+    );
+    expect(sharedBySlug.code).toBe(Code.PermissionDenied);
+    expect(sharedBySlug.rawMessage).toBe("unauthorized to get vault");
   });
 
   it("removing from My vault before its first write is NOT_FOUND", async () => {

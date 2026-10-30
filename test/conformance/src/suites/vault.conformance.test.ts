@@ -17,8 +17,10 @@
 //     owner and entries; an external id is unique per organization and freed
 //     by the vault's delete;
 //   - on the enforcing lane, a person never reaches a teammate's My vault (an
-//     admin included), a member cannot create a shared vault, and the list
-//     never shows another person's My vault.
+//     admin included), and by slug cannot tell it from one that does not
+//     exist, whether read or named on a conversation or a channel; a member
+//     cannot create a shared vault, and the list never shows another
+//     person's My vault.
 import { Code, ConnectError } from "@connectrpc/connect";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
@@ -28,6 +30,8 @@ import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { uniqueName } from "../support/naming";
+import { makeAgent } from "../support/agents";
+import { makeWebChannel } from "../support/channels";
 import { makeSession } from "../support/sessions";
 import {
   VAULT_API_VERSION,
@@ -44,6 +48,9 @@ import { createTarget, enforcingLaneOf, type TargetProfile } from "../targets";
 
 // The redaction marker a client may never send as a value.
 const REDACTED_MARKER = "***REDACTED***";
+
+// A slug in My vault's reserved shape that no person's My vault holds.
+const NOBODYS_MY_VAULT_SLUG = "my-vault-000000000000000000000000";
 
 let target: TargetProfile;
 let clients: ConformanceClients;
@@ -538,5 +545,81 @@ describe("Vault conformance — a person's own vault, between people", () => {
     fixtures.defer(() => member.sessionCommand.delete({ value: session.metadata!.id }));
     const attachers = session.status?.vaultAttachers ?? {};
     expect(Object.keys(attachers), "the server records who attached the vault").toEqual([team.metadata!.id]);
+  });
+
+  it("[rpc:VaultQueryController.getByReference] another person's My vault by slug answers NOT_FOUND, as a My vault slug no vault holds", async (ctx) => {
+    const enforcing = await enforcingLaneOf(target);
+    if (enforcing.lane === undefined) return ctx.skip(enforcing.reason);
+    const lane = enforcing.lane;
+    const tenancy = await lane.provisionTenancy();
+    const member = await lane.provisionMember(tenancy);
+
+    const founders = await seedMine(tenancy.org, lane.clients);
+    const members = await seedMine(tenancy.org, member);
+    // A My vault's slug is computed from its person's id, which is not
+    // secret: a refusal that differs from a missing slug's would tell
+    // whether that person keeps a My vault here.
+    const nobodys = NOBODYS_MY_VAULT_SLUG;
+    for (const [as, who] of [
+      [member, "a member"],
+      [lane.clients, "the founder, who administers the organization"],
+    ] as const) {
+      const others = as === member ? founders : members;
+      await expectGrpcCode(
+        () => as.vaultQuery.getByReference({ org: tenancy.org, kind: ApiResourceKind.vault, slug: others.metadata!.slug }),
+        Code.NotFound,
+        `${who} reading another person's My vault by slug`,
+      );
+      await expectGrpcCode(
+        () => as.vaultQuery.getByReference({ org: tenancy.org, kind: ApiResourceKind.vault, slug: nobodys }),
+        Code.NotFound,
+        `${who} reading a My vault slug no vault holds`,
+      );
+    }
+  });
+
+  it("[rpc:SessionCommandController.create] a conversation naming another person's My vault is refused as one naming a slug no vault holds", async (ctx) => {
+    const enforcing = await enforcingLaneOf(target);
+    if (enforcing.lane === undefined) return ctx.skip(enforcing.reason);
+    const lane = enforcing.lane;
+    const tenancy = await lane.provisionTenancy();
+    const member = await lane.provisionMember(tenancy);
+    const founders = await seedMine(tenancy.org, lane.clients);
+
+    const naming = (slug: string) =>
+      expectGrpcCode(
+        () => member.sessionCommand.create(makeSession({ org: tenancy.org, name: uniqueName("probe"), vaults: [slug] })),
+        Code.FailedPrecondition,
+        `a member's conversation naming '${slug}'`,
+      );
+    const existing = await naming(founders.metadata!.slug);
+    const missing = await naming(NOBODYS_MY_VAULT_SLUG);
+    expect(existing.rawMessage, "the refusal does not tell the vault exists").toBe(
+      missing.rawMessage.replace(NOBODYS_MY_VAULT_SLUG, founders.metadata!.slug),
+    );
+  });
+
+  it("[rpc:ChannelCommandController.create] a channel naming another person's My vault is refused as one naming a slug no vault holds", async (ctx) => {
+    const enforcing = await enforcingLaneOf(target);
+    if (enforcing.lane === undefined) return ctx.skip(enforcing.reason);
+    const lane = enforcing.lane;
+    const tenancy = await lane.provisionTenancy();
+    const member = await lane.provisionMember(tenancy);
+    const members = await seedMine(tenancy.org, member);
+    const agent = await lane.clients.agentCommand.create(makeAgent({ org: tenancy.org, name: uniqueName("probe-agent") }));
+    fixtures.defer(() => lane.clients.agentCommand.delete({ value: agent.metadata!.id }));
+
+    // The founder administers the organization and still may not tell.
+    const naming = (slug: string) =>
+      expectGrpcCode(
+        () => lane.clients.channelCommand.create(makeWebChannel(tenancy.org, agent.metadata!.slug, { vaults: [slug] })),
+        Code.FailedPrecondition,
+        `the founder's channel naming '${slug}'`,
+      );
+    const existing = await naming(members.metadata!.slug);
+    const missing = await naming(NOBODYS_MY_VAULT_SLUG);
+    expect(existing.rawMessage, "the refusal does not tell the vault exists").toBe(
+      missing.rawMessage.replace(NOBODYS_MY_VAULT_SLUG, members.metadata!.slug),
+    );
   });
 });

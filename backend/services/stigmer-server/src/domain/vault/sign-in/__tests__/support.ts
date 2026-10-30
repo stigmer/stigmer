@@ -35,6 +35,7 @@ import type { LoginProviderCredentials } from "../../login-providers.js";
 import { newVaultService } from "../../service.js";
 import type { VaultService } from "../../service.js";
 import { admittingBinding } from "../../../../authorization/__tests__/unbound-credential-binding.js";
+import { newPermissiveSingleTeamAuthorizer } from "../../../../pipeline/steps/authorize.js";
 
 export const silentLogger = createLogger({ level: "error", pretty: false, write: () => {} });
 
@@ -112,7 +113,7 @@ export function openSignInRig(): SignInRig {
   const dir = mkdtempSync(path.join(tmpdir(), "vault-sign-in-"));
   const store = SqliteStore.open(path.join(dir, "test.db"));
   const secretService = SecretService.create(undefined);
-  const vaults = newVaultService({ credentialBinding: admittingBinding(), store, logger: silentLogger, secretService, authorizationLifecycle: undefined });
+  const vaults = newVaultService({ credentialBinding: admittingBinding(), store, logger: silentLogger, secretService, authorizationLifecycle: undefined, authorizer: newPermissiveSingleTeamAuthorizer() });
   const levers: Levers = {
     denyVaultEdit: false,
     denyVaultEditFor: undefined,

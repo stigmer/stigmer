@@ -41,6 +41,7 @@ import { authorizeResolvedResource } from "../../../pipeline/steps/authorize.js"
 import type { OrganizationAdmission } from "../../../pipeline/steps/refuse-bound-elsewhere.js";
 import { refuseBoundElsewhere } from "../../../pipeline/steps/refuse-bound-elsewhere.js";
 import type { PendingOAuthState } from "../../../store/interface.js";
+import { MY_VAULT_MEMBERS_ONLY } from "../constants.js";
 import type { VaultService } from "../service.js";
 import { finishSignIn } from "./complete.js";
 import { startSignIn } from "./start.js";
@@ -152,7 +153,7 @@ export async function authorizeSignInVault(
         resourceKind: ApiResourceKind.organization,
         resourceId: org,
       },
-      "unauthorized to keep a My vault in this organization: only its members do",
+      MY_VAULT_MEMBERS_ONLY,
     );
     return undefined;
   }

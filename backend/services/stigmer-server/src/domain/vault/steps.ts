@@ -62,16 +62,16 @@ import type {
 } from "../../store/interface.js";
 
 import {
+  EXTERNAL_ID_NAME_KIND,
   MY_VAULT_SLUG_REFUSAL,
   OWNER_IMMUTABLE_REFUSAL,
   SHARED_VAULT_OWNER_REFUSAL,
   isMyVaultSlug,
 } from "./constants.js";
+import { isMyVault } from "./row.js";
 import {
-  EXTERNAL_ID_NAME_KIND,
   externalIdHolder,
   externalIdNameKey,
-  isMyVault,
   releaseUnstoredClaim,
 } from "./service.js";
 

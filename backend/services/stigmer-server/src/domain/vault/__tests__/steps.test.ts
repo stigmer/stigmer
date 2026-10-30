@@ -50,9 +50,9 @@ import type {
   Store,
 } from "../../../store/interface.js";
 
-import { OWNER_IMMUTABLE_REFUSAL } from "../constants.js";
+import { EXTERNAL_ID_NAME_KIND, OWNER_IMMUTABLE_REFUSAL } from "../constants.js";
 import { releaseVaultNames } from "../delete.js";
-import { EXTERNAL_ID_NAME_KIND, externalIdNameKey, loadVault } from "../service.js";
+import { externalIdNameKey, loadVault } from "../service.js";
 import { openVaultRig, seedSharedVault } from "./support.js";
 import type { VaultRig } from "./support.js";
 import {

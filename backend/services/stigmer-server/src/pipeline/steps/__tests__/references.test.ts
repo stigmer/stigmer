@@ -21,7 +21,9 @@
  * loading nothing when the write introduces none; the resolver
  * (resolveReferences) turns a name into its id, fills the org and the
  * kind, refuses a kind or an id that disagrees, and leaves a name nothing
- * holds as written; and
+ * holds as written; another person's My vault, which the writer clause
+ * refuses, answered as a missing vault so a write never tells that it
+ * exists (stigmer#2036); and
  * the escalation door asks the floor alone — a dependency that has left is
  * not its question — and only when the level is being raised.
  */
@@ -208,6 +210,9 @@ function targetsOf(
         (row) =>
           row.kind === ref.kind && row.org === ref.org && row.slug === ref.slug,
       )?.slug;
+    },
+    existenceIsPrivate() {
+      return false;
     },
   };
 }
@@ -1204,6 +1209,21 @@ describe("the writer clause: a write may introduce only a vault its writer may u
         }),
       );
     }
+    await store.saveResource(
+      K.vault,
+      "vlt_mine_ana",
+      VaultSchema,
+      create(VaultSchema, {
+        metadata: {
+          id: "vlt_mine_ana",
+          name: "My vault",
+          slug: "my-vault-ana",
+          org: "acme",
+          visibility: V.visibility_private,
+        },
+        spec: { owner: { case: "person", value: "acc_ana" } },
+      }),
+    );
   });
 
   afterEach(async () => {
@@ -1232,7 +1252,8 @@ describe("the writer clause: a write may introduce only a vault its writer may u
           return { kind: "not-found" };
         }
         if (
-          check.resourceId === "vlt_ana_keys" &&
+          (check.resourceId === "vlt_ana_keys" ||
+            check.resourceId === "vlt_mine_ana") &&
           caller.identityId !== "acc_ana"
         ) {
           return { kind: "deny", reason: "may not use it" };
@@ -1298,6 +1319,23 @@ describe("the writer clause: a write may introduce only a vault its writer may u
         ref(K.vault, "acme", "ana-keys"),
       ),
     );
+  });
+
+  it("refuses another person's My vault as a missing vault, so a write never tells that it exists (stigmer#2036)", async () => {
+    const existing = await write({ writer: "acc_ben", names: ["my-vault-ana"] });
+    const missing = await write({ writer: "acc_ben", names: ["my-vault-nobody"] });
+    for (const [error, slug] of [
+      [existing, "my-vault-ana"],
+      [missing, "my-vault-nobody"],
+    ] as const) {
+      expect(error).toBeInstanceOf(ConnectError);
+      expect((error as ConnectError).code).toBe(Code.FailedPrecondition);
+      expect((error as ConnectError).rawMessage).toBe(
+        missingReferencesMessage(referenceTargetKind(K.vault)!, [{ slug, org: "acme" }]),
+      );
+    }
+    // Its own person passes the writer clause.
+    expect(await write({ writer: "acc_ana", names: ["my-vault-ana"] })).toBeUndefined();
   });
 
   it("admits a private vault its user attaches to an org-visible channel, and an org-visible one for any member", async () => {

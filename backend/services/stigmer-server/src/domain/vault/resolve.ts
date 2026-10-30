@@ -205,7 +205,7 @@ import type {
   SealedValue,
   VaultService,
 } from "./service.js";
-import { personOf } from "./service.js";
+import { personOf } from "./row.js";
 import { openSessionValues, repositoryTokenKey } from "./session-values.js";
 import type { SessionOwnValues } from "./session-values.js";
 

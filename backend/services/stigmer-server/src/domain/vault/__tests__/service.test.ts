@@ -13,6 +13,9 @@
  * next write to finish (also when nothing could be cleaned up), a racing
  * first write never reporting success into a vault its person cannot see
  * or that is then removed, and a vault its person can see used as it is;
+ * a first write whose person left the organization while it ran removing
+ * the vault it created and refusing as the callers' membership check
+ * does, and one that cannot tell keeping it and failing (stigmer#2038);
  * and a keyless server keeping the values in plaintext with one warning
  * per write.
  */
@@ -22,25 +25,32 @@ import { VaultConnectionSource } from "@stigmer/apis/ai/stigmer/agentic/vault/v1
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { Code, ConnectError } from "@connectrpc/connect";
 
+import { createLogger } from "../../../boot/logger.js";
 import { SecretService } from "../../../encryption/encryption.js";
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 
-import { MAX_VAULT_ENTRIES, MY_VAULT_NAME, myVaultSlugOf } from "../constants.js";
+import {
+  MAX_VAULT_ENTRIES,
+  MY_VAULT_MEMBERS_ONLY,
+  MY_VAULT_NAME,
+  myVaultSlugOf,
+} from "../constants.js";
 import { redactVault } from "../redact.js";
 import {
   externalIdNameKey,
   loadVault,
   myVaultNameKey,
   newVaultService,
-  personOf,
   releaseUnstoredClaim,
 } from "../service.js";
-import type { Authorizer } from "../../../extensions/authorizer.js";
+import { personOf } from "../row.js";
+import type { Authorizer, AuthzDecision } from "../../../extensions/authorizer.js";
 import type { ResourceAuthorizationLifecycle } from "../../../extensions/resource-authorization.js";
 import type { Store } from "../../../store/interface.js";
 import type { VaultRig } from "./support.js";
 import { openVaultRig, seedSharedVault, silentLogger } from "./support.js";
 import { UNBOUND_CREDENTIAL_BINDING } from "../../../authorization/__tests__/unbound-credential-binding.js";
+import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/authorize.js";
 
 const ORG = "acme";
 const ana = testCallerIdentity({ identityId: "ida_ana" });
@@ -267,6 +277,7 @@ function serviceOver(store: Store) {
     logger: silentLogger,
     secretService: rig.secrets,
     authorizationLifecycle: undefined,
+    authorizer: newPermissiveSingleTeamAuthorizer(),
   });
 }
 
@@ -448,10 +459,12 @@ describe("name claims that outlive their write", () => {
       onResourceDeleted: async () => {},
       onVisibilityChanged: async () => {},
     };
+    // The person is a member of the organization; a vault they see is one
+    // whose tuples landed.
     const authorizer: Authorizer = {
       authorize: (_caller, check) =>
         Promise.resolve(
-          tupled.has(check.resourceId)
+          check.resourceKind === ApiResourceKind.organization || tupled.has(check.resourceId)
             ? { kind: "allow" }
             : { kind: "deny", reason: "no tuples" },
         ),
@@ -560,6 +573,95 @@ describe("name claims that outlive their write", () => {
   });
 });
 
+describe("a person who leaves while their My vault is created", () => {
+  /**
+   * A member whose departure lands while their first write creates the
+   * vault: the creation tuples are written, then the membership is gone.
+   * `answer` is what the organization check says once they left.
+   */
+  function leavingRig(
+    answer: AuthzDecision,
+    over: { store?: Store; logger?: typeof silentLogger } = {},
+  ) {
+    let member = true;
+    const deleted: string[] = [];
+    const lifecycle: ResourceAuthorizationLifecycle = {
+      async onResourceCreated() {
+        member = false;
+      },
+      async onResourceDeleted(event) {
+        deleted.push(event.resourceId);
+      },
+      onVisibilityChanged: async () => {},
+    };
+    const authorizer: Authorizer = {
+      authorize: (_caller, check) =>
+        Promise.resolve(
+          check.resourceKind === ApiResourceKind.organization && !member
+            ? answer
+            : { kind: "allow" },
+        ),
+    };
+    const service = newVaultService({
+      credentialBinding: UNBOUND_CREDENTIAL_BINDING,
+      store: over.store ?? rig.store,
+      logger: over.logger ?? silentLogger,
+      secretService: rig.secrets,
+      authorizationLifecycle: lifecycle,
+      authorizer,
+    });
+    return { service, deleted };
+  }
+
+  it("removes the vault it created, its claim and its tuples, and refuses as the callers' membership check does", async () => {
+    const leaving = leavingRig({ kind: "deny", reason: "not a member" });
+    const failure = await leaving.service.ensureMine(ORG, ana).catch((e: unknown) => e);
+    expect(failure).toBeInstanceOf(ConnectError);
+    expect((failure as ConnectError).code).toBe(Code.PermissionDenied);
+    expect((failure as ConnectError).rawMessage).toBe(MY_VAULT_MEMBERS_ONLY);
+    expect(await rig.store.listResources(ApiResourceKind.vault)).toHaveLength(0);
+    expect(
+      await rig.store.resourceNames.resolve(myVaultNameKey(ORG, "ida_ana"), new Date().toISOString()),
+    ).toBeUndefined();
+    expect(leaving.deleted).toHaveLength(1);
+  });
+
+  it("removes the vault when the organization itself is gone, answering NOT_FOUND", async () => {
+    const leaving = leavingRig({ kind: "not-found" });
+    const failure = await leaving.service.ensureMine(ORG, ana).catch((e: unknown) => e);
+    expect(failure).toBeInstanceOf(ConnectError);
+    expect((failure as ConnectError).code).toBe(Code.NotFound);
+    expect(await rig.store.listResources(ApiResourceKind.vault)).toHaveLength(0);
+    expect(leaving.deleted).toHaveLength(1);
+  });
+
+  it("refuses as the callers do when the vault cannot be removed, and logs it", async () => {
+    const lines: string[] = [];
+    const leaving = leavingRig(
+      { kind: "deny", reason: "not a member" },
+      {
+        store: storeWith({ deleteResource: failing }),
+        logger: createLogger({ level: "error", pretty: false, write: (line) => lines.push(line) }),
+      },
+    );
+    const failure = await leaving.service.ensureMine(ORG, ana).catch((e: unknown) => e);
+    expect((failure as ConnectError).code).toBe(Code.PermissionDenied);
+    expect((failure as ConnectError).rawMessage).toBe(MY_VAULT_MEMBERS_ONLY);
+    expect(lines.some((line) => line.includes("My vault created for a person who left could not be removed"))).toBe(true);
+  });
+
+  it("keeps the vault and fails while it cannot tell whether its person is still a member", async () => {
+    const leaving = leavingRig({ kind: "unavailable", cause: new Error("authorizer down") });
+    const failure = await leaving.service.ensureMine(ORG, ana).catch((e: unknown) => e);
+    expect(failure).toBeInstanceOf(ConnectError);
+    expect((failure as ConnectError).code).toBe(Code.Internal);
+    const rows = await rig.store.listResources(ApiResourceKind.vault);
+    expect(rows).toHaveLength(1);
+    expect((await rig.vaults.findMine(ORG, "ida_ana"))?.metadata?.id).toBeDefined();
+    expect(leaving.deleted).toHaveLength(0);
+  });
+});
+
 describe("lookups and faults", () => {
   it("a reference without a slug or id, or without an organization, names no vault", async () => {
     expect(
@@ -607,6 +709,7 @@ describe("a keyless server", () => {
       } as typeof silentLogger,
       secretService: SecretService.create(undefined),
       authorizationLifecycle: undefined,
+      authorizer: newPermissiveSingleTeamAuthorizer(),
     });
     const shared = await seedSharedVault(rig.store, ORG, "team");
     const id = shared.metadata!.id;
@@ -652,6 +755,7 @@ describe("a keyless server", () => {
       logger: { ...silentLogger, warn: (message: string) => warnings.push(message) } as typeof silentLogger,
       secretService: rig.secrets,
       authorizationLifecycle: undefined,
+      authorizer: newPermissiveSingleTeamAuthorizer(),
     });
     const shared = await seedSharedVault(rig.store, ORG, "team");
     await sealing.setSecrets(shared.metadata!.id, { API_KEY: { value: "sk", description: "" } }, ana);

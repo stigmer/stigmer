@@ -31,7 +31,9 @@ service VaultQueryController {
   //
   // @internal
   // Custom authorization in the handler: resolves the reference, then asks
-  // can_view on the vault.
+  // can_view on the vault. A My vault the caller may not view, requested by
+  // slug, answers NOT_FOUND, as one that does not exist does: its slug is
+  // computed from its person's id.
   rpc getByReference(ai.stigmer.commons.apiresource.ApiResourceReference) returns (Vault) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }

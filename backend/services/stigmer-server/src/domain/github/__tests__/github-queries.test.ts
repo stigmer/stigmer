@@ -64,6 +64,7 @@ beforeEach(() => {
     logger: silentLogger,
     secretService: SecretService.create(undefined),
     authorizationLifecycle: undefined,
+    authorizer: newPermissiveSingleTeamAuthorizer(),
   });
   calls = [];
   routes = new Map();

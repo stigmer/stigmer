@@ -17,6 +17,11 @@
  *     save the login into a vault they may change (sign-in/person.ts);
  *     createConnectLink makes a one-time page for someone without an
  *     account, served by the public ConnectLinkController (connect-link.ts);
+ *   - getByReference loads, then asks can_view on the vault it found; a
+ *     My vault the caller may not view, requested by slug, answers
+ *     NOT_FOUND as a missing slug does, because a My vault's slug is
+ *     computed from its person's id (stigmer#2036). Every other denial,
+ *     a My vault requested by id included, stays PERMISSION_DENIED;
  *   - getMine finds the caller's own My vault by their identity, so the
  *     request names no target; getByExternalId asks can_view on the
  *     organization first, then resolves the integrator's id through its
@@ -73,6 +78,7 @@ import type { CallerIdentity } from "../../extensions/identity.js";
 import type { ListReadScope } from "../../extensions/list-read-scope.js";
 import { restrictListByReadScope } from "../../extensions/list-read-scope.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
+import { getKindName } from "../../pipeline/apiresource-meta.js";
 import {
   failedPreconditionError,
   invalidArgumentError,
@@ -151,6 +157,7 @@ import {
 } from "./constants.js";
 import { renameResource, storeRenameRows } from "../../pipeline/steps/rename.js";
 import {
+  MY_VAULT_MEMBERS_ONLY,
   forgedCiphertextMessage,
   markerRejectionMessage,
   reservedSecretNameRefusal,
@@ -158,8 +165,8 @@ import {
 import { vaultDeleteSteps } from "./delete.js";
 import { decodeVaultRows, vaultListIndex } from "./list-index.js";
 import { redactVault } from "./redact.js";
+import { isMyVault, personOf } from "./row.js";
 import type { VaultService } from "./service.js";
-import { isMyVault, personOf } from "./service.js";
 import { fetchExecutionValues } from "./values.js";
 import type { ExecutionValuesDeps } from "./values.js";
 import {
@@ -489,8 +496,6 @@ function newSetVaultVisibilityStep(): PipelineStep<UpdateVisibilityDesc> {
 // ---------------------------------------------------------------------------
 
 const EDIT_DENIED = "unauthorized to change this vault's entries";
-const MINE_DENIED =
-  "unauthorized to keep a My vault in this organization: only its members do";
 
 /**
  * The vault an entry write changes. `mine` asks the organization's
@@ -515,7 +520,7 @@ async function resolveWriteTarget(
         resourceKind: ApiResourceKind.organization,
         resourceId: org,
       },
-      MINE_DENIED,
+      MY_VAULT_MEMBERS_ONLY,
     );
     return createMine
       ? deps.vaults.ensureMine(org, caller)
@@ -713,21 +718,38 @@ async function getByReference(
     callerIdentityOf(ctx),
     kindOf(ctx),
   );
-  await newPipeline<typeof VaultQueryController.method.getByReference.input>(
-    "vault-get-by-reference",
-    deps.logger,
-  )
-    .addStep(newAuthorizeStep(VaultQueryController.method.getByReference, deps.authorizer))
-    .addStep(newValidateProtoStep())
-    .addStep(newLoadByReferenceStep(deps.store, VaultSchema))
-    .addStep(
-      newAuthorizeResolvedTargetStep(
-        deps.authorizer,
-        loadedTargetAsMethod(VaultQueryController.method.get),
-      ),
+  try {
+    await newPipeline<typeof VaultQueryController.method.getByReference.input>(
+      "vault-get-by-reference",
+      deps.logger,
     )
-    .build()
-    .execute(reqCtx);
+      .addStep(newAuthorizeStep(VaultQueryController.method.getByReference, deps.authorizer))
+      .addStep(newValidateProtoStep())
+      .addStep(newLoadByReferenceStep(deps.store, VaultSchema))
+      .addStep(
+        newAuthorizeResolvedTargetStep(
+          deps.authorizer,
+          loadedTargetAsMethod(VaultQueryController.method.get),
+        ),
+      )
+      .build()
+      .execute(reqCtx);
+  } catch (error) {
+    // A My vault's slug is computed from its person's id, so a denial
+    // would tell anyone who knows the id that the vault exists: it answers
+    // as a missing slug does (stigmer#2036). Every other denial keeps the
+    // cross-kind contract (reference-read-authorization conformance).
+    const loaded = reqCtx.get(TARGET_RESOURCE_KEY) as Vault | undefined;
+    if (
+      error instanceof ConnectError &&
+      error.code === Code.PermissionDenied &&
+      ref.id === "" &&
+      isMyVault(loaded)
+    ) {
+      throw notFoundError(getKindName(ApiResourceKind.vault), ref.slug);
+    }
+    throw error;
+  }
   return respond(reqCtx.get(TARGET_RESOURCE_KEY) as Vault);
 }
 

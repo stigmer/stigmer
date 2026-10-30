@@ -135,6 +135,7 @@ import { newVaultService } from "../service.js";
 import type { VaultRig } from "./support.js";
 import { openVaultRig, seedSharedVault, silentLogger } from "./support.js";
 import { UNBOUND_CREDENTIAL_BINDING } from "../../../authorization/__tests__/unbound-credential-binding.js";
+import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/authorize.js";
 
 const ORG = "acme";
 const ANA = "ida_ana";
@@ -2638,6 +2639,7 @@ describe("a stored value the server cannot open", () => {
         logger: silentLogger,
         secretService: secrets,
         authorizationLifecycle: undefined,
+        authorizer: newPermissiveSingleTeamAuthorizer(),
       }),
       accounts: { findById: async () => undefined },
       freshener,
@@ -2693,6 +2695,7 @@ describe("a stored value the server cannot open", () => {
       logger: silentLogger,
       secretService: cannot.secrets,
       authorizationLifecycle: undefined,
+      authorizer: newPermissiveSingleTeamAuthorizer(),
     });
     const mine = await vaults.ensureMine(ORG, ana);
     const id = mine.metadata!.id;
@@ -2760,6 +2763,7 @@ describe("a stored value the server cannot open", () => {
       logger: silentLogger,
       secretService: cannot.secrets,
       authorizationLifecycle: undefined,
+      authorizer: newPermissiveSingleTeamAuthorizer(),
     });
     const id = (await vaults.ensureMine(ORG, ana)).metadata!.id;
     await vaults.setConnection(

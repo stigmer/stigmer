@@ -7,6 +7,9 @@
  * who attached each vault is recorded for the vaults a write introduces
  * and kept for the ones it keeps, a removed vault's entry dropped, so an
  * editor's unrelated edit never re-attributes someone else's attachment;
+ * a kept reference to a vault deleted and created again under the same
+ * slug holding the old id, so the new vault is neither attached nor
+ * attributed until a write names it again (stigmer#2038);
  * and a schedule whose agent changes re-judges every vault it keeps
  * against the updater's permission to use it; and a schedule that keeps
  * its creator's My vault is locked to that person: anyone else's change to
@@ -26,6 +29,7 @@ import { RoutineStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1
 import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/status_pb";
+import { VaultSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import { OrganizationSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
@@ -430,6 +434,42 @@ describe("faults and deleted vaults", () => {
       { writer: "ida_ben", existing: stored },
     );
     expect(kept.status?.vaultAttachers).toEqual({});
+  });
+
+  it("a kept reference to a vault deleted and created again under its slug loads nothing, and naming the slug again records the writer (stigmer#2038)", async () => {
+    const stored = await run(
+      SessionSchema,
+      ApiResourceKind.session,
+      session("team-keys"),
+      SESSION,
+      { writer: "ida_admin" },
+    );
+    const again = clone(VaultSchema, (await rig.vaults.findById(teamId))!);
+    await rig.store.deleteResource(ApiResourceKind.vault, teamId);
+    again.metadata!.id = "vlt_acme_team_keys_again";
+    await rig.store.saveResource(ApiResourceKind.vault, again.metadata!.id, VaultSchema, again);
+
+    // The stored reference holds the deleted vault's id, never its slug,
+    // so the new vault is not attached and inherits no attacher.
+    const kept = await run(
+      SessionSchema,
+      ApiResourceKind.session,
+      clone(SessionSchema, stored),
+      SESSION,
+      { writer: "ida_ben", existing: stored },
+    );
+    expect(kept.spec?.vaults.map((held) => held.id)).toEqual([teamId]);
+    expect(kept.status?.vaultAttachers).toEqual({});
+
+    const renamed = await run(
+      SessionSchema,
+      ApiResourceKind.session,
+      session("team-keys"),
+      SESSION,
+      { writer: "ida_ben", existing: stored },
+    );
+    expect(renamed.spec?.vaults.map((held) => held.id)).toEqual([again.metadata!.id]);
+    expect(renamed.status?.vaultAttachers).toEqual({ [again.metadata!.id]: "ida_ben" });
   });
 
   it("answers INTERNAL when the vaults cannot be read", async () => {
