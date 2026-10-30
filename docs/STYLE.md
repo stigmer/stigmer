@@ -110,7 +110,7 @@ and embed it with `<Screen>` (see [Screen](#screen)). When the product's look
 changes, the suite fails until the picture is drawn again, and the redrawn
 picture reaches the site in the same pull request. Never add a screenshot
 captured by hand, not even as a placeholder: it goes stale with no signal. Pages
-whose medium is `animated-tour` or `interactive` stay prose, code and diagrams
+whose medium is `animated-tour` or `interactive` stay prose, code, and diagrams
 until those media are built.
 
 Generated pages (the `cli/commands/`, `sdk/react/`, `sdk/resources/`,
@@ -243,9 +243,9 @@ Structured property tables for API reference documentation.
 
 A screen of the product, drawn by the visual suite. `name` is an entry in
 `test/visual/src/shown.ts`; `alt` describes what the screen shows. The picture
-is sized from the list, served sharp on a retina screen, and opens larger on a
-click. In the markdown exports the tag becomes an image whose label is the alt
-text. The build fails on a name the list does not hold or on blank alt text.
+is sized from the list, served sharp on a retina screen, and opens larger when
+selected. In the markdown exports the tag becomes an image whose label is the
+alt text. The build fails on a name the list does not hold or on blank alt text.
 
 ```mdx
 <Screen
