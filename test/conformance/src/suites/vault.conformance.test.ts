@@ -488,6 +488,65 @@ describe("Vault conformance — a person's own vault, between people", () => {
     expect(foundersList.entries.map((vault) => vault.metadata?.id)).toEqual([founders.metadata!.id]);
   });
 
+  it("[rpc:VaultCommandController.create] a member cannot create a shared vault; an admin can, and org visibility lets the member use it", async (ctx) => {
+    const enforcing = await enforcingLaneOf(target);
+    if (enforcing.lane === undefined) return ctx.skip(enforcing.reason);
+    const lane = enforcing.lane;
+    const tenancy = await lane.provisionTenancy();
+    const member = await lane.provisionMember(tenancy);
+
+    await expectGrpcCode(
+      () => member.vaultCommand.create(makeSharedVault({ org: tenancy.org, name: uniqueName("team") })),
+      Code.PermissionDenied,
+      "a member creating a shared vault",
+    );
+
+    const team = await createShared(tenancy.org, uniqueName("team"), {}, lane.clients);
+    await expectRefused(
+      () => member.vaultQuery.get({ value: team.metadata!.id }),
+      [Code.PermissionDenied, Code.NotFound],
+      "a member reading a private shared vault",
+    );
+    await lane.clients.vaultCommand.updateVisibility({
+      resourceId: team.metadata!.id,
+      visibility: ApiResourceVisibility.visibility_org,
+    });
+    const seen = await member.vaultQuery.get({ value: team.metadata!.id });
+    expect(seen.metadata?.id).toBe(team.metadata?.id);
+    // Using is not editing: the member may not change the team's entries.
+    await expectRefused(
+      () => member.vaultCommand.setSecrets(setSecretsInput(vaultTarget(tenancy.org, team.metadata!.id), { X: "y" })),
+      [Code.PermissionDenied],
+      "a member writing into a shared vault",
+    );
+  });
+
+  it("[rpc:SessionCommandController.create] a member's conversation cannot list a shared vault they may not use", async (ctx) => {
+    const enforcing = await enforcingLaneOf(target);
+    if (enforcing.lane === undefined) return ctx.skip(enforcing.reason);
+    const lane = enforcing.lane;
+    const tenancy = await lane.provisionTenancy();
+    const member = await lane.provisionMember(tenancy);
+    const team = await createShared(tenancy.org, uniqueName("private-team"), {}, lane.clients);
+
+    const input = makeSession({ org: tenancy.org, name: uniqueName("listing-session"), vaults: [team.metadata!.slug] });
+    await expectGrpcCode(
+      () => member.sessionCommand.create(input),
+      Code.PermissionDenied,
+      "a member listing a private shared vault on their conversation",
+    );
+
+    // Once the organization may use it, the member may list it.
+    await lane.clients.vaultCommand.updateVisibility({
+      resourceId: team.metadata!.id,
+      visibility: ApiResourceVisibility.visibility_org,
+    });
+    const session = await member.sessionCommand.create(input);
+    fixtures.defer(() => member.sessionCommand.delete({ value: session.metadata!.id }));
+    const attachers = session.status?.vaultAttachers ?? {};
+    expect(Object.keys(attachers), "the server records who attached the vault").toEqual([team.metadata!.id]);
+  });
+
   it("[rpc:VaultQueryController.getByReference] another person's My vault by slug answers NOT_FOUND, as a My vault slug no vault holds", async (ctx) => {
     const enforcing = await enforcingLaneOf(target);
     if (enforcing.lane === undefined) return ctx.skip(enforcing.reason);
@@ -562,64 +621,5 @@ describe("Vault conformance — a person's own vault, between people", () => {
     expect(existing.rawMessage, "the refusal does not tell the vault exists").toBe(
       missing.rawMessage.replace(NOBODYS_MY_VAULT_SLUG, members.metadata!.slug),
     );
-  });
-
-  it("[rpc:VaultCommandController.create] a member cannot create a shared vault; an admin can, and org visibility lets the member use it", async (ctx) => {
-    const enforcing = await enforcingLaneOf(target);
-    if (enforcing.lane === undefined) return ctx.skip(enforcing.reason);
-    const lane = enforcing.lane;
-    const tenancy = await lane.provisionTenancy();
-    const member = await lane.provisionMember(tenancy);
-
-    await expectGrpcCode(
-      () => member.vaultCommand.create(makeSharedVault({ org: tenancy.org, name: uniqueName("team") })),
-      Code.PermissionDenied,
-      "a member creating a shared vault",
-    );
-
-    const team = await createShared(tenancy.org, uniqueName("team"), {}, lane.clients);
-    await expectRefused(
-      () => member.vaultQuery.get({ value: team.metadata!.id }),
-      [Code.PermissionDenied, Code.NotFound],
-      "a member reading a private shared vault",
-    );
-    await lane.clients.vaultCommand.updateVisibility({
-      resourceId: team.metadata!.id,
-      visibility: ApiResourceVisibility.visibility_org,
-    });
-    const seen = await member.vaultQuery.get({ value: team.metadata!.id });
-    expect(seen.metadata?.id).toBe(team.metadata?.id);
-    // Using is not editing: the member may not change the team's entries.
-    await expectRefused(
-      () => member.vaultCommand.setSecrets(setSecretsInput(vaultTarget(tenancy.org, team.metadata!.id), { X: "y" })),
-      [Code.PermissionDenied],
-      "a member writing into a shared vault",
-    );
-  });
-
-  it("[rpc:SessionCommandController.create] a member's conversation cannot list a shared vault they may not use", async (ctx) => {
-    const enforcing = await enforcingLaneOf(target);
-    if (enforcing.lane === undefined) return ctx.skip(enforcing.reason);
-    const lane = enforcing.lane;
-    const tenancy = await lane.provisionTenancy();
-    const member = await lane.provisionMember(tenancy);
-    const team = await createShared(tenancy.org, uniqueName("private-team"), {}, lane.clients);
-
-    const input = makeSession({ org: tenancy.org, name: uniqueName("listing-session"), vaults: [team.metadata!.slug] });
-    await expectGrpcCode(
-      () => member.sessionCommand.create(input),
-      Code.PermissionDenied,
-      "a member listing a private shared vault on their conversation",
-    );
-
-    // Once the organization may use it, the member may list it.
-    await lane.clients.vaultCommand.updateVisibility({
-      resourceId: team.metadata!.id,
-      visibility: ApiResourceVisibility.visibility_org,
-    });
-    const session = await member.sessionCommand.create(input);
-    fixtures.defer(() => member.sessionCommand.delete({ value: session.metadata!.id }));
-    const attachers = session.status?.vaultAttachers ?? {};
-    expect(Object.keys(attachers), "the server records who attached the vault").toEqual([team.metadata!.id]);
   });
 });
