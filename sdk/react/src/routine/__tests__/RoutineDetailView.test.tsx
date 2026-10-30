@@ -725,12 +725,18 @@ describe("RoutineDetailView", () => {
     const onRenamed = vi.fn();
     renderView(client, { editable: true, onRenamed });
 
+    // The field resets its value when the routine's slug arrives, so the
+    // edit waits for the routine, and the click for Rename to be enabled:
+    // on a loaded runner either can land first (stigmer#2298).
+    await screen.findByRole("heading", { name: "daily-fee-reminders" });
     const field = await screen.findByLabelText("Slug");
     expect(client.grant.checkMyPermission).toHaveBeenCalledWith(
       expect.objectContaining({ relation: "can_delete" }),
     );
     fireEvent.change(field, { target: { value: "weekly-fee-reminders" } });
-    fireEvent.click(screen.getByRole("button", { name: "Rename" }));
+    const rename = screen.getByRole("button", { name: "Rename" }) as HTMLButtonElement;
+    await waitFor(() => expect(rename.disabled).toBe(false));
+    fireEvent.click(rename);
 
     await waitFor(() => expect(onRenamed).toHaveBeenCalledOnce());
     expect(client.routine.rename.mock.calls[0]![0]).toMatchObject({
