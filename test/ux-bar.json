@@ -96,31 +96,19 @@
     },
     {
       "id": "INK-03",
-      "promise": "The published stigmer-ink starts with Node alone.",
-      "pending": [
-        "stigmer#2617"
-      ]
+      "promise": "The published stigmer-ink starts with Node alone."
     },
     {
       "id": "INK-04",
-      "promise": "Off a terminal the session view renders read-only and never crashes.",
-      "pending": [
-        "stigmer#2618"
-      ]
+      "promise": "Off a terminal the session view renders read-only and never crashes."
     },
     {
       "id": "INK-05",
-      "promise": "A load failure says what was tried and what to do.",
-      "pending": [
-        "stigmer#2618"
-      ]
+      "promise": "A load failure says what was tried and what to do."
     },
     {
       "id": "INK-06",
-      "promise": "A host CLI starts a run and gets control back when it completes.",
-      "pending": [
-        "stigmer#2617"
-      ]
+      "promise": "A host CLI starts a run and gets control back when it completes."
     },
     {
       "id": "INK-07",
@@ -174,6 +162,10 @@
     {
       "id": "INK-14",
       "promise": "The terminal kit installs without any browser package."
+    },
+    {
+      "id": "INK-15",
+      "promise": "A host CLI passes its own colours; by default only status colours carry a hue."
     },
     {
       "id": "LIB-01",

@@ -1,2 +1,4 @@
- Failed to load session
- [unavailable] connect ECONNREFUSED 127.0.0.1:7234
+ Could not load the session from http://localhost:7234.
+ Unable to connect to the server.
+ Is the server running? Start one with `stigmer up`, or pass --base-url.
+ Details: [unavailable] connect ECONNREFUSED 127.0.0.1:7234

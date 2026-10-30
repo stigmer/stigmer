@@ -2,6 +2,7 @@ import React from "react";
 import { Box, Text } from "ink";
 import Spinner from "ink-spinner";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { useRoles, type InkRole } from "../theme.js";
 
 /** Props for {@link RunProgress}. */
 export interface RunProgressProps {
@@ -11,7 +12,7 @@ export interface RunProgressProps {
 
 interface PhaseDisplay {
   readonly label: string;
-  readonly color?: string;
+  readonly role?: InkRole;
   readonly showSpinner: boolean;
 }
 
@@ -19,15 +20,15 @@ const PHASE_DISPLAY: ReadonlyMap<RunPhase, PhaseDisplay> = new Map([
   [RunPhase.RUN_PENDING, { label: "Pending", showSpinner: true }],
   [
     RunPhase.RUN_IN_PROGRESS,
-    { label: "Running", color: "yellow", showSpinner: true },
+    { label: "Running", role: "warning", showSpinner: true },
   ],
   [
     RunPhase.RUN_COMPLETED,
-    { label: "Completed", color: "green", showSpinner: false },
+    { label: "Completed", role: "success", showSpinner: false },
   ],
   [
     RunPhase.RUN_FAILED,
-    { label: "Failed", color: "red", showSpinner: false },
+    { label: "Failed", role: "danger", showSpinner: false },
   ],
   [
     RunPhase.RUN_CANCELLED,
@@ -35,11 +36,11 @@ const PHASE_DISPLAY: ReadonlyMap<RunPhase, PhaseDisplay> = new Map([
   ],
   [
     RunPhase.RUN_TERMINATED,
-    { label: "Terminated", color: "red", showSpinner: false },
+    { label: "Terminated", role: "danger", showSpinner: false },
   ],
   [
     RunPhase.RUN_WAITING_FOR_APPROVAL,
-    { label: "Waiting for approval", color: "yellow", showSpinner: false },
+    { label: "Waiting for approval", role: "warning", showSpinner: false },
   ],
   [RunPhase.RUN_PAUSED, { label: "Paused", showSpinner: false }],
 ]);
@@ -53,21 +54,22 @@ const PHASE_DISPLAY: ReadonlyMap<RunPhase, PhaseDisplay> = new Map([
  * Renders nothing for unspecified phases.
  */
 export function RunProgress({ phase }: RunProgressProps) {
+  const role = useRoles();
   const display = PHASE_DISPLAY.get(phase);
   if (!display) return null;
 
   return (
     <Box gap={1} paddingLeft={1}>
       {display.showSpinner ? (
-        <Text color={display.color ?? "cyan"}>
+        <Text {...role[display.role ?? "accent"]}>
           <Spinner type="dots" />
         </Text>
       ) : (
-        <Text color={display.color}>
+        <Text {...(display.role ? role[display.role] : {})}>
           {phase === RunPhase.RUN_COMPLETED ? "✓" : "●"}
         </Text>
       )}
-      <Text color={display.color} dimColor={!display.color}>
+      <Text {...(display.role ? role[display.role] : role.muted)}>
         {display.label}
       </Text>
     </Box>

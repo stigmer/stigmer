@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Box, Text, useStdin } from "ink";
 import TextInput from "ink-text-input";
+import { useRoles } from "../theme.js";
 
 /** Props for {@link FollowUpInput}. */
 export interface FollowUpInputProps {
@@ -29,6 +30,7 @@ export function FollowUpInput({
   placeholder = "Reply...",
   mode,
 }: FollowUpInputProps) {
+  const role = useRoles();
   const [value, setValue] = useState("");
   const { isRawModeSupported } = useStdin();
   const isDisabled = disabled || isSubmitting || !isRawModeSupported;
@@ -53,7 +55,7 @@ export function FollowUpInput({
   return (
     <Box paddingLeft={1} paddingTop={1} flexDirection="column">
       <Box gap={1}>
-        <Text color="cyan" bold>
+        <Text {...role.accent} bold>
           ❯
         </Text>
         <TextInput

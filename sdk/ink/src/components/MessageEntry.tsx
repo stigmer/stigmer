@@ -5,6 +5,7 @@ import React, { useMemo } from "react";
 import { Box, Text } from "ink";
 import type { ThreadMessage } from "@stigmer/react-core";
 import { renderMarkdown } from "../markdown.js";
+import { useRoles } from "../theme.js";
 
 /** Props for {@link MessageEntry}. */
 export interface MessageEntryProps {
@@ -35,9 +36,10 @@ export function MessageEntry({ message }: MessageEntryProps) {
 }
 
 function HumanMessage({ content }: { content: string }) {
+  const role = useRoles();
   return (
     <Box flexDirection="column" paddingLeft={1}>
-      <Text bold color="cyan">
+      <Text bold {...role.accent}>
         You
       </Text>
       <Text>{content}</Text>
@@ -52,6 +54,7 @@ function AiMessage({
   content: string;
   isStreaming: boolean;
 }) {
+  const role = useRoles();
   const rendered = useMemo(() => {
     if (!content.trim()) return "";
     return renderMarkdown(content);
@@ -59,7 +62,7 @@ function AiMessage({
 
   return (
     <Box flexDirection="column" paddingLeft={1}>
-      <Text bold color="green">
+      <Text bold {...role.success}>
         Agent
       </Text>
       {rendered ? <Text>{rendered}</Text> : null}

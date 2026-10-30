@@ -17,7 +17,7 @@
 import { homedir } from "node:os";
 import type { Command } from "commander";
 import { CliExitError } from "../errors/cli-exit-error.js";
-import { ExitCode } from "../errors/exit-codes.js";
+import { ExitCode } from "@stigmer/client/exit-codes";
 import { CommandResult, type OutputFlags, renderResult } from "../output/index.js";
 import { SERVER_PORT } from "../local/constants.js";
 import type { UpReport } from "../local/daemon/launch.js";

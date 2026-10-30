@@ -940,8 +940,8 @@ pages:
     fate: keep
     diataxis: how-to
     teaches:
-      Render a session in a terminal with SessionApp, or compose
-      InkStigmerProvider with individual components.
+      Run a turn in the terminal with runInTerminal and get control back, give
+      the kit your colours, or compose InkStigmerProvider with components.
     medium: still
     why:
       A terminal UI documented with no visual at all; one frame of SessionApp
@@ -951,8 +951,8 @@ pages:
     fate: keep
     diataxis: how-to
     teaches:
-      Spawn the @stigmer/ink-ui binary from a non-JavaScript CLI, pass through
-      terminal streams, and read final state.
+      Run an agent turn from a Go, Python or Rust CLI with the stigmer-ink
+      binary, hand it the terminal, and branch on its exit code.
     medium: none
 
   sdk/theme/theming:
@@ -985,6 +985,10 @@ cohorts:
     medium: none
   sdk/ink/:
     generator: gen-ink-sdk-docs
+    diataxis: reference
+    medium: none
+  sdk/react-core/:
+    generator: gen-react-core-docs
     diataxis: reference
     medium: none
   sdk/theme/:

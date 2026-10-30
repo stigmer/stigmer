@@ -38,6 +38,10 @@ export const HARNESS_LINES = Object.freeze([
   { line: "npm install @stigmer/react-sdk @stigmer/client @stigmer/apis @bufbuild/protobuf", performs: "react-sdk" },
   { line: "npx tsx server.ts", performs: "backend" },
   { line: "VITE_STIGMER_ORG=$STIGMER_ORG npm run dev", performs: "dev-server" },
+  // The terminal kit: its README and docs/sdk/ink/cli-integration.mdx, run by
+  // test/install/smoke-terminal-kit.mjs with the kit this build packs.
+  { line: "npm install @stigmer/ink-ui @stigmer/react-core @stigmer/client @stigmer/apis @bufbuild/protobuf ink react", performs: "ink-kit" },
+  { line: "npm install --global @stigmer/ink-ui", performs: "ink-bin" },
 ]);
 
 /** The tab the smoke never runs: the hosted target, which needs an account. */

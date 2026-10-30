@@ -37,7 +37,7 @@ import {
 import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 import { iamRoleDisplayName, type Stigmer } from "@stigmer/client";
 import { CliExitError } from "../errors/cli-exit-error.js";
-import { ExitCode } from "../errors/exit-codes.js";
+import { ExitCode } from "@stigmer/client/exit-codes";
 import { UsageError } from "../errors/usage-error.js";
 import { CommandResult, protoToJsonValue } from "../output/index.js";
 import type { DeletePlan } from "./delete.js";

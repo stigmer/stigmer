@@ -7,6 +7,7 @@ import { Box, Text, useInput } from "ink";
 import { isTodoTool, type Thread, type ToolUse } from "@stigmer/client";
 import { MessageEntry } from "./MessageEntry.js";
 import { ToolCallGroup } from "./ToolCallGroup.js";
+import { useRoles, type InkRole } from "../theme.js";
 
 /** Props for {@link SubagentBlock}. */
 export interface SubagentBlockProps {
@@ -24,12 +25,12 @@ export interface SubagentBlockProps {
   readonly isFocused?: boolean;
 }
 
-const STATUS_GLYPHS: Record<Thread["state"], { glyph: string; color: string }> = {
-  running: { glyph: "⟳", color: "cyan" },
-  completed: { glyph: "✓", color: "green" },
-  failed: { glyph: "✗", color: "red" },
+const STATUS_GLYPHS: Record<Thread["state"], { glyph: string; role: InkRole }> = {
+  running: { glyph: "⟳", role: "accent" },
+  completed: { glyph: "✓", role: "success" },
+  failed: { glyph: "✗", role: "danger" },
   // Its turn ended before the subagent finished.
-  stopped: { glyph: "⊘", color: "yellow" },
+  stopped: { glyph: "⊘", role: "warning" },
 };
 
 function formatDuration(startedAt: string, completedAt: string): string | null {
@@ -69,15 +70,16 @@ export function SubagentBlock({
     { isActive: isFocused },
   );
 
-  const { glyph, color } = STATUS_GLYPHS[thread.state];
+  const role = useRoles();
+  const { glyph, role: tone } = STATUS_GLYPHS[thread.state];
   const label = subject || thread.agentName || "Subagent";
   const duration = formatDuration(startedAt, completedAt);
 
   return (
     <Box flexDirection="column" paddingLeft={2}>
       <Box gap={1}>
-        <Text color={color}>{glyph}</Text>
-        <Text bold color="magenta">↳</Text>
+        <Text {...role[tone]}>{glyph}</Text>
+        <Text bold {...role.accent}>↳</Text>
         <Text bold>{label}</Text>
         {duration && <Text dimColor>({duration})</Text>}
         <Text dimColor>{expanded ? "▾" : "▸"}</Text>
@@ -99,7 +101,7 @@ export function SubagentBlock({
 
           {thread.state === "failed" && thread.reply && (
             <Box marginTop={1}>
-              <Text color="red">Error: {thread.reply}</Text>
+              <Text {...role.danger}>Error: {thread.reply}</Text>
             </Box>
           )}
 

@@ -131,6 +131,15 @@
       ],
       "concurrency": 4
     },
+    "client-exit-codes": {
+      "title": "the exit code a turn's outcome or an error gives a command-line tool",
+      "package": "sdk/typescript",
+      "mutate": [
+        "src/exit-codes.ts",
+        "src/exit-code-table.ts"
+      ],
+      "concurrency": 4
+    },
     "client-token-cache": {
       "title": "a signed-in embed's token, fetched once until it nears expiry",
       "package": "sdk/typescript",
@@ -167,11 +176,15 @@
       "concurrency": 4
     },
     "ink-logic": {
-      "title": "the terminal kit's file review and markdown",
+      "title": "the terminal kit's file review, markdown, run API, failure wording, terminal mode and command line",
       "package": "sdk/ink",
       "mutate": [
         "src/file-review.ts",
         "src/markdown.ts",
+        "src/run/run-in-terminal.tsx",
+        "src/errors.ts",
+        "src/terminal-mode.ts",
+        "src/cli/args.ts",
         "!src/**/__tests__/**",
         "!src/**/*.test.ts"
       ],

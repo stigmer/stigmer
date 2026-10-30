@@ -18,7 +18,7 @@
 import { Code, ConnectError } from "@connectrpc/connect";
 import { getErrorReason, StigmerError } from "@stigmer/client";
 import { CliExitError } from "./cli-exit-error.js";
-import { ExitCode } from "./exit-codes.js";
+import { ExitCode } from "@stigmer/client/exit-codes";
 
 /**
  * Structured result of classifying a raw error. `classify` produces these and

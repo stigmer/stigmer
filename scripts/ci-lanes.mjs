@@ -129,11 +129,12 @@ export const LANES = {
       "backend/libs/ts/zip-structure/**",
       // The Temporal CLI the lane installs through .github/actions/temporal-cli:
       // the installer and the CLI source that holds its pin, and the download
-      // library it imports by package name (not traced, so kept by hand).
+      // library and the exit-code table it imports by package name (not
+      // traced, so kept by hand).
       "backend/libs/ts/artifact-fetch/**",
+      "sdk/typescript/src/exit-code-table.ts",
       "client-apps/cli/scripts/install-temporal-cli.ts",
       "client-apps/cli/src/errors/cli-exit-error.ts",
-      "client-apps/cli/src/errors/exit-codes.ts",
       "client-apps/cli/src/local/artifact.ts",
       "client-apps/cli/src/local/temporal/download.ts",
       "Makefile",
@@ -220,6 +221,14 @@ export const LANES = {
       "sdk/typescript/package.json",
       "scripts/publish-libs.mjs",
       "scripts/lib/**",
+      // The terminal kit run from its pages (test/install/smoke-terminal-kit.mjs):
+      // its README and CLI guide are the script, and the kit and the
+      // conversation core it installs are packed from these sources.
+      "test/install/smoke-terminal-kit.mjs",
+      "docs/sdk/ink/**",
+      "sdk/ink/**",
+      "sdk/react-core/src/**",
+      "sdk/react-core/package.json",
       // The install layer's drivers and probes, and the two test/support
       // modules it loads (the fake model and its wire); the rest of
       // test/support is the contract and e2e suites' machinery.
@@ -472,7 +481,8 @@ export const LANES = {
       "client-apps/cli/src/local/temporal/download.ts",
       "client-apps/cli/scripts/install-temporal-cli.ts",
       "client-apps/cli/src/errors/cli-exit-error.ts",
-      "client-apps/cli/src/errors/exit-codes.ts",
+      // The exit-code table those errors read, imported by package name.
+      "sdk/typescript/src/exit-code-table.ts",
       // The Chromium every job here installs: .github/actions/playwright-chromium
       // runs it (scripts/lane-triggers.test.mjs fails when it is missing).
       "scripts/playwright-chromium.mjs",

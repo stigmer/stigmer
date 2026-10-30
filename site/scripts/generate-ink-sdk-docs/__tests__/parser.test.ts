@@ -3,7 +3,10 @@
  * `<Name>Props` interface becomes its field list, and a field typed by a
  * message from `@stigmer/apis` links to the run resource page (the
  * one protos type the Ink components take), while a field typed from any
- * other package, or by a local type, carries no link. The input is a minimal
+ * other package, or by a local type, carries no link. Functions land in
+ * their sections: the run API under "run" with its options interface as its
+ * table, the theme helpers under "theme", a lower-case helper under
+ * "utility" and a capitalised one under "component". The input is a minimal
  * TypeDoc JSON written to a temporary file.
  */
 
@@ -90,5 +93,39 @@ describe("parseTypeDocJson — props fields", () => {
       ["node", false, null],
       ["width", false, null],
     ]);
+  });
+});
+
+function fn(id: number, name: string): Reflection {
+  return { id, name, variant: "declaration", kind: ReflectionKind.Function, flags: {}, signatures: [] };
+}
+
+describe("parseTypeDocJson — sections", () => {
+  it("files the run API, the theme, helpers and components apart, in page order", async () => {
+    const { reference } = await parse([
+      fn(1, "terminalMode"),
+      fn(2, "useInkTheme"),
+      fn(3, "MessageThread"),
+      fn(4, "runInTerminal"),
+      fn(5, "SessionView"),
+      fn(6, "someHelper"),
+      {
+        id: 7,
+        name: "RunInTerminalOptions",
+        variant: "declaration",
+        kind: ReflectionKind.Interface,
+        flags: {},
+        children: [property(8, "until", { type: "intrinsic", name: "string" }, true)],
+      },
+    ]);
+    expect(reference.exports.map((e) => [e.name, e.category])).toEqual([
+      ["runInTerminal", "run"],
+      ["MessageThread", "component"],
+      ["SessionView", "composedView"],
+      ["useInkTheme", "theme"],
+      ["someHelper", "utility"],
+      ["terminalMode", "utility"],
+    ]);
+    expect(reference.exports[0]!.propsInterface?.name).toBe("RunInTerminalOptions");
   });
 });

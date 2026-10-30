@@ -29,7 +29,45 @@ runtime dependency.
 
 ## Quick start
 
-The fastest way to render a session in your terminal:
+Send a message to an agent, show its work in the terminal, and get control back
+when the turn ends:
+
+```ts
+import { createNodeClient, runInTerminal } from "@stigmer/ink-ui";
+
+const client = createNodeClient({
+  baseUrl: process.env.STIGMER_BASE_URL ?? "http://localhost:7234",
+  apiKey: process.env.STIGMER_API_KEY,
+});
+const outcome = await runInTerminal(client, {
+  org: "acme",
+  sessionSpec: { agentRef: { org: "acme", slug: "release-checker" } },
+  message: "Check v2.3 is safe to ship",
+});
+process.exitCode = outcome.exitCode;
+```
+
+The agent's messages, tool calls and approvals stream as `stigmer run` shows
+them, and the approvals take `y`, `a` or `n`. `runInTerminal` resolves with the
+turn's outcome (`phase`, `answer`, `structuredOutput`, `error`, the folded
+`turn`) and an exit code from the table in
+[Embed in your CLI](/docs/sdk/ink/cli-integration). Its options:
+
+| Option | Default | What it does |
+|--------|---------|--------------|
+| `until` | `"turn"` | `"exit"` keeps the conversation open for follow-ups until Ctrl+C. |
+| `approveDefault` | `"deny"` | How approvals are settled off a terminal, where no one can answer. |
+| `approveSetting` | `approveDefault: "approve"` | The setting the view names when it settles one; pass your own flag, such as `--yes`. |
+| `theme` | Stigmer's | Your colours by role (below). |
+| `signal` | none | Stops waiting at once; the run goes on, and the exit code is 130. |
+| `mode` | `"agent"` | `"plan"` for read-only follow-ups. |
+
+A turn that cannot start (no server, a refused key) is written to stderr in
+words a person can act on, and the promise rejects with a `TerminalRunError`
+that carries the exit code. The library installs no signal handlers: stop it
+with `signal`.
+
+To watch a session you already have, render `SessionApp`:
 
 ```tsx
 import { render } from "ink";
@@ -45,9 +83,30 @@ render(
 );
 ```
 
-`SessionApp` creates a Stigmer client, sets up the provider, and renders a full
-conversation view. You see messages, tool calls, approvals, and a follow-up
-input — all in your terminal.
+## On a terminal and off one
+
+`terminalMode` decides two things before anything renders. The screen is live
+when stdout is a terminal, `TERM` is not `dumb` and `CI` is unset. A person can
+answer when the screen is live and stdin is a terminal too.
+
+Off a terminal the view is read-only: nothing reads keys, the final frame is
+written once when the turn ends, each approval is settled by `approveDefault`
+(denied unless you say otherwise, and the view says which), and a file review
+waits for a terminal. `SessionView` takes the same decision as its `canAnswer`
+prop, and reads Ink's own raw-mode support when you leave it out.
+
+## Colours
+
+The kit draws Stigmer's look: black and white, with colour only for success,
+warnings and errors. Pass your own by role, to `runInTerminal` or the provider:
+
+```tsx
+<InkStigmerProvider client={client} theme={{ accent: "magenta" }}>
+```
+
+The roles are `accent` (prompts, the selected row, spinners), `muted`,
+`success`, `warning` and `danger`; each takes an Ink colour name or a hex value.
+Your own components read them with `useInkTheme()` or `useRoles()`.
 
 ## Provider and transport
 
@@ -81,6 +140,7 @@ It is re-exported from `@stigmer/client/node` for convenience.
 |------|------|---------|-------------|
 | `client` | `Stigmer` | — | Configured SDK client instance. Required. |
 | `deploymentMode` | `"local" \| "cloud"` | `"cloud"` | Backend deployment mode. Controls feature availability. |
+| `theme` | `Partial<InkTheme>` | Stigmer's | Colours by role, over the monochrome default. |
 | `children` | `ReactNode` | — | Application tree. |
 
 ## Using the conversation hooks
@@ -164,26 +224,23 @@ handle tool call display. `ApprovalPrompt` renders the HITL approval UI.
 
 ## CLI integration
 
-`@stigmer/ink-ui` ships a standalone binary that any CLI can spawn as a child
-process — regardless of language. Your CLI creates the session, then hands
-the terminal to Ink for rendering:
+A tool in another language spawns the package's binary, `stigmer-ink`, and reads
+its exit code:
 
 ```bash
-npx @stigmer/ink-ui --session ses-abc123 --org my-org \
-  --base-url https://api.stigmer.ai --api-key "$STIGMER_API_KEY"
+stigmer-ink --agent acme/release-checker --message "Check v2.3 is safe to ship"
 ```
 
-This is the same pattern the Stigmer CLI uses. See
-[Embed in your CLI](/docs/sdk/ink/cli-integration) for complete examples in
-Go, Rust, and Python, including version pinning, TTY handling, and
-post-exit state queries.
+It reads the key from `STIGMER_API_KEY`. See
+[Embed in your CLI](/docs/sdk/ink/cli-integration) for a bridge in Go, Python
+and Rust, run as written against a local server.
 
 ## What's next
 
 <Cards>
   <Card
     title="Embed in your CLI"
-    description="Spawn @stigmer/ink-ui from Go, Rust, or Python to render sessions in the terminal."
+    description="Run an agent from a Go, Python or Rust CLI with stigmer-ink and its exit code."
     href="/docs/sdk/ink/cli-integration"
   />
   <Card

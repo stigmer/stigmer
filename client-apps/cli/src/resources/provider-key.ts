@@ -40,7 +40,7 @@ import {
 } from "@stigmer/apis/ai/stigmer/platform/v1/model_readiness_pb";
 import { type DeploymentMode, isPermissionDenied, isUnimplemented, type Stigmer } from "@stigmer/client";
 import { CliExitError } from "../errors/cli-exit-error.js";
-import { ExitCode } from "../errors/exit-codes.js";
+import { ExitCode } from "@stigmer/client/exit-codes";
 import { UsageError } from "../errors/usage-error.js";
 import { CommandResult, protoToJsonValue } from "../output/index.js";
 import { readCursorPages } from "./cursor-pages.js";

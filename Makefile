@@ -253,10 +253,14 @@ gen-ink-sdk-docs: site-deps ## Generate Ink SDK reference docs from TypeDoc
 	cd sdk/ink && npm run typedoc:json
 	cd site && yarn generate-ink-sdk-docs
 
+gen-react-core-docs: site-deps ## Generate the React core (@stigmer/react-core) reference docs from TypeDoc
+	cd sdk/react-core && npm run typedoc:json
+	cd site && yarn generate-react-core-docs
+
 gen-theme-docs: site-deps ## Generate theme token reference docs from tokens.css
 	cd site && yarn generate-theme-docs
 
-gen-sdk-docs-check: gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-theme-docs-check gen-cli-docs-check ## Verify all SDK docs are up to date (CI)
+gen-sdk-docs-check: gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-react-core-docs-check gen-ink-sdk-docs-check gen-theme-docs-check gen-cli-docs-check ## Verify all SDK docs are up to date (CI)
 
 gen-proto-sdk-docs-check: ## Verify proto SDK docs are up to date (CI)
 	@test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
@@ -291,6 +295,22 @@ gen-react-sdk-docs-check: site-deps ## Verify React SDK docs are up to date (CI)
 		echo "error: React SDK docs are stale — run 'make gen-react-sdk-docs'"; exit 1; \
 	fi; \
 	echo "✓ React SDK docs are up to date"
+
+gen-react-core-docs-check: site-deps ## Verify the React core reference docs are up to date (CI)
+	@tmpdir=$$(mktemp -d) && \
+	(cd sdk/react-core && npm run typedoc:json) && \
+	(cd site && REACT_CORE_DOCS_OUTPUT_DIR="$$tmpdir" yarn generate-react-core-docs) && \
+	rc=0; \
+	for f in "$$tmpdir"/*; do \
+		if ! diff -q "$$f" "docs/sdk/react-core/$$(basename $$f)" > /dev/null 2>&1; then \
+			rc=1; break; \
+		fi; \
+	done; \
+	rm -rf "$$tmpdir"; \
+	if [ $$rc -ne 0 ]; then \
+		echo "error: React core docs are stale — run 'make gen-react-core-docs'"; exit 1; \
+	fi; \
+	echo "✓ React core docs are up to date"
 
 gen-ink-sdk-docs-check: site-deps ## Verify Ink SDK docs are up to date (CI)
 	@tmpdir=$$(mktemp -d) && \
@@ -577,6 +597,12 @@ smoke-getting-started: build-runner build-server build-web ## Run the Getting St
 .PHONY: smoke-libs
 smoke-libs: build-libs ## Install the published TypeScript libraries from their packed tarballs into an empty project, then resolve, import, typecheck and render them
 	node test/install/smoke-libs.mjs --skip-build
+
+.PHONY: smoke-terminal-kit
+smoke-terminal-kit: build-runner build-server build-web build-libs ## Run the terminal kit as a developer adopts it: its bin with Node alone, the README's runInTerminal example and the CLI guide's Go, Python and Rust bridges, on a pseudo-terminal and through a pipe (needs python3, go, cargo)
+	@command -v python3 >/dev/null 2>&1 || { echo "error: python3 not found"; exit 1; }
+	@cd $(SERVER_DIR) && node scripts/bundle-slim.mjs
+	node test/install/smoke-terminal-kit.mjs --skip-build
 
 # What the published libraries make an app download, against the ceilings in
 # test/bundle-budgets.json (test/install/smoke-budgets.mjs): the React kit's

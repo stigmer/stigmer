@@ -20,6 +20,7 @@ import {
   type FileReviewRowState,
 } from "@stigmer/react-core";
 import { editedPath } from "../file-review.js";
+import { useRoles, type InkRole } from "../theme.js";
 
 /** Props for {@link ToolCallItem}. */
 export interface ToolCallItemProps {
@@ -29,17 +30,17 @@ export interface ToolCallItemProps {
   readonly expanded?: boolean;
 }
 
-const STATUS_INDICATOR: Record<ToolUse["state"], { symbol: string; color?: string }> = {
-  running: { symbol: "⠋", color: "yellow" },
-  completed: { symbol: "✓", color: "green" },
-  failed: { symbol: "✗", color: "red" },
+const STATUS_INDICATOR: Record<ToolUse["state"], { symbol: string; role?: InkRole }> = {
+  running: { symbol: "⠋", role: "warning" },
+  completed: { symbol: "✓", role: "success" },
+  failed: { symbol: "✗", role: "danger" },
   // Waiting for a person's answer: the approval prompt carries the action.
   waiting: { symbol: "○" },
   // A person (or a rule) refused it.
-  denied: { symbol: "⊘", color: "yellow" },
+  denied: { symbol: "⊘", role: "warning" },
   // Its turn ended before it returned (issue #207): a neutral "cut short"
   // glyph, distinct from the waiting "○".
-  stopped: { symbol: "⊘", color: "gray" },
+  stopped: { symbol: "⊘", role: "muted" },
 };
 
 // Harness-agnostic labels per kind. Classification is shared with the runner,
@@ -69,11 +70,11 @@ const KIND_LABEL: Partial<Record<ToolKind, string>> = {
 
 // File-review row badges, mirroring the web console's per-row badge labels and
 // tones. Keyed by the shared `fileReviewRowState` classification.
-const REVIEW_BADGE: Record<FileReviewRowState, { label: string; color: string }> = {
-  pending: { label: "Pending review", color: "yellow" },
-  kept: { label: "Kept", color: "green" },
-  discarded: { label: "Discarded", color: "red" },
-  failed: { label: "Review failed", color: "red" },
+const REVIEW_BADGE: Record<FileReviewRowState, { label: string; role: InkRole }> = {
+  pending: { label: "Pending review", role: "warning" },
+  kept: { label: "Kept", role: "success" },
+  discarded: { label: "Discarded", role: "danger" },
+  failed: { label: "Review failed", role: "danger" },
 };
 
 /**
@@ -83,6 +84,7 @@ const REVIEW_BADGE: Record<FileReviewRowState, { label: string; color: string }>
  * match counts) as the web console.
  */
 export function ToolCallItem({ toolUse, expanded = false }: ToolCallItemProps) {
+  const role = useRoles();
   const indicator = STATUS_INDICATOR[toolUse.state];
 
   const kind = resolveToolKind(toolUse);
@@ -108,7 +110,7 @@ export function ToolCallItem({ toolUse, expanded = false }: ToolCallItemProps) {
   return (
     <Box flexDirection="column">
       <Box gap={1}>
-        <Text color={indicator.color}>{indicator.symbol}</Text>
+        <Text {...(indicator.role ? role[indicator.role] : {})}>{indicator.symbol}</Text>
         <Text>{title}</Text>
         {commandSubtitle && (
           <Text dimColor wrap="truncate-end">
@@ -116,11 +118,11 @@ export function ToolCallItem({ toolUse, expanded = false }: ToolCallItemProps) {
           </Text>
         )}
         {toolUse.state === "running" && <Text dimColor>running</Text>}
-        {reviewBadge && <Text color={reviewBadge.color}>{reviewBadge.label}</Text>}
+        {reviewBadge && <Text {...role[reviewBadge.role]}>{reviewBadge.label}</Text>}
       </Box>
       {backgroundLine !== undefined && (
         <Box paddingLeft={3}>
-          <Text dimColor={toolUse.background?.state !== "running"} color={toolUse.background?.state === "running" ? "yellow" : undefined} wrap="truncate-end">
+          <Text {...(toolUse.background?.state === "running" ? role.warning : role.muted)} wrap="truncate-end">
             {backgroundLine}
           </Text>
         </Box>
@@ -128,7 +130,7 @@ export function ToolCallItem({ toolUse, expanded = false }: ToolCallItemProps) {
       {view.type === "error" ? (
         expanded && (
           <Box paddingLeft={3}>
-            <Text color="red" wrap="truncate-end">
+            <Text {...role.danger} wrap="truncate-end">
               {view.message}
             </Text>
           </Box>

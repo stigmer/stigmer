@@ -2,8 +2,11 @@
  * Parser: TypeDoc JSON → Ink SDK reference model.
  *
  * Unlike the React SDK parser which splits exports into domains,
- * the Ink parser classifies exports into four categories on a single page:
- *   Provider & Transport → Components → Composed Views → Utilities
+ * the Ink parser classifies exports into categories on a single page:
+ *   Provider & Transport → Run a turn → Components → Composed Views →
+ *   Theme → Utilities
+ * A function's table is its `<Name>Props` interface, or the options or
+ * config interface named for it (OPTIONS_INTERFACES).
  */
 
 import * as fs from "node:fs/promises";
@@ -20,7 +23,7 @@ import type { CommentPart, Field } from "../generate-react-sdk-docs/model";
 // Ink-specific model
 // ---------------------------------------------------------------------------
 
-export type InkCategory = "provider" | "transport" | "component" | "composedView" | "utility";
+export type InkCategory = "provider" | "transport" | "run" | "component" | "composedView" | "theme" | "utility";
 
 export interface InkExport {
   name: string;
@@ -51,14 +54,26 @@ export interface InkReference {
 const PROVIDER_NAMES = new Set(["InkStigmerProvider"]);
 const TRANSPORT_NAMES = new Set(["createNodeClient", "createNodeTransport"]);
 const COMPOSED_VIEW_NAMES = new Set(["SessionView", "SessionApp"]);
-const UTILITY_NAMES = new Set(["renderMarkdown"]);
+const RUN_NAMES = new Set(["runInTerminal"]);
+const THEME_NAMES = new Set(["useInkTheme", "useRoles", "resolveInkTheme", "roleStyle"]);
+const UTILITY_NAMES = new Set(["renderMarkdown", "terminalMode", "describeConnectionFailure", "exitCodeOf"]);
+
+/** A function whose table is an interface not named `<Name>Props`. */
+const OPTIONS_INTERFACES: Record<string, string> = {
+  createNodeClient: "NodeClientConfig",
+  runInTerminal: "RunInTerminalOptions",
+  terminalMode: "TerminalStreams",
+};
 
 function classifyFunction(name: string): InkCategory {
   if (PROVIDER_NAMES.has(name)) return "provider";
   if (TRANSPORT_NAMES.has(name)) return "transport";
+  if (RUN_NAMES.has(name)) return "run";
   if (COMPOSED_VIEW_NAMES.has(name)) return "composedView";
+  if (THEME_NAMES.has(name)) return "theme";
   if (UTILITY_NAMES.has(name)) return "utility";
-  return "component";
+  // Every other function the kit exports is a component (it starts with a capital).
+  return /^[A-Z]/.test(name) ? "component" : "utility";
 }
 
 // ---------------------------------------------------------------------------
@@ -158,16 +173,14 @@ export async function parseTypeDocJson(
       };
     }
 
-    // For utility functions, also check for NodeClientConfig
-    if (name === "createNodeClient") {
-      const configRefl = interfaceMap.get("NodeClientConfig");
-      if (configRefl && configRefl.children) {
-        propsInterface = {
-          name: "NodeClientConfig",
-          description: parseCommentParts(configRefl.comment?.summary),
-          fields: configRefl.children.map(parseField),
-        };
-      }
+    const optionsName = OPTIONS_INTERFACES[name];
+    const optionsRefl = optionsName === undefined ? undefined : interfaceMap.get(optionsName);
+    if (optionsName !== undefined && optionsRefl?.children) {
+      propsInterface = {
+        name: optionsName,
+        description: parseCommentParts(optionsRefl.comment?.summary),
+        fields: optionsRefl.children.map(parseField),
+      };
     }
 
     exports.push({
@@ -185,9 +198,11 @@ export async function parseTypeDocJson(
   const ORDER: Record<InkCategory, number> = {
     provider: 0,
     transport: 1,
-    component: 2,
-    composedView: 3,
-    utility: 4,
+    run: 2,
+    component: 3,
+    composedView: 4,
+    theme: 5,
+    utility: 6,
   };
 
   exports.sort((a, b) => {

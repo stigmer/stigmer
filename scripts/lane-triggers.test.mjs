@@ -1052,7 +1052,6 @@ test("the action rule still finds the bodies and lanes it exists for", () => {
     "temporal-cli": [
       "client-apps/cli/scripts/install-temporal-cli.ts",
       "client-apps/cli/src/errors/cli-exit-error.ts",
-      "client-apps/cli/src/errors/exit-codes.ts",
       "client-apps/cli/src/local/artifact.ts",
       "client-apps/cli/src/local/temporal/download.ts",
     ],

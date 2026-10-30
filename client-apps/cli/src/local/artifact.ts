@@ -35,7 +35,7 @@ import {
 } from "@stigmer/artifact-fetch";
 import { gunzipSync } from "fflate";
 import { CliExitError } from "../errors/cli-exit-error.js";
-import { ExitCode } from "../errors/exit-codes.js";
+import { ExitCode } from "@stigmer/client/exit-codes";
 
 export { DOWNLOAD_ATTEMPTS, DOWNLOAD_RETRY_BASE_DELAY_MS, extractTarEntry, parseShasum, sha256Hex } from "@stigmer/artifact-fetch";
 
