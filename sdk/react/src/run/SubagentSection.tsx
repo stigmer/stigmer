@@ -442,7 +442,7 @@ const SUB_AGENT_STATUS_MAP: Record<Thread["state"], SubagentStatusInfo> = {
   },
   completed: {
     label: "Completed",
-    colorClass: "stg:text-success",
+    colorClass: "stg:text-status-ready",
     badgeClass: "stg:bg-status-ready-subtle stg:text-status-ready",
     icon: CheckCircleIcon,
   },

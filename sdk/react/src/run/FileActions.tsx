@@ -153,7 +153,7 @@ export function FileAddAsSkillAction({ file, onAdded }: FileAddAsSkillActionProp
 
   if (added) {
     return (
-      <span className="stg:inline-flex stg:items-center stg:gap-1.5 stg:text-xs stg:font-medium stg:text-success">
+      <span className="stg:inline-flex stg:items-center stg:gap-1.5 stg:text-xs stg:font-medium stg:text-status-ready">
         Skill added {"·"} {added.name || added.slug}
       </span>
     );

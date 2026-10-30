@@ -142,7 +142,7 @@ const TODO_ICONS: Readonly<Record<Todo["status"], () => React.JSX.Element>> = {
 const TODO_COLORS: Readonly<Record<Todo["status"], string>> = {
   pending: "stg:text-muted-foreground",
   in_progress: "stg:text-foreground",
-  completed: "stg:text-success",
+  completed: "stg:text-status-ready",
   cancelled: "stg:text-muted-foreground",
 };
 

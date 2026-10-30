@@ -117,7 +117,7 @@ export function FileDocument({
               className={cn(
                 "stg:inline-flex stg:items-center stg:gap-1.5 stg:text-xs stg:font-medium stg:transition-colors",
                 inspection.copied
-                  ? "stg:text-success"
+                  ? "stg:text-status-ready"
                   : "stg:text-muted-foreground stg:hover:text-foreground",
                 FOCUS_RING_CLASSES,
               )}
@@ -193,7 +193,7 @@ function ApplyCluster({
 }) {
   if (applyResult) {
     return (
-      <span className="stg:inline-flex stg:items-center stg:gap-1.5 stg:text-xs stg:font-medium stg:text-success">
+      <span className="stg:inline-flex stg:items-center stg:gap-1.5 stg:text-xs stg:font-medium stg:text-status-ready">
         <CheckIcon />
         Applied {"\u00B7"} {applyResult.name || applyResult.kind}
       </span>

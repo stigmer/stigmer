@@ -550,7 +550,7 @@ function FlowProgress({
               )}
             >
               {isDone ? (
-                <CheckIcon className="stg:size-3.5 stg:shrink-0 stg:text-success" />
+                <CheckIcon className="stg:size-3.5 stg:shrink-0 stg:text-status-ready" />
               ) : isActive ? (
                 <Spinner className="stg:size-3.5 stg:shrink-0" />
               ) : (
@@ -588,7 +588,7 @@ function InstalledSummary({
   return (
     <div className="stg:space-y-2" role="status">
       <div className="stg:flex stg:items-center stg:gap-2 stg:text-sm stg:font-medium stg:text-foreground">
-        <CheckIcon className="stg:size-4 stg:text-success" />
+        <CheckIcon className="stg:size-4 stg:text-status-ready" />
         Connected{slack?.teamName ? ` to ${slack.teamName}` : ""}
       </div>
       <p className="stg:text-sm stg:text-muted-foreground">

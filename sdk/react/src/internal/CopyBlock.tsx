@@ -60,7 +60,7 @@ export function CopyButton({
       className={cn(
         "stg:shrink-0 stg:rounded-md stg:border stg:border-border stg:px-2 stg:py-1 stg:text-2xs stg:font-medium stg:transition-colors",
         copied
-          ? "stg:text-success"
+          ? "stg:text-status-ready"
           : "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
       )}
       aria-live="polite"

@@ -76,7 +76,7 @@ export function ChannelCardFrame({
 export type ChannelStateTone = "success" | "destructive" | "muted";
 
 const TONE_CLASSES: Record<ChannelStateTone, string> = {
-  success: "stg:text-success",
+  success: "stg:text-status-ready",
   destructive: "stg:text-destructive",
   muted: "stg:text-muted-foreground",
 };

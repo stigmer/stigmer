@@ -162,7 +162,7 @@ const READY_TEXT_SURFACES = [
   {
     surface: "--stgm-background",
     where:
-      "on the page (RunPhaseBadge completed phase, ToolCallItem, SubagentSection, TodoList and TodoCard done icons, " +
+      "on the page (RunPhaseBadge completed phase, SubagentSection, TodoList and TodoCard done icons, " +
       "TextContentRenderer JSON strings, AutoApproveIndicator, OAuthCallbackHandler, FileDocument and " +
       "FilePreviewModal copied, applied and skill-added confirmations, ChannelStatePill, PluginServerRow, " +
       "CopyBlock in RoutineApiPanel and ChannelAppDetailPanel)",
@@ -179,7 +179,7 @@ const READY_TEXT_SURFACES = [
       "in a dialog (ConnectSlackDialog step ticks and connected line, ConnectWhatsAppDialog connected line, " +
       "PluginServerSignIn in the composer's Configure menu)",
   },
-  { surface: "--stgm-muted-subtle", where: "on a hovered fold (TodoCard toggle, ToolRunGroup)" },
+  { surface: "--stgm-muted-subtle", where: "on a hovered fold (TodoCard toggle)" },
   { surface: "--stgm-accent-hover", where: "on a hovered icon button (PlanFileCard copied tick)" },
   { surface: "--stgm-success-subtle", where: "on the selected keep verdict (FileReviewCard)" },
 ] as const;

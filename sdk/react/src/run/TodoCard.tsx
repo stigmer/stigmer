@@ -108,7 +108,7 @@ export const TodoCard = memo(function TodoCard({
         <span
           className={cn(
             "stg:shrink-0",
-            allDone ? "stg:text-success" : "stg:text-muted-foreground",
+            allDone ? "stg:text-status-ready" : "stg:text-muted-foreground",
           )}
           aria-hidden="true"
         >
