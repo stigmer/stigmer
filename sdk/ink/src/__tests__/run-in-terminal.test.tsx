@@ -175,8 +175,13 @@ describe("INK-06 runInTerminal returns when the turn ends", () => {
   it("does not return for a turn marked ended before its status says how", async () => {
     store.state = conversation([{ ...samples.turn({ runId: RUN, phase: "running" }), status: undefined, ended: true } as Turn]);
     const controller = new AbortController();
-    const run = runInTerminal(startsRun(), INPUT, { ...streams(true), signal: controller.signal });
+    let settled = false;
+    const run = runInTerminal(startsRun(), INPUT, { ...streams(true), signal: controller.signal }).then((outcome) => {
+      settled = true;
+      return outcome;
+    });
     await tick();
+    expect(settled).toBe(false);
     controller.abort();
     expect(await run).toMatchObject({ phase: "pending", exitCode: 130 });
   });
@@ -244,6 +249,9 @@ describe("INK-06 runInTerminal returns when the turn ends", () => {
     const error = await runInTerminal(refused, INPUT, io).catch((e: unknown) => e);
     expect(error).toBeInstanceOf(TerminalRunError);
     expect((error as TerminalRunError).exitCode).toBe(3);
+    expect((error as TerminalRunError).name).toBe("TerminalRunError");
+    expect((error as TerminalRunError).message).toBe("Could not start the run at http://localhost:7234. Unable to connect to the server.");
+    expect((error as TerminalRunError).cause).toBeInstanceOf(ConnectError);
     const written = (io.stderr as unknown as FakeStdout).frames.join("");
     expect(written).toContain("Could not start the run at http://localhost:7234.");
     expect(written).toContain("Is the server running?");
@@ -253,6 +261,7 @@ describe("INK-06 runInTerminal returns when the turn ends", () => {
     store.state = conversation([], { loadError: new ConnectError("no such session", Code.NotFound) });
     const error = await runInTerminal(startsRun(), INPUT, streams(false)).catch((e: unknown) => e);
     expect((error as TerminalRunError).exitCode).toBe(5);
+    expect((error as TerminalRunError).message).toMatch(/^Could not load the session from http:\/\/localhost:7234\. /);
   });
 
   it("a wait stopped before the turn's first event returns pending with 130", async () => {
@@ -260,6 +269,6 @@ describe("INK-06 runInTerminal returns when the turn ends", () => {
     const controller = new AbortController();
     controller.abort();
     const outcome = await runInTerminal(startsRun(), INPUT, { ...streams(true), signal: controller.signal });
-    expect([outcome.phase, outcome.turn, outcome.exitCode]).toEqual(["pending", undefined, 130]);
+    expect(outcome).toMatchObject({ phase: "pending", turn: undefined, exitCode: 130, answer: "", stopCause: "", error: "", asks: [] });
   });
 });

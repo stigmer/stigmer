@@ -186,13 +186,14 @@ export async function runInTerminal(
   );
 
   const stop = () => instance.unmount();
-  // Stryker disable next-line BooleanLiteral: unmounting twice is a no-op in Ink, so a second abort changes nothing
+  // Stryker disable next-line BooleanLiteral,ObjectLiteral: unmounting twice is a no-op in Ink, so a second abort changes nothing
   options.signal?.addEventListener("abort", stop, { once: true });
   if (options.signal?.aborted === true) stop();
   try {
     await instance.waitUntilExit();
-  } finally {
     // Stryker disable next-line BlockStatement: a listener left on a spent signal only unmounts an already unmounted view; removing it keeps a long-lived host signal clean
+  } finally {
+    // Stryker disable next-line StringLiteral: as above, the removal changes nothing a run can observe
     options.signal?.removeEventListener("abort", stop);
   }
 
