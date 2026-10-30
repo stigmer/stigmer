@@ -29,11 +29,16 @@
  *     (found by the sign-in's recorded login_app) only while the app's
  *     client id and token URL are the sign-in's; a catalog entry's secret
  *     comes from the deployment's settings, and only a public client's
- *     renewal carries `resource`.
+ *     renewal carries `resource`;
+ *   - one renewal per login is in flight, from the vault's current login:
+ *     overlapping runs share one token request and its outcome, a run whose
+ *     read predates a finished renewal (or a newer sign-in, or a pasted
+ *     token) takes the vault's login with no request, a login removed since
+ *     the read is refused, and two addresses renew independently.
  */
 import { create } from "@bufbuild/protobuf";
 import { Code } from "@connectrpc/connect";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   CompleteSignInInputSchema,
@@ -50,6 +55,7 @@ import { testCallerIdentity } from "../../../../pipeline/__tests__/support.js";
 import { MAX_VAULT_ENTRIES } from "../../constants.js";
 import { VaultConnectionSource } from "../../service.js";
 import { completePersonSignIn, startPersonSignIn } from "../person.js";
+import { SignInRenewalError } from "../../resolve.js";
 import { newSignInFreshener } from "../refresh.js";
 import {
   ORG,
@@ -469,6 +475,14 @@ describe("renewal writes through the vault", () => {
       fetchImpl: rig.deps().outboundFetch,
     });
   const expired = () => BigInt(Math.floor(Date.now() / 1000) - 10);
+  /** A login server's answer held until the test releases it, so renewals overlap. */
+  const held = () => {
+    let release = () => {};
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    return { gate, release: () => release() };
+  };
 
   async function savedSignIn(
     expiresAt: bigint,
@@ -547,6 +561,34 @@ describe("renewal writes through the vault", () => {
     expect(request.headers.has("authorization")).toBe(false);
   });
 
+  it("two runs renewing one expired sign-in at once send one token request and share its token", async () => {
+    await seedOrganizationApp(rig);
+    const { vault, connection } = await savedSignIn(expired(), "rt-old");
+    const answer = held();
+    rig.levers.duringExchange = () => answer.gate;
+    rig.levers.tokenBodies.push({ body: { access_token: "at-new", refresh_token: "rt-new", expires_in: 3600 } });
+    const server = freshener();
+
+    const first = server.freshToken(vault, connection, alice);
+    const second = server.freshToken(vault, connection, alice);
+    await vi.waitFor(() => expect(tokenRequests()).toHaveLength(1));
+    answer.release();
+
+    expect(await Promise.all([first, second])).toEqual(["at-new", "at-new"]);
+    expect(tokenRequests()).toHaveLength(1);
+  });
+
+  it("a run whose read predates a finished renewal uses the renewed token and sends no request", async () => {
+    await seedOrganizationApp(rig);
+    const { vault, connection } = await savedSignIn(expired(), "rt-old");
+    rig.levers.tokenBodies.push({ body: { access_token: "at-new", refresh_token: "rt-new", expires_in: 3600 } });
+    expect(await freshener().freshToken(vault, connection, alice)).toBe("at-new");
+
+    // The second run read the vault before the first one's renewal landed.
+    expect(await freshener().freshToken(vault, connection, alice)).toBe("at-new");
+    expect(tokenRequests().map((request) => new URLSearchParams(request.body).get("refresh_token"))).toEqual(["rt-old"]);
+  });
+
   it("a renewal of a login replaced since it was read leaves the newer login in place", async () => {
     await seedOrganizationApp(rig);
     const { vault, connection } = await savedSignIn(expired(), "rt-old");
@@ -560,10 +602,79 @@ describe("renewal writes through the vault", () => {
       },
       alice,
     );
-    rig.levers.tokenBodies.push({ body: { access_token: "at-renewed", refresh_token: "rt-renewed", expires_in: 3600 } });
-    expect(await freshener().freshToken(vault, connection, alice)).toBe("at-renewed");
+    expect(await freshener().freshToken(vault, connection, alice)).toBe("at-fresh-sign-in");
+    expect(tokenRequests()).toEqual([]);
     const saved = (await rig.vaults.open((await rig.vaults.findMine(ORG, alice.identityId))!)).connections.get(VENDOR_ADDRESS)!;
     expect(saved.token).toBe("at-fresh-sign-in");
+  });
+
+  it("a refused renewal fails every run that joined it with one request, and the next run tries again", async () => {
+    await seedOrganizationApp(rig);
+    const { vault, connection } = await savedSignIn(expired(), "rt-old");
+    const answer = held();
+    rig.levers.duringExchange = () => answer.gate;
+    rig.levers.tokenBodies.push({ status: 400, body: { error: "invalid_grant" } });
+    const server = freshener();
+
+    const outcomes = Promise.allSettled([
+      server.freshToken(vault, connection, alice),
+      server.freshToken(vault, connection, alice),
+    ]);
+    await vi.waitFor(() => expect(tokenRequests()).toHaveLength(1));
+    answer.release();
+    for (const outcome of await outcomes) {
+      expect(outcome.status).toBe("rejected");
+      expect((outcome as PromiseRejectedResult).reason).toBeInstanceOf(SignInRenewalError);
+    }
+    expect(tokenRequests()).toHaveLength(1);
+
+    rig.levers.tokenBodies.push({ body: { access_token: "at-new", refresh_token: "rt-new", expires_in: 3600 } });
+    expect(await server.freshToken(vault, connection, alice)).toBe("at-new");
+    expect(tokenRequests()).toHaveLength(2);
+  });
+
+  it("refuses a login removed since the run read it, and uses a pasted token that replaced it", async () => {
+    await seedOrganizationApp(rig);
+    const { vault, connection } = await savedSignIn(expired(), "rt-old");
+    await rig.vaults.removeConnections(vault.metadata!.id, [VENDOR_ADDRESS], alice);
+    await expect(freshener().freshToken(vault, connection, alice)).rejects.toThrow(
+      new SignInRenewalError("it was removed from the vault after the run read it"),
+    );
+
+    await rig.vaults.setConnection(
+      vault.metadata!.id,
+      VENDOR_ADDRESS,
+      { token: "pasted-token", source: VaultConnectionSource.pasted },
+      alice,
+    );
+    expect(await freshener().freshToken(vault, connection, alice)).toBe("pasted-token");
+    expect(tokenRequests()).toEqual([]);
+  });
+
+  it("renews two addresses of one vault at once, each with its own request", async () => {
+    await seedOrganizationApp(rig);
+    const first = await savedSignIn(expired(), "rt-first");
+    const second = await savedSignIn(expired(), "rt-second", { address: "https://mcp.second.example/mcp" });
+    const answer = held();
+    rig.levers.duringExchange = () => answer.gate;
+    rig.levers.tokenBodies.push(
+      { body: { access_token: "at-one", expires_in: 3600 } },
+      { body: { access_token: "at-two", expires_in: 3600 } },
+    );
+    const server = freshener();
+
+    const renewed = Promise.all([
+      server.freshToken(first.vault, first.connection, alice),
+      server.freshToken(second.vault, second.connection, alice),
+    ]);
+    await vi.waitFor(() => expect(tokenRequests()).toHaveLength(2));
+    answer.release();
+
+    expect((await renewed).sort()).toEqual(["at-one", "at-two"]);
+    expect(tokenRequests().map((request) => new URLSearchParams(request.body).get("refresh_token")).sort()).toEqual([
+      "rt-first",
+      "rt-second",
+    ]);
   });
 
   it("uses a sign-in that has not expired as it is, and refuses an expired one with no refresh token", async () => {

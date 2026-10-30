@@ -10,7 +10,12 @@
  * it never undoes a secret saved in the same moment, and guarded by the
  * sealed token it read, so it never overwrites a sign-in made since; the
  * refresh token is rotated when the provider rotates it and kept otherwise.
- * A renewal that cannot happen (no refresh token, the provider refused)
+ * One renewal per login is in flight in a server process, and it works from
+ * the login the vault holds now rather than the run's read: runs that
+ * overlap share it, and a run whose read predates a finished renewal takes
+ * the renewed token, so a provider that rotates refresh tokens never sees
+ * one used twice and revokes the sign-in (stigmer#2033). Across processes
+ * the guarded write is the backstop. A renewal that cannot happen (no refresh token, the provider refused)
  * throws the contract's SignInRenewalError, whose message is the cause
  * alone (the resolver adds the address and the instruction); a fault
  * writing it back is thrown as it is, so the resolver answers it as a
@@ -32,7 +37,8 @@
  *
  * Proven by __tests__/token-refresh.test.ts (the expiry arithmetic) and
  * __tests__/person.test.ts (renewal written through the vault, rotation,
- * the guarded write-back, the no-refresh-token refusal, the app's secret
+ * the guarded write-back, one request for overlapping and stale-read
+ * renewals, a removed or replaced login, the no-refresh-token refusal, the app's secret
  * presented or withheld, another app's secret never sent, `resource` on a
  * public client's renewal).
  */
@@ -182,6 +188,10 @@ export interface SignInFreshenerDeps {
 
 export function newSignInFreshener(deps: SignInFreshenerDeps): SignInFreshener {
   const fetchImpl: OutboundFetch = deps.fetchImpl ?? fetch;
+  // One renewal per login at a time, keyed as the resolver keys its own
+  // per-run renewals (vault id, NUL, address). Cleared when it settles,
+  // either way: a renewed token expires again, so nothing is remembered.
+  const inFlight = new Map<string, Promise<string>>();
   return {
     async freshToken(
       vault: Vault,
@@ -196,64 +206,110 @@ export function newSignInFreshener(deps: SignInFreshenerDeps): SignInFreshener {
       ) {
         return connection.token;
       }
-
-      const loginApp = signIn.loginApp;
-      let clientSecret = "";
-      let tokenAuthMethod = "";
-      try {
-        if (loginApp !== "") {
-          ({ clientSecret, tokenAuthMethod } = await loadSignInClientCredentials(deps, signIn));
-        }
-      } catch (error) {
-        deps.logger.warn("Failed to load the login app's client secret for renewal", {
-          login_app: loginApp,
-          error: error instanceof Error ? error.message : String(error),
-        });
+      const vaultId = vault.metadata?.id ?? "";
+      const key = `${vaultId}\u0000${connection.address}`;
+      let flight = inFlight.get(key);
+      if (flight === undefined) {
+        flight = renewCurrent(deps, fetchImpl, vaultId, connection, caller).finally(() => inFlight.delete(key));
+        inFlight.set(key, flight);
       }
-      // A public client of the address's own login server was signed in
-      // for the address as its resource; its renewal says so again.
-      const resource =
-        signIn.authMethod === SIGN_IN_THROUGH_LOGIN_SERVER && !isGitHostAddress(connection.address) ? connection.address : "";
-
-      // The refresh token is opened only here, for a renewal.
-      const renewing: VaultSignIn = {
-        ...signIn,
-        refreshToken: (await connection.refreshToken?.()) ?? "",
-      };
-      let result: RefreshResult;
-      try {
-        result = await refreshTokenIfExpired(
-          renewing,
-          connection.address,
-          clientSecret,
-          tokenAuthMethod,
-          deps.logger,
-          fetchImpl,
-          resource,
-        );
-      } catch (error) {
-        throw new SignInRenewalError(error instanceof Error ? error.message : String(error));
-      }
-      // Expiry was checked above, so the renewal either happened or threw.
-      await deps.vaults.setConnection(
-        vault.metadata?.id ?? "",
-        connection.address,
-        {
-          token: result.newAccessToken,
-          source: VaultConnectionSource.sign_in,
-          signIn: {
-            ...renewing,
-            expiresAt: BigInt(result.newExpiresAt),
-            refreshToken: result.newRefreshToken,
-          },
-          // A sign-in made since the run read this one stands.
-          expectStoredToken: connection.storedToken,
-        },
-        caller,
-      );
-      return result.newAccessToken;
+      return flight;
     },
   };
+}
+
+/**
+ * Renews the login the vault holds at the address now, not the one the run
+ * read: a run whose read predates another run's finished renewal would
+ * otherwise send the refresh token that renewal rotated out. A login that
+ * is no longer an expired sign-in (renewed, signed in again, or replaced by
+ * a pasted token) is used as it is, with no request, which is what a run
+ * starting now would get; one removed since the read is refused.
+ */
+async function renewCurrent(
+  deps: SignInFreshenerDeps,
+  fetchImpl: OutboundFetch,
+  vaultId: string,
+  read: OpenedConnection,
+  caller: CallerIdentity,
+): Promise<string> {
+  const vault = await deps.vaults.findById(vaultId);
+  const sealed = vault === undefined ? undefined : deps.vaults.entries(vault).connections.get(read.address);
+  if (sealed?.present !== true) {
+    throw new SignInRenewalError("it was removed from the vault after the run read it");
+  }
+  const connection = await sealed.open();
+  const signIn = connection.signIn;
+  if (
+    connection.source !== VaultConnectionSource.sign_in ||
+    signIn === undefined ||
+    !signInExpired(signIn.expiresAt)
+  ) {
+    if (connection.storedToken !== read.storedToken) {
+      deps.logger.info("A login changed since the run read it; using the vault's current one", {
+        vaultId,
+        address: read.address,
+      });
+    }
+    return connection.token;
+  }
+
+  const loginApp = signIn.loginApp;
+  let clientSecret = "";
+  let tokenAuthMethod = "";
+  try {
+    if (loginApp !== "") {
+      ({ clientSecret, tokenAuthMethod } = await loadSignInClientCredentials(deps, signIn));
+    }
+  } catch (error) {
+    deps.logger.warn("Failed to load the login app's client secret for renewal", {
+      login_app: loginApp,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+  // A public client of the address's own login server was signed in
+  // for the address as its resource; its renewal says so again.
+  const resource =
+    signIn.authMethod === SIGN_IN_THROUGH_LOGIN_SERVER && !isGitHostAddress(connection.address) ? connection.address : "";
+
+  // The refresh token is opened only here, for a renewal.
+  const renewing: VaultSignIn = {
+    ...signIn,
+    refreshToken: (await connection.refreshToken?.()) ?? "",
+  };
+  let result: RefreshResult;
+  try {
+    result = await refreshTokenIfExpired(
+      renewing,
+      connection.address,
+      clientSecret,
+      tokenAuthMethod,
+      deps.logger,
+      fetchImpl,
+      resource,
+    );
+  } catch (error) {
+    throw new SignInRenewalError(error instanceof Error ? error.message : String(error));
+  }
+  // Expiry was checked above, so the renewal either happened or threw.
+  await deps.vaults.setConnection(
+    vaultId,
+    connection.address,
+    {
+      token: result.newAccessToken,
+      source: VaultConnectionSource.sign_in,
+      signIn: {
+        ...renewing,
+        expiresAt: BigInt(result.newExpiresAt),
+        refreshToken: result.newRefreshToken,
+      },
+      // A sign-in made since this renewal read the login stands (another
+      // server process renewing it, or a person signing in again).
+      expectStoredToken: connection.storedToken,
+    },
+    caller,
+  );
+  return result.newAccessToken;
 }
 
 /** What reading a login app's client credentials needs. */
