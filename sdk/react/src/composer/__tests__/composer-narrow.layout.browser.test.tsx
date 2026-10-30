@@ -1,7 +1,8 @@
 // KIT-10's composer half, in a real layout engine: in a 390-pixel column on a
-// desktop-wide window (a docked panel or a popup), every control of the
-// composer's toolbar stays inside it and none overlaps another, with the
-// model's name long enough to need the room (stigmer#2709). The toolbar
+// desktop-wide window (a docked panel or a popup), the toolbar takes its
+// narrow row ("+", Configure, the model, Send), every control stays inside
+// it and none overlaps another, with the model's name long enough to need
+// the room (stigmer#2709). The toolbar
 // sizes to its own width, not the viewport's, so the narrow window a phone
 // gives is not what is under test: the wide window with a narrow column is.
 
@@ -68,13 +69,17 @@ function overlaps(a: DOMRect, b: DOMRect): boolean {
 }
 
 describe("the composer's toolbar in a narrow column", () => {
-  it("KIT-10 keeps every control inside a 390-pixel column, none over another, on a wide window", () => {
+  it("KIT-10 keeps every control inside a 390-pixel column, none over another, on a wide window", async () => {
     renderToolbar(358);
+    await screen.findByRole("button", { name: "Add files or a folder" });
     const toolbar = screen.getByTestId("toolbar").getBoundingClientRect();
     const controls = [...screen.getByTestId("toolbar").querySelectorAll("button")].filter(
       (button) => button.getBoundingClientRect().width > 0,
     );
-    expect(controls.length).toBeGreaterThanOrEqual(5);
+    // The narrow row: "+", Configure, the model, Send.
+    expect(controls.map((control) => control.getAttribute("aria-label") ?? control.textContent)).toEqual(
+      expect.arrayContaining(["Add files or a folder", "Configure agent, tools, and skills", "Send message"]),
+    );
     for (const control of controls) {
       const box = control.getBoundingClientRect();
       expect(box.left, control.textContent ?? "").toBeGreaterThanOrEqual(toolbar.left - 0.5);

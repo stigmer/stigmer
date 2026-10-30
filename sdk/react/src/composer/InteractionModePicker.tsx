@@ -30,6 +30,10 @@ const MODE_META: Record<
   },
 };
 
+/** The modes with their words, in the picker's order (internal: the narrow toolbar's Configure panel reads it). */
+export const INTERACTION_MODES: readonly { readonly value: InteractionModeOption; readonly label: string; readonly description: string }[] =
+  OPTIONS.map((value) => ({ value, ...MODE_META[value] }));
+
 /** Props for {@link InteractionModePicker}. */
 export interface InteractionModePickerProps {
   /** Currently selected interaction mode. */
