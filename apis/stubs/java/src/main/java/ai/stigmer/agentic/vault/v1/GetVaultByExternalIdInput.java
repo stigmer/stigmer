@@ -106,8 +106,8 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object externalId_ = "";
   /**
    * <pre>
-   * The vault's external id, at most 200 characters, written as a saved one
-   * is: a letter or digit, then letters, digits and . _ : &#64; / -.
+   * The vault's external id, written as a saved one is: at most 200
+   * characters, a letter or digit first, then letters, digits or `._:&#64;/-`.
    * </pre>
    *
    * <code>string external_id = 2 [json_name = "externalId", (.buf.validate.field) = { ... }</code>
@@ -128,8 +128,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The vault's external id, at most 200 characters, written as a saved one
-   * is: a letter or digit, then letters, digits and . _ : &#64; / -.
+   * The vault's external id, written as a saved one is: at most 200
+   * characters, a letter or digit first, then letters, digits or `._:&#64;/-`.
    * </pre>
    *
    * <code>string external_id = 2 [json_name = "externalId", (.buf.validate.field) = { ... }</code>
@@ -567,8 +567,8 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object externalId_ = "";
     /**
      * <pre>
-     * The vault's external id, at most 200 characters, written as a saved one
-     * is: a letter or digit, then letters, digits and . _ : &#64; / -.
+     * The vault's external id, written as a saved one is: at most 200
+     * characters, a letter or digit first, then letters, digits or `._:&#64;/-`.
      * </pre>
      *
      * <code>string external_id = 2 [json_name = "externalId", (.buf.validate.field) = { ... }</code>
@@ -588,8 +588,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The vault's external id, at most 200 characters, written as a saved one
-     * is: a letter or digit, then letters, digits and . _ : &#64; / -.
+     * The vault's external id, written as a saved one is: at most 200
+     * characters, a letter or digit first, then letters, digits or `._:&#64;/-`.
      * </pre>
      *
      * <code>string external_id = 2 [json_name = "externalId", (.buf.validate.field) = { ... }</code>
@@ -610,8 +610,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The vault's external id, at most 200 characters, written as a saved one
-     * is: a letter or digit, then letters, digits and . _ : &#64; / -.
+     * The vault's external id, written as a saved one is: at most 200
+     * characters, a letter or digit first, then letters, digits or `._:&#64;/-`.
      * </pre>
      *
      * <code>string external_id = 2 [json_name = "externalId", (.buf.validate.field) = { ... }</code>
@@ -628,8 +628,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The vault's external id, at most 200 characters, written as a saved one
-     * is: a letter or digit, then letters, digits and . _ : &#64; / -.
+     * The vault's external id, written as a saved one is: at most 200
+     * characters, a letter or digit first, then letters, digits or `._:&#64;/-`.
      * </pre>
      *
      * <code>string external_id = 2 [json_name = "externalId", (.buf.validate.field) = { ... }</code>
@@ -643,8 +643,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The vault's external id, at most 200 characters, written as a saved one
-     * is: a letter or digit, then letters, digits and . _ : &#64; / -.
+     * The vault's external id, written as a saved one is: at most 200
+     * characters, a letter or digit first, then letters, digits or `._:&#64;/-`.
      * </pre>
      *
      * <code>string external_id = 2 [json_name = "externalId", (.buf.validate.field) = { ... }</code>

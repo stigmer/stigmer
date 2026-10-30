@@ -262,8 +262,8 @@ export type GetVaultByExternalIdInput = Message<"ai.stigmer.agentic.vault.v1.Get
   org: string;
 
   /**
-   * The vault's external id, at most 200 characters, written as a saved one
-   * is: a letter or digit, then letters, digits and . _ : @ / -.
+   * The vault's external id, written as a saved one is: at most 200
+   * characters, a letter or digit first, then letters, digits or `._:@/-`.
    *
    * @generated from field: string external_id = 2;
    */

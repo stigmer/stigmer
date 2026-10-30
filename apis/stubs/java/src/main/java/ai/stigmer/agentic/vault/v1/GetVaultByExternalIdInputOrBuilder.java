@@ -32,8 +32,8 @@ public interface GetVaultByExternalIdInputOrBuilder extends
 
   /**
    * <pre>
-   * The vault's external id, at most 200 characters, written as a saved one
-   * is: a letter or digit, then letters, digits and . _ : &#64; / -.
+   * The vault's external id, written as a saved one is: at most 200
+   * characters, a letter or digit first, then letters, digits or `._:&#64;/-`.
    * </pre>
    *
    * <code>string external_id = 2 [json_name = "externalId", (.buf.validate.field) = { ... }</code>
@@ -42,8 +42,8 @@ public interface GetVaultByExternalIdInputOrBuilder extends
   java.lang.String getExternalId();
   /**
    * <pre>
-   * The vault's external id, at most 200 characters, written as a saved one
-   * is: a letter or digit, then letters, digits and . _ : &#64; / -.
+   * The vault's external id, written as a saved one is: at most 200
+   * characters, a letter or digit first, then letters, digits or `._:&#64;/-`.
    * </pre>
    *
    * <code>string external_id = 2 [json_name = "externalId", (.buf.validate.field) = { ... }</code>

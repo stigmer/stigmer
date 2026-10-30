@@ -1380,7 +1380,7 @@ Input for finding a shared vault by the integrator's own id.
 <TypeTable
   type={{
     org: { type: "string", description: "Organization, by slug or id." },
-    externalId: { type: "string", description: "The vault's external id, at most 200 characters, written as a saved one is: a letter or digit, then letters, digits and ." },
+    externalId: { type: "string", description: "The vault's external id, written as a saved one is: at most 200 characters, a letter or digit first, then letters, digits or `._:@/-`." },
   }}
 />
 

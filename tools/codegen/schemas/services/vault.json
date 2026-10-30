@@ -1092,7 +1092,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "The vault's external id, at most 200 characters, written as a saved one\n is: a letter or digit, then letters, digits and . _ : @ / -.",
+          "description": "The vault's external id, written as a saved one is: at most 200\n characters, a letter or digit first, then letters, digits or `._:@/-`.",
           "required": false,
           "validation": {
             "minLength": 1,

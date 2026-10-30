@@ -135,8 +135,8 @@ message GetVaultByExternalIdInput {
   // Organization, by slug or id.
   string org = 1 [(buf.validate.field).string.min_len = 1];
 
-  // The vault's external id, at most 200 characters, written as a saved one
-  // is: a letter or digit, then letters, digits and . _ : @ / -.
+  // The vault's external id, written as a saved one is: at most 200
+  // characters, a letter or digit first, then letters, digits or `._:@/-`.
   string external_id = 2 [(buf.validate.field).string = {
     min_len: 1
     max_len: 200

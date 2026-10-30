@@ -538,8 +538,8 @@ type GetVaultByExternalIdInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Organization, by slug or id.
 	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
-	// The vault's external id, at most 200 characters, written as a saved one
-	// is: a letter or digit, then letters, digits and . _ : @ / -.
+	// The vault's external id, written as a saved one is: at most 200
+	// characters, a letter or digit first, then letters, digits or `._:@/-`.
 	ExternalId    string `protobuf:"bytes,2,opt,name=external_id,json=externalId,proto3" json:"external_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
