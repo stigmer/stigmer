@@ -4,7 +4,8 @@
 // `--version` reads the agent at a hash or a tag through the reference ladder.
 // A hash-shaped argument the server finds no tag or hash for is read as a
 // short hash and asked for again in full; a tag that looks like hex still
-// wins, and a short hash no version has answers the server's not-found.
+// wins, a short hash no version has answers the server's not-found, and one
+// several versions share is a usage error.
 
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
@@ -12,6 +13,7 @@ import { describe, expect, it, vi } from "vitest";
 import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentVersionEntrySchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/version_pb";
 import type { Stigmer } from "@stigmer/client";
+import { classify, ExitCode } from "../../errors/index.js";
 import { getAgentAtVersion, renderAgentVersionHistory } from "../version.js";
 
 const V2 = "b".repeat(64);
@@ -70,8 +72,10 @@ describe("renderAgentVersionHistory", () => {
 describe("getAgentAtVersion", () => {
   const NOT_FOUND = new ConnectError("agent version not found", Code.NotFound);
 
-  // A server holding versions V1 and V2, with the hex-looking tag
-  // "cafe1234" on V1, and the history on one page.
+  // A server holding versions V1, V2 and V3 (V3 shares V1's first 32
+  // characters), with the hex-looking tag "cafe1234" on V1, and the history
+  // on one page.
+  const V3 = `${"a".repeat(32)}${"c".repeat(32)}`;
   function serverWith() {
     const agentAt = (versionHash: string) => create(AgentSchema, { metadata: { id: "agt_1" }, status: { versionHash } });
     const getByReference = vi.fn(async ({ version }: { version: string }) => {
@@ -83,6 +87,7 @@ describe("getAgentAtVersion", () => {
       entries: [
         create(AgentVersionEntrySchema, { versionHash: V2 }),
         create(AgentVersionEntrySchema, { versionHash: V1, tag: "cafe1234" }),
+        create(AgentVersionEntrySchema, { versionHash: V3 }),
       ],
       nextPageToken: "",
     }));
@@ -114,5 +119,22 @@ describe("getAgentAtVersion", () => {
     await expect(getAgentAtVersion(client, "acme", "reviewer", "dddd")).rejects.toBe(NOT_FOUND);
     await expect(getAgentAtVersion(client, "acme", "reviewer", "nightly")).rejects.toBe(NOT_FOUND);
     expect(listVersions).toHaveBeenCalledTimes(1);
+  });
+
+  it("answers the server's not-found for a full hash it does not hold, without reading the history", async () => {
+    const { client, listVersions } = serverWith();
+
+    await expect(getAgentAtVersion(client, "acme", "reviewer", "e".repeat(64))).rejects.toBe(NOT_FOUND);
+    expect(listVersions).not.toHaveBeenCalled();
+    expect((await getAgentAtVersion(client, "acme", "reviewer", V2.toUpperCase())).status?.versionHash).toBe(V2);
+  });
+
+  it("is a usage error for a short hash several versions share", async () => {
+    const { client } = serverWith();
+
+    const err = await getAgentAtVersion(client, "acme", "reviewer", "aaaa").catch((e: unknown) => e);
+
+    expect(classify(err)?.exitCode).toBe(ExitCode.Usage);
+    expect((err as Error).message).toContain("aaaa matches 2 versions of acme/reviewer:");
   });
 });
