@@ -24,8 +24,11 @@ export type TerminalBackground = "light" | "dark" | "unknown";
 
 /** The streams and environment the detection reads. */
 export interface DetectBackgroundOptions {
+  /** Where the reply is read; `process.stdin` by default. */
   readonly stdin?: NodeJS.ReadStream;
+  /** Where the question is written; `process.stdout` by default. */
   readonly stdout?: NodeJS.WriteStream;
+  /** The environment `COLORFGBG` is read from; `process.env` by default. */
   readonly env?: Readonly<Record<string, string | undefined>>;
   /** How long to wait for the terminal's reply; 100 ms by default. */
   readonly timeoutMs?: number;

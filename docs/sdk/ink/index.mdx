@@ -108,6 +108,36 @@ The roles are `accent` (prompts, the selected row, spinners), `muted`,
 `success`, `warning` and `danger`; each takes an Ink colour name or a hex value.
 Your own components read them with `useInkTheme()` or `useRoles()`.
 
+Replies are drawn in weight alone (bold, italic, dim, underline), with no
+colour, so they read on a light and a dark terminal. If your own colours differ
+between the two, pass the theme as a function of the background:
+
+```tsx
+await runInTerminal(client, input, {
+  theme: (background) => ({ accent: background === "light" ? "#5b21b6" : "#c4b5fd" }),
+});
+```
+
+`runInTerminal` asks the terminal for its background (an OSC 11 query, at most
+100 ms, falling back to `COLORFGBG`) only when the theme is a function. With your
+own provider, call `detectBackground()` first and pass its answer as the
+provider's `background`.
+
+## What the session draws
+
+What can no longer change is written once into the terminal's scrollback: the
+person's message, each finished block of a reply, a tool group whose calls
+returned, a finished subagent. Only what is still changing redraws in place, so
+a long turn never clears the screen or the scrollback above it. What is being
+written follows a resize; what is already in the scrollback keeps the width it
+was written at.
+
+Thinking shows as one dim line, "✻ Thinking" while it streams and "✻ Thought"
+once done; Ctrl+O shows all of it. Just above the reply box, `WorkingLine` says
+what the turn is doing and for how long ("⠋ Running a command · 1m 12s"), from
+the same `describeTurnActivity` the browser's activity line reads. A completed
+turn leaves "✻ Worked for 1m 12s"; a failed or stopped one keeps its badge.
+
 ## Provider and transport
 
 For more control, create the client yourself and wrap your tree in
@@ -187,10 +217,10 @@ import {
   InkStigmerProvider,
   createNodeClient,
   MessageThread,
-  RunProgress,
+  WorkingLine,
   FollowUpInput,
 } from "@stigmer/ink-ui";
-import { runPhaseOf, useSessionConversation } from "@stigmer/react-core";
+import { useSessionConversation } from "@stigmer/react-core";
 import { Box } from "ink";
 
 function CustomView({ sessionId, org }: { sessionId: string; org: string }) {
@@ -198,15 +228,15 @@ function CustomView({ sessionId, org }: { sessionId: string; org: string }) {
 
   return (
     <Box flexDirection="column">
-      {conv.activePhase != null && (
-        <RunProgress phase={runPhaseOf(conv.activePhase)} />
-      )}
       <MessageThread
         turns={conv.turns}
         runs={conv.runs}
         onAnswerToolUse={conv.answerToolUse}
         answeringToolUseIds={conv.answeringToolUseIds}
       />
+      {conv.activePhase != null && (
+        <WorkingLine turn={conv.activeTurn} isSlow={conv.isSlow} isStopping={conv.isStopping} />
+      )}
       <FollowUpInput
         onSubmit={(msg) => conv.sendFollowUp(msg)}
         isSubmitting={conv.isSending}
@@ -219,8 +249,9 @@ function CustomView({ sessionId, org }: { sessionId: string; org: string }) {
 
 Every component listed in the [Reference](/docs/sdk/ink/reference) can be used
 independently. `MessageThread` builds the full conversation thread.
-`MessageEntry` renders a single message. `ToolCallGroup` and `ToolCallItem`
-handle tool call display. `ApprovalPrompt` renders the HITL approval UI.
+`MessageEntry` renders a single message and `Markdown` a markdown text.
+`ToolCallGroup` and `ToolCallItem` handle tool call display. `ApprovalPrompt`
+renders the HITL approval UI.
 
 ## CLI integration
 
