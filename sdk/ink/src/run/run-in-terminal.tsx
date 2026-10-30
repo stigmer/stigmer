@@ -50,6 +50,8 @@ export interface RunInTerminalOptions {
   readonly until?: "turn" | "exit";
   /** How an ask is settled off a terminal, where no one can answer: denied unless `"approve"`. */
   readonly approveDefault?: "approve" | "deny";
+  /** The setting that approves asks, as the view names it when it settles one (`SessionView`'s `approveSetting`). */
+  readonly approveSetting?: string;
   /** Interaction mode for follow-ups typed in the view. */
   readonly mode?: InteractionMode;
   /** The host's colours by role (see {@link InkTheme}). */
@@ -98,13 +100,14 @@ interface TerminalRunProps {
   readonly live: boolean;
   readonly canAnswer: boolean;
   readonly approveDefault: "approve" | "deny";
+  readonly approveSetting: string | undefined;
   readonly mode: InteractionMode | undefined;
   readonly onTurn: (turn: Turn) => void;
   readonly onLoadError: (error: Error) => void;
 }
 
 /** The view, watching its own conversation for this run's turn. */
-function TerminalRun({ sessionId, org, runId, until, live, canAnswer, approveDefault, mode, onTurn, onLoadError }: TerminalRunProps) {
+function TerminalRun({ sessionId, org, runId, until, live, canAnswer, approveDefault, approveSetting, mode, onTurn, onLoadError }: TerminalRunProps) {
   const { exit } = useApp();
   const watch = useMemo<TurnWatch>(
     () => ({
@@ -124,7 +127,15 @@ function TerminalRun({ sessionId, org, runId, until, live, canAnswer, approveDef
   );
   return (
     <TurnWatchContext.Provider value={watch}>
-      <SessionView sessionId={sessionId} org={org} mode={mode} live={live} canAnswer={canAnswer} approveDefault={approveDefault} />
+      <SessionView
+        sessionId={sessionId}
+        org={org}
+        mode={mode}
+        live={live}
+        canAnswer={canAnswer}
+        approveDefault={approveDefault}
+        approveSetting={approveSetting}
+      />
     </TurnWatchContext.Provider>
   );
 }
@@ -174,6 +185,7 @@ export async function runInTerminal(
         live={live}
         canAnswer={canAnswer}
         approveDefault={options.approveDefault ?? "deny"}
+        approveSetting={options.approveSetting}
         mode={options.mode}
         onTurn={(turn) => {
           latest = turn;

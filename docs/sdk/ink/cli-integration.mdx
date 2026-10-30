@@ -57,6 +57,12 @@ npm install --global @stigmer/ink-ui
 stigmer-ink --help
 ```
 
+The people who run your tool need Node.js and `stigmer-ink` too, so put this
+install line in your tool's own install steps. To try the binary once without
+installing it, `npx --yes @stigmer/ink-ui --help` runs it from npm; your tool
+should still call the installed `stigmer-ink`, since `npx` resolves and may
+download the package on every run.
+
 Start Stigmer with your model key in the shell:
 
 ```bash

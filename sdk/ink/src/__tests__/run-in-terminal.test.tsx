@@ -234,18 +234,20 @@ describe("INK-06 runInTerminal returns when the turn ends", () => {
     expect(written.indexOf("Release check")).toBeLessThan(written.indexOf("Earlier."));
   });
 
-  it("off a terminal settles an ask by approveDefault through the view", async () => {
+  it("off a terminal settles an ask by approveDefault through the view, naming the host's setting", async () => {
     const answers: unknown[][] = [];
     const ask = samples.toolUse("execute", undefined, { runId: RUN });
     store.state = conversation([samples.turn({ runId: RUN, phase: "running" })], {
       asks: [ask],
       answerToolUse: async (...args: unknown[]) => void answers.push(args),
     });
-    const run = runInTerminal(startsRun(), INPUT, { ...streams(false), approveDefault: "approve" });
+    const io = streams(false);
+    const run = runInTerminal(startsRun(), INPUT, { ...io, approveDefault: "approve", approveSetting: "--yes" });
     await tick();
     store.set({ asks: [], turns: [samples.turn({ runId: RUN, phase: "completed" })] });
     await run;
     expect(answers).toEqual([[ask.id, "allow", undefined]]);
+    expect((io.stdout as unknown as FakeStdout).frames.join("")).toContain("Approved execute without asking (--yes).");
   });
 
   it("a turn that cannot start is written for a person and rejects with its exit code", async () => {

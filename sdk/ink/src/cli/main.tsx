@@ -115,6 +115,7 @@ export async function runCli(argv: readonly string[], io: CliIo, deps: CliDeps =
       {
         until: request.until,
         approveDefault: request.approveDefault,
+        approveSetting: "--approve-default approve",
         mode: request.mode,
         signal: io.signal,
         stdin: io.stdin,

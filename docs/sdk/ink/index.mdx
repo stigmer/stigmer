@@ -57,6 +57,7 @@ turn's outcome (`phase`, `answer`, `structuredOutput`, `error`, the folded
 |--------|---------|--------------|
 | `until` | `"turn"` | `"exit"` keeps the conversation open for follow-ups until Ctrl+C. |
 | `approveDefault` | `"deny"` | How approvals are settled off a terminal, where no one can answer. |
+| `approveSetting` | `approveDefault: "approve"` | The setting the view names when it settles one; pass your own flag, such as `--yes`. |
 | `theme` | Stigmer's | Your colours by role (below). |
 | `signal` | none | Stops waiting at once; the run goes on, and the exit code is 130. |
 | `mode` | `"agent"` | `"plan"` for read-only follow-ups. |

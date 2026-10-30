@@ -232,7 +232,7 @@ describe("INK-04 SessionView off a terminal", () => {
     rerender(<SessionView sessionId="ses_1" org="acme" canAnswer={false} />);
     await settle();
     expect(answers).toEqual([[ask.id, "deny", "No one could answer: the session ran without a terminal."]]);
-    expect(lastFrame()).toContain("Denied write_file: no terminal to ask on (set approveDefault to approve)");
+    expect(lastFrame()).toContain('Denied write_file — nobody at a terminal to approve it. Use approveDefault: "approve" to allow.');
     // The same ask in a new list (the conversation re-read) is not settled again.
     conversation = makeConversation({ ...conversation, asks: [ask] });
     rerender(<SessionView sessionId="ses_1" org="acme" canAnswer={false} />);
@@ -248,7 +248,7 @@ describe("INK-04 SessionView off a terminal", () => {
     const off = render(<SessionView sessionId="ses_1" org="acme" canAnswer={false} approveDefault="approve" />);
     await settle();
     expect(answers).toEqual([[ask.id, "allow", undefined]]);
-    expect(off.lastFrame()).toContain("Approved write_file: no terminal to ask on (approveDefault is approve)");
+    expect(off.lastFrame()).toContain('Approved write_file without asking (approveDefault: "approve").');
     off.unmount();
 
     answers.length = 0;
@@ -263,7 +263,7 @@ describe("INK-04 SessionView off a terminal", () => {
     const { lastFrame } = render(<SessionView sessionId="ses_1" org="acme" canAnswer={false} approveDefault="leave" />);
     await settle();
     expect(answers).toEqual([]);
-    expect(lastFrame()).not.toContain("no terminal to ask on");
+    expect(lastFrame()).not.toContain("nobody at a terminal");
   });
 
   it("leaves a file review pending and says it waits for a terminal", () => {

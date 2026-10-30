@@ -311,7 +311,9 @@ test("INK-04 off a terminal the same runs render read-only, deny the ask by defa
       const result = await spawnCommand(["bash", "-c", 'cd "$0" || exit 1; eval "$1" < /dev/null'], [job.cwd, job.line], shell, COMMAND_TIMEOUT_MS).done;
       if (args.keep) writeFileSync(join(scratch, `pipe-${jobs.indexOf(job)}.txt`), result.stdout);
       if (result.status !== 0) throw new Error(`${job.line} through a pipe exited ${result.status}:\n${result.stdout.slice(-4000)}\n${result.stderr}`);
-      for (const text of ["Denied execute: no terminal to ask on (set approveDefault to approve)", CLOSING]) {
+      // The README's example names the library's setting; the bridges run the bin, which names its flag.
+      const setting = job.page === "README" ? 'approveDefault: "approve"' : "--approve-default approve";
+      for (const text of [`Denied execute — nobody at a terminal to approve it. Use ${setting} to allow.`, CLOSING]) {
         if (!result.stdout.includes(text)) throw new Error(`${job.line} through a pipe lacks "${text}":\n${result.stdout.slice(-4000)}`);
       }
       if (/\x1b\[[0-9;]*[ABCDGHJK]/.test(result.stdout)) throw new Error(`${job.line} through a pipe moved the cursor`);

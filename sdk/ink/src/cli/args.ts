@@ -34,7 +34,7 @@ export type CliRequest =
       readonly mode: "agent" | "plan" | undefined;
     };
 
-export const USAGE = `stigmer-ink: run a Stigmer agent in the terminal, then exit with how it ended.
+export const USAGE = `stigmer-ink: run a Stigmer agent in your terminal; the exit code says how the turn ended.
 
 Usage:
   stigmer-ink --agent <org/slug> --message <text> [options]   start a conversation

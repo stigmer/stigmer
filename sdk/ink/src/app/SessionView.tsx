@@ -64,6 +64,12 @@ export interface SessionViewProps {
    */
   readonly approveDefault?: "approve" | "deny" | "leave";
   /**
+   * The setting that approves asks off a terminal, in the host's own words,
+   * which the view names when it settles one: `approveDefault: "approve"` by
+   * default; a host CLI passes its flag (the bin passes `--approve-default approve`).
+   */
+  readonly approveSetting?: string;
+  /**
    * Called once for each turn the view sees end (its status says it ended),
    * including turns already ended when it loads the session; a host that
    * waits for one run filters by `turn.runId`.
@@ -129,6 +135,7 @@ export function SessionView({
   mode,
   canAnswer: canAnswerProp,
   approveDefault = "deny",
+  approveSetting = 'approveDefault: "approve"',
   onTurnEnd,
   live = true,
 }: SessionViewProps) {
@@ -262,8 +269,8 @@ export function SessionView({
         <Box key={ask.id} paddingLeft={1}>
           <Text {...(ask.approved ? role.success : role.warning)}>
             {ask.approved
-              ? `Approved ${ask.name}: no terminal to ask on (approveDefault is approve)`
-              : `Denied ${ask.name}: no terminal to ask on (set approveDefault to approve)`}
+              ? `Approved ${ask.name} without asking (${approveSetting}).`
+              : `Denied ${ask.name} — nobody at a terminal to approve it. Use ${approveSetting} to allow.`}
           </Text>
         </Box>
       ))}

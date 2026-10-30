@@ -77,7 +77,7 @@ describe("runCli", () => {
     expect(run).toHaveBeenCalledWith(
       client,
       { org: "acme", sessionSpec: { agentRef: { org: "acme", slug: "reviewer" } }, message: "Review" },
-      expect.objectContaining({ until: "turn", approveDefault: "approve", signal: proc.signal, stdout: proc.stdout }),
+      expect.objectContaining({ until: "turn", approveDefault: "approve", approveSetting: "--approve-default approve", signal: proc.signal, stdout: proc.stdout }),
     );
   });
 
