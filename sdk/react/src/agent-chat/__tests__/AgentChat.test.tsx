@@ -25,9 +25,10 @@ type CapturedProps = Record<string, unknown>;
 
 const newSessionViewerProps: CapturedProps[] = [];
 /** Whether the launcher probe draws a portaled menu (never on the server, which has no portals). */
-const probe = { menu: false };
+const probe = { menu: false, preview: false };
 vi.mock("../../session/NewSessionViewer", async () => {
   const { createPortal } = await import("react-dom");
+  const { DialogShell } = await import("../../internal/DialogShell");
   return {
     NewSessionViewer: (props: CapturedProps) => {
       newSessionViewerProps.push(props);
@@ -36,6 +37,12 @@ vi.mock("../../session/NewSessionViewer", async () => {
           {props.footerContent as never}
           {/* A composer menu, portaled out of the chat as the kit's menus are. */}
           {probe.menu && createPortal(<button type="button">Menu item</button>, document.body)}
+          {/* A dialog the chat opens inside the popup, as a File's preview is. */}
+          {probe.preview && (
+            <DialogShell open modal={false} onOpenChange={() => {}} aria-label="ledger.csv">
+              <button type="button">Download</button>
+            </DialogShell>
+          )}
         </div>
       );
     },
@@ -74,6 +81,7 @@ beforeEach(() => {
   sessionViewerProps.length = 0;
   reporter.current = null;
   probe.menu = false;
+  probe.preview = false;
 });
 
 afterEach(() => {
@@ -268,6 +276,13 @@ describe("AgentChat, the popup", () => {
     probe.menu = true;
     render(<AgentChat agent="acme/billing-agent" variant="popup" defaultOpen />);
     fireEvent.keyDown(screen.getByRole("button", { name: "Menu item" }), { key: "Escape" });
+    expect(popupDialog().open).toBe(true);
+  });
+
+  it("leaves an Escape pressed in a dialog inside the chat to that dialog", () => {
+    probe.preview = true;
+    render(<AgentChat agent="acme/billing-agent" variant="popup" defaultOpen />);
+    fireEvent.keyDown(screen.getByRole("button", { name: "Download" }), { key: "Escape" });
     expect(popupDialog().open).toBe(true);
   });
 
