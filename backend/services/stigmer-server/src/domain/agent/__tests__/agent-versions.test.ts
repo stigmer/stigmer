@@ -10,6 +10,8 @@
  *   - an unchanged update records nothing and keeps the version chain; a
  *     changed one chains a new version; an A→B→A update repoints without a
  *     new row, and listVersions marks the older row current;
+ *   - an agent stored before versions existed (no version hash, no version
+ *     rows) gains its first version on its next save, unchanged or not;
  *   - getByReference resolves the head, a hash and a tag, and an archived
  *     version reports the tag it holds now;
  *   - getVersion serves the full spec of any version, NotFound for one the
@@ -190,6 +192,31 @@ describe("agent versions: what a write records", () => {
     expect(current.map((entry) => entry.versionHash)).toEqual([
       a.status?.versionHash,
     ]);
+  });
+
+  it("an agent stored before versions existed gains its first version on an unchanged save", async () => {
+    const name = uniqueName("Before versions");
+    const stored = await command.apply(agentInput(name, "v1"));
+    const id = stored.metadata!.id;
+    await server.store.updateResource(
+      ApiResourceKind.agent,
+      id,
+      AgentSchema,
+      (agent) => {
+        agent.status!.versionHash = "";
+        agent.metadata!.version = undefined;
+      },
+    );
+    await server.store.deleteAuditByResourceId(ApiResourceKind.agent, id);
+    expect(await versionRows(id)).toBe(0);
+
+    const saved = await command.apply(agentInput(name, "v1"));
+    const hash = saved.status!.versionHash;
+    expect(hash).toMatch(/^[a-f0-9]{64}$/);
+    expect(saved.metadata?.version?.id).toBe(hash);
+    expect(await versionRows(id)).toBe(1);
+    const entry = await query.getVersion({ agentId: id, versionHash: hash });
+    expect(entry.isCurrent).toBe(true);
   });
 });
 

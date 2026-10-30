@@ -13,6 +13,11 @@ identified by its content hash. Tags give a stable, human-friendly handle to a
 particular version (for example `stable` or `v1`). Agents are the supported
 resource type; Skills are tagged when they are pushed.
 
+The hash can be the full 64 characters or any unique prefix of at least 4, such
+as the 12-character short hash `stigmer get agent --version-history` prints. A
+prefix that matches no version is refused as not found; one that several
+versions share is refused with the versions it matches.
+
 ## Usage
 
 ```bash
@@ -22,7 +27,10 @@ stigmer tag <type> <org/slug> <hash> <tag>
 ### Common patterns
 
 ```bash
-# Tag an agent version as stable, by its full 64-character hash
+# Tag an agent version as stable, by the short hash the history prints
+stigmer tag agent acme-corp/variance-reporter 3f8a1c0e9b7d stable
+
+# The same, by its full 64-character hash
 stigmer tag agent acme-corp/variance-reporter 3f8a1c0e9b7d2a4c6e5f1b3d9a7c0e2f4b6d8a1c3e5f7b9d0a2c4e6f8b1d3a5c stable
 
 # Tag another version as v1
@@ -34,13 +42,12 @@ stigmer tag agent acme-corp/variance-reporter 9c2e4a6b8d0f1a3c5e7b9d1f3a5c7e9b0d
 ### Promote a version to "stable"
 
 ```bash
-stigmer get agent acme-corp/variance-reporter -o yaml   # metadata.version.id
-stigmer tag agent acme-corp/variance-reporter 3f8a1c0e9b7d2a4c6e5f1b3d9a7c0e2f4b6d8a1c3e5f7b9d0a2c4e6f8b1d3a5c stable
+stigmer get agent acme-corp/variance-reporter --version-history   # the HASH column
+stigmer tag agent acme-corp/variance-reporter 3f8a1c0e9b7d stable
 ```
 
-The tag now points at the version with that hash: the current version's full
-hash is `metadata.version.id` in the agent's YAML. Re-tagging moves the tag to a
-new version.
+The tag now points at the version with that hash; the history shows it in the
+TAG column. Re-tagging moves the tag to a new version.
 
 ## Global Flags
 

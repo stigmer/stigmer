@@ -8,8 +8,12 @@ import { globalOrg } from "./shared.js";
 
 export function registerTag(program: Command): void {
   program
-    .command("tag <type> <org/slug> <hash> <tag>")
+    .command("tag")
     .description("assign a tag to a resource version (supported types: agent)")
+    .argument("<type>", "the resource type")
+    .argument("<org/slug>", "the resource")
+    .argument("<hash>", "the version's hash, or a unique prefix of it as `get agent --version-history` prints it")
+    .argument("<tag>", "the tag to assign; it moves off any version that held it")
     .action((type: string, ref: string, hash: string, tag: string, _options: unknown, command: Command) =>
       runTag(type, ref, hash, tag, command),
     );

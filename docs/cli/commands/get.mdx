@@ -47,7 +47,9 @@ stigmer get agent my-agent --output yaml
 ### Versions
 
 Agents keep every version an apply records. Show the history, or fetch one
-version by its content hash or a tag:
+version by a tag or its content hash. The short hash the history prints works
+too, as does any unique prefix of at least 4 characters; a tag of the same name
+wins over a prefix:
 
 ```bash
 # The version history, newest first; * marks the current version
@@ -55,6 +57,9 @@ stigmer get agent acme-corp/variance-reporter --version-history
 
 # The agent as the version tagged "stable" stored it
 stigmer get agent acme-corp/variance-reporter --version stable
+
+# The agent as the version whose hash the history prints as 3f8a1c0e9b7d
+stigmer get agent acme-corp/variance-reporter --version 3f8a1c0e9b7d
 ```
 
 ### Supported resource types
