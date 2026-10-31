@@ -7,8 +7,8 @@
 // command it started in the background changes state ("Background command
 // `npm test` exited with code 1", from the fold's `background`, the fact the
 // console reads), a subagent's start and
-// end (once its task call settles, with its span, "✓ Subagent completed
-// (1m 4s)") with its tool uses indented beneath, the platform's notes, a context
+// end with its tool uses indented beneath (its task call's line, once the
+// call returns, carries its span: "✓ task (1m 4s)"), the platform's notes, a context
 // compaction, the turn's errors, and how each ask was answered. No ANSI, no
 // frames. Each fold is compared with the last by reference, so a turn no event
 // touched is not walked again, and everything already written stays written.
@@ -91,7 +91,7 @@ export class PlaintextRenderer implements HeadlessRenderer {
   private renderTool(tool: ToolUse, indent: string): void {
     if (this.toolStates.get(tool.id) !== tool.state) {
       this.toolStates.set(tool.id, tool.state);
-      this.opts.status.write(`${indent}  ${toolLine(tool)}\n`);
+      this.opts.status.write(`${indent}  ${toolLine(tool)}${tool.thread === undefined ? "" : threadSpan(tool)}\n`);
     }
     const background = tool.background;
     if (background !== undefined && this.backgroundStates.get(tool.id) !== background.state) {
@@ -101,15 +101,13 @@ export class PlaintextRenderer implements HeadlessRenderer {
     const thread = tool.thread;
     if (thread === undefined) return;
     const name = thread.agentName !== "" ? thread.agentName : tool.name;
-    if (this.once(`${thread.id}:start`)) this.opts.status.write(`${indent}  ↳ Subagent: ${name}\n`);
+    const previous = this.threadStates.get(thread.id);
+    if (previous === undefined) this.opts.status.write(`${indent}  ↳ Subagent: ${name}\n`);
     this.renderItems(thread.items, `${indent}  `, false);
-    // A finished subagent's end line waits for its task call to settle, so
-    // the line can carry the span the call's result stamps.
-    const settled = tool.state !== "running" && tool.state !== "waiting";
-    if (this.threadStates.get(thread.id) !== thread.state && (thread.state === "running" || settled)) {
+    if (previous !== thread.state) {
       this.threadStates.set(thread.id, thread.state);
       const end = THREAD_END[thread.state];
-      if (end !== "") this.opts.status.write(`${indent}  ${end}${threadSpan(tool)}: ${name}\n`);
+      if (end !== "") this.opts.status.write(`${indent}  ${end}: ${name}\n`);
     }
   }
 
@@ -127,8 +125,8 @@ const THREAD_END: Record<NonNullable<ToolUse["thread"]>["state"], string> = {
   stopped: "⊘ Subagent stopped",
 };
 
-// A finished subagent's span, " (1m 4s)", from its task call to the call's
-// result; "" when the log stamps either end with no time.
+// A subagent's span, " (1m 4s)", from its task call to the call's result;
+// "" while the call is open or when the log stamps either end with no time.
 function threadSpan(tool: ToolUse): string {
   const start = Date.parse(tool.processedAt);
   const end = Date.parse(tool.result?.processedAt ?? "");

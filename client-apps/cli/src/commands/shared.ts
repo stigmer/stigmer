@@ -3,6 +3,7 @@
 // individual handlers.
 
 import type { Command } from "commander";
+import { nearestOption } from "../global-options.js";
 import { type CommandClass, type OutputFlags, type OutputFormat, resolveFormat } from "../output/index.js";
 
 /** Add read-verb output flags: `-o/--output {table,json,yaml}` plus `--json`. */
@@ -34,8 +35,8 @@ export function formatFor(options: OutputFlags, commandClass: CommandClass): Out
   return resolveFormat(options, commandClass);
 }
 
-/** Read the inherited global `--org` flag from within a subcommand action. */
+/** Read the global `--org` flag from within a subcommand action, written before or after the command. */
 export function globalOrg(command: Command): string | undefined {
-  const value = command.optsWithGlobals().org;
+  const value = nearestOption(command, "org");
   return typeof value === "string" && value !== "" ? value : undefined;
 }

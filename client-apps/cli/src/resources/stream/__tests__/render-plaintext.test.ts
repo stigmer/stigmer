@@ -3,8 +3,8 @@
 // messages to the data sink; a tool use gets a line each time its state
 // changes (running, waiting, completed, failed with the head of its output,
 // denied, interrupted), titled by a shell call's intent; a subagent's start,
-// its tool uses indented beneath, and its end once its call settles, with its
-// span, its messages left out; notes,
+// its tool uses indented beneath, and its end, its messages left out, and its
+// span on its task call's line once the call returns; notes,
 // compactions and the turn's errors once each; a background command's line
 // each time its state changes; how an ask was answered; a
 // turn the fold did not touch is not written again; thinking is silent.
@@ -98,11 +98,11 @@ describe("PlaintextRenderer", () => {
       threadIdle(R, thread, "end_turn"),
       result(R, "t1", "found it"),
     ]);
-    expect(status()).toContain("  ⠋ task\n  ↳ Subagent: researcher\n    ⠋ read\n    ✓ read\n  ✓ task\n  ✓ Subagent completed: researcher\n");
+    expect(status()).toContain("  ⠋ task\n  ↳ Subagent: researcher\n    ⠋ read\n    ✓ read\n  ✓ Subagent completed: researcher\n  ✓ task\n");
     expect(data()).toBe("");
   });
 
-  it("CLI-13 ends a subagent's line with its span once its task call settles, in the shared format", () => {
+  it("CLI-13 writes a subagent's span on its task call's line once the call returns, in the shared format", () => {
     const thread = `${R}.t1`;
     const toolUseId = `${R}.t1`;
     const { status } = stream([
@@ -115,7 +115,7 @@ describe("PlaintextRenderer", () => {
         value: { id: `${toolUseId}.r`, toolUseId, content: [{ type: "text", text: "found it" }], processedAt: "2026-07-20T13:04:00.000Z" },
       }),
     ]);
-    expect(status()).toContain("  ↳ Subagent: researcher\n  ✓ task\n  ✓ Subagent completed (2h 4m): researcher\n");
+    expect(status()).toContain("  ↳ Subagent: researcher\n  ✓ Subagent completed: researcher\n  ✓ task (2h 4m)\n");
   });
 
   it("names a subagent by its call when it has no name, and writes how it failed or stopped", () => {
@@ -129,8 +129,7 @@ describe("PlaintextRenderer", () => {
       threadRunning(R, stopped, "writer"),
       phase(R, "terminated"),
     ]);
-    expect(status()).toContain("  ↳ Subagent: task\n");
-    expect(status()).toContain("  ⊘ task (interrupted)\n  ✗ Subagent failed: task\n");
+    expect(status()).toContain("  ↳ Subagent: task\n  ✗ Subagent failed: task\n");
     expect(status()).toContain("  ↳ Subagent: writer\n");
     expect(status()).toContain("  ⊘ Subagent stopped: writer\n");
   });

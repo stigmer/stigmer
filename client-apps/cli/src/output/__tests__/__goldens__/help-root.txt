@@ -10,7 +10,8 @@ Options:
                                        environment only
   --org <slug>                         organization, on servers that hold
                                        several
-  --api-key <key>                      API key for authentication
+  --api-key <key>                      API key for authentication (before the
+                                       command)
   -h, --help                           display help for command
 
 Commands:

@@ -204,7 +204,7 @@ describe("the run's exit summary", () => {
 describe("help", () => {
   it("prints the top-level help at 80 columns", async () => {
     const program = buildProgram();
-    program.configureHelp({ helpWidth: 80 });
+    program.configureHelp({ ...program.configureHelp(), helpWidth: 80 });
     await expectGolden(program.helpInformation(), "help-root");
   });
 });
