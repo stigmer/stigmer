@@ -44,6 +44,8 @@ import {
   renderProtoListJson,
   renderProtoListYaml,
   renderTable,
+  terminalWidth,
+  type TerminalStream,
 } from "../output/index.js";
 import { readCursorPages } from "./cursor-pages.js";
 import { idPrefixOf, parseReference } from "./reference.js";
@@ -208,12 +210,15 @@ export async function showRoutineFires(
   streams.write(renderFiresTable(fires));
 }
 
-/** The table view of a fire history; a routine never fired says so. */
-export function renderFiresTable(fires: readonly RoutineFire[]): string {
+/**
+ * The table view of a fire history, fitted to `stream`'s width; a routine
+ * never fired says so. A fire's REASON is free text and gives up width first.
+ */
+export function renderFiresTable(fires: readonly RoutineFire[], stream: TerminalStream = process.stdout): string {
   if (fires.length === 0) {
     return renderEmpty("fires");
   }
-  return `\n${renderTable(FIRES_HEADERS, fires.map(fireRow))}\n`;
+  return `\n${renderTable(FIRES_HEADERS, fires.map(fireRow), { width: terminalWidth(stream), shrink: ["REASON"] })}\n`;
 }
 
 function fireRow(fire: RoutineFire): string[] {

@@ -7,8 +7,10 @@
 // the look is a diff a reviewer reads; `npx vitest run -u` rewrites them.
 //
 // Today's look is frozen as it is, known gaps included (one generic `get`
-// view, tables that ignore the terminal's width, help with no groups); the
-// changes that close those gaps update these files on purpose. Colour is off
+// view, help with no groups); the changes that close those gaps update these
+// files on purpose. The tables here are piped (a test's stdout is no
+// terminal), so nothing is cut; `tables.goldens.test.ts` holds them at a
+// terminal's widths. Colour is off
 // by construction (`colorize = false`, NO_COLOR set) and nothing reads the
 // clock: the inputs are `@stigmer/react-sdk/test`'s samples and scenarios,
 // stamped from one frozen instant. A debug error's stack is set by hand,

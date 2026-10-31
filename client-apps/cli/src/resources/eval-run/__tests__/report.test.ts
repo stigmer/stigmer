@@ -97,6 +97,12 @@ describe("renderEvalTables", () => {
     expect(out).not.toContain("claude/claude-sonnet-5");
   });
 
+  it("CLI-09 cuts NOTES to fit the terminal, keeping the case and its numbers", () => {
+    // Every column but NOTES takes 60 with the gaps, leaving NOTES 15 of 75.
+    const lines = renderEvalTables(finishedEval(), "", { isTTY: true, columns: 75 }).split("\n");
+    expect(lines[3]).toMatch(/^first-case\s+1\.00\s+0\.33\s+\+0\.67\s+yes\s+4\s+\$0\.41\s+not graded: pl…$/);
+  });
+
   it("keeps a run's error on one line in NOTES", () => {
     const evalRun = finishedEval();
     casesOf(evalRun)[0]!.targets[0]!.withPlugin!.tries[0]!.error = "model said\n\u001b[31mno";

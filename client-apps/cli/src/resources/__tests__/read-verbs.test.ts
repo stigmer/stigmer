@@ -725,6 +725,15 @@ describe("list integration", () => {
     expect(JSON.parse(out)).toEqual([toJson(ApiKeySchema, knownApiKey, { useProtoFieldName: true })]);
   });
 
+  it("renders a human API key table: the key by its id, its name, the fingerprint's tail and when it expires", async () => {
+    const out = await listResources(client, ApiResourceKind.api_key, "acme", 50, "table");
+    const rows = out.trim().split("\n").slice(2).map((line) => line.split(/\s+/));
+    expect(rows).toEqual([
+      ["key_1", "ci", "***abcd", "Never"],
+      ["key_2", "local-dev", "***ef01", "Never"],
+    ]);
+  });
+
   it("renders a human agent table, naming each organization by slug once", async () => {
     orgGets.length = 0;
     const out = await listResources(client, ApiResourceKind.agent, "acme", 50, "table");

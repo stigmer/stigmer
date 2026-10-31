@@ -7,7 +7,8 @@
 // starts from (spec.harness and spec.run_config: an agent's run defaults, a
 // share's or channel's saved settings, a session's engine). json/yaml use the canonical protojson
 // renderers for full fidelity. Collections render via the
-// shared table renderer with a caller-supplied row extractor.
+// shared table renderer with a caller-supplied row extractor, fitted to the
+// width of the terminal stdout is (piped, nothing is cut).
 //
 // The render boundary intentionally uses the base proto types (DescMessage /
 // Message) so generic verb dispatch can pass a (schema, message) pair without
@@ -23,6 +24,8 @@ import {
   renderProtoListYaml,
   renderProtoYaml,
   renderTable,
+  terminalWidth,
+  type TerminalStream,
 } from "../output/index.js";
 
 export type JsonObject = Record<string, JsonValue>;
@@ -34,11 +37,14 @@ export type OrgLabel = (value: string) => string;
  * A row extractor + headers describing a collection's table view. A table
  * whose rows name organizations lists them in `orgs`, so the caller can
  * label each distinct value once (by slug, in place of the id the rows
- * carry) before the rows render through `orgLabel`.
+ * carry) before the rows render through `orgLabel`. `shrink` names the
+ * free-text columns (a description, a subject, a display name) that give up
+ * width on a narrow terminal; an id or a slug a person copies is never one.
  */
 export interface TableShape {
   readonly resourceName: string;
   readonly headers: readonly string[];
+  readonly shrink?: readonly string[];
   readonly row: (json: JsonObject, orgLabel: OrgLabel) => readonly string[];
   readonly orgs?: (json: JsonObject) => readonly string[];
 }
@@ -69,7 +75,7 @@ export function renderResource(
 /**
  * Render a collection for a read verb (json/yaml = protojson array, the
  * wire as-is; table = grid, naming each organization by `orgLabels` where
- * it holds one).
+ * it holds one, fitted to `stream`'s width when it is a terminal).
  */
 export function renderCollection(
   schema: DescMessage,
@@ -77,13 +83,14 @@ export function renderCollection(
   format: OutputFormat,
   table: TableShape,
   orgLabels: ReadonlyMap<string, string> = new Map(),
+  stream: TerminalStream = process.stdout,
 ): string {
   if (format === "json") return renderProtoListJson(schema, messages);
   if (format === "yaml") return renderProtoListYaml(schema, messages);
   if (messages.length === 0) return renderEmpty(table.resourceName);
   const label = labelFrom(orgLabels);
   const rows = messages.map((message) => table.row(asObject(protoToJsonValue(schema, message)), label));
-  return `\n${renderTable(table.headers, rows)}`;
+  return `\n${renderTable(table.headers, rows, { width: terminalWidth(stream), shrink: table.shrink })}`;
 }
 
 /** The organization values a human table's rows name; none for machine output or a table that names none. */
@@ -102,13 +109,14 @@ export function tableOrganizations(
  * Render a *list message* (e.g. RunList, SessionList) for a read verb.
  *
  * Unlike `renderCollection`, which serializes a bare slice, json/yaml emit the whole list envelope (including
- * `next_page_token`), while table projects the nested `entries` into a grid.
+ * `next_page_token`), while table projects the nested `entries` into a grid fitted to `stream`'s width.
  */
 export function renderListMessage(
   schema: DescMessage,
   message: Message,
   format: OutputFormat,
   table: TableShape,
+  stream: TerminalStream = process.stdout,
 ): string {
   if (format === "json") return renderProtoJson(schema, message);
   if (format === "yaml") return renderProtoYaml(schema, message);
@@ -117,7 +125,7 @@ export function renderListMessage(
   const label = labelFrom(new Map());
   const rows = (Array.isArray(list) ? list : []).map((entry) => table.row(asObject(entry), label));
   if (rows.length === 0) return renderEmpty(table.resourceName);
-  return `\n${renderTable(table.headers, rows)}`;
+  return `\n${renderTable(table.headers, rows, { width: terminalWidth(stream), shrink: table.shrink })}`;
 }
 
 // How a table names an organization: its label where one is known, else the value as given.

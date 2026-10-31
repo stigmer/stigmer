@@ -47,7 +47,7 @@ import {
 } from "@stigmer/apis/ai/stigmer/billing/subscription/v1/io_pb";
 import type { Stigmer } from "@stigmer/client";
 import type { OutputFormat } from "../output/index.js";
-import { renderProtoJson, renderProtoYaml, renderTable } from "../output/index.js";
+import { renderProtoJson, renderProtoYaml, renderTable, terminalWidth, type TerminalStream } from "../output/index.js";
 import { formatTokenCount } from "./run-format.js";
 import { ENGINES, isEngineWord } from "./run/engines.js";
 
@@ -267,6 +267,7 @@ export function renderOrgUsage(
   report: GetOrgUsageReportOutput,
   range: DateRange,
   format: OutputFormat,
+  stream: TerminalStream = process.stdout,
 ): string {
   if (format === "json") return renderProtoJson(GetOrgUsageReportOutputSchema, report);
   if (format === "yaml") return renderProtoYaml(GetOrgUsageReportOutputSchema, report);
@@ -299,7 +300,12 @@ export function renderOrgUsage(
       formatShare(a.totalTokens, totalTokens),
       formatWorkingTime(a.workingSeconds),
     ]);
-    lines.push(renderTable(["AGENT", "RUNS", "TOKENS", "SHARE", "WORKING"], rows), "");
+    // An agent is named by its display name here, the free text that gives up width on a narrow terminal.
+    const table = renderTable(["AGENT", "RUNS", "TOKENS", "SHARE", "WORKING"], rows, {
+      width: terminalWidth(stream),
+      shrink: ["AGENT"],
+    });
+    lines.push(table, "");
   }
 
   if (report.harnessUsage.length > 0) {
