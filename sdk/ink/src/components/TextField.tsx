@@ -16,8 +16,8 @@ export interface TextFieldProps {
   readonly value: TextBuffer;
   /** Called with each edit. */
   readonly onChange: (value: TextBuffer) => void;
-  /** Called on Enter (without a new-line chord). */
-  readonly onSubmit: () => void;
+  /** Called on Enter (without a new-line chord), with the text as sent. */
+  readonly onSubmit: (value: TextBuffer) => void;
   /** Called when Up or Down has no row to move to: the composer walks its history. */
   readonly onHistory?: (direction: "back" | "forward") => void;
   /** Called with a bracketed paste instead of inserting it. */
@@ -71,7 +71,10 @@ export function TextField({
       if (intercept?.(input, key) === true) return;
       const action = keyAction(input, key, value, { multiline, atoms });
       if (action.type === "edit") onChange(action.buffer);
-      else if (action.type === "submit") onSubmit();
+      else if (action.type === "submit") {
+        if (action.buffer !== undefined) onChange(action.buffer);
+        onSubmit(action.buffer ?? value);
+      }
       else if (action.type === "history") onHistory?.(action.direction);
     },
     { isActive: focus },

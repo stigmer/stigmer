@@ -172,8 +172,8 @@ export function FollowUpInput({
     void composer?.history?.append(entry);
   };
 
-  const submit = (): void => {
-    const text = buffer.text.trim();
+  const submit = (sent: TextBuffer = buffer): void => {
+    const text = sent.text.trim();
     if (text === "") return;
     const run = parseCommand(text, commands);
     if (run !== undefined && context !== undefined) {
@@ -266,7 +266,7 @@ export function FollowUpInput({
               setBuffer(next);
               if (walk.index !== undefined && next.text !== buffer.text) setWalk(NO_WALK);
             }}
-            onSubmit={submit}
+            onSubmit={(value) => submit(value)}
             onHistory={(direction) => {
               const step = stepHistory(entries, walk, buffer.text, direction);
               if (step === undefined) return;

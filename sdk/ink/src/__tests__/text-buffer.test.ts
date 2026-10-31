@@ -128,6 +128,12 @@ describe("INK-08 the composer takes several lines, paste, and history", () => {
     expect(keyAction("\r", key({ return: true }), at("a|"), MULTI)).toEqual({ type: "submit" });
   });
 
+  it("reads Enter at the end of text typed in one read as sending it, and a carriage return inside as a new line", () => {
+    expect(keyAction("and keep it small\r", key(), at("only the tests\n|"), MULTI)).toEqual({ type: "submit", buffer: at("only the tests\nand keep it small|") });
+    expect(keyAction("ok\r", key(), at("|"), SINGLE)).toEqual({ type: "submit", buffer: at("ok|") });
+    expect(keyAction("a\rb", key(), at("|"), MULTI)).toEqual({ type: "edit", buffer: at("a\nb|") });
+  });
+
   it("takes no new line in a one-line field, and sends on Enter even after a backslash", () => {
     expect(keyAction("\n", key(), at("a|"), SINGLE)).toEqual({ type: "none" });
     expect(keyAction("\r", key({ return: true, meta: true }), at("a|"), SINGLE)).toEqual({ type: "none" });

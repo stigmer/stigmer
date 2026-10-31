@@ -229,8 +229,8 @@ export function ApprovalPrompt({
             <TextField
               value={reason}
               onChange={setReason}
-              onSubmit={() => {
-                const trimmed = reason.text.trim();
+              onSubmit={(value) => {
+                const trimmed = value.text.trim();
                 onAnswer("deny", trimmed === "" ? undefined : trimmed);
               }}
               focus={isActive && !isSubmitting}

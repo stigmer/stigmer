@@ -10,6 +10,8 @@
 //   or last row.
 // - Keys the session owns (Esc, Ctrl+C, Tab, Ctrl+O, Ctrl+T) and any other
 //   Ctrl or Alt chord are ignored, so they reach their owner.
+// - Keys typed fast can arrive in one read ("ok\r"): a carriage return that
+//   ends typed text is Enter, so the text goes in and is sent.
 //
 // Proven by __tests__/text-buffer.test.ts.
 
@@ -35,7 +37,8 @@ import {
 /** What a key does to a field. */
 export type KeyAction =
   | { readonly type: "edit"; readonly buffer: TextBuffer }
-  | { readonly type: "submit" }
+  /** Send; `buffer` is the field's text as sent, when the same read also typed some. */
+  | { readonly type: "submit"; readonly buffer?: TextBuffer }
   | { readonly type: "history"; readonly direction: "back" | "forward" }
   | { readonly type: "none" };
 
@@ -103,6 +106,8 @@ export function keyAction(input: string, key: Key, buffer: TextBuffer, options: 
   }
   if (input === "" || key.pageUp || key.pageDown) return NONE;
   // Typed text, or a paste the terminal did not mark arriving as one chunk.
-  const text = input.replace(/\r\n?/g, "\n");
-  return edit(insertText(buffer, multiline ? text : text.replace(/\n/g, " ")));
+  const entered = input.length > 1 && input.endsWith("\r");
+  const text = (entered ? input.slice(0, -1) : input).replace(/\r\n?/g, "\n");
+  const typed = insertText(buffer, multiline ? text : text.replace(/\n/g, " "));
+  return entered ? { type: "submit", buffer: typed } : edit(typed);
 }
