@@ -4,8 +4,8 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { SkipLink } from "@/components/ui/skip-link";
 import { Hero } from "@/components/sections/Hero";
-import { Problem } from "@/components/sections/Problem";
-import { AgentGets } from "@/components/sections/AgentGets";
+import { HardParts } from "@/components/sections/HardParts";
+import { AlsoBuilt } from "@/components/sections/AlsoBuilt";
 import { HowItFits } from "@/components/sections/HowItFits";
 import { OpenSource } from "@/components/sections/OpenSource";
 import { FinalCTA } from "@/components/sections/FinalCTA";
@@ -23,8 +23,8 @@ function HomePage({ className, ...props }: HomePageProps) {
 
       <main id="main-content" className="pt-16" tabIndex={-1}>
         <Hero />
-        <Problem />
-        <AgentGets />
+        <HardParts />
+        <AlsoBuilt />
         <HowItFits />
         <OpenSource />
         <FinalCTA />
