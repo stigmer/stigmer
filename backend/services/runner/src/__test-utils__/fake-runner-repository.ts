@@ -20,6 +20,7 @@ export function fakeRunnerRepository(overrides: Partial<RunnerRepository> = {}):
     defaultBranch: vi.fn(overrides.defaultBranch ?? (async () => "main")),
     hasRemoteBranch: vi.fn(overrides.hasRemoteBranch ?? (async () => false)),
     heads: vi.fn(overrides.heads ?? (async () => ["1111111111111111111111111111111111111111"])),
+    holdCommits: vi.fn(overrides.holdCommits ?? (async () => {})),
     hasCommit: vi.fn(overrides.hasCommit ?? (async () => false)),
     commitOf: vi.fn(overrides.commitOf ?? (async () => "2222222222222222222222222222222222222222")),
     sendBundle: vi.fn(overrides.sendBundle ?? (async () => true)),

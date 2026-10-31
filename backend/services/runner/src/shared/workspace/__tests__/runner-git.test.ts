@@ -20,12 +20,14 @@ import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, wr
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { randomBytes } from "node:crypto";
 import { create } from "@bufbuild/protobuf";
 import { RunStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { GitWriteBackMode } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { GitRepositoryResourceSchema, SessionResourceSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import { TranscriptBuilder } from "../../../harness/transcript/builder.js";
 import { TurnRowsSchema } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { type AgentFs, installAgentFs, localAgentFs } from "../../agent-fs.js";
 import { GitTooOldError } from "../git-credential.js";
 import { LocalWorkspaceBackend } from "../local-backend.js";
 import { bundlePackOffset, copyFromAgent, copyToAgent, runnerRepositoryPath, withRunnerRepository } from "../runner-git.js";
@@ -298,6 +300,100 @@ describe("the runner's repository", () => {
     await expect(
       withRunnerRepository(workspace, REPO_URL, TOKEN, (repository) => repository.pushBundle(bundle, "stigmer/ses_other")),
     ).rejects.toThrow("does not carry refs/heads/stigmer/ses_other");
+  }, GIT_TEST_TIMEOUT_MS);
+
+  /** Counts the bytes of each bundle that crosses to or from the clone while `run` runs. */
+  async function bundleBytes(run: () => Promise<unknown>): Promise<{ incoming: number; outgoing: number }> {
+    const sizes = { incoming: 0, outgoing: 0 };
+    const counting: AgentFs = {
+      ...localAgentFs,
+      writeFile: (path, data, options) => {
+        if (path.includes("/stigmer-incoming-")) sizes.incoming += Buffer.byteLength(data);
+        return localAgentFs.writeFile(path, data, options);
+      },
+      appendFile: (path, data) => {
+        if (path.includes("/stigmer-incoming-")) sizes.incoming += data.length;
+        return localAgentFs.appendFile(path, data);
+      },
+      readRange: async (path, offset, length) => {
+        const piece = await localAgentFs.readRange(path, offset, length);
+        if (path.includes("/stigmer-outgoing-")) sizes.outgoing += piece.length;
+        return piece;
+      },
+    };
+    const restore = installAgentFs(counting);
+    try {
+      await run();
+    } finally {
+      restore();
+    }
+    return sizes;
+  }
+
+  /** A seed commit on `branch` of origin adding `file` with `content`, pushed. */
+  function pushCommit(branch: string, base: string, file: string, content: string | Buffer): void {
+    const seed = join(root, "seed");
+    git(seed, ["checkout", "-q", "-B", branch, base]);
+    writeFileSync(join(seed, file), content);
+    git(seed, ["add", "-A"]);
+    git(seed, ["commit", "-qm", file]);
+    git(seed, ["push", "-q", "-f", "origin", `${branch}:refs/heads/${branch}`]);
+  }
+
+  // A history of 2 MB that cannot compress: a bundle carrying it is unmistakable.
+  const LARGE = 2_000_000;
+  const SMALL = 200_000;
+
+  it("keeps the push bundle the size of the turn's work when rebuilt and GitHub's base has moved on", async () => {
+    pushCommit("main", "origin/main", "large.bin", randomBytes(LARGE));
+    const { workspace, provisioned } = await cloneWorkspace();
+    rmSync(runnerRepositoryPath(workspace), { recursive: true, force: true });
+    pushCommit("main", "origin/main", "moved.md", "main moved on\n");
+    writeFileSync(join(workspace, "change.txt"), "agent work\n");
+
+    let record: Awaited<ReturnType<typeof writeBack>> | undefined;
+    const sizes = await bundleBytes(async () => {
+      record = await writeBack(workspace, provisioned, "ses_moved");
+    });
+
+    expect(record?.error).toBe("");
+    expect(git(origin, ["show", "stigmer/ses_moved:change.txt"])).toBe("agent work\n");
+    expect(sizes.outgoing, "the clone's bundle carries the turn's work, not the history").toBeGreaterThan(0);
+    expect(sizes.outgoing).toBeLessThan(SMALL);
+  }, GIT_TEST_TIMEOUT_MS);
+
+  it("keeps the adopted session branch's bundle small when rebuilt and GitHub's base has moved on", async () => {
+    pushCommit("main", "origin/main", "large.bin", randomBytes(LARGE));
+    const { workspace, provisioned } = await cloneWorkspace();
+    pushCommit("stigmer/ses_adopt", "origin/main", "earlier.md", "an earlier turn\n");
+    rmSync(runnerRepositoryPath(workspace), { recursive: true, force: true });
+    pushCommit("main", "origin/main", "moved.md", "main moved on\n");
+    writeFileSync(join(workspace, "change.txt"), "agent work\n");
+
+    let record: Awaited<ReturnType<typeof writeBack>> | undefined;
+    const sizes = await bundleBytes(async () => {
+      record = await writeBack(workspace, provisioned, "ses_adopt");
+    });
+
+    expect(record?.error).toBe("");
+    expect(git(origin, ["show", "stigmer/ses_adopt:earlier.md"])).toBe("an earlier turn\n");
+    expect(git(origin, ["show", "stigmer/ses_adopt:change.txt"])).toBe("agent work\n");
+    expect(sizes.incoming, "the session branch crossed as a bundle").toBeGreaterThan(0);
+    expect(sizes.incoming, "and without the history the clone has").toBeLessThan(SMALL);
+  }, GIT_TEST_TIMEOUT_MS);
+
+  it("still pushes when GitHub no longer serves a commit the clone tracks, with a larger bundle", async () => {
+    const { workspace, provisioned } = await cloneWorkspace();
+    rmSync(runnerRepositoryPath(workspace), { recursive: true, force: true });
+    // The clone tracks a commit GitHub never had.
+    const local = git(workspace, ["commit-tree", git(workspace, ["rev-parse", "HEAD^{tree}"]).trim(), "-p", "HEAD", "-m", "only here"]).trim();
+    git(workspace, ["update-ref", "refs/remotes/origin/gone", local]);
+    writeFileSync(join(workspace, "change.txt"), "agent work\n");
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    expect((await writeBack(workspace, provisioned, "ses_gone")).error).toBe("");
+    expect(git(origin, ["show", "stigmer/ses_gone:change.txt"])).toBe("agent work\n");
+    expect(vi.mocked(console.warn).mock.calls.some(([line]) => String(line).includes(`the clone's commit ${local} is not on GitHub`))).toBe(true);
   }, GIT_TEST_TIMEOUT_MS);
 
   it("refuses to push a commit it does not hold", async () => {

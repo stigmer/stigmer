@@ -67,6 +67,9 @@ const OBJECT_ID = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/;
 /** The most output one git command may print before it is stopped; the largest is a ref listing. */
 const MAX_OUTPUT_BYTES = 64 * 1024 * 1024;
 
+/** Where the repository keeps the clone's commits it fetched by id ({@link RunnerRepository.holdCommits}). */
+const HELD_REFS = "refs/stigmer/held";
+
 /** How far into a bundle its header may run before the file is refused as not one. */
 const MAX_BUNDLE_HEADER_BYTES = 16 * 1024 * 1024;
 
@@ -84,8 +87,22 @@ export interface RunnerRepository {
   defaultBranch(): Promise<string>;
   /** Whether GitHub holds `refs/heads/<branch>`. */
   hasRemoteBranch(branch: string): Promise<boolean>;
-  /** The object names of this repository's heads and tags: what a bundle from the agent may leave out. */
+  /**
+   * The object names of this repository's heads and tags, and of the clone's
+   * commits it holds for the clone ({@link holdCommits}): what a bundle from
+   * the agent may leave out.
+   */
   heads(): Promise<string[]>;
+  /**
+   * Makes sure this repository holds `shas`, commits the clone already has
+   * (its remote-tracking tips), fetching by object id those it lacks, so a
+   * bundle either way can leave them out. A repository rebuilt since the
+   * clone was made, or one whose GitHub branches have moved on, lacks them,
+   * and without them every exclusion naming them would silently fall away.
+   * A commit GitHub no longer serves is left out, at the cost of a larger
+   * bundle, never a failed one.
+   */
+  holdCommits(shas: readonly string[]): Promise<void>;
   /** Whether this repository holds the commit `sha`. */
   hasCommit(sha: string): Promise<boolean>;
   /** The commit `ref` names here. */
@@ -187,8 +204,21 @@ class Repository implements RunnerRepository {
   }
 
   async heads(): Promise<string[]> {
-    const out = await this.run(["for-each-ref", "--format=%(objectname)", "refs/heads", "refs/tags"]);
+    const out = await this.run(["for-each-ref", "--format=%(objectname)", "refs/heads", "refs/tags", HELD_REFS]);
     return [...new Set(out.split("\n").filter((line) => OBJECT_ID.test(line)))];
+  }
+
+  async holdCommits(shas: readonly string[]): Promise<void> {
+    const wanted = [...new Set(shas.filter((sha) => OBJECT_ID.test(sha)))];
+    if (wanted.length === 0) return;
+    const listing = await this.run(["cat-file", "--batch-check"], { input: wanted.map((sha) => `${sha}\n`).join("") });
+    const missing = listing.split("\n").filter((line) => line.endsWith(" missing")).map((line) => line.split(" ")[0]!);
+    for (const sha of missing) {
+      // One by one: GitHub refuses a whole fetch over one commit it no longer serves.
+      await this.run(["fetch", "--quiet", "--no-write-fetch-head", "origin", `+${sha}:${HELD_REFS}/${sha}`], { network: true }).catch((err: unknown) => {
+        console.warn(`[runner-git] the clone's commit ${sha} is not on GitHub; a bundle will not leave it out: ${err instanceof Error ? err.message : String(err)}`);
+      });
+    }
   }
 
   async hasCommit(sha: string): Promise<boolean> {

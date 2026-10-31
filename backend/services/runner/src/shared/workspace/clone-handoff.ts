@@ -40,6 +40,12 @@ export async function cloneHaves(exec: CloneExec): Promise<string[]> {
   return out.split("\n").map((line) => line.trim()).filter((line) => OBJECT_ID.test(line));
 }
 
+/** The commits the clone's remote-tracking refs name: what the runner holds for it before a bundle either way. */
+export async function cloneTrackingTips(exec: CloneExec): Promise<string[]> {
+  const out = await exec("git for-each-ref --format='%(objectname)' refs/remotes/origin");
+  return out.split("\n").map((line) => line.trim()).filter((line) => OBJECT_ID.test(line));
+}
+
 /**
  * Brings `revisions` of the runner's repository into the clone: the runner
  * bundles them without what `haves` reach, and the clone fetches the bundle

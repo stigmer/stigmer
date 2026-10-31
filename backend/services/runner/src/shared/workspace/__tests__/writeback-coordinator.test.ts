@@ -278,11 +278,15 @@ describe("WriteBackCoordinator", () => {
     expect(status.workspaceWriteBacks[0].commitSha).toBe("abc123def456");
   });
 
-  it("fetches the base branch first into a runner repository that holds no heads (rebuilt since the clone)", async () => {
-    useRepository(fakeRunnerRepository({ heads: async () => [] }));
-    await makeCoordinator({ sb }).finalize();
+  it("has the runner hold the clone's remote-tracking tips before the clone bundles, so its exclusions hold", async () => {
+    const backend = mockWorkspaceBackend();
+    await makeCoordinator({ sb, backend }).finalize();
 
-    expect(repository.fetch).toHaveBeenCalledWith(["+refs/heads/main:refs/heads/main"]);
+    expect(repository.holdCommits).toHaveBeenCalledWith(["3333333333333333333333333333333333333333"]);
+    const held = repository.holdCommits.mock.invocationCallOrder[0]!;
+    expect(held).toBeLessThan(repository.pushBundle.mock.invocationCallOrder[0]!);
+    const commands = (backend.execute as ReturnType<typeof vi.fn>).mock.calls.map((c: any) => c[0] as string);
+    expect(commands.some((c: string) => c.endsWith("git for-each-ref --format='%(objectname)' refs/remotes/origin"))).toBe(true);
   });
 
   it("commits with the agent identity pinned via -c flags and the execution id in the message", async () => {

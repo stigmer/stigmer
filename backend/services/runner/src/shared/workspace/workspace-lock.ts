@@ -39,9 +39,10 @@
  * the caller has already resolved: the turn lock resolves the workspace
  * through the agent's operations (the workspace is the agent's path), and
  * the runner's own git repositories (`runner-git.ts`) lock on a path of the
- * runner's own, never asking the agent. One primitive, two users. The
- * runner's repository lock is taken outside any turn lock and never while
- * waiting for one, so the order between them cannot deadlock.
+ * runner's own, never asking the agent. One primitive, two users. A
+ * write-back takes the runner's repository lock inside its turn lock; a
+ * clone takes it before any turn lock. Neither ever waits for a turn lock
+ * while holding a repository lock, so the two cannot deadlock.
  */
 
 import { join, resolve } from "node:path";

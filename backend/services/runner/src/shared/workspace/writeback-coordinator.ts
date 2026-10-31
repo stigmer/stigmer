@@ -48,7 +48,7 @@ import { GitWriteBackMode } from "@stigmer/apis/ai/stigmer/agentic/session/v1/en
 import type { SessionResource } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import type { WorkspaceBackend, ProvisionResult } from "./types.js";
 import { gitCommitAsAgent } from "./git-identity.js";
-import { cloneHaves, fetchFromRunner, pushThroughRunner } from "./clone-handoff.js";
+import { cloneHaves, cloneTrackingTips, fetchFromRunner, pushThroughRunner } from "./clone-handoff.js";
 import { withRunnerRepository, type RunnerRepository } from "./runner-git.js";
 import { repositoryTokenFor, type RepositoryToken } from "../run-values.js";
 
@@ -239,7 +239,7 @@ export class WriteBackCoordinator {
       if (!entryState.branchReady) {
         await this.ensureBranch(entryName, entryState, git);
       }
-      await this.commitAndPush(entryName, entryState, entry, git);
+      await this.commitAndPush(entryName, entryState, git);
     };
 
     try {
@@ -367,6 +367,7 @@ export class WriteBackCoordinator {
     if (!(await repository.hasRemoteBranch(this.branchName))) return false;
     const ref = `refs/heads/${this.branchName}`;
     await repository.fetch([`+${ref}:${ref}`]);
+    await repository.holdCommits(await cloneTrackingTips(exec));
     const sent = await fetchFromRunner(repository, exec, {
       revisions: [ref],
       haves: await cloneHaves(exec),
@@ -381,7 +382,6 @@ export class WriteBackCoordinator {
   private async commitAndPush(
     entryName: string,
     entryState: EntryState,
-    entry: EligibleEntry,
     { exec, repository }: EntryGit,
   ): Promise<void> {
     await exec("git add -A");
@@ -400,7 +400,7 @@ export class WriteBackCoordinator {
       // appends to it, and it (re-)establishes tracking after a re-provision.
       await exec(`git push -u origin ${this.branchName}`);
     } else {
-      entryState.lastCommitSha = await this.pushViaRunner(repository, exec, entry.baseBranch, entryState.lastCommitSha);
+      entryState.lastCommitSha = await this.pushViaRunner(repository, exec, entryState.lastCommitSha);
       // The clone reads as `push -u` would have left it.
       await exec(`git update-ref refs/remotes/origin/${this.branchName} ${entryState.lastCommitSha}`);
       await exec(`git branch --set-upstream-to=origin/${this.branchName}`);
@@ -414,21 +414,19 @@ export class WriteBackCoordinator {
 
   /**
    * Pushes the clone's session branch through the runner's repository and
-   * returns the commit pushed. A repository rebuilt since the clone was made
-   * holds no heads; it first fetches the base branch, so the clone's bundle
-   * leaves out what GitHub already has. A tip the runner already holds (a
-   * turn whose push landed before a crash) is pushed from there, with no
-   * bundle.
+   * returns the commit pushed. The runner first holds the clone's
+   * remote-tracking tips (fetching by id those it lacks: a repository
+   * rebuilt since the clone, a base branch moved on since), so the clone's
+   * bundle leaves out what both sides have and stays the size of the turn's
+   * work. A tip the runner already holds (a turn whose push landed before a
+   * crash) is pushed from there, with no bundle.
    */
   private async pushViaRunner(
     repository: RunnerRepository,
     exec: (cmd: string) => Promise<string>,
-    baseBranch: string,
     head: string,
   ): Promise<string> {
-    if ((await repository.heads()).length === 0 && baseBranch !== "" && baseBranch !== "HEAD") {
-      await repository.fetch([`+refs/heads/${baseBranch}:refs/heads/${baseBranch}`]);
-    }
+    await repository.holdCommits(await cloneTrackingTips(exec));
     if (await repository.hasCommit(head)) return repository.pushCommit(head, this.branchName);
     return pushThroughRunner(repository, exec, (path, content) => this.workspaceBackend.writeFile(path, content), this.branchName);
   }
