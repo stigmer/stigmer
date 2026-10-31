@@ -15,6 +15,7 @@ from ai.stigmer.iam.identityaccount.v1 import spec_pb2
 from ai.stigmer.commons.apiresource import metadata_pb2
 from google.protobuf import empty_pb2
 from google.protobuf import field_mask_pb2
+from ai.stigmer.commons.apiresource import status_pb2 as apiresource_status_pb2
 
 from ._errors import wrap_error
 from ._types import ResourceRef
@@ -125,7 +126,7 @@ class IdentityAccountClient:
                 return
             request.page_token = page.next_page_token
 
-    def get_actor_info(self, id: str) -> io_pb2.ApiResourceAuditActor:
+    def get_actor_info(self, id: str) -> apiresource_status_pb2.ApiResourceAuditActor:
         try:
             return self._query.getActorInfo(io_pb2.IdentityAccountId(value=id))
         except grpc.RpcError as e:

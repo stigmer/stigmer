@@ -16,6 +16,7 @@ from ai.stigmer.agentic.file.v1 import run_files_pb2
 from ai.stigmer.agentic.file.v1 import spec_pb2
 from ai.stigmer.commons.apiresource import metadata_pb2
 from google.protobuf import field_mask_pb2
+from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2
 
 from ._errors import wrap_error
 
@@ -48,7 +49,7 @@ class FileClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def update_visibility(self, input: io_pb2.UpdateVisibilityInput) -> api_pb2.File:
+    def update_visibility(self, input: apiresource_io_pb2.UpdateVisibilityInput) -> api_pb2.File:
         try:
             return self._command.updateVisibility(input)
         except grpc.RpcError as e:

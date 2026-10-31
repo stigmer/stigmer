@@ -84,13 +84,17 @@ export function pyProtoFileToModule(protoFile: string): string {
  * "entitlement_pb2" → "platform_entitlement_pb2". The module comes from the
  * type's own proto file, because a package may spread its messages over
  * several topic files and one alias per package would name only one of them.
+ * A versioned package is named by the segment before its version; an
+ * unversioned one by its last segment ("ai.stigmer.commons.apiresource" with
+ * "io_pb2" → "apiresource_io_pb2").
  */
 export function pyProtoModuleAlias(protoPkg: string, module: string = "spec_pb2"): string {
   const parts = protoPkg.split(".");
-  if (parts.length >= 2) {
+  const last = parts[parts.length - 1];
+  if (parts.length >= 2 && /^v\d+/.test(last)) {
     return parts[parts.length - 2] + "_" + module;
   }
-  return protoPkg + "_" + module;
+  return last + "_" + module;
 }
 
 /** Cross-package proto import line for Python, for one module of the package. */

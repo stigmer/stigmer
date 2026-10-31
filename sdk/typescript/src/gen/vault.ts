@@ -15,7 +15,7 @@ import { VaultSpecSchema, VaultConnectionSource, VaultSecretSchema, VaultConnect
 import { VaultValueController, FetchExecutionValuesInputSchema, ExecutionValuesSchema, type FetchExecutionValuesInput, type ExecutionValues } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/values_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
-import { ApiResourceIdSchema, ApiResourceReferenceSchema, ApiResourceDeleteInputSchema, type UpdateVisibilityInput, type RenameInput } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceIdSchema, ApiResourceReferenceSchema, ApiResourceDeleteInputSchema, type UpdateVisibilityInput, type RenameInput, type UpdateVisibilityInputSchema, type RenameInputSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 
 /** Provides operations on vault resources. */
@@ -44,13 +44,13 @@ export class VaultClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async updateVisibility(input: UpdateVisibilityInput): Promise<Vault> {
+  async updateVisibility(input: MessageInitShape<typeof UpdateVisibilityInputSchema>): Promise<Vault> {
     try {
       return await this.command.updateVisibility(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async rename(input: RenameInput): Promise<Vault> {
+  async rename(input: MessageInitShape<typeof RenameInputSchema>): Promise<Vault> {
     try {
       return await this.command.rename(input);
     } catch (e) { throw wrapError(e); }
@@ -66,61 +66,61 @@ export class VaultClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async setSecrets(input: SetVaultSecretsInput): Promise<Vault> {
+  async setSecrets(input: MessageInitShape<typeof SetVaultSecretsInputSchema>): Promise<Vault> {
     try {
       return await this.command.setSecrets(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async removeSecrets(input: RemoveVaultSecretsInput): Promise<Vault> {
+  async removeSecrets(input: MessageInitShape<typeof RemoveVaultSecretsInputSchema>): Promise<Vault> {
     try {
       return await this.command.removeSecrets(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async setConnection(input: SetVaultConnectionInput): Promise<Vault> {
+  async setConnection(input: MessageInitShape<typeof SetVaultConnectionInputSchema>): Promise<Vault> {
     try {
       return await this.command.setConnection(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async removeConnections(input: RemoveVaultConnectionsInput): Promise<Vault> {
+  async removeConnections(input: MessageInitShape<typeof RemoveVaultConnectionsInputSchema>): Promise<Vault> {
     try {
       return await this.command.removeConnections(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async startSignIn(input: StartSignInInput): Promise<StartSignInOutput> {
+  async startSignIn(input: MessageInitShape<typeof StartSignInInputSchema>): Promise<StartSignInOutput> {
     try {
       return await this.command.startSignIn(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async completeSignIn(input: CompleteSignInInput): Promise<CompleteSignInOutput> {
+  async completeSignIn(input: MessageInitShape<typeof CompleteSignInInputSchema>): Promise<CompleteSignInOutput> {
     try {
       return await this.command.completeSignIn(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async createConnectLink(input: CreateConnectLinkInput): Promise<ConnectLink> {
+  async createConnectLink(input: MessageInitShape<typeof CreateConnectLinkInputSchema>): Promise<ConnectLink> {
     try {
       return await this.command.createConnectLink(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async getConnectLink(input: ConnectLinkTokenInput): Promise<ConnectLinkInfo> {
+  async getConnectLink(input: MessageInitShape<typeof ConnectLinkTokenInputSchema>): Promise<ConnectLinkInfo> {
     try {
       return await this.connectLink.getConnectLink(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async startConnectLink(input: ConnectLinkTokenInput): Promise<StartConnectLinkOutput> {
+  async startConnectLink(input: MessageInitShape<typeof ConnectLinkTokenInputSchema>): Promise<StartConnectLinkOutput> {
     try {
       return await this.connectLink.startConnectLink(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async completeConnectLink(input: CompleteConnectLinkInput): Promise<CompleteConnectLinkOutput> {
+  async completeConnectLink(input: MessageInitShape<typeof CompleteConnectLinkInputSchema>): Promise<CompleteConnectLinkOutput> {
     try {
       return await this.connectLink.completeConnectLink(input);
     } catch (e) { throw wrapError(e); }
@@ -138,19 +138,19 @@ export class VaultClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async getMine(input: GetMyVaultInput): Promise<Vault> {
+  async getMine(input: MessageInitShape<typeof GetMyVaultInputSchema>): Promise<Vault> {
     try {
       return await this.query.getMine(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async getByExternalId(input: GetVaultByExternalIdInput): Promise<Vault> {
+  async getByExternalId(input: MessageInitShape<typeof GetVaultByExternalIdInputSchema>): Promise<Vault> {
     try {
       return await this.query.getByExternalId(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async list(input: ListVaultsRequest): Promise<VaultList> {
+  async list(input: MessageInitShape<typeof ListVaultsRequestSchema>): Promise<VaultList> {
     try {
       return await this.query.list(input);
     } catch (e) { throw wrapError(e); }
@@ -170,7 +170,7 @@ export class VaultClient {
     }
   }
 
-  async fetchValues(input: FetchExecutionValuesInput): Promise<ExecutionValues> {
+  async fetchValues(input: MessageInitShape<typeof FetchExecutionValuesInputSchema>): Promise<ExecutionValues> {
     try {
       return await this.vaultValue.fetchValues(input);
     } catch (e) { throw wrapError(e); }

@@ -18,7 +18,7 @@ import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { EnvVarDeclarationSchema, type EnvVarDeclaration } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/declaration_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
-import { ApiResourceReferenceSchema, type UpdateVisibilityInput, type RenameInput } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceReferenceSchema, type UpdateVisibilityInput, type RenameInput, type UpdateVisibilityInputSchema, type RenameInputSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema, ApiResourceMetadataVersionSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 
 /** Provides operations on agent resources. */
@@ -49,13 +49,13 @@ export class AgentClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async updateVisibility(input: UpdateVisibilityInput): Promise<Agent> {
+  async updateVisibility(input: MessageInitShape<typeof UpdateVisibilityInputSchema>): Promise<Agent> {
     try {
       return await this.command.updateVisibility(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async rename(input: RenameInput): Promise<Agent> {
+  async rename(input: MessageInitShape<typeof RenameInputSchema>): Promise<Agent> {
     try {
       return await this.command.rename(input);
     } catch (e) { throw wrapError(e); }
@@ -67,7 +67,7 @@ export class AgentClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async tagVersion(input: TagAgentVersionInput): Promise<Agent> {
+  async tagVersion(input: MessageInitShape<typeof TagAgentVersionInputSchema>): Promise<Agent> {
     try {
       return await this.command.tagVersion(input);
     } catch (e) { throw wrapError(e); }
@@ -85,7 +85,7 @@ export class AgentClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async list(input: ListAgentsRequest): Promise<AgentList> {
+  async list(input: MessageInitShape<typeof ListAgentsRequestSchema>): Promise<AgentList> {
     try {
       return await this.query.list(input);
     } catch (e) { throw wrapError(e); }
@@ -105,7 +105,7 @@ export class AgentClient {
     }
   }
 
-  async listVersions(input: ListAgentVersionsInput): Promise<ListAgentVersionsResponse> {
+  async listVersions(input: MessageInitShape<typeof ListAgentVersionsInputSchema>): Promise<ListAgentVersionsResponse> {
     try {
       return await this.query.listVersions(input);
     } catch (e) { throw wrapError(e); }
@@ -125,7 +125,7 @@ export class AgentClient {
     }
   }
 
-  async getVersion(input: GetAgentVersionInput): Promise<AgentVersionEntry> {
+  async getVersion(input: MessageInitShape<typeof GetAgentVersionInputSchema>): Promise<AgentVersionEntry> {
     try {
       return await this.query.getVersion(input);
     } catch (e) { throw wrapError(e); }

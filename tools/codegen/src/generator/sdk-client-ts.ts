@@ -469,12 +469,34 @@ function generateTSMethod(
     buf.push("    } catch (e) { throw wrapError(e); }\n");
     buf.push("  }\n");
   } else {
-    buf.push(`  async ${tsMethodName(sdkMethodName(svc, m))}(input: ${m.inputType}): Promise<${outputType}> {\n`);
+    // The request's init shape: a caller passes the plain object the
+    // reference pages show, or a built message (which satisfies its own init
+    // shape), and Connect builds the message from either.
+    tsImportRequestSchemaForTypeof(imports, m, schema);
+    imports.addType("@bufbuild/protobuf", "MessageInitShape");
+    buf.push(`  async ${tsMethodName(sdkMethodName(svc, m))}(input: MessageInitShape<typeof ${m.inputType}Schema>): Promise<${outputType}> {\n`);
     buf.push("    try {\n");
     buf.push(`      ${returnKeyword}await this.${svc.role}.${tsMethodName(m.name)}(input);\n`);
     buf.push("    } catch (e) { throw wrapError(e); }\n");
     buf.push("  }\n");
   }
+}
+
+// A request from another package (the commons RenameInput) is imported as a
+// type only, so its Schema is not in scope; `typeof` in the init shape needs
+// it, and a type-only import is enough. Same-package request Schemas are
+// already value imports (tsImportMethodType).
+function tsImportRequestSchemaForTypeof(imports: TsImportSet, m: MethodSchema, schema: ServiceSchemaFile): void {
+  const idx = m.inputFullType.lastIndexOf(".");
+  const typePkg = idx > 0 ? m.inputFullType.slice(0, idx) : "";
+  if (typePkg === schema.package || typePkg === "") return;
+  if (isCommonsType(m.inputFullType)) {
+    imports.addType(tsResolveCommonsImport(m.inputType, m.inputFullType), m.inputType + "Schema");
+    return;
+  }
+  const mt = (schema.methodTypes ?? []).find((t) => t.name === m.inputType && t.protoFile !== "");
+  const file = mt !== undefined ? tsProtoFileToSuffix(mt.protoFile) : "io_pb";
+  imports.addType(deriveTSImportBase(typePkg) + "/" + file, m.inputType + "Schema");
 }
 
 function generateTSStreamingMethod(
@@ -518,7 +540,9 @@ function generateTSStreamingMethod(
   } else {
     const importBase = deriveTSImportBase(schema.package);
     imports.addType(importBase + "/io_pb", m.inputType);
-    buf.push(`  async *${tsMethodName(sdkMethodName(svc, m))}(input: ${m.inputType}, signal?: AbortSignal): AsyncGenerator<${outputType}> {\n`);
+    tsImportRequestSchemaForTypeof(imports, m, schema);
+    imports.addType("@bufbuild/protobuf", "MessageInitShape");
+    buf.push(`  async *${tsMethodName(sdkMethodName(svc, m))}(input: MessageInitShape<typeof ${m.inputType}Schema>, signal?: AbortSignal): AsyncGenerator<${outputType}> {\n`);
     buf.push("    try {\n");
     buf.push(`      for await (const msg of this.${svc.role}.${tsMethodName(m.name)}(input, { signal })) {\n`);
     buf.push("        yield msg;\n");

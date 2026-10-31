@@ -12,9 +12,9 @@ from ai.stigmer.agentic.skill.v1 import command_pb2_grpc
 from ai.stigmer.agentic.skill.v1 import query_pb2_grpc
 from ai.stigmer.agentic.skill.v1 import io_pb2
 from ai.stigmer.agentic.skill.v1 import spec_pb2
-from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2
 from ai.stigmer.commons.apiresource import metadata_pb2
 from ai.stigmer.commons.apiresource.apiresourcekind import api_resource_kind_pb2
+from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2
 
 from ._errors import wrap_error
 from ._types import ResourceRef
@@ -45,7 +45,7 @@ class SkillClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def update_visibility(self, input: io_pb2.UpdateVisibilityInput) -> api_pb2.Skill:
+    def update_visibility(self, input: apiresource_io_pb2.UpdateVisibilityInput) -> api_pb2.Skill:
         try:
             return self._command.updateVisibility(input)
         except grpc.RpcError as e:

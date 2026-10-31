@@ -14,6 +14,7 @@ from ai.stigmer.tenancy.organization.v1 import io_pb2
 from ai.stigmer.tenancy.organization.v1 import spec_pb2
 from ai.stigmer.commons.apiresource import metadata_pb2
 from google.protobuf import field_mask_pb2
+from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2
 
 from ._errors import wrap_error
 from ._types import ResourceRef
@@ -58,7 +59,7 @@ class OrganizationClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def rename(self, input: io_pb2.RenameInput) -> api_pb2.Organization:
+    def rename(self, input: apiresource_io_pb2.RenameInput) -> api_pb2.Organization:
         try:
             return self._command.rename(input)
         except grpc.RpcError as e:

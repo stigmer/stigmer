@@ -12,7 +12,7 @@ import { PluginQueryController } from "@stigmer/apis/ai/stigmer/agentic/plugin/v
 import { PluginSpecSchema, PluginDialect, PluginAuthorSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
-import { ApiResourceReferenceSchema, type UpdateVisibilityInput } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceReferenceSchema, type UpdateVisibilityInput, type UpdateVisibilityInputSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema, ApiResourceMetadataVersionSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 
 /** Provides operations on plugin resources. */
@@ -25,19 +25,19 @@ export class PluginClient {
     this.query = createClient(PluginQueryController, transport);
   }
 
-  async push(input: PushPluginRequest): Promise<Plugin> {
+  async push(input: MessageInitShape<typeof PushPluginRequestSchema>): Promise<Plugin> {
     try {
       return await this.command.push(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async createArtifactUploadUrl(input: CreatePluginArtifactUploadUrlRequest): Promise<PluginArtifactUploadUrl> {
+  async createArtifactUploadUrl(input: MessageInitShape<typeof CreatePluginArtifactUploadUrlRequestSchema>): Promise<PluginArtifactUploadUrl> {
     try {
       return await this.command.createArtifactUploadUrl(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async updateVisibility(input: UpdateVisibilityInput): Promise<Plugin> {
+  async updateVisibility(input: MessageInitShape<typeof UpdateVisibilityInputSchema>): Promise<Plugin> {
     try {
       return await this.command.updateVisibility(input);
     } catch (e) { throw wrapError(e); }
@@ -49,7 +49,7 @@ export class PluginClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async listTools(input: ListPluginToolsInput): Promise<ListPluginToolsOutput> {
+  async listTools(input: MessageInitShape<typeof ListPluginToolsInputSchema>): Promise<ListPluginToolsOutput> {
     try {
       return await this.command.listTools(input);
     } catch (e) { throw wrapError(e); }
@@ -67,7 +67,7 @@ export class PluginClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async list(input: ListPluginsRequest): Promise<PluginList> {
+  async list(input: MessageInitShape<typeof ListPluginsRequestSchema>): Promise<PluginList> {
     try {
       return await this.query.list(input);
     } catch (e) { throw wrapError(e); }
@@ -87,19 +87,19 @@ export class PluginClient {
     }
   }
 
-  async getArtifact(input: GetArtifactRequest): Promise<GetArtifactResponse> {
+  async getArtifact(input: MessageInitShape<typeof GetArtifactRequestSchema>): Promise<GetArtifactResponse> {
     try {
       return await this.query.getArtifact(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async getArtifactDownloadUrl(input: GetArtifactRequest): Promise<PluginArtifactDownloadUrl> {
+  async getArtifactDownloadUrl(input: MessageInitShape<typeof GetArtifactRequestSchema>): Promise<PluginArtifactDownloadUrl> {
     try {
       return await this.query.getArtifactDownloadUrl(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async listVersions(input: ListPluginVersionsInput): Promise<ListPluginVersionsResponse> {
+  async listVersions(input: MessageInitShape<typeof ListPluginVersionsInputSchema>): Promise<ListPluginVersionsResponse> {
     try {
       return await this.query.listVersions(input);
     } catch (e) { throw wrapError(e); }

@@ -12,10 +12,10 @@ from ai.stigmer.iam.team.v1 import command_pb2_grpc
 from ai.stigmer.iam.team.v1 import query_pb2_grpc
 from ai.stigmer.iam.team.v1 import io_pb2
 from ai.stigmer.iam.team.v1 import spec_pb2
-from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2
 from ai.stigmer.commons.apiresource import metadata_pb2
 from google.protobuf import field_mask_pb2
 from ai.stigmer.commons.apiresource.apiresourcekind import api_resource_kind_pb2
+from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2
 
 from ._errors import wrap_error
 from ._types import DeleteResourceInput, ResourceRef
@@ -42,7 +42,7 @@ class TeamClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def rename(self, input: io_pb2.RenameInput) -> api_pb2.Team:
+    def rename(self, input: apiresource_io_pb2.RenameInput) -> api_pb2.Team:
         try:
             return self._command.rename(input)
         except grpc.RpcError as e:

@@ -12,7 +12,7 @@ import { ChannelAppQueryController } from "@stigmer/apis/ai/stigmer/agentic/chan
 import { ChannelAppSpecSchema, SlackChannelAppConfigSchema, WhatsAppChannelAppConfigSchema, type SlackChannelAppConfig, type WhatsAppChannelAppConfig } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
-import { ApiResourceIdSchema, ApiResourceReferenceSchema, ApiResourceDeleteInputSchema, type RenameInput } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceIdSchema, ApiResourceReferenceSchema, ApiResourceDeleteInputSchema, type RenameInput, type RenameInputSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 
 /** Provides operations on channelapp resources. */
@@ -43,7 +43,7 @@ export class ChannelAppClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async rename(input: RenameInput): Promise<ChannelApp> {
+  async rename(input: MessageInitShape<typeof RenameInputSchema>): Promise<ChannelApp> {
     try {
       return await this.command.rename(input);
     } catch (e) { throw wrapError(e); }
@@ -71,7 +71,7 @@ export class ChannelAppClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async list(input: ListChannelAppsInput): Promise<ChannelApps> {
+  async list(input: MessageInitShape<typeof ListChannelAppsInputSchema>): Promise<ChannelApps> {
     try {
       return await this.query.list(input);
     } catch (e) { throw wrapError(e); }

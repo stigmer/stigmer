@@ -41,7 +41,7 @@ export class PlanClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async list(input: ListPlansInput): Promise<Plans> {
+  async list(input: MessageInitShape<typeof ListPlansInputSchema>): Promise<Plans> {
     try {
       return await this.query.list(input);
     } catch (e) { throw wrapError(e); }

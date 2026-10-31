@@ -110,10 +110,6 @@ const { setupUrl } = await stigmer.billing.createPaymentMethodSetupSession({
 ### Common operations
 
 ```typescript
-import { create } from "@bufbuild/protobuf";
-import { ListAgentsRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/io_pb";
-import { RenameInputSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
-
 // Create
 const agent = await stigmer.agent.create({
   name: "my-agent",
@@ -146,19 +142,15 @@ const updated = await stigmer.agent.update(
 
 // Rename: change the slug people type. The id stays, so everything that
 // points at the agent keeps working; the old slug reads for 30 days.
-const renamed = await stigmer.agent.rename(
-  create(RenameInputSchema, { resourceId: "agent-id", slug: "variance-reporter" }),
-);
+const renamed = await stigmer.agent.rename({ resourceId: "agent-id", slug: "variance-reporter" });
 
 // Delete
 const deleted = await stigmer.agent.delete("agent-id");
 
 // List: one page of the org's agents, newest first. A page carries
 // nextPageToken while more follow; pageSize 0 asks for the default 50.
-const page = await stigmer.agent.list(create(ListAgentsRequestSchema, { org: "my-org", pageSize: 20 }));
-const next = await stigmer.agent.list(
-  create(ListAgentsRequestSchema, { org: "my-org", pageSize: 20, pageToken: page.nextPageToken }),
-);
+const page = await stigmer.agent.list({ org: "my-org", pageSize: 20 });
+const next = await stigmer.agent.list({ org: "my-org", pageSize: 20, pageToken: page.nextPageToken });
 
 // Every agent, page after page: listAll follows the tokens.
 for await (const a of stigmer.agent.listAll({ org: "my-org" })) {

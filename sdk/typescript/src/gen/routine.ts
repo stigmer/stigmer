@@ -16,7 +16,7 @@ import { Harness, GitWriteBackMode } from "@stigmer/apis/ai/stigmer/agentic/sess
 import { FileResourceSchema, GitRepositoryResourceSchema, LocalPathResourceSchema, SessionResourceSchema, type FileResource, type GitRepositoryResource, type LocalPathResource, type SessionResource } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
-import { ApiResourceReferenceSchema, type RenameInput } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceReferenceSchema, type RenameInput, type RenameInputSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 
 /** Provides operations on routine resources. */
@@ -47,7 +47,7 @@ export class RoutineClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async rename(input: RenameInput): Promise<Routine> {
+  async rename(input: MessageInitShape<typeof RenameInputSchema>): Promise<Routine> {
     try {
       return await this.command.rename(input);
     } catch (e) { throw wrapError(e); }
@@ -65,7 +65,7 @@ export class RoutineClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async fire(input: FireRoutineInput): Promise<RoutineFireResult> {
+  async fire(input: MessageInitShape<typeof FireRoutineInputSchema>): Promise<RoutineFireResult> {
     try {
       return await this.command.fire(input);
     } catch (e) { throw wrapError(e); }
@@ -83,7 +83,7 @@ export class RoutineClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async listByAgent(input: ListRoutinesByAgentRequest): Promise<RoutineList> {
+  async listByAgent(input: MessageInitShape<typeof ListRoutinesByAgentRequestSchema>): Promise<RoutineList> {
     try {
       return await this.query.listByAgent(input);
     } catch (e) { throw wrapError(e); }
@@ -103,7 +103,7 @@ export class RoutineClient {
     }
   }
 
-  async list(input: ListRoutinesRequest): Promise<RoutineList> {
+  async list(input: MessageInitShape<typeof ListRoutinesRequestSchema>): Promise<RoutineList> {
     try {
       return await this.query.list(input);
     } catch (e) { throw wrapError(e); }
@@ -123,7 +123,7 @@ export class RoutineClient {
     }
   }
 
-  async listFires(input: ListRoutineFiresRequest): Promise<RoutineFireList> {
+  async listFires(input: MessageInitShape<typeof ListRoutineFiresRequestSchema>): Promise<RoutineFireList> {
     try {
       return await this.query.listFires(input);
     } catch (e) { throw wrapError(e); }

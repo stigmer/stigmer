@@ -7,7 +7,7 @@ import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
-import { ApiResourceIdSchema, ApiResourceReferenceSchema, ApiResourceDeleteInputSchema, type RenameInput } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceIdSchema, ApiResourceReferenceSchema, ApiResourceDeleteInputSchema, type RenameInput, type RenameInputSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 import { OAuthAppSchema, type OAuthApp } from "@stigmer/apis/ai/stigmer/iam/oauthapp/v1/api_pb";
 import { OAuthAppCommandController } from "@stigmer/apis/ai/stigmer/iam/oauthapp/v1/command_pb";
@@ -43,7 +43,7 @@ export class OAuthAppClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async rename(input: RenameInput): Promise<OAuthApp> {
+  async rename(input: MessageInitShape<typeof RenameInputSchema>): Promise<OAuthApp> {
     try {
       return await this.command.rename(input);
     } catch (e) { throw wrapError(e); }
@@ -71,7 +71,7 @@ export class OAuthAppClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async list(input: ListOAuthAppsInput): Promise<OAuthApps> {
+  async list(input: MessageInitShape<typeof ListOAuthAppsInputSchema>): Promise<OAuthApps> {
     try {
       return await this.query.list(input);
     } catch (e) { throw wrapError(e); }

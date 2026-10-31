@@ -35,7 +35,7 @@ export class InvitationClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async redeem(input: RedeemInvitationInput): Promise<Invitation> {
+  async redeem(input: MessageInitShape<typeof RedeemInvitationInputSchema>): Promise<Invitation> {
     try {
       return await this.command.redeem(input);
     } catch (e) { throw wrapError(e); }
@@ -47,7 +47,7 @@ export class InvitationClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async list(input: ListInvitationsInput): Promise<Invitations> {
+  async list(input: MessageInitShape<typeof ListInvitationsInputSchema>): Promise<Invitations> {
     try {
       return await this.query.list(input);
     } catch (e) { throw wrapError(e); }
@@ -67,7 +67,7 @@ export class InvitationClient {
     }
   }
 
-  async getByToken(input: InvitationTokenInput): Promise<InvitationPreview> {
+  async getByToken(input: MessageInitShape<typeof InvitationTokenInputSchema>): Promise<InvitationPreview> {
     try {
       return await this.query.getByToken(input);
     } catch (e) { throw wrapError(e); }

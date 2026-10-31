@@ -36,7 +36,7 @@ export class LicenseClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async list(input: ListLicensesInput): Promise<Licenses> {
+  async list(input: MessageInitShape<typeof ListLicensesInputSchema>): Promise<Licenses> {
     try {
       return await this.query.list(input);
     } catch (e) { throw wrapError(e); }

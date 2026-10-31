@@ -12,12 +12,12 @@ from ai.stigmer.agentic.routine.v1 import command_pb2_grpc
 from ai.stigmer.agentic.routine.v1 import query_pb2_grpc
 from ai.stigmer.agentic.routine.v1 import io_pb2
 from ai.stigmer.agentic.routine.v1 import spec_pb2
-from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2
 from ai.stigmer.commons.apiresource import metadata_pb2
 from google.protobuf import field_mask_pb2
 from ai.stigmer.commons.apiresource.apiresourcekind import api_resource_kind_pb2
 from ai.stigmer.agentic.run.v1 import invocation_pb2 as run_invocation_pb2
 from ai.stigmer.agentic.session.v1 import resource_pb2 as session_resource_pb2
+from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2
 
 from ._errors import wrap_error
 from ._types import ResourceRef
@@ -51,7 +51,7 @@ class RoutineClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def rename(self, input: io_pb2.RenameInput) -> api_pb2.Routine:
+    def rename(self, input: apiresource_io_pb2.RenameInput) -> api_pb2.Routine:
         try:
             return self._command.rename(input)
         except grpc.RpcError as e:

@@ -1,10 +1,10 @@
 /**
- * Pins the Go and TypeScript client methods the generators emit for the
- * method shapes no served service has today, each under its SDK method
+ * Pins the Go, TypeScript and Python client methods the generators emit for
+ * the method shapes no served service has today, each under its SDK method
  * name: a call that takes and answers nothing, a delete by id that answers
  * nothing, a resource passed through as it is when its kind has no spec
- * input, a read by id beside the kind's get, a stream read by id, and a
- * bidirectional stream.
+ * input, a read by id beside the kind's get, a stream read by id, a
+ * bidirectional stream, and a request from another versioned package.
  *
  * The generators run over a copy of the real schemas into temporary
  * directories; the copy's license service gains these methods and loses
@@ -17,6 +17,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import type { MethodSchema, ServiceSchemaFile } from "../gen-common.js";
 import { runSDKClientGeneration } from "../sdk-client-go.js";
+import { runSDKClientPythonGeneration } from "../sdk-client-python.js";
 import { runSDKClientTSGeneration } from "../sdk-client-ts.js";
 
 const SCHEMAS = path.resolve(__dirname, "../../../schemas");
@@ -31,6 +32,7 @@ describe("the generated clients' rarer method shapes", () => {
   let root: string;
   let go: string;
   let ts: string;
+  let py: string;
 
   beforeAll(() => {
     root = fs.mkdtempSync(path.join(os.tmpdir(), "codegen-method-shapes-"));
@@ -50,7 +52,20 @@ describe("the generated clients' rarer method shapes", () => {
     query.methods.push(
       method("Watch", "LicenseId", "License", { serverStreaming: true }),
       method("Fetch", "LicenseId", "License"),
+      method("Peek", "ListAgentsRequest", "License", {
+        inputFullType: "ai.stigmer.agentic.agent.v1.ListAgentsRequest",
+      }),
     );
+    license.methodTypes = [
+      ...(license.methodTypes ?? []),
+      {
+        name: "ListAgentsRequest",
+        description: "",
+        protoType: "ai.stigmer.agentic.agent.v1.ListAgentsRequest",
+        protoFile: "apis/ai/stigmer/agentic/agent/v1/io.proto",
+        fields: [],
+      },
+    ];
     fs.writeFileSync(file, JSON.stringify(license));
 
     const goOut = path.join(root, "go", "internal", "gen");
@@ -59,6 +74,9 @@ describe("the generated clients' rarer method shapes", () => {
     const tsOut = path.join(root, "ts");
     runSDKClientTSGeneration(schemas, tsOut);
     ts = fs.readFileSync(path.join(tsOut, "license.ts"), "utf8");
+    const pyOut = path.join(root, "py");
+    runSDKClientPythonGeneration(schemas, pyOut);
+    py = fs.readFileSync(path.join(pyOut, "_license.py"), "utf8");
   });
 
   afterAll(() => {
@@ -83,6 +101,7 @@ describe("the generated clients' rarer method shapes", () => {
   it("a stream read by id", () => {
     expect(go).toContain("func (l *LicenseClient) Watch(ctx context.Context, id string) (*LicenseWatchStream, error) {\n");
     expect(ts).toContain("  async *watch(id: string, signal?: AbortSignal): AsyncGenerator<License> {\n");
+    expect(py).toContain("    def watch(self, id: str) -> Iterator[api_pb2.License]:\n");
   });
 
   it("a bidirectional stream", () => {
@@ -90,10 +109,19 @@ describe("the generated clients' rarer method shapes", () => {
       "func (l *LicenseClient) Talk(ctx context.Context, opts ...grpc.CallOption) (*LicenseTalkStream, error) {\n",
     );
     expect(ts).toContain("  talk(signal?: AbortSignal): BidiStream<LicenseCommand, LicenseEvent> {\n");
+    expect(py).toContain("    def talk(self) -> BidiStream[io_pb2.LicenseCommand, io_pb2.LicenseEvent]:\n");
   });
 
   it("a read by id beside the kind's get", () => {
     expect(ts).toContain("  async get(id: string): Promise<License> {\n");
     expect(ts).toContain("  async fetch(id: string): Promise<License> {\n");
+  });
+
+  it("a request from another versioned package, typed by the module that declares it", () => {
+    expect(ts).toContain("  async peek(input: MessageInitShape<typeof ListAgentsRequestSchema>): Promise<License> {\n");
+    const agentIo = ts.split("\n").find((l) => l.endsWith(' from "@stigmer/apis/ai/stigmer/agentic/agent/v1/io_pb";'));
+    expect(agentIo).toContain("type ListAgentsRequestSchema");
+    expect(py).toContain("    def peek(self, input: agent_io_pb2.ListAgentsRequest) -> api_pb2.License:\n");
+    expect(py).toContain("from ai.stigmer.agentic.agent.v1 import io_pb2 as agent_io_pb2\n");
   });
 });

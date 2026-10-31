@@ -49,7 +49,7 @@ export class EvalRunClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async listByAgent(input: ListEvalRunsByAgentRequest): Promise<EvalRunList> {
+  async listByAgent(input: MessageInitShape<typeof ListEvalRunsByAgentRequestSchema>): Promise<EvalRunList> {
     try {
       return await this.query.listByAgent(input);
     } catch (e) { throw wrapError(e); }
@@ -69,7 +69,7 @@ export class EvalRunClient {
     }
   }
 
-  async listByPlugin(input: ListEvalRunsByPluginRequest): Promise<EvalRunList> {
+  async listByPlugin(input: MessageInitShape<typeof ListEvalRunsByPluginRequestSchema>): Promise<EvalRunList> {
     try {
       return await this.query.listByPlugin(input);
     } catch (e) { throw wrapError(e); }

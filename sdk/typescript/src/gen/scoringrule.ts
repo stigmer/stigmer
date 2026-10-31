@@ -46,7 +46,7 @@ export class ScoringRuleClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async getByAgent(input: GetScoringRuleByAgentRequest): Promise<ScoringRule> {
+  async getByAgent(input: MessageInitShape<typeof GetScoringRuleByAgentRequestSchema>): Promise<ScoringRule> {
     try {
       return await this.query.getByAgent(input);
     } catch (e) { throw wrapError(e); }

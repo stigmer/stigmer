@@ -22,37 +22,37 @@ export class GrantClient {
     this.query = createClient(GrantQueryController, transport);
   }
 
-  async create(input: GrantSpec): Promise<Grant> {
+  async create(input: MessageInitShape<typeof GrantSpecSchema>): Promise<Grant> {
     try {
       return await this.command.create(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async delete(input: GrantSpec): Promise<Grant> {
+  async delete(input: MessageInitShape<typeof GrantSpecSchema>): Promise<Grant> {
     try {
       return await this.command.delete(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async bootstrapGrant(input: GrantSpec): Promise<Grant> {
+  async bootstrapGrant(input: MessageInitShape<typeof GrantSpecSchema>): Promise<Grant> {
     try {
       return await this.command.bootstrapGrant(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async cleanupResourceGrants(input: ApiResourceRef): Promise<void> {
+  async cleanupResourceGrants(input: MessageInitShape<typeof ApiResourceRefSchema>): Promise<void> {
     try {
       await this.command.cleanupResourceGrants(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async revokeOrgAccess(input: RevokeOrgAccessInput): Promise<void> {
+  async revokeOrgAccess(input: MessageInitShape<typeof RevokeOrgAccessInputSchema>): Promise<void> {
     try {
       await this.command.revokeOrgAccess(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async bootstrapRevokeOrgAccess(input: RevokeOrgAccessInput): Promise<void> {
+  async bootstrapRevokeOrgAccess(input: MessageInitShape<typeof RevokeOrgAccessInputSchema>): Promise<void> {
     try {
       await this.command.bootstrapRevokeOrgAccess(input);
     } catch (e) { throw wrapError(e); }
@@ -64,49 +64,49 @@ export class GrantClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async checkMyPermission(input: CheckMyPermissionInput): Promise<CheckAuthorizationResult> {
+  async checkMyPermission(input: MessageInitShape<typeof CheckMyPermissionInputSchema>): Promise<CheckAuthorizationResult> {
     try {
       return await this.query.checkMyPermission(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async checkAuthorization(input: CheckAuthorizationInput): Promise<CheckAuthorizationResult> {
+  async checkAuthorization(input: MessageInitShape<typeof CheckAuthorizationInputSchema>): Promise<CheckAuthorizationResult> {
     try {
       return await this.query.checkAuthorization(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async listAuthorizedResourceIds(input: ListAuthorizedResourceIdsInput): Promise<AuthorizedResourceIdsList> {
+  async listAuthorizedResourceIds(input: MessageInitShape<typeof ListAuthorizedResourceIdsInputSchema>): Promise<AuthorizedResourceIdsList> {
     try {
       return await this.query.listAuthorizedResourceIds(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async listAuthorizedPrincipalIds(input: ListAuthorizedPrincipalIdsInput): Promise<AuthorizedPrincipalIdsList> {
+  async listAuthorizedPrincipalIds(input: MessageInitShape<typeof ListAuthorizedPrincipalIdsInputSchema>): Promise<AuthorizedPrincipalIdsList> {
     try {
       return await this.query.listAuthorizedPrincipalIds(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async listResourceAccessByPrincipal(input: ListResourceAccessInput): Promise<ResourceAccessByPrincipalList> {
+  async listResourceAccessByPrincipal(input: MessageInitShape<typeof ListResourceAccessInputSchema>): Promise<ResourceAccessByPrincipalList> {
     try {
       return await this.query.listResourceAccessByPrincipal(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async getPrincipalResourceRoles(input: PrincipalResourceInput): Promise<PrincipalResourceRoles> {
+  async getPrincipalResourceRoles(input: MessageInitShape<typeof PrincipalResourceInputSchema>): Promise<PrincipalResourceRoles> {
     try {
       return await this.query.getPrincipalResourceRoles(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async getPrincipalsCount(input: GetPrincipalsCountInput): Promise<PrincipalsCount> {
+  async getPrincipalsCount(input: MessageInitShape<typeof GetPrincipalsCountInputSchema>): Promise<PrincipalsCount> {
     try {
       return await this.query.getPrincipalsCount(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async listAccessHistory(input: ListAccessHistoryInput): Promise<AccessHistoryPage> {
+  async listAccessHistory(input: MessageInitShape<typeof ListAccessHistoryInputSchema>): Promise<AccessHistoryPage> {
     try {
       return await this.query.listAccessHistory(input);
     } catch (e) { throw wrapError(e); }

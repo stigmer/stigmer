@@ -13,13 +13,13 @@ from ai.stigmer.agentic.agent.v1 import query_pb2_grpc
 from ai.stigmer.agentic.agent.v1 import io_pb2
 from ai.stigmer.agentic.agent.v1 import version_pb2
 from ai.stigmer.agentic.agent.v1 import spec_pb2
-from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2
 from ai.stigmer.commons.apiresource import metadata_pb2
 from google.protobuf import field_mask_pb2
 from ai.stigmer.commons.apiresource.apiresourcekind import api_resource_kind_pb2
 from ai.stigmer.agentic.plugin.v1 import hooks_pb2 as plugin_hooks_pb2
 from ai.stigmer.agentic.run.v1 import invocation_pb2 as run_invocation_pb2
 from ai.stigmer.agentic.vault.v1 import declaration_pb2 as vault_declaration_pb2
+from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2
 
 from ._errors import wrap_error
 from ._types import ResourceRef
@@ -52,13 +52,13 @@ class AgentClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def update_visibility(self, input: io_pb2.UpdateVisibilityInput) -> api_pb2.Agent:
+    def update_visibility(self, input: apiresource_io_pb2.UpdateVisibilityInput) -> api_pb2.Agent:
         try:
             return self._command.updateVisibility(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def rename(self, input: io_pb2.RenameInput) -> api_pb2.Agent:
+    def rename(self, input: apiresource_io_pb2.RenameInput) -> api_pb2.Agent:
         try:
             return self._command.rename(input)
         except grpc.RpcError as e:
