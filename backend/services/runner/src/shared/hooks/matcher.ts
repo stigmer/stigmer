@@ -11,7 +11,9 @@
  *
  * Install and apply refuse a matcher that does not compile, so one left
  * here (stored before that check) matches nothing, logged once when it is
- * compiled.
+ * compiled. V8 compiles a pattern's code on its first test, so a pattern
+ * that parses can still fail there (one nested thousands deep overflows the
+ * compiler's stack): it is treated the same way, logged once, on that test.
  *
  * A regular expression is the plugin author's, and the target can be the
  * model's (a shell command's whole text), so a pattern that backtracks
@@ -56,10 +58,24 @@ export function compileMatcher(text: string, format: HookFormatName): Matcher {
   try {
     pattern = new RegExp(text);
   } catch {
-    console.warn(`[hooks] a matcher that is not a regular expression matches nothing: ${text}`);
+    warnUnusable(text);
     return NONE;
   }
-  return { test: (target) => timedTest(pattern, target) };
+  let usable = true;
+  return {
+    test(target) {
+      if (!usable) return "miss";
+      const verdict = timedTest(pattern, target);
+      if (verdict !== "unusable") return verdict;
+      usable = false;
+      warnUnusable(text);
+      return "miss";
+    },
+  };
+}
+
+function warnUnusable(text: string): void {
+  console.warn(`[hooks] a matcher that is not a regular expression matches nothing: ${text}`);
 }
 
 /** The one context and script every timed test runs in, made on the first. */
@@ -69,15 +85,15 @@ interface Sandbox {
 }
 let sandbox: Sandbox | undefined;
 
-function timedTest(pattern: RegExp, target: string): MatcherVerdict {
+/** One test under the budget; `unusable` when V8 could not compile the pattern's code. */
+function timedTest(pattern: RegExp, target: string): MatcherVerdict | "unusable" {
   sandbox ??= { context: createContext({}), script: new Script("pattern.test(target)") };
   sandbox.context.pattern = pattern;
   sandbox.context.target = target;
   try {
     return sandbox.script.runInContext(sandbox.context, { timeout: MATCHER_BUDGET_MS }) === true ? "match" : "miss";
   } catch (err) {
-    if (!isScriptTimeout(err)) throw err;
-    return "timed-out";
+    return isScriptTimeout(err) ? "timed-out" : "unusable";
   }
 }
 

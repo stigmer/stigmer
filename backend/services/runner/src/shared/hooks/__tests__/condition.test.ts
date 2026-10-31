@@ -59,6 +59,15 @@ describe("a Claude Code matcher", () => {
     warn.mockRestore();
   });
 
+  it("treats a pattern that parses but that V8 cannot compile on its first test as one that does not compile", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const tooDeep = compileMatcher(`${"(".repeat(30_000)}a${")".repeat(30_000)}`, "claude-code");
+    expect(warn, "it parses, so nothing is logged at compile time").not.toHaveBeenCalled();
+    expect([tooDeep.test("a"), tooDeep.test("a")]).toEqual(["miss", "miss"]);
+    expect(warn).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
+  });
+
   it("stops a regular expression that runs past its budget, and the next test still runs", () => {
     // Exponential backtracking: unbounded, this one test takes minutes.
     const runaway = compileMatcher("(a+)+$", "claude-code");
