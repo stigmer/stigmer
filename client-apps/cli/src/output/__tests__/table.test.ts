@@ -35,7 +35,8 @@ describe("renderTable", () => {
 
   it("tolerates short rows by padding missing cells", () => {
     const out = renderTable(["A", "B"], [["only"]]);
-    expect(out.trimEnd().split("\n")[2]).toBe("only");
+    // The missing cell counts as empty: B stays as wide as its header.
+    expect(lines(out)).toEqual(["A      B", "----   -", "only"]);
   });
 });
 

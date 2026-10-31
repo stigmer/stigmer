@@ -240,10 +240,6 @@ function classifyConnectCode(code: number, message: string, cause: Error): CliEr
   }
 }
 
-// The next step for a named backend, and for a failure that names no
-// address: the status command prints the active backend and its endpoint.
-const CHECK_BACKEND = "Check the backend: stigmer config backend status";
-
 /** What a failure to reach the server says: what was tried and what to do. */
 export interface ConnectFailure {
   readonly message: string;
@@ -258,8 +254,11 @@ export interface ConnectFailure {
  * this too, so both failures read alike.
  */
 export function cannotConnect(address: ServerAddress | undefined): ConnectFailure {
+  // The next step for a named backend, and for a failure that names no
+  // address: the status command prints the active backend and its endpoint.
+  const checkBackend = "Check the backend: stigmer config backend status";
   if (address === undefined) {
-    return { message: "Could not reach the Stigmer server", hints: [CHECK_BACKEND] };
+    return { message: "Could not reach the Stigmer server", hints: [checkBackend] };
   }
   switch (address.source) {
     case "environment":
@@ -271,7 +270,7 @@ export function cannotConnect(address: ServerAddress | undefined): ConnectFailur
       return { message: `Could not reach the Stigmer server at ${address.address}`, hints: ["Start it: stigmer up"] };
     case "cloud":
     case "selfhost":
-      return { message: `Could not reach the Stigmer server at ${address.address}`, hints: [CHECK_BACKEND] };
+      return { message: `Could not reach the Stigmer server at ${address.address}`, hints: [checkBackend] };
   }
 }
 

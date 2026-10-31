@@ -123,13 +123,6 @@ export function yesNo(json: JsonObject, key: string): string {
 
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"] as const;
 
-const SHORTHANDS: Readonly<Record<string, string>> = {
-  "@hourly": "every hour, on the hour",
-  "@daily": "every day at 00:00",
-  "@weekly": "every Sunday at 00:00",
-  "@monthly": "on day 1 of every month at 00:00",
-  "@yearly": "every year on January 1 at 00:00",
-};
 
 /**
  * A routine's schedule in words, with the time zone it keeps ("every day at
@@ -144,8 +137,27 @@ export function scheduleWords(cron: string | undefined, timeZone: string): strin
   return `${cadence(cron.trim().replace(/\s+/g, " "))}, ${zone}`;
 }
 
+// A cron shorthand in words; undefined for any other cron. The words are
+// chosen as the schedule is read, not held in a table built at import.
+function shorthandWords(cron: string): string | undefined {
+  switch (cron) {
+    case "@hourly":
+      return "every hour, on the hour";
+    case "@daily":
+      return "every day at 00:00";
+    case "@weekly":
+      return "every Sunday at 00:00";
+    case "@monthly":
+      return "on day 1 of every month at 00:00";
+    case "@yearly":
+      return "every year on January 1 at 00:00";
+    default:
+      return undefined;
+  }
+}
+
 function cadence(cron: string): string {
-  const shorthand = SHORTHANDS[cron];
+  const shorthand = shorthandWords(cron);
   if (shorthand !== undefined) return shorthand;
   const custom = `cron "${cron}"`;
   const fields = cron.split(" ");

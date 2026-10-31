@@ -49,11 +49,13 @@ function helpOf(cmd: Command): string {
   return text;
 }
 
-const program = buildProgram();
-const runnable = runnableCommands(program);
+// Each test builds the program and walks it itself, rather than once at
+// import, so a broken walker fails the test that reads it (and a mutation
+// sweep can tell which test that is).
 
 describe("CLI-10 help groups commands and gives an example for each", () => {
   it("puts every visible top-level command in one of the six groups", () => {
+    const program = buildProgram();
     const ungrouped = documentedCommands(program)
       .filter((cmd) => !(HELP_GROUPS as readonly string[]).includes(helpGroupOf(cmd)))
       .map(commandPath);
@@ -63,7 +65,7 @@ describe("CLI-10 help groups commands and gives an example for each", () => {
   });
 
   it("lists the groups in their order, run and resume first and Commander's help last", () => {
-    const help = helpOf(program);
+    const help = helpOf(buildProgram());
     const headings = help.split("\n").filter((line) => /^[A-Z][a-z ]+:$/.test(line));
     expect(headings).toEqual(["Options:", ...HELP_GROUPS.map((group) => `${group}:`), "Examples:"]);
     const runAgents = help.slice(help.indexOf("Run agents:"), help.indexOf("Your library:"));
@@ -73,6 +75,7 @@ describe("CLI-10 help groups commands and gives an example for each", () => {
   });
 
   it("gives every runnable command at least one example, and no example names a command that does not run", () => {
+    const runnable = runnableCommands(buildProgram());
     expect(runnable.length).toBeGreaterThanOrEqual(80);
     const without = runnable.filter((cmd) => helpExamples(cmd).length === 0).map(commandPath);
     expect(without).toEqual([]);
@@ -81,7 +84,7 @@ describe("CLI-10 help groups commands and gives an example for each", () => {
   });
 
   it("prints a command's examples under Examples:, each line with what it does beneath it", () => {
-    const get = program.commands.find((cmd) => cmd.name() === "get")!;
+    const get = buildProgram().commands.find((cmd) => cmd.name() === "get")!;
     const help = helpOf(get);
     expect(help).toContain("\nExamples:\n  stigmer get agent my-agent\n      get an agent by slug\n");
   });
@@ -95,7 +98,7 @@ describe("CLI-10 help groups commands and gives an example for each", () => {
   });
 
   it("parses every example through the program, arguments and options included", async () => {
-    const all = [...ROOT_EXAMPLES, ...runnable.flatMap((cmd) => helpExamples(cmd))];
+    const all = [...ROOT_EXAMPLES, ...runnableCommands(buildProgram()).flatMap((cmd) => helpExamples(cmd))];
     const refused: string[] = [];
     for (const example of all) {
       const [bin, ...args] = words(example.run);
@@ -123,7 +126,7 @@ describe("CLI-10 help groups commands and gives an example for each", () => {
         visit(sub);
       }
     };
-    visit(program);
+    visit(buildProgram());
     const off = all.filter((cmd) => !/^[a-z`]/.test(cmd.description()) || /\.\s*$/.test(cmd.description())).map(commandPath);
     expect(off).toEqual([]);
   });

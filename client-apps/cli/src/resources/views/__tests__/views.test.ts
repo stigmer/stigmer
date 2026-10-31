@@ -61,19 +61,28 @@ const ALL: ReadonlyArray<[name: string, kind: ApiResourceKind, schema: DescMessa
 
 describe("CLI-09 the registry sweep: every kind get serves has a view or is named generic", () => {
   // `get run` is served outside the registry (the run alias), so it joins the registry's Get kinds by hand.
-  const served = new Set([...defaultRegistry().typesForVerb(Verb.Get).map((info) => info.kind), ApiResourceKind.run]);
+  // Each test reads the registry itself, so a broken list fails the test that reads it.
+  const servedByGet = () => new Set([...defaultRegistry().typesForVerb(Verb.Get).map((info) => info.kind), ApiResourceKind.run]);
 
   it("gives every kind get serves a designed view or names it generic", () => {
+    const served = servedByGet();
     for (const kind of served) {
       expect(VIEWS.has(kind) || GENERIC_VIEW_KINDS.has(kind), `${ApiResourceKind[kind]} has no view and is not named generic`).toBe(true);
     }
   });
 
   it("names no kind both designed and generic, and none get does not serve", () => {
+    const served = servedByGet();
     for (const kind of [...VIEWS.keys(), ...GENERIC_VIEW_KINDS]) {
       expect(served.has(kind), `${ApiResourceKind[kind]} is not served by get`).toBe(true);
       expect(VIEWS.has(kind) && GENERIC_VIEW_KINDS.has(kind), ApiResourceKind[kind]).toBe(false);
     }
+  });
+
+  it("names generic exactly the kinds get serves that have no designed view", () => {
+    const undesigned = [...servedByGet()].filter((kind) => !VIEWS.has(kind));
+    expect(undesigned.length).toBeGreaterThan(0);
+    expect(new Set(undesigned)).toEqual(GENERIC_VIEW_KINDS);
   });
 });
 
@@ -194,6 +203,42 @@ describe("CLI-09 the view renderer", () => {
     );
   });
 
+  it("hangs a list item's continuation under its text for each marker, and a line that only looks like one under its start", () => {
+    const text: KindView = {
+      sections: () => [
+        {
+          title: "Text",
+          lines: [
+            "* starred item that wraps here",
+            "  - nested item that wraps here",
+            "10.  wide numbered item that wraps",
+            "-x not an item and it wraps here",
+            "2.5 apples are not an item here",
+            "1.x not an item and it wraps",
+            "Note. a sentence is not an item",
+          ],
+        },
+      ],
+    };
+    expect(renderView(text, resource, { ...PLAIN, width: 25 }).split("\n").slice(4)).toEqual([
+      "  * starred item that",
+      "    wraps here",
+      "    - nested item that",
+      "      wraps here",
+      "  10.  wide numbered item",
+      "       that wraps",
+      "  -x not an item and it",
+      "  wraps here",
+      "  2.5 apples are not an",
+      "  item here",
+      "  1.x not an item and it",
+      "  wraps",
+      "  Note. a sentence is not",
+      "  an item",
+      "",
+    ]);
+  });
+
   it("wraps nothing piped, and keeps a field's own line breaks", () => {
     const multi: KindView = { sections: () => [{ fields: [["Note", `first line\n${"word ".repeat(40).trim()}`]] }] };
     const out = renderView(multi, resource, PLAIN);
@@ -243,6 +288,11 @@ describe("CLI-09 the shared words", () => {
     expect(refLabel({ org: "org_1", slug: "a", version: "b".repeat(64) }, own, ctx)).toBe(`acme/a@${"b".repeat(12)}`);
     expect(refLabel({ org: "org_1", slug: "a", version: `v${"b".repeat(64)}` }, own, ctx)).toBe(`acme/a@v${"b".repeat(64)}`);
     expect(refLabel({ org: "org_1", slug: "a", version: `${"b".repeat(64)}x` }, own, ctx)).toBe(`acme/a@${"b".repeat(64)}x`);
+    // Only a full 64-character hex hash is shortened: one character fewer or more is a name, kept whole.
+    expect(refLabel({ org: "org_1", slug: "a", version: "0123456789abcdef".repeat(4) }, own, ctx)).toBe("acme/a@0123456789ab");
+    expect(refLabel({ org: "org_1", slug: "a", version: "b".repeat(63) }, own, ctx)).toBe(`acme/a@${"b".repeat(63)}`);
+    expect(refLabel({ org: "org_1", slug: "a", version: "b".repeat(65) }, own, ctx)).toBe(`acme/a@${"b".repeat(65)}`);
+    expect(refLabel({ org: "org_1", slug: "a", version: "B".repeat(64) }, own, ctx)).toBe(`acme/a@${"B".repeat(64)}`);
     expect(refLabel({ org: "org_1" }, own, ctx)).toBe("");
     expect(refLabels([{ org: "org_1" }, { org: "org_1", slug: "a" }], own, ctx)).toEqual(["acme/a"]);
   });
@@ -329,6 +379,10 @@ describe("CLI-09 the shared words", () => {
     expect(withoutFrontmatter("---\nname: a\nbody")).toBe("---\nname: a\nbody");
     expect(withoutFrontmatter("---\nname: a\n---")).toBe("");
     expect(withoutFrontmatter("---\nname: a\n---\n\n\n# A\n\nbody")).toBe("# A\n\nbody");
+    // Only the blank lines right after the frontmatter go; the body's own stay.
+    expect(withoutFrontmatter("---\nname: a\n---\n# A\n\nbody")).toBe("# A\n\nbody");
+    // The closing line goes whole, whatever follows its dashes.
+    expect(withoutFrontmatter("---\nname: a\n---  \nbody")).toBe("body");
     // A rule further down is not frontmatter.
     expect(withoutFrontmatter("# A\n\n---\n\nmore")).toBe("# A\n\n---\n\nmore");
   });
@@ -382,8 +436,16 @@ describe("CLI-09 the views leave out what a resource does not carry", () => {
   });
 
   it("shows an agent's tools as only the disallowed ones when it allows every tool", () => {
-    const agent = create(AgentSchema, { metadata: { slug: "a" }, spec: { disallowedTools: ["Bash"] } });
-    expect(draw(ApiResourceKind.agent, AgentSchema, agent)).toContain("Tools\n  Disallowed:  Bash\n");
+    const agent = create(AgentSchema, { metadata: { slug: "a" }, spec: { disallowedTools: ["Bash", "Write"] } });
+    expect(draw(ApiResourceKind.agent, AgentSchema, agent)).toContain("Tools\n  Disallowed:  Bash, Write\n");
+  });
+
+  it("marks a value an agent declares both secret and optional with both words", () => {
+    const agent = create(AgentSchema, {
+      metadata: { slug: "a" },
+      spec: { env: { DEPLOY_KEY: { isSecret: true, optional: true }, REGION: {} } },
+    });
+    expect(draw(ApiResourceKind.agent, AgentSchema, agent)).toContain("Environment\n  Values:  DEPLOY_KEY (secret, optional), REGION\n");
   });
 
   it("lists a session with no runs without a Runs section, five without a note, six with one", () => {
@@ -411,6 +473,20 @@ describe("CLI-09 the views leave out what a resource does not carry", () => {
     expect(plain.split("\n")[1]).toBe("chat");
     const sourceOnly = create(SessionSchema, { metadata: { id: "ses_3" }, status: { environmentSource: EnvironmentSource.AGENT } });
     expect(draw(ApiResourceKind.session, SessionSchema, sourceOnly)).not.toContain("Environment");
+  });
+
+  it.each([
+    [EnvironmentSource.SESSION, "  Environment:  acme/e (named for this conversation)\n"],
+    [EnvironmentSource.ROUTINE, "  Environment:  acme/e (from its routine)\n"],
+    [EnvironmentSource.AGENT, "  Environment:  acme/e (from its agent)\n"],
+    [EnvironmentSource.ORGANIZATION, "  Environment:  acme/e (the organization's default)\n"],
+    [EnvironmentSource.UNSPECIFIED, "  Environment:  acme/e\n"],
+  ])("says which choice named a session's Environment (source %i)", (environmentSource, line) => {
+    const session = create(SessionSchema, {
+      metadata: { id: "ses_4", org: "org_1" },
+      status: { environment: { org: "org_1", slug: "e" }, environmentSource },
+    });
+    expect(draw(ApiResourceKind.session, SessionSchema, session)).toContain(line);
   });
 
   it("says why a run stopped only when it did not complete, a cancel by its cause alone", () => {

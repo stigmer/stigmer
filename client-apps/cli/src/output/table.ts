@@ -60,14 +60,12 @@ export function renderTable(
 ): string {
   if (rows.length === 0) return "";
 
-  const natural = headers.map((header, column) => {
-    let width = stringWidth(header);
-    for (const row of rows) {
-      const cell = stringWidth(row[column] ?? "");
-      if (cell > width) width = cell;
-    }
-    return width;
-  });
+  const natural = headers.map((header, column) =>
+    rows.reduce(
+      (widest, row) => Math.max(widest, stringWidth(row[column] ?? "")),
+      stringWidth(header),
+    ),
+  );
   const widths = fitWidths(headers, natural, options);
 
   const renderRow = (cells: readonly string[]): string =>
@@ -96,41 +94,42 @@ export function renderEmpty(resourceName: string, query?: string): string {
   return `\n${middle}\n\n`;
 }
 
-// The column widths that fit `width`: while the row is too wide, the widest
-// shrinkable column above its floor gives up one column (the leftmost of
-// equals), so wide columns come down to their neighbours before any of them
-// goes further. A column's floor is SHRINK_FLOOR or its header, whichever is
-// wider, so a header is never cut. When every shrinkable column sits at its
-// floor the row stays wider than the terminal and the terminal wraps it.
+// The column widths that fit `options.width`: while the row is too wide, the
+// widest shrinkable column above its floor gives up one column (the leftmost
+// of equals), so wide columns come down to their neighbours before any of
+// them goes further. A column's floor is SHRINK_FLOOR or its header,
+// whichever is wider, so a header is never cut. The cuts stop at the slack,
+// the columns the shrinkable ones hold above their floors, so each cut has a
+// column to take from; when the slack runs out first the row stays wider
+// than the terminal and the terminal wraps it.
 function fitWidths(
   headers: readonly string[],
   natural: readonly number[],
   options: TableOptions,
 ): number[] {
   const widths = [...natural];
-  const { width, shrink = [] } = options;
-  if (width === undefined) return widths;
+  if (options.width === undefined) return widths;
+  const shrinkable = new Set(options.shrink);
   const floors = headers.map((header, column) =>
-    shrink.includes(header)
+    shrinkable.has(header)
       ? Math.max(SHRINK_FLOOR, stringWidth(header))
       : natural[column],
   );
-  let over =
+  const rowWidth =
     widths.reduce((sum, columnWidth) => sum + columnWidth, 0) +
-    COLUMN_GAP.length * (widths.length - 1) -
-    width;
-  while (over > 0) {
-    let widest = -1;
-    for (let column = 0; column < widths.length; column++) {
-      if (
-        widths[column] > floors[column] &&
-        (widest === -1 || widths[column] > widths[widest])
-      )
-        widest = column;
-    }
-    if (widest === -1) break;
+    COLUMN_GAP.length * (widths.length - 1);
+  const slack = widths.reduce(
+    (sum, columnWidth, column) => sum + columnWidth - floors[column],
+    0,
+  );
+  for (let cuts = Math.min(rowWidth - options.width, slack); cuts > 0; cuts--) {
+    const open = widths.flatMap((columnWidth, column) =>
+      columnWidth > floors[column] ? [column] : [],
+    );
+    const widest = open.reduce((best, column) =>
+      widths[column] > widths[best] ? column : best,
+    );
     widths[widest] -= 1;
-    over -= 1;
   }
   return widths;
 }

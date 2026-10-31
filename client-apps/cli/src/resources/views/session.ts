@@ -17,14 +17,6 @@ import { phaseWord, refLabel, runSpan } from "./words.js";
 /** How many of a session's runs its view lists, the newest. */
 export const SESSION_RUNS = 5;
 
-// Which choice named the session's Environment (SessionStatus.environment_source).
-const ENVIRONMENT_SOURCES: Readonly<Record<string, string>> = {
-  ENVIRONMENT_SOURCE_SESSION: "named for this conversation",
-  ENVIRONMENT_SOURCE_ROUTINE: "from its routine",
-  ENVIRONMENT_SOURCE_AGENT: "from its agent",
-  ENVIRONMENT_SOURCE_ORGANIZATION: "the organization's default",
-};
-
 export const sessionView: KindView = {
   title: (json, ctx) => {
     const metadata = obj(json, "metadata");
@@ -68,8 +60,25 @@ function agentOf(json: JsonObject, ctx: ViewContext): string {
 
 function environmentOf(status: JsonObject, metadata: JsonObject, ctx: ViewContext): string {
   const environment = refLabel(obj(status, "environment"), metadata, ctx);
-  const source = ENVIRONMENT_SOURCES[str(status, "environment_source")];
+  const source = environmentSourceWords(str(status, "environment_source"));
   return environment === "" || source === undefined ? environment : `${environment} (${source})`;
+}
+
+// Which choice named the session's Environment (SessionStatus.environment_source),
+// in words; undefined when the session says none, or one this CLI does not know.
+function environmentSourceWords(source: string): string | undefined {
+  switch (source) {
+    case "ENVIRONMENT_SOURCE_SESSION":
+      return "named for this conversation";
+    case "ENVIRONMENT_SOURCE_ROUTINE":
+      return "from its routine";
+    case "ENVIRONMENT_SOURCE_AGENT":
+      return "from its agent";
+    case "ENVIRONMENT_SOURCE_ORGANIZATION":
+      return "the organization's default";
+    default:
+      return undefined;
+  }
 }
 
 function runRow(run: JsonObject, now: number): string[] {
