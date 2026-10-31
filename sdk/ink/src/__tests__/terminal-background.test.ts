@@ -49,14 +49,15 @@ class TtyStdout {
   write(data: string): boolean {
     this.written.push(data);
     const reply = this.reply;
-    if (data === OSC11_QUERY && reply !== undefined) setTimeout(() => this.stdin.emit("data", Buffer.from(reply)), 5);
+    // A paused stream delivers nothing, as a real one would.
+    if (data === OSC11_QUERY && reply !== undefined) setTimeout(() => !this.stdin.isPaused() && this.stdin.emit("data", Buffer.from(reply)), 5);
     return true;
   }
 }
 
-function detect(reply: string | undefined, env: Record<string, string> = {}, tty = true) {
+function detect(reply: string | undefined, env: Record<string, string> = {}, tty = true, stdoutTty = tty) {
   const stdin = new TtyStdin(tty);
-  const stdout = new TtyStdout(stdin, reply, tty);
+  const stdout = new TtyStdout(stdin, reply, stdoutTty);
   const result = detectBackground({
     stdin: stdin as unknown as NodeJS.ReadStream,
     stdout: stdout as unknown as NodeJS.WriteStream,
@@ -73,6 +74,12 @@ describe("INK-12 colours read on a light and a dark terminal", () => {
     expect(parseOsc11Reply("\u001b]11;rgb:fd/f6/e3\u0007")?.background).toBe("light");
     expect(parseOsc11Reply("\u001b]11;rgba:0000/0000/0000/ffff\u0007")?.background).toBe("dark");
     expect(parseOsc11Reply("x\u001b]11;rgb:0/0/0\u0007y")).toEqual({ background: "dark", start: 1, end: 16 });
+    // Mid-grey, either side of half: 128 of 255 is light, 127 dark.
+    expect(parseOsc11Reply("\u001b]11;rgb:80/80/80\u0007")?.background).toBe("light");
+    expect(parseOsc11Reply("\u001b]11;rgb:7f/7f/7f\u0007")?.background).toBe("dark");
+    // Blue counts toward the light: green alone is under half here.
+    expect(parseOsc11Reply("\u001b]11;rgb:00/9e/ff\u0007")?.background).toBe("light");
+    expect(parseOsc11Reply("\u001b]11;rgb:00/9e/00\u0007")?.background).toBe("dark");
     expect(parseOsc11Reply("\u001b]11;rgb:ffff/ffff")).toBeUndefined();
     expect(parseOsc11Reply("plain keys")).toBeUndefined();
   });
@@ -80,6 +87,10 @@ describe("INK-12 colours read on a light and a dark terminal", () => {
   it("reads COLORFGBG's last field: 7 and 9 to 15 light, the rest dark, anything else unknown", () => {
     expect(backgroundFromColorFgBg("0;15")).toBe("light");
     expect(backgroundFromColorFgBg("0;7")).toBe("light");
+    expect(backgroundFromColorFgBg("0;9")).toBe("light");
+    expect(backgroundFromColorFgBg("0;6")).toBe("dark");
+    expect(backgroundFromColorFgBg("15;x0")).toBe("unknown");
+    expect(backgroundFromColorFgBg("15;0x")).toBe("unknown");
     expect(backgroundFromColorFgBg("15;default;0")).toBe("dark");
     expect(backgroundFromColorFgBg("15;8")).toBe("dark");
     expect(backgroundFromColorFgBg("15;16")).toBe("dark");
@@ -110,10 +121,28 @@ describe("INK-12 colours read on a light and a dark terminal", () => {
     expect(await detect(undefined).result).toBe("unknown");
   });
 
-  it("asks nothing off a terminal", async () => {
-    const { result, stdout } = detect("\u001b]11;rgb:ffff/ffff/ffff\u0007", { COLORFGBG: "15;0" }, false);
-    expect(await result).toBe("dark");
+  it("asks nothing unless both streams are a terminal that takes raw mode", async () => {
+    const white = "\u001b]11;rgb:ffff/ffff/ffff\u0007";
+    for (const [stdinTty, stdoutTty] of [[false, false], [true, false], [false, true]] as const) {
+      const { result, stdout } = detect(white, { COLORFGBG: "15;0" }, stdinTty, stdoutTty);
+      expect(await result).toBe("dark");
+      expect(stdout.written).toEqual([]);
+    }
+    const stdin = Object.assign(new TtyStdin(), { setRawMode: undefined });
+    const stdout = new TtyStdout(stdin as unknown as TtyStdin, white);
+    expect(await detectBackground({ stdin: stdin as unknown as NodeJS.ReadStream, stdout: stdout as unknown as NodeJS.WriteStream, env: {} })).toBe("unknown");
     expect(stdout.written).toEqual([]);
+  });
+
+  it("leaves a flowing stdin flowing, and its timeout does not fire after the answer", async () => {
+    const stdin = new TtyStdin();
+    stdin.resume();
+    const stdout = new TtyStdout(stdin, "\u001b]11;rgb:0/0/0\u0007");
+    const result = detectBackground({ stdin: stdin as unknown as NodeJS.ReadStream, stdout: stdout as unknown as NodeJS.WriteStream, env: {}, timeoutMs: 40 });
+    expect(await result).toBe("dark");
+    expect(stdin.isPaused()).toBe(false);
+    await new Promise((resolve) => setTimeout(resolve, 60));
+    expect(stdin.rawModes).toEqual([true, false]);
   });
 
   it("keeps raw mode on when it found it on", async () => {

@@ -21,7 +21,6 @@ const NOT_DRAWN: ReadonlySet<string> = new Set(["space", "def"]);
 
 /** The top-level blocks of a markdown text, in order: what draws, spacing and link definitions left out. */
 export function markdownBlocks(text: string): readonly Token[] {
-  if (text.trim() === "") return [];
   return Lexer.lex(text).filter((token) => !NOT_DRAWN.has(token.type));
 }
 

@@ -59,11 +59,11 @@ export function workingWords(turn: Turn | null, nowMs: number, state: WorkingSta
 
 /**
  * The line a completed turn leaves in the history, "Worked for 1m 12s"; ""
- * when the turn did not complete, the log stamps no start, or it took under a
- * second, which is not worth a line.
+ * when the turn did not complete or took under a second, which is not worth
+ * a line (a turn the log stamps no start for counts no time).
  */
 export function workedWords(turn: Turn): string {
   if (!turn.ended || turn.status?.phase !== "completed") return "";
-  const progress = describeTurnActivity(turn, Date.parse(turn.status.processedAt));
-  return progress.startedAt === "" || progress.elapsedMs < 1000 ? "" : `Worked for ${formatElapsed(progress.elapsedMs)}`;
+  const { elapsedMs } = describeTurnActivity(turn, Date.parse(turn.status.processedAt));
+  return elapsedMs < 1000 ? "" : `Worked for ${formatElapsed(elapsedMs)}`;
 }

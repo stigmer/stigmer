@@ -29,7 +29,18 @@ function runningCommand() {
 
 describe("INK-10 thinking shows, and a working indicator counts the time", () => {
   it("writes a span of time in seconds, minutes and hours", () => {
-    expect([0, 999, 42_000, 72_000, 3_600_000, 3_780_000, -5].map(formatElapsed)).toEqual(["0s", "0s", "42s", "1m 12s", "1h 0m", "1h 3m", "0s"]);
+    expect([0, 999, 42_000, 59_999, 60_000, 72_000, 3_599_000, 3_600_000, 3_780_000, -5].map(formatElapsed)).toEqual([
+      "0s",
+      "0s",
+      "42s",
+      "59s",
+      "1m 0s",
+      "1m 12s",
+      "59m 59s",
+      "1h 0m",
+      "1h 3m",
+      "0s",
+    ]);
   });
 
   it("says what the turn does now and for how long, from the shared derivation", () => {
@@ -39,7 +50,7 @@ describe("INK-10 thinking shows, and a working indicator counts the time", () =>
   it("lets stopping, then waiting on the person, then slowness take the phrase over", () => {
     const now = Date.parse(sampleInstant(5_000));
     const asking = { ...runningCommand(), asks: [waitingToolUse("execute")] };
-    expect(workingWords(asking, now, { isStopping: true, isSlow: true }).phrase).toBe(STOPPING_PHRASE);
+    expect(workingWords(asking, now, { isStopping: true, isSlow: true })).toEqual({ phrase: STOPPING_PHRASE, elapsed: "5s", waiting: false });
     expect(workingWords(asking, now, { isSlow: true })).toMatchObject({ phrase: "Waiting for you", waiting: true });
     expect(workingWords(runningCommand(), now, { isSlow: true }).phrase).toBe(SLOW_PHRASE);
     expect(workingWords(null, now)).toEqual({ phrase: "Starting", elapsed: "", waiting: false });
@@ -73,7 +84,8 @@ describe("INK-10 thinking shows, and a working indicator counts the time", () =>
     ];
     expect(workedWords(turnOf([...events, samples.runStatusEvent("completed", { processedAt: sampleInstant(72_000) })]))).toBe("Worked for 1m 12s");
     expect(workedWords(turnOf([...events, samples.runStatusEvent("failed", { processedAt: sampleInstant(72_000) })]))).toBe("");
-    expect(workedWords(turnOf([...events, samples.runStatusEvent("completed", { processedAt: sampleInstant(400) })]))).toBe("");
+    expect(workedWords(turnOf([...events, samples.runStatusEvent("completed", { processedAt: sampleInstant(999) })]))).toBe("");
+    expect(workedWords(turnOf([...events, samples.runStatusEvent("completed", { processedAt: sampleInstant(1_000) })]))).toBe("Worked for 1s");
     expect(workedWords(turnOf(events))).toBe("");
   });
 

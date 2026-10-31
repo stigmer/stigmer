@@ -41,7 +41,7 @@ describe("the thread's items", () => {
   it("leaves no line for a completed turn under a second, and a badge for a failed one", () => {
     expect(itemsOf([samples.turn()]).map((item) => item.kind)).not.toContain("worked");
     const failed = itemsOf([samples.turn({ phase: "failed" })]);
-    expect(failed.at(-1)).toMatchObject({ kind: "phase", settled: true });
+    expect(failed.at(-1)).toMatchObject({ kind: "phase", key: `${RUN_ID}-end`, settled: true });
   });
 
   it("settles a reply being written block by block: all but its last block", () => {
@@ -119,7 +119,8 @@ describe("the thread's items, by turn", () => {
   it("leaves out a reconcile turn and a turn with nothing in it, and keeps a turn that has items but no message", () => {
     const shown = samples.turn({ runId: "run_shown" });
     const reconcile = samples.turn({ runId: "run_undo" });
-    const empty = { ...samples.turn({ runId: "run_empty" }), userMessage: undefined, items: [] };
+    // Failed, so it would leave a badge if it were drawn.
+    const empty = { ...samples.turn({ runId: "run_empty", phase: "failed" }), userMessage: undefined, items: [] };
     const itemsOnly = { ...samples.turn({ runId: "run_items", reply: "Picked up." }), userMessage: undefined };
     const runs = [samples.run({ id: "run_undo" })];
     runs[0]!.spec!.reconcileFileReview = true;
