@@ -8,7 +8,9 @@
  *    nothing wider;
  *  - what a command runs with: Claude's stdin, the substituted placeholders,
  *    the environment, the timeout, the tamper guard first;
- *  - PostToolUse: block reasons and context, Claude's `tool_response`.
+ *  - PostToolUse: block reasons and context, Claude's `tool_response`;
+ *  - a matcher stopped past its budget is its group's hooks failing, by each
+ *    format's own rule, and runs no command.
  */
 
 import { create } from "@bufbuild/protobuf";
@@ -365,6 +367,53 @@ describe("PostToolUse", () => {
     const { run, runs } = scripted({});
     const hooks = evaluator([{ source: plugin("safety"), groups: [group("PreToolUse", "Bash", { command: "a" })] }], run);
     expect(await hooks.postToolUse(SHELL, {}, "x")).toEqual({ blockReasons: [], additionalContext: [], errors: [] });
+    expect(runs).toEqual([]);
+  });
+});
+
+describe("a matcher that runs past its budget", () => {
+  // Exponential backtracking on each call's target: unbounded, minutes per test.
+  const RUNAWAY_NAME = "(\\w+)+!";
+  const RUNAWAY_COMMAND = "(a+)+$";
+  const MCP_CALL = { id: "call_5", name: "create_issue", args: {}, serverSlug: "plugin_tracker_github" };
+  const LONG_SHELL = { id: "call_6", name: "execute", args: { command: `${"a".repeat(40)}!` }, serverSlug: "" };
+  const STOPPED = "the command did not start: its matcher took longer than 100 ms to test against this call and was stopped";
+  const cursorGroup = (event: string, matcher: string, command: string, failClosed: boolean): HookGroup =>
+    create(HookGroupSchema, { event, matcher, handlers: [create(HookHandlerSchema, { command, failClosed })] });
+
+  it("fails a Claude Code group's hooks, which lets the call through with the failure logged", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { run, runs } = scripted({ guard: decide("deny") });
+    const hooks = evaluator([{ source: plugin("slow"), groups: [group("PreToolUse", RUNAWAY_NAME, { command: "guard", condition: "Bash(git *)" })] }], run);
+    const started = performance.now();
+    const outcome = await hooks.preToolUse(MCP_CALL, {});
+    expect(performance.now() - started).toBeLessThan(2_000);
+    expect(outcome.decision).toBeUndefined();
+    expect(outcome.errors).toEqual([`plugin slow: ${STOPPED}`]);
+    expect(runs, "no command runs").toEqual([]);
+    expect(warn).toHaveBeenCalledWith(`[hooks] a hook made no decision: plugin slow: ${STOPPED}`);
+    warn.mockRestore();
+  });
+
+  it("refuses the call for a Cursor hook that fails closed, naming why, and decides nothing for one that does not", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { run, runs } = scripted({ strict: { stdout: '{"permission":"allow"}' }, lenient: { stdout: '{"permission":"allow"}' } });
+    const strict = evaluator([{ source: plugin("strict"), format: "cursor", groups: [cursorGroup("beforeShellExecution", RUNAWAY_COMMAND, "strict", true)] }], run);
+    const refused = await strict.preToolUse(LONG_SHELL, {});
+    expect(refused).toMatchObject({ decision: "deny", hook: "strict" });
+    expect(refused.reason).toBe(`A hook that must answer before this call failed (${STOPPED}), so the call was refused.`);
+    const lenient = evaluator([{ source: plugin("lenient"), format: "cursor", groups: [cursorGroup("beforeShellExecution", RUNAWAY_COMMAND, "lenient", false)] }], run);
+    const through = await lenient.preToolUse(LONG_SHELL, {});
+    expect(through.decision).toBeUndefined();
+    expect(through.errors).toEqual([`plugin lenient: ${STOPPED}`]);
+    expect(runs, "no command runs").toEqual([]);
+    warn.mockRestore();
+  });
+
+  it("hands back the failure after a call, and runs nothing", async () => {
+    const { run, runs } = scripted({ note: { stdout: '{"additional_context":"x"}' } });
+    const hooks = evaluator([{ source: plugin("slow"), groups: [group("PostToolUse", RUNAWAY_NAME, { command: "note" })] }], run);
+    expect(await hooks.postToolUse(MCP_CALL, {}, "made")).toEqual({ blockReasons: [], additionalContext: [], errors: [STOPPED] });
     expect(runs).toEqual([]);
   });
 });
