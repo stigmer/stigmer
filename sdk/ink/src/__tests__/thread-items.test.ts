@@ -248,6 +248,8 @@ describe("the history", () => {
     // Decided once the next turn's message was written: below it, and says so.
     expect(appendOnce([a, b], [a, record, b]).at(-1)).toEqual({ ...record, earlier: true });
     expect(appendOnce([a, b], [a, b, record]).at(-1)).toBe(record);
+    expect(appendOnce([], [record, a])).toEqual([record, a]);
+    expect(appendOnce([], [record, a])[0]).toBe(record);
   });
 
   it("is the same list when nothing is new, so Ink's history does not change", () => {

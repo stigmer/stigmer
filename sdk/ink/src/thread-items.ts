@@ -232,14 +232,11 @@ export function settledPrefixLength(items: readonly { readonly settled: boolean 
  */
 export function appendOnce(written: readonly ThreadItem[], settled: readonly ThreadItem[]): readonly ThreadItem[] {
   const keys = new Set(written.map((item) => item.key));
-  let lastWritten = -1;
-  settled.forEach((item, index) => {
-    if (keys.has(item.key)) lastWritten = index;
-  });
   const fresh: ThreadItem[] = [];
   settled.forEach((item, index) => {
     if (keys.has(item.key)) return;
-    fresh.push(item.kind === "file-review-record" && index < lastWritten ? { ...item, earlier: true } : item);
+    const late = item.kind === "file-review-record" && settled.slice(index + 1).some((after) => keys.has(after.key));
+    fresh.push(late ? { ...item, earlier: true } : item);
   });
   return fresh.length === 0 ? written : [...written, ...fresh];
 }
