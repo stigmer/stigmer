@@ -23,8 +23,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.30.0",
-    "@remotion/cli": "4.0.448",
+    "@modelcontextprotocol/sdk": "^1.32.0",
+    "@remotion/cli": "4.0.539",
     "@remotion/google-fonts": "4.0.448",
     "@stigmer/client": "*",
     "@stigmer/react-sdk": "*",
