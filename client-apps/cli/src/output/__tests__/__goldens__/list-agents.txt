@@ -1,5 +1,5 @@
 
-NAME                 DESCRIPTION                                          VISIBILITY   CREATED
-------------------   --------------------------------------------------   ----------   -------
-demo/demo-agent      A sample agent for demo and documentation purpose…                -
-demo/release-notes   Drafts release notes from the merged pull request…                -
+NAME                 DESCRIPTION                                                                           VISIBILITY   CREATED
+------------------   -----------------------------------------------------------------------------------   ----------   -------
+demo/demo-agent      A sample agent for demo and documentation purposes.                                                -
+demo/release-notes   Drafts release notes from the merged pull requests of a milestone, grouped by area.                -

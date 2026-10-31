@@ -381,6 +381,23 @@ describe("showRoutineFires", () => {
     expect(table).toContain("refused [31mFAKE ROW [0m more");
   });
 
+  it("CLI-09 cuts a long reason to fit the terminal and keeps the run id whole", () => {
+    const fire = create(RoutineFireSchema, {
+      origin: RoutineFireOrigin.MANUAL,
+      outcome: RoutineFireOutcome.REFUSED,
+      runId: "run_00000000000000000000000001",
+      reason: "the organization has used the agent hours of its plan for this month; they reset on the first",
+      recordedAt: timestampFromDate(new Date("2026-07-20T11:00:00.000Z")),
+    });
+
+    const row = renderFiresTable([fire], { isTTY: true, columns: 120 }).trim().split("\n")[2] ?? "";
+
+    expect(row).toContain("run_00000000000000000000000001   the organization");
+    expect(row.endsWith("…")).toBe(true);
+    expect(row).toMatch(/the organization has used t…$/);
+    expect(row.length).toBe(120);
+  });
+
   it("refuses a routine with no id and lists nothing", async () => {
     const asked: ListRoutineFiresRequest[] = [];
     const client = {

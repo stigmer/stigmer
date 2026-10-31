@@ -1,0 +1,6 @@
+
+SESSION ID                       STATE   AGENT             SUBJECT        CREATED
+------------------------------   -----   ---------------   ------------   -------
+ses_00000000000000000000000001   -       demo/demo-agent   Demo conver…   -
+ses_00000000000000000000000002   -       Assistant         Why does th…   -
+ses_00000000000000000000000003   -       demo/demo-agent   Ship the 🚀…   -

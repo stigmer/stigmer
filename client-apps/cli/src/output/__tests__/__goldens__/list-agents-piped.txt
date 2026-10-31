@@ -1,0 +1,7 @@
+
+NAME                 DESCRIPTION                                                                           VISIBILITY       CREATED
+------------------   -----------------------------------------------------------------------------------   --------------   ----------
+demo/demo-agent      A sample agent for demo and documentation purposes.                                   visibility_org   2026-07-20
+demo/release-notes   Drafts release notes from the merged pull requests of a milestone, grouped by area.   visibility_org   2026-07-20
+demo/translator      日本語のサポート窓口に届いた問い合わせを英語に翻訳して担当者に渡します                visibility_org   2026-07-20
+demo/triage          Labels issues.                                                                        visibility_org   2026-07-20
