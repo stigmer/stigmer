@@ -35,7 +35,8 @@
  *     steps cannot carry `timeout-minutes`. The same cap on every calling step
  *     would be copies a new caller could forget, with GitHub's generic
  *     message. Playwright retries a stalled socket by itself, but a trickle
- *     never stalls one, so the deadline is the only bound.
+ *     never stalls one, so the deadline is the only bound. The deadline is an
+ *     AbortSignal, so a test can say when it passes instead of racing a clock.
  *   - The process group, killed whole. Each phase runs in its own group, and
  *     the group is killed when the phase ends or the deadline passes. That
  *     takes Playwright's out-of-process downloader with it. The browser the
@@ -116,17 +117,22 @@ export function playwrightCli(root) {
  * `{ ok: true, seconds }`, or `{ ok: false, phase, ... }`, where the phase
  * is `setup`, `install` or `probe`. verdictMessage turns either into the
  * line the step ends on.
+ *
+ * `deadline` is the deadline itself, a signal that aborts when it passes; by
+ * default `deadlineMs` after the call, over both phases. A caller that passes
+ * it decides when the deadline passes, and `deadlineMs` stays the figure the
+ * verdict names.
  */
 export async function installChromium({
   cli,
   probeFile,
   deadlineMs = DEADLINE_MS,
+  deadline = AbortSignal.timeout(deadlineMs),
   env = process.env,
   out = process.stdout,
   err = process.stderr,
 }) {
   const started = Date.now();
-  const deadline = started + deadlineMs;
   if (!existsSync(cli)) return { ok: false, phase: "setup", cli };
 
   const install = await runPhase(cli, ["install", "chromium"], deadline, {
@@ -158,7 +164,8 @@ export async function installChromium({
 
 /**
  * Runs one CLI call in its own process group, streaming its output, and kills
- * the group when the call ends or the deadline passes.
+ * the group when the call ends or the deadline passes. A deadline already
+ * passed when the phase starts stops it at once.
  */
 function runPhase(cli, args, deadline, { env, out, err }) {
   return new Promise((settle) => {
@@ -168,7 +175,7 @@ function runPhase(cli, args, deadline, { env, out, err }) {
     const finish = (result) => {
       if (settled) return;
       settled = true;
-      clearTimeout(timer);
+      deadline.removeEventListener("abort", onDeadline);
       settle(result);
     };
 
@@ -185,13 +192,12 @@ function runPhase(cli, args, deadline, { env, out, err }) {
         // The group is already gone.
       }
     };
-    const timer = setTimeout(
-      () => {
-        timedOut = true;
-        killGroup();
-      },
-      Math.max(0, deadline - Date.now()),
-    );
+    const onDeadline = () => {
+      timedOut = true;
+      killGroup();
+    };
+    if (deadline.aborted) onDeadline();
+    else deadline.addEventListener("abort", onDeadline, { once: true });
 
     child.stdout.pipe(out, { end: false });
     child.stderr.pipe(err, { end: false });
