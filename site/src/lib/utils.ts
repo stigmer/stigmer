@@ -16,6 +16,11 @@ export function cn(...inputs: ClassValue[]): string {
 /**
  * Formats a date string into a human-readable format.
  *
+ * The string is a calendar day, which `new Date` reads as UTC midnight, so
+ * it is formatted in UTC: in the reader's own zone, a reader west of UTC
+ * would see the day before, and a page that renders it at build and again
+ * on hydration would disagree with itself.
+ *
  * @param dateString - The date string to format (ISO format: YYYY-MM-DD)
  * @returns A formatted date string (e.g., "February 3, 2026")
  */
@@ -25,11 +30,13 @@ export function formatDate(dateString: string): string {
     year: "numeric",
     month: "long",
     day: "numeric",
+    timeZone: "UTC",
   });
 }
 
 /**
- * Formats a date string into a short, compact format.
+ * Formats a date string into a short, compact format, in UTC as
+ * {@link formatDate} does.
  *
  * @param dateString - The date string to format (ISO format: YYYY-MM-DD)
  * @returns A formatted date string (e.g., "Feb 3, 2026")
@@ -40,6 +47,7 @@ export function formatShortDate(dateString: string): string {
     year: "numeric",
     month: "short",
     day: "numeric",
+    timeZone: "UTC",
   });
 }
 

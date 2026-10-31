@@ -17,6 +17,7 @@ import {
 } from "./models.tsx";
 import { modelSelectorScene } from "./settings.tsx";
 import { sessionScene } from "./session.tsx";
+import { asksFirstScene } from "./story.tsx";
 import { threadScene } from "./thread.tsx";
 
 const threads = Object.fromEntries(THREAD_STATES.map((state) => [`thread-${state}`, () => threadScene(state)])) as Record<
@@ -53,6 +54,7 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "session-guest": () => sessionScene("finished", { audience: "guest" }),
   "session-observer": () => sessionScene("finished", { audience: "observer", inspector: true }),
   "session-load-failed": () => sessionScene("load-failed", { inspector: true }),
+  "story-asks-first": asksFirstScene,
   "agent-chat-panel": () => agentChatScene("busy", "panel", true),
   "agent-chat-popup-closed": () => agentChatScene("busy", "popup", false),
   "agent-chat-popup": () => agentChatScene("finished", "popup", true),

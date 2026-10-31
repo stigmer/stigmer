@@ -1,6 +1,7 @@
 // The visual task's cached pass is honest only if turbo hashes every file the
 // suite reads from outside this package: the console's typefaces the gallery
-// draws with, and the workflow and lockfile the image pin is held to.
+// draws with, the job's names its story scenes draw, and the workflow and
+// lockfile the image pin is held to.
 // scripts/turbo-inputs.test.mjs guards the libraries' tests the same way, by
 // turbo's own resolved inputs, and does not reach a test package; this does,
 // for this package's one task.
@@ -34,6 +35,10 @@ describe("the visual task's inputs", () => {
   it("hash the console's vendored typefaces the gallery draws with", () => {
     expect(inputs).toContain("../../client-apps/web/src/app/fonts/Geist-Variable.woff2");
     expect(inputs).toContain("../../client-apps/web/src/app/fonts/IBMPlexSans-Regular.woff2");
+  });
+
+  it("hash the job's names the story scenes draw", () => {
+    expect(inputs).toContain("../../brand/job-story.ts");
   });
 
   it("hash the workflow and the lockfile the image pin is held to, and the pin itself", () => {

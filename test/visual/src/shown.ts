@@ -53,6 +53,17 @@ export const SHOWN: readonly Shown[] = [
     title: "A tool call waits for approval, in the console's session view",
     viewport: { width: 1280, height: 800 },
   },
+  {
+    name: "asks-first",
+    scene: "story-asks-first",
+    title:
+      "Northwind's ledger agent asks before it posts an adjustment, as the customer sees it",
+    viewport: { width: 1280, height: 800 },
+    // The agent's reason and the approval card, measured from the drawn
+    // screen: the card spans x 288 to 992 and y 300 to 541, the reason sits
+    // above it from y 201, and the turn's status bar starts at y 559.
+    clip: { x: 272, y: 186, width: 736, height: 366 },
+  },
 ];
 
 /** The CSS size of one shown picture: its clip, or the whole viewport. */

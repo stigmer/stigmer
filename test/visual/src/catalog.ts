@@ -50,6 +50,7 @@ export type SceneId =
   | "model-selector-not-ready"
   | "dashboard-kpis"
   | `session-${SessionSceneName}`
+  | `story-${StorySceneName}`
   | "agent-chat-panel"
   | "agent-chat-popup-closed"
   | "agent-chat-popup"
@@ -129,6 +130,21 @@ const SESSION_SCENES = [
   { id: "session-load-failed", title: "Session: the conversation cannot load", widths: ["desktop"] },
 ] as const satisfies readonly { readonly id: `session-${string}`; readonly title: string; readonly widths: readonly WidthName[]; readonly opens?: string | readonly string[] }[];
 
+/**
+ * The story's scenes: moments of the job every picture of Stigmer at work
+ * tells (brand/job-story.ts), drawn by the real components over a session
+ * built from the kit's samples, for the site and the docs to show.
+ */
+export type StorySceneName = (typeof STORY_SCENES)[number]["id"] extends `story-${infer Name}` ? Name : never;
+
+const STORY_SCENES = [
+  {
+    id: "story-asks-first",
+    title: "Story: Northwind's ledger agent asks before it posts an adjustment, inside a customer's product",
+    widths: ["desktop"],
+  },
+] as const satisfies readonly { readonly id: `story-${string}`; readonly title: string; readonly widths: readonly WidthName[] }[];
+
 /** The presets the `completed` thread is drawn in beyond the default look, which `thread-completed` is. */
 export const PRESETS = ["corporate", "startup", "friendly", "fintech", "monochrome"] as const satisfies readonly ThemePresetId[];
 
@@ -179,6 +195,7 @@ export const SCENES: readonly Scene[] = [
   },
   { id: "dashboard-kpis", title: "Dashboard figures", widths: ["desktop"] },
   ...SESSION_SCENES,
+  ...STORY_SCENES,
   {
     id: "agent-chat-panel",
     title: "AgentChat: a long turn at work, in a panel docked beside a product",
