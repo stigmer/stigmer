@@ -61,6 +61,14 @@ export const SANDBOX_WAKE: {
   },
 };
 
+/**
+ * Where the runners guide states how SANDBOX_WAKE was measured: the page and
+ * the heading the site's "How we measured" link opens.
+ * brand/__tests__/proofs.test.ts holds the heading to the page.
+ */
+export const SANDBOX_WAKE_METHOD_HREF =
+  "/docs/guides/self-hosting/runners#sessions-that-sleep-with-the-substrate-driver";
+
 /** The one written form of a figure, so the docs, the tests and the site print the same text: "4.97 s". */
 export function formatSeconds(seconds: number): string {
   return `${seconds.toFixed(2)} s`;

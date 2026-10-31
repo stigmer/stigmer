@@ -11,11 +11,13 @@
  * one).
  */
 import Link from "next/link";
-import { SANDBOX_WAKE, formatSeconds, type WakePathName } from "../../../../../brand/measurements";
+import {
+  SANDBOX_WAKE,
+  SANDBOX_WAKE_METHOD_HREF,
+  formatSeconds,
+  type WakePathName,
+} from "../../../../../brand/measurements";
 import { formatDate } from "@/lib/utils";
-
-/** Where the runners guide states how the figures were measured. */
-export const WAKE_METHOD_HREF = "/docs/guides/self-hosting/runners#sessions-that-sleep-with-the-substrate-driver";
 
 const LEADING: readonly { path: WakePathName; label: string }[] = [
   { path: "node", label: "Woken where it slept" },
@@ -56,7 +58,7 @@ export function WakeProof() {
       </p>
       <p className="text-xs font-mono text-subtle">
         {SANDBOX_WAKE.environment} · {formatDate(SANDBOX_WAKE.measuredOn)} ·{" "}
-        <Link href={WAKE_METHOD_HREF} className="text-foreground underline underline-offset-4 hover:text-foreground/80">
+        <Link href={SANDBOX_WAKE_METHOD_HREF} className="text-foreground underline underline-offset-4 hover:text-foreground/80">
           How we measured
         </Link>
       </p>
