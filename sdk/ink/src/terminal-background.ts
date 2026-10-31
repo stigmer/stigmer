@@ -47,6 +47,7 @@ export function parseOsc11Reply(data: string): { readonly background: "light" | 
   const [red, green, blue] = [match[1]!, match[2]!, match[3]!].map((hex) => Number.parseInt(hex, 16) / (16 ** hex.length - 1));
   // Relative luminance, by the sRGB weights; above half reads as light.
   const luminance = 0.2126 * red! + 0.7152 * green! + 0.0722 * blue!;
+  // Stryker disable next-line EqualityOperator: no colour a terminal reports sits at exactly half, so > and >= read alike
   return { background: luminance > 0.5 ? "light" : "dark", start: match.index, end: match.index + match[0].length };
 }
 
