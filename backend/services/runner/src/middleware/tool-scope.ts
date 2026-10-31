@@ -80,13 +80,16 @@ import type { McpToolIndex } from "../shared/mcp-tool-names.js";
 import type { StigmerMiddleware, ToolCallRequest } from "./types.js";
 
 /**
- * The custom-stream event a refusal writes (`translator.ts` reads it). The
- * payload is the call as the model made it and the message: a refused call
- * fires no tool events, so nothing else on the stream carries them. The
- * approval gate writes it too when a hook refuses a call, with the hook's
- * provenance beside it, when an unattended turn skips a call that would
- * ask, with `unattended_skip` beside it, and when an approved call is not the
- * call its card showed, with none (the call as it would have run).
+ * The custom-stream event a refusal writes (`translator.ts` reads it), always
+ * through {@link writeToolRefused}. The payload is the call as the model made
+ * it and the message: a refused call fires no tool events, so nothing else on
+ * the stream carries them. The approval gate writes it too when a hook
+ * refuses a call, with the hook's provenance beside it, when an unattended
+ * turn skips a call that would ask, with `unattended_skip` beside it, when an
+ * approved call is not the call its card showed, with none (the call as it
+ * would have run), and when it blocks a secret-like write, with none and the
+ * path alone as the input: the platform's rule refused it, and the content
+ * the write carried never enters the stream.
  */
 export const TOOL_REFUSED_EVENT = "stigmer.tool_refused";
 
@@ -100,7 +103,8 @@ export interface ToolRefusedPayload {
   /**
    * Set when the approval gate refused the call: `"hook"` when a hook did,
    * `"unattended_skip"` when no one could answer its ask. A tool list's
-   * refusal carries none, nor an approved call that changed.
+   * refusal carries none, nor an approved call that changed, nor a blocked
+   * secret-like write.
    */
   readonly policy_source?: "hook" | "unattended_skip";
   /** The refusing or asking plugin's slug (`""` for the agent's own hooks block or the default), beside `policy_source`. */
@@ -112,6 +116,35 @@ export function customStreamWriterOf<T>(runtime: unknown): ((chunk: T) => void) 
   if (runtime === null || typeof runtime !== "object" || !("writer" in runtime)) return undefined;
   const writer = (runtime as { writer: unknown }).writer;
   return typeof writer === "function" ? (chunk) => void writer(chunk) : undefined;
+}
+
+/** What a refusal says beyond the call it refuses: the message, and the input and provenance when they are not the call's own. */
+export interface ToolRefusal {
+  readonly message: string;
+  /** The input the call's row shows; the call's arguments when absent. */
+  readonly input?: Record<string, unknown>;
+  readonly policySource?: ToolRefusedPayload["policy_source"];
+  readonly policyHook?: string;
+}
+
+/**
+ * Write the {@link TOOL_REFUSED_EVENT} for a call that will not run, so its
+ * row opens and fails as the refusal happens; a no-op when the graph streams
+ * with no writer. The one writer of the event: the call's identity comes from
+ * the request, and the provenance is written only when given.
+ */
+export function writeToolRefused(request: ToolCallRequest, refusal: ToolRefusal): void {
+  const { id, name, args } = request.toolCall;
+  const { message, input = args, policySource, policyHook } = refusal;
+  customStreamWriterOf<ToolRefusedPayload>(request.runtime)?.({
+    name: TOOL_REFUSED_EVENT,
+    tool_call_id: id ?? "",
+    tool_name: name,
+    input,
+    message,
+    ...(policySource !== undefined ? { policy_source: policySource } : {}),
+    ...(policyHook !== undefined ? { policy_hook: policyHook } : {}),
+  });
 }
 
 /** The engine name a tool is judged by: its own, but the stop tool's, which is the shell's (the header). */
@@ -182,9 +215,9 @@ async function callable(config: ToolScopeConfig, request: ToolCallRequest): Prom
  */
 export async function toolScopeRefusal(config: ToolScopeConfig, request: ToolCallRequest): Promise<ToolMessage | undefined> {
   if (!config.scope.restricted || (await callable(config, request))) return undefined;
-  const { name, id, args } = request.toolCall;
+  const { name, id } = request.toolCall;
   const message = outOfScopeMessage(name, config.scope);
-  customStreamWriterOf<ToolRefusedPayload>(request.runtime)?.({ name: TOOL_REFUSED_EVENT, tool_call_id: id ?? "", tool_name: name, input: args, message });
+  writeToolRefused(request, { message });
   return new ToolMessage({ content: message, tool_call_id: id ?? "", name, status: "error" });
 }
 

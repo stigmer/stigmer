@@ -136,7 +136,7 @@ import {
 import { isArgsObject, sameJson } from "../shared/json-value.js";
 import { hookAskMessage, hookFeedbackSection, hookRefusalMessage, personDecisionSentence } from "../shared/hooks/messages.js";
 import { NO_PRE_TOOL_USE, type HookCallScope, type HookEvaluator, type PreToolUseOutcome } from "../shared/hooks/evaluate.js";
-import { TOOL_REFUSED_EVENT, customStreamWriterOf, toolScopeRefusal, type ToolRefusedPayload, type ToolScopeConfig } from "./tool-scope.js";
+import { customStreamWriterOf, toolScopeRefusal, writeToolRefused, type ToolScopeConfig } from "./tool-scope.js";
 import { toolApprovalCategory, type ToolApprovalCategory } from "../shared/tool-kind.js";
 import type { McpToolIndex } from "../shared/mcp-tool-names.js";
 import { blockedSecretPath, captureFlows, fileEditFlow, secretBlockMessage, type FileEditPosture } from "../shared/file-edit-policy.js";
@@ -266,13 +266,14 @@ export interface PersonRefusal {
 /**
  * The ToolMessage returned when a secret-like write is hard-blocked: the
  * write is NEVER applied and the graph continues (this replaces
- * the tool call's side effect, so the model moves on rather than waiting). The
- * path is named (a filename is not itself the secret); the CONTENT is not echoed.
- * Shared by the capture-mode secret block and the deny-gate secret block so both
- * speak with one voice.
+ * the tool call's side effect, so the model moves on rather than waiting),
+ * while the refusal event {@link secretWriteBlock} writes beside it settles
+ * the call's row failed. The path is named (a filename is not itself the
+ * secret); the CONTENT is not echoed. Shared by the capture-mode secret block
+ * and the deny-gate secret block so both speak with one voice.
  */
-function secretBlockToolMessage(toolName: string, path: string, toolCallId: string): ToolMessage {
-  return new ToolMessage({ content: secretBlockMessage(toolName, path), tool_call_id: toolCallId, name: toolName });
+function secretBlockToolMessage(message: string, toolName: string, toolCallId: string): ToolMessage {
+  return new ToolMessage({ content: message, tool_call_id: toolCallId, name: toolName });
 }
 
 /**
@@ -304,7 +305,7 @@ export function createApprovalGateMiddleware(
 
       // 1. Secret-like writes, ahead of anything a hook could answer.
       if (!globalBypass) {
-        const blocked = await secretWriteBlock(config, toolCall, serverSlug, category);
+        const blocked = await secretWriteBlock(config, request, serverSlug, category);
         if (blocked) return blocked;
       }
 
@@ -323,7 +324,7 @@ export function createApprovalGateMiddleware(
         const outOfScope = toolScope === undefined ? undefined : await toolScopeRefusal(toolScope, call);
         if (outOfScope !== undefined) return outOfScope;
         if (!globalBypass) {
-          const blocked = await secretWriteBlock(config, call.toolCall, serverSlug, category);
+          const blocked = await secretWriteBlock(config, call, serverSlug, category);
           if (blocked) return blocked;
         }
       }
@@ -494,14 +495,8 @@ function isAsShown(response: ApprovalDecision, request: ToolCallRequest, call: T
  * platform's rule refused it, not a hook or the unattended lane.
  */
 function refuseChanged(call: ToolCallRequest): ToolMessage {
-  const { id, name, args } = call.toolCall;
-  customStreamWriterOf<ToolRefusedPayload>(call.runtime)?.({
-    name: TOOL_REFUSED_EVENT,
-    tool_call_id: id,
-    tool_name: name,
-    input: args,
-    message: CHANGED_MESSAGE,
-  });
+  const { id, name } = call.toolCall;
+  writeToolRefused(call, { message: CHANGED_MESSAGE });
   return new ToolMessage({ content: CHANGED_MESSAGE, tool_call_id: id, name, status: "error" });
 }
 
@@ -524,52 +519,45 @@ function personDecisionMessage(call: ToolCallRequest, action: "skip" | "reject",
  * be skipped, before anything writes it to the session's log.
  */
 function skipUnattended(config: ApprovalGateConfig, call: ToolCallRequest, hook: string | null): ToolMessage {
-  const { id, name, args } = call.toolCall;
+  const { id, name } = call.toolCall;
   const message = unattendedSkipMessage(name);
   config.unattendedSkips?.set(id, hook);
-  customStreamWriterOf<ToolRefusedPayload>(call.runtime)?.({
-    name: TOOL_REFUSED_EVENT,
-    tool_call_id: id,
-    tool_name: name,
-    input: args,
-    message,
-    policy_source: "unattended_skip",
-    policy_hook: hook ?? "",
-  });
+  writeToolRefused(call, { message, policySource: "unattended_skip", policyHook: hook ?? "" });
   return new ToolMessage({ content: message, tool_call_id: id, name });
 }
 
 /**
  * The secret-like write block (`shared/file-edit-policy.ts`
- * `blockedSecretPath`): the write is never applied and never surfaced for
+ * `blockedSecretPath`) over the call it judges, the model's or a hook's
+ * rewrite of it: the write is never applied and never surfaced for
  * approval, and its path is recorded for the turn boundary's content-less
- * DIFF_UNREVIEWABLE entry. Undefined when the call is not blocked.
+ * DIFF_UNREVIEWABLE entry. The refusal event opens and fails the call's row
+ * as a refusal does, with no provenance (the platform's rule refused it, as
+ * {@link refuseChanged}'s does) and the path alone as its input: the shape
+ * the persist backstop (`shared/tool-row.ts` `withholdSecretFileContent`)
+ * gives every secret-like row, applied at the source so the content never
+ * enters the stream or the row. Undefined when the call is not blocked.
  */
 async function secretWriteBlock(
   config: ApprovalGateConfig,
-  toolCall: ToolCallRequest["toolCall"],
+  call: ToolCallRequest,
   serverSlug: string,
   category: ToolApprovalCategory | undefined,
 ): Promise<ToolMessage | undefined> {
-  const path = await blockedSecretPath(config, toolCall.args, serverSlug, category);
+  const { id, name, args } = call.toolCall;
+  const path = await blockedSecretPath(config, args, serverSlug, category);
   if (path === undefined) return undefined;
   config.recordBlockedSecret?.(path);
-  return secretBlockToolMessage(toolCall.name, path, toolCall.id);
+  const message = secretBlockMessage(name, path);
+  writeToolRefused(call, { message, input: { path } });
+  return secretBlockToolMessage(message, name, id);
 }
 
 /** A hook's refusal: the handler never runs, the model reads why, and the row opens and fails with the hook named. */
 function refuseByHook(request: ToolCallRequest, pre: PreToolUseOutcome): ToolMessage {
-  const { id, name, args } = request.toolCall;
+  const { id, name } = request.toolCall;
   const message = hookRefusalMessage(pre.hook, pre.reason);
-  customStreamWriterOf<ToolRefusedPayload>(request.runtime)?.({
-    name: TOOL_REFUSED_EVENT,
-    tool_call_id: id,
-    tool_name: name,
-    input: args,
-    message,
-    policy_source: "hook",
-    policy_hook: pre.hook,
-  });
+  writeToolRefused(request, { message, policySource: "hook", policyHook: pre.hook });
   return new ToolMessage({ content: message, tool_call_id: id, name, status: "error" });
 }
 
