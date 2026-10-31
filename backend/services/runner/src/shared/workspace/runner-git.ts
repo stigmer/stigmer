@@ -210,7 +210,6 @@ class Repository implements RunnerRepository {
 
   async holdCommits(shas: readonly string[]): Promise<void> {
     const wanted = [...new Set(shas.filter((sha) => OBJECT_ID.test(sha)))];
-    if (wanted.length === 0) return;
     const listing = await this.run(["cat-file", "--batch-check"], { input: wanted.map((sha) => `${sha}\n`).join("") });
     const missing = listing.split("\n").filter((line) => line.endsWith(" missing")).map((line) => line.split(" ")[0]!);
     for (const sha of missing) {
