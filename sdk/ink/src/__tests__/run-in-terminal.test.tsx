@@ -196,6 +196,22 @@ describe("INK-06 runInTerminal returns when the turn ends", () => {
     expect([outcome.phase, outcome.exitCode]).toEqual(["running", 130]);
   });
 
+  it("detects the terminal's background for a host theme that follows it, and draws by it", async () => {
+    store.state = conversation([samples.turn({ runId: RUN, phase: "running" })]);
+    const seen: string[] = [];
+    const theme = (background: string) => {
+      seen.push(background);
+      return { accent: "magenta" };
+    };
+    const controller = new AbortController();
+    // Off a terminal nothing is asked: COLORFGBG answers.
+    const run = runInTerminal(startsRun(), INPUT, { ...streams(false), env: { COLORFGBG: "0;15" }, theme, signal: controller.signal });
+    await tick();
+    controller.abort();
+    await run;
+    expect(new Set(seen)).toEqual(new Set(["light"]));
+  });
+
   it("returns on Ctrl+C on a terminal with 130", async () => {
     store.state = conversation([samples.turn({ runId: RUN, phase: "running" })]);
     const io = streams(true);

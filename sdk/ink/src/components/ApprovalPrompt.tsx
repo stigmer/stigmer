@@ -177,11 +177,12 @@ export function ApprovalPrompt({
   const intent = extractShellIntentFromPreview(toolUse.name, argsPreview, toolUse.mcpServerName);
 
   return (
+    // Compact: the frame hugs its lines, with no blank padding, so the live
+    // region it sits in stays short (thread-items.ts).
     <Box
       flexDirection="column"
-      paddingLeft={2}
-      paddingTop={1}
-      paddingBottom={1}
+      alignSelf="flex-start"
+      paddingX={1}
       borderStyle="round"
       borderColor={theme.warning}
     >
@@ -189,7 +190,7 @@ export function ApprovalPrompt({
         ⚠ Approval required
       </Text>
 
-      <Box paddingLeft={2} marginTop={1} flexDirection="column">
+      <Box paddingLeft={2} flexDirection="column">
         <Box gap={1}>
           <Text dimColor>Tool:</Text>
           <Text bold>{toolLabel}</Text>
@@ -217,7 +218,7 @@ export function ApprovalPrompt({
       </Box>
 
       {denying ? (
-        <Box marginTop={1} paddingLeft={2} flexDirection="column">
+        <Box paddingLeft={2} flexDirection="column">
           <Box gap={1}>
             <Text {...role.danger}>Deny — reason (optional):</Text>
             <TextInput
@@ -233,7 +234,7 @@ export function ApprovalPrompt({
           <Text dimColor>Enter to deny · Esc back</Text>
         </Box>
       ) : (
-        <Box gap={2} marginTop={1} paddingLeft={2}>
+        <Box gap={2} paddingLeft={2}>
           {options.map((opt, idx) => {
             // When inactive, no option is selected and all read dim — the
             // active prompt's highlight is the cue for which ask owns the
@@ -255,7 +256,7 @@ export function ApprovalPrompt({
       )}
 
       {isSubmitting && (
-        <Box paddingLeft={2} marginTop={1}>
+        <Box paddingLeft={2}>
           <Text dimColor>Submitting...</Text>
         </Box>
       )}

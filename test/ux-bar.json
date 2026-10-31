@@ -133,31 +133,19 @@
     },
     {
       "id": "INK-10",
-      "promise": "Thinking shows, and a working indicator counts the time.",
-      "pending": [
-        "stigmer#2628"
-      ]
+      "promise": "Thinking shows, and a working indicator counts the time."
     },
     {
       "id": "INK-11",
-      "promise": "The frame survives a terminal resize.",
-      "pending": [
-        "stigmer#2628"
-      ]
+      "promise": "What is being written follows a terminal resize; what was written is never repeated."
     },
     {
       "id": "INK-12",
-      "promise": "Colours follow the terminal's light or dark background.",
-      "pending": [
-        "stigmer#2628"
-      ]
+      "promise": "Colours read on a light and a dark terminal: by default only status colours carry a hue, and a host's colours follow the background."
     },
     {
       "id": "INK-13",
-      "promise": "Long markdown (lists, code, tables) reads cleanly in the terminal.",
-      "pending": [
-        "stigmer#2628"
-      ]
+      "promise": "Long markdown (lists, code, tables) reads cleanly in the terminal."
     },
     {
       "id": "INK-14",
@@ -166,6 +154,10 @@
     {
       "id": "INK-15",
       "promise": "A host CLI passes its own colours; by default only status colours carry a hue."
+    },
+    {
+      "id": "INK-16",
+      "promise": "A long turn never clears the terminal's scrollback or repeats what it already printed."
     },
     {
       "id": "LIB-01",

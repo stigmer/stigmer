@@ -1,14 +1,15 @@
+ Nightly billing check
+
  You
  Audit last month's invoices for rounding errors and fix what you find.
 
   ✓ ▶ 4 tool calls
 
  Agent
- Fourteen invoices were a cent off, all from rounding each line before the total.
- invoiceTotal now rounds once, at the total. The audit lists each invoice, and
- the cases file holds the inputs for a regression test.
+ Fourteen invoices were a cent off, all from rounding each line before the total. invoiceTotal now rounds once, at the
+ total. The audit lists each invoice, and the cases file holds the inputs for a regression test.
 
- Nightly billing check
+ ✻ Worked for 1m 14s
 
  41.2k tokens · 7 calls · claude-sonnet-4-5
  Agent mode — full tool access

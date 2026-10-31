@@ -27,13 +27,21 @@ export {
   roleStyle,
   useInkTheme,
   useRoles,
+  useTerminalBackground,
   type InkRole,
   type InkTheme,
+  type InkThemeInput,
   type RoleStyle,
 } from "./theme.js";
+export {
+  detectBackground,
+  type DetectBackgroundOptions,
+  type TerminalBackground,
+} from "./terminal-background.js";
 
-// Markdown
-export { renderMarkdown } from "./markdown.js";
+// Markdown: drawn as Ink elements, or to a string for output outside Ink
+export { Markdown, MarkdownBlock, renderMarkdown, type MarkdownProps, type MarkdownBlockProps } from "./components/Markdown.js";
+export { markdownBlocks } from "./markdown.js";
 
 // Components
 export { MessageEntry, type MessageEntryProps } from "./components/MessageEntry.js";
@@ -65,6 +73,8 @@ export {
   type SettledCounts,
 } from "./file-review.js";
 export { RunProgress, type RunProgressProps } from "./components/RunProgress.js";
+export { WorkingLine, type WorkingLineProps } from "./components/WorkingLine.js";
+export { Spinner, type SpinnerProps } from "./components/Spinner.js";
 export { FollowUpInput, type FollowUpInputProps } from "./components/FollowUpInput.js";
 export { UsageWidget, type UsageWidgetProps } from "./components/UsageWidget.js";
 

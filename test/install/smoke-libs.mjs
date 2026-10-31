@@ -111,8 +111,7 @@ const TERMINAL_KIT = "@stigmer/ink-ui";
  * What a browser kit needs and a terminal never draws with: the React kit
  * itself and its design tokens, React's DOM renderer, the component library,
  * the icon set, the editor, the table and list virtualisers, and the browser
- * markdown stack. (highlight.js is not here: the terminal kit's own markdown
- * renderer, marked-terminal, highlights code with it.)
+ * markdown stack.
  */
 const BROWSER_PACKAGES = [
   "@stigmer/react-sdk",

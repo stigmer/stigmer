@@ -1,3 +1,5 @@
+ Fix invoice rounding
+
  You
  Invoices are off by a cent. Can you fix the rounding?
 
@@ -6,23 +8,18 @@
 
  Invoices now round once, at the total, instead of per line:
 
-     1. `lineTotal` keeps full precision.
-     2. `invoiceTotal` rounds half-even to the cent.
-         * A credit note uses the same rule.
+ 1. lineTotal keeps full precision.
+ 2. invoiceTotal rounds half-even to the cent.
+    • A credit note uses the same rule.
 
-     export function invoiceTotal(lines: readonly Line[]): Cents {
-       return roundHalfEven(lines.reduce((sum, line) => sum + lineTotal(line), 0));
-     }
+ │ export function invoiceTotal(lines: readonly Line[]): Cents {
+ │   return roundHalfEven(lines.reduce((sum, line) => sum + lineTotal(line), 0));
+ │ }
 
- ┌───────────┬────────┬───────┐
- │ Case      │ Before │ After │
- ├───────────┼────────┼───────┤
- │ 3 × 0.335 │ 1.02   │ 1.01  │
- ├───────────┼────────┼───────┤
- │ 1 × 9.995 │ 10.00  │ 10.00 │
- └───────────┴────────┴───────┘
-
- Fix invoice rounding
+ Case       Before  After
+ ─────────  ──────  ─────
+ 3 × 0.335  1.02    1.01
+ 1 × 9.995  10.00   10.00
 
  Agent mode — full tool access
 

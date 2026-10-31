@@ -19,6 +19,9 @@
 //   - A turn that cannot start (no server, a refused key) has no frame to
 //     show: the failure is written to stderr as a person reads it and the
 //     promise rejects with a TerminalRunError carrying the exit code.
+//   - The terminal's background is asked for only when the host's theme is a
+//     function of it (terminal-background.ts), so Stigmer's default pays
+//     nothing at start.
 //
 // Proven by __tests__/run-in-terminal.test.tsx.
 
@@ -38,7 +41,8 @@ import { SessionView, type InteractionMode } from "../app/SessionView.js";
 import { TurnWatchContext, type TurnWatch } from "../app/turn-watch.js";
 import { describeConnectionFailure, failureExitCode } from "../errors.js";
 import { terminalMode } from "../terminal-mode.js";
-import type { InkTheme } from "../theme.js";
+import { detectBackground } from "../terminal-background.js";
+import type { InkThemeInput } from "../theme.js";
 
 /** Options for {@link runInTerminal}. */
 export interface RunInTerminalOptions {
@@ -54,8 +58,11 @@ export interface RunInTerminalOptions {
   readonly approveSetting?: string;
   /** Interaction mode for follow-ups typed in the view. */
   readonly mode?: InteractionMode;
-  /** The host's colours by role (see {@link InkTheme}). */
-  readonly theme?: Partial<InkTheme>;
+  /**
+   * The host's colours by role (see `InkTheme`), or a function of the
+   * terminal's background, which is then detected before the view draws.
+   */
+  readonly theme?: InkThemeInput;
   /** Stops waiting and returns at once; the run itself goes on. */
   readonly signal?: AbortSignal;
   /** Ink's input stream; `process.stdin` by default. */
@@ -173,10 +180,12 @@ export async function runInTerminal(
     throw new TerminalRunError(`${failure.headline} ${failure.cause}`, failureExitCode(error), error);
   }
 
+  const background = typeof options.theme === "function" ? await detectBackground({ stdin, stdout, env: options.env }) : "unknown";
+
   let latest: Turn | undefined;
   let loadError: Error | undefined;
   const instance = render(
-    <InkStigmerProvider client={client} theme={options.theme}>
+    <InkStigmerProvider client={client} theme={options.theme} background={background}>
       <TerminalRun
         sessionId={started.sessionId}
         org={input.org}

@@ -1,8 +1,11 @@
+// A run phase as a compact badge: a spinner while it works, a glyph once it
+// ended. The session view draws it for a turn that failed or was stopped;
+// a working turn has the working line instead (WorkingLine.tsx).
 import React from "react";
 import { Box, Text } from "ink";
-import Spinner from "ink-spinner";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { useRoles, type InkRole } from "../theme.js";
+import { Spinner } from "./Spinner.js";
 
 /** Props for {@link RunProgress}. */
 export interface RunProgressProps {
@@ -20,7 +23,7 @@ const PHASE_DISPLAY: ReadonlyMap<RunPhase, PhaseDisplay> = new Map([
   [RunPhase.RUN_PENDING, { label: "Pending", showSpinner: true }],
   [
     RunPhase.RUN_IN_PROGRESS,
-    { label: "Running", role: "warning", showSpinner: true },
+    { label: "Running", showSpinner: true },
   ],
   [
     RunPhase.RUN_COMPLETED,
@@ -61,9 +64,7 @@ export function RunProgress({ phase }: RunProgressProps) {
   return (
     <Box gap={1} paddingLeft={1}>
       {display.showSpinner ? (
-        <Text {...role[display.role ?? "accent"]}>
-          <Spinner type="dots" />
-        </Text>
+        <Spinner style={role[display.role ?? "accent"]} />
       ) : (
         <Text {...(display.role ? role[display.role] : {})}>
           {phase === RunPhase.RUN_COMPLETED ? "✓" : "●"}

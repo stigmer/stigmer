@@ -10,7 +10,8 @@ import { Text } from "ink";
 import { render } from "ink-testing-library";
 import type { Stigmer } from "@stigmer/client";
 import { InkStigmerProvider } from "../provider.js";
-import { DEFAULT_INK_THEME, resolveInkTheme, roleStyle, useInkTheme, useRoles } from "../theme.js";
+import { DEFAULT_INK_THEME, resolveInkTheme, roleStyle, useInkTheme, useRoles, useTerminalBackground } from "../theme.js";
+import type { TerminalBackground } from "../terminal-background.js";
 
 const SRC = new URL("..", import.meta.url).pathname;
 /** A colour written as a literal: a `color`/`borderColor` prop or a `color:` field naming a hue or a hex value. */
@@ -22,6 +23,10 @@ function sources(dir: string): string[] {
     if (entry.isDirectory()) return entry.name === "__tests__" ? [] : sources(path);
     return /\.tsx?$/.test(entry.name) && entry.name !== "theme.ts" ? [path] : [];
   });
+}
+
+function BackgroundProbe() {
+  return <Text>{useTerminalBackground()}</Text>;
 }
 
 function Probe() {
@@ -47,6 +52,28 @@ describe("INK-15 a host passes its own colours; by default only status colours c
     expect(JSON.parse(lastFrame() ?? "{}")).toEqual({ accent: "magenta", danger: "#ff5555", accentStyle: { color: "magenta", bold: true } });
     expect(resolveInkTheme({ muted: "gray" })).toEqual({ ...DEFAULT_INK_THEME, muted: "gray" });
     expect(roleStyle(resolveInkTheme({ muted: "gray" }), "muted")).toEqual({ color: "gray" });
+  });
+
+  it("a host's theme as a function of the background follows the background the provider was given", () => {
+    const client = { baseUrl: "http://localhost:7234" } as unknown as Stigmer;
+    const theme = (background: TerminalBackground) => ({ accent: background === "light" ? "#5b21b6" : "#c4b5fd" });
+    const drawn = (background: TerminalBackground) =>
+      JSON.parse(
+        render(
+          <InkStigmerProvider client={client} theme={theme} background={background}>
+            <Probe />
+          </InkStigmerProvider>,
+        ).lastFrame() ?? "{}",
+      ).accent;
+    expect([drawn("light"), drawn("dark")]).toEqual(["#5b21b6", "#c4b5fd"]);
+    expect(resolveInkTheme(theme)).toEqual({ ...DEFAULT_INK_THEME, accent: "#c4b5fd" });
+    const { lastFrame } = render(
+      <InkStigmerProvider client={client} background="light">
+        <BackgroundProbe />
+      </InkStigmerProvider>,
+    );
+    expect(lastFrame()).toBe("light");
+    expect(render(<BackgroundProbe />).lastFrame()).toBe("unknown");
   });
 
   it("outside a provider the default holds", () => {

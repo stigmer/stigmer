@@ -1,34 +1,25 @@
 // The terminal conversation: a session's folded turns as a scrolling log —
-// each turn's message, the agent's messages, tool groups and subagents in
-// the order it produced them, its settled file reviews, how the last turn
-// ended, its waiting tool uses as approval prompts, and the optimistic
-// message just sent. Ended turns are written once through Ink's <Static>;
-// the live turn re-renders in place. Off a live screen (`live` false), where
-// Ink writes one frame at exit, the whole thread is that frame.
-import React, { useMemo } from "react";
+// each turn's message, the agent's thinking, messages, tool groups and
+// subagents in the order it produced them, its decided file reviews, how each
+// turn ended, the last turn's waiting tool uses as approval prompts, and the
+// optimistic message just sent. What can no longer change is written once
+// through Ink's <Static> (thread-items.ts says what that is); the rest
+// re-renders in place. Off a live screen (`live` false), where Ink writes one
+// frame at exit, the whole thread is that frame.
+import React, { useMemo, useRef } from "react";
 import { Box, Text, Static } from "ink";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type { FileChangeSet } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
-import type { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
-import {
-  displayFileChangeSets,
-  isTodoTool,
-  syntheticUserPrompt,
-  type FileReviewSet,
-  type Thread,
-  type ToolUse,
-  type QueuedMessage,
-  type Turn,
-} from "@stigmer/client";
+import { displayFileChangeSets, type FileReviewSet, type QueuedMessage, type Turn } from "@stigmer/client";
 import {
   FileReviewContext,
-  runPhaseOf,
   subagentSubjectOf,
   type FileReviewContextValue,
-  type ThreadMessage,
   type ToolUseAnswer,
 } from "@stigmer/react-core";
-import { MessageEntry } from "./MessageEntry.js";
+import { appendOnce, buildThreadItems, settledPrefixLength, type ThreadItem } from "../thread-items.js";
+import { AgentLabel, MessageEntry } from "./MessageEntry.js";
+import { MarkdownBlock } from "./Markdown.js";
 import { ToolCallGroup } from "./ToolCallGroup.js";
 import { SubagentBlock } from "./SubagentBlock.js";
 import { RunProgress } from "./RunProgress.js";
@@ -64,11 +55,11 @@ export interface MessageThreadProps {
   /** Whether tool call groups should be rendered in expanded mode. Toggled via Ctrl+O. */
   readonly expandToolCalls?: boolean;
   /**
-   * Whether to render a read-only record for each settled file review (every
-   * file decided, or its turn ended) — the terminal analogue of the web's
-   * in-thread record. Off by default so bare consumers stay minimal;
-   * `SessionView` opts in. A set still undecided on the live turn is never a
-   * record here — its decision surface is the docked `FileReviewPrompt`.
+   * Whether to render a read-only record for each decided file review (every
+   * file decided) — the terminal analogue of the web's in-thread record. Off
+   * by default so bare consumers stay minimal; `SessionView` opts in. A set
+   * still undecided is never a record here — its decision surface is the
+   * docked `FileReviewPrompt` — so the record, written once, never goes stale.
    */
   readonly showFileReviewRecords?: boolean;
   /**
@@ -85,6 +76,11 @@ export interface MessageThreadProps {
    * would appear twice and above the view's header. Defaults to `true`.
    */
   readonly live?: boolean;
+  /**
+   * The session's subject, drawn once as the thread's first line when it is
+   * known before anything is written to the history. Omitted, none is drawn.
+   */
+  readonly subject?: string;
 }
 
 /** What a message sent while a turn worked says while no turn has read it. */
@@ -92,160 +88,8 @@ export const QUEUED_MESSAGE_LABEL = "Queued — read at the agent's next step";
 /** What a queued message says once a stop ended the turn before it was read. */
 export const DROPPED_MESSAGE_LABEL = "Not read — the turn was stopped";
 
-type ThreadItem =
-  | { readonly kind: "message"; readonly message: ThreadMessage; readonly key: string }
-  | { readonly kind: "tool-group"; readonly toolUses: readonly ToolUse[]; readonly key: string }
-  | { readonly kind: "subagent"; readonly toolUse: ToolUse; readonly thread: Thread; readonly key: string }
-  | { readonly kind: "phase"; readonly phase: RunPhase; readonly key: string }
-  | { readonly kind: "pending-message"; readonly content: string; readonly key: string }
-  | { readonly kind: "queued-message"; readonly message: QueuedMessage; readonly key: string }
-  | { readonly kind: "file-review-record"; readonly set: FileReviewSet; readonly key: string }
-  | { readonly kind: "approval"; readonly toolUse: ToolUse; readonly key: string };
-
 const EMPTY_RUNS: readonly Run[] = [];
-
-/** The phases a turn ends with a badge for: everything but a completion. */
-const BADGED_END_PHASES: ReadonlySet<string> = new Set(["failed", "cancelled", "terminated"]);
-
-/**
- * Whether a folded turn is a turn of the conversation: not a reconcile turn
- * (the message-less run an Undo starts to put files back) — known by its run
- * when present, and by having no message and no items otherwise.
- */
-function isConversationTurn(turn: Turn, run: Run | undefined): boolean {
-  if (run?.spec?.reconcileFileReview === true) return false;
-  return turn.userMessage !== undefined || turn.items.length > 0;
-}
-
-/**
- * Builds one turn's items: the person's message (the run's rule skips a
- * placeholder or a build turn's label), each agent message and note, each
- * run of consecutive tool uses as a group (to-do calls left out), each
- * subagent as a block — plus (when `includeFileReviewRecords`) a read-only
- * record at the turn's tail for each settled file review.
- */
-function buildTurnSegment(
-  turn: Turn,
-  run: Run | undefined,
-  includeFileReviewRecords: boolean,
-): ThreadItem[] {
-  const seg: ThreadItem[] = [];
-  const runId = turn.runId;
-
-  const prompt = run ? syntheticUserPrompt(run) : (turn.userMessage?.text ?? "");
-  if (prompt) {
-    seg.push({
-      kind: "message",
-      message: { kind: "user", id: turn.userMessage?.id ?? `${runId}.user`, text: prompt },
-      key: `${runId}-spec`,
-    });
-  }
-
-  let group: ToolUse[] = [];
-  const flush = (): void => {
-    if (group.length === 0) return;
-    seg.push({ kind: "tool-group", toolUses: group, key: `${group[0]!.id}-tc` });
-    group = [];
-  };
-  for (const item of turn.items) {
-    if (item.kind === "tool_use") {
-      if (isTodoTool(item.name)) continue;
-      if (item.thread === undefined) {
-        group.push(item);
-        continue;
-      }
-      flush();
-      seg.push({ kind: "subagent", toolUse: item, thread: item.thread, key: `sa-${item.id}` });
-      continue;
-    }
-    flush();
-    if ((item.kind === "message" && item.text.trim()) || item.kind === "note") {
-      seg.push({ kind: "message", message: item, key: item.id });
-    } else if (item.kind === "user_message") {
-      // A message the person sent while the turn worked, where it read it.
-      seg.push({ kind: "message", message: { kind: "user", id: item.id, text: item.text }, key: item.id });
-    }
-  }
-  flush();
-
-  if (includeFileReviewRecords) {
-    // A set is settled once every file is decided, or its turn ended. This is
-    // the only trace a shell-made change — which has no edit row — leaves.
-    for (const set of turn.fileReview) {
-      if ((set.undecided && !turn.ended) || set.files.length === 0) continue;
-      seg.push({ kind: "file-review-record", set, key: `${runId}-frr-${set.changeSetId}` });
-    }
-  }
-
-  return seg;
-}
-
-/**
- * Builds the full thread item list and the index at which the live region
- * begins (`liveStart`).
- *
- * The split is by turn: every turn before the first one that has not ended
- * is immutable history (safe for ink's append-only `<Static>`), while the
- * live turn's items — plus the trailing transient items (phase, approvals,
- * optimistic message) — stay live so their review badges can transition and
- * the optimistic message can be cleared without shrinking the Static array.
- */
-function buildThreadItems(
-  turns: readonly Turn[],
-  runs: readonly Run[],
-  pendingUserMessage: string | null | undefined,
-  includeApprovals: boolean,
-  includeFileReviewRecords: boolean,
-  queued: readonly QueuedMessage[] = [],
-): { items: ThreadItem[]; liveStart: number } {
-  const runsById = new Map<string, Run>();
-  for (const run of runs) {
-    const id = run.metadata?.id;
-    if (id) runsById.set(id, run);
-  }
-  const shown = turns.filter((turn) => isConversationTurn(turn, runsById.get(turn.runId)));
-
-  const items: ThreadItem[] = [];
-  let liveStart: number | undefined;
-  for (const turn of shown) {
-    if (liveStart === undefined && !turn.ended) liveStart = items.length;
-    items.push(...buildTurnSegment(turn, runsById.get(turn.runId), includeFileReviewRecords));
-  }
-  // No live turn: every turn is history; only the transient tail appended
-  // below (e.g. an optimistic pending message) stays live.
-  liveStart ??= items.length;
-
-  // --- Transient tail (always live) ---
-  const lastTurn = shown.at(-1);
-  const lastPhase = lastTurn?.status?.phase;
-  if (lastTurn?.ended && lastPhase !== undefined && BADGED_END_PHASES.has(lastPhase)) {
-    items.push({ kind: "phase", phase: runPhaseOf(lastPhase), key: `phase-${lastPhase}` });
-  }
-
-  if (includeApprovals) {
-    for (const ask of lastTurn?.asks ?? []) {
-      items.push({ kind: "approval", toolUse: ask, key: `approval-${ask.id}` });
-    }
-  }
-
-  for (const message of queued) {
-    items.push({ kind: "queued-message", message, key: `queued-${message.id}` });
-  }
-
-  if (
-    pendingUserMessage &&
-    lastTurn?.userMessage?.text !== pendingUserMessage &&
-    !queued.some((message) => message.text === pendingUserMessage)
-  ) {
-    items.push({
-      kind: "pending-message",
-      content: pendingUserMessage,
-      key: "pending-user-msg",
-    });
-  }
-
-  return { items, liveStart };
-}
+const NO_REVIEWS: ReadonlyMap<string, readonly FileReviewSet[]> = new Map();
 
 /**
  * Each turn's file reviews from the fold, keyed by run id, and the runs'
@@ -267,16 +111,17 @@ function fileReviewContextOf(turns: readonly Turn[], runs: readonly Run[]): File
  * Renders a continuous conversation thread from a session's folded turns in
  * the terminal.
  *
- * Composes {@link MessageEntry}, {@link ToolCallGroup}, {@link SubagentBlock},
- * {@link RunProgress}, {@link ApprovalPrompt}, and (for settled file reviews)
- * {@link FileReviewRecord} into a scrolling terminal log.
+ * Composes {@link MessageEntry}, {@link MarkdownBlock}, {@link ToolCallGroup},
+ * {@link SubagentBlock}, {@link RunProgress}, {@link ApprovalPrompt}, and (for
+ * decided file reviews) {@link FileReviewRecord} into a scrolling terminal log.
  *
- * Ended turns are rendered via Ink's `<Static>` component so they are written
- * once and don't re-render, keeping terminal output efficient for long
- * conversations. The live turn renders live so its file-review row badges
- * transition (Pending review → Kept/Discarded) in place, then freeze into
- * `<Static>` when it ends. The thread is wrapped in a `FileReviewContext`
- * provider so every {@link ToolCallItem} can badge its file edits.
+ * What can no longer change is written once through Ink's `<Static>`, by item
+ * rather than by turn (thread-items.ts): a reply's finished blocks, a tool
+ * group whose calls returned, a finished subagent. Only what can still change
+ * stays live, so the live region stays small and Ink never clears the
+ * terminal. Rows written to the history carry no file-review badge, since a
+ * review is decided after they are written; its outcome is the review's own
+ * record and the docked prompt.
  */
 export function MessageThread({
   turns,
@@ -289,22 +134,27 @@ export function MessageThread({
   showFileReviewRecords = false,
   canAnswer = true,
   live = true,
+  subject,
 }: MessageThreadProps) {
   const includeApprovals = onAnswerToolUse != null;
-  const { items, liveStart } = useMemo(
+  const items = useMemo(
     () =>
-      buildThreadItems(
+      buildThreadItems({
         turns,
         runs,
         pendingUserMessage,
-        includeApprovals,
-        showFileReviewRecords,
         queued,
-      ),
+        includeApprovals,
+        includeFileReviewRecords: showFileReviewRecords,
+      }),
     [turns, runs, pendingUserMessage, includeApprovals, showFileReviewRecords, queued],
   );
 
   const fileReviewContext = useMemo(() => fileReviewContextOf(turns, runs), [turns, runs]);
+  const historyContext = useMemo(
+    () => ({ fileReviewByRunId: NO_REVIEWS, changeSetsById: fileReviewContext.changeSetsById }),
+    [fileReviewContext],
+  );
 
   // The single active decision surface: stdin is delivered to every mounted
   // `useInput`, so only the FIRST waiting tool use owns the keyboard — the rest
@@ -316,21 +166,37 @@ export function MessageThread({
     [items, canAnswer],
   );
 
-  const historyItems = live ? items.slice(0, liveStart) : [];
-  const liveItems = live ? items.slice(liveStart) : items;
+  // What Ink has written, kept across frames: <Static> prints by position, so
+  // its items only ever grow at the end (appendOnce). The subject leads the
+  // history when it is known before anything is written; one that resolves
+  // later is not written above what is already there.
+  const written = useRef<readonly ThreadItem[]>([]);
+  const subjectItem: ThreadItem | undefined = subject ? { kind: "subject", text: subject, key: "subject", settled: true } : undefined;
+  const settledCount = settledPrefixLength(items);
+  let historyItems: readonly ThreadItem[] = [];
+  let liveItems: readonly ThreadItem[] = subjectItem ? [subjectItem, ...items] : items;
+  if (live) {
+    const lead = subjectItem && written.current.length === 0 ? [subjectItem] : [];
+    written.current = appendOnce(written.current, [...lead, ...items.slice(0, settledCount)]);
+    historyItems = written.current;
+    const writtenKeys = new Set(historyItems.map((item) => item.key));
+    liveItems = items.slice(settledCount).filter((item) => !writtenKeys.has(item.key));
+  }
   const render = (item: ThreadItem): React.ReactNode =>
     renderItem(item, onAnswerToolUse, answeringToolUseIds, expandToolCalls, firstApprovalKey);
 
   return (
     <FileReviewContext.Provider value={fileReviewContext}>
       <Box flexDirection="column">
-        <Static items={historyItems}>
-          {(item) => (
-            <Box key={item.key} flexDirection="column" marginBottom={1}>
-              {render(item)}
-            </Box>
-          )}
-        </Static>
+        <FileReviewContext.Provider value={historyContext}>
+          <Static items={historyItems as ThreadItem[]}>
+            {(item) => (
+              <Box key={item.key} flexDirection="column" marginBottom={1}>
+                {render(item)}
+              </Box>
+            )}
+          </Static>
+        </FileReviewContext.Provider>
 
         {liveItems.map((item) => (
           <Box key={item.key} flexDirection="column" marginBottom={1}>
@@ -350,8 +216,23 @@ function renderItem(
   activeApprovalKey: string | undefined,
 ): React.ReactNode {
   switch (item.kind) {
+    case "subject":
+      return (
+        <Box paddingLeft={1}>
+          <Text dimColor bold>
+            {item.text}
+          </Text>
+        </Box>
+      );
     case "message":
-      return <MessageEntry message={item.message} />;
+      return <MessageEntry message={item.message} expanded={expandToolCalls} />;
+    case "reply-block":
+      return (
+        <Box flexDirection="column" paddingLeft={1}>
+          {item.first && <AgentLabel />}
+          <MarkdownBlock token={item.token} />
+        </Box>
+      );
     case "tool-group":
       return <ToolCallGroup toolUses={item.toolUses} defaultExpanded={expandToolCalls} />;
     case "subagent":
@@ -366,8 +247,14 @@ function renderItem(
       );
     case "phase":
       return <RunProgress phase={item.phase} />;
+    case "worked":
+      return (
+        <Box paddingLeft={1}>
+          <Text dimColor>✻ {item.text}</Text>
+        </Box>
+      );
     case "file-review-record":
-      return <FileReviewRecord fileReviewSet={item.set} />;
+      return <FileReviewRecord fileReviewSet={item.set} earlier={item.earlier} />;
     case "approval":
       return onAnswerToolUse ? (
         <ApprovalPrompt

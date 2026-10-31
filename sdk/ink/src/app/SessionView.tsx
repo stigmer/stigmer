@@ -1,7 +1,8 @@
 // The terminal session view: a session's conversation (its turns, read from
-// the session's events) with the live turn's phase, to-dos and usage, the
-// mid-turn file progress, the docked file-review decision, and the follow-up
-// input with its agent/plan mode.
+// the session's events, its subject written once at the top) with the live
+// turn's to-dos and usage, the mid-turn file progress, the docked file-review
+// decision, the working line, and the follow-up input with its agent/plan
+// mode.
 //
 // On a terminal and off one: `canAnswer` (from terminal-mode.ts, or Ink's
 // raw-mode support when a host omits it) decides whether anything reads keys.
@@ -15,14 +16,14 @@
 // Proven by __tests__/session-view.test.tsx and session-frames.test.tsx.
 import React, { useState, useEffect, useRef, useContext } from "react";
 import { Box, Text, useInput, useStdin } from "ink";
-import Spinner from "ink-spinner";
-import { resolvedSubject, PENDING_SUBJECT, type Turn, type ToolUse } from "@stigmer/client";
-import { useSessionConversation, useStigmer, runPhaseOf } from "@stigmer/react-core";
+import { resolvedSubject, type Turn, type ToolUse } from "@stigmer/client";
+import { useSessionConversation, useStigmer } from "@stigmer/react-core";
 import { MessageThread } from "../components/MessageThread.js";
 import { TodoList } from "../components/TodoList.js";
 import { FollowUpInput } from "../components/FollowUpInput.js";
 import { UsageWidget } from "../components/UsageWidget.js";
-import { RunProgress } from "../components/RunProgress.js";
+import { Spinner } from "../components/Spinner.js";
+import { WorkingLine } from "../components/WorkingLine.js";
 import { FileChangeProgressBar } from "../components/FileChangeProgressBar.js";
 import { FileReviewPrompt } from "../components/FileReviewPrompt.js";
 import { useRoles } from "../theme.js";
@@ -199,9 +200,7 @@ export function SessionView({
   if (conv.isLoading) {
     return (
       <Box gap={1} paddingLeft={1}>
-        <Text {...role.accent}>
-          <Spinner type="dots" />
-        </Text>
+        <Spinner style={role.accent} />
         <Text>Loading session...</Text>
       </Box>
     );
@@ -214,43 +213,25 @@ export function SessionView({
   const activeTodos = conv.activeTurn?.todos ?? [];
   const reviewSet = conv.fileReviewSets[0];
 
-  const subject = resolvedSubject(conv.session?.spec?.subject);
+  const subject = resolvedSubject(conv.session?.spec?.subject) ?? undefined;
 
   return (
     <Box flexDirection="column">
-      {subject && subject !== PENDING_SUBJECT && (
-        <Box paddingLeft={1} marginBottom={1}>
-          <Text dimColor bold>{subject}</Text>
-        </Box>
-      )}
-
       {conv.isConnecting && (
         <Box gap={1} paddingLeft={1}>
-          <Text {...role.accent}>
-            <Spinner type="dots" />
-          </Text>
+          <Spinner style={role.accent} />
           <Text dimColor>Connecting to stream...</Text>
         </Box>
       )}
 
       {conv.isReconnecting && (
         <Box gap={1} paddingLeft={1}>
-          <Text {...role.warning}>
-            <Spinner type="dots" />
-          </Text>
+          <Spinner style={role.warning} />
           <Text dimColor>Reconnecting...</Text>
         </Box>
       )}
 
       {conv.streamError && <FailureBlock error={conv.streamError} baseUrl={baseUrl} step="stream" />}
-
-      {conv.activePhase !== null && reviewSet === undefined && (
-        // Suppressed while a set awaits review: review is not a phase of the
-        // turn, so the phase would otherwise read as an active "Running"
-        // spinner while the agent is idle awaiting the reviewer — the
-        // FileReviewPrompt is the honest cue.
-        <RunProgress phase={runPhaseOf(conv.activePhase)} />
-      )}
 
       <MessageThread
         turns={conv.turns}
@@ -263,6 +244,7 @@ export function SessionView({
         showFileReviewRecords
         canAnswer={canAnswer}
         live={live}
+        subject={subject}
       />
 
       {settled.map((ask) => (
@@ -276,7 +258,7 @@ export function SessionView({
       ))}
 
       {activeTodos.length > 0 && (
-        <Box marginTop={1} paddingLeft={1}>
+        <Box marginY={1} paddingLeft={1}>
           <TodoList todos={activeTodos} />
         </Box>
       )}
@@ -344,6 +326,13 @@ export function SessionView({
             File review error: {conv.fileReviewError.message}
           </Text>
         </Box>
+      )}
+
+      {live && conv.activePhase !== null && reviewSet === undefined && (
+        // Just above the composer, as the one place a person looks while the
+        // turn works. Not drawn while a set awaits review: review is not a
+        // phase of the turn, and the FileReviewPrompt is the honest cue.
+        <WorkingLine turn={conv.activeTurn} isSlow={conv.isSlow} isStopping={conv.isStopping} />
       )}
 
       {conv.canSendFollowUp && canAnswer && (

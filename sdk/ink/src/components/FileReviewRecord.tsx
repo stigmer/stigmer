@@ -16,6 +16,8 @@ import { FileLineStats } from "./FileReviewAtoms.js";
 export interface FileReviewRecordProps {
   /** A settled set (every file decided, or its turn ended) to record. */
   readonly fileReviewSet: FileReviewSet;
+  /** The record is written below a later turn, so it names itself an earlier turn's. */
+  readonly earlier?: boolean;
 }
 
 /** Each file's outcome, as the record labels it. */
@@ -37,7 +39,7 @@ const OUTCOME_LABEL: Readonly<Record<FileReviewFile["state"], string>> = {
  * already carry their outcome on the (frozen) row badges; this record
  * complements them with a one-line summary and file list.
  */
-export function FileReviewRecord({ fileReviewSet }: FileReviewRecordProps) {
+export function FileReviewRecord({ fileReviewSet, earlier = false }: FileReviewRecordProps) {
   const summary = settledSummary(fileReviewSet);
   const lineStats = changeSetLineStats(fileReviewSet);
 
@@ -45,7 +47,9 @@ export function FileReviewRecord({ fileReviewSet }: FileReviewRecordProps) {
     <Box flexDirection="column" paddingLeft={2}>
       <Box gap={1}>
         <Text dimColor>✎</Text>
-        <Text dimColor>File review — {summary}</Text>
+        <Text dimColor>
+          {earlier ? "File review of an earlier turn" : "File review"} — {summary}
+        </Text>
         <FileLineStats
           linesAdded={lineStats.linesAdded}
           linesRemoved={lineStats.linesRemoved}

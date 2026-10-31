@@ -22,10 +22,11 @@ All hooks from `@stigmer/react-core` (`useStigmer`, `useSessionConversation`,
 
 <TypeTable
   type={{
+    background: { type: "TerminalBackground", description: "The terminal's background, for a theme given as a function: `detectBackground()` before rendering finds it, and `runInTerminal` does so itself. \"unknown\" by default." },
     children: { type: "ReactNode", description: "Child components to render.", required: true },
     client: { type: "Stigmer", description: "Pre-configured Stigmer client (use createNodeClient to create one).", required: true },
     deploymentMode: { type: "DeploymentMode", description: "Deployment mode for feature gating. - `\"cloud\"`: All features available (default). - `\"local\"`: OSS feature subset only." },
-    theme: { type: "Partial<InkTheme>", description: "The host's colours by role, over Stigmer's default (monochrome, with hue only for success, warning and danger). For example `{ accent: \"magenta\" }` or `{ accent: \"#7c3aed\" }`." },
+    theme: { type: "InkThemeInput", description: "The host's colours by role, over Stigmer's default (monochrome, with hue only for success, warning and danger). For example `{ accent: \"magenta\" }` or `{ accent: \"#7c3aed\" }`; or a function of the terminal's background, `(background) => (background === \"light\" ? { accent: \"#5b21b6\" } : { accent: \"#c4b5fd\" })`." },
   }}
 />
 
@@ -119,7 +120,7 @@ then returns its outcome and exit code (module header).
     stderr: { type: "WriteStream", description: "Where a start failure is written; `process.stderr` by default." },
     stdin: { type: "ReadStream", description: "Ink's input stream; `process.stdin` by default." },
     stdout: { type: "WriteStream", description: "Ink's output stream; `process.stdout` by default." },
-    theme: { type: "Partial<InkTheme>", description: "The host's colours by role (see InkTheme)." },
+    theme: { type: "InkThemeInput", description: "The host's colours by role (see `InkTheme`), or a function of the terminal's background, which is then detected before the view draws." },
     until: { type: "\"turn\" | \"exit\"", description: "When control returns: `\"turn\"` (the default) when this turn ends; `\"exit\"` when the person quits (Ctrl+C), keeping the conversation open for follow-ups as `stigmer run` does. Off a terminal both return at the turn's end." },
   }}
 />
@@ -312,6 +313,7 @@ complements them with a one-line summary and file list.
 
 <TypeTable
   type={{
+    earlier: { type: "boolean", description: "The record is written below a later turn, so it names itself an earlier turn's." },
     fileReviewSet: { type: "FileReviewSet", description: "A settled set (every file decided, or its turn ended) to record.", required: true },
   }}
 />
@@ -337,20 +339,47 @@ to submit, Ctrl+C to exit the application.
 />
 
 
+### Markdown
+
+A markdown text as Ink elements, its blocks a blank line apart (module header).
+
+**Props** — `MarkdownProps`
+
+<TypeTable
+  type={{
+    text: { type: "string", description: "The markdown text.", required: true },
+  }}
+/>
+
+
+### MarkdownBlock
+
+One block of markdown as Ink elements (module header).
+
+**Props** — `MarkdownBlockProps`
+
+<TypeTable
+  type={{
+    token: { type: "Token", description: "One top-level block, as `markdownBlocks` returns it.", required: true },
+  }}
+/>
+
+
 ### MessageEntry
 
 Renders a single message in the terminal conversation thread.
 
-- `user` — plain text prefixed with a "You" indicator
-- `message` — the agent's markdown rendered to ANSI-styled terminal
-  output, with a "Thinking..." indicator while it is still empty and live
+- `user` — plain text under a "You" label
+- `message` — the agent's markdown under an "Agent" label, with a
+  "Thinking..." line while it is still empty and live
 - `note` — dimmed text
-- `thinking` — renders nothing
+- `thinking` — one dim line, its whole text when `expanded`
 
 **Props** — `MessageEntryProps`
 
 <TypeTable
   type={{
+    expanded: { type: "boolean", description: "Whether thinking shows its whole text rather than its first line (Ctrl+O)." },
     message: { type: "ThreadMessage", description: "The message to render.", required: true },
   }}
 />
@@ -361,16 +390,17 @@ Renders a single message in the terminal conversation thread.
 Renders a continuous conversation thread from a session's folded turns in
 the terminal.
 
-Composes `MessageEntry`, `ToolCallGroup`, `SubagentBlock`,
-`RunProgress`, `ApprovalPrompt`, and (for settled file reviews)
-`FileReviewRecord` into a scrolling terminal log.
+Composes `MessageEntry`, `MarkdownBlock`, `ToolCallGroup`,
+`SubagentBlock`, `RunProgress`, `ApprovalPrompt`, and (for
+decided file reviews) `FileReviewRecord` into a scrolling terminal log.
 
-Ended turns are rendered via Ink's `<Static>` component so they are written
-once and don't re-render, keeping terminal output efficient for long
-conversations. The live turn renders live so its file-review row badges
-transition (Pending review → Kept/Discarded) in place, then freeze into
-`<Static>` when it ends. The thread is wrapped in a `FileReviewContext`
-provider so every `ToolCallItem` can badge its file edits.
+What can no longer change is written once through Ink's `<Static>`, by item
+rather than by turn (thread-items.ts): a reply's finished blocks, a tool
+group whose calls returned, a finished subagent. Only what can still change
+stays live, so the live region stays small and Ink never clears the
+terminal. Rows written to the history carry no file-review badge, since a
+review is decided after they are written; its outcome is the review's own
+record and the docked prompt.
 
 **Props** — `MessageThreadProps`
 
@@ -384,7 +414,8 @@ provider so every `ToolCallItem` can badge its file edits.
     pendingUserMessage: { type: "string | null", description: "Optimistic user message shown before the session's events carry it." },
     queued: { type: "readonly QueuedMessage[]", description: "Messages sent while a turn worked that no turn has read yet, shown dimmed after the thread: queued for the agent's next step, or not read because a stop ended the turn." },
     runs: { type: "readonly Run[]", description: "The turns' runs, for what the run record holds: the message a turn was started with (so a build turn's label or a placeholder is not shown) and the captured bytes of its file changes. A turn whose run is absent renders from its events alone." },
-    showFileReviewRecords: { type: "boolean", description: "Whether to render a read-only record for each settled file review (every file decided, or its turn ended) — the terminal analogue of the web's in-thread record. Off by default so bare consumers stay minimal; `SessionView` opts in. A set still undecided on the live turn is never a record here — its decision surface is the docked `FileReviewPrompt`." },
+    showFileReviewRecords: { type: "boolean", description: "Whether to render a read-only record for each decided file review (every file decided) — the terminal analogue of the web's in-thread record. Off by default so bare consumers stay minimal; `SessionView` opts in. A set still undecided is never a record here — its decision surface is the docked `FileReviewPrompt` — so the record, written once, never goes stale." },
+    subject: { type: "string", description: "The session's subject, drawn once as the thread's first line when it is known before anything is written to the history. Omitted, none is drawn." },
     turns: { type: "readonly Turn[]", description: "The conversation's turns, in order: the session's events folded.", required: true },
   }}
 />
@@ -485,6 +516,19 @@ render(
 ```
 
 
+### Spinner
+
+A spinner on Ink's shared animation timer (module header).
+
+**Props** — `SpinnerProps`
+
+<TypeTable
+  type={{
+    style: { type: "RoleStyle", description: "The role the spinner draws in; the accent by default." },
+  }}
+/>
+
+
 ### SubagentBlock
 
 Renders a subagent's thread as a collapsible block in the terminal.
@@ -581,6 +625,22 @@ Uses the headless `useSessionUsage` hook from `@stigmer/react-core`.
 />
 
 
+### WorkingLine
+
+The working turn's line (module header).
+
+**Props** — `WorkingLineProps`
+
+<TypeTable
+  type={{
+    hint: { type: "string", description: "A last part in the host's words, such as the key that stops the turn; none by default." },
+    isSlow: { type: "boolean", description: "The turn has gone quiet for longer than usual." },
+    isStopping: { type: "boolean", description: "A stop was asked for and the turn is winding down." },
+    turn: { type: "Turn | null", description: "The working turn; null while the turn has not reached the session's events yet.", required: true },
+  }}
+/>
+
+
 ## Composed Views
 
 ### SessionApp
@@ -666,7 +726,7 @@ render(
 
 ### resolveInkTheme
 
-A partial theme over the default: what a host passes to the provider.
+A host's theme over the default, under the background in effect ("unknown" when not detected).
 
 
 ### roleStyle
@@ -708,6 +768,11 @@ rather than guessing.
 Words a failure for a terminal: the step, the address tried, the cause and the next step.
 
 
+### detectBackground
+
+The terminal's background: asked with OSC 11, else read from `COLORFGBG`, else "unknown" (module header).
+
+
 ### exitCodeOf
 
 The exit code for a turn's outcome or an error. An error that carries its
@@ -728,6 +793,11 @@ Single-letter badge for a file change's kind, matching the web review card:
 a distinct edit kind.
 
 
+### markdownBlocks
+
+The top-level blocks of a markdown text, in order: what draws, spacing and link definitions left out.
+
+
 ### progressEntryDisplayPath
 
 The path to show for a mid-run progress entry, using the same rename-aware
@@ -737,17 +807,13 @@ for a deletion.
 
 ### renderMarkdown
 
-Render a markdown string to ANSI-styled terminal output.
-
-Uses `marked` with `marked-terminal` to produce styled text suitable
-for display in a terminal. Supports headings, code blocks (with syntax
-highlighting), lists, bold/italic, links, tables, and blockquotes.
+Renders markdown to a string for a terminal, drawn by the same component the
+session view uses: bold, italic, dim and underline, no colour.
 
 ```tsx
 import { renderMarkdown } from "@stigmer/ink-ui";
 
-const ansi = renderMarkdown("**Hello** from the agent!");
-process.stdout.write(ansi);
+process.stdout.write(`${renderMarkdown("**Hello** from the agent!")}\n`);
 ```
 
 
@@ -775,4 +841,9 @@ Decides `TerminalMode` from the streams and the environment (module header).
     stdout: { type: "{ isTTY?: boolean }", description: "The output the view draws on.", required: true },
   }}
 />
+
+
+### useTerminalBackground
+
+The terminal's background the nearest `InkStigmerProvider` was given, for a host's own components.
 

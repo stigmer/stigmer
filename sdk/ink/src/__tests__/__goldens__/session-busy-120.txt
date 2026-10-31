@@ -1,14 +1,12 @@
  Fix invoice rounding
 
- ⠋ Running
  You
  Invoices are off by a cent across the billing module. Find every place that rounds, fix it, and prove it with tests.
 
   ✓ ▶ 4 tool calls
 
  Agent
- Invoice totals now round once. A researcher is mapping where credit notes round
- while the full suite runs.
+ Invoice totals now round once. A researcher is mapping where credit notes round while the full suite runs.
 
   ⟳ ↳ map where credit notes round (38s) ▸
 
@@ -22,6 +20,8 @@
   ○ Run the billing suite
   ✓ Find every place invoices round
   ✓ Round once, at the invoice total
+
+ ⠋ Running a command · 1m 30s
  Agent mode — full tool access
 
  Reply...
