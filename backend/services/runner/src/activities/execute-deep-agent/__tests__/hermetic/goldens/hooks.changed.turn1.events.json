@@ -1,0 +1,36 @@
+[
+  {
+    "run_id": "run_hermetic_0001",
+    "agent_message": {
+      "id": "run_hermetic_0001.root.m0",
+      "content": [
+        {
+          "type": "text",
+          "text": "Stamping."
+        }
+      ]
+    }
+  },
+  {
+    "run_id": "run_hermetic_0001",
+    "agent_tool_use": {
+      "id": "run_hermetic_0001.call-hooks-stamp-1",
+      "input": {
+        "command": "touch stamped-1"
+      },
+      "name": "execute",
+      "evaluated_permission": "ask"
+    }
+  },
+  {
+    "run_id": "run_hermetic_0001",
+    "stigmer_permission_asked": {
+      "id": "run_hermetic_0001.call-hooks-stamp-1.ask",
+      "tool_use_id": "run_hermetic_0001.call-hooks-stamp-1",
+      "message": "stamped",
+      "args_preview": "{\"command\":\"touch stamped-1\"}",
+      "policy_source": "hook",
+      "policy_hook": "stamp"
+    }
+  }
+]

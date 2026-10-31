@@ -447,6 +447,12 @@ printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision"
         const shown = row(record.rowsOf(record.lastFullStatus!), stamp.id);
         const shownCommand = String(shown.args!["command"]);
         expect(shownCommand, "the card shows the hook's rewrite").toMatch(/^touch stamped-\d+$/);
+        if (golden !== undefined) {
+          const waiting = record.lastFullStatus!;
+          await expect(statusGolden(waiting)).toMatchFileSnapshot(`./goldens/${golden}.turn1.status.json`);
+          await expect(rowsGolden(record.rowsOf(waiting))).toMatchFileSnapshot(rowsGoldenPath(`./goldens/${golden}.turn1.status.json`));
+          await expect(record.eventsGolden()).toMatchFileSnapshot(`./goldens/${golden}.turn1.events.json`);
+        }
         expect(record.decideWaitingToolCalls(answer, "2026-01-01T00:00:30.000Z")).toBe(1);
 
         await runDeepAgentTurn(scenario, { turnSeq: 1 });
