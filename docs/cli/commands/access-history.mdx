@@ -58,9 +58,11 @@ write the organization's access history as JSON Lines, oldest first, to stdout
 stigmer access-history export [flags]
 ```
 
-| Flag      | Type     | Default | Description                                                |
-| --------- | -------- | ------- | ---------------------------------------------------------- |
-| `--after` | `string` |         | start after this entry: the last sequence you already hold |
+| Flag             | Type     | Default | Description                                                                    |
+| ---------------- | -------- | ------- | ------------------------------------------------------------------------------ |
+| `--after`        | `string` |         | start after this entry: the last sequence you already hold                     |
+| `--json`         | `bool`   |         | shorthand for --output json                                                    |
+| `--output`, `-o` | `string` |         | output format: json or ndjson (both JSON Lines, the only form an export takes) |
 
 ### stigmer access-history list
 
@@ -91,7 +93,7 @@ Run it with an Admin service account's API key in `STIGMER_API_KEY`.
 
 | Flag            | Type     | Default | Description                                            |
 | --------------- | -------- | ------- | ------------------------------------------------------ |
-| `--api-key`     | `string` |         | API key for authentication                             |
+| `--api-key`     | `string` |         | API key for authentication (before the command)        |
 | `--debug`, `-d` | `bool`   |         | enable debug output                                    |
 | `--org`         | `string` |         | organization, on servers that hold several             |
 | `--standalone`  | `bool`   |         | ignore the config file; use flags and environment only |

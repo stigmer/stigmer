@@ -3,6 +3,7 @@
 // individual handlers.
 
 import type { Command } from "commander";
+import { UsageError } from "../errors/usage-error.js";
 import { nearestOption } from "../global-options.js";
 import { type CommandClass, type OutputFlags, type OutputFormat, resolveFormat } from "../output/index.js";
 
@@ -59,4 +60,11 @@ export function formatFor(options: OutputFlags, commandClass: CommandClass): Out
 export function globalOrg(command: Command): string | undefined {
   const value = nearestOption(command, "org");
   return typeof value === "string" && value !== "" ? value : undefined;
+}
+
+/** `--until`'s value for `run` and `resume`: "exit" when absent; anything but turn or exit is refused. */
+export function untilOf(raw: string | undefined): "turn" | "exit" {
+  if (raw === undefined || raw === "exit") return "exit";
+  if (raw === "turn") return "turn";
+  throw new UsageError(`invalid --until value "${raw}" (expected turn or exit)`);
 }

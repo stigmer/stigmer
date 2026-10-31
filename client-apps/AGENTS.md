@@ -30,6 +30,11 @@ names are the truth.
   the one exit point in `cli/src/errors/handle.ts`; exit codes follow
   `cli/src/errors/index.ts` so scripts branch on `$?`; `eval run` departs, as
   its header says. Raw stacks appear only in debug mode.
+- A run exits by its newest turn's phase, through the client's `exitCodeOf`
+  (`cli/src/resources/run/stream.ts`): 0 completed; 1 failed, cancelled or
+  stopped; 130 left while it works.
+- Global options work before or after the command (`cli/src/global-options.ts`);
+  `--api-key` alone stays before it.
 - Off a TTY there are no colours, spinners or prompts: colour honours the stream
   and `NO_COLOR`, a destructive command without `--force` aborts, and a headless
   run resolves each approval by `--approve-default` (deny when unset), never by

@@ -21,7 +21,10 @@
 // when unset, the `stigmer` CLI's rule), with a line saying so; a file review
 // stays pending and says it waits for a terminal. A load or stream failure is
 // worded by errors.ts (what failed, the address, the next step), its raw
-// message kept as a details line. `onTurnEnd` hears each turn end once.
+// message kept as a details line. `onTurnEnd` hears each turn end once, with
+// a way to write a note in the thread and whether the turn had ended before
+// the view loaded (a host that acts on a turn's end, the CLI saving its
+// outputs, acts only on the turns it saw end).
 //
 // Proven by __tests__/session-view.test.tsx and session-frames.test.tsx.
 import React, { useState, useEffect, useRef, useContext, useCallback, useMemo } from "react";
@@ -85,10 +88,13 @@ export interface SessionViewProps {
   readonly approveSetting?: string;
   /**
    * Called once for each turn the view sees end (its status says it ended),
-   * including turns already ended when it loads the session; a host that
-   * waits for one run filters by `turn.runId`.
+   * including turns already ended when it loads the session, which
+   * `context.atLoad` marks; a host that waits for one run filters by
+   * `turn.runId`. `context.note` writes a line in the thread, as a slash
+   * command's `note` does, so a host says what it did without writing under
+   * the view's frame.
    */
-  readonly onTurnEnd?: (turn: Turn) => void;
+  readonly onTurnEnd?: (turn: Turn, context: TurnEndContext) => void;
   /**
    * Whether the screen redraws in place (`terminalMode`'s `live`). Off, Ink
    * writes one final frame, and the thread renders whole inside it, once and
@@ -103,6 +109,14 @@ export interface SessionViewProps {
   readonly leaveHint?: string;
   /** The host's slash commands, completions and prompt history for the composer. */
   readonly composer?: ComposerExtensions;
+}
+
+/** What {@link SessionViewProps.onTurnEnd} hears with a turn's end. */
+export interface TurnEndContext {
+  /** Writes a line in the thread that is not sent to the agent. */
+  readonly note: (text: string) => void;
+  /** Whether the turn had already ended when the view loaded the session. */
+  readonly atLoad: boolean;
 }
 
 /** How long the first Ctrl+C on an empty composer waits for the second. */
@@ -200,6 +214,7 @@ function SessionViewBody({
   const [settled, setSettled] = useState<readonly SettledAsk[]>([]);
   const settling = useRef(new Set<string>());
   const reported = useRef(new Set<string>());
+  const loaded = useRef(false);
   const [hasDraft, setHasDraft] = useState(false);
   const [leaveArmed, setLeaveArmed] = useState(false);
   const [notes, setNotes] = useState<readonly ThreadNote[]>([]);
@@ -248,17 +263,18 @@ function SessionViewBody({
     { isActive: canAnswer },
   );
 
+  const note = useCallback((text: string) => setNotes((list) => [...list, { id: `note-${list.length}`, text }]), []);
   const { sendFollowUp } = conv;
   const commandContext = useMemo<ComposerContext>(
     () => ({
       mode: activeMode,
       send: (text) => void sendFollowUp(text, { interactionMode: activeMode }),
       stop: stopTurn,
-      note: (text) => setNotes((list) => [...list, { id: `note-${list.length}`, text }]),
+      note,
       setMode: setActiveMode,
       leave: exit,
     }),
-    [activeMode, sendFollowUp, stopTurn, exit],
+    [activeMode, sendFollowUp, stopTurn, note, exit],
   );
 
   // Off a terminal no one can answer: each ask is settled once, by the default.
@@ -276,15 +292,19 @@ function SessionViewBody({
     }
   }, [canAnswer, asks, answerToolUse, approveDefault]);
 
-  // Each turn's end is heard once; a watching run (runInTerminal) sees every change.
+  // Each turn's end is heard once, the turns the load found ended marked so;
+  // a watching run (runInTerminal) sees every change.
   useEffect(() => {
     watch?.onTurns(conv.turns);
+    if (conv.isLoading) return;
+    const atLoad = !loaded.current;
+    loaded.current = true;
     for (const turn of conv.turns) {
       if (turn.status === undefined || !turn.ended || reported.current.has(turn.runId)) continue;
       reported.current.add(turn.runId);
-      onTurnEnd?.(turn);
+      onTurnEnd?.(turn, { note, atLoad });
     }
-  }, [conv.turns, onTurnEnd, watch]);
+  }, [conv.turns, conv.isLoading, onTurnEnd, note, watch]);
 
   useEffect(() => {
     if (conv.loadError) watch?.onLoadError(conv.loadError);

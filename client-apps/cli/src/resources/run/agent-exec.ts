@@ -2,8 +2,9 @@
 // the workspace and attached folders ride the embedded session_spec and the
 // backend bootstraps the session), delete the uploaded originals the new
 // conversation now holds copies of, then
-// either detach (print header + re-attach hint) or stream and optionally
-// download the turn's outputs, for `run`. A new conversation names its agent by
+// either detach (print header + re-attach hint) or stream, saving each
+// turn's outputs as it ends under --download, and exit by how the newest
+// turn ended (stream.ts), for `run`. A new conversation names its agent by
 // reference (org and slug) on the embedded session_spec; the backend resolves
 // it and pins the session to the agent's current version. With no agent the
 // same flow runs the built-in assistant: the run names no agent, the
@@ -15,13 +16,12 @@ import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { BUILT_IN_ASSISTANT_NAME } from "@stigmer/client";
 import type { BackendClient } from "../../client/index.js";
-import { downloadRunOutputs } from "../download.js";
 import { deleteFiles, stageFiles } from "./files.js";
 import { type AgentRefInput, createAgentRun } from "./create.js";
 import { renderSessionHeader, type SessionHeaderInfo, workspaceNames } from "./header.js";
 import { localWorkspaceRoots } from "./workspace.js";
 import type { PreparedRun } from "./prepare.js";
-import { streamAgentRun, type RunOutputMode } from "./stream.js";
+import { exitByTurn, streamAgentRun, type RunOutputMode, type RunUntil } from "./stream.js";
 
 export interface ResolvedAgentExecInput {
   /** The agent to run; undefined is the built-in assistant. */
@@ -31,6 +31,8 @@ export interface ResolvedAgentExecInput {
   /** Where the turn's outputs are downloaded; "" skips download. */
   readonly downloadDir: string;
   readonly outputMode: RunOutputMode;
+  /** On a terminal: return when the person leaves (the default) or when the turn ends. */
+  readonly until?: RunUntil;
   readonly client: BackendClient;
 }
 
@@ -110,16 +112,11 @@ export async function executeResolvedAgent(input: ResolvedAgentExecInput): Promi
     header,
     workspaceRoots: localWorkspaceRoots(prepared.resources),
     clearProgress: progress.clear,
+    until: input.until ?? "exit",
+    downloadDir: input.downloadDir,
+    progress,
   });
-
-  if (input.downloadDir !== "") {
-    await downloadRunOutputs(
-      client.stigmer,
-      finalExec.metadata?.id ?? "",
-      { outputPath: "", outputDir: input.downloadDir },
-      progress,
-    );
-  }
+  exitByTurn(finalExec);
 }
 
 // The reference a new conversation names its agent by. The CLI takes no

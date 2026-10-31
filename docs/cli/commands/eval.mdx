@@ -131,8 +131,14 @@ the tools a try may use.
 cancel a running eval run; the tries that finished keep their results
 
 ```bash
-stigmer eval cancel <eval-run-id>
+stigmer eval cancel <eval-run-id> [flags]
 ```
+
+| Flag             | Type     | Default | Description                  |
+| ---------------- | -------- | ------- | ---------------------------- |
+| `--json`         | `bool`   |         | emit the result as JSON      |
+| `--output`, `-o` | `string` |         | output format: table or json |
+| `--quiet`        | `bool`   |         | print only the status line   |
 
 ### stigmer eval run
 
@@ -160,6 +166,7 @@ stigmer eval run [flags]
 | `--model`              | `string`      |         | a harness and model to run on: stigmer/`<model>` for "stigmer" or claude/`<model>` for "claude" (Claude Agent), as stigmer/claude-sonnet-4-6 (repeatable, up to 6)                                   |
 | `--no-scaffold`        | `bool`        |         | skip each case's scaffold script, listing such a case as not run                                                                                                                                     |
 | `--no-wait`            | `bool`        |         | start the eval run, print its id, and return                                                                                                                                                         |
+| `--output`, `-o`       | `string`      |         | output format: table (progress and the scores) or json (the result document)                                                                                                                         |
 | `--plugin`             | `string`      |         | alone: the plugin whose own cases run on the built-in assistant, with and without it (`<plugin>`@`<digest>` must be its installed version); with --agent: the plugin each case runs with and without |
 | `--real-mcp-servers`   | `bool`        |         | the same as --mocks off                                                                                                                                                                              |
 | `--runs`               | `string`      |         | tries per case, arm and model, 1 to 50 (default: each case's runs, else 3)                                                                                                                           |
@@ -171,7 +178,7 @@ stigmer eval run [flags]
 
 | Flag            | Type     | Default | Description                                            |
 | --------------- | -------- | ------- | ------------------------------------------------------ |
-| `--api-key`     | `string` |         | API key for authentication                             |
+| `--api-key`     | `string` |         | API key for authentication (before the command)        |
 | `--debug`, `-d` | `bool`   |         | enable debug output                                    |
 | `--org`         | `string` |         | organization, on servers that hold several             |
 | `--standalone`  | `bool`   |         | ignore the config file; use flags and environment only |

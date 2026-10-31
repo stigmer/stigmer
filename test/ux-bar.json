@@ -15,17 +15,11 @@
     },
     {
       "id": "CLI-02",
-      "promise": "Every command that prints machine output accepts -o.",
-      "pending": [
-        "stigmer#2620"
-      ]
+      "promise": "Every command that prints machine output accepts -o."
     },
     {
       "id": "CLI-03",
-      "promise": "A usage error exits 2, in the CLI's own error style.",
-      "pending": [
-        "stigmer#2620"
-      ]
+      "promise": "A usage error exits 2, in the CLI's own error style."
     },
     {
       "id": "CLI-04",
@@ -66,10 +60,7 @@
     },
     {
       "id": "CLI-11",
-      "promise": "stigmer run ends the way its mode promises.",
-      "pending": [
-        "stigmer#2595"
-      ]
+      "promise": "stigmer run ends the way its mode promises."
     },
     {
       "id": "CLI-12",
@@ -77,14 +68,19 @@
     },
     {
       "id": "CLI-13",
-      "promise": "A run's subagent rows show the right status and duration.",
-      "pending": [
-        "stigmer#2619"
-      ]
+      "promise": "A run's subagent rows show the right status and duration."
     },
     {
       "id": "CLI-14",
       "promise": "`stigmer up` says where the console is and whether agents can run."
+    },
+    {
+      "id": "CLI-15",
+      "promise": "A run's exit code says how its turn ended."
+    },
+    {
+      "id": "CLI-16",
+      "promise": "Global options work before or after the command."
     },
     {
       "id": "INK-01",

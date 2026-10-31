@@ -90,11 +90,12 @@ add a source: a directory, a GitHub 'owner/repo[@ref]', or that repository's URL
 stigmer marketplace add <source> [flags]
 ```
 
-| Flag      | Type     | Default | Description                                                                       |
-| --------- | -------- | ------- | --------------------------------------------------------------------------------- |
-| `--json`  | `bool`   |         | emit the result as JSON                                                           |
-| `--name`  | `string` |         | the name to install from (defaults to the name the marketplace file gives itself) |
-| `--quiet` | `bool`   |         | print only the status line                                                        |
+| Flag             | Type     | Default | Description                                                                       |
+| ---------------- | -------- | ------- | --------------------------------------------------------------------------------- |
+| `--json`         | `bool`   |         | emit the result as JSON                                                           |
+| `--name`         | `string` |         | the name to install from (defaults to the name the marketplace file gives itself) |
+| `--output`, `-o` | `string` |         | output format: table or json                                                      |
+| `--quiet`        | `bool`   |         | print only the status line                                                        |
 
 ### stigmer marketplace list
 
@@ -104,10 +105,11 @@ list the known sources, the official catalogue and the added ones (offline)
 stigmer marketplace list [flags]
 ```
 
-| Flag      | Type   | Default | Description                |
-| --------- | ------ | ------- | -------------------------- |
-| `--json`  | `bool` |         | emit the result as JSON    |
-| `--quiet` | `bool` |         | print only the status line |
+| Flag             | Type     | Default | Description                  |
+| ---------------- | -------- | ------- | ---------------------------- |
+| `--json`         | `bool`   |         | emit the result as JSON      |
+| `--output`, `-o` | `string` |         | output format: table or json |
+| `--quiet`        | `bool`   |         | print only the status line   |
 
 ### stigmer marketplace remove
 
@@ -118,10 +120,11 @@ removed)
 stigmer marketplace remove <name> [flags]
 ```
 
-| Flag      | Type   | Default | Description                |
-| --------- | ------ | ------- | -------------------------- |
-| `--json`  | `bool` |         | emit the result as JSON    |
-| `--quiet` | `bool` |         | print only the status line |
+| Flag             | Type     | Default | Description                  |
+| ---------------- | -------- | ------- | ---------------------------- |
+| `--json`         | `bool`   |         | emit the result as JSON      |
+| `--output`, `-o` | `string` |         | output format: table or json |
+| `--quiet`        | `bool`   |         | print only the status line   |
 
 ### stigmer marketplace show
 
@@ -131,16 +134,17 @@ show the plugins a source offers (reads it)
 stigmer marketplace show <name> [flags]
 ```
 
-| Flag      | Type   | Default | Description                |
-| --------- | ------ | ------- | -------------------------- |
-| `--json`  | `bool` |         | emit the result as JSON    |
-| `--quiet` | `bool` |         | print only the status line |
+| Flag             | Type     | Default | Description                  |
+| ---------------- | -------- | ------- | ---------------------------- |
+| `--json`         | `bool`   |         | emit the result as JSON      |
+| `--output`, `-o` | `string` |         | output format: table or json |
+| `--quiet`        | `bool`   |         | print only the status line   |
 
 ## Global Flags
 
 | Flag            | Type     | Default | Description                                            |
 | --------------- | -------- | ------- | ------------------------------------------------------ |
-| `--api-key`     | `string` |         | API key for authentication                             |
+| `--api-key`     | `string` |         | API key for authentication (before the command)        |
 | `--debug`, `-d` | `bool`   |         | enable debug output                                    |
 | `--org`         | `string` |         | organization, on servers that hold several             |
 | `--standalone`  | `bool`   |         | ignore the config file; use flags and environment only |

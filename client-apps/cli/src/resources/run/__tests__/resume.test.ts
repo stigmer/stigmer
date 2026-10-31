@@ -7,7 +7,10 @@
 // says so and opens nothing. A live turn is re-attached with no
 // --approve-default. A finished session off a terminal replays its stored
 // events: each as a Managed Agents JSON line with --json, else the plaintext
-// transcript. The session reads, the stream and the Ink view are doubles.
+// transcript. Under --until turn the view returns once the newest turn's end
+// is heard; every path exits by the newest turn's phase (1 for a failed one,
+// 130 when the person left while it works). The session reads, the stream
+// and the Ink view are doubles.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
@@ -27,13 +30,18 @@ vi.mock("../../session.js", () => ({
   listRunsBySession: session.executions,
   listSessionEvents: session.events,
 }));
-vi.mock("../stream.js", () => ({ streamAgentRun: stream }));
+vi.mock("../stream.js", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../stream.js")>()),
+  streamAgentRun: stream,
+  newestRunId: async (_client: unknown, _session: string, fallback: string) => fallback,
+}));
 vi.mock("../../stream/ink.js", () => ({ runInkSession: ink }));
 vi.mock("../../stream/tty.js", () => ({ isInkSupported: () => tty.supported }));
 
 import { openSession } from "../resume.js";
 
-const client = { stigmer: {} } as unknown as BackendClient;
+const runGet = vi.hoisted(() => vi.fn());
+const client = { stigmer: { run: { get: runGet } } } as unknown as BackendClient;
 
 function executionIn(
   phase: RunPhase,
@@ -51,6 +59,8 @@ beforeEach(() => {
     create(SessionSchema, { metadata: { id: "ses_1", org: "acme" } }),
   );
   tty.supported = false;
+  stream.mockResolvedValue(executionIn(RunPhase.RUN_COMPLETED));
+  runGet.mockResolvedValue(executionIn(RunPhase.RUN_COMPLETED));
 });
 
 afterEach(() => {
@@ -168,5 +178,32 @@ describe("openSession", () => {
     await openSession({ client, sessionId: "ses_1", mode: "", outputMode: "json" });
 
     expect(stream).toHaveBeenCalledWith(expect.objectContaining({ mode: "" }));
+  });
+
+  describe("CLI-11 exits by how the newest turn ended", () => {
+    it("exits 1 after replaying a session whose newest turn failed, off a terminal", async () => {
+      vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+      vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+      session.executions.mockResolvedValue([executionIn(RunPhase.RUN_FAILED)]);
+      session.events.mockResolvedValue([]);
+      await expect(openSession({ client, sessionId: "ses_1", mode: "", outputMode: "inline" })).rejects.toMatchObject({ exitCode: 1, message: "" });
+    });
+
+    it("exits 130 when the person leaves a live turn that still works", async () => {
+      session.executions.mockResolvedValue([executionIn(RunPhase.RUN_IN_PROGRESS)]);
+      stream.mockResolvedValue(executionIn(RunPhase.RUN_IN_PROGRESS));
+      await expect(openSession({ client, sessionId: "ses_1", mode: "", outputMode: "inline", until: "turn" })).rejects.toMatchObject({
+        exitCode: 130,
+      });
+      expect(stream).toHaveBeenCalledWith(expect.objectContaining({ until: "turn", runId: "run_1" }));
+    });
+
+    it("watches the newest turn in the view under --until turn, then exits by the newest turn", async () => {
+      session.executions.mockResolvedValue([executionIn(RunPhase.RUN_COMPLETED)]);
+      runGet.mockResolvedValue(executionIn(RunPhase.RUN_CANCELLED));
+      tty.supported = true;
+      await expect(openSession({ client, sessionId: "ses_1", mode: "", outputMode: "inline", until: "turn" })).rejects.toMatchObject({ exitCode: 1 });
+      expect(ink).toHaveBeenCalledWith(expect.objectContaining({ until: "turn", watchRunId: "run_1" }));
+    });
   });
 });

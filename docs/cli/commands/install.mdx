@@ -59,6 +59,7 @@ with `stigmer vault set-secret <NAME> --mine`; then the two ways to use it,
 | `--dry-run`       | `bool`   |         | read the marketplace and show what would install, without pushing |
 | `--json`          | `bool`   |         | emit the result as JSON                                           |
 | `--message`, `-m` | `string` |         | version message describing what changed                           |
+| `--output`, `-o`  | `string` |         | output format: table or json                                      |
 | `--quiet`         | `bool`   |         | print only the status line                                        |
 | `--visibility`    | `string` |         | visibility for the plugin (private, org, child-orgs)              |
 
@@ -104,7 +105,7 @@ agent of the organization lists the plugin.
 
 | Flag            | Type     | Default | Description                                            |
 | --------------- | -------- | ------- | ------------------------------------------------------ |
-| `--api-key`     | `string` |         | API key for authentication                             |
+| `--api-key`     | `string` |         | API key for authentication (before the command)        |
 | `--debug`, `-d` | `bool`   |         | enable debug output                                    |
 | `--org`         | `string` |         | organization, on servers that hold several             |
 | `--standalone`  | `bool`   |         | ignore the config file; use flags and environment only |

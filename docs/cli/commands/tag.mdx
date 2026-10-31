@@ -21,7 +21,7 @@ versions share is refused with the versions it matches.
 ## Usage
 
 ```bash
-stigmer tag <type> <org/slug> <hash> <tag>
+stigmer tag <type> <org/slug> <hash> <tag> [flags]
 ```
 
 ### Common patterns
@@ -53,7 +53,7 @@ TAG column. Re-tagging moves the tag to a new version.
 
 | Flag            | Type     | Default | Description                                            |
 | --------------- | -------- | ------- | ------------------------------------------------------ |
-| `--api-key`     | `string` |         | API key for authentication                             |
+| `--api-key`     | `string` |         | API key for authentication (before the command)        |
 | `--debug`, `-d` | `bool`   |         | enable debug output                                    |
 | `--org`         | `string` |         | organization, on servers that hold several             |
 | `--standalone`  | `bool`   |         | ignore the config file; use flags and environment only |

@@ -409,7 +409,7 @@ export {
   hooksSummary,
   type HookFormatName,
 } from "./hook-words.js";
-export { isTerminalPhase } from "./run/run-phases.js";
+export { isTerminalPhase, turnPhaseOf } from "./run/run-phases.js";
 export {
   activityPhrase,
   describeTurnActivity,

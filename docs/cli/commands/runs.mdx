@@ -122,19 +122,28 @@ answer a tool call a run waits on
 stigmer runs approve <run-id> [flags]
 ```
 
-| Flag          | Type     | Default | Description                                                                                      |
-| ------------- | -------- | ------- | ------------------------------------------------------------------------------------------------ |
-| `--action`    | `string` | `allow` | allow, deny, or allow-all (allow it and every waiting call of its kind for the rest of the turn) |
-| `--comment`   | `string` |         | the reason the agent reads with a deny                                                           |
-| `--tool-call` | `string` |         | the tool use to answer, as runs logs shows it; optional when the run waits on one                |
+| Flag             | Type     | Default | Description                                                                                      |
+| ---------------- | -------- | ------- | ------------------------------------------------------------------------------------------------ |
+| `--action`       | `string` | `allow` | allow, deny, or allow-all (allow it and every waiting call of its kind for the rest of the turn) |
+| `--comment`      | `string` |         | the reason the agent reads with a deny                                                           |
+| `--json`         | `bool`   |         | emit the result as JSON                                                                          |
+| `--output`, `-o` | `string` |         | output format: table or json                                                                     |
+| `--quiet`        | `bool`   |         | print only the status line                                                                       |
+| `--tool-call`    | `string` |         | the tool use to answer, as runs logs shows it; optional when the run waits on one                |
 
 ### stigmer runs cancel
 
 cancel a run in progress: every unfinished turn of its conversation stops
 
 ```bash
-stigmer runs cancel <run-id>
+stigmer runs cancel <run-id> [flags]
 ```
+
+| Flag             | Type     | Default | Description                  |
+| ---------------- | -------- | ------- | ---------------------------- |
+| `--json`         | `bool`   |         | emit the result as JSON      |
+| `--output`, `-o` | `string` |         | output format: table or json |
+| `--quiet`        | `bool`   |         | print only the status line   |
 
 ### stigmer runs logs
 
@@ -144,9 +153,11 @@ view a run's events (use --follow to stream)
 stigmer runs logs <run-id> [flags]
 ```
 
-| Flag             | Type   | Default | Description                                 |
-| ---------------- | ------ | ------- | ------------------------------------------- |
-| `--follow`, `-f` | `bool` |         | keep printing new events until the run ends |
+| Flag             | Type     | Default | Description                                                                          |
+| ---------------- | -------- | ------- | ------------------------------------------------------------------------------------ |
+| `--follow`, `-f` | `bool`   |         | keep printing new events until the run ends                                          |
+| `--json`         | `bool`   |         | print each event as a line of JSON                                                   |
+| `--output`, `-o` | `string` |         | output format: table (the live view), json or ndjson (newline-delimited JSON events) |
 
 ### stigmer runs pause
 
@@ -156,17 +167,26 @@ pause a run in progress
 stigmer runs pause <run-id> [flags]
 ```
 
-| Flag       | Type     | Default | Description        |
-| ---------- | -------- | ------- | ------------------ |
-| `--reason` | `string` |         | reason for pausing |
+| Flag             | Type     | Default | Description                  |
+| ---------------- | -------- | ------- | ---------------------------- |
+| `--json`         | `bool`   |         | emit the result as JSON      |
+| `--output`, `-o` | `string` |         | output format: table or json |
+| `--quiet`        | `bool`   |         | print only the status line   |
+| `--reason`       | `string` |         | reason for pausing           |
 
 ### stigmer runs resume
 
 resume a paused run
 
 ```bash
-stigmer runs resume <run-id>
+stigmer runs resume <run-id> [flags]
 ```
+
+| Flag             | Type     | Default | Description                  |
+| ---------------- | -------- | ------- | ---------------------------- |
+| `--json`         | `bool`   |         | emit the result as JSON      |
+| `--output`, `-o` | `string` |         | output format: table or json |
+| `--quiet`        | `bool`   |         | print only the status line   |
 
 ### stigmer runs scores
 
@@ -190,9 +210,12 @@ force-stop a run immediately
 stigmer runs terminate <run-id> [flags]
 ```
 
-| Flag       | Type     | Default | Description            |
-| ---------- | -------- | ------- | ---------------------- |
-| `--reason` | `string` |         | reason for termination |
+| Flag             | Type     | Default | Description                  |
+| ---------------- | -------- | ------- | ---------------------------- |
+| `--json`         | `bool`   |         | emit the result as JSON      |
+| `--output`, `-o` | `string` |         | output format: table or json |
+| `--quiet`        | `bool`   |         | print only the status line   |
+| `--reason`       | `string` |         | reason for termination       |
 
 ### stigmer runs to-eval-case
 
@@ -202,12 +225,14 @@ turn a run into an eval case: written under evals/, or added to an eval
 stigmer runs to-eval-case <run-id> [flags]
 ```
 
-| Flag      | Type     | Default | Description                                                           |
-| --------- | -------- | ------- | --------------------------------------------------------------------- |
-| `--dir`   | `string` |         | the eval directory to write the case into (default: evals)            |
-| `--eval`  | `string` |         | add the case to this eval as a new version instead of writing it here |
-| `--name`  | `string` |         | the case's name and directory (default: from the run's request)       |
-| `--skill` | `string` |         | also check that this skill was read                                   |
+| Flag             | Type     | Default | Description                                                           |
+| ---------------- | -------- | ------- | --------------------------------------------------------------------- |
+| `--dir`          | `string` |         | the eval directory to write the case into (default: evals)            |
+| `--eval`         | `string` |         | add the case to this eval as a new version instead of writing it here |
+| `--json`         | `bool`   |         | shorthand for --output json                                           |
+| `--name`         | `string` |         | the case's name and directory (default: from the run's request)       |
+| `--output`, `-o` | `string` |         | output format: table (the bare value) or json                         |
+| `--skill`        | `string` |         | also check that this skill was read                                   |
 
 ### stigmer runs trace
 
@@ -226,7 +251,7 @@ stigmer runs trace <run-id> [flags]
 
 | Flag            | Type     | Default | Description                                            |
 | --------------- | -------- | ------- | ------------------------------------------------------ |
-| `--api-key`     | `string` |         | API key for authentication                             |
+| `--api-key`     | `string` |         | API key for authentication (before the command)        |
 | `--debug`, `-d` | `bool`   |         | enable debug output                                    |
 | `--org`         | `string` |         | organization, on servers that hold several             |
 | `--standalone`  | `bool`   |         | ignore the config file; use flags and environment only |

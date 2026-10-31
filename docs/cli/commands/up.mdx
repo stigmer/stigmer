@@ -48,13 +48,14 @@ stigmer down
 
 ## Options
 
-| Flag            | Type   | Default | Description                                                                                 |
-| --------------- | ------ | ------- | ------------------------------------------------------------------------------------------- |
-| `--foreground`  | `bool` |         | run the stack in this process until Ctrl-C or SIGTERM (for containers and service managers) |
-| `--json`        | `bool` |         | emit the result as JSON                                                                     |
-| `--no-web`      | `bool` |         | don't report the web console URL                                                            |
-| `--quiet`       | `bool` |         | print only the status line                                                                  |
-| `--server-only` | `bool` |         | start only the control plane (no runners)                                                   |
+| Flag             | Type     | Default | Description                                                                                 |
+| ---------------- | -------- | ------- | ------------------------------------------------------------------------------------------- |
+| `--foreground`   | `bool`   |         | run the stack in this process until Ctrl-C or SIGTERM (for containers and service managers) |
+| `--json`         | `bool`   |         | emit the result as JSON                                                                     |
+| `--no-web`       | `bool`   |         | don't report the web console URL                                                            |
+| `--output`, `-o` | `string` |         | output format: table or json                                                                |
+| `--quiet`        | `bool`   |         | print only the status line                                                                  |
+| `--server-only`  | `bool`   |         | start only the control plane (no runners)                                                   |
 
 ## Examples
 
@@ -97,18 +98,19 @@ start only the control plane (no runners)
 stigmer up server [flags]
 ```
 
-| Flag           | Type   | Default | Description                                                                                 |
-| -------------- | ------ | ------- | ------------------------------------------------------------------------------------------- |
-| `--foreground` | `bool` |         | run the stack in this process until Ctrl-C or SIGTERM (for containers and service managers) |
-| `--json`       | `bool` |         | emit the result as JSON                                                                     |
-| `--no-web`     | `bool` |         | don't report the web console URL                                                            |
-| `--quiet`      | `bool` |         | print only the status line                                                                  |
+| Flag             | Type     | Default | Description                                                                                 |
+| ---------------- | -------- | ------- | ------------------------------------------------------------------------------------------- |
+| `--foreground`   | `bool`   |         | run the stack in this process until Ctrl-C or SIGTERM (for containers and service managers) |
+| `--json`         | `bool`   |         | emit the result as JSON                                                                     |
+| `--no-web`       | `bool`   |         | don't report the web console URL                                                            |
+| `--output`, `-o` | `string` |         | output format: table or json                                                                |
+| `--quiet`        | `bool`   |         | print only the status line                                                                  |
 
 ## Global Flags
 
 | Flag            | Type     | Default | Description                                            |
 | --------------- | -------- | ------- | ------------------------------------------------------ |
-| `--api-key`     | `string` |         | API key for authentication                             |
+| `--api-key`     | `string` |         | API key for authentication (before the command)        |
 | `--debug`, `-d` | `bool`   |         | enable debug output                                    |
 | `--org`         | `string` |         | organization, on servers that hold several             |
 | `--standalone`  | `bool`   |         | ignore the config file; use flags and environment only |

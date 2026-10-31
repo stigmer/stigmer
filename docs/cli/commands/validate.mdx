@@ -44,11 +44,12 @@ stigmer validate -f ./my-plugin/
 
 ## Options
 
-| Flag           | Type     | Default | Description                                                           |
-| -------------- | -------- | ------- | --------------------------------------------------------------------- |
-| `--file`, `-f` | `string` |         | path to a YAML file, a directory of YAML files, or a plugin directory |
-| `--json`       | `bool`   |         | emit the result as JSON                                               |
-| `--quiet`      | `bool`   |         | print only the status line                                            |
+| Flag             | Type     | Default | Description                                                           |
+| ---------------- | -------- | ------- | --------------------------------------------------------------------- |
+| `--file`, `-f`   | `string` |         | path to a YAML file, a directory of YAML files, or a plugin directory |
+| `--json`         | `bool`   |         | emit the result as JSON                                               |
+| `--output`, `-o` | `string` |         | output format: table or json                                          |
+| `--quiet`        | `bool`   |         | print only the status line                                            |
 
 ### What gets validated
 
@@ -131,7 +132,7 @@ Exit with a non-zero code if any file fails validation.
 
 | Flag            | Type     | Default | Description                                            |
 | --------------- | -------- | ------- | ------------------------------------------------------ |
-| `--api-key`     | `string` |         | API key for authentication                             |
+| `--api-key`     | `string` |         | API key for authentication (before the command)        |
 | `--debug`, `-d` | `bool`   |         | enable debug output                                    |
 | `--org`         | `string` |         | organization, on servers that hold several             |
 | `--standalone`  | `bool`   |         | ignore the config file; use flags and environment only |
