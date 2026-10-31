@@ -10,6 +10,8 @@
  * keeps; the compact list mode (counts, kind letters, renames); and the diff
  * bytes: from the caller's capture (with its provenance badge), or read from
  * the run on demand, saying so while loading, on failure, or when absent.
+ * A selected Keep is drawn in the ready colour the theme contract measures
+ * on its success-subtle fill, never the badge-fill green as text.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
@@ -213,6 +215,9 @@ describe("FileReviewCard", () => {
       const onSubmit = vi.fn();
       show(<FileReviewCard fileReviewSet={pair({ state: "kept" })} capture={null} onSubmit={onSubmit} />);
       expect(radio("Keep src/a.ts").getAttribute("aria-checked")).toBe("true");
+      expect(radio("Keep src/a.ts").className.split(" ")).toEqual(
+        expect.arrayContaining(["stg:bg-success-subtle", "stg:text-status-ready"]),
+      );
       expect(screen.getByText(/1 of 2 files reviewed/i)).toBeTruthy();
       fireEvent.click(screen.getByRole("button", { name: "Approve remaining" }));
       expect(screen.getByRole("button", { name: "Reject remaining" })).toBeTruthy();

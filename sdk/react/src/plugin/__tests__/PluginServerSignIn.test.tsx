@@ -6,7 +6,8 @@
  * in, which clears the last failure, signs in at the server's address into
  * the organization's My vault, then rereads My vault and tells the host; a
  * failed sign-in leaves Sign in with the reason; the busy button names the
- * sign-in's phase; a login at the address reads Signed in with Sign out,
+ * sign-in's phase; a login at the address reads Signed in, in the ready
+ * colour the theme contract measures as text, with Sign out,
  * which asks once, can be cancelled, removes the login at the address, and
  * shows a refused removal; a login that serves the server from elsewhere
  * (the github.com login) reads Signed in without Sign out; a key-taking
@@ -179,7 +180,7 @@ describe("PluginServerSignIn: signed in", () => {
     stubs.myVault.vault = vaultWithLogins([LINEAR_URL]);
     renderCell(LINEAR);
 
-    expect(screen.getByText("Signed in")).toBeTruthy();
+    expect(screen.getByText("Signed in").className.split(" ")).toContain("stg:text-status-ready");
     fireEvent.click(screen.getByRole("button", { name: "Sign out of linear" }));
     expect(screen.getByText(/Sign out of linear\? Its login is removed from My vault\./)).toBeTruthy();
 

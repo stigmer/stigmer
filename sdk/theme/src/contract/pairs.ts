@@ -147,6 +147,43 @@ const AT_RISK_TEXT_SURFACES = [
   { surface: "--stgm-accent-hover", where: "on a hovered score pill (RunScores)" },
 ] as const;
 
+/**
+ * The surfaces success text is drawn on with no fill of its own: done
+ * icons, "Copied" and "Applied" confirmations and connected lines in
+ * `stg:text-status-ready`. The badge green (`--stgm-success`) is a fill and
+ * is refused as text even where it measures well today, because a preset or
+ * host may brighten it for its badges; these sites use the ready token, which
+ * is measured here. `--stgm-muted`, `--stgm-accent` and `--stgm-sidebar` are
+ * not registered, because no site draws this text there and light mode
+ * measures below 4.5:1 on each in some preset, so a new site on one registers
+ * its pair here and meets that failure.
+ */
+const READY_TEXT_SURFACES = [
+  {
+    surface: "--stgm-background",
+    where:
+      "on the page (RunPhaseBadge completed phase, SubagentSection, TodoList and TodoCard done icons, " +
+      "TextContentRenderer JSON strings, AutoApproveIndicator, OAuthCallbackHandler, FileDocument and " +
+      "FilePreviewModal copied, applied and skill-added confirmations, ChannelStatePill, PluginServerRow, " +
+      "CopyBlock in RoutineApiPanel and ChannelAppDetailPanel)",
+  },
+  {
+    surface: "--stgm-card",
+    where:
+      "on a card (DashboardKPICards completed count, PlanFileCard copied tick, CopyBlock in CreateChannelAppForm; " +
+      "run views a host renders on a card)",
+  },
+  {
+    surface: "--stgm-popover",
+    where:
+      "in a dialog (ConnectSlackDialog step ticks and connected line, ConnectWhatsAppDialog connected line, " +
+      "PluginServerSignIn in the composer's Configure menu)",
+  },
+  { surface: "--stgm-muted-subtle", where: "on a hovered fold (TodoCard toggle)" },
+  { surface: "--stgm-accent-hover", where: "on a hovered icon button (PlanFileCard copied tick)" },
+  { surface: "--stgm-success-subtle", where: "on the selected keep verdict (FileReviewCard)" },
+] as const;
+
 const SYNTAX = [
   "keyword",
   "property",
@@ -180,6 +217,7 @@ export const CONTRAST_PAIRS: readonly ContrastPair[] = [
   pair("--stgm-destructive", "--stgm-muted-subtle", "text", "stderr output on the shared code/output surface (TerminalSession)"),
   pair("--stgm-destructive", "--stgm-background", "text", "inline error text (FailedUserMessage)"),
   pair("--stgm-success-foreground", "--stgm-success", "text", "success badges"),
+  pair("--stgm-foreground", "--stgm-success-subtle", "text", "served pill (ProviderCard)"),
   pair("--stgm-warning-foreground", "--stgm-warning", "text", "warning badges"),
   pair("--stgm-info-foreground", "--stgm-info", "text", "info badges"),
 
@@ -218,6 +256,10 @@ export const CONTRAST_PAIRS: readonly ContrastPair[] = [
   // ── At-risk text straight on a surface (no fill of its own) ──────────
   ...AT_RISK_TEXT_SURFACES.map(({ surface, where }) =>
     pair("--stgm-status-degraded", surface, "text", `at-risk text and icons straight on the surface ${where}`),
+  ),
+  // ── Success text straight on a surface (no fill of its own) ──────────
+  ...READY_TEXT_SURFACES.map(({ surface, where }) =>
+    pair("--stgm-status-ready", surface, "text", `success text and icons straight on the surface ${where}`),
   ),
   ...STATUSES.map((status) =>
     pair(

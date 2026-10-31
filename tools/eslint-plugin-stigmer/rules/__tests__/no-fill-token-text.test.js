@@ -1,11 +1,12 @@
 "use strict";
 
 // Pins the `no-fill-token-text` fence: a theme fill painted as text
-// (`text-warning`, the badge amber) is reported wherever a string holds it (a
-// className, a cn() argument, a template literal, an object literal's value
-// such as a status-to-colour map), behind any variant, `!` or opacity suffix,
-// and the report names the measured replacement (stigmer#2776). The fill
-// itself, its foreground pair and the replacement stay valid, and so does a
+// (`text-warning`, the badge amber, stigmer#2776; `text-success`, the badge
+// green, stigmer#2779) is reported wherever a string holds it (a className, a
+// cn() argument, a template literal, an object literal's value such as a
+// status-to-colour map), behind any variant, `!` or opacity suffix, and the
+// report names that fill's measured replacement. The fill itself, its
+// foreground and subtle tokens and the replacement stay valid, and so does a
 // slug that only ends like the class. Run via the root `npm run test:scripts`
 // (the `test:root` globs in package.json).
 
@@ -31,6 +32,11 @@ const fillAsText = (cls) => [
   { messageId: "fillAsText", data: { cls, replacement: "text-status-degraded" } },
 ];
 
+/** One report on `cls`, naming the ready text colour as its replacement. */
+const successAsText = (cls) => [
+  { messageId: "fillAsText", data: { cls, replacement: "text-status-ready" } },
+];
+
 tester.run("no-fill-token-text", rule, {
   valid: [
     // The fill as a fill, its badge foreground, and the measured text colour.
@@ -42,6 +48,12 @@ tester.run("no-fill-token-text", rule, {
     // A slug or an id that only ends like the class.
     { code: 'const slug = "my-text-warning";' },
     { code: '<div className="stg:text-warnings" />' },
+    // The badge green as a fill, its foreground and subtle tokens, and the
+    // measured ready text colour.
+    { code: '<span className="stg:bg-success stg:text-success-foreground" />' },
+    { code: '<button className="stg:border-success stg:bg-success-subtle stg:text-status-ready" />' },
+    { code: 'const STATUS_COLOR = { completed: "stg:text-status-ready" };' },
+    { code: '<div className="stg:text-successful" />' },
   ],
   invalid: [
     { code: '<p className="stg:text-xs stg:text-warning" />', errors: fillAsText("stg:text-warning") },
@@ -61,6 +73,20 @@ tester.run("no-fill-token-text", rule, {
     {
       code: '<p className="stg:text-warning stg:md:text-warning" />',
       errors: [...fillAsText("stg:text-warning"), ...fillAsText("stg:md:text-warning")],
+    },
+    // The badge green, wherever a string holds it, names the ready colour.
+    { code: '<p className="stg:text-xs stg:text-success" />', errors: successAsText("stg:text-success") },
+    { code: '<p className="stg:dark:hover:text-success" />', errors: successAsText("stg:dark:hover:text-success") },
+    { code: '<p className="stg:!text-success" />', errors: successAsText("stg:!text-success") },
+    { code: '<p className="stg:text-success/80" />', errors: successAsText("stg:text-success/80") },
+    {
+      code: 'const STATUS_COLOR = { failed: "stg:text-destructive", completed: "stg:text-success" };',
+      errors: successAsText("stg:text-success"),
+    },
+    // One string holding both fills reports each with its own replacement.
+    {
+      code: '<p className="stg:text-warning stg:text-success" />',
+      errors: [...fillAsText("stg:text-warning"), ...successAsText("stg:text-success")],
     },
   ],
 });

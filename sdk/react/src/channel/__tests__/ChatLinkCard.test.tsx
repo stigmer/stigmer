@@ -1,8 +1,9 @@
 // ChatLinkCard: one chat link's card in an agent's Channels tab. Pins what
-// the card shows (its path, audience and Active or Paused, an omitted
-// audience read as the organization's), what its copy button copies (the
-// tokened URL on a public link, the clean URL on an organization link, the
-// relative /chat/<channel id> when the host builds no URL), that its switch
+// the card shows (its path, audience and Active, in the ready colour the
+// theme contract measures as text, or Paused, an omitted audience read as
+// the organization's), what its copy button copies (the tokened URL on a
+// public link, the clean URL on an organization link, the relative
+// /chat/<channel id> when the host builds no URL), that its switch
 // changes `spec.enabled` alone on the card's own channel, that Reset link
 // rotates the card's own channel and only on a public link, and that the
 // switch and menu follow the viewer's permissions. The list around it, its
@@ -161,7 +162,7 @@ describe("ChatLinkCard", () => {
     expect(screen.getByText("/chat/chn_1")).toBeTruthy();
     expect(screen.queryByText(/tok123/)).toBeNull();
     expect(screen.getByText("Anyone with the link")).toBeTruthy();
-    expect(screen.getByText("Active")).toBeTruthy();
+    expect(screen.getByText("Active").className.split(" ")).toContain("stg:text-status-ready");
   });
 
   it("shows an organization link's audience and a paused link's state", () => {

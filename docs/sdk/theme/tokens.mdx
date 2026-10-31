@@ -99,10 +99,10 @@ Tokens without a **Dark** value inherit their light value in dark mode.
 |-------|-------|------|--------|
 | `--stgm-destructive` | <TokenValue v="oklch(0.53 0.2 27.325)" /> | <TokenValue v="oklch(0.704 0.191 22.216)" /> | Destructive action color (deny buttons, error text). |
 | `--stgm-destructive-foreground` | <TokenValue v="oklch(0.985 0 0)" /> | <TokenValue v="oklch(0.145 0 0)" /> | Text on destructive-filled elements. |
-| `--stgm-success` | <TokenValue v="oklch(0.5 0.15 150)" /> | <TokenValue v="oklch(0.7 0.15 150)" /> | Positive state color (success badges, confirmations). |
+| `--stgm-success` | <TokenValue v="oklch(0.5 0.15 150)" /> | <TokenValue v="oklch(0.7 0.15 150)" /> | Positive state fill (success badges; success text uses --stgm-status-ready). |
 | `--stgm-success-foreground` | <TokenValue v="oklch(0.985 0 0)" /> | <TokenValue v="oklch(0.145 0 0)" /> | Text on success-filled elements. |
 | `--stgm-success-subtle` | <TokenValue v="oklch(0.95 0.03 150)" /> | <TokenValue v="oklch(0.24 0.04 150)" /> | Quiet success surface (subtle badges, inline confirmations). |
-| `--stgm-warning` | <TokenValue v="oklch(0.75 0.18 80)" /> | <TokenValue v="oklch(0.78 0.16 80)" /> | Caution state color (warning badges). |
+| `--stgm-warning` | <TokenValue v="oklch(0.75 0.18 80)" /> | <TokenValue v="oklch(0.78 0.16 80)" /> | Caution state fill (warning badges; caution text uses --stgm-status-degraded). |
 | `--stgm-warning-foreground` | <TokenValue v="oklch(0.145 0 0)" /> | <TokenValue v="oklch(0.145 0 0)" /> | Text on warning-filled elements. |
 | `--stgm-info` | <TokenValue v="oklch(0.55 0.15 250)" /> | <TokenValue v="oklch(0.7 0.15 250)" /> | Informational state color (info badges, hints). |
 | `--stgm-info-foreground` | <TokenValue v="oklch(0.985 0 0)" /> | <TokenValue v="oklch(0.145 0 0)" /> | Text on info-filled elements. |
@@ -186,7 +186,7 @@ Tokens without a **Dark** value inherit their light value in dark mode.
 
 | Token | Light | Dark | Purpose |
 |-------|-------|------|--------|
-| `--stgm-status-ready` | <TokenValue v="oklch(0.5 0.15 150)" /> | <TokenValue v="oklch(0.7 0.15 150)" /> | Ready/healthy status accent (pill text, solid fills, dots). |
+| `--stgm-status-ready` | <TokenValue v="oklch(0.5 0.15 150)" /> | <TokenValue v="oklch(0.7 0.15 150)" /> | Ready/healthy status accent (status text and icons on a surface, pill text, solid fills, dots). |
 | `--stgm-status-ready-foreground` | <TokenValue v="oklch(0.985 0 0)" /> | <TokenValue v="oklch(0.145 0 0)" /> | Text on a solid ready fill. |
 | `--stgm-status-ready-subtle` | <TokenValue v="oklch(0.95 0.03 150)" /> | <TokenValue v="oklch(0.7 0.15 150 / 15%)" /> | Quiet ready surface (status pill fill). |
 | `--stgm-status-running` | <TokenValue v="oklch(0.5 0.14 230)" /> | <TokenValue v="oklch(0.7 0.14 230)" /> | Running/in-progress status accent. |
@@ -195,7 +195,7 @@ Tokens without a **Dark** value inherit their light value in dark mode.
 | `--stgm-status-pending` | <TokenValue v="oklch(0.5 0 0)" /> | <TokenValue v="oklch(0.723 0 0)" /> | Pending/queued status accent. |
 | `--stgm-status-pending-foreground` | <TokenValue v="oklch(0.985 0 0)" /> | <TokenValue v="oklch(0.145 0 0)" /> | Text on a solid pending fill. |
 | `--stgm-status-pending-subtle` | <TokenValue v="oklch(0.95 0 0)" /> | <TokenValue v="oklch(0.723 0 0 / 15%)" /> | Quiet pending surface. |
-| `--stgm-status-degraded` | <TokenValue v="oklch(0.52 0.17 80)" /> | <TokenValue v="oklch(0.78 0.16 80)" /> | Degraded/at-risk status accent. |
+| `--stgm-status-degraded` | <TokenValue v="oklch(0.52 0.17 80)" /> | <TokenValue v="oklch(0.78 0.16 80)" /> | Degraded/at-risk status accent (caution text and icons on a surface, pill text, solid fills, dots). |
 | `--stgm-status-degraded-foreground` | <TokenValue v="oklch(0.985 0 0)" /> | <TokenValue v="oklch(0.145 0 0)" /> | Text on a solid degraded fill. |
 | `--stgm-status-degraded-subtle` | <TokenValue v="oklch(0.95 0.03 80)" /> | <TokenValue v="oklch(0.78 0.16 80 / 15%)" /> | Quiet degraded surface. |
 | `--stgm-status-failed` | <TokenValue v="oklch(0.53 0.2 27.325)" /> | <TokenValue v="oklch(0.78 0.15 22.216)" /> | Failed/error status accent. |

@@ -83,6 +83,11 @@ describe("TextContentRenderer — JSON", () => {
     render(<TextContentRenderer content={'{"retries": 3}'} fileName="config.json" />);
     expect(screen.getByText("3").className).toContain("stg:text-status-degraded");
   });
+
+  it("colours a string in the ready colour the theme contract measures on the page", () => {
+    render(<TextContentRenderer content={'{"mode": "fast"}'} fileName="config.json" />);
+    expect(screen.getByText('"fast"').className).toContain("stg:text-status-ready");
+  });
 });
 
 describe("TextContentRenderer — reveal (jump-to-line)", () => {

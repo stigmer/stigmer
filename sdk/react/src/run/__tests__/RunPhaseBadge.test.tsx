@@ -1,9 +1,9 @@
 /**
  * Pins RunPhaseBadge, a public export: each run phase reads as its label,
  * announced as a status, in its phase colour; a run waiting for approval
- * is drawn in the at-risk colour the theme contract measures as text on
- * the page and on a card, never the badge-fill amber; and an unspecified
- * phase renders nothing.
+ * is drawn in the at-risk colour and a completed run in the ready colour
+ * the theme contract measures as text on the page and on a card, never the
+ * badge-fill amber or green; and an unspecified phase renders nothing.
  */
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
@@ -16,7 +16,7 @@ describe("RunPhaseBadge", () => {
   it.each([
     [RunPhase.RUN_PENDING, "Pending", "stg:text-muted-foreground"],
     [RunPhase.RUN_IN_PROGRESS, "Running", "stg:text-foreground"],
-    [RunPhase.RUN_COMPLETED, "Completed", "stg:text-success"],
+    [RunPhase.RUN_COMPLETED, "Completed", "stg:text-status-ready"],
     [RunPhase.RUN_FAILED, "Failed", "stg:text-destructive"],
     [RunPhase.RUN_CANCELLED, "Cancelled", "stg:text-muted-foreground"],
     [RunPhase.RUN_TERMINATED, "Terminated", "stg:text-destructive"],

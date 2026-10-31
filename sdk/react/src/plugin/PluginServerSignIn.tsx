@@ -110,7 +110,7 @@ function PluginServerSignInView({
       }
       return (
         <span className={root}>
-          <span className="stg:inline-flex stg:items-center stg:gap-1.5 stg:text-success" role="status">
+          <span className="stg:inline-flex stg:items-center stg:gap-1.5 stg:text-status-ready" role="status">
             <Dot className="stg:bg-success" />
             Signed in
           </span>

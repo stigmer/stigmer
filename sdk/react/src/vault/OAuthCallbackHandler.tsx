@@ -269,7 +269,7 @@ function CheckIcon() {
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="stg:mx-auto stg:text-success"
+      className="stg:mx-auto stg:text-status-ready"
       aria-hidden="true"
     >
       <path d="m3 8.5 3.5 3.5 6.5-8" />

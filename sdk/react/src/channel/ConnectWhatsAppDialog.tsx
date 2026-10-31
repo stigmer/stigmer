@@ -602,7 +602,7 @@ function InstalledSummary({
   return (
     <div className="stg:space-y-2" role="status">
       <div className="stg:flex stg:items-center stg:gap-2 stg:text-sm stg:font-medium stg:text-foreground">
-        <CheckIcon className="stg:size-4 stg:text-success" />
+        <CheckIcon className="stg:size-4 stg:text-status-ready" />
         Connected{number ? ` to ${number}` : ""}
         {whatsapp?.verifiedName ? ` (${whatsapp.verifiedName})` : ""}
       </div>

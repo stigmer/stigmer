@@ -40,7 +40,7 @@ const PHASE_CONFIG: ReadonlyMap<RunPhase, PhaseConfig> = new Map([
     {
       label: "Completed",
       icon: CheckIcon,
-      colorClass: "stg:text-success",
+      colorClass: "stg:text-status-ready",
     },
   ],
   [

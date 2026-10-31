@@ -6,8 +6,9 @@
 // types named with what they need), the cloud notice only for a listed
 // vendor channel this edition cannot connect, the chat link's create, edit
 // and delete flows, and the vendor cards' install and serving axes with
-// their connect, pause, disconnect and per-card dialogs. The chat link's
-// own card is pinned in ChatLinkCard.test.tsx.
+// their connect, pause, disconnect and per-card dialogs, an installed card's
+// state drawn in the ready colour the theme contract measures as text. The
+// chat link's own card is pinned in ChatLinkCard.test.tsx.
 
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
 import { sentUpdate } from "../../internal/__tests__/sent-update";
@@ -275,7 +276,7 @@ describe("ChannelsPanel", () => {
     );
 
     await waitFor(() => expect(screen.getByText("Support Slack")).toBeTruthy());
-    expect(screen.getByText("Installed")).toBeTruthy();
+    expect(screen.getByText("Installed").className.split(" ")).toContain("stg:text-status-ready");
     expect(screen.getByText(/Acme HQ/)).toBeTruthy();
     // Installed channels expose the serving switch, not a connect button.
     expect(screen.getByRole("switch")).toBeTruthy();

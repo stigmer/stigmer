@@ -1,8 +1,9 @@
 /**
  * Pins the KPI cards: one card each for active, completed and failed agent
  * runs and the organization's tokens, the tokens in compact form and never
- * as money; a pulse placeholder while loading; nothing before a summary
- * exists.
+ * as money; the completed count in the ready colour the theme contract
+ * measures as text on a card; a pulse placeholder while loading; nothing
+ * before a summary exists.
  */
 import { afterEach, describe, it, expect } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
@@ -28,6 +29,12 @@ describe("DashboardKPICards", () => {
     expect(valueOf("Tokens")).toBe("18.4k");
     expect(screen.queryByText(/cost/i)).toBeNull();
     expect(container.textContent).not.toContain("$");
+  });
+
+  it("draws the completed count in the ready colour the theme contract measures on a card", () => {
+    render(<DashboardKPICards summary={summary(0)} isLoading={false} />);
+    const value = screen.getByText("Completed").nextElementSibling as HTMLElement;
+    expect(value.className.split(" ")).toContain("stg:text-status-ready");
   });
 
   it.each([

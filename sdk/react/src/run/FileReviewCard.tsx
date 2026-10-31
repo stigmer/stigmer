@@ -914,7 +914,7 @@ const VERDICT_BASE = cn(
 const VERDICT_REST = "stg:border-border stg:text-muted-foreground stg:hover:bg-accent-hover stg:hover:text-foreground";
 
 const VERDICT_SELECTED: Record<VerdictOptionProps["tone"], string> = {
-  keep: "stg:border-success stg:bg-success-subtle stg:text-success",
+  keep: "stg:border-success stg:bg-success-subtle stg:text-status-ready",
   discard: "stg:border-destructive stg:bg-destructive-subtle stg:text-destructive",
 };
 

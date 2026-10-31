@@ -186,7 +186,7 @@ const STATUS_COLOR: Record<AggregateStatus, string> = {
   running: "stg:text-foreground",
   waiting: "stg:text-status-degraded",
   failed: "stg:text-destructive",
-  completed: "stg:text-success",
+  completed: "stg:text-status-ready",
 };
 
 // `completed` is deliberately iconless — success is the silent default,

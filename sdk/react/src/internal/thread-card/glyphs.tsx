@@ -6,8 +6,8 @@ import { cn } from "@stigmer/design-tokens";
  * the rows cannot drift apart visually — extracted from `ToolCallItem`.
  *
  * All glyphs inherit `currentColor`; the consumer colors them with status
- * token classes (`text-success`, `text-warning`, …) — never hardcoded
- * values.
+ * token classes (`text-status-ready`, `text-status-degraded`, …) — never
+ * hardcoded values, and never a badge fill painted as text.
  *
  * @internal Not part of the public API.
  */
