@@ -1,3 +1,12 @@
+/**
+ * Pins the write-back coordinator against a mocked clone and a stand-in for
+ * the runner's own repository: eligibility, the session-scoped branch and
+ * pull request across turns, the agent identity on commits, failure phases
+ * split by what succeeded, and where the repository's token goes — to the
+ * runner's repository and the pull-request API alone, never to a clone
+ * command (#2095). Real git is pinned in writeback-coordinator-git.test.ts
+ * and runner-git.test.ts.
+ */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { type RunStatus, RunStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
@@ -18,8 +27,22 @@ import {
   AGENT_GIT_AUTHOR_NAME,
   AGENT_GIT_AUTHOR_EMAIL,
 } from "../git-identity.js";
-import { forgetGitVersion } from "../git-credential.js";
+import type { RunnerRepository } from "../runner-git.js";
+import { FAKE_PUSHED_SHA, fakeRunnerRepository, type FakeRunnerRepository } from "../../../__test-utils__/fake-runner-repository.js";
 import { TurnRowsSchema } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+
+const runnerGit = vi.hoisted(() => ({ withRunnerRepository: vi.fn() }));
+vi.mock("../runner-git.js", () => runnerGit);
+
+/** The runner's repository the next write-back with a token opens. */
+let repository: FakeRunnerRepository;
+
+function useRepository(fake: FakeRunnerRepository): void {
+  repository = fake;
+  runnerGit.withRunnerRepository.mockImplementation(
+    async (_clone: string, _url: string, _token: string, use: (r: RunnerRepository) => Promise<unknown>) => use(repository),
+  );
+}
 
 const SESSION_ID = "ses-01test";
 const SESSION_BRANCH = `stigmer/${SESSION_ID}`;
@@ -64,10 +87,8 @@ function urlOf(entry: SessionResource): string {
 
 function mockWorkspaceBackend(responses: Record<string, string> = {}): WorkspaceBackend {
   const defaultResponses: Record<string, string> = {
-    // The clone a token is handed to: an ordinary configuration, and the
-    // conversation's repository as its origin.
-    "git config --list --show-scope --name-only": "local\tremote.origin.url\nlocal\tremote.origin.fetch\n",
-    "git config --local --get remote.origin.url": "https://github.com/acme/my-app.git\n",
+    "git rev-parse --absolute-git-dir": "/workspace/my-app/.git\n",
+    "git for-each-ref": "3333333333333333333333333333333333333333\n",
     "git diff --stat": " 1 file changed, 1 insertion(+)",
     "git diff --cached --stat": "",
     "git ls-files --others --exclude-standard": "",
@@ -81,7 +102,6 @@ function mockWorkspaceBackend(responses: Record<string, string> = {}): Workspace
     "git rev-parse HEAD": "abc123def456",
     "git push": "",
     "git diff --stat main...HEAD": " 1 file changed",
-    "git --version": "git version 2.39.5",
     ...responses,
   };
 
@@ -158,7 +178,8 @@ describe("WriteBackCoordinator", () => {
   beforeEach(() => {
     ({ sb, status } = makeStatusBuilder());
     mockGithubApi();
-    forgetGitVersion();
+    runnerGit.withRunnerRepository.mockReset();
+    useRepository(fakeRunnerRepository());
   });
 
   afterEach(() => {
@@ -213,7 +234,7 @@ describe("WriteBackCoordinator", () => {
     expect(wbs).toHaveLength(1);
     expect(wbs[0].branchName).toBe(SESSION_BRANCH);
     expect(wbs[0].baseBranch).toBe("main");
-    expect(wbs[0].commitSha).toBe("abc123def456");
+    expect(wbs[0].commitSha, "the commit the runner pushed").toBe(FAKE_PUSHED_SHA);
     expect(wbs[0].pullRequestUrl).toBe("https://github.com/acme/my-app/pull/42");
     expect(wbs[0].pullRequestNumber).toBe(42);
     expect(wbs[0].phase).toBe(WorkspaceWriteBackPhase.WORKSPACE_WRITE_BACK_PR_CREATED);
@@ -224,7 +245,44 @@ describe("WriteBackCoordinator", () => {
     expect(commands.some((c: string) => c.includes(`git checkout -b ${SESSION_BRANCH}`))).toBe(true);
     expect(commands.some((c: string) => c.includes("git add -A"))).toBe(true);
     expect(commands.some((c: string) => c.includes("commit -m"))).toBe(true);
-    expect(commands.some((c: string) => c.includes(`git push -u origin ${SESSION_BRANCH}`))).toBe(true);
+    expect(commands.some((c: string) => /git bundle create --quiet '\/workspace\/my-app\/\.git\/stigmer-outgoing-[0-9a-f]{16}\.bundle' --ignore-missing --stdin < '\/workspace\/my-app\/\.git\/stigmer-outgoing-[0-9a-f]{16}\.revs'/.test(c))).toBe(true);
+    expect(repository.pushBundle).toHaveBeenCalledWith(expect.stringMatching(/stigmer-outgoing-[0-9a-f]{16}\.bundle$/), SESSION_BRANCH);
+    // The clone reads as `push -u` would have left it.
+    expect(commands.some((c: string) => c.endsWith(`git update-ref refs/remotes/origin/${SESSION_BRANCH} ${FAKE_PUSHED_SHA}`))).toBe(true);
+    expect(commands.some((c: string) => c.endsWith(`git branch --set-upstream-to=origin/${SESSION_BRANCH}`))).toBe(true);
+    expect(commands.some((c: string) => c.includes("git push")), "the clone never pushes when the entry has a token").toBe(false);
+  });
+
+  it("asks the clone to leave out exactly the runner's heads, so every prerequisite is the runner's", async () => {
+    useRepository(fakeRunnerRepository({ heads: async () => ["aaaa".repeat(10), "bbbb".repeat(10)] }));
+    const backend = mockWorkspaceBackend();
+    await makeCoordinator({ sb, backend }).finalize();
+
+    expect(backend.writeFile).toHaveBeenCalledWith(
+      expect.stringMatching(/^\/workspace\/my-app\/\.git\/stigmer-outgoing-[0-9a-f]{16}\.revs$/),
+      `refs/heads/${SESSION_BRANCH}\n^${"aaaa".repeat(10)}\n^${"bbbb".repeat(10)}\n`,
+    );
+    const commands = (backend.execute as ReturnType<typeof vi.fn>).mock.calls.map((c: any) => c[0] as string);
+    expect(commands.some((c: string) => /rm -f -- '.*stigmer-outgoing-.*\.bundle' '.*stigmer-outgoing-.*\.revs'/.test(c)), "both handoff files are removed").toBe(true);
+  });
+
+  it("pushes a tip the runner already holds from its own repository, with no bundle", async () => {
+    useRepository(fakeRunnerRepository({ hasCommit: async () => true }));
+    const backend = mockWorkspaceBackend();
+    await makeCoordinator({ sb, backend }).finalize();
+
+    expect(repository.pushCommit).toHaveBeenCalledWith("abc123def456", SESSION_BRANCH);
+    expect(repository.pushBundle).not.toHaveBeenCalled();
+    const commands = (backend.execute as ReturnType<typeof vi.fn>).mock.calls.map((c: any) => c[0] as string);
+    expect(commands.some((c: string) => c.includes("git bundle create"))).toBe(false);
+    expect(status.workspaceWriteBacks[0].commitSha).toBe("abc123def456");
+  });
+
+  it("fetches the base branch first into a runner repository that holds no heads (rebuilt since the clone)", async () => {
+    useRepository(fakeRunnerRepository({ heads: async () => [] }));
+    await makeCoordinator({ sb }).finalize();
+
+    expect(repository.fetch).toHaveBeenCalledWith(["+refs/heads/main:refs/heads/main"]);
   });
 
   it("commits with the agent identity pinned via -c flags and the execution id in the message", async () => {
@@ -258,28 +316,24 @@ describe("WriteBackCoordinator", () => {
 
   // ── The repository's token ─────────────────────────────────────────
 
-  it("hands the entry's own token to ls-remote, fetch and push alone, through their environment", async () => {
-    // The session branch lives only on the remote: ls-remote finds it, fetch
-    // brings it, push appends — the three network commands of a cycle.
-    const backend = mockWorkspaceBackend({ "git ls-remote --heads origin": "abc refs/heads/x" });
+  it("opens the runner's repository with the entry's own token, and hands no clone command a token or an environment", async () => {
+    // The session branch lives only on the remote: the runner finds it,
+    // fetches it and hands it over, then pushes the clone's commit.
+    useRepository(fakeRunnerRepository({ hasRemoteBranch: async () => true }));
+    const backend = mockWorkspaceBackend();
     const coord = makeCoordinator({ sb, backend, githubToken: "ghp_entry_token" });
 
     await coord.finalize();
 
+    expect(runnerGit.withRunnerRepository).toHaveBeenCalledWith("/workspace/my-app", "https://github.com/acme/my-app.git", "ghp_entry_token", expect.any(Function));
+    expect(runnerGit.withRunnerRepository, "one lock for the whole cycle").toHaveBeenCalledTimes(1);
     const runs = (backend.execute as ReturnType<typeof vi.fn>).mock.calls
       .map((c: any) => ({ cmd: c[0] as string, env: (c[1] as { env?: Record<string, string> } | undefined)?.env }));
-    const withEnv = runs.filter((run) => run.env !== undefined).map((run) => run.cmd.replace(/^cd \S+ && /, ""));
-    expect(withEnv).toEqual([
-      `git ls-remote --heads origin ${SESSION_BRANCH}`,
-      `git fetch origin ${SESSION_BRANCH}`,
-      `git push -u origin ${SESSION_BRANCH}`,
-    ]);
-    const basic = Buffer.from("x-access-token:ghp_entry_token").toString("base64");
-    for (const run of runs.filter((r) => r.env !== undefined)) {
-      expect(run.env?.GIT_CONFIG_VALUE_0).toBe("/dev/null");
-      expect(run.env?.GIT_CONFIG_VALUE_4).toBe(`AUTHORIZATION: basic ${basic}`);
+    for (const run of runs) {
+      expect(run.env).toBeUndefined();
+      expect(run.cmd).not.toContain("ghp_entry_token");
     }
-    for (const run of runs) expect(run.cmd).not.toContain("ghp_entry_token");
+    expect(runs.some((run) => /git (ls-remote|push)|git fetch origin/.test(run.cmd)), "no clone command talks to origin").toBe(false);
   });
 
   it("takes each entry's token by its name and URL, never another entry's", async () => {
@@ -315,8 +369,7 @@ describe("WriteBackCoordinator", () => {
     const checkoutCalls = commands.filter((c: string) => c.includes("git checkout -b"));
     expect(checkoutCalls).toHaveLength(1);
 
-    const pushCalls = commands.filter((c: string) => c.includes("git push"));
-    expect(pushCalls.length).toBeGreaterThanOrEqual(2);
+    expect(repository.pushBundle.mock.calls.length).toBeGreaterThanOrEqual(2);
   });
 
   it("a later execution reuses the session branch HEAD already sits on (no checkout)", async () => {
@@ -331,7 +384,8 @@ describe("WriteBackCoordinator", () => {
     const commands = (backend.execute as ReturnType<typeof vi.fn>).mock.calls
       .map((c: any) => c[0] as string);
     expect(commands.some((c: string) => c.includes("git checkout"))).toBe(false);
-    expect(commands.some((c: string) => c.includes(`git push -u origin ${SESSION_BRANCH}`))).toBe(true);
+    expect(repository.hasRemoteBranch).not.toHaveBeenCalled();
+    expect(repository.pushBundle).toHaveBeenCalledWith(expect.any(String), SESSION_BRANCH);
   });
 
   it("checks out the existing local session branch instead of creating it", async () => {
@@ -351,22 +405,49 @@ describe("WriteBackCoordinator", () => {
     expect(commands.some((c: string) => c.includes("git checkout -b"))).toBe(false);
   });
 
-  it("after a re-provision, fetches and tracks the remote session branch", async () => {
+  it("after a re-provision, has the runner fetch the remote session branch and tracks it", async () => {
+    useRepository(fakeRunnerRepository({ hasRemoteBranch: async () => true }));
     const backend = mockWorkspaceBackend({
       "git branch --show-current": "main",
       "git rev-parse --verify --quiet": "",
-      "git ls-remote --heads origin": `deadbeef\trefs/heads/${SESSION_BRANCH}`,
     });
     const coord = makeCoordinator({ sb, backend });
 
     await coord.finalize();
 
+    const ref = `refs/heads/${SESSION_BRANCH}`;
+    expect(repository.fetch).toHaveBeenCalledWith([`+${ref}:${ref}`]);
+    expect(repository.sendBundle).toHaveBeenCalledWith([ref], ["3333333333333333333333333333333333333333"], expect.stringMatching(/stigmer-incoming-[0-9a-f]{16}\.bundle$/));
     const commands = (backend.execute as ReturnType<typeof vi.fn>).mock.calls
       .map((c: any) => c[0] as string);
+    const fetched = commands.findIndex((c: string) => c.includes(`git fetch --quiet '/workspace/my-app/.git/stigmer-incoming-`) && c.endsWith(`'+${ref}:refs/remotes/origin/${SESSION_BRANCH}'`));
+    const checkedOut = commands.findIndex((c: string) => c.includes(`git checkout -b ${SESSION_BRANCH} origin/${SESSION_BRANCH}`));
+    expect(fetched).toBeGreaterThan(-1);
+    expect(checkedOut).toBeGreaterThan(fetched);
+  });
+
+  it("after a re-provision whose clone already holds the branch's tip, sets the tracking ref with no bundle", async () => {
+    useRepository(fakeRunnerRepository({ hasRemoteBranch: async () => true, sendBundle: async () => false }));
+    const backend = mockWorkspaceBackend({ "git branch --show-current": "main", "git rev-parse --verify --quiet": "" });
+    await makeCoordinator({ sb, backend }).finalize();
+
+    const commands = (backend.execute as ReturnType<typeof vi.fn>).mock.calls.map((c: any) => c[0] as string);
+    expect(commands.some((c: string) => c.endsWith(`git update-ref refs/remotes/origin/${SESSION_BRANCH} 2222222222222222222222222222222222222222`))).toBe(true);
+    expect(commands.some((c: string) => c.includes(`git checkout -b ${SESSION_BRANCH} origin/${SESSION_BRANCH}`))).toBe(true);
+  });
+
+  it("without a token, the clone fetches and pushes the session branch with origin itself", async () => {
+    const backend = mockWorkspaceBackend({
+      "git branch --show-current": "main",
+      "git rev-parse --verify --quiet": "",
+      "git ls-remote --heads origin": `deadbeef\trefs/heads/${SESSION_BRANCH}`,
+    });
+    await makeCoordinator({ sb, backend, githubToken: "" }).finalize();
+
+    const commands = (backend.execute as ReturnType<typeof vi.fn>).mock.calls.map((c: any) => c[0] as string);
     expect(commands.some((c: string) => c.includes(`git fetch origin ${SESSION_BRANCH}`))).toBe(true);
-    expect(commands.some((c: string) =>
-      c.includes(`git checkout -b ${SESSION_BRANCH} origin/${SESSION_BRANCH}`),
-    )).toBe(true);
+    expect(commands.some((c: string) => c.includes(`git push -u origin ${SESSION_BRANCH}`))).toBe(true);
+    expect(runnerGit.withRunnerRepository).not.toHaveBeenCalled();
   });
 
   it("adopts an already-open PR for the session branch instead of creating a duplicate", async () => {
@@ -408,9 +489,6 @@ describe("WriteBackCoordinator", () => {
       if (cmd.includes("git diff --stat") && !cmd.includes("...HEAD")) return " changed";
       if (cmd.includes("git diff --cached")) return "";
       if (cmd.includes("git branch --show-current")) return "main";
-      if (cmd === "git --version") return "git version 2.39.5";
-      if (cmd === "git config --list --show-scope --name-only") return "local\tremote.origin.url\n";
-      if (cmd === "git config --local --get remote.origin.url") return "https://github.com/acme/my-app.git";
       if (cmd.includes("commit -m")) throw new Error("commit failed: lock");
       return "";
     });
@@ -438,7 +516,7 @@ describe("WriteBackCoordinator", () => {
       "a pushed branch must never be reported FAILED for a PR-step error",
     ).toBe(WorkspaceWriteBackPhase.WORKSPACE_WRITE_BACK_PUSHED);
     expect(wbs[0].branchName).toBe(SESSION_BRANCH);
-    expect(wbs[0].commitSha).toBe("abc123def456");
+    expect(wbs[0].commitSha).toBe(FAKE_PUSHED_SHA);
     expect(wbs[0].error).toContain("GitHub API error");
     warnSpy.mockRestore();
   });

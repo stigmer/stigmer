@@ -6,7 +6,8 @@
  * origin is the conversation's github.com URL, as a provisioned clone's
  * is (a token is handed only to a clone whose origin is that URL), and a
  * private global `url.<base>.insteadOf` sends it to the local bare
- * repository, so nothing reaches the network. These prove the
+ * repository, so nothing reaches the network; `HOME` is the test's own, so
+ * the runner's repository for the clone (runner-git.ts) lands there too. These prove the
  * behaviors the mocked unit suite cannot: that `ensureBranch`'s checkout
  * cases and the always-`-u` push compose correctly against real git across
  * SEQUENTIAL COORDINATOR INSTANCES (turn 1 and turn 2 of one session), and
@@ -15,7 +16,7 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { create } from "@bufbuild/protobuf";
@@ -125,6 +126,8 @@ beforeEach(() => {
   writeFileSync(globalConfig, `[url "file://${originDir}"]\n\tinsteadOf = ${REPO_URL}\n[protocol "file"]\n\tallow = always\n`);
   vi.stubEnv("GIT_CONFIG_GLOBAL", globalConfig);
   vi.stubEnv("GIT_CONFIG_NOSYSTEM", "1");
+  mkdirSync(join(tmpRoot, "home"));
+  vi.stubEnv("HOME", join(tmpRoot, "home"));
   cloneWorkDir();
   writeFileSync(join(workDir, "README.md"), "# seed\n");
   git(workDir, ["add", "-A"]);

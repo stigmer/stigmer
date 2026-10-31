@@ -155,6 +155,8 @@ describe("a repository's token and the agent host", () => {
     expect(status.workspaceWriteBacks[0]?.commitSha).toBe(tip);
 
     expect(record.length, "the host did the clone's and the write-back's work").toBeGreaterThan(10);
+    expect(record.some(({ what }) => what.startsWith("writeFile ") && what.includes("/stigmer-incoming-")), "the clone was filled from the runner's bundles").toBe(true);
+    expect(record.some(({ what }) => what.includes("git bundle create") && what.includes("/stigmer-outgoing-")), "the work went back as the clone's bundle").toBe(true);
     const carrying = record.filter(({ text }) => text.includes(TOKEN) || text.includes(BASIC)).map(({ what }) => what);
     expect(carrying, "host operations that carried the token").toEqual([]);
   }, GIT_TEST_TIMEOUT_MS);

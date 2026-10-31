@@ -34,6 +34,14 @@
  *   primary workspace root), and a turn that pauses for human approval ENDS
  *   its activity — releasing the lock — so a change set sitting unreviewed
  *   never blocks the workspace.
+ *
+ * The waiting loop itself is {@link acquireDirectoryLock}, keyed by a path
+ * the caller has already resolved: the turn lock resolves the workspace
+ * through the agent's operations (the workspace is the agent's path), and
+ * the runner's own git repositories (`runner-git.ts`) lock on a path of the
+ * runner's own, never asking the agent. One primitive, two users. The
+ * runner's repository lock is taken outside any turn lock and never while
+ * waiting for one, so the order between them cannot deadlock.
  */
 
 import { join, resolve } from "node:path";
@@ -125,6 +133,26 @@ export async function acquireWorkspaceLock(
   workspaceRoot: string,
   options: AcquireWorkspaceLockOptions = {},
 ): Promise<ReleaseWorkspaceLock> {
+  // Resolve symlink aliases so every path spelling of one directory contends
+  // on one lock. A root that does not exist yet cannot be realpath'd, so it
+  // locks on its canonical absolute spelling instead. The root is the
+  // agent's: resolved by the agent's operations. The lock itself lives in
+  // the runner's own state.
+  const resolvedRoot = await agentFs().realpath(workspaceRoot).catch(() => resolve(workspaceRoot));
+  return acquireDirectoryLock(resolvedRoot, options);
+}
+
+/**
+ * The exclusive lock on `resolvedRoot`, a path the caller has already
+ * resolved, waiting (with heartbeats and cancellation) while another holder
+ * has it. The path is only the lock's key and proper-lockfile's target
+ * (with realpath:false); proper-lockfile never touches the target itself,
+ * since the artifact lives at `<lockDir>/<sha256(path)[:16]>.lock`.
+ */
+export async function acquireDirectoryLock(
+  resolvedRoot: string,
+  options: AcquireWorkspaceLockOptions = {},
+): Promise<ReleaseWorkspaceLock> {
   const {
     onWaiting,
     heartbeat,
@@ -134,16 +162,6 @@ export async function acquireWorkspaceLock(
     staleMs = DEFAULT_STALE_MS,
     lockDir = defaultLockDir(),
   } = options;
-
-  // Resolve symlink aliases so every path spelling of one directory contends
-  // on one lock. The resolved path is also what we hand proper-lockfile as
-  // the target (with realpath:false — already resolved here). A root that
-  // does not exist yet cannot be realpath'd, so it locks on its canonical
-  // absolute spelling instead — proper-lockfile never touches the target
-  // itself (the artifact lives at lockfilePath), so the lock still works.
-  // The root is the agent's: resolved by the agent's operations. The lock
-  // itself lives in the runner's own state.
-  const resolvedRoot = await agentFs().realpath(workspaceRoot).catch(() => resolve(workspaceRoot));
   const key = createHash("sha256").update(resolvedRoot).digest("hex").slice(0, 16);
   await mkdir(lockDir, { recursive: true });
   const lockfilePath = join(lockDir, `${key}.lock`);
@@ -203,7 +221,7 @@ export async function acquireWorkspaceLock(
 
     if (!waitingReported) {
       waitingReported = true;
-      console.log(`[workspace-lock] ${resolvedRoot} is held by another turn; waiting`);
+      console.log(`[workspace-lock] ${resolvedRoot} is held by another holder; waiting`);
       try {
         await onWaiting?.();
       } catch (err) {

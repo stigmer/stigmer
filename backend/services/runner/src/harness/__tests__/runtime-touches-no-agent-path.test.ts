@@ -36,6 +36,10 @@ const RUNNERS_OWN: ReadonlyMap<string, string> = new Map([
   ["shared/agent-identity.ts", "the agent user's /etc/passwd lines, its home and the setpriv probe, at boot, before any agent runs"],
   ["shared/artifact-storage.ts", "the runner's own local artifact store, under its state directory"],
   ["shared/workspace/workspace-lock.ts", "the lock files, under the runner's own state directory"],
+  [
+    "shared/workspace/runner-git.ts",
+    "the runner's own repositories and bundle files under its state directory; git there carries the token and never runs on an agent path",
+  ],
   ["config.ts", "creates the configured workspace root at start-up, before any agent runs"],
   [
     "environment/install.ts",

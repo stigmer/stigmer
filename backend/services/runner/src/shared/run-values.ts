@@ -21,8 +21,8 @@
  *   - `subagents`: each subagent's own keys, by its name in the turn, for
  *     its shell and its own hooks only: what `agent` is for the agent.
  *   - `repositories`: each cloned repository's token, by entry name and
- *     URL, for its git commands and write-back only
- *     (shared/workspace/git-credential.ts).
+ *     URL, for the runner's own git for that clone and its pull request
+ *     only (shared/workspace/runner-git.ts).
  *
  * Nothing is re-read within a turn, and nothing is cached across turns: each
  * activity fetches once, so a key rotated in its vault reaches the next turn.
