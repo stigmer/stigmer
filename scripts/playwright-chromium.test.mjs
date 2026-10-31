@@ -487,6 +487,27 @@ test(
   },
 );
 
+// A deadline that passes between the phases must still bound the next one:
+// a signal already aborted never fires again, so a phase checks it on start.
+test(
+  "a deadline already passed stops the CLI at once, and the probe never runs",
+  { timeout: 15_000 },
+  async () => {
+    const fake = fakeCli("ok");
+    const { verdict } = await run(fake, {
+      deadlineMs: 1_500,
+      deadline: AbortSignal.abort(),
+    });
+    assert.equal(verdict.ok, false);
+    assert.equal(verdict.phase, "install");
+    assert.equal(verdict.timedOut, true);
+    assert.ok(
+      !fake.calls().some((call) => call.startsWith("screenshot")),
+      "the probe never runs",
+    );
+  },
+);
+
 test("a checkout with no npm ci at all still gets the named message, not a module error", () => {
   // The action runs the script before anything proves node_modules exists, so
   // the installer half may import only Node's built-ins.
