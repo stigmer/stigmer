@@ -99,7 +99,7 @@ beforeEach(() => {
     await d.answer("run_1.c1", { kind: "allow" });
     return DONE;
   });
-  ink.runInkSession.mockResolvedValue(undefined);
+  ink.runInkSession.mockResolvedValue({ actionFailed: false });
   epilogue.runEpilogue.mockResolvedValue(FINAL);
 });
 
@@ -141,7 +141,7 @@ describe("streamAgentRun", () => {
   it("takes back the progress lines before Ink draws, and gives the composer the session's folders", async () => {
     tty.supported = true;
     const order: string[] = [];
-    ink.runInkSession.mockImplementation(async () => void order.push("ink"));
+    ink.runInkSession.mockImplementation(async () => (order.push("ink"), { actionFailed: false }));
     await streamAgentRun(deps({ clearProgress: () => void order.push("clear"), workspaceRoots: ["/work/billing"] }));
     expect(order).toEqual(["clear", "ink"]);
     expect(ink.runInkSession).toHaveBeenCalledWith(expect.objectContaining({ workspaceRoots: ["/work/billing"] }));
@@ -222,6 +222,16 @@ describe("CLI-11 stigmer run ends the way its mode promises", () => {
     await streamAgentRun(deps({ downloadDir: "./out", progress }));
     expect(order).toEqual(["summary", "download"]);
     expect(download.downloadRunOutputs).toHaveBeenCalledWith(client, "run_1", { outputPath: "", outputDir: "./out" }, progress);
+  });
+
+  it("fails the command after the summary when the view could not save a turn's outputs", async () => {
+    tty.supported = true;
+    ink.runInkSession.mockResolvedValue({ actionFailed: true });
+    await expect(streamAgentRun(deps({ downloadDir: "./out" }))).rejects.toMatchObject({
+      exitCode: 1,
+      message: "some turn's outputs were not saved (the session says which)",
+    });
+    expect(epilogue.runEpilogue).toHaveBeenCalled();
   });
 
   it("saves nothing off a terminal without --download", async () => {

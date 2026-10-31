@@ -21,7 +21,7 @@
 // to `afterTurn` (the CLI saves the turn's outputs there), with a sink that
 // writes a note in the thread while the view is up and to stderr once it has
 // gone, so nothing is written under Ink's frame. Control returns only once
-// every such action has finished.
+// every such action has finished, saying whether one failed.
 
 import React from "react";
 import { render } from "ink";
@@ -49,6 +49,12 @@ export interface InkSessionOptions {
   readonly afterTurn?: (turn: Turn, atLoad: boolean, say: (line: string) => void) => Promise<void>;
 }
 
+/** How the view ended for its host. */
+export interface InkSessionOutcome {
+  /** Some turn's `afterTurn` threw: its outputs were not saved, as a note in the thread said. */
+  readonly actionFailed: boolean;
+}
+
 /** What the leave line says to come back to a session. */
 export function comeBackHint(sessionId: string): string {
   return `Come back with \`stigmer resume ${sessionId}\`.`;
@@ -62,9 +68,10 @@ export function comeBackHint(sessionId: string): string {
  * terminal is restored cleanly, but control returns here rather than killing
  * the host process.
  */
-export async function runInkSession(opts: InkSessionOptions): Promise<void> {
+export async function runInkSession(opts: InkSessionOptions): Promise<InkSessionOutcome> {
   const pending = new Set<Promise<void>>();
   let mounted = true;
+  let actionFailed = false;
   // Assigned before Ink can report a turn: render() returns before any effect runs.
   let leave: (() => void) | undefined;
 
@@ -74,6 +81,7 @@ export async function runInkSession(opts: InkSessionOptions): Promise<void> {
       else process.stderr.write(`${line}\n`);
     };
     const action = (opts.afterTurn?.(turn, context.atLoad, say) ?? Promise.resolve()).catch((error: unknown) => {
+      actionFailed = true;
       say(`Could not save this turn's outputs: ${error instanceof Error ? error.message : String(error)}`);
     });
     pending.add(action);
@@ -108,4 +116,5 @@ export async function runInkSession(opts: InkSessionOptions): Promise<void> {
     process.removeListener("SIGTERM", onSignal);
   }
   await Promise.all([...pending]);
+  return { actionFailed };
 }

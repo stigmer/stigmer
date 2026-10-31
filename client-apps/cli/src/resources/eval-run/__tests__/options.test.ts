@@ -116,7 +116,7 @@ describe("readEvalRunOptions", () => {
     expect(readPluginSubjectOptions({ output: "json" }).json).toEqual({ kind: "stdout" });
     expect(readPluginSubjectOptions({ output: "table" }).json).toEqual({ kind: "none" });
     expect(readPluginSubjectOptions({ output: "json", json: "results.json" }).json).toEqual({ kind: "file", path: "results.json" });
-    expect(() => readPluginSubjectOptions({ output: "yaml" })).toThrow("--output yaml is not supported");
+    expect(() => readPluginSubjectOptions({ output: "yaml" })).toThrow(expect.objectContaining({ exitCode: 1, message: expect.stringContaining("--output yaml is not supported") }));
   });
 
   it.each([

@@ -363,11 +363,21 @@ function ablationOf(flags: EvalRunFlags): EvalRunAblation {
   }
 }
 
+// `-o` resolved by the result class; a value it refuses is an invalid option,
+// which on this command exits 1 like every other.
+function formatOf(output: string | undefined): string {
+  try {
+    return resolveFormat({ output }, "mutating");
+  } catch (error) {
+    throw invalid(error instanceof Error ? error.message : String(error));
+  }
+}
+
 // `--json <path>` writes the document to a file; `--json` or `-o json`
 // prints it; `-o` resolves through the result class, so a value it does not
 // support is refused the way every command refuses it.
 function jsonTargetOf(raw: boolean | string | undefined, output: string | undefined): JsonTarget {
-  const format = resolveFormat({ output }, "mutating");
+  const format = formatOf(output);
   if (typeof raw === "string") return jsonFileOf(raw);
   if (raw === true || format === "json") return { kind: "stdout" };
   return { kind: "none" };

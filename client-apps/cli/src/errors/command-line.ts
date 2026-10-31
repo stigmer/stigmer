@@ -8,10 +8,16 @@
 // closure over it, and the hint names the command the error happened on.
 // Commander's own error output is silenced, so the error prints once.
 //
-// What a person typed is echoed only where it cannot be a secret: an
-// unknown option's name, never a value written after '=', and an extra
-// argument by its count alone (Commander 15 echoes the arguments, and a key
-// pasted in the wrong place must not reach a terminal's log).
+// An unknown option is named without what follows it (a value written after
+// '=', or a short option's attached value), and extra arguments are counted,
+// never listed (a newer Commander lists them): a key pasted onto the wrong
+// option, or after the arguments, does not reach a terminal's log. An unknown
+// command and a value an option's own parser refuses are still echoed, as
+// Commander words them.
+//
+// A usage error exits 2, except on a command that declares its own code for
+// one (`usageExitCode`): `eval run` keeps the plugin-eval table, where 2 is a
+// partial run and an invalid option is 1.
 //
 // Help and version (exit code 0) leave quietly with 0; a group run without
 // its subcommand has printed its help to stderr and exits 2.
@@ -32,6 +38,14 @@ export class CommandLineError extends CliExitError {
   }
 }
 
+const USAGE_EXIT = new WeakMap<Command, number>();
+
+/** Declare the code a usage error on `cmd` exits with, in place of 2 (module header). */
+export function usageExitCode(cmd: Command, code: number): Command {
+  USAGE_EXIT.set(cmd, code);
+  return cmd;
+}
+
 /** Give every command in the tree its own exit callback and silence Commander's error output. */
 export function installCommandLineErrors(program: Command): void {
   for (const cmd of everyCommand(program)) {
@@ -46,9 +60,10 @@ export function installCommandLineErrors(program: Command): void {
 export function commandLineErrorOf(cmd: Command, error: CommanderError): CommandLineError {
   if (error.exitCode === 0) return new CommandLineError("", ExitCode.Success, error.code);
   // A group run without its subcommand: its help is already on stderr.
-  if (error.code === "commander.help") return new CommandLineError("", ExitCode.Usage, error.code);
+  const exitCode = USAGE_EXIT.get(cmd) ?? ExitCode.Usage;
+  if (error.code === "commander.help") return new CommandLineError("", exitCode, error.code);
   const hint = `Run \`${commandPath(cmd)} --help\` for usage.`;
-  return new CommandLineError(wording(cmd, error), ExitCode.Usage, error.code, [hint]);
+  return new CommandLineError(wording(cmd, error), exitCode, error.code, [hint]);
 }
 
 function wording(cmd: Command, error: CommanderError): string {
@@ -66,7 +81,7 @@ function wording(cmd: Command, error: CommanderError): string {
 // the value, newlines and all; the answer names the option alone, with
 // Commander's suggestion when its last line is one (an option's name only).
 function unknownOption(message: string): string {
-  const name = /^unknown option '(--?[A-Za-z0-9-]+)/.exec(message)?.[1];
+  const name = /^unknown option '(--[A-Za-z0-9-]+|-[A-Za-z0-9])/.exec(message)?.[1];
   if (name === undefined) return "unknown option";
   const suggestion = /\n(\(Did you mean --?[A-Za-z0-9-]+\?\))$/.exec(message)?.[1];
   return suggestion === undefined ? `unknown option '${name}'` : `unknown option '${name}' ${suggestion}`;

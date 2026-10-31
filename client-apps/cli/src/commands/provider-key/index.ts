@@ -121,7 +121,7 @@ export function registerProviderKey(program: Command): void {
       );
     });
   addResultFlags(setCmd);
-  
+
   const deleteCmd = group
     .command("delete <provider>")
     .description("remove the organization's key for a provider; runs that need it are refused until a key serves it again")
@@ -145,7 +145,7 @@ export function registerProviderKey(program: Command): void {
       renderResult(await resources.deleteProviderKey(session.client.stigmer, session.org, provider), format);
     });
   addResultFlags(deleteCmd);
-  }
+}
 
 type BackendClient = import("../../client/index.js").BackendClient;
 
