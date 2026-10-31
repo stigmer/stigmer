@@ -15,6 +15,7 @@ import { EvalSchema } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/api_pb";
 import { EvalRunSchema } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/api_pb";
 import { ScoringRuleSchema } from "@stigmer/apis/ai/stigmer/agentic/scoringrule/v1/api_pb";
 import { ScoreSchema } from "@stigmer/apis/ai/stigmer/agentic/score/v1/api_pb";
+import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import { SkillSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
 import { VaultSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -96,6 +97,12 @@ export const GET_BINDINGS: ReadonlyMap<ApiResourceKind, Getter> = new Map([
   [
     ApiResourceKind.eval_run,
     idOnlyGetter(EvalRunSchema, (c) => c.evalrun, "Eval runs"),
+  ],
+  // A session is a conversation, named by the id `run` and `list sessions`
+  // print (stigmer/stigmer#2502).
+  [
+    ApiResourceKind.session,
+    idOnlyGetter(SessionSchema, (c) => c.session, "Sessions"),
   ],
   // A File has an id and no slug: it is named by the id its upload minted.
   [

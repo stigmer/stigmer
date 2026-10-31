@@ -1,0 +1,23 @@
+
+run_01jfffffffffffffffffffffff  acme
+
+  Agent:     agt_01jbbbbbbbbbbbbbbbbbbbbbbb
+  Session:   ses_01jddddddddddddddddddddddd
+  Status:    failed
+  Started:   2026-10-30 08:55 UTC
+  Duration:  2m 15s
+
+Message
+  Draft the notes for milestone 0.4 and open them as a pull request against
+  docs/releases.
+
+Why it stopped
+  Error:       the model provider refused the request: overloaded
+  Stop cause:  model error
+
+Usage
+  Tokens:  18.4k (12.4k in, 6.0k out)
+
+Run settings
+  Model:       claude-sonnet-4-5
+  Speed tier:  standard

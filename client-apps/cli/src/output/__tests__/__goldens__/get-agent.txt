@@ -1,6 +1,0 @@
-
-  ID:           agt_00000000000000000000000002
-  Name:         Release Notes
-  Slug:         release-notes
-  Org:          demo
-  Description:  Drafts release notes from the merged pull requests of a milestone, grouped by area.
