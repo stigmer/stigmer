@@ -376,10 +376,12 @@ test("INK-07 on a terminal, Esc stops a running turn and the session stays usabl
 test("INK-08 on a terminal, the composer takes two lines and brings them back with Up", () =>
   guarded(async () => {
     const result = await runKeys();
-    // Sent as one message on two lines, then recalled into the composer whole.
-    const sent = result.stdout.split("only the tests\n").length - 1;
-    if (sent < 2) throw new Error(`the two-line message was not sent and recalled:\n${result.stdout.slice(-4000)}`);
-    if (!result.flat.includes("only the tests and keep it small")) throw new Error(`the message's lines are missing:\n${result.stdout.slice(-4000)}`);
+    // Sent as one message on two lines (the thread shows both), then, after
+    // the stop, Up brings it back into the composer whole.
+    if (!result.flat.includes("You only the tests and keep it small")) throw new Error(`the two-line message was not sent:\n${result.stdout.slice(-4000)}`);
+    const stopped = result.stdout.lastIndexOf("Cancelled");
+    const recalled = stopped === -1 ? "" : result.stdout.slice(stopped);
+    if (!/❯ only the tests\n\s+and keep it small/.test(recalled)) throw new Error(`Up did not bring the message back after the stop:\n${result.stdout.slice(-4000)}`);
   }));
 
 test("INK-17 on a terminal, leaving says how to come back, and returns", () =>
