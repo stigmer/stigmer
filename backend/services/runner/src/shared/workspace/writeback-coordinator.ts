@@ -26,6 +26,16 @@
  *
  * Entries are written back in sequence, one cycle each; nothing here runs
  * concurrently with itself.
+ *
+ * The repository's token never reaches the clone (#2095): with a token, the
+ * network half of a cycle runs in the runner's own repository for the clone
+ * (`runner-git.ts`), held under its lock for the whole cycle. A session
+ * branch that lives only on GitHub is fetched there and handed to the clone
+ * as a bundle; the clone's commit is handed back as a bundle the clone
+ * makes, and the runner pushes exactly `refs/heads/<session branch>`, never
+ * forced, whatever the clone's configuration says. The commit reported is
+ * the one the runner pushed. Without a token the clone's own git talks to
+ * origin, as before.
  */
 
 import { create } from "@bufbuild/protobuf";
@@ -38,7 +48,8 @@ import { GitWriteBackMode } from "@stigmer/apis/ai/stigmer/agentic/session/v1/en
 import type { SessionResource } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import type { WorkspaceBackend, ProvisionResult } from "./types.js";
 import { gitCommitAsAgent } from "./git-identity.js";
-import { runNetworkGit } from "./git-credential.js";
+import { cloneHaves, cloneTrackingTips, fetchFromRunner, pushThroughRunner } from "./clone-handoff.js";
+import { withRunnerRepository, type RunnerRepository } from "./runner-git.js";
 import { repositoryTokenFor, type RepositoryToken } from "../run-values.js";
 
 /**
@@ -79,17 +90,22 @@ interface EligibleEntry {
   readonly rootDir: string;
   readonly entryName: string;
   /**
-   * The repository's own token from the run's values: handed to this
-   * entry's network git commands (../git-credential.ts) and the GitHub PR
-   * API, nothing else. Empty when the run has none.
+   * The repository's own token from the run's values: used by the runner's
+   * own git for this entry (`runner-git.ts`) and the GitHub PR API, nothing
+   * else. Empty when the run has none.
    */
   readonly githubToken: string;
 }
 
-/** One entry's git commands: `exec` runs without a credential, `network` hands the entry's token to the command. */
+/**
+ * One entry's git: `exec` runs a command in the clone, as the agent host
+ * does, never with a credential; `repository` is the runner's own for the
+ * clone when the entry has a token, and `null` when the clone talks to
+ * origin itself.
+ */
 interface EntryGit {
   readonly exec: (cmd: string) => Promise<string>;
-  readonly network: (cmd: string) => Promise<string>;
+  readonly repository: RunnerRepository | null;
 }
 
 export class WriteBackCoordinator {
@@ -218,24 +234,23 @@ export class WriteBackCoordinator {
     const exec = async (cmd: string): Promise<string> => {
       return this.workspaceBackend.execute(`cd ${rootDir} && ${cmd}`);
     };
-    const git: EntryGit = {
-      exec,
-      network: (cmd) =>
-        runNetworkGit(this.workspaceBackend, cmd, {
-          cwd: rootDir,
-          remoteUrl: entry.provisionResult.gitMetadata!.repoUrl,
-          token: entry.githubToken,
-        }),
+    const cycle = async (repository: RunnerRepository | null): Promise<void> => {
+      const git: EntryGit = { exec, repository };
+      if (!entryState.branchReady) {
+        await this.ensureBranch(entryName, entryState, git);
+      }
+      await this.commitAndPush(entryName, entryState, git);
     };
 
     try {
       const hasChanges = await this.hasChanges(exec);
       if (!hasChanges) return;
 
-      if (!entryState.branchReady) {
-        await this.ensureBranch(entryName, entryState, git);
+      if (entry.githubToken === "") {
+        await cycle(null);
+      } else {
+        await withRunnerRepository(rootDir, entry.provisionResult.gitMetadata!.repoUrl, entry.githubToken, cycle);
       }
-      await this.commitAndPush(entryName, entryState, git);
     } catch (err) {
       console.warn(
         `[WriteBack] execution=${this.executionId} entry=${entryName} — ` +
@@ -299,7 +314,7 @@ export class WriteBackCoordinator {
   private async ensureBranch(
     entryName: string,
     entryState: EntryState,
-    { exec, network }: EntryGit,
+    { exec, repository }: EntryGit,
   ): Promise<void> {
     const current = (await exec("git branch --show-current").catch(() => "")).trim();
     if (current === this.branchName) {
@@ -315,12 +330,11 @@ export class WriteBackCoordinator {
       await exec(`git checkout ${this.branchName}`);
     } else {
       // An empty answer is "no such branch"; a failure (refused, too old a
-      // git, an untrusted clone) is a failure, never read as no branch.
-      const remoteRef = (
-        await network(`git ls-remote --heads origin ${this.branchName}`)
-      ).trim();
-      if (remoteRef) {
-        await network(`git fetch origin ${this.branchName}`);
+      // git) is a failure, never read as no branch.
+      const onRemote = repository === null
+        ? await this.fetchBranchFromOrigin(exec)
+        : await this.fetchBranchThroughRunner(repository, exec);
+      if (onRemote) {
         await exec(`git checkout -b ${this.branchName} origin/${this.branchName}`);
       } else {
         await exec(`git checkout -b ${this.branchName}`);
@@ -334,10 +348,41 @@ export class WriteBackCoordinator {
     );
   }
 
+  /** The session branch from origin, fetched by the clone itself (no token): whether origin has it. */
+  private async fetchBranchFromOrigin(exec: (cmd: string) => Promise<string>): Promise<boolean> {
+    const remoteRef = (await exec(`git ls-remote --heads origin ${this.branchName}`)).trim();
+    if (remoteRef) await exec(`git fetch origin ${this.branchName}`);
+    return remoteRef !== "";
+  }
+
+  /**
+   * The session branch from GitHub, fetched by the runner and handed to the
+   * clone as `refs/remotes/origin/<branch>`: whether GitHub has it. When the
+   * clone already holds its tip, no bundle crosses and the ref is set.
+   */
+  private async fetchBranchThroughRunner(
+    repository: RunnerRepository,
+    exec: (cmd: string) => Promise<string>,
+  ): Promise<boolean> {
+    if (!(await repository.hasRemoteBranch(this.branchName))) return false;
+    const ref = `refs/heads/${this.branchName}`;
+    await repository.fetch([`+${ref}:${ref}`]);
+    await repository.holdCommits(await cloneTrackingTips(exec));
+    const sent = await fetchFromRunner(repository, exec, {
+      revisions: [ref],
+      haves: await cloneHaves(exec),
+      refspecs: [`+${ref}:refs/remotes/origin/${this.branchName}`],
+    });
+    if (!sent) {
+      await exec(`git update-ref refs/remotes/origin/${this.branchName} ${await repository.commitOf(ref)}`);
+    }
+    return true;
+  }
+
   private async commitAndPush(
     entryName: string,
     entryState: EntryState,
-    { exec, network }: EntryGit,
+    { exec, repository }: EntryGit,
   ): Promise<void> {
     await exec("git add -A");
     // Committed as the agent identity: the cloud sandbox has no git identity
@@ -350,14 +395,40 @@ export class WriteBackCoordinator {
     const shaOutput = await exec("git rev-parse HEAD");
     entryState.lastCommitSha = shaOutput.trim();
 
-    // Always -u: idempotent whether this push creates the remote branch or
-    // appends to it, and it (re-)establishes tracking after a re-provision.
-    await network(`git push -u origin ${this.branchName}`);
+    if (repository === null) {
+      // Always -u: idempotent whether this push creates the remote branch or
+      // appends to it, and it (re-)establishes tracking after a re-provision.
+      await exec(`git push -u origin ${this.branchName}`);
+    } else {
+      entryState.lastCommitSha = await this.pushViaRunner(repository, exec, entryState.lastCommitSha);
+      // The clone reads as `push -u` would have left it.
+      await exec(`git update-ref refs/remotes/origin/${this.branchName} ${entryState.lastCommitSha}`);
+      await exec(`git branch --set-upstream-to=origin/${this.branchName}`);
+    }
 
     console.log(
       `[WriteBack] execution=${this.executionId} entry=${entryName} — ` +
       `commit pushed to ${this.branchName} (sha=${entryState.lastCommitSha.slice(0, 12)})`,
     );
+  }
+
+  /**
+   * Pushes the clone's session branch through the runner's repository and
+   * returns the commit pushed. The runner first holds the clone's
+   * remote-tracking tips (fetching by id those it lacks: a repository
+   * rebuilt since the clone, a base branch moved on since), so the clone's
+   * bundle leaves out what both sides have and stays the size of the turn's
+   * work. A tip the runner already holds (a turn whose push landed before a
+   * crash) is pushed from there, with no bundle.
+   */
+  private async pushViaRunner(
+    repository: RunnerRepository,
+    exec: (cmd: string) => Promise<string>,
+    head: string,
+  ): Promise<string> {
+    await repository.holdCommits(await cloneTrackingTips(exec));
+    if (await repository.hasCommit(head)) return repository.pushCommit(head, this.branchName);
+    return pushThroughRunner(repository, exec, (path, content) => this.workspaceBackend.writeFile(path, content), this.branchName);
   }
 
   // ── GitHub PR ───────────────────────────────────────────────────────

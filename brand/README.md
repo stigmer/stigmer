@@ -76,10 +76,15 @@ uploads, which no test can read: after a words change, run
 `npm run generate:brand` and upload both covers again by hand.
 
 `agent-gets.ts` holds the five titles of what each customer's agent gets ("Its
-own computer" to "Your keys, your servers"). The homepage's cards and the
-hero's picture read them through `site/src/lib/agent-gets.ts`, and the job film
-in `marketing/` reads them here. The site's card test and the film's test both
-hold them.
+own computer" to "Your keys, your servers"), the order every list says them in,
+each one said as the visitor's worry with what a team would build, what Stigmer
+gives and its proofs, and the three more things the homepage says we built. The
+homepage's "hard parts" section and its "also built" strip render the claims,
+the hero's picture reads the titles through `site/src/lib/agent-gets.ts`, and
+the job film in `marketing/` reads the titles here. A proof (`proof.ts`) is a
+measured figure, a picture the visual suite draws, a public test quoted in its
+own words, or a file or page; `__tests__/proofs.test.ts` fails, naming the
+proof, when the test, the case, the picture or the page it names is gone.
 
 `job-story.ts` holds the job those pictures tell: a customer's names for it
 (Northwind Books, `ledger.csv`, `variance-report.md`), its steps, the parts of

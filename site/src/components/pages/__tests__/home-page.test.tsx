@@ -2,8 +2,8 @@
  * The homepage, and where the site's story pages send a reader.
  *
  * Pins that the homepage leads with the headline from brand/positioning.ts
- * and tells the story in its order: the problem, what each customer's agent
- * gets, how it fits, open source, the first job.
+ * and tells the story in its order: the hard parts, each answered with its
+ * proof, three more things we built, how it fits, open source, the first job.
  *
  * Pins too that every internal link on the homepage, the page on why we
  * built Stigmer and the comparison lands on a path the site serves, never on
@@ -28,8 +28,8 @@ describe("HomePage", () => {
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe(SITE_CONFIG.headline);
     const headings = screen.getAllByRole("heading", { level: 2 }).map((heading) => heading.id);
     expect(headings).toEqual([
-      "problem-heading",
-      "what-each-agent-gets-heading",
+      "hard-parts-heading",
+      "also-built-heading",
       "how-it-fits-heading",
       "open-source-heading",
       "final-cta-heading",

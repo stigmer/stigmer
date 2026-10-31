@@ -8,12 +8,15 @@
  * costs the reader a redirect, and the homepage once linked four Getting
  * Started pages that only redirects still answered. The anchor and query are
  * dropped first; a docs path is served when its `.mdx` or `index.mdx`
- * exists, a post when its `.mdx` exists, and anything else when it is one of
- * the static routes.
+ * exists, a post when its `.mdx` exists, a shown picture's file when the
+ * visual suite's list names it (the build writes each one at every density,
+ * scripts/generate-screens.ts), and anything else when it is one of the
+ * static routes.
  */
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
+import { SCREEN_DENSITIES, SHOWN, screenPath } from "@/lib/screens";
 import { staticRoutes } from "./static-routes";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -32,6 +35,11 @@ const MOVED: ReadonlySet<string> = new Set(
 
 const ROUTES: ReadonlySet<string> = new Set(staticRoutes());
 
+/** Every file the build writes for the shown pictures. */
+const SCREENS: ReadonlySet<string> = new Set(
+  SHOWN.flatMap((shown) => SCREEN_DENSITIES.map((density) => screenPath(shown.name, density))),
+);
+
 function docsPageExists(page: string): boolean {
   return (
     fs.existsSync(path.join(DOCS, `${page}.mdx`)) ||
@@ -48,5 +56,5 @@ export function servedPath(href: string): boolean {
   if (target.startsWith("/blog/")) {
     return fs.existsSync(path.join(BLOG, `${target.slice("/blog/".length)}.mdx`));
   }
-  return ROUTES.has(target);
+  return ROUTES.has(target) || SCREENS.has(target);
 }
