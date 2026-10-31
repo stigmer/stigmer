@@ -61,7 +61,6 @@
   },
   "dependencies": {
     "@connectrpc/connect-node": "^2.1.1",
-    "ink-text-input": "^6.0.0",
     "marked": "^16.4.2"
   },
   "peerDependencies": {

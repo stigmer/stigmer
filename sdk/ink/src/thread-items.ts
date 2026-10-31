@@ -56,7 +56,9 @@ export type ThreadItem = (
 
 /** A line the view writes into the thread that is not sent to the agent: a host command's note. */
 export interface ThreadNote {
+  /** Unique among the view's notes: the history writes each once, by it. */
   readonly id: string;
+  /** The line as written. */
   readonly text: string;
 }
 

@@ -75,7 +75,10 @@ export interface PromptHistory {
 
 /** What a host adds to the composer. */
 export interface ComposerExtensions {
+  /** The slash commands `/` lists and a message starting with one runs. */
   readonly commands?: readonly SlashCommand[];
+  /** The completions, one source per trigger character. */
   readonly completions?: readonly CompletionSource[];
+  /** Where the prompt history lives; in memory for the session when omitted. */
   readonly history?: PromptHistory;
 }

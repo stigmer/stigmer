@@ -9,10 +9,15 @@
 //     ended (TurnWatchContext), so a run never opens a second follow beside
 //     the view's.
 //   - The process is the host's. The library installs no signal handler:
-//     Ctrl+C on a terminal is a key Ink handles, and a host stops the wait
-//     with `signal`. Either way control returns at once with the turn's phase
-//     at that moment and exit code 130, and the run goes on on the server
-//     (stopping it is a separate act).
+//     on a terminal, Ctrl+C is the view's key (a draft is cleared first; on an
+//     empty composer the view says the agent keeps working and how to come
+//     back, and a second press within two seconds leaves), and a host stops
+//     the wait with `signal`. Either way control returns with the turn's phase
+//     at that moment and exit code 130, and the run goes on on the server.
+//     Esc stops the turn, which then ends cancelled.
+//   - Shift+Enter starts a new line where the terminal reports it: Ink asks
+//     for the kitty keyboard protocol and goes on without it when the terminal
+//     does not answer.
 //   - Off a terminal (terminalMode) Ink writes the final frame once at exit,
 //     prompts are inert, asks are settled by `approveDefault`, and `until:
 //     "exit"` returns at the turn's end, since no one can type a follow-up.
@@ -43,13 +48,15 @@ import { describeConnectionFailure, failureExitCode } from "../errors.js";
 import { terminalMode } from "../terminal-mode.js";
 import { detectBackground } from "../terminal-background.js";
 import type { InkThemeInput } from "../theme.js";
+import type { ComposerExtensions } from "../input/extensions.js";
 
 /** Options for {@link runInTerminal}. */
 export interface RunInTerminalOptions {
   /**
    * When control returns: `"turn"` (the default) when this turn ends;
-   * `"exit"` when the person quits (Ctrl+C), keeping the conversation open for
-   * follow-ups as `stigmer run` does. Off a terminal both return at the turn's end.
+   * `"exit"` when the person leaves (Ctrl+C twice on an empty composer),
+   * keeping the conversation open for follow-ups as `stigmer run` does. Off a
+   * terminal both return at the turn's end.
    */
   readonly until?: "turn" | "exit";
   /** How an ask is settled off a terminal, where no one can answer: denied unless `"approve"`. */
@@ -63,6 +70,14 @@ export interface RunInTerminalOptions {
    * terminal's background, which is then detected before the view draws.
    */
   readonly theme?: InkThemeInput;
+  /** The host's slash commands, completions and prompt history for the composer. */
+  readonly composer?: ComposerExtensions;
+  /**
+   * How to come back to the session, in the host's words, said when the
+   * person presses Ctrl+C to leave: given the session's id, such as
+   * `(id) => \`Come back with: mycli resume ${id}\``.
+   */
+  readonly leaveHint?: (sessionId: string) => string;
   /** Stops waiting and returns at once; the run itself goes on. */
   readonly signal?: AbortSignal;
   /** Ink's input stream; `process.stdin` by default. */
@@ -109,12 +124,14 @@ interface TerminalRunProps {
   readonly approveDefault: "approve" | "deny";
   readonly approveSetting: string | undefined;
   readonly mode: InteractionMode | undefined;
+  readonly composer: ComposerExtensions | undefined;
+  readonly leaveHint: string | undefined;
   readonly onTurn: (turn: Turn) => void;
   readonly onLoadError: (error: Error) => void;
 }
 
 /** The view, watching its own conversation for this run's turn. */
-function TerminalRun({ sessionId, org, runId, until, live, canAnswer, approveDefault, approveSetting, mode, onTurn, onLoadError }: TerminalRunProps) {
+function TerminalRun({ sessionId, org, runId, until, live, canAnswer, approveDefault, approveSetting, mode, composer, leaveHint, onTurn, onLoadError }: TerminalRunProps) {
   const { exit } = useApp();
   const watch = useMemo<TurnWatch>(
     () => ({
@@ -142,6 +159,8 @@ function TerminalRun({ sessionId, org, runId, until, live, canAnswer, approveDef
         canAnswer={canAnswer}
         approveDefault={approveDefault}
         approveSetting={approveSetting}
+        composer={composer}
+        leaveHint={leaveHint}
       />
     </TurnWatchContext.Provider>
   );
@@ -196,6 +215,8 @@ export async function runInTerminal(
         approveDefault={options.approveDefault ?? "deny"}
         approveSetting={options.approveSetting}
         mode={options.mode}
+        composer={options.composer}
+        leaveHint={options.leaveHint?.(started.sessionId)}
         onTurn={(turn) => {
           latest = turn;
         }}
@@ -205,7 +226,7 @@ export async function runInTerminal(
       />
     </InkStigmerProvider>,
     // Stryker disable next-line BooleanLiteral: console patching only reroutes the host's own console output; the view and the outcome are the same either way
-    { stdin, stdout, stderr, interactive: live, exitOnCtrlC: true, patchConsole: false },
+    { stdin, stdout, stderr, interactive: live, exitOnCtrlC: false, patchConsole: false, kittyKeyboard: { mode: "auto" } },
   );
 
   const stop = () => instance.unmount();

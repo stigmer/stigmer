@@ -26,7 +26,7 @@ const NO_OWNER: KeyOwner = { free: true, claim: () => {}, release: () => {} };
 const KeyOwnerContext = createContext<KeyOwner>(NO_OWNER);
 
 /** Holds the claims of the surfaces below it. */
-export function KeyOwnerProvider({ children }: { readonly children: ReactNode }) {
+export function KeyOwnerProvider({ children }: { readonly children: ReactNode }): React.ReactElement {
   const [claims, setClaims] = useState<ReadonlySet<string>>(new Set());
   const claim = useCallback((id: string) => setClaims((held) => (held.has(id) ? held : new Set([...held, id]))), []);
   const release = useCallback(

@@ -15,6 +15,7 @@
 
 /** A field's text and where the cursor sits in it. */
 export interface TextBuffer {
+  /** What the field holds. */
   readonly text: string;
   /** An index into `text`, from 0 to its length. */
   readonly cursor: number;

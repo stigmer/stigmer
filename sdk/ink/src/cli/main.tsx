@@ -63,7 +63,14 @@ function Watch({ sessionId, org, live, canAnswer, seen }: { sessionId: string; o
   );
   return (
     <TurnWatchContext.Provider value={watch}>
-      <SessionView sessionId={sessionId} org={org} live={live} canAnswer={canAnswer} approveDefault="leave" />
+      <SessionView
+        sessionId={sessionId}
+        org={org}
+        live={live}
+        canAnswer={canAnswer}
+        approveDefault="leave"
+        leaveHint={comeBack(sessionId, org)}
+      />
     </TurnWatchContext.Provider>
   );
 }
@@ -76,6 +83,11 @@ function watchExitCode(seen: Watched, stopped: boolean): number {
   const ended = newest.status !== undefined && newest.ended;
   if (!ended) return ExitCode.Interrupted;
   return exitCodeOf({ phase: newest.status!.phase });
+}
+
+/** How the bin comes back to a session, as the leave line says it. */
+function comeBack(sessionId: string, org: string): string {
+  return `Come back with: stigmer-ink --session ${sessionId} --org ${org}`;
 }
 
 /** Runs stigmer-ink with `argv` (without the node and script paths) and answers its exit code. */
@@ -99,7 +111,7 @@ export async function runCli(argv: readonly string[], io: CliIo, deps: CliDeps =
       <InkStigmerProvider client={client}>
         <Watch sessionId={request.sessionId ?? ""} org={request.org} live={live} canAnswer={canAnswer} seen={seen} />
       </InkStigmerProvider>,
-      { stdin: io.stdin, stdout: io.stdout, stderr: io.stderr, interactive: live, exitOnCtrlC: true, patchConsole: false },
+      { stdin: io.stdin, stdout: io.stdout, stderr: io.stderr, interactive: live, exitOnCtrlC: false, patchConsole: false, kittyKeyboard: { mode: "auto" } },
     );
     io.signal.addEventListener("abort", () => instance.unmount(), { once: true });
     await instance.waitUntilExit();
@@ -116,6 +128,7 @@ export async function runCli(argv: readonly string[], io: CliIo, deps: CliDeps =
         until: request.until,
         approveDefault: request.approveDefault,
         approveSetting: "--approve-default approve",
+        leaveHint: (sessionId) => comeBack(sessionId, request.org),
         mode: request.mode,
         signal: io.signal,
         stdin: io.stdin,
