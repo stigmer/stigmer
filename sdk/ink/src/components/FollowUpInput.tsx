@@ -78,8 +78,8 @@ interface MenuRow {
 /**
  * Terminal composer for follow-up messages in a session (module header).
  *
- * Enter sends; `\` then Enter, Ctrl+J or Alt+Enter starts a new line; Up and
- * Down recall earlier messages; Ctrl+C clears a draft.
+ * Enter sends; a backslash then Enter, Ctrl+J or Alt+Enter starts a new line;
+ * Up and Down recall earlier messages; Ctrl+C clears a draft.
  */
 export function FollowUpInput({
   onSubmit,
@@ -110,12 +110,18 @@ export function FollowUpInput({
   const sources = useMemo(() => composer?.completions ?? [], [composer]);
   const editable = active && !disabled && !isSubmitting;
 
-  // The history: the host's, loaded once, or this session's own.
+  // The history: the host's, loaded once, or this session's own. A history
+  // that cannot be read is none: the session goes on without it.
   useEffect(() => {
     let live = true;
-    void Promise.resolve(composer?.history?.load() ?? []).then((loaded) => {
-      if (live) setEntries(loaded);
-    });
+    void Promise.resolve()
+      .then(() => composer?.history?.load() ?? [])
+      .then(
+        (loaded) => {
+          if (live) setEntries(loaded);
+        },
+        () => undefined,
+      );
     return () => {
       live = false;
     };
@@ -168,22 +174,29 @@ export function FollowUpInput({
     setAccepted([]);
   };
 
+  // A host store that cannot keep an entry loses only that: this session's
+  // own list still has it.
   const remember = (entry: string): void => {
     setEntries((list) => appendHistory(list, entry));
-    void composer?.history?.append(entry);
+    void Promise.resolve()
+      .then(() => composer?.history?.append(entry))
+      .catch(() => undefined);
   };
 
   const submit = (sent: TextBuffer = buffer): void => {
     const text = sent.text.trim();
     if (text === "") return;
-    const run = parseCommand(text, commands);
+    const message = expandPastes(text, pastes);
+    const run = parseCommand(message, commands);
     if (run !== undefined && context !== undefined) {
-      remember(text);
+      remember(message);
       clear();
-      void run.command.run(run.args, context);
+      // A command that fails says so in the thread; the session goes on.
+      void Promise.resolve()
+        .then(() => run.command.run(run.args, context))
+        .catch((error: unknown) => context.note(`/${run.command.name} failed: ${error instanceof Error ? error.message : String(error)}`));
       return;
     }
-    const message = expandPastes(text, pastes);
     remember(message);
     onSubmit(message, attachmentsOf(text, accepted));
     clear();
@@ -197,6 +210,11 @@ export function FollowUpInput({
   // Keys the composer takes before its field: the open menu's, `?`, and the
   // draft's Ctrl+C and double Esc.
   const intercept = (input: string, key: Key): boolean => {
+    // An empty draft has no menu open, so `?` comes first.
+    if (input === "?" && buffer.text === "" && !key.ctrl && !key.meta) {
+      setHelpShown(!helpShown);
+      return true;
+    }
     if (helpShown) setHelpShown(false);
     if (menuOpen) {
       if (key.upArrow || key.downArrow) {
@@ -218,10 +236,6 @@ export function FollowUpInput({
         setDismissedAt(queryKey);
         return true;
       }
-    }
-    if (input === "?" && buffer.text === "" && !key.ctrl && !key.meta) {
-      setHelpShown((shown) => !shown);
-      return true;
     }
     return false;
   };

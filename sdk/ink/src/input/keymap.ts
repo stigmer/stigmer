@@ -99,6 +99,9 @@ export function keyAction(input: string, key: Key, buffer: TextBuffer, options: 
         return edit(killToRowEnd(buffer));
       case "w":
         return edit(killWordBack(buffer));
+      // Ctrl+J as the kitty keyboard protocol reports it; without it, "\n" above.
+      case "j":
+        return multiline ? edit(insertText(buffer, "\n")) : NONE;
       default:
         return NONE;
     }

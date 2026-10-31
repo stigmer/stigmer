@@ -64,7 +64,6 @@ export function TextField({
   maxRows = 8,
 }: TextFieldProps) {
   const box = useRef<DOMElement>(null);
-  const { setCursorPosition } = useCursor();
 
   useInput(
     (input, key) => {
@@ -94,13 +93,17 @@ export function TextField({
   const shown = rows.slice(top, top + maxRows);
 
   // The terminal cursor on the drawn one, from the frame's last layout: the
-  // field moves only when what is above it changes.
+  // field moves only when what is above it changes. Only a focused field
+  // places it, so a field without focus never hides another's.
   const at = focus ? framePosition(box.current) : undefined;
-  setCursorPosition(at === undefined ? undefined : { x: at.x + [...(rows[row] ?? "").slice(0, column)].length, y: at.y + row - top });
+  const cursor = focus ? (
+    <TerminalCursor position={at === undefined ? undefined : { x: at.x + [...(rows[row] ?? "").slice(0, column)].length, y: at.y + row - top }} />
+  ) : null;
 
   if (value.text === "") {
     return (
       <Box ref={box}>
+        {cursor}
         {focus ? <Text inverse>{placeholder.slice(0, 1) || " "}</Text> : null}
         <Text dimColor>{focus ? placeholder.slice(1) : placeholder}</Text>
       </Box>
@@ -109,6 +112,7 @@ export function TextField({
 
   return (
     <Box ref={box} flexDirection="column">
+      {cursor}
       {shown.map((line, index) => {
         const lineRow = top + index;
         if (!focus || lineRow !== row) return <Text key={lineRow}>{line === "" ? " " : line}</Text>;
@@ -122,4 +126,11 @@ export function TextField({
       })}
     </Box>
   );
+}
+
+/** Places the terminal's cursor at `position` (hidden when undefined) while it is mounted. */
+function TerminalCursor({ position }: { readonly position: { readonly x: number; readonly y: number } | undefined }): null {
+  const { setCursorPosition } = useCursor();
+  setCursorPosition(position);
+  return null;
 }

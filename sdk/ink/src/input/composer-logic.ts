@@ -87,7 +87,10 @@ export type MenuQuery =
 export function menuQuery(buffer: TextBuffer, triggers: readonly string[]): MenuQuery | undefined {
   const before = buffer.text.slice(0, buffer.cursor);
   if (/^\/\S*$/.test(before) && !buffer.text.includes("\n")) return { kind: "command", query: before.slice(1), start: 0 };
-  const start = before.search(/\S*$/);
+  // The token the cursor ends, found by walking back to a space: a regex
+  // anchored at the end would retry from every position of a long draft.
+  let start = before.length;
+  while (start > 0 && !/\s/.test(before[start - 1]!)) start -= 1;
   const token = before.slice(start);
   const trigger = triggers.find((candidate) => token.startsWith(candidate));
   if (trigger === undefined) return undefined;

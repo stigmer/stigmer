@@ -26,7 +26,7 @@
 // Proven by __tests__/session-view.test.tsx and session-frames.test.tsx.
 import React, { useState, useEffect, useRef, useContext, useCallback, useMemo } from "react";
 import { Box, Text, useApp, useInput, useStdin } from "ink";
-import { resolvedSubject, type Turn, type ToolUse } from "@stigmer/client";
+import { resolvedSubject, type Turn, type ToolUse, type TurnPhase } from "@stigmer/client";
 import { useSessionConversation, useStigmer } from "@stigmer/react-core";
 import { MessageThread } from "../components/MessageThread.js";
 import { TodoList } from "../components/TodoList.js";
@@ -108,9 +108,17 @@ export interface SessionViewProps {
 /** How long the first Ctrl+C on an empty composer waits for the second. */
 export const LEAVE_WINDOW_MS = 2000;
 
-/** What the first Ctrl+C on an empty composer says, before the host's hint. */
-export function leaveLine(working: boolean, leaveHint?: string): string {
-  return ["Press Ctrl+C again to leave.", working ? "The agent keeps working." : "", leaveHint ?? ""].filter((part) => part !== "").join(" ");
+/** What the first Ctrl+C on an empty composer says of a turn in each phase: nothing once none is active. */
+function leavingWords(phase: TurnPhase | null): string {
+  if (phase === null) return "";
+  if (phase === "waiting") return "The agent waits for an answer.";
+  if (phase === "paused") return "The turn stays paused.";
+  return "The agent keeps working.";
+}
+
+/** What the first Ctrl+C on an empty composer says, before the host's hint, for the active turn's phase. */
+export function leaveLine(phase: TurnPhase | null, leaveHint?: string): string {
+  return ["Press Ctrl+C again to leave.", leavingWords(phase), leaveHint ?? ""].filter((part) => part !== "").join(" ");
 }
 
 /** An ask settled by `approveDefault` because no one could answer it. */
@@ -462,7 +470,7 @@ function SessionViewBody({
 
       {leaveArmed && (
         <Box paddingLeft={1}>
-          <Text {...role.warning}>{leaveLine(conv.activePhase !== null, leaveHint)}</Text>
+          <Text {...role.warning}>{leaveLine(conv.activePhase, leaveHint)}</Text>
         </Box>
       )}
     </Box>

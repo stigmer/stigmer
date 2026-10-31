@@ -10,6 +10,7 @@
 // backend creates a session that names none, and the header shows the
 // assistant's name.
 
+import { stripVTControlCharacters } from "node:util";
 import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { BUILT_IN_ASSISTANT_NAME } from "@stigmer/client";
@@ -70,7 +71,10 @@ export async function executeResolvedAgent(input: ResolvedAgentExecInput): Promi
   } finally {
     // Once the run exists its conversation holds copies; when it was never
     // created nothing names the originals. Either way they go.
-    await deleteFiles(client.stigmer, staged.originals, warnStderr);
+    await deleteFiles(client.stigmer, staged.originals, (line) => {
+      progress.keep();
+      warnStderr(line);
+    });
   }
 
   // The backend owns the canonical session id: it creates the session and
@@ -127,27 +131,35 @@ function agentRefOf(agent: Agent | undefined): AgentRefInput | undefined {
 
 /** A progress sink that can take back the lines it wrote. */
 export type ProgressLines = ((line: string) => void) & {
-  /** Erases the lines written so far, so the session view starts where they began. */
+  /** Erases the lines written since the last `keep`, so the session view starts where they began. */
   readonly clear: () => void;
+  /** Leaves what is on screen in place: something not to be erased (a warning) follows. */
+  readonly keep: () => void;
 };
 
 // Progress lines go to stderr, but only when it is a TTY, so they never
 // pollute output captured under pipes or CI. Before the session view draws,
 // they are taken back: "Creating run..." is not part of the conversation.
+// Each is counted in the rows it takes at the terminal's width, so a line
+// that wraps is taken back whole.
 export function stderrProgress(stream: NodeJS.WriteStream = process.stderr): ProgressLines {
-  if (stream.isTTY !== true) return Object.assign(() => {}, { clear: () => {} });
-  let written = 0;
+  if (stream.isTTY !== true) return Object.assign(() => {}, { clear: () => {}, keep: () => {} });
+  let rows = 0;
   const write = (line: string): void => {
-    written += line.split("\n").length;
+    const columns = stream.columns > 0 ? stream.columns : Number.POSITIVE_INFINITY;
+    for (const part of line.split("\n")) rows += Math.max(1, Math.ceil(stripVTControlCharacters(part).length / columns));
     stream.write(`${line}\n`);
   };
   const clear = (): void => {
-    if (written === 0) return;
-    // Up to the first line, then erase from there to the end of the screen.
-    stream.write(`\u001b[${written}A\r\u001b[0J`);
-    written = 0;
+    if (rows === 0) return;
+    // Up to the first row, then erase from there to the end of the screen.
+    stream.write(`\u001b[${rows}A\r\u001b[0J`);
+    rows = 0;
   };
-  return Object.assign(write, { clear });
+  const keep = (): void => {
+    rows = 0;
+  };
+  return Object.assign(write, { clear, keep });
 }
 
 // A File left behind is worth a line even off a TTY: it is the person's own

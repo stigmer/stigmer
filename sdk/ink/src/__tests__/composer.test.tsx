@@ -111,6 +111,27 @@ describe("INK-08 the composer takes several lines, paste, and history", () => {
     expect(appended).toEqual(["from yesterday", "from yesterday"]);
   });
 
+  it("goes on without a host history that cannot be read or kept", async () => {
+    const onSubmit = vi.fn();
+    const failing: PromptHistory = { load: async () => Promise.reject(new Error("disk full")), append: async () => Promise.reject(new Error("disk full")) };
+    const { stdin, lastFrame } = render(<FollowUpInput onSubmit={onSubmit} composer={{ history: failing }} />);
+    await type(stdin, "first", ENTER, UP);
+    expect(onSubmit).toHaveBeenCalledWith("first", undefined);
+    expect(lastFrame()).toContain("❯ first");
+    cleanup();
+    const throwing: PromptHistory = {
+      load: () => {
+        throw new Error("unreadable");
+      },
+      append: () => {
+        throw new Error("unwritable");
+      },
+    };
+    const second = render(<FollowUpInput onSubmit={onSubmit} composer={{ history: throwing }} />);
+    await type(second.stdin, "second", ENTER, UP);
+    expect(second.lastFrame()).toContain("❯ second");
+  });
+
   it("keeps the draft while it cannot send, and lets Ctrl+C clear it", async () => {
     const onSubmit = vi.fn();
     const drafts: boolean[] = [];
@@ -166,9 +187,18 @@ describe("INK-08 the composer takes several lines, paste, and history", () => {
     await type(stdin, "?");
     expect(lastFrame()).toContain("Esc");
     expect(lastFrame()).toMatch(/\/deploy\s+Ship it/);
-    await type(stdin, "a");
+    await type(stdin, "?");
+    expect(lastFrame()).not.toContain("Ship it");
+    await type(stdin, "?", "a");
     expect(lastFrame()).not.toContain("Ship it");
     expect(lastFrame()).toContain("❯ a");
+  });
+
+  it("starts a new line on Ctrl+J as the kitty keyboard protocol reports it", async () => {
+    const onSubmit = vi.fn();
+    const { stdin } = render(<FollowUpInput onSubmit={onSubmit} />);
+    await type(stdin, "one", "\u001b[106;5u", "two", ENTER);
+    expect(onSubmit).toHaveBeenCalledWith("one\ntwo", undefined);
   });
 });
 
@@ -185,6 +215,27 @@ describe("INK-09 a host CLI adds its own slash commands and @ completions", () =
     expect(onSubmit).not.toHaveBeenCalled();
     await type(stdin, "/etc/hosts is wrong", ENTER);
     expect(onSubmit).toHaveBeenCalledWith("/etc/hosts is wrong", undefined);
+  });
+
+  it("gives a command what was pasted, not its label, and says in the thread when a command fails", async () => {
+    const ask = { name: "ask", description: "Ask about a trace", run: vi.fn() };
+    const broken = { name: "broken", description: "Fails", run: async () => Promise.reject(new Error("no route to host")) };
+    const thrower = {
+      name: "thrower",
+      description: "Throws",
+      run: () => {
+        throw "plain words";
+      },
+    };
+    const ctx = context();
+    const { stdin } = render(<FollowUpInput onSubmit={vi.fn()} composer={{ commands: [ask, broken, thrower] }} context={ctx} />);
+    const trace = ["Error: boom", "  at a", "  at b", "  at c"].join("\n");
+    await type(stdin, "/ask ", paste(trace), ENTER);
+    expect(ask.run).toHaveBeenCalledWith(trace, ctx);
+    await type(stdin, "/broken", ENTER);
+    expect(ctx.note).toHaveBeenCalledWith("/broken failed: no route to host");
+    await type(stdin, "/thrower", ENTER);
+    expect(ctx.note).toHaveBeenCalledWith("/thrower failed: plain words");
   });
 
   it("opens the command menu on '/', filters as the person types, and takes the selected one on Tab", async () => {
@@ -321,6 +372,15 @@ describe("the composer's logic", () => {
     expect(menuQuery(bufferOf("mail me@host"), ["@"])).toBeUndefined();
     expect(menuQuery(bufferOf("see @src then", 8), ["@"])).toEqual({ kind: "completion", trigger: "@", query: "src", start: 4 });
     expect(menuQuery(bufferOf("plain"), ["@"])).toBeUndefined();
+    expect(menuQuery(bufferOf("line one\n@doc"), ["@"])).toEqual({ kind: "completion", trigger: "@", query: "doc", start: 9 });
+    expect(menuQuery(bufferOf("tab\t@x"), ["@"])).toEqual({ kind: "completion", trigger: "@", query: "x", start: 4 });
+  });
+
+  it("finds the menu in time linear in a long draft", () => {
+    const long = `${"x".repeat(200_000)}\n${"y ".repeat(10)}`;
+    const started = performance.now();
+    expect(menuQuery(bufferOf(long), ["@"])).toBeUndefined();
+    expect(performance.now() - started).toBeLessThan(250);
   });
 
   it("matches commands that start with the query first, then those that contain it, in any case", () => {

@@ -70,6 +70,13 @@ describe("INK-07 Esc stops a running turn and leaves the session usable", () => 
     expect(lastFrame()).toContain("❯ only the tests");
   });
 
+  it("says why a stop failed, and keeps the session", () => {
+    working("busy", { stopError: new Error("the session is not reachable") });
+    const frame = render(<SessionView sessionId="ses_1" org="demo" canAnswer />).lastFrame() ?? "";
+    expect(frame).toContain("Stop error: the session is not reachable");
+    expect(frame).toContain("Esc to stop");
+  });
+
   it("says a second Esc ends it now while the turn winds down", () => {
     working("busy", { isStopping: true });
     expect(render(<SessionView sessionId="ses_1" org="demo" canAnswer />).lastFrame()).toMatch(/Stopping… · [\dhms ]+ · Esc again to end it now/);
@@ -115,9 +122,13 @@ describe("INK-07 Esc stops a running turn and leaves the session usable", () => 
 });
 
 describe("INK-17 leaving a session says the agent keeps working and how to come back", () => {
-  it("words the leave line by whether a turn works, with the host's way back", () => {
-    expect(leaveLine(true, "Come back with `stigmer resume ses_1`")).toBe("Press Ctrl+C again to leave. The agent keeps working. Come back with `stigmer resume ses_1`");
-    expect(leaveLine(false)).toBe("Press Ctrl+C again to leave.");
+  it("words the leave line by the turn's phase, with the host's way back", () => {
+    expect(leaveLine("running", "Come back with `stigmer resume ses_1`")).toBe("Press Ctrl+C again to leave. The agent keeps working. Come back with `stigmer resume ses_1`");
+    expect(leaveLine(null)).toBe("Press Ctrl+C again to leave.");
+    // A turn blocked on a person is not working.
+    expect(leaveLine("waiting")).toBe("Press Ctrl+C again to leave. The agent waits for an answer.");
+    expect(leaveLine("paused")).toBe("Press Ctrl+C again to leave. The turn stays paused.");
+    expect(leaveLine("pending")).toBe("Press Ctrl+C again to leave. The agent keeps working.");
   });
 
   it("asks once, then leaves on a second Ctrl+C within the window", async () => {

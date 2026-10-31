@@ -378,10 +378,24 @@ describe("stderrProgress", () => {
     expect(written).toHaveLength(3);
   });
 
+  it("takes back a line that wrapped in every row it took, and never a warning written between", () => {
+    const written: string[] = [];
+    const stream = { isTTY: true, columns: 10, write: (chunk: string) => written.push(chunk) } as unknown as NodeJS.WriteStream;
+    const progress = stderrProgress(stream);
+    progress("Uploading");
+    progress.keep();
+    progress("Uploading notes.md...");
+    progress(`\u001b[2m${"x".repeat(10)}\u001b[0m`);
+    progress.clear();
+    // 22 characters take three rows at ten columns; colour codes take none.
+    expect(written.at(-1)).toBe("\u001b[4A\r\u001b[0J");
+  });
+
   it("writes and takes back nothing off a terminal", () => {
     const written: string[] = [];
     const progress = stderrProgress({ isTTY: false, write: (chunk: string) => written.push(chunk) } as unknown as NodeJS.WriteStream);
     progress("Creating run...");
+    progress.keep();
     progress.clear();
     expect(written).toEqual([]);
   });
