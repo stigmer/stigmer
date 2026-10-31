@@ -1,9 +1,9 @@
 /**
- * `<Screen>`: a shown picture by its name, sized from the visual suite's
- * list so nothing moves while it loads, offered at both densities, with its
- * alt text; opening larger in the docs, bare on request; and refusing a
- * name the list does not hold or blank alt text, so the build fails on the
- * page that asked.
+ * `<Screen>`: the docs' shown picture by its name, sized from the visual
+ * suite's list so nothing moves while it loads, offered at both densities
+ * in the docs column, with its alt text; opening larger on a click; and
+ * refusing a name the list does not hold or blank alt text, so the build
+ * fails on the page that asked. The bare picture is `ScreenImage`'s test.
  */
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
@@ -28,12 +28,9 @@ describe("Screen", () => {
     expect(img.getAttribute("decoding")).toBe("async");
   });
 
-  it("opens larger on a click in the docs, and stands bare when a page asks", () => {
-    const { container, unmount } = render(<Screen name="approval" alt={ALT} />);
+  it("opens larger on a click, and passes its slot and class to the picture", () => {
+    const { container } = render(<Screen name="approval" alt={ALT} sizes="100vw" className="rounded" />);
     expect(container.querySelector("[data-rmiz]")).not.toBeNull();
-    unmount();
-    const bare = render(<Screen name="approval" alt={ALT} zoom={false} sizes="100vw" className="rounded" />);
-    expect(bare.container.querySelector("[data-rmiz]")).toBeNull();
     const img = screen.getByRole("img", { name: ALT });
     expect(img.getAttribute("sizes")).toBe("100vw");
     expect(img.className).toContain("rounded");
