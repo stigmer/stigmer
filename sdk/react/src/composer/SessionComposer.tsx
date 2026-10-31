@@ -43,7 +43,7 @@ import { useFileReferences } from "../file-reference/useFileReferences.js";
 import { FileReferenceChipList } from "../file-reference/FileReferenceChipList.js";
 import { FILE_REF_MIME } from "../internal/file-tree/index.js";
 import { VaultPicker } from "../vault/VaultPicker.js";
-import type { ConversationVaults } from "../vault/conversationVaults.js";
+import { conversationVaultsKey, type ConversationVaults } from "../vault/conversationVaults.js";
 import { SYSTEM_ENV_VAR_KEYS } from "../vault/systemEnvVars.js";
 import { useWhoAmI } from "@stigmer/react-core";
 import { EnvironmentPicker } from "../environment/EnvironmentPicker.js";
@@ -135,14 +135,17 @@ export interface SessionComposerHandle {
 export interface SessionComposerSubmitContext {
   /**
    * The shared vaults the person picked for this conversation, in order,
-   * or `undefined` when the picker was not touched (the conversation keeps
-   * what it uses). Set together with {@link includeMyVault}.
+   * or `undefined` when the picker was not touched or the conversation
+   * already uses the pick (the conversation keeps what it uses). A pick
+   * rides every send until the composer's `initialVaultRefs` and
+   * `initialIncludeMyVault` show it. Set together with {@link includeMyVault}.
    */
   readonly vaults?: ResourceRef[];
   /**
    * Whether the person picked their own My vault for this conversation,
    * read first, ahead of {@link vaults}; `undefined` when the picker was
-   * not touched. Set together with {@link vaults}.
+   * not touched or the conversation already uses the pick. Set together
+   * with {@link vaults}.
    */
   readonly includeMyVault?: boolean;
   /**
@@ -513,13 +516,19 @@ export interface SessionComposerProps {
    */
   readonly enableVaultPicker?: boolean;
 
-  /** The shared vaults the conversation lists already, shown as the picker's starting selection. */
+  /**
+   * The shared vaults the conversation lists already, shown as the picker's
+   * starting selection. Keep it equal to what the conversation uses as that
+   * changes (reload the conversation after saving a pick): a pick is sent
+   * with every message until this and {@link initialIncludeMyVault} show it.
+   */
   readonly initialVaultRefs?: readonly ResourceRef[];
 
   /**
    * Whether the conversation includes its sender's My vault already, the
    * picker's starting tick. Also what the agent's setup and the plugins'
-   * sign-ins weigh while the picker is untouched.
+   * sign-ins weigh while the picker is untouched. Keep it current with
+   * {@link initialVaultRefs}: a pick is sent until both show it.
    *
    * @default true
    */
@@ -904,9 +913,15 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   // listed shared vaults; exactly what its runs read
   // ---------------------------------------------------------------------------
 
-  // The person's pick: `undefined` until the picker is touched, so an
-  // untouched picker never rewrites what the conversation uses. A pick
-  // belongs to the conversation it was made in: another conversation
+  // The person's pick: `undefined` while nothing is pending, so an
+  // untouched picker never rewrites what the conversation uses. A pick is
+  // pending until the conversation uses it: every send carries it, and
+  // once the host's starting choice shows it (the host reloads the
+  // conversation after its save), it is dropped and no later send carries
+  // it. So a failed save is sent again, a change made in another tab shows
+  // and is never overwritten, and a pick back to what the conversation
+  // uses is no change. Compared by content, as the setup hooks key it. A
+  // pick belongs to the conversation it was made in: another conversation
   // starts from what it uses.
   const [vaultPick, setVaultPick] = useState<ConversationVaults | undefined>(undefined);
   const [vaultPickSessionId, setVaultPickSessionId] = useState(sessionId);
@@ -920,6 +935,9 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
     // Keyed by content: hosts pass a fresh array per render.
     [initialIncludeMyVault, initialVaultsKey],
   );
+  if (vaultPick !== undefined && conversationVaultsKey(vaultPick) === conversationVaultsKey(initialChoice)) {
+    setVaultPick(undefined);
+  }
   const shownVaults = vaultPick ?? initialChoice;
   const showVaults = enableVaultPicker && org != null;
 

@@ -4,7 +4,11 @@
  * Vaults panel's pick rides the submit as `includeMyVault` with `vaults`,
  * together, and an untouched picker sends neither; a pick belongs to its
  * conversation, so a composer kept mounted while the host moves to another
- * conversation (the desktop app) drops it; the agent's setup weighs the
+ * conversation (the desktop app) drops it; a pick rides every send until
+ * the conversation uses it (the host re-renders with it as the starting
+ * choice once its save lands), then no send carries it, so a failed save is
+ * sent again, a change made elsewhere shows and is never overwritten, and a
+ * pick back to what the conversation uses sends nothing; the agent's setup weighs the
  * conversation's choice, with only the platform's own keys as its pool.
  * Only a conversation's creator may change its vaults: a teammate sees the
  * pick read-only and nothing they save ticks it. For the creator, a typed
@@ -69,15 +73,18 @@ vi.mock("../PersonalKeyDisclosure.js", () => ({
 
 vi.mock("../../vault/VaultPicker.js", () => ({
   VaultPicker: ({
+    value,
     onChange,
     myVault,
     disabled,
   }: {
+    readonly value: readonly ResourceRef[];
     readonly onChange: (refs: ResourceRef[]) => void;
     readonly myVault?: VaultPickerMyVault;
     readonly disabled?: boolean;
   }) => (
     <div>
+      <p>{`Listed: ${value.map((ref) => ref.slug).join(", ") || "none"}`}</p>
       <button type="button" disabled={disabled} onClick={() => onChange([{ org: "acme", slug: "support-tools" }])}>
         Pick support-tools
       </button>
@@ -158,6 +165,22 @@ async function send(onSubmit: ReturnType<typeof vi.fn>, message: string, calls =
   return onSubmit.mock.calls[calls - 1][2] as { vaults?: ResourceRef[]; includeMyVault?: boolean } | undefined;
 }
 
+const SUPPORT_TOOLS: ResourceRef = { org: "acme", slug: "support-tools" };
+
+/** Opens the Vaults panel unless it is open already. */
+async function showVaultsPanel() {
+  if (screen.queryByRole("button", { name: "Pick support-tools" }) === null) await openPanel(/Vaults/);
+  await screen.findByRole("button", { name: "Pick support-tools" });
+}
+
+/** Picks support-tools as the conversation's creator, once the picker is enabled for them. */
+async function pickSupportTools() {
+  await showVaultsPanel();
+  const pick = screen.getByRole("button", { name: "Pick support-tools" });
+  await waitFor(() => expect((pick as HTMLButtonElement).disabled).toBe(false));
+  fireEvent.click(pick);
+}
+
 describe("SessionComposer — the conversation's vaults", () => {
   it("sends My vault and the shared vaults picked in the Vaults panel, together", async () => {
     const onSubmit = vi.fn();
@@ -204,6 +227,81 @@ describe("SessionComposer — the conversation's vaults", () => {
     const second = await send(onSubmit, "Second", 2);
     expect(second?.vaults).toBeUndefined();
     expect(second?.includeMyVault).toBeUndefined();
+  });
+
+  it("stops sending a pick once the conversation uses it", async () => {
+    const onSubmit = vi.fn();
+    const props = { onSubmit, ...AGENT_PROPS, sessionId: "ses_a", vaultPickCreatorId: "ida_creator" };
+    const { rerender } = render(<SessionComposer {...props} />, { wrapper: wrapperFor(client()) });
+    await pickSupportTools();
+
+    const first = await send(onSubmit, "First");
+    expect(first?.vaults).toEqual([SUPPORT_TOOLS]);
+    expect(first?.includeMyVault).toBe(true);
+
+    // The save landed: the host reloads the conversation and passes what it uses now.
+    rerender(<SessionComposer {...props} initialVaultRefs={[SUPPORT_TOOLS]} />);
+    const second = await send(onSubmit, "Second", 2);
+    expect(second?.vaults).toBeUndefined();
+    expect(second?.includeMyVault).toBeUndefined();
+    await showVaultsPanel();
+    expect(screen.getByText("Listed: support-tools")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "My vault ticked" })).toBeTruthy();
+  });
+
+  it("sends the pick again while the conversation does not use it, as after a failed save", async () => {
+    const onSubmit = vi.fn();
+    const props = { onSubmit, ...AGENT_PROPS, sessionId: "ses_a", vaultPickCreatorId: "ida_creator" };
+    const { rerender } = render(<SessionComposer {...props} />, { wrapper: wrapperFor(client()) });
+    await pickSupportTools();
+    await send(onSubmit, "First");
+
+    // The save failed: the host's conversation still lists no shared vault.
+    rerender(<SessionComposer {...props} />);
+    const retry = await send(onSubmit, "Again", 2);
+    expect(retry?.vaults).toEqual([SUPPORT_TOOLS]);
+    expect(retry?.includeMyVault).toBe(true);
+  });
+
+  it("shows a change made elsewhere once its own pick is in use, and sends nothing over it", async () => {
+    const onSubmit = vi.fn();
+    const props = { onSubmit, ...AGENT_PROPS, sessionId: "ses_a", vaultPickCreatorId: "ida_creator" };
+    const { rerender } = render(<SessionComposer {...props} />, { wrapper: wrapperFor(client()) });
+    await pickSupportTools();
+    await send(onSubmit, "First");
+    rerender(<SessionComposer {...props} initialVaultRefs={[SUPPORT_TOOLS]} />);
+
+    // Another tab drops both My vault and support-tools.
+    rerender(<SessionComposer {...props} initialIncludeMyVault={false} initialVaultRefs={[]} />);
+    await showVaultsPanel();
+    expect(screen.getByText("Listed: none")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "My vault unticked" })).toBeTruthy();
+    const next = await send(onSubmit, "Next", 2);
+    expect(next?.vaults).toBeUndefined();
+    expect(next?.includeMyVault).toBeUndefined();
+  });
+
+  it("sends nothing when the pick goes back to what the conversation uses", async () => {
+    const onSubmit = vi.fn();
+    render(
+      <SessionComposer
+        onSubmit={onSubmit}
+        {...AGENT_PROPS}
+        sessionId="ses_a"
+        vaultPickCreatorId="ida_creator"
+        initialVaultRefs={[SUPPORT_TOOLS]}
+      />,
+      { wrapper: wrapperFor(client()) },
+    );
+    await showVaultsPanel();
+    const tick = screen.getByRole("button", { name: "My vault ticked" });
+    await waitFor(() => expect((tick as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(tick);
+    fireEvent.click(screen.getByRole("button", { name: "My vault unticked" }));
+
+    const context = await send(onSubmit, "Go");
+    expect(context?.vaults).toBeUndefined();
+    expect(context?.includeMyVault).toBeUndefined();
   });
 
   it("hands the conversation's vault choice to the agent's setup, with only the platform's keys as its pool", async () => {
