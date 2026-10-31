@@ -18,6 +18,7 @@ import { downloadRunOutputs } from "../download.js";
 import { deleteFiles, stageFiles } from "./files.js";
 import { type AgentRefInput, createAgentRun } from "./create.js";
 import { renderSessionHeader, type SessionHeaderInfo, workspaceNames } from "./header.js";
+import { localWorkspaceRoots } from "./workspace.js";
 import type { PreparedRun } from "./prepare.js";
 import { streamAgentRun, type RunOutputMode } from "./stream.js";
 
@@ -103,6 +104,8 @@ export async function executeResolvedAgent(input: ResolvedAgentExecInput): Promi
     approveDefault: prepared.approveDefault,
     outputMode: input.outputMode,
     header,
+    workspaceRoots: localWorkspaceRoots(prepared.resources),
+    clearProgress: progress.clear,
   });
 
   if (input.downloadDir !== "") {
@@ -122,11 +125,29 @@ function agentRefOf(agent: Agent | undefined): AgentRefInput | undefined {
   return { org: agent.metadata?.org ?? "", slug: agent.metadata?.slug ?? "" };
 }
 
+/** A progress sink that can take back the lines it wrote. */
+export type ProgressLines = ((line: string) => void) & {
+  /** Erases the lines written so far, so the session view starts where they began. */
+  readonly clear: () => void;
+};
+
 // Progress lines go to stderr, but only when it is a TTY, so they never
-// pollute output captured under pipes or CI.
-export function stderrProgress(): (line: string) => void {
-  if (process.stderr.isTTY !== true) return () => {};
-  return (line) => void process.stderr.write(`${line}\n`);
+// pollute output captured under pipes or CI. Before the session view draws,
+// they are taken back: "Creating run..." is not part of the conversation.
+export function stderrProgress(stream: NodeJS.WriteStream = process.stderr): ProgressLines {
+  if (stream.isTTY !== true) return Object.assign(() => {}, { clear: () => {} });
+  let written = 0;
+  const write = (line: string): void => {
+    written += line.split("\n").length;
+    stream.write(`${line}\n`);
+  };
+  const clear = (): void => {
+    if (written === 0) return;
+    // Up to the first line, then erase from there to the end of the screen.
+    stream.write(`\u001b[${written}A\r\u001b[0J`);
+    written = 0;
+  };
+  return Object.assign(write, { clear });
 }
 
 // A File left behind is worth a line even off a TTY: it is the person's own

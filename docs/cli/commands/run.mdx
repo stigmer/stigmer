@@ -206,6 +206,26 @@ exits. Check progress with `stigmer get session <id>`.
 stigmer run my-agent --detach -m "Generate weekly report"
 ```
 
+### In the session
+
+On a terminal, `stigmer run` and `stigmer resume` open the session and keep it
+open for follow-ups. The agent works on the server, so leaving is not stopping:
+
+| Key                               | What it does                                                                                                                    |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Enter                             | Send the message                                                                                                                |
+| `\` then Enter, Ctrl+J, Alt+Enter | Start a new line (Shift+Enter too, where the terminal reports it)                                                               |
+| Up, Down                          | Earlier messages, kept per directory                                                                                            |
+| Esc                               | Stop the agent's turn; a second Esc while it stops ends it now                                                                  |
+| Ctrl+C                            | Clear the message; on an empty one, press twice to leave. The agent keeps working, and `stigmer resume <session-id>` comes back |
+| Shift+Tab, Ctrl+T                 | Switch plan and agent mode                                                                                                      |
+| Ctrl+O                            | Expand tool calls and thinking                                                                                                  |
+| `?`                               | List the keys and commands                                                                                                      |
+
+Type `/` for the commands: `/help`, `/mode plan` or `/mode agent`, `/stop` and
+`/exit`. Type `@` to mention a file in the session's local folder
+(`--workspace <dir>`): it is sent as a reference the agent reads in place.
+
 ### Run options
 
 | Flag                | Purpose                                                                                                                                                                                                                       |

@@ -12,6 +12,7 @@
 
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { followSession, type Stigmer } from "@stigmer/client";
+import { listRunsBySession } from "../session.js";
 import { runEpilogue } from "./epilogue.js";
 import { renderSessionHeader, type SessionHeaderInfo } from "./header.js";
 import type { RunMode } from "./prepare.js";
@@ -34,6 +35,10 @@ export interface StreamDeps {
   readonly approveDefault: ApproveDefault;
   readonly outputMode: RunOutputMode;
   readonly header: SessionHeaderInfo;
+  /** The session's local folders, which the Ink composer's `@` completes paths under. */
+  readonly workspaceRoots?: readonly string[];
+  /** Takes back the progress lines written before the run, so the Ink view starts clean. */
+  readonly clearProgress?: () => void;
 }
 
 /**
@@ -48,9 +53,13 @@ export async function streamAgentRun(deps: StreamDeps): Promise<Run> {
   }
 
   if (isInkSupported(process.stdout)) {
+    deps.clearProgress?.();
     await runInk(deps);
-    // Ink owns the live view; the epilogue still prints the exit summary.
-    return runEpilogue(deps.client, deps.sessionId, deps.runId, { phase: "", error: "", turn: undefined });
+    // Ink owns the live view; the epilogue still prints the exit summary, of
+    // the session's newest turn: the person may have sent follow-ups since
+    // the run this command started (stigmer#2781).
+    const runId = await newestRunId(deps.client, deps.sessionId, deps.runId);
+    return runEpilogue(deps.client, deps.sessionId, runId, { phase: "", error: "", turn: undefined });
   }
 
   renderSessionHeader(process.stderr, deps.header);
@@ -83,6 +92,16 @@ async function runHeadless(deps: StreamDeps, renderer: HeadlessRenderer): Promis
   }
 }
 
+// The session's newest run, or `fallback` when the list cannot be read.
+async function newestRunId(client: Stigmer, sessionId: string, fallback: string): Promise<string> {
+  try {
+    const runs = await listRunsBySession(client, sessionId);
+    return runs[0]?.metadata?.id || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 // Lazily import the Ink renderer so React/Ink load only on the interactive path
 // (non-streaming commands and --help never pay for them).
 async function runInk(deps: StreamDeps): Promise<void> {
@@ -92,5 +111,6 @@ async function runInk(deps: StreamDeps): Promise<void> {
     sessionId: deps.sessionId,
     org: deps.org,
     mode: deps.mode === "plan" ? "plan" : "agent",
+    workspaceRoots: deps.workspaceRoots,
   });
 }

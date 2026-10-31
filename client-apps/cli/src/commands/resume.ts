@@ -7,6 +7,7 @@ import type { Command } from "commander";
 import { ensureAuthenticated } from "../config/index.js";
 import { UsageError } from "../errors/index.js";
 import { interactiveBrowseEnabled } from "../resources/picker/tty.js";
+import { SESSION_HELP } from "./session-help.js";
 
 interface ResumeFlags {
   verbose?: boolean;
@@ -21,6 +22,7 @@ export function registerResume(program: Command): void {
     .option("-v, --verbose", "show all run events")
     .option("--mode <mode>", 'follow-up interaction mode: "agent" (default) or "plan" (read-only)')
     .option("--json", "stream events as newline-delimited JSON")
+    .addHelpText("after", SESSION_HELP)
     .action((reference: string | undefined, options: ResumeFlags) => runResume(reference, options));
 }
 

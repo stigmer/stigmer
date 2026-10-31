@@ -97,6 +97,11 @@ async function printSessionExit(
     case RunPhase.RUN_TERMINATED:
       write(s.yellow(`Stopped: ${await failure()}`));
       break;
+    case RunPhase.RUN_PENDING:
+    case RunPhase.RUN_IN_PROGRESS:
+      // Left while the turn works: leaving is not stopping.
+      write(s.yellow(`Left the session. The agent keeps working (${formatAgentPhase(phase)}).`));
+      break;
     default:
       write(s.yellow(`Exited (${formatAgentPhase(phase)})`));
   }
@@ -137,6 +142,9 @@ function resumeVerb(phase: RunPhase): string {
       return "To continue:";
     case RunPhase.RUN_FAILED:
       return "To retry:   ";
+    case RunPhase.RUN_PENDING:
+    case RunPhase.RUN_IN_PROGRESS:
+      return "To come back:";
     default:
       return "To resume:  ";
   }
