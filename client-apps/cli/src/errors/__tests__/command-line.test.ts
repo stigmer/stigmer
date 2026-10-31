@@ -5,9 +5,10 @@
 // typed that may be a key is echoed (an option's value written after '=',
 // an extra argument).
 import { describe, expect, it } from "vitest";
-import type { Command } from "commander";
+import { type Command, CommanderError } from "commander";
 import { buildProgram } from "../../program.js";
 import { classify } from "../classify.js";
+import { commandLineErrorOf } from "../command-line.js";
 import { formatError } from "../handle.js";
 
 /** Parse `argv` through the whole program, returning what it printed and what it threw. */
@@ -87,5 +88,10 @@ describe("CLI-03 a usage error exits 2, in the CLI's own error style", () => {
     expect(rendered(thrown)).toEqual({ text: "", exitCode: 2 });
     expect(out).toBe("");
     expect(err).toContain("Usage: stigmer config");
+  });
+
+  it("names no option when Commander's message names none it can read", () => {
+    const error = commandLineErrorOf(buildProgram(), new CommanderError(1, "commander.unknownOption", "error: unknown option"));
+    expect({ message: error.message, exitCode: error.exitCode }).toEqual({ message: "unknown option", exitCode: 2 });
   });
 });

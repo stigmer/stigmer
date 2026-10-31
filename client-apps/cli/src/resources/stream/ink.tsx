@@ -66,7 +66,7 @@ export async function runInkSession(opts: InkSessionOptions): Promise<void> {
   const pending = new Set<Promise<void>>();
   let mounted = true;
   // Assigned before Ink can report a turn: render() returns before any effect runs.
-  let leave = (): void => undefined;
+  let leave: (() => void) | undefined;
 
   const onTurnEnd = (turn: Turn, context: TurnEndContext): void => {
     const say = (line: string): void => {
@@ -78,7 +78,7 @@ export async function runInkSession(opts: InkSessionOptions): Promise<void> {
     });
     pending.add(action);
     void action.finally(() => pending.delete(action));
-    if (opts.until === "turn" && turn.runId === opts.watchRunId) void action.then(() => leave());
+    if (opts.until === "turn" && turn.runId === opts.watchRunId) void action.then(() => leave?.());
   };
 
   const instance = render(
