@@ -12,6 +12,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, cleanup } from "ink-testing-library";
 import { Text } from "ink";
 import { FollowUpInput } from "../components/FollowUpInput.js";
+import { TextField } from "../components/TextField.js";
 import { KeyOwnerProvider, useKeysFree } from "../app/key-owner.js";
 import type { ComposerContext, ComposerExtensions, PromptHistory } from "../input/extensions.js";
 import {
@@ -138,6 +139,25 @@ describe("INK-08 the composer takes several lines, paste, and history", () => {
     expect(lastFrame()).toContain("❯ wrong idea");
   });
 
+  it("sends nothing for an empty message, and sends text typed with its Enter in one read", async () => {
+    const onSubmit = vi.fn();
+    const { stdin, lastFrame } = render(<FollowUpInput onSubmit={onSubmit} />);
+    await type(stdin, ENTER, "   ", ENTER);
+    expect(onSubmit).not.toHaveBeenCalled();
+    await type(stdin, "\u0015", "typed fast\r");
+    expect(onSubmit).toHaveBeenCalledWith("typed fast", undefined);
+    expect(lastFrame()).toContain("Reply...");
+  });
+
+  it("leaves the history once a recalled message is edited", async () => {
+    const { stdin, lastFrame } = render(<FollowUpInput onSubmit={vi.fn()} />);
+    await type(stdin, "first", ENTER, UP, "!");
+    expect(lastFrame()).toContain("❯ first!");
+    // Off the walk: Down has no draft to bring back.
+    await type(stdin, DOWN);
+    expect(lastFrame()).toContain("❯ first!");
+  });
+
   it("shows 'Sending...' while a message is on its way, and lists the keys on '?'", async () => {
     expect(render(<FollowUpInput onSubmit={vi.fn()} isSubmitting />).lastFrame()).toContain("Sending...");
     cleanup();
@@ -235,6 +255,29 @@ describe("INK-09 a host CLI adds its own slash commands and @ completions", () =
     await type(stdin, "#12");
     expect(lastFrame()).toContain("❯ #12");
     expect(lastFrame()).not.toContain("▸");
+  });
+});
+
+describe("a one-line field", () => {
+  it("takes a paste on one line, its line breaks as spaces", async () => {
+    const changes: string[] = [];
+    function Field() {
+      const [value, setValue] = React.useState(bufferOf(""));
+      return (
+        <TextField
+          value={value}
+          onChange={(next) => {
+            changes.push(next.text);
+            setValue(next);
+          }}
+          onSubmit={vi.fn()}
+        />
+      );
+    }
+    const { stdin, lastFrame } = render(<Field />);
+    await type(stdin, paste("two\nlines\r\nhere"));
+    expect(changes.at(-1)).toBe("two lines here");
+    expect(lastFrame()).toContain("two lines here");
   });
 });
 

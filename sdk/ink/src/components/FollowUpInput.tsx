@@ -32,6 +32,7 @@ import {
   pasteInsert,
   stepHistory,
   type HistoryWalk,
+  type MenuQuery,
 } from "../input/composer-logic.js";
 import type { CompletionAttachment, CompletionItem, ComposerContext, ComposerExtensions } from "../input/extensions.js";
 
@@ -133,8 +134,8 @@ export function FollowUpInput({
       setCompletions([]);
       return;
     }
-    const source = sources.find((candidate) => candidate.trigger === query.trigger);
-    if (source === undefined) return;
+    // menuQuery only names the triggers of these sources.
+    const source = sources.find((candidate) => candidate.trigger === query.trigger)!;
     const controller = new AbortController();
     void Promise.resolve(source.complete(query.query, controller.signal))
       .then((items) => {
@@ -188,9 +189,8 @@ export function FollowUpInput({
     clear();
   };
 
-  const accept = (row: MenuRow): void => {
-    if (query === undefined) return;
-    setBuffer(acceptMenuItem(buffer, query, row.insert));
+  const accept = (row: MenuRow, open: MenuQuery): void => {
+    setBuffer(acceptMenuItem(buffer, open, row.insert));
     if (row.item !== undefined) setAccepted((list) => [...list, row.item!]);
   };
 
@@ -210,7 +210,8 @@ export function FollowUpInput({
           submit();
           return true;
         }
-        accept(row);
+        // An open menu has a query.
+        accept(row, query!);
         return true;
       }
       if (key.escape) {

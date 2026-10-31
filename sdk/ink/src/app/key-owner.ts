@@ -32,10 +32,8 @@ export function KeyOwnerProvider({ children }: { readonly children: ReactNode })
   const release = useCallback(
     (id: string) =>
       setClaims((held) => {
-        if (!held.has(id)) return held;
         const next = new Set(held);
-        next.delete(id);
-        return next;
+        return next.delete(id) ? next : held;
       }),
     [],
   );

@@ -15,6 +15,7 @@ import type { Instance } from "ink";
 import type { UseSessionConversationReturn } from "@stigmer/react-core";
 import { conversationOf, scenarios } from "@stigmer/react-sdk/test";
 import { LEAVE_WINDOW_MS, SessionView, leaveLine } from "../app/SessionView.js";
+import { SessionApp } from "../app/SessionApp.js";
 import type { SlashCommand } from "../input/extensions.js";
 import { renderOnTerminal } from "./fake-terminal.js";
 
@@ -137,6 +138,27 @@ describe("INK-17 leaving a session says the agent keeps working and how to come 
     expect(exited).toBe(true);
   });
 
+  it("takes any other key as not leaving: the next Ctrl+C asks again", async () => {
+    working("busy");
+    const { instance, stdin } = renderOnTerminal(<SessionView sessionId="ses_1" org="demo" canAnswer />, 100, 40);
+    mounted = instance;
+    let exited = false;
+    void instance.waitUntilExit().then(() => {
+      exited = true;
+    });
+    await settle(80);
+    stdin.write(CTRL_C);
+    await settle(80);
+    stdin.write("\u000f");
+    await settle(80);
+    stdin.write(CTRL_C);
+    await settle(80);
+    expect(exited).toBe(false);
+    stdin.write(CTRL_C);
+    await settle(80);
+    expect(exited).toBe(true);
+  });
+
   it("clears a draft first, and asks again once the window passed", async () => {
     working("busy");
     const { instance, stdin, stdout } = renderOnTerminal(<SessionView sessionId="ses_1" org="demo" canAnswer />, 100, 40);
@@ -194,5 +216,19 @@ describe("INK-17 leaving a session says the agent keeps working and how to come 
     stdin.write("\r");
     await settle(80);
     expect(exited).toBe(true);
+  });
+});
+
+describe("INK-09 a host's commands and way back reach the view through SessionApp", () => {
+  it("passes the composer and the leave hint down", async () => {
+    working("busy");
+    const commands: SlashCommand[] = [{ name: "deploy", description: "Ship it", run: () => {} }];
+    const { stdin, lastFrame } = render(
+      <SessionApp sessionId="ses_1" org="demo" baseUrl="http://localhost:7234" apiKey="k" composer={{ commands }} leaveHint="Come back later." />,
+    );
+    await type(stdin, "?");
+    expect(lastFrame()).toMatch(/\/deploy\s+Ship it/);
+    await type(stdin, "\u0015", CTRL_C);
+    expect(lastFrame()).toContain("Come back later.");
   });
 });

@@ -64,6 +64,20 @@ describe("INK-09 stigmer run adds its own slash commands and @ completions throu
     expect(await workspaceCompletion([join(dir, "missing")]).complete("", new AbortController().signal)).toEqual([]);
   });
 
+  it("reads no deeper than six folders down, and no more than 5,000 entries", async () => {
+    const deep = join(dir, "a", "b", "c", "d", "e", "f", "g");
+    mkdirSync(deep, { recursive: true });
+    writeFileSync(join(dir, "a", "b", "c", "d", "e", "f", "shallow.md"), "");
+    writeFileSync(join(deep, "deep.md"), "");
+    expect((await workspaceCompletion([dir]).complete(".md", new AbortController().signal)).map((item) => item.label)).toEqual(["a/b/c/d/e/f/shallow.md"]);
+    const wide = join(dir, "wide");
+    mkdirSync(wide);
+    for (let index = 0; index < 5_001; index += 1) writeFileSync(join(wide, `f${String(index).padStart(5, "0")}.txt`), "");
+    writeFileSync(join(dir, "zz-last.txt"), "");
+    const items = await workspaceCompletion([dir]).complete("last", new AbortController().signal);
+    expect(items).toEqual([]);
+  });
+
   it("offers at most twenty items", async () => {
     for (let index = 0; index < 30; index += 1) writeFileSync(join(dir, `note-${String(index).padStart(2, "0")}.md`), "");
     expect(await workspaceCompletion([dir]).complete("note", new AbortController().signal)).toHaveLength(20);
