@@ -115,6 +115,87 @@ describe("the thread's items", () => {
   });
 });
 
+describe("the thread's items, by turn", () => {
+  it("leaves out a reconcile turn and a turn with nothing in it, and keeps a turn that has items but no message", () => {
+    const shown = samples.turn({ runId: "run_shown" });
+    const reconcile = samples.turn({ runId: "run_undo" });
+    const empty = { ...samples.turn({ runId: "run_empty" }), userMessage: undefined, items: [] };
+    const itemsOnly = { ...samples.turn({ runId: "run_items", reply: "Picked up." }), userMessage: undefined };
+    const runs = [samples.run({ id: "run_undo" })];
+    runs[0]!.spec!.reconcileFileReview = true;
+    const items = itemsOf([shown, reconcile, empty, itemsOnly], { runs });
+    expect(items.map((item) => item.key)).toEqual(["run_shown-spec", "run_shown.root.m0-b0", "run_items.root.m0-b0"]);
+  });
+
+  it("keys every item by what it is, so the history writes each once", () => {
+    const taskId = `${RUN_ID}.tc-task`;
+    const turn = turnOf([
+      samples.userMessageEvent("Fix it", { processedAt: sampleInstant(0) }),
+      samples.runStatusEvent("running", { processedAt: sampleInstant(0) }),
+      ...samples.thinkingEvents("Weighing it."),
+      samples.toolUseEvent("read_file", { path: "a.ts" }),
+      samples.toolUseEvent("task", { description: "map it" }, { id: taskId }),
+      ...threadEvents(taskId, { reply: "Found it." }),
+      samples.agentMessageEvent("One.\n\nTwo."),
+      ...reviewEvents([{ id: "a", path: "notes.md" }], [{ id: "d", action: "keep", fileChangeId: "a" }]),
+      samples.runStatusEvent("completed", { processedAt: sampleInstant(5_000) }),
+    ]);
+    const asking = { ...samples.turn({ runId: "run_next", phase: "running", reply: "" }), asks: [{ ...samples.toolUse("execute"), state: "waiting" as const }] };
+    const items = itemsOf([turn, asking], { queued: [{ id: "q1", text: "also", state: "waiting" }], pendingUserMessage: "and that" });
+    expect(items.map((item) => item.key)).toEqual([
+      `${RUN_ID}-spec`,
+      `${RUN_ID}.root.t0`,
+      `${RUN_ID}.tc-read_file-tc`,
+      `sa-${taskId}`,
+      `${RUN_ID}.root.m0-b0`,
+      `${RUN_ID}.root.m0-b1`,
+      `${RUN_ID}-frr-cs-1`,
+      `${RUN_ID}-end`,
+      "run_next-spec",
+      `approval-${RUN_ID}.tc-execute`,
+      "queued-q1",
+      "pending-user-msg",
+    ]);
+    expect(items.at(7)).toMatchObject({ kind: "worked", text: "Worked for 5s" });
+  });
+
+  it("names the person's message by the turn's run when the log has none", () => {
+    const run = samples.run({ id: "run_spec", message: "From the run" });
+    const turn = { ...samples.turn({ runId: "run_spec", reply: "Done." }), userMessage: undefined };
+    expect(itemsOf([turn], { runs: [run] })[0]).toMatchObject({ key: "run_spec-spec", message: { kind: "user", id: "run_spec.user", text: "From the run" } });
+  });
+
+  it("keeps a group live while any one of its calls runs, closing it before a subagent that follows", () => {
+    const taskId = `${RUN_ID}.tc-task`;
+    const turn = turnOf([
+      ...samples.turnEvents({ phase: "running", reply: "", tools: [{ name: "read_file", input: { path: "a.ts" }, result: "ok" }, { name: "execute", input: { command: "npm test" } }] }),
+      samples.toolUseEvent("task", { description: "map it" }, { id: taskId }),
+      ...threadEvents(taskId, { reply: "Found it." }),
+      samples.agentMessageEvent("Next.", { id: `${RUN_ID}.root.m1` }),
+    ]);
+    const items = itemsOf([turn]);
+    expect(shape(items)).toEqual(["message:settled", "tool-group:live", "subagent:settled", "reply-block:settled"]);
+    expect(items[1]).toMatchObject({ toolUses: [{ name: "read_file" }, { name: "execute" }] });
+  });
+
+  it("settles a note and a message the person sent mid-turn, and drops a thinking of only spaces", () => {
+    const turn = turnOf([...samples.turnEvents({ phase: "running", reply: "" }), ...samples.thinkingEvents("   ")]);
+    const note = { kind: "note" as const, id: "n1", text: "Context was compacted.", live: false, processedAt: "" };
+    const sent = { kind: "user_message" as const, id: "u2", text: "only the tests", processedAt: "" };
+    const withMore = { ...turn, items: [...turn.items, note, sent, { kind: "message" as const, id: "m9", text: "Ok.", live: false, processedAt: "" }] } as Turn;
+    expect(shape(itemsOf([withMore]))).toEqual(["message:settled", "message:settled", "message:settled", "reply-block:settled"]);
+    expect(itemsOf([withMore])[2]).toMatchObject({ key: "u2", message: { kind: "user", text: "only the tests" } });
+  });
+
+  it("draws no approvals when the thread answers none, and no record for a set with no files", () => {
+    const turn = { ...samples.turn({ phase: "running", reply: "" }), asks: [{ ...samples.toolUse("execute"), state: "waiting" as const }] };
+    expect(itemsOf([turn], { includeApprovals: false }).map((item) => item.kind)).toEqual(["message"]);
+    const decided = turnOf([...samples.turnEvents({ reply: "" }), ...reviewEvents([{ id: "a", path: "notes.md" }], [{ id: "d", action: "keep", fileChangeId: "a" }])]);
+    const noFiles = { ...decided, fileReview: decided.fileReview.map((set) => ({ ...set, files: [] })) };
+    expect(itemsOf([noFiles]).map((item) => item.kind)).not.toContain("file-review-record");
+  });
+});
+
 describe("the settled prefix", () => {
   it("is every item up to the first that can still change", () => {
     expect(settledPrefixLength([])).toBe(0);
