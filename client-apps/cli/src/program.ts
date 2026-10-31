@@ -2,6 +2,8 @@
 // command, or after it, global-options.ts), the preAction hook that captures
 // them into process-global runtime state, command registration, and the
 // command-line errors every command words alike (errors/command-line.ts).
+// `--org`, `--debug` and `--standalone` may follow the command; `--api-key`
+// only precedes it.
 // Commands register in their help groups' order, and help.ts gives each its
 // group and examples.
 //

@@ -113,15 +113,15 @@ export function exitByTurn(run: Run): void {
 // Off a terminal the stream returned at the turn's end: save its outputs now.
 async function downloadHeadless(deps: StreamDeps, run: Run): Promise<Run> {
   if ((deps.downloadDir ?? "") !== "") {
-    await saveTurnOutputs(deps.client, run.metadata?.id ?? "", deps.downloadDir ?? "", deps.progress ?? (() => undefined));
+    await saveTurnOutputs(deps.client, run.metadata?.id ?? "", deps.downloadDir ?? "", deps.progress);
   }
   return run;
 }
 
 /** Save one turn's outputs under `outputDir`, saying so through `say`; a turn that saved none says that. */
-export async function saveTurnOutputs(client: Stigmer, runId: string, outputDir: string, say: ProgressSink): Promise<void> {
+export async function saveTurnOutputs(client: Stigmer, runId: string, outputDir: string, say?: ProgressSink): Promise<void> {
   const outcome = await downloadRunOutputs(client, runId, { outputPath: "", outputDir }, say);
-  if (outcome.noOutputs) say("No outputs saved in this turn.");
+  if (outcome.noOutputs) say?.("No outputs saved in this turn.");
 }
 
 // Drive a headless renderer over the session's log, with Ctrl-C wired to stop

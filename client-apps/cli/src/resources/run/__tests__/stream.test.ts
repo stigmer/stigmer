@@ -218,9 +218,10 @@ describe("CLI-11 stigmer run ends the way its mode promises", () => {
     const order: string[] = [];
     epilogue.runEpilogue.mockImplementation(async () => (order.push("summary"), FINAL));
     download.downloadRunOutputs.mockImplementation(async () => (order.push("download"), { total: 1, downloaded: 1, noOutputs: false }));
-    await streamAgentRun(deps({ downloadDir: "./out" }));
+    const progress = (): void => undefined;
+    await streamAgentRun(deps({ downloadDir: "./out", progress }));
     expect(order).toEqual(["summary", "download"]);
-    expect(download.downloadRunOutputs).toHaveBeenCalledWith(client, "run_1", { outputPath: "", outputDir: "./out" }, expect.any(Function));
+    expect(download.downloadRunOutputs).toHaveBeenCalledWith(client, "run_1", { outputPath: "", outputDir: "./out" }, progress);
   });
 
   it("saves nothing off a terminal without --download", async () => {

@@ -5,7 +5,10 @@
 // both. classify() maps gRPC/Connect status codes onto them. One command
 // departs: `eval run` exits with Claude Code's plugin-eval codes (2 is its
 // partial run, 130 an interrupt, and a refused start is 1), keeping only 3
-// and 4 from this table (resources/eval-run/report.ts).
+// and 4 from this table (resources/eval-run/report.ts). A run (`run`,
+// `resume`) exits by its newest turn's phase through the client's
+// `exitCodeOf`: 0 completed; 1 failed, cancelled or stopped; 130 left while
+// it works (resources/run/stream.ts).
 
 export { ExitCode } from "@stigmer/client/exit-codes";
 export { cannotConnect, type CliError, classify, codeName, type ConnectFailure } from "./classify.js";
