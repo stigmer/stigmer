@@ -1,7 +1,9 @@
 /**
  * Pins how a hook group's matcher and a handler's `if` select calls, as
  * Claude Code's hooks and permissions pages describe them (read 2026-10-05):
- *  - the matcher: every call, an exact list, or an unanchored expression;
+ *  - the matcher: every call, an exact list, or an unanchored expression,
+ *    compiled once (one that does not compile is logged once and takes
+ *    nothing) and stopped once a test runs past its budget;
  *  - `Bash(...)`: any simple command of the input, quotes understood,
  *    substitutions and subshells reached, wrappers and assignments peeled,
  *    `*` any text and a trailing ` *` (or `:*`) also the bare command;
@@ -17,9 +19,10 @@
  *  - `*` is matched in linear time, whatever the rule and the input.
  */
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { conditionMatches, conditionVerdict, wildcardMatch } from "../condition.js";
-import { matcherMatches } from "../matcher.js";
+import { claudeMatches } from "../formats/claude-code.js";
+import { compileMatcher, MATCHER_BUDGET_MS, type Matcher } from "../matcher.js";
 import { splitShellCommands } from "../shell-commands.js";
 import type { ToolView } from "../tool-view.js";
 
@@ -28,22 +31,61 @@ const CTX = { workspaceRoot: "/ws", homeDir: "/home/me" };
 const bash = (command: string): ToolView => ({ toolName: "Bash", toolInput: { command } });
 const file = (toolName: string, path: string): ToolView => ({ toolName, toolInput: { file_path: path } });
 
-describe("matcherMatches", () => {
+describe("a Claude Code matcher", () => {
   it.each([
-    ["", "Bash", true],
-    ["*", "mcp__github__create_issue", true],
-    ["Bash", "Bash", true],
-    ["Bash", "BashOutput", false],
-    ["Write|Edit", "Edit", true],
-    ["Write, Edit", "Edit", true],
-    ["Write|Edit", "Read", false],
-    ["mcp__github__.*", "mcp__github__create_issue", true],
-    ["mcp__github__.*", "mcp__gitlab__create_issue", false],
-    ["Notebook.*", "NotebookEdit", true],
-    ["^Read$", "Read", true],
-    ["(unclosed", "Read", false],
-  ])("matcher %j on %s is %s", (matcher, toolName, expected) => {
-    expect(matcherMatches(matcher, toolName)).toBe(expected);
+    ["", "Bash", "match"],
+    ["*", "mcp__github__create_issue", "match"],
+    ["Bash", "Bash", "match"],
+    ["Bash", "BashOutput", "miss"],
+    ["Write|Edit", "Edit", "match"],
+    ["Write, Edit", "Edit", "match"],
+    ["Write|Edit", "Read", "miss"],
+    ["mcp__github__.*", "mcp__github__create_issue", "match"],
+    ["mcp__github__.*", "mcp__gitlab__create_issue", "miss"],
+    ["Notebook.*", "NotebookEdit", "match"],
+    ["^Read$", "Read", "match"],
+    ["(unclosed", "Read", "miss"],
+  ])("matcher %j on %s is a %s", (matcher, toolName, expected) => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    expect(compileMatcher(matcher, "claude-code").test(toolName)).toBe(expected);
+    warn.mockRestore();
+  });
+
+  it("logs a matcher that does not compile once, when it is compiled, not on every call", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const matcher = compileMatcher("(unclosed", "claude-code");
+    expect([matcher.test("Read"), matcher.test("Write")]).toEqual(["miss", "miss"]);
+    expect(warn).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
+  });
+
+  it("stops a regular expression that runs past its budget, and the next test still runs", () => {
+    // Exponential backtracking: unbounded, this one test takes minutes.
+    const runaway = compileMatcher("(a+)+$", "claude-code");
+    const started = performance.now();
+    expect(runaway.test(`${"a".repeat(40)}!`)).toBe("timed-out");
+    const elapsed = performance.now() - started;
+    expect(elapsed).toBeGreaterThanOrEqual(MATCHER_BUDGET_MS * 0.9);
+    // Bounded well past the budget, so a loaded host's late watchdog never flakes it.
+    expect(elapsed).toBeLessThan(2_000);
+    expect(runaway.test("aaa")).toBe("match");
+    expect(runaway.test(`${"a".repeat(40)}!`), "the same matcher, stopped again").toBe("timed-out");
+  });
+
+  it("keeps a lookahead and a backreference, which a linear engine would refuse, under the same budget", () => {
+    expect(compileMatcher("^(?=(a+)+$)b", "claude-code").test(`${"a".repeat(40)}!`)).toBe("timed-out");
+    expect(compileMatcher("(a+)+\\1$", "claude-code").test(`${"a".repeat(40)}!`)).toBe("timed-out");
+    expect(compileMatcher("(\\w)\\1", "claude-code").test("Bassh"), "a backreference still matches").toBe("match");
+  });
+
+  it("decides on the first of a call's names it does not miss, so a slow matcher costs one budget per call", () => {
+    const tested: string[] = [];
+    const stalls: Matcher = { test: (target) => (tested.push(target), "timed-out") };
+    expect(claudeMatches(stalls, { toolName: "Bash", toolInput: {}, aliases: ["execute", "shell"] })).toBe("timed-out");
+    expect(tested).toEqual(["Bash"]);
+    const second: Matcher = { test: (target) => (target === "execute" ? "match" : "miss") };
+    expect(claudeMatches(second, { toolName: "Bash", toolInput: {}, aliases: ["execute"] })).toBe("match");
+    expect(claudeMatches(second, { toolName: "Read", toolInput: {} })).toBe("miss");
   });
 });
 
