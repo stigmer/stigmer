@@ -362,12 +362,22 @@ describe("the runner's repository", () => {
     expect(sizes.outgoing).toBeLessThan(SMALL);
   }, GIT_TEST_TIMEOUT_MS);
 
-  it("keeps the adopted session branch's bundle small when rebuilt and GitHub's base has moved on", async () => {
+  it("keeps the adopted session branch's bundle small when rebuilt and the clone's tracking tip is not the branch's ancestor", async () => {
+    // main: A (the large history), then B. A pull request's commit P sits on A,
+    // and the conversation started at P, so the clone tracks B but stands on P.
     pushCommit("main", "origin/main", "large.bin", randomBytes(LARGE));
-    const { workspace, provisioned } = await cloneWorkspace();
-    pushCommit("stigmer/ses_adopt", "origin/main", "earlier.md", "an earlier turn\n");
+    const seed = join(root, "seed");
+    git(seed, ["checkout", "-q", "-B", "pull", "origin/main"]);
+    writeFileSync(join(seed, "pull.md"), "a pull request\n");
+    git(seed, ["add", "-A"]);
+    git(seed, ["commit", "-qm", "pull"]);
+    git(seed, ["push", "-q", "-f", "origin", "pull:refs/pull/2/head"]);
+    const pull = git(seed, ["rev-parse", "HEAD"]).trim();
+    pushCommit("main", "origin/main", "b.md", "main moved on\n");
+    const { workspace, provisioned } = await cloneWorkspace({ commit: pull });
+    // An earlier turn's session branch on P, then the runner's repository is lost.
+    pushCommit("stigmer/ses_adopt", pull, "earlier.md", "an earlier turn\n");
     rmSync(runnerRepositoryPath(workspace), { recursive: true, force: true });
-    pushCommit("main", "origin/main", "moved.md", "main moved on\n");
     writeFileSync(join(workspace, "change.txt"), "agent work\n");
 
     let record: Awaited<ReturnType<typeof writeBack>> | undefined;
