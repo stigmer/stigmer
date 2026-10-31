@@ -1,7 +1,8 @@
 // Pins pty-run.py, the install smokes' pseudo-terminal driver: the command
 // sees a TTY on stdin and stdout, an answer is typed when its text appears,
-// the command's exit code passes through (128 + N for a signal), and a
-// timeout or an answer whose text never appeared exits 124 or 125.
+// the command's exit code passes through (128 + N for a signal), named keys
+// arrive one write each and a paste bracketed, a resize reaches the command,
+// and a timeout or an answer whose text never appeared exits 124 or 125.
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { test } from "node:test";
@@ -41,4 +42,34 @@ test("a timeout exits 124, and an answer that never shows exits 125", () => {
   const unseen = drive(["--answer", "never=y"], "process.stdout.write('done');");
   assert.equal(unseen.status, 125);
   assert.match(unseen.stderr, /never saw 'never'/);
+});
+
+test("named keys arrive one write each, and a paste arrives bracketed", () => {
+  const script = [
+    "process.stdin.setRawMode(true);",
+    "const got = [];",
+    "process.stdout.write('ready ');",
+    "process.stdin.on('data', (key) => { got.push(JSON.stringify(String(key))); if (got.length === 5) { process.stdout.write(`got:${got.join(',')}`); process.exit(0); } });",
+  ].join("");
+  const result = drive(["--answer", "ready=ab<esc><up><paste:x\\ny><ctrl-c>"], script);
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /got:"ab","\\u001b","\\u001b\[A","\\u001b\[200~x\\ny\\u001b\[201~","\\u0003"/);
+});
+
+test("a resize sets the window and tells the command", () => {
+  const script = [
+    "process.stdout.write(`size:${process.stdout.columns}x${process.stdout.rows} `);",
+    "process.stdout.on('resize', () => { process.stdout.write(`now:${process.stdout.columns}x${process.stdout.rows}`); process.exit(0); });",
+    "setTimeout(() => process.exit(9), 20000);",
+  ].join("");
+  const result = drive(["--cols", "120", "--rows", "40", "--resize", "80x30@size:120x40"], script);
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /size:120x40 now:80x30/);
+});
+
+test("a malformed answer or resize is refused", () => {
+  for (const args of [["--answer", "no-equals"], ["--resize", "80x40"], ["--resize", "wide@text"]]) {
+    const result = drive(args, "process.exit(0)");
+    assert.equal(result.status, 2, `${args.join(" ")}: ${result.stderr}`);
+  }
 });
