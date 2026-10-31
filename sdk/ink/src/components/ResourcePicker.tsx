@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Box, Text, useInput } from "ink";
-import TextInput from "ink-text-input";
+import { useKeyClaim } from "../app/key-owner.js";
+import { bufferOf, type TextBuffer } from "../input/text-buffer.js";
+import { TextField } from "./TextField.js";
 import { useRoles } from "../theme.js";
 
 /**
@@ -92,6 +94,14 @@ export function ResourcePicker({
 }: ResourcePickerProps) {
   const role = useRoles();
   const [cursor, setCursor] = useState(0);
+  const [field, setField] = useState<TextBuffer>(() => bufferOf(query));
+  // A picker owns the keyboard while it is open: Esc cancels it, not the turn.
+  useKeyClaim(true);
+
+  // The caller owns the query; a change it makes is taken into the field.
+  useEffect(() => {
+    setField((current) => (current.text === query ? current : bufferOf(query)));
+  }, [query]);
 
   // Reset the cursor to the top whenever the query changes — the result set is
   // about to be replaced, so a stale cursor would point at the wrong row.
@@ -128,7 +138,16 @@ export function ResourcePicker({
           ?
         </Text>
         <Text bold>{prompt}:</Text>
-        <TextInput value={query} onChange={onQueryChange} placeholder={placeholder} />
+        <TextField
+          value={field}
+          onChange={(next) => {
+            setField(next);
+            if (next.text !== field.text) onQueryChange(next.text);
+          }}
+          // Enter is the picker's: it selects the active row.
+          onSubmit={() => {}}
+          placeholder={placeholder}
+        />
       </Box>
 
       <Box marginTop={1} flexDirection="column">

@@ -6,7 +6,8 @@
  Agent
  Looking at how invoices are totalled. The rounding happens
 
- ⠋ Working · 1m 30s
+ ⠋ Working · 1m 30s · Esc to stop
  Agent mode — full tool access
 
- Reply...
+ ❯ Reply...
+   Enter send · \⏎ newline · Shift+Tab plan mode · Ctrl+C leave · ? keys

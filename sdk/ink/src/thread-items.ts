@@ -51,7 +51,19 @@ export type ThreadItem = (
   | { readonly kind: "queued-message"; readonly message: QueuedMessage }
   | { readonly kind: "file-review-record"; readonly set: FileReviewSet }
   | { readonly kind: "approval"; readonly toolUse: ToolUse }
+  | { readonly kind: "note"; readonly text: string }
 ) & { readonly key: string; readonly settled: boolean };
+
+/** A line the view writes into the thread that is not sent to the agent: a host command's note. */
+export interface ThreadNote {
+  readonly id: string;
+  readonly text: string;
+}
+
+/** Notes as thread items: settled at once, each written where the history stands when it is made. */
+export function noteItems(notes: readonly ThreadNote[]): ThreadItem[] {
+  return notes.map((note) => ({ kind: "note", text: note.text, key: note.id, settled: true }));
+}
 
 /** What the thread is built from. */
 export interface ThreadInput {

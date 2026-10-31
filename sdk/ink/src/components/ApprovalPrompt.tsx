@@ -5,7 +5,6 @@
 // `grantPermission`) through the caller.
 import React, { useMemo, useState } from "react";
 import { Box, Text, useInput } from "ink";
-import TextInput from "ink-text-input";
 import {
   resolveToolKind,
   describeApprovalPolicySource,
@@ -17,6 +16,9 @@ import {
   type ToolUseAnswer,
 } from "@stigmer/react-core";
 import { useInkTheme, useRoles, type InkRole } from "../theme.js";
+import { useKeyClaim } from "../app/key-owner.js";
+import { EMPTY_BUFFER, type TextBuffer } from "../input/text-buffer.js";
+import { TextField } from "./TextField.js";
 
 /** Props for {@link ApprovalPrompt}. */
 export interface ApprovalPromptProps {
@@ -119,7 +121,10 @@ export function ApprovalPrompt({
   const role = useRoles();
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [denying, setDenying] = useState(false);
-  const [reason, setReason] = useState("");
+  const [reason, setReason] = useState<TextBuffer>(EMPTY_BUFFER);
+  // The reason being typed owns the keyboard: Esc goes back to the choices
+  // rather than stopping the turn.
+  useKeyClaim(denying && isActive);
 
   const options = useMemo<readonly ActionOption[]>(
     () => [
@@ -143,7 +148,7 @@ export function ApprovalPrompt({
       if (denying) {
         if (key.escape) {
           setDenying(false);
-          setReason("");
+          setReason(EMPTY_BUFFER);
         }
         return;
       }
@@ -221,11 +226,11 @@ export function ApprovalPrompt({
         <Box paddingLeft={2} flexDirection="column">
           <Box gap={1}>
             <Text {...role.danger}>Deny — reason (optional):</Text>
-            <TextInput
+            <TextField
               value={reason}
               onChange={setReason}
-              onSubmit={(value) => {
-                const trimmed = value.trim();
+              onSubmit={() => {
+                const trimmed = reason.text.trim();
                 onAnswer("deny", trimmed === "" ? undefined : trimmed);
               }}
               focus={isActive && !isSubmitting}

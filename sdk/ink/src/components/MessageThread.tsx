@@ -17,7 +17,7 @@ import {
   type FileReviewContextValue,
   type ToolUseAnswer,
 } from "@stigmer/react-core";
-import { appendOnce, buildThreadItems, settledPrefixLength, type ThreadItem } from "../thread-items.js";
+import { appendOnce, buildThreadItems, noteItems, settledPrefixLength, type ThreadItem, type ThreadNote } from "../thread-items.js";
 import { AgentLabel, MessageEntry } from "./MessageEntry.js";
 import { MarkdownBlock } from "./Markdown.js";
 import { ToolCallGroup } from "./ToolCallGroup.js";
@@ -81,6 +81,12 @@ export interface MessageThreadProps {
    * known before anything is written to the history. Omitted, none is drawn.
    */
   readonly subject?: string;
+  /**
+   * Lines the view writes into the thread that are not sent to the agent (a
+   * host command's output), each written once, where the history stands when
+   * it is added.
+   */
+  readonly notes?: readonly ThreadNote[];
 }
 
 /** What a message sent while a turn worked says while no turn has read it. */
@@ -89,6 +95,7 @@ export const QUEUED_MESSAGE_LABEL = "Queued — read at the agent's next step";
 export const DROPPED_MESSAGE_LABEL = "Not read — the turn was stopped";
 
 const EMPTY_RUNS: readonly Run[] = [];
+const NO_NOTES: readonly ThreadNote[] = [];
 const NO_REVIEWS: ReadonlyMap<string, readonly FileReviewSet[]> = new Map();
 
 /**
@@ -135,6 +142,7 @@ export function MessageThread({
   canAnswer = true,
   live = true,
   subject,
+  notes = NO_NOTES,
 }: MessageThreadProps) {
   const includeApprovals = onAnswerToolUse != null;
   const items = useMemo(
@@ -174,10 +182,11 @@ export function MessageThread({
   const subjectItem: ThreadItem | undefined = subject ? { kind: "subject", text: subject, key: "subject", settled: true } : undefined;
   const settledCount = settledPrefixLength(items);
   let historyItems: readonly ThreadItem[] = [];
-  let liveItems: readonly ThreadItem[] = subjectItem ? [subjectItem, ...items] : items;
+  const noted = noteItems(notes);
+  let liveItems: readonly ThreadItem[] = [...(subjectItem ? [subjectItem] : []), ...items, ...noted];
   if (live) {
     const lead = subjectItem && written.current.length === 0 ? [subjectItem] : [];
-    written.current = appendOnce(written.current, [...lead, ...items.slice(0, settledCount)]);
+    written.current = appendOnce(written.current, [...lead, ...items.slice(0, settledCount), ...noted]);
     historyItems = written.current;
     const writtenKeys = new Set(historyItems.map((item) => item.key));
     liveItems = items.slice(settledCount).filter((item) => !writtenKeys.has(item.key));
@@ -265,6 +274,12 @@ function renderItem(
           isActive={item.key === activeApprovalKey}
         />
       ) : null;
+    case "note":
+      return (
+        <Box paddingLeft={1}>
+          <Text dimColor>{item.text}</Text>
+        </Box>
+      );
     case "pending-message":
       return (
         <Box paddingLeft={1}>

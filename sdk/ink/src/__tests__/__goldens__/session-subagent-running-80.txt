@@ -5,7 +5,8 @@
 
   ⟳ ↳ find the rounding code (1m 30s) ▸
 
- ⠋ A helper is working on find the rounding code · 1m 30s
+ ⠋ A helper is working on find the rounding code · 1m 30s · Esc to stop
  Agent mode — full tool access
 
- Reply...
+ ❯ Reply...
+   Enter send · \⏎ newline · Shift+Tab plan mode · Ctrl+C leave · ? keys
