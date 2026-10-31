@@ -6,8 +6,10 @@ import {
   PlatformQueryController,
   ServerEdition,
 } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Config } from "../../config/index.js";
+import { CliExitError, ExitCode } from "../../errors/index.js";
+import { dialedServerAddress, setServerAddress } from "../../runtime.js";
 import { createBackendClient } from "../client.js";
 
 function cloud(token?: string): Config {
@@ -138,5 +140,47 @@ describe("BackendClient — the server's edition and what it serves", () => {
       true,
     );
     expect(server.asked(), "the rejection was not cached").toBe(2);
+  });
+});
+
+describe("CLI-04 the client records the address it dials, and where that came from", () => {
+  afterEach(() => {
+    setServerAddress(undefined);
+    vi.useRealTimers();
+  });
+
+  const cases: ReadonlyArray<readonly [string, Config, string, string]> = [
+    ["the local daemon", { backend: {} }, "localhost:7234", "local"],
+    ["a cloud backend's own endpoint", { backend: {}, backends: { c: { type: "cloud", endpoint: "api.example.com:443" } }, current_backend: "c" }, "api.example.com:443", "cloud"],
+    ["Stigmer Cloud's endpoint for a cloud backend with none", { backend: {}, backends: { c: { type: "cloud" } }, current_backend: "c" }, "api.stigmer.ai:443", "cloud"],
+    ["a self-hosted backend", { backend: {}, backends: { s: { type: "selfhost", endpoint: "stigmer.acme.internal:7234" } }, current_backend: "s" }, "stigmer.acme.internal:7234", "selfhost"],
+  ];
+
+  it.each(cases)("records %s", (_name, config, address, source) => {
+    createBackendClient({ config });
+    expect(dialedServerAddress()).toEqual({ address, source });
+  });
+
+  it("records STIGMER_SERVER_ADDRESS as the source when it overrides the backend", () => {
+    process.env.STIGMER_SERVER_ADDRESS = "10.0.0.5:7234";
+    createBackendClient({ config: cloud("t") });
+    expect(dialedServerAddress()).toEqual({ address: "10.0.0.5:7234", source: "environment" });
+  });
+
+  it("words the connect timeout as an unreachable server at that address, with how long it waited", async () => {
+    vi.useFakeTimers();
+    const silent = createRouterTransport(({ service }) => {
+      service(PlatformQueryController, { getServerInfo: () => new Promise<never>(() => undefined) });
+    });
+    const client = createBackendClient({ config: cloud("t"), transport: silent });
+    const failure = client.connect(2_500).catch((err: unknown) => err);
+    await vi.advanceTimersByTimeAsync(2_500);
+    const error = await failure;
+    expect(error).toBeInstanceOf(CliExitError);
+    expect(error).toMatchObject({
+      exitCode: ExitCode.Connection,
+      message: "Could not reach the Stigmer server at api.stigmer.ai:443",
+      hints: ["It did not answer within 2.5 seconds.", "Check the backend: stigmer config backend status"],
+    });
   });
 });

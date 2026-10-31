@@ -1,0 +1,15 @@
+exit 3
+
+Error: Could not reach the Stigmer server at 10.0.0.5:7234 (set by STIGMER_SERVER_ADDRESS)
+
+Start the server it names, or unset STIGMER_SERVER_ADDRESS to use the active backend.
+
+--- with --debug ---
+Error: Could not reach the Stigmer server at 10.0.0.5:7234 (set by STIGMER_SERVER_ADDRESS)
+
+Start the server it names, or unset STIGMER_SERVER_ADDRESS to use the active backend.
+
+--- debug ---
+gRPC code: Unavailable (14)
+Raw error: ConnectError: [unavailable] connect ECONNREFUSED 10.0.0.5:7234
+    at command (src/commands/example.ts:1:1)

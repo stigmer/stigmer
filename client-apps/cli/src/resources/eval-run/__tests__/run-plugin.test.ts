@@ -520,7 +520,7 @@ describe("runEvalRun about a plugin", () => {
     expect(error).toBeInstanceOf(CliExitError);
     expect((error as CliExitError).exitCode).toBe(1);
     expect((error as CliExitError).message).toBe(
-      "lost track of eval run evr_1 (Cannot connect to the Stigmer server), so it was cancelled",
+      "lost track of eval run evr_1 (Could not reach the Stigmer server), so it was cancelled",
     );
     const retries = fake.waits.slice(2);
     expect(retries.reduce((sum, ms) => sum + ms, 0)).toBe(POLL_RETRY_BUDGET_MS);
@@ -547,9 +547,9 @@ describe("runEvalRun about a plugin", () => {
     const error = await run(server.client, "acme", {}, fake.io).catch((e: unknown) => e);
     expect((error as CliExitError).exitCode).toBe(1);
     expect((error as CliExitError).message).toBe(
-      "lost track of eval run evr_1 (Cannot connect to the Stigmer server), and could not cancel it; cancel it with: stigmer eval cancel evr_1",
+      "lost track of eval run evr_1 (Could not reach the Stigmer server), and could not cancel it; cancel it with: stigmer eval cancel evr_1",
     );
-    expect(fake.err()).toContain("Could not read evr_1 (Cannot connect to the Stigmer server); trying again in 1s.\n");
+    expect(fake.err()).toContain("Could not read evr_1 (Could not reach the Stigmer server); trying again in 1s.\n");
     expect(fake.out()).toContain("1 case(s) · mean Δ +0.67");
     expect(fake.out()).toContain(
       "\nLost track of the eval run; it may still be running: cancel it with `stigmer eval cancel evr_1`\n",
@@ -588,7 +588,7 @@ describe("runEvalRun about a plugin", () => {
     expect(error).toBeInstanceOf(CliExitError);
     expect((error as CliExitError).exitCode).toBe(130);
     expect((error as CliExitError).message).toBe(
-      "could not cancel eval run evr_1 (Cannot connect to the Stigmer server); cancel it with: stigmer eval cancel evr_1",
+      "could not cancel eval run evr_1 (Could not reach the Stigmer server); cancel it with: stigmer eval cancel evr_1",
     );
     expect(fake.out()).toContain("1 case(s) · mean Δ +0.67");
     expect(fake.out()).toContain(
