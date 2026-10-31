@@ -35,6 +35,12 @@
  * allows after (it keeps state in `${CLAUDE_PLUGIN_DATA}`) runs again on
  * resume and now allows, and the call the person rejected still never runs.
  *
+ * An approval runs only the call its card showed: a hook that rewrites every
+ * call otherwise (it counts its runs in `${CLAUDE_PLUGIN_DATA}`) and asks shows
+ * its first rewrite on the card; on resume it rewrites again, and the call
+ * the person approved, or approved all of, is refused unrun, its row failed
+ * with the reason, and the run completes.
+ *
  * A chat with the built-in assistant runs its conversation's plugins'
  * hooks too (`SessionSpec.plugins`): there is no agent, and the hook still
  * refuses the delete. A run that excludes the plugin (`RunSpec.
@@ -54,7 +60,7 @@
  */
 
 import { createHash } from "node:crypto";
-import { existsSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { ConnectError, Code } from "@connectrpc/connect";
@@ -87,10 +93,10 @@ import {
 import { mintedDownload } from "../../../../__test-utils__/minted-download.js";
 import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
 import { savedAgentFixture } from "../../../../__test-utils__/execution-record-fixture.js";
-import { beginDeepAgentScenario, deepAgentExecutionRecord, runDeepAgentTurn } from "../../__test-utils__/hermetic-deep-agent.js";
+import { beginDeepAgentScenario, deepAgentExecutionRecord, runDeepAgentTurn, sessionWorkspaceDir } from "../../__test-utils__/hermetic-deep-agent.js";
 import type { ScriptedToolCall } from "../../__test-utils__/scripted-model.js";
 import { CLOSING_TURN } from "../../__test-utils__/hitl-script.js";
-import { deriveActiveLeases, hookLeaseKey } from "../../../../shared/approval-policy.js";
+import { CHANGED_MESSAGE, deriveActiveLeases, hookLeaseKey } from "../../../../shared/approval-policy.js";
 import { approvalAnswersOf } from "../../../../harness/approval-answers.js";
 import {
   ApprovalAction,
@@ -371,6 +377,94 @@ fi
     const rejected = row(record.lastFullRows!, touch.id);
     expect(rejected.approvalAction).toBe(ApprovalAction.REJECT);
     expect(rejected.status).not.toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+  });
+
+  describe("an approval runs only the call its card showed", () => {
+    /**
+     * A plugin whose hook rewrites every command into a stamp in the session's
+     * folder, named by a count of its own runs, and asks: no two runs rewrite alike.
+     */
+    function stampPlugin() {
+      const archive = buildZip([
+        { name: ".claude-plugin/plugin.json", content: '{"name":"stamp"}' },
+        {
+          name: "hooks/stamp",
+          content: `#!/usr/bin/env bash
+cat > /dev/null
+mkdir -p "$CLAUDE_PLUGIN_DATA"
+runs=$(( $(cat "$CLAUDE_PLUGIN_DATA/runs" 2>/dev/null || echo 0) + 1 ))
+echo "$runs" > "$CLAUDE_PLUGIN_DATA/runs"
+printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"ask","permissionDecisionReason":"stamped","updatedInput":{"command":"touch stamped-%s"}}}' "$runs"
+`,
+        },
+      ]);
+      const plugin = create(PluginSchema, {
+        metadata: { id: "plg_stamp", org: "hermetic-org", slug: "stamp", name: "stamp" },
+        status: {
+          digest: createHash("sha256").update(archive).digest("hex"),
+          artifactStorageKey: "plugins/stamp.zip",
+          hooks: create(HookConfigSchema, {
+            format: HookFormat.CLAUDE_CODE,
+            groups: [create(HookGroupSchema, {
+              event: "PreToolUse",
+              matcher: "Bash",
+              handlers: [create(HookHandlerSchema, { command: '"${CLAUDE_PLUGIN_ROOT}"/hooks/stamp' })],
+            })],
+          }),
+        },
+      });
+      return { archive, plugin };
+    }
+
+    for (const [answer, golden] of [[ApprovalAction.APPROVE, "hooks.changed"], [ApprovalAction.APPROVE_ALL, undefined]] as const) {
+      it(`refuses the approved call when the hook rewrites it otherwise on resume (${ApprovalAction[answer]})`, async () => {
+        clock.reset();
+        const { archive, plugin } = stampPlugin();
+        const stamps = () => (existsSync(sessionWorkspaceDir(env)) ? readdirSync(sessionWorkspaceDir(env)).filter((f) => f.startsWith("stamped-")) : []);
+        const stamp: ScriptedToolCall = { id: `call-hooks-stamp-${answer}`, name: "execute", args: { command: "echo stamp" } };
+        const record = deepAgentExecutionRecord({ message: "Stamp it." });
+        usePlugin(record, "agent", "stamp");
+        const scenario = beginDeepAgentScenario({
+          env,
+          clock,
+          record,
+          checkpointer: "sqlite",
+          clientOverrides: {
+            getPluginByReference: vi.fn(async () => plugin),
+            getPluginArtifactDownloadUrl: vi.fn(async () => create(PluginArtifactDownloadUrlSchema, mintedDownload(archive))),
+          },
+          script: () => ({
+            turns: [
+              { text: "Stamping.", toolCalls: [stamp], usage: { inputTokens: 1_600, outputTokens: 40 } },
+              CLOSING_TURN,
+            ],
+          }),
+        });
+        const row = (rows: { readonly messages: readonly AgentMessage[] }, id: string) => rows.messages.flatMap((m) => m.toolCalls).find((tc) => tc.id === id)!;
+
+        await runDeepAgentTurn(scenario, { turnSeq: 0 });
+        expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_WAITING_FOR_APPROVAL);
+        const shown = row(record.rowsOf(record.lastFullStatus!), stamp.id);
+        const shownCommand = String(shown.args!["command"]);
+        expect(shownCommand, "the card shows the hook's rewrite").toMatch(/^touch stamped-\d+$/);
+        expect(record.decideWaitingToolCalls(answer, "2026-01-01T00:00:30.000Z")).toBe(1);
+
+        await runDeepAgentTurn(scenario, { turnSeq: 1 });
+        expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_COMPLETED);
+        expect(stamps(), "neither rewrite ran").toEqual([]);
+        const final = record.lastFullStatus!;
+        const refused = row(record.rowsOf(final), stamp.id);
+        expect(refused.args, "the row keeps the call the card showed").toEqual({ command: shownCommand });
+        expect(refused.status).toBe(ToolCallStatus.TOOL_CALL_FAILED);
+        expect(refused.error).toBe(CHANGED_MESSAGE);
+        expect([refused.approvalPolicySource, refused.approvalPolicyHook, refused.approvalAction]).toEqual([ApprovalPolicySource.HOOK, "stamp", answer]);
+        if (golden !== undefined) {
+          await expect(statusGolden(final)).toMatchFileSnapshot(`./goldens/${golden}.turn2.status.json`);
+          await expect(rowsGolden(record.rowsOf(final))).toMatchFileSnapshot(rowsGoldenPath(`./goldens/${golden}.turn2.status.json`));
+          await expect(record.eventsGolden()).toMatchFileSnapshot(`./goldens/${golden}.turn2.events.json`);
+        }
+      });
+    }
   });
 
   it("runs a conversation's plugin hooks on a chat with the built-in assistant", async () => {

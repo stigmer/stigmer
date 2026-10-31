@@ -1,0 +1,31 @@
+{
+  "messages": [
+    {
+      "type": "MESSAGE_AI",
+      "toolCalls": [
+        {
+          "id": "call-hooks-stamp-1",
+          "name": "execute",
+          "args": {
+            "command": "touch stamped-1"
+          },
+          "status": "TOOL_CALL_FAILED",
+          "completedAt": "2026-01-01T00:00:01.000Z",
+          "error": "This call changed after it was approved; it was not run.",
+          "requiresApproval": true,
+          "approvalMessage": "stamped",
+          "approvalAction": "APPROVAL_ACTION_APPROVE",
+          "argsPreview": "{\"command\":\"touch stamped-1\"}",
+          "toolKind": "TOOL_KIND_SHELL",
+          "approvalPolicySource": "APPROVAL_POLICY_SOURCE_HOOK",
+          "approvalPolicyHook": "stamp"
+        }
+      ]
+    },
+    {
+      "type": "MESSAGE_AI",
+      "content": "Done with the command.",
+      "timestamp": "2026-01-01T00:00:02.000Z"
+    }
+  ]
+}

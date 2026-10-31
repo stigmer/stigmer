@@ -84,8 +84,9 @@ import type { StigmerMiddleware, ToolCallRequest } from "./types.js";
  * payload is the call as the model made it and the message: a refused call
  * fires no tool events, so nothing else on the stream carries them. The
  * approval gate writes it too when a hook refuses a call, with the hook's
- * provenance beside it, and when an unattended turn skips a call that would
- * ask, with `unattended_skip` beside it.
+ * provenance beside it, when an unattended turn skips a call that would
+ * ask, with `unattended_skip` beside it, and when an approved call is not the
+ * call its card showed, with none (the call as it would have run).
  */
 export const TOOL_REFUSED_EVENT = "stigmer.tool_refused";
 
@@ -99,7 +100,7 @@ export interface ToolRefusedPayload {
   /**
    * Set when the approval gate refused the call: `"hook"` when a hook did,
    * `"unattended_skip"` when no one could answer its ask. A tool list's
-   * refusal carries none.
+   * refusal carries none, nor an approved call that changed.
    */
   readonly policy_source?: "hook" | "unattended_skip";
   /** The refusing or asking plugin's slug (`""` for the agent's own hooks block or the default), beside `policy_source`. */

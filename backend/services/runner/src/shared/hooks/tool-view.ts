@@ -65,6 +65,7 @@
 import { isDeepStrictEqual } from "node:util";
 import { join } from "node:path";
 import type { McpServerHome, ResolvedMcpServer } from "../mcp-resolver.js";
+import { asJson } from "../json-value.js";
 import type { HookFormatName } from "./hook-set.js";
 
 type Args = Record<string, unknown>;
@@ -121,15 +122,10 @@ export interface HookToolViews {
  * rewrite, even where the engine could not take one back.
  */
 export function rewriteEchoes(seen: Args, format: HookFormatName, input: Args): boolean {
-  const before = asJson(seen);
-  const after = asJson(input);
+  const before = asJson(seen) as Args;
+  const after = asJson(input) as Args;
   if (format === "claude-code") return isDeepStrictEqual(after, before);
   return Object.keys(after).every((key) => isDeepStrictEqual(after[key], before[key]));
-}
-
-/** A value as JSON would carry it: an absent key and an undefined one are alike. */
-function asJson(value: Args): Args {
-  return JSON.parse(JSON.stringify(value)) as Args;
 }
 
 /** A server as Claude Code shows it to a hook (`mcp_server`): its name, and whose it is. */

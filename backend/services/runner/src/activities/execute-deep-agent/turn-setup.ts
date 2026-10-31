@@ -167,6 +167,8 @@ export interface DeepAgentGateState {
   readonly unattendedSkips: Map<string, string | null>;
   /** The calls a person skipped or rejected among the decisions this turn resumes with. */
   readonly refusedByPerson?: ReadonlyMap<string, PersonRefusal>;
+  /** The calls a person approved among them, which no lease answers (`middleware/approval-gate.ts`). */
+  readonly approvedByPerson?: ReadonlySet<string>;
 }
 
 /** The engine this turn runs on and everything the stream and the settle read from it. */
@@ -346,7 +348,17 @@ export function readGateState(input: TurnInput, tools: DeepAgentTools, listing: 
     unattended: isUnattendedApprovalMode(input.execution),
     unattendedSkips: new Map<string, string | null>(),
     refusedByPerson: refusalsOf(input.approvalDecisions, input.approvalDenyMessages),
+    approvedByPerson: approvalsOf(input.approvalDecisions),
   };
+}
+
+/** The approve and approve-all decisions among a turn's resumed approvals, by tool-call id. */
+export function approvalsOf(decisions: ReadonlyMap<string, ApprovalAction>): ReadonlySet<string> {
+  const approved = new Set<string>();
+  for (const [id, action] of decisions) {
+    if (action === ApprovalAction.APPROVE || action === ApprovalAction.APPROVE_ALL) approved.add(id);
+  }
+  return approved;
 }
 
 /** The skip and reject decisions among a turn's resumed approvals, by tool-call id, each with the reason given. */
@@ -585,6 +597,7 @@ export async function buildEngine(
         unattended: gate.unattended,
         unattendedSkips: gate.unattendedSkips,
         ...(gate.refusedByPerson !== undefined ? { refusedByPerson: gate.refusedByPerson } : {}),
+        ...(gate.approvedByPerson !== undefined ? { approvedByPerson: gate.approvedByPerson } : {}),
         hooks: evaluator,
         globalBypass: gate.globalBypass,
       }

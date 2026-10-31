@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { Command } from "@langchain/langgraph";
 import { detectPendingInterrupts, resolveResumeInput, reconcileUnattendedSkips } from "../hitl.js";
-import { refusalsOf } from "../turn-setup.js";
+import { approvalsOf, refusalsOf } from "../turn-setup.js";
 import { create } from "@bufbuild/protobuf";
 import type { GraphStateSnapshot } from "../hitl.js";
 import { AgentMessageSchema, ToolCallSchema, TurnRowsSchema } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
@@ -108,6 +108,37 @@ describe("resolveResumeInput", () => {
     expect(result.graphInput.resume).toEqual({
       "task-1": { action: "reject", comment: "use make clean instead" },
       "task-2": { action: "reject" },
+    });
+  });
+
+  it("carries back the arguments a card showed, on a parent's and a nested sub-agent's interrupt, and none where the card showed the model's", () => {
+    const rewritten = { command: "git push --dry-run" };
+    const state: GraphStateSnapshot = {
+      values: {},
+      next: [],
+      tasks: [
+        { id: "task-1", interrupts: [{ value: { tool_call_id: "call-1", message: "m", args: rewritten } }] },
+        // A sub-agent's interrupt surfaces under the parent task that ran `task`, keyed by its own id.
+        { id: "task-2", interrupts: [{ id: "intr-nested", value: { tool_call_id: "call-2", message: "m", args: rewritten } }] },
+        { id: "task-3", interrupts: [{ value: { tool_call_id: "call-3", message: "m" } }] },
+        { id: "task-4", interrupts: [{ value: { tool_call_id: "call-4", message: "m", args: "not an object" } }] },
+      ],
+    };
+    const decisions = new Map([
+      ["call-1", ApprovalAction.APPROVE],
+      ["call-2", ApprovalAction.APPROVE_ALL],
+      ["call-3", ApprovalAction.APPROVE],
+      ["call-4", ApprovalAction.APPROVE],
+    ]);
+
+    const result = resolveResumeInput(decisions, state);
+
+    if (!result.isResumeFromApproval) throw new Error("expected an approval resume");
+    expect(result.graphInput.resume).toEqual({
+      "task-1": { action: "approve", args: rewritten },
+      "intr-nested": { action: "approve", args: rewritten },
+      "task-3": { action: "approve" },
+      "task-4": { action: "approve" },
     });
   });
 
@@ -355,5 +386,19 @@ describe("refusalsOf", () => {
       ["call-1", { action: "reject", comment: "use make clean instead" }],
       ["call-2", { action: "skip", comment: "" }],
     ]);
+  });
+});
+
+describe("approvalsOf", () => {
+  it("holds each call a person approved or approved all of, and nothing refused", () => {
+    const approved = approvalsOf(
+      new Map([
+        ["call-1", ApprovalAction.APPROVE],
+        ["call-2", ApprovalAction.APPROVE_ALL],
+        ["call-3", ApprovalAction.SKIP],
+        ["call-4", ApprovalAction.REJECT],
+      ]),
+    );
+    expect([...approved]).toEqual(["call-1", "call-2"]);
   });
 });

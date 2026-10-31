@@ -119,6 +119,7 @@ import type { CanUseTool, HookCallback, HookCallbackMatcher, HookEvent, Permissi
 import { ApprovalAction } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 import type { TurnInput } from "../../harness/types.js";
 import {
+  CHANGED_MESSAGE,
   isUnattendedApprovalMode,
   resolveToolApproval,
   unattendedSkipMessage,
@@ -133,6 +134,7 @@ import { NO_PRE_TOOL_USE, type HookEvaluator, type PreToolUseOutcome } from "../
 import { askWithRewriteMessage, hookAskMessage, hookLabel, hookRefusalMessage, personDecisionSentence } from "../../shared/hooks/messages.js";
 import { isReadOnlyPlatformPath, OUTPUTS_SUBDIR } from "../../shared/outputs.js";
 import { SKILL_CONTENT_PATTERN } from "../../shared/skill-mount.js";
+import { asJson, sameJson } from "../../shared/json-value.js";
 import { ELISION_MARKER } from "../../shared/status-offload.js";
 import { toolApprovalCategory, type ToolApprovalCategory } from "../../shared/tool-kind.js";
 import { readsPlatformContent } from "../../shared/workspace/stigmer-link.js";
@@ -157,9 +159,6 @@ export function helperStartAskMessage(hook: string): string {
 
 /** What a call that would wait while another already waits is refused with: the model asks for it again, alone. */
 export const ASK_ALONE_MESSAGE = "Ask for this call on its own: it needs a person's approval, and only one call can wait at a time. It was not run.";
-
-/** What an approved call is refused with when the engine re-runs it with other arguments than the person saw. */
-export const CHANGED_MESSAGE = "This call changed after it was approved; it was not run.";
 
 /** What a call left waiting by a stopped turn is refused with when a later run's engine reaches it. */
 export const STALE_CALL_MESSAGE = "This call was waiting for an answer when its turn was stopped; it was not run.";
@@ -488,7 +487,7 @@ export class ClaudeGate {
   admit(call: ServedCall): string | undefined {
     const verdict = this.settled.get(call.toolUseId);
     if (verdict === undefined || verdict.kind !== "allow") return verdict?.kind === "refuse" ? verdict.message : NOT_ADMITTED_MESSAGE;
-    if (verdict.toolName !== `mcp__${call.server}__${call.tool}` || !isDeepStrictEqual(asJson(verdict.args), asJson(call.args))) return NOT_ADMITTED_MESSAGE;
+    if (verdict.toolName !== `mcp__${call.server}__${call.tool}` || !sameJson(verdict.args, call.args)) return NOT_ADMITTED_MESSAGE;
     if (this.admitted.has(call.toolUseId)) return "This call already ran; it was not run again.";
     this.admitted.add(call.toolUseId);
     return undefined;
@@ -717,11 +716,6 @@ function agentCallRefusal(input: Record<string, unknown>, reach: Reach): string 
   if (!reach.agentTypes.has(type)) return unknownHelperMessage(type);
   const extra = Object.keys(input).filter((field) => !AGENT_INPUT_FIELDS.has(field));
   return extra.length > 0 ? helperOverrideMessage(extra) : undefined;
-}
-
-/** A value as JSON carries it: an absent key and an undefined one are alike. */
-function asJson(value: unknown): unknown {
-  return value === undefined ? undefined : JSON.parse(JSON.stringify(value));
 }
 
 /** The suffix the session's log puts after the head it keeps of a value too large to log whole (`shared/status-offload.ts`). */
