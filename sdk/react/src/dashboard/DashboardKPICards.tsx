@@ -32,7 +32,7 @@ const STAT_CARDS: readonly StatCardDef[] = [
   },
   {
     label: "Completed",
-    valueClass: "stg:text-success",
+    valueClass: "stg:text-status-ready",
     getValue: (s) => String(s.completedCount),
   },
   {

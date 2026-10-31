@@ -4,7 +4,10 @@
  * detection with its Apply CTA, an image drawn from its download link, a
  * binary File offering only its download, Delete only where the host asks
  * for it and the server allows it, and "Add as skill" only for a `.zip`
- * File in an organization where the caller may create skills.
+ * File in an organization where the caller may create skills. Its
+ * confirmations (Copied, Applied, Skill added) are drawn in the ready colour
+ * the theme contract measures as text on the page, never the badge-fill
+ * green.
  */
 
 import { describe, it, expect, vi, afterEach } from "vitest";
@@ -58,7 +61,15 @@ const AGENT_YAML = [
   "",
 ].join("\n");
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
+
+/** The class list of the element, for a colour assertion. */
+function classesOf(element: Element | null): string[] {
+  return (element?.getAttribute("class") ?? "").split(" ");
+}
 
 describe("FileDocument", () => {
   it("renders the toolbar (name + Download) and the fetched content", async () => {
@@ -76,6 +87,29 @@ describe("FileDocument", () => {
 
     await waitFor(() => expect(screen.getByText("Agent detected")).toBeTruthy());
     expect(screen.getByText("Apply to acme")).toBeTruthy();
+  });
+
+  it("confirms a copy in the measured ready colour", async () => {
+    vi.stubGlobal("navigator", { clipboard: { writeText: vi.fn().mockResolvedValue(undefined) } });
+    renderDoc(stigmerReturning("hello document"));
+
+    fireEvent.click(await screen.findByRole("button", { name: "Copy content" }));
+    const copied = await screen.findByRole("button", { name: "Copied to clipboard" });
+    expect(classesOf(copied)).toContain("stg:text-status-ready");
+  });
+
+  it("confirms an applied resource in the measured ready colour", async () => {
+    const apply = vi.fn().mockResolvedValue({ yamlKind: "Agent", name: "my-agent", org: "acme", slug: "my-agent" });
+    const stigmer = {
+      file: { getContent: vi.fn().mockResolvedValue({ data: new TextEncoder().encode(AGENT_YAML), truncated: false }) },
+      manifest: { apply },
+    } as unknown as Stigmer;
+    renderDoc(stigmer, outputFile("agent.yaml"));
+
+    fireEvent.click(await screen.findByText("Apply to acme"));
+    const applied = await screen.findByText(/Applied/);
+    expect(apply).toHaveBeenCalledTimes(1);
+    expect(classesOf(applied)).toContain("stg:text-status-ready");
   });
 
   it("renders a binary File with Download and no Copy, reading no bytes", () => {
@@ -180,7 +214,7 @@ describe("FileDocument", () => {
 
     await waitFor(() => expect(onApplied).toHaveBeenCalledTimes(1));
     expect(pushFromFile.mock.calls[0]![0]).toMatchObject({ org: "org_acme", fileId: "file_zip", tag: "v1" });
-    expect(screen.getByText(/Skill added/)).toBeTruthy();
+    expect(classesOf(screen.getByText(/Skill added/))).toContain("stg:text-status-ready");
   });
 
   it("says why an image cannot be drawn when its link cannot be minted", async () => {

@@ -1,7 +1,9 @@
 // Pins TodoCard over a turn's folded to-do list: its region, header and
 // progress, nothing for an empty list, open while an item is in progress and
 // collapsed once every item is resolved (completed or cancelled), the
-// header toggle, and its by-reference memo comparator.
+// header toggle, its by-reference memo comparator, and the done marks (the
+// resolved plan's header icon and a completed row's icon) drawn in the ready
+// colour the theme contract measures as text, never the badge-fill green.
 import { describe, it, expect, afterEach } from "vitest";
 import { render, fireEvent, cleanup } from "@testing-library/react";
 import type { Todo } from "@stigmer/client";
@@ -72,6 +74,21 @@ describe("TodoCard", () => {
     fireEvent.click(button);
     expect(button.getAttribute("aria-expanded")).toBe("false");
     expect(container.querySelector("[role='list']")).toBeNull();
+  });
+});
+
+describe("TodoCard done marks", () => {
+  it("draws a resolved plan's header icon in the measured ready colour", () => {
+    const { container } = render(<TodoCard todos={DONE} />);
+    const icon = container.querySelector("button > span[aria-hidden='true']") as HTMLElement;
+    expect(icon.className.split(" ")).toContain("stg:text-status-ready");
+  });
+
+  it("draws a completed row's icon in the measured ready colour", () => {
+    const { getByText } = render(<TodoCard todos={ACTIVE} />);
+    const row = getByText("Design the card").closest("li") as HTMLElement;
+    const icon = row.querySelector("span[aria-hidden='true']") as HTMLElement;
+    expect(icon.className.split(" ")).toContain("stg:text-status-ready");
   });
 });
 

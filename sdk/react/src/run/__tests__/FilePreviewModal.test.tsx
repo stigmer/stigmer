@@ -2,7 +2,9 @@
  * The preview's Build action (a plan's): shown only when the host passes
  * onImplement, and run before the modal closes; its Download saves the File
  * by id under its filename; read only, it offers no act on the File and asks
- * the server nothing about one.
+ * the server nothing about one. Its Copied and Applied confirmations are
+ * drawn in the ready colour the theme contract measures as text in the
+ * dialog, never the badge-fill green.
  */
 
 import { describe, it, expect, vi, afterEach } from "vitest";
@@ -29,7 +31,10 @@ function withStigmer(children: ReactNode) {
   );
 }
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 
 describe("FilePreviewContent — Build action", () => {
   it("renders a 'Build' button only when onImplement is provided", () => {
@@ -101,6 +106,52 @@ describe("FilePreviewContent — Download", () => {
     await waitFor(() => expect(anchorClick).toHaveBeenCalledTimes(1));
     expect(anchorClick.mock.contexts[0]).toMatchObject({ download: "report.bin" });
     anchorClick.mockRestore();
+  });
+});
+
+describe("FilePreviewContent — confirmations", () => {
+  const AGENT_YAML = ["apiVersion: agentic.stigmer.ai/v1", "kind: Agent", "metadata:", "  name: my-agent", "spec: {}", ""].join("\n");
+  const agentFile = create(FileSchema, {
+    metadata: { id: "file_agent" },
+    spec: { filename: "agent.yaml" },
+    status: { sizeBytes: 64n, runId: "run_1", outputPath: "agent.yaml" },
+  });
+
+  function withClient(client: unknown, children: ReactNode) {
+    return <StigmerContext.Provider value={client as Stigmer}>{children}</StigmerContext.Provider>;
+  }
+
+  function readsText(text: string) {
+    return vi.fn().mockResolvedValue({ data: new TextEncoder().encode(text), truncated: false });
+  }
+
+  it("confirms a copy in the measured ready colour", async () => {
+    vi.stubGlobal("navigator", { clipboard: { writeText: vi.fn().mockResolvedValue(undefined) } });
+    render(
+      withClient(
+        { file: { getContent: readsText("hello") } },
+        <FilePreviewContent file={agentFile} org="acme" isTerminal onClose={() => {}} />,
+      ),
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "Copy content" }));
+    const copied = await screen.findByRole("button", { name: "Copied to clipboard" });
+    expect(copied.className.split(" ")).toContain("stg:text-status-ready");
+  });
+
+  it("confirms an applied resource in the measured ready colour", async () => {
+    const apply = vi.fn().mockResolvedValue({ yamlKind: "Agent", name: "my-agent", org: "acme", slug: "my-agent" });
+    render(
+      withClient(
+        { file: { getContent: readsText(AGENT_YAML) }, manifest: { apply } },
+        <FilePreviewContent file={agentFile} org="acme" isTerminal onClose={() => {}} />,
+      ),
+    );
+
+    fireEvent.click(await screen.findByText("Apply to acme"));
+    const applied = await screen.findByText(/Applied/);
+    expect(apply).toHaveBeenCalledTimes(1);
+    expect(applied.className.split(" ")).toContain("stg:text-status-ready");
   });
 });
 

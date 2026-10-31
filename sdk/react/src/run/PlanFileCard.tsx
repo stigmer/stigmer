@@ -239,7 +239,7 @@ function IconAction({
           disabled={disabled}
           className={cn(
             "stg:inline-flex stg:items-center stg:rounded-md stg:p-1.5 stg:text-muted-foreground",
-            "stg:transition-colors stg:hover:bg-muted stg:hover:text-foreground",
+            "stg:transition-colors stg:hover:bg-accent-hover stg:hover:text-foreground",
             "stg:disabled:pointer-events-none stg:disabled:opacity-50",
             FOCUS_RING,
           )}
@@ -343,7 +343,7 @@ function CheckIcon() {
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="stg:shrink-0 stg:text-success"
+      className="stg:shrink-0 stg:text-status-ready"
       aria-hidden="true"
     >
       <path d="M2 6.5L4.5 9L10 3" />

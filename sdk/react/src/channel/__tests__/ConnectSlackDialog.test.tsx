@@ -3,7 +3,9 @@
 // (platform or the org's own Slack app), the tool-credential section, the
 // guided and verbatim refusals, a reconnect that skips the create step, and
 // the cloud notice that preempts the flow on every edition without vendor
-// installs (open source and Enterprise).
+// installs (open source and Enterprise). The done-step ticks and the
+// connected tick are drawn in the ready colour the theme contract measures as
+// text in a dialog, never the badge-fill green.
 
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
@@ -260,10 +262,13 @@ describe("ConnectSlackDialog", () => {
     expect(
       await screen.findByText(/waiting for your approval/i),
     ).toBeTruthy();
+    const doneTick = screen.getByText("Contacting Slack").querySelector("svg");
+    expect(doneTick?.getAttribute("class")?.split(" ")).toContain("stg:text-status-ready");
 
     deliverCallback("state-1");
 
-    expect(await screen.findByText(/connected to Acme HQ/i)).toBeTruthy();
+    const connected = await screen.findByText(/connected to Acme HQ/i);
+    expect(connected.querySelector("svg")?.getAttribute("class")?.split(" ")).toContain("stg:text-status-ready");
     // The success state says exactly how to start chatting — DM or @-pick
     // the bot BY NAME (platform app = "Stigmer") — and names the agent
     // that answers.
