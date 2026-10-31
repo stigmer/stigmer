@@ -2,8 +2,12 @@ exit 2
 
 Error: Precondition failed: the session has a turn that waits for an answer
 
+Run `stigmer --help` for usage.
+
 --- with --debug ---
 Error: Precondition failed: the session has a turn that waits for an answer
+
+Run `stigmer --help` for usage.
 
 --- debug ---
 gRPC code: FailedPrecondition (9)

@@ -32,7 +32,7 @@ stigmer up
 curl -fsSLO https://raw.githubusercontent.com/stigmer/stigmer/main/examples/variance-report/variance-reporter.yaml
 curl -fsSLO https://raw.githubusercontent.com/stigmer/stigmer/main/examples/variance-report/ledger.csv
 stigmer apply -f variance-reporter.yaml
-stigmer run variance-reporter --attach ledger.csv --download ./out -m "Review this quarter's ledger."
+stigmer run variance-reporter --attach ledger.csv --download ./out --until turn -m "Review this quarter's ledger."
 cat out/variance-report.md
 ```
 

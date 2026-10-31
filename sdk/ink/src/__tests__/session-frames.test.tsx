@@ -8,9 +8,9 @@
 // codes are stripped: colour is the subject of the INK-15 case below, which
 // reads the same frames raw, with colour forced on, and allows only the
 // status hues. The clock is pinned, through a fake `Date` only (Ink's own
-// timers keep running), at the catalogue's SCENARIO_CLOCK: a finished
-// subagent with no end time counts its duration to now, and the working line
-// counts the turn's time, both frozen with it.
+// timers keep running), at the catalogue's SCENARIO_CLOCK: a running
+// subagent counts its duration to now, and the working line counts the
+// turn's time, both frozen with it.
 // Vitest reports no obsolete file snapshot, so a last case holds the folder
 // to exactly the frames the scenarios draw.
 import { vi } from "vitest";
@@ -153,6 +153,8 @@ describe("the frame goldens", () => {
       ...FRAMES.map(({ name, columns }) => `session-${name}-${columns}.txt`),
       // The view off a terminal, denying an ask by default (session-view.test.tsx).
       "session-off-terminal-denied.txt",
+      // A two-hour subagent's rows (components.test.tsx, CLI-13).
+      "subagent-two-hours.txt",
     ].sort();
     expect(readdirSync(GOLDENS).sort()).toEqual(expected);
   });

@@ -315,9 +315,9 @@ describe("runEvalRun about an agent", () => {
 describe("cancelEvalRun", () => {
   it("cancels by id and says how far the eval run got", async () => {
     const server = fakeServer([]);
-    let stderr = "";
-    await cancelEvalRun(server.client, "evr_2", { stderr: { write: (text) => void (stderr += text) } });
+    const result = await cancelEvalRun(server.client, "evr_2");
     expect(server.calls).toEqual(["cancel evr_2"]);
-    expect(stderr).toBe("Cancelled evr_2: tries in flight stop; 2 of 2 tries had finished.\n");
+    expect(result.message).toBe("Cancelled evr_2: tries in flight stop; 2 of 2 tries had finished.");
+    expect(result.data).toEqual({ evalRunId: "evr_2", triesFinished: 2, triesTotal: 2 });
   });
 });

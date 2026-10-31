@@ -4,6 +4,19 @@
 // composer's (resources/stream/composer.ts); this is their words, kept light
 // so `--help` loads no part of the session view.
 
+/** What `--help` says about how a run returns and the code it exits with. */
+export const UNTIL_HELP = `
+How it ends:
+  On a terminal the session stays open for follow-ups until you leave
+  (--until exit, the default); --until turn returns when the turn ends.
+  Off a terminal, and with -o json, it returns when the turn ends.
+
+Exit codes (the newest turn's):
+  0    the turn completed
+  1    the turn failed, was cancelled or was stopped
+  130  you left while the turn still works
+`;
+
 /** What `--help` says about the session a terminal opens. */
 export const SESSION_HELP = `
 In the session (on a terminal):

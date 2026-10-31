@@ -21,7 +21,7 @@ const QUICKSTART_COMMANDS = [
   "export ANTHROPIC_API_KEY=<your Anthropic API key>",
   "stigmer up",
   "stigmer apply -f variance-reporter.yaml",
-  'stigmer run variance-reporter --attach ledger.csv --download ./out -m "Review this quarter\'s ledger."',
+  'stigmer run variance-reporter --attach ledger.csv --download ./out --until turn -m "Review this quarter\'s ledger."',
 ];
 
 function FinalCTA({ className, ...props }: FinalCTAProps) {

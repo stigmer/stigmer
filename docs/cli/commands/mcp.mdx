@@ -36,13 +36,14 @@ install the MCP server at `<url>` as a plugin named `<name>`
 stigmer mcp add <name> <url> [flags]
 ```
 
-| Flag           | Type     | Default | Description                                                                                      |
-| -------------- | -------- | ------- | ------------------------------------------------------------------------------------------------ |
-| `--dry-run`    | `bool`   |         | show the plugin that would install, without pushing                                              |
-| `--header`     | `string` |         | a header sent with every request (repeatable); a value may name a key in your vault as $\{NAME\} |
-| `--json`       | `bool`   |         | emit the result as JSON                                                                          |
-| `--quiet`      | `bool`   |         | print only the status line                                                                       |
-| `--visibility` | `string` |         | visibility for the plugin (private, org, child-orgs)                                             |
+| Flag             | Type     | Default | Description                                                                                      |
+| ---------------- | -------- | ------- | ------------------------------------------------------------------------------------------------ |
+| `--dry-run`      | `bool`   |         | show the plugin that would install, without pushing                                              |
+| `--header`       | `string` |         | a header sent with every request (repeatable); a value may name a key in your vault as $\{NAME\} |
+| `--json`         | `bool`   |         | emit the result as JSON                                                                          |
+| `--output`, `-o` | `string` |         | output format: table or json                                                                     |
+| `--quiet`        | `bool`   |         | print only the status line                                                                       |
+| `--visibility`   | `string` |         | visibility for the plugin (private, org, child-orgs)                                             |
 
 ### Headers and keys
 
@@ -86,7 +87,7 @@ stigmer mcp add linear https://mcp.linear.app/mcp --dry-run
 
 | Flag            | Type     | Default | Description                                            |
 | --------------- | -------- | ------- | ------------------------------------------------------ |
-| `--api-key`     | `string` |         | API key for authentication                             |
+| `--api-key`     | `string` |         | API key for authentication (before the command)        |
 | `--debug`, `-d` | `bool`   |         | enable debug output                                    |
 | `--org`         | `string` |         | organization, on servers that hold several             |
 | `--standalone`  | `bool`   |         | ignore the config file; use flags and environment only |

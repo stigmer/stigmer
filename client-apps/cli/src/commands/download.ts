@@ -15,8 +15,9 @@
 import type { Command } from "commander";
 import { ensureAuthenticated, resolveOrganization } from "../config/index.js";
 import { CliExitError, ExitCode, UsageError } from "../errors/index.js";
-import { type OutputFlags, renderResult } from "../output/index.js";
+import { type OutputFlags, renderResult, supportedFormats } from "../output/index.js";
 import { defaultRegistry, Verb } from "../registry/index.js";
+import { setActionResourceType } from "../runtime.js";
 import type { DownloadOutcome } from "../resources/download.js";
 import { addResultFlags, globalOrg, resultFormat } from "./shared.js";
 
@@ -37,7 +38,7 @@ export function registerDownload(program: Command): void {
       "runs and sessions: the one output to download, by its path in .stigmer/outputs/ (a bare filename matches too)",
     )
     .option(
-      "-o, --output-dir <dir>",
+      "--output-dir <dir>",
       "output directory (runs, sessions and files: default '.'; evals: a new or empty directory, default ./<slug>)",
     )
     .option("--all", "runs and sessions: download all outputs (default)", true)
@@ -48,6 +49,7 @@ export function registerDownload(program: Command): void {
 }
 
 async function runDownload(type: string, ref: string, options: DownloadFlags, command: Command): Promise<void> {
+  refuseDirectoryAsFormat(options, type, ref);
   const { isRunAlias } = await import("../resources/runs.js");
   if (isRunAlias(type)) {
     await runDownloadRun(ref, options);
@@ -64,6 +66,8 @@ async function runDownload(type: string, ref: string, options: DownloadFlags, co
     throw new UsageError(`download not supported for type: ${type}\n\nThe types that download: ${downloadTypes()}`);
   }
   if (handler.answers === "files") refuseResultFlags(options, `a ${info.displayName.toLowerCase()}'s`);
+  // A missing reference is answered with the list of its type (errors/classify.ts).
+  if (info.supportedVerbs.has(Verb.List)) setActionResourceType(info.singular);
 
   const { connectBackend } = await import("../backend.js");
   const client = connectBackend();
@@ -83,6 +87,7 @@ async function runDownload(type: string, ref: string, options: DownloadFlags, co
 }
 
 async function runDownloadRun(id: string, options: DownloadFlags): Promise<void> {
+  setActionResourceType("run");
   refuseResultFlags(options, "a run's");
 
   const [{ connectBackend }, { isRunId }, { downloadRunOutputs }] = await Promise.all([
@@ -107,11 +112,21 @@ async function runDownloadRun(id: string, options: DownloadFlags): Promise<void>
   printOutcome(outcome, "output", `run: ${id}`);
 }
 
+// `-o` is the output format on every command; `download -o ./out`, the
+// directory under its old short flag, is refused with the flag it meant.
+function refuseDirectoryAsFormat(options: DownloadFlags, type: string, ref: string): void {
+  const output = options.output;
+  if (output === undefined || supportedFormats("mutating").includes(output.toLowerCase() as never)) return;
+  throw new UsageError(
+    `-o is the output format (table or json); the directory is --output-dir:\n  stigmer download ${type} ${ref} --output-dir ${output}`,
+  );
+}
+
 // The result flags shape an eval download's answer; a download that prints
 // its files as it writes them would ignore one, so it is refused.
 function refuseResultFlags(options: DownloadFlags, whose: string): void {
-  if (options.json === true || options.quiet === true) {
-    throw new UsageError(`--json and --quiet apply to \`download eval\`; ${whose} download prints the files it writes`);
+  if (options.json === true || options.quiet === true || options.output !== undefined) {
+    throw new UsageError(`-o, --json and --quiet apply to \`download eval\`; ${whose} download prints the files it writes`);
   }
 }
 

@@ -17,7 +17,9 @@
 //
 // This module holds no business logic: backend selection, token precedence, and
 // endpoint shape are delegated to the config layer; org resolution and verb
-// dispatch live with the commands and the registry.
+// dispatch live with the commands and the registry. It records the address
+// it dials, and where that came from, in runtime.ts, so an error names the
+// address actually tried (errors/classify.ts).
 
 import type { DescService } from "@bufbuild/protobuf";
 import { type Client, createClient, type Transport } from "@connectrpc/connect";
@@ -32,10 +34,11 @@ import { createNodeTransport, normalizeEndpoint } from "@stigmer/client/node";
 import {
   type Config,
   load,
-  resolveEndpoint,
+  resolveServerAddress,
   resolveToken,
 } from "../config/index.js";
-import { CliExitError, ExitCode } from "../errors/index.js";
+import { cannotConnect, CliExitError, ExitCode } from "../errors/index.js";
+import { type ServerAddress, setServerAddress } from "../runtime.js";
 
 /** The composed backend client returned by {@link createBackendClient}. */
 export interface BackendClient {
@@ -82,7 +85,9 @@ export function createBackendClient(
   options: BackendClientOptions = {},
 ): BackendClient {
   const config = options.config ?? load();
-  const baseUrl = normalizeEndpoint(resolveEndpoint(config));
+  const address = resolveServerAddress(config);
+  setServerAddress(address);
+  const baseUrl = normalizeEndpoint(address.address);
 
   // Dynamic provider: re-reads env/config on every request so a token refreshed
   // mid-session is picked up. STIGMER_API_KEY > config token precedence lives in
@@ -118,7 +123,7 @@ export function createBackendClient(
       return createClient(service, transport);
     },
     async connect(timeoutMs = DEFAULT_CONNECT_TIMEOUT_MS) {
-      await withTimeout(probeServerInfo(), timeoutMs);
+      await withTimeout(probeServerInfo(), timeoutMs, address);
     },
     serverInfo: probeServerInfo,
     async isResourceAvailable(kind) {
@@ -132,22 +137,24 @@ export function createBackendClient(
 
 // Soft timeout: races the RPC against a timer. It cannot cancel the underlying
 // request, but the CLI exits immediately after, so the dangling call is moot.
+// A server that does not answer in time could not be reached: the timeout
+// says so in the same words, with the address and how long it waited.
 async function withTimeout<T>(
   promise: Promise<T>,
   timeoutMs: number,
+  address: ServerAddress,
 ): Promise<T> {
   let timer: NodeJS.Timeout | undefined;
   const timeout = new Promise<never>((_, reject) => {
-    timer = setTimeout(
-      () =>
-        reject(
-          new CliExitError(
-            "Timed out connecting to the Stigmer server",
-            ExitCode.Connection,
-          ),
-        ),
-      timeoutMs,
-    );
+    timer = setTimeout(() => {
+      const failure = cannotConnect(address);
+      reject(
+        new CliExitError(failure.message, ExitCode.Connection, [
+          `It did not answer within ${timeoutMs / 1000} seconds.`,
+          ...failure.hints,
+        ]),
+      );
+    }, timeoutMs);
   });
   try {
     return await Promise.race([promise, timeout]);

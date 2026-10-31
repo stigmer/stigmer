@@ -5,12 +5,16 @@
  * mode's flows and secret blocks, unattended skips, the outputs folder's
  * writes (flowing uncaptured wherever a workspace edit flows unasked, asking
  * under the classic gate), and the shadow receipt with its provenance and
- * engine version. `interrupt()` is mocked.
+ * engine version, and the refusal event a secret block writes so the
+ * refused write's row settles failed, naming the file and never its content.
+ * `interrupt()` is mocked.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ToolMessage } from "@langchain/core/messages";
 import { createApprovalGateMiddleware, type ApprovalGateConfig } from "../approval-gate.js";
 import type { McpApprovalDefault } from "../../shared/approval-policy.js";
+import { secretBlockMessage } from "../../shared/file-edit-policy.js";
+import { TOOL_REFUSED_EVENT } from "../tool-scope.js";
 import type { ToolCallRequest } from "../types.js";
 
 vi.mock("@langchain/langgraph", () => ({
@@ -34,6 +38,17 @@ function makeRequest(overrides: Partial<ToolCallRequest["toolCall"]> = {}): Tool
     state: { messages: [] },
     runtime: {},
   };
+}
+
+/** A request whose runtime streams custom events to `writer`, as a graph run with a custom stream does. */
+function streamingRequest(overrides: Partial<ToolCallRequest["toolCall"]>): { request: ToolCallRequest; writer: ReturnType<typeof vi.fn> } {
+  const writer = vi.fn();
+  return { request: { ...makeRequest(overrides), runtime: { writer } }, writer };
+}
+
+/** The refusal event a secret block writes for `call_abc123`: the path alone as its input, no provenance. */
+function secretRefusal(toolName: string, path: string) {
+  return { name: TOOL_REFUSED_EVENT, tool_call_id: "call_abc123", tool_name: toolName, input: { path }, message: secretBlockMessage(toolName, path) };
 }
 
 function passthrough(req: ToolCallRequest) {
@@ -603,9 +618,11 @@ describe("ApprovalGateMiddleware", () => {
       ]) {
         const handler = vi.fn(passthrough);
         const mw = createApprovalGateMiddleware(makeConfig(config));
-        const result = await mw.wrapToolCall!(makeRequest({ name: "write", args: { path: ".env" } }), handler);
+        const { request, writer } = streamingRequest({ name: "write", args: { path: ".env" } });
+        const result = await mw.wrapToolCall!(request, handler);
         expect(handler).not.toHaveBeenCalled();
         expect(String((result as { content: unknown }).content)).toContain("blocked for security");
+        expect(writer.mock.calls, "the refused write's row opens and fails").toEqual([[secretRefusal("write", ".env")]]);
       }
       expect(mockedInterrupt).not.toHaveBeenCalled();
     });
@@ -728,15 +745,15 @@ describe("ApprovalGateMiddleware", () => {
         recordBlockedSecret,
       }));
 
-      const result = await mw.wrapToolCall!(
-        makeRequest({ name: "write", args: { path: ".env" } }),
-        handler,
-      );
+      const { request, writer } = streamingRequest({ name: "write", args: { path: ".env" } });
+      const result = await mw.wrapToolCall!(request, handler);
 
       expect(handler).not.toHaveBeenCalled(); // fail-closed: the write never runs
       expect(mockedInterrupt).not.toHaveBeenCalled(); // hard block, not a pause
       expect(recordBlockedSecret).toHaveBeenCalledWith(".env");
-      expect((result as ToolMessage).content).toContain("blocked for security");
+      expect((result as ToolMessage).content).toBe(secretBlockMessage("write", ".env"));
+      expect((result as ToolMessage).status, "the model reads the block as it always has, not as an error").not.toBe("error");
+      expect(writer.mock.calls, "one refusal: the row opens and fails, with no provenance").toEqual([[secretRefusal("write", ".env")]]);
     });
 
     it("hard-blocks a secret-like edit by content pattern too (e.g. id_rsa)", async () => {
@@ -981,15 +998,16 @@ describe("ApprovalGateMiddleware", () => {
       }));
       mockedInterrupt.mockReturnValue({ action: "approve" });
 
-      const result = await mw.wrapToolCall!(
-        makeRequest({ name: "write", args: { path: ".env", content: "API_KEY=xyz" } }),
-        handler,
-      );
+      const { request, writer } = streamingRequest({ name: "write", args: { path: ".env", content: "API_KEY=xyz" } });
+      const result = await mw.wrapToolCall!(request, handler);
 
       expect(mockedInterrupt).not.toHaveBeenCalled(); // hard-block, not a pause
       expect(handler).not.toHaveBeenCalled(); // never applied
       expect(recordBlockedSecret).toHaveBeenCalledWith(".env");
       expect((result as ToolMessage).content).toContain("blocked for security");
+      // The refusal names the file; the content never enters the custom stream.
+      expect(writer.mock.calls).toEqual([[secretRefusal("write", ".env")]]);
+      expect(JSON.stringify(writer.mock.calls)).not.toContain("API_KEY=xyz");
     });
 
     it("hard-blocks a secret-like edit too (id_rsa via path fragment)", async () => {

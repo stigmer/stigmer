@@ -1,0 +1,7 @@
+
+NAME                 DESCRIPTION                     VISIBILITY       CREATED
+------------------   -----------------------------   --------------   ----------
+demo/demo-agent      A sample agent for demo and…    visibility_org   2026-07-20
+demo/release-notes   Drafts release notes from th…   visibility_org   2026-07-20
+demo/translator      日本語のサポート窓口に届いた…   visibility_org   2026-07-20
+demo/triage          Labels issues.                  visibility_org   2026-07-20

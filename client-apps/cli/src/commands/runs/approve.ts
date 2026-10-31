@@ -5,16 +5,18 @@
 
 import type { Command } from "commander";
 import { ensureAuthenticated } from "../../config/index.js";
+import type { OutputFlags } from "../../output/index.js";
 import type { ApproveResult } from "../../resources/run-approve.js";
+import { addResultFlags, resultFormat } from "../shared.js";
 
-interface ApproveFlags {
+interface ApproveFlags extends OutputFlags {
   comment?: string;
   toolCall?: string;
   action?: string;
 }
 
 export function registerRunsApprove(runs: Command): void {
-  runs
+  const approve = runs
     .command("approve <run-id>")
     .description("answer a tool call a run waits on")
     .option("--comment <comment>", "the reason the agent reads with a deny")
@@ -25,6 +27,7 @@ export function registerRunsApprove(runs: Command): void {
       "allow",
     )
     .action((runId: string, options: ApproveFlags) => runApprove(runId, options));
+  addResultFlags(approve);
 }
 
 // What the success line calls each answer.
@@ -35,6 +38,7 @@ const ANSWERED: Record<ApproveResult["answer"], string> = {
 };
 
 async function runApprove(runId: string, options: ApproveFlags): Promise<void> {
+  const format = resultFormat(options);
   const [{ connectBackend }, approve, { CommandResult, renderResult }] = await Promise.all([
     import("../../backend.js"),
     import("../../resources/run-approve.js"),
@@ -51,7 +55,12 @@ async function runApprove(runId: string, options: ApproveFlags): Promise<void> {
     comment: options.comment ?? "",
   });
   renderResult(
-    CommandResult.success(`Tool call ${ANSWERED[result.answer]}: ${result.toolName} (${result.toolUseId})`),
-    "human",
+    CommandResult.success(`Tool call ${ANSWERED[result.answer]}: ${result.toolName} (${result.toolUseId})`).withData({
+      runId,
+      toolUseId: result.toolUseId,
+      toolName: result.toolName,
+      answer: result.answer,
+    }),
+    format,
   );
 }

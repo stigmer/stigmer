@@ -219,6 +219,23 @@ describe("stigmer service-account", () => {
     expect((JSON.parse(json.stdout) as { metadata: { id: string } }[]).map((k) => k.metadata.id)).toEqual(["key_gha"]);
   });
 
+  it("CLI-09 cuts a key's name, never its id, to fit the terminal stdout is", async () => {
+    const tty = Object.getOwnPropertyDescriptor(process.stdout, "isTTY");
+    const columns = Object.getOwnPropertyDescriptor(process.stdout, "columns");
+    Object.defineProperty(process.stdout, "isTTY", { value: true, configurable: true });
+    Object.defineProperty(process.stdout, "columns", { value: 40, configurable: true });
+    try {
+      const { stdout } = await run(["service-account", "keys", "ci-deploy"]);
+      // ID, FINGERPRINT and EXPIRES take 34 columns with the gaps; NAME stops at its floor of 12.
+      expect(stdout.trim().split("\n")[2]?.split(/\s+/)).toEqual(["key_gha", "github-acti…", "***a1b2c3", "Never"]);
+    } finally {
+      for (const [key, descriptor] of [["isTTY", tty], ["columns", columns]] as const) {
+        if (descriptor === undefined) Reflect.deleteProperty(process.stdout, key);
+        else Object.defineProperty(process.stdout, key, descriptor);
+      }
+    }
+  });
+
   it("prints the accounts and the keys as YAML", async () => {
     const accounts = await run(["service-account", "list", "-o", "yaml"]);
     expect(accounts.stdout.startsWith("- metadata:")).toBe(true);

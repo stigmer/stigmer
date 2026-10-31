@@ -647,13 +647,26 @@ describe("get integration", () => {
     expect(classified?.exitCode).toBe(ExitCode.NotFound);
   });
 
+  it("CLI-09 fetches a session by its id (stigmer/stigmer#2502)", async () => {
+    const { message } = await fetchResource(client, ApiResourceKind.session, { kind: "id", id: "ses_conv" });
+    expect(JSON.parse(renderResource(SessionSchema, message, "json"))).toMatchObject({ metadata: { id: "ses_conv" } });
+  });
+
+  it("CLI-09 refuses a session named by anything but its id, before any RPC", async () => {
+    const err = await fetchResource(client, ApiResourceKind.session, { kind: "ref", org: "acme", slug: "q3" }).catch(
+      (e) => e,
+    );
+    expect(classify(err)?.exitCode).toBe(ExitCode.Usage);
+    expect(String(err.message)).toContain("Sessions can only be fetched by ID");
+  });
+
   it("rejects an unsupported kind with a usage error", async () => {
-    // session's read verbs are narrowed out of the verb matrix
+    // An OAuth app's read verbs are narrowed out of the verb matrix
     // (stigmer/stigmer#354): the command layer refuses at the gate, and this
-    // resource-layer fallback answers anyone bypassing the gate. Wiring
-    // session get requires BOTH the binding and the matrix line — the
-    // registry conformance test enforces the pairing.
-    const err = await fetchResource(client, ApiResourceKind.session, { kind: "id", id: "x" }).catch((e) => e);
+    // resource-layer fallback answers anyone bypassing the gate. Wiring its
+    // get requires BOTH the binding and the matrix line — the registry
+    // conformance test enforces the pairing.
+    const err = await fetchResource(client, ApiResourceKind.oauth_app, { kind: "id", id: "x" }).catch((e) => e);
     expect(classify(err)?.exitCode).toBe(ExitCode.Usage);
   });
 });
@@ -723,6 +736,15 @@ describe("list integration", () => {
   it("applies --limit to API keys", async () => {
     const out = await listResources(client, ApiResourceKind.api_key, "acme", 1, "json");
     expect(JSON.parse(out)).toEqual([toJson(ApiKeySchema, knownApiKey, { useProtoFieldName: true })]);
+  });
+
+  it("renders a human API key table: the key by its id, its name, the fingerprint's tail and when it expires", async () => {
+    const out = await listResources(client, ApiResourceKind.api_key, "acme", 50, "table");
+    const rows = out.trim().split("\n").slice(2).map((line) => line.split(/\s+/));
+    expect(rows).toEqual([
+      ["key_1", "ci", "***abcd", "Never"],
+      ["key_2", "local-dev", "***ef01", "Never"],
+    ]);
   });
 
   it("renders a human agent table, naming each organization by slug once", async () => {

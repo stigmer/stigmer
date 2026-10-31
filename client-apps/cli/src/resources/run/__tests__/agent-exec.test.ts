@@ -37,7 +37,7 @@ import { executeResolvedAgent, stderrProgress } from "../agent-exec.js";
 import { NO_FILES, planFiles } from "../files.js";
 import type { PreparedRun } from "../prepare.js";
 
-const stream = vi.hoisted(() => ({ streamAgentRun: vi.fn() }));
+const stream = vi.hoisted(() => ({ streamAgentRun: vi.fn(), exitByTurn: vi.fn() }));
 const download = vi.hoisted(() => ({ downloadRunOutputs: vi.fn() }));
 vi.mock("../stream.js", () => stream);
 vi.mock("../../download.js", () => download);
@@ -242,8 +242,9 @@ describe("executeResolvedAgent, attached", () => {
     expect(download.downloadRunOutputs).not.toHaveBeenCalled();
   });
 
-  it("downloads the final run's outputs into the download directory", async () => {
-    stream.streamAgentRun.mockResolvedValue(finalRun());
+  it("hands the download directory and the run's mode of ending to the stream, then exits by the turn it returns", async () => {
+    const final = finalRun();
+    stream.streamAgentRun.mockResolvedValue(final);
     const { client } = fakeBackend();
 
     await executeResolvedAgent({
@@ -252,15 +253,13 @@ describe("executeResolvedAgent, attached", () => {
       org: "acme",
       downloadDir: "/tmp/out",
       outputMode: "inline",
+      until: "turn",
       client,
     });
 
-    expect(download.downloadRunOutputs).toHaveBeenCalledWith(
-      client.stigmer,
-      "run_final",
-      { outputPath: "", outputDir: "/tmp/out" },
-      expect.any(Function),
-    );
+    expect(stream.streamAgentRun).toHaveBeenCalledWith(expect.objectContaining({ downloadDir: "/tmp/out", until: "turn" }));
+    expect(stream.exitByTurn).toHaveBeenCalledWith(final);
+    expect(download.downloadRunOutputs).not.toHaveBeenCalled();
   });
 });
 

@@ -1,0 +1,24 @@
+Usage: stigmer get [options] <type> <reference>
+
+get a resource by type and reference (slug, org/slug, or ID)
+
+Options:
+  --version <hashOrTag>  fetch a specific version by tag, hash, or the short
+                         hash --version-history prints (agents)
+  --version-history      show the version history timeline (agents)
+  -o, --output <format>  output format: table, json, or yaml
+  --json                 shorthand for --output json
+  -h, --help             display help for command
+
+Global Options:
+  --version              print the CLI version
+  -d, --debug            enable debug output
+  --standalone           ignore the config file; use flags and environment only
+  --org <slug>           organization, on servers that hold several
+  --api-key <key>        API key for authentication (before the command)
+
+Examples:
+  stigmer get agent my-agent
+      get an agent by slug
+  stigmer get agent acme-corp/variance-reporter
+      get by org-qualified slug

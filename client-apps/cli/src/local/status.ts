@@ -7,6 +7,7 @@
 // always rendered in a fixed, dependency-ordered sequence so the output reads
 // the same on every machine.
 
+import { formatElapsed } from "@stigmer/client";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { load as loadConfig } from "../config/config.js";
@@ -172,19 +173,5 @@ function uptimeFrom(startedAt: string): string | null {
   if (startedAt === "") return null;
   const started = Date.parse(startedAt);
   if (Number.isNaN(started)) return null;
-  return formatDuration(Date.now() - started);
-}
-
-/** Human-readable, coarse duration ("2h 5m", "3m 12s", "8s"). */
-export function formatDuration(ms: number): string {
-  const totalSeconds = Math.max(0, Math.floor(ms / 1000));
-  const days = Math.floor(totalSeconds / 86_400);
-  const hours = Math.floor((totalSeconds % 86_400) / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-
-  if (days > 0) return `${days}d ${hours}h`;
-  if (hours > 0) return `${hours}h ${minutes}m`;
-  if (minutes > 0) return `${minutes}m ${seconds}s`;
-  return `${seconds}s`;
+  return formatElapsed(Date.now() - started);
 }

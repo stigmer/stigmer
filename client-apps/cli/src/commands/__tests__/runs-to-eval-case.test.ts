@@ -87,3 +87,25 @@ describe("stigmer runs to-eval-case", () => {
     expect(readFileSync(join(scratch, "evals", "a", "graders", "criteria.md"), "utf8")).toBe("FAIL if: missed the off-by-one\n");
   });
 });
+
+describe("CLI-02 stigmer runs to-eval-case -o json", () => {
+  it("prints where the case went: its directory, or the eval and its new digest", async () => {
+    const out: string[] = [];
+    const write = vi.spyOn(process.stdout, "write").mockImplementation((chunk) => (out.push(String(chunk)), true));
+    try {
+      await toEvalCase("runs", "to-eval-case", "run_1", "-o", "json");
+      expect(JSON.parse(out.join(""))).toEqual({ runId: "run_1", caseDir: "evals/a" });
+      out.length = 0;
+      vi.clearAllMocks();
+      resource.writeEvalCaseFromRun.mockResolvedValue("sha256:abc");
+      await toEvalCase("runs", "to-eval-case", "run_2", "--eval", "support-evals", "--json");
+      expect(JSON.parse(out.join(""))).toEqual({ runId: "run_2", eval: "support-evals", digest: "sha256:abc" });
+      out.length = 0;
+      vi.clearAllMocks();
+      await toEvalCase("runs", "to-eval-case", "run_3");
+      expect(out).toEqual([]);
+    } finally {
+      write.mockRestore();
+    }
+  });
+});

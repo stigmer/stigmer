@@ -283,7 +283,7 @@ describe("stigmer push eval", () => {
 describe("stigmer download eval", () => {
   it("resolves the version named, checks the archive against its digest and unzips it into a new directory", async () => {
     const out = join(work, "copy");
-    const outcome = await runCli(["download", "eval", "support@stable", "-o", out, "--json"]);
+    const outcome = await runCli(["download", "eval", "support@stable", "--output-dir", out, "--json"]);
     expect(outcome.message).toBe("");
     expect(outcome.exitCode).toBe(ExitCode.Success);
     expect(backend.references[0]?.slug).toBe("support");
@@ -296,7 +296,7 @@ describe("stigmer download eval", () => {
   });
 
   it("refuses a reference that names no version after '@'", async () => {
-    const outcome = await runCli(["download", "eval", "support@", "-o", join(work, "copy")]);
+    const outcome = await runCli(["download", "eval", "support@", "--output-dir", join(work, "copy")]);
     expect(outcome.exitCode).toBe(ExitCode.Usage);
     expect(outcome.message).toContain("names no version after '@'");
     expect(backend.references).toEqual([]);
@@ -305,7 +305,7 @@ describe("stigmer download eval", () => {
   it("refuses an output path that is a file", async () => {
     const out = join(work, "a-file");
     writeFileSync(out, "mine");
-    const outcome = await runCli(["download", "eval", "support", "-o", out]);
+    const outcome = await runCli(["download", "eval", "support", "--output-dir", out]);
     expect(outcome.exitCode).toBe(ExitCode.Usage);
     expect(outcome.message).toContain("exists and is not a directory");
     expect(readFileSync(out, "utf8")).toBe("mine");
@@ -315,7 +315,7 @@ describe("stigmer download eval", () => {
     const out = join(work, "busy");
     mkdirSync(out);
     writeFileSync(join(out, "mine.txt"), "keep me");
-    const outcome = await runCli(["download", "eval", "support", "-o", out]);
+    const outcome = await runCli(["download", "eval", "support", "--output-dir", out]);
     expect(outcome.exitCode).toBe(ExitCode.Usage);
     expect(outcome.message).toContain("is not empty");
     expect(readFileSync(join(out, "mine.txt"), "utf8")).toBe("keep me");
@@ -324,7 +324,7 @@ describe("stigmer download eval", () => {
   it("refuses an archive that does not match its digest, writing nothing", async () => {
     backend.archive = zipSync({ "refund/prompt.md": encoder.encode("Changed in flight.") });
     const out = join(work, "tampered");
-    const outcome = await runCli(["download", "eval", "support", "-o", out]);
+    const outcome = await runCli(["download", "eval", "support", "--output-dir", out]);
     expect(outcome.exitCode).not.toBe(ExitCode.Success);
     expect(outcome.message).toContain("does not match its digest");
     expect(existsSync(join(out, "refund"))).toBe(false);

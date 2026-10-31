@@ -18,13 +18,12 @@ import { VERSION } from "../version.js";
 // so prepareAgentExec asks the client nothing.
 const STUB_CLIENT = {} as unknown as Stigmer;
 
-// A program whose errors are captured instead of exiting: `subcommand`'s too,
-// since commander copies exitOverride to a command only when it is created.
-function capturedProgram(subcommand = "run"): { program: Command; stderr: () => string } {
+// A program whose output is captured; every command's errors already throw
+// (errors/command-line.ts) rather than exit.
+function capturedProgram(): { program: Command; stderr: () => string } {
   const program = buildProgram();
   let stderr = "";
-  program.exitOverride().configureOutput({ writeErr: (text) => void (stderr += text) });
-  program.commands.find((command) => command.name() === subcommand)?.exitOverride();
+  program.configureOutput({ writeErr: (text) => void (stderr += text) });
   return { program, stderr: () => stderr };
 }
 
@@ -128,10 +127,11 @@ describe("buildProgram", () => {
     ["a value holding a newline", "--token=TOKEN=first\nsecond-secret", "second-secret"],
   ])("refuses an unknown option without echoing any part of its value written with '=' (%s)", async (_case, arg, leaked) => {
     const { program, stderr } = capturedProgram();
-    await expect(program.parseAsync(["run", "-m", "hi", arg], { from: "user" })).rejects.toMatchObject({
-      code: "commander.unknownOption",
-    });
-    expect(stderr()).toContain("unknown option '--token'");
+    const refusal = program.parseAsync(["run", "-m", "hi", arg], { from: "user" });
+    await expect(refusal).rejects.toMatchObject({ code: "commander.unknownOption", exitCode: 2 });
+    const message = await refusal.catch((error: Error) => error.message);
+    expect(message).toBe("unknown option '--token'");
+    expect(message).not.toContain(leaked);
     expect(stderr()).not.toContain(leaked);
     expect(stderr()).not.toContain("TOKEN");
   });

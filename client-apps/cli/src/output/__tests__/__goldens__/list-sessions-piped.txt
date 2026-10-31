@@ -1,0 +1,6 @@
+
+SESSION ID                       STATE   AGENT             SUBJECT                                                                                   CREATED
+------------------------------   -----   ---------------   ---------------------------------------------------------------------------------------   -------
+ses_00000000000000000000000001   -       demo/demo-agent   Demo conversation                                                                         -
+ses_00000000000000000000000002   -       Assistant         Why does the invoice total round down when a discount and a tax apply to the same line?   -
+ses_00000000000000000000000003   -       demo/demo-agent   Ship the 🚀 launch checklist                                                              -

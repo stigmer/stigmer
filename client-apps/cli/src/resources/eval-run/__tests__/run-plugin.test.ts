@@ -103,7 +103,7 @@ function fakeServer(
         readCount += 1;
         opts.onRead?.(readCount);
         if (opts.hungReads?.has(readCount) === true) return new Promise<never>(() => undefined);
-        if (opts.failedReads?.has(readCount) === true) throw new StigmerError("unavailable", "the server is unavailable", Code.Unavailable);
+        if (opts.failedReads?.has(readCount) === true) throw new StigmerError("unavailable", "fetch failed", Code.Unavailable);
         const read = reads[Math.min(next, reads.length - 1)]!;
         next += 1;
         return read;
@@ -520,7 +520,7 @@ describe("runEvalRun about a plugin", () => {
     expect(error).toBeInstanceOf(CliExitError);
     expect((error as CliExitError).exitCode).toBe(1);
     expect((error as CliExitError).message).toBe(
-      "lost track of eval run evr_1 (Cannot connect to the Stigmer server), so it was cancelled",
+      "lost track of eval run evr_1 (Could not reach the Stigmer server), so it was cancelled",
     );
     const retries = fake.waits.slice(2);
     expect(retries.reduce((sum, ms) => sum + ms, 0)).toBe(POLL_RETRY_BUDGET_MS);
@@ -547,9 +547,9 @@ describe("runEvalRun about a plugin", () => {
     const error = await run(server.client, "acme", {}, fake.io).catch((e: unknown) => e);
     expect((error as CliExitError).exitCode).toBe(1);
     expect((error as CliExitError).message).toBe(
-      "lost track of eval run evr_1 (Cannot connect to the Stigmer server), and could not cancel it; cancel it with: stigmer eval cancel evr_1",
+      "lost track of eval run evr_1 (Could not reach the Stigmer server), and could not cancel it; cancel it with: stigmer eval cancel evr_1",
     );
-    expect(fake.err()).toContain("Could not read evr_1 (Cannot connect to the Stigmer server); trying again in 1s.\n");
+    expect(fake.err()).toContain("Could not read evr_1 (Could not reach the Stigmer server); trying again in 1s.\n");
     expect(fake.out()).toContain("1 case(s) · mean Δ +0.67");
     expect(fake.out()).toContain(
       "\nLost track of the eval run; it may still be running: cancel it with `stigmer eval cancel evr_1`\n",
@@ -581,14 +581,14 @@ describe("runEvalRun about a plugin", () => {
   });
 
   it("prints what it has, says how to cancel, and exits 130 when Ctrl+C's cancel cannot reach the server", async () => {
-    const outage = new StigmerError("unavailable", "the server is unavailable", Code.Unavailable);
+    const outage = new StigmerError("unavailable", "fetch failed", Code.Unavailable);
     const server = fakeServer([running()], { cancelError: outage });
     const fake = fakeIo({ interruptAfterSleeps: 2 });
     const error = await run(server.client, "acme", {}, fake.io).catch((e: unknown) => e);
     expect(error).toBeInstanceOf(CliExitError);
     expect((error as CliExitError).exitCode).toBe(130);
     expect((error as CliExitError).message).toBe(
-      "could not cancel eval run evr_1 (Cannot connect to the Stigmer server); cancel it with: stigmer eval cancel evr_1",
+      "could not cancel eval run evr_1 (Could not reach the Stigmer server); cancel it with: stigmer eval cancel evr_1",
     );
     expect(fake.out()).toContain("1 case(s) · mean Δ +0.67");
     expect(fake.out()).toContain(
@@ -613,7 +613,7 @@ describe("runEvalRun about a plugin", () => {
   });
 
   it("passes on a create failure that is not a refusal of the suite, unchanged", async () => {
-    const outage = new StigmerError("unavailable", "the server is unavailable", Code.Unavailable);
+    const outage = new StigmerError("unavailable", "fetch failed", Code.Unavailable);
     const server = fakeServer([], { createError: outage });
     await expect(run(server.client, "acme", {}, fakeIo().io)).rejects.toBe(outage);
   });
@@ -639,9 +639,9 @@ describe("runEvalRun about a plugin", () => {
 describe("cancelEvalRun", () => {
   it("cancels by id and says how far the eval got", async () => {
     const server = fakeServer([]);
-    let stderr = "";
-    await cancelEvalRun(server.client, "evr_1", { stderr: { write: (text) => void (stderr += text) } });
+    const result = await cancelEvalRun(server.client, "evr_1");
     expect(server.calls).toEqual(["cancel evr_1"]);
-    expect(stderr).toBe("Cancelled evr_1: tries in flight stop; 3 of 4 tries had finished.\n");
+    expect(result.message).toBe("Cancelled evr_1: tries in flight stop; 3 of 4 tries had finished.");
+    expect(result.data).toEqual({ evalRunId: "evr_1", triesFinished: 3, triesTotal: 4 });
   });
 });

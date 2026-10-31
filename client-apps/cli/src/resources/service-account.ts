@@ -133,6 +133,9 @@ export function serviceAccountKeyRows(keys: readonly ApiKey[]): string[][] {
 
 export const SERVICE_ACCOUNT_KEY_TABLE_HEADERS = ["ID", "NAME", "FINGERPRINT", "EXPIRES"] as const;
 
+/** A key's NAME is a note its maker wrote, so it gives up width on a narrow terminal; the ID names the key. */
+export const SERVICE_ACCOUNT_KEY_TABLE_SHRINK = ["NAME"] as const;
+
 /** Create a service account holding `role`, and say how to give it a key. */
 export async function createServiceAccount(
   client: ServiceAccountClient,

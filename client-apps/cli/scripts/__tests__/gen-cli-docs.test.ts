@@ -5,7 +5,8 @@ import { fileURLToPath } from "node:url";
 import { Command } from "commander";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { buildProgram } from "../../src/program.js";
-import { checkEnrichment, generate, renderDefaultPage, renderEnrichedPage } from "../gen-cli-docs.js";
+import { examples } from "../../src/command-tree.js";
+import { checkEnrichment, checkPageExamples, generate, renderDefaultPage, renderEnrichedPage } from "../gen-cli-docs.js";
 
 const enrichmentsDir = join(dirname(fileURLToPath(import.meta.url)), "../../docs/commands");
 
@@ -46,32 +47,48 @@ describe("generate", () => {
 
     expect(meta.title).toBe("Commands");
     expect(meta.pages[0]).toBe("index");
-    expect(meta.pages).toContain("---Core Commands---");
+    expect(meta.pages).toContain("---Run agents---");
     expect(meta.pages).toContain("---Configuration---");
-    // Group separators precede their members; "run" (core) appears after the
-    // Core Commands header and before the Lifecycle header.
-    const core = meta.pages.indexOf("---Core Commands---");
-    const lifecycle = meta.pages.indexOf("---Lifecycle---");
+    // Group separators precede their members; "run" appears after the Run
+    // agents header and before the Your library header.
+    const runAgents = meta.pages.indexOf("---Run agents---");
+    const library = meta.pages.indexOf("---Your library---");
     const run = meta.pages.indexOf("run");
-    expect(core).toBeLessThan(run);
-    expect(run).toBeLessThan(lifecycle);
+    expect(runAgents).toBeLessThan(run);
+    expect(run).toBeLessThan(library);
   });
 
   it("orders the index groups and sorts commands within each group", () => {
     generate(outputDir, enrichmentsDir);
     const index = readFileSync(join(outputDir, "index.mdx"), "utf8");
 
-    expect(index.indexOf("## Core Commands")).toBeLessThan(index.indexOf("## Lifecycle"));
-    expect(index.indexOf("## Lifecycle")).toBeLessThan(index.indexOf("## Resource Management"));
-    // Within Resource Management, apply sorts before validate.
+    // The groups in help's order: run agents first, configuration last.
+    const headings = [...index.matchAll(/^## (.+)$/gm)].map((match) => match[1]);
+    expect(headings).toEqual(["Run agents", "Your library", "Packages", "Local stack", "Account and access", "Configuration", "Global Flags"]);
+    // Within Your library, apply sorts before validate.
     expect(index.indexOf("[`stigmer apply`]")).toBeLessThan(index.indexOf("[`stigmer validate`]"));
     expect(index).toContain("## Global Flags");
   });
 
-  it("throws when a visible command has no group assignment", () => {
+  it("throws when a visible command has no help group", () => {
     const program = buildProgram();
     program.command("bogus").description("an ungrouped command");
-    expect(() => generate(outputDir, enrichmentsDir, program)).toThrow(/no group assignment/);
+    expect(() => generate(outputDir, enrichmentsDir, program)).toThrow(/"bogus" has no help group/);
+  });
+
+  it("CLI-10 throws when a page leaves out one of its commands' help examples, naming the line", () => {
+    const program = buildProgram();
+    const get = program.commands.find((cmd) => cmd.name() === "get")!;
+    examples(get, [{ say: "a line no page shows", run: "stigmer get agent nowhere-on-the-page" }]);
+    expect(() => generate(outputDir, enrichmentsDir, program)).toThrow(/get\.mdx is missing help examples of `stigmer get`[\s\S]*stigmer get agent nowhere-on-the-page/);
+  });
+
+  it("reads a line continued with a backslash as the line up to it, and never a part of a line", () => {
+    const page = "```bash\nstigmer get agent my-agent \\\n  -o yaml\nstigmer get agent my-agent-two\n```\n";
+    const continued = examples(new Command("get"), [{ say: "continued", run: "stigmer get agent my-agent" }]);
+    expect(() => checkPageExamples(continued, page, "get.mdx")).not.toThrow();
+    const partial = examples(new Command("get"), [{ say: "a prefix of a line", run: "stigmer get agent my-agent-t" }]);
+    expect(() => checkPageExamples(partial, page, "get.mdx")).toThrow(/missing help examples/);
   });
 });
 

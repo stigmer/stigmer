@@ -5,8 +5,42 @@ search and select from available agents. With a reference argument, the CLI
 resolves it as an agent slug, `org/slug`, or agent ID.
 
 The command streams agent output to your terminal in real time — you see
-messages, tool calls, and approval prompts as they happen. For scripting and
-CI pipelines, use `--json` to receive newline-delimited event objects instead.
+messages, tool calls, and approval prompts as they happen. For scripting and CI
+pipelines, use `-o json` (or `--json`) to receive newline-delimited event
+objects instead.
+
+### How a run ends
+
+On a terminal, a run is a conversation: after the turn ends you can type a
+follow-up, and the command returns when you leave (`/exit`, or Ctrl+C twice on
+an empty message). `--until turn` returns as soon as the turn ends instead,
+which suits a step whose next line is a shell command. Off a terminal (piped, in
+CI) and with `-o json`, the command always returns when the turn ends.
+
+`--download DIR` saves each turn's outputs as that turn ends, so the files are
+there before you leave; on a terminal the conversation says what it saved.
+`--download` cannot be combined with `--detach`, which returns before the turn
+does.
+
+The exit code says how the newest turn of the conversation ended, the same table
+the terminal kit's `stigmer-ink` uses:
+
+| Code  | Meaning                                                                                   |
+| ----- | ----------------------------------------------------------------------------------------- |
+| `0`   | The turn completed                                                                        |
+| `1`   | The turn failed, was cancelled, or was stopped                                            |
+| `130` | You left while the turn was still working (it keeps working; `stigmer resume` comes back) |
+
+The CLI's other codes (`2` a usage error, `3` no server, `4` not signed in, `5`
+not found) mean the run did not start.
+
+```bash
+# In CI: fail the job when the review fails
+stigmer run reviewer -m "Review this diff" -o json > events.ndjson
+
+# At a terminal: get the shell back when the job is done
+stigmer run variance-reporter --attach ledger.csv --download ./out --until turn -m "Review this quarter's ledger."
+```
 
 {/* AUTO_USAGE */}
 

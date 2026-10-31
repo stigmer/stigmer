@@ -37,79 +37,25 @@ import { buildProgram } from "../src/program.js";
 import {
   commandPath,
   documentedCommands,
+  helpExamples,
+  helpGroupOf,
   registeredArguments,
   visibleSubcommands,
 } from "../src/command-tree.js";
+import { HELP_GROUPS, type HelpGroup } from "../src/commands/help.js";
 
 // ---------------------------------------------------------------------------
 // Command grouping
 // ---------------------------------------------------------------------------
 //
-// Commander (v12) has no native help-group concept, so the command grouping
-// lives here as the single source of truth. groupOrder controls display order in the sidebar and index page;
-// COMMAND_GROUP assigns every visible top-level command to a group. Any new
-// non-hidden command MUST be added here, or generation fails loudly (see
-// resolveGroup) rather than silently dropping the command from the docs.
+// A top-level command's group is its help group (`helpGroup`, declared in
+// src/commands/help.ts), so the reference and `stigmer --help` cannot
+// disagree. HELP_GROUPS orders the sidebar and the index page. A visible
+// command with no group fails generation loudly (see resolveGroup) rather than
+// dropping out of the docs.
 
-const groupOrder = ["core", "lifecycle", "resource", "package", "server", "config"] as const;
-type GroupId = (typeof groupOrder)[number];
-
-const groupTitles: Record<GroupId, string> = {
-  core: "Core Commands",
-  lifecycle: "Lifecycle",
-  resource: "Resource Management",
-  package: "Packages and Downloads",
-  server: "Server Commands",
-  config: "Configuration",
-};
-
-const COMMAND_GROUP: Record<string, GroupId> = {
-  // Core
-  run: "core",
-  resume: "core",
-  runs: "core",
-  usage: "core",
-  // Lifecycle
-  up: "lifecycle",
-  bootstrap: "lifecycle",
-  down: "lifecycle",
-  status: "lifecycle",
-  logs: "lifecycle",
-  setup: "lifecycle",
-  reset: "lifecycle",
-  // Resource Management
-  apply: "resource",
-  get: "resource",
-  list: "resource",
-  delete: "resource",
-  validate: "resource",
-  search: "resource",
-  connect: "resource",
-  tag: "resource",
-  channel: "resource",
-  routine: "resource",
-  vault: "resource",
-  file: "resource",
-  // Packages and Downloads
-  push: "package",
-  install: "package",
-  mcp: "package",
-  download: "package",
-  eval: "package",
-  agent: "package",
-  // Server
-  "mcp-server": "server",
-  // Configuration
-  auth: "config",
-  apikey: "config",
-  "service-account": "config",
-  "provider-key": "config",
-  "access-history": "config",
-  config: "config",
-  marketplace: "config",
-  completion: "config",
-  version: "config",
-};
+type GroupId = HelpGroup;
+const groupOrder = HELP_GROUPS;
 
 // sectionHeaderRe matches terminal-style UPPERCASE section headers found in
 // command descriptions (e.g. "USAGE FORMS:", "ENVIRONMENT VARIABLES:").
@@ -136,14 +82,36 @@ function shortDescription(cmd: Command): string {
 }
 
 function resolveGroup(cmd: Command): GroupId {
-  const group = COMMAND_GROUP[cmd.name()];
+  const group = HELP_GROUPS.find((name) => name === helpGroupOf(cmd));
   if (group === undefined) {
     throw new Error(
-      `command "${cmd.name()}" has no group assignment in scripts/gen-cli-docs.ts COMMAND_GROUP. ` +
-        `Add it to a group (or mark the command hidden) so it is documented intentionally.`,
+      `command "${cmd.name()}" has no help group. Give it one in src/commands/help.ts COMMAND_GROUPS ` +
+        `(or mark the command hidden) so it is documented intentionally.`,
     );
   }
   return group;
+}
+
+/**
+ * Refuses a page that leaves out one of its commands' help examples: each
+ * example's line (src/commands/help.ts) must be a whole line of the page's
+ * template (a line continued with a backslash counts up to it),
+ * whose hand-written Examples section explains it, so help and the page
+ * cannot drift.
+ */
+export function checkPageExamples(cmd: Command, page: string, path: string): void {
+  const lines = new Set(page.split("\n").map((line) => line.trim().replace(/\s*\\$/, "")));
+  const missing = [cmd, ...descendants(cmd)]
+    .flatMap((command) => helpExamples(command))
+    .filter((example) => !lines.has(example.run))
+    .map((example) => example.run);
+  if (missing.length > 0) {
+    throw new Error(`page ${path} is missing help examples of \`${commandPath(cmd)}\`; add each line to its Examples:\n  ${missing.join("\n  ")}`);
+  }
+}
+
+function descendants(cmd: Command): Command[] {
+  return visibleSubcommands(cmd).flatMap((sub) => [sub, ...descendants(sub)]);
 }
 
 function groupCommands(program: Command): Map<GroupId, Command[]> {
@@ -336,7 +304,7 @@ export function renderIndexPage(grouped: Map<GroupId, Command[]>, globalFlags: F
   for (const gid of groupOrder) {
     const cmds = grouped.get(gid);
     if (cmds === undefined || cmds.length === 0) continue;
-    out += `## ${groupTitles[gid]}\n\n`;
+    out += `## ${gid}\n\n`;
     out += "| Command | Description |\n";
     out += "|---------|-------------|\n";
     for (const cmd of cmds) {
@@ -347,7 +315,7 @@ export function renderIndexPage(grouped: Map<GroupId, Command[]>, globalFlags: F
 
   if (globalFlags.length > 0) {
     out += "## Global Flags\n\n";
-    out += "These flags are available on every command.\n\n";
+    out += "These flags are available on every command. `--org`, `--debug` and `--standalone` may be written before or after the command; `--api-key` goes before it.\n\n";
     out += `${flagsTable(globalFlags)}\n`;
   }
 
@@ -491,7 +459,7 @@ export function renderMetaJSON(grouped: Map<GroupId, Command[]>): string {
   for (const gid of groupOrder) {
     const cmds = grouped.get(gid);
     if (cmds === undefined || cmds.length === 0) continue;
-    pages.push(`---${groupTitles[gid]}---`);
+    pages.push(`---${gid}---`);
     for (const cmd of cmds) {
       pages.push(cmd.name());
     }
@@ -518,6 +486,7 @@ export function generate(outputDir: string, enrichmentsDir: string, program: Com
   let defaulted = 0;
   for (const cmd of documentedCommands(program)) {
     const enrichment = readEnrichment(enrichmentsDir, cmd.name());
+    if (enrichment !== undefined) checkPageExamples(cmd, enrichment, join(enrichmentsDir, `${cmd.name()}.mdx`));
     const content =
       enrichment !== undefined ? renderEnrichedPage(cmd, globalFlags, enrichment) : renderDefaultPage(cmd, globalFlags);
     writeFileSync(join(outputDir, `${cmd.name()}.mdx`), content);

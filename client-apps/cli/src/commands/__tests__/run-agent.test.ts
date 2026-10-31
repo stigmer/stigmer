@@ -6,6 +6,11 @@
 // nothing. The layering itself is pinned in
 // resources/run/__tests__/prepare.test.ts; this proves the command wires it.
 //
+// How the run ends reaches the execute step: --until (exit unless turn; any
+// other word refused), the download directory and the output mode; and
+// --download with --detach is refused, since a detached run never waits for
+// its turn.
+//
 // The backend client, the agent lookup and the execute step are replaced at
 // their modules (the command imports them lazily), so the test is offline and
 // deterministic. The fake server serves no account preferences, so the only
@@ -27,6 +32,7 @@ const CONFIG: Config = {
 };
 
 const prepared: PreparedRun[] = [];
+const executed: Array<{ readonly until?: string; readonly downloadDir: string; readonly outputMode: string }> = [];
 
 vi.mock("../../config/index.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../config/index.js")>();
@@ -55,8 +61,9 @@ vi.mock("../../resources/run/resolve.js", async (importOriginal) => {
 });
 
 vi.mock("../../resources/run/agent-exec.js", () => ({
-  executeResolvedAgent: async (input: { readonly prepared: PreparedRun }) => {
+  executeResolvedAgent: async (input: { readonly prepared: PreparedRun; readonly until?: string; readonly downloadDir: string; readonly outputMode: string }) => {
     prepared.push(input.prepared);
+    executed.push(input);
   },
 }));
 
@@ -91,5 +98,42 @@ describe("stigmer run seeds the run from the resolved agent's run defaults", () 
   it("the built-in assistant names no agent, so nothing seeds the engine", async () => {
     const started = await run("-m", "hello");
     expect(started?.harness).toBe("");
+  });
+});
+
+describe("CLI-11 stigmer run takes how it ends from --until", () => {
+  beforeEach(() => {
+    executed.length = 0;
+    vi.spyOn(process.stderr, "write").mockReturnValue(true);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("returns at the turn's end under --until turn, and stays a conversation by default", async () => {
+    await run("reviewer", "-m", "review this", "--until", "turn", "--download", "./out");
+    expect(executed.at(-1)).toMatchObject({ until: "turn", downloadDir: "./out", outputMode: "inline" });
+    await run("reviewer", "-m", "review this");
+    expect(executed.at(-1)).toMatchObject({ until: "exit", downloadDir: "" });
+  });
+
+  it("streams JSON lines for -o json and for --json", async () => {
+    await run("reviewer", "-m", "review this", "-o", "json");
+    expect(executed.at(-1)?.outputMode).toBe("json");
+    await run("reviewer", "-m", "review this", "--json");
+    expect(executed.at(-1)?.outputMode).toBe("json");
+  });
+
+  it("refuses an --until it does not know, and --download with --detach, before anything runs", async () => {
+    await expect(run("reviewer", "-m", "x", "--until", "done")).rejects.toMatchObject({
+      exitCode: 2,
+      message: 'invalid --until value "done" (expected turn or exit)',
+    });
+    await expect(run("reviewer", "-m", "x", "--detach", "--download", "./out")).rejects.toMatchObject({
+      exitCode: 2,
+      message: "--download waits for the turn; --detach does not",
+    });
+    expect(executed).toEqual([]);
   });
 });

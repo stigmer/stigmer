@@ -55,7 +55,7 @@ import {
   type EvalRunCaseTarget,
   type EvalRunTry,
 } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/status_pb";
-import { renderTable } from "../../output/index.js";
+import { renderTable, terminalWidth, type TerminalStream } from "../../output/index.js";
 
 /** The exit codes of `eval run`, as Claude Code's `claude plugin eval` has them. */
 export const EvalExit = {
@@ -130,8 +130,10 @@ function finishedTriesOf(cases: readonly EvalRunCase[], scope: CaseScope): Finis
  * The table blocks, plugin by plugin in the eval run's order: one per
  * target a plugin's cases ran on, or one line of why none of them ran.
  * `subjectSlug` names an eval run's agent; unused on one about a plugin.
+ * The tables fit `stream`'s width, NOTES giving up width first.
  */
-export function renderEvalTables(evalRun: EvalRun, subjectSlug: string): string {
+export function renderEvalTables(evalRun: EvalRun, subjectSlug: string, stream: TerminalStream = process.stdout): string {
+  const width = terminalWidth(stream);
   const agent = isAboutAgent(evalRun) ? headingOf(oneLine(subjectSlug), versionHashOf(evalRun)) : "";
   const oneArm = !isComparing(evalRun);
   const blocks: string[] = [];
@@ -141,7 +143,9 @@ export function renderEvalTables(evalRun: EvalRun, subjectSlug: string): string 
       blocks.push(`${head}\n  not run: ${oneLine(group.notRunReason)}\n`);
       continue;
     }
-    blocks.push(...renderCaseBlocks(group.cases, evalRun.spec?.targets ?? [], oneArm, (target) => `${head} · ${target}`));
+    blocks.push(
+      ...renderCaseBlocks(group.cases, evalRun.spec?.targets ?? [], oneArm, (target) => `${head} · ${target}`, width),
+    );
   }
   return blocks.join("\n");
 }
@@ -156,6 +160,7 @@ function renderCaseBlocks(
   specTargets: readonly EvalRunTarget[],
   oneArm: boolean,
   heading: (target: string) => string,
+  width: number | undefined,
 ): string[] {
   const cases = allCases.filter((evalCase) => evalCase.notRunReason === "");
   const blocks: string[] = [];
@@ -169,7 +174,7 @@ function renderCaseBlocks(
     const headers = oneArm
       ? ["CASE", "SCORE", "PASS%", "PASS^k", "RUNS", "COST", "NOTES"]
       : ["CASE", "WITH", "W/OUT", "Δ", "PASS^k", "RUNS", "COST", "NOTES"];
-    blocks.push(`${heading(label)}\n${renderTable(headers, rows)}`);
+    blocks.push(`${heading(label)}\n${renderTable(headers, rows, { width, shrink: ["NOTES"] })}`);
   }
   return blocks;
 }
@@ -198,8 +203,9 @@ export function renderEvalReport(
     readonly durationSeconds: number;
     readonly stillRunning: string;
   },
+  stream: TerminalStream = process.stdout,
 ): string {
-  const tables = renderEvalTables(evalRun, opts.subjectSlug);
+  const tables = renderEvalTables(evalRun, opts.subjectSlug, stream);
   const lines: string[] = [];
   if (tables !== "") lines.push(tables);
   lines.push(renderSummaryLine(evalRun, opts.durationSeconds));

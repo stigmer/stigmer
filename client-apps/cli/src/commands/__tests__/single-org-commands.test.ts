@@ -1,9 +1,10 @@
 // Command-level contract for the commands that print an organization: on a
 // server that holds one (client/single-org.ts says yes), `get` and
-// `get run <id>` print no Org line and `auth whoami` names none and hints
-// nothing; on a server that holds several they print it as before, except
-// for an organization itself, which belongs to none, naming it by slug
-// where the caller can see it and by the value as given where not. The
+// `get run <id>` name none in their title line (the generic view prints no
+// Org line) and `auth whoami` names none and hints nothing; on a server that
+// holds several they name it, except for an organization itself, which
+// belongs to none, naming it by slug where the caller can see it and by the
+// value as given where not. The
 // backend, the resource fetch and the account read are stubbed at their module
 // seams; the commands, the renderers and the program are real.
 
@@ -135,8 +136,8 @@ afterEach(() => {
 });
 
 describe("stigmer get", () => {
-  it("prints the Org line on a server that holds several", async () => {
-    expect(await runGet("agent", "acme/helper")).toMatch(/Org:\s+stigmer/);
+  it("names the organization in the title on a server that holds several", async () => {
+    expect(await runGet("agent", "acme/helper")).toMatch(/^Helper {2}stigmer\/helper$/m);
   });
 
   it("names the organization by slug where the resource carries its id", async () => {
@@ -148,7 +149,7 @@ describe("stigmer get", () => {
       }),
     };
     const out = await runGet("agent", "acme/helper");
-    expect(out).toMatch(/Org:\s+acme\n/);
+    expect(out).toMatch(/^Helper {2}acme\/helper$/m);
     expect(out).not.toContain(ACME_ID);
   });
 
@@ -156,7 +157,7 @@ describe("stigmer get", () => {
     stigmer = stigmerKnowingAcme();
     executionOrg = ACME_ID;
     const out = await runGet("run", "run_1");
-    expect(out).toMatch(/Org:\s+acme\n/);
+    expect(out).toMatch(/^run_1 {2}acme$/m);
     expect(out).not.toContain(ACME_ID);
   });
 
@@ -168,7 +169,7 @@ describe("stigmer get", () => {
         metadata: { id: "agt_1", name: "Helper", slug: "helper", org: "org_01jbbbbbbbbbbbbbbbbbbbbbbb" },
       }),
     };
-    expect(await runGet("agent", "helper")).toMatch(/Org:\s+org_01jbbbbbbbbbbbbbbbbbbbbbbb/);
+    expect(await runGet("agent", "helper")).toMatch(/^Helper {2}org_01jbbbbbbbbbbbbbbbbbbbbbbb\/helper$/m);
   });
 
   it("prints the resource as the server answered for json output", async () => {
@@ -187,8 +188,8 @@ describe("stigmer get", () => {
   it("prints none on a server that holds one", async () => {
     singleOrg = true;
     const out = await runGet("agent", "helper");
-    expect(out).toMatch(/Slug:\s+helper/);
-    expect(out).not.toMatch(/Org:/);
+    expect(out).toMatch(/^Helper {2}helper$/m);
+    expect(out).not.toContain("stigmer");
   });
 
   it("prints none for an organization, which belongs to none, on a server that holds several", async () => {
@@ -199,15 +200,15 @@ describe("stigmer get", () => {
       }),
     };
     const out = await runGet("organization", "acme");
-    expect(out).toMatch(/Slug:\s+acme/);
+    expect(out).toMatch(/^Acme {2}acme$/m);
     expect(out).not.toMatch(/Org:/);
   });
 
   it("prints none for a run on a server that holds one", async () => {
     singleOrg = true;
     const out = await runGet("run", "run_1");
-    expect(out).toMatch(/ID:\s+run_1/);
-    expect(out).not.toMatch(/Org:/);
+    expect(out).toMatch(/^run_1$/m);
+    expect(out).not.toContain("stigmer");
   });
 });
 

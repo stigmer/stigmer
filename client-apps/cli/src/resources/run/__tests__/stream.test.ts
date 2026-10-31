@@ -7,6 +7,13 @@
 // the run's turn, carries the run's --approve-default, and answers through the
 // session's confirmToolUse. The driver, Ink, the terminal probe and the
 // epilogue are doubles.
+//
+// How a run ends (CLI-11): `--until` reaches the view with the run to watch;
+// under --download each turn the view sees end is saved as it ends (a turn
+// that ended before the view loaded only when it is the run this command
+// started), its lines told through the view's notes, and off a terminal the
+// one turn is saved once the stream returns; the exit code is the newest
+// turn's, through the shared table (CLI-15).
 
 import { create } from "@bufbuild/protobuf";
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
@@ -25,13 +32,16 @@ const headless = vi.hoisted(() => ({ runHeadlessStream: vi.fn() }));
 const ink = vi.hoisted(() => ({ runInkSession: vi.fn() }));
 const tty = vi.hoisted(() => ({ supported: false }));
 const epilogue = vi.hoisted(() => ({ runEpilogue: vi.fn() }));
+const download = vi.hoisted(() => ({ downloadRunOutputs: vi.fn() }));
 
 vi.mock("../../stream/headless.js", () => headless);
 vi.mock("../../stream/ink.js", () => ink);
 vi.mock("../../stream/tty.js", () => ({ isInkSupported: () => tty.supported }));
 vi.mock("../epilogue.js", () => epilogue);
+vi.mock("../../download.js", () => download);
 
-import { streamAgentRun } from "../stream.js";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { exitByTurn, streamAgentRun, turnDownloader, turnExitCode } from "../stream.js";
 
 const FINAL = create(RunSchema, { metadata: { id: "run_1" } });
 
@@ -89,7 +99,7 @@ beforeEach(() => {
     await d.answer("run_1.c1", { kind: "allow" });
     return DONE;
   });
-  ink.runInkSession.mockResolvedValue(undefined);
+  ink.runInkSession.mockResolvedValue({ actionFailed: false });
   epilogue.runEpilogue.mockResolvedValue(FINAL);
 });
 
@@ -122,7 +132,7 @@ describe("streamAgentRun", () => {
     tty.supported = true;
     const result = await streamAgentRun(deps());
 
-    expect(ink.runInkSession).toHaveBeenCalledWith({ client, sessionId: "ses_1", org: "acme", mode: "plan" });
+    expect(ink.runInkSession).toHaveBeenCalledWith({ client, sessionId: "ses_1", org: "acme", mode: "plan", until: "exit", watchRunId: "run_1" });
     expect(headless.runHeadlessStream).not.toHaveBeenCalled();
     expect(epilogue.runEpilogue).toHaveBeenCalledWith(client, "ses_1", "run_1", { phase: "", error: "", turn: undefined });
     expect(result).toBe(FINAL);
@@ -131,7 +141,7 @@ describe("streamAgentRun", () => {
   it("takes back the progress lines before Ink draws, and gives the composer the session's folders", async () => {
     tty.supported = true;
     const order: string[] = [];
-    ink.runInkSession.mockImplementation(async () => void order.push("ink"));
+    ink.runInkSession.mockImplementation(async () => (order.push("ink"), { actionFailed: false }));
     await streamAgentRun(deps({ clearProgress: () => void order.push("clear"), workspaceRoots: ["/work/billing"] }));
     expect(order).toEqual(["clear", "ink"]);
     expect(ink.runInkSession).toHaveBeenCalledWith(expect.objectContaining({ workspaceRoots: ["/work/billing"] }));
@@ -169,5 +179,85 @@ describe("streamAgentRun", () => {
     expect(epilogue.runEpilogue).toHaveBeenCalledWith(client, "ses_1", "run_1", DONE);
     expect(result).toBe(FINAL);
     expect(ink.runInkSession).not.toHaveBeenCalled();
+  });
+});
+
+describe("CLI-11 stigmer run ends the way its mode promises", () => {
+  const turn = (runId: string) => ({ runId }) as unknown as import("@stigmer/client").Turn;
+
+  beforeEach(() => {
+    download.downloadRunOutputs.mockResolvedValue({ total: 1, downloaded: 1, noOutputs: false });
+  });
+
+  it("hands --until turn and the run to watch to the view", async () => {
+    tty.supported = true;
+    await streamAgentRun(deps({ until: "turn", downloadDir: "./out" }));
+    expect(ink.runInkSession).toHaveBeenCalledWith(expect.objectContaining({ until: "turn", watchRunId: "run_1", afterTurn: expect.any(Function) }));
+  });
+
+  it("saves each turn the view sees end, and of the turns the load found ended only the run it started", async () => {
+    const save = turnDownloader(client, "./out", "run_1")!;
+    const said: string[] = [];
+    await save(turn("run_old"), true, (line) => void said.push(line));
+    expect(download.downloadRunOutputs).not.toHaveBeenCalled();
+    await save(turn("run_1"), true, (line) => void said.push(line));
+    await save(turn("run_2"), false, (line) => void said.push(line));
+    expect(download.downloadRunOutputs.mock.calls.map((call) => call[1])).toEqual(["run_1", "run_2"]);
+    expect(download.downloadRunOutputs).toHaveBeenCalledWith(client, "run_2", { outputPath: "", outputDir: "./out" }, expect.any(Function));
+  });
+
+  it("says a turn saved nothing, and has no action without a directory", async () => {
+    download.downloadRunOutputs.mockResolvedValue({ total: 0, downloaded: 0, noOutputs: true });
+    const said: string[] = [];
+    await turnDownloader(client, "./out", "run_1")!(turn("run_1"), false, (line) => void said.push(line));
+    expect(said).toEqual(["No outputs saved in this turn."]);
+    expect(turnDownloader(client, "", "run_1")).toBeUndefined();
+  });
+
+  it("saves the turn's outputs off a terminal once the stream returns, after the summary", async () => {
+    const order: string[] = [];
+    epilogue.runEpilogue.mockImplementation(async () => (order.push("summary"), FINAL));
+    download.downloadRunOutputs.mockImplementation(async () => (order.push("download"), { total: 1, downloaded: 1, noOutputs: false }));
+    const progress = (): void => undefined;
+    await streamAgentRun(deps({ downloadDir: "./out", progress }));
+    expect(order).toEqual(["summary", "download"]);
+    expect(download.downloadRunOutputs).toHaveBeenCalledWith(client, "run_1", { outputPath: "", outputDir: "./out" }, progress);
+  });
+
+  it("fails the command after the summary when the view could not save a turn's outputs", async () => {
+    tty.supported = true;
+    ink.runInkSession.mockResolvedValue({ actionFailed: true });
+    await expect(streamAgentRun(deps({ downloadDir: "./out" }))).rejects.toMatchObject({
+      exitCode: 1,
+      message: "some turn's outputs were not saved (the session says which)",
+    });
+    expect(epilogue.runEpilogue).toHaveBeenCalled();
+  });
+
+  it("saves nothing off a terminal without --download", async () => {
+    await streamAgentRun(deps({ outputMode: "json" }));
+    expect(download.downloadRunOutputs).not.toHaveBeenCalled();
+  });
+});
+
+describe("CLI-15 a run's exit code says how its turn ended", () => {
+  const runIn = (phase: RunPhase) => create(RunSchema, { metadata: { id: "run_1" }, status: { phase } });
+
+  it.each([
+    [RunPhase.RUN_COMPLETED, 0],
+    [RunPhase.RUN_FAILED, 1],
+    [RunPhase.RUN_CANCELLED, 1],
+    [RunPhase.RUN_TERMINATED, 1],
+    [RunPhase.RUN_IN_PROGRESS, 130],
+    [RunPhase.RUN_WAITING_FOR_APPROVAL, 130],
+    [RunPhase.RUN_PHASE_UNSPECIFIED, 1],
+  ])("reads run phase %i as exit %i, from the shared table", (phase, code) => {
+    expect(turnExitCode(runIn(phase))).toBe(code);
+  });
+
+  it("exits silently by that code, and not at all for a completed turn", () => {
+    expect(() => exitByTurn(runIn(RunPhase.RUN_COMPLETED))).not.toThrow();
+    expect(() => exitByTurn(runIn(RunPhase.RUN_FAILED))).toThrow(expect.objectContaining({ exitCode: 1, message: "" }));
+    expect(() => exitByTurn(create(RunSchema, {}))).toThrow(expect.objectContaining({ exitCode: 1 }));
   });
 });

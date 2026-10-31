@@ -20,6 +20,9 @@
 // - Time is the caller's clock (`nowMs`) against the turn's own start, the
 //   person's message as the log stamped it, so a page that reloads mid-turn
 //   reads the same elapsed time.
+// - A span of time reads one way wherever a terminal writes it
+//   (`formatElapsed`): the working line, a subagent's row, the CLI's exit
+//   summary and `stigmer status` all say "1h 3m", never "63m 0s".
 
 import type { ToolUse, Turn } from "@stigmer/session-log";
 import { resolveToolKind, type ToolKind } from "./tool-view.js";
@@ -63,6 +66,21 @@ export interface TurnProgress {
 
 /** The longest target a phrase carries before it is cut. */
 const TARGET_MAX = 48;
+
+/**
+ * A span of time in at most two units, the larger first: "42s", "1m 12s",
+ * "1h 3m", "2d 5h". Seconds are floored, so a span never reads longer than it
+ * was; a negative span reads "0s".
+ */
+export function formatElapsed(ms: number): string {
+  const seconds = Math.max(0, Math.floor(ms / 1000));
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ${seconds % 60}s`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ${minutes % 60}m`;
+  return `${Math.floor(hours / 24)}d ${hours % 24}h`;
+}
 
 /** The activity, time and progress of `turn` at `nowMs` (module header). */
 export function describeTurnActivity(turn: Turn, nowMs: number): TurnProgress {

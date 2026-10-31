@@ -18,13 +18,14 @@ import {
   addAgentExecFlags,
   type AgentExecOptions,
 } from "./agent-exec-flags.js";
-import { globalOrg } from "./shared.js";
+import type { OutputFlags } from "../output/format.js";
+import { addStreamFlags, globalOrg, streamFormat, untilOf } from "./shared.js";
 import { requireOrganization } from "../client/single-org.js";
-import { SESSION_HELP } from "./session-help.js";
+import { SESSION_HELP, UNTIL_HELP } from "./session-help.js";
 
-interface RunFlags extends AgentExecOptions {
-  json?: boolean;
+interface RunFlags extends AgentExecOptions, OutputFlags {
   download?: string;
+  until?: string;
 }
 
 export function registerRun(program: Command): void {
@@ -36,9 +37,10 @@ export function registerRun(program: Command): void {
     .description("run an agent by reference")
     .allowExcessArguments(false)
     .addHelpText("after", SESSION_HELP);
-  addAgentExecFlags(run)
-    .option("--json", "stream events as newline-delimited JSON")
-    .option("--download <dir>", "download the turn's outputs to directory when complete")
+  addStreamFlags(addAgentExecFlags(run))
+    .option("--download <dir>", "save each turn's outputs to directory as the turn ends")
+    .option("--until <turn|exit>", "on a terminal, return when the turn ends (turn) or when you leave (exit, the default)")
+    .addHelpText("after", UNTIL_HELP)
     .action(
       (agent: string | undefined, options: RunFlags, command: Command) =>
         runRun(agent, options, command),
@@ -59,7 +61,11 @@ async function runRun(
     "stigmer run --org <org> ...",
   ]);
 
-  const outputMode = options.json === true ? "json" : "inline";
+  const outputMode = streamFormat(options) === "ndjson" ? "json" : "inline";
+  untilOf(options.until);
+  if (options.detach === true && (options.download ?? "") !== "") {
+    throw new UsageError("--download waits for the turn; --detach does not");
+  }
 
   // 0 args → the built-in assistant when a message was given; else the
   // interactive agent picker on a TTY; otherwise actionable guidance.
@@ -175,6 +181,7 @@ async function runResolvedAgent(
     org,
     downloadDir: options.download ?? "",
     outputMode,
+    until: untilOf(options.until),
     client,
   });
 }

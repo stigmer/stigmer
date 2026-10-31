@@ -159,12 +159,14 @@ Travel,3000,1200
 ## Give the Agent the job
 
 ```bash
-stigmer run variance-reporter --attach ledger.csv --download ./out -m "Review this quarter's ledger."
+stigmer run variance-reporter --attach ledger.csv --download ./out --until turn -m "Review this quarter's ledger."
 ```
 
 `--attach` hands the ledger to the Agent with the message. The Agent's reply
 streams into your terminal while it works, and when it finishes, `--download`
-saves what it handed back into `./out`.
+saves what it handed back into `./out`. `--until turn` gives you your shell back
+once the Agent has finished; without it the conversation stays open for a
+follow-up until you leave with `/exit`.
 
 </Step>
 <Step>

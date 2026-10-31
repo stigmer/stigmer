@@ -54,6 +54,12 @@ stigmer vault set-secret LEDGER_API_KEY --vault ledger-keys
 
 # Remove a key from a script, without the question
 stigmer vault remove-secret LINEAR_API_KEY --mine --force
+
+# Remove the GitHub login from your vault
+stigmer vault remove-connection github.com --mine
+
+# Send someone a one-time page to sign in to Linear; the login lands in a shared vault
+stigmer vault connect-link ledger-keys --address https://mcp.linear.app/mcp --return-url https://app.example.com/settings
 ```
 
 ## Subcommands
@@ -67,13 +73,14 @@ address and the login is saved into a shared vault
 stigmer vault connect-link <vault> [flags]
 ```
 
-| Flag           | Type     | Default | Description                                      |
-| -------------- | -------- | ------- | ------------------------------------------------ |
-| `--address`    | `string` |         | the tool's URL or Git host to sign in to         |
-| `--expires-in` | `string` |         | how long the link works: 30m (default) up to 24h |
-| `--json`       | `bool`   |         | emit the result as JSON                          |
-| `--quiet`      | `bool`   |         | print only the status line                       |
-| `--return-url` | `string` |         | where to send them afterwards (https)            |
+| Flag             | Type     | Default | Description                                      |
+| ---------------- | -------- | ------- | ------------------------------------------------ |
+| `--address`      | `string` |         | the tool's URL or Git host to sign in to         |
+| `--expires-in`   | `string` |         | how long the link works: 30m (default) up to 24h |
+| `--json`         | `bool`   |         | emit the result as JSON                          |
+| `--output`, `-o` | `string` |         | output format: table or json                     |
+| `--quiet`        | `bool`   |         | print only the status line                       |
+| `--return-url`   | `string` |         | where to send them afterwards (https)            |
 
 ### stigmer vault create
 
@@ -83,12 +90,13 @@ create a shared vault in the organization (organization admins)
 stigmer vault create <name> [flags]
 ```
 
-| Flag            | Type     | Default | Description                                           |
-| --------------- | -------- | ------- | ----------------------------------------------------- |
-| `--description` | `string` |         | what the vault is for                                 |
-| `--external-id` | `string` |         | your own id for the vault, unique in the organization |
-| `--json`        | `bool`   |         | emit the result as JSON                               |
-| `--quiet`       | `bool`   |         | print only the status line                            |
+| Flag             | Type     | Default | Description                                           |
+| ---------------- | -------- | ------- | ----------------------------------------------------- |
+| `--description`  | `string` |         | what the vault is for                                 |
+| `--external-id`  | `string` |         | your own id for the vault, unique in the organization |
+| `--json`         | `bool`   |         | emit the result as JSON                               |
+| `--output`, `-o` | `string` |         | output format: table or json                          |
+| `--quiet`        | `bool`   |         | print only the status line                            |
 
 ### stigmer vault mine
 
@@ -98,10 +106,11 @@ show your own vault: the names of its secrets and logins
 stigmer vault mine [flags]
 ```
 
-| Flag      | Type   | Default | Description                |
-| --------- | ------ | ------- | -------------------------- |
-| `--json`  | `bool` |         | emit the result as JSON    |
-| `--quiet` | `bool` |         | print only the status line |
+| Flag             | Type     | Default | Description                  |
+| ---------------- | -------- | ------- | ---------------------------- |
+| `--json`         | `bool`   |         | emit the result as JSON      |
+| `--output`, `-o` | `string` |         | output format: table or json |
+| `--quiet`        | `bool`   |         | print only the status line   |
 
 ### stigmer vault remove-connection
 
@@ -111,13 +120,14 @@ remove logins by address
 stigmer vault remove-connection <addresses...> [flags]
 ```
 
-| Flag            | Type     | Default | Description                                 |
-| --------------- | -------- | ------- | ------------------------------------------- |
-| `--force`, `-f` | `bool`   |         | skip the confirmation prompt                |
-| `--json`        | `bool`   |         | emit the result as JSON                     |
-| `--mine`        | `bool`   |         | your own vault (created by your first save) |
-| `--quiet`       | `bool`   |         | print only the status line                  |
-| `--vault`       | `string` |         | a shared vault: id, org/slug, or slug       |
+| Flag             | Type     | Default | Description                                 |
+| ---------------- | -------- | ------- | ------------------------------------------- |
+| `--force`, `-f`  | `bool`   |         | skip the confirmation prompt                |
+| `--json`         | `bool`   |         | emit the result as JSON                     |
+| `--mine`         | `bool`   |         | your own vault (created by your first save) |
+| `--output`, `-o` | `string` |         | output format: table or json                |
+| `--quiet`        | `bool`   |         | print only the status line                  |
+| `--vault`        | `string` |         | a shared vault: id, org/slug, or slug       |
 
 ### stigmer vault remove-secret
 
@@ -127,13 +137,14 @@ remove secrets by name
 stigmer vault remove-secret <names...> [flags]
 ```
 
-| Flag            | Type     | Default | Description                                 |
-| --------------- | -------- | ------- | ------------------------------------------- |
-| `--force`, `-f` | `bool`   |         | skip the confirmation prompt                |
-| `--json`        | `bool`   |         | emit the result as JSON                     |
-| `--mine`        | `bool`   |         | your own vault (created by your first save) |
-| `--quiet`       | `bool`   |         | print only the status line                  |
-| `--vault`       | `string` |         | a shared vault: id, org/slug, or slug       |
+| Flag             | Type     | Default | Description                                 |
+| ---------------- | -------- | ------- | ------------------------------------------- |
+| `--force`, `-f`  | `bool`   |         | skip the confirmation prompt                |
+| `--json`         | `bool`   |         | emit the result as JSON                     |
+| `--mine`         | `bool`   |         | your own vault (created by your first save) |
+| `--output`, `-o` | `string` |         | output format: table or json                |
+| `--quiet`        | `bool`   |         | print only the status line                  |
+| `--vault`        | `string` |         | a shared vault: id, org/slug, or slug       |
 
 ### stigmer vault set-connection
 
@@ -144,15 +155,16 @@ save a login for a tool's URL (https://mcp.example.com/mcp) or a Git host
 stigmer vault set-connection <address> [flags]
 ```
 
-| Flag            | Type     | Default | Description                                   |
-| --------------- | -------- | ------- | --------------------------------------------- |
-| `--description` | `string` |         | what the entry is for                         |
-| `--from-env`    | `string` |         | read the value from this environment variable |
-| `--from-file`   | `string` |         | read the value from this file                 |
-| `--json`        | `bool`   |         | emit the result as JSON                       |
-| `--mine`        | `bool`   |         | your own vault (created by your first save)   |
-| `--quiet`       | `bool`   |         | print only the status line                    |
-| `--vault`       | `string` |         | a shared vault: id, org/slug, or slug         |
+| Flag             | Type     | Default | Description                                   |
+| ---------------- | -------- | ------- | --------------------------------------------- |
+| `--description`  | `string` |         | what the entry is for                         |
+| `--from-env`     | `string` |         | read the value from this environment variable |
+| `--from-file`    | `string` |         | read the value from this file                 |
+| `--json`         | `bool`   |         | emit the result as JSON                       |
+| `--mine`         | `bool`   |         | your own vault (created by your first save)   |
+| `--output`, `-o` | `string` |         | output format: table or json                  |
+| `--quiet`        | `bool`   |         | print only the status line                    |
+| `--vault`        | `string` |         | a shared vault: id, org/slug, or slug         |
 
 ### stigmer vault set-secret
 
@@ -163,21 +175,22 @@ save a secret by name, replacing any saved under it (value from --from-env,
 stigmer vault set-secret <name> [flags]
 ```
 
-| Flag            | Type     | Default | Description                                   |
-| --------------- | -------- | ------- | --------------------------------------------- |
-| `--description` | `string` |         | what the entry is for                         |
-| `--from-env`    | `string` |         | read the value from this environment variable |
-| `--from-file`   | `string` |         | read the value from this file                 |
-| `--json`        | `bool`   |         | emit the result as JSON                       |
-| `--mine`        | `bool`   |         | your own vault (created by your first save)   |
-| `--quiet`       | `bool`   |         | print only the status line                    |
-| `--vault`       | `string` |         | a shared vault: id, org/slug, or slug         |
+| Flag             | Type     | Default | Description                                   |
+| ---------------- | -------- | ------- | --------------------------------------------- |
+| `--description`  | `string` |         | what the entry is for                         |
+| `--from-env`     | `string` |         | read the value from this environment variable |
+| `--from-file`    | `string` |         | read the value from this file                 |
+| `--json`         | `bool`   |         | emit the result as JSON                       |
+| `--mine`         | `bool`   |         | your own vault (created by your first save)   |
+| `--output`, `-o` | `string` |         | output format: table or json                  |
+| `--quiet`        | `bool`   |         | print only the status line                    |
+| `--vault`        | `string` |         | a shared vault: id, org/slug, or slug         |
 
 ## Global Flags
 
 | Flag            | Type     | Default | Description                                            |
 | --------------- | -------- | ------- | ------------------------------------------------------ |
-| `--api-key`     | `string` |         | API key for authentication                             |
+| `--api-key`     | `string` |         | API key for authentication (before the command)        |
 | `--debug`, `-d` | `bool`   |         | enable debug output                                    |
 | `--org`         | `string` |         | organization, on servers that hold several             |
 | `--standalone`  | `bool`   |         | ignore the config file; use flags and environment only |

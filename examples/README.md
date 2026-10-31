@@ -20,7 +20,7 @@ With Stigmer running (`stigmer up`, and your Anthropic key in
 
 ```bash
 stigmer apply -f variance-reporter.yaml
-stigmer run variance-reporter --attach ledger.csv --download ./out -m "Review this quarter's ledger."
+stigmer run variance-reporter --attach ledger.csv --download ./out --until turn -m "Review this quarter's ledger."
 cat out/variance-report.md
 ```
 

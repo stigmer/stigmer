@@ -16,7 +16,14 @@
 // Rows carry organizations by id. The human table names each by slug, one
 // lookup per distinct organization in the listing; json and yaml stay the
 // wire as-is.
+//
+// Each table names its free-text columns (`shrink`): on a narrow terminal
+// those give up width and end in "…", while ids, slugs and `org/slug` names,
+// which a person copies into the next command, keep every character. Free
+// text is folded onto one line here, piped or not, since a line break in a
+// cell breaks the row for a script too.
 
+import { printableCell } from "../output/printable.js";
 import { create, type DescMessage, type Message } from "@bufbuild/protobuf";
 import { ChannelSchema } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
 import { ListChannelsRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/io_pb";
@@ -359,12 +366,13 @@ export function libraryTable(resourceName: string): TableShape {
   return {
     resourceName,
     headers: ["NAME", "DESCRIPTION", "VISIBILITY", "CREATED"],
+    shrink: ["DESCRIPTION"],
     orgs: (json) => [str(obj(json, "metadata"), "org")],
     row: (json, orgLabel) => {
       const metadata = obj(json, "metadata");
       return [
         `${orgLabel(str(metadata, "org"))}/${str(metadata, "slug")}`,
-        truncate(str(obj(json, "spec"), "description"), 50),
+        oneLine(str(obj(json, "spec"), "description")),
         str(metadata, "visibility"),
         date(str(obj(obj(obj(json, "status"), "audit"), "spec_audit"), "created_at")),
       ];
@@ -392,11 +400,13 @@ const EVAL_TABLE: TableShape = {
   },
 };
 
-// A File is named by its id, so the id leads. TYPE is the media type the
-// upload recorded, SIZE its bytes in a human unit.
+// A File is named by its id, so the id leads, and its NAME (the filename
+// the upload carried) is the free text that shrinks. TYPE is the media type
+// the upload recorded, SIZE its bytes in a human unit.
 const FILE_TABLE: TableShape = {
   resourceName: "files",
   headers: ["ID", "NAME", "TYPE", "SIZE", "VISIBILITY", "CREATED"],
+  shrink: ["NAME"],
   row: (json) => fileRow(json),
 };
 
@@ -406,6 +416,7 @@ const FILE_TABLE: TableShape = {
 const SESSION_FILE_TABLE: TableShape = {
   resourceName: "files",
   headers: ["ID", "NAME", "OUTPUT", "TYPE", "SIZE", "VISIBILITY", "CREATED"],
+  shrink: ["NAME"],
   row: (json) => {
     const [id, name, ...rest] = fileRow(json);
     return [id, name, str(obj(json, "status"), "output_path") || "-", ...rest];
@@ -418,7 +429,7 @@ function fileRow(json: JsonObject): string[] {
   const status = obj(json, "status");
   return [
     str(metadata, "id"),
-    str(spec, "filename"),
+    oneLine(str(spec, "filename")),
     str(spec, "mime_type") || "-",
     formatBytes(Number(str(status, "size_bytes") || "0")),
     str(metadata, "visibility"),
@@ -430,10 +441,11 @@ function fileRow(json: JsonObject): string[] {
 export const SEARCH_TABLE: TableShape = {
   resourceName: "resources",
   headers: ["NAME", "DESCRIPTION", "VISIBILITY", "CREATED"],
+  shrink: ["DESCRIPTION"],
   orgs: (json) => [str(json, "org")],
   row: (json, orgLabel) => [
     qualifiedName(json, orgLabel),
-    truncate(str(json, "description"), 50),
+    oneLine(str(json, "description")),
     str(json, "visibility"),
     date(str(json, "created_at")),
   ],
@@ -448,12 +460,13 @@ export const SEARCH_TABLE: TableShape = {
 export const SESSION_TABLE: TableShape = {
   resourceName: "sessions",
   headers: ["SESSION ID", "STATE", "AGENT", "SUBJECT", "CREATED"],
+  shrink: ["SUBJECT"],
   orgs: (json) => [str(obj(obj(json, "spec"), "agent_ref"), "org")],
   row: (json, orgLabel) => [
     str(obj(json, "metadata"), "id"),
     str(obj(json, "status"), "state") || "-",
     sessionAgent(json, orgLabel),
-    truncate(str(obj(json, "spec"), "subject") || "-", 50),
+    oneLine(str(obj(json, "spec"), "subject")) || "-",
     date(str(obj(json, "metadata"), "created_at")),
   ],
 };
@@ -595,17 +608,19 @@ const ENVIRONMENT_TABLE: TableShape = {
 };
 
 // Entry names only: a vault read never carries a value, and the table shows
-// how many secrets and logins a vault holds, not what they are.
+// how many secrets and logins a vault holds, not what they are. NAME is the
+// vault's display name; its SLUG is what a command takes.
 const VAULT_TABLE: TableShape = {
   resourceName: "vaults",
   headers: ["ID", "SLUG", "NAME", "OWNER", "SECRETS", "LOGINS"],
+  shrink: ["NAME"],
   row: (json) => {
     const metadata = obj(json, "metadata");
     const spec = obj(json, "spec");
     return [
       str(metadata, "id"),
       str(metadata, "slug"),
-      str(metadata, "name"),
+      oneLine(str(metadata, "name")),
       str(spec, "person") !== "" ? "you" : "organization",
       String(Object.keys(obj(spec, "secrets")).length),
       String(Object.keys(obj(spec, "connections")).length),
@@ -637,25 +652,29 @@ function providerOf(spec: JsonObject): string {
   return PROVIDER_KEYS.find((key) => key in spec) ?? "-";
 }
 
+// An organization's NAME is its display name; the SLUG and ID name it in a command.
 export const ORG_TABLE: TableShape = {
   resourceName: "organizations",
   headers: ["NAME", "SLUG", "ID"],
+  shrink: ["NAME"],
   row: (json) => {
     const metadata = obj(json, "metadata");
-    return [str(metadata, "name"), str(metadata, "slug"), str(metadata, "id")];
+    return [oneLine(str(metadata, "name")), str(metadata, "slug"), str(metadata, "id")];
   },
 };
 
+// A key's NAME is a note its maker wrote; the key is named by its ID.
 const APIKEY_TABLE: TableShape = {
   resourceName: "API keys",
   headers: ["ID", "NAME", "FINGERPRINT", "EXPIRES"],
+  shrink: ["NAME"],
   row: (json) => {
     const metadata = obj(json, "metadata");
     const spec = obj(json, "spec");
     const fingerprint = str(spec, "fingerprint");
     return [
       str(metadata, "id"),
-      str(metadata, "name") || "-",
+      oneLine(str(metadata, "name")) || "-",
       fingerprint === "" ? "" : `***${fingerprint}`,
       apiKeyExpiry(spec),
     ];
@@ -668,12 +687,10 @@ function apiKeyExpiry(spec: JsonObject): string {
   return expiresAt === "" ? "Never" : date(expiresAt);
 }
 
-function truncate(text: string, max: number): string {
-  const normalized = text.replace(/\s+/g, " ").trim();
-  return normalized.length > max
-    ? `${normalized.slice(0, max - 1)}…`
-    : normalized;
-}
+// Free text as one table cell: every run of whitespace or control
+// characters, a line break included, becomes one space (output/printable.ts).
+// The table cuts it to the terminal, not this.
+const oneLine = printableCell;
 
 function date(timestamp: string): string {
   return timestamp === "" ? "-" : timestamp.slice(0, 10);

@@ -322,6 +322,18 @@ describe("logs", () => {
     expect(cap.lines).toHaveLength(12);
   });
 
+  it("CLI-02 prints one Managed Agents JSON line per event with -o json, and no empty or end line", async () => {
+    const cap = capture();
+    await streamRunLogs(client, { runId: "run_1", follow: true, ndjson: true }, never, cap.streams);
+    expect(cap.lines).toHaveLength(12);
+    const events = cap.lines.map((line) => JSON.parse(line) as { type: string });
+    expect(events[0]).toMatchObject({ type: "user.message" });
+    expect(events.map((event) => event.type)).toContain("agent.tool_use");
+    const empty = capture();
+    await streamRunLogs(client, { runId: "run_empty", follow: false, ndjson: true }, never, empty.streams);
+    expect(empty.lines).toEqual([]);
+  });
+
   it("shows the tool use id an ask waits on", async () => {
     const cap = capture();
     await streamRunLogs(client, { runId: "run_wait", follow: false }, never, cap.streams);

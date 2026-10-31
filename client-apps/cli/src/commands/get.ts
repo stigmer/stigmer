@@ -2,8 +2,10 @@
 //
 // Thin handler: route the two non-registry special cases (runs, addressed
 // by `run_` ID; agent version history/retrieval) first, then the
-// registry-driven standard path. Heavy modules (backend client, SDK schemas)
-// are dynamically imported inside the action so `--help` stays fast.
+// registry-driven standard path. Every path prints through `renderGet`
+// (resources/views), the kind's designed view or the generic one. Heavy
+// modules (backend client, SDK schemas, the views) are dynamically imported
+// inside the action so `--help` stays fast.
 
 import type { Command } from "commander";
 import type { Message } from "@bufbuild/protobuf";
@@ -11,6 +13,7 @@ import type { Stigmer } from "@stigmer/client";
 import { omitsOrganization } from "../client/single-org.js";
 import { ensureAuthenticated, resolveOrganization } from "../config/index.js";
 import { UsageError } from "../errors/index.js";
+import { setActionResourceType } from "../runtime.js";
 import type { OutputFlags, OutputFormat } from "../output/index.js";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { defaultRegistry, Verb } from "../registry/index.js";
@@ -47,12 +50,14 @@ async function runGet(type: string, reference: string, options: GetFlags, comman
   if (!info.supportedVerbs.has(Verb.Get)) {
     throw new UsageError(`${info.displayName} does not support 'get'`);
   }
+  // A missing reference is answered with the list of its type (errors/classify.ts).
+  if (info.supportedVerbs.has(Verb.List)) setActionResourceType(info.singular);
 
-  const [{ connectBackend }, { parseReference }, { fetchResource }, { renderResource }] = await Promise.all([
+  const [{ connectBackend }, { parseReference }, { fetchResource }, { renderGet }] = await Promise.all([
     import("../backend.js"),
     import("../resources/reference.js"),
     import("../resources/get.js"),
-    import("../resources/render.js"),
+    import("../resources/views/index.js"),
   ]);
 
   const client = connectBackend();
@@ -76,7 +81,7 @@ async function runGet(type: string, reference: string, options: GetFlags, comman
     ]);
     const format = readFormat(options);
     const orgLabel = await humanOrgLabel(client.stigmer, agent, format, hideOrg);
-    process.stdout.write(renderResource(AgentSchema, agent, format, { hideOrg, orgLabel }));
+    process.stdout.write(await renderGet(client.stigmer, info.kind, AgentSchema, agent, format, { hideOrg, orgLabel }));
     return;
   }
 
@@ -87,14 +92,15 @@ async function runGet(type: string, reference: string, options: GetFlags, comman
   ]);
   const format = readFormat(options);
   const orgLabel = await humanOrgLabel(client.stigmer, message, format, hideOrg);
-  process.stdout.write(renderResource(schema, message, format, { hideOrg, orgLabel }));
+  process.stdout.write(await renderGet(client.stigmer, info.kind, schema, message, format, { hideOrg, orgLabel }));
 }
 
 async function runGetRun(reference: string, options: GetFlags, command: Command): Promise<void> {
-  const [{ connectBackend }, { getRun }, { renderResource }] = await Promise.all([
+  setActionResourceType("run");
+  const [{ connectBackend }, { getRun }, { renderGet }] = await Promise.all([
     import("../backend.js"),
     import("../resources/runs.js"),
-    import("../resources/render.js"),
+    import("../resources/views/index.js"),
   ]);
 
   const client = connectBackend();
@@ -108,7 +114,7 @@ async function runGetRun(reference: string, options: GetFlags, command: Command)
   ]);
   const format = readFormat(options);
   const orgLabel = await humanOrgLabel(client.stigmer, message, format, hideOrg);
-  process.stdout.write(renderResource(schema, message, format, { hideOrg, orgLabel }));
+  process.stdout.write(await renderGet(client.stigmer, ApiResourceKind.run, schema, message, format, { hideOrg, orgLabel }));
 }
 
 /**

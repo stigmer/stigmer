@@ -2,8 +2,12 @@ exit 1
 
 Error: Unknown: something odd
 
+Run with --debug for more details.
+
 --- with --debug ---
 Error: Unknown: something odd
+
+Run with --debug for more details.
 
 --- debug ---
 gRPC code: Unknown (2)

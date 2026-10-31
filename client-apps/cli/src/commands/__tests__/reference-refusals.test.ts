@@ -107,15 +107,14 @@ describe("stigmer run", () => {
   ])(
     "refuses the two-word form `run %s %s` instead of running an agent named by its first word",
     async (first, second) => {
-      // Commander exits from the subcommand that refuses, so the override goes there.
+      // Every command's refusal throws the CLI's own usage error (errors/command-line.ts).
       const program = buildProgram();
-      program.exitOverride();
-      program.commands.find((c) => c.name() === "run")?.exitOverride();
       await expect(
         program.parseAsync(["node", "stigmer", "--standalone", "--org", "acme", "run", first, second, "-m", "hello"]),
       ).rejects.toMatchObject({
         code: "commander.excessArguments",
-        message: "error: too many arguments for 'run'. Expected 1 argument but got 2.",
+        exitCode: 2,
+        message: "stigmer run takes 1 argument, got 2",
       });
       expect(backend.connectBackend).not.toHaveBeenCalled();
       expect(resolve.resolveAgentRef).not.toHaveBeenCalled();

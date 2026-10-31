@@ -50,6 +50,7 @@ stigmer setup --provider skip
 | `--json`           | `bool`   |         | emit the result as JSON                                          |
 | `--operator-email` | `string` |         | operator identity for local caller attribution (non-interactive) |
 | `--operator-name`  | `string` |         | operator display name (requires --operator-email)                |
+| `--output`, `-o`   | `string` |         | output format: table or json                                     |
 | `--provider`       | `string` |         | provider: anthropic, or skip to clear (non-interactive)          |
 | `--quiet`          | `bool`   |         | print only the status line                                       |
 
@@ -84,7 +85,7 @@ The stack must be restarted to pick up a new LLM configuration.
 
 | Flag            | Type     | Default | Description                                            |
 | --------------- | -------- | ------- | ------------------------------------------------------ |
-| `--api-key`     | `string` |         | API key for authentication                             |
+| `--api-key`     | `string` |         | API key for authentication (before the command)        |
 | `--debug`, `-d` | `bool`   |         | enable debug output                                    |
 | `--org`         | `string` |         | organization, on servers that hold several             |
 | `--standalone`  | `bool`   |         | ignore the config file; use flags and environment only |

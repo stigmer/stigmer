@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { UsageError } from "../../errors/usage-error.js";
 import { resolveFormat, supportedFormats } from "../format.js";
+import { setActionCommand } from "../../runtime.js";
 
 describe("resolveFormat — defaults per command class", () => {
   it("defaults reads to table", () => {
@@ -61,5 +62,17 @@ describe("supportedFormats", () => {
     expect(supportedFormats("read")).toEqual(["table", "json", "yaml"]);
     expect(supportedFormats("mutating")).toEqual(["table", "json"]);
     expect(supportedFormats("streaming")).toEqual(["table", "json", "ndjson"]);
+  });
+});
+
+describe("resolveFormat — a value a command cannot print names the command", () => {
+  it("names the running command, else says this command, and lists what it supports", () => {
+    setActionCommand("stigmer status");
+    try {
+      expect(() => resolveFormat({ output: "yaml" }, "mutating")).toThrow("--output yaml is not supported by stigmer status (supported: table, json)");
+    } finally {
+      setActionCommand("");
+    }
+    expect(() => resolveFormat({ output: "YAML" }, "mutating")).toThrow("--output yaml is not supported by this command (supported: table, json)");
   });
 });

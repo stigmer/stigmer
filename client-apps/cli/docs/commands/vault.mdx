@@ -41,6 +41,12 @@ stigmer vault set-secret LEDGER_API_KEY --vault ledger-keys
 
 # Remove a key from a script, without the question
 stigmer vault remove-secret LINEAR_API_KEY --mine --force
+
+# Remove the GitHub login from your vault
+stigmer vault remove-connection github.com --mine
+
+# Send someone a one-time page to sign in to Linear; the login lands in a shared vault
+stigmer vault connect-link ledger-keys --address https://mcp.linear.app/mcp --return-url https://app.example.com/settings
 ```
 
 {/* AUTO_SUBCOMMANDS */}
