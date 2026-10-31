@@ -6,6 +6,7 @@
 // an extra argument).
 import { describe, expect, it } from "vitest";
 import type { Command } from "commander";
+import { everyCommand } from "../../command-tree.js";
 import { buildProgram } from "../../program.js";
 import { classify } from "../classify.js";
 import { formatError } from "../handle.js";
@@ -15,7 +16,10 @@ async function parse(argv: readonly string[]): Promise<{ out: string; err: strin
   const program: Command = buildProgram();
   let out = "";
   let err = "";
-  program.configureOutput({ writeOut: (text) => void (out += text), writeErr: (text) => void (err += text) });
+  // Commander copies a command's output settings when a subcommand is made, so each one is captured.
+  for (const cmd of everyCommand(program)) {
+    cmd.configureOutput({ writeOut: (text) => void (out += text), writeErr: (text) => void (err += text) });
+  }
   try {
     await program.parseAsync([...argv], { from: "user" });
   } catch (error) {
