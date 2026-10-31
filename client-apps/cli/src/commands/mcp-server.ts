@@ -40,15 +40,8 @@ Environment variables:
   STIGMER_MCP_LOG_FORMAT         text | json (default: text)
   STIGMER_MCP_LOG_LEVEL          debug | info | warn | error (default: info)
 
-Examples:
-  # STDIO mode (default — what MCP clients spawn)
-  $ stigmer mcp-server
-
-  # HTTP mode on a custom port
-  $ stigmer mcp-server --transport http --port 9090
-
-  # Cursor mcp.json:
-  # { "command": "stigmer", "args": ["mcp-server"] }`;
+In Cursor's mcp.json:
+  { "command": "stigmer", "args": ["mcp-server"] }`;
 
 export function registerMcpServer(program: Command): void {
   program

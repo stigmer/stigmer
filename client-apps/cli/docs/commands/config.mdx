@@ -18,11 +18,11 @@ Configuration priority (highest to lowest):
 # List all configuration values
 stigmer config list
 
-# Get a specific value
-stigmer config get llm.provider
+# Get a specific value: the active organization
+stigmer config get context.org
 
-# Set a value
-stigmer config set llm.provider anthropic
+# Set a value: make acme the active organization
+stigmer config set context.org acme
 
 # Show the config file path
 stigmer config path
@@ -88,10 +88,12 @@ Backend types:
 stigmer config backend set cloud
 ```
 
-### Set the LLM provider
+### Set the LLM provider for the local stack
+
+The provider is `stigmer setup`'s, not a configuration key:
 
 ```bash
-stigmer config set llm.provider anthropic
+stigmer setup --provider anthropic
 ```
 
 ### Point the CLI at an organization

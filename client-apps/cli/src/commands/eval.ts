@@ -27,18 +27,8 @@ import { engineChoice } from "../resources/run/engines.js";
 import type { OutputFlags } from "../output/format.js";
 import { addResultFlags, globalOrg, resultFormat } from "./shared.js";
 
-/** `eval run`'s help after the options: the model and tools a try runs with, and the exit codes. */
+/** `eval run`'s help after the options: the model and tools a try runs with, and the exit codes (its examples are help.ts's). */
 const EVAL_HELP = `
-Examples:
-  stigmer eval run --plugin payroll
-      the plugin's own cases on the built-in assistant, with and without it
-  stigmer eval run --agent variance-reporter
-      the cases of every plugin the agent attaches, on the agent
-  stigmer eval run --agent variance-reporter --eval variance-reporter-evals
-      the cases of an Eval pushed with stigmer push eval, on the agent
-  stigmer eval run --agent variance-reporter --plugin payroll
-      the plugin's cases on the agent, with and without the plugin
-
 On an agent, without --model, each case runs on the agent as it runs: its
 own engine, model and settings. A model named with --model runs without the
 agent's own tier and thinking settings, as any conversation that names a

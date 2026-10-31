@@ -14,6 +14,7 @@
 // stamped from one frozen instant. A debug error's stack is set by hand,
 // since a real one names this machine's paths.
 import { create } from "@bufbuild/protobuf";
+import type { Command } from "commander";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
@@ -201,10 +202,22 @@ describe("the run's exit summary", () => {
   });
 });
 
-describe("help", () => {
-  it("prints the top-level help at 80 columns", async () => {
-    const program = buildProgram();
-    program.configureHelp({ ...program.configureHelp(), helpWidth: 80 });
-    await expectGolden(program.helpInformation(), "help-root");
+describe("CLI-10 help", () => {
+  // What `--help` prints, examples included (they are help text after the options).
+  const helpAt80 = (cmd: Command): string => {
+    let text = "";
+    cmd.configureOutput({ writeOut: (chunk) => void (text += chunk) });
+    cmd.configureHelp({ ...cmd.configureHelp(), helpWidth: 80 });
+    cmd.outputHelp();
+    return text;
+  };
+
+  it("prints the top-level help at 80 columns, grouped, with examples", async () => {
+    await expectGolden(helpAt80(buildProgram()), "help-root");
+  });
+
+  it("prints get's help at 80 columns, with its examples and the globals once", async () => {
+    const get = buildProgram().commands.find((cmd) => cmd.name() === "get")!;
+    await expectGolden(helpAt80(get), "help-get");
   });
 });
