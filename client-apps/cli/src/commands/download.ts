@@ -17,6 +17,7 @@ import { ensureAuthenticated, resolveOrganization } from "../config/index.js";
 import { CliExitError, ExitCode, UsageError } from "../errors/index.js";
 import { type OutputFlags, renderResult, supportedFormats } from "../output/index.js";
 import { defaultRegistry, Verb } from "../registry/index.js";
+import { setActionResourceType } from "../runtime.js";
 import type { DownloadOutcome } from "../resources/download.js";
 import { addResultFlags, globalOrg, resultFormat } from "./shared.js";
 
@@ -65,6 +66,8 @@ async function runDownload(type: string, ref: string, options: DownloadFlags, co
     throw new UsageError(`download not supported for type: ${type}\n\nThe types that download: ${downloadTypes()}`);
   }
   if (handler.answers === "files") refuseResultFlags(options, `a ${info.displayName.toLowerCase()}'s`);
+  // A missing reference is answered with the list of its type (errors/classify.ts).
+  if (info.supportedVerbs.has(Verb.List)) setActionResourceType(info.singular);
 
   const { connectBackend } = await import("../backend.js");
   const client = connectBackend();
@@ -84,6 +87,7 @@ async function runDownload(type: string, ref: string, options: DownloadFlags, co
 }
 
 async function runDownloadRun(id: string, options: DownloadFlags): Promise<void> {
+  setActionResourceType("run");
   refuseResultFlags(options, "a run's");
 
   const [{ connectBackend }, { isRunId }, { downloadRunOutputs }] = await Promise.all([

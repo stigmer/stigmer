@@ -8,6 +8,7 @@
 
 import { CliExitError, ExitCode } from "../errors/index.js";
 import { SERVER_PORT } from "../local/constants.js";
+import type { ServerAddress } from "../runtime.js";
 import { type Config, activeBackend } from "./config.js";
 
 /** Stigmer Cloud's API, where a cloud entry with no endpoint of its own points. */
@@ -28,19 +29,29 @@ export const DEFAULT_CLOUD_CONSOLE_URL = "https://app.stigmer.ai";
  * files, and guessing an address for a self-hosted server helps nobody.
  */
 export function resolveEndpoint(config: Config): string {
+  return resolveServerAddress(config).address;
+}
+
+/**
+ * The endpoint {@link resolveEndpoint} names, with where it came from: the
+ * override's name, or the active backend's kind. The backend client records
+ * it when made, so a failure names the address tried and the fix that fits
+ * its source.
+ */
+export function resolveServerAddress(config: Config): ServerAddress {
   const override = process.env.STIGMER_SERVER_ADDRESS;
   if (override !== undefined && override !== "") {
-    return override;
+    return { address: override, source: "environment" };
   }
   const { name, entry } = activeBackend(config);
   if (entry === undefined) {
-    return DEFAULT_LOCAL_ENDPOINT;
+    return { address: DEFAULT_LOCAL_ENDPOINT, source: "local" };
   }
   if (entry.endpoint !== undefined && entry.endpoint !== "") {
-    return entry.endpoint;
+    return { address: entry.endpoint, source: entry.type };
   }
   if (entry.type === "cloud") {
-    return DEFAULT_CLOUD_ENDPOINT;
+    return { address: DEFAULT_CLOUD_ENDPOINT, source: "cloud" };
   }
   throw new CliExitError(
     `backend "${name}" has no endpoint configured`,

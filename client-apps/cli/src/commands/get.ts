@@ -11,6 +11,7 @@ import type { Stigmer } from "@stigmer/client";
 import { omitsOrganization } from "../client/single-org.js";
 import { ensureAuthenticated, resolveOrganization } from "../config/index.js";
 import { UsageError } from "../errors/index.js";
+import { setActionResourceType } from "../runtime.js";
 import type { OutputFlags, OutputFormat } from "../output/index.js";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { defaultRegistry, Verb } from "../registry/index.js";
@@ -47,6 +48,8 @@ async function runGet(type: string, reference: string, options: GetFlags, comman
   if (!info.supportedVerbs.has(Verb.Get)) {
     throw new UsageError(`${info.displayName} does not support 'get'`);
   }
+  // A missing reference is answered with the list of its type (errors/classify.ts).
+  if (info.supportedVerbs.has(Verb.List)) setActionResourceType(info.singular);
 
   const [{ connectBackend }, { parseReference }, { fetchResource }, { renderResource }] = await Promise.all([
     import("../backend.js"),
@@ -91,6 +94,7 @@ async function runGet(type: string, reference: string, options: GetFlags, comman
 }
 
 async function runGetRun(reference: string, options: GetFlags, command: Command): Promise<void> {
+  setActionResourceType("run");
   const [{ connectBackend }, { getRun }, { renderResource }] = await Promise.all([
     import("../backend.js"),
     import("../resources/runs.js"),

@@ -24,6 +24,7 @@ import { omitsOrganization } from "../client/single-org.js";
 import { CliExitError, ExitCode, UsageError } from "../errors/index.js";
 import { CommandResult } from "../output/index.js";
 import { defaultRegistry, type TypeInfo, Verb } from "../registry/index.js";
+import { setActionResourceType } from "../runtime.js";
 import {
   cancelAgentRun,
   formatAgentPhase,
@@ -135,7 +136,9 @@ export async function planDelete(
   org: string,
   force = false,
 ): Promise<DeletePlan> {
+  // A missing reference is answered with the list of its type (errors/classify.ts).
   if (isRunAlias(typeArg)) {
+    setActionResourceType("run");
     return planRunCancel(client, reference);
   }
 
@@ -145,6 +148,7 @@ export async function planDelete(
       `unknown resource type: ${typeArg}\n\nAvailable types: ${availableDeleteTypes()}`,
     );
   }
+  if (info.supportedVerbs.has(Verb.List)) setActionResourceType(info.singular);
 
   if (info.kind === ApiResourceKind.organization) {
     return planOrganizationDelete(client, reference);

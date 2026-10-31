@@ -25,6 +25,7 @@ export {
   resolveContextOrganization,
   resolveEndpoint,
   resolveOrganization,
+  resolveServerAddress,
   resolveToken,
 } from "./resolve.js";
 export { configDir, configPath, dataDir } from "./paths.js";

@@ -2,8 +2,12 @@ exit 1
 
 Error: Operation cancelled
 
+The server cancelled the request. Try again.
+
 --- with --debug ---
 Error: Operation cancelled
+
+The server cancelled the request. Try again.
 
 --- debug ---
 gRPC code: Canceled (1)

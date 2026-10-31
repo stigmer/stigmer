@@ -1,0 +1,16 @@
+exit 3
+
+Error: Could not reach the Stigmer server at localhost:7234
+
+It did not answer within 10 seconds.
+Start it: stigmer up
+
+--- with --debug ---
+Error: Could not reach the Stigmer server at localhost:7234
+
+It did not answer within 10 seconds.
+Start it: stigmer up
+
+--- debug ---
+Raw error: CliExitError: Could not reach the Stigmer server at localhost:7234
+    at command (src/commands/example.ts:1:1)
