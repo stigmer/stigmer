@@ -9,9 +9,12 @@
 // - When a turn completes: "Worked for 1m 12s", one quiet line left in the
 //   history. A failed or stopped turn keeps its badge instead.
 //
+// A span of time reads as `formatElapsed` in @stigmer/client writes it, the
+// one format every terminal surface shares ("1h 3m", never "63m 0s").
+//
 // Proven by __tests__/working-line.test.tsx.
 
-import { activityPhrase, describeTurnActivity, type Turn } from "@stigmer/client";
+import { activityPhrase, describeTurnActivity, formatElapsed, type Turn } from "@stigmer/client";
 
 /** What the working line says at one instant. */
 export interface WorkingWords {
@@ -35,15 +38,6 @@ export interface WorkingState {
 export const SLOW_PHRASE = "Still working, taking longer than usual";
 /** The phrase a turn that is being stopped reads. */
 export const STOPPING_PHRASE = "Stopping…";
-
-/** A span of time as the working line writes it: "42s", "1m 12s", "1h 3m". */
-export function formatElapsed(ms: number): string {
-  const seconds = Math.max(0, Math.floor(ms / 1000));
-  if (seconds < 60) return `${seconds}s`;
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ${seconds % 60}s`;
-  return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
-}
 
 /** The working line's words for `turn` at `nowMs` (module header); a turn not yet folded reads "Starting". */
 export function workingWords(turn: Turn | null, nowMs: number, state: WorkingState = {}): WorkingWords {

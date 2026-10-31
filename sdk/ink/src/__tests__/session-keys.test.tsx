@@ -62,7 +62,7 @@ describe("INK-07 Esc stops a running turn and leaves the session usable", () => 
   it("stops the working turn, asks again on a second Esc, and keeps the composer and its draft", async () => {
     const stop = working("busy");
     const { stdin, lastFrame } = render(<SessionView sessionId="ses_1" org="demo" canAnswer />);
-    expect(lastFrame()).toMatch(/Running a command · [\dhms ]+ · Esc to stop/);
+    expect(lastFrame()).toMatch(/Running a command · [\ddhms ]+ · Esc to stop/);
     await type(stdin, "only the tests", ESC);
     expect(stop).toHaveBeenCalledTimes(1);
     await type(stdin, ESC);
@@ -79,7 +79,7 @@ describe("INK-07 Esc stops a running turn and leaves the session usable", () => 
 
   it("says a second Esc ends it now while the turn winds down", () => {
     working("busy", { isStopping: true });
-    expect(render(<SessionView sessionId="ses_1" org="demo" canAnswer />).lastFrame()).toMatch(/Stopping… · [\dhms ]+ · Esc again to end it now/);
+    expect(render(<SessionView sessionId="ses_1" org="demo" canAnswer />).lastFrame()).toMatch(/Stopping… · [\ddhms ]+ · Esc again to end it now/);
   });
 
   it("stops a turn that waits on an approval, and leaves the reason being typed its own Esc", async () => {

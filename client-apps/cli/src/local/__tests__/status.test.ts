@@ -6,7 +6,8 @@ import { configPath } from "../../config/paths.js";
 import { DAEMON_PID_FILE } from "../constants.js";
 import { dataDir } from "../paths.js";
 import type { HealthState } from "../state/health-state.js";
-import { buildStatusResult, formatDuration } from "../status.js";
+import { formatElapsed as formatDuration } from "@stigmer/client";
+import { buildStatusResult } from "../status.js";
 
 let home: string;
 beforeEach(() => {

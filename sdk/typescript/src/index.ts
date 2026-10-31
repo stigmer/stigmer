@@ -413,6 +413,7 @@ export { isTerminalPhase } from "./run/run-phases.js";
 export {
   activityPhrase,
   describeTurnActivity,
+  formatElapsed,
   settledStepsPhrase,
   stepsSpanMs,
   type TodoProgress,

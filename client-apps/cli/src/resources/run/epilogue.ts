@@ -16,7 +16,7 @@ import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { GetRunUsageReportInputSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import type { UsageReportAggregate } from "@stigmer/apis/ai/stigmer/agentic/run/v1/usage_pb";
-import { foldSession, turnOf, type Stigmer, type NoteItem, type Turn, type TurnItem } from "@stigmer/client";
+import { foldSession, formatElapsed, turnOf, type Stigmer, type NoteItem, type Turn, type TurnItem } from "@stigmer/client";
 import { CliExitError, ExitCode } from "../../errors/index.js";
 import { shouldColorize, styler } from "../../output/style.js";
 import { formatTokenCount } from "../run-format.js";
@@ -191,16 +191,11 @@ function firstFailedOutput(items: readonly TurnItem[]): string | undefined {
 
 const GENERIC_FAILURE = "Run failed (error details unavailable — check run logs)";
 
-// "1m23s"/"45s" between two RFC3339 timestamps, rounded to the second, or ""
-// when unknown.
+// "1m 23s"/"45s" between two RFC3339 timestamps, in the shared format
+// (`formatElapsed`), or "" when either is unknown.
 function formatDuration(startedAt: string, completedAt: string): string {
-  if (startedAt === "" || completedAt === "") return "";
   const start = Date.parse(startedAt);
   const end = Date.parse(completedAt);
   if (Number.isNaN(start) || Number.isNaN(end) || end < start) return "";
-  const totalSeconds = Math.round((end - start) / 1000);
-  if (totalSeconds < 60) return `${totalSeconds}s`;
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return seconds === 0 ? `${minutes}m` : `${minutes}m${seconds}s`;
+  return formatElapsed(end - start);
 }

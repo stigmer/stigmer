@@ -119,7 +119,7 @@ describe("runEpilogue", () => {
     expect(result).toBe(run);
     expect(d.gets).toEqual(["run_1"]);
     expect(d.usageRequests.map((r) => r.runId)).toEqual(["run_1"]);
-    expect(stderr).toEqual(["\n", "✓ Completed (1m30s · 18.4k tokens)\n", "\n", "  To continue:  stigmer resume ses_1\n"]);
+    expect(stderr).toEqual(["\n", "✓ Completed (1m 30s · 18.4k tokens)\n", "\n", "  To continue:  stigmer resume ses_1\n"]);
     expect(d.eventRequests).toEqual([]);
   });
 

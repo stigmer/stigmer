@@ -162,7 +162,7 @@ describe("SessionView — a loaded conversation", () => {
     });
     const frame = render(<SessionView sessionId="ses_1" org="acme" />).lastFrame() ?? "";
     // The working line, just above the composer.
-    expect(frame).toMatch(/⠋ Working · [\dhms ]+\n Agent mode/);
+    expect(frame).toMatch(/⠋ Working · [\ddhms ]+\n Agent mode/);
     expect(frame).toContain("Read the ledger");
     expect(frame).toContain("Approval error: gate already answered");
   });
