@@ -34,14 +34,15 @@
  * pin; the turn boundary's candidate capture and row stamping; the completion
  * with the edit applied.
  *
- * Two more arms, each with goldens of its own: an Undo after the turn is
+ * Three more arms, each with goldens of its own: an Undo after the turn is
  * put back by a reconcile turn that never asks the model (the script holds
- * no turn for it, so a model call would fail the run); and with review off
- * (the default) the same edit flows uncaptured and the turn completes. The
- * secret-like write refusal, which holds whatever review says, is pinned by
- * the gate's unit tests (`middleware/__tests__/approval-gate.test.ts`): on
- * this harness a refused write leaves no transcript row for a golden to
- * show (stigmer/stigmer#2169).
+ * no turn for it, so a model call would fail the run); with review off
+ * (the default) the same edit flows uncaptured and the turn completes; and,
+ * review still off, a write to a gitignored secret-like path beside that
+ * edit is refused, which holds whatever review says: the edit lands, the
+ * secret is never written, and the refused write is a settled failed row and
+ * a tool use and result in the session's log, naming the file and never its
+ * content (stigmer/stigmer#2169), as the Claude engine's own suite shows it.
  *
  * Determinism: the fixture repo's commit and tree ids are byte-stable because
  * `initGitWorkspace` pins author, committer and both dates; the script's path
@@ -66,7 +67,7 @@
  */
 
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import {
@@ -101,12 +102,17 @@ import {
   runDeepAgentTurn,
 } from "../../__test-utils__/hermetic-deep-agent.js";
 import { ToolCallStatus } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
+import { toolUseEventId } from "../../../../harness/events/ids.js";
+import { secretBlockMessage } from "../../../../shared/file-edit-policy.js";
 
 const FILE = "notes.md";
 const BEFORE = "# Notes\n\nfirst\n";
 const AFTER = "# Notes\n\nfirst\nsecond\n";
 const CALL_ID = "call-hermetic-edit-0001";
 const CHANGE_SET_ID = `${FIXTURE.executionId}:0`;
+const SECRET_FILE = ".env";
+const SECRET_VALUE = "API_KEY=hermetic-secret-2169";
+const SECRET_CALL_ID = "call-hermetic-secret-0001";
 
 function sha256(text: string): string {
   return createHash("sha256").update(text).digest("hex");
@@ -295,5 +301,66 @@ describe("ExecuteDeepAgent hermetic — file-review capture", () => {
     await expect(statusGolden(final)).toMatchFileSnapshot("./goldens/file-review-off.status.json");
     await expect(rowsGolden(record.rowsOf(final))).toMatchFileSnapshot(rowsGoldenPath("./goldens/file-review-off.status.json"));
     await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/file-review-off.events.json");
+  });
+
+  it("with review off a secret-like write is refused as a settled failed row naming the file, never its content", async () => {
+    const repo = join(env.workspaceRootDir, "repos", "notes-secret");
+    initGitWorkspace(repo, { [FILE]: BEFORE, ".gitignore": `${SECRET_FILE}\n` });
+    const record = deepAgentExecutionRecord({
+      message: "Set up the project.",
+      resources: [localPathEntry("notes", repo)],
+    });
+    const scenario = beginDeepAgentScenario({
+      env,
+      clock,
+      record,
+      script: () => ({
+        turns: [
+          {
+            text: "Setting up.",
+            toolCalls: [
+              { id: CALL_ID, name: "edit_file", args: { file_path: `/${FILE}`, old_string: "first\n", new_string: "first\nsecond\n" } },
+              { id: SECRET_CALL_ID, name: "write_file", args: { file_path: `/${SECRET_FILE}`, content: `${SECRET_VALUE}\n` } },
+            ],
+            usage: { inputTokens: 1_300, outputTokens: 80 },
+          },
+          { text: "Set up.", usage: { inputTokens: 1_600, outputTokens: 10 } },
+        ],
+      }),
+    });
+
+    const invocation = await runDeepAgentTurn(scenario);
+
+    expect((invocation.outcome as { value: Record<string, unknown> }).value.phase).toBe("RUN_COMPLETED");
+    expect(readFileSync(join(repo, FILE), "utf-8"), "the edit is applied").toBe(AFTER);
+    expect(existsSync(join(repo, SECRET_FILE)), "the secret is never written").toBe(false);
+    expect(record.waitingToolCalls(), "nothing asked").toHaveLength(0);
+
+    // The refused write is a settled failed row: the file named, the content
+    // withheld (the persist backstop clears the preview the builder stamped).
+    const final = record.lastFullStatus!;
+    const rows = record.rowsOf(final).messages.flatMap((m) => m.toolCalls);
+    expect(rows.map((tc) => [tc.id, tc.status])).toEqual([
+      [CALL_ID, ToolCallStatus.TOOL_CALL_COMPLETED],
+      [SECRET_CALL_ID, ToolCallStatus.TOOL_CALL_FAILED],
+    ]);
+    const refused = rows.find((tc) => tc.id === SECRET_CALL_ID)!;
+    expect(refused.error).toBe(secretBlockMessage("write_file", `/${SECRET_FILE}`));
+    expect(refused.args).toEqual({ path: `/${SECRET_FILE}` });
+    expect(refused.argsPreview).toBe("");
+
+    // The session's log holds the refused call's use and its error result.
+    const useId = toolUseEventId(record.executionId, SECRET_CALL_ID);
+    expect(record.sessionEvents.flatMap((e) => (e.event.case === "agentToolUse" ? [e.event.value.id] : []))).toContain(useId);
+    expect(
+      record.sessionEvents.flatMap((e) => (e.event.case === "agentToolResult" && e.event.value.toolUseId === useId ? [e.event.value.isError] : [])),
+    ).toEqual([true]);
+
+    const json = statusGolden(final) + rowsGolden(record.rowsOf(final)) + record.eventsGolden();
+    expect(json, "the secret's content reaches nothing persisted").not.toContain(SECRET_VALUE);
+    expect(json).not.toContain(env.workspaceRootDir);
+    await expect(statusGolden(final)).toMatchFileSnapshot("./goldens/file-review-secret-refused.status.json");
+    await expect(rowsGolden(record.rowsOf(final))).toMatchFileSnapshot(rowsGoldenPath("./goldens/file-review-secret-refused.status.json"));
+    await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/file-review-secret-refused.events.json");
   });
 });

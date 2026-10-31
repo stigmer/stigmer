@@ -307,11 +307,13 @@ export function normalize(event: V3ProtocolEvent): StreamFact[] {
  *
  *  - A refusal (`TOOL_REFUSED_EVENT`): the tool-scope middleware's of a call
  *    the agent's tool lists exclude (`middleware/tool-scope.ts`), or the
- *    approval gate's of a call a hook denied or an unattended turn skipped.
+ *    approval gate's of a call a hook denied, an unattended turn skipped, an
+ *    approved call that changed, or a secret-like write it blocked.
  *    The call never ran, so the tools channel says nothing of it; its row is
- *    opened here (the call as the model made it, no approval fields, and the
- *    gate's provenance when the gate refused: the hook, or
- *    `unattended_skip`) and fails at once with the refusal's message. A
+ *    opened here (the event's input: the call as the model made it, or a
+ *    blocked secret write's path alone; no approval fields; and the gate's
+ *    provenance when a hook refused or the unattended lane skipped) and
+ *    fails at once with the refusal's message. A
  *    skipped row settles to SKIPPED after the stream
  *    (`reconcileUnattendedSkips`); its provenance is on the row from the
  *    start, so the session's log reads the skip as the policy's deny.

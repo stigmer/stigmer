@@ -3,7 +3,7 @@
  * gateway contract observes from outside: the custom-stream events it
  * writes (a hook's refusal, and which hook decided a call that runs), the
  * card's payload for a hook's ask, the hook recorded beside an unattended
- * skip (and the skip's refusal event, which opens its row), a rewrite checked again against the secret block and against
+ * skip (and the skip's refusal event, which opens its row), a rewrite checked again against the secret block (its refusal event naming the rewritten path) and against
  * the graph's tool scope (refused as the scope refuses, under the pre-armed bypass too), and the hooks'
  * feedback appended to the result, a graph command's tool message included,
  * and an approval that runs only the call its card showed, across the
@@ -17,7 +17,7 @@ import { create } from "@bufbuild/protobuf";
 import { ToolMessage } from "@langchain/core/messages";
 import { HookGroupSchema, HookHandlerSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { CHANGED_MESSAGE, hookLeaseKey } from "../../shared/approval-policy.js";
+import { CHANGED_MESSAGE, hookLeaseKey, unattendedSkipMessage } from "../../shared/approval-policy.js";
 import { HookEvaluator } from "../../shared/hooks/evaluate.js";
 import { HookSet } from "../../shared/hooks/hook-set.js";
 import type { HookProcessRunner, HookRunResult } from "../../shared/hooks/run.js";
@@ -25,6 +25,7 @@ import { StigmerToolViews } from "../../shared/hooks/tool-view.js";
 import { createApprovalGateMiddleware, HOOK_FEEDBACK_HEADING, TOOL_POLICY_EVENT, type ApprovalGateConfig } from "../approval-gate.js";
 import { TOOL_REFUSED_EVENT, type ToolScopeConfig } from "../tool-scope.js";
 import { outOfScopeMessage, ToolScope, type ToolLists } from "../../shared/tool-lists.js";
+import { secretBlockMessage } from "../../shared/file-edit-policy.js";
 import type { ToolCallRequest } from "../types.js";
 
 vi.mock("@langchain/langgraph", async (importOriginal) => ({ ...(await importOriginal<object>()), interrupt: vi.fn() }));
@@ -152,7 +153,15 @@ describe("the gate's hooks", () => {
     expect(handler).not.toHaveBeenCalled();
     expect(result.status).toBe("error");
     expect(result.content).toBe("The safety plugin's hook refused this call: no pushes on Friday");
-    expect(writer).toHaveBeenCalledWith(expect.objectContaining({ name: TOOL_REFUSED_EVENT, policy_source: "hook", policy_hook: "safety" }));
+    expect(writer).toHaveBeenCalledWith({
+      name: TOOL_REFUSED_EVENT,
+      tool_call_id: "call_1",
+      tool_name: "execute",
+      input: SHELL_ARGS,
+      message: "The safety plugin's hook refused this call: no pushes on Friday",
+      policy_source: "hook",
+      policy_hook: "safety",
+    });
   });
 
   it("an ask shows a card naming the hook, with its reason or Claude's tool name", async () => {
@@ -339,9 +348,15 @@ describe("the gate's hooks", () => {
     await gate(hooksAnswering(decide("ask")), { unattended: true, unattendedSkips }).wrapToolCall!(request, handler);
     expect(handler).not.toHaveBeenCalled();
     expect(unattendedSkips.get("call_1")).toBe("safety");
-    expect(writer).toHaveBeenCalledWith(
-      expect.objectContaining({ name: TOOL_REFUSED_EVENT, tool_call_id: "call_1", tool_name: "execute", policy_source: "unattended_skip", policy_hook: "safety" }),
-    );
+    expect(writer).toHaveBeenCalledWith({
+      name: TOOL_REFUSED_EVENT,
+      tool_call_id: "call_1",
+      tool_name: "execute",
+      input: SHELL_ARGS,
+      message: unattendedSkipMessage("execute"),
+      policy_source: "unattended_skip",
+      policy_hook: "safety",
+    });
   });
 
   it("unattended, the default's ask is skipped with no hook named on the custom stream", async () => {
@@ -349,19 +364,32 @@ describe("the gate's hooks", () => {
     const { request, writer } = call("execute", SHELL_ARGS);
     await gate(hooksAnswering(decide("ask")), { unattended: true, unattendedSkips, hooks: undefined }).wrapToolCall!(request, vi.fn());
     expect(unattendedSkips.get("call_1")).toBeNull();
-    expect(writer).toHaveBeenCalledWith(expect.objectContaining({ name: TOOL_REFUSED_EVENT, policy_source: "unattended_skip", policy_hook: "" }));
+    expect(writer).toHaveBeenCalledWith({
+      name: TOOL_REFUSED_EVENT,
+      tool_call_id: "call_1",
+      tool_name: "execute",
+      input: SHELL_ARGS,
+      message: unattendedSkipMessage("execute"),
+      policy_source: "unattended_skip",
+      policy_hook: "",
+    });
   });
 
-  it("a rewrite into a secret-like path is blocked like the call it became", async () => {
+  it("a rewrite into a secret-like path is blocked like the call it became, its refusal naming the rewritten path", async () => {
     const recordBlockedSecret = vi.fn();
     const handler = vi.fn();
+    const { request, writer } = call("write_file", { file_path: "/notes.md", content: "hi" });
     const result = (await gate(hooksAnswering(decide("allow", { updatedInput: { file_path: "/ws/.env", content: "TOKEN=x" } })), { recordBlockedSecret }).wrapToolCall!(
-      call("write_file", { file_path: "/notes.md", content: "hi" }).request,
+      request,
       handler,
     )) as ToolMessage;
     expect(handler).not.toHaveBeenCalled();
     expect(recordBlockedSecret).toHaveBeenCalledWith("/.env");
     expect(String(result.content)).toContain("blocked for security");
+    expect(writer.mock.calls).toEqual([
+      [{ name: TOOL_REFUSED_EVENT, tool_call_id: "call_1", tool_name: "write_file", input: { path: "/.env" }, message: secretBlockMessage("write_file", "/.env") }],
+    ]);
+    expect(JSON.stringify(writer.mock.calls), "the rewritten content never enters the stream").not.toContain("TOKEN=x");
   });
 
   describe("a rewrite judged again by the graph's tool scope", () => {
