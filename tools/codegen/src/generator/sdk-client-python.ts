@@ -421,8 +421,7 @@ function generatePythonResourceClient(
   // the kind's own package by its module name, another package by the alias
   // pyTrackMethodTypeImport imports it under.
   const methodTypePb2Map = new Map<string, string>();
-  for (const mt of schema.methodTypes ?? []) {
-    if (mt.protoFile === "") continue;
+  for (const mt of (schema.methodTypes ?? []).filter((t) => t.protoFile !== "")) {
     const module = pyProtoFileToModule(mt.protoFile);
     if (mt.protoType.startsWith(schema.package + ".")) {
       methodTypePb2Map.set(mt.name, module);
