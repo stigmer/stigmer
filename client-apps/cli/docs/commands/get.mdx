@@ -60,6 +60,7 @@ stigmer get agent acme-corp/variance-reporter --version 3f8a1c0e9b7d
 | Run           | `run`, `runs`                          | ID only                                              |
 | Score         | `score`, `scr`, `scores`               | ID only                                              |
 | Scoring Rule  | `scoring-rule`, `srl`, `scoring-rules` | ID only                                              |
+| Session       | `session`, `ses`, `sessions`           | ID only                                              |
 | Skill         | `skill`, `skills`                      | slug, org/slug, ID                                   |
 | Vault         | `vault`, `vlt`, `vaults`               | slug, org/slug, ID (entry names only, never a value) |
 
@@ -67,11 +68,21 @@ stigmer get agent acme-corp/variance-reporter --version 3f8a1c0e9b7d
 
 Use `--output` to control the display format:
 
-| Format  | Use case                         |
-| ------- | -------------------------------- |
-| `table` | Human-readable table (default)   |
-| `yaml`  | Full resource definition as YAML |
-| `json`  | Full resource definition as JSON |
+| Format  | Use case                          |
+| ------- | --------------------------------- |
+| `table` | The view a person reads (default) |
+| `yaml`  | Full resource definition as YAML  |
+| `json`  | Full resource definition as JSON  |
+
+The default view is designed for each kind a person reads: an agent shows
+the start of its instructions, its skills, MCP servers, tools, subagents,
+plugins, Environment and run settings; a skill its version, where it was
+pushed from and the start of its SKILL.md; a session its agent, state and
+newest runs; a run how it went; a routine its schedule in words; an
+Environment its hosts and packages. Other kinds show their name, slug,
+description and when they were created and changed. On a terminal the view
+wraps at the window's width; piped, nothing is wrapped or cut. A long text
+shows its first 12 lines; `--output yaml` prints it whole.
 
 ```bash
 # Export an agent definition as YAML
@@ -95,8 +106,19 @@ stigmer get agent my-agent
 stigmer get run run_01abc123
 ```
 
-Runs are referenced by ID only (not slugs). The output includes the run's
-outputs, the files the agent saved in `.stigmer/outputs/`.
+Runs are referenced by ID only (not slugs). The view shows the agent that ran
+it, its session, how it went and how long it took, the message, the error and
+stop cause when it did not complete, and the tokens it used.
+
+### Look at a conversation
+
+```bash
+stigmer get session ses_01abc123
+```
+
+Sessions are referenced by ID only, as `stigmer list sessions` prints it. The
+view shows the agent, whether it is working, its Environment, and its five
+newest runs with how each went.
 
 ### Export a resource definition
 

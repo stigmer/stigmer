@@ -1,0 +1,48 @@
+
+Release Notes  acme/release-notes
+
+  Description:  Drafts release notes from the merged pull requests of a milestone, grouped by area.
+  Updated:      2026-10-30 07:45 UTC
+
+Instructions
+  You draft release notes for the milestone you are given.
+
+  Read every merged pull request of the milestone, then:
+    - group the changes by area (CLI, console, server, SDKs);
+    - write one line per change, in the words a user of that area would use, never the pull request's title as it stands;
+    - name breaking changes first, each with what to do.
+
+  Keep the notes short. A change no user can see goes under Internal.
+
+  Link each line to its pull request.
+  Ask before publishing.
+  Sign as the release team.
+  … 4 more lines; -o yaml for all
+
+Skills
+  acme/changelog-style
+  stigmer/semver@stable
+
+MCP servers
+  github  https://api.githubcopilot.com/mcp/
+  linear  https://mcp.linear.app/mcp
+
+Tools
+  Allowed:     Read, Grep, Glob, WebFetch, mcp__github, mcp__linear__list_issues
+  Disallowed:  Bash(git push *)
+
+Subagents
+  acme/pr-reader@aaaaaaaaaaaa
+
+Plugins
+  acme/release-kit
+
+Environment
+  Sandbox:  acme/docs-build
+  Values:   GITHUB_TOKEN (secret), REGION, RELEASE_CHANNEL (optional)
+
+Run settings
+  Harness:   claude
+  Model:     claude-sonnet-4-5
+  Thinking:  enabled
+  Cost cap:  $2 per message

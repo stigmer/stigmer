@@ -66,11 +66,10 @@ describe("the read views", () => {
     await expectGolden(renderCollection(AgentSchema, [], "table", libraryTable("agents")), "list-empty");
   });
 
-  it("shows one agent, skill, session and organization in the get view", async () => {
-    await expectGolden(renderResource(AgentSchema, agents[1]!, "table", { orgLabel: "demo" }), "get-agent");
-    await expectGolden(renderResource(SkillSchema, skills[0]!, "table", { orgLabel: "demo" }), "get-skill");
-    await expectGolden(renderResource(SessionSchema, sessions[1]!, "table", { orgLabel: "demo" }), "get-session");
-    await expectGolden(renderResource(OrganizationSchema, organizations[1]!, "table", { hideOrg: true }), "get-organization");
+  // The designed views of these kinds are views.goldens.test.ts's; this is
+  // the generic view every other kind keeps, drawn over a skill.
+  it("shows one resource in the generic get view", async () => {
+    await expectGolden(renderResource(SkillSchema, skills[0]!, "table", { orgLabel: "demo" }), "get-generic");
   });
 });
 

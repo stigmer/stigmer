@@ -1,11 +1,13 @@
 // Uniform rendering for read verbs.
 //
-// All resource protos share the ApiResourceMetadata envelope, so the human
-// (table) view of a single `get` is derived generically from the protojson
-// projection — no per-kind formatter. The common spec fields it adds are the
-// ones several kinds share by name: the description, and the settings a run
-// starts from (spec.harness and spec.run_config: an agent's run defaults, a
-// share's or channel's saved settings, a session's engine). json/yaml use the canonical protojson
+// All resource protos share the ApiResourceMetadata envelope, so the generic
+// human (table) view of a single `get` is derived from the protojson
+// projection; the kinds a person reads most have a view designed for them
+// instead (resources/views), and every other kind keeps this one. The common
+// fields it adds are the ones several kinds share by name: the description,
+// the settings a run starts from (spec.harness and spec.run_config: an
+// agent's run defaults, a share's or channel's saved settings, a session's
+// engine), and when it was created and last changed. json/yaml use the canonical protojson
 // renderers for full fidelity. Collections render via the
 // shared table renderer with a caller-supplied row extractor.
 //
@@ -138,32 +140,56 @@ function renderResourceFields(json: JsonValue, options: RenderFieldsOptions): st
   if (options.hideOrg !== true) pushField(fields, "Org", options.orgLabel ?? metadata.org);
   pushField(fields, "Visibility", metadata.visibility);
   pushField(fields, "Description", spec.description);
-  pushRunSettings(fields, spec, asObject(obj.status));
+  for (const [key, value] of runSettingFields(spec, asObject(obj.status))) pushField(fields, key, value);
+  const { created, updated } = audited(obj);
+  pushField(fields, "Created", instant(created));
+  pushField(fields, "Updated", instant(updated));
 
   const width = Math.max(0, ...fields.map(([key]) => key.length));
   const lines = fields.map(([key, value]) => `  ${key}:${" ".repeat(width - key.length + 2)}${value}`);
   return `\n${lines.join("\n")}\n`;
 }
 
-// The engine and run settings a resource names, each only when set (protojson
-// omits defaults, so an absent field is "not set here"). A turn records the
-// settings it ran with on status.run_config, resolved from its message, its
-// agent and its lane, so those are shown in place of what the message asked.
-function pushRunSettings(fields: Array<[string, string]>, spec: JsonObject, status: JsonObject): void {
-  pushField(fields, "Harness", enumWord(spec.harness, "HARNESS_"));
+/**
+ * The engine and run settings a resource names, each empty when not set
+ * (protojson omits defaults, so an absent field is "not set here"). A turn
+ * records the settings it ran with on status.run_config, resolved from its
+ * message, its agent and its lane, so those are shown in place of what the
+ * message asked.
+ */
+export function runSettingFields(spec: JsonObject, status: JsonObject): Array<[string, string | undefined]> {
   const runConfig = asObject(status.run_config ?? spec.run_config);
-  pushField(fields, "Model", runConfig.model_name);
-  pushField(fields, "Speed tier", enumWord(runConfig.service_tier, "SERVICE_TIER_"));
-  pushField(fields, "Thinking", enumWord(runConfig.thinking_mode, "THINKING_MODE_"));
-  if (typeof runConfig.max_cost_usd === "number") {
-    fields.push(["Cost cap", `$${runConfig.max_cost_usd} per message`]);
-  }
-  if (typeof runConfig.max_tool_rounds === "number") {
-    fields.push(["Tool rounds", `at most ${runConfig.max_tool_rounds} per message`]);
-  }
-  if (typeof runConfig.max_tool_result_chars === "number") {
-    fields.push(["Tool result size", `at most ${runConfig.max_tool_result_chars} characters`]);
-  }
+  return [
+    ["Harness", enumWord(spec.harness, "HARNESS_")],
+    ["Model", str(runConfig, "model_name")],
+    ["Speed tier", enumWord(runConfig.service_tier, "SERVICE_TIER_")],
+    ["Thinking", enumWord(runConfig.thinking_mode, "THINKING_MODE_")],
+    ["Cost cap", typeof runConfig.max_cost_usd === "number" ? `$${runConfig.max_cost_usd} per message` : undefined],
+    ["Tool rounds", typeof runConfig.max_tool_rounds === "number" ? `at most ${runConfig.max_tool_rounds} per message` : undefined],
+    [
+      "Tool result size",
+      typeof runConfig.max_tool_result_chars === "number" ? `at most ${runConfig.max_tool_result_chars} characters` : undefined,
+    ],
+  ];
+}
+
+/**
+ * An instant to the minute in UTC, "2026-10-31 09:15 UTC": the same for
+ * every reader, wherever their machine is. A value that does not parse is
+ * shown as given; none, undefined.
+ */
+export function instant(value: string): string | undefined {
+  if (value === "") return undefined;
+  const ms = Date.parse(value);
+  if (Number.isNaN(ms)) return value;
+  const iso = new Date(ms).toISOString();
+  return `${iso.slice(0, 10)} ${iso.slice(11, 16)} UTC`;
+}
+
+/** When a resource was created and last changed, from its audit ("" for either it does not carry). */
+export function audited(json: JsonObject): { created: string; updated: string } {
+  const audit = asObject(asObject(asObject(json.status).audit).spec_audit);
+  return { created: str(audit, "created_at"), updated: str(audit, "updated_at") };
 }
 
 // A protojson enum name as the word a person reads ("HARNESS_CLAUDE" -> "claude").
@@ -176,7 +202,8 @@ function pushField(fields: Array<[string, string]>, key: string, value: JsonValu
   if (typeof value === "string" && value !== "") fields.push([key, value]);
 }
 
-function asObject(value: JsonValue | undefined): JsonObject {
+/** A protojson object, or {} for anything else. */
+export function asObject(value: JsonValue | undefined): JsonObject {
   return typeof value === "object" && value !== null && !Array.isArray(value) ? (value as JsonObject) : {};
 }
 
