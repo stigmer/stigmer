@@ -110,6 +110,8 @@
         "src/resources/render.ts",
         "src/resources/stream/*.ts",
         "src/resources/run/epilogue.ts",
+        "src/resources/views/*.ts",
+        "src/command-tree.ts",
         "!src/**/__tests__/**",
         "!src/**/*.test.ts"
       ],
@@ -132,11 +134,12 @@
       "concurrency": 4
     },
     "client-exit-codes": {
-      "title": "the exit code a turn's outcome or an error gives a command-line tool",
+      "title": "the exit code a turn's outcome or an error gives a command-line tool, and a run's phase in a turn's words",
       "package": "sdk/typescript",
       "mutate": [
         "src/exit-codes.ts",
-        "src/exit-code-table.ts"
+        "src/exit-code-table.ts",
+        "src/run/run-phases.ts"
       ],
       "concurrency": 4
     },
