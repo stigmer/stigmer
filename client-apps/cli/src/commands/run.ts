@@ -18,12 +18,12 @@ import {
   addAgentExecFlags,
   type AgentExecOptions,
 } from "./agent-exec-flags.js";
-import { globalOrg } from "./shared.js";
+import type { OutputFlags } from "../output/format.js";
+import { addStreamFlags, globalOrg, streamFormat } from "./shared.js";
 import { requireOrganization } from "../client/single-org.js";
 import { SESSION_HELP } from "./session-help.js";
 
-interface RunFlags extends AgentExecOptions {
-  json?: boolean;
+interface RunFlags extends AgentExecOptions, OutputFlags {
   download?: string;
 }
 
@@ -36,8 +36,7 @@ export function registerRun(program: Command): void {
     .description("run an agent by reference")
     .allowExcessArguments(false)
     .addHelpText("after", SESSION_HELP);
-  addAgentExecFlags(run)
-    .option("--json", "stream events as newline-delimited JSON")
+  addStreamFlags(addAgentExecFlags(run))
     .option("--download <dir>", "download the turn's outputs to directory when complete")
     .action(
       (agent: string | undefined, options: RunFlags, command: Command) =>
@@ -59,7 +58,7 @@ async function runRun(
     "stigmer run --org <org> ...",
   ]);
 
-  const outputMode = options.json === true ? "json" : "inline";
+  const outputMode = streamFormat(options) === "ndjson" ? "json" : "inline";
 
   // 0 args → the built-in assistant when a message was given; else the
   // interactive agent picker on a TTY; otherwise actionable guidance.

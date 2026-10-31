@@ -1,35 +1,39 @@
 // `stigmer config get|set|list|path` — generic key/value access to the config
-// file. get/list/path print plain values to stdout (pipe-friendly); set emits a
-// structured result.
+// file. get/list/path print plain values to stdout (pipe-friendly), or with
+// `-o json` one JSON document; set emits a structured result.
 
 import type { Command } from "commander";
 import { configKeyNames, configPath, getConfigValue, load, save, setConfigValue } from "../../config/index.js";
-import { CommandResult, type OutputFlags, renderResult } from "../../output/index.js";
-import { addResultFlags, resultFormat } from "../shared.js";
+import { CommandResult, type OutputFlags, renderResult, renderValue } from "../../output/index.js";
+import { addResultFlags, addValueFlags, resultFormat } from "../shared.js";
 
 export function addKvCommands(config: Command): void {
-  config
+  const path = config
     .command("path")
     .description("print the config file path")
-    .action(() => {
-      process.stdout.write(configPath() + "\n");
+    .action((options: OutputFlags) => {
+      renderValue(configPath(), { path: configPath() }, resultFormat(options));
     });
+  addValueFlags(path);
 
-  config
+  const get = config
     .command("get <key>")
     .description("print a single config value")
-    .action((key: string) => {
-      process.stdout.write(getConfigValue(load(), key) + "\n");
+    .action((key: string, options: OutputFlags) => {
+      const value = getConfigValue(load(), key);
+      renderValue(value, { key, value }, resultFormat(options));
     });
+  addValueFlags(get);
 
-  config
+  const list = config
     .command("list")
     .description("list all config values")
-    .action(() => {
+    .action((options: OutputFlags) => {
       const cfg = load();
-      const lines = configKeyNames().map((key) => `${key}=${getConfigValue(cfg, key)}`);
-      process.stdout.write(lines.join("\n") + "\n");
+      const values = configKeyNames().map((key) => [key, getConfigValue(cfg, key)] as const);
+      renderValue(values.map(([key, value]) => `${key}=${value}`).join("\n"), Object.fromEntries(values), resultFormat(options));
     });
+  addValueFlags(list);
 
   const set = config
     .command("set <key> <value>")

@@ -4,22 +4,24 @@
 
 import type { Command } from "commander";
 import { ensureAuthenticated, resolveOrganization } from "../config/index.js";
-import { globalOrg } from "./shared.js";
+import type { OutputFlags } from "../output/index.js";
+import { addResultFlags, globalOrg, resultFormat } from "./shared.js";
 
 export function registerTag(program: Command): void {
-  program
+  const tag = program
     .command("tag")
     .description("assign a tag to a resource version (supported types: agent)")
     .argument("<type>", "the resource type")
     .argument("<org/slug>", "the resource")
     .argument("<hash>", "the version's hash, or a unique prefix of it as `get agent --version-history` prints it")
     .argument("<tag>", "the tag to assign; it moves off any version that held it")
-    .action((type: string, ref: string, hash: string, tag: string, _options: unknown, command: Command) =>
-      runTag(type, ref, hash, tag, command),
+    .action((type: string, ref: string, hash: string, tag: string, options: OutputFlags, command: Command) =>
+      runTag(type, ref, hash, tag, options, command),
     );
+  addResultFlags(tag);
 }
 
-async function runTag(type: string, ref: string, hash: string, tag: string, command: Command): Promise<void> {
+async function runTag(type: string, ref: string, hash: string, tag: string, options: OutputFlags, command: Command): Promise<void> {
   const [{ connectBackend }, { tagVersion }, { renderResult }] = await Promise.all([
     import("../backend.js"),
     import("../resources/tag.js"),
@@ -31,5 +33,5 @@ async function runTag(type: string, ref: string, hash: string, tag: string, comm
   const org = resolveOrganization(client.config, globalOrg(command));
 
   const result = await tagVersion(client.stigmer, type, ref, hash, tag, org);
-  renderResult(result, "human");
+  renderResult(result, resultFormat(options));
 }

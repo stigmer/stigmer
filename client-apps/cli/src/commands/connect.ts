@@ -15,11 +15,13 @@ import {
   resolveOrganization,
 } from "../config/index.js";
 import { UsageError } from "../errors/index.js";
+import { renderValue } from "../output/command-result.js";
+import type { OutputFlags } from "../output/format.js";
 import { shouldColorize } from "../output/style.js";
-import { globalOrg } from "./shared.js";
+import { addValueFlags, globalOrg, resultFormat } from "./shared.js";
 import { omitsOrganization, requireOrganization } from "../client/single-org.js";
 
-interface ConnectFlags {
+interface ConnectFlags extends OutputFlags {
   server?: string;
   timeout?: string;
   dryRun?: boolean;
@@ -32,7 +34,7 @@ export function registerConnect(program: Command): void {
     .command("connect")
     .description("connect to external services and discover capabilities");
 
-  connect
+  const plugin = connect
     .command("plugin <plugin>")
     .description("list the tools one of a plugin's MCP servers offers, signing in first when it needs one")
     .option("--server <name>", "the MCP server, by its name in the plugin (needed when the plugin carries several)")
@@ -48,6 +50,7 @@ export function registerConnect(program: Command): void {
     .action((reference: string, options: ConnectFlags, command: Command) =>
       runConnect(reference, options, command),
     );
+  addValueFlags(plugin);
 }
 
 async function runConnect(
@@ -56,6 +59,7 @@ async function runConnect(
   command: Command,
 ): Promise<void> {
   const timeoutMs = parseTimeout(options.timeout);
+  const format = resultFormat(options);
   const [{ connectBackend }, { connectPlugin }, { renderConnectResult }] =
     await Promise.all([
       import("../backend.js"),
@@ -89,6 +93,10 @@ async function runConnect(
     interactive: process.stderr.isTTY === true,
   });
 
+  if (format === "json") {
+    renderValue("", connectResultData(result), format);
+    return;
+  }
   const colorize = shouldColorize(process.stdout);
   const { organizationLabel } = await import("../client/organizations.js");
   const pluginOrg = result.plugin.metadata?.org ?? "";
@@ -100,6 +108,16 @@ async function runConnect(
       ? undefined
       : await organizationLabel(client.stigmer, pluginOrg),
   );
+}
+
+// `-o json`: the plugin, the server and the tools it lists.
+function connectResultData(result: import("../resources/connect/connect.js").ConnectResult): unknown {
+  return {
+    plugin: { org: result.plugin.metadata?.org ?? "", slug: result.plugin.metadata?.slug ?? "", id: result.plugin.metadata?.id ?? "" },
+    server: result.server.name,
+    dryRun: result.dryRun,
+    tools: result.tools.map((tool) => ({ name: tool.name, description: tool.description, destructive: tool.destructive })),
+  };
 }
 
 // Parse --timeout seconds into milliseconds.

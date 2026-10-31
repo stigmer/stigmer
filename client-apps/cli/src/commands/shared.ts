@@ -13,11 +13,31 @@ export function addReadFlags(command: Command): Command {
     .option("--json", "shorthand for --output json");
 }
 
-/** Add mutating-command output flags: `--json` and `--quiet`. */
+/** Add mutating-command output flags: `-o/--output {table,json}`, `--json` and `--quiet`. */
 export function addResultFlags(command: Command): Command {
   return command
+    .option("-o, --output <format>", "output format: table or json")
     .option("--json", "emit the result as JSON")
     .option("--quiet", "print only the status line");
+}
+
+/** Add output flags for a command whose answer is a bare value: `-o/--output {table,json}` and `--json`. */
+export function addValueFlags(command: Command): Command {
+  return command
+    .option("-o, --output <format>", "output format: table (the bare value) or json")
+    .option("--json", "shorthand for --output json");
+}
+
+/** Add streaming-command output flags: `-o/--output {table,json,ndjson}` and `--json`. */
+export function addStreamFlags(command: Command, json = "stream events as newline-delimited JSON"): Command {
+  return command
+    .option("-o, --output <format>", "output format: table (the live view), json or ndjson (newline-delimited JSON events)")
+    .option("--json", json);
+}
+
+/** Resolve the output format for a streaming command from parsed options. */
+export function streamFormat(options: OutputFlags): OutputFormat {
+  return resolveFormat(options, "streaming");
 }
 
 /** Resolve the output format for a read verb from parsed options. */

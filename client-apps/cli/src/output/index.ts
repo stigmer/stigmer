@@ -19,6 +19,7 @@ export {
   CommandResult,
   type KeyValue,
   renderResult,
+  renderValue,
   type ResultStatus,
   type ResultStreams,
   resultToHuman,

@@ -7,26 +7,28 @@ import type { Command } from "commander";
 import { ensureAuthenticated } from "../config/index.js";
 import { UsageError } from "../errors/index.js";
 import { interactiveBrowseEnabled } from "../resources/picker/tty.js";
+import type { OutputFlags } from "../output/format.js";
 import { SESSION_HELP } from "./session-help.js";
+import { addStreamFlags, streamFormat } from "./shared.js";
 
-interface ResumeFlags {
+interface ResumeFlags extends OutputFlags {
   verbose?: boolean;
   mode?: string;
-  json?: boolean;
 }
 
 export function registerResume(program: Command): void {
-  program
+  const resume = program
     .command("resume [reference]")
     .description("resume an existing session by ID")
     .option("-v, --verbose", "show all run events")
     .option("--mode <mode>", 'follow-up interaction mode: "agent" (default) or "plan" (read-only)')
-    .option("--json", "stream events as newline-delimited JSON")
     .addHelpText("after", SESSION_HELP)
     .action((reference: string | undefined, options: ResumeFlags) => runResume(reference, options));
+  addStreamFlags(resume);
 }
 
 async function runResume(reference: string | undefined, options: ResumeFlags): Promise<void> {
+  const outputMode = streamFormat(options) === "ndjson" ? "json" : "inline";
   const { validateMode } = await import("../resources/run/prepare.js");
   // Call through a plain signature: TS forbids assertion functions reached via a
   // destructured dynamic-import binding (TS2775); we only need the throw-on-invalid
@@ -41,7 +43,6 @@ async function runResume(reference: string | undefined, options: ResumeFlags): P
   // context organization is. The picker lists the caller's sessions across
   // organizations.
 
-  const outputMode = options.json === true ? "json" : "inline";
   const mode = (options.mode ?? "") as import("../resources/run/prepare.js").RunMode;
 
   if (reference === undefined) {

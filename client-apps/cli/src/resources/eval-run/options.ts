@@ -43,6 +43,7 @@ import { EvalRunAblation } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/spe
 import { ENGINES, ENGINE_WORDS, engineChoice, isEngineWord } from "../run/engines.js";
 import type { EvalRunTargetInput } from "@stigmer/client";
 import { CliExitError } from "../../errors/index.js";
+import { resolveFormat } from "../../output/format.js";
 
 /** The exit code of an invalid option, as the format has it. */
 export const INVALID_OPTION_EXIT = 1;
@@ -88,6 +89,8 @@ export interface EvalRunFlags {
   readonly scaffold?: boolean;
   /** `true` for bare `--json`, a path for `--json <path>`. */
   readonly json?: boolean | string;
+  /** `-o/--output`: `json` prints the result document as bare `--json` does; `table` is the progress and table. */
+  readonly output?: string;
   /** False under `--no-wait`. */
   readonly wait?: boolean;
 }
@@ -313,7 +316,7 @@ function sharedOptionsOf(flags: EvalRunFlags): Omit<EvalRunOptions, "subject" | 
     realMcpServers,
     allowRealServers,
     skipScaffold: flags.scaffold === false,
-    json: jsonTargetOf(flags.json),
+    json: jsonTargetOf(flags.json, flags.output),
     wait: flags.wait !== false,
   };
 }
@@ -360,9 +363,17 @@ function ablationOf(flags: EvalRunFlags): EvalRunAblation {
   }
 }
 
-function jsonTargetOf(raw: boolean | string | undefined): JsonTarget {
-  if (raw === undefined || raw === false) return { kind: "none" };
-  if (raw === true) return { kind: "stdout" };
+// `--json <path>` writes the document to a file; `--json` or `-o json`
+// prints it; `-o` resolves through the result class, so a value it does not
+// support is refused the way every command refuses it.
+function jsonTargetOf(raw: boolean | string | undefined, output: string | undefined): JsonTarget {
+  const format = resolveFormat({ output }, "mutating");
+  if (typeof raw === "string") return jsonFileOf(raw);
+  if (raw === true || format === "json") return { kind: "stdout" };
+  return { kind: "none" };
+}
+
+function jsonFileOf(raw: string): JsonTarget {
   if (!raw.endsWith(".json")) {
     throw invalid(`--json output path must end in .json, not '${raw}'`);
   }

@@ -24,13 +24,13 @@ import type { Command } from "commander";
 import { ensureAuthenticated, resolveOrganization } from "../../config/index.js";
 import { UsageError } from "../../errors/usage-error.js";
 import type { OutputFlags } from "../../output/index.js";
-import { addReadFlags, globalOrg, readFormat } from "../shared.js";
+import { addReadFlags, globalOrg, readFormat, streamFormat as streamFormatOf } from "../shared.js";
 
 interface ListFlags extends OutputFlags {
   limit?: string;
 }
 
-interface ExportFlags {
+interface ExportFlags extends OutputFlags {
   after?: string;
 }
 
@@ -76,11 +76,12 @@ export function registerAccessHistory(program: Command): void {
     });
   addReadFlags(listCmd);
 
-  group
+  const exportCmd = group
     .command("export")
     .description("write the organization's access history as JSON Lines, oldest first, to stdout")
     .option("--after <sequence>", "start after this entry: the last sequence you already hold")
     .action(async (options: ExportFlags, command: Command) => {
+      refuseTableExport(options);
       const resources = await import("../../resources/access-history.js");
       const after = resources.parseAfterSequence(options.after);
       const session = await openSession(command);
@@ -96,6 +97,17 @@ export function registerAccessHistory(program: Command): void {
         },
       );
     });
+  exportCmd
+    .option("-o, --output <format>", "output format: json or ndjson (both JSON Lines, the only form an export takes)")
+    .option("--json", "shorthand for --output json");
+}
+
+// An export is JSON Lines in every form: `-o json` and `-o ndjson` name it,
+// and any other value is refused as the class map refuses it.
+function refuseTableExport(options: ExportFlags): void {
+  if (streamFormatOf(options) !== "ndjson" && options.output !== undefined) {
+    throw new UsageError(`--output ${options.output} is not supported by stigmer access-history export (supported: json, ndjson)`);
+  }
 }
 
 function parseLimit(raw: string | undefined): number {

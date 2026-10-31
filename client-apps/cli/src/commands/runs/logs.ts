@@ -4,20 +4,24 @@
 
 import type { Command } from "commander";
 import { ensureAuthenticated } from "../../config/index.js";
+import type { OutputFlags } from "../../output/index.js";
+import { addStreamFlags, streamFormat } from "../shared.js";
 
-interface LogsFlags {
+interface LogsFlags extends OutputFlags {
   follow?: boolean;
 }
 
 export function registerRunsLogs(runs: Command): void {
-  runs
+  const logs = runs
     .command("logs <run-id>")
     .description("view a run's events (use --follow to stream)")
     .option("-f, --follow", "keep printing new events until the run ends")
     .action((runId: string, options: LogsFlags) => runLogs(runId, options));
+  addStreamFlags(logs, "print each event as a line of JSON");
 }
 
 async function runLogs(runId: string, options: LogsFlags): Promise<void> {
+  const ndjson = streamFormat(options) === "ndjson";
   const [{ connectBackend }, { streamRunLogs }] = await Promise.all([
     import("../../backend.js"),
     import("../../resources/run-logs.js"),
@@ -35,7 +39,7 @@ async function runLogs(runId: string, options: LogsFlags): Promise<void> {
   try {
     await streamRunLogs(
       client.stigmer,
-      { runId, follow: options.follow === true },
+      { runId, follow: options.follow === true, ndjson },
       controller.signal,
     );
   } finally {

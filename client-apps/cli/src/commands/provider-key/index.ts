@@ -58,11 +58,6 @@ const SET_ORG_WITH = [
   "stigmer config context set --org <org>",
 ];
 
-/** `-o` for a mutating command: `table` is the human result, `json` its JSON form. */
-function addResultOutputFlag(command: Command): Command {
-  return command.option("-o, --output <format>", "output format: table or json");
-}
-
 export function registerProviderKey(program: Command): void {
   const group = program
     .command("provider-key")
@@ -126,8 +121,7 @@ export function registerProviderKey(program: Command): void {
       );
     });
   addResultFlags(setCmd);
-  addResultOutputFlag(setCmd);
-
+  
   const deleteCmd = group
     .command("delete <provider>")
     .description("remove the organization's key for a provider; runs that need it are refused until a key serves it again")
@@ -151,8 +145,7 @@ export function registerProviderKey(program: Command): void {
       renderResult(await resources.deleteProviderKey(session.client.stigmer, session.org, provider), format);
     });
   addResultFlags(deleteCmd);
-  addResultOutputFlag(deleteCmd);
-}
+  }
 
 type BackendClient = import("../../client/index.js").BackendClient;
 
