@@ -14,7 +14,7 @@ import { StigmerError } from "@stigmer/client";
 import { ExitCode } from "@stigmer/client/exit-codes";
 import { afterEach, describe, expect, it } from "vitest";
 import { setActionCommand, setActionResourceType, setServerAddress } from "../../runtime.js";
-import { cannotConnect, classify } from "../classify.js";
+import { cannotConnect, classify, isTransportFailure } from "../classify.js";
 
 afterEach(() => {
   setServerAddress(undefined);
@@ -147,3 +147,29 @@ describe("CLI-04 the remaining kinds end with what to do", () => {
     });
   });
 });
+
+describe("CLI-04 an Unavailable the server sent keeps the server's words", () => {
+  it("names the address only when the request never reached a server", () => {
+    setServerAddress({ address: "localhost:7234", source: "local" });
+    const answered = classify(new ConnectError("My vault is being created by another request; try again", Code.Unavailable));
+    expect([answered?.exitCode, answered?.message, answered?.hints]).toEqual([
+      3,
+      "My vault is being created by another request; try again",
+      ["The server could not take the request just now. Try again in a moment."],
+    ]);
+    const refused = classify(new ConnectError("connect ECONNREFUSED 127.0.0.1:7234", Code.Unavailable));
+    expect(refused?.message).toBe("Could not reach the Stigmer server at localhost:7234");
+  });
+
+  it("reads a network failure from the message's words or from a code in the cause chain", () => {
+    for (const words of ["fetch failed", "socket hang up", "getaddrinfo ENOTFOUND api.example.com", "other side closed", "NGHTTP2_REFUSED_STREAM"]) {
+      expect(isTransportFailure(words, undefined), words).toBe(true);
+    }
+    const reset = Object.assign(new Error("read failed"), { code: "ECONNRESET" });
+    expect(isTransportFailure("", new Error("wrapped", { cause: reset }))).toBe(true);
+    expect(isTransportFailure("", new Error("terminated", { cause: new Error("UND_ERR_SOCKET") }))).toBe(true);
+    expect(isTransportFailure("the provider is unavailable for this organization", new Error("no code"))).toBe(false);
+    expect(isTransportFailure("", Object.assign(new Error("x"), { code: 14 }))).toBe(false);
+  });
+});
+

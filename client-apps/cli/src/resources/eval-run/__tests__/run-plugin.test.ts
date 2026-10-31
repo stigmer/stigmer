@@ -103,7 +103,7 @@ function fakeServer(
         readCount += 1;
         opts.onRead?.(readCount);
         if (opts.hungReads?.has(readCount) === true) return new Promise<never>(() => undefined);
-        if (opts.failedReads?.has(readCount) === true) throw new StigmerError("unavailable", "the server is unavailable", Code.Unavailable);
+        if (opts.failedReads?.has(readCount) === true) throw new StigmerError("unavailable", "fetch failed", Code.Unavailable);
         const read = reads[Math.min(next, reads.length - 1)]!;
         next += 1;
         return read;
@@ -581,7 +581,7 @@ describe("runEvalRun about a plugin", () => {
   });
 
   it("prints what it has, says how to cancel, and exits 130 when Ctrl+C's cancel cannot reach the server", async () => {
-    const outage = new StigmerError("unavailable", "the server is unavailable", Code.Unavailable);
+    const outage = new StigmerError("unavailable", "fetch failed", Code.Unavailable);
     const server = fakeServer([running()], { cancelError: outage });
     const fake = fakeIo({ interruptAfterSleeps: 2 });
     const error = await run(server.client, "acme", {}, fake.io).catch((e: unknown) => e);
@@ -613,7 +613,7 @@ describe("runEvalRun about a plugin", () => {
   });
 
   it("passes on a create failure that is not a refusal of the suite, unchanged", async () => {
-    const outage = new StigmerError("unavailable", "the server is unavailable", Code.Unavailable);
+    const outage = new StigmerError("unavailable", "fetch failed", Code.Unavailable);
     const server = fakeServer([], { createError: outage });
     await expect(run(server.client, "acme", {}, fakeIo().io)).rejects.toBe(outage);
   });

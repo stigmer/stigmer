@@ -23,6 +23,7 @@
 // text is folded onto one line here, piped or not, since a line break in a
 // cell breaks the row for a script too.
 
+import { printableCell } from "../output/printable.js";
 import { create, type DescMessage, type Message } from "@bufbuild/protobuf";
 import { ChannelSchema } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
 import { ListChannelsRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/io_pb";
@@ -686,11 +687,10 @@ function apiKeyExpiry(spec: JsonObject): string {
   return expiresAt === "" ? "Never" : date(expiresAt);
 }
 
-// Free text as one table cell: every run of whitespace, a line break
-// included, becomes one space. The table cuts it to the terminal, not this.
-function oneLine(text: string): string {
-  return text.replace(/\s+/g, " ").trim();
-}
+// Free text as one table cell: every run of whitespace or control
+// characters, a line break included, becomes one space (output/printable.ts).
+// The table cuts it to the terminal, not this.
+const oneLine = printableCell;
 
 function date(timestamp: string): string {
   return timestamp === "" ? "-" : timestamp.slice(0, 10);

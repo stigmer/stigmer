@@ -10,13 +10,16 @@
 // On a terminal, text wraps at its width with each continuation under the
 // text it continues; piped (no width), nothing is wrapped or cut. Monochrome
 // by the CLI's law: the title and section headings bold, the location and
-// closing notes dim, through the caller's styler.
+// closing notes dim, through the caller's styler. Everything a resource
+// carries is text someone else wrote (instructions, SKILL.md, a run's error),
+// so it is printed with its control characters removed (output/printable.ts).
 //
 // Precedent: `gh pr view` (a title line, fields, then titled sections).
 
 import type { Stigmer } from "@stigmer/client";
 import stringWidth from "string-width";
 import type { Styler } from "../../output/index.js";
+import { printable, printableCell } from "../../output/printable.js";
 import { type JsonObject, obj, str } from "../render.js";
 
 /** A summary line: its label and its value; no value, no line. */
@@ -111,8 +114,8 @@ export function located(metadata: JsonObject, tail: string, ctx: ViewContext): s
 }
 
 function titleLine(title: Title, style: Styler): string {
-  const name = style.bold(title.name);
-  return title.ref === "" ? name : `${name}  ${style.dim(title.ref)}`;
+  const name = style.bold(printable(title.name));
+  return title.ref === "" ? name : `${name}  ${style.dim(printable(title.ref))}`;
 }
 
 function sectionBody(section: Section, ctx: ViewContext): string[] {
@@ -127,11 +130,12 @@ function fieldLines(fields: readonly Field[], width: number | undefined): string
   const labelWidth = Math.max(0, ...shown.map(([label]) => stringWidth(label)));
   return shown.flatMap(([label, value]) => {
     const prefix = `${INDENT}${label}:${" ".repeat(labelWidth - stringWidth(label) + 2)}`;
-    return hang(prefix, value.split("\n"), width);
+    return hang(prefix, printable(value).split("\n"), width);
   });
 }
 
-function rowLines(rows: readonly (readonly string[])[], width: number | undefined): string[] {
+function rowLines(written: readonly (readonly string[])[], width: number | undefined): string[] {
+  const rows = written.map((row) => row.map(printableCell));
   const columns = Math.max(0, ...rows.map((row) => row.length));
   const widths = Array.from({ length: columns }, (_, column) =>
     Math.max(0, ...rows.map((row) => stringWidth(row[column] ?? ""))),
@@ -146,7 +150,8 @@ function rowLines(rows: readonly (readonly string[])[], width: number | undefine
 // A text line keeps its own leading whitespace (an indented block) and list
 // marker ("- ", "* " or "1. ", after any indent), and its continuations line
 // up under its text.
-function textLine(line: string, width: number | undefined): string[] {
+function textLine(written: string, width: number | undefined): string[] {
+  const line = printable(written);
   const lead = /^\s*(?:[-*]|\d+\.)\s+/.exec(line)?.[0] ?? line.slice(0, line.length - line.trimStart().length);
   return hang(`${INDENT}${lead}`, [line.slice(lead.length)], width);
 }

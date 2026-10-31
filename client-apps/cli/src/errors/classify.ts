@@ -136,6 +136,26 @@ function extractCoded(err: unknown): CodedError | undefined {
   return undefined;
 }
 
+// The network's own refusals, by the code Node gives them or the words its
+// fetch and HTTP/2 client use: no connection, no address, a reset or a hang-up.
+const TRANSPORT_FAILURE = /\b(ECONNREFUSED|ENOTFOUND|EAI_AGAIN|ETIMEDOUT|ECONNRESET|EHOSTUNREACH|ENETUNREACH|EPIPE|UND_ERR_\w+)\b|fetch failed|socket hang up|other side closed|NGHTTP2_\w+/;
+
+/**
+ * Whether an Unavailable is the transport's (the request never reached a
+ * server) rather than a server's answer: its message, or an error in its
+ * cause chain, names a network failure.
+ */
+export function isTransportFailure(message: string, cause: unknown): boolean {
+  if (TRANSPORT_FAILURE.test(message)) return true;
+  let depth = 0;
+  for (let current: unknown = cause; current != null && depth < MAX_CHAIN_DEPTH; current = causeOf(current), depth++) {
+    const errno = (current as { code?: unknown }).code;
+    if (typeof errno === "string" && TRANSPORT_FAILURE.test(errno)) return true;
+    if (current instanceof Error && TRANSPORT_FAILURE.test(current.message)) return true;
+  }
+  return false;
+}
+
 function isLocalAbort(err: unknown): boolean {
   let depth = 0;
   for (let current: unknown = err; current != null && depth < MAX_CHAIN_DEPTH; current = causeOf(current), depth++) {
@@ -149,7 +169,12 @@ function isLocalAbort(err: unknown): boolean {
 function classifyConnectCode(code: number, message: string, cause: Error): CliError {
   switch (code) {
     case Code.Unavailable:
-      return { exitCode: ExitCode.Connection, code, cause, ...cannotConnect(dialedServerAddress()) };
+      // A request that never reached the server names the address it was
+      // sent to; one the server answered with Unavailable keeps its words.
+      if (isTransportFailure(message, cause)) {
+        return { exitCode: ExitCode.Connection, code, cause, ...cannotConnect(dialedServerAddress()) };
+      }
+      return { exitCode: ExitCode.Connection, code, cause, message, hints: ["The server could not take the request just now. Try again in a moment."] };
 
     case Code.DeadlineExceeded:
       return {

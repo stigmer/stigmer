@@ -2,14 +2,14 @@
 // heads it; the summary gives its id, the agent it talks to, whether it is
 // working, the Environment it runs in and which choice named it, and when it
 // began; then its newest runs (turns), each with how it went, when it
-// started and how long it took. The runs are the one thing a view reads
+// started and how long it took, and the engine it runs on. The runs are the one thing a view reads
 // beyond its resource: `listRunsBySession` (resources/session.ts), newest
 // first.
 
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { BUILT_IN_ASSISTANT_NAME } from "@stigmer/client";
 import { protoToJsonValue } from "../../output/index.js";
-import { asObject, audited, instant, type JsonObject, obj, str } from "../render.js";
+import { asObject, audited, instant, type JsonObject, obj, runSettingFields, str } from "../render.js";
 import { listRunsBySession } from "../session.js";
 import { located, type KindView, type ViewContext } from "./view.js";
 import { phaseWord, refLabel, runSpan } from "./words.js";
@@ -27,7 +27,6 @@ export const sessionView: KindView = {
     const metadata = obj(json, "metadata");
     const status = obj(json, "status");
     const runs = ctx.runs ?? [];
-    const earlier = runs.length - SESSION_RUNS;
     return [
       {
         fields: [
@@ -41,12 +40,14 @@ export const sessionView: KindView = {
       {
         title: "Runs",
         rows: runs.slice(0, SESSION_RUNS).map((run) => runRow(run, ctx.now)),
-        more: earlier > 0 ? `… ${earlier} earlier ${earlier === 1 ? "run" : "runs"}` : undefined,
+        more: runs.length > SESSION_RUNS ? "… and earlier runs" : undefined,
       },
+      { title: "Run settings", fields: runSettingFields(obj(json, "spec"), {}) },
     ];
   },
   related: async (client, json) => {
-    const runs = await listRunsBySession(client, str(obj(json, "metadata"), "id"));
+    // One more than it shows, to know whether earlier runs exist: one request, however long the conversation.
+    const runs = await listRunsBySession(client, str(obj(json, "metadata"), "id"), SESSION_RUNS + 1);
     return { runs: runs.map((run) => asObject(protoToJsonValue(RunSchema, run))) };
   },
 };

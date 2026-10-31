@@ -18,18 +18,18 @@ import { RoutineSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_p
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
-import { EnvironmentSource } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { EnvironmentSource, Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { SkillSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
 import { VaultSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { OrganizationSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import type { Stigmer } from "@stigmer/client";
 import { describe, expect, it } from "vitest";
-import { protoToJsonValue, styler } from "../../../output/index.js";
+import { protoToJsonValue, styler, terminalWidth } from "../../../output/index.js";
 import { defaultRegistry, Verb } from "../../../registry/index.js";
 import { asObject, instant, type JsonObject, renderResource } from "../../render.js";
 import * as fixtures from "../__fixtures__/resources.js";
-import { GENERIC_VIEW_KINDS, renderGet, terminalWidth, VIEWS } from "../index.js";
+import { GENERIC_VIEW_KINDS, renderGet, VIEWS } from "../index.js";
 import { withoutFrontmatter } from "../skill.js";
 import { type KindView, renderView, type ViewContext, wrapText } from "../view.js";
 import { firstLines, objects, phaseWord, refLabel, refLabels, runSpan, scheduleWords, strings, tokenUsage } from "../words.js";
@@ -83,6 +83,24 @@ describe("CLI-09 the registry sweep: every kind get serves has a view or is name
     const undesigned = [...servedByGet()].filter((kind) => !VIEWS.has(kind));
     expect(undesigned.length).toBeGreaterThan(0);
     expect(new Set(undesigned)).toEqual(GENERIC_VIEW_KINDS);
+  });
+});
+
+describe("CLI-09 a view prints what others wrote with no control character", () => {
+  it("strips escape sequences from a skill's SKILL.md, an agent's instructions and a run's error, keeping their lines", () => {
+    const erase = "\u001b[1A\u001b[2K";
+    const clipboard = "\u001b]52;c;cGF5bG9hZA==\u0007";
+    const skill = create(SkillSchema, {
+      metadata: { id: "skl_1", name: `finance${erase}-style`, slug: "finance-style" },
+      spec: { skillMd: `# Finance style${clipboard}\nOne line per account.${erase}` },
+    });
+    const agent = create(AgentSchema, { metadata: { id: "agt_1", name: "Reporter", slug: "reporter" }, spec: { instructions: `Review the ledger.${erase}\nSave the report.`, tools: [`Read${erase}`] } });
+    const run = create(RunSchema, { metadata: { id: "run_1" }, status: { phase: RunPhase.RUN_FAILED, error: `model said: ${erase}all good` } });
+    for (const out of [draw(ApiResourceKind.skill, SkillSchema, skill), draw(ApiResourceKind.agent, AgentSchema, agent), draw(ApiResourceKind.run, RunSchema, run)]) {
+      expect(out).not.toMatch(/[\u0000-\u0009\u000b-\u001f\u007f-\u009f]/);
+    }
+    expect(draw(ApiResourceKind.skill, SkillSchema, skill)).toContain("  # Finance style]52;c;cGF5bG9hZA==\n  One line per account.[1A[2K");
+    expect(draw(ApiResourceKind.agent, AgentSchema, agent)).toContain("  Review the ledger.[1A[2K\n  Save the report.");
   });
 });
 
@@ -448,6 +466,11 @@ describe("CLI-09 the views leave out what a resource does not carry", () => {
     expect(draw(ApiResourceKind.agent, AgentSchema, agent)).toContain("Environment\n  Values:  DEPLOY_KEY (secret, optional), REGION\n");
   });
 
+  it("shows the engine a session runs on", () => {
+    const session = create(SessionSchema, { metadata: { id: "ses_1" }, spec: { harness: Harness.CLAUDE } });
+    expect(draw(ApiResourceKind.session, SessionSchema, session)).toContain("Run settings\n  Harness:  claude\n");
+  });
+
   it("lists a session with no runs without a Runs section, five without a note, six with one", () => {
     const session = (runs: number) =>
       draw(ApiResourceKind.session, SessionSchema, fixtures.session, { runs: fixtures.sessionRuns.slice(0, runs).map(runJson) });
@@ -455,8 +478,7 @@ describe("CLI-09 the views leave out what a resource does not carry", () => {
     expect(draw(ApiResourceKind.session, SessionSchema, fixtures.session)).not.toContain("Runs");
     expect(session(5)).toContain("Runs\n");
     expect(session(5)).not.toContain("earlier");
-    expect(session(6)).toContain("  … 1 earlier run\n");
-    expect(session(7)).toContain("  … 2 earlier runs\n");
+    expect(session(6)).toContain("  … and earlier runs\n");
   });
 
   it("shows a session's run that has not started, and the agent it pinned or the assistant", () => {

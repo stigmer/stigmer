@@ -12,7 +12,7 @@
 import type { DescMessage, Message } from "@bufbuild/protobuf";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { Stigmer } from "@stigmer/client";
-import { type OutputFormat, protoToJsonValue, shouldColorize, styler } from "../../output/index.js";
+import { type OutputFormat, protoToJsonValue, shouldColorize, styler, terminalWidth } from "../../output/index.js";
 import { asObject, type RenderFieldsOptions, renderResource } from "../render.js";
 import { agentView } from "./agent.js";
 import { environmentView } from "./environment.js";
@@ -53,10 +53,6 @@ export const GENERIC_VIEW_KINDS: ReadonlySet<ApiResourceKind> = new Set([
   ApiResourceKind.file,
 ]);
 
-/** The terminal's width for stdout; undefined piped, where nothing is wrapped. */
-export function terminalWidth(stream: { isTTY?: boolean; columns?: number } = process.stdout): number | undefined {
-  return stream.isTTY === true && (stream.columns ?? 0) > 0 ? stream.columns : undefined;
-}
 
 /**
  * What `get` prints for one resource of `kind`: the whole resource for json

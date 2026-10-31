@@ -13,4 +13,4 @@ Runs
   run_01jeeeeeeeeeeeeeeeeeeeeee5  completed  2026-10-30 08:45 UTC  2m 0s
   run_01jeeeeeeeeeeeeeeeeeeeeee4  completed  2026-10-30 08:35 UTC  1m 0s
   run_01jeeeeeeeeeeeeeeeeeeeeee3  completed  2026-10-30 08:25 UTC  1m 0s
-  … 2 earlier runs
+  … and earlier runs

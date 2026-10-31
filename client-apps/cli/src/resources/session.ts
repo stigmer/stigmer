@@ -29,10 +29,11 @@ export async function getSessionById(client: Stigmer, sessionId: string): Promis
 /**
  * List a session's runs, newest-first (the backend's order). The RPC
  * answers a page at a time, so every page is read: the result is the
- * complete set. Returns the raw entries for resume to inspect.
+ * complete set, or with `limit` the newest that many (`get session` reads
+ * one more than it shows). Returns the raw entries for resume to inspect.
  */
-export async function listRunsBySession(client: Stigmer, sessionId: string): Promise<Run[]> {
-  return readCursorPages(0, (pageSize, pageToken) =>
+export async function listRunsBySession(client: Stigmer, sessionId: string, limit = 0): Promise<Run[]> {
+  return readCursorPages(limit, (pageSize, pageToken) =>
     client.run.listBySession(create(ListRunsBySessionRequestSchema, { sessionId, pageSize, pageToken })),
   );
 }

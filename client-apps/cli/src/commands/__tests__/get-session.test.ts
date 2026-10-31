@@ -38,8 +38,8 @@ const stigmer = {
     },
   },
   run: {
-    listBySession: async (request: { sessionId: string }) => {
-      calls.push(`run.listBySession ${request.sessionId}`);
+    listBySession: async (request: { sessionId: string; pageSize: number }) => {
+      calls.push(`run.listBySession ${request.sessionId} ${request.pageSize}`);
       return { entries: fixtures.sessionRuns, nextPageToken: "" };
     },
   },
@@ -82,11 +82,12 @@ afterEach(() => {
 describe("CLI-09 stigmer get session", () => {
   it("shows the session by its id with its newest runs, its organization by slug", async () => {
     const out = await runGet("session", SESSION_ID);
-    expect(calls).toEqual([`session.get ${SESSION_ID}`, `run.listBySession ${SESSION_ID}`]);
+    // One page of six: the five it shows and one to know earlier runs exist.
+    expect(calls).toEqual([`session.get ${SESSION_ID}`, `run.listBySession ${SESSION_ID} 6`]);
     expect(out).toMatch(/^Q3 ledger variance review {2}acme\/ses-01jddd$/m);
     expect(out).toContain(`  ID:           ${SESSION_ID}\n`);
     expect(out).toMatch(/^Runs$/m);
-    expect(out).toContain("  … 2 earlier runs\n");
+    expect(out).toContain("  … and earlier runs\n");
     expect(out).not.toContain(fixtures.ACME_ID);
   });
 
