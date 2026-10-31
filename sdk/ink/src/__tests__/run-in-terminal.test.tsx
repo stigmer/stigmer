@@ -215,8 +215,17 @@ describe("INK-06 runInTerminal returns when the turn ends", () => {
   it("returns on Ctrl+C on a terminal with 130", async () => {
     store.state = conversation([samples.turn({ runId: RUN, phase: "running" })]);
     const io = streams(true);
-    const run = runInTerminal(startsRun(), INPUT, io);
+    let settled = false;
+    const run = runInTerminal(startsRun(), INPUT, { ...io, leaveHint: (id) => `Come back with: mycli resume ${id}` }).then((outcome) => {
+      settled = true;
+      return outcome;
+    });
     await tick();
+    // The first press says what leaving means and how to come back; the second leaves.
+    (io.stdin as unknown as FakeStdin).press("\u0003");
+    await tick();
+    expect(settled).toBe(false);
+    expect((io.stdout as unknown as FakeStdout).frames.join("")).toContain("Press Ctrl+C again to leave. Come back with: mycli resume ses_1");
     (io.stdin as unknown as FakeStdin).press("\u0003");
     expect((await run).exitCode).toBe(130);
   });
@@ -231,6 +240,8 @@ describe("INK-06 runInTerminal returns when the turn ends", () => {
     });
     await tick();
     expect(settled).toBe(false);
+    (io.stdin as unknown as FakeStdin).press("\u0003");
+    await tick();
     (io.stdin as unknown as FakeStdin).press("\u0003");
     expect(await run).toMatchObject({ phase: "completed", exitCode: 0 });
   });

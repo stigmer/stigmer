@@ -13,6 +13,7 @@
 │   ▸ [y] Approve    [a] Approve all file edits    [n] Deny │
 ╰───────────────────────────────────────────────────────────╯
 
- ○ Waiting for you · 1m 30s
+ ○ Waiting for you · 1m 30s · Esc to stop
 
- Reply...
+ ❯ Reply...
+   Enter send · \⏎ newline · Shift+Tab plan mode · Ctrl+C leave · ? keys

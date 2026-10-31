@@ -36,10 +36,63 @@ npx tsx run-agent.mts Check v2.3 is safe to ship
 
 (`.mts` makes the file an ES module, which its top-level `await` needs, whatever your `package.json` says.) The agent's work streams in your terminal. When it asks to run a command, the prompt takes `y`, `a` or `n`. When the turn ends, `runInTerminal` returns its outcome (`phase`, `answer`, `structuredOutput`, `error`, the folded `turn`) and `exitCode`, and your program carries on.
 
-- `until: "exit"` keeps the conversation open for follow-ups until the person presses Ctrl+C, as `stigmer run` does.
+- `until: "exit"` keeps the conversation open for follow-ups until the person leaves (Ctrl+C twice on an empty reply box), as `stigmer run` does.
 - `signal` (an `AbortSignal`) stops waiting at once; the run goes on on the server, and the exit code is 130. The library installs no signal handlers: the process is yours.
 - A turn that cannot start (no server, a refused key) is written to stderr for a person and rejects with a `TerminalRunError` whose `exitCode` says why.
 - Pass `sessionId` instead of `sessionSpec` to send into a conversation you already have.
+
+## Keys
+
+On a terminal, the session takes the keys a person expects from a terminal agent:
+
+| Key | What it does |
+|-----|--------------|
+| Enter | Send the message |
+| `\` then Enter, Ctrl+J, Alt+Enter | Start a new line (Shift+Enter too, where the terminal reports it) |
+| Up, Down | Move between the message's lines, then through earlier messages |
+| Esc | Stop the agent's turn; a second Esc while it stops ends it now |
+| Ctrl+C | Clear the message; on an empty one, it says the agent keeps working and how to come back, and a second press within two seconds leaves |
+| Shift+Tab, Ctrl+T | Switch plan and agent mode |
+| Ctrl+O | Expand tool calls and thinking |
+| `?` | List the keys and your commands |
+
+A paste over 800 characters or three lines shows as `[Pasted text #1 +42 lines]` and is sent whole. Leaving is not stopping: the agent works on the server, so pass `leaveHint` to say how to come back, such as `(id) => \`Come back with: mycli resume ${id}\``.
+
+## Your own commands and completions
+
+The kit ships the menus and no commands of its own: your CLI adds its `/` commands and its completions behind a trigger character.
+
+```ts title="commands.mts"
+import type { ComposerExtensions } from "@stigmer/ink-ui";
+
+const tickets = ["TICKET-101 Flaky billing test", "TICKET-102 Rounding in credit notes"];
+
+export const composer: ComposerExtensions = {
+  commands: [
+    {
+      name: "deploy",
+      description: "Ship the branch to an environment",
+      args: "<environment>",
+      run: (environment, session) => session.send(`Deploy this branch to ${environment || "staging"}.`),
+    },
+  ],
+  completions: [
+    {
+      trigger: "@",
+      complete: (query) =>
+        tickets
+          .filter((ticket) => ticket.toLowerCase().includes(query.toLowerCase()))
+          .map((ticket) => ({ label: ticket, insert: `@${ticket.split(" ")[0]}` })),
+    },
+  ],
+};
+```
+
+```bash
+npx tsx commands.mts
+```
+
+Pass it as `runInTerminal(client, input, { until: "exit", composer })`, or to `SessionView`. A command's `session` can `send`, `stop`, `note` (a line in the thread that is not sent), `setMode` and `leave`. A completion item's `attach` (`workspaceFileRefs`, `fileIds`) rides along with the message it is sent in, so a mention can be a real reference. `history` keeps the prompts where you want them; by default they live in memory for the session. `stigmer run` is built this way: `/help`, `/mode`, `/stop`, `/exit`, `@` over the session's local folder, and a history file per directory.
 
 ## Exit codes
 
@@ -105,7 +158,7 @@ await runInTerminal(client, input, {
 
 ## Your own view
 
-`runInTerminal` renders `SessionView`. To draw your own frame, compose the pieces: `InkStigmerProvider`, `SessionView` (`onTurnEnd`, `canAnswer`, `approveDefault`), `MessageThread`, `WorkingLine`, `ApprovalPrompt`, `Markdown`, and the conversation hooks from `@stigmer/react-core` (`useSessionConversation`, `useSessionEvents`, `useSessionList`). The [Ink SDK guide](https://stigmer.ai/docs/sdk/ink) walks through it, and the [reference](https://stigmer.ai/docs/sdk/ink/reference) lists every export.
+`runInTerminal` renders `SessionView`. To draw your own frame, compose the pieces: `InkStigmerProvider`, `SessionView` (`onTurnEnd`, `canAnswer`, `approveDefault`, `composer`, `leaveHint`), `MessageThread`, `WorkingLine`, `FollowUpInput`, `TextField`, `ApprovalPrompt`, `Markdown`, and the conversation hooks from `@stigmer/react-core` (`useSessionConversation`, `useSessionEvents`, `useSessionList`). The [Ink SDK guide](https://stigmer.ai/docs/sdk/ink) walks through it, and the [reference](https://stigmer.ai/docs/sdk/ink/reference) lists every export.
 
 ## Develop
 

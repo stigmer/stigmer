@@ -112,24 +112,15 @@
     },
     {
       "id": "INK-07",
-      "promise": "Esc stops a running turn and leaves the session usable.",
-      "pending": [
-        "stigmer#2627"
-      ]
+      "promise": "Esc stops a running turn and leaves the session usable."
     },
     {
       "id": "INK-08",
-      "promise": "The composer takes several lines, paste, and history.",
-      "pending": [
-        "stigmer#2627"
-      ]
+      "promise": "The composer takes several lines, paste, and history."
     },
     {
       "id": "INK-09",
-      "promise": "A host CLI adds its own slash commands and @ completions.",
-      "pending": [
-        "stigmer#2627"
-      ]
+      "promise": "A host CLI adds its own slash commands and @ completions."
     },
     {
       "id": "INK-10",
@@ -158,6 +149,10 @@
     {
       "id": "INK-16",
       "promise": "A long turn never clears the terminal's scrollback or repeats what it already printed."
+    },
+    {
+      "id": "INK-17",
+      "promise": "Leaving a session says the agent keeps working and how to come back."
     },
     {
       "id": "LIB-01",

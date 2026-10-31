@@ -128,6 +128,34 @@ describe("streamAgentRun", () => {
     expect(result).toBe(FINAL);
   });
 
+  it("takes back the progress lines before Ink draws, and gives the composer the session's folders", async () => {
+    tty.supported = true;
+    const order: string[] = [];
+    ink.runInkSession.mockImplementation(async () => void order.push("ink"));
+    await streamAgentRun(deps({ clearProgress: () => void order.push("clear"), workspaceRoots: ["/work/billing"] }));
+    expect(order).toEqual(["clear", "ink"]);
+    expect(ink.runInkSession).toHaveBeenCalledWith(expect.objectContaining({ workspaceRoots: ["/work/billing"] }));
+  });
+
+  it("after Ink, summarises the session's newest turn, not only the one the command started (stigmer#2781)", async () => {
+    tty.supported = true;
+    const listed = {
+      ...client,
+      run: {
+        listBySession: async () => ({
+          entries: [create(RunSchema, { metadata: { id: "run_2" } }), create(RunSchema, { metadata: { id: "run_1" } })],
+          nextPageToken: "",
+        }),
+      },
+    } as unknown as Stigmer;
+    await streamAgentRun(deps({ client: listed }));
+    expect(epilogue.runEpilogue).toHaveBeenCalledWith(listed, "ses_1", "run_2", { phase: "", error: "", turn: undefined });
+    // A list that cannot be read, or holds nothing, keeps the run the command started.
+    const empty = { ...client, run: { listBySession: async () => ({ entries: [], nextPageToken: "" }) } } as unknown as Stigmer;
+    await streamAgentRun(deps({ client: empty }));
+    expect(epilogue.runEpilogue).toHaveBeenLastCalledWith(empty, "ses_1", "run_1", { phase: "", error: "", turn: undefined });
+  });
+
   it("opens Ink in agent mode for any mode but plan", async () => {
     tty.supported = true;
     await streamAgentRun(deps({ mode: "" }));

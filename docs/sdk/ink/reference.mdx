@@ -114,14 +114,16 @@ then returns its outcome and exit code (module header).
   type={{
     approveDefault: { type: "\"approve\" | \"deny\"", description: "How an ask is settled off a terminal, where no one can answer: denied unless `\"approve\"`." },
     approveSetting: { type: "string", description: "The setting that approves asks, as the view names it when it settles one (`SessionView`'s `approveSetting`)." },
+    composer: { type: "ComposerExtensions", description: "The host's slash commands, completions and prompt history for the composer." },
     env: { type: "Readonly<Record<string, string | undefined>>", description: "The environment the terminal mode reads (CI, TERM); `process.env` by default." },
+    leaveHint: { type: "(sessionId: string) => string", description: "How to come back to the session, in the host's words, said when the person presses Ctrl+C to leave: given the session's id, such as `(id) => \"Come back with: mycli resume \" + id`." },
     mode: { type: "InteractionMode", description: "Interaction mode for follow-ups typed in the view." },
     signal: { type: "AbortSignal", description: "Stops waiting and returns at once; the run itself goes on." },
     stderr: { type: "WriteStream", description: "Where a start failure is written; `process.stderr` by default." },
     stdin: { type: "ReadStream", description: "Ink's input stream; `process.stdin` by default." },
     stdout: { type: "WriteStream", description: "Ink's output stream; `process.stdout` by default." },
     theme: { type: "InkThemeInput", description: "The host's colours by role (see `InkTheme`), or a function of the terminal's background, which is then detected before the view draws." },
-    until: { type: "\"turn\" | \"exit\"", description: "When control returns: `\"turn\"` (the default) when this turn ends; `\"exit\"` when the person quits (Ctrl+C), keeping the conversation open for follow-ups as `stigmer run` does. Off a terminal both return at the turn's end." },
+    until: { type: "\"turn\" | \"exit\"", description: "When control returns: `\"turn\"` (the default) when this turn ends; `\"exit\"` when the person leaves (Ctrl+C twice on an empty composer), keeping the conversation open for follow-ups as `stigmer run` does. Off a terminal both return at the turn's end." },
   }}
 />
 
@@ -321,22 +323,33 @@ complements them with a one-line summary and file list.
 
 ### FollowUpInput
 
-Terminal text input for sending follow-up messages in a session.
+Terminal composer for follow-up messages in a session (module header).
 
-Renders a single-line text input with a submit hint. Press Enter
-to submit, Ctrl+C to exit the application.
+Enter sends; a backslash then Enter, Ctrl+J or Alt+Enter starts a new line;
+Up and Down recall earlier messages; Ctrl+C clears a draft.
 
 **Props** — `FollowUpInputProps`
 
 <TypeTable
   type={{
-    disabled: { type: "boolean", description: "Disables the input entirely." },
-    isSubmitting: { type: "boolean", description: "Shows a \"sending\" indicator and disables input." },
-    mode: { type: "\"agent\" | \"plan\"", description: "Current interaction mode. Shown in the shortcut hint line." },
-    onSubmit: { type: "(message: string) => void", description: "Called when the user submits a message (Enter key).", required: true },
+    active: { type: "boolean", description: "Whether the composer reads keys at all. Defaults to `true`." },
+    composer: { type: "ComposerExtensions", description: "The host's commands, completions and history." },
+    context: { type: "ComposerContext", description: "What a host command can do; commands are not run without it." },
+    disabled: { type: "boolean", description: "Keeps the draft but does not send or edit it (a turn waits on a person)." },
+    escapeClears: { type: "boolean", description: "Whether Esc twice clears the draft; off while Esc stops a working turn. Defaults to `true`." },
+    hint: { type: "string", description: "The hint line under the composer, in place of the default." },
+    isSubmitting: { type: "boolean", description: "Shows a \"sending\" indicator; the draft stays." },
+    mode: { type: "\"agent\" | \"plan\"", description: "Current interaction mode. Shown in the default hint line." },
+    onDraftChange: { type: "(hasDraft: boolean) => void", description: "Told whether the composer holds a draft, so Ctrl+C on an empty one can mean leave." },
+    onSubmit: { type: "(message: string, attach?: CompletionAttachment) => void", description: "Called with the message the person sends, and what its completions attach.", required: true },
     placeholder: { type: "string", description: "Placeholder text. Default: \"Reply...\"" },
   }}
 />
+
+
+### KeyOwnerProvider
+
+Holds the claims of the surfaces below it.
 
 
 ### Markdown
@@ -410,6 +423,7 @@ record and the docked prompt.
     canAnswer: { type: "boolean", description: "Whether a person can answer with the keyboard. When `false` (off a terminal) every approval prompt renders inert: nothing reads keys, and the host settles each ask another way (`SessionView`'s `approveDefault`). Defaults to `true`." },
     expandToolCalls: { type: "boolean", description: "Whether tool call groups should be rendered in expanded mode. Toggled via Ctrl+O." },
     live: { type: "boolean", description: "Whether the screen redraws in place. When `false` (a pipe, a CI log, where Ink writes one final frame at exit) the whole thread renders in that frame, in order, with no `<Static>` history: written beside the frame, history would appear twice and above the view's header. Defaults to `true`." },
+    notes: { type: "readonly ThreadNote[]", description: "Lines the view writes into the thread that are not sent to the agent (a host command's output), each written once, where the history stands when it is added." },
     onAnswerToolUse: { type: "(toolUseId: string, answer: ToolUseAnswer, denyMessage?: string) => void", description: "Answers a tool use that waits for a person. The last turn's waiting tool uses render as approval prompts when provided." },
     pendingUserMessage: { type: "string | null", description: "Optimistic user message shown before the session's events carry it." },
     queued: { type: "readonly QueuedMessage[]", description: "Messages sent while a turn worked that no turn has read yet, shown dimmed after the thread: queued for the agent's next step, or not read because a stop ended the turn." },
@@ -551,6 +565,29 @@ MessageEntry and ToolCallGroup components as the main thread.
 />
 
 
+### TextField
+
+A text field (module header).
+
+**Props** — `TextFieldProps`
+
+<TypeTable
+  type={{
+    atoms: { type: "readonly string[]", description: "Text that edits as one character (a collapsed paste's label)." },
+    focus: { type: "boolean", description: "Whether the field reads keys and shows its cursor. Defaults to `true`." },
+    intercept: { type: "(input: string, key: Key) => boolean", description: "Sees each key first; returning true keeps the field from acting on it (an open menu's arrows)." },
+    maxRows: { type: "number", description: "The most rows shown before it scrolls; 8 by default." },
+    multiline: { type: "boolean", description: "Whether it takes several lines. Defaults to `false`." },
+    onChange: { type: "(value: TextBuffer) => void", description: "Called with each edit.", required: true },
+    onHistory: { type: "(direction: \"back\" | \"forward\") => void", description: "Called when Up or Down has no row to move to: the composer walks its history." },
+    onPaste: { type: "(text: string) => void", description: "Called with a bracketed paste instead of inserting it." },
+    onSubmit: { type: "(value: TextBuffer) => void", description: "Called on Enter (without a new-line chord), with the text as sent.", required: true },
+    placeholder: { type: "string", description: "Shown dim while the field is empty." },
+    value: { type: "TextBuffer", description: "The text and cursor.", required: true },
+  }}
+/>
+
+
 ### TodoList
 
 Renders a sorted checklist of to-do items in the terminal.
@@ -661,7 +698,9 @@ need more control should compose `InkStigmerProvider`,
   type={{
     apiKey: { type: "string", description: "Static API key for authentication." },
     baseUrl: { type: "string", description: "Stigmer API server URL.", required: true },
+    composer: { type: "ComposerExtensions", description: "The host's slash commands, completions and prompt history for the composer." },
     getAccessToken: { type: "TokenProvider", description: "Dynamic token provider for authentication." },
+    leaveHint: { type: "string", description: "How to come back to the session, said when the person presses Ctrl+C to leave." },
     mode: { type: "\"agent\" | \"plan\"", description: "Default interaction mode for follow-up runs.  - `\"agent\"` (default): full tool access. - `\"plan\"`: read-only analysis, no file mutations.  When set, all follow-up runs in this session use this mode unless overridden by the user." },
     org: { type: "string", description: "Organization slug for creating follow-up runs.", required: true },
     sessionId: { type: "string", description: "Session ID to display and converse in.", required: true },
@@ -701,6 +740,8 @@ drop into their Ink apps for a complete agent conversation UI.
     approveDefault: { type: "\"approve\" | \"deny\" | \"leave\"", description: "How an ask is settled when no one can answer it (`canAnswer` false): `\"approve\"` allows it, `\"deny\"` (the default) denies it, and the view says which. `\"leave\"` settles nothing, for a view that only watches a session someone else answers. Ignored on a terminal, where a person answers." },
     approveSetting: { type: "string", description: "The setting that approves asks off a terminal, in the host's own words, which the view names when it settles one: `approveDefault: \"approve\"` by default; a host CLI passes its flag (the bin passes `--approve-default approve`)." },
     canAnswer: { type: "boolean", description: "Whether a person can answer prompts with the keyboard. Off a terminal it is `false` and the view is read-only. When omitted, Ink's own reading is used (stdin supports raw mode); `runInTerminal` passes the fuller rule, which also asks whether the screen is live (`terminalMode`)." },
+    composer: { type: "ComposerExtensions", description: "The host's slash commands, completions and prompt history for the composer." },
+    leaveHint: { type: "string", description: "How to come back to the session, in the host's words, said when the person presses Ctrl+C to leave: the CLI's \"Come back with `stigmer resume ses_…`\". Omitted, the leave line says only that the agent keeps working." },
     live: { type: "boolean", description: "Whether the screen redraws in place (`terminalMode`'s `live`). Off, Ink writes one final frame, and the thread renders whole inside it, once and in order. Defaults to `true`; `runInTerminal` and the bin pass it." },
     mode: { type: "InteractionMode", description: "Initial interaction mode for follow-up runs.  - `\"agent\"` (default): full tool access. - `\"plan\"`: read-only analysis, no file mutations.  The user can toggle between modes with Ctrl+T during the session. This prop sets the initial value; subsequent toggles are managed as local state." },
     onTurnEnd: { type: "(turn: Turn) => void", description: "Called once for each turn the view sees end (its status says it ended), including turns already ended when it loads the session; a host that waits for one run filters by `turn.runId`." },
@@ -751,6 +792,11 @@ Every role's `<Text>` props under the theme in effect, for a component that draw
 The honest, one-line reason a file cannot be kept as-is, or `null` when it
 is fully reviewable. Mirrors the web card's per-file block-reason copy so
 the terminal reviewer sees the same explanation.
+
+
+### bufferOf
+
+A buffer holding `text`, the cursor at its end unless given.
 
 
 ### changeSetLineStats
@@ -841,6 +887,16 @@ Decides `TerminalMode` from the streams and the environment (module header).
     stdout: { type: "{ isTTY?: boolean }", description: "The output the view draws on.", required: true },
   }}
 />
+
+
+### useKeyClaim
+
+Holds the keyboard while `active`, and lets go when it is not or the component unmounts.
+
+
+### useKeysFree
+
+Whether no surface holds the keyboard, so the session's own keys may act.
 
 
 ### useTerminalBackground

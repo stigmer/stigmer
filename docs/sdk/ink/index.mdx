@@ -55,12 +55,14 @@ turn's outcome (`phase`, `answer`, `structuredOutput`, `error`, the folded
 
 | Option | Default | What it does |
 |--------|---------|--------------|
-| `until` | `"turn"` | `"exit"` keeps the conversation open for follow-ups until Ctrl+C. |
+| `until` | `"turn"` | `"exit"` keeps the conversation open for follow-ups until the person leaves (Ctrl+C twice on an empty reply box). |
 | `approveDefault` | `"deny"` | How approvals are settled off a terminal, where no one can answer. |
 | `approveSetting` | `approveDefault: "approve"` | The setting the view names when it settles one; pass your own flag, such as `--yes`. |
 | `theme` | Stigmer's | Your colours by role (below). |
 | `signal` | none | Stops waiting at once; the run goes on, and the exit code is 130. |
 | `mode` | `"agent"` | `"plan"` for read-only follow-ups. |
+| `composer` | none | Your `/` commands, completions and prompt history (below). |
+| `leaveHint` | none | How to come back after leaving: a function of the session's id that returns your words, such as "Come back with: mycli resume" and the id. |
 
 A turn that cannot start (no server, a refused key) is written to stderr in
 words a person can act on, and the promise rejects with a `TerminalRunError`
@@ -139,6 +141,59 @@ already in the scrollback stays as it was written. Just above the reply box,
 command · 1m 12s"), from
 the same `describeTurnActivity` the browser's activity line reads. A completed
 turn leaves "✻ Worked for 1m 12s"; a failed or stopped one keeps its badge.
+
+## Keys
+
+| Key | What it does |
+|-----|--------------|
+| Enter | Send the message |
+| `\` then Enter, Ctrl+J, Alt+Enter | Start a new line (Shift+Enter too, where the terminal reports it) |
+| Up, Down | Move between the message's lines, then through earlier messages |
+| Esc | Stop the agent's turn; a second Esc while it stops ends it now |
+| Ctrl+C | Clear the message; on an empty one, say the agent keeps working and how to come back, and leave on a second press within two seconds |
+| Shift+Tab, Ctrl+T | Switch plan and agent mode |
+| Ctrl+O | Expand tool calls and thinking |
+| `?` | List the keys and your commands |
+
+A paste over 800 characters or three lines shows as `[Pasted text #1 +42 lines]`
+and is sent whole. Leaving is not stopping: the agent works on the server.
+
+## Your own commands and completions
+
+The kit ships the menus and no commands of its own. Your CLI adds its `/`
+commands and its completions behind a trigger character, and passes them as
+`composer` to `runInTerminal` or `SessionView`:
+
+```ts
+import type { ComposerExtensions } from "@stigmer/ink-ui";
+
+const composer: ComposerExtensions = {
+  commands: [
+    {
+      name: "deploy",
+      description: "Ship the branch to an environment",
+      args: "<environment>",
+      run: (environment, session) => session.send(`Deploy this branch to ${environment || "staging"}.`),
+    },
+  ],
+  completions: [
+    {
+      trigger: "@",
+      complete: async (query) =>
+        (await searchTickets(query)).map((ticket) => ({ label: ticket.title, insert: `@${ticket.key}` })),
+    },
+  ],
+};
+
+await runInTerminal(client, input, { until: "exit", composer });
+```
+
+A command's `session` can `send`, `stop`, `note` (a line in the thread that is
+not sent), `setMode` and `leave`. A completion item's `attach`
+(`workspaceFileRefs`, `fileIds`) rides along with the message it is sent in, so
+a mention can be a real reference. `history` (`load`, `append`) keeps the
+prompts where you choose; by default they live in memory for the session.
+`stigmer run` is built the same way.
 
 ## Provider and transport
 

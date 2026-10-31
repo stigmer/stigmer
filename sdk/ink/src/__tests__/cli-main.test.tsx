@@ -81,6 +81,13 @@ describe("runCli", () => {
     );
   });
 
+  it("says how to come back to the session in the bin's own words, after leaving", async () => {
+    const run = vi.fn(async () => ({ exitCode: 0 }) as TerminalOutcome);
+    await runCli(["--agent", "acme/reviewer", "-m", "Review", "--until", "exit"], io(), { createClient: () => client, run });
+    const options = (run.mock.calls[0] as unknown[])[2] as { leaveHint: (id: string) => string };
+    expect(options.leaveHint("ses_9")).toBe("Come back with: stigmer-ink --session ses_9 --org acme");
+  });
+
   it("sends into a session", async () => {
     const run = vi.fn(async () => ({ exitCode: 0 }) as TerminalOutcome);
     expect(await runCli(["--session", "ses_1", "--org", "acme", "-m", "go on"], io(), { createClient: () => client, run })).toBe(0);

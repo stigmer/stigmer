@@ -176,7 +176,7 @@
       "concurrency": 4
     },
     "ink-logic": {
-      "title": "the terminal kit's file review, markdown blocks, thread split, working line, background detection, run API, failure wording, terminal mode and command line",
+      "title": "the terminal kit's file review, markdown blocks, thread split, working line, background detection, text editing, composer logic, key ownership, run API, failure wording, terminal mode and command line",
       "package": "sdk/ink",
       "mutate": [
         "src/file-review.ts",
@@ -184,6 +184,10 @@
         "src/thread-items.ts",
         "src/working.ts",
         "src/terminal-background.ts",
+        "src/input/text-buffer.ts",
+        "src/input/keymap.ts",
+        "src/input/composer-logic.ts",
+        "src/app/key-owner.ts",
         "src/run/run-in-terminal.tsx",
         "src/errors.ts",
         "src/terminal-mode.ts",

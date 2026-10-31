@@ -17,7 +17,9 @@ const INK_MODULES = [
   join(SRC_ROOT, "resources/stream/ink.tsx"),
   join(SRC_ROOT, "resources/picker/ink.tsx"),
 ];
-const STATIC_HEAVY_IMPORT = /^\s*import\s+[^;]*?from\s+["'](?:react|ink|@stigmer\/ink-ui)["']/m;
+// A type-only import is erased when the CLI is built and loads nothing, so it
+// may name the kit (resources/stream/composer.ts takes its hook types).
+const STATIC_HEAVY_IMPORT = /^\s*import\s+(?!type\s)[^;]*?from\s+["'](?:react|ink|@stigmer\/ink-ui)["']/m;
 
 function walk(dir: string): string[] {
   const out: string[] = [];
@@ -35,6 +37,13 @@ describe("CLI-08 lazy-import boundary: --help and the commands that print no ses
       .filter((path) => !INK_MODULES.includes(path))
       .filter((path) => STATIC_HEAVY_IMPORT.test(readFileSync(path, "utf8")));
     expect(offenders).toEqual([]);
+  });
+
+  it("reads a value import of the kit as loading it, and a type-only import as not", () => {
+    expect(STATIC_HEAVY_IMPORT.test('import { SessionView } from "@stigmer/ink-ui";')).toBe(true);
+    expect(STATIC_HEAVY_IMPORT.test('import React from "react";')).toBe(true);
+    expect(STATIC_HEAVY_IMPORT.test('import { type Key, render } from "ink";')).toBe(true);
+    expect(STATIC_HEAVY_IMPORT.test('import type { SlashCommand } from "@stigmer/ink-ui";')).toBe(false);
   });
 
   it("the Ink entrypoints are reached only through dynamic import()", () => {

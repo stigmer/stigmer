@@ -20,6 +20,7 @@ import {
 } from "./agent-exec-flags.js";
 import { globalOrg } from "./shared.js";
 import { requireOrganization } from "../client/single-org.js";
+import { SESSION_HELP } from "./session-help.js";
 
 interface RunFlags extends AgentExecOptions {
   json?: boolean;
@@ -33,7 +34,8 @@ export function registerRun(program: Command): void {
   const run = program
     .command("run [agent]")
     .description("run an agent by reference")
-    .allowExcessArguments(false);
+    .allowExcessArguments(false)
+    .addHelpText("after", SESSION_HELP);
   addAgentExecFlags(run)
     .option("--json", "stream events as newline-delimited JSON")
     .option("--download <dir>", "download the turn's outputs to directory when complete")

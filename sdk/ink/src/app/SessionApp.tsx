@@ -4,6 +4,7 @@ import type { TokenProvider } from "@stigmer/client";
 import { InkStigmerProvider } from "../provider.js";
 import { createNodeClient, type NodeClientConfig } from "@stigmer/client/node";
 import { SessionView } from "./SessionView.js";
+import type { ComposerExtensions } from "../input/extensions.js";
 
 /** Props for {@link SessionApp}. */
 export interface SessionAppProps {
@@ -27,6 +28,10 @@ export interface SessionAppProps {
    * unless overridden by the user.
    */
   readonly mode?: "agent" | "plan";
+  /** The host's slash commands, completions and prompt history for the composer. */
+  readonly composer?: ComposerExtensions;
+  /** How to come back to the session, said when the person presses Ctrl+C to leave. */
+  readonly leaveHint?: string;
 }
 
 /**
@@ -62,6 +67,8 @@ export function SessionApp({
   apiKey,
   getAccessToken,
   mode,
+  composer,
+  leaveHint,
 }: SessionAppProps) {
   const clientConfig: NodeClientConfig = { baseUrl, apiKey, getAccessToken };
 
@@ -78,7 +85,7 @@ export function SessionApp({
             Session {sessionId} · {org}
           </Text>
         </Box>
-        <SessionView sessionId={sessionId} org={org} mode={mode} />
+        <SessionView sessionId={sessionId} org={org} mode={mode} composer={composer} leaveHint={leaveHint} />
       </Box>
     </InkStigmerProvider>
   );

@@ -20,6 +20,7 @@ import {
   fileDisplayPath,
   kindLetter,
 } from "../file-review.js";
+import { useKeyClaim } from "../app/key-owner.js";
 import { FileLineStats } from "./FileReviewAtoms.js";
 import { FileDiffBody } from "./FileDiffBody.js";
 import { useInkTheme, useRoles, type InkRole } from "../theme.js";
@@ -108,6 +109,8 @@ export function FileReviewPrompt({
   const theme = useInkTheme();
   const role = useRoles();
   const [perFile, setPerFile] = useState(false);
+  // The per-file view owns the keyboard: Esc leaves it rather than stopping the turn.
+  useKeyClaim(perFile && isActive);
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   const files = fileReviewSet.files;

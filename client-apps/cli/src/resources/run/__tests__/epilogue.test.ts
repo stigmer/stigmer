@@ -231,6 +231,16 @@ describe("runEpilogue", () => {
     expect(stderr).toContain("  To resume:    stigmer resume ses_1\n");
   });
 
+  it("says a session left while its turn works keeps working, and how to come back", async () => {
+    for (const phase of [RunPhase.RUN_IN_PROGRESS, RunPhase.RUN_PENDING]) {
+      stderr.length = 0;
+      const d = double(finalRun({ phase }));
+      await runEpilogue(d.client, "ses_1", "run_1", ok);
+      expect(stderr.join("")).toMatch(/Left the session\. The agent keeps working \(\w+\)\.\n/);
+      expect(stderr).toContain("  To come back:  stigmer resume ses_1\n");
+    }
+  });
+
   it("prints one completion line outside a session", async () => {
     const d = double(finalRun({ phase: RunPhase.RUN_COMPLETED }));
     await runEpilogue(d.client, "", "run_1", ok);

@@ -76,6 +76,21 @@ export { RunProgress, type RunProgressProps } from "./components/RunProgress.js"
 export { WorkingLine, type WorkingLineProps } from "./components/WorkingLine.js";
 export { Spinner, type SpinnerProps } from "./components/Spinner.js";
 export { FollowUpInput, type FollowUpInputProps } from "./components/FollowUpInput.js";
+export { TextField, type TextFieldProps } from "./components/TextField.js";
+
+// The composer's host hooks and editing model
+export type {
+  ComposerExtensions,
+  ComposerContext,
+  SlashCommand,
+  CompletionSource,
+  CompletionItem,
+  CompletionAttachment,
+  PromptHistory,
+} from "./input/extensions.js";
+export { bufferOf, EMPTY_BUFFER, type TextBuffer } from "./input/text-buffer.js";
+export { KeyOwnerProvider, useKeyClaim, useKeysFree } from "./app/key-owner.js";
+export type { ThreadNote } from "./thread-items.js";
 export { UsageWidget, type UsageWidgetProps } from "./components/UsageWidget.js";
 
 // Pickers (interactive search-and-select)

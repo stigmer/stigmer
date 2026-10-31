@@ -31,7 +31,9 @@ ends:
   them instead; use it only for an agent you trust to run unattended.
 - `--session <id> --org <org> --message <text>` sends into a conversation you
   already have, and `--session <id> --org <org>` alone watches one until you
-  press Ctrl+C.
+  leave: Ctrl+C twice on an empty reply box. The agent keeps working on the
+  server, and the line before you leave says how to come back. Esc stops the
+  agent's turn.
 
 It reads the API key from `STIGMER_API_KEY` and the server from
 `STIGMER_BASE_URL` (default `http://localhost:7234`). Keep the key in the

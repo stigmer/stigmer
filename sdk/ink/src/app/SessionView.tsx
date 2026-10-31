@@ -4,6 +4,16 @@
 // decision, the working line, and the follow-up input with its agent/plan
 // mode.
 //
+// Keys, on a terminal (key-owner.ts gives a surface that needs them, an open
+// menu or the deny reason, the keyboard first):
+//   - Esc stops a working turn, a waiting one included; a second Esc while it
+//     winds down terminates it. The composer stays, and so does its draft.
+//   - Ctrl+C clears a draft (the composer's). On an empty composer it says
+//     the agent keeps working and how to come back (`leaveHint`, the host's
+//     words), and a second press within two seconds leaves: the view exits
+//     and the run goes on on the server.
+//   - Shift+Tab or Ctrl+T switch plan and agent mode; Ctrl+O expands.
+//
 // On a terminal and off one: `canAnswer` (from terminal-mode.ts, or Ink's
 // raw-mode support when a host omits it) decides whether anything reads keys.
 // Off a terminal the view is read-only: no key handler is mounted, every
@@ -14,9 +24,9 @@
 // message kept as a details line. `onTurnEnd` hears each turn end once.
 //
 // Proven by __tests__/session-view.test.tsx and session-frames.test.tsx.
-import React, { useState, useEffect, useRef, useContext } from "react";
-import { Box, Text, useInput, useStdin } from "ink";
-import { resolvedSubject, type Turn, type ToolUse } from "@stigmer/client";
+import React, { useState, useEffect, useRef, useContext, useCallback, useMemo } from "react";
+import { Box, Text, useApp, useInput, useStdin } from "ink";
+import { resolvedSubject, type Turn, type ToolUse, type TurnPhase } from "@stigmer/client";
 import { useSessionConversation, useStigmer } from "@stigmer/react-core";
 import { MessageThread } from "../components/MessageThread.js";
 import { TodoList } from "../components/TodoList.js";
@@ -29,6 +39,9 @@ import { FileReviewPrompt } from "../components/FileReviewPrompt.js";
 import { useRoles } from "../theme.js";
 import { describeConnectionFailure, type FailedStep } from "../errors.js";
 import { TurnWatchContext } from "./turn-watch.js";
+import { KeyOwnerProvider, useKeysFree } from "./key-owner.js";
+import type { ComposerContext, ComposerExtensions } from "../input/extensions.js";
+import type { ThreadNote } from "../thread-items.js";
 
 /** Interaction mode type used for follow-up runs. */
 export type InteractionMode = "agent" | "plan";
@@ -82,6 +95,30 @@ export interface SessionViewProps {
    * in order. Defaults to `true`; `runInTerminal` and the bin pass it.
    */
   readonly live?: boolean;
+  /**
+   * How to come back to the session, in the host's words, said when the
+   * person presses Ctrl+C to leave: the CLI's "Come back with `stigmer resume
+   * ses_…`". Omitted, the leave line says only that the agent keeps working.
+   */
+  readonly leaveHint?: string;
+  /** The host's slash commands, completions and prompt history for the composer. */
+  readonly composer?: ComposerExtensions;
+}
+
+/** How long the first Ctrl+C on an empty composer waits for the second. */
+export const LEAVE_WINDOW_MS = 2000;
+
+/** What the first Ctrl+C on an empty composer says of a turn in each phase: nothing once none is active. */
+function leavingWords(phase: TurnPhase | null): string {
+  if (phase === null) return "";
+  if (phase === "waiting") return "The agent waits for an answer.";
+  if (phase === "paused") return "The turn stays paused.";
+  return "The agent keeps working.";
+}
+
+/** What the first Ctrl+C on an empty composer says, before the host's hint, for the active turn's phase. */
+export function leaveLine(phase: TurnPhase | null, leaveHint?: string): string {
+  return ["Press Ctrl+C again to leave.", leavingWords(phase), leaveHint ?? ""].filter((part) => part !== "").join(" ");
 }
 
 /** An ask settled by `approveDefault` because no one could answer it. */
@@ -130,7 +167,15 @@ function FailureBlock({ error, baseUrl, step }: { error: unknown; baseUrl: strin
  * );
  * ```
  */
-export function SessionView({
+export function SessionView(props: SessionViewProps) {
+  return (
+    <KeyOwnerProvider>
+      <SessionViewBody {...props} />
+    </KeyOwnerProvider>
+  );
+}
+
+function SessionViewBody({
   sessionId,
   org,
   mode,
@@ -139,8 +184,12 @@ export function SessionView({
   approveSetting = 'approveDefault: "approve"',
   onTurnEnd,
   live = true,
+  leaveHint,
+  composer,
 }: SessionViewProps) {
   const role = useRoles();
+  const { exit } = useApp();
+  const keysFree = useKeysFree();
   const { isRawModeSupported } = useStdin();
   const canAnswer = canAnswerProp ?? isRawModeSupported;
   const baseUrl = useStigmer().baseUrl;
@@ -151,21 +200,65 @@ export function SessionView({
   const [settled, setSettled] = useState<readonly SettledAsk[]>([]);
   const settling = useRef(new Set<string>());
   const reported = useRef(new Set<string>());
+  const [hasDraft, setHasDraft] = useState(false);
+  const [leaveArmed, setLeaveArmed] = useState(false);
+  const [notes, setNotes] = useState<readonly ThreadNote[]>([]);
 
   useEffect(() => {
     if (mode) setActiveMode(mode);
   }, [mode]);
 
+  const { isStoppable, stop } = conv;
+  const stopTurn = useCallback(() => {
+    void stop().catch(() => {
+      // The stop's failure shows as the conversation's stopError below.
+    });
+  }, [stop]);
+
+  // The first Ctrl+C's line stands for the leave window, then goes.
+  useEffect(() => {
+    if (!leaveArmed) return;
+    const timer = setTimeout(() => setLeaveArmed(false), LEAVE_WINDOW_MS);
+    return () => clearTimeout(timer);
+  }, [leaveArmed]);
+
   useInput(
     (input, key) => {
+      if (key.ctrl && input === "c") {
+        // A draft is the composer's to clear.
+        if (hasDraft) return;
+        if (leaveArmed) exit();
+        else setLeaveArmed(true);
+        return;
+      }
+      if (leaveArmed) setLeaveArmed(false);
       if (key.ctrl && input === "o") {
         setExpandTools((e) => !e);
+        return;
       }
-      if (key.ctrl && input === "t") {
+      if (!keysFree) return;
+      if (key.escape && isStoppable) {
+        stopTurn();
+        return;
+      }
+      if ((key.ctrl && input === "t") || (key.tab && key.shift)) {
         setActiveMode((m) => (m === "plan" ? "agent" : "plan"));
       }
     },
     { isActive: canAnswer },
+  );
+
+  const { sendFollowUp } = conv;
+  const commandContext = useMemo<ComposerContext>(
+    () => ({
+      mode: activeMode,
+      send: (text) => void sendFollowUp(text, { interactionMode: activeMode }),
+      stop: stopTurn,
+      note: (text) => setNotes((list) => [...list, { id: `note-${list.length}`, text }]),
+      setMode: setActiveMode,
+      leave: exit,
+    }),
+    [activeMode, sendFollowUp, stopTurn, exit],
   );
 
   // Off a terminal no one can answer: each ask is settled once, by the default.
@@ -245,6 +338,7 @@ export function SessionView({
         canAnswer={canAnswer}
         live={live}
         subject={subject}
+        notes={notes}
       />
 
       {settled.map((ask) => (
@@ -267,6 +361,14 @@ export function SessionView({
         <Box paddingLeft={1}>
           <Text {...role.danger}>
             Approval error: {conv.answerError.message}
+          </Text>
+        </Box>
+      )}
+
+      {conv.stopError && (
+        <Box paddingLeft={1}>
+          <Text {...role.danger}>
+            Stop error: {conv.stopError.message}
           </Text>
         </Box>
       )}
@@ -332,7 +434,12 @@ export function SessionView({
         // Just above the composer, as the one place a person looks while the
         // turn works. Not drawn while a set awaits review: review is not a
         // phase of the turn, and the FileReviewPrompt is the honest cue.
-        <WorkingLine turn={conv.activeTurn} isSlow={conv.isSlow} isStopping={conv.isStopping} />
+        <WorkingLine
+          turn={conv.activeTurn}
+          isSlow={conv.isSlow}
+          isStopping={conv.isStopping}
+          hint={canAnswer && conv.isStoppable ? (conv.isStopping ? "Esc again to end it now" : "Esc to stop") : undefined}
+        />
       )}
 
       {conv.canSendFollowUp && canAnswer && (
@@ -347,16 +454,32 @@ export function SessionView({
 
       {canAnswer && (
         <FollowUpInput
-          onSubmit={(message) =>
-            conv.sendFollowUp(message, { interactionMode: activeMode })
+          onSubmit={(message, attach) =>
+            conv.sendFollowUp(message, { ...attach, interactionMode: activeMode })
           }
           isSubmitting={conv.isSending}
           disabled={!conv.canSendFollowUp}
           mode={activeMode}
+          composer={composer}
+          context={commandContext}
+          onDraftChange={setHasDraft}
+          escapeClears={!conv.isStoppable}
+          hint={keyHint(activeMode)}
         />
+      )}
+
+      {leaveArmed && (
+        <Box paddingLeft={1}>
+          <Text {...role.warning}>{leaveLine(conv.activePhase, leaveHint)}</Text>
+        </Box>
       )}
     </Box>
   );
+}
+
+/** The composer's hint: the keys in effect. Esc is the working line's to name, while a turn works. */
+function keyHint(mode: InteractionMode): string {
+  return `Enter send · \\⏎ newline · Shift+Tab ${mode === "plan" ? "agent" : "plan"} mode · Ctrl+C leave · ? keys`;
 }
 
 /** What the agent reads when an ask is denied because no one could answer. */

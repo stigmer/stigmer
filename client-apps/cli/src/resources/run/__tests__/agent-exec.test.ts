@@ -33,7 +33,7 @@ import {
 } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type { BackendClient } from "../../../client/index.js";
-import { executeResolvedAgent } from "../agent-exec.js";
+import { executeResolvedAgent, stderrProgress } from "../agent-exec.js";
 import { NO_FILES, planFiles } from "../files.js";
 import type { PreparedRun } from "../prepare.js";
 
@@ -360,5 +360,43 @@ describe("executeResolvedAgent, with files", () => {
 
     expect(creates()).toHaveLength(1);
     expect(stderrLines.join("")).toContain("Could not delete the uploaded File file_report.pdf");
+  });
+});
+
+describe("stderrProgress", () => {
+  it("takes back the lines it wrote on a terminal, so the session view starts where they began", () => {
+    const written: string[] = [];
+    const stream = { isTTY: true, write: (chunk: string) => written.push(chunk) } as unknown as NodeJS.WriteStream;
+    const progress = stderrProgress(stream);
+    progress.clear();
+    expect(written).toEqual([]);
+    progress("Uploading notes.md...");
+    progress("Creating run...\nwith two lines");
+    progress.clear();
+    expect(written).toEqual(["Uploading notes.md...\n", "Creating run...\nwith two lines\n", "\u001b[3A\r\u001b[0J"]);
+    progress.clear();
+    expect(written).toHaveLength(3);
+  });
+
+  it("takes back a line that wrapped in every row it took, and never a warning written between", () => {
+    const written: string[] = [];
+    const stream = { isTTY: true, columns: 10, write: (chunk: string) => written.push(chunk) } as unknown as NodeJS.WriteStream;
+    const progress = stderrProgress(stream);
+    progress("Uploading");
+    progress.keep();
+    progress("Uploading notes.md...");
+    progress(`\u001b[2m${"x".repeat(10)}\u001b[0m`);
+    progress.clear();
+    // 22 characters take three rows at ten columns; colour codes take none.
+    expect(written.at(-1)).toBe("\u001b[4A\r\u001b[0J");
+  });
+
+  it("writes and takes back nothing off a terminal", () => {
+    const written: string[] = [];
+    const progress = stderrProgress({ isTTY: false, write: (chunk: string) => written.push(chunk) } as unknown as NodeJS.WriteStream);
+    progress("Creating run...");
+    progress.keep();
+    progress.clear();
+    expect(written).toEqual([]);
   });
 });

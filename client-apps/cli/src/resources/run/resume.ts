@@ -15,6 +15,7 @@ import { NdjsonRenderer } from "../stream/render-ndjson.js";
 import { PlaintextRenderer } from "../stream/render-plaintext.js";
 import { isInkSupported } from "../stream/tty.js";
 import { renderSessionHeader, type SessionHeaderInfo, workspaceNames } from "./header.js";
+import { localWorkspaceRoots } from "./workspace.js";
 import type { RunMode } from "./prepare.js";
 import { streamAgentRun, type RunOutputMode } from "./stream.js";
 
@@ -74,11 +75,12 @@ export async function openSession(deps: OpenSessionDeps): Promise<void> {
       approveDefault: "",
       outputMode: deps.outputMode,
       header,
+      workspaceRoots: localWorkspaceRoots(session.spec?.resources ?? []),
     });
     return;
   }
 
-  await replaySession(deps, org, header);
+  await replaySession(deps, org, header, localWorkspaceRoots(session.spec?.resources ?? []));
 }
 
 // Completed session: render the stored history. TTY → Ink (history + composer);
@@ -87,6 +89,7 @@ async function replaySession(
   deps: OpenSessionDeps,
   org: string,
   header: SessionHeaderInfo,
+  workspaceRoots: readonly string[],
 ): Promise<void> {
   if (deps.outputMode === "inline" && isInkSupported(process.stdout)) {
     const { runInkSession } = await import("../stream/ink.js");
@@ -95,6 +98,7 @@ async function replaySession(
       sessionId: deps.sessionId,
       org,
       mode: header.mode === "plan" ? "plan" : "agent",
+      workspaceRoots,
     });
     return;
   }

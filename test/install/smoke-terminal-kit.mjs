@@ -19,6 +19,13 @@
  *     and the frame is written once at exit.
  * A run that cannot reach a server is worded for a person and exits 3.
  *
+ * One more run drives the bin's keys on a pseudo-terminal, as a person
+ * would, with `--until exit`: the first turn completes, a message typed on
+ * two lines (Ctrl+J) starts a turn the fake holds open, Esc stops it, Up
+ * brings the message back, Ctrl+C clears it, and two more presses leave,
+ * saying how to come back; the window is narrowed on the way. It exits 0,
+ * the first turn's code.
+ *
  * The model is test/support's fake, scripted per run: the conversation's
  * title, then an `execute` tool use (the shell, which always asks first),
  * then a closing line after the answer.
@@ -158,6 +165,40 @@ function scriptRun() {
   const turn = (request) => !isTitleCall(request);
   fake.enqueue({ kind: "anthropic", matches: turn, body: anthropicToolUse(`toolu_check_${Date.now()}`, "execute", { command: "echo all checks pass" }) });
   fake.enqueue({ kind: "anthropic", matches: turn, body: anthropicText(CLOSING) });
+}
+
+// The keys run: a first turn that completes after a moment (so it leaves
+// "Worked for"), then a turn the fake holds open until Esc stops it.
+function scriptKeys() {
+  fake.enqueue({ kind: "anthropic", body: anthropicText("Billing check"), matches: isTitleCall });
+  const turn = (request) => !isTitleCall(request);
+  fake.enqueue({ kind: "anthropic", matches: turn, delayMs: 1500, body: anthropicText("Ready to look.") });
+  fake.enqueue({ kind: "anthropic", matches: turn, delayMs: 120_000, body: anthropicText("Too late to matter.") });
+}
+
+/** The keys run, once, for the three promises it holds. */
+let keysRun;
+function runKeys() {
+  keysRun ??= (async () => {
+    scriptKeys();
+    const logPath = join(scratch, "pty-keys.log");
+    const answers = [
+      "Worked for=only the tests<ctrl-j>and keep it small<enter>",
+      "Esc to stop=<esc>",
+      "Cancelled=<up>",
+      "and keep it small=<ctrl-c><ctrl-c>",
+      "Press Ctrl+C again to leave=<ctrl-c>",
+    ];
+    const result = await spawnCommand(
+      ["python3", PTY_RUN, ...answers.flatMap((answer) => ["--answer", answer]), "--resize", "90x40@Worked for", "--log", logPath, "--timeout", "240", "--"],
+      ["stigmer-ink", "--agent", "stigmer/release-checker", "--message", "Check the billing tests", "--until", "exit"],
+      terminalEnv(),
+      COMMAND_TIMEOUT_MS,
+    ).done;
+    log(`keys run: exit ${result.status}`);
+    return { ...result, flat: result.stdout.replace(/\s+/g, " ") };
+  })();
+  return keysRun;
 }
 
 // The runner's title call: its system prompt is the title generator's.
@@ -321,6 +362,35 @@ test("INK-04 off a terminal the same runs render read-only, deny the ask by defa
       if (/\x1b\[[0-9;]*[ABCDGHJK]/.test(result.stdout)) throw new Error(`${job.line} through a pipe moved the cursor`);
       log(`${job.page}: denied by default, exit 0`);
     }
+  }));
+
+test("INK-07 on a terminal, Esc stops a running turn and the session stays usable", () =>
+  guarded(async () => {
+    const result = await runKeys();
+    if (result.status !== 0) throw new Error(`the keys run exited ${result.status}:\n${result.stdout.slice(-4000)}\n${result.stderr}`);
+    // Stopped, not answered, and the composer took the next keys.
+    if (!result.flat.includes("Cancelled")) throw new Error(`Esc did not stop the held turn:\n${result.stdout.slice(-4000)}`);
+    if (result.flat.includes("Too late to matter.")) throw new Error("the held turn answered after Esc");
+  }));
+
+test("INK-08 on a terminal, the composer takes two lines and brings them back with Up", () =>
+  guarded(async () => {
+    const result = await runKeys();
+    // Sent as one message on two lines (the thread shows both), then, after
+    // the stop, Up brings it back into the composer whole.
+    if (!result.flat.includes("You only the tests and keep it small")) throw new Error(`the two-line message was not sent:\n${result.stdout.slice(-4000)}`);
+    const stopped = result.stdout.lastIndexOf("Cancelled");
+    const recalled = stopped === -1 ? "" : result.stdout.slice(stopped);
+    if (!/❯ only the tests\n\s+and keep it small/.test(recalled)) throw new Error(`Up did not bring the message back after the stop:\n${result.stdout.slice(-4000)}`);
+  }));
+
+test("INK-17 on a terminal, leaving says how to come back, and returns", () =>
+  guarded(async () => {
+    const result = await runKeys();
+    if (!/Press Ctrl\+C again to leave\. Come back with: stigmer-ink --session ses_\w+ --org stigmer/.test(result.flat)) {
+      throw new Error(`the leave line is missing or wrong:\n${result.stdout.slice(-4000)}`);
+    }
+    if (result.status !== 0) throw new Error(`leaving returned ${result.status}, not the first turn's 0`);
   }));
 
 if (!existsSync(PTY_RUN)) throw new Error(`no pseudo-terminal driver at ${PTY_RUN}`);
