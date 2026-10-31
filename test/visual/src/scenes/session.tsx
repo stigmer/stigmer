@@ -6,7 +6,8 @@
 // cannot take part in.
 //
 // The viewer loads the conversation itself, so a scene answers the calls it
-// makes from the scenario: the session, its event log, then a follow that
+// makes from a replay (a catalogue scenario, or a session a story scene
+// builds from the kit's samples): the session, its event log, then a follow that
 // replays the events, sends the liveness preview the scenario holds, and
 // stays open as a live stream does; its runs, the Files its turns
 // returned and, for one opened, its first bytes. Beside them it answers what the console's viewer reads around
@@ -46,8 +47,11 @@ const AUDIT_REPORT = new TextEncoder().encode(
   "# Invoice rounding audit\n\nFourteen invoices were a cent off. Each rounded every line before the total.\n\n| Invoice | Billed | Correct |\n| --- | --- | --- |\n| INV-1042 | 118.07 | 118.06 |\n| INV-1057 | 64.31 | 64.30 |\n",
 );
 
+/** What the scenes replay to the viewer: the parts of a scenario its calls read. */
+export type SessionReplay = Pick<Scenario, "session" | "events" | "runs" | "files" | "liveness" | "loadError">;
+
 /** How the host frames the viewer: who looks, and whether it passes the builder's inspector. */
-interface Framing {
+export interface Framing {
   readonly audience?: SessionAudience;
   /** The console's framing: the inspector beside the conversation. */
   readonly inspector?: boolean;
@@ -59,7 +63,7 @@ interface Framing {
  * the first frame, so a scenario with no events would hold the scene
  * unsettled; none drawn here has none.
  */
-async function* follow(scenario: Scenario, request: StreamSessionEventsRequest, context: HandlerContext) {
+async function* follow(scenario: SessionReplay, request: StreamSessionEventsRequest, context: HandlerContext) {
   const after = request.afterSeq ?? 0n;
   for (const event of scenario.events) if (event.seq > after) yield samples.eventFrame(event);
   if (scenario.liveness !== undefined) {
@@ -69,13 +73,13 @@ async function* follow(scenario: Scenario, request: StreamSessionEventsRequest, 
 }
 
 /** `answer`, or the refusal of a scenario whose session cannot load (the server is unreachable). */
-function loadable<T>(scenario: Scenario, answer: T): T {
+function loadable<T>(scenario: SessionReplay, answer: T): T {
   if (scenario.loadError !== null) throw new ConnectError(scenario.loadError.message, Code.Unavailable);
   return answer;
 }
 
 /** The calls the viewer makes for `scenario`, answered as for the session's owner. */
-export function sessionRoutes(scenario: Scenario) {
+export function sessionRoutes(scenario: SessionReplay) {
   return (router: ConnectRouter) => {
     router.service(SessionQueryController, {
       get: () => loadable(scenario, scenario.session!),
@@ -114,11 +118,15 @@ export function sessionRoutes(scenario: Scenario) {
 
 /** The session view over the `name` state, framed as given (an embed's by default: the conversation alone). */
 export function sessionScene(name: ScenarioName, framing: Framing = {}): Drawing {
-  const scenario = scenarios[name];
-  const session = scenario.session ?? samples.session();
+  return sessionDrawing(scenarios[name], framing);
+}
+
+/** The session view over `replay`, framed as given. */
+export function sessionDrawing(replay: SessionReplay, framing: Framing = {}): Drawing {
+  const session = replay.session ?? samples.session();
   return {
     inOrganization: true,
-    routes: sessionRoutes(scenario),
+    routes: sessionRoutes(replay),
     render: () => (
       <div style={{ height: "calc(100vh - 48px)" }}>
         <SessionViewer
