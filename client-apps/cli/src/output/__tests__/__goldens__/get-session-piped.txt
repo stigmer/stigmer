@@ -1,0 +1,16 @@
+
+Q3 ledger variance review  acme/ses-01jddd
+
+  ID:           ses_01jddddddddddddddddddddddd
+  Agent:        acme/variance-reporter
+  State:        running
+  Environment:  acme/finance-build (from its agent)
+  Created:      2026-10-30 08:15 UTC
+
+Runs
+  run_01jeeeeeeeeeeeeeeeeeeeeee7  running    2026-10-30 09:12 UTC  3m 0s so far
+  run_01jeeeeeeeeeeeeeeeeeeeeee6  failed     2026-10-30 08:55 UTC  30s
+  run_01jeeeeeeeeeeeeeeeeeeeeee5  completed  2026-10-30 08:45 UTC  2m 0s
+  run_01jeeeeeeeeeeeeeeeeeeeeee4  completed  2026-10-30 08:35 UTC  1m 0s
+  run_01jeeeeeeeeeeeeeeeeeeeeee3  completed  2026-10-30 08:25 UTC  1m 0s
+  … and earlier runs

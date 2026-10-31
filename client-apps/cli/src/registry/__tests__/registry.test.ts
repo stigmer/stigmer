@@ -158,19 +158,11 @@ describe("registry — verb support matrix", () => {
     }
   });
 
-  it("session promises apply, list and download (its turns' outputs); get/delete stay narrowed (stigmer/stigmer#354, #469)", () => {
-    expect(registry.supportsVerb(ApiResourceKind.session, Verb.Apply)).toBe(
-      true,
-    );
-    expect(registry.supportsVerb(ApiResourceKind.session, Verb.List)).toBe(
-      true,
-    );
-    expect(registry.supportsVerb(ApiResourceKind.session, Verb.Download)).toBe(
-      true,
-    );
-    for (const v of [Verb.Get, Verb.Delete]) {
-      expect(registry.supportsVerb(ApiResourceKind.session, v)).toBe(false);
+  it("session promises apply, get (by id, stigmer/stigmer#2502), list and download (its turns' outputs); delete stays narrowed (stigmer/stigmer#354, #469)", () => {
+    for (const v of [Verb.Apply, Verb.Get, Verb.List, Verb.Download]) {
+      expect(registry.supportsVerb(ApiResourceKind.session, v)).toBe(true);
     }
+    expect(registry.supportsVerb(ApiResourceKind.session, Verb.Delete)).toBe(false);
   });
 
   it("typesForVerb(get) includes the core read kinds", () => {

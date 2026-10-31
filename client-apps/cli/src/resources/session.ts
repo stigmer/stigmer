@@ -1,9 +1,11 @@
 // Read helpers for the dedicated `stigmer session` command surface (resume
 // and friends). Session LIST is a first-class registry verb served by
 // LIST_HANDLERS in resources/list.ts — stigmer/stigmer#469 promoted it there
-// from a bespoke pre-gate route in commands/list.ts. get/delete stay
-// deliberately unpromised in the verb matrix (stigmer/stigmer#354);
-// resume-style flows read sessions through these helpers instead.
+// from a bespoke pre-gate route in commands/list.ts; `get session` reads one
+// through GET_BINDINGS and lists its runs through `listRunsBySession` here
+// (resources/views/session.ts). delete stays deliberately unpromised in the
+// verb matrix (stigmer/stigmer#354); resume-style flows read sessions
+// through these helpers.
 //
 // A conversation's content is its session's event log: a session's events,
 // or one run's, are listed oldest first, every page read, and a run is
@@ -27,10 +29,11 @@ export async function getSessionById(client: Stigmer, sessionId: string): Promis
 /**
  * List a session's runs, newest-first (the backend's order). The RPC
  * answers a page at a time, so every page is read: the result is the
- * complete set. Returns the raw entries for resume to inspect.
+ * complete set, or with `limit` the newest that many (`get session` reads
+ * one more than it shows). Returns the raw entries for resume to inspect.
  */
-export async function listRunsBySession(client: Stigmer, sessionId: string): Promise<Run[]> {
-  return readCursorPages(0, (pageSize, pageToken) =>
+export async function listRunsBySession(client: Stigmer, sessionId: string, limit = 0): Promise<Run[]> {
+  return readCursorPages(limit, (pageSize, pageToken) =>
     client.run.listBySession(create(ListRunsBySessionRequestSchema, { sessionId, pageSize, pageToken })),
   );
 }

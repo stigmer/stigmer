@@ -32,6 +32,7 @@ import { UsageError } from "../../../errors/index.js";
 import {
   readAgentQualityOptions,
   renderAgreement,
+  renderFlaggedScores,
   renderQualityReport,
   showAgentQuality,
   type AgentQualityOptions,
@@ -394,11 +395,29 @@ describe("showAgentQuality, --agreement", () => {
     expect(renderAgreement(report, "support-desk", "yaml")).toContain("thumbs_down_none_failed: 3");
   });
 
+  it("CLI-09 cuts a rubric's name to fit the terminal, keeping its counts", () => {
+    // The four count columns take 56 columns with the gaps, leaving RUBRIC 14 of 70.
+    const out = renderAgreement(report, "support-desk", "table", { isTTY: true, columns: 70 });
+    expect(out).toMatch(/^acted-only-as…\s+1\s+6\s+0\s+7$/m);
+    expect(out).toMatch(/^did-the-task\s+2\s+0\s+4\s+8$/m);
+  });
+
   it("says so when no run has both a judge grade and thumbs", () => {
     const none = create(AgentQualityReportSchema, { fromDate: "2026-10-06", toDate: "2026-10-12", total: { runs: 3 } });
     const out = renderAgreement(none, "support-desk", "table");
     expect(out).toContain("No run in this window has both an AI judge grade and a person's thumbs.");
     expect(out).not.toContain("RUBRIC");
+  });
+});
+
+describe("CLI-09 the flagged grades fit the terminal", () => {
+  it("cuts the failed criteria's names, never the run id, and cuts nothing piped", () => {
+    const scores = [flagged("run_00000000000000000000000001", "judge", 5, ["accurate", "cited-its-sources", "stayed-polite"])];
+    const narrow = renderFlaggedScores(scores, "table", { isTTY: true, columns: 80 }).trim().split("\n")[2] ?? "";
+    expect(narrow).toMatch(/run_00000000000000000000000001\s+judge\s+accurate, cited-[^ ]*…$/);
+    expect(narrow.length).toBe(80);
+    const piped = renderFlaggedScores(scores, "table", { isTTY: false }).trim().split("\n")[2] ?? "";
+    expect(piped).toMatch(/accurate, cited-its-sources, stayed-polite$/);
   });
 });
 

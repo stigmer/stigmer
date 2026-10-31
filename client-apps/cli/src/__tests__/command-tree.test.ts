@@ -3,15 +3,21 @@
 // a leaf but its subcommands are, at any depth, sorted by path; a command's
 // path reads as typed; its positional arguments come back with their shape;
 // and an option counts only on the command that declares it, never through
-// its parent.
+// its parent. A runnable command is a leaf or a group with an action of its
+// own, never a group that only dispatches, sorted by path whatever order the
+// tree registered them in; and a help group reads without its heading's
+// closing colon, a colon inside the heading kept.
 import { Command } from "commander";
 import { describe, expect, it } from "vitest";
 import {
   commandPath,
   documentedCommands,
+  hasOwnAction,
+  helpGroupOf,
   isHidden,
   leafCommands,
   registeredArguments,
+  runnableCommands,
   takesOption,
   visibleSubcommands,
 } from "../command-tree.js";
@@ -77,5 +83,39 @@ describe("the command tree", () => {
     expect(takesOption(leaves.get("stigmer config set")!, "--json")).toBe(true);
     expect(takesOption(leaves.get("stigmer config set")!, "--output")).toBe(false);
     expect(takesOption(leaves.get("stigmer apply")!, "--org")).toBe(false);
+  });
+
+  it("tells a command with an action of its own from one that only dispatches", () => {
+    expect(hasOwnAction(new Command("up").action(() => undefined))).toBe(true);
+    // commander keeps a null handler until .action() is called...
+    expect(hasOwnAction(new Command("config"))).toBe(false);
+    // ...and a command shaped by an older commander may carry none at all.
+    expect(hasOwnAction({} as unknown as Command)).toBe(false);
+  });
+
+  it("runs each leaf and each group with an action, never a group that only dispatches, sorted by path", () => {
+    const program = new Command("stigmer");
+    // Registered out of path order, so only the sort puts them in it.
+    program.command("zeta");
+    const up = program.command("up").action(() => undefined);
+    up.command("server");
+    const config = program.command("config");
+    config.command("set <key> <value>");
+    program.command("internal-daemon", { hidden: true }).action(() => undefined);
+    program.command("alpha");
+    expect(runnableCommands(program).map(commandPath)).toEqual([
+      "stigmer alpha",
+      "stigmer config set",
+      "stigmer up",
+      "stigmer up server",
+      "stigmer zeta",
+    ]);
+  });
+
+  it("reads a help group without its heading's closing colon, and none when a command names none", () => {
+    expect(helpGroupOf(new Command("run").helpGroup("Run agents:"))).toBe("Run agents");
+    expect(helpGroupOf(new Command("run").helpGroup("Step 1: setup:"))).toBe("Step 1: setup");
+    expect(helpGroupOf(new Command("run").helpGroup("Configuration"))).toBe("Configuration");
+    expect(helpGroupOf(new Command("run"))).toBe("");
   });
 });

@@ -1,0 +1,16 @@
+
+Docs build  acme/finance-build
+
+  Description:         What the docs site needs to build.
+  Network:             limited to its hosts
+  Package registries:  reachable
+  MCP servers:         not reachable
+
+Allowed hosts
+  api.github.com
+  *.githubusercontent.com
+
+Packages
+  apt:  graphviz
+  npm:  @mermaid-js/mermaid-cli, prettier
+  pip:  mkdocs, mkdocs-material

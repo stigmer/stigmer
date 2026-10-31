@@ -7,13 +7,16 @@
 // the look is a diff a reviewer reads; `npx vitest run -u` rewrites them.
 //
 // Today's look is frozen as it is, known gaps included (one generic `get`
-// view, tables that ignore the terminal's width, help with no groups); the
-// changes that close those gaps update these files on purpose. Colour is off
+// view, help with no groups); the changes that close those gaps update these
+// files on purpose. The tables here are piped (a test's stdout is no
+// terminal), so nothing is cut; `tables.goldens.test.ts` holds them at a
+// terminal's widths. Colour is off
 // by construction (`colorize = false`, NO_COLOR set) and nothing reads the
 // clock: the inputs are `@stigmer/react-sdk/test`'s samples and scenarios,
 // stamped from one frozen instant. A debug error's stack is set by hand,
 // since a real one names this machine's paths.
 import { create } from "@bufbuild/protobuf";
+import type { Command } from "commander";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
@@ -66,11 +69,10 @@ describe("the read views", () => {
     await expectGolden(renderCollection(AgentSchema, [], "table", libraryTable("agents")), "list-empty");
   });
 
-  it("shows one agent, skill, session and organization in the get view", async () => {
-    await expectGolden(renderResource(AgentSchema, agents[1]!, "table", { orgLabel: "demo" }), "get-agent");
-    await expectGolden(renderResource(SkillSchema, skills[0]!, "table", { orgLabel: "demo" }), "get-skill");
-    await expectGolden(renderResource(SessionSchema, sessions[1]!, "table", { orgLabel: "demo" }), "get-session");
-    await expectGolden(renderResource(OrganizationSchema, organizations[1]!, "table", { hideOrg: true }), "get-organization");
+  // The designed views of these kinds are views.goldens.test.ts's; this is
+  // the generic view every other kind keeps, drawn over a skill.
+  it("shows one resource in the generic get view", async () => {
+    await expectGolden(renderResource(SkillSchema, skills[0]!, "table", { orgLabel: "demo" }), "get-generic");
   });
 });
 
@@ -201,10 +203,22 @@ describe("the run's exit summary", () => {
   });
 });
 
-describe("help", () => {
-  it("prints the top-level help at 80 columns", async () => {
-    const program = buildProgram();
-    program.configureHelp({ ...program.configureHelp(), helpWidth: 80 });
-    await expectGolden(program.helpInformation(), "help-root");
+describe("CLI-10 help", () => {
+  // What `--help` prints, examples included (they are help text after the options).
+  const helpAt80 = (cmd: Command): string => {
+    let text = "";
+    cmd.configureOutput({ writeOut: (chunk) => void (text += chunk) });
+    cmd.configureHelp({ ...cmd.configureHelp(), helpWidth: 80 });
+    cmd.outputHelp();
+    return text;
+  };
+
+  it("prints the top-level help at 80 columns, grouped, with examples", async () => {
+    await expectGolden(helpAt80(buildProgram()), "help-root");
+  });
+
+  it("prints get's help at 80 columns, with its examples and the globals once", async () => {
+    const get = buildProgram().commands.find((cmd) => cmd.name() === "get")!;
+    await expectGolden(helpAt80(get), "help-get");
   });
 });

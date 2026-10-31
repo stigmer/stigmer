@@ -58,6 +58,8 @@ import {
   renderProtoListYaml,
   renderProtoYaml,
   renderTable,
+  terminalWidth,
+  type TerminalStream,
 } from "../../output/index.js";
 import { readCursorPages } from "../cursor-pages.js";
 import { oneLine } from "../run-scores.js";
@@ -351,9 +353,15 @@ function versionLabel(hash: string, tags: ReadonlyMap<string, string>): string {
 
 /**
  * The report's agreement as one table per judge rubric version, the current
- * one first, or the agreement entries as json or yaml.
+ * one first, fitted to `stream`'s width, or the agreement entries as json or
+ * yaml.
  */
-export function renderAgreement(report: AgentQualityReport, agent: string, format: OutputFormat): string {
+export function renderAgreement(
+  report: AgentQualityReport,
+  agent: string,
+  format: OutputFormat,
+  stream: TerminalStream = process.stdout,
+): string {
   if (format === "json") return renderProtoListJson(JudgeAgreementSchema, report.agreement);
   if (format === "yaml") return renderProtoListYaml(JudgeAgreementSchema, report.agreement);
 
@@ -362,7 +370,8 @@ export function renderAgreement(report: AgentQualityReport, agent: string, forma
     lines.push("No run in this window has both an AI judge grade and a person's thumbs.", "");
     return `${lines.join("\n")}\n`;
   }
-  report.agreement.forEach((entry, index) => lines.push(...agreementLines(entry, index === 0), ""));
+  const width = terminalWidth(stream);
+  report.agreement.forEach((entry, index) => lines.push(...agreementLines(entry, index === 0, width), ""));
   lines.push(
     "FAILED, UP: the rubric failed runs people liked (it may be too strict).",
     "PASSED, DOWN: the rubric passed runs people disliked (it may be too lenient).",
@@ -371,7 +380,8 @@ export function renderAgreement(report: AgentQualityReport, agent: string, forma
   return `${lines.join("\n")}\n`;
 }
 
-function agreementLines(entry: JudgeAgreement, isCurrent: boolean): string[] {
+// A RUBRIC is a rule's name as its author wrote it: free text, so it gives up width first.
+function agreementLines(entry: JudgeAgreement, isCurrent: boolean, width: number | undefined): string[] {
   const version = oneLine(entry.evaluatorVersion.slice(0, SHORT_HASH_LENGTH));
   const runs = `${entry.runs} ${entry.runs === 1 ? "run" : "runs"} with a judge grade and thumbs`;
   const missed =
@@ -387,14 +397,25 @@ function agreementLines(entry: JudgeAgreement, isCurrent: boolean): string[] {
   ]);
   return [
     `Rubrics ${version}${isCurrent ? " (current)" : ""}: ${runs}${missed}`,
-    renderTable(["RUBRIC", "FAILED, DOWN", "FAILED, UP", "PASSED, DOWN", "PASSED, UP"], rows).trimEnd(),
+    renderTable(["RUBRIC", "FAILED, DOWN", "FAILED, UP", "PASSED, DOWN", "PASSED, UP"], rows, {
+      width,
+      shrink: ["RUBRIC"],
+    }).trimEnd(),
   ];
 }
 
 // --- Render: the flagged grades ---
 
-/** The flagged grades as a table (time, run, metric, failed criteria), or the scores as json or yaml. */
-export function renderFlaggedScores(scores: readonly Score[], format: OutputFormat): string {
+/**
+ * The flagged grades as a table (time, run, metric, failed criteria) fitted
+ * to `stream`'s width, the criteria's names giving up width first, or the
+ * scores as json or yaml.
+ */
+export function renderFlaggedScores(
+  scores: readonly Score[],
+  format: OutputFormat,
+  stream: TerminalStream = process.stdout,
+): string {
   if (format === "json") return renderProtoListJson(ScoreSchema, scores);
   if (format === "yaml") return renderProtoListYaml(ScoreSchema, scores);
   if (scores.length === 0) return renderEmpty("flagged runs");
@@ -404,7 +425,7 @@ export function renderFlaggedScores(scores: readonly Score[], format: OutputForm
     oneLine(score.spec?.metric ?? ""),
     failedLabel(score),
   ]);
-  return `\n${renderTable(["TIME", "RUN", "METRIC", "FAILED"], rows)}\n`;
+  return `\n${renderTable(["TIME", "RUN", "METRIC", "FAILED"], rows, { width: terminalWidth(stream), shrink: ["FAILED"] })}\n`;
 }
 
 /** When the grade was given, in UTC to the minute, as the report's days are UTC. */

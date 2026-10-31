@@ -1,13 +1,16 @@
 // Uniform rendering for read verbs.
 //
-// All resource protos share the ApiResourceMetadata envelope, so the human
-// (table) view of a single `get` is derived generically from the protojson
-// projection — no per-kind formatter. The common spec fields it adds are the
-// ones several kinds share by name: the description, and the settings a run
-// starts from (spec.harness and spec.run_config: an agent's run defaults, a
-// share's or channel's saved settings, a session's engine). json/yaml use the canonical protojson
+// All resource protos share the ApiResourceMetadata envelope, so the generic
+// human (table) view of a single `get` is derived from the protojson
+// projection; the kinds a person reads most have a view designed for them
+// instead (resources/views), and every other kind keeps this one. The common
+// fields it adds are the ones several kinds share by name: the description,
+// the settings a run starts from (spec.harness and spec.run_config: an
+// agent's run defaults, a share's or channel's saved settings, a session's
+// engine), and when it was created and last changed. json/yaml use the canonical protojson
 // renderers for full fidelity. Collections render via the
-// shared table renderer with a caller-supplied row extractor.
+// shared table renderer with a caller-supplied row extractor, fitted to the
+// width of the terminal stdout is (piped, nothing is cut).
 //
 // The render boundary intentionally uses the base proto types (DescMessage /
 // Message) so generic verb dispatch can pass a (schema, message) pair without
@@ -23,6 +26,8 @@ import {
   renderProtoListYaml,
   renderProtoYaml,
   renderTable,
+  terminalWidth,
+  type TerminalStream,
 } from "../output/index.js";
 
 export type JsonObject = Record<string, JsonValue>;
@@ -34,11 +39,14 @@ export type OrgLabel = (value: string) => string;
  * A row extractor + headers describing a collection's table view. A table
  * whose rows name organizations lists them in `orgs`, so the caller can
  * label each distinct value once (by slug, in place of the id the rows
- * carry) before the rows render through `orgLabel`.
+ * carry) before the rows render through `orgLabel`. `shrink` names the
+ * free-text columns (a description, a subject, a display name) that give up
+ * width on a narrow terminal; an id or a slug a person copies is never one.
  */
 export interface TableShape {
   readonly resourceName: string;
   readonly headers: readonly string[];
+  readonly shrink?: readonly string[];
   readonly row: (json: JsonObject, orgLabel: OrgLabel) => readonly string[];
   readonly orgs?: (json: JsonObject) => readonly string[];
 }
@@ -69,7 +77,7 @@ export function renderResource(
 /**
  * Render a collection for a read verb (json/yaml = protojson array, the
  * wire as-is; table = grid, naming each organization by `orgLabels` where
- * it holds one).
+ * it holds one, fitted to `stream`'s width when it is a terminal).
  */
 export function renderCollection(
   schema: DescMessage,
@@ -77,13 +85,14 @@ export function renderCollection(
   format: OutputFormat,
   table: TableShape,
   orgLabels: ReadonlyMap<string, string> = new Map(),
+  stream: TerminalStream = process.stdout,
 ): string {
   if (format === "json") return renderProtoListJson(schema, messages);
   if (format === "yaml") return renderProtoListYaml(schema, messages);
   if (messages.length === 0) return renderEmpty(table.resourceName);
   const label = labelFrom(orgLabels);
   const rows = messages.map((message) => table.row(asObject(protoToJsonValue(schema, message)), label));
-  return `\n${renderTable(table.headers, rows)}`;
+  return `\n${renderTable(table.headers, rows, { width: terminalWidth(stream), shrink: table.shrink })}`;
 }
 
 /** The organization values a human table's rows name; none for machine output or a table that names none. */
@@ -102,13 +111,14 @@ export function tableOrganizations(
  * Render a *list message* (e.g. RunList, SessionList) for a read verb.
  *
  * Unlike `renderCollection`, which serializes a bare slice, json/yaml emit the whole list envelope (including
- * `next_page_token`), while table projects the nested `entries` into a grid.
+ * `next_page_token`), while table projects the nested `entries` into a grid fitted to `stream`'s width.
  */
 export function renderListMessage(
   schema: DescMessage,
   message: Message,
   format: OutputFormat,
   table: TableShape,
+  stream: TerminalStream = process.stdout,
 ): string {
   if (format === "json") return renderProtoJson(schema, message);
   if (format === "yaml") return renderProtoYaml(schema, message);
@@ -117,7 +127,7 @@ export function renderListMessage(
   const label = labelFrom(new Map());
   const rows = (Array.isArray(list) ? list : []).map((entry) => table.row(asObject(entry), label));
   if (rows.length === 0) return renderEmpty(table.resourceName);
-  return `\n${renderTable(table.headers, rows)}`;
+  return `\n${renderTable(table.headers, rows, { width: terminalWidth(stream), shrink: table.shrink })}`;
 }
 
 // How a table names an organization: its label where one is known, else the value as given.
@@ -138,32 +148,56 @@ function renderResourceFields(json: JsonValue, options: RenderFieldsOptions): st
   if (options.hideOrg !== true) pushField(fields, "Org", options.orgLabel ?? metadata.org);
   pushField(fields, "Visibility", metadata.visibility);
   pushField(fields, "Description", spec.description);
-  pushRunSettings(fields, spec, asObject(obj.status));
+  for (const [key, value] of runSettingFields(spec, asObject(obj.status))) pushField(fields, key, value);
+  const { created, updated } = audited(obj);
+  pushField(fields, "Created", instant(created));
+  pushField(fields, "Updated", instant(updated));
 
   const width = Math.max(0, ...fields.map(([key]) => key.length));
   const lines = fields.map(([key, value]) => `  ${key}:${" ".repeat(width - key.length + 2)}${value}`);
   return `\n${lines.join("\n")}\n`;
 }
 
-// The engine and run settings a resource names, each only when set (protojson
-// omits defaults, so an absent field is "not set here"). A turn records the
-// settings it ran with on status.run_config, resolved from its message, its
-// agent and its lane, so those are shown in place of what the message asked.
-function pushRunSettings(fields: Array<[string, string]>, spec: JsonObject, status: JsonObject): void {
-  pushField(fields, "Harness", enumWord(spec.harness, "HARNESS_"));
+/**
+ * The engine and run settings a resource names, each empty when not set
+ * (protojson omits defaults, so an absent field is "not set here"). A turn
+ * records the settings it ran with on status.run_config, resolved from its
+ * message, its agent and its lane, so those are shown in place of what the
+ * message asked.
+ */
+export function runSettingFields(spec: JsonObject, status: JsonObject): Array<[string, string | undefined]> {
   const runConfig = asObject(status.run_config ?? spec.run_config);
-  pushField(fields, "Model", runConfig.model_name);
-  pushField(fields, "Speed tier", enumWord(runConfig.service_tier, "SERVICE_TIER_"));
-  pushField(fields, "Thinking", enumWord(runConfig.thinking_mode, "THINKING_MODE_"));
-  if (typeof runConfig.max_cost_usd === "number") {
-    fields.push(["Cost cap", `$${runConfig.max_cost_usd} per message`]);
-  }
-  if (typeof runConfig.max_tool_rounds === "number") {
-    fields.push(["Tool rounds", `at most ${runConfig.max_tool_rounds} per message`]);
-  }
-  if (typeof runConfig.max_tool_result_chars === "number") {
-    fields.push(["Tool result size", `at most ${runConfig.max_tool_result_chars} characters`]);
-  }
+  return [
+    ["Harness", enumWord(spec.harness, "HARNESS_")],
+    ["Model", str(runConfig, "model_name")],
+    ["Speed tier", enumWord(runConfig.service_tier, "SERVICE_TIER_")],
+    ["Thinking", enumWord(runConfig.thinking_mode, "THINKING_MODE_")],
+    ["Cost cap", typeof runConfig.max_cost_usd === "number" ? `$${runConfig.max_cost_usd} per message` : undefined],
+    ["Tool rounds", typeof runConfig.max_tool_rounds === "number" ? `at most ${runConfig.max_tool_rounds} per message` : undefined],
+    [
+      "Tool result size",
+      typeof runConfig.max_tool_result_chars === "number" ? `at most ${runConfig.max_tool_result_chars} characters` : undefined,
+    ],
+  ];
+}
+
+/**
+ * An instant to the minute in UTC, "2026-10-31 09:15 UTC": the same for
+ * every reader, wherever their machine is. A value that does not parse is
+ * shown as given; none, undefined.
+ */
+export function instant(value: string): string | undefined {
+  if (value === "") return undefined;
+  const ms = Date.parse(value);
+  if (Number.isNaN(ms)) return value;
+  const iso = new Date(ms).toISOString();
+  return `${iso.slice(0, 10)} ${iso.slice(11, 16)} UTC`;
+}
+
+/** When a resource was created and last changed, from its audit ("" for either it does not carry). */
+export function audited(json: JsonObject): { created: string; updated: string } {
+  const audit = asObject(asObject(asObject(json.status).audit).spec_audit);
+  return { created: str(audit, "created_at"), updated: str(audit, "updated_at") };
 }
 
 // A protojson enum name as the word a person reads ("HARNESS_CLAUDE" -> "claude").
@@ -176,7 +210,8 @@ function pushField(fields: Array<[string, string]>, key: string, value: JsonValu
   if (typeof value === "string" && value !== "") fields.push([key, value]);
 }
 
-function asObject(value: JsonValue | undefined): JsonObject {
+/** A protojson object, or {} for anything else. */
+export function asObject(value: JsonValue | undefined): JsonObject {
   return typeof value === "object" && value !== null && !Array.isArray(value) ? (value as JsonObject) : {};
 }
 

@@ -103,6 +103,7 @@ export function registerServiceAccount(program: Command): void {
       writeList(output, format, ApiKeySchema, keys, {
         empty: "API keys",
         headers: resources.SERVICE_ACCOUNT_KEY_TABLE_HEADERS,
+        shrink: resources.SERVICE_ACCOUNT_KEY_TABLE_SHRINK,
         rows: resources.serviceAccountKeyRows,
       });
     });
@@ -137,7 +138,8 @@ export function registerServiceAccount(program: Command): void {
 type OutputModule = typeof import("../../output/index.js");
 
 /**
- * A read verb's list: the protos as JSON or YAML, otherwise a table, or the
+ * A read verb's list: the protos as JSON or YAML, otherwise a table fitted to
+ * the terminal (its `shrink` columns giving up width), or the
  * standard empty-state line when there is nothing to show.
  */
 function writeList<Desc extends DescMessage>(
@@ -148,6 +150,7 @@ function writeList<Desc extends DescMessage>(
   table: {
     readonly empty: string;
     readonly headers: readonly string[];
+    readonly shrink?: readonly string[];
     readonly rows: (items: readonly MessageShape<Desc>[]) => string[][];
   },
 ): void {
@@ -158,7 +161,9 @@ function writeList<Desc extends DescMessage>(
   } else if (items.length === 0) {
     process.stdout.write(output.renderEmpty(table.empty));
   } else {
-    process.stdout.write(output.renderTable(table.headers, table.rows(items)));
+    process.stdout.write(
+      output.renderTable(table.headers, table.rows(items), { width: output.terminalWidth(), shrink: table.shrink }),
+    );
   }
 }
 

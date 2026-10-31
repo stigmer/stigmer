@@ -9,6 +9,7 @@
 // Commander's "unknown option". The few commands that print no data a script
 // reads are named in PRINTS_NO_DATA, each with its reason, and the list only
 // shrinks: a listed command that has gained `-o`, or no longer exists, fails.
+import type { Command } from "commander";
 import { describe, expect, it } from "vitest";
 import { commandPath, runnableCommands, takesOption } from "../command-tree.js";
 import { buildProgram } from "../program.js";
@@ -20,12 +21,20 @@ const PRINTS_NO_DATA = new Map([
   ["stigmer mcp-server", "serves the MCP protocol on stdio or a port; it prints no result"],
 ]);
 
-const runnable = runnableCommands(buildProgram());
-const paths = runnable.map(commandPath);
+/**
+ * Every runnable command of a freshly built program. Each test walks it
+ * itself, rather than once at import, so a broken walker fails the test that
+ * reads it (and a mutation sweep can tell which test that is).
+ */
+function runnableNow(): Command[] {
+  return runnableCommands(buildProgram());
+}
 
 describe("CLI-02 every command that prints machine output accepts -o", () => {
   it("walks every command a person runs, groups that run included", () => {
     // A walker that lost the tree would pass every rule below vacuously.
+    const runnable = runnableNow();
+    const paths = runnable.map(commandPath);
     expect(runnable.length).toBeGreaterThanOrEqual(80);
     expect(paths).toContain("stigmer get");
     expect(paths).toContain("stigmer config backend use");
@@ -36,7 +45,7 @@ describe("CLI-02 every command that prints machine output accepts -o", () => {
   });
 
   it("takes -o/--output on every runnable command outside the named list", () => {
-    const missing = runnable
+    const missing = runnableNow()
       .filter((cmd) => !takesOption(cmd, "--output"))
       .map(commandPath)
       .filter((path) => !PRINTS_NO_DATA.has(path));
@@ -44,6 +53,7 @@ describe("CLI-02 every command that prints machine output accepts -o", () => {
   });
 
   it("binds -o to --output wherever a command takes --output, and to nothing else", () => {
+    const runnable = runnableNow();
     const unbound = runnable
       .filter((cmd) => takesOption(cmd, "--output"))
       .filter((cmd) => cmd.options.find((option) => option.long === "--output")?.short !== "-o")
@@ -56,7 +66,7 @@ describe("CLI-02 every command that prints machine output accepts -o", () => {
   });
 
   it("keeps the named list to commands that exist and still take no -o", () => {
-    const byPath = new Map(runnable.map((cmd) => [commandPath(cmd), cmd]));
+    const byPath = new Map(runnableNow().map((cmd) => [commandPath(cmd), cmd]));
     const stale = [...PRINTS_NO_DATA.keys()].filter((path) => {
       const cmd = byPath.get(path);
       return cmd === undefined || takesOption(cmd, "--output");

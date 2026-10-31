@@ -2,8 +2,12 @@ exit 2
 
 Error: Already exists: agent 'demo/reviewer'
 
+Run `stigmer --help` for usage.
+
 --- with --debug ---
 Error: Already exists: agent 'demo/reviewer'
+
+Run `stigmer --help` for usage.
 
 --- debug ---
 gRPC code: AlreadyExists (6)

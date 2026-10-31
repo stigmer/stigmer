@@ -25,7 +25,14 @@ import {
 } from "@stigmer/apis/ai/stigmer/agentic/score/v1/enum_pb";
 import { ListScoresByRunRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/score/v1/io_pb";
 import type { Stigmer } from "@stigmer/client";
-import { renderEmpty, renderProtoListJson, renderProtoListYaml, renderTable } from "../output/index.js";
+import {
+  renderEmpty,
+  renderProtoListJson,
+  renderProtoListYaml,
+  renderTable,
+  terminalWidth,
+  type TerminalStream,
+} from "../output/index.js";
 import { readCursorPages } from "./cursor-pages.js";
 
 /** Output format for scores: a table, or the scores' full proto envelopes. */
@@ -58,12 +65,15 @@ export async function showRunScores(
   streams.write(renderScoresTable(scores));
 }
 
-/** The table view of a run's scores; an empty run says so. */
-export function renderScoresTable(scores: readonly Score[]): string {
+/**
+ * The table view of a run's scores, fitted to `stream`'s width; an empty
+ * run says so. A COMMENT is a person's free text and gives up width first.
+ */
+export function renderScoresTable(scores: readonly Score[], stream: TerminalStream = process.stdout): string {
   if (scores.length === 0) {
     return renderEmpty("scores");
   }
-  return `\n${renderTable(HEADERS, scores.map(scoreRow))}\n`;
+  return `\n${renderTable(HEADERS, scores.map(scoreRow), { width: terminalWidth(stream), shrink: ["COMMENT"] })}\n`;
 }
 
 function scoreRow(score: Score): string[] {

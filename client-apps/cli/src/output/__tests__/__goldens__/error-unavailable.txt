@@ -1,13 +1,13 @@
 exit 3
 
-Error: Cannot connect to the Stigmer server
+Error: Could not reach the Stigmer server
 
-Make sure the Stigmer server is running and reachable.
+Check the backend: stigmer config backend status
 
 --- with --debug ---
-Error: Cannot connect to the Stigmer server
+Error: Could not reach the Stigmer server
 
-Make sure the Stigmer server is running and reachable.
+Check the backend: stigmer config backend status
 
 --- debug ---
 gRPC code: Unavailable (14)

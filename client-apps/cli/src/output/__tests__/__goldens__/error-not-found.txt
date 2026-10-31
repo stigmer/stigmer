@@ -2,8 +2,12 @@ exit 5
 
 Error: agent 'demo/reviewer' not found
 
+Check the reference and the organization (--org).
+
 --- with --debug ---
 Error: agent 'demo/reviewer' not found
+
+Check the reference and the organization (--org).
 
 --- debug ---
 gRPC code: NotFound (5)

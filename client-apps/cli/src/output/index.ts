@@ -14,7 +14,13 @@ export {
   renderProtoListYaml,
   renderProtoYaml,
 } from "./proto.js";
-export { renderEmpty, renderTable } from "./table.js";
+export {
+  renderEmpty,
+  renderTable,
+  type TableOptions,
+  terminalWidth,
+  type TerminalStream,
+} from "./table.js";
 export {
   CommandResult,
   type KeyValue,

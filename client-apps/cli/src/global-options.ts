@@ -19,13 +19,10 @@
 //   (`STIGMER_API_KEY`), not in a shell's history.
 //
 // The copies are hidden, so help shows the globals once, in its "Global
-// Options" section, and the docs generator leaves them out of each page. A
-// command's line in its parent's list says "[options]" only for options it
-// shows (`helpConfiguration`), since every runnable command now holds the
-// hidden copies.
+// Options" section, and the docs generator leaves them out of each page.
 
 import { type Command, type HelpConfiguration, Option } from "commander";
-import { registeredArguments, runnableCommands } from "./command-tree.js";
+import { runnableCommands } from "./command-tree.js";
 
 /** A global option that may also follow the command. */
 interface TrailingGlobal {
@@ -88,19 +85,16 @@ export function readGlobalOptions(root: Command, action: Command): GlobalOptions
 }
 
 /**
- * The help every command shows: the globals once per page, and a command's
- * line in its parent's list naming "[options]" only when it has options of
- * its own to show (Commander's own check counts hidden ones).
+ * The help every command shows: the globals once per page, and each
+ * subcommand listed by its name alone, as gh and kubectl list theirs; its
+ * arguments and options are on its own help's usage line. (Commander's own
+ * term would print "[options]" for every command, since each holds the
+ * hidden global copies, and its arguments widen the list past 80 columns.)
  */
 export const helpConfiguration: HelpConfiguration = {
   showGlobalOptions: true,
   subcommandTerm: (cmd) => {
-    const args = registeredArguments(cmd).map((arg) => {
-      const name = `${arg.name()}${arg.variadic ? "..." : ""}`;
-      return arg.required ? `<${name}>` : `[${name}]`;
-    });
     const alias = cmd.aliases()[0];
-    const options = cmd.options.some((option) => !option.hidden) ? ["[options]"] : [];
-    return [`${cmd.name()}${alias === undefined ? "" : `|${alias}`}`, ...options, ...args].join(" ");
+    return alias === undefined ? cmd.name() : `${cmd.name()}|${alias}`;
   },
 };

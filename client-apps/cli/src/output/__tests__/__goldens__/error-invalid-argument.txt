@@ -2,8 +2,12 @@ exit 2
 
 Error: spec.instructions: value is required
 
+Run `stigmer --help` for usage.
+
 --- with --debug ---
 Error: spec.instructions: value is required
+
+Run `stigmer --help` for usage.
 
 --- debug ---
 gRPC code: InvalidArgument (3)

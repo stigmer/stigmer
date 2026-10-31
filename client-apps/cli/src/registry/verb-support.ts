@@ -107,12 +107,12 @@ export const VERB_SUPPORT: ReadonlyMap<
   ],
   // Session list is served by its dedicated query RPC (a LIST_HANDLERS
   // entry); stigmer/stigmer#469 promoted it into the matrix after it shipped
-  // working-but-unadvertised through a pre-gate bypass. get/delete remain
-  // deliberately unpromised until a real read/ops story exists
-  // (stigmer/stigmer#354) — resume-style flows go through `stigmer session`.
-  // `download session` writes what the conversation's turns saved in their
-  // outputs folder, newest per path.
-  [ApiResourceKind.session, new Set<Verb>([Verb.Apply, Verb.List, Verb.Download])],
+  // working-but-unadvertised through a pre-gate bypass. `get session <id>`
+  // reads one conversation by id, with its newest runs (stigmer/stigmer#2502).
+  // delete remains deliberately unpromised until a real ops story exists
+  // (stigmer/stigmer#354). `download session` writes what the
+  // conversation's turns saved in their outputs folder, newest per path.
+  [ApiResourceKind.session, new Set<Verb>([Verb.Apply, Verb.Get, Verb.List, Verb.Download])],
   // A File is uploaded once and named by its id; its bytes never change, so
   // there is nothing to apply. `list files` shows the Files kept for reuse
   // (those of no conversation), and `list files --session <id>` one

@@ -142,6 +142,18 @@ describe("renderScoresTable", () => {
     expect(out.split("\n").filter((line) => line.includes("line two"))).toHaveLength(1);
   });
 
+  it("CLI-09 cuts a long comment to fit the terminal, keeping who gave it whole, and cuts nothing piped", () => {
+    const long = clone(ScoreSchema, thumbsDown);
+    if (long.spec !== undefined) {
+      long.spec.comment = "picked the wrong label for the second ticket, which was about a refund and not a bug";
+    }
+    const row = (out: string) => out.split("\n").find((line) => line.startsWith("feedback")) ?? "";
+    const narrow = row(renderScoresTable([long], { isTTY: true, columns: 80 }));
+    expect(narrow).toMatch(/picked the wrong label[^ ]*…\s+priya@example\.com$/);
+    expect(narrow.length).toBeLessThanOrEqual(80);
+    expect(row(renderScoresTable([long], { isTTY: false, columns: 80 }))).toContain("a refund and not a bug   priya@example.com");
+  });
+
   it("prints another person's profile name and a check's reason as one line each", () => {
     const named = clone(ScoreSchema, thumbsDown);
     const createdBy = named.status?.audit?.specAudit?.createdBy;

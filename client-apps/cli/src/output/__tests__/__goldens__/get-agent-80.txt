@@ -1,0 +1,50 @@
+
+Variance Reporter  acme/variance-reporter
+
+  Description:  Reviews a quarter's ledger against its budget and saves a
+                variance report.
+  Updated:      2026-10-30 07:45 UTC
+
+Instructions
+  You review a quarter's ledger against its budget.
+
+  Read the ledger you are given, then:
+    - compare each account's actual spend with its budget;
+    - name every account more than ten percent over or under, with its variance,
+      in the words a finance lead would use;
+    - say what most likely drove each one, from the ledger's own lines.
+
+  Keep the report short. An account within its budget is left out.
+
+  Save the report as variance-report.md.
+  Ask before sending it to anyone.
+  Sign as the finance team.
+  … 4 more lines; -o yaml for all
+
+Skills
+  acme/finance-style
+  stigmer/semver@stable
+
+MCP servers
+  github  https://api.githubcopilot.com/mcp/
+  linear  https://mcp.linear.app/mcp
+
+Tools
+  Allowed:     Read, Grep, Glob, WebFetch, mcp__github, mcp__linear__list_issues
+  Disallowed:  Bash(git push *)
+
+Subagents
+  acme/ledger-reader@aaaaaaaaaaaa
+
+Plugins
+  acme/ledger-kit
+
+Environment
+  Sandbox:  acme/finance-build
+  Values:   GITHUB_TOKEN (secret), REGION, REPORT_CURRENCY (optional)
+
+Run settings
+  Harness:   claude
+  Model:     claude-sonnet-4-5
+  Thinking:  enabled
+  Cost cap:  $2 per message

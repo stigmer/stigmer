@@ -266,6 +266,19 @@ describe("renderOrgUsage", () => {
   });
 });
 
+describe("CLI-09 the org report fits the terminal", () => {
+  it("cuts a long agent name in the top agents to fit, and nothing piped", () => {
+    const report = create(GetOrgUsageReportOutputSchema, {
+      ...orgReport,
+      topAgents: [{ ...orgReport.topAgents[0]!, agentName: "Customer Support Escalation Reviewer for EMEA" }],
+    });
+    const range = { from: "2026-03-01", to: "2026-03-31" };
+    // RUNS, TOKENS, SHARE and WORKING take 34 columns with the gaps, leaving AGENT 16 of 50.
+    expect(renderOrgUsage(report, range, "table", { isTTY: true, columns: 50 })).toMatch(/^Customer Suppor…\s+6\s+6\.0k\s+60\.0%\s+42s$/m);
+    expect(renderOrgUsage(report, range, "table", { isTTY: false })).toMatch(/^Customer Support Escalation Reviewer for EMEA\s+6\s/m);
+  });
+});
+
 describe("the harness column", () => {
   it("prints each harness's label, a word this build does not know as it came, and keeps wire words in machine output", () => {
     const report = create(GetOrgUsageReportOutputSchema, {

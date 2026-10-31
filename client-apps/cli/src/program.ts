@@ -4,6 +4,8 @@
 // command-line errors every command words alike (errors/command-line.ts).
 // `--org`, `--debug` and `--standalone` may follow the command; `--api-key`
 // only precedes it.
+// Commands register in their help groups' order, and help.ts gives each its
+// group and examples.
 //
 // Command modules are registered through small `register*` functions so the
 // entry path stays light; heavier commands lazy-load their implementation via
@@ -50,6 +52,7 @@ import { registerUsage } from "./commands/usage.js";
 import { registerValidate } from "./commands/validate.js";
 import { registerVault } from "./commands/vault.js";
 import { registerVersion } from "./commands/version.js";
+import { applyHelp } from "./commands/help.js";
 import { setActionCommand, setDebug, setStandalone } from "./runtime.js";
 import { commandPath } from "./command-tree.js";
 import { installCommandLineErrors } from "./errors/command-line.js";
@@ -81,48 +84,55 @@ export function buildProgram(): Command {
     }
   });
 
-  registerVersion(program);
-  registerCompletion(program);
-  registerConfig(program);
-  registerAuth(program);
-  registerApiKey(program);
-  registerServiceAccount(program);
-  registerProviderKey(program);
-  registerAccessHistory(program);
-  registerGet(program);
-  registerList(program);
-  registerSearch(program);
-  registerValidate(program);
-  registerDelete(program);
-  registerTag(program);
-  registerChannel(program);
-  registerRoutine(program);
-  registerFile(program);
-  registerVault(program);
-  registerUsage(program);
-  registerPush(program);
-  registerInstall(program);
-  registerMarketplace(program);
-  registerEval(program);
-  registerAgent(program);
-  registerDownload(program);
-  registerApply(program);
+  // Run agents
   registerRun(program);
   registerResume(program);
   registerRuns(program);
+  // Your library
+  registerGet(program);
+  registerList(program);
+  registerSearch(program);
+  registerApply(program);
+  registerValidate(program);
+  registerDelete(program);
+  registerTag(program);
+  registerAgent(program);
+  registerRoutine(program);
+  registerChannel(program);
+  registerVault(program);
+  registerFile(program);
   registerConnect(program);
+  // Packages
+  registerPush(program);
+  registerInstall(program);
+  registerMarketplace(program);
   registerMcp(program);
-  registerMcpServer(program);
+  registerEval(program);
+  registerDownload(program);
+  // Local stack
   registerUp(program);
   registerDown(program);
   registerStatus(program);
   registerLogs(program);
   registerSetup(program);
   registerReset(program);
+  registerMcpServer(program);
+  // Account and access
+  registerAuth(program);
+  registerApiKey(program);
+  registerServiceAccount(program);
+  registerProviderKey(program);
+  registerAccessHistory(program);
+  registerUsage(program);
+  // Configuration
+  registerConfig(program);
+  registerCompletion(program);
+  registerVersion(program);
   registerInternalDaemon(program);
 
   // After registration, so every command is reached.
   acceptGlobalsAfterCommand(program);
+  applyHelp(program);
   installCommandLineErrors(program);
 
   return program;

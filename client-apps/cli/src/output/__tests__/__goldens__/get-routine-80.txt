@@ -1,0 +1,12 @@
+
+Weekday digest  acme/weekday-digest
+
+  Agent:           acme/variance-reporter
+  Schedule:        every weekday at 09:00, Asia/Kolkata
+  Enabled:         yes
+  State:           paused
+  Paused because:  5 consecutive failed runs
+  Last run:        2026-10-29 09:15 UTC (run_01jiiiiiiiiiiiiiiiiiiiiiii)
+
+Message
+  Summarise yesterday's merged pull requests.

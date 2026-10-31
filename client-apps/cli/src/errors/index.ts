@@ -11,7 +11,7 @@
 // it works (resources/run/stream.ts).
 
 export { ExitCode } from "@stigmer/client/exit-codes";
-export { type CliError, classify, codeName } from "./classify.js";
+export { cannotConnect, type CliError, classify, codeName, type ConnectFailure } from "./classify.js";
 export { CliExitError } from "./cli-exit-error.js";
 export { formatError, handle } from "./handle.js";
 export { UsageError } from "./usage-error.js";

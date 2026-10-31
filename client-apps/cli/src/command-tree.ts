@@ -5,7 +5,7 @@
 // command, so a rule and the reference pages can never disagree about which
 // commands exist.
 //
-// Commander (v12) exposes neither a command's hidden flag, nor whether a
+// Commander (v15) exposes neither a command's hidden flag, nor whether a
 // command has an action of its own, nor, before v11, its positional
 // arguments publicly; the three readers below (`isHidden`, `hasOwnAction`,
 // `registeredArguments`) are the only places that reach past its public
@@ -118,4 +118,35 @@ export function everyCommand(program: Command): Command[] {
   };
   visit(program);
   return all;
+}
+
+/** A command's short example for its help: the line to type, and what it does in a few words. */
+export interface HelpExample {
+  /** What the line does, lowercase, no closing period: "get an agent by slug". */
+  readonly say: string;
+  /** The line as a person types it, starting with `stigmer`. */
+  readonly run: string;
+}
+
+const EXAMPLES = new WeakMap<Command, readonly HelpExample[]>();
+
+/** Declare a command's examples, printed under "Examples:" after its options. */
+export function examples(cmd: Command, list: readonly HelpExample[]): Command {
+  EXAMPLES.set(cmd, list);
+  return cmd.addHelpText("after", formatExamples(list));
+}
+
+/** A command's declared examples; none when it declares none. */
+export function helpExamples(cmd: Command): readonly HelpExample[] {
+  return EXAMPLES.get(cmd) ?? [];
+}
+
+/** The examples as help prints them: each line, then what it does beneath it. */
+export function formatExamples(list: readonly HelpExample[]): string {
+  return ["", "Examples:", ...list.flatMap((example) => [`  ${example.run}`, `      ${example.say}`])].join("\n");
+}
+
+/** The help group a top-level command sits in, without the heading's colon; "" when it names none. */
+export function helpGroupOf(cmd: Command): string {
+  return cmd.helpGroup().replace(/:$/, "");
 }

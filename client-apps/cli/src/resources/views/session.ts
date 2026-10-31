@@ -1,0 +1,91 @@
+// `get session <id>`: a conversation as a person reads it. Its subject
+// heads it; the summary gives its id, the agent it talks to, whether it is
+// working, the Environment it runs in and which choice named it, and when it
+// began; then its newest runs (turns), each with how it went, when it
+// started and how long it took, and the engine it runs on. The runs are the one thing a view reads
+// beyond its resource: `listRunsBySession` (resources/session.ts), newest
+// first.
+
+import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { BUILT_IN_ASSISTANT_NAME } from "@stigmer/client";
+import { protoToJsonValue } from "../../output/index.js";
+import { asObject, audited, instant, type JsonObject, obj, runSettingFields, str } from "../render.js";
+import { listRunsBySession } from "../session.js";
+import { located, type KindView, type ViewContext } from "./view.js";
+import { phaseWord, refLabel, runSpan } from "./words.js";
+
+/** How many of a session's runs its view lists, the newest. */
+export const SESSION_RUNS = 5;
+
+export const sessionView: KindView = {
+  title: (json, ctx) => {
+    const metadata = obj(json, "metadata");
+    const name = str(obj(json, "spec"), "subject") || str(metadata, "name") || str(metadata, "id");
+    return { name, ref: located(metadata, str(metadata, "slug"), ctx) };
+  },
+  sections: (json, ctx) => {
+    const metadata = obj(json, "metadata");
+    const status = obj(json, "status");
+    const runs = ctx.runs ?? [];
+    return [
+      {
+        fields: [
+          ["ID", str(metadata, "id")],
+          ["Agent", agentOf(json, ctx)],
+          ["State", str(status, "state")],
+          ["Environment", environmentOf(status, metadata, ctx)],
+          ["Created", instant(audited(json).created)],
+        ],
+      },
+      {
+        title: "Runs",
+        rows: runs.slice(0, SESSION_RUNS).map((run) => runRow(run, ctx.now)),
+        more: runs.length > SESSION_RUNS ? "… and earlier runs" : undefined,
+      },
+      { title: "Run settings", fields: runSettingFields(obj(json, "spec"), {}) },
+    ];
+  },
+  related: async (client, json) => {
+    // One more than it shows, to know whether earlier runs exist: one request, however long the conversation.
+    const runs = await listRunsBySession(client, str(obj(json, "metadata"), "id"), SESSION_RUNS + 1);
+    return { runs: runs.map((run) => asObject(protoToJsonValue(RunSchema, run))) };
+  },
+};
+
+// The agent the session names, else the one it pinned by id, else the
+// built-in assistant, as `list sessions` reads it.
+function agentOf(json: JsonObject, ctx: ViewContext): string {
+  const named = refLabel(obj(obj(json, "spec"), "agent_ref"), obj(json, "metadata"), ctx);
+  return named || str(obj(json, "status"), "agent_id") || BUILT_IN_ASSISTANT_NAME;
+}
+
+function environmentOf(status: JsonObject, metadata: JsonObject, ctx: ViewContext): string {
+  const environment = refLabel(obj(status, "environment"), metadata, ctx);
+  const source = environmentSourceWords(str(status, "environment_source"));
+  return environment === "" || source === undefined ? environment : `${environment} (${source})`;
+}
+
+// Which choice named the session's Environment (SessionStatus.environment_source),
+// in words; undefined when the session says none, or one this CLI does not know.
+function environmentSourceWords(source: string): string | undefined {
+  switch (source) {
+    case "ENVIRONMENT_SOURCE_SESSION":
+      return "named for this conversation";
+    case "ENVIRONMENT_SOURCE_ROUTINE":
+      return "from its routine";
+    case "ENVIRONMENT_SOURCE_AGENT":
+      return "from its agent";
+    case "ENVIRONMENT_SOURCE_ORGANIZATION":
+      return "the organization's default";
+  }
+  return undefined;
+}
+
+function runRow(run: JsonObject, now: number): string[] {
+  return [
+    str(obj(run, "metadata"), "id"),
+    phaseWord(run),
+    instant(str(obj(run, "status"), "started_at")) ?? "not started",
+    runSpan(run, now) ?? "",
+  ];
+}
