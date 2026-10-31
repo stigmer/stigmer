@@ -81,12 +81,15 @@ export async function streamAgentRun(deps: StreamDeps): Promise<Run> {
 
   if (isInkSupported(process.stdout)) {
     deps.clearProgress?.();
-    await runInk(deps);
+    const { actionFailed } = await runInk(deps);
     // Ink owns the live view; the epilogue still prints the exit summary, of
     // the session's newest turn: the person may have sent follow-ups since
     // the run this command started (stigmer#2781).
     const runId = await newestRunId(deps.client, deps.sessionId, deps.runId);
-    return runEpilogue(deps.client, deps.sessionId, runId, { phase: "", error: "", turn: undefined });
+    const newest = await runEpilogue(deps.client, deps.sessionId, runId, { phase: "", error: "", turn: undefined });
+    // A save the view could not make fails the command, as a failed download off a terminal does.
+    if (actionFailed) throw new CliExitError("some turn's outputs were not saved (the session says which)", ExitCode.General);
+    return newest;
   }
 
   renderSessionHeader(process.stderr, deps.header);
@@ -161,9 +164,9 @@ export async function newestRunId(client: Stigmer, sessionId: string, fallback: 
 
 // Lazily import the Ink renderer so React/Ink load only on the interactive path
 // (non-streaming commands and --help never pay for them).
-async function runInk(deps: StreamDeps): Promise<void> {
+async function runInk(deps: StreamDeps): Promise<import("../stream/ink.js").InkSessionOutcome> {
   const { runInkSession } = await import("../stream/ink.js");
-  await runInkSession({
+  return runInkSession({
     client: deps.client,
     sessionId: deps.sessionId,
     org: deps.org,

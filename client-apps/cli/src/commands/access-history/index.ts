@@ -24,7 +24,7 @@ import type { Command } from "commander";
 import { ensureAuthenticated, resolveOrganization } from "../../config/index.js";
 import { UsageError } from "../../errors/usage-error.js";
 import type { OutputFlags } from "../../output/index.js";
-import { addReadFlags, globalOrg, readFormat, streamFormat as streamFormatOf } from "../shared.js";
+import { addReadFlags, globalOrg, readFormat } from "../shared.js";
 
 interface ListFlags extends OutputFlags {
   limit?: string;
@@ -103,9 +103,10 @@ export function registerAccessHistory(program: Command): void {
 }
 
 // An export is JSON Lines in every form: `-o json` and `-o ndjson` name it,
-// and any other value is refused as the class map refuses it.
+// and any other value is refused naming those two.
 function refuseTableExport(options: ExportFlags): void {
-  if (streamFormatOf(options) !== "ndjson" && options.output !== undefined) {
+  const output = options.output?.toLowerCase();
+  if (output !== undefined && output !== "json" && output !== "ndjson") {
     throw new UsageError(`--output ${options.output} is not supported by stigmer access-history export (supported: json, ndjson)`);
   }
 }

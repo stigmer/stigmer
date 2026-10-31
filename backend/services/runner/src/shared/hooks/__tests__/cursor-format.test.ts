@@ -2,7 +2,8 @@
  * Pins Cursor's hook format as this runner runs it (`formats/cursor.ts`):
  *  - the events a call fires and what each event's matcher is tested against;
  *  - Cursor's matcher rule (`""` and `*` take everything, else an unanchored
- *    regular expression; one that does not compile takes nothing);
+ *    regular expression, never an exact list; one that does not compile
+ *    takes nothing; one that runs past its budget is stopped);
  *  - stdin per event, and the environment and command substitution;
  *  - the answers: exit 2, `permission`, Claude Code's shape accepted, and the
  *    failure rules (`fail_closed`, output that is not JSON).
@@ -13,7 +14,6 @@ import {
   CURSOR_DEFAULT_TIMEOUT_SECONDS,
   cursorCommand,
   cursorEnv,
-  cursorMatches,
   cursorPostEvents,
   cursorPreEvents,
   cursorStdin,
@@ -21,6 +21,7 @@ import {
   parseCursorPre,
 } from "../formats/cursor.js";
 import type { FormatContext } from "../formats/common.js";
+import { compileMatcher } from "../matcher.js";
 import type { HookRunResult } from "../run.js";
 import type { CursorToolView } from "../tool-view.js";
 
@@ -58,16 +59,25 @@ describe("the events a call fires", () => {
 });
 
 describe("Cursor's matcher rule", () => {
+  const verdict = (matcher: string, target: string) => compileMatcher(matcher, "cursor").test(target);
+
   it("takes everything for an empty matcher or *, else tests an unanchored regular expression", () => {
-    expect([cursorMatches("", "Shell"), cursorMatches("*", "Shell")]).toEqual([true, true]);
-    expect([cursorMatches("Shell", "Shell"), cursorMatches("^rm ", "rm -rf x"), cursorMatches("^ls", "rm -rf x")]).toEqual([true, true, false]);
-    expect(cursorMatches("MCP:sea", "MCP:search"), "unanchored").toBe(true);
+    expect([verdict("", "Shell"), verdict("*", "Shell")]).toEqual(["match", "match"]);
+    expect([verdict("Shell", "Shell"), verdict("^rm ", "rm -rf x"), verdict("^ls", "rm -rf x")]).toEqual(["match", "match", "miss"]);
+    expect(verdict("MCP:sea", "MCP:search"), "unanchored").toBe("match");
+    expect(verdict("Shell|Read", "ShellOutput"), "a regular expression, never Claude's exact list").toBe("match");
   });
 
   it("takes nothing for a matcher that does not compile", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    expect(cursorMatches("(", "Shell")).toBe(false);
+    expect(verdict("(", "Shell")).toBe("miss");
     warn.mockRestore();
+  });
+
+  it("stops a matcher that runs past its budget on a long command", () => {
+    const started = performance.now();
+    expect(verdict("(a+)+$", `${"a".repeat(40)}!`)).toBe("timed-out");
+    expect(performance.now() - started).toBeLessThan(2_000);
   });
 });
 

@@ -51,10 +51,12 @@ describe("CLI-02 a command whose answer is a bare value prints JSON with -o json
     expect(JSON.parse(await cli("config", "path", "-o", "json"))).toEqual({ path: bare });
   });
 
-  it("refuses a table for access-history export, which writes JSON Lines only", async () => {
-    await expect(cli("access-history", "export", "-o", "table")).rejects.toMatchObject({
-      exitCode: 2,
-      message: "--output table is not supported by stigmer access-history export (supported: json, ndjson)",
-    });
+  it("refuses a table for access-history export, which writes JSON Lines only, naming only what it takes", async () => {
+    for (const value of ["table", "yaml"]) {
+      await expect(cli("access-history", "export", "-o", value)).rejects.toMatchObject({
+        exitCode: 2,
+        message: `--output ${value} is not supported by stigmer access-history export (supported: json, ndjson)`,
+      });
+    }
   });
 });

@@ -9,7 +9,8 @@ import { Command, CommanderError } from "commander";
 import { everyCommand } from "../../command-tree.js";
 import { buildProgram } from "../../program.js";
 import { classify } from "../classify.js";
-import { CommandLineError, commandLineErrorOf } from "../command-line.js";
+import { CommandLineError, commandLineErrorOf, usageExitCode } from "../command-line.js";
+import { INVALID_OPTION_EXIT } from "../../resources/eval-run/options.js";
 import { formatError } from "../handle.js";
 
 /** Parse `argv` through the whole program, returning what it printed and what it threw. */
@@ -126,6 +127,8 @@ describe("CLI-03 a usage error exits 2, in the CLI's own error style", () => {
     it("names a short unknown option, keeps a short suggestion, and reads no name from the middle of a message", () => {
       expect(wordsOf(commandWith(0), "commander.unknownOption", "error: unknown option '-x'\n(Did you mean -o?)")).toBe("unknown option '-x' (Did you mean -o?)");
       expect(wordsOf(commandWith(0), "commander.unknownOption", "error: an unknown option '--a'")).toBe("unknown option");
+      // A short option's attached value is never echoed.
+      expect(wordsOf(commandWith(0), "commander.unknownOption", "error: unknown option '-ksk-ant-PLANTED'")).toBe("unknown option '-k'");
     });
 
     it("counts extra arguments for a command that takes none, one or several, and with no count to read", () => {
@@ -133,5 +136,16 @@ describe("CLI-03 a usage error exits 2, in the CLI's own error style", () => {
       expect(wordsOf(commandWith(1), "commander.excessArguments", "error: too many arguments. Expected 1 argument but got 2.")).toBe("stigmer pick takes 1 argument, got 2");
       expect(wordsOf(commandWith(2), "commander.excessArguments", "error: too many arguments")).toBe("stigmer pick takes 2 arguments");
     });
+  });
+
+  it("exits with the code a command declares for its usage errors: eval run's invalid option is 1", async () => {
+    const { thrown } = await parse(["eval", "run", "--plugn", "thermos"]);
+    expect(rendered(thrown)).toEqual({
+      text: "Error: unknown option '--plugn' (Did you mean --plugin?)\n\nRun `stigmer eval run --help` for usage.\n",
+      exitCode: 1,
+    });
+    expect(INVALID_OPTION_EXIT).toBe(1);
+    const declared = usageExitCode(new Command("x"), 7);
+    expect(commandLineErrorOf(declared, new CommanderError(1, "commander.missingArgument", "error: missing")).exitCode).toBe(7);
   });
 });

@@ -17,6 +17,7 @@
  */
 
 import type { HookGroup, HookHandler } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/hooks_pb";
+import { compileMatcher, type Matcher } from "./matcher.js";
 
 /** Claude Code's `${user_config.KEY}`; global, so read it only with `matchAll` or `replace`. */
 export const USER_CONFIG_REFERENCE = /\$\{user_config\.([A-Za-z_][A-Za-z0-9_]*)\}/g;
@@ -78,7 +79,10 @@ export interface HookEntry {
   /** The source's position in the agent's list. */
   readonly order: number;
   readonly event: HookEvent;
+  /** The matcher as the source wrote it, which spans record. */
   readonly matcher: string;
+  /** The matcher compiled once, by the format's rule, which every call is tested with (`matcher.ts`). */
+  readonly compiled: Matcher;
   readonly handlers: readonly HookHandler[];
 }
 
@@ -100,7 +104,8 @@ export class HookSet {
     sources.forEach(({ source, format = "claude-code", groups }, order) => {
       for (const group of groups) {
         if (!isRunEvent(group.event, format) || group.handlers.length === 0) continue;
-        entries.push({ source, format, order, event: group.event, matcher: group.matcher, handlers: group.handlers });
+        const compiled = compileMatcher(group.matcher, format);
+        entries.push({ source, format, order, event: group.event, matcher: group.matcher, compiled, handlers: group.handlers });
       }
     });
     return new HookSet(entries);

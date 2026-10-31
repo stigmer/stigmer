@@ -24,6 +24,8 @@ import type { Command } from "commander";
 import { ensureAuthenticated, resolveOrganization } from "../config/index.js";
 import type { EvalRunFlags } from "../resources/eval-run/options.js";
 import { engineChoice } from "../resources/run/engines.js";
+import { ExitCode } from "@stigmer/client/exit-codes";
+import { usageExitCode } from "../errors/command-line.js";
 import type { OutputFlags } from "../output/format.js";
 import { addResultFlags, globalOrg, resultFormat } from "./shared.js";
 
@@ -54,7 +56,7 @@ export function registerEval(program: Command): void {
     .command("eval")
     .description("run test cases on an agent or a plugin, with and without a plugin, and score them");
 
-  evalGroup
+  const run = evalGroup
     .command("run")
     .description("run test cases on an agent, or a plugin's own cases on the built-in assistant, and score them")
     .option(
@@ -102,6 +104,8 @@ export function registerEval(program: Command): void {
     .option("--no-wait", "start the eval run, print its id, and return")
     .addHelpText("after", EVAL_HELP)
     .action((options: EvalRunFlags, command: Command) => runEvalRunCommand(options, command));
+  // An invalid option exits 1 on this command (the plugin-eval table, where 2 is a partial run).
+  usageExitCode(run, ExitCode.General);
 
   addResultFlags(
     evalGroup

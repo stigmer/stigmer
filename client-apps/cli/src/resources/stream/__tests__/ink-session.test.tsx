@@ -91,7 +91,7 @@ describe("CLI-11 the live session ends the way its mode promises", () => {
     await tick();
     expect(returned, "it waits for the turn's outputs").toBe(false);
     release();
-    await done;
+    expect(await done).toEqual({ actionFailed: false });
     expect(notes).toEqual(["Downloaded variance-report.md (4.2 KB)"]);
     expect(afterTurn.mock.calls.map(([seen, atLoad]) => [seen.runId, atLoad])).toEqual([
       ["run_0", true],
@@ -134,7 +134,7 @@ describe("CLI-11 the live session ends the way its mode promises", () => {
       },
     });
     viewOnTurnEnd()(turn("run_1"), { note: (text) => void notes.push(text), atLoad: false });
-    await done;
+    expect(await done).toEqual({ actionFailed: true });
     expect(notes).toEqual(["Could not save this turn's outputs: disk full"]);
   });
 });
