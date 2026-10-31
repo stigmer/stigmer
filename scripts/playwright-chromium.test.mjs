@@ -10,7 +10,11 @@
 // how to behave, recording the arguments it was called with. The deadline
 // cases give it a grandchild that would outlive a plain kill, so they prove
 // the whole process group goes, the way Playwright's own out-of-process
-// downloader would have to. The missing-library case feeds it the exact text
+// downloader would have to. Those group-kill cases say when the deadline
+// passes, once the fake is running: what they prove (the group goes, the probe
+// never runs) needs a fake that got that far, and on a loaded machine a real
+// 1.5 s timer can pass before it starts (#1994). One more case keeps the real
+// timer and asserts only what a slow start cannot change. The missing-library case feeds it the exact text
 // Playwright 1.60's launcher printed on a bare ubuntu:24.04 host, so the
 // probe is held to what a real image change looks like.
 //
@@ -141,20 +145,25 @@ let fixtureCount = 0;
 // fails its case and the run still ends.
 const pidFiles = [];
 
+/** The hanging fake's pid and its grandchild's, or null while the file is absent or half written. */
+function hangingPids(file) {
+  let pids;
+  try {
+    pids = readFileSync(file, "utf8").trim().split(" ").map(Number);
+  } catch {
+    return null;
+  }
+  // Only real pids: a 0 here would signal this runner's own process group.
+  return pids.length === 2 &&
+    pids.every((pid) => Number.isInteger(pid) && pid > 1)
+    ? pids
+    : null;
+}
+
 function stopFakes() {
   for (const file of pidFiles.splice(0)) {
-    let pids = [];
-    try {
-      pids = readFileSync(file, "utf8").trim().split(" ").map(Number);
-    } catch {
-      continue;
-    }
-    // Only real pids: a 0 here would signal this runner's own process group.
-    if (
-      pids.length !== 2 ||
-      !pids.every((pid) => Number.isInteger(pid) && pid > 1)
-    )
-      continue;
+    const pids = hangingPids(file);
+    if (!pids) continue;
     for (const target of [-pids[0], ...pids]) {
       try {
         process.kill(target, "SIGKILL");
@@ -193,9 +202,9 @@ function fakeCli(mode, extraEnv = {}) {
     dir,
     cli,
     probeFile: join(dir, "probe.png"),
+    pidFile: pids,
     env,
     calls: () => readFileSync(log, "utf8").split("\n").filter(Boolean),
-    pids: () => readFileSync(pids, "utf8").trim().split(" ").map(Number),
   };
 }
 
@@ -213,14 +222,14 @@ function sink() {
 }
 
 /** Runs the installer against a fake CLI, with the fake's environment and a captured log. */
-async function run(fake, { deadlineMs = 20_000 } = {}) {
+async function run(fake, { deadlineMs = 20_000, deadline } = {}) {
   const out = sink();
   const err = sink();
-  const started = Date.now();
   const verdict = await installChromium({
     cli: fake.cli,
     probeFile: fake.probeFile,
     deadlineMs,
+    deadline,
     env: { ...process.env, ...fake.env },
     out,
     err,
@@ -229,7 +238,6 @@ async function run(fake, { deadlineMs = 20_000 } = {}) {
     verdict,
     out: out.text(),
     err: err.text(),
-    elapsedMs: Date.now() - started,
   };
 }
 
@@ -251,6 +259,25 @@ async function gone(pids, ms = 3_000) {
     await new Promise((settle) => setTimeout(settle, 50));
   }
   return pids.every((pid) => !alive(pid));
+}
+
+/**
+ * Waits up to `ms` for a hanging fake to be running, its pid and its
+ * grandchild's written, and returns them. Then, or on giving up, it passes the
+ * deadline, so the installer kills a fake that never got ready too.
+ */
+async function whenReady(fake, deadline, ms = 10_000) {
+  const until = Date.now() + ms;
+  try {
+    while (Date.now() < until) {
+      const pids = hangingPids(fake.pidFile);
+      if (pids) return pids;
+      await new Promise((settle) => setTimeout(settle, 50));
+    }
+    throw new Error(`the fake was not running after ${ms} ms`);
+  } finally {
+    deadline.abort();
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -376,13 +403,21 @@ test(
   { timeout: 15_000 },
   async () => {
     const fake = fakeCli("install-hangs");
-    const { verdict, elapsedMs } = await run(fake, { deadlineMs: 1_500 });
+    const deadline = new AbortController();
+    const running = run(fake, {
+      deadlineMs: 1_500,
+      deadline: deadline.signal,
+    });
+    const pids = await whenReady(fake, deadline);
+    const passed = Date.now();
+    const { verdict } = await running;
+    const stoppedMs = Date.now() - passed;
     assert.equal(verdict.ok, false);
     assert.equal(verdict.phase, "install");
     assert.equal(verdict.timedOut, true);
     assert.ok(
-      elapsedMs < 1_500 + 5_000,
-      `stopped promptly after the deadline (took ${elapsedMs} ms)`,
+      stoppedMs < 5_000,
+      `stopped promptly after the deadline (took ${stoppedMs} ms)`,
     );
     assert.deepEqual(
       fake.calls(),
@@ -390,7 +425,7 @@ test(
       "the probe never runs after a timed-out install",
     );
     assert.ok(
-      await gone(fake.pids()),
+      await gone(pids),
       "neither the CLI nor its grandchild is left running",
     );
     assert.match(
@@ -406,21 +441,48 @@ test(
   { timeout: 15_000 },
   async () => {
     const fake = fakeCli("probe-hangs");
-    const { verdict, elapsedMs } = await run(fake, { deadlineMs: 1_500 });
+    const deadline = new AbortController();
+    const running = run(fake, {
+      deadlineMs: 1_500,
+      deadline: deadline.signal,
+    });
+    const pids = await whenReady(fake, deadline);
+    const passed = Date.now();
+    const { verdict } = await running;
+    const stoppedMs = Date.now() - passed;
     assert.equal(verdict.ok, false);
     assert.equal(verdict.phase, "probe");
     assert.equal(verdict.timedOut, true);
     assert.ok(
-      elapsedMs < 1_500 + 5_000,
-      `stopped promptly after the deadline (took ${elapsedMs} ms)`,
+      stoppedMs < 5_000,
+      `stopped promptly after the deadline (took ${stoppedMs} ms)`,
     );
     assert.ok(
-      await gone(fake.pids()),
+      await gone(pids),
       "neither the CLI nor its grandchild is left running",
     );
     assert.match(
       verdictMessage(verdict),
       /the launch did not finish within 1\.5 s and was stopped/,
+    );
+  },
+);
+
+// The installer's own timer, the one production runs on. A slow start may see
+// the fake killed before it records anything, so only the verdict is asserted.
+// A broken deadline would hang here, so the case has its own bound: it fails, never hangs.
+test(
+  "the deadline passes on its own when no one says when",
+  { timeout: 15_000 },
+  async () => {
+    const fake = fakeCli("install-hangs");
+    const { verdict } = await run(fake, { deadlineMs: 1_500 });
+    assert.equal(verdict.ok, false);
+    assert.equal(verdict.phase, "install");
+    assert.equal(verdict.timedOut, true);
+    assert.match(
+      verdictMessage(verdict),
+      /the install did not finish within 1\.5 s and was stopped; Chromium downloads from cdn\.playwright\.dev/,
     );
   },
 );
