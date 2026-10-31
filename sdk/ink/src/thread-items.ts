@@ -9,11 +9,15 @@
 //   - every item of an ended turn, and the line it leaves ("Worked for 1m
 //     12s", or the badge of a failed or stopped turn);
 //   - a person's message, a note, a thinking that finished;
-//   - each block of the agent's reply but the last while it is being written;
+//   - each block of the agent's reply but the last while it is being written
+//     (and a list just above the last, which the last may still join);
 //   - a tool group whose calls all returned, unless it is the last item of a
 //     turn still working (the next call joins it);
 //   - a subagent that finished;
-//   - a file review's record, drawn once every file is decided.
+//   - a file review's record, drawn once every file is decided. A set decided
+//     after what follows its turn was written (the person sent the next
+//     message without deciding, which keeps the files) can only be written
+//     below it, so it is marked as an earlier turn's.
 // The approvals, queued and pending messages at the tail never settle.
 //
 // `<Static>` prints by position, so what it holds may only ever grow at its
@@ -49,7 +53,12 @@ export type ThreadItem = (
   | { readonly kind: "worked"; readonly text: string }
   | { readonly kind: "pending-message"; readonly content: string }
   | { readonly kind: "queued-message"; readonly message: QueuedMessage }
-  | { readonly kind: "file-review-record"; readonly set: FileReviewSet }
+  | {
+      readonly kind: "file-review-record";
+      readonly set: FileReviewSet;
+      /** Written below what followed its turn, so it says it is an earlier turn's. */
+      readonly earlier?: boolean;
+    }
   | { readonly kind: "approval"; readonly toolUse: ToolUse }
 ) & { readonly key: string; readonly settled: boolean };
 
@@ -125,7 +134,7 @@ export function buildTurnSegment(turn: Turn, run: Run | undefined, includeFileRe
     if (item.kind === "message") {
       const writing = item.live && !ended;
       const blocks = markdownBlocks(item.text);
-      const settledCount = settledBlockCount(blocks.length, writing);
+      const settledCount = settledBlockCount(blocks, writing);
       blocks.forEach((token, index) => {
         seg.push({ kind: "reply-block", token, first: index === 0, key: `${item.id}-b${index}`, settled: index < settledCount });
       });
@@ -217,11 +226,20 @@ export function settledPrefixLength(items: readonly { readonly settled: boolean 
 
 /**
  * The history after this frame: what was written, then each settled item not
- * written yet, by key. Returns `written` itself when nothing is new, so the
- * history Ink holds is unchanged.
+ * written yet, by key, a file review's record that comes before something
+ * already written marked as an earlier turn's. Returns `written` itself when
+ * nothing is new, so the history Ink holds is unchanged.
  */
-export function appendOnce<T extends { readonly key: string }>(written: readonly T[], settled: readonly T[]): readonly T[] {
+export function appendOnce(written: readonly ThreadItem[], settled: readonly ThreadItem[]): readonly ThreadItem[] {
   const keys = new Set(written.map((item) => item.key));
-  const fresh = settled.filter((item) => !keys.has(item.key));
+  let lastWritten = -1;
+  settled.forEach((item, index) => {
+    if (keys.has(item.key)) lastWritten = index;
+  });
+  const fresh: ThreadItem[] = [];
+  settled.forEach((item, index) => {
+    if (keys.has(item.key)) return;
+    fresh.push(item.kind === "file-review-record" && index < lastWritten ? { ...item, earlier: true } : item);
+  });
   return fresh.length === 0 ? written : [...written, ...fresh];
 }

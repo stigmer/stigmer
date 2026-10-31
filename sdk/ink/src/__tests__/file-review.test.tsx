@@ -461,6 +461,23 @@ describe("MessageThread — file-review integration", () => {
     expect(out.split("File review — 1 kept")).toHaveLength(2);
   });
 
+  it("writes a set decided after the next message below it, named as an earlier turn's", async () => {
+    // Sending the next message without deciding keeps the files: the decision
+    // arrives after that message is already in the history.
+    const next = samples.turn({ runId: "run-next", message: "Now the README", reply: "", phase: "running" });
+    const thread = (decided: boolean) => (
+      <MessageThread turns={[turnWithEdit("completed", decided), next]} showFileReviewRecords />
+    );
+    const { instance, stdout } = renderOnTerminal(thread(false));
+    await settleTerminal();
+    instance.rerender(thread(true));
+    await settleTerminal();
+    instance.unmount();
+    const out = stdout.output();
+    expect(out).not.toContain("File review — ");
+    expect(out.indexOf("File review of an earlier turn — 1 kept")).toBeGreaterThan(out.indexOf("Now the README"));
+  });
+
   it("does not record an undecided set on a live turn (that is the prompt's job)", () => {
     const out = render(
       <MessageThread turns={[turnWithEdit("running", false)]} showFileReviewRecords expandToolCalls live={false} />,

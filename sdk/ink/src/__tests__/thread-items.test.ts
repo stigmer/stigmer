@@ -44,10 +44,16 @@ describe("the thread's items", () => {
     expect(failed.at(-1)).toMatchObject({ kind: "phase", key: `${RUN_ID}-end`, settled: true });
   });
 
-  it("settles a reply being written block by block: all but its last block", () => {
-    const items = itemsOf([writing(samples.turn({ phase: "running", reply: REPLY }))]);
-    expect(shape(items)).toEqual(["message:settled", "reply-block:settled", "reply-block:settled", "reply-block:live"]);
-    expect(items.filter((item) => item.kind === "reply-block").map((item) => item.kind === "reply-block" && item.first)).toEqual([true, false, false]);
+  it("settles a reply being written block by block: all but its last block, and a list just above it", () => {
+    const items = itemsOf([writing(samples.turn({ phase: "running", reply: `${REPLY}\n\nMore` }))]);
+    expect(shape(items)).toEqual(["message:settled", "reply-block:settled", "reply-block:settled", "reply-block:settled", "reply-block:live"]);
+    expect(shape(itemsOf([writing(samples.turn({ phase: "running", reply: REPLY }))]))).toEqual([
+      "message:settled",
+      "reply-block:settled",
+      "reply-block:live",
+      "reply-block:live",
+    ]);
+    expect(items.filter((item) => item.kind === "reply-block").map((item) => item.kind === "reply-block" && item.first)).toEqual([true, false, false, false]);
   });
 
   it("keeps a working turn's last tool group live, since the next call joins it, and settles one a reply follows", () => {
@@ -103,6 +109,19 @@ describe("the thread's items", () => {
       pendingUserMessage: "and that",
     });
     expect(shape(items).slice(1)).toEqual(["approval:live", "queued-message:live", "pending-message:live"]);
+  });
+
+  it("writes a list streamed in pieces whole, though a later piece joins it to an earlier one", () => {
+    const text = "Steps:\n\n1. one\n\n2. two\n\n3. three\n\nDone.";
+    let written: readonly ThreadItem[] = [];
+    for (let end = 1; end <= text.length; end += 1) {
+      const turn = writing(samples.turn({ phase: "running", reply: text.slice(0, end) }));
+      const items = itemsOf([turn]);
+      written = appendOnce(written, items.slice(0, settledPrefixLength(items)));
+    }
+    written = appendOnce(written, itemsOf([samples.turn({ phase: "running", reply: text })]));
+    const blocks = written.flatMap((item) => (item.kind === "reply-block" ? [item.token.raw.trim()] : []));
+    expect(blocks).toEqual(["Steps:", "1. one\n\n2. two\n\n3. three", "Done."]);
   });
 
   it("records a file review once every file is decided, never while one is undecided", () => {
@@ -207,14 +226,28 @@ describe("the settled prefix", () => {
 });
 
 describe("the history", () => {
-  const a = { key: "a" };
-  const b = { key: "b" };
-  const c = { key: "c" };
+  const line = (key: string): ThreadItem => ({ kind: "worked", text: key, key, settled: true });
+  const a = line("a");
+  const b = line("b");
+  const c = line("c");
 
   it("grows only at its end, by key, writing nothing twice", () => {
     expect(appendOnce([a], [a, b, c])).toEqual([a, b, c]);
     // An item seen again, or out of place, is not written again.
     expect(appendOnce([a, b], [b, a, c])).toEqual([a, b, c]);
+  });
+
+  it("marks a file review's record written below what followed its turn as an earlier turn's", () => {
+    const decided = turnOf([
+      ...samples.turnEvents({ reply: "Edited." }),
+      ...reviewEvents([{ id: "a", path: "notes.md" }], [{ id: "d", action: "keep", fileChangeId: "a" }]),
+    ]);
+    const record = itemsOf([decided]).find((item) => item.kind === "file-review-record")!;
+    // Decided with its turn: written in place, as its turn's.
+    expect(appendOnce([a], [a, record, b]).at(1)).toBe(record);
+    // Decided once the next turn's message was written: below it, and says so.
+    expect(appendOnce([a, b], [a, record, b]).at(-1)).toEqual({ ...record, earlier: true });
+    expect(appendOnce([a, b], [a, b, record]).at(-1)).toBe(record);
   });
 
   it("is the same list when nothing is new, so Ink's history does not change", () => {

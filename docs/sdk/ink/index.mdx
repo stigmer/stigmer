@@ -118,9 +118,9 @@ await runInTerminal(client, input, {
 });
 ```
 
-`runInTerminal` asks the terminal for its background (an OSC 11 query, at most
-100 ms, falling back to `COLORFGBG`) only when the theme is a function. With your
-own provider, call `detectBackground()` first and pass its answer as the
+`runInTerminal` asks the terminal for its background (an OSC 11 query, one round
+trip, at most a second from a terminal that answers nothing, falling back to
+`COLORFGBG`) only when the theme is a function. With your own provider, call `detectBackground()` first and pass its answer as the
 provider's `background`.
 
 ## What the session draws
@@ -133,8 +133,10 @@ written follows a resize; what is already in the scrollback keeps the width it
 was written at.
 
 Thinking shows as one dim line, "✻ Thinking" while it streams and "✻ Thought"
-once done; Ctrl+O shows all of it. Just above the reply box, `WorkingLine` says
-what the turn is doing and for how long ("⠋ Running a command · 1m 12s"), from
+once done. With Ctrl+O on, a thought is written in full as it finishes; one
+already in the scrollback stays as it was written. Just above the reply box,
+`WorkingLine` says what the turn is doing and for how long ("⠋ Running a
+command · 1m 12s"), from
 the same `describeTurnActivity` the browser's activity line reads. A completed
 turn leaves "✻ Worked for 1m 12s"; a failed or stopped one keeps its badge.
 

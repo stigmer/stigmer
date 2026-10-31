@@ -15,7 +15,7 @@
 // `renderMarkdown` draws the same component to a string, for a host that
 // prints outside Ink, so the two cannot drift.
 //
-// Proven by __tests__/markdown.test.tsx.
+// Proven by __tests__/markdown.test.ts.
 
 import React from "react";
 import { Box, Text, renderToString } from "ink";

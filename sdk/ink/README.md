@@ -78,7 +78,7 @@ It reads the key from `STIGMER_API_KEY` and the server from `STIGMER_BASE_URL` (
 - **History is written once.** What can no longer change goes into the terminal's own scrollback and is never redrawn: the person's message, each finished block of a reply, a tool group whose calls returned, a finished subagent. Only what is still changing redraws in place, so the screen never flickers and the scrollback above the session is never cleared, however long the turn.
 - **Replies follow the window.** Markdown is drawn in weight alone (bold, italic, dim, underline), with no colour, so it reads on a light and a dark terminal. Inline code is bold, a code block sits behind a dim gutter, and a table's columns wrap inside themselves when the window is narrow. `renderMarkdown(text, width)` gives the same drawing as a string, for output outside Ink.
 - **Resizing.** What is being written redraws at the new width. What is already in the scrollback keeps the width it was written at, because reflowing it would mean clearing the terminal. A terminal that rewraps lines (Terminal, iTerm2, kitty) can leave a stale copy of a long line that was still being written when the window narrowed.
-- **Thinking** shows as one dim line, "✻ Thinking" while it streams and "✻ Thought" once done, with its first 80 characters; Ctrl+O shows all of it.
+- **Thinking** shows as one dim line, "✻ Thinking" while it streams and "✻ Thought" once done, with its first 80 characters. With Ctrl+O on, a thought is written in full as it finishes; one already written stays as it was written.
 - **The working line**, just above the reply box, says what the turn is doing and for how long: "⠋ Running a command · 1m 12s". A completed turn leaves "✻ Worked for 1m 12s"; a failed or stopped one keeps its badge.
 
 ## Your colours
@@ -101,7 +101,7 @@ await runInTerminal(client, input, {
 });
 ```
 
-`runInTerminal` then asks the terminal for its background colour before it draws (an OSC 11 query, at most 100 ms, falling back to `COLORFGBG`). With your own provider, call `detectBackground()` first and pass its answer as `background`. A plain theme object asks nothing.
+`runInTerminal` then asks the terminal for its background colour before it draws (an OSC 11 query, one round trip, at most a second from a terminal that answers nothing, falling back to `COLORFGBG`). With your own provider, call `detectBackground()` first and pass its answer as `background`. A plain theme object asks nothing.
 
 ## Your own view
 
