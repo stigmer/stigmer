@@ -4,8 +4,8 @@
 // (read on open, copied without being shown) and issuer line (a name and
 // an address, or an address once), the issue path (the SDK input
 // sent, landing on the detail with the created ticket and no second read),
-// the refusals (a contract rule before sending, a duplicate from the
-// server), the new-customer duplicate guard and Renew's pre-fill.
+// the refusals (a contract rule before sending, at its own field, a limit
+// below 1 among them; a duplicate from the server), the new-customer duplicate guard and Renew's pre-fill.
 
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
@@ -246,6 +246,21 @@ describe("LicensesConsole issue", () => {
     await user.type(screen.getByLabelText(/Display name/), "Initech");
     await user.type(screen.getByLabelText(/Contact email/), "not-an-address");
     expect(screen.getByText("Enter the address renewal notices go to.")).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Issue license" }));
+    expect(client.license.create).not.toHaveBeenCalled();
+  });
+
+  it("holds a limit below 1 at its own field, by the contract's rule", async () => {
+    const user = userEvent.setup();
+    const client = mockClient();
+    renderConsole(client);
+
+    await user.click(await screen.findByRole("button", { name: /Issue license/ }));
+    await user.type(screen.getByLabelText(/Display name/), "Initech");
+    await user.type(screen.getByLabelText(/Contact email/), "ops@initech.test");
+    await user.type(screen.getByLabelText(/Max users/), "0");
+    await user.type(screen.getByLabelText(/Max organizations/), "-3");
+    expect(screen.getAllByText("Enter at least 1, or leave it empty for unlimited.")).toHaveLength(2);
     await user.click(screen.getByRole("button", { name: "Issue license" }));
     expect(client.license.create).not.toHaveBeenCalled();
   });
