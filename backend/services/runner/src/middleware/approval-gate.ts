@@ -98,14 +98,28 @@
  * `ask` is answered by the stored decision through `interrupt()`. PostToolUse
  * runs once, because the handler runs once.
  *
+ * An approval authorizes exactly the call its card showed. The second run of
+ * a hook need not answer as the first did (it may stamp the time, count, read
+ * the network), so where a call runs on a person's approval it runs only as
+ * shown: the resume carries back the arguments the card showed when they were
+ * a hook's rewrite (`hitl.ts` `resolveResumeInput`), the model's own stand
+ * otherwise, and a call that would now run with other arguments is refused
+ * unrun ({@link CHANGED_MESSAGE}); the model may call again, which asks again.
+ * No lease answers a call a person answered, not even the one their "approve
+ * all" granted on it: the lease clears later asks, and this call's own is
+ * answered by the person, held to the card. A call that runs on another
+ * authorization (a hook's `allow`, "trust this whole run") never leaned on
+ * the approval and is judged by that authorization alone, as a call the model
+ * made afresh would be.
+ *
  * Shadow ExecutionReceipt: when the gateway lets a side effect through it emits a
  * structured, non-persisted receipt (a `[hitl-gateway] receipt …` log carrying
  * the action's HMAC fingerprint and the authorization source). This is an audit
  * + uniformity signal only — no proto, no storage — in the same shadow
  * discipline as the server's approval-stream cross-check. On the deep-agent
- * normal path the fingerprint match is guaranteed
- * by LangGraph checkpoint replay (the resumed action equals the approved one), so
- * the receipt is defense-in-depth here.
+ * path a call runs on an approval only as its card showed it (above), so the
+ * resumed action equals the approved one by that check, and the receipt is
+ * defense-in-depth here.
  */
 
 import { ToolMessage } from "@langchain/core/messages";
@@ -115,9 +129,11 @@ import {
   type McpApprovalDefault,
   type PolicySource,
   POLICY_ENGINE_VERSION,
+  CHANGED_MESSAGE,
   resolveToolApproval,
   unattendedSkipMessage,
 } from "../shared/approval-policy.js";
+import { isArgsObject, sameJson } from "../shared/json-value.js";
 import { hookAskMessage, hookFeedbackSection, hookRefusalMessage, personDecisionSentence } from "../shared/hooks/messages.js";
 import { NO_PRE_TOOL_USE, type HookCallScope, type HookEvaluator, type PreToolUseOutcome } from "../shared/hooks/evaluate.js";
 import { TOOL_REFUSED_EVENT, customStreamWriterOf, toolScopeRefusal, type ToolRefusedPayload, type ToolScopeConfig } from "./tool-scope.js";
@@ -207,6 +223,13 @@ export interface ApprovalGateConfig extends FileEditPosture {
    * never runs.
    */
   readonly refusedByPerson?: ReadonlyMap<string, PersonRefusal>;
+  /**
+   * The calls a person approved on their card, from the same decisions:
+   * `approve` or `approve_all`, by tool-call id. No lease answers one of these
+   * (the header), so the person's answer reaches it through `interrupt()` and
+   * holds it to what the card showed.
+   */
+  readonly approvedByPerson?: ReadonlySet<string>;
 }
 
 /**
@@ -226,9 +249,12 @@ export interface ToolPolicyPayload {
 
 export { HOOK_FEEDBACK_HEADING } from "../shared/hooks/messages.js";
 
+/** The resume value `hitl.ts` `resolveResumeInput` builds for one interrupt; untyped where it comes back, read through guards. */
 interface ApprovalDecision {
   readonly action: string;
   readonly comment?: string;
+  /** The arguments the card showed, present when they were a hook's rewrite. */
+  readonly args?: unknown;
 }
 
 /** A call a person refused: skip or reject, and the reason they gave (`""` for none), which the model reads. */
@@ -261,6 +287,7 @@ export function createApprovalGateMiddleware(
 ): StigmerMiddleware {
   const { mcpDefault, mcpIndex } = config;
   const leasedCategories = config.leasedCategories ?? EMPTY_CATEGORY_SET;
+  const unleasedMcpDefault: McpApprovalDefault = { ...mcpDefault, leasedServers: EMPTY_SLUG_SET };
   const hooks = config.hooks ?? null;
   const globalBypass = config.globalBypass ?? false;
   const scope: HookCallScope = config.subAgent ? { subAgent: config.subAgent } : {};
@@ -301,7 +328,10 @@ export function createApprovalGateMiddleware(
         }
       }
 
-      const hookSource = await resolveHookDecision(config, call, toolName, serverSlug, pre, pre.decision, globalBypass);
+      // No lease answers a call a person answered: their answer does (the header).
+      const answered = config.approvedByPerson?.has(toolCall.id) === true;
+      const decision = answered && pre.leased ? "ask" : pre.decision;
+      const hookSource = await resolveHookDecision(config, request, call, toolName, serverSlug, pre, decision, globalBypass);
       if (hookSource instanceof ToolMessage) return hookSource;
 
       const run = async (source: PolicySource | undefined, authorization: AuthorizationSource) => {
@@ -313,7 +343,7 @@ export function createApprovalGateMiddleware(
       if (hookSource !== undefined) {
         // A hook decided: capture still reviews what runs (3).
         if (!globalBypass) await captureFlows(config, call.toolCall.args, serverSlug, category);
-        return run(hookSource, pre.decision === "ask" && hookSource === "hook" ? "approval" : "auto_approve");
+        return run(hookSource, decision === "ask" && hookSource === "hook" ? "approval" : "auto_approve");
       }
       if (globalBypass) return run("auto_approve_all", "auto_approve");
 
@@ -322,7 +352,9 @@ export function createApprovalGateMiddleware(
       if (flow !== undefined) return run(flow, "auto_approve");
 
       // 4. The default.
-      const requirement = resolveToolApproval(toolName, serverSlug, call.toolCall.args, mcpDefault, leasedCategories);
+      const requirement = answered
+        ? resolveToolApproval(toolName, serverSlug, call.toolCall.args, unleasedMcpDefault, EMPTY_CATEGORY_SET)
+        : resolveToolApproval(toolName, serverSlug, call.toolCall.args, mcpDefault, leasedCategories);
       if (!requirement.requiresApproval) {
         // Backing authorization: the default does not ask for this tool, or a lease cleared it.
         return run(requirement.source, "auto_approve");
@@ -337,7 +369,7 @@ export function createApprovalGateMiddleware(
       // post-stream reconciler stamp the terminal SKIPPED row + provenance.
       if (config.unattended) return skipUnattended(config, call, null);
 
-      const decision = await askPerson(call, {
+      const answer = await askPerson(request, call, {
         tool_call_id: toolCall.id,
         tool_name: toolName,
         mcp_server_slug: serverSlug,
@@ -347,8 +379,8 @@ export function createApprovalGateMiddleware(
         // persist ToolCall.approval_policy_source without re-deriving it.
         policy_source: requirement.source,
       });
-      if (decision !== "approve") return decision;
-      // Backing authorization: the user approved THIS interrupted call.
+      if (answer !== "approve") return answer;
+      // Backing authorization: the user approved THIS interrupted call, as its card showed it.
       return run(requirement.source, "approval");
     },
   };
@@ -356,10 +388,13 @@ export function createApprovalGateMiddleware(
   /**
    * What a hook's non-deny answer does to the call: the provenance it runs
    * under, `undefined` when no hook decided, or the message that ends it
-   * without running (the unattended skip, or a person's skip or reject).
+   * without running (the unattended skip, a person's skip or reject, or an
+   * approved call that is not the one its card showed). `request` is the call
+   * as the model made it, `call` as it would run.
    */
   async function resolveHookDecision(
     gate: ApprovalGateConfig,
+    request: ToolCallRequest,
     call: ToolCallRequest,
     toolName: string,
     serverSlug: string,
@@ -375,7 +410,7 @@ export function createApprovalGateMiddleware(
       case "ask": {
         if (bypass) return "auto_approve_all";
         if (gate.unattended) return skipUnattended(gate, call, pre.hook);
-        const decision = await askPerson(call, {
+        const answer = await askPerson(request, call, {
           tool_call_id: call.toolCall.id,
           tool_name: toolName,
           mcp_server_slug: serverSlug,
@@ -384,7 +419,7 @@ export function createApprovalGateMiddleware(
           policy_hook: pre.hook,
           ...(pre.updatedArgs !== undefined ? { args: call.toolCall.args } : {}),
         });
-        return decision === "approve" ? "hook" : decision;
+        return answer === "approve" ? "hook" : answer;
       }
       /* v8 ignore start -- @preserve: the never arm; the compiler proves no decision reaches it */
       default: {
@@ -408,17 +443,20 @@ interface ApprovalRequestPayload {
   /**
    * The arguments the call will run with, present only when a hook rewrote
    * them: they exist nowhere else (the model's message holds the original),
-   * and the card must show what an approval lets run.
+   * and the card must show what an approval lets run. They come back on the
+   * resume value (`hitl.ts` `resolveResumeInput`), and the call runs on the
+   * approval only if it would still run with them.
    */
   readonly args?: Record<string, unknown>;
 }
 
 /**
  * Pause for a person's decision (`interrupt()`; on resume it returns the
- * stored decision). `"approve"` lets the call run; anything else is the
- * message the call ends with, unrun.
+ * stored decision). `"approve"` lets the call run, when it is the call the
+ * card showed; anything else is the message the call ends with, unrun.
+ * `request` is the call as the model made it, `call` as it would run.
  */
-async function askPerson(call: ToolCallRequest, payload: ApprovalRequestPayload): Promise<"approve" | ToolMessage> {
+async function askPerson(request: ToolCallRequest, call: ToolCallRequest, payload: ApprovalRequestPayload): Promise<"approve" | ToolMessage> {
   const toolName = call.toolCall.name;
   const response = interrupt(payload) as ApprovalDecision;
   const action = (
@@ -427,7 +465,7 @@ async function askPerson(call: ToolCallRequest, payload: ApprovalRequestPayload)
       : ""
   ).toString().toLowerCase();
 
-  if (action === "approve") return "approve";
+  if (action === "approve") return isAsShown(response, request, call) ? "approve" : refuseChanged(call);
   if (action === "skip" || action === "reject") return personDecisionMessage(call, action, response.comment ?? "");
 
   return new ToolMessage({
@@ -435,6 +473,36 @@ async function askPerson(call: ToolCallRequest, payload: ApprovalRequestPayload)
     tool_call_id: call.toolCall.id,
     name: toolName,
   });
+}
+
+/**
+ * Whether an approved call is the call its card showed: the arguments the
+ * resume carries back when the card showed a hook's rewrite, else the
+ * model's own. The resume value is the checkpoint's, untyped: one that holds
+ * no arguments object says nothing, so a rewrite it should have named stands
+ * unapproved.
+ */
+function isAsShown(response: ApprovalDecision, request: ToolCallRequest, call: ToolCallRequest): boolean {
+  const shown = isArgsObject(response.args) ? response.args : request.toolCall.args;
+  return sameJson(call.toolCall.args, shown);
+}
+
+/**
+ * An approved call that is not the call its card showed: the handler never
+ * runs and the model reads why. Its row is the card's, opened when it waited,
+ * and fails through the refusal event with no provenance of its own: the
+ * platform's rule refused it, not a hook or the unattended lane.
+ */
+function refuseChanged(call: ToolCallRequest): ToolMessage {
+  const { id, name, args } = call.toolCall;
+  customStreamWriterOf<ToolRefusedPayload>(call.runtime)?.({
+    name: TOOL_REFUSED_EVENT,
+    tool_call_id: id,
+    tool_name: name,
+    input: args,
+    message: CHANGED_MESSAGE,
+  });
+  return new ToolMessage({ content: CHANGED_MESSAGE, tool_call_id: id, name, status: "error" });
 }
 
 /**
@@ -584,8 +652,9 @@ async function appendHookFeedback(
   });
 }
 
-/** Shared empty set so a config without leases allocates nothing per call. */
+/** Shared empty sets so a config without leases allocates nothing per call. */
 const EMPTY_CATEGORY_SET: ReadonlySet<ToolApprovalCategory> = new Set();
+const EMPTY_SLUG_SET: ReadonlySet<string> = new Set();
 
 type AuthorizationSource = "auto_approve" | "approval";
 

@@ -1,0 +1,71 @@
+[
+  {
+    "run_id": "run_hermetic_0001",
+    "agent_message": {
+      "id": "run_hermetic_0001.root.m0",
+      "content": [
+        {
+          "type": "text",
+          "text": "Stamping."
+        }
+      ]
+    }
+  },
+  {
+    "run_id": "run_hermetic_0001",
+    "agent_tool_use": {
+      "id": "run_hermetic_0001.call-hooks-stamp-1",
+      "input": {
+        "command": "touch stamped-1"
+      },
+      "name": "execute",
+      "evaluated_permission": "ask"
+    }
+  },
+  {
+    "run_id": "run_hermetic_0001",
+    "stigmer_permission_asked": {
+      "id": "run_hermetic_0001.call-hooks-stamp-1.ask",
+      "tool_use_id": "run_hermetic_0001.call-hooks-stamp-1",
+      "message": "stamped",
+      "args_preview": "{\"command\":\"touch stamped-1\"}",
+      "policy_source": "hook",
+      "policy_hook": "stamp"
+    }
+  },
+  {
+    "session_id": "ses_hermetic_0001",
+    "run_id": "run_hermetic_0001",
+    "user_tool_confirmation": {
+      "id": "sevt_tc_6b2f7ff176b8d45085429c1f28f3fad1a3f3753d",
+      "result": "allow",
+      "tool_use_id": "run_hermetic_0001.call-hooks-stamp-1"
+    }
+  },
+  {
+    "run_id": "run_hermetic_0001",
+    "agent_tool_result": {
+      "id": "run_hermetic_0001.call-hooks-stamp-1.r",
+      "tool_use_id": "run_hermetic_0001.call-hooks-stamp-1",
+      "content": [
+        {
+          "type": "text",
+          "text": "This call changed after it was approved; it was not run."
+        }
+      ],
+      "is_error": true
+    }
+  },
+  {
+    "run_id": "run_hermetic_0001",
+    "agent_message": {
+      "id": "run_hermetic_0001.root.m1",
+      "content": [
+        {
+          "type": "text",
+          "text": "Done with the command."
+        }
+      ]
+    }
+  }
+]

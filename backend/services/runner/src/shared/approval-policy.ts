@@ -218,6 +218,14 @@ export function unattendedSkipMessage(toolName: string): string {
 }
 
 /**
+ * The tool-result text for an approved call that is not the call its card
+ * showed: the engine would run it with other arguments than the person
+ * approved, so it is not run, and the model may call again, which asks
+ * again. ONE definition for both harnesses' gates.
+ */
+export const CHANGED_MESSAGE = "This call changed after it was approved; it was not run.";
+
+/**
  * Provenance of a gate decision: which policy layer (or decision point) is
  * responsible for the final requires-approval verdict.
  *

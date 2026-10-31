@@ -21,6 +21,7 @@
 import { Command } from "@langchain/langgraph";
 export { reconcileUnattendedSkips } from "../../shared/unattended-skips.js";
 import type { PolicySource } from "../../shared/approval-policy.js";
+import { isArgsObject } from "../../shared/json-value.js";
 import { ApprovalAction } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 /**
@@ -98,7 +99,10 @@ export interface InterruptValue {
  * projection both harnesses agree on; this module never re-derives the
  * verdict from the rows. A deny's reason (`denyMessages`) rides the resume
  * value as its `comment`, which the gate renders into the refusal the model
- * reads (`middleware/approval-gate.ts`). The graph checkpoint snapshot is read once by the
+ * reads (`middleware/approval-gate.ts`). The arguments a card showed, when
+ * they were a hook's rewrite, ride it as `args`, read from the interrupt that
+ * showed them: the gate runs an approved call only as its card showed it.
+ * The graph checkpoint snapshot is read once by the
  * caller and passed in: on the durable (http) saver an extra `getState` is a
  * network round-trip best avoided.
  */
@@ -116,7 +120,7 @@ export function resolveResumeInput(
     return { isResumeFromApproval: false };
   }
 
-  const resumeDict: Record<string, { action: string; comment?: string }> = {};
+  const resumeDict: Record<string, { action: string; comment?: string; args?: Record<string, unknown> }> = {};
 
   for (const intr of pendingInterrupts) {
     const decision = decisions.get(intr.toolCallId);
@@ -126,7 +130,11 @@ export function resolveResumeInput(
     if (!action) continue;
 
     const comment = denyMessages.get(intr.toolCallId) ?? "";
-    resumeDict[intr.interruptId] = comment === "" ? { action } : { action, comment };
+    resumeDict[intr.interruptId] = {
+      action,
+      ...(comment !== "" ? { comment } : {}),
+      ...(intr.shownArgs !== undefined ? { args: intr.shownArgs } : {}),
+    };
   }
 
   if (Object.keys(resumeDict).length === 0) {
@@ -143,10 +151,11 @@ export function resolveResumeInput(
   };
 }
 
-/** An un-resumed interrupt as the resume map addresses it: the id LangGraph matches, and the tool call it gates. */
+/** An un-resumed interrupt as the resume map addresses it: the id LangGraph matches, the tool call it gates, and the hook's rewrite its card showed. */
 interface ResumableInterrupt {
   readonly interruptId: string;
   readonly toolCallId: string;
+  readonly shownArgs: Record<string, unknown> | undefined;
 }
 
 function extractPendingInterrupts(state: GraphStateSnapshot): ResumableInterrupt[] {
@@ -165,7 +174,8 @@ function extractPendingInterrupts(state: GraphStateSnapshot): ResumableInterrupt
           // parent-level case where they coincide). This is what makes a
           // sub-agent approval resume into the nested interrupt rather than
           // being dropped — see InterruptValue.id.
-          result.push({ interruptId: intr.id ?? task.id, toolCallId });
+          const args = (value as Record<string, unknown>).args;
+          result.push({ interruptId: intr.id ?? task.id, toolCallId, shownArgs: isArgsObject(args) ? args : undefined });
         }
       }
     }
@@ -213,8 +223,4 @@ export function detectPendingInterrupts(graphState: GraphStateSnapshot): Pending
         };
       }),
   );
-}
-
-function isArgsObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

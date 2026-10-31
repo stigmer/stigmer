@@ -45,7 +45,7 @@ import { ApprovalMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import type { HookInput } from "@anthropic-ai/claude-agent-sdk";
 
 import { ApprovalAction } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
-import { hookLeaseKey, resolveToolApproval, unattendedSkipMessage, type ActiveLeases, type McpApprovalDefault } from "../../../shared/approval-policy.js";
+import { CHANGED_MESSAGE, hookLeaseKey, resolveToolApproval, unattendedSkipMessage, type ActiveLeases, type McpApprovalDefault } from "../../../shared/approval-policy.js";
 import { secretBlockMessage } from "../../../shared/file-edit-policy.js";
 import { HookEvaluator } from "../../../shared/hooks/evaluate.js";
 import { HookSet } from "../../../shared/hooks/hook-set.js";
@@ -56,7 +56,6 @@ import type { ToolApprovalCategory } from "../../../shared/tool-kind.js";
 import { turnInputFixture } from "../../../__test-utils__/turn-input-fixture.js";
 import {
   ASK_ALONE_MESSAGE,
-  CHANGED_MESSAGE,
   ClaudeGate,
   spellingsOf,
   HALTED_MESSAGE,

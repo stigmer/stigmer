@@ -1,0 +1,28 @@
+{
+  "messages": [
+    {
+      "type": "MESSAGE_AI",
+      "content": "Stamping.",
+      "timestamp": "2026-01-01T00:00:01.000Z",
+      "toolCalls": [
+        {
+          "id": "call-hooks-stamp-1",
+          "name": "execute",
+          "args": {
+            "command": "touch stamped-1"
+          },
+          "status": "TOOL_CALL_WAITING_APPROVAL",
+          "startedAt": "2026-01-01T00:00:01.000Z",
+          "requiresApproval": true,
+          "approvalMessage": "stamped",
+          "approvalRequestedAt": "2026-01-01T00:00:01.000Z",
+          "argsPreview": "{\"command\":\"touch stamped-1\"}",
+          "toolKind": "TOOL_KIND_SHELL",
+          "approvalPolicySource": "APPROVAL_POLICY_SOURCE_HOOK",
+          "policyEngineVersion": "hooks-3",
+          "approvalPolicyHook": "stamp"
+        }
+      ]
+    }
+  ]
+}

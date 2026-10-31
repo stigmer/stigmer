@@ -1,0 +1,25 @@
+{
+  "phase": "RUN_WAITING_FOR_APPROVAL",
+  "startedAt": "2026-01-01T00:00:00.000Z",
+  "streamingUsage": {
+    "inputTokens": "1600",
+    "outputTokens": "40",
+    "totalTokens": "1640",
+    "turnCount": 1,
+    "estimatedCostUsd": 0.0018,
+    "model": "claude-haiku-4.5",
+    "observedAt": "2026-01-01T00:00:01.000Z",
+    "requestedServiceTier": "SERVICE_TIER_STANDARD",
+    "requestedThinkingMode": "THINKING_MODE_DISABLED"
+  },
+  "loadedVersions": {
+    "plugins": [
+      {
+        "org": "hermetic-org",
+        "kind": "plugin",
+        "version": "3848fccb6f76d0ecf147e81970a1f9c51206c147611bb72d0e1efc6569ad12a2",
+        "id": "plg_stamp"
+      }
+    ]
+  }
+}

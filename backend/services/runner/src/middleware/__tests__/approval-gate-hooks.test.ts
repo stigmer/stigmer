@@ -5,7 +5,10 @@
  * card's payload for a hook's ask, the hook recorded beside an unattended
  * skip (and the skip's refusal event, which opens its row), a rewrite checked again against the secret block and against
  * the graph's tool scope (refused as the scope refuses, under the pre-armed bypass too), and the hooks'
- * feedback appended to the result, a graph command's tool message included.
+ * feedback appended to the result, a graph command's tool message included,
+ * and an approval that runs only the call its card showed, across the
+ * restarted node's second run of a hook that does not answer the same way,
+ * with no lease answering a call a person answered.
  * `interrupt()` is mocked; the hooks are
  * the real evaluator over a scripted process runner.
  */
@@ -14,7 +17,7 @@ import { create } from "@bufbuild/protobuf";
 import { ToolMessage } from "@langchain/core/messages";
 import { HookGroupSchema, HookHandlerSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { hookLeaseKey } from "../../shared/approval-policy.js";
+import { CHANGED_MESSAGE, hookLeaseKey } from "../../shared/approval-policy.js";
 import { HookEvaluator } from "../../shared/hooks/evaluate.js";
 import { HookSet } from "../../shared/hooks/hook-set.js";
 import type { HookProcessRunner, HookRunResult } from "../../shared/hooks/run.js";
@@ -32,7 +35,16 @@ const mockedInterrupt = vi.mocked(interrupt);
 
 /** Hooks whose PreToolUse answer for every Bash, Write and Read call is `pre`, and PostToolUse answer `post`. */
 function hooksAnswering(pre: Partial<HookRunResult>, post: Partial<HookRunResult> = {}, leases: ReadonlySet<string> = new Set()): HookEvaluator {
-  const run: HookProcessRunner = async (spec) => ({ exitCode: 0, stdout: "", stderr: "", timedOut: false, ...(spec.command === "post" ? post : pre) });
+  return hooksRunning(async (spec) => ({ exitCode: 0, stdout: "", stderr: "", timedOut: false, ...(spec.command === "post" ? post : pre) }), leases);
+}
+
+/** Hooks whose PreToolUse answers `answers` in turn, one per run, repeating the last: a hook that is not repeatable. */
+function hooksAnsweringInTurn(...answers: Partial<HookRunResult>[]): HookEvaluator {
+  let runs = 0;
+  return hooksRunning(async () => ({ exitCode: 0, stdout: "", stderr: "", timedOut: false, ...answers[Math.min(runs++, answers.length - 1)] }));
+}
+
+function hooksRunning(run: HookProcessRunner, leases: ReadonlySet<string> = new Set()): HookEvaluator {
   const group = (event: string, command: string) =>
     create(HookGroupSchema, { event, matcher: "Bash|Write|Read", handlers: [create(HookHandlerSchema, { command })] });
   return new HookEvaluator({
@@ -81,6 +93,31 @@ function scopeOf(lists: ToolLists): ToolScopeConfig {
     admitsRoutedRead: async (path) => path.startsWith("/.stigmer/"),
     readsSkillContent: async (path) => path.startsWith("/.stigmer/skills/"),
   };
+}
+
+/** Stands in for LangGraph's pause: the node stops at `interrupt()` until a resume. */
+class Paused extends Error {}
+
+/**
+ * One call as LangGraph runs it across a person's answer: the first
+ * invocation pauses on the card, and the restarted node's second resumes
+ * with the answer and, as `resolveResumeInput` builds it from the pending
+ * interrupt, the arguments the card showed. `answer` may replace that value.
+ */
+async function acrossResume(
+  middleware: ReturnType<typeof gate>,
+  request: ToolCallRequest,
+  handler: (request: ToolCallRequest) => Promise<ToolMessage | Command>,
+  answer: (shown: { args?: Record<string, unknown> }) => unknown = (shown) => ({ action: "approve", ...(shown.args !== undefined ? { args: shown.args } : {}) }),
+): Promise<ToolMessage | Command> {
+  let shown: { args?: Record<string, unknown> } = {};
+  mockedInterrupt.mockImplementationOnce((payload) => {
+    shown = payload as typeof shown;
+    throw new Paused();
+  });
+  await expect(middleware.wrapToolCall!(request, handler)).rejects.toBeInstanceOf(Paused);
+  mockedInterrupt.mockImplementationOnce(() => answer(shown));
+  return middleware.wrapToolCall!(request, handler);
 }
 
 function call(name: string, args: Record<string, unknown>): { request: ToolCallRequest; writer: ReturnType<typeof vi.fn> } {
@@ -141,8 +178,8 @@ describe("the gate's hooks", () => {
     expect(skipped).not.toHaveBeenCalled();
   });
 
-  it("an ask that rewrites the call carries the rewrite to the card, and runs it once approved", async () => {
-    mockedInterrupt.mockReturnValue({ action: "approve" });
+  it("an ask that rewrites the call carries the rewrite to the card, and runs it once approved as shown", async () => {
+    mockedInterrupt.mockReturnValue({ action: "approve", args: { command: "git push --dry-run" } });
     const handler = vi.fn(async (req: ToolCallRequest) => new ToolMessage({ content: String(req.toolCall.args["command"]), tool_call_id: "call_1", name: "execute" }));
     const result = (await gate(hooksAnswering(decide("ask", { updatedInput: { command: "git push --dry-run" } }))).wrapToolCall!(
       call("execute", SHELL_ARGS).request,
@@ -153,6 +190,130 @@ describe("the gate's hooks", () => {
 
     await gate(hooksAnswering(decide("ask"))).wrapToolCall!(call("execute", SHELL_ARGS).request, handler);
     expect(mockedInterrupt).toHaveBeenLastCalledWith(expect.not.objectContaining({ args: expect.anything() }));
+  });
+
+  describe("an approval runs only the call its card showed", () => {
+    const rewrite = (command: string, decision = "ask") => decide(decision, { updatedInput: { command } });
+    const echo = () => vi.fn(async (req: ToolCallRequest) => new ToolMessage({ content: String(req.toolCall.args["command"]), tool_call_id: "call_1", name: "execute" }));
+    const changed = (input: Record<string, unknown>) => ({ name: TOOL_REFUSED_EVENT, tool_call_id: "call_1", tool_name: "execute", input, message: CHANGED_MESSAGE });
+
+    it("refuses an approved call whose rewrite changed on resume, unrun, and tells its row on the stream", async () => {
+      const { request, writer } = call("execute", SHELL_ARGS);
+      const handler = echo();
+      const result = (await acrossResume(gate(hooksAnsweringInTurn(rewrite("git push --dry-run #1"), rewrite("git push --dry-run #2"))), request, handler)) as ToolMessage;
+      expect(handler).not.toHaveBeenCalled();
+      expect([result.content, result.status]).toEqual([CHANGED_MESSAGE, "error"]);
+      expect(writer).toHaveBeenCalledWith(changed({ command: "git push --dry-run #2" }));
+      expect(writer).not.toHaveBeenCalledWith(expect.objectContaining({ name: TOOL_POLICY_EVENT }));
+    });
+
+    it("runs a rewrite that resumes as it was shown, once, as rewritten", async () => {
+      const handler = echo();
+      const result = (await acrossResume(gate(hooksAnswering(rewrite("git push --dry-run"))), call("execute", SHELL_ARGS).request, handler)) as ToolMessage;
+      expect(handler).toHaveBeenCalledOnce();
+      expect(result.content).toBe("git push --dry-run");
+    });
+
+    it("refuses an approved rewrite that is gone on resume, where the default asks instead", async () => {
+      const { request, writer } = call("execute", SHELL_ARGS);
+      const handler = echo();
+      const result = (await acrossResume(gate(hooksAnsweringInTurn(rewrite("git push --dry-run"), {})), request, handler)) as ToolMessage;
+      expect(handler).not.toHaveBeenCalled();
+      expect(result.content).toBe(CHANGED_MESSAGE);
+      expect(writer).toHaveBeenCalledWith(changed(SHELL_ARGS));
+    });
+
+    it("refuses a call the default showed as the model made it, when a hook asks with a rewrite on resume", async () => {
+      const handler = echo();
+      const result = (await acrossResume(gate(hooksAnsweringInTurn({}, rewrite("git push --force"))), call("execute", SHELL_ARGS).request, handler)) as ToolMessage;
+      expect(handler).not.toHaveBeenCalled();
+      expect(result.content).toBe(CHANGED_MESSAGE);
+    });
+
+    it("refuses a resume that does not say which rewrite was approved, or says it malformed", async () => {
+      for (const args of [undefined, "git push --dry-run", ["git push --dry-run"], null]) {
+        const handler = echo();
+        const hooks = hooksAnswering(rewrite("git push --dry-run"));
+        const result = (await acrossResume(gate(hooks), call("execute", SHELL_ARGS).request, handler, () => ({ action: "approve", args }))) as ToolMessage;
+        expect(handler, String(args)).not.toHaveBeenCalled();
+        expect(result.content).toBe(CHANGED_MESSAGE);
+      }
+    });
+
+    it("runs the model's own call approved with a malformed resume, which says nothing a card did not", async () => {
+      const handler = echo();
+      const result = (await acrossResume(gate(hooksAnswering(decide("ask"))), call("execute", SHELL_ARGS).request, handler, () => ({ action: "approve", args: "x" }))) as ToolMessage;
+      expect(result.content).toBe(SHELL_ARGS.command);
+    });
+
+    it("runs a call the hook allows on resume on the hook's word, whatever the card showed", async () => {
+      const { request, writer } = call("execute", SHELL_ARGS);
+      const handler = echo();
+      const result = (await acrossResume(gate(hooksAnsweringInTurn(rewrite("git push --dry-run #1"), rewrite("git push --dry-run #2", "allow"))), request, handler)) as ToolMessage;
+      expect(result.content).toBe("git push --dry-run #2");
+      expect(writer).toHaveBeenCalledWith({ name: TOOL_POLICY_EVENT, tool_call_id: "call_1", policy_source: "hook", policy_hook: "safety" });
+    });
+
+    it("answers a call a person approved through their answer, never the lease their approve-all granted on it", async () => {
+      const leased = new Set([hookLeaseKey("safety", "", "execute")]);
+      const evaluator = () =>
+        hooksRunning(
+          (() => {
+            let runs = 0;
+            return async () => ({ exitCode: 0, stdout: "", stderr: "", timedOut: false, ...rewrite(`git push --dry-run #${++runs}`) });
+          })(),
+          leased,
+        );
+      const handler = echo();
+      const changedCall = (await acrossResume(gate(evaluator(), { approvedByPerson: new Set(["call_1"]) }), call("execute", SHELL_ARGS).request, handler)) as ToolMessage;
+      expect(handler).not.toHaveBeenCalled();
+      expect(changedCall.content).toBe(CHANGED_MESSAGE);
+
+      // The lease still clears the hook's asks on every other call, with no card.
+      const { request, writer } = call("execute", SHELL_ARGS);
+      await gate(evaluator(), { approvedByPerson: new Set(["call_0"]) }).wrapToolCall!(request, handler);
+      expect(handler).toHaveBeenCalledOnce();
+      expect(writer).toHaveBeenCalledWith(expect.objectContaining({ name: TOOL_POLICY_EVENT, policy_source: "approval_lease" }));
+    });
+
+    it("holds a call a person approved to its card where a lease would clear the default's ask, and runs it as shown", async () => {
+      const { request, writer } = call("execute", SHELL_ARGS);
+      const handler = echo();
+      const leasedShell = { approvedByPerson: new Set(["call_1"]), leasedCategories: new Set(["shell" as const]) };
+      const result = (await acrossResume(gate(hooksAnsweringInTurn(rewrite("git push --dry-run"), {}), leasedShell), request, handler)) as ToolMessage;
+      expect(handler).not.toHaveBeenCalled();
+      expect(result.content).toBe(CHANGED_MESSAGE);
+      expect(writer).toHaveBeenCalledWith(changed(SHELL_ARGS));
+
+      mockedInterrupt.mockReturnValue({ action: "approve" });
+      const asShown = (await gate(hooksAnswering({}), leasedShell).wrapToolCall!(call("execute", SHELL_ARGS).request, handler)) as ToolMessage;
+      expect(mockedInterrupt).toHaveBeenCalledWith(expect.objectContaining({ policy_source: "builtin_category" }));
+      expect(asShown.content).toBe(SHELL_ARGS.command);
+    });
+
+    it("answers a call a person approved through their answer where a server lease would clear the default's ask", async () => {
+      mockedInterrupt.mockReturnValue({ action: "approve" });
+      const handler = vi.fn(async () => new ToolMessage({ content: "dropped", tool_call_id: "call_1", name: "mcp__docs__drop" }));
+      const leasedServer = {
+        mcpDefault: { destructive: new Set(["docs/drop"]), unlisted: new Set<string>(), leasedServers: new Set(["docs"]) },
+        mcpIndex: McpToolIndex.of([{ slug: "docs", tools: ["drop"] }]),
+      };
+      await gate(hooksAnswering({}), { ...leasedServer, approvedByPerson: new Set(["call_1"]) }).wrapToolCall!(call("mcp__docs__drop", { id: "7" }).request, handler);
+      expect(mockedInterrupt).toHaveBeenCalledWith(expect.objectContaining({ tool_name: "drop", mcp_server_slug: "docs", policy_source: "annotation_destructive_tighten" }));
+      expect(handler).toHaveBeenCalledOnce();
+
+      // Any other call of that server runs on the lease, with no card.
+      mockedInterrupt.mockClear();
+      await gate(hooksAnswering({}), leasedServer).wrapToolCall!(call("mcp__docs__drop", { id: "8" }).request, handler);
+      expect(mockedInterrupt).not.toHaveBeenCalled();
+    });
+
+    it("leaves a skip of a changed call a skip", async () => {
+      const handler = echo();
+      const result = (await acrossResume(gate(hooksAnsweringInTurn(rewrite("a"), rewrite("b"))), call("execute", SHELL_ARGS).request, handler, () => ({ action: "skip" }))) as ToolMessage;
+      expect(handler).not.toHaveBeenCalled();
+      expect(result.content).not.toBe(CHANGED_MESSAGE);
+    });
   });
 
   it("under trust this whole run, an ask is satisfied and recorded as the bypass", async () => {
