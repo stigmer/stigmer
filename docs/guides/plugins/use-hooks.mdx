@@ -234,9 +234,11 @@ differences:
 - When you approve a call, `PreToolUse` hooks run on it again before it runs,
   where Claude Code runs them once. The call runs on your approval only as the
   approval showed it, whether you chose **Approve** or **Approve all**: if a
-  hook rewrites it (`updatedInput`) differently the second time, the call is not
-  run, and the Agent reads that it changed after you approved it. The Agent may
-  make the call again, which asks again. A hook that rewrites calls should
-  rewrite the same call the same way every time.
+  hook asks again with a different rewrite (`updatedInput`), or no longer
+  rewrites it, the call is not run, and the Agent reads that it changed after
+  you approved it. The Agent may make the call again, which asks again. A hook
+  that allows the call the second time decides it on its own, and the call runs
+  as that hook rewrote it. A hook that rewrites calls should rewrite the same
+  call the same way every time.
 - Hook files in a repository (`.claude/settings.json`, `.cursor/hooks.json`)
   never run for the Agent; only the Agent's own hooks do.

@@ -291,6 +291,23 @@ describe("the gate's hooks", () => {
       expect(asShown.content).toBe(SHELL_ARGS.command);
     });
 
+    it("answers a call a person approved through their answer where a server lease would clear the default's ask", async () => {
+      mockedInterrupt.mockReturnValue({ action: "approve" });
+      const handler = vi.fn(async () => new ToolMessage({ content: "dropped", tool_call_id: "call_1", name: "mcp__docs__drop" }));
+      const leasedServer = {
+        mcpDefault: { destructive: new Set(["docs/drop"]), unlisted: new Set<string>(), leasedServers: new Set(["docs"]) },
+        mcpIndex: McpToolIndex.of([{ slug: "docs", tools: ["drop"] }]),
+      };
+      await gate(hooksAnswering({}), { ...leasedServer, approvedByPerson: new Set(["call_1"]) }).wrapToolCall!(call("mcp__docs__drop", { id: "7" }).request, handler);
+      expect(mockedInterrupt).toHaveBeenCalledWith(expect.objectContaining({ tool_name: "drop", mcp_server_slug: "docs", policy_source: "annotation_destructive_tighten" }));
+      expect(handler).toHaveBeenCalledOnce();
+
+      // Any other call of that server runs on the lease, with no card.
+      mockedInterrupt.mockClear();
+      await gate(hooksAnswering({}), leasedServer).wrapToolCall!(call("mcp__docs__drop", { id: "8" }).request, handler);
+      expect(mockedInterrupt).not.toHaveBeenCalled();
+    });
+
     it("leaves a skip of a changed call a skip", async () => {
       const handler = echo();
       const result = (await acrossResume(gate(hooksAnsweringInTurn(rewrite("a"), rewrite("b"))), call("execute", SHELL_ARGS).request, handler, () => ({ action: "skip" }))) as ToolMessage;
