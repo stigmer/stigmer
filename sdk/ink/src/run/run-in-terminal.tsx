@@ -75,7 +75,7 @@ export interface RunInTerminalOptions {
   /**
    * How to come back to the session, in the host's words, said when the
    * person presses Ctrl+C to leave: given the session's id, such as
-   * `(id) => \`Come back with: mycli resume ${id}\``.
+   * `(id) => "Come back with: mycli resume " + id`.
    */
   readonly leaveHint?: (sessionId: string) => string;
   /** Stops waiting and returns at once; the run itself goes on. */

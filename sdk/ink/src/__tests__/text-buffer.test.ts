@@ -56,7 +56,8 @@ function key(flags: Partial<Key> = {}): Key {
 
 /** "text|more" as a buffer, the bar marking the cursor. */
 function at(marked: string) {
-  return bufferOf(marked.replace("|", ""), marked.indexOf("|"));
+  const cursor = marked.indexOf("|");
+  return bufferOf(marked.slice(0, cursor) + marked.slice(cursor + 1), cursor);
 }
 
 /** A buffer written back as "text|more". */

@@ -116,7 +116,7 @@ then returns its outcome and exit code (module header).
     approveSetting: { type: "string", description: "The setting that approves asks, as the view names it when it settles one (`SessionView`'s `approveSetting`)." },
     composer: { type: "ComposerExtensions", description: "The host's slash commands, completions and prompt history for the composer." },
     env: { type: "Readonly<Record<string, string | undefined>>", description: "The environment the terminal mode reads (CI, TERM); `process.env` by default." },
-    leaveHint: { type: "(sessionId: string) => string", description: "How to come back to the session, in the host's words, said when the person presses Ctrl+C to leave: given the session's id, such as `(id) => \\`Come back with: mycli resume ${id}\\``." },
+    leaveHint: { type: "(sessionId: string) => string", description: "How to come back to the session, in the host's words, said when the person presses Ctrl+C to leave: given the session's id, such as `(id) => \"Come back with: mycli resume \" + id`." },
     mode: { type: "InteractionMode", description: "Interaction mode for follow-ups typed in the view." },
     signal: { type: "AbortSignal", description: "Stops waiting and returns at once; the run itself goes on." },
     stderr: { type: "WriteStream", description: "Where a start failure is written; `process.stderr` by default." },

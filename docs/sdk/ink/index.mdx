@@ -62,7 +62,7 @@ turn's outcome (`phase`, `answer`, `structuredOutput`, `error`, the folded
 | `signal` | none | Stops waiting at once; the run goes on, and the exit code is 130. |
 | `mode` | `"agent"` | `"plan"` for read-only follow-ups. |
 | `composer` | none | Your `/` commands, completions and prompt history (below). |
-| `leaveHint` | none | How to come back after leaving, given the session id: `(id) => \`Come back with: mycli resume ${id}\``. |
+| `leaveHint` | none | How to come back after leaving: a function of the session's id that returns your words, such as "Come back with: mycli resume" and the id. |
 
 A turn that cannot start (no server, a refused key) is written to stderr in
 words a person can act on, and the promise rejects with a `TerminalRunError`
