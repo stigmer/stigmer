@@ -28,6 +28,7 @@ const KeyOwnerContext = createContext<KeyOwner>(NO_OWNER);
 /** Holds the claims of the surfaces below it. */
 export function KeyOwnerProvider({ children }: { readonly children: ReactNode }): React.ReactElement {
   const [claims, setClaims] = useState<ReadonlySet<string>>(new Set());
+  // Stryker disable next-line ArrayDeclaration: the callbacks read nothing from the render, so any dependency list keeps them alike
   const claim = useCallback((id: string) => setClaims((held) => (held.has(id) ? held : new Set([...held, id]))), []);
   const release = useCallback(
     (id: string) =>
@@ -35,6 +36,7 @@ export function KeyOwnerProvider({ children }: { readonly children: ReactNode })
         const next = new Set(held);
         return next.delete(id) ? next : held;
       }),
+    // Stryker disable next-line ArrayDeclaration: as above
     [],
   );
   const owner = useMemo(() => ({ free: claims.size === 0, claim, release }), [claims, claim, release]);

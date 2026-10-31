@@ -70,10 +70,10 @@ const SINGLE = { multiline: false } as const;
 describe("the text buffer", () => {
   it("inserts and deletes at the cursor, and does nothing past either end", () => {
     expect(shown(insertText(at("ab|cd"), "XY"))).toBe("abXY|cd");
-    expect(shown(deleteBack(at("ab|cd")))).toBe("a|cd");
-    expect(shown(deleteForward(at("ab|cd")))).toBe("ab|d");
-    expect(deleteBack(at("|ab"))).toEqual(at("|ab"));
-    expect(deleteForward(at("ab|"))).toEqual(at("ab|"));
+    expect(shown(deleteBack(at("ab|cd"), []))).toBe("a|cd");
+    expect(shown(deleteForward(at("ab|cd"), []))).toBe("ab|d");
+    expect(deleteBack(at("|ab"), [])).toEqual(at("|ab"));
+    expect(deleteForward(at("ab|"), [])).toEqual(at("ab|"));
     expect(bufferOf("abc", 9)).toEqual({ text: "abc", cursor: 3 });
     expect(bufferOf("abc", -1)).toEqual({ text: "abc", cursor: 0 });
     expect(EMPTY_BUFFER).toEqual({ text: "", cursor: 0 });
@@ -85,13 +85,17 @@ describe("the text buffer", () => {
     expect(shown(deleteForward(at(`see |${label}!`), [label]))).toBe("see |!");
     expect(shown(deleteBack(at(`see ${label}x|`), [label]))).toBe(`see ${label}|`);
     expect(shown(deleteBack(at("ab|"), [""]))).toBe("a|");
+    expect(shown(deleteForward(at("a|b"), [""]))).toBe("a|");
+    // An atom elsewhere in the text is not the one at the cursor.
+    expect(shown(deleteForward(at("x|y[P]"), ["[P]"]))).toBe("x|[P]");
+    expect(shown(deleteBack(at("[P]y|"), ["[P]"]))).toBe("[P]|");
   });
 
   it("moves by character, by row end and by word", () => {
     expect(shown(moveLeft(at("ab|")))).toBe("a|b");
     expect(shown(moveLeft(at("|ab")))).toBe("|ab");
     expect(shown(moveRight(at("a|b")))).toBe("ab|");
-    expect(shown(moveRight(at("ab|")))).toBe("ab|");
+    expect(moveRight(at("ab|")).cursor).toBe(2);
     expect(shown(moveRowStart(at("one\ntw|o")))).toBe("one\n|two");
     expect(shown(moveRowEnd(at("o|ne\ntwo")))).toBe("one|\ntwo");
     expect(shown(moveRowStart(at("on|e")))).toBe("|one");
@@ -100,6 +104,12 @@ describe("the text buffer", () => {
     expect(shown(moveWordLeft(at("fix the  |billing")))).toBe("fix |the  billing");
     expect(shown(moveWordRight(at("fix| the billing")))).toBe("fix the| billing");
     expect(shown(moveWordRight(at("fix the bill|")))).toBe("fix the bill|");
+    // At either end of the text the cursor stays inside it.
+    expect(moveWordLeft(at("one|")).cursor).toBe(0);
+    expect(moveWordLeft(at("  |")).cursor).toBe(0);
+    expect(moveWordRight(at("|one")).cursor).toBe(3);
+    expect(moveWordRight(at("|  ")).cursor).toBe(2);
+    expect(killWordBack(at("one|")).cursor).toBe(0);
   });
 
   it("kills to the row's start, to its end, and the word before", () => {
@@ -160,7 +170,7 @@ describe("INK-08 the composer takes several lines, paste, and history", () => {
     expect(edited("", { backspace: true }, "x[P]|", ["[P]"])).toBe("x|");
     expect(edited("", { delete: true }, "x|[P]", ["[P]"])).toBe("x|");
     expect(edited("", { leftArrow: true }, "ab|")).toBe("a|b");
-    expect(edited("", { rightArrow: true }, "a|b")).toBe("ab|");
+    expect(edited("", { rightArrow: true }, "|ab")).toBe("a|b");
     expect(edited("", { leftArrow: true, meta: true }, "one two|")).toBe("one |two");
     expect(edited("", { rightArrow: true, ctrl: true }, "|one two")).toBe("one| two");
     expect(edited("", { leftArrow: true, ctrl: true }, "one two|")).toBe("one |two");

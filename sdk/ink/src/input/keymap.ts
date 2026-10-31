@@ -58,16 +58,20 @@ function edit(buffer: TextBuffer): KeyAction {
 
 /** What `input` with `key` does to `buffer` (module header). */
 export function keyAction(input: string, key: Key, buffer: TextBuffer, options: KeymapOptions): KeyAction {
+  // Stryker disable next-line ArrayDeclaration: no buffer holds the text a mutant's atom names, so any list reads as none
   const { multiline, atoms = [] } = options;
   if (key.return) {
     const newline = key.meta || key.shift;
     if (newline) return multiline ? edit(insertText(buffer, "\n")) : NONE;
     if (multiline && buffer.text[buffer.cursor - 1] === "\\") {
-      return edit(insertText(deleteBack(buffer), "\n"));
+      return edit(insertText(deleteBack(buffer, []), "\n"));
     }
     return { type: "submit" };
   }
   if (input === "\n" && !key.ctrl && !key.meta) return multiline ? edit(insertText(buffer, "\n")) : NONE;
+  // Under the kitty keyboard protocol Ink may give Esc and Tab text of their
+  // own, so they are refused by name rather than by an empty input.
+  // Stryker disable next-line ConditionalExpression,LogicalOperator: without the protocol both arrive with no text and are refused below too
   if (key.escape || key.tab) return NONE;
   if (key.backspace) return edit(deleteBack(buffer, atoms));
   if (key.delete) return edit(deleteForward(buffer, atoms));
@@ -106,7 +110,8 @@ export function keyAction(input: string, key: Key, buffer: TextBuffer, options: 
   }
   if (input === "" || key.pageUp || key.pageDown) return NONE;
   // Typed text, or a paste the terminal did not mark arriving as one chunk.
-  const entered = input.length > 1 && input.endsWith("\r");
+  // A lone carriage return is Enter itself (key.return, above).
+  const entered = input.endsWith("\r");
   const text = (entered ? input.slice(0, -1) : input).replace(/\r\n?/g, "\n");
   const typed = insertText(buffer, multiline ? text : text.replace(/\n/g, " "));
   return entered ? { type: "submit", buffer: typed } : edit(typed);

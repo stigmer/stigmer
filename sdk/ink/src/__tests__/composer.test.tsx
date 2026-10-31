@@ -304,6 +304,7 @@ describe("the composer's logic", () => {
 
   it("collapses a paste over 800 characters or three lines, numbering each, and expands it when sent", () => {
     expect(pasteInsert("a\r\nb\nc", 1)).toEqual({ insert: "a\nb\nc" });
+    expect(pasteInsert("a\rb\rc\rd", 1).label).toBe("[Pasted text #1 +3 lines]");
     expect(pasteInsert("a\nb\nc\nd", 1)).toEqual({ insert: "[Pasted text #1 +3 lines]", label: "[Pasted text #1 +3 lines]" });
     expect(pasteInsert("x".repeat(800), 1)).toEqual({ insert: "x".repeat(800) });
     expect(pasteInsert("x".repeat(801), 2).label).toBe("[Pasted text #2 +0 lines]");
@@ -337,6 +338,8 @@ describe("the composer's logic", () => {
     expect(parseCommand("/deploy", [deploy])).toEqual({ command: deploy, args: "" });
     expect(parseCommand("/deployx", [deploy])).toBeUndefined();
     expect(parseCommand("deploy", [deploy])).toBeUndefined();
+    expect(parseCommand("please /deploy now", [deploy])).toBeUndefined();
+    expect(parseCommand("/deploy\tstaging", [deploy])).toEqual({ command: deploy, args: "staging" });
   });
 
   it("attaches what each accepted item stands for while its text stays, each file once", () => {
@@ -346,5 +349,7 @@ describe("the composer's logic", () => {
     expect(attachmentsOf("@a and @b and @c", [a, b, c])).toEqual({ workspaceFileRefs: ["a"], fileIds: ["file_1", "file_2"] });
     expect(attachmentsOf("only @b", [a, b])).toEqual({ fileIds: ["file_1", "file_2"] });
     expect(attachmentsOf("none", [a, b, c])).toBeUndefined();
+    // An item that attaches nothing adds nothing, even when its text stays.
+    expect(attachmentsOf("only @c", [a, b, c])).toBeUndefined();
   });
 });

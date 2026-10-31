@@ -119,7 +119,7 @@ export function parseCommand(text: string, commands: readonly SlashCommand[]): {
   const match = /^\/(\S+)(?:\s+([\s\S]*))?$/.exec(text.trim());
   if (match === null) return undefined;
   const command = commands.find((candidate) => candidate.name === match[1]);
-  return command === undefined ? undefined : { command, args: (match[2] ?? "").trim() };
+  return command === undefined ? undefined : { command, args: match[2] ?? "" };
 }
 
 /** What the accepted completions attach, for those whose text is still in the message. */

@@ -36,7 +36,7 @@ export function insertText(buffer: TextBuffer, insert: string): TextBuffer {
 }
 
 /** Backspace: the character before the cursor, or the whole atom that ends there. */
-export function deleteBack(buffer: TextBuffer, atoms: readonly string[] = []): TextBuffer {
+export function deleteBack(buffer: TextBuffer, atoms: readonly string[]): TextBuffer {
   const { text, cursor } = buffer;
   if (cursor === 0) return buffer;
   const atom = atoms.find((candidate) => candidate !== "" && text.slice(0, cursor).endsWith(candidate));
@@ -45,9 +45,8 @@ export function deleteBack(buffer: TextBuffer, atoms: readonly string[] = []): T
 }
 
 /** Delete: the character after the cursor, or the whole atom that starts there. */
-export function deleteForward(buffer: TextBuffer, atoms: readonly string[] = []): TextBuffer {
+export function deleteForward(buffer: TextBuffer, atoms: readonly string[]): TextBuffer {
   const { text, cursor } = buffer;
-  if (cursor === text.length) return buffer;
   const atom = atoms.find((candidate) => candidate !== "" && text.startsWith(candidate, cursor));
   return { text: text.slice(0, cursor) + text.slice(cursor + (atom?.length ?? 1)), cursor };
 }
