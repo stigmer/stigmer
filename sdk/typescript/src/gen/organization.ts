@@ -6,7 +6,7 @@ import { type ResourceRef } from "./types.js";
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
-import { ApiResourceReferenceSchema, type RenameInput } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceReferenceSchema, type RenameInput, type RenameInputSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 import { OrganizationSchema, type Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
@@ -43,19 +43,19 @@ export class OrganizationClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async updatePolicies(input: UpdateOrganizationPoliciesInput): Promise<Organization> {
+  async updatePolicies(input: MessageInitShape<typeof UpdateOrganizationPoliciesInputSchema>): Promise<Organization> {
     try {
       return await this.command.updatePolicies(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async updateEmbedding(input: UpdateOrganizationEmbeddingInput): Promise<Organization> {
+  async updateEmbedding(input: MessageInitShape<typeof UpdateOrganizationEmbeddingInputSchema>): Promise<Organization> {
     try {
       return await this.command.updateEmbedding(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async rename(input: RenameInput): Promise<Organization> {
+  async rename(input: MessageInitShape<typeof RenameInputSchema>): Promise<Organization> {
     try {
       return await this.command.rename(input);
     } catch (e) { throw wrapError(e); }
@@ -73,7 +73,7 @@ export class OrganizationClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async listMine(input: ListMyOrganizationsInput): Promise<Organizations> {
+  async listMine(input: MessageInitShape<typeof ListMyOrganizationsInputSchema>): Promise<Organizations> {
     try {
       return await this.query.listMine(input);
     } catch (e) { throw wrapError(e); }
@@ -93,13 +93,13 @@ export class OrganizationClient {
     }
   }
 
-  async getByExternalId(input: OrganizationExternalLookup): Promise<Organization> {
+  async getByExternalId(input: MessageInitShape<typeof OrganizationExternalLookupSchema>): Promise<Organization> {
     try {
       return await this.query.getByExternalId(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async listChildOrgs(input: ListChildOrgsInput): Promise<ChildOrgList> {
+  async listChildOrgs(input: MessageInitShape<typeof ListChildOrgsInputSchema>): Promise<ChildOrgList> {
     try {
       return await this.query.listChildOrgs(input);
     } catch (e) { throw wrapError(e); }

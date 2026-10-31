@@ -12,7 +12,7 @@ import { SkillQueryController } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/
 import { SkillSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
-import { ApiResourceReferenceSchema, type UpdateVisibilityInput } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceReferenceSchema, type UpdateVisibilityInput, type UpdateVisibilityInputSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema, ApiResourceMetadataVersionSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 
 /** Provides operations on skill resources. */
@@ -25,25 +25,25 @@ export class SkillClient {
     this.query = createClient(SkillQueryController, transport);
   }
 
-  async push(input: PushSkillRequest): Promise<Skill> {
+  async push(input: MessageInitShape<typeof PushSkillRequestSchema>): Promise<Skill> {
     try {
       return await this.command.push(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async createArtifactUploadUrl(input: CreateSkillArtifactUploadUrlRequest): Promise<SkillArtifactUploadUrl> {
+  async createArtifactUploadUrl(input: MessageInitShape<typeof CreateSkillArtifactUploadUrlRequestSchema>): Promise<SkillArtifactUploadUrl> {
     try {
       return await this.command.createArtifactUploadUrl(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async pushFromFile(input: PushSkillFromFileRequest): Promise<Skill> {
+  async pushFromFile(input: MessageInitShape<typeof PushSkillFromFileRequestSchema>): Promise<Skill> {
     try {
       return await this.command.pushFromFile(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async updateVisibility(input: UpdateVisibilityInput): Promise<Skill> {
+  async updateVisibility(input: MessageInitShape<typeof UpdateVisibilityInputSchema>): Promise<Skill> {
     try {
       return await this.command.updateVisibility(input);
     } catch (e) { throw wrapError(e); }
@@ -67,7 +67,7 @@ export class SkillClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async list(input: ListSkillsRequest): Promise<SkillList> {
+  async list(input: MessageInitShape<typeof ListSkillsRequestSchema>): Promise<SkillList> {
     try {
       return await this.query.list(input);
     } catch (e) { throw wrapError(e); }
@@ -87,19 +87,19 @@ export class SkillClient {
     }
   }
 
-  async getArtifact(input: GetArtifactRequest): Promise<GetArtifactResponse> {
+  async getArtifact(input: MessageInitShape<typeof GetArtifactRequestSchema>): Promise<GetArtifactResponse> {
     try {
       return await this.query.getArtifact(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async getArtifactDownloadUrl(input: GetArtifactRequest): Promise<SkillArtifactDownloadUrl> {
+  async getArtifactDownloadUrl(input: MessageInitShape<typeof GetArtifactRequestSchema>): Promise<SkillArtifactDownloadUrl> {
     try {
       return await this.query.getArtifactDownloadUrl(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async listVersions(input: ListSkillVersionsInput): Promise<ListSkillVersionsResponse> {
+  async listVersions(input: MessageInitShape<typeof ListSkillVersionsInputSchema>): Promise<ListSkillVersionsResponse> {
     try {
       return await this.query.listVersions(input);
     } catch (e) { throw wrapError(e); }

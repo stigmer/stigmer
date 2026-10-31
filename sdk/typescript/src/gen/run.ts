@@ -49,7 +49,7 @@ export class RunClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async updateStatus(input: RunUpdateStatusInput): Promise<UpdateStatusResponse> {
+  async updateStatus(input: MessageInitShape<typeof RunUpdateStatusInputSchema>): Promise<UpdateStatusResponse> {
     try {
       return await this.command.updateStatus(input);
     } catch (e) { throw wrapError(e); }
@@ -61,25 +61,25 @@ export class RunClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async terminate(input: TerminateRunInput): Promise<Run> {
+  async terminate(input: MessageInitShape<typeof TerminateRunInputSchema>): Promise<Run> {
     try {
       return await this.command.terminate(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async recover(input: RecoverRunInput): Promise<Run> {
+  async recover(input: MessageInitShape<typeof RecoverRunInputSchema>): Promise<Run> {
     try {
       return await this.command.recover(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async pause(input: PauseRunInput): Promise<Run> {
+  async pause(input: MessageInitShape<typeof PauseRunInputSchema>): Promise<Run> {
     try {
       return await this.command.pause(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async resume(input: ResumeRunInput): Promise<Run> {
+  async resume(input: MessageInitShape<typeof ResumeRunInputSchema>): Promise<Run> {
     try {
       return await this.command.resume(input);
     } catch (e) { throw wrapError(e); }
@@ -91,7 +91,7 @@ export class RunClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async list(input: ListRunsRequest): Promise<RunList> {
+  async list(input: MessageInitShape<typeof ListRunsRequestSchema>): Promise<RunList> {
     try {
       return await this.query.list(input);
     } catch (e) { throw wrapError(e); }
@@ -111,7 +111,7 @@ export class RunClient {
     }
   }
 
-  async listBySession(input: ListRunsBySessionRequest): Promise<RunList> {
+  async listBySession(input: MessageInitShape<typeof ListRunsBySessionRequestSchema>): Promise<RunList> {
     try {
       return await this.query.listBySession(input);
     } catch (e) { throw wrapError(e); }
@@ -131,43 +131,43 @@ export class RunClient {
     }
   }
 
-  async getArtifactDownloadUrl(input: GetArtifactDownloadUrlRequest): Promise<GetArtifactDownloadUrlResponse> {
+  async getArtifactDownloadUrl(input: MessageInitShape<typeof GetArtifactDownloadUrlRequestSchema>): Promise<GetArtifactDownloadUrlResponse> {
     try {
       return await this.query.getArtifactDownloadUrl(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async getArtifactContent(input: GetArtifactContentRequest): Promise<GetArtifactContentResponse> {
+  async getArtifactContent(input: MessageInitShape<typeof GetArtifactContentRequestSchema>): Promise<GetArtifactContentResponse> {
     try {
       return await this.query.getArtifactContent(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async getRunUsageReport(input: GetRunUsageReportInput): Promise<GetRunUsageReportOutput> {
+  async getRunUsageReport(input: MessageInitShape<typeof GetRunUsageReportInputSchema>): Promise<GetRunUsageReportOutput> {
     try {
       return await this.query.getRunUsageReport(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async getSessionUsageReport(input: GetSessionUsageReportInput): Promise<GetSessionUsageReportOutput> {
+  async getSessionUsageReport(input: MessageInitShape<typeof GetSessionUsageReportInputSchema>): Promise<GetSessionUsageReportOutput> {
     try {
       return await this.query.getSessionUsageReport(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async getAgentUsageReport(input: GetAgentUsageReportInput): Promise<GetAgentUsageReportOutput> {
+  async getAgentUsageReport(input: MessageInitShape<typeof GetAgentUsageReportInputSchema>): Promise<GetAgentUsageReportOutput> {
     try {
       return await this.query.getAgentUsageReport(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async getOrgUsageReport(input: GetOrgUsageReportInput): Promise<GetOrgUsageReportOutput> {
+  async getOrgUsageReport(input: MessageInitShape<typeof GetOrgUsageReportInputSchema>): Promise<GetOrgUsageReportOutput> {
     try {
       return await this.query.getOrgUsageReport(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async getRunSummary(input: GetRunSummaryRequest): Promise<RunSummary> {
+  async getRunSummary(input: MessageInitShape<typeof GetRunSummaryRequestSchema>): Promise<RunSummary> {
     try {
       return await this.query.getRunSummary(input);
     } catch (e) { throw wrapError(e); }

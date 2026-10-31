@@ -18,19 +18,19 @@ export class ProviderKeyClient {
     this.query = createClient(ProviderKeyQueryController, transport);
   }
 
-  async set(input: SetProviderKeyInput): Promise<ProviderKey> {
+  async set(input: MessageInitShape<typeof SetProviderKeyInputSchema>): Promise<ProviderKey> {
     try {
       return await this.command.set(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async delete(input: DeleteProviderKeyInput): Promise<ProviderKey> {
+  async delete(input: MessageInitShape<typeof DeleteProviderKeyInputSchema>): Promise<ProviderKey> {
     try {
       return await this.command.delete(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async list(input: ListProviderKeysInput): Promise<ListProviderKeysOutput> {
+  async list(input: MessageInitShape<typeof ListProviderKeysInputSchema>): Promise<ListProviderKeysOutput> {
     try {
       return await this.query.list(input);
     } catch (e) { throw wrapError(e); }

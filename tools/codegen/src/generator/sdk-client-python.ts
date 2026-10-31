@@ -23,8 +23,26 @@ function pyServiceModule(svc: ServiceDefinition): string {
   return svc.role;
 }
 
-function pyMethodTypePb2Prefix(typeName: string, methodTypePb2Map: Map<string, string>): string {
-  return methodTypePb2Map.get(typeName) ?? "io_pb2";
+/**
+ * The module a method type is annotated with: the file that declares it, as
+ * the schema records, under the alias a cross-package module is imported by
+ * (apiresource_io_pb2.RenameInput). A type of the kind's own package the
+ * schema does not list (its <Kind>Id, which only the by-id branches name) is
+ * declared in the package's io.proto. A cross-package type the schema does
+ * not list has no module to read, so the generator stops rather than guess.
+ */
+function pyMethodTypePb2Prefix(
+  typeName: string,
+  fullType: string,
+  schema: ServiceSchemaFile,
+  methodTypePb2Map: Map<string, string>,
+): string {
+  const mod = methodTypePb2Map.get(typeName);
+  if (mod !== undefined) return mod;
+  if (fullType.startsWith(schema.package + ".")) return "io_pb2";
+  throw new Error(
+    `sdk-client-python: method type ${fullType} (service ${schema.package}) is not in the schema's methodTypes, so its module is unknown`,
+  );
 }
 
 function pyTrackMethodTypeImport(
@@ -45,8 +63,16 @@ function pyTrackMethodTypeImport(
   ) {
     return;
   }
-  if (!fullType.startsWith(schema.package + ".")) return;
-  const mod = pyMethodTypePb2Prefix(typeName, methodTypePb2Map);
+  if (!fullType.startsWith(schema.package + ".")) {
+    const mt = (schema.methodTypes ?? []).find((t) => t.protoType === fullType && t.protoFile !== "");
+    if (mt === undefined) {
+      pyMethodTypePb2Prefix(typeName, fullType, schema, methodTypePb2Map);
+      return;
+    }
+    imports.addCrossProtoPackage(fullType.slice(0, fullType.lastIndexOf(".")), pyProtoFileToModule(mt.protoFile));
+    return;
+  }
+  const mod = pyMethodTypePb2Prefix(typeName, fullType, schema, methodTypePb2Map);
   if (mod === "io_pb2") {
     imports.needsIoPb2 = true;
   } else {
@@ -185,7 +211,6 @@ class PyImports {
   needsIoPb2 = false;
   needsSpec = false;
 
-  needsApiResIo = false;
   needsMetadata = false;
   needsEmptyPb2 = false;
   needsFieldMaskPb2 = false;
@@ -284,9 +309,6 @@ class PyImports {
     }
     if (this.needsSpec) {
       buf.push(`from ${this.resourcePkg} import spec_pb2\n`);
-    }
-    if (this.needsApiResIo) {
-      buf.push("from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2\n");
     }
     if (this.needsMetadata) {
       buf.push("from ai.stigmer.commons.apiresource import metadata_pb2\n");
@@ -395,10 +417,17 @@ function generatePythonResourceClient(
   assertUniqueSdkMethodNames(schema);
   const imports = new PyImports(schema.package);
 
+  // Every method type's module, from the file the schema says declares it:
+  // the kind's own package by its module name, another package by the alias
+  // pyTrackMethodTypeImport imports it under.
   const methodTypePb2Map = new Map<string, string>();
   for (const mt of schema.methodTypes ?? []) {
-    if (mt.protoFile !== "" && mt.protoType.startsWith(schema.package + ".")) {
-      methodTypePb2Map.set(mt.name, pyProtoFileToModule(mt.protoFile));
+    if (mt.protoFile === "") continue;
+    const module = pyProtoFileToModule(mt.protoFile);
+    if (mt.protoType.startsWith(schema.package + ".")) {
+      methodTypePb2Map.set(mt.name, module);
+    } else {
+      methodTypePb2Map.set(mt.name, pyProtoModuleAlias(mt.protoType.slice(0, mt.protoType.lastIndexOf(".")), module));
     }
   }
 
@@ -416,7 +445,7 @@ function generatePythonResourceClient(
         else if (entryMod !== "api_pb2") imports.extraPb2Modules.add(entryMod);
       }
       if (m.inputType === "ApiResourceId" || m.inputType === "ApiResourceReference" || m.inputType === "ApiResourceDeleteInput") {
-        imports.needsApiResIo = true;
+        imports.addCrossProtoPackage("ai.stigmer.commons.apiresource", "io_pb2");
       }
       if (m.inputType === "ApiResourceReference") {
         imports.addTypesImport("ResourceRef");
@@ -471,10 +500,10 @@ function generatePythonResourceClient(
 
   for (const svc of schema.services) {
     for (const m of svc.methods) {
-      generatePythonMethod(body, m, svc, cfg, hasInputType, methodTypePb2Map);
+      generatePythonMethod(body, m, svc, cfg, hasInputType, schema, methodTypePb2Map);
       const paged = pagedListOf(schema, m);
       if (paged !== undefined) {
-        generatePythonPageIterator(body, svc, m, paged.entryType, pyEntryModule(paged.entryType, paged.entryFullType, cfg), methodTypePb2Map);
+        generatePythonPageIterator(body, svc, m, paged.entryType, pyEntryModule(paged.entryType, paged.entryFullType, cfg), schema, methodTypePb2Map);
       }
     }
   }
@@ -549,10 +578,11 @@ function generatePythonMethod(
   svc: ServiceDefinition,
   cfg: SdkResourceConfig,
   hasInputType: boolean,
+  schema: ServiceSchemaFile,
   methodTypePb2Map: Map<string, string>,
 ): void {
   if (m.serverStreaming === true) {
-    generatePythonStreamingMethod(buf, m, svc, cfg, methodTypePb2Map);
+    generatePythonStreamingMethod(buf, m, svc, cfg, schema, methodTypePb2Map);
     return;
   }
 
@@ -572,7 +602,7 @@ function generatePythonMethod(
   if (emptyOutput) {
     outputAnnotation = "None";
   } else if (m.outputType !== cfg.protoResType) {
-    outputAnnotation = pyMethodTypePb2Prefix(m.outputType, methodTypePb2Map) + "." + m.outputType;
+    outputAnnotation = pyMethodTypePb2Prefix(m.outputType, m.outputFullType, schema, methodTypePb2Map) + "." + m.outputType;
   }
 
   const returnKw = emptyOutput ? "" : "return ";
@@ -584,7 +614,7 @@ function generatePythonMethod(
     buf.push("        except grpc.RpcError as e:\n");
     buf.push("            raise wrap_error(e) from e\n\n");
   } else if (isUpdateInput) {
-    const inputMod = pyMethodTypePb2Prefix(m.inputType, methodTypePb2Map);
+    const inputMod = pyMethodTypePb2Prefix(m.inputType, m.inputFullType, schema, methodTypePb2Map);
     buf.push(`    def ${methodName}(self, resource: api_pb2.${cfg.protoResType}, paths: list[str]) -> ${outputAnnotation}:\n`);
     buf.push("        try:\n");
     buf.push(`            ${returnKw}self._${svc.role}.${stubMethod}(\n`);
@@ -626,14 +656,14 @@ function generatePythonMethod(
     buf.push("        except grpc.RpcError as e:\n");
     buf.push("            raise wrap_error(e) from e\n\n");
   } else if (isIDInput) {
-    const idMod = pyMethodTypePb2Prefix(m.inputType, methodTypePb2Map);
+    const idMod = pyMethodTypePb2Prefix(m.inputType, m.inputFullType, schema, methodTypePb2Map);
     buf.push(`    def ${methodName}(self, id: str) -> ${outputAnnotation}:\n`);
     buf.push("        try:\n");
     buf.push(`            ${returnKw}self._${svc.role}.${stubMethod}(${idMod}.${m.inputType}(value=id))\n`);
     buf.push("        except grpc.RpcError as e:\n");
     buf.push("            raise wrap_error(e) from e\n\n");
   } else {
-    const inputMod = pyMethodTypePb2Prefix(m.inputType, methodTypePb2Map);
+    const inputMod = pyMethodTypePb2Prefix(m.inputType, m.inputFullType, schema, methodTypePb2Map);
     buf.push(`    def ${methodName}(self, input: ${inputMod}.${m.inputType}) -> ${outputAnnotation}:\n`);
     buf.push("        try:\n");
     buf.push(`            ${returnKw}self._${svc.role}.${stubMethod}(input)\n`);
@@ -647,6 +677,7 @@ function generatePythonStreamingMethod(
   m: MethodSchema,
   svc: ServiceDefinition,
   cfg: SdkResourceConfig,
+  schema: ServiceSchemaFile,
   methodTypePb2Map: Map<string, string>,
 ): void {
   const isIDInput = isIDType(m.inputType);
@@ -655,18 +686,18 @@ function generatePythonStreamingMethod(
 
   let outputAnnotation = "api_pb2." + cfg.protoResType;
   if (m.outputType !== cfg.protoResType) {
-    outputAnnotation = pyMethodTypePb2Prefix(m.outputType, methodTypePb2Map) + "." + m.outputType;
+    outputAnnotation = pyMethodTypePb2Prefix(m.outputType, m.outputFullType, schema, methodTypePb2Map) + "." + m.outputType;
   }
 
   if (m.clientStreaming === true) {
-    const inputMod = pyMethodTypePb2Prefix(m.inputType, methodTypePb2Map);
+    const inputMod = pyMethodTypePb2Prefix(m.inputType, m.inputFullType, schema, methodTypePb2Map);
     buf.push(`    def ${methodName}(self) -> BidiStream[${inputMod}.${m.inputType}, ${outputAnnotation}]:\n`);
     buf.push("        try:\n");
     buf.push(`            return BidiStream(lambda reqs: self._${svc.role}.${stubMethod}(reqs))\n`);
     buf.push("        except grpc.RpcError as e:\n");
     buf.push("            raise wrap_error(e) from e\n\n");
   } else if (isIDInput) {
-    const idMod = pyMethodTypePb2Prefix(m.inputType, methodTypePb2Map);
+    const idMod = pyMethodTypePb2Prefix(m.inputType, m.inputFullType, schema, methodTypePb2Map);
     buf.push(`    def ${methodName}(self, id: str) -> Iterator[${outputAnnotation}]:\n`);
     buf.push("        try:\n");
     buf.push(`            for msg in self._${svc.role}.${stubMethod}(${idMod}.${m.inputType}(value=id)):\n`);
@@ -674,7 +705,7 @@ function generatePythonStreamingMethod(
     buf.push("        except grpc.RpcError as e:\n");
     buf.push("            raise wrap_error(e) from e\n\n");
   } else {
-    const inputMod = pyMethodTypePb2Prefix(m.inputType, methodTypePb2Map);
+    const inputMod = pyMethodTypePb2Prefix(m.inputType, m.inputFullType, schema, methodTypePb2Map);
     buf.push(`    def ${methodName}(self, input: ${inputMod}.${m.inputType}) -> Iterator[${outputAnnotation}]:\n`);
     buf.push("        try:\n");
     buf.push(`            for msg in self._${svc.role}.${stubMethod}(input):\n`);
@@ -700,10 +731,11 @@ function generatePythonPageIterator(
   m: MethodSchema,
   entryType: string,
   entryModule: string,
+  schema: ServiceSchemaFile,
   methodTypePb2Map: Map<string, string>,
 ): void {
   const methodName = pyMethodName(sdkMethodName(svc, m));
-  const inputMod = pyMethodTypePb2Prefix(m.inputType, methodTypePb2Map);
+  const inputMod = pyMethodTypePb2Prefix(m.inputType, m.inputFullType, schema, methodTypePb2Map);
   buf.push(`    def ${pyMethodName(pageIteratorName(sdkMethodName(svc, m)))}(self, input: ${inputMod}.${m.inputType}) -> Iterator[${entryModule}.${entryType}]:\n`);
   buf.push(`        """Every entry of \`\`${methodName}\`\`, page after page: follows \`\`next_page_token\`\`\n`);
   buf.push("        from the token the input names until the list ends.\"\"\"\n");

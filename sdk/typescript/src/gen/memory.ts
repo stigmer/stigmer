@@ -58,7 +58,7 @@ export class MemoryClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async list(input: ListMemoriesRequest): Promise<MemoryList> {
+  async list(input: MessageInitShape<typeof ListMemoriesRequestSchema>): Promise<MemoryList> {
     try {
       return await this.query.list(input);
     } catch (e) { throw wrapError(e); }

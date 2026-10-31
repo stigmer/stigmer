@@ -47,7 +47,7 @@ export class ScoreClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async listByRun(input: ListScoresByRunRequest): Promise<ScoreList> {
+  async listByRun(input: MessageInitShape<typeof ListScoresByRunRequestSchema>): Promise<ScoreList> {
     try {
       return await this.query.listByRun(input);
     } catch (e) { throw wrapError(e); }
@@ -67,7 +67,7 @@ export class ScoreClient {
     }
   }
 
-  async listBySession(input: ListScoresBySessionRequest): Promise<ScoreList> {
+  async listBySession(input: MessageInitShape<typeof ListScoresBySessionRequestSchema>): Promise<ScoreList> {
     try {
       return await this.query.listBySession(input);
     } catch (e) { throw wrapError(e); }
@@ -87,13 +87,13 @@ export class ScoreClient {
     }
   }
 
-  async getAgentQualityReport(input: GetAgentQualityReportRequest): Promise<AgentQualityReport> {
+  async getAgentQualityReport(input: MessageInitShape<typeof GetAgentQualityReportRequestSchema>): Promise<AgentQualityReport> {
     try {
       return await this.query.getAgentQualityReport(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async listFlaggedByAgent(input: ListFlaggedScoresByAgentRequest): Promise<ScoreList> {
+  async listFlaggedByAgent(input: MessageInitShape<typeof ListFlaggedScoresByAgentRequestSchema>): Promise<ScoreList> {
     try {
       return await this.query.listFlaggedByAgent(input);
     } catch (e) { throw wrapError(e); }

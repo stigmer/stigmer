@@ -45,25 +45,25 @@ export class IdentityAccountClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async createFederatedAccount(input: CreateFederatedAccountInput): Promise<IdentityAccount> {
+  async createFederatedAccount(input: MessageInitShape<typeof CreateFederatedAccountInputSchema>): Promise<IdentityAccount> {
     try {
       return await this.command.createFederatedAccount(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async updateFederatedAccount(input: UpdateFederatedAccountInput): Promise<IdentityAccount> {
+  async updateFederatedAccount(input: MessageInitShape<typeof UpdateFederatedAccountInputSchema>): Promise<IdentityAccount> {
     try {
       return await this.command.updateFederatedAccount(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async deprovisionFederatedAccount(input: DeprovisionFederatedAccountInput): Promise<IdentityAccount> {
+  async deprovisionFederatedAccount(input: MessageInitShape<typeof DeprovisionFederatedAccountInputSchema>): Promise<IdentityAccount> {
     try {
       return await this.command.deprovisionFederatedAccount(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async createServiceAccount(input: CreateServiceAccountInput): Promise<IdentityAccount> {
+  async createServiceAccount(input: MessageInitShape<typeof CreateServiceAccountInputSchema>): Promise<IdentityAccount> {
     try {
       return await this.command.createServiceAccount(input);
     } catch (e) { throw wrapError(e); }
@@ -87,7 +87,7 @@ export class IdentityAccountClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async getByEmail(input: IdentityAccountEmail): Promise<IdentityAccount> {
+  async getByEmail(input: MessageInitShape<typeof IdentityAccountEmailSchema>): Promise<IdentityAccount> {
     try {
       return await this.query.getByEmail(input);
     } catch (e) { throw wrapError(e); }
@@ -99,13 +99,13 @@ export class IdentityAccountClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async getByExternalSub(input: ExternalSubLookup): Promise<IdentityAccount> {
+  async getByExternalSub(input: MessageInitShape<typeof ExternalSubLookupSchema>): Promise<IdentityAccount> {
     try {
       return await this.query.getByExternalSub(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async listServiceAccounts(input: ListServiceAccountsInput): Promise<IdentityAccountsList> {
+  async listServiceAccounts(input: MessageInitShape<typeof ListServiceAccountsInputSchema>): Promise<IdentityAccountsList> {
     try {
       return await this.query.listServiceAccounts(input);
     } catch (e) { throw wrapError(e); }

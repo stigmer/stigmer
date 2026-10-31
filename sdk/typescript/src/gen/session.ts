@@ -45,37 +45,37 @@ export class SessionClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async updateSubject(input: UpdateSessionSubjectRequest): Promise<Session> {
+  async updateSubject(input: MessageInitShape<typeof UpdateSessionSubjectRequestSchema>): Promise<Session> {
     try {
       return await this.command.updateSubject(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async reviewFileChanges(input: ReviewFileChangesInput): Promise<ReviewFileChangesResponse> {
+  async reviewFileChanges(input: MessageInitShape<typeof ReviewFileChangesInputSchema>): Promise<ReviewFileChangesResponse> {
     try {
       return await this.command.reviewFileChanges(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async confirmToolUse(input: ConfirmToolUseInput): Promise<SessionEvent> {
+  async confirmToolUse(input: MessageInitShape<typeof ConfirmToolUseInputSchema>): Promise<SessionEvent> {
     try {
       return await this.command.confirmToolUse(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async grantPermission(input: GrantPermissionInput): Promise<GrantPermissionResponse> {
+  async grantPermission(input: MessageInitShape<typeof GrantPermissionInputSchema>): Promise<GrantPermissionResponse> {
     try {
       return await this.command.grantPermission(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async stopBackgroundCommand(input: StopBackgroundCommandInput): Promise<SessionEvent> {
+  async stopBackgroundCommand(input: MessageInitShape<typeof StopBackgroundCommandInputSchema>): Promise<SessionEvent> {
     try {
       return await this.command.stopBackgroundCommand(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async interrupt(input: InterruptSessionInput): Promise<InterruptSessionResponse> {
+  async interrupt(input: MessageInitShape<typeof InterruptSessionInputSchema>): Promise<InterruptSessionResponse> {
     try {
       return await this.command.interrupt(input);
     } catch (e) { throw wrapError(e); }
@@ -87,13 +87,13 @@ export class SessionClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async appendEvents(input: AppendSessionEventsInput): Promise<AppendSessionEventsResponse> {
+  async appendEvents(input: MessageInitShape<typeof AppendSessionEventsInputSchema>): Promise<AppendSessionEventsResponse> {
     try {
       return await this.command.appendEvents(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async claimInput(input: ClaimSessionInputInput): Promise<ClaimSessionInputResponse> {
+  async claimInput(input: MessageInitShape<typeof ClaimSessionInputInputSchema>): Promise<ClaimSessionInputResponse> {
     try {
       return await this.command.claimInput(input);
     } catch (e) { throw wrapError(e); }
@@ -105,7 +105,7 @@ export class SessionClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async list(input: ListSessionsRequest): Promise<SessionList> {
+  async list(input: MessageInitShape<typeof ListSessionsRequestSchema>): Promise<SessionList> {
     try {
       return await this.query.list(input);
     } catch (e) { throw wrapError(e); }
@@ -125,7 +125,7 @@ export class SessionClient {
     }
   }
 
-  async listByAgent(input: ListSessionsByAgentRequest): Promise<SessionList> {
+  async listByAgent(input: MessageInitShape<typeof ListSessionsByAgentRequestSchema>): Promise<SessionList> {
     try {
       return await this.query.listByAgent(input);
     } catch (e) { throw wrapError(e); }
@@ -145,7 +145,7 @@ export class SessionClient {
     }
   }
 
-  async listByChannel(input: ListSessionsByChannelRequest): Promise<SessionList> {
+  async listByChannel(input: MessageInitShape<typeof ListSessionsByChannelRequestSchema>): Promise<SessionList> {
     try {
       return await this.query.listByChannel(input);
     } catch (e) { throw wrapError(e); }
@@ -165,13 +165,13 @@ export class SessionClient {
     }
   }
 
-  async listEvents(input: ListSessionEventsRequest): Promise<SessionEventList> {
+  async listEvents(input: MessageInitShape<typeof ListSessionEventsRequestSchema>): Promise<SessionEventList> {
     try {
       return await this.query.listEvents(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async *streamEvents(input: StreamSessionEventsRequest, signal?: AbortSignal): AsyncGenerator<StreamSessionEventsResponse> {
+  async *streamEvents(input: MessageInitShape<typeof StreamSessionEventsRequestSchema>, signal?: AbortSignal): AsyncGenerator<StreamSessionEventsResponse> {
     try {
       for await (const msg of this.query.streamEvents(input, { signal })) {
         yield msg;
@@ -179,7 +179,7 @@ export class SessionClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async *streamAttention(input: StreamAttentionRequest, signal?: AbortSignal): AsyncGenerator<Attention> {
+  async *streamAttention(input: MessageInitShape<typeof StreamAttentionRequestSchema>, signal?: AbortSignal): AsyncGenerator<Attention> {
     try {
       for await (const msg of this.query.streamAttention(input, { signal })) {
         yield msg;

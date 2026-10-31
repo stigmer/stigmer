@@ -2,7 +2,7 @@
 
 import { wrapError } from "./errors.js";
 import { stripUndefined } from "./proto-utils.js";
-import { create } from "@bufbuild/protobuf";
+import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { SubscriptionSchema, type Subscription } from "@stigmer/apis/ai/stigmer/billing/subscription/v1/api_pb";
 import { SubscriptionCommandController } from "@stigmer/apis/ai/stigmer/billing/subscription/v1/command_pb";
@@ -22,37 +22,37 @@ export class SubscriptionClient {
     this.query = createClient(SubscriptionQueryController, transport);
   }
 
-  async changePlan(input: ChangePlanInput): Promise<Subscription> {
+  async changePlan(input: MessageInitShape<typeof ChangePlanInputSchema>): Promise<Subscription> {
     try {
       return await this.command.changePlan(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async cancel(input: CancelSubscriptionInput): Promise<Subscription> {
+  async cancel(input: MessageInitShape<typeof CancelSubscriptionInputSchema>): Promise<Subscription> {
     try {
       return await this.command.cancel(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async getForOrg(input: GetSubscriptionForOrgInput): Promise<Subscription> {
+  async getForOrg(input: MessageInitShape<typeof GetSubscriptionForOrgInputSchema>): Promise<Subscription> {
     try {
       return await this.query.getForOrg(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async getEntitlements(input: GetEntitlementsInput): Promise<GetEntitlementsOutput> {
+  async getEntitlements(input: MessageInitShape<typeof GetEntitlementsInputSchema>): Promise<GetEntitlementsOutput> {
     try {
       return await this.query.getEntitlements(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async getPeriodEstimate(input: GetPeriodEstimateInput): Promise<PeriodEstimate> {
+  async getPeriodEstimate(input: MessageInitShape<typeof GetPeriodEstimateInputSchema>): Promise<PeriodEstimate> {
     try {
       return await this.query.getPeriodEstimate(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async getAgentHours(input: GetAgentHoursInput): Promise<AgentHours> {
+  async getAgentHours(input: MessageInitShape<typeof GetAgentHoursInputSchema>): Promise<AgentHours> {
     try {
       return await this.query.getAgentHours(input);
     } catch (e) { throw wrapError(e); }

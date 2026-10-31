@@ -42,6 +42,15 @@ describe("Python cross-package imports", () => {
     );
   });
 
+  it("names an unversioned package by its last segment", () => {
+    expect(pyProtoModuleAlias("ai.stigmer.commons.apiresource", "io_pb2")).toBe(
+      "apiresource_io_pb2",
+    );
+    expect(pyProtoImportLine("ai.stigmer.commons.apiresource", "status_pb2")).toBe(
+      "from ai.stigmer.commons.apiresource import status_pb2 as apiresource_status_pb2",
+    );
+  });
+
   it("writes the import line from the declaring module", () => {
     expect(pyProtoImportLine("ai.stigmer.agentic.session.v1", "workspace_pb2")).toBe(
       "from ai.stigmer.agentic.session.v1 import workspace_pb2 as session_workspace_pb2",

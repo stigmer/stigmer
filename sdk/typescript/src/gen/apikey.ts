@@ -29,7 +29,7 @@ export class ApiKeyClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async createForServiceAccount(input: CreateServiceAccountKeyInput): Promise<ApiKey> {
+  async createForServiceAccount(input: MessageInitShape<typeof CreateServiceAccountKeyInputSchema>): Promise<ApiKey> {
     try {
       return await this.command.createForServiceAccount(input);
     } catch (e) { throw wrapError(e); }
@@ -53,13 +53,13 @@ export class ApiKeyClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async getByKeyHash(input: ApiKeyHash): Promise<ApiKey> {
+  async getByKeyHash(input: MessageInitShape<typeof ApiKeyHashSchema>): Promise<ApiKey> {
     try {
       return await this.query.getByKeyHash(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async list(input: ListApiKeysInput): Promise<ApiKeys> {
+  async list(input: MessageInitShape<typeof ListApiKeysInputSchema>): Promise<ApiKeys> {
     try {
       return await this.query.list(input);
     } catch (e) { throw wrapError(e); }
@@ -79,7 +79,7 @@ export class ApiKeyClient {
     }
   }
 
-  async listByAccount(input: ListApiKeysByAccountInput): Promise<ApiKeys> {
+  async listByAccount(input: MessageInitShape<typeof ListApiKeysByAccountInputSchema>): Promise<ApiKeys> {
     try {
       return await this.query.listByAccount(input);
     } catch (e) { throw wrapError(e); }

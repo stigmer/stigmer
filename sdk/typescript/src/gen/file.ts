@@ -11,7 +11,7 @@ import { FileQueryController } from "@stigmer/apis/ai/stigmer/agentic/file/v1/qu
 import { RunFileController, MountRunFilesInputSchema, RunFileMountsSchema, CreateOutputUploadsInputSchema, OutputUploadsSchema, RegisterOutputsInputSchema, RegisteredOutputsSchema, type MountRunFilesInput, type RunFileMounts, type CreateOutputUploadsInput, type OutputUploads, type RegisterOutputsInput, type RegisteredOutputs } from "@stigmer/apis/ai/stigmer/agentic/file/v1/run_files_pb";
 import { FileSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/spec_pb";
 import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
-import { type UpdateVisibilityInput } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import { type UpdateVisibilityInput, type UpdateVisibilityInputSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 
 /** Provides operations on file resources. */
@@ -26,13 +26,13 @@ export class FileClient {
     this.runFile = createClient(RunFileController, transport);
   }
 
-  async upload(input: UploadFileInput): Promise<File> {
+  async upload(input: MessageInitShape<typeof UploadFileInputSchema>): Promise<File> {
     try {
       return await this.command.upload(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async createUploadUrl(input: CreateFileUploadUrlInput): Promise<FileUploadUrl> {
+  async createUploadUrl(input: MessageInitShape<typeof CreateFileUploadUrlInputSchema>): Promise<FileUploadUrl> {
     try {
       return await this.command.createUploadUrl(input);
     } catch (e) { throw wrapError(e); }
@@ -44,7 +44,7 @@ export class FileClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async updateVisibility(input: UpdateVisibilityInput): Promise<File> {
+  async updateVisibility(input: MessageInitShape<typeof UpdateVisibilityInputSchema>): Promise<File> {
     try {
       return await this.command.updateVisibility(input);
     } catch (e) { throw wrapError(e); }
@@ -62,7 +62,7 @@ export class FileClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async list(input: ListFilesRequest): Promise<FileList> {
+  async list(input: MessageInitShape<typeof ListFilesRequestSchema>): Promise<FileList> {
     try {
       return await this.query.list(input);
     } catch (e) { throw wrapError(e); }
@@ -88,25 +88,25 @@ export class FileClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async getContent(input: GetFileContentInput): Promise<FileContent> {
+  async getContent(input: MessageInitShape<typeof GetFileContentInputSchema>): Promise<FileContent> {
     try {
       return await this.query.getContent(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async mount(input: MountRunFilesInput): Promise<RunFileMounts> {
+  async mount(input: MessageInitShape<typeof MountRunFilesInputSchema>): Promise<RunFileMounts> {
     try {
       return await this.runFile.mount(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async createOutputUploads(input: CreateOutputUploadsInput): Promise<OutputUploads> {
+  async createOutputUploads(input: MessageInitShape<typeof CreateOutputUploadsInputSchema>): Promise<OutputUploads> {
     try {
       return await this.runFile.createOutputUploads(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async registerOutputs(input: RegisterOutputsInput): Promise<RegisteredOutputs> {
+  async registerOutputs(input: MessageInitShape<typeof RegisterOutputsInputSchema>): Promise<RegisteredOutputs> {
     try {
       return await this.runFile.registerOutputs(input);
     } catch (e) { throw wrapError(e); }

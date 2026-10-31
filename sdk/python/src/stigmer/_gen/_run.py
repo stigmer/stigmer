@@ -12,10 +12,10 @@ from ai.stigmer.agentic.run.v1 import command_pb2_grpc
 from ai.stigmer.agentic.run.v1 import query_pb2_grpc
 from ai.stigmer.agentic.run.v1 import io_pb2
 from ai.stigmer.agentic.run.v1 import spec_pb2
-from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2
 from ai.stigmer.commons.apiresource import metadata_pb2
 from google.protobuf import field_mask_pb2
 from ai.stigmer.agentic.session.v1 import spec_pb2 as session_spec_pb2
+from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2
 
 from ._errors import wrap_error
 from ._types import ResourceRef

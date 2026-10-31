@@ -13,7 +13,7 @@ import { RunEvalCaseController, GetRunEvalCaseArchiveInputSchema, type GetRunEva
 import { EvalSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
-import { ApiResourceReferenceSchema, type UpdateVisibilityInput, type RenameInput } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceReferenceSchema, type UpdateVisibilityInput, type RenameInput, type UpdateVisibilityInputSchema, type RenameInputSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema, ApiResourceMetadataVersionSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 
 /** Provides operations on eval resources. */
@@ -28,31 +28,31 @@ export class EvalClient {
     this.runEvalCase = createClient(RunEvalCaseController, transport);
   }
 
-  async push(input: PushEvalRequest): Promise<Eval> {
+  async push(input: MessageInitShape<typeof PushEvalRequestSchema>): Promise<Eval> {
     try {
       return await this.command.push(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async addCaseFromRun(input: AddEvalCaseFromRunRequest): Promise<Eval> {
+  async addCaseFromRun(input: MessageInitShape<typeof AddEvalCaseFromRunRequestSchema>): Promise<Eval> {
     try {
       return await this.command.addCaseFromRun(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async createArtifactUploadUrl(input: CreateEvalArtifactUploadUrlRequest): Promise<EvalArtifactUploadUrl> {
+  async createArtifactUploadUrl(input: MessageInitShape<typeof CreateEvalArtifactUploadUrlRequestSchema>): Promise<EvalArtifactUploadUrl> {
     try {
       return await this.command.createArtifactUploadUrl(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async updateVisibility(input: UpdateVisibilityInput): Promise<Eval> {
+  async updateVisibility(input: MessageInitShape<typeof UpdateVisibilityInputSchema>): Promise<Eval> {
     try {
       return await this.command.updateVisibility(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async rename(input: RenameInput): Promise<Eval> {
+  async rename(input: MessageInitShape<typeof RenameInputSchema>): Promise<Eval> {
     try {
       return await this.command.rename(input);
     } catch (e) { throw wrapError(e); }
@@ -76,7 +76,7 @@ export class EvalClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async list(input: ListEvalsRequest): Promise<EvalList> {
+  async list(input: MessageInitShape<typeof ListEvalsRequestSchema>): Promise<EvalList> {
     try {
       return await this.query.list(input);
     } catch (e) { throw wrapError(e); }
@@ -96,7 +96,7 @@ export class EvalClient {
     }
   }
 
-  async listVersions(input: ListEvalVersionsInput): Promise<ListEvalVersionsResponse> {
+  async listVersions(input: MessageInitShape<typeof ListEvalVersionsInputSchema>): Promise<ListEvalVersionsResponse> {
     try {
       return await this.query.listVersions(input);
     } catch (e) { throw wrapError(e); }
@@ -128,13 +128,13 @@ export class EvalClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async buildCaseFromRun(input: BuildEvalCaseFromRunRequest): Promise<EvalCaseArchive> {
+  async buildCaseFromRun(input: MessageInitShape<typeof BuildEvalCaseFromRunRequestSchema>): Promise<EvalCaseArchive> {
     try {
       return await this.query.buildCaseFromRun(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async getArchiveDownloadUrl(input: GetRunEvalCaseArchiveInput): Promise<EvalArchiveDownloadUrl> {
+  async getArchiveDownloadUrl(input: MessageInitShape<typeof GetRunEvalCaseArchiveInputSchema>): Promise<EvalArchiveDownloadUrl> {
     try {
       return await this.runEvalCase.getArchiveDownloadUrl(input);
     } catch (e) { throw wrapError(e); }

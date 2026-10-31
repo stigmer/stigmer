@@ -20,7 +20,7 @@ import { ServiceTier, ThinkingMode } from "@stigmer/apis/ai/stigmer/agentic/run/
 import { RunConfigSchema, type RunConfig } from "@stigmer/apis/ai/stigmer/agentic/run/v1/invocation_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
-import { ApiResourceReferenceSchema, type RenameInput } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceReferenceSchema, type RenameInput, type RenameInputSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 
 /** Provides operations on channel resources. */
@@ -59,25 +59,25 @@ export class ChannelClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async rename(input: RenameInput): Promise<Channel> {
+  async rename(input: MessageInitShape<typeof RenameInputSchema>): Promise<Channel> {
     try {
       return await this.command.rename(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async rotateLink(input: RotateChannelLinkInput): Promise<Channel> {
+  async rotateLink(input: MessageInitShape<typeof RotateChannelLinkInputSchema>): Promise<Channel> {
     try {
       return await this.command.rotateLink(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async initiateInstall(input: InitiateChannelInstallInput): Promise<InitiateChannelInstallOutput> {
+  async initiateInstall(input: MessageInitShape<typeof InitiateChannelInstallInputSchema>): Promise<InitiateChannelInstallOutput> {
     try {
       return await this.command.initiateInstall(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async completeInstall(input: CompleteChannelInstallInput): Promise<Channel> {
+  async completeInstall(input: MessageInitShape<typeof CompleteChannelInstallInputSchema>): Promise<Channel> {
     try {
       return await this.command.completeInstall(input);
     } catch (e) { throw wrapError(e); }
@@ -89,37 +89,37 @@ export class ChannelClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async reply(input: ReplyToConversationInput): Promise<SendChannelMessageOutput> {
+  async reply(input: MessageInitShape<typeof ReplyToConversationInputSchema>): Promise<SendChannelMessageOutput> {
     try {
       return await this.channelConversationCommand.reply(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async takeOver(input: ConversationControlInput): Promise<ChannelConversation> {
+  async takeOver(input: MessageInitShape<typeof ConversationControlInputSchema>): Promise<ChannelConversation> {
     try {
       return await this.channelConversationCommand.takeOver(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async handBack(input: ConversationControlInput): Promise<ChannelConversation> {
+  async handBack(input: MessageInitShape<typeof ConversationControlInputSchema>): Promise<ChannelConversation> {
     try {
       return await this.channelConversationCommand.handBack(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async clearAttention(input: ConversationControlInput): Promise<ChannelConversation> {
+  async clearAttention(input: MessageInitShape<typeof ConversationControlInputSchema>): Promise<ChannelConversation> {
     try {
       return await this.channelConversationCommand.clearAttention(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async escalate(input: EscalateConversationInput): Promise<ChannelConversation> {
+  async escalate(input: MessageInitShape<typeof EscalateConversationInputSchema>): Promise<ChannelConversation> {
     try {
       return await this.channelConversationCommand.escalate(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async listConversations(input: ListChannelConversationsInput): Promise<ChannelConversationList> {
+  async listConversations(input: MessageInitShape<typeof ListChannelConversationsInputSchema>): Promise<ChannelConversationList> {
     try {
       return await this.channelConversationQuery.list(input);
     } catch (e) { throw wrapError(e); }
@@ -139,19 +139,19 @@ export class ChannelClient {
     }
   }
 
-  async countConversations(input: CountChannelConversationsInput): Promise<ChannelConversationCount> {
+  async countConversations(input: MessageInitShape<typeof CountChannelConversationsInputSchema>): Promise<ChannelConversationCount> {
     try {
       return await this.channelConversationQuery.countConversations(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async getConversation(input: GetChannelConversationInput): Promise<ChannelConversation> {
+  async getConversation(input: MessageInitShape<typeof GetChannelConversationInputSchema>): Promise<ChannelConversation> {
     try {
       return await this.channelConversationQuery.getConversation(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async listTimeline(input: ListConversationTimelineInput): Promise<ConversationTimeline> {
+  async listTimeline(input: MessageInitShape<typeof ListConversationTimelineInputSchema>): Promise<ConversationTimeline> {
     try {
       return await this.channelConversationQuery.listTimeline(input);
     } catch (e) { throw wrapError(e); }
@@ -171,25 +171,25 @@ export class ChannelClient {
     }
   }
 
-  async getMediaDownloadUrl(input: GetConversationMediaDownloadUrlInput): Promise<ConversationMediaDownloadUrl> {
+  async getMediaDownloadUrl(input: MessageInitShape<typeof GetConversationMediaDownloadUrlInputSchema>): Promise<ConversationMediaDownloadUrl> {
     try {
       return await this.channelConversationQuery.getMediaDownloadUrl(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async sendMessage(input: SendChannelMessageInput): Promise<SendChannelMessageOutput> {
+  async sendMessage(input: MessageInitShape<typeof SendChannelMessageInputSchema>): Promise<SendChannelMessageOutput> {
     try {
       return await this.channelMessageCommand.sendMessage(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async listTemplates(input: ListChannelTemplatesInput): Promise<ChannelTemplates> {
+  async listTemplates(input: MessageInitShape<typeof ListChannelTemplatesInputSchema>): Promise<ChannelTemplates> {
     try {
       return await this.channelMessageQuery.listTemplates(input);
     } catch (e) { throw wrapError(e); }
   }
 
-  async listMessagingChannels(input: ListMessagingChannelsInput): Promise<MessagingChannels> {
+  async listMessagingChannels(input: MessageInitShape<typeof ListMessagingChannelsInputSchema>): Promise<MessagingChannels> {
     try {
       return await this.channelMessageQuery.listMessagingChannels(input);
     } catch (e) { throw wrapError(e); }
@@ -207,7 +207,7 @@ export class ChannelClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async listByAgent(input: ListChannelsByAgentRequest): Promise<ChannelList> {
+  async listByAgent(input: MessageInitShape<typeof ListChannelsByAgentRequestSchema>): Promise<ChannelList> {
     try {
       return await this.query.listByAgent(input);
     } catch (e) { throw wrapError(e); }
@@ -227,7 +227,7 @@ export class ChannelClient {
     }
   }
 
-  async list(input: ListChannelsRequest): Promise<ChannelList> {
+  async list(input: MessageInitShape<typeof ListChannelsRequestSchema>): Promise<ChannelList> {
     try {
       return await this.query.list(input);
     } catch (e) { throw wrapError(e); }
@@ -247,7 +247,7 @@ export class ChannelClient {
     }
   }
 
-  async getAgentProfile(input: GetChannelAgentProfileRequest): Promise<ChannelAgentProfile> {
+  async getAgentProfile(input: MessageInitShape<typeof GetChannelAgentProfileRequestSchema>): Promise<ChannelAgentProfile> {
     try {
       return await this.query.getAgentProfile(input);
     } catch (e) { throw wrapError(e); }
