@@ -7,12 +7,13 @@
 // command it started in the background changes state ("Background command
 // `npm test` exited with code 1", from the fold's `background`, the fact the
 // console reads), a subagent's start and
-// end with its tool uses indented beneath, the platform's notes, a context
+// end with its tool uses indented beneath (its task call's line, once the
+// call returns, carries its span: "✓ task (1m 4s)"), the platform's notes, a context
 // compaction, the turn's errors, and how each ask was answered. No ANSI, no
 // frames. Each fold is compared with the last by reference, so a turn no event
 // touched is not walked again, and everything already written stays written.
 
-import { backgroundEndingLine, extractShellIntent, type SessionFold, type ToolUse, type Turn, type TurnItem } from "@stigmer/client";
+import { backgroundEndingLine, extractShellIntent, formatElapsed, type SessionFold, type ToolUse, type Turn, type TurnItem } from "@stigmer/client";
 import { answerWord, type ApproveDefault, type AskAnswer } from "./answer.js";
 import type { HeadlessRenderer } from "./headless.js";
 import type { LineWriter } from "./render-ndjson.js";
@@ -90,7 +91,7 @@ export class PlaintextRenderer implements HeadlessRenderer {
   private renderTool(tool: ToolUse, indent: string): void {
     if (this.toolStates.get(tool.id) !== tool.state) {
       this.toolStates.set(tool.id, tool.state);
-      this.opts.status.write(`${indent}  ${toolLine(tool)}\n`);
+      this.opts.status.write(`${indent}  ${toolLine(tool)}${tool.thread === undefined ? "" : threadSpan(tool)}\n`);
     }
     const background = tool.background;
     if (background !== undefined && this.backgroundStates.get(tool.id) !== background.state) {
@@ -123,6 +124,14 @@ const THREAD_END: Record<NonNullable<ToolUse["thread"]>["state"], string> = {
   failed: "✗ Subagent failed",
   stopped: "⊘ Subagent stopped",
 };
+
+// A subagent's span, " (1m 4s)", from its task call to the call's result;
+// "" while the call is open or when the log stamps either end with no time.
+function threadSpan(tool: ToolUse): string {
+  const start = Date.parse(tool.processedAt);
+  const end = tool.result === undefined ? Number.NaN : Date.parse(tool.result.processedAt);
+  return Number.isNaN(start) || Number.isNaN(end) ? "" : ` (${formatElapsed(end - start)})`;
+}
 
 // One line for a tool use in its current state.
 function toolLine(tool: ToolUse): string {

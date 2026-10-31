@@ -13,12 +13,16 @@
 // ask with its tool_use_id, a status's phase). The tool_use_id on a
 // stigmer.permission.asked line is what `runs approve --tool-call` takes.
 //
+// With `-o json` (or ndjson) each event is one line of Managed Agents JSON,
+// the lines `stigmer run --json` writes, and nothing else.
+//
 // Ctrl-C ends a follow cleanly: the SIGINT aborts the follow, which then
 // simply stops (no stack trace).
 
 import type { JsonObject, JsonValue } from "@bufbuild/protobuf";
 import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 import { followSession, SessionLog, toManagedAgentsJson, turnOf, type Stigmer, type Turn } from "@stigmer/client";
+import { ndjsonLine } from "../output/ndjson.js";
 import { shouldColorize, styler } from "../output/style.js";
 import { listSessionEvents, sessionOfRun } from "./session.js";
 
@@ -27,6 +31,8 @@ const MAX_LINE_LEN = 200;
 export interface LogsOptions {
   readonly runId: string;
   readonly follow: boolean;
+  /** One Managed Agents JSON object per event (`-o json`), as `run --json` writes them; no end line. */
+  readonly ndjson?: boolean;
 }
 
 /** Where rendered log lines go. */
@@ -48,30 +54,35 @@ export async function streamRunLogs(
   streams: LogsStreams = defaultStreams(),
 ): Promise<void> {
   const sessionId = sessionOfRun(await client.run.get(opts.runId));
+  const render = (event: SessionEvent): void =>
+    opts.ndjson === true ? streams.out.write(ndjsonLine(toManagedAgentsJson(event))) : renderEvent(event, streams);
+  const end = (turn: Turn): void => {
+    if (opts.ndjson !== true) renderEnd(turn, streams);
+  };
   const events = await listSessionEvents(client, sessionId, opts.runId);
   if (!opts.follow) {
     if (events.length === 0) {
-      streams.out.write("No events recorded for this run.\n");
+      if (opts.ndjson !== true) streams.out.write("No events recorded for this run.\n");
       return;
     }
-    for (const event of events) renderEvent(event, streams);
+    for (const event of events) render(event);
     return;
   }
 
-  for (const event of events) renderEvent(event, streams);
+  for (const event of events) render(event);
   const log = new SessionLog();
   log.apply(events);
   const listed = turnOf(log.snapshot(), opts.runId);
   if (listed?.ended === true) {
-    renderEnd(listed, streams);
+    end(listed);
     return;
   }
   for await (const frame of followSession(client, sessionId, { signal, afterSeq: log.snapshot().lastSeq })) {
-    if (frame.frame.case === "event" && frame.frame.value.runId === opts.runId) renderEvent(frame.frame.value, streams);
+    if (frame.frame.case === "event" && frame.frame.value.runId === opts.runId) render(frame.frame.value);
     log.applyFrame(frame);
     const turn = turnOf(log.snapshot(), opts.runId);
     if (turn?.ended === true) {
-      renderEnd(turn, streams);
+      end(turn);
       return;
     }
   }

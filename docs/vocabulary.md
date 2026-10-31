@@ -1846,7 +1846,7 @@ for the Agent's own servers and its plugins'.
   stigmer push eval <folder> --name <slug> [--tag <tag>] [-m <message>]
   stigmer get eval <slug>
   stigmer list evals
-  stigmer download eval <slug>[@<digest|tag>] [-o <dir>]
+  stigmer download eval <slug>[@<digest|tag>] [--output-dir <dir>]
   stigmer delete eval <slug>
   ```
 

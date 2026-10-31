@@ -196,3 +196,16 @@ export function renderResult(
   }
   streams.stderr.write(resultToHuman(result, shouldColorize(streams.stderr)));
 }
+
+/**
+ * Render a command whose answer is a bare value (`config get`, `version`):
+ * the text as is on stdout, pipe-friendly, or with `-o json` the data as one
+ * JSON document.
+ */
+export function renderValue(text: string, data: unknown, format: OutputFormat, streams: ResultStreams = DEFAULT_STREAMS): void {
+  if (format === "json") {
+    streams.stdout.write(JSON.stringify(data, null, 2) + "\n");
+    return;
+  }
+  streams.stdout.write(text.endsWith("\n") ? text : `${text}\n`);
+}

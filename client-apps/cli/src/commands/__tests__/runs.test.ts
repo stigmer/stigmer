@@ -160,7 +160,7 @@ describe("stigmer runs logs", () => {
     await runs("logs", "run_1", "--follow");
     expect(logs.streamRunLogs).toHaveBeenCalledWith(
       stigmer,
-      { runId: "run_1", follow: true },
+      { runId: "run_1", follow: true, ndjson: false },
       expect.any(AbortSignal),
     );
   });
@@ -170,10 +170,56 @@ describe("stigmer runs logs", () => {
     await runs("logs", "run_1");
     expect(logs.streamRunLogs).toHaveBeenCalledWith(
       stigmer,
-      { runId: "run_1", follow: false },
+      { runId: "run_1", follow: false, ndjson: false },
       expect.any(AbortSignal),
     );
     expect(process.listenerCount("SIGINT")).toBe(before);
+  });
+});
+
+describe("CLI-02 the runs verbs print their result as JSON with -o json", () => {
+  let stdout: string[];
+  beforeEach(() => {
+    stdout = [];
+    vi.spyOn(process.stdout, "write").mockImplementation((chunk) => {
+      stdout.push(String(chunk));
+      return true;
+    });
+  });
+  const printed = (): { status: string; data: unknown } => JSON.parse(stdout.join("")) as { status: string; data: unknown };
+
+  it("prints cancel's phase and the turns it stopped, and nothing on stderr", async () => {
+    expect(await runs("cancel", "run_1", "-o", "json")).toBe("");
+    expect(printed()).toMatchObject({ status: "success", data: { runId: "run_1", phase: "cancelled", stoppedRunIds: ["run_1", "run_2"] } });
+  });
+
+  it("prints a run that had already ended as a warning with no stopped turns", async () => {
+    control.cancelRun.mockResolvedValue({ phase: "completed", wasAlreadyTerminal: true, stoppedRunIds: [] });
+    await runs("cancel", "run_1", "--json");
+    expect(printed()).toMatchObject({ status: "warning", data: { runId: "run_1", phase: "completed", stoppedRunIds: [] } });
+  });
+
+  it.each([["terminate"], ["pause"], ["resume"]])("prints %s's phase", async (verb) => {
+    await runs(verb, "run_1", "-o", "json");
+    expect(printed()).toMatchObject({ status: "success", data: { runId: "run_1" } });
+  });
+
+  it("prints approve's answer", async () => {
+    await runs("approve", "run_1", "--action", "deny", "-o", "json");
+    expect(printed().data).toEqual({ runId: "run_1", toolUseId: "run_1.c1", toolName: "delete", answer: "deny" });
+  });
+
+  it("passes -o json to logs as one JSON line per event", async () => {
+    await runs("logs", "run_1", "-o", "json");
+    expect(logs.streamRunLogs).toHaveBeenCalledWith(stigmer, { runId: "run_1", follow: false, ndjson: true }, expect.any(AbortSignal));
+  });
+
+  it("refuses a format a verb cannot print, naming the command, with exit 2", async () => {
+    await expect(runs("cancel", "run_1", "-o", "yaml")).rejects.toMatchObject({
+      exitCode: 2,
+      message: "--output yaml is not supported by stigmer runs cancel (supported: table, json)",
+    });
+    expect(control.cancelRun).not.toHaveBeenCalled();
   });
 });
 

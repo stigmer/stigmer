@@ -10,7 +10,8 @@ import type { ThreadMessage } from "@stigmer/react-core";
 import { samples, sampleInstant } from "@stigmer/react-sdk/test";
 import { WorkingLine } from "../components/WorkingLine.js";
 import { MessageEntry, THINKING_PREVIEW_LENGTH, thinkingPreview } from "../components/MessageEntry.js";
-import { SLOW_PHRASE, STOPPING_PHRASE, formatElapsed, workedWords, workingWords } from "../working.js";
+import { formatElapsed } from "@stigmer/client";
+import { SLOW_PHRASE, STOPPING_PHRASE, workedWords, workingWords } from "../working.js";
 import { turnOf, waitingToolUse } from "./session-events.js";
 
 afterEach(() => {

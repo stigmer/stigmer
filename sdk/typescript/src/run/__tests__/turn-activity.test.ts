@@ -6,7 +6,8 @@
 // the person's message (else the first item) to now, or to the end once the
 // turn ended; each kind's target is short and named from its input; every
 // kind has its present-tense words; a settled stretch reads as one line of
-// kinds in first-use order, a single edited file named.
+// kinds in first-use order, a single edited file named; a span of time reads
+// in at most two units, the larger first, up to days.
 
 import { describe, it, expect } from "vitest";
 import type { JsonObject } from "@bufbuild/protobuf";
@@ -14,6 +15,7 @@ import type { MessageItem, ThinkingItem, Todo, ToolUse, Turn, TurnItem } from "@
 import {
   activityPhrase,
   describeTurnActivity,
+  formatElapsed,
   settledStepsPhrase,
   stepsSpanMs,
   type TurnActivity,
@@ -305,5 +307,18 @@ describe("settledStepsPhrase and stepsSpanMs", () => {
     const unstamped = { ...tool("read_file", { path: "a.ts" }, 0), processedAt: "", result: undefined };
     expect(stepsSpanMs([tool("read_file", { path: "a.ts" }, 0, 2_000), unstamped])).toBe(2_000);
     expect(stepsSpanMs([unstamped, tool("read_file", { path: "b.ts" }, 0, 2_000)])).toBe(0);
+  });
+});
+
+describe("formatElapsed", () => {
+  it("writes a span in at most two units, the larger first, flooring the seconds", () => {
+    const minute = 60_000;
+    const hour = 60 * minute;
+    const day = 24 * hour;
+    expect(
+      [0, 999, 42_000, 59_999, minute, 72_000, hour - 1_000, hour, 3_780_000, 2 * hour + 4 * minute, day - 1_000, day, 2 * day + 5 * hour + 59 * minute, -5].map(
+        formatElapsed,
+      ),
+    ).toEqual(["0s", "0s", "42s", "59s", "1m 0s", "1m 12s", "59m 59s", "1h 0m", "1h 3m", "2h 4m", "23h 59m", "1d 0h", "2d 5h", "0s"]);
   });
 });

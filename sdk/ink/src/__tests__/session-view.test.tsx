@@ -7,7 +7,8 @@
 // line announces. Off a terminal (INK-04) the view reads no keys, settles
 // each ask by `approveDefault` and says so, and leaves a file review pending;
 // a load failure (INK-05) says what failed, the address and the next step;
-// `onTurnEnd` hears each turn end once. The conversation hook is
+// `onTurnEnd` hears each turn end once, marking those the load found ended,
+// and may write a note in the thread. The conversation hook is
 // replaced by a fixture so each state renders exactly as the hook would
 // report it, and the usage widget's hook reports no usage; every
 // component below the hooks is the real Ink tree.
@@ -25,7 +26,7 @@ import { FileChangeKind } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb"
 import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import type { UseSessionConversationReturn } from "@stigmer/react-core";
 import { samples } from "@stigmer/react-sdk/test";
-import { SessionView } from "../app/SessionView.js";
+import { SessionView, type TurnEndContext } from "../app/SessionView.js";
 import { reviewSet, waitingToolUse } from "./session-events.js";
 
 let conversation: UseSessionConversationReturn;
@@ -162,7 +163,7 @@ describe("SessionView — a loaded conversation", () => {
     });
     const frame = render(<SessionView sessionId="ses_1" org="acme" />).lastFrame() ?? "";
     // The working line, just above the composer.
-    expect(frame).toMatch(/⠋ Working · [\dhms ]+\n Agent mode/);
+    expect(frame).toMatch(/⠋ Working · [\ddhms ]+\n Agent mode/);
     expect(frame).toContain("Read the ledger");
     expect(frame).toContain("Approval error: gate already answered");
   });
@@ -299,5 +300,31 @@ describe("SessionView — onTurnEnd", () => {
     rerender(<SessionView sessionId="ses_1" org="acme" onTurnEnd={onTurnEnd} />);
     await settle();
     expect(heard).toEqual(["run_a", "run_b"]);
+  });
+
+  it("marks the turns the load found ended, and lets the host write a note in the thread", async () => {
+    const heard: Array<{ runId: string; atLoad: boolean }> = [];
+    const onTurnEnd = (turn: { runId: string }, context: TurnEndContext) => {
+      heard.push({ runId: turn.runId, atLoad: context.atLoad });
+      if (!context.atLoad) context.note(`Downloaded the outputs of ${turn.runId}`);
+    };
+    const done = samples.turn({ runId: "run_a", phase: "completed" });
+    conversation = makeConversation({ isLoading: true, turns: [] });
+    const { rerender, lastFrame } = render(<SessionView sessionId="ses_1" org="acme" onTurnEnd={onTurnEnd} />);
+    await settle();
+    expect(heard).toEqual([]);
+
+    conversation = makeConversation({ turns: [done, samples.turn({ runId: "run_b", phase: "running" })] });
+    rerender(<SessionView sessionId="ses_1" org="acme" onTurnEnd={onTurnEnd} />);
+    await settle();
+    conversation = makeConversation({ turns: [done, samples.turn({ runId: "run_b", phase: "completed" })] });
+    rerender(<SessionView sessionId="ses_1" org="acme" onTurnEnd={onTurnEnd} />);
+    await settle();
+    expect(heard).toEqual([
+      { runId: "run_a", atLoad: true },
+      { runId: "run_b", atLoad: false },
+    ]);
+    expect(lastFrame()).toContain("Downloaded the outputs of run_b");
+    expect(lastFrame()).not.toContain("Downloaded the outputs of run_a");
   });
 });

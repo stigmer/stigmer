@@ -62,6 +62,7 @@ stigmer push eval ./variance-reporter/evals --name variance-reporter-evals --tag
 | `--message`, `-m` | `string` |          | version message describing what changed                                                                                    |
 | `--name`          | `string` |          | evals: the eval's slug, required (the folder names nothing)                                                                |
 | `--no-gitignore`  | `bool`   |          | don't respect .gitignore patterns                                                                                          |
+| `--output`, `-o`  | `string` |          | output format: table or json                                                                                               |
 | `--quiet`         | `bool`   |          | print only the status line                                                                                                 |
 | `--subdir`        | `string` |          | subdirectory within the git repository containing the package                                                              |
 | `--tag`           | `string` | `latest` | version tag for the package (skills, and evals, where it is moved only when given; a plugin's tag is its manifest version) |
@@ -182,7 +183,7 @@ Shows which files would be included and which are filtered out.
 
 | Flag            | Type     | Default | Description                                            |
 | --------------- | -------- | ------- | ------------------------------------------------------ |
-| `--api-key`     | `string` |         | API key for authentication                             |
+| `--api-key`     | `string` |         | API key for authentication (before the command)        |
 | `--debug`, `-d` | `bool`   |         | enable debug output                                    |
 | `--org`         | `string` |         | organization, on servers that hold several             |
 | `--standalone`  | `bool`   |         | ignore the config file; use flags and environment only |

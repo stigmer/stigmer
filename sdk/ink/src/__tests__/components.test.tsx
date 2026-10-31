@@ -1,12 +1,15 @@
 // Pins the terminal conversation components on folded session events: a
 // message's speaker and text, the phase badge, a tool row's glyph per state
-// and its label or intent, a subagent block and a to-do list, the approval
+// and its label or intent, a subagent block (its time counted to now only
+// while it runs, in the shared "2h 4m" format) and a to-do list, the approval
 // prompt's three answers (approve, approve all of the class, deny with an
 // optional reason) and why-gated line, and the thread's keyboard arbitration
 // between waiting tool uses, its ordering of a turn's items, and how a turn
 // ended.
 import React from "react";
-import { describe, it, expect, vi } from "vitest";
+import { stripVTControlCharacters } from "node:util";
+import { afterEach, describe, it, expect, vi } from "vitest";
+import { renderToString } from "ink";
 import { render } from "ink-testing-library";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import type { ThreadMessage } from "@stigmer/react-core";
@@ -17,7 +20,7 @@ import { ToolCallItem } from "../components/ToolCallItem.js";
 import { ToolCallGroup } from "../components/ToolCallGroup.js";
 import { ApprovalPrompt } from "../components/ApprovalPrompt.js";
 import { DROPPED_MESSAGE_LABEL, MessageThread, QUEUED_MESSAGE_LABEL } from "../components/MessageThread.js";
-import { SubagentBlock } from "../components/SubagentBlock.js";
+import { SubagentBlock, subagentDuration } from "../components/SubagentBlock.js";
 import { TodoList } from "../components/TodoList.js";
 import { RUN_ID, askEvents, event, threadEvents, toolUseOf, turnOf, waitingToolUse } from "./session-events.js";
 
@@ -219,28 +222,30 @@ describe("ToolCallGroup", () => {
   });
 });
 
-describe("SubagentBlock", () => {
-  const taskId = `${RUN_ID}.tc-task`;
-  function threadOf(state: "running" | "completed" | "failed", reply = "") {
-    const turn = turnOf([
-      samples.userMessageEvent("research"),
-      samples.toolUseEvent("task", { description: "find docs" }),
-      ...threadEvents(taskId, {
-        input: "Find the docs for the parser",
-        reply,
-        state,
-        items: [
-          samples.agentMessageEvent("Looking now.", { threadId: taskId, id: `${taskId}.m0` }),
-          samples.toolUseEvent("read_file", { path: "README.md" }, { threadId: taskId, id: `${taskId}.read` }),
-          samples.toolUseEvent("write_todos", {}, { threadId: taskId, id: `${taskId}.todo` }),
-          event({ case: "stigmerHarnessNote", value: { id: `${taskId}.note`, text: "tools are off" } }, taskId),
-        ],
-      }),
-    ]);
-    const task = turn.items.find((item) => item.kind === "tool_use")!;
-    return task.kind === "tool_use" ? task.thread! : undefined;
-  }
+/** A subagent's thread in `state`, folded from its task call's events. */
+const subagentTaskId = `${RUN_ID}.tc-task`;
+function threadOf(state: "running" | "completed" | "failed", reply = "") {
+  const turn = turnOf([
+    samples.userMessageEvent("research"),
+    samples.toolUseEvent("task", { description: "find docs" }),
+    ...threadEvents(subagentTaskId, {
+      input: "Find the docs for the parser",
+      reply,
+      state,
+      items: [
+        samples.agentMessageEvent("Looking now.", { threadId: subagentTaskId, id: `${subagentTaskId}.m0` }),
+        samples.toolUseEvent("read_file", { path: "README.md" }, { threadId: subagentTaskId, id: `${subagentTaskId}.read` }),
+        samples.toolUseEvent("write_todos", {}, { threadId: subagentTaskId, id: `${subagentTaskId}.todo` }),
+        event({ case: "stigmerHarnessNote", value: { id: `${subagentTaskId}.note`, text: "tools are off" } }, subagentTaskId),
+      ],
+    }),
+  ]);
+  const task = turn.items.find((item) => item.kind === "tool_use")!;
+  return task.kind === "tool_use" ? task.thread! : undefined;
+}
 
+
+describe("SubagentBlock", () => {
   it("shows the subject, and expanded its task, items and result", () => {
     const thread = threadOf("completed", "Found three pages.")!;
     const output = render(
@@ -269,22 +274,54 @@ describe("SubagentBlock", () => {
     expect(output).toContain("Error: out of retries");
   });
 
-  it("toggles with Enter while focused and times a short or running run", async () => {
+  it("toggles with Enter while focused", async () => {
     const thread = threadOf("running")!;
-    const { stdin, lastFrame } = render(
-      <SubagentBlock thread={thread} startedAt="2026-07-20T11:00:00.000Z" completedAt="2026-07-20T11:00:00.500Z" isFocused />,
-    );
+    const { stdin, lastFrame } = render(<SubagentBlock thread={thread} startedAt="2026-07-20T11:00:00.000Z" isFocused />);
     expect(lastFrame()).toContain("⟳");
-    expect(lastFrame()).toContain("(500ms)");
     stdin.write(" ");
     await tick();
     expect(lastFrame()).toContain("Looking now.");
-    const live = render(<SubagentBlock thread={thread} startedAt="2026-07-20T11:00:00.000Z" />).lastFrame() ?? "";
-    expect(live).toMatch(/\(\d+m \d+s\)/);
-    const brief = render(
-      <SubagentBlock thread={thread} startedAt="2026-07-20T11:00:00.000Z" completedAt="2026-07-20T11:00:12.000Z" />,
-    ).lastFrame() ?? "";
-    expect(brief).toContain("(12s)");
+  });
+});
+
+describe("CLI-13 a run's subagent rows show the right status and duration", () => {
+  const start = "2026-07-20T11:00:00.000Z";
+  const at = (ms: number): number => Date.parse(start) + ms;
+  const twoHours = 2 * 3_600_000 + 4 * 60_000;
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("counts a running subagent to now, in hours past the hour", () => {
+    expect(subagentDuration("running", start, "", at(twoHours))).toBe("2h 4m");
+    expect(subagentDuration("running", start, "", at(42_000))).toBe("42s");
+  });
+
+  it("shows a finished subagent's own span, and nothing when its end is unknown", () => {
+    const end = new Date(at(twoHours)).toISOString();
+    for (const state of ["completed", "failed", "stopped"] as const) {
+      expect(subagentDuration(state, start, end, at(10 * twoHours))).toBe("2h 4m");
+      expect(subagentDuration(state, start, "", at(twoHours))).toBeNull();
+    }
+    expect(subagentDuration("completed", "", end, at(twoHours))).toBeNull();
+    expect(subagentDuration("completed", "not a time", end, at(twoHours))).toBeNull();
+  });
+
+  it("draws a two-hour subagent's row as a person reads it", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(at(5 * twoHours)));
+    const running = renderToString(<SubagentBlock thread={threadOf("running")!} subject="find docs" startedAt={start} />, { columns: 80 });
+    vi.setSystemTime(new Date(at(twoHours)));
+    const live = renderToString(<SubagentBlock thread={threadOf("running")!} subject="find docs" startedAt={start} />, { columns: 80 });
+    const finished = renderToString(
+      <SubagentBlock thread={threadOf("completed", "Found three pages.")!} subject="find docs" startedAt={start} completedAt={new Date(at(twoHours)).toISOString()} />,
+      { columns: 80 },
+    );
+    const stopped = renderToString(<SubagentBlock thread={threadOf("failed")!} subject="find docs" startedAt={start} />, { columns: 80 });
+    expect(running).toContain("(10h 20m)");
+    const frame = [live, finished, stopped].map((text) => stripVTControlCharacters(text)).join("\n");
+    await expect(frame).toMatchFileSnapshot("__goldens__/subagent-two-hours.txt");
   });
 });
 

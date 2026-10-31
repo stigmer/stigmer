@@ -112,6 +112,13 @@ describe("readEvalRunOptions", () => {
     expect(readPluginSubjectOptions({ json: true }).json).toEqual({ kind: "stdout" });
   });
 
+  it("CLI-02 prints the document for -o json, keeps the table for -o table, and lets --json <path> name the file", () => {
+    expect(readPluginSubjectOptions({ output: "json" }).json).toEqual({ kind: "stdout" });
+    expect(readPluginSubjectOptions({ output: "table" }).json).toEqual({ kind: "none" });
+    expect(readPluginSubjectOptions({ output: "json", json: "results.json" }).json).toEqual({ kind: "file", path: "results.json" });
+    expect(() => readPluginSubjectOptions({ output: "yaml" })).toThrow(expect.objectContaining({ exitCode: 1, message: expect.stringContaining("--output yaml is not supported") }));
+  });
+
   it.each([
     [{ json: "results.txt" }, "--json output path must end in .json, not 'results.txt'"],
     [{ runs: "0" }, "--runs must be a whole number from 1 to 50"],

@@ -24,13 +24,13 @@ stigmer download run run_01abc123 --output-dir ./results/
 stigmer download run run_01abc123 --path report.pdf
 
 # Download everything a conversation's turns saved
-stigmer download session ses_01abc123 -o reports/
+stigmer download session ses_01abc123 --output-dir reports/
 
 # Download one File under its filename
 stigmer download file file_01abc123
 
 # Get the eval version tagged stable back as a folder
-stigmer download eval variance-reporter-evals@stable -o ./evals
+stigmer download eval variance-reporter-evals@stable --output-dir ./evals
 ```
 
 {/* AUTO_FLAGS */}
@@ -48,7 +48,7 @@ All outputs are saved to the current directory.
 ### Download to a specific location
 
 ```bash
-stigmer download run run_01abc123 -o ./output/
+stigmer download run run_01abc123 --output-dir ./output/
 ```
 
 ### Download a single output
@@ -63,7 +63,7 @@ matches an output of that name wherever it sits in the folder.
 ### Download a conversation's outputs
 
 ```bash
-stigmer download session ses_01abc123 -o reports/
+stigmer download session ses_01abc123 --output-dir reports/
 stigmer download session ses_01abc123 --path reports/q3.md
 ```
 
@@ -73,7 +73,7 @@ saved the same path, the later turn's file is the one written.
 ### Download a file
 
 ```bash
-stigmer download file file_01abc123 -o ./inputs/
+stigmer download file file_01abc123 --output-dir ./inputs/
 ```
 
 ### Download an eval

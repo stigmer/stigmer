@@ -4,7 +4,10 @@
 //     and the latest turn followed to its end, or
 //   - replay the session's stored events when everything has finished.
 // The TTY path defers to Ink's SessionView, which loads history and offers a
-// follow-up composer for free.
+// follow-up composer for free. Under `--until turn` it returns when the
+// working turn ends, or, with none working, once the history has drawn.
+// Either way the command exits by the newest turn's phase, as `run` does
+// (stream.ts, `exitByTurn`).
 
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase, InteractionMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
@@ -17,7 +20,7 @@ import { isInkSupported } from "../stream/tty.js";
 import { renderSessionHeader, type SessionHeaderInfo, workspaceNames } from "./header.js";
 import { localWorkspaceRoots } from "./workspace.js";
 import type { RunMode } from "./prepare.js";
-import { streamAgentRun, type RunOutputMode } from "./stream.js";
+import { exitByTurn, newestRunId, streamAgentRun, type RunOutputMode, type RunUntil } from "./stream.js";
 
 // The backend's auto-create sentinel; suppressed in the header until the async
 // title activity replaces it.
@@ -37,6 +40,8 @@ export interface OpenSessionDeps {
   /** Explicit --mode override; "" means infer from the latest run. */
   readonly mode: RunMode;
   readonly outputMode: RunOutputMode;
+  /** On a terminal: return when the person leaves (the default) or when the newest turn ends. */
+  readonly until?: RunUntil;
 }
 
 export async function openSession(deps: OpenSessionDeps): Promise<void> {
@@ -66,7 +71,7 @@ export async function openSession(deps: OpenSessionDeps): Promise<void> {
 
   if (ACTIVE_PHASES.has(phase)) {
     // Live re-attach reuses the exact run streaming stack.
-    await streamAgentRun({
+    const newest = await streamAgentRun({
       client: stigmer,
       sessionId: deps.sessionId,
       runId: latest.metadata?.id ?? "",
@@ -76,11 +81,13 @@ export async function openSession(deps: OpenSessionDeps): Promise<void> {
       outputMode: deps.outputMode,
       header,
       workspaceRoots: localWorkspaceRoots(session.spec?.resources ?? []),
+      until: deps.until ?? "exit",
     });
+    exitByTurn(newest);
     return;
   }
 
-  await replaySession(deps, org, header, localWorkspaceRoots(session.spec?.resources ?? []));
+  await replaySession(deps, org, header, localWorkspaceRoots(session.spec?.resources ?? []), latest);
 }
 
 // Completed session: render the stored history. TTY → Ink (history + composer);
@@ -90,7 +97,9 @@ async function replaySession(
   org: string,
   header: SessionHeaderInfo,
   workspaceRoots: readonly string[],
+  latest: Run,
 ): Promise<void> {
+  const latestId = latest.metadata?.id ?? "";
   if (deps.outputMode === "inline" && isInkSupported(process.stdout)) {
     const { runInkSession } = await import("../stream/ink.js");
     await runInkSession({
@@ -99,7 +108,13 @@ async function replaySession(
       org,
       mode: header.mode === "plan" ? "plan" : "agent",
       workspaceRoots,
+      // The newest turn has ended: under --until turn, its end at load returns.
+      until: deps.until ?? "exit",
+      watchRunId: latestId,
     });
+    // Follow-ups may have been sent in the view: the newest turn decides.
+    const stigmer = deps.client.stigmer;
+    exitByTurn(await stigmer.run.get(await newestRunId(stigmer, deps.sessionId, latestId)));
     return;
   }
 
@@ -110,6 +125,7 @@ async function replaySession(
       ? new NdjsonRenderer({ data: process.stdout, status: process.stderr })
       : new PlaintextRenderer({ data: process.stdout, status: process.stderr });
   renderReplay(events, renderer);
+  exitByTurn(latest);
 }
 
 // --mode wins; else infer "plan" from the last

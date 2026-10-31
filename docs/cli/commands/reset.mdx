@@ -34,12 +34,13 @@ stigmer reset --include-config
 
 ## Options
 
-| Flag               | Type   | Default | Description                                       |
-| ------------------ | ------ | ------- | ------------------------------------------------- |
-| `--force`          | `bool` |         | skip the confirmation prompt                      |
-| `--include-config` | `bool` |         | also remove configuration (API keys, preferences) |
-| `--json`           | `bool` |         | emit the result as JSON                           |
-| `--quiet`          | `bool` |         | print only the status line                        |
+| Flag               | Type     | Default | Description                                       |
+| ------------------ | -------- | ------- | ------------------------------------------------- |
+| `--force`          | `bool`   |         | skip the confirmation prompt                      |
+| `--include-config` | `bool`   |         | also remove configuration (API keys, preferences) |
+| `--json`           | `bool`   |         | emit the result as JSON                           |
+| `--output`, `-o`   | `string` |         | output format: table or json                      |
+| `--quiet`          | `bool`   |         | print only the status line                        |
 
 ## Examples
 
@@ -65,7 +66,7 @@ afterwards to reconfigure and start fresh.
 
 | Flag            | Type     | Default | Description                                            |
 | --------------- | -------- | ------- | ------------------------------------------------------ |
-| `--api-key`     | `string` |         | API key for authentication                             |
+| `--api-key`     | `string` |         | API key for authentication (before the command)        |
 | `--debug`, `-d` | `bool`   |         | enable debug output                                    |
 | `--org`         | `string` |         | organization, on servers that hold several             |
 | `--standalone`  | `bool`   |         | ignore the config file; use flags and environment only |

@@ -15,6 +15,13 @@
  * against the SDK as npm installs it, and to save the same report by
  * uploading the ledger, `sendAndWait` and the turn's Files.
  *
+ * The pages' lines run through `bash -c`, off a terminal. The quickstart's
+ * `stigmer run` line runs once more on a pseudo-terminal
+ * (test/install/lib/pty-run.py), as a person types it: the live view draws,
+ * and the line must return by itself, exit 0, with the report saved in
+ * `out/` (stigmer#2595: before `--until turn` it sat at the reply box, and
+ * `--download` saved nothing until the person left).
+ *
  * The harness performs the lines the page names as the install's
  * (doc-steps.mjs HARNESS_LINES): the CLI is the build under test, installed
  * in an isolated home by test/install/lib/install-cli.mjs (the boot the CLI
@@ -71,6 +78,7 @@ const SDK_PACKAGE = "@stigmer/client";
 const SOURCE_SDK_VERSION = "0.0.0-getting-started";
 // `stigmer up` may download the Temporal CLI and the runtimes; npm installs fetch from the registry.
 const COMMAND_TIMEOUT_MS = 300_000;
+const PTY_RUN = join(repoRoot, "test", "install", "lib", "pty-run.py");
 
 /** What the scripted Agent saves: the report both pages must hand back, byte for byte. */
 const REPORT = `# Q3 variance report
@@ -252,6 +260,7 @@ try {
     }
     assertReport(page.name);
   }
+  await runOnTerminal(pages[0]);
   if (!outputs.get(`cat ${REPORT_PATH}`)?.includes(REPORT.split("\n")[0])) {
     throw new Error(`\`cat ${REPORT_PATH}\` did not print the report`);
   }
@@ -259,6 +268,30 @@ try {
     throw new Error(`variance-report.ts did not print that it saved ${REPORT_PATH}`);
   }
   log(`PASS (${fake.requests()} model calls)`);
+
+  // The quickstart's run line on a pseudo-terminal, as a person types it: it
+  // returns by itself once the turn ends, exit 0, with the report saved.
+  async function runOnTerminal(page) {
+    const line = page.steps.find((step) => step.kind === "command" && step.line.startsWith("stigmer run "))?.line;
+    if (line === undefined) throw new Error(`${page.name}: no \`stigmer run\` line to run on a terminal`);
+    rmSync(join(work, "out"), { recursive: true, force: true });
+    scriptTheJob(fake);
+    const env = { ...shell, TERM: "xterm-256color" };
+    delete env.CI;
+    delete env.CONTINUOUS_INTEGRATION;
+    log(`$ ${line}   (on a terminal)`);
+    const result = await spawnCommand(
+      ["python3", PTY_RUN, "--timeout", "240", "--cols", "100", "--"],
+      ["bash", "-c", 'cd "$0" || exit 1; eval "$1"', work, line],
+      env,
+      COMMAND_TIMEOUT_MS,
+    ).done;
+    if (result.status !== 0) {
+      throw new Error(`${page.name}: on a terminal, \`${line}\` exited ${result.status ?? result.error?.message}:\n${result.stdout.slice(-4000)}\n${result.stderr}`);
+    }
+    assertReport(`${page.name} on a terminal`);
+    log(`${page.name}: on a terminal the run line returned by itself, exit 0`);
+  }
 
   async function typecheck(files, runIn) {
     // The page's code is checked with the workspace's compiler, or in the

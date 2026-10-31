@@ -11,8 +11,9 @@ names are the truth.
 ## Read in this order
 
 - `cli/README.md`: the design, the output modes, the development loop;
-  `cli/src/program.ts` header for lazy command loading; `cli/src/output/` and
-  `cli/src/errors/` headers for the human-output and error contracts.
+  `cli/src/program.ts` header for lazy loading and global options;
+  `cli/src/output/` and `cli/src/errors/` headers for the human-output and error
+  contracts.
 - `web/README.md` for the stack and build modes; `web/src/domain/` and
   `web/src/app/` for how the console is laid out today.
 - `desktop/src/App.tsx` and `desktop/src/shell/`: the provider stack and the
@@ -26,10 +27,10 @@ names are the truth.
 
 - `stdout` carries data only; `stderr` carries status, hints, prompts and
   errors. `-o json` (and `yaml`, `ndjson`) prints clean, undecorated data.
-- Errors are translated, never leaked: what happened, why, what to do, through
-  the one exit point in `cli/src/errors/handle.ts`; exit codes follow
-  `cli/src/errors/index.ts` so scripts branch on `$?`; `eval run` departs, as
-  its header says. Raw stacks appear only in debug mode.
+- Errors are translated, never leaked, through the one exit point in
+  `cli/src/errors/handle.ts`; exit codes follow `cli/src/errors/index.ts` so
+  scripts branch on `$?`; `eval run` departs, as its header says. Raw stacks
+  appear only in debug mode.
 - Off a TTY there are no colours, spinners or prompts: colour honours the stream
   and `NO_COLOR`, a destructive command without `--force` aborts, and a headless
   run resolves each approval by `--approve-default` (deny when unset), never by

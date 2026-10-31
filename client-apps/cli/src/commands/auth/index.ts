@@ -1,7 +1,7 @@
 // `stigmer auth login|logout|whoami` — manage Stigmer Cloud authentication.
 //
-// login is interactive (browser PKCE) and human-only; logout and whoami honor
-// the standard mutating-output flags. login and whoami both end in the SDK's
+// login is interactive (browser PKCE); all three honor the standard
+// mutating-output flags, login's result printed once the browser returns. login and whoami both end in the SDK's
 // ensureMyIdentityAccount (login.ts, whoami.ts): the first-sign-in flow the
 // console runs, so the CLI provisions an account exactly as the console does.
 
@@ -19,13 +19,15 @@ export function registerAuth(program: Command): void {
     .command("auth")
     .description("manage authentication with Stigmer Cloud");
 
-  auth
+  const login = auth
     .command("login")
     .description("log in to Stigmer Cloud via browser (PKCE OAuth)")
-    .action(async () => {
+    .action(async (options: OutputFlags) => {
+      const format = resultFormat(options);
       const { runLogin } = await import("./login.js");
-      renderResult(await runLogin(), "human");
+      renderResult(await runLogin(), format);
     });
+  addResultFlags(login);
 
   const logout = auth
     .command("logout")

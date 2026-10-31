@@ -42,6 +42,7 @@ import {
   type Stigmer,
 } from "@stigmer/client";
 import { requireOrganization } from "../../client/single-org.js";
+import { CommandResult } from "../../output/command-result.js";
 import { resolveAgent } from "../agent/resolve.js";
 import { idPrefixOf, parseReference } from "../reference.js";
 import { asStartRefusal, runEval, type EvalIo } from "./follow.js";
@@ -121,12 +122,15 @@ export async function runEvalRun(client: Stigmer, org: string, options: EvalRunO
 }
 
 /** Cancels an eval run and says what happened. */
-export async function cancelEvalRun(client: Stigmer, id: string, io: Pick<EvalIo, "stderr">): Promise<void> {
+export async function cancelEvalRun(client: Stigmer, id: string): Promise<CommandResult> {
   const cancelled = await client.evalrun.cancel(id);
-  const status = cancelled.status;
-  io.stderr.write(
-    `Cancelled ${id}: tries in flight stop; ${status?.triesFinished ?? 0} of ${status?.triesTotal ?? 0} tries had finished.\n`,
-  );
+  const finished = cancelled.status?.triesFinished ?? 0;
+  const total = cancelled.status?.triesTotal ?? 0;
+  return CommandResult.success(`Cancelled ${id}: tries in flight stop; ${finished} of ${total} tries had finished.`).withData({
+    evalRunId: id,
+    triesFinished: finished,
+    triesTotal: total,
+  });
 }
 
 async function resolveSubject(client: Stigmer, org: string, options: EvalRunOptions): Promise<ResolvedSubject> {

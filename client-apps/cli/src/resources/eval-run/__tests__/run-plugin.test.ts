@@ -639,9 +639,9 @@ describe("runEvalRun about a plugin", () => {
 describe("cancelEvalRun", () => {
   it("cancels by id and says how far the eval got", async () => {
     const server = fakeServer([]);
-    let stderr = "";
-    await cancelEvalRun(server.client, "evr_1", { stderr: { write: (text) => void (stderr += text) } });
+    const result = await cancelEvalRun(server.client, "evr_1");
     expect(server.calls).toEqual(["cancel evr_1"]);
-    expect(stderr).toBe("Cancelled evr_1: tries in flight stop; 3 of 4 tries had finished.\n");
+    expect(result.message).toBe("Cancelled evr_1: tries in flight stop; 3 of 4 tries had finished.");
+    expect(result.data).toEqual({ evalRunId: "evr_1", triesFinished: 3, triesTotal: 4 });
   });
 });

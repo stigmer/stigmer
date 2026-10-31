@@ -14,7 +14,41 @@ resolves it as an agent slug, `org/slug`, or agent ID.
 
 The command streams agent output to your terminal in real time — you see
 messages, tool calls, and approval prompts as they happen. For scripting and CI
-pipelines, use `--json` to receive newline-delimited event objects instead.
+pipelines, use `-o json` (or `--json`) to receive newline-delimited event
+objects instead.
+
+### How a run ends
+
+On a terminal, a run is a conversation: after the turn ends you can type a
+follow-up, and the command returns when you leave (`/exit`, or Ctrl+C twice on
+an empty message). `--until turn` returns as soon as the turn ends instead,
+which suits a step whose next line is a shell command. Off a terminal (piped, in
+CI) and with `-o json`, the command always returns when the turn ends.
+
+`--download DIR` saves each turn's outputs as that turn ends, so the files are
+there before you leave; on a terminal the conversation says what it saved.
+`--download` cannot be combined with `--detach`, which returns before the turn
+does.
+
+The exit code says how the newest turn of the conversation ended, the same table
+the terminal kit's `stigmer-ink` uses:
+
+| Code  | Meaning                                                                                   |
+| ----- | ----------------------------------------------------------------------------------------- |
+| `0`   | The turn completed                                                                        |
+| `1`   | The turn failed, was cancelled, or was stopped                                            |
+| `130` | You left while the turn was still working (it keeps working; `stigmer resume` comes back) |
+
+The CLI's other codes (`2` a usage error, `3` no server, `4` not signed in, `5`
+not found) mean the run did not start.
+
+```bash
+# In CI: fail the job when the review fails
+stigmer run reviewer -m "Review this diff" -o json > events.ndjson
+
+# At a terminal: get the shell back when the job is done
+stigmer run variance-reporter --attach ledger.csv --download ./out --until turn -m "Review this quarter's ledger."
+```
 
 ## Usage
 
@@ -48,7 +82,7 @@ stigmer run my-agent -m "Summarize the Q4 earnings report"
 | `--branch`          | `string` |         | git branch to clone (single git workspace only)                                                                                                                                                              |
 | `--commit`          | `string` |         | git commit SHA to checkout (single git workspace only)                                                                                                                                                       |
 | `--detach`          | `bool`   |         | start the run and return immediately without streaming                                                                                                                                                       |
-| `--download`        | `string` |         | download the turn's outputs to directory when complete                                                                                                                                                       |
+| `--download`        | `string` |         | save each turn's outputs to directory as the turn ends                                                                                                                                                       |
 | `--environment`     | `string` |         | the environment the conversation's sandbox runs in, by id, org/slug or slug: its packages and network access, in place of the agent's or the organization's default                                          |
 | `--file-id`         | `string` |         | a File already uploaded (stigmer file upload, or the console's Library) sent with the message, counted with --attach toward its 20 (repeatable)                                                              |
 | `--harness`         | `string` |         | the harness for the new session: "stigmer" or "claude" (Claude Agent); unset, the agent's harness, else your account default, else "stigmer"                                                                 |
@@ -57,9 +91,11 @@ stigmer run my-agent -m "Summarize the Q4 earnings report"
 | `--mode`            | `string` |         | interaction mode: "agent" (default) or "plan" (read-only)                                                                                                                                                    |
 | `--model`           | `string` |         | LLM model to use (e.g. claude-sonnet-4-6); with no --harness it runs on "stigmer", so pass --harness claude for a model on "claude" (Claude Agent); unset, the agent's default model for the harness applies |
 | `--no-my-vault`     | `bool`   |         | leave your own My vault out of the conversation: it uses only the vaults named with --vault                                                                                                                  |
+| `--output`, `-o`    | `string` |         | output format: table (the live view), json or ndjson (newline-delimited JSON events)                                                                                                                         |
 | `--plugin`          | `string` |         | a plugin the conversation uses, by id, org/slug or slug: its skills, agents, MCP servers and hooks join the agent's, or the assistant's with no agent (repeatable)                                           |
 | `--service-tier`    | `string` |         | model service tier: "standard" or "fast" (the model, from --model or the agent's defaults, must have a fast tier; billed at fast rates); unset keeps the agent's default                                     |
 | `--thinking`        | `string` |         | extended reasoning: "disabled" or "enabled" (the model, from --model or the agent's defaults, must be thinking-capable; billed at base rates, uses more output tokens); unset keeps the agent's default      |
+| `--until`           | `string` |         | on a terminal, return when the turn ends (turn) or when you leave (exit, the default)                                                                                                                        |
 | `--vault`           | `string` |         | a shared vault the conversation uses, by id, org/slug or slug, after your My vault, in the order given (repeatable)                                                                                          |
 | `--verbose`, `-v`   | `bool`   |         | show run IDs and phase transitions                                                                                                                                                                           |
 | `--workspace`, `-w` | `string` |         | workspace: HTTPS git URL or local path (repeatable)                                                                                                                                                          |
@@ -328,7 +364,7 @@ The CLI prints the session ID and exits immediately. Use
 
 | Flag            | Type     | Default | Description                                            |
 | --------------- | -------- | ------- | ------------------------------------------------------ |
-| `--api-key`     | `string` |         | API key for authentication                             |
+| `--api-key`     | `string` |         | API key for authentication (before the command)        |
 | `--debug`, `-d` | `bool`   |         | enable debug output                                    |
 | `--org`         | `string` |         | organization, on servers that hold several             |
 | `--standalone`  | `bool`   |         | ignore the config file; use flags and environment only |

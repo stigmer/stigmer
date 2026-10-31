@@ -14,6 +14,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Config } from "../../config/index.js";
 import { CliExitError } from "../../errors/index.js";
+import { CommandResult } from "../../output/command-result.js";
 import { buildProgram } from "../../program.js";
 import type { EvalIo } from "../../resources/eval-run/follow.js";
 import type { EvalRunOptions } from "../../resources/eval-run/options.js";
@@ -143,9 +144,15 @@ describe("stigmer eval run", () => {
 
 describe("stigmer eval cancel <eval-run-id>", () => {
   it("cancels the eval run by id and reports on the process's stderr", async () => {
-    dispatch.cancelEvalRun.mockResolvedValue(undefined);
-    await evalCommand("cancel", "evr_1");
-    expect(dispatch.cancelEvalRun).toHaveBeenCalledWith(stigmer, "evr_1", { stderr: process.stderr });
+    dispatch.cancelEvalRun.mockResolvedValue(CommandResult.success("Cancelled evr_1"));
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    try {
+      await evalCommand("cancel", "evr_1");
+      expect(stderr).toHaveBeenCalledWith(expect.stringContaining("Cancelled evr_1"));
+    } finally {
+      stderr.mockRestore();
+    }
+    expect(dispatch.cancelEvalRun).toHaveBeenCalledWith(stigmer, "evr_1");
     expect(dispatch.runEvalRun).not.toHaveBeenCalled();
   });
 });

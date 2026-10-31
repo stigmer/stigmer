@@ -17,6 +17,7 @@
 //   --quiet   | —      | quiet    | —
 
 import { UsageError } from "../errors/usage-error.js";
+import { actionCommandPath } from "../runtime.js";
 
 /** Internal format the renderers consume, after class-aware resolution. */
 export type OutputFormat = "table" | "json" | "yaml" | "human" | "quiet" | "ndjson" | "inline";
@@ -83,7 +84,7 @@ function resolveExplicit(raw: string, commandClass: CommandClass): OutputFormat 
   const mapped = CLASS_FORMAT_MAP[commandClass][value];
   if (mapped === undefined) {
     throw new UsageError(
-      `--output ${value} is not supported by this command (supported: ${supportedFormats(commandClass).join(", ")})`,
+      `--output ${value} is not supported by ${actionCommandPath() || "this command"} (supported: ${supportedFormats(commandClass).join(", ")})`,
     );
   }
   return mapped;

@@ -4,88 +4,50 @@ Command-line interface for Stigmer, the open-source backend for the agents in
 your product
 
 Options:
-  --version                            print the CLI version
-  -d, --debug                          enable debug output
-  --standalone                         ignore the config file; use flags and
-                                       environment only
-  --org <slug>                         organization, on servers that hold
-                                       several
-  --api-key <key>                      API key for authentication
-  -h, --help                           display help for command
+  --version                                     print the CLI version
+  -d, --debug                                   enable debug output
+  --standalone                                  ignore the config file; use flags and environment only
+  --org <slug>                                  organization, on servers that hold several
+  --api-key <key>                               API key for authentication (before the command)
+  -h, --help                                    display help for command
 
 Commands:
-  version                              print the CLI version
-  completion <shell>                   generate a shell completion script
-                                       (bash, zsh, fish, powershell)
-  config                               Manage CLI configuration
-  auth                                 manage authentication with Stigmer Cloud
-  apikey                               manage API keys for Stigmer Cloud
-                                       authentication
-  service-account                      manage the organization's service
-                                       accounts, the accounts its automation
-                                       acts as
-  provider-key                         see which model providers serve the
-                                       organization, and manage its provider
-                                       keys (Stigmer Cloud)
-  access-history                       read and export who gave whom access to
-                                       what in the organization (owners and
-                                       admins)
-  get [options] <type> <reference>     get a resource by type and reference
-                                       (slug, org/slug, or ID)
-  list [options] <type>                list resources of a type (or 'list
-                                       types' for available types)
-  search [options] <type> <query>      search resources by text query
-                                       (supported types: agent)
-  validate [options]                   validate resource YAML files or a plugin
-                                       directory offline
-  delete [options] <type> <reference>  delete a resource by type and reference
-                                       (slug, org/slug, or ID)
-  tag <type> <org/slug> <hash> <tag>   assign a tag to a resource version
-                                       (supported types: agent)
-  channel                              operate on channels: chat links, and
-                                       switching a channel on or off
-  routine                              operate on routines
-  file                                 upload files to name in conversations
-                                       and routines
-  vault                                manage the logins and secrets your runs
-                                       use (values are never shown)
-  usage                                view token and working-time usage
-                                       reports
-  push [options] <type> [path]         push a package to the registry
-                                       (supported types: skill, plugin, eval)
-  install [options] <ref>              install a plugin from a source by name:
-                                       [source/]name[@version]
-  marketplace                          manage the sources the Marketplace
-                                       installs from: the official catalogue
-                                       and the ones you add
-  eval                                 run test cases on an agent or a plugin,
-                                       with and without a plugin, and score
-                                       them
-  agent                                read how an agent's runs are graded
-  download [options] <type> <ref>      download a run's or a session's outputs,
-                                       a file, or an eval's folder at a version
-                                       (eval <ref>[@<digest|tag>])
-  apply [options]                      apply resources from files or a plugin
-                                       directory
-  run [options] [agent]                run an agent by reference
-  resume [options] [reference]         resume an existing session by ID
-  runs                                 manage run lifecycle and observability
-                                       (run IDs: run_)
-  connect                              connect to external services and
-                                       discover capabilities
-  mcp                                  install an MCP server as a plugin of its
-                                       own
-  mcp-server [options]                 start the MCP server that exposes
-                                       Stigmer resources to AI coding
-                                       assistants
-  up [options]                         start the local Stigmer stack (server,
-                                       runner, Temporal)
-  down [options]                       stop the local Stigmer stack
-  status [options]                     show the status of the local Stigmer
-                                       stack
-  logs [options]                       view logs from the local Stigmer stack
-  setup [options]                      configure the LLM provider and operator
-                                       identity for local execution
-  reset [options]                      stop the stack and remove all local
-                                       state, then restart fresh
-  help [command]                       display help for command
+  version [options]                             print the CLI version
+  completion <shell>                            generate a shell completion script (bash, zsh, fish, powershell)
+  config                                        Manage CLI configuration
+  auth                                          manage authentication with Stigmer Cloud
+  apikey                                        manage API keys for Stigmer Cloud authentication
+  service-account                               manage the organization's service accounts, the accounts its automation acts as
+  provider-key                                  see which model providers serve the organization, and manage its provider keys (Stigmer Cloud)
+  access-history                                read and export who gave whom access to what in the organization (owners and admins)
+  get [options] <type> <reference>              get a resource by type and reference (slug, org/slug, or ID)
+  list [options] <type>                         list resources of a type (or 'list types' for available types)
+  search [options] <type> <query>               search resources by text query (supported types: agent)
+  validate [options]                            validate resource YAML files or a plugin directory offline
+  delete [options] <type> <reference>           delete a resource by type and reference (slug, org/slug, or ID)
+  tag [options] <type> <org/slug> <hash> <tag>  assign a tag to a resource version (supported types: agent)
+  channel                                       operate on channels: chat links, and switching a channel on or off
+  routine                                       operate on routines
+  file                                          upload files to name in conversations and routines
+  vault                                         manage the logins and secrets your runs use (values are never shown)
+  usage                                         view token and working-time usage reports
+  push [options] <type> [path]                  push a package to the registry (supported types: skill, plugin, eval)
+  install [options] <ref>                       install a plugin from a source by name: [source/]name[@version]
+  marketplace                                   manage the sources the Marketplace installs from: the official catalogue and the ones you add
+  eval                                          run test cases on an agent or a plugin, with and without a plugin, and score them
+  agent                                         read how an agent's runs are graded
+  download [options] <type> <ref>               download a run's or a session's outputs, a file, or an eval's folder at a version (eval <ref>[@<digest|tag>])
+  apply [options]                               apply resources from files or a plugin directory
+  run [options] [agent]                         run an agent by reference
+  resume [options] [reference]                  resume an existing session by ID
+  runs                                          manage run lifecycle and observability (run IDs: run_)
+  connect                                       connect to external services and discover capabilities
+  mcp                                           install an MCP server as a plugin of its own
+  mcp-server [options]                          start the MCP server that exposes Stigmer resources to AI coding assistants
+  up [options]                                  start the local Stigmer stack (server, runner, Temporal)
+  down [options]                                stop the local Stigmer stack
+  status [options]                              show the status of the local Stigmer stack
+  logs [options]                                view logs from the local Stigmer stack
+  setup [options]                               configure the LLM provider and operator identity for local execution
+  reset [options]                               stop the stack and remove all local state, then restart fresh
+  help [command]                                display help for command

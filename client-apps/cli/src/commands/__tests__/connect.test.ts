@@ -220,4 +220,19 @@ describe("connect plugin org guard", () => {
     const outcome = await runConnect("plg_test", "--dry-run");
     expect(outcome.message).not.toContain("organization not set");
   });
+
+  it("CLI-02 prints the plugin, its server and its tools as JSON with -o json", async () => {
+    configOverride = cloudConfigWithoutOrg();
+    process.env.STIGMER_ORG = "stigmer";
+    const outcome = await runConnect("plg_test", "-o", "json");
+    expect(JSON.parse(outcome.stdout)).toEqual({
+      plugin: { org: "stigmer", slug: "orders", id: "" },
+      server: "orders",
+      dryRun: false,
+      tools: [
+        { name: "list_orders", description: "List orders", destructive: false },
+        { name: "cancel_order", description: "Cancel an order", destructive: true },
+      ],
+    });
+  });
 });

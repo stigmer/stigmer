@@ -347,7 +347,7 @@ export function renderIndexPage(grouped: Map<GroupId, Command[]>, globalFlags: F
 
   if (globalFlags.length > 0) {
     out += "## Global Flags\n\n";
-    out += "These flags are available on every command.\n\n";
+    out += "These flags are available on every command. `--org`, `--debug` and `--standalone` may be written before or after the command; `--api-key` goes before it.\n\n";
     out += `${flagsTable(globalFlags)}\n`;
   }
 

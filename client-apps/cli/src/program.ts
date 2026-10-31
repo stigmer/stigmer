@@ -1,5 +1,9 @@
-// Builds the root commander program: global flags, the preAction hook that
-// captures them into process-global runtime state, and command registration.
+// Builds the root commander program: global flags (written before the
+// command, or after it, global-options.ts), the preAction hook that captures
+// them into process-global runtime state, command registration, and the
+// command-line errors every command words alike (errors/command-line.ts).
+// `--org`, `--debug` and `--standalone` may follow the command; `--api-key`
+// only precedes it.
 //
 // Command modules are registered through small `register*` functions so the
 // entry path stays light; heavier commands lazy-load their implementation via
@@ -46,16 +50,11 @@ import { registerUsage } from "./commands/usage.js";
 import { registerValidate } from "./commands/validate.js";
 import { registerVault } from "./commands/vault.js";
 import { registerVersion } from "./commands/version.js";
-import { setDebug, setStandalone } from "./runtime.js";
+import { setActionCommand, setDebug, setStandalone } from "./runtime.js";
+import { commandPath } from "./command-tree.js";
+import { installCommandLineErrors } from "./errors/command-line.js";
+import { acceptGlobalsAfterCommand, addGlobalOptions, helpConfiguration, readGlobalOptions } from "./global-options.js";
 import { VERSION } from "./version.js";
-
-// Commander echoes an unknown option exactly as typed, so `--name=VALUE`
-// would print the value, which may be a key pasted onto the wrong flag. The
-// answer names the option alone.
-function withoutOptionValue(message: string): string {
-  const option = /^error: unknown option '(--[A-Za-z0-9-]+)=/.exec(message);
-  return option === null ? message : `error: unknown option '${option[1]}'\n`;
-}
 
 export function buildProgram(): Command {
   const program = new Command();
@@ -64,21 +63,20 @@ export function buildProgram(): Command {
     .name("stigmer")
     .description("Command-line interface for Stigmer, the open-source backend for the agents in your product")
     .version(VERSION, "--version", "print the CLI version")
-    .option("-d, --debug", "enable debug output")
-    .option("--standalone", "ignore the config file; use flags and environment only")
-    .option("--org <slug>", "organization, on servers that hold several")
-    .option("--api-key <key>", "API key for authentication")
     .enablePositionalOptions()
-    .configureOutput({ outputError: (message, write) => write(withoutOptionValue(message)) });
+    .configureHelp(helpConfiguration);
+  addGlobalOptions(program);
 
-  // Capture global flags into process-global state before any command runs.
-  // Bridging --api-key to the env lets the
-  // SDK auth interceptor and config layer pick it up uniformly.
-  program.hook("preAction", () => {
-    const globals = program.opts();
-    setDebug(Boolean(globals.debug));
-    setStandalone(Boolean(globals.standalone));
-    if (typeof globals.apiKey === "string" && globals.apiKey !== "") {
+  // Capture global flags into process-global state before any command runs,
+  // reading the action command's own copy first (global-options.ts).
+  // Bridging --api-key to the env lets the SDK auth interceptor and config
+  // layer pick it up uniformly.
+  program.hook("preAction", (root, action) => {
+    const globals = readGlobalOptions(root, action);
+    setDebug(globals.debug);
+    setStandalone(globals.standalone);
+    setActionCommand(commandPath(action));
+    if (globals.apiKey !== "") {
       process.env.STIGMER_API_KEY = globals.apiKey;
     }
   });
@@ -122,6 +120,10 @@ export function buildProgram(): Command {
   registerSetup(program);
   registerReset(program);
   registerInternalDaemon(program);
+
+  // After registration, so every command is reached.
+  acceptGlobalsAfterCommand(program);
+  installCommandLineErrors(program);
 
   return program;
 }

@@ -99,5 +99,5 @@ export { AgentPicker, type AgentPickerProps } from "./components/AgentPicker.js"
 export { SessionPicker, type SessionPickerProps } from "./components/SessionPicker.js";
 
 // Composed views
-export { SessionView, type SessionViewProps, type InteractionMode } from "./app/SessionView.js";
+export { SessionView, type SessionViewProps, type InteractionMode, type TurnEndContext } from "./app/SessionView.js";
 export { SessionApp, type SessionAppProps } from "./app/SessionApp.js";

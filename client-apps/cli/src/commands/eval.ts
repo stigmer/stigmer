@@ -24,7 +24,10 @@ import type { Command } from "commander";
 import { ensureAuthenticated, resolveOrganization } from "../config/index.js";
 import type { EvalRunFlags } from "../resources/eval-run/options.js";
 import { engineChoice } from "../resources/run/engines.js";
-import { globalOrg } from "./shared.js";
+import { ExitCode } from "@stigmer/client/exit-codes";
+import { usageExitCode } from "../errors/command-line.js";
+import type { OutputFlags } from "../output/format.js";
+import { addResultFlags, globalOrg, resultFormat } from "./shared.js";
 
 /** `eval run`'s help after the options: the model and tools a try runs with, and the exit codes. */
 const EVAL_HELP = `
@@ -63,7 +66,7 @@ export function registerEval(program: Command): void {
     .command("eval")
     .description("run test cases on an agent or a plugin, with and without a plugin, and score them");
 
-  evalGroup
+  const run = evalGroup
     .command("run")
     .description("run test cases on an agent, or a plugin's own cases on the built-in assistant, and score them")
     .option(
@@ -106,15 +109,20 @@ export function registerEval(program: Command): void {
     .option("--allow-real-servers", "also start the plugins' real MCP servers that no mock answers")
     .option("--no-scaffold", "skip each case's scaffold script, listing such a case as not run")
     .option("--scaffold", "accepted for Claude Code's command lines; a scaffold always runs, in the try's own sandbox")
+    .option("-o, --output <format>", "output format: table (progress and the scores) or json (the result document)")
     .option("--json [path]", "print the result document, or write it to a path ending in .json; no progress or table")
     .option("--no-wait", "start the eval run, print its id, and return")
     .addHelpText("after", EVAL_HELP)
     .action((options: EvalRunFlags, command: Command) => runEvalRunCommand(options, command));
+  // An invalid option exits 1 on this command (the plugin-eval table, where 2 is a partial run).
+  usageExitCode(run, ExitCode.General);
 
-  evalGroup
-    .command("cancel <eval-run-id>")
-    .description("cancel a running eval run; the tries that finished keep their results")
-    .action((id: string) => runCancel(id));
+  addResultFlags(
+    evalGroup
+      .command("cancel <eval-run-id>")
+      .description("cancel a running eval run; the tries that finished keep their results")
+      .action((id: string, options: OutputFlags) => runCancel(id, options)),
+  );
 }
 
 async function runEvalRunCommand(flags: EvalRunFlags, command: Command): Promise<void> {
@@ -138,12 +146,14 @@ async function runEvalRunCommand(flags: EvalRunFlags, command: Command): Promise
   }
 }
 
-async function runCancel(id: string): Promise<void> {
-  const [{ cancelEvalRun }, { connectBackend }] = await Promise.all([
+async function runCancel(id: string, options: OutputFlags): Promise<void> {
+  const format = resultFormat(options);
+  const [{ cancelEvalRun }, { connectBackend }, { renderResult }] = await Promise.all([
     import("../resources/eval-run/run.js"),
     import("../backend.js"),
+    import("../output/command-result.js"),
   ]);
   const client = connectBackend();
   ensureAuthenticated(client.config);
-  await cancelEvalRun(client.stigmer, id, { stderr: process.stderr });
+  renderResult(await cancelEvalRun(client.stigmer, id), format);
 }

@@ -1,10 +1,12 @@
 // A subagent's thread as a collapsible terminal block: a summary line (its
 // state, what it was asked, how long it took) and, expanded, its task, its
 // messages and tool uses in the order it produced them, and its reply or
-// error — the same entries the main thread renders.
+// error — the same entries the main thread renders. The time reads as every
+// terminal span does (`formatElapsed`, "2h 4m"), and only a running subagent
+// counts to now.
 import React, { useState } from "react";
 import { Box, Text, useInput } from "ink";
-import { isTodoTool, type Thread, type ToolUse } from "@stigmer/client";
+import { formatElapsed, isTodoTool, type Thread, type ToolUse } from "@stigmer/client";
 import { MessageEntry } from "./MessageEntry.js";
 import { ToolCallGroup } from "./ToolCallGroup.js";
 import { useRoles, type InkRole } from "../theme.js";
@@ -33,15 +35,17 @@ const STATUS_GLYPHS: Record<Thread["state"], { glyph: string; role: InkRole }> =
   stopped: { glyph: "⊘", role: "warning" },
 };
 
-function formatDuration(startedAt: string, completedAt: string): string | null {
-  if (!startedAt) return null;
-  const start = new Date(startedAt).getTime();
-  const end = completedAt ? new Date(completedAt).getTime() : Date.now();
-  const ms = end - start;
-  if (ms < 1000) return `${ms}ms`;
-  const s = Math.round(ms / 1000);
-  if (s < 60) return `${s}s`;
-  return `${Math.floor(s / 60)}m ${s % 60}s`;
+/**
+ * How long the subagent ran, by its state: a running one counts to now; a
+ * finished one shows its span when both ends are known, and nothing
+ * otherwise (a finished subagent never counts on to now).
+ */
+export function subagentDuration(state: Thread["state"], startedAt: string, completedAt: string, nowMs: number): string | null {
+  const start = Date.parse(startedAt);
+  if (Number.isNaN(start)) return null;
+  const end = state === "running" ? nowMs : Date.parse(completedAt);
+  if (Number.isNaN(end)) return null;
+  return formatElapsed(end - start);
 }
 
 /**
@@ -73,7 +77,7 @@ export function SubagentBlock({
   const role = useRoles();
   const { glyph, role: tone } = STATUS_GLYPHS[thread.state];
   const label = subject || thread.agentName || "Subagent";
-  const duration = formatDuration(startedAt, completedAt);
+  const duration = subagentDuration(thread.state, startedAt, completedAt, Date.now());
 
   return (
     <Box flexDirection="column" paddingLeft={2}>

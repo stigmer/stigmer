@@ -102,7 +102,7 @@ describe("stigmer download run", () => {
 
   it("passes --path and --output-dir through, and fails a partial download with a non-zero exit", async () => {
     outcome = { total: 2, downloaded: 1, noOutputs: false, incompletePhase: undefined };
-    const failed = await runDownload("RUNS", "run_1", "--path", "reports/q3.md", "-o", "/tmp/out").then(
+    const failed = await runDownload("RUNS", "run_1", "--path", "reports/q3.md", "--output-dir", "/tmp/out").then(
       () => undefined,
       (err: unknown) => err,
     );
@@ -132,9 +132,16 @@ describe("stigmer download run", () => {
     expect(download.downloadRunOutputs).not.toHaveBeenCalled();
   });
 
-  it.each([["--json"], ["--quiet"]])("refuses %s, which only an eval download reads, before any call", async (flag) => {
-    await expect(runDownload("run", "run_1", flag)).rejects.toThrow(
-      new UsageError("--json and --quiet apply to `download eval`; a run's download prints the files it writes"),
+  it.each([["--json"], ["--quiet"], ["-o", "json"]])("refuses %s, which only an eval download reads, before any call", async (...flag) => {
+    await expect(runDownload("run", "run_1", ...flag)).rejects.toThrow(
+      new UsageError("-o, --json and --quiet apply to `download eval`; a run's download prints the files it writes"),
+    );
+    expect(download.downloadRunOutputs).not.toHaveBeenCalled();
+  });
+
+  it("CLI-02 refuses -o with a directory, naming --output-dir, the directory's flag", async () => {
+    await expect(runDownload("run", "run_1", "-o", "./out")).rejects.toThrow(
+      new UsageError("-o is the output format (table or json); the directory is --output-dir:\n  stigmer download run run_1 --output-dir ./out"),
     );
     expect(download.downloadRunOutputs).not.toHaveBeenCalled();
   });
@@ -149,7 +156,7 @@ describe("stigmer download run", () => {
 
 describe("stigmer download session and file", () => {
   it("downloads a session's outputs through its handler, with the output path and output directory", async () => {
-    const { out, err } = await runDownload("session", "ses_1", "--path", "reports/q3.md", "-o", "/tmp/out");
+    const { out, err } = await runDownload("session", "ses_1", "--path", "reports/q3.md", "--output-dir", "/tmp/out");
     expect(download.session).toHaveBeenCalledWith(
       stigmer,
       { ref: "ses_1", org: "", outputPath: "reports/q3.md", outputDir: "/tmp/out" },
@@ -180,7 +187,7 @@ describe("stigmer download session and file", () => {
     "refuses --json for a %s's download, which prints the files it writes, before any call",
     async (type, ref) => {
       await expect(runDownload(type, ref, "--json")).rejects.toThrow(
-        new UsageError(`--json and --quiet apply to \`download eval\`; a ${type}'s download prints the files it writes`),
+        new UsageError(`-o, --json and --quiet apply to \`download eval\`; a ${type}'s download prints the files it writes`),
       );
       expect(download.session).not.toHaveBeenCalled();
       expect(download.file).not.toHaveBeenCalled();

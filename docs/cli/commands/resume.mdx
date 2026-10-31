@@ -33,11 +33,13 @@ stigmer resume "deploy staging"
 
 ## Options
 
-| Flag              | Type     | Default | Description                                                         |
-| ----------------- | -------- | ------- | ------------------------------------------------------------------- |
-| `--json`          | `bool`   |         | stream events as newline-delimited JSON                             |
-| `--mode`          | `string` |         | follow-up interaction mode: "agent" (default) or "plan" (read-only) |
-| `--verbose`, `-v` | `bool`   |         | show all run events                                                 |
+| Flag              | Type     | Default | Description                                                                                                                |
+| ----------------- | -------- | ------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `--json`          | `bool`   |         | stream events as newline-delimited JSON                                                                                    |
+| `--mode`          | `string` |         | follow-up interaction mode: "agent" (default) or "plan" (read-only)                                                        |
+| `--output`, `-o`  | `string` |         | output format: table (the live view), json or ndjson (newline-delimited JSON events)                                       |
+| `--until`         | `string` |         | on a terminal, return when the working turn ends, or at once when none works (turn), or when you leave (exit, the default) |
+| `--verbose`, `-v` | `bool`   |         | show all run events                                                                                                        |
 
 ### How resuming works
 
@@ -100,7 +102,7 @@ if multiple match.
 
 | Flag            | Type     | Default | Description                                            |
 | --------------- | -------- | ------- | ------------------------------------------------------ |
-| `--api-key`     | `string` |         | API key for authentication                             |
+| `--api-key`     | `string` |         | API key for authentication (before the command)        |
 | `--debug`, `-d` | `bool`   |         | enable debug output                                    |
 | `--org`         | `string` |         | organization, on servers that hold several             |
 | `--standalone`  | `bool`   |         | ignore the config file; use flags and environment only |

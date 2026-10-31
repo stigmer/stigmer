@@ -38,24 +38,25 @@ stigmer download run run_01abc123 --output-dir ./results/
 stigmer download run run_01abc123 --path report.pdf
 
 # Download everything a conversation's turns saved
-stigmer download session ses_01abc123 -o reports/
+stigmer download session ses_01abc123 --output-dir reports/
 
 # Download one File under its filename
 stigmer download file file_01abc123
 
 # Get the eval version tagged stable back as a folder
-stigmer download eval variance-reporter-evals@stable -o ./evals
+stigmer download eval variance-reporter-evals@stable --output-dir ./evals
 ```
 
 ## Options
 
-| Flag                 | Type     | Default | Description                                                                                                   |
-| -------------------- | -------- | ------- | ------------------------------------------------------------------------------------------------------------- |
-| `--all`              | `bool`   | `true`  | runs and sessions: download all outputs (default)                                                             |
-| `--json`             | `bool`   |         | emit the result as JSON                                                                                       |
-| `--output-dir`, `-o` | `string` |         | output directory (runs, sessions and files: default '.'; evals: a new or empty directory, default ./`<slug>`) |
-| `--path`             | `string` |         | runs and sessions: the one output to download, by its path in .stigmer/outputs/ (a bare filename matches too) |
-| `--quiet`            | `bool`   |         | print only the status line                                                                                    |
+| Flag             | Type     | Default | Description                                                                                                   |
+| ---------------- | -------- | ------- | ------------------------------------------------------------------------------------------------------------- |
+| `--all`          | `bool`   | `true`  | runs and sessions: download all outputs (default)                                                             |
+| `--json`         | `bool`   |         | emit the result as JSON                                                                                       |
+| `--output`, `-o` | `string` |         | output format: table or json                                                                                  |
+| `--output-dir`   | `string` |         | output directory (runs, sessions and files: default '.'; evals: a new or empty directory, default ./`<slug>`) |
+| `--path`         | `string` |         | runs and sessions: the one output to download, by its path in .stigmer/outputs/ (a bare filename matches too) |
+| `--quiet`        | `bool`   |         | print only the status line                                                                                    |
 
 ## Examples
 
@@ -70,7 +71,7 @@ All outputs are saved to the current directory.
 ### Download to a specific location
 
 ```bash
-stigmer download run run_01abc123 -o ./output/
+stigmer download run run_01abc123 --output-dir ./output/
 ```
 
 ### Download a single output
@@ -85,7 +86,7 @@ matches an output of that name wherever it sits in the folder.
 ### Download a conversation's outputs
 
 ```bash
-stigmer download session ses_01abc123 -o reports/
+stigmer download session ses_01abc123 --output-dir reports/
 stigmer download session ses_01abc123 --path reports/q3.md
 ```
 
@@ -95,7 +96,7 @@ saved the same path, the later turn's file is the one written.
 ### Download a file
 
 ```bash
-stigmer download file file_01abc123 -o ./inputs/
+stigmer download file file_01abc123 --output-dir ./inputs/
 ```
 
 ### Download an eval
@@ -113,7 +114,7 @@ into a new or empty directory, `./<name>` unless `-o` names one.
 
 | Flag            | Type     | Default | Description                                            |
 | --------------- | -------- | ------- | ------------------------------------------------------ |
-| `--api-key`     | `string` |         | API key for authentication                             |
+| `--api-key`     | `string` |         | API key for authentication (before the command)        |
 | `--debug`, `-d` | `bool`   |         | enable debug output                                    |
 | `--org`         | `string` |         | organization, on servers that hold several             |
 | `--standalone`  | `bool`   |         | ignore the config file; use flags and environment only |
