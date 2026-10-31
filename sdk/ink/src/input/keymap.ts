@@ -64,7 +64,7 @@ export function keyAction(input: string, key: Key, buffer: TextBuffer, options: 
     const newline = key.meta || key.shift;
     if (newline) return multiline ? edit(insertText(buffer, "\n")) : NONE;
     if (multiline && buffer.text[buffer.cursor - 1] === "\\") {
-      return edit(insertText(deleteBack(buffer, []), "\n"));
+      return edit(insertText(deleteBack(buffer, atoms), "\n"));
     }
     return { type: "submit" };
   }

@@ -116,7 +116,8 @@ export function commandInsert(command: SlashCommand): string {
 
 /** The registered command a message runs, and its arguments; undefined when it is to be sent. */
 export function parseCommand(text: string, commands: readonly SlashCommand[]): { readonly command: SlashCommand; readonly args: string } | undefined {
-  const match = /^\/(\S+)(?:\s+([\s\S]*))?$/.exec(text.trim());
+  // The arguments run to the end: `[\s\S]*` takes the rest of the message.
+  const match = /^\/(\S+)(?:\s+([\s\S]*))?/.exec(text.trim());
   if (match === null) return undefined;
   const command = commands.find((candidate) => candidate.name === match[1]);
   return command === undefined ? undefined : { command, args: match[2] ?? "" };

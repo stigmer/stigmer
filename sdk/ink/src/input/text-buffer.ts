@@ -85,7 +85,8 @@ export function moveRowEnd(buffer: TextBuffer): TextBuffer {
 /** Where the word before the cursor starts, past any whitespace. */
 function wordStartBefore(text: string, cursor: number): number {
   let at = cursor;
-  while (at > 0 && /\s/.test(text[at - 1]!)) at -= 1;
+  // Before the text's start there is nothing, which is not whitespace.
+  while (/\s/.test(text[at - 1] ?? "")) at -= 1;
   while (at > 0 && !/\s/.test(text[at - 1]!)) at -= 1;
   return at;
 }
@@ -99,7 +100,8 @@ export function moveWordLeft(buffer: TextBuffer): TextBuffer {
 export function moveWordRight(buffer: TextBuffer): TextBuffer {
   const { text } = buffer;
   let at = buffer.cursor;
-  while (at < text.length && /\s/.test(text[at]!)) at += 1;
+  // Past the text's end there is nothing, which is not whitespace.
+  while (/\s/.test(text[at] ?? "")) at += 1;
   while (at < text.length && !/\s/.test(text[at]!)) at += 1;
   return { ...buffer, cursor: at };
 }
