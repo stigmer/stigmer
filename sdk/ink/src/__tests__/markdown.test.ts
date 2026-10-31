@@ -113,7 +113,18 @@ describe("INK-13 long markdown (lists, code, tables) reads cleanly in the termin
   });
 
   it("counts every block settled once a reply is complete, all but the last while it is written", () => {
-    expect([settledBlockCount(4, false), settledBlockCount(4, true), settledBlockCount(0, true)]).toEqual([4, 3, 0]);
+    const blocks = markdownBlocks("One.\n\nTwo.\n\nThree.\n\nFour");
+    expect([settledBlockCount(blocks, false), settledBlockCount(blocks, true), settledBlockCount([], true)]).toEqual([4, 3, 0]);
+  });
+
+  it("keeps a list just above the block being written open, since that block may still join it", () => {
+    // "2" becomes "2. two", and the list it joins has to be drawn whole.
+    expect(markdownBlocks("1. one\n\n2").map((block) => block.type)).toEqual(["list", "paragraph"]);
+    expect(markdownBlocks("1. one\n\n2. two").map((block) => block.type)).toEqual(["list"]);
+    expect(settledBlockCount(markdownBlocks("Intro.\n\n1. one\n\n2"), true)).toBe(1);
+    expect(settledBlockCount(markdownBlocks("Intro.\n\n1. one\n\n2"), false)).toBe(3);
+    expect(settledBlockCount(markdownBlocks("1. one\n\nAfter.\n\nLast"), true)).toBe(2);
+    expect(settledBlockCount(markdownBlocks("1. one\n\n2"), true)).toBe(0);
   });
 
   it("draws each block without its markdown syntax", () => {

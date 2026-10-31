@@ -263,7 +263,7 @@ function renderItem(
         </Box>
       );
     case "file-review-record":
-      return <FileReviewRecord fileReviewSet={item.set} />;
+      return <FileReviewRecord fileReviewSet={item.set} earlier={item.earlier} />;
     case "approval":
       return onAnswerToolUse ? (
         <ApprovalPrompt

@@ -1,10 +1,15 @@
 // Pins the terminal background detection (INK-12): the OSC 11 reply read as
-// light or dark, `COLORFGBG` as the fallback, a silent terminal bounded by
-// the timeout, raw mode restored, and a key that arrived with the reply given
-// back to stdin for Ink to read.
+// light or dark, the DA1 reply behind it ending the wait (so a slow link is
+// waited for and a terminal without OSC 11 costs one round trip),
+// `COLORFGBG` as the fallback, a silent terminal bounded by the timeout, raw
+// mode restored, a key that arrived with the replies given back to stdin for
+// Ink to read, and a reply the timeout cut short dropped.
 import { EventEmitter } from "node:events";
 import { describe, expect, it } from "vitest";
-import { OSC11_QUERY, backgroundFromColorFgBg, detectBackground, parseOsc11Reply } from "../terminal-background.js";
+import { DA1_QUERY, OSC11_QUERY, backgroundFromColorFgBg, detectBackground, parseOsc11Reply } from "../terminal-background.js";
+
+/** What every terminal answers to DA1. */
+const DA1 = "\u001b[?62;22c";
 
 /** A TTY stdin that records its raw mode and what was given back. */
 class TtyStdin extends EventEmitter {
@@ -43,6 +48,7 @@ class TtyStdout {
     private readonly stdin: TtyStdin,
     private readonly reply: string | undefined,
     isTTY = true,
+    private readonly delayMs = 5,
   ) {
     this.isTTY = isTTY;
   }
@@ -50,19 +56,21 @@ class TtyStdout {
     this.written.push(data);
     const reply = this.reply;
     // A paused stream delivers nothing, as a real one would.
-    if (data === OSC11_QUERY && reply !== undefined) setTimeout(() => !this.stdin.isPaused() && this.stdin.emit("data", Buffer.from(reply)), 5);
+    if (data === OSC11_QUERY + DA1_QUERY && reply !== undefined) {
+      setTimeout(() => !this.stdin.isPaused() && this.stdin.emit("data", Buffer.from(reply)), this.delayMs);
+    }
     return true;
   }
 }
 
-function detect(reply: string | undefined, env: Record<string, string> = {}, tty = true, stdoutTty = tty) {
+function detect(reply: string | undefined, env: Record<string, string> = {}, tty = true, stdoutTty = tty, timeoutMs = 40) {
   const stdin = new TtyStdin(tty);
   const stdout = new TtyStdout(stdin, reply, stdoutTty);
   const result = detectBackground({
     stdin: stdin as unknown as NodeJS.ReadStream,
     stdout: stdout as unknown as NodeJS.WriteStream,
     env,
-    timeoutMs: 40,
+    timeoutMs,
   });
   return { result, stdin, stdout };
 }
@@ -80,6 +88,8 @@ describe("INK-12 colours read on a light and a dark terminal", () => {
     // Blue counts toward the light: green alone is under half here.
     expect(parseOsc11Reply("\u001b]11;rgb:00/9e/ff\u0007")?.background).toBe("light");
     expect(parseOsc11Reply("\u001b]11;rgb:00/9e/00\u0007")?.background).toBe("dark");
+    // Exactly half, as this formula computes it, reads as dark.
+    expect(parseOsc11Reply("\u001b]11;rgb:2f/8f/d3\u0007")?.background).toBe("dark");
     expect(parseOsc11Reply("\u001b]11;rgb:ffff/ffff")).toBeUndefined();
     expect(parseOsc11Reply("plain keys")).toBeUndefined();
   });
@@ -99,19 +109,35 @@ describe("INK-12 colours read on a light and a dark terminal", () => {
   });
 
   it("asks the terminal, reads its answer, and leaves stdin as it found it", async () => {
-    const { result, stdin, stdout } = detect("\u001b]11;rgb:ffff/ffff/ffff\u001b\\");
+    const { result, stdin, stdout } = detect(`\u001b]11;rgb:ffff/ffff/ffff\u001b\\${DA1}`);
     expect(await result).toBe("light");
-    expect(stdout.written).toEqual([OSC11_QUERY]);
+    expect(stdout.written).toEqual([OSC11_QUERY + DA1_QUERY]);
     expect(stdin.rawModes).toEqual([true, false]);
     expect(stdin.isPaused()).toBe(true);
     expect(stdin.listenerCount("data")).toBe(0);
     expect(stdin.unshifted).toEqual([]);
   });
 
-  it("gives back a key that arrived with the reply, so Ink reads it", async () => {
-    const { result, stdin } = detect("a\u001b]11;rgb:0000/0000/0000\u0007b");
+  it("gives back a key that arrived with the replies, so Ink reads it", async () => {
+    const { result, stdin } = detect(`a\u001b]11;rgb:0000/0000/0000\u0007b${DA1}c`);
     expect(await result).toBe("dark");
-    expect(stdin.unshifted).toEqual(["ab"]);
+    expect(stdin.unshifted).toEqual(["abc"]);
+  });
+
+  it("waits for a slow terminal's reply past what a timer would allow, so none reaches Ink as keys", async () => {
+    const stdin = new TtyStdin();
+    const stdout = new TtyStdout(stdin, `\u001b]11;rgb:1e1e/1e1e/1e1e\u0007${DA1}`, true, 150);
+    const result = detectBackground({ stdin: stdin as unknown as NodeJS.ReadStream, stdout: stdout as unknown as NodeJS.WriteStream, env: {} });
+    expect(await result).toBe("dark");
+    expect(stdin.unshifted).toEqual([]);
+  });
+
+  it("ends at the DA1 reply when the terminal does not know OSC 11, long before the timeout", async () => {
+    const started = Date.now();
+    const { result, stdin } = detect(DA1, { COLORFGBG: "0;15" }, true, true, 10_000);
+    expect(await result).toBe("light");
+    expect(Date.now() - started).toBeLessThan(1000);
+    expect(stdin.unshifted).toEqual([]);
   });
 
   it("falls back to COLORFGBG when the terminal does not answer in time", async () => {
@@ -119,6 +145,17 @@ describe("INK-12 colours read on a light and a dark terminal", () => {
     expect(await result).toBe("light");
     expect(stdin.rawModes).toEqual([true, false]);
     expect(await detect(undefined).result).toBe("unknown");
+  });
+
+  it("at the timeout, reads a colour that came without DA1, and drops a reply cut short instead of giving it to Ink", async () => {
+    const colourOnly = detect("k\u001b]11;rgb:ffff/ffff/ffff\u0007\u001b[?62");
+    expect(await colourOnly.result).toBe("light");
+    expect(colourOnly.stdin.unshifted).toEqual(["k"]);
+    for (const cut of ["\u001b]11;rgb:1e1e/1e", "\u001b]11;rgb:1e1e/1e1e/1e1e\u001b", "\u001b]1", "\u001b]", "\u001b"]) {
+      const { result, stdin } = detect(`k${cut}`);
+      expect(await result).toBe("unknown");
+      expect(stdin.unshifted).toEqual(["k"]);
+    }
   });
 
   it("asks nothing unless both streams are a terminal that takes raw mode", async () => {
@@ -137,7 +174,7 @@ describe("INK-12 colours read on a light and a dark terminal", () => {
   it("leaves a flowing stdin flowing, and its timeout does not fire after the answer", async () => {
     const stdin = new TtyStdin();
     stdin.resume();
-    const stdout = new TtyStdout(stdin, "\u001b]11;rgb:0/0/0\u0007");
+    const stdout = new TtyStdout(stdin, `\u001b]11;rgb:0/0/0\u0007${DA1}`);
     const result = detectBackground({ stdin: stdin as unknown as NodeJS.ReadStream, stdout: stdout as unknown as NodeJS.WriteStream, env: {}, timeoutMs: 40 });
     expect(await result).toBe("dark");
     expect(stdin.isPaused()).toBe(false);
@@ -148,7 +185,7 @@ describe("INK-12 colours read on a light and a dark terminal", () => {
   it("keeps raw mode on when it found it on", async () => {
     const stdin = new TtyStdin();
     stdin.isRaw = true;
-    const stdout = new TtyStdout(stdin, "\u001b]11;rgb:ffff/ffff/ffff\u0007");
+    const stdout = new TtyStdout(stdin, `\u001b]11;rgb:ffff/ffff/ffff\u0007${DA1}`);
     const background = await detectBackground({ stdin: stdin as unknown as NodeJS.ReadStream, stdout: stdout as unknown as NodeJS.WriteStream, env: {} });
     expect(background).toBe("light");
     expect(stdin.rawModes).toEqual([]);
