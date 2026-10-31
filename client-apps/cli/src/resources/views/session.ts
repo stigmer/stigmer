@@ -76,9 +76,8 @@ function environmentSourceWords(source: string): string | undefined {
       return "from its agent";
     case "ENVIRONMENT_SOURCE_ORGANIZATION":
       return "the organization's default";
-    default:
-      return undefined;
   }
+  return undefined;
 }
 
 function runRow(run: JsonObject, now: number): string[] {

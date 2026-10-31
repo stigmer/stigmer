@@ -143,13 +143,11 @@ function rowLines(rows: readonly (readonly string[])[], width: number | undefine
   });
 }
 
-// A list item's marker: "- ", "* " or "1. ", after any indent.
-const LIST_MARKER = /^\s*(?:[-*]|\d+\.)\s+/;
-
 // A text line keeps its own leading whitespace (an indented block) and list
-// marker, and its continuations line up under its text.
+// marker ("- ", "* " or "1. ", after any indent), and its continuations line
+// up under its text.
 function textLine(line: string, width: number | undefined): string[] {
-  const lead = LIST_MARKER.exec(line)?.[0] ?? line.slice(0, line.length - line.trimStart().length);
+  const lead = /^\s*(?:[-*]|\d+\.)\s+/.exec(line)?.[0] ?? line.slice(0, line.length - line.trimStart().length);
   return hang(`${INDENT}${lead}`, [line.slice(lead.length)], width);
 }
 

@@ -16,8 +16,6 @@ import type { ViewContext } from "./view.js";
 /** How many lines of a long text (instructions, SKILL.md, a message) a view shows. */
 export const TEXT_LINES = 12;
 
-const FULL_HASH = /^[a-f0-9]{64}$/;
-
 /**
  * A reference as a person names it: `org/slug`, the organization by the
  * view's label where it is the resource's own and left out on a server that
@@ -32,7 +30,8 @@ export function refLabel(ref: JsonObject, metadata: JsonObject, ctx: ViewContext
   const named = ctx.hideOrg || org === "" ? slug : `${own}/${slug}`;
   const version = str(ref, "version");
   if (version === "" || version === "latest") return named;
-  return `${named}@${FULL_HASH.test(version) ? shortVersionHash(version) : version}`;
+  // Only a full version hash (64 lowercase hex characters) has a short form.
+  return `${named}@${/^[a-f0-9]{64}$/.test(version) ? shortVersionHash(version) : version}`;
 }
 
 /** Each reference of a protojson list field, labelled. */
@@ -151,9 +150,8 @@ function shorthandWords(cron: string): string | undefined {
       return "on day 1 of every month at 00:00";
     case "@yearly":
       return "every year on January 1 at 00:00";
-    default:
-      return undefined;
   }
+  return undefined;
 }
 
 function cadence(cron: string): string {
