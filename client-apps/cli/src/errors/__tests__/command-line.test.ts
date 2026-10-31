@@ -5,10 +5,10 @@
 // typed that may be a key is echoed (an option's value written after '=',
 // an extra argument).
 import { describe, expect, it } from "vitest";
-import { type Command, CommanderError } from "commander";
+import { Command, CommanderError } from "commander";
 import { buildProgram } from "../../program.js";
 import { classify } from "../classify.js";
-import { commandLineErrorOf } from "../command-line.js";
+import { CommandLineError, commandLineErrorOf } from "../command-line.js";
 import { formatError } from "../handle.js";
 
 /** Parse `argv` through the whole program, returning what it printed and what it threw. */
@@ -93,5 +93,41 @@ describe("CLI-03 a usage error exits 2, in the CLI's own error style", () => {
   it("names no option when Commander's message names none it can read", () => {
     const error = commandLineErrorOf(buildProgram(), new CommanderError(1, "commander.unknownOption", "error: unknown option"));
     expect({ message: error.message, exitCode: error.exitCode }).toEqual({ message: "unknown option", exitCode: 2 });
+  });
+
+  describe("its words for each refusal", () => {
+    // A command with `count` declared arguments, under a parent, for the hint's path.
+    const commandWith = (count: number): Command => {
+      const cmd = new Command("pick");
+      for (let i = 0; i < count; i++) cmd.argument(`<a${i}>`);
+      new Command("stigmer").addCommand(cmd);
+      return cmd;
+    };
+    const wordsOf = (cmd: Command, code: string, message: string): string =>
+      commandLineErrorOf(cmd, new CommanderError(1, code, message)).message;
+
+    it("is a CommandLineError, carrying Commander's code", () => {
+      const error = commandLineErrorOf(commandWith(0), new CommanderError(1, "commander.missingArgument", "error: missing required argument 'a0'"));
+      expect(error).toBeInstanceOf(CommandLineError);
+      expect([error.name, error.code, error.hints]).toEqual(["CommandLineError", "commander.missingArgument", ["Run `stigmer pick --help` for usage."]]);
+    });
+
+    it("joins a message of several lines into one, trimmed, and takes off only a leading 'error: '", () => {
+      expect(wordsOf(commandWith(0), "commander.invalidArgument", "error: option '--limit <n>' argument 'x' is invalid.\n   it must be a number  \n\n")).toBe(
+        "option '--limit <n>' argument 'x' is invalid. it must be a number",
+      );
+      expect(wordsOf(commandWith(0), "commander.error", "the value error: was refused")).toBe("the value error: was refused");
+    });
+
+    it("names a short unknown option, keeps a short suggestion, and reads no name from the middle of a message", () => {
+      expect(wordsOf(commandWith(0), "commander.unknownOption", "error: unknown option '-x'\n(Did you mean -o?)")).toBe("unknown option '-x' (Did you mean -o?)");
+      expect(wordsOf(commandWith(0), "commander.unknownOption", "error: an unknown option '--a'")).toBe("unknown option");
+    });
+
+    it("counts extra arguments for a command that takes none, one or several, and with no count to read", () => {
+      expect(wordsOf(commandWith(0), "commander.excessArguments", "error: too many arguments. Expected 0 arguments but got 12.")).toBe("stigmer pick takes no arguments, got 12");
+      expect(wordsOf(commandWith(1), "commander.excessArguments", "error: too many arguments. Expected 1 argument but got 2.")).toBe("stigmer pick takes 1 argument, got 2");
+      expect(wordsOf(commandWith(2), "commander.excessArguments", "error: too many arguments")).toBe("stigmer pick takes 2 arguments");
+    });
   });
 });

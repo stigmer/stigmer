@@ -129,7 +129,7 @@ const THREAD_END: Record<NonNullable<ToolUse["thread"]>["state"], string> = {
 // "" while the call is open or when the log stamps either end with no time.
 function threadSpan(tool: ToolUse): string {
   const start = Date.parse(tool.processedAt);
-  const end = Date.parse(tool.result?.processedAt ?? "");
+  const end = tool.result === undefined ? Number.NaN : Date.parse(tool.result.processedAt);
   return Number.isNaN(start) || Number.isNaN(end) ? "" : ` (${formatElapsed(end - start)})`;
 }
 
