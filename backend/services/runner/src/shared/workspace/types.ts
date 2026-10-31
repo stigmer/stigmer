@@ -73,9 +73,10 @@ export interface WorkspaceBackend {
   readonly rootDir: string;
   readonly platformDir?: string;
   /**
-   * Runs `command` in a shell. `env` adds variables to that one child
-   * process only (the git credential rides there, workspace/git-credential.ts);
-   * the runner's own environment is never changed.
+   * Runs `command` in a shell, as the agent's operations run it
+   * (`../agent-fs.ts`). `env` adds variables to that one child process only;
+   * the runner's own environment is never changed. Never a credential: on a
+   * separating runner the process is the agent's to read (#2095).
    */
   execute(command: string, options?: ExecuteOptions): Promise<string>;
   readFile(path: string): Promise<string>;

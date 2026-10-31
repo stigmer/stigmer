@@ -3,16 +3,34 @@
  * checked out on its branch, fetched by id when no branch holds it, a
  * reused clone never reset, a commit that is not 7 to 64 hex digits refused
  * before any git command runs), default-branch
- * resolution, idempotent reuse, and how a repository's token reaches git —
- * through the environment of the two network commands only, for a
- * github.com URL only, never in a remote URL, argv or a file — plus the
- * git version floor, shell quoting, error sanitization, multi-entry subdirectories and git excludes.
+ * resolution, idempotent reuse, and where a repository's token goes — to
+ * the runner's own repository alone, for a github.com URL only, with the
+ * clone filled from the runner's bundles and none of its commands carrying
+ * a token or an environment (#2095) — plus shell quoting, error
+ * sanitization, multi-entry subdirectories and git excludes. The runner's
+ * repository is a stand-in here; runner-git.test.ts pins it against real
+ * git.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { mockWorkspaceBackend } from "../../../__test-utils__/mock-workspace.js";
+import { fakeRunnerRepository, type FakeRunnerRepository } from "../../../__test-utils__/fake-runner-repository.js";
 import { provisionGit } from "../sources/git.js";
-import { forgetGitVersion } from "../git-credential.js";
+import type { RunnerRepository } from "../runner-git.js";
 import { WorkspaceProvisionError } from "../types.js";
+
+const runnerGit = vi.hoisted(() => ({ withRunnerRepository: vi.fn() }));
+vi.mock("../runner-git.js", () => runnerGit);
+
+/** The runner's repository the next clone with a token opens. */
+let repository: FakeRunnerRepository;
+
+/** Opens `fake` for every clone with a token from now on. */
+function useRepository(fake: FakeRunnerRepository): void {
+  repository = fake;
+  runnerGit.withRunnerRepository.mockImplementation(
+    async (_clone: string, _url: string, _token: string, use: (r: RunnerRepository) => Promise<unknown>) => use(repository),
+  );
+}
 
 /**
  * Command-routing mock for `backend.execute`.
@@ -38,8 +56,8 @@ function routingExecute(opts: {
     const setOrigin = /^git remote (?:add|set-url) origin '(.*)'$/.exec(cmd);
     if (setOrigin !== null) origin = setOrigin[1]!;
     if (cmd === "git --version") return "git version 2.39.5\n";
-    if (cmd === "git config --list --show-scope --name-only") return "local\tremote.origin.url\nlocal\tremote.origin.fetch\n";
-    if (cmd === "git config --local --get remote.origin.url") return `${origin}\n`;
+    if (cmd === "git rev-parse --absolute-git-dir") return "/workspace/.git\n";
+    if (cmd.startsWith("git for-each-ref")) return "3333333333333333333333333333333333333333\n";
     if (cmd.includes("rev-parse --abbrev-ref")) return opts.branch ?? "main\n";
     if (cmd.includes("rev-parse HEAD")) return opts.sha ?? "abc123\n";
     if (cmd.includes("symbolic-ref")) return opts.defaultRef ?? "origin/main\n";
@@ -67,7 +85,8 @@ describe("provisionGit", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     vi.spyOn(console, "log").mockImplementation(() => {});
-    forgetGitVersion();
+    runnerGit.withRunnerRepository.mockReset();
+    useRepository(fakeRunnerRepository());
   });
 
   // ── Clone-in-place command flow ───────────────────────────────────
@@ -148,14 +167,31 @@ describe("provisionGit", () => {
     const backend = mockWorkspaceBackend({
       execute: routingExecute({ fail: (cmd) => (cmd.startsWith("git cat-file") ? new Error("missing") : undefined) }),
     });
+    await provisionGit(makeOptions({ backend, branch: "main", commit: "c0ffee1" }));
+
+    const cmds = calls(backend);
+    expect(cmds.indexOf("git fetch --quiet origin 'c0ffee1'")).toBeGreaterThan(-1);
+    expect(cmds.indexOf("git fetch --quiet origin 'c0ffee1'")).toBeLessThan(cmds.indexOf("git reset --quiet --hard 'c0ffee1'"));
+    expect(runnerGit.withRunnerRepository, "a clone without a token never opens the runner's repository").not.toHaveBeenCalled();
+  });
+
+  it("with a token, has the runner fetch a named commit no branch holds and hands it over leaving no ref", async () => {
+    const backend = mockWorkspaceBackend({
+      execute: routingExecute({ fail: (cmd) => (cmd.startsWith("git cat-file") ? new Error("missing") : undefined) }),
+    });
     await provisionGit(makeOptions({ backend, branch: "main", commit: "c0ffee1", token: "ghp_commit" }));
 
-    const runsWithEnv = (backend.execute as ReturnType<typeof vi.fn>).mock.calls
-      .filter((call) => (call[1] as { env?: unknown } | undefined)?.env !== undefined)
-      .map((call) => call[0] as string);
-    expect(runsWithEnv).toEqual(["git fetch --quiet origin", "git fetch --quiet origin 'c0ffee1'"]);
+    expect(repository.fetch).toHaveBeenLastCalledWith(["+c0ffee1:refs/stigmer/commit"]);
+    expect(repository.sendBundle).toHaveBeenLastCalledWith(
+      ["refs/stigmer/commit"],
+      ["3333333333333333333333333333333333333333"],
+      expect.stringMatching(/^\/workspace\/\.git\/stigmer-incoming-[0-9a-f]{16}\.bundle$/),
+    );
     const cmds = calls(backend);
-    expect(cmds.indexOf("git fetch --quiet origin 'c0ffee1'")).toBeLessThan(cmds.indexOf("git reset --quiet --hard 'c0ffee1'"));
+    const fromBundle = cmds.findIndex((c) => /^git fetch --quiet '\/workspace\/\.git\/stigmer-incoming-[0-9a-f]{16}\.bundle' 'refs\/stigmer\/commit'$/.test(c));
+    expect(fromBundle, "the clone fetches the commit from the runner's bundle, into FETCH_HEAD alone").toBeGreaterThan(-1);
+    expect(fromBundle).toBeLessThan(cmds.indexOf("git reset --quiet --hard 'c0ffee1'"));
+    expect(cmds.some((c) => c.startsWith("git fetch --quiet origin"))).toBe(false);
   });
 
   it("refuses a commit that is not hex digits before any git command runs", async () => {
@@ -220,23 +256,34 @@ describe("provisionGit", () => {
     }));
   }
 
-  it("hands the token to the fetch and set-head alone, through their environment, never argv or the remote URL", async () => {
+  it("with a token, has the runner fetch, and fills the clone from its bundle: no clone command carries a token or an environment", async () => {
     const backend = mockWorkspaceBackend({ execute: routingExecute() });
     await provisionGit(makeOptions({ backend, branch: "", token: TOKEN }));
 
-    const withEnv = runs(backend).filter((run) => run.env !== undefined);
-    expect(withEnv.map((run) => run.cmd)).toEqual(["git fetch --quiet origin", "git remote set-head origin --auto"]);
-    const basic = Buffer.from(`x-access-token:${TOKEN}`).toString("base64");
-    for (const run of withEnv) {
-      expect(run.env).toMatchObject({
-        GIT_CONFIG_KEY_0: "core.hooksPath",
-        GIT_CONFIG_VALUE_0: "/dev/null",
-        GIT_CONFIG_KEY_4: "http.https://github.com/.extraheader",
-        GIT_CONFIG_VALUE_4: `AUTHORIZATION: basic ${basic}`,
-      });
+    expect(runnerGit.withRunnerRepository).toHaveBeenCalledWith("/tmp/test-workspace", "https://github.com/org/repo.git", TOKEN, expect.any(Function));
+    expect(repository.fetch).toHaveBeenCalledWith(["+refs/heads/*:refs/heads/*", "+refs/tags/*:refs/tags/*"], { prune: true });
+    expect(repository.sendBundle).toHaveBeenCalledWith(["--branches", "--tags"], [], expect.stringMatching(/stigmer-incoming-[0-9a-f]{16}\.bundle$/));
+    const cmds = calls(backend);
+    expect(cmds.some((c) => /^git fetch --quiet '\/workspace\/\.git\/stigmer-incoming-[0-9a-f]{16}\.bundle' '\+refs\/heads\/\*:refs\/remotes\/origin\/\*' '\+refs\/tags\/\*:refs\/tags\/\*'$/.test(c))).toBe(true);
+    expect(cmds, "the default branch is recorded as set-head --auto would").toContain("git symbolic-ref refs/remotes/origin/HEAD 'refs/remotes/origin/main'");
+    expect(cmds).toContain("git checkout 'main'");
+    expect(cmds.some((c) => /^rm -f -- '\/workspace\/\.git\/stigmer-incoming-/.test(c)), "the handoff file is removed").toBe(true);
+    expect(cmds.some((c) => c.includes("origin --auto") || c.startsWith("git fetch --quiet origin"))).toBe(false);
+    for (const run of runs(backend)) {
+      expect(run.cmd).not.toContain(TOKEN);
+      expect(run.env).toBeUndefined();
     }
-    for (const run of runs(backend)) expect(run.cmd).not.toContain(TOKEN);
     expect(calls(backend)).toContain("git remote add origin 'https://github.com/org/repo.git'");
+  });
+
+  it("with a token, leaves an empty repository's clone empty: nothing crosses and nothing is checked out", async () => {
+    useRepository(fakeRunnerRepository({ defaultBranch: async () => "", sendBundle: async () => false }));
+    const backend = mockWorkspaceBackend({ execute: routingExecute() });
+    await provisionGit(makeOptions({ backend, branch: "", token: TOKEN }));
+
+    const cmds = calls(backend);
+    expect(cmds.some((c) => c.startsWith("git fetch"))).toBe(false);
+    expect(cmds.some((c) => c.startsWith("git checkout") || c.startsWith("git symbolic-ref"))).toBe(false);
   });
 
   it("writes no file holding the token: no credential store, no helper", async () => {
@@ -262,16 +309,6 @@ describe("provisionGit", () => {
     await provisionGit(makeOptions({ backend, url: "https://someone:pw@github.com/org/repo.git", token: TOKEN }));
 
     expect(calls(backend)).toContain("git remote add origin 'https://github.com/org/repo.git'");
-  });
-
-  it("refuses a clone that needs a token on a git older than 2.31, naming the floor", async () => {
-    const execute = vi.fn(async (cmd: string) => (cmd === "git --version" ? "git version 2.30.2\n" : ""));
-    const backend = mockWorkspaceBackend({ execute });
-
-    await expect(provisionGit(makeOptions({ backend, token: TOKEN }))).rejects.toThrow(
-      /this runner's git is 2\.30\.2; handing a repository's token to git without storing it needs git 2\.31 or newer/i,
-    );
-    expect(calls(backend).some((c) => c.includes("git fetch"))).toBe(false);
   });
 
   it("clones a public repository on an older git: no token, no floor", async () => {
@@ -300,6 +337,7 @@ describe("provisionGit", () => {
       expect(run.cmd).not.toContain(TOKEN);
       expect(run.env).toBeUndefined();
     }
+    expect(runnerGit.withRunnerRepository).not.toHaveBeenCalled();
     expect(result.gitMetadata!.writeBackReady).toBe(false);
   });
 

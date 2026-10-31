@@ -12,8 +12,14 @@ import { tmpdir } from "node:os";
 import { WorkspaceProvisioner } from "../provisioner.js";
 import { WorkspaceProvisionError } from "../types.js";
 import { LocalWorkspaceBackend } from "../local-backend.js";
-import { forgetGitVersion } from "../git-credential.js";
 import { mockWorkspaceBackend } from "../../../__test-utils__/mock-workspace.js";
+import { fakeRunnerRepository } from "../../../__test-utils__/fake-runner-repository.js";
+import type { RunnerRepository } from "../runner-git.js";
+
+// The runner's own git is pinned against real git in runner-git.test.ts;
+// here only which token it is opened with matters.
+const runnerGit = vi.hoisted(() => ({ withRunnerRepository: vi.fn() }));
+vi.mock("../runner-git.js", () => runnerGit);
 
 function makeTempDir(): string {
   return mkdtempSync(join(tmpdir(), "ws-test-"));
@@ -24,7 +30,10 @@ describe("WorkspaceProvisioner", () => {
 
   beforeEach(() => {
     provisioner = new WorkspaceProvisioner();
-    forgetGitVersion();
+    runnerGit.withRunnerRepository.mockReset();
+    runnerGit.withRunnerRepository.mockImplementation(
+      async (_clone: string, _url: string, _token: string, use: (repository: RunnerRepository) => Promise<unknown>) => use(fakeRunnerRepository()),
+    );
   });
 
   describe("empty workspace", () => {
@@ -151,12 +160,7 @@ describe("WorkspaceProvisioner", () => {
   describe("a git entry's token", () => {
     it("is its own repository value, matched by the entry's name and URL together", async () => {
       const url = "https://github.com/acme/app.git";
-      const execute = vi.fn(async (cmd: string) => {
-        if (cmd === "git --version") return "git version 2.39.5\n";
-        if (cmd === "git config --list --show-scope --name-only") return "local\tremote.origin.url\n";
-        if (cmd === "git config --local --get remote.origin.url") return `${url}\n`;
-        return "";
-      });
+      const execute = vi.fn(async (cmd: string) => (cmd === "git rev-parse --absolute-git-dir" ? "/tmp/test-workspace/.git\n" : ""));
       const backend = mockWorkspaceBackend({ execute });
       const repositories = [
         { name: "app", url: "https://github.com/acme/other.git", token: "ghp_other_url" },
@@ -169,13 +173,7 @@ describe("WorkspaceProvisioner", () => {
         backend, repositories, false, true,
       );
 
-      const envs = execute.mock.calls.map((call) => (call as unknown[])[1] as { env?: Record<string, string> } | undefined)
-        .map((options) => options?.env?.GIT_CONFIG_VALUE_4)
-        .filter((value): value is string => value !== undefined);
-      expect(envs.length).toBeGreaterThan(0);
-      for (const value of envs) {
-        expect(Buffer.from(value.replace("AUTHORIZATION: basic ", ""), "base64").toString()).toBe("x-access-token:ghp_own");
-      }
+      expect(runnerGit.withRunnerRepository.mock.calls.map((call) => (call as unknown[])[2])).toEqual(["ghp_own"]);
     });
   });
 });

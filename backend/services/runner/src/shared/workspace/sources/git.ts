@@ -4,10 +4,12 @@
  * Key behaviors:
  * - Idempotent: detects existing .git and skips re-clone
  * - A repository's token (the run's repository values, matched to this
- *   entry by its name and URL) reaches only the clone's network commands,
- *   and only for a URL whose host is github.com itself (isGitHubHttpsUrl):
- *   it is handed to each such command through git's per-command
- *   configuration and stored nowhere (../git-credential.ts). The remote URL
+ *   entry by its name and URL), only for a URL whose host is github.com
+ *   itself (isGitHubHttpsUrl), never reaches the clone: the runner fetches
+ *   with it into its own repository (../runner-git.ts) and hands the clone
+ *   a bundle of the fetched branches and tags, which the clone fetches as
+ *   it would from origin (#2095). A clone without a token (a public
+ *   repository, another host) fetches from origin itself. The remote URL
  *   is always the clean one, and `.git` holds no token.
  * - Token is never logged; sanitized in error messages
  * - Commit: a commit the resource names is checked out on the branch after
@@ -28,7 +30,9 @@ import {
   type GitMetadata,
   type WorkspaceBackend,
 } from "../types.js";
-import { maskToken, runNetworkGit } from "../git-credential.js";
+import { maskToken } from "../git-credential.js";
+import { cloneHaves, fetchFromRunner, shellQuote, type CloneExec } from "../clone-handoff.js";
+import { withRunnerRepository, type RunnerRepository } from "../runner-git.js";
 
 export interface GitProvisionOptions {
   url: string;
@@ -128,30 +132,43 @@ async function reuseExistingRepo(
  * mounts are not guaranteed empty — a freshly provisioned ext4 PersistentVolume
  * ships a `lost+found` directory at its root. We therefore reproduce clone
  * semantics in place: init the repo, add the (clean) origin remote, fetch
- * all branches, and check out the requested branch (or the remote's default
- * branch when none is requested); then, when a commit is named, put the
- * branch at that commit (see the module header). The result is identical
- * to a clone — a working tree on a tracking branch — but tolerant of
- * pre-existing content. The token reaches the commands that talk to the
- * network, and only them.
+ * all branches and tags, and check out the requested branch (or the
+ * remote's default branch when none is requested); then, when a commit is
+ * named, put the branch at that commit (see the module header). The result
+ * is identical to a clone — a working tree on a tracking branch — but
+ * tolerant of pre-existing content. With a token the fetches come from the
+ * runner's repository as bundles; without one, from origin.
  */
 async function cloneInPlace(
   backend: WorkspaceBackend,
   cloneDir: string,
   cloneUrl: string,
-  target: { readonly branch: string | undefined; readonly commit: string | undefined },
+  target: CloneTarget,
   token: string,
 ): Promise<void> {
   await backend.execute(`git init -q ${shellQuote(cloneDir)}`);
 
-  const exec = (cmd: string) => backend.execute(cmd, { cwd: cloneDir });
-  const network = (cmd: string) => runNetworkGit(backend, cmd, { cwd: cloneDir, remoteUrl: cloneUrl, token });
+  const exec: CloneExec = (cmd) => backend.execute(cmd, { cwd: cloneDir });
   await exec(`git remote add origin ${shellQuote(cloneUrl)}`);
-  await network("git fetch --quiet origin");
+  if (token === "") {
+    await fetchFromOrigin(exec, target);
+    return;
+  }
+  await withRunnerRepository(cloneDir, cloneUrl, token, (repository) => fetchThroughRunner(repository, exec, target));
+}
+
+interface CloneTarget {
+  readonly branch: string | undefined;
+  readonly commit: string | undefined;
+}
+
+/** A clone without a token: the clone's own git fetches from origin, as `git clone` would. */
+async function fetchFromOrigin(exec: CloneExec, target: CloneTarget): Promise<void> {
+  await exec("git fetch --quiet origin");
 
   const targetBranch = target.branch && target.branch.length > 0
     ? target.branch
-    : await resolveDefaultBranch(backend, cloneDir, network);
+    : await resolveDefaultBranch(exec);
 
   // No target branch means the remote has no branches (empty repository).
   // Leave the initialized repo as-is, matching `git clone` of an empty repo.
@@ -161,9 +178,53 @@ async function cloneInPlace(
   if (!target.commit) return;
 
   const commit = target.commit;
-  const present = await exec(`git cat-file -e ${shellQuote(`${commit}^{commit}`)}`).then(() => true, () => false);
-  if (!present) await network(`git fetch --quiet origin ${shellQuote(commit)}`);
+  if (!(await holdsCommit(exec, commit))) await exec(`git fetch --quiet origin ${shellQuote(commit)}`);
   await exec(`git reset --quiet --hard ${shellQuote(commit)}`);
+}
+
+/**
+ * A clone with a token: the runner fetches every branch and tag into its
+ * own repository and hands them over as one bundle, which the clone fetches
+ * to `refs/remotes/origin/*` and `refs/tags/*` as a fetch from origin would;
+ * `refs/remotes/origin/HEAD` names the default branch, as `remote set-head
+ * --auto` would. A named commit no branch holds is fetched by the runner
+ * and handed over the same way, leaving no ref in the clone (its fetch
+ * writes `FETCH_HEAD` alone, as `git fetch origin <commit>` does). An empty
+ * repository sends nothing and leaves the clone empty.
+ */
+async function fetchThroughRunner(repository: RunnerRepository, exec: CloneExec, target: CloneTarget): Promise<void> {
+  await repository.fetch(["+refs/heads/*:refs/heads/*", "+refs/tags/*:refs/tags/*"], { prune: true });
+  const defaultBranch = await repository.defaultBranch();
+  await fetchFromRunner(repository, exec, {
+    revisions: ["--branches", "--tags"],
+    haves: [],
+    refspecs: ["+refs/heads/*:refs/remotes/origin/*", "+refs/tags/*:refs/tags/*"],
+  });
+  if (defaultBranch) {
+    await exec(`git symbolic-ref refs/remotes/origin/HEAD ${shellQuote(`refs/remotes/origin/${defaultBranch}`)}`);
+  }
+
+  const targetBranch = target.branch && target.branch.length > 0 ? target.branch : defaultBranch;
+  if (!targetBranch) return;
+
+  await exec(`git checkout ${shellQuote(targetBranch)}`);
+  if (!target.commit) return;
+
+  const commit = target.commit;
+  if (!(await holdsCommit(exec, commit))) {
+    await repository.fetch([`+${commit}:refs/stigmer/commit`]);
+    await fetchFromRunner(repository, exec, {
+      revisions: ["refs/stigmer/commit"],
+      haves: await cloneHaves(exec),
+      refspecs: ["refs/stigmer/commit"],
+    });
+  }
+  await exec(`git reset --quiet --hard ${shellQuote(commit)}`);
+}
+
+/** Whether the clone holds `commit`. */
+function holdsCommit(exec: CloneExec, commit: string): Promise<boolean> {
+  return exec(`git cat-file -e ${shellQuote(`${commit}^{commit}`)}`).then(() => true, () => false);
 }
 
 /**
@@ -171,9 +232,9 @@ async function cloneInPlace(
  * `git cat-file` and `git reset` as an argument, and one that starts with
  * `-` (`--upload-pack=…`) would be read as an option. Hex digits alone can
  * never be. The commands carry no `--end-of-options` as a second guard: git
- * learned it in 2.24, and only a clone that needs a token has a git floor
- * (2.31, ../git-credential.ts); a public clone runs on any git, and an older
- * one refuses the marker as an unknown option. This check is the guard.
+ * learned it in 2.24, and only the runner's own git has a floor (2.31,
+ * ../git-credential.ts); a clone's git may be any, and an older one refuses
+ * the marker as an unknown option. This check is the guard.
  */
 function assertCommitId(commit: string): void {
   if (!COMMIT_ID.test(commit)) {
@@ -185,18 +246,14 @@ function assertCommitId(commit: string): void {
 }
 
 /**
- * Resolve the remote's default branch after a fetch. Returns an empty string
- * when the remote exposes no default (e.g. an empty repository), so the caller
- * can skip checkout gracefully.
+ * Resolve the remote's default branch after a fetch from origin. Returns an
+ * empty string when the remote exposes no default (e.g. an empty
+ * repository), so the caller can skip checkout gracefully.
  */
-async function resolveDefaultBranch(
-  backend: WorkspaceBackend,
-  cloneDir: string,
-  network: (cmd: string) => Promise<string>,
-): Promise<string> {
+async function resolveDefaultBranch(exec: CloneExec): Promise<string> {
   try {
-    await network("git remote set-head origin --auto");
-    const ref = (await backend.execute("git symbolic-ref --short refs/remotes/origin/HEAD", { cwd: cloneDir })).trim();
+    await exec("git remote set-head origin --auto");
+    const ref = (await exec("git symbolic-ref --short refs/remotes/origin/HEAD")).trim();
     return ref.replace(/^origin\//, "");
   } catch {
     return "";
@@ -269,15 +326,6 @@ function isGitHubHttpsUrl(url: string): boolean {
     return false;
   }
   return parsed.protocol === "https:" && parsed.hostname === GITHUB_HOST;
-}
-
-/**
- * Quotes one value for a POSIX shell, so it reaches git as a single argument
- * whatever it contains: a quote inside a URL, a branch name or a path cannot
- * end the argument and start a command of its own.
- */
-function shellQuote(value: string): string {
-  return `'${value.replaceAll("'", `'\\''`)}'`;
 }
 
 /** `url` with any credentials it carries removed. */
