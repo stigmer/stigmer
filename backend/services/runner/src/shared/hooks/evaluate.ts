@@ -7,8 +7,11 @@
  * `PreToolUse`; `formats/cursor.ts`: `preToolUse`, `beforeShellExecution`,
  * `beforeMCPExecution`), each format seeing the call under its own names
  * (`tool-view.ts`). It keeps the groups whose matcher takes the call and
- * the handlers whose `if` takes it (`condition.ts`, Claude Code's only),
- * runs them all at once, and combines their answers as Claude does:
+ * the handlers whose `if` takes it (`condition.ts`, Claude Code's only);
+ * a group whose matcher was stopped at its budget (`matcher.ts`) keeps its
+ * handlers unrun, each failing as a command that did not start, under its
+ * format's failure rule. It runs them all at once, and combines their
+ * answers as Claude does:
  * deny > defer > ask > allow. The hook recorded as the decider is the first
  * source, in the agent's order, that gave the winning answer, or, when a
  * winner rewrote the call, the first that did: the row names the hook
@@ -49,7 +52,6 @@ import {
   CURSOR_DEFAULT_TIMEOUT_SECONDS,
   cursorCommand,
   cursorEnv,
-  cursorMatches,
   cursorPostEvents,
   cursorPreEvents,
   cursorStdin,
@@ -58,6 +60,7 @@ import {
   type CursorEventTarget,
 } from "./formats/cursor.js";
 import type { HookEntry, HookEvent, HookFormatName, HookSet, HookSource } from "./hook-set.js";
+import { MATCHER_BUDGET_MS } from "./matcher.js";
 import { runHookProcess, type HookProcessRunner, type HookRunResult } from "./run.js";
 import { claudeToolResponse, rewriteEchoes, type CallViews, type HookToolViews } from "./tool-view.js";
 
@@ -142,6 +145,9 @@ export function defaultTimeoutSeconds(format: HookFormatName): number {
 const TRACER_NAME = "stigmer-runner";
 const SPAN_HOOK_RUN = "stigmer.hook.run";
 
+/** Why a group's handlers do not run when its matcher was stopped; read after "the command did not start:". */
+const MATCHER_STOPPED = `its matcher took longer than ${MATCHER_BUDGET_MS} ms to test against this call and was stopped`;
+
 /** One handler to run for a call, the event it answers and what it reads on stdin. */
 interface Run {
   readonly entry: HookEntry;
@@ -152,6 +158,8 @@ interface Run {
   /** The tool name the span records. */
   readonly tool: string;
   readonly stdin: Record<string, unknown>;
+  /** Why the handler cannot run for this call, when it cannot: it then fails as a command that did not start. */
+  readonly unrunnable?: string;
 }
 
 /** One handler's answer, with where it came from. */
@@ -256,16 +264,26 @@ export class HookEvaluator {
     for (const entry of this.deps.set.all) {
       if (entry.format === "cursor") {
         const fired = cursorEvents.find((e) => e.event === entry.event);
-        if (cursor === undefined || fired === undefined || !cursorMatches(entry.matcher, fired.target)) continue;
+        if (cursor === undefined || fired === undefined) continue;
+        const matched = entry.compiled.test(fired.target);
+        if (matched === "miss") continue;
         const stdin = cursorStdin(fired.event, cursor, call.id, this.ctx, phase === "post" ? output : undefined);
+        const stopped = matched === "timed-out" ? { unrunnable: MATCHER_STOPPED } : {};
         for (const handler of entry.handlers) {
-          runs.push({ entry, handler, sure: true, event: fired.event, tool: cursor.toolName, stdin });
+          runs.push({ entry, handler, sure: true, event: fired.event, tool: cursor.toolName, stdin, ...stopped });
         }
         continue;
       }
-      if (claude === undefined || entry.event !== claudeEvent || !claudeMatches(entry.matcher, claude)) continue;
+      if (claude === undefined || entry.event !== claudeEvent) continue;
+      const matched = claudeMatches(entry.compiled, claude);
+      if (matched === "miss") continue;
       const stdin = claudeStdin(claudeEvent, claude, call.id, scope, this.ctx, phase === "post" ? claudeToolResponse(claude, output) : undefined);
       for (const handler of entry.handlers) {
+        // A stopped matcher's handlers never run, so their `if` is not read.
+        if (matched === "timed-out") {
+          runs.push({ entry, handler, sure: true, event: claudeEvent, tool: claude.toolName, stdin, unrunnable: MATCHER_STOPPED });
+          continue;
+        }
         const verdict = handler.condition === "" ? "match" : conditionVerdict(handler.condition, claude, conditionContext);
         if (verdict === "no") continue;
         runs.push({ entry, handler, sure: verdict === "match", event: claudeEvent, tool: claude.toolName, stdin });
@@ -314,9 +332,8 @@ export class HookEvaluator {
   private async runOne(run: Run): Promise<HookRunResult> {
     const { entry, handler } = run;
     const { source } = entry;
-    const command: HookCommand | string = entry.format === "cursor"
-      ? cursorCommand(source, handler, this.ctx)
-      : claudeCommand(source, handler, this.ctx);
+    const command: HookCommand | string = run.unrunnable
+      ?? (entry.format === "cursor" ? cursorCommand(source, handler, this.ctx) : claudeCommand(source, handler, this.ctx));
     if (typeof command === "string") {
       return { exitCode: null, stdout: "", stderr: "", timedOut: false, spawnError: command };
     }
