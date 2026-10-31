@@ -9,7 +9,9 @@
  * plus `afterMCPExecution` for an MCP call. A group's matcher is an
  * unanchored regular expression (`""` and `*` take every call), tested
  * against the tool name, the command text for `beforeShellExecution`, and
- * `MCP:<tool>` for the two MCP events. All the events of one call are
+ * `MCP:<tool>` for the two MCP events (`../matcher.ts`); a test that runs
+ * past its budget is stopped, and that group's hooks fail by the rule below
+ * as if their command had not started. All the events of one call are
  * offered together and their answers combine once, with every other
  * format's (`../evaluate.ts`).
  *
@@ -73,17 +75,6 @@ export function cursorPostEvents(view: CursorToolView): readonly CursorEventTarg
     { event: "postToolUse", target: view.toolName },
     ...(view.mcp !== undefined ? [{ event: "afterMCPExecution" as const, target: `MCP:${view.mcp.tool}` }] : []),
   ];
-}
-
-/** Cursor's matcher rule: every call for `""` and `*`, else an unanchored regular expression. */
-export function cursorMatches(matcher: string, target: string): boolean {
-  if (matcher === "" || matcher === "*") return true;
-  try {
-    return new RegExp(matcher).test(target);
-  } catch {
-    console.warn(`[hooks] a matcher that is not a regular expression matches nothing: ${matcher}`);
-    return false;
-  }
 }
 
 /** What a Cursor hook reads on stdin for this event; `output` is the result's text on a post event. */

@@ -5,7 +5,9 @@
  *
  * A call fires `PreToolUse` before it runs and `PostToolUse` after it
  * succeeded; a group's matcher is tested against the call's Claude name and
- * every alias it has (`../tool-view.ts`), by Claude's rule (`../matcher.ts`).
+ * every alias it has (`../tool-view.ts`), by Claude's rule (`../matcher.ts`),
+ * until one test does not miss: a matcher stopped at its budget costs that
+ * budget once per call, not once per alias.
  *
  * stdin is Claude Code's input for the event: `session_id` (the Stigmer
  * session), an empty `transcript_path` (Stigmer keeps no Claude transcript
@@ -27,7 +29,7 @@
 
 import type { HookHandler } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { USER_CONFIG_REFERENCE, type ClaudeHookEvent, type HookSource } from "../hook-set.js";
-import { matcherMatches } from "../matcher.js";
+import type { Matcher, MatcherVerdict } from "../matcher.js";
 import { DEFAULT_HOOK_TIMEOUT_SECONDS } from "../run.js";
 import type { ToolView } from "../tool-view.js";
 import type { FormatContext, HookCommand, HookScope } from "./common.js";
@@ -42,9 +44,13 @@ export function claudeTargets(view: ToolView): readonly string[] {
   return [view.toolName, ...(view.aliases ?? [])];
 }
 
-/** Whether a Claude Code group's matcher takes any of the call's names. */
-export function claudeMatches(matcher: string, view: ToolView): boolean {
-  return claudeTargets(view).some((name) => matcherMatches(matcher, name));
+/** A Claude Code group's verdict on the call: the first of its names the matcher does not miss decides. */
+export function claudeMatches(matcher: Matcher, view: ToolView): MatcherVerdict {
+  for (const name of claudeTargets(view)) {
+    const verdict = matcher.test(name);
+    if (verdict !== "miss") return verdict;
+  }
+  return "miss";
 }
 
 /** What a Claude Code hook reads on stdin for this event. */
