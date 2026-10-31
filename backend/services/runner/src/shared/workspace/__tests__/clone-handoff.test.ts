@@ -7,7 +7,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { fakeRunnerRepository } from "../../../__test-utils__/fake-runner-repository.js";
-import { cloneHaves, fetchFromRunner } from "../clone-handoff.js";
+import { cloneHaves, fetchFromRunner, pushThroughRunner } from "../clone-handoff.js";
 
 describe("the clone's half of a handoff", () => {
   it("refuses a git directory that is not an absolute path, sending nothing", async () => {
@@ -21,5 +21,14 @@ describe("the clone's half of a handoff", () => {
   it("counts only object names as what the clone has", async () => {
     const sha = "a".repeat(40);
     expect(await cloneHaves(async () => `${sha}\nnot-a-sha\n\n${"b".repeat(64)}\n`)).toEqual([sha, "b".repeat(64)]);
+  });
+
+  it("finishes a handoff whose file the clone could not remove", async () => {
+    const exec = async (command: string): Promise<string> => {
+      if (command.startsWith("rm ")) throw new Error("read-only file system");
+      return command === "git rev-parse --absolute-git-dir" ? "/w/.git\n" : "";
+    };
+    expect(await fetchFromRunner(fakeRunnerRepository(), exec, { revisions: ["--branches"], haves: [], refspecs: [] })).toBe(true);
+    expect(await pushThroughRunner(fakeRunnerRepository({ pushBundle: async () => "c".repeat(40) }), exec, async () => {}, "stigmer/s")).toBe("c".repeat(40));
   });
 });

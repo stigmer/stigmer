@@ -295,11 +295,11 @@ export async function bundlePackOffset(bundle: string): Promise<number> {
   }
 }
 
-/** Copies the runner's file at `from` to the agent's `to`, piece by piece, through the agent's operations. */
-async function copyToAgent(from: string, to: string): Promise<void> {
+/** Copies the runner's file at `from` to the agent's `to`, in pieces of `pieceBytes`, through the agent's operations. */
+export async function copyToAgent(from: string, to: string, pieceBytes: number = FS_CHUNK_BYTES): Promise<void> {
   const handle = await open(from, "r");
   try {
-    const piece = Buffer.alloc(Math.min(FS_CHUNK_BYTES, Math.max(1, (await stat(from)).size)));
+    const piece = Buffer.alloc(Math.min(pieceBytes, Math.max(1, (await stat(from)).size)));
     let offset = 0;
     for (;;) {
       const { bytesRead } = await handle.read(piece, 0, piece.length, offset);

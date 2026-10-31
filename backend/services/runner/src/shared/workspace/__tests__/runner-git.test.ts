@@ -28,7 +28,7 @@ import { TranscriptBuilder } from "../../../harness/transcript/builder.js";
 import { TurnRowsSchema } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 import { GitTooOldError } from "../git-credential.js";
 import { LocalWorkspaceBackend } from "../local-backend.js";
-import { bundlePackOffset, copyFromAgent, runnerRepositoryPath, withRunnerRepository } from "../runner-git.js";
+import { bundlePackOffset, copyFromAgent, copyToAgent, runnerRepositoryPath, withRunnerRepository } from "../runner-git.js";
 import { provisionGit } from "../sources/git.js";
 import type { ProvisionResult } from "../types.js";
 import { WriteBackCoordinator } from "../writeback-coordinator.js";
@@ -304,6 +304,9 @@ describe("the runner's repository", () => {
     await expect(
       withRunnerRepository("/clones/a", REPO_URL, TOKEN, (repository) => repository.pushCommit("0".repeat(40), "stigmer/ses_none")),
     ).rejects.toThrow("is not in the runner's repository");
+    await expect(
+      withRunnerRepository("/clones/a", REPO_URL, TOKEN, (repository) => repository.pushCommit("HEAD", "stigmer/ses_none")),
+    ).rejects.toThrow("is not in the runner's repository");
   }, GIT_TEST_TIMEOUT_MS);
 
   it("never runs two operations on one repository at once", async () => {
@@ -340,6 +343,14 @@ describe("the runner's git", () => {
     expect(err).toBeInstanceOf(GitTooOldError);
     expect((err as Error).message).toMatch(/this runner's git is 2\.30\.2; handing a repository's token to git without storing it needs git 2\.31 or newer/i);
     expect(use).not.toHaveBeenCalled();
+  });
+
+  it("is refused when its version cannot be read", async () => {
+    const bin = join(root, "broken-bin");
+    mkdirSync(bin);
+    writeFileSync(join(bin, "git"), "#!/bin/sh\nexit 1\n", { mode: 0o755 });
+    vi.stubEnv("PATH", `${bin}:${process.env.PATH ?? ""}`);
+    await expect(withRunnerRepository("/clones/broken", REPO_URL, TOKEN, async () => {})).rejects.toThrow("This runner's git is unreadable");
   });
 
   it("is found on the runner's PATH, or nothing runs", async () => {
@@ -381,6 +392,13 @@ describe("a bundle crossing", () => {
     const other = join(root, "not.bundle");
     writeFileSync(other, "# v2 git bundle\nno pack here\n");
     await expect(bundlePackOffset(other)).rejects.toThrow("is not a git bundle");
+  });
+
+  it("is written to the agent piece by piece, whole", async () => {
+    const from = join(root, "pieces.bundle");
+    writeFileSync(from, "0123456789abcdefghijklmno");
+    await copyToAgent(from, join(root, "agent.bundle"), 10);
+    expect(readFileSync(join(root, "agent.bundle"), "utf-8")).toBe("0123456789abcdefghijklmno");
   });
 
   it("is refused from the agent past the limit, before more is copied", async () => {
