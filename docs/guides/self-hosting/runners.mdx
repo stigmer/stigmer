@@ -526,20 +526,26 @@ Substrate's atelet copies them to storage 5 minutes later and lets the node go
 after 30 (atelet's `--snapshot-upload-delay` and `--snapshot-detach-delay`), so
 a node lost in those first 5 minutes loses what the Session wrote since its last
 copy. The next message wakes it with its files intact and a fresh runner, from
-its node while the node still holds it and from storage otherwise. A Session
-with a run in progress, waiting for approval or paused is never put to sleep.
-Connect sandboxes don't sleep; they end with their run.
+its node when it wakes on the node that still holds them, and from storage when
+the node has let them go or Substrate places it on another node. A Session with
+a run in progress, waiting for approval or paused is never put to sleep. Connect
+sandboxes don't sleep; they end with their run.
 
-On v0.6.0 (kind, 2026-10-25, one wake each), the server's wake, Substrate's
-resume and the push that starts a fresh runner, took 0.22 s while the files were
-on the node only and 0.27 s once their copy had reached storage, and the whole
-turn, from the message to the reply, with a fake model, took 4.5 s and 9.1 s. A
-worker lost under an awake Session leaves its actor crashed, and the next
+On Stigmer Cloud, preprod (2026-10-31; Agent Substrate v0.6.0 on GKE, snapshots
+in Cloud Storage), a sleeping Session was working again, from the server
+accepting the message to the runner starting the turn, in 2.53 s at the median
+and 2.62 s at p95 when it woke from its node (33 wakes), and in 2.78 s and 3.06
+s when its files came back from storage (30 wakes). A Session's first message,
+which creates its sandbox, took 2.60 s and 2.70 s (36 wakes). The server's part
+of each, Substrate's resume and the push that starts a fresh runner, was 0.17 s,
+0.42 s and 0.18 s at the median; the rest is the runner starting. Your nodes and
+your storage set your own figures.
+
+A worker lost under an awake Session leaves its actor crashed, and the next
 message reverts it to its last snapshot and wakes it, so it loses what the
 Session wrote since then. The sweep runs every
 `STIGMER_SANDBOX_SUBSTRATE_SWEEP_INTERVAL_SECONDS` (30), so a Session sleeps up
-to that long after its window. Storage in a cloud bucket adds its download time
-to a wake whose node no longer holds the files.
+to that long after its window.
 
 A new value for one of the runner's secrets, a model key for one, takes effect
 when the server restarts with it, and reaches each sandbox at its next wake: at
