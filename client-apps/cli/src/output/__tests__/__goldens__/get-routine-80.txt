@@ -1,7 +1,7 @@
 
 Weekday digest  acme/weekday-digest
 
-  Agent:           acme/release-notes
+  Agent:           acme/variance-reporter
   Schedule:        every weekday at 09:00, Asia/Kolkata
   Enabled:         yes
   State:           paused

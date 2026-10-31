@@ -346,7 +346,7 @@ describe("CLI-09 each view keeps the organization out on a server that holds one
   });
 
   it("names it by its label on a server that holds several", () => {
-    expect(draw(ApiResourceKind.agent, AgentSchema, fixtures.agent).split("\n")[1]).toBe("Release Notes  acme/release-notes");
+    expect(draw(ApiResourceKind.agent, AgentSchema, fixtures.agent).split("\n")[1]).toBe("Variance Reporter  acme/variance-reporter");
     expect(draw(ApiResourceKind.run, RunSchema, fixtures.failedRun).split("\n")[1]).toBe("run_01jfffffffffffffffffffffff  acme");
     expect(draw(ApiResourceKind.organization, OrganizationSchema, fixtures.organization).split("\n")[1]).toBe("Acme Robotics  acme");
   });
@@ -503,13 +503,13 @@ describe("CLI-09 renderGet: json and yaml whole, a designed view for its kinds, 
     listed.length = 0;
     const out = await renderGet(client, ApiResourceKind.session, SessionSchema, fixtures.session, "table", { orgLabel: "acme" });
     expect(listed).toEqual([fixtures.session.metadata!.id]);
-    expect(out).toContain("Release notes for milestone 0.4  acme/ses-01jddd\n");
+    expect(out).toContain("Q3 ledger variance review  acme/ses-01jddd\n");
     expect(out).toContain("  run_01jeeeeeeeeeeeeeeeeeeeeee6  failed");
   });
 
   it("draws a designed kind without a loader, and keeps the generic view for a kind without a view", async () => {
     const agent = await renderGet(client, ApiResourceKind.agent, AgentSchema, fixtures.agent, "table", { hideOrg: true });
-    expect(agent.split("\n")[1]).toBe("Release Notes  release-notes");
+    expect(agent.split("\n")[1]).toBe("Variance Reporter  variance-reporter");
     const vault = create(VaultSchema, { metadata: { id: "vlt_1", name: "Keys" } });
     expect(await renderGet(client, ApiResourceKind.vault, VaultSchema, vault, "table")).toBe(renderResource(VaultSchema, vault, "table"));
   });

@@ -1,5 +1,5 @@
 
-Docs build  acme/docs-build
+Docs build  acme/finance-build
 
   Description:         What the docs site needs to build.
   Network:             limited to its hosts

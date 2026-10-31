@@ -39,32 +39,32 @@ function audit(createdMinutes: number, updatedMinutes: number) {
 }
 
 const INSTRUCTIONS = [
-  "You draft release notes for the milestone you are given.",
+  "You review a quarter's ledger against its budget.",
   "",
-  "Read every merged pull request of the milestone, then:",
-  "  - group the changes by area (CLI, console, server, SDKs);",
-  "  - write one line per change, in the words a user of that area would use, never the pull request's title as it stands;",
-  "  - name breaking changes first, each with what to do.",
+  "Read the ledger you are given, then:",
+  "  - compare each account's actual spend with its budget;",
+  "  - name every account more than ten percent over or under, with its variance, in the words a finance lead would use;",
+  "  - say what most likely drove each one, from the ledger's own lines.",
   "",
-  "Keep the notes short. A change no user can see goes under Internal.",
+  "Keep the report short. An account within its budget is left out.",
   "",
-  "Link each line to its pull request.",
-  "Ask before publishing.",
-  "Sign as the release team.",
-  "Never mention a person's name.",
+  "Save the report as variance-report.md.",
+  "Ask before sending it to anyone.",
+  "Sign as the finance team.",
+  "Never name a person.",
   "Use the past tense.",
   "Write dates as 31 October 2026.",
-  "End with the upgrade command.",
+  "End with the three largest variances.",
 ].join("\n");
 
 /** An agent carrying every part its view shows; 16 lines of instructions, 4 past the cut. */
 export const agent: Agent = create(AgentSchema, {
-  metadata: { id: "agt_01jbbbbbbbbbbbbbbbbbbbbbbb", name: "Release Notes", slug: "release-notes", org: ACME_ID },
+  metadata: { id: "agt_01jbbbbbbbbbbbbbbbbbbbbbbb", name: "Variance Reporter", slug: "variance-reporter", org: ACME_ID },
   spec: {
-    description: "Drafts release notes from the merged pull requests of a milestone, grouped by area.",
+    description: "Reviews a quarter's ledger against its budget and saves a variance report.",
     instructions: INSTRUCTIONS,
     skillRefs: [
-      { org: ACME_ID, kind: ApiResourceKind.skill, slug: "changelog-style" },
+      { org: ACME_ID, kind: ApiResourceKind.skill, slug: "finance-style" },
       { org: "stigmer", kind: ApiResourceKind.skill, slug: "semver", version: "stable" },
     ],
     mcpServers: [
@@ -73,12 +73,12 @@ export const agent: Agent = create(AgentSchema, {
     ],
     tools: ["Read", "Grep", "Glob", "WebFetch", "mcp__github", "mcp__linear__list_issues"],
     disallowedTools: ["Bash(git push *)"],
-    subagents: [{ org: ACME_ID, kind: ApiResourceKind.agent, slug: "pr-reader", version: "a".repeat(64) }],
-    plugins: [{ org: ACME_ID, kind: ApiResourceKind.plugin, slug: "release-kit" }],
-    environmentRef: { org: ACME_ID, kind: ApiResourceKind.environment, slug: "docs-build" },
+    subagents: [{ org: ACME_ID, kind: ApiResourceKind.agent, slug: "ledger-reader", version: "a".repeat(64) }],
+    plugins: [{ org: ACME_ID, kind: ApiResourceKind.plugin, slug: "ledger-kit" }],
+    environmentRef: { org: ACME_ID, kind: ApiResourceKind.environment, slug: "finance-build" },
     env: {
-      GITHUB_TOKEN: { isSecret: true, description: "Reads pull requests." },
-      RELEASE_CHANNEL: { optional: true },
+      GITHUB_TOKEN: { isSecret: true, description: "Reads the ledger's repository." },
+      REPORT_CURRENCY: { optional: true },
       REGION: {},
     },
     harness: Harness.CLAUDE,
@@ -93,20 +93,20 @@ export const agent: Agent = create(AgentSchema, {
 
 /** A skill pushed from a git repository, with frontmatter and 3 lines of body. */
 export const skill: Skill = create(SkillSchema, {
-  metadata: { id: "skl_01jccccccccccccccccccccccc", name: "changelog-style", slug: "changelog-style", org: ACME_ID },
+  metadata: { id: "skl_01jccccccccccccccccccccccc", name: "finance-style", slug: "finance-style", org: ACME_ID },
   spec: {
-    name: "changelog-style",
-    description: "How the team writes a changelog line.",
+    name: "finance-style",
+    description: "How the finance team writes a variance line.",
     tag: "stable",
     skillMd: [
       "---",
-      "name: changelog-style",
-      "description: How the team writes a changelog line.",
+      "name: finance-style",
+      "description: How the finance team writes a variance line.",
       "---",
       "",
-      "# Changelog style",
+      "# Finance style",
       "",
-      "One line per change, present tense, the user's words.",
+      "One line per account, its variance first, in the finance lead's words.",
     ].join("\n"),
   },
   status: {
@@ -115,7 +115,7 @@ export const skill: Skill = create(SkillSchema, {
       remoteUrl: "https://github.com/acme/skills.git",
       ref: "main",
       commit: "9e1b2c3d4e5f60718293a4b5c6d7e8f901234567",
-      subdir: "changelog-style",
+      subdir: "finance-style",
     },
     audit: audit(-4320, -4320),
   },
@@ -125,13 +125,13 @@ export const skill: Skill = create(SkillSchema, {
 export const session: Session = create(SessionSchema, {
   metadata: { id: "ses_01jddddddddddddddddddddddd", name: "ses-01jddd", slug: "ses-01jddd", org: ACME_ID },
   spec: {
-    subject: "Release notes for milestone 0.4",
-    agentRef: { org: ACME_ID, kind: ApiResourceKind.agent, slug: "release-notes" },
+    subject: "Q3 ledger variance review",
+    agentRef: { org: ACME_ID, kind: ApiResourceKind.agent, slug: "variance-reporter" },
   },
   status: {
     state: "running",
     agentId: "agt_01jbbbbbbbbbbbbbbbbbbbbbbb",
-    environment: { org: ACME_ID, kind: ApiResourceKind.environment, slug: "docs-build" },
+    environment: { org: ACME_ID, kind: ApiResourceKind.environment, slug: "finance-build" },
     environmentSource: EnvironmentSource.AGENT,
     audit: audit(-60, -1),
   },
@@ -166,7 +166,7 @@ export const failedRun: Run = create(RunSchema, {
   metadata: { id: "run_01jfffffffffffffffffffffff", org: ACME_ID },
   spec: {
     target: { case: "sessionId", value: session.metadata!.id },
-    message: "Draft the notes for milestone 0.4 and open them as a pull request against docs/releases.",
+    message: "Review this quarter's ledger and save the variance report.",
   },
   status: {
     phase: RunPhase.RUN_FAILED,
@@ -198,7 +198,7 @@ export const routine: Routine = create(RoutineSchema, {
     timeZone: "Asia/Kolkata",
     enabled: true,
     agent: {
-      agentRef: { org: ACME_ID, kind: ApiResourceKind.agent, slug: "release-notes" },
+      agentRef: { org: ACME_ID, kind: ApiResourceKind.agent, slug: "variance-reporter" },
       message: "Summarise yesterday's merged pull requests.",
     },
   },
@@ -213,7 +213,7 @@ export const routine: Routine = create(RoutineSchema, {
 
 /** A limited Environment with hosts and packages. */
 export const environment: Environment = create(EnvironmentSchema, {
-  metadata: { id: "env_01jjjjjjjjjjjjjjjjjjjjjjjj", name: "Docs build", slug: "docs-build", org: ACME_ID },
+  metadata: { id: "env_01jjjjjjjjjjjjjjjjjjjjjjjj", name: "Docs build", slug: "finance-build", org: ACME_ID },
   spec: {
     description: "What the docs site needs to build.",
     networking: {

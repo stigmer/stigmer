@@ -1,7 +1,7 @@
 
-changelog-style  acme/changelog-style
+finance-style  acme/finance-style
 
-  Description:  How the team writes a changelog line.
+  Description:  How the finance team writes a variance line.
   Tag:          stable
   Version:      4f2a9c1e7b3d
 
@@ -9,9 +9,9 @@ Source
   Remote:  https://github.com/acme/skills.git
   Ref:     main
   Commit:  9e1b2c3d4e5f60718293a4b5c6d7e8f901234567
-  Folder:  changelog-style
+  Folder:  finance-style
 
 SKILL.md
-  # Changelog style
+  # Finance style
 
-  One line per change, present tense, the user's words.
+  One line per account, its variance first, in the finance lead's words.

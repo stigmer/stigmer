@@ -1,26 +1,26 @@
 
-Release Notes  acme/release-notes
+Variance Reporter  acme/variance-reporter
 
-  Description:  Drafts release notes from the merged pull requests of a milestone, grouped by area.
+  Description:  Reviews a quarter's ledger against its budget and saves a variance report.
   Updated:      2026-10-30 07:45 UTC
 
 Instructions
-  You draft release notes for the milestone you are given.
+  You review a quarter's ledger against its budget.
 
-  Read every merged pull request of the milestone, then:
-    - group the changes by area (CLI, console, server, SDKs);
-    - write one line per change, in the words a user of that area would use, never the pull request's title as it stands;
-    - name breaking changes first, each with what to do.
+  Read the ledger you are given, then:
+    - compare each account's actual spend with its budget;
+    - name every account more than ten percent over or under, with its variance, in the words a finance lead would use;
+    - say what most likely drove each one, from the ledger's own lines.
 
-  Keep the notes short. A change no user can see goes under Internal.
+  Keep the report short. An account within its budget is left out.
 
-  Link each line to its pull request.
-  Ask before publishing.
-  Sign as the release team.
+  Save the report as variance-report.md.
+  Ask before sending it to anyone.
+  Sign as the finance team.
   … 4 more lines; -o yaml for all
 
 Skills
-  acme/changelog-style
+  acme/finance-style
   stigmer/semver@stable
 
 MCP servers
@@ -32,14 +32,14 @@ Tools
   Disallowed:  Bash(git push *)
 
 Subagents
-  acme/pr-reader@aaaaaaaaaaaa
+  acme/ledger-reader@aaaaaaaaaaaa
 
 Plugins
-  acme/release-kit
+  acme/ledger-kit
 
 Environment
-  Sandbox:  acme/docs-build
-  Values:   GITHUB_TOKEN (secret), REGION, RELEASE_CHANNEL (optional)
+  Sandbox:  acme/finance-build
+  Values:   GITHUB_TOKEN (secret), REGION, REPORT_CURRENCY (optional)
 
 Run settings
   Harness:   claude

@@ -8,8 +8,7 @@ run_01jfffffffffffffffffffffff  acme
   Duration:  2m 15s
 
 Message
-  Draft the notes for milestone 0.4 and open them as a pull request against
-  docs/releases.
+  Review this quarter's ledger and save the variance report.
 
 Why it stopped
   Error:       the model provider refused the request: overloaded

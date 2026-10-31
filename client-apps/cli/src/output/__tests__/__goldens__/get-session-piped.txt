@@ -1,10 +1,10 @@
 
-Release notes for milestone 0.4  acme/ses-01jddd
+Q3 ledger variance review  acme/ses-01jddd
 
   ID:           ses_01jddddddddddddddddddddddd
-  Agent:        acme/release-notes
+  Agent:        acme/variance-reporter
   State:        running
-  Environment:  acme/docs-build (from its agent)
+  Environment:  acme/finance-build (from its agent)
   Created:      2026-10-30 08:15 UTC
 
 Runs

@@ -83,7 +83,7 @@ describe("CLI-09 stigmer get session", () => {
   it("shows the session by its id with its newest runs, its organization by slug", async () => {
     const out = await runGet("session", SESSION_ID);
     expect(calls).toEqual([`session.get ${SESSION_ID}`, `run.listBySession ${SESSION_ID}`]);
-    expect(out).toMatch(/^Release notes for milestone 0\.4 {2}acme\/ses-01jddd$/m);
+    expect(out).toMatch(/^Q3 ledger variance review {2}acme\/ses-01jddd$/m);
     expect(out).toContain(`  ID:           ${SESSION_ID}\n`);
     expect(out).toMatch(/^Runs$/m);
     expect(out).toContain("  … 2 earlier runs\n");
@@ -98,7 +98,7 @@ describe("CLI-09 stigmer get session", () => {
   });
 
   it("refuses a session named by anything but its id, before any call", async () => {
-    await expect(runGet("session", "release-notes")).rejects.toThrow("Sessions can only be fetched by ID");
+    await expect(runGet("session", "variance-reporter")).rejects.toThrow("Sessions can only be fetched by ID");
     expect(calls).toEqual([]);
   });
 });
