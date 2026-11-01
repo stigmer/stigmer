@@ -3,7 +3,7 @@
 // fonts — the site's type resolves to the brand's three faces
 //
 // Two quiet failures this guards. A font token named outside Tailwind 4's
-// `--font-*` namespace (the site's `--font-family-*` until M7) compiles to
+// `--font-*` namespace (the site's `--font-family-*`, #2835) compiles to
 // nothing, and every page renders in the visitor's system font while the
 // brand's files still download. And a loader whose variable nothing reads,
 // or a token naming a variable no loader defines, falls back the same way.
