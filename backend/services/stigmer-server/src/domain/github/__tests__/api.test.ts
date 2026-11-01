@@ -11,8 +11,11 @@
  * GitHub is released at once rather than left to the garbage collector, and a
  * body that refuses to be cancelled never hides the refusal.
  */
+import { createServer, type Server } from "node:http";
+import type { AddressInfo, Socket } from "node:net";
+
 import { Code, ConnectError } from "@connectrpc/connect";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import { GITHUB_RESPONSE_CEILING_BYTES, RECONNECT_GITHUB, newGitHubApi } from "../api.js";
 
@@ -135,6 +138,43 @@ describe("newGitHubApi", () => {
     expect(refusal.code).toBe(code);
     expect(refusal.rawMessage).toBe(message);
     expect(cancelled).toBe(true);
+  });
+
+  describe("over a real socket", () => {
+    let server: Server | undefined;
+    afterEach(async () => {
+      server?.closeAllConnections();
+      await new Promise((resolve) => server?.close(resolve));
+      server = undefined;
+    });
+
+    it("lets go of GitHub's connection as soon as it refuses an answer", async () => {
+      // A body larger than the client buffers keeps the response, and so the
+      // connection, open until someone reads or cancels it.
+      const body = Buffer.alloc(1024 * 1024, 0x20);
+      let closed!: () => void;
+      const socketClosed = new Promise<void>((resolve) => {
+        closed = resolve;
+      });
+      server = createServer((_request, response) => {
+        response.writeHead(404, { "content-length": String(body.length) });
+        response.end(body);
+      });
+      server.on("connection", (socket: Socket) => socket.on("close", () => closed()));
+      await new Promise<void>((resolve) => server?.listen(0, "127.0.0.1", resolve));
+      const { port } = server.address() as AddressInfo;
+      const local = ((url: string | URL | Request, init?: RequestInit) =>
+        fetch(String(url).replace("https://api.github.com", `http://127.0.0.1:${port}`), init)) as typeof fetch;
+
+      const refusal = await failureOf(newGitHubApi("t", local).getJson("/repos/acme/app", "acme/app"));
+      expect(refusal.code).toBe(Code.NotFound);
+
+      const released = await Promise.race([
+        socketClosed.then(() => true),
+        new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 2_000)),
+      ]);
+      expect(released).toBe(true);
+    });
   });
 
   it("refuses an answer declared larger than the ceiling before reading it", async () => {
