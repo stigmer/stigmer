@@ -10,6 +10,8 @@
  *   login saved at the server's address, as a plugin's API-key server is;
  * - an agent server that sends no `Authorization` asks for nothing: its
  *   optional login is filled by a login at its address or not at all;
+ * - a key a plugin reads takes the plugin's declaration, the agent's own
+ *   declaration of it dropped, as the run's requirements drop it;
  * - a name the runner always fills (who is calling, the conversation) is
  *   never asked for, whichever home's server reads it, so a plugin's server
  *   reading one never lands the composer in `needsEnvVars` for a value no
@@ -200,5 +202,26 @@ describe("useAgentSetup and the agent's own MCP servers", () => {
     expect(outcome).toMatchObject({ status: "needsEnvVars" });
     const asked = (outcome as { missingVariables: { key: string }[] }).missingVariables.map((variable) => variable.key);
     expect(asked.sort()).toEqual(["SEARCH_KEY", "ZENDESK_KEY"]);
+  });
+
+  it("asks for a key a plugin reads with the plugin's declaration, not the agent's own, as the run counts it", async () => {
+    const search = create(PluginSchema, {
+      metadata: create(ApiResourceMetadataSchema, { id: "plg_search", org: ORG, slug: "search", name: "search" }),
+      status: {
+        mcpServers: [{ name: "search", transport: { case: "stdio", value: { command: "npx", args: [] } }, env: ["SEARCH_KEY"] }],
+        env: { SEARCH_KEY: create(EnvVarDeclarationSchema, { isSecret: false, optional: true, description: "the plugin's" }) },
+      },
+    });
+    const outcome = await resolve({
+      spec: {
+        plugins: [{ org: ORG, slug: "search" }],
+        env: { SEARCH_KEY: create(EnvVarDeclarationSchema, { isSecret: true, optional: false, description: "the agent's" }) },
+      },
+      plugins: { search },
+    });
+    expect(outcome).toMatchObject({
+      status: "needsEnvVars",
+      missingVariables: [{ key: "SEARCH_KEY", isSecret: false, optional: true, description: "the plugin's" }],
+    });
   });
 });

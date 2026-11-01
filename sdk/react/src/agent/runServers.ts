@@ -2,15 +2,27 @@
  * Every MCP server a run of an agent dials, read the way the run reads it,
  * so the console asks the person starting a conversation for what the run
  * would refuse without, and for nothing else. The console's twin of the
- * server's run planning: `domain/run/run-servers.ts` (which servers, and
- * each home's declarations) and the requirement half of
- * `domain/vault/resolve.ts` (`declarationsOf`, `toolRequirements`) in
+ * server's run planning: `domain/run/run-subagents.ts` (which agents),
+ * `domain/run/run-servers.ts` (which servers, and each home's
+ * declarations), `domain/run/run-plugins.ts` (`runPluginReferences`) and
+ * the requirement half of `domain/vault/resolve.ts` (`declarationsOf`,
+ * `toolRequirements`, `runRequirements`) in
  * `backend/services/stigmer-server`. No test spans the two packages, so a
  * change to either side's rule changes the other in the same change.
  *
- * A server has a home: the agent that writes it (`spec.mcp_servers`) or a
- * plugin the agent lists. The agent's own come first, then each plugin's,
- * as a run gathers them. An agent's server is read as the plugin server
+ * A run's agents are the agent and each subagent it lists, read at the
+ * version the agent pinned (`spec.subagents`; one level, which the save
+ * enforces). A subagent another person cannot view, or one since deleted,
+ * cannot be told apart by `getVersion`, and the server reads it from its
+ * store whoever runs it, so one whose read fails is left out: its keys go
+ * unasked and the run says what it lacks at its first turn.
+ *
+ * A server has a home: an agent of the run that writes it
+ * (`spec.mcp_servers`) or a plugin one of them lists. As a run gathers
+ * them: the agent's own servers, then each subagent's own, then the
+ * plugins, the agent's first and then each subagent's not already listed
+ * (a subagent's reference with no organization names its own
+ * organization's plugin). An agent's server is read as the plugin server
  * entry every reader already takes (`agentServerEntry`): HTTP at its URL,
  * its `env` the `${NAME}`s its headers read, scanned with the runner's own
  * pattern. Its home's declaration of a name is the agent's `env` entry,
@@ -21,10 +33,19 @@
  * One rule over every home then: a name the runner always fills
  * (`RUNNER_FILLED_VARIABLES`: who is calling, the conversation) is no
  * requirement and nobody is asked for it; any other name takes its home's
- * declaration, else it is a required secret. The run matches each
- * declarer on its own, so a name two homes read is required when either
- * requires it, and the composer asks for it once: a required declaration
- * wins over an optional one, and otherwise the first seen is kept.
+ * declaration, else it is a required secret.
+ *
+ * Each agent of the run declares keys of its own (`spec.env`). A key any
+ * server or hook of the run reads is that tool's, and an agent's own
+ * declaration of it is dropped, the parent's included (`runRequirements`).
+ *
+ * The run matches each declarer on its own, so the composer asks once for
+ * a key several declare, with the declaration that asks the most of the
+ * person (`strongerDeclaration`): one that needs a value (a secret, or a
+ * setting with no value of its own) over one that fills itself, then a
+ * required one over an optional one, then the first seen; and secret when
+ * any of them is, so a value one declarer keeps secret is never typed in
+ * clear.
  *
  * Logins. A plugin's server with a sign-in record is filled by a login at
  * its address; its login key is never typed (`signInKeys`). Any HTTP
@@ -35,15 +56,13 @@
  * nothing reads that name but the runner, so it is never declared here
  * and never asked for.
  *
- * Subagents are not read: the console's readiness covers the agent and
- * its plugins (stigmer/stigmer#2307).
- *
  * Pinned by `__tests__/runServers.test.ts`.
  */
 
 import { create } from "@bufbuild/protobuf";
 import type { Stigmer, ResourceRef } from "@stigmer/client";
 import type { AgentMcpServer, AgentSpec } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
+import type { ApiResourceReference } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import type { Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
 import { McpServerEntrySchema, type McpServerEntry } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
 import {
@@ -85,6 +104,16 @@ export interface HookReading {
 export interface RunServersReading {
   readonly servers: readonly ServerReading[];
   readonly hooks: readonly HookReading[];
+}
+
+/** One agent of a run, by the keys it declares of its own. */
+export interface RunAgentReading {
+  readonly env: Readonly<Record<string, EnvVarDeclaration>>;
+}
+
+/** A whole run: its servers and hooks, and each of its agents (the agent, then each subagent read). */
+export interface RunReading extends RunServersReading {
+  readonly agents: readonly RunAgentReading[];
 }
 
 /** A server among the plugins that signs in, with the address its login is saved at. */
@@ -156,6 +185,40 @@ export function pluginReadings(ref: ResourceRef, plugin: Plugin): RunServersRead
   };
 }
 
+/** Whether a reference names anything: a run skips one with neither id nor slug. */
+function named(ref: Pick<ApiResourceReference, "id" | "slug">): boolean {
+  return ref.id !== "" || ref.slug !== "";
+}
+
+/**
+ * The organization of each subagent `spec` lists: the reference's, else
+ * `defaultOrg`. Read from the references alone, so a caller judges whose
+ * agents a run carries without reading any.
+ */
+export function subagentOrgs(spec: Pick<AgentSpec, "subagents"> | undefined, defaultOrg: string): string[] {
+  return (spec?.subagents ?? []).filter(named).map((ref) => ref.org || defaultOrg);
+}
+
+/** Each subagent `spec` lists that can be read, at its pinned version, in the order listed. */
+async function readSubagents(
+  stigmer: Pick<Stigmer, "agent">,
+  spec: Pick<AgentSpec, "subagents">,
+  defaultOrg: string,
+): Promise<{ readonly org: string; readonly spec: AgentSpec }[]> {
+  const read = await Promise.all(
+    (spec.subagents ?? []).filter(named).map(async (ref) => {
+      try {
+        const version = await stigmer.agent.getVersion({ agentId: ref.id, versionHash: ref.version });
+        return version.specSnapshot === undefined ? null : { org: ref.org || defaultOrg, spec: version.specSnapshot };
+      } catch {
+        // Unreadable: left out, as the module header says.
+        return null;
+      }
+    }),
+  );
+  return read.filter((subagent) => subagent !== null);
+}
+
 /** Options for {@link readAgentServers}. */
 export interface ReadAgentServersOptions {
   /**
@@ -167,20 +230,36 @@ export interface ReadAgentServersOptions {
 }
 
 /**
- * Every server a run of the agent at `spec` dials and every plugin's
- * hooks: the agent's own servers, then each listed plugin's, read by
- * reference (the reference's organization, else `defaultOrg`).
+ * Every agent, server and plugin hook of a run of the agent at `spec`:
+ * the subagents it lists, read at their pinned versions; the agent's own
+ * servers, then each subagent's; then each plugin's, read by reference
+ * (the reference's organization, else `defaultOrg` for the agent's and
+ * the subagent's own for a subagent's), each plugin once.
  */
 export async function readAgentServers(
-  stigmer: Pick<Stigmer, "plugin">,
-  spec: Pick<AgentSpec, "mcpServers" | "env" | "plugins">,
+  stigmer: Pick<Stigmer, "plugin" | "agent">,
+  spec: Pick<AgentSpec, "mcpServers" | "env" | "plugins" | "subagents">,
   defaultOrg: string,
   options: ReadAgentServersOptions,
-): Promise<RunServersReading> {
-  const servers: ServerReading[] = agentServerReadings(spec);
+): Promise<RunReading> {
+  const subagents = await readSubagents(stigmer, spec, defaultOrg);
+  const servers: ServerReading[] = [
+    ...agentServerReadings(spec),
+    ...subagents.flatMap((subagent) => agentServerReadings(subagent.spec)),
+  ];
   const hooks: HookReading[] = [];
-  for (const listed of spec.plugins ?? []) {
-    const ref = { org: listed.org || defaultOrg, slug: listed.slug };
+  const refs: ResourceRef[] = (spec.plugins ?? []).map((listed) => ({ org: listed.org || defaultOrg, slug: listed.slug }));
+  const listedKeys = new Set(refs.map((ref) => `${ref.org}/${ref.slug}`));
+  for (const subagent of subagents) {
+    for (const listed of subagent.spec.plugins ?? []) {
+      const ref = { org: listed.org || subagent.org, slug: listed.slug };
+      const key = `${ref.org}/${ref.slug}`;
+      if (!named(listed) || listedKeys.has(key)) continue;
+      listedKeys.add(key);
+      refs.push(ref);
+    }
+  }
+  for (const ref of refs) {
     let plugin: Plugin;
     try {
       plugin = await stigmer.plugin.getByReference(ref);
@@ -192,14 +271,44 @@ export async function readAgentServers(
     servers.push(...read.servers);
     hooks.push(...read.hooks);
   }
-  return { servers, hooks };
+  const agents = [spec, ...subagents.map((subagent) => subagent.spec)].map((agent) => ({ env: agent.env ?? {} }));
+  return { servers, hooks, agents };
+}
+
+/** Whether a declaration asks the person for a value: a secret, or a setting with no value of its own. */
+function needsValue(declaration: EnvVarDeclaration): boolean {
+  return declaration.isSecret || (declaration.value ?? "") === "";
+}
+
+/**
+ * Of two declarations of one key, the one the composer asks with: one
+ * that needs a value over one that fills itself, then a required one
+ * over an optional one, then `seen`; secret when either is.
+ */
+export function strongerDeclaration(seen: EnvVarDeclaration, next: EnvVarDeclaration): EnvVarDeclaration {
+  let kept = seen;
+  if (needsValue(seen) !== needsValue(next)) {
+    kept = needsValue(next) ? next : seen;
+  } else if (seen.optional && !next.optional) {
+    kept = next;
+  }
+  const isSecret = seen.isSecret || next.isSecret;
+  if (kept.isSecret === isSecret) return kept;
+  return create(EnvVarDeclarationSchema, { isSecret, description: kept.description, optional: kept.optional });
+}
+
+/** Sets `name`'s declaration in `declarations`, merged with any already there. */
+function declareOnce(declarations: Record<string, EnvVarDeclaration>, name: string, declared: EnvVarDeclaration): void {
+  const seen = Object.hasOwn(declarations, name) ? declarations[name] : undefined;
+  const value = seen === undefined ? declared : strongerDeclaration(seen, declared);
+  // Defined, not assigned: a name read from a plugin or an agent may be `__proto__`.
+  Object.defineProperty(declarations, name, { value, enumerable: true, writable: true, configurable: true });
 }
 
 /**
  * Every name the run's servers and hooks read, with its declaration: its
  * home's, else a required secret. A name the runner always fills is none.
- * A name read twice is required when any reader requires it: a required
- * declaration replaces an optional one, and otherwise the first is kept.
+ * A name read twice takes {@link strongerDeclaration}'s answer.
  */
 export function declarationsOf(reading: RunServersReading): Record<string, EnvVarDeclaration> {
   const declarations: Record<string, EnvVarDeclaration> = {};
@@ -208,14 +317,30 @@ export function declarationsOf(reading: RunServersReading): Record<string, EnvVa
       if (RUNNER_FILLED_VARIABLES.has(name)) continue;
       const declared =
         (Object.hasOwn(env, name) ? env[name] : undefined) ?? create(EnvVarDeclarationSchema, { isSecret: true, optional: false });
-      const seen = Object.hasOwn(declarations, name) ? declarations[name] : undefined;
-      if (seen !== undefined && (declared.optional || !seen.optional)) continue;
-      // Defined, not assigned: a name read from a plugin may be `__proto__`.
-      Object.defineProperty(declarations, name, { value: declared, enumerable: true, writable: true, configurable: true });
+      declareOnce(declarations, name, declared);
     }
   };
   for (const server of reading.servers) declare(server.entry.env, server.env);
   for (const hook of reading.hooks) declare(hook.names, hook.env);
+  return declarations;
+}
+
+/**
+ * Every key the run asks for, with its declaration: the servers' and
+ * hooks' ({@link declarationsOf}), then each agent's own `env` (the
+ * agent's, then each subagent's) for a key no server or hook reads. An
+ * agent's declaration of a key a tool reads is the tool's, as the run
+ * counts it; several agents declaring one key take
+ * {@link strongerDeclaration}'s answer.
+ */
+export function runDeclarations(reading: RunReading): Record<string, EnvVarDeclaration> {
+  const declarations = declarationsOf(reading);
+  const toolKeys = new Set(Object.keys(declarations));
+  for (const agent of reading.agents) {
+    for (const [name, declared] of Object.entries(agent.env)) {
+      if (!toolKeys.has(name)) declareOnce(declarations, name, declared);
+    }
+  }
   return declarations;
 }
 

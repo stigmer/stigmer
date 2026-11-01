@@ -15,7 +15,7 @@ import { useMyVault } from "../vault/useMyVault.js";
 import { valuesOf } from "../vault/types.js";
 import { toolLoginKeyOf, vaultLoginServes } from "../vault/address.js";
 import { MY_VAULT_ONLY, conversationVaultsKey, type ConversationVaults } from "../vault/conversationVaults.js";
-import { declarationsOf, readAgentServers, serversOf, signInKeys, signInServers } from "./runServers.js";
+import { readAgentServers, runDeclarations, serversOf, signInKeys, signInServers, subagentOrgs } from "./runServers.js";
 import { useOrganizationId } from "./usePersonalKeys.js";
 import { diffEnv } from "../vault/diffEnv.js";
 import {
@@ -30,11 +30,11 @@ import {
 
 /** What the servers a run of the agent dials say about its readiness. */
 interface ServerReadings {
-  /** Every MCP server of the run: the agent's own, then its plugins'. */
+  /** Every MCP server of the run: the agent's own, then its subagents', then the plugins'. */
   readonly servers: McpServerEntry[];
   /** The plugins' servers that sign in and have no login where the run reads, one per address. */
   readonly pendingSignIns: PendingSignIn[];
-  /** The keys the servers and the plugins' hooks read, with their declarations. */
+  /** The keys the run asks for (`runDeclarations`): its tools', then its agents' own. */
   readonly declarations: Record<string, EnvVarDeclaration>;
   /**
    * The login key of every server that signs in, signed in or not: the
@@ -44,8 +44,10 @@ interface ServerReadings {
 }
 
 /**
- * Reads every server a run of the agent dials once (its own, then those
- * of the plugins it lists; `runServers.ts`), and judges the plugins'
+ * Reads every agent and server of a run of the agent once (the subagents
+ * it lists at their pinned versions; its own servers, then each
+ * subagent's, then those of the plugins any of them lists;
+ * `runServers.ts`), and judges the plugins'
  * servers that sign in: such a server is satisfied by a login at its
  * address in a vault the run reads ({@link vaultLoginServes}, the run's
  * own rule: a sign-in and a pasted login alike, whichever page saved it).
@@ -63,7 +65,7 @@ async function readServers(
 ): Promise<ServerReadings> {
   const reading = agent.spec
     ? await readAgentServers(stigmer, agent.spec, agent.metadata?.org ?? "", { plugins: "throw" })
-    : { servers: [], hooks: [] };
+    : { servers: [], hooks: [], agents: [] };
   const pendingSignIns = signInServers(reading)
     .filter(({ server }) => !readVaults.some((vault) => vaultLoginServes(vault.spec?.connections ?? {}, server)))
     .map(({ plugin, pluginName, server, address }) => ({
@@ -76,7 +78,7 @@ async function readServers(
   return {
     servers: serversOf(reading),
     pendingSignIns,
-    declarations: declarationsOf(reading),
+    declarations: runDeclarations(reading),
     signInVariables: signInKeys(reading),
   };
 }
@@ -108,8 +110,9 @@ function keysHeldBy(vaults: readonly Vault[], servers: readonly McpServerEntry[]
 }
 
 /**
- * The declarations the composer may ask the user to type: the agent's own
- * and those its servers and its plugins' hooks read.
+ * The declarations the composer may ask the user to type: the run's
+ * (`runDeclarations`: the keys its servers and hooks read, and its agents'
+ * own).
  *
  * The login key of a server that signs in is filled by a sign-in: a run
  * fills it from the login saved at the server's address, never from a
@@ -157,8 +160,12 @@ export interface UseAgentSetupReturn {
   /**
    * Evaluate whether an agent is ready to use or needs env var collection.
    *
-   * Fetches the full agent to read its `env` declarations and diffs them
-   * against the user's vaults and the session's variables.
+   * Fetches the full agent to read what a run of it asks for: its `env`
+   * declarations, its subagents' at the versions it pins, and the keys and
+   * sign-ins of every server and plugin they use. Diffs them against the
+   * user's vaults and the session's variables. A subagent that cannot be
+   * read is left out; an agent or subagent of another organization closes
+   * My vault to the whole run, as the server does.
    * Returns `"ready"` when the agent can be used immediately,
    * or `"needsEnvVars"` when the caller should present {@link AgentEnvForm}.
    * A resolution that a newer one (or {@link reset}) overtakes still returns
@@ -204,8 +211,9 @@ export interface UseAgentSetupReturn {
  * vault resolution, and secret delivery routing flow.
  *
  * When a user picks an agent in the {@link AgentPicker}, this hook
- * determines whether the agent requires credentials (via its
- * `env` declarations), checks what the user has already saved in their
+ * determines whether a run of the agent requires credentials (via the
+ * `env` declarations of the agent and of each subagent it lists, and the
+ * servers and plugins they use), checks what the user has already saved in their
  * vaults, and either reports the agent as ready or
  * identifies the missing variables so the caller can render
  * {@link AgentEnvForm}.
@@ -217,8 +225,8 @@ export interface UseAgentSetupReturn {
  * `idle → resolving → needsEnvVars → submitting → ready`.
  *
  * Composes {@link useMyVault} for My vault
- * operations and calls the Stigmer client directly for the agent and
- * the plugins it lists.
+ * operations and calls the Stigmer client directly for the agent, its
+ * subagents at the versions it pins, and the plugins they list.
  *
  * Pass `null` as `org` to disable all operations (stable no-op).
  *
@@ -318,9 +326,11 @@ export function useAgentSetup(
         // sign-ins fill leave the declarations here and are never typed.
         // The run reads exactly the vaults the conversation uses, read
         // once here for its logins and its secret names alike: My vault
-        // first when included, unless the agent is of another
-        // organization, whose runs never read it; then the listed vaults.
-        const foreign = (agent.metadata?.org ?? "") !== orgId;
+        // first when included, unless the agent or a subagent it lists is
+        // of another organization, whose runs never read it; then the
+        // listed vaults.
+        const agentOrg = agent.metadata?.org ?? "";
+        const foreign = agentOrg !== orgId || subagentOrgs(agent.spec, agentOrg).some((subagentOrg) => subagentOrg !== orgId);
         const readsMyVault = choice.includeMyVault && !foreign;
         const listed = await readableVaults(
           stigmer,
@@ -329,8 +339,8 @@ export function useAgentSetup(
         const mine = latestMyVaultRef.current.current;
         const readVaults = readsMyVault && mine !== null ? [mine, ...listed] : listed;
         const { servers, pendingSignIns, declarations, signInVariables } = await readServers(stigmer, agent, readVaults);
-        const declared = { ...declarations, ...(agent.spec?.env ?? {}) };
-        const envDeclarations = Object.keys(declared).length > 0 ? typedDeclarations(declared, signInVariables) : undefined;
+        const envDeclarations =
+          Object.keys(declarations).length > 0 ? typedDeclarations(declarations, signInVariables) : undefined;
         if (pendingSignIns.length > 0) {
           const existingKeys = keysHeldBy(readVaults, servers);
           const missingVariables = envDeclarations
@@ -354,8 +364,8 @@ export function useAgentSetup(
         }
 
         // No env declarations — agent is immediately ready (direct mode).
-        // Nor is anything asked of an agent of another organization: a run
-        // never reads My vault for it, so a key saved here would never
+        // Nor is anything asked of a run carrying another organization's
+        // agent: it never reads My vault, so a key saved here would never
         // reach it.
         if (!envDeclarations || Object.keys(envDeclarations).length === 0 || foreign) {
           const resolution: AgentResolution = { mode: "direct" };
