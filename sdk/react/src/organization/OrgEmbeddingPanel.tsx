@@ -229,7 +229,7 @@ function EmbeddingForm({
         {canEdit && serviceAccountsHref !== undefined && (
           <>
             {" "}
-            <a href={serviceAccountsHref} className="stg:text-primary stg:underline-offset-2 stg:hover:underline">
+            <a href={serviceAccountsHref} className="stg:text-primary stg:underline stg:underline-offset-2 stg:hover:text-primary-hover">
               Manage service accounts
             </a>
             .

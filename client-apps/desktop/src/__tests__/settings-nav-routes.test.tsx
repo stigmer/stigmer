@@ -47,9 +47,14 @@ const hrefs = [
   ...ORG_ADMIN_SETTINGS_NAV_ITEMS.map((item) => item.href),
 ];
 
+// The route tree is imported once, while the file is collected, after the
+// mocks above: its cold load (every lazy settings page's module graph) is
+// paid outside any case's time budget, which under coverage it overran on
+// whichever case came first (stigmer#2765).
+const { router } = await import("../routes");
+
 describe("settings nav routes", () => {
-  it.each(hrefs)("%s has a desktop route", async (href) => {
-    const { router } = await import("../routes");
+  it.each(hrefs)("%s has a desktop route", (href) => {
     const matches = matchRoutes(router.routes, href) ?? [];
     const leaf = matches.at(-1)?.route;
     expect(

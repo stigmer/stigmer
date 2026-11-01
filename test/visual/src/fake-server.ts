@@ -36,6 +36,31 @@ declare global {
   }
 }
 
+/** How the page counts a call: its start and its end. */
+interface CallCounter {
+  readonly begin: () => void;
+  readonly end: () => void;
+}
+
+/** The counter of the scene being drawn, set when its client is made. */
+let counter: CallCounter | undefined;
+
+/**
+ * `fetchImpl`, counted into `window.gallery` like the client's calls, for
+ * a component that reads over HTTP through a fetch its host passes (the
+ * marketplace's catalogue), so the page waits for those reads too.
+ */
+export function countedFetch(fetchImpl: typeof globalThis.fetch): typeof globalThis.fetch {
+  return async (input, init) => {
+    counter?.begin();
+    try {
+      return await fetchImpl(input, init);
+    } finally {
+      counter?.end();
+    }
+  };
+}
+
 /** A client that answers `routes` and the model registry, and counts its calls into `window.gallery`. */
 export function fakeStigmer(routes: Routes = () => {}): Stigmer {
   const state: GalleryState = { inFlight: 0, idle: false };
@@ -51,6 +76,7 @@ export function fakeStigmer(routes: Routes = () => {}): Stigmer {
     state.inFlight -= 1;
     if (state.inFlight === 0) quiet = setTimeout(() => (state.idle = state.inFlight === 0), QUIET_MS);
   };
+  counter = { begin, end };
   // A scene with no calls at all settles too.
   quiet = setTimeout(() => (state.idle = state.inFlight === 0), QUIET_MS);
 

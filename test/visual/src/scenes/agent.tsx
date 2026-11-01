@@ -1,0 +1,81 @@
+// The agent's page, framed as the console's Library frames a detail page
+// (a centred column), with the header acts the web console passes: Start
+// session first, then the menu's Copy, Edit YAML, Export and Delete.
+//
+// Two people look at it: the agent's owner, and a person who may only read
+// it. The server answers each one's self-checks (`can_edit`, `can_delete`,
+// `can_view_access`) by who they are; the page is drawn with the acts it
+// offers each.
+import { Code, ConnectError, type ConnectRouter } from "@connectrpc/connect";
+import { EnvironmentQueryController } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/query_pb";
+import { VaultQueryController } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/query_pb";
+import { PlatformQueryController } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
+import { AgentQueryController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/query_pb";
+import { GrantQueryController } from "@stigmer/apis/ai/stigmer/iam/grant/v1/query_pb";
+import { IdentityAccountQueryController } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/query_pb";
+import { OrganizationQueryController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/query_pb";
+import { AgentDetailView, type DetailAction } from "@stigmer/react-sdk";
+import { samples } from "@stigmer/react-sdk/test";
+import { ACCOUNT, LEDGER_AGENT, LEDGER_AGENT_VERSIONS, ORGANIZATION } from "../fixtures.ts";
+import type { Drawing } from "./drawing.ts";
+
+/** The sub-agent the ledger agent hands receipts to. */
+const RECEIPT_MATCHER = samples.agent({
+  id: "agt_00000000000000000000000043",
+  name: "Receipt matcher",
+  slug: "receipt-matcher",
+  org: ORGANIZATION.metadata?.id,
+  description: "Matches each card transaction to its receipt and flags the ones with none.",
+});
+
+/** Who is looking: the agent's owner, or a person the organization lets read it. */
+export type AgentViewer = "owner" | "reader";
+
+function inert(): void {}
+
+/** The acts the web console's agent page passes to the view, in its order. */
+const START_SESSION: DetailAction = { id: "start-session", label: "Start session", onAction: inert };
+const MENU: readonly DetailAction[] = [
+  { id: "copy-id", label: "Copy ID", group: "clipboard", onAction: inert },
+  { id: "copy-slug", label: "Copy slug", group: "clipboard", onAction: inert },
+  { id: "edit-yaml", label: "Edit YAML", group: "export", onAction: inert },
+  { id: "export-yaml", label: "Export YAML", group: "export", onAction: inert },
+  { id: "export-json", label: "Export JSON", group: "export", onAction: inert },
+  { id: "download-yaml", label: "Download YAML", group: "export", onAction: inert },
+  { id: "delete", label: "Delete", variant: "destructive", group: "danger", onAction: inert },
+];
+
+function agentRoutes(viewer: AgentViewer) {
+  return (router: ConnectRouter) => {
+    router.service(OrganizationQueryController, { listMine: () => samples.organizationList([ORGANIZATION]), get: () => ORGANIZATION });
+    router.service(IdentityAccountQueryController, { whoAmI: () => ACCOUNT });
+    router.service(GrantQueryController, { checkMyPermission: () => ({ isAuthorized: viewer === "owner" }) });
+    router.service(AgentQueryController, {
+      getByReference: (input) => (input.slug === RECEIPT_MATCHER.metadata?.slug ? RECEIPT_MATCHER : LEDGER_AGENT),
+      get: () => LEDGER_AGENT,
+      listVersions: () => LEDGER_AGENT_VERSIONS,
+    });
+    router.service(EnvironmentQueryController, { list: () => ({ entries: [] }) });
+    router.service(PlatformQueryController, { getServerInfo: () => ({}) });
+    router.service(VaultQueryController, {
+      getMine: () => {
+        throw new ConnectError("no My vault yet", Code.NotFound);
+      },
+    });
+  };
+}
+
+/** The ledger agent's page, as `viewer` sees it in the console. */
+export function agentProfileScene(viewer: AgentViewer): Drawing {
+  const org = ORGANIZATION.metadata?.slug ?? "";
+  const slug = LEDGER_AGENT.metadata?.slug ?? "";
+  return {
+    inOrganization: true,
+    routes: agentRoutes(viewer),
+    render: () => (
+      <div style={{ maxWidth: "56rem", margin: "0 auto", padding: "2rem 1.5rem" }}>
+        <AgentDetailView org={org} slug={slug} editable primaryAction={START_SESSION} actions={MENU} />
+      </div>
+    ),
+  };
+}

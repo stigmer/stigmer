@@ -5,7 +5,18 @@ import { PRESETS, THREAD_STATES, type Preset, type SceneId, type ThreadState } f
 import { inheritedOpenAiKey, NOTHING_CONNECTED, NOTHING_ON_THE_RUNNER, ownAnthropicKey } from "../fixtures.ts";
 import { fileReviewDockScene } from "./conversation.tsx";
 import { agentChatScene } from "./agent-chat.tsx";
-import { dashboardScene } from "./dashboard.tsx";
+import { agentProfileScene } from "./agent.tsx";
+import { dashboardPageScene, dashboardScene } from "./dashboard.tsx";
+import { marketplaceScene } from "./marketplace.tsx";
+import {
+  settingsApiKeysScene,
+  settingsBillingScene,
+  settingsMembersScene,
+  settingsModelCatalogScene,
+  settingsTeamsOssScene,
+  settingsUsageScene,
+  settingsVaultsScene,
+} from "./settings-pages.tsx";
 import type { Drawing } from "./drawing.ts";
 import {
   ANTHROPIC_ONLY,
@@ -45,6 +56,19 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "model-selector-open": modelSelectorScene,
   "model-selector-not-ready": modelSelectorNotReadyScene,
   "dashboard-kpis": dashboardScene,
+  "dashboard-busy": () => dashboardPageScene("busy"),
+  "dashboard-new-org": () => dashboardPageScene("new-org"),
+  "settings-members": settingsMembersScene,
+  "settings-api-keys": settingsApiKeysScene,
+  "settings-vaults": settingsVaultsScene,
+  "settings-billing": settingsBillingScene,
+  "settings-usage": settingsUsageScene,
+  "settings-teams-oss": settingsTeamsOssScene,
+  "settings-model-catalog": settingsModelCatalogScene,
+  "agent-profile-owner": () => agentProfileScene("owner"),
+  "agent-profile-viewer": () => agentProfileScene("reader"),
+  "marketplace-admin": () => marketplaceScene("admin"),
+  "marketplace-member": () => marketplaceScene("member"),
   "session-busy": () => sessionScene("busy", { inspector: true }),
   "session-approval": () => sessionScene("approval", { inspector: true }),
   "session-finished": () => sessionScene("finished", { inspector: true }),

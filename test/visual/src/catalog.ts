@@ -49,6 +49,13 @@ export type SceneId =
   | "model-selector-open"
   | "model-selector-not-ready"
   | "dashboard-kpis"
+  | "dashboard-busy"
+  | "dashboard-new-org"
+  | `settings-${SettingsSceneName}`
+  | "agent-profile-owner"
+  | "agent-profile-viewer"
+  | "marketplace-admin"
+  | "marketplace-member"
   | `session-${SessionSceneName}`
   | `story-${StorySceneName}`
   | "agent-chat-panel"
@@ -145,6 +152,24 @@ const STORY_SCENES = [
   },
 ] as const satisfies readonly { readonly id: `story-${string}`; readonly title: string; readonly widths: readonly WidthName[] }[];
 
+/**
+ * The settings pages, one per shape Settings has, each framed as the
+ * console's settings layout frames it: a collection with rows, a
+ * collection with none yet, a collection of cards, a plan, figures, what
+ * this edition does not offer, and an operator's console.
+ */
+export type SettingsSceneName = (typeof SETTINGS_SCENES)[number]["id"] extends `settings-${infer Name}` ? Name : never;
+
+const SETTINGS_SCENES = [
+  { id: "settings-members", title: "Settings, Members: the owner and the people the organization holds", widths: ["desktop", "narrow"] },
+  { id: "settings-api-keys", title: "Settings, API keys: Stigmer Cloud, before the first key", widths: ["desktop"] },
+  { id: "settings-vaults", title: "Settings, Vaults: the organization's vaults", widths: ["desktop"] },
+  { id: "settings-billing", title: "Settings, Billing: Stigmer Cloud's plan and payment", widths: ["desktop"] },
+  { id: "settings-usage", title: "Settings, Usage: the organization's figures", widths: ["desktop"] },
+  { id: "settings-teams-oss", title: "Settings, Teams: the open-source server, which serves none", widths: ["desktop"] },
+  { id: "settings-model-catalog", title: "Settings, Model catalogue: a platform operator's console", widths: ["desktop"] },
+] as const satisfies readonly { readonly id: `settings-${string}`; readonly title: string; readonly widths: readonly WidthName[] }[];
+
 /** The presets the `completed` thread is drawn in beyond the default look, which `thread-completed` is. */
 export const PRESETS = ["corporate", "startup", "friendly", "fintech", "monochrome"] as const satisfies readonly ThemePresetId[];
 
@@ -194,6 +219,13 @@ export const SCENES: readonly Scene[] = [
     opens: "Claude Sonnet 4.6",
   },
   { id: "dashboard-kpis", title: "Dashboard figures", widths: ["desktop"] },
+  { id: "dashboard-busy", title: "Dashboard: a busy week, with its failures", widths: ["desktop"] },
+  { id: "dashboard-new-org", title: "Dashboard: an organization that has run nothing yet", widths: ["desktop"] },
+  ...SETTINGS_SCENES,
+  { id: "agent-profile-owner", title: "Agent page: the ledger agent, as its owner sees it", widths: ["desktop", "narrow"] },
+  { id: "agent-profile-viewer", title: "Agent page: the ledger agent, as a person who may only read it sees it", widths: ["desktop"] },
+  { id: "marketplace-admin", title: "Marketplace: the official catalogue, for an admin", widths: ["desktop", "narrow"] },
+  { id: "marketplace-member", title: "Marketplace: the official catalogue, for a member", widths: ["desktop"] },
   ...SESSION_SCENES,
   ...STORY_SCENES,
   {
