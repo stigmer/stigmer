@@ -37,11 +37,13 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // The font variables go on <html>: the theme's font stacks
+  // (`--stgm-font-sans`, `--stgm-font-mono`) are declared on :root and resolve
+  // there, so a variable defined on <body> comes too late and every page falls
+  // back to the computer's own font (stigmer#1564).
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${fontVariables} antialiased`}
-      >
+    <html lang="en" className={fontVariables} suppressHydrationWarning>
+      <body className="antialiased">
         <Providers>
           <AppNavigationProvider>
             <SessionNavigationProvider>
