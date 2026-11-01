@@ -23,6 +23,8 @@ import { cn } from "@/lib/utils";
 import { Icon, type IconName } from "@/components/ui/icon";
 import { AGENT_GETS, type AgentGetId } from "@/lib/agent-gets";
 import { JOB, jobPathCss, type PartId } from "./job-path";
+import { Ring } from "./drawing/Drawing";
+import { LoopPause } from "./drawing/LoopPause";
 
 const JOB_PATH_CSS = jobPathCss();
 
@@ -40,16 +42,6 @@ function AgentGetTitle({ id, className }: { id: AgentGetId; className?: string }
     <span data-promise={id} className={cn(LABEL, className)}>
       {AGENT_GETS[id].title}
     </span>
-  );
-}
-
-/** A part's lit border, laid over its resting one. */
-function Ring({ part }: { part: PartId }) {
-  return (
-    <span
-      data-ring={part}
-      className="pointer-events-none absolute -inset-px rounded-[inherit] border border-foreground"
-    />
   );
 }
 
@@ -239,16 +231,7 @@ function JobPath({ className }: { className?: string }) {
         </div>
       </div>
       <figcaption className="sr-only">{CAPTION}</figcaption>
-      <button
-        type="button"
-        data-job-path-pause=""
-        aria-label="Pause animation"
-        aria-pressed={paused}
-        onClick={() => setPaused((was) => !was)}
-        className="absolute right-0 bottom-0 flex h-7 w-7 items-center justify-center rounded border border-border bg-background text-muted-foreground transition-colors hover:text-foreground"
-      >
-        <Icon name={paused ? "play" : "pause"} className="h-3.5 w-3.5" />
-      </button>
+      <LoopPause prefix="job-path" paused={paused} onToggle={() => setPaused((was) => !was)} />
     </figure>
   );
 }

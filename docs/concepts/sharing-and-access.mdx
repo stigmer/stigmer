@@ -17,6 +17,11 @@ On top of both sits the role each person holds in the Organization itself, which
 decides what they may do there at all: an Organization Viewer can be added to an
 Agent and still not start a conversation with it.
 
+Every edition checks access against the same authorization model, written for
+OpenFGA. Stigmer Cloud runs OpenFGA; the open source server evaluates the same
+model itself. A role therefore means the same thing on your laptop, on your own
+servers and on Stigmer Cloud.
+
 ## General access
 
 Agents, Skills, Plugins, Environments and shared vaults have a general access

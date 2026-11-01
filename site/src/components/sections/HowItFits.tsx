@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { SITE_CONFIG } from "@/lib/constants";
 import { Icon } from "@/components/ui/icon";
 import { FadeInUp, StaggerContainer, StaggerItem } from "@/components/ui/motion";
-import { WhereItSits } from "@/components/visuals/WhereItSits";
+import { JobThroughStigmer } from "@/components/visuals/JobThroughStigmer";
 
 export type HowItFitsProps = React.HTMLAttributes<HTMLElement>;
 
@@ -60,7 +60,7 @@ function HowItFits({ className, ...props }: HowItFitsProps) {
         </FadeInUp>
 
         <FadeInUp className="mb-16">
-          <WhereItSits />
+          <JobThroughStigmer />
         </FadeInUp>
 
         <StaggerContainer
