@@ -5,9 +5,11 @@
  * of its cases, at a picture the visual suite draws, or at a file or page.
  * This suite runs on every change (the root tests, in the workspace lane), so
  * a test renamed or a case reworded fails the pull request that did it, and
- * the failure names the proof to update. The five claims are also held to
- * their shape: one per title, each said as a question with what you would
- * build, what Stigmer gives, and at least one proof.
+ * the failure names the proof to update. A link to a heading of a docs page
+ * must name a heading the page has, by the id the docs give it, so a
+ * reworded heading fails too. The five claims are also held to their shape:
+ * one per title, each said as a question with what you would build, what
+ * Stigmer gives, and at least one proof.
  */
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
@@ -21,7 +23,9 @@ import {
   AGENT_GET_TITLES,
   ALSO_BUILT,
 } from "../agent-gets";
+import { SANDBOX_WAKE_METHOD_HREF } from "../measurements";
 import type { Proof, TestsProof } from "../proof";
+import { SANDBOX_PANEL_ORDER, SANDBOX_PANELS, SANDBOX_SCOPE } from "../sandbox";
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
 
@@ -33,6 +37,48 @@ function caseTitles(source: string): string[] {
   return [...source.matchAll(CASE_TITLE)].map((match) =>
     match[2]!.replace(/^(?:\[[^\]]*\]\s*)+/, "").replace(/\\(.)/g, "$1"),
   );
+}
+
+/**
+ * The id the docs give a heading: lower-case, its inline markup and
+ * punctuation dropped, each space a hyphen ("Sessions that sleep, with the
+ * `substrate` driver" is "sessions-that-sleep-with-the-substrate-driver").
+ */
+function headingId(heading: string): string {
+  return heading
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\- _]/gu, "")
+    .replace(/ /g, "-");
+}
+
+/** The ids of a markdown page's headings, those inside code fences left out, a repeat suffixed as the docs suffix it. */
+function headingIds(markdown: string): Set<string> {
+  const ids = new Set<string>();
+  let fenced = false;
+  for (const line of markdown.split("\n")) {
+    if (/^\s*(```|~~~)/.test(line)) fenced = !fenced;
+    const heading = fenced ? null : /^#{1,6}\s+(.+?)\s*#*\s*$/.exec(line);
+    if (heading === null) continue;
+    const id = headingId(heading[1]!);
+    let unique = id;
+    for (let n = 1; ids.has(unique); n += 1) unique = `${id}-${n}`;
+    ids.add(unique);
+  }
+  return ids;
+}
+
+/** What is wrong with a site link: no page serves it, or its anchor names no heading of a docs page. */
+function siteLinkProblems(label: string, href: string): string[] {
+  const page = sitePage(href);
+  if (page === null) return [`${label} "${href}": no page serves it`];
+  const anchor = /#(.+)$/.exec(href)?.[1];
+  if (anchor === undefined) return [];
+  if (!page.endsWith(".mdx"))
+    return [`${label} "${href}": only a docs page's headings can be checked`];
+  return headingIds(readFileSync(join(ROOT, page), "utf8")).has(anchor)
+    ? []
+    : [`${label} "${href}": ${page} has no heading "#${anchor}"`];
 }
 
 /** The file a site path is built from, or null when no page serves it. */
@@ -53,7 +99,7 @@ function sitePage(href: string): string | null {
 function problemsOf(proof: Proof): string[] {
   switch (proof.kind) {
     case "measurement":
-      return [];
+      return siteLinkProblems("measurement", SANDBOX_WAKE_METHOD_HREF);
     case "screen":
       return SHOWN.some((shown) => shown.name === proof.name)
         ? []
@@ -68,9 +114,7 @@ function problemsOf(proof: Proof): string[] {
     }
     case "source": {
       if (proof.href.startsWith("/"))
-        return sitePage(proof.href) === null
-          ? [`source "${proof.href}": no page serves it`]
-          : [];
+        return siteLinkProblems("source", proof.href);
       return existsSync(join(ROOT, proof.href))
         ? []
         : [`source "${proof.href}": no such file`];
@@ -88,6 +132,8 @@ function quoting(proof: Proof | undefined): TestsProof {
 const EVERY_PROOF: readonly Proof[] = [
   ...AGENT_GET_ORDER.flatMap((id) => AGENT_GET_CLAIMS[id].proofs),
   ...ALSO_BUILT.flatMap((also) => also.proofs),
+  ...SANDBOX_PANEL_ORDER.flatMap((id) => SANDBOX_PANELS[id].proofs),
+  SANDBOX_SCOPE.link,
 ];
 
 test("every proof the site shows names a test, a picture, a file or a page that exists", () => {
@@ -125,6 +171,51 @@ test("the proof check names a missing test file, a reworded case, a missing pict
   assert.deepEqual(
     problemsOf({ kind: "source", label: "x", href: "NO-SUCH-FILE" }),
     [`source "NO-SUCH-FILE": no such file`],
+  );
+});
+
+test("the proof check names a heading a docs page does not have", () => {
+  assert.deepEqual(
+    problemsOf({
+      kind: "source",
+      label: "x",
+      href: "/docs/concepts/billing#agent-minutes",
+    }),
+    [
+      `source "/docs/concepts/billing#agent-minutes": docs/concepts/billing.mdx has no heading "#agent-minutes"`,
+    ],
+  );
+  assert.deepEqual(
+    problemsOf({
+      kind: "source",
+      label: "x",
+      href: "/docs/concepts/billing#agent-hours",
+    }),
+    [],
+  );
+});
+
+test("a heading's id drops its markup and punctuation, skips code fences, and suffixes a repeat", () => {
+  assert.deepEqual(
+    [
+      ...headingIds(
+        [
+          "### Sessions that sleep, with the `substrate` driver",
+          "## What's next",
+          "```dockerfile",
+          "# check=skip=InvalidDefaultArgInFrom",
+          "```",
+          "## [Agent hours](/docs/x)",
+          "## What's next",
+        ].join("\n"),
+      ),
+    ],
+    [
+      "sessions-that-sleep-with-the-substrate-driver",
+      "whats-next",
+      "agent-hours",
+      "whats-next-1",
+    ],
   );
 });
 

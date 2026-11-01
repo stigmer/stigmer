@@ -7,8 +7,9 @@
  * number of wakes and each printed figure in formatSeconds's form. The
  * figures themselves are held to what a measurement can produce: enough
  * wakes, ordered percentiles, and the sandbox's resume inside the wait it is
- * part of. No site source may write a wake time of its own: one that does
- * names its file here, and the fix is to read SANDBOX_WAKE.
+ * part of. No site source, and no brand file whose words the site renders,
+ * may write a wake time of its own: one that does names its file here, and
+ * the fix is to read SANDBOX_WAKE.
  */
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
@@ -116,9 +117,12 @@ test("the wake-time finder catches a hand-written figure and leaves a setting in
   assert.equal(wakeTimes("The film runs 30 s. Agents sleep when idle.").length, 0);
 });
 
+/** The brand files whose words the site renders as its own text. */
+const RENDERED_BRAND = ["brand/agent-gets.ts", "brand/sandbox.ts"];
+
 test("no site source writes a wake time of its own", () => {
   const copies: string[] = [];
-  for (const path of textSources("site/src")) {
+  for (const path of [...textSources("site/src"), ...RENDERED_BRAND]) {
     for (const context of wakeTimes(read(path))) copies.push(`${path}: "${context}"`);
   }
   assert.deepEqual(copies, [], "read SANDBOX_WAKE from brand/measurements.ts instead");

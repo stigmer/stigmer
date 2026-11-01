@@ -84,7 +84,18 @@ the hero's picture reads the titles through `site/src/lib/agent-gets.ts`, and
 the job film in `marketing/` reads the titles here. A proof (`proof.ts`) is a
 measured figure, a picture the visual suite draws, a public test quoted in its
 own words, or a file or page; `__tests__/proofs.test.ts` fails, naming the
-proof, when the test, the case, the picture or the page it names is gone.
+proof, when the test, the case, the picture or the page it names is gone, or
+when a link names a heading its docs page no longer has.
+
+`sandbox.ts` holds the homepage's section on the sandbox: its heading, the line
+saying where it holds, and its three questions (what's on it, what it can
+reach, what happens when nobody's using it), each answered with its sentences
+and proofs. It shows the worked Environment file of
+`docs/concepts/environments.mdx` as the real thing: `__tests__/sandbox.test.ts`
+fails while the file here and that page's first YAML block differ, and
+`make check-docs-yaml` holds the page's block to the API. It prints no wake
+time; the sleep panel links to the hard parts' sandbox row, which reads
+`measurements.ts`.
 
 `job-story.ts` holds the job those pictures tell: a customer's names for it
 (Northwind Books, `ledger.csv`, `variance-report.md`), its steps, the parts of

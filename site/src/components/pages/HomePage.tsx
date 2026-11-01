@@ -6,6 +6,7 @@ import { SkipLink } from "@/components/ui/skip-link";
 import { Hero } from "@/components/sections/Hero";
 import { HardParts } from "@/components/sections/HardParts";
 import { AlsoBuilt } from "@/components/sections/AlsoBuilt";
+import { Sandbox } from "@/components/sections/Sandbox";
 import { HowItFits } from "@/components/sections/HowItFits";
 import { OpenSource } from "@/components/sections/OpenSource";
 import { FinalCTA } from "@/components/sections/FinalCTA";
@@ -25,6 +26,7 @@ function HomePage({ className, ...props }: HomePageProps) {
         <Hero />
         <HardParts />
         <AlsoBuilt />
+        <Sandbox />
         <HowItFits />
         <OpenSource />
         <FinalCTA />
