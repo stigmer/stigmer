@@ -1,12 +1,15 @@
-import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { AXE_TAGS, describeViolations, judgeAxe } from "@stigmer/test-support/axe-policy";
+import { test, expect } from "../../fixtures";
+import { createTestAgent } from "../../fixtures/seed-helpers";
 
 /**
  * Accessibility tests.
  *
- * Runs axe-core WCAG 2.0 AA audits on key pages and verifies keyboard
- * navigation on critical interactive surfaces.
+ * Runs axe-core WCAG 2.0 AA audits on key pages (the launcher, the
+ * dashboard, the Library, an agent's page, the marketplace, and every
+ * settings page the open-source owner's settings navigation links) and
+ * verifies keyboard navigation on critical interactive surfaces.
  *
  * The policy is test/support's `axe-policy`, the one the kit's gallery
  * (test/visual) audits with: critical and serious violations fail, contrast
@@ -17,9 +20,14 @@ import { AXE_TAGS, describeViolations, judgeAxe } from "@stigmer/test-support/ax
  */
 
 async function runAxeAudit(page: import("@playwright/test").Page) {
+  expect(await axeFailures(page), "axe violations").toBe("");
+}
+
+/** The page's critical and serious violations, described; empty when it passes. */
+async function axeFailures(page: import("@playwright/test").Page): Promise<string> {
   const results = await new AxeBuilder({ page }).withTags([...AXE_TAGS]).analyze();
   const { failing } = judgeAxe(results.violations);
-  expect(failing, `axe violations:\n${describeViolations(failing)}`).toHaveLength(0);
+  return failing.length === 0 ? "" : describeViolations(failing);
 }
 
 test.describe("Accessibility audits", () => {
@@ -59,6 +67,53 @@ test.describe("Accessibility audits", () => {
     });
 
     await runAxeAudit(page);
+  });
+
+  test("an agent's page passes axe-core audit", async ({ page, stigmerClient }) => {
+    const agent = await createTestAgent(stigmerClient);
+    try {
+      await page.goto(`/library/agents/${agent.org}/${agent.slug}`);
+      await expect(page.getByRole("button", { name: "Start session" })).toBeVisible({ timeout: 15_000 });
+      await page.waitForLoadState("networkidle");
+
+      await runAxeAudit(page);
+    } finally {
+      await agent.cleanup();
+    }
+  });
+
+  test("marketplace passes axe-core audit", async ({ page }) => {
+    await page.goto("/marketplace");
+
+    await expect(page.getByLabel("Search plugins")).toBeVisible({ timeout: 15_000 });
+    await page.waitForLoadState("networkidle");
+
+    await runAxeAudit(page);
+  });
+
+  // The pages are the ones the settings navigation links for this person on
+  // this edition, read from the navigation itself, so a page added to it is
+  // audited without anyone listing it here. Every page is audited before the
+  // case judges, so one page's violations never hide another's.
+  test("every settings page the navigation links passes axe-core audit", async ({ page }) => {
+    await page.goto("/settings");
+    const nav = page.getByLabel("Management navigation");
+    await expect(nav).toBeVisible({ timeout: 15_000 });
+    const hrefs = await nav
+      .getByRole("link")
+      .evaluateAll((links) => [...new Set(links.map((link) => link.getAttribute("href") ?? ""))]);
+    const settingsPages = hrefs.filter((href) => href.startsWith("/settings/"));
+    expect(settingsPages.length, "the settings navigation links no settings page").toBeGreaterThan(0);
+
+    const failures: string[] = [];
+    for (const href of settingsPages) {
+      await page.goto(href);
+      await expect(page.getByRole("region").first(), `${href} shows no section`).toBeVisible({ timeout: 15_000 });
+      await page.waitForLoadState("networkidle");
+      const report = await axeFailures(page);
+      if (report !== "") failures.push(`${href}\n${report}`);
+    }
+    expect(failures, `settings pages with violations:\n${failures.join("\n\n")}`).toEqual([]);
   });
 });
 
