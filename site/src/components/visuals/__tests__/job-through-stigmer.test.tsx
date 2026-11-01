@@ -3,9 +3,9 @@
  * opened up: its words, its figure, its maps, lines and frame, its loop, and
  * the list under it.
  *
- * Each word the picture uses is held to a file that spells it: the docs page
- * it comes from, or, for a technology named in a box, the server source that
- * proves it holds in every edition. The maps, lines and frame are held to the
+ * Each word the picture uses is held to the docs page that spells it, the
+ * technologies named in its boxes included, so the site never names
+ * something the docs do not. The maps, lines and frame are held to the
  * rules every drawn picture keeps (`@/__test-utils__/drawing-checks`), and
  * the loop to the rules every looping picture keeps
  * (`@/__test-utils__/loop-checks`). The list's links are titles the homepage
@@ -61,24 +61,23 @@ import {
 
 afterEach(cleanup);
 
-const REPO = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../..");
+const DOCS = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../../docs");
 
-/** Each word the picture draws, and the file that spells it. */
+/** Each word the picture draws, and the docs page that spells it. */
 const SPELLED_IN: [string, string][] = [
-  ["your app", "docs/concepts/what-is-stigmer.mdx"],
-  ["your backend", "docs/getting-started/embed-agent.mdx"],
-  ["your database", "docs/concepts/what-is-stigmer.mdx"],
-  ["your model provider", "docs/concepts/what-is-stigmer.mdx"],
-  [CHAT, "docs/getting-started/embed-agent.mdx"],
-  ["access", "docs/concepts/sharing-and-access.mdx"],
-  ["sandbox", "docs/concepts/environments.mdx"],
-  ["conversation", "docs/vocabulary.md"],
-  ["job", "docs/vocabulary.md"],
-  ["gRPC", "backend/services/stigmer-server/src/transport/demux.ts"],
-  ["Connect", "backend/services/stigmer-server/src/transport/demux.ts"],
-  ["REST", "backend/services/stigmer-server/src/transport/demux.ts"],
-  ["OpenFGA", "backend/services/stigmer-server/src/authorization/README.md"],
-  ["Temporal", "docs/concepts/runners.mdx"],
+  ["your app", "concepts/what-is-stigmer.mdx"],
+  ["your backend", "getting-started/embed-agent.mdx"],
+  ["your database", "concepts/what-is-stigmer.mdx"],
+  ["your model provider", "concepts/what-is-stigmer.mdx"],
+  [CHAT, "getting-started/embed-agent.mdx"],
+  ["access", "concepts/sharing-and-access.mdx"],
+  ["sandbox", "concepts/environments.mdx"],
+  ["conversation", "vocabulary.md"],
+  ["job", "vocabulary.md"],
+  ["gRPC", "sdk/overview.mdx"],
+  ["Connect", "sdk/overview.mdx"],
+  ["OpenFGA", "concepts/sharing-and-access.mdx"],
+  ["Temporal", "concepts/runners.mdx"],
 ];
 
 /** Each line: the box it leaves, the boxes it points at, and its pieces, in each layout. */
@@ -123,11 +122,11 @@ describe("JobThroughStigmer", () => {
     for (const word of [JOB.customer, JOB.ledger, JOB.report]) expect(picture.textContent, word).toContain(word);
   });
 
-  it("spells each word as the file that proves it does", () => {
+  it("spells each word as the docs do", () => {
     const drawn = `${drawing().textContent} ${CAPTION}`.toLowerCase();
     for (const [word, file] of SPELLED_IN) {
       expect(drawn, `the picture says ${word}`).toContain(word.toLowerCase());
-      expect(readFileSync(resolve(REPO, file), "utf8").toLowerCase(), `${file} spells ${word}`).toContain(word.toLowerCase());
+      expect(readFileSync(resolve(DOCS, file), "utf8").toLowerCase(), `docs/${file} spells ${word}`).toContain(word.toLowerCase());
     }
   });
 

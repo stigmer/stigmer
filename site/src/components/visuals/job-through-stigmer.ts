@@ -12,11 +12,13 @@
  * straight from your app to Stigmer, as the embedded chat talks: docs/
  * getting-started/embed-agent.mdx), and the report comes back.
  *
- * Each technology named is true in every edition: one port serves native
- * gRPC, gRPC-Web, Connect and the REST lanes (backend/services/stigmer-server/
- * src/transport/demux.ts); authorization is one OpenFGA model in every
- * edition (backend/services/stigmer-server/src/authorization/README.md); and
- * a job runs on Temporal, which `stigmer up` starts too (docs/concepts/
+ * Each technology named is true in every edition, and the docs say so: the
+ * API a backend calls speaks gRPC (gRPC-Web from a browser) and Connect on
+ * one port (backend/services/stigmer-server/src/transport/server.ts; its
+ * plain-HTTP lanes are side doors, never the API, so the box does not say
+ * REST); access is checked against one OpenFGA model in every edition
+ * (backend/services/stigmer-server/src/authorization/README.md); and a job
+ * runs on Temporal, which `stigmer up` starts too (docs/concepts/
  * runners.mdx). The model call leaves from the sandbox, where the runner
  * works; on Stigmer Cloud it passes Stigmer's model proxy, which adds the
  * key, and elsewhere the runner holds it, so the picture says only "on your
@@ -43,7 +45,7 @@ export const PLACES = {
   app: { name: "Your app", detail: `${JOB.customer}, a customer` },
   backend: { name: "Your backend", detail: `sends ${JOB.ledger}` },
   database: { name: "Your database", detail: null },
-  api: { name: "API", detail: "gRPC · Connect · REST" },
+  api: { name: "API", detail: "gRPC · Connect" },
   access: { name: "Access", detail: "OpenFGA" },
   job: { name: "The job", detail: "Temporal · survives restarts" },
   sandbox: { name: "This conversation's sandbox", detail: "Northwind's own computer" },
