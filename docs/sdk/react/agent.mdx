@@ -198,8 +198,9 @@ Layer 2 behavior hook that encapsulates the agent selection,
 vault resolution, and secret delivery routing flow.
 
 When a user picks an agent in the [`AgentPicker`](#agentpicker), this hook
-determines whether the agent requires credentials (via its
-`env` declarations), checks what the user has already saved in their
+determines whether a run of the agent requires credentials (via the
+`env` declarations of the agent and of each subagent it lists, and the
+servers and plugins they use), checks what the user has already saved in their
 vaults, and either reports the agent as ready or
 identifies the missing variables so the caller can render
 [`AgentEnvForm`](#agentenvform).
@@ -211,8 +212,8 @@ State is managed by a `useReducer` state machine with five phases:
 `idle → resolving → needsEnvVars → submitting → ready`.
 
 Composes [`useMyVault`](/docs/sdk/react/vault#usemyvault) for My vault
-operations and calls the Stigmer client directly for the agent and
-the plugins it lists.
+operations and calls the Stigmer client directly for the agent, its
+subagents at the versions it pins, and the plugins they list.
 
 Pass `null` as `org` to disable all operations (stable no-op).
 
@@ -236,7 +237,7 @@ function useAgentSetup(org: string | null, poolKeys?: Set<string>, conversationV
   type={{
     clearError: { type: "() => void", description: "Clear the error without changing the current phase." },
     reset: { type: "() => void", description: "Reset to `idle` state, clearing all phase data and errors." },
-    resolveAgent: { type: "(ref: ResourceRef) => Promise<AgentSetupResult>", description: "Evaluate whether an agent is ready to use or needs env var collection.  Fetches the full agent to read its `env` declarations and diffs them against the user's vaults and the session's variables. Returns `\"ready\"` when the agent can be used immediately, or `\"needsEnvVars\"` when the caller should present AgentEnvForm. A resolution that a newer one (or reset) overtakes still returns its answer, but leaves `state` to the newer one." },
+    resolveAgent: { type: "(ref: ResourceRef) => Promise<AgentSetupResult>", description: "Evaluate whether an agent is ready to use or needs env var collection.  Fetches the full agent to read what a run of it asks for: its `env` declarations, its subagents' at the versions it pins, and the keys and sign-ins of every server and plugin they use. Diffs them against the user's vaults and the session's variables. A subagent that cannot be read is left out; an agent or subagent of another organization closes My vault to the whole run, as the server does. Returns `\"ready\"` when the agent can be used immediately, or `\"needsEnvVars\"` when the caller should present AgentEnvForm. A resolution that a newer one (or reset) overtakes still returns its answer, but leaves `state` to the newer one." },
     signInCompleted: { type: "(address: string) => Promise<void>", description: "Record that one of the pending sign-ins completed (the row's own sign-in landed), by the address it saved its login at. When it was the last one, the agent is resolved again through resolveAgent, which now finds the login and lands in `ready` or in `needsEnvVars` for its variables alone.  Must only be called when `state.status === \"needsEnvVars\"`." },
     state: { type: "AgentSetupState", description: "Current state of the agent setup flow.  A discriminated union on `status`: - `\"idle\"` — no agent selected - `\"resolving\"` — evaluating an agent's requirements - `\"needsEnvVars\"` — waiting for user to provide missing variables - `\"submitting\"` — saving in My vault - `\"ready\"` — agent resolved, `resolution` describes how to proceed  `error` is available on all variants (orthogonal to phase).", typeDescriptionLink: "#agentsetupstate" },
     submitEnvVars: { type: "(values: Record<string, EnvVarInput>) => Promise<AgentSetupResult>", description: "Complete the env var collection flow for the pending agent: the values are saved in My vault, the one place a value the person types goes, and the agent is resolved again over the conversation's vault choice, counting what the save wrote. A conversation that includes My vault resolves `ready` (`{ mode: \"saved\" }`); one that leaves it out stays in `needsEnvVars` until it includes My vault, which the composer does for the person who may change the conversation's vaults.  Must only be called when `state.status === \"needsEnvVars\"`." },

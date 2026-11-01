@@ -1,9 +1,10 @@
 /**
  * The keys a run reads from the person's My vault, as the server fills
- * them: the agent's own keys, the keys its own MCP servers read, and the
- * keys its plugins' servers and hooks read, minus the login key of every
- * server that signs in (a sign-in fills it) and every key the runner fills
- * itself, and none for an agent of another organization. Not ready while
+ * them: the agent's own keys, its subagents' at their pins, the keys their
+ * own MCP servers read, and the keys their plugins' servers and hooks
+ * read, minus the login key of every server that signs in (a sign-in
+ * fills it) and every key the runner fills itself, and none for a run
+ * carrying an agent or subagent of another organization. Not ready while
  * the plugins load; a plugin that cannot be read leaves the other keys
  * named. Without an organization list, an organization reference is taken
  * as the id it names; with one, a reference to the organization the person
@@ -16,6 +17,7 @@ import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import { AgentVersionEntrySchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/version_pb";
 import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
 import type { Stigmer } from "@stigmer/client";
 import { StigmerContext } from "@stigmer/react-core";
@@ -25,8 +27,8 @@ import { useOrganizationId, usePersonalKeys } from "../usePersonalKeys";
 
 const ORG = "org_acme";
 
-function wrapperFor(getPlugin: ReturnType<typeof vi.fn>) {
-  const client = { plugin: { getByReference: getPlugin } } as unknown as Stigmer;
+function wrapperFor(getPlugin: ReturnType<typeof vi.fn>, getVersion: ReturnType<typeof vi.fn> = vi.fn()) {
+  const client = { plugin: { getByReference: getPlugin }, agent: { getVersion } } as unknown as Stigmer;
   return function Wrapper({ children }: { children: ReactNode }) {
     return (
       <FetchCacheContext.Provider value={null}>
@@ -122,6 +124,36 @@ describe("usePersonalKeys", () => {
     });
     expect(result.current).toEqual({ keys: [], isReady: true });
     expect(getPlugin).not.toHaveBeenCalled();
+  });
+
+  it("names the keys a subagent declares, read at the agent's pin", async () => {
+    const pin = "c".repeat(64);
+    const agent = create(AgentSchema, {
+      metadata: { id: "agt_1", org: ORG, slug: "release-captain" },
+      spec: { env: { GITHUB_TOKEN: {} }, subagents: [{ org: ORG, id: "agt_triager", version: pin }] },
+    });
+    const getVersion = vi.fn().mockResolvedValue(
+      create(AgentVersionEntrySchema, { versionHash: pin, specSnapshot: { env: { JIRA_TOKEN: { isSecret: true } } } }),
+    );
+    const { result } = renderHook(() => usePersonalKeys(agent, agent.spec, ORG), {
+      wrapper: wrapperFor(vi.fn(), getVersion),
+    });
+    await waitFor(() => expect(result.current.isReady).toBe(true));
+    expect(result.current.keys).toEqual(["GITHUB_TOKEN", "JIRA_TOKEN"]);
+    expect(getVersion).toHaveBeenCalledWith({ agentId: "agt_triager", versionHash: pin });
+  });
+
+  it("is ready with no keys, reading nothing, for a run carrying another organization's subagent", () => {
+    const agent = create(AgentSchema, {
+      metadata: { id: "agt_1", org: ORG, slug: "release-captain" },
+      spec: { env: { GITHUB_TOKEN: {} }, subagents: [{ org: "org_globex", id: "agt_partner", version: "c".repeat(64) }] },
+    });
+    const getVersion = vi.fn();
+    const { result } = renderHook(() => usePersonalKeys(agent, agent.spec, ORG), {
+      wrapper: wrapperFor(vi.fn(), getVersion),
+    });
+    expect(result.current).toEqual({ keys: [], isReady: true });
+    expect(getVersion).not.toHaveBeenCalled();
   });
 
   it("takes an organization reference as the id it names when no organization list is mounted", () => {
