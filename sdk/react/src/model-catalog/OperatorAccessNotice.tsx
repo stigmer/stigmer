@@ -1,31 +1,14 @@
-"use client";
+// What the model catalog console says to anyone who reaches it without the
+// platform operator's permission (`can_manage_model_pricing` on
+// `platform:stigmer`). The server's authorization is the real gate; these
+// words are its designed face, drawn by the settings frame's `denied`
+// state instead of a raw RPC error.
 
-import { cn } from "@stigmer/design-tokens";
+import type { SettingsPageDenial } from "../settings/SettingsPage.js";
 
-/**
- * The access-denied state for the model catalog console. Server-side
- * authorization (`can_manage_model_pricing` on `platform:stigmer`) is
- * the real gate — this is the honest, designed face of that denial for
- * anyone who navigates to an operator route without the permission,
- * instead of a raw RPC error string.
- */
-export function OperatorAccessNotice({ className }: { readonly className?: string }) {
-  return (
-    <div
-      className={cn(
-        "stg:rounded-lg stg:border stg:border-border stg:bg-card stg:px-4 stg:py-6 stg:text-center",
-        className,
-      )}
-      role="status"
-    >
-      <p className="stg:text-xs stg:font-semibold stg:text-foreground">
-        Platform operator access required
-      </p>
-      <p className="stg:mx-auto stg:mt-1 stg:max-w-md stg:text-xs stg:text-muted-foreground">
-        The model catalog is a Stigmer-internal surface. It needs the
-        platform operator role — organization roles do not grant it. If you
-        believe you should have access, contact a platform operator.
-      </p>
-    </div>
-  );
-}
+/** What the model catalog console says to a person who is not a platform operator. */
+export const MODEL_CATALOG_DENIAL: SettingsPageDenial = {
+  title: "Platform operator access required",
+  description:
+    "The model catalog is a Stigmer-internal surface. It needs the platform operator role — organization roles do not grant it. If you believe you should have access, contact a platform operator.",
+};

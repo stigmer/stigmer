@@ -27,12 +27,12 @@ const SETTINGS_SECTIONS: readonly {
 }[] = [
   {
     path: "/settings/api-keys",
-    headingText: "API Keys",
-    oss: { works: { role: "button", name: "+ New API key" } },
+    headingText: "API keys",
+    oss: { works: { role: "button", name: "New API key" } },
   },
   {
     path: "/settings/vaults",
-    headingText: "My vault",
+    headingText: "Vaults",
   },
   {
     path: "/settings/members",
@@ -42,39 +42,39 @@ const SETTINGS_SECTIONS: readonly {
   {
     path: "/settings/teams",
     headingText: "Teams",
-    oss: { notice: "Teams are available in Stigmer Enterprise and Cloud." },
+    oss: { notice: "Teams come with Stigmer Enterprise and Cloud." },
   },
   {
     path: "/settings/access-history",
     headingText: "Access history",
-    oss: { notice: "The access history is kept by Stigmer Enterprise and Cloud." },
+    oss: { notice: "The access history comes with Stigmer Enterprise and Cloud." },
   },
   {
     path: "/settings/invitations",
     headingText: "Invitations",
-    oss: { notice: "Invitations are not available in local mode." },
+    oss: { notice: "Invitations come with Stigmer Enterprise and Cloud." },
   },
   {
     path: "/settings/federation-issuers",
-    headingText: "Federation Issuers",
-    oss: { notice: "Federation issuers are not available in local mode." },
+    headingText: "Federation issuers",
+    oss: { notice: "Federation issuers come with Stigmer Enterprise and Cloud." },
   },
   {
     path: "/settings/oauth-apps",
-    headingText: "OAuth Apps",
-    oss: { works: { role: "button", name: "+ New OAuth app" } },
+    headingText: "OAuth apps",
+    oss: { works: { role: "button", name: "New OAuth app" } },
   },
   {
     path: "/settings/org-profile",
-    headingText: "Organization Profile",
+    headingText: "Organization profile",
   },
   {
     path: "/settings/org-preferences",
-    headingText: "Organization Preferences",
+    headingText: "Organization preferences",
   },
   {
     path: "/settings/account-preferences",
-    headingText: "Account Preferences",
+    headingText: "Account preferences",
     oss: { works: { role: "textbox", name: "Standing context" } },
   },
   {
@@ -84,7 +84,7 @@ const SETTINGS_SECTIONS: readonly {
   {
     path: "/settings/billing",
     headingText: "Billing",
-    oss: { notice: "Plans and invoices are available on Stigmer Cloud." },
+    oss: { notice: "Plans and invoices come with Stigmer Cloud." },
   },
   {
     path: "/settings/usage",
@@ -93,11 +93,12 @@ const SETTINGS_SECTIONS: readonly {
 ];
 
 test.describe("Settings index", () => {
-  test("renders sr-only heading and all group sections", async ({ page }) => {
+  test("renders sr-only heading, the overview's heading and all group sections", async ({ page }) => {
     await page.goto("/settings");
 
     const heading = page.locator("h1");
     await expect(heading).toHaveText("Settings", { timeout: 15_000 });
+    await expect(page.getByRole("heading", { level: 2, name: "Settings" })).toBeVisible();
 
     await expect(
       page.getByRole("heading", { name: "Organization" }),
@@ -149,22 +150,22 @@ test.describe("Settings sections", () => {
       // The region only has this accessible name if the heading↔section
       // aria-labelledby association is intact — the same wiring the old
       // literal-id selectors asserted, now checked through semantics.
-      const region = page.getByRole("region", { name: section.headingText });
+      const region = page.getByRole("region", { name: section.headingText, exact: true });
       await expect(region).toBeVisible({ timeout: 15_000 });
       await expect(
-        region.getByRole("heading", { name: section.headingText }),
+        region.getByRole("heading", { name: section.headingText, exact: true }),
       ).toBeVisible();
 
       await expect(page.getByText("Something went wrong")).toHaveCount(0);
     });
   }
 
-  test("Organization Preferences carries the memory consent toggle", async ({
+  test("Organization preferences carries the memory consent toggle", async ({
     page,
   }) => {
     await page.goto("/settings/org-preferences");
 
-    const region = page.getByRole("region", { name: "Organization Preferences" });
+    const region = page.getByRole("region", { name: "Organization preferences" });
     await expect(region).toBeVisible({ timeout: 15_000 });
 
     // The org half of the double opt-in (oss#293). In OSS
@@ -181,12 +182,12 @@ test.describe("Settings sections", () => {
     await expect(memorySwitch).toHaveAccessibleDescription(/this switch alone decides memory/);
   });
 
-  test("Account Preferences says memory follows the organization and offers no switch of its own", async ({
+  test("Account preferences says memory follows the organization and offers no switch of its own", async ({
     page,
   }) => {
     await page.goto("/settings/account-preferences");
 
-    const region = page.getByRole("region", { name: "Account Preferences" });
+    const region = page.getByRole("region", { name: "Account preferences" });
     await expect(region).toBeVisible({ timeout: 15_000 });
 
     // A laptop server has one person, so the account's memory switch would
@@ -204,13 +205,15 @@ test.describe("Settings sections", () => {
     test(`${section.headingText} shows its open-source posture`, async ({ page }) => {
       await page.goto(section.path);
 
-      const region = page.getByRole("region", { name: section.headingText });
+      const region = page.getByRole("region", { name: section.headingText, exact: true });
       await expect(region).toBeVisible({ timeout: 15_000 });
 
       if ("notice" in posture) {
         await expect(region.getByRole("status")).toContainText(posture.notice);
       } else {
-        await expect(region.getByRole("status")).toHaveCount(0);
+        // No edition notice. A status is not the test: an empty list's
+        // "nothing here yet" is a status too, and a page that works shows it.
+        await expect(region.getByText(/with Stigmer (Enterprise|Cloud)/)).toHaveCount(0);
         await expect(
           region.getByRole(posture.works.role, { name: posture.works.name }),
         ).toBeVisible();

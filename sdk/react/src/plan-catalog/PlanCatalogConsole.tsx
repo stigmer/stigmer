@@ -1,6 +1,11 @@
 "use client";
 
-import { useState } from "react";
+// The platform operator's plan catalogue, inside the shared settings frame:
+// every plan with its terms, retiring one, and creating one. The frame says
+// when this edition sells no plans and when the person is not a platform
+// operator.
+
+import { useState, type ReactNode } from "react";
 import { cn } from "@stigmer/design-tokens";
 import { getUserMessage, isUnimplemented } from "@stigmer/client";
 import type { Plan } from "@stigmer/apis/ai/stigmer/billing/plan/v1/api_pb";
@@ -12,14 +17,17 @@ import { Button } from "../button/index.js";
 import { useResourceAvailable } from "@stigmer/react-core";
 import { ApiResourceKind } from "@stigmer/react-core/internal";
 import { useCheckPermission } from "../grant/useCheckPermission.js";
-import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
+import { EmptyState } from "../empty-state/EmptyState.js";
+import { ErrorMessage } from "../error/ErrorMessage.js";
+import { SettingsPage } from "../settings/SettingsPage.js";
+import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { FEATURE_COPY, isNamedFeature } from "../internal/features.js";
 import { ConfirmDialog } from "../resource-detail/ConfirmDialog.js";
 import { useConfirmAction } from "../resource-detail/useConfirmAction.js";
 import { StatusBadge } from "../resource-workbench/components/StatusBadge.js";
 import { PlanCreateForm } from "./PlanCreateForm.js";
-import { PlansAccessNotice } from "./PlansAccessNotice.js";
+import { PLANS_DENIAL } from "./PlansAccessNotice.js";
 import { useRetirePlan } from "./usePlanMutations.js";
 
 /** The platform object the catalog's permission is held on. */
@@ -54,47 +62,40 @@ export function PlanCatalogConsole({ className }: PlanCatalogConsoleProps) {
   const { confirmState, confirm, handleConfirm, handleCancel } = useConfirmAction();
   const [creating, setCreating] = useState(false);
 
-  const header = <ConsoleHeader onCreate={operator.allowed && !creating ? () => setCreating(true) : undefined} />;
+  const unavailable = !available || (catalog.error !== null && isUnimplemented(catalog.error));
+  const checking = operator.isLoading || (operator.allowed && catalog.plans === null && catalog.error === null);
+  const denied = !unavailable && !operator.isLoading && !operator.allowed;
+  const frame = (body: ReactNode) => (
+    <SettingsPage
+      title="Plans"
+      description="The plans organizations subscribe to. A plan's terms are final; change them with a new plan and retire the old one."
+      actions={
+        operator.allowed &&
+        !creating && (
+          <Button size="sm" onClick={() => setCreating(true)}>
+            New plan
+          </Button>
+        )
+      }
+      unavailable={
+        unavailable &&
+        "Plans come with Stigmer Cloud, which sells them. On this edition nothing is sold, so there is no plan catalogue."
+      }
+      denied={denied ? PLANS_DENIAL : false}
+      className={className}
+    >
+      {body}
+    </SettingsPage>
+  );
 
-  if (!available || (catalog.error && isUnimplemented(catalog.error))) {
-    return (
-      <div className={cn("stg:space-y-3", className)}>
-        {header}
-        <CloudFeatureNotice>
-          Plans are sold on Stigmer Cloud. The server this console is connected to serves no plan catalog.
-        </CloudFeatureNotice>
-      </div>
-    );
+  if (unavailable || denied) {
+    return frame(null);
   }
-  if (operator.isLoading || (operator.allowed && catalog.plans === null && catalog.error === null)) {
-    return (
-      <div className={cn("stg:space-y-2", className)} aria-busy="true">
-        {Array.from({ length: 3 }, (_, i) => (
-          <div key={i} className="stg:h-12 stg:animate-pulse stg:rounded-lg stg:bg-muted-subtle" />
-        ))}
-      </div>
-    );
-  }
-  if (!operator.allowed) {
-    return (
-      <div className={cn("stg:space-y-3", className)}>
-        {header}
-        <PlansAccessNotice />
-      </div>
-    );
+  if (checking) {
+    return frame(<SettingsSkeleton label="Loading plans" rows={3} />);
   }
   if (catalog.error) {
-    return (
-      <div className={cn("stg:space-y-3", className)}>
-        {header}
-        <p className="stg:text-sm stg:text-destructive" role="alert">
-          {getUserMessage(catalog.error)}
-        </p>
-        <Button variant="outline" onClick={catalog.refetch}>
-          Try again
-        </Button>
-      </div>
-    );
+    return frame(<ErrorMessage error={catalog.error} title="The plans could not be read" retry={catalog.refetch} />);
   }
 
   const retire = async (plan: Plan) => {
@@ -110,9 +111,9 @@ export function PlanCatalogConsole({ className }: PlanCatalogConsoleProps) {
     }
   };
 
-  return (
-    <div className={cn("stg:space-y-4", className)}>
-      {header}
+  const plans = catalog.plans ?? [];
+  return frame(
+    <div className="stg:space-y-4">
       {creating ? (
         <div className="stg:rounded-lg stg:border stg:border-border stg:bg-card stg:p-4">
           <PlanCreateForm
@@ -129,32 +130,22 @@ export function PlanCatalogConsole({ className }: PlanCatalogConsoleProps) {
           {getUserMessage(retirer.error)}
         </p>
       )}
-      <ul className={cn(UNSTYLED_LIST, "stg:space-y-2")} aria-label="Plan catalog">
-        {(catalog.plans ?? []).map((plan) => (
-          <PlanRow key={plan.metadata?.id} plan={plan} onRetire={() => void retire(plan)} busy={retirer.isSubmitting} />
-        ))}
-      </ul>
-      <ConfirmDialog state={confirmState} onConfirm={handleConfirm} onCancel={handleCancel} />
-    </div>
-  );
-}
-
-function ConsoleHeader({ onCreate }: { readonly onCreate?: () => void }) {
-  return (
-    <div className="stg:flex stg:items-start stg:justify-between stg:gap-3">
-      <div>
-        <h2 className="stg:text-sm stg:font-semibold stg:text-foreground">Plans</h2>
-        <p className="stg:text-xs stg:text-muted-foreground">
-          The plans organizations subscribe to. A plan&apos;s terms are final; change them with a new plan and retire the
-          old one.
-        </p>
-      </div>
-      {onCreate && (
-        <Button size="xs" onClick={onCreate}>
-          New plan
-        </Button>
+      {plans.length === 0 ? (
+        <EmptyState
+          variant="first-use"
+          title="No plans yet"
+          description="Create the first plan organizations can subscribe to."
+          className="stg:rounded-lg stg:border stg:border-dashed stg:border-border"
+        />
+      ) : (
+        <ul className={cn(UNSTYLED_LIST, "stg:space-y-2")} aria-label="Plan catalog">
+          {plans.map((plan) => (
+            <PlanRow key={plan.metadata?.id} plan={plan} onRetire={() => void retire(plan)} busy={retirer.isSubmitting} />
+          ))}
+        </ul>
       )}
-    </div>
+      <ConfirmDialog state={confirmState} onConfirm={handleConfirm} onCancel={handleCancel} />
+    </div>,
   );
 }
 

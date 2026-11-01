@@ -135,7 +135,7 @@ afterEach(() => {
 describe("FederationIssuersSection", () => {
   it("says federation issuers are not served on the open-source edition and lists nothing", () => {
     renderSection("local");
-    expect(screen.getByText(/Federation issuers are not available in local mode/)).toBeTruthy();
+    expect(screen.getByText(/Federation issuers come with Stigmer Enterprise and Cloud/)).toBeTruthy();
     // The list panel is never mounted, so the list hook is never called.
     expect(stubs.listedOrg).toBeUndefined();
     expect(screen.queryByRole("button", { name: /New federation issuer/ })).toBeNull();

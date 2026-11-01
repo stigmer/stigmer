@@ -2,7 +2,7 @@
 
 import { type FormEvent, useCallback, useEffect, useId, useMemo, useState } from "react";
 import { cn } from "@stigmer/design-tokens";
-import { buildOrganizationProto, getUserMessage } from "@stigmer/client";
+import { buildOrganizationProto } from "@stigmer/client";
 import { maskedEdit, saveErrorMessage } from "@stigmer/react-core/internal";
 import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import { useOrganization } from "./useOrganization.js";
@@ -17,7 +17,8 @@ import { ApiResourceKind } from "@stigmer/react-core/internal";
 import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { useCopyFeedback } from "../internal/useCopyFeedback.js";
-import { LoadingRegion } from "../internal/LoadingRegion.js";
+import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
+import { ErrorMessage } from "../error/ErrorMessage.js";
 import { RenameSlugField } from "../resource-detail/RenameSlugField.js";
 
 // ---------------------------------------------------------------------------
@@ -210,20 +211,7 @@ export function OrgProfilePanel({
   // -----------------------------------------------------------------------
 
   if (isFetching && !organization) {
-    return (
-      <LoadingRegion
-        className={cn("stg:space-y-4", className)}
-        label="Loading organization profile"
-      >
-        {Array.from({ length: 4 }, (_, i) => (
-          <div
-            key={i}
-            className="stg:bg-muted-subtle stg:h-10 stg:animate-pulse stg:rounded"
-            style={{ width: `${90 - i * 12}%` }}
-          />
-        ))}
-      </LoadingRegion>
-    );
+    return <SettingsSkeleton label="Loading organization profile" rows={2} className={className} />;
   }
 
   // -----------------------------------------------------------------------
@@ -231,23 +219,7 @@ export function OrgProfilePanel({
   // -----------------------------------------------------------------------
 
   if (fetchError) {
-    return (
-      <div className={cn("stg:space-y-3", className)} role="alert">
-        <p className="stg:text-destructive stg:text-sm">
-          {getUserMessage(fetchError)}
-        </p>
-        <button
-          type="button"
-          onClick={refetch}
-          className={cn(
-            "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium",
-            "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
-          )}
-        >
-          Retry
-        </button>
-      </div>
-    );
+    return <ErrorMessage error={fetchError} title="The profile could not be read" retry={refetch} className={className} />;
   }
 
   if (!organization) return null;
@@ -457,7 +429,7 @@ function FederationIssuersSummary({ orgId }: { orgId: string }) {
         </p>
 
         {isLoading ? (
-          <div className="stg:bg-muted-subtle stg:h-8 stg:animate-pulse stg:rounded" />
+          <SettingsSkeleton label="Loading federation issuers" rows={1} />
         ) : federationIssuers.length === 0 && deniedCreate ? (
           <p className="stg:text-xs stg:text-muted-foreground">
             {FEDERATION_ISSUERS_MANAGED_BY_ADMINS}

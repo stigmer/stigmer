@@ -1,9 +1,5 @@
 "use client";
 
-import { useId } from "react";
-import { MemoryListPanel } from "../memory/MemoryListPanel.js";
-import { useActiveOrgId } from "../organization/OrgProvider.js";
-
 /**
  * Settings section listing everything the platform remembers about the
  * caller in the active organization.
@@ -14,34 +10,28 @@ import { useActiveOrgId } from "../organization/OrgProvider.js";
  * is subject-only — this page shows the caller their own records and
  * nobody else's.
  */
+import { MemoryListPanel } from "../memory/MemoryListPanel.js";
+import { useActiveOrgId } from "../organization/OrgProvider.js";
+import { NoOrganization } from "./NoOrganization.js";
+import { SettingsPage } from "./SettingsPage.js";
+
+/** Settings section for the caller's own memories in the active organization. */
 export function MemorySection() {
-  const headingId = useId();
   const org = useActiveOrgId();
 
   return (
-    <section aria-labelledby={headingId}>
-      <h2
-        id={headingId}
-        className="stg:text-foreground stg:mb-1 stg:text-sm stg:font-semibold"
-      >
-        Memory
-      </h2>
-      <p className="stg:text-muted-foreground stg:mb-6 stg:text-xs">
-        Facts agents proposed to remember about you in this organization.
-        Confirmed memories are shared with agents in your future sessions
-        and appear in those runs&apos; records; once you have many,
-        each conversation recalls the most relevant ones, shown on the
-        run. Only you can see them here, and you can edit or delete
-        any of them at any time.
-      </p>
-
-      {!org ? (
-        <p className="stg:text-muted-foreground stg:py-4 stg:text-center stg:text-xs">
-          Select an organization to view its memories.
-        </p>
-      ) : (
-        <MemoryListPanel org={org} />
-      )}
-    </section>
+    <SettingsPage
+      title="Memory"
+      description={
+        <>
+          Facts agents proposed to remember about you in this organization. Confirmed memories are shared with agents in
+          your future sessions and appear in those runs&apos; records; once you have many, each conversation recalls the
+          most relevant ones, shown on the run. Only you can see them here, and you can edit or delete any of them at any
+          time.
+        </>
+      }
+    >
+      {!org ? <NoOrganization what="its memories" /> : <MemoryListPanel org={org} />}
+    </SettingsPage>
   );
 }

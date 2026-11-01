@@ -21,7 +21,9 @@ import { RoleSelector } from "../grant/RoleSelector.js";
 import { useOwnerAssignment } from "../grant/useOwnerAssignment.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { useCopyFeedback } from "../internal/useCopyFeedback.js";
-import { LoadingRegion } from "../internal/LoadingRegion.js";
+import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
+import { ErrorMessage } from "../error/ErrorMessage.js";
+import { EmptyState } from "../empty-state/EmptyState.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -139,27 +141,11 @@ export function InvitationManager({
   );
 
   if (isLoading) {
-    return (
-      <LoadingRegion
-        className={cn("stg:space-y-2", className)}
-        label="Loading invitations"
-      >
-        {Array.from({ length: 2 }, (_, i) => (
-          <div
-            key={i}
-            className="stg:bg-muted-subtle stg:h-14 stg:animate-pulse stg:rounded-lg"
-          />
-        ))}
-      </LoadingRegion>
-    );
+    return <SettingsSkeleton label="Loading invitations" rows={3} className={className} />;
   }
 
   if (error) {
-    return (
-      <p className={cn("stg:text-destructive stg:text-xs", className)} role="alert">
-        {getUserMessage(error)}
-      </p>
-    );
+    return <ErrorMessage error={error} title="The invite links could not be read" retry={refetch} className={className} />;
   }
 
   return (
@@ -211,9 +197,12 @@ export function InvitationManager({
 
       {/* Invitation list */}
       {invitations.length === 0 ? (
-        <p className="stg:text-muted-foreground stg:py-4 stg:text-center stg:text-xs">
-          No invite links yet. Create one to start inviting people.
-        </p>
+        <EmptyState
+          variant="first-use"
+          title="No invite links yet"
+          description="Create one to start inviting people."
+          className="stg:rounded-lg stg:border stg:border-dashed stg:border-border"
+        />
       ) : (
         <div
           role="list"

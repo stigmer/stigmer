@@ -10,13 +10,16 @@
 
 import { useCallback } from "react";
 import { cn } from "@stigmer/design-tokens";
-import { getUserMessage, isPermissionDenied } from "@stigmer/client";
+import { isPermissionDenied, isUnimplemented } from "@stigmer/client";
 import type { ModelPricingBaseline } from "@stigmer/apis/ai/stigmer/billing/v1/model_pricing_baseline_pb";
 import { Button } from "../button/index.js";
 import { BaselineEditor } from "./BaselineEditor.js";
 import { RetireConfirm } from "./RetireConfirm.js";
 import { ModelCatalogDetail } from "./ModelCatalogDetail.js";
-import { OperatorAccessNotice } from "./OperatorAccessNotice.js";
+import { MODEL_CATALOG_DENIAL } from "./OperatorAccessNotice.js";
+import { ErrorMessage } from "../error/ErrorMessage.js";
+import { SettingsPage } from "../settings/SettingsPage.js";
+import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { INPUT_CLASSES } from "../internal/form-primitives.js";
 import { TruncatedText } from "../internal/truncated-text.js";
@@ -97,44 +100,52 @@ export function ModelCatalogConsole({ className }: ModelCatalogConsoleProps) {
     view.backToDetail();
   }, [clearRetireError, view.backToDetail]);
 
-  if (view.isLoading) {
-    return (
-      <div className={cn("stg:space-y-2", className)} aria-busy="true">
-        <div className="stg:h-4 stg:w-40 stg:animate-pulse stg:rounded stg:bg-muted-subtle" />
-        {Array.from({ length: 4 }, (_, i) => (
-          <div key={i} className="stg:h-10 stg:animate-pulse stg:rounded-lg stg:bg-muted-subtle" />
-        ))}
-      </div>
-    );
-  }
-
-  if (view.error) {
-    // A non-operator landing here is expected (the route is reachable by
-    // URL) — show the designed access notice, not a raw RPC error.
-    if (isPermissionDenied(view.error)) {
-      return <OperatorAccessNotice className={className} />;
-    }
-    return (
-      <p className={cn("stg:text-destructive stg:text-xs", className)} role="alert">
-        {getUserMessage(view.error)}
-      </p>
-    );
-  }
+  // On an edition that keeps no model catalogue the server answers
+  // Unimplemented, and a person who is not a platform operator is refused:
+  // the frame says either in words, never as the transport's error
+  // (stigmer#1230).
+  const unavailable = view.error !== null && isUnimplemented(view.error);
+  const denied = view.error !== null && isPermissionDenied(view.error);
+  const listing = view.flow.phase === "list";
 
   return (
-    <div className={className}>
-      <ModelCatalogBody
-        view={view}
-        isUpserting={isUpserting}
-        upsertError={upsertError}
-        onUpsert={handleUpsert}
-        onCancelEdit={handleCancelEdit}
-        isRetiring={isRetiring}
-        retireError={retireError}
-        onRetire={handleRetire}
-        onCancelRetire={handleCancelRetire}
-      />
-    </div>
+    <SettingsPage
+      title="Model catalog"
+      description="Every model the registry serves, at the provider's list prices before any markup. Open one to see its record, edit its prices or retire it."
+      actions={
+        listing &&
+        !view.isLoading &&
+        view.error === null && (
+          <Button size="sm" onClick={view.openCreate}>
+            Add model
+          </Button>
+        )
+      }
+      unavailable={
+        unavailable &&
+        "The model catalog comes with Stigmer Cloud, which bills for models. On this edition every model is paid for through your own provider keys, at your provider's prices."
+      }
+      denied={denied ? MODEL_CATALOG_DENIAL : false}
+      className={className}
+    >
+      {view.isLoading ? (
+        <SettingsSkeleton label="Loading the model catalog" rows={4} />
+      ) : view.error ? (
+        <ErrorMessage error={view.error} title="The model catalog could not be read" retry={view.refetch} />
+      ) : (
+        <ModelCatalogBody
+          view={view}
+          isUpserting={isUpserting}
+          upsertError={upsertError}
+          onUpsert={handleUpsert}
+          onCancelEdit={handleCancelEdit}
+          isRetiring={isRetiring}
+          retireError={retireError}
+          onRetire={handleRetire}
+          onCancelRetire={handleCancelRetire}
+        />
+      )}
+    </SettingsPage>
   );
 }
 
@@ -214,19 +225,14 @@ function ModelCatalogBody({
 
   return (
     <div className="stg:space-y-3">
-      <div className="stg:flex stg:items-center stg:justify-between stg:gap-3">
-        <input
-          type="search"
-          className={cn(INPUT_CLASSES, "stg:max-w-xs")}
-          value={view.modelQuery}
-          onChange={(e) => view.setModelQuery(e.target.value)}
-          placeholder="Search models…"
-          aria-label="Search models"
-        />
-        <Button size="sm" onClick={view.openCreate}>
-          Add model
-        </Button>
-      </div>
+      <input
+        type="search"
+        className={cn(INPUT_CLASSES, "stg:max-w-xs")}
+        value={view.modelQuery}
+        onChange={(e) => view.setModelQuery(e.target.value)}
+        placeholder="Search models…"
+        aria-label="Search models"
+      />
 
       <div className="stg:rounded-lg stg:border stg:border-border stg:bg-card">
         {/* Presentational column guide — each row is a self-describing

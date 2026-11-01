@@ -28,7 +28,7 @@
  * `exportAccessHistory`, the same JSON Lines the CLI's
  * `stigmer access-history export` writes.
  */
-import { useCallback, useId, useState } from "react";
+import { useCallback, useState } from "react";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { cn } from "@stigmer/design-tokens";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -52,20 +52,22 @@ import { useEntitlements } from "../billing/useEntitlements.js";
 import { usePlans } from "../billing/usePlans.js";
 import { useDeploymentMode } from "@stigmer/react-core";
 import { useStigmer } from "@stigmer/react-core";
-import { PermissionGate } from "../grant/PermissionGate.js";
+import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { useAccessHistory } from "../grant/useAccessHistory.js";
-import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
-import { LoadingRegion } from "../internal/LoadingRegion.js";
+import { EmptyState } from "../empty-state/EmptyState.js";
+import { ErrorMessage } from "../error/ErrorMessage.js";
 import { downloadTextFile } from "../internal/download.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { useOrg } from "../organization/OrgProvider.js";
+import { NoOrganization } from "./NoOrganization.js";
+import { SettingsPage } from "./SettingsPage.js";
+import { SettingsSkeleton } from "./SettingsSkeleton.js";
 
 /** Shown in place of the history to a caller who may not read it. */
 const READ_BY_ADMINS = "The access history is read by your organization's owners and admins.";
 
 /** Settings section for an organization's access history. */
 export function AccessHistorySection() {
-  const headingId = useId();
   const { activeOrg } = useOrg();
   const orgId = activeOrg?.metadata?.id ?? "";
   const mode = useDeploymentMode();
@@ -76,43 +78,37 @@ export function AccessHistorySection() {
   const planLacksHistory = plan.allows(Feature.access_history) === false;
   const catalog = usePlans({ enabled: planLacksHistory });
   const unlockingPlan = unlockingPlanName(catalog.plans ?? [], Feature.access_history);
+  // Asked only where the history is kept and the plan includes it, so a
+  // page that will show neither asks nothing.
+  const readCheck = useCheckPermission(
+    keepsHistory && orgId && !planLacksHistory ? { kind: "organization", id: orgId } : null,
+    "can_view_access_history",
+  );
 
   return (
-    <section aria-labelledby={headingId}>
-      <div className="stg:mb-3">
-        <h2 id={headingId} className="stg:text-foreground stg:text-sm stg:font-semibold">
-          Access history
-        </h2>
-      </div>
-      <p className="stg:text-muted-foreground stg:mb-4 stg:text-xs">
-        Every time someone was given or lost access to this organization or
-        anything in it: who did it, why, and when. The history starts when
-        your server began keeping it; nothing earlier is filled in.
-      </p>
-
-      {!keepsHistory ? (
-        <CloudFeatureNotice>
-          The access history is kept by Stigmer Enterprise and Cloud. This
-          edition keeps no record of access changes.
-        </CloudFeatureNotice>
-      ) : !orgId ? (
-        <p className="stg:text-muted-foreground stg:py-4 stg:text-center stg:text-xs">
-          Select an organization to read its access history.
-        </p>
+    <SettingsPage
+      title="Access history"
+      description="Every time someone was given or lost access to this organization or anything in it: who did it, why, and when. The history starts when your server began keeping it; nothing earlier is filled in."
+      unavailable={
+        !keepsHistory &&
+        "The access history comes with Stigmer Enterprise and Cloud. On this edition no record of access changes is kept."
+      }
+      denied={
+        readCheck.isLoading || readCheck.allowed
+          ? false
+          : { title: "Only an admin can open Access history", description: READ_BY_ADMINS }
+      }
+    >
+      {!orgId ? (
+        <NoOrganization what="its access history" />
       ) : planLacksHistory ? (
         <UpgradeNotice feature={Feature.access_history} unlockingPlanName={unlockingPlan} />
+      ) : readCheck.isLoading ? (
+        <SettingsSkeleton label="Loading the access history" rows={3} />
       ) : (
-        <PermissionGate
-          resource={{ kind: "organization", id: orgId }}
-          relation="can_view_access_history"
-          fallback={
-            <p className="stg:text-muted-foreground stg:py-4 stg:text-center stg:text-xs">{READ_BY_ADMINS}</p>
-          }
-        >
-          <AccessHistoryList org={orgId} />
-        </PermissionGate>
+        <AccessHistoryList org={orgId} />
       )}
-    </section>
+    </SettingsPage>
   );
 }
 
@@ -122,13 +118,7 @@ function AccessHistoryList({ org }: { readonly org: string }) {
   const download = useDownloadAccessHistory(org);
 
   if (history.isLoading) {
-    return (
-      <LoadingRegion className="stg:space-y-2" label="Loading the access history">
-        {Array.from({ length: 3 }, (_, i) => (
-          <div key={i} className="stg:bg-muted-subtle stg:h-10 stg:animate-pulse stg:rounded-lg" />
-        ))}
-      </LoadingRegion>
-    );
+    return <SettingsSkeleton label="Loading the access history" rows={3} />;
   }
 
   if (history.error) {
@@ -136,9 +126,7 @@ function AccessHistoryList({ org }: { readonly org: string }) {
     return feature !== null ? (
       <UpgradeNotice feature={feature} error={history.error} />
     ) : (
-      <p className="stg:text-destructive stg:text-xs" role="alert">
-        {getUserMessage(history.error)}
-      </p>
+      <ErrorMessage error={history.error} title="The access history could not be read" retry={history.refetch} />
     );
   }
 
@@ -162,9 +150,12 @@ function AccessHistoryList({ org }: { readonly org: string }) {
       )}
 
       {history.entries.length === 0 ? (
-        <p className="stg:text-muted-foreground stg:py-4 stg:text-center stg:text-xs">
-          No access changes recorded yet.
-        </p>
+        <EmptyState
+          variant="first-use"
+          title="No access changes recorded yet"
+          description="When someone is given or loses access, it is written here."
+          className="stg:rounded-lg stg:border stg:border-dashed stg:border-border"
+        />
       ) : (
         <ol aria-label="Access changes" className={cn(UNSTYLED_LIST, "stg:space-y-1")}>
           {history.entries.map((entry) => (

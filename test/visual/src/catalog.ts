@@ -153,14 +153,16 @@ const STORY_SCENES = [
 ] as const satisfies readonly { readonly id: `story-${string}`; readonly title: string; readonly widths: readonly WidthName[] }[];
 
 /**
- * The settings pages, one per shape Settings has, each framed as the
- * console's settings layout frames it: a collection with rows, a
- * collection with none yet, a collection of cards, a plan, figures, what
- * this edition does not offer, and an operator's console.
+ * The settings landing and the settings pages, one per shape Settings has,
+ * each framed as the console's settings layout frames it: a collection with
+ * rows, a collection with none yet, a collection of cards, a plan, figures,
+ * what this edition does not offer, an operator's console, and any page
+ * while it reads.
  */
 export type SettingsSceneName = (typeof SETTINGS_SCENES)[number]["id"] extends `settings-${infer Name}` ? Name : never;
 
 const SETTINGS_SCENES = [
+  { id: "settings-landing", title: "Settings: every group of the navigation an owner sees, each page a link", widths: ["desktop"] },
   { id: "settings-members", title: "Settings, Members: the owner and the people the organization holds", widths: ["desktop", "narrow"] },
   { id: "settings-api-keys", title: "Settings, API keys: Stigmer Cloud, before the first key", widths: ["desktop"] },
   { id: "settings-vaults", title: "Settings, Vaults: the organization's vaults", widths: ["desktop"] },
@@ -168,6 +170,7 @@ const SETTINGS_SCENES = [
   { id: "settings-usage", title: "Settings, Usage: the organization's figures", widths: ["desktop"] },
   { id: "settings-teams-oss", title: "Settings, Teams: the open-source server, which serves none", widths: ["desktop"] },
   { id: "settings-model-catalog", title: "Settings, Model catalogue: a platform operator's console", widths: ["desktop"] },
+  { id: "settings-loading", title: "Settings, any page while its rows are read", widths: ["desktop"] },
 ] as const satisfies readonly { readonly id: `settings-${string}`; readonly title: string; readonly widths: readonly WidthName[] }[];
 
 /** The presets the `completed` thread is drawn in beyond the default look, which `thread-completed` is. */

@@ -144,7 +144,9 @@ describe("OrgUsagePanel", () => {
     state.error = error;
     render(<OrgUsagePanel org="acme" />);
 
-    expect(screen.getByRole("alert").textContent).toBe(getUserMessage(error));
+    const alert = screen.getByRole("alert");
+    expect(alert.textContent).toContain("The usage could not be read");
+    expect(alert.textContent).toContain(getUserMessage(error));
     expect(screen.queryByRole("group", { name: "Usage summary" })).toBeNull();
   });
 });

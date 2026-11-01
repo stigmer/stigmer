@@ -106,9 +106,9 @@ function productUser(id: string, name: string, role = "viewer"): PrincipalAccess
   });
 }
 
-/** The count badge beside the "Members" heading, or `null` when none shows. */
+/** The count badge beside the "People" heading, or `null` when none shows. */
 function membersBadge(): string | null {
-  return screen.getByText("Members").nextElementSibling?.textContent ?? null;
+  return screen.getByText("People").nextElementSibling?.textContent ?? null;
 }
 
 /** An organization's service account, holding its one role. */
@@ -209,7 +209,7 @@ describe("OrgMembersPanel and who is a member", () => {
 
     state.members = [productUser("ida_pc_1", "Customer One")];
     render(<OrgMembersPanel org="acme" />);
-    expect(screen.getByText("No members found.")).toBeTruthy();
+    expect(screen.getByText("No members yet")).toBeTruthy();
     expect(membersBadge()).toBeNull();
     expect(screen.getByRole("button", { name: PRODUCT_GROUP })).toBeTruthy();
   });
@@ -262,7 +262,7 @@ describe("OrgMembersPanel and service accounts", () => {
     expect(
       screen.getByRole("link", { name: "Manage service accounts" }).getAttribute("href"),
     ).toBe("#/settings/service-accounts");
-    expect(screen.getByText("No members found.")).toBeTruthy();
+    expect(screen.getByText("No members yet")).toBeTruthy();
   });
 
   it("renders no group when the organization has no service account", () => {

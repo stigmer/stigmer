@@ -20,7 +20,9 @@ import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresou
 import { ManageAccessButton } from "../access/ManageAccessButton.js";
 import { PermissionGate } from "../grant/PermissionGate.js";
 import { useStigmer } from "@stigmer/react-core";
-import { LoadingRegion } from "../internal/LoadingRegion.js";
+import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
+import { ErrorMessage } from "../error/ErrorMessage.js";
+import { EmptyState } from "../empty-state/EmptyState.js";
 import {
   DANGER_BUTTON_CLASS,
   INPUT_CLASS,
@@ -67,28 +69,21 @@ export function VaultListPanel({
   const shared = useMemo(() => vaults.filter((v) => !isMyVault(v)), [vaults]);
 
   if (isLoading) {
-    return (
-      <LoadingRegion className={cn("stg:space-y-2", className)} label="Loading vaults">
-        {Array.from({ length: 2 }, (_, i) => (
-          <div key={i} className="stg:bg-muted-subtle stg:h-14 stg:animate-pulse stg:rounded-lg" />
-        ))}
-      </LoadingRegion>
-    );
+    return <SettingsSkeleton label="Loading vaults" rows={3} className={className} />;
   }
 
   if (error) {
-    return (
-      <p className={cn("stg:text-destructive stg:text-xs", className)} role="alert">
-        {getUserMessage(error)}
-      </p>
-    );
+    return <ErrorMessage error={error} title="The shared vaults could not be read" retry={refetch} className={className} />;
   }
 
   if (shared.length === 0) {
     return (
-      <p className={cn("stg:text-muted-foreground stg:py-4 stg:text-center stg:text-xs", className)}>
-        No shared vaults yet.
-      </p>
+      <EmptyState
+        variant="first-use"
+        title="No shared vaults yet"
+        description="A shared vault holds the organization's own keys; a conversation, a routine or a channel can name one so its runs use it."
+        className={cn("stg:rounded-lg stg:border stg:border-dashed stg:border-border", className)}
+      />
     );
   }
 

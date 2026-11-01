@@ -140,6 +140,6 @@ describe("ServiceAccountListPanel", () => {
   it("says so when the organization has none", async () => {
     asked.answer = "none";
     render(<ServiceAccountListPanel org="org_acme" />, { wrapper });
-    expect(await screen.findByText("No service accounts yet.")).toBeTruthy();
+    expect(await screen.findByText("No service accounts yet")).toBeTruthy();
   });
 });

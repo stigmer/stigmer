@@ -48,14 +48,14 @@ describe("settings sections that name the active organization by id", () => {
 
   it("Memory prompts for an organization when none is selected", () => {
     render(<MemorySection />);
-    expect(screen.getByText(/select an organization to view its memories/i)).toBeTruthy();
+    expect(screen.getByText(/choose an organization to see its memories/i)).toBeTruthy();
     expect(state.given).toEqual([]);
   });
 
   it("API Keys creates a key in the active organization, named by its id", () => {
     state.activeId = ACME_ID;
     render(<ApiKeysSection />);
-    fireEvent.click(screen.getByRole("button", { name: "+ New API key" }));
+    fireEvent.click(screen.getByRole("button", { name: "New API key" }));
     expect(state.given).toEqual([{ panel: "create-api-key", org: ACME_ID }]);
   });
 });

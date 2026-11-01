@@ -13,9 +13,10 @@
 import type { Team } from "@stigmer/apis/ai/stigmer/iam/team/v1/api_pb";
 import { ChevronRight, UsersRound } from "lucide-react";
 import { cn } from "@stigmer/design-tokens";
-import { getUserMessage } from "@stigmer/client";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
-import { LoadingRegion } from "../internal/LoadingRegion.js";
+import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
+import { ErrorMessage } from "../error/ErrorMessage.js";
+import { EmptyState } from "../empty-state/EmptyState.js";
 
 /** Props for {@link TeamListPanel}. */
 export interface TeamListPanelProps {
@@ -24,6 +25,8 @@ export interface TeamListPanelProps {
   readonly error: Error | null;
   /** Fired when a person opens a team. */
   readonly onOpen: (team: Team) => void;
+  /** Reads the list again after a failed read; the error offers Retry when given. */
+  readonly onRetry?: () => void;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -44,31 +47,25 @@ export function TeamListPanel({
   isLoading,
   error,
   onOpen,
+  onRetry,
   className,
 }: TeamListPanelProps) {
   if (isLoading) {
-    return (
-      <LoadingRegion className={cn("stg:space-y-2", className)} label="Loading teams">
-        {Array.from({ length: 2 }, (_, i) => (
-          <div key={i} className="stg:bg-muted-subtle stg:h-14 stg:animate-pulse stg:rounded-lg" />
-        ))}
-      </LoadingRegion>
-    );
+    return <SettingsSkeleton label="Loading teams" rows={3} className={className} />;
   }
 
   if (error) {
-    return (
-      <p className={cn("stg:text-destructive stg:text-xs", className)} role="alert">
-        {getUserMessage(error)}
-      </p>
-    );
+    return <ErrorMessage error={error} title="The teams could not be read" retry={onRetry} className={className} />;
   }
 
   if (teams.length === 0) {
     return (
-      <p className={cn("stg:text-muted-foreground stg:py-4 stg:text-center stg:text-xs", className)}>
-        No teams yet.
-      </p>
+      <EmptyState
+        variant="first-use"
+        title="No teams yet"
+        description="A team is a group of people you share agents, vaults and other resources with at once."
+        className={cn("stg:rounded-lg stg:border stg:border-dashed stg:border-border", className)}
+      />
     );
   }
 

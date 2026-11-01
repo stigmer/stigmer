@@ -8,6 +8,7 @@ import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { useSingleOrg } from "../server-info.js";
 import { useChildOrganizations } from "./useChildOrganizations.js";
 import { useOptionalOrg } from "./OrgProvider.js";
+import { ErrorMessage } from "../error/ErrorMessage.js";
 
 /** Props for {@link ChildOrganizationsList}. */
 export interface ChildOrganizationsListProps {
@@ -63,7 +64,7 @@ export function ChildOrganizationsList({
     { fail: "closed" },
   );
   const allowed = singleOrg === false && !check.isLoading && check.allowed;
-  const { children, hasMore, loadMore, isLoadingMore, loadMoreError, error } =
+  const { children, hasMore, loadMore, isLoadingMore, loadMoreError, error, refetch } =
     useChildOrganizations(allowed ? org : null);
 
   if (!allowed || (children.length === 0 && error === null)) {
@@ -86,9 +87,7 @@ export function ChildOrganizationsList({
         {setActiveOrg && " Open one to work in it as its admin."}
       </p>
       {error !== null ? (
-        <p className="stg:text-destructive stg:text-xs" role="alert">
-          {getUserMessage(error)}
-        </p>
+        <ErrorMessage error={error} title="The child organizations could not be read" retry={refetch} />
       ) : (
         <table className="stg:w-full stg:text-left stg:text-xs">
           <thead className="stg:text-muted-foreground">

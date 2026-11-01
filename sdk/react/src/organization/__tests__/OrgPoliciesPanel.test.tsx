@@ -170,3 +170,50 @@ describe("useUpdateOrganizationPolicies", () => {
     expect(result.current.error).toBeNull();
   });
 });
+
+describe("CON-01 the policies offer no switch to flip before the server says yes (stigmer#2662)", () => {
+  /** A client whose self-check answers as `answer` says: never, no, or a failure. */
+  function clientAnswering(answer: "pending" | "refused" | "fails") {
+    const client = createMockStigmer(orgWith({ membersCanCreateAgents: true }));
+    client.grant.checkMyPermission = vi.fn(() =>
+      answer === "pending"
+        ? new Promise<never>(() => {})
+        : answer === "refused"
+          ? Promise.resolve({ isAuthorized: false })
+          : Promise.reject(new ConnectError("the check failed", Code.Unavailable)),
+    );
+    return client;
+  }
+
+  it("shows the policy, locked and with no refusal, while the check is in flight", async () => {
+    renderPanel(clientAnswering("pending"));
+    const toggle = await screen.findByRole("switch", { name: "Members can create agents" });
+    expect((toggle as HTMLButtonElement).disabled).toBe(true);
+    expect(toggle.getAttribute("aria-checked")).toBe("true");
+    expect(screen.queryByText("Only organization admins can change these policies.")).toBeNull();
+  });
+
+  it("says who can change it once the server says no", async () => {
+    renderPanel(clientAnswering("refused"));
+    expect(await screen.findByText("Only organization admins can change these policies.")).toBeTruthy();
+    expect((screen.getByRole("switch") as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("asks again on Try again, and offers the switch once the server says yes", async () => {
+    const client = clientAnswering("fails");
+    renderPanel(client);
+    const retry = await screen.findByRole("button", { name: "Try again" });
+    // The server answers the second ask with a yes.
+    client.grant.checkMyPermission = vi.fn(() => Promise.resolve({ isAuthorized: true }));
+    fireEvent.click(retry);
+    await waitFor(() => expect((screen.getByRole("switch", { name: "Members can create agents" }) as HTMLButtonElement).disabled).toBe(false));
+    expect(screen.queryByText(/Could not check whether you may/)).toBeNull();
+  });
+
+  it("keeps the policy locked and says it could not check when the check fails", async () => {
+    renderPanel(clientAnswering("fails"));
+    expect(await screen.findByText(/Could not check whether you may change these policies\./)).toBeTruthy();
+    expect((screen.getByRole("switch", { name: "Members can create agents" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.queryByText("Only organization admins can change these policies.")).toBeNull();
+  });
+});

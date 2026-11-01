@@ -11,10 +11,12 @@
 import { useCallback } from "react";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { cn } from "@stigmer/design-tokens";
-import { getUserMessage, iamRoleDisplayName } from "@stigmer/client";
+import { iamRoleDisplayName } from "@stigmer/client";
 import type { IdentityAccount } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { useResourceAccess } from "../grant/useResourceAccess.js";
-import { LoadingRegion } from "../internal/LoadingRegion.js";
+import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
+import { ErrorMessage } from "../error/ErrorMessage.js";
+import { EmptyState } from "../empty-state/EmptyState.js";
 import { orgRoleOf } from "./org-role.js";
 import { useServiceAccountList } from "./useServiceAccountList.js";
 
@@ -61,33 +63,21 @@ export function ServiceAccountListPanel({
   }
 
   if (isLoading) {
-    return (
-      <LoadingRegion className={cn("stg:space-y-2", className)} label="Loading service accounts">
-        {Array.from({ length: 2 }, (_, i) => (
-          <div key={i} className="stg:bg-muted-subtle stg:h-14 stg:animate-pulse stg:rounded-lg" />
-        ))}
-      </LoadingRegion>
-    );
+    return <SettingsSkeleton label="Loading service accounts" rows={3} className={className} />;
   }
 
   if (error) {
-    return (
-      <p className={cn("stg:text-destructive stg:text-xs", className)} role="alert">
-        {getUserMessage(error)}
-      </p>
-    );
+    return <ErrorMessage error={error} title="The service accounts could not be read" retry={refetch} className={className} />;
   }
 
   if (serviceAccounts.length === 0) {
     return (
-      <p
-        className={cn(
-          "stg:text-muted-foreground stg:py-4 stg:text-center stg:text-xs",
-          className,
-        )}
-      >
-        No service accounts yet.
-      </p>
+      <EmptyState
+        variant="first-use"
+        title="No service accounts yet"
+        description="Make one for each CI job, script or integration, so it keeps working when the person who set it up leaves."
+        className={cn("stg:rounded-lg stg:border stg:border-dashed stg:border-border", className)}
+      />
     );
   }
 

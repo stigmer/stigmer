@@ -2,18 +2,19 @@
 
 import { type FormEvent, useCallback, useEffect, useId, useMemo, useState } from "react";
 import { cn } from "@stigmer/design-tokens";
-import { getUserMessage } from "@stigmer/client";
 import { saveErrorMessage } from "@stigmer/react-core/internal";
 import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import { useOrganization } from "./useOrganization.js";
 import { useUpdateOrganization } from "./useUpdateOrganization.js";
 import { useCheckPermission } from "../grant/useCheckPermission.js";
+import { EditCheckFailed } from "./EditCheckFailed.js";
 import { useServerInfo } from "../server-info.js";
 import { MemoryEnabledRow } from "../internal/MemoryEnabledRow.js";
 import { DefaultEnvironmentRow } from "./DefaultEnvironmentRow.js";
 import { StandingContextField } from "../internal/StandingContextField.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
-import { LoadingRegion } from "../internal/LoadingRegion.js";
+import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
+import { ErrorMessage } from "../error/ErrorMessage.js";
 
 /** The memory row's copy where each member's own switch must also be on. */
 const MEMBER_CONSENT_MEMORY_HELPER_TEXT =
@@ -92,12 +93,15 @@ export function OrgPreferencesPanel({
       ? ORG_ALONE_MEMORY_HELPER_TEXT
       : MEMBER_CONSENT_MEMORY_HELPER_TEXT;
 
-  // Fail-open: OSS local mode has no IAM service, so editing stays
-  // available there; cloud gets a genuine server verdict.
-  const { allowed: canEdit } = useCheckPermission(
-    org ? { kind: "organization", id: org } : null,
-    "can_edit",
-  );
+  // Editing is the admins' (`can_edit`), offered only on the server's yes:
+  // never while the check is in flight and never on a failed check (the
+  // check fails closed), so a member never sees an editable form. A settled
+  // no says who can; a failed check says it could not check, and the
+  // content stays read-only (stigmer#2662).
+  const editCheck = useCheckPermission(org ? { kind: "organization", id: org } : null, "can_edit", { fail: "closed" });
+  const canEdit = !editCheck.isLoading && editCheck.allowed;
+  const checkFailed = !editCheck.isLoading && editCheck.error !== null;
+  const editDenied = !editCheck.isLoading && !checkFailed && !editCheck.allowed;
 
   const [standingContext, setStandingContext] = useState("");
 
@@ -188,15 +192,7 @@ export function OrgPreferencesPanel({
   // -----------------------------------------------------------------------
 
   if (isFetching && !organization) {
-    return (
-      <LoadingRegion
-        className={cn("stg:space-y-4", className)}
-        label="Loading organization preferences"
-      >
-        <div className="stg:bg-muted-subtle stg:h-28 stg:animate-pulse stg:rounded" />
-        <div className="stg:bg-muted-subtle stg:h-8 stg:w-32 stg:animate-pulse stg:rounded" />
-      </LoadingRegion>
-    );
+    return <SettingsSkeleton label="Loading organization preferences" rows={2} className={className} />;
   }
 
   // -----------------------------------------------------------------------
@@ -204,23 +200,7 @@ export function OrgPreferencesPanel({
   // -----------------------------------------------------------------------
 
   if (fetchError) {
-    return (
-      <div className={cn("stg:space-y-3", className)} role="alert">
-        <p className="stg:text-destructive stg:text-sm">
-          {getUserMessage(fetchError)}
-        </p>
-        <button
-          type="button"
-          onClick={refetch}
-          className={cn(
-            "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium",
-            "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
-          )}
-        >
-          Retry
-        </button>
-      </div>
-    );
+    return <ErrorMessage error={fetchError} title="The preferences could not be read" retry={refetch} className={className} />;
   }
 
   if (!organization) return null;
@@ -260,11 +240,12 @@ export function OrgPreferencesPanel({
         onSaved={handleDefaultEnvironmentSaved}
       />
 
-      {!canEdit && (
+      {editDenied && (
         <p className="stg:text-2xs stg:text-muted-foreground">
           Only organization admins can edit these preferences.
         </p>
       )}
+      {checkFailed && <EditCheckFailed what="edit these preferences" onRetry={editCheck.refetch} />}
 
       {updateError && (
         <p className="stg:text-destructive stg:text-2xs" role="alert">

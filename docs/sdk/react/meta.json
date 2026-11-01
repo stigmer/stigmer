@@ -42,6 +42,7 @@
     "service-account",
     "---Platform Building Blocks---",
     "sidebar",
+    "page",
     "resource-workbench",
     "resource-creation",
     "resource-detail",

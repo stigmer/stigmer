@@ -24,10 +24,12 @@ import {
   type OrganizationEmbeddingValue,
 } from "./useUpdateOrganizationEmbedding.js";
 import { useCheckPermission } from "../grant/useCheckPermission.js";
+import { EditCheckFailed } from "./EditCheckFailed.js";
 import { Switch } from "../switch/Switch.js";
 import { VaultPicker } from "../vault/VaultPicker.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
-import { LoadingRegion } from "../internal/LoadingRegion.js";
+import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
+import { ErrorMessage } from "../error/ErrorMessage.js";
 import { UNSTYLED_FIELDSET, UNSTYLED_LIST } from "../internal/element-resets.js";
 import { keptReference } from "../internal/kept-reference.js";
 
@@ -80,37 +82,22 @@ export function OrgEmbeddingPanel({ org, serviceAccountsHref, onUpdated, classNa
   // Held here, not in the form: a save is read back as a new stored
   // version, which starts a fresh form, and it must still say Saved.
   const [saved, setSaved] = useState(false);
-  // Fail-open: a server without sign-in answers every check allowed, and
-  // the server refuses a save the answer missed.
-  const { allowed: canEdit } = useCheckPermission(
-    org ? { kind: "organization", id: org } : null,
-    "can_edit",
-  );
+  // Editing is the admins' (`can_edit`), offered only on the server's yes:
+  // never while the check is in flight and never on a failed check (the
+  // check fails closed), so a member never sees an editable form. A settled
+  // no says who can; a failed check says it could not check, and the
+  // content stays read-only (stigmer#2662).
+  const editCheck = useCheckPermission(org ? { kind: "organization", id: org } : null, "can_edit", { fail: "closed" });
+  const canEdit = !editCheck.isLoading && editCheck.allowed;
+  const checkFailed = !editCheck.isLoading && editCheck.error !== null;
+  const editDenied = !editCheck.isLoading && !checkFailed && !editCheck.allowed;
 
   if (isLoading && !organization) {
-    return (
-      <LoadingRegion className={cn("stg:space-y-4", className)} label="Loading embedding settings">
-        <div className="stg:bg-muted-subtle stg:h-12 stg:animate-pulse stg:rounded" />
-      </LoadingRegion>
-    );
+    return <SettingsSkeleton label="Loading embedding settings" rows={2} className={className} />;
   }
 
   if (fetchError) {
-    return (
-      <div className={cn("stg:space-y-3", className)} role="alert">
-        <p className="stg:text-destructive stg:text-sm">{getUserMessage(fetchError)}</p>
-        <button
-          type="button"
-          onClick={refetch}
-          className={cn(
-            "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium",
-            "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
-          )}
-        >
-          Retry
-        </button>
-      </div>
-    );
+    return <ErrorMessage error={fetchError} title="The embedding settings could not be read" retry={refetch} className={className} />;
   }
 
   if (!organization) return null;
@@ -123,6 +110,9 @@ export function OrgEmbeddingPanel({ org, serviceAccountsHref, onUpdated, classNa
       org={org}
       stored={organizationEmbeddingOf(organization)}
       canEdit={canEdit}
+      editDenied={editDenied}
+      checkFailed={checkFailed}
+      onRetryCheck={editCheck.refetch}
       serviceAccountsHref={serviceAccountsHref}
       saved={saved}
       onSavedChange={setSaved}
@@ -137,6 +127,12 @@ interface EmbeddingFormProps {
   readonly org: string;
   readonly stored: OrganizationEmbeddingValue;
   readonly canEdit: boolean;
+  /** The server said no: the form says who can change it. */
+  readonly editDenied: boolean;
+  /** The permission check failed: the form stays read-only and says so. */
+  readonly checkFailed: boolean;
+  /** Asks the edit check again after it failed. */
+  readonly onRetryCheck: () => void;
   readonly serviceAccountsHref: string | undefined;
   /** Whether the last save succeeded and nothing was edited since. */
   readonly saved: boolean;
@@ -151,6 +147,9 @@ function EmbeddingForm({
   org,
   stored,
   canEdit,
+  editDenied,
+  checkFailed,
+  onRetryCheck,
   serviceAccountsHref,
   saved,
   onSavedChange,
@@ -378,11 +377,13 @@ function EmbeddingForm({
             </span>
           )}
         </div>
-      ) : (
+      ) : editDenied ? (
         <p className="stg:text-2xs stg:text-muted-foreground">
           Only organization admins can change these settings.
         </p>
-      )}
+      ) : checkFailed ? (
+        <EditCheckFailed what="change these settings" onRetry={onRetryCheck} />
+      ) : null}
     </form>
   );
 }

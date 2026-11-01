@@ -1,7 +1,11 @@
 "use client";
 
-import { useId } from "react";
+// The Members settings page: who belongs to the active organization and the
+// role each holds. The members panel draws the rows and their data states.
+
 import { OrgMembersPanel } from "../grant/OrgMembersPanel.js";
+import { NoOrganization } from "./NoOrganization.js";
+import { SettingsPage } from "./SettingsPage.js";
 import { useResourceAvailable } from "@stigmer/react-core";
 import { ApiResourceKind } from "@stigmer/react-core/internal";
 import { useOrg } from "../organization/OrgProvider.js";
@@ -29,7 +33,6 @@ export interface MembersSectionProps {
  * role, so this section says so.
  */
 export function MembersSection({ serviceAccountsHref }: MembersSectionProps = {}) {
-  const headingId = useId();
   const { activeOrg } = useOrg();
   const invitationsAvailable = useResourceAvailable(
     ApiResourceKind.invitation,
@@ -48,45 +51,31 @@ export function MembersSection({ serviceAccountsHref }: MembersSectionProps = {}
   );
 
   return (
-    <section aria-labelledby={headingId}>
-      <h2
-        id={headingId}
-        className="stg:text-foreground stg:mb-1 stg:text-sm stg:font-semibold"
-      >
-        Members
-      </h2>
-      <p className="stg:text-muted-foreground stg:mb-4 stg:text-xs">
-        Manage who has access to this organization and what they can do.
-        Members can be granted owner, admin, member, or viewer roles; only
-        an owner grants or removes owner.
-        {!invitationsAvailable && (
-          <>
-            {" "}
-            There are no invitations on this edition: people join this
-            organization the first time they sign in, and you adjust their
-            roles here.
-          </>
-        )}
-      </p>
-
+    <SettingsPage
+      title="Members"
+      description={
+        <>
+          Who belongs to this organization and the role each holds: owner, admin, member or viewer. Only an owner grants or
+          removes owner.
+          {!invitationsAvailable && (
+            <> People join this organization the first time they sign in; you set their roles here.</>
+          )}
+        </>
+      }
+    >
       {!org ? (
-        <p className="stg:text-muted-foreground stg:py-4 stg:text-center stg:text-xs">
-          Select an organization to manage members.
-        </p>
+        <NoOrganization what="its members" />
       ) : (
         <>
           {hasSignInRoleProviders && (
-            <div className="stg:mb-3 stg:rounded-md stg:border stg:border-border-muted stg:bg-muted-faint stg:px-3 stg:py-2">
-              <p className="stg:text-2xs stg:text-muted-foreground">
-                This organization has federation issuers that grant a sign-in
-                role. People appear here the first time they sign in through
-                one of them.
-              </p>
-            </div>
+            <p className="stg:rounded-lg stg:border stg:border-border-muted stg:bg-muted-faint stg:px-4 stg:py-3 stg:text-xs stg:text-muted-foreground">
+              This organization has federation issuers that grant a sign-in role. People appear here the first time they sign
+              in through one of them.
+            </p>
           )}
           <OrgMembersPanel org={org} serviceAccountsHref={serviceAccountsHref} />
         </>
       )}
-    </section>
+    </SettingsPage>
   );
 }

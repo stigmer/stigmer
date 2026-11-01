@@ -62,10 +62,10 @@ export function EmptyState({
         {icon ?? resolved.defaultIcon}
       </div>
       <div className="stg:flex stg:flex-col stg:gap-1">
-        <p className="stg:text-sm stg:font-medium stg:text-muted-foreground">
+        <p className="stg:m-0 stg:text-sm stg:font-medium stg:text-muted-foreground">
           {resolved.title}
         </p>
-        <p className="stg:max-w-sm stg:text-xs stg:text-muted-foreground-subtle">
+        <p className="stg:m-0 stg:max-w-sm stg:text-xs stg:text-muted-foreground">
           {resolved.description}
         </p>
       </div>

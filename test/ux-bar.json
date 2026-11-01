@@ -218,10 +218,7 @@
     },
     {
       "id": "CON-04",
-      "promise": "Every settings page shares one shell, with its empty and loading states.",
-      "pending": [
-        "stigmer#2631"
-      ]
+      "promise": "Every settings page shares one shell, with its empty and loading states."
     },
     {
       "id": "CON-05",

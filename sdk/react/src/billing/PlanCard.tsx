@@ -1,13 +1,13 @@
 "use client";
 
 import { cn } from "@stigmer/design-tokens";
-import { getUserMessage } from "@stigmer/client";
 import {
   PeriodEstimateLineKind,
   type PeriodEstimate,
   type PeriodEstimateLine,
 } from "@stigmer/apis/ai/stigmer/billing/subscription/v1/io_pb";
 import type { AgentHours } from "@stigmer/apis/ai/stigmer/billing/subscription/v1/io_pb";
+import { ErrorMessage } from "../error/ErrorMessage.js";
 import { StatusBadge } from "../resource-workbench/components/StatusBadge.js";
 import { AgentHoursStanding } from "./AgentHoursStanding.js";
 import { formatUsd } from "./format.js";
@@ -28,6 +28,10 @@ export interface PlanCardProps {
   readonly agentHours?: AgentHours | null;
   /** Why the agent hours could not be read, shown in their place. */
   readonly agentHoursError?: Error | null;
+  /** Reads the estimate again after it failed; its error offers Retry when given. */
+  readonly onRetryEstimate?: () => void;
+  /** Reads the agent hours again after they failed; their error offers Retry when given. */
+  readonly onRetryAgentHours?: () => void;
   /**
    * Set for a child organization, which is on its parent's plan and has no
    * plan, period or invoice of its own: the parent's name, or "" when it
@@ -51,6 +55,8 @@ export function PlanCard({
   estimateError,
   agentHours,
   agentHoursError,
+  onRetryEstimate,
+  onRetryAgentHours,
   billedToParent,
   className,
 }: PlanCardProps) {
@@ -81,16 +87,22 @@ export function PlanCard({
 
       {!child && agentHours && <AgentHoursStanding hours={agentHours} />}
       {!child && !agentHours && agentHoursError && (
-        <p className="stg:mt-3 stg:text-xs stg:text-destructive" role="alert">
-          Agent hours could not be read: {getUserMessage(agentHoursError)}
-        </p>
+        <ErrorMessage
+          error={agentHoursError}
+          title="Agent hours could not be read"
+          retry={onRetryAgentHours}
+          className="stg:mt-3"
+        />
       )}
 
       {!child && estimate && <EstimateLines planName={planName} estimate={estimate} />}
       {!child && !estimate && estimateError && (
-        <p className="stg:mt-3 stg:text-xs stg:text-destructive" role="alert">
-          {getUserMessage(estimateError)}
-        </p>
+        <ErrorMessage
+          error={estimateError}
+          title="This period's estimate could not be read"
+          retry={onRetryEstimate}
+          className="stg:mt-3"
+        />
       )}
     </div>
   );

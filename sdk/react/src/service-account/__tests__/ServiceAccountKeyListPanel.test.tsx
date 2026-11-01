@@ -37,9 +37,8 @@ afterEach(() => {
 describe("ServiceAccountKeyListPanel", () => {
   it("reads the account's keys and says so when it has none", async () => {
     render(<ServiceAccountKeyListPanel serviceAccountId="ida_sa_ci" />, { wrapper });
-    expect(
-      await screen.findByText("No keys yet. Create one for each place this service account runs."),
-    ).toBeTruthy();
+    expect(await screen.findByText("No keys yet")).toBeTruthy();
+    expect(screen.getByText("Create one for each place this service account runs.")).toBeTruthy();
     expect(asked.accounts).toEqual(["ida_sa_ci"]);
   });
 

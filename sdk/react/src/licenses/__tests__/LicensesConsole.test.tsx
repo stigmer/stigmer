@@ -95,7 +95,7 @@ describe("LicensesConsole states", () => {
   it("says the edition does not issue licenses, without asking the server", () => {
     const client = mockClient();
     renderConsole(client, "local");
-    expect(screen.getByRole("status").textContent).toMatch(/issued from the Stigmer Cloud console/);
+    expect(screen.getByRole("status").textContent).toMatch(/Licenses come with Stigmer Cloud, which issues them/);
     expect(screen.getByRole("heading", { name: "Licenses" })).toBeTruthy();
     expect(client.license.list).not.toHaveBeenCalled();
   });
@@ -104,7 +104,7 @@ describe("LicensesConsole states", () => {
     renderConsole(
       mockClient({ list: vi.fn().mockRejectedValue(new StigmerError("unknown", "not implemented", 12)) }),
     );
-    await waitFor(() => expect(screen.getByText(/issued from the Stigmer Cloud console/)).toBeTruthy());
+    await waitFor(() => expect(screen.getByText(/Licenses come with Stigmer Cloud, which issues them/)).toBeTruthy());
   });
 
   it("shows the access notice to a non-operator", async () => {

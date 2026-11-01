@@ -149,7 +149,7 @@ describe("ChannelAppsSection", () => {
       screen.queryByRole("button", { name: /New channel app/ }),
     ).toBeNull();
     expect(
-      screen.getByText(/Channel apps are not available in local mode/),
+      screen.getByText(/Channel apps come with Stigmer Cloud/),
     ).toBeTruthy();
   });
 });

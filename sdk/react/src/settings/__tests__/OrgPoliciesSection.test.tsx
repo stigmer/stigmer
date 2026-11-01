@@ -45,7 +45,7 @@ describe("OrgPoliciesSection", () => {
 
   it("prompts for an organization when none is selected", () => {
     render(<OrgPoliciesSection />);
-    expect(screen.getByText("Select an organization to view its policies.")).toBeTruthy();
+    expect(screen.getByText("Choose an organization to see its policies.")).toBeTruthy();
     expect(state.given).toEqual([]);
   });
 });

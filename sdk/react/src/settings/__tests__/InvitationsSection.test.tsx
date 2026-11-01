@@ -176,7 +176,7 @@ describe("InvitationsSection", () => {
     const server = newServer(async () => true);
     renderSection("local", server);
 
-    expect(await screen.findByText(/Invitations are not available in local mode/)).toBeTruthy();
+    expect(await screen.findByText(/Invitations come with Stigmer Enterprise and Cloud/)).toBeTruthy();
     await settle();
     expect(server.checks).toEqual([]);
     expect(server.listedOrgs).toEqual([]);
@@ -187,7 +187,7 @@ describe("InvitationsSection", () => {
     renderSection("cloud", server);
     await settle();
 
-    expect(screen.getByText("Select an organization to manage invitations.")).toBeTruthy();
+    expect(screen.getByText("Choose an organization to see its invitations.")).toBeTruthy();
     expect(server.checks).toEqual([]);
   });
 

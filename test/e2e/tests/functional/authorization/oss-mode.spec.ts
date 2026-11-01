@@ -25,7 +25,7 @@ test.describe("OSS Mode - Authorization UI", () => {
 
     // The row half of grants is served by open source: the page
     // renders the members panel, never a cloud-only notice.
-    await expect(page.getByText(/not available in local mode/i)).not.toBeVisible();
+    await expect(page.getByText(/come with Stigmer (Enterprise and )?Cloud/i)).not.toBeVisible();
     const members = page.getByRole("list", { name: "Organization members" });
     await expect(members).toBeVisible();
     await expect(members.getByRole("listitem")).toHaveCount(1);

@@ -135,7 +135,7 @@ const SITES: readonly Site[] = [
     // My vault's card; the shared vaults' list below it is
     // VaultListPanel's row, named "Loading vaults".
     name: "VaultsSection",
-    label: "Loading",
+    label: "Loading My vault",
     client: {
       ...ORG_PROVIDER_CALLS,
       vault: { getMine: pending, list: pending },

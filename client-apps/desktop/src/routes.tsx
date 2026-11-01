@@ -20,6 +20,7 @@ import {
   OrgPoliciesSection,
   OrgEmbeddingSection,
   ServiceAccountsSection,
+  SettingsSkeleton,
   TeamsSection,
   UsageSection,
 } from "@stigmer/react-sdk/console";
@@ -58,6 +59,15 @@ const OrgProfilePage = lazy(() => import("./pages/settings/OrgProfilePage"));
 const ModelCatalogPage = lazy(() => import("./pages/settings/ModelCatalogPage"));
 const LicensesPage = lazy(() => import("./pages/settings/LicensesPage"));
 const PlansPage = lazy(() => import("./pages/settings/PlansPage"));
+
+/**
+ * A settings page's lazy chunk: while it loads, the skeleton every settings
+ * page draws while it reads, as the web console's settings `loading.tsx`
+ * does, so moving between settings pages has one look.
+ */
+function SettingsLazyPage({ children }: { children: React.ReactNode }) {
+  return <Suspense fallback={<SettingsSkeleton label="Loading settings" />}>{children}</Suspense>;
+}
 
 function LazyPage({ children }: { children: React.ReactNode }) {
   return (
@@ -297,9 +307,9 @@ const routes: RouteObject[] = [
               {
                 index: true,
                 element: (
-                  <LazyPage>
+                  <SettingsLazyPage>
                     <SettingsLanding />
-                  </LazyPage>
+                  </SettingsLazyPage>
                 ),
               },
               { path: "api-keys", element: <ApiKeysSection /> },
@@ -312,9 +322,9 @@ const routes: RouteObject[] = [
               {
                 path: "org-profile",
                 element: (
-                  <LazyPage>
+                  <SettingsLazyPage>
                     <OrgProfilePage />
-                  </LazyPage>
+                  </SettingsLazyPage>
                 ),
               },
               { path: "org-preferences", element: <OrgPreferencesSection /> },
@@ -342,33 +352,33 @@ const routes: RouteObject[] = [
               {
                 path: "billing",
                 element: (
-                  <LazyPage>
+                  <SettingsLazyPage>
                     <BillingPage />
-                  </LazyPage>
+                  </SettingsLazyPage>
                 ),
               },
               {
                 path: "model-catalog",
                 element: (
-                  <LazyPage>
+                  <SettingsLazyPage>
                     <ModelCatalogPage />
-                  </LazyPage>
+                  </SettingsLazyPage>
                 ),
               },
               {
                 path: "licenses",
                 element: (
-                  <LazyPage>
+                  <SettingsLazyPage>
                     <LicensesPage />
-                  </LazyPage>
+                  </SettingsLazyPage>
                 ),
               },
               {
                 path: "plans",
                 element: (
-                  <LazyPage>
+                  <SettingsLazyPage>
                     <PlansPage />
-                  </LazyPage>
+                  </SettingsLazyPage>
                 ),
               },
             ],

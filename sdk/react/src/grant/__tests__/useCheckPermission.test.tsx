@@ -175,6 +175,43 @@ describe("useCheckPermission — fail-closed", () => {
     expect(probe.getAttribute("data-loading")).toBe("false");
   });
 
+  it("asks again on refetch after a failure: in flight, then the server's answer", async () => {
+    const check = vi.fn().mockRejectedValueOnce(new Error("unavailable")).mockResolvedValue({ isAuthorized: true });
+    function RetryProbe() {
+      const { allowed, isLoading, error, refetch } = useCheckPermission(AGENT, "can_edit", CLOSED);
+      return (
+        <button type="button" data-testid="retry" data-allowed={String(allowed)} data-loading={String(isLoading)} data-error={String(error !== null)} onClick={refetch} />
+      );
+    }
+    render(<RetryProbe />, { wrapper: wrapper(createMockStigmer(check)) });
+    const probe = screen.getByTestId("retry");
+    await waitFor(() => expect(probe.getAttribute("data-error")).toBe("true"));
+
+    act(() => probe.click());
+    expect(probe.getAttribute("data-loading")).toBe("true");
+    expect(probe.getAttribute("data-allowed")).toBe("false");
+    await waitFor(() => expect(probe.getAttribute("data-allowed")).toBe("true"));
+    expect(probe.getAttribute("data-error")).toBe("false");
+    expect(check).toHaveBeenCalledTimes(2);
+  });
+
+  it("asks nothing again on refetch while the server's answer stands", async () => {
+    const check = vi.fn().mockResolvedValue({ isAuthorized: false });
+    function RetryProbe() {
+      const { allowed, isLoading, refetch } = useCheckPermission(AGENT, "can_edit", CLOSED);
+      return <button type="button" data-testid="retry" data-allowed={String(allowed)} data-loading={String(isLoading)} onClick={refetch} />;
+    }
+    render(<RetryProbe />, { wrapper: wrapper(createMockStigmer(check)) });
+    const probe = screen.getByTestId("retry");
+    await waitFor(() => expect(probe.getAttribute("data-loading")).toBe("false"));
+
+    // A verdict is an answer, not a failure: a refetch keeps it and asks nothing.
+    act(() => probe.click());
+    expect(probe.getAttribute("data-loading")).toBe("false");
+    expect(probe.getAttribute("data-allowed")).toBe("false");
+    expect(check).toHaveBeenCalledTimes(1);
+  });
+
   it("is denied when resource is null (check skipped)", () => {
     const check = vi.fn();
     render(<Probe resource={null} options={CLOSED} />, {
@@ -255,7 +292,7 @@ describe("useCheckPermission — the first render", () => {
       wrapper: wrapper(createMockStigmer(check)),
     });
 
-    expect(renders[0]).toEqual({ allowed: true, isLoading: true, error: null });
+    expect(renders[0]).toEqual({ allowed: true, isLoading: true, error: null, refetch: expect.any(Function) });
     expect(check).toHaveBeenCalledTimes(1);
   });
 
@@ -267,7 +304,7 @@ describe("useCheckPermission — the first render", () => {
       { wrapper: wrapper(createMockStigmer(check)) },
     );
 
-    expect(renders[0]).toEqual({ allowed: false, isLoading: true, error: null });
+    expect(renders[0]).toEqual({ allowed: false, isLoading: true, error: null, refetch: expect.any(Function) });
   });
 
   it("reports a skipped (null) resource as settled from the first render", () => {
@@ -277,7 +314,7 @@ describe("useCheckPermission — the first render", () => {
       wrapper: wrapper(createMockStigmer(check)),
     });
 
-    expect(renders[0]).toEqual({ allowed: true, isLoading: false, error: null });
+    expect(renders[0]).toEqual({ allowed: true, isLoading: false, error: null, refetch: expect.any(Function) });
     expect(check).not.toHaveBeenCalled();
   });
 
@@ -293,7 +330,7 @@ describe("useCheckPermission — the first render", () => {
       wrapper: wrapper(createMockStigmer(check)),
     });
     await act(async () => denied.resolve(false));
-    expect(renders.at(-1)).toEqual({ allowed: false, isLoading: false, error: null });
+    expect(renders.at(-1)).toEqual({ allowed: false, isLoading: false, error: null, refetch: expect.any(Function) });
 
     const firstForSkill = renders.length;
     rerender(<Recorder resource={SKILL} renders={renders} />);
@@ -301,10 +338,10 @@ describe("useCheckPermission — the first render", () => {
     // Every render for the new resource is in flight at the fail value,
     // never the agent's denial passed off as the skill's verdict.
     for (const value of renders.slice(firstForSkill)) {
-      expect(value).toEqual({ allowed: true, isLoading: true, error: null });
+      expect(value).toEqual({ allowed: true, isLoading: true, error: null, refetch: expect.any(Function) });
     }
     await act(async () => pending.resolve(true));
-    expect(renders.at(-1)).toEqual({ allowed: true, isLoading: false, error: null });
+    expect(renders.at(-1)).toEqual({ allowed: true, isLoading: false, error: null, refetch: expect.any(Function) });
   });
 
   it("returns the same object while its answer is unchanged", async () => {

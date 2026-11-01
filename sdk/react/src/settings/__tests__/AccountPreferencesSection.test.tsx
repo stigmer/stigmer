@@ -1,5 +1,5 @@
 /**
- * The Account Preferences settings section: a region named by its heading,
+ * The Account preferences settings section: a region named by its heading,
  * the copy saying preferences reach agents on the runs the user starts, and
  * the preferences panel inside it (stubbed here; it has its own tests).
  */
@@ -18,9 +18,9 @@ describe("AccountPreferencesSection", () => {
   it("names its region by the heading and explains where preferences go", () => {
     render(<AccountPreferencesSection />);
 
-    const region = screen.getByRole("region", { name: "Account Preferences" });
+    const region = screen.getByRole("region", { name: "Account preferences" });
     expect(
-      within(region).getByText("Personal standing context shared with agents on runs you start."),
+      within(region).getByText("What agents know about you on every run you start, and the models you start with."),
     ).toBeTruthy();
     expect(within(region).getByTestId("preferences-panel")).toBeTruthy();
   });

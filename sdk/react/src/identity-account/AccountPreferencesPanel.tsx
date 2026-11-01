@@ -9,7 +9,6 @@ import {
   useState,
 } from "react";
 import { cn } from "@stigmer/design-tokens";
-import { getUserMessage } from "@stigmer/client";
 import { saveErrorMessage } from "@stigmer/react-core/internal";
 import type { IdentityAccount } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
 import type { IdentityAccountPreferences } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/spec_pb";
@@ -23,7 +22,8 @@ import { MemoryEnabledRow } from "../internal/MemoryEnabledRow.js";
 import { StandingContextField } from "../internal/StandingContextField.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { Switch } from "../switch/Switch.js";
-import { LoadingRegion } from "../internal/LoadingRegion.js";
+import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
+import { ErrorMessage } from "../error/ErrorMessage.js";
 
 /** Props for {@link AccountPreferencesPanel}. */
 export interface AccountPreferencesPanelProps {
@@ -246,15 +246,7 @@ export function AccountPreferencesPanel({
   // -----------------------------------------------------------------------
 
   if (isFetching && !account) {
-    return (
-      <LoadingRegion
-        className={cn("stg:space-y-4", className)}
-        label="Loading account preferences"
-      >
-        <div className="stg:bg-muted-subtle stg:h-28 stg:animate-pulse stg:rounded" />
-        <div className="stg:bg-muted-subtle stg:h-8 stg:w-32 stg:animate-pulse stg:rounded" />
-      </LoadingRegion>
-    );
+    return <SettingsSkeleton label="Loading account preferences" rows={2} className={className} />;
   }
 
   // -----------------------------------------------------------------------
@@ -262,23 +254,7 @@ export function AccountPreferencesPanel({
   // -----------------------------------------------------------------------
 
   if (fetchError) {
-    return (
-      <div className={cn("stg:space-y-3", className)} role="alert">
-        <p className="stg:text-destructive stg:text-sm">
-          {getUserMessage(fetchError)}
-        </p>
-        <button
-          type="button"
-          onClick={refetch}
-          className={cn(
-            "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium",
-            "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
-          )}
-        >
-          Retry
-        </button>
-      </div>
-    );
+    return <ErrorMessage error={fetchError} title="Your preferences could not be read" retry={refetch} className={className} />;
   }
 
   if (!account) return null;

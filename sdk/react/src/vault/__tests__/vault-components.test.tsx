@@ -429,7 +429,7 @@ describe("VaultListPanel", () => {
     expect((await screen.findByRole("alert")).textContent).toMatch(/list failed/);
     cleanup();
     render(<VaultListPanel org={ORG} />, { wrapper: providers(clientWith([], { onlyMine: true })) });
-    expect(await screen.findByText("No shared vaults yet.")).toBeTruthy();
+    expect(await screen.findByText("No shared vaults yet")).toBeTruthy();
   });
 });
 
@@ -447,13 +447,13 @@ describe("VaultsSection", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Sign in again" }));
     await waitFor(() => expect(oauth.started).toEqual(["https://mcp.linear.app/mcp"]));
 
-    fireEvent.click(screen.getByRole("button", { name: "+ New shared vault" }));
+    fireEvent.click(screen.getByRole("button", { name: "New shared vault" }));
     fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Ops" } });
     fireEvent.click(screen.getByRole("button", { name: "Create vault" }));
     await waitFor(() => expect(writes).toEqual(["create:Ops::"]));
     await waitFor(() => expect(screen.queryByRole("button", { name: "Create vault" })).toBeNull());
 
-    fireEvent.click(screen.getByRole("button", { name: "+ New shared vault" }));
+    fireEvent.click(screen.getByRole("button", { name: "New shared vault" }));
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     expect(screen.queryByRole("button", { name: "Create vault" })).toBeNull();
   });

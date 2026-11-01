@@ -705,6 +705,7 @@ export type { StigmerToasterProps } from "./feedback/index.js";
 
 // Empty state — reusable empty/zero/permission/error state primitives
 export { EmptyState, useEmptyState } from "./empty-state/index.js";
+export { PageHeader, type PageHeaderProps } from "./page/PageHeader.js";
 export type { EmptyStateProps } from "./empty-state/index.js";
 
 // Usage — org-level usage report hook, dashboard panel, and date-range utilities
