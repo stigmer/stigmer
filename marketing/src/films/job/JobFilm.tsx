@@ -433,7 +433,7 @@ function Headline({ size, align }: { size: number; align: "center" | "left" }) {
       <h1
         style={{
           margin: 0,
-          fontFamily: LOOK.sans,
+          fontFamily: LOOK.display,
           fontSize: size,
           lineHeight: 1.08,
           fontWeight: 700,
@@ -462,7 +462,7 @@ function EndCard({ frame, width }: { frame: number; width: number }) {
         style={{
           margin: 0,
           maxWidth: width,
-          fontFamily: LOOK.sans,
+          fontFamily: LOOK.display,
           fontSize: 64,
           lineHeight: 1.15,
           fontWeight: 600,

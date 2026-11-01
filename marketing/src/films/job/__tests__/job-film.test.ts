@@ -3,12 +3,17 @@
  * same order, the same parts lit at each of them by the rule the hero lights
  * by (brand/job-story.ts), and words drawn from the job, the shared titles and
  * the positioning. A word, a step or a part's lighting changed there fails
- * here until the film agrees, and then the film is rendered again.
+ * here until the film agrees, and then the film is rendered again. Its three
+ * faces are the brand's (brand/type.ts), read from the film's pure font
+ * module, since the loads in look.ts need a browser.
  */
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { AGENT_GET_TITLES } from "../../../../../brand/agent-gets";
 import { POSITIONING } from "../../../../../brand/positioning";
+import { TYPE } from "../../../../../brand/type";
+import * as faces from "../fonts";
 import {
   JOB,
   OPACITY,
@@ -98,4 +103,14 @@ test("no line or card holds a number", () => {
   for (const words of [HEADLINE.text, END_CARD.sentence, END_CARD.address, ...BEATS.map((beat) => beat.line ?? "")]) {
     assert.doesNotMatch(words, /\d/, words);
   }
+});
+
+test("the film sets its words in the brand's three faces, loaded from one module", () => {
+  assert.deepEqual(
+    { display: faces.display.fontFamily, sans: faces.sans.fontFamily, mono: faces.mono.fontFamily },
+    { display: TYPE.display.family, sans: TYPE.sans.family, mono: TYPE.mono.family },
+  );
+  const look = readFileSync(new URL("../look.ts", import.meta.url), "utf8");
+  assert.match(look, /from "\.\/fonts"/);
+  assert.doesNotMatch(look, /@remotion\/google-fonts/, "look.ts loads its faces through fonts.ts");
 });

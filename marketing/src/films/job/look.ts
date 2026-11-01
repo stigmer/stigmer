@@ -1,17 +1,21 @@
 /**
- * The job film's look: the homepage hero's palette and the site's two fonts,
- * so the film reads like the picture it retells.
+ * The job film's look: the homepage hero's palette and the brand's three
+ * faces (brand/type.ts), so the film reads like the picture it retells.
  *
  * The colours are the site's dark tokens (site/src/app/globals.css) as the
- * hero's picture uses them; the fonts are the ones site/src/app/layout.tsx
- * loads, fetched at render time as the site's build fetches them. The intro
+ * hero's picture uses them. The faces are the site's: Instrument Sans for the
+ * headline and the closing sentence, Geist for the picture's words, Geist Mono
+ * for step labels and the address. They are fetched from Google Fonts at
+ * render time, since the films render by hand and never in CI; the site and
+ * the social card draw from the same faces vendored in brand/fonts/. The intro
  * film keeps its own theme (../../theme.ts).
  */
-import { loadFont as loadDmMono } from "@remotion/google-fonts/DMMono";
-import { loadFont as loadInstrumentSans } from "@remotion/google-fonts/InstrumentSans";
+import { display, mono, sans } from "./fonts";
 
-const sans = loadInstrumentSans("normal", { weights: ["400", "500", "600", "700"], subsets: ["latin"] });
-const mono = loadDmMono("normal", { weights: ["400", "500"], subsets: ["latin"] });
+const LATIN = { subsets: ["latin" as const] };
+const displayFont = display.loadFont("normal", { ...LATIN, weights: ["600", "700"] });
+const sansFont = sans.loadFont("normal", { ...LATIN, weights: ["400", "500", "600"] });
+const monoFont = mono.loadFont("normal", { ...LATIN, weights: ["400", "500"] });
 
 export const LOOK = {
   /** The page's ground, and the hero's vignette over it. */
@@ -29,6 +33,10 @@ export const LOOK = {
   foreground: "#f5f5f5",
   /** The other customers' dimmed words. */
   dim: "#808080",
-  sans: sans.fontFamily,
-  mono: mono.fontFamily,
+  /** The headline and the closing sentence. */
+  display: displayFont.fontFamily,
+  /** Every other word. */
+  sans: sansFont.fontFamily,
+  /** Step labels and the address. */
+  mono: monoFont.fontFamily,
 } as const;
