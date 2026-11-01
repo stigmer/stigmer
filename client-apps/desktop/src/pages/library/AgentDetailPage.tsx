@@ -3,12 +3,9 @@ import { useParams, useNavigate } from "react-router-dom";
 import { invoke } from "@tauri-apps/api/core";
 import {
   AgentDetailView,
-  EditResourceYamlDialog,
-  useAgent,
   useCopyResource,
   useConfirmAction,
   useDeleteResource,
-  useExportResource,
   ConfirmDialog,
   useBreadcrumbOverride,
   type DetailAction,
@@ -53,11 +50,6 @@ export default function AgentDetailPage() {
     resourceId,
     resourceName,
   );
-  const { agent, refetch: refetchAgent } = useAgent(org ?? "", slug ?? "");
-  const { copyYaml, copyJson, downloadYaml } = useExportResource({ resource: agent });
-
-  const [editYamlOpen, setEditYamlOpen] = useState(false);
-
   // An eval's try is a run (run_…); on desktop it is viewed through its
   // parent session, the resolve-then-navigate pattern of the plugin page.
   const [pendingRunId, setPendingRunId] = useState<string | null>(null);
@@ -86,13 +78,18 @@ export default function AgentDetailPage() {
 
   useEffect(() => () => setLabel(null), [setLabel]);
 
-  const moveToSlug = useCanonicalDetailSlug("agents", org, slug, agent?.metadata?.slug);
+  // The view holds the one copy of the agent (its Edit YAML and exports
+  // read it too) and reports each load; the slug it loaded at moves the
+  // route, after a YAML apply that renamed it too, as on the routine page.
+  const [loadedSlug, setLoadedSlug] = useState<string | undefined>(undefined);
+  const moveToSlug = useCanonicalDetailSlug("agents", org, slug, loadedSlug);
 
   const handleResourceLoad = useCallback(
-    ({ name, id }: { name: string; id: string }) => {
+    ({ name, id, slug: loaded }: { name: string; id: string; slug: string }) => {
       setLabel(name);
       setResourceId(id);
       setResourceName(name);
+      setLoadedSlug(loaded);
     },
     [setLabel],
   );
@@ -141,34 +138,6 @@ export default function AgentDetailPage() {
         onAction: () => copyQualifiedSlug(org ?? "", slug ?? ""),
       },
       {
-        id: "edit-yaml",
-        label: "Edit YAML",
-        group: "export",
-        onAction: () => setEditYamlOpen(true),
-        disabled: !agent,
-      },
-      {
-        id: "export-yaml",
-        label: "Export YAML",
-        group: "export",
-        onAction: copyYaml,
-        disabled: !agent,
-      },
-      {
-        id: "export-json",
-        label: "Export JSON",
-        group: "export",
-        onAction: copyJson,
-        disabled: !agent,
-      },
-      {
-        id: "download-yaml",
-        label: "Download YAML",
-        group: "export",
-        onAction: downloadYaml,
-        disabled: !agent,
-      },
-      {
         id: "delete",
         label: "Delete",
         variant: "destructive" as const,
@@ -183,10 +152,6 @@ export default function AgentDetailPage() {
       copyQualifiedSlug,
       org,
       slug,
-      copyYaml,
-      copyJson,
-      downloadYaml,
-      agent,
       handleDelete,
       isDeleting,
     ],
@@ -214,6 +179,7 @@ export default function AgentDetailPage() {
         onRenamed={(renamed) => moveToSlug(renamed.metadata?.slug ?? "")}
         primaryAction={primaryAction}
         actions={actions}
+        yamlActions
         buildChatLinkUrl={buildChatLinkUrl}
         onConnectExternal={handleConnectExternal}
         // A plain-anchor hash URL: the in-app WhatsApp connect dialog links
@@ -225,12 +191,6 @@ export default function AgentDetailPage() {
         sessionHref={(id) => `#/sessions/${id}`}
         activeTab={activeTab}
         onTabChange={setActiveTab}
-      />
-      <EditResourceYamlDialog
-        open={editYamlOpen}
-        onOpenChange={setEditYamlOpen}
-        resource={agent}
-        onApplied={refetchAgent}
       />
       <ConfirmDialog
         state={confirmState}

@@ -1,8 +1,11 @@
 /**
- * Pins the web agent page's address after a rename: the agent read by the
- * URL's slug answers its current one, so a URL naming a slug the agent was
- * renamed away from moves to the current slug in place, and a rename made
- * from the view moves it too. Also pins what the page hands the view's
+ * Pins the web agent page's address after a rename: the agent the view
+ * reads by the URL's slug answers its current one, reported on each load,
+ * so a URL naming a slug the agent was renamed away from moves to the
+ * current slug in place, and a rename made from the view moves it too.
+ * Pins that the page holds no copy of the agent: the view owns the actions
+ * that read it (`yamlActions`), and the page passes only Copy ID, Copy slug
+ * and Delete (stigmer/stigmer#2813). Also pins what the page hands the view's
  * Channels tab: no tab of its own (the view builds Channels), the chat-link
  * URL builder, the channel-apps settings route and the session route, and
  * no external connect hand-off (the browser runs the Slack popup itself).
@@ -14,7 +17,10 @@ import { act, render } from "@testing-library/react";
 import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 
 interface ViewProps {
+  onResourceLoad?: (meta: { name: string; id: string; slug: string }) => void;
   onRenamed?: (agent: Agent) => void;
+  yamlActions?: boolean;
+  actions?: Array<{ id: string }>;
   additionalTabs?: unknown;
   buildChatLinkUrl?: (channelId: string) => string;
   channelAppsHref?: string;
@@ -25,7 +31,6 @@ interface ViewProps {
 const page = vi.hoisted(() => ({
   view: [] as ViewProps[],
   canonical: [] as string[],
-  agentSlug: "",
 }));
 
 vi.mock("@stigmer/react-sdk", () => ({
@@ -33,13 +38,7 @@ vi.mock("@stigmer/react-sdk", () => ({
     page.view.push(props);
     return null;
   },
-  EditResourceYamlDialog: () => null,
   ConfirmDialog: () => null,
-  useAgent: () => ({
-    agent:
-      page.agentSlug === "" ? null : { metadata: { slug: page.agentSlug } },
-    refetch: () => {},
-  }),
   useCopyResource: () => ({ copyId: () => {}, copyQualifiedSlug: () => {} }),
   useConfirmAction: () => ({
     confirmState: null,
@@ -50,11 +49,6 @@ vi.mock("@stigmer/react-sdk", () => ({
   useDeleteResource: () => ({
     deleteResource: async () => {},
     isDeleting: false,
-  }),
-  useExportResource: () => ({
-    copyYaml: () => {},
-    copyJson: () => {},
-    downloadYaml: () => {},
   }),
   useBreadcrumbOverride: () => ({ setLabel: () => {} }),
 }));
@@ -81,20 +75,24 @@ import { chatLinkUrlFor } from "@/domain/chat-link/chat-link-url";
 beforeEach(() => {
   page.view.length = 0;
   page.canonical.length = 0;
-  page.agentSlug = "";
 });
+
+/** The view's report of a load of the agent, answering `slug`. */
+function loaded(slug: string): void {
+  act(() => page.view.at(-1)?.onResourceLoad?.({ name: "Support bot", id: "agt_1", slug }));
+}
 
 describe("web AgentDetailPageInner", () => {
   it("leaves the address alone while the agent answers the URL's slug", () => {
-    page.agentSlug = "support-bot";
     render(<AgentDetailPageInner org="acme" slug="support-bot" />);
+    loaded("support-bot");
 
     expect(page.canonical).toEqual([]);
   });
 
   it("moves the address to the slug the agent answers to now, and to the one a rename gave it", () => {
-    page.agentSlug = "support-bot";
     render(<AgentDetailPageInner org="acme" slug="test-bot" />);
+    loaded("support-bot");
     expect(page.canonical).toEqual(["support-bot"]);
 
     act(() =>
@@ -109,8 +107,23 @@ describe("web AgentDetailPageInner", () => {
     expect(page.canonical).toEqual(["support-bot", "help-bot"]);
   });
 
+  it("moves the address to the slug a YAML apply renamed the agent to, reported by the view's next load", () => {
+    render(<AgentDetailPageInner org="acme" slug="support-bot" />);
+    loaded("support-bot");
+    loaded("help-desk");
+
+    expect(page.canonical).toEqual(["help-desk"]);
+  });
+
+  it("leaves the actions that read the agent to the view, and passes only its own", () => {
+    render(<AgentDetailPageInner org="acme" slug="support-bot" />);
+
+    const view = page.view.at(-1);
+    expect(view?.yamlActions).toBe(true);
+    expect(view?.actions?.map((a) => a.id)).toEqual(["copy-id", "copy-slug", "delete"]);
+  });
+
   it("hands the view's Channels tab its routing seams and adds no tab of its own", () => {
-    page.agentSlug = "support-bot";
     render(<AgentDetailPageInner org="acme" slug="support-bot" />);
 
     const view = page.view.at(-1);
