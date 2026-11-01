@@ -86,15 +86,20 @@ test.describe("Accessibility audits", () => {
     await page.goto("/marketplace");
 
     await expect(page.getByLabel("Search plugins")).toBeVisible({ timeout: 15_000 });
-    await page.waitForLoadState("networkidle");
+    // The grid (its Upload tile first, for an admin) once the sources are
+    // read; the catalogue's reads keep the network busy, so idle is no signal.
+    await expect(page.getByRole("list", { name: "Plugins" })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("status").filter({ hasText: /^Reading / })).toHaveCount(0);
 
     await runAxeAudit(page);
   });
 
   // The pages are the ones the settings navigation links for this person on
   // this edition, read from the navigation itself, so a page added to it is
-  // audited without anyone listing it here. Every page is audited before the
-  // case judges, so one page's violations never hide another's.
+  // audited without anyone listing it here. Each is opened from its link, as
+  // a person moves between them (a full load per page raced the dev server's
+  // compile of the next route). Every page is audited before the case
+  // judges, so one page's violations never hide another's.
   test("every settings page the navigation links passes axe-core audit", async ({ page }) => {
     await page.goto("/settings");
     const nav = page.getByLabel("Management navigation");
@@ -107,7 +112,8 @@ test.describe("Accessibility audits", () => {
 
     const failures: string[] = [];
     for (const href of settingsPages) {
-      await page.goto(href);
+      await nav.locator(`a[href="${href}"]`).first().click();
+      await page.waitForURL(`**${href}`);
       await expect(page.getByRole("region").first(), `${href} shows no section`).toBeVisible({ timeout: 15_000 });
       await page.waitForLoadState("networkidle");
       const report = await axeFailures(page);
