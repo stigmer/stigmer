@@ -113,6 +113,18 @@ describe("runHeadlessStream", () => {
     expect(renderer.types).toHaveLength(4);
   });
 
+  it("follows a turn sent after the session idled until that turn ends (stigmer#2553)", async () => {
+    const renderer = new RecordingRenderer();
+    const result = await runHeadlessStream(
+      deps({
+        follow: source([user("run_0", "before"), phase("run_0", "completed"), idle("end_turn"), user(R, "now"), phase(R, "completed")]),
+        renderer,
+      }),
+    );
+    expect([result.turn?.runId, result.phase]).toEqual([R, "completed"]);
+    expect(renderer.types).toHaveLength(5);
+  });
+
   it("CLI-06 answers each ask the session waits on once, with the --approve-default answer", async () => {
     const renderer = new RecordingRenderer();
     const answers: Array<[string, AskAnswer]> = [];
