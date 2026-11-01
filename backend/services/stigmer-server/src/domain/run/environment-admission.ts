@@ -23,7 +23,14 @@
  *   - the Environment no longer exists;
  *   - under limited networking without allow_mcp_servers, an MCP server of
  *     the agent tree whose host no listed host admits, naming the server
- *     (Claude Managed Agents' rule).
+ *     (Claude Managed Agents' rule);
+ *   - under limited networking, a git repository the conversation clones
+ *     whose hosts the sandbox would not reach, naming the repository (by
+ *     host and path, never its credentials) and the hosts: its URL's host,
+ *     and for github.com also api.github.com, where write-back opens its
+ *     pull request (the runner's writeback-coordinator.ts). The reachable
+ *     hosts are environmentFactsOf's expansion, the very list the sandbox's
+ *     egress is built from, so this rule and the gateway cannot drift.
  * And with PERMISSION_DENIED, at each turn: a person who may no longer view
  * an Environment the conversation or its routine named (vaults' "checked at
  * write and at run"). An agent's or the organization's default is vouched
@@ -35,6 +42,7 @@
 import type { Environment } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/api_pb";
 import { EnvironmentSchema } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/api_pb";
 import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import type { SessionResource } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import { EnvironmentSource, ExecutionTarget } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IamPermission } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
@@ -53,6 +61,7 @@ import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import { environmentFactsOf, environmentName, environmentSupportOf, isLimited, unservableReason } from "../environment/facts.js";
 import { hostAdmits } from "../environment/hosts.js";
+import { PACKAGE_MANAGER_HOSTS } from "../environment/package-manager-hosts.js";
 import { ROUTING_SESSION } from "./temporal/config.js";
 import type { AgentExecutionTemporalConfig } from "./temporal/config.js";
 import type { RunServer } from "./run-servers.js";
@@ -102,6 +111,55 @@ export function unlistedMcpHostMessage(environment: string, server: string, host
     `environment '${environment}' limits networking and does not allow the agent's MCP servers, and MCP server '${server}' ` +
     `at '${host}' is not one of its allowed hosts; add the host to the environment, or allow its MCP servers`
   );
+}
+
+/** The host write-back opens a github.com repository's pull request at (the runner's writeback-coordinator.ts). */
+const GITHUB_API_HOST = "api.github.com";
+
+/**
+ * The refusal of a git repository a limited Environment does not reach.
+ * The registries switch is offered only when it opens every host named.
+ */
+export function unlistedRepositoryHostMessage(environment: string, repository: string, hosts: readonly string[]): string {
+  const one = hosts.length === 1;
+  const opensAll = hosts.every((host) => PACKAGE_MANAGER_HOSTS.some((entry) => entry.host === host));
+  return (
+    `environment '${environment}' limits networking, and repository '${repository}' needs ` +
+    `${hosts.map((host) => `'${host}'`).join(" and ")}, which ${one ? "is" : "are"} not among its allowed hosts; ` +
+    `add ${one ? "it" : "them"} to the environment${opensAll ? ", or allow package registries and code hosts" : ""}`
+  );
+}
+
+/**
+ * The hosts a conversation's git repository is reached at: its URL's host,
+ * lower case, and api.github.com beside github.com. None for another kind
+ * of resource or a URL that does not parse (the field's own validation
+ * owns that).
+ */
+export function repositoryHosts(resource: SessionResource): string[] {
+  if (resource.resource.case !== "gitRepository") {
+    return [];
+  }
+  let host: string;
+  try {
+    host = new URL(resource.resource.value.url).hostname.toLowerCase();
+  } catch {
+    return [];
+  }
+  if (host === "") {
+    return [];
+  }
+  return host === "github.com" ? [host, GITHUB_API_HOST] : [host];
+}
+
+/** A repository named by its URL's host and path only: never its credentials, query or fragment. */
+export function repositoryName(url: string): string {
+  try {
+    const parsed = new URL(url);
+    return `${parsed.hostname.toLowerCase()}${parsed.pathname}`.replace(/\/+$/, "");
+  } catch {
+    return "";
+  }
 }
 
 /** The host of an MCP server reached at an address, or `undefined` for a local program or an address that is not a URL. */
@@ -234,6 +292,22 @@ export async function admitEnvironment(admission: EnvironmentAdmission): Promise
       const host = mcpServerHost(server);
       if (host !== undefined && !listed.some((pattern) => hostAdmits(pattern, host))) {
         throw failedPreconditionError(unlistedMcpHostMessage(name, turnServerName(server), host));
+      }
+    }
+  }
+  if (isLimited(environment)) {
+    const allowMcpServers = environment.spec?.networking?.allowMcpServers ?? false;
+    const facts = environmentFactsOf(environment, allowMcpServers ? mcpServerHosts(admission.servers) : []);
+    const reached = facts.network.mode === "limited" ? facts.network.hosts.map((entry) => entry.host) : [];
+    for (const resource of session.spec?.resources ?? []) {
+      if (resource.resource.case !== "gitRepository") {
+        continue;
+      }
+      const missing = repositoryHosts(resource).filter((host) => !reached.some((pattern) => hostAdmits(pattern, host)));
+      if (missing.length > 0) {
+        throw failedPreconditionError(
+          unlistedRepositoryHostMessage(name, repositoryName(resource.resource.value.url), missing),
+        );
       }
     }
   }

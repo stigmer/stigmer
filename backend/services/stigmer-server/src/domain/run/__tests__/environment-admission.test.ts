@@ -23,6 +23,15 @@
  *     admits is refused with unlistedMcpHostMessage (a listed host, exact
  *     or by wildcard, admits it, and a local program is not asked), while
  *     allow_mcp_servers admits any;
+ *   - under limited networking, a git repository whose hosts the
+ *     Environment's admitted hosts (its expansion, facts.ts) do not cover is
+ *     refused with unlistedRepositoryHostMessage, naming the repository by
+ *     host and path only and every host it lacks: a github.com repository
+ *     needs api.github.com too (write-back), another host only its own; the
+ *     sentence offers the registries switch only when that switch would
+ *     cover them. Listing the hosts (exactly or by wildcard), the switch,
+ *     or an allowed MCP server at the same host admits it; an unrestricted
+ *     Environment asks nothing; a URL's credentials are never echoed;
  *   - at a turn (a viewer handed in), a person who may no longer view an
  *     Environment the conversation (source session) or its routine (source
  *     routine) named is refused PERMISSION_DENIED with
@@ -36,8 +45,9 @@
  *     a store that cannot read the row answers INTERNAL;
  *   - planRunValues (run create and recover) runs the rule with the turn's
  *     caller as the viewer, before any value is asked for: an unlisted MCP
- *     host of the conversation's plugin, a deleted Environment and a
- *     revoked view each refuse the turn, and a listed host plans it.
+ *     host of the conversation's plugin, a repository the Environment does
+ *     not reach, a deleted Environment and a revoked view each refuse the
+ *     turn, and a listed host plans it.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -61,6 +71,7 @@ import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import { EnvironmentSource, ExecutionTarget } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { SessionResourceSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IamPermission } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 
@@ -84,9 +95,12 @@ import {
   mcpServerHost,
   mcpServerHosts,
   newEnvironmentPolicy,
+  repositoryHosts,
+  repositoryName,
   revokedEnvironmentMessage,
   sessionEnvironmentFacts,
   unlistedMcpHostMessage,
+  unlistedRepositoryHostMessage,
 } from "../environment-admission.js";
 import type { EnvironmentPolicy } from "../environment-admission.js";
 import { planRunValues } from "../plan-run-values-step.js";
@@ -147,6 +161,8 @@ function conversation(opts: {
   source?: EnvironmentSource;
   agentId?: string;
   plugins?: { org: string; slug: string }[];
+  /** Git repository URLs the conversation clones. */
+  repositories?: string[];
 }): Session {
   return create(SessionSchema, {
     metadata: { id: "ses_1", org: ORG, slug: "chat" },
@@ -154,6 +170,10 @@ function conversation(opts: {
       executionTarget: opts.spec?.executionTarget ?? ExecutionTarget.CLOUD,
       ...(opts.spec?.environmentRef === undefined ? {} : { environmentRef: opts.spec.environmentRef }),
       plugins: opts.plugins ?? [],
+      resources: (opts.repositories ?? []).map((url, index) => ({
+        name: `repo${index}`,
+        resource: { case: "gitRepository" as const, value: { url } },
+      })),
     },
     status: {
       ...(opts.environmentId === undefined
@@ -245,6 +265,27 @@ describe("mcpServerHost and mcpServerHosts", () => {
     const servers = serversOf(plugin);
     expect(servers.map(mcpServerHost)).toEqual(["mcp.linear.app", undefined, undefined, "mcp.linear.app"]);
     expect(mcpServerHosts(servers)).toEqual(["mcp.linear.app"]);
+  });
+});
+
+describe("repositoryHosts and repositoryName", () => {
+  it("reads a repository's host, lower case, adding api.github.com for github.com, and none for a non-URL or a file", () => {
+    const resource = (url: string) =>
+      create(SessionResourceSchema, { name: "repo", resource: { case: "gitRepository", value: { url } } });
+    expect(repositoryHosts(resource("https://GitHub.com/acme/api"))).toEqual(["github.com", "api.github.com"]);
+    expect(repositoryHosts(resource("https://gitlab.com/acme/api"))).toEqual(["gitlab.com"]);
+    expect(repositoryHosts(resource("https://"))).toEqual([]);
+    // A URL that parses with no host (the field's own validation refuses it).
+    expect(repositoryHosts(resource("file:///srv/repo"))).toEqual([]);
+    expect(repositoryHosts(create(SessionResourceSchema, { resource: { case: "file", value: { fileId: "file_1" } } }))).toEqual(
+      [],
+    );
+  });
+
+  it("names a repository by host and path only", () => {
+    expect(repositoryName("https://user:pass@GitHub.com:443/acme/api/?x=1#y")).toBe("github.com/acme/api");
+    expect(repositoryName("https://gitlab.com/acme/api.git")).toBe("gitlab.com/acme/api.git");
+    expect(repositoryName("not a url")).toBe("");
   });
 });
 
@@ -378,6 +419,133 @@ describe("admitEnvironment", () => {
         servers: agentServers({ name: "search", url: "https://search.example.org/mcp" }),
       }),
     ).resolves.toBeUndefined();
+  });
+
+  it("refuses a GitHub repository a limited Environment does not reach, naming the repository and both hosts", async () => {
+    const error = await refusal(
+      admitEnvironment({
+        policy: governing(),
+        session: conversation({ environmentId: "env_01box", repositories: ["https://github.com/acme/api"] }),
+        environment: environment({ networking: { type: NetworkingType.limited, allowedHosts: ["*.linear.app"] } }),
+        servers: [],
+      }),
+    );
+    expect(error.code).toBe(Code.FailedPrecondition);
+    expect(error.rawMessage).toBe(
+      unlistedRepositoryHostMessage("box", "github.com/acme/api", ["github.com", "api.github.com"]),
+    );
+    expect(error.rawMessage).toBe(
+      "environment 'box' limits networking, and repository 'github.com/acme/api' needs 'github.com' and " +
+        "'api.github.com', which are not among its allowed hosts; add them to the environment, or allow package " +
+        "registries and code hosts",
+    );
+    // One host listed: only the other is named.
+    const half = await refusal(
+      admitEnvironment({
+        policy: governing(),
+        session: conversation({ environmentId: "env_01box", repositories: ["https://github.com/acme/api"] }),
+        environment: LIMITED,
+        servers: [],
+      }),
+    );
+    expect(half.rawMessage).toBe(
+      "environment 'box' limits networking, and repository 'github.com/acme/api' needs 'github.com', which is not " +
+        "among its allowed hosts; add it to the environment, or allow package registries and code hosts",
+    );
+  });
+
+  it("names only a non-GitHub repository's own host, and offers the registries switch only when it would cover it", async () => {
+    const gitlab = await refusal(
+      admitEnvironment({
+        policy: governing(),
+        session: conversation({ environmentId: "env_01box", repositories: ["https://GitLab.com/acme/api.git"] }),
+        environment: LIMITED,
+        servers: [],
+      }),
+    );
+    expect(gitlab.rawMessage).toBe(unlistedRepositoryHostMessage("box", "gitlab.com/acme/api.git", ["gitlab.com"]));
+    expect(gitlab.rawMessage).toContain("or allow package registries and code hosts");
+    const own = await refusal(
+      admitEnvironment({
+        policy: governing(),
+        session: conversation({ environmentId: "env_01box", repositories: ["https://git.acme.dev/team/api"] }),
+        environment: environment({
+          networking: { type: NetworkingType.limited, allowedHosts: [], allowPackageManagers: true },
+        }),
+        servers: [],
+      }),
+    );
+    expect(own.rawMessage).toBe(
+      "environment 'box' limits networking, and repository 'git.acme.dev/team/api' needs 'git.acme.dev', which is not " +
+        "among its allowed hosts; add it to the environment",
+    );
+  });
+
+  it("admits a repository whose hosts are listed, matched by wildcard, opened by the registries switch, or an allowed MCP server's", async () => {
+    const admitted = [
+      { allowedHosts: ["github.com", "api.github.com"] },
+      { allowedHosts: ["GitHub.com", "*.github.com"] },
+      { allowedHosts: [], allowPackageManagers: true },
+    ];
+    for (const networking of admitted) {
+      await expect(
+        admitEnvironment({
+          policy: governing(),
+          session: conversation({ environmentId: "env_01box", repositories: ["https://github.com/acme/api"] }),
+          environment: environment({ networking: { type: NetworkingType.limited, ...networking } }),
+          servers: [],
+        }),
+      ).resolves.toBeUndefined();
+    }
+    await expect(
+      admitEnvironment({
+        policy: governing(),
+        session: conversation({ environmentId: "env_01box", repositories: ["https://git.acme.dev/team/api"] }),
+        environment: environment({ networking: { type: NetworkingType.limited, allowedHosts: [], allowMcpServers: true } }),
+        servers: agentServers({ name: "forge", url: "https://git.acme.dev/mcp" }),
+      }),
+    ).resolves.toBeUndefined();
+  });
+
+  it("asks nothing of a repository under unrestricted networking", async () => {
+    await expect(
+      admitEnvironment({
+        policy: governing(),
+        session: conversation({ environmentId: "env_01box", repositories: ["https://github.com/acme/api"] }),
+        environment: environment({ networking: { type: NetworkingType.unrestricted } }),
+        servers: [],
+      }),
+    ).resolves.toBeUndefined();
+  });
+
+  it("asks nothing of a File or a local folder under limited networking", async () => {
+    const session = conversation({ environmentId: "env_01box" });
+    session.spec!.resources = [
+      create(SessionResourceSchema, { resource: { case: "file", value: { fileId: "file_1" } } }),
+      create(SessionResourceSchema, { name: "here", resource: { case: "localPath", value: { path: "/home/me/api" } } }),
+    ];
+    await expect(
+      admitEnvironment({ policy: governing(), session, environment: LIMITED, servers: [] }),
+    ).resolves.toBeUndefined();
+  });
+
+  it("never echoes a repository URL's credentials into the refusal", async () => {
+    const error = await refusal(
+      admitEnvironment({
+        policy: governing(),
+        session: conversation({
+          environmentId: "env_01box",
+          repositories: ["https://octo:ghp_secret@github.com/acme/api?token=abc#frag"],
+        }),
+        environment: LIMITED,
+        servers: [],
+      }),
+    );
+    expect(error.code).toBe(Code.FailedPrecondition);
+    expect(error.rawMessage).toContain("repository 'github.com/acme/api'");
+    for (const secret of ["octo", "ghp_secret", "abc", "frag"]) {
+      expect(error.rawMessage).not.toContain(secret);
+    }
   });
 
   it("refuses, at a turn, a person who may no longer view the Environment the conversation or its routine named", async () => {
@@ -594,6 +762,15 @@ describe("over a real store", () => {
       expect(error.code).toBe(Code.FailedPrecondition);
       expect(error.rawMessage).toContain("environment 'box' limits networking and does not allow the agent's MCP servers");
       expect(error.rawMessage).toContain("at 'far.example.org' is not one of its allowed hosts");
+      expect(asked).toEqual([]);
+    });
+
+    it("refuses a turn whose conversation's GitHub repository the limited Environment does not reach, before any value is asked for", async () => {
+      const asked: RunCredentialInput[] = [];
+      const session = conversation({ environmentId: "env_01box", repositories: ["https://github.com/acme/api"] });
+      const error = await refusal(planRunValues(deps(session, asked, recording({ kind: "allow" }).authorizer), turn(), PERSON));
+      expect(error.code).toBe(Code.FailedPrecondition);
+      expect(error.rawMessage).toBe(unlistedRepositoryHostMessage("box", "github.com/acme/api", ["github.com"]));
       expect(asked).toEqual([]);
     });
 

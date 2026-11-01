@@ -36,8 +36,10 @@
  * The runtime's wait on the sandbox's Environment install
  * (`environment/install.ts`) is pinned here too: a turn awaits the boot's
  * install before its resolution, so a failed install fails the turn with
- * the install's own message and nothing of the engine runs, and a clean one
- * lets the turn run. The install is started through its own seam
+ * the install's own message, saying whether the next message tries again,
+ * and nothing of the engine runs; a clean one lets the turn run, and so
+ * does the turn after an install that failed once and passes on its next
+ * attempt. The install is started through its own seam
  * (`startEnvironmentInstall` with a stand-in command runner) and forgotten
  * after each arm.
  *
@@ -559,7 +561,7 @@ describe("run-turn: the fake adapter through the real runtime", () => {
     function startInstall(run: CommandRunner): void {
       startEnvironmentInstall(
         { network: "unrestricted", packages: { apt: [], cargo: [], gem: [], go: [], npm: ["express"], pip: [] } },
-        { identity: null, prefix: join(dir, "prefix"), env: { PATH: programs }, run, log: () => {} },
+        { identity: null, prefix: join(dir, "prefix"), env: { PATH: programs }, run, log: () => {}, sleep: async () => {} },
       );
     }
 
@@ -573,7 +575,28 @@ describe("run-turn: the fake adapter through the real runtime", () => {
       expect(slimOf(subject, invocation).phase).toBe("RUN_FAILED");
       const final = driver.record.lastFullStatus!;
       expect(final.error).toContain("the environment's npm packages did not install: `npm install` exited 1");
+      // The boot's attempt was the first; the turn's was the second.
+      expect(final.error).toContain("the next message tries the install again (attempt 2 of 3 failed)");
       expect(aiMessages(driver.record.rowsOf(final))).not.toContain(NEVER_RUN);
+    });
+
+    it("a turn after an install that failed once runs, on the install's next attempt", async () => {
+      let calls = 0;
+      startInstall(async () => {
+        calls += 1;
+        // The boot's attempt: the command and its own retry fail.
+        return calls <= 2
+          ? { exitCode: 1, timedOut: false, output: "npm ERR! network ECONNRESET" }
+          : { exitCode: 0, timedOut: false, output: "" };
+      });
+      await environmentInstalled().catch(() => undefined);
+      clock.reset();
+      const driver = new RuntimeExecutionDriver(harness, "fake-environment-recovered");
+      const invocation = await driver.turn([scenario.say("Installed on the second attempt.")]);
+
+      expect(slimOf(subject, invocation).phase).toBe("RUN_COMPLETED");
+      expect(calls).toBe(3);
+      expect(aiMessages(driver.record.rowsOf(driver.record.lastFullStatus!))).toContain("Installed on the second attempt.");
     });
 
     it("a clean install lets the turn run", async () => {

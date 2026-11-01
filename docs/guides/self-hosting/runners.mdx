@@ -491,7 +491,8 @@ rights, never the runner's. The runner's own `PATH` is untouched.
 default image has all but Rust and Ruby. When one is missing, the install fails
 naming what to add, such as `golang-go` in the Environment's `apt` packages, or
 an image with Go. A failed install fails the Session's turn, with the
-installer's output.
+installer's output, and the Session's next turn tries it again, up to three
+attempts per sandbox. A missing program is not tried again.
 
 **When installs run.** The runner starts the install when it boots and each turn
 waits for it, so how often it runs depends on how long a runner's files last:

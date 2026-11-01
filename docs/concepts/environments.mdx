@@ -76,12 +76,18 @@ person's own keys stay theirs. Plain settings live in the Agent's `env`. The
 image is chosen by whoever runs the server, and the packages are what you add on
 top.
 
-Two rules keep a limited Environment from failing in ways you would only find
+Three rules keep a limited Environment from failing in ways you would only find
 mid-conversation. Packages under limited networking need the package registries
 switch on, since the installers must reach their registries; saving one without
-it is refused. And with the MCP servers switch off, a conversation whose Agent
-uses an MCP server at a host the list does not admit is refused before it
-starts, naming the server and its host.
+it is refused. With the MCP servers switch off, a conversation whose Agent uses
+an MCP server at a host the list does not admit is refused before it starts,
+naming the server and its host. And a conversation with a repository the sandbox
+could not reach is refused before it starts, naming the repository and the hosts
+it needs: its own host, and for a GitHub repository `api.github.com` too, where
+its pull request is opened. List them, or turn on the package registries and
+code hosts switch, which opens GitHub, GitLab and Bitbucket. Each turn asks the
+last two rules again, so an Environment edited after a conversation started is
+caught at that conversation's next message.
 
 ## Which one a conversation gets
 
@@ -146,9 +152,12 @@ An edit to an Environment reaches its conversations in two halves:
 
 A failed install fails the turn, with the installer's own output. A command that
 fails is tried once more after two seconds; one command may run for 10 minutes
-and the whole install for 15. When the sandbox's image lacks an installer, the
-install fails naming what to add, such as `ruby-full` in the `apt` packages for
-`gem`.
+and the whole install for 15. The next message tries the whole install again, up
+to three attempts per sandbox, and the failure's first line says whether another
+attempt will come. Once none will, fix the Environment's packages and start a
+new conversation: a sandbox reads its packages only when it starts. When the
+sandbox's image lacks an installer, the install fails naming what to add, such
+as `ruby-full` in the `apt` packages for `gem`, and is not tried again.
 
 ## What a blocked website looks like
 
@@ -157,18 +166,10 @@ is closed during its handshake, so a tool reports a connection or TLS error. A
 plain HTTP request is answered `403` with the body `egress denied`; it doesn't
 name the host.
 
-Two cases to know about:
-
-- **In a sandbox's first seconds**, Agent Substrate's gateway can refuse a host
-  the list allows
-  ([stigmer#2413](https://github.com/stigmer/stigmer/issues/2413)). The
-  installer retries once for this.
-- **A conversation with a repository** clones and writes back to it from inside
-  the sandbox, so under limited networking it needs GitHub reachable: list
-  `github.com` and `api.github.com`, or turn on the package registries and code
-  hosts switch. Without either, its first turn fails
-  ([stigmer#2421](https://github.com/stigmer/stigmer/issues/2421)). That is why
-  the console's form starts a new Environment with that switch on.
+In a sandbox's first seconds, Agent Substrate's gateway can refuse a host the
+list allows ([stigmer#2413](https://github.com/stigmer/stigmer/issues/2413)).
+The installer retries once for this, and the next message tries the install
+again.
 
 Which web tools the list governs depends on the
 [harness](/docs/concepts/harnesses). The Stigmer harness fetches web pages from
@@ -250,6 +251,7 @@ are the closest idea, and an Environment uses their fields as they are.
 | `packages`: `apt`, `cargo`, `gem`, `go`, `npm`, `pip`, in that order                 | The same                                                                |
 | Packages under limited networking without the registries switch: refused             | Refused with a 400                                                      |
 | An Agent's MCP server at an unlisted host, with the MCP switch off: refused up front | Session creation fails with a 400                                       |
+| A repository at a host the list does not admit: refused up front                     | A GitHub repository attached to the session stays available             |
 | Not versioned; each conversation records the one it runs in                          | Not versioned                                                           |
 | A conversation names one, or inherits one                                            | A session names one by its ID                                           |
 

@@ -29,8 +29,16 @@
  *   - `spawnCommand`, over a real `sh`: a program that cannot start is
  *     reported in the output; a command past its deadline is killed and
  *     reported so, and the output it keeps is its tail, bounded;
- *   - the boot's install: started once, awaited by every turn, a failure
- *     kept for them and never an unhandled rejection.
+ *   - the boot's install: started once, awaited by every turn, never an
+ *     unhandled rejection; a failure that may pass (a command that failed
+ *     twice, a deadline) is tried again by the next turn that awaits it, up
+ *     to MAX_INSTALL_ATTEMPTS attempts in all, turns waiting at once sharing
+ *     one attempt, and a success is kept; the failure's first line says
+ *     whether another attempt will come, ahead of the output's tail; once
+ *     attempts are spent, and at once for an image that lacks a manager's
+ *     program, the failure is kept for every later turn and names the
+ *     recovery (a new conversation); an error that is not the install's own
+ *     is kept as it is.
  */
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -46,6 +54,7 @@ import {
   environmentInstalled,
   installCommands,
   installEnvironment,
+  MAX_INSTALL_ATTEMPTS,
   OUTPUT_TAIL_BYTES,
   packageDigest,
   RETRY_PAUSE_MS,
@@ -556,13 +565,104 @@ describe("the boot's install", () => {
     expect(second.calls).toEqual([]);
   });
 
-  it("keeps a failure for every turn that awaits it", async () => {
-    startEnvironmentInstall(environment({ npm: ["express"] }), deps(failingRun));
-    await expect(environmentInstalled()).rejects.toBeInstanceOf(EnvironmentInstallError);
-    await expect(environmentInstalled()).rejects.toThrow(
-      "the environment's npm packages did not install: `npm install` exited 1, then 1 on its retry\nE404\n--- the retry ---\nE404",
+  /** A runner whose first `failures` calls exit 1; it counts every call. */
+  function flakyRun(failures: number): { run: CommandRunner; calls: () => number } {
+    let calls = 0;
+    return {
+      calls: () => calls,
+      run: async () => {
+        calls += 1;
+        return calls <= failures
+          ? { exitCode: 1, timedOut: false, output: "E404" }
+          : { exitCode: 0, timedOut: false, output: "" };
+      },
+    };
+  }
+
+  async function failureOf(promise: Promise<void>): Promise<Error> {
+    try {
+      await promise;
+    } catch (error) {
+      if (error instanceof Error) return error;
+      throw error;
+    }
+    throw new Error("expected the install to fail");
+  }
+
+  const AGAIN = (attempt: number): string =>
+    `the next message tries the install again (attempt ${attempt} of ${MAX_INSTALL_ATTEMPTS} failed)`;
+  const SPENT =
+    "this sandbox will not try again: fix the environment's packages (or the sandbox's image), then start a new conversation";
+
+  it("tries a failed install again at the next turn, and keeps the success", async () => {
+    // The boot's attempt: the command and its own retry both fail.
+    const flaky = flakyRun(2);
+    startEnvironmentInstall(environment({ npm: ["express"] }), deps(flaky.run));
+    const first = await failureOf(environmentInstalled());
+    expect(first).toBeInstanceOf(EnvironmentInstallError);
+    expect(first.message.split("\n")[0]).toBe(
+      `the environment's npm packages did not install: \`npm install\` exited 1, then 1 on its retry; ${AGAIN(1)}`,
     );
-    expect(consoleError).toHaveBeenCalledWith(expect.stringContaining("[environment] the environment's npm packages did not install"));
+    expect(first.message).toContain("E404\n--- the retry ---\nE404");
+    await expect(environmentInstalled()).resolves.toBeUndefined();
+    await expect(environmentInstalled()).resolves.toBeUndefined();
+    expect(flaky.calls()).toBe(3);
+  });
+
+  it("stops after three attempts, keeps the last failure, and names the recovery", async () => {
+    expect(MAX_INSTALL_ATTEMPTS).toBe(3);
+    const flaky = flakyRun(Number.POSITIVE_INFINITY);
+    startEnvironmentInstall(environment({ npm: ["express"] }), deps(flaky.run));
+    expect((await failureOf(environmentInstalled())).message.split("\n")[0]).toContain(`; ${AGAIN(1)}`);
+    expect((await failureOf(environmentInstalled())).message.split("\n")[0]).toContain(`; ${AGAIN(2)}`);
+    const last = await failureOf(environmentInstalled());
+    expect(last.message.split("\n")[0]).toBe(
+      `the environment's npm packages did not install: \`npm install\` exited 1, then 1 on its retry; ${SPENT}`,
+    );
+    expect(await failureOf(environmentInstalled())).toBe(last);
+    // Two commands (one and its retry) per attempt, three attempts, then none.
+    expect(flaky.calls()).toBe(2 * MAX_INSTALL_ATTEMPTS);
+  });
+
+  it("never tries again an image that lacks the manager's program", async () => {
+    const flaky = flakyRun(0);
+    startEnvironmentInstall(environment({ npm: ["express"] }), { ...deps(flaky.run), env: { PATH: join(dir, "nowhere") } });
+    const first = await failureOf(environmentInstalled());
+    expect(first).toBeInstanceOf(EnvironmentInstallError);
+    expect((first as EnvironmentInstallError).retriable).toBe(false);
+    expect(first.message).toBe(
+      "the environment's npm packages did not install: this sandbox's image has no npm; add npm to the environment's " +
+        `apt packages, or use an image with Node.js; ${SPENT}`,
+    );
+    expect(await failureOf(environmentInstalled())).toBe(first);
+    expect(flaky.calls()).toBe(0);
+  });
+
+  it("gives turns waiting at once one shared attempt", async () => {
+    const flaky = flakyRun(2);
+    startEnvironmentInstall(environment({ npm: ["express"] }), deps(flaky.run));
+    await failureOf(environmentInstalled());
+    const one = environmentInstalled();
+    const other = environmentInstalled();
+    expect(other).toBe(one);
+    await expect(Promise.all([one, other])).resolves.toEqual([undefined, undefined]);
+    expect(flaky.calls()).toBe(3);
+  });
+
+  it("keeps, as it is, an error that is not the install's own", async () => {
+    writeFileSync(join(dir, "plain-file"), "");
+    const flaky = flakyRun(0);
+    startEnvironmentInstall(environment({ npm: ["express"] }), { ...deps(flaky.run), prefix: join(dir, "plain-file", "prefix") });
+    const first = await failureOf(environmentInstalled());
+    expect(first).not.toBeInstanceOf(EnvironmentInstallError);
+    expect(first.message).toContain("ENOTDIR");
+    expect(await failureOf(environmentInstalled())).toBe(first);
+    expect(flaky.calls()).toBe(0);
+  });
+
+  it("defaults an install's failure to one that may pass", () => {
+    expect(new EnvironmentInstallError("npm", "it failed", "").retriable).toBe(true);
+    expect(new EnvironmentInstallError("npm", "no npm", "", false).retriable).toBe(false);
   });
 
   it("never leaves an install no turn awaits as an unhandled rejection", async () => {

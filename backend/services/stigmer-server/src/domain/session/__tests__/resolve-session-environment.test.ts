@@ -19,8 +19,9 @@
  *     spec.environment_ref once it has run, and passes before it and for an
  *     echo;
  *   - AdmitSessionEnvironment reads the pinned agent tree and refuses an
- *     unlisted MCP host of a limited Environment, and reads nothing for a
- *     conversation with no Environment.
+ *     unlisted MCP host of a limited Environment, refuses a git repository
+ *     whose host it does not reach, and reads nothing for a conversation
+ *     with no Environment.
  *
  * Through a composed server under the require-authentication posture (the
  * built-in evaluator) with a sandbox lane whose driver supports both, with
@@ -35,7 +36,8 @@
  *     and may not name Carol's private one (PERMISSION_DENIED: the
  *     reference rule's writer clause);
  *   - session create refuses an agent default whose MCP server's host the
- *     limited Environment does not list;
+ *     limited Environment does not list, and a GitHub repository the
+ *     conversation names that its limited Environment does not reach;
  *   - once a turn has run, an update naming another Environment is refused;
  *   - a conversation with no organization takes no organization default, and
  *     a store that cannot read the organization answers INTERNAL.
@@ -58,6 +60,7 @@ import { EnvironmentCommandController } from "@stigmer/apis/ai/stigmer/agentic/e
 import { NetworkingType } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/spec_pb";
 import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import { SessionResourceSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import { SessionCommandController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/command_pb";
 import { EnvironmentSource, ExecutionTarget } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { SessionSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
@@ -87,7 +90,11 @@ import { SqliteStore } from "../../../store/sqlite/store.js";
 import type { Store } from "../../../store/interface.js";
 import { namingSaves } from "../../../store/__tests__/named-saves.js";
 import { FAKE_SANDBOX_DRIVER, environmentInput, sandboxUnit } from "../../environment/__tests__/support.js";
-import { LOCAL_ENVIRONMENT_MESSAGE, unlistedMcpHostMessage } from "../../run/environment-admission.js";
+import {
+  LOCAL_ENVIRONMENT_MESSAGE,
+  unlistedMcpHostMessage,
+  unlistedRepositoryHostMessage,
+} from "../../run/environment-admission.js";
 import { agentExecutionListIndex } from "../../run/list-index.js";
 import type { EnvironmentPolicy } from "../../run/environment-admission.js";
 import { newAdmitSessionEnvironmentStep } from "../admit-session-environment.js";
@@ -420,6 +427,21 @@ describe("resolveSessionEnvironment and its steps, over a real store", () => {
       await expect(admit(atHead)).resolves.toBeUndefined();
     });
 
+    it("refuses a git repository whose host the limited Environment does not reach", async () => {
+      const session = conversation({ agentId: "agt_1", pinned: HEAD });
+      session.status!.environment = create(ApiResourceReferenceSchema, ref("env_01fenced"));
+      session.status!.environmentSource = EnvironmentSource.SESSION;
+      session.spec!.resources = [
+        create(SessionResourceSchema, {
+          name: "api",
+          resource: { case: "gitRepository", value: { url: "https://github.com/acme/api" } },
+        }),
+      ];
+      const error = await refusal(admit(session));
+      expect(error.code).toBe(Code.FailedPrecondition);
+      expect(error.rawMessage).toBe(unlistedRepositoryHostMessage("fenced", "github.com/acme/api", ["github.com"]));
+    });
+
     it("reads nothing for a conversation with no Environment", async () => {
       const untouchable = new Proxy(store, {
         get() {
@@ -596,6 +618,20 @@ describe("the session chains' Environment, composed under an authentication post
     expect(refused.code).toBe(Code.FailedPrecondition);
     expect(refused.rawMessage).toBe(unlistedMcpHostMessage("fenced", "search", "search.example.org"));
     expect(fenced.metadata?.slug).toBe("fenced");
+  });
+
+  it("refuses at create a GitHub repository the limited Environment does not reach", async () => {
+    const refused = await errorOf(() =>
+      createClient(SessionCommandController, asCarol()).create(
+        sessionInput({
+          executionTarget: ExecutionTarget.CLOUD,
+          environmentRef: environmentRef("fenced"),
+          resources: [{ name: "api", resource: { case: "gitRepository", value: { url: "https://github.com/acme/api" } } }],
+        }),
+      ),
+    );
+    expect(refused.code).toBe(Code.FailedPrecondition);
+    expect(refused.rawMessage).toBe(unlistedRepositoryHostMessage("fenced", "github.com/acme/api", ["github.com"]));
   });
 
   it("refuses an update naming another Environment once a turn has run", async () => {

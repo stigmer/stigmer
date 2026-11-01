@@ -32,6 +32,25 @@
  * seconds (stigmer#2413). A second failure fails the install with both
  * outputs' tails. A command killed at its deadline is not retried.
  *
+ * A failed install is tried again by the next turn that awaits it, up to
+ * MAX_INSTALL_ATTEMPTS attempts in all (the boot's is the first), when the
+ * failure may pass: a command that failed twice, or one killed at a
+ * deadline (a slow mirror). An image that lacks a program never gets
+ * another attempt, nor does an error that is not the install's own. Turns
+ * waiting at once share one attempt (a turn awaits the install before it
+ * takes the workspace lock). The failure's first line says whether another
+ * attempt will come and, once none will, the recovery: fix the packages,
+ * then start a new conversation, since a sandbox reads its Environment once
+ * at boot. A count, not a cool-down, bounds it: a deadline-killed attempt
+ * costs its turn up to the install's deadline, and three is the most a
+ * conversation pays. The keeper is the template preparation's shape
+ * (stigmer-server's sandbox/substrate/template.ts): an attempt in flight is
+ * shared, and a failure that may pass clears it for the next caller.
+ *
+ * Every attempt runs every manager again: the digest is written only after
+ * a clean install, and each manager installs into the same prefix
+ * idempotently.
+ *
  * It runs once per package set: after a clean install the set's digest is
  * written beside the prefix, in its parent (`/opt/stigmer`, root's), never
  * inside it: the prefix is the agent's, so a file the root runner wrote
@@ -63,6 +82,8 @@ export { ENVIRONMENT_PREFIX, environmentPathEntries, environmentPrefix } from ".
 export const ENVIRONMENT_INSTALL_DEADLINE_MS = 15 * 60_000;
 /** One command's deadline. */
 export const COMMAND_DEADLINE_MS = 10 * 60_000;
+/** How many times one sandbox attempts its install, the boot's included. */
+export const MAX_INSTALL_ATTEMPTS = 3;
 /** The pause before a failed command's one retry. */
 export const RETRY_PAUSE_MS = 2_000;
 /** How much of a failed command's output the failure carries. */
@@ -96,12 +117,17 @@ export interface InstallCommand {
 }
 
 
-/** A failed install: the manager, how it ended, and the tail of its output. */
+/**
+ * A failed install: the manager, how it ended, the tail of its output, and
+ * whether another attempt could pass (false for what the sandbox's image
+ * lacks).
+ */
 export class EnvironmentInstallError extends Error {
   constructor(
     readonly manager: Manager,
     readonly detail: string,
     readonly output: string,
+    readonly retriable: boolean = true,
   ) {
     super(`the environment's ${manager} packages did not install: ${detail}${output === "" ? "" : `\n${output}`}`);
     this.name = "EnvironmentInstallError";
@@ -276,10 +302,10 @@ export async function installEnvironment(environment: SandboxEnvironment, deps: 
     if (own.length === 0) continue;
     const { program, remedy } = PROGRAMS[manager];
     if (programOnPath(program, env["PATH"] ?? "") === undefined) {
-      throw new EnvironmentInstallError(manager, `this sandbox's image has no ${program}; ${remedy}`, "");
+      throw new EnvironmentInstallError(manager, `this sandbox's image has no ${program}; ${remedy}`, "", false);
     }
     if (manager === "apt" && identity === null && process.getuid?.() !== 0) {
-      throw new EnvironmentInstallError(manager, "apt packages install as root, and this runner does not run as root", "");
+      throw new EnvironmentInstallError(manager, "apt packages install as root, and this runner does not run as root", "", false);
     }
     const span = tracer.startSpan("environment.install", { attributes: { "stigmer.environment.manager": manager, "stigmer.environment.packages": packages[manager].length } });
     const started = now();
@@ -330,7 +356,7 @@ export function rootArgv(command: InstallCommand, identity: AgentIdentity | null
   if (command.asAgent && identity !== null) {
     const setpriv = programOnPath("setpriv", rootPath);
     if (setpriv === undefined) {
-      throw new EnvironmentInstallError(command.manager, "this sandbox's image has no setpriv to start the install as the agent", "");
+      throw new EnvironmentInstallError(command.manager, "this sandbox's image has no setpriv to start the install as the agent", "", false);
     }
     return [setpriv, ...setprivArgs(identity), "--", ...command.argv];
   }
@@ -338,30 +364,74 @@ export function rootArgv(command: InstallCommand, identity: AgentIdentity | null
   const [program, ...args] = command.argv;
   const resolved = program === undefined ? undefined : programOnPath(program, rootPath);
   if (resolved === undefined) {
-    throw new EnvironmentInstallError(command.manager, `this sandbox's image has no ${program ?? "program"}`, "");
+    throw new EnvironmentInstallError(command.manager, `this sandbox's image has no ${program ?? "program"}`, "", false);
   }
   return [resolved, ...args];
 }
 
-/** The install this runner started at boot; `undefined` until then, and when the sandbox has no Environment. */
-let started: Promise<void> | undefined;
-
-/** Starts the install once, in the background; a failure is kept for the turns that await it. */
-export function startEnvironmentInstall(environment: SandboxEnvironment | undefined, deps: InstallDeps = {}): void {
-  if (environment === undefined || started !== undefined) return;
-  const promise = installEnvironment(environment, deps).then(() => undefined);
-  // Observed here so an install no turn awaits yet is never an unhandled
-  // rejection; each turn awaits the same promise and meets the failure.
-  promise.catch((err: unknown) => console.error(`[environment] ${err instanceof Error ? err.message : String(err)}`));
-  started = promise;
+/** The boot's install and its attempts (the module header). */
+interface InstallKeeper {
+  readonly environment: SandboxEnvironment;
+  readonly deps: InstallDeps;
+  attempts: number;
+  /** The attempt every caller shares while it runs. */
+  inFlight: Promise<void> | undefined;
+  /** The success, or the failure no attempt follows, every later caller meets. */
+  settled: Promise<void> | undefined;
 }
 
-/** What a turn awaits: the boot's install, or nothing when there is none. */
+/** `undefined` until the boot's start, and when the sandbox has no Environment. */
+let keeper: InstallKeeper | undefined;
+
+/** The failure a turn meets: the install's own sentence, then whether another attempt comes. */
+function withNextStep(error: unknown, attempt: number, again: boolean): unknown {
+  if (!(error instanceof EnvironmentInstallError)) return error;
+  const next = again
+    ? `the next message tries the install again (attempt ${attempt} of ${MAX_INSTALL_ATTEMPTS} failed)`
+    : "this sandbox will not try again: fix the environment's packages (or the sandbox's image), then start a new conversation";
+  return new EnvironmentInstallError(error.manager, `${error.detail}; ${next}`, error.output, error.retriable);
+}
+
+/** Starts the next attempt and shares it until it settles. */
+function attemptInstall(installs: InstallKeeper): Promise<void> {
+  installs.attempts += 1;
+  const attempt = installs.attempts;
+  const promise: Promise<void> = installEnvironment(installs.environment, installs.deps).then(
+    () => {
+      installs.inFlight = undefined;
+      installs.settled = promise;
+    },
+    (error: unknown) => {
+      const again = error instanceof EnvironmentInstallError && error.retriable && attempt < MAX_INSTALL_ATTEMPTS;
+      installs.inFlight = undefined;
+      if (!again) installs.settled = promise;
+      throw withNextStep(error, attempt, again);
+    },
+  );
+  // Observed here so an attempt no turn awaits yet is never an unhandled
+  // rejection; each turn awaiting it meets the failure.
+  promise.catch((err: unknown) => console.error(`[environment] ${err instanceof Error ? err.message : String(err)}`));
+  installs.inFlight = promise;
+  return promise;
+}
+
+/** Starts the install once, in the background (the boot's attempt). */
+export function startEnvironmentInstall(environment: SandboxEnvironment | undefined, deps: InstallDeps = {}): void {
+  if (environment === undefined || keeper !== undefined) return;
+  keeper = { environment, deps, attempts: 0, inFlight: undefined, settled: undefined };
+  void attemptInstall(keeper);
+}
+
+/**
+ * What a turn awaits: the attempt in flight, the kept outcome, or a new
+ * attempt after one that may pass; nothing when no install started.
+ */
 export function environmentInstalled(): Promise<void> {
-  return started ?? Promise.resolve();
+  if (keeper === undefined) return Promise.resolve();
+  return keeper.settled ?? keeper.inFlight ?? attemptInstall(keeper);
 }
 
 /** Forgets the started install; the tests' alone. */
 export function resetEnvironmentInstallForTests(): void {
-  started = undefined;
+  keeper = undefined;
 }
