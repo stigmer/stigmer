@@ -20,8 +20,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CliExitError } from "../../../errors/cli-exit-error.js";
 import { classify } from "../../../errors/classify.js";
 import { formatError } from "../../../errors/handle.js";
-import { HEALTH_STATE_FILE, SERVER_PORT } from "../../constants.js";
-import { tcpConnects } from "../../net/tcp.js";
+import { freePort } from "../../../__test-utils__/ports.js";
+import { HEALTH_STATE_FILE } from "../../constants.js";
 import { type HealthState, writeHealthState } from "../../state/health-state.js";
 import { writePidFile } from "../../state/pidfile.js";
 import { isProcessAlive } from "../../state/proc.js";
@@ -29,11 +29,6 @@ import { loadStartupConfig } from "../../state/startup-config.js";
 import { DaemonEnvVar } from "../env.js";
 import { type UpReport, down, startupFailure, upForeground, waitForStack } from "../launch.js";
 import type { InternalDaemonDeps } from "../process.js";
-
-// The launcher refuses to start beside a stack already serving on the server
-// port — including a developer's own `stigmer up`. Report SKIPPED rather than
-// a false failure in that case.
-const serverPortBusy = await tcpConnects(SERVER_PORT, "127.0.0.1", 300);
 
 function tempDir(prefix: string): string {
   return mkdtempSync(join(tmpdir(), prefix));
@@ -84,7 +79,7 @@ afterEach(() => {
   }
 });
 
-describe.skipIf(serverPortBusy)("upForeground", () => {
+describe("upForeground", () => {
   it("runs the daemon body in-process with the detached shape's config and env, finishing from onStarted", async () => {
     const home = tempDir("stigmer-fg-home-");
     process.env.ANTHROPIC_API_KEY = "sk-test";
@@ -92,6 +87,7 @@ describe.skipIf(serverPortBusy)("upForeground", () => {
     let captured: InternalDaemonDeps | null = null;
     let reported: UpReport | null = null;
     const stop = new AbortController();
+    const serverPort = await freePort();
 
     const code = await upForeground({ noWeb: true }, home, {
       runDaemon: async (deps) => {
@@ -107,6 +103,7 @@ describe.skipIf(serverPortBusy)("upForeground", () => {
         stop.abort();
       },
       shutdown: stop.signal,
+      serverPort,
     });
 
     expect(code).toBe(0);
@@ -115,6 +112,8 @@ describe.skipIf(serverPortBusy)("upForeground", () => {
     const deps = captured as unknown as InternalDaemonDeps;
     // The stop request is the caller's, handed through to the body.
     expect(deps.shutdown).toBe(stop.signal);
+    // So is the server port: the port the launcher checked is the one the stack runs on.
+    expect(deps.serverPort).toBe(serverPort);
     // The config is the env contract read back — the detached daemon's view.
     expect(deps.config?.dataDir).toBe(join(home, ".stigmer", "data"));
     expect(deps.config?.temporalManaged).toBe(true);
@@ -140,6 +139,7 @@ describe.skipIf(serverPortBusy)("upForeground", () => {
       runDaemon: async () => 1,
       onReady,
       shutdown: new AbortController().signal,
+      serverPort: await freePort(),
     });
 
     expect(code).toBe(1);
@@ -162,6 +162,7 @@ describe.skipIf(serverPortBusy)("upForeground", () => {
       },
       onReady,
       shutdown: stop.signal,
+      serverPort: await freePort(),
     });
 
     const deps = captured as unknown as InternalDaemonDeps;
@@ -249,14 +250,6 @@ function daemonExitingAfter(ms: number): { pid: number; gone: Promise<void> } {
   const child = spawn(process.execPath, ["-e", `setTimeout(() => process.exit(1), ${ms})`], { stdio: "ignore" });
   const gone = new Promise<void>((resolve) => child.once("exit", () => resolve()));
   return { pid: child.pid!, gone };
-}
-
-// A port nothing listens on: bound once to learn a free number, then closed.
-async function freePort(): Promise<number> {
-  const server = await listen(0);
-  const { port } = server.address() as AddressInfo;
-  await new Promise<void>((resolve) => server.close(() => resolve()));
-  return port;
 }
 
 function listen(port: number): Promise<Server> {

@@ -1,11 +1,22 @@
+// Pins the daemon body end to end. The real process host spawns a child,
+// tees its logs, sees the runner's readiness marker and stops it. The body,
+// driven with a fake host and a fake Temporal, brings the stack up in order,
+// records a health snapshot and tears down in reverse; a server that hangs past
+// its gate is stopped and recorded failed with its last lines (stigmer#1845); a
+// Temporal that does not start stops everything else from starting; and a stop
+// asked for at any point of startup is honoured at once, leaving nothing behind
+// (stigmer#1175). Every run that reaches the server's gate is given a port of
+// its own, never the real server port, so these cases neither race another
+// test file for it nor depend on a developer's running stack (stigmer#2767).
+
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
-import { createServer, type Server, type Socket } from "node:net";
+import { createServer, type AddressInfo, type Server, type Socket } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Logger } from "../../../logger.js";
-import { RUNNER_READY_MARKER, SERVER_PORT } from "../../constants.js";
-import { tcpConnects } from "../../net/tcp.js";
+import { freePort } from "../../../__test-utils__/ports.js";
+import { RUNNER_READY_MARKER } from "../../constants.js";
 import { isProcessAlive } from "../../state/proc.js";
 import { loadHealthState, type HealthState } from "../../state/health-state.js";
 import { readPidFile } from "../../state/pidfile.js";
@@ -153,14 +164,20 @@ function fakeTemporal(): TemporalControl {
 // can leave one behind, and close() would wait for it.
 const openSockets = new Set<Socket>();
 
-function listenOn(port: number): Promise<Server> {
+// A real listener for the server's gRPC gate, on a port the OS picks: opened on
+// port 0 and read back, so no other test can take it in between. It becomes
+// the file's gateServer, which afterEach closes. Resolves to its port.
+function openGate(): Promise<number> {
   return new Promise((resolve, reject) => {
     const server = createServer((socket) => {
       openSockets.add(socket);
       socket.once("close", () => openSockets.delete(socket));
     });
     server.once("error", reject);
-    server.listen(port, "127.0.0.1", () => resolve(server));
+    server.listen(0, "127.0.0.1", () => {
+      gateServer = server;
+      resolve((server.address() as AddressInfo).port);
+    });
   });
 }
 
@@ -208,12 +225,7 @@ describe("runInternalDaemon (full body with fakes)", () => {
     };
 
     // Satisfy the server's gRPC readiness gate with a real listener.
-    try {
-      gateServer = await listenOn(SERVER_PORT);
-    } catch {
-      // Port busy (a real daemon?) — the gate will still connect to whatever is
-      // listening, which is all this test needs.
-    }
+    const serverPort = await openGate();
 
     const host = new FakeHost();
     const temporal = fakeTemporal();
@@ -229,6 +241,7 @@ describe("runInternalDaemon (full body with fakes)", () => {
       temporal,
       log: silent,
       shutdown: stop.signal,
+      serverPort,
       onStarted: () => {
         snapshot = loadHealthState(healthPath);
         // Asked for once the body is waiting, as a later `stigmer down` is.
@@ -258,9 +271,7 @@ describe("runInternalDaemon (full body with fakes)", () => {
 // stigmer#1845: a server that never opens its port fails the gate while still
 // running. The daemon stops it before giving up, so nothing is left holding the
 // port, and leaves the snapshot saying why, for `stigmer up` to print.
-const serverPortBusy = await tcpConnects(SERVER_PORT, "127.0.0.1", 300);
-
-describe.skipIf(serverPortBusy)("runInternalDaemon (a server that hangs past its gate)", () => {
+describe("runInternalDaemon (a server that hangs past its gate)", () => {
   afterEach(() => {
     vi.useRealTimers();
   });
@@ -279,12 +290,21 @@ describe.skipIf(serverPortBusy)("runInternalDaemon (a server that hangs past its
     const host = new FakeHost({ "stigmer-server": ["waiting for the database…"] });
     const temporal = fakeTemporal();
 
-    // Only the clock the gate's deadline reads is faked: the gate polls the
-    // real (closed) port, and the clock jumps past its deadline meanwhile.
+    // Only the clock the gate's deadline reads is faked: the gate polls a real
+    // port nothing listens on, and the clock jumps past its deadline meanwhile.
+    const serverPort = await freePort();
     vi.useFakeTimers({ toFake: ["Date"] });
     setTimeout(() => vi.setSystemTime(Date.now() + 60_000), 300);
 
-    const code = await runInternalDaemon({ config, host, clock: fastClock, temporal, log: silent, shutdown: new AbortController().signal });
+    const code = await runInternalDaemon({
+      config,
+      host,
+      clock: fastClock,
+      temporal,
+      log: silent,
+      shutdown: new AbortController().signal,
+      serverPort,
+    });
 
     expect(code).toBe(1);
     expect(host.spawned).toEqual(["stigmer-server"]);
@@ -365,11 +385,7 @@ describe("runInternalDaemon (stopped while starting)", () => {
 
   it("still finishes the teardown when Temporal does not stop cleanly", async () => {
     const config = stackConfig(true);
-    try {
-      gateServer = await listenOn(SERVER_PORT);
-    } catch {
-      // Port busy: the gate connects to whatever listens, which is all it needs.
-    }
+    const serverPort = await openGate();
     const host = new FakeHost();
     const temporal = fakeTemporal();
     temporal.stop = vi.fn(async () => {
@@ -380,7 +396,16 @@ describe("runInternalDaemon (stopped while starting)", () => {
 
     // The stop lands while the started stack is being reported (a Ctrl-C as
     // the foreground card renders).
-    const code = await runInternalDaemon({ config, host, clock: fastClock, temporal, log, shutdown: stop.signal, onStarted: () => stop.abort() });
+    const code = await runInternalDaemon({
+      config,
+      host,
+      clock: fastClock,
+      temporal,
+      log,
+      shutdown: stop.signal,
+      serverPort,
+      onStarted: () => stop.abort(),
+    });
 
     expect(code).toBe(0);
     expect(log.warn).toHaveBeenCalledWith("failed to stop managed Temporal cleanly", { error: "Error: temporal did not exit" });
@@ -390,11 +415,7 @@ describe("runInternalDaemon (stopped while starting)", () => {
 
   it("stops every child in reverse during the settle, never reporting started", async () => {
     const config = stackConfig(false);
-    try {
-      gateServer = await listenOn(SERVER_PORT);
-    } catch {
-      // Port busy: the gate connects to whatever listens, which is all it needs.
-    }
+    const serverPort = await openGate();
     const host = new FakeHost();
     const temporal = fakeTemporal();
     const stop = new AbortController();
@@ -407,7 +428,7 @@ describe("runInternalDaemon (stopped while starting)", () => {
     };
     const onStarted = vi.fn();
 
-    const code = await runInternalDaemon({ config, host, clock: settleClock, temporal, log: silent, shutdown: stop.signal, onStarted });
+    const code = await runInternalDaemon({ config, host, clock: settleClock, temporal, log: silent, shutdown: stop.signal, serverPort, onStarted });
 
     expect(code).toBe(0);
     expect(onStarted).not.toHaveBeenCalled();
@@ -418,7 +439,7 @@ describe("runInternalDaemon (stopped while starting)", () => {
   });
 });
 
-describe.skipIf(serverPortBusy)("runInternalDaemon (stopped while the server's gate waits)", () => {
+describe("runInternalDaemon (stopped while the server's gate waits)", () => {
   it("stops the server within a poll, starts no runner, stops Temporal and records no failure", async () => {
     const config = stackConfig(false);
     const host = new FakeHost();
@@ -428,9 +449,11 @@ describe.skipIf(serverPortBusy)("runInternalDaemon (stopped while the server's g
       if (name === "stigmer-server") setTimeout(() => stop.abort(), 50);
     };
     const log: Logger = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() };
+    // A port nothing listens on, so the gate is still waiting when the stop lands.
+    const serverPort = await freePort();
     const started = Date.now();
 
-    const code = await runInternalDaemon({ config, host, clock: fastClock, temporal, log, shutdown: stop.signal });
+    const code = await runInternalDaemon({ config, host, clock: fastClock, temporal, log, shutdown: stop.signal, serverPort });
 
     expect(code).toBe(0);
     expect(Date.now() - started).toBeLessThan(2_000);
@@ -444,7 +467,7 @@ describe.skipIf(serverPortBusy)("runInternalDaemon (stopped while the server's g
   it("cuts the console probe short, never reporting started", async () => {
     const config = { ...stackConfig(false), noWeb: false };
     // Accepts and never answers, so the probe would wait out its own timeout.
-    gateServer = await listenOn(SERVER_PORT);
+    const serverPort = await openGate();
     const host = new FakeHost();
     const temporal = fakeTemporal();
     const stop = new AbortController();
@@ -458,7 +481,7 @@ describe.skipIf(serverPortBusy)("runInternalDaemon (stopped while the server's g
     const onStarted = vi.fn();
     const started = Date.now();
 
-    const code = await runInternalDaemon({ config, host, clock: settleClock, temporal, log: silent, shutdown: stop.signal, onStarted });
+    const code = await runInternalDaemon({ config, host, clock: settleClock, temporal, log: silent, shutdown: stop.signal, serverPort, onStarted });
 
     expect(code).toBe(0);
     expect(Date.now() - started).toBeLessThan(2_000);

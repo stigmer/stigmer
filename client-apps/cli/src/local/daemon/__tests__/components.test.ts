@@ -1,3 +1,11 @@
+// Pins the environments the daemon hands its two children and the order it
+// starts them in: the server is told its port, Temporal coordinates, the
+// runner task queue and the ~/.stigmer paths; the runner polls the very queue
+// the server dispatches to, reads the server's artifact root, keeps its drain
+// under the supervisor's stop bound, and receives the provider keys; the server
+// hears which providers that runner reaches. Both children, and the server's
+// readiness gate, follow the server port the daemon is given, 7234 by default.
+
 import { describe, expect, it } from "vitest";
 import { join } from "node:path";
 import { RUNNER_READY_MARKER, RUNNER_TASK_QUEUE } from "../../constants.js";
@@ -193,5 +201,15 @@ describe("buildComponents", () => {
   it("omits the runner in server-only mode", () => {
     const components = buildComponents({ ...config, serverOnly: true }, {});
     expect(components.map((c) => c.name)).toEqual(["stigmer-server"]);
+  });
+
+  // stigmer#2767: a daemon told another port tells its children the same one,
+  // so the gate never waits on a port the server was not told to open.
+  it("tells the server, the runner and the gate the server port it is given", () => {
+    const [server, runner] = buildComponents(config, {}, 7300);
+    expect(server.resolve().env.GRPC_PORT).toBe("7300");
+    expect(server.gate?.description).toBe("stigmer-server gRPC on port 7300");
+    expect(runner.resolve().env.STIGMER_BACKEND_ENDPOINT).toBe("http://localhost:7300");
+    expect(runner.resolve().env.STIGMER_MCP_PUBLIC_ENDPOINT).toBe("http://localhost:7300");
   });
 });
