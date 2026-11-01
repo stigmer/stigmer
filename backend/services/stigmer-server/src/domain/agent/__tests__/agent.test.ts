@@ -25,6 +25,10 @@
  *   - the server assigns a new agent's id (stigmer#1266): an id the
  *     request carries is replaced, on create and on an apply that
  *     creates, and the chosen id addresses nothing;
+ *   - an apply's answer says what it did, which `stigmer apply -f` prints:
+ *     its spec audit event is "created" when it creates (a chosen id it
+ *     does not hold included) and "updated" when an apply without an id
+ *     finds the agent by its slug, under the same id;
  *   - an update keeps a write that lands between its read and its write:
  *     the lost swap reruns from a fresh read, so the stored row and the
  *     answer carry both the landed visibility and the update's spec;
@@ -591,7 +595,22 @@ describe("agent create — the server assigns the id (stigmer#1266)", () => {
       metadata: { ...input.metadata, id: CHOSEN_ID },
     });
     await expectMintedNotChosen(applied);
+    expect(applied.status?.audit?.specAudit?.event).toBe("created");
     await command.delete({ value: applied.metadata?.id ?? "" });
+  });
+});
+
+describe("agent apply — the answer says what the apply did", () => {
+  it("answers created for an apply that creates, then updated for an apply without an id that names the same slug", async () => {
+    const input = agentInput();
+    const first = await command.apply(input);
+    const second = await command.apply(input);
+
+    expect(first.status?.audit?.specAudit?.event).toBe("created");
+    expect(second.status?.audit?.specAudit?.event).toBe("updated");
+    expect(second.metadata?.id).toBe(first.metadata?.id);
+    expect(second.metadata?.slug).toBe(first.metadata?.slug);
+    await command.delete({ value: first.metadata?.id ?? "" });
   });
 });
 

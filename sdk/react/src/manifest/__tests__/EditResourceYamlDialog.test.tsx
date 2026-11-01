@@ -3,7 +3,9 @@
 // by every kind (Agent, Schedule, Skill), so any apply-time guard
 // gets the same acknowledge-and-retry treatment. And its summary of what
 // applying will do: an edited slug on a document that keeps its id reads
-// as a rename, and a kind that cannot rename says it keeps its slug.
+// as a rename, a kind that cannot rename says it keeps its slug, and a
+// kind that cannot change its visibility says it keeps that, before Apply
+// is pressed.
 
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
@@ -37,8 +39,8 @@ vi.mock("../useEditResourceYaml", () => ({
   useEditResourceYaml: () => ({
     yaml: "kind: Agent",
     setYaml: vi.fn(),
-    validation: { status: "valid" as const },
-    target: { action: "update" as const, slug: "clinic" },
+    validation: { status: "valid" as const, document: { handler: { displayName: "Agent" } } as never },
+    target: { action: "update" as const, slug: "clinic", slugKept: false, visibilityKept: false },
     isDirty: true,
     isApplying: false,
     error: null,
@@ -120,7 +122,7 @@ describe("EditResourceYamlDialog — apply-error affordance", () => {
 
 describe("EditResourceYamlDialog — what applying will do", () => {
   it("reads an edited slug as a rename from the stored slug", () => {
-    editState = { target: { action: "rename", from: "test-bot", slug: "support-bot" } };
+    editState = { target: { action: "rename", from: "test-bot", slug: "support-bot", visibilityKept: false } };
     renderDialog();
     expect(screen.getByText("Applying will rename test-bot to support-bot.")).toBeTruthy();
   });
@@ -131,7 +133,7 @@ describe("EditResourceYamlDialog — what applying will do", () => {
         status: "valid",
         document: { handler: { displayName: "Session" } } as never,
       },
-      target: { action: "update", slug: "test-session", slugKept: true },
+      target: { action: "update", slug: "test-session", slugKept: true, visibilityKept: false },
     };
     renderDialog();
     expect(
@@ -139,10 +141,48 @@ describe("EditResourceYamlDialog — what applying will do", () => {
     ).toBeTruthy();
   });
 
+  it("says a kind that cannot change its visibility keeps it", () => {
+    editState = {
+      validation: { status: "valid", document: { handler: { displayName: "Channel" } } as never },
+      target: { action: "update", slug: "support", slugKept: false, visibilityKept: true },
+    };
+    renderDialog();
+    expect(
+      screen.getByText("Applying will update support. Channel visibility does not change, so it keeps its visibility."),
+    ).toBeTruthy();
+  });
+
+  it("says a renamed resource keeps a visibility its kind cannot change", () => {
+    editState = {
+      validation: { status: "valid", document: { handler: { displayName: "Channel" } } as never },
+      target: { action: "rename", from: "support", slug: "helpdesk", visibilityKept: true },
+    };
+    renderDialog();
+    expect(
+      screen.getByText(
+        "Applying will rename support to helpdesk. Channel visibility does not change, so it keeps its visibility.",
+      ),
+    ).toBeTruthy();
+  });
+
+  it("names both when a kind keeps the slug and the visibility", () => {
+    editState = {
+      validation: { status: "valid", document: { handler: { displayName: "Session" } } as never },
+      target: { action: "update", slug: "test-session", slugKept: true, visibilityKept: true },
+    };
+    renderDialog();
+    expect(
+      screen.getByText(
+        "Applying will update test-session. Session slugs do not change, so it keeps this slug. " +
+          "Session visibility does not change, so it keeps its visibility.",
+      ),
+    ).toBeTruthy();
+  });
+
   it("says nothing about applying while the document is invalid", () => {
     editState = {
       validation: { status: "invalid", message: "unknown field spec.instructionz" },
-      target: { action: "update", slug: "clinic", slugKept: false },
+      target: { action: "update", slug: "clinic", slugKept: false, visibilityKept: false },
     };
     renderDialog();
     expect(screen.getByText("unknown field spec.instructionz")).toBeTruthy();

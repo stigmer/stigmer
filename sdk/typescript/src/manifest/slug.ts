@@ -23,7 +23,9 @@
 // case: the server also requires the id's resource to be in the manifest's
 // organization, which a client cannot compare when the manifest names its
 // organization by slug. A file carrying another organization's id previews
-// as that resource.
+// as that resource. The answer also says whether the resource will keep a
+// declared visibility its kind cannot change (visibility.ts holds that
+// rule), so a preview tells it before the apply, as it tells a kept slug.
 //
 // Each rule's refusal is a typed StigmerError chained to the server's error,
 // so a caller words it for its surface and `getErrorReason` still reads the
@@ -41,6 +43,7 @@ import {
 import { getErrorReason, StigmerError, wrapError } from "../errors.js";
 import { metadataOf } from "./parse.js";
 import type { ServiceClientFn } from "./registry.js";
+import { visibilityKept, type VisibilityRulesHandler } from "./visibility.js";
 
 /**
  * What the slug rules need of a kind: its apply, and its rename and read by
@@ -231,6 +234,10 @@ export async function followDeclaredSlug(
  *   declares another slug its kind cannot rename to;
  * - `rename`: the resource exists under `from`, and the apply renames it to
  *   `slug`.
+ *
+ * On `update` and `rename`, `visibilityKept` is `true` when the manifest
+ * declares another level and the kind has no `updateVisibility`: the
+ * resource keeps its visibility.
  */
 export type ManifestTarget =
   | { readonly action: "create"; readonly slug: string }
@@ -239,19 +246,22 @@ export type ManifestTarget =
       readonly slug: string;
       readonly current: Message;
       readonly slugKept: boolean;
+      readonly visibilityKept: boolean;
     }
   | {
       readonly action: "rename";
       readonly from: string;
       readonly slug: string;
       readonly current: Message;
+      readonly visibilityKept: boolean;
     };
 
 /** The document fields {@link resolveManifestTarget} reads. */
 export interface TargetDocument {
-  readonly handler: SlugRulesHandler & {
-    getByReference(clientFor: ServiceClientFn, ref: ApiResourceReference): Promise<Message>;
-  };
+  readonly handler: SlugRulesHandler &
+    VisibilityRulesHandler & {
+      getByReference(clientFor: ServiceClientFn, ref: ApiResourceReference): Promise<Message>;
+    };
   readonly message: Message;
   /** The slug the apply will use: `metadata.slug`, or the name without one. */
   readonly slug: string;
@@ -280,13 +290,14 @@ export async function resolveManifestTarget(
     const byId = await readOrNull(clientFor, handler, { kind: handler.kind, id });
     const stored = byId === null ? undefined : metadataOf(byId);
     if (byId !== null && stored !== undefined) {
+      const kept = visibilityKept(handler, document.message, byId);
       if (declaredSlug === "" || declaredSlug === stored.slug) {
-        return { action: "update", slug: stored.slug, current: byId, slugKept: false };
+        return { action: "update", slug: stored.slug, current: byId, slugKept: false, visibilityKept: kept };
       }
       if (handler.rename === undefined) {
-        return { action: "update", slug: stored.slug, current: byId, slugKept: true };
+        return { action: "update", slug: stored.slug, current: byId, slugKept: true, visibilityKept: kept };
       }
-      return { action: "rename", from: stored.slug, slug: declaredSlug, current: byId };
+      return { action: "rename", from: stored.slug, slug: declaredSlug, current: byId, visibilityKept: kept };
     }
   }
 
@@ -298,7 +309,13 @@ export async function resolveManifestTarget(
   if (current !== document.slug) {
     throw new SlugRenamedError(handler.displayName, document.slug, current);
   }
-  return { action: "update", slug: current, current: bySlug, slugKept: false };
+  return {
+    action: "update",
+    slug: current,
+    current: bySlug,
+    slugKept: false,
+    visibilityKept: visibilityKept(handler, document.message, bySlug),
+  };
 }
 
 async function readOrNull(

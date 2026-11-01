@@ -6,6 +6,7 @@ import { cn } from "@stigmer/design-tokens";
 import { DialogShell } from "../internal/DialogShell.js";
 import { getUserMessage, type AppliedManifest } from "@stigmer/client";
 import { toast } from "../feedback/toast.js";
+import { keptChangeSentences } from "./keptChanges.js";
 import { RedactedSecretsNotice } from "./RedactedSecretsNotice.js";
 import { useEditResourceYaml } from "./useEditResourceYaml.js";
 import { YamlEditor } from "./YamlEditor.js";
@@ -215,15 +216,17 @@ function targetSummary(
   if (validation.status !== "valid") return "";
   if (!isDirty) return "No changes yet.";
   if (target === null) return "Checking what applying will do…";
+  const displayName = validation.document.handler.displayName;
   switch (target.action) {
     case "update":
-      return target.slugKept
-        ? `Applying will update ${target.slug}. ${validation.document.handler.displayName} slugs do not change, so it keeps this slug.`
-        : `Applying will update ${target.slug}.`;
+      return [`Applying will update ${target.slug}.`, ...keptChangeSentences(displayName, target)].join(" ");
     case "create":
       return `Applying will create ${target.slug}.`;
     case "rename":
-      return `Applying will rename ${target.from} to ${target.slug}.`;
+      return [
+        `Applying will rename ${target.from} to ${target.slug}.`,
+        ...keptChangeSentences(displayName, { slugKept: false, visibilityKept: target.visibilityKept }),
+      ].join(" ");
     case "unknown":
       return `Applying will create or update ${target.slug}.`;
     /* v8 ignore next -- @preserve: the exhaustiveness guard over EditYamlTarget; the hook answers only the arms above */

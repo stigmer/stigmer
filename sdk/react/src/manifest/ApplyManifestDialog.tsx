@@ -5,6 +5,7 @@ import { cn } from "@stigmer/design-tokens";
 import { DialogShell } from "../internal/DialogShell.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { toast } from "../feedback/toast.js";
+import { keptChangeSentences } from "./keptChanges.js";
 import { RedactedSecretsNotice } from "./RedactedSecretsNotice.js";
 import {
   useApplyManifest,
@@ -248,6 +249,7 @@ function applyLabel(count: number): string {
 
 function PreviewRow({ entry }: { readonly entry: ManifestPreviewEntry }) {
   const slugForOrg = useOrgSlugForId();
+  const kept = keptChangeSentences(entry.document.handler.displayName, entry);
   return (
     <li className="stg:rounded-md stg:border stg:border-border stg:bg-card stg:px-3 stg:py-2">
       <div className="stg:flex stg:items-center stg:gap-2">
@@ -264,6 +266,9 @@ function PreviewRow({ entry }: { readonly entry: ManifestPreviewEntry }) {
       </div>
       {entry.document.warning && (
         <p className="stg:mt-1 stg:text-xs stg:text-muted-foreground">{entry.document.warning}</p>
+      )}
+      {kept.length > 0 && (
+        <p className="stg:mt-1 stg:text-xs stg:text-muted-foreground">{kept.join(" ")}</p>
       )}
       {entry.status === "failed" && entry.errorMessage && (
         <p role="alert" className="stg:mt-1 stg:text-xs stg:text-destructive">

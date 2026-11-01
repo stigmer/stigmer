@@ -5,7 +5,8 @@
 // never fire when nothing applied. Historically onApplied's predecessor
 // had zero coverage and stayed unwired at every call site; this locks the
 // contract the list pages now depend on. And the preview badge names a
-// rename for a document that keeps its id under a new slug.
+// rename for a document that keeps its id under a new slug, and the row
+// says, before Apply, when a kind keeps a declared slug or visibility.
 
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
@@ -43,6 +44,8 @@ function entry(
       org: "acme",
     },
     action: "create",
+    slugKept: false,
+    visibilityKept: false,
     status,
   } as ManifestPreviewEntry;
 }
@@ -152,5 +155,25 @@ describe("ApplyManifestDialog — preview badge", () => {
     mockEntries = [{ ...entry("support-bot", "pending"), action: "rename" }];
     render(<ApplyManifestDialog open onOpenChange={vi.fn()} org="acme" />);
     expect(screen.getByText("Will rename")).toBeTruthy();
+  });
+});
+
+describe("ApplyManifestDialog — a declared change the kind keeps", () => {
+  it("says, before Apply, that a kind keeps a visibility it cannot change", () => {
+    mockEntries = [{ ...entry("nightly", "pending"), action: "update", visibilityKept: true }];
+    render(<ApplyManifestDialog open onOpenChange={vi.fn()} org="acme" />);
+    expect(screen.getByText("Routine visibility does not change, so it keeps its visibility.")).toBeTruthy();
+  });
+
+  it("says, before Apply, that a kind keeps a slug it cannot change", () => {
+    mockEntries = [{ ...entry("nightly", "pending"), action: "update", slugKept: true }];
+    render(<ApplyManifestDialog open onOpenChange={vi.fn()} org="acme" />);
+    expect(screen.getByText("Routine slugs do not change, so it keeps this slug.")).toBeTruthy();
+  });
+
+  it("adds no line when the apply makes every declared change", () => {
+    mockEntries = [{ ...entry("nightly", "pending"), action: "update" }];
+    render(<ApplyManifestDialog open onOpenChange={vi.fn()} org="acme" />);
+    expect(screen.queryByText(/does not change|do not change/)).toBeNull();
   });
 });

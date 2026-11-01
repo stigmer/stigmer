@@ -35,6 +35,16 @@ export type {
   TargetDocument,
 } from "./slug.js";
 
+export {
+  followDeclaredVisibility,
+  visibilityKept,
+  VisibilityChangeRefusedError,
+} from "./visibility.js";
+export type {
+  DeclaredVisibilityOutcome,
+  VisibilityRulesHandler,
+} from "./visibility.js";
+
 export { ManifestClient } from "./client.js";
 export type { AppliedManifest } from "./client.js";
 

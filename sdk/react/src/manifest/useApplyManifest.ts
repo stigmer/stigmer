@@ -30,6 +30,16 @@ export interface ManifestPreviewEntry {
    * carries an id and a new slug renames.
    */
   readonly action: "create" | "update" | "rename" | "unknown";
+  /**
+   * `true` when the document declares another slug and its kind has no
+   * rename: the resource keeps its slug.
+   */
+  readonly slugKept: boolean;
+  /**
+   * `true` when the document declares another visibility and its kind
+   * cannot change it: the resource keeps its visibility.
+   */
+  readonly visibilityKept: boolean;
   /** Apply lifecycle status. */
   readonly status: ManifestEntryStatus;
   /** The applied resource, present when `status` is `"applied"`. */
@@ -184,13 +194,18 @@ export function useApplyManifest(org: string): UseApplyManifestReturn {
 
       const resolved = await Promise.all(
         documents.map(async (document): Promise<ManifestPreviewEntry> => {
-          let action: ManifestPreviewEntry["action"];
+          let target: Pick<ManifestPreviewEntry, "action" | "slugKept" | "visibilityKept">;
           try {
-            action = (await stigmer.manifest.resolveTarget(document)).action;
+            const resolved = await stigmer.manifest.resolveTarget(document);
+            target = {
+              action: resolved.action,
+              slugKept: resolved.action === "update" && resolved.slugKept,
+              visibilityKept: resolved.action !== "create" && resolved.visibilityKept,
+            };
           } catch {
-            action = "unknown";
+            target = { action: "unknown", slugKept: false, visibilityKept: false };
           }
-          return { document, action, status: "pending" };
+          return { document, ...target, status: "pending" };
         }),
       );
 

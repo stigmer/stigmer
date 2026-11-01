@@ -7,15 +7,23 @@
 // across all files are sorted into dependency order before applying so parents
 // (org → agent → channel → …) land before their dependents.
 //
+// Whether the apply created or updated is the server's word: the apply
+// stamps its audit event ("created" or "updated") on the resource it
+// answers, read before any follow-up runs. The file cannot tell: a file
+// without an id updates the resource its slug names, and a file whose id
+// the server no longer holds creates a new one. An answer with no event
+// says "applied", never a guess.
+//
 // The slug rules (a renamed-away slug named, a declared slug followed with a
-// rename, a kind that cannot rename) are the SDK's, shared with the
-// console's YAML editors; this file words their outcomes for the terminal.
+// rename, a kind that cannot rename) and the visibility rule (a declared
+// level followed with `updateVisibility`, a kind that cannot change it) are
+// the SDK's, shared with the console's YAML editors; this file words their
+// outcomes for the terminal.
 
 import { create, equals, fromJson, type JsonValue, type Message } from "@bufbuild/protobuf";
 import { Code } from "@connectrpc/connect";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
-import { UpdateVisibilityInputSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import { UpdateOrganizationPoliciesInputSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/io_pb";
 import { OrganizationQueryController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/query_pb";
@@ -27,6 +35,7 @@ import {
   type ApiResourceMetadata,
   ApiResourceMetadataSchema,
 } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
+import type { ApiResourceAudit } from "@stigmer/apis/ai/stigmer/commons/apiresource/status_pb";
 import {
   type OrganizationReader,
   organizationLabel,
@@ -35,9 +44,11 @@ import {
 import {
   applyNamingCurrentSlug,
   followDeclaredSlug,
+  followDeclaredVisibility,
   SlugChangeRefusedError,
   SlugRenamedError,
   toDesiredState,
+  VisibilityChangeRefusedError,
 } from "@stigmer/client";
 import { classify, UsageError } from "../../errors/index.js";
 import { CommandResult } from "../../output/index.js";
@@ -144,8 +155,9 @@ export function marshalItem(item: ApplyItem): Message {
 /**
  * Apply a fully-marshalled resource message: inject org, then dry-run preview or
  * drive the controller's `apply` RPC. The single apply core behind file mode,
- * taking the message rather than the YAML so org injection, create/update
- * detection and result shaping live in one place whatever produced the message.
+ * taking the message rather than the YAML so org injection, the server's
+ * created-or-updated word and result shaping live in one place whatever
+ * produced the message.
  */
 export async function applyMessage(
   controller: ControllerFn,
@@ -158,13 +170,13 @@ export async function applyMessage(
   // empty, whatever the context or `--org` names for the file's other kinds.
   const orgWarning =
     handler.kind === ApiResourceKind.organization ? undefined : await injectOrg(controller, message, org);
-  const created = (metaOf(message)?.id ?? "") === "";
 
   if (dryRun) {
     return { result: await buildDryRunResult(controller, handler, message), warning: orgWarning };
   }
 
   const applied = await applyNamingSlug(controller, handler, message);
+  const verb = appliedVerb(applied);
   // Visibility and policies land before the slug: a refused rename stops
   // the command, so everything else the manifest asked for has landed by
   // then, and the refusal reports it.
@@ -172,21 +184,21 @@ export async function applyMessage(
   await applyDeclaredPolicies(controller, handler, message, applied);
   const slugWarning = await applyDeclaredSlug(controller, handler, message, applied, visibilityWarning);
   const warning = combineWarnings(orgWarning, visibilityWarning, slugWarning);
-  const result = buildApplyResult(handler, applied, created);
+  const result = buildApplyResult(handler, applied, verb);
   return { result, warning, applied };
 }
 
 /**
- * Land a manifest-declared visibility through the guarded door. Plain
- * updates preserve the stored visibility on both editions (oss#573) — the
- * `updateVisibility` RPC is the only mutation path, so when the applied
- * resource comes back with a different level than the manifest declared,
- * follow up with one RPC (the skill-push precedent: no-ops are skipped, an
- * unchanged manifest costs nothing extra). Server-side guard rejections
- * (an unsupported level) propagate as command failures —
- * the spec update has landed at that point, and the error says so.
+ * Land a manifest-declared visibility through the guarded door (the SDK's
+ * `followDeclaredVisibility`). Plain updates preserve the stored
+ * visibility on both editions (oss#573), so a manifest that declares
+ * another level is followed with one `updateVisibility`; a manifest that
+ * declares none, or the stored one, costs nothing extra. The landed level
+ * is copied onto the outcome the caller already holds. A server-side
+ * refusal (an unsupported level) fails the command after the spec has
+ * landed, and the error says so.
  *
- * Returns a warning (instead of following up) for kinds without the RPC:
+ * Returns a warning, instead of following up, for kinds without the RPC:
  * their manifests can only carry a level the create path already rejected,
  * so a diff here means a pre-existing resource and an unsupported ask.
  */
@@ -196,34 +208,25 @@ async function applyDeclaredVisibility(
   message: Message,
   applied: Message,
 ): Promise<string | undefined> {
-  const declared = metaOf(message)?.visibility ?? ApiResourceVisibility.api_resource_visibility_unspecified;
-  if (declared === ApiResourceVisibility.api_resource_visibility_unspecified) return undefined;
-
-  const appliedMeta = metaOf(applied);
-  const resourceId = appliedMeta?.id ?? "";
-  if (resourceId === "" || appliedMeta?.visibility === declared) return undefined;
-
-  if (handler.updateVisibility === undefined) {
-    return (
-      `${handler.displayName} visibility cannot be changed declaratively — ` +
-      "the manifest's metadata.visibility was ignored (the stored value is kept)"
-    );
-  }
-
   try {
-    const updated = await handler.updateVisibility(
-      controller,
-      create(UpdateVisibilityInputSchema, { resourceId, visibility: declared }),
-    );
-    // Reflect the landed level on the outcome the caller already holds.
-    const updatedMeta = metaOf(updated);
-    if (appliedMeta !== undefined && updatedMeta !== undefined) {
-      appliedMeta.visibility = updatedMeta.visibility;
+    const followed = await followDeclaredVisibility(controller, handler, message, applied);
+    if (followed.visibilityKept) {
+      return (
+        `${handler.displayName} visibility cannot be changed declaratively — ` +
+        "the manifest's metadata.visibility was ignored (the stored value is kept)"
+      );
+    }
+    const appliedMeta = metaOf(applied);
+    const landedMeta = metaOf(followed.message);
+    if (appliedMeta !== undefined && landedMeta !== undefined) {
+      appliedMeta.visibility = landedMeta.visibility;
     }
     return undefined;
   } catch (err) {
+    /* v8 ignore next -- @preserve: followDeclaredVisibility throws only VisibilityChangeRefusedError; the guard narrows the type */
+    if (!(err instanceof VisibilityChangeRefusedError)) throw err;
     throw new UsageError(
-      `${handler.displayName} spec applied, but the manifest's visibility change was rejected: ${(err as Error).message}`,
+      `${handler.displayName} spec applied, but the manifest's visibility change was rejected: ${(err.cause as Error).message}`,
     );
   }
 }
@@ -439,9 +442,19 @@ function organizationReader(controller: ControllerFn): OrganizationReader {
 /** Each controller's organization gets, by the value asked. */
 const organizationGets = new WeakMap<ControllerFn, Map<string, ReturnType<OrganizationReader["organization"]["get"]>>>();
 
-function buildApplyResult(handler: ApplyHandler, applied: Message, created: boolean): CommandResult {
+/**
+ * What the server says the apply did, from the audit event it stamped on
+ * the resource it answered: "created" or "updated", and "applied" for an
+ * answer that carries no event.
+ */
+function appliedVerb(applied: Message): "created" | "updated" | "applied" {
+  const event = (applied as unknown as { status?: { audit?: ApiResourceAudit } }).status?.audit?.specAudit?.event;
+  return event === "created" || event === "updated" ? event : "applied";
+}
+
+function buildApplyResult(handler: ApplyHandler, applied: Message, verb: ReturnType<typeof appliedVerb>): CommandResult {
   const meta = metaOf(applied);
-  const result = CommandResult.success(`${handler.displayName} ${created ? "created" : "updated"} successfully`);
+  const result = CommandResult.success(`${handler.displayName} ${verb} successfully`);
   const section = result.addSection("Resource Details");
   if (meta?.id) section.field("ID", meta.id);
   if (meta?.name) section.field("Name", meta.name);

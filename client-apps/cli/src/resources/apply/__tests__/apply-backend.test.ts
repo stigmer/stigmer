@@ -6,7 +6,11 @@
 // distinguishes an update from a create — must reach the backend intact. We
 // apply an Agent YAML with an id set plus spec fields and assert the server
 // received every one. Also covers dependency ordering, org injection, dry-run,
-// and the created-vs-updated signal. And a file is a desired state: what
+// and the created-vs-updated signal, which is the server's word: the fake
+// finds a resource by the id it holds, then by its slug, and stamps the
+// apply's audit event as the server does, so a file without an id can
+// update and a file with a stale id can create. And a file is a desired
+// state: what
 // `get -o yaml` printed whole reaches the server with no etag and its
 // references named by slug alone, so it applies after the resource changed.
 
@@ -17,11 +21,14 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { type ConnectRouter, createClient } from "@connectrpc/connect";
 import { connectNodeAdapter } from "@connectrpc/connect-node";
-import { create } from "@bufbuild/protobuf";
+import { clone, create } from "@bufbuild/protobuf";
 import { type Agent, AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import { AgentStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/status_pb";
+import type { ApiResourceMetadata } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
+import { ApiResourceAuditStatusSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/status_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { AgentCommandController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/command_pb";
-import type { ChannelApp } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/api_pb";
+import { type ChannelApp, ChannelAppSchema } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { ChannelAppCommandController } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/command_pb";
 import { createNodeTransport, normalizeEndpoint } from "@stigmer/client/node";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -36,10 +43,35 @@ const openSessions = new Set<ServerHttp2Session>();
 let appliedAgents: Agent[] = [];
 let appliedChannelApps: ChannelApp[] = [];
 
+/** The resources the fake holds: every id, and each `kind/org/slug`'s id. */
+let heldIds = new Set<string>();
+let heldSlugs = new Map<string, string>();
+let nextId = 0;
+/** Whether the fake stamps the audit event: a server that stamps none is answered "applied". */
+let stampsAudit = true;
+
 beforeEach(() => {
   appliedAgents = [];
   appliedChannelApps = [];
+  heldIds = new Set(["agt_existing"]);
+  heldSlugs = new Map([["agent/acme/reviewer", "agt_existing"]]);
+  nextId = 0;
+  stampsAudit = true;
 });
+
+/**
+ * Find the resource an apply names as the server's apply does (an id it
+ * holds, then the slug in the organization), give a new one an id, and
+ * answer what the apply did. A stale id creates, under a new id.
+ */
+function applyEvent(kind: string, metadata: ApiResourceMetadata): "created" | "updated" {
+  const key = `${kind}/${metadata.org}/${metadata.slug}`;
+  const found = heldIds.has(metadata.id) ? metadata.id : heldSlugs.get(key);
+  metadata.id = found ?? `${kind}_new_${++nextId}`;
+  heldIds.add(metadata.id);
+  heldSlugs.set(key, metadata.id);
+  return found === undefined ? "created" : "updated";
+}
 
 function writeYaml(dir: string, name: string, body: string): string {
   const path = join(dir, name);
@@ -52,13 +84,21 @@ beforeAll(async () => {
     router.service(AgentCommandController, {
       apply: (req) => {
         appliedAgents.push(req);
-        return req; // echo back the full proto the server received
+        // Echo back the full proto the server received, under the id it
+        // stored, with the apply's audit event.
+        const answer = clone(AgentSchema, req);
+        const event = applyEvent("agent", answer.metadata!);
+        if (stampsAudit) answer.status = create(AgentStatusSchema, { audit: { specAudit: { event } } });
+        return answer;
       },
     });
     router.service(ChannelAppCommandController, {
       apply: (req) => {
         appliedChannelApps.push(req);
-        return req;
+        const answer = clone(ChannelAppSchema, req);
+        const event = applyEvent("channel_app", answer.metadata!);
+        if (stampsAudit) answer.status = create(ApiResourceAuditStatusSchema, { audit: { specAudit: { event } } });
+        return answer;
       },
     });
   };
@@ -110,7 +150,7 @@ describe("file-mode apply — fidelity (raw controller preserves full proto)", (
       expect(appliedAgents[0].spec?.description).toBe("A code reviewer");
       expect(appliedAgents[0].spec?.instructions).toBe("Review pull requests carefully");
 
-      // id present → treated as an update.
+      // The server held that id, and says it updated.
       expect(outcome.result.status).toBe("success");
       expect(outcome.result.message).toBe("Agent updated successfully");
     } finally {
@@ -118,7 +158,7 @@ describe("file-mode apply — fidelity (raw controller preserves full proto)", (
     }
   });
 
-  it("treats a resource without metadata.id as a create", async () => {
+  it("says created, then updated, when the same file without an id is applied twice", async () => {
     const dir = mkdtempSync(join(tmpdir(), "apply-it-"));
     try {
       writeYaml(
@@ -127,8 +167,50 @@ describe("file-mode apply — fidelity (raw controller preserves full proto)", (
         ["kind: Agent", "metadata:", "  name: New", "  slug: new", "spec:", "  description: d", ""].join("\n"),
       );
       const items = resolveApplyItems(dir);
+      const first = await applyItem(controllerFn, items[0], "acme", false);
+      const second = await applyItem(controllerFn, items[0], "acme", false);
+      expect(first.result.message).toBe("Agent created successfully");
+      expect(second.result.message).toBe("Agent updated successfully");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("says updated when a file without an id names the slug of a resource that exists (#2314)", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "apply-it-"));
+    try {
+      writeYaml(dir, "agent.yaml", AGENT_WITH_ID.replace("  id: agt_existing\n", ""));
+      const items = resolveApplyItems(dir);
+      const outcome = await applyItem(controllerFn, items[0], "acme", false);
+      expect(appliedAgents[0].metadata?.id).toBe("");
+      expect(outcome.result.message).toBe("Agent updated successfully");
+      expect((outcome.applied as Agent).metadata?.id).toBe("agt_existing");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("says created when the file's id is one the server no longer holds, and the server creates", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "apply-it-"));
+    try {
+      writeYaml(dir, "agent.yaml", AGENT_WITH_ID.replace("agt_existing", "agt_gone").replace("slug: reviewer", "slug: fresh"));
+      const items = resolveApplyItems(dir);
       const outcome = await applyItem(controllerFn, items[0], "acme", false);
       expect(outcome.result.message).toBe("Agent created successfully");
+      expect((outcome.applied as Agent).metadata?.id).not.toBe("agt_gone");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("says applied, never a guess, when the server's answer carries no audit event", async () => {
+    stampsAudit = false;
+    const dir = mkdtempSync(join(tmpdir(), "apply-it-"));
+    try {
+      writeYaml(dir, "agent.yaml", AGENT_WITH_ID);
+      const items = resolveApplyItems(dir);
+      const outcome = await applyItem(controllerFn, items[0], "acme", false);
+      expect(outcome.result.message).toBe("Agent applied successfully");
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
@@ -262,7 +344,8 @@ describe("file-mode apply — channel app (#353)", () => {
     }
   });
 
-  it("treats a ChannelApp carrying metadata.id as an update", async () => {
+  it("says updated when the server updates the ChannelApp the file's id names", async () => {
+    heldIds.add("chapp_existing");
     const dir = mkdtempSync(join(tmpdir(), "apply-it-"));
     try {
       writeYaml(
