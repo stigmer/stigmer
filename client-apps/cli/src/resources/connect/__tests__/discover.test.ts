@@ -13,10 +13,9 @@
 import { create } from "@bufbuild/protobuf";
 import { McpServerEntrySchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
 import { EnvVarDeclarationSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/declaration_pb";
-import { createServer } from "node:net";
-import type { AddressInfo } from "node:net";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
+import { freePort } from "../../../__test-utils__/ports.js";
 import { goRunEnvOverrides, localDiscover } from "../discover.js";
 import { PlaceholderResolutionError } from "../../mcp/placeholder-resolver.js";
 
@@ -106,18 +105,9 @@ describe("localDiscover (an address, and an entry that names nothing to start)",
     process.env = original;
   });
 
-  // A loopback port with nothing listening: taken from a listener just closed.
-  async function closedPort(): Promise<number> {
-    const listener = createServer();
-    await new Promise<void>((resolve) => listener.listen(0, "127.0.0.1", resolve));
-    const { port } = listener.address() as AddressInfo;
-    await new Promise<void>((resolve) => listener.close(() => resolve()));
-    return port;
-  }
-
   it("reaches an address with its headers resolved, and names the server when the connection is refused", async () => {
     process.env = { ...original, DISCOVER_TOKEN: "t" };
-    const port = await closedPort();
+    const port = await freePort();
     const headerSets: Record<string, string>[] = [{ Authorization: "Bearer ${DISCOVER_TOKEN}" }, {}];
     for (const headers of headerSets) {
       const server = create(McpServerEntrySchema, {

@@ -64,6 +64,8 @@ export interface InternalDaemonDeps {
    * "started".
    */
   onStarted?: () => void | Promise<void>;
+  /** The port the server listens on and is gated on (default SERVER_PORT); injectable for tests. */
+  serverPort?: number;
 }
 
 /** Run the daemon to completion. Returns the process exit code. */
@@ -73,6 +75,7 @@ export async function runInternalDaemon(deps: InternalDaemonDeps): Promise<numbe
   const clock = deps.clock ?? systemClock;
   const log = deps.log ?? defaultLog;
   const { shutdown } = deps;
+  const serverPort = deps.serverPort ?? SERVER_PORT;
 
   mkdirSync(config.logDir, { recursive: true });
   mkdirSync(join(config.dataDir, "workspace"), { recursive: true });
@@ -140,12 +143,13 @@ export async function runInternalDaemon(deps: InternalDaemonDeps): Promise<numbe
   }
 
   // --- Start the server (gated) and runner via the supervisor. ---
-  const supervisor = new ProcessSupervisor(buildComponents(config, deps.env ?? process.env), {
+  const supervisor = new ProcessSupervisor(buildComponents(config, deps.env ?? process.env, serverPort), {
     host,
     clock,
     healthState,
     persist,
     log,
+    serverPort,
   });
   started = supervisor;
   const result = await supervisor.startAll(shutdown);
@@ -168,7 +172,7 @@ export async function runInternalDaemon(deps: InternalDaemonDeps): Promise<numbe
   // Web console: the SERVER serves it from its unified port; the
   // daemon probes and records what a browser would actually find. pid 0 is
   // truthful — there is no separate console process to supervise.
-  const consoleAvailable = config.noWeb ? false : await isWebConsoleAvailable(SERVER_PORT, shutdown);
+  const consoleAvailable = config.noWeb ? false : await isWebConsoleAvailable(serverPort, shutdown);
   if (shutdown.aborted) return stopRequested();
   healthState.components["web-console"] = {
     pid: 0,

@@ -32,12 +32,18 @@ export const RUNNER_PROVIDERS_ENV = "STIGMER_RUNNER_PROVIDERS";
 /**
  * Environment for the `stigmer-server` child. Pins ports, Temporal coordinates,
  * the runner task queue, and the db/storage paths to the ~/.stigmer layout.
+ * `serverPort` is the port the server is told to listen on (default
+ * SERVER_PORT; a test passes a private one).
  */
-export function buildServerEnv(config: DaemonConfig, base: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
+export function buildServerEnv(
+  config: DaemonConfig,
+  base: NodeJS.ProcessEnv = process.env,
+  serverPort: number = SERVER_PORT,
+): NodeJS.ProcessEnv {
   const configDir = dirname(config.dataDir); // ~/.stigmer
   const env: NodeJS.ProcessEnv = {
     ...base,
-    GRPC_PORT: String(SERVER_PORT),
+    GRPC_PORT: String(serverPort),
     TEMPORAL_HOST_PORT: config.temporalAddress,
     TEMPORAL_NAMESPACE,
     TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE: RUNNER_TASK_QUEUE,
@@ -84,18 +90,23 @@ export function localRunnerReach(
 /**
  * Environment for the unified runner child in static mode (STIGMER_RUNNER_MODE
  * left unset). The runner polls RUNNER_TASK_QUEUE — the corrected queue that the
- * server actually dispatches to.
+ * server actually dispatches to — and dials the server on `serverPort`
+ * (default SERVER_PORT).
  */
-export function buildRunnerEnv(config: DaemonConfig, base: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
+export function buildRunnerEnv(
+  config: DaemonConfig,
+  base: NodeJS.ProcessEnv = process.env,
+  serverPort: number = SERVER_PORT,
+): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = {
     ...base,
     MODE: "local",
-    STIGMER_BACKEND_ENDPOINT: `http://localhost:${SERVER_PORT}`,
+    STIGMER_BACKEND_ENDPOINT: `http://localhost:${serverPort}`,
     // The server's public address, from which the runner fills a declared
     // STIGMER_SERVER_ADDRESS for remote MCP servers too (stigmer/stigmer#1447).
     // On a local install it is the address the console and the CLI already
     // dial, the one the console page supplied before the platform owned it.
-    STIGMER_MCP_PUBLIC_ENDPOINT: `http://localhost:${SERVER_PORT}`,
+    STIGMER_MCP_PUBLIC_ENDPOINT: `http://localhost:${serverPort}`,
     TEMPORAL_SERVICE_ADDRESS: config.temporalAddress,
     TEMPORAL_NAMESPACE,
     WORKSPACE_ROOT_DIR: join(config.dataDir, "workspace"),
@@ -125,9 +136,14 @@ export function buildRunnerEnv(config: DaemonConfig, base: NodeJS.ProcessEnv = p
 /**
  * Build the ordered components: `stigmer-server` (critical, gated on its gRPC
  * port) always first; the runner second unless server-only. Order matters — the
- * runner talks to the server.
+ * runner talks to the server. Both children and the gate follow `serverPort`
+ * (default SERVER_PORT), so a daemon told a port tells its children the same.
  */
-export function buildComponents(config: DaemonConfig, base: NodeJS.ProcessEnv = process.env): ComponentSpec[] {
+export function buildComponents(
+  config: DaemonConfig,
+  base: NodeJS.ProcessEnv = process.env,
+  serverPort: number = SERVER_PORT,
+): ComponentSpec[] {
   const components: ComponentSpec[] = [
     {
       name: "stigmer-server",
@@ -139,10 +155,10 @@ export function buildComponents(config: DaemonConfig, base: NodeJS.ProcessEnv = 
         name: "stigmer-server",
         command: config.server.nodeBin,
         args: [config.server.entryPath],
-        env: buildServerEnv(config, base),
+        env: buildServerEnv(config, base, serverPort),
         logFile: join(config.logDir, "stigmer-server.log"),
       }),
-      gate: serverGate(),
+      gate: serverGate(serverPort),
     },
   ];
 
@@ -160,7 +176,7 @@ export function buildComponents(config: DaemonConfig, base: NodeJS.ProcessEnv = 
       command: runner.nodeBin,
       args: [runner.entryPath],
       cwd: join(config.dataDir, "workspace"),
-      env: buildRunnerEnv(config, base),
+      env: buildRunnerEnv(config, base, serverPort),
       logFile: join(config.logDir, "runner.log"),
       readinessMarker: RUNNER_READY_MARKER,
     }),
@@ -171,12 +187,12 @@ export function buildComponents(config: DaemonConfig, base: NodeJS.ProcessEnv = 
 // The server is ready once its gRPC port accepts a connection; fail fast, with
 // how it ended, if it exits first. The error is recorded under the component's
 // name, so it speaks of "the server".
-function serverGate(): ReadinessGate {
+function serverGate(port: number): ReadinessGate {
   return {
-    description: `stigmer-server gRPC on port ${SERVER_PORT}`,
+    description: `stigmer-server gRPC on port ${port}`,
     wait: (handle) =>
       waitForTcp({
-        port: SERVER_PORT,
+        port,
         timeoutMs: SERVER_GATE_TIMEOUT_MS,
         label: "the server",
         getExit: () => handle.exitInfo(),

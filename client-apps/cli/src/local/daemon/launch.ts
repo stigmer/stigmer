@@ -178,7 +178,7 @@ export interface UpForegroundDeps {
   mirror?: OutputMirror;
   /** Invoked once the stack is serving — the moment a detached `up` would have returned — with what it reports. */
   onReady?: (report: UpReport) => void | Promise<void>;
-  /** The port the stack's server must find free (default SERVER_PORT). */
+  /** The port the stack's server listens on, refused when already held (default SERVER_PORT). */
   serverPort?: number;
 }
 
@@ -212,6 +212,7 @@ export async function upForeground(
       saveStartupConfig(data, buildStartupConfig(data, logs, temporalAddress, process.pid, options));
       await deps.onReady?.(upReport(env));
     },
+    serverPort: deps.serverPort,
   });
 }
 
