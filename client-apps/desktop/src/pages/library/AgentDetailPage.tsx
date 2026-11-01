@@ -139,6 +139,7 @@ export default function AgentDetailPage() {
       },
       {
         id: "delete",
+        requires: "can_delete",
         label: "Delete",
         variant: "destructive" as const,
         group: "danger",

@@ -83,6 +83,7 @@ export function PluginDetailPageInner({ org, slug }: PluginDetailPageInnerProps)
       },
       {
         id: "remove",
+        requires: "can_delete",
         label: "Remove",
         variant: "destructive" as const,
         group: "danger",

@@ -16,7 +16,11 @@
  * Manage sources opens the dialog listing the built-ins as such with
  * Remove on the added one only, and each row says what its catalogue
  * offers and what it lists that cannot be installed, a fact the grid
- * itself never shows.
+ * itself never shows. And who may install (CON-01): an admin, whom the
+ * server's self-check answers yes for `can_create_plugin`, gets Install
+ * and the Upload tile; a member gets the same cards saying "Ask an admin
+ * to install", no Install and no Upload tile; while the check is in flight
+ * the grid is a skeleton, so neither flashes.
  */
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -29,6 +33,7 @@ import { PluginQueryController } from "@stigmer/apis/ai/stigmer/agentic/plugin/v
 import { GetServerInfoOutputSchema, PlatformQueryController } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
 import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
 import { PluginListSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/io_pb";
+import { GrantQueryController } from "@stigmer/apis/ai/stigmer/iam/grant/v1/query_pb";
 
 import { StigmerContext } from "@stigmer/react-core";
 import { CATALOG_PAGE_SIZE, MarketplaceCatalog, filterEntries } from "../MarketplaceCatalog.js";
@@ -48,8 +53,17 @@ afterEach(() => {
   resetGitHubListingCache();
 });
 
-function transport(installedSlugs: readonly string[]) {
+/** Who is browsing: the self-check answers `can_create_plugin` yes for an admin, no for a member, and never for "asking". */
+type Viewer = "admin" | "member" | "asking";
+
+function transport(installedSlugs: readonly string[], viewer: Viewer) {
   return createRouterTransport(({ service }) => {
+    service(GrantQueryController, {
+      checkMyPermission: (input) =>
+        viewer === "asking"
+          ? new Promise<never>(() => {})
+          : { isAuthorized: viewer === "admin" && input.relation === "can_create_plugin" && input.resource?.kind === "organization" },
+    });
     service(PlatformQueryController, {
       // A development server: the official catalogue is not published for it.
       getServerInfo: () => create(GetServerInfoOutputSchema, { edition: 1, version: "dev" }),
@@ -68,8 +82,8 @@ function transport(installedSlugs: readonly string[]) {
   });
 }
 
-function renderCatalog(installedSlugs: readonly string[] = [], files = hostedMarketplaceFiles()) {
-  const client = new Stigmer({ baseUrl: "/", getAccessToken: () => "t", customTransport: transport(installedSlugs) });
+function renderCatalog(installedSlugs: readonly string[] = [], files = hostedMarketplaceFiles(), viewer: Viewer = "admin") {
+  const client = new Stigmer({ baseUrl: "/", getAccessToken: () => "t", customTransport: transport(installedSlugs, viewer) });
   const { fetchImpl } = hostedFetch(files);
   const wrapper = ({ children }: { children: ReactNode }) => (
     <StigmerContext.Provider value={client}>{children}</StigmerContext.Provider>
@@ -154,7 +168,7 @@ describe("MarketplaceCatalog: the grid", () => {
     expect(screen.getByRole("button", { name: "Install github" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /Upload a plugin/ })).toBeNull();
     fireEvent.change(screen.getByLabelText("Search plugins"), { target: { value: "nothing-here" } });
-    expect(screen.getByText("Nothing here matches 'nothing-here'.")).toBeTruthy();
+    expect(screen.getByRole("status").textContent).toContain("Nothing matches 'nothing-here'");
   });
 
   it("marks a plugin the organization holds as Installed and still offers to install it again", async () => {
@@ -267,5 +281,41 @@ describe("filterEntries", () => {
     expect(filterEntries(entries, "WARM").map((e) => e.name)).toEqual(["thermos"]);
     expect(filterEntries(entries, "hub").map((e) => e.name)).toEqual(["github"]);
     expect(filterEntries(entries, "zzz")).toEqual([]);
+  });
+});
+
+describe("MarketplaceCatalog: who may install", () => {
+  it("CON-01 offers an admin Install on each card and the Upload tile", async () => {
+    renderCatalog([], hostedMarketplaceFiles(), "admin");
+    expect(await screen.findByRole("button", { name: "Install thermos" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Upload a plugin/ })).toBeTruthy();
+    expect(screen.queryByText("Ask an admin to install")).toBeNull();
+  });
+
+  it("CON-01 shows a member every card saying who installs, with no Install and no Upload tile", async () => {
+    renderCatalog([], hostedMarketplaceFiles(), "member");
+    const grid = await screen.findByRole("list", { name: "Plugins" });
+    const cards = within(grid).getAllByRole("listitem");
+    expect(cards.length).toBeGreaterThan(1);
+    for (const card of cards) expect(within(card).getByText("Ask an admin to install")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /^Install / })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Upload a plugin/ })).toBeNull();
+  });
+
+  it("CON-01 shows a member a plugin the organization holds as Installed, with nothing to press", async () => {
+    renderCatalog(["thermos"], hostedMarketplaceFiles(), "member");
+    await waitFor(() => expect(screen.getByText("Installed")).toBeTruthy());
+    expect(screen.queryByRole("button", { name: "Install thermos" })).toBeNull();
+  });
+
+  it("CON-01 offers neither Install nor the ask while the server has not answered: the grid waits as a skeleton", async () => {
+    const { container } = renderCatalog([], hostedMarketplaceFiles(), "asking");
+    // The sources are read (their chip counts land) while the grid still waits on who may install.
+    await waitFor(() => expect(chip(HOSTED_MARKETPLACE_NAME).textContent).toMatch(/\d/));
+    expect(container.querySelector("[aria-busy='true']")).not.toBeNull();
+    expect(screen.queryByRole("list", { name: "Plugins" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Install / })).toBeNull();
+    expect(screen.queryByText("Ask an admin to install")).toBeNull();
+    expect(screen.queryByRole("button", { name: /Upload a plugin/ })).toBeNull();
   });
 });

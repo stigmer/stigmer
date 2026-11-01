@@ -130,6 +130,15 @@ describe("desktop PluginDetailPage — an eval try's run", () => {
   });
 });
 
+describe("desktop PluginDetailPage — who is offered each act", () => {
+  it("CON-01 declares can_delete on Remove, and nothing on the copies", () => {
+    renderPage();
+
+    const declared = Object.fromEntries((page.view.at(-1)?.actions ?? []).map((action) => [action.id, action.requires ?? null]));
+    expect(declared).toEqual({ "copy-id": null, "copy-slug": null, remove: "can_delete" });
+  });
+});
+
 describe("desktop PluginDetailPage — Remove", () => {
   it("asks first, deletes once confirmed, and returns to the plugins list", async () => {
     renderPage();

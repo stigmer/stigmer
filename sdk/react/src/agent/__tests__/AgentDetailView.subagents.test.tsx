@@ -100,7 +100,7 @@ function renderView(
         {
           agent: { getByReference, update },
           platform: { getServerInfo: vi.fn(async () => ({ singleOrg: false })) },
-          grant: { checkMyPermission: vi.fn(async () => ({ isAuthorized: false })) },
+          grant: { checkMyPermission: vi.fn(async (input: { relation: string }) => ({ isAuthorized: input.relation === "can_edit" })) },
         },
         undefined,
         true,
@@ -336,7 +336,7 @@ describe("AgentDetailView rename", () => {
           platform: { getServerInfo: vi.fn(async () => ({ singleOrg: false })) },
           grant: {
             checkMyPermission: vi.fn(async (input: { relation: string }) => ({
-              isAuthorized: allowed && input.relation === "can_delete",
+              isAuthorized: input.relation === "can_edit" || (allowed && input.relation === "can_delete"),
             })),
           },
         },

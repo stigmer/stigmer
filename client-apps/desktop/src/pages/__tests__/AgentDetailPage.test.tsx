@@ -19,7 +19,10 @@
  * agents list's row Delete, deleting only once confirmed. The page holds no
  * copy of the agent: the view owns the actions that read it
  * (`yamlActions`, stigmer/stigmer#2813), and the route follows the slug the
- * view reports on each load, a YAML apply's rename included.
+ * view reports on each load, a YAML apply's rename included. Delete
+ * declares the relation it needs (CON-01), as the web page's does, so the
+ * view offers it only on the server's yes; the view's own Edit YAML
+ * declares `can_edit` (pinned in @stigmer/react-sdk).
  *
  * And pins how an eval try's run opens from the Evals tab: a run is viewed
  * through its parent session, so the page resolves the run first and
@@ -34,6 +37,7 @@ import { CONSOLE_URL } from "../../config";
 
 interface Action {
   id: string;
+  requires?: string;
   onAction: () => void | Promise<void>;
 }
 
@@ -220,6 +224,14 @@ describe("desktop AgentDetailPage — actions", () => {
     if (found === undefined) throw new Error(`no ${id} action`);
     return found;
   }
+
+  it("CON-01 declares can_delete on Delete, and nothing on Start session or the copies", () => {
+    renderAgent();
+
+    const declared = Object.fromEntries((page.detail.at(-1)?.actions ?? []).map((a) => [a.id, a.requires ?? null]));
+    expect(declared).toEqual({ "copy-id": null, "copy-slug": null, delete: "can_delete" });
+    expect(page.detail.at(-1)?.primaryAction.requires).toBeUndefined();
+  });
 
   it("leaves the actions that read the agent to the view, and passes only its own", () => {
     renderAgent();

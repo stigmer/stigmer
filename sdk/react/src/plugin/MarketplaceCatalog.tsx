@@ -31,6 +31,14 @@
  * "Installed" on a card is a slug match against the organization's
  * plugins; the exact-version fact ("already installed", "upgrade") belongs
  * to the install dialog, where the archive exists to compare.
+ *
+ * Installing is an organization admin's act (`can_create_plugin`, asked
+ * through `useCanCreatePlugin`, which fails closed). A member browses the
+ * same catalogue: each card says "Ask an admin to install" and there is no
+ * Upload tile, so nobody is offered an install the server would refuse.
+ * Until the server has answered, the grid waits as a skeleton with the
+ * sources, so neither an Install nor "Ask an admin" flashes for the wrong
+ * person.
  */
 
 import { useCallback, useId, useMemo, useState } from "react";
@@ -43,7 +51,8 @@ import { DialogShell } from "../internal/DialogShell.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { INPUT_CLASSES } from "../internal/form-primitives.js";
 import { Pagination } from "../internal/Pagination.js";
-import { SpinnerIcon } from "../internal/SpinnerIcon.js";
+import { LoadingRegion } from "../internal/LoadingRegion.js";
+import { EmptyState } from "../empty-state/EmptyState.js";
 import { ManageSourcesDialog } from "./ManageSourcesDialog.js";
 import { PluginCard, UploadTile } from "./PluginCard.js";
 import { PluginInstallDialog } from "./PluginInstallDialog.js";
@@ -55,6 +64,7 @@ import type { InstallPluginOutcome } from "./useInstallPlugin.js";
 import { type CatalogEntry, catalogEntries, useMarketplaceCatalog } from "./useMarketplaceCatalog.js";
 import { useMarketplaces } from "./useMarketplaces.js";
 import { useInstalledPluginSlugs } from "./useInstalledPluginSlugs.js";
+import { useCanCreatePlugin } from "./useCanCreatePlugin.js";
 
 /** Props for {@link MarketplaceCatalog}. */
 export interface MarketplaceCatalogProps {
@@ -86,6 +96,10 @@ export function MarketplaceCatalog({ org, onInstalled, fetchImpl, className }: M
   const sources = useMarketplaces(fetchImpl ? { fetchImpl } : {});
   const { reads, refetch } = useMarketplaceCatalog(sources.marketplaces, fetchImpl ? { fetchImpl } : {});
   const installedSlugs = useInstalledPluginSlugs(org);
+  // Installing is an admin's act (can_create_plugin, fail closed): a member
+  // browses the same catalogue and is told who installs.
+  const installCheck = useCanCreatePlugin(org);
+  const mayInstall = installCheck.allowed;
 
   const [selectedSource, setSelectedSource] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -112,7 +126,7 @@ export function MarketplaceCatalog({ org, onInstalled, fetchImpl, className }: M
   const matching = useMemo(() => entries.filter((catalogEntry) => matchesQuery(catalogEntry.entry, query)), [entries, query]);
 
   const searching = query.trim() !== "";
-  const showUploadTile = !searching;
+  const showUploadTile = !searching && mayInstall;
   // The Upload tile takes one slot on the first page, so the first page holds one card fewer.
   const totalSlots = matching.length + (showUploadTile ? 1 : 0);
   const totalPages = Math.max(1, Math.ceil(totalSlots / CATALOG_PAGE_SIZE));
@@ -123,6 +137,8 @@ export function MarketplaceCatalog({ org, onInstalled, fetchImpl, className }: M
 
   const anyReading = shownReads.some((read) => read.state.kind === "reading");
   const failed = shownReads.filter((read) => read.state.kind === "failed");
+  // The grid waits for its first cards and for who may install them.
+  const settling = (anyReading && entries.length === 0) || installCheck.isLoading;
 
   return (
     <div className={cn("stg:flex stg:flex-col stg:gap-6", className)}>
@@ -144,37 +160,42 @@ export function MarketplaceCatalog({ org, onInstalled, fetchImpl, className }: M
 
       {failed.length > 0 && <FailedSources failed={failed} refetch={refetch} whole={selected !== null} />}
 
-      {anyReading && entries.length === 0 && (
-        <div className="stg:flex stg:items-center stg:gap-2 stg:text-sm stg:text-muted-foreground" role="status">
-          <SpinnerIcon className="stg:size-4" />
-          Reading {selected ?? "the sources"}…
-        </div>
+      {settling && <CatalogSkeleton label={`Reading ${selected ?? "the sources"}`} />}
+
+      {!settling && entries.length > 0 && matching.length === 0 && searching && (
+        <EmptyState
+          variant="zero-results"
+          title={`Nothing matches '${query.trim()}'`}
+          description="Try another word, or search every source."
+        />
+      )}
+      {!settling && !anyReading && failed.length === 0 && entries.length === 0 && (
+        <EmptyState
+          variant="first-use"
+          title={selected === null ? "No plugins to show" : `${selected} offers no plugins`}
+          description={
+            selected === null
+              ? "No source offers a plugin this console can install. Add a catalogue in Manage sources."
+              : `${selected} offers no plugins this console can install.`
+          }
+        />
       )}
 
-      {entries.length > 0 && matching.length === 0 && searching && (
-        <p className="stg:text-sm stg:text-muted-foreground">Nothing here matches '{query.trim()}'.</p>
-      )}
-      {!anyReading && failed.length === 0 && entries.length === 0 && (
-        <p className="stg:text-sm stg:text-muted-foreground">
-          {selected === null ? "No source offers a plugin this console can install." : `${selected} offers no plugins this console can install.`}
-        </p>
-      )}
-
-      {(pageEntries.length > 0 || (showUploadTile && page === 1)) && (
-        <ul className={cn(UNSTYLED_LIST, "stg:grid stg:gap-3 stg:sm:grid-cols-2 stg:lg:grid-cols-3")} aria-label="Plugins">
+      {!settling && (pageEntries.length > 0 || (showUploadTile && page === 1)) && (
+        <ul className={cn(UNSTYLED_LIST, CATALOG_GRID)} aria-label="Plugins">
           {showUploadTile && page === 1 && <UploadTile onUpload={() => setUploading(true)} />}
           {pageEntries.map((catalogEntry) => (
             <PluginCard
               key={`${catalogEntry.source.name}/${catalogEntry.entry.name}`}
               entry={catalogEntry}
               installed={installedSlugs.has(catalogEntry.entry.name)}
-              onInstall={setInstalling}
+              onInstall={mayInstall ? setInstalling : undefined}
             />
           ))}
         </ul>
       )}
 
-      {totalPages > 1 && (
+      {!settling && totalPages > 1 && (
         <Pagination
           pageNumber={page}
           pageCount={totalPages}
@@ -220,6 +241,29 @@ export function MarketplaceCatalog({ org, onInstalled, fetchImpl, className }: M
         remove={sources.remove}
       />
     </div>
+  );
+}
+
+const CATALOG_GRID = "stg:grid stg:gap-3 stg:sm:grid-cols-2 stg:lg:grid-cols-3";
+
+/** The grid's shape while its first cards are read: six cards' outlines, face, name, words and source. */
+function CatalogSkeleton({ label }: { readonly label: string }) {
+  return (
+    <LoadingRegion label={label} className={CATALOG_GRID}>
+      {[0, 1, 2, 3, 4, 5].map((slot) => (
+        <div key={slot} className="stg:flex stg:flex-col stg:gap-3 stg:rounded-lg stg:border stg:border-border stg:bg-card stg:p-4">
+          <div className="stg:flex stg:items-start stg:gap-3">
+            <div className="stg:size-10 stg:shrink-0 stg:animate-pulse stg:rounded-lg stg:bg-muted" />
+            <div className="stg:flex-1 stg:space-y-2">
+              <div className="stg:h-4 stg:w-32 stg:animate-pulse stg:rounded stg:bg-muted" />
+              <div className="stg:h-3 stg:w-20 stg:animate-pulse stg:rounded stg:bg-muted" />
+            </div>
+          </div>
+          <div className="stg:h-3 stg:w-full stg:animate-pulse stg:rounded stg:bg-muted" />
+          <div className="stg:h-3 stg:w-2/3 stg:animate-pulse stg:rounded stg:bg-muted" />
+        </div>
+      ))}
+    </LoadingRegion>
   );
 }
 

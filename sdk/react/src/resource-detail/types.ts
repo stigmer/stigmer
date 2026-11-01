@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { StatusPhase } from "../resource-workbench/types.js";
 import type { TabItem } from "../tabs/Tabs.js";
+import type { PermissionCheckResource } from "../grant/useCheckPermission.js";
 
 // ---------------------------------------------------------------------------
 // Additional tab — consumer-provided extension tabs for detail views
@@ -68,6 +69,15 @@ export interface DetailAction {
    * Actions with the same group are visually grouped with separators.
    */
   readonly group?: string;
+  /**
+   * The relation the person must hold on the resource for this act (e.g.
+   * `"can_delete"` for Delete, `"can_edit"` for Edit YAML). The action bar
+   * offers the act only when the server answered yes for the bar's
+   * `resource`: not while the check is in flight, not when it failed, and
+   * never when the bar was given no resource. Leave it unset for acts that
+   * change nothing (copy, export), which every reader is offered.
+   */
+  readonly requires?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -175,6 +185,15 @@ export interface ResourceDetailShellProps {
   readonly headerBanner?: ReactNode;
 
   /**
+   * The kind's own identity block, drawn in the generic header's place
+   * (icon, name, facts): a kind whose page opens on who it is, such as an
+   * agent's profile, draws it; the shell keeps the action bar, the tabs and
+   * the content. Every other kind leaves it unset and gets the generic
+   * header from `header`.
+   */
+  readonly identity?: ReactNode;
+
+  /**
    * Primary action rendered as a visible button in the header area.
    * Use for the most common action (e.g. "Edit" for agents).
    */
@@ -185,6 +204,14 @@ export interface ResourceDetailShellProps {
    * Grouped by the `group` field — groups are separated visually.
    */
   readonly actions?: readonly DetailAction[];
+
+  /**
+   * The resource the page shows, which each action's `requires` is checked
+   * on (see {@link DetailAction.requires}). The detail views pass their
+   * loaded resource; without one, an action that `requires` a relation is
+   * never offered.
+   */
+  readonly resource?: PermissionCheckResource | null;
 
   /**
    * Optional tabs to render below the header.

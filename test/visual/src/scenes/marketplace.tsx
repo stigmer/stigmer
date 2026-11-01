@@ -5,7 +5,9 @@
 //
 // Two people browse it: an admin, who may install, and a member, whom the
 // server refuses (installing a plugin is `can_create_plugin`, an admin's).
-// Each self-check is answered by who is looking.
+// Each self-check is answered by who is looking: the admin sees Install and
+// the Upload tile, the member the same cards saying "Ask an admin to
+// install".
 import type { ConnectRouter } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
 import { PluginQueryController } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/query_pb";
@@ -14,7 +16,7 @@ import { PluginListSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/io_
 import { GrantQueryController } from "@stigmer/apis/ai/stigmer/iam/grant/v1/query_pb";
 import { GetServerInfoOutputSchema, PlatformQueryController } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
 import { OrganizationQueryController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/query_pb";
-import { MarketplaceCatalog } from "@stigmer/react-sdk";
+import { MarketplaceCatalog, PageHeader } from "@stigmer/react-sdk";
 import { samples } from "@stigmer/react-sdk/test";
 import { countedFetch } from "../fake-server.ts";
 import { ORGANIZATION } from "../fixtures.ts";
@@ -49,11 +51,10 @@ export function marketplaceScene(viewer: MarketplaceViewer): Drawing {
     render: () => (
       <div style={{ maxWidth: "64rem", margin: "0 auto", padding: "2rem 1.5rem" }}>
         <div style={{ marginBottom: "1.5rem" }}>
-          <h1 className="stg:text-xl stg:font-semibold stg:text-foreground">Marketplace</h1>
-          <p className="stg:mt-1 stg:text-sm stg:text-muted-foreground">
-            Plugins you can install into {ORGANIZATION.metadata?.slug}: from Stigmer&apos;s catalogue, from your computer, or from a
-            catalogue you add. A plugin installs as an agent, as tools for your agents, or both.
-          </p>
+          <PageHeader
+            title="Marketplace"
+            description={`Plugins for ${ORGANIZATION.metadata?.slug ?? ""}'s agents: tools, skills and whole agents, from Stigmer's catalogue or one you add.`}
+          />
         </div>
         <MarketplaceCatalog org={ORG_ID} fetchImpl={fetchImpl} />
       </div>

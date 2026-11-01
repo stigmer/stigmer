@@ -25,6 +25,7 @@ vi.mock("@stigmer/react-sdk", () => ({
   SessionInspector: () => null,
   useActiveOrgId: () => ACME.id,
   useOrg: () => ({ activeOrg: { metadata: { id: ACME.id, slug: ACME.slug } } }),
+  PageHeader: () => null,
   OperationalDashboard: ({ org }: { org: string }) => {
     record("OperationalDashboard", org);
     return null;

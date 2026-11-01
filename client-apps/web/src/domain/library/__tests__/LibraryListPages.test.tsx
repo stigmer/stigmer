@@ -38,6 +38,8 @@ interface WorkbenchProps {
 const ROW: Row = { id: "agt_1", org: "org_acme", slug: "kit", name: "Kit" };
 
 const page = vi.hoisted(() => ({
+  /** The relations every row's resource holds, as the self-check would answer them. */
+  granted: ["can_delete"] as string[],
   // The server's answer to "may this person create an agent here?".
   canCreate: { allowed: true, isLoading: false },
   workbench: [] as WorkbenchProps[],
@@ -88,6 +90,27 @@ vi.mock("@stigmer/react-sdk", () => {
       );
     },
     ActionMenu,
+    // Stands in for the kit's bar: an act that requires a relation is offered
+    // only when the row's resource holds it (the rule is pinned in the kit).
+    ResourceActionBar: ({
+      resource,
+      menuLabel,
+      actions,
+    }: {
+      resource?: { kind: string; id: string } | null;
+      menuLabel?: string;
+      actions: Array<{ id: string; label: string; requires?: string; onAction: () => void }>;
+    }) => (
+      <div aria-label={menuLabel} data-resource={resource ? `${resource.kind}:${resource.id}` : ""}>
+        {actions
+          .filter((action) => action.requires === undefined || page.granted.includes(action.requires))
+          .map((action) => (
+            <button key={action.id} type="button" onClick={action.onAction}>
+              {action.label}
+            </button>
+          ))}
+      </div>
+    ),
     ApplyManifestDialog: () => null,
     ConfirmDialog: () => null,
     AddMcpServerDialog: (props: Record<string, unknown>) => {
@@ -107,6 +130,8 @@ vi.mock("@stigmer/react-sdk", () => {
     }),
     useActiveOrgId: () => "org_acme",
     useCanCreateAgent: () => page.canCreate,
+    // An admin: the plugin list's ways in are pinned for a member in its own suite.
+    useCanCreatePlugin: () => ({ allowed: true, isLoading: false }),
     // The person's organizations: org_acme reads "acme".
     useOrgSlugForId: () => (id: string) => (id === "org_acme" ? "acme" : id),
     useConfirmAction: () => ({

@@ -20,6 +20,12 @@
  *
  * Visibility is the kind's default, as `SkillUploader` leaves it; the
  * plugin's page changes it afterwards.
+ *
+ * Installing is an organization admin's act (`can_create_plugin`, asked
+ * through `useCanCreatePlugin`, which fails closed): anyone else sees
+ * `PluginInstallDenied` instead of the drop zone, and nothing is drawn
+ * while the server has not answered, so a route reached directly never
+ * offers an upload the server would refuse at the end.
  */
 
 import { type DragEvent, useCallback, useRef, useState } from "react";
@@ -35,6 +41,8 @@ import { type InstallPluginOutcome, useInstallPlugin } from "./useInstallPlugin.
 import { useInstallRelation } from "./useInstallRelation.js";
 import { type PluginUploadPhase, looksLikeDroppedDotfiles, usePluginUpload } from "./usePluginUpload.js";
 import { useOrgSlugForId } from "../organization/useOrgRefs.js";
+import { PluginInstallDenied } from "./PluginInstallDenied.js";
+import { useCanCreatePlugin } from "./useCanCreatePlugin.js";
 
 /** Props for {@link PluginUploader}. */
 export interface PluginUploaderProps {
@@ -57,7 +65,15 @@ const DOTFILE_HINT =
  * <PluginUploader org={org} onComplete={({ plugin }) => navigateToDetail("plugins", org, plugin.metadata.slug)} />
  * ```
  */
-export function PluginUploader({ org, onComplete, onCancel, className }: PluginUploaderProps) {
+export function PluginUploader(props: PluginUploaderProps) {
+  const { allowed, isLoading } = useCanCreatePlugin(props.org || null);
+  if (isLoading) return null;
+  if (!allowed) return <PluginInstallDenied className={props.className} />;
+  return <PluginUploadForm {...props} />;
+}
+
+/** The drop zone, then the preview: drawn only for a person the server lets install. */
+function PluginUploadForm({ org, onComplete, onCancel, className }: PluginUploaderProps) {
   const upload = usePluginUpload();
   return (
     <div className={cn("stg:flex stg:flex-col stg:gap-4", className)}>

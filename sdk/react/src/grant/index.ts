@@ -93,6 +93,11 @@ export {
   type UseCheckPermissionReturn,
 } from "./useCheckPermission.js";
 
+export {
+  useCheckPermissions,
+  type UseCheckPermissionsReturn,
+} from "./useCheckPermissions.js";
+
 export { PermissionGate, type PermissionGateProps } from "./PermissionGate.js";
 
 export { SharePanel, type SharePanelProps } from "./SharePanel.js";

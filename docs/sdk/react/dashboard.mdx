@@ -110,6 +110,24 @@ function useRunSummary(options: UseRunSummaryOptions): UseRunSummaryReturn
 />
 
 
+## Components
+
+### DashboardFirstSteps
+
+A new organization's first steps: connect a provider, make an agent, start a session.
+
+**Props** — `DashboardFirstStepsProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "" },
+    links: { type: "DashboardFirstStepLinks", description: "", required: true, typeDescriptionLink: "#dashboardfirststeplinks" },
+    org: { type: "string", description: "", required: true },
+    renderLink: { type: "(props: { children: ReactNode; className: string; href: string }) => ReactNode", description: "Draws a link; a host with its own router passes its link component. A plain anchor otherwise." },
+  }}
+/>
+
+
 ## Types
 
 ### DashboardFailedRun
@@ -143,6 +161,19 @@ timestamp.
     failedRuns: { type: "readonly DashboardFailedRun[]", description: "", required: true },
     isLoading: { type: "boolean", description: "", required: true },
     onViewClick: { type: "(id: string) => void", description: "Called when the user clicks \"View\" on a failed run." },
+  }}
+/>
+
+
+### DashboardFirstStepLinks
+
+Where each first step leads, as the host routes it.
+
+<TypeTable
+  type={{
+    connectProvider: { type: "string", description: "Models & providers, where a provider key is connected.", required: true },
+    createAgent: { type: "string", description: "Where a new agent is made.", required: true },
+    startSession: { type: "string", description: "The launcher, where a session starts.", required: true },
   }}
 />
 
@@ -195,6 +226,10 @@ Layout:
 - Row 1: KPI stat cards (Active | Completed | Failed | Tokens)
 - Row 2: Recent Failures
 
+For an organization where no run has ever been made, and a host that
+passes `firstStepLinks`, the first steps ([`DashboardFirstSteps`](#dashboardfirststeps))
+take both rows' place until something has run.
+
 Tokens come from the org usage report (`getOrgUsageReport`), which
 counts each run once, so the dashboard matches the Usage page.
 
@@ -202,6 +237,7 @@ counts each run once, so the dashboard matches the Usage page.
 <OperationalDashboard
   org="acme"
   onFailedRunClick={(id) => navigate(`/runs/${id}`)}
+  firstStepLinks={{ connectProvider: "/models", createAgent: "/library/agents/new", startSession: "/" }}
 />
 ```
 
@@ -211,8 +247,10 @@ counts each run once, so the dashboard matches the Usage page.
 <TypeTable
   type={{
     className: { type: "string", description: "" },
+    firstStepLinks: { type: "DashboardFirstStepLinks", description: "Where a new organization's first steps lead, as the host routes them. With them, an organization where nothing has run yet sees its first steps alone instead of four zeros; without them, the figures as always.", typeDescriptionLink: "#dashboardfirststeplinks" },
     onFailedRunClick: { type: "(id: string) => void", description: "Called with the run's ID when the user clicks \"View\" on a failed run." },
     org: { type: "string | null | undefined", description: "The organization whose runs and usage the dashboard shows.", required: true },
+    renderLink: { type: "(props: { children: ReactNode; className: string; href: string }) => ReactNode", description: "Draws a first step's link with the host's router; a plain anchor otherwise." },
   }}
 />
 

@@ -1,6 +1,25 @@
+/**
+ * The dashboard route: the kit's page heading over `OperationalDashboard`,
+ * with the app's routes for a new organization's first steps (the models
+ * hub, a new agent, the launcher). Wired as the web console's page is;
+ * only the link component differs (the router's, so the hash routes hold).
+ */
+
 import { useCallback } from "react";
-import { useNavigate } from "react-router-dom";
-import { useOrg, OperationalDashboard } from "@stigmer/react-sdk";
+import { Link, useNavigate } from "react-router-dom";
+import { useOrg, OperationalDashboard, PageHeader, type DashboardFirstStepsProps } from "@stigmer/react-sdk";
+
+const FIRST_STEP_LINKS = {
+  connectProvider: "/models",
+  createAgent: "/library/agents/new",
+  startSession: "/",
+} as const;
+
+const renderLink: NonNullable<DashboardFirstStepsProps["renderLink"]> = ({ href, className, children }) => (
+  <Link to={href} className={className}>
+    {children}
+  </Link>
+);
 
 export default function DashboardPage() {
   const { activeOrg } = useOrg();
@@ -16,14 +35,18 @@ export default function DashboardPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-8">
-      <div className="mb-8">
-        <h1 className="text-xl font-semibold text-foreground">Dashboard</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Operational overview across your organization.
-        </p>
-      </div>
+      <PageHeader
+        className="mb-8"
+        title="Dashboard"
+        description="What your organization's agents did this week."
+      />
 
-      <OperationalDashboard org={org} onFailedRunClick={handleFailedRunClick} />
+      <OperationalDashboard
+        org={org}
+        onFailedRunClick={handleFailedRunClick}
+        firstStepLinks={FIRST_STEP_LINKS}
+        renderLink={renderLink}
+      />
     </div>
   );
 }

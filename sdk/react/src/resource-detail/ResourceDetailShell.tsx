@@ -11,8 +11,10 @@ import { useOrgSlugForId } from "../organization/useOrgRefs.js";
  * Shared layout shell for resource detail pages.
  *
  * Renders a standardized header (icon, name, org, timestamps, status,
- * visibility control), an action bar (primary button + kebab overflow),
- * optional tabs, and a content area — all themed via `--stgm-*` tokens.
+ * visibility control) or the kind's own `identity`, an action bar (primary
+ * button + kebab overflow, each act offered only on the server's yes for
+ * the `requires` it declares on `resource`), optional tabs, and a content
+ * area — all themed via `--stgm-*` tokens.
  *
  * The shell receives pre-fetched data via props. It does
  * NOT own data fetching — resource-specific hooks (`useAgent`, `useSkill`,
@@ -45,8 +47,10 @@ export function ResourceDetailShell({
   visibilityControl,
   headerMetaExtra,
   headerBanner,
+  identity,
   primaryAction,
   actions,
+  resource,
   tabs,
   activeTab,
   onTabChange,
@@ -61,15 +65,19 @@ export function ResourceDetailShell({
       {headerBanner}
 
       {/* Header + Action bar row */}
-      <div className="stg:flex stg:items-start stg:justify-between stg:gap-4">
-        <Header
-          header={header}
-          visibilityControl={visibilityControl}
-          metaExtra={headerMetaExtra}
-        />
+      {/* Side by side from the small breakpoint; on a phone the acts sit under the identity, never over the name. */}
+      <div className="stg:flex stg:flex-col stg:gap-4 stg:sm:flex-row stg:sm:items-start stg:sm:justify-between">
+        {identity ?? (
+          <Header
+            header={header}
+            visibilityControl={visibilityControl}
+            metaExtra={headerMetaExtra}
+          />
+        )}
         <ResourceActionBar
           primaryAction={primaryAction}
           actions={actions}
+          resource={resource}
           className="stg:shrink-0"
         />
       </div>

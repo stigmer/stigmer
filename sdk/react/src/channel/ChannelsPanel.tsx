@@ -40,7 +40,7 @@ import {
   useAddChannelOptions,
   type AddChannelOption,
 } from "./useAddChannelOptions.js";
-import { useChannelList } from "./useChannelList.js";
+import { useChannelList, type UseChannelListReturn } from "./useChannelList.js";
 import { useDeleteChannel } from "./useDeleteChannel.js";
 import { installStateOf, VendorChannelCard } from "./VendorChannelCard.js";
 
@@ -81,6 +81,13 @@ export interface ChannelsPanelProps {
    * rows render without links (the SDK never assumes a routing scheme).
    */
   readonly sessionHref?: (sessionId: string) => string;
+  /**
+   * The agent's channels as the host already reads them
+   * (`useChannelList(agent id, agent org)`), so the panel and the rest of
+   * the host's page show one list: every add, edit and delete made here
+   * refetches it. Absent, the panel reads its own.
+   */
+  readonly channelList?: UseChannelListReturn;
   /** Additional CSS class names. */
   readonly className?: string;
 }
@@ -119,14 +126,14 @@ export function ChannelsPanel({
   onConnectExternal,
   channelAppsHref,
   sessionHref,
+  channelList,
   className,
 }: ChannelsPanelProps) {
   const agentId = agent.metadata?.id ?? "";
   // Channels are same-org by invariant; scope the list to the agent's org.
-  const { channels, isLoading, error, refetch } = useChannelList(
-    agentId,
-    agent.metadata?.org ?? "",
-  );
+  // A host that passes its own read is the one read (an empty id skips this one).
+  const ownList = useChannelList(channelList ? "" : agentId, agent.metadata?.org ?? "");
+  const { channels, isLoading, error, refetch } = channelList ?? ownList;
 
   // One fetch for all vendor cards: a channel's spec.app_ref carries only
   // the slug, but the app's name is the bot name members @mention — the

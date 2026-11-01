@@ -5,6 +5,7 @@
  * slug of the org the plugin names by id. The catalogue is pinned in
  * @stigmer/react-sdk.
  */
+import type { ReactNode } from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, render, screen } from "@testing-library/react";
 
@@ -25,6 +26,12 @@ vi.mock("@stigmer/react-sdk", () => ({
     page.catalog.push(props);
     return null;
   },
+  PageHeader: ({ title, description }: { title: ReactNode; description?: ReactNode }) => (
+    <header>
+      <h1>{title}</h1>
+      <p>{description}</p>
+    </header>
+  ),
   useActiveOrgId: () => "org_acme",
   useActiveOrgSlug: () => "acme",
   // The person's organizations: org_acme reads "acme" in a URL.
@@ -47,7 +54,8 @@ describe("web MarketplacePage", () => {
     render(<MarketplacePage />);
 
     expect(page.catalog.at(-1)?.org).toBe("org_acme");
-    expect(screen.getByText(/Plugins you can install into acme:/)).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 1, name: "Marketplace" })).toBeTruthy();
+    expect(screen.getByText(/^Plugins for acme's agents:/)).toBeTruthy();
   });
 
   it("opens an installed plugin under its org's slug", () => {

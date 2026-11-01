@@ -2,7 +2,10 @@
 
 /**
  * One plugin in the Marketplace grid: its face, the name for people, who
- * made it, what it does, where it comes from, and Install.
+ * made it, what it does, where it comes from, and Install. Where the
+ * person may not install (a member: installing is an organization admin's
+ * act), the host passes no `onInstall` and the card says "Ask an admin to
+ * install" instead of offering a button the server would refuse.
  *
  * The card reads its own presentation when it is shown (one manifest, see
  * `usePluginPresentation`), so the grid lists a catalogue from one file and
@@ -31,7 +34,12 @@ export interface PluginCardProps {
   readonly entry: CatalogEntry;
   /** Whether the organization already holds a plugin of this name. */
   readonly installed: boolean;
-  readonly onInstall: (entry: CatalogEntry) => void;
+  /**
+   * Opens the install for this entry. Absent where the person may not
+   * install (a member: installing is an admin's), and the card says who can
+   * instead of offering an Install the server would refuse.
+   */
+  readonly onInstall?: (entry: CatalogEntry) => void;
   readonly className?: string;
 }
 
@@ -49,11 +57,11 @@ export function PluginCard({ entry, installed, onInstall, className }: PluginCar
 
   return (
     <li className={cn(CARD, className)}>
-      <div className="stg:flex stg:items-start stg:gap-3">
+      <div className="stg:flex stg:items-start stg:gap-3 stg:min-w-0">
         <PluginFace name={name} displayName={displayName} logoUrl={logoUrl} />
         <div className="stg:min-w-0 stg:flex-1">
           <div className="stg:flex stg:items-start stg:justify-between stg:gap-2">
-            <h3 className="stg:truncate stg:text-sm stg:font-medium stg:text-foreground">{displayName}</h3>
+            <h3 className="stg:m-0 stg:truncate stg:text-sm stg:font-medium stg:text-foreground">{displayName}</h3>
             {installed && (
               <span className="stg:shrink-0 stg:rounded-full stg:border stg:border-border stg:bg-muted stg:px-2 stg:py-0.5 stg:text-xs stg:text-muted-foreground">
                 Installed
@@ -69,9 +77,13 @@ export function PluginCard({ entry, installed, onInstall, className }: PluginCar
           <SourceMark source={entry.source.source} />
           <span className="stg:truncate">{entry.source.name}</span>
         </span>
-        <Button variant="outline" size="sm" onClick={() => onInstall(entry)} aria-label={`Install ${name}`}>
-          {installed ? "Install again" : "Install"}
-        </Button>
+        {onInstall ? (
+          <Button variant="outline" size="sm" onClick={() => onInstall(entry)} aria-label={`Install ${name}`}>
+            {installed ? "Install again" : "Install"}
+          </Button>
+        ) : (
+          !installed && <span className="stg:shrink-0 stg:text-xs stg:text-muted-foreground">Ask an admin to install</span>
+        )}
       </div>
     </li>
   );

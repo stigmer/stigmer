@@ -69,7 +69,10 @@ function renderView(agent: Agent, viewer: Viewer) {
     return agent;
   });
   const checkMyPermission = vi.fn(async (input: { relation: string; resource?: { kind: string; id: string } }) => ({
-    isAuthorized: input.relation === "can_create_plugin" && input.resource?.kind === "organization" && viewer.admin,
+    // The person may edit the agent; only an admin may change its MCP servers.
+    isAuthorized:
+      (input.relation === "can_edit" && input.resource?.kind === "agent") ||
+      (input.relation === "can_create_plugin" && input.resource?.kind === "organization" && viewer.admin),
   }));
   render(<AgentDetailView org="acme" slug="support" editable={viewer.editable} defaultTab={viewer.defaultTab} />, {
     wrapper: orgWrapper(

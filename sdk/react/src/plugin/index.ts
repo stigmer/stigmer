@@ -116,6 +116,8 @@ export { ManageSourcesDialog, describeSource } from "./ManageSourcesDialog.js";
 export type { ManageSourcesDialogProps } from "./ManageSourcesDialog.js";
 export { PluginUploader } from "./PluginUploader.js";
 export type { PluginUploaderProps } from "./PluginUploader.js";
+export { PluginInstallDenied } from "./PluginInstallDenied.js";
+export type { PluginInstallDeniedProps } from "./PluginInstallDenied.js";
 export { usePluginUpload, looksLikeDroppedDotfiles } from "./usePluginUpload.js";
 export type { PluginUploadPhase, UsePluginUploadReturn } from "./usePluginUpload.js";
 export { PluginInstallDialog, summariseInstall } from "./PluginInstallDialog.js";

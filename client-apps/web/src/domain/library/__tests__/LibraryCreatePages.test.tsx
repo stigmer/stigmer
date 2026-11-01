@@ -3,7 +3,10 @@
  * organization by its id, the way the server names every org, and on
  * completion opens the new resource at a URL whose org segment is the
  * org's slug, resolved from the id the created resource names its org by.
- * The wizards, uploaders and forms themselves are pinned in @stigmer/react-sdk.
+ * The wizards, uploaders and forms themselves are pinned in @stigmer/react-sdk,
+ * the uploader's own gate included: the upload route, reached directly,
+ * draws no upload control of its own (CON-01), so a person the server
+ * would refuse sees the kit's notice that an admin installs plugins.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, render, screen } from "@testing-library/react";
@@ -89,6 +92,13 @@ describe("web library create pages", () => {
     expect(propsOf("PluginUploader").org).toBe("org_acme");
     call("PluginUploader", "onComplete", { plugin: CREATED });
     expect(page.pushed).toEqual(["/library/plugins/acme/made"]);
+  });
+
+  it("CON-01 PluginUploadPage offers no upload of its own: the kit's uploader, which asks the server, is its only way in", () => {
+    const { container } = render(<PluginUploadPage />);
+
+    expect(page.props.get("PluginUploader")?.org).toBe("org_acme");
+    expect(container.querySelectorAll("input, button, a")).toHaveLength(0);
   });
 
   it("RoutineNewPage creates in the active org id and opens the routine under the org slug", () => {
