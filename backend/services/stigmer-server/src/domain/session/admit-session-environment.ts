@@ -5,7 +5,9 @@
  * than at its first turn. It reads the agent tree a turn would read, as
  * RefuseLocalPrograms does: the pinned agent version, each subagent at its
  * pinned version, and the plugins, so a limited Environment that does not
- * allow MCP servers names an unlisted server's host now. Run create and
+ * allow MCP servers names an unlisted server's host now, and a limited
+ * Environment names the hosts a repository the conversation clones would
+ * need and cannot reach. Run create and
  * recover ask again (planRunValues), which catches a driver changed since
  * and an Environment edited or deleted since.
  *
