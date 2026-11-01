@@ -350,7 +350,7 @@ export interface Turn {
   readonly items: ReadonlyArray<TurnItem>;
   /** The newest `stigmer.run.status`; undefined when the log holds none for the turn. */
   readonly status: TurnStatus | undefined;
-  /** Whether the turn has ended: its status says so, or (with no status) a later turn began or the session went idle. */
+  /** Whether the turn has ended: its status says so, or (with no status) a later turn began or the session went idle after the turn began. */
   readonly ended: boolean;
   /** Every tool use of the turn (every thread) that waits for a person, in log order. */
   readonly asks: ReadonlyArray<ToolUse>;
