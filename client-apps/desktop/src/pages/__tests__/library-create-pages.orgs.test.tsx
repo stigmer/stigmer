@@ -4,7 +4,10 @@
  * handed the active organization's id, the page's own prose shows the active
  * organization's slug, and on completion the page opens the new resource at
  * a URL carrying the slug of the organization the server put it in. The
- * creators are pinned in @stigmer/react-sdk.
+ * creators are pinned in @stigmer/react-sdk, the uploader's own gate
+ * included: the upload route, reached directly, draws no upload control of
+ * its own (CON-01), so a person the server would refuse sees the kit's
+ * notice that an admin installs plugins.
  */
 import type { ComponentType } from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -30,6 +33,12 @@ vi.mock("@stigmer/react-sdk", () => {
     SkillUploader: capture("SkillUploader"),
     PluginUploader: capture("PluginUploader"),
     MarketplaceCatalog: capture("MarketplaceCatalog"),
+    PageHeader: ({ title, description }: { title: string; description?: string }) => (
+      <header>
+        <h1>{title}</h1>
+        <p>{description}</p>
+      </header>
+    ),
     ApplyManifestDialog: () => null,
     AGENT_TEMPLATES: [],
     toast: { success: noop, error: noop },
@@ -151,11 +160,21 @@ describe("desktop PluginUploadPage — organizations", () => {
   });
 });
 
+describe("desktop PluginUploadPage — who may upload", () => {
+  it("CON-01 offers no upload of its own: the kit's uploader, which asks the server, is its only way in", () => {
+    const { container } = renderPage(PluginUploadPage);
+
+    expect(page.props.PluginUploader).toHaveLength(1);
+    expect(container.querySelectorAll("input, button, a")).toHaveLength(0);
+  });
+});
+
 describe("desktop MarketplacePage — organizations", () => {
   it("names the active org by slug, installs by id and opens the plugin at its org's slug", () => {
     renderPage(MarketplacePage);
 
-    expect(screen.getByText(/Plugins you can install into acme:/)).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 1, name: "Marketplace" })).toBeTruthy();
+    expect(screen.getByText(/^Plugins for acme's agents:/)).toBeTruthy();
     const catalog = last<{ org: string; onInstalled: (r: { plugin: MetadataResult }) => void }>("MarketplaceCatalog");
     expect(catalog.org).toBe("org_acme");
 

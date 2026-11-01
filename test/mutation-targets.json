@@ -169,6 +169,15 @@
       ],
       "concurrency": 4
     },
+    "react-acts": {
+      "title": "the React kit's rule that an act appears only on the server's yes",
+      "package": "sdk/react",
+      "mutate": [
+        "src/grant/useCheckPermissions.ts",
+        "src/resource-detail/ResourceActionBar.tsx"
+      ],
+      "concurrency": 4
+    },
     "react-model-readiness": {
       "title": "the React kit's reading of which models can run",
       "package": "sdk/react",

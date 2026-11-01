@@ -6,8 +6,15 @@
  * page uses; once confirmed it deletes the plugin by its id, says so, and
  * refetches the list in place; a refusal is shown as the server words it,
  * and a refusal with no message as a plain failure. Declining removes
- * nothing. Organization links are pinned in library-list-pages.orgs.test.tsx;
- * the workbench, the form and the confirmation in @stigmer/react-sdk.
+ * nothing. Installing is an admin's act (CON-01): the server's
+ * `can_create_plugin` answer, asked of the active organization, decides
+ * whether the upload and the add form are offered; a member is offered the
+ * Marketplace to browse and told who installs. A row's Remove declares
+ * `can_delete` on that row's plugin, so the kit's action bar offers it only
+ * on the server's yes for that plugin (its rule, in flight included, is
+ * pinned in the kit): a member sees no Remove, an owner does. Organization links are
+ * pinned in library-list-pages.orgs.test.tsx; the workbench, the form, the
+ * confirmation and the check in @stigmer/react-sdk.
  */
 import type { ReactNode } from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -25,6 +32,7 @@ interface WorkbenchProps {
   refetchToken: number;
   renderItemAction?: (item: Row) => ReactNode;
   headerAction?: ReactNode;
+  emptyDescription?: string;
 }
 
 interface AddServerProps {
@@ -35,6 +43,8 @@ interface AddServerProps {
 const ROW: Row = { id: "plg_1", org: "org_acme", slug: "linear", name: "Linear" };
 
 const page = vi.hoisted(() => ({
+  /** The relations every row's resource holds, as the self-check would answer them. */
+  granted: ["can_delete"] as string[],
   workbench: [] as WorkbenchProps[],
   addServer: [] as AddServerProps[],
   confirms: [] as Array<{ title: string; description: string }>,
@@ -42,6 +52,8 @@ const page = vi.hoisted(() => ({
   deleted: [] as string[],
   deleteFailure: undefined as unknown,
   toasts: [] as Array<[string, string]>,
+  mayInstall: true,
+  installAsked: [] as Array<string | null>,
 }));
 
 vi.mock("@stigmer/react-sdk", () => {
@@ -67,6 +79,27 @@ vi.mock("@stigmer/react-sdk", () => {
       );
     },
     ActionMenu,
+    // Stands in for the kit's bar: an act that requires a relation is offered
+    // only when the row's resource holds it (the rule is pinned in the kit).
+    ResourceActionBar: ({
+      resource,
+      menuLabel,
+      actions,
+    }: {
+      resource?: { kind: string; id: string } | null;
+      menuLabel?: string;
+      actions: Array<{ id: string; label: string; requires?: string; onAction: () => void }>;
+    }) => (
+      <div aria-label={menuLabel} data-resource={resource ? `${resource.kind}:${resource.id}` : ""}>
+        {actions
+          .filter((action) => action.requires === undefined || page.granted.includes(action.requires))
+          .map((action) => (
+            <button key={action.id} type="button" onClick={action.onAction}>
+              {action.label}
+            </button>
+          ))}
+      </div>
+    ),
     ConfirmDialog: () => null,
     AddMcpServerDialog: (props: AddServerProps) => {
       page.addServer.push(props);
@@ -84,6 +117,10 @@ vi.mock("@stigmer/react-sdk", () => {
       },
     }),
     useActiveOrgId: () => "org_acme",
+    useCanCreatePlugin: (org: string | null) => {
+      page.installAsked.push(org);
+      return { allowed: page.mayInstall, isLoading: false };
+    },
     useOrgSlugForId: () => (id: string) => id,
     useConfirmAction: () => ({
       confirmState: null,
@@ -111,6 +148,9 @@ beforeEach(() => {
   page.deleted.length = 0;
   page.deleteFailure = undefined;
   page.toasts.length = 0;
+  page.mayInstall = true;
+  page.installAsked.length = 0;
+  page.granted = ["can_delete"];
 });
 
 function renderPage(): void {
@@ -138,6 +178,47 @@ describe("desktop PluginListPage ways in", () => {
 
     act(() => page.addServer.at(-1)?.onClose());
     expect(page.addServer.at(-1)?.open).toBe(false);
+  });
+});
+
+describe("desktop PluginListPage: who may install", () => {
+  it("CON-01 offers an admin the upload and the add form, asked of the active organization", () => {
+    renderPage();
+
+    expect(page.installAsked.at(-1)).toBe("org_acme");
+    expect(screen.getByRole("link", { name: "Upload plugin" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Add MCP server" })).toBeTruthy();
+    expect(page.workbench.at(-1)?.emptyDescription).toMatch(/^Install a plugin/);
+  });
+
+  it("CON-01 offers a member the Marketplace alone, says who installs, and never mounts the add form", () => {
+    page.mayInstall = false;
+    renderPage();
+
+    expect(screen.getByRole("link", { name: "Browse Marketplace" })).toBeTruthy();
+    expect(screen.queryByRole("link", { name: "Upload plugin" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Add MCP server" })).toBeNull();
+    expect(page.workbench.at(-1)?.emptyDescription).toMatch(/^An admin of this organization installs plugins/);
+    expect(page.addServer).toHaveLength(0);
+  });
+});
+
+describe("desktop PluginListPage: who may remove a row's plugin", () => {
+  it("CON-01 offers an owner the row's Remove, declared on that row's plugin", () => {
+    renderPage();
+
+    expect(screen.getByRole("button", { name: "Remove" })).toBeTruthy();
+    const row = screen.getByLabelText("Actions for Linear");
+    expect(row.getAttribute("data-resource")).toBe("plugin:plg_1");
+  });
+
+  it("CON-01 offers a member the row's View details and Copy ID, and no Remove", () => {
+    page.granted = [];
+    renderPage();
+
+    expect(screen.getByRole("button", { name: "View details" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Copy ID" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Remove" })).toBeNull();
   });
 });
 

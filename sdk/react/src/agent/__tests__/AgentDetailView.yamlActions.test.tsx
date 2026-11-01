@@ -127,7 +127,13 @@ function renderView(
           agent: { getByReference: vi.fn(async () => clone(AgentSchema, store.agent)), update },
           platform: { getServerInfo: vi.fn(async () => ({ singleOrg: false })) },
           environment: { list: vi.fn(async () => ({ entries: [], nextPageToken: "" })) },
-          grant: { checkMyPermission: vi.fn(async () => ({ isAuthorized: opts.canViewAccess ?? false })) },
+          // The person may edit the agent (Edit YAML and the inline edits are offered only on that yes);
+          // every other relation answers as `canViewAccess` says.
+          grant: {
+            checkMyPermission: vi.fn(async (input: { relation: string }) => ({
+              isAuthorized: input.relation === "can_edit" || (opts.canViewAccess ?? false),
+            })),
+          },
           plugin: {
             get: vi.fn(async () =>
               opts.plugin ? create(PluginSchema, { metadata: { id: "plg_1", org: ACME_ID, slug: "toolkit", name: "Toolkit" } }) : null,

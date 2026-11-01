@@ -252,3 +252,8 @@ touches every day.
 5. Does it use generated types from `@stigmer/client`, not hand-written ones?
 6. If it changes how a client app wires an SDK component, has every client app
    been updated?
+7. Does it offer an act that changes something? Then it appears only on the
+   server's yes, never while the check is in flight: ask with
+   `useCheckPermissions` (`sdk/react/src/grant/useCheckPermissions.ts`) failing
+   closed, or declare `requires` on a `DetailAction`; reading stays fail-open,
+   and no disabled button stands in for an act the server refuses.

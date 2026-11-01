@@ -5,8 +5,9 @@
  * "Start a chat" opens the launcher with the plugin on. Remove asks
  * first, deletes once confirmed and returns to the plugins list; a failed
  * delete stays on the page (the delete hook shows its own error), and a
- * declined one deletes nothing. The detail view itself is pinned in
- * @stigmer/react-sdk; here it is stubbed to capture its props.
+ * declined one deletes nothing. Remove declares `can_delete` (CON-01), so
+ * the view offers it only on the server's yes. The detail view itself is
+ * pinned in @stigmer/react-sdk; here it is stubbed to capture its props.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, render } from "@testing-library/react";
@@ -134,6 +135,15 @@ describe("web PluginDetailPageInner", () => {
 
     expect(page.openedDetails).toEqual([["agents", "shared", "linked"]]);
     expect(page.pushed).toEqual(["/?plugin=acme%2Fthermos"]);
+  });
+});
+
+describe("web PluginDetailPageInner: who is offered each act", () => {
+  it("CON-01 declares can_delete on Remove, and nothing on the copies", () => {
+    render(<PluginDetailPageInner org="acme" slug="thermos" />);
+
+    const declared = Object.fromEntries(view().actions.map((action) => [action.id, action.requires ?? null]));
+    expect(declared).toEqual({ "copy-id": null, "copy-slug": null, remove: "can_delete" });
   });
 });
 

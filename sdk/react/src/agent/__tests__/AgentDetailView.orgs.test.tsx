@@ -52,7 +52,7 @@ function renderView(props: { editable?: boolean; defaultTab?: string } = {}) {
         {
           agent: { getByReference },
           platform: { getServerInfo: vi.fn(async () => ({ singleOrg: false })) },
-          grant: { checkMyPermission: vi.fn(async () => ({ isAuthorized: false })) },
+          grant: { checkMyPermission: vi.fn(async (input: { relation: string }) => ({ isAuthorized: input.relation === "can_edit" })) },
         },
         undefined,
         true,
@@ -81,6 +81,8 @@ describe("AgentDetailView references across organizations", () => {
   it("labels the editable reference lists the same way", async () => {
     renderView({ editable: true });
 
+    // The lists turn editable once the server says the person may edit.
+    await screen.findByRole("button", { name: "Edit plugins" });
     expect(await screen.findByText("globex/github")).toBeTruthy();
     expect(screen.getByText("jira")).toBeTruthy();
     expect(screen.getByText("globex/shared-guide")).toBeTruthy();
@@ -90,6 +92,7 @@ describe("AgentDetailView references across organizations", () => {
   it("hands navigation the stored org id from the editable lists too", async () => {
     const { onPluginClick } = renderView({ editable: true });
 
+    await screen.findByRole("button", { name: "Edit plugins" });
     fireEvent.click(await screen.findByText("globex/github"));
     expect(onPluginClick).toHaveBeenCalledWith({ org: GLOBEX_ID, slug: "github" });
   });

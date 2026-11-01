@@ -18,8 +18,8 @@
       "slug": "agent",
       "title": "Agent",
       "description": "Hooks and components for agent definitions, search, setup orchestration, and detail views.",
-      "hooks": 11,
-      "components": 8
+      "hooks": 12,
+      "components": 9
     },
     {
       "slug": "agent-chat",
@@ -103,7 +103,7 @@
       "title": "Dashboard",
       "description": "Hooks for dashboard metrics, activity feeds, and analytics data.",
       "hooks": 3,
-      "components": 0
+      "components": 1
     },
     {
       "slug": "dependency-graph",
@@ -165,7 +165,7 @@
       "slug": "grant",
       "title": "Grants",
       "description": "Who has which role on what, and the gates that read it.",
-      "hooks": 12,
+      "hooks": 13,
       "components": 8
     },
     {
@@ -236,7 +236,7 @@
       "title": "plugin",
       "description": "",
       "hooks": 19,
-      "components": 22
+      "components": 23
     },
     {
       "slug": "resource-creation",

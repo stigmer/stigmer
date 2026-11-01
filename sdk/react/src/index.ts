@@ -271,6 +271,7 @@ export {
   SourceChips,
   ManageSourcesDialog,
   PluginUploader,
+  PluginInstallDenied,
   PluginInstallDialog,
   PluginServerSignIn,
   PluginServerSignIns,
@@ -302,6 +303,7 @@ export type {
   SourceChipsProps,
   ManageSourcesDialogProps,
   PluginUploaderProps,
+  PluginInstallDeniedProps,
   PluginInstallDialogProps,
   ManagedByPluginNoticeProps,
 } from "./plugin/index.js";
@@ -706,6 +708,8 @@ export type { StigmerToasterProps } from "./feedback/index.js";
 // Empty state — reusable empty/zero/permission/error state primitives
 export { EmptyState, useEmptyState } from "./empty-state/index.js";
 export { PageHeader, type PageHeaderProps } from "./page/PageHeader.js";
+export { DashboardFirstSteps, type DashboardFirstStepsProps, type DashboardFirstStepLinks } from "./dashboard/DashboardFirstSteps.js";
+export { AgentProfileHeader, useAgentFacts, type AgentProfileHeaderProps, type AgentFact } from "./agent/AgentProfileHeader.js";
 export type { EmptyStateProps } from "./empty-state/index.js";
 
 // Usage — org-level usage report hook, dashboard panel, and date-range utilities

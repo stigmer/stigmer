@@ -1,41 +1,38 @@
 import { test, expect } from "../../fixtures";
 
 /**
- * The dashboard's operational overview renders its summary for the active
- * organization. In an organization with no activity every counter reads
- * zero and every panel says it has nothing to show, rather than failing or
- * showing another organization's numbers.
+ * The dashboard opens on its page heading for the active organization. An
+ * organization where nothing has run yet is told what to do first instead
+ * of being shown zeros: its first steps stand alone in the figures' place,
+ * each a link into the console, and no counter or failures panel is drawn
+ * (and no other organization's numbers either).
  */
 test.describe("Dashboard", () => {
-  test("renders the operational overview heading and description", async ({ page }) => {
+  test("renders the page heading and what the page is for", async ({ page }) => {
     await page.goto("/dashboard");
 
     await expect(page.getByRole("heading", { name: "Dashboard", level: 1 })).toBeVisible({
       timeout: 15_000,
     });
-    await expect(page.getByText("Operational overview across your organization.")).toBeVisible();
+    await expect(page.getByText("What your organization's agents did this week.")).toBeVisible();
   });
 
-  test("an organization with no activity shows zero counters and empty panels", async ({
-    page,
-    freshOrg,
-  }) => {
+  test("an organization where nothing has run shows its first steps alone", async ({ page, freshOrg }) => {
     await page.goto("/dashboard");
-    // The pin took: these numbers are the fresh organization's.
-    await expect(page.getByRole("button", { name: "Organization menu" })).toContainText(
-      freshOrg.slug,
-      { timeout: 15_000 },
-    );
+    // The pin took: this is the fresh organization's dashboard.
+    await expect(page.getByRole("button", { name: "Organization menu" })).toContainText(freshOrg.slug, {
+      timeout: 15_000,
+    });
 
     const summary = page.getByRole("region", { name: "Platform dashboard" });
-    await expect(summary).toBeVisible({ timeout: 15_000 });
+    const steps = summary.getByRole("region", { name: "Get your organization running" });
+    await expect(steps).toBeVisible({ timeout: 15_000 });
+    await expect(steps.getByRole("link", { name: "Start a session" })).toHaveAttribute("href", "/");
     for (const counter of ["Active", "Completed", "Failed", "Tokens"]) {
-      await expect(
-        summary.getByText(counter, { exact: true }).locator("xpath=following-sibling::*[1]"),
-      ).toHaveText("0");
+      await expect(summary.getByText(counter, { exact: true })).toHaveCount(0);
     }
-    // Usage is tokens, never money: no price anywhere in the summary.
+    await expect(summary.getByText("No recent failures")).toHaveCount(0);
+    // Usage is tokens, never money: no price anywhere on the dashboard.
     await expect(summary).not.toContainText("$");
-    await expect(summary.getByText("No recent failures")).toBeVisible();
   });
 });

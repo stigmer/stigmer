@@ -1009,6 +1009,7 @@ export {
   useShareFlow,
   useGranteeCandidates,
   useCheckPermission,
+  useCheckPermissions,
   providerLabel,
   PermissionGate,
 } from "./grant/index.js";
@@ -1031,6 +1032,7 @@ export type {
   UseShareFlowReturn,
   ShareFlowResource,
   UseCheckPermissionReturn,
+  UseCheckPermissionsReturn,
   CheckPermissionOptions,
   PermissionCheckResource,
   SelectedGrantee,

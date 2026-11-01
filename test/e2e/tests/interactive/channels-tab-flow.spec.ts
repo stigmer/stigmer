@@ -11,7 +11,9 @@ import type { Stigmer } from "@stigmer/client";
  * one list, added through one affordance. A chat link is created through
  * the chat-link dialog, listed on its card with its link, paused with the
  * card's switch and deleted through the card's menu. The agent's own menu
- * offers Manage access and no Share item: "share" means giving access.
+ * offers Manage access and no Share item: "share" means giving access. The
+ * profile header's channel count agrees with the tab after every add and
+ * delete.
  *
  * Runs against the OSS stack, where permission checks degrade permissive
  * (every affordance is visible to the single local user) and vendor
@@ -29,6 +31,15 @@ async function openAgentDetail(page: Page, org: string, slug: string) {
 
 async function openChannelsTab(page: Page) {
   await page.getByRole("tab", { name: "Channels" }).click();
+}
+
+// The agent's profile header counts its channels from the list the tab
+// shows, so the two agree after every add and delete.
+function headerChannels(page: Page) {
+  return page
+    .getByRole("list", { name: "What the agent is made of" })
+    .getByRole("listitem")
+    .filter({ hasText: /\bchannels?\b/ });
 }
 
 // Fills the chat-link dialog. The form prefills name and slug from the
@@ -145,7 +156,9 @@ test.describe("Channels tab flow", () => {
     // prefilled from the agent, so the card is addressed by the agent's
     // name). The link names the channel by its id, which no rename or
     // later holder of the organization's slug can move.
-    await expect(page.getByText("1 channel")).toBeVisible({ timeout: 10_000 });
+    // The tab counts the link, and the profile header agrees.
+    await expect(page.getByRole("tabpanel").getByText("1 channel")).toBeVisible({ timeout: 10_000 });
+    await expect(headerChannels(page)).toHaveText("1 channel");
     const card = page.getByRole("group", { name: `Chat link: ${testAgent.slug}` });
     const expectedPath = await chatPathOf(stigmerClient, testAgent.id, linkSlug);
     await expect(card.getByText(expectedPath)).toBeVisible({ timeout: 10_000 });
@@ -170,6 +183,8 @@ test.describe("Channels tab flow", () => {
     await expect(card.getByText("Paused")).toBeVisible({ timeout: 10_000 });
 
     await deleteChatLink(page, testAgent.slug);
+    // With no channel left the header names none.
+    await expect(headerChannels(page)).toHaveCount(0);
   });
 
   test("a Slack channel applied through the SDK shows in the same list, and Add channel offers a chat link beside it", async ({
@@ -193,9 +208,10 @@ test.describe("Channels tab flow", () => {
 
       // The Slack channel is listed, pending its install, and the notice
       // explains why it cannot be connected on this edition.
-      await expect(page.getByText("1 channel")).toBeVisible({
+      await expect(page.getByRole("tabpanel").getByText("1 channel")).toBeVisible({
         timeout: 10_000,
       });
+      await expect(headerChannels(page)).toHaveText("1 channel");
       const slackCard = page.getByRole("group", { name: `Slack: ${slackSlug}` });
       await expect(slackCard.getByText("Pending install")).toBeVisible();
       await expect(
@@ -211,13 +227,15 @@ test.describe("Channels tab flow", () => {
       await page.getByRole("menuitem", { name: /^Chat link/ }).click();
       await fillChatLinkDialog(page, `${testAgent.slug}-link`);
 
-      await expect(page.getByText("2 channels")).toBeVisible({
+      await expect(page.getByRole("tabpanel").getByText("2 channels")).toBeVisible({
         timeout: 10_000,
       });
+      await expect(headerChannels(page)).toHaveText("2 channels");
       await expect(
         page.getByRole("group", { name: `Chat link: ${testAgent.slug}` }),
       ).toBeVisible();
       await deleteChatLinkKeepingOthers(page, testAgent.slug);
+      await expect(headerChannels(page)).toHaveText("1 channel");
     } finally {
       await stigmerClient.channel.delete(slack.metadata!.id);
     }
@@ -321,5 +339,5 @@ async function deleteChatLinkKeepingOthers(page: Page, linkName: string) {
   await expect(page.getByText("Chat link deleted")).toBeVisible({
     timeout: 10_000,
   });
-  await expect(page.getByText("1 channel")).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByRole("tabpanel").getByText("1 channel")).toBeVisible({ timeout: 10_000 });
 }

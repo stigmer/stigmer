@@ -64,7 +64,7 @@ describe("AgentDetailView's Quality tab", () => {
           evalrun: { listByAgent: vi.fn(async () => ({ entries: [], nextPageToken: "" })) },
           plugin: { getByReference: vi.fn(async () => undefined) },
           platform: { getServerInfo: vi.fn(async () => ({ singleOrg: false })) },
-          grant: { checkMyPermission: vi.fn(async () => ({ isAuthorized: false })) },
+          grant: { checkMyPermission: vi.fn(async (input: { relation: string }) => ({ isAuthorized: input.relation === "can_edit" })) },
         },
         undefined,
         true,
@@ -105,7 +105,7 @@ describe("AgentDetailView's Quality tab", () => {
           },
           plugin: { getByReference: vi.fn(async () => undefined) },
           platform: { getServerInfo: vi.fn(async () => ({ singleOrg: false })) },
-          grant: { checkMyPermission: vi.fn(async () => ({ isAuthorized: false })) },
+          grant: { checkMyPermission: vi.fn(async (input: { relation: string }) => ({ isAuthorized: input.relation === "can_edit" })) },
         },
         undefined,
         true,
@@ -156,7 +156,7 @@ describe("AgentDetailView's Channels tab", () => {
           channelapp: { list: vi.fn(async () => ({ entries: [], nextPageToken: "" })) },
           plugin: { getByReference: vi.fn(async () => undefined) },
           platform: { getServerInfo: vi.fn(async () => ({ singleOrg: false })) },
-          grant: { checkMyPermission: vi.fn(async () => ({ isAuthorized: false })) },
+          grant: { checkMyPermission: vi.fn(async (input: { relation: string }) => ({ isAuthorized: input.relation === "can_edit" })) },
         },
         undefined,
         true,
@@ -167,7 +167,9 @@ describe("AgentDetailView's Channels tab", () => {
     expect(screen.queryByRole("tab", { name: "Shares" })).toBeNull();
 
     fireEvent.click(tabs[1]!);
-    expect(await screen.findByText("3 channels")).toBeDefined();
+    expect(await within(await screen.findByRole("tabpanel")).findByText("3 channels")).toBeDefined();
+    // The profile header counts the same list.
+    expect(within(screen.getByRole("list", { name: "What the agent is made of" })).getByText("3 channels")).toBeDefined();
     expect(
       screen.getAllByRole("group").map((card) => card.getAttribute("aria-label")),
     ).toEqual(["Chat link: Website chat", "Slack: Support Slack", "WhatsApp: Support WhatsApp"]);

@@ -61,7 +61,7 @@ function renderAgent(
               opts.applies === undefined ? undefined : { applies: opts.applies, limitedNetworking: false, packages: true },
           })),
         },
-        grant: { checkMyPermission: vi.fn(async () => ({ isAuthorized: false })) },
+        grant: { checkMyPermission: vi.fn(async (input: { relation: string }) => ({ isAuthorized: input.relation === "can_edit" })) },
         environment: { list: vi.fn(async () => ENVIRONMENTS) },
         organization: {
           get: vi.fn(async () => ({

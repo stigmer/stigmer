@@ -853,7 +853,7 @@ Browse every known source and install a plugin from any of them, or upload one.
     className: { type: "string", description: "" },
     entry: { type: "CatalogEntry", description: "", required: true, typeDescriptionLink: "#catalogentry" },
     installed: { type: "boolean", description: "Whether the organization already holds a plugin of this name.", required: true },
-    onInstall: { type: "(entry: CatalogEntry) => void", description: "", required: true },
+    onInstall: { type: "(entry: CatalogEntry) => void", description: "Opens the install for this entry. Absent where the person may not install (a member: installing is an admin's), and the card says who can instead of offering an Install the server would refuse." },
   }}
 />
 
@@ -868,7 +868,7 @@ declares, what the push warned about, and its versions.
 
 <TypeTable
   type={{
-    actions: { type: "readonly DetailAction[]", description: "Secondary actions rendered in the kebab overflow menu (remove lives here)." },
+    actions: { type: "readonly DetailAction[]", description: "Secondary actions rendered in the kebab overflow menu (remove lives here, declaring `requires: \"can_delete\"`, so it is offered only on the server's yes for this plugin)." },
     activeTab: { type: "string", description: "" },
     additionalTabs: { type: "readonly AdditionalTab[]", description: "Additional tabs beside the built-in Overview, Evals and Versions." },
     className: { type: "string", description: "Additional CSS classes for the root container." },
@@ -912,6 +912,19 @@ declares, what the push warned about, and its versions.
 The plugin glyph: a puzzle piece, the icon Cursor, Claude Code and Codex
 all use for the same package, drawn inline like `SkillDetailView`'s bolt
 so the SDK adds no icon dependency for one shape.
+
+
+### PluginInstallDenied
+
+The notice in an install form's place: an admin of the organization installs plugins.
+
+**Props** — `PluginInstallDeniedProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS class names for the root container." },
+  }}
+/>
 
 
 ### PluginInstallDialog

@@ -17,6 +17,9 @@ import { maskedEdit, saveErrorMessage } from "@stigmer/react-core/internal";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { VisibilityBadge } from "../library/VisibilitySelector.js";
 import { useManageAccess } from "../access/useManageAccess.js";
+import { useCheckPermission } from "../grant/useCheckPermission.js";
+import { useChannelList } from "../channel/useChannelList.js";
+import { AgentProfileHeader } from "./AgentProfileHeader.js";
 import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
 import { ChannelsPanel } from "../channel/ChannelsPanel.js";
 import { ResourceDetailShell } from "../resource-detail/ResourceDetailShell.js";
@@ -91,7 +94,10 @@ export interface AgentDetailViewProps {
   readonly primaryAction?: DetailAction;
   /**
    * Secondary actions rendered in the kebab overflow menu.
-   * Typically: Copy ID, Copy slug, Duplicate, Delete.
+   * Typically: Copy ID, Copy slug, Duplicate, Delete. An act that changes
+   * the agent declares the relation it needs (`requires: "can_delete"` for
+   * Delete) and is offered only on the server's yes for this agent, as is
+   * the view's own Edit YAML (`yamlActions`, `requires: "can_edit"`).
    */
   readonly actions?: readonly DetailAction[];
   /**
@@ -156,9 +162,11 @@ export interface AgentDetailViewProps {
    */
   readonly onAgentClick?: (ref: { org: string; slug: string }) => void;
   /**
-   * When `true`, fields on the detail view become click-to-edit.
-   * Each field saves independently via `stigmer.agent.update()`, naming
-   * only that field and carrying the etag the agent was loaded at.
+   * When `true`, this host allows editing: fields on the detail view become
+   * click-to-edit for a person the server lets edit the agent (`can_edit`,
+   * asked by the view; a reader sees a read-only page from the first
+   * frame). Each field saves independently via `stigmer.agent.update()`,
+   * naming only that field and carrying the etag the agent was loaded at.
    * @default false
    */
   readonly editable?: boolean;
@@ -251,7 +259,7 @@ export interface AgentDetailViewProps {
  *   primaryAction={{ id: "edit", label: "Edit", onAction: handleEdit }}
  *   actions={[
  *     { id: "copy-id", label: "Copy ID", onAction: () => copyId(id) },
- *     { id: "delete", label: "Delete", variant: "destructive", onAction: handleDelete },
+ *     { id: "delete", label: "Delete", variant: "destructive", requires: "can_delete", onAction: handleDelete },
  *   ]}
  *   onPluginClick={({ org, slug }) => navigateToDetail("plugins", org, slug)}
  *   onSkillClick={({ org, slug }) => navigateToDetail("skills", org, slug)}
@@ -287,8 +295,15 @@ export function AgentDetailView({
   // id; the `org` prop may be a slug (a URL's), so it is mapped first.
   const orgIdFor = useOrgIdForRef();
   const managing = useManagingPlugin(agent?.metadata?.labels);
+  // The resource the header's acts and the inline edits are checked on.
+  const agentId = agent?.metadata?.id ?? "";
+  const resourceRef = useMemo(() => (agentId !== "" ? { kind: "agent", id: agentId } : null), [agentId]);
+  // Edits are offered only on the server's yes: a reader sees a read-only
+  // page from the first frame, never a pencil while the check is in flight.
+  const editCheck = useCheckPermission(editableProp ? resourceRef : null, "can_edit", { fail: "closed" });
+  const mayEdit = editableProp && editCheck.allowed;
   // A plugin's resource is the plugin's to redefine; the notice says so and no edit form is offered.
-  const editable = editableProp && managing.plugin === null;
+  const editable = mayEdit && managing.plugin === null;
   const { update, isUpdating } = useUpdateAgent();
 
   // Last failed inline save, attributed to the field that was edited so
@@ -363,6 +378,9 @@ export function AgentDetailView({
     agent?.metadata?.org ?? null,
     agent?.metadata?.slug ?? null,
   );
+  // One read of the agent's channels, shared by the profile header's count
+  // and the Channels tab, so an add or a delete there changes both.
+  const channels = useChannelList(agent?.metadata?.id ?? "", agent?.metadata?.org ?? "");
 
   const builtInTabs = useMemo<readonly TabItem[]>(
     () => [
@@ -458,7 +476,7 @@ export function AgentDetailView({
       yamlActions
         ? [
             ...(editable
-              ? [{ id: "edit-yaml", label: "Edit YAML", group: "export", onAction: () => setEditYamlOpen(true) }]
+              ? [{ id: "edit-yaml", label: "Edit YAML", group: "export", requires: "can_edit", onAction: () => setEditYamlOpen(true) }]
               : []),
             { id: "export-yaml", label: "Export YAML", group: "export", onAction: () => void copyYaml() },
             { id: "export-json", label: "Export JSON", group: "export", onAction: () => void copyJson() },
@@ -541,15 +559,16 @@ export function AgentDetailView({
         channelAppsHref={channelAppsHref}
         sessionHref={sessionHref}
         onConnectExternal={onConnectExternal}
+        channelList={channels}
       />
     );
   } else if (effectiveActiveTab === "quality") {
     // Grading is the agent's setting, not its definition: a plugin-managed
-    // agent offers it too, so the host's edit flag applies unfiltered.
+    // agent offers it too, to whoever the server lets edit the agent.
     tabContent = (
       <AgentQualityTab
         agent={agent}
-        editable={editableProp}
+        editable={mayEdit}
         onNavigateToRun={onNavigateToRun}
         onOpenEval={(evalId) => {
           setOpenEvalId(evalId);
@@ -612,10 +631,20 @@ export function AgentDetailView({
     <>
       <ResourceDetailShell
         header={headerMeta}
+        identity={
+          <AgentProfileHeader
+            agent={agent}
+            icon={headerMeta.icon ?? (headerMeta.iconUrl ? <img src={headerMeta.iconUrl} alt="" className="stg:size-full stg:object-cover" /> : null)}
+            visibilityControl={visibilityControl}
+            versionCount={versionCount.count > 0 ? versionCount.count : undefined}
+            channelCount={channels.isLoading ? undefined : channels.channels.length}
+          />
+        }
         visibilityControl={visibilityControl}
         headerBanner={<ManagedByPluginNotice plugin={managing.plugin} onPluginClick={onPluginClick} />}
         primaryAction={primaryAction}
         actions={mergedActions}
+        resource={resourceRef}
         tabs={effectiveTabs}
         activeTab={effectiveTabs ? effectiveActiveTab : undefined}
         onTabChange={effectiveTabs ? effectiveOnTabChange : undefined}

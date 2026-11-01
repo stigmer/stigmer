@@ -6,13 +6,17 @@
  * deletes and returns to the list only once the person confirms. The detail view, the confirm dialog and the delete hook
  * are pinned in @stigmer/react-sdk; this file pins only the page's wiring.
  * A listed subagent opens the agents detail for its org and slug, and an
- * eval try's run, from the Evals tab, opens through run navigation.
+ * eval try's run, from the Evals tab, opens through run navigation. Delete
+ * declares the relation it needs (CON-01), so the view offers it only on
+ * the server's yes; Start session and the copies declare none (the view's
+ * own Edit YAML declares `can_edit`, pinned in @stigmer/react-sdk).
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, render } from "@testing-library/react";
 
 interface Action {
   id: string;
+  requires?: string;
   onAction: () => void | Promise<void>;
 }
 
@@ -174,6 +178,16 @@ describe("web AgentDetailPage actions", () => {
 
     expect(page.deletes).toBe(1);
     expect(page.pushed).toEqual(["/library/agents"]);
+  });
+});
+
+describe("web AgentDetailPage: who is offered each act", () => {
+  it("CON-01 declares can_delete on Delete, and nothing on Start session or the copies", () => {
+    render(<AgentDetailPageInner org="acme" slug="helper" />);
+
+    const declared = Object.fromEntries((page.actions.at(-1) ?? []).map((a) => [a.id, a.requires ?? null]));
+    expect(declared).toEqual({ "copy-id": null, "copy-slug": null, delete: "can_delete" });
+    expect(page.primary.at(-1)?.requires).toBeUndefined();
   });
 });
 

@@ -116,6 +116,7 @@ export function AgentDetailPageInner({ org, slug }: AgentDetailPageInnerProps) {
       },
       {
         id: "delete",
+        requires: "can_delete",
         label: "Delete",
         variant: "destructive" as const,
         group: "danger",

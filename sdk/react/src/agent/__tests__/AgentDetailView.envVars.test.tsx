@@ -28,7 +28,7 @@ function renderReadOnly(agent: Agent) {
       {
         agent: { getByReference: vi.fn(async () => agent), update: vi.fn(async () => agent) },
         platform: { getServerInfo: vi.fn(async () => ({ singleOrg: false })) },
-        grant: { checkMyPermission: vi.fn(async () => ({ isAuthorized: false })) },
+        grant: { checkMyPermission: vi.fn(async (input: { relation: string }) => ({ isAuthorized: input.relation === "can_edit" })) },
       },
       undefined,
       true,

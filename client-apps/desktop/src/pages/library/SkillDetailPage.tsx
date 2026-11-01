@@ -75,6 +75,7 @@ export default function SkillDetailPage() {
       },
       {
         id: "delete",
+        requires: "can_delete",
         label: "Delete",
         variant: "destructive" as const,
         group: "danger",
