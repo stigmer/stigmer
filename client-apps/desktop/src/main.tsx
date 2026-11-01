@@ -1,6 +1,7 @@
 import { Component, StrictMode, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import "./fonts.css";
 import "./globals.css";
 import { App } from "./App";
 

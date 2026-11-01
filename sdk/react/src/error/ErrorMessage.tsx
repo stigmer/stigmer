@@ -90,14 +90,14 @@ export function ErrorMessage({
           <p className="stg:text-sm stg:font-medium">
             {title ?? CATEGORY_TITLES[category]}
           </p>
-          <p className="stg:text-destructive-muted stg:text-sm">{message}</p>
+          <p className="stg:m-0 stg:text-destructive stg:text-sm">{message}</p>
 
           {metadata && (
             <div className="stg:pt-1">
               <button
                 type="button"
                 onClick={() => setDetailsOpen((prev) => !prev)}
-                className="stg:text-destructive-muted stg:hover:text-destructive-muted stg:inline-flex stg:items-center stg:gap-1 stg:text-xs stg:transition-colors"
+                className="stg:text-destructive stg:hover:underline stg:inline-flex stg:items-center stg:gap-1 stg:text-xs stg:transition-colors"
               >
                 <ChevronDownIcon
                   className={cn(
@@ -108,7 +108,7 @@ export function ErrorMessage({
                 Technical details
               </button>
               {detailsOpen && (
-                <dl className="stg:text-destructive-muted stg:mt-1.5 stg:space-y-0.5 stg:font-mono stg:text-xs">
+                <dl className="stg:text-destructive stg:mt-1.5 stg:space-y-0.5 stg:font-mono stg:text-xs">
                   <div className="stg:flex stg:gap-2">
                     <dt className="stg:shrink-0">Method:</dt>
                     <dd className="stg:truncate">{metadata.method}</dd>

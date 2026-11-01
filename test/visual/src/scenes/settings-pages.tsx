@@ -1,10 +1,11 @@
 // The settings pages, each framed as the console's settings layout frames
-// it (a centred column under a hidden "Settings" heading): the pages that
-// stand for the shapes Settings has. A collection with rows (Members), a
-// collection with none yet (API keys on Stigmer Cloud), a collection of
-// cards (Vaults), a plan and its figures (Billing, Usage), what this
-// edition does not offer (Teams on open source), and an operator's dense
-// console (the model catalogue).
+// it (a centred 64rem column, `max-w-5xl`, under a hidden "Settings"
+// heading): the landing, and the pages that stand for the shapes Settings
+// has. A collection with rows (Members), a collection with none yet (API
+// keys on Stigmer Cloud), a collection of cards (Vaults), a plan and its
+// figures (Billing, Usage), what this edition does not offer (Teams on open
+// source), an operator's dense console (the model catalogue), and any page
+// while it reads.
 //
 // Every scene answers the person's organizations, so the active
 // organization is the samples' one, and the calls its page makes; the
@@ -30,6 +31,10 @@ import {
   ApiKeysSection,
   MembersSection,
   ModelCatalogConsole,
+  SETTINGS_NAV_GROUPS,
+  SettingsOverview,
+  SettingsPage,
+  SettingsSkeleton,
   TeamsSection,
   UsageSection,
   VaultsSection,
@@ -76,7 +81,11 @@ function settingsRoutes(router: ConnectRouter): void {
 }
 
 /** A settings page with `extra` answered beside the common calls. */
-function settingsScene(page: () => ReactNode, extra: (router: ConnectRouter) => void = () => {}, deploymentMode?: Drawing["deploymentMode"]): Drawing {
+function settingsScene(
+  page: () => ReactNode,
+  extra: (router: ConnectRouter) => void = () => {},
+  deploymentMode?: Drawing["deploymentMode"],
+): Drawing {
   return {
     deploymentMode,
     inOrganization: true,
@@ -88,10 +97,10 @@ function settingsScene(page: () => ReactNode, extra: (router: ConnectRouter) => 
   };
 }
 
-/** The console's settings layout: a centred column, its page heading read by assistive technology only. */
+/** The console's settings layout: a centred `max-w-5xl` column, its page heading read by assistive technology only. */
 function SettingsColumn({ children }: { readonly children: ReactNode }) {
   return (
-    <div style={{ maxWidth: "48rem", margin: "0 auto", padding: "2rem 1.5rem" }}>
+    <div style={{ maxWidth: "64rem", margin: "0 auto", padding: "2rem 1.5rem" }}>
       <h1 className="gallery-visually-hidden">Settings</h1>
       {children}
     </div>
@@ -110,6 +119,29 @@ export function settingsMembersScene(): Drawing {
       router.service(FederationIssuerQueryController, { list: () => ({ entries: [] }) });
     },
   );
+}
+
+/** The settings landing: every group of the navigation an organization's owner sees, each page a link. */
+export function settingsLandingScene(): Drawing {
+  return settingsScene(() => (
+    <SettingsOverview
+      groups={SETTINGS_NAV_GROUPS}
+      renderLink={({ id, href, className, children }) => (
+        <a key={id} href={href} className={className} onClick={(event) => event.preventDefault()}>
+          {children}
+        </a>
+      )}
+    />
+  ));
+}
+
+/** A settings page while its rows are read: Members' frame over the shared skeleton. */
+export function settingsLoadingScene(): Drawing {
+  return settingsScene(() => (
+    <SettingsPage title="Members" description="Who belongs to this organization and the role each holds: owner, admin, member or viewer. Only an owner grants or removes owner.">
+      <SettingsSkeleton label="Loading members" rows={4} />
+    </SettingsPage>
+  ));
 }
 
 /** API keys on Stigmer Cloud before the first key is made. */

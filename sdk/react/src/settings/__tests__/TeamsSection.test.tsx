@@ -102,7 +102,7 @@ afterEach(() => {
 describe("TeamsSection", () => {
   it("says teams are not served on the open-source edition and lists nothing", () => {
     renderSection("local");
-    expect(screen.getByText(/Teams are available in Stigmer Enterprise and Cloud/)).toBeTruthy();
+    expect(screen.getByText(/Teams come with Stigmer Enterprise and Cloud/)).toBeTruthy();
     expect(stubs.listedOrg).toBeNull();
     expect(screen.queryByRole("button", { name: /New team/ })).toBeNull();
   });
@@ -117,7 +117,7 @@ describe("TeamsSection", () => {
     renderSection("enterprise");
     expect(stubs.listedOrg).toBe("org_acme");
     expect(screen.getByRole("button", { name: /Site Reliability/ })).toBeTruthy();
-    expect(screen.queryByText(/available in Stigmer Enterprise and Cloud/)).toBeNull();
+    expect(screen.queryByText(/come with Stigmer Enterprise and Cloud/)).toBeNull();
   });
 
   it("offers New team only with can_create_team on the organization", () => {

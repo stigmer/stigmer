@@ -1,7 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { AXE_TAGS, describeViolations, judgeAxe } from "@stigmer/test-support/axe-policy";
 import { test, expect } from "../../fixtures";
-import { createTestAgent } from "../../fixtures/seed-helpers";
+import { createTestAgent, ensureOrg } from "../../fixtures/seed-helpers";
 
 /**
  * Accessibility tests.
@@ -137,7 +137,14 @@ test.describe("Accessibility audits", () => {
   // a person moves between them (a full load per page raced the dev server's
   // compile of the next route). Every page is audited before the case
   // judges, so one page's violations never hide another's.
-  test("every settings page the navigation links passes axe-core audit", async ({ page }) => {
+  test("every settings page the navigation links passes axe-core audit", async ({ page, stigmerClient }) => {
+    // The default organization, which every spec shares and none deletes:
+    // left to choose, the console may land on an organization another spec
+    // creates and deletes while this one is still reading its pages.
+    const org = await ensureOrg(stigmerClient, "default", "Default");
+    await page.addInitScript((id) => {
+      localStorage.setItem("stigmer:activeOrg", id);
+    }, org);
     await page.goto("/settings");
     const nav = page.getByLabel("Management navigation");
     await expect(nav).toBeVisible({ timeout: 15_000 });

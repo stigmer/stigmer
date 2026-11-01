@@ -7,6 +7,7 @@
 // system font, and a loader whose file is missing fails only at `next build`.
 // These cases catch both in seconds: every `var(--font-*)` in the theme CSS
 // the console imports has a loader, and every loader's file is on disk.
+// Where the layout puts the variables is pinned in app/__tests__/layout.test.ts.
 // `next/font/local` is a build-time transform, so the mock hands back the
 // options each loader was called with.
 // ---------------------------------------------------------------------------

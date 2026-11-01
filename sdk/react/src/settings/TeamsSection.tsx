@@ -20,7 +20,7 @@
  * the plan; on Enterprise a license never lists teams and every
  * organization has them, so the read would refuse Enterprise its own teams.
  */
-import { useCallback, useId, useState } from "react";
+import { useCallback, useState } from "react";
 import type { Team } from "@stigmer/apis/ai/stigmer/iam/team/v1/api_pb";
 import { Feature } from "@stigmer/apis/ai/stigmer/platform/v1/entitlement_pb";
 import { UpgradeNotice } from "../billing/UpgradeNotice.js";
@@ -29,7 +29,9 @@ import { useEntitlements } from "../billing/useEntitlements.js";
 import { usePlans } from "../billing/usePlans.js";
 import { useDeploymentMode, useResourceAvailable } from "@stigmer/react-core";
 import { ApiResourceKind } from "@stigmer/react-core/internal";
-import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
+import { Button } from "../button/Button.js";
+import { NoOrganization } from "./NoOrganization.js";
+import { SettingsPage } from "./SettingsPage.js";
 import { PermissionGate } from "../grant/PermissionGate.js";
 import { useOrg } from "../organization/OrgProvider.js";
 import { CreateTeamForm } from "../team/CreateTeamForm.js";
@@ -44,7 +46,6 @@ type FlowState =
 
 /** Settings section for an organization's teams. */
 export function TeamsSection() {
-  const headingId = useId();
   const { activeOrg } = useOrg();
   const teamsServed = useResourceAvailable(ApiResourceKind.team);
   const orgId = activeOrg?.metadata?.id ?? "";
@@ -80,51 +81,34 @@ export function TeamsSection() {
   }, [refetch]);
 
   return (
-    <section aria-labelledby={headingId}>
-      <div className="stg:mb-3 stg:flex stg:items-center stg:justify-between">
-        <h2 id={headingId} className="stg:text-foreground stg:text-sm stg:font-semibold">
-          Teams
-        </h2>
-
-        {teamsServed && orgId && flow.phase === "idle" && !planLacksTeams && (
+    <SettingsPage
+      title="Teams"
+      description="Groups of people you share agents and other resources with at once. Someone added to a team gets what is shared with it; leaving the team or the organization takes it away."
+      actions={
+        orgId &&
+        flow.phase === "idle" &&
+        !planLacksTeams && (
           <PermissionGate resource={{ kind: "organization", id: orgId }} relation="can_create_team">
-            <button
-              type="button"
-              onClick={() => setFlow({ phase: "creating" })}
-              className="stg:text-primary stg:hover:text-foreground stg:text-xs stg:font-medium stg:transition-colors"
-            >
-              + New team
-            </button>
+            <Button size="sm" onClick={() => setFlow({ phase: "creating" })}>
+              New team
+            </Button>
           </PermissionGate>
-        )}
-      </div>
-      <p className="stg:text-muted-foreground stg:mb-4 stg:text-xs">
-        Teams group people so agents and other resources can be
-        shared with everyone in the team at once. Adding someone to a team
-        gives them everything shared with it. Removing them from the team, or
-        their leaving the organization, takes that access away.
-      </p>
-
-      {teamsServed && orgId && planLacksTeams && <UpgradeNotice feature={Feature.teams} unlockingPlanName={unlockingPlan} className="stg:mb-3" />}
-      {!teamsServed ? (
-        <CloudFeatureNotice>
-          Teams are available in Stigmer Enterprise and Cloud. This edition
-          shares resources with people and with the whole organization.
-        </CloudFeatureNotice>
-      ) : !orgId ? (
-        <p className="stg:text-muted-foreground stg:py-4 stg:text-center stg:text-xs">
-          Select an organization to manage teams.
-        </p>
+        )
+      }
+      unavailable={
+        !teamsServed &&
+        "Teams come with Stigmer Enterprise and Cloud. On this edition roles are granted on the organization only: people get access through their role in it, and nothing is shared with individual people or teams."
+      }
+    >
+      {orgId && planLacksTeams && <UpgradeNotice feature={Feature.teams} unlockingPlanName={unlockingPlan} />}
+      {!orgId ? (
+        <NoOrganization what="its teams" />
       ) : flow.phase === "creating" ? (
-        <div className="stg:border-border stg:bg-card stg:rounded-lg stg:border stg:p-4">
-          <CreateTeamForm
-            org={orgId}
-            onCreated={handleCreated}
-            onCancel={() => setFlow({ phase: "idle" })}
-          />
+        <div className="stg:rounded-lg stg:border stg:border-border stg:bg-card stg:p-4">
+          <CreateTeamForm org={orgId} onCreated={handleCreated} onCancel={() => setFlow({ phase: "idle" })} />
         </div>
       ) : flow.phase === "viewing" ? (
-        <div className="stg:border-border stg:bg-card stg:rounded-lg stg:border stg:p-4">
+        <div className="stg:rounded-lg stg:border stg:border-border stg:bg-card stg:p-4">
           <TeamDetailPanel
             key={flow.team.metadata?.id}
             team={flow.team}
@@ -139,9 +123,10 @@ export function TeamsSection() {
           teams={list.teams}
           isLoading={list.isLoading}
           error={list.error}
+          onRetry={refetch}
           onOpen={(team) => setFlow({ phase: "viewing", team })}
         />
       )}
-    </section>
+    </SettingsPage>
   );
 }

@@ -1,9 +1,14 @@
 "use client";
 
-import { useId } from "react";
+// The Billing settings page: the organization's plan, what this period will
+// cost, and the card it is charged to, inside the shared settings frame.
+// Plans and invoices are Stigmer Cloud's; elsewhere the frame says what this
+// edition does instead.
+
 import { getUserMessage } from "@stigmer/client";
 import { useDeploymentMode } from "@stigmer/react-core";
-import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
+import { NoOrganization } from "../settings/NoOrganization.js";
+import { SettingsPage } from "../settings/SettingsPage.js";
 import { useOrg } from "../organization/OrgProvider.js";
 import { useBillingAccount } from "./useBillingAccount.js";
 import { useCreateBillingPortalSession } from "./useCreateBillingPortalSession.js";
@@ -11,7 +16,8 @@ import { PaymentMethodCard } from "./PaymentMethodCard.js";
 import { PlanSection } from "./PlanSection.js";
 import type { BillingRedirect } from "./redirect.js";
 import { useCreatePaymentMethodSetupSession } from "./useCreatePaymentMethodSetupSession.js";
-import { LoadingRegion } from "../internal/LoadingRegion.js";
+import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
+import { ErrorMessage } from "../error/ErrorMessage.js";
 
 /** Props for {@link BillingSection}. */
 export interface BillingSectionProps {
@@ -55,7 +61,6 @@ export function BillingSection({
   redirect,
   className,
 }: BillingSectionProps) {
-  const headingId = useId();
   const { activeOrg, orgs } = useOrg();
   const mode = useDeploymentMode();
   const orgId = activeOrg?.metadata?.id ?? "";
@@ -69,26 +74,14 @@ export function BillingSection({
       : ((orgs ?? []).find((o) => o.metadata?.id === parentOrg)?.metadata?.name ?? "");
 
   return (
-    <section aria-labelledby={headingId} className={className}>
-      <h2
-        id={headingId}
-        className="stg:text-foreground stg:mb-1 stg:text-sm stg:font-semibold"
-      >
-        Billing
-      </h2>
-      <p className="stg:text-muted-foreground stg:mb-4 stg:text-xs">
-        Your plan, payment method and invoices.
-      </p>
-
-      {mode === "local" ? (
-        <CloudFeatureNotice>
-          Plans and invoices are available on Stigmer Cloud. Local mode uses
-          your own LLM API keys directly.
-        </CloudFeatureNotice>
-      ) : !orgId ? (
-        <p className="stg:text-muted-foreground stg:py-4 stg:text-center stg:text-xs">
-          Select an organization to view billing.
-        </p>
+    <SettingsPage
+      title="Billing"
+      description="Your plan, what this period will cost, and the card it is charged to."
+      unavailable={mode === "local" && "Plans and invoices come with Stigmer Cloud. On this edition your agents run on your own model provider keys, billed by the provider."}
+      className={className}
+    >
+      {!orgId ? (
+        <NoOrganization what="its billing" />
       ) : (
         <BillingContent
           org={orgId}
@@ -98,7 +91,7 @@ export function BillingSection({
           redirect={redirect}
         />
       )}
-    </section>
+    </SettingsPage>
   );
 }
 
@@ -126,20 +119,11 @@ function BillingContent({
   const setup = useCreatePaymentMethodSetupSession(redirect);
 
   if (isLoading) {
-    return (
-      <LoadingRegion className="stg:space-y-4" label="Loading billing">
-        <div className="stg:h-36 stg:animate-pulse stg:rounded-lg stg:bg-muted-subtle" />
-        <div className="stg:h-24 stg:animate-pulse stg:rounded-lg stg:bg-muted-subtle" />
-      </LoadingRegion>
-    );
+    return <SettingsSkeleton variant="figures" label="Loading billing" />;
   }
 
   if (error) {
-    return (
-      <p className="stg:text-destructive stg:text-xs" role="alert">
-        {getUserMessage(error)}
-      </p>
-    );
+    return <ErrorMessage error={error} title="The billing account could not be read" retry={refetch} />;
   }
 
   if (!account) return null;

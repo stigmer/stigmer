@@ -1,80 +1,59 @@
 // ---------------------------------------------------------------------------
-// The Settings landing route — one card per nav group the SDK answers
+// The Settings landing route — the kit's overview, each page a Next.js link
 //
-// The page renders what useSettingsNavGroups returns (the SDK has already
-// dropped the entries the person may not see): each group as a section
-// with its heading and description, and each of its items as a link to
-// its route, carrying its icon and label. A group the hook leaves out
-// renders nothing.
+// The landing's groups, descriptions and links are the kit's
+// `SettingsOverview` (its own tests pin what it draws and that it draws only
+// the navigation the person may see). This route's part is the seam: every
+// row the overview hands it becomes a Next.js link to the row's route,
+// carrying the row's look and content, so a click moves within the app.
 // ---------------------------------------------------------------------------
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, within } from "@testing-library/react";
-import type { SettingsNavGroup } from "@stigmer/react-sdk/console";
+import { describe, it, expect, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import type { SidebarLinkRenderProps } from "@stigmer/react-sdk/console";
 
-function icon(name: string) {
-  function NavIcon({ className }: { className?: string }) {
-    return <svg data-testid={`icon-${name}`} className={className} />;
-  }
-  return NavIcon;
-}
+vi.mock("next/link", () => ({
+  default: ({ href, children, ...rest }: { href: string; children: React.ReactNode }) => (
+    <a href={href} data-next-link="" {...rest}>
+      {children}
+    </a>
+  ),
+}));
 
-const nav = vi.hoisted(() => ({ groups: [] as SettingsNavGroup[] }));
+const ROWS: readonly SidebarLinkRenderProps[] = [
+  {
+    id: "members",
+    href: "/settings/members",
+    active: false,
+    className: "row-look",
+    "aria-current": undefined,
+    children: <span>Members</span>,
+  },
+  {
+    id: "memory",
+    href: "/settings/memory",
+    active: false,
+    className: "row-look",
+    "aria-current": undefined,
+    children: <span>Memory</span>,
+  },
+];
+
 vi.mock("@stigmer/react-sdk/console", () => ({
-  useSettingsNavGroups: () => nav.groups,
+  SettingsOverview: ({ renderLink }: { renderLink: (props: SidebarLinkRenderProps) => React.ReactElement }) => (
+    <div>{ROWS.map((row) => renderLink(row))}</div>
+  ),
 }));
 
 import SettingsPage from "../page";
 
-beforeEach(() => {
-  nav.groups = [
-    {
-      label: "Organization",
-      description: "Your organization's profile and members.",
-      items: [
-        { href: "/settings/org-profile", label: "Profile", icon: icon("profile") },
-        { href: "/settings/members", label: "Members", icon: icon("members") },
-      ],
-    },
-    {
-      label: "Account",
-      description: "Your own keys and vault.",
-      items: [{ href: "/settings/vaults", label: "Vaults", icon: icon("vaults") }],
-    },
-  ];
-});
-
 describe("Settings landing route", () => {
-  it("renders each nav group as a section with its heading and description", () => {
+  it("draws the kit's overview, each row a Next.js link to its route with the row's look", () => {
     render(<SettingsPage />);
-    const headings = screen.getAllByRole("heading", { level: 2 });
-    expect(headings.map((h) => h.textContent)).toEqual(["Organization", "Account"]);
-    expect(screen.getByText("Your organization's profile and members.")).toBeTruthy();
-    expect(screen.getByText("Your own keys and vault.")).toBeTruthy();
-  });
-
-  it("links each item to its route with its icon and label", () => {
-    render(<SettingsPage />);
-    const organization = screen.getByRole("heading", { name: "Organization" })
-      .parentElement as HTMLElement;
-    const links = within(organization).getAllByRole("link");
-    expect(links.map((l) => [l.textContent, l.getAttribute("href")])).toEqual([
-      ["Profile", "/settings/org-profile"],
-      ["Members", "/settings/members"],
-    ]);
-    const profileIcon = within(links[0]).getByTestId("icon-profile");
-    expect(profileIcon.getAttribute("class")).toContain("size-4");
-
-    const account = screen.getByRole("heading", { name: "Account" }).parentElement as HTMLElement;
-    expect(within(account).getByRole("link", { name: "Vaults" }).getAttribute("href")).toBe(
-      "/settings/vaults",
-    );
-  });
-
-  it("renders no section when the hook answers no groups", () => {
-    nav.groups = [];
-    render(<SettingsPage />);
-    expect(screen.queryAllByRole("heading")).toEqual([]);
-    expect(screen.queryAllByRole("link")).toEqual([]);
+    const members = screen.getByRole("link", { name: "Members" });
+    expect(members.getAttribute("href")).toBe("/settings/members");
+    expect(members.getAttribute("class")).toBe("row-look");
+    expect(members.hasAttribute("data-next-link")).toBe(true);
+    expect(screen.getByRole("link", { name: "Memory" }).getAttribute("href")).toBe("/settings/memory");
   });
 });

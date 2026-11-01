@@ -16,7 +16,6 @@
 
 import { useState } from "react";
 import { cn } from "@stigmer/design-tokens";
-import { getUserMessage } from "@stigmer/client";
 import type { ModelUsage } from "@stigmer/apis/ai/stigmer/agentic/run/v1/usage_pb";
 import type {
   DailyUsage,
@@ -36,7 +35,9 @@ import { ExportButton } from "./ExportButton.js";
 import { useExportCSV } from "./useExportCSV.js";
 import { ServedByLine } from "./ServedByLine.js";
 import { formatCompactCount, formatTokens, formatWorkingTime } from "./format.js";
-import { LoadingRegion } from "../internal/LoadingRegion.js";
+import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
+import { ErrorMessage } from "../error/ErrorMessage.js";
+import { EmptyState } from "../empty-state/EmptyState.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -70,42 +71,15 @@ export interface OrgUsagePanelProps {
 export function OrgUsagePanel({ org, className }: OrgUsagePanelProps) {
   const [preset, setPreset] = useState<DateRangePreset>("30d");
   const dateRange = dateRangeFromPreset(preset);
-  const { report, isLoading, error } = useOrgUsageReport(org, dateRange);
+  const { report, isLoading, error, refetch } = useOrgUsageReport(org, dateRange);
   const { exportCSV, isExporting } = useExportCSV(report, org);
 
   if (isLoading) {
-    return (
-      <LoadingRegion
-        className={cn("stg:space-y-4", className)}
-        label="Loading usage data"
-      >
-        <div className="stg:flex stg:gap-2">
-          {DATE_RANGE_PRESETS.map((p) => (
-            <div
-              key={p}
-              className="stg:h-7 stg:w-16 stg:animate-pulse stg:rounded-md stg:bg-muted-subtle"
-            />
-          ))}
-        </div>
-        <div className="stg:grid stg:grid-cols-3 stg:gap-3">
-          {Array.from({ length: 3 }, (_, i) => (
-            <div
-              key={i}
-              className="stg:h-[72px] stg:animate-pulse stg:rounded-lg stg:bg-muted-subtle"
-            />
-          ))}
-        </div>
-        <div className="stg:h-40 stg:animate-pulse stg:rounded-lg stg:bg-muted-subtle" />
-      </LoadingRegion>
-    );
+    return <SettingsSkeleton variant="figures" label="Loading usage data" className={className} />;
   }
 
   if (error) {
-    return (
-      <p className={cn("stg:text-destructive stg:text-xs", className)} role="alert">
-        {getUserMessage(error)}
-      </p>
-    );
+    return <ErrorMessage error={error} title="The usage could not be read" retry={refetch} className={className} />;
   }
 
   if (!report) return null;
@@ -149,7 +123,7 @@ export function OrgUsagePanel({ org, className }: OrgUsagePanelProps) {
         <ModelBreakdownList models={report.modelBreakdown} />
       )}
 
-      {report.modelBreakdown.length === 0 && <EmptyState />}
+      {report.modelBreakdown.length === 0 && <NoUsageYet />}
     </div>
   );
 }
@@ -452,39 +426,17 @@ function ModelBreakdownList({
 }
 
 // ---------------------------------------------------------------------------
-// EmptyState (internal)
+// NoUsageYet (internal)
 // ---------------------------------------------------------------------------
 
-function EmptyState() {
+function NoUsageYet() {
   return (
-    <div className="stg:flex stg:flex-col stg:items-center stg:justify-center stg:py-12 stg:text-center">
-      <ChartIcon className="stg:text-muted-foreground stg:mb-3 stg:size-8" />
-      <p className="stg:text-sm stg:font-medium stg:text-foreground">No usage data yet</p>
-      <p className="stg:mt-1 stg:max-w-xs stg:text-xs stg:text-muted-foreground">
-        Usage data will appear here once agents start runs
-        in this organization.
-      </p>
-    </div>
-  );
-}
-
-function ChartIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-      aria-hidden="true"
-    >
-      <path d="M3 3v18h18" />
-      <path d="M7 16l4-8 4 4 4-6" />
-    </svg>
+    <EmptyState
+      variant="first-use"
+      title="No usage data yet"
+      description="Usage data will appear here once agents start runs in this organization."
+      className="stg:rounded-lg stg:border stg:border-dashed stg:border-border"
+    />
   );
 }
 

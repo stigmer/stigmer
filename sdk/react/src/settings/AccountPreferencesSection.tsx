@@ -1,7 +1,11 @@
 "use client";
 
-import { useId } from "react";
+// The Account preferences settings page: the person's own standing context
+// and defaults, shared with agents on the runs they start. The page frame
+// is the shared `SettingsPage`; the panel draws its own data states.
+
 import { AccountPreferencesPanel } from "../identity-account/AccountPreferencesPanel.js";
+import { SettingsPage } from "./SettingsPage.js";
 
 /** Props for {@link AccountPreferencesSection}. */
 export interface AccountPreferencesSectionProps {
@@ -11,21 +15,12 @@ export interface AccountPreferencesSectionProps {
 
 /** Settings section for editing the current user's declared preferences. */
 export function AccountPreferencesSection({ modelsHubHref }: AccountPreferencesSectionProps = {}) {
-  const headingId = useId();
-
   return (
-    <section aria-labelledby={headingId}>
-      <h2
-        id={headingId}
-        className="stg:text-foreground stg:mb-1 stg:text-sm stg:font-semibold"
-      >
-        Account Preferences
-      </h2>
-      <p className="stg:text-muted-foreground stg:mb-6 stg:text-xs">
-        Personal standing context shared with agents on runs you start.
-      </p>
-
+    <SettingsPage
+      title="Account preferences"
+      description="What agents know about you on every run you start, and the models you start with."
+    >
       <AccountPreferencesPanel modelsHubHref={modelsHubHref} />
-    </section>
+    </SettingsPage>
   );
 }

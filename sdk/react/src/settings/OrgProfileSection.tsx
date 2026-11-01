@@ -1,10 +1,17 @@
 "use client";
 
-import { useId } from "react";
+/**
+ * The organization's Profile settings page: its name, description and
+ * logo, and below them, for a parent organization's admins, its child
+ * organizations. The panel refreshes the organization context itself after
+ * a save or a rename, so the section adds no refresh of its own.
+ */
 import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import { ChildOrganizationsList } from "../organization/ChildOrganizationsList.js";
 import { OrgProfilePanel } from "../organization/OrgProfilePanel.js";
 import { useOrg } from "../organization/OrgProvider.js";
+import { NoOrganization } from "./NoOrganization.js";
+import { SettingsPage } from "./SettingsPage.js";
 
 /** Props for {@link OrgProfileSection}. */
 export interface OrgProfileSectionProps {
@@ -19,39 +26,24 @@ export interface OrgProfileSectionProps {
 }
 
 /**
- * Settings section for editing the active organization profile. The panel
- * refreshes the organization context itself after a save or a rename, so
- * the section adds no refresh of its own. Below it, a parent organization's
- * admins see its child organizations, each with an Open action that makes
- * the child the active organization.
+ * Settings section for editing the active organization profile. Below it,
+ * a parent organization's admins see its child organizations, each with an
+ * Open action that makes the child the active organization.
  */
 export function OrgProfileSection({ onOrgChanged }: OrgProfileSectionProps = {}) {
-  const headingId = useId();
   const { activeOrg } = useOrg();
   const orgId = activeOrg?.metadata?.id ?? "";
 
   return (
-    <section aria-labelledby={headingId}>
-      <h2
-        id={headingId}
-        className="stg:text-foreground stg:mb-1 stg:text-sm stg:font-semibold"
-      >
-        Organization Profile
-      </h2>
-      <p className="stg:text-muted-foreground stg:mb-6 stg:text-xs">
-        Manage your organization&apos;s display name, description, and logo.
-      </p>
-
+    <SettingsPage title="Organization profile" description="This organization's name, description and logo, as its members see them.">
       {!orgId ? (
-        <p className="stg:text-muted-foreground stg:py-4 stg:text-center stg:text-xs">
-          Select an organization to view its profile.
-        </p>
+        <NoOrganization what="its profile" />
       ) : (
         <>
           <OrgProfilePanel org={orgId} />
           <ChildOrganizationsList org={orgId} onOrgChanged={onOrgChanged} />
         </>
       )}
-    </section>
+    </SettingsPage>
   );
 }

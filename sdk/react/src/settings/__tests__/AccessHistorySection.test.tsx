@@ -229,7 +229,7 @@ describe("AccessHistorySection", () => {
   it("says open source keeps no history and asks the server nothing", async () => {
     const server = renderSection("local");
     await settle();
-    expect(screen.getByText(/This\s+edition keeps no record of access changes/)).toBeTruthy();
+    expect(screen.getByText(/On this edition no record of access changes is kept/)).toBeTruthy();
     expect(server.checks).toEqual([]);
     expect(server.reads).toEqual([]);
   });

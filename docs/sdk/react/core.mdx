@@ -262,12 +262,15 @@ function MyPopover() {
 
 ### CloudFeatureNotice
 
-Subdued info notice displayed in place of cloud-only feature content
-when the connected Stigmer backend does not support the feature.
+Subdued info notice displayed in place of a feature the connected
+edition does not offer. Every settings page draws it through
+`SettingsPage`'s `unavailable`, in one voice: what the feature comes with,
+then what this edition does instead ("X come with Stigmer Enterprise and
+Cloud. On this edition …").
 
 Renders an inline box with an info icon and the provided message.
-The parent section provides its own heading and description — this
-component is purely the "why it's absent" explanation.
+The page provides its own heading and description — this component is
+purely the "why it's absent" explanation.
 
 All visual properties flow through `--stgm-*` design tokens.
 No Console-specific dependencies — safe for platform builder embedding.
@@ -282,11 +285,12 @@ No Console-specific dependencies — safe for platform builder embedding.
 />
 
 ```tsx
-const available = useResourceAvailable(ApiResourceKind.api_key);
+const available = useResourceAvailable(ApiResourceKind.team);
 if (!available) {
   return (
     <CloudFeatureNotice>
-      API keys require Stigmer Cloud. Run with <code>--cloud</code> to enable.
+      Teams come with Stigmer Enterprise and Cloud. On this edition roles
+      are granted on the organization only.
     </CloudFeatureNotice>
   );
 }

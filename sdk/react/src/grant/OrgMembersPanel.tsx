@@ -27,8 +27,15 @@ import { useDeleteGrant } from "./useDeleteGrant.js";
 import { RoleSelector } from "./RoleSelector.js";
 import { ProviderBadge } from "./ProviderBadge.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
-import { LoadingRegion } from "../internal/LoadingRegion.js";
+import { ErrorMessage } from "../error/ErrorMessage.js";
+import { EmptyState } from "../empty-state/EmptyState.js";
+import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
 import { SERVICE_ACCOUNTS_SETTINGS_HREF } from "../service-account/copy.js";
+
+/** A group of people: one card, a row each, divided. */
+const MEMBER_LIST = "stg:overflow-hidden stg:rounded-lg stg:border stg:border-border stg:bg-card stg:divide-y stg:divide-border";
+/** One person's row in a {@link MEMBER_LIST}. */
+const MEMBER_ROW = "stg:flex stg:items-center stg:gap-3 stg:px-4 stg:py-3";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -145,34 +152,18 @@ export function OrgMembersPanel({
   };
 
   if (isLoading) {
-    return (
-      <LoadingRegion
-        className={cn("stg:space-y-2", className)}
-        label="Loading members"
-      >
-        {Array.from({ length: 3 }, (_, i) => (
-          <div
-            key={i}
-            className="stg:bg-muted-subtle stg:h-14 stg:animate-pulse stg:rounded-lg"
-          />
-        ))}
-      </LoadingRegion>
-    );
+    return <SettingsSkeleton label="Loading members" rows={3} className={className} />;
   }
 
   if (error) {
-    return (
-      <p className={cn("stg:text-destructive stg:text-xs", className)} role="alert">
-        {getUserMessage(error)}
-      </p>
-    );
+    return <ErrorMessage error={error} title="The members could not be read" retry={refetch} className={className} />;
   }
 
   return (
     <div className={cn("stg:space-y-3", className)}>
       {/* Header */}
       <div className="stg:flex stg:items-center stg:gap-2">
-        <span className="stg:text-sm stg:font-semibold stg:text-foreground">Members</span>
+        <span className="stg:text-sm stg:font-semibold stg:text-foreground">People</span>
         {people.length > 0 && (
           <span className="stg:inline-flex stg:items-center stg:rounded-full stg:bg-muted stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-muted-foreground">
             {people.length}
@@ -182,11 +173,14 @@ export function OrgMembersPanel({
 
       {/* Members list */}
       {people.length === 0 ? (
-        <p className="stg:text-muted-foreground stg:py-4 stg:text-center stg:text-xs">
-          No members found.
-        </p>
+        <EmptyState
+          variant="first-use"
+          title="No members yet"
+          description="People appear here once they join this organization."
+          className="stg:rounded-lg stg:border stg:border-dashed stg:border-border"
+        />
       ) : (
-        <div role="list" aria-label="Organization members" className="stg:space-y-2">
+        <div role="list" aria-label="Organization members" className={MEMBER_LIST}>
           {people.map((entry) => renderRow(entry, "member"))}
         </div>
       )}
@@ -218,7 +212,7 @@ export function OrgMembersPanel({
               id={productUsersId}
               role="list"
               aria-label="Users from your product"
-              className="stg:space-y-2"
+              className={MEMBER_LIST}
             >
               {productUsers.map((entry) => renderRow(entry, "productUser"))}
             </div>
@@ -259,7 +253,7 @@ export function OrgMembersPanel({
               id={serviceAccountsId}
               role="list"
               aria-label="Service accounts"
-              className="stg:space-y-2"
+              className={MEMBER_LIST}
             >
               {serviceAccounts.map((entry) => (
                 <ServiceAccountRow key={entry.principal?.id ?? ""} entry={entry} />
@@ -288,7 +282,7 @@ function ServiceAccountRow({ entry }: { entry: PrincipalAccess }) {
   return (
     <div
       role="listitem"
-      className="stg:flex stg:items-center stg:gap-3 stg:rounded-lg stg:border stg:border-border-muted stg:px-3 stg:py-2.5"
+      className={MEMBER_ROW}
     >
       <div className="stg:flex stg:size-8 stg:shrink-0 stg:items-center stg:justify-center stg:rounded-md stg:bg-muted stg:text-xs stg:font-medium stg:text-muted-foreground">
         {name.charAt(0).toUpperCase()}
@@ -401,7 +395,7 @@ function MemberRow({
   return (
     <div
       role="listitem"
-      className="stg:flex stg:items-center stg:gap-3 stg:rounded-lg stg:border stg:border-border-muted stg:px-3 stg:py-2.5 stg:hover:border-border stg:transition-colors"
+      className={MEMBER_ROW}
     >
       {/* Avatar */}
       <div className="stg:flex stg:size-8 stg:shrink-0 stg:items-center stg:justify-center stg:rounded-full stg:bg-muted stg:text-xs stg:font-medium stg:text-muted-foreground">

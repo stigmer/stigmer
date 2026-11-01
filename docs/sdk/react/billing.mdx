@@ -596,6 +596,8 @@ line by line, the way the invoice will read it.
     className: { type: "string", description: "Additional CSS class names." },
     estimate: { type: "PeriodEstimate | null", description: "The current period's estimated invoice, when a plan is live." },
     estimateError: { type: "Error | null", description: "Why the estimate could not be read, shown in its place." },
+    onRetryAgentHours: { type: "() => void", description: "Reads the agent hours again after they failed; their error offers Retry when given." },
+    onRetryEstimate: { type: "() => void", description: "Reads the estimate again after it failed; its error offers Retry when given." },
     planName: { type: "string", description: "The plan's display name (\"Free\" when there is none).", required: true },
     standing: { type: "PlanStanding", description: "Where the organization stands on it.", required: true, typeDescriptionLink: "#planstanding" },
   }}

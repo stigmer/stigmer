@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
+import { Code, ConnectError } from "@connectrpc/connect";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import {
@@ -314,7 +315,8 @@ describe("OrgPreferencesPanel", () => {
     const client = {
       organization: {
         get: vi.fn(async () => {
-          throw new Error("boom");
+          // A read that may succeed again: the shared error offers Retry.
+          throw new ConnectError("boom", Code.Unavailable);
         }),
         update: vi.fn(),
       },
@@ -326,5 +328,42 @@ describe("OrgPreferencesPanel", () => {
 
     expect(await screen.findByRole("alert")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
+  });
+});
+
+describe("CON-01 the preferences offer no edit before the server says yes (stigmer#2662)", () => {
+  /** A client whose self-check answers as `answer` says: never, no, or a failure. */
+  function clientAnswering(answer: "pending" | "refused" | "fails") {
+    const client = createMockStigmer() as unknown as { grant: { checkMyPermission: () => Promise<unknown> } };
+    client.grant.checkMyPermission = vi.fn(() =>
+      answer === "pending"
+        ? new Promise<never>(() => {})
+        : answer === "refused"
+          ? Promise.resolve({ isAuthorized: false })
+          : Promise.reject(new ConnectError("the check failed", Code.Unavailable)),
+    );
+    return client;
+  }
+
+  it("shows the standing context read-only, with no Save and no refusal, while the check is in flight", async () => {
+    renderPanel(clientAnswering("pending"));
+    const field = await findSyncedField("We deploy to us-east-1.");
+    expect(field).toHaveProperty("readOnly", true);
+    expect(screen.queryByRole("button", { name: "Save changes" })).toBeNull();
+    expect(screen.queryByText("Only organization admins can edit these preferences.")).toBeNull();
+  });
+
+  it("says who can edit them once the server says no", async () => {
+    renderPanel(clientAnswering("refused"));
+    expect(await screen.findByText("Only organization admins can edit these preferences.")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Save changes" })).toBeNull();
+  });
+
+  it("keeps the standing context read-only, with no Save, and says it could not check when the check fails", async () => {
+    renderPanel(clientAnswering("fails"));
+    expect(await screen.findByText(/Could not check whether you may edit these preferences\./)).toBeTruthy();
+    expect(await screen.findByLabelText("Standing context")).toHaveProperty("readOnly", true);
+    expect(screen.queryByRole("button", { name: "Save changes" })).toBeNull();
+    expect(screen.queryByText("Only organization admins can edit these preferences.")).toBeNull();
   });
 });

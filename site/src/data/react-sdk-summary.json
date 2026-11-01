@@ -225,6 +225,13 @@
       "components": 9
     },
     {
+      "slug": "page",
+      "title": "page",
+      "description": "",
+      "hooks": 0,
+      "components": 1
+    },
+    {
       "slug": "plugin",
       "title": "plugin",
       "description": "",
@@ -299,7 +306,7 @@
       "title": "Settings",
       "description": "Pre-composed settings sections for organization console embedding.",
       "hooks": 1,
-      "components": 18
+      "components": 21
     },
     {
       "slug": "sidebar",

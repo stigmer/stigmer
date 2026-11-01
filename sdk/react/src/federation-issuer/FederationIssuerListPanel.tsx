@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useCallback, useState } from "react";
+import { useCallback, useState } from "react";
 import { cn } from "@stigmer/design-tokens";
 import { getUserMessage } from "@stigmer/client";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
@@ -10,7 +10,9 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js"
 import { useFederationIssuerList } from "./useFederationIssuerList.js";
 import { useDeleteFederationIssuer } from "./useDeleteFederationIssuer.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
-import { LoadingRegion } from "../internal/LoadingRegion.js";
+import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
+import { ErrorMessage } from "../error/ErrorMessage.js";
+import { EmptyState } from "../empty-state/EmptyState.js";
 
 /** Props for {@link FederationIssuerListPanel}. */
 export interface FederationIssuerListPanelProps {
@@ -26,7 +28,9 @@ export interface FederationIssuerListPanelProps {
    * a host that knows the caller may not manage issuers should say who
    * does instead.
    */
-  readonly emptyState?: ReactNode;
+  readonly emptyState?: string;
+  /** What to do about the empty list, under {@link FederationIssuerListPanelProps.emptyState}. */
+  readonly emptyDescription?: string;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -64,6 +68,7 @@ export function FederationIssuerListPanel({
   onEdit,
   onRefetchRef,
   emptyState = "No federation issuers configured.",
+  emptyDescription = "Add one, and this organization accepts the tokens that platform issues.",
   className,
 }: FederationIssuerListPanelProps) {
   const { federationIssuers, isLoading, error, refetch } =
@@ -75,39 +80,21 @@ export function FederationIssuerListPanel({
   }
 
   if (isLoading) {
-    return (
-      <LoadingRegion
-        className={cn("stg:space-y-2", className)}
-        label="Loading federation issuers"
-      >
-        {Array.from({ length: 2 }, (_, i) => (
-          <div
-            key={i}
-            className="stg:bg-muted-subtle stg:h-14 stg:animate-pulse stg:rounded-lg"
-          />
-        ))}
-      </LoadingRegion>
-    );
+    return <SettingsSkeleton label="Loading federation issuers" rows={3} className={className} />;
   }
 
   if (error) {
-    return (
-      <p className={cn("stg:text-destructive stg:text-xs", className)} role="alert">
-        {getUserMessage(error)}
-      </p>
-    );
+    return <ErrorMessage error={error} title="The federation issuers could not be read" retry={refetch} className={className} />;
   }
 
   if (federationIssuers.length === 0) {
     return (
-      <p
-        className={cn(
-          "stg:text-muted-foreground stg:py-4 stg:text-center stg:text-xs",
-          className,
-        )}
-      >
-        {emptyState}
-      </p>
+      <EmptyState
+        variant="first-use"
+        title={emptyState}
+        description={emptyDescription}
+        className={cn("stg:rounded-lg stg:border stg:border-dashed stg:border-border", className)}
+      />
     );
   }
 

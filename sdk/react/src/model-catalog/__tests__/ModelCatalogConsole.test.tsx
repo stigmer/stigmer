@@ -231,6 +231,23 @@ describe("ModelCatalogConsole — access", () => {
     ).toBeTruthy();
   });
 
+  it("says the edition does not keep a model catalogue when the server answers Unimplemented (stigmer#1230)", async () => {
+    // Unimplemented has no ErrorCode of its own: the client reports it as
+    // "unknown" and keeps the connect code (12), which the console reads.
+    const client = createMockStigmer({
+      listModelPricingBaselines: vi
+        .fn()
+        .mockRejectedValue(new StigmerError("unknown", "ModelPricingBaselineQueryController is not served", 12)),
+    });
+
+    render(<ModelCatalogConsole />, { wrapper: wrapper(client) });
+
+    expect(await screen.findByText(/The model catalog comes with Stigmer Cloud/)).toBeTruthy();
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.queryByText(/is not served/)).toBeNull();
+    expect(screen.queryByRole("button", { name: "Add model" })).toBeNull();
+  });
+
   it("renders the raw error for non-permission failures", async () => {
     const client = createMockStigmer({
       listModelPricingBaselines: vi

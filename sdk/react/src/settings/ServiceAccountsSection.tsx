@@ -8,7 +8,8 @@
  * Shown in full to a caller who holds `can_create_identity_account` on the
  * organization, which the model gives its admins: they list, create, open and
  * delete service accounts. Anyone else is told the admins manage them, and
- * the list, which the server would refuse them, is never asked for. The
+ * the list, which the server would refuse them, is never asked for; while
+ * the server answers, the page draws the shared skeleton. The
  * settings navigation offers the page to the same callers
  * (`useSettingsNavGroups`).
  *
@@ -18,7 +19,7 @@
  * either way is offered the button and answers for itself; until the server
  * has answered, no button is offered.
  */
-import { useCallback, useId, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import type { IdentityAccount } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
@@ -28,6 +29,10 @@ import { SERVICE_ACCOUNTS_MANAGED_BY_ADMINS } from "../service-account/copy.js";
 import { CreateServiceAccountForm } from "../service-account/CreateServiceAccountForm.js";
 import { ServiceAccountDetailPanel } from "../service-account/ServiceAccountDetailPanel.js";
 import { ServiceAccountListPanel } from "../service-account/ServiceAccountListPanel.js";
+import { Button } from "../button/Button.js";
+import { NoOrganization } from "./NoOrganization.js";
+import { SettingsPage } from "./SettingsPage.js";
+import { SettingsSkeleton } from "./SettingsSkeleton.js";
 
 type FlowState =
   | { readonly phase: "idle" }
@@ -36,7 +41,6 @@ type FlowState =
 
 /** Settings section for creating and managing service accounts. */
 export function ServiceAccountsSection() {
-  const headingId = useId();
   const org = useActiveOrgId();
   const { serverInfo } = useServerInfo();
   const trustsEveryRequest = serverInfo?.authenticationRequired === false;
@@ -67,50 +71,37 @@ export function ServiceAccountsSection() {
   }, []);
 
   return (
-    <section aria-labelledby={headingId}>
-      <div className="stg:mb-3 stg:flex stg:items-center stg:justify-between">
-        <h2
-          id={headingId}
-          className="stg:text-foreground stg:text-sm stg:font-semibold"
-        >
-          Service accounts
-        </h2>
-
-        {org && canManage && keysAuthenticate && flow.phase === "idle" && (
-          <button
-            type="button"
-            onClick={() => setFlow({ phase: "creating" })}
-            className="stg:text-primary stg:hover:text-foreground stg:text-xs stg:font-medium stg:transition-colors"
-          >
-            + New service account
-          </button>
-        )}
-      </div>
-      <p className="stg:text-muted-foreground stg:mb-4 stg:text-xs">
-        A service account is your organization&apos;s own account for
-        automation. A CI job or a script acts as it through its API keys, so it
-        keeps working when the person who set it up leaves, and what it creates
-        says the service account created it. It holds one organization role and
-        is never an owner.
-      </p>
-
+    <SettingsPage
+      title="Service accounts"
+      description="Your organization's own accounts for automation. A CI job or a script acts as one through its API keys, so it keeps working when the person who set it up leaves, and what it creates says the service account created it. Each holds one organization role and is never an owner."
+      actions={
+        org &&
+        canManage &&
+        keysAuthenticate &&
+        flow.phase === "idle" && (
+          <Button size="sm" onClick={() => setFlow({ phase: "creating" })}>
+            New service account
+          </Button>
+        )
+      }
+      denied={
+        org !== "" && deniedManage
+          ? { title: "Only an admin can open Service accounts", description: SERVICE_ACCOUNTS_MANAGED_BY_ADMINS }
+          : false
+      }
+    >
       {trustsEveryRequest && (
-        <CloudFeatureNotice className="stg:mb-4">
-          This server trusts every request, so it checks no API keys and a
-          service account could never act. Configure an identity provider
-          (<code>STIGMER_OIDC_ISSUER</code>) to use service accounts.
+        <CloudFeatureNotice>
+          This server trusts every request, so it checks no API keys and a service account could never act. Configure an
+          identity provider (<code>STIGMER_OIDC_ISSUER</code>) to use service accounts.
         </CloudFeatureNotice>
       )}
 
       {!org ? (
-        <p className="stg:text-muted-foreground stg:py-4 stg:text-center stg:text-xs">
-          Select an organization to manage service accounts.
-        </p>
-      ) : deniedManage ? (
-        <p className="stg:text-muted-foreground stg:py-4 stg:text-center stg:text-xs">
-          {SERVICE_ACCOUNTS_MANAGED_BY_ADMINS}
-        </p>
-      ) : !canManage ? null : flow.phase === "creating" ? (
+        <NoOrganization what="its service accounts" />
+      ) : !canManage ? (
+        <SettingsSkeleton label="Loading service accounts" rows={3} />
+      ) : flow.phase === "creating" ? (
         <div className="stg:space-y-4">
           <div className="stg:border-border stg:bg-card stg:rounded-lg stg:border stg:p-4">
             <CreateServiceAccountForm
@@ -140,6 +131,6 @@ export function ServiceAccountsSection() {
           onRefetchRef={handleRefetchRef}
         />
       )}
-    </section>
+    </SettingsPage>
   );
 }

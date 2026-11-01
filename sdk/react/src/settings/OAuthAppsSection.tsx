@@ -1,6 +1,10 @@
 "use client";
 
-import { useCallback, useId, useRef, useState } from "react";
+// The OAuth apps settings page: the organization's own login apps, which a
+// sign-in at an address an app lists uses. The list panel draws its own
+// data states.
+
+import { useCallback, useRef, useState } from "react";
 import type { OAuthApp } from "@stigmer/apis/ai/stigmer/iam/oauthapp/v1/api_pb";
 import { OAuthAppListPanel } from "../oauth-app/OAuthAppListPanel.js";
 import { CreateOAuthAppForm } from "../oauth-app/CreateOAuthAppForm.js";
@@ -9,8 +13,10 @@ import { OAUTH_APPS_MANAGED_BY_ADMINS } from "../oauth-app/copy.js";
 import { useResourceAvailable } from "@stigmer/react-core";
 import { ApiResourceKind } from "@stigmer/react-core/internal";
 import { useCheckPermission } from "../grant/useCheckPermission.js";
-import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
+import { Button } from "../button/Button.js";
 import { useActiveOrgId } from "../organization/OrgProvider.js";
+import { ASK_AN_ADMIN, NoOrganization } from "./NoOrganization.js";
+import { SettingsPage } from "./SettingsPage.js";
 
 type FlowState =
   | { phase: "idle" }
@@ -27,7 +33,6 @@ type FlowState =
  * organization's admins manage them rather than that none is configured.
  */
 export function OAuthAppsSection() {
-  const headingId = useId();
   const org = useActiveOrgId();
   const oauthAppsAvailable = useResourceAvailable(ApiResourceKind.oauth_app);
   const createCheck = useCheckPermission(
@@ -60,42 +65,24 @@ export function OAuthAppsSection() {
   }, []);
 
   return (
-    <section aria-labelledby={headingId}>
-      <div className="stg:mb-3 stg:flex stg:items-center stg:justify-between">
-        <h2
-          id={headingId}
-          className="stg:text-foreground stg:text-sm stg:font-semibold"
-        >
-          OAuth Apps
-        </h2>
-
-        {oauthAppsAvailable && org && canCreate && flow.phase === "idle" && (
-          <button
-            type="button"
-            onClick={() => setFlow({ phase: "creating" })}
-            className="stg:text-primary stg:hover:text-foreground stg:text-xs stg:font-medium stg:transition-colors"
-          >
-            + New OAuth app
-          </button>
-        )}
-      </div>
-      <p className="stg:text-muted-foreground stg:mb-4 stg:text-xs">
-        Login apps your organization signs in with. A sign-in at an address
-        uses the app that lists it.
-      </p>
-
-      {!oauthAppsAvailable ? (
-        <CloudFeatureNotice>
-          OAuth apps are not available in local mode. Bring-your-own-app
-          OAuth requires the cloud platform.
-        </CloudFeatureNotice>
+    <SettingsPage
+      title="OAuth apps"
+      description="Your organization's own login apps. A sign-in at an address uses the app that lists it."
+      actions={
+        org &&
+        canCreate &&
+        flow.phase === "idle" && (
+          <Button size="sm" onClick={() => setFlow({ phase: "creating" })}>
+            New OAuth app
+          </Button>
+        )
+      }
+    >
+      {!org ? (
+        <NoOrganization what="its OAuth apps" />
       ) : flow.phase === "creating" ? (
         <div className="stg:border-border stg:bg-card stg:rounded-lg stg:border stg:p-4">
-          <CreateOAuthAppForm
-            org={org}
-            onCreated={handleCreated}
-            onCancel={() => setFlow({ phase: "idle" })}
-          />
+          <CreateOAuthAppForm org={org} onCreated={handleCreated} onCancel={() => setFlow({ phase: "idle" })} />
         </div>
       ) : flow.phase === "editing" ? (
         <div className="stg:border-border stg:bg-card stg:rounded-lg stg:border stg:p-4">
@@ -112,8 +99,9 @@ export function OAuthAppsSection() {
           onEdit={(app) => setFlow({ phase: "editing", oauthApp: app })}
           onRefetchRef={handleRefetchRef}
           emptyState={deniedCreate ? OAUTH_APPS_MANAGED_BY_ADMINS : undefined}
+          emptyDescription={deniedCreate ? ASK_AN_ADMIN : undefined}
         />
       )}
-    </section>
+    </SettingsPage>
   );
 }

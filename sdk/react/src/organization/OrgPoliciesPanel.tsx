@@ -4,7 +4,8 @@
  * An organization's policies: what it lets its members do, one switch per
  * policy, each saved the moment it is flipped (the instant-apply pattern
  * of the memory consent row). Editing needs `can_edit` on the
- * organization (its admins); anyone else reads the switches.
+ * organization (its admins); anyone else reads the switches, and nobody
+ * can flip one until the server has said yes.
  */
 import { useCallback, useId } from "react";
 import { cn } from "@stigmer/design-tokens";
@@ -16,9 +17,11 @@ import {
   useUpdateOrganizationPolicies,
 } from "./useUpdateOrganizationPolicies.js";
 import { useCheckPermission } from "../grant/useCheckPermission.js";
+import { EditCheckFailed } from "./EditCheckFailed.js";
 import { Switch } from "../switch/Switch.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
-import { LoadingRegion } from "../internal/LoadingRegion.js";
+import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
+import { ErrorMessage } from "../error/ErrorMessage.js";
 
 /** Props for {@link OrgPoliciesPanel}. */
 export interface OrgPoliciesPanelProps {
@@ -50,12 +53,15 @@ export function OrgPoliciesPanel({ org, onUpdated, className }: OrgPoliciesPanel
 
   const { organization, isLoading, error: fetchError, refetch } = useOrganization(org || null);
   const { updatePolicies, isUpdating, error } = useUpdateOrganizationPolicies();
-  // Fail-open: a server without sign-in answers every check allowed, and
-  // the server refuses a save the answer missed.
-  const { allowed: canEdit } = useCheckPermission(
-    org ? { kind: "organization", id: org } : null,
-    "can_edit",
-  );
+  // Editing is the admins' (`can_edit`), offered only on the server's yes:
+  // never while the check is in flight and never on a failed check (the
+  // check fails closed), so a member never sees an editable form. A settled
+  // no says who can; a failed check says it could not check, and the
+  // content stays read-only (stigmer#2662).
+  const editCheck = useCheckPermission(org ? { kind: "organization", id: org } : null, "can_edit", { fail: "closed" });
+  const canEdit = !editCheck.isLoading && editCheck.allowed;
+  const checkFailed = !editCheck.isLoading && editCheck.error !== null;
+  const editDenied = !editCheck.isLoading && !checkFailed && !editCheck.allowed;
 
   const policies = organizationPoliciesOf(organization);
 
@@ -78,29 +84,11 @@ export function OrgPoliciesPanel({ org, onUpdated, className }: OrgPoliciesPanel
   );
 
   if (isLoading && !organization) {
-    return (
-      <LoadingRegion className={cn("stg:space-y-4", className)} label="Loading organization policies">
-        <div className="stg:bg-muted-subtle stg:h-12 stg:animate-pulse stg:rounded" />
-      </LoadingRegion>
-    );
+    return <SettingsSkeleton label="Loading organization policies" rows={2} className={className} />;
   }
 
   if (fetchError) {
-    return (
-      <div className={cn("stg:space-y-3", className)} role="alert">
-        <p className="stg:text-destructive stg:text-sm">{getUserMessage(fetchError)}</p>
-        <button
-          type="button"
-          onClick={refetch}
-          className={cn(
-            "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium",
-            "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
-          )}
-        >
-          Retry
-        </button>
-      </div>
-    );
+    return <ErrorMessage error={fetchError} title="The policies could not be read" retry={refetch} className={className} />;
   }
 
   if (!organization) return null;
@@ -138,11 +126,12 @@ export function OrgPoliciesPanel({ org, onUpdated, className }: OrgPoliciesPanel
         )}
       </div>
 
-      {!canEdit && (
+      {editDenied && (
         <p className="stg:text-2xs stg:text-muted-foreground">
           Only organization admins can change these policies.
         </p>
       )}
+      {checkFailed && <EditCheckFailed what="change these policies" onRetry={editCheck.refetch} />}
     </div>
   );
 }

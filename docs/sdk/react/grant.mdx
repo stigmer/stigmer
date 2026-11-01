@@ -120,6 +120,7 @@ function useCheckPermission(resource: PermissionCheckResource | null, relation: 
     allowed: { type: "boolean", description: "Whether the current user has the specified permission." },
     error: { type: "Error | null", description: "Error from the last check, or `null`." },
     isLoading: { type: "boolean", description: "`true` while the authorization check is in flight, from the first render for a resource until its answer arrives." },
+    refetch: { type: "() => void", description: "Asks again after the check failed (a Retry beside a \"could not check\" line); `isLoading` is `true` until the new answer arrives. A verdict already held is kept: the server's answer does not change within a mount, and a failure is never cached." },
   }}
 />
 

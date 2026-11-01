@@ -21,7 +21,8 @@ import { useCallback, useId, useRef, useState } from "react";
 import { getUserMessage } from "@stigmer/client";
 import { VaultConnectionSource } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/spec_pb";
 import { PermissionGate } from "../grant/PermissionGate.js";
-import { LoadingRegion } from "../internal/LoadingRegion.js";
+import { Button } from "../button/Button.js";
+import { ErrorMessage } from "../error/ErrorMessage.js";
 import { useVaultSignIn } from "../vault/useVaultSignIn.js";
 import { useActiveOrgId } from "../organization/OrgProvider.js";
 import { CreateVaultForm } from "../vault/CreateVaultForm.js";
@@ -29,16 +30,55 @@ import { QUIET_BUTTON_CLASS } from "../vault/styles.js";
 import { useMyVault } from "../vault/useMyVault.js";
 import { VaultEntriesEditor } from "../vault/VaultEntriesEditor.js";
 import { VaultListPanel } from "../vault/VaultListPanel.js";
+import { NoOrganization } from "./NoOrganization.js";
+import { SettingsPage } from "./SettingsPage.js";
+import { SettingsSkeleton } from "./SettingsSkeleton.js";
 
 /** Settings section for My vault and the organization's shared vaults. */
 export function VaultsSection() {
   const org = useActiveOrgId();
+  const [showCreate, setShowCreate] = useState(false);
+  const listRefetchRef = useRef<(() => void) | null>(null);
+
+  const handleRefetchRef = useCallback((refetch: () => void) => {
+    listRefetchRef.current = refetch;
+  }, []);
+
+  const handleCreated = useCallback(() => {
+    setShowCreate(false);
+    listRefetchRef.current?.();
+  }, []);
 
   return (
-    <div className="stg:space-y-10">
-      <MyVaultCard org={org} />
-      <SharedVaultsCard org={org} />
-    </div>
+    <SettingsPage
+      title="Vaults"
+      description="The logins and secrets your agents use: your own, in My vault, and your organization's, in shared vaults."
+      actions={
+        !showCreate &&
+        org && (
+          <PermissionGate resource={{ kind: "organization", id: org }} relation="can_create_shared_vault">
+            <Button size="sm" onClick={() => setShowCreate(true)}>
+              New shared vault
+            </Button>
+          </PermissionGate>
+        )
+      }
+    >
+      {!org ? (
+        <NoOrganization what="its vaults" />
+      ) : (
+        <div className="stg:flex stg:flex-col stg:gap-8">
+          <MyVaultCard org={org} />
+          <SharedVaultsCard
+            org={org}
+            showCreate={showCreate}
+            onCreated={handleCreated}
+            onCancelCreate={() => setShowCreate(false)}
+            onRefetchRef={handleRefetchRef}
+          />
+        </div>
+      )}
+    </SettingsPage>
   );
 }
 
@@ -57,32 +97,27 @@ function MyVaultCard({ org }: { org: string }) {
   );
 
   return (
-    <section aria-labelledby={headingId}>
-      <div className="stg:mb-3 stg:flex stg:items-baseline stg:gap-2">
-        <h2 id={headingId} className="stg:text-foreground stg:text-sm stg:font-semibold">
-          My vault
-        </h2>
-        <span className="stg:bg-primary-subtle stg:text-primary stg:rounded-full stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium stg:uppercase stg:tracking-wider">
-          You
-        </span>
+    <section aria-labelledby={headingId} className="stg:flex stg:flex-col stg:gap-3">
+      <div className="stg:flex stg:flex-col stg:gap-1">
+        <div className="stg:flex stg:items-baseline stg:gap-2">
+          <h3 id={headingId} className="stg:m-0 stg:text-foreground stg:text-sm stg:font-semibold">
+            My vault
+          </h3>
+          <span className="stg:bg-primary-subtle stg:text-primary stg:rounded-full stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium stg:uppercase stg:tracking-wider">
+            You
+          </span>
+        </div>
+        <p className="stg:m-0 stg:text-muted-foreground stg:text-xs">
+          Your own logins and secrets. A chat that includes My vault uses them for the messages you send, never a
+          teammate&apos;s, and a chat with an agent of another organization never does. Saved values can be replaced but
+          are never shown again.
+        </p>
       </div>
-      <p className="stg:text-muted-foreground stg:mb-4 stg:text-xs">
-        Your own logins and secrets. A chat that includes My vault uses them
-        for the messages you send, never a teammate&apos;s, and a chat with
-        an agent of another organization never does. Saved values can be
-        replaced but are never shown again.
-      </p>
 
       {myVault.isLoading ? (
-        <LoadingRegion className="stg:space-y-2" label="Loading">
-          {Array.from({ length: 3 }, (_, i) => (
-            <div key={i} className="stg:bg-muted-subtle stg:h-8 stg:animate-pulse stg:rounded" style={{ width: `${85 - i * 10}%` }} />
-          ))}
-        </LoadingRegion>
+        <SettingsSkeleton label="Loading My vault" rows={2} />
       ) : myVault.error && !myVault.vault ? (
-        <p className="stg:text-destructive stg:text-xs" role="alert">
-          {getUserMessage(myVault.error)}
-        </p>
+        <ErrorMessage error={myVault.error} title="My vault could not be read" retry={myVault.refetch} />
       ) : (
         <VaultEntriesEditor
           vault={myVault.vault}
@@ -106,7 +141,7 @@ function MyVaultCard({ org }: { org: string }) {
         />
       )}
       {oauth.error && (
-        <p className="stg:text-destructive stg:mt-2 stg:text-xs" role="alert">
+        <p className="stg:text-destructive stg:text-xs" role="alert">
           {getUserMessage(oauth.error)}
         </p>
       )}
@@ -114,57 +149,40 @@ function MyVaultCard({ org }: { org: string }) {
   );
 }
 
-function SharedVaultsCard({ org }: { org: string }) {
-  const [showCreate, setShowCreate] = useState(false);
-  const listRefetchRef = useRef<(() => void) | null>(null);
+function SharedVaultsCard({
+  org,
+  showCreate,
+  onCreated,
+  onCancelCreate,
+  onRefetchRef,
+}: {
+  readonly org: string;
+  readonly showCreate: boolean;
+  readonly onCreated: () => void;
+  readonly onCancelCreate: () => void;
+  readonly onRefetchRef: (refetch: () => void) => void;
+}) {
   const headingId = useId();
 
-  const handleRefetchRef = useCallback((refetch: () => void) => {
-    listRefetchRef.current = refetch;
-  }, []);
-
-  const handleCreated = useCallback(() => {
-    setShowCreate(false);
-    listRefetchRef.current?.();
-  }, []);
-
   return (
-    <section aria-labelledby={headingId}>
-      <div className="stg:mb-3 stg:flex stg:items-center stg:justify-between">
-        <h2 id={headingId} className="stg:text-foreground stg:text-sm stg:font-semibold">
+    <section aria-labelledby={headingId} className="stg:flex stg:flex-col stg:gap-3">
+      <div className="stg:flex stg:flex-col stg:gap-1">
+        <h3 id={headingId} className="stg:m-0 stg:text-foreground stg:text-sm stg:font-semibold">
           Shared vaults
-        </h2>
-        {!showCreate && org && (
-          <PermissionGate resource={{ kind: "organization", id: org }} relation="can_create_shared_vault">
-            <button
-              type="button"
-              onClick={() => setShowCreate(true)}
-              className="stg:text-primary stg:hover:text-foreground stg:text-xs stg:font-medium stg:transition-colors"
-            >
-              + New shared vault
-            </button>
-          </PermissionGate>
-        )}
+        </h3>
+        <p className="stg:m-0 stg:text-muted-foreground stg:text-xs">
+          Your organization&apos;s team keys. Admins create them and choose who may use them; a conversation, a routine
+          or a channel can name one so its runs use it.
+        </p>
       </div>
-      <p className="stg:text-muted-foreground stg:mb-4 stg:text-xs">
-        Your organization&apos;s team keys. Admins create them and choose who
-        may use them; a conversation, a routine or a channel can name one so
-        its runs use it.
-      </p>
 
       {showCreate && (
-        <div className="stg:border-border stg:bg-card stg:mb-4 stg:rounded-lg stg:border stg:p-4">
-          <CreateVaultForm org={org} onCreated={handleCreated} onCancel={() => setShowCreate(false)} />
+        <div className="stg:border-border stg:bg-card stg:rounded-lg stg:border stg:p-4">
+          <CreateVaultForm org={org} onCreated={onCreated} onCancel={onCancelCreate} />
         </div>
       )}
 
-      {org ? (
-        <VaultListPanel org={org} onRefetchRef={handleRefetchRef} />
-      ) : (
-        <p className="stg:text-muted-foreground stg:py-4 stg:text-center stg:text-xs">
-          Select an organization to view vaults.
-        </p>
-      )}
+      <VaultListPanel org={org} onRefetchRef={onRefetchRef} />
     </section>
   );
 }

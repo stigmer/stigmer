@@ -1,13 +1,16 @@
 "use client";
 
-import { useCallback, useId, useRef, useState } from "react";
+// The API keys settings page: the person's own keys, making one (its value
+// shown once), and revoking one. API keys are served in every edition. The
+// list panel draws the rows and their data states.
+
+import { useCallback, useRef, useState } from "react";
 import type { ApiKey } from "@stigmer/apis/ai/stigmer/iam/apikey/v1/api_pb";
 import { ApiKeyListPanel } from "../api-key/ApiKeyListPanel.js";
 import { CreateApiKeyForm } from "../api-key/CreateApiKeyForm.js";
 import { ApiKeyCreatedAlert } from "../api-key/ApiKeyCreatedAlert.js";
-import { useResourceAvailable } from "@stigmer/react-core";
-import { ApiResourceKind } from "@stigmer/react-core/internal";
-import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
+import { Button } from "../button/Button.js";
+import { SettingsPage } from "./SettingsPage.js";
 import { useActiveOrgId } from "../organization/OrgProvider.js";
 
 type FlowState =
@@ -17,9 +20,7 @@ type FlowState =
 
 /** Settings section for listing and creating organization API keys. */
 export function ApiKeysSection() {
-  const headingId = useId();
   const org = useActiveOrgId();
-  const apiKeysAvailable = useResourceAvailable(ApiResourceKind.api_key);
   const [flow, setFlow] = useState<FlowState>({ phase: "idle" });
   const listRefetchRef = useRef<(() => void) | null>(null);
 
@@ -39,60 +40,26 @@ export function ApiKeysSection() {
   }, []);
 
   return (
-    <section aria-labelledby={headingId}>
-      <div className="stg:mb-3 stg:flex stg:items-center stg:justify-between">
-        <h2
-          id={headingId}
-          className="stg:text-foreground stg:text-sm stg:font-semibold"
-        >
-          API Keys
-        </h2>
-
-        {apiKeysAvailable && flow.phase === "idle" && (
-          <button
-            type="button"
-            onClick={() => setFlow({ phase: "creating" })}
-            className="stg:text-primary stg:hover:text-foreground stg:text-xs stg:font-medium stg:transition-colors"
-          >
-            + New API key
-          </button>
-        )}
-      </div>
-      <p className="stg:text-muted-foreground stg:mb-4 stg:text-xs">
-        API keys authenticate CLI sessions and programmatic access to the
-        Stigmer API. A key speaks for you: it works in every organization
-        you belong to, unless it is limited to one organization.
-      </p>
-
-      {!apiKeysAvailable ? (
-        <CloudFeatureNotice>
-          API keys are not available in local mode. When running locally, the
-          CLI authenticates directly without API keys.
-        </CloudFeatureNotice>
-      ) : (
-        <>
-          {flow.phase === "reveal" && (
-            <ApiKeyCreatedAlert
-              rawKey={flow.rawKey}
-              keyName={flow.keyName}
-              onDismiss={handleDismissReveal}
-              className="stg:mb-4"
-            />
-          )}
-
-          {flow.phase === "creating" && (
-            <div className="stg:border-border stg:bg-card stg:mb-4 stg:rounded-lg stg:border stg:p-4">
-              <CreateApiKeyForm
-                org={org}
-                onCreated={handleCreated}
-                onCancel={() => setFlow({ phase: "idle" })}
-              />
-            </div>
-          )}
-
-          <ApiKeyListPanel onRefetchRef={handleRefetchRef} />
-        </>
+    <SettingsPage
+      title="API keys"
+      description="Keys sign the CLI and your own programs in to Stigmer as you. A key works in every organization you belong to, unless you limit it to one."
+      actions={
+        flow.phase === "idle" && (
+          <Button size="sm" onClick={() => setFlow({ phase: "creating" })}>
+            New API key
+          </Button>
+        )
+      }
+    >
+      {flow.phase === "reveal" && (
+        <ApiKeyCreatedAlert rawKey={flow.rawKey} keyName={flow.keyName} onDismiss={handleDismissReveal} />
       )}
-    </section>
+      {flow.phase === "creating" && (
+        <div className="stg:rounded-lg stg:border stg:border-border stg:bg-card stg:p-4">
+          <CreateApiKeyForm org={org} onCreated={handleCreated} onCancel={() => setFlow({ phase: "idle" })} />
+        </div>
+      )}
+      <ApiKeyListPanel onRefetchRef={handleRefetchRef} />
+    </SettingsPage>
   );
 }

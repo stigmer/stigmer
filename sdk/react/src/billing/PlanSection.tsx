@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { cn } from "@stigmer/design-tokens";
-import { getUserMessage, isUnimplemented } from "@stigmer/client";
+import { isUnimplemented } from "@stigmer/client";
 import { useResourceAvailable } from "@stigmer/react-core";
 import { ApiResourceKind } from "@stigmer/react-core/internal";
 import { useCheckPermission } from "../grant/useCheckPermission.js";
@@ -19,7 +19,8 @@ import { useAgentHours } from "./useAgentHours.js";
 import { usePeriodEstimate } from "./usePeriodEstimate.js";
 import { usePlans } from "./usePlans.js";
 import { useSubscription } from "./useSubscription.js";
-import { LoadingRegion } from "../internal/LoadingRegion.js";
+import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
+import { ErrorMessage } from "../error/ErrorMessage.js";
 
 /** How often, and how long, the section waits for a just-saved card to reach the account. */
 const CARD_POLL_MS = 2_000;
@@ -187,19 +188,21 @@ export function PlanSection({
   }
 
   if (current.isLoading || catalog.isLoading) {
-    return (
-      <LoadingRegion className={cn("stg:space-y-3", className)} label="Loading plan">
-        <div className="stg:h-24 stg:animate-pulse stg:rounded-lg stg:bg-muted-subtle" />
-      </LoadingRegion>
-    );
+    return <SettingsSkeleton variant="figures" label="Loading plan" className={className} />;
   }
 
   const readError = current.error ?? catalog.error;
   if (readError) {
     return (
-      <p className={cn("stg:text-xs stg:text-destructive", className)} role="alert">
-        {getUserMessage(readError)}
-      </p>
+      <ErrorMessage
+        error={readError}
+        title="The plan could not be read"
+        retry={() => {
+          current.refetch();
+          catalog.refetch();
+        }}
+        className={className}
+      />
     );
   }
 
@@ -216,6 +219,8 @@ export function PlanSection({
         estimateError={estimate.error}
         agentHours={agentHours.hours}
         agentHoursError={agentHoursError}
+        onRetryEstimate={estimate.refetch}
+        onRetryAgentHours={agentHours.refetch}
         billedToParent={billedToParent}
       />
       {!child && (

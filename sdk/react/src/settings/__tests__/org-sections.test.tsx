@@ -77,9 +77,9 @@ describe("the organization settings sections", () => {
   });
 
   it.each([
-    ["preferences", OrgPreferencesSection, /select an organization to view its preferences/i],
-    ["profile", OrgProfileSection, /select an organization to view its profile/i],
-    ["embedding", OrgEmbeddingSection, /select an organization to view its embedding settings/i],
+    ["preferences", OrgPreferencesSection, /choose an organization to see its preferences/i],
+    ["profile", OrgProfileSection, /choose an organization to see its profile/i],
+    ["embedding", OrgEmbeddingSection, /choose an organization to see its embedding settings/i],
   ] as const)("%s prompts for an organization when none is selected", (_panel, Section, prompt) => {
     render(<Section />);
     expect(screen.getByText(prompt)).toBeTruthy();

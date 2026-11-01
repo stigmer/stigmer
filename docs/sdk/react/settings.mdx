@@ -109,13 +109,6 @@ is configured.
 
 Settings section for creating and managing organization invitations.
 
-An organization's invitations are administered by its admins: the
-server lists them to, and creates them for, callers who hold
-`can_grant_access` on the organization. The manager is offered once the
-server confirms the caller holds it; everyone else is told that the
-organization's admins manage invitations, rather than shown an empty
-list and a create button the server would refuse.
-
 
 ### MembersSection
 
@@ -140,14 +133,7 @@ role, so this section says so.
 
 ### MemorySection
 
-Settings section listing everything the platform remembers about the
-caller in the active organization.
-
-The helper copy carries the memory transparency statement: a
-confirmed memory is injected into the caller's future sessions and
-appears in those executions' records. Memory content everywhere else
-is subject-only — this page shows the caller their own records and
-nobody else's.
+Settings section for the caller's own memories in the active organization.
 
 
 ### NotificationsSection
@@ -204,11 +190,9 @@ Settings section for editing the active organization's declared preferences.
 
 ### OrgProfileSection
 
-Settings section for editing the active organization profile. The panel
-refreshes the organization context itself after a save or a rename, so
-the section adds no refresh of its own. Below it, a parent organization's
-admins see its child organizations, each with an Open action that makes
-the child the active organization.
+Settings section for editing the active organization profile. Below it,
+a parent organization's admins see its child organizations, each with an
+Open action that makes the child the active organization.
 
 **Props** — `OrgProfileSectionProps`
 
@@ -222,6 +206,72 @@ the child the active organization.
 ### ServiceAccountsSection
 
 Settings section for creating and managing service accounts.
+
+
+### SettingsOverview
+
+The settings landing: each settings group, what it holds, and a link to
+each of its pages.
+
+**Props** — `SettingsOverviewProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "" },
+    groups: { type: "readonly SettingsNavGroup[]", description: "The groups to draw. Defaults to `useSettingsNavGroups()`, the permission-aware navigation the settings sidebar draws; deterministic hosts pass `SETTINGS_NAV_GROUPS` or a fixture." },
+    renderLink: { type: "RenderSidebarLink", description: "Renders each page's link as the host's router link (see RenderSidebarLink).", required: true, typeDescriptionLink: "/docs/sdk/react/sidebar#rendersidebarlink" },
+  }}
+/>
+
+```tsx
+<SettingsOverview renderLink={({ href, children, ...rest }) => <Link href={href} {...rest}>{children}</Link>} />
+```
+
+
+### SettingsPage
+
+A settings page: its heading and, unless the edition or the person's
+role rules it out, its body.
+
+**Props** — `SettingsPageProps`
+
+<TypeTable
+  type={{
+    actions: { type: "ReactNode", description: "The page's main act (a \"New …\" button), at the heading's right; hidden while `unavailable` or `denied`." },
+    children: { type: "ReactNode", description: "What the page shows when it is offered and allowed." },
+    className: { type: "string", description: "" },
+    denied: { type: "boolean | SettingsPageDenial", description: "This person may not see the page: the body is not mounted, and the page says who can. `true` says an organization's admins can; pass the words when someone else can (a platform operator)." },
+    description: { type: "ReactNode", description: "One sentence on what the page is for." },
+    title: { type: "string", description: "The page's name, as the settings navigation names it.", required: true },
+    unavailable: { type: "ReactNode", description: "Why this edition does not offer the page and where it is offered; the body is not mounted." },
+  }}
+/>
+
+```tsx
+<SettingsPage
+  title="Teams"
+  description="Groups of people you share agents and other resources with at once."
+  unavailable={!teamsServed && "Teams come with Stigmer Enterprise and Cloud. On this edition …"}
+>
+  <TeamList org={org} />
+</SettingsPage>
+```
+
+
+### SettingsSkeleton
+
+A settings page's content while it loads.
+
+**Props** — `SettingsSkeletonProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "" },
+    label: { type: "string", description: "What is being read, for assistive technology (\"Loading members\")." },
+    rows: { type: "number", description: "How many rows to draw, or how many figures." },
+    variant: { type: "\"rows\" | \"figures\"", description: "The page's shape: rows of a list or a form (the default), or figures over a chart." },
+  }}
+/>
 
 
 ### TeamsSection
@@ -300,6 +350,18 @@ Single navigable entry in the settings sidebar.
     icon: { type: "ComponentType<{ className?: string }>", description: "Lucide icon component rendered next to the label.", required: true },
     label: { type: "string", description: "Short, user-facing label shown in navigation.", required: true },
     requiredPermission: { type: "string", description: "Permission required for this entry to appear: on `platform:stigmer` for the items of PLATFORM_SETTINGS_NAV_GROUP, on the active organization for ORG_ADMIN_SETTINGS_NAV_ITEMS. Items in the base groups are visible to every signed-in user and leave this unset. useSettingsNavGroups checks it fail-closed." },
+  }}
+/>
+
+
+### SettingsPageDenial
+
+What a settings page says to a person who may not see it.
+
+<TypeTable
+  type={{
+    description: { type: "string", description: "Who can, and what to do (\"Ask an owner or an admin of this organization.\").", required: true },
+    title: { type: "string", description: "The notice's heading (\"Only an admin can open Plans\").", required: true },
   }}
 />
 

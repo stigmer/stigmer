@@ -12,7 +12,9 @@ import { useApiKeyList } from "./useApiKeyList.js";
 import { useDeleteApiKey } from "./useDeleteApiKey.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { LastUsedLabel } from "../internal/LastUsedLabel.js";
-import { LoadingRegion } from "../internal/LoadingRegion.js";
+import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
+import { ErrorMessage } from "../error/ErrorMessage.js";
+import { EmptyState } from "../empty-state/EmptyState.js";
 import { LoadMoreFooter } from "../internal/LoadMoreFooter.js";
 
 // ---------------------------------------------------------------------------
@@ -78,7 +80,9 @@ export function ApiKeyListPanel({
       isLoading={isLoading}
       error={error}
       onDeleted={refetch}
-      emptyText="No API keys yet."
+      onRetry={refetch}
+      emptyText="No API keys yet"
+      emptyDescription="Make one for the CLI on a server, a CI job or a script. You see its value once, when it is made."
       className={className}
       now={now}
       pager={pager}
@@ -97,8 +101,12 @@ export interface ApiKeyListViewProps {
   readonly error: Error | null;
   /** Fired after a key is revoked, so the owner of the list re-reads it. */
   readonly onDeleted: () => void;
-  /** Shown when the list is empty. */
+  /** Reads the list again after a failed read; the error offers Retry when given. */
+  readonly onRetry?: () => void;
+  /** The empty list's heading. */
   readonly emptyText: string;
+  /** What to do about an empty list, under its heading. */
+  readonly emptyDescription?: string;
   readonly className?: string;
   readonly now?: Date;
   /** The list's paging state, for its "Load more" footer. */
@@ -125,7 +133,9 @@ export function ApiKeyListView({
   isLoading,
   error,
   onDeleted,
+  onRetry,
   emptyText,
+  emptyDescription,
   className,
   now,
   pager,
@@ -134,39 +144,21 @@ export function ApiKeyListView({
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
   if (isLoading) {
-    return (
-      <LoadingRegion
-        className={cn("stg:space-y-2", className)}
-        label="Loading API keys"
-      >
-        {Array.from({ length: 2 }, (_, i) => (
-          <div
-            key={i}
-            className="stg:bg-muted-subtle stg:h-14 stg:animate-pulse stg:rounded-lg"
-          />
-        ))}
-      </LoadingRegion>
-    );
+    return <SettingsSkeleton label="Loading API keys" rows={3} className={className} />;
   }
 
   if (error) {
-    return (
-      <p className={cn("stg:text-destructive stg:text-xs", className)} role="alert">
-        {getUserMessage(error)}
-      </p>
-    );
+    return <ErrorMessage error={error} title="The API keys could not be read" retry={onRetry} className={className} />;
   }
 
   if (apiKeys.length === 0) {
     return (
-      <p
-        className={cn(
-          "stg:text-muted-foreground stg:py-4 stg:text-center stg:text-xs",
-          className,
-        )}
-      >
-        {emptyText}
-      </p>
+      <EmptyState
+        variant="first-use"
+        title={emptyText}
+        description={emptyDescription}
+        className={cn("stg:rounded-lg stg:border stg:border-dashed stg:border-border", className)}
+      />
     );
   }
 

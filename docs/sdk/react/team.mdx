@@ -222,6 +222,7 @@ All visual properties flow through `--stgm-*` design tokens.
     error: { type: "Error | null", description: "", required: true },
     isLoading: { type: "boolean", description: "", required: true },
     onOpen: { type: "(team: Team) => void", description: "Fired when a person opens a team.", required: true },
+    onRetry: { type: "() => void", description: "Reads the list again after a failed read; the error offers Retry when given." },
     teams: { type: "readonly Team[]", description: "", required: true },
   }}
 />

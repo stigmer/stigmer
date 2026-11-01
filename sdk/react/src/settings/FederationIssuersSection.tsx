@@ -1,6 +1,11 @@
 "use client";
 
-import { useCallback, useId, useRef, useState } from "react";
+// The Federation issuers settings page: the other platforms whose tokens the
+// organization trusts. Served by Stigmer Enterprise and Cloud; elsewhere the
+// settings frame says what this edition does instead. The list panel draws
+// its own data states.
+
+import { useCallback, useRef, useState } from "react";
 import type { FederationIssuer } from "@stigmer/apis/ai/stigmer/iam/federationissuer/v1/api_pb";
 import { FederationIssuerListPanel } from "../federation-issuer/FederationIssuerListPanel.js";
 import { FederationIssuerWizard } from "../federation-issuer/FederationIssuerWizard.js";
@@ -9,8 +14,10 @@ import { FEDERATION_ISSUERS_MANAGED_BY_ADMINS } from "../federation-issuer/copy.
 import { useResourceAvailable } from "@stigmer/react-core";
 import { ApiResourceKind } from "@stigmer/react-core/internal";
 import { useCheckPermission } from "../grant/useCheckPermission.js";
-import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
+import { Button } from "../button/Button.js";
 import { useOrg } from "../organization/OrgProvider.js";
+import { ASK_AN_ADMIN, NoOrganization } from "./NoOrganization.js";
+import { SettingsPage } from "./SettingsPage.js";
 
 type FlowState =
   | { phase: "idle" }
@@ -28,7 +35,6 @@ type FlowState =
  * is configured.
  */
 export function FederationIssuersSection() {
-  const headingId = useId();
   const { activeOrg } = useOrg();
   const issuerAvailable = useResourceAvailable(ApiResourceKind.federation_issuer);
   // Requests name the org by its id.
@@ -58,47 +64,28 @@ export function FederationIssuersSection() {
   }, []);
 
   return (
-    <section aria-labelledby={headingId}>
-      <div className="stg:mb-3 stg:flex stg:items-center stg:justify-between">
-        <h2
-          id={headingId}
-          className="stg:text-foreground stg:text-sm stg:font-semibold"
-        >
-          Federation Issuers
-        </h2>
-
-        {issuerAvailable && orgId && canCreate && flow.phase === "idle" && (
-          <button
-            type="button"
-            onClick={() => setFlow({ phase: "creating" })}
-            className="stg:text-primary stg:hover:text-foreground stg:text-xs stg:font-medium stg:transition-colors"
-          >
-            + New federation issuer
-          </button>
-        )}
-      </div>
-      <p className="stg:text-muted-foreground stg:mb-4 stg:text-xs">
-        Federation issuers define external OIDC trust relationships for
-        federated authentication: the organization accepts tokens another
-        platform issues, such as the platform that manages it.
-      </p>
-
-      {!issuerAvailable ? (
-        <CloudFeatureNotice>
-          Federation issuers are not available in local mode. Federated
-          authentication requires Stigmer Cloud.
-        </CloudFeatureNotice>
-      ) : !orgId ? (
-        <p className="stg:text-muted-foreground stg:py-4 stg:text-center stg:text-xs">
-          Select an organization to manage federation issuers.
-        </p>
+    <SettingsPage
+      title="Federation issuers"
+      description="Other platforms whose sign-in tokens this organization accepts, such as the platform that manages it."
+      actions={
+        orgId &&
+        canCreate &&
+        flow.phase === "idle" && (
+          <Button size="sm" onClick={() => setFlow({ phase: "creating" })}>
+            New federation issuer
+          </Button>
+        )
+      }
+      unavailable={
+        !issuerAvailable &&
+        "Federation issuers come with Stigmer Enterprise and Cloud. On this edition the organization accepts no other platform's tokens."
+      }
+    >
+      {!orgId ? (
+        <NoOrganization what="its federation issuers" />
       ) : flow.phase === "creating" ? (
         <div className="stg:border-border stg:bg-card stg:rounded-lg stg:border stg:p-4">
-          <FederationIssuerWizard
-            org={orgId}
-            onCreated={handleCreated}
-            onCancel={() => setFlow({ phase: "idle" })}
-          />
+          <FederationIssuerWizard org={orgId} onCreated={handleCreated} onCancel={() => setFlow({ phase: "idle" })} />
         </div>
       ) : flow.phase === "editing" ? (
         <div className="stg:border-border stg:bg-card stg:rounded-lg stg:border stg:p-4">
@@ -111,15 +98,12 @@ export function FederationIssuersSection() {
       ) : (
         <FederationIssuerListPanel
           org={orgId}
-          onEdit={(issuer) =>
-            setFlow({ phase: "editing", federationIssuer: issuer })
-          }
+          onEdit={(issuer) => setFlow({ phase: "editing", federationIssuer: issuer })}
           onRefetchRef={handleRefetchRef}
-          emptyState={
-            deniedCreate ? FEDERATION_ISSUERS_MANAGED_BY_ADMINS : undefined
-          }
+          emptyState={deniedCreate ? FEDERATION_ISSUERS_MANAGED_BY_ADMINS : undefined}
+          emptyDescription={deniedCreate ? ASK_AN_ADMIN : undefined}
         />
       )}
-    </section>
+    </SettingsPage>
   );
 }

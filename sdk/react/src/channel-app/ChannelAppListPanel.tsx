@@ -1,13 +1,13 @@
 "use client";
 
-import type { ReactNode } from "react";
 import { cn } from "@stigmer/design-tokens";
-import { getUserMessage } from "@stigmer/client";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { ChannelApp } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { channelProviderOf } from "../channel/providers.js";
 import { useChannelAppList } from "./useChannelAppList.js";
-import { LoadingRegion } from "../internal/LoadingRegion.js";
+import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
+import { ErrorMessage } from "../error/ErrorMessage.js";
+import { EmptyState } from "../empty-state/EmptyState.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -31,7 +31,9 @@ export interface ChannelAppListPanelProps {
    * that knows the caller may not manage channel apps should say who does
    * instead.
    */
-  readonly emptyState?: ReactNode;
+  readonly emptyState?: string;
+  /** What to do about the empty list, under {@link ChannelAppListPanelProps.emptyState}. */
+  readonly emptyDescription?: string;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -60,6 +62,7 @@ export function ChannelAppListPanel({
   onEdit,
   onRefetchRef,
   emptyState = "No channel apps registered yet.",
+  emptyDescription = "Register your Slack or Meta app here, and every channel can install through it.",
   className,
 }: ChannelAppListPanelProps) {
   const { channelApps, isLoading, error, refetch } = useChannelAppList(org);
@@ -69,36 +72,21 @@ export function ChannelAppListPanel({
   }
 
   if (isLoading) {
-    return (
-      <LoadingRegion
-        className={cn("stg:space-y-2", className)}
-        label="Loading channel apps"
-      >
-        {Array.from({ length: 2 }, (_, i) => (
-          <div key={i} className="stg:bg-muted-subtle stg:h-14 stg:animate-pulse stg:rounded-lg" />
-        ))}
-      </LoadingRegion>
-    );
+    return <SettingsSkeleton label="Loading channel apps" rows={3} className={className} />;
   }
 
   if (error) {
-    return (
-      <p className={cn("stg:text-destructive stg:text-xs", className)} role="alert">
-        {getUserMessage(error)}
-      </p>
-    );
+    return <ErrorMessage error={error} title="The channel apps could not be read" retry={refetch} className={className} />;
   }
 
   if (channelApps.length === 0) {
     return (
-      <p
-        className={cn(
-          "stg:text-muted-foreground stg:py-4 stg:text-center stg:text-xs",
-          className,
-        )}
-      >
-        {emptyState}
-      </p>
+      <EmptyState
+        variant="first-use"
+        title={emptyState}
+        description={emptyDescription}
+        className={cn("stg:rounded-lg stg:border stg:border-dashed stg:border-border", className)}
+      />
     );
   }
 

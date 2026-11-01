@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { create } from "@bufbuild/protobuf";
 import {
   CheckMyPermissionInputSchema,
@@ -47,6 +47,13 @@ export interface UseCheckPermissionReturn {
   readonly isLoading: boolean;
   /** Error from the last check, or `null`. */
   readonly error: Error | null;
+  /**
+   * Asks again after the check failed (a Retry beside a "could not check"
+   * line); `isLoading` is `true` until the new answer arrives. A verdict
+   * already held is kept: the server's answer does not change within a
+   * mount, and a failure is never cached.
+   */
+  readonly refetch: () => void;
 }
 
 /** A check's outcome, keyed by the (kind, id, relation) triple it answers. */
@@ -123,6 +130,9 @@ export function useCheckPermission(
   // the effect runs only after the first render has committed, so a
   // separate loading flag would report a settled answer until then.
   const [settled, setSettled] = useState<SettledCheck | null>(null);
+  // Bumped by a retry, so the effect asks again after a failed check (a
+  // failure is never cached; a verdict is, and is not asked again).
+  const [retries, setRetries] = useState(0);
 
   useEffect(() => {
     if (!resource || !cacheKey) return;
@@ -165,12 +175,20 @@ export function useCheckPermission(
     return () => {
       cancelled = true;
     };
-  }, [cacheKey, resource?.kind, resource?.id, relation, failValue, stigmer]);
+  }, [cacheKey, resource?.kind, resource?.id, relation, failValue, stigmer, retries]);
 
   const current = cacheKey !== null && settled?.key === cacheKey ? settled : null;
   const allowed = current?.verdict ?? failValue;
   const isLoading = cacheKey !== null && current === null;
   const error = current?.error ?? null;
 
-  return useMemo(() => ({ allowed, isLoading, error }), [allowed, isLoading, error]);
+  const failed = current !== null && current.verdict === null;
+  const refetch = useCallback(() => {
+    if (!failed) return;
+    // Dropping the failed outcome reports the check in flight until the new answer lands.
+    setSettled(null);
+    setRetries((n) => n + 1);
+  }, [failed]);
+
+  return useMemo(() => ({ allowed, isLoading, error, refetch }), [allowed, isLoading, error, refetch]);
 }

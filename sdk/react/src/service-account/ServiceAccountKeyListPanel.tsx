@@ -54,7 +54,9 @@ export function ServiceAccountKeyListPanel({
       isLoading={isLoading}
       error={error}
       onDeleted={refetch}
-      emptyText="No keys yet. Create one for each place this service account runs."
+      onRetry={refetch}
+      emptyText="No keys yet"
+      emptyDescription="Create one for each place this service account runs."
       className={className}
       now={now}
       pager={pager}

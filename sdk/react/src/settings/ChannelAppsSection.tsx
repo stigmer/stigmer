@@ -1,6 +1,11 @@
 "use client";
 
-import { useCallback, useId, useRef, useState } from "react";
+// The Channel apps settings page: the organization's own Slack and Meta apps
+// its agents' channels install through. Channel installs are Stigmer
+// Cloud's, so elsewhere the settings frame says what this edition does
+// instead. The list panel draws its own data states.
+
+import { useCallback, useRef, useState } from "react";
 import type { ChannelApp } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { ChannelAppListPanel } from "../channel-app/ChannelAppListPanel.js";
 import {
@@ -11,8 +16,10 @@ import { ChannelAppDetailPanel } from "../channel-app/ChannelAppDetailPanel.js";
 import { CHANNEL_APPS_MANAGED_BY_ADMINS } from "../channel-app/copy.js";
 import { useDeploymentMode } from "@stigmer/react-core";
 import { useCheckPermission } from "../grant/useCheckPermission.js";
-import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
+import { Button } from "../button/Button.js";
 import { useActiveOrgId } from "../organization/OrgProvider.js";
+import { ASK_AN_ADMIN, NoOrganization } from "./NoOrganization.js";
+import { SettingsPage } from "./SettingsPage.js";
 
 type FlowState =
   | { phase: "idle" }
@@ -47,7 +54,6 @@ type FlowState =
  * registered.
  */
 export function ChannelAppsSection() {
-  const headingId = useId();
   const org = useActiveOrgId();
   // Channel installs (the consumer of these credentials) are cloud-only;
   // gate the whole section the way the Channels tab gates connects.
@@ -88,44 +94,28 @@ export function ChannelAppsSection() {
   }, []);
 
   return (
-    <section aria-labelledby={headingId}>
-      <div className="stg:mb-3 stg:flex stg:items-center stg:justify-between">
-        <h2
-          id={headingId}
-          className="stg:text-foreground stg:text-sm stg:font-semibold"
-        >
-          Channel Apps
-        </h2>
-
-        {installsAvailable && org && canCreate && flow.phase === "idle" && (
-          <button
-            type="button"
-            onClick={() => setFlow({ phase: "creating" })}
-            className="stg:text-primary stg:hover:text-foreground stg:text-xs stg:font-medium stg:transition-colors"
-          >
-            + New channel app
-          </button>
-        )}
-      </div>
-      <p className="stg:text-muted-foreground stg:mb-4 stg:text-xs">
-        Your own provider apps for your Slack and WhatsApp channels. A Slack app
-        gives the bot your name and icon, and lets multiple agents serve
-        the same workspace — one per app. A Meta app is how WhatsApp
-        channels connect — every WhatsApp channel installs through one.
-      </p>
-
-      {!installsAvailable ? (
-        <CloudFeatureNotice>
-          Channel apps are not available in local mode. Channel installs
-          require Stigmer Cloud.
-        </CloudFeatureNotice>
+    <SettingsPage
+      title="Channel apps"
+      description="Your own Slack and Meta apps for your agents' channels. A Slack app gives the bot your name and icon and lets several agents serve one workspace, one per app; every WhatsApp channel connects through a Meta app."
+      actions={
+        org &&
+        canCreate &&
+        flow.phase === "idle" && (
+          <Button size="sm" onClick={() => setFlow({ phase: "creating" })}>
+            New channel app
+          </Button>
+        )
+      }
+      unavailable={
+        !installsAvailable &&
+        "Channel apps come with Stigmer Cloud. On this edition agents are not installed in Slack or WhatsApp; a chat link is how people reach them."
+      }
+    >
+      {!org ? (
+        <NoOrganization what="its channel apps" />
       ) : flow.phase === "creating" ? (
         <div className="stg:border-border stg:bg-card stg:rounded-lg stg:border stg:p-4">
-          <CreateChannelAppForm
-            org={org}
-            onCreated={handleCreated}
-            onCancel={() => setFlow({ phase: "idle" })}
-          />
+          <CreateChannelAppForm org={org} onCreated={handleCreated} onCancel={() => setFlow({ phase: "idle" })} />
         </div>
       ) : flow.phase === "editing" ? (
         <div className="stg:border-border stg:bg-card stg:rounded-lg stg:border stg:p-4">
@@ -143,8 +133,9 @@ export function ChannelAppsSection() {
           onEdit={(app) => setFlow({ phase: "editing", channelApp: app })}
           onRefetchRef={handleRefetchRef}
           emptyState={deniedCreate ? CHANNEL_APPS_MANAGED_BY_ADMINS : undefined}
+          emptyDescription={deniedCreate ? ASK_AN_ADMIN : undefined}
         />
       )}
-    </section>
+    </SettingsPage>
   );
 }

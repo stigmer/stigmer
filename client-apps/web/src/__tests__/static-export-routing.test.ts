@@ -76,6 +76,42 @@ describe("settings nav pages", () => {
       ).toBe(true);
     });
   }
+
+  // The kit's settings sweep (sdk/react/src/settings/__tests__/
+  // settings-pages.sweep.test.tsx, CON-04) holds every settings section
+  // and operator console to the shared frame and states. This half closes
+  // the loop: each page the sidebar links renders exactly one of those
+  // components, so no settings page escapes the sweep by drawing something
+  // else. The swept set is the settings module's sections, read from its
+  // index as the sweep iterates it, and the three operator consoles; a
+  // kit export that merely ends in "Section" (a plan's or an agent's) is
+  // not swept and does not count.
+  const settingsIndex = readFileSync(resolve(process.cwd(), "../../sdk/react/src/settings/index.ts"), "utf8");
+  const swept = new Set([
+    ...[...settingsIndex.matchAll(/export\s*\{\s*(\w+Section)\s*\}/g)].map((match) => match[1]),
+    "LicensesConsole",
+    "PlanCatalogConsole",
+    "ModelCatalogConsole",
+  ]);
+  it("reads the settings sections from the kit's settings index", () => {
+    // A pattern that stopped matching would sweep nothing and pass every page.
+    expect(swept.has("MembersSection")).toBe(true);
+    expect(swept.size).toBeGreaterThanOrEqual(19 + 3);
+  });
+
+  for (const href of hrefs) {
+    it(`${href} renders exactly one swept settings component`, () => {
+      const pageFile = join(APP_DIR, ...href.split("/").filter(Boolean), "page.tsx");
+      const source = readFileSync(pageFile, "utf8");
+      const rendered = [...source.matchAll(/<([A-Z]\w*)\b/g)].map((match) => match[1]).filter((name) => swept.has(name));
+      expect(
+        rendered,
+        `${pageFile.slice(SRC_DIR.length)} should render one of the kit's settings ` +
+          `sections or operator consoles, which the kit's settings sweep holds to ` +
+          `the shared frame.`,
+      ).toHaveLength(1);
+    });
+  }
 });
 
 describe("no server redirect() under dynamic segments", () => {

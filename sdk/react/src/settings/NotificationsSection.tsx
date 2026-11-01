@@ -1,7 +1,12 @@
 "use client";
 
+// The Notifications settings page: whether this device tells the person
+// when a conversation they started needs them. Nothing here is read from
+// the server; the choice is this browser's.
+
 import { useId, useState } from "react";
 import { Switch } from "../switch/Switch.js";
+import { SettingsPage } from "./SettingsPage.js";
 import { useAttentionNotificationsSetting } from "../session/attentionNotificationsSetting.js";
 
 /** Props for {@link NotificationsSection}. */
@@ -24,7 +29,6 @@ export interface NotificationsSectionProps {
  * ({@link useAttentionNotificationsSetting}).
  */
 export function NotificationsSection({ requestPermission, unsupported = false }: NotificationsSectionProps) {
-  const headingId = useId();
   const switchId = useId();
   const { on, set } = useAttentionNotificationsSetting();
   const [asking, setAsking] = useState(false);
@@ -47,13 +51,8 @@ export function NotificationsSection({ requestPermission, unsupported = false }:
   }
 
   return (
-    <section aria-labelledby={headingId}>
-      <h2 id={headingId} className="stg:text-foreground stg:mb-1 stg:text-sm stg:font-semibold">
-        Notifications
-      </h2>
-      <p className="stg:text-muted-foreground stg:mb-6 stg:text-xs">Applies on this device only.</p>
-
-      <div className="stg:space-y-1">
+    <SettingsPage title="Notifications" description="When this device tells you about your conversations. Applies on this device only.">
+      <div className="stg:space-y-1 stg:rounded-lg stg:border stg:border-border stg:bg-card stg:p-4">
         <div className="stg:flex stg:items-start stg:justify-between stg:gap-3">
           <div className="stg:min-w-0 stg:flex-1">
             <span id={`${switchId}-title`} className="stg:block stg:text-xs stg:font-medium stg:text-foreground">
@@ -85,6 +84,6 @@ export function NotificationsSection({ requestPermission, unsupported = false }:
           </p>
         )}
       </div>
-    </section>
+    </SettingsPage>
   );
 }

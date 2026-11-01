@@ -1,0 +1,94 @@
+/* The desktop app's typefaces: the console's own vendored files
+   (client-apps/web/src/app/fonts, whose fonts.ts says where each came
+   from and under which licence), under the variable names the theme's font
+   stacks fall back through (sdk/theme/src/tokens.css for Geist, the
+   presets for the rest). The web console defines the same variables with
+   next/font and the gallery with the same @font-face rules, so all three
+   draw the same face (stigmer#1564). Bundled by Vite: nothing is fetched
+   from the network. */
+
+@font-face {
+  font-family: "Geist";
+  src: url("../../web/src/app/fonts/Geist-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Geist Mono";
+  src: url("../../web/src/app/fonts/GeistMono-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Inter";
+  src: url("../../web/src/app/fonts/Inter-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Nunito";
+  src: url("../../web/src/app/fonts/Nunito-Variable.woff2") format("woff2");
+  font-weight: 200 1000;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("../../web/src/app/fonts/IBMPlexSans-Light.woff2") format("woff2");
+  font-weight: 300;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("../../web/src/app/fonts/IBMPlexSans-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("../../web/src/app/fonts/IBMPlexSans-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("../../web/src/app/fonts/IBMPlexSans-SemiBold.woff2") format("woff2");
+  font-weight: 600;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("../../web/src/app/fonts/IBMPlexSans-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "IBM Plex Mono";
+  src: url("../../web/src/app/fonts/IBMPlexMono-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "IBM Plex Mono";
+  src: url("../../web/src/app/fonts/IBMPlexMono-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-display: swap;
+}
+
+:root {
+  --font-geist-sans: "Geist";
+  --font-geist-mono: "Geist Mono";
+  --font-inter: "Inter";
+  --font-nunito: "Nunito";
+  --font-ibm-plex-sans: "IBM Plex Sans";
+  --font-ibm-plex-mono: "IBM Plex Mono";
+}

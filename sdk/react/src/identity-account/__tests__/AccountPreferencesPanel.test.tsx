@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
+import { Code, ConnectError } from "@connectrpc/connect";
 import { sentUpdate } from "../../internal/__tests__/sent-update";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
@@ -208,7 +209,8 @@ describe("AccountPreferencesPanel", () => {
 
   it("shows the fetch error with a retry action when whoAmI fails", async () => {
     const whoAmI = vi.fn(async () => {
-      throw new Error("boom");
+      // A read that may succeed again: the shared error offers Retry.
+      throw new ConnectError("boom", Code.Unavailable);
     });
     renderPanel(createMockStigmer({ whoAmI }));
 

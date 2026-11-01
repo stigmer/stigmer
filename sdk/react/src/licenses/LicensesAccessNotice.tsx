@@ -1,6 +1,14 @@
 "use client";
 
 import { EmptyState } from "../empty-state/index.js";
+import type { SettingsPageDenial } from "../settings/SettingsPage.js";
+
+/** What the licenses console says to a person who is not a platform operator. */
+export const LICENSES_DENIAL: SettingsPageDenial = {
+  title: "Platform operator access required",
+  description:
+    "Licenses are issued by Stigmer's platform operators and carry customer contracts and signed keys. Organization roles do not grant access; if you need it, ask a platform operator to grant you the platform operator role.",
+};
 
 /**
  * The access-denied state for the licenses operator surface.
@@ -18,8 +26,8 @@ export function LicensesAccessNotice({
     <EmptyState
       variant="permission"
       className={className}
-      title="Platform operator access required"
-      description="Licenses are issued by Stigmer's platform operators and carry customer contracts and signed keys. Organization roles do not grant access; if you need it, ask a platform operator to grant you the platform operator role."
+      title={LICENSES_DENIAL.title}
+      description={LICENSES_DENIAL.description}
     />
   );
 }

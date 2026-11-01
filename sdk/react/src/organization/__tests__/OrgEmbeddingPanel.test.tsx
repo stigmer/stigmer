@@ -284,3 +284,41 @@ describe("useUpdateOrganizationEmbedding", () => {
     expect(result.current.error).toBeNull();
   });
 });
+
+describe("CON-01 the embedding settings offer no edit before the server says yes (stigmer#2662)", () => {
+  /** A client whose self-check answers as `answer` says: never, no, or a failure. */
+  function clientAnswering(answer: "pending" | "refused" | "fails") {
+    const client = createMockStigmer(orgWith(STORED));
+    client.grant.checkMyPermission = vi.fn(() =>
+      answer === "pending"
+        ? new Promise<never>(() => {})
+        : answer === "refused"
+          ? Promise.resolve({ isAuthorized: false })
+          : Promise.reject(new ConnectError("the check failed", Code.Unavailable)),
+    );
+    return client;
+  }
+
+  it("shows the settings, locked, with no Save and no refusal, while the check is in flight", async () => {
+    renderPanel(clientAnswering("pending"));
+    expect(await screen.findByText("https://app.acme.example")).toBeTruthy();
+    expect((screen.getByRole("switch") as HTMLInputElement).disabled).toBe(true);
+    expect((screen.getByLabelText("Sign-in role") as HTMLInputElement).disabled).toBe(true);
+    expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
+    expect(screen.queryByText("Only organization admins can change these settings.")).toBeNull();
+  });
+
+  it("says who can change them once the server says no", async () => {
+    renderPanel(clientAnswering("refused"));
+    expect(await screen.findByText("Only organization admins can change these settings.")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
+  });
+
+  it("keeps the settings locked, with no Save, and says it could not check when the check fails", async () => {
+    renderPanel(clientAnswering("fails"));
+    expect(await screen.findByText(/Could not check whether you may change these settings\./)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
+    expect((screen.getByRole("switch") as HTMLInputElement).disabled).toBe(true);
+    expect(screen.queryByText("Only organization admins can change these settings.")).toBeNull();
+  });
+});
