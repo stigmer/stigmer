@@ -16,7 +16,10 @@
  * And pins the page's own actions: Start session opens the new-session
  * screen on the agent itself (no instance to bind), and Delete warns that
  * conversations on the agent cannot continue, in the same words as the
- * agents list's row Delete, deleting only once confirmed.
+ * agents list's row Delete, deleting only once confirmed. The page holds no
+ * copy of the agent: the view owns the actions that read it
+ * (`yamlActions`, stigmer/stigmer#2813), and the route follows the slug the
+ * view reports on each load, a YAML apply's rename included.
  *
  * And pins how an eval try's run opens from the Evals tab: a run is viewed
  * through its parent session, so the page resolves the run first and
@@ -53,10 +56,11 @@ interface DetailProps {
   buildChatLinkUrl: (channelId: string) => string;
   onNavigateToRun: (runId: string) => void;
   onRenamed: (agent: { metadata?: { slug: string } }) => void;
+  onResourceLoad: (meta: { name: string; id: string; slug: string }) => void;
+  yamlActions?: boolean;
 }
 
 const page = vi.hoisted(() => ({
-  agent: undefined as unknown,
   detail: [] as DetailProps[],
   confirmed: false,
   confirmations: [] as ConfirmRequest[],
@@ -74,9 +78,7 @@ vi.mock("@stigmer/react-sdk", () => ({
     page.detail.push(props);
     return null;
   },
-  EditResourceYamlDialog: () => null,
   ConfirmDialog: () => null,
-  useAgent: () => ({ agent: page.agent, refetch: noop }),
   useCopyResource: () => ({ copyId: noop, copyQualifiedSlug: noop }),
   useConfirmAction: () => ({
     confirmState: null,
@@ -93,7 +95,6 @@ vi.mock("@stigmer/react-sdk", () => ({
     },
     isDeleting: false,
   }),
-  useExportResource: () => ({ copyYaml: noop, copyJson: noop, downloadYaml: noop }),
   useBreadcrumbOverride: () => ({ setLabel: noop }),
   // The person's organizations: their one org reads "acme" in a URL.
   useOrgSlugForId: () => (id: string) =>
@@ -107,7 +108,10 @@ vi.mock("@stigmer/react-sdk", () => ({
 import AgentDetailPage from "../library/AgentDetailPage";
 import { AGENT_DELETE_DESCRIPTION } from "../library/agent-delete-confirmation";
 
-const AGENT = { metadata: { id: "agt_1", org: ACME_ID, slug: "helper" } };
+/** The view's report of a load of the agent, answering `slug`. */
+function loaded(slug: string): void {
+  act(() => page.detail.at(-1)?.onResourceLoad({ name: "Helper", id: "agt_1", slug }));
+}
 
 function Location() {
   const location = useLocation();
@@ -132,7 +136,6 @@ function renderAgent() {
 }
 
 beforeEach(() => {
-  page.agent = undefined;
   page.detail.length = 0;
   page.confirmed = false;
   page.confirmations.length = 0;
@@ -146,13 +149,11 @@ describe("desktop AgentDetailPage — the Channels tab", () => {
     renderAgent();
     expect(page.detail.at(-1)?.additionalTabs).toBeUndefined();
 
-    page.agent = AGENT;
-    renderAgent();
+    loaded("helper");
     expect(page.detail.at(-1)?.additionalTabs).toBeUndefined();
   });
 
   it("passes the view the desktop's hash-router links", () => {
-    page.agent = AGENT;
     renderAgent();
 
     const view = page.detail.at(-1);
@@ -162,7 +163,6 @@ describe("desktop AgentDetailPage — the Channels tab", () => {
 
   it("hands a redirect-style connect to the web console in the system browser", async () => {
     const tauri = mockTauri({ open_auth_in_browser: () => undefined });
-    page.agent = AGENT;
     renderAgent();
 
     page.detail.at(-1)?.onConnectExternal(null);
@@ -176,14 +176,12 @@ describe("desktop AgentDetailPage — the Channels tab", () => {
 
 describe("desktop AgentDetailPage — organizations", () => {
   it("passes no viewer org: an agent has no instances to scope", () => {
-    page.agent = AGENT;
     renderAgent();
 
     expect(page.detail.at(-1)?.viewerOrg).toBeUndefined();
   });
 
   it("opens a referenced skill at a URL carrying its org's slug", () => {
-    page.agent = AGENT;
     renderAgent();
 
     act(() => page.detail.at(-1)?.onSkillClick({ org: ACME_ID, slug: "triage" }));
@@ -192,7 +190,6 @@ describe("desktop AgentDetailPage — organizations", () => {
   });
 
   it("opens the installing plugin at a URL carrying its org's slug", () => {
-    page.agent = AGENT;
     renderAgent();
 
     act(() => page.detail.at(-1)?.onPluginClick({ org: ACME_ID, slug: "toolkit" }));
@@ -201,7 +198,6 @@ describe("desktop AgentDetailPage — organizations", () => {
   });
 
   it("opens a listed subagent at a URL carrying its org's slug", () => {
-    page.agent = AGENT;
     renderAgent();
 
     act(() => page.detail.at(-1)?.onAgentClick({ org: ACME_ID, slug: "researcher" }));
@@ -210,7 +206,6 @@ describe("desktop AgentDetailPage — organizations", () => {
   });
 
   it("builds a chat link on the web console from the channel's id alone", () => {
-    page.agent = AGENT;
     renderAgent();
 
     expect(page.detail.at(-1)?.buildChatLinkUrl("chn_01j9z3k8f2q4m6n7p8r9s0t1v2")).toBe(
@@ -226,8 +221,14 @@ describe("desktop AgentDetailPage — actions", () => {
     return found;
   }
 
+  it("leaves the actions that read the agent to the view, and passes only its own", () => {
+    renderAgent();
+
+    expect(page.detail.at(-1)?.yamlActions).toBe(true);
+    expect(page.detail.at(-1)?.actions.map((a) => a.id)).toEqual(["copy-id", "copy-slug", "delete"]);
+  });
+
   it("starts a session on the agent itself, with no instance to bind", () => {
-    page.agent = AGENT;
     renderAgent();
 
     act(() => {
@@ -239,7 +240,6 @@ describe("desktop AgentDetailPage — actions", () => {
   });
 
   it("warns that conversations on the agent cannot continue, and keeps it when declined", async () => {
-    page.agent = AGENT;
     renderAgent();
 
     await act(async () => {
@@ -256,7 +256,6 @@ describe("desktop AgentDetailPage — actions", () => {
   });
 
   it("deletes the agent and returns to the list once confirmed", async () => {
-    page.agent = AGENT;
     page.confirmed = true;
     renderAgent();
 
@@ -277,7 +276,6 @@ describe("desktop AgentDetailPage — an eval try's run", () => {
   }
 
   it("opens the run's session once it resolves", () => {
-    page.agent = AGENT;
     page.sessionFor.set("run_1", "ses_1");
     renderAgent();
 
@@ -288,7 +286,6 @@ describe("desktop AgentDetailPage — an eval try's run", () => {
   });
 
   it("stays on the agent while the run's session is not yet known", () => {
-    page.agent = AGENT;
     renderAgent();
 
     openRun("run_unresolved");
@@ -299,8 +296,21 @@ describe("desktop AgentDetailPage — an eval try's run", () => {
 });
 
 describe("desktop AgentDetailPage — its own slug", () => {
+  it("leaves the route alone while the agent answers the route's slug", () => {
+    renderAgent();
+    loaded("helper");
+
+    expect(screen.getByTestId("location").textContent).toBe("/library/agents/acme/helper");
+  });
+
+  it("moves the route to the slug the agent answers to now, a YAML apply's rename included", () => {
+    renderAgent();
+    loaded("helper-desk");
+
+    expect(screen.getByTestId("location").textContent).toBe("/library/agents/acme/helper-desk");
+  });
+
   it("moves the route to the slug a rename from the page gave the agent", () => {
-    page.agent = AGENT;
     renderAgent();
 
     act(() => page.detail.at(-1)?.onRenamed({ metadata: { slug: "helper-renamed" } }));

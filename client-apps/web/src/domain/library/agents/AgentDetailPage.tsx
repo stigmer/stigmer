@@ -4,12 +4,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   AgentDetailView,
-  EditResourceYamlDialog,
-  useAgent,
   useCopyResource,
   useConfirmAction,
   useDeleteResource,
-  useExportResource,
   ConfirmDialog,
   useBreadcrumbOverride,
   type DetailAction,
@@ -53,10 +50,6 @@ export function AgentDetailPageInner({ org, slug }: AgentDetailPageInnerProps) {
   const { copyId, copyQualifiedSlug } = useCopyResource();
   const { confirmState, confirm, handleConfirm, handleCancel } = useConfirmAction();
   const { deleteResource, isDeleting } = useDeleteResource("agent", resourceId, resourceName);
-  const { agent, refetch: refetchAgent } = useAgent(org, slug);
-  const { copyYaml, copyJson, downloadYaml } = useExportResource({ resource: agent });
-
-  const [editYamlOpen, setEditYamlOpen] = useState(false);
 
   // Controlled tab state, seeded from the ?tab= deep link so cross-surface
   // handoffs land on the right tab.
@@ -66,20 +59,18 @@ export function AgentDetailPageInner({ org, slug }: AgentDetailPageInnerProps) {
 
   useEffect(() => () => setLabel(null), [setLabel]);
 
-  // The agent's read answers its current slug: a URL naming one it was
-  // renamed away from (which still leads to it) moves to it in place.
-  const currentSlug = agent?.metadata?.slug ?? "";
-  useEffect(() => {
-    if (currentSlug !== "" && currentSlug !== slug) canonicalSlug(currentSlug);
-  }, [currentSlug, slug, canonicalSlug]);
-
+  // The view holds the one copy of the agent (its Edit YAML and exports
+  // read it too) and reports each load. The read answers the agent's
+  // current slug, so a URL naming one it was renamed away from (which still
+  // leads to it), or a YAML apply that renamed it, moves the address in place.
   const handleResourceLoad = useCallback(
-    ({ name, id }: { name: string; id: string }) => {
+    ({ name, id, slug: loadedSlug }: { name: string; id: string; slug: string }) => {
       setLabel(name);
       setResourceId(id);
       setResourceName(name);
+      if (loadedSlug !== "" && loadedSlug !== slug) canonicalSlug(loadedSlug);
     },
-    [setLabel],
+    [setLabel, slug, canonicalSlug],
   );
 
   const handleDelete = useCallback(async () => {
@@ -124,34 +115,6 @@ export function AgentDetailPageInner({ org, slug }: AgentDetailPageInnerProps) {
         onAction: () => copyQualifiedSlug(org, slug),
       },
       {
-        id: "edit-yaml",
-        label: "Edit YAML",
-        group: "export",
-        onAction: () => setEditYamlOpen(true),
-        disabled: !agent,
-      },
-      {
-        id: "export-yaml",
-        label: "Export YAML",
-        group: "export",
-        onAction: copyYaml,
-        disabled: !agent,
-      },
-      {
-        id: "export-json",
-        label: "Export JSON",
-        group: "export",
-        onAction: copyJson,
-        disabled: !agent,
-      },
-      {
-        id: "download-yaml",
-        label: "Download YAML",
-        group: "export",
-        onAction: downloadYaml,
-        disabled: !agent,
-      },
-      {
         id: "delete",
         label: "Delete",
         variant: "destructive" as const,
@@ -160,7 +123,7 @@ export function AgentDetailPageInner({ org, slug }: AgentDetailPageInnerProps) {
         disabled: isDeleting,
       },
     ],
-    [resourceId, copyId, copyQualifiedSlug, org, slug, copyYaml, copyJson, downloadYaml, agent, handleDelete, isDeleting],
+    [resourceId, copyId, copyQualifiedSlug, org, slug, handleDelete, isDeleting],
   );
 
   return (
@@ -181,11 +144,11 @@ export function AgentDetailPageInner({ org, slug }: AgentDetailPageInnerProps) {
         onNavigateToRun={navigateToRun}
         onRenamed={(renamed) => {
           if (renamed.metadata?.slug) canonicalSlug(renamed.metadata.slug);
-          refetchAgent();
         }}
         editable
         primaryAction={primaryAction}
         actions={actions}
+        yamlActions
         buildChatLinkUrl={chatLinkUrlFor}
         channelAppsHref="/settings/channel-apps"
         // Channel conversations open in the standard session route;
@@ -193,12 +156,6 @@ export function AgentDetailPageInner({ org, slug }: AgentDetailPageInnerProps) {
         sessionHref={(id) => `/sessions/${id}`}
         activeTab={activeTab}
         onTabChange={setActiveTab}
-      />
-      <EditResourceYamlDialog
-        open={editYamlOpen}
-        onOpenChange={setEditYamlOpen}
-        resource={agent}
-        onApplied={refetchAgent}
       />
       <ConfirmDialog
         state={confirmState}

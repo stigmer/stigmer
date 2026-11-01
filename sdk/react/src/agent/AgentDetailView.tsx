@@ -48,6 +48,8 @@ import { EvalRunsTab } from "../eval-run/EvalRunsTab.js";
 import { AgentVersionsTab } from "./AgentVersionsTab.js";
 import { useAgentVersionCount } from "./useAgentVersions.js";
 import { ResourceSlugField } from "../resource-detail/RenameSlugField.js";
+import { useExportResource } from "../library/useExportResource.js";
+import { EditResourceYamlDialog } from "../manifest/EditResourceYamlDialog.js";
 import { keptReference } from "../internal/kept-reference.js";
 import type { RenamedResource } from "../resource-detail/useRenameResource.js";
 
@@ -72,14 +74,16 @@ export interface AgentDetailViewProps {
    */
   readonly onSkillClick?: (ref: { org: string; slug: string }) => void;
   /**
-   * Called once when the agent resource has been fetched successfully.
-   * Provides the resource display name for use cases like breadcrumbs,
-   * document titles, or analytics — without requiring the consumer to
-   * also call {@link useAgent}.
+   * Called on every load of the agent: the first, and each refetch after an
+   * edit made in this view. Provides its display name, id and current slug
+   * for breadcrumbs, document titles, or an address that follows the
+   * agent's slug (after a YAML apply renames it, the refetch by the old
+   * slug answers the new one), without requiring the consumer to also call
+   * {@link useAgent}.
    *
    * Not called on error or not-found states.
    */
-  readonly onResourceLoad?: (meta: { name: string; id: string }) => void;
+  readonly onResourceLoad?: (meta: { name: string; id: string; slug: string }) => void;
   /**
    * Primary action rendered as a visible button in the header area.
    * Typically "Edit" for agent detail pages.
@@ -87,9 +91,19 @@ export interface AgentDetailViewProps {
   readonly primaryAction?: DetailAction;
   /**
    * Secondary actions rendered in the kebab overflow menu.
-   * Typically: Copy ID, Copy slug, Export JSON, Duplicate, Delete.
+   * Typically: Copy ID, Copy slug, Duplicate, Delete.
    */
   readonly actions?: readonly DetailAction[];
+  /**
+   * When `true`, the kebab menu also offers Edit YAML, Export YAML, Export
+   * JSON and Download YAML, each reading the agent this view shows: the
+   * editor opens on what is stored, after any edit made on the page, and an
+   * apply shows here at once. They sit after the host's `actions` and
+   * before its first `"destructive"` one. Edit YAML is offered only while
+   * the agent is editable, so never for an agent a plugin installed.
+   * @default false
+   */
+  readonly yamlActions?: boolean;
   /**
    * Additional tabs to render alongside the built-in "Overview" tab.
    * When provided (with at least one entry), a tab bar appears.
@@ -214,7 +228,9 @@ export interface AgentDetailViewProps {
  *
  * The action bar transforms this from a read-only view into an
  * operational hub. Actions are provided by the consumer via
- * `primaryAction` and `actions` props.
+ * `primaryAction` and `actions` props; `yamlActions` adds the ones that
+ * read the agent itself (Edit YAML and the YAML and JSON exports), so they
+ * always see the copy this view holds.
  *
  * Handles loading, error, and not-found states automatically.
  * Zero Console dependencies — safe for platform builder embedding.
@@ -249,6 +265,7 @@ export function AgentDetailView({
   onResourceLoad,
   primaryAction,
   actions,
+  yamlActions = false,
   additionalTabs,
   activeTab,
   onTabChange,
@@ -397,7 +414,11 @@ export function AgentDetailView({
 
   useEffect(() => {
     if (agent?.metadata?.name) {
-      onResourceLoadRef.current?.({ name: agent.metadata.name, id: agent.metadata.id });
+      onResourceLoadRef.current?.({
+        name: agent.metadata.name,
+        id: agent.metadata.id,
+        slug: agent.metadata.slug,
+      });
     }
   }, [agent]);
 
@@ -424,6 +445,28 @@ export function AgentDetailView({
         }
       : undefined,
   });
+
+  // The actions that read the agent read this view's copy, the one its
+  // inline edits and Manage access refresh, and an apply refreshes it in
+  // turn: a host holding a second copy would open the editor on a stale
+  // agent and write its old fields back.
+  const [editYamlOpen, setEditYamlOpen] = useState(false);
+  // Serialized only for a host that opted in: the others pay nothing for it.
+  const { copyYaml, copyJson, downloadYaml } = useExportResource({ resource: yamlActions ? agent : null });
+  const yamlMenu = useMemo<readonly DetailAction[]>(
+    () =>
+      yamlActions
+        ? [
+            ...(editable
+              ? [{ id: "edit-yaml", label: "Edit YAML", group: "export", onAction: () => setEditYamlOpen(true) }]
+              : []),
+            { id: "export-yaml", label: "Export YAML", group: "export", onAction: () => void copyYaml() },
+            { id: "export-json", label: "Export JSON", group: "export", onAction: () => void copyJson() },
+            { id: "download-yaml", label: "Download YAML", group: "export", onAction: downloadYaml },
+          ]
+        : [],
+    [yamlActions, editable, copyYaml, copyJson, downloadYaml],
+  );
 
   if (isLoading) return <LoadingSkeleton className={className} />;
   if (error)
@@ -472,10 +515,20 @@ export function AgentDetailView({
   // Manage access is the menu's one sharing item, as on every other kind:
   // "share" means giving people access. Chat links, Slack and WhatsApp are
   // the Channels tab's, reached by the tab itself.
+  // The YAML actions go before the host's first destructive one, so the
+  // menu reads clipboard, export, danger, sharing, the host's order kept.
   const injectedActions = [access.action].filter(
     (a): a is NonNullable<typeof a> => a != null,
   );
-  const mergedActions = [...(actions ?? []), ...injectedActions];
+  const hostActions = actions ?? [];
+  const firstDestructive = hostActions.findIndex((a) => a.variant === "destructive");
+  const splitAt = firstDestructive === -1 ? hostActions.length : firstDestructive;
+  const mergedActions = [
+    ...hostActions.slice(0, splitAt),
+    ...yamlMenu,
+    ...hostActions.slice(splitAt),
+    ...injectedActions,
+  ];
 
   let tabContent: React.ReactNode;
   if (activeAdditionalTab) {
@@ -572,6 +625,18 @@ export function AgentDetailView({
         {tabContent}
       </ResourceDetailShell>
       {access.dialog}
+      {/* Mounted on open, so the editor seeds from the agent as it is then
+          and the CodeMirror chunk loads only when asked for. A YAML apply
+          that renamed the agent reaches the host through onResourceLoad:
+          the refetch by the old slug answers the new one. */}
+      {editYamlOpen && (
+        <EditResourceYamlDialog
+          open
+          onOpenChange={setEditYamlOpen}
+          resource={agent}
+          onApplied={() => refetch()}
+        />
+      )}
     </>
   );
 }
