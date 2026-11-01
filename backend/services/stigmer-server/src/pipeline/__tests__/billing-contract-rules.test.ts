@@ -14,9 +14,11 @@
  * a passing shape beside every refused one.
  *
  * What the rows pin: the instrument decides which PlanTerms a plan may carry;
- * an hourly price needs an allowance of agent hours to exceed; a license's
- * timestamps are ordered (issue, expiry, grace); a limit is
- * present or absent, never zero; a feature is named once. A row that
+ * an hourly price needs an allowance of agent hours to exceed, and a
+ * per-organization fee an included count of child organizations, since a
+ * price with nothing to exceed is never charged; a license's timestamps are
+ * ordered (issue, expiry, grace); a limit is present or absent, never zero;
+ * a feature is named once. A row that
  * stops matching means the contract moved, and the proto is where it moved.
  */
 import { create } from "@bufbuild/protobuf";
@@ -76,7 +78,7 @@ const rows: ReadonlyArray<Row<DescMessage>> = [
     schema: PlanSpecSchema,
     init: {
       instrument: PlanInstrument.subscription,
-      entitlements,
+      entitlements: { ...entitlements, limits: { includedChildOrgs: 1 } },
       terms: { monthlyMinimumMicros: 1n, perExtraOrgMicros: 1n },
     },
   }),
@@ -161,6 +163,35 @@ const rows: ReadonlyArray<Row<DescMessage>> = [
       terms: { perAgentHourMicros: 1n },
     },
     refusedBy: "plan_spec.agent_hour_price_needs_allowance",
+  }),
+  row({
+    name: "a subscription plan with included organizations and a fee for each one past them",
+    schema: PlanSpecSchema,
+    init: {
+      instrument: PlanInstrument.subscription,
+      entitlements: { ...entitlements, limits: { includedChildOrgs: 5 } },
+      terms: { monthlyMinimumMicros: 1n, perExtraOrgMicros: 25_000_000n },
+    },
+  }),
+  row({
+    name: "a subscription plan with a per-organization fee and no included organizations",
+    schema: PlanSpecSchema,
+    init: {
+      instrument: PlanInstrument.subscription,
+      entitlements,
+      terms: { monthlyMinimumMicros: 1n, perExtraOrgMicros: 25_000_000n },
+    },
+    refusedBy: "plan_spec.extra_org_price_needs_included_orgs",
+  }),
+  row({
+    name: "a per-organization fee whose limits name only agent hours",
+    schema: PlanSpecSchema,
+    init: {
+      instrument: PlanInstrument.subscription,
+      entitlements: withAgentHours,
+      terms: { perExtraOrgMicros: 1n },
+    },
+    refusedBy: "plan_spec.extra_org_price_needs_included_orgs",
   }),
   row({
     name: "an hourly price of zero, a second spelling of unlimited hours",
