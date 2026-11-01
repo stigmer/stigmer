@@ -25,9 +25,10 @@ on:
 permissions:
   contents: read
 
-# Force JavaScript actions onto Node 24. GitHub is removing the Node 20 runtime
-# from runners in 2026; this opts in early and silences the deprecation warnings
-# without requiring risky major-version bumps of the artifact actions.
+# Run JavaScript actions on Node 24. GitHub's runners now force Node 20 actions
+# onto Node 24 on their own; this sets it explicitly. It does not silence the
+# deprecation warning: GitHub annotates every action it forces until that
+# action's pin moves to a Node 24 major (#2825).
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -187,15 +188,15 @@ jobs:
 
           echo "changelog_file=/tmp/changelog.txt" >> $GITHUB_OUTPUT
 
-      # Kept as an action: replacing it with `gh release create` would change how
-      # the release (its body, its assets) is made (#1574). The suppression sits
-      # on the step's name, so the `uses:` line keeps a version comment that
+      # Kept as an action: it finds the tag's release, a re-run's public release or
+      # the draft release.desktop.yaml leaves when this step is late, and updates
+      # and publishes that one in place, which a `gh release create` script would
+      # have to re-implement. `draft: false` is what makes it publish. Its token is
+      # the `token` input, which defaults to the job's GITHUB_TOKEN. The suppression
+      # sits on the step's name, so the `uses:` line keeps a version comment that
       # Dependabot and zizmor can read.
       - name: Create Release # zizmor: ignore[superfluous-actions]
-        uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v0.1.15
-        env:
-          VERSION: ${{ needs.determine-version.outputs.version }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           tag_name: ${{ needs.determine-version.outputs.version }}
           name: Release ${{ needs.determine-version.outputs.version }}
