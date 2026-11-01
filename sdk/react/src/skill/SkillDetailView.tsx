@@ -13,6 +13,7 @@ import { SkillFileBrowser } from "./SkillFileBrowser.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { VisibilityBadge } from "../library/VisibilitySelector.js";
 import { useManageAccess } from "../access/useManageAccess.js";
+import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { MARKDOWN_COMPONENTS, REMARK_PLUGINS, stripFrontmatter } from "../internal/markdown-components.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { ResourceDetailShell } from "../resource-detail/ResourceDetailShell.js";
@@ -102,11 +103,6 @@ export interface SkillDetailViewProps {
    */
   readonly onVersionSelect?: (versionHash: string) => void;
   /**
-   * When `true`, metadata fields (description, tag) become click-to-edit.
-   * Skill content (SKILL.md / artifact) is NOT editable inline — use the upload flow.
-   * @default false
-   */
-  /**
    * Called when the user selects the plugin named in the "installed by a
    * plugin" notice; the host owns the route to the plugin's page. The
    * notice shows when this resource carries a live plugin's label, and
@@ -114,6 +110,14 @@ export interface SkillDetailViewProps {
    * edit of a plugin's resource, so no edit form is offered.
    */
   readonly onPluginClick?: (ref: { org: string; slug: string }) => void;
+  /**
+   * When `true`, this host allows editing: metadata fields (description,
+   * tag) become click-to-edit for a person the server lets edit the skill
+   * (`can_edit`, asked by the view; a reader sees a read-only page from the
+   * first frame). Skill content (SKILL.md / artifact) is NOT editable
+   * inline — use the upload flow.
+   * @default false
+   */
   readonly editable?: boolean;
   /**
    * Called after a successful inline field save with the updated skill.
@@ -171,8 +175,14 @@ export function SkillDetailView({
 }: SkillDetailViewProps) {
   const { skill, isLoading, error, refetch } = useSkill(org, slug, version);
   const managing = useManagingPlugin(skill?.metadata?.labels);
+  // The resource the header's acts and the inline edits are checked on.
+  const skillId = skill?.metadata?.id ?? "";
+  const resourceRef = useMemo(() => (skillId !== "" ? { kind: "skill", id: skillId } : null), [skillId]);
+  // Edits are offered only on the server's yes: a reader sees a read-only
+  // page from the first frame, never a pencil while the check is in flight.
+  const editCheck = useCheckPermission(editableProp ? resourceRef : null, "can_edit", { fail: "closed" });
   // A plugin's resource is the plugin's to redefine; the notice says so and no edit form is offered.
-  const editable = editableProp && managing.plugin === null;
+  const editable = editableProp && editCheck.allowed && managing.plugin === null;
   const versionPages = useSkillVersions(org, slug);
   const { versions, isEmpty: noVersions, getArtifactKey } = versionPages;
   const [diffState, setDiffState] = useState<SkillDiffDialogState | null>(null);
@@ -318,6 +328,7 @@ export function SkillDetailView({
         headerBanner={<ManagedByPluginNotice plugin={managing.plugin} onPluginClick={onPluginClick} />}
         primaryAction={primaryAction}
         actions={mergedActions}
+        resource={resourceRef}
         tabs={effectiveTabs}
         activeTab={effectiveTabs ? effectiveActiveTab : undefined}
         onTabChange={effectiveTabs ? effectiveOnTabChange : undefined}

@@ -1,14 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { create } from "@bufbuild/protobuf";
-import {
-  CheckMyPermissionInputSchema,
-} from "@stigmer/apis/ai/stigmer/iam/grant/v1/io_pb";
-import {
-  ApiResourceRefSchema,
-} from "@stigmer/apis/ai/stigmer/iam/grant/v1/spec_pb";
-import { useStigmer } from "@stigmer/react-core";
+// The self-check for one relation on one resource: `useCheckPermissions`
+// asked for a single relation, so both share one cache and one rule (acts
+// fail closed and appear only on the server's yes; reading fails open).
+
+import { useMemo } from "react";
+import { useCheckPermissions } from "./useCheckPermissions.js";
 
 /** Resource reference for permission checks. */
 export interface PermissionCheckResource {
@@ -24,14 +21,15 @@ export interface CheckPermissionOptions {
    * Behavior when authorization cannot be confirmed — the check is in
    * flight, the RPC failed, or the resource is `null`.
    *
-   * - `"open"` (default): `allowed` is `true`. Right for gating
-   *   *capabilities* (buttons, actions) — the server re-checks every
-   *   request anyway, so a transient failure never hides a control the
-   *   server would honor.
+   * - `"open"` (default): `allowed` is `true`. Right for *reading*:
+   *   content a person reads is never hidden by a check that has not
+   *   answered or that failed, and the server re-checks every read anyway.
    * - `"closed"`: `allowed` is `false` until the server explicitly
-   *   authorizes. Right for *discoverability* surfaces (navigation to
-   *   operator-only areas) that must not appear before the server has
-   *   said yes.
+   *   authorizes. Right for every *act* that changes something (delete,
+   *   edit, install), which is offered only on the server's yes and never
+   *   while the check is in flight, and for *discoverability* surfaces
+   *   (navigation to operator-only areas) that must not appear before the
+   *   server has said yes.
    */
   readonly fail?: "open" | "closed";
 }
@@ -56,14 +54,6 @@ export interface UseCheckPermissionReturn {
   readonly refetch: () => void;
 }
 
-/** A check's outcome, keyed by the (kind, id, relation) triple it answers. */
-interface SettledCheck {
-  readonly key: string;
-  /** The server's verdict, or `null` when the check failed. */
-  readonly verdict: boolean | null;
-  readonly error: Error | null;
-}
-
 /**
  * Hook that checks whether the current user has a specific permission
  * on a resource.
@@ -81,9 +71,11 @@ interface SettledCheck {
  * channel) asks `can_manage_audience`, never `can_grant_access`: the owner
  * holds it in every edition. By
  * default the hook *fails open* while the check is in flight or when the
- * RPC fails, so a transient error never hides a control the server would
- * honor. Pass `{ fail: "closed" }` for surfaces that must stay hidden
- * until authorization is confirmed (see {@link CheckPermissionOptions}).
+ * RPC fails, so a transient error never hides what a person reads. An act
+ * that changes something passes `{ fail: "closed" }` and is offered only
+ * on the server's yes (see {@link CheckPermissionOptions}); several
+ * relations on one resource are asked together by
+ * {@link useCheckPermissions}, which this hook is for one relation.
  *
  * Pass `null` as `resource` to skip the check — the result resolves
  * through the fail mode (`allowed: true` under the default fail-open).
@@ -105,12 +97,13 @@ interface SettledCheck {
  *
  * @example
  * ```tsx
- * const { allowed, isLoading } = useCheckPermission(
+ * const { allowed } = useCheckPermission(
  *   { kind: "agent", id: agentId },
  *   "can_edit",
+ *   { fail: "closed" },
  * );
  *
- * if (!allowed) return null; // hide edit button
+ * if (!allowed) return null; // no edit button until the server says yes
  * ```
  */
 export function useCheckPermission(
@@ -118,77 +111,6 @@ export function useCheckPermission(
   relation: string,
   options?: CheckPermissionOptions,
 ): UseCheckPermissionReturn {
-  const stigmer = useStigmer();
-  const failMode = options?.fail ?? "open";
-  const failValue = failMode === "open";
-
-  const cacheKey = resource ? `${resource.kind}:${resource.id}:${relation}` : null;
-  const cacheRef = useRef<Map<string, boolean>>(new Map());
-
-  // The last settled outcome, kept with the triple it answers. Loading is
-  // derived from it during render rather than set by the effect, because
-  // the effect runs only after the first render has committed, so a
-  // separate loading flag would report a settled answer until then.
-  const [settled, setSettled] = useState<SettledCheck | null>(null);
-  // Bumped by a retry, so the effect asks again after a failed check (a
-  // failure is never cached; a verdict is, and is not asked again).
-  const [retries, setRetries] = useState(0);
-
-  useEffect(() => {
-    if (!resource || !cacheKey) return;
-
-    const cached = cacheRef.current.get(cacheKey);
-    if (cached !== undefined) {
-      setSettled({ key: cacheKey, verdict: cached, error: null });
-      return;
-    }
-
-    let cancelled = false;
-
-    const input = create(CheckMyPermissionInputSchema, {
-      resource: create(ApiResourceRefSchema, {
-        kind: resource.kind,
-        id: resource.id,
-      }),
-      relation,
-    });
-
-    stigmer.grant
-      .checkMyPermission(input)
-      .then((result) => {
-        if (cancelled) return;
-        cacheRef.current.set(cacheKey, result.isAuthorized);
-        setSettled({ key: cacheKey, verdict: result.isAuthorized, error: null });
-      })
-      .catch((err: unknown) => {
-        if (cancelled) return;
-        // Degradation is fail-mode-resolved and deliberately NOT cached:
-        // an error is not an authorization verdict, and caching it would
-        // pin a possibly-wrong answer for the mount's lifetime.
-        setSettled({
-          key: cacheKey,
-          verdict: null,
-          error: err instanceof Error ? err : new Error(String(err)),
-        });
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [cacheKey, resource?.kind, resource?.id, relation, failValue, stigmer, retries]);
-
-  const current = cacheKey !== null && settled?.key === cacheKey ? settled : null;
-  const allowed = current?.verdict ?? failValue;
-  const isLoading = cacheKey !== null && current === null;
-  const error = current?.error ?? null;
-
-  const failed = current !== null && current.verdict === null;
-  const refetch = useCallback(() => {
-    if (!failed) return;
-    // Dropping the failed outcome reports the check in flight until the new answer lands.
-    setSettled(null);
-    setRetries((n) => n + 1);
-  }, [failed]);
-
-  return useMemo(() => ({ allowed, isLoading, error, refetch }), [allowed, isLoading, error, refetch]);
+  const relations = useMemo(() => [relation], [relation]);
+  return useCheckPermissions(resource, relations, options)[relation];
 }

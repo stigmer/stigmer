@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import {
   MarketplaceCatalog,
+  PageHeader,
   useActiveOrgId,
   useActiveOrgSlug,
   useOrgSlugForId,
@@ -12,7 +13,9 @@ import {
  * The Marketplace: where a user finds and installs plugins.
  *
  * Mounted at `/marketplace`, a top-level page beside the Library (what you
- * can get, beside what you have). Renders the SDK's `MarketplaceCatalog`
+ * can get, beside what you have). Renders the kit's page heading and the
+ * SDK's `MarketplaceCatalog`, which asks the server who may install (a
+ * member browses and is told to ask an admin),
  * and routes to the installed plugin's page on completion, from a card or
  * from the Upload tile alike; everything else (the sources, the search,
  * the grid, the preview, the upload, the push) is the SDK's.
@@ -27,13 +30,11 @@ export function MarketplacePage() {
 
   return (
     <div className="mx-auto w-full max-w-5xl px-6 py-8">
-      <div className="mb-6">
-        <h1 className="text-foreground text-xl font-semibold">Marketplace</h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          Plugins you can install into {orgSlug}: from Stigmer&apos;s catalogue, from your computer, or from a catalogue you
-          add. A plugin installs as an agent, as tools for your agents, or both.
-        </p>
-      </div>
+      <PageHeader
+        className="mb-6"
+        title="Marketplace"
+        description={`Plugins for ${orgSlug}'s agents: tools, skills and whole agents, from Stigmer's catalogue or one you add.`}
+      />
       <MarketplaceCatalog
         org={org}
         onInstalled={({ plugin }) =>

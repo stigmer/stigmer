@@ -1,12 +1,16 @@
 // The agent's page, framed as the console's Library frames a detail page
 // (a centred column), with the header acts the web console passes: Start
-// session first, then the menu's Copy, Edit YAML, Export and Delete.
+// session first, then the menu's Copy, Edit YAML, Export and Delete, each
+// act that changes the agent declaring the relation it needs, as the web
+// host declares them.
 //
 // Two people look at it: the agent's owner, and a person who may only read
 // it. The server answers each one's self-checks (`can_edit`, `can_delete`,
-// `can_view_access`) by who they are; the page is drawn with the acts it
-// offers each.
+// `can_view_access`) by who they are; the page offers each only the acts
+// the server allows: the owner every act and the inline edits, the reader
+// Start session, the copies and the exports, on a read-only page.
 import { Code, ConnectError, type ConnectRouter } from "@connectrpc/connect";
+import { ChannelQueryController } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/query_pb";
 import { EnvironmentQueryController } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/query_pb";
 import { VaultQueryController } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/query_pb";
 import { PlatformQueryController } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
@@ -38,11 +42,11 @@ const START_SESSION: DetailAction = { id: "start-session", label: "Start session
 const MENU: readonly DetailAction[] = [
   { id: "copy-id", label: "Copy ID", group: "clipboard", onAction: inert },
   { id: "copy-slug", label: "Copy slug", group: "clipboard", onAction: inert },
-  { id: "edit-yaml", label: "Edit YAML", group: "export", onAction: inert },
+  { id: "edit-yaml", label: "Edit YAML", group: "export", requires: "can_edit", onAction: inert },
   { id: "export-yaml", label: "Export YAML", group: "export", onAction: inert },
   { id: "export-json", label: "Export JSON", group: "export", onAction: inert },
   { id: "download-yaml", label: "Download YAML", group: "export", onAction: inert },
-  { id: "delete", label: "Delete", variant: "destructive", group: "danger", onAction: inert },
+  { id: "delete", label: "Delete", variant: "destructive", group: "danger", requires: "can_delete", onAction: inert },
 ];
 
 function agentRoutes(viewer: AgentViewer) {
@@ -56,6 +60,7 @@ function agentRoutes(viewer: AgentViewer) {
       listVersions: () => LEDGER_AGENT_VERSIONS,
     });
     router.service(EnvironmentQueryController, { list: () => ({ entries: [] }) });
+    router.service(ChannelQueryController, { listByAgent: () => ({ entries: [] }) });
     router.service(PlatformQueryController, { getServerInfo: () => ({}) });
     router.service(VaultQueryController, {
       getMine: () => {

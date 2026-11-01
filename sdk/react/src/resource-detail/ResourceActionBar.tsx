@@ -1,8 +1,20 @@
 "use client";
 
+// A resource page's acts: the primary one as a button, the rest in the
+// overflow menu. An act that declares the relation it needs (`requires`)
+// is offered only when the server answered yes for this resource, never
+// while the check is in flight and never when it failed: a person is not
+// shown an act the server would refuse. The host declares; the bar asks,
+// once per distinct relation. Acts that declare nothing (copy, export) are
+// always offered, and a bar with nothing left draws nothing. A list row
+// draws one bar per row (named by `menuLabel`), each checking its own
+// resource once.
+
 import { useMemo } from "react";
 import { cn } from "@stigmer/design-tokens";
 import { ActionMenu } from "../action-menu/index.js";
+import type { PermissionCheckResource } from "../grant/useCheckPermission.js";
+import { useCheckPermissions } from "../grant/useCheckPermissions.js";
 import type { DetailAction } from "./types.js";
 
 export interface ResourceActionBarProps {
@@ -16,6 +28,17 @@ export interface ResourceActionBarProps {
    * Actions with the same `group` are visually grouped with separators.
    */
   readonly actions?: readonly DetailAction[];
+  /**
+   * The resource the acts change, which an act's `requires` is checked on.
+   * Without it, an act that `requires` a relation is never offered.
+   */
+  readonly resource?: PermissionCheckResource | null;
+  /**
+   * The overflow menu's accessible name. A list row that draws a bar per
+   * row names each menu after its row ("Actions for linear").
+   * @default "More actions"
+   */
+  readonly menuLabel?: string;
   /** Additional CSS classes for the root container. */
   readonly className?: string;
 }
@@ -27,30 +50,38 @@ export interface ResourceActionBarProps {
  * remaining actions in a kebab overflow menu (using the SDK's
  * {@link ActionMenu} compound component).
  *
- * When there are no actions at all, renders nothing.
+ * An action with `requires` is offered only when the server answered yes
+ * for `resource` (fail closed: not while the check is in flight, not when
+ * it failed, never without a `resource`). When no action is left, renders
+ * nothing.
  *
  * @example
  * ```tsx
  * <ResourceActionBar
+ *   resource={{ kind: "agent", id }}
  *   primaryAction={{
  *     id: "edit",
  *     label: "Edit",
  *     icon: <PencilIcon />,
+ *     requires: "can_edit",
  *     onAction: () => router.push(editUrl),
  *   }}
  *   actions={[
  *     { id: "copy-id", label: "Copy ID", onAction: () => copyId(id) },
- *     { id: "delete", label: "Delete", variant: "destructive", onAction: handleDelete },
+ *     { id: "delete", label: "Delete", variant: "destructive", requires: "can_delete", onAction: handleDelete },
  *   ]}
  * />
  * ```
  */
 export function ResourceActionBar({
-  primaryAction,
-  actions,
+  primaryAction: declaredPrimary,
+  actions: declaredActions,
+  resource,
+  menuLabel = "More actions",
   className,
 }: ResourceActionBarProps) {
-  const hasOverflow = actions != null && actions.length > 0;
+  const { primaryAction, actions } = useOfferedActions(declaredPrimary, declaredActions, resource ?? null);
+  const hasOverflow = actions.length > 0;
   if (!primaryAction && !hasOverflow) return null;
 
   return (
@@ -71,9 +102,40 @@ export function ResourceActionBar({
           {primaryAction.label}
         </button>
       )}
-      {hasOverflow && <OverflowMenu actions={actions} />}
+      {hasOverflow && <OverflowMenu actions={actions} label={menuLabel} />}
     </div>
   );
+}
+
+// ---------------------------------------------------------------------------
+// The acts the server allows
+// ---------------------------------------------------------------------------
+
+/** The relations the declared acts require, each once. */
+function requiredRelations(primary: DetailAction | undefined, actions: readonly DetailAction[] | undefined): readonly string[] {
+  const relations = new Set<string>();
+  if (primary?.requires) relations.add(primary.requires);
+  for (const action of actions ?? []) if (action.requires) relations.add(action.requires);
+  return Array.from(relations);
+}
+
+/** The declared acts, less every one whose relation the server has not said yes to. */
+function useOfferedActions(
+  primary: DetailAction | undefined,
+  actions: readonly DetailAction[] | undefined,
+  resource: PermissionCheckResource | null,
+): { readonly primaryAction: DetailAction | undefined; readonly actions: readonly DetailAction[] } {
+  const relations = useMemo(() => requiredRelations(primary, actions), [primary, actions]);
+  const answers = useCheckPermissions(resource, relations, { fail: "closed" });
+
+  return useMemo(() => {
+    // Every relation an act requires was asked (the relations come from these same acts).
+    const offered = (action: DetailAction) => action.requires === undefined || answers[action.requires].allowed;
+    return {
+      primaryAction: primary && offered(primary) ? primary : undefined,
+      actions: (actions ?? []).filter(offered),
+    };
+  }, [primary, actions, answers]);
 }
 
 // ---------------------------------------------------------------------------
@@ -82,19 +144,22 @@ export function ResourceActionBar({
 
 function OverflowMenu({
   actions,
+  label,
 }: {
   readonly actions: readonly DetailAction[];
+  readonly label: string;
 }) {
   const grouped = useGroupedActions(actions);
 
   return (
     <ActionMenu>
-      <ActionMenu.Trigger aria-label="More actions">
+      <ActionMenu.Trigger aria-label={label}>
         <KebabIcon className="stg:size-4" />
       </ActionMenu.Trigger>
       <ActionMenu.Content>
         {grouped.map((group, groupIndex) => (
-          <ActionMenu.Group key={group.key}>
+          // The groups keep the order the acts gave them, so their position is their identity.
+          <ActionMenu.Group key={groupIndex}>
             {groupIndex > 0 && <ActionMenu.Separator />}
             {group.items.map((action) => (
               <ActionMenu.Item
@@ -120,20 +185,19 @@ function OverflowMenu({
 // ---------------------------------------------------------------------------
 
 interface ActionGroup {
-  readonly key: string;
   readonly items: readonly DetailAction[];
 }
 
+/** The acts by their `group`, in the order each group first appears; acts with no group form one group of their own. */
 function useGroupedActions(actions: readonly DetailAction[]): ActionGroup[] {
   return useMemo(() => {
-    const map = new Map<string, DetailAction[]>();
+    const map = new Map<string | undefined, DetailAction[]>();
     for (const action of actions) {
-      const key = action.group ?? "__default";
-      const list = map.get(key);
+      const list = map.get(action.group);
       if (list) list.push(action);
-      else map.set(key, [action]);
+      else map.set(action.group, [action]);
     }
-    return Array.from(map.entries()).map(([key, items]) => ({ key, items }));
+    return Array.from(map.values()).map((items) => ({ items }));
   }, [actions]);
 }
 

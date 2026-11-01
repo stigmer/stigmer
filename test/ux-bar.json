@@ -204,8 +204,7 @@
       "id": "CON-01",
       "promise": "The console never offers an act the server refuses.",
       "pending": [
-        "stigmer#2402",
-        "stigmer#2308"
+        "stigmer#2402"
       ]
     },
     {

@@ -232,7 +232,10 @@ Renders an optional primary action as a visible button and any
 remaining actions in a kebab overflow menu (using the SDK's
 `ActionMenu` compound component).
 
-When there are no actions at all, renders nothing.
+An action with `requires` is offered only when the server answered yes
+for `resource` (fail closed: not while the check is in flight, not when
+it failed, never without a `resource`). When no action is left, renders
+nothing.
 
 **Props** — `ResourceActionBarProps`
 
@@ -240,21 +243,25 @@ When there are no actions at all, renders nothing.
   type={{
     actions: { type: "readonly DetailAction[]", description: "Secondary and tertiary actions rendered in the overflow (kebab) menu. Actions with the same `group` are visually grouped with separators." },
     className: { type: "string", description: "Additional CSS classes for the root container." },
+    menuLabel: { type: "string", description: "The overflow menu's accessible name. A list row that draws a bar per row names each menu after its row (\"Actions for linear\")." },
     primaryAction: { type: "DetailAction", description: "Primary action rendered as a visible button. Use for the most common action on this resource (e.g. \"Edit\").", typeDescriptionLink: "#detailaction" },
+    resource: { type: "PermissionCheckResource | null", description: "The resource the acts change, which an act's `requires` is checked on. Without it, an act that `requires` a relation is never offered." },
   }}
 />
 
 ```tsx
 <ResourceActionBar
+  resource={{ kind: "agent", id }}
   primaryAction={{
     id: "edit",
     label: "Edit",
     icon: <PencilIcon />,
+    requires: "can_edit",
     onAction: () => router.push(editUrl),
   }}
   actions={[
     { id: "copy-id", label: "Copy ID", onAction: () => copyId(id) },
-    { id: "delete", label: "Delete", variant: "destructive", onAction: handleDelete },
+    { id: "delete", label: "Delete", variant: "destructive", requires: "can_delete", onAction: handleDelete },
   ]}
 />
 ```
@@ -265,8 +272,10 @@ When there are no actions at all, renders nothing.
 Shared layout shell for resource detail pages.
 
 Renders a standardized header (icon, name, org, timestamps, status,
-visibility control), an action bar (primary button + kebab overflow),
-optional tabs, and a content area — all themed via `--stgm-*` tokens.
+visibility control) or the kind's own `identity`, an action bar (primary
+button + kebab overflow, each act offered only on the server's yes for
+the `requires` it declares on `resource`), optional tabs, and a content
+area — all themed via `--stgm-*` tokens.
 
 The shell receives pre-fetched data via props. It does
 NOT own data fetching — resource-specific hooks (`useAgent`, `useSkill`,
@@ -286,8 +295,10 @@ Zero Console dependencies — safe for platform builder embedding.
     header: { type: "ResourceHeaderMeta", description: "Header metadata extracted from the resource.", required: true, typeDescriptionLink: "#resourceheadermeta" },
     headerBanner: { type: "ReactNode", description: "Banner content rendered above the header row. Use for validation warnings or other full-width alerts that should appear before the resource title." },
     headerMetaExtra: { type: "ReactNode", description: "Additional content rendered in the header's metadata line (between org and timestamps). Use for resource-specific indicators like validation state or discovery timestamps." },
+    identity: { type: "ReactNode", description: "The kind's own identity block, drawn in the generic header's place (icon, name, facts): a kind whose page opens on who it is, such as an agent's profile, draws it; the shell keeps the action bar, the tabs and the content. Every other kind leaves it unset and gets the generic header from `header`." },
     onTabChange: { type: "(tabId: string) => void", description: "Tab change handler (required when `tabs` is provided)." },
     primaryAction: { type: "DetailAction", description: "Primary action rendered as a visible button in the header area. Use for the most common action (e.g. \"Edit\" for agents).", typeDescriptionLink: "#detailaction" },
+    resource: { type: "PermissionCheckResource | null", description: "The resource the page shows, which each action's `requires` is checked on (see DetailAction.requires). The detail views pass their loaded resource; without one, an action that `requires` a relation is never offered." },
     tabs: { type: "readonly TabItem[]", description: "Optional tabs to render below the header. When omitted, children are rendered directly without a tab strip." },
     tabsAriaLabel: { type: "string", description: "Accessible label for the tab strip." },
     visibilityControl: { type: "ReactNode", description: "Visibility control rendered in the header. Typically a `<ResourceVisibilityControl />` from the library module. Rendered inline after the resource name." },
@@ -444,6 +455,7 @@ the detail page already knows what resource it is showing.
     id: { type: "string", description: "Stable action identifier.", required: true },
     label: { type: "string", description: "Display label (e.g. \"Edit\", \"Copy ID\", \"Delete\").", required: true },
     onAction: { type: "() => void", description: "Fires when the action is selected.", required: true },
+    requires: { type: "string", description: "The relation the person must hold on the resource for this act (e.g. `\"can_delete\"` for Delete, `\"can_edit\"` for Edit YAML). The action bar offers the act only when the server answered yes for the bar's `resource`: not while the check is in flight, not when it failed, and never when the bar was given no resource. Leave it unset for acts that change nothing (copy, export), which every reader is offered." },
     shortcut: { type: "string", description: "Optional keyboard shortcut hint." },
     variant: { type: "\"default\" | \"destructive\"", description: "Visual variant. - `\"default\"` — standard item - `\"destructive\"` — danger styling for delete, revoke, etc." },
   }}

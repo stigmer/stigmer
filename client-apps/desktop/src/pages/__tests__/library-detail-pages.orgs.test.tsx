@@ -110,6 +110,20 @@ describe("desktop PluginDetailPage — organizations", () => {
   });
 });
 
+describe("desktop SkillDetailPage — who is offered each act", () => {
+  it("CON-01 allows editing and declares can_delete on Delete, and nothing on the copies", () => {
+    renderDetail(SkillDetailPage);
+
+    const view = last<{ editable?: boolean; actions: Array<{ id: string; requires?: string }> }>("SkillDetailView");
+    expect(view.editable).toBe(true);
+    expect(Object.fromEntries(view.actions.map((action) => [action.id, action.requires ?? null]))).toEqual({
+      "copy-id": null,
+      "copy-slug": null,
+      delete: "can_delete",
+    });
+  });
+});
+
 describe("desktop SkillDetailPage — organizations", () => {
   it("opens the installing plugin at its org's slug", () => {
     renderDetail(SkillDetailPage);

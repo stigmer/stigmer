@@ -8,10 +8,12 @@ import type { ConnectRouter } from "@connectrpc/connect";
 import { RunSchema, type Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { RunQueryController } from "@stigmer/apis/ai/stigmer/agentic/run/v1/query_pb";
-import { DashboardKPICards, OperationalDashboard } from "@stigmer/react-sdk";
+import { DashboardKPICards, OperationalDashboard, PageHeader } from "@stigmer/react-sdk";
+import { GrantQueryController } from "@stigmer/apis/ai/stigmer/iam/grant/v1/query_pb";
+import { PlatformQueryController } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
 import { sampleDate, samples } from "@stigmer/react-sdk/test";
 import { OrganizationQueryController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/query_pb";
-import { BUSY_WEEK_RUNS, BUSY_WEEK_USAGE, DASHBOARD_SUMMARY, EMPTY_USAGE, NO_RUNS, ORGANIZATION } from "../fixtures.ts";
+import { BUSY_WEEK_RUNS, BUSY_WEEK_USAGE, DASHBOARD_SUMMARY, EMPTY_USAGE, NO_RUNS, NOTHING_CONNECTED, ORGANIZATION } from "../fixtures.ts";
 import type { Drawing } from "./drawing.ts";
 
 const ORG_ID = ORGANIZATION.metadata?.id ?? "";
@@ -55,6 +57,8 @@ function dashboardRoutes(week: DashboardWeek) {
       getOrgUsageReport: () => (week === "busy" ? BUSY_WEEK_USAGE : EMPTY_USAGE),
       list: () => samples.runList(failedRuns(week)),
     });
+    router.service(PlatformQueryController, { getModelReadiness: () => NOTHING_CONNECTED });
+    router.service(GrantQueryController, { checkMyPermission: () => ({ isAuthorized: true }) });
   };
 }
 
@@ -66,10 +70,12 @@ export function dashboardPageScene(week: DashboardWeek): Drawing {
     render: () => (
       <div style={{ maxWidth: "64rem", margin: "0 auto", padding: "2rem 1.5rem" }}>
         <div style={{ marginBottom: "2rem" }}>
-          <h1 className="stg:text-xl stg:font-semibold stg:text-foreground">Dashboard</h1>
-          <p className="stg:mt-1 stg:text-sm stg:text-muted-foreground">Operational overview across your organization.</p>
+          <PageHeader title="Dashboard" description="What your organization's agents did this week." />
         </div>
-        <OperationalDashboard org={ORG_ID} />
+        <OperationalDashboard
+          org={ORG_ID}
+          firstStepLinks={{ connectProvider: "/models", createAgent: "/library/agents/new", startSession: "/" }}
+        />
       </div>
     ),
   };

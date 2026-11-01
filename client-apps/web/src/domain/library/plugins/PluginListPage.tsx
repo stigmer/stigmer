@@ -5,19 +5,21 @@
  * the three ways in beside it (the Marketplace, an upload from disk, and
  * "Add MCP server", which installs a plugin of one server built in the
  * browser). `?add=mcp-server` opens that form on arrival, which is how the
- * Library's Add menu reaches it.
+ * Library's Add menu reaches it. A row's Remove is offered only to a
+ * person the server lets delete that plugin.
  */
 
 import { useCallback, useMemo, useReducer, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Blocks, Copy, ExternalLink, MoreHorizontal, Server, Store, Trash2, Upload } from "lucide-react";
+import { Blocks, Copy, ExternalLink, Server, Store, Trash2, Upload } from "lucide-react";
 import { useLibraryNavigation } from "@/domain/library/library-navigation";
 import { ADD_MCP_SERVER, ADD_PARAM } from "@/domain/library/plugins/add-mcp-server";
 import {
   AddMcpServerDialog,
   ResourceWorkbench,
-  ActionMenu,
+  useCanCreatePlugin,
+  ResourceActionBar,
   useStigmer,
   useActiveOrgId,
   OrgSlugText,
@@ -70,8 +72,20 @@ const PRIMARY_LINK_CLASSES =
 const SECONDARY_LINK_CLASSES =
   "inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
-/** The ways in, side by side: the Marketplace (what you can get), an upload from disk (what you have), and one MCP server by its address. */
-function WaysIn({ size, onAddMcpServer }: { readonly size: "sm" | "xs"; readonly onAddMcpServer: () => void }) {
+/**
+ * The ways in, side by side: the Marketplace (what you can get), an upload from disk (what you have), and one MCP server
+ * by its address. Installing is an organization admin's act (`can_create_plugin`, asked fail closed), so a member is
+ * offered the Marketplace to browse and no upload or server form the server would refuse.
+ */
+function WaysIn({
+  size,
+  mayInstall,
+  onAddMcpServer,
+}: {
+  readonly size: "sm" | "xs";
+  readonly mayInstall: boolean;
+  readonly onAddMcpServer: () => void;
+}) {
   const text = size === "sm" ? "text-sm" : "text-xs";
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -79,20 +93,30 @@ function WaysIn({ size, onAddMcpServer }: { readonly size: "sm" | "xs"; readonly
         <Store className="size-3.5" aria-hidden="true" />
         Browse Marketplace
       </Link>
-      <Link href="/library/plugins/upload" className={`${SECONDARY_LINK_CLASSES} ${text}`}>
-        <Upload className="size-3.5" aria-hidden="true" />
-        Upload plugin
-      </Link>
-      <button type="button" onClick={onAddMcpServer} className={`${SECONDARY_LINK_CLASSES} ${text}`}>
-        <Server className="size-3.5" aria-hidden="true" />
-        Add MCP server
-      </button>
+      {mayInstall && (
+        <>
+          <Link href="/library/plugins/upload" className={`${SECONDARY_LINK_CLASSES} ${text}`}>
+            <Upload className="size-3.5" aria-hidden="true" />
+            Upload plugin
+          </Link>
+          <button type="button" onClick={onAddMcpServer} className={`${SECONDARY_LINK_CLASSES} ${text}`}>
+            <Server className="size-3.5" aria-hidden="true" />
+            Add MCP server
+          </button>
+        </>
+      )}
     </div>
   );
 }
 
+const EMPTY_FOR_ADMIN =
+  "Install a plugin from the Marketplace, upload one from your computer, or add an MCP server: a chat or an agent that uses a plugin gets its skills, agents, hooks and MCP servers, as one unit.";
+const EMPTY_FOR_MEMBER =
+  "An admin of this organization installs plugins. Browse the Marketplace to see what is offered: a chat or an agent that uses a plugin gets its skills, agents, hooks and MCP servers, as one unit.";
+
 export function PluginListPage() {
   const org = useActiveOrgId();
+  const mayInstall = useCanCreatePlugin(org || null).allowed;
   const slugForOrg = useOrgSlugForId();
   const stigmer = useStigmer();
   const { navigateToDetail } = useLibraryNavigation();
@@ -154,48 +178,51 @@ export function PluginListPage() {
         searchPlaceholder="Search plugins…"
         emptyIcon={<Blocks className="size-10" aria-hidden="true" />}
         emptyTitle="No plugins installed"
-        emptyDescription="Install a plugin from the Marketplace, upload one from your computer, or add an MCP server: a chat or an agent that uses a plugin gets its skills, agents, hooks and MCP servers, as one unit."
-        headerAction={<WaysIn size="sm" onAddMcpServer={openAddServer} />}
-        emptyAction={<WaysIn size="xs" onAddMcpServer={openAddServer} />}
+        emptyDescription={mayInstall ? EMPTY_FOR_ADMIN : EMPTY_FOR_MEMBER}
+        headerAction={<WaysIn size="sm" mayInstall={mayInstall} onAddMcpServer={openAddServer} />}
+        emptyAction={<WaysIn size="xs" mayInstall={mayInstall} onAddMcpServer={openAddServer} />}
         onItemClick={(item) => navigateToDetail("plugins", item.org, item.slug)}
         renderItemAction={(item) => (
           <div onClick={(e) => e.stopPropagation()}>
-            <ActionMenu>
-              <ActionMenu.Trigger aria-label={`Actions for ${item.name || item.slug}`}>
-                <MoreHorizontal className="size-4" />
-              </ActionMenu.Trigger>
-              <ActionMenu.Content>
-                <ActionMenu.Item
-                  icon={<ExternalLink className="size-4" />}
-                  onSelect={() => navigateToDetail("plugins", item.org, item.slug)}
-                >
-                  View details
-                </ActionMenu.Item>
-                <ActionMenu.Item
-                  icon={<Copy className="size-4" />}
-                  onSelect={() => {
+            {/* Remove is offered only on the server's yes for this row's plugin (one cached check per row). */}
+            <ResourceActionBar
+              resource={{ kind: "plugin", id: item.id }}
+              menuLabel={`Actions for ${item.name || item.slug}`}
+              actions={[
+                {
+                  id: "view",
+                  label: "View details",
+                  icon: <ExternalLink className="size-4" />,
+                  group: "row",
+                  onAction: () => navigateToDetail("plugins", item.org, item.slug),
+                },
+                {
+                  id: "copy-id",
+                  label: "Copy ID",
+                  icon: <Copy className="size-4" />,
+                  group: "row",
+                  onAction: () => {
                     navigator.clipboard.writeText(`${slugForOrg(item.org)}/${item.slug}`);
                     toast.success("Copied plugin ID");
-                  }}
-                >
-                  Copy ID
-                </ActionMenu.Item>
-                <ActionMenu.Separator />
-                <ActionMenu.Item
-                  icon={<Trash2 className="size-4" />}
-                  variant="destructive"
-                  onSelect={() => handleRemoveItem(item)}
-                >
-                  Remove
-                </ActionMenu.Item>
-              </ActionMenu.Content>
-            </ActionMenu>
+                  },
+                },
+                {
+                  id: "remove",
+                  label: "Remove",
+                  icon: <Trash2 className="size-4" />,
+                  variant: "destructive",
+                  group: "danger",
+                  requires: "can_delete",
+                  onAction: () => void handleRemoveItem(item),
+                },
+              ]}
+            />
           </div>
         )}
         aria-label="Plugin workbench"
       />
 
-      {org && (
+      {org && mayInstall && (
         <AddMcpServerDialog
           org={org}
           open={addingServer}

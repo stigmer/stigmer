@@ -81,9 +81,11 @@ control that changes who reaches a resource (its visibility, a share, a
 channel) asks `can_manage_audience`, never `can_grant_access`: the owner
 holds it in every edition. By
 default the hook *fails open* while the check is in flight or when the
-RPC fails, so a transient error never hides a control the server would
-honor. Pass `{ fail: "closed" }` for surfaces that must stay hidden
-until authorization is confirmed (see [`CheckPermissionOptions`](#checkpermissionoptions)).
+RPC fails, so a transient error never hides what a person reads. An act
+that changes something passes `{ fail: "closed" }` and is offered only
+on the server's yes (see [`CheckPermissionOptions`](#checkpermissionoptions)); several
+relations on one resource are asked together by
+[`useCheckPermissions`](#usecheckpermissions), which this hook is for one relation.
 
 Pass `null` as `resource` to skip the check — the result resolves
 through the fail mode (`allowed: true` under the default fail-open).
@@ -125,12 +127,62 @@ function useCheckPermission(resource: PermissionCheckResource | null, relation: 
 />
 
 ```tsx
-const { allowed, isLoading } = useCheckPermission(
+const { allowed } = useCheckPermission(
   { kind: "agent", id: agentId },
   "can_edit",
+  { fail: "closed" },
 );
 
-if (!allowed) return null; // hide edit button
+if (!allowed) return null; // no edit button until the server says yes
+```
+
+
+### useCheckPermissions
+
+Checks several permissions of the current user on one resource, one
+self-check per distinct relation.
+
+The rule for acts: an act that changes something (delete, edit, install)
+is offered only when its relation answered yes. Pass `{ fail: "closed" }`
+and offer the act on `allowed`: it is `false` while the check is in
+flight, when the check failed and when `resource` is `null`, so no
+button flashes for a person the server is about to refuse. Content a
+person reads is never gated this way.
+
+Each relation is answered by `grant.checkMyPermission()` (the server
+derives the principal from the token), with the same degradation and
+caching as [`useCheckPermission`](#usecheckpermission): only genuine verdicts are cached,
+per (kind, id, relation) for the mount's lifetime; a failed check
+resolves through the fail mode and is asked again the next time the
+resource or the relations change. A relation listed twice is asked
+once, and the order of `relations` does not matter.
+
+No render passes off an answer the hook does not have: each relation
+reports `isLoading: true` from the first render until its own answer
+arrives, and an answer for one resource is never reported for another.
+
+**Signature**
+
+```tsx
+function useCheckPermissions(resource: PermissionCheckResource | null, relations: readonly R[], options?: CheckPermissionOptions): UseCheckPermissionsReturn<R>
+```
+
+<TypeTable
+  type={{
+    resource: { type: "PermissionCheckResource | null", description: "The resource to check, or `null` to skip every check.", required: true },
+    relations: { type: "readonly R[]", description: "The permissions to check (e.g. `[\"can_edit\", \"can_delete\"]`).", required: true },
+    options: { type: "CheckPermissionOptions", description: "Fail-mode configuration; see CheckPermissionOptions." },
+  }}
+/>
+
+```tsx
+const can = useCheckPermissions(
+  { kind: "agent", id: agentId },
+  ["can_edit", "can_delete"],
+  { fail: "closed" },
+);
+
+{can.can_delete.allowed && <DeleteButton />}
 ```
 
 
@@ -866,7 +918,7 @@ Options for [`useCheckPermission`](#usecheckpermission).
 
 <TypeTable
   type={{
-    fail: { type: "\"open\" | \"closed\"", description: "Behavior when authorization cannot be confirmed — the check is in flight, the RPC failed, or the resource is `null`.  - `\"open\"` (default): `allowed` is `true`. Right for gating   *capabilities* (buttons, actions) — the server re-checks every   request anyway, so a transient failure never hides a control the   server would honor. - `\"closed\"`: `allowed` is `false` until the server explicitly   authorizes. Right for *discoverability* surfaces (navigation to   operator-only areas) that must not appear before the server has   said yes." },
+    fail: { type: "\"open\" | \"closed\"", description: "Behavior when authorization cannot be confirmed — the check is in flight, the RPC failed, or the resource is `null`.  - `\"open\"` (default): `allowed` is `true`. Right for *reading*:   content a person reads is never hidden by a check that has not   answered or that failed, and the server re-checks every read anyway. - `\"closed\"`: `allowed` is `false` until the server explicitly   authorizes. Right for every *act* that changes something (delete,   edit, install), which is offered only on the server's yes and never   while the check is in flight, and for *discoverability* surfaces   (navigation to operator-only areas) that must not appear before the   server has said yes." },
   }}
 />
 
@@ -986,6 +1038,12 @@ Options for [`useAccessHistory`](#useaccesshistory).
     pageSize: { type: "number", description: "Entries per page, the first and each `loadMore`; the server caps it at 100." },
   }}
 />
+
+
+### UseCheckPermissionsReturn
+
+Return value of [`useCheckPermissions`](#usecheckpermissions): each relation asked, with
+its own answer.
 
 
 ### UseGranteeCandidatesOptions

@@ -235,6 +235,7 @@ export const LEDGER_AGENT: Agent = create(AgentSchema, {
   status: {
     audit: {
       specAudit: {
+        createdBy: { id: "ia-ada", displayName: "Ada Lovelace", email: "ada@acme.example" },
         createdAt: timestampFromDate(sampleDate(-30 * 86_400_000)),
         updatedAt: timestampFromDate(sampleDate(-86_400_000)),
       },

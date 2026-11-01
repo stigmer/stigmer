@@ -85,7 +85,11 @@ export interface PluginDetailViewProps {
    * when omitted.
    */
   readonly onNavigateToRun?: (runId: string) => void;
-  /** Secondary actions rendered in the kebab overflow menu (remove lives here). */
+  /**
+   * Secondary actions rendered in the kebab overflow menu (remove lives
+   * here, declaring `requires: "can_delete"`, so it is offered only on the
+   * server's yes for this plugin).
+   */
   readonly actions?: readonly DetailAction[];
   /** Additional tabs beside the built-in Overview, Evals and Versions. */
   readonly additionalTabs?: readonly AdditionalTab[];
@@ -127,6 +131,10 @@ export function PluginDetailView({
   className,
 }: PluginDetailViewProps) {
   const { plugin, isLoading, error, refetch } = usePlugin(org, slug);
+  // The resource the header's acts are checked on: Remove is offered only
+  // to a person the server lets delete the plugin.
+  const pluginId = plugin?.metadata?.id ?? "";
+  const resourceRef = useMemo(() => (pluginId !== "" ? { kind: "plugin", id: pluginId } : null), [pluginId]);
   const versionPages = usePluginVersions(org, slug);
   const { versions, isEmpty: noVersions } = versionPages;
 
@@ -226,6 +234,7 @@ export function PluginDetailView({
         visibilityControl={visibilityControl}
         primaryAction={primaryAction}
         actions={mergedActions}
+        resource={resourceRef}
         tabs={effectiveTabs}
         activeTab={effectiveTabs ? effectiveActiveTab : undefined}
         onTabChange={effectiveTabs ? effectiveOnTabChange : undefined}

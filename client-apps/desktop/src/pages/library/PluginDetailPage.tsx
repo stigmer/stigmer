@@ -91,6 +91,7 @@ export default function PluginDetailPage() {
       },
       {
         id: "remove",
+        requires: "can_delete",
         label: "Remove",
         variant: "destructive" as const,
         group: "danger",

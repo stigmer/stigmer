@@ -6,7 +6,10 @@
  * folder reaches the same digest and the header says it was re-rooted; a
  * folder that arrives with no manifest (the dotfile-dropping browser) gets
  * the reader's refusal plus the sentence naming the zip path; a plain text
- * file offered as a zip is refused in its own words.
+ * file offered as a zip is refused in its own words. And who may upload
+ * (CON-01): installing is an admin's act, so a person the server's
+ * `can_create_plugin` self-check refuses sees who installs instead of the
+ * drop zone, and nothing is drawn while the server has not answered.
  */
 
 import { readdirSync, readFileSync, statSync } from "node:fs";
@@ -23,6 +26,7 @@ import { PluginCommandController } from "@stigmer/apis/ai/stigmer/agentic/plugin
 import { PluginQueryController } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/query_pb";
 import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
 import { PluginStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
+import { GrantQueryController } from "@stigmer/apis/ai/stigmer/iam/grant/v1/query_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 import { digestArchive } from "@stigmer/plugin-package/client";
 
@@ -79,8 +83,17 @@ interface Backend {
   readonly pushes: Uint8Array[];
 }
 
-function transport(backend: Backend) {
+/** Who is uploading: an admin, whom `can_create_plugin` answers yes, a member, answered no, or "asking", never answered. */
+type Viewer = "admin" | "member" | "asking";
+
+function transport(backend: Backend, viewer: Viewer) {
   return createRouterTransport(({ service }) => {
+    service(GrantQueryController, {
+      checkMyPermission: (input) =>
+        viewer === "asking"
+          ? new Promise<never>(() => {})
+          : { isAuthorized: viewer === "admin" && input.relation === "can_create_plugin" && input.resource?.kind === "organization" },
+    });
     service(PluginCommandController, {
       push: async (req) => {
         backend.pushes.push(req.artifact);
@@ -103,16 +116,16 @@ function transport(backend: Backend) {
   });
 }
 
-function renderUploader(backend: Backend = { pushes: [] }, onComplete?: (outcome: unknown) => void) {
-  const client = new Stigmer({ baseUrl: "/", getAccessToken: () => "t", customTransport: transport(backend) });
+function renderUploader(backend: Backend = { pushes: [] }, onComplete?: (outcome: unknown) => void, viewer: Viewer = "admin") {
+  const client = new Stigmer({ baseUrl: "/", getAccessToken: () => "t", customTransport: transport(backend, viewer) });
   const wrapper = ({ children }: { children: ReactNode }) => (
     <StigmerContext.Provider value={client}>{children}</StigmerContext.Provider>
   );
   return render(<PluginUploader org={ORG} onComplete={onComplete} />, { wrapper });
 }
 
-function pickFolder(files: File[]): void {
-  fireEvent.change(screen.getByTestId("plugin-folder-input"), { target: { files } });
+async function pickFolder(files: File[]): Promise<void> {
+  fireEvent.change(await screen.findByTestId("plugin-folder-input"), { target: { files } });
 }
 
 /** The Install button once the organization has answered what it holds (it is disabled until then). */
@@ -128,7 +141,7 @@ describe("PluginUploader", () => {
     const completed: unknown[] = [];
     renderUploader(backend, (outcome) => completed.push(outcome));
 
-    pickFolder(thermosAsInputFiles("my-thermos"));
+    await pickFolder(thermosAsInputFiles("my-thermos"));
     await screen.findByRole("heading", { name: "Install thermos" });
     expect(screen.getByText(/From the folder 'my-thermos' into acme/)).toBeTruthy();
     expect(screen.getAllByText(/thermo-nuclear-review/).length).toBeGreaterThan(0);
@@ -143,7 +156,7 @@ describe("PluginUploader", () => {
   it("previews a zip of the folder, re-rooted, at the same digest", async () => {
     const backend: Backend = { pushes: [] };
     renderUploader(backend);
-    fireEvent.change(screen.getByTestId("plugin-zip-input"), { target: { files: [thermosAsZip("thermos.zip", "thermos/")] } });
+    fireEvent.change(await screen.findByTestId("plugin-zip-input"), { target: { files: [thermosAsZip("thermos.zip", "thermos/")] } });
     await screen.findByRole("heading", { name: "Install thermos" });
     expect(screen.getByText(/From thermos\.zip \(read from its 'thermos\/' folder\) into acme/)).toBeTruthy();
     fireEvent.click(await installButton());
@@ -153,7 +166,7 @@ describe("PluginUploader", () => {
 
   it("names the zip path when a picked folder arrives with no manifest, the dotfile-dropping browser's shape", async () => {
     renderUploader();
-    pickFolder(thermosAsInputFiles("my-thermos", false));
+    await pickFolder(thermosAsInputFiles("my-thermos", false));
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).toContain("'my-thermos' cannot be installed");
     expect(alert.textContent).toContain("zip the folder and upload the .zip instead");
@@ -161,9 +174,33 @@ describe("PluginUploader", () => {
 
   it("refuses a file that is not a zip in its own words", async () => {
     renderUploader();
-    fireEvent.change(screen.getByTestId("plugin-zip-input"), {
+    fireEvent.change(await screen.findByTestId("plugin-zip-input"), {
       target: { files: [new File([bytesOf(new TextEncoder().encode("plain"))], "notes.zip")] },
     });
     await screen.findByText(/'notes\.zip' is not a zip archive/);
+  });
+});
+
+describe("PluginUploader: who may upload", () => {
+  it("CON-01 offers an admin the drop zone", async () => {
+    renderUploader({ pushes: [] }, undefined, "admin");
+
+    expect(await screen.findByTestId("plugin-folder-input")).toBeTruthy();
+    expect(screen.queryByText("Only admins install plugins here")).toBeNull();
+  });
+
+  it("CON-01 tells a member an admin installs plugins, with no drop zone", async () => {
+    renderUploader({ pushes: [] }, undefined, "member");
+
+    expect(await screen.findByText("Only admins install plugins here")).toBeTruthy();
+    expect(screen.queryByTestId("plugin-folder-input")).toBeNull();
+    expect(screen.queryByTestId("plugin-zip-input")).toBeNull();
+  });
+
+  it("CON-01 draws neither the drop zone nor the notice while the server has not answered", async () => {
+    const { container } = renderUploader({ pushes: [] }, undefined, "asking");
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(container.innerHTML).toBe("");
   });
 });
