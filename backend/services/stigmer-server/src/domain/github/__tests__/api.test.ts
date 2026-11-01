@@ -6,13 +6,18 @@
  * JSON is UNAVAILABLE rather than a crash. And how it holds the login: a
  * redirect is never followed (the bearer header would travel with it), and
  * an answer past the read ceiling is refused, by its declared length before
- * any byte is read and otherwise once the ceiling is passed. A body that
- * refuses to be cancelled never hides the refusal.
+ * any byte is read and otherwise once the ceiling is passed. Every answer
+ * refused without being read has its body cancelled, so its connection to
+ * GitHub is released at once rather than left to the garbage collector, and a
+ * body that refuses to be cancelled never hides the refusal.
  */
-import { Code, ConnectError } from "@connectrpc/connect";
-import { describe, expect, it } from "vitest";
+import { createServer, type Server } from "node:http";
+import type { AddressInfo, Socket } from "node:net";
 
-import { GITHUB_RESPONSE_CEILING_BYTES, newGitHubApi } from "../api.js";
+import { Code, ConnectError } from "@connectrpc/connect";
+import { afterEach, describe, expect, it } from "vitest";
+
+import { GITHUB_RESPONSE_CEILING_BYTES, RECONNECT_GITHUB, newGitHubApi } from "../api.js";
 
 function answering(response: () => Response | Promise<Response>): typeof fetch {
   return (async () => response()) as typeof fetch;
@@ -105,6 +110,73 @@ describe("newGitHubApi", () => {
     expect(moved.rawMessage).toContain("GitHub redirected the request for acme/app (HTTP 301)");
   });
 
+  it.each([
+    { status: 401, code: Code.FailedPrecondition, message: RECONNECT_GITHUB },
+    { status: 404, code: Code.NotFound, message: "GitHub not found: acme/app" },
+    {
+      status: 302,
+      code: Code.FailedPrecondition,
+      message:
+        "GitHub redirected the request for acme/app (HTTP 302); the server does not follow a redirect with " +
+        "your login. If the repository was renamed or moved, use its current name",
+    },
+    { status: 502, code: Code.Unavailable, message: "GitHub answered HTTP 502 for acme/app" },
+  ])("releases the body of an HTTP $status answer it refuses without reading", async ({ status, code, message }) => {
+    let cancelled = false;
+    const body = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        controller.enqueue(new TextEncoder().encode('{"message":"unread"}'));
+        controller.close();
+      },
+      cancel() {
+        cancelled = true;
+      },
+    });
+    const refusal = await failureOf(
+      newGitHubApi("t", answering(() => new Response(body, { status }))).getJson("/repos/acme/app", "acme/app"),
+    );
+    expect(refusal.code).toBe(code);
+    expect(refusal.rawMessage).toBe(message);
+    expect(cancelled).toBe(true);
+  });
+
+  describe("over a real socket", () => {
+    let server: Server | undefined;
+    afterEach(async () => {
+      server?.closeAllConnections();
+      await new Promise((resolve) => server?.close(resolve));
+      server = undefined;
+    });
+
+    it("lets go of GitHub's connection as soon as it refuses an answer", async () => {
+      // A body larger than the client buffers keeps the response, and so the
+      // connection, open until someone reads or cancels it.
+      const body = Buffer.alloc(1024 * 1024, 0x20);
+      let closed!: () => void;
+      const socketClosed = new Promise<void>((resolve) => {
+        closed = resolve;
+      });
+      server = createServer((_request, response) => {
+        response.writeHead(404, { "content-length": String(body.length) });
+        response.end(body);
+      });
+      server.on("connection", (socket: Socket) => socket.on("close", () => closed()));
+      await new Promise<void>((resolve) => server?.listen(0, "127.0.0.1", resolve));
+      const { port } = server.address() as AddressInfo;
+      const local = ((url: string | URL | Request, init?: RequestInit) =>
+        fetch(String(url).replace("https://api.github.com", `http://127.0.0.1:${port}`), init)) as typeof fetch;
+
+      const refusal = await failureOf(newGitHubApi("t", local).getJson("/repos/acme/app", "acme/app"));
+      expect(refusal.code).toBe(Code.NotFound);
+
+      const released = await Promise.race([
+        socketClosed.then(() => true),
+        new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 2_000)),
+      ]);
+      expect(released).toBe(true);
+    });
+  });
+
   it("refuses an answer declared larger than the ceiling before reading it", async () => {
     let pulled = 0;
     const body = new ReadableStream<Uint8Array>({
@@ -159,6 +231,15 @@ describe("newGitHubApi", () => {
       () => new Response(stubborn(1), { status: 302, headers: { location: "https://elsewhere.example/" } }),
     );
     expect(moved.rawMessage).toContain("GitHub redirected the request for acme/app (HTTP 302)");
+
+    const stale = await refusalFor(() => new Response(stubborn(1), { status: 401 }));
+    expect(stale.rawMessage).toBe(RECONNECT_GITHUB);
+
+    const missing = await refusalFor(() => new Response(stubborn(1), { status: 404 }));
+    expect(missing.rawMessage).toBe("GitHub not found: acme/app");
+
+    const down = await refusalFor(() => new Response(stubborn(1), { status: 502 }));
+    expect(down.rawMessage).toBe("GitHub answered HTTP 502 for acme/app");
 
     const declared = await refusalFor(
       () =>
