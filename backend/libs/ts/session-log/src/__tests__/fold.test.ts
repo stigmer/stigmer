@@ -3,7 +3,8 @@
  * order with its message, items, threads and answer; a tool use paired
  * with its result, ask, answer, grant and full output (held when they come
  * first); each tool use's state, a turn's end with and without its
- * `stigmer.run.status`; the session's status; previews (a live message
+ * `stigmer.run.status` (an idle ends only a turn that appeared before it,
+ * stored or previewed); the session's status; previews (a live message
  * replaced in place by its stored event, a running tool's output);
  * duplicates folded once; file-review states; the to-do rule applied only
  * to the primary thread's completed to-do calls; and snapshots that share
