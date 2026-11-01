@@ -84,7 +84,7 @@ function ContactSalesPage() {
                 <p className="text-xs font-mono uppercase tracking-wider text-subtle mb-4">
                   Enterprise
                 </p>
-                <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground mb-4">
+                <h1 className="text-3xl sm:text-4xl font-display font-bold tracking-tight text-foreground mb-4">
                   Contact Sales
                 </h1>
                 <p className="text-muted-foreground leading-relaxed">

@@ -27,7 +27,7 @@ function AlsoBuilt({ className, ...props }: AlsoBuiltProps) {
         <FadeInUp>
           <h2
             id="also-built-heading"
-            className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground mb-10"
+            className="text-2xl sm:text-3xl font-display font-bold tracking-tight text-foreground mb-10"
           >
             Three more things we built
           </h2>

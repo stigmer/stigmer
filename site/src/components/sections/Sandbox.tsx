@@ -58,7 +58,7 @@ function Sandbox({ className, ...props }: SandboxProps) {
             </p>
             <h2
               id="sandbox-heading"
-              className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground text-balance"
+              className="text-3xl sm:text-4xl font-display font-bold tracking-tight text-foreground text-balance"
             >
               {SANDBOX_HEADING.title}
             </h2>

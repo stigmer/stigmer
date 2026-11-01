@@ -13,8 +13,19 @@
  * nests the wordmark, and each caller rasterises it with its own sharp: the
  * site's build for og-image.png, brand/generate.ts for the cover uploads. So
  * nothing here decides which sharp, or which libvips, draws an image.
+ *
+ * Its words are outlines, not text, the way the lockup's lettering is: each
+ * line is laid out by a font engine from the brand's own files
+ * (brand/fonts/, named in type.ts) and drawn as one filled path, so the card
+ * looks the same on every machine instead of in whatever font the machine
+ * has (the build server's DejaVu Sans, before). The same rule as for sharp
+ * holds: the caller passes the engine (fontkit), and nothing here imports one.
+ * The words stay in the document as each path's `aria-label` and the card's
+ * `<title>`.
  */
+import { readFile } from "node:fs/promises";
 import { brandShadedSvg } from "./assets.mjs";
+import { CARD_TYPE, type CardFace } from "./type";
 
 /** The card's palette: the website hero's monochrome, darker than the mark's graphite. */
 const CARD_COLORS = {
@@ -25,9 +36,90 @@ const CARD_COLORS = {
   badgeOutline: "#505050",
 } as const;
 
-const SANS =
-  "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
-const MONO = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace";
+/** One drawing instruction of a glyph's outline, in font units, y up. */
+interface OutlineCommand {
+  readonly command: "moveTo" | "lineTo" | "quadraticCurveTo" | "bezierCurveTo" | "closePath";
+  readonly args: readonly number[];
+}
+
+/** A shaped run: each glyph's outline and where the pen puts it. */
+interface LaidOutRun {
+  readonly glyphs: readonly { readonly path: { readonly commands: readonly OutlineCommand[] } }[];
+  readonly positions: readonly {
+    readonly xAdvance: number;
+    readonly xOffset: number;
+    readonly yOffset: number;
+  }[];
+}
+
+/** An opened font, at its file's default instance. */
+interface EngineFont {
+  readonly unitsPerEm: number;
+  layout(text: string): LaidOutRun;
+}
+
+/**
+ * The font engine a caller passes: the two calls the card makes, open a
+ * file's bytes and lay out a run. fontkit's module satisfies it as it is
+ * (`import * as fontkit from "fontkit"`).
+ */
+export interface FontEngine {
+  create(data: Buffer): EngineFont | { readonly fonts: readonly unknown[] };
+}
+
+const SVG_COMMAND = {
+  moveTo: "M",
+  lineTo: "L",
+  quadraticCurveTo: "Q",
+  bezierCurveTo: "C",
+  closePath: "Z",
+} as const;
+
+async function openFace(engine: FontEngine, face: CardFace): Promise<EngineFont> {
+  const font = engine.create(
+    await readFile(new URL(`./fonts/${face.file}`, import.meta.url)),
+  );
+  if (!("layout" in font)) {
+    throw new Error(`${face.file} is a font collection; the card draws from single fonts.`);
+  }
+  return font;
+}
+
+/** Where a line goes and how it is set. */
+interface LinePlacement {
+  readonly centerX: number;
+  readonly baseline: number;
+  readonly size: number;
+  readonly tracking?: number;
+  readonly fill: string;
+}
+
+const round = (value: number) => Math.round(value * 100) / 100;
+
+/** One line of words as a single filled path, centred on `centerX`. */
+function outlinedLine(font: EngineFont, text: string, place: LinePlacement): string {
+  const { glyphs, positions } = font.layout(text);
+  const scale = place.size / font.unitsPerEm;
+  const tracking = place.tracking ?? 0;
+  const width =
+    positions.reduce((sum, position) => sum + position.xAdvance * scale, 0) +
+    tracking * Math.max(glyphs.length - 1, 0);
+  let penX = place.centerX - width / 2;
+  let d = "";
+  glyphs.forEach((glyph, index) => {
+    const { xAdvance, xOffset, yOffset } = positions[index];
+    for (const { command, args } of glyph.path.commands) {
+      const points = args.map((value, axis) =>
+        axis % 2 === 0
+          ? round(penX + (xOffset + value) * scale)
+          : round(place.baseline - (yOffset + value) * scale),
+      );
+      d += SVG_COMMAND[command] + points.join(" ");
+    }
+    penX += xAdvance * scale + tracking;
+  });
+  return `<path aria-label="${escapeXml(text)}" fill="${place.fill}" d="${d}"/>`;
+}
 
 /** The outline badges under the words, left to right. */
 export const SOCIAL_CARD_BADGES = ["Open Source", "Apache 2.0"] as const;
@@ -120,10 +212,12 @@ function escapeXml(text: string): string {
   return text
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;");
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
 }
 
 function badgesSvg(
+  font: EngineFont,
   centerX: number,
   badges: NonNullable<SocialCardLayout["badges"]>,
 ): string {
@@ -134,17 +228,28 @@ function badgesSvg(
     const x = centerX - rowWidth / 2 + index * (badges.width + badges.gap);
     return (
       `<rect x="${x}" y="${badges.top}" width="${badges.width}" height="${badges.height}" rx="${badges.height / 2}" fill="none" stroke="${CARD_COLORS.badgeOutline}" stroke-width="1"/>` +
-      `<text x="${x + badges.width / 2}" y="${badges.top + badges.labelBaseline}" font-family="${MONO}" font-size="${badges.fontSize}" font-weight="400" fill="${CARD_COLORS.muted}" text-anchor="middle">${label}</text>`
+      outlinedLine(font, label, {
+        centerX: x + badges.width / 2,
+        baseline: badges.top + badges.labelBaseline,
+        size: badges.fontSize,
+        fill: CARD_COLORS.muted,
+      })
     );
   }).join("");
 }
 
-/** Draw one card as a single SVG document, at its layout's pixel size. */
+/** Draw one card as a single SVG document, at its layout's pixel size, its words outlined by `engine`. */
 export async function socialCardSvg(
   layout: SocialCardLayout,
   words: SocialCardWords,
+  engine: FontEngine,
 ): Promise<string> {
   const { width, height, vignette, centerX, headline, oneSentence } = layout;
+  const [headlineFont, sentenceFont, badgeFont] = await Promise.all(
+    [CARD_TYPE.headline, CARD_TYPE.sentence, CARD_TYPE.badge].map((face) =>
+      openFace(engine, face),
+    ),
+  );
   const mark = layout.mark
     ? (await brandShadedSvg({ size: layout.mark.size, on: "dark" })).replace(
         "<svg ",
@@ -152,16 +257,28 @@ export async function socialCardSvg(
       )
     : "";
   return (
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">` +
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" role="img">` +
+    `<title>${escapeXml(`${words.headline} ${words.oneSentence}`)}</title>` +
     `<defs><radialGradient id="vignette" cx="${vignette.cx}" cy="${vignette.cy}" r="60%">` +
     `<stop offset="0%" stop-color="${CARD_COLORS.vignetteInner}"/>` +
     `<stop offset="100%" stop-color="${CARD_COLORS.vignetteOuter}"/>` +
     `</radialGradient></defs>` +
     `<rect width="100%" height="100%" fill="url(#vignette)"/>` +
     mark +
-    `<text x="${centerX}" y="${headline.baseline}" font-family="${SANS}" font-size="${headline.size}" font-weight="700" fill="${CARD_COLORS.headline}" text-anchor="middle" letter-spacing="${headline.tracking}">${escapeXml(words.headline)}</text>` +
-    `<text x="${centerX}" y="${oneSentence.baseline}" font-family="${SANS}" font-size="${oneSentence.size}" font-weight="400" fill="${CARD_COLORS.muted}" text-anchor="middle">${escapeXml(words.oneSentence)}</text>` +
-    (layout.badges ? badgesSvg(centerX, layout.badges) : "") +
+    outlinedLine(headlineFont, words.headline, {
+      centerX,
+      baseline: headline.baseline,
+      size: headline.size,
+      tracking: headline.tracking,
+      fill: CARD_COLORS.headline,
+    }) +
+    outlinedLine(sentenceFont, words.oneSentence, {
+      centerX,
+      baseline: oneSentence.baseline,
+      size: oneSentence.size,
+      fill: CARD_COLORS.muted,
+    }) +
+    (layout.badges ? badgesSvg(badgeFont, centerX, layout.badges) : "") +
     `</svg>\n`
   );
 }

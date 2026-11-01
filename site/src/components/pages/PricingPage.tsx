@@ -245,7 +245,7 @@ function PricingPage() {
               <p className="text-xs font-mono uppercase tracking-wider text-subtle mb-4">
                 Pricing
               </p>
-              <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-foreground mb-6">
+              <h1 className="text-4xl sm:text-5xl font-display font-bold tracking-tight text-foreground mb-6">
                 Pay for the platform, not the tokens.
               </h1>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
@@ -260,11 +260,11 @@ function PricingPage() {
         </section>
 
         {/* Stigmer Cloud */}
-        <section className="py-12 sm:py-16 px-4">
+        <section className="py-12 sm:py-16 px-4" aria-labelledby="cloud-heading">
           <div className="max-w-6xl mx-auto">
             <FadeInUp>
               <div className="text-center mb-12">
-                <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground mb-4">
+                <h2 id="cloud-heading" className="text-2xl sm:text-3xl font-display font-bold tracking-tight text-foreground mb-4">
                   Stigmer Cloud
                 </h2>
                 <p className="text-sm text-muted-foreground">
@@ -298,11 +298,11 @@ function PricingPage() {
         </section>
 
         {/* Run it yourself */}
-        <section className="py-12 sm:py-16 px-4">
+        <section className="py-12 sm:py-16 px-4" aria-labelledby="self-hosted-heading">
           <div className="max-w-3xl mx-auto">
             <FadeInUp>
               <div className="text-center mb-12">
-                <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground mb-4">
+                <h2 id="self-hosted-heading" className="text-2xl sm:text-3xl font-display font-bold tracking-tight text-foreground mb-4">
                   Run it yourself
                 </h2>
                 <p className="text-sm text-muted-foreground">
@@ -327,10 +327,10 @@ function PricingPage() {
         </section>
 
         {/* FAQ */}
-        <section className="py-12 sm:py-16 px-4">
+        <section className="py-12 sm:py-16 px-4" aria-labelledby="faq-heading">
           <div className="max-w-3xl mx-auto">
             <FadeInUp>
-              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground mb-8 text-center">
+              <h2 id="faq-heading" className="text-2xl sm:text-3xl font-display font-bold tracking-tight text-foreground mb-8 text-center">
                 Frequently Asked Questions
               </h2>
             </FadeInUp>
@@ -382,10 +382,10 @@ function PricingPage() {
         </section>
 
         {/* Enterprise CTA */}
-        <section className="py-16 sm:py-24 px-4">
+        <section className="py-16 sm:py-24 px-4" aria-labelledby="custom-terms-heading">
           <div className="max-w-3xl mx-auto text-center">
             <FadeInUp>
-              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground mb-4">
+              <h2 id="custom-terms-heading" className="text-2xl sm:text-3xl font-display font-bold tracking-tight text-foreground mb-4">
                 Need custom terms?
               </h2>
               <p className="text-muted-foreground mb-8 max-w-xl mx-auto">

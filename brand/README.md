@@ -107,6 +107,36 @@ The film is an upload, like the covers: after a change to these titles, to the
 job or to the words above, render it again (`marketing/README.md`) and replace
 the posted copies.
 
+## Type
+
+`type.ts` holds the brand's three faces and the files in `fonts/` they are drawn
+from:
+
+- **Display, Instrument Sans**, the face the lockup's lettering is drawn in. It
+  sets only the words a page is named by: page titles, section headlines (the
+  heading a section is labelled by), the homepage's closing line, the name where
+  it is live text, and a film's headline and closing sentence.
+- **Sans, Geist**, the product's own face (`sdk/theme/src/tokens.css`), for
+  every other word: paragraphs, buttons, row titles, figures such as the wake
+  time and the price, and the docs' in-page headings.
+- **Mono, Geist Mono**, for code, commands and monospaced labels.
+
+So the words under a screenshot read in the screenshot's own letters, and a
+visitor on any computer sees the same page. The files are vendored, not fetched:
+the website's build loads them with `next/font/local` (`site/src/app/fonts.ts`),
+and a build that fetches fonts from Google turns red when the fetch fails
+(stigmer#1508). The Geist pair is a copy of the console's
+(`client-apps/web/src/app/fonts/`), which `__tests__/type.test.ts` holds byte
+for byte; `fonts/README.md` has each file's source and licence.
+
+The social card draws its words as outlines laid out from these files, never as
+text, so the link preview and the covers look the same on every machine, as the
+lockup's outlined lettering does. Its headline reads a bold cut of Instrument
+Sans (`fonts/README.md` says why).
+
+The job film (`marketing/`) uses the same three faces, loaded from Google Fonts
+when it is rendered by hand; its test holds the families to `type.ts`.
+
 ## Maintenance
 
 Edit `logo.svg`, then run `npm run generate:brand` from the repository root. The
@@ -138,7 +168,7 @@ Typeface credit:
 [Instrument Sans](https://github.com/Instrument/instrument-sans), Copyright 2022
 The Instrument Sans Project Authors, available under the
 [SIL Open Font License 1.1](https://github.com/google/fonts/blob/main/ofl/instrumentsans/OFL.txt).
-Only the outlined product name is included here, not the font software.
+The font files themselves are in `fonts/` (see "Type" above).
 
 The website, web console and desktop icon generators read these same sources.
 Their favicon, touch-icon, PWA, ICO and ICNS sizes are platform outputs, not

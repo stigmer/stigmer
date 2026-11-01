@@ -45,7 +45,7 @@ function Part({ id, when, title, children }: PartProps) {
         <FadeInUp className="grid gap-2 sm:grid-cols-[10rem_1fr] sm:gap-10">
           <p className="text-xs font-mono uppercase tracking-wider text-subtle sm:pt-2">{when}</p>
           <div className="min-w-0">
-            <h2 id={id} className="text-2xl font-bold text-foreground mb-4">
+            <h2 id={id} className="text-2xl font-display font-bold text-foreground mb-4">
               {title}
             </h2>
             <div className="space-y-4 text-muted-foreground leading-relaxed">{children}</div>
@@ -67,7 +67,7 @@ function AboutPage() {
           <div className="max-w-4xl mx-auto">
             <FadeInUp>
               <p className="text-xs font-mono uppercase tracking-wider text-subtle mb-4">About</p>
-              <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-foreground mb-6">
+              <h1 className="text-4xl sm:text-5xl font-display font-bold tracking-tight text-foreground mb-6">
                 Why we built Stigmer
               </h1>
               <p className="text-lg text-muted-foreground leading-relaxed max-w-2xl">

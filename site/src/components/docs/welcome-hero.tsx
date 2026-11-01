@@ -30,7 +30,7 @@ export function Hero({ eyebrow, title, description, children }: HeroProps) {
       <p className="mb-3 text-xs font-medium uppercase tracking-wide text-fd-muted-foreground">
         {eyebrow}
       </p>
-      <h1 className="text-3xl font-bold tracking-tight text-fd-foreground sm:text-4xl">
+      <h1 className="text-3xl font-display font-bold tracking-tight text-fd-foreground sm:text-4xl">
         {title}
       </h1>
       {description ? (

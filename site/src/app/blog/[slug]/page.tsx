@@ -32,7 +32,7 @@ export default async function BlogPost(props: PageProps) {
       </Link>
 
       <header className="mt-8">
-        <h1 className="text-3xl font-bold tracking-tight">
+        <h1 className="text-3xl font-display font-bold tracking-tight">
           {page.data.title}
         </h1>
         {page.data.description && (

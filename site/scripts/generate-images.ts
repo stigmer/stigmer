@@ -13,11 +13,13 @@
  * - icon-192.png (PWA)
  * - icon-512.png (PWA)
  * - og-image.png (1200x630 social media preview), the social card whose
- *   layouts live in brand/social-card.ts
+ *   layouts live in brand/social-card.ts, its words outlined by this site's
+ *   own fontkit from the faces in brand/fonts/
  *
  * Usage: tsx scripts/generate-images.ts
  */
 
+import * as fontkit from "fontkit";
 import sharp from "sharp";
 import {
   BRAND_DARK,
@@ -113,7 +115,7 @@ async function generateOgImage(): Promise<void> {
   console.log("\n🖼️  Generating OG image...");
 
   const { openGraph } = SOCIAL_CARDS;
-  await sharp(Buffer.from(await socialCardSvg(openGraph, POSITIONING)))
+  await sharp(Buffer.from(await socialCardSvg(openGraph, POSITIONING, fontkit)))
     .png()
     .toFile(path.join(PUBLIC_DIR, "og-image.png"));
 

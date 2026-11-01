@@ -156,7 +156,7 @@ function DownloadPage() {
                 <p className="text-xs font-mono uppercase tracking-wider text-subtle mb-4">
                   Download
                 </p>
-                <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-foreground mb-6">
+                <h1 className="text-4xl sm:text-5xl font-display font-bold tracking-tight text-foreground mb-6">
                   Stigmer Desktop
                 </h1>
                 <p className="text-lg text-muted-foreground max-w-xl mx-auto mb-6">

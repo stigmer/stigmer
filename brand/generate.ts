@@ -2,6 +2,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import * as path from "node:path";
+import * as fontkit from "fontkit";
 import sharp from "sharp";
 import {
   BRAND_DARK,
@@ -149,7 +150,7 @@ async function main(): Promise<void> {
   ] as const) {
     await write(
       file,
-      await sharp(Buffer.from(await socialCardSvg(layout, POSITIONING)))
+      await sharp(Buffer.from(await socialCardSvg(layout, POSITIONING, fontkit)))
         .png()
         .toBuffer(),
     );
