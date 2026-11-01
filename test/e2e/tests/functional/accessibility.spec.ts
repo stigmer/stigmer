@@ -23,6 +23,40 @@ async function runAxeAudit(page: import("@playwright/test").Page) {
   expect(await axeFailures(page), "axe violations").toBe("");
 }
 
+/**
+ * Resolves once the page has settled after a move within the app: no region
+ * still marked busy, and no request in flight for QUIET_MS. A client-side
+ * move has no load event to wait for, and an audit taken while a page's own
+ * reads are out judges whatever has drawn so far.
+ */
+async function settled(page: import("@playwright/test").Page): Promise<void> {
+  await expect(page.locator('[aria-busy="true"]')).toHaveCount(0, { timeout: 15_000 });
+  let inFlight = 0;
+  let quietSince = Date.now();
+  const begin = () => {
+    inFlight += 1;
+  };
+  const end = () => {
+    inFlight -= 1;
+    if (inFlight <= 0) quietSince = Date.now();
+  };
+  page.on("request", begin);
+  page.on("requestfinished", end);
+  page.on("requestfailed", end);
+  try {
+    await expect
+      .poll(() => inFlight <= 0 && Date.now() - quietSince >= QUIET_MS, { timeout: 15_000, intervals: [100] })
+      .toBe(true);
+  } finally {
+    page.off("request", begin);
+    page.off("requestfinished", end);
+    page.off("requestfailed", end);
+  }
+}
+
+/** How long a page goes with no request in flight before it counts as settled. */
+const QUIET_MS = 500;
+
 /** The page's critical and serious violations, described; empty when it passes. */
 async function axeFailures(page: import("@playwright/test").Page): Promise<string> {
   const results = await new AxeBuilder({ page }).withTags([...AXE_TAGS]).analyze();
@@ -115,7 +149,7 @@ test.describe("Accessibility audits", () => {
       await nav.locator(`a[href="${href}"]`).first().click();
       await page.waitForURL(`**${href}`);
       await expect(page.getByRole("region").first(), `${href} shows no section`).toBeVisible({ timeout: 15_000 });
-      await page.waitForLoadState("networkidle");
+      await settled(page);
       const report = await axeFailures(page);
       if (report !== "") failures.push(`${href}\n${report}`);
     }
