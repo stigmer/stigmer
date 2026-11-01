@@ -22,7 +22,7 @@ function PrivacyPage() {
               <p className="text-xs font-mono uppercase tracking-wider text-subtle mb-4">
                 Legal
               </p>
-              <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground mb-4">
+              <h1 className="text-3xl sm:text-4xl font-display font-bold tracking-tight text-foreground mb-4">
                 Privacy Policy
               </h1>
               <p className="text-sm text-subtle">Effective {EFFECTIVE_DATE}</p>

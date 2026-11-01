@@ -30,7 +30,7 @@ function OpenSource({ className, ...props }: OpenSourceProps) {
           </p>
           <h2
             id="open-source-heading"
-            className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground mb-6"
+            className="text-3xl sm:text-4xl font-display font-bold tracking-tight text-foreground mb-6"
           >
             Open source, on your servers or ours
           </h2>

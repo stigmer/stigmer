@@ -6,7 +6,9 @@
  * brand/positioning.ts through SITE_CONFIG, that the manifest is the
  * metadata route (no static file is linked by hand), that the manifest's
  * colors are the dark site's own, and that the previews and the structured
- * data name the site's one preview image.
+ * data name the site's one preview image, and that the font loaders'
+ * variables sit on <html>, where globals.css and the product theme resolve
+ * their font stacks (on <body>, the theme's root-level stacks would miss them).
  */
 import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -14,10 +16,9 @@ import { SITE_CONFIG } from "@/lib/constants";
 import { SITE_OG_IMAGE } from "@/lib/page-metadata";
 import { POSITIONING } from "../../../../brand/positioning";
 
-vi.mock("next/font/google", () => {
-  const font = () => ({ variable: "" });
-  return { Instrument_Sans: font, Instrument_Serif: font, DM_Mono: font };
-});
+vi.mock("next/font/local", () => ({
+  default: (options: { variable: string }) => ({ variable: `font-var${options.variable}` }),
+}));
 
 describe("the site's root metadata", () => {
   it("titles and describes every page with the headline and the one sentence", async () => {
@@ -45,6 +46,24 @@ describe("the site's root metadata", () => {
     expect(metadata.openGraph?.images).toEqual([SITE_OG_IMAGE]);
     expect(metadata.twitter?.images).toEqual([SITE_OG_IMAGE.url]);
     expect(organization.logo?.url).toBe(`${SITE_CONFIG.url}${SITE_OG_IMAGE.url}`);
+  });
+});
+
+describe("the site's fonts", () => {
+  it("defines every loader's variable on <html>, not on <body>", async () => {
+    const { default: RootLayout } = await import("../layout");
+    const { siteFonts } = await import("../fonts");
+    const html = renderToStaticMarkup(RootLayout({ children: null }));
+    const classesOf = (tag: string) =>
+      html.match(new RegExp(`<${tag}[^>]*class="([^"]*)"`))?.[1].split(" ") ?? [];
+
+    expect(siteFonts.length).toBe(3);
+    for (const font of siteFonts) {
+      expect(classesOf("html")).toContain(font.variable);
+      expect(classesOf("body")).not.toContain(font.variable);
+    }
+    expect(classesOf("html")).toContain("dark");
+    expect(classesOf("body")).toContain("font-sans");
   });
 });
 

@@ -47,7 +47,7 @@ function HardParts({ className, ...props }: HardPartsProps) {
             </p>
             <h2
               id="hard-parts-heading"
-              className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground mb-6"
+              className="text-3xl sm:text-4xl font-display font-bold tracking-tight text-foreground mb-6"
             >
               Your customers want an agent that does the work. The machinery is the hard part.
             </h2>
@@ -118,7 +118,7 @@ function HardParts({ className, ...props }: HardPartsProps) {
 
         <FadeInUp>
           <div className="flex flex-col items-center gap-8 pt-20 text-center">
-            <p className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground text-balance">
+            <p className="text-3xl sm:text-4xl font-display font-bold tracking-tight text-foreground text-balance">
               {TURN_LINE}
             </p>
             <div className="flex flex-col sm:flex-row items-stretch sm:items-start gap-3 w-full sm:w-auto">

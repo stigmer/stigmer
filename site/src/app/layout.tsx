@@ -1,29 +1,8 @@
 import type { Metadata, Viewport } from "next";
-import { Instrument_Sans, Instrument_Serif, DM_Mono } from "next/font/google";
 import { SITE_CONFIG } from "@/lib/constants";
 import { SITE_OG_IMAGE } from "@/lib/page-metadata";
+import { fontVariables } from "./fonts";
 import "./globals.css";
-
-const instrumentSans = Instrument_Sans({
-  variable: "--font-instrument-sans",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const instrumentSerif = Instrument_Serif({
-  variable: "--font-instrument-serif",
-  subsets: ["latin"],
-  display: "swap",
-  weight: "400",
-  style: "italic",
-});
-
-const dmMono = DM_Mono({
-  variable: "--font-dm-mono",
-  subsets: ["latin"],
-  display: "swap",
-  weight: ["300", "400", "500"],
-});
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -140,16 +119,17 @@ export default function RootLayout({
     // mounts anywhere (docs RootProvider passes `theme.enabled: false`), so
     // nothing ever mutates <html> on the client — no hydration suppression
     // needed. Vendor stylesheets key their dark tokens off this class.
-    <html lang="en" className="dark">
+    // The font variables sit here too, on the root, where globals.css and the
+    // product theme resolve their font stacks (the console's place since
+    // stigmer#2829).
+    <html lang="en" className={`dark ${fontVariables}`}>
       <head>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
         />
       </head>
-      <body
-        className={`${instrumentSans.variable} ${instrumentSerif.variable} ${dmMono.variable} font-sans min-h-screen`}
-      >
+      <body className="font-sans min-h-screen">
         {children}
       </body>
     </html>

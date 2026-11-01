@@ -177,7 +177,7 @@ export function CodeBlock({
           }}
           codeTagProps={{
             style: {
-              fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
+              fontFamily: "var(--font-mono)",
               fontSize: "inherit",
             },
           }}
@@ -253,7 +253,7 @@ export function CodeSnippet({
         }}
         codeTagProps={{
           style: {
-            fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
+            fontFamily: "var(--font-mono)",
             fontSize: "inherit",
           },
         }}

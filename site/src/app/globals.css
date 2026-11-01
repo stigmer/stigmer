@@ -104,9 +104,17 @@
 
 /* Map semantic tokens to Tailwind v4 */
 @theme inline {
-  --font-family-sans: var(--font-instrument-sans), "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-family-serif: var(--font-instrument-serif), "Instrument Serif", ui-serif, Georgia, serif;
-  --font-family-mono: var(--font-dm-mono), "DM Mono", ui-monospace, monospace;
+  /*
+   * The brand's type (brand/type.ts). Tailwind 4 reads the `--font-*`
+   * namespace: `--font-sans` becomes `font-sans` and the default body face,
+   * `--font-display` the `font-display` utility. A name outside it (the old
+   * `--font-family-*`) emits nothing and the page falls back to the system
+   * font. The `--font-geist-*` and `--font-instrument-sans` variables come
+   * from the loaders in app/fonts.ts, defined on <html> by the layout.
+   */
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-display: var(--font-instrument-sans), var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);

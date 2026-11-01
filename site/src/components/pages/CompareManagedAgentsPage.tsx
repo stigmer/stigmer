@@ -164,7 +164,7 @@ function CompareManagedAgentsPage() {
               <p className="text-xs font-mono uppercase tracking-wider text-subtle mb-4 text-center">
                 Compare
               </p>
-              <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-foreground mb-10 text-center">
+              <h1 className="text-4xl sm:text-5xl font-display font-bold tracking-tight text-foreground mb-10 text-center">
                 Stigmer and Claude Managed Agents
               </h1>
               <dl className="grid gap-6 sm:grid-cols-2">
@@ -192,7 +192,7 @@ function CompareManagedAgentsPage() {
         <section className="pb-16 px-4" aria-labelledby="side-by-side-heading">
           <div className="max-w-5xl mx-auto">
             <FadeInUp>
-              <h2 id="side-by-side-heading" className="text-2xl font-bold text-foreground mb-6">
+              <h2 id="side-by-side-heading" className="text-2xl font-display font-bold text-foreground mb-6">
                 Side by side
               </h2>
               <div role="table" aria-labelledby="side-by-side-heading" className="text-sm">
@@ -242,7 +242,7 @@ function CompareManagedAgentsPage() {
         <section className="py-16 px-4 border-t border-border" aria-labelledby="further-heading">
           <div className="max-w-4xl mx-auto">
             <FadeInUp>
-              <h2 id="further-heading" className="text-2xl font-bold text-foreground mb-6">
+              <h2 id="further-heading" className="text-2xl font-display font-bold text-foreground mb-6">
                 Where Stigmer goes further
               </h2>
               <ul className="space-y-4">
@@ -268,7 +268,7 @@ function CompareManagedAgentsPage() {
         <section className="py-16 px-4 border-t border-border" aria-labelledby="which-fits-heading">
           <div className="max-w-4xl mx-auto">
             <FadeInUp>
-              <h2 id="which-fits-heading" className="text-2xl font-bold text-foreground mb-6">
+              <h2 id="which-fits-heading" className="text-2xl font-display font-bold text-foreground mb-6">
                 Which fits
               </h2>
               <p className="text-muted-foreground leading-relaxed mb-4">
@@ -285,7 +285,7 @@ function CompareManagedAgentsPage() {
         <section className="py-16 px-4 border-t border-border" aria-labelledby="already-heading">
           <div className="max-w-4xl mx-auto">
             <FadeInUp>
-              <h2 id="already-heading" className="text-2xl font-bold text-foreground mb-6">
+              <h2 id="already-heading" className="text-2xl font-display font-bold text-foreground mb-6">
                 Already on Managed Agents?
               </h2>
               <p className="text-muted-foreground leading-relaxed mb-8">

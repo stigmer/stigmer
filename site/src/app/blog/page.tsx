@@ -34,7 +34,7 @@ export default async function BlogIndex() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8">
-      <h1 className="text-3xl font-bold tracking-tight">Blog</h1>
+      <h1 className="text-3xl font-display font-bold tracking-tight">Blog</h1>
       <p className="mt-2 text-muted-foreground">
         Engineering deep-dives from the {SITE_CONFIG.name} team.
       </p>

@@ -24,7 +24,8 @@ const logoMarkSizeMap = {
   lg: "w-12 h-12",
 } as const;
 
-const logoTextVariants = cva("font-bold tracking-tight text-foreground", {
+// The lockup's lettering: Instrument Sans Semibold (brand/README.md).
+const logoTextVariants = cva("font-display font-semibold tracking-tight text-foreground", {
   variants: {
     size: {
       sm: "text-lg",

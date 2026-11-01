@@ -52,7 +52,7 @@ function HowItFits({ className, ...props }: HowItFitsProps) {
             </p>
             <h2
               id="how-it-fits-heading"
-              className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground"
+              className="text-3xl sm:text-4xl font-display font-bold tracking-tight text-foreground"
             >
               {SITE_CONFIG.whereItRuns}
             </h2>

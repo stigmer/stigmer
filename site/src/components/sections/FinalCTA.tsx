@@ -37,7 +37,7 @@ function FinalCTA({ className, ...props }: FinalCTAProps) {
           <FadeInUp>
             <h2
               id="final-cta-heading"
-              className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground mb-4"
+              className="text-3xl sm:text-4xl font-display font-bold tracking-tight text-foreground mb-4"
             >
               Put your first agent to work
             </h2>

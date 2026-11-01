@@ -57,9 +57,10 @@ export default async function Page(props: PageProps) {
           generateMetadata and the llms outputs. */}
       {!page.data.hero && (
         <>
-          {/* Bold + tight tracking matches the marketing Hero.tsx headline and
-              the welcome page's <Hero> h1 — one display voice across the site. */}
-          <DocsTitle className="font-bold tracking-tight">
+          {/* The display face, bold, tight tracking: the marketing Hero.tsx
+              headline and the welcome page's <Hero> h1 — one display voice
+              across the site. In-page headings stay in the body face. */}
+          <DocsTitle className="font-display font-bold tracking-tight">
             {page.data.title}
           </DocsTitle>
           {/* text-base/mb-6 over the default text-lg/mb-8 — docs density:
