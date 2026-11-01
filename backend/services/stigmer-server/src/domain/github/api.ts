@@ -8,7 +8,10 @@
  * the saved login gone stale (FAILED_PRECONDITION, "reconnect GitHub"),
  * 404 a repository, ref or path the account cannot see (NOT_FOUND), 403 a
  * rate limit or a refusal (RESOURCE_EXHAUSTED with GitHub's own words), a
- * network failure UNAVAILABLE. Nothing returned carries the token.
+ * network failure UNAVAILABLE. Nothing returned carries the token. Every
+ * refusal leaves through `refusalOf`, which decides the body's fate with the
+ * error: an answer the server does not read is cancelled, so its connection to
+ * GitHub is released at once rather than left to the garbage collector.
  *
  * The token stays with api.github.com. A redirect is never followed
  * (`redirect: "manual"`): the bearer header would go with it, so a 3xx
@@ -63,7 +66,7 @@ export class ResponseTooLargeError extends Error {
 export async function readBoundedText(response: Response, ceilingBytes: number): Promise<string> {
   const declared = Number(response.headers.get("content-length") ?? Number.NaN);
   if (Number.isFinite(declared) && declared > ceilingBytes) {
-    await response.body?.cancel().catch(() => undefined);
+    await releaseBody(response);
     throw new ResponseTooLargeError(ceilingBytes);
   }
   if (response.body === null || response.body === undefined) {
@@ -125,28 +128,8 @@ export function newGitHubApi(token: string, fetchImpl: typeof fetch): GitHubApi 
       } catch {
         throw unavailableError("failed to reach GitHub");
       }
-      if (response.status === 401) {
-        throw failedPreconditionError(RECONNECT_GITHUB);
-      }
-      if (response.status === 404) {
-        throw notFoundError("GitHub", what);
-      }
-      if (response.status >= 300 && response.status < 400) {
-        await response.body?.cancel().catch(() => undefined);
-        throw failedPreconditionError(
-          `GitHub redirected the request for ${what} (HTTP ${response.status}); the server does not follow ` +
-            "a redirect with your login. If the repository was renamed or moved, use its current name",
-        );
-      }
-      if (response.status === 403 || response.status === 429) {
-        const detail = await readBoundedText(response, ERROR_BODY_CEILING_BYTES).catch(() => "");
-        throw new ConnectError(
-          `GitHub refused the request for ${what} (HTTP ${response.status})${messageOf(detail)}`,
-          Code.ResourceExhausted,
-        );
-      }
       if (!response.ok) {
-        throw unavailableError(`GitHub answered HTTP ${response.status} for ${what}`);
+        throw await refusalOf(response, what);
       }
       let body: T;
       try {
@@ -162,6 +145,46 @@ export function newGitHubApi(token: string, fetchImpl: typeof fetch): GitHubApi 
       return { body, link: response.headers.get("link") ?? "" };
     },
   };
+}
+
+/**
+ * The wire error for an answer that is not a success (any status outside
+ * 200-299, so every 3xx too), with its body released either way: a rate
+ * limit's body is read, bounded, for GitHub's own message, and every other
+ * body is cancelled unread. Deciding the body here, once, is what keeps a
+ * status mapped later from holding GitHub's connection.
+ */
+async function refusalOf(response: Response, what: string): Promise<ConnectError> {
+  const status = response.status;
+  if (status === 403 || status === 429) {
+    const detail = await readBoundedText(response, ERROR_BODY_CEILING_BYTES).catch(() => "");
+    return new ConnectError(
+      `GitHub refused the request for ${what} (HTTP ${status})${messageOf(detail)}`,
+      Code.ResourceExhausted,
+    );
+  }
+  await releaseBody(response);
+  if (status === 401) {
+    return failedPreconditionError(RECONNECT_GITHUB);
+  }
+  if (status === 404) {
+    return notFoundError("GitHub", what);
+  }
+  if (status >= 300 && status < 400) {
+    return failedPreconditionError(
+      `GitHub redirected the request for ${what} (HTTP ${status}); the server does not follow ` +
+        "a redirect with your login. If the repository was renamed or moved, use its current name",
+    );
+  }
+  return unavailableError(`GitHub answered HTTP ${status} for ${what}`);
+}
+
+/**
+ * Cancels a body the server will not read, so its connection is released at
+ * once; a body that refuses to be cancelled never hides the caller's error.
+ */
+async function releaseBody(response: Response): Promise<void> {
+  await response.body?.cancel().catch(() => undefined);
 }
 
 /** GitHub's own message from an error body, as a suffix; empty when there is none. */
