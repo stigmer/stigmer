@@ -55,3 +55,26 @@ export const TYPE = {
 } as const satisfies Record<string, TypeFace>;
 
 export type TypeRole = keyof typeof TYPE;
+
+/** One fixed-weight face the social card draws from. */
+export interface CardFace {
+  readonly family: string;
+  /** A file in `brand/fonts/` whose default instance is `weight`. */
+  readonly file: string;
+  readonly weight: number;
+}
+
+/**
+ * The faces the social card outlines its words from, each read at its file's
+ * default instance. The card never asks the font engine for a weight:
+ * fontkit 2.0.4, the engine its callers pass, cannot instance a variable
+ * WOFF2 (foliojs/fontkit#411 fixes it on fontkit's main, in no release yet).
+ * So the headline reads a bold cut of Instrument Sans, made from the same
+ * source, and the sentence and badges read the Geist files at their default,
+ * 400. `__tests__/type.test.ts` reads each file's weight to hold this.
+ */
+export const CARD_TYPE = {
+  headline: { family: TYPE.display.family, file: "InstrumentSans-Bold.woff2", weight: 700 },
+  sentence: { family: TYPE.sans.family, file: TYPE.sans.file, weight: 400 },
+  badge: { family: TYPE.mono.family, file: TYPE.mono.file, weight: 400 },
+} as const satisfies Record<string, CardFace>;

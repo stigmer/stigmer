@@ -16,6 +16,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { test } from "node:test";
+import * as fontkit from "fontkit";
 import sharp from "sharp";
 import { POSITIONING } from "../positioning";
 import { SOCIAL_CARDS, socialCardSvg } from "../social-card";
@@ -39,12 +40,15 @@ async function fixture(
       "package.json",
       "positioning.ts",
       "social-card.ts",
+      "type.ts",
     ]) {
       await cp(join(root, "brand", file), join(directory, "brand", file));
     }
-    await cp(join(root, "brand/source"), join(directory, "brand/source"), {
-      recursive: true,
-    });
+    for (const folder of ["source", "fonts"]) {
+      await cp(join(root, "brand", folder), join(directory, "brand", folder), {
+        recursive: true,
+      });
+    }
     await symlink(
       join(root, "node_modules"),
       join(directory, "node_modules"),
@@ -110,7 +114,7 @@ test("the generator exports current upload pixels and identical runtime paths", 
       );
       assert.deepEqual(
         await cover.ensureAlpha().raw().toBuffer(),
-        await sharp(Buffer.from(await socialCardSvg(layout, POSITIONING)))
+        await sharp(Buffer.from(await socialCardSvg(layout, POSITIONING, fontkit)))
           .ensureAlpha()
           .raw()
           .toBuffer(),
@@ -200,12 +204,14 @@ for (const [name, invalid] of [
       });
       assert.deepEqual((await readdir(join(directory, "brand"))).sort(), [
         "assets.mts",
+        "fonts",
         "generate.ts",
         "logo.svg",
         "package.json",
         "positioning.ts",
         "social-card.ts",
         "source",
+        "type.ts",
       ]);
     });
   });
@@ -236,12 +242,14 @@ for (const [name, invalid] of [
         });
         assert.deepEqual((await readdir(join(directory, "brand"))).sort(), [
           "assets.mts",
+          "fonts",
           "generate.ts",
           "logo.svg",
           "package.json",
           "positioning.ts",
           "social-card.ts",
           "source",
+          "type.ts",
         ]);
       },
       invalid,

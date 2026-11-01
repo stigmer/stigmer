@@ -8,6 +8,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { mkdtemp, mkdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import * as fontkit from "fontkit";
 import sharp from "sharp";
 
 vi.mock("../../../brand/assets.mjs", async (importOriginal) => {
@@ -94,7 +95,7 @@ describe("website brand exports", () => {
     const { POSITIONING } = await import("../../../brand/positioning");
     expect(await pixels(join(publicDir, "og-image.png"))).toEqual(
       await pixels(
-        Buffer.from(await socialCardSvg(SOCIAL_CARDS.openGraph, POSITIONING)),
+        Buffer.from(await socialCardSvg(SOCIAL_CARDS.openGraph, POSITIONING, fontkit)),
       ),
     );
     const ico = await readFile(join(publicDir, "favicon.ico"));
