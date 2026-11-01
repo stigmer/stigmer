@@ -268,7 +268,9 @@ One document of the manifest, with its preview and apply state.
     document: { type: "ManifestDocument", description: "The parsed document (kind handler, message, name/slug/org).", required: true },
     errorMessage: { type: "string", description: "User-facing failure message, present when `status` is `\"failed\"`." },
     result: { type: "AppliedManifest", description: "The applied resource, present when `status` is `\"applied\"`." },
+    slugKept: { type: "boolean", description: "`true` when the document declares another slug and its kind has no rename: the resource keeps its slug.", required: true },
     status: { type: "ManifestEntryStatus", description: "Apply lifecycle status.", required: true, typeDescriptionLink: "#manifestentrystatus" },
+    visibilityKept: { type: "boolean", description: "`true` when the document declares another visibility and its kind cannot change it: the resource keeps its visibility.", required: true },
   }}
 />
 

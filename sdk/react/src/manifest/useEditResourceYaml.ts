@@ -33,12 +33,26 @@ export type EditYamlValidation =
 export type EditYamlTarget =
   /**
    * The resource is updated under `slug`. `slugKept` when the document
-   * declares another slug and the kind has no rename.
+   * declares another slug and the kind has no rename; `visibilityKept`
+   * when it declares another visibility and the kind cannot change it.
    */
-  | { readonly action: "update"; readonly slug: string; readonly slugKept: boolean }
+  | {
+      readonly action: "update";
+      readonly slug: string;
+      readonly slugKept: boolean;
+      readonly visibilityKept: boolean;
+    }
   | { readonly action: "create"; readonly slug: string }
-  /** The resource is updated, then renamed from `from` to `slug`. */
-  | { readonly action: "rename"; readonly from: string; readonly slug: string }
+  /**
+   * The resource is updated, then renamed from `from` to `slug`;
+   * `visibilityKept` as for `update`.
+   */
+  | {
+      readonly action: "rename";
+      readonly from: string;
+      readonly slug: string;
+      readonly visibilityKept: boolean;
+    }
   /** Existence lookup failed (offline, permissions) — wording degrades. */
   | { readonly action: "unknown"; readonly slug: string };
 
@@ -219,10 +233,20 @@ export function useEditResourceYaml({
             next = { action: "create", slug: resolved.slug };
             break;
           case "update":
-            next = { action: "update", slug: resolved.slug, slugKept: resolved.slugKept };
+            next = {
+              action: "update",
+              slug: resolved.slug,
+              slugKept: resolved.slugKept,
+              visibilityKept: resolved.visibilityKept,
+            };
             break;
           case "rename":
-            next = { action: "rename", from: resolved.from, slug: resolved.slug };
+            next = {
+              action: "rename",
+              from: resolved.from,
+              slug: resolved.slug,
+              visibilityKept: resolved.visibilityKept,
+            };
             break;
           /* v8 ignore next -- @preserve: the exhaustiveness guard over ManifestTarget; resolveTarget answers only the arms above */
           default: {

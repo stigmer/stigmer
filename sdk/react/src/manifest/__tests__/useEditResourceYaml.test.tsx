@@ -5,6 +5,9 @@ import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError, createRouterTransport } from "@connectrpc/connect";
 import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentQueryController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/query_pb";
+import { ChannelSchema } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
+import { ChannelQueryController } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/query_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 import type { ApiResourceReference } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import { ManifestClient } from "@stigmer/client";
 import { StigmerContext } from "@stigmer/react-core";
@@ -13,8 +16,8 @@ import { useEditResourceYaml } from "../useEditResourceYaml";
 // The hooks run the real manifest engine (serializeManifest/parseManifest
 // from @stigmer/client) and the real target resolution
 // (ManifestClient.resolveTarget) over an in-memory agent query service:
-// `getByReference` answers each read, or null for not-found. Only apply is
-// mocked.
+// `getByReference` answers each read, or null for not-found; the channel
+// query service answers with the one stored channel. Only apply is mocked.
 function createMockStigmer(overrides: {
   apply?: (...args: unknown[]) => Promise<unknown>;
   getByReference?: (ref: ApiResourceReference) => Promise<unknown>;
@@ -29,6 +32,7 @@ function createMockStigmer(overrides: {
           return found as typeof agent;
         },
       });
+      service(ChannelQueryController, { getByReference: () => channel });
     }),
   );
   return {
@@ -66,6 +70,17 @@ const agent = create(AgentSchema, {
     org: "rakeshreddi098",
   },
   spec: { instructions: "Short messages." },
+});
+
+// A channel: a kind that can rename but has no visibility door.
+const channel = create(ChannelSchema, {
+  metadata: {
+    id: "chn_01",
+    name: "Support",
+    slug: "support",
+    org: "rakeshreddi098",
+    visibility: ApiResourceVisibility.visibility_private,
+  },
 });
 
 // The target check debounces across keystrokes.
@@ -165,6 +180,7 @@ describe("useEditResourceYaml", () => {
       action: "update",
       slug: "clinic-patient-assistant",
       slugKept: false,
+      visibilityKept: false,
     });
   });
 
@@ -193,6 +209,57 @@ describe("useEditResourceYaml", () => {
       action: "rename",
       from: "clinic-patient-assistant",
       slug: "renamed-assistant",
+      visibilityKept: false,
+    });
+  });
+
+  it("resolves a kept visibility when the kind cannot change the level the edit declares", async () => {
+    const { result } = renderHook(
+      () => useEditResourceYaml({ resource: channel }),
+      { wrapper: wrapper(createMockStigmer()) },
+    );
+
+    act(() => {
+      result.current.setYaml(
+        result.current.yaml.replace("visibility: visibility_private", "visibility: visibility_org"),
+      );
+    });
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(DEBOUNCE_MS + 10);
+    });
+
+    expect(result.current.target).toEqual({
+      action: "update",
+      slug: "support",
+      slugKept: false,
+      visibilityKept: true,
+    });
+  });
+
+  it("carries a kept visibility through a rename of the same document", async () => {
+    const { result } = renderHook(
+      () => useEditResourceYaml({ resource: channel }),
+      { wrapper: wrapper(createMockStigmer()) },
+    );
+
+    act(() => {
+      result.current.setYaml(
+        result.current.yaml
+          .replace("visibility: visibility_private", "visibility: visibility_org")
+          .replace("slug: support", "slug: helpdesk"),
+      );
+    });
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(DEBOUNCE_MS + 10);
+    });
+
+    expect(result.current.target).toEqual({
+      action: "rename",
+      from: "support",
+      slug: "helpdesk",
+      visibilityKept: true,
     });
   });
 

@@ -158,6 +158,51 @@ describe("useApplyManifest", () => {
     expect(result.current.entries![0].action).toBe("update");
   });
 
+  it("carries a kept slug and a kept visibility from the target into the preview", async () => {
+    const resolveTarget = vi
+      .fn()
+      .mockResolvedValue({ action: "update", slug: "s", slugKept: true, visibilityKept: true });
+    const { result } = renderHook(() => useApplyManifest("acme"), {
+      wrapper: wrapper(createMockStigmer({ resolveTarget })),
+    });
+
+    act(() => {
+      result.current.setContent(AGENT_YAML);
+    });
+    await act(settleValidation);
+
+    expect(result.current.entries![0]).toMatchObject({ action: "update", slugKept: true, visibilityKept: true });
+  });
+
+  it("carries a kept visibility on a rename, and keeps nothing on a create or a failed lookup", async () => {
+    const answers = [
+      { action: "rename", from: "old", slug: "s", visibilityKept: true },
+      { action: "create", slug: "s" },
+    ];
+    for (const answer of answers) {
+      const resolveTarget = vi.fn().mockResolvedValue(answer);
+      const { result } = renderHook(() => useApplyManifest("acme"), {
+        wrapper: wrapper(createMockStigmer({ resolveTarget })),
+      });
+      act(() => {
+        result.current.setContent(AGENT_YAML);
+      });
+      await act(settleValidation);
+      expect(result.current.entries![0], answer.action).toMatchObject({
+        slugKept: false,
+        visibilityKept: answer.action === "rename",
+      });
+    }
+    const failed = renderHook(() => useApplyManifest("acme"), {
+      wrapper: wrapper(createMockStigmer({ resolveTarget: vi.fn().mockRejectedValue(new Error("offline")) })),
+    });
+    act(() => {
+      failed.result.current.setContent(AGENT_YAML);
+    });
+    await act(settleValidation);
+    expect(failed.result.current.entries![0]).toMatchObject({ action: "unknown", slugKept: false, visibilityKept: false });
+  });
+
   it("marks a document that keeps its id under a new slug as a rename", async () => {
     const resolveTarget = vi.fn().mockResolvedValue({ action: "rename", from: "old", slug: "s" });
     const { result } = renderHook(() => useApplyManifest("acme"), {

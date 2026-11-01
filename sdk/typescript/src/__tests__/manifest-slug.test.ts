@@ -212,7 +212,7 @@ describe("ManifestClient.resolveTarget", () => {
 
     const target = await client().resolveTarget(documentOf(fake.handler, agent("test-bot")));
 
-    expect(target).toEqual({ action: "update", slug: "test-bot", current: stored, slugKept: false });
+    expect(target).toEqual({ action: "update", slug: "test-bot", current: stored, slugKept: false, visibilityKept: false });
   });
 
   it("answers rename from the stored slug when the id finds a resource the manifest names otherwise", async () => {
@@ -221,7 +221,7 @@ describe("ManifestClient.resolveTarget", () => {
 
     const target = await client().resolveTarget(documentOf(fake.handler, agent("support-bot")));
 
-    expect(target).toEqual({ action: "rename", from: "test-bot", slug: "support-bot", current: stored });
+    expect(target).toEqual({ action: "rename", from: "test-bot", slug: "support-bot", current: stored, visibilityKept: false });
   });
 
   it("answers update with a kept slug on a kind with no rename", async () => {
@@ -230,7 +230,7 @@ describe("ManifestClient.resolveTarget", () => {
 
     const target = await client().resolveTarget(documentOf(fake.handler, agent("new-share")));
 
-    expect(target).toEqual({ action: "update", slug: "test-share", current: stored, slugKept: true });
+    expect(target).toEqual({ action: "update", slug: "test-share", current: stored, slugKept: true, visibilityKept: false });
   });
 
   it("finds a manifest without an id by its slug", async () => {
@@ -239,7 +239,7 @@ describe("ManifestClient.resolveTarget", () => {
 
     const target = await client().resolveTarget(documentOf(fake.handler, agent("support-bot", "")));
 
-    expect(target).toEqual({ action: "update", slug: "support-bot", current: stored, slugKept: false });
+    expect(target).toEqual({ action: "update", slug: "support-bot", current: stored, slugKept: false, visibilityKept: false });
     expect(fake.reads).toHaveLength(1);
   });
 

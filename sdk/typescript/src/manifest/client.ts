@@ -1,12 +1,15 @@
 // Kind-agnostic apply/lookup over the manifest registry.
 //
 // One client, every registry kind: `apply` drives the kind's command
-// controller with the full resource proto and follows the manifest's slug
-// rules (slug.ts), the same ones `stigmer apply -f` follows. The server
-// finds the resource by the manifest's id, then by its slug, and a manifest
-// that carries the id and a new slug is renamed after it lands.
-// `resolveTarget` answers what an apply will do by that same lookup, for
-// previews; `getByReference` loads current server state for YAML editing.
+// controller with the full resource proto and follows the manifest's
+// visibility and slug rules (visibility.ts, slug.ts), the same ones
+// `stigmer apply -f` follows. The server finds the resource by the
+// manifest's id, then by its slug; a declared level other than the stored
+// one is landed through `updateVisibility`, then a manifest that carries
+// the id and a new slug is renamed. Visibility goes first so a refused
+// rename reports a level that landed. `resolveTarget` answers what an
+// apply will do by that same lookup, for previews; `getByReference` loads
+// current server state for YAML editing.
 
 import type { Message } from "@bufbuild/protobuf";
 import { create } from "@bufbuild/protobuf";
@@ -21,6 +24,7 @@ import {
   resolveManifestTarget,
   type ManifestTarget,
 } from "./slug.js";
+import { followDeclaredVisibility } from "./visibility.js";
 import {
   manifestHandlerForYamlKind,
   manifestKinds,
@@ -52,6 +56,12 @@ export interface AppliedManifest {
    * `slug`.
    */
   readonly slugKept: boolean;
+  /**
+   * `true` when the manifest declared another visibility and the kind has
+   * no `updateVisibility`: the spec landed and the resource keeps its
+   * level.
+   */
+  readonly visibilityKept: boolean;
 }
 
 /**
@@ -99,14 +109,20 @@ export class ManifestClient {
   /**
    * Apply one parsed manifest document. The server finds the resource by
    * the manifest's `metadata.id`, then by its slug, and creates it when
-   * neither answers. A manifest that carries the id and a different slug
-   * is then renamed through the kind's `rename`; a kind without one keeps
-   * its slug and the result says so (`slugKept`).
+   * neither answers. A declared visibility other than the stored one then
+   * lands through the kind's `updateVisibility`, and a manifest that
+   * carries the id and a different slug is renamed through its `rename`;
+   * a kind without the door keeps its level or slug and the result says so
+   * (`visibilityKept`, `slugKept`).
    *
    * @throws {SlugRenamedError} When the manifest names a slug the resource
    *   was renamed away from; the error names the current one.
+   * @throws {VisibilityChangeRefusedError} When the spec landed and the
+   *   visibility change was refused; the error carries the applied
+   *   resource.
    * @throws {SlugChangeRefusedError} When the spec landed and the rename
-   *   was refused; the error carries the applied resource.
+   *   was refused; the error carries the applied resource, at any level
+   *   that landed before it.
    * @throws {StigmerError} When the server rejects the apply
    *   (validation, permissions, …).
    */
@@ -114,17 +130,25 @@ export class ManifestClient {
     let applied: Message;
     let renamedFrom: string | undefined;
     let slugKept: boolean;
+    let visibilityKept: boolean;
     try {
       const stored = await applyNamingCurrentSlug(this.clientFor, document.handler, document.message);
-      const followed = await followDeclaredSlug(
+      const visibility = await followDeclaredVisibility(
         this.clientFor,
         document.handler,
         document.message,
         stored,
       );
+      const followed = await followDeclaredSlug(
+        this.clientFor,
+        document.handler,
+        document.message,
+        visibility.message,
+      );
       applied = followed.message;
       renamedFrom = followed.renamedFrom;
       slugKept = followed.slugKept;
+      visibilityKept = visibility.visibilityKept;
     } catch (e) {
       throw wrapError(e);
     }
@@ -140,13 +164,16 @@ export class ManifestClient {
       message: applied,
       ...(renamedFrom !== undefined && { renamedFrom }),
       slugKept,
+      visibilityKept,
     };
   }
 
   /**
    * What applying a document will do, resolved against live server state
    * by the lookup the apply makes: `create`, `update` (with `slugKept` when
-   * the kind cannot take a declared slug), or `rename` from the stored slug.
+   * the kind cannot take a declared slug), or `rename` from the stored slug,
+   * each but `create` with `visibilityKept` when the kind cannot take a
+   * declared level.
    *
    * @throws {SlugRenamedError} When the document has no id and names a
    *   slug the resource was renamed away from: the apply would be refused.
