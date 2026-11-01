@@ -57,6 +57,9 @@ async function settled(page: import("@playwright/test").Page): Promise<void> {
 /** How long a page goes with no request in flight before it counts as settled. */
 const QUIET_MS = 500;
 
+/** The time one settings page may take to open, settle and be audited. */
+const PAGE_BUDGET_MS = 10_000;
+
 /** The page's critical and serious violations, described; empty when it passes. */
 async function axeFailures(page: import("@playwright/test").Page): Promise<string> {
   const results = await new AxeBuilder({ page }).withTags([...AXE_TAGS]).analyze();
@@ -143,6 +146,9 @@ test.describe("Accessibility audits", () => {
       .evaluateAll((links) => [...new Set(links.map((link) => link.getAttribute("href") ?? ""))]);
     const settingsPages = hrefs.filter((href) => href.startsWith("/settings/"));
     expect(settingsPages.length, "the settings navigation links no settings page").toBeGreaterThan(0);
+    // One case opens every page: its budget grows with the pages, which on
+    // CI take about three seconds each while the dev server compiles them.
+    test.setTimeout(30_000 + settingsPages.length * PAGE_BUDGET_MS);
 
     const failures: string[] = [];
     for (const href of settingsPages) {
