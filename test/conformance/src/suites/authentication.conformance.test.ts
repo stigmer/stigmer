@@ -338,10 +338,18 @@ describe("authentication posture: how an installed app signs in", () => {
     expect(info.authenticationRequired).toBe(true);
   });
 
-  it("[rpc:PlatformQueryController.getServerInfo] tells an installed app, before sign-in, the issuer, audience and native client an OIDC server was started with", async (ctx) => {
+  function siblingOrSkip(ctx: { skip: (note?: string) => never }): {
+    issuer: LocalOidcIssuer;
+    sibling: SiblingServer;
+  } {
     if (issuer === undefined || sibling === undefined) {
       ctx.skip(target.spawnSiblingUnavailable?.() ?? "the target cannot spawn a sibling server");
     }
+    return { issuer, sibling };
+  }
+
+  it("[rpc:PlatformQueryController.getServerInfo] tells an installed app, before sign-in, the issuer, audience and native client an OIDC server was started with", async (ctx) => {
+    const { issuer, sibling } = siblingOrSkip(ctx);
     const asApp = sibling.clientsPresenting(
       await issuer.mint({ sub: freshSubject(), email: "native-app@conformance.example.com" }),
     );
