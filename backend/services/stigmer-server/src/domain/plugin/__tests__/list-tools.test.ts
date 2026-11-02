@@ -8,9 +8,10 @@
  * real resolver over a person with no My vault); a listing records its
  * connect attempt (plugin id, server, person) before the run starts and
  * ends it when the run settles, whatever the outcome; the runner
- * credential is minted for the attempt only when the server reads values;
- * the run goes to the shared runner queue, or to a connect sandbox that is
- * released afterwards; the tools come back with `destructive` only for an
+ * credential is minted for the attempt only when the server reads values
+ * and the run goes to the shared runner queue; a run in a connect sandbox,
+ * released afterwards, carries the attempt and no credential, since the
+ * sandbox holds its own; the tools come back with `destructive` only for an
  * explicit hint; and each failure class maps to its code and copy
  * (application to FailedPrecondition with transport-aware words or the
  * runner's own OAuth sentence, timeout to DeadlineExceeded, a lost run to
@@ -580,6 +581,36 @@ describe("listTools — a listing", () => {
     expect(starts[0]?.taskQueue.kind).toBe("sandbox");
     expect(released).toEqual([`sbx-${id}`]);
     expect(attempts.rows.size).toBe(0);
+  });
+
+  it("puts no credential on a connect sandbox's input: the sandbox holds its own", async () => {
+    const provisioner = {
+      createConnectSandbox: (id: string) => Promise.resolve(`sbx-${id}`),
+      deprovisionConnectSandbox: () => Promise.resolve(),
+    } as unknown as SandboxProvisioner;
+    const auth = runnerAuth(true);
+    const { engine, starts } = fakeEngine(attempts, {
+      ok: true,
+      output: { tools: [] },
+    });
+    await listTools(
+      deps({
+        attempts,
+        runnerAuth: auth,
+        sandboxLane: { enabled: true, provisioner, credentials: runnerAuth(true) },
+        engineState: () => ({ connected: true, engine }),
+      }),
+      input("github"),
+      caller,
+    );
+    const start = starts[0]!;
+    expect(start.taskQueue.kind).toBe("sandbox");
+    expect(start.input).toEqual({
+      plugin_id: PLUGIN_ID,
+      server: "github",
+      execution_context_id: start.attemptId,
+    });
+    expect(auth.minted).toEqual([]);
   });
 });
 

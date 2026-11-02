@@ -19,11 +19,22 @@
  * a server reading them answers tools/list to anonymous callers by
  * contract.
  *
+ * Where it runs: never on a session's task queue. The connect workflow
+ * refuses a listing started there (workflows/list-plugin-tools.ts), but any
+ * workflow can schedule this activity on any queue a worker serves, and the
+ * listing starts the plugin's MCP server (a local program, for a stdio
+ * entry) where it lands. So the activity refuses a session's queue itself,
+ * before it reads the plugin or starts anything, and another person's
+ * session sandbox never runs a program a stranger's plugin names.
+ *
  * Activity contract:
  *   Name:   "DiscoverMcpServerCapabilities"
  *   Input:  ListPluginToolsInput
  *   Output: ListPluginToolsOutput
  */
+
+import { Context } from "@temporalio/activity";
+import { ApplicationFailure } from "@temporalio/common";
 
 import { activityStarted, activityFinished } from "../idle-watchdog.js";
 import { StigmerClient } from "../client/stigmer-client.js";
@@ -41,6 +52,7 @@ import { startHeartbeat } from "../shared/heartbeat.js";
 import { listServerTools } from "../shared/mcp-tool-listing.js";
 import { filterEnvToDeclaredKeys } from "../shared/placeholder-resolver.js";
 import { fetchRunValues, RunValuesRefusedError, toolValuesKey, type ToolValueGroup } from "../shared/run-values.js";
+import { LISTING_ON_SESSION_QUEUE_FAILURE_TYPE, SESSION_QUEUE_PREFIX } from "../shared/task-queues.js";
 import type { McpServerEntry } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
 import type { EnvVarDeclaration } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/declaration_pb";
 import type { Config } from "../config.js";
@@ -226,6 +238,13 @@ export function createListPluginToolsActivities(config: Config) {
 
   return {
     DiscoverMcpServerCapabilities: async (input: ListPluginToolsInput): Promise<ListPluginToolsOutput> => {
+      const { taskQueue } = Context.current().info;
+      if (taskQueue.startsWith(SESSION_QUEUE_PREFIX)) {
+        throw ApplicationFailure.nonRetryable(
+          `A tools listing does not run on a session's task queue (${taskQueue}); the server starts it on the shared runner queue or its own connect sandbox`,
+          LISTING_ON_SESSION_QUEUE_FAILURE_TYPE,
+        );
+      }
       activityStarted();
       // The workflow proxies this activity with a 60s heartbeatTimeout, so it
       // MUST heartbeat: a listing slower than 60s (a stdio cold start, issue

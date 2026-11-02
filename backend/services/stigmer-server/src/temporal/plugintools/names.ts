@@ -21,7 +21,8 @@ export function listingWorkflowIdFor(attemptId: string): string {
 /**
  * The task queue one connect sandbox serves: its runner polls exactly this
  * queue (STIGMER_TASK_QUEUE) and the listing workflow is started on it. The
- * colon form of every per-queue name (`session:`, `sandbox:`); the id is
+ * colon form of every per-sandbox queue name (sandbox/naming.ts
+ * `SANDBOX_QUEUE_PREFIXES`); the id is
  * the listing's attempt id (domain/plugin/tools/execution-id.ts), unique
  * per listing, so two listings never share a sandbox.
  */
