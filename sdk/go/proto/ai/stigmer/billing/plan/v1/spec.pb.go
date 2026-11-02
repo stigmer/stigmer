@@ -89,16 +89,16 @@ func (PlanInstrument) EnumDescriptor() ([]byte, []int) {
 // a term of one specific plan row, and no row ships in the contract, so the
 // contract itself carries no price.
 //
-// The instrument decides which terms a plan may carry, and the four rules
+// The instrument decides which terms a plan may carry, and the five rules
 // below refuse what cannot be billed. A license plan is invoiced for a
 // term, so monthly terms have no meaning on it; a subscription plan bills
 // monthly, so an annual price has none. A license never meters a
-// self-hosted computer, so it carries no hourly price. And an hourly price
+// self-hosted computer, so it carries no hourly price. An hourly price
 // needs an allowance of agent hours to exceed, since a price with nothing
-// to exceed is never charged. per_extra_org_micros is bound to the
-// entitlements' child organizations, not to the instrument, and no rule
-// ties it to included_child_orgs yet (#2229): without an included count
-// the children are unlimited and the fee is likewise never charged.
+// to exceed is never charged. And for the same reason a per-organization
+// fee needs an included count of child organizations: without one the
+// children are unlimited, so per_extra_org_micros is bound to the
+// entitlements' included_child_orgs, not to the instrument.
 type PlanSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The instrument this plan is bought through.
@@ -268,7 +268,7 @@ var File_ai_stigmer_billing_plan_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_billing_plan_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"%ai/stigmer/billing/plan/v1/spec.proto\x12\x1aai.stigmer.billing.plan.v1\x1a(ai/stigmer/platform/v1/entitlement.proto\x1a\x1bbuf/validate/validate.proto\"\x87\b\n" +
+	"%ai/stigmer/billing/plan/v1/spec.proto\x12\x1aai.stigmer.billing.plan.v1\x1a(ai/stigmer/platform/v1/entitlement.proto\x1a\x1bbuf/validate/validate.proto\"\xff\t\n" +
 	"\bPlanSpec\x12Y\n" +
 	"\n" +
 	"instrument\x18\x01 \x01(\x0e2*.ai.stigmer.billing.plan.v1.PlanInstrumentB\r\xbaH\n" +
@@ -276,11 +276,12 @@ const file_ai_stigmer_billing_plan_v1_spec_proto_rawDesc = "" +
 	"instrument\x12P\n" +
 	"\fentitlements\x18\x02 \x01(\v2$.ai.stigmer.platform.v1.EntitlementsB\x06\xbaH\x03\xc8\x01\x01R\fentitlements\x12;\n" +
 	"\x05terms\x18\x03 \x01(\v2%.ai.stigmer.billing.plan.v1.PlanTermsR\x05terms\x12*\n" +
-	"\vdescription\x18\x04 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\vdescription:\xe4\x05\xbaH\xe0\x05\x1a\xac\x01\n" +
+	"\vdescription\x18\x04 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\vdescription:\xdc\a\xbaH\xd8\a\x1a\xac\x01\n" +
 	"&plan_spec.license_has_no_monthly_terms\x12Aa license plan carries no monthly_minimum_micros, the monthly fee\x1a?this.instrument != 2 || !has(this.terms.monthly_minimum_micros)\x1a\x9e\x01\n" +
 	"*plan_spec.subscription_has_no_annual_price\x122a subscription plan carries no annual_price_micros\x1a<this.instrument != 1 || !has(this.terms.annual_price_micros)\x1a\x9c\x01\n" +
 	")plan_spec.license_has_no_agent_hour_price\x12/a license plan carries no per_agent_hour_micros\x1a>this.instrument != 2 || !has(this.terms.per_agent_hour_micros)\x1a\xee\x01\n" +
-	"*plan_spec.agent_hour_price_needs_allowance\x12bper_agent_hour_micros needs entitlements.limits.included_agent_hours, the hours it is charged past\x1a\\!has(this.terms.per_agent_hour_micros) || has(this.entitlements.limits.included_agent_hours)\"\xf3\x02\n" +
+	"*plan_spec.agent_hour_price_needs_allowance\x12bper_agent_hour_micros needs entitlements.limits.included_agent_hours, the hours it is charged past\x1a\\!has(this.terms.per_agent_hour_micros) || has(this.entitlements.limits.included_agent_hours)\x1a\xf5\x01\n" +
+	"-plan_spec.extra_org_price_needs_included_orgs\x12hper_extra_org_micros needs entitlements.limits.included_child_orgs, the organizations it is charged past\x1aZ!has(this.terms.per_extra_org_micros) || has(this.entitlements.limits.included_child_orgs)\"\xf3\x02\n" +
 	"\tPlanTerms\x12B\n" +
 	"\x16monthly_minimum_micros\x18\x01 \x01(\x03B\a\xbaH\x04\"\x02(\x00H\x00R\x14monthlyMinimumMicros\x88\x01\x01\x12=\n" +
 	"\x14per_extra_org_micros\x18\x03 \x01(\x03B\a\xbaH\x04\"\x02(\x00H\x01R\x11perExtraOrgMicros\x88\x01\x01\x12<\n" +

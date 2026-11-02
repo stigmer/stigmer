@@ -13,7 +13,8 @@
 //   - the grammar, judged before the driver is asked: a host that names the
 //     cluster, a metadata service or an address is refused INVALID_ARGUMENT
 //     naming it, a single label by the contract's pattern naming the field, and hosts or flags under unrestricted
-//     networking are refused by the contract itself;
+//     networking are refused by the contract itself, as is a package entry
+//     its manager reads as a removal or a local file (one per manager);
 //   - the delete guard: an Environment an agent names as its default is not
 //     deleted, the refusal names the agent, and removing the default frees it;
 //   - server info tells the truth: what getServerInfo's `environments` says
@@ -179,6 +180,22 @@ describe("Environment conformance — the grammar", () => {
       () => clients.environmentCommand.create(environment),
       Code.InvalidArgument,
       "a package is a registry name, never a source",
+    );
+  });
+
+  it.each([
+    ["apt", "nodejs-"],
+    ["npm", "express@1.tgz"],
+    ["pip", "x.whl"],
+    ["gem", "x.gem:1"],
+  ])("[rpc:EnvironmentCommandController.create] the %s entry %s, which its manager reads as a removal or a local file, is refused by the contract", async (manager, entry) => {
+    const { org } = await target.provisionTenancy();
+    const environment = makeEnvironment(org, uniqueName("env"));
+    environment.spec = { networking: { type: NetworkingType.unrestricted }, packages: { [manager]: [entry] } };
+    await expectGrpcCode(
+      () => clients.environmentCommand.create(environment),
+      Code.InvalidArgument,
+      `the ${manager} entry ${entry} is a removal or a file, never a registry install`,
     );
   });
 });

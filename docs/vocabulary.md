@@ -1041,8 +1041,11 @@ Organization an integrator runs for one of its customers.
   `OrganizationSpec.external_id`; `OrganizationQueryController.getByExternalId`
   and `listChildOrgs`; the permission `can_manage_child_orgs`; the share level
   `visibility_child_orgs` (the CLI and frontmatter spelling `child-orgs`); the
-  Federation Issuer's `external_id_claim`; the plan feature `child_orgs` and its
-  limit `included_child_orgs`.
+  Federation Issuer's `external_id_claim`; the plan feature `child_orgs`, its
+  limit `included_child_orgs` on `EntitlementLimits` (the child organizations
+  the plan includes; absent, they are unlimited) and the plan term
+  `per_extra_org_micros` on `PlanTerms` (the price of each child organization
+  past them; refused without them, since unlimited children are never charged).
 - **Note**: One level deep: a child has no children, and is never moved to
   another parent. `parent_org` and `external_id` are fixed at create. An
   Organization that still has children cannot be deleted. Nobody owns a child
