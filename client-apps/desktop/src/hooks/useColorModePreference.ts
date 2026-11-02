@@ -1,5 +1,5 @@
 import { useCallback, useSyncExternalStore } from "react";
-import type { ColorMode } from "@stigmer/react-sdk";
+import type { ColorMode, ResolvedColorMode } from "@stigmer/react-sdk";
 
 const COLOR_MODE_KEY = "stigmer:colorMode";
 const DEFAULT: ColorMode = "system";
@@ -42,4 +42,29 @@ export function useColorModePreference() {
   }, []);
 
   return { colorMode, setColorMode: setMode } as const;
+}
+
+const DARK_QUERY = "(prefers-color-scheme: dark)";
+
+function systemIsDark(): boolean {
+  return typeof window.matchMedia === "function" && window.matchMedia(DARK_QUERY).matches;
+}
+
+function subscribeToSystem(callback: () => void): () => void {
+  if (typeof window.matchMedia !== "function") return () => {};
+  const query = window.matchMedia(DARK_QUERY);
+  query.addEventListener("change", callback);
+  return () => query.removeEventListener("change", callback);
+}
+
+/**
+ * The scheme to wear: the person's choice, with "system" read from the
+ * system's appearance. For what renders above the kit's provider, which
+ * resolves the same choice for the app itself.
+ */
+export function useResolvedColorMode(): ResolvedColorMode {
+  const { colorMode } = useColorModePreference();
+  const dark = useSyncExternalStore(subscribeToSystem, systemIsDark);
+  if (colorMode === "system") return dark ? "dark" : "light";
+  return colorMode;
 }
