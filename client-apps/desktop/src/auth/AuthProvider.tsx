@@ -21,7 +21,14 @@ export interface AuthState {
   readonly isInitialized: boolean;
   readonly user: AuthUser | null;
   readonly getAccessToken: () => string | null;
-  readonly login: () => Promise<void>;
+  /** Where the server sends people to sign in; null until the host has said, and on a server that signs no one in. */
+  readonly provider: ProviderView | null;
+  /**
+   * Signs in through the announced provider. `providerConfirmed` says the
+   * person was shown a provider on another site than the server's and chose
+   * it; without it the host refuses such a provider.
+   */
+  readonly login: (options?: { providerConfirmed?: boolean }) => Promise<void>;
   readonly logout: () => void;
 }
 
@@ -44,6 +51,14 @@ export interface SessionView {
   readonly user: AuthUser;
   /** False when nothing outlives the app: no keychain answered. */
   readonly keptBetweenLaunches: boolean;
+}
+
+/** Where a server sends people to sign in (src-tauri/src/oidc.rs `ProviderView`). */
+export interface ProviderView {
+  /** The provider's host, as the person will see it in the browser. */
+  readonly host: string;
+  /** Whether the provider sits on the server's own site. */
+  readonly sameSite: boolean;
 }
 
 /** What the host answers when the person cancels the wait for the browser. */
@@ -126,6 +141,7 @@ const OPEN_STATE: AuthState = {
   isInitialized: true,
   user: null,
   getAccessToken: () => null,
+  provider: null,
   login: async () => {},
   logout: () => {},
 };
@@ -202,9 +218,37 @@ function NativeAuthProvider({
     return () => clearTimeout(timer);
   }, [session, server, adopt]);
 
+  // Where this server sends people, so the sign-in screen can name a
+  // provider on another site before the browser opens.
+  const [provider, setProvider] = useState<ProviderView | null>(null);
+  useEffect(
+    () => {
+      let cancelled = false;
+      invoke<ProviderView>("auth_provider", { server, signIn: nativeSignIn }).then(
+        (answer) => {
+          if (!cancelled) setProvider(answer);
+        },
+        () => {
+          // The host always answers; a failure leaves no sign-in offered.
+        },
+      );
+      return () => {
+        cancelled = true;
+      };
+    },
+    // Stryker disable next-line ArrayDeclaration: another server or provider mounts another provider (the key above), so the list never changes while this one lives
+    [server, nativeSignIn],
+  );
+
   const login = useCallback(
-    async () => {
-      adopt(await invoke<SessionView>("auth_sign_in", { server, signIn: nativeSignIn }));
+    async (options?: { providerConfirmed?: boolean }) => {
+      adopt(
+        await invoke<SessionView>("auth_sign_in", {
+          server,
+          signIn: nativeSignIn,
+          providerConfirmed: options?.providerConfirmed ?? false,
+        }),
+      );
     },
     // Stryker disable next-line ArrayDeclaration: another server or provider mounts another provider, so the list never changes while this one lives
     [server, nativeSignIn, adopt],
@@ -226,6 +270,7 @@ function NativeAuthProvider({
     isInitialized,
     user: session?.user ?? null,
     getAccessToken,
+    provider,
     login,
     logout,
   };

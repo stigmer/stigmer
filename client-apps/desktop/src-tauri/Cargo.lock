@@ -3595,6 +3595,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "psl"
+version = "2.1.242"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e4f4ed67e1e9a42feede52064e3ded03efa4322860c14ccffe3743c978b66231"
+dependencies = [
+ "psl-types",
+]
+
+[[package]]
 name = "psl-types"
 version = "2.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4662,6 +4671,7 @@ dependencies = [
  "ignore",
  "keyring",
  "libc",
+ "psl",
  "serde",
  "serde_json",
  "sha2",

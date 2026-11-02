@@ -51,15 +51,17 @@ function view(accessToken: string, expiresAt: number): SessionView {
 let lastGetter: (() => string | null) | undefined;
 
 function Probe() {
-  const { isAuthEnabled, isAuthenticated, isInitialized, getAccessToken, user, login, logout } = useAuth();
+  const { isAuthEnabled, isAuthenticated, isInitialized, getAccessToken, user, provider, login, logout } = useAuth();
   lastGetter = getAccessToken;
   return (
     <div>
       <p data-testid="state">
         enabled={String(isAuthEnabled)} authenticated={String(isAuthenticated)} initialized=
-        {String(isInitialized)} token={String(getAccessToken())} user={user?.email ?? "none"}
+        {String(isInitialized)} token={String(getAccessToken())} user={user?.email ?? "none"} provider=
+        {provider === null ? "unknown" : `${provider.host}/${provider.sameSite ? "same" : "other"}`}
       </p>
       <button onClick={() => void login().catch(() => {})}>sign in</button>
+      <button onClick={() => void login({ providerConfirmed: true }).catch(() => {})}>sign in elsewhere</button>
       <button onClick={logout}>sign out</button>
     </div>
   );
@@ -106,8 +108,24 @@ describe("the auth mode", () => {
     await userEvent.click(screen.getByRole("button", { name: "sign in" }));
 
     await waitFor(() => expect(stateLine()).toContain("authenticated=true"));
-    expect(tauri.callsTo("auth_sign_in")).toEqual([{ server: SERVER, signIn: ACME }]);
+    expect(tauri.callsTo("auth_sign_in")).toEqual([{ server: SERVER, signIn: ACME, providerConfirmed: false }]);
     expect(stateLine()).toContain("token=access-1 user=ada@acme.internal");
+  });
+
+  it("asks the host where the server sends people, and passes on the person's choice of a provider elsewhere", async () => {
+    const tauri = mockTauri({
+      auth_session: () => null,
+      auth_provider: () => ({ host: "acme.okta.com", sameSite: false }),
+      auth_sign_in: () => view("access-1", Date.now() + 60 * MINUTE),
+    });
+    renderSignIn();
+    await waitFor(() => expect(stateLine()).toContain("provider=acme.okta.com/other"));
+    expect(tauri.callsTo("auth_provider")).toEqual([{ server: SERVER, signIn: ACME }]);
+
+    await userEvent.click(screen.getByRole("button", { name: "sign in elsewhere" }));
+
+    await waitFor(() => expect(stateLine()).toContain("authenticated=true"));
+    expect(tauri.callsTo("auth_sign_in")).toEqual([{ server: SERVER, signIn: ACME, providerConfirmed: true }]);
   });
 
   it("asks the host for a session through the provider the server announces now", async () => {

@@ -45,6 +45,9 @@ getrandom = "0.2"
 # whose D-Bus library is vendored so the Linux build needs no system headers.
 keyring = { version = "3.6", features = ["apple-native", "windows-native", "sync-secret-service", "crypto-rust", "vendored"] }
 url = "2"
+# Whether a server's sign-in provider is on the server's own site (oidc.rs): the
+# Public Suffix List, compiled in. Pinned to a release at least two weeks old.
+psl = "=2.1.242"
 # Embedded-runner IPC driver, vendored in-repo. The `tauri` feature provides the
 # #[tauri::command] surface that `runner.rs` re-exports.
 stigmer-runner-host = { path = "../../../crates/stigmer-runner-host", features = ["tauri"] }

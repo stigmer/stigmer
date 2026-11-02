@@ -13,12 +13,19 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { mockTauri } from "../../__test-utils__/tauri";
 
-const auth = vi.hoisted(() => ({ login: vi.fn<() => Promise<void>>() }));
+const auth = vi.hoisted(() => ({
+  login: vi.fn<(options?: { providerConfirmed?: boolean }) => Promise<void>>(),
+  provider: { host: "id.stigmer.ai", sameSite: true } as { host: string; sameSite: boolean } | null,
+}));
 vi.mock("../AuthProvider", () => ({
   SIGN_IN_CANCELLED: "Sign-in cancelled.",
-  useAuth: () => ({ login: auth.login }),
+  useAuth: () => ({ login: auth.login, provider: auth.provider }),
 }));
-const server = vi.hoisted(() => ({ label: "Stigmer Cloud", setChoosing: vi.fn() }));
+const server = vi.hoisted(() => ({
+  label: "Stigmer Cloud",
+  origin: "https://api.stigmer.ai",
+  setChoosing: vi.fn(),
+}));
 vi.mock("../../server/ServerProvider", () => ({ useServer: () => server }));
 
 import { LoginScreen } from "../LoginScreen";
@@ -27,6 +34,8 @@ beforeEach(() => {
   auth.login.mockReset();
   server.setChoosing.mockReset();
   server.label = "Stigmer Cloud";
+  server.origin = "https://api.stigmer.ai";
+  auth.provider = { host: "id.stigmer.ai", sameSite: true };
 });
 
 describe("DSK-02 LoginScreen", () => {
@@ -65,6 +74,43 @@ describe("DSK-02 LoginScreen", () => {
     );
     await userEvent.click(screen.getByRole("button", { name: "Try again" }));
     expect(screen.getByRole("button", { name: "Sign in to Stigmer Cloud" })).toBeTruthy();
+  });
+
+  it("signs in on one press, with no question, at a provider on the server's own site", async () => {
+    auth.login.mockResolvedValue();
+    render(<LoginScreen />);
+    expect(screen.queryByText(/on another site/)).toBeNull();
+
+    await userEvent.click(screen.getByRole("button", { name: "Sign in to Stigmer Cloud" }));
+
+    expect(auth.login).toHaveBeenCalledWith({ providerConfirmed: false });
+  });
+
+  it("names both hosts before sending a person to a provider on another site", async () => {
+    // A server a person was talked into choosing can announce a company's
+    // real provider to collect its tokens. The person sees whose account
+    // this server wants, by the server's address, never by the name the
+    // server gave itself.
+    server.label = "Stigmer Cloud";
+    server.origin = "https://evil.example";
+    auth.provider = { host: "id.acme.com", sameSite: false };
+    auth.login.mockResolvedValue();
+    render(<LoginScreen />);
+
+    expect(screen.getByText("evil.example signs people in at id.acme.com, on another site.")).toBeTruthy();
+    expect(screen.getByText("Go on only if you trust evil.example with your id.acme.com account.")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Sign in to Stigmer Cloud" })).toBeNull();
+
+    await userEvent.click(screen.getByRole("button", { name: "Sign in at id.acme.com" }));
+
+    expect(auth.login).toHaveBeenCalledWith({ providerConfirmed: true });
+  });
+
+  it("offers no sign-in until it knows where the server sends people", () => {
+    auth.provider = null;
+    render(<LoginScreen />);
+    expect(screen.queryByRole("button", { name: /^Sign in/ })).toBeNull();
+    expect(screen.getByRole("button", { name: "Use another server" })).toBeTruthy();
   });
 
   it("offers another server", async () => {

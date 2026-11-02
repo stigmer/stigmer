@@ -41,6 +41,7 @@ function authAs(isAuthEnabled: boolean): void {
       ? { sub: "auth0|desktop", email: "ada@example.com", name: "Ada" }
       : null,
     getAccessToken: () => null,
+    provider: null,
     login: async () => {},
     logout: () => {},
   };

@@ -64,6 +64,88 @@ pub struct NativeSignIn {
     pub client_id: String,
 }
 
+/// Where a server sends people to sign in, as the sign-in screen shows it.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProviderView {
+    /// The provider's host, as the person will see it in the browser.
+    pub host: String,
+    /// Whether the provider sits on the server's own site.
+    pub same_site: bool,
+}
+
+fn host_of(raw: &str) -> Option<url::Host<String>> {
+    url::Url::parse(raw).ok()?.host().map(|h| h.to_owned())
+}
+
+fn is_loopback(host: &url::Host<String>) -> bool {
+    match host {
+        url::Host::Domain(name) => name.eq_ignore_ascii_case("localhost"),
+        url::Host::Ipv4(ip) => ip.is_loopback(),
+        url::Host::Ipv6(ip) => ip.is_loopback(),
+    }
+}
+
+/// The registrable domain of a host name (`id.acme.co.uk` -> `acme.co.uk`),
+/// by the Public Suffix List; `None` for a public suffix itself.
+fn registrable(name: &str) -> Option<String> {
+    let name = name.trim_end_matches('.').to_ascii_lowercase();
+    psl::domain_str(&name).map(str::to_owned)
+}
+
+/// Whether `issuer` sits on `server`'s own site: the same registrable
+/// domain, the same address, or both on this computer.
+///
+/// A server announces its sign-in provider, and a server a person was
+/// talked into choosing could announce another server's (its issuer,
+/// audience and public native client) to collect tokens that server
+/// accepts. A provider on the server's own site cannot be borrowed that way;
+/// one elsewhere is shown to the person before the browser opens.
+pub(crate) fn provider_on_servers_site(server: &str, issuer: &str) -> bool {
+    let (Some(server), Some(issuer)) = (host_of(server), host_of(issuer)) else {
+        return false;
+    };
+    if is_loopback(&server) && is_loopback(&issuer) {
+        return true;
+    }
+    match (&server, &issuer) {
+        (url::Host::Domain(a), url::Host::Domain(b)) => {
+            matches!((registrable(a), registrable(b)), (Some(a), Some(b)) if a == b)
+        }
+        _ => server == issuer,
+    }
+}
+
+/// The provider's host as the person will see it, for the sign-in screen.
+fn provider_view(server: &str, sign_in: &NativeSignIn) -> ProviderView {
+    ProviderView {
+        host: host_of(&sign_in.issuer)
+            .map(|h| h.to_string())
+            .unwrap_or_else(|| sign_in.issuer.clone()),
+        same_site: provider_on_servers_site(server, &sign_in.issuer),
+    }
+}
+
+/// Refuses a sign-in at a provider on another site unless the person was
+/// shown both hosts and chose to go on.
+pub(crate) fn admit_provider(
+    server: &str,
+    sign_in: &NativeSignIn,
+    confirmed: bool,
+) -> Result<(), String> {
+    let provider = provider_view(server, sign_in);
+    if provider.same_site || confirmed {
+        return Ok(());
+    }
+    let server_host = host_of(server)
+        .map(|h| h.to_string())
+        .unwrap_or_else(|| server.to_string());
+    Err(format!(
+        "{server_host} signs people in at {}, on another site. The app goes there only once you choose to on the sign-in screen.",
+        provider.host
+    ))
+}
+
 /// The webview's whole view of a session.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -595,7 +677,9 @@ pub async fn auth_sign_in<R: Runtime>(
     app: AppHandle<R>,
     server: String,
     sign_in: NativeSignIn,
+    provider_confirmed: Option<bool>,
 ) -> Result<SessionView, String> {
+    admit_provider(&server, &sign_in, provider_confirmed.unwrap_or(false))?;
     let state = app.state::<SignIn>();
     let discovery = state.discover(&sign_in.issuer).await?;
     let pkce = new_pkce()?;
@@ -650,6 +734,13 @@ pub async fn auth_sign_in<R: Runtime>(
         .await
         .map_err(TokenFailure::message)?;
     state.keep(&server, &sign_in, tokens, None)
+}
+
+/// Where `server` sends people to sign in, and whether that is on its own
+/// site, for the sign-in screen to say before the browser opens.
+#[tauri::command]
+pub fn auth_provider(server: String, sign_in: NativeSignIn) -> ProviderView {
+    provider_view(&server, &sign_in)
 }
 
 /// Opens the waiting sign-in in the browser again.
@@ -962,6 +1053,76 @@ mod tests {
 
         sign_in_state.forget(origin).unwrap();
         assert_eq!(sign_in_state.store.load(origin).unwrap(), None);
+    }
+
+    #[test]
+    fn a_provider_on_the_server_s_own_site_is_recognised() {
+        for (server, issuer) in [
+            ("https://api.stigmer.ai", "https://id.stigmer.ai/"),
+            (
+                "https://api.dev.stigmer.ai",
+                "https://id.preprod.stigmer.ai/",
+            ),
+            ("https://stigmer.acme.co.uk", "https://id.acme.co.uk/"),
+            ("http://127.0.0.1:7801", "http://127.0.0.1:7299"),
+            ("http://localhost:7801", "http://127.0.0.1:7299/"),
+        ] {
+            assert!(
+                provider_on_servers_site(server, issuer),
+                "{issuer} is on {server}'s site"
+            );
+        }
+    }
+
+    #[test]
+    fn a_provider_on_another_site_is_recognised() {
+        for (server, issuer) in [
+            // A server someone was talked into choosing, borrowing a
+            // company's sign-in to collect its tokens.
+            ("https://evil.example", "https://id.acme.com/"),
+            // A company's own server and its hosted provider: legitimate,
+            // but the person is asked.
+            ("https://stigmer.acme.com", "https://acme.okta.com/"),
+            (
+                "https://stigmer.acme.com",
+                "https://login.microsoftonline.com/t/v2.0",
+            ),
+            // Two names under one public suffix belong to different owners.
+            ("https://evil.github.io", "https://victim.github.io/"),
+            ("https://10.0.0.5", "https://10.0.0.6/"),
+            ("https://stigmer.acme.com", "not a url"),
+        ] {
+            assert!(
+                !provider_on_servers_site(server, issuer),
+                "{issuer} is not on {server}'s site"
+            );
+        }
+    }
+
+    #[test]
+    fn a_provider_on_another_site_signs_in_only_once_the_person_chose_it() {
+        let borrowed = NativeSignIn {
+            issuer: "https://id.acme.com/".into(),
+            audience: "https://api.acme.com".into(),
+            client_id: "acme-desktop".into(),
+        };
+        let refused = admit_provider("https://evil.example", &borrowed, false).unwrap_err();
+        assert!(
+            refused.contains("evil.example") && refused.contains("id.acme.com"),
+            "{refused}"
+        );
+        assert_eq!(
+            admit_provider("https://evil.example", &borrowed, true),
+            Ok(())
+        );
+        let own = NativeSignIn {
+            issuer: "https://id.stigmer.ai/".into(),
+            ..borrowed
+        };
+        assert_eq!(
+            admit_provider("https://api.stigmer.ai", &own, false),
+            Ok(())
+        );
     }
 
     fn fresh_tokens() -> TokenResponse {

@@ -48,6 +48,7 @@ pub fn run() {
             server::current_server,
             server::choose_server,
             oidc::auth_sign_in,
+            oidc::auth_provider,
             oidc::auth_reopen_browser,
             oidc::auth_cancel,
             oidc::auth_session,

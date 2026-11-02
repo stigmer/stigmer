@@ -23,6 +23,7 @@ export const APP_COMMANDS = [
   "current_server",
   "choose_server",
   "auth_sign_in",
+  "auth_provider",
   "auth_reopen_browser",
   "auth_cancel",
   "auth_session",
