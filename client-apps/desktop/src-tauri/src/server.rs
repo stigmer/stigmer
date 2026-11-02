@@ -48,7 +48,9 @@ fn is_loopback(host: &Host<&str>) -> bool {
 pub(crate) fn validate(input: &str) -> Result<String, String> {
     let trimmed = input.trim();
     if trimmed.is_empty() {
-        return Err("Type the address of a Stigmer server, like https://stigmer.example.com.".into());
+        return Err(
+            "Type the address of a Stigmer server, like https://stigmer.example.com.".into(),
+        );
     }
     // A bare host ("stigmer.example.com") means https, the only scheme
     // another machine may be reached with.
@@ -57,11 +59,12 @@ pub(crate) fn validate(input: &str) -> Result<String, String> {
     } else {
         format!("https://{trimmed}")
     };
-    let url = Url::parse(&candidate)
-        .map_err(|_| format!("{trimmed} is not a web address. Type one like https://stigmer.example.com."))?;
-    let host = url
-        .host()
-        .ok_or_else(|| format!("{trimmed} names no host. Type one like https://stigmer.example.com."))?;
+    let url = Url::parse(&candidate).map_err(|_| {
+        format!("{trimmed} is not a web address. Type one like https://stigmer.example.com.")
+    })?;
+    let host = url.host().ok_or_else(|| {
+        format!("{trimmed} names no host. Type one like https://stigmer.example.com.")
+    })?;
     match url.scheme() {
         "https" => {}
         "http" if is_loopback(&host) => {}
@@ -81,7 +84,10 @@ pub(crate) fn validate(input: &str) -> Result<String, String> {
             "{trimmed} carries a user name or password. Type the server's address alone; you sign in after."
         ));
     }
-    if (url.path() != "/" && !url.path().is_empty()) || url.query().is_some() || url.fragment().is_some() {
+    if (url.path() != "/" && !url.path().is_empty())
+        || url.query().is_some()
+        || url.fragment().is_some()
+    {
         return Err(format!(
             "{trimmed} has a path. Type the server's address alone, like https://stigmer.example.com."
         ));
@@ -115,7 +121,10 @@ impl ServerChoice {
 }
 
 fn saved_path<R: Runtime>(app: &AppHandle<R>) -> Option<PathBuf> {
-    app.path().app_config_dir().ok().map(|dir| dir.join(SAVED_FILE))
+    app.path()
+        .app_config_dir()
+        .ok()
+        .map(|dir| dir.join(SAVED_FILE))
 }
 
 /// Lets the webview's HTTP plugin reach exactly this origin.
@@ -141,7 +150,13 @@ pub(crate) fn grant<R: Runtime>(app: &AppHandle<R>, origin: &str) -> Result<(), 
 fn capability_suffix(origin: &str) -> String {
     origin
         .chars()
-        .map(|c| if c.is_ascii_alphanumeric() { c.to_ascii_lowercase() } else { '-' })
+        .map(|c| {
+            if c.is_ascii_alphanumeric() {
+                c.to_ascii_lowercase()
+            } else {
+                '-'
+            }
+        })
         .collect()
 }
 
@@ -182,15 +197,26 @@ pub fn choose_server<R: Runtime>(
 ) -> Result<String, String> {
     let origin = validate(&url)?;
     grant(&app, &origin)?;
-    let path = saved_path(&app).ok_or("The app cannot find its settings folder to remember this server.")?;
+    let path = saved_path(&app)
+        .ok_or("The app cannot find its settings folder to remember this server.")?;
     if let Some(dir) = path.parent() {
-        std::fs::create_dir_all(dir)
-            .map_err(|e| format!("The app could not remember this server ({}): {e}", dir.display()))?;
+        std::fs::create_dir_all(dir).map_err(|e| {
+            format!(
+                "The app could not remember this server ({}): {e}",
+                dir.display()
+            )
+        })?;
     }
-    let text = serde_json::to_string(&Saved { url: origin.clone() })
-        .map_err(|e| format!("The app could not remember this server: {e}"))?;
-    std::fs::write(&path, text)
-        .map_err(|e| format!("The app could not remember this server ({}): {e}", path.display()))?;
+    let text = serde_json::to_string(&Saved {
+        url: origin.clone(),
+    })
+    .map_err(|e| format!("The app could not remember this server: {e}"))?;
+    std::fs::write(&path, text).map_err(|e| {
+        format!(
+            "The app could not remember this server ({}): {e}",
+            path.display()
+        )
+    })?;
     if let Ok(mut guard) = state.0.lock() {
         *guard = Some(origin.clone());
     }
@@ -203,21 +229,42 @@ mod tests {
 
     #[test]
     fn an_https_address_becomes_its_origin() {
-        assert_eq!(validate("https://stigmer.acme.internal").as_deref(), Ok("https://stigmer.acme.internal"));
-        assert_eq!(validate("https://stigmer.acme.internal/").as_deref(), Ok("https://stigmer.acme.internal"));
-        assert_eq!(validate("  https://Stigmer.Acme.Internal:8443  ").as_deref(), Ok("https://stigmer.acme.internal:8443"));
+        assert_eq!(
+            validate("https://stigmer.acme.internal").as_deref(),
+            Ok("https://stigmer.acme.internal")
+        );
+        assert_eq!(
+            validate("https://stigmer.acme.internal/").as_deref(),
+            Ok("https://stigmer.acme.internal")
+        );
+        assert_eq!(
+            validate("  https://Stigmer.Acme.Internal:8443  ").as_deref(),
+            Ok("https://stigmer.acme.internal:8443")
+        );
     }
 
     #[test]
     fn a_bare_host_means_https() {
-        assert_eq!(validate("stigmer.acme.internal").as_deref(), Ok("https://stigmer.acme.internal"));
+        assert_eq!(
+            validate("stigmer.acme.internal").as_deref(),
+            Ok("https://stigmer.acme.internal")
+        );
     }
 
     #[test]
     fn http_is_allowed_to_this_computer_only() {
-        assert_eq!(validate("http://localhost:7234").as_deref(), Ok("http://localhost:7234"));
-        assert_eq!(validate("http://127.0.0.1:7234").as_deref(), Ok("http://127.0.0.1:7234"));
-        assert_eq!(validate("http://[::1]:7234").as_deref(), Ok("http://[::1]:7234"));
+        assert_eq!(
+            validate("http://localhost:7234").as_deref(),
+            Ok("http://localhost:7234")
+        );
+        assert_eq!(
+            validate("http://127.0.0.1:7234").as_deref(),
+            Ok("http://127.0.0.1:7234")
+        );
+        assert_eq!(
+            validate("http://[::1]:7234").as_deref(),
+            Ok("http://[::1]:7234")
+        );
         let refused = validate("http://stigmer.acme.internal").unwrap_err();
         assert!(refused.contains("in clear"), "{refused}");
         assert!(validate("http://10.0.0.5:7234").is_err());
@@ -226,16 +273,30 @@ mod tests {
     #[test]
     fn an_address_that_is_not_a_server_says_why() {
         assert!(validate("").unwrap_err().starts_with("Type the address"));
-        assert!(validate("ftp://files.acme.internal").unwrap_err().contains("ftp:"));
-        assert!(validate("https://ada:secret@stigmer.acme.internal").unwrap_err().contains("user name or password"));
-        assert!(validate("https://stigmer.acme.internal/console").unwrap_err().contains("has a path"));
-        assert!(validate("https://stigmer.acme.internal/?x=1").unwrap_err().contains("has a path"));
+        assert!(validate("ftp://files.acme.internal")
+            .unwrap_err()
+            .contains("ftp:"));
+        assert!(validate("https://ada:secret@stigmer.acme.internal")
+            .unwrap_err()
+            .contains("user name or password"));
+        assert!(validate("https://stigmer.acme.internal/console")
+            .unwrap_err()
+            .contains("has a path"));
+        assert!(validate("https://stigmer.acme.internal/?x=1")
+            .unwrap_err()
+            .contains("has a path"));
         assert!(validate("https://").is_err());
     }
 
     #[test]
     fn a_capability_identifier_is_letters_digits_and_dashes() {
-        assert_eq!(capability_suffix("http://127.0.0.1:7234"), "http---127-0-0-1-7234");
-        assert_eq!(capability_suffix("https://Stigmer.Example"), "https---stigmer-example");
+        assert_eq!(
+            capability_suffix("http://127.0.0.1:7234"),
+            "http---127-0-0-1-7234"
+        );
+        assert_eq!(
+            capability_suffix("https://Stigmer.Example"),
+            "https---stigmer-example"
+        );
     }
 }

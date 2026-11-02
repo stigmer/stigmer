@@ -111,14 +111,20 @@ fn is_trusted_endpoint(raw: &str) -> bool {
 
 /// Where an issuer publishes its discovery document.
 pub(crate) fn discovery_url(issuer: &str) -> String {
-    format!("{}/.well-known/openid-configuration", issuer.trim_end_matches('/'))
+    format!(
+        "{}/.well-known/openid-configuration",
+        issuer.trim_end_matches('/')
+    )
 }
 
 /// The endpoints a discovery document names, once it is the announced
 /// issuer's own and every endpoint is one the app may use.
 pub(crate) fn read_discovery(expected_issuer: &str, body: &str) -> Result<Discovery, String> {
-    let document: DiscoveryDocument = serde_json::from_str(body)
-        .map_err(|_| format!("{expected_issuer} published no OpenID Connect discovery document the app can read."))?;
+    let document: DiscoveryDocument = serde_json::from_str(body).map_err(|_| {
+        format!(
+            "{expected_issuer} published no OpenID Connect discovery document the app can read."
+        )
+    })?;
     if document.issuer != expected_issuer {
         return Err(format!(
             "The sign-in provider says it is {}, but this server named {expected_issuer}. Ask the server's operator to set the issuer exactly as the provider spells it.",
@@ -150,7 +156,8 @@ pub(crate) struct Pkce {
 
 fn random_token(bytes: usize) -> Result<String, String> {
     let mut buffer = vec![0u8; bytes];
-    getrandom::getrandom(&mut buffer).map_err(|e| format!("The system gave the app no randomness: {e}"))?;
+    getrandom::getrandom(&mut buffer)
+        .map_err(|e| format!("The system gave the app no randomness: {e}"))?;
     Ok(URL_SAFE_NO_PAD.encode(buffer))
 }
 
@@ -161,7 +168,10 @@ pub(crate) fn challenge_of(verifier: &str) -> String {
 fn new_pkce() -> Result<Pkce, String> {
     let verifier = random_token(48)?;
     let challenge = challenge_of(&verifier);
-    Ok(Pkce { verifier, challenge })
+    Ok(Pkce {
+        verifier,
+        challenge,
+    })
 }
 
 /// The URL the person's browser opens to sign in.
@@ -172,8 +182,9 @@ pub(crate) fn authorize_url(
     state: &str,
     challenge: &str,
 ) -> Result<String, String> {
-    let mut url = Url::parse(&discovery.authorization_endpoint)
-        .map_err(|_| "The sign-in provider's authorization address is not a web address.".to_string())?;
+    let mut url = Url::parse(&discovery.authorization_endpoint).map_err(|_| {
+        "The sign-in provider's authorization address is not a web address.".to_string()
+    })?;
     url.query_pairs_mut()
         .append_pair("response_type", "code")
         .append_pair("client_id", &sign_in.client_id)
@@ -189,9 +200,14 @@ pub(crate) fn authorize_url(
 
 /// What a callback says, for the flow that sent `expected_state`: the code,
 /// or why there is none.
-pub(crate) fn code_from(callback: &AuthCallbackPayload, expected_state: &str) -> Result<String, String> {
+pub(crate) fn code_from(
+    callback: &AuthCallbackPayload,
+    expected_state: &str,
+) -> Result<String, String> {
     if callback.state.as_deref() != Some(expected_state) {
-        return Err("The sign-in that came back is not the one the app started. Sign in again.".into());
+        return Err(
+            "The sign-in that came back is not the one the app started. Sign in again.".into(),
+        );
     }
     if let Some(error) = &callback.error {
         return Err(callback
@@ -199,10 +215,9 @@ pub(crate) fn code_from(callback: &AuthCallbackPayload, expected_state: &str) ->
             .clone()
             .unwrap_or_else(|| format!("The sign-in provider refused the sign-in ({error}).")));
     }
-    callback
-        .code
-        .clone()
-        .ok_or_else(|| "The sign-in provider sent the app back without a sign-in. Sign in again.".to_string())
+    callback.code.clone().ok_or_else(|| {
+        "The sign-in provider sent the app back without a sign-in. Sign in again.".to_string()
+    })
 }
 
 /// The display claims of an ID token. Not verified: it came straight from
@@ -291,7 +306,12 @@ impl SignIn {
     }
 
     async fn discover(&self, issuer: &str) -> Result<Discovery, String> {
-        if let Some(known) = self.discovered.lock().ok().and_then(|m| m.get(issuer).cloned()) {
+        if let Some(known) = self
+            .discovered
+            .lock()
+            .ok()
+            .and_then(|m| m.get(issuer).cloned())
+        {
             return Ok(known);
         }
         if !is_trusted_endpoint(issuer) {
@@ -322,14 +342,22 @@ impl SignIn {
         Ok(discovery)
     }
 
-    async fn token_request(&self, endpoint: &str, form: &[(&str, &str)]) -> Result<TokenResponse, TokenFailure> {
+    async fn token_request(
+        &self,
+        endpoint: &str,
+        form: &[(&str, &str)],
+    ) -> Result<TokenResponse, TokenFailure> {
         let response = self
             .http
             .post(endpoint)
             .form(form)
             .send()
             .await
-            .map_err(|e| TokenFailure::Unreachable(format!("The app could not reach the sign-in provider: {e}")))?;
+            .map_err(|e| {
+                TokenFailure::Unreachable(format!(
+                    "The app could not reach the sign-in provider: {e}"
+                ))
+            })?;
         let status = response.status();
         let body = response.text().await.unwrap_or_default();
         if status.is_client_error() {
@@ -342,13 +370,18 @@ impl SignIn {
                         .map(str::to_owned)
                 })
                 .unwrap_or_else(|| status.to_string());
-            return Err(TokenFailure::Refused(format!("The sign-in provider refused the sign-in: {reason}")));
+            return Err(TokenFailure::Refused(format!(
+                "The sign-in provider refused the sign-in: {reason}"
+            )));
         }
         if !status.is_success() {
-            return Err(TokenFailure::Unreachable(format!("The sign-in provider answered {status}. Try again.")));
+            return Err(TokenFailure::Unreachable(format!(
+                "The sign-in provider answered {status}. Try again."
+            )));
         }
-        serde_json::from_str(&body)
-            .map_err(|_| TokenFailure::Unreachable("The sign-in provider's answer had no access token.".into()))
+        serde_json::from_str(&body).map_err(|_| {
+            TokenFailure::Unreachable("The sign-in provider's answer had no access token.".into())
+        })
     }
 
     /// Keeps a fresh token response: in memory for the webview, and its
@@ -439,7 +472,11 @@ impl SignIn {
 
     /// Starts waiting for one browser round trip, replacing (and cancelling)
     /// any flow still waiting.
-    fn wait_for(&self, state: String, authorize_url: String) -> oneshot::Receiver<AuthCallbackPayload> {
+    fn wait_for(
+        &self,
+        state: String,
+        authorize_url: String,
+    ) -> oneshot::Receiver<AuthCallbackPayload> {
         let (tx, rx) = oneshot::channel();
         if let Ok(mut pending) = self.pending.lock() {
             *pending = Some(Pending {
@@ -470,7 +507,11 @@ impl SignIn {
     }
 
     fn waiting_url(&self) -> Option<String> {
-        self.pending.lock().ok()?.as_ref().map(|p| p.authorize_url.clone())
+        self.pending
+            .lock()
+            .ok()?
+            .as_ref()
+            .map(|p| p.authorize_url.clone())
     }
 
     fn cancel(&self) {
@@ -483,7 +524,9 @@ impl SignIn {
 /// Hands a `stigmer://auth/callback` or loopback callback to the waiting flow.
 pub(crate) fn deliver<R: Runtime>(app: &AppHandle<R>, callback: AuthCallbackPayload) {
     if !app.state::<SignIn>().deliver(callback) {
-        eprintln!("stigmer: a sign-in callback arrived for no sign-in the app is waiting for; ignored");
+        eprintln!(
+            "stigmer: a sign-in callback arrived for no sign-in the app is waiting for; ignored"
+        );
     }
 }
 
@@ -511,15 +554,25 @@ pub async fn auth_sign_in<R: Runtime>(
         // A dev build's deep link usually belongs to an installed release
         // app, so the callback comes back to a loopback port instead.
         let handle = app.clone();
-        let port = crate::auth::start_oauth_callback_server(&LOOPBACK_PORTS, "sign-in", move |callback| {
-            deliver(&handle, callback);
-        })?;
+        let port = crate::auth::start_oauth_callback_server(
+            &LOOPBACK_PORTS,
+            "sign-in",
+            move |callback| {
+                deliver(&handle, callback);
+            },
+        )?;
         format!("http://127.0.0.1:{port}/auth/callback")
     } else {
         DEEP_LINK_REDIRECT.to_string()
     };
 
-    let url = authorize_url(&discovery, &sign_in, &redirect_uri, &flow_state, &pkce.challenge)?;
+    let url = authorize_url(
+        &discovery,
+        &sign_in,
+        &redirect_uri,
+        &flow_state,
+        &pkce.challenge,
+    )?;
     let callback = state.wait_for(flow_state.clone(), url.clone());
     open_in_browser(&app, &url)?;
 
@@ -528,7 +581,9 @@ pub async fn auth_sign_in<R: Runtime>(
         Ok(Err(_)) => return Err("Sign-in cancelled.".into()),
         Err(_) => {
             state.cancel();
-            return Err("The browser did not finish signing in within five minutes. Sign in again.".into());
+            return Err(
+                "The browser did not finish signing in within five minutes. Sign in again.".into(),
+            );
         }
     };
     let code = code_from(&callback, &flow_state)?;
@@ -565,7 +620,10 @@ pub fn auth_cancel(state: tauri::State<'_, SignIn>) {
 /// The session for `server`: the one in memory while its token is fresh,
 /// else a refresh of the kept one, else none.
 #[tauri::command]
-pub async fn auth_session(state: tauri::State<'_, SignIn>, server: String) -> Result<Option<SessionView>, String> {
+pub async fn auth_session(
+    state: tauri::State<'_, SignIn>,
+    server: String,
+) -> Result<Option<SessionView>, String> {
     if let Some(view) = state.live_view(&server) {
         return Ok(Some(view));
     }
@@ -574,7 +632,10 @@ pub async fn auth_session(state: tauri::State<'_, SignIn>, server: String) -> Re
 
 /// A new access token for `server`, ahead of the old one's expiry.
 #[tauri::command]
-pub async fn auth_refresh(state: tauri::State<'_, SignIn>, server: String) -> Result<Option<SessionView>, String> {
+pub async fn auth_refresh(
+    state: tauri::State<'_, SignIn>,
+    server: String,
+) -> Result<Option<SessionView>, String> {
     state.refresh(&server).await
 }
 
@@ -623,7 +684,11 @@ mod tests {
         }
     }
 
-    fn callback(code: Option<&str>, state: Option<&str>, error: Option<&str>) -> AuthCallbackPayload {
+    fn callback(
+        code: Option<&str>,
+        state: Option<&str>,
+        error: Option<&str>,
+    ) -> AuthCallbackPayload {
         AuthCallbackPayload {
             code: code.map(str::to_owned),
             state: state.map(str::to_owned),
@@ -635,10 +700,20 @@ mod tests {
     #[test]
     fn the_authorize_url_asks_the_announced_provider_for_a_pkce_code() {
         let url = Url::parse(
-            &authorize_url(&discovery(), &sign_in(), DEEP_LINK_REDIRECT, "state-1", "challenge-1").unwrap(),
+            &authorize_url(
+                &discovery(),
+                &sign_in(),
+                DEEP_LINK_REDIRECT,
+                "state-1",
+                "challenge-1",
+            )
+            .unwrap(),
         )
         .unwrap();
-        assert_eq!(url.origin().ascii_serialization(), "https://id.acme.example");
+        assert_eq!(
+            url.origin().ascii_serialization(),
+            "https://id.acme.example"
+        );
         assert_eq!(url.path(), "/authorize");
         let query: HashMap<String, String> = url.query_pairs().into_owned().collect();
         let expected: HashMap<String, String> = [
@@ -667,7 +742,10 @@ mod tests {
         );
         let pkce = new_pkce().unwrap();
         assert_eq!(pkce.challenge, challenge_of(&pkce.verifier));
-        assert!(pkce.verifier.len() >= 43, "RFC 7636 asks for 43 to 128 characters");
+        assert!(
+            pkce.verifier.len() >= 43,
+            "RFC 7636 asks for 43 to 128 characters"
+        );
     }
 
     #[test]
@@ -675,25 +753,38 @@ mod tests {
         let document = r#"{"issuer":"https://id.acme.example/","authorization_endpoint":"https://id.acme.example/authorize","token_endpoint":"https://id.acme.example/oauth/token","revocation_endpoint":"https://id.acme.example/oauth/revoke"}"#;
         let read = read_discovery(ISSUER, document).unwrap();
         assert_eq!(read.token_endpoint, "https://id.acme.example/oauth/token");
-        assert_eq!(read.revocation_endpoint.as_deref(), Some("https://id.acme.example/oauth/revoke"));
+        assert_eq!(
+            read.revocation_endpoint.as_deref(),
+            Some("https://id.acme.example/oauth/revoke")
+        );
 
         // The trailing slash is part of the issuer: Auth0's has one.
         let refused = read_discovery("https://id.acme.example", document).unwrap_err();
-        assert!(refused.contains("says it is https://id.acme.example/"), "{refused}");
+        assert!(
+            refused.contains("says it is https://id.acme.example/"),
+            "{refused}"
+        );
     }
 
     #[test]
     fn discovery_that_sends_a_person_or_a_credential_over_plain_http_is_refused() {
         let document = r#"{"issuer":"https://id.acme.example/","authorization_endpoint":"http://id.acme.example/authorize","token_endpoint":"https://id.acme.example/oauth/token"}"#;
-        assert!(read_discovery(ISSUER, document).unwrap_err().contains("not https"));
+        assert!(read_discovery(ISSUER, document)
+            .unwrap_err()
+            .contains("not https"));
         let local = r#"{"issuer":"http://127.0.0.1:9000","authorization_endpoint":"http://127.0.0.1:9000/authorize","token_endpoint":"http://localhost:9000/token"}"#;
         assert!(read_discovery("http://127.0.0.1:9000", local).is_ok());
-        assert!(read_discovery(ISSUER, "<html>").unwrap_err().contains("no OpenID Connect discovery document"));
+        assert!(read_discovery(ISSUER, "<html>")
+            .unwrap_err()
+            .contains("no OpenID Connect discovery document"));
     }
 
     #[test]
     fn the_discovery_document_sits_under_the_issuer() {
-        assert_eq!(discovery_url(ISSUER), "https://id.acme.example/.well-known/openid-configuration");
+        assert_eq!(
+            discovery_url(ISSUER),
+            "https://id.acme.example/.well-known/openid-configuration"
+        );
         assert_eq!(
             discovery_url("https://auth.acme.example/realms/main"),
             "https://auth.acme.example/realms/main/.well-known/openid-configuration"
@@ -702,25 +793,43 @@ mod tests {
 
     #[test]
     fn a_callback_counts_only_for_the_flow_whose_state_it_carries() {
-        assert_eq!(code_from(&callback(Some("c"), Some("s"), None), "s").as_deref(), Ok("c"));
-        assert!(code_from(&callback(Some("c"), Some("other"), None), "s").unwrap_err().contains("not the one"));
-        assert!(code_from(&callback(Some("c"), None, None), "s").is_err());
-        assert!(code_from(&callback(None, Some("s"), Some("access_denied")), "s")
+        assert_eq!(
+            code_from(&callback(Some("c"), Some("s"), None), "s").as_deref(),
+            Ok("c")
+        );
+        assert!(code_from(&callback(Some("c"), Some("other"), None), "s")
             .unwrap_err()
-            .contains("access_denied"));
-        assert!(code_from(&callback(None, Some("s"), None), "s").unwrap_err().contains("without a sign-in"));
+            .contains("not the one"));
+        assert!(code_from(&callback(Some("c"), None, None), "s").is_err());
+        assert!(
+            code_from(&callback(None, Some("s"), Some("access_denied")), "s")
+                .unwrap_err()
+                .contains("access_denied")
+        );
+        assert!(code_from(&callback(None, Some("s"), None), "s")
+            .unwrap_err()
+            .contains("without a sign-in"));
     }
 
     #[tokio::test]
     async fn a_callback_reaches_the_waiting_flow_with_its_state_and_no_other() {
         let sign_in = SignIn::new(Box::new(MemoryStore::default()));
         let waiting = sign_in.wait_for("s-1".into(), "https://id.acme.example/authorize?x".into());
-        assert_eq!(sign_in.waiting_url().as_deref(), Some("https://id.acme.example/authorize?x"));
+        assert_eq!(
+            sign_in.waiting_url().as_deref(),
+            Some("https://id.acme.example/authorize?x")
+        );
 
-        assert!(!sign_in.deliver(callback(Some("c"), Some("s-2"), None)), "another flow's callback");
+        assert!(
+            !sign_in.deliver(callback(Some("c"), Some("s-2"), None)),
+            "another flow's callback"
+        );
         assert!(sign_in.deliver(callback(Some("c"), Some("s-1"), None)));
         assert_eq!(waiting.await.unwrap().code.as_deref(), Some("c"));
-        assert!(!sign_in.deliver(callback(Some("c"), Some("s-1"), None)), "delivered once");
+        assert!(
+            !sign_in.deliver(callback(Some("c"), Some("s-1"), None)),
+            "delivered once"
+        );
         assert_eq!(sign_in.waiting_url(), None);
     }
 
@@ -763,7 +872,10 @@ mod tests {
             .unwrap();
         assert_eq!(view.access_token, "access-1");
         assert!(view.expires_at > now_ms() + 3_500_000);
-        assert!(!view.kept_between_launches, "the memory store forgets at quit");
+        assert!(
+            !view.kept_between_launches,
+            "the memory store forgets at quit"
+        );
         assert_eq!(sign_in_state.live_view(origin), Some(view));
         let stored = sign_in_state.store.load(origin).unwrap().unwrap();
         assert_eq!(stored.refresh_token, "refresh-1");
@@ -783,8 +895,20 @@ mod tests {
                 Some(&stored),
             )
             .unwrap();
-        assert_eq!(sign_in_state.store.load(origin).unwrap().unwrap().refresh_token, "refresh-1");
-        assert_eq!(sign_in_state.live_view(origin), None, "a token within a minute of expiry is not handed out");
+        assert_eq!(
+            sign_in_state
+                .store
+                .load(origin)
+                .unwrap()
+                .unwrap()
+                .refresh_token,
+            "refresh-1"
+        );
+        assert_eq!(
+            sign_in_state.live_view(origin),
+            None,
+            "a token within a minute of expiry is not handed out"
+        );
 
         sign_in_state.forget(origin).unwrap();
         assert_eq!(sign_in_state.store.load(origin).unwrap(), None);

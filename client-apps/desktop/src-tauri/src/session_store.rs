@@ -66,7 +66,12 @@ pub struct MemoryStore(Mutex<HashMap<String, StoredSession>>);
 
 impl SessionStore for MemoryStore {
     fn load(&self, origin: &str) -> Result<Option<StoredSession>, String> {
-        Ok(self.0.lock().map_err(|e| e.to_string())?.get(origin).cloned())
+        Ok(self
+            .0
+            .lock()
+            .map_err(|e| e.to_string())?
+            .get(origin)
+            .cloned())
     }
     fn save(&self, origin: &str, session: &StoredSession) -> Result<(), String> {
         self.0
@@ -115,7 +120,9 @@ impl SessionStore for KeychainStore {
     }
     fn save(&self, origin: &str, session: &StoredSession) -> Result<(), String> {
         let text = serde_json::to_string(session).map_err(|e| e.to_string())?;
-        self.entry(origin)?.set_password(&text).map_err(keychain_error)
+        self.entry(origin)?
+            .set_password(&text)
+            .map_err(keychain_error)
     }
     fn delete(&self, origin: &str) -> Result<(), String> {
         match self.entry(origin)?.delete_credential() {
@@ -198,12 +205,15 @@ mod tests {
         assert!(!store.persists());
     }
 
+    /// (service, account) to the secret filed under them.
+    type Filed = HashMap<(String, String), Vec<u8>>;
+
     /// A stand-in for the system keychain: one shared map, keyed by
     /// service and account, the way the real stores file entries. keyring's
     /// own mock keeps a value on each `Entry` it builds, so a store that opens
     /// its entry per call (as the real one must) could not read back.
     #[derive(Default, Clone)]
-    struct SharedKeychain(std::sync::Arc<Mutex<HashMap<(String, String), Vec<u8>>>>);
+    struct SharedKeychain(std::sync::Arc<Mutex<Filed>>);
 
     struct SharedEntry {
         keychain: SharedKeychain,
@@ -212,14 +222,30 @@ mod tests {
 
     impl keyring::credential::CredentialApi for SharedEntry {
         fn set_secret(&self, secret: &[u8]) -> keyring::Result<()> {
-            self.keychain.0.lock().unwrap().insert(self.key.clone(), secret.to_vec());
+            self.keychain
+                .0
+                .lock()
+                .unwrap()
+                .insert(self.key.clone(), secret.to_vec());
             Ok(())
         }
         fn get_secret(&self) -> keyring::Result<Vec<u8>> {
-            self.keychain.0.lock().unwrap().get(&self.key).cloned().ok_or(keyring::Error::NoEntry)
+            self.keychain
+                .0
+                .lock()
+                .unwrap()
+                .get(&self.key)
+                .cloned()
+                .ok_or(keyring::Error::NoEntry)
         }
         fn delete_credential(&self) -> keyring::Result<()> {
-            self.keychain.0.lock().unwrap().remove(&self.key).map(|_| ()).ok_or(keyring::Error::NoEntry)
+            self.keychain
+                .0
+                .lock()
+                .unwrap()
+                .remove(&self.key)
+                .map(|_| ())
+                .ok_or(keyring::Error::NoEntry)
         }
         fn as_any(&self) -> &dyn std::any::Any {
             self
@@ -253,12 +279,17 @@ mod tests {
 
         // Each server's entry is filed under the app's service and the
         // server's origin, as JSON with the refresh token.
-        store.save("https://api.stigmer.ai", &session("refresh-filed")).unwrap();
+        store
+            .save("https://api.stigmer.ai", &session("refresh-filed"))
+            .unwrap();
         let filed = keychain
             .0
             .lock()
             .unwrap()
-            .get(&("ai.stigmer.desktop.test".to_string(), "https://api.stigmer.ai".to_string()))
+            .get(&(
+                "ai.stigmer.desktop.test".to_string(),
+                "https://api.stigmer.ai".to_string(),
+            ))
             .cloned()
             .unwrap();
         let written: StoredSession = serde_json::from_slice(&filed).unwrap();
@@ -266,7 +297,10 @@ mod tests {
 
         // An entry the store cannot read is no session, never a crash.
         keychain.0.lock().unwrap().insert(
-            ("ai.stigmer.desktop.test".to_string(), "https://garbled.example".to_string()),
+            (
+                "ai.stigmer.desktop.test".to_string(),
+                "https://garbled.example".to_string(),
+            ),
             b"not json".to_vec(),
         );
         assert_eq!(store.load("https://garbled.example").unwrap(), None);

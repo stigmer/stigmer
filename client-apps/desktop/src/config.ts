@@ -18,5 +18,6 @@ export const CONSOLE_URL: string = (
  * how to sign in (server/connect.ts). Nothing about sign-in is decided
  * from this address.
  */
-export const BUILD_DEFAULT_SERVER: string =
-  import.meta.env.VITE_STIGMER_API_URL ?? "http://localhost:7234";
+export function buildDefaultServer(): string {
+  return import.meta.env.VITE_STIGMER_API_URL || "http://localhost:7234";
+}

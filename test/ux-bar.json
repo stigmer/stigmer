@@ -232,11 +232,7 @@
     },
     {
       "id": "DSK-02",
-      "promise": "Sign-in reads its identity provider from configuration.",
-      "pending": [
-        "stigmer#1078",
-        "stigmer#1080"
-      ]
+      "promise": "Sign-in reads its identity provider from configuration."
     },
     {
       "id": "DSK-03",
@@ -252,6 +248,14 @@
     {
       "id": "DSK-05",
       "promise": "The app shows whether agents are running on this computer, and offers Restart when they stopped."
+    },
+    {
+      "id": "DSK-06",
+      "promise": "Sign-in keys are kept in the system keychain, never in the app's web storage."
+    },
+    {
+      "id": "DSK-07",
+      "promise": "A server the app cannot reach, or one that offers no desktop sign-in, says so and how to choose another."
     },
     {
       "id": "SDK-01",

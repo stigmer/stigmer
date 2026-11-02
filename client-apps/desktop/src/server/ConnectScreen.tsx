@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Loader2, RefreshCw } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import { ChooseServer } from "./ChooseServer";
@@ -11,6 +10,29 @@ export const DESKTOP_SIGN_IN_GUIDE =
   "https://stigmer.ai/docs/guides/self-hosting/authentication#let-the-desktop-app-sign-in";
 
 /**
+ * "Use another server" in place of the app: from the sign-in screen, from a
+ * server that cannot be used, and from "Change server" in the user menu.
+ * Back returns to where the person was; a build whose own address is not
+ * usable offers no way back.
+ */
+export function ChooseServerScreen() {
+  const { connection, setChoosing } = useServer();
+  return (
+    <ServerScreen>
+      <div className="flex w-full flex-col gap-2 text-center">
+        <h1 className="text-base font-medium text-foreground">Use another server</h1>
+        {connection.phase === "unusable" && (
+          <p role="alert" className="text-sm text-destructive">
+            {connection.detail}
+          </p>
+        )}
+      </div>
+      <ChooseServer onCancel={connection.phase === "unusable" ? undefined : () => setChoosing(false)} />
+    </ServerScreen>
+  );
+}
+
+/**
  * The screen while the app connects, and when the server it points at
  * cannot be used: nothing answered, something that is not a Stigmer server
  * answered, or the server signs people in but was not set up for the
@@ -18,24 +40,11 @@ export const DESKTOP_SIGN_IN_GUIDE =
  * first two offer to try again.
  */
 export function ConnectScreen() {
-  const { origin, label, connection, retry } = useServer();
-  const [choosing, setChoosing] = useState(false);
+  const { origin, label, connection, retry, isChoosing, setChoosing } = useServer();
   const host = hostOf(origin);
 
-  if (choosing || connection.phase === "unusable") {
-    return (
-      <ServerScreen>
-        <div className="flex w-full flex-col gap-2 text-center">
-          <h1 className="text-base font-medium text-foreground">Use another server</h1>
-          {connection.phase === "unusable" && (
-            <p role="alert" className="text-sm text-destructive">
-              {connection.detail}
-            </p>
-          )}
-        </div>
-        <ChooseServer onCancel={connection.phase === "unusable" ? undefined : () => setChoosing(false)} />
-      </ServerScreen>
-    );
+  if (isChoosing || connection.phase === "unusable") {
+    return <ChooseServerScreen />;
   }
 
   if (connection.phase === "connecting") {

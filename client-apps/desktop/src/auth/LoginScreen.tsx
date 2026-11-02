@@ -3,14 +3,9 @@ import { ExternalLink, Loader2, RefreshCw } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import { SIGN_IN_CANCELLED, useAuth } from "./AuthProvider";
 import { useServer } from "../server/ServerProvider";
-import { ChooseServer } from "../server/ChooseServer";
 import { QuietAction, ServerScreen } from "../server/ServerScreen";
 
-type ScreenState =
-  | { kind: "idle" }
-  | { kind: "waiting" }
-  | { kind: "choosing" }
-  | { kind: "error"; message: string };
+type ScreenState = { kind: "idle" } | { kind: "waiting" } | { kind: "error"; message: string };
 
 /**
  * The sign-in screen for a server that signs people in.
@@ -22,7 +17,7 @@ type ScreenState =
  */
 export function LoginScreen() {
   const { login } = useAuth();
-  const { label } = useServer();
+  const { label, setChoosing } = useServer();
   const [state, setState] = useState<ScreenState>({ kind: "idle" });
 
   const startLogin = useCallback(async () => {
@@ -44,15 +39,6 @@ export function LoginScreen() {
     invoke("auth_reopen_browser").catch(() => {});
   }, []);
 
-  if (state.kind === "choosing") {
-    return (
-      <ServerScreen>
-        <h1 className="text-base font-medium text-foreground">Use another server</h1>
-        <ChooseServer onCancel={() => setState({ kind: "idle" })} />
-      </ServerScreen>
-    );
-  }
-
   return (
     <ServerScreen>
       {state.kind === "idle" && (
@@ -64,7 +50,7 @@ export function LoginScreen() {
           >
             Sign in to {label}
           </button>
-          <QuietAction onClick={() => setState({ kind: "choosing" })}>Use another server</QuietAction>
+          <QuietAction onClick={() => setChoosing(true)}>Use another server</QuietAction>
         </div>
       )}
 

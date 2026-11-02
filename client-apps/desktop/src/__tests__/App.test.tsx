@@ -3,31 +3,41 @@
 //
 // The composition root is pinned with its links replaced by markers:
 //
+//   - the server's answer picks what follows, never its address: a server
+//     that cannot be used shows why (the connect screen), one that trusts
+//     every request opens with no sign-in, one that signs people in signs in
+//     through the provider it announced;
 //   - nothing of the app renders until the session is resolved, and a signed-
 //     out person sees only the sign-in screen;
 //   - the signed-in chain keeps the web console's order (updater, identity
 //     gate, fetch cache, organizations, then the routes);
-//   - the one SDK client talks to this build's API URL through Tauri's HTTP
-//     plugin, with the session's own token getter;
-//   - the deployment mode starts as the URL's guess and takes the server's
-//     answer when it comes (an Enterprise server included), keeping the
-//     guess when the server cannot answer;
+//   - the one SDK client talks to the chosen server through Tauri's HTTP
+//     plugin, with the session's own token getter, in the edition the server
+//     said;
+//   - choosing another server covers the app without unmounting it;
 //   - a running embedded runner is handed each new access token once.
 // ---------------------------------------------------------------------------
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, render, screen, waitFor } from "@testing-library/react";
 
-const env = vi.hoisted(() => ({ apiUrl: "https://api.stigmer.ai" }));
-vi.mock("../config", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../config")>();
-  return {
-    ...actual,
-    get API_URL() {
-      return env.apiUrl;
-    },
-  };
-});
+const ACME_SIGN_IN = {
+  issuer: "https://id.acme.internal/",
+  audience: "https://stigmer.acme.internal",
+  clientId: "acme-desktop",
+};
+
+const server = vi.hoisted(() => ({
+  state: {} as Record<string, unknown>,
+}));
+vi.mock("../server/ServerProvider", () => ({
+  ServerProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  useServer: () => server.state,
+}));
+vi.mock("../server/ConnectScreen", () => ({
+  ConnectScreen: () => <p>connect screen</p>,
+  ChooseServerScreen: () => <p>server form</p>,
+}));
 
 const auth = vi.hoisted(() => ({
   isInitialized: true,
@@ -35,13 +45,15 @@ const auth = vi.hoisted(() => ({
   token: "token-1" as string | null,
   getAccessToken: null as null | (() => string | null),
 }));
+const authProps = vi.hoisted(() => ({ calls: [] as Record<string, unknown>[] }));
 vi.mock("../auth/AuthProvider", () => {
   const getAccessToken = () => auth.token;
   auth.getAccessToken = getAccessToken;
   return {
-    AuthProvider: ({ children }: { children: React.ReactNode }) => (
-      <>{children}</>
-    ),
+    AuthProvider: (props: Record<string, unknown> & { children: React.ReactNode }) => {
+      authProps.calls.push(props);
+      return <>{props.children}</>;
+    },
     useAuth: () => ({
       isInitialized: auth.isInitialized,
       isAuthenticated: auth.isAuthenticated,
@@ -110,17 +122,12 @@ vi.mock("@stigmer/react-sdk", () => ({
 const tauriHttp = vi.hoisted(() => ({ fetch: vi.fn() }));
 vi.mock("@tauri-apps/plugin-http", () => ({ fetch: tauriHttp.fetch }));
 
-// The SDK client is recorded, and its server-info answer is the test's.
+// The SDK client is recorded.
 const sdk = vi.hoisted(() => ({
   configs: [] as Record<string, unknown>[],
-  serverInfo: null as null | (() => Promise<{ deploymentMode: string }>),
 }));
 vi.mock("@stigmer/client", () => ({
   Stigmer: class {
-    platform = {
-      getServerInfo: () =>
-        sdk.serverInfo ? sdk.serverInfo() : new Promise<never>(() => {}),
-    };
     constructor(config: Record<string, unknown>) {
       sdk.configs.push(config);
     }
@@ -144,9 +151,19 @@ function chainAround(text: string): string[] {
 
 const lastProviderProps = () => providerProps.calls.at(-1) ?? {};
 
+function connectedTo(outcome: Record<string, unknown>, deploymentMode: string) {
+  server.state = {
+    origin: "https://stigmer.acme.internal",
+    label: "stigmer.acme.internal",
+    connection: { phase: "connected", outcome, deploymentMode },
+    isChoosing: false,
+  };
+}
+
 describe("App", () => {
   beforeEach(() => {
-    env.apiUrl = "https://api.stigmer.ai";
+    connectedTo({ kind: "sign-in", nativeSignIn: ACME_SIGN_IN }, "cloud");
+    authProps.calls = [];
     auth.isInitialized = true;
     auth.isAuthenticated = true;
     auth.token = "token-1";
@@ -155,8 +172,49 @@ describe("App", () => {
     runner.updateRunnerToken.mockResolvedValue(undefined);
     providerProps.calls = [];
     sdk.configs = [];
-    sdk.serverInfo = null;
-    vi.spyOn(console, "warn").mockImplementation(() => {});
+  });
+
+  it("DSK-07 shows why the server cannot be used, instead of the app, while it cannot", () => {
+    for (const connection of [
+      { phase: "connecting" },
+      { phase: "failed", failure: "unreachable", detail: "connection refused" },
+      { phase: "failed", failure: "not-stigmer", detail: "HTTP 404" },
+      { phase: "unusable", detail: "not a web address" },
+      { phase: "connected", outcome: { kind: "not-set-up" }, deploymentMode: "local" },
+    ]) {
+      server.state = { ...server.state, connection };
+      const { unmount } = render(<App />);
+      expect(screen.getByText("connect screen")).toBeTruthy();
+      expect(screen.queryByText("the routes")).toBeNull();
+      expect(authProps.calls).toEqual([]);
+      unmount();
+    }
+  });
+
+  it("opens with no sign-in on a server that trusts every request", () => {
+    connectedTo({ kind: "open" }, "local");
+    render(<App />);
+
+    expect(authProps.calls.at(-1)).toMatchObject({ mode: "open" });
+    expect(lastProviderProps().deploymentMode).toBe("local");
+  });
+
+  it("DSK-02 signs in through the provider the server announced, for that server", () => {
+    render(<App />);
+
+    expect(authProps.calls.at(-1)).toMatchObject({
+      mode: "sign-in",
+      server: "https://stigmer.acme.internal",
+      nativeSignIn: ACME_SIGN_IN,
+    });
+  });
+
+  it("covers the app with the server form, leaving the app mounted", () => {
+    server.state = { ...server.state, isChoosing: true };
+    render(<App />);
+
+    expect(screen.getByRole("dialog", { name: "Use another server" }).textContent).toBe("server form");
+    expect(screen.getByText("the routes")).toBeTruthy();
   });
 
   it("renders nothing of the app, and no sign-in, until the session is resolved", () => {
@@ -187,50 +245,20 @@ describe("App", () => {
     ]);
   });
 
-  it("builds one SDK client on this build's API URL, through Tauri's HTTP plugin, with the session's token getter", () => {
+  it("builds one SDK client on the chosen server, through Tauri's HTTP plugin, with the session's token getter", () => {
     render(<App />);
 
     expect(sdk.configs).toHaveLength(1);
     const config = sdk.configs[0] ?? {};
-    expect(config.baseUrl).toBe("https://api.stigmer.ai");
+    expect(config.baseUrl).toBe("https://stigmer.acme.internal");
     expect(config.fetch).toBe(tauriHttp.fetch);
     expect(config.getAccessToken).toBe(auth.getAccessToken);
     expect(lastProviderProps()).toMatchObject({
       executionTarget: "local",
       runnerAdapter: RUNNER_ADAPTER,
       colorMode: "dark",
+      deploymentMode: "cloud",
     });
-  });
-
-  it.each([
-    ["http://localhost:7234", "local"],
-    ["https://api.stigmer.ai", "cloud"],
-  ])(
-    "guesses the mode from %s as %s before the server answers",
-    (apiUrl, mode) => {
-      env.apiUrl = apiUrl;
-      render(<App />);
-      expect(lastProviderProps().deploymentMode).toBe(mode);
-    },
-  );
-
-  it("takes the server's answer over the guess, an Enterprise server included", async () => {
-    sdk.serverInfo = async () => ({ deploymentMode: "enterprise" });
-    render(<App />);
-
-    await waitFor(() =>
-      expect(lastProviderProps().deploymentMode).toBe("enterprise"),
-    );
-  });
-
-  it("keeps the guess when the server cannot answer", async () => {
-    sdk.serverInfo = async () => {
-      throw new Error("unimplemented");
-    };
-    render(<App />);
-
-    await act(async () => {});
-    expect(lastProviderProps().deploymentMode).toBe("cloud");
   });
 
   it("hands a running runner each new token once, and a stopped runner none", async () => {

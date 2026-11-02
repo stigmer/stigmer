@@ -40,6 +40,8 @@ function Sessions() {
   );
 }
 
+const noToken = () => null;
+
 async function advance(ms: number) {
   await act(async () => {
     await vi.advanceTimersByTimeAsync(ms);
@@ -58,7 +60,7 @@ describe("EmbeddedRunnerProvider", () => {
   it("polls nothing while the runner is down", async () => {
     const tauri = runnerHost({ running: false, activeSessions: [] });
     render(
-      <EmbeddedRunnerProvider>
+      <EmbeddedRunnerProvider server="https://stigmer.acme.internal" getAccessToken={noToken}>
         <Sessions />
       </EmbeddedRunnerProvider>,
     );
@@ -71,7 +73,7 @@ describe("EmbeddedRunnerProvider", () => {
     const state: HostState = { running: true, activeSessions: ["s1", "s2"] };
     const tauri = runnerHost(state);
     render(
-      <EmbeddedRunnerProvider>
+      <EmbeddedRunnerProvider server="https://stigmer.acme.internal" getAccessToken={noToken}>
         <Sessions />
       </EmbeddedRunnerProvider>,
     );
@@ -104,7 +106,7 @@ describe("EmbeddedRunnerProvider", () => {
   it("stops polling once unmounted", async () => {
     const tauri = runnerHost({ running: true, activeSessions: [] });
     const { unmount } = render(
-      <EmbeddedRunnerProvider>
+      <EmbeddedRunnerProvider server="https://stigmer.acme.internal" getAccessToken={noToken}>
         <Sessions />
       </EmbeddedRunnerProvider>,
     );

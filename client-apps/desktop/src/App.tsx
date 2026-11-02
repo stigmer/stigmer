@@ -15,7 +15,7 @@ import { EmbeddedRunnerProvider, useRunner } from "./hooks/EmbeddedRunnerContext
 import { useTauriRunnerAdapter } from "./hooks/useTauriRunnerAdapter";
 import { useColorModePreference } from "./hooks/useColorModePreference";
 import { ServerProvider, useServer } from "./server/ServerProvider";
-import { ConnectScreen } from "./server/ConnectScreen";
+import { ChooseServerScreen, ConnectScreen } from "./server/ConnectScreen";
 
 /**
  * The app: the server the person chose (server/ServerProvider.tsx), what it
@@ -34,17 +34,28 @@ export function App() {
 }
 
 function ServerGate() {
-  const { origin, connection } = useServer();
+  const { origin, connection, isChoosing } = useServer();
   if (connection.phase !== "connected" || connection.outcome.kind === "not-set-up") {
     return <ConnectScreen />;
   }
   const app = <AuthenticatedApp server={origin} deploymentMode={connection.deploymentMode} />;
-  return connection.outcome.kind === "open" ? (
-    <AuthProvider mode="open">{app}</AuthProvider>
-  ) : (
-    <AuthProvider mode="sign-in" server={origin} nativeSignIn={connection.outcome.nativeSignIn}>
-      {app}
-    </AuthProvider>
+  return (
+    <>
+      {connection.outcome.kind === "open" ? (
+        <AuthProvider mode="open">{app}</AuthProvider>
+      ) : (
+        <AuthProvider mode="sign-in" server={origin} nativeSignIn={connection.outcome.nativeSignIn}>
+          {app}
+        </AuthProvider>
+      )}
+      {/* Over the app, not in its place: Back leaves the app (and the
+          conversations its runner holds) as it was. */}
+      {isChoosing && (
+        <div role="dialog" aria-modal="true" aria-label="Use another server" className="fixed inset-0 z-50">
+          <ChooseServerScreen />
+        </div>
+      )}
+    </>
   );
 }
 

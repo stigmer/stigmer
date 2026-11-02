@@ -21,7 +21,7 @@ import {
 import { invoke } from "@tauri-apps/api/core";
 import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
 import { Stigmer, type DeploymentMode } from "@stigmer/client";
-import { BUILD_DEFAULT_SERVER } from "../config";
+import { buildDefaultServer } from "../config";
 import {
   connectFailureOf,
   connectOutcome,
@@ -56,6 +56,10 @@ export interface ServerState {
    * app connects. Resolves `null`, or the reason the address cannot be used.
    */
   readonly choose: (url: string) => Promise<string | null>;
+  /** Whether the person is choosing another server ("Use another server", "Change server"). */
+  readonly isChoosing: boolean;
+  /** Shows the server form in place of the app; `false` goes back. */
+  readonly setChoosing: (choosing: boolean) => void;
 }
 
 const ServerContext = createContext<ServerState | null>(null);
@@ -75,11 +79,12 @@ export function ServerProvider({ children }: { children: ReactNode }) {
   const [connection, setConnection] = useState<ServerConnection>({ phase: "connecting" });
   const [label, setLabel] = useState("");
   const [attempt, setAttempt] = useState(0);
+  const [isChoosing, setChoosing] = useState(false);
 
   // Which server: the person's choice, else the build's default.
   useEffect(() => {
     let cancelled = false;
-    invoke<string>("current_server", { buildDefault: BUILD_DEFAULT_SERVER }).then(
+    invoke<string>("current_server", { buildDefault: buildDefaultServer() }).then(
       (chosen) => {
         if (!cancelled) setOrigin(chosen);
       },
@@ -126,6 +131,7 @@ export function ServerProvider({ children }: { children: ReactNode }) {
       const chosen = await invoke<string>("choose_server", { url });
       setOrigin(chosen);
       setAttempt((n) => n + 1);
+      setChoosing(false);
       return null;
     } catch (error) {
       return messageOf(error);
@@ -133,8 +139,8 @@ export function ServerProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const state = useMemo(
-    () => ({ origin, label, connection, retry, choose }),
-    [origin, label, connection, retry, choose],
+    () => ({ origin, label, connection, retry, choose, isChoosing, setChoosing }),
+    [origin, label, connection, retry, choose, isChoosing],
   );
   return <ServerContext.Provider value={state}>{children}</ServerContext.Provider>;
 }
