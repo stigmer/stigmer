@@ -121,6 +121,28 @@ describe("EmbeddedRunnerProvider", () => {
     expect(tauri.callsTo("runner_status")).toHaveLength(atUnmount);
   });
 
+  it("stops the runner when the person leaves its server", async () => {
+    const tauri = runnerHost({ running: true, activeSessions: [] });
+    const { rerender, unmount } = render(
+      <EmbeddedRunnerProvider server="https://stigmer.acme.internal" getAccessToken={noToken}>
+        <Sessions />
+      </EmbeddedRunnerProvider>,
+    );
+    expect(tauri.callsTo("kill_runner")).toHaveLength(0);
+
+    // Another server: the runner serving the old one, under its token, stops.
+    rerender(
+      <EmbeddedRunnerProvider server="https://stigmer.other.internal" getAccessToken={noToken}>
+        <Sessions />
+      </EmbeddedRunnerProvider>,
+    );
+    expect(tauri.callsTo("kill_runner")).toHaveLength(1);
+
+    // Leaving the app's servers altogether (the provider unmounts) stops it too.
+    unmount();
+    expect(tauri.callsTo("kill_runner")).toHaveLength(2);
+  });
+
   it("refuses a reader outside the provider", () => {
     const spy = vi.spyOn(console, "error").mockImplementation(() => {});
     expect(() => renderHook(() => useRunner())).toThrow(

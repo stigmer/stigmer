@@ -264,6 +264,34 @@ impl TokenFailure {
     }
 }
 
+/// What a token endpoint's answer means when it is not a success: refused
+/// (the session is over), or unreachable for now (keep it and try later).
+/// `None` for a success.
+fn token_failure(status: reqwest::StatusCode, body: &str) -> Option<TokenFailure> {
+    // Only a rejected grant or client ends the session. A busy (429), slow
+    // (408) or failing provider is unreachable for now.
+    if status == reqwest::StatusCode::BAD_REQUEST || status == reqwest::StatusCode::UNAUTHORIZED {
+        let reason = serde_json::from_str::<serde_json::Value>(body)
+            .ok()
+            .and_then(|v| {
+                v.get("error_description")
+                    .or_else(|| v.get("error"))
+                    .and_then(|e| e.as_str())
+                    .map(str::to_owned)
+            })
+            .unwrap_or_else(|| status.to_string());
+        return Some(TokenFailure::Refused(format!(
+            "The sign-in provider refused the sign-in: {reason}"
+        )));
+    }
+    if !status.is_success() {
+        return Some(TokenFailure::Unreachable(format!(
+            "The sign-in provider answered {status}. Try again."
+        )));
+    }
+    None
+}
+
 fn now_ms() -> u64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -283,6 +311,8 @@ struct Pending {
 #[derive(Clone)]
 struct Live {
     view: SessionView,
+    /// The provider this session was signed in through.
+    sign_in: NativeSignIn,
 }
 
 /// The sign-in state the app manages.
@@ -360,25 +390,7 @@ impl SignIn {
             })?;
         let status = response.status();
         let body = response.text().await.unwrap_or_default();
-        if status.is_client_error() {
-            let reason = serde_json::from_str::<serde_json::Value>(&body)
-                .ok()
-                .and_then(|v| {
-                    v.get("error_description")
-                        .or_else(|| v.get("error"))
-                        .and_then(|e| e.as_str())
-                        .map(str::to_owned)
-                })
-                .unwrap_or_else(|| status.to_string());
-            return Err(TokenFailure::Refused(format!(
-                "The sign-in provider refused the sign-in: {reason}"
-            )));
-        }
-        if !status.is_success() {
-            return Err(TokenFailure::Unreachable(format!(
-                "The sign-in provider answered {status}. Try again."
-            )));
-        }
+        token_failure(status, &body).map_or(Ok(()), Err)?;
         serde_json::from_str(&body).map_err(|_| {
             TokenFailure::Unreachable("The sign-in provider's answer had no access token.".into())
         })
@@ -423,7 +435,13 @@ impl SignIn {
             )?;
         }
         if let Ok(mut live) = self.live.lock() {
-            live.insert(origin.to_string(), Live { view: view.clone() });
+            live.insert(
+                origin.to_string(),
+                Live {
+                    view: view.clone(),
+                    sign_in: sign_in.clone(),
+                },
+            );
         }
         Ok(view)
     }
@@ -461,6 +479,39 @@ impl SignIn {
             }
             Err(failure) => Err(failure.message()),
         }
+    }
+
+    /// The session for `origin`, signed in through `announced`: the one in
+    /// memory while its token is fresh, else a refresh of the kept one.
+    async fn session_for(
+        &self,
+        origin: &str,
+        announced: &NativeSignIn,
+    ) -> Result<Option<SessionView>, String> {
+        // A server that moved to another provider, audience or client
+        // starts a new sign-in: a token from the old one is rejected there.
+        let live_from = self
+            .live
+            .lock()
+            .ok()
+            .and_then(|live| live.get(origin).map(|l| l.sign_in.clone()));
+        let stored_from = self.store.load(origin)?.map(|stored| NativeSignIn {
+            issuer: stored.issuer,
+            audience: stored.audience,
+            client_id: stored.client_id,
+        });
+        if [live_from, stored_from]
+            .iter()
+            .flatten()
+            .any(|from| from != announced)
+        {
+            self.forget(origin)?;
+            return Ok(None);
+        }
+        if let Some(view) = self.live_view(origin) {
+            return Ok(Some(view));
+        }
+        self.refresh(origin).await
     }
 
     fn forget(&self, origin: &str) -> Result<(), String> {
@@ -617,17 +668,16 @@ pub fn auth_cancel(state: tauri::State<'_, SignIn>) {
     state.cancel();
 }
 
-/// The session for `server`: the one in memory while its token is fresh,
-/// else a refresh of the kept one, else none.
+/// The session for `server` through the provider it announces now: the one
+/// in memory while its token is fresh, else a refresh of the kept one, else
+/// none. A session from a provider the server no longer announces is dropped.
 #[tauri::command]
 pub async fn auth_session(
     state: tauri::State<'_, SignIn>,
     server: String,
+    sign_in: NativeSignIn,
 ) -> Result<Option<SessionView>, String> {
-    if let Some(view) = state.live_view(&server) {
-        return Ok(Some(view));
-    }
-    state.refresh(&server).await
+    state.session_for(&server, &sign_in).await
 }
 
 /// A new access token for `server`, ahead of the old one's expiry.
@@ -912,5 +962,86 @@ mod tests {
 
         sign_in_state.forget(origin).unwrap();
         assert_eq!(sign_in_state.store.load(origin).unwrap(), None);
+    }
+
+    fn fresh_tokens() -> TokenResponse {
+        TokenResponse {
+            access_token: "access-1".into(),
+            refresh_token: Some("refresh-1".into()),
+            id_token: None,
+            expires_in: Some(3600),
+        }
+    }
+
+    #[tokio::test]
+    async fn a_session_from_a_provider_the_server_no_longer_announces_is_dropped() {
+        let origin = "https://stigmer.acme.internal";
+        let moved = [
+            NativeSignIn {
+                issuer: "https://id.new.example/".into(),
+                ..sign_in()
+            },
+            NativeSignIn {
+                audience: "https://api.new.example".into(),
+                ..sign_in()
+            },
+            NativeSignIn {
+                client_id: "native-2".into(),
+                ..sign_in()
+            },
+        ];
+        for announced in moved {
+            let state = SignIn::new(Box::new(MemoryStore::default()));
+            state
+                .keep(origin, &sign_in(), fresh_tokens(), None)
+                .unwrap();
+            assert_eq!(
+                state.session_for(origin, &announced).await,
+                Ok(None),
+                "a session from {:?} was adopted under {announced:?}",
+                sign_in()
+            );
+            assert_eq!(state.live_view(origin), None);
+            assert_eq!(state.store.load(origin).unwrap(), None);
+        }
+
+        // The provider it was signed in through is still the one announced.
+        let state = SignIn::new(Box::new(MemoryStore::default()));
+        let view = state
+            .keep(origin, &sign_in(), fresh_tokens(), None)
+            .unwrap();
+        assert_eq!(state.session_for(origin, &sign_in()).await, Ok(Some(view)));
+    }
+
+    #[test]
+    fn only_a_provider_that_rejects_the_grant_ends_the_session() {
+        use reqwest::StatusCode;
+        let refused = |status: StatusCode, body: &str| {
+            matches!(token_failure(status, body), Some(TokenFailure::Refused(_)))
+        };
+        assert!(refused(
+            StatusCode::BAD_REQUEST,
+            r#"{"error":"invalid_grant"}"#
+        ));
+        assert!(refused(
+            StatusCode::UNAUTHORIZED,
+            r#"{"error":"invalid_client"}"#
+        ));
+        // Busy, slow or down: keep the session and try again later.
+        for status in [
+            StatusCode::TOO_MANY_REQUESTS,
+            StatusCode::REQUEST_TIMEOUT,
+            StatusCode::INTERNAL_SERVER_ERROR,
+            StatusCode::SERVICE_UNAVAILABLE,
+        ] {
+            assert!(
+                matches!(
+                    token_failure(status, ""),
+                    Some(TokenFailure::Unreachable(_))
+                ),
+                "{status} signed the person out"
+            );
+        }
+        assert!(token_failure(StatusCode::OK, "{}").is_none());
     }
 }

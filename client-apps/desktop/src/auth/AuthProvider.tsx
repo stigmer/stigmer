@@ -110,7 +110,7 @@ export function AuthProvider(props: AuthProviderProps) {
   // A new server or provider is a new sign-in state, never a stale one.
   return (
     <NativeAuthProvider
-      key={`${props.server} ${props.nativeSignIn.issuer} ${props.nativeSignIn.clientId}`}
+      key={`${props.server} ${props.nativeSignIn.issuer} ${props.nativeSignIn.audience} ${props.nativeSignIn.clientId}`}
       server={props.server}
       nativeSignIn={props.nativeSignIn}
     >
@@ -171,7 +171,7 @@ function NativeAuthProvider({
   useEffect(
     () => {
       let cancelled = false;
-      invoke<SessionView | null>("auth_session", { server })
+      invoke<SessionView | null>("auth_session", { server, signIn: nativeSignIn })
         .then(
           (found) => {
             if (!cancelled) adopt(found);
@@ -186,8 +186,8 @@ function NativeAuthProvider({
         cancelled = true;
       };
     },
-    // Stryker disable next-line ArrayDeclaration: another server mounts another provider (the key above), so the list never changes while this one lives
-    [server, adopt],
+    // Stryker disable next-line ArrayDeclaration: another server or provider mounts another provider (the key above), so the list never changes while this one lives
+    [server, nativeSignIn, adopt],
   );
 
   // Renew the access token ahead of its expiry; a refused renewal signs out.

@@ -109,6 +109,16 @@ describe("the auth mode", () => {
     expect(tauri.callsTo("auth_sign_in")).toEqual([{ server: SERVER, signIn: ACME }]);
     expect(stateLine()).toContain("token=access-1 user=ada@acme.internal");
   });
+
+  it("asks the host for a session through the provider the server announces now", async () => {
+    // The host drops a session signed in through another provider, so the
+    // question has to name the one announced (an operator may have moved it).
+    const tauri = mockTauri({ auth_session: () => null });
+    renderSignIn();
+    await waitFor(() => expect(stateLine()).toContain("initialized=true"));
+
+    expect(tauri.callsTo("auth_session")).toEqual([{ server: SERVER, signIn: ACME }]);
+  });
 });
 
 describe("DSK-06 the sign-in stays out of web storage", () => {
@@ -183,6 +193,25 @@ describe("the provider's lifetime", () => {
     expect(stateLine()).toContain("token=null");
   });
 
+  it("starts a new sign-in state when the server announces another audience", async () => {
+    mockTauri({
+      auth_session: (args) =>
+        (args.signIn as { audience: string }).audience === ACME.audience
+          ? view("access-acme", Date.now() + 60 * MINUTE)
+          : new Promise(() => {}),
+    });
+    const { rerender } = renderSignIn();
+    await waitFor(() => expect(stateLine()).toContain("token=access-acme"));
+
+    rerender(
+      <AuthProvider mode="sign-in" server={SERVER} nativeSignIn={{ ...ACME, audience: "https://api.moved.example" }}>
+        <Probe />
+      </AuthProvider>,
+    );
+
+    expect(stateLine()).toContain("token=null");
+  });
+
   it("refuses to be read outside the provider", () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     expect(() => render(<Probe />)).toThrowError("useAuth must be used within AuthProvider");
@@ -237,7 +266,7 @@ describe("the session", () => {
     renderSignIn();
 
     await waitFor(() => expect(stateLine()).toContain("authenticated=true initialized=true token=access-1"));
-    expect(tauri.callsTo("auth_session")).toEqual([{ server: SERVER }]);
+    expect(tauri.callsTo("auth_session")).toEqual([{ server: SERVER, signIn: ACME }]);
   });
 
   it("shows the sign-in screen when the host holds no session, or cannot ask the provider", async () => {
