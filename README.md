@@ -193,7 +193,7 @@ cd stigmer
 
 make setup     # Install Go and Python dependencies
 npm install    # Install Node.js dependencies
-make local     # Build the local stigmer-server (the CLI runs from @stigmer/cli)
+make local     # Build the local server and runner (the CLI runs from @stigmer/cli)
 make test      # Run tests
 ```
 

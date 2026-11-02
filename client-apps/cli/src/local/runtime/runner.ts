@@ -134,7 +134,7 @@ function resolveBuiltRunner(appDir: string, node: () => string): RunnerResolutio
   const entryPath = join(appDir, "dist", "main.js");
   if (!existsSync(entryPath)) {
     throw new CliExitError(`runner not built: ${entryPath} is missing`, ExitCode.General, [
-      "Build it with: npm run build -w @stigmer/apis && npm run build -w @stigmer/runner",
+      "Build it with: make build-runner",
       "The runner must be compiled — it cannot run from source via tsx (Temporal",
       "workflow bundling fails on raw-.ts proto stubs).",
     ]);

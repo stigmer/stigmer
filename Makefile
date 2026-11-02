@@ -1386,9 +1386,9 @@ install-temporal-cli: node_modules ## Install ~/bin/temporal — the pinned, che
 	@command -v temporal >/dev/null 2>&1 || echo "note: add $(HOME)/bin to your PATH, then reopen your shell, to use 'temporal'"
 
 .PHONY: local
-local: node_modules build-ts-stubs install-cli-shim build-server ## One-shot local setup: JS deps + proto stubs + a built server + a `stigmer` command
+local: node_modules build-ts-stubs install-cli-shim build-server build-runner ## One-shot local setup: JS deps + proto stubs + a built server and runner + a `stigmer` command
 	@rm -f bin/stigmer 2>/dev/null || true
-	@echo "built: the server ($(SERVER_DIR)/dist)"
+	@echo "built: the server ($(SERVER_DIR)/dist) and runner ($(RUNNER_DIR)/dist)"
 	@echo ""
 	@echo "Now run:"
 	@echo "  stigmer up          # start the local stack"

@@ -171,6 +171,14 @@ describe("resolveRunner", () => {
     writeFileSync(join(dir, "package.json"), "{}");
     process.env.STIGMER_RUNNER_DIR = dir;
     expect(() => resolveRunner(fakeNode)).toThrow(/not built/);
+    // Remediation rides in hints, not the message, and names a command that works.
+    let hints: readonly string[] = [];
+    try {
+      resolveRunner(fakeNode);
+    } catch (err) {
+      if (err instanceof CliExitError) hints = err.hints ?? [];
+    }
+    expect(hints.join("\n")).toMatch(/make build-runner/);
   });
 
   it("rejects an override that is not a runner package", () => {

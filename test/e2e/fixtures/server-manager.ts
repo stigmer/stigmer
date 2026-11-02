@@ -119,11 +119,7 @@ export async function startBackendStack(opts: {
   const runnerEntry =
     payloadEntry !== ""
       ? builtEntry(payloadEntry, "stage the payload it names", "Runner payload")
-      : builtEntry(
-          runnerEntryPath(),
-          "npm run build -w @stigmer/apis && npm run build -w @stigmer/runner (or make build-runner)",
-          "Unified runner",
-        );
+      : builtEntry(runnerEntryPath(), "make build-runner", "Unified runner");
   const runnerNode = payloadNode !== "" ? builtEntry(payloadNode, "stage the payload's Node", "Runner payload's Node") : undefined;
   // STIGMER_E2E_DIAG (fixtures/diag.ts): each stream's log starts fresh with
   // the run, as the mock's does, and the server logs at info, so the three
