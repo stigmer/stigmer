@@ -109,6 +109,7 @@ pub(crate) fn parse_marked(output: &str) -> Option<String> {
 mod unix {
     use std::ffi::CStr;
     use std::io::Read;
+    use std::os::unix::process::CommandExt;
     use std::path::{Path, PathBuf};
     use std::process::{Command, Stdio};
     use std::sync::mpsc;
@@ -144,13 +145,30 @@ mod unix {
     /// Runs `shell` as an interactive login shell that prints PATH between the
     /// markers, and returns what it printed there. The shell is killed after
     /// `timeout`, or once both markers have arrived, whichever comes first.
+    ///
+    /// The shell runs in a session of its own, with no controlling terminal:
+    /// an interactive shell in the app's process group would take a launching
+    /// terminal's foreground and keep it once killed. Killing its process
+    /// group also ends whatever its rc files started.
     pub(crate) fn read_path_from(shell: &Path, timeout: Duration) -> Result<String, String> {
         let script = format!("printf '%s%s%s' '{START_MARKER}' \"$PATH\" '{END_MARKER}'");
-        let mut child = Command::new(shell)
+        let mut command = Command::new(shell);
+        command
             .args(["-i", "-l", "-c", &script])
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
-            .stderr(Stdio::null())
+            .stderr(Stdio::null());
+        // SAFETY: setsid is async-signal-safe and touches only the child,
+        // between fork and exec.
+        unsafe {
+            command.pre_exec(|| {
+                if libc::setsid() == -1 {
+                    return Err(std::io::Error::last_os_error());
+                }
+                Ok(())
+            });
+        }
+        let mut child = command
             .spawn()
             .map_err(|e| format!("it would not start ({e})"))?;
 
@@ -177,6 +195,13 @@ mod unix {
         });
 
         let outcome = rx.recv_timeout(timeout);
+        // The shell leads its own group (setsid), so its pid names the group.
+        if let Ok(group) = libc::pid_t::try_from(child.id()) {
+            // SAFETY: a negative pid signals that process group alone.
+            unsafe {
+                libc::kill(-group, libc::SIGKILL);
+            }
+        }
         let _ = child.kill();
         let status = child.wait();
         match outcome {
@@ -268,6 +293,51 @@ mod tests {
             started.elapsed() < Duration::from_secs(5),
             "the hung shell was waited on"
         );
+    }
+
+    #[test]
+    fn the_shell_runs_in_a_session_of_its_own_so_it_never_takes_the_terminal() {
+        let dir = tempfile::tempdir().unwrap();
+        // Prints its process group and its pid where PATH would be. An
+        // interactive shell sharing the app's group would take a launching
+        // terminal's foreground, and keep it when killed (Ctrl+C then no
+        // longer reaches `make desktop-dev`).
+        let shell = fake_shell(
+            dir.path(),
+            &format!(
+                "printf '%s%s %s%s' '{START_MARKER}' \"$(ps -o pgid= -p $$ | tr -d ' ')\" \"$$\" '{END_MARKER}'"
+            ),
+        );
+        let answer = unix::read_path_from(&shell, Duration::from_secs(5)).unwrap();
+        let (group, pid) = answer.split_once(' ').unwrap();
+        assert_eq!(group, pid, "the shell ran in the app's process group");
+    }
+
+    #[test]
+    fn what_the_shell_started_ends_with_it() {
+        let dir = tempfile::tempdir().unwrap();
+        let started = dir.path().join("started");
+        // An rc file that leaves a process behind, then a shell that hangs.
+        let shell = fake_shell(
+            dir.path(),
+            &format!("sleep 30 &\necho $! > '{}'\nsleep 30", started.display()),
+        );
+        let outcome = unix::read_path_from(&shell, Duration::from_millis(1500));
+        assert!(outcome.is_err());
+        let pid: i32 = std::fs::read_to_string(&started)
+            .unwrap()
+            .trim()
+            .parse()
+            .unwrap();
+        let deadline = std::time::Instant::now() + Duration::from_secs(3);
+        // SAFETY: kill with signal 0 only asks whether the pid exists.
+        while unsafe { libc::kill(pid, 0) } == 0 {
+            assert!(
+                std::time::Instant::now() < deadline,
+                "the process the shell started ({pid}) outlived it"
+            );
+            std::thread::sleep(Duration::from_millis(20));
+        }
     }
 
     #[test]
