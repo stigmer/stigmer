@@ -23,6 +23,12 @@
  * page cannot drift into a step the smoke silently skips or one that would
  * install something other than the build under test.
  *
+ * A copy of a page's code elsewhere (the README, the homepage) quotes it
+ * under one rule, kept here beside the parser it reads with: runs of the
+ * page's consecutive lines, each gap marked by a `// …` line
+ * (`elidedRuns`, `firstUnmarkedGap`), or single lines in the page's order
+ * (`firstOutOfOrder`).
+ *
  * Plain node, no dependencies, like its neighbours.
  */
 
@@ -132,4 +138,44 @@ function trackTabs(text, tabs) {
       rest = rest.slice(close.index + close[0].length);
     }
   }
+}
+
+/** The line that marks lines left out of a quoted run. */
+export const ELISION = "// …";
+
+/** The runs of code lines between `// …` lines, blank lines left out. */
+export function elidedRuns(lines) {
+  const runs = [[]];
+  for (const line of lines) {
+    if (line.trim() === ELISION) runs.push([]);
+    else if (line.trim() !== "") runs.at(-1).push(line);
+  }
+  return runs.filter((run) => run.length > 0);
+}
+
+/**
+ * The first run that is not consecutive lines of `source` after the run
+ * before it (blank source lines skipped), as its first line, or undefined.
+ */
+export function firstUnmarkedGap(runs, source) {
+  const lines = source.filter((line) => line.trim() !== "");
+  let from = 0;
+  for (const run of runs) {
+    let at = lines.indexOf(run[0], from);
+    while (at !== -1 && run.some((line, i) => lines[at + i] !== line)) at = lines.indexOf(run[0], at + 1);
+    if (at === -1) return run[0];
+    from = at + run.length;
+  }
+  return undefined;
+}
+
+/** The first shown line that is not one of `source`'s lines after the line before it, or undefined. */
+export function firstOutOfOrder(shown, source) {
+  let from = 0;
+  for (const line of shown) {
+    const at = source.indexOf(line, from);
+    if (at === -1) return line;
+    from = at + 1;
+  }
+  return undefined;
 }

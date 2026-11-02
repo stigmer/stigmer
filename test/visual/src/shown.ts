@@ -94,6 +94,10 @@ export const SHOWN: readonly Shown[] = [
     // Tall enough that the panel holds the whole conversation, from the
     // person's message to the composer, without scrolling.
     viewport: { width: 1280, height: 1000 },
+    // The product's window, measured from the drawn screen: its ring at
+    // x 23 and 1256, y 23 and 976; the page's margin around it is left off,
+    // so the picture sits on the site's own ground.
+    clip: { x: 23, y: 23, width: 1234, height: 954 },
     marks: {
       "own-computer": { role: "button", name: "Read 1 file 1 s", box: { x: 899, y: 262, width: 325, height: 32 } },
       "asks-first": { role: "button", name: "Approve", box: { x: 923, y: 647, width: 74, height: 30 } },

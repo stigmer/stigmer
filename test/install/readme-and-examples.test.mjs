@@ -12,7 +12,9 @@
 //   - the commands examples/README.md shows are the quickstart's, in its order;
 //   - the README's React code is runs of consecutive lines of the src/App.tsx
 //     "Put the agent in your app" writes, each run split from the next by a
-//     `// …` line, so no line goes missing without a mark.
+//     `// …` line, so no line goes missing without a mark (the rule for
+//     quoting a page is lib/doc-steps.mjs's, shared with the homepage's
+//     snippets).
 // The smoke runs the pages; this holds the copies to them, so a README line
 // that drifts from its page, or a page that drops the line, fails here,
 // naming the line.
@@ -22,14 +24,13 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { docSteps } from "./lib/doc-steps.mjs";
+import { docSteps, elidedRuns, firstOutOfOrder, firstUnmarkedGap } from "./lib/doc-steps.mjs";
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
 const read = (path) => readFileSync(`${ROOT}${path}`, "utf8");
 
 const EXAMPLE_DIR = "examples/variance-report";
 const EXAMPLE_URL = `https://raw.githubusercontent.com/stigmer/stigmer/main/${EXAMPLE_DIR}/`;
-const ELISION = "// …";
 
 const quickstart = docSteps(read("docs/getting-started/quickstart.mdx"));
 const quickstartCommands = quickstart.filter((step) => step.kind === "command").map((step) => step.line);
@@ -93,43 +94,6 @@ test("the README's React code is runs of the embed page's src/App.tsx, every gap
   assert.ok(runs.flat().length > 10, "shows more than a fragment");
   assert.equal(firstUnmarkedGap(runs, app.content.split("\n")), undefined);
 });
-
-/** The runs of code lines between `// …` lines, blank lines left out. */
-function elidedRuns(lines) {
-  const runs = [[]];
-  for (const line of lines) {
-    if (line.trim() === ELISION) runs.push([]);
-    else if (line.trim() !== "") runs.at(-1).push(line);
-  }
-  return runs.filter((run) => run.length > 0);
-}
-
-/**
- * The first run that is not consecutive lines of `source` after the run
- * before it (blank source lines skipped), as its first line, or undefined.
- */
-function firstUnmarkedGap(runs, source) {
-  const lines = source.filter((line) => line.trim() !== "");
-  let from = 0;
-  for (const run of runs) {
-    let at = lines.indexOf(run[0], from);
-    while (at !== -1 && run.some((line, i) => lines[at + i] !== line)) at = lines.indexOf(run[0], at + 1);
-    if (at === -1) return run[0];
-    from = at + run.length;
-  }
-  return undefined;
-}
-
-/** The first shown line that is not one of `source`'s lines after the line before it, or undefined. */
-function firstOutOfOrder(shown, source) {
-  let from = 0;
-  for (const line of shown) {
-    const at = source.indexOf(line, from);
-    if (at === -1) return line;
-    from = at + 1;
-  }
-  return undefined;
-}
 
 test("a run that skips a line without a mark, or a line out of order, is named", () => {
   const source = ["a", "", "b", "c", "d", "b", "e"];

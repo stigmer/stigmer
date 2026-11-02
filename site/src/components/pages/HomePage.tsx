@@ -8,6 +8,7 @@ import { HardParts } from "@/components/sections/HardParts";
 import { AlsoBuilt } from "@/components/sections/AlsoBuilt";
 import { Sandbox } from "@/components/sections/Sandbox";
 import { HowItFits } from "@/components/sections/HowItFits";
+import { DropItIn } from "@/components/sections/DropItIn";
 import { OpenSource } from "@/components/sections/OpenSource";
 import { FinalCTA } from "@/components/sections/FinalCTA";
 
@@ -28,6 +29,7 @@ function HomePage({ className, ...props }: HomePageProps) {
         <AlsoBuilt />
         <Sandbox />
         <HowItFits />
+        <DropItIn />
         <OpenSource />
         <FinalCTA />
       </main>
