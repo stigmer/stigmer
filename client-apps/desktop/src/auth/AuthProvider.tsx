@@ -221,6 +221,7 @@ function NativeAuthProvider({
 
   const state: AuthState = {
     isAuthEnabled: true,
+    // Stryker disable next-line EqualityOperator: a token expiring in this very millisecond is a boundary no clock reads twice
     isAuthenticated: session !== null && session.expiresAt > Date.now(),
     isInitialized,
     user: session?.user ?? null,

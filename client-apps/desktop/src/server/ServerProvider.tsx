@@ -142,8 +142,7 @@ export function ServerProvider({ children }: { children: ReactNode }) {
 
   // How the screens name the server: as it named itself once it answered,
   // else by its host.
-  const label =
-    connection.phase === "connected" ? serverLabel(connection, origin) : origin === "" ? "" : hostOf(origin);
+  const label = connection.phase === "connected" ? serverLabel(connection, origin) : hostOf(origin);
 
   const state = useMemo(
     () => ({ origin, label, connection, retry, choose, isChoosing, setChoosing }),
