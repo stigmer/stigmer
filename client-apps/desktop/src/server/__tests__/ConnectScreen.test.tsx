@@ -12,7 +12,7 @@
 // ---------------------------------------------------------------------------
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { mockTauri, type TauriMock } from "../../__test-utils__/tauri";
 
@@ -73,6 +73,7 @@ function renderScreen(): void {
     <ServerProvider>
       <ConnectScreen />
       <Outcome />
+      <ChooseProbe />
     </ServerProvider>,
   );
 }
@@ -83,6 +84,19 @@ function host(chosen: string | null = null, extra: Parameters<typeof mockTauri>[
     open_auth_in_browser: () => null,
     ...extra,
   });
+}
+
+/** Chooses a server through the form, from whatever screen shows. */
+let chooseFromScreen: (url: string) => Promise<void> = async () => {};
+
+function ChooseProbe() {
+  const { choose } = useServer();
+  chooseFromScreen = async (url) => {
+    await act(async () => {
+      await choose(url);
+    });
+  };
+  return null;
 }
 
 beforeEach(() => {
@@ -142,6 +156,43 @@ describe("DSK-07 connecting to the chosen server", () => {
     expect(await screen.findByRole("heading", { name: "Stigmer Cloud isn’t set up for the desktop app" })).toBeTruthy();
     await userEvent.click(screen.getByRole("button", { name: "How an operator sets it up" }));
     expect(tauri.callsTo("open_auth_in_browser")).toEqual([{ authUrl: DESKTOP_SIGN_IN_GUIDE }]);
+  });
+});
+
+describe("DSK-07 an answer for a server the person left", () => {
+  it("is ignored, whether it arrives as an answer or a failure", async () => {
+    let answerAcme: (info: Record<string, unknown>) => void = () => {};
+    let failOther: (error: unknown) => void = () => {};
+    host(ACME, {
+      choose_server: (args) => (String(args.url) === "other" ? "https://other.acme.internal" : CLOUD),
+    });
+    answers(ACME, () => new Promise((resolve) => (answerAcme = resolve)));
+    answers("https://other.acme.internal", () => new Promise((_resolve, reject) => (failOther = reject)));
+    answers(CLOUD, async () => ({ authenticationRequired: false, deploymentMode: "cloud" }));
+    renderScreen();
+
+    await waitFor(() => expect(sdk.asked).toEqual([ACME]));
+    expect(screen.getByText("Connecting to stigmer.acme.internal…")).toBeTruthy();
+    await chooseFromScreen("other");
+    await waitFor(() => expect(sdk.asked).toEqual([ACME, "https://other.acme.internal"]));
+    await chooseFromScreen("cloud");
+    await waitFor(() => expect(screen.getByTestId("outcome").textContent).toBe(`${CLOUD} open`));
+
+    answerAcme({ authenticationRequired: true, deploymentMode: "local" });
+    failOther(new Error("too late"));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(screen.getByTestId("outcome").textContent).toBe(`${CLOUD} open`);
+  });
+});
+
+describe("useServer", () => {
+  it("refuses to be read outside the server provider", () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    function Reader() {
+      useServer();
+      return null;
+    }
+    expect(() => render(<Reader />)).toThrowError("useServer must be used within ServerProvider");
   });
 });
 

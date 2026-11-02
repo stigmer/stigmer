@@ -160,6 +160,15 @@ describe("getRunnerConfig: the proxy beside a sidecar", () => {
     expect(config.proxyEndpoint).toBe("http://localhost:9090");
   });
 
+  it("uses no sidecar when the build's own address is not one", async () => {
+    vi.stubEnv("VITE_STIGMER_SIDECAR_ENDPOINT", "localhost:9090");
+    vi.stubEnv("VITE_STIGMER_API_URL", "not an address");
+    runnerHost();
+
+    const config = await getRunnerConfig({ server: SERVER, accessToken: null });
+    expect(config.stigmerEndpoint).toBe(SERVER);
+  });
+
   it("goes straight to another server the person chose, past the build's sidecar", async () => {
     vi.stubEnv("VITE_STIGMER_SIDECAR_ENDPOINT", "localhost:9090");
     vi.stubEnv("VITE_STIGMER_API_URL", "http://localhost:9090");
