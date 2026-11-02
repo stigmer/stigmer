@@ -8,6 +8,9 @@
  * Who runs what (a package's install script is third-party code):
  *   - apt runs as root, with an allow-listed environment: Debian's archive
  *     is signed and its maintainer scripts are the base image's own trust.
+ *     It installs each entry by its exact name: `APT::Cmd::Pattern-Only`
+ *     turns off apt's reading of a name as a regular expression or glob,
+ *     which would install every matching package as root (stigmer#2840).
  *   - cargo, gem, go, npm and pip run as the agent's own user
  *     (`shared/agent-identity.ts` setprivArgs), with the agent host's
  *     allow-listed environment plus the agent's HOME and the CA variables
@@ -154,7 +157,7 @@ export function installCommands(packages: PackageSet, prefix: string): InstallCo
   if (packages.apt.length > 0) {
     const env = { DEBIAN_FRONTEND: "noninteractive" };
     commands.push({ manager: "apt", argv: ["apt-get", "update"], asAgent: false, env });
-    commands.push({ manager: "apt", argv: ["apt-get", "install", "-y", "--no-install-recommends", "--", ...packages.apt], asAgent: false, env });
+    commands.push({ manager: "apt", argv: ["apt-get", "install", "-y", "--no-install-recommends", "-o", "APT::Cmd::Pattern-Only=true", "--", ...packages.apt], asAgent: false, env });
   }
   if (packages.cargo.length > 0) {
     commands.push({ manager: "cargo", argv: ["cargo", "install", "--root", prefix, ...packages.cargo], asAgent: true, env: { CARGO_HOME: join(prefix, "cargo") } });
