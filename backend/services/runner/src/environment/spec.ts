@@ -12,7 +12,10 @@
  * `__tests__/spec.test.ts`). The entries reach the managers as argv, never
  * through a shell; the grammar keeps out what would change where a package
  * comes from (an option, a URL, a git source, a path, a file on the
- * sandbox's disk) or what installs (apt's trailing `-`, a removal).
+ * sandbox's disk) or what installs (apt's trailing `-`, a removal). An apt
+ * name apt would read as a pattern (`jq.`) is admitted, since Debian's own
+ * names hold `.` and `+` (`python3.11`, `g++`); apt itself refuses it, told
+ * to install exact names only (`install.ts`).
  */
 
 export const SANDBOX_ENVIRONMENT_ENV = "STIGMER_SANDBOX_ENVIRONMENT";
