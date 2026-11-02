@@ -14,16 +14,16 @@ package ai.stigmer.billing.plan.v1;
  * a term of one specific plan row, and no row ships in the contract, so the
  * contract itself carries no price.
  *
- * The instrument decides which terms a plan may carry, and the four rules
+ * The instrument decides which terms a plan may carry, and the five rules
  * below refuse what cannot be billed. A license plan is invoiced for a
  * term, so monthly terms have no meaning on it; a subscription plan bills
  * monthly, so an annual price has none. A license never meters a
- * self-hosted computer, so it carries no hourly price. And an hourly price
+ * self-hosted computer, so it carries no hourly price. An hourly price
  * needs an allowance of agent hours to exceed, since a price with nothing
- * to exceed is never charged. per_extra_org_micros is bound to the
- * entitlements' child organizations, not to the instrument, and no rule
- * ties it to included_child_orgs yet (#2229): without an included count
- * the children are unlimited and the fee is likewise never charged.
+ * to exceed is never charged. And for the same reason a per-organization
+ * fee needs an included count of child organizations: without one the
+ * children are unlimited, so per_extra_org_micros is bound to the
+ * entitlements' included_child_orgs, not to the instrument.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.billing.plan.v1.PlanSpec}
@@ -433,16 +433,16 @@ private static final long serialVersionUID = 0L;
    * a term of one specific plan row, and no row ships in the contract, so the
    * contract itself carries no price.
    *
-   * The instrument decides which terms a plan may carry, and the four rules
+   * The instrument decides which terms a plan may carry, and the five rules
    * below refuse what cannot be billed. A license plan is invoiced for a
    * term, so monthly terms have no meaning on it; a subscription plan bills
    * monthly, so an annual price has none. A license never meters a
-   * self-hosted computer, so it carries no hourly price. And an hourly price
+   * self-hosted computer, so it carries no hourly price. An hourly price
    * needs an allowance of agent hours to exceed, since a price with nothing
-   * to exceed is never charged. per_extra_org_micros is bound to the
-   * entitlements' child organizations, not to the instrument, and no rule
-   * ties it to included_child_orgs yet (#2229): without an included count
-   * the children are unlimited and the fee is likewise never charged.
+   * to exceed is never charged. And for the same reason a per-organization
+   * fee needs an included count of child organizations: without one the
+   * children are unlimited, so per_extra_org_micros is bound to the
+   * entitlements' included_child_orgs, not to the instrument.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.billing.plan.v1.PlanSpec}

@@ -229,9 +229,10 @@ func (x *EnvironmentNetworking) GetAllowMcpServers() bool {
 // Each entry is a registry package name with its manager's own version pin
 // (hyperfine@1.18.0, rails:7.1.0, goimports' module@latest, express@4.18.0,
 // sqlalchemy==2.0.30, or poppler-utils=22.02.0-2), never a URL, a git
-// source or a path. Managers run in the order apt, cargo, gem, go, npm,
-// pip; a manager the sandbox's image lacks fails the install, naming what
-// to add.
+// source, a path or a file name such as x.tgz, and never an apt entry
+// ending in -, which apt reads as a removal. Managers run in the order apt,
+// cargo, gem, go, npm, pip; a manager the sandbox's image lacks fails the
+// install, naming what to add.
 type EnvironmentPackages struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Debian packages, as name or name=version.
@@ -342,14 +343,17 @@ const file_ai_stigmer_agentic_environment_v1_spec_proto_rawDesc = "" +
 	"\rallowed_hosts\x18\x02 \x03(\tBx\xbaHu\x92\x01r\x10d\"nrl\x18\xfd\x012g^(\\*\\.)?([A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?\\.)+[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?\\.?$R\fallowedHosts\x124\n" +
 	"\x16allow_package_managers\x18\x03 \x01(\bR\x14allowPackageManagers\x12*\n" +
 	"\x11allow_mcp_servers\x18\x04 \x01(\bR\x0fallowMcpServers:\xf8\x01\xbaH\xf4\x01\x1a\xf1\x01\n" +
-	"#environment_networking.limited_only\x12[allowed_hosts, allow_package_managers and allow_mcp_servers apply only when type is limited\x1amthis.type == 2 || (this.allowed_hosts.size() == 0 && !this.allow_package_managers && !this.allow_mcp_servers)\"\xb6\x05\n" +
-	"\x13EnvironmentPackages\x12N\n" +
-	"\x03apt\x18\x01 \x03(\tB<\xbaH9\x92\x016\x10 \"2r0\x18\xd6\x012+^[a-z0-9][a-z0-9+.-]+(=[A-Za-z0-9.+~:-]+)?$R\x03apt\x12U\n" +
-	"\x05cargo\x18\x02 \x03(\tB?\xbaH<\x92\x019\x10 \"5r3\x18\xd6\x012.^[A-Za-z0-9][A-Za-z0-9_-]*(@[0-9A-Za-z.+-]+)?$R\x05cargo\x12P\n" +
-	"\x03gem\x18\x03 \x03(\tB>\xbaH;\x92\x018\x10 \"4r2\x18\xd6\x012-^[A-Za-z0-9][A-Za-z0-9._-]*(:[0-9A-Za-z.]+)?$R\x03gem\x12P\n" +
-	"\x02go\x18\x04 \x03(\tB@\xbaH=\x92\x01:\x10 \"6r4\x18\xd6\x012/^[A-Za-z0-9][A-Za-z0-9._~/-]*@[A-Za-z0-9._+-]+$R\x02go\x12z\n" +
-	"\x03npm\x18\x05 \x03(\tBh\xbaHe\x92\x01b\x10 \"^r\\\x18\xd6\x012W^(@[A-Za-z0-9][A-Za-z0-9._~-]*/)?[A-Za-z0-9][A-Za-z0-9._~-]*(@[A-Za-z0-9.^~<>=*+_-]+)?$R\x03npm\x12\xd7\x01\n" +
-	"\x03pip\x18\x06 \x03(\tB\xc4\x01\xbaH\xc0\x01\x92\x01\xbc\x01\x10 \"\xb7\x01r\xb4\x01\x18\xd6\x012\xae\x01^[A-Za-z0-9]([A-Za-z0-9._-]*[A-Za-z0-9])?(\\[[A-Za-z0-9._-]+(,[A-Za-z0-9._-]+)*\\])?((===|==|!=|~=|>=|<=|>|<)[A-Za-z0-9.*+!_-]+(,(===|==|!=|~=|>=|<=|>|<)[A-Za-z0-9.*+!_-]+)*)?$R\x03pip*P\n" +
+	"#environment_networking.limited_only\x12[allowed_hosts, allow_package_managers and allow_mcp_servers apply only when type is limited\x1amthis.type == 2 || (this.allowed_hosts.size() == 0 && !this.allow_package_managers && !this.allow_mcp_servers)\"\xc9\t\n" +
+	"\x13EnvironmentPackages\x12g\n" +
+	"\x03apt\x18\x01 \x03(\tBU\xbaHR\x92\x01O\x10 \"KrI\x18\xd6\x012D^[a-z0-9][a-z0-9+.-]*[a-z0-9+.](=[A-Za-z0-9.+~:-]*[A-Za-z0-9.+~:])?$R\x03apt\x12U\n" +
+	"\x05cargo\x18\x02 \x03(\tB?\xbaH<\x92\x019\x10 \"5r3\x18\xd6\x012.^[A-Za-z0-9][A-Za-z0-9_-]*(@[0-9A-Za-z.+-]+)?$R\x05cargo\x12\xd3\x01\n" +
+	"\x03gem\x18\x03 \x03(\tB\xc0\x01\xbaH\xbc\x01\x92\x01\xb8\x01\x10 \"\xb3\x01\xba\x01|\n" +
+	"\x13gem.not_a_file_name\x12=a gem entry is a registry package, never a file such as x.gem\x1a&!this.matches('(?i)^[^:]*\\\\.gem(:|$)')r2\x18\xd6\x012-^[A-Za-z0-9][A-Za-z0-9._-]*(:[0-9A-Za-z.]+)?$R\x03gem\x12P\n" +
+	"\x02go\x18\x04 \x03(\tB@\xbaH=\x92\x01:\x10 \"6r4\x18\xd6\x012/^[A-Za-z0-9][A-Za-z0-9._~/-]*@[A-Za-z0-9._+-]+$R\x02go\x12\x96\x02\n" +
+	"\x03npm\x18\x05 \x03(\tB\x83\x02\xbaH\xff\x01\x92\x01\xfb\x01\x10 \"\xf6\x01\xba\x01\x80\x01\n" +
+	"\x13npm.not_a_file_name\x12>an npm entry is a registry package, never a file such as x.tgz\x1a)!this.matches('(?i)\\\\.(tgz|tar.gz|tar)$')rp\x18\xd6\x012k^(@[A-Za-z0-9][A-Za-z0-9._~-]*/)?[A-Za-z0-9][A-Za-z0-9._~-]*(@[A-Za-z0-9^~<>=*+_-][A-Za-z0-9.^~<>=*+_-]*)?$R\x03npm\x12\xb0\x03\n" +
+	"\x03pip\x18\x06 \x03(\tB\x9d\x03\xbaH\x99\x03\x92\x01\x95\x03\x10 \"\x90\x03\xba\x01\xd5\x01\n" +
+	"\x13pip.not_a_file_name\x12=a pip entry is a registry package, never a file such as x.whl\x1a\x7f!this.matches('(?i)\\\\.(whl|zip|tar\\\\.bz2|tbz|tar\\\\.gz|tgz|tar|tar\\\\.xz|txz|tlz|tar\\\\.lz|tar\\\\.lzma)(\\\\[[A-Za-z0-9._,-]*\\\\])?$')r\xb4\x01\x18\xd6\x012\xae\x01^[A-Za-z0-9]([A-Za-z0-9._-]*[A-Za-z0-9])?(\\[[A-Za-z0-9._-]+(,[A-Za-z0-9._-]+)*\\])?((===|==|!=|~=|>=|<=|>|<)[A-Za-z0-9.*+!_-]+(,(===|==|!=|~=|>=|<=|>|<)[A-Za-z0-9.*+!_-]+)*)?$R\x03pip*P\n" +
 	"\x0eNetworkingType\x12\x1f\n" +
 	"\x1bnetworking_type_unspecified\x10\x00\x12\x10\n" +
 	"\funrestricted\x10\x01\x12\v\n" +

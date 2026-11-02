@@ -1,6 +1,6 @@
 {
   "name": "EnvironmentPackages",
-  "description": "EnvironmentPackages lists packages by the manager that installs them.\n\n Each entry is a registry package name with its manager's own version pin\n (hyperfine@1.18.0, rails:7.1.0, goimports' module@latest, express@4.18.0,\n sqlalchemy==2.0.30, or poppler-utils=22.02.0-2), never a URL, a git\n source or a path. Managers run in the order apt, cargo, gem, go, npm,\n pip; a manager the sandbox's image lacks fails the install, naming what\n to add.",
+  "description": "EnvironmentPackages lists packages by the manager that installs them.\n\n Each entry is a registry package name with its manager's own version pin\n (hyperfine@1.18.0, rails:7.1.0, goimports' module@latest, express@4.18.0,\n sqlalchemy==2.0.30, or poppler-utils=22.02.0-2), never a URL, a git\n source, a path or a file name such as x.tgz, and never an apt entry\n ending in -, which apt reads as a removal. Managers run in the order apt,\n cargo, gem, go, npm, pip; a manager the sandbox's image lacks fails the\n install, naming what to add.",
   "protoType": "ai.stigmer.agentic.environment.v1.EnvironmentPackages",
   "protoFile": "apis/ai/stigmer/agentic/environment/v1/spec.proto",
   "fields": [

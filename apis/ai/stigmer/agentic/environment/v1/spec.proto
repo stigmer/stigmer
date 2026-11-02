@@ -97,18 +97,26 @@ enum NetworkingType {
 // Each entry is a registry package name with its manager's own version pin
 // (hyperfine@1.18.0, rails:7.1.0, goimports' module@latest, express@4.18.0,
 // sqlalchemy==2.0.30, or poppler-utils=22.02.0-2), never a URL, a git
-// source or a path. Managers run in the order apt, cargo, gem, go, npm,
-// pip; a manager the sandbox's image lacks fails the install, naming what
-// to add.
+// source, a path or a file name such as x.tgz, and never an apt entry
+// ending in -, which apt reads as a removal. Managers run in the order apt,
+// cargo, gem, go, npm, pip; a manager the sandbox's image lacks fails the
+// install, naming what to add.
 //
 // @internal
 // apt installs as root; the other managers install as the agent's own user
 // into a folder on the agent's PATH, so a package's install script runs
 // with the agent's rights. Entries reach the runner as argv, never through
 // a shell, so the grammar refuses only what would change where a package
-// comes from or what installs: an option, whitespace, a URL, git+, file:
-// or a path. 32 entries of at most 214 characters per manager keep the
-// whole set inside one environment variable.
+// comes from or what installs: an option, whitespace, a URL, git+, file:,
+// a path, an apt removal (a trailing -, after the name or the version), or
+// a name npm, pip or gem reads as a file on the sandbox's disk. Each
+// manager's file rule is that manager's own test (npm-package-arg's
+// isFilename and its version part starting with a dot; pip's archive
+// extensions, after any specifier and before any extras; RubyGems' .gem on
+// the name the runner passes, before the colon). RE2 has no lookahead, so
+// a "does not end in" rule is a CEL item rule beside the pattern. 32
+// entries of at most 214 characters per manager keep the whole set inside
+// one environment variable.
 message EnvironmentPackages {
   // Debian packages, as name or name=version.
   repeated string apt = 1 [(buf.validate.field).repeated = {
@@ -116,7 +124,7 @@ message EnvironmentPackages {
     items: {
       string: {
         max_len: 214
-        pattern: "^[a-z0-9][a-z0-9+.-]+(=[A-Za-z0-9.+~:-]+)?$"
+        pattern: "^[a-z0-9][a-z0-9+.-]*[a-z0-9+.](=[A-Za-z0-9.+~:-]*[A-Za-z0-9.+~:])?$"
       }
     }
   }];
@@ -140,6 +148,11 @@ message EnvironmentPackages {
         max_len: 214
         pattern: "^[A-Za-z0-9][A-Za-z0-9._-]*(:[0-9A-Za-z.]+)?$"
       }
+      cel: {
+        id: "gem.not_a_file_name"
+        message: "a gem entry is a registry package, never a file such as x.gem"
+        expression: "!this.matches('(?i)^[^:]*\\\\.gem(:|$)')"
+      }
     }
   }];
 
@@ -162,7 +175,12 @@ message EnvironmentPackages {
     items: {
       string: {
         max_len: 214
-        pattern: "^(@[A-Za-z0-9][A-Za-z0-9._~-]*/)?[A-Za-z0-9][A-Za-z0-9._~-]*(@[A-Za-z0-9.^~<>=*+_-]+)?$"
+        pattern: "^(@[A-Za-z0-9][A-Za-z0-9._~-]*/)?[A-Za-z0-9][A-Za-z0-9._~-]*(@[A-Za-z0-9^~<>=*+_-][A-Za-z0-9.^~<>=*+_-]*)?$"
+      }
+      cel: {
+        id: "npm.not_a_file_name"
+        message: "an npm entry is a registry package, never a file such as x.tgz"
+        expression: "!this.matches('(?i)\\\\.(tgz|tar.gz|tar)$')"
       }
     }
   }];
@@ -175,6 +193,11 @@ message EnvironmentPackages {
       string: {
         max_len: 214
         pattern: "^[A-Za-z0-9]([A-Za-z0-9._-]*[A-Za-z0-9])?(\\[[A-Za-z0-9._-]+(,[A-Za-z0-9._-]+)*\\])?((===|==|!=|~=|>=|<=|>|<)[A-Za-z0-9.*+!_-]+(,(===|==|!=|~=|>=|<=|>|<)[A-Za-z0-9.*+!_-]+)*)?$"
+      }
+      cel: {
+        id: "pip.not_a_file_name"
+        message: "a pip entry is a registry package, never a file such as x.whl"
+        expression: "!this.matches('(?i)\\\\.(whl|zip|tar\\\\.bz2|tbz|tar\\\\.gz|tgz|tar|tar\\\\.xz|txz|tlz|tar\\\\.lz|tar\\\\.lzma)(\\\\[[A-Za-z0-9._,-]*\\\\])?$')"
       }
     }
   }];

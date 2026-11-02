@@ -6,20 +6,29 @@
  *   - each manager's grammar refuses what would change where a package
  *     comes from or what installs: a leading `-` (an option), whitespace, a
  *     URL, a `git+` or `file:` source, a path; go needs its `@version`;
+ *   - and what a manager reads as something other than a registry install:
+ *     an apt entry ending in `-` (a removal, after the name or the version),
+ *     and an entry npm, pip or gem reads as a file on the sandbox's disk
+ *     (`x.tgz`, `express@1.tgz`, `express@.`, `x.whl[a]`, `x==1.whl`,
+ *     `x.gem:1`), while names that only look close (`socket.io`,
+ *     `zope.interface`, `nodejs+`) still pass;
  *   - the contract's limits: more than 32 entries, or an entry over 214
  *     characters, is refused, and so is a key that names no manager;
  *   - `sandboxEnvironmentFrom` is `undefined` when the variable is unset or
  *     blank, and throws on a value that is not JSON or does not parse;
  *   - the grammars and limits ARE the contract's: the test reads
  *     `apis/ai/stigmer/agentic/environment/v1/spec.proto` as text and
- *     compares each manager's `pattern:`, `max_items` and `max_len`, so a
- *     change on either side turns it red.
+ *     compares each manager's `pattern:`, `max_items` and `max_len`, and
+ *     each file-name item rule's `matches('…')` with `FILE_NAMES` (its
+ *     `(?i)` against the RegExp's `i` flag), so a change on either side
+ *     turns it red.
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
+  FILE_NAMES,
   hasPackages,
   MANAGERS,
   MAX_PACKAGE_LENGTH,
@@ -64,6 +73,26 @@ const REFUSED_EVERYWHERE = [
   "/x@1",
   "../x@1",
 ];
+
+/**
+ * What a manager reads as something other than a registry install: apt's
+ * trailing `-` is a removal (and apt runs as root); the others' entries are
+ * files on the sandbox's disk, by each manager's own test.
+ */
+const NOT_A_REGISTRY_INSTALL: { readonly [M in Manager]?: readonly string[] } = {
+  apt: ["nodejs-", "nodejs=1.0-", "nodejs=-", "g++-"],
+  npm: ["x.tgz", "express@1.tgz", "express@.", "@scope/pkg@1.tar", "x.TAR.GZ", "x.tar"],
+  pip: ["x.whl", "x.WHL", "x.whl[a]", "x==1.whl", "x.tar.gz", "x.zip", "x.tar.lzma", "x[a]==1.tgz"],
+  gem: ["x.gem", "x.gem:1", "X.GEM"],
+};
+
+/** Entries that look close to those and are registry packages. */
+const LOOK_CLOSE: { readonly [M in Manager]?: readonly string[] } = {
+  apt: ["nodejs+", "libstdc++6", "nodejs=1.0+", "python3.11=3.11.2-6"],
+  npm: ["socket.io", "tar", "tar-fs@3.0.6", "express@4.x", "node-tar.js"],
+  pip: ["zope.interface", "tar", "wheel", "pywhl==1.0", "x.whlx"],
+  gem: ["rails:7.1.0", "gemoji", "x.gemspec", "gem"],
+};
 
 function environment(packages: Partial<Record<string, unknown>>, network: unknown = "limited"): unknown {
   return { network, packages };
@@ -123,6 +152,21 @@ describe("parseSandboxEnvironment", () => {
       });
     }
     expect(parseSandboxEnvironment(environment({ [manager]: [42] })).ok, "a non-string entry").toBe(false);
+  });
+
+  it.each(Object.keys(NOT_A_REGISTRY_INSTALL) as Manager[])("%s: refuses what it reads as a removal or a local file, naming the entry", (manager) => {
+    for (const entry of NOT_A_REGISTRY_INSTALL[manager]!) {
+      expect(parseSandboxEnvironment(environment({ [manager]: [entry] })), `${manager} ${entry}`).toEqual({
+        ok: false,
+        reason: `environment.packages.${manager} holds an entry that is not a ${manager} package: ${JSON.stringify(entry)}`,
+      });
+    }
+  });
+
+  it.each(Object.keys(LOOK_CLOSE) as Manager[])("%s: still accepts registry names that only look close", (manager) => {
+    for (const entry of LOOK_CLOSE[manager]!) {
+      expect(parseSandboxEnvironment(environment({ [manager]: [entry] })).ok, `${manager} ${entry}`).toBe(true);
+    }
   });
 
   it("go needs its @version", () => {
@@ -193,15 +237,26 @@ describe("the grammars are the contract's", () => {
     });
   }
 
-  /** Each manager's field options in `EnvironmentPackages`, read from the contract's text. */
-  function contractRules(): Map<string, { readonly pattern: string; readonly maxItems: number; readonly maxLen: number }> {
+  /**
+   * A CEL string literal's body: CEL reads the same three escapes for these
+   * expressions, and this reader refuses every other.
+   */
+  const unescapeCel = unescapeProto;
+
+  /** The contract's text from `message EnvironmentPackages {` on. */
+  function environmentPackages(): string {
     const proto = readFileSync(
       resolve(import.meta.dirname, "../../../../../../apis/ai/stigmer/agentic/environment/v1/spec.proto"),
       "utf8",
     );
     const start = proto.indexOf("message EnvironmentPackages {");
     expect(start, "the contract declares EnvironmentPackages").toBeGreaterThanOrEqual(0);
-    const body = proto.slice(start);
+    return proto.slice(start);
+  }
+
+  /** Each manager's field options in `EnvironmentPackages`, read from the contract's text. */
+  function contractRules(): Map<string, { readonly pattern: string; readonly maxItems: number; readonly maxLen: number }> {
+    const body = environmentPackages();
     const rules = new Map<string, { pattern: string; maxItems: number; maxLen: number }>();
     const field = /repeated string (\w+) = \d+ \[[\s\S]*?max_items: (\d+)[\s\S]*?max_len: (\d+)\s+pattern: "((?:[^"\\]|\\.)*)"/g;
     for (const match of body.matchAll(field)) {
@@ -223,5 +278,33 @@ describe("the grammars are the contract's", () => {
     expect(PACKAGE_PATTERNS[manager].flags).toBe("");
     expect(rule!.maxItems).toBe(MAX_PACKAGES_PER_MANAGER);
     expect(rule!.maxLen).toBe(MAX_PACKAGE_LENGTH);
+  });
+
+  /**
+   * Each `<manager>.not_a_file_name` item rule's regular expression: the
+   * literal inside `!this.matches('…')`, unescaped once as a proto string
+   * and once as a CEL string.
+   */
+  function contractFileNames(): Map<string, string> {
+    const rules = new Map<string, string>();
+    const rule = /id: "(\w+)\.not_a_file_name"[\s\S]*?expression: "!this\.matches\('((?:[^'\\]|\\.)*)'\)"/g;
+    for (const [, name, literal] of environmentPackages().matchAll(rule)) {
+      rules.set(name!, unescapeCel(unescapeProto(literal!)));
+    }
+    return rules;
+  }
+
+  it("names a file-name rule for exactly the managers the runner tests", () => {
+    expect([...contractFileNames().keys()].sort()).toEqual(Object.keys(FILE_NAMES).sort());
+    expect(Object.keys(FILE_NAMES).sort()).toEqual(["gem", "npm", "pip"]);
+  });
+
+  it.each(["gem", "npm", "pip"] as const)("%s: the runner's file-name rule equals the contract's", (manager) => {
+    const expression = contractFileNames().get(manager);
+    expect(expression, manager).toBeDefined();
+    const caseless = "(?i)";
+    expect(expression!.startsWith(caseless), `${manager} matches case-insensitively`).toBe(true);
+    expect(FILE_NAMES[manager]!.source).toBe(new RegExp(expression!.slice(caseless.length)).source);
+    expect(FILE_NAMES[manager]!.flags).toBe("i");
   });
 });
