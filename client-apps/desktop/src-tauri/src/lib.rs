@@ -1,32 +1,34 @@
 mod auth;
 mod deep_link;
+mod lifecycle;
 mod menu;
 mod runner;
 mod tray;
+mod user_path;
+mod window;
 mod workspace;
 
 use deep_link::DeepLinkEvent;
+use lifecycle::{Act, Lifecycle};
 use runner::RunnerState;
-use tauri::{Emitter, Manager, RunEvent, WindowEvent};
+use tauri::{AppHandle, Emitter, Manager, RunEvent, WindowEvent};
 use tauri_plugin_deep_link::DeepLinkExt;
 use tauri_plugin_window_state::{AppHandleExt, StateFlags};
+use user_path::UserPath;
+use window::{bring_forward, MAIN_WINDOW};
 
 pub fn run() {
     let mut builder = tauri::Builder::default();
 
     builder = builder.plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
-        if let Some(window) = app.get_webview_window("main") {
-            let _ = window.show();
-            let _ = window.unminimize();
-            let _ = window.set_focus();
-        }
+        bring_forward(app);
     }));
 
     let app = builder
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_notifications::init())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_process::init())
         .plugin(
@@ -35,6 +37,7 @@ pub fn run() {
                 .build(),
         )
         .manage(RunnerState::new())
+        .manage(UserPath::resolve_in_background())
         .invoke_handler(tauri::generate_handler![
             auth::open_auth_in_browser,
             auth::cancel_auth,
@@ -48,6 +51,8 @@ pub fn run() {
             runner::update_runner_token,
             runner::runner_status,
             runner::bundled_node_path,
+            user_path::user_tool_path,
+            window::show_main_window,
             workspace::list_workspace_files,
             workspace::read_workspace_file,
             workspace::search_workspace_content,
@@ -64,10 +69,7 @@ pub fn run() {
             let show_handle = app.handle().clone();
             std::thread::spawn(move || {
                 std::thread::sleep(std::time::Duration::from_secs(2));
-                if let Some(window) = show_handle.get_webview_window("main") {
-                    let _ = window.show();
-                    let _ = window.set_focus();
-                }
+                bring_forward(&show_handle);
             });
 
             // Each stigmer:// URL becomes at most one app event (deep_link.rs
@@ -84,10 +86,7 @@ pub fn run() {
                         | DeepLinkEvent::SignInCallback(payload) => handle.emit(name, payload),
                         DeepLinkEvent::BillingReturn(payload) => handle.emit(name, payload),
                     };
-                    if let Some(window) = handle.get_webview_window("main") {
-                        let _ = window.show();
-                        let _ = window.set_focus();
-                    }
+                    bring_forward(&handle);
                 }
             });
 
@@ -102,39 +101,51 @@ pub fn run() {
 
     let is_dev = cfg!(debug_assertions);
 
-    app.run(move |app_handle, event| match event {
-        RunEvent::WindowEvent {
-            label,
-            event: WindowEvent::CloseRequested { api, .. },
-            ..
-        } if label == "main" => {
-            if is_dev {
-                let _ = app_handle.save_window_state(StateFlags::all());
-            } else {
-                api.prevent_close();
-                if let Some(window) = app_handle.get_webview_window("main") {
-                    let _ = window.hide();
+    app.run(move |app_handle, event| {
+        let Some(lifecycle) = Lifecycle::of(&event) else {
+            return;
+        };
+        let close_api = match &event {
+            RunEvent::WindowEvent {
+                event: WindowEvent::CloseRequested { api, .. },
+                ..
+            } => Some(api),
+            _ => None,
+        };
+        for act in lifecycle::decide(lifecycle, is_dev) {
+            match act {
+                Act::SaveWindowState => {
+                    let _ = app_handle.save_window_state(StateFlags::all());
+                }
+                Act::PreventClose => {
+                    if let Some(api) = close_api {
+                        api.prevent_close();
+                    }
+                }
+                Act::HideMainWindow => hide_main_window(app_handle),
+                Act::BringForward => bring_forward(app_handle),
+                // Reap the embedded runner before the process exits. Relying on the crate's
+                // `kill_on_drop` is only a soft guarantee (the runner's background reader holds an
+                // Arc to the child handle), so reap explicitly here (issue #177).
+                //
+                // Use `kill()`, not `stop()`. `stop()` sends the IPC shutdown and then waits with a
+                // `tokio::time::timeout`, but by `RunEvent::Exit` the tokio time driver is no longer
+                // pumped, so that timeout can never fire; and a mid-execution runner never acks the
+                // shutdown, so `child.wait()` never returns on its own — `block_on(stop())` would
+                // park forever (issue #178). `kill()` is timer-free: a synchronous SIGKILL makes the
+                // child a zombie at once, so the first `wait()` poll reaps it and returns immediately.
+                // Draining in-flight work is pointless at teardown anyway — the UI is gone and results
+                // stream to the control plane, not through our pipes.
+                Act::KillRunner => {
+                    tauri::async_runtime::block_on(app_handle.state::<RunnerState>().kill());
                 }
             }
         }
-        RunEvent::ExitRequested { .. } => {
-            let _ = app_handle.save_window_state(StateFlags::all());
-        }
-        RunEvent::Exit => {
-            // Reap the embedded runner before the process exits. Relying on the crate's
-            // `kill_on_drop` is only a soft guarantee (the runner's background reader holds an
-            // Arc to the child handle), so reap explicitly here (issue #177).
-            //
-            // Use `kill()`, not `stop()`. `stop()` sends the IPC shutdown and then waits with a
-            // `tokio::time::timeout`, but by `RunEvent::Exit` the tokio time driver is no longer
-            // pumped, so that timeout can never fire; and a mid-execution runner never acks the
-            // shutdown, so `child.wait()` never returns on its own — `block_on(stop())` would
-            // park forever (issue #178). `kill()` is timer-free: a synchronous SIGKILL makes the
-            // child a zombie at once, so the first `wait()` poll reaps it and returns immediately.
-            // Draining in-flight work is pointless at teardown anyway — the UI is gone and results
-            // stream to the control plane, not through our pipes.
-            tauri::async_runtime::block_on(app_handle.state::<RunnerState>().kill());
-        }
-        _ => {}
     });
+}
+
+fn hide_main_window(app: &AppHandle) {
+    if let Some(window) = app.get_webview_window(MAIN_WINDOW) {
+        let _ = window.hide();
+    }
 }

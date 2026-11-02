@@ -2637,202 +2637,310 @@
           "markdownDescription": "Denies the fetch_send command without any pre-configured scope."
         },
         {
-          "description": "This permission set configures which\nnotification features are by default exposed.\n\n#### Granted Permissions\n\nIt allows all notification related features.\n\n\n#### This default permission set includes:\n\n- `allow-is-permission-granted`\n- `allow-request-permission`\n- `allow-notify`\n- `allow-register-action-types`\n- `allow-register-listener`\n- `allow-cancel`\n- `allow-get-pending`\n- `allow-remove-active`\n- `allow-get-active`\n- `allow-check-permissions`\n- `allow-show`\n- `allow-batch`\n- `allow-list-channels`\n- `allow-delete-channel`\n- `allow-create-channel`\n- `allow-permission-state`",
+          "description": "This permission set configures which\nnotification features are by default exposed.\n\n#### Granted Permissions\n\nIt allows all notification related features.\n\n\n#### This default permission set includes:\n\n- `allow-is-permission-granted`\n- `allow-request-permission`\n- `allow-register-for-push-notifications`\n- `allow-unregister-for-push-notifications`\n- `allow-notify`\n- `allow-register-action-types`\n- `allow-register-listener`\n- `allow-remove-listener`\n- `allow-cancel`\n- `allow-cancel-all`\n- `allow-get-pending`\n- `allow-remove-active`\n- `allow-remove-all`\n- `allow-get-active`\n- `allow-check-permissions`\n- `allow-show`\n- `allow-batch`\n- `allow-list-channels`\n- `allow-delete-channel`\n- `allow-create-channel`\n- `allow-permission-state`\n- `allow-set-click-listener-active`\n- `allow-list-distributors`\n- `allow-set-distributor`\n- `allow-set-token`",
           "type": "string",
-          "const": "notification:default",
-          "markdownDescription": "This permission set configures which\nnotification features are by default exposed.\n\n#### Granted Permissions\n\nIt allows all notification related features.\n\n\n#### This default permission set includes:\n\n- `allow-is-permission-granted`\n- `allow-request-permission`\n- `allow-notify`\n- `allow-register-action-types`\n- `allow-register-listener`\n- `allow-cancel`\n- `allow-get-pending`\n- `allow-remove-active`\n- `allow-get-active`\n- `allow-check-permissions`\n- `allow-show`\n- `allow-batch`\n- `allow-list-channels`\n- `allow-delete-channel`\n- `allow-create-channel`\n- `allow-permission-state`"
+          "const": "notifications:default",
+          "markdownDescription": "This permission set configures which\nnotification features are by default exposed.\n\n#### Granted Permissions\n\nIt allows all notification related features.\n\n\n#### This default permission set includes:\n\n- `allow-is-permission-granted`\n- `allow-request-permission`\n- `allow-register-for-push-notifications`\n- `allow-unregister-for-push-notifications`\n- `allow-notify`\n- `allow-register-action-types`\n- `allow-register-listener`\n- `allow-remove-listener`\n- `allow-cancel`\n- `allow-cancel-all`\n- `allow-get-pending`\n- `allow-remove-active`\n- `allow-remove-all`\n- `allow-get-active`\n- `allow-check-permissions`\n- `allow-show`\n- `allow-batch`\n- `allow-list-channels`\n- `allow-delete-channel`\n- `allow-create-channel`\n- `allow-permission-state`\n- `allow-set-click-listener-active`\n- `allow-list-distributors`\n- `allow-set-distributor`\n- `allow-set-token`"
         },
         {
           "description": "Enables the batch command without any pre-configured scope.",
           "type": "string",
-          "const": "notification:allow-batch",
+          "const": "notifications:allow-batch",
           "markdownDescription": "Enables the batch command without any pre-configured scope."
         },
         {
           "description": "Enables the cancel command without any pre-configured scope.",
           "type": "string",
-          "const": "notification:allow-cancel",
+          "const": "notifications:allow-cancel",
           "markdownDescription": "Enables the cancel command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the cancel_all command without any pre-configured scope.",
+          "type": "string",
+          "const": "notifications:allow-cancel-all",
+          "markdownDescription": "Enables the cancel_all command without any pre-configured scope."
         },
         {
           "description": "Enables the check_permissions command without any pre-configured scope.",
           "type": "string",
-          "const": "notification:allow-check-permissions",
+          "const": "notifications:allow-check-permissions",
           "markdownDescription": "Enables the check_permissions command without any pre-configured scope."
         },
         {
           "description": "Enables the create_channel command without any pre-configured scope.",
           "type": "string",
-          "const": "notification:allow-create-channel",
+          "const": "notifications:allow-create-channel",
           "markdownDescription": "Enables the create_channel command without any pre-configured scope."
         },
         {
           "description": "Enables the delete_channel command without any pre-configured scope.",
           "type": "string",
-          "const": "notification:allow-delete-channel",
+          "const": "notifications:allow-delete-channel",
           "markdownDescription": "Enables the delete_channel command without any pre-configured scope."
         },
         {
           "description": "Enables the get_active command without any pre-configured scope.",
           "type": "string",
-          "const": "notification:allow-get-active",
+          "const": "notifications:allow-get-active",
           "markdownDescription": "Enables the get_active command without any pre-configured scope."
         },
         {
           "description": "Enables the get_pending command without any pre-configured scope.",
           "type": "string",
-          "const": "notification:allow-get-pending",
+          "const": "notifications:allow-get-pending",
           "markdownDescription": "Enables the get_pending command without any pre-configured scope."
         },
         {
           "description": "Enables the is_permission_granted command without any pre-configured scope.",
           "type": "string",
-          "const": "notification:allow-is-permission-granted",
+          "const": "notifications:allow-is-permission-granted",
           "markdownDescription": "Enables the is_permission_granted command without any pre-configured scope."
         },
         {
           "description": "Enables the list_channels command without any pre-configured scope.",
           "type": "string",
-          "const": "notification:allow-list-channels",
+          "const": "notifications:allow-list-channels",
           "markdownDescription": "Enables the list_channels command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the list_distributors command without any pre-configured scope.",
+          "type": "string",
+          "const": "notifications:allow-list-distributors",
+          "markdownDescription": "Enables the list_distributors command without any pre-configured scope."
         },
         {
           "description": "Enables the notify command without any pre-configured scope.",
           "type": "string",
-          "const": "notification:allow-notify",
+          "const": "notifications:allow-notify",
           "markdownDescription": "Enables the notify command without any pre-configured scope."
         },
         {
           "description": "Enables the permission_state command without any pre-configured scope.",
           "type": "string",
-          "const": "notification:allow-permission-state",
+          "const": "notifications:allow-permission-state",
           "markdownDescription": "Enables the permission_state command without any pre-configured scope."
         },
         {
           "description": "Enables the register_action_types command without any pre-configured scope.",
           "type": "string",
-          "const": "notification:allow-register-action-types",
+          "const": "notifications:allow-register-action-types",
           "markdownDescription": "Enables the register_action_types command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the register_for_push_notifications command without any pre-configured scope.",
+          "type": "string",
+          "const": "notifications:allow-register-for-push-notifications",
+          "markdownDescription": "Enables the register_for_push_notifications command without any pre-configured scope."
         },
         {
           "description": "Enables the register_listener command without any pre-configured scope.",
           "type": "string",
-          "const": "notification:allow-register-listener",
+          "const": "notifications:allow-register-listener",
           "markdownDescription": "Enables the register_listener command without any pre-configured scope."
         },
         {
           "description": "Enables the remove_active command without any pre-configured scope.",
           "type": "string",
-          "const": "notification:allow-remove-active",
+          "const": "notifications:allow-remove-active",
           "markdownDescription": "Enables the remove_active command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the remove_all command without any pre-configured scope.",
+          "type": "string",
+          "const": "notifications:allow-remove-all",
+          "markdownDescription": "Enables the remove_all command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the remove_listener command without any pre-configured scope.",
+          "type": "string",
+          "const": "notifications:allow-remove-listener",
+          "markdownDescription": "Enables the remove_listener command without any pre-configured scope."
         },
         {
           "description": "Enables the request_permission command without any pre-configured scope.",
           "type": "string",
-          "const": "notification:allow-request-permission",
+          "const": "notifications:allow-request-permission",
           "markdownDescription": "Enables the request_permission command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the set_click_listener_active command without any pre-configured scope.",
+          "type": "string",
+          "const": "notifications:allow-set-click-listener-active",
+          "markdownDescription": "Enables the set_click_listener_active command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the set_distributor command without any pre-configured scope.",
+          "type": "string",
+          "const": "notifications:allow-set-distributor",
+          "markdownDescription": "Enables the set_distributor command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the set_token command without any pre-configured scope.",
+          "type": "string",
+          "const": "notifications:allow-set-token",
+          "markdownDescription": "Enables the set_token command without any pre-configured scope."
         },
         {
           "description": "Enables the show command without any pre-configured scope.",
           "type": "string",
-          "const": "notification:allow-show",
+          "const": "notifications:allow-show",
           "markdownDescription": "Enables the show command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the unregister_for_push_notifications command without any pre-configured scope.",
+          "type": "string",
+          "const": "notifications:allow-unregister-for-push-notifications",
+          "markdownDescription": "Enables the unregister_for_push_notifications command without any pre-configured scope."
         },
         {
           "description": "Denies the batch command without any pre-configured scope.",
           "type": "string",
-          "const": "notification:deny-batch",
+          "const": "notifications:deny-batch",
           "markdownDescription": "Denies the batch command without any pre-configured scope."
         },
         {
           "description": "Denies the cancel command without any pre-configured scope.",
           "type": "string",
-          "const": "notification:deny-cancel",
+          "const": "notifications:deny-cancel",
           "markdownDescription": "Denies the cancel command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the cancel_all command without any pre-configured scope.",
+          "type": "string",
+          "const": "notifications:deny-cancel-all",
+          "markdownDescription": "Denies the cancel_all command without any pre-configured scope."
         },
         {
           "description": "Denies the check_permissions command without any pre-configured scope.",
           "type": "string",
-          "const": "notification:deny-check-permissions",
+          "const": "notifications:deny-check-permissions",
           "markdownDescription": "Denies the check_permissions command without any pre-configured scope."
         },
         {
           "description": "Denies the create_channel command without any pre-configured scope.",
           "type": "string",
-          "const": "notification:deny-create-channel",
+          "const": "notifications:deny-create-channel",
           "markdownDescription": "Denies the create_channel command without any pre-configured scope."
         },
         {
           "description": "Denies the delete_channel command without any pre-configured scope.",
           "type": "string",
-          "const": "notification:deny-delete-channel",
+          "const": "notifications:deny-delete-channel",
           "markdownDescription": "Denies the delete_channel command without any pre-configured scope."
         },
         {
           "description": "Denies the get_active command without any pre-configured scope.",
           "type": "string",
-          "const": "notification:deny-get-active",
+          "const": "notifications:deny-get-active",
           "markdownDescription": "Denies the get_active command without any pre-configured scope."
         },
         {
           "description": "Denies the get_pending command without any pre-configured scope.",
           "type": "string",
-          "const": "notification:deny-get-pending",
+          "const": "notifications:deny-get-pending",
           "markdownDescription": "Denies the get_pending command without any pre-configured scope."
         },
         {
           "description": "Denies the is_permission_granted command without any pre-configured scope.",
           "type": "string",
-          "const": "notification:deny-is-permission-granted",
+          "const": "notifications:deny-is-permission-granted",
           "markdownDescription": "Denies the is_permission_granted command without any pre-configured scope."
         },
         {
           "description": "Denies the list_channels command without any pre-configured scope.",
           "type": "string",
-          "const": "notification:deny-list-channels",
+          "const": "notifications:deny-list-channels",
           "markdownDescription": "Denies the list_channels command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the list_distributors command without any pre-configured scope.",
+          "type": "string",
+          "const": "notifications:deny-list-distributors",
+          "markdownDescription": "Denies the list_distributors command without any pre-configured scope."
         },
         {
           "description": "Denies the notify command without any pre-configured scope.",
           "type": "string",
-          "const": "notification:deny-notify",
+          "const": "notifications:deny-notify",
           "markdownDescription": "Denies the notify command without any pre-configured scope."
         },
         {
           "description": "Denies the permission_state command without any pre-configured scope.",
           "type": "string",
-          "const": "notification:deny-permission-state",
+          "const": "notifications:deny-permission-state",
           "markdownDescription": "Denies the permission_state command without any pre-configured scope."
         },
         {
           "description": "Denies the register_action_types command without any pre-configured scope.",
           "type": "string",
-          "const": "notification:deny-register-action-types",
+          "const": "notifications:deny-register-action-types",
           "markdownDescription": "Denies the register_action_types command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the register_for_push_notifications command without any pre-configured scope.",
+          "type": "string",
+          "const": "notifications:deny-register-for-push-notifications",
+          "markdownDescription": "Denies the register_for_push_notifications command without any pre-configured scope."
         },
         {
           "description": "Denies the register_listener command without any pre-configured scope.",
           "type": "string",
-          "const": "notification:deny-register-listener",
+          "const": "notifications:deny-register-listener",
           "markdownDescription": "Denies the register_listener command without any pre-configured scope."
         },
         {
           "description": "Denies the remove_active command without any pre-configured scope.",
           "type": "string",
-          "const": "notification:deny-remove-active",
+          "const": "notifications:deny-remove-active",
           "markdownDescription": "Denies the remove_active command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the remove_all command without any pre-configured scope.",
+          "type": "string",
+          "const": "notifications:deny-remove-all",
+          "markdownDescription": "Denies the remove_all command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the remove_listener command without any pre-configured scope.",
+          "type": "string",
+          "const": "notifications:deny-remove-listener",
+          "markdownDescription": "Denies the remove_listener command without any pre-configured scope."
         },
         {
           "description": "Denies the request_permission command without any pre-configured scope.",
           "type": "string",
-          "const": "notification:deny-request-permission",
+          "const": "notifications:deny-request-permission",
           "markdownDescription": "Denies the request_permission command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the set_click_listener_active command without any pre-configured scope.",
+          "type": "string",
+          "const": "notifications:deny-set-click-listener-active",
+          "markdownDescription": "Denies the set_click_listener_active command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the set_distributor command without any pre-configured scope.",
+          "type": "string",
+          "const": "notifications:deny-set-distributor",
+          "markdownDescription": "Denies the set_distributor command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the set_token command without any pre-configured scope.",
+          "type": "string",
+          "const": "notifications:deny-set-token",
+          "markdownDescription": "Denies the set_token command without any pre-configured scope."
         },
         {
           "description": "Denies the show command without any pre-configured scope.",
           "type": "string",
-          "const": "notification:deny-show",
+          "const": "notifications:deny-show",
           "markdownDescription": "Denies the show command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the unregister_for_push_notifications command without any pre-configured scope.",
+          "type": "string",
+          "const": "notifications:deny-unregister-for-push-notifications",
+          "markdownDescription": "Denies the unregister_for_push_notifications command without any pre-configured scope."
         },
         {
           "description": "This permission set allows opening `mailto:`, `tel:`, `https://` and `http://` urls using their default application\nas well as reveal file in directories using default file explorer\n#### This default permission set includes:\n\n- `allow-open-url`\n- `allow-reveal-item-in-dir`\n- `allow-default-urls`",

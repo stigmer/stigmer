@@ -12,10 +12,11 @@ import { MemoryRouter, Route, Routes, matchRoutes } from "react-router-dom";
 
 vi.mock("@tauri-apps/plugin-http", () => ({ fetch: vi.fn() }));
 vi.mock("@tauri-apps/plugin-deep-link", () => ({ onOpenUrl: vi.fn() }));
-vi.mock("@tauri-apps/plugin-notification", () => ({
+vi.mock("@choochmeque/tauri-plugin-notifications-api", () => ({
   isPermissionGranted: vi.fn().mockResolvedValue(false),
   requestPermission: vi.fn().mockResolvedValue("denied"),
   sendNotification: vi.fn(),
+  onNotificationClicked: vi.fn().mockResolvedValue({ unregister: vi.fn() }),
 }));
 vi.mock("@tauri-apps/plugin-process", () => ({ exit: vi.fn() }));
 vi.mock("@tauri-apps/api/window", () => ({

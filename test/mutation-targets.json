@@ -125,6 +125,17 @@
       ],
       "concurrency": 4
     },
+    "desktop-shell": {
+      "title": "the desktop app's runner state, its PATH for tools, and notification clicks",
+      "package": "client-apps/desktop",
+      "mutate": [
+        "src/hooks/runner-state.ts",
+        "src/hooks/useEmbeddedRunner.ts",
+        "src/hooks/useDesktopAttentionNotifications.ts",
+        "src/shell/RunnerStatus.tsx"
+      ],
+      "concurrency": 4
+    },
     "client-turn-activity": {
       "title": "what a working turn is doing, for how long and how far",
       "package": "sdk/typescript",

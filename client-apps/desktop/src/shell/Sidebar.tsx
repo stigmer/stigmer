@@ -13,14 +13,15 @@ import type {
   WorkspaceNavId,
 } from "@stigmer/react-sdk/console";
 import { UserMenu } from "./UserMenu";
+import { RunnerStatus } from "./RunnerStatus";
 import { useSidebarOpen } from "./use-layout-state";
 import { useRunner } from "../hooks/EmbeddedRunnerContext";
 
 /**
  * Workspace-zone sidebar — a thin wrapper over the SDK's
- * {@link WorkspaceSidebar}: this file only bridges React Router
- * and the embedded runner's background-run indicator into the shared
- * chrome.
+ * {@link WorkspaceSidebar}: this file only bridges React Router,
+ * the embedded runner's background-run indicator and its status row
+ * into the shared chrome.
  */
 export function Sidebar() {
   const sidebar = useSidebarOpen();
@@ -145,7 +146,12 @@ export function Sidebar() {
       activeSessionId={activeSessionId}
       renderEntryAccessory={renderEntryAccessory}
       conversationsBadgeCount={wantsHumanCount}
-      footer={<UserMenu />}
+      footer={
+        <>
+          <RunnerStatus />
+          <UserMenu />
+        </>
+      }
       isOpen={sidebar.isOpen}
       onCollapse={sidebar.close}
       onOrgChanged={handleOrgChanged}

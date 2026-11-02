@@ -1,7 +1,9 @@
 use tauri::image::Image;
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::TrayIconBuilder;
-use tauri::{AppHandle, Emitter, Manager, Wry};
+use tauri::{AppHandle, Emitter, Wry};
+
+use crate::window::bring_forward;
 
 const TRAY_ID: &str = "stigmer-tray";
 
@@ -15,9 +17,9 @@ pub fn setup_tray(app: &tauri::App) -> tauri::Result<()> {
         .menu(&menu)
         .show_menu_on_left_click(true)
         .on_menu_event(|app, event| match event.id().as_ref() {
-            "open" => show_main_window(app),
+            "open" => bring_forward(app),
             "check_updates" => {
-                show_main_window(app);
+                bring_forward(app);
                 let _ = app.emit("check-for-update", ());
             }
             "quit" => app.exit(0),
@@ -55,12 +57,4 @@ fn build_menu(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
     )?)?;
 
     Ok(menu)
-}
-
-fn show_main_window(app: &AppHandle) {
-    if let Some(window) = app.get_webview_window("main") {
-        let _ = window.show();
-        let _ = window.unminimize();
-        let _ = window.set_focus();
-    }
 }

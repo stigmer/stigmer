@@ -1,5 +1,5 @@
 use serde::Serialize;
-use tauri::{Emitter, Manager};
+use tauri::Emitter;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub(crate) struct AuthCallbackPayload {
@@ -111,11 +111,7 @@ fn start_oauth_callback_server(
 
         let payload = parse_callback_request(&request);
         let _ = app.emit(event_name, payload);
-
-        if let Some(window) = app.get_webview_window("main") {
-            let _ = window.show();
-            let _ = window.set_focus();
-        }
+        crate::window::bring_forward(&app);
 
         let html = concat!(
             "<!DOCTYPE html><html><body style=\"font-family:system-ui;display:flex;",
