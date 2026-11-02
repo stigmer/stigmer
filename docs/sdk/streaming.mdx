@@ -168,6 +168,7 @@ it. The events you read most often:
 | `stigmer.tool_result.full_output` | Where a large result is stored whole. The result event holds its head. |
 | `stigmer.permission.asked` | A call waits for a person's answer, with the message to show them. |
 | `agent.thread_context_compacted` | The conversation outgrew the model's context and was summarized. The turn carries on. |
+| `session.status_running` | The Session started working. |
 | `session.status_idle` | The Session stopped working. A `stop_reason` of `requires_action` names the calls that wait. |
 | `stigmer.run.status` | A run's phase changed. See [Detect the end of a run](#detect-the-end-of-a-run). |
 | `session.error` | A run hit an error. |

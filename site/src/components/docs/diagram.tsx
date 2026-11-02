@@ -1,5 +1,5 @@
 /**
- * A drawing in the docs, by name: `<Diagram name="job-path" />`.
+ * A drawing in the docs, by name: `<Diagram name="runner-queue" />`.
  *
  * Each name is a drawing in the site's own language (the list and each
  * one's text are src/components/visuals/diagrams.ts). A name the list does
@@ -14,10 +14,14 @@
  */
 import type { ComponentType } from "react";
 import { JobPath } from "@/components/visuals/JobPath";
+import { SessionLog } from "@/components/visuals/SessionLog";
+import { WorkReachesARunner } from "@/components/visuals/WorkReachesARunner";
 import { diagram, type DiagramName } from "@/components/visuals/diagrams";
 
 const DRAWN: Record<DiagramName, ComponentType> = {
   "job-path": JobPath,
+  "runner-queue": WorkReachesARunner,
+  "session-log": SessionLog,
 };
 
 export interface DiagramProps {

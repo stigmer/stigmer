@@ -13,10 +13,14 @@
  * `tsx`, outside the site's bundler.
  */
 import { CAPTION as JOB_PATH_TEXT } from "./job-path";
+import { sessionLogText } from "./session-log";
+import { CAPTION as RUNNER_QUEUE_TEXT } from "./work-reaches-a-runner";
 
 /** Each drawing's name and the text the exports carry in its place. */
 export const DIAGRAMS = {
   "job-path": { text: () => JOB_PATH_TEXT },
+  "runner-queue": { text: () => RUNNER_QUEUE_TEXT },
+  "session-log": { text: sessionLogText },
 } as const satisfies Record<string, { text: () => string }>;
 
 export type DiagramName = keyof typeof DIAGRAMS;

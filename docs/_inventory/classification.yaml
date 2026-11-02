@@ -147,8 +147,9 @@ pages:
       and tools and name the Environment its sandbox runs in.
     medium: diagram
     why:
-      The lifecycle (Agent to Session to runs) is structure; the existing
-      mermaid carries it.
+      One job's log is structure: each message one run, the stop for a person,
+      who writes each event; the session-log diagram draws it, and its text
+      carries it into the exports.
 
   concepts/files:
     fate: keep
@@ -667,8 +668,9 @@ pages:
       task queue and what happens when none is polling.
     medium: diagram
     why:
-      The runner's place at the end of the Agent, Session, run chain is
-      structure; the existing mermaid carries it.
+      How work reaches a runner is structure: the server, the task queue, the
+      runner that polls it; the runner-queue diagram draws it, and its text
+      carries it into the exports.
 
   guides/runners/overview:
     fate: keep

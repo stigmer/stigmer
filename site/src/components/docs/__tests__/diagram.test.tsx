@@ -34,14 +34,28 @@ describe("Diagram", () => {
   it("refuses a name the docs do not hold, naming the ones they do", () => {
     expect(isDiagramName("nope")).toBe(false);
     expect(isDiagramName("toString")).toBe(false);
-    expect(() => render(<Diagram name="nope" />)).toThrow(/no diagram named "nope"; the docs draw "job-path"/);
+    expect(() => render(<Diagram name="nope" />)).toThrow(/no diagram named "nope"; the docs draw "job-path", "runner-queue", "session-log"/);
   });
 });
 
 describe("a diagram's export text", () => {
-  it.each(["job-path"] as const)("is %s's caption, word for word", (name) => {
+  it.each(["job-path", "runner-queue"] as const)("is %s's caption, word for word", (name) => {
     const { figure } = drawn(name);
 
     expect(figure.querySelector("figcaption")?.textContent).toBe(diagram(name).text);
+  });
+
+  it("carries every event, every writer and every phase the session log shows", () => {
+    const { figure } = drawn("session-log");
+    const text = diagram("session-log").text;
+
+    for (const row of figure.querySelectorAll("li")) {
+      const type = row.querySelector("code")!.textContent!;
+      const says = row.querySelector("[data-cell=says]")!.textContent!;
+      const writer = row.querySelector("[data-cell=writer]")!.textContent!;
+      const phase = row.querySelector("[data-cell=lane]")!.textContent!.replace(/^The Session is (.*)\.$/, "$1");
+      expect(text, says).toContain(`| \`${type}\``);
+      expect(text, says).toContain(`| ${says} | ${writer} | ${phase} |`);
+    }
   });
 });

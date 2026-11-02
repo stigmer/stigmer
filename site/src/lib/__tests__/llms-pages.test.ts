@@ -148,16 +148,23 @@ describe("a <Screen> in the export", () => {
 });
 
 describe("a <Diagram> in the export", () => {
-  const JOB_PATH = diagram("job-path").text;
+  const RUNNER = diagram("runner-queue").text;
 
   it("becomes the drawing's text, as its own paragraph", () => {
-    const body = 'Before.\n<Diagram name="job-path" />\nAfter.';
-    expect(cleanContent(body, SITE_URL)).toBe(`Before.\n\n${JOB_PATH}\n\nAfter.`);
+    const body = 'Before.\n<Diagram name="runner-queue" />\nAfter.';
+    expect(cleanContent(body, SITE_URL)).toBe(`Before.\n\n${RUNNER}\n\nAfter.`);
   });
 
   it("reads its name in either quote, across lines, inside another component", () => {
     const body = "<Hero title=\"Docs\">\n  <Diagram\n    name='job-path'\n  />\n</Hero>";
-    expect(cleanContent(body, SITE_URL)).toBe(`<Hero title="Docs">\n\n${JOB_PATH}\n\n</Hero>`);
+    expect(cleanContent(body, SITE_URL)).toBe(`<Hero title="Docs">\n\n${diagram("job-path").text}\n\n</Hero>`);
+  });
+
+  it("carries the session log as a table per run", () => {
+    const text = cleanContent('<Diagram name="session-log" />', SITE_URL);
+    expect(text).toBe(diagram("session-log").text);
+    expect(text).toMatch(/\*\*Run 1\*\*\n\n\| Event \|/);
+    expect(text).toContain("| `session.status_idle` `requires_action` |");
   });
 
   it("leaves a tag in code as written, and a component whose name only starts with Diagram alone", () => {
@@ -166,8 +173,8 @@ describe("a <Diagram> in the export", () => {
   });
 
   it.each([
-    ["is not self-closing", '<Diagram name="job-path"></Diagram>', /<Diagram> tag must close itself/],
-    ["cannot be read", '<Diagram name="job-path" {...props} />', /<Diagram> tag the markdown export cannot read/],
+    ["is not self-closing", '<Diagram name="runner-queue"></Diagram>', /<Diagram> tag must close itself/],
+    ["cannot be read", '<Diagram name="runner-queue" {...props} />', /<Diagram> tag the markdown export cannot read/],
     ["has no name", "<Diagram />", /<Diagram> tag needs name="…" as plain strings/],
     ["gives its name as an expression", "<Diagram name={name} />", /as plain strings/],
     ["names a drawing the docs do not hold", '<Diagram name="nope" />', /no diagram named "nope"/],
