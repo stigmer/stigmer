@@ -19,9 +19,15 @@ import { emit } from "@tauri-apps/api/event";
 
 export const APP_COMMANDS = [
   "open_auth_in_browser",
-  "cancel_auth",
-  "start_auth_callback_server",
   "start_sign_in_callback_server",
+  "current_server",
+  "choose_server",
+  "auth_sign_in",
+  "auth_reopen_browser",
+  "auth_cancel",
+  "auth_session",
+  "auth_refresh",
+  "auth_sign_out",
   "start_runner",
   "stop_runner",
   "kill_runner",

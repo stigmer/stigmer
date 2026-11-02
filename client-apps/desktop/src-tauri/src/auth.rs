@@ -9,6 +9,17 @@ pub(crate) struct AuthCallbackPayload {
     pub error_description: Option<String>,
 }
 
+/// Opens a URL in the person's default browser: Stripe's pages, GitHub's
+/// sign-in, an agent's chat in the web console. The name is older than its
+/// callers; the app's own sign-in opens its browser from Rust (`oidc.rs`).
+#[tauri::command]
+pub async fn open_auth_in_browser(app: tauri::AppHandle, auth_url: String) -> Result<(), String> {
+    use tauri_plugin_opener::OpenerExt;
+    app.opener()
+        .open_url(&auth_url, None::<&str>)
+        .map_err(|e| format!("Failed to open browser: {e}"))
+}
+
 /// Sign-in callback server: the loopback page a sign-in at an address
 /// (GitHub's among them) returns to in local and development builds.
 ///

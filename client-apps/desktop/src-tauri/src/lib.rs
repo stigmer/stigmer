@@ -43,6 +43,7 @@ pub fn run() {
         .manage(UserPath::resolve_in_background())
         .manage(oidc::SignIn::new(session_store::for_this_build()))
         .invoke_handler(tauri::generate_handler![
+            auth::open_auth_in_browser,
             auth::start_sign_in_callback_server,
             server::current_server,
             server::choose_server,

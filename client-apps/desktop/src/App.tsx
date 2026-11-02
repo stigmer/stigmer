@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { RouterProvider } from "react-router-dom";
 import { Stigmer } from "@stigmer/client";
 import type { DeploymentMode } from "@stigmer/client";
@@ -14,54 +14,56 @@ import { AppUpdaterProvider } from "./hooks/AppUpdaterContext";
 import { EmbeddedRunnerProvider, useRunner } from "./hooks/EmbeddedRunnerContext";
 import { useTauriRunnerAdapter } from "./hooks/useTauriRunnerAdapter";
 import { useColorModePreference } from "./hooks/useColorModePreference";
-import { API_URL, fallbackDeploymentMode } from "./config";
+import { ServerProvider, useServer } from "./server/ServerProvider";
+import { ConnectScreen } from "./server/ConnectScreen";
 
-function useServerDeploymentMode(client: Stigmer): DeploymentMode {
-  const [mode, setMode] = useState<DeploymentMode>(() => fallbackDeploymentMode(API_URL));
-
-  useEffect(() => {
-    let cancelled = false;
-    client.platform.getServerInfo().then(
-      (info) => { if (!cancelled) setMode(info.deploymentMode); },
-      (err) => {
-        console.warn(
-          "[stigmer] getServerInfo failed, using URL-based fallback:",
-          err instanceof Error ? err.message : err,
-        );
-      },
-    );
-    return () => { cancelled = true; };
-  }, [client]);
-
-  return mode;
-}
-
+/**
+ * The app: the server the person chose (server/ServerProvider.tsx), what it
+ * said when the app connected, and then the app itself. The server's answer
+ * picks everything after it, never its address: a server that trusts every
+ * request opens the app; one that signs people in shows the sign-in screen
+ * for the provider it announced; anything else shows why it cannot be used
+ * (server/ConnectScreen.tsx).
+ */
 export function App() {
   return (
-    <AuthProvider>
-      <AuthenticatedApp />
+    <ServerProvider>
+      <ServerGate />
+    </ServerProvider>
+  );
+}
+
+function ServerGate() {
+  const { origin, connection } = useServer();
+  if (connection.phase !== "connected" || connection.outcome.kind === "not-set-up") {
+    return <ConnectScreen />;
+  }
+  const app = <AuthenticatedApp server={origin} deploymentMode={connection.deploymentMode} />;
+  return connection.outcome.kind === "open" ? (
+    <AuthProvider mode="open">{app}</AuthProvider>
+  ) : (
+    <AuthProvider mode="sign-in" server={origin} nativeSignIn={connection.outcome.nativeSignIn}>
+      {app}
     </AuthProvider>
   );
 }
 
-function AuthenticatedApp() {
+function AuthenticatedApp({ server, deploymentMode }: { server: string; deploymentMode: DeploymentMode }) {
   const { getAccessToken, isAuthenticated, isInitialized } = useAuth();
   const { colorMode } = useColorModePreference();
 
   const client = useMemo(
     () =>
       new Stigmer({
-        baseUrl: API_URL,
+        baseUrl: server,
         getAccessToken,
         fetch: tauriFetch,
       }),
-    [getAccessToken],
+    [server, getAccessToken],
   );
 
-  const deploymentMode = useServerDeploymentMode(client);
-
   return (
-    <EmbeddedRunnerProvider>
+    <EmbeddedRunnerProvider server={server} getAccessToken={getAccessToken}>
       <RunnerAdapterBridge
         client={client}
         deploymentMode={deploymentMode}
@@ -154,14 +156,14 @@ function AppContent({
 }
 
 /**
- * Watches the Auth0 token and pushes refreshes to the embedded runner.
+ * Watches the access token and pushes refreshes to the embedded runner.
  * Rendered inside both AuthProvider and EmbeddedRunnerProvider so it
  * can read from useAuth and write via useRunner.
  *
  * This updates the runner's CONTROL-PLANE credential only. The runner's
  * LLM proxy credential is a separate, server-minted token the runner owns
- * and refreshes itself (see runner-manager.ts); pushing the Auth0 token here
- * must not — and does not — overwrite it. Keeping the Auth0 token fresh is what
+ * and refreshes itself (see runner-manager.ts); pushing the access token here
+ * must not — and does not — overwrite it. Keeping the access token fresh is what
  * lets the runner re-mint its proxy token indefinitely.
  */
 function TokenBridge() {
