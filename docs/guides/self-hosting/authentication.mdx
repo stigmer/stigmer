@@ -364,6 +364,28 @@ The app connects only over `https` to another machine, so give people the
 address your TLS setup serves, `https://stigmer.example.com`. It keeps sign-in
 keys in the system keychain.
 
+### Where the app's agents run
+
+The app carries a runner of its own, which runs the Agents of the conversations
+started in it, on the person's computer. That runner listens only on each
+conversation's own queue, so it receives work only when your server routes runs
+per conversation, `STIGMER_ACTIVITY_ROUTING=session`.
+
+On the default, `global`, the server puts every run on its one shared queue
+([How a run reaches the runner](./runners#how-a-run-reaches-the-runner)), and
+your stack's runner answers the app's conversations on the server. They work,
+but nothing runs on the person's computer, and the app still shows its own
+runner in the sidebar as working. A server with no runner of its own leaves them
+unanswered.
+
+`session` sends every conversation's runs to that conversation's own queue,
+including the console's. A conversation started in the console then waits for a
+runner the server provisions for it
+([A runner per Session](./runners#a-runner-per-session)); without a provisioner
+it gets none. So keep the default unless everyone works from the desktop app.
+The server saying which it does, so the app can say where Agents run, is tracked
+as [stigmer#2861](https://github.com/stigmer/stigmer/issues/2861).
+
 ## What still needs an API key
 
 The `stigmer` CLI cannot sign in to a self-hosted server through your OIDC
