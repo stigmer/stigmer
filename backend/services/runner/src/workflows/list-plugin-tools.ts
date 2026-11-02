@@ -9,13 +9,29 @@
  *
  * The type name is a pinned wire identifier.
  *
+ * Where it may run. The server starts a listing on the shared runner queue
+ * or on its own connect sandbox's queue (`mcpconnect:<id>`), never on a
+ * session's. Every runner registers this type, though, and whatever can
+ * write to Temporal can start it on any queue; the listing starts the
+ * plugin's MCP server (a local program, for a stdio entry) wherever it
+ * lands. So a listing whose task queue is a session's (`session:<id>`) is
+ * refused before its activity is scheduled: another person's session
+ * sandbox never runs a program a stranger's plugin names. The refusal adds
+ * no command ahead of the activity, so a history recorded before it
+ * replays unchanged. A listing forged onto a live connect sandbox's queue
+ * is indistinguishable from the real one here; only a job-store identity
+ * per sandbox closes that.
+ *
  * SANDBOX RULES: This file runs inside the Temporal deterministic V8
  * isolate. No Node.js built-ins (crypto, fs, net), no non-deterministic
  * operations, no side-effecting imports. Only @temporalio/workflow APIs,
- * type-only imports, and pure JS/TS logic.
+ * type-only imports, the import-free constants of shared/task-queues.ts,
+ * and pure JS/TS logic.
  */
 
-import { proxyActivities } from "@temporalio/workflow";
+import { ApplicationFailure, proxyActivities, workflowInfo } from "@temporalio/workflow";
+
+import { SESSION_QUEUE_PREFIX } from "../shared/task-queues.js";
 
 import type {
   createListPluginToolsActivities,
@@ -57,6 +73,16 @@ function toWire(listing: ListPluginToolsOutput): ListPluginToolsWorkflowOutput {
   };
 }
 
+/** The failure type of a listing refused for running on a session's queue. */
+export const LISTING_ON_SESSION_QUEUE_FAILURE_TYPE = "ListingOnSessionQueue";
+
 export async function listPluginTools(input: ListPluginToolsWorkflowInput): Promise<ListPluginToolsWorkflowOutput> {
+  const { taskQueue } = workflowInfo();
+  if (taskQueue.startsWith(SESSION_QUEUE_PREFIX)) {
+    throw ApplicationFailure.nonRetryable(
+      `A tools listing does not run on a session's task queue (${taskQueue}); the server starts it on the shared runner queue or its own connect sandbox`,
+      LISTING_ON_SESSION_QUEUE_FAILURE_TYPE,
+    );
+  }
   return toWire(await runListing(input));
 }

@@ -66,7 +66,12 @@ import { runPersonOfCaller, toolNameOf, toolRequirements } from "../vault/resolv
 import type { VaultResolver } from "../vault/resolve.js";
 import type { RunServer, ServerHome } from "../run/run-servers.js";
 import { endConnectAttempt, recordConnectAttempt } from "./tools/attempt.js";
-import type { PluginToolsEngineStateProvider, ToolsRunFailure, ToolsWorkflowInput } from "./tools/engine.js";
+import type {
+  PluginToolsEngineStateProvider,
+  ToolsRunFailure,
+  ToolsTaskQueue,
+  ToolsWorkflowInput,
+} from "./tools/engine.js";
 import { newConnectExecutionId } from "./tools/execution-id.js";
 import { acquireConnectRoute } from "./tools/sandbox.js";
 import type { ConnectRoute } from "./tools/sandbox.js";
@@ -187,7 +192,7 @@ export async function listTools(
       org: input.org,
       caller: identity,
     });
-    const workflowInput = withCredential(deps, executionId, needsValues, {
+    const workflowInput = withCredential(deps, executionId, needsValues, route.taskQueue, {
       plugin_id: input.pluginId,
       server: input.server,
     });
@@ -228,20 +233,30 @@ export async function listTools(
 
 /**
  * The workflow input with the listing's attempt and, when the server reads
- * values, the runner credential bound to it. A minting failure degrades,
- * not fails: the fetch then refuses with an actionable error.
+ * values on the shared runner queue, the runner credential bound to it. A
+ * minting failure degrades, not fails: the fetch then refuses with an
+ * actionable error.
+ *
+ * A connect sandbox gets no credential on its input: its runner already
+ * holds one minted for this person and this listing alone
+ * (tools/sandbox.ts), and with no per-call token the values fetch falls
+ * back to it. The input is written to Temporal history in the clear, so a
+ * token there is readable by anything that reads the job store; the shared
+ * runner route is the one place it still travels, because no sandbox
+ * exists there to hold it.
  */
 function withCredential(
   deps: PluginToolsDeps,
   executionId: string,
   needsValues: boolean,
+  taskQueue: ToolsTaskQueue,
   input: ToolsWorkflowInput,
 ): ToolsWorkflowInput {
   if (!needsValues) {
     return input;
   }
   const withAttempt: ToolsWorkflowInput = { ...input, execution_context_id: executionId };
-  if (!deps.runnerAuth.isEnabled(TOKEN_TYPE_EXECUTION_SCOPED)) {
+  if (taskQueue.kind === "sandbox" || !deps.runnerAuth.isEnabled(TOKEN_TYPE_EXECUTION_SCOPED)) {
     return withAttempt;
   }
   try {
