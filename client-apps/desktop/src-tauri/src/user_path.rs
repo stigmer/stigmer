@@ -317,19 +317,26 @@ mod tests {
     fn what_the_shell_started_ends_with_it() {
         let dir = tempfile::tempdir().unwrap();
         let started = dir.path().join("started");
-        // An rc file that leaves a process behind, then a shell that hangs.
+        // An rc file that leaves a process behind, then the PATH, then a
+        // shell that would linger: the reader stops at the end marker and
+        // ends the whole group.
         let shell = fake_shell(
             dir.path(),
-            &format!("sleep 30 &\necho $! > '{}'\nsleep 30", started.display()),
+            &format!(
+                "sleep 30 &\necho $! > '{}'\nprintf '%s%s%s' '{START_MARKER}' /a '{END_MARKER}'\nsleep 30",
+                started.display()
+            ),
         );
-        let outcome = unix::read_path_from(&shell, Duration::from_millis(1500));
-        assert!(outcome.is_err());
+        assert_eq!(
+            unix::read_path_from(&shell, Duration::from_secs(20)).as_deref(),
+            Ok("/a")
+        );
         let pid: i32 = std::fs::read_to_string(&started)
             .unwrap()
             .trim()
             .parse()
             .unwrap();
-        let deadline = std::time::Instant::now() + Duration::from_secs(3);
+        let deadline = std::time::Instant::now() + Duration::from_secs(5);
         // SAFETY: kill with signal 0 only asks whether the pid exists.
         while unsafe { libc::kill(pid, 0) } == 0 {
             assert!(
