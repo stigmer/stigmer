@@ -3,7 +3,8 @@
  * order with its message, items, threads and answer; a tool use paired
  * with its result, ask, answer, grant and full output (held when they come
  * first); each tool use's state, a turn's end with and without its
- * `stigmer.run.status`; the session's status; previews (a live message
+ * `stigmer.run.status` (an idle ends only a turn that appeared before it,
+ * stored or previewed); the session's status; previews (a live message
  * replaced in place by its stored event, a running tool's output);
  * duplicates folded once; file-review states; the to-do rule applied only
  * to the primary thread's completed to-do calls; and snapshots that share
@@ -282,6 +283,38 @@ describe("a turn's end without its own status", () => {
     expect(foldSession([user(R, "a"), idle("end_turn")]).turns[0]!.ended).toBe(true);
     expect(foldSession([user(R, "a"), use(R, "c1", "shell", { permission: "ask" }), idle("requires_action", [`${R}.c1`])]).turns[0]!.ended).toBe(false);
     expect(foldSession([user(R, "a"), use(R, "c1", "shell", { permission: "ask" }), idle("requires_action", ["other"])]).turns[0]!.ended).toBe(true);
+  });
+
+  // stigmer#2553: an idle ends only the turns the log reached before it.
+  const idle = (reason: string, ids: string[] = []) => ev("", { case: "sessionStatusIdle", value: { id: `idle.${seq}`, stopReason: { type: reason, eventIds: ids } } });
+  const latest = (log: SessionLog) => log.snapshot().turns.at(-1)!;
+
+  it("a turn that began after the session idled works until it ends, frame by frame", () => {
+    const log = new SessionLog();
+    log.apply([user(R, "a"), said(R, 0, "Done."), idle("end_turn")]);
+    expect(log.snapshot().turns[0]!.ended).toBe(true);
+    for (const event of [user(R2, "b"), use(R2, "c1", "read")]) {
+      log.applyFrame(frame({ case: "event", value: event }));
+      const turn = latest(log);
+      expect([turn.runId, turn.ended]).toEqual([R2, false]);
+    }
+    expect(toolsOf(latest(log).items)[0]!.state).not.toBe("stopped");
+
+    log.apply([ev(R2, { case: "sessionStatusRunning", value: { id: "running.b" } }), idle("end_turn")]);
+    expect(log.snapshot().turns.map((t) => t.ended)).toEqual([true, true]);
+    expect(toolsOf(latest(log).items)[0]!.state).toBe("stopped");
+  });
+
+  it("a turn that began after an idle waiting on an earlier turn's ask works", () => {
+    const fold = foldSession([user(R, "a"), use(R, "c1", "shell", { permission: "ask" }), idle("requires_action", [`${R}.c1`]), user(R2, "b")]);
+    expect(fold.turns.map((t) => t.ended)).toEqual([true, false]);
+  });
+
+  it("a turn first seen as a preview after the idle works", () => {
+    const log = new SessionLog();
+    log.apply([user(R, "a"), idle("end_turn")]);
+    expect(log.applyFrame(frame({ case: "eventStart", value: { event: { id: `${R2}.root.m0`, type: "agent.message" } } }))).toBe(true);
+    expect([latest(log).runId, latest(log).ended]).toEqual([R2, false]);
   });
 });
 

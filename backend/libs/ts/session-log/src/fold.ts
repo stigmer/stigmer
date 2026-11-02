@@ -51,7 +51,13 @@
  *
  * A turn's end. The newest `stigmer.run.status` says it. A turn whose
  * events predate that event reads as ended once a later turn began, or
- * once the session went idle for anything but its own open asks. A tool
+ * once the session went idle after the turn began, for anything but its
+ * own open asks. "After" is the log's place, `seq`: a turn keeps the
+ * newest place the log had reached when the fold first saw it (its first
+ * stored event, or, for a preview, the stored events before it), and an
+ * idle at or before that place ended an earlier turn, not this one. So a
+ * message sent to an idle session reads as working from its first event
+ * (stigmer#2553); an idle with no place keeps the older rule. A tool
  * use its ended turn never answered reads `stopped`; nothing more will
  * come for it, and a background command its ended turn never ended reads
  * `stopped` by `turn` for the same reason.
@@ -222,6 +228,8 @@ interface MutTurn extends Node {
   readonly items: MutItem[];
   readonly threads: Map<string, MutThread>;
   status?: TurnStatus;
+  /** The newest place the log had reached when the turn appeared (module header, "A turn's end"). */
+  readonly appearedAt: bigint;
   readonly todos: Map<string, Todo>;
   structuredOutput?: JsonObject;
   memory?: MemoryRecall;
@@ -248,6 +256,8 @@ export class SessionLog {
   private queuedSnapshot: ReadonlyArray<QueuedMessage> = [];
   private status: SessionStatusView = { state: "idle", stopReason: "", waitingOn: [] };
   private lastSeq = 0n;
+  /** The newest idle's place; 0 when it has none (module header, "A turn's end"). */
+  private idleSeq = 0n;
   private snapshotCache?: { clock: number; value: SessionFold };
 
   /** Folds stored events, in log order; returns whether anything changed. */
@@ -398,6 +408,7 @@ export class SessionLog {
           stopReason: e.value.stopReason?.type ?? "",
           waitingOn: [...(e.value.stopReason?.eventIds ?? [])],
         };
+        this.idleSeq = event.seq;
         this.tick();
         break;
       case "sessionError": {
@@ -728,6 +739,7 @@ export class SessionLog {
         kind: "turn",
         rev: 0,
         runId,
+        appearedAt: this.lastSeq,
         items: [],
         threads: new Map(),
         todos: new Map(),
@@ -897,6 +909,9 @@ export class SessionLog {
       return true;
     }
     if (this.status.state !== "idle" || this.status.stopReason === "") {
+      return false;
+    }
+    if (this.idleSeq !== 0n && this.idleSeq <= turn.appearedAt) {
       return false;
     }
     if (this.status.stopReason !== "requires_action") {

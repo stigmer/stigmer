@@ -85,31 +85,45 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "ers apply only when type is limited\032mthi" +
       "s.type == 2 || (this.allowed_hosts.size(" +
       ") == 0 && !this.allow_package_managers &" +
-      "& !this.allow_mcp_servers)\"\266\005\n\023Environme" +
-      "ntPackages\022N\n\003apt\030\001 \003(\tB<\272H9\222\0016\020 \"2r0\030\326\001" +
-      "2+^[a-z0-9][a-z0-9+.-]+(=[A-Za-z0-9.+~:-" +
-      "]+)?$R\003apt\022U\n\005cargo\030\002 \003(\tB?\272H<\222\0019\020 \"5r3\030" +
-      "\326\0012.^[A-Za-z0-9][A-Za-z0-9_-]*(@[0-9A-Za" +
-      "-z.+-]+)?$R\005cargo\022P\n\003gem\030\003 \003(\tB>\272H;\222\0018\020 " +
-      "\"4r2\030\326\0012-^[A-Za-z0-9][A-Za-z0-9._-]*(:[0" +
-      "-9A-Za-z.]+)?$R\003gem\022P\n\002go\030\004 \003(\tB@\272H=\222\001:\020" +
-      " \"6r4\030\326\0012/^[A-Za-z0-9][A-Za-z0-9._~/-]*@" +
-      "[A-Za-z0-9._+-]+$R\002go\022z\n\003npm\030\005 \003(\tBh\272He\222" +
-      "\001b\020 \"^r\\\030\326\0012W^(@[A-Za-z0-9][A-Za-z0-9._~" +
-      "-]*/)?[A-Za-z0-9][A-Za-z0-9._~-]*(@[A-Za" +
-      "-z0-9.^~<>=*+_-]+)?$R\003npm\022\327\001\n\003pip\030\006 \003(\tB" +
-      "\304\001\272H\300\001\222\001\274\001\020 \"\267\001r\264\001\030\326\0012\256\001^[A-Za-z0-9]([A-" +
-      "Za-z0-9._-]*[A-Za-z0-9])?(\\[[A-Za-z0-9._" +
-      "-]+(,[A-Za-z0-9._-]+)*\\])?((===|==|!=|~=" +
-      "|>=|<=|>|<)[A-Za-z0-9.*+!_-]+(,(===|==|!" +
-      "=|~=|>=|<=|>|<)[A-Za-z0-9.*+!_-]+)*)?$R\003" +
-      "pip*P\n\016NetworkingType\022\037\n\033networking_type" +
-      "_unspecified\020\000\022\020\n\014unrestricted\020\001\022\013\n\007limi" +
-      "ted\020\002B\264\001B\tSpecProtoP\001\242\002\004ASAE\252\002!Ai.Stigme" +
-      "r.Agentic.Environment.V1\312\002!Ai\\Stigmer\\Ag" +
-      "entic\\Environment\\V1\342\002-Ai\\Stigmer\\Agenti" +
-      "c\\Environment\\V1\\GPBMetadata\352\002%Ai::Stigm" +
-      "er::Agentic::Environment::V1b\006proto3"
+      "& !this.allow_mcp_servers)\"\311\t\n\023Environme" +
+      "ntPackages\022g\n\003apt\030\001 \003(\tBU\272HR\222\001O\020 \"KrI\030\326\001" +
+      "2D^[a-z0-9][a-z0-9+.-]*[a-z0-9+.](=[A-Za" +
+      "-z0-9.+~:-]*[A-Za-z0-9.+~:])?$R\003apt\022U\n\005c" +
+      "argo\030\002 \003(\tB?\272H<\222\0019\020 \"5r3\030\326\0012.^[A-Za-z0-9" +
+      "][A-Za-z0-9_-]*(@[0-9A-Za-z.+-]+)?$R\005car" +
+      "go\022\323\001\n\003gem\030\003 \003(\tB\300\001\272H\274\001\222\001\270\001\020 \"\263\001r2\030\326\0012-^" +
+      "[A-Za-z0-9][A-Za-z0-9._-]*(:[0-9A-Za-z.]" +
+      "+)?$\272\001|\n\023gem.not_a_file_name\022=a gem entr" +
+      "y is a registry package, never a file su" +
+      "ch as x.gem\032&!this.matches(\'(?i)^[^:]*\\\\" +
+      ".gem(:|$)\')R\003gem\022P\n\002go\030\004 \003(\tB@\272H=\222\001:\020 \"6" +
+      "r4\030\326\0012/^[A-Za-z0-9][A-Za-z0-9._~/-]*@[A-" +
+      "Za-z0-9._+-]+$R\002go\022\226\002\n\003npm\030\005 \003(\tB\203\002\272H\377\001\222" +
+      "\001\373\001\020 \"\366\001rp\030\326\0012k^(@[A-Za-z0-9][A-Za-z0-9." +
+      "_~-]*/)?[A-Za-z0-9][A-Za-z0-9._~-]*(@[A-" +
+      "Za-z0-9^~<>=*+_-][A-Za-z0-9.^~<>=*+_-]*)" +
+      "?$\272\001\200\001\n\023npm.not_a_file_name\022>an npm entr" +
+      "y is a registry package, never a file su" +
+      "ch as x.tgz\032)!this.matches(\'(?i)\\\\.(tgz|" +
+      "tar.gz|tar)$\')R\003npm\022\260\003\n\003pip\030\006 \003(\tB\235\003\272H\231\003" +
+      "\222\001\225\003\020 \"\220\003r\264\001\030\326\0012\256\001^[A-Za-z0-9]([A-Za-z0-" +
+      "9._-]*[A-Za-z0-9])?(\\[[A-Za-z0-9._-]+(,[" +
+      "A-Za-z0-9._-]+)*\\])?((===|==|!=|~=|>=|<=" +
+      "|>|<)[A-Za-z0-9.*+!_-]+(,(===|==|!=|~=|>" +
+      "=|<=|>|<)[A-Za-z0-9.*+!_-]+)*)?$\272\001\325\001\n\023pi" +
+      "p.not_a_file_name\022=a pip entry is a regi" +
+      "stry package, never a file such as x.whl" +
+      "\032\177!this.matches(\'(?i)\\\\.(whl|zip|tar\\\\.b" +
+      "z2|tbz|tar\\\\.gz|tgz|tar|tar\\\\.xz|txz|tlz" +
+      "|tar\\\\.lz|tar\\\\.lzma)(\\\\[[A-Za-z0-9._,-]" +
+      "*\\\\])?$\')R\003pip*P\n\016NetworkingType\022\037\n\033netw" +
+      "orking_type_unspecified\020\000\022\020\n\014unrestricte" +
+      "d\020\001\022\013\n\007limited\020\002B\264\001B\tSpecProtoP\001\242\002\004ASAE\252" +
+      "\002!Ai.Stigmer.Agentic.Environment.V1\312\002!Ai" +
+      "\\Stigmer\\Agentic\\Environment\\V1\342\002-Ai\\Sti" +
+      "gmer\\Agentic\\Environment\\V1\\GPBMetadata\352" +
+      "\002%Ai::Stigmer::Agentic::Environment::V1b" +
+      "\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

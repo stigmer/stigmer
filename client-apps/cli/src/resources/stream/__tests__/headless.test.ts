@@ -1,9 +1,9 @@
 // Tests for the headless stream driver over a session's event log: every
 // stored event reaches the renderer and the fold after it; the drive ends
 // with the followed turn's phase, error and folded turn once that turn ends
-// (another turn's end does not end it); asks are answered once each, with
-// the run's --approve-default answer, only when the session idles waiting on
-// them; a refusal because the call no longer waits is settled, any other
+// (another turn's end does not end it, nor an idle written before it
+// began); asks are answered once each, with the run's --approve-default
+// answer, only when the session idles waiting on them; a refusal because the call no longer waits is settled, any other
 // failure ends the drive with a message naming how to re-attach; a dropped
 // stream is classified; an abort exits cleanly; the follow is aborted on
 // every way out. A finished session's events replay through the renderer.
@@ -111,6 +111,18 @@ describe("runHeadlessStream", () => {
     );
     expect(result.turn?.runId).toBe(R);
     expect(renderer.types).toHaveLength(4);
+  });
+
+  it("follows a turn sent after the session idled until that turn ends (stigmer#2553)", async () => {
+    const renderer = new RecordingRenderer();
+    const result = await runHeadlessStream(
+      deps({
+        follow: source([user("run_0", "before"), phase("run_0", "completed"), idle("end_turn"), user(R, "now"), phase(R, "completed")]),
+        renderer,
+      }),
+    );
+    expect([result.turn?.runId, result.phase]).toEqual([R, "completed"]);
+    expect(renderer.types).toHaveLength(5);
   });
 
   it("CLI-06 answers each ask the session waits on once, with the --approve-default answer", async () => {
