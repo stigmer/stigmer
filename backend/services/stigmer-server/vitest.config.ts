@@ -46,5 +46,12 @@ export default defineConfig({
     // Transport tests bind real sockets; a generous-but-bounded timeout keeps
     // a hung listen/connect from stalling the suite instead of failing it.
     testTimeout: 15_000,
+    // A Postgres file (`*.postgres.test.ts`) creates and drops its own
+    // database in its hooks, and a loaded run (coverage, other suites beside
+    // it) can hold a create or a drop past vitest's 10 s default with every
+    // case green (#2312). A hook that truly hangs still fails, only later; a
+    // hook that passes its own timeout keeps it. The same bound as
+    // `ee/server` and `test/conformance`.
+    hookTimeout: 60_000,
   },
 });
