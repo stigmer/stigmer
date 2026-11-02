@@ -13,7 +13,7 @@
  * layers that fade in (brand/job-story.ts names them). Each is marked by its
  * own attribute: `data-part`, `data-ring`, `data-ink` and `data-stroke`.
  */
-import { OPACITY, PARTS, STEPS, type PartId, type Step } from "../../../../brand/job-story";
+import { JOB, OPACITY, PARTS, STEPS, type PartId, type Step } from "../../../../brand/job-story";
 import { loopCss, type Loop, type Timeline } from "./drawing/loop";
 
 export { JOB, OPACITY, PARTS, STEPS, isOn } from "../../../../brand/job-story";
@@ -49,3 +49,12 @@ export const JOB_PATH_LOOP = {
 export function jobPathCss(): string {
   return loopCss(JOB_PATH_LOOP);
 }
+
+/**
+ * The picture's text alternative: its caption for a screen reader, and what
+ * the docs' markdown exports carry in its place (`site/src/components/visuals/diagrams.ts`).
+ */
+export const CAPTION =
+  `${JOB.customer}, a customer in your product, hands its agent ${JOB.ledger}. ` +
+  `The agent works through it for hours in its own computer, asks before it posts an adjustment, ` +
+  `and hands back ${JOB.report}, while every other customer's agent stays behind a wall.`;
