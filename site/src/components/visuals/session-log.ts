@@ -162,9 +162,9 @@ export function marks(event: LogEvent): string[] {
 /** The columns' headings, in order; the lane's is read from the legend. */
 export const HEADINGS = { type: "Event", says: "What it says", writer: "Written by" } as const;
 
-/** A table cell's text: pipes escaped, on one line. */
-function cell(text: string): string {
-  return text.replace(/\|/g, "\\|").replace(/\s+/g, " ").trim();
+/** A table cell's text: backslashes, then pipes, escaped, on one line. */
+export function cell(text: string): string {
+  return text.replace(/\\/g, "\\\\").replace(/\|/g, "\\|").replace(/\s+/g, " ").trim();
 }
 
 /**

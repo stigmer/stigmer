@@ -23,6 +23,7 @@ import { SessionLog } from "../SessionLog";
 import {
   ATTRIBUTE,
   FOLLOW_UP,
+  cell,
   PHASES,
   RUNS,
   SESSION_LOG_CSS,
@@ -123,6 +124,10 @@ describe("the Session's log", () => {
     expect(first.events.find((event) => event.type === "agent.message")?.file).toBe("variance-report.md");
     for (const event of second.events) expect(event.file, event.type).toBeUndefined();
     expect(second.events[0].says).toContain(FOLLOW_UP);
+  });
+
+  it("writes each row's words as one table cell, its backslashes and pipes escaped", () => {
+    expect(cell("a | b \\ c\n  d")).toBe("a \\| b \\\\ c d");
   });
 
   it("holds no clock: no time, no duration, no figure in its words", () => {
