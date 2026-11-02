@@ -475,6 +475,40 @@ describe("resolveExtensions — loud-fail throws", () => {
     );
   });
 
+  it("resolves the one native sign-in declaration with the unit that declared it, and none when no unit does", () => {
+    const declared = {
+      issuer: "https://id.acme.example/",
+      audience: "https://api.acme.example",
+      clientId: "native-1",
+    };
+    expect(
+      resolveExtensions([{ name: "acme-iam", nativeSignIn: declared }]).nativeSignIn,
+    ).toEqual({ value: declared, declaredBy: "acme-iam" });
+    expect(resolveExtensions([{ name: "plain" }]).nativeSignIn).toBeUndefined();
+  });
+
+  it("throws on a second native sign-in declaration, naming both units", () => {
+    const declared = { issuer: "https://id.acme.example/", audience: "a", clientId: "c" };
+    expect(() =>
+      resolveExtensions([
+        { name: "first-iam", nativeSignIn: declared },
+        { name: "second-iam", nativeSignIn: declared },
+      ]),
+    ).toThrowError(
+      /extension 'second-iam' declares native sign-in, but 'first-iam' already did/,
+    );
+  });
+
+  it("throws on a native sign-in declaration with an empty field, naming the unit and the fields", () => {
+    expect(() =>
+      resolveExtensions([
+        { name: "half-iam", nativeSignIn: { issuer: "https://id.acme.example/", audience: " ", clientId: "" } },
+      ]),
+    ).toThrowError(
+      "extension 'half-iam' declares native sign-in with no audience, clientId — declare every field or omit the declaration",
+    );
+  });
+
   it("resolves the one declared organization limit", () => {
     expect(
       resolveExtensions([{ name: "open-source", orgLimit: 1 }]).orgLimit,

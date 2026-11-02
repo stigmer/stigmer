@@ -265,10 +265,24 @@ export interface ServerConfig {
    * CLI and SDKs with API keys, must keep booting on upgrade. Empty means
    * the console cannot sign in; the composition root WARNs and the served
    * console says so itself. Named for the console on purpose — a
-   * future CLI or desktop sign-in against a self-host is a different
-   * client type (loopback/native) and should not be tempted to reuse it.
+   * desktop or CLI sign-in is a different client type (loopback/native)
+   * and reads its own, below.
    */
   readonly oidcConsoleClientId: string;
+  /**
+   * The OAuth client an app installed on a person's computer signs in with
+   * (STIGMER_OIDC_NATIVE_CLIENT_ID): a PUBLIC native client the operator
+   * registers at the issuer for the Authorization Code + PKCE flow, with
+   * `stigmer://auth/callback` and the loopback callbacks as its redirects
+   * (RFC 8252) — an identifier, never a secret. `getServerInfo` announces
+   * it, with the issuer and audience, as `native_sign_in`, which is how the
+   * desktop app learns where to sign in. Separate from the console's
+   * client on purpose: that one is registered for a browser origin's
+   * redirect. Lenient like the console's: empty means no app can sign in
+   * here, and the composition root WARNs; set without the issuer, it has
+   * nothing to describe, and the composition root WARNs that it is unused.
+   */
+  readonly oidcNativeClientId: string;
   /**
    * Sandbox provisioner driver (SANDBOX_PROVISIONER_TYPE). ""
    * — the default — is the external-runner posture: no provisioner is
@@ -503,6 +517,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     consoleDir: envString(env, "STIGMER_CONSOLE_DIR", ""),
     ...loadOidcConfig(env),
     oidcConsoleClientId: envString(env, "STIGMER_OIDC_CONSOLE_CLIENT_ID", ""),
+    oidcNativeClientId: envString(env, "STIGMER_OIDC_NATIVE_CLIENT_ID", "").trim(),
     sandboxProvisionerType: envString(env, "SANDBOX_PROVISIONER_TYPE", ""),
     sandboxBackendEndpoint: envString(
       env,

@@ -431,6 +431,8 @@ spec:
               value: "https://stigmer.example.com"
             - name: STIGMER_OIDC_CONSOLE_CLIENT_ID
               value: "stigmer-console"
+            - name: STIGMER_OIDC_NATIVE_CLIENT_ID
+              value: "stigmer-desktop"
             # The license key, from its Secret; not optional: a licensed
             # pod without its key would boot as open source.
             - name: STIGMER_LICENSE_KEY

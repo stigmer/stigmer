@@ -83,6 +83,7 @@ import { newModelCatalogProviderFromDocument } from "../../../modelcatalog/docum
 import { bundledModelRegistryDocument } from "../../../modelcatalog/bundled.js";
 import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/authorize.js";
 import type { EnvironmentPolicy } from "../../run/environment-admission.js";
+import type { NativeSignInDeclaration } from "../../../extensions/registry.js";
 import { NO_ENVIRONMENT_SUPPORT } from "../../environment/facts.js";
 
 /** The default posture's policy: no sandbox lane, so nothing is governed. */
@@ -164,6 +165,8 @@ describe("platform domain (composed server)", () => {
     // A server that trusts every request says so on the wire: an explicit
     // false, never an absent field a console would read as "unknown".
     expect(first.authenticationRequired).toBe(false);
+    // Nothing to sign in to, so nothing tells an installed app how.
+    expect(first.nativeSignIn).toBeUndefined();
     // The default posture starts no sandbox (SANDBOX_PROVISIONER_TYPE
     // unset): no Environment governs a conversation here, and the field is
     // still present, so a console never reads it as unanswered.
@@ -509,6 +512,60 @@ describe("platform domain (model readiness, composed availability)", () => {
   });
 });
 
+/**
+ * getServerInfo's `native_sign_in` on an in-process router: the answer the
+ * composition root resolved (boot/native-sign-in.ts) is announced exactly,
+ * and none is announced when it resolved none.
+ */
+describe("platform domain (native sign-in)", () => {
+  function serverInfoWith(nativeSignIn: NativeSignInDeclaration | undefined) {
+    const transport = createRouterTransport((router) => {
+      registerPlatformServices(router, {
+        runnerBootstrapTemporalAddress: "localhost:7233",
+        runnerBootstrapMcpBridgeEndpoint: "",
+        temporalNamespace: "default",
+        runnerAuthService: newExecutionScopedRunnerCredentialProvider(
+          RunnerAuthService.create(undefined),
+        ),
+        edition: ServerEdition.oss,
+        version: "dev",
+        authenticationRequired: true,
+        nativeSignIn,
+        singleOrganization: undefined,
+        licenseStatus: ABSENT_LICENSE_STATUS,
+        providerAvailability: runnerProviderAvailability(undefined),
+        modelCatalog: newModelCatalogProviderFromDocument(bundledModelRegistryDocument()),
+        authorizer: newPermissiveSingleTeamAuthorizer(),
+        environmentPolicy: NO_SANDBOX_POLICY,
+        now: () => new Date(),
+        logger: silentLogger,
+      });
+    });
+    return createClient(PlatformQueryController, transport).getServerInfo({});
+  }
+
+  it("announces the issuer, audience and native client it was given, exactly", async () => {
+    const info = await serverInfoWith({
+      issuer: "https://id.acme.example/",
+      audience: "https://api.acme.example",
+      clientId: "native-client-1",
+    });
+    expect(info.nativeSignIn).toEqual(
+      expect.objectContaining({
+        issuer: "https://id.acme.example/",
+        audience: "https://api.acme.example",
+        clientId: "native-client-1",
+      }),
+    );
+  });
+
+  it("announces nothing when the composition resolved no native sign-in", async () => {
+    const info = await serverInfoWith(undefined);
+    expect(info.authenticationRequired).toBe(true);
+    expect(info.nativeSignIn).toBeUndefined();
+  });
+});
+
 describe("platform domain (keyless runner-token service)", () => {
   it("a keyless service answers not-minted — fail-soft, never an error", async () => {
     const transport = createRouterTransport((router) => {
@@ -522,6 +579,7 @@ describe("platform domain (keyless runner-token service)", () => {
         edition: ServerEdition.oss,
         version: "dev",
         authenticationRequired: false,
+        nativeSignIn: undefined,
         singleOrganization: undefined,
         licenseStatus: ABSENT_LICENSE_STATUS,
         providerAvailability: runnerProviderAvailability(undefined),
@@ -561,6 +619,7 @@ describe("platform domain (environment availability)", () => {
         edition: ServerEdition.oss,
         version: "dev",
         authenticationRequired: false,
+        nativeSignIn: undefined,
         singleOrganization: undefined,
         licenseStatus: ABSENT_LICENSE_STATUS,
         providerAvailability: runnerProviderAvailability(undefined),
@@ -628,6 +687,7 @@ describe("platform domain (license status)", () => {
         edition: ServerEdition.enterprise,
         version: "dev",
         authenticationRequired: false,
+        nativeSignIn: undefined,
         singleOrganization: undefined,
         licenseStatus: provider,
         providerAvailability: runnerProviderAvailability(undefined),

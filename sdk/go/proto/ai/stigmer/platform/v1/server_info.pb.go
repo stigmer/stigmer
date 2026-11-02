@@ -178,7 +178,19 @@ type GetServerInfoOutput struct {
 	// Every server that knows the field sets it. Absent means the server
 	// predates it: a client offers Environments and lets the server's own
 	// refusals speak.
-	Environments  *EnvironmentAvailability `protobuf:"bytes,5,opt,name=environments,proto3" json:"environments,omitempty"`
+	Environments *EnvironmentAvailability `protobuf:"bytes,5,opt,name=environments,proto3" json:"environments,omitempty"`
+	// How an app installed on a person's computer (the desktop app) signs
+	// its person in to this server.
+	//
+	// Set when the server signs its callers in and its operator registered
+	// a public native client at the identity provider (RFC 8252: an
+	// Authorization Code flow with PKCE, a `stigmer://auth/callback` or
+	// loopback redirect, no client secret). Absent when the server trusts
+	// every request (`authentication_required` false: nothing to sign in
+	// to), and when no native client is registered, which a client says
+	// instead of guessing an identity provider. Read before sign-in, like
+	// the rest of this answer.
+	NativeSignIn  *NativeSignIn `protobuf:"bytes,6,opt,name=native_sign_in,json=nativeSignIn,proto3" json:"native_sign_in,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -248,6 +260,86 @@ func (x *GetServerInfoOutput) GetEnvironments() *EnvironmentAvailability {
 	return nil
 }
 
+func (x *GetServerInfoOutput) GetNativeSignIn() *NativeSignIn {
+	if x != nil {
+		return x.NativeSignIn
+	}
+	return nil
+}
+
+// NativeSignIn names the identity provider and the public client an app on
+// a person's computer signs in with. A client reads the provider's
+// endpoints from its discovery document (`<issuer>/.well-known/
+// openid-configuration`) and never guesses them.
+//
+// The client is the operator's native client, never the web console's: a
+// console's client is registered for a browser origin's redirect, and an
+// installed app's for its own scheme and the loopback address.
+type NativeSignIn struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The OpenID Connect issuer, exactly as its discovery document and the
+	// tokens it mints spell it (a trailing slash included when it has one).
+	Issuer string `protobuf:"bytes,1,opt,name=issuer,proto3" json:"issuer,omitempty"`
+	// The audience the access token must carry for this server to accept it.
+	Audience string `protobuf:"bytes,2,opt,name=audience,proto3" json:"audience,omitempty"`
+	// The public native client's id at the issuer: an identifier, not a
+	// secret.
+	ClientId      string `protobuf:"bytes,3,opt,name=client_id,json=clientId,proto3" json:"client_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *NativeSignIn) Reset() {
+	*x = NativeSignIn{}
+	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *NativeSignIn) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NativeSignIn) ProtoMessage() {}
+
+func (x *NativeSignIn) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NativeSignIn.ProtoReflect.Descriptor instead.
+func (*NativeSignIn) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_platform_v1_server_info_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *NativeSignIn) GetIssuer() string {
+	if x != nil {
+		return x.Issuer
+	}
+	return ""
+}
+
+func (x *NativeSignIn) GetAudience() string {
+	if x != nil {
+		return x.Audience
+	}
+	return ""
+}
+
+func (x *NativeSignIn) GetClientId() string {
+	if x != nil {
+		return x.ClientId
+	}
+	return ""
+}
+
 // EnvironmentAvailability says whether an Environment governs this server's
 // conversations, and what its sandboxes can do with one.
 //
@@ -274,7 +366,7 @@ type EnvironmentAvailability struct {
 
 func (x *EnvironmentAvailability) Reset() {
 	*x = EnvironmentAvailability{}
-	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[2]
+	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -286,7 +378,7 @@ func (x *EnvironmentAvailability) String() string {
 func (*EnvironmentAvailability) ProtoMessage() {}
 
 func (x *EnvironmentAvailability) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[2]
+	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -299,7 +391,7 @@ func (x *EnvironmentAvailability) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EnvironmentAvailability.ProtoReflect.Descriptor instead.
 func (*EnvironmentAvailability) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_platform_v1_server_info_proto_rawDescGZIP(), []int{2}
+	return file_ai_stigmer_platform_v1_server_info_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *EnvironmentAvailability) GetApplies() bool {
@@ -332,7 +424,7 @@ type GetLicenseStatusInput struct {
 
 func (x *GetLicenseStatusInput) Reset() {
 	*x = GetLicenseStatusInput{}
-	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[3]
+	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -344,7 +436,7 @@ func (x *GetLicenseStatusInput) String() string {
 func (*GetLicenseStatusInput) ProtoMessage() {}
 
 func (x *GetLicenseStatusInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[3]
+	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -357,7 +449,7 @@ func (x *GetLicenseStatusInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetLicenseStatusInput.ProtoReflect.Descriptor instead.
 func (*GetLicenseStatusInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_platform_v1_server_info_proto_rawDescGZIP(), []int{3}
+	return file_ai_stigmer_platform_v1_server_info_proto_rawDescGZIP(), []int{4}
 }
 
 // The state of the server's license, with the claims that verified.
@@ -385,7 +477,7 @@ type GetLicenseStatusOutput struct {
 
 func (x *GetLicenseStatusOutput) Reset() {
 	*x = GetLicenseStatusOutput{}
-	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[4]
+	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -397,7 +489,7 @@ func (x *GetLicenseStatusOutput) String() string {
 func (*GetLicenseStatusOutput) ProtoMessage() {}
 
 func (x *GetLicenseStatusOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[4]
+	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -410,7 +502,7 @@ func (x *GetLicenseStatusOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetLicenseStatusOutput.ProtoReflect.Descriptor instead.
 func (*GetLicenseStatusOutput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_platform_v1_server_info_proto_rawDescGZIP(), []int{4}
+	return file_ai_stigmer_platform_v1_server_info_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *GetLicenseStatusOutput) GetState() LicenseState {
@@ -451,7 +543,7 @@ type GetRunnerBootstrapConfigInput struct {
 
 func (x *GetRunnerBootstrapConfigInput) Reset() {
 	*x = GetRunnerBootstrapConfigInput{}
-	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[5]
+	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -463,7 +555,7 @@ func (x *GetRunnerBootstrapConfigInput) String() string {
 func (*GetRunnerBootstrapConfigInput) ProtoMessage() {}
 
 func (x *GetRunnerBootstrapConfigInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[5]
+	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -476,7 +568,7 @@ func (x *GetRunnerBootstrapConfigInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRunnerBootstrapConfigInput.ProtoReflect.Descriptor instead.
 func (*GetRunnerBootstrapConfigInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_platform_v1_server_info_proto_rawDescGZIP(), []int{5}
+	return file_ai_stigmer_platform_v1_server_info_proto_rawDescGZIP(), []int{6}
 }
 
 // Everything an embedded runner needs to bootstrap: Temporal coordinates, its
@@ -542,7 +634,7 @@ type GetRunnerBootstrapConfigOutput struct {
 
 func (x *GetRunnerBootstrapConfigOutput) Reset() {
 	*x = GetRunnerBootstrapConfigOutput{}
-	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[6]
+	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -554,7 +646,7 @@ func (x *GetRunnerBootstrapConfigOutput) String() string {
 func (*GetRunnerBootstrapConfigOutput) ProtoMessage() {}
 
 func (x *GetRunnerBootstrapConfigOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[6]
+	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -567,7 +659,7 @@ func (x *GetRunnerBootstrapConfigOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRunnerBootstrapConfigOutput.ProtoReflect.Descriptor instead.
 func (*GetRunnerBootstrapConfigOutput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_platform_v1_server_info_proto_rawDescGZIP(), []int{6}
+	return file_ai_stigmer_platform_v1_server_info_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *GetRunnerBootstrapConfigOutput) GetTemporalAddress() string {
@@ -658,7 +750,7 @@ type GetRunnerScopedTokenInput struct {
 
 func (x *GetRunnerScopedTokenInput) Reset() {
 	*x = GetRunnerScopedTokenInput{}
-	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[7]
+	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -670,7 +762,7 @@ func (x *GetRunnerScopedTokenInput) String() string {
 func (*GetRunnerScopedTokenInput) ProtoMessage() {}
 
 func (x *GetRunnerScopedTokenInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[7]
+	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -683,7 +775,7 @@ func (x *GetRunnerScopedTokenInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRunnerScopedTokenInput.ProtoReflect.Descriptor instead.
 func (*GetRunnerScopedTokenInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_platform_v1_server_info_proto_rawDescGZIP(), []int{7}
+	return file_ai_stigmer_platform_v1_server_info_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *GetRunnerScopedTokenInput) GetScope() isGetRunnerScopedTokenInput_Scope {
@@ -754,7 +846,7 @@ type TokenRenewal struct {
 
 func (x *TokenRenewal) Reset() {
 	*x = TokenRenewal{}
-	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[8]
+	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -766,7 +858,7 @@ func (x *TokenRenewal) String() string {
 func (*TokenRenewal) ProtoMessage() {}
 
 func (x *TokenRenewal) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[8]
+	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -779,7 +871,7 @@ func (x *TokenRenewal) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TokenRenewal.ProtoReflect.Descriptor instead.
 func (*TokenRenewal) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_platform_v1_server_info_proto_rawDescGZIP(), []int{8}
+	return file_ai_stigmer_platform_v1_server_info_proto_rawDescGZIP(), []int{9}
 }
 
 // A runner token scoped to one unit of work, or empty when the server cannot
@@ -805,7 +897,7 @@ type GetRunnerScopedTokenOutput struct {
 
 func (x *GetRunnerScopedTokenOutput) Reset() {
 	*x = GetRunnerScopedTokenOutput{}
-	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[9]
+	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -817,7 +909,7 @@ func (x *GetRunnerScopedTokenOutput) String() string {
 func (*GetRunnerScopedTokenOutput) ProtoMessage() {}
 
 func (x *GetRunnerScopedTokenOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[9]
+	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -830,7 +922,7 @@ func (x *GetRunnerScopedTokenOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRunnerScopedTokenOutput.ProtoReflect.Descriptor instead.
 func (*GetRunnerScopedTokenOutput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_platform_v1_server_info_proto_rawDescGZIP(), []int{9}
+	return file_ai_stigmer_platform_v1_server_info_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *GetRunnerScopedTokenOutput) GetRunnerScopedToken() string {
@@ -859,16 +951,21 @@ var File_ai_stigmer_platform_v1_server_info_proto protoreflect.FileDescriptor
 const file_ai_stigmer_platform_v1_server_info_proto_rawDesc = "" +
 	"\n" +
 	"(ai/stigmer/platform/v1/server_info.proto\x12\x16ai.stigmer.platform.v1\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a$ai/stigmer/platform/v1/license.proto\x1a,ai/stigmer/platform/v1/model_readiness.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x14\n" +
-	"\x12GetServerInfoInput\"\xd2\x02\n" +
+	"\x12GetServerInfoInput\"\x9e\x03\n" +
 	"\x13GetServerInfoOutput\x12?\n" +
 	"\aedition\x18\x01 \x01(\x0e2%.ai.stigmer.platform.v1.ServerEditionR\aedition\x12\x18\n" +
 	"\aversion\x18\x02 \x01(\tR\aversion\x12<\n" +
 	"\x17authentication_required\x18\x03 \x01(\bH\x00R\x16authenticationRequired\x88\x01\x01\x12\"\n" +
 	"\n" +
 	"single_org\x18\x04 \x01(\bH\x01R\tsingleOrg\x88\x01\x01\x12S\n" +
-	"\fenvironments\x18\x05 \x01(\v2/.ai.stigmer.platform.v1.EnvironmentAvailabilityR\fenvironmentsB\x1a\n" +
+	"\fenvironments\x18\x05 \x01(\v2/.ai.stigmer.platform.v1.EnvironmentAvailabilityR\fenvironments\x12J\n" +
+	"\x0enative_sign_in\x18\x06 \x01(\v2$.ai.stigmer.platform.v1.NativeSignInR\fnativeSignInB\x1a\n" +
 	"\x18_authentication_requiredB\r\n" +
-	"\v_single_org\"~\n" +
+	"\v_single_org\"_\n" +
+	"\fNativeSignIn\x12\x16\n" +
+	"\x06issuer\x18\x01 \x01(\tR\x06issuer\x12\x1a\n" +
+	"\baudience\x18\x02 \x01(\tR\baudience\x12\x1b\n" +
+	"\tclient_id\x18\x03 \x01(\tR\bclientId\"~\n" +
 	"\x17EnvironmentAvailability\x12\x18\n" +
 	"\aapplies\x18\x01 \x01(\bR\aapplies\x12-\n" +
 	"\x12limited_networking\x18\x02 \x01(\bR\x11limitedNetworking\x12\x1a\n" +
@@ -931,47 +1028,49 @@ func file_ai_stigmer_platform_v1_server_info_proto_rawDescGZIP() []byte {
 }
 
 var file_ai_stigmer_platform_v1_server_info_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_ai_stigmer_platform_v1_server_info_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_ai_stigmer_platform_v1_server_info_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_ai_stigmer_platform_v1_server_info_proto_goTypes = []any{
 	(ServerEdition)(0),                     // 0: ai.stigmer.platform.v1.ServerEdition
 	(*GetServerInfoInput)(nil),             // 1: ai.stigmer.platform.v1.GetServerInfoInput
 	(*GetServerInfoOutput)(nil),            // 2: ai.stigmer.platform.v1.GetServerInfoOutput
-	(*EnvironmentAvailability)(nil),        // 3: ai.stigmer.platform.v1.EnvironmentAvailability
-	(*GetLicenseStatusInput)(nil),          // 4: ai.stigmer.platform.v1.GetLicenseStatusInput
-	(*GetLicenseStatusOutput)(nil),         // 5: ai.stigmer.platform.v1.GetLicenseStatusOutput
-	(*GetRunnerBootstrapConfigInput)(nil),  // 6: ai.stigmer.platform.v1.GetRunnerBootstrapConfigInput
-	(*GetRunnerBootstrapConfigOutput)(nil), // 7: ai.stigmer.platform.v1.GetRunnerBootstrapConfigOutput
-	(*GetRunnerScopedTokenInput)(nil),      // 8: ai.stigmer.platform.v1.GetRunnerScopedTokenInput
-	(*TokenRenewal)(nil),                   // 9: ai.stigmer.platform.v1.TokenRenewal
-	(*GetRunnerScopedTokenOutput)(nil),     // 10: ai.stigmer.platform.v1.GetRunnerScopedTokenOutput
-	(LicenseState)(0),                      // 11: ai.stigmer.platform.v1.LicenseState
-	(*LicenseClaims)(nil),                  // 12: ai.stigmer.platform.v1.LicenseClaims
-	(*timestamppb.Timestamp)(nil),          // 13: google.protobuf.Timestamp
-	(*GetModelReadinessInput)(nil),         // 14: ai.stigmer.platform.v1.GetModelReadinessInput
-	(*GetModelReadinessOutput)(nil),        // 15: ai.stigmer.platform.v1.GetModelReadinessOutput
+	(*NativeSignIn)(nil),                   // 3: ai.stigmer.platform.v1.NativeSignIn
+	(*EnvironmentAvailability)(nil),        // 4: ai.stigmer.platform.v1.EnvironmentAvailability
+	(*GetLicenseStatusInput)(nil),          // 5: ai.stigmer.platform.v1.GetLicenseStatusInput
+	(*GetLicenseStatusOutput)(nil),         // 6: ai.stigmer.platform.v1.GetLicenseStatusOutput
+	(*GetRunnerBootstrapConfigInput)(nil),  // 7: ai.stigmer.platform.v1.GetRunnerBootstrapConfigInput
+	(*GetRunnerBootstrapConfigOutput)(nil), // 8: ai.stigmer.platform.v1.GetRunnerBootstrapConfigOutput
+	(*GetRunnerScopedTokenInput)(nil),      // 9: ai.stigmer.platform.v1.GetRunnerScopedTokenInput
+	(*TokenRenewal)(nil),                   // 10: ai.stigmer.platform.v1.TokenRenewal
+	(*GetRunnerScopedTokenOutput)(nil),     // 11: ai.stigmer.platform.v1.GetRunnerScopedTokenOutput
+	(LicenseState)(0),                      // 12: ai.stigmer.platform.v1.LicenseState
+	(*LicenseClaims)(nil),                  // 13: ai.stigmer.platform.v1.LicenseClaims
+	(*timestamppb.Timestamp)(nil),          // 14: google.protobuf.Timestamp
+	(*GetModelReadinessInput)(nil),         // 15: ai.stigmer.platform.v1.GetModelReadinessInput
+	(*GetModelReadinessOutput)(nil),        // 16: ai.stigmer.platform.v1.GetModelReadinessOutput
 }
 var file_ai_stigmer_platform_v1_server_info_proto_depIdxs = []int32{
 	0,  // 0: ai.stigmer.platform.v1.GetServerInfoOutput.edition:type_name -> ai.stigmer.platform.v1.ServerEdition
-	3,  // 1: ai.stigmer.platform.v1.GetServerInfoOutput.environments:type_name -> ai.stigmer.platform.v1.EnvironmentAvailability
-	11, // 2: ai.stigmer.platform.v1.GetLicenseStatusOutput.state:type_name -> ai.stigmer.platform.v1.LicenseState
-	12, // 3: ai.stigmer.platform.v1.GetLicenseStatusOutput.claims:type_name -> ai.stigmer.platform.v1.LicenseClaims
-	13, // 4: ai.stigmer.platform.v1.GetLicenseStatusOutput.checked_at:type_name -> google.protobuf.Timestamp
-	9,  // 5: ai.stigmer.platform.v1.GetRunnerScopedTokenInput.renewal:type_name -> ai.stigmer.platform.v1.TokenRenewal
-	1,  // 6: ai.stigmer.platform.v1.PlatformQueryController.getServerInfo:input_type -> ai.stigmer.platform.v1.GetServerInfoInput
-	4,  // 7: ai.stigmer.platform.v1.PlatformQueryController.getLicenseStatus:input_type -> ai.stigmer.platform.v1.GetLicenseStatusInput
-	14, // 8: ai.stigmer.platform.v1.PlatformQueryController.getModelReadiness:input_type -> ai.stigmer.platform.v1.GetModelReadinessInput
-	6,  // 9: ai.stigmer.platform.v1.PlatformQueryController.getRunnerBootstrapConfig:input_type -> ai.stigmer.platform.v1.GetRunnerBootstrapConfigInput
-	8,  // 10: ai.stigmer.platform.v1.PlatformQueryController.getRunnerScopedToken:input_type -> ai.stigmer.platform.v1.GetRunnerScopedTokenInput
-	2,  // 11: ai.stigmer.platform.v1.PlatformQueryController.getServerInfo:output_type -> ai.stigmer.platform.v1.GetServerInfoOutput
-	5,  // 12: ai.stigmer.platform.v1.PlatformQueryController.getLicenseStatus:output_type -> ai.stigmer.platform.v1.GetLicenseStatusOutput
-	15, // 13: ai.stigmer.platform.v1.PlatformQueryController.getModelReadiness:output_type -> ai.stigmer.platform.v1.GetModelReadinessOutput
-	7,  // 14: ai.stigmer.platform.v1.PlatformQueryController.getRunnerBootstrapConfig:output_type -> ai.stigmer.platform.v1.GetRunnerBootstrapConfigOutput
-	10, // 15: ai.stigmer.platform.v1.PlatformQueryController.getRunnerScopedToken:output_type -> ai.stigmer.platform.v1.GetRunnerScopedTokenOutput
-	11, // [11:16] is the sub-list for method output_type
-	6,  // [6:11] is the sub-list for method input_type
-	6,  // [6:6] is the sub-list for extension type_name
-	6,  // [6:6] is the sub-list for extension extendee
-	0,  // [0:6] is the sub-list for field type_name
+	4,  // 1: ai.stigmer.platform.v1.GetServerInfoOutput.environments:type_name -> ai.stigmer.platform.v1.EnvironmentAvailability
+	3,  // 2: ai.stigmer.platform.v1.GetServerInfoOutput.native_sign_in:type_name -> ai.stigmer.platform.v1.NativeSignIn
+	12, // 3: ai.stigmer.platform.v1.GetLicenseStatusOutput.state:type_name -> ai.stigmer.platform.v1.LicenseState
+	13, // 4: ai.stigmer.platform.v1.GetLicenseStatusOutput.claims:type_name -> ai.stigmer.platform.v1.LicenseClaims
+	14, // 5: ai.stigmer.platform.v1.GetLicenseStatusOutput.checked_at:type_name -> google.protobuf.Timestamp
+	10, // 6: ai.stigmer.platform.v1.GetRunnerScopedTokenInput.renewal:type_name -> ai.stigmer.platform.v1.TokenRenewal
+	1,  // 7: ai.stigmer.platform.v1.PlatformQueryController.getServerInfo:input_type -> ai.stigmer.platform.v1.GetServerInfoInput
+	5,  // 8: ai.stigmer.platform.v1.PlatformQueryController.getLicenseStatus:input_type -> ai.stigmer.platform.v1.GetLicenseStatusInput
+	15, // 9: ai.stigmer.platform.v1.PlatformQueryController.getModelReadiness:input_type -> ai.stigmer.platform.v1.GetModelReadinessInput
+	7,  // 10: ai.stigmer.platform.v1.PlatformQueryController.getRunnerBootstrapConfig:input_type -> ai.stigmer.platform.v1.GetRunnerBootstrapConfigInput
+	9,  // 11: ai.stigmer.platform.v1.PlatformQueryController.getRunnerScopedToken:input_type -> ai.stigmer.platform.v1.GetRunnerScopedTokenInput
+	2,  // 12: ai.stigmer.platform.v1.PlatformQueryController.getServerInfo:output_type -> ai.stigmer.platform.v1.GetServerInfoOutput
+	6,  // 13: ai.stigmer.platform.v1.PlatformQueryController.getLicenseStatus:output_type -> ai.stigmer.platform.v1.GetLicenseStatusOutput
+	16, // 14: ai.stigmer.platform.v1.PlatformQueryController.getModelReadiness:output_type -> ai.stigmer.platform.v1.GetModelReadinessOutput
+	8,  // 15: ai.stigmer.platform.v1.PlatformQueryController.getRunnerBootstrapConfig:output_type -> ai.stigmer.platform.v1.GetRunnerBootstrapConfigOutput
+	11, // 16: ai.stigmer.platform.v1.PlatformQueryController.getRunnerScopedToken:output_type -> ai.stigmer.platform.v1.GetRunnerScopedTokenOutput
+	12, // [12:17] is the sub-list for method output_type
+	7,  // [7:12] is the sub-list for method input_type
+	7,  // [7:7] is the sub-list for extension type_name
+	7,  // [7:7] is the sub-list for extension extendee
+	0,  // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_platform_v1_server_info_proto_init() }
@@ -982,7 +1081,7 @@ func file_ai_stigmer_platform_v1_server_info_proto_init() {
 	file_ai_stigmer_platform_v1_license_proto_init()
 	file_ai_stigmer_platform_v1_model_readiness_proto_init()
 	file_ai_stigmer_platform_v1_server_info_proto_msgTypes[1].OneofWrappers = []any{}
-	file_ai_stigmer_platform_v1_server_info_proto_msgTypes[7].OneofWrappers = []any{
+	file_ai_stigmer_platform_v1_server_info_proto_msgTypes[8].OneofWrappers = []any{
 		(*GetRunnerScopedTokenInput_RunId)(nil),
 		(*GetRunnerScopedTokenInput_Renewal)(nil),
 	}
@@ -992,7 +1091,7 @@ func file_ai_stigmer_platform_v1_server_info_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_platform_v1_server_info_proto_rawDesc), len(file_ai_stigmer_platform_v1_server_info_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   10,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

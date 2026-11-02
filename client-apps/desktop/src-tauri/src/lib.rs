@@ -2,7 +2,10 @@ mod auth;
 mod deep_link;
 mod lifecycle;
 mod menu;
+mod oidc;
 mod runner;
+mod server;
+mod session_store;
 mod tray;
 mod user_path;
 mod window;
@@ -38,11 +41,17 @@ pub fn run() {
         )
         .manage(RunnerState::new())
         .manage(UserPath::resolve_in_background())
+        .manage(oidc::SignIn::new(session_store::for_this_build()))
         .invoke_handler(tauri::generate_handler![
-            auth::open_auth_in_browser,
-            auth::cancel_auth,
-            auth::start_auth_callback_server,
             auth::start_sign_in_callback_server,
+            server::current_server,
+            server::choose_server,
+            oidc::auth_sign_in,
+            oidc::auth_reopen_browser,
+            oidc::auth_cancel,
+            oidc::auth_session,
+            oidc::auth_refresh,
+            oidc::auth_sign_out,
             runner::start_runner,
             runner::stop_runner,
             runner::kill_runner,
@@ -59,6 +68,12 @@ pub fn run() {
         ])
         .on_menu_event(|app, event| menu::handle_menu_event(app, &event))
         .setup(|app| {
+            // The person's chosen server, granted to the webview again
+            // before the window loads (server.rs: runtime grants do not
+            // persist).
+            app.manage(server::ServerChoice::load(app.handle()));
+            server::grant_saved(app.handle());
+
             #[cfg(any(windows, target_os = "linux"))]
             {
                 app.deep_link().register_all()?;
@@ -81,11 +96,16 @@ pub fn run() {
                         continue;
                     };
                     let name = routed.name();
-                    let _ = match routed {
-                        DeepLinkEvent::AuthCallback(payload)
-                        | DeepLinkEvent::SignInCallback(payload) => handle.emit(name, payload),
-                        DeepLinkEvent::BillingReturn(payload) => handle.emit(name, payload),
-                    };
+                    match (routed, name) {
+                        (DeepLinkEvent::AuthCallback(payload), _) => oidc::deliver(&handle, payload),
+                        (DeepLinkEvent::SignInCallback(payload), Some(name)) => {
+                            let _ = handle.emit(name, payload);
+                        }
+                        (DeepLinkEvent::BillingReturn(payload), Some(name)) => {
+                            let _ = handle.emit(name, payload);
+                        }
+                        (_, None) => {}
+                    }
                     bring_forward(&handle);
                 }
             });

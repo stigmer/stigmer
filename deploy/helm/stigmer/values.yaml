@@ -108,6 +108,11 @@ server:
     # (STIGMER_OIDC_CONSOLE_CLIENT_ID). A public identifier, never a
     # secret. Empty means the console cannot sign in; the server warns.
     consoleClientId: ""
+    # The public native client the desktop app signs in with
+    # (STIGMER_OIDC_NATIVE_CLIENT_ID), announced to it by the server. A
+    # public identifier, never a secret, and never the console's client.
+    # Empty means the desktop app cannot sign in; the server warns.
+    nativeClientId: ""
   # Requests sized for one team; raise them with your load. Memory is
   # limited so a leak is a restart, not a node; CPU is requested, not
   # limited, so a burst (a search-index rebuild at boot on an adopted

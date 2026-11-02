@@ -25,7 +25,11 @@
 //     with the byte-pinned `invalid token` both editions share; and a
 //     request through a key records the key's last use on it, readable by
 //     its owner (stigmer/stigmer#1255), proven on the target's enforcing
-//     lane because only a posture composes the key's verifier.
+//     lane because only a posture composes the key's verifier;
+//   - how an installed app signs in (getServerInfo's native_sign_in, read
+//     before sign-in): nothing on a target that trusts every request, and
+//     exactly the issuer, audience and native client an open-source server
+//     in the OIDC posture was started with, on a sibling.
 // Coverage of the absent-token arm was ZERO before this suite: every
 // conformance RPC carried the primary credential, so a composition that
 // admitted anonymous callers as `system` passed five green readouts. The
@@ -44,10 +48,21 @@ import { Code } from "@connectrpc/connect";
 import { HealthCheckResponse_ServingStatus } from "@stigmer/apis/grpc/health/v1/health_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
+import {
+  startLocalOidcIssuer,
+  type LocalOidcIssuer,
+} from "@stigmer/test-support/local-oidc-issuer";
+
 import { expectGrpcCode } from "../contract/errors";
 import { FixtureTracker } from "../harness/fixtures";
+import { freshSubject } from "../support/identityaccounts";
 import { uniqueName } from "../support/naming";
-import { createTarget, enforcingLaneOf, type TargetProfile } from "../targets";
+import {
+  createTarget,
+  enforcingLaneOf,
+  type SiblingServer,
+  type TargetProfile,
+} from "../targets";
 
 // The refusal copy both editions pin byte for byte (the chassis's
 // AUTHENTICATION_TOKEN_MISSING_MESSAGE).
@@ -282,5 +297,58 @@ describe("authentication posture: a request with an API-key credential", () => {
     // is held to the day, not to the second.
     const ageMs = Date.now() - timestampDate(stamp!).getTime();
     expect(Math.abs(ageMs)).toBeLessThan(86_400_000);
+  });
+});
+
+describe("authentication posture: how an installed app signs in", () => {
+  // The public native client an operator registers for installed apps.
+  const NATIVE_CLIENT_ID = "conformance-native-client";
+  let issuer: LocalOidcIssuer | undefined;
+  let sibling: SiblingServer | undefined;
+
+  beforeAll(async () => {
+    if (target.spawnSibling === undefined) return;
+    issuer = await startLocalOidcIssuer();
+    sibling = await target.spawnSibling({
+      env: {
+        STIGMER_OIDC_ISSUER: issuer.issuer,
+        STIGMER_OIDC_AUDIENCE: issuer.audience,
+        STIGMER_OIDC_NATIVE_CLIENT_ID: NATIVE_CLIENT_ID,
+      },
+      readinessBearer: await issuer.mint({
+        sub: freshSubject(),
+        email: "native-readiness@conformance.example.com",
+      }),
+    });
+  });
+
+  afterAll(async () => {
+    await sibling?.teardown();
+    await issuer?.close();
+  });
+
+  it("[rpc:PlatformQueryController.getServerInfo] tells an installed app nothing about signing in where the server trusts every request", async () => {
+    const info = await target.anonymousClients().platformQuery.getServerInfo({});
+    if (!target.capabilities.requiresAuthentication) {
+      expect(info.nativeSignIn, "nothing to sign in to, so nothing to describe").toBeUndefined();
+      return;
+    }
+    // Where the primary signs people in, whether it announces a native
+    // client is its operator's setting; the sibling below pins the answer.
+    expect(info.authenticationRequired).toBe(true);
+  });
+
+  it("[rpc:PlatformQueryController.getServerInfo] tells an installed app, before sign-in, the issuer, audience and native client an OIDC server was started with", async (ctx) => {
+    if (issuer === undefined || sibling === undefined) {
+      ctx.skip(target.spawnSiblingUnavailable?.() ?? "the target cannot spawn a sibling server");
+    }
+    const asApp = sibling.clientsPresenting(
+      await issuer.mint({ sub: freshSubject(), email: "native-app@conformance.example.com" }),
+    );
+    const info = await asApp.platformQuery.getServerInfo({});
+    expect(info.authenticationRequired).toBe(true);
+    expect(info.nativeSignIn?.issuer, "exactly the issuer the server verifies against").toBe(issuer.issuer);
+    expect(info.nativeSignIn?.audience).toBe(issuer.audience);
+    expect(info.nativeSignIn?.clientId).toBe(NATIVE_CLIENT_ID);
   });
 });

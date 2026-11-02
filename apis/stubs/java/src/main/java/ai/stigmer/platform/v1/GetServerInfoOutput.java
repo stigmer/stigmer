@@ -276,6 +276,74 @@ private static final long serialVersionUID = 0L;
     return environments_ == null ? ai.stigmer.platform.v1.EnvironmentAvailability.getDefaultInstance() : environments_;
   }
 
+  public static final int NATIVE_SIGN_IN_FIELD_NUMBER = 6;
+  private ai.stigmer.platform.v1.NativeSignIn nativeSignIn_;
+  /**
+   * <pre>
+   * How an app installed on a person's computer (the desktop app) signs
+   * its person in to this server.
+   *
+   * Set when the server signs its callers in and its operator registered
+   * a public native client at the identity provider (RFC 8252: an
+   * Authorization Code flow with PKCE, a `stigmer://auth/callback` or
+   * loopback redirect, no client secret). Absent when the server trusts
+   * every request (`authentication_required` false: nothing to sign in
+   * to), and when no native client is registered, which a client says
+   * instead of guessing an identity provider. Read before sign-in, like
+   * the rest of this answer.
+   * </pre>
+   *
+   * <code>.ai.stigmer.platform.v1.NativeSignIn native_sign_in = 6 [json_name = "nativeSignIn"];</code>
+   * @return Whether the nativeSignIn field is set.
+   */
+  @java.lang.Override
+  public boolean hasNativeSignIn() {
+    return ((bitField0_ & 0x00000008) != 0);
+  }
+  /**
+   * <pre>
+   * How an app installed on a person's computer (the desktop app) signs
+   * its person in to this server.
+   *
+   * Set when the server signs its callers in and its operator registered
+   * a public native client at the identity provider (RFC 8252: an
+   * Authorization Code flow with PKCE, a `stigmer://auth/callback` or
+   * loopback redirect, no client secret). Absent when the server trusts
+   * every request (`authentication_required` false: nothing to sign in
+   * to), and when no native client is registered, which a client says
+   * instead of guessing an identity provider. Read before sign-in, like
+   * the rest of this answer.
+   * </pre>
+   *
+   * <code>.ai.stigmer.platform.v1.NativeSignIn native_sign_in = 6 [json_name = "nativeSignIn"];</code>
+   * @return The nativeSignIn.
+   */
+  @java.lang.Override
+  public ai.stigmer.platform.v1.NativeSignIn getNativeSignIn() {
+    return nativeSignIn_ == null ? ai.stigmer.platform.v1.NativeSignIn.getDefaultInstance() : nativeSignIn_;
+  }
+  /**
+   * <pre>
+   * How an app installed on a person's computer (the desktop app) signs
+   * its person in to this server.
+   *
+   * Set when the server signs its callers in and its operator registered
+   * a public native client at the identity provider (RFC 8252: an
+   * Authorization Code flow with PKCE, a `stigmer://auth/callback` or
+   * loopback redirect, no client secret). Absent when the server trusts
+   * every request (`authentication_required` false: nothing to sign in
+   * to), and when no native client is registered, which a client says
+   * instead of guessing an identity provider. Read before sign-in, like
+   * the rest of this answer.
+   * </pre>
+   *
+   * <code>.ai.stigmer.platform.v1.NativeSignIn native_sign_in = 6 [json_name = "nativeSignIn"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.platform.v1.NativeSignInOrBuilder getNativeSignInOrBuilder() {
+    return nativeSignIn_ == null ? ai.stigmer.platform.v1.NativeSignIn.getDefaultInstance() : nativeSignIn_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -305,6 +373,9 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000004) != 0)) {
       output.writeMessage(5, getEnvironments());
     }
+    if (((bitField0_ & 0x00000008) != 0)) {
+      output.writeMessage(6, getNativeSignIn());
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -332,6 +403,10 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000004) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(5, getEnvironments());
+    }
+    if (((bitField0_ & 0x00000008) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(6, getNativeSignIn());
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -366,6 +441,11 @@ private static final long serialVersionUID = 0L;
       if (!getEnvironments()
           .equals(other.getEnvironments())) return false;
     }
+    if (hasNativeSignIn() != other.hasNativeSignIn()) return false;
+    if (hasNativeSignIn()) {
+      if (!getNativeSignIn()
+          .equals(other.getNativeSignIn())) return false;
+    }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -394,6 +474,10 @@ private static final long serialVersionUID = 0L;
     if (hasEnvironments()) {
       hash = (37 * hash) + ENVIRONMENTS_FIELD_NUMBER;
       hash = (53 * hash) + getEnvironments().hashCode();
+    }
+    if (hasNativeSignIn()) {
+      hash = (37 * hash) + NATIVE_SIGN_IN_FIELD_NUMBER;
+      hash = (53 * hash) + getNativeSignIn().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -530,6 +614,7 @@ private static final long serialVersionUID = 0L;
       if (com.google.protobuf.GeneratedMessage
               .alwaysUseFieldBuilders) {
         internalGetEnvironmentsFieldBuilder();
+        internalGetNativeSignInFieldBuilder();
       }
     }
     @java.lang.Override
@@ -544,6 +629,11 @@ private static final long serialVersionUID = 0L;
       if (environmentsBuilder_ != null) {
         environmentsBuilder_.dispose();
         environmentsBuilder_ = null;
+      }
+      nativeSignIn_ = null;
+      if (nativeSignInBuilder_ != null) {
+        nativeSignInBuilder_.dispose();
+        nativeSignInBuilder_ = null;
       }
       return this;
     }
@@ -599,6 +689,12 @@ private static final long serialVersionUID = 0L;
             : environmentsBuilder_.build();
         to_bitField0_ |= 0x00000004;
       }
+      if (((from_bitField0_ & 0x00000020) != 0)) {
+        result.nativeSignIn_ = nativeSignInBuilder_ == null
+            ? nativeSignIn_
+            : nativeSignInBuilder_.build();
+        to_bitField0_ |= 0x00000008;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -630,6 +726,9 @@ private static final long serialVersionUID = 0L;
       }
       if (other.hasEnvironments()) {
         mergeEnvironments(other.getEnvironments());
+      }
+      if (other.hasNativeSignIn()) {
+        mergeNativeSignIn(other.getNativeSignIn());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -684,6 +783,13 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000010;
               break;
             } // case 42
+            case 50: {
+              input.readMessage(
+                  internalGetNativeSignInFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00000020;
+              break;
+            } // case 50
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1256,6 +1362,253 @@ private static final long serialVersionUID = 0L;
         environments_ = null;
       }
       return environmentsBuilder_;
+    }
+
+    private ai.stigmer.platform.v1.NativeSignIn nativeSignIn_;
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.platform.v1.NativeSignIn, ai.stigmer.platform.v1.NativeSignIn.Builder, ai.stigmer.platform.v1.NativeSignInOrBuilder> nativeSignInBuilder_;
+    /**
+     * <pre>
+     * How an app installed on a person's computer (the desktop app) signs
+     * its person in to this server.
+     *
+     * Set when the server signs its callers in and its operator registered
+     * a public native client at the identity provider (RFC 8252: an
+     * Authorization Code flow with PKCE, a `stigmer://auth/callback` or
+     * loopback redirect, no client secret). Absent when the server trusts
+     * every request (`authentication_required` false: nothing to sign in
+     * to), and when no native client is registered, which a client says
+     * instead of guessing an identity provider. Read before sign-in, like
+     * the rest of this answer.
+     * </pre>
+     *
+     * <code>.ai.stigmer.platform.v1.NativeSignIn native_sign_in = 6 [json_name = "nativeSignIn"];</code>
+     * @return Whether the nativeSignIn field is set.
+     */
+    public boolean hasNativeSignIn() {
+      return ((bitField0_ & 0x00000020) != 0);
+    }
+    /**
+     * <pre>
+     * How an app installed on a person's computer (the desktop app) signs
+     * its person in to this server.
+     *
+     * Set when the server signs its callers in and its operator registered
+     * a public native client at the identity provider (RFC 8252: an
+     * Authorization Code flow with PKCE, a `stigmer://auth/callback` or
+     * loopback redirect, no client secret). Absent when the server trusts
+     * every request (`authentication_required` false: nothing to sign in
+     * to), and when no native client is registered, which a client says
+     * instead of guessing an identity provider. Read before sign-in, like
+     * the rest of this answer.
+     * </pre>
+     *
+     * <code>.ai.stigmer.platform.v1.NativeSignIn native_sign_in = 6 [json_name = "nativeSignIn"];</code>
+     * @return The nativeSignIn.
+     */
+    public ai.stigmer.platform.v1.NativeSignIn getNativeSignIn() {
+      if (nativeSignInBuilder_ == null) {
+        return nativeSignIn_ == null ? ai.stigmer.platform.v1.NativeSignIn.getDefaultInstance() : nativeSignIn_;
+      } else {
+        return nativeSignInBuilder_.getMessage();
+      }
+    }
+    /**
+     * <pre>
+     * How an app installed on a person's computer (the desktop app) signs
+     * its person in to this server.
+     *
+     * Set when the server signs its callers in and its operator registered
+     * a public native client at the identity provider (RFC 8252: an
+     * Authorization Code flow with PKCE, a `stigmer://auth/callback` or
+     * loopback redirect, no client secret). Absent when the server trusts
+     * every request (`authentication_required` false: nothing to sign in
+     * to), and when no native client is registered, which a client says
+     * instead of guessing an identity provider. Read before sign-in, like
+     * the rest of this answer.
+     * </pre>
+     *
+     * <code>.ai.stigmer.platform.v1.NativeSignIn native_sign_in = 6 [json_name = "nativeSignIn"];</code>
+     */
+    public Builder setNativeSignIn(ai.stigmer.platform.v1.NativeSignIn value) {
+      if (nativeSignInBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        nativeSignIn_ = value;
+      } else {
+        nativeSignInBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x00000020;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * How an app installed on a person's computer (the desktop app) signs
+     * its person in to this server.
+     *
+     * Set when the server signs its callers in and its operator registered
+     * a public native client at the identity provider (RFC 8252: an
+     * Authorization Code flow with PKCE, a `stigmer://auth/callback` or
+     * loopback redirect, no client secret). Absent when the server trusts
+     * every request (`authentication_required` false: nothing to sign in
+     * to), and when no native client is registered, which a client says
+     * instead of guessing an identity provider. Read before sign-in, like
+     * the rest of this answer.
+     * </pre>
+     *
+     * <code>.ai.stigmer.platform.v1.NativeSignIn native_sign_in = 6 [json_name = "nativeSignIn"];</code>
+     */
+    public Builder setNativeSignIn(
+        ai.stigmer.platform.v1.NativeSignIn.Builder builderForValue) {
+      if (nativeSignInBuilder_ == null) {
+        nativeSignIn_ = builderForValue.build();
+      } else {
+        nativeSignInBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00000020;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * How an app installed on a person's computer (the desktop app) signs
+     * its person in to this server.
+     *
+     * Set when the server signs its callers in and its operator registered
+     * a public native client at the identity provider (RFC 8252: an
+     * Authorization Code flow with PKCE, a `stigmer://auth/callback` or
+     * loopback redirect, no client secret). Absent when the server trusts
+     * every request (`authentication_required` false: nothing to sign in
+     * to), and when no native client is registered, which a client says
+     * instead of guessing an identity provider. Read before sign-in, like
+     * the rest of this answer.
+     * </pre>
+     *
+     * <code>.ai.stigmer.platform.v1.NativeSignIn native_sign_in = 6 [json_name = "nativeSignIn"];</code>
+     */
+    public Builder mergeNativeSignIn(ai.stigmer.platform.v1.NativeSignIn value) {
+      if (nativeSignInBuilder_ == null) {
+        if (((bitField0_ & 0x00000020) != 0) &&
+          nativeSignIn_ != null &&
+          nativeSignIn_ != ai.stigmer.platform.v1.NativeSignIn.getDefaultInstance()) {
+          getNativeSignInBuilder().mergeFrom(value);
+        } else {
+          nativeSignIn_ = value;
+        }
+      } else {
+        nativeSignInBuilder_.mergeFrom(value);
+      }
+      if (nativeSignIn_ != null) {
+        bitField0_ |= 0x00000020;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * How an app installed on a person's computer (the desktop app) signs
+     * its person in to this server.
+     *
+     * Set when the server signs its callers in and its operator registered
+     * a public native client at the identity provider (RFC 8252: an
+     * Authorization Code flow with PKCE, a `stigmer://auth/callback` or
+     * loopback redirect, no client secret). Absent when the server trusts
+     * every request (`authentication_required` false: nothing to sign in
+     * to), and when no native client is registered, which a client says
+     * instead of guessing an identity provider. Read before sign-in, like
+     * the rest of this answer.
+     * </pre>
+     *
+     * <code>.ai.stigmer.platform.v1.NativeSignIn native_sign_in = 6 [json_name = "nativeSignIn"];</code>
+     */
+    public Builder clearNativeSignIn() {
+      bitField0_ = (bitField0_ & ~0x00000020);
+      nativeSignIn_ = null;
+      if (nativeSignInBuilder_ != null) {
+        nativeSignInBuilder_.dispose();
+        nativeSignInBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * How an app installed on a person's computer (the desktop app) signs
+     * its person in to this server.
+     *
+     * Set when the server signs its callers in and its operator registered
+     * a public native client at the identity provider (RFC 8252: an
+     * Authorization Code flow with PKCE, a `stigmer://auth/callback` or
+     * loopback redirect, no client secret). Absent when the server trusts
+     * every request (`authentication_required` false: nothing to sign in
+     * to), and when no native client is registered, which a client says
+     * instead of guessing an identity provider. Read before sign-in, like
+     * the rest of this answer.
+     * </pre>
+     *
+     * <code>.ai.stigmer.platform.v1.NativeSignIn native_sign_in = 6 [json_name = "nativeSignIn"];</code>
+     */
+    public ai.stigmer.platform.v1.NativeSignIn.Builder getNativeSignInBuilder() {
+      bitField0_ |= 0x00000020;
+      onChanged();
+      return internalGetNativeSignInFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * How an app installed on a person's computer (the desktop app) signs
+     * its person in to this server.
+     *
+     * Set when the server signs its callers in and its operator registered
+     * a public native client at the identity provider (RFC 8252: an
+     * Authorization Code flow with PKCE, a `stigmer://auth/callback` or
+     * loopback redirect, no client secret). Absent when the server trusts
+     * every request (`authentication_required` false: nothing to sign in
+     * to), and when no native client is registered, which a client says
+     * instead of guessing an identity provider. Read before sign-in, like
+     * the rest of this answer.
+     * </pre>
+     *
+     * <code>.ai.stigmer.platform.v1.NativeSignIn native_sign_in = 6 [json_name = "nativeSignIn"];</code>
+     */
+    public ai.stigmer.platform.v1.NativeSignInOrBuilder getNativeSignInOrBuilder() {
+      if (nativeSignInBuilder_ != null) {
+        return nativeSignInBuilder_.getMessageOrBuilder();
+      } else {
+        return nativeSignIn_ == null ?
+            ai.stigmer.platform.v1.NativeSignIn.getDefaultInstance() : nativeSignIn_;
+      }
+    }
+    /**
+     * <pre>
+     * How an app installed on a person's computer (the desktop app) signs
+     * its person in to this server.
+     *
+     * Set when the server signs its callers in and its operator registered
+     * a public native client at the identity provider (RFC 8252: an
+     * Authorization Code flow with PKCE, a `stigmer://auth/callback` or
+     * loopback redirect, no client secret). Absent when the server trusts
+     * every request (`authentication_required` false: nothing to sign in
+     * to), and when no native client is registered, which a client says
+     * instead of guessing an identity provider. Read before sign-in, like
+     * the rest of this answer.
+     * </pre>
+     *
+     * <code>.ai.stigmer.platform.v1.NativeSignIn native_sign_in = 6 [json_name = "nativeSignIn"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.platform.v1.NativeSignIn, ai.stigmer.platform.v1.NativeSignIn.Builder, ai.stigmer.platform.v1.NativeSignInOrBuilder> 
+        internalGetNativeSignInFieldBuilder() {
+      if (nativeSignInBuilder_ == null) {
+        nativeSignInBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.platform.v1.NativeSignIn, ai.stigmer.platform.v1.NativeSignIn.Builder, ai.stigmer.platform.v1.NativeSignInOrBuilder>(
+                getNativeSignIn(),
+                getParentForChildren(),
+                isClean());
+        nativeSignIn_ = null;
+      }
+      return nativeSignInBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.platform.v1.GetServerInfoOutput)

@@ -35,7 +35,10 @@
  *      root WARNs at wiring time that the served console cannot sign in
  *      — the STIGMER_OAUTH_REDIRECT_URI precedent. Proven through
  *      compose.ts with STIGMER_CONSOLE_DIR at a fixture export, not
- *      through the lane alone (handler.test.ts covers that).
+ *      through the lane alone (handler.test.ts covers that);
+ *   9. an installed app is told, before sign-in, how to sign in:
+ *      getServerInfo's native_sign_in carries this composition's issuer and
+ *      audience with the native client STIGMER_OIDC_NATIVE_CLIENT_ID names.
  */
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -75,6 +78,8 @@ import {
 import { AUTHENTICATION_TOKEN_MISSING_MESSAGE } from "../../pipeline/interceptors/auth.js";
 
 const AUDIENCE = "https://api.stigmer.test/";
+// The public native client the operator registered for installed apps.
+const NATIVE_CLIENT_ID = "native-client-test";
 
 let dir: string;
 let issuerServer: Server;
@@ -216,6 +221,7 @@ beforeAll(async () => {
       ARTIFACT_LOCAL_BASE_PATH: path.join(dir, "artifacts"),
       STIGMER_OIDC_ISSUER: issuer,
       STIGMER_OIDC_AUDIENCE: AUDIENCE,
+      STIGMER_OIDC_NATIVE_CLIENT_ID: NATIVE_CLIENT_ID,
       STIGMER_CONSOLE_DIR: consoleDir,
     }),
     logger: createLogger({
@@ -256,6 +262,14 @@ describe("the require-authentication posture on the wire", () => {
     const info = await platform.getServerInfo({});
     expect(info.edition).not.toBe("");
     expect(info.authenticationRequired).toBe(true);
+  });
+
+  it("getServerInfo tells an installed app, before sign-in, the issuer, audience and native client to sign in with", async () => {
+    const platform = createClient(PlatformQueryController, transportWith());
+    const info = await platform.getServerInfo({});
+    expect(info.nativeSignIn).toEqual(
+      expect.objectContaining({ issuer, audience: AUDIENCE, clientId: NATIVE_CLIENT_ID }),
+    );
   });
 
   it("the gRPC health service stays reachable tokenless — a Kubernetes grpc probe survives the posture (stigmer#974)", async () => {

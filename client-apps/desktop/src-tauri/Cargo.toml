@@ -20,7 +20,10 @@ tauri-plugin-updater = "2"
 tauri-plugin-process = "2"
 tauri-plugin-window-state = "2"
 tauri-plugin-deep-link = "2"
-tauri-plugin-http = "2"
+# `rustls-tls-native-roots` adds the system's trust store to the bundled web
+# roots, so a company's own certificate authority is honoured for its server
+# and its sign-in provider (server.rs, oidc.rs).
+tauri-plugin-http = { version = "2", features = ["rustls-tls-native-roots"] }
 tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
 ignore = "0.4"
 # Ripgrep's own search engine, reused for workspace content search so grep
@@ -33,7 +36,14 @@ serde_json = "1"
 # Workspace image reads ship their bytes base64-encoded through the Tauri
 # invoke JSON boundary (stigmer/stigmer#379).
 base64 = "0.22"
-tokio = { version = "1", features = ["io-util", "process", "sync"] }
+tokio = { version = "1", features = ["io-util", "process", "sync", "time"] }
+# The sign-in (oidc.rs): S256 PKCE and the randomness for its verifier and state.
+sha2 = "0.10"
+getrandom = "0.2"
+# The system keychain the sign-in is kept in (session_store.rs): the macOS
+# Keychain, the Windows Credential Manager, the Secret Service on Linux,
+# whose D-Bus library is vendored so the Linux build needs no system headers.
+keyring = { version = "3.6", features = ["apple-native", "windows-native", "sync-secret-service", "crypto-rust", "vendored"] }
 url = "2"
 # Embedded-runner IPC driver, vendored in-repo. The `tauri` feature provides the
 # #[tauri::command] surface that `runner.rs` re-exports.
@@ -60,3 +70,4 @@ libc = "0.2"
 
 [dev-dependencies]
 tempfile = "3"
+tokio = { version = "1", features = ["macros", "rt"] }

@@ -9,6 +9,7 @@ server:
     issuer: https://issuer.example.com
     audience: https://stigmer.example.com
     consoleClientId: stigmer-console
+    nativeClientId: stigmer-desktop
 runner:
   stigmerToken:
     existingSecret: stigmer-runner-token

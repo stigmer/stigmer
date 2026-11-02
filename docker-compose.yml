@@ -153,11 +153,13 @@ services:
       # Authentication, off until .env sets it (see .env.example). The
       # issuer is THE switch: the server treats an empty value as unset,
       # refuses an issuer without an audience at boot, and warns when the
-      # console client id is missing. The same three as the chart's
-      # server.oidc.{issuer,audience,consoleClientId}.
+      # console's or the desktop app's client id is missing. The same four
+      # as the chart's
+      # server.oidc.{issuer,audience,consoleClientId,nativeClientId}.
       STIGMER_OIDC_ISSUER: ${STIGMER_OIDC_ISSUER:-}
       STIGMER_OIDC_AUDIENCE: ${STIGMER_OIDC_AUDIENCE:-}
       STIGMER_OIDC_CONSOLE_CLIENT_ID: ${STIGMER_OIDC_CONSOLE_CLIENT_ID:-}
+      STIGMER_OIDC_NATIVE_CLIENT_ID: ${STIGMER_OIDC_NATIVE_CLIENT_ID:-}
     volumes:
       # Server state beyond Postgres: the skill content store
       # (~/.stigmer/storage) and anything else under the image's HOME=/data.

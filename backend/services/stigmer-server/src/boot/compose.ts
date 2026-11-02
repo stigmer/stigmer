@@ -267,6 +267,7 @@ import {
   resolveArtifactServeUrl,
 } from "./artifact-lane.js";
 import { resolveOAuthRedirectUri } from "./oauth-redirect-uri.js";
+import { resolveNativeSignIn } from "./native-sign-in.js";
 import {
   assessSkillTransferOrigin,
   resolveSkillTransferBaseUrl,
@@ -510,6 +511,18 @@ export async function composeServer(
       `the composition serves edition '${ServerEdition[extensions.edition]}' without the require-authentication posture — an edition above open source must sign its callers in: declare requireAuthentication on a unit that registers a verifier, or configure STIGMER_OIDC_ISSUER`,
     );
   }
+  // How an installed app signs in (native-sign-in.ts): the open-source
+  // setting or a unit's declaration, held against the posture just
+  // resolved. Its two boot faults throw here, beside the edition's, long
+  // before the server listens; getServerInfo announces the answer.
+  const nativeSignIn = resolveNativeSignIn({
+    oidcIssuer: config.oidcIssuer,
+    oidcAudience: config.oidcAudience,
+    oidcNativeClientId: config.oidcNativeClientId,
+    declared: extensions.nativeSignIn,
+    requireAuthentication,
+  });
+  for (const warning of nativeSignIn.warnings) logger.warn(warning);
   const authorizationPosture = authorizationPostureOf({
     unitAuthorizer: extensions.authorizer !== undefined,
     requireAuthentication,
@@ -2219,6 +2232,7 @@ export async function composeServer(
       edition: extensions.edition,
       version,
       authenticationRequired: requireAuthentication,
+      nativeSignIn: nativeSignIn.answer,
       singleOrganization,
       // The built-in `absent` answer installs here, at the consumer, when
       // no unit registered a license-status provider: open source and the

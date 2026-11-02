@@ -1,10 +1,12 @@
 //! Where a `stigmer://` deep link goes.
 //!
-//! The OS hands the app every `stigmer://` URL it opens: the Auth0 sign-in
-//! callback, the sign-in callback the web console relays for a sign-in the
-//! app started at an address (GitHub's among them), and the billing return. [`route`] decides which app event a URL
-//! becomes, as a pure function of the URL, so the routing is tested without a
-//! running app; `lib.rs` only emits what it returns and brings the window
+//! The OS hands the app every `stigmer://` URL it opens: the app's own
+//! sign-in callback, the sign-in callback the web console relays for a
+//! sign-in the app started at an address (GitHub's among them), and the
+//! billing return. [`route`] decides which app event a URL becomes, as a
+//! pure function of the URL, so the routing is tested without a running app;
+//! `lib.rs` hands the app's own sign-in callback to the flow waiting in Rust
+//! (`oidc.rs`), emits the others to the webview, and brings the window
 //! forward. Any other `stigmer://` URL is ignored.
 
 use crate::auth::{param, AuthCallbackPayload};
@@ -23,7 +25,8 @@ pub(crate) struct BillingReturnPayload {
 /// The app event a deep link becomes.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) enum DeepLinkEvent {
-    /// `stigmer://auth/callback`: the Auth0 sign-in's code, state or error.
+    /// `stigmer://auth/callback`: the app's own sign-in's code, state or
+    /// error, for the flow waiting in Rust; it never reaches the webview.
     AuthCallback(AuthCallbackPayload),
     /// `stigmer://oauth/callback`: a sign-in's code, state or error, relayed by
     /// the web console's callback page (`/auth/oauth/callback?source=desktop`).
@@ -33,12 +36,13 @@ pub(crate) enum DeepLinkEvent {
 }
 
 impl DeepLinkEvent {
-    /// The event name the web layer listens for.
-    pub(crate) fn name(&self) -> &'static str {
+    /// The event name the web layer listens for, or `None` for the app's
+    /// own sign-in callback, which stays in Rust.
+    pub(crate) fn name(&self) -> Option<&'static str> {
         match self {
-            DeepLinkEvent::AuthCallback(_) => "auth-callback",
-            DeepLinkEvent::SignInCallback(_) => "sign-in-callback",
-            DeepLinkEvent::BillingReturn(_) => "billing-return",
+            DeepLinkEvent::AuthCallback(_) => None,
+            DeepLinkEvent::SignInCallback(_) => Some("sign-in-callback"),
+            DeepLinkEvent::BillingReturn(_) => Some("billing-return"),
         }
     }
 }
@@ -199,11 +203,12 @@ mod tests {
         let payload = callback(None, None, None, None);
         assert_eq!(
             DeepLinkEvent::AuthCallback(payload.clone()).name(),
-            "auth-callback"
+            None,
+            "the app's own sign-in callback never reaches the webview"
         );
         assert_eq!(
             DeepLinkEvent::SignInCallback(payload).name(),
-            "sign-in-callback"
+            Some("sign-in-callback")
         );
         let billing = BillingReturnPayload {
             setup: None,
@@ -211,7 +216,7 @@ mod tests {
         };
         assert_eq!(
             DeepLinkEvent::BillingReturn(billing).name(),
-            "billing-return"
+            Some("billing-return")
         );
     }
 }

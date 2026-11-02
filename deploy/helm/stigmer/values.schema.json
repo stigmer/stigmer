@@ -44,7 +44,8 @@
           "properties": {
             "issuer": { "$ref": "#/$defs/httpsUrlOrEmpty" },
             "audience": { "type": "string" },
-            "consoleClientId": { "type": "string" }
+            "consoleClientId": { "type": "string" },
+            "nativeClientId": { "type": "string" }
           }
         },
         "resources": { "$ref": "#/$defs/resources" },

@@ -111,6 +111,19 @@ import type {
 export type ExtensionServiceRegistration = (router: ConnectRouter) => void;
 
 /**
+ * How an app on a person's computer signs in: the OpenID Connect issuer
+ * (spelled exactly as its discovery document and its tokens spell it), the
+ * audience this server's access tokens carry, and the public native
+ * client's id at the issuer. Announced by `getServerInfo` as
+ * `native_sign_in`.
+ */
+export interface NativeSignInDeclaration {
+  readonly issuer: string;
+  readonly audience: string;
+  readonly clientId: string;
+}
+
+/**
  * A service registration with the unit that contributed it, so the routes
  * stage can name the unit when a registration shadows a core route
  * (compose.ts refuses that at boot: Connect's router keys handlers by
@@ -186,6 +199,24 @@ export interface ServerExtension {
    * its own (the API-key lane alone cannot mint the first key).
    */
   readonly requireAuthentication?: true;
+  /**
+   * How an app installed on a person's computer signs in to this
+   * composition (single-instance point): the identity provider's issuer,
+   * the audience its access tokens carry here, and the public native
+   * client registered for such apps. `getServerInfo` announces it as
+   * `native_sign_in`, which is how the desktop app learns where to sign
+   * in. The unit that holds the composition's identity tenant declares it;
+   * the open-source server announces the same answer from
+   * STIGMER_OIDC_NATIVE_CLIENT_ID instead (config.ts).
+   *
+   * Exactly one unit may declare it (a second throws naming both), every
+   * field must be non-empty, and the composition root refuses a
+   * declaration beside STIGMER_OIDC_NATIVE_CLIENT_ID (two answers to one
+   * question) and one on a composition without the require-authentication
+   * posture (a server that trusts every request has no sign-in to
+   * describe).
+   */
+  readonly nativeSignIn?: NativeSignInDeclaration;
   /** The authorization decision seam (single-instance point). */
   readonly authorizer?: Authorizer;
   /** Ordered verifier-chain entries, appended in unit order. */
@@ -262,6 +293,14 @@ export interface ResolvedExtensions {
    * both name it.
    */
   readonly requireAuthentication: { readonly declaredBy: string } | undefined;
+  /**
+   * The unit-declared native sign-in, with the declaring unit's name, or
+   * undefined when no unit declares one. compose.ts holds it against the
+   * open-source setting and the posture.
+   */
+  readonly nativeSignIn:
+    | { readonly value: NativeSignInDeclaration; readonly declaredBy: string }
+    | undefined;
   /**
    * The single composed Authorizer, or undefined when none is registered —
    * the consumption site in compose.ts installs the OSS default
@@ -469,6 +508,8 @@ export function resolveExtensions(
   let accessHistoryRetentionDays: number | undefined;
   let accessHistoryRetentionDeclaredBy: string | undefined;
   let requireAuthenticationDeclaredBy: string | undefined;
+  let nativeSignIn: NativeSignInDeclaration | undefined;
+  let nativeSignInDeclaredBy: string | undefined;
   let authorizer: Authorizer | undefined;
   let authorizerDeclaredBy: string | undefined;
   let modelCatalogProvider: ModelCatalogProvider | undefined;
@@ -606,6 +647,24 @@ export function resolveExtensions(
         );
       }
       requireAuthenticationDeclaredBy = unit.name;
+    }
+
+    if (unit.nativeSignIn !== undefined) {
+      const empty = (["issuer", "audience", "clientId"] as const).filter(
+        (field) => unit.nativeSignIn?.[field].trim() === "",
+      );
+      if (empty.length > 0) {
+        throw new Error(
+          `extension '${unit.name}' declares native sign-in with no ${empty.join(", ")} — declare every field or omit the declaration`,
+        );
+      }
+      if (nativeSignInDeclaredBy !== undefined) {
+        throw new Error(
+          `extension '${unit.name}' declares native sign-in, but '${nativeSignInDeclaredBy}' already did — exactly one extension may declare it`,
+        );
+      }
+      nativeSignIn = unit.nativeSignIn;
+      nativeSignInDeclaredBy = unit.name;
     }
 
     if (unit.authorizer !== undefined) {
@@ -1053,6 +1112,10 @@ export function resolveExtensions(
     requireAuthentication:
       requireAuthenticationDeclaredBy !== undefined
         ? { declaredBy: requireAuthenticationDeclaredBy }
+        : undefined,
+    nativeSignIn:
+      nativeSignIn !== undefined && nativeSignInDeclaredBy !== undefined
+        ? { value: nativeSignIn, declaredBy: nativeSignInDeclaredBy }
         : undefined,
     authorizer,
     identityVerifiers,

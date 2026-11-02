@@ -84,6 +84,7 @@ import {
   GetRunnerBootstrapConfigOutputSchema,
   GetRunnerScopedTokenOutputSchema,
   GetServerInfoOutputSchema,
+  NativeSignInSchema,
   PlatformQueryController,
   ServerEdition,
 } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
@@ -96,6 +97,7 @@ import type {
 } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
 
 import type { SingleOrganization } from "../../pipeline/interceptors/single-organization.js";
+import type { NativeSignInDeclaration } from "../../extensions/registry.js";
 import type { Logger } from "../../boot/logger.js";
 import type { LicenseStatusProvider } from "../../extensions/license-status.js";
 import type {
@@ -175,6 +177,13 @@ export interface PlatformControllerDeps {
    */
   readonly authenticationRequired: boolean;
   /**
+   * How an installed app signs in here (boot/native-sign-in.ts: the
+   * open-source setting or a unit's declaration), announced as
+   * `native_sign_in`; undefined announces nothing, which a client reads
+   * as "this server offers no sign-in to an installed app".
+   */
+  readonly nativeSignIn: NativeSignInDeclaration | undefined;
+  /**
    * The organization a one-organization server fills
    * (pipeline/interceptors/single-organization.ts), read at answer time:
    * `single_org` is true exactly when the fill is on, so a client hides
@@ -230,12 +239,15 @@ export function registerPlatformServices(
   });
 }
 
-/** GetServerInfo: the server edition, release version, authentication posture, whether it fills one organization, and what an Environment does here. */
+/** GetServerInfo: the server edition, release version, authentication posture, how an installed app signs in, whether it fills one organization, and what an Environment does here. */
 function getServerInfo(deps: PlatformControllerDeps): GetServerInfoOutput {
   return create(GetServerInfoOutputSchema, {
     edition: deps.edition,
     version: deps.version,
     authenticationRequired: deps.authenticationRequired,
+    ...(deps.nativeSignIn !== undefined
+      ? { nativeSignIn: create(NativeSignInSchema, deps.nativeSignIn) }
+      : {}),
     singleOrg: deps.singleOrganization?.current() !== undefined,
     environments: create(EnvironmentAvailabilitySchema, {
       applies: deps.environmentPolicy.governs(ExecutionTarget.UNSPECIFIED),
