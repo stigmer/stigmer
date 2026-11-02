@@ -7,10 +7,12 @@
  *
  * It is checked again here because it crosses a boundary: the shape, and
  * each package entry against its manager's grammar, the contract's own
- * patterns (`apis/ai/stigmer/agentic/environment/v1/spec.proto`, held equal
- * by `__tests__/spec.test.ts`). The entries reach the managers as argv,
- * never through a shell; the grammar keeps out what would change where a
- * package comes from (an option, a URL, a git source, a path).
+ * patterns and file-name item rules
+ * (`apis/ai/stigmer/agentic/environment/v1/spec.proto`, held equal by
+ * `__tests__/spec.test.ts`). The entries reach the managers as argv, never
+ * through a shell; the grammar keeps out what would change where a package
+ * comes from (an option, a URL, a git source, a path, a file on the
+ * sandbox's disk) or what installs (apt's trailing `-`, a removal).
  */
 
 export const SANDBOX_ENVIRONMENT_ENV = "STIGMER_SANDBOX_ENVIRONMENT";
@@ -28,12 +30,27 @@ export interface SandboxEnvironment {
 
 /** Each manager's entry grammar: the contract's protovalidate patterns. */
 export const PACKAGE_PATTERNS: { readonly [M in Manager]: RegExp } = {
-  apt: /^[a-z0-9][a-z0-9+.-]+(=[A-Za-z0-9.+~:-]+)?$/,
+  apt: /^[a-z0-9][a-z0-9+.-]*[a-z0-9+.](=[A-Za-z0-9.+~:-]*[A-Za-z0-9.+~:])?$/,
   cargo: /^[A-Za-z0-9][A-Za-z0-9_-]*(@[0-9A-Za-z.+-]+)?$/,
   gem: /^[A-Za-z0-9][A-Za-z0-9._-]*(:[0-9A-Za-z.]+)?$/,
   go: /^[A-Za-z0-9][A-Za-z0-9._~/-]*@[A-Za-z0-9._+-]+$/,
-  npm: /^(@[A-Za-z0-9][A-Za-z0-9._~-]*\/)?[A-Za-z0-9][A-Za-z0-9._~-]*(@[A-Za-z0-9.^~<>=*+_-]+)?$/,
+  npm: /^(@[A-Za-z0-9][A-Za-z0-9._~-]*\/)?[A-Za-z0-9][A-Za-z0-9._~-]*(@[A-Za-z0-9^~<>=*+_-][A-Za-z0-9.^~<>=*+_-]*)?$/,
   pip: /^[A-Za-z0-9]([A-Za-z0-9._-]*[A-Za-z0-9])?(\[[A-Za-z0-9._-]+(,[A-Za-z0-9._-]+)*\])?((===|==|!=|~=|>=|<=|>|<)[A-Za-z0-9.*+!_-]+(,(===|==|!=|~=|>=|<=|>|<)[A-Za-z0-9.*+!_-]+)*)?$/,
+};
+
+/**
+ * The entries a manager reads as a file on the sandbox's disk, by that
+ * manager's own test: the contract's `<manager>.not_a_file_name` item rules
+ * (RE2 has no lookahead, so "does not end in" is a rule beside the
+ * pattern). npm's is npm-package-arg's isFilename, its unescaped dot
+ * included; pip's is its archive extensions after any specifier and before
+ * any extras; gem's is `.gem` on the name before the colon, the part the
+ * runner passes to gem.
+ */
+export const FILE_NAMES: { readonly [M in Manager]?: RegExp } = {
+  gem: /^[^:]*\.gem(:|$)/i,
+  npm: /\.(tgz|tar.gz|tar)$/i,
+  pip: /\.(whl|zip|tar\.bz2|tbz|tar\.gz|tgz|tar|tar\.xz|txz|tlz|tar\.lz|tar\.lzma)(\[[A-Za-z0-9._,-]*\])?$/i,
 };
 
 /** The contract's limits on each manager's list. */
@@ -69,7 +86,12 @@ export function parseSandboxEnvironment(value: unknown): ParsedEnvironment {
       return { ok: false, reason: `environment.packages.${manager} must be a list of at most ${MAX_PACKAGES_PER_MANAGER}` };
     }
     for (const entry of entries as unknown[]) {
-      if (typeof entry !== "string" || entry.length > MAX_PACKAGE_LENGTH || !PACKAGE_PATTERNS[manager].test(entry)) {
+      if (
+        typeof entry !== "string" ||
+        entry.length > MAX_PACKAGE_LENGTH ||
+        !PACKAGE_PATTERNS[manager].test(entry) ||
+        FILE_NAMES[manager]?.test(entry) === true
+      ) {
         return { ok: false, reason: `environment.packages.${manager} holds an entry that is not a ${manager} package: ${JSON.stringify(entry)}` };
       }
       out[manager].push(entry);

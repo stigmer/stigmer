@@ -12,9 +12,10 @@ package ai.stigmer.agentic.environment.v1;
  * Each entry is a registry package name with its manager's own version pin
  * (hyperfine&#64;1.18.0, rails:7.1.0, goimports' module&#64;latest, express&#64;4.18.0,
  * sqlalchemy==2.0.30, or poppler-utils=22.02.0-2), never a URL, a git
- * source or a path. Managers run in the order apt, cargo, gem, go, npm,
- * pip; a manager the sandbox's image lacks fails the install, naming what
- * to add.
+ * source, a path or a file name such as x.tgz, and never an apt entry
+ * ending in -, which apt reads as a removal. Managers run in the order apt,
+ * cargo, gem, go, npm, pip; a manager the sandbox's image lacks fails the
+ * install, naming what to add.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.environment.v1.EnvironmentPackages}
@@ -656,9 +657,10 @@ private static final long serialVersionUID = 0L;
    * Each entry is a registry package name with its manager's own version pin
    * (hyperfine&#64;1.18.0, rails:7.1.0, goimports' module&#64;latest, express&#64;4.18.0,
    * sqlalchemy==2.0.30, or poppler-utils=22.02.0-2), never a URL, a git
-   * source or a path. Managers run in the order apt, cargo, gem, go, npm,
-   * pip; a manager the sandbox's image lacks fails the install, naming what
-   * to add.
+   * source, a path or a file name such as x.tgz, and never an apt entry
+   * ending in -, which apt reads as a removal. Managers run in the order apt,
+   * cargo, gem, go, npm, pip; a manager the sandbox's image lacks fails the
+   * install, naming what to add.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.environment.v1.EnvironmentPackages}
