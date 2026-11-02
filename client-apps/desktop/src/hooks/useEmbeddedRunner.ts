@@ -171,21 +171,20 @@ export async function getRunnerConfig(): Promise<RunnerConfig> {
 export function useEmbeddedRunner(): UseEmbeddedRunnerResult {
   const [isRunning, setIsRunning] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
-  const [stoppedUnexpectedly, setStoppedUnexpectedly] = useState(false);
+  const [hasRun, setHasRun] = useState(false);
   const [activeSessions, setActiveSessions] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const startingRef = useRef<Promise<void> | null>(null);
-  // Whether the last read found the runner up: a later read that finds it
-  // gone, with no stop asked for, is a runner that stopped by itself.
-  const runningRef = useRef(false);
   // The conversations the window holds: added when one opens, dropped when
   // it closes. Restart gives each back to a new runner.
   const heldSessionsRef = useRef(new Set<string>());
 
+  // The app never stops the runner while the window lives, so one that has
+  // been up and is not up now stopped by itself (runner-state.ts).
   const markRunning = useCallback((running: boolean) => {
-    if (runningRef.current && !running) setStoppedUnexpectedly(true);
-    runningRef.current = running;
+    if (running) setHasRun(true);
     setIsRunning(running);
+    // Stryker disable next-line ArrayDeclaration: the callback reads nothing from the render, so any dependency list keeps it alike
   }, []);
 
   const ensureRunning = useCallback(async (): Promise<void> => {
@@ -214,12 +213,12 @@ export function useEmbeddedRunner(): UseEmbeddedRunnerResult {
           await invoke<string>("add_session", { sessionId });
         }
         markRunning(true);
-        setStoppedUnexpectedly(false);
         setError(null);
       })();
       startingRef.current = attempt;
       attempt
         .finally(() => {
+          // Stryker disable next-line ConditionalExpression: no other attempt can begin while this one holds the guard, so the check holds; it keeps a later change from clearing an attempt that is not this one
           if (startingRef.current === attempt) startingRef.current = null;
           setIsStarting(false);
         })
@@ -230,10 +229,10 @@ export function useEmbeddedRunner(): UseEmbeddedRunnerResult {
       await startingRef.current;
     } catch (err) {
       setError(String(err));
-      runningRef.current = false;
       setIsRunning(false);
       throw err;
     }
+    // Stryker disable next-line ArrayDeclaration: markRunning never changes, so any dependency list keeps this alike
   }, [markRunning]);
 
   const addSession = useCallback(async (sessionId: string): Promise<string> => {
@@ -244,6 +243,7 @@ export function useEmbeddedRunner(): UseEmbeddedRunnerResult {
       prev.includes(sessionId) ? prev : [...prev, sessionId],
     );
     return taskQueue;
+    // Stryker disable next-line ArrayDeclaration: ensureRunning never changes, so any dependency list keeps this alike
   }, [ensureRunning]);
 
   const refreshStatus = useCallback(async (): Promise<void> => {
@@ -254,6 +254,7 @@ export function useEmbeddedRunner(): UseEmbeddedRunnerResult {
     } catch {
       // Status polling is best-effort; a transient IPC failure must not surface.
     }
+    // Stryker disable next-line ArrayDeclaration: markRunning never changes, so any dependency list keeps this alike
   }, [markRunning]);
 
   const removeSession = useCallback(async (sessionId: string): Promise<void> => {
@@ -264,6 +265,7 @@ export function useEmbeddedRunner(): UseEmbeddedRunnerResult {
     // rather than optimistically dropping the session — a backgrounded run must
     // stay visible (and drives the "running in background" indicator).
     await refreshStatus();
+    // Stryker disable next-line ArrayDeclaration: refreshStatus never changes, so any dependency list keeps this alike
   }, [refreshStatus]);
 
   const restart = useCallback(async (): Promise<void> => {
@@ -274,17 +276,19 @@ export function useEmbeddedRunner(): UseEmbeddedRunnerResult {
       return;
     }
     await refreshStatus();
+    // Stryker disable next-line ArrayDeclaration: neither callback ever changes, so any dependency list keeps this alike
   }, [ensureRunning, refreshStatus]);
 
   const updateRunnerToken = useCallback(async (token: string | null): Promise<void> => {
     const status = await invoke<RunnerStatus>("runner_status");
     if (!status.running) return;
     await invoke("update_runner_token", { token });
+    // Stryker disable next-line ArrayDeclaration: the callback reads nothing from the render, so any dependency list keeps it alike
   }, []);
 
   const state = useMemo(
-    () => runnerStateOf({ isRunning, isStarting, stoppedUnexpectedly, error, activeSessions }),
-    [isRunning, isStarting, stoppedUnexpectedly, error, activeSessions],
+    () => runnerStateOf({ isRunning, isStarting, hasRun, error, activeSessions }),
+    [isRunning, isStarting, hasRun, error, activeSessions],
   );
 
   return {

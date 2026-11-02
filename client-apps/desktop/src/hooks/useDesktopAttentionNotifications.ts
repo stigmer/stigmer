@@ -94,5 +94,6 @@ export function useOpenNotifiedConversation(): void {
       cancelled = true;
       void listening.then((listener) => listener.unregister());
     };
+    // Stryker disable next-line ArrayDeclaration: the listener navigates to an absolute path, which any navigate the router gave resolves alike
   }, [navigate]);
 }

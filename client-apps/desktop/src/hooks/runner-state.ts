@@ -27,8 +27,12 @@ export type RunnerState =
 export interface RunnerFacts {
   readonly isRunning: boolean;
   readonly isStarting: boolean;
-  /** True once a status read finds the runner gone that was up. */
-  readonly stoppedUnexpectedly: boolean;
+  /**
+   * True once the runner has been up in this window. The app never stops
+   * it while the window lives, so a runner that has been up and is not up
+   * now stopped by itself.
+   */
+  readonly hasRun: boolean;
   /** The last start's failure, cleared by the next start. */
   readonly error: string | null;
   readonly activeSessions: readonly string[];
@@ -42,7 +46,7 @@ export function runnerStateOf(facts: RunnerFacts): RunnerState {
   if (facts.isStarting) return { kind: "starting" };
   if (facts.isRunning) return { kind: "ready", conversations: facts.activeSessions.length };
   if (facts.error !== null) return { kind: "failed", reason: facts.error };
-  if (facts.stoppedUnexpectedly) return { kind: "stopped" };
+  if (facts.hasRun) return { kind: "stopped" };
   return { kind: "idle" };
 }
 

@@ -146,6 +146,8 @@ describe("getRunnerConfig: the session and the proxy", () => {
   it.each([
     ["a bare host", "localhost:9090", "http://localhost:9090"],
     ["a bare TLS host", "api.stigmer.ai:443", "https://api.stigmer.ai:443"],
+    ["a URL that has one", "http://localhost:9090", "http://localhost:9090"],
+    ["a TLS URL that has one", "https://api.acme.example:8443", "https://api.acme.example:8443"],
   ])(
     "gives the proxy a URL scheme when the only endpoint is %s",
     async (_label, sidecar, proxy) => {
@@ -158,6 +160,19 @@ describe("getRunnerConfig: the session and the proxy", () => {
       expect(config.proxyEndpoint).toBe(proxy);
     },
   );
+});
+
+describe("getRunnerConfig: the proxy beside a sidecar", () => {
+  it("points the proxy at the API, not at the dev sidecar the control plane goes through", async () => {
+    vi.stubEnv("VITE_STIGMER_SIDECAR_ENDPOINT", "localhost:9090");
+    vi.stubEnv("VITE_STIGMER_API_URL", "https://api.stigmer.ai");
+    runnerHost();
+    signIn("token");
+
+    const config = await getRunnerConfig();
+    expect(config.stigmerEndpoint).toBe("localhost:9090");
+    expect(config.proxyEndpoint).toBe("https://api.stigmer.ai");
+  });
 });
 
 describe("getRunnerConfig: Temporal and the control-plane endpoint", () => {
@@ -434,8 +449,8 @@ describe("DSK-05 the runner's state", () => {
     expect(result.current.state).toEqual({ kind: "ready", conversations: 1 });
   });
 
-  it("keeps the failure when Restart fails again", async () => {
-    runnerHost({
+  it("keeps the failure when Restart fails again, and reads the host no further", async () => {
+    const { tauri } = runnerHost({
       start_runner: () => {
         throw "spawn failed";
       },
@@ -446,6 +461,7 @@ describe("DSK-05 the runner's state", () => {
       await result.current.restart();
     });
     expect(result.current.state).toEqual({ kind: "failed", reason: "spawn failed" });
+    expect(tauri.callsTo("runner_status")).toHaveLength(1);
   });
 });
 
@@ -455,6 +471,7 @@ describe("the runner lifecycle", () => {
     const { result } = renderHook(() => useEmbeddedRunner());
     expect(tauri.calls).toEqual([]);
     expect(result.current.isRunning).toBe(false);
+    expect(result.current.activeSessions).toEqual([]);
 
     let queue = "";
     await act(async () => {
@@ -615,6 +632,8 @@ describe("the runner lifecycle", () => {
 
     expect(tauri.callsTo("start_runner")).toEqual([]);
     expect(result.current.activeSessions).toEqual(["earlier", "s1"]);
+    expect(result.current.isRunning).toBe(true);
+    expect(result.current.state).toEqual({ kind: "ready", conversations: 2 });
   });
 
   it("lists a session once, however many times it is added", async () => {
