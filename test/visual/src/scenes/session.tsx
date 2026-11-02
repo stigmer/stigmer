@@ -18,6 +18,7 @@
 // what is asked.
 import { Code, ConnectError, type ConnectRouter, type HandlerContext } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
+import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentQueryController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/query_pb";
 import { FileQueryController } from "@stigmer/apis/ai/stigmer/agentic/file/v1/query_pb";
 import { RunQueryController } from "@stigmer/apis/ai/stigmer/agentic/run/v1/query_pb";
@@ -78,8 +79,13 @@ function loadable<T>(scenario: SessionReplay, answer: T): T {
   return answer;
 }
 
+/** Who answers the session: the samples' agent unless a scene names its own. */
+export interface Answering {
+  readonly agent?: Agent;
+}
+
 /** The calls the viewer makes for `scenario`, answered as for the session's owner. */
-export function sessionRoutes(scenario: SessionReplay) {
+export function sessionRoutes(scenario: SessionReplay, { agent = samples.agent() }: Answering = {}) {
   return (router: ConnectRouter) => {
     router.service(SessionQueryController, {
       get: () => loadable(scenario, scenario.session!),
@@ -100,7 +106,7 @@ export function sessionRoutes(scenario: SessionReplay) {
       getContent: () => ({ data: AUDIT_REPORT, truncated: false }),
     });
     router.service(ScoreQueryController, { listBySession: () => ({ entries: [] }) });
-    router.service(AgentQueryController, { getByReference: () => samples.agent() });
+    router.service(AgentQueryController, { getByReference: () => agent });
     router.service(OrganizationQueryController, { listMine: () => samples.organizationList([SESSION_ORG]) });
     router.service(IdentityAccountQueryController, { whoAmI: () => ACCOUNT });
     router.service(GrantQueryController, { checkMyPermission: () => ({ isAuthorized: true }) });

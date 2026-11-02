@@ -3,7 +3,9 @@
 // while a long turn works (its button says what the agent is doing) and
 // open on a finished turn. The product's page is a plain surface: the
 // frames are what is pictured. The conversation is answered as the session
-// view's scenes answer it.
+// view's scenes answer it. `dockedBeside` is the panel's docking alone, so
+// a scene that draws a product's own page (the story's) docks the panel
+// exactly as these do.
 import type { ReactElement } from "react";
 import { AgentChat } from "@stigmer/react-sdk";
 import { samples, scenarios, type ScenarioName } from "@stigmer/react-sdk/test";
@@ -12,12 +14,26 @@ import { sessionRoutes } from "./session.tsx";
 
 const AGENT = samples.agent().metadata!;
 
-/** The product's page, with the chat beside it or over it. */
-function productPage(chat: ReactElement, docked: boolean): ReactElement {
+/** The product's `page` with the chat docked beside it as a 390-wide panel, the pair one screen tall. */
+export function dockedBeside(page: ReactElement, chat: ReactElement): ReactElement {
   return (
     <div style={{ height: "calc(100vh - 48px)", display: "flex" }}>
-      <div className="stg:flex-1 stg:bg-muted" />
-      {docked ? <div style={{ width: 390, flex: "none" }} className="stg:border-l stg:border-border">{chat}</div> : chat}
+      {page}
+      <div style={{ width: 390, flex: "none" }} className="stg:border-l stg:border-border">
+        {chat}
+      </div>
+    </div>
+  );
+}
+
+/** The product's page, with the chat beside it or over it. */
+function productPage(chat: ReactElement, docked: boolean): ReactElement {
+  const surface = <div className="stg:flex-1 stg:bg-muted" />;
+  if (docked) return dockedBeside(surface, chat);
+  return (
+    <div style={{ height: "calc(100vh - 48px)", display: "flex" }}>
+      {surface}
+      {chat}
     </div>
   );
 }

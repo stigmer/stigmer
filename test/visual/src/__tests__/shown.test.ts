@@ -1,9 +1,22 @@
 // The pictures the site shows (../shown.ts) against the catalogue: every
 // entry draws a scene the gallery has, in a mode it draws, under a name a
-// page can use, and keeps a part of the screen it actually draws.
+// page can use, and keeps a part of the screen it actually draws; its
+// marks point only at the five claims, from inside what it draws.
 import { describe, expect, it } from "vitest";
+import { AGENT_GET_ORDER } from "../../../../brand/agent-gets.ts";
 import { MODES, SCENES } from "../catalog.ts";
-import { SHOWN, SHOWN_MODE, SHOWN_SCALE, shownSize } from "../shown.ts";
+import { SHOWN, SHOWN_MODE, SHOWN_SCALE, shownSize, type ShownClip, type ShownSize } from "../shown.ts";
+
+/** Whether `box` is a whole-pixel rectangle with an area, lying inside `size`. */
+function inside(box: ShownClip, size: ShownSize): boolean {
+  return (
+    [box.x, box.y, box.width, box.height].every((n) => Number.isInteger(n) && n >= 0) &&
+    box.width > 0 &&
+    box.height > 0 &&
+    box.x + box.width <= size.width &&
+    box.y + box.height <= size.height
+  );
+}
 
 describe("the shown pictures", () => {
   it("draw only scenes the catalogue lists", () => {
@@ -37,6 +50,16 @@ describe("the shown pictures", () => {
       );
     });
     expect(outside.map((shown) => shown.name)).toEqual([]);
+  });
+
+  it("mark only the five claims, each by a name and inside the viewport", () => {
+    const claims: readonly string[] = AGENT_GET_ORDER;
+    const wrong = SHOWN.flatMap((shown) =>
+      Object.entries(shown.marks ?? {})
+        .filter(([id, mark]) => !claims.includes(id) || mark.name.trim() === "" || !inside(mark.box, shown.viewport))
+        .map(([id]) => `${shown.name}: ${id}`),
+    );
+    expect(wrong).toEqual([]);
   });
 
   it("size a picture by its clip, or else its viewport", () => {

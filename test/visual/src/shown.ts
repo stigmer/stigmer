@@ -9,6 +9,13 @@
 // sizes it serves (site/scripts/generate-screens.ts), and `<Screen name>`
 // embeds one by its name.
 //
+// An entry may also mark parts of its screen a page points at (the hero's
+// pins), keyed by the claim each one labels (brand/agent-gets.ts's ids).
+// A mark names its target as plain data, a role and an exact accessible
+// name, and declares the box the target is drawn in, measured from the
+// drawn screen as a clip is. The suite finds each target and fails when it
+// is gone or its box moved, so a pin cannot drift off what it says.
+//
 // It imports nothing, not even the catalogue's types: the site reads this
 // file into its own build and typecheck, where the kit's sources do not
 // load. `src/__tests__/shown.test.ts` holds every entry to the catalogue.
@@ -31,6 +38,19 @@ export interface ShownClip extends ShownSize {
   readonly y: number;
 }
 
+/** The roles a mark's target may have: the ones the marked screens use. */
+export type ShownMarkRole = "button" | "link" | "row" | "cell";
+
+/** A part of the drawn screen a page points at. */
+export interface ShownMark {
+  /** The target's role. */
+  readonly role: ShownMarkRole;
+  /** The target's accessible name, matched exactly, so "Approve" never finds "Approve all ledger tools". */
+  readonly name: string;
+  /** Where the target is drawn, in whole CSS pixels from the top left of the viewport. */
+  readonly box: ShownClip;
+}
+
 /** One picture the site may show. */
 export interface Shown {
   /** The handle pages use (`<Screen name="approval">`), kept apart from the scene so a scene can be swapped under it. */
@@ -43,6 +63,8 @@ export interface Shown {
   readonly viewport: ShownSize;
   /** The part of the viewport kept, when the picture is one card rather than the whole screen. */
   readonly clip?: ShownClip;
+  /** Parts of the screen a page points at, by the id of the claim each labels (brand/agent-gets.ts). */
+  readonly marks?: Readonly<Record<string, ShownMark>>;
 }
 
 /** Every picture the site may show. */
@@ -63,6 +85,29 @@ export const SHOWN: readonly Shown[] = [
     // screen: the card spans x 288 to 992 and y 300 to 541, the reason sits
     // above it from y 201, and the turn's status bar starts at y 559.
     clip: { x: 272, y: 186, width: 736, height: 366 },
+  },
+  {
+    name: "in-product",
+    scene: "story-in-product",
+    title:
+      "Stigmer's chat panel docked beside a product's ledger screen for Northwind Books, its agent asking before it posts an adjustment",
+    // Tall enough that the panel holds the whole conversation, from the
+    // person's message to the composer, without scrolling.
+    viewport: { width: 1280, height: 1000 },
+    marks: {
+      "own-computer": { role: "button", name: "Read 1 file 1 s", box: { x: 899, y: 262, width: 325, height: 32 } },
+      "asks-first": { role: "button", name: "Approve", box: { x: 923, y: 647, width: 74, height: 30 } },
+      walls: { role: "button", name: "Northwind Books", box: { x: 40, y: 34, width: 181, height: 32 } },
+    },
+  },
+  {
+    name: "in-product-panel",
+    scene: "story-in-product",
+    title: "Stigmer's chat panel inside a product, its agent asking before it posts an adjustment to Northwind's ledger",
+    viewport: { width: 1280, height: 1000 },
+    // The panel's column, measured from the drawn screen: its left border
+    // at x 866, the window's ring at x 1256 and at y 23 and 976.
+    clip: { x: 866, y: 23, width: 391, height: 954 },
   },
 ];
 
