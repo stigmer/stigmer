@@ -27,7 +27,7 @@ import { ChooseServerScreen, ConnectScreen } from "./server/ConnectScreen";
  */
 export function App() {
   return (
-    <ServerProvider onServerChanged={() => void startOnAnotherServer()}>
+    <ServerProvider onServerChanged={startOnAnotherServer}>
       <ServerGate />
     </ServerProvider>
   );

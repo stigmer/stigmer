@@ -99,7 +99,7 @@ vi.mock("../identity/IdentityAccountGate", () => ({
 vi.mock("../hooks/AppUpdaterContext", () => ({
   AppUpdaterProvider: marker("updater"),
 }));
-vi.mock("../routes", () => ({ router: {} }));
+vi.mock("../routes", () => ({ router: {}, startOnAnotherServer: vi.fn() }));
 vi.mock("react-router-dom", () => ({
   RouterProvider: () => <p>the routes</p>,
 }));

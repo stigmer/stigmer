@@ -3,6 +3,7 @@ import { ExternalLink, Loader2, RefreshCw } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import { SIGN_IN_CANCELLED, useAuth } from "./AuthProvider";
 import { useServer } from "../server/ServerProvider";
+import { hostOf } from "../server/connect";
 import { QuietAction, ServerScreen } from "../server/ServerScreen";
 
 type ScreenState = { kind: "idle" } | { kind: "waiting" } | { kind: "error"; message: string };
@@ -77,15 +78,6 @@ export function LoginScreen() {
       {state.kind === "error" && <ErrorView message={state.message} onRetry={() => setState({ kind: "idle" })} />}
     </ServerScreen>
   );
-}
-
-/** The host of an origin, as a person reads it in the address bar. */
-function hostOf(origin: string): string {
-  try {
-    return new URL(origin).host;
-  } catch {
-    return origin;
-  }
 }
 
 function WaitingView({ onReopen, onCancel }: { onReopen: () => void; onCancel: () => void }) {
