@@ -15,6 +15,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -74,8 +75,19 @@ function messageOf(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-export function ServerProvider({ children }: { children: ReactNode }) {
+export function ServerProvider({
+  onServerChanged,
+  children,
+}: {
+  /** Called when the person chooses a server other than the one in use. */
+  onServerChanged?: () => void;
+  children: ReactNode;
+}) {
   const [origin, setOrigin] = useState("");
+  const originRef = useRef(origin);
+  originRef.current = origin;
+  const onServerChangedRef = useRef(onServerChanged);
+  onServerChangedRef.current = onServerChanged;
   const [connection, setConnection] = useState<ServerConnection>({ phase: "connecting" });
   const [attempt, setAttempt] = useState(0);
   const [isChoosing, setChoosing] = useState(false);
@@ -128,6 +140,7 @@ export function ServerProvider({ children }: { children: ReactNode }) {
     async (url: string): Promise<string | null> => {
       try {
         const chosen = await invoke<string>("choose_server", { url });
+        if (chosen !== originRef.current) onServerChangedRef.current?.();
         setOrigin(chosen);
         // Stryker disable next-line ArithmeticOperator: the attempt only has to change, so choosing the same server connects again
         setAttempt((n) => n + 1);

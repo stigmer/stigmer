@@ -5,7 +5,7 @@ import type { DeploymentMode } from "@stigmer/client";
 import { StigmerProvider, OrgProvider, FetchCacheProvider } from "@stigmer/react-sdk";
 import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
 import { Toaster } from "sonner";
-import { router } from "./routes";
+import { router, startOnAnotherServer } from "./routes";
 import { loadMermaid } from "./load-mermaid";
 import { AuthProvider, useAuth } from "./auth/AuthProvider";
 import { LoginScreen } from "./auth/LoginScreen";
@@ -27,7 +27,7 @@ import { ChooseServerScreen, ConnectScreen } from "./server/ConnectScreen";
  */
 export function App() {
   return (
-    <ServerProvider>
+    <ServerProvider onServerChanged={() => void startOnAnotherServer()}>
       <ServerGate />
     </ServerProvider>
   );

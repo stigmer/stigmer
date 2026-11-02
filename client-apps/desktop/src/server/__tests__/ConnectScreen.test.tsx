@@ -276,6 +276,25 @@ describe("DSK-07 choosing another server", () => {
     await waitFor(() => expect(screen.getByTestId("choosing").textContent).toBe("Stigmer Cloud false"));
   });
 
+  it("leaves the old server's place when another server is chosen, and keeps it when the same one is chosen again", async () => {
+    host(ACME, { choose_server: (args) => String(args.url) });
+    answers(ACME, async () => ({ authenticationRequired: false, deploymentMode: "local" }));
+    answers(CLOUD, async () => ({ authenticationRequired: false, deploymentMode: "cloud" }));
+    const leftServer = vi.fn();
+    render(
+      <ServerProvider onServerChanged={leftServer}>
+        <Outcome />
+        <ChooseProbe />
+      </ServerProvider>,
+    );
+    await waitFor(() => expect(screen.getByTestId("outcome").textContent).toBe(`${ACME} open`));
+
+    await chooseFromScreen(ACME);
+    expect(leftServer).not.toHaveBeenCalled();
+    await chooseFromScreen(CLOUD);
+    expect(leftServer).toHaveBeenCalledTimes(1);
+  });
+
   it("goes back from the form to where the person was", async () => {
     host(ACME);
     answers(ACME, notStigmer);

@@ -411,6 +411,16 @@ export function restorableRoute(saved: string | null): string | undefined {
   return matchRoutes(routes, saved) === null ? undefined : saved;
 }
 
+/**
+ * The person moved to another server: the screen they were on, and the one
+ * saved for the next launch, name the old server's things, so the app forgets
+ * the saved route and opens the home screen.
+ */
+export async function startOnAnotherServer(): Promise<void> {
+  await router.navigate("/", { replace: true });
+  localStorage.removeItem(ROUTE_STORAGE_KEY);
+}
+
 const savedRoute = restorableRoute(localStorage.getItem(ROUTE_STORAGE_KEY));
 if (savedRoute !== undefined) {
   router.navigate(savedRoute, { replace: true });

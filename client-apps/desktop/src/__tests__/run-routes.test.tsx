@@ -33,7 +33,7 @@ vi.mock("../pages/library/RoutineListPage", () => ({ default: () => <p>routine l
 vi.mock("../pages/library/RoutineNewPage", () => ({ default: () => <p>routine new page</p> }));
 vi.mock("../pages/library/RoutineDetailPage", () => ({ default: () => <p>routine detail page</p> }));
 
-import { restorableRoute, router } from "../routes";
+import { restorableRoute, router, startOnAnotherServer } from "../routes";
 
 function renderRoute(path: string): void {
   const leaf = (matchRoutes(router.routes, path) ?? []).at(-1)?.route;
@@ -74,5 +74,15 @@ describe("desktop routes — the route reopened at launch", () => {
   it("opens the home screen when nothing, or home, was saved", () => {
     expect(restorableRoute(null)).toBeUndefined();
     expect(restorableRoute("/")).toBeUndefined();
+  });
+
+  it("forgets the saved route and opens the home screen when the person moves to another server", async () => {
+    await router.navigate("/sessions/ses_1");
+    expect(localStorage.getItem("stigmer:lastRoute")).toBe("/sessions/ses_1");
+
+    await startOnAnotherServer();
+
+    expect(router.state.location.pathname).toBe("/");
+    expect(localStorage.getItem("stigmer:lastRoute")).toBeNull();
   });
 });
