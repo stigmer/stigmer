@@ -20,11 +20,18 @@ type Answer = () => Promise<Record<string, unknown>>;
 const sdk = vi.hoisted(() => ({
   answers: new Map<string, () => Promise<Record<string, unknown>>>(),
   asked: [] as string[],
+  configs: [] as { getAccessToken?: () => unknown; apiKey?: string }[],
 }));
-vi.mock("@stigmer/client", () => ({
-  Stigmer: class {
+vi.mock("@stigmer/client", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@stigmer/client")>();
+  return {
+    Stigmer: class {
     platform: { getServerInfo: () => Promise<Record<string, unknown>> };
-    constructor(config: { baseUrl: string }) {
+    constructor(config: ConstructorParameters<typeof actual.Stigmer>[0]) {
+      // The real client is built first, so a config the SDK refuses fails
+      // here as it fails in the app.
+      new actual.Stigmer(config);
+      sdk.configs.push(config);
       this.platform = {
         getServerInfo: () => {
           sdk.asked.push(config.baseUrl);
@@ -33,8 +40,9 @@ vi.mock("@stigmer/client", () => ({
         },
       };
     }
-  },
-}));
+    },
+  };
+});
 
 import { ServerProvider, useServer } from "../ServerProvider";
 import { ConnectScreen, DESKTOP_SIGN_IN_GUIDE } from "../ConnectScreen";
@@ -115,6 +123,7 @@ function ChooseProbe() {
 beforeEach(() => {
   sdk.answers.clear();
   sdk.asked = [];
+  sdk.configs = [];
   vi.unstubAllEnvs();
   vi.stubEnv("VITE_STIGMER_API_URL", CLOUD);
 });
@@ -128,6 +137,17 @@ describe("DSK-07 connecting to the chosen server", () => {
     await waitFor(() => expect(screen.getByTestId("outcome").textContent).toBe(`${ACME} open`));
     expect(tauri.callsTo("current_server")).toEqual([{ buildDefault: CLOUD }]);
     expect(sdk.asked).toEqual([ACME]);
+  });
+
+  it("asks before anyone signs in, with no credential", async () => {
+    host(ACME);
+    answers(ACME, async () => ({ authenticationRequired: false, deploymentMode: "local" }));
+    renderScreen();
+
+    await waitFor(() => expect(screen.getByTestId("outcome").textContent).toBe(`${ACME} open`));
+    expect(sdk.configs).toHaveLength(1);
+    expect(sdk.configs[0].apiKey).toBeUndefined();
+    expect(await sdk.configs[0].getAccessToken?.()).toBeNull();
   });
 
   it("says it is connecting while the server has not answered", async () => {

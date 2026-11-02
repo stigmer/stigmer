@@ -96,7 +96,8 @@ export function ServerProvider({ children }: { children: ReactNode }) {
     if (origin === "") return;
     let cancelled = false;
     setConnection({ phase: "connecting" });
-    const client = new Stigmer({ baseUrl: origin, fetch: tauriFetch });
+    // Asked before anyone signs in: the client sends no credential.
+    const client = new Stigmer({ baseUrl: origin, getAccessToken: () => null, fetch: tauriFetch });
     client.platform.getServerInfo().then(
       (info) => {
         if (cancelled) return;
