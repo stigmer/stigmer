@@ -54,6 +54,14 @@ tauri-plugin-notifications = { version = "=0.5.0-rc.14", default-features = fals
 [target.'cfg(not(target_os = "macos"))'.dependencies]
 tauri-plugin-notifications = { version = "=0.5.0-rc.14" }
 
+[features]
+# Development builds run a bare binary, and the plugin's macOS click code
+# refuses to start outside an app bundle ("Notifications plugin requires the
+# app to run from a .app bundle"). `make desktop-dev` turns this on, through
+# the `tauri:dev` script, so a development build shows notifications through
+# the cross-platform backend, without the click. Release builds leave it off.
+dev-notifications = ["tauri-plugin-notifications/notify-rust"]
+
 # The account's login shell, when $SHELL names none (user_path.rs).
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"

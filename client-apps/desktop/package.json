@@ -12,6 +12,7 @@
     "lint": "eslint",
     "lint:fix": "eslint --fix",
     "tauri": "tauri",
+    "tauri:dev": "tauri dev --features dev-notifications",
     "generate:icons": "tsx scripts/generate-icons.ts",
     "test": "npm run test:scripts && vitest run",
     "test:scripts": "node --test scripts/*.test.mjs",
