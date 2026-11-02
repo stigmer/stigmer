@@ -65,7 +65,11 @@ yes wins. Two doctrines sit behind it:
   contributes text to the exports (per-step prose, alt text, or the Mermaid
   source itself), and the prose around an embed carries the information on its
   own. A `Screen` contributes its alt text and a link to its picture: the export
-  turns the tag into a markdown image.
+  turns the tag into a markdown image. A `Diagram` contributes the text it
+  stands for, kept beside its drawing in `site/src/components/visuals/`: the
+  export turns the tag into that text. A concept page's own system picture is a
+  `Diagram`, drawn in the site's language; every other diagram is Mermaid
+  (`docs/STYLE.md`, "Diagrams").
 
 ## Screens come from the visual suite
 

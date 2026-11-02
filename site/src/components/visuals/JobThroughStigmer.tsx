@@ -24,7 +24,7 @@ import * as React from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Icon } from "@/components/ui/icon";
-import { Connector, Frame, Ring } from "./drawing/Drawing";
+import { Box, Connector, Frame, Ring } from "./drawing/Drawing";
 import { LoopPause } from "./drawing/LoopPause";
 import {
   ATTRIBUTE,
@@ -61,36 +61,13 @@ function Chip({ part, children }: { part: PartId; children: React.ReactNode }) {
   );
 }
 
-/** A place: its name, its small line, and any chips it holds, lit by its part's layers. */
+/** A place, lit by its own part's layers; your database is drawn quiet. */
 function Place({ id, children }: { id: PlaceId; children?: React.ReactNode }) {
   const { name, detail } = PLACES[id];
-  if (id === "database") {
-    return (
-      <span
-        data-area={id}
-        data-box=""
-        className="flex items-center justify-center self-start rounded-lg border border-subtle bg-card px-3 py-3 text-center text-muted-foreground"
-      >
-        {name}
-      </span>
-    );
-  }
   return (
-    <span
-      data-area={id}
-      data-box=""
-      className="relative flex flex-col items-center justify-center gap-2 rounded-lg border border-subtle bg-card px-3 py-2.5 text-center"
-    >
-      <Ring part={id} />
-      <span data-ink={id} className="flex flex-col items-center gap-0.5 text-foreground">
-        <span className="flex items-center gap-1.5 font-medium">
-          {id === "sandbox" ? <Icon name="cpu" className="h-4 w-4 shrink-0" /> : null}
-          {name}
-        </span>
-        <span className="text-xs leading-4 text-muted-foreground">{detail}</span>
-      </span>
-      {children ? <span className="grid max-w-full place-items-center">{children}</span> : null}
-    </span>
+    <Box area={id} name={name} detail={detail} part={id} icon={id === "sandbox" ? "cpu" : undefined} quiet={id === "database"}>
+      {children}
+    </Box>
   );
 }
 

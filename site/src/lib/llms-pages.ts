@@ -29,6 +29,7 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import matter from "gray-matter";
+import { diagram } from "../components/visuals/diagrams";
 import { SHOWN_SCALE, screenPath, shownScreen } from "./screens";
 
 export interface SectionMeta {
@@ -85,7 +86,8 @@ async function readJson<T>(p: string): Promise<T> {
  * Strips MDX/JSX authoring noise while preserving semantically useful
  * component tags that LLMs can interpret (Callout, Tabs, Term, etc.).
  * A `<Screen>` becomes the markdown image it stands for, linked on
- * `siteUrl` (see `screensToMarkdown`).
+ * `siteUrl`, and a `<Diagram>` the text it stands for (see
+ * `picturesToMarkdown`).
  */
 export function cleanContent(raw: string, siteUrl: string): string {
   const cleaned = raw
@@ -95,44 +97,83 @@ export function cleanContent(raw: string, siteUrl: string): string {
     // MDX comments add no value for readers.
     .replace(/\{\/\*[\s\S]*?\*\/\}/g, "");
   return (
-    screensToMarkdown(cleaned, siteUrl)
+    picturesToMarkdown(cleaned, siteUrl)
       // Collapse runs of blank lines left by the above removals.
       .replace(/\n{3,}/g, "\n\n")
       .trim()
   );
 }
 
-/** Where a `<Screen>` tag starts; `SCREEN_TAG` then reads the whole tag from there. */
-const SCREEN_START = /<Screen(?![\w.])/g;
-
-/** A whole `<Screen>` tag: attributes, each bare or with a quoted or `{…}` value, then its end. */
-const SCREEN_TAG = /<Screen((?:\s+[\w-]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|\{[^{}]*\}))?)*)\s*(\/?)>/y;
-
-/** One attribute of a `<Screen>` tag: its name, then a double- or single-quoted value, or an `{expression}`. */
-const SCREEN_ATTRIBUTE = /([\w-]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|(\{[^{}]*\})))?/g;
+/** One attribute of a tag: its name, then a double- or single-quoted value, or an `{expression}`. */
+const TAG_ATTRIBUTE = /([\w-]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|(\{[^{}]*\})))?/g;
 
 /** An inline code span: a run of backticks, then anything up to a run of the same length. */
 const CODE_SPAN = /(`+)(?!`)[\s\S]*?(?<!`)\1(?!`)/g;
 
 /**
- * Rewrites every `<Screen name="…" alt="…" />` outside code into
- * `![<alt>](<siteUrl>/screens/<name>-2x.webp)`: the per-page `.md`,
- * llms-full.txt, the "Copy page" button and Ask AI read the alt text where
- * the page shows the picture, and the link resolves off the site. A tag in a
- * fenced block or an inline code span is the component's own syntax shown as
- * code, and stays as written.
- *
- * A tag this cannot turn into an image throws, so the export fails the
- * build instead of shipping a dangling tag: one that is not self-closing,
- * has no `name` or `alt`, gives either as an `{expression}`, has blank alt
- * text, or names a screen the visual suite does not show.
+ * A picture tag the export rewrites: its component's name, the attributes
+ * it needs as plain strings, and what it becomes. An attribute given as an
+ * `{expression}` reads as null.
  */
-export function screensToMarkdown(text: string, siteUrl: string): string {
+interface PictureTag {
+  name: string;
+  needs: readonly string[];
+  /** A block: it becomes its own paragraph, with the indentation before the tag dropped. */
+  block?: true;
+  rewrite: (attributes: ReadonlyMap<string, string | null>, siteUrl: string) => string;
+}
+
+/**
+ * The tags that stand for a picture:
+ *
+ * - `<Screen name="…" alt="…" />` becomes `![<alt>](<siteUrl>/screens/<name>-2x.webp)`,
+ *   the alt text where the page shows the picture and a link that resolves
+ *   off the site; blank alt text, or a screen the visual suite does not
+ *   show, throws.
+ * - `<Diagram name="…" />` becomes the drawing's text, as its own paragraph
+ *   (src/components/visuals/diagrams.ts); a drawing the docs do not hold
+ *   throws.
+ */
+const PICTURES: readonly PictureTag[] = [
+  {
+    name: "Screen",
+    needs: ["name", "alt"],
+    rewrite: (attributes, siteUrl) => {
+      const name = attributes.get("name")!;
+      const alt = attributes.get("alt")!;
+      if (alt.trim() === "") throw new Error(`<Screen name="${name}">: alt text is required; the export carries it in the picture's place`);
+      shownScreen(name);
+      return `![${markdownAlt(alt)}](${siteUrl}${screenPath(name, SHOWN_SCALE)})`;
+    },
+  },
+  {
+    name: "Diagram",
+    needs: ["name"],
+    block: true,
+    rewrite: (attributes) => `\n\n${diagram(attributes.get("name")!).text}\n\n`,
+  },
+];
+
+/**
+ * Rewrites every picture tag outside code into the markdown it stands for
+ * (`PICTURES`): the per-page `.md`, llms-full.txt, the "Copy page" button
+ * and Ask AI read the picture's words where the page shows it. A tag in a
+ * fenced block or an inline code span is the component's own syntax shown
+ * as code, and stays as written.
+ *
+ * A tag this cannot turn into text throws, so the export fails the build
+ * instead of shipping a dangling tag: one that is not self-closing, lacks an
+ * attribute it needs or gives one as an `{expression}`, or that its own
+ * rewrite refuses.
+ */
+export function picturesToMarkdown(text: string, siteUrl: string): string {
   const out: string[] = [];
   let prose: string[] = [];
   let fence: RegExp | null = null;
   const flush = () => {
-    if (prose.length > 0) out.push(rewriteScreens(prose.join("\n"), siteUrl));
+    if (prose.length > 0) {
+      out.push(PICTURES.reduce((written, picture) => rewriteTags(written, picture, siteUrl), prose.join("\n")));
+    }
     prose = [];
   };
   for (const line of text.split("\n")) {
@@ -154,29 +195,32 @@ export function screensToMarkdown(text: string, siteUrl: string): string {
   return out.join("\n");
 }
 
-function rewriteScreens(prose: string, siteUrl: string): string {
+/** Every `picture` tag in `prose` outside an inline code span, rewritten. */
+function rewriteTags(prose: string, picture: PictureTag, siteUrl: string): string {
+  const { name } = picture;
+  // Where a tag starts, then the whole tag from there: attributes, each bare or with a quoted or `{…}` value, then its end.
+  const starts = new RegExp(`<${name}(?![\\w.])`, "g");
+  const whole = new RegExp(`<${name}((?:\\s+[\\w-]+(?:\\s*=\\s*(?:"[^"]*"|'[^']*'|\\{[^{}]*\\}))?)*)\\s*(\\/?)>`, "y");
   const code = [...prose.matchAll(CODE_SPAN)].map((span) => [span.index, span.index + span[0].length] as const);
   let out = "";
   let from = 0;
-  for (const start of prose.matchAll(SCREEN_START)) {
+  for (const start of prose.matchAll(starts)) {
     if (code.some(([open, close]) => start.index > open && start.index < close)) continue;
-    SCREEN_TAG.lastIndex = start.index;
-    const tag = SCREEN_TAG.exec(prose);
+    whole.lastIndex = start.index;
+    const tag = whole.exec(prose);
     const written = () => prose.slice(start.index, start.index + 80).replace(/\s+/g, " ");
-    if (!tag) throw new Error(`a <Screen> tag the markdown export cannot read: "${written()}"`);
-    if (tag[2] !== "/") throw new Error(`a <Screen> tag must close itself (<Screen … />): "${written()}"`);
+    if (!tag) throw new Error(`a <${name}> tag the markdown export cannot read: "${written()}"`);
+    if (tag[2] !== "/") throw new Error(`a <${name}> tag must close itself (<${name} … />): "${written()}"`);
     const attributes = new Map<string, string | null>();
-    for (const [, key, double, single, expression] of tag[1].matchAll(SCREEN_ATTRIBUTE)) {
+    for (const [, key, double, single, expression] of tag[1].matchAll(TAG_ATTRIBUTE)) {
       attributes.set(key, expression === undefined ? (double ?? single ?? "") : null);
     }
-    const name = attributes.get("name");
-    const alt = attributes.get("alt");
-    if (typeof name !== "string" || typeof alt !== "string") {
-      throw new Error(`a <Screen> tag needs name="…" and alt="…" as plain strings, which the export carries: "${written()}"`);
+    if (picture.needs.some((needed) => typeof attributes.get(needed) !== "string")) {
+      const needs = picture.needs.map((needed) => `${needed}="…"`).join(" and ");
+      throw new Error(`a <${name}> tag needs ${needs} as plain strings, which the export carries: "${written()}"`);
     }
-    if (alt.trim() === "") throw new Error(`<Screen name="${name}">: alt text is required; the export carries it in the picture's place`);
-    shownScreen(name);
-    out += `${prose.slice(from, start.index)}![${markdownAlt(alt)}](${siteUrl}${screenPath(name, SHOWN_SCALE)})`;
+    const before = prose.slice(from, start.index);
+    out += `${picture.block ? before.replace(/[ \t]+$/, "") : before}${picture.rewrite(attributes, siteUrl)}`;
     from = start.index + tag[0].length;
   }
   return out + prose.slice(from);

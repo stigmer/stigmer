@@ -1,3 +1,4 @@
+export { Diagram } from "./diagram";
 export { glossary } from "./glossary";
 export { Hero } from "./welcome-hero";
 export { Mermaid } from "./mermaid";
