@@ -18,7 +18,6 @@ export interface AuthState {
    */
   readonly isAuthEnabled: boolean;
   readonly isAuthenticated: boolean;
-  readonly isLoading: boolean;
   readonly isInitialized: boolean;
   readonly user: AuthUser | null;
   readonly getAccessToken: () => string | null;
@@ -103,9 +102,10 @@ export type AuthProviderProps =
  *    and the person's name, and renews the token before it expires.
  */
 export function AuthProvider(props: AuthProviderProps) {
+  // Stryker disable next-line ArrayDeclaration: the effect reads nothing from the render, so any dependency list runs it once
   useEffect(forgetRetiredTokens, []);
   if (props.mode === "open") {
-    return <OpenAuthProvider>{props.children}</OpenAuthProvider>;
+    return <AuthContext.Provider value={OPEN_STATE}>{props.children}</AuthContext.Provider>;
   }
   // A new server or provider is a new sign-in state, never a stale one.
   return (
@@ -119,24 +119,16 @@ export function AuthProvider(props: AuthProviderProps) {
   );
 }
 
-function OpenAuthProvider({ children }: { children: ReactNode }) {
-  const getAccessToken = useCallback(() => null, []);
-  const login = useCallback(async () => {}, []);
-  const logout = useCallback(() => {}, []);
-
-  const state: AuthState = {
-    isAuthEnabled: false,
-    isAuthenticated: true,
-    isLoading: false,
-    isInitialized: true,
-    user: null,
-    getAccessToken,
-    login,
-    logout,
-  };
-
-  return <AuthContext.Provider value={state}>{children}</AuthContext.Provider>;
-}
+/** A server that trusts every request: always signed in, no token. */
+const OPEN_STATE: AuthState = {
+  isAuthEnabled: false,
+  isAuthenticated: true,
+  isInitialized: true,
+  user: null,
+  getAccessToken: () => null,
+  login: async () => {},
+  logout: () => {},
+};
 
 function NativeAuthProvider({
   server,
@@ -149,44 +141,54 @@ function NativeAuthProvider({
 }) {
   const [session, setSession] = useState<SessionView | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
 
   // A ref mirrors the session so `getAccessToken` stays referentially
   // stable across refreshes: the Stigmer client, and every hook built on
   // it, is not recreated on each renewal.
   const sessionRef = useRef(session);
   sessionRef.current = session;
-  const getAccessToken = useCallback(() => sessionRef.current?.accessToken ?? null, []);
+  const getAccessToken = useCallback(
+    () => sessionRef.current?.accessToken ?? null,
+    // Stryker disable next-line ArrayDeclaration: the getter reads the ref, never the render, so any dependency list keeps it alike
+    [],
+  );
 
-  const adopt = useCallback((next: SessionView | null) => {
-    setSession(next);
-    if (next !== null && !next.keptBetweenLaunches && !import.meta.env.DEV) {
-      toast.message("This computer has no keychain the app can use, so you will sign in again next time.", {
-        id: "sign-in-not-kept",
-      });
-    }
-  }, []);
+  const adopt = useCallback(
+    (next: SessionView | null) => {
+      setSession(next);
+      if (next !== null && !next.keptBetweenLaunches && !import.meta.env.DEV) {
+        toast.message("This computer has no keychain the app can use, so you will sign in again next time.", {
+          id: "sign-in-not-kept",
+        });
+      }
+    },
+    // Stryker disable next-line ArrayDeclaration: the callback reads nothing from the render, so any dependency list keeps it alike
+    [],
+  );
 
-  // The session the host already holds for this server, if any.
-  useEffect(() => {
-    let cancelled = false;
-    invoke<SessionView | null>("auth_session", { server })
-      .then(
-        (found) => {
-          if (!cancelled) adopt(found);
-        },
-        () => {
-          // The provider could not be asked: show the sign-in screen, and
-          // keep what the keychain holds for the next try.
-        },
-      )
-      .finally(() => {
-        if (!cancelled) setIsInitialized(true);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [server, adopt]);
+  // The session the host already holds for this server, if any. An answer
+  // that arrives after this provider left (another server) adopts nothing.
+  useEffect(
+    () => {
+      let cancelled = false;
+      invoke<SessionView | null>("auth_session", { server })
+        .then(
+          (found) => {
+            if (!cancelled) adopt(found);
+          },
+          () => {
+            // The provider could not be asked: show the sign-in screen, and
+            // keep what the keychain holds for the next try.
+          },
+        )
+        .finally(() => setIsInitialized(true));
+      return () => {
+        cancelled = true;
+      };
+    },
+    // Stryker disable next-line ArrayDeclaration: another server mounts another provider (the key above), so the list never changes while this one lives
+    [server, adopt],
+  );
 
   // Renew the access token ahead of its expiry; a refused renewal signs out.
   useEffect(() => {
@@ -200,24 +202,26 @@ function NativeAuthProvider({
     return () => clearTimeout(timer);
   }, [session, server, adopt]);
 
-  const login = useCallback(async () => {
-    setIsLoading(true);
-    try {
+  const login = useCallback(
+    async () => {
       adopt(await invoke<SessionView>("auth_sign_in", { server, signIn: nativeSignIn }));
-    } finally {
-      setIsLoading(false);
-    }
-  }, [server, nativeSignIn, adopt]);
+    },
+    // Stryker disable next-line ArrayDeclaration: another server or provider mounts another provider, so the list never changes while this one lives
+    [server, nativeSignIn, adopt],
+  );
 
-  const logout = useCallback(() => {
-    setSession(null);
-    void invoke("auth_sign_out", { server }).catch(() => {});
-  }, [server]);
+  const logout = useCallback(
+    () => {
+      setSession(null);
+      void invoke("auth_sign_out", { server }).catch(() => {});
+    },
+    // Stryker disable next-line ArrayDeclaration: another server mounts another provider, so the list never changes while this one lives
+    [server],
+  );
 
   const state: AuthState = {
     isAuthEnabled: true,
     isAuthenticated: session !== null && session.expiresAt > Date.now(),
-    isLoading,
     isInitialized,
     user: session?.user ?? null,
     getAccessToken,

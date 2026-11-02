@@ -77,37 +77,29 @@ function messageOf(error: unknown): string {
 export function ServerProvider({ children }: { children: ReactNode }) {
   const [origin, setOrigin] = useState("");
   const [connection, setConnection] = useState<ServerConnection>({ phase: "connecting" });
-  const [label, setLabel] = useState("");
   const [attempt, setAttempt] = useState(0);
   const [isChoosing, setChoosing] = useState(false);
 
   // Which server: the person's choice, else the build's default.
-  useEffect(() => {
-    let cancelled = false;
-    invoke<string>("current_server", { buildDefault: buildDefaultServer() }).then(
-      (chosen) => {
-        if (!cancelled) setOrigin(chosen);
-      },
-      (error: unknown) => {
-        if (!cancelled) setConnection({ phase: "unusable", detail: messageOf(error) });
-      },
-    );
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  useEffect(
+    () => {
+      invoke<string>("current_server", { buildDefault: buildDefaultServer() }).then(setOrigin, (error: unknown) =>
+        setConnection({ phase: "unusable", detail: messageOf(error) }),
+      );
+    },
+    // Stryker disable next-line ArrayDeclaration: the effect reads nothing from the render, so any dependency list runs it once
+    [],
+  );
 
   // What it says: getServerInfo, before anyone signs in.
   useEffect(() => {
     if (origin === "") return;
     let cancelled = false;
     setConnection({ phase: "connecting" });
-    setLabel(hostOf(origin));
     const client = new Stigmer({ baseUrl: origin, fetch: tauriFetch });
     client.platform.getServerInfo().then(
       (info) => {
         if (cancelled) return;
-        setLabel(serverLabel(info, origin));
         setConnection({
           phase: "connected",
           outcome: connectOutcome(info),
@@ -124,19 +116,34 @@ export function ServerProvider({ children }: { children: ReactNode }) {
     };
   }, [origin, attempt]);
 
-  const retry = useCallback(() => setAttempt((n) => n + 1), []);
+  const retry = useCallback(
+    // Stryker disable next-line ArithmeticOperator: the attempt only has to change for the effect to connect again
+    () => setAttempt((n) => n + 1),
+    // Stryker disable next-line ArrayDeclaration: the callback reads nothing from the render, so any dependency list keeps it alike
+    [],
+  );
 
-  const choose = useCallback(async (url: string): Promise<string | null> => {
-    try {
-      const chosen = await invoke<string>("choose_server", { url });
-      setOrigin(chosen);
-      setAttempt((n) => n + 1);
-      setChoosing(false);
-      return null;
-    } catch (error) {
-      return messageOf(error);
-    }
-  }, []);
+  const choose = useCallback(
+    async (url: string): Promise<string | null> => {
+      try {
+        const chosen = await invoke<string>("choose_server", { url });
+        setOrigin(chosen);
+        // Stryker disable next-line ArithmeticOperator: the attempt only has to change, so choosing the same server connects again
+        setAttempt((n) => n + 1);
+        setChoosing(false);
+        return null;
+      } catch (error) {
+        return messageOf(error);
+      }
+    },
+    // Stryker disable next-line ArrayDeclaration: the callback reads nothing from the render, so any dependency list keeps it alike
+    [],
+  );
+
+  // How the screens name the server: as it named itself once it answered,
+  // else by its host.
+  const label =
+    connection.phase === "connected" ? serverLabel(connection, origin) : origin === "" ? "" : hostOf(origin);
 
   const state = useMemo(
     () => ({ origin, label, connection, retry, choose, isChoosing, setChoosing }),

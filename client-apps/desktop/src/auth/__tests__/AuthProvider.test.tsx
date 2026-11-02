@@ -141,6 +141,54 @@ describe("DSK-06 the sign-in stays out of web storage", () => {
   });
 });
 
+describe("the provider's lifetime", () => {
+  it("is not initialized until the host has answered", async () => {
+    let answer: (found: SessionView | null) => void = () => {};
+    mockTauri({ auth_session: () => new Promise((resolve) => (answer = resolve)) });
+    renderSignIn();
+
+    expect(stateLine()).toContain("initialized=false");
+    await act(async () => answer(null));
+    expect(stateLine()).toContain("initialized=true");
+  });
+
+  it("adopts nothing the host answers after the provider left", async () => {
+    vi.stubEnv("DEV", false);
+    sonner.message.mockReset();
+    let answer: (found: SessionView | null) => void = () => {};
+    mockTauri({ auth_session: () => new Promise((resolve) => (answer = resolve)) });
+    const { unmount } = renderSignIn();
+
+    unmount();
+    await act(async () => answer({ ...view("late", Date.now() + 60 * MINUTE), keptBetweenLaunches: false }));
+    expect(sonner.message).not.toHaveBeenCalled();
+    vi.unstubAllEnvs();
+  });
+
+  it("starts a new sign-in state for another server, never showing the old one's", async () => {
+    mockTauri({
+      auth_session: (args) =>
+        args.server === SERVER ? view("access-acme", Date.now() + 60 * MINUTE) : new Promise(() => {}),
+    });
+    const { rerender } = renderSignIn();
+    await waitFor(() => expect(stateLine()).toContain("token=access-acme"));
+
+    rerender(
+      <AuthProvider mode="sign-in" server="https://stigmer.other.internal" nativeSignIn={ACME}>
+        <Probe />
+      </AuthProvider>,
+    );
+
+    expect(stateLine()).toContain("authenticated=false");
+    expect(stateLine()).toContain("token=null");
+  });
+
+  it("refuses to be read outside the provider", () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(() => render(<Probe />)).toThrowError("useAuth must be used within AuthProvider");
+  });
+});
+
 describe("a sign-in nothing keeps", () => {
   it("says, once a person signs in, that the app will ask again next time when no keychain keeps it", async () => {
     vi.stubEnv("DEV", false);
@@ -254,6 +302,36 @@ describe("the session", () => {
     });
     expect(stateLine()).toContain("authenticated=true");
     expect(stateLine()).toContain("token=access-1");
+  });
+
+  it("reads a session the host answers already expired as signed out", async () => {
+    // The renewal never answers, so only the expiry decides.
+    mockTauri({ auth_session: () => view("access-old", NOW - MINUTE), auth_refresh: () => new Promise(() => {}) });
+    renderSignIn();
+
+    await waitFor(() => expect(stateLine()).toContain("initialized=true"));
+    expect(stateLine()).toContain("authenticated=false");
+  });
+
+  it("stops renewing once the person signs out", async () => {
+    const refreshes: CommandArgs[] = [];
+    mockTauri({
+      auth_session: () => view("access-1", NOW + 20 * MINUTE),
+      auth_refresh: (args) => {
+        refreshes.push(args);
+        return view("access-2", NOW + 80 * MINUTE);
+      },
+      auth_sign_out: () => null,
+    });
+    renderSignIn();
+    await waitFor(() => expect(stateLine()).toContain("token=access-1"));
+
+    await userEvent.click(screen.getByRole("button", { name: "sign out" }));
+    await act(async () => {
+      vi.advanceTimersByTime(30 * MINUTE);
+    });
+
+    expect(refreshes).toEqual([]);
   });
 
   it("signs out by clearing the session and revoking its refresh token", async () => {

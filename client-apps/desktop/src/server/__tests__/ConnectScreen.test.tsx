@@ -86,6 +86,19 @@ function host(chosen: string | null = null, extra: Parameters<typeof mockTauri>[
   });
 }
 
+function ChoosingProbe() {
+  const { label, isChoosing, setChoosing, choose } = useServer();
+  return (
+    <div>
+      <p data-testid="choosing">
+        {label} {String(isChoosing)}
+      </p>
+      <button onClick={() => setChoosing(true)}>open the form</button>
+      <button onClick={() => void choose("api.stigmer.ai")}>choose the cloud</button>
+    </div>
+  );
+}
+
 /** Chooses a server through the form, from whatever screen shows. */
 let chooseFromScreen: (url: string) => Promise<void> = async () => {};
 
@@ -223,6 +236,24 @@ describe("DSK-07 choosing another server", () => {
 
     await waitFor(() => expect(screen.getByTestId("outcome").textContent).toBe("https://other.acme.internal open"));
     expect(tauri.callsTo("choose_server").map((call) => call.url)).toEqual(["http://intranet", "other.acme.internal"]);
+  });
+
+  it("closes the form once a server is chosen, and names the server as it named itself", async () => {
+    host(ACME, { choose_server: () => CLOUD });
+    answers(ACME, async () => ({ authenticationRequired: false, deploymentMode: "local" }));
+    answers(CLOUD, async () => ({ authenticationRequired: false, deploymentMode: "cloud" }));
+    render(
+      <ServerProvider>
+        <ChoosingProbe />
+      </ServerProvider>,
+    );
+    await waitFor(() => expect(screen.getByTestId("choosing").textContent).toBe("stigmer.acme.internal false"));
+
+    await userEvent.click(screen.getByRole("button", { name: "open the form" }));
+    expect(screen.getByTestId("choosing").textContent).toBe("stigmer.acme.internal true");
+    await userEvent.click(screen.getByRole("button", { name: "choose the cloud" }));
+
+    await waitFor(() => expect(screen.getByTestId("choosing").textContent).toBe("Stigmer Cloud false"));
   });
 
   it("goes back from the form to where the person was", async () => {
