@@ -15,7 +15,9 @@
  * write to Temporal can start it on any queue; the listing starts the
  * plugin's MCP server (a local program, for a stdio entry) wherever it
  * lands. So a listing whose task queue is a session's (`session:<id>`) is
- * refused before its activity is scheduled: another person's session
+ * refused before its activity is scheduled. The activity refuses a
+ * session's queue too (activities/list-plugin-tools.ts), for a workflow that
+ * schedules it there directly; between them another person's session
  * sandbox never runs a program a stranger's plugin names. The refusal adds
  * no command ahead of the activity, so a history recorded before it
  * replays unchanged. A listing forged onto a live connect sandbox's queue
@@ -31,7 +33,7 @@
 
 import { ApplicationFailure, proxyActivities, workflowInfo } from "@temporalio/workflow";
 
-import { SESSION_QUEUE_PREFIX } from "../shared/task-queues.js";
+import { LISTING_ON_SESSION_QUEUE_FAILURE_TYPE, SESSION_QUEUE_PREFIX } from "../shared/task-queues.js";
 
 import type {
   createListPluginToolsActivities,
@@ -72,9 +74,6 @@ function toWire(listing: ListPluginToolsOutput): ListPluginToolsWorkflowOutput {
     })),
   };
 }
-
-/** The failure type of a listing refused for running on a session's queue. */
-export const LISTING_ON_SESSION_QUEUE_FAILURE_TYPE = "ListingOnSessionQueue";
 
 export async function listPluginTools(input: ListPluginToolsWorkflowInput): Promise<ListPluginToolsWorkflowOutput> {
   const { taskQueue } = workflowInfo();

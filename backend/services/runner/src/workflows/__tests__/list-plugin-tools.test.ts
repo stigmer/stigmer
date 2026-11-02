@@ -16,7 +16,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ApplicationFailure } from "@temporalio/common";
 
 import type { ListPluginToolsInput, ListPluginToolsOutput } from "../../activities/list-plugin-tools.js";
-import { LISTING_ON_SESSION_QUEUE_FAILURE_TYPE, listPluginTools } from "../list-plugin-tools.js";
+import { LISTING_ON_SESSION_QUEUE_FAILURE_TYPE } from "../../shared/task-queues.js";
+import { listPluginTools } from "../list-plugin-tools.js";
 import type { ListPluginToolsWorkflowInput } from "../types.js";
 
 const temporal = vi.hoisted(() => ({
