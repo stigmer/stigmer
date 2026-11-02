@@ -171,120 +171,145 @@ export async function getRunnerConfig(): Promise<RunnerConfig> {
 export function useEmbeddedRunner(): UseEmbeddedRunnerResult {
   const [isRunning, setIsRunning] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
-  const [stoppedUnexpectedly, setStoppedUnexpectedly] = useState(false);
+  const [hasRun, setHasRun] = useState(false);
   const [activeSessions, setActiveSessions] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const startingRef = useRef<Promise<void> | null>(null);
-  // Whether the last read found the runner up: a later read that finds it
-  // gone, with no stop asked for, is a runner that stopped by itself.
-  const runningRef = useRef(false);
   // The conversations the window holds: added when one opens, dropped when
   // it closes. Restart gives each back to a new runner.
   const heldSessionsRef = useRef(new Set<string>());
 
-  const markRunning = useCallback((running: boolean) => {
-    if (runningRef.current && !running) setStoppedUnexpectedly(true);
-    runningRef.current = running;
-    setIsRunning(running);
-  }, []);
+  // The app never stops the runner while the window lives, so one that has
+  // been up and is not up now stopped by itself (runner-state.ts).
+  const markRunning = useCallback(
+    (running: boolean) => {
+      if (running) setHasRun(true);
+      setIsRunning(running);
+    },
+    // Stryker disable next-line ArrayDeclaration: the callback reads nothing from the render, so any dependency list keeps it alike
+    [],
+  );
 
-  const ensureRunning = useCallback(async (): Promise<void> => {
-    // One check-and-start at a time. The guard covers the status read as well
-    // as the start: set after the read, two callers arriving together would
-    // both see "not running" and both start, and the host refuses the second
-    // (stigmer/stigmer#1505). It clears once the attempt settles, so a later
-    // call reads the host again and restarts a runner that has since exited.
-    if (!startingRef.current) {
-      const attempt = (async () => {
-        const status = await invoke<RunnerStatus>("runner_status");
-        if (status.running) {
+  const ensureRunning = useCallback(
+    async (): Promise<void> => {
+      // One check-and-start at a time. The guard covers the status read as well
+      // as the start: set after the read, two callers arriving together would
+      // both see "not running" and both start, and the host refuses the second
+      // (stigmer/stigmer#1505). It clears once the attempt settles, so a later
+      // call reads the host again and restarts a runner that has since exited.
+      if (!startingRef.current) {
+        const attempt = (async () => {
+          const status = await invoke<RunnerStatus>("runner_status");
+          if (status.running) {
+            markRunning(true);
+            setActiveSessions(status.activeSessions);
+            return;
+          }
+          setIsStarting(true);
+          const config = await getRunnerConfig();
+          await invoke("start_runner", { config });
+          // A new runner holds no conversation. Give it every one the window
+          // holds, so a runner that stopped by itself and starts again (from
+          // Restart, or because another conversation opened) serves them all.
+          // The host's add is idempotent, so the caller's own add that follows
+          // is an acknowledgement.
+          for (const sessionId of heldSessionsRef.current) {
+            await invoke<string>("add_session", { sessionId });
+          }
           markRunning(true);
-          setActiveSessions(status.activeSessions);
-          return;
-        }
-        setIsStarting(true);
-        const config = await getRunnerConfig();
-        await invoke("start_runner", { config });
-        // A new runner holds no conversation. Give it every one the window
-        // holds, so a runner that stopped by itself and starts again (from
-        // Restart, or because another conversation opened) serves them all.
-        // The host's add is idempotent, so the caller's own add that follows
-        // is an acknowledgement.
-        for (const sessionId of heldSessionsRef.current) {
-          await invoke<string>("add_session", { sessionId });
-        }
-        markRunning(true);
-        setStoppedUnexpectedly(false);
-        setError(null);
-      })();
-      startingRef.current = attempt;
-      attempt
-        .finally(() => {
-          if (startingRef.current === attempt) startingRef.current = null;
-          setIsStarting(false);
-        })
-        .catch(() => {});
-    }
+          setError(null);
+        })();
+        startingRef.current = attempt;
+        attempt
+          .finally(() => {
+            // Stryker disable next-line ConditionalExpression: no other attempt can begin while this one holds the guard, so the check holds; it keeps a later change from clearing an attempt that is not this one
+            if (startingRef.current === attempt) startingRef.current = null;
+            setIsStarting(false);
+          })
+          .catch(() => {});
+      }
 
-    try {
-      await startingRef.current;
-    } catch (err) {
-      setError(String(err));
-      runningRef.current = false;
-      setIsRunning(false);
-      throw err;
-    }
-  }, [markRunning]);
+      try {
+        await startingRef.current;
+      } catch (err) {
+        setError(String(err));
+        setIsRunning(false);
+        throw err;
+      }
+    },
+    // Stryker disable next-line ArrayDeclaration: markRunning never changes, so any dependency list keeps this alike
+    [markRunning],
+  );
 
-  const addSession = useCallback(async (sessionId: string): Promise<string> => {
-    heldSessionsRef.current.add(sessionId);
-    await ensureRunning();
-    const taskQueue = await invoke<string>("add_session", { sessionId });
-    setActiveSessions((prev) =>
-      prev.includes(sessionId) ? prev : [...prev, sessionId],
-    );
-    return taskQueue;
-  }, [ensureRunning]);
-
-  const refreshStatus = useCallback(async (): Promise<void> => {
-    try {
-      const status = await invoke<RunnerStatus>("runner_status");
-      markRunning(status.running);
-      setActiveSessions(status.activeSessions);
-    } catch {
-      // Status polling is best-effort; a transient IPC failure must not surface.
-    }
-  }, [markRunning]);
-
-  const removeSession = useCallback(async (sessionId: string): Promise<void> => {
-    heldSessionsRef.current.delete(sessionId);
-    await invoke("remove_session", { sessionId });
-    // The runner keeps the worker alive in the background when a run is
-    // still in flight (deferred teardown), so reconcile from the runner's truth
-    // rather than optimistically dropping the session — a backgrounded run must
-    // stay visible (and drives the "running in background" indicator).
-    await refreshStatus();
-  }, [refreshStatus]);
-
-  const restart = useCallback(async (): Promise<void> => {
-    try {
+  const addSession = useCallback(
+    async (sessionId: string): Promise<string> => {
+      heldSessionsRef.current.add(sessionId);
       await ensureRunning();
-    } catch {
-      // ensureRunning recorded the failure; the row shows it with Try again.
-      return;
-    }
-    await refreshStatus();
-  }, [ensureRunning, refreshStatus]);
+      const taskQueue = await invoke<string>("add_session", { sessionId });
+      setActiveSessions((prev) =>
+        prev.includes(sessionId) ? prev : [...prev, sessionId],
+      );
+      return taskQueue;
+    },
+    // Stryker disable next-line ArrayDeclaration: ensureRunning never changes, so any dependency list keeps this alike
+    [ensureRunning],
+  );
 
-  const updateRunnerToken = useCallback(async (token: string | null): Promise<void> => {
-    const status = await invoke<RunnerStatus>("runner_status");
-    if (!status.running) return;
-    await invoke("update_runner_token", { token });
-  }, []);
+  const refreshStatus = useCallback(
+    async (): Promise<void> => {
+      try {
+        const status = await invoke<RunnerStatus>("runner_status");
+        markRunning(status.running);
+        setActiveSessions(status.activeSessions);
+      } catch {
+        // Status polling is best-effort; a transient IPC failure must not surface.
+      }
+    },
+    // Stryker disable next-line ArrayDeclaration: markRunning never changes, so any dependency list keeps this alike
+    [markRunning],
+  );
+
+  const removeSession = useCallback(
+    async (sessionId: string): Promise<void> => {
+      heldSessionsRef.current.delete(sessionId);
+      await invoke("remove_session", { sessionId });
+      // The runner keeps the worker alive in the background when a run is
+      // still in flight (deferred teardown), so reconcile from the runner's truth
+      // rather than optimistically dropping the session — a backgrounded run must
+      // stay visible (and drives the "running in background" indicator).
+      await refreshStatus();
+    },
+    // Stryker disable next-line ArrayDeclaration: refreshStatus never changes, so any dependency list keeps this alike
+    [refreshStatus],
+  );
+
+  const restart = useCallback(
+    async (): Promise<void> => {
+      try {
+        await ensureRunning();
+      } catch {
+        // ensureRunning recorded the failure; the row shows it with Try again.
+        return;
+      }
+      await refreshStatus();
+    },
+    // Stryker disable next-line ArrayDeclaration: neither callback ever changes, so any dependency list keeps this alike
+    [ensureRunning, refreshStatus],
+  );
+
+  const updateRunnerToken = useCallback(
+    async (token: string | null): Promise<void> => {
+      const status = await invoke<RunnerStatus>("runner_status");
+      if (!status.running) return;
+      await invoke("update_runner_token", { token });
+    },
+    // Stryker disable next-line ArrayDeclaration: the callback reads nothing from the render, so any dependency list keeps it alike
+    [],
+  );
 
   const state = useMemo(
-    () => runnerStateOf({ isRunning, isStarting, stoppedUnexpectedly, error, activeSessions }),
-    [isRunning, isStarting, stoppedUnexpectedly, error, activeSessions],
+    () => runnerStateOf({ isRunning, isStarting, hasRun, error, activeSessions }),
+    [isRunning, isStarting, hasRun, error, activeSessions],
   );
 
   return {

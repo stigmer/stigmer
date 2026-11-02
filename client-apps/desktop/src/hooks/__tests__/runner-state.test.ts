@@ -13,7 +13,7 @@ import { runnerStateOf, runnerStatusLine, type RunnerFacts } from "../runner-sta
 const FACTS: RunnerFacts = {
   isRunning: false,
   isStarting: false,
-  stoppedUnexpectedly: false,
+  hasRun: false,
   error: null,
   activeSessions: [],
 };
@@ -31,8 +31,8 @@ describe("DSK-05 runnerStateOf", () => {
     });
   });
 
-  it("is stopped when a runner that was up is gone", () => {
-    expect(runnerStateOf({ ...FACTS, stoppedUnexpectedly: true })).toEqual({ kind: "stopped" });
+  it("is stopped when a runner that has been up is not up now", () => {
+    expect(runnerStateOf({ ...FACTS, hasRun: true })).toEqual({ kind: "stopped" });
   });
 
   it("is failed with the host's reason", () => {
@@ -41,16 +41,16 @@ describe("DSK-05 runnerStateOf", () => {
 
   it("shows a start in progress over everything, so Restart answers at once", () => {
     expect(
-      runnerStateOf({ ...FACTS, isStarting: true, isRunning: true, stoppedUnexpectedly: true, error: "x" }),
+      runnerStateOf({ ...FACTS, isStarting: true, isRunning: true, hasRun: true, error: "x" }),
     ).toEqual({ kind: "starting" });
   });
 
   it("puts a running runner over an older failure or stop", () => {
-    expect(runnerStateOf({ ...FACTS, isRunning: true, error: "x", stoppedUnexpectedly: true }).kind).toBe("ready");
+    expect(runnerStateOf({ ...FACTS, isRunning: true, error: "x", hasRun: true }).kind).toBe("ready");
   });
 
   it("puts a failed start over an older stop", () => {
-    expect(runnerStateOf({ ...FACTS, error: "x", stoppedUnexpectedly: true }).kind).toBe("failed");
+    expect(runnerStateOf({ ...FACTS, error: "x", hasRun: true }).kind).toBe("failed");
   });
 });
 

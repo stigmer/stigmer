@@ -82,17 +82,21 @@ export function useDesktopAttentionNotifications(): void {
 export function useOpenNotifiedConversation(): void {
   const navigate = useNavigate();
 
-  useEffect(() => {
-    let cancelled = false;
-    const listening = onNotificationClicked(({ data }) => {
-      if (cancelled) return;
-      void invoke("show_main_window");
-      const sessionId = data?.[NOTICE_SESSION_KEY];
-      if (sessionId) navigate(`/sessions/${encodeURIComponent(sessionId)}`);
-    });
-    return () => {
-      cancelled = true;
-      void listening.then((listener) => listener.unregister());
-    };
-  }, [navigate]);
+  useEffect(
+    () => {
+      let cancelled = false;
+      const listening = onNotificationClicked(({ data }) => {
+        if (cancelled) return;
+        void invoke("show_main_window");
+        const sessionId = data?.[NOTICE_SESSION_KEY];
+        if (sessionId) navigate(`/sessions/${encodeURIComponent(sessionId)}`);
+      });
+      return () => {
+        cancelled = true;
+        void listening.then((listener) => listener.unregister());
+      };
+    },
+    // Stryker disable next-line ArrayDeclaration: the listener navigates to an absolute path, which any navigate the router gave resolves alike
+    [navigate],
+  );
 }

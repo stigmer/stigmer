@@ -13,7 +13,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, renderHook } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { MemoryRouter, useLocation } from "react-router-dom";
+import { MemoryRouter, useLocation, useNavigate } from "react-router-dom";
 import type { UseAttentionNotificationsOptions } from "@stigmer/react-sdk";
 import type { NotificationClickedData } from "@choochmeque/tauri-plugin-notifications-api";
 import { mockTauri } from "../../__test-utils__/tauri";
@@ -88,6 +88,34 @@ describe("useDesktopAttentionNotifications", () => {
     expect(isShowing?.("s2")).toBe(false);
     focus.mockReturnValue(false);
     expect(isShowing?.("s1"), "a window in the background shows nothing").toBe(false);
+    focus.mockRestore();
+  });
+});
+
+describe("useDesktopAttentionNotifications: which conversation the window shows", () => {
+  it("reads a conversation only from a path that starts with /sessions/", () => {
+    const focus = vi.spyOn(document, "hasFocus").mockReturnValue(true);
+    renderHook(() => useDesktopAttentionNotifications(), { wrapper: at("/settings/sessions/s1") });
+    expect(lastOptions().isShowing?.("s1")).toBe(false);
+    focus.mockRestore();
+  });
+
+  it("follows the window to the next conversation it opens", async () => {
+    const focus = vi.spyOn(document, "hasFocus").mockReturnValue(true);
+    const { result } = renderHook(
+      () => {
+        useDesktopAttentionNotifications();
+        return useNavigate();
+      },
+      { wrapper: at("/sessions/s1") },
+    );
+
+    await act(async () => {
+      await result.current("/sessions/s2");
+    });
+
+    expect(lastOptions().isShowing?.("s2")).toBe(true);
+    expect(lastOptions().isShowing?.("s1")).toBe(false);
     focus.mockRestore();
   });
 });
