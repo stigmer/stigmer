@@ -227,7 +227,7 @@
       "id": "DSK-01",
       "promise": "Clicking the Dock icon reopens a closed window.",
       "pending": [
-        "stigmer#2622"
+        "stigmer#2845"
       ]
     },
     {
