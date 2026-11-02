@@ -13,6 +13,8 @@
 //! - `stop` shuts a healthy runner down over IPC, and force-kills one that ignores
 //!   the shutdown; `kill` ends it at once; either way the process is gone;
 //! - a fatal error the runner reports later marks it as not running.
+//! - a runner that dies on its own (a crash, a kill from outside) is reported as
+//!   not running, is reaped rather than left a zombie, and can be started again.
 //!
 //! They need `node` on `PATH`, as `ci.crate.yaml` and a developer machine have it;
 //! without it they fail, since a missing `node` there is a broken machine.
@@ -367,5 +369,69 @@ fn a_fatal_error_reported_later_marks_the_runner_as_not_running() {
             );
             tokio::time::sleep(Duration::from_millis(20)).await;
         }
+    });
+}
+
+/// Kill the runner from outside the host, the way a crash ends it.
+fn kill_from_outside(pid: u32) {
+    let status = std::process::Command::new("kill")
+        .args(["-9", &pid.to_string()])
+        .status()
+        .expect("run kill");
+    assert!(status.success(), "kill -9 {pid} failed");
+}
+
+#[test]
+fn a_runner_that_dies_on_its_own_is_reported_as_not_running_and_reaped() {
+    let log = RunnerLog::new();
+    let host = host();
+    block_on(async {
+        host.start(config("ready", &log)).await.expect("start");
+        host.add_session("s1").await.expect("add s1");
+        let pid = log.pid();
+        kill_from_outside(pid);
+
+        let deadline = Instant::now() + Duration::from_secs(10);
+        loop {
+            let status = host.status().await;
+            if !status.running {
+                assert!(status.active_sessions.is_empty(), "{status:?}");
+                assert_eq!(status.pid, None);
+                break;
+            }
+            assert!(
+                Instant::now() < deadline,
+                "a dead runner is still reported as running"
+            );
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        }
+        // `kill -0` succeeds on a zombie, so a gone pid means the host reaped it.
+        assert!(wait_until_gone(pid), "the dead runner {pid} was not reaped");
+    });
+}
+
+#[test]
+fn a_runner_that_died_on_its_own_can_be_started_again() {
+    let log = RunnerLog::new();
+    let host = host();
+    block_on(async {
+        host.start(config("ready", &log)).await.expect("start");
+        let first = log.pid();
+        kill_from_outside(first);
+
+        // No status read in between: a restart alone must notice the death.
+        let deadline = Instant::now() + Duration::from_secs(10);
+        loop {
+            match host.start(config("ready", &log)).await {
+                Ok(()) => break,
+                Err(RunnerHostError::AlreadyRunning) if Instant::now() < deadline => {
+                    tokio::time::sleep(Duration::from_millis(20)).await;
+                }
+                other => panic!("a restart after the runner died failed: {other:?}"),
+            }
+        }
+        let second = host.status().await.pid.expect("a second runner");
+        assert_ne!(second, first);
+        host.kill().await;
     });
 }
