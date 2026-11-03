@@ -27,7 +27,7 @@ import { writePidFile } from "../../state/pidfile.js";
 import { isProcessAlive } from "../../state/proc.js";
 import { loadStartupConfig } from "../../state/startup-config.js";
 import { DaemonEnvVar } from "../env.js";
-import { type UpReport, down, startupFailure, upForeground, waitForStack } from "../launch.js";
+import { type UpReport, down, isRunning, startupFailure, upForeground, waitForStack } from "../launch.js";
 import type { InternalDaemonDeps } from "../process.js";
 
 function tempDir(prefix: string): string {
@@ -471,12 +471,13 @@ function recordAsAnotherLife(path: string, pid: number): void {
   writeFileSync(path, `${pid}\nstarted=another life\n`);
 }
 
-// A program that is not Stigmer listening on a free port, as an editor or a
-// database might hold 7234. Its command line must not name Stigmer.
-async function foreignListener(): Promise<{ pid: number; port: number }> {
+// A program listening on a free port, as an editor or a database might hold
+// 7234. `argv` is the rest of its command line: only a Stigmer process names
+// Stigmer there.
+async function listener(argv: string[] = []): Promise<{ pid: number; port: number }> {
   const child = spawn(
     process.execPath,
-    ["-e", `require("node:net").createServer().listen(0, "127.0.0.1", function () { process.stdout.write(this.address().port + "\\n"); });`],
+    ["-e", `require("node:net").createServer().listen(0, "127.0.0.1", function () { process.stdout.write(this.address().port + "\\n"); });`, ...argv],
     { stdio: ["ignore", "pipe", "ignore"] },
   );
   const port = await new Promise<number>((resolve) => child.stdout.once("data", (chunk: Buffer) => resolve(Number.parseInt(chunk.toString(), 10))));
@@ -504,13 +505,39 @@ describe("down (records naming other programs now)", () => {
   });
 
   it("with no daemon on record, leaves a program that is not Stigmer on the server port alone", async () => {
-    const holder = await foreignListener();
+    const holder = await listener();
     const home = tempDir("stigmer-left-home-");
 
     expect(await down(home, holder.port)).toBe(false);
 
     await new Promise((resolve) => setTimeout(resolve, SIGNAL_GRACE_MS));
     expect(isProcessAlive(holder.pid)).toBe(true);
+  });
+
+  it("with no daemon on record, stops a Stigmer process holding the server port", async () => {
+    const holder = await listener(["stigmer-server"]);
+
+    expect(await down(tempDir("stigmer-left-home-"), holder.port)).toBe(true);
+
+    expect(isProcessAlive(holder.pid)).toBe(false);
+  });
+
+  it("with no daemon on record and nothing on the server port, reports nothing running", async () => {
+    expect(await down(tempDir("stigmer-left-home-"), await freePort())).toBe(false);
+  });
+});
+
+describe("isRunning", () => {
+  it("answers for the daemon recorded, never for a program that inherited its PID", async () => {
+    const daemon = await leftover("exit-after-a-moment");
+    const { home, data } = homeWithRecords({ daemon });
+    const port = await freePort();
+    expect(await isRunning(home, port)).toBe(true);
+
+    recordAsAnotherLife(join(data, "daemon.pid"), daemon);
+    expect(await isRunning(home, port)).toBe(false);
+    expect(existsSync(join(data, "daemon.pid"))).toBe(false);
+    expect(isProcessAlive(daemon)).toBe(true);
   });
 });
 

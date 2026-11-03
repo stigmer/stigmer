@@ -306,12 +306,15 @@ export async function down(home: string = homedir(), serverPort: number = SERVER
   return true;
 }
 
-/** Whether the daemon is running: the live daemon on record, else a server-port fallback. */
-export async function isRunning(home: string = homedir()): Promise<boolean> {
+/**
+ * Whether the daemon is running: the live daemon on record, else a server-port
+ * fallback. `serverPort` is that port; tests move it off the real one.
+ */
+export async function isRunning(home: string = homedir(), serverPort: number = SERVER_PORT): Promise<boolean> {
   const pidPath = join(dataDir(home), DAEMON_PID_FILE);
   if (recordedLiveProcess(pidPath) !== null) return true;
   removePidFile(pidPath); // stale (dead, a previous life of our own PID, or another program now)
-  return tcpConnects(SERVER_PORT, "127.0.0.1", 1000);
+  return tcpConnects(serverPort, "127.0.0.1", 1000);
 }
 
 // The process holding the server's port when its command line names Stigmer;

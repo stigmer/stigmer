@@ -1,8 +1,9 @@
 import { spawn } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { freePort } from "../../../__test-utils__/ports.js";
 import { temporalPidFile } from "../../paths.js";
 import { writePidFile } from "../../state/pidfile.js";
 import { isProcessAlive } from "../../state/proc.js";
@@ -69,7 +70,7 @@ describe("TemporalManager", () => {
 
   // stigmer#2750: stop signals Temporal's whole process group, so the record
   // is checked first; a PID the OS gave to another program is never signalled.
-  describe("stop beside a record that is not our Temporal", () => {
+  describe("beside a record that is not our Temporal", () => {
     async function detachedProcess(argv: string[]): Promise<number> {
       const child = spawn(process.execPath, ["-e", `process.stdout.write("ready\\n"); setInterval(() => {}, 1000);`, ...argv], {
         detached: true,
@@ -102,6 +103,54 @@ describe("TemporalManager", () => {
       mkdirSync(dirname(temporalPidFile(home)), { recursive: true });
       writeFileSync(temporalPidFile(home), `${pid}\nstarted=another life\n`);
       await expectStopLeavesAlone(home, pid);
+    });
+
+    // A stand-in `temporal` binary: it listens on the --port it is given,
+    // as the dev server's frontend does, and its command line names Temporal.
+    function fakeTemporal(dir: string): string {
+      const bin = join(dir, "temporal");
+      writeFileSync(
+        bin,
+        `#!${process.execPath}\nconst args = process.argv.slice(2);\nrequire("node:net").createServer().listen(Number(args[args.indexOf("--port") + 1]), "127.0.0.1");\n`,
+      );
+      chmodSync(bin, 0o755);
+      return bin;
+    }
+
+    it("starts its own server beside a record naming another program now, leaving that program alone", async () => {
+      const home = tempHome();
+      const stranger = await detachedProcess(["temporal", "server", "start-dev"]);
+      const pidFile = join(home, "temporal.pid");
+      writeFileSync(pidFile, `${stranger}\nstarted=another life\n`);
+      const manager = new TemporalManager({
+        binPath: fakeTemporal(home),
+        dataDir: join(home, "temporal-data"),
+        logFile: join(home, "logs", "temporal.log"),
+        pidFile,
+        lockFile: join(home, "temporal.lock"),
+        port: await freePort(),
+        uiPort: await freePort(),
+      });
+      try {
+        await manager.start();
+        const started = manager.getPid();
+        expect(started).not.toBeNull();
+        expect(started).not.toBe(stranger);
+        expect(await manager.isRunning()).toBe(true);
+        expect(isProcessAlive(stranger)).toBe(true);
+
+        await manager.stop();
+        // Our own child: gone once this process has reaped it.
+        await expect.poll(() => isProcessAlive(started!)).toBe(false);
+        expect(isProcessAlive(stranger)).toBe(true);
+      } finally {
+        await manager.stop();
+        try {
+          process.kill(-stranger, "SIGKILL");
+        } catch {
+          // already gone
+        }
+      }
     });
 
     it("leaves a process that is not Temporal alone, even recorded with its own start time", async () => {
