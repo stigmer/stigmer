@@ -7,9 +7,9 @@
  *
  * A fragment gets the gate's convention (the client, bound with `cast` so
  * pyright knows its type, only when it uses it), the page's prelude and its
- * hidden setup at module level, then its body. A body with a top-level
- * `return` or `await` goes inside a function, its imports kept at module
- * level. Only errors count; pyright's warnings do not, so an unused prelude
+ * hidden setup at module level, then its body. A body with a `return` or
+ * `await` and no function of its own goes inside one, its imports kept at
+ * module level. Only errors count; pyright's warnings do not, so an unused prelude
  * import is never one.
  */
 
@@ -100,7 +100,10 @@ function assemble(unit) {
   }
   a.addPrelude(unit.prelude.map((l) => l.text), unit.prelude.map((l) => l.line));
   a.addSource(unit.setup);
-  const wrap = /^(?:return\b|await\b|async\s+(?:for|with)\b)/m.test(lines.join("\n"));
+  // A step inside a handler (a `return` or `await` with no `def` of its own
+  // around it) compiles inside one.
+  const text = lines.join("\n");
+  const wrap = /^\s*(?:return\b|await\b|async\s+(?:for|with)\b)/m.test(text) && !/^\s*(?:async\s+)?def\s/m.test(text);
   if (!wrap) {
     a.addSource(unit.body);
     return a;

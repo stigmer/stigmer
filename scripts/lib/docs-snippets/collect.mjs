@@ -105,7 +105,9 @@ export function collectPage(page, src, firstId = 0) {
     }
     const setup = split.hiddenLines === 0 ? [] : pageLines(split.setup, fence.line + 1);
     const body = pageLines(split.body, fence.line + 1 + split.hiddenLines);
-    const kind = c.kind === "fragment" && classify({ ...fence, body: split.body }).kind === "file" ? "file" : c.kind;
+    // Whether it is a whole program is read from what the reader sees: a
+    // setup that declares a type does not make a fragment a file.
+    const kind = classify({ ...fence, body: split.body }).kind;
     units.push({ ...base, id: id++, kind, title: fenceTitle(fence), text: fence.body, setup, body, prelude: [], siblings: [] });
   }
 
