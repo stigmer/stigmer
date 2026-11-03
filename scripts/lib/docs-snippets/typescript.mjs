@@ -3,22 +3,27 @@
  * fence, compiled in one program against the workspace's own packages (their
  * built declarations, so `npm run build:libs` runs first).
  *
- * A fragment gets what it uses and does not declare: a context name
- * (`stigmer`, `id`) as an ambient declaration of its prelude's type, any
- * other name imported from the first of its prelude's entries that exports
- * it. A fragment with a top-level `return` (a step inside a handler) is
- * compiled inside an async function, its imports kept outside. Every file is
- * a module, so two fences never see each other's declarations.
+ * A fragment gets, in order: the gate's convention for what it uses and
+ * does not declare (the client, `stigmer` or `client`, as an ambient
+ * declaration; on a kit's pages, a name the kit's entry exports, imported
+ * from it), the page's prelude, its own hidden setup at module level, then
+ * its body. A fragment with a top-level `return` (a step inside a handler)
+ * is compiled inside an async function, its imports kept outside. Every
+ * file is a module, so two fences never see each other's declarations.
+ *
+ * Each unit compiles in a folder of its own, under its title when it has
+ * one, beside a copy of every titled fence above it that it imports
+ * (`./client.js`), so a page's files resolve as a reader's project would.
  *
  * The files are virtual, placed under the repository root so module
  * resolution finds the workspace's `node_modules`; nothing is written.
  */
 
 import { createRequire } from "node:module";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
-import { Assembly, bodyLines } from "./assemble.mjs";
-import { TYPESCRIPT_PRELUDES } from "./preludes.mjs";
+import { Assembly, located } from "./assemble.mjs";
+import { conventionFor } from "./preludes.mjs";
 
 const require = createRequire(import.meta.url);
 
@@ -39,7 +44,7 @@ const COMPILER_OPTIONS = {
 
 /**
  * Compiles the TypeScript units and returns their errors.
- * @param {{id: number, page: string, line: number, lang: string, kind: "file" | "fragment", prelude: object | null, body: string}[]} units
+ * @param {object[]} units collect.mjs's units of one language
  * @param {{repoRoot: string, ts?: typeof import("typescript")}} opts
  * @returns {{id: number, page: string, line: number, message: string}[]}
  */
@@ -48,14 +53,20 @@ export function checkTypeScript(units, { repoRoot, ts = require(join(repoRoot, "
   const dir = join(repoRoot, ".docs-snippets");
   const exportsOf = entryExports(ts, options, dir, units);
 
+  const assembled = new Map(units.map((u) => [u.id, assemble(ts, u, exportsOf)]));
+  const byId = new Map(units.map((u) => [u.id, u]));
   const files = new Map();
+  const texts = new Map();
   for (const unit of units) {
-    const ext = unit.lang === "tsx" ? "tsx" : "ts";
-    const fileName = join(dir, `snippet-${unit.id}.${ext}`);
-    files.set(fileName, { unit, assembly: assemble(ts, unit, exportsOf) });
+    const folder = join(dir, `u${unit.id}`);
+    const fileName = join(folder, unit.title !== "" ? unit.title : `snippet.${unit.lang === "tsx" ? "tsx" : "ts"}`);
+    const assembly = assembled.get(unit.id);
+    files.set(fileName, { unit, assembly });
+    texts.set(fileName, assembly.text());
+    for (const sibling of unit.siblings) texts.set(join(folder, sibling.path), assembled.get(byId.get(sibling.id).id).text());
   }
 
-  const host = virtualHost(ts, options, new Map([...files].map(([f, v]) => [f, v.assembly.text()])));
+  const host = virtualHost(ts, options, texts);
   const program = ts.createProgram([...files.keys()], options, host);
   const errors = [];
   for (const [fileName, { unit, assembly }] of files) {
@@ -64,14 +75,7 @@ export function checkTypeScript(units, { repoRoot, ts = require(join(repoRoot, "
     for (const d of diagnostics) {
       if (d.category !== ts.DiagnosticCategory.Error) continue;
       const line = d.start === undefined ? 0 : sf.getLineAndCharacterOfPosition(d.start).line + 1;
-      const pageLine = assembly.pageLine(line);
-      const message = ts.flattenDiagnosticMessageText(d.messageText, "\n");
-      errors.push({
-        id: unit.id,
-        page: unit.page,
-        line: pageLine ?? unit.line,
-        message: pageLine === null ? `${message} (in the gate's prelude for this fence)` : message,
-      });
+      errors.push(located(unit, assembly, line, ts.flattenDiagnosticMessageText(d.messageText, "\n")));
     }
   }
   return errors;
@@ -81,7 +85,7 @@ export function checkTypeScript(units, { repoRoot, ts = require(join(repoRoot, "
 // units' preludes name.
 function entryExports(ts, options, dir, units) {
   const entries = new Set();
-  for (const u of units) for (const e of u.prelude?.entries ?? []) entries.add(e);
+  for (const u of units) for (const e of conventionFor(u.page, "typescript").entries) entries.add(e);
   const probe = join(dir, "entries.ts");
   const text = [...entries].map((e, i) => `import * as e${i} from ${JSON.stringify(e)};\nexport { e${i} };`).join("\n");
   const host = virtualHost(ts, options, new Map([[probe, text]]));
@@ -112,6 +116,12 @@ function virtualHost(ts, options, files) {
     return getSourceFile(fileName, languageVersion, onError, shouldCreate);
   };
   host.fileExists = (fileName) => files.has(fileName) || fileExists(fileName);
+  // The virtual files' folders exist for module resolution, which asks for a
+  // folder before it looks for a file in it.
+  const folders = new Set();
+  for (const fileName of files.keys()) for (let d = dirname(fileName); !folders.has(d) && d !== dirname(d); d = dirname(d)) folders.add(d);
+  const directoryExists = host.directoryExists?.bind(host);
+  host.directoryExists = (dir) => folders.has(dir) || (directoryExists === undefined ? true : directoryExists(dir));
   host.readFile = (fileName) => files.get(fileName) ?? readFile(fileName);
   return host;
 }
@@ -197,47 +207,52 @@ function isReference(ts, id) {
 }
 
 function assemble(ts, unit, exportsOf) {
-  const lines = bodyLines(unit.body);
-  const first = unit.line + 1;
   const a = new Assembly();
   if (unit.kind === "file") {
-    a.addBody(lines, first);
+    a.addSource([...unit.setup, ...unit.body]);
     a.add("export {};");
     return a;
   }
 
-  const prelude = unit.prelude ?? TYPESCRIPT_PRELUDES.client;
-  const info = analyse(ts, unit.body, unit.lang === "tsx");
+  const convention = conventionFor(unit.page, "typescript");
+  const tsx = unit.lang === "tsx";
+  const text = (lines) => lines.map((l) => l.text).join("\n");
+  // Names are read over everything the fragment compiles with; the shape
+  // (a top-level return, a signature) over its body alone.
+  const scope = analyse(ts, [text(unit.prelude), text(unit.setup), text(unit.body)].join("\n"), tsx);
+  const info = analyse(ts, text(unit.body), tsx);
   // A signature block (a reference page's "Signature") declares without
   // implementing; it compiles as an ambient declaration, so the types it
   // names must still exist.
   const signature = info.signatureLines.size > 0 && info.onlySignatures;
-  for (const name of [...info.used].sort()) {
-    if (info.imported.has(name) || info.declared.has(name)) continue;
-    const contextType = prelude.context[name];
+  for (const name of [...scope.used].sort()) {
+    if (scope.imported.has(name) || scope.declared.has(name)) continue;
+    const contextType = convention.context[name];
     if (contextType !== undefined) {
       a.add(`declare const ${name}: ${contextType};`);
       continue;
     }
-    const entry = prelude.entries.find((e) => exportsOf.get(e)?.has(name));
+    const entry = convention.entries.find((e) => exportsOf.get(e)?.has(name));
     if (entry !== undefined) a.add(`import { ${name} } from ${JSON.stringify(entry)};`);
   }
   a.add("export {};");
+  a.addPrelude(unit.prelude.map((l) => l.text), unit.prelude.map((l) => l.line));
+  a.addSource(unit.setup);
 
   if (signature) {
-    lines.forEach((line, i) => a.addBody([info.signatureLines.has(i) ? `declare ${line}` : line], first + i));
+    unit.body.forEach((l, i) => a.addSource([{ text: info.signatureLines.has(i) ? `declare ${l.text}` : l.text, line: l.line }]));
     return a;
   }
   if (!info.topLevelReturn) {
-    a.addBody(lines, first);
+    a.addSource(unit.body);
     return a;
   }
-  lines.forEach((line, i) => {
-    if (info.importLines.has(i)) a.addBody([line], first + i);
+  unit.body.forEach((l, i) => {
+    if (info.importLines.has(i)) a.addSource([l]);
   });
   a.add("async function __snippet() {");
-  lines.forEach((line, i) => {
-    a.addBody([info.importLines.has(i) ? "" : line], first + i);
+  unit.body.forEach((l, i) => {
+    a.addSource([{ text: info.importLines.has(i) ? "" : l.text, line: l.line }]);
   });
   a.add("}");
   return a;

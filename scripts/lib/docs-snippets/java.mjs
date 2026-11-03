@@ -6,10 +6,12 @@
  *
  * Each fence gets a package of its own, so two fences' classes never meet. A
  * whole program (a type declaration) keeps its body and gains only that
- * package line. A fragment gets its prelude's imports, its own imports
- * hoisted above, and goes inside a method of a class whose fields are the
- * prelude's context names; a fragment that declares methods of its own at
- * the left margin is placed at class level instead.
+ * package line. A fragment gets the imports of the page's prelude, its
+ * hidden setup and its own, hoisted above a class whose fields are the
+ * gate's convention (the client) and the prelude's and setup's other lines;
+ * its body goes inside a method of that class, or at class level when it
+ * declares methods of its own at the left margin (an example that returns a
+ * value is the method it belongs to).
  */
 
 import { execFileSync } from "node:child_process";
@@ -17,8 +19,8 @@ import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSyn
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { Assembly, bodyLines } from "./assemble.mjs";
-import { JAVA_PRELUDES } from "./preludes.mjs";
+import { Assembly, located } from "./assemble.mjs";
+import { conventionFor } from "./preludes.mjs";
 
 /**
  * @param {object[]} units the Java units
@@ -33,13 +35,12 @@ export function checkJava(units, { repoRoot, classpathFile }) {
   const jar = readdirSync(target).find((f) => /^stigmer-sdk-.*\.jar$/.test(f) && !/-(sources|javadoc)\.jar$/.test(f));
   if (jar === undefined) throw new Error("no sdk/java/target/stigmer-sdk-*.jar: build the Java SDK first (mvn -q install -DskipTests in sdk/java)");
   const classpath = `${join(target, jar)}:${readFileSync(classpathFile, "utf8").trim()}`;
-  const protoPackages = stubPackages(classpath);
 
   const dir = mkdtempSync(join(tmpdir(), "docs-snippets-java-"));
   try {
     const files = new Map();
     for (const unit of units) {
-      const { assembly, className } = assemble(unit, protoPackages);
+      const { assembly, className } = assemble(unit);
       const pkgDir = join(dir, `s${unit.id}`);
       mkdirSync(pkgDir);
       const file = join(pkgDir, `${className}.java`);
@@ -93,15 +94,8 @@ function parseJavac(out, files) {
     if (entry === undefined) continue;
     const detail = [];
     for (let j = i + 3; j < lines.length && /^\s+(symbol|location|required|found|reason)/.test(lines[j]); j++) detail.push(lines[j].trim());
-    const pageLine = entry.assembly.pageLine(Number(m[2]));
     const message = [m[3], ...detail.filter((d) => d.startsWith("symbol"))].join(" ");
-    errors.push({
-      file: m[1],
-      id: entry.unit.id,
-      page: entry.unit.page,
-      line: pageLine ?? entry.unit.line,
-      message: pageLine === null ? `${message} (in the gate's prelude for this fence)` : message,
-    });
+    errors.push({ file: m[1], ...located(entry.unit, entry.assembly, Number(m[2]), message) });
   }
   return errors;
 }
@@ -111,47 +105,32 @@ const TYPE_DECLARATION = /^(?:public\s+|final\s+|abstract\s+)*(?:class|record|in
 // and an opening brace, never a statement keyword.
 const METHOD_AT_MARGIN = /^(?!(?:if|for|while|switch|try|catch|return|new|else|do|synchronized)\b)(?:(?:public|private|protected|static|final)\s+)*[A-Za-z_][\w<>[\],.?]*(?:<[^>]*>)?\s+\w+\s*\([^;]*\)\s*(?:throws\s+[\w.,\s]+)?\{\s*$/m;
 
-// Every package of the generated stubs jar on the classpath, so the prelude's
-// `ai.stigmer.**` names them all: a fragment's resource types resolve without
-// a list kept by hand.
-function stubPackages(classpath) {
-  const stubs = classpath.split(":").find((p) => /stigmer-apis-[^/]*\.jar$/.test(p));
-  if (stubs === undefined) throw new Error("the Java classpath holds no stigmer-apis jar (the generated stubs)");
-  const listing = execFileSync("jar", ["tf", stubs], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
-  const packages = new Set();
-  for (const entry of listing.split("\n")) {
-    if (!entry.endsWith(".class") || entry.includes("$")) continue;
-    packages.add(entry.slice(0, entry.lastIndexOf("/")).replaceAll("/", "."));
-  }
-  return [...packages].sort();
-}
-
-function assemble(unit, protoPackages) {
-  const lines = bodyLines(unit.body);
-  const first = unit.line + 1;
+function assemble(unit) {
   const a = new Assembly();
   a.add(`package s${unit.id};`);
+  const all = [...unit.setup, ...unit.body];
   if (unit.kind === "file") {
-    const pkgLine = lines.findIndex((l) => /^package\s+[\w.]+;/.test(l));
-    lines.forEach((line, i) => a.addBody([i === pkgLine ? "" : line], first + i));
-    const publicType = /^public\s+(?:final\s+|abstract\s+)*(?:class|record|interface|enum)\s+(\w+)/m.exec(unit.body);
-    return { assembly: a, className: publicType?.[1] ?? TYPE_DECLARATION.exec(unit.body)?.[1] ?? "Snippet" };
+    a.addSource(all.map((l) => (/^package\s+[\w.]+;/.test(l.text) ? { text: "", line: l.line } : l)));
+    const text = all.map((l) => l.text).join("\n");
+    const publicType = /^public\s+(?:final\s+|abstract\s+)*(?:class|record|interface|enum)\s+(\w+)/m.exec(text);
+    return { assembly: a, className: publicType?.[1] ?? TYPE_DECLARATION.exec(text)?.[1] ?? "Snippet" };
   }
-  const prelude = unit.prelude ?? JAVA_PRELUDES.sdk;
-  const imports = new Set(lines.flatMap((l, i) => (/^import\s+[\w.*]+;\s*$/.test(l) ? [i] : [])));
-  for (const line of prelude.imports) {
-    if (line === "import ai.stigmer.**;") a.add(...protoPackages.map((p) => `import ${p}.*;`));
-    else a.add(line);
-  }
-  lines.forEach((line, i) => {
-    if (imports.has(i)) a.addBody([line], first + i);
-  });
-  const rest = lines.filter((_, i) => !imports.has(i)).join("\n");
+  const convention = conventionFor(unit.page, "java");
+  const isImport = (l) => /^import\s+(?:static\s+)?[\w.*]+;\s*$/.test(l.text);
+  a.add(...convention.imports);
+  const preludeImports = unit.prelude.filter(isImport);
+  a.addPrelude(preludeImports.map((l) => l.text), preludeImports.map((l) => l.line));
+  a.addSource(unit.setup.filter(isImport));
+  a.addSource(unit.body.filter(isImport));
   a.add("class Snippet {");
-  for (const [name, type] of Object.entries(prelude.context)) a.add(`  ${type} ${name};`);
-  const classLevel = METHOD_AT_MARGIN.test(rest);
+  for (const [name, type] of Object.entries(convention.context)) a.add(`  ${type} ${name};`);
+  const preludeRest = unit.prelude.filter((l) => !isImport(l));
+  a.addPrelude(preludeRest.map((l) => l.text), preludeRest.map((l) => l.line));
+  a.addSource(unit.setup.filter((l) => !isImport(l)));
+  const rest = unit.body.filter((l) => !isImport(l));
+  const classLevel = METHOD_AT_MARGIN.test(rest.map((l) => l.text).join("\n"));
   if (!classLevel) a.add("  void snippet() throws Exception {");
-  lines.forEach((line, i) => a.addBody([imports.has(i) ? "" : line], first + i));
+  a.addSource(unit.body.map((l) => (isImport(l) ? { text: "", line: l.line } : l)));
   if (!classLevel) a.add("  }");
   a.add("}");
   return { assembly: a, className: "Snippet" };

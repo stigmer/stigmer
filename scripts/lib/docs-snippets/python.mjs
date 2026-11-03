@@ -5,10 +5,12 @@
  * it would in a reader's editor. Python 3.11 is the SDK's floor
  * (`sdk/python/pyproject.toml`), so the check reads the fences as 3.11.
  *
- * A fragment gets its prelude's imports and its context names (bound with
- * `cast`, so pyright knows their type, and only those it uses). A fragment
- * with a top-level `return` or `await` goes inside a function, its imports
- * kept at module level. Only errors count; pyright's warnings do not.
+ * A fragment gets the gate's convention (the client, bound with `cast` so
+ * pyright knows its type, only when it uses it), the page's prelude and its
+ * hidden setup at module level, then its body. A body with a top-level
+ * `return` or `await` goes inside a function, its imports kept at module
+ * level. Only errors count; pyright's warnings do not, so an unused prelude
+ * import is never one.
  */
 
 import { execFileSync } from "node:child_process";
@@ -16,8 +18,8 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { Assembly, bodyLines } from "./assemble.mjs";
-import { PYTHON_PRELUDES } from "./preludes.mjs";
+import { Assembly, located } from "./assemble.mjs";
+import { conventionFor } from "./preludes.mjs";
 
 /**
  * @param {object[]} units the Python units
@@ -59,13 +61,7 @@ export function checkPython(units, { repoRoot, python }) {
       if (d.severity !== "error") continue;
       const entry = files.get(d.file);
       if (entry === undefined) continue;
-      const pageLine = entry.assembly.pageLine(d.range.start.line + 1);
-      errors.push({
-        id: entry.unit.id,
-        page: entry.unit.page,
-        line: pageLine ?? entry.unit.line,
-        message: pageLine === null ? `${d.message} (in the gate's prelude for this fence)` : d.message,
-      });
+      errors.push(located(entry.unit, entry.assembly, d.range.start.line + 1, d.message));
     }
     return errors;
   } finally {
@@ -90,31 +86,32 @@ export function pythonImportLines(lines) {
 }
 
 function assemble(unit) {
-  const lines = bodyLines(unit.body);
-  const first = unit.line + 1;
   const a = new Assembly();
   if (unit.kind === "file") {
-    a.addBody(lines, first);
+    a.addSource([...unit.setup, ...unit.body]);
     return a;
   }
-  const prelude = unit.prelude ?? PYTHON_PRELUDES.sdk;
-  const text = lines.join("\n");
-  a.add("from typing import cast", ...prelude.imports);
-  for (const [name, type] of Object.entries(prelude.context)) {
-    if (new RegExp(`\\b${name}\\b`).test(text)) a.add(`${name} = cast(${JSON.stringify(type)}, None)`);
+  const convention = conventionFor(unit.page, "python");
+  const lines = unit.body.map((l) => l.text);
+  const used = [...unit.prelude, ...unit.setup, ...unit.body].map((l) => l.text).join("\n");
+  a.add(...convention.imports);
+  for (const [name, type] of Object.entries(convention.context)) {
+    if (new RegExp(`\\b${name}\\b`).test(used)) a.add(`${name} = cast(${JSON.stringify(type)}, None)`);
   }
-  const wrap = /^(?:return\b|await\b|async\s+(?:for|with)\b)/m.test(text);
+  a.addPrelude(unit.prelude.map((l) => l.text), unit.prelude.map((l) => l.line));
+  a.addSource(unit.setup);
+  const wrap = /^(?:return\b|await\b|async\s+(?:for|with)\b)/m.test(lines.join("\n"));
   if (!wrap) {
-    a.addBody(lines, first);
+    a.addSource(unit.body);
     return a;
   }
   const imports = pythonImportLines(lines);
-  lines.forEach((line, i) => {
-    if (imports.has(i)) a.addBody([line], first + i);
+  unit.body.forEach((l, i) => {
+    if (imports.has(i)) a.addSource([l]);
   });
   a.add("async def __snippet():", "    pass");
-  lines.forEach((line, i) => {
-    a.addBody([imports.has(i) || line === "" ? "" : `    ${line}`], first + i);
+  unit.body.forEach((l, i) => {
+    a.addSource([{ text: imports.has(i) || l.text === "" ? "" : `    ${l.text}`, line: l.line }]);
   });
   return a;
 }

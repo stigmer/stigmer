@@ -1,0 +1,121 @@
+/**
+ * Holds the docs snippet gate's four compilers against their real
+ * toolchains: a temporary docs tree with one fence that compiles and one
+ * planted break per language, each break reported at its page and line, and
+ * none of the good fences reported. The UX bar's LIB-04 (TypeScript) and
+ * SDK-03 (Go, Python, Java) are held by these titles.
+ *
+ * It needs what the gate needs (scripts/check-docs-snippets.mjs): the built
+ * workspace libraries, Go, a Python virtual environment with the stubs and
+ * the SDK (DOCS_SNIPPETS_PYTHON) and the Java SDK's classpath file
+ * (DOCS_SNIPPETS_JAVA_CLASSPATH). Lane `ci.docs-snippets` sets them up and
+ * runs this file; `test:root` does not, so a laptop with Node alone is not
+ * asked for four toolchains.
+ */
+import assert from "node:assert/strict";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { after, test } from "node:test";
+import { fileURLToPath } from "node:url";
+
+import { runGate } from "../../check-docs-snippets.mjs";
+
+const repoRoot = fileURLToPath(new URL("../../../", import.meta.url));
+
+function required(name) {
+  const value = process.env[name];
+  if (value === undefined || value === "") throw new Error(`${name} is not set; lane ci.docs-snippets sets it (scripts/check-docs-snippets.mjs says what it names)`);
+  return value;
+}
+
+const docsRoot = mkdtempSync(join(tmpdir(), "docs-snippets-compilers-"));
+after(() => rmSync(docsRoot, { recursive: true, force: true }));
+
+/** Writes one page and returns its path and the page line of each fence's first body line, by label. */
+function page(name, parts) {
+  const lines = [`# ${name}`, ""];
+  const at = {};
+  for (const part of parts) {
+    if (typeof part === "string") {
+      lines.push(part);
+      continue;
+    }
+    lines.push(`\`\`\`${part.lang}${part.meta ? ` ${part.meta}` : ""}`);
+    at[part.label] = lines.length + 1;
+    lines.push(...part.body, "```", "");
+  }
+  const path = `docs/${name}.mdx`;
+  mkdirSync(join(docsRoot, "docs"), { recursive: true });
+  writeFileSync(join(docsRoot, path), lines.join("\n"));
+  return { path, at };
+}
+
+const typescript = page("typescript", [
+  { lang: "typescript", label: "prelude", meta: "prelude", body: ['import { Stigmer } from "@stigmer/client";'] },
+  { lang: "typescript", label: "good", body: ['const local = new Stigmer({ baseUrl: "http://localhost:7234", getAccessToken: () => null });', "await stigmer.run.list({});"] },
+  { lang: "typescript", label: "setup", body: ["declare const user: { org: string };", "// ---cut---", "await stigmer.run.list({ org: user.org });"] },
+  { lang: "typescript", label: "client", meta: 'title="client.ts"', body: ['export const org = "acme";'] },
+  { lang: "typescript", label: "importer", meta: 'title="report.ts"', body: ['import { org } from "./client.js";', "", "export const where: string = org;"] },
+  {
+    lang: "tsx",
+    label: "broken",
+    body: ['import { AgentChat } from "@stigmer/react-sdk";', "", 'export const App = () => <AgentChat agnet="acme/ledger" />;'],
+  },
+]);
+
+const go = page("go", [
+  { lang: "go", label: "prelude", meta: "prelude", body: ["import (", '\t"fmt"', '\t"log"', ")"] },
+  { lang: "go", label: "good", body: ["me, err := client.IdentityAccount.WhoAmI(ctx)", "if err != nil {", "\tlog.Fatal(err)", "}", "fmt.Println(me)"] },
+  { lang: "go", label: "setup", body: ["type ledger struct{ org string }", "", "var books ledger", "// ---cut---", "fmt.Println(books.org)"] },
+  { lang: "go", label: "broken", body: ["agent, err := client.Agent.Get(ctx)", "fmt.Println(agent, err)"] },
+]);
+
+const python = page("python", [
+  { lang: "python", label: "good", body: ["me = client.identity_accounts.who_am_i()", "print(me)"] },
+  { lang: "python", label: "broken", body: ['agent = client.agents.get(id="agt_01", colour="red")'] },
+]);
+
+const java = page("java", [
+  { lang: "java", label: "good", body: ["var me = client.identityAccount.whoAmI();", "System.out.println(me);"] },
+  { lang: "java", label: "broken", body: ["var agents = client.agents();"] },
+]);
+
+const gate = (pages, languages) =>
+  runGate({
+    root: repoRoot,
+    docsRoot,
+    pages: pages.map((p) => p.path),
+    languages,
+    python: languages.includes("python") ? required("DOCS_SNIPPETS_PYTHON") : undefined,
+    javaClasspath: languages.includes("java") ? required("DOCS_SNIPPETS_JAVA_CLASSPATH") : undefined,
+  });
+
+/** The pages and lines a run reported, as `page:line`. */
+const where = (run) => [...new Set(run.errors.map((e) => `${e.page}:${e.line}`))].sort();
+
+test("LIB-04: a TypeScript example that does not compile is reported at its page and line; one that does is not", () => {
+  const run = gate([typescript], ["typescript"]);
+  assert.deepEqual(run.problems, []);
+  assert.deepEqual(where(run), [`${typescript.path}:${typescript.at.broken + 2}`]);
+  assert.match(run.errors[0].message, /agnet/);
+});
+
+test("SDK-03: a Go example that does not compile is reported at its page and line, its prelude's unused imports forgiven", () => {
+  const run = gate([go], ["go"]);
+  assert.deepEqual(run.problems, []);
+  assert.deepEqual(where(run), [`${go.path}:${go.at.broken}`]);
+  assert.match(run.errors[0].message, /not enough arguments/);
+});
+
+test("SDK-03: a Python example calling with a keyword the SDK lacks is reported at its page and line", () => {
+  const run = gate([python], ["python"]);
+  assert.deepEqual(where(run), [`${python.path}:${python.at.broken}`]);
+  assert.match(run.errors.map((e) => e.message).join("\n"), /colour/);
+});
+
+test("SDK-03: a Java example calling a method the SDK lacks is reported at its page and line", () => {
+  const run = gate([java], ["java"]);
+  assert.deepEqual(where(run), [`${java.path}:${java.at.broken}`]);
+  assert.match(run.errors[0].message, /agents\(\)/);
+});

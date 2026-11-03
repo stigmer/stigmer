@@ -6,21 +6,25 @@
  * import.
  *
  * A whole program (a `package` clause) is checked as it stands. A fragment
- * gets its prelude's imports (minus any name it imports itself), its context
- * names as package variables (only those it uses and does not declare at
- * package level), and goes inside a function, unless it declares functions
- * or types of its own at the left margin, when it stays at package level.
+ * gets one import block: the gate's convention (`context` and the SDK as
+ * `stigmer`), the page's prelude, its hidden setup's and its own, a later
+ * layer's import of a name or path replacing an earlier one's. Then the
+ * convention's names (`client`, `ctx`) as package variables, only those it
+ * uses and does not declare; the prelude's and the setup's other lines at
+ * package level; and its body inside a function, unless the body declares
+ * functions or types of its own at the left margin, when it stays at package
+ * level.
  *
  * Only "declared and not used" is ignored (the tool says why), and an unused
- * import the prelude added: a fragment uses the prelude it needs, not all of
- * it.
+ * import the convention or the prelude added: a fragment uses the part of
+ * the prelude it needs, not all of it.
  */
 
 import { execFileSync } from "node:child_process";
 import { join } from "node:path";
 
-import { Assembly, bodyLines } from "./assemble.mjs";
-import { GO_PRELUDES } from "./preludes.mjs";
+import { Assembly, located } from "./assemble.mjs";
+import { conventionFor } from "./preludes.mjs";
 
 const TOOL_DIR = new URL("./go/", import.meta.url).pathname;
 
@@ -45,14 +49,9 @@ export function checkGo(units, { repoRoot }) {
   const errors = [];
   for (const f of JSON.parse(out)) {
     const { unit, assembly } = byId.get(f.id);
-    const pageLine = f.line === 0 ? null : assembly.pageLine(f.line);
-    if (pageLine === null && /imported (?:as \w+ )?and not used/.test(f.message)) continue;
-    errors.push({
-      id: unit.id,
-      page: unit.page,
-      line: pageLine ?? unit.line,
-      message: pageLine === null ? `${f.message} (in the gate's prelude for this fence)` : f.message,
-    });
+    const given = f.line !== 0 && (assembly.pageLine(f.line) === null || assembly.fromPrelude(f.line));
+    if (given && /imported (?:as \w+ )?and not used/.test(f.message)) continue;
+    errors.push(located(unit, assembly, f.line, f.message));
   }
   return errors;
 }
@@ -86,7 +85,7 @@ export function goImports(lines) {
   for (let i = 0; i < lines.length; i++) {
     const single = IMPORT_LINE.exec(lines[i]);
     if (single !== null) {
-      imports.push({ name: single[1] ?? lastSegment(single[2]), path: single[2], line: i, alias: single[1] });
+      imports.push({ name: single[1] ?? packageName(single[2]), path: single[2], line: i, alias: single[1] });
       taken.add(i);
       continue;
     }
@@ -96,7 +95,7 @@ export function goImports(lines) {
       for (; j < lines.length && lines[j].trim() !== ")"; j++) {
         taken.add(j);
         const entry = BLOCK_ENTRY.exec(lines[j]);
-        if (entry !== null) imports.push({ name: entry[1] ?? lastSegment(entry[2]), path: entry[2], line: j, alias: entry[1] });
+        if (entry !== null) imports.push({ name: entry[1] ?? packageName(entry[2]), path: entry[2], line: j, alias: entry[1] });
       }
       taken.add(j);
       i = j;
@@ -105,47 +104,76 @@ export function goImports(lines) {
   return { imports, taken };
 }
 
-function lastSegment(path) {
-  const seg = path.split("/").pop();
-  return /^v\d+$/.test(seg) ? path.split("/").slice(-2, -1)[0] : seg;
+/** The name an unaliased import binds: the SDK's package is `stigmer`, a versioned proto package `<name>v1`. */
+export function packageName(path) {
+  if (path === "go.stigmer.ai/sdk") return "stigmer";
+  const parts = path.split("/");
+  const seg = parts.pop();
+  return /^v\d+$/.test(seg) ? `${parts.pop()}${seg}` : seg;
 }
 
+
 function assemble(unit) {
-  const lines = bodyLines(unit.body);
-  const first = unit.line + 1;
   const a = new Assembly();
-  const { imports, taken } = goImports(lines);
-  const paths = imports.map((i) => i.path);
+  const lines = (src) => src.map((l) => l.text);
+  const body = goImports(lines(unit.body));
+  const paths = body.imports.map((i) => i.path);
 
   if (unit.kind === "file") {
-    a.addBody(lines, first);
-    return { assembly: a, imports: paths };
+    const setup = goImports(lines(unit.setup));
+    a.addSource([...unit.setup, ...unit.body]);
+    return { assembly: a, imports: [...paths, ...setup.imports.map((i) => i.path)] };
   }
 
-  const prelude = unit.prelude ?? GO_PRELUDES.sdk;
-  const own = new Set(imports.map((i) => i.name));
-  const rest = lines.filter((_, i) => !taken.has(i)).join("\n");
-  const packageLevel = /^(?:func|type)\s/m.test(rest);
-  const declaredAtPackageLevel = new Set([...rest.matchAll(/^(?:var|const|func)\s+(\w+)/gm)].map((m) => m[1]));
-
+  const convention = conventionFor(unit.page, "go");
+  const prelude = goImports(lines(unit.prelude));
+  const setup = goImports(lines(unit.setup));
+  // Each layer's imports, earliest first; a later layer's import of the same
+  // name or path wins, so a fence that imports what the prelude does is not
+  // a duplicate.
+  const layers = [
+    { from: "convention", imports: Object.entries(convention.imports).map(([name, path]) => ({ name, path, alias: name === packageName(path) ? undefined : name })) },
+    { from: "prelude", src: unit.prelude, imports: prelude.imports },
+    { from: "setup", src: unit.setup, imports: setup.imports },
+    { from: "body", src: unit.body, imports: body.imports },
+  ];
+  const kept = [];
+  for (const layer of layers) {
+    for (const imp of layer.imports) {
+      for (let i = kept.length - 1; i >= 0; i--) if (kept[i].imp.name === imp.name || kept[i].imp.path === imp.path) kept.splice(i, 1);
+      kept.push({ layer, imp });
+    }
+  }
   a.add("package main", "", "import (");
-  for (const [name, path] of Object.entries(prelude.imports)) {
-    if (own.has(name)) continue;
-    a.add(name === lastSegment(path) ? `\t"${path}"` : `\t${name} "${path}"`);
-    paths.push(path);
+  for (const { layer, imp } of kept) {
+    const text = `\t${imp.alias ? `${imp.alias} ` : ""}"${imp.path}"`;
+    if (layer.from === "convention") a.add(text);
+    else if (layer.from === "prelude") a.addPrelude([text], [layer.src[imp.line].line]);
+    else a.addSource([{ text, line: layer.src[imp.line].line }]);
+    paths.push(imp.path);
   }
-  for (const imp of imports) a.addBody([`\t${imp.alias ? `${imp.alias} ` : ""}"${imp.path}"`], first + imp.line);
   a.add(")", "");
-  for (const [name, type] of Object.entries(prelude.context)) {
+
+  const rest = (src, taken) => src.filter((_, i) => !taken.has(i));
+  const preludeRest = rest(unit.prelude, prelude.taken);
+  const setupRest = rest(unit.setup, setup.taken);
+  const bodyRest = rest(unit.body, body.taken);
+  const packageLevelText = [...preludeRest, ...setupRest, ...(/^(?:func|type)\s/m.test(lines(bodyRest).join("\n")) ? bodyRest : [])];
+  const declaredAtPackageLevel = new Set([...lines(packageLevelText).join("\n").matchAll(/^(?:var|const|func)\s+(\w+)/gm)].map((m) => m[1]));
+  const used = lines([...preludeRest, ...setupRest, ...bodyRest]).join("\n");
+  for (const [name, type] of Object.entries(convention.context)) {
     if (declaredAtPackageLevel.has(name)) continue;
-    if (!new RegExp(`\\b${name}\\b`).test(rest)) continue;
+    if (!new RegExp(`\\b${name}\\b`).test(used)) continue;
     a.add(`var ${name} ${type}`);
   }
-  if (packageLevel) {
-    lines.forEach((line, i) => a.addBody([taken.has(i) ? "" : line], first + i));
+  a.addPrelude(lines(preludeRest), preludeRest.map((l) => l.line));
+  a.addSource(setupRest);
+  const blank = (src, taken) => src.map((l, i) => (taken.has(i) ? { text: "", line: l.line } : l));
+  if (/^(?:func|type)\s/m.test(lines(bodyRest).join("\n"))) {
+    a.addSource(blank(unit.body, body.taken));
   } else {
     a.add("func _() {");
-    lines.forEach((line, i) => a.addBody([taken.has(i) ? "" : line], first + i));
+    a.addSource(blank(unit.body, body.taken));
     a.add("}");
   }
   return { assembly: a, imports: paths };

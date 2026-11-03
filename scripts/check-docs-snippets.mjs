@@ -4,13 +4,22 @@
  * The docs snippet gate: every TypeScript, Go, Python and Java code fence
  * under `docs/` compiles against the package it shows, or says why it
  * cannot (`no-compile="<reason>"`). The YAML fences have their own gate
- * (`make check-docs-yaml`), whose three-kind shape this one follows: a whole
- * file, a fragment compiled inside a prelude, or a marked exception
- * (`scripts/lib/docs-snippets/fences.mjs`).
+ * (`make check-docs-yaml`), whose shape this one follows.
+ *
+ * A fence is a whole file, a fragment, a page's `prelude`, or marked
+ * `no-compile` (scripts/lib/docs-snippets/fences.mjs). A fragment compiles
+ * with the gate's convention (the client in scope, preludes.mjs), the page's
+ * prelude and its own hidden setup (the lines above its `---cut---` marker,
+ * which the site never shows). `docs/STYLE.md`, "Code examples", is the
+ * author's guide.
  *
  * A failing fence is named by page and line. A fence on a generated page is
  * fixed at its generator (the page carries the generator's marker), and the
- * report says so.
+ * report says so. The fences allowed to fail today are listed in
+ * test/docs-snippets-known-failing.json, which may only shrink
+ * (scripts/lib/docs-snippets/ratchet.mjs): a listed fence that now compiles
+ * fails the gate until `--prune` drops it, and with `--base` the list may not
+ * grow against the base branch's.
  *
  * What each compiler needs (CI's `ci.docs-snippets` lane sets all four up):
  *   - TypeScript: the workspace's built libraries (`npm run build:libs`);
@@ -18,16 +27,21 @@
  *   - Python: `--python=<interpreter>` of a virtual environment with the
  *     stubs and the SDK installed, and pyright (the root devDependency);
  *   - Java: `--java-classpath=<file>` holding the SDK's runtime classpath
- *     (`mvn dependency:build-classpath`), the SDK's classes first.
+ *     (`mvn dependency:build-classpath`), the SDK's jar built in sdk/java.
  *
  *   node scripts/check-docs-snippets.mjs [--lang=typescript,go,python,java]
  *     [--page=<path prefix>] [--python=<path>] [--java-classpath=<file>]
- *     [--summary]
+ *     [--base=<git ref>] [--prune] [--init-list] [--docs-root=<dir>] [--summary]
  *
- * Exits 1 when any fence fails, 2 on a usage error.
+ * `--docs-root` reads the pages (and the list) from another checkout, with
+ * this checkout's compilers and libraries. `--init-list` writes the list
+ * from today's failures, only where none exists. Exits 1 when the gate
+ * refuses, 2 on a usage error.
  */
 
 import { execFileSync } from "node:child_process";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { join, resolve } from "node:path";
 import process from "node:process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
@@ -36,6 +50,18 @@ import { collectUnits } from "./lib/docs-snippets/collect.mjs";
 import { checkGo } from "./lib/docs-snippets/go.mjs";
 import { checkJava } from "./lib/docs-snippets/java.mjs";
 import { checkPython } from "./lib/docs-snippets/python.mjs";
+import {
+  compareToList,
+  entryKey,
+  failingMultiset,
+  fenceDigest,
+  formatList,
+  growthAgainstBase,
+  KNOWN_FAILING_FILE,
+  parseList,
+  prune,
+  within,
+} from "./lib/docs-snippets/ratchet.mjs";
 import { checkTypeScript } from "./lib/docs-snippets/typescript.mjs";
 
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
@@ -50,14 +76,14 @@ export function docsPages(root) {
 }
 
 /**
- * Runs the gate and returns its findings; the CLI prints them.
- * @param {{root: string, pages: string[], languages: string[], python?: string, javaClasspath?: string}} opts
+ * Compiles the pages' fences and returns what it found; the CLI weighs it
+ * against the list.
+ * @param {{root: string, docsRoot?: string, pages: string[], languages: string[], python?: string, javaClasspath?: string}} opts
  */
-export function runGate({ root, pages, languages, python, javaClasspath }) {
-  const { units, skipped, problems } = collectUnits(root, pages);
-  const errors = [...problems];
+export function runGate({ root, docsRoot = root, pages, languages, python, javaClasspath }) {
+  const { units, skipped, problems } = collectUnits(docsRoot, pages);
   const counted = units.filter((u) => languages.includes(u.language));
-  const of = (lang) => counted.filter((u) => u.language === lang);
+  const errors = [];
   const checkers = {
     typescript: (u) => checkTypeScript(u, { repoRoot: root }),
     go: (u) => checkGo(u, { repoRoot: root }),
@@ -65,15 +91,54 @@ export function runGate({ root, pages, languages, python, javaClasspath }) {
     java: (u) => checkJava(u, { repoRoot: root, classpathFile: javaClasspath }),
   };
   for (const lang of languages) {
-    const list = of(lang);
+    const list = counted.filter((u) => u.language === lang);
     if (list.length > 0) errors.push(...checkers[lang](list));
   }
   const byUnit = new Map(counted.map((u) => [u.id, u]));
   return {
     units: counted,
     skipped: skipped.filter((s) => languages.includes(s.language)),
-    errors: errors.map((e) => ({ ...e, generated: e.id === undefined ? false : byUnit.get(e.id)?.generated === true })),
+    problems,
+    errors: dedupe(errors).map((e) => ({ ...e, generated: byUnit.get(e.id)?.generated === true })),
   };
+}
+
+// A prelude's error is found once per fragment it compiles through; it is
+// reported once per line and message.
+function dedupe(errors) {
+  const seen = new Set();
+  return errors.filter((e) => {
+    const key = `${e.page}:${e.line}:${e.message}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+/**
+ * The gate's verdict over one run: which failures the list covers, which it
+ * does not, the stale entries and the growth against the base.
+ * @param {{units: object[], errors: object[]}} run
+ * @param {{listed: Map<string, number>, base: Map<string, number> | null, pages: string[], languages: string[]}} list
+ */
+export function judge(run, { listed, base, pages, languages }) {
+  const failingIds = new Set(run.errors.map((e) => e.id));
+  const failing = failingMultiset(run.units, failingIds);
+  const scoped = within(listed, new Set(pages), new Set(languages));
+  const { unlisted, stale } = compareToList(failing, scoped);
+  const unlistedKeys = new Set(unlisted.map(entryKey));
+  return { failing, unlisted, stale, grown: growthAgainstBase(listed, base), unlistedKeys };
+}
+
+function readBaseList(docsRoot, ref) {
+  try {
+    const text = execFileSync("git", ["show", `${ref}:${KNOWN_FAILING_FILE}`], { cwd: docsRoot, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+    return parseList(text);
+  } catch (err) {
+    const stderr = String(err.stderr ?? "");
+    if (/does not exist|exists on disk, but not in/.test(stderr)) return null;
+    throw new Error(`cannot read ${KNOWN_FAILING_FILE} at ${ref}: ${stderr.trim() || err.message}`);
+  }
 }
 
 function main() {
@@ -85,6 +150,10 @@ function main() {
         page: { type: "string" },
         python: { type: "string" },
         "java-classpath": { type: "string" },
+        base: { type: "string" },
+        prune: { type: "boolean", default: false },
+        "init-list": { type: "boolean", default: false },
+        "docs-root": { type: "string" },
         summary: { type: "boolean", default: false },
       },
       strict: true,
@@ -99,33 +168,71 @@ function main() {
     process.stderr.write(`unknown --lang ${unknown.join(", ")} (known: ${ALL_LANGUAGES.join(", ")})\n`);
     process.exit(2);
   }
-  const pages = docsPages(repoRoot).filter((p) => values.page === undefined || p.startsWith(values.page));
-  const { units, skipped, errors } = runGate({
-    root: repoRoot,
-    pages,
-    languages,
-    python: values.python,
-    javaClasspath: values["java-classpath"],
-  });
+  const docsRoot = values["docs-root"] === undefined ? repoRoot : resolve(values["docs-root"]);
+  const listFile = join(docsRoot, KNOWN_FAILING_FILE);
+  if (values["init-list"] && existsSync(listFile)) {
+    process.stderr.write(`${KNOWN_FAILING_FILE} exists; --init-list only writes the first one (the list may only shrink: --prune)\n`);
+    process.exit(2);
+  }
+  const pages = docsPages(docsRoot).filter((p) => values.page === undefined || p.startsWith(values.page));
+  const run = runGate({ root: repoRoot, docsRoot, pages, languages, python: values.python, javaClasspath: values["java-classpath"] });
 
-  const failing = new Set(errors.map((e) => e.id ?? `${e.page}:${e.line}`));
+  if (values["init-list"]) {
+    const failing = failingMultiset(run.units, new Set(run.errors.map((e) => e.id)));
+    writeFileSync(listFile, formatList(failing));
+    process.stdout.write(`wrote ${KNOWN_FAILING_FILE}: ${[...failing.values()].reduce((a, b) => a + b, 0)} failing fences\n`);
+    return;
+  }
+
+  const listed = existsSync(listFile) ? parseList(readFileSync(listFile, "utf8")) : new Map();
+  const base = values.base === undefined ? null : readBaseList(docsRoot, values.base);
+  const verdict = judge(run, { listed, base, pages, languages });
+
+  if (values.prune) {
+    const scope = within(listed, new Set(pages), new Set(languages));
+    const kept = prune(scope, verdict.failing);
+    // Entries outside this run's pages and languages are kept as they are.
+    for (const [key, count] of listed) if (!scope.has(key)) kept.set(key, count);
+    writeFileSync(listFile, formatList(kept));
+    process.stdout.write(`pruned ${KNOWN_FAILING_FILE}: ${[...kept.values()].reduce((a, b) => a + b, 0)} listed\n`);
+    verdict.stale = [];
+  }
+
+  const failingUnits = new Set(run.errors.map((e) => e.id));
+  const unitById = new Map(run.units.map((u) => [u.id, u]));
+  const shown = run.errors.filter((e) => {
+    const u = unitById.get(e.id);
+    return u !== undefined && verdict.unlistedKeys.has(entryKey({ page: u.page, language: u.language, sha: fenceDigest(u.text) }));
+  });
   if (!values.summary) {
-    for (const e of errors) {
+    for (const p of run.problems) process.stdout.write(`${p.page}:${p.line}: ${p.message}\n`);
+    for (const e of shown) {
       const where = e.generated ? " (generated page: fix its generator)" : "";
       process.stdout.write(`${e.page}:${e.line}: ${e.message.replace(/\n/g, "\n    ")}${where}\n`);
     }
+    for (const s of verdict.stale) {
+      process.stdout.write(`${s.page}: a listed ${s.language} fence (${s.sha}) now compiles or is gone; run the gate with --prune to drop it from ${KNOWN_FAILING_FILE}\n`);
+    }
+    for (const g of verdict.grown) {
+      process.stdout.write(`${KNOWN_FAILING_FILE}: ${g.page} ${g.language} ${g.sha} is not on ${values.base}'s list; the list may only shrink, so fix the fence instead\n`);
+    }
   }
+  const listedCount = [...verdict.failing.values()].reduce((a, b) => a + b, 0) - verdict.unlisted.reduce((a, u) => a + u.extra, 0);
   const rows = languages.map((lang) => {
-    const list = units.filter((u) => u.language === lang);
-    const bad = list.filter((u) => failing.has(u.id));
-    return `${lang}: ${list.length} compiled (${list.filter((u) => !u.generated).length} hand-written), ${bad.length} failing (${bad.filter((u) => !u.generated).length} hand-written), ${skipped.filter((s) => s.language === lang).length} marked no-compile`;
+    const list = run.units.filter((u) => u.language === lang);
+    const bad = list.filter((u) => failingUnits.has(u.id));
+    return `${lang}: ${list.length} compiled (${list.filter((u) => !u.generated).length} hand-written), ${bad.length} failing (${bad.filter((u) => !u.generated).length} hand-written), ${run.skipped.filter((s) => s.language === lang).length} marked no-compile`;
   });
   process.stdout.write(`${rows.join("\n")}\n`);
-  if (errors.length > 0) {
-    process.stdout.write(`✗ docs snippets: ${failing.size} fences fail to compile\n`);
+  const refused = run.problems.length + verdict.unlisted.length + verdict.stale.length + verdict.grown.length;
+  if (refused > 0) {
+    const unlisted = verdict.unlisted.reduce((a, u) => a + u.extra, 0);
+    process.stdout.write(
+      `✗ docs snippets: ${unlisted} failing fences not on the list, ${verdict.stale.length} stale entries, ${verdict.grown.length} entries the base does not hold, ${run.problems.length} malformed fences (${listedCount} listed failures allowed)\n`,
+    );
     process.exit(1);
   }
-  process.stdout.write(`✓ docs snippets: every fence compiles or says why it cannot\n`);
+  process.stdout.write(`✓ docs snippets: every fence compiles or says why it cannot (${listedCount} listed failures allowed, ${KNOWN_FAILING_FILE})\n`);
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) main();
