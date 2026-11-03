@@ -105,11 +105,12 @@ block in `docs/` is compiled against the SDK it shows by
      (`# ---cut---` in Python) that the site, the copy button and the markdown
      exports never show. Setup holds declarations only: a name the prose
      introduced (`declare const user: PlatformUser;`, `var user PlatformUser`,
-     `user = PlatformUser()`, a Java field), with its real type (never `any`
-     or `Any`, which hides what the compiler should check), and only the
-     imports those declarations need. An import the visible code uses is shown, in the block or the page's
-     prelude, never hidden. Never logic the reader needs to understand the
-     example: if the hidden lines carry meaning, they belong in the body.
+     `user = PlatformUser()`, a Java field), with its real type (never `any` or
+     `Any`, which hides what the compiler should check), and only the imports
+     those declarations need. An import the visible code uses is shown, in the
+     block or the page's prelude, never hidden. Never logic the reader needs to
+     understand the example: if the hidden lines carry meaning, they belong in
+     the body.
 3. **Explicitly skipped** — ` ```go no-compile="reason" `, for pseudo-code, a
    sketch with elided arguments, or a wrong value shown beside a right one. The
    reason is mandatory and says why.
