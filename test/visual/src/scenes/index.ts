@@ -30,6 +30,9 @@ import {
   modelsHubLocalScene,
   modelsHubScene,
 } from "./models.tsx";
+import { agentChannelsScene, embedWidgetScene } from "./channel.tsx";
+import { channelAppsScene } from "./channel-app.tsx";
+import { conversationsScene } from "./conversations.tsx";
 import { agentEnvironmentScene, environmentNewScene, runSettingsScene } from "./environment.tsx";
 import { routineDetailScene, routineNewScene } from "./routine.tsx";
 import { modelSelectorScene } from "./settings.tsx";
@@ -94,12 +97,23 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "story-hours": hoursScene,
   "story-walls": wallsScene,
   "story-keys": keysScene,
+  "story-embed": embedWidgetScene,
   "routine-new": routineNewScene,
   "routine-disabled": () => routineDetailScene("disabled"),
   "routine-history": () => routineDetailScene("history"),
   "environment-new": environmentNewScene,
   "environment-agent": agentEnvironmentScene,
   "environment-run-settings": runSettingsScene,
+  "channel-list": () => agentChannelsScene("all"),
+  "channel-add": () => agentChannelsScene("chat-link"),
+  "channel-chat-link": () => agentChannelsScene("all"),
+  "channel-chat-link-embed": () => agentChannelsScene("all"),
+  "channel-connect-slack": () => agentChannelsScene("chat-link"),
+  "channel-connect-whatsapp": () => agentChannelsScene("chat-link"),
+  "channel-app-new": () => channelAppsScene(false),
+  "channel-app-setup": () => channelAppsScene(true),
+  "channel-conversations-needs-human": () => conversationsScene("agent"),
+  "channel-conversation-taken-over": () => conversationsScene("ada"),
   "agent-chat-panel": () => agentChatScene("busy", "panel", true),
   "agent-chat-popup-closed": () => agentChatScene("busy", "popup", false),
   "agent-chat-popup": () => agentChatScene("finished", "popup", true),

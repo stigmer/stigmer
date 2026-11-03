@@ -32,6 +32,7 @@ function sceneView(scene: Scene, mode: Mode): ReactElement {
       colorMode={mode}
       preset={drawing.preset}
       deploymentMode={drawing.deploymentMode}
+      publicBaseUrl={drawing.publicBaseUrl}
       className="gallery-scene"
     >
       {drawing.inOrganization ? <OrgProvider>{tree}</OrgProvider> : tree}

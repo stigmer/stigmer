@@ -406,8 +406,8 @@ pages:
       restrict origins, and pass per-user session context.
     medium: still
     why:
-      The page documents a rendered widget the reader currently never sees; one
-      frame of the widget on a host page shows the outcome.
+      The page documents a rendered widget; one frame of the widget on a host
+      page shows the outcome, beside the Embed tab the snippet comes from.
 
   guides/channels/connect-slack:
     fate: keep
@@ -471,8 +471,7 @@ pages:
     why:
       A console procedure the reader follows at their own pace — the
       Conversations inbox, timeline, and banners are depictable stills (the
-      connect-guide precedent); the page ships prose-only until the stills are
-      rendered.
+      connect-guide precedent).
 
   concepts/routines:
     fate: keep

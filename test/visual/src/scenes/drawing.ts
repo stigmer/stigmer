@@ -18,4 +18,10 @@ export interface Drawing {
   readonly preset?: ThemePresetId;
   /** Draw inside `OrgProvider`, for components that read the active organization. */
   readonly inOrganization?: boolean;
+  /**
+   * The server's public address the provider names, for a screen that shows
+   * one (a Slack app's events URL); the gallery's own client address when
+   * omitted, which no reader's screen would show.
+   */
+  readonly publicBaseUrl?: string;
 }

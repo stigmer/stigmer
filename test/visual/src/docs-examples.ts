@@ -74,5 +74,65 @@ export const ENVIRONMENT_EXAMPLE = {
   conversationRow: "data-science · the agent's default",
 } as const satisfies DocsExample;
 
+/** `docs/guides/channels/create-a-chat-link.mdx`: the chat link it makes, by its permanent ID. */
+export const CHAT_LINK_EXAMPLE = {
+  page: "guides/channels/create-a-chat-link",
+  channelId: "chn_01j9z3k8f2q4m6n7p8r9s0t1v2",
+  link: "https://app.stigmer.ai/chat/chn_01j9z3k8f2q4m6n7p8r9s0t1v2",
+  origin: "https://acme.com",
+} as const satisfies DocsExample;
+
+/** `docs/guides/channels/embed-an-agent.mdx`: the snippet it pastes and the site it lets embed. */
+export const EMBED_EXAMPLE = {
+  page: "guides/channels/embed-an-agent",
+  script: '<script src="https://app.stigmer.ai/embed.js" async></script>',
+  element: '<stigmer-agent channel="chn_01j9z3k8f2q4m6n7p8r9s0t1v2"></stigmer-agent>',
+  origin: "https://acme.com",
+} as const satisfies DocsExample;
+
+/** `docs/guides/channels/connect-slack.mdx`: the variance reporter's Slack channel and the vault its tools use, as its manifest prints them. */
+export const SLACK_EXAMPLE = {
+  page: "guides/channels/connect-slack",
+  agent: "variance-reporter",
+  channel: "variance-reporter-slack",
+  vault: "ledger-keys",
+} as const satisfies DocsExample;
+
+/** `docs/guides/channels/connect-whatsapp.mdx`: the WhatsApp channel, its number's ID and the Meta app it answers through. */
+export const WHATSAPP_EXAMPLE = {
+  page: "guides/channels/connect-whatsapp",
+  agent: "variance-reporter",
+  channel: "variance-reporter-whatsapp",
+  phoneNumberId: "106540352242922",
+  app: "acme-whatsapp",
+  vault: "ledger-keys",
+} as const satisfies DocsExample;
+
+/** `docs/guides/channels/bring-your-own-slack-app.mdx`: the Slack app it registers, by the bot name the workspace mentions. */
+export const SLACK_APP_EXAMPLE = {
+  page: "guides/channels/bring-your-own-slack-app",
+  name: "Acme Books",
+} as const satisfies DocsExample;
+
+/** `docs/guides/channels/take-over-conversations.mdx`: what its pictures show the platform and the controls saying. */
+export const TAKE_OVER_EXAMPLE = {
+  page: "guides/channels/take-over-conversations",
+  acknowledgment: "Someone from our team is looking at this and will reply here.",
+  takeOver: "Take over",
+  handBack: "Hand back to agent",
+  filter: "Needs human",
+} as const satisfies DocsExample;
+
 /** Every page's example, for the site's check. */
-export const DOCS_EXAMPLES: readonly DocsExample[] = [ROUTINE_EXAMPLE, AGENT_EXAMPLE, SKILL_EXAMPLE, ENVIRONMENT_EXAMPLE];
+export const DOCS_EXAMPLES: readonly DocsExample[] = [
+  ROUTINE_EXAMPLE,
+  AGENT_EXAMPLE,
+  SKILL_EXAMPLE,
+  ENVIRONMENT_EXAMPLE,
+  CHAT_LINK_EXAMPLE,
+  EMBED_EXAMPLE,
+  SLACK_EXAMPLE,
+  WHATSAPP_EXAMPLE,
+  SLACK_APP_EXAMPLE,
+  TAKE_OVER_EXAMPLE,
+];
