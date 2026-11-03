@@ -4,6 +4,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import {
   buildInventory,
+  countScreens,
   isGeneratedContent,
   isValidFate,
   parseClassification,
@@ -347,6 +348,83 @@ describe("buildInventory", () => {
     expect(violations).toContainEqual(
       expect.objectContaining({ kind: "unclassified-page", key: "index" }),
     );
+  });
+});
+
+describe("the medium a page declares", () => {
+  const SCREEN = '\n<Screen name="routine-new" alt="The New routine form" />\n';
+  const journey = entry({ diataxis: "how-to", medium: "screenshot-journey", why: "The reader compares screens." });
+  const still = entry({ medium: "still", why: "One screen shows the outcome." });
+
+  async function violationsOf(
+    pages: Record<string, { medium: Record<string, unknown>; body: string }>,
+    owed: Record<string, string> = {},
+  ) {
+    const dir = await setup({
+      "meta.json": meta({ pages: Object.keys(pages) }),
+      ...Object.fromEntries(Object.entries(pages).map(([key, page]) => [`${key}.mdx`, mdx(key, page.body)])),
+    });
+    const record = yamlOf({ pages: Object.fromEntries(Object.entries(pages).map(([key, page]) => [key, page.medium])), cohorts: {} });
+    return (await buildInventory(dir, record, owed)).violations.map((violation) => `${violation.kind} ${violation.key}`);
+  }
+
+  it("passes a still or journey page that shows a picture, and a none page that shows none", async () => {
+    expect(
+      await violationsOf({
+        "guides/journey": { medium: journey, body: SCREEN },
+        "concepts/still": { medium: still, body: SCREEN },
+        "concepts/plain": { medium: entry(), body: "Words." },
+      }),
+    ).toEqual([]);
+  });
+
+  it("fails a journey page with no picture", async () => {
+    expect(await violationsOf({ "guides/journey": { medium: journey, body: "Words." } })).toEqual(["missing-picture guides/journey"]);
+  });
+
+  it("fails a none, diagram, animated-tour or interactive page that shows a picture", async () => {
+    expect(
+      await violationsOf({
+        "concepts/plain": { medium: entry(), body: SCREEN },
+        "concepts/drawn": { medium: entry({ medium: "diagram", why: "Structure." }), body: SCREEN },
+        "concepts/tour": { medium: entry({ medium: "animated-tour", why: "Timing." }), body: SCREEN },
+        "concepts/play": { medium: entry({ medium: "interactive", why: "Driven." }), body: SCREEN },
+      }),
+    ).toEqual([
+      "picture-on-unpictured-medium concepts/drawn",
+      "picture-on-unpictured-medium concepts/plain",
+      "picture-on-unpictured-medium concepts/play",
+      "picture-on-unpictured-medium concepts/tour",
+    ]);
+  });
+
+  it("lets an owed page wait, and fails it once it shows its picture", async () => {
+    const owed = { "guides/waiting": "not drawn yet", "guides/done": "not drawn yet" };
+    expect(
+      await violationsOf(
+        { "guides/waiting": { medium: journey, body: "Words." }, "guides/done": { medium: journey, body: SCREEN } },
+        owed,
+      ),
+    ).toEqual(["owed-picture-shown guides/done"]);
+  });
+
+  it("fails an owed entry that names no classified still or journey page", async () => {
+    expect(
+      await violationsOf({ "concepts/plain": { medium: entry(), body: "Words." } }, { "concepts/plain": "x", "guides/gone": "y" }),
+    ).toEqual(["owed-page-not-pictured concepts/plain", "owed-page-not-pictured guides/gone"]);
+  });
+
+  it("counts no picture inside a fenced code block, which only shows the tag", () => {
+    expect(countScreens("Words.\n\n```mdx\n<Screen name=\"approval\" alt=\"x\" />\n```\n")).toBe(0);
+    expect(countScreens("~~~~\n```\n<Screen name=\"a\" alt=\"x\" />\n~~~~\n<Screen name=\"b\" alt=\"y\" />")).toBe(1);
+    expect(countScreens("1. Open it.\n\n   <Screen\n     name=\"a\"\n     alt=\"x\"\n   />\n")).toBe(1);
+  });
+
+  it("counts no picture the page does not render: in an MDX comment, in inline code, or after an info-string fence line inside a block", () => {
+    expect(countScreens('{/* <Screen name="a" alt="x" /> */}\n')).toBe(0);
+    expect(countScreens('{/*\n<Screen name="a" alt="x" />\n*/}\n<Screen name="b" alt="y" />')).toBe(1);
+    expect(countScreens("Embed it with `<Screen name alt />`, or ``<Screen>`` in a sentence.")).toBe(0);
+    expect(countScreens('```\n```mdx\n<Screen name="a" alt="x" />\n```\n')).toBe(0);
   });
 });
 

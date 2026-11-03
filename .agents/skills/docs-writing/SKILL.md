@@ -77,16 +77,27 @@ A page shows a screen only as a picture stigmer's visual suite draws, so the
 picture fails a test the moment the product's look moves and is redrawn in the
 same pull request. To show one:
 
-1. Add an entry to `test/visual/src/shown.ts`: a gallery scene from
-   `test/visual/src/catalog.ts`, the size it is drawn at, and a `clip` when the
-   lesson is one card rather than the whole screen. A screen the gallery does
-   not draw yet needs its scene first (`test/visual/README.md`, "Add a scene").
-2. `make test-visual UPDATE=1` mints the picture; review it like any screenshot.
-3. Embed it with `<Screen name="…" alt="…" />`.
+1. Put every value the page prints that the picture shows (a name, a message, a
+   host) in the page's example in `test/visual/src/docs-examples.ts`. The scene
+   draws from it, and the site's `docs-screens` test fails when the page and the
+   file disagree, so change both together.
+2. Add an entry to `test/visual/src/shown.ts`: a gallery scene from
+   `test/visual/src/catalog.ts`, the size it is drawn at, and a `clip` around
+   the part of the screen the step acts on. A screen the gallery does not draw
+   yet needs its scene first (`test/visual/README.md`, "Add a scene"); a form
+   the step fills, or a tab or menu it opens, is reached by the scene's acts.
+3. `make test-visual UPDATE=1` mints the picture; review it like any screenshot.
+4. Embed it with `<Screen name="…" alt="…" />` right after the step it shows.
 
-A hand-captured screenshot rots with no signal, so it is never added, not even
-as a placeholder. A page whose `medium` is `animated-tour` or `interactive`
-stays prose, code and diagrams until those media are built.
+Picture the steps a reader acts on or must recognise, cropped to that part of
+the screen; navigation and other sites' screens (Slack's, Meta's, an OAuth
+provider's) stay prose. A hand-captured screenshot rots with no signal, so it is
+never added, not even as a placeholder. `make check-docs-inventory` holds every
+`still` and `screenshot-journey` page to at least one `<Screen>` and every other
+page to none; a page still waiting for its pictures is listed, with its reason,
+in `OWED_PICTURES` (`site/src/lib/docs-inventory.ts`). A page whose `medium` is
+`animated-tour` or `interactive` stays prose, code and diagrams until those
+media are built.
 
 ## Alt text describes the screen
 

@@ -437,11 +437,13 @@ export const LANES = {
       // Getting Started smoke's page parser, which the homepage's snippet
       // test reads the pages with; the visual suite's shown list, its
       // approved pictures and the image budget, which the screens script
-      // converts and checks.
+      // converts and checks; the docs' examples, which the docs-screens test
+      // holds to the pages.
       "brand/**",
       "blog/**",
       "test/install/lib/doc-steps.mjs",
       "test/visual/src/shown.ts",
+      "test/visual/src/docs-examples.ts",
       "test/visual/tests/__shown__/**",
       "test/bundle-budgets.json",
       ".vale.ini",

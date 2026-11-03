@@ -29,6 +29,11 @@ You need an Agent you can edit in the Organization the routine will live in.
    cron expression too (`0 9 * * *`).
 5. Leave **Enabled** off and click **Create routine**.
 
+<Screen
+  name="routine-new"
+  alt="The New routine form filled in: Name daily-variance-report, Agent to run variance-reporter, the message, Runs Daily at 09:00, Time zone Asia/Kolkata, Enabled off, and the Create routine button"
+/>
+
 A new routine starts switched off, so it runs nothing until you have seen one
 run work. The console form needs a schedule; a routine that runs only when
 started is made from a manifest
@@ -66,6 +71,12 @@ when someone starts it. `enabled` is off unless the file says `true`.
 
 1. Open the routine. A switched-off routine shows **Routine is disabled** and an
    **Enable & run now** button.
+
+   <Screen
+     name="routine-disabled"
+     alt="The routine's page for daily-variance-report, marked Disabled, under a Routine is disabled banner, with the Enable & run now button beside its name"
+   />
+
 2. Click **Enable & run now**. In **Enable and run this routine now?** you can
    add a **Note for this run**; leave it empty for a plain run.
 3. Click **Enable & run**.
@@ -81,6 +92,11 @@ whether its schedule or a person started it (**Manual**), who that was under
 **Started by**, how it went, and the run it began. A person's start can show
 their account ID instead of their name when their sign-in carried neither a name
 nor an email ([#2404](https://github.com/stigmer/stigmer/issues/2404)).
+
+<Screen
+  name="routine-history"
+  alt="The History tab of daily-variance-report, now Active: one start, outcome Started, origin Manual, started by Ada Lovelace, with its run"
+/>
 
 The same list from the CLI:
 

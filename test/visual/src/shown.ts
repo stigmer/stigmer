@@ -158,6 +158,90 @@ export const SHOWN: readonly Shown[] = [
     viewport: { width: 437, height: 1000 },
     clip: { x: 23, y: 23, width: 391, height: 954 },
   },
+  // The docs' pictures: each the part of a console screen one step of a
+  // docs page acts on, drawn at the console's desktop width so it lays out as
+  // on the reader's screen, cropped so it shows near 1:1 in the docs column.
+  // The routines page (docs/guides/routines/run-an-agent-on-a-schedule.mdx).
+  {
+    name: "routine-new",
+    scene: "routine-new",
+    title: "New routine, filled in with the routines page's daily variance report: its Agent, message, every day at 09:00, Asia/Kolkata",
+    // Tall enough that the whole form shows: it ends at y 1303.
+    viewport: { width: 1280, height: 1360 },
+    // The form, measured from the drawn screen: x 216 to 888, y 56 to 1303,
+    // with 16 px of the page around it.
+    clip: { x: 200, y: 40, width: 704, height: 1279 },
+  },
+  {
+    name: "routine-disabled",
+    scene: "routine-disabled",
+    title: "The new routine's page: Routine is disabled, with Enable & run now beside its name",
+    viewport: { width: 1280, height: 800 },
+    // The banner, the header and the tabs, measured from the drawn screen:
+    // the column spans x 216 to 1064, the banner starts at y 56 and the tabs
+    // end at y 329.
+    clip: { x: 200, y: 40, width: 880, height: 305 },
+  },
+  {
+    name: "routine-history",
+    scene: "routine-history",
+    title: "The routine's History tab after Enable & run now: one start, Manual, by Ada Lovelace",
+    viewport: { width: 1280, height: 800 },
+    // The header, the tabs and the history, measured from the drawn screen:
+    // the column spans x 216 to 1064, the history's table ends at y 284.
+    clip: { x: 200, y: 40, width: 880, height: 260 },
+  },
+  // The agents page (docs/concepts/agents.mdx).
+  {
+    name: "agent",
+    scene: "agent-profile-variance-reporter",
+    title: "The agents page's variance-reporter on its page in the console: its header, description and instructions",
+    viewport: { width: 1280, height: 800 },
+    // The header through the Instructions section, measured from the drawn
+    // screen: the column spans x 216 to 1064, the header starts at y 56 and
+    // Instructions ends at y 781.
+    clip: { x: 200, y: 40, width: 880, height: 757 },
+  },
+  // The skills page (docs/concepts/skills.mdx).
+  {
+    name: "skill",
+    scene: "skill-detail",
+    title: "The skills page's variance-report Skill on its page in the console: its description over its rendered body",
+    viewport: { width: 1280, height: 900 },
+    // The header, Description and Skill content, measured from the drawn
+    // screen: the column spans x 216 to 1064, Skill content ends at y 825.
+    clip: { x: 200, y: 40, width: 880, height: 801 },
+  },
+  // The environments page (docs/guides/environments/set-up-an-environment.mdx).
+  {
+    name: "environment-new",
+    scene: "environment-new",
+    title: "New environment, filled in with data-science: limited to api.github.com and our-api.example.com, poppler-utils from apt, pandas and sqlalchemy from pip",
+    // Tall enough that the whole form shows: it ends at y 1017.
+    viewport: { width: 1280, height: 1080 },
+    // The form, measured from the drawn screen: x 216 to 888, y 56 to 1017.
+    clip: { x: 200, y: 40, width: 704, height: 993 },
+  },
+  {
+    name: "agent-environment",
+    scene: "environment-agent",
+    title: "The data team's Agent's Environment section, naming Data science, with its edit button",
+    // Tall enough to hold the section: it ends at y 981.
+    viewport: { width: 1280, height: 1000 },
+    // The Environment section, measured from the drawn screen: x 216 to
+    // 1064, y 859 to 981.
+    clip: { x: 200, y: 843, width: 880, height: 154 },
+  },
+  {
+    name: "run-settings",
+    scene: "environment-run-settings",
+    title: "A conversation's Run settings, opened from the composer's configure button: Environment data-science, the agent's default",
+    viewport: { width: 1280, height: 800 },
+    // The Run settings panel and the composer's buttons under it, measured
+    // from the drawn screen: the panel spans x 927 to 1228 and y 518 to 715,
+    // the composer ends at y 764.
+    clip: { x: 860, y: 502, width: 400, height: 278 },
+  },
 ];
 
 /** The CSS size of one shown picture: its clip, or the whole viewport. */
