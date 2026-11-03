@@ -115,8 +115,13 @@ An `interactive` page embeds the kit live with `<Live>` or `<ThemePlayground>`
 (see [Live](#live)): a gallery scene the visual suite draws, framed in its docs
 mode, where a scripted server answers a reader's send, approval and Stop. Never
 build a demo of your own for a page: a demo kept beside the product goes stale
-the way a captured screenshot does. Pages whose medium is `animated-tour` stay
-prose, code, and diagrams until that medium is built.
+the way a captured screenshot does.
+
+An `animated-tour` page about the terminal embeds `<TerminalRecording>` (see
+[TerminalRecording](#terminalrecording)): the terminal kit's own frames, drawn
+over a story of the scenario catalogue one event at a time and held by the kit's
+tests. Never record a terminal by hand for a page. An `animated-tour` page with
+no recording to play stays prose, code, and diagrams until it has one.
 
 Generated pages (the `cli/commands/`, `sdk/react/`, `sdk/resources/`,
 `sdk/ink/`, and `sdk/theme/` reference sets) are covered by cohort rules in the
@@ -280,6 +285,23 @@ text. To embed a scene the list lacks, add its entry (`test/visual/README.md`,
 `<ThemePlayground />` is the theming page's: the six presets, light or dark and
 the corner radius on a live chat panel, with the code that gives a product that
 look.
+
+### TerminalRecording
+
+A terminal session, played: the frames the terminal kit's `SessionView` draws
+over a story, event by event. `name` is an entry in `sdk/ink/src/recordings.ts`,
+whose frames the kit's test holds in `sdk/ink/src/__tests__/__recordings__/`;
+`alt` describes what the session shows. It plays when scrolled into view, pauses
+and replays, and shows the last frame to a reader who asked for less motion. In
+the markdown exports the tag becomes the alt text and the last frame as a text
+block. The build fails on a name the list does not hold or on blank alt text.
+
+```mdx
+<TerminalRecording
+  name="run-approval"
+  alt="The agent reads two files, asks before it runs git log, and answers"
+/>
+```
 
 ### Diagram
 

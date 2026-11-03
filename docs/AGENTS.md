@@ -36,11 +36,16 @@ and `vocabulary.md` are the truth.
 - A page shows the kit working only as a live demo the visual suite draws: an
   entry in `test/visual/src/live.ts`, embedded with `<Live name alt />`
   (`STYLE.md`, "Live"). Never a demo built for the page.
+- A page shows a terminal session only as a recording the terminal kit draws: an
+  entry in `sdk/ink/src/recordings.ts`, embedded with
+  `<TerminalRecording name alt />` (`STYLE.md`, "TerminalRecording"). Never a
+  terminal recorded by hand.
 - Every visual carries prose that stands alone: the markdown exports and the
   Copy-as-Markdown button see no image or diagram, so the lead-in and the alt
-  text carry the information. A `Screen`'s and a `Live`'s alt text, and a
-  `Diagram`'s text (`site/src/components/visuals/diagrams.ts`), is what the
-  exports carry in its place.
+  text carry the information. A `Screen`'s and a `Live`'s alt text, a
+  `TerminalRecording`'s alt text and last frame, and a `Diagram`'s text
+  (`site/src/components/visuals/diagrams.ts`), is what the exports carry in its
+  place.
 - Every YAML block is contract-validated by `make check-docs-yaml`; an example
   that would not apply does not ship.
 - Match the register to the context from `vocabulary.md`; when unsure, write for

@@ -449,6 +449,10 @@ export const LANES = {
       "test/visual/index.html",
       "test/visual/vite.config.ts",
       "test/visual/package.json",
+      // The terminal recordings the site plays: the kit's list and its frames
+      // (sdk/ink/** above already holds them; named here as the site's reads).
+      "sdk/ink/src/recordings.ts",
+      "sdk/ink/src/__tests__/__recordings__/**",
       "test/bundle-budgets.json",
       ".vale.ini",
       ".prettierrc",
