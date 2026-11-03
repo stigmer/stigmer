@@ -26,7 +26,7 @@ import {
   usageOf,
   type ScenarioName,
 } from "../scenarios";
-import { SAMPLE_INSTANT } from "@stigmer/react-core/test";
+import { SAMPLE_INSTANT, samples } from "@stigmer/react-core/test";
 
 function onlyTurn(name: ScenarioName) {
   const turns = scenarios[name].fold.turns;
@@ -266,5 +266,30 @@ describe("the scripted turn and upTo", () => {
     expect(() => upTo(scenarios.completed, -1)).toThrow(RangeError);
     expect(() => upTo(scenarios.completed, scenarios.completed.events.length + 1)).toThrow(/has \d+ events/);
     expect(() => upTo(scenarios.completed, 1.5)).toThrow(RangeError);
+  });
+});
+
+describe("the scripted turn the docs play", () => {
+  it("waits at the ask, then ends with the answer when allowed, the reply without the command when denied, interrupted when stopped", () => {
+    const turn = scriptedTurn("what changed?", "run_x");
+    const waiting = samples.fold([...turn.untilAsk]).turns.at(-1)!;
+    expect(waiting.userMessage?.text).toBe("what changed?");
+    expect(waiting.status?.phase).toBe("waiting");
+    expect(waiting.asks.map((ask) => ask.name)).toEqual(["execute"]);
+    for (const [tail, answer] of [
+      [turn.approved, /^Two changes this week/],
+      [turn.denied, /^I won't run it/],
+    ] as const) {
+      const ended = samples.fold([...turn.untilAsk, ...tail]).turns.at(-1)!;
+      expect(ended.status?.phase).toBe("completed");
+      expect(ended.answer).toMatch(answer);
+    }
+    expect(samples.fold([...turn.untilAsk, ...turn.stopped]).turns.at(-1)!.status?.phase).toBe("cancelled");
+  });
+
+  it("files every event under the run it names, and offers its own message when given none", () => {
+    const turn = scriptedTurn(undefined, "run_y");
+    expect([...turn.untilAsk, ...turn.approved, ...turn.denied, ...turn.stopped].every((event) => event.runId === "run_y")).toBe(true);
+    expect(samples.fold([...turn.untilAsk]).turns.at(-1)!.userMessage?.text).toBe(SCRIPTED_MESSAGE);
   });
 });
