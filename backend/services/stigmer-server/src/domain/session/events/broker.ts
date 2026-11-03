@@ -330,6 +330,15 @@ export class SessionEventBroker {
     return frames;
   }
 
+  /** How many turns' liveness the broker keeps, across sessions; stale ones count until swept. */
+  keptLivenessCount(): number {
+    let count = 0;
+    for (const runs of this.kept.values()) {
+      count += runs.size;
+    }
+    return count;
+  }
+
   /** Streams open on a session. */
   subscriberCount(sessionId: string): number {
     return this.subscribers.get(sessionId)?.size ?? 0;

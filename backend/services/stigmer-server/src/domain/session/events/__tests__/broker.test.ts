@@ -213,6 +213,25 @@ describe("the broker", () => {
       broker.publish("s1", "acme", [runStatus("r2", phase)]);
       expect(livenessOf(broker.currentLiveness("s1")).map((l) => l.runId), phase).toEqual(["r3"]);
     }
+    broker.publish("s1", "acme", [runStatus("r3", "completed")]);
+    expect(broker.currentLiveness("s1")).toEqual([]);
+    expect(broker.keptLivenessCount(), "the session's last turn took the session with it").toBe(0);
+    broker.publishPreviews("s1", [create(SessionEventPreviewSchema, { preview: { case: "stigmerRunLiveness", value: { runId: "" } } })]);
+    expect(broker.keptLivenessCount(), "a liveness that names no run is never kept").toBe(0);
+  });
+
+  it("sweeps every session's silent turns at most once a minute, so a session nobody opens again keeps none", () => {
+    let clock = 0;
+    const broker = new SessionEventBroker(silentLogger, () => clock);
+    broker.publishPreviews("dead", [workingLiveness("r1", 0)]);
+    broker.publishPreviews("live", [workingLiveness("r2", 0)]);
+    clock = SESSION_EVENT_LIVENESS_KEPT_MS - 1;
+    broker.publishPreviews("live", [workingLiveness("r2", 0)]);
+    expect(broker.keptLivenessCount(), "not yet a minute since the last sweep").toBe(2);
+    clock = SESSION_EVENT_LIVENESS_KEPT_MS;
+    broker.publishPreviews("live", [workingLiveness("r2", 0)]);
+    expect(broker.keptLivenessCount(), "the dead session's turn is gone; the renewed one stays").toBe(1);
+    expect(livenessOf(broker.currentLiveness("live")).map((l) => l.runId)).toEqual(["r2"]);
   });
 
   it("never hands back a liveness its turn did not renew within a minute", () => {
