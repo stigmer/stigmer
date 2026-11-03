@@ -165,7 +165,7 @@ def test_send_and_wait_checks_its_input_before_any_call(serve) -> None:
         {"org": "acme", "message": "hi", "session_id": "ses_1", "session_spec": spec},
     ):
         with pytest.raises(StigmerError) as raised:
-            client.send_and_wait(**kwargs)
+            client.send_and_wait(**kwargs, timeout=10)
         assert raised.value.code.value == "invalid-argument"
     assert (fake.lists, fake.created, fake.requests) == (0, [], [])
 

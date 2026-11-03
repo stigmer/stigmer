@@ -245,7 +245,7 @@ func awaitClosed(t *testing.T, fake *turnFake) {
 func TestSendAndWaitChecksItsInputBeforeAnyCall(t *testing.T) {
 	fake := &turnFake{}
 	client := newTurnClient(t, fake)
-	ctx := context.Background()
+	ctx := bounded(t)
 	cases := map[string]*RunInput{
 		"no org":                {SessionId: "ses_1", Message: "hi"},
 		"no session or spec":    {Org: "acme", Message: "hi"},
