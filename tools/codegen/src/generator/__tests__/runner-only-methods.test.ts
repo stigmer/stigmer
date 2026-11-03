@@ -18,7 +18,7 @@ import path from "node:path";
 
 import { getExtension, hasExtension, type DescMethod } from "@bufbuild/protobuf";
 import { is_runner_only, is_skip_authorization } from "@stigmer/apis/ai/stigmer/commons/rpc/method_options_pb";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 
 import { stubFiles } from "../../__test-utils__/stub-descriptors.js";
 
@@ -34,7 +34,7 @@ function flag(method: DescMethod, ext: typeof is_runner_only): boolean {
   return options !== undefined && hasExtension(options, ext) && getExtension(options, ext);
 }
 
-/** `<package>.<Service>.<rpc>` of every method the stubs mark runner-only. */
+/** Every method the stubs mark runner-only. */
 async function runnerOnlyMethods(): Promise<DescMethod[]> {
   const out: DescMethod[] = [];
   for (const file of (await stubFiles()).values()) {
@@ -64,9 +64,18 @@ function committedMethods(): Set<string> {
   return out;
 }
 
+// The scan imports every stub module cold, which under coverage and a loaded
+// machine has taken over vitest's 5 s per-case default; it runs once, here.
+const SCAN_TIMEOUT_MS = 60_000;
+
 describe("runner-only methods", () => {
-  it("are listed by no committed service schema, so no SDK offers one", async () => {
-    const marked = (await runnerOnlyMethods()).map(qualified);
+  let runnerOnly: DescMethod[] = [];
+  beforeAll(async () => {
+    runnerOnly = await runnerOnlyMethods();
+  }, SCAN_TIMEOUT_MS);
+
+  it("are listed by no committed service schema, so no SDK offers one", () => {
+    const marked = runnerOnly.map(qualified);
     expect(marked).toContain("ai.stigmer.agentic.file.v1.RunFileController.mount");
 
     const committed = committedMethods();
@@ -74,8 +83,8 @@ describe("runner-only methods", () => {
     expect(marked.filter((name) => committed.has(name))).toEqual([]);
   });
 
-  it("each also skip authorization, since a person's permission cannot admit a runner", async () => {
-    const unskipped = (await runnerOnlyMethods()).filter((method) => !flag(method, is_skip_authorization)).map(qualified);
+  it("each also skip authorization, since a person's permission cannot admit a runner", () => {
+    const unskipped = runnerOnly.filter((method) => !flag(method, is_skip_authorization)).map(qualified);
     expect(unskipped).toEqual([]);
   });
 });
