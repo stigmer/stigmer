@@ -35,7 +35,10 @@ function useAccountExecutionDefaults(): AccountExecutionDefaults | undefined
 ```
 
 ```tsx
-<NewSessionViewer org={org} accountDefaults={useAccountExecutionDefaults()} />
+function NewChat({ org, onOpen }: { org: string; onOpen: (sessionId: string) => void }) {
+  const accountDefaults = useAccountExecutionDefaults();
+  return <NewSessionViewer org={org} accountDefaults={accountDefaults} onSessionCreated={onOpen} />;
+}
 ```
 
 
