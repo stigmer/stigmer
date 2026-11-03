@@ -102,11 +102,19 @@ function northwindTimeline(holder: Holder): ConversationTimelineItem[] {
   return items;
 }
 
+/**
+ * The workbench's height for each holder: tall enough, at the shown
+ * pictures' 1000 px width, that Northwind's whole conversation fits. A
+ * timeline with nothing to scroll draws the same every run, where the kit's
+ * pin to the latest message can land a row short under load (stigmer#2911).
+ */
+const WORKBENCH_HEIGHT: Record<Holder, number> = { agent: 1000, ada: 1140 };
+
 /** The console's Conversations page, Northwind's conversation open, as the web host frames it (the page's full height). */
-function Workbench(): ReactElement {
+function Workbench({ holder }: { readonly holder: Holder }): ReactElement {
   const [selected, setSelected] = useState<ConversationIdentity | null>({ channelId: CHANNEL_ID, conversationKey: "15550100142" });
   return (
-    <div style={{ height: 760, display: "flex", flexDirection: "column" }}>
+    <div style={{ height: WORKBENCH_HEIGHT[holder], display: "flex", flexDirection: "column" }}>
       <ConversationsWorkbench org={ORGANIZATION.metadata?.slug ?? ""} selected={selected} onSelectionChange={setSelected} currentIdentityAccountId={ACCOUNT.metadata?.id} />
     </div>
   );
@@ -129,6 +137,6 @@ export function conversationsScene(holder: Holder): Drawing {
         listTimeline: (input) => ({ entries: input.conversationKey === "15550100142" ? northwindTimeline(holder) : [] }),
       });
     },
-    render: () => <Workbench />,
+    render: () => <Workbench holder={holder} />,
   };
 }

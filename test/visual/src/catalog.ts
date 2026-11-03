@@ -288,7 +288,8 @@ const ENVIRONMENT_SCENES = [
     opens: [
       { fill: ENVIRONMENT_EXAMPLE.nameLabel, with: ENVIRONMENT_EXAMPLE.slug, exact: true },
       { fill: "Description (optional)", with: ENVIRONMENT_EXAMPLE.description },
-      { press: ENVIRONMENT_EXAMPLE.networkLabel, role: "radio", exact: true },
+      // The radio's label wraps its hint, so its name carries more than the page's word.
+      { press: ENVIRONMENT_EXAMPLE.networkLabel, role: "radio" },
       { fill: ENVIRONMENT_EXAMPLE.hostsLabel, with: ENVIRONMENT_EXAMPLE.hosts.join("\n"), exact: true },
       { fill: ENVIRONMENT_EXAMPLE.aptLabel, with: ENVIRONMENT_EXAMPLE.apt.join("\n"), exact: true },
       { fill: ENVIRONMENT_EXAMPLE.pipLabel, with: ENVIRONMENT_EXAMPLE.pip.join("\n"), exact: true },
@@ -301,7 +302,8 @@ const ENVIRONMENT_SCENES = [
     widths: ["desktop"],
     opens: [
       { press: ENVIRONMENT_EXAMPLE.configureLabel, role: "button", exact: true },
-      { press: ENVIRONMENT_EXAMPLE.runSettingsLabel, role: "menuitem", exact: true },
+      // The menu item's name carries its summary (the engine, the target) after the page's word.
+      { press: ENVIRONMENT_EXAMPLE.runSettingsLabel, role: "menuitem" },
     ],
   },
 ] as const satisfies readonly { readonly id: `environment-${string}`; readonly title: string; readonly widths: readonly WidthName[]; readonly opens?: readonly Act[] }[];
@@ -357,7 +359,8 @@ const CHANNEL_SCENES = [
       { press: WHATSAPP_EXAMPLE.addLabel, role: "button", exact: true },
       { press: WHATSAPP_EXAMPLE.whatsappLabel, role: "menuitem", exact: true },
       { fill: "Channel name", with: WHATSAPP_EXAMPLE.channel },
-      { fill: WHATSAPP_EXAMPLE.phoneNumberIdLabel, with: WHATSAPP_EXAMPLE.phoneNumberId, exact: true },
+      // The field's label wraps its hint, so its name carries more than the page's word.
+      { fill: WHATSAPP_EXAMPLE.phoneNumberIdLabel, with: WHATSAPP_EXAMPLE.phoneNumberId },
     ],
   },
   {

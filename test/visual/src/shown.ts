@@ -340,18 +340,20 @@ export const SHOWN: readonly Shown[] = [
     name: "conversations-needs-human",
     scene: "channel-conversations-needs-human",
     title: "Conversations on Needs human: Northwind Books, its escalation banner with Take over, and the conversation as the customer's phone shows it",
-    // Narrow enough to show near 1:1 in the docs column.
-    viewport: { width: 1000, height: 808 },
-    // The workbench: x 24 to 976, y 24 to 784.
-    clip: { x: 24, y: 24, width: 952, height: 760 },
+    // Narrow enough to show near 1:1 in the docs column; as tall as the
+    // scene's workbench, which fits the whole conversation (stigmer#2911).
+    viewport: { width: 1000, height: 1048 },
+    // The workbench: x 24 to 976, y 24 to 1024.
+    clip: { x: 24, y: 24, width: 952, height: 1000 },
   },
   {
     name: "conversation-taken-over",
     scene: "channel-conversation-taken-over",
     title: "Conversations: you have Northwind's conversation, the platform's acknowledgment sent, Hand back to agent, and a reply typed",
-    viewport: { width: 1000, height: 808 },
-    // The workbench, as `conversations-needs-human`.
-    clip: { x: 24, y: 24, width: 952, height: 760 },
+    // As `conversations-needs-human`, taller for the messages since.
+    viewport: { width: 1000, height: 1188 },
+    // The workbench: x 24 to 976, y 24 to 1164.
+    clip: { x: 24, y: 24, width: 952, height: 1140 },
   },
 ];
 
