@@ -58,16 +58,16 @@ export function accountDefaultModel(defaults: AccountExecutionDefaults | undefin
  * trusted-local server answers with the operator account it creates at
  * boot, so a laptop's saved defaults seed the composer too.
  *
- * @example
- * ```tsx
- * <NewSessionViewer org={org} accountDefaults={useAccountExecutionDefaults()} />
- * ```
- *
  * The defaults are a SEED, not an override: an explicit device-local pick
  * outranks them (the layered precedence in `useNewSessionFlow`), and the
  * chosen values ride the run spec explicitly. Rides
  * `useMyIdentityAccount`'s cross-mount cache, so the seed is available
  * synchronously on every visit after the first.
+ *
+ * @example
+ * ```tsx
+ * <NewSessionViewer org={org} accountDefaults={useAccountExecutionDefaults()} />
+ * ```
  */
 export function useAccountExecutionDefaults(): AccountExecutionDefaults | undefined {
   const { account } = useMyIdentityAccount();

@@ -91,25 +91,81 @@ spec:
 
 ## Client Access
 
+Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Each language's first block holds the imports the page's examples use.
+
 <SDKTabs>
 <Tab value="TypeScript">
+```typescript prelude
+import { ChannelConversationListFilter } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/conversation_io_pb";
+```
 ```typescript
 const channel = await stigmer.channel.get("chn_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
+```go prelude
+import (
+	stigmer "go.stigmer.ai/sdk"
+	channelv1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/channel/v1"
+	apiresource "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+)
+```
 ```go
 channel, err := client.Channel.Get(ctx, "chn_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
+```python prelude
+from stigmer import ResourceRef, RunConfigInput
+from stigmer._gen import ChannelInput, WebChannelConfigInput
+from ai.stigmer.agentic.channel.v1 import conversation_io_pb2, io_pb2, message_io_pb2
+from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2
+```
 ```python
 channel = client.channels.get("chn_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
+```java prelude
+import ai.stigmer.agentic.channel.v1.Channel;
+import ai.stigmer.agentic.channel.v1.ChannelAgentProfile;
+import ai.stigmer.agentic.channel.v1.ChannelConversation;
+import ai.stigmer.agentic.channel.v1.ChannelConversationCount;
+import ai.stigmer.agentic.channel.v1.ChannelConversationList;
+import ai.stigmer.agentic.channel.v1.ChannelConversationListFilter;
+import ai.stigmer.agentic.channel.v1.ChannelList;
+import ai.stigmer.agentic.channel.v1.ChannelOutboundPayload;
+import ai.stigmer.agentic.channel.v1.ChannelTemplates;
+import ai.stigmer.agentic.channel.v1.CompleteChannelInstallInput;
+import ai.stigmer.agentic.channel.v1.ConversationControlInput;
+import ai.stigmer.agentic.channel.v1.ConversationMediaDownloadUrl;
+import ai.stigmer.agentic.channel.v1.ConversationTimeline;
+import ai.stigmer.agentic.channel.v1.CountChannelConversationsInput;
+import ai.stigmer.agentic.channel.v1.EscalateConversationInput;
+import ai.stigmer.agentic.channel.v1.GetChannelAgentProfileRequest;
+import ai.stigmer.agentic.channel.v1.GetChannelConversationInput;
+import ai.stigmer.agentic.channel.v1.GetConversationMediaDownloadUrlInput;
+import ai.stigmer.agentic.channel.v1.InitiateChannelInstallInput;
+import ai.stigmer.agentic.channel.v1.InitiateChannelInstallOutput;
+import ai.stigmer.agentic.channel.v1.ListChannelConversationsInput;
+import ai.stigmer.agentic.channel.v1.ListChannelTemplatesInput;
+import ai.stigmer.agentic.channel.v1.ListChannelsByAgentRequest;
+import ai.stigmer.agentic.channel.v1.ListChannelsRequest;
+import ai.stigmer.agentic.channel.v1.ListConversationTimelineInput;
+import ai.stigmer.agentic.channel.v1.ListMessagingChannelsInput;
+import ai.stigmer.agentic.channel.v1.MessagingChannels;
+import ai.stigmer.agentic.channel.v1.ReplyToConversationInput;
+import ai.stigmer.agentic.channel.v1.RotateChannelLinkInput;
+import ai.stigmer.agentic.channel.v1.SendChannelMessageInput;
+import ai.stigmer.agentic.channel.v1.SendChannelMessageOutput;
+import ai.stigmer.commons.apiresource.RenameInput;
+import ai.stigmer.sdk.gen.ChannelInput;
+import ai.stigmer.sdk.gen.ResourceRef;
+import java.util.List;
+import java.util.Map;
+```
 ```java
-Channel channel = client.channels().get("chn_01j5q3k7m8r2s4tnz2hfp0q0c3");
+Channel channel = client.channel.get("chn_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -153,22 +209,22 @@ Get a single channel by ID.
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const channel = await stigmer.channel.get(id);
+const channel = await stigmer.channel.get("chn_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
 ```go
-channel, err := client.Channel.Get(ctx, id)
+channel, err := client.Channel.Get(ctx, "chn_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
 ```python
-channel = client.channels.get(id)
+channel = client.channels.get("chn_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Channel channel = client.channels().get(id);
+Channel channel = client.channel.get("chn_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -200,7 +256,7 @@ const channelAgentProfile = await stigmer.channel.getAgentProfile({
 </Tab>
 <Tab value="Go">
 ```go
-channelAgentProfile, err := client.Channel.GetAgentProfile(ctx, &stigmer.GetChannelAgentProfileRequest{
+channelAgentProfile, err := client.Channel.GetAgentProfile(ctx, &channelv1.GetChannelAgentProfileRequest{
   ChannelId: "...",
   LinkToken: "...",
 })
@@ -208,7 +264,7 @@ channelAgentProfile, err := client.Channel.GetAgentProfile(ctx, &stigmer.GetChan
 </Tab>
 <Tab value="Python">
 ```python
-channel_agent_profile = client.channels.get_agent_profile(GetChannelAgentProfileRequest(
+channel_agent_profile = client.channels.get_agent_profile(io_pb2.GetChannelAgentProfileRequest(
     channel_id="...",
     link_token="...",
 ))
@@ -216,9 +272,9 @@ channel_agent_profile = client.channels.get_agent_profile(GetChannelAgentProfile
 </Tab>
 <Tab value="Java">
 ```java
-ChannelAgentProfile channelAgentProfile = client.channels().getAgentProfile(GetChannelAgentProfileRequest.builder()
-    .channelId("...")
-    .linkToken("...")
+ChannelAgentProfile channelAgentProfile = client.channel.getAgentProfile(GetChannelAgentProfileRequest.newBuilder()
+    .setChannelId("...")
+    .setLinkToken("...")
     .build());
 ```
 </Tab>
@@ -239,22 +295,22 @@ Returns NOT_FOUND when the channel does not exist, is not a web channel, is disa
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const channelAgentProfile = await stigmer.channel.getAgentProfileForMember(id);
+const channelAgentProfile = await stigmer.channel.getAgentProfileForMember("chn_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
 ```go
-channelAgentProfile, err := client.Channel.GetAgentProfileForMember(ctx, id)
+channelAgentProfile, err := client.Channel.GetAgentProfileForMember(ctx, "chn_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
 ```python
-channel_agent_profile = client.channels.get_agent_profile_for_member(id)
+channel_agent_profile = client.channels.get_agent_profile_for_member("chn_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-ChannelAgentProfile channelAgentProfile = client.channels().getAgentProfileForMember(id);
+ChannelAgentProfile channelAgentProfile = client.channel.getAgentProfileForMember("chn_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -274,46 +330,22 @@ Get a channel by its organization-scoped reference (org/slug).
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const channel = await stigmer.channel.getByReference({
-  org: "...",
-  kind: "...",
-  slug: "...",
-  version: "...",
-  id: "...",
-});
+const channel = await stigmer.channel.getByReference({ org: "acme", slug: "my-channel" });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-channel, err := client.Channel.GetByReference(ctx, &stigmer.ApiResourceReference{
-  Org:     "...",
-  Kind:    "...",
-  Slug:    "...",
-  Version: "...",
-  Id:      "...",
-})
+channel, err := client.Channel.GetByReference(ctx, stigmer.ResourceRef{Org: "acme", Slug: "my-channel"})
 ```
 </Tab>
 <Tab value="Python">
 ```python
-channel = client.channels.get_by_reference(ApiResourceReference(
-    org="...",
-    kind="...",
-    slug="...",
-    version="...",
-    id="...",
-))
+channel = client.channels.get_by_reference(ResourceRef(org="acme", slug="my-channel"))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Channel channel = client.channels().getByReference(ApiResourceReference.builder()
-    .org("...")
-    .kind("...")
-    .slug("...")
-    .version("...")
-    .id("...")
-    .build());
+Channel channel = client.channel.getByReference(ResourceRef.of("acme", "my-channel"));
 ```
 </Tab>
 </SDKTabs>
@@ -339,7 +371,7 @@ const channelConversation = await stigmer.channel.getConversation({
 </Tab>
 <Tab value="Go">
 ```go
-channelConversation, err := client.Channel.GetConversation(ctx, &stigmer.GetChannelConversationInput{
+channelConversation, err := client.Channel.GetConversation(ctx, &channelv1.GetChannelConversationInput{
   ChannelId:       "...",
   ConversationKey: "...",
 })
@@ -347,7 +379,7 @@ channelConversation, err := client.Channel.GetConversation(ctx, &stigmer.GetChan
 </Tab>
 <Tab value="Python">
 ```python
-channel_conversation = client.channels.get_conversation(GetChannelConversationInput(
+channel_conversation = client.channels.get_conversation(conversation_io_pb2.GetChannelConversationInput(
     channel_id="...",
     conversation_key="...",
 ))
@@ -355,9 +387,9 @@ channel_conversation = client.channels.get_conversation(GetChannelConversationIn
 </Tab>
 <Tab value="Java">
 ```java
-ChannelConversation channelConversation = client.channels().getConversation(GetChannelConversationInput.builder()
-    .channelId("...")
-    .conversationKey("...")
+ChannelConversation channelConversation = client.channel.getConversation(GetChannelConversationInput.newBuilder()
+    .setChannelId("...")
+    .setConversationKey("...")
     .build());
 ```
 </Tab>
@@ -385,7 +417,7 @@ const conversationMediaDownloadUrl = await stigmer.channel.getMediaDownloadUrl({
 </Tab>
 <Tab value="Go">
 ```go
-conversationMediaDownloadUrl, err := client.Channel.GetMediaDownloadUrl(ctx, &stigmer.GetConversationMediaDownloadUrlInput{
+conversationMediaDownloadUrl, err := client.Channel.GetMediaDownloadUrl(ctx, &channelv1.GetConversationMediaDownloadUrlInput{
   ChannelId:       "...",
   ConversationKey: "...",
   ItemId:          "...",
@@ -394,7 +426,7 @@ conversationMediaDownloadUrl, err := client.Channel.GetMediaDownloadUrl(ctx, &st
 </Tab>
 <Tab value="Python">
 ```python
-conversation_media_download_url = client.channels.get_media_download_url(GetConversationMediaDownloadUrlInput(
+conversation_media_download_url = client.channels.get_media_download_url(conversation_io_pb2.GetConversationMediaDownloadUrlInput(
     channel_id="...",
     conversation_key="...",
     item_id="...",
@@ -403,10 +435,10 @@ conversation_media_download_url = client.channels.get_media_download_url(GetConv
 </Tab>
 <Tab value="Java">
 ```java
-ConversationMediaDownloadUrl conversationMediaDownloadUrl = client.channels().getMediaDownloadUrl(GetConversationMediaDownloadUrlInput.builder()
-    .channelId("...")
-    .conversationKey("...")
-    .itemId("...")
+ConversationMediaDownloadUrl conversationMediaDownloadUrl = client.channel.getMediaDownloadUrl(GetConversationMediaDownloadUrlInput.newBuilder()
+    .setChannelId("...")
+    .setConversationKey("...")
+    .setItemId("...")
     .build());
 ```
 </Tab>
@@ -433,7 +465,7 @@ const result = await stigmer.channel.list({
 </Tab>
 <Tab value="Go">
 ```go
-result, err := client.Channel.List(ctx, &stigmer.ListChannelsRequest{
+result, err := client.Channel.List(ctx, &channelv1.ListChannelsRequest{
   Org:       "...",
   PageSize:  0,
   PageToken: "...",
@@ -443,7 +475,7 @@ result, err := client.Channel.List(ctx, &stigmer.ListChannelsRequest{
 </Tab>
 <Tab value="Python">
 ```python
-result = client.channels.list(ListChannelsRequest(
+result = client.channels.list(io_pb2.ListChannelsRequest(
     org="...",
     page_size=0,
     page_token="...",
@@ -453,11 +485,11 @@ result = client.channels.list(ListChannelsRequest(
 </Tab>
 <Tab value="Java">
 ```java
-ChannelList result = client.channels().list(ListChannelsRequest.builder()
-    .org("...")
-    .pageSize(0)
-    .pageToken("...")
-    .labels(Map.of())
+ChannelList result = client.channel.list(ListChannelsRequest.newBuilder()
+    .setOrg("...")
+    .setPageSize(0)
+    .setPageToken("...")
+    .putAllLabels(Map.of())
     .build());
 ```
 </Tab>
@@ -489,7 +521,7 @@ const result = await stigmer.channel.listByAgent({
 </Tab>
 <Tab value="Go">
 ```go
-result, err := client.Channel.ListByAgent(ctx, &stigmer.ListChannelsByAgentRequest{
+result, err := client.Channel.ListByAgent(ctx, &channelv1.ListChannelsByAgentRequest{
   AgentId:   "...",
   Org:       "...",
   PageSize:  0,
@@ -500,7 +532,7 @@ result, err := client.Channel.ListByAgent(ctx, &stigmer.ListChannelsByAgentReque
 </Tab>
 <Tab value="Python">
 ```python
-result = client.channels.list_by_agent(ListChannelsByAgentRequest(
+result = client.channels.list_by_agent(io_pb2.ListChannelsByAgentRequest(
     agent_id="...",
     org="...",
     page_size=0,
@@ -511,12 +543,12 @@ result = client.channels.list_by_agent(ListChannelsByAgentRequest(
 </Tab>
 <Tab value="Java">
 ```java
-ChannelList result = client.channels().listByAgent(ListChannelsByAgentRequest.builder()
-    .agentId("...")
-    .org("...")
-    .pageSize(0)
-    .pageToken("...")
-    .labels(Map.of())
+ChannelList result = client.channel.listByAgent(ListChannelsByAgentRequest.newBuilder()
+    .setAgentId("...")
+    .setOrg("...")
+    .setPageSize(0)
+    .setPageToken("...")
+    .putAllLabels(Map.of())
     .build());
 ```
 </Tab>
@@ -540,7 +572,7 @@ Returns conversations across all of the org's channels the caller can view, opti
 const result = await stigmer.channel.listConversations({
   org: "...",
   channelId: "...",
-  filter: "...",
+  filter: ChannelConversationListFilter.filter_wants_human,
   pageSize: 0,
   pageToken: "...",
 });
@@ -548,10 +580,10 @@ const result = await stigmer.channel.listConversations({
 </Tab>
 <Tab value="Go">
 ```go
-result, err := client.Channel.ListConversations(ctx, &stigmer.ListChannelConversationsInput{
+result, err := client.Channel.ListConversations(ctx, &channelv1.ListChannelConversationsInput{
   Org:       "...",
   ChannelId: "...",
-  Filter:    "...",
+  Filter:    channelv1.ChannelConversationListFilter_filter_wants_human,
   PageSize:  0,
   PageToken: "...",
 })
@@ -559,10 +591,10 @@ result, err := client.Channel.ListConversations(ctx, &stigmer.ListChannelConvers
 </Tab>
 <Tab value="Python">
 ```python
-result = client.channels.list_conversations(ListChannelConversationsInput(
+result = client.channels.list_conversations(conversation_io_pb2.ListChannelConversationsInput(
     org="...",
     channel_id="...",
-    filter="...",
+    filter=conversation_io_pb2.filter_wants_human,
     page_size=0,
     page_token="...",
 ))
@@ -570,12 +602,12 @@ result = client.channels.list_conversations(ListChannelConversationsInput(
 </Tab>
 <Tab value="Java">
 ```java
-ChannelConversationList result = client.channels().listConversations(ListChannelConversationsInput.builder()
-    .org("...")
-    .channelId("...")
-    .filter("...")
-    .pageSize(0)
-    .pageToken("...")
+ChannelConversationList result = client.channel.listConversations(ListChannelConversationsInput.newBuilder()
+    .setOrg("...")
+    .setChannelId("...")
+    .setFilter(ChannelConversationListFilter.filter_wants_human)
+    .setPageSize(0)
+    .setPageToken("...")
     .build());
 ```
 </Tab>
@@ -596,22 +628,22 @@ Everything the read needs derives from the caller's credential; an agent with no
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const messagingChannels = await stigmer.channel.listMessagingChannels(input);
+const messagingChannels = await stigmer.channel.listMessagingChannels({});
 ```
 </Tab>
 <Tab value="Go">
 ```go
-messagingChannels, err := client.Channel.ListMessagingChannels(ctx, input)
+messagingChannels, err := client.Channel.ListMessagingChannels(ctx, &channelv1.ListMessagingChannelsInput{})
 ```
 </Tab>
 <Tab value="Python">
 ```python
-messaging_channels = client.channels.list_messaging_channels(input)
+messaging_channels = client.channels.list_messaging_channels(message_io_pb2.ListMessagingChannelsInput())
 ```
 </Tab>
 <Tab value="Java">
 ```java
-MessagingChannels messagingChannels = client.channels().listMessagingChannels(input);
+MessagingChannels messagingChannels = client.channel.listMessagingChannels(ListMessagingChannelsInput.getDefaultInstance());
 ```
 </Tab>
 </SDKTabs>
@@ -638,7 +670,7 @@ const channelTemplates = await stigmer.channel.listTemplates({
 </Tab>
 <Tab value="Go">
 ```go
-channelTemplates, err := client.Channel.ListTemplates(ctx, &stigmer.ListChannelTemplatesInput{
+channelTemplates, err := client.Channel.ListTemplates(ctx, &channelv1.ListChannelTemplatesInput{
   Channel:      "...",
   Org:          "...",
   ApprovedOnly: false,
@@ -647,7 +679,7 @@ channelTemplates, err := client.Channel.ListTemplates(ctx, &stigmer.ListChannelT
 </Tab>
 <Tab value="Python">
 ```python
-channel_templates = client.channels.list_templates(ListChannelTemplatesInput(
+channel_templates = client.channels.list_templates(message_io_pb2.ListChannelTemplatesInput(
     channel="...",
     org="...",
     approved_only=False,
@@ -656,10 +688,10 @@ channel_templates = client.channels.list_templates(ListChannelTemplatesInput(
 </Tab>
 <Tab value="Java">
 ```java
-ChannelTemplates channelTemplates = client.channels().listTemplates(ListChannelTemplatesInput.builder()
-    .channel("...")
-    .org("...")
-    .approvedOnly(false)
+ChannelTemplates channelTemplates = client.channel.listTemplates(ListChannelTemplatesInput.newBuilder()
+    .setChannel("...")
+    .setOrg("...")
+    .setApprovedOnly(false)
     .build());
 ```
 </Tab>
@@ -688,7 +720,7 @@ const conversationTimeline = await stigmer.channel.listTimeline({
 </Tab>
 <Tab value="Go">
 ```go
-conversationTimeline, err := client.Channel.ListTimeline(ctx, &stigmer.ListConversationTimelineInput{
+conversationTimeline, err := client.Channel.ListTimeline(ctx, &channelv1.ListConversationTimelineInput{
   ChannelId:       "...",
   ConversationKey: "...",
   PageSize:        0,
@@ -698,7 +730,7 @@ conversationTimeline, err := client.Channel.ListTimeline(ctx, &stigmer.ListConve
 </Tab>
 <Tab value="Python">
 ```python
-conversation_timeline = client.channels.list_timeline(ListConversationTimelineInput(
+conversation_timeline = client.channels.list_timeline(conversation_io_pb2.ListConversationTimelineInput(
     channel_id="...",
     conversation_key="...",
     page_size=0,
@@ -708,11 +740,11 @@ conversation_timeline = client.channels.list_timeline(ListConversationTimelineIn
 </Tab>
 <Tab value="Java">
 ```java
-ConversationTimeline conversationTimeline = client.channels().listTimeline(ListConversationTimelineInput.builder()
-    .channelId("...")
-    .conversationKey("...")
-    .pageSize(0)
-    .pageToken("...")
+ConversationTimeline conversationTimeline = client.channel.listTimeline(ListConversationTimelineInput.newBuilder()
+    .setChannelId("...")
+    .setConversationKey("...")
+    .setPageSize(0)
+    .setPageToken("...")
     .build());
 ```
 </Tab>
@@ -740,13 +772,11 @@ const channel = await stigmer.channel.apply({
   org: "acme",
   slug: "...",
   labels: {},
-  agentRef: {},
+  agentRef: { org: "acme", slug: "..." },
   enabled: false,
   vaults: [],
   runConfig: {},
   web: {},
-  slack: {},
-  whatsapp: {},
 });
 ```
 </Tab>
@@ -757,13 +787,11 @@ channel, err := client.Channel.Apply(ctx, &stigmer.ChannelInput{
   Org:       "acme",
   Slug:      "...",
   Labels:    map[string]string{},
-  AgentRef:  &stigmer.ResourceRef{},
+  AgentRef:  stigmer.ResourceRef{Org: "acme", Slug: "..."},
   Enabled:   false,
   Vaults:    []stigmer.ResourceRef{},
   RunConfig: &stigmer.RunConfigInput{},
   Web:       &stigmer.WebChannelConfigInput{},
-  Slack:     &stigmer.SlackChannelConfigInput{},
-  Whatsapp:  &stigmer.WhatsAppChannelConfigInput{},
 })
 ```
 </Tab>
@@ -774,30 +802,26 @@ channel = client.channels.apply(ChannelInput(
     org="acme",
     slug="...",
     labels={},
-    agent_ref=None,
+    agent_ref=ResourceRef(org="acme", slug="..."),
     enabled=False,
     vaults=[],
-    run_config=None,
-    web=None,
-    slack=None,
-    whatsapp=None,
+    run_config=RunConfigInput(),
+    web=WebChannelConfigInput(),
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Channel channel = client.channels().apply(ChannelInput.builder()
+Channel channel = client.channel.apply(ChannelInput.builder()
     .name("my-channel")
     .org("acme")
     .slug("...")
     .labels(Map.of())
-    .agentRef(null)
+    .agentRef(ResourceRef.of("acme", "..."))
     .enabled(false)
     .vaults(List.of())
-    .runConfig(null)
-    .web(null)
-    .slack(null)
-    .whatsapp(null)
+    .runConfig(ChannelInput.RunConfigInput.builder().build())
+    .web(ChannelInput.WebChannelConfigInput.builder().build())
     .build());
 ```
 </Tab>
@@ -827,13 +851,11 @@ const channel = await stigmer.channel.create({
   org: "acme",
   slug: "...",
   labels: {},
-  agentRef: {},
+  agentRef: { org: "acme", slug: "..." },
   enabled: false,
   vaults: [],
   runConfig: {},
   web: {},
-  slack: {},
-  whatsapp: {},
 });
 ```
 </Tab>
@@ -844,13 +866,11 @@ channel, err := client.Channel.Create(ctx, &stigmer.ChannelInput{
   Org:       "acme",
   Slug:      "...",
   Labels:    map[string]string{},
-  AgentRef:  &stigmer.ResourceRef{},
+  AgentRef:  stigmer.ResourceRef{Org: "acme", Slug: "..."},
   Enabled:   false,
   Vaults:    []stigmer.ResourceRef{},
   RunConfig: &stigmer.RunConfigInput{},
   Web:       &stigmer.WebChannelConfigInput{},
-  Slack:     &stigmer.SlackChannelConfigInput{},
-  Whatsapp:  &stigmer.WhatsAppChannelConfigInput{},
 })
 ```
 </Tab>
@@ -861,30 +881,26 @@ channel = client.channels.create(ChannelInput(
     org="acme",
     slug="...",
     labels={},
-    agent_ref=None,
+    agent_ref=ResourceRef(org="acme", slug="..."),
     enabled=False,
     vaults=[],
-    run_config=None,
-    web=None,
-    slack=None,
-    whatsapp=None,
+    run_config=RunConfigInput(),
+    web=WebChannelConfigInput(),
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Channel channel = client.channels().create(ChannelInput.builder()
+Channel channel = client.channel.create(ChannelInput.builder()
     .name("my-channel")
     .org("acme")
     .slug("...")
     .labels(Map.of())
-    .agentRef(null)
+    .agentRef(ResourceRef.of("acme", "..."))
     .enabled(false)
     .vaults(List.of())
-    .runConfig(null)
-    .web(null)
-    .slack(null)
-    .whatsapp(null)
+    .runConfig(ChannelInput.RunConfigInput.builder().build())
+    .web(ChannelInput.WebChannelConfigInput.builder().build())
     .build());
 ```
 </Tab>
@@ -930,10 +946,10 @@ updated = client.channels.update(channel, ["metadata.name"])
 </Tab>
 <Tab value="Java">
 ```java
-Channel channel = client.channels().get("chn_01j5q3k7m8r2s4tnz2hfp0q0c3");
-Channel updated = client.channels().update(
+Channel channel = client.channel.get("chn_01j5q3k7m8r2s4tnz2hfp0q0c3");
+Channel updated = client.channel.update(
     channel.toBuilder().setMetadata(channel.getMetadata().toBuilder().setName("New name")).build(),
-    java.util.List.of("metadata.name"));
+    List.of("metadata.name"));
 ```
 </Tab>
 </SDKTabs>
@@ -956,22 +972,22 @@ Full teardown: a web channel's link stops resolving and live guest tokens die on
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const channel = await stigmer.channel.delete(id);
+const channel = await stigmer.channel.delete("chn_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
 ```go
-channel, err := client.Channel.Delete(ctx, id)
+channel, err := client.Channel.Delete(ctx, "chn_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
 ```python
-channel = client.channels.delete(id)
+channel = client.channels.delete("chn_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Channel channel = client.channels().delete(id);
+Channel channel = client.channel.delete("chn_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -1001,7 +1017,7 @@ const channelConversation = await stigmer.channel.clearAttention({
 </Tab>
 <Tab value="Go">
 ```go
-channelConversation, err := client.Channel.ClearAttention(ctx, &stigmer.ConversationControlInput{
+channelConversation, err := client.Channel.ClearAttention(ctx, &channelv1.ConversationControlInput{
   ChannelId:       "...",
   ConversationKey: "...",
 })
@@ -1009,7 +1025,7 @@ channelConversation, err := client.Channel.ClearAttention(ctx, &stigmer.Conversa
 </Tab>
 <Tab value="Python">
 ```python
-channel_conversation = client.channels.clear_attention(ConversationControlInput(
+channel_conversation = client.channels.clear_attention(conversation_io_pb2.ConversationControlInput(
     channel_id="...",
     conversation_key="...",
 ))
@@ -1017,9 +1033,9 @@ channel_conversation = client.channels.clear_attention(ConversationControlInput(
 </Tab>
 <Tab value="Java">
 ```java
-ChannelConversation channelConversation = client.channels().clearAttention(ConversationControlInput.builder()
-    .channelId("...")
-    .conversationKey("...")
+ChannelConversation channelConversation = client.channel.clearAttention(ConversationControlInput.newBuilder()
+    .setChannelId("...")
+    .setConversationKey("...")
     .build());
 ```
 </Tab>
@@ -1053,7 +1069,7 @@ const channel = await stigmer.channel.completeInstall({
 </Tab>
 <Tab value="Go">
 ```go
-channel, err := client.Channel.CompleteInstall(ctx, &stigmer.CompleteChannelInstallInput{
+channel, err := client.Channel.CompleteInstall(ctx, &channelv1.CompleteChannelInstallInput{
   ResourceId: "...",
   State:      "...",
   Code:       "...",
@@ -1062,7 +1078,7 @@ channel, err := client.Channel.CompleteInstall(ctx, &stigmer.CompleteChannelInst
 </Tab>
 <Tab value="Python">
 ```python
-channel = client.channels.complete_install(CompleteChannelInstallInput(
+channel = client.channels.complete_install(io_pb2.CompleteChannelInstallInput(
     resource_id="...",
     state="...",
     code="...",
@@ -1071,10 +1087,10 @@ channel = client.channels.complete_install(CompleteChannelInstallInput(
 </Tab>
 <Tab value="Java">
 ```java
-Channel channel = client.channels().completeInstall(CompleteChannelInstallInput.builder()
-    .resourceId("...")
-    .state("...")
-    .code("...")
+Channel channel = client.channel.completeInstall(CompleteChannelInstallInput.newBuilder()
+    .setResourceId("...")
+    .setState("...")
+    .setCode("...")
     .build());
 ```
 </Tab>
@@ -1096,34 +1112,34 @@ The number behind a badge such as the inbox's "needs you": the same predicate li
 const channelConversationCount = await stigmer.channel.countConversations({
   org: "...",
   channelId: "...",
-  filter: "...",
+  filter: ChannelConversationListFilter.filter_wants_human,
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-channelConversationCount, err := client.Channel.CountConversations(ctx, &stigmer.CountChannelConversationsInput{
+channelConversationCount, err := client.Channel.CountConversations(ctx, &channelv1.CountChannelConversationsInput{
   Org:       "...",
   ChannelId: "...",
-  Filter:    "...",
+  Filter:    channelv1.ChannelConversationListFilter_filter_wants_human,
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-channel_conversation_count = client.channels.count_conversations(CountChannelConversationsInput(
+channel_conversation_count = client.channels.count_conversations(conversation_io_pb2.CountChannelConversationsInput(
     org="...",
     channel_id="...",
-    filter="...",
+    filter=conversation_io_pb2.filter_wants_human,
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-ChannelConversationCount channelConversationCount = client.channels().countConversations(CountChannelConversationsInput.builder()
-    .org("...")
-    .channelId("...")
-    .filter("...")
+ChannelConversationCount channelConversationCount = client.channel.countConversations(CountChannelConversationsInput.newBuilder()
+    .setOrg("...")
+    .setChannelId("...")
+    .setFilter(ChannelConversationListFilter.filter_wants_human)
     .build());
 ```
 </Tab>
@@ -1149,22 +1165,22 @@ const channelConversation = await stigmer.channel.escalate({
 </Tab>
 <Tab value="Go">
 ```go
-channelConversation, err := client.Channel.Escalate(ctx, &stigmer.EscalateConversationInput{
+channelConversation, err := client.Channel.Escalate(ctx, &channelv1.EscalateConversationInput{
   Reason: "...",
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-channel_conversation = client.channels.escalate(EscalateConversationInput(
+channel_conversation = client.channels.escalate(conversation_io_pb2.EscalateConversationInput(
     reason="...",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-ChannelConversation channelConversation = client.channels().escalate(EscalateConversationInput.builder()
-    .reason("...")
+ChannelConversation channelConversation = client.channel.escalate(EscalateConversationInput.newBuilder()
+    .setReason("...")
     .build());
 ```
 </Tab>
@@ -1191,7 +1207,7 @@ const channelConversation = await stigmer.channel.handBack({
 </Tab>
 <Tab value="Go">
 ```go
-channelConversation, err := client.Channel.HandBack(ctx, &stigmer.ConversationControlInput{
+channelConversation, err := client.Channel.HandBack(ctx, &channelv1.ConversationControlInput{
   ChannelId:       "...",
   ConversationKey: "...",
 })
@@ -1199,7 +1215,7 @@ channelConversation, err := client.Channel.HandBack(ctx, &stigmer.ConversationCo
 </Tab>
 <Tab value="Python">
 ```python
-channel_conversation = client.channels.hand_back(ConversationControlInput(
+channel_conversation = client.channels.hand_back(conversation_io_pb2.ConversationControlInput(
     channel_id="...",
     conversation_key="...",
 ))
@@ -1207,9 +1223,9 @@ channel_conversation = client.channels.hand_back(ConversationControlInput(
 </Tab>
 <Tab value="Java">
 ```java
-ChannelConversation channelConversation = client.channels().handBack(ConversationControlInput.builder()
-    .channelId("...")
-    .conversationKey("...")
+ChannelConversation channelConversation = client.channel.handBack(ConversationControlInput.newBuilder()
+    .setChannelId("...")
+    .setConversationKey("...")
     .build());
 ```
 </Tab>
@@ -1239,22 +1255,22 @@ const initiateChannelInstallOutput = await stigmer.channel.initiateInstall({
 </Tab>
 <Tab value="Go">
 ```go
-initiateChannelInstallOutput, err := client.Channel.InitiateInstall(ctx, &stigmer.InitiateChannelInstallInput{
+initiateChannelInstallOutput, err := client.Channel.InitiateInstall(ctx, &channelv1.InitiateChannelInstallInput{
   ResourceId: "...",
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-initiate_channel_install_output = client.channels.initiate_install(InitiateChannelInstallInput(
+initiate_channel_install_output = client.channels.initiate_install(io_pb2.InitiateChannelInstallInput(
     resource_id="...",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-InitiateChannelInstallOutput initiateChannelInstallOutput = client.channels().initiateInstall(InitiateChannelInstallInput.builder()
-    .resourceId("...")
+InitiateChannelInstallOutput initiateChannelInstallOutput = client.channel.initiateInstall(InitiateChannelInstallInput.newBuilder()
+    .setResourceId("...")
     .build());
 ```
 </Tab>
@@ -1281,7 +1297,7 @@ const channel = await stigmer.channel.rename({
 </Tab>
 <Tab value="Go">
 ```go
-channel, err := client.Channel.Rename(ctx, &stigmer.RenameInput{
+channel, err := client.Channel.Rename(ctx, &apiresource.RenameInput{
   ResourceId: "...",
   Slug:       "...",
 })
@@ -1289,7 +1305,7 @@ channel, err := client.Channel.Rename(ctx, &stigmer.RenameInput{
 </Tab>
 <Tab value="Python">
 ```python
-channel = client.channels.rename(RenameInput(
+channel = client.channels.rename(apiresource_io_pb2.RenameInput(
     resource_id="...",
     slug="...",
 ))
@@ -1297,9 +1313,9 @@ channel = client.channels.rename(RenameInput(
 </Tab>
 <Tab value="Java">
 ```java
-Channel channel = client.channels().rename(RenameInput.builder()
-    .resourceId("...")
-    .slug("...")
+Channel channel = client.channel.rename(RenameInput.newBuilder()
+    .setResourceId("...")
+    .setSlug("...")
     .build());
 ```
 </Tab>
@@ -1327,28 +1343,28 @@ const sendChannelMessageOutput = await stigmer.channel.reply({
 </Tab>
 <Tab value="Go">
 ```go
-sendChannelMessageOutput, err := client.Channel.Reply(ctx, &stigmer.ReplyToConversationInput{
+sendChannelMessageOutput, err := client.Channel.Reply(ctx, &channelv1.ReplyToConversationInput{
   ChannelId:       "...",
   ConversationKey: "...",
-  Payload:         &stigmer.ChannelOutboundPayloadInput{},
+  Payload:         &channelv1.ChannelOutboundPayload{},
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-send_channel_message_output = client.channels.reply(ReplyToConversationInput(
+send_channel_message_output = client.channels.reply(conversation_io_pb2.ReplyToConversationInput(
     channel_id="...",
     conversation_key="...",
-    payload=None,
+    payload=message_io_pb2.ChannelOutboundPayload(),
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-SendChannelMessageOutput sendChannelMessageOutput = client.channels().reply(ReplyToConversationInput.builder()
-    .channelId("...")
-    .conversationKey("...")
-    .payload(null)
+SendChannelMessageOutput sendChannelMessageOutput = client.channel.reply(ReplyToConversationInput.newBuilder()
+    .setChannelId("...")
+    .setConversationKey("...")
+    .setPayload(ChannelOutboundPayload.getDefaultInstance())
     .build());
 ```
 </Tab>
@@ -1376,22 +1392,22 @@ const channel = await stigmer.channel.rotateLink({
 </Tab>
 <Tab value="Go">
 ```go
-channel, err := client.Channel.RotateLink(ctx, &stigmer.RotateChannelLinkInput{
+channel, err := client.Channel.RotateLink(ctx, &channelv1.RotateChannelLinkInput{
   ResourceId: "...",
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-channel = client.channels.rotate_link(RotateChannelLinkInput(
+channel = client.channels.rotate_link(io_pb2.RotateChannelLinkInput(
     resource_id="...",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Channel channel = client.channels().rotateLink(RotateChannelLinkInput.builder()
-    .resourceId("...")
+Channel channel = client.channel.rotateLink(RotateChannelLinkInput.newBuilder()
+    .setResourceId("...")
     .build());
 ```
 </Tab>
@@ -1420,31 +1436,31 @@ const sendChannelMessageOutput = await stigmer.channel.sendMessage({
 </Tab>
 <Tab value="Go">
 ```go
-sendChannelMessageOutput, err := client.Channel.SendMessage(ctx, &stigmer.SendChannelMessageInput{
+sendChannelMessageOutput, err := client.Channel.SendMessage(ctx, &channelv1.SendChannelMessageInput{
   Channel:   "...",
   Org:       "...",
   Recipient: "...",
-  Payload:   &stigmer.ChannelOutboundPayloadInput{},
+  Payload:   &channelv1.ChannelOutboundPayload{},
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-send_channel_message_output = client.channels.send_message(SendChannelMessageInput(
+send_channel_message_output = client.channels.send_message(message_io_pb2.SendChannelMessageInput(
     channel="...",
     org="...",
     recipient="...",
-    payload=None,
+    payload=message_io_pb2.ChannelOutboundPayload(),
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-SendChannelMessageOutput sendChannelMessageOutput = client.channels().sendMessage(SendChannelMessageInput.builder()
-    .channel("...")
-    .org("...")
-    .recipient("...")
-    .payload(null)
+SendChannelMessageOutput sendChannelMessageOutput = client.channel.sendMessage(SendChannelMessageInput.newBuilder()
+    .setChannel("...")
+    .setOrg("...")
+    .setRecipient("...")
+    .setPayload(ChannelOutboundPayload.getDefaultInstance())
     .build());
 ```
 </Tab>
@@ -1471,7 +1487,7 @@ const channelConversation = await stigmer.channel.takeOver({
 </Tab>
 <Tab value="Go">
 ```go
-channelConversation, err := client.Channel.TakeOver(ctx, &stigmer.ConversationControlInput{
+channelConversation, err := client.Channel.TakeOver(ctx, &channelv1.ConversationControlInput{
   ChannelId:       "...",
   ConversationKey: "...",
 })
@@ -1479,7 +1495,7 @@ channelConversation, err := client.Channel.TakeOver(ctx, &stigmer.ConversationCo
 </Tab>
 <Tab value="Python">
 ```python
-channel_conversation = client.channels.take_over(ConversationControlInput(
+channel_conversation = client.channels.take_over(conversation_io_pb2.ConversationControlInput(
     channel_id="...",
     conversation_key="...",
 ))
@@ -1487,9 +1503,9 @@ channel_conversation = client.channels.take_over(ConversationControlInput(
 </Tab>
 <Tab value="Java">
 ```java
-ChannelConversation channelConversation = client.channels().takeOver(ConversationControlInput.builder()
-    .channelId("...")
-    .conversationKey("...")
+ChannelConversation channelConversation = client.channel.takeOver(ConversationControlInput.newBuilder()
+    .setChannelId("...")
+    .setConversationKey("...")
     .build());
 ```
 </Tab>

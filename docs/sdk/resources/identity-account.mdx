@@ -25,25 +25,65 @@ spec:
 
 ## Client Access
 
+Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Each language's first block holds the imports the page's examples use.
+
 <SDKTabs>
 <Tab value="TypeScript">
+```typescript prelude
+import { IdentityAccountProvisioningMode } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/enum_pb";
+import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
+```
 ```typescript
 const identityAccount = await stigmer.identityAccount.get("ida_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
+```go prelude
+import (
+	stigmer "go.stigmer.ai/sdk"
+	apiresource "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	identityaccountv1 "go.stigmer.ai/sdk/proto/ai/stigmer/iam/identityaccount/v1"
+	iamv1 "go.stigmer.ai/sdk/proto/ai/stigmer/iam/v1"
+)
+```
 ```go
 identityAccount, err := client.IdentityAccount.Get(ctx, "ida_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
+```python prelude
+from stigmer import IdentityAccountInput, ResourceRef
+from stigmer._gen import IdentityAccountPreferencesInput
+from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2
+from ai.stigmer.iam.identityaccount.v1 import enum_pb2, io_pb2
+from ai.stigmer.iam.v1 import enum_pb2 as iam_enum_pb2
+```
 ```python
 identity_account = client.identity_accounts.get("ida_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
+```java prelude
+import ai.stigmer.commons.apiresource.ApiResourceAuditActor;
+import ai.stigmer.commons.apiresource.ApiResourceReference;
+import ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput;
+import ai.stigmer.iam.identityaccount.v1.CreateServiceAccountInput;
+import ai.stigmer.iam.identityaccount.v1.DeprovisionFederatedAccountInput;
+import ai.stigmer.iam.identityaccount.v1.ExternalSubLookup;
+import ai.stigmer.iam.identityaccount.v1.IdentityAccount;
+import ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail;
+import ai.stigmer.iam.identityaccount.v1.IdentityAccountProvisioningMode;
+import ai.stigmer.iam.identityaccount.v1.IdentityAccountsList;
+import ai.stigmer.iam.identityaccount.v1.ListServiceAccountsInput;
+import ai.stigmer.iam.identityaccount.v1.UpdateFederatedAccountInput;
+import ai.stigmer.iam.v1.IamRole;
+import ai.stigmer.sdk.gen.IdentityAccountInput;
+import ai.stigmer.sdk.gen.ResourceRef;
+import java.util.List;
+import java.util.Map;
+```
 ```java
-IdentityAccount identityAccount = client.identityAccounts().get("ida_01j5q3k7m8r2s4tnz2hfp0q0c3");
+IdentityAccount identityAccount = client.identityAccount.get("ida_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -75,22 +115,22 @@ Get an identity account by its unique identifier.
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const identityAccount = await stigmer.identityAccount.get(id);
+const identityAccount = await stigmer.identityAccount.get("ida_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
 ```go
-identityAccount, err := client.IdentityAccount.Get(ctx, id)
+identityAccount, err := client.IdentityAccount.Get(ctx, "ida_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
 ```python
-identity_account = client.identity_accounts.get(id)
+identity_account = client.identity_accounts.get("ida_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-IdentityAccount identityAccount = client.identityAccounts().get(id);
+IdentityAccount identityAccount = client.identityAccount.get("ida_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -110,22 +150,22 @@ Get lightweight actor information for an identity account.
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const apiResourceAuditActor = await stigmer.identityAccount.getActorInfo(id);
+const apiResourceAuditActor = await stigmer.identityAccount.getActorInfo("ida_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
 ```go
-apiResourceAuditActor, err := client.IdentityAccount.GetActorInfo(ctx, id)
+apiResourceAuditActor, err := client.IdentityAccount.GetActorInfo(ctx, "ida_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
 ```python
-api_resource_audit_actor = client.identity_accounts.get_actor_info(id)
+api_resource_audit_actor = client.identity_accounts.get_actor_info("ida_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-ApiResourceAuditActor apiResourceAuditActor = client.identityAccounts().getActorInfo(id);
+ApiResourceAuditActor apiResourceAuditActor = client.identityAccount.getActorInfo("ida_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -154,22 +194,22 @@ const identityAccount = await stigmer.identityAccount.getByEmail({
 </Tab>
 <Tab value="Go">
 ```go
-identityAccount, err := client.IdentityAccount.GetByEmail(ctx, &stigmer.IdentityAccountEmail{
+identityAccount, err := client.IdentityAccount.GetByEmail(ctx, &identityaccountv1.IdentityAccountEmail{
   Value: "...",
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-identity_account = client.identity_accounts.get_by_email(IdentityAccountEmail(
+identity_account = client.identity_accounts.get_by_email(io_pb2.IdentityAccountEmail(
     value="...",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-IdentityAccount identityAccount = client.identityAccounts().getByEmail(IdentityAccountEmail.builder()
-    .value("...")
+IdentityAccount identityAccount = client.identityAccount.getByEmail(IdentityAccountEmail.newBuilder()
+    .setValue("...")
     .build());
 ```
 </Tab>
@@ -201,28 +241,28 @@ const identityAccount = await stigmer.identityAccount.getByExternalSub({
 </Tab>
 <Tab value="Go">
 ```go
-identityAccount, err := client.IdentityAccount.GetByExternalSub(ctx, &stigmer.ExternalSubLookup{
+identityAccount, err := client.IdentityAccount.GetByExternalSub(ctx, &identityaccountv1.ExternalSubLookup{
   Org:                 "...",
-  FederationIssuerRef: &stigmer.ResourceRef{},
+  FederationIssuerRef: &apiresource.ApiResourceReference{},
   ExternalSub:         "...",
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-identity_account = client.identity_accounts.get_by_external_sub(ExternalSubLookup(
+identity_account = client.identity_accounts.get_by_external_sub(io_pb2.ExternalSubLookup(
     org="...",
-    federation_issuer_ref=None,
+    federation_issuer_ref=apiresource_io_pb2.ApiResourceReference(),
     external_sub="...",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-IdentityAccount identityAccount = client.identityAccounts().getByExternalSub(ExternalSubLookup.builder()
-    .org("...")
-    .federationIssuerRef(null)
-    .externalSub("...")
+IdentityAccount identityAccount = client.identityAccount.getByExternalSub(ExternalSubLookup.newBuilder()
+    .setOrg("...")
+    .setFederationIssuerRef(ApiResourceReference.getDefaultInstance())
+    .setExternalSub("...")
     .build());
 ```
 </Tab>
@@ -241,22 +281,22 @@ Primarily used for direct and machine accounts where the IDP ID is the Auth0 use
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const identityAccount = await stigmer.identityAccount.getByIdpId(id);
+const identityAccount = await stigmer.identityAccount.getByIdpId("ida_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
 ```go
-identityAccount, err := client.IdentityAccount.GetByIdpId(ctx, id)
+identityAccount, err := client.IdentityAccount.GetByIdpId(ctx, "ida_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
 ```python
-identity_account = client.identity_accounts.get_by_idp_id(id)
+identity_account = client.identity_accounts.get_by_idp_id("ida_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-IdentityAccount identityAccount = client.identityAccounts().getByIdpId(id);
+IdentityAccount identityAccount = client.identityAccount.getByIdpId("ida_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -290,7 +330,7 @@ const result = await stigmer.identityAccount.listServiceAccounts({
 </Tab>
 <Tab value="Go">
 ```go
-result, err := client.IdentityAccount.ListServiceAccounts(ctx, &stigmer.ListServiceAccountsInput{
+result, err := client.IdentityAccount.ListServiceAccounts(ctx, &identityaccountv1.ListServiceAccountsInput{
   Org:       "...",
   PageSize:  0,
   PageToken: "...",
@@ -300,7 +340,7 @@ result, err := client.IdentityAccount.ListServiceAccounts(ctx, &stigmer.ListServ
 </Tab>
 <Tab value="Python">
 ```python
-result = client.identity_accounts.list_service_accounts(ListServiceAccountsInput(
+result = client.identity_accounts.list_service_accounts(io_pb2.ListServiceAccountsInput(
     org="...",
     page_size=0,
     page_token="...",
@@ -310,11 +350,11 @@ result = client.identity_accounts.list_service_accounts(ListServiceAccountsInput
 </Tab>
 <Tab value="Java">
 ```java
-IdentityAccountsList result = client.identityAccounts().listServiceAccounts(ListServiceAccountsInput.builder()
-    .org("...")
-    .pageSize(0)
-    .pageToken("...")
-    .labels(Map.of())
+IdentityAccountsList result = client.identityAccount.listServiceAccounts(ListServiceAccountsInput.newBuilder()
+    .setOrg("...")
+    .setPageSize(0)
+    .setPageToken("...")
+    .putAllLabels(Map.of())
     .build());
 ```
 </Tab>
@@ -344,8 +384,8 @@ const identityAccount = await stigmer.identityAccount.create({
   lastName: "...",
   pictureUrl: "...",
   isMachineAccount: false,
-  provisioningMode: "...",
-  federationIssuerRef: {},
+  provisioningMode: IdentityAccountProvisioningMode.direct,
+  federationIssuerRef: { org: "acme", slug: "..." },
   preferences: {},
 });
 ```
@@ -363,8 +403,8 @@ identityAccount, err := client.IdentityAccount.Create(ctx, &stigmer.IdentityAcco
   LastName:            "...",
   PictureUrl:          "...",
   IsMachineAccount:    false,
-  ProvisioningMode:    "...",
-  FederationIssuerRef: &stigmer.ResourceRef{},
+  ProvisioningMode:    identityaccountv1.IdentityAccountProvisioningMode_direct,
+  FederationIssuerRef: stigmer.ResourceRef{Org: "acme", Slug: "..."},
   Preferences:         &stigmer.IdentityAccountPreferencesInput{},
 })
 ```
@@ -382,15 +422,15 @@ identity_account = client.identity_accounts.create(IdentityAccountInput(
     last_name="...",
     picture_url="...",
     is_machine_account=False,
-    provisioning_mode="...",
-    federation_issuer_ref=None,
-    preferences=None,
+    provisioning_mode=enum_pb2.direct,
+    federation_issuer_ref=ResourceRef(org="acme", slug="..."),
+    preferences=IdentityAccountPreferencesInput(),
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-IdentityAccount identityAccount = client.identityAccounts().create(IdentityAccountInput.builder()
+IdentityAccount identityAccount = client.identityAccount.create(IdentityAccountInput.builder()
     .name("my-identity-account")
     .org("acme")
     .slug("...")
@@ -401,9 +441,9 @@ IdentityAccount identityAccount = client.identityAccounts().create(IdentityAccou
     .lastName("...")
     .pictureUrl("...")
     .isMachineAccount(false)
-    .provisioningMode("...")
-    .federationIssuerRef(null)
-    .preferences(null)
+    .provisioningMode(IdentityAccountProvisioningMode.direct)
+    .federationIssuerRef(ResourceRef.of("acme", "..."))
+    .preferences(IdentityAccountInput.IdentityAccountPreferencesInput.builder().build())
     .build());
 ```
 </Tab>
@@ -447,10 +487,10 @@ updated = client.identity_accounts.update(identity_account, ["metadata.name"])
 </Tab>
 <Tab value="Java">
 ```java
-IdentityAccount identityAccount = client.identityAccounts().get("ida_01j5q3k7m8r2s4tnz2hfp0q0c3");
-IdentityAccount updated = client.identityAccounts().update(
+IdentityAccount identityAccount = client.identityAccount.get("ida_01j5q3k7m8r2s4tnz2hfp0q0c3");
+IdentityAccount updated = client.identityAccount.update(
     identityAccount.toBuilder().setMetadata(identityAccount.getMetadata().toBuilder().setName("New name")).build(),
-    java.util.List.of("metadata.name"));
+    List.of("metadata.name"));
 ```
 </Tab>
 </SDKTabs>
@@ -492,9 +532,9 @@ const identityAccount = await stigmer.identityAccount.updateFederatedAccount({
 </Tab>
 <Tab value="Go">
 ```go
-identityAccount, err := client.IdentityAccount.UpdateFederatedAccount(ctx, &stigmer.UpdateFederatedAccountInput{
+identityAccount, err := client.IdentityAccount.UpdateFederatedAccount(ctx, &identityaccountv1.UpdateFederatedAccountInput{
   Org:                 "...",
-  FederationIssuerRef: &stigmer.ResourceRef{},
+  FederationIssuerRef: &apiresource.ApiResourceReference{},
   ExternalSub:         "...",
   Email:               "...",
   FirstName:           "...",
@@ -505,9 +545,9 @@ identityAccount, err := client.IdentityAccount.UpdateFederatedAccount(ctx, &stig
 </Tab>
 <Tab value="Python">
 ```python
-identity_account = client.identity_accounts.update_federated_account(UpdateFederatedAccountInput(
+identity_account = client.identity_accounts.update_federated_account(io_pb2.UpdateFederatedAccountInput(
     org="...",
-    federation_issuer_ref=None,
+    federation_issuer_ref=apiresource_io_pb2.ApiResourceReference(),
     external_sub="...",
     email="...",
     first_name="...",
@@ -518,14 +558,14 @@ identity_account = client.identity_accounts.update_federated_account(UpdateFeder
 </Tab>
 <Tab value="Java">
 ```java
-IdentityAccount identityAccount = client.identityAccounts().updateFederatedAccount(UpdateFederatedAccountInput.builder()
-    .org("...")
-    .federationIssuerRef(null)
-    .externalSub("...")
-    .email("...")
-    .firstName("...")
-    .lastName("...")
-    .pictureUrl("...")
+IdentityAccount identityAccount = client.identityAccount.updateFederatedAccount(UpdateFederatedAccountInput.newBuilder()
+    .setOrg("...")
+    .setFederationIssuerRef(ApiResourceReference.getDefaultInstance())
+    .setExternalSub("...")
+    .setEmail("...")
+    .setFirstName("...")
+    .setLastName("...")
+    .setPictureUrl("...")
     .build());
 ```
 </Tab>
@@ -542,22 +582,22 @@ Delete an identity account.
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const identityAccount = await stigmer.identityAccount.delete(id);
+const identityAccount = await stigmer.identityAccount.delete("ida_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
 ```go
-identityAccount, err := client.IdentityAccount.Delete(ctx, id)
+identityAccount, err := client.IdentityAccount.Delete(ctx, "ida_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
 ```python
-identity_account = client.identity_accounts.delete(id)
+identity_account = client.identity_accounts.delete("ida_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-IdentityAccount identityAccount = client.identityAccounts().delete(id);
+IdentityAccount identityAccount = client.identityAccount.delete("ida_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -598,9 +638,9 @@ const identityAccount = await stigmer.identityAccount.createFederatedAccount({
 </Tab>
 <Tab value="Go">
 ```go
-identityAccount, err := client.IdentityAccount.CreateFederatedAccount(ctx, &stigmer.CreateFederatedAccountInput{
+identityAccount, err := client.IdentityAccount.CreateFederatedAccount(ctx, &identityaccountv1.CreateFederatedAccountInput{
   Org:                 "...",
-  FederationIssuerRef: &stigmer.ResourceRef{},
+  FederationIssuerRef: &apiresource.ApiResourceReference{},
   ExternalSub:         "...",
   Email:               "...",
   FirstName:           "...",
@@ -611,9 +651,9 @@ identityAccount, err := client.IdentityAccount.CreateFederatedAccount(ctx, &stig
 </Tab>
 <Tab value="Python">
 ```python
-identity_account = client.identity_accounts.create_federated_account(CreateFederatedAccountInput(
+identity_account = client.identity_accounts.create_federated_account(io_pb2.CreateFederatedAccountInput(
     org="...",
-    federation_issuer_ref=None,
+    federation_issuer_ref=apiresource_io_pb2.ApiResourceReference(),
     external_sub="...",
     email="...",
     first_name="...",
@@ -624,14 +664,14 @@ identity_account = client.identity_accounts.create_federated_account(CreateFeder
 </Tab>
 <Tab value="Java">
 ```java
-IdentityAccount identityAccount = client.identityAccounts().createFederatedAccount(CreateFederatedAccountInput.builder()
-    .org("...")
-    .federationIssuerRef(null)
-    .externalSub("...")
-    .email("...")
-    .firstName("...")
-    .lastName("...")
-    .pictureUrl("...")
+IdentityAccount identityAccount = client.identityAccount.createFederatedAccount(CreateFederatedAccountInput.newBuilder()
+    .setOrg("...")
+    .setFederationIssuerRef(ApiResourceReference.getDefaultInstance())
+    .setExternalSub("...")
+    .setEmail("...")
+    .setFirstName("...")
+    .setLastName("...")
+    .setPictureUrl("...")
     .build());
 ```
 </Tab>
@@ -657,34 +697,34 @@ Authorization: Requires can_create_identity_account on the organization. A servi
 const identityAccount = await stigmer.identityAccount.createServiceAccount({
   org: "...",
   name: "...",
-  role: "...",
+  role: IamRole.owner,
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-identityAccount, err := client.IdentityAccount.CreateServiceAccount(ctx, &stigmer.CreateServiceAccountInput{
+identityAccount, err := client.IdentityAccount.CreateServiceAccount(ctx, &identityaccountv1.CreateServiceAccountInput{
   Org:  "...",
   Name: "...",
-  Role: "...",
+  Role: iamv1.IamRole_owner,
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-identity_account = client.identity_accounts.create_service_account(CreateServiceAccountInput(
+identity_account = client.identity_accounts.create_service_account(io_pb2.CreateServiceAccountInput(
     org="...",
     name="...",
-    role="...",
+    role=iam_enum_pb2.owner,
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-IdentityAccount identityAccount = client.identityAccounts().createServiceAccount(CreateServiceAccountInput.builder()
-    .org("...")
-    .name("...")
-    .role("...")
+IdentityAccount identityAccount = client.identityAccount.createServiceAccount(CreateServiceAccountInput.newBuilder()
+    .setOrg("...")
+    .setName("...")
+    .setRole(IamRole.owner)
     .build());
 ```
 </Tab>
@@ -719,9 +759,9 @@ const identityAccount = await stigmer.identityAccount.deprovisionFederatedAccoun
 </Tab>
 <Tab value="Go">
 ```go
-identityAccount, err := client.IdentityAccount.DeprovisionFederatedAccount(ctx, &stigmer.DeprovisionFederatedAccountInput{
+identityAccount, err := client.IdentityAccount.DeprovisionFederatedAccount(ctx, &identityaccountv1.DeprovisionFederatedAccountInput{
   Org:                 "...",
-  FederationIssuerRef: &stigmer.ResourceRef{},
+  FederationIssuerRef: &apiresource.ApiResourceReference{},
   ExternalSub:         "...",
   DeleteAccount:       false,
 })
@@ -729,9 +769,9 @@ identityAccount, err := client.IdentityAccount.DeprovisionFederatedAccount(ctx, 
 </Tab>
 <Tab value="Python">
 ```python
-identity_account = client.identity_accounts.deprovision_federated_account(DeprovisionFederatedAccountInput(
+identity_account = client.identity_accounts.deprovision_federated_account(io_pb2.DeprovisionFederatedAccountInput(
     org="...",
-    federation_issuer_ref=None,
+    federation_issuer_ref=apiresource_io_pb2.ApiResourceReference(),
     external_sub="...",
     delete_account=False,
 ))
@@ -739,11 +779,11 @@ identity_account = client.identity_accounts.deprovision_federated_account(Deprov
 </Tab>
 <Tab value="Java">
 ```java
-IdentityAccount identityAccount = client.identityAccounts().deprovisionFederatedAccount(DeprovisionFederatedAccountInput.builder()
-    .org("...")
-    .federationIssuerRef(null)
-    .externalSub("...")
-    .deleteAccount(false)
+IdentityAccount identityAccount = client.identityAccount.deprovisionFederatedAccount(DeprovisionFederatedAccountInput.newBuilder()
+    .setOrg("...")
+    .setFederationIssuerRef(ApiResourceReference.getDefaultInstance())
+    .setExternalSub("...")
+    .setDeleteAccount(false)
     .build());
 ```
 </Tab>
@@ -777,7 +817,7 @@ identity_account = client.identity_accounts.provision_my_account()
 </Tab>
 <Tab value="Java">
 ```java
-IdentityAccount identityAccount = client.identityAccounts().provisionMyAccount();
+IdentityAccount identityAccount = client.identityAccount.provisionMyAccount();
 ```
 </Tab>
 </SDKTabs>
@@ -808,7 +848,7 @@ identity_account = client.identity_accounts.who_am_i()
 </Tab>
 <Tab value="Java">
 ```java
-IdentityAccount identityAccount = client.identityAccounts().whoAmI();
+IdentityAccount identityAccount = client.identityAccount.whoAmI();
 ```
 </Tab>
 </SDKTabs>

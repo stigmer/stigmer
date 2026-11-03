@@ -194,13 +194,33 @@ export function flattenCommentParts(
     .trim();
 }
 
-/** Extract all @example blocks from a TypeDoc comment, stripping outer fences. */
-export function extractExamples(
-  comment: Comment | undefined,
-): string[] {
+/** One `@example` as the reference renders it: its fence's attributes and its code. */
+export interface Example {
+  /** What followed the language on the author's fence line (`title="App.tsx"`), or "" for none. */
+  readonly meta: string;
+  readonly code: string;
+}
+
+/** Where an example was written, for the error that refuses it: the export and its source file. */
+export interface ExampleOwner {
+  readonly name: string;
+  readonly sources?: readonly { readonly fileName: string }[];
+}
+
+/** One fence and nothing else: its language, its attributes, its code. */
+const WHOLE_FENCE = /^```(\w*)([^\n]*)\n([\s\S]*?)\n?```$/;
+
+/**
+ * Every `@example` of a TypeDoc comment. An example is exactly one fence,
+ * whose line is kept (the reference writes ```` ```tsx <meta> ````), or bare
+ * code with no fence, rendered as `tsx`. Anything else (prose around a
+ * fence, or two fences) throws, naming the export and its file: rendered
+ * whole, it would put a fence inside a fence.
+ */
+export function extractExamples(comment: Comment | undefined, owner: ExampleOwner): Example[] {
   if (!comment?.blockTags) return [];
 
-  const results: string[] = [];
+  const results: Example[] = [];
   for (const tag of comment.blockTags) {
     if (tag.tag !== "@example" || !tag.content.length) continue;
 
@@ -208,11 +228,28 @@ export function extractExamples(
       .map((p) => p.text)
       .join("")
       .trim();
+    if (raw === "") continue;
 
-    const fenceMatch = raw.match(/^```\w*\n([\s\S]*)\n```$/);
-    const code = fenceMatch ? fenceMatch[1].trim() : raw;
-    if (code) results.push(code);
+    if (!raw.includes("```")) {
+      results.push({ meta: "", code: raw });
+      continue;
+    }
+    const fence = WHOLE_FENCE.exec(raw);
+    if (fence === null || fence[3].includes("```")) {
+      const file = owner.sources?.[0]?.fileName ?? "an unknown file";
+      throw new Error(
+        `@example on ${owner.name} (${file}) must be one code fence or bare code: move prose above the tag, and give each example its own @example`,
+      );
+    }
+    const code = fence[3].trim();
+    if (code !== "") results.push({ meta: fence[2].trim(), code });
   }
 
   return results;
+}
+
+/** An example as the reference writes it: a `tsx` fence carrying the author's attributes. */
+export function renderExample(example: Example): string {
+  const meta = example.meta === "" ? "" : ` ${example.meta}`;
+  return `\`\`\`tsx${meta}\n${example.code}\n\`\`\`\n\n`;
 }

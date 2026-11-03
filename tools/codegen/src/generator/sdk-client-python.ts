@@ -24,6 +24,24 @@ function pyServiceModule(svc: ServiceDefinition): string {
 }
 
 /**
+ * Every method type's module, from the file the schema says declares it:
+ * the kind's own package by its module name, another package by the alias
+ * pyTrackMethodTypeImport imports it under.
+ */
+export function pyMethodTypePb2Map(schema: ServiceSchemaFile): Map<string, string> {
+  const methodTypePb2Map = new Map<string, string>();
+  for (const mt of (schema.methodTypes ?? []).filter((t) => t.protoFile !== "")) {
+    const module = pyProtoFileToModule(mt.protoFile);
+    if (mt.protoType.startsWith(schema.package + ".")) {
+      methodTypePb2Map.set(mt.name, module);
+    } else {
+      methodTypePb2Map.set(mt.name, pyProtoModuleAlias(mt.protoType.slice(0, mt.protoType.lastIndexOf(".")), module));
+    }
+  }
+  return methodTypePb2Map;
+}
+
+/**
  * The module a method type is annotated with: the file that declares it, as
  * the schema records, under the alias a cross-package module is imported by
  * (apiresource_io_pb2.RenameInput). A type of the kind's own package the
@@ -31,7 +49,7 @@ function pyServiceModule(svc: ServiceDefinition): string {
  * declared in the package's io.proto. A cross-package type the schema does
  * not list has no module to read, so the generator stops rather than guess.
  */
-function pyMethodTypePb2Prefix(
+export function pyMethodTypePb2Prefix(
   typeName: string,
   fullType: string,
   schema: ServiceSchemaFile,
@@ -417,18 +435,7 @@ function generatePythonResourceClient(
   assertUniqueSdkMethodNames(schema);
   const imports = new PyImports(schema.package);
 
-  // Every method type's module, from the file the schema says declares it:
-  // the kind's own package by its module name, another package by the alias
-  // pyTrackMethodTypeImport imports it under.
-  const methodTypePb2Map = new Map<string, string>();
-  for (const mt of (schema.methodTypes ?? []).filter((t) => t.protoFile !== "")) {
-    const module = pyProtoFileToModule(mt.protoFile);
-    if (mt.protoType.startsWith(schema.package + ".")) {
-      methodTypePb2Map.set(mt.name, module);
-    } else {
-      methodTypePb2Map.set(mt.name, pyProtoModuleAlias(mt.protoType.slice(0, mt.protoType.lastIndexOf(".")), module));
-    }
-  }
+  const methodTypePb2Map = pyMethodTypePb2Map(schema);
 
   for (const svc of schema.services) {
     imports.addService(svc.role, pyServiceModule(svc));

@@ -50,6 +50,8 @@ spec:
 
 ## Client Access
 
+Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Each language's first block holds the imports the page's examples use.
+
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
@@ -57,18 +59,46 @@ const routine = await stigmer.routine.get("rtn_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
+```go prelude
+import (
+	stigmer "go.stigmer.ai/sdk"
+	routinev1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/routine/v1"
+	apiresource "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+)
+```
 ```go
 routine, err := client.Routine.Get(ctx, "rtn_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
+```python prelude
+from stigmer import ResourceRef
+from stigmer._gen import AgentInvocationInput, RoutineInput
+from ai.stigmer.agentic.routine.v1 import io_pb2
+from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2
+```
 ```python
 routine = client.routines.get("rtn_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
+```java prelude
+import ai.stigmer.agentic.routine.v1.FireRoutineInput;
+import ai.stigmer.agentic.routine.v1.ListRoutineFiresRequest;
+import ai.stigmer.agentic.routine.v1.ListRoutinesByAgentRequest;
+import ai.stigmer.agentic.routine.v1.ListRoutinesRequest;
+import ai.stigmer.agentic.routine.v1.Routine;
+import ai.stigmer.agentic.routine.v1.RoutineFireList;
+import ai.stigmer.agentic.routine.v1.RoutineFireResult;
+import ai.stigmer.agentic.routine.v1.RoutineList;
+import ai.stigmer.commons.apiresource.RenameInput;
+import ai.stigmer.sdk.gen.ResourceRef;
+import ai.stigmer.sdk.gen.RoutineInput;
+import java.util.List;
+import java.util.Map;
+```
 ```java
-Routine routine = client.routines().get("rtn_01j5q3k7m8r2s4tnz2hfp0q0c3");
+Routine routine = client.routine.get("rtn_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -97,22 +127,22 @@ Get a single routine by ID.
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const routine = await stigmer.routine.get(id);
+const routine = await stigmer.routine.get("rtn_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
 ```go
-routine, err := client.Routine.Get(ctx, id)
+routine, err := client.Routine.Get(ctx, "rtn_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
 ```python
-routine = client.routines.get(id)
+routine = client.routines.get("rtn_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Routine routine = client.routines().get(id);
+Routine routine = client.routine.get("rtn_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -132,46 +162,22 @@ Get a routine by its organization-scoped reference (org/slug).
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const routine = await stigmer.routine.getByReference({
-  org: "...",
-  kind: "...",
-  slug: "...",
-  version: "...",
-  id: "...",
-});
+const routine = await stigmer.routine.getByReference({ org: "acme", slug: "my-routine" });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-routine, err := client.Routine.GetByReference(ctx, &stigmer.ApiResourceReference{
-  Org:     "...",
-  Kind:    "...",
-  Slug:    "...",
-  Version: "...",
-  Id:      "...",
-})
+routine, err := client.Routine.GetByReference(ctx, stigmer.ResourceRef{Org: "acme", Slug: "my-routine"})
 ```
 </Tab>
 <Tab value="Python">
 ```python
-routine = client.routines.get_by_reference(ApiResourceReference(
-    org="...",
-    kind="...",
-    slug="...",
-    version="...",
-    id="...",
-))
+routine = client.routines.get_by_reference(ResourceRef(org="acme", slug="my-routine"))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Routine routine = client.routines().getByReference(ApiResourceReference.builder()
-    .org("...")
-    .kind("...")
-    .slug("...")
-    .version("...")
-    .id("...")
-    .build());
+Routine routine = client.routine.getByReference(ResourceRef.of("acme", "my-routine"));
 ```
 </Tab>
 </SDKTabs>
@@ -197,7 +203,7 @@ const result = await stigmer.routine.list({
 </Tab>
 <Tab value="Go">
 ```go
-result, err := client.Routine.List(ctx, &stigmer.ListRoutinesRequest{
+result, err := client.Routine.List(ctx, &routinev1.ListRoutinesRequest{
   Org:       "...",
   Labels:    map[string]string{},
   PageSize:  0,
@@ -207,7 +213,7 @@ result, err := client.Routine.List(ctx, &stigmer.ListRoutinesRequest{
 </Tab>
 <Tab value="Python">
 ```python
-result = client.routines.list(ListRoutinesRequest(
+result = client.routines.list(io_pb2.ListRoutinesRequest(
     org="...",
     labels={},
     page_size=0,
@@ -217,11 +223,11 @@ result = client.routines.list(ListRoutinesRequest(
 </Tab>
 <Tab value="Java">
 ```java
-RoutineList result = client.routines().list(ListRoutinesRequest.builder()
-    .org("...")
-    .labels(Map.of())
-    .pageSize(0)
-    .pageToken("...")
+RoutineList result = client.routine.list(ListRoutinesRequest.newBuilder()
+    .setOrg("...")
+    .putAllLabels(Map.of())
+    .setPageSize(0)
+    .setPageToken("...")
     .build());
 ```
 </Tab>
@@ -253,7 +259,7 @@ const result = await stigmer.routine.listByAgent({
 </Tab>
 <Tab value="Go">
 ```go
-result, err := client.Routine.ListByAgent(ctx, &stigmer.ListRoutinesByAgentRequest{
+result, err := client.Routine.ListByAgent(ctx, &routinev1.ListRoutinesByAgentRequest{
   AgentId:   "...",
   Org:       "...",
   PageSize:  0,
@@ -264,7 +270,7 @@ result, err := client.Routine.ListByAgent(ctx, &stigmer.ListRoutinesByAgentReque
 </Tab>
 <Tab value="Python">
 ```python
-result = client.routines.list_by_agent(ListRoutinesByAgentRequest(
+result = client.routines.list_by_agent(io_pb2.ListRoutinesByAgentRequest(
     agent_id="...",
     org="...",
     page_size=0,
@@ -275,12 +281,12 @@ result = client.routines.list_by_agent(ListRoutinesByAgentRequest(
 </Tab>
 <Tab value="Java">
 ```java
-RoutineList result = client.routines().listByAgent(ListRoutinesByAgentRequest.builder()
-    .agentId("...")
-    .org("...")
-    .pageSize(0)
-    .pageToken("...")
-    .labels(Map.of())
+RoutineList result = client.routine.listByAgent(ListRoutinesByAgentRequest.newBuilder()
+    .setAgentId("...")
+    .setOrg("...")
+    .setPageSize(0)
+    .setPageToken("...")
+    .putAllLabels(Map.of())
     .build());
 ```
 </Tab>
@@ -310,7 +316,7 @@ const result = await stigmer.routine.listFires({
 </Tab>
 <Tab value="Go">
 ```go
-result, err := client.Routine.ListFires(ctx, &stigmer.ListRoutineFiresRequest{
+result, err := client.Routine.ListFires(ctx, &routinev1.ListRoutineFiresRequest{
   RoutineId: "...",
   PageSize:  0,
   PageToken: "...",
@@ -319,7 +325,7 @@ result, err := client.Routine.ListFires(ctx, &stigmer.ListRoutineFiresRequest{
 </Tab>
 <Tab value="Python">
 ```python
-result = client.routines.list_fires(ListRoutineFiresRequest(
+result = client.routines.list_fires(io_pb2.ListRoutineFiresRequest(
     routine_id="...",
     page_size=0,
     page_token="...",
@@ -328,10 +334,10 @@ result = client.routines.list_fires(ListRoutineFiresRequest(
 </Tab>
 <Tab value="Java">
 ```java
-RoutineFireList result = client.routines().listFires(ListRoutineFiresRequest.builder()
-    .routineId("...")
-    .pageSize(0)
-    .pageToken("...")
+RoutineFireList result = client.routine.listFires(ListRoutineFiresRequest.newBuilder()
+    .setRoutineId("...")
+    .setPageSize(0)
+    .setPageToken("...")
     .build());
 ```
 </Tab>
@@ -362,7 +368,9 @@ const routine = await stigmer.routine.apply({
   cron: "...",
   timeZone: "...",
   enabled: false,
-  agent: {},
+  agent: {
+    agentRef: { org: "acme", slug: "..." },
+  },
 });
 ```
 </Tab>
@@ -376,7 +384,9 @@ routine, err := client.Routine.Apply(ctx, &stigmer.RoutineInput{
   Cron:     "...", // zero is unset: not sent, so the server's default applies
   TimeZone: "...",
   Enabled:  false,
-  Agent:    &stigmer.AgentInvocationInput{},
+  Agent:    &stigmer.AgentInvocationInput{
+    AgentRef: stigmer.ResourceRef{Org: "acme", Slug: "..."},
+  },
 })
 ```
 </Tab>
@@ -390,13 +400,15 @@ routine = client.routines.apply(RoutineInput(
     cron="...",
     time_zone="...",
     enabled=False,
-    agent=None,
+    agent=AgentInvocationInput(
+        agent_ref=ResourceRef(org="acme", slug="..."),
+    ),
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Routine routine = client.routines().apply(RoutineInput.builder()
+Routine routine = client.routine.apply(RoutineInput.builder()
     .name("my-routine")
     .org("acme")
     .slug("...")
@@ -404,7 +416,9 @@ Routine routine = client.routines().apply(RoutineInput.builder()
     .cron("...")
     .timeZone("...")
     .enabled(false)
-    .agent(null)
+    .agent(RoutineInput.AgentInvocationInput.builder()
+    .agentRef(ResourceRef.of("acme", "..."))
+    .build())
     .build());
 ```
 </Tab>
@@ -435,7 +449,9 @@ const routine = await stigmer.routine.create({
   cron: "...",
   timeZone: "...",
   enabled: false,
-  agent: {},
+  agent: {
+    agentRef: { org: "acme", slug: "..." },
+  },
 });
 ```
 </Tab>
@@ -449,7 +465,9 @@ routine, err := client.Routine.Create(ctx, &stigmer.RoutineInput{
   Cron:     "...", // zero is unset: not sent, so the server's default applies
   TimeZone: "...",
   Enabled:  false,
-  Agent:    &stigmer.AgentInvocationInput{},
+  Agent:    &stigmer.AgentInvocationInput{
+    AgentRef: stigmer.ResourceRef{Org: "acme", Slug: "..."},
+  },
 })
 ```
 </Tab>
@@ -463,13 +481,15 @@ routine = client.routines.create(RoutineInput(
     cron="...",
     time_zone="...",
     enabled=False,
-    agent=None,
+    agent=AgentInvocationInput(
+        agent_ref=ResourceRef(org="acme", slug="..."),
+    ),
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Routine routine = client.routines().create(RoutineInput.builder()
+Routine routine = client.routine.create(RoutineInput.builder()
     .name("my-routine")
     .org("acme")
     .slug("...")
@@ -477,7 +497,9 @@ Routine routine = client.routines().create(RoutineInput.builder()
     .cron("...")
     .timeZone("...")
     .enabled(false)
-    .agent(null)
+    .agent(RoutineInput.AgentInvocationInput.builder()
+    .agentRef(ResourceRef.of("acme", "..."))
+    .build())
     .build());
 ```
 </Tab>
@@ -523,10 +545,10 @@ updated = client.routines.update(routine, ["metadata.name"])
 </Tab>
 <Tab value="Java">
 ```java
-Routine routine = client.routines().get("rtn_01j5q3k7m8r2s4tnz2hfp0q0c3");
-Routine updated = client.routines().update(
+Routine routine = client.routine.get("rtn_01j5q3k7m8r2s4tnz2hfp0q0c3");
+Routine updated = client.routine.update(
     routine.toBuilder().setMetadata(routine.getMetadata().toBuilder().setName("New name")).build(),
-    java.util.List.of("metadata.name"));
+    List.of("metadata.name"));
 ```
 </Tab>
 </SDKTabs>
@@ -549,22 +571,22 @@ The routine stops permanently. Runs it started are untouched. To stop it while k
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const routine = await stigmer.routine.delete(id);
+const routine = await stigmer.routine.delete("rtn_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
 ```go
-routine, err := client.Routine.Delete(ctx, id)
+routine, err := client.Routine.Delete(ctx, "rtn_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
 ```python
-routine = client.routines.delete(id)
+routine = client.routines.delete("rtn_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Routine routine = client.routines().delete(id);
+Routine routine = client.routine.delete("rtn_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -586,22 +608,22 @@ Clears status.paused_reason, resets status.consecutive_failures, and re-arms its
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const routine = await stigmer.routine.resume(id);
+const routine = await stigmer.routine.resume("rtn_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
 ```go
-routine, err := client.Routine.Resume(ctx, id)
+routine, err := client.Routine.Resume(ctx, "rtn_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
 ```python
-routine = client.routines.resume(id)
+routine = client.routines.resume("rtn_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Routine routine = client.routines().resume(id);
+Routine routine = client.routine.resume("rtn_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -635,7 +657,7 @@ const routineFireResult = await stigmer.routine.fire({
 </Tab>
 <Tab value="Go">
 ```go
-routineFireResult, err := client.Routine.Fire(ctx, &stigmer.FireRoutineInput{
+routineFireResult, err := client.Routine.Fire(ctx, &routinev1.FireRoutineInput{
   Id:   "...",
   Text: "...",
 })
@@ -643,7 +665,7 @@ routineFireResult, err := client.Routine.Fire(ctx, &stigmer.FireRoutineInput{
 </Tab>
 <Tab value="Python">
 ```python
-routine_fire_result = client.routines.fire(FireRoutineInput(
+routine_fire_result = client.routines.fire(io_pb2.FireRoutineInput(
     id="...",
     text="...",
 ))
@@ -651,9 +673,9 @@ routine_fire_result = client.routines.fire(FireRoutineInput(
 </Tab>
 <Tab value="Java">
 ```java
-RoutineFireResult routineFireResult = client.routines().fire(FireRoutineInput.builder()
-    .id("...")
-    .text("...")
+RoutineFireResult routineFireResult = client.routine.fire(FireRoutineInput.newBuilder()
+    .setId("...")
+    .setText("...")
     .build());
 ```
 </Tab>
@@ -682,7 +704,7 @@ const routine = await stigmer.routine.rename({
 </Tab>
 <Tab value="Go">
 ```go
-routine, err := client.Routine.Rename(ctx, &stigmer.RenameInput{
+routine, err := client.Routine.Rename(ctx, &apiresource.RenameInput{
   ResourceId: "...",
   Slug:       "...",
 })
@@ -690,7 +712,7 @@ routine, err := client.Routine.Rename(ctx, &stigmer.RenameInput{
 </Tab>
 <Tab value="Python">
 ```python
-routine = client.routines.rename(RenameInput(
+routine = client.routines.rename(apiresource_io_pb2.RenameInput(
     resource_id="...",
     slug="...",
 ))
@@ -698,9 +720,9 @@ routine = client.routines.rename(RenameInput(
 </Tab>
 <Tab value="Java">
 ```java
-Routine routine = client.routines().rename(RenameInput.builder()
-    .resourceId("...")
-    .slug("...")
+Routine routine = client.routine.rename(RenameInput.newBuilder()
+    .setResourceId("...")
+    .setSlug("...")
     .build());
 ```
 </Tab>

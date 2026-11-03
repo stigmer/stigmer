@@ -31,25 +31,55 @@ spec:
 
 ## Client Access
 
+Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Each language's first block holds the imports the page's examples use.
+
 <SDKTabs>
 <Tab value="TypeScript">
+```typescript prelude
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
+```
 ```typescript
 const environment = await stigmer.environment.get("env_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
+```go prelude
+import (
+	stigmer "go.stigmer.ai/sdk"
+	environmentv1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/environment/v1"
+	apiresource "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+)
+```
 ```go
 environment, err := client.Environment.Get(ctx, "env_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
+```python prelude
+from stigmer import ResourceRef
+from stigmer._gen import EnvironmentInput, EnvironmentNetworkingInput, EnvironmentPackagesInput
+from ai.stigmer.agentic.environment.v1 import io_pb2
+from ai.stigmer.commons.apiresource import enum_pb2 as apiresource_enum_pb2, io_pb2 as apiresource_io_pb2
+```
 ```python
 environment = client.environments.get("env_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
+```java prelude
+import ai.stigmer.agentic.environment.v1.Environment;
+import ai.stigmer.agentic.environment.v1.EnvironmentList;
+import ai.stigmer.agentic.environment.v1.ListEnvironmentsRequest;
+import ai.stigmer.commons.apiresource.ApiResourceVisibility;
+import ai.stigmer.commons.apiresource.RenameInput;
+import ai.stigmer.commons.apiresource.UpdateVisibilityInput;
+import ai.stigmer.sdk.gen.EnvironmentInput;
+import ai.stigmer.sdk.gen.ResourceRef;
+import java.util.List;
+import java.util.Map;
+```
 ```java
-Environment environment = client.environments().get("env_01j5q3k7m8r2s4tnz2hfp0q0c3");
+Environment environment = client.environment.get("env_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -75,22 +105,22 @@ Get a single Environment by ID.
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const environment = await stigmer.environment.get(id);
+const environment = await stigmer.environment.get("env_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
 ```go
-environment, err := client.Environment.Get(ctx, id)
+environment, err := client.Environment.Get(ctx, "env_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
 ```python
-environment = client.environments.get(id)
+environment = client.environments.get("env_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Environment environment = client.environments().get(id);
+Environment environment = client.environment.get("env_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -110,46 +140,22 @@ Get an Environment by its organization-scoped reference (org/slug).
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const environment = await stigmer.environment.getByReference({
-  org: "...",
-  kind: "...",
-  slug: "...",
-  version: "...",
-  id: "...",
-});
+const environment = await stigmer.environment.getByReference({ org: "acme", slug: "my-environment" });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-environment, err := client.Environment.GetByReference(ctx, &stigmer.ApiResourceReference{
-  Org:     "...",
-  Kind:    "...",
-  Slug:    "...",
-  Version: "...",
-  Id:      "...",
-})
+environment, err := client.Environment.GetByReference(ctx, stigmer.ResourceRef{Org: "acme", Slug: "my-environment"})
 ```
 </Tab>
 <Tab value="Python">
 ```python
-environment = client.environments.get_by_reference(ApiResourceReference(
-    org="...",
-    kind="...",
-    slug="...",
-    version="...",
-    id="...",
-))
+environment = client.environments.get_by_reference(ResourceRef(org="acme", slug="my-environment"))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Environment environment = client.environments().getByReference(ApiResourceReference.builder()
-    .org("...")
-    .kind("...")
-    .slug("...")
-    .version("...")
-    .id("...")
-    .build());
+Environment environment = client.environment.getByReference(ResourceRef.of("acme", "my-environment"));
 ```
 </Tab>
 </SDKTabs>
@@ -177,7 +183,7 @@ const result = await stigmer.environment.list({
 </Tab>
 <Tab value="Go">
 ```go
-result, err := client.Environment.List(ctx, &stigmer.ListEnvironmentsRequest{
+result, err := client.Environment.List(ctx, &environmentv1.ListEnvironmentsRequest{
   Org:       "...",
   PageSize:  0,
   PageToken: "...",
@@ -187,7 +193,7 @@ result, err := client.Environment.List(ctx, &stigmer.ListEnvironmentsRequest{
 </Tab>
 <Tab value="Python">
 ```python
-result = client.environments.list(ListEnvironmentsRequest(
+result = client.environments.list(io_pb2.ListEnvironmentsRequest(
     org="...",
     page_size=0,
     page_token="...",
@@ -197,11 +203,11 @@ result = client.environments.list(ListEnvironmentsRequest(
 </Tab>
 <Tab value="Java">
 ```java
-EnvironmentList result = client.environments().list(ListEnvironmentsRequest.builder()
-    .org("...")
-    .pageSize(0)
-    .pageToken("...")
-    .labels(Map.of())
+EnvironmentList result = client.environment.list(ListEnvironmentsRequest.newBuilder()
+    .setOrg("...")
+    .setPageSize(0)
+    .setPageToken("...")
+    .putAllLabels(Map.of())
     .build());
 ```
 </Tab>
@@ -256,21 +262,21 @@ environment = client.environments.apply(EnvironmentInput(
     slug="...",
     labels={},
     description="...",
-    networking=None,
-    packages=None,
+    networking=EnvironmentNetworkingInput(),
+    packages=EnvironmentPackagesInput(),
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Environment environment = client.environments().apply(EnvironmentInput.builder()
+Environment environment = client.environment.apply(EnvironmentInput.builder()
     .name("my-environment")
     .org("acme")
     .slug("...")
     .labels(Map.of())
     .description("...")
-    .networking(null)
-    .packages(null)
+    .networking(EnvironmentInput.EnvironmentNetworkingInput.builder().build())
+    .packages(EnvironmentInput.EnvironmentPackagesInput.builder().build())
     .build());
 ```
 </Tab>
@@ -325,21 +331,21 @@ environment = client.environments.create(EnvironmentInput(
     slug="...",
     labels={},
     description="...",
-    networking=None,
-    packages=None,
+    networking=EnvironmentNetworkingInput(),
+    packages=EnvironmentPackagesInput(),
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Environment environment = client.environments().create(EnvironmentInput.builder()
+Environment environment = client.environment.create(EnvironmentInput.builder()
     .name("my-environment")
     .org("acme")
     .slug("...")
     .labels(Map.of())
     .description("...")
-    .networking(null)
-    .packages(null)
+    .networking(EnvironmentInput.EnvironmentNetworkingInput.builder().build())
+    .packages(EnvironmentInput.EnvironmentPackagesInput.builder().build())
     .build());
 ```
 </Tab>
@@ -385,10 +391,10 @@ updated = client.environments.update(environment, ["metadata.name"])
 </Tab>
 <Tab value="Java">
 ```java
-Environment environment = client.environments().get("env_01j5q3k7m8r2s4tnz2hfp0q0c3");
-Environment updated = client.environments().update(
+Environment environment = client.environment.get("env_01j5q3k7m8r2s4tnz2hfp0q0c3");
+Environment updated = client.environment.update(
     environment.toBuilder().setMetadata(environment.getMetadata().toBuilder().setName("New name")).build(),
-    java.util.List.of("metadata.name"));
+    List.of("metadata.name"));
 ```
 </Tab>
 </SDKTabs>
@@ -413,31 +419,31 @@ Setting org lets every member of the organization see it and name it for a conve
 ```typescript
 const environment = await stigmer.environment.updateVisibility({
   resourceId: "...",
-  visibility: "...",
+  visibility: ApiResourceVisibility.visibility_private,
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-environment, err := client.Environment.UpdateVisibility(ctx, &stigmer.UpdateVisibilityInput{
+environment, err := client.Environment.UpdateVisibility(ctx, &apiresource.UpdateVisibilityInput{
   ResourceId: "...",
-  Visibility: "...",
+  Visibility: apiresource.ApiResourceVisibility_visibility_private,
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-environment = client.environments.update_visibility(UpdateVisibilityInput(
+environment = client.environments.update_visibility(apiresource_io_pb2.UpdateVisibilityInput(
     resource_id="...",
-    visibility="...",
+    visibility=apiresource_enum_pb2.visibility_private,
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Environment environment = client.environments().updateVisibility(UpdateVisibilityInput.builder()
-    .resourceId("...")
-    .visibility("...")
+Environment environment = client.environment.updateVisibility(UpdateVisibilityInput.newBuilder()
+    .setResourceId("...")
+    .setVisibility(ApiResourceVisibility.visibility_private)
     .build());
 ```
 </Tab>
@@ -456,22 +462,22 @@ Refused with FAILED_PRECONDITION while an agent or a routine of its organization
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const environment = await stigmer.environment.delete(id);
+const environment = await stigmer.environment.delete("env_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
 ```go
-environment, err := client.Environment.Delete(ctx, id)
+environment, err := client.Environment.Delete(ctx, "env_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
 ```python
-environment = client.environments.delete(id)
+environment = client.environments.delete("env_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Environment environment = client.environments().delete(id);
+Environment environment = client.environment.delete("env_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -501,7 +507,7 @@ const environment = await stigmer.environment.rename({
 </Tab>
 <Tab value="Go">
 ```go
-environment, err := client.Environment.Rename(ctx, &stigmer.RenameInput{
+environment, err := client.Environment.Rename(ctx, &apiresource.RenameInput{
   ResourceId: "...",
   Slug:       "...",
 })
@@ -509,7 +515,7 @@ environment, err := client.Environment.Rename(ctx, &stigmer.RenameInput{
 </Tab>
 <Tab value="Python">
 ```python
-environment = client.environments.rename(RenameInput(
+environment = client.environments.rename(apiresource_io_pb2.RenameInput(
     resource_id="...",
     slug="...",
 ))
@@ -517,9 +523,9 @@ environment = client.environments.rename(RenameInput(
 </Tab>
 <Tab value="Java">
 ```java
-Environment environment = client.environments().rename(RenameInput.builder()
-    .resourceId("...")
-    .slug("...")
+Environment environment = client.environment.rename(RenameInput.newBuilder()
+    .setResourceId("...")
+    .setSlug("...")
     .build());
 ```
 </Tab>

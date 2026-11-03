@@ -46,6 +46,8 @@ spec:
 
 ## Client Access
 
+Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Each language's first block holds the imports the page's examples use.
+
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
@@ -53,18 +55,42 @@ const channelApp = await stigmer.channelapp.get("chapp_01j5q3k7m8r2s4tnz2hfp0q0c
 ```
 </Tab>
 <Tab value="Go">
+```go prelude
+import (
+	stigmer "go.stigmer.ai/sdk"
+	channelappv1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/channelapp/v1"
+	apiresource "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+)
+```
 ```go
 channelApp, err := client.ChannelApp.Get(ctx, "chapp_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
+```python prelude
+from stigmer import DeleteResourceInput, ResourceRef
+from stigmer._gen import ChannelAppInput, SlackChannelAppConfigInput
+from ai.stigmer.agentic.channelapp.v1 import io_pb2
+from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2
+```
 ```python
 channel_app = client.channelapps.get("chapp_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
+```java prelude
+import ai.stigmer.agentic.channelapp.v1.ChannelApp;
+import ai.stigmer.agentic.channelapp.v1.ChannelApps;
+import ai.stigmer.agentic.channelapp.v1.ListChannelAppsInput;
+import ai.stigmer.commons.apiresource.RenameInput;
+import ai.stigmer.sdk.gen.ChannelAppInput;
+import ai.stigmer.sdk.gen.DeleteResourceInput;
+import ai.stigmer.sdk.gen.ResourceRef;
+import java.util.List;
+import java.util.Map;
+```
 ```java
-ChannelApp channelApp = client.channelapps().get("chapp_01j5q3k7m8r2s4tnz2hfp0q0c3");
+ChannelApp channelApp = client.channelapp.get("chapp_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -91,22 +117,22 @@ Secret fields are redacted in the response.
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const channelApp = await stigmer.channelapp.get(id);
+const channelApp = await stigmer.channelapp.get("chapp_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
 ```go
-channelApp, err := client.ChannelApp.Get(ctx, id)
+channelApp, err := client.ChannelApp.Get(ctx, "chapp_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
 ```python
-channel_app = client.channelapps.get(id)
+channel_app = client.channelapps.get("chapp_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-ChannelApp channelApp = client.channelapps().get(id);
+ChannelApp channelApp = client.channelapp.get("chapp_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -128,46 +154,22 @@ Secret fields are redacted in the response.
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const channelApp = await stigmer.channelapp.getByReference({
-  org: "...",
-  kind: "...",
-  slug: "...",
-  version: "...",
-  id: "...",
-});
+const channelApp = await stigmer.channelapp.getByReference({ org: "acme", slug: "my-channel-app" });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-channelApp, err := client.ChannelApp.GetByReference(ctx, &stigmer.ApiResourceReference{
-  Org:     "...",
-  Kind:    "...",
-  Slug:    "...",
-  Version: "...",
-  Id:      "...",
-})
+channelApp, err := client.ChannelApp.GetByReference(ctx, stigmer.ResourceRef{Org: "acme", Slug: "my-channel-app"})
 ```
 </Tab>
 <Tab value="Python">
 ```python
-channel_app = client.channelapps.get_by_reference(ApiResourceReference(
-    org="...",
-    kind="...",
-    slug="...",
-    version="...",
-    id="...",
-))
+channel_app = client.channelapps.get_by_reference(ResourceRef(org="acme", slug="my-channel-app"))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-ChannelApp channelApp = client.channelapps().getByReference(ApiResourceReference.builder()
-    .org("...")
-    .kind("...")
-    .slug("...")
-    .version("...")
-    .id("...")
-    .build());
+ChannelApp channelApp = client.channelapp.getByReference(ResourceRef.of("acme", "my-channel-app"));
 ```
 </Tab>
 </SDKTabs>
@@ -195,7 +197,7 @@ const channelApps = await stigmer.channelapp.list({
 </Tab>
 <Tab value="Go">
 ```go
-channelApps, err := client.ChannelApp.List(ctx, &stigmer.ListChannelAppsInput{
+channelApps, err := client.ChannelApp.List(ctx, &channelappv1.ListChannelAppsInput{
   Org:       "...",
   PageSize:  0,
   PageToken: "...",
@@ -205,7 +207,7 @@ channelApps, err := client.ChannelApp.List(ctx, &stigmer.ListChannelAppsInput{
 </Tab>
 <Tab value="Python">
 ```python
-channel_apps = client.channelapps.list(ListChannelAppsInput(
+channel_apps = client.channelapps.list(io_pb2.ListChannelAppsInput(
     org="...",
     page_size=0,
     page_token="...",
@@ -215,11 +217,11 @@ channel_apps = client.channelapps.list(ListChannelAppsInput(
 </Tab>
 <Tab value="Java">
 ```java
-ChannelApps channelApps = client.channelapps().list(ListChannelAppsInput.builder()
-    .org("...")
-    .pageSize(0)
-    .pageToken("...")
-    .labels(Map.of())
+ChannelApps channelApps = client.channelapp.list(ListChannelAppsInput.newBuilder()
+    .setOrg("...")
+    .setPageSize(0)
+    .setPageToken("...")
+    .putAllLabels(Map.of())
     .build());
 ```
 </Tab>
@@ -250,19 +252,17 @@ const channelApp = await stigmer.channelapp.apply({
   slug: "...",
   labels: {},
   slack: {},
-  whatsapp: {},
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 channelApp, err := client.ChannelApp.Apply(ctx, &stigmer.ChannelAppInput{
-  Name:     "my-channel-app",
-  Org:      "acme",
-  Slug:     "...",
-  Labels:   map[string]string{},
-  Slack:    &stigmer.SlackChannelAppConfigInput{},
-  Whatsapp: &stigmer.WhatsAppChannelAppConfigInput{},
+  Name:   "my-channel-app",
+  Org:    "acme",
+  Slug:   "...",
+  Labels: map[string]string{},
+  Slack:  &stigmer.SlackChannelAppConfigInput{},
 })
 ```
 </Tab>
@@ -273,20 +273,18 @@ channel_app = client.channelapps.apply(ChannelAppInput(
     org="acme",
     slug="...",
     labels={},
-    slack=None,
-    whatsapp=None,
+    slack=SlackChannelAppConfigInput(),
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-ChannelApp channelApp = client.channelapps().apply(ChannelAppInput.builder()
+ChannelApp channelApp = client.channelapp.apply(ChannelAppInput.builder()
     .name("my-channel-app")
     .org("acme")
     .slug("...")
     .labels(Map.of())
-    .slack(null)
-    .whatsapp(null)
+    .slack(ChannelAppInput.SlackChannelAppConfigInput.builder().build())
     .build());
 ```
 </Tab>
@@ -315,19 +313,17 @@ const channelApp = await stigmer.channelapp.create({
   slug: "...",
   labels: {},
   slack: {},
-  whatsapp: {},
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 channelApp, err := client.ChannelApp.Create(ctx, &stigmer.ChannelAppInput{
-  Name:     "my-channel-app",
-  Org:      "acme",
-  Slug:     "...",
-  Labels:   map[string]string{},
-  Slack:    &stigmer.SlackChannelAppConfigInput{},
-  Whatsapp: &stigmer.WhatsAppChannelAppConfigInput{},
+  Name:   "my-channel-app",
+  Org:    "acme",
+  Slug:   "...",
+  Labels: map[string]string{},
+  Slack:  &stigmer.SlackChannelAppConfigInput{},
 })
 ```
 </Tab>
@@ -338,20 +334,18 @@ channel_app = client.channelapps.create(ChannelAppInput(
     org="acme",
     slug="...",
     labels={},
-    slack=None,
-    whatsapp=None,
+    slack=SlackChannelAppConfigInput(),
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-ChannelApp channelApp = client.channelapps().create(ChannelAppInput.builder()
+ChannelApp channelApp = client.channelapp.create(ChannelAppInput.builder()
     .name("my-channel-app")
     .org("acme")
     .slug("...")
     .labels(Map.of())
-    .slack(null)
-    .whatsapp(null)
+    .slack(ChannelAppInput.SlackChannelAppConfigInput.builder().build())
     .build());
 ```
 </Tab>
@@ -397,10 +391,10 @@ updated = client.channelapps.update(channel_app, ["metadata.name"])
 </Tab>
 <Tab value="Java">
 ```java
-ChannelApp channelApp = client.channelapps().get("chapp_01j5q3k7m8r2s4tnz2hfp0q0c3");
-ChannelApp updated = client.channelapps().update(
+ChannelApp channelApp = client.channelapp.get("chapp_01j5q3k7m8r2s4tnz2hfp0q0c3");
+ChannelApp updated = client.channelapp.update(
     channelApp.toBuilder().setMetadata(channelApp.getMetadata().toBuilder().setName("New name")).build(),
-    java.util.List.of("metadata.name"));
+    List.of("metadata.name"));
 ```
 </Tab>
 </SDKTabs>
@@ -423,25 +417,23 @@ Deletion is blocked while any channel references this app through its Slack or W
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const channelApp = await stigmer.channelapp.delete({ resourceId: id });
+const channelApp = await stigmer.channelapp.delete({ resourceId: "chapp_01j5q3k7m8r2s4tnz2hfp0q0c3" });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-channelApp, err := client.ChannelApp.Delete(ctx, &stigmer.DeleteResourceInput{
-  ResourceID: id,
-})
+channelApp, err := client.ChannelApp.Delete(ctx, &stigmer.DeleteResourceInput{ResourceID: "chapp_01j5q3k7m8r2s4tnz2hfp0q0c3"})
 ```
 </Tab>
 <Tab value="Python">
 ```python
-channel_app = client.channelapps.delete(DeleteResourceInput(resource_id=id))
+channel_app = client.channelapps.delete(DeleteResourceInput(resource_id="chapp_01j5q3k7m8r2s4tnz2hfp0q0c3"))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-ChannelApp channelApp = client.channelapps().delete(DeleteResourceInput.builder()
-    .resourceId(id)
+ChannelApp channelApp = client.channelapp.delete(DeleteResourceInput.builder()
+    .resourceId("chapp_01j5q3k7m8r2s4tnz2hfp0q0c3")
     .build());
 ```
 </Tab>
@@ -476,7 +468,7 @@ const channelApp = await stigmer.channelapp.rename({
 </Tab>
 <Tab value="Go">
 ```go
-channelApp, err := client.ChannelApp.Rename(ctx, &stigmer.RenameInput{
+channelApp, err := client.ChannelApp.Rename(ctx, &apiresource.RenameInput{
   ResourceId: "...",
   Slug:       "...",
 })
@@ -484,7 +476,7 @@ channelApp, err := client.ChannelApp.Rename(ctx, &stigmer.RenameInput{
 </Tab>
 <Tab value="Python">
 ```python
-channel_app = client.channelapps.rename(RenameInput(
+channel_app = client.channelapps.rename(apiresource_io_pb2.RenameInput(
     resource_id="...",
     slug="...",
 ))
@@ -492,9 +484,9 @@ channel_app = client.channelapps.rename(RenameInput(
 </Tab>
 <Tab value="Java">
 ```java
-ChannelApp channelApp = client.channelapps().rename(RenameInput.builder()
-    .resourceId("...")
-    .slug("...")
+ChannelApp channelApp = client.channelapp.rename(RenameInput.newBuilder()
+    .setResourceId("...")
+    .setSlug("...")
     .build());
 ```
 </Tab>

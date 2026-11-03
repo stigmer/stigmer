@@ -8,7 +8,7 @@
 
 import type { InkReference, InkExport } from "./parser";
 import type { Field } from "../generate-react-sdk-docs/model";
-import { escapeJsString, renderCommentParts } from "../generate-react-sdk-docs/mdx-utils";
+import { escapeJsString, renderCommentParts, renderExample } from "../generate-react-sdk-docs/mdx-utils";
 
 // ---------------------------------------------------------------------------
 // Category → section heading
@@ -106,7 +106,7 @@ function renderExportSection(exp: InkExport): string {
   }
 
   for (const example of exp.examples) {
-    s += `\`\`\`tsx\n${example}\n\`\`\`\n\n`;
+    s += renderExample(example);
   }
 
   return s;

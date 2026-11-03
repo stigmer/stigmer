@@ -33,25 +33,48 @@ spec:
 
 ## Client Access
 
+Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Each language's first block holds the imports the page's examples use.
+
 <SDKTabs>
 <Tab value="TypeScript">
+```typescript prelude
+import { PlanInstrument } from "@stigmer/apis/ai/stigmer/billing/plan/v1/spec_pb";
+```
 ```typescript
 const plan = await stigmer.plan.get("pln_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
+```go prelude
+import (
+	stigmer "go.stigmer.ai/sdk"
+	planv1 "go.stigmer.ai/sdk/proto/ai/stigmer/billing/plan/v1"
+)
+```
 ```go
 plan, err := client.Plan.Get(ctx, "pln_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
+```python prelude
+from stigmer._gen import EntitlementsInput, PlanInput, PlanTermsInput
+from ai.stigmer.billing.plan.v1 import io_pb2, spec_pb2
+```
 ```python
 plan = client.plans.get("pln_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
+```java prelude
+import ai.stigmer.billing.plan.v1.ListPlansInput;
+import ai.stigmer.billing.plan.v1.Plan;
+import ai.stigmer.billing.plan.v1.PlanInstrument;
+import ai.stigmer.billing.plan.v1.Plans;
+import ai.stigmer.sdk.gen.PlanInput;
+import java.util.Map;
+```
 ```java
-Plan plan = client.plans().get("pln_01j5q3k7m8r2s4tnz2hfp0q0c3");
+Plan plan = client.plan.get("pln_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -74,22 +97,22 @@ Any signed-in caller may read any plan, retired plans included.
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const plan = await stigmer.plan.get(id);
+const plan = await stigmer.plan.get("pln_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
 ```go
-plan, err := client.Plan.Get(ctx, id)
+plan, err := client.Plan.Get(ctx, "pln_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
 ```python
-plan = client.plans.get(id)
+plan = client.plans.get("pln_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Plan plan = client.plans().get(id);
+Plan plan = client.plan.get("pln_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -121,7 +144,7 @@ const plans = await stigmer.plan.list({
 </Tab>
 <Tab value="Go">
 ```go
-plans, err := client.Plan.List(ctx, &stigmer.ListPlansInput{
+plans, err := client.Plan.List(ctx, &planv1.ListPlansInput{
   IncludeRetired: false,
   PageSize:       0,
   PageToken:      "...",
@@ -131,7 +154,7 @@ plans, err := client.Plan.List(ctx, &stigmer.ListPlansInput{
 </Tab>
 <Tab value="Python">
 ```python
-plans = client.plans.list(ListPlansInput(
+plans = client.plans.list(io_pb2.ListPlansInput(
     include_retired=False,
     page_size=0,
     page_token="...",
@@ -141,11 +164,11 @@ plans = client.plans.list(ListPlansInput(
 </Tab>
 <Tab value="Java">
 ```java
-Plans plans = client.plans().list(ListPlansInput.builder()
-    .includeRetired(false)
-    .pageSize(0)
-    .pageToken("...")
-    .labels(Map.of())
+Plans plans = client.plan.list(ListPlansInput.newBuilder()
+    .setIncludeRetired(false)
+    .setPageSize(0)
+    .setPageToken("...")
+    .putAllLabels(Map.of())
     .build());
 ```
 </Tab>
@@ -170,7 +193,7 @@ const plan = await stigmer.plan.create({
   name: "my-plan",
   slug: "...",
   labels: {},
-  instrument: "...",
+  instrument: PlanInstrument.subscription,
   entitlements: {},
   terms: {},
   description: "...",
@@ -183,7 +206,7 @@ plan, err := client.Plan.Create(ctx, &stigmer.PlanInput{
   Name:         "my-plan",
   Slug:         "...",
   Labels:       map[string]string{},
-  Instrument:   "...",
+  Instrument:   planv1.PlanInstrument_subscription,
   Entitlements: &stigmer.EntitlementsInput{},
   Terms:        &stigmer.PlanTermsInput{},
   Description:  "...",
@@ -196,22 +219,22 @@ plan = client.plans.create(PlanInput(
     name="my-plan",
     slug="...",
     labels={},
-    instrument="...",
-    entitlements=None,
-    terms=None,
+    instrument=spec_pb2.subscription,
+    entitlements=EntitlementsInput(),
+    terms=PlanTermsInput(),
     description="...",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Plan plan = client.plans().create(PlanInput.builder()
+Plan plan = client.plan.create(PlanInput.builder()
     .name("my-plan")
     .slug("...")
     .labels(Map.of())
-    .instrument("...")
-    .entitlements(null)
-    .terms(null)
+    .instrument(PlanInstrument.subscription)
+    .entitlements(PlanInput.EntitlementsInput.builder().build())
+    .terms(PlanInput.PlanTermsInput.builder().build())
     .description("...")
     .build());
 ```
@@ -231,22 +254,22 @@ Existing subscriptions and licenses on the plan keep it; the plan stays readable
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const plan = await stigmer.plan.retire(id);
+const plan = await stigmer.plan.retire("pln_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
 ```go
-plan, err := client.Plan.Retire(ctx, id)
+plan, err := client.Plan.Retire(ctx, "pln_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
 ```python
-plan = client.plans.retire(id)
+plan = client.plans.retire("pln_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Plan plan = client.plans().retire(id);
+Plan plan = client.plan.retire("pln_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>

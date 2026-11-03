@@ -26,6 +26,8 @@ spec:
 
 ## Client Access
 
+Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Each language's first block holds the imports the page's examples use.
+
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
@@ -33,18 +35,49 @@ const grant = await stigmer.grant.get("grt_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
+```go prelude
+import (
+	grantv1 "go.stigmer.ai/sdk/proto/ai/stigmer/iam/grant/v1"
+	proto "google.golang.org/protobuf/proto"
+)
+```
 ```go
 grant, err := client.Grant.Get(ctx, "grt_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
+```python prelude
+from ai.stigmer.iam.grant.v1 import io_pb2, spec_pb2
+```
 ```python
 grant = client.grants.get("grt_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
+```java prelude
+import ai.stigmer.iam.grant.v1.AccessHistoryPage;
+import ai.stigmer.iam.grant.v1.ApiResourceRef;
+import ai.stigmer.iam.grant.v1.AuthorizedPrincipalIdsList;
+import ai.stigmer.iam.grant.v1.AuthorizedResourceIdsList;
+import ai.stigmer.iam.grant.v1.CheckAuthorizationInput;
+import ai.stigmer.iam.grant.v1.CheckAuthorizationResult;
+import ai.stigmer.iam.grant.v1.CheckMyPermissionInput;
+import ai.stigmer.iam.grant.v1.GetPrincipalsCountInput;
+import ai.stigmer.iam.grant.v1.Grant;
+import ai.stigmer.iam.grant.v1.GrantSpec;
+import ai.stigmer.iam.grant.v1.ListAccessHistoryInput;
+import ai.stigmer.iam.grant.v1.ListAuthorizedPrincipalIdsInput;
+import ai.stigmer.iam.grant.v1.ListAuthorizedResourceIdsInput;
+import ai.stigmer.iam.grant.v1.ListResourceAccessInput;
+import ai.stigmer.iam.grant.v1.PrincipalResourceInput;
+import ai.stigmer.iam.grant.v1.PrincipalResourceRoles;
+import ai.stigmer.iam.grant.v1.PrincipalsCount;
+import ai.stigmer.iam.grant.v1.ResourceAccessByPrincipalList;
+import ai.stigmer.iam.grant.v1.RevokeOrgAccessInput;
+import java.util.List;
+```
 ```java
-Grant grant = client.grants().get("grt_01j5q3k7m8r2s4tnz2hfp0q0c3");
+Grant grant = client.grant.get("grt_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -78,22 +111,22 @@ Returns the full grant including its principal, resource, and relation binding.
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const grant = await stigmer.grant.get(id);
+const grant = await stigmer.grant.get("grt_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
 ```go
-grant, err := client.Grant.Get(ctx, id)
+grant, err := client.Grant.Get(ctx, "grt_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
 ```python
-grant = client.grants.get(id)
+grant = client.grants.get("grt_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Grant grant = client.grants().get(id);
+Grant grant = client.grant.get("grt_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -127,25 +160,25 @@ const principalResourceRoles = await stigmer.grant.getPrincipalResourceRoles({
 </Tab>
 <Tab value="Go">
 ```go
-principalResourceRoles, err := client.Grant.GetPrincipalResourceRoles(ctx, &stigmer.PrincipalResourceInput{
-  Principal: &stigmer.ApiResourceRefInput{},
-  Resource:  &stigmer.ApiResourceRefInput{},
+principalResourceRoles, err := client.Grant.GetPrincipalResourceRoles(ctx, &grantv1.PrincipalResourceInput{
+  Principal: &grantv1.ApiResourceRef{},
+  Resource:  &grantv1.ApiResourceRef{},
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-principal_resource_roles = client.grants.get_principal_resource_roles(PrincipalResourceInput(
-    principal=None,
-    resource=None,
+principal_resource_roles = client.grants.get_principal_resource_roles(io_pb2.PrincipalResourceInput(
+    principal=spec_pb2.ApiResourceRef(),
+    resource=spec_pb2.ApiResourceRef(),
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-PrincipalResourceRoles principalResourceRoles = client.grants().getPrincipalResourceRoles(PrincipalResourceInput.builder()
-    .principal(null)
-    .resource(null)
+PrincipalResourceRoles principalResourceRoles = client.grant.getPrincipalResourceRoles(PrincipalResourceInput.newBuilder()
+    .setPrincipal(ApiResourceRef.getDefaultInstance())
+    .setResource(ApiResourceRef.getDefaultInstance())
     .build());
 ```
 </Tab>
@@ -176,7 +209,7 @@ const principalsCount = await stigmer.grant.getPrincipalsCount({
 </Tab>
 <Tab value="Go">
 ```go
-principalsCount, err := client.Grant.GetPrincipalsCount(ctx, &stigmer.GetPrincipalsCountInput{
+principalsCount, err := client.Grant.GetPrincipalsCount(ctx, &grantv1.GetPrincipalsCountInput{
   Org:           "...",
   PrincipalKind: "...",
 })
@@ -184,7 +217,7 @@ principalsCount, err := client.Grant.GetPrincipalsCount(ctx, &stigmer.GetPrincip
 </Tab>
 <Tab value="Python">
 ```python
-principals_count = client.grants.get_principals_count(GetPrincipalsCountInput(
+principals_count = client.grants.get_principals_count(io_pb2.GetPrincipalsCountInput(
     org="...",
     principal_kind="...",
 ))
@@ -192,9 +225,9 @@ principals_count = client.grants.get_principals_count(GetPrincipalsCountInput(
 </Tab>
 <Tab value="Java">
 ```java
-PrincipalsCount principalsCount = client.grants().getPrincipalsCount(GetPrincipalsCountInput.builder()
-    .org("...")
-    .principalKind("...")
+PrincipalsCount principalsCount = client.grant.getPrincipalsCount(GetPrincipalsCountInput.newBuilder()
+    .setOrg("...")
+    .setPrincipalKind("...")
     .build());
 ```
 </Tab>
@@ -221,23 +254,23 @@ const accessHistoryPage = await stigmer.grant.listAccessHistory({
   org: "...",
   pageSize: 0,
   pageToken: "...",
-  afterSequence: 0,
+  afterSequence: 0n,
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-accessHistoryPage, err := client.Grant.ListAccessHistory(ctx, &stigmer.ListAccessHistoryInput{
+accessHistoryPage, err := client.Grant.ListAccessHistory(ctx, &grantv1.ListAccessHistoryInput{
   Org:           "...",
   PageSize:      0,
   PageToken:     "...",
-  AfterSequence: 0,
+  AfterSequence: proto.Int64(0),
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-access_history_page = client.grants.list_access_history(ListAccessHistoryInput(
+access_history_page = client.grants.list_access_history(io_pb2.ListAccessHistoryInput(
     org="...",
     page_size=0,
     page_token="...",
@@ -247,11 +280,11 @@ access_history_page = client.grants.list_access_history(ListAccessHistoryInput(
 </Tab>
 <Tab value="Java">
 ```java
-AccessHistoryPage accessHistoryPage = client.grants().listAccessHistory(ListAccessHistoryInput.builder()
-    .org("...")
-    .pageSize(0)
-    .pageToken("...")
-    .afterSequence(0)
+AccessHistoryPage accessHistoryPage = client.grant.listAccessHistory(ListAccessHistoryInput.newBuilder()
+    .setOrg("...")
+    .setPageSize(0)
+    .setPageToken("...")
+    .setAfterSequence(0L)
     .build());
 ```
 </Tab>
@@ -286,18 +319,18 @@ const result = await stigmer.grant.listAuthorizedPrincipalIds({
 </Tab>
 <Tab value="Go">
 ```go
-result, err := client.Grant.ListAuthorizedPrincipalIds(ctx, &stigmer.ListAuthorizedPrincipalIdsInput{
-  Resource:         &stigmer.ApiResourceRefInput{},
+result, err := client.Grant.ListAuthorizedPrincipalIds(ctx, &grantv1.ListAuthorizedPrincipalIdsInput{
+  Resource:         &grantv1.ApiResourceRef{},
   PrincipalKind:    "...",
   Relation:         "...",
-  ContextualGrants: []stigmer.GrantSpecInput{},
+  ContextualGrants: []*grantv1.GrantSpec{},
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-result = client.grants.list_authorized_principal_ids(ListAuthorizedPrincipalIdsInput(
-    resource=None,
+result = client.grants.list_authorized_principal_ids(io_pb2.ListAuthorizedPrincipalIdsInput(
+    resource=spec_pb2.ApiResourceRef(),
     principal_kind="...",
     relation="...",
     contextual_grants=[],
@@ -306,11 +339,11 @@ result = client.grants.list_authorized_principal_ids(ListAuthorizedPrincipalIdsI
 </Tab>
 <Tab value="Java">
 ```java
-AuthorizedPrincipalIdsList result = client.grants().listAuthorizedPrincipalIds(ListAuthorizedPrincipalIdsInput.builder()
-    .resource(null)
-    .principalKind("...")
-    .relation("...")
-    .contextualGrants(List.of())
+AuthorizedPrincipalIdsList result = client.grant.listAuthorizedPrincipalIds(ListAuthorizedPrincipalIdsInput.newBuilder()
+    .setResource(ApiResourceRef.getDefaultInstance())
+    .setPrincipalKind("...")
+    .setRelation("...")
+    .addAllContextualGrants(List.of())
     .build());
 ```
 </Tab>
@@ -343,18 +376,18 @@ const result = await stigmer.grant.listAuthorizedResourceIds({
 </Tab>
 <Tab value="Go">
 ```go
-result, err := client.Grant.ListAuthorizedResourceIds(ctx, &stigmer.ListAuthorizedResourceIdsInput{
-  Principal:        &stigmer.ApiResourceRefInput{},
+result, err := client.Grant.ListAuthorizedResourceIds(ctx, &grantv1.ListAuthorizedResourceIdsInput{
+  Principal:        &grantv1.ApiResourceRef{},
   ResourceKind:     "...",
   Relation:         "...",
-  ContextualGrants: []stigmer.GrantSpecInput{},
+  ContextualGrants: []*grantv1.GrantSpec{},
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-result = client.grants.list_authorized_resource_ids(ListAuthorizedResourceIdsInput(
-    principal=None,
+result = client.grants.list_authorized_resource_ids(io_pb2.ListAuthorizedResourceIdsInput(
+    principal=spec_pb2.ApiResourceRef(),
     resource_kind="...",
     relation="...",
     contextual_grants=[],
@@ -363,11 +396,11 @@ result = client.grants.list_authorized_resource_ids(ListAuthorizedResourceIdsInp
 </Tab>
 <Tab value="Java">
 ```java
-AuthorizedResourceIdsList result = client.grants().listAuthorizedResourceIds(ListAuthorizedResourceIdsInput.builder()
-    .principal(null)
-    .resourceKind("...")
-    .relation("...")
-    .contextualGrants(List.of())
+AuthorizedResourceIdsList result = client.grant.listAuthorizedResourceIds(ListAuthorizedResourceIdsInput.newBuilder()
+    .setPrincipal(ApiResourceRef.getDefaultInstance())
+    .setResourceKind("...")
+    .setRelation("...")
+    .addAllContextualGrants(List.of())
     .build());
 ```
 </Tab>
@@ -398,25 +431,25 @@ const result = await stigmer.grant.listResourceAccessByPrincipal({
 </Tab>
 <Tab value="Go">
 ```go
-result, err := client.Grant.ListResourceAccessByPrincipal(ctx, &stigmer.ListResourceAccessInput{
-  Resource:         &stigmer.ApiResourceRefInput{},
+result, err := client.Grant.ListResourceAccessByPrincipal(ctx, &grantv1.ListResourceAccessInput{
+  Resource:         &grantv1.ApiResourceRef{},
   IncludeInherited: false,
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-result = client.grants.list_resource_access_by_principal(ListResourceAccessInput(
-    resource=None,
+result = client.grants.list_resource_access_by_principal(io_pb2.ListResourceAccessInput(
+    resource=spec_pb2.ApiResourceRef(),
     include_inherited=False,
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-ResourceAccessByPrincipalList result = client.grants().listResourceAccessByPrincipal(ListResourceAccessInput.builder()
-    .resource(null)
-    .includeInherited(false)
+ResourceAccessByPrincipalList result = client.grant.listResourceAccessByPrincipal(ListResourceAccessInput.newBuilder()
+    .setResource(ApiResourceRef.getDefaultInstance())
+    .setIncludeInherited(false)
     .build());
 ```
 </Tab>
@@ -444,28 +477,28 @@ const grant = await stigmer.grant.create({
 </Tab>
 <Tab value="Go">
 ```go
-grant, err := client.Grant.Create(ctx, &stigmer.GrantSpec{
-  Principal: &stigmer.ApiResourceRefInput{},
-  Resource:  &stigmer.ApiResourceRefInput{},
+grant, err := client.Grant.Create(ctx, &grantv1.GrantSpec{
+  Principal: &grantv1.ApiResourceRef{},
+  Resource:  &grantv1.ApiResourceRef{},
   Relation:  "...",
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-grant = client.grants.create(GrantSpec(
-    principal=None,
-    resource=None,
+grant = client.grants.create(spec_pb2.GrantSpec(
+    principal=spec_pb2.ApiResourceRef(),
+    resource=spec_pb2.ApiResourceRef(),
     relation="...",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Grant grant = client.grants().create(GrantSpec.builder()
-    .principal(null)
-    .resource(null)
-    .relation("...")
+Grant grant = client.grant.create(GrantSpec.newBuilder()
+    .setPrincipal(ApiResourceRef.getDefaultInstance())
+    .setResource(ApiResourceRef.getDefaultInstance())
+    .setRelation("...")
     .build());
 ```
 </Tab>
@@ -493,28 +526,28 @@ const grant = await stigmer.grant.delete({
 </Tab>
 <Tab value="Go">
 ```go
-grant, err := client.Grant.Delete(ctx, &stigmer.GrantSpec{
-  Principal: &stigmer.ApiResourceRefInput{},
-  Resource:  &stigmer.ApiResourceRefInput{},
+grant, err := client.Grant.Delete(ctx, &grantv1.GrantSpec{
+  Principal: &grantv1.ApiResourceRef{},
+  Resource:  &grantv1.ApiResourceRef{},
   Relation:  "...",
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-grant = client.grants.delete(GrantSpec(
-    principal=None,
-    resource=None,
+grant = client.grants.delete(spec_pb2.GrantSpec(
+    principal=spec_pb2.ApiResourceRef(),
+    resource=spec_pb2.ApiResourceRef(),
     relation="...",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Grant grant = client.grants().delete(GrantSpec.builder()
-    .principal(null)
-    .resource(null)
-    .relation("...")
+Grant grant = client.grant.delete(GrantSpec.newBuilder()
+    .setPrincipal(ApiResourceRef.getDefaultInstance())
+    .setResource(ApiResourceRef.getDefaultInstance())
+    .setRelation("...")
     .build());
 ```
 </Tab>
@@ -542,28 +575,28 @@ const grant = await stigmer.grant.bootstrapGrant({
 </Tab>
 <Tab value="Go">
 ```go
-grant, err := client.Grant.BootstrapGrant(ctx, &stigmer.GrantSpec{
-  Principal: &stigmer.ApiResourceRefInput{},
-  Resource:  &stigmer.ApiResourceRefInput{},
+grant, err := client.Grant.BootstrapGrant(ctx, &grantv1.GrantSpec{
+  Principal: &grantv1.ApiResourceRef{},
+  Resource:  &grantv1.ApiResourceRef{},
   Relation:  "...",
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-grant = client.grants.bootstrap_grant(GrantSpec(
-    principal=None,
-    resource=None,
+grant = client.grants.bootstrap_grant(spec_pb2.GrantSpec(
+    principal=spec_pb2.ApiResourceRef(),
+    resource=spec_pb2.ApiResourceRef(),
     relation="...",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Grant grant = client.grants().bootstrapGrant(GrantSpec.builder()
-    .principal(null)
-    .resource(null)
-    .relation("...")
+Grant grant = client.grant.bootstrapGrant(GrantSpec.newBuilder()
+    .setPrincipal(ApiResourceRef.getDefaultInstance())
+    .setResource(ApiResourceRef.getDefaultInstance())
+    .setRelation("...")
     .build());
 ```
 </Tab>
@@ -582,7 +615,7 @@ The system-flow twin of revokeOrgAccess: identical revocation behavior, but auth
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const empty = await stigmer.grant.bootstrapRevokeOrgAccess({
+await stigmer.grant.bootstrapRevokeOrgAccess({
   identityAccountId: "...",
   org: "...",
 });
@@ -590,7 +623,7 @@ const empty = await stigmer.grant.bootstrapRevokeOrgAccess({
 </Tab>
 <Tab value="Go">
 ```go
-empty, err := client.Grant.BootstrapRevokeOrgAccess(ctx, &stigmer.RevokeOrgAccessInput{
+err := client.Grant.BootstrapRevokeOrgAccess(ctx, &grantv1.RevokeOrgAccessInput{
   IdentityAccountId: "...",
   Org:               "...",
 })
@@ -598,7 +631,7 @@ empty, err := client.Grant.BootstrapRevokeOrgAccess(ctx, &stigmer.RevokeOrgAcces
 </Tab>
 <Tab value="Python">
 ```python
-empty = client.grants.bootstrap_revoke_org_access(RevokeOrgAccessInput(
+client.grants.bootstrap_revoke_org_access(io_pb2.RevokeOrgAccessInput(
     identity_account_id="...",
     org="...",
 ))
@@ -606,9 +639,9 @@ empty = client.grants.bootstrap_revoke_org_access(RevokeOrgAccessInput(
 </Tab>
 <Tab value="Java">
 ```java
-Empty empty = client.grants().bootstrapRevokeOrgAccess(RevokeOrgAccessInput.builder()
-    .identityAccountId("...")
-    .org("...")
+client.grant.bootstrapRevokeOrgAccess(RevokeOrgAccessInput.newBuilder()
+    .setIdentityAccountId("...")
+    .setOrg("...")
     .build());
 ```
 </Tab>
@@ -643,25 +676,25 @@ const checkAuthorizationResult = await stigmer.grant.checkAuthorization({
 </Tab>
 <Tab value="Go">
 ```go
-checkAuthorizationResult, err := client.Grant.CheckAuthorization(ctx, &stigmer.CheckAuthorizationInput{
-  Grant:            &stigmer.GrantSpecInput{},
-  ContextualGrants: []stigmer.GrantSpecInput{},
+checkAuthorizationResult, err := client.Grant.CheckAuthorization(ctx, &grantv1.CheckAuthorizationInput{
+  Grant:            &grantv1.GrantSpec{},
+  ContextualGrants: []*grantv1.GrantSpec{},
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-check_authorization_result = client.grants.check_authorization(CheckAuthorizationInput(
-    grant=None,
+check_authorization_result = client.grants.check_authorization(io_pb2.CheckAuthorizationInput(
+    grant=spec_pb2.GrantSpec(),
     contextual_grants=[],
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-CheckAuthorizationResult checkAuthorizationResult = client.grants().checkAuthorization(CheckAuthorizationInput.builder()
-    .grant(null)
-    .contextualGrants(List.of())
+CheckAuthorizationResult checkAuthorizationResult = client.grant.checkAuthorization(CheckAuthorizationInput.newBuilder()
+    .setGrant(GrantSpec.getDefaultInstance())
+    .addAllContextualGrants(List.of())
     .build());
 ```
 </Tab>
@@ -695,17 +728,17 @@ const checkAuthorizationResult = await stigmer.grant.checkMyPermission({
 </Tab>
 <Tab value="Go">
 ```go
-checkAuthorizationResult, err := client.Grant.CheckMyPermission(ctx, &stigmer.CheckMyPermissionInput{
-  Resource:         &stigmer.ApiResourceRefInput{},
+checkAuthorizationResult, err := client.Grant.CheckMyPermission(ctx, &grantv1.CheckMyPermissionInput{
+  Resource:         &grantv1.ApiResourceRef{},
   Relation:         "...",
-  ContextualGrants: []stigmer.GrantSpecInput{},
+  ContextualGrants: []*grantv1.GrantSpec{},
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-check_authorization_result = client.grants.check_my_permission(CheckMyPermissionInput(
-    resource=None,
+check_authorization_result = client.grants.check_my_permission(io_pb2.CheckMyPermissionInput(
+    resource=spec_pb2.ApiResourceRef(),
     relation="...",
     contextual_grants=[],
 ))
@@ -713,10 +746,10 @@ check_authorization_result = client.grants.check_my_permission(CheckMyPermission
 </Tab>
 <Tab value="Java">
 ```java
-CheckAuthorizationResult checkAuthorizationResult = client.grants().checkMyPermission(CheckMyPermissionInput.builder()
-    .resource(null)
-    .relation("...")
-    .contextualGrants(List.of())
+CheckAuthorizationResult checkAuthorizationResult = client.grant.checkMyPermission(CheckMyPermissionInput.newBuilder()
+    .setResource(ApiResourceRef.getDefaultInstance())
+    .setRelation("...")
+    .addAllContextualGrants(List.of())
     .build());
 ```
 </Tab>
@@ -735,7 +768,7 @@ Removes all grants associated with a deleted resource.
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const empty = await stigmer.grant.cleanupResourceGrants({
+await stigmer.grant.cleanupResourceGrants({
   kind: "...",
   id: "...",
   relation: "...",
@@ -744,7 +777,7 @@ const empty = await stigmer.grant.cleanupResourceGrants({
 </Tab>
 <Tab value="Go">
 ```go
-empty, err := client.Grant.CleanupResourceGrants(ctx, &stigmer.ApiResourceRef{
+err := client.Grant.CleanupResourceGrants(ctx, &grantv1.ApiResourceRef{
   Kind:     "...",
   Id:       "...",
   Relation: "...",
@@ -753,7 +786,7 @@ empty, err := client.Grant.CleanupResourceGrants(ctx, &stigmer.ApiResourceRef{
 </Tab>
 <Tab value="Python">
 ```python
-empty = client.grants.cleanup_resource_grants(ApiResourceRef(
+client.grants.cleanup_resource_grants(spec_pb2.ApiResourceRef(
     kind="...",
     id="...",
     relation="...",
@@ -762,10 +795,10 @@ empty = client.grants.cleanup_resource_grants(ApiResourceRef(
 </Tab>
 <Tab value="Java">
 ```java
-Empty empty = client.grants().cleanupResourceGrants(ApiResourceRef.builder()
-    .kind("...")
-    .id("...")
-    .relation("...")
+client.grant.cleanupResourceGrants(ApiResourceRef.newBuilder()
+    .setKind("...")
+    .setId("...")
+    .setRelation("...")
     .build());
 ```
 </Tab>
@@ -784,7 +817,7 @@ Removes every role the identity account holds on the organization, then every gr
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const empty = await stigmer.grant.revokeOrgAccess({
+await stigmer.grant.revokeOrgAccess({
   identityAccountId: "...",
   org: "...",
 });
@@ -792,7 +825,7 @@ const empty = await stigmer.grant.revokeOrgAccess({
 </Tab>
 <Tab value="Go">
 ```go
-empty, err := client.Grant.RevokeOrgAccess(ctx, &stigmer.RevokeOrgAccessInput{
+err := client.Grant.RevokeOrgAccess(ctx, &grantv1.RevokeOrgAccessInput{
   IdentityAccountId: "...",
   Org:               "...",
 })
@@ -800,7 +833,7 @@ empty, err := client.Grant.RevokeOrgAccess(ctx, &stigmer.RevokeOrgAccessInput{
 </Tab>
 <Tab value="Python">
 ```python
-empty = client.grants.revoke_org_access(RevokeOrgAccessInput(
+client.grants.revoke_org_access(io_pb2.RevokeOrgAccessInput(
     identity_account_id="...",
     org="...",
 ))
@@ -808,9 +841,9 @@ empty = client.grants.revoke_org_access(RevokeOrgAccessInput(
 </Tab>
 <Tab value="Java">
 ```java
-Empty empty = client.grants().revokeOrgAccess(RevokeOrgAccessInput.builder()
-    .identityAccountId("...")
-    .org("...")
+client.grant.revokeOrgAccess(RevokeOrgAccessInput.newBuilder()
+    .setIdentityAccountId("...")
+    .setOrg("...")
     .build());
 ```
 </Tab>

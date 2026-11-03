@@ -685,7 +685,7 @@ function parseHook(
     parameters,
     returnType: extractReturnType(sig?.type),
     returnInterface: null,
-    examples: extractExamples(comment),
+    examples: extractExamples(comment, reflection),
     sourceUrl: reflection.sources?.[0]?.url ?? "",
   };
 }
@@ -712,7 +712,7 @@ function parseComponent(
       : [],
     hasProps,
     propsInterface: null,
-    examples: extractExamples(comment),
+    examples: extractExamples(comment, reflection),
     sourceUrl: reflection.sources?.[0]?.url ?? "",
   };
 }
@@ -745,7 +745,7 @@ function parseInterface(
     fields,
     associatedExport: null,
     signature: null,
-    examples: extractExamples(reflection.comment),
+    examples: extractExamples(reflection.comment, reflection),
   };
 }
 
@@ -782,7 +782,7 @@ function parseTypeAlias(
     fields,
     associatedExport: null,
     signature: null,
-    examples: extractExamples(reflection.comment),
+    examples: extractExamples(reflection.comment, reflection),
   };
 }
 
@@ -838,7 +838,7 @@ function parseVariable(
     fields: [],
     associatedExport: null,
     signature,
-    examples: extractExamples(varComment),
+    examples: extractExamples(varComment, reflection),
   };
 }
 

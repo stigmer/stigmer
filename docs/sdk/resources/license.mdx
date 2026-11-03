@@ -38,25 +38,50 @@ spec:
 
 ## Client Access
 
+Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Each language's first block holds the imports the page's examples use.
+
 <SDKTabs>
 <Tab value="TypeScript">
+```typescript prelude
+import { LicenseTerm } from "@stigmer/apis/ai/stigmer/platform/v1/license_pb";
+```
 ```typescript
 const license = await stigmer.license.get("lic_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
+```go prelude
+import (
+	stigmer "go.stigmer.ai/sdk"
+	licensev1 "go.stigmer.ai/sdk/proto/ai/stigmer/billing/license/v1"
+	platformv1 "go.stigmer.ai/sdk/proto/ai/stigmer/platform/v1"
+)
+```
 ```go
 license, err := client.License.Get(ctx, "lic_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
+```python prelude
+from stigmer._gen import EntitlementsInput, LicenseCustomerInput, LicenseInput
+from ai.stigmer.billing.license.v1 import io_pb2
+from ai.stigmer.platform.v1 import license_pb2 as platform_license_pb2
+```
 ```python
 license = client.licenses.get("lic_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
+```java prelude
+import ai.stigmer.billing.license.v1.License;
+import ai.stigmer.billing.license.v1.Licenses;
+import ai.stigmer.billing.license.v1.ListLicensesInput;
+import ai.stigmer.platform.v1.LicenseTerm;
+import ai.stigmer.sdk.gen.LicenseInput;
+import java.util.Map;
+```
 ```java
-License license = client.licenses().get("lic_01j5q3k7m8r2s4tnz2hfp0q0c3");
+License license = client.license.get("lic_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -76,22 +101,22 @@ Get a license by its unique identifier.
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const license = await stigmer.license.get(id);
+const license = await stigmer.license.get("lic_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
 ```go
-license, err := client.License.Get(ctx, id)
+license, err := client.License.Get(ctx, "lic_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
 ```python
-license = client.licenses.get(id)
+license = client.licenses.get("lic_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-License license = client.licenses().get(id);
+License license = client.license.get("lic_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -121,7 +146,7 @@ const licenses = await stigmer.license.list({
 </Tab>
 <Tab value="Go">
 ```go
-licenses, err := client.License.List(ctx, &stigmer.ListLicensesInput{
+licenses, err := client.License.List(ctx, &licensev1.ListLicensesInput{
   CustomerId: "...",
   PageSize:   0,
   PageToken:  "...",
@@ -131,7 +156,7 @@ licenses, err := client.License.List(ctx, &stigmer.ListLicensesInput{
 </Tab>
 <Tab value="Python">
 ```python
-licenses = client.licenses.list(ListLicensesInput(
+licenses = client.licenses.list(io_pb2.ListLicensesInput(
     customer_id="...",
     page_size=0,
     page_token="...",
@@ -141,11 +166,11 @@ licenses = client.licenses.list(ListLicensesInput(
 </Tab>
 <Tab value="Java">
 ```java
-Licenses licenses = client.licenses().list(ListLicensesInput.builder()
-    .customerId("...")
-    .pageSize(0)
-    .pageToken("...")
-    .labels(Map.of())
+Licenses licenses = client.license.list(ListLicensesInput.newBuilder()
+    .setCustomerId("...")
+    .setPageSize(0)
+    .setPageToken("...")
+    .putAllLabels(Map.of())
     .build());
 ```
 </Tab>
@@ -170,10 +195,14 @@ const license = await stigmer.license.create({
   name: "my-license",
   slug: "...",
   labels: {},
-  customer: {},
+  customer: {
+    id: "...",
+    displayName: "...",
+    contactEmail: "...",
+  },
   planId: "...",
   entitlements: {},
-  term: "...",
+  term: LicenseTerm.trial,
   expiresAt: "...",
   graceUntil: "...",
   notes: "...",
@@ -186,10 +215,14 @@ license, err := client.License.Create(ctx, &stigmer.LicenseInput{
   Name:         "my-license",
   Slug:         "...",
   Labels:       map[string]string{},
-  Customer:     &stigmer.LicenseCustomerInput{},
+  Customer:     &stigmer.LicenseCustomerInput{
+    Id:           "...",
+    DisplayName:  "...",
+    ContactEmail: "...",
+  },
   PlanId:       "...",
   Entitlements: &stigmer.EntitlementsInput{},
-  Term:         "...",
+  Term:         platformv1.LicenseTerm_trial,
   ExpiresAt:    "...",
   GraceUntil:   "...",
   Notes:        "...",
@@ -202,10 +235,14 @@ license = client.licenses.create(LicenseInput(
     name="my-license",
     slug="...",
     labels={},
-    customer=None,
+    customer=LicenseCustomerInput(
+        id="...",
+        display_name="...",
+        contact_email="...",
+    ),
     plan_id="...",
-    entitlements=None,
-    term="...",
+    entitlements=EntitlementsInput(),
+    term=platform_license_pb2.trial,
     expires_at="...",
     grace_until="...",
     notes="...",
@@ -214,14 +251,18 @@ license = client.licenses.create(LicenseInput(
 </Tab>
 <Tab value="Java">
 ```java
-License license = client.licenses().create(LicenseInput.builder()
+License license = client.license.create(LicenseInput.builder()
     .name("my-license")
     .slug("...")
     .labels(Map.of())
-    .customer(null)
+    .customer(LicenseInput.LicenseCustomerInput.builder()
+    .id("...")
+    .displayName("...")
+    .contactEmail("...")
+    .build())
     .planId("...")
-    .entitlements(null)
-    .term("...")
+    .entitlements(LicenseInput.EntitlementsInput.builder().build())
+    .term(LicenseTerm.trial)
     .expiresAt("...")
     .graceUntil("...")
     .notes("...")

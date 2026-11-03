@@ -20,6 +20,8 @@ spec:
 
 ## Client Access
 
+Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Each language's first block holds the imports the page's examples use.
+
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
@@ -27,18 +29,42 @@ const apiKey = await stigmer.apiKey.get("key_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
+```go prelude
+import (
+	stigmer "go.stigmer.ai/sdk"
+	apikeyv1 "go.stigmer.ai/sdk/proto/ai/stigmer/iam/apikey/v1"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
+)
+```
 ```go
 apiKey, err := client.ApiKey.Get(ctx, "key_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
+```python prelude
+from stigmer import ApiKeyInput
+from ai.stigmer.iam.apikey.v1 import io_pb2
+from google.protobuf import timestamp_pb2
+```
 ```python
 api_key = client.api_keys.get("key_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
+```java prelude
+import ai.stigmer.iam.apikey.v1.ApiKey;
+import ai.stigmer.iam.apikey.v1.ApiKeyHash;
+import ai.stigmer.iam.apikey.v1.ApiKeys;
+import ai.stigmer.iam.apikey.v1.CreateServiceAccountKeyInput;
+import ai.stigmer.iam.apikey.v1.ListApiKeysByAccountInput;
+import ai.stigmer.iam.apikey.v1.ListApiKeysInput;
+import ai.stigmer.sdk.gen.ApiKeyInput;
+import com.google.protobuf.Timestamp;
+import java.util.List;
+import java.util.Map;
+```
 ```java
-ApiKey apiKey = client.apiKeys().get("key_01j5q3k7m8r2s4tnz2hfp0q0c3");
+ApiKey apiKey = client.apiKey.get("key_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -63,22 +89,22 @@ Get an API key by its unique identifier.
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const apiKey = await stigmer.apiKey.get(id);
+const apiKey = await stigmer.apiKey.get("key_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
 ```go
-apiKey, err := client.ApiKey.Get(ctx, id)
+apiKey, err := client.ApiKey.Get(ctx, "key_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
 ```python
-api_key = client.api_keys.get(id)
+api_key = client.api_keys.get("key_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-ApiKey apiKey = client.apiKeys().get(id);
+ApiKey apiKey = client.apiKey.get("key_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -105,22 +131,22 @@ const apiKey = await stigmer.apiKey.getByKeyHash({
 </Tab>
 <Tab value="Go">
 ```go
-apiKey, err := client.ApiKey.GetByKeyHash(ctx, &stigmer.ApiKeyHash{
+apiKey, err := client.ApiKey.GetByKeyHash(ctx, &apikeyv1.ApiKeyHash{
   Value: "...",
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-api_key = client.api_keys.get_by_key_hash(ApiKeyHash(
+api_key = client.api_keys.get_by_key_hash(io_pb2.ApiKeyHash(
     value="...",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-ApiKey apiKey = client.apiKeys().getByKeyHash(ApiKeyHash.builder()
-    .value("...")
+ApiKey apiKey = client.apiKey.getByKeyHash(ApiKeyHash.newBuilder()
+    .setValue("...")
     .build());
 ```
 </Tab>
@@ -148,7 +174,7 @@ const apiKeys = await stigmer.apiKey.list({
 </Tab>
 <Tab value="Go">
 ```go
-apiKeys, err := client.ApiKey.List(ctx, &stigmer.ListApiKeysInput{
+apiKeys, err := client.ApiKey.List(ctx, &apikeyv1.ListApiKeysInput{
   PageSize:  0,
   PageToken: "...",
   Labels:    map[string]string{},
@@ -157,7 +183,7 @@ apiKeys, err := client.ApiKey.List(ctx, &stigmer.ListApiKeysInput{
 </Tab>
 <Tab value="Python">
 ```python
-api_keys = client.api_keys.list(ListApiKeysInput(
+api_keys = client.api_keys.list(io_pb2.ListApiKeysInput(
     page_size=0,
     page_token="...",
     labels={},
@@ -166,10 +192,10 @@ api_keys = client.api_keys.list(ListApiKeysInput(
 </Tab>
 <Tab value="Java">
 ```java
-ApiKeys apiKeys = client.apiKeys().list(ListApiKeysInput.builder()
-    .pageSize(0)
-    .pageToken("...")
-    .labels(Map.of())
+ApiKeys apiKeys = client.apiKey.list(ListApiKeysInput.newBuilder()
+    .setPageSize(0)
+    .setPageToken("...")
+    .putAllLabels(Map.of())
     .build());
 ```
 </Tab>
@@ -202,7 +228,7 @@ const apiKeys = await stigmer.apiKey.listByAccount({
 </Tab>
 <Tab value="Go">
 ```go
-apiKeys, err := client.ApiKey.ListByAccount(ctx, &stigmer.ListApiKeysByAccountInput{
+apiKeys, err := client.ApiKey.ListByAccount(ctx, &apikeyv1.ListApiKeysByAccountInput{
   AccountId: "...",
   PageSize:  0,
   PageToken: "...",
@@ -212,7 +238,7 @@ apiKeys, err := client.ApiKey.ListByAccount(ctx, &stigmer.ListApiKeysByAccountIn
 </Tab>
 <Tab value="Python">
 ```python
-api_keys = client.api_keys.list_by_account(ListApiKeysByAccountInput(
+api_keys = client.api_keys.list_by_account(io_pb2.ListApiKeysByAccountInput(
     account_id="...",
     page_size=0,
     page_token="...",
@@ -222,11 +248,11 @@ api_keys = client.api_keys.list_by_account(ListApiKeysByAccountInput(
 </Tab>
 <Tab value="Java">
 ```java
-ApiKeys apiKeys = client.apiKeys().listByAccount(ListApiKeysByAccountInput.builder()
-    .accountId("...")
-    .pageSize(0)
-    .pageToken("...")
-    .labels(Map.of())
+ApiKeys apiKeys = client.apiKey.listByAccount(ListApiKeysByAccountInput.newBuilder()
+    .setAccountId("...")
+    .setPageSize(0)
+    .setPageToken("...")
+    .putAllLabels(Map.of())
     .build());
 ```
 </Tab>
@@ -292,7 +318,7 @@ api_key = client.api_keys.create(ApiKeyInput(
 </Tab>
 <Tab value="Java">
 ```java
-ApiKey apiKey = client.apiKeys().create(ApiKeyInput.builder()
+ApiKey apiKey = client.apiKey.create(ApiKeyInput.builder()
     .name("my-api-key")
     .org("acme")
     .slug("...")
@@ -345,10 +371,10 @@ updated = client.api_keys.update(api_key, ["metadata.name"])
 </Tab>
 <Tab value="Java">
 ```java
-ApiKey apiKey = client.apiKeys().get("key_01j5q3k7m8r2s4tnz2hfp0q0c3");
-ApiKey updated = client.apiKeys().update(
+ApiKey apiKey = client.apiKey.get("key_01j5q3k7m8r2s4tnz2hfp0q0c3");
+ApiKey updated = client.apiKey.update(
     apiKey.toBuilder().setMetadata(apiKey.getMetadata().toBuilder().setName("New name")).build(),
-    java.util.List.of("metadata.name"));
+    List.of("metadata.name"));
 ```
 </Tab>
 </SDKTabs>
@@ -369,22 +395,22 @@ Delete an API key.
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const apiKey = await stigmer.apiKey.delete(id);
+const apiKey = await stigmer.apiKey.delete("key_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
 ```go
-apiKey, err := client.ApiKey.Delete(ctx, id)
+apiKey, err := client.ApiKey.Delete(ctx, "key_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
 ```python
-api_key = client.api_keys.delete(id)
+api_key = client.api_keys.delete("key_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-ApiKey apiKey = client.apiKeys().delete(id);
+ApiKey apiKey = client.apiKey.delete("key_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -411,38 +437,38 @@ Authorization: Requires can_manage_keys on the service account, which its organi
 const apiKey = await stigmer.apiKey.createForServiceAccount({
   serviceAccountId: "...",
   name: "...",
-  expiresAt: "...",
+  expiresAt: {},
   neverExpires: false,
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-apiKey, err := client.ApiKey.CreateForServiceAccount(ctx, &stigmer.CreateServiceAccountKeyInput{
+apiKey, err := client.ApiKey.CreateForServiceAccount(ctx, &apikeyv1.CreateServiceAccountKeyInput{
   ServiceAccountId: "...",
   Name:             "...",
-  ExpiresAt:        "...",
+  ExpiresAt:        &timestamppb.Timestamp{},
   NeverExpires:     false,
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-api_key = client.api_keys.create_for_service_account(CreateServiceAccountKeyInput(
+api_key = client.api_keys.create_for_service_account(io_pb2.CreateServiceAccountKeyInput(
     service_account_id="...",
     name="...",
-    expires_at="...",
+    expires_at=timestamp_pb2.Timestamp(),
     never_expires=False,
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-ApiKey apiKey = client.apiKeys().createForServiceAccount(CreateServiceAccountKeyInput.builder()
-    .serviceAccountId("...")
-    .name("...")
-    .expiresAt("...")
-    .neverExpires(false)
+ApiKey apiKey = client.apiKey.createForServiceAccount(CreateServiceAccountKeyInput.newBuilder()
+    .setServiceAccountId("...")
+    .setName("...")
+    .setExpiresAt(Timestamp.getDefaultInstance())
+    .setNeverExpires(false)
     .build());
 ```
 </Tab>

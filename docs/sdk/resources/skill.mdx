@@ -29,25 +29,64 @@ spec:
 
 ## Client Access
 
+Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Each language's first block holds the imports the page's examples use.
+
 <SDKTabs>
 <Tab value="TypeScript">
+```typescript prelude
+import { create } from "@bufbuild/protobuf";
+import { PushSkillRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/io_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
+```
 ```typescript
 const skill = await stigmer.skill.get("skl_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
+```go prelude
+import (
+	stigmer "go.stigmer.ai/sdk"
+	skillv1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/skill/v1"
+	apiresource "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+)
+```
 ```go
 skill, err := client.Skill.Get(ctx, "skl_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
+```python prelude
+from stigmer import ResourceRef
+from ai.stigmer.agentic.skill.v1 import io_pb2, status_pb2
+from ai.stigmer.commons.apiresource import enum_pb2 as apiresource_enum_pb2, io_pb2 as apiresource_io_pb2
+```
 ```python
 skill = client.skills.get("skl_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
+```java prelude
+import ai.stigmer.agentic.skill.v1.CreateSkillArtifactUploadUrlRequest;
+import ai.stigmer.agentic.skill.v1.GetArtifactRequest;
+import ai.stigmer.agentic.skill.v1.GetArtifactResponse;
+import ai.stigmer.agentic.skill.v1.GitProvenance;
+import ai.stigmer.agentic.skill.v1.ListSkillVersionsInput;
+import ai.stigmer.agentic.skill.v1.ListSkillVersionsResponse;
+import ai.stigmer.agentic.skill.v1.ListSkillsRequest;
+import ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest;
+import ai.stigmer.agentic.skill.v1.PushSkillRequest;
+import ai.stigmer.agentic.skill.v1.Skill;
+import ai.stigmer.agentic.skill.v1.SkillArtifactDownloadUrl;
+import ai.stigmer.agentic.skill.v1.SkillArtifactUploadUrl;
+import ai.stigmer.agentic.skill.v1.SkillList;
+import ai.stigmer.commons.apiresource.ApiResourceVisibility;
+import ai.stigmer.commons.apiresource.UpdateVisibilityInput;
+import ai.stigmer.sdk.gen.ResourceRef;
+import com.google.protobuf.ByteString;
+import java.util.Map;
+```
 ```java
-Skill skill = client.skills().get("skl_01j5q3k7m8r2s4tnz2hfp0q0c3");
+Skill skill = client.skill.get("skl_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -75,22 +114,22 @@ Get a single skill by ID.
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const skill = await stigmer.skill.get(id);
+const skill = await stigmer.skill.get("skl_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
 ```go
-skill, err := client.Skill.Get(ctx, id)
+skill, err := client.Skill.Get(ctx, "skl_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
 ```python
-skill = client.skills.get(id)
+skill = client.skills.get("skl_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Skill skill = client.skills().get(id);
+Skill skill = client.skill.get("skl_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -117,22 +156,22 @@ const getArtifactResponse = await stigmer.skill.getArtifact({
 </Tab>
 <Tab value="Go">
 ```go
-getArtifactResponse, err := client.Skill.GetArtifact(ctx, &stigmer.GetArtifactRequest{
+getArtifactResponse, err := client.Skill.GetArtifact(ctx, &skillv1.GetArtifactRequest{
   ArtifactStorageKey: "...",
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-get_artifact_response = client.skills.get_artifact(GetArtifactRequest(
+get_artifact_response = client.skills.get_artifact(io_pb2.GetArtifactRequest(
     artifact_storage_key="...",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-GetArtifactResponse getArtifactResponse = client.skills().getArtifact(GetArtifactRequest.builder()
-    .artifactStorageKey("...")
+GetArtifactResponse getArtifactResponse = client.skill.getArtifact(GetArtifactRequest.newBuilder()
+    .setArtifactStorageKey("...")
     .build());
 ```
 </Tab>
@@ -158,22 +197,22 @@ const skillArtifactDownloadUrl = await stigmer.skill.getArtifactDownloadUrl({
 </Tab>
 <Tab value="Go">
 ```go
-skillArtifactDownloadUrl, err := client.Skill.GetArtifactDownloadUrl(ctx, &stigmer.GetArtifactRequest{
+skillArtifactDownloadUrl, err := client.Skill.GetArtifactDownloadUrl(ctx, &skillv1.GetArtifactRequest{
   ArtifactStorageKey: "...",
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-skill_artifact_download_url = client.skills.get_artifact_download_url(GetArtifactRequest(
+skill_artifact_download_url = client.skills.get_artifact_download_url(io_pb2.GetArtifactRequest(
     artifact_storage_key="...",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-SkillArtifactDownloadUrl skillArtifactDownloadUrl = client.skills().getArtifactDownloadUrl(GetArtifactRequest.builder()
-    .artifactStorageKey("...")
+SkillArtifactDownloadUrl skillArtifactDownloadUrl = client.skill.getArtifactDownloadUrl(GetArtifactRequest.newBuilder()
+    .setArtifactStorageKey("...")
     .build());
 ```
 </Tab>
@@ -192,46 +231,22 @@ Version resolution (via ApiResourceReference.version field): - Empty/"latest" â†
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const skill = await stigmer.skill.getByReference({
-  org: "...",
-  kind: "...",
-  slug: "...",
-  version: "...",
-  id: "...",
-});
+const skill = await stigmer.skill.getByReference({ org: "acme", slug: "my-skill" });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-skill, err := client.Skill.GetByReference(ctx, &stigmer.ApiResourceReference{
-  Org:     "...",
-  Kind:    "...",
-  Slug:    "...",
-  Version: "...",
-  Id:      "...",
-})
+skill, err := client.Skill.GetByReference(ctx, stigmer.ResourceRef{Org: "acme", Slug: "my-skill"})
 ```
 </Tab>
 <Tab value="Python">
 ```python
-skill = client.skills.get_by_reference(ApiResourceReference(
-    org="...",
-    kind="...",
-    slug="...",
-    version="...",
-    id="...",
-))
+skill = client.skills.get_by_reference(ResourceRef(org="acme", slug="my-skill"))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Skill skill = client.skills().getByReference(ApiResourceReference.builder()
-    .org("...")
-    .kind("...")
-    .slug("...")
-    .version("...")
-    .id("...")
-    .build());
+Skill skill = client.skill.getByReference(ResourceRef.of("acme", "my-skill"));
 ```
 </Tab>
 </SDKTabs>
@@ -259,7 +274,7 @@ const result = await stigmer.skill.list({
 </Tab>
 <Tab value="Go">
 ```go
-result, err := client.Skill.List(ctx, &stigmer.ListSkillsRequest{
+result, err := client.Skill.List(ctx, &skillv1.ListSkillsRequest{
   Org:       "...",
   PageSize:  0,
   PageToken: "...",
@@ -269,7 +284,7 @@ result, err := client.Skill.List(ctx, &stigmer.ListSkillsRequest{
 </Tab>
 <Tab value="Python">
 ```python
-result = client.skills.list(ListSkillsRequest(
+result = client.skills.list(io_pb2.ListSkillsRequest(
     org="...",
     page_size=0,
     page_token="...",
@@ -279,11 +294,11 @@ result = client.skills.list(ListSkillsRequest(
 </Tab>
 <Tab value="Java">
 ```java
-SkillList result = client.skills().list(ListSkillsRequest.builder()
-    .org("...")
-    .pageSize(0)
-    .pageToken("...")
-    .labels(Map.of())
+SkillList result = client.skill.list(ListSkillsRequest.newBuilder()
+    .setOrg("...")
+    .setPageSize(0)
+    .setPageToken("...")
+    .putAllLabels(Map.of())
     .build());
 ```
 </Tab>
@@ -314,7 +329,7 @@ const listSkillVersionsResponse = await stigmer.skill.listVersions({
 </Tab>
 <Tab value="Go">
 ```go
-listSkillVersionsResponse, err := client.Skill.ListVersions(ctx, &stigmer.ListSkillVersionsInput{
+listSkillVersionsResponse, err := client.Skill.ListVersions(ctx, &skillv1.ListSkillVersionsInput{
   Org:       "...",
   Slug:      "...",
   PageToken: "...",
@@ -324,7 +339,7 @@ listSkillVersionsResponse, err := client.Skill.ListVersions(ctx, &stigmer.ListSk
 </Tab>
 <Tab value="Python">
 ```python
-list_skill_versions_response = client.skills.list_versions(ListSkillVersionsInput(
+list_skill_versions_response = client.skills.list_versions(io_pb2.ListSkillVersionsInput(
     org="...",
     slug="...",
     page_token="...",
@@ -334,11 +349,11 @@ list_skill_versions_response = client.skills.list_versions(ListSkillVersionsInpu
 </Tab>
 <Tab value="Java">
 ```java
-ListSkillVersionsResponse listSkillVersionsResponse = client.skills().listVersions(ListSkillVersionsInput.builder()
-    .org("...")
-    .slug("...")
-    .pageToken("...")
-    .pageSize(0)
+ListSkillVersionsResponse listSkillVersionsResponse = client.skill.listVersions(ListSkillVersionsInput.newBuilder()
+    .setOrg("...")
+    .setSlug("...")
+    .setPageToken("...")
+    .setPageSize(0)
     .build());
 ```
 </Tab>
@@ -359,31 +374,31 @@ Update the visibility of an existing skill. Only modifies metadata.visibility, l
 ```typescript
 const skill = await stigmer.skill.updateVisibility({
   resourceId: "...",
-  visibility: "...",
+  visibility: ApiResourceVisibility.visibility_private,
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-skill, err := client.Skill.UpdateVisibility(ctx, &stigmer.UpdateVisibilityInput{
+skill, err := client.Skill.UpdateVisibility(ctx, &apiresource.UpdateVisibilityInput{
   ResourceId: "...",
-  Visibility: "...",
+  Visibility: apiresource.ApiResourceVisibility_visibility_private,
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-skill = client.skills.update_visibility(UpdateVisibilityInput(
+skill = client.skills.update_visibility(apiresource_io_pb2.UpdateVisibilityInput(
     resource_id="...",
-    visibility="...",
+    visibility=apiresource_enum_pb2.visibility_private,
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Skill skill = client.skills().updateVisibility(UpdateVisibilityInput.builder()
-    .resourceId("...")
-    .visibility("...")
+Skill skill = client.skill.updateVisibility(UpdateVisibilityInput.newBuilder()
+    .setResourceId("...")
+    .setVisibility(ApiResourceVisibility.visibility_private)
     .build());
 ```
 </Tab>
@@ -400,22 +415,22 @@ Delete a skill and all its versions.
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const skill = await stigmer.skill.delete(id);
+const skill = await stigmer.skill.delete("skl_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
 ```go
-skill, err := client.Skill.Delete(ctx, id)
+skill, err := client.Skill.Delete(ctx, "skl_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
 ```python
-skill = client.skills.delete(id)
+skill = client.skills.delete("skl_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Skill skill = client.skills().delete(id);
+Skill skill = client.skill.delete("skl_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -441,13 +456,13 @@ The server refuses over-limit size_bytes here, before any bytes move.
 ```typescript
 const skillArtifactUploadUrl = await stigmer.skill.createArtifactUploadUrl({
   org: "...",
-  sizeBytes: 0,
+  sizeBytes: 0n,
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-skillArtifactUploadUrl, err := client.Skill.CreateArtifactUploadUrl(ctx, &stigmer.CreateSkillArtifactUploadUrlRequest{
+skillArtifactUploadUrl, err := client.Skill.CreateArtifactUploadUrl(ctx, &skillv1.CreateSkillArtifactUploadUrlRequest{
   Org:       "...",
   SizeBytes: 0,
 })
@@ -455,7 +470,7 @@ skillArtifactUploadUrl, err := client.Skill.CreateArtifactUploadUrl(ctx, &stigme
 </Tab>
 <Tab value="Python">
 ```python
-skill_artifact_upload_url = client.skills.create_artifact_upload_url(CreateSkillArtifactUploadUrlRequest(
+skill_artifact_upload_url = client.skills.create_artifact_upload_url(io_pb2.CreateSkillArtifactUploadUrlRequest(
     org="...",
     size_bytes=0,
 ))
@@ -463,9 +478,9 @@ skill_artifact_upload_url = client.skills.create_artifact_upload_url(CreateSkill
 </Tab>
 <Tab value="Java">
 ```java
-SkillArtifactUploadUrl skillArtifactUploadUrl = client.skills().createArtifactUploadUrl(CreateSkillArtifactUploadUrlRequest.builder()
-    .org("...")
-    .sizeBytes(0)
+SkillArtifactUploadUrl skillArtifactUploadUrl = client.skill.createArtifactUploadUrl(CreateSkillArtifactUploadUrlRequest.newBuilder()
+    .setOrg("...")
+    .setSizeBytes(0L)
     .build());
 ```
 </Tab>
@@ -482,24 +497,24 @@ Push a skill artifact. Creates a skill if it does not exist, or creates a new ve
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const skill = await stigmer.skill.push({
+const skill = await stigmer.skill.push(create(PushSkillRequestSchema, {
   org: "...",
-  artifact: "...",
+  artifact: new Uint8Array(),
   tag: "...",
   gitProvenance: {},
   message: "...",
   artifactUploadRef: "...",
   labels: {},
-});
+}));
 ```
 </Tab>
 <Tab value="Go">
 ```go
-skill, err := client.Skill.Push(ctx, &stigmer.PushSkillRequest{
+skill, err := client.Skill.Push(ctx, &skillv1.PushSkillRequest{
   Org:               "...",
-  Artifact:          "...",
+  Artifact:          []byte{},
   Tag:               "...",
-  GitProvenance:     &stigmer.GitProvenanceInput{},
+  GitProvenance:     &skillv1.GitProvenance{},
   Message:           "...",
   ArtifactUploadRef: "...",
   Labels:            map[string]string{},
@@ -508,11 +523,11 @@ skill, err := client.Skill.Push(ctx, &stigmer.PushSkillRequest{
 </Tab>
 <Tab value="Python">
 ```python
-skill = client.skills.push(PushSkillRequest(
+skill = client.skills.push(io_pb2.PushSkillRequest(
     org="...",
-    artifact="...",
+    artifact=b"",
     tag="...",
-    git_provenance=None,
+    git_provenance=status_pb2.GitProvenance(),
     message="...",
     artifact_upload_ref="...",
     labels={},
@@ -521,14 +536,14 @@ skill = client.skills.push(PushSkillRequest(
 </Tab>
 <Tab value="Java">
 ```java
-Skill skill = client.skills().push(PushSkillRequest.builder()
-    .org("...")
-    .artifact("...")
-    .tag("...")
-    .gitProvenance(null)
-    .message("...")
-    .artifactUploadRef("...")
-    .labels(Map.of())
+Skill skill = client.skill.push(PushSkillRequest.newBuilder()
+    .setOrg("...")
+    .setArtifact(ByteString.EMPTY)
+    .setTag("...")
+    .setGitProvenance(GitProvenance.getDefaultInstance())
+    .setMessage("...")
+    .setArtifactUploadRef("...")
+    .putAllLabels(Map.of())
     .build());
 ```
 </Tab>
@@ -554,7 +569,7 @@ const skill = await stigmer.skill.pushFromFile({
 </Tab>
 <Tab value="Go">
 ```go
-skill, err := client.Skill.PushFromFile(ctx, &stigmer.PushSkillFromFileRequest{
+skill, err := client.Skill.PushFromFile(ctx, &skillv1.PushSkillFromFileRequest{
   Org:    "...",
   FileId: "...",
   Tag:    "...",
@@ -563,7 +578,7 @@ skill, err := client.Skill.PushFromFile(ctx, &stigmer.PushSkillFromFileRequest{
 </Tab>
 <Tab value="Python">
 ```python
-skill = client.skills.push_from_file(PushSkillFromFileRequest(
+skill = client.skills.push_from_file(io_pb2.PushSkillFromFileRequest(
     org="...",
     file_id="...",
     tag="...",
@@ -572,10 +587,10 @@ skill = client.skills.push_from_file(PushSkillFromFileRequest(
 </Tab>
 <Tab value="Java">
 ```java
-Skill skill = client.skills().pushFromFile(PushSkillFromFileRequest.builder()
-    .org("...")
-    .fileId("...")
-    .tag("...")
+Skill skill = client.skill.pushFromFile(PushSkillFromFileRequest.newBuilder()
+    .setOrg("...")
+    .setFileId("...")
+    .setTag("...")
     .build());
 ```
 </Tab>

@@ -14,7 +14,6 @@ import { goTrimSpace } from "../internalcomment/internalcomment.js";
 import type { EnumSchema, MethodSchema, ServiceSchemaFile } from "./gen-common.js";
 import { NON_KIND_PACKAGES } from "./gen-common.js";
 import {
-  hasExplicitPresence,
   indefiniteArticle,
   isEmptyType,
   isIDType,
@@ -28,7 +27,25 @@ import {
   tsMethodName,
   tsProtoFieldName,
 } from "./gen-common.js";
-import { javaAccessorName, javaCamel, pyClientFieldName, pyFieldName } from "./lang-names.js";
+import { pyClientFieldName } from "./lang-names.js";
+import {
+  DOC_EXAMPLE_ORG,
+  DOC_LANGS,
+  DocImports,
+  docProtoInput,
+  docSdkInput,
+  javaListOf,
+  javaResultType,
+  javaStream,
+  readPythonPublicNames,
+  sdkDeleteInput,
+  sdkResourceRef,
+  TS_MESSAGE_PARAMS,
+  type DocExampleEnv,
+  type DocInputField,
+  type DocLang,
+} from "./sdk-docs-examples.js";
+import { pyMethodTypePb2Map } from "./sdk-client-python.js";
 import type { IamRoleMetaEntry, KindMetaEntry } from "./resource-kind.js";
 import { iamRoleMetaEntries, idPrefixByMetaName, kindMetaEntries, ResourceTier } from "./resource-kind.js";
 import type { SdkResourceConfig } from "./sdk-resource-config.js";
@@ -63,6 +80,9 @@ export function runSDKDocsGeneration(schemaDir: string, outputDir: string, apisD
   }
 
   const slugs: string[] = [];
+  // The names the Python package exports: an example imports an SDK type
+  // from `stigmer` when it does.
+  const pyPublic = readPythonPublicNames(apisDir);
 
   for (const entry of entries) {
     if (entry.isDirectory() || !entry.name.endsWith(".json")) continue;
@@ -80,7 +100,7 @@ export function runSDKDocsGeneration(schemaDir: string, outputDir: string, apisD
       [specSchema, specTypes] = loadSpecSchemaWithTypes(path.join(schemaDir, cfg.specSchema));
     }
 
-    const page = generateSDKDocPage(schema, cfg, specSchema, specTypes, apisDir, commonsTypes);
+    const page = generateSDKDocPage(schema, cfg, specSchema, specTypes, apisDir, commonsTypes, pyPublic);
     const slug = docSlug(cfg.protoResType);
     fs.writeFileSync(path.join(outputDir, slug + ".mdx"), page);
     slugs.push(slug);
@@ -306,6 +326,7 @@ function generateSDKDocPage(
   specTypes: TypeSchema[],
   apisDir: string,
   commonsTypes: Set<string>,
+  pyPublic: ReadonlySet<string> | null,
 ): string {
   const displayName = docDisplayName(cfg.protoResType);
   const hasInputType = specSchema !== null;
@@ -313,7 +334,7 @@ function generateSDKDocPage(
     ts: tsClientFieldName(schema.resource),
     go: cfg.clientName.endsWith("Client") ? cfg.clientName.slice(0, -"Client".length) : cfg.clientName,
     py: pyClientFieldName(schema.resource),
-    java: javaAccessorName(schema.resource),
+    java: tsClientFieldName(schema.resource),
   };
 
   const buf: string[] = [];
@@ -354,13 +375,25 @@ function generateSDKDocPage(
     documentedTypes.add(name);
   }
 
-  docWriteClientAccess(buf, schema, cfg, names);
-
   const methodTypeMap = new Map<string, TypeSchema>();
   for (const mt of schema.methodTypes ?? []) {
     methodTypeMap.set(mt.name, mt);
   }
-  docWriteMethodsWithCommons(buf, schema, cfg, names, hasInputType, documentedTypes, specSchema, methodTypeMap, commonsTypes);
+  const env: DocExampleEnv = {
+    schema,
+    cfg,
+    specTypes: new Map(specTypes.map((t) => [t.name, t])),
+    methodTypes: methodTypeMap,
+    pyModules: pyMethodTypePb2Map(schema),
+    pyPublic,
+    imports: new DocImports(),
+  };
+  // The methods are written first: the imports block "Client Access"
+  // shows is what they import.
+  const methodsBuf: string[] = [];
+  docWriteMethodsWithCommons(methodsBuf, schema, cfg, names, hasInputType, documentedTypes, specSchema, env, commonsTypes);
+  docWriteClientAccess(buf, schema, cfg, names, env);
+  buf.push(...methodsBuf);
 
   const typeEmitted = new Set<string>();
   if (specSchema !== null) {
@@ -387,7 +420,21 @@ function generateSDKDocPage(
 // Client Access section
 // =========================================================================
 
-function docWriteClientAccess(buf: string[], schema: ServiceSchemaFile, cfg: SdkResourceConfig, names: DocLangNames): void {
+/** The tab label and fence language of each language a page shows. */
+const DOC_TABS: Readonly<Record<DocLang, { tab: string; fence: string }>> = {
+  typescript: { tab: "TypeScript", fence: "typescript" },
+  go: { tab: "Go", fence: "go" },
+  python: { tab: "Python", fence: "python" },
+  java: { tab: "Java", fence: "java" },
+};
+
+/**
+ * "Client Access": the client every example calls, then each language's
+ * imports block (a `prelude` fence: the imports every example on the page
+ * uses, written last, once every example has been) and, when the kind has
+ * a Get, the read by id.
+ */
+function docWriteClientAccess(buf: string[], schema: ServiceSchemaFile, cfg: SdkResourceConfig, names: DocLangNames, env: DocExampleEnv): void {
   const varName = docVarName(cfg.protoResType);
   const pyVarName = docPyVarName(cfg.protoResType);
   const exampleID = docExampleID(cfg.idPrefix);
@@ -401,16 +448,32 @@ function docWriteClientAccess(buf: string[], schema: ServiceSchemaFile, cfg: Sdk
       }
     }
   }
-  if (getMethod === null) return;
+
+  const reads: Partial<Record<DocLang, string>> = {};
+  if (getMethod !== null) {
+    reads.typescript = `const ${varName} = await stigmer.${names.ts}.get("${exampleID}");`;
+    reads.go = `${varName}, err := client.${names.go}.Get(ctx, "${exampleID}")`;
+    reads.python = `${pyVarName} = client.${names.py}.get("${exampleID}")`;
+    reads.java = `${javaResultType(env, getMethod.outputFullType)} ${varName} = client.${names.java}.get("${exampleID}");`;
+  }
+
+  const tabs: string[] = [];
+  for (const lang of DOC_LANGS) {
+    const fences: string[] = [];
+    const prelude = env.imports.render(lang);
+    if (prelude !== null) fences.push(docFence(DOC_TABS[lang].fence, "prelude", prelude));
+    const read = reads[lang];
+    if (read !== undefined) fences.push(docFence(DOC_TABS[lang].fence, "", read));
+    if (fences.length > 0) tabs.push(`<Tab value="${DOC_TABS[lang].tab}">\n${fences.join("")}</Tab>\n`);
+  }
+  if (tabs.length === 0) return;
 
   buf.push("## Client Access\n\n");
+  buf.push(
+    "Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Each language's first block holds the imports the page's examples use.\n\n",
+  );
   buf.push("<SDKTabs>\n");
-
-  docWriteTab(buf, "TypeScript", "typescript", `const ${varName} = await stigmer.${names.ts}.get("${exampleID}");`);
-  docWriteTab(buf, "Go", "go", `${varName}, err := client.${names.go}.Get(ctx, "${exampleID}")`);
-  docWriteTab(buf, "Python", "python", `${pyVarName} = client.${names.py}.get("${exampleID}")`);
-  docWriteTab(buf, "Java", "java", `${cfg.protoResType} ${varName} = client.${names.java}().get("${exampleID}");`);
-
+  buf.push(tabs.join(""));
   buf.push("</SDKTabs>\n\n");
 }
 
@@ -426,7 +489,7 @@ function docWriteMethodsWithCommons(
   hasInputType: boolean,
   documentedTypes: Set<string>,
   specSchema: SpecSchema | null,
-  methodTypeMap: Map<string, TypeSchema>,
+  env: DocExampleEnv,
   commonsTypes: Set<string>,
 ): void {
   const methods = docCollectMethods(schema);
@@ -436,7 +499,7 @@ function docWriteMethodsWithCommons(
   docWriteMethodOverview(buf, methods);
 
   for (const m of methods) {
-    docWriteMethodWithCommons(buf, m, cfg, names, hasInputType, documentedTypes, specSchema, methodTypeMap, commonsTypes);
+    docWriteMethodWithCommons(buf, m, cfg, names, hasInputType, documentedTypes, specSchema, env, commonsTypes);
     if (pagedListOf(schema, m) !== undefined) {
       docWritePageIterator(buf, m);
     }
@@ -451,12 +514,11 @@ function docWriteMethodWithCommons(
   hasInputType: boolean,
   documentedTypes: Set<string>,
   specSchema: SpecSchema | null,
-  methodTypeMap: Map<string, TypeSchema>,
+  env: DocExampleEnv,
   commonsTypes: Set<string>,
 ): void {
   const tsName = tsMethodName(m.name);
   const pyName = pascalToSnake(m.name);
-  const resultVar = docVarName(m.outputType);
   const inputTypeName = cfg.inputPrefix + "Input";
 
   const emptyInput = isEmptyType(m.inputFullType);
@@ -482,9 +544,9 @@ function docWriteMethodWithCommons(
 
   buf.push("<SDKTabs>\n");
   if (updateInput) {
-    docWriteUpdateSigs(buf, cfg, names, tsName, pyName);
+    docWriteUpdateSigs(buf, m, cfg, names, env, tsName, pyName);
   } else {
-    docWriteMethodSigs(buf, m, cfg, names, tsName, pyName, resultVar, inputTypeName, emptyInput, emptyOutput, idInput, resourceInput, deleteInput, hasInputType, specSchema, methodTypeMap);
+    docWriteMethodSigs(buf, m, cfg, names, env, tsName, pyName, resourceInput && hasInputType, specSchema);
   }
   buf.push("</SDKTabs>\n\n");
 
@@ -530,14 +592,17 @@ function docWriteMethodWithCommons(
  */
 function docWriteUpdateSigs(
   buf: string[],
+  m: MethodSchema,
   cfg: SdkResourceConfig,
   names: DocLangNames,
+  env: DocExampleEnv,
   tsName: string,
   pyName: string,
 ): void {
   const varName = docVarName(cfg.protoResType);
   const pyVarName = docPyVarName(cfg.protoResType);
   const exampleID = docExampleID(cfg.idPrefix);
+  const javaType = javaResultType(env, m.outputFullType);
   docWriteTab(
     buf,
     "TypeScript",
@@ -560,8 +625,51 @@ function docWriteUpdateSigs(
     buf,
     "Java",
     "java",
-    `${cfg.protoResType} ${varName} = client.${names.java}().get("${exampleID}");\n${cfg.protoResType} updated = client.${names.java}().${tsName}(\n    ${varName}.toBuilder().setMetadata(${varName}.getMetadata().toBuilder().setName("New name")).build(),\n    java.util.List.of("metadata.name"));`,
+    `${javaType} ${varName} = client.${names.java}.get("${exampleID}");\n${javaType} updated = client.${names.java}.${tsName}(\n    ${varName}.toBuilder().setMetadata(${varName}.getMetadata().toBuilder().setName("New name")).build(),\n    ${javaListOf(env, '"metadata.name"')});`,
   );
+}
+
+/** What each language passes a method, or null where the example cannot be written (it is then marked with `reason`). */
+interface DocArgs {
+  readonly args: Readonly<Record<DocLang, string | null>>;
+  readonly reason?: string;
+}
+
+/** The argument every language passes: the same text in each. */
+function docSameArgs(text: string): DocArgs {
+  return { args: { typescript: text, go: text, python: text, java: text } };
+}
+
+/** What a method other than an update takes, in each language. */
+function docMethodArgs(
+  tsClient: string,
+  m: MethodSchema,
+  cfg: SdkResourceConfig,
+  env: DocExampleEnv,
+  sdkResourceInput: boolean,
+  specSchema: SpecSchema | null,
+): DocArgs {
+  const exampleID = docExampleID(cfg.idPrefix);
+  if (isEmptyType(m.inputFullType)) return docSameArgs("");
+  if (isIDType(m.inputType)) return docSameArgs(`"${exampleID}"`);
+  if (sdkResourceInput) {
+    const fields = docInputFields(specSchema, docExampleResourceName(cfg.protoResType), cfg.isOrgless);
+    return { args: perLang((lang) => docSdkInput(env, lang, fields)) };
+  }
+  if (m.inputType === "ApiResourceDeleteInput") return { args: perLang((lang) => sdkDeleteInput(env, lang, exampleID)) };
+  if (m.inputType === "ApiResourceReference") {
+    const slug = docExampleResourceName(cfg.protoResType);
+    return { args: perLang((lang) => sdkResourceRef(env, lang, slug)) };
+  }
+  const fields = env.methodTypes.get(m.inputType)?.fields ?? [];
+  return {
+    args: perLang((lang) => docProtoInput(env, lang, m.inputType, m.inputFullType, fields, TS_MESSAGE_PARAMS.has(`${tsClient}.${tsMethodName(m.name)}`))),
+    reason: `the schemas record no module that declares ${m.inputType}`,
+  };
+}
+
+function perLang<T>(make: (lang: DocLang) => T): Record<DocLang, T> {
+  return { typescript: make("typescript"), go: make("go"), python: make("python"), java: make("java") };
 }
 
 function docWriteMethodSigs(
@@ -569,249 +677,104 @@ function docWriteMethodSigs(
   m: MethodSchema,
   cfg: SdkResourceConfig,
   names: DocLangNames,
+  env: DocExampleEnv,
   tsName: string,
   pyName: string,
-  resultVar: string,
-  inputTypeName: string,
-  emptyInput: boolean,
-  emptyOutput: boolean,
-  idInput: boolean,
-  resourceInput: boolean,
-  deleteInput: boolean,
-  hasInputType: boolean,
+  sdkResourceInput: boolean,
   specSchema: SpecSchema | null,
-  methodTypeMap: Map<string, TypeSchema>,
 ): void {
-  const exampleName = docExampleResourceName(cfg.protoResType);
-  const pyResultVar = docPyVarName(m.outputType);
-
+  const { args, reason } = docMethodArgs(names.ts, m, cfg, env, sdkResourceInput, specSchema);
   if (m.serverStreaming === true) {
-    docWriteStreamingSigs(buf, m, names, tsName, pyName, idInput);
+    docWriteStreamingSigs(buf, m, names, env, tsName, pyName, args, reason);
     return;
   }
 
-  if (emptyInput && emptyOutput) {
-    docWriteTab(buf, "TypeScript", "typescript", `await stigmer.${names.ts}.${tsName}();`);
-    docWriteTab(buf, "Go", "go", `err := client.${names.go}.${m.name}(ctx)`);
-    docWriteTab(buf, "Python", "python", `client.${names.py}.${pyName}()`);
-    docWriteTab(buf, "Java", "java", `client.${names.java}().${tsName}();`);
-  } else if (emptyInput) {
-    docWriteTab(buf, "TypeScript", "typescript", `const ${resultVar} = await stigmer.${names.ts}.${tsName}();`);
-    docWriteTab(buf, "Go", "go", `${resultVar}, err := client.${names.go}.${m.name}(ctx)`);
-    docWriteTab(buf, "Python", "python", `${pyResultVar} = client.${names.py}.${pyName}()`);
-    docWriteTab(buf, "Java", "java", `${m.outputType} ${resultVar} = client.${names.java}().${tsName}();`);
-  } else if (idInput && emptyOutput) {
-    docWriteTab(buf, "TypeScript", "typescript", `await stigmer.${names.ts}.${tsName}(id);`);
-    docWriteTab(buf, "Go", "go", `err := client.${names.go}.${m.name}(ctx, id)`);
-    docWriteTab(buf, "Python", "python", `client.${names.py}.${pyName}(id)`);
-    docWriteTab(buf, "Java", "java", `client.${names.java}().${tsName}(id);`);
-  } else if (idInput) {
-    docWriteTab(buf, "TypeScript", "typescript", `const ${resultVar} = await stigmer.${names.ts}.${tsName}(id);`);
-    docWriteTab(buf, "Go", "go", `${resultVar}, err := client.${names.go}.${m.name}(ctx, id)`);
-    docWriteTab(buf, "Python", "python", `${pyResultVar} = client.${names.py}.${pyName}(id)`);
-    docWriteTab(buf, "Java", "java", `${m.outputType} ${resultVar} = client.${names.java}().${tsName}(id);`);
-  } else if (resourceInput && hasInputType) {
-    const goFields = docInputFields(specSchema, "go", exampleName, cfg.isOrgless);
-    const tsFields = docInputFields(specSchema, "typescript", exampleName, cfg.isOrgless);
-    const pyFields = docInputFields(specSchema, "python", exampleName, cfg.isOrgless);
-    const javaFields = docInputFields(specSchema, "java", exampleName, cfg.isOrgless);
+  const resultVar = docVarName(m.outputType);
+  const pyResultVar = docPyVarName(m.outputType);
+  const noResult = isEmptyType(m.outputFullType);
+  const call = (lang: DocLang, text: (arg: string) => string): void => {
+    const arg = args[lang];
+    docWriteTab(
+      buf,
+      DOC_TABS[lang].tab,
+      DOC_TABS[lang].fence,
+      text(arg ?? "input"),
+      arg === null ? `no-compile="${reason ?? "the input cannot be named"}"` : "",
+    );
+  };
+  call("typescript", (a) => `${noResult ? "await" : `const ${resultVar} = await`} stigmer.${names.ts}.${tsName}(${a});`);
+  call("go", (a) => `${noResult ? "err :=" : `${resultVar}, err :=`} client.${names.go}.${m.name}(ctx${a === "" ? "" : ", " + a})`);
+  call("python", (a) => `${noResult ? "" : `${pyResultVar} = `}client.${names.py}.${pyName}(${a})`);
+  const javaResult = noResult ? "" : `${javaResultType(env, m.outputFullType)} ${resultVar} = `;
+  call("java", (a) => `${javaResult}client.${names.java}.${tsName}(${a});`);
+}
 
-    docWriteTab(buf, "TypeScript", "typescript", `const ${resultVar} = await stigmer.${names.ts}.${tsName}({\n${docFormatInputTS(tsFields)}\n});`);
-    docWriteTab(buf, "Go", "go", `${resultVar}, err := client.${names.go}.${m.name}(ctx, &stigmer.${inputTypeName}{\n${docFormatInputGo(goFields)}\n})`);
-    docWriteTab(buf, "Python", "python", `${pyResultVar} = client.${names.py}.${pyName}(${inputTypeName}(\n${docFormatInputPython(pyFields)}\n))`);
-    docWriteTab(buf, "Java", "java", `${cfg.protoResType} ${resultVar} = client.${names.java}().${tsName}(${inputTypeName}.builder()\n${docFormatInputJava(javaFields)}\n    .build());`);
-  } else if (deleteInput) {
-    docWriteTab(buf, "TypeScript", "typescript", `const ${resultVar} = await stigmer.${names.ts}.${tsName}({ resourceId: id });`);
-    docWriteTab(buf, "Go", "go", `${resultVar}, err := client.${names.go}.${m.name}(ctx, &stigmer.DeleteResourceInput{\n  ResourceID: id,\n})`);
-    docWriteTab(buf, "Python", "python", `${pyResultVar} = client.${names.py}.${pyName}(DeleteResourceInput(resource_id=id))`);
-    docWriteTab(buf, "Java", "java", `${m.outputType} ${resultVar} = client.${names.java}().${tsName}(DeleteResourceInput.builder()\n    .resourceId(id)\n    .build());`);
-  } else {
-    const mt = methodTypeMap.get(m.inputType);
-    if (mt !== undefined && mt.fields.length > 0) {
-      const goFields = docMethodTypeFields(mt, "go");
-      const tsFields = docMethodTypeFields(mt, "typescript");
-      const pyFields = docMethodTypeFields(mt, "python");
-      const javaFields = docMethodTypeFields(mt, "java");
-      const mtName = m.inputType;
-
-      docWriteTab(buf, "TypeScript", "typescript", `const ${resultVar} = await stigmer.${names.ts}.${tsName}({\n${docFormatInputTS(tsFields)}\n});`);
-      docWriteTab(buf, "Go", "go", `${resultVar}, err := client.${names.go}.${m.name}(ctx, &stigmer.${mtName}{\n${docFormatInputGo(goFields)}\n})`);
-      docWriteTab(buf, "Python", "python", `${pyResultVar} = client.${names.py}.${pyName}(${mtName}(\n${docFormatInputPython(pyFields)}\n))`);
-      docWriteTab(buf, "Java", "java", `${m.outputType} ${resultVar} = client.${names.java}().${tsName}(${mtName}.builder()\n${docFormatInputJava(javaFields)}\n    .build());`);
-    } else {
-      docWriteTab(buf, "TypeScript", "typescript", `const ${resultVar} = await stigmer.${names.ts}.${tsName}(input);`);
-      docWriteTab(buf, "Go", "go", `${resultVar}, err := client.${names.go}.${m.name}(ctx, input)`);
-      docWriteTab(buf, "Python", "python", `${pyResultVar} = client.${names.py}.${pyName}(input)`);
-      docWriteTab(buf, "Java", "java", `${m.outputType} ${resultVar} = client.${names.java}().${tsName}(input);`);
-    }
+/** A streaming method's examples: open the stream and read each message it sends. */
+function docWriteStreamingSigs(
+  buf: string[],
+  m: MethodSchema,
+  names: DocLangNames,
+  env: DocExampleEnv,
+  tsName: string,
+  pyName: string,
+  args: DocArgs["args"],
+  reason: string | undefined,
+): void {
+  let eventVar = "event";
+  let pyEventVar = "event";
+  if (m.outputType !== "") {
+    eventVar = m.outputType.slice(0, 1).toLowerCase() + m.outputType.slice(1);
+    pyEventVar = pascalToSnake(m.outputType);
   }
+  const meta = (lang: DocLang): string => (args[lang] === null ? `no-compile="${reason ?? "the input cannot be named"}"` : "");
+  const arg = (lang: DocLang): string => args[lang] ?? "input";
+
+  docWriteTab(buf, "TypeScript", "typescript",
+    `const stream = stigmer.${names.ts}.${tsName}(${arg("typescript")});\nfor await (const ${eventVar} of stream) {\n  // process ${eventVar}\n}`, meta("typescript"));
+
+  docWriteTab(buf, "Go", "go",
+    `stream, err := client.${names.go}.${m.name}(ctx, ${arg("go")})\nfor {\n    ${eventVar}, err := stream.Recv()\n    if err != nil {\n        break\n    }\n    // process ${eventVar}\n}`, meta("go"));
+
+  docWriteTab(buf, "Python", "python",
+    `for ${pyEventVar} in client.${names.py}.${pyName}(${arg("python")}):\n    print(${pyEventVar})`, meta("python"));
+
+  const javaType = javaResultType(env, m.outputFullType);
+  docWriteTab(buf, "Java", "java",
+    `${javaStream(env)}<${javaType}> stream = client.${names.java}.${tsName}(${arg("java")});\nwhile (stream.hasNext()) {\n    ${javaType} ${eventVar} = stream.next();\n    // process ${eventVar}\n}`, meta("java"));
 }
 
 // =========================================================================
-// Input field expansion for code examples
+// The resource's SDK input
 // =========================================================================
 
-interface DocFieldEntry {
-  name: string;
-  value: string;
-  /** A trailing comment on the field's example line; Go's only. */
-  note?: string;
+/** A string field of the input header. */
+function docHeaderField(name: string, protoField: string): FieldSchema {
+  return { name, jsonName: protoField, protoField, type: { kind: "string" }, description: "", required: false };
 }
 
 /**
- * The note on a Go example's field with explicit presence (a proto3
- * `optional` scalar): Go's input holds a plain value, so the example's zero
- * is not sent and reads as unset, unlike the zero the other languages send.
+ * The fields an SDK input example sets: the header (name, org, slug,
+ * labels), then the spec's own. An org-less kind's example shows no org:
+ * its metadata.org is always empty, and the server refuses one.
  */
-const GO_PRESENCE_NOTE = "zero is unset: not sent, so the server's default applies";
-
-// An org-less kind's example shows no org: its metadata.org is always empty,
-// and the server refuses one.
-function docInputFields(
-  specSchema: SpecSchema | null,
-  lang: string,
-  exampleName: string,
-  isOrgless: boolean,
-): DocFieldEntry[] {
-  const fields: DocFieldEntry[] = [
-    { name: docFieldName("name", lang), value: docQuote(exampleName) },
-    ...(isOrgless ? [] : [{ name: docFieldName("org", lang), value: docQuote("acme") }]),
-    { name: docFieldName("slug", lang), value: docQuote("...") },
-    { name: docFieldName("labels", lang), value: docEmptyMap(lang) },
+function docInputFields(specSchema: SpecSchema | null, exampleName: string, isOrgless: boolean): DocInputField[] {
+  const fields: DocInputField[] = [
+    { field: docHeaderField("Name", "name"), value: `"${exampleName}"` },
+    ...(isOrgless ? [] : [{ field: docHeaderField("Org", "org"), value: `"${DOC_EXAMPLE_ORG}"` }]),
+    { field: docHeaderField("Slug", "slug") },
+    {
+      field: {
+        ...docHeaderField("Labels", "labels"),
+        type: { kind: "map", keyType: { kind: "string" }, valueType: { kind: "string" } },
+      },
+    },
   ];
-
   if (specSchema === null) return fields;
-
   for (const f of specSchema.fields) {
     if (META_FIELD_NAMES.has(f.name)) continue;
-    fields.push({
-      name: docFieldName(f.protoField, lang),
-      value: docPlaceholder(f.type, lang),
-      ...(lang === "go" && hasExplicitPresence(f) && { note: GO_PRESENCE_NOTE }),
-    });
+    fields.push({ field: f });
   }
   return fields;
-}
-
-function docFieldName(protoField: string, lang: string): string {
-  switch (lang) {
-    case "go": {
-      const parts = protoField.split("_");
-      for (let i = 0; i < parts.length; i++) {
-        if (parts[i].length > 0) {
-          parts[i] = parts[i].slice(0, 1).toUpperCase() + parts[i].slice(1);
-        }
-      }
-      return parts.join("");
-    }
-    case "python":
-      return pyFieldName(protoField);
-    case "java":
-      return javaCamel(protoField);
-    default:
-      return tsProtoFieldName(protoField);
-  }
-}
-
-function docQuote(val: string): string {
-  return `"${val}"`;
-}
-
-function docEmptyMap(lang: string): string {
-  switch (lang) {
-    case "go":
-      return "map[string]string{}";
-    case "python":
-      return "{}";
-    case "java":
-      return "Map.of()";
-    default:
-      return "{}";
-  }
-}
-
-function docPlaceholder(ts: TypeSpec, lang: string): string {
-  switch (ts.kind) {
-    case "string":
-      return docQuote("...");
-    case "bool":
-      return lang === "python" ? "False" : "false";
-    case "int32":
-    case "uint32":
-    case "int64":
-    case "float":
-    case "double":
-      return "0";
-    case "array":
-      switch (lang) {
-        case "go":
-          if (ts.elementType?.kind === "message" && (ts.elementType.messageType ?? "") !== "") {
-            return "[]stigmer." + docGoInputTypeName(ts.elementType.messageType ?? "") + "{}";
-          }
-          return "[]string{}";
-        case "java":
-          return "List.of()";
-        default:
-          return "[]";
-      }
-    case "map":
-      return docEmptyMap(lang);
-    case "message":
-    case "struct":
-      switch (lang) {
-        case "go":
-          if ((ts.messageType ?? "") !== "") {
-            return "&stigmer." + docGoInputTypeName(ts.messageType ?? "") + "{}";
-          }
-          return "nil";
-        case "python":
-          return "None";
-        case "java":
-          return "null";
-        default:
-          return "{}";
-      }
-    default:
-      return docQuote("...");
-  }
-}
-
-function docMethodTypeFields(mt: TypeSchema, lang: string): DocFieldEntry[] {
-  return mt.fields.map((f) => ({
-    name: docFieldName(f.protoField, lang),
-    value: docPlaceholder(f.type, lang),
-  }));
-}
-
-function docGoInputTypeName(messageType: string): string {
-  switch (messageType) {
-    case "ApiResourceReference":
-      return "ResourceRef";
-    default:
-      return messageType + "Input";
-  }
-}
-
-function docFormatInputGo(fields: DocFieldEntry[]): string {
-  let maxLen = 0;
-  for (const f of fields) {
-    if (f.name.length > maxLen) maxLen = f.name.length;
-  }
-  return fields
-    .map((f) => `  ${f.name}:${" ".repeat(maxLen - f.name.length)} ${f.value},${f.note === undefined ? "" : ` // ${f.note}`}`)
-    .join("\n");
-}
-
-function docFormatInputTS(fields: DocFieldEntry[]): string {
-  return fields.map((f) => `  ${f.name}: ${f.value},`).join("\n");
-}
-
-function docFormatInputPython(fields: DocFieldEntry[]): string {
-  return fields.map((f) => `    ${f.name}=${f.value},`).join("\n");
-}
-
-function docFormatInputJava(fields: DocFieldEntry[]): string {
-  return fields.map((f) => `    .${f.name}(${f.value})`).join("\n");
 }
 
 // =========================================================================
@@ -1291,31 +1254,14 @@ function docEnumValueDescription(desc: string): string {
 // Tab helper
 // =========================================================================
 
-function docWriteTab(buf: string[], lang: string, syntax: string, code: string): void {
-  buf.push(`<Tab value="${lang}">\n${MD_FENCE}${syntax}\n${code}\n${MD_FENCE}\n</Tab>\n`);
+/** One language's tab holding one fence; `meta` follows the fence's language (`no-compile="…"`). */
+function docWriteTab(buf: string[], lang: string, syntax: string, code: string, meta = ""): void {
+  buf.push(`<Tab value="${lang}">\n${docFence(syntax, meta, code)}</Tab>\n`);
 }
 
-function docWriteStreamingSigs(buf: string[], m: MethodSchema, names: DocLangNames, tsName: string, pyName: string, idInput: boolean): void {
-  let eventVar = "event";
-  let pyEventVar = "event";
-  if (m.outputType !== "") {
-    eventVar = m.outputType.slice(0, 1).toLowerCase() + m.outputType.slice(1);
-    pyEventVar = pascalToSnake(m.outputType);
-  }
-
-  const param = idInput ? "id" : "input";
-
-  docWriteTab(buf, "TypeScript", "typescript",
-    `const stream = stigmer.${names.ts}.${tsName}(${param});\nfor await (const ${eventVar} of stream) {\n  // process ${eventVar}\n}`);
-
-  docWriteTab(buf, "Go", "go",
-    `stream, err := client.${names.go}.${m.name}(ctx, ${param})\nfor {\n    ${eventVar}, err := stream.Recv()\n    if err != nil {\n        break\n    }\n    // process ${eventVar}\n}`);
-
-  docWriteTab(buf, "Python", "python",
-    `for ${pyEventVar} in client.${names.py}.${pyName}(${param}):\n    # process ${pyEventVar}`);
-
-  docWriteTab(buf, "Java", "java",
-    `client.${names.java}().${tsName}(${param}, ${eventVar} -> {\n    // process ${eventVar}\n});`);
+/** A code fence: its language, its attributes, its code. */
+function docFence(syntax: string, meta: string, code: string): string {
+  return `${MD_FENCE}${syntax}${meta === "" ? "" : " " + meta}\n${code}\n${MD_FENCE}\n`;
 }
 
 // =========================================================================

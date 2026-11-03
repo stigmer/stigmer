@@ -10,6 +10,7 @@ import type { Domain, Hook, Component, TypeDef, Field } from "./model";
 import {
   escapeJsString,
   renderCommentParts,
+  renderExample,
 } from "./mdx-utils";
 
 // Hand-maintained sidebar grouping, ordered by adoption journey. Each group
@@ -285,7 +286,7 @@ function renderHookSection(hook: Hook): string {
 
   // Examples
   for (const example of hook.examples) {
-    s += `\`\`\`tsx\n${example}\n\`\`\`\n\n`;
+    s += renderExample(example);
   }
 
   return s;
@@ -308,7 +309,7 @@ function renderComponentSection(component: Component): string {
   }
 
   for (const example of component.examples) {
-    s += `\`\`\`tsx\n${example}\n\`\`\`\n\n`;
+    s += renderExample(example);
   }
 
   return s;
@@ -334,7 +335,7 @@ function renderTypeDefSection(typeDef: TypeDef): string {
   }
 
   for (const example of typeDef.examples) {
-    s += `\`\`\`tsx\n${example}\n\`\`\`\n\n`;
+    s += renderExample(example);
   }
 
   return s;

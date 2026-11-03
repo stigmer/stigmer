@@ -13,25 +13,53 @@ Example YAML (single-use targeted invite): apiVersion: iam.stigmer.ai/v1 kind: I
 
 ## Client Access
 
+Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Each language's first block holds the imports the page's examples use.
+
 <SDKTabs>
 <Tab value="TypeScript">
+```typescript prelude
+import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
+```
 ```typescript
 const invitation = await stigmer.invitation.get("inv_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
+```go prelude
+import (
+	stigmer "go.stigmer.ai/sdk"
+	invitationv1 "go.stigmer.ai/sdk/proto/ai/stigmer/iam/invitation/v1"
+	iamv1 "go.stigmer.ai/sdk/proto/ai/stigmer/iam/v1"
+)
+```
 ```go
 invitation, err := client.Invitation.Get(ctx, "inv_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
+```python prelude
+from stigmer._gen import InvitationInput
+from ai.stigmer.iam.invitation.v1 import io_pb2
+from ai.stigmer.iam.v1 import enum_pb2 as iam_enum_pb2
+```
 ```python
 invitation = client.invitations.get("inv_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
+```java prelude
+import ai.stigmer.iam.invitation.v1.Invitation;
+import ai.stigmer.iam.invitation.v1.InvitationPreview;
+import ai.stigmer.iam.invitation.v1.InvitationTokenInput;
+import ai.stigmer.iam.invitation.v1.Invitations;
+import ai.stigmer.iam.invitation.v1.ListInvitationsInput;
+import ai.stigmer.iam.invitation.v1.RedeemInvitationInput;
+import ai.stigmer.iam.v1.IamRole;
+import ai.stigmer.sdk.gen.InvitationInput;
+import java.util.Map;
+```
 ```java
-Invitation invitation = client.invitations().get("inv_01j5q3k7m8r2s4tnz2hfp0q0c3");
+Invitation invitation = client.invitation.get("inv_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -54,22 +82,22 @@ Get an invitation by its unique identifier.
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const invitation = await stigmer.invitation.get(id);
+const invitation = await stigmer.invitation.get("inv_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
 ```go
-invitation, err := client.Invitation.Get(ctx, id)
+invitation, err := client.Invitation.Get(ctx, "inv_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
 ```python
-invitation = client.invitations.get(id)
+invitation = client.invitations.get("inv_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Invitation invitation = client.invitations().get(id);
+Invitation invitation = client.invitation.get("inv_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -100,22 +128,22 @@ const invitationPreview = await stigmer.invitation.getByToken({
 </Tab>
 <Tab value="Go">
 ```go
-invitationPreview, err := client.Invitation.GetByToken(ctx, &stigmer.InvitationTokenInput{
+invitationPreview, err := client.Invitation.GetByToken(ctx, &invitationv1.InvitationTokenInput{
   Token: "...",
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-invitation_preview = client.invitations.get_by_token(InvitationTokenInput(
+invitation_preview = client.invitations.get_by_token(io_pb2.InvitationTokenInput(
     token="...",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-InvitationPreview invitationPreview = client.invitations().getByToken(InvitationTokenInput.builder()
-    .token("...")
+InvitationPreview invitationPreview = client.invitation.getByToken(InvitationTokenInput.newBuilder()
+    .setToken("...")
     .build());
 ```
 </Tab>
@@ -144,7 +172,7 @@ const invitations = await stigmer.invitation.list({
 </Tab>
 <Tab value="Go">
 ```go
-invitations, err := client.Invitation.List(ctx, &stigmer.ListInvitationsInput{
+invitations, err := client.Invitation.List(ctx, &invitationv1.ListInvitationsInput{
   Org:       "...",
   PageSize:  0,
   PageToken: "...",
@@ -154,7 +182,7 @@ invitations, err := client.Invitation.List(ctx, &stigmer.ListInvitationsInput{
 </Tab>
 <Tab value="Python">
 ```python
-invitations = client.invitations.list(ListInvitationsInput(
+invitations = client.invitations.list(io_pb2.ListInvitationsInput(
     org="...",
     page_size=0,
     page_token="...",
@@ -164,11 +192,11 @@ invitations = client.invitations.list(ListInvitationsInput(
 </Tab>
 <Tab value="Java">
 ```java
-Invitations invitations = client.invitations().list(ListInvitationsInput.builder()
-    .org("...")
-    .pageSize(0)
-    .pageToken("...")
-    .labels(Map.of())
+Invitations invitations = client.invitation.list(ListInvitationsInput.newBuilder()
+    .setOrg("...")
+    .setPageSize(0)
+    .setPageToken("...")
+    .putAllLabels(Map.of())
     .build());
 ```
 </Tab>
@@ -196,7 +224,7 @@ const invitation = await stigmer.invitation.create({
   org: "acme",
   slug: "...",
   labels: {},
-  role: "...",
+  role: IamRole.owner,
   maxRedemptions: 0,
   expiresAt: "...",
   label: "...",
@@ -210,7 +238,7 @@ invitation, err := client.Invitation.Create(ctx, &stigmer.InvitationInput{
   Org:            "acme",
   Slug:           "...",
   Labels:         map[string]string{},
-  Role:           "...",
+  Role:           iamv1.IamRole_owner,
   MaxRedemptions: 0,
   ExpiresAt:      "...",
   Label:          "...",
@@ -224,7 +252,7 @@ invitation = client.invitations.create(InvitationInput(
     org="acme",
     slug="...",
     labels={},
-    role="...",
+    role=iam_enum_pb2.owner,
     max_redemptions=0,
     expires_at="...",
     label="...",
@@ -233,12 +261,12 @@ invitation = client.invitations.create(InvitationInput(
 </Tab>
 <Tab value="Java">
 ```java
-Invitation invitation = client.invitations().create(InvitationInput.builder()
+Invitation invitation = client.invitation.create(InvitationInput.builder()
     .name("my-invitation")
     .org("acme")
     .slug("...")
     .labels(Map.of())
-    .role("...")
+    .role(IamRole.owner)
     .maxRedemptions(0)
     .expiresAt("...")
     .label("...")
@@ -269,22 +297,22 @@ const invitation = await stigmer.invitation.redeem({
 </Tab>
 <Tab value="Go">
 ```go
-invitation, err := client.Invitation.Redeem(ctx, &stigmer.RedeemInvitationInput{
+invitation, err := client.Invitation.Redeem(ctx, &invitationv1.RedeemInvitationInput{
   Token: "...",
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-invitation = client.invitations.redeem(RedeemInvitationInput(
+invitation = client.invitations.redeem(io_pb2.RedeemInvitationInput(
     token="...",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Invitation invitation = client.invitations().redeem(RedeemInvitationInput.builder()
-    .token("...")
+Invitation invitation = client.invitation.redeem(RedeemInvitationInput.newBuilder()
+    .setToken("...")
     .build());
 ```
 </Tab>
@@ -303,22 +331,22 @@ Sets the invitation state to revoked. Idempotent — revoking an already-revoked
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const invitation = await stigmer.invitation.revoke(id);
+const invitation = await stigmer.invitation.revoke("inv_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
 ```go
-invitation, err := client.Invitation.Revoke(ctx, id)
+invitation, err := client.Invitation.Revoke(ctx, "inv_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
 ```python
-invitation = client.invitations.revoke(id)
+invitation = client.invitations.revoke("inv_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Invitation invitation = client.invitations().revoke(id);
+Invitation invitation = client.invitation.revoke("inv_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>

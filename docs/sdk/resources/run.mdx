@@ -35,25 +35,76 @@ spec:
 
 ## Client Access
 
+Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Each language's first block holds the imports the page's examples use.
+
 <SDKTabs>
 <Tab value="TypeScript">
+```typescript prelude
+import { InteractionMode, RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunSummaryTimeWindow } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
+```
 ```typescript
 const run = await stigmer.run.get("run_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
+```go prelude
+import (
+	stigmer "go.stigmer.ai/sdk"
+	runv1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/run/v1"
+)
+```
 ```go
 run, err := client.Run.Get(ctx, "run_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
+```python prelude
+from stigmer import RunConfigInput, RunInput
+from stigmer._gen import ConversationCatchupInput, EvalCaseContextInput
+from ai.stigmer.agentic.run.v1 import api_pb2, enum_pb2, io_pb2
+```
 ```python
 run = client.runs.get("run_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
+```java prelude
+import ai.stigmer.agentic.run.v1.GetAgentUsageReportInput;
+import ai.stigmer.agentic.run.v1.GetAgentUsageReportOutput;
+import ai.stigmer.agentic.run.v1.GetArtifactContentRequest;
+import ai.stigmer.agentic.run.v1.GetArtifactContentResponse;
+import ai.stigmer.agentic.run.v1.GetArtifactDownloadUrlRequest;
+import ai.stigmer.agentic.run.v1.GetArtifactDownloadUrlResponse;
+import ai.stigmer.agentic.run.v1.GetOrgUsageReportInput;
+import ai.stigmer.agentic.run.v1.GetOrgUsageReportOutput;
+import ai.stigmer.agentic.run.v1.GetRunSummaryRequest;
+import ai.stigmer.agentic.run.v1.GetRunUsageReportInput;
+import ai.stigmer.agentic.run.v1.GetRunUsageReportOutput;
+import ai.stigmer.agentic.run.v1.GetSessionUsageReportInput;
+import ai.stigmer.agentic.run.v1.GetSessionUsageReportOutput;
+import ai.stigmer.agentic.run.v1.InteractionMode;
+import ai.stigmer.agentic.run.v1.ListRunsBySessionRequest;
+import ai.stigmer.agentic.run.v1.ListRunsRequest;
+import ai.stigmer.agentic.run.v1.PauseRunInput;
+import ai.stigmer.agentic.run.v1.RecoverRunInput;
+import ai.stigmer.agentic.run.v1.ResumeRunInput;
+import ai.stigmer.agentic.run.v1.Run;
+import ai.stigmer.agentic.run.v1.RunList;
+import ai.stigmer.agentic.run.v1.RunPhase;
+import ai.stigmer.agentic.run.v1.RunStatus;
+import ai.stigmer.agentic.run.v1.RunSummary;
+import ai.stigmer.agentic.run.v1.RunSummaryTimeWindow;
+import ai.stigmer.agentic.run.v1.RunUpdateStatusInput;
+import ai.stigmer.agentic.run.v1.SendMessageResponse;
+import ai.stigmer.agentic.run.v1.TerminateRunInput;
+import ai.stigmer.agentic.run.v1.UpdateStatusResponse;
+import ai.stigmer.sdk.gen.RunInput;
+import java.util.List;
+import java.util.Map;
+```
 ```java
-Run run = client.runs().get("run_01j5q3k7m8r2s4tnz2hfp0q0c3");
+Run run = client.run.get("run_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -89,22 +140,22 @@ Get a single run by ID.
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const run = await stigmer.run.get(id);
+const run = await stigmer.run.get("run_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
 ```go
-run, err := client.Run.Get(ctx, id)
+run, err := client.Run.Get(ctx, "run_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
 ```python
-run = client.runs.get(id)
+run = client.runs.get("run_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Run run = client.runs().get(id);
+Run run = client.run.get("run_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -136,7 +187,7 @@ const getAgentUsageReportOutput = await stigmer.run.getAgentUsageReport({
 </Tab>
 <Tab value="Go">
 ```go
-getAgentUsageReportOutput, err := client.Run.GetAgentUsageReport(ctx, &stigmer.GetAgentUsageReportInput{
+getAgentUsageReportOutput, err := client.Run.GetAgentUsageReport(ctx, &runv1.GetAgentUsageReportInput{
   AgentId:  "...",
   FromDate: "...",
   ToDate:   "...",
@@ -146,7 +197,7 @@ getAgentUsageReportOutput, err := client.Run.GetAgentUsageReport(ctx, &stigmer.G
 </Tab>
 <Tab value="Python">
 ```python
-get_agent_usage_report_output = client.runs.get_agent_usage_report(GetAgentUsageReportInput(
+get_agent_usage_report_output = client.runs.get_agent_usage_report(io_pb2.GetAgentUsageReportInput(
     agent_id="...",
     from_date="...",
     to_date="...",
@@ -156,11 +207,11 @@ get_agent_usage_report_output = client.runs.get_agent_usage_report(GetAgentUsage
 </Tab>
 <Tab value="Java">
 ```java
-GetAgentUsageReportOutput getAgentUsageReportOutput = client.runs().getAgentUsageReport(GetAgentUsageReportInput.builder()
-    .agentId("...")
-    .fromDate("...")
-    .toDate("...")
-    .org("...")
+GetAgentUsageReportOutput getAgentUsageReportOutput = client.run.getAgentUsageReport(GetAgentUsageReportInput.newBuilder()
+    .setAgentId("...")
+    .setFromDate("...")
+    .setToDate("...")
+    .setOrg("...")
     .build());
 ```
 </Tab>
@@ -184,14 +235,14 @@ For direct file downloads, use getArtifactDownloadUrl instead — it returns a p
 const getArtifactContentResponse = await stigmer.run.getArtifactContent({
   runId: "...",
   storageKey: "...",
-  maxBytes: 0,
+  maxBytes: 0n,
   entryPath: "...",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-getArtifactContentResponse, err := client.Run.GetArtifactContent(ctx, &stigmer.GetArtifactContentRequest{
+getArtifactContentResponse, err := client.Run.GetArtifactContent(ctx, &runv1.GetArtifactContentRequest{
   RunId:      "...",
   StorageKey: "...",
   MaxBytes:   0,
@@ -201,7 +252,7 @@ getArtifactContentResponse, err := client.Run.GetArtifactContent(ctx, &stigmer.G
 </Tab>
 <Tab value="Python">
 ```python
-get_artifact_content_response = client.runs.get_artifact_content(GetArtifactContentRequest(
+get_artifact_content_response = client.runs.get_artifact_content(io_pb2.GetArtifactContentRequest(
     run_id="...",
     storage_key="...",
     max_bytes=0,
@@ -211,11 +262,11 @@ get_artifact_content_response = client.runs.get_artifact_content(GetArtifactCont
 </Tab>
 <Tab value="Java">
 ```java
-GetArtifactContentResponse getArtifactContentResponse = client.runs().getArtifactContent(GetArtifactContentRequest.builder()
-    .runId("...")
-    .storageKey("...")
-    .maxBytes(0)
-    .entryPath("...")
+GetArtifactContentResponse getArtifactContentResponse = client.run.getArtifactContent(GetArtifactContentRequest.newBuilder()
+    .setRunId("...")
+    .setStorageKey("...")
+    .setMaxBytes(0L)
+    .setEntryPath("...")
     .build());
 ```
 </Tab>
@@ -243,7 +294,7 @@ const getArtifactDownloadUrlResponse = await stigmer.run.getArtifactDownloadUrl(
 </Tab>
 <Tab value="Go">
 ```go
-getArtifactDownloadUrlResponse, err := client.Run.GetArtifactDownloadUrl(ctx, &stigmer.GetArtifactDownloadUrlRequest{
+getArtifactDownloadUrlResponse, err := client.Run.GetArtifactDownloadUrl(ctx, &runv1.GetArtifactDownloadUrlRequest{
   RunId:        "...",
   StorageKey:   "...",
   AsAttachment: false,
@@ -252,7 +303,7 @@ getArtifactDownloadUrlResponse, err := client.Run.GetArtifactDownloadUrl(ctx, &s
 </Tab>
 <Tab value="Python">
 ```python
-get_artifact_download_url_response = client.runs.get_artifact_download_url(GetArtifactDownloadUrlRequest(
+get_artifact_download_url_response = client.runs.get_artifact_download_url(io_pb2.GetArtifactDownloadUrlRequest(
     run_id="...",
     storage_key="...",
     as_attachment=False,
@@ -261,10 +312,10 @@ get_artifact_download_url_response = client.runs.get_artifact_download_url(GetAr
 </Tab>
 <Tab value="Java">
 ```java
-GetArtifactDownloadUrlResponse getArtifactDownloadUrlResponse = client.runs().getArtifactDownloadUrl(GetArtifactDownloadUrlRequest.builder()
-    .runId("...")
-    .storageKey("...")
-    .asAttachment(false)
+GetArtifactDownloadUrlResponse getArtifactDownloadUrlResponse = client.run.getArtifactDownloadUrl(GetArtifactDownloadUrlRequest.newBuilder()
+    .setRunId("...")
+    .setStorageKey("...")
+    .setAsAttachment(false)
     .build());
 ```
 </Tab>
@@ -292,7 +343,7 @@ const getOrgUsageReportOutput = await stigmer.run.getOrgUsageReport({
 </Tab>
 <Tab value="Go">
 ```go
-getOrgUsageReportOutput, err := client.Run.GetOrgUsageReport(ctx, &stigmer.GetOrgUsageReportInput{
+getOrgUsageReportOutput, err := client.Run.GetOrgUsageReport(ctx, &runv1.GetOrgUsageReportInput{
   Org:      "...",
   FromDate: "...",
   ToDate:   "...",
@@ -301,7 +352,7 @@ getOrgUsageReportOutput, err := client.Run.GetOrgUsageReport(ctx, &stigmer.GetOr
 </Tab>
 <Tab value="Python">
 ```python
-get_org_usage_report_output = client.runs.get_org_usage_report(GetOrgUsageReportInput(
+get_org_usage_report_output = client.runs.get_org_usage_report(io_pb2.GetOrgUsageReportInput(
     org="...",
     from_date="...",
     to_date="...",
@@ -310,10 +361,10 @@ get_org_usage_report_output = client.runs.get_org_usage_report(GetOrgUsageReport
 </Tab>
 <Tab value="Java">
 ```java
-GetOrgUsageReportOutput getOrgUsageReportOutput = client.runs().getOrgUsageReport(GetOrgUsageReportInput.builder()
-    .org("...")
-    .fromDate("...")
-    .toDate("...")
+GetOrgUsageReportOutput getOrgUsageReportOutput = client.run.getOrgUsageReport(GetOrgUsageReportInput.newBuilder()
+    .setOrg("...")
+    .setFromDate("...")
+    .setToDate("...")
     .build());
 ```
 </Tab>
@@ -334,31 +385,31 @@ Returns counts by phase, active count, average duration, and top failing agents 
 ```typescript
 const runSummary = await stigmer.run.getRunSummary({
   org: "...",
-  timeWindow: "...",
+  timeWindow: RunSummaryTimeWindow.LAST_24H,
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-runSummary, err := client.Run.GetRunSummary(ctx, &stigmer.GetRunSummaryRequest{
+runSummary, err := client.Run.GetRunSummary(ctx, &runv1.GetRunSummaryRequest{
   Org:        "...",
-  TimeWindow: "...",
+  TimeWindow: runv1.RunSummaryTimeWindow_RUN_SUMMARY_TIME_WINDOW_LAST_24H,
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-run_summary = client.runs.get_run_summary(GetRunSummaryRequest(
+run_summary = client.runs.get_run_summary(io_pb2.GetRunSummaryRequest(
     org="...",
-    time_window="...",
+    time_window=io_pb2.RUN_SUMMARY_TIME_WINDOW_LAST_24H,
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-RunSummary runSummary = client.runs().getRunSummary(GetRunSummaryRequest.builder()
-    .org("...")
-    .timeWindow("...")
+RunSummary runSummary = client.run.getRunSummary(GetRunSummaryRequest.newBuilder()
+    .setOrg("...")
+    .setTimeWindow(RunSummaryTimeWindow.RUN_SUMMARY_TIME_WINDOW_LAST_24H)
     .build());
 ```
 </Tab>
@@ -384,22 +435,22 @@ const getRunUsageReportOutput = await stigmer.run.getRunUsageReport({
 </Tab>
 <Tab value="Go">
 ```go
-getRunUsageReportOutput, err := client.Run.GetRunUsageReport(ctx, &stigmer.GetRunUsageReportInput{
+getRunUsageReportOutput, err := client.Run.GetRunUsageReport(ctx, &runv1.GetRunUsageReportInput{
   RunId: "...",
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-get_run_usage_report_output = client.runs.get_run_usage_report(GetRunUsageReportInput(
+get_run_usage_report_output = client.runs.get_run_usage_report(io_pb2.GetRunUsageReportInput(
     run_id="...",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-GetRunUsageReportOutput getRunUsageReportOutput = client.runs().getRunUsageReport(GetRunUsageReportInput.builder()
-    .runId("...")
+GetRunUsageReportOutput getRunUsageReportOutput = client.run.getRunUsageReport(GetRunUsageReportInput.newBuilder()
+    .setRunId("...")
     .build());
 ```
 </Tab>
@@ -425,22 +476,22 @@ const getSessionUsageReportOutput = await stigmer.run.getSessionUsageReport({
 </Tab>
 <Tab value="Go">
 ```go
-getSessionUsageReportOutput, err := client.Run.GetSessionUsageReport(ctx, &stigmer.GetSessionUsageReportInput{
+getSessionUsageReportOutput, err := client.Run.GetSessionUsageReport(ctx, &runv1.GetSessionUsageReportInput{
   SessionId: "...",
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-get_session_usage_report_output = client.runs.get_session_usage_report(GetSessionUsageReportInput(
+get_session_usage_report_output = client.runs.get_session_usage_report(io_pb2.GetSessionUsageReportInput(
     session_id="...",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-GetSessionUsageReportOutput getSessionUsageReportOutput = client.runs().getSessionUsageReport(GetSessionUsageReportInput.builder()
-    .sessionId("...")
+GetSessionUsageReportOutput getSessionUsageReportOutput = client.run.getSessionUsageReport(GetSessionUsageReportInput.newBuilder()
+    .setSessionId("...")
     .build());
 ```
 </Tab>
@@ -460,7 +511,7 @@ List all runs with pagination and optional filtering.
 const result = await stigmer.run.list({
   pageSize: 0,
   pageToken: "...",
-  phase: "...",
+  phase: RunPhase.RUN_PENDING,
   org: "...",
   labels: {},
 });
@@ -468,10 +519,10 @@ const result = await stigmer.run.list({
 </Tab>
 <Tab value="Go">
 ```go
-result, err := client.Run.List(ctx, &stigmer.ListRunsRequest{
+result, err := client.Run.List(ctx, &runv1.ListRunsRequest{
   PageSize:  0,
   PageToken: "...",
-  Phase:     "...",
+  Phase:     runv1.RunPhase_RUN_PENDING,
   Org:       "...",
   Labels:    map[string]string{},
 })
@@ -479,10 +530,10 @@ result, err := client.Run.List(ctx, &stigmer.ListRunsRequest{
 </Tab>
 <Tab value="Python">
 ```python
-result = client.runs.list(ListRunsRequest(
+result = client.runs.list(io_pb2.ListRunsRequest(
     page_size=0,
     page_token="...",
-    phase="...",
+    phase=enum_pb2.RUN_PENDING,
     org="...",
     labels={},
 ))
@@ -490,12 +541,12 @@ result = client.runs.list(ListRunsRequest(
 </Tab>
 <Tab value="Java">
 ```java
-RunList result = client.runs().list(ListRunsRequest.builder()
-    .pageSize(0)
-    .pageToken("...")
-    .phase("...")
-    .org("...")
-    .labels(Map.of())
+RunList result = client.run.list(ListRunsRequest.newBuilder()
+    .setPageSize(0)
+    .setPageToken("...")
+    .setPhase(RunPhase.RUN_PENDING)
+    .setOrg("...")
+    .putAllLabels(Map.of())
     .build());
 ```
 </Tab>
@@ -524,7 +575,7 @@ const result = await stigmer.run.listBySession({
 </Tab>
 <Tab value="Go">
 ```go
-result, err := client.Run.ListBySession(ctx, &stigmer.ListRunsBySessionRequest{
+result, err := client.Run.ListBySession(ctx, &runv1.ListRunsBySessionRequest{
   SessionId: "...",
   PageSize:  0,
   PageToken: "...",
@@ -534,7 +585,7 @@ result, err := client.Run.ListBySession(ctx, &stigmer.ListRunsBySessionRequest{
 </Tab>
 <Tab value="Python">
 ```python
-result = client.runs.list_by_session(ListRunsBySessionRequest(
+result = client.runs.list_by_session(io_pb2.ListRunsBySessionRequest(
     session_id="...",
     page_size=0,
     page_token="...",
@@ -544,11 +595,11 @@ result = client.runs.list_by_session(ListRunsBySessionRequest(
 </Tab>
 <Tab value="Java">
 ```java
-RunList result = client.runs().listBySession(ListRunsBySessionRequest.builder()
-    .sessionId("...")
-    .pageSize(0)
-    .pageToken("...")
-    .labels(Map.of())
+RunList result = client.run.listBySession(ListRunsBySessionRequest.newBuilder()
+    .setSessionId("...")
+    .setPageSize(0)
+    .setPageToken("...")
+    .putAllLabels(Map.of())
     .build());
 ```
 </Tab>
@@ -575,10 +626,9 @@ const run = await stigmer.run.create({
   slug: "...",
   labels: {},
   sessionId: "...",
-  sessionSpec: {},
   message: "...",
   runConfig: {},
-  interactionMode: "...",
+  interactionMode: InteractionMode.AGENT,
   buildFromPlan: false,
   structuredOutputSchema: {},
   tools: [],
@@ -604,12 +654,11 @@ run, err := client.Run.Create(ctx, &stigmer.RunInput{
   Slug:                   "...",
   Labels:                 map[string]string{},
   SessionId:              "...",
-  SessionSpec:            &stigmer.SessionSpecInput{},
   Message:                "...",
   RunConfig:              &stigmer.RunConfigInput{},
-  InteractionMode:        "...",
+  InteractionMode:        runv1.InteractionMode_INTERACTION_MODE_AGENT,
   BuildFromPlan:          false,
-  StructuredOutputSchema: nil,
+  StructuredOutputSchema: map[string]any{},
   Tools:                  []string{},
   DisallowedTools:        []string{},
   AppendSystemPrompt:     "...",
@@ -633,20 +682,19 @@ run = client.runs.create(RunInput(
     slug="...",
     labels={},
     session_id="...",
-    session_spec=None,
     message="...",
-    run_config=None,
-    interaction_mode="...",
+    run_config=RunConfigInput(),
+    interaction_mode=enum_pb2.INTERACTION_MODE_AGENT,
     build_from_plan=False,
-    structured_output_schema=None,
+    structured_output_schema={},
     tools=[],
     disallowed_tools=[],
     append_system_prompt="...",
     auto_approve_all=False,
     workspace_file_refs=[],
     supersedes_run_id="...",
-    conversation_catchup=None,
-    eval_case=None,
+    conversation_catchup=ConversationCatchupInput(),
+    eval_case=EvalCaseContextInput(),
     reconcile_file_review=False,
     excluded_plugin_ids=[],
     file_ids=[],
@@ -656,26 +704,25 @@ run = client.runs.create(RunInput(
 </Tab>
 <Tab value="Java">
 ```java
-Run run = client.runs().create(RunInput.builder()
+Run run = client.run.create(RunInput.builder()
     .name("my-run")
     .org("acme")
     .slug("...")
     .labels(Map.of())
     .sessionId("...")
-    .sessionSpec(null)
     .message("...")
-    .runConfig(null)
-    .interactionMode("...")
+    .runConfig(RunInput.RunConfigInput.builder().build())
+    .interactionMode(InteractionMode.INTERACTION_MODE_AGENT)
     .buildFromPlan(false)
-    .structuredOutputSchema(null)
+    .structuredOutputSchema(Map.of())
     .tools(List.of())
     .disallowedTools(List.of())
     .appendSystemPrompt("...")
     .autoApproveAll(false)
     .workspaceFileRefs(List.of())
     .supersedesRunId("...")
-    .conversationCatchup(null)
-    .evalCase(null)
+    .conversationCatchup(RunInput.ConversationCatchupInput.builder().build())
+    .evalCase(RunInput.EvalCaseContextInput.builder().build())
     .reconcileFileReview(false)
     .excludedPluginIds(List.of())
     .fileIds(List.of())
@@ -723,10 +770,10 @@ updated = client.runs.update(run, ["metadata.name"])
 </Tab>
 <Tab value="Java">
 ```java
-Run run = client.runs().get("run_01j5q3k7m8r2s4tnz2hfp0q0c3");
-Run updated = client.runs().update(
+Run run = client.run.get("run_01j5q3k7m8r2s4tnz2hfp0q0c3");
+Run updated = client.run.update(
     run.toBuilder().setMetadata(run.getMetadata().toBuilder().setName("New name")).build(),
-    java.util.List.of("metadata.name"));
+    List.of("metadata.name"));
 ```
 </Tab>
 </SDKTabs>
@@ -755,25 +802,25 @@ const updateStatusResponse = await stigmer.run.updateStatus({
 </Tab>
 <Tab value="Go">
 ```go
-updateStatusResponse, err := client.Run.UpdateStatus(ctx, &stigmer.RunUpdateStatusInput{
+updateStatusResponse, err := client.Run.UpdateStatus(ctx, &runv1.RunUpdateStatusInput{
   RunId:  "...",
-  Status: &stigmer.RunStatusInput{},
+  Status: &runv1.RunStatus{},
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-update_status_response = client.runs.update_status(RunUpdateStatusInput(
+update_status_response = client.runs.update_status(io_pb2.RunUpdateStatusInput(
     run_id="...",
-    status=None,
+    status=api_pb2.RunStatus(),
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-UpdateStatusResponse updateStatusResponse = client.runs().updateStatus(RunUpdateStatusInput.builder()
-    .runId("...")
-    .status(null)
+UpdateStatusResponse updateStatusResponse = client.run.updateStatus(RunUpdateStatusInput.newBuilder()
+    .setRunId("...")
+    .setStatus(RunStatus.getDefaultInstance())
     .build());
 ```
 </Tab>
@@ -790,22 +837,22 @@ Delete a run by ID.
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const run = await stigmer.run.delete(id);
+const run = await stigmer.run.delete("run_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
 ```go
-run, err := client.Run.Delete(ctx, id)
+run, err := client.Run.Delete(ctx, "run_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
 ```python
-run = client.runs.delete(id)
+run = client.runs.delete("run_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Run run = client.runs().delete(id);
+Run run = client.run.delete("run_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -835,7 +882,7 @@ const run = await stigmer.run.pause({
 </Tab>
 <Tab value="Go">
 ```go
-run, err := client.Run.Pause(ctx, &stigmer.PauseRunInput{
+run, err := client.Run.Pause(ctx, &runv1.PauseRunInput{
   Id:     "...",
   Reason: "...",
 })
@@ -843,7 +890,7 @@ run, err := client.Run.Pause(ctx, &stigmer.PauseRunInput{
 </Tab>
 <Tab value="Python">
 ```python
-run = client.runs.pause(PauseRunInput(
+run = client.runs.pause(io_pb2.PauseRunInput(
     id="...",
     reason="...",
 ))
@@ -851,9 +898,9 @@ run = client.runs.pause(PauseRunInput(
 </Tab>
 <Tab value="Java">
 ```java
-Run run = client.runs().pause(PauseRunInput.builder()
-    .id("...")
-    .reason("...")
+Run run = client.run.pause(PauseRunInput.newBuilder()
+    .setId("...")
+    .setReason("...")
     .build());
 ```
 </Tab>
@@ -879,22 +926,22 @@ const run = await stigmer.run.resume({
 </Tab>
 <Tab value="Go">
 ```go
-run, err := client.Run.Resume(ctx, &stigmer.ResumeRunInput{
+run, err := client.Run.Resume(ctx, &runv1.ResumeRunInput{
   Id: "...",
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-run = client.runs.resume(ResumeRunInput(
+run = client.runs.resume(io_pb2.ResumeRunInput(
     id="...",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Run run = client.runs().resume(ResumeRunInput.builder()
-    .id("...")
+Run run = client.run.resume(ResumeRunInput.newBuilder()
+    .setId("...")
     .build());
 ```
 </Tab>
@@ -921,7 +968,7 @@ const run = await stigmer.run.terminate({
 </Tab>
 <Tab value="Go">
 ```go
-run, err := client.Run.Terminate(ctx, &stigmer.TerminateRunInput{
+run, err := client.Run.Terminate(ctx, &runv1.TerminateRunInput{
   Id:     "...",
   Reason: "...",
 })
@@ -929,7 +976,7 @@ run, err := client.Run.Terminate(ctx, &stigmer.TerminateRunInput{
 </Tab>
 <Tab value="Python">
 ```python
-run = client.runs.terminate(TerminateRunInput(
+run = client.runs.terminate(io_pb2.TerminateRunInput(
     id="...",
     reason="...",
 ))
@@ -937,9 +984,9 @@ run = client.runs.terminate(TerminateRunInput(
 </Tab>
 <Tab value="Java">
 ```java
-Run run = client.runs().terminate(TerminateRunInput.builder()
-    .id("...")
-    .reason("...")
+Run run = client.run.terminate(TerminateRunInput.newBuilder()
+    .setId("...")
+    .setReason("...")
     .build());
 ```
 </Tab>
@@ -965,22 +1012,22 @@ const run = await stigmer.run.recover({
 </Tab>
 <Tab value="Go">
 ```go
-run, err := client.Run.Recover(ctx, &stigmer.RecoverRunInput{
+run, err := client.Run.Recover(ctx, &runv1.RecoverRunInput{
   Id: "...",
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-run = client.runs.recover(RecoverRunInput(
+run = client.runs.recover(io_pb2.RecoverRunInput(
     id="...",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Run run = client.runs().recover(RecoverRunInput.builder()
-    .id("...")
+Run run = client.run.recover(RecoverRunInput.newBuilder()
+    .setId("...")
     .build());
 ```
 </Tab>
@@ -1007,10 +1054,9 @@ const sendMessageResponse = await stigmer.run.sendMessage({
   slug: "...",
   labels: {},
   sessionId: "...",
-  sessionSpec: {},
   message: "...",
   runConfig: {},
-  interactionMode: "...",
+  interactionMode: InteractionMode.AGENT,
   buildFromPlan: false,
   structuredOutputSchema: {},
   tools: [],
@@ -1036,12 +1082,11 @@ sendMessageResponse, err := client.Run.SendMessage(ctx, &stigmer.RunInput{
   Slug:                   "...",
   Labels:                 map[string]string{},
   SessionId:              "...",
-  SessionSpec:            &stigmer.SessionSpecInput{},
   Message:                "...",
   RunConfig:              &stigmer.RunConfigInput{},
-  InteractionMode:        "...",
+  InteractionMode:        runv1.InteractionMode_INTERACTION_MODE_AGENT,
   BuildFromPlan:          false,
-  StructuredOutputSchema: nil,
+  StructuredOutputSchema: map[string]any{},
   Tools:                  []string{},
   DisallowedTools:        []string{},
   AppendSystemPrompt:     "...",
@@ -1065,20 +1110,19 @@ send_message_response = client.runs.send_message(RunInput(
     slug="...",
     labels={},
     session_id="...",
-    session_spec=None,
     message="...",
-    run_config=None,
-    interaction_mode="...",
+    run_config=RunConfigInput(),
+    interaction_mode=enum_pb2.INTERACTION_MODE_AGENT,
     build_from_plan=False,
-    structured_output_schema=None,
+    structured_output_schema={},
     tools=[],
     disallowed_tools=[],
     append_system_prompt="...",
     auto_approve_all=False,
     workspace_file_refs=[],
     supersedes_run_id="...",
-    conversation_catchup=None,
-    eval_case=None,
+    conversation_catchup=ConversationCatchupInput(),
+    eval_case=EvalCaseContextInput(),
     reconcile_file_review=False,
     excluded_plugin_ids=[],
     file_ids=[],
@@ -1088,26 +1132,25 @@ send_message_response = client.runs.send_message(RunInput(
 </Tab>
 <Tab value="Java">
 ```java
-Run sendMessageResponse = client.runs().sendMessage(RunInput.builder()
+SendMessageResponse sendMessageResponse = client.run.sendMessage(RunInput.builder()
     .name("my-run")
     .org("acme")
     .slug("...")
     .labels(Map.of())
     .sessionId("...")
-    .sessionSpec(null)
     .message("...")
-    .runConfig(null)
-    .interactionMode("...")
+    .runConfig(RunInput.RunConfigInput.builder().build())
+    .interactionMode(InteractionMode.INTERACTION_MODE_AGENT)
     .buildFromPlan(false)
-    .structuredOutputSchema(null)
+    .structuredOutputSchema(Map.of())
     .tools(List.of())
     .disallowedTools(List.of())
     .appendSystemPrompt("...")
     .autoApproveAll(false)
     .workspaceFileRefs(List.of())
     .supersedesRunId("...")
-    .conversationCatchup(null)
-    .evalCase(null)
+    .conversationCatchup(RunInput.ConversationCatchupInput.builder().build())
+    .evalCase(RunInput.EvalCaseContextInput.builder().build())
     .reconcileFileReview(false)
     .excludedPluginIds(List.of())
     .fileIds(List.of())
