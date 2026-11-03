@@ -17,6 +17,6 @@
     "sourceMap": true,
     "jsx": "react-jsx"
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "include": ["src/**/*.ts", "src/**/*.tsx", "examples/**/*.tsx"],
   "exclude": ["node_modules", "dist"]
 }

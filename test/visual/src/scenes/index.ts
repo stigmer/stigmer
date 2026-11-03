@@ -6,6 +6,7 @@ import { inheritedOpenAiKey, NOTHING_CONNECTED, NOTHING_ON_THE_RUNNER, ownAnthro
 import { fileReviewDockScene } from "./conversation.tsx";
 import { agentChatScene } from "./agent-chat.tsx";
 import { agentProfileScene } from "./agent.tsx";
+import { fromHooksScene } from "./from-hooks.tsx";
 import { dashboardPageScene, dashboardScene } from "./dashboard.tsx";
 import { marketplaceScene } from "./marketplace.tsx";
 import {
@@ -88,8 +89,10 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "story-hours": hoursScene,
   "story-walls": wallsScene,
   "story-keys": keysScene,
+  "agent-chat-page": () => agentChatScene("finished", "page", true),
   "agent-chat-panel": () => agentChatScene("busy", "panel", true),
   "agent-chat-popup-closed": () => agentChatScene("busy", "popup", false),
   "agent-chat-popup": () => agentChatScene("finished", "popup", true),
+  "from-hooks": fromHooksScene,
   ...presets,
 };
