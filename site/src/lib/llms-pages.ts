@@ -126,9 +126,11 @@ export function hideFenceSetup(text: string): string {
       }
       continue;
     }
-    const open = /^\s{0,3}(`{3,}|~{3,})\s*([\w-]*)/.exec(line);
+    const open = /^ {0,3}(`{3,}|~{3,})\s*([\w-]*)/.exec(line);
     out.push(line);
-    if (open) fence = { close: new RegExp(`^\\s*\\${open[1][0]}{${open[1].length},}\\s*$`), lang: open[2], body: [] };
+    // A fence closes on a run of its own character at least as long, indented
+    // at most three spaces, as CommonMark (and so remark and the gate) reads it.
+    if (open) fence = { close: new RegExp(`^ {0,3}\\${open[1][0]}{${open[1].length},}\\s*$`), lang: open[2], body: [] };
   }
   if (fence) out.push(...fence.body);
   return out.join("\n");

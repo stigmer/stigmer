@@ -170,9 +170,15 @@ result, err := client.Tokens.MintUserToken(ctx, &stigmer.MintUserTokenInput{
 ### Python
 
 ```python
-from typing import Any
+class CurrentUser:
+    """Your app's signed-in user."""
 
-current_user: Any = None
+    id: str
+    email: str
+    name: str
+
+
+current_user = CurrentUser()
 # ---cut---
 import os
 

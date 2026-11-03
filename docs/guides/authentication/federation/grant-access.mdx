@@ -300,9 +300,15 @@ func onboardUser(ctx context.Context, client *stigmer.Client, user PlatformUser,
 <Tab value="Python">
 
 ```python
-from typing import Any
+class PlatformUser:
+    """Your platform's record of the person."""
 
-PlatformUser = Any
+    oidc_subject: str
+    email: str
+    new_email: str
+    first_name: str
+    last_name: str
+    avatar_url: str
 # ---cut---
 def onboard_user(client: StigmerClient, user: PlatformUser, organization_id: str) -> None:
     issuer_ref = apiresource_io.ApiResourceReference(

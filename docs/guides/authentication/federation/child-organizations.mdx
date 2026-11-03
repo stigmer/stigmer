@@ -587,9 +587,18 @@ if err != nil {
 <Tab value="Python">
 
 ```python
-from typing import Any
+class PlatformUser:
+    """Your platform's record of the person."""
 
-user: Any = None
+    oidc_subject: str
+    email: str
+    new_email: str
+    first_name: str
+    last_name: str
+    avatar_url: str
+
+
+user = PlatformUser()
 # ---cut---
 account = client.identity_accounts.create_federated_account(identityaccount_io.CreateFederatedAccountInput(
     org="acme",
@@ -677,10 +686,13 @@ _, err := client.Grant.Create(ctx, &grantv1.GrantSpec{
 <Tab value="Python">
 
 ```python
-from typing import Any
+from typing import cast
 
-account: Any = None
-child: Any = None
+from ai.stigmer.iam.identityaccount.v1.api_pb2 import IdentityAccount
+from ai.stigmer.tenancy.organization.v1.api_pb2 import Organization
+
+account = cast(IdentityAccount, None)
+child = cast(Organization, None)
 # ---cut---
 client.grants.create(grant_spec.GrantSpec(
     principal=grant_spec.ApiResourceRef(kind="identity_account", id=account.metadata.id),

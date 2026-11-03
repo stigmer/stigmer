@@ -65,6 +65,11 @@ describe("the markdown export", () => {
     expect(cleanContent(page, "https://example.test")).not.toContain("---cut---");
   });
 
+  it("reads a fence's end as CommonMark does: a run indented four spaces is the fence's own text", () => {
+    const page = ["```typescript", "declare const a: string;", "// ---cut---", "const md = `", "    ```", "`;", "```", "After."].join("\n");
+    expect(hideFenceSetup(page)).toBe(["```typescript", "const md = `", "    ```", "`;", "```", "After."].join("\n"));
+  });
+
   it("leaves a page without setup exactly as it was", () => {
     const page = "Text.\n\n```go\nx := 1\n```\n\n````md\n```ts\n// ---cut---\n```\n````\n";
     expect(hideFenceSetup(page)).toBe(page);

@@ -161,9 +161,18 @@ func accountExists(ctx context.Context, client *stigmer.Client, user PlatformUse
 <Tab value="Python">
 
 ```python
-from typing import Any
+class PlatformUser:
+    """Your platform's record of the person."""
 
-user: Any = None
+    oidc_subject: str
+    email: str
+    new_email: str
+    first_name: str
+    last_name: str
+    avatar_url: str
+
+
+user = PlatformUser()
 # ---cut---
 try:
     existing = client.identity_accounts.get_by_external_sub(identityaccount_io.ExternalSubLookup(
@@ -283,9 +292,18 @@ fmt.Printf("Created federated account: %s\n", account.GetMetadata().GetId())
 <Tab value="Python">
 
 ```python
-from typing import Any
+class PlatformUser:
+    """Your platform's record of the person."""
 
-user: Any = None
+    oidc_subject: str
+    email: str
+    new_email: str
+    first_name: str
+    last_name: str
+    avatar_url: str
+
+
+user = PlatformUser()
 # ---cut---
 account = client.identity_accounts.create_federated_account(identityaccount_io.CreateFederatedAccountInput(
     org="acme",
@@ -453,9 +471,15 @@ func provisionUser(ctx context.Context, client *stigmer.Client, user PlatformUse
 <Tab value="Python">
 
 ```python
-from typing import Any
+class PlatformUser:
+    """Your platform's record of the person."""
 
-PlatformUser = Any
+    oidc_subject: str
+    email: str
+    new_email: str
+    first_name: str
+    last_name: str
+    avatar_url: str
 # ---cut---
 def provision_user(client: StigmerClient, user: PlatformUser) -> identityaccount_api.IdentityAccount:
     issuer_ref = apiresource_io.ApiResourceReference(
@@ -587,9 +611,18 @@ updated, err := client.IdentityAccount.UpdateFederatedAccount(ctx, &identityacco
 <Tab value="Python">
 
 ```python
-from typing import Any
+class PlatformUser:
+    """Your platform's record of the person."""
 
-user: Any = None
+    oidc_subject: str
+    email: str
+    new_email: str
+    first_name: str
+    last_name: str
+    avatar_url: str
+
+
+user = PlatformUser()
 # ---cut---
 updated = client.identity_accounts.update_federated_account(identityaccount_io.UpdateFederatedAccountInput(
     org="acme",
@@ -697,9 +730,18 @@ deprovisioned, err := client.IdentityAccount.DeprovisionFederatedAccount(ctx, &i
 <Tab value="Python">
 
 ```python
-from typing import Any
+class PlatformUser:
+    """Your platform's record of the person."""
 
-user: Any = None
+    oidc_subject: str
+    email: str
+    new_email: str
+    first_name: str
+    last_name: str
+    avatar_url: str
+
+
+user = PlatformUser()
 # ---cut---
 deprovisioned = client.identity_accounts.deprovision_federated_account(identityaccount_io.DeprovisionFederatedAccountInput(
     org="acme",
