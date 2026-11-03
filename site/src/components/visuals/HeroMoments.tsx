@@ -39,12 +39,16 @@ function Names() {
       <ul className="m-0 flex list-none flex-wrap justify-center gap-x-5 gap-y-1.5 p-0 text-sm">
         {AGENT_GET_IDS.map((id) => (
           <li key={id}>
-            <a href={proofHref(id)} className="relative inline-block text-muted-foreground transition-colors hover:text-foreground">
+            {/* The lit copy keeps the resting text's weight and line, so it covers it exactly. */}
+            <a
+              href={proofHref(id)}
+              className="relative inline-block whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground"
+            >
               {momentName(id)}
               <span
                 aria-hidden="true"
                 data-part={id}
-                className="absolute inset-0 font-medium text-foreground underline underline-offset-[6px]"
+                className="absolute inset-0 whitespace-nowrap text-foreground underline underline-offset-[6px]"
               >
                 {momentName(id)}
               </span>
