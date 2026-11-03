@@ -10,9 +10,10 @@
 #
 # When it runs (its list in scripts/ci-lanes.mjs): the three SDKs and their
 # proto stubs, the smoke and the install layer it drives, and the shared turn
-# cases. A server change does not run it: the Getting Started smoke holds the
-# server's send-and-wait path on every server change, and the shared turn
-# cases hold the three readers.
+# cases. A server or CLI change does not run it, to keep three toolchains off
+# every such pull request: a server rule that refuses what a quick start sends
+# is caught by the next SDK change or a dispatched run, not by the server's
+# own pull request. The shared turn cases hold the three readers.
 # =============================================================================
 
 name: ci.sdk-quickstarts

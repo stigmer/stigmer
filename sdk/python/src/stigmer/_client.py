@@ -173,8 +173,6 @@ class StigmerClient(GeneratedClient):
         """
         return send_and_wait(
             self._channel,
-            self.runs,
-            self.sessions,
             org=org,
             message=message,
             session_id=session_id,

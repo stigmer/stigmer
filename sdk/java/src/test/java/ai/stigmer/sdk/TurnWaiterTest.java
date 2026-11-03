@@ -123,6 +123,7 @@ class TurnWaiterTest {
         final List<Run> created = new CopyOnWriteArrayList<>();
         final CountDownLatch cancelled = new CountDownLatch(1);
         volatile long newest;
+        volatile long createDelayMillis;
         volatile int lists;
 
         final SessionQueryControllerGrpc.SessionQueryControllerImplBase query =
@@ -161,6 +162,13 @@ class TurnWaiterTest {
                 new RunCommandControllerGrpc.RunCommandControllerImplBase() {
                     @Override
                     public void create(Run request, StreamObserver<Run> out) {
+                        if (createDelayMillis > 0) {
+                            try {
+                                Thread.sleep(createDelayMillis);
+                            } catch (InterruptedException e) {
+                                Thread.currentThread().interrupt();
+                            }
+                        }
                         created.add(request);
                         String session = request.getSpec().hasSessionId() ? request.getSpec().getSessionId() : "ses_new";
                         Run.Builder run = Run.newBuilder();
@@ -321,6 +329,32 @@ class TurnWaiterTest {
         serve(fake);
         TurnOutcome outcome = client.waitForTurn("ses_1", "run_1", 0, Duration.ofSeconds(5));
         assertEquals(Map.of("phase", "completed", "answer", "Hi."), Map.of("phase", outcome.phase(), "answer", outcome.answer()));
+        assertCancelled(fake);
+    }
+
+    @Test
+    @DisplayName("the timeout bounds the run's create before the stream")
+    void timeoutBoundsTheCreate() throws Exception {
+        Fake fake = new Fake();
+        fake.createDelayMillis = 3000;
+        TurnWaiter waiter = serve(fake);
+        long start = System.nanoTime();
+        StigmerException e = assertThrows(StigmerException.class, () -> waiter.sendAndWait(
+                SendAndWaitInput.builder().org("acme").sessionId("ses_1").message("hi").build(), Duration.ofMillis(500)));
+        assertEquals(Status.Code.DEADLINE_EXCEEDED, e.getGrpcCode());
+        assertTrue(System.nanoTime() - start < TimeUnit.MILLISECONDS.toNanos(2500));
+        assertEquals(0, fake.requests.size());
+    }
+
+    @Test
+    @DisplayName("a deadline the server ends a stream with is a drop, not the caller's timeout")
+    void serverDeadlineIsADrop() throws Exception {
+        Fake fake = new Fake();
+        fake.steps.add(new Step(List.of(), Status.DEADLINE_EXCEEDED, false));
+        fake.steps.add(new Step(List.of(message(1, "m1", "Hi."), status(2, "st2", "completed")), null, true));
+        TurnWaiter waiter = serve(fake);
+        TurnOutcome outcome = waiter.waitForTurn("ses_1", "run_1", 0, BOUND);
+        assertEquals(List.of("completed", "Hi.", 2), List.of(outcome.phase(), outcome.answer(), fake.requests.size()));
         assertCancelled(fake);
     }
 }

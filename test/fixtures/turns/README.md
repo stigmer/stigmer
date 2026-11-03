@@ -16,14 +16,16 @@ Taken from the fold, which is the reference:
   `failed`, `cancelled` or `terminated`. Another run's status never counts.
 - **Waiting.** The session is idle with stop reason `requires_action`, and the
   idle names one of the turn's tool uses that asks for permission
-  (`evaluated_permission` `ask`) and has neither a confirmation nor a result.
+  (`evaluated_permission` `ask`) and has neither a confirmation (allow or deny)
+  nor a result. A tool use counts on any of the turn's threads, a sub-agent's
+  included, and an MCP tool use counts as a tool use.
 - **Answer.** The text of the turn's last stored message on its primary thread
   (an event with no `thread_id`): a sub-agent's message and a live preview are
   never the answer. Its text blocks are joined with nothing between them.
 - **Once.** An event already read (by id) is skipped, so a stream resumed from
   an older place reads each event once.
-- **Return.** The wait returns at the first frame after which the turn has
-  ended or waits; `lastSeq` is the newest `seq` read by then.
+- **Return.** The wait returns at the first frame after which the turn has ended
+  or waits; `lastSeq` is the newest `seq` read by then.
 
 ## Contract
 
@@ -33,7 +35,19 @@ One case per file:
 {
   "description": "What the case shows.",
   "runId": "run_1",
-  "frames": [{ "event": { "seq": "1", "sessionId": "ses_1", "runId": "run_1", "agentMessage": { "id": "m1", "content": [{ "type": "text", "text": "Hi" }] } } }],
+  "frames": [
+    {
+      "event": {
+        "seq": "1",
+        "sessionId": "ses_1",
+        "runId": "run_1",
+        "agentMessage": {
+          "id": "m1",
+          "content": [{ "type": "text", "text": "Hi" }]
+        }
+      }
+    }
+  ],
   "expect": {
     "decided": true,
     "phase": "completed",

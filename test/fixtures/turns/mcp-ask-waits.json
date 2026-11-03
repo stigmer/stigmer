@@ -1,0 +1,83 @@
+{
+  "description": "An MCP tool use that asks is an ask like any other.",
+  "runId": "run_1",
+  "frames": [
+    {
+      "event": {
+        "seq": "1",
+        "sessionId": "ses_1",
+        "runId": "run_1",
+        "userMessage": {
+          "id": "u1",
+          "content": [
+            {
+              "type": "text",
+              "text": "File it."
+            }
+          ],
+          "processedAt": "2026-11-03T10:00:00Z"
+        }
+      }
+    },
+    {
+      "event": {
+        "seq": "2",
+        "sessionId": "ses_1",
+        "runId": "run_1",
+        "stigmerRunStatus": {
+          "id": "st2",
+          "processedAt": "2026-11-03T10:00:00Z",
+          "phase": "running"
+        }
+      }
+    },
+    {
+      "event": {
+        "seq": "3",
+        "sessionId": "ses_1",
+        "runId": "run_1",
+        "agentMcpToolUse": {
+          "id": "m3",
+          "input": {
+            "title": "x"
+          },
+          "mcpServerName": "linear",
+          "name": "create_issue",
+          "processedAt": "2026-11-03T10:00:00Z",
+          "evaluatedPermission": "ask"
+        }
+      }
+    },
+    {
+      "event": {
+        "seq": "4",
+        "sessionId": "ses_1",
+        "runId": "run_1",
+        "sessionStatusIdle": {
+          "id": "i4",
+          "processedAt": "2026-11-03T10:00:00Z",
+          "stopReason": {
+            "type": "requires_action",
+            "eventIds": [
+              "m3"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "expect": {
+    "decided": true,
+    "phase": "waiting",
+    "answer": "",
+    "stopCause": "",
+    "error": "",
+    "asks": [
+      {
+        "id": "m3",
+        "name": "create_issue"
+      }
+    ],
+    "lastSeq": "4"
+  }
+}

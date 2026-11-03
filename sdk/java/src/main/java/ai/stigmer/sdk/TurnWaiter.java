@@ -26,6 +26,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
@@ -64,10 +66,13 @@ import java.util.function.Function;
  * unauthenticated, invalid argument, failed precondition). Each stream runs
  * in a cancellable {@link Context}, cancelled the moment the reader decides
  * and on an error or the timeout, so a returned wait leaves nothing open on
- * the server. The timeout bounds the whole wait, reconnections included:
- * each stream gets the time that remains, which is why the driver builds
- * its own query stub from the channel rather than the generated
- * {@code streamEvents}, which takes no deadline.
+ * the server. The timeout bounds the whole wait, reconnections and the
+ * calls before the stream included: each call gets the time that remains,
+ * which is why the driver builds its own query stub from the channel rather
+ * than the generated {@code streamEvents}, which takes no deadline, and
+ * creates the run inside a {@link Context} with that deadline. A
+ * {@code DEADLINE_EXCEEDED} the server or a proxy ends a stream with, before
+ * that time is up, is a drop like any other.
  */
 final class TurnWaiter {
 
@@ -117,7 +122,7 @@ final class TurnWaiter {
         } else {
             run.sessionId(input.sessionId());
         }
-        Run created = createRun.apply(run.build());
+        Run created = createWithin(run.build(), deadline);
         String sessionId = created.getSpec().hasSessionId() ? created.getSpec().getSessionId() : "";
         if (sessionId.isEmpty()) {
             sessionId = input.sessionId();
@@ -126,6 +131,31 @@ final class TurnWaiter {
             throw new StigmerException(ErrorCode.INTERNAL, "the created run names no session", Status.Code.INTERNAL);
         }
         return waitIn(sessionId, created.getMetadata().getId(), afterSeq, deadline);
+    }
+
+    /** Creates the run, bounded by {@code deadline}: a blocking call made inside a Context with a deadline carries it. */
+    private Run createWithin(RunInput input, long deadline) {
+        if (deadline == Long.MAX_VALUE) {
+            return createRun.apply(input);
+        }
+        ScheduledExecutorService timer = Executors.newSingleThreadScheduledExecutor();
+        Context.CancellableContext bounded = Context.current()
+                .withDeadlineAfter(Math.max(1, remainingNanos(deadline)), TimeUnit.NANOSECONDS, timer);
+        try {
+            return bounded.call(() -> createRun.apply(input));
+        } catch (StigmerException e) {
+            if (e.getGrpcCode() == Status.Code.DEADLINE_EXCEEDED && remainingNanos(deadline) <= 0) {
+                throw timedOut();
+            }
+            throw e;
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        } finally {
+            bounded.cancel(null);
+            timer.shutdownNow();
+        }
     }
 
     TurnOutcome waitForTurn(String sessionId, String runId, long afterSeq, Duration timeout) {
@@ -143,7 +173,7 @@ final class TurnWaiter {
                     .build());
             return page.getEventsCount() == 0 ? 0 : page.getEvents(0).getSeq();
         } catch (StatusRuntimeException e) {
-            if (e.getStatus().getCode() == Status.Code.DEADLINE_EXCEEDED) {
+            if (e.getStatus().getCode() == Status.Code.DEADLINE_EXCEEDED && remainingNanos(deadline) <= 0) {
                 throw timedOut();
             }
             throw StigmerException.wrap(e);
@@ -159,18 +189,15 @@ final class TurnWaiter {
                 throw timedOut();
             }
             Context.CancellableContext call = Context.current().withCancellation();
+            boolean[] delivered = {false};
             try {
-                boolean[] delivered = {false};
                 Boolean decided = call.call(() -> followOnce(sessionId, reader, place, deadline, delivered));
                 if (decided) {
                     return reader.outcome(sessionId);
                 }
-                if (delivered[0]) {
-                    failures = 0;
-                }
             } catch (StatusRuntimeException e) {
                 Status.Code code = e.getStatus().getCode();
-                if (code == Status.Code.DEADLINE_EXCEEDED) {
+                if (code == Status.Code.DEADLINE_EXCEEDED && remainingNanos(deadline) <= 0) {
                     throw timedOut();
                 }
                 if (FINAL_CODES.contains(code)) {
@@ -182,6 +209,10 @@ final class TurnWaiter {
                 throw new IllegalStateException(e);
             } finally {
                 call.cancel(null);
+            }
+            // A stream that delivered anything was healthy: its drop starts the backoff again.
+            if (delivered[0]) {
+                failures = 0;
             }
             long pause = Math.min(backoffMax.toNanos(), backoffBase.toNanos() << Math.min(failures, 20));
             if (deadline != Long.MAX_VALUE && remainingNanos(deadline) <= pause) {

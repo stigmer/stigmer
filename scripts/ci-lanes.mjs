@@ -745,8 +745,10 @@ export const LANES = {
   "ci.sdk-quickstarts.yaml": {
     // The Go, Python and Java quick starts run as written on `stigmer up`
     // (test/install/smoke-sdk-quickstarts.mjs, the UX bar's SDK-01). A server
-    // change does not run it: the Getting Started smoke holds the server's
-    // send-and-wait path on every one, and the shared turn cases the readers.
+    // or CLI change does not run it, to keep three toolchains off every such
+    // pull request: a server rule that refuses what a quick start sends is
+    // caught by the next SDK change or a dispatched run, not by the server's
+    // own pull request. The shared turn cases hold the readers.
     paths: [
       "sdk/go/**",
       "sdk/python/**",

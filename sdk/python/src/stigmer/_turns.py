@@ -35,9 +35,12 @@ error on a code a reconnect cannot fix (not found, permission denied,
 unauthenticated, invalid argument, failed precondition). It cancels its call
 the moment the reader decides, and on an error or the timeout, so a returned
 wait leaves nothing open on the server. The timeout bounds the whole wait,
-reconnections included: each stream gets the time that remains, which is
-why the driver builds its own query stub from the channel rather than the
-generated ``stream_events``, which takes no deadline.
+reconnections and the calls before the stream included: each call gets the
+time that remains, which is why the driver builds its own stubs from the
+channel rather than the generated ``list_events``, ``runs.create`` and
+``stream_events``, which take no deadline. A ``DEADLINE_EXCEEDED`` the
+server or a proxy ends a stream with, before that time is up, is a drop like
+any other.
 """
 
 from __future__ import annotations
@@ -48,11 +51,11 @@ from typing import Iterable
 
 import grpc
 
+from ai.stigmer.agentic.run.v1 import command_pb2_grpc as run_command_pb2_grpc
 from ai.stigmer.agentic.session.v1 import event_pb2, io_pb2, query_pb2_grpc
 
 from ._gen._errors import ErrorCode, StigmerError, wrap_error
-from ._gen._run import RunClient, RunConfigInput, RunInput, SessionSpecInput
-from ._gen._session import SessionClient
+from ._gen._run import RunConfigInput, RunInput, SessionSpecInput
 
 TURN_PHASE_WAITING = "waiting"
 """The phase of a turn that waits for a person's answer to its asks."""
@@ -222,10 +225,28 @@ def _invalid(message: str) -> StigmerError:
     return StigmerError(ErrorCode.INVALID_ARGUMENT, message, grpc.StatusCode.INVALID_ARGUMENT)
 
 
+def _remaining(deadline: float | None) -> float | None:
+    """Seconds left before ``deadline`` (monotonic); None for no deadline. Raises once it has passed."""
+    if deadline is None:
+        return None
+    left = deadline - time.monotonic()
+    if left <= 0:
+        raise _timed_out()
+    return left
+
+
+def _call(deadline: float | None, rpc, request):
+    """One unary call with the time that remains; the error as a StigmerError, or the timeout."""
+    try:
+        return rpc(request, timeout=_remaining(deadline))
+    except grpc.RpcError as err:
+        if err.code() == grpc.StatusCode.DEADLINE_EXCEEDED and deadline is not None and time.monotonic() >= deadline:  # type: ignore[attr-defined]
+            raise _timed_out() from err
+        raise wrap_error(err) from err
+
+
 def send_and_wait(
     channel: grpc.Channel,
-    runs: RunClient,
-    sessions: SessionClient,
     *,
     org: str,
     message: str,
@@ -247,9 +268,13 @@ def send_and_wait(
     deadline = None if timeout is None else time.monotonic() + timeout
     after_seq = 0
     if session_id:
-        page = sessions.list_events(io_pb2.ListSessionEventsRequest(session_id=session_id, order="desc", page_size=1))
+        query = query_pb2_grpc.SessionQueryControllerStub(channel)
+        page = _call(deadline, query.listEvents, io_pb2.ListSessionEventsRequest(session_id=session_id, order="desc", page_size=1))
         after_seq = page.events[0].seq if page.events else 0
-    run = runs.create(
+    command = run_command_pb2_grpc.RunCommandControllerStub(channel)
+    run = _call(
+        deadline,
+        command.create,
         RunInput(
             name=name or f"run-{int(time.time() * 1000)}",
             org=org,
@@ -258,7 +283,7 @@ def send_and_wait(
             message=message,
             run_config=run_config,
             file_ids=list(file_ids),
-        )
+        )._to_proto(),
     )
     created_session = run.spec.session_id if run.spec.WhichOneof("target") == "session_id" else ""
     target = created_session or session_id
@@ -281,12 +306,9 @@ def wait_for_turn(
     place = after_seq
     failures = 0
     while True:
-        remaining = None if deadline is None else deadline - time.monotonic()
-        if remaining is not None and remaining <= 0:
-            raise _timed_out()
         call = stub.streamEvents(
             io_pb2.StreamSessionEventsRequest(session_id=session_id, after_seq=place),
-            timeout=remaining,
+            timeout=_remaining(deadline),
         )
         try:
             for frame in call:
@@ -297,7 +319,7 @@ def wait_for_turn(
                     return reader.outcome(session_id)
         except grpc.RpcError as err:
             code = err.code()  # type: ignore[attr-defined]
-            if code == grpc.StatusCode.DEADLINE_EXCEEDED:
+            if code == grpc.StatusCode.DEADLINE_EXCEEDED and deadline is not None and time.monotonic() >= deadline:
                 raise _timed_out() from err
             if code in _FINAL_CODES:
                 raise wrap_error(err) from err

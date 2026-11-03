@@ -103,6 +103,7 @@ class _Fake(query_pb2_grpc.SessionQueryControllerServicer, run_command_pb2_grpc.
         self.lists = 0
         self.created: list[run_api_pb2.Run] = []
         self.cancelled = threading.Event()
+        self.create_delay = 0.0
 
     def listEvents(self, request, context):  # noqa: N802 - proto rpc name
         self.lists += 1
@@ -124,6 +125,8 @@ class _Fake(query_pb2_grpc.SessionQueryControllerServicer, run_command_pb2_grpc.
                 self.cancelled.set()
 
     def create(self, request, context):  # noqa: N802 - proto rpc name
+        if self.create_delay:
+            time.sleep(self.create_delay)
         self.created.append(request)
         run = run_api_pb2.Run()
         run.metadata.id = "run_1"
@@ -248,3 +251,27 @@ def test_returns_the_asks_of_a_waiting_turn(serve) -> None:
     outcome = client.wait_for_turn("ses_1", "run_1", 2, timeout=10)
     assert fake.cancelled.wait(5)
     assert (outcome.phase, outcome.asks, outcome.last_seq) == ("waiting", (TurnAsk(id="t3", name="Bash"),), 4)
+
+
+def test_the_timeout_bounds_the_run_create_before_the_stream(serve) -> None:
+    fake = _Fake([])
+    fake.create_delay = 3
+    client = serve(fake)
+    start = time.monotonic()
+    with pytest.raises(TimeoutError):
+        client.send_and_wait(org="acme", message="hi", session_id="ses_1", timeout=0.5)
+    assert time.monotonic() - start < 2.5
+    assert fake.requests == []
+
+
+def test_a_deadline_the_server_ends_a_stream_with_is_a_drop_not_the_callers_timeout(serve) -> None:
+    fake = _Fake(
+        [
+            _Step(code=grpc.StatusCode.DEADLINE_EXCEEDED),
+            _Step([_message(1, "m1", "Hi."), _status(2, "st2", "completed")], hold=True),
+        ]
+    )
+    client = serve(fake)
+    outcome = client.wait_for_turn("ses_1", "run_1", 0, timeout=10)
+    assert (outcome.phase, outcome.answer, len(fake.requests)) == ("completed", "Hi.", 2)
+    assert fake.cancelled.wait(5)
