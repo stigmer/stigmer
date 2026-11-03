@@ -39,6 +39,62 @@ flowchart TD
 
 {/* vale on */}
 
+## The examples' imports
+
+The examples on this page call a client set up as the
+[SDK pages](/docs/sdk/overview) show: `stigmer` in TypeScript, `client` in Go,
+Python and Java, and a `ctx` in Go. `user` is your platform's record of the
+person: their OIDC subject, email and profile. The examples use these imports:
+
+<SDKTabs>
+<Tab value="TypeScript">
+
+```typescript prelude
+import { isNotFound } from "@stigmer/client";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { IdentityAccount } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
+```
+
+</Tab>
+<Tab value="Go">
+
+```go prelude
+import (
+	"context"
+	"fmt"
+	"log"
+
+	stigmer "go.stigmer.ai/sdk"
+	"go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	"go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource/apiresourcekind"
+	identityaccountv1 "go.stigmer.ai/sdk/proto/ai/stigmer/iam/identityaccount/v1"
+)
+```
+
+</Tab>
+<Tab value="Python">
+
+```python prelude
+from stigmer import StigmerClient, StigmerError, is_not_found
+from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io
+from ai.stigmer.iam.identityaccount.v1 import api_pb2 as identityaccount_api
+from ai.stigmer.iam.identityaccount.v1 import io_pb2 as identityaccount_io
+```
+
+</Tab>
+<Tab value="Java">
+
+```java prelude
+import ai.stigmer.commons.apiresource.ApiResourceReference;
+import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
+import ai.stigmer.iam.identityaccount.v1.*;
+import ai.stigmer.sdk.StigmerClient;
+import ai.stigmer.sdk.gen.StigmerException;
+```
+
+</Tab>
+</SDKTabs>
+
 ## Check for an existing account
 
 Before creating an account, check whether one already exists for this user's
@@ -49,23 +105,29 @@ Federation Issuer reference and external subject identifier.
 <Tab value="TypeScript">
 
 ```typescript
+declare const user: {
+  oidcSubject: string;
+  email: string;
+  newEmail: string;
+  firstName: string;
+  lastName: string;
+  avatarUrl: string;
+};
+// ---cut---
 try {
   const existing = await stigmer.identityAccount.getByExternalSub({
     org: "acme",
     federationIssuerRef: {
       org: "acme",
-      kind: "federation_issuer",
+      kind: ApiResourceKind.federation_issuer,
       slug: "acme-cloud-auth",
     },
     externalSub: user.oidcSubject,
   });
-  console.log(`Account already exists: ${existing.metadata.id}`);
+  console.log(`Account already exists: ${existing.metadata?.id}`);
 } catch (err) {
-  if (err.code === "NOT_FOUND") {
-    // Account doesn't exist yet — create it below
-  } else {
-    throw err;
-  }
+  if (!isNotFound(err)) throw err;
+  // Account doesn't exist yet: create it below
 }
 ```
 
@@ -73,21 +135,25 @@ try {
 <Tab value="Go">
 
 ```go
-existing, err := client.IdentityAccount.GetByExternalSub(ctx, &stigmer.ExternalSubLookup{
-  Org: "acme",
-  FederationIssuerRef: &stigmer.ResourceRef{
-    Org:  "acme",
-    Kind: "federation_issuer",
-    Slug: "acme-cloud-auth",
-  },
-  ExternalSub: user.OIDCSubject,
-})
-if err != nil {
-  if status.Code(err) == codes.NotFound {
-    // Account doesn't exist yet — create it below
-  } else {
-    return err
-  }
+type PlatformUser struct{ OIDCSubject, Email, NewEmail, FirstName, LastName, AvatarURL string }
+// ---cut---
+func accountExists(ctx context.Context, client *stigmer.Client, user PlatformUser) (bool, error) {
+	_, err := client.IdentityAccount.GetByExternalSub(ctx, &identityaccountv1.ExternalSubLookup{
+		Org:                 "acme",
+		FederationIssuerRef: &apiresource.ApiResourceReference{
+			Org:  "acme",
+			Kind: apiresourcekind.ApiResourceKind_federation_issuer,
+			Slug: "acme-cloud-auth",
+		},
+		ExternalSub:         user.OIDCSubject,
+	})
+	if stigmer.IsNotFound(err) {
+		return false, nil // Account doesn't exist yet: create it below
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, nil
 }
 ```
 
@@ -95,12 +161,14 @@ if err != nil {
 <Tab value="Python">
 
 ```python
-from grpc import StatusCode, RpcError
+from typing import Any
 
+user: Any = None
+# ---cut---
 try:
-    existing = client.identity_accounts.get_by_external_sub(ExternalSubLookup(
+    existing = client.identity_accounts.get_by_external_sub(identityaccount_io.ExternalSubLookup(
         org="acme",
-        federation_issuer_ref=ResourceRef(
+        federation_issuer_ref=apiresource_io.ApiResourceReference(
             org="acme",
             kind="federation_issuer",
             slug="acme-cloud-auth",
@@ -108,34 +176,34 @@ try:
         external_sub=user.oidc_subject,
     ))
     print(f"Account already exists: {existing.metadata.id}")
-except RpcError as e:
-    if e.code() == StatusCode.NOT_FOUND:
-        pass  # Account doesn't exist yet — create it below
-    else:
+except StigmerError as e:
+    if not is_not_found(e):
         raise
+    # Account doesn't exist yet: create it below
 ```
 
 </Tab>
 <Tab value="Java">
 
 ```java
+interface PlatformUser { String getOidcSubject(); String getEmail(); String getNewEmail(); String getFirstName(); String getLastName(); String getAvatarUrl(); }
+PlatformUser user;
+// ---cut---
 try {
-    IdentityAccount existing = client.identityAccounts().getByExternalSub(ExternalSubLookup.builder()
-        .org("acme")
-        .federationIssuerRef(ResourceRef.builder()
-            .org("acme")
-            .kind("federation_issuer")
-            .slug("acme-cloud-auth")
-            .build())
-        .externalSub(user.getOidcSubject())
+    IdentityAccount existing = client.identityAccount.getByExternalSub(ExternalSubLookup.newBuilder()
+        .setOrg("acme")
+        .setFederationIssuerRef(ApiResourceReference.newBuilder()
+            .setOrg("acme")
+            .setKind(ApiResourceKind.federation_issuer)
+            .setSlug("acme-cloud-auth"))
+        .setExternalSub(user.getOidcSubject())
         .build());
     System.out.println("Account already exists: " + existing.getMetadata().getId());
-} catch (StatusRuntimeException e) {
-    if (e.getStatus().getCode() == Status.Code.NOT_FOUND) {
-        // Account doesn't exist yet — create it below
-    } else {
+} catch (StigmerException e) {
+    if (!e.isNotFound()) {
         throw e;
     }
+    // Account doesn't exist yet: create it below
 }
 ```
 
@@ -158,11 +226,20 @@ profile data.
 <Tab value="TypeScript">
 
 ```typescript
+declare const user: {
+  oidcSubject: string;
+  email: string;
+  newEmail: string;
+  firstName: string;
+  lastName: string;
+  avatarUrl: string;
+};
+// ---cut---
 const account = await stigmer.identityAccount.createFederatedAccount({
   org: "acme",
   federationIssuerRef: {
     org: "acme",
-    kind: "federation_issuer",
+    kind: ApiResourceKind.federation_issuer,
     slug: "acme-cloud-auth",
   },
   externalSub: user.oidcSubject,
@@ -172,39 +249,47 @@ const account = await stigmer.identityAccount.createFederatedAccount({
   pictureUrl: user.avatarUrl,
 });
 
-console.log(`Created federated account: ${account.metadata.id}`);
+console.log(`Created federated account: ${account.metadata?.id}`);
 ```
 
 </Tab>
 <Tab value="Go">
 
 ```go
-account, err := client.IdentityAccount.CreateFederatedAccount(ctx, &stigmer.CreateFederatedAccountInput{
-  Org: "acme",
-  FederationIssuerRef: &stigmer.ResourceRef{
-    Org:  "acme",
-    Kind: "federation_issuer",
-    Slug: "acme-cloud-auth",
-  },
-  ExternalSub: user.OIDCSubject,
-  Email:       user.Email,
-  FirstName:   user.FirstName,
-  LastName:    user.LastName,
-  PictureUrl:  user.AvatarURL,
+type PlatformUser struct{ OIDCSubject, Email, NewEmail, FirstName, LastName, AvatarURL string }
+
+var user PlatformUser
+// ---cut---
+account, err := client.IdentityAccount.CreateFederatedAccount(ctx, &identityaccountv1.CreateFederatedAccountInput{
+	Org:                 "acme",
+	FederationIssuerRef: &apiresource.ApiResourceReference{
+		Org:  "acme",
+		Kind: apiresourcekind.ApiResourceKind_federation_issuer,
+		Slug: "acme-cloud-auth",
+	},
+	ExternalSub:         user.OIDCSubject,
+	Email:               user.Email,
+	FirstName:           user.FirstName,
+	LastName:            user.LastName,
+	PictureUrl:          user.AvatarURL,
 })
 if err != nil {
-  return fmt.Errorf("create federated account: %w", err)
+	log.Fatalf("create federated account: %v", err)
 }
-fmt.Printf("Created federated account: %s\n", account.Metadata.Id)
+fmt.Printf("Created federated account: %s\n", account.GetMetadata().GetId())
 ```
 
 </Tab>
 <Tab value="Python">
 
 ```python
-account = client.identity_accounts.create_federated_account(CreateFederatedAccountInput(
+from typing import Any
+
+user: Any = None
+# ---cut---
+account = client.identity_accounts.create_federated_account(identityaccount_io.CreateFederatedAccountInput(
     org="acme",
-    federation_issuer_ref=ResourceRef(
+    federation_issuer_ref=apiresource_io.ApiResourceReference(
         org="acme",
         kind="federation_issuer",
         slug="acme-cloud-auth",
@@ -223,18 +308,20 @@ print(f"Created federated account: {account.metadata.id}")
 <Tab value="Java">
 
 ```java
-IdentityAccount account = client.identityAccounts().createFederatedAccount(CreateFederatedAccountInput.builder()
-    .org("acme")
-    .federationIssuerRef(ResourceRef.builder()
-        .org("acme")
-        .kind("federation_issuer")
-        .slug("acme-cloud-auth")
-        .build())
-    .externalSub(user.getOidcSubject())
-    .email(user.getEmail())
-    .firstName(user.getFirstName())
-    .lastName(user.getLastName())
-    .pictureUrl(user.getAvatarUrl())
+interface PlatformUser { String getOidcSubject(); String getEmail(); String getNewEmail(); String getFirstName(); String getLastName(); String getAvatarUrl(); }
+PlatformUser user;
+// ---cut---
+IdentityAccount account = client.identityAccount.createFederatedAccount(CreateFederatedAccountInput.newBuilder()
+    .setOrg("acme")
+    .setFederationIssuerRef(ApiResourceReference.newBuilder()
+        .setOrg("acme")
+        .setKind(ApiResourceKind.federation_issuer)
+        .setSlug("acme-cloud-auth"))
+    .setExternalSub(user.getOidcSubject())
+    .setEmail(user.getEmail())
+    .setFirstName(user.getFirstName())
+    .setLastName(user.getLastName())
+    .setPictureUrl(user.getAvatarUrl())
     .build());
 
 System.out.println("Created federated account: " + account.getMetadata().getId());
@@ -284,25 +371,32 @@ handling:
 <Tab value="TypeScript">
 
 ```typescript
-async function provisionUser(user: PlatformUser): Promise<string> {
+interface PlatformUser {
+  oidcSubject: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  avatarUrl: string;
+}
+// ---cut---
+async function provisionUser(user: PlatformUser): Promise<IdentityAccount> {
   const issuerRef = {
     org: "acme",
-    kind: "federation_issuer",
+    kind: ApiResourceKind.federation_issuer,
     slug: "acme-cloud-auth",
   };
 
   try {
-    const existing = await stigmer.identityAccount.getByExternalSub({
+    return await stigmer.identityAccount.getByExternalSub({
       org: "acme",
       federationIssuerRef: issuerRef,
       externalSub: user.oidcSubject,
     });
-    return existing.metadata.id;
   } catch (err) {
-    if (err.code !== "NOT_FOUND") throw err;
+    if (!isNotFound(err)) throw err;
   }
 
-  const account = await stigmer.identityAccount.createFederatedAccount({
+  return stigmer.identityAccount.createFederatedAccount({
     org: "acme",
     federationIssuerRef: issuerRef,
     externalSub: user.oidcSubject,
@@ -311,8 +405,6 @@ async function provisionUser(user: PlatformUser): Promise<string> {
     lastName: user.lastName,
     pictureUrl: user.avatarUrl,
   });
-
-  return account.metadata.id;
 }
 ```
 
@@ -320,39 +412,40 @@ async function provisionUser(user: PlatformUser): Promise<string> {
 <Tab value="Go">
 
 ```go
-func provisionUser(ctx context.Context, client *stigmer.Client, user PlatformUser) (string, error) {
-  issuerRef := &stigmer.ResourceRef{
-    Org:  "acme",
-    Kind: "federation_issuer",
-    Slug: "acme-cloud-auth",
-  }
+type PlatformUser struct{ OIDCSubject, Email, NewEmail, FirstName, LastName, AvatarURL string }
+// ---cut---
+func provisionUser(ctx context.Context, client *stigmer.Client, user PlatformUser) (*identityaccountv1.IdentityAccount, error) {
+	issuerRef := &apiresource.ApiResourceReference{
+		Org:  "acme",
+		Kind: apiresourcekind.ApiResourceKind_federation_issuer,
+		Slug: "acme-cloud-auth",
+	}
 
-  existing, err := client.IdentityAccount.GetByExternalSub(ctx, &stigmer.ExternalSubLookup{
-    Org:                 "acme",
-    FederationIssuerRef: issuerRef,
-    ExternalSub:         user.OIDCSubject,
-  })
-  if err == nil {
-    return existing.Metadata.Id, nil
-  }
-  if status.Code(err) != codes.NotFound {
-    return "", err
-  }
+	existing, err := client.IdentityAccount.GetByExternalSub(ctx, &identityaccountv1.ExternalSubLookup{
+		Org:                 "acme",
+		FederationIssuerRef: issuerRef,
+		ExternalSub:         user.OIDCSubject,
+	})
+	if err == nil {
+		return existing, nil
+	}
+	if !stigmer.IsNotFound(err) {
+		return nil, err
+	}
 
-  account, err := client.IdentityAccount.CreateFederatedAccount(ctx, &stigmer.CreateFederatedAccountInput{
-    Org:                 "acme",
-    FederationIssuerRef: issuerRef,
-    ExternalSub:         user.OIDCSubject,
-    Email:               user.Email,
-    FirstName:           user.FirstName,
-    LastName:            user.LastName,
-    PictureUrl:          user.AvatarURL,
-  })
-  if err != nil {
-    return "", fmt.Errorf("create federated account: %w", err)
-  }
-
-  return account.Metadata.Id, nil
+	account, err := client.IdentityAccount.CreateFederatedAccount(ctx, &identityaccountv1.CreateFederatedAccountInput{
+		Org:                 "acme",
+		FederationIssuerRef: issuerRef,
+		ExternalSub:         user.OIDCSubject,
+		Email:               user.Email,
+		FirstName:           user.FirstName,
+		LastName:            user.LastName,
+		PictureUrl:          user.AvatarURL,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("create federated account: %w", err)
+	}
+	return account, nil
 }
 ```
 
@@ -360,25 +453,28 @@ func provisionUser(ctx context.Context, client *stigmer.Client, user PlatformUse
 <Tab value="Python">
 
 ```python
-def provision_user(client, user: PlatformUser) -> str:
-    issuer_ref = ResourceRef(
+from typing import Any
+
+PlatformUser = Any
+# ---cut---
+def provision_user(client: StigmerClient, user: PlatformUser) -> identityaccount_api.IdentityAccount:
+    issuer_ref = apiresource_io.ApiResourceReference(
         org="acme",
         kind="federation_issuer",
         slug="acme-cloud-auth",
     )
 
     try:
-        existing = client.identity_accounts.get_by_external_sub(ExternalSubLookup(
+        return client.identity_accounts.get_by_external_sub(identityaccount_io.ExternalSubLookup(
             org="acme",
             federation_issuer_ref=issuer_ref,
             external_sub=user.oidc_subject,
         ))
-        return existing.metadata.id
-    except RpcError as e:
-        if e.code() != StatusCode.NOT_FOUND:
+    except StigmerError as e:
+        if not is_not_found(e):
             raise
 
-    account = client.identity_accounts.create_federated_account(CreateFederatedAccountInput(
+    return client.identity_accounts.create_federated_account(identityaccount_io.CreateFederatedAccountInput(
         org="acme",
         federation_issuer_ref=issuer_ref,
         external_sub=user.oidc_subject,
@@ -387,45 +483,42 @@ def provision_user(client, user: PlatformUser) -> str:
         last_name=user.last_name,
         picture_url=user.avatar_url,
     ))
-
-    return account.metadata.id
 ```
 
 </Tab>
 <Tab value="Java">
 
 ```java
-public String provisionUser(StigmerClient client, PlatformUser user) {
-    ResourceRef issuerRef = ResourceRef.builder()
-        .org("acme")
-        .kind("federation_issuer")
-        .slug("acme-cloud-auth")
+interface PlatformUser { String getOidcSubject(); String getEmail(); String getNewEmail(); String getFirstName(); String getLastName(); String getAvatarUrl(); }
+// ---cut---
+public IdentityAccount provisionUser(StigmerClient client, PlatformUser user) {
+    ApiResourceReference issuerRef = ApiResourceReference.newBuilder()
+        .setOrg("acme")
+        .setKind(ApiResourceKind.federation_issuer)
+        .setSlug("acme-cloud-auth")
         .build();
 
     try {
-        IdentityAccount existing = client.identityAccounts().getByExternalSub(ExternalSubLookup.builder()
-            .org("acme")
-            .federationIssuerRef(issuerRef)
-            .externalSub(user.getOidcSubject())
+        return client.identityAccount.getByExternalSub(ExternalSubLookup.newBuilder()
+            .setOrg("acme")
+            .setFederationIssuerRef(issuerRef)
+            .setExternalSub(user.getOidcSubject())
             .build());
-        return existing.getMetadata().getId();
-    } catch (StatusRuntimeException e) {
-        if (e.getStatus().getCode() != Status.Code.NOT_FOUND) {
+    } catch (StigmerException e) {
+        if (!e.isNotFound()) {
             throw e;
         }
     }
 
-    IdentityAccount account = client.identityAccounts().createFederatedAccount(CreateFederatedAccountInput.builder()
-        .org("acme")
-        .federationIssuerRef(issuerRef)
-        .externalSub(user.getOidcSubject())
-        .email(user.getEmail())
-        .firstName(user.getFirstName())
-        .lastName(user.getLastName())
-        .pictureUrl(user.getAvatarUrl())
+    return client.identityAccount.createFederatedAccount(CreateFederatedAccountInput.newBuilder()
+        .setOrg("acme")
+        .setFederationIssuerRef(issuerRef)
+        .setExternalSub(user.getOidcSubject())
+        .setEmail(user.getEmail())
+        .setFirstName(user.getFirstName())
+        .setLastName(user.getLastName())
+        .setPictureUrl(user.getAvatarUrl())
         .build());
-
-    return account.getMetadata().getId();
 }
 ```
 
@@ -443,11 +536,20 @@ subject.
 <Tab value="TypeScript">
 
 ```typescript
+declare const user: {
+  oidcSubject: string;
+  email: string;
+  newEmail: string;
+  firstName: string;
+  lastName: string;
+  avatarUrl: string;
+};
+// ---cut---
 const updated = await stigmer.identityAccount.updateFederatedAccount({
   org: "acme",
   federationIssuerRef: {
     org: "acme",
-    kind: "federation_issuer",
+    kind: ApiResourceKind.federation_issuer,
     slug: "acme-cloud-auth",
   },
   externalSub: user.oidcSubject,
@@ -462,18 +564,22 @@ const updated = await stigmer.identityAccount.updateFederatedAccount({
 <Tab value="Go">
 
 ```go
-updated, err := client.IdentityAccount.UpdateFederatedAccount(ctx, &stigmer.UpdateFederatedAccountInput{
-  Org: "acme",
-  FederationIssuerRef: &stigmer.ResourceRef{
-    Org:  "acme",
-    Kind: "federation_issuer",
-    Slug: "acme-cloud-auth",
-  },
-  ExternalSub: user.OIDCSubject,
-  Email:       user.NewEmail,
-  FirstName:   user.FirstName,
-  LastName:    user.LastName,
-  PictureUrl:  user.AvatarURL,
+type PlatformUser struct{ OIDCSubject, Email, NewEmail, FirstName, LastName, AvatarURL string }
+
+var user PlatformUser
+// ---cut---
+updated, err := client.IdentityAccount.UpdateFederatedAccount(ctx, &identityaccountv1.UpdateFederatedAccountInput{
+	Org:                 "acme",
+	FederationIssuerRef: &apiresource.ApiResourceReference{
+		Org:  "acme",
+		Kind: apiresourcekind.ApiResourceKind_federation_issuer,
+		Slug: "acme-cloud-auth",
+	},
+	ExternalSub:         user.OIDCSubject,
+	Email:               user.NewEmail,
+	FirstName:           user.FirstName,
+	LastName:            user.LastName,
+	PictureUrl:          user.AvatarURL,
 })
 ```
 
@@ -481,9 +587,13 @@ updated, err := client.IdentityAccount.UpdateFederatedAccount(ctx, &stigmer.Upda
 <Tab value="Python">
 
 ```python
-updated = client.identity_accounts.update_federated_account(UpdateFederatedAccountInput(
+from typing import Any
+
+user: Any = None
+# ---cut---
+updated = client.identity_accounts.update_federated_account(identityaccount_io.UpdateFederatedAccountInput(
     org="acme",
-    federation_issuer_ref=ResourceRef(
+    federation_issuer_ref=apiresource_io.ApiResourceReference(
         org="acme",
         kind="federation_issuer",
         slug="acme-cloud-auth",
@@ -500,18 +610,20 @@ updated = client.identity_accounts.update_federated_account(UpdateFederatedAccou
 <Tab value="Java">
 
 ```java
-IdentityAccount updated = client.identityAccounts().updateFederatedAccount(UpdateFederatedAccountInput.builder()
-    .org("acme")
-    .federationIssuerRef(ResourceRef.builder()
-        .org("acme")
-        .kind("federation_issuer")
-        .slug("acme-cloud-auth")
-        .build())
-    .externalSub(user.getOidcSubject())
-    .email(user.getNewEmail())
-    .firstName(user.getFirstName())
-    .lastName(user.getLastName())
-    .pictureUrl(user.getAvatarUrl())
+interface PlatformUser { String getOidcSubject(); String getEmail(); String getNewEmail(); String getFirstName(); String getLastName(); String getAvatarUrl(); }
+PlatformUser user;
+// ---cut---
+IdentityAccount updated = client.identityAccount.updateFederatedAccount(UpdateFederatedAccountInput.newBuilder()
+    .setOrg("acme")
+    .setFederationIssuerRef(ApiResourceReference.newBuilder()
+        .setOrg("acme")
+        .setKind(ApiResourceKind.federation_issuer)
+        .setSlug("acme-cloud-auth"))
+    .setExternalSub(user.getOidcSubject())
+    .setEmail(user.getNewEmail())
+    .setFirstName(user.getFirstName())
+    .setLastName(user.getLastName())
+    .setPictureUrl(user.getAvatarUrl())
     .build());
 ```
 
@@ -538,12 +650,21 @@ When a user leaves your platform, revoke their Stigmer access with
 <Tab value="TypeScript">
 
 ```typescript
+declare const user: {
+  oidcSubject: string;
+  email: string;
+  newEmail: string;
+  firstName: string;
+  lastName: string;
+  avatarUrl: string;
+};
+// ---cut---
 const deprovisioned = await stigmer.identityAccount.deprovisionFederatedAccount(
   {
     org: "acme",
     federationIssuerRef: {
       org: "acme",
-      kind: "federation_issuer",
+      kind: ApiResourceKind.federation_issuer,
       slug: "acme-cloud-auth",
     },
     externalSub: user.oidcSubject,
@@ -556,15 +677,19 @@ const deprovisioned = await stigmer.identityAccount.deprovisionFederatedAccount(
 <Tab value="Go">
 
 ```go
-deprovisioned, err := client.IdentityAccount.DeprovisionFederatedAccount(ctx, &stigmer.DeprovisionFederatedAccountInput{
-  Org: "acme",
-  FederationIssuerRef: &stigmer.ResourceRef{
-    Org:  "acme",
-    Kind: "federation_issuer",
-    Slug: "acme-cloud-auth",
-  },
-  ExternalSub:   user.OIDCSubject,
-  DeleteAccount: false,
+type PlatformUser struct{ OIDCSubject, Email, NewEmail, FirstName, LastName, AvatarURL string }
+
+var user PlatformUser
+// ---cut---
+deprovisioned, err := client.IdentityAccount.DeprovisionFederatedAccount(ctx, &identityaccountv1.DeprovisionFederatedAccountInput{
+	Org:                 "acme",
+	FederationIssuerRef: &apiresource.ApiResourceReference{
+		Org:  "acme",
+		Kind: apiresourcekind.ApiResourceKind_federation_issuer,
+		Slug: "acme-cloud-auth",
+	},
+	ExternalSub:         user.OIDCSubject,
+	DeleteAccount:       false,
 })
 ```
 
@@ -572,9 +697,13 @@ deprovisioned, err := client.IdentityAccount.DeprovisionFederatedAccount(ctx, &s
 <Tab value="Python">
 
 ```python
-deprovisioned = client.identity_accounts.deprovision_federated_account(DeprovisionFederatedAccountInput(
+from typing import Any
+
+user: Any = None
+# ---cut---
+deprovisioned = client.identity_accounts.deprovision_federated_account(identityaccount_io.DeprovisionFederatedAccountInput(
     org="acme",
-    federation_issuer_ref=ResourceRef(
+    federation_issuer_ref=apiresource_io.ApiResourceReference(
         org="acme",
         kind="federation_issuer",
         slug="acme-cloud-auth",
@@ -588,15 +717,17 @@ deprovisioned = client.identity_accounts.deprovision_federated_account(Deprovisi
 <Tab value="Java">
 
 ```java
-IdentityAccount deprovisioned = client.identityAccounts().deprovisionFederatedAccount(DeprovisionFederatedAccountInput.builder()
-    .org("acme")
-    .federationIssuerRef(ResourceRef.builder()
-        .org("acme")
-        .kind("federation_issuer")
-        .slug("acme-cloud-auth")
-        .build())
-    .externalSub(user.getOidcSubject())
-    .deleteAccount(false)
+interface PlatformUser { String getOidcSubject(); String getEmail(); String getNewEmail(); String getFirstName(); String getLastName(); String getAvatarUrl(); }
+PlatformUser user;
+// ---cut---
+IdentityAccount deprovisioned = client.identityAccount.deprovisionFederatedAccount(DeprovisionFederatedAccountInput.newBuilder()
+    .setOrg("acme")
+    .setFederationIssuerRef(ApiResourceReference.newBuilder()
+        .setOrg("acme")
+        .setKind(ApiResourceKind.federation_issuer)
+        .setSlug("acme-cloud-auth"))
+    .setExternalSub(user.getOidcSubject())
+    .setDeleteAccount(false)
     .build());
 ```
 
