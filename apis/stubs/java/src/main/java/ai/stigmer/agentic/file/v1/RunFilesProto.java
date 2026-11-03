@@ -118,21 +118,21 @@ public final class RunFilesProto extends com.google.protobuf.GeneratedFile {
       "\272H\004r\002\020\001R\tuploadRef\022<\n\016content_sha256\030\003 \001" +
       "(\tB\025\272H\022r\0202\016^[0-9a-f]{64}$R\rcontentSha256" +
       "\"K\n\021RegisteredOutputs\0226\n\005files\030\001 \003(\0132 .a" +
-      "i.stigmer.agentic.file.v1.FileR\005files2\365\002" +
-      "\n\021RunFileController\022h\n\005mount\022..ai.stigme" +
+      "i.stigmer.agentic.file.v1.FileR\005files2\202\003" +
+      "\n\021RunFileController\022l\n\005mount\022..ai.stigme" +
       "r.agentic.file.v1.MountRunFilesInput\032).a" +
       "i.stigmer.agentic.file.v1.RunFileMounts\"" +
-      "\004\320\270\030\001\022|\n\023createOutputUploads\0224.ai.stigme" +
-      "r.agentic.file.v1.CreateOutputUploadsInp" +
-      "ut\032).ai.stigmer.agentic.file.v1.OutputUp" +
-      "loads\"\004\320\270\030\001\022x\n\017registerOutputs\0220.ai.stig" +
-      "mer.agentic.file.v1.RegisterOutputsInput" +
-      "\032-.ai.stigmer.agentic.file.v1.Registered" +
-      "Outputs\"\004\320\270\030\001B\234\001B\rRunFilesProtoP\001\242\002\004ASAF" +
-      "\252\002\032Ai.Stigmer.Agentic.File.V1\312\002\032Ai\\Stigm" +
-      "er\\Agentic\\File\\V1\342\002&Ai\\Stigmer\\Agentic\\" +
-      "File\\V1\\GPBMetadata\352\002\036Ai::Stigmer::Agent" +
-      "ic::File::V1b\006proto3"
+      "\010\320\270\030\001\330\270\030\001\022\200\001\n\023createOutputUploads\0224.ai.s" +
+      "tigmer.agentic.file.v1.CreateOutputUploa" +
+      "dsInput\032).ai.stigmer.agentic.file.v1.Out" +
+      "putUploads\"\010\320\270\030\001\330\270\030\001\022|\n\017registerOutputs\022" +
+      "0.ai.stigmer.agentic.file.v1.RegisterOut" +
+      "putsInput\032-.ai.stigmer.agentic.file.v1.R" +
+      "egisteredOutputs\"\010\320\270\030\001\330\270\030\001B\234\001B\rRunFilesP" +
+      "rotoP\001\242\002\004ASAF\252\002\032Ai.Stigmer.Agentic.File." +
+      "V1\312\002\032Ai\\Stigmer\\Agentic\\File\\V1\342\002&Ai\\Sti" +
+      "gmer\\Agentic\\File\\V1\\GPBMetadata\352\002\036Ai::S" +
+      "tigmer::Agentic::File::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -207,6 +207,7 @@ public final class RunFilesProto extends com.google.protobuf.GeneratedFile {
     build.buf.validate.ValidateProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
+    registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.isRunnerOnly);
     registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.isSkipAuthorization);
     registry.add(build.buf.validate.ValidateProto.field);
     com.google.protobuf.Descriptors.FileDescriptor

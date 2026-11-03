@@ -46,15 +46,15 @@ public final class RunEvalCaseProto extends com.google.protobuf.GeneratedFile {
       "igmer/commons/rpc/method_options.proto\032\033" +
       "buf/validate/validate.proto\"<\n\032GetRunEva" +
       "lCaseArchiveInput\022\036\n\006run_id\030\001 \001(\tB\007\272H\004r\002" +
-      "\020\001R\005runId2\243\001\n\025RunEvalCaseController\022\211\001\n\025" +
+      "\020\001R\005runId2\247\001\n\025RunEvalCaseController\022\215\001\n\025" +
       "getArchiveDownloadUrl\0226.ai.stigmer.agent" +
       "ic.eval.v1.GetRunEvalCaseArchiveInput\0322." +
       "ai.stigmer.agentic.eval.v1.EvalArchiveDo" +
-      "wnloadUrl\"\004\320\270\030\001B\241\001B\020RunEvalCaseProtoP\001\242\002" +
-      "\004ASAE\252\002\032Ai.Stigmer.Agentic.Eval.V1\312\002\033Ai\\" +
-      "Stigmer\\Agentic\\Eval_\\V1\342\002\'Ai\\Stigmer\\Ag" +
-      "entic\\Eval_\\V1\\GPBMetadata\352\002\036Ai::Stigmer" +
-      "::Agentic::Eval::V1b\006proto3"
+      "wnloadUrl\"\010\320\270\030\001\330\270\030\001B\241\001B\020RunEvalCaseProto" +
+      "P\001\242\002\004ASAE\252\002\032Ai.Stigmer.Agentic.Eval.V1\312\002" +
+      "\033Ai\\Stigmer\\Agentic\\Eval_\\V1\342\002\'Ai\\Stigme" +
+      "r\\Agentic\\Eval_\\V1\\GPBMetadata\352\002\036Ai::Sti" +
+      "gmer::Agentic::Eval::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -75,6 +75,7 @@ public final class RunEvalCaseProto extends com.google.protobuf.GeneratedFile {
     build.buf.validate.ValidateProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
+    registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.isRunnerOnly);
     registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.isSkipAuthorization);
     registry.add(build.buf.validate.ValidateProto.field);
     com.google.protobuf.Descriptors.FileDescriptor

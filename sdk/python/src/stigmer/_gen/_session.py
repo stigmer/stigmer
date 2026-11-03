@@ -90,18 +90,6 @@ class SessionClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def append_events(self, input: io_pb2.AppendSessionEventsInput) -> io_pb2.AppendSessionEventsResponse:
-        try:
-            return self._command.appendEvents(input)
-        except grpc.RpcError as e:
-            raise wrap_error(e) from e
-
-    def claim_input(self, input: io_pb2.ClaimSessionInputInput) -> io_pb2.ClaimSessionInputResponse:
-        try:
-            return self._command.claimInput(input)
-        except grpc.RpcError as e:
-            raise wrap_error(e) from e
-
     def get(self, id: str) -> api_pb2.Session:
         try:
             return self._query.get(io_pb2.SessionId(value=id))

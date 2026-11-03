@@ -650,11 +650,11 @@ const file_ai_stigmer_agentic_file_v1_run_files_proto_rawDesc = "" +
 	"upload_ref\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\tuploadRef\x12<\n" +
 	"\x0econtent_sha256\x18\x03 \x01(\tB\x15\xbaH\x12r\x102\x0e^[0-9a-f]{64}$R\rcontentSha256\"K\n" +
 	"\x11RegisteredOutputs\x126\n" +
-	"\x05files\x18\x01 \x03(\v2 .ai.stigmer.agentic.file.v1.FileR\x05files2\xf5\x02\n" +
-	"\x11RunFileController\x12h\n" +
-	"\x05mount\x12..ai.stigmer.agentic.file.v1.MountRunFilesInput\x1a).ai.stigmer.agentic.file.v1.RunFileMounts\"\x04и\x18\x01\x12|\n" +
-	"\x13createOutputUploads\x124.ai.stigmer.agentic.file.v1.CreateOutputUploadsInput\x1a).ai.stigmer.agentic.file.v1.OutputUploads\"\x04и\x18\x01\x12x\n" +
-	"\x0fregisterOutputs\x120.ai.stigmer.agentic.file.v1.RegisterOutputsInput\x1a-.ai.stigmer.agentic.file.v1.RegisteredOutputs\"\x04и\x18\x01B\x88\x02\n" +
+	"\x05files\x18\x01 \x03(\v2 .ai.stigmer.agentic.file.v1.FileR\x05files2\x82\x03\n" +
+	"\x11RunFileController\x12l\n" +
+	"\x05mount\x12..ai.stigmer.agentic.file.v1.MountRunFilesInput\x1a).ai.stigmer.agentic.file.v1.RunFileMounts\"\bи\x18\x01ظ\x18\x01\x12\x80\x01\n" +
+	"\x13createOutputUploads\x124.ai.stigmer.agentic.file.v1.CreateOutputUploadsInput\x1a).ai.stigmer.agentic.file.v1.OutputUploads\"\bи\x18\x01ظ\x18\x01\x12|\n" +
+	"\x0fregisterOutputs\x120.ai.stigmer.agentic.file.v1.RegisterOutputsInput\x1a-.ai.stigmer.agentic.file.v1.RegisteredOutputs\"\bи\x18\x01ظ\x18\x01B\x88\x02\n" +
 	"\x1ecom.ai.stigmer.agentic.file.v1B\rRunFilesProtoP\x01ZJgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/file/v1;filev1\xa2\x02\x04ASAF\xaa\x02\x1aAi.Stigmer.Agentic.File.V1\xca\x02\x1aAi\\Stigmer\\Agentic\\File\\V1\xe2\x02&Ai\\Stigmer\\Agentic\\File\\V1\\GPBMetadata\xea\x02\x1eAi::Stigmer::Agentic::File::V1b\x06proto3"
 
 var (

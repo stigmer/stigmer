@@ -118,15 +118,15 @@ public final class ValuesProto extends com.google.protobuf.GeneratedFile {
       "aluesEntryR\006values\0329\n\013ValuesEntry\022\020\n\003key" +
       "\030\001 \001(\tR\003key\022\024\n\005value\030\002 \001(\tR\005value:\0028\001\"N\n" +
       "\020RepositoryValues\022\022\n\004name\030\001 \001(\tR\004name\022\020\n" +
-      "\003url\030\002 \001(\tR\003url\022\024\n\005token\030\003 \001(\tR\005token2\221\001" +
-      "\n\024VaultValueController\022y\n\013fetchValues\0226." +
+      "\003url\030\002 \001(\tR\003url\022\024\n\005token\030\003 \001(\tR\005token2\225\001" +
+      "\n\024VaultValueController\022}\n\013fetchValues\0226." +
       "ai.stigmer.agentic.vault.v1.FetchExecuti" +
       "onValuesInput\032,.ai.stigmer.agentic.vault" +
-      ".v1.ExecutionValues\"\004\320\270\030\001B\236\001B\013ValuesProt" +
-      "oP\001\242\002\004ASAV\252\002\033Ai.Stigmer.Agentic.Vault.V1" +
-      "\312\002\033Ai\\Stigmer\\Agentic\\Vault\\V1\342\002\'Ai\\Stig" +
-      "mer\\Agentic\\Vault\\V1\\GPBMetadata\352\002\037Ai::S" +
-      "tigmer::Agentic::Vault::V1b\006proto3"
+      ".v1.ExecutionValues\"\010\320\270\030\001\330\270\030\001B\236\001B\013Values" +
+      "ProtoP\001\242\002\004ASAV\252\002\033Ai.Stigmer.Agentic.Vaul" +
+      "t.V1\312\002\033Ai\\Stigmer\\Agentic\\Vault\\V1\342\002\'Ai\\" +
+      "Stigmer\\Agentic\\Vault\\V1\\GPBMetadata\352\002\037A" +
+      "i::Stigmer::Agentic::Vault::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -199,6 +199,7 @@ public final class ValuesProto extends com.google.protobuf.GeneratedFile {
     build.buf.validate.ValidateProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
+    registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.isRunnerOnly);
     registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.isSkipAuthorization);
     registry.add(build.buf.validate.ValidateProto.field);
     com.google.protobuf.Descriptors.FileDescriptor

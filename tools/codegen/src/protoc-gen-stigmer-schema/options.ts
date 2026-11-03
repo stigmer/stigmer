@@ -13,7 +13,7 @@
 //   - float/double bounds truncate toward zero to integers;
 //   - gt/lt convert to inclusive bounds via ±1.
 
-import type { DescExtension, DescField, FileRegistry } from "@bufbuild/protobuf";
+import type { DescExtension, DescField, DescMethod, FileRegistry } from "@bufbuild/protobuf";
 import { getExtension, hasExtension } from "@bufbuild/protobuf";
 import { reflect } from "@bufbuild/protobuf/reflect";
 import type { ReflectList, ReflectMessage } from "@bufbuild/protobuf/reflect";
@@ -22,6 +22,10 @@ import type { Message } from "@bufbuild/protobuf";
 // Extension field numbers on google.protobuf.FieldOptions.
 const BUF_VALIDATE_FIELD = 1159;
 const REFERENCE_KIND = 90204;
+
+// Extension field number on google.protobuf.MethodOptions:
+// ai.stigmer.commons.rpc.is_runner_only (rpc/method_options.proto).
+const IS_RUNNER_ONLY = 50059;
 
 /** Validation rules in the exact shape the committed schemas hold. */
 export interface ValidationRules {
@@ -39,11 +43,14 @@ export interface ValidationRules {
 export class OptionsReader {
   private readonly validateExt: DescExtension | undefined;
   private readonly referenceKindExt: DescExtension | undefined;
+  private readonly runnerOnlyExt: DescExtension | undefined;
 
   constructor(registry: FileRegistry) {
     const fieldOptions = registry.getMessage("google.protobuf.FieldOptions");
     this.validateExt = fieldOptions && registry.getExtensionFor(fieldOptions, BUF_VALIDATE_FIELD);
     this.referenceKindExt = fieldOptions && registry.getExtensionFor(fieldOptions, REFERENCE_KIND);
+    const methodOptions = registry.getMessage("google.protobuf.MethodOptions");
+    this.runnerOnlyExt = methodOptions && registry.getExtensionFor(methodOptions, IS_RUNNER_ONLY);
   }
 
   /** Port of extractValidation: buf.validate rules, or null when none captured. */
@@ -180,6 +187,16 @@ export class OptionsReader {
   referenceKind(field: DescField): number {
     const value = this.scalarExtension(field.proto.options, this.referenceKindExt);
     return typeof value === "number" ? value : 0;
+  }
+
+  /**
+   * Whether only a runner ever calls the method (is_runner_only). Such a
+   * method is left out of the service schemas, so no SDK client or reference
+   * page offers it. A registry that never loaded method_options.proto marks
+   * nothing.
+   */
+  isRunnerOnly(method: DescMethod): boolean {
+    return this.scalarExtension(method.proto.options, this.runnerOnlyExt) === true;
   }
 
   private scalarExtension(options: Message | undefined, ext: DescExtension | undefined): unknown {

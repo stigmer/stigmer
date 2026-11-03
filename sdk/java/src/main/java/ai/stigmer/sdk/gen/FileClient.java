@@ -3,7 +3,6 @@
 package ai.stigmer.sdk.gen;
 
 import ai.stigmer.agentic.file.v1.CreateFileUploadUrlInput;
-import ai.stigmer.agentic.file.v1.CreateOutputUploadsInput;
 import ai.stigmer.agentic.file.v1.File;
 import ai.stigmer.agentic.file.v1.FileCommandControllerGrpc;
 import ai.stigmer.agentic.file.v1.FileContent;
@@ -14,12 +13,6 @@ import ai.stigmer.agentic.file.v1.FileQueryControllerGrpc;
 import ai.stigmer.agentic.file.v1.FileUploadUrl;
 import ai.stigmer.agentic.file.v1.GetFileContentInput;
 import ai.stigmer.agentic.file.v1.ListFilesRequest;
-import ai.stigmer.agentic.file.v1.MountRunFilesInput;
-import ai.stigmer.agentic.file.v1.OutputUploads;
-import ai.stigmer.agentic.file.v1.RegisterOutputsInput;
-import ai.stigmer.agentic.file.v1.RegisteredOutputs;
-import ai.stigmer.agentic.file.v1.RunFileControllerGrpc;
-import ai.stigmer.agentic.file.v1.RunFileMounts;
 import ai.stigmer.agentic.file.v1.UpdateFileInput;
 import ai.stigmer.agentic.file.v1.UploadFileInput;
 import ai.stigmer.commons.apiresource.UpdateVisibilityInput;
@@ -31,12 +24,10 @@ import io.grpc.StatusRuntimeException;
 public class FileClient {
     private final FileCommandControllerGrpc.FileCommandControllerBlockingStub command;
     private final FileQueryControllerGrpc.FileQueryControllerBlockingStub query;
-    private final RunFileControllerGrpc.RunFileControllerBlockingStub runFile;
 
     protected FileClient(Channel channel) {
         this.command = FileCommandControllerGrpc.newBlockingStub(channel);
         this.query = FileQueryControllerGrpc.newBlockingStub(channel);
-        this.runFile = RunFileControllerGrpc.newBlockingStub(channel);
     }
 
     public File upload(UploadFileInput input) {
@@ -106,24 +97,6 @@ public class FileClient {
     public FileContent getContent(GetFileContentInput input) {
         try {
             return query.getContent(input);
-        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
-    }
-
-    public RunFileMounts mount(MountRunFilesInput input) {
-        try {
-            return runFile.mount(input);
-        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
-    }
-
-    public OutputUploads createOutputUploads(CreateOutputUploadsInput input) {
-        try {
-            return runFile.createOutputUploads(input);
-        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
-    }
-
-    public RegisteredOutputs registerOutputs(RegisterOutputsInput input) {
-        try {
-            return runFile.registerOutputs(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 }

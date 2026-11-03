@@ -2,11 +2,7 @@
 
 package ai.stigmer.sdk.gen;
 
-import ai.stigmer.agentic.session.v1.AppendSessionEventsInput;
-import ai.stigmer.agentic.session.v1.AppendSessionEventsResponse;
 import ai.stigmer.agentic.session.v1.Attention;
-import ai.stigmer.agentic.session.v1.ClaimSessionInputInput;
-import ai.stigmer.agentic.session.v1.ClaimSessionInputResponse;
 import ai.stigmer.agentic.session.v1.ConfirmToolUseInput;
 import ai.stigmer.agentic.session.v1.GrantPermissionInput;
 import ai.stigmer.agentic.session.v1.GrantPermissionResponse;
@@ -105,18 +101,6 @@ public final class SessionClient {
     public Session delete(String id) {
         try {
             return command.delete(SessionId.newBuilder().setValue(id).build());
-        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
-    }
-
-    public AppendSessionEventsResponse appendEvents(AppendSessionEventsInput input) {
-        try {
-            return command.appendEvents(input);
-        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
-    }
-
-    public ClaimSessionInputResponse claimInput(ClaimSessionInputInput input) {
-        try {
-            return command.claimInput(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

@@ -17,14 +17,12 @@ import (
 type FileClient struct {
 	command filev1.FileCommandControllerClient
 	query   filev1.FileQueryControllerClient
-	runFile filev1.RunFileControllerClient
 }
 
 func NewFileClient(conn grpc.ClientConnInterface) *FileClient {
 	return &FileClient{
 		command: filev1.NewFileCommandControllerClient(conn),
 		query:   filev1.NewFileQueryControllerClient(conn),
-		runFile: filev1.NewRunFileControllerClient(conn),
 	}
 }
 
@@ -102,21 +100,6 @@ func (f *FileClient) GetDownloadUrl(ctx context.Context, id string) (*filev1.Fil
 
 func (f *FileClient) GetContent(ctx context.Context, input *filev1.GetFileContentInput) (*filev1.FileContent, error) {
 	resp, err := f.query.GetContent(ctx, input)
-	return resp, wrapErr(err)
-}
-
-func (f *FileClient) Mount(ctx context.Context, input *filev1.MountRunFilesInput) (*filev1.RunFileMounts, error) {
-	resp, err := f.runFile.Mount(ctx, input)
-	return resp, wrapErr(err)
-}
-
-func (f *FileClient) CreateOutputUploads(ctx context.Context, input *filev1.CreateOutputUploadsInput) (*filev1.OutputUploads, error) {
-	resp, err := f.runFile.CreateOutputUploads(ctx, input)
-	return resp, wrapErr(err)
-}
-
-func (f *FileClient) RegisterOutputs(ctx context.Context, input *filev1.RegisterOutputsInput) (*filev1.RegisteredOutputs, error) {
-	resp, err := f.runFile.RegisterOutputs(ctx, input)
 	return resp, wrapErr(err)
 }
 

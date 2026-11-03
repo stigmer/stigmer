@@ -8,8 +8,9 @@ import "google/protobuf/descriptor.proto";
 // Custom method options for declarative RPC authorization.
 //
 // @internal
-// These extensions are read by the authorization interceptor at request time
-// to enforce permission checks before the handler executes.
+// These extensions, all but is_runner_only, are read by the authorization
+// interceptor at request time to enforce permission checks before the
+// handler executes; is_runner_only is read by the schema extractor alone.
 extend google.protobuf.MethodOptions {
   // Full authorization configuration: permission, resource kind, field path, and error message.
   ai.stigmer.commons.rpc.RpcAuthorizationConfig config = 50056;
@@ -19,4 +20,13 @@ extend google.protobuf.MethodOptions {
 
   // When true, the RPC requires authentication but skips FGA authorization checks.
   bool is_skip_authorization = 50058;
+
+  // When true, only a runner presenting the run's credential ever calls the
+  // RPC, never a person, so the SDK generators leave it out of every public
+  // client and reference page. It is a codegen mark, not an authorization
+  // posture: the server does not read it, and the method's handler still
+  // holds the gate that refuses every other caller. A marked method also
+  // carries is_skip_authorization, since a person's permission cannot tell
+  // a runner from the person it acts for.
+  bool is_runner_only = 50059;
 }
