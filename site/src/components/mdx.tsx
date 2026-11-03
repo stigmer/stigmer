@@ -8,7 +8,9 @@ import { ImageZoom } from "fumadocs-ui/components/image-zoom";
 import { Accordion, Accordions } from "fumadocs-ui/components/accordion";
 import { Card, Cards } from "fumadocs-ui/components/card";
 import { Diagram, Hero, Mermaid, ReactSdkDomains, SDKTabs, Term } from "@/components/docs";
+import { Live } from "@/components/visuals/Live";
 import { Screen } from "@/components/visuals/Screen";
+import { ThemePlayground } from "@/components/visuals/ThemePlayground";
 
 export function getMDXComponents(components?: MDXComponents) {
   return {
@@ -28,11 +30,13 @@ export function getMDXComponents(components?: MDXComponents) {
     Cards,
     Diagram,
     Hero,
+    Live,
     Mermaid,
     ReactSdkDomains,
     Screen,
     SDKTabs,
     Term,
+    ThemePlayground,
     ...components,
   } satisfies MDXComponents;
 }

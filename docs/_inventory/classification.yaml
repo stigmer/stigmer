@@ -941,6 +941,28 @@ pages:
       credential per environment, and find the hooks.
     medium: none
 
+  sdk/react/gallery:
+    fate: keep
+    diataxis: reference
+    teaches:
+      See AgentChat as page, panel and popup, the session view and every thread
+      state working, and try a send, an approval and Stop before installing.
+    medium: interactive
+    why:
+      An embedder judges a chat by using it; the kit's own components answer a
+      scripted turn in place.
+
+  sdk/react-core/build-a-chat:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Build a whole chat with your own markup from useCreateRun and
+      useSessionConversation — start, follow, answer an ask, stop.
+    medium: interactive
+    why:
+      The program the guide quotes runs beside it, so the reader sees each
+      hook's effect as they read the code that produces it.
+
   sdk/ink:
     fate: keep
     diataxis: how-to

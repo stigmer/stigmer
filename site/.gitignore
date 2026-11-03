@@ -47,6 +47,10 @@ next-env.d.ts
 # (scripts/generate-screens.ts)
 /public/screens/
 
+# The kit's gallery, built at build time for the docs' live demos
+# (scripts/generate-gallery.ts)
+/public/gallery/
+
 # Search index (generated at build time)
 out/_pagefind/
 public/_pagefind/

@@ -1,6 +1,7 @@
 // The visual task's cached pass is honest only if turbo hashes every file the
 // suite reads from outside this package: the console's typefaces the gallery
-// draws with, the job's names its story scenes draw, and the workflow and
+// draws with, the job's names its story scenes draw, the hooks guide's
+// program its from-hooks scene draws, and the workflow and
 // lockfile the image pin is held to.
 // scripts/turbo-inputs.test.mjs guards the libraries' tests the same way, by
 // turbo's own resolved inputs, and does not reach a test package; this does,
@@ -39,6 +40,10 @@ describe("the visual task's inputs", () => {
 
   it("hash the job's names the story scenes draw", () => {
     expect(inputs).toContain("../../brand/job-story.ts");
+  });
+
+  it("hash the hooks guide's program the from-hooks scene draws", () => {
+    expect(inputs).toContain("../../sdk/react-core/examples/chat/Chat.tsx");
   });
 
   it("hash the workflow and the lockfile the image pin is held to, and the pin itself", () => {
