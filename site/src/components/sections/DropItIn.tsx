@@ -1,8 +1,8 @@
 "use client";
 
 /**
- * "Drop it in": the lines of React that put the panel the hero shows into
- * an app.
+ * "Drop it in": the lines of React that put the panel the hero opens on
+ * into an app.
  *
  * The code is the embed guide's own `src/App.tsx`
  * (docs/getting-started/embed-agent.mdx), quoted as runs of its consecutive
@@ -10,8 +10,8 @@
  * too. The Getting Started smoke runs that page, and
  * sections/__tests__/snippets.test.tsx fails when a line here stops being
  * one of its lines or a gap goes unmarked. One sentence names the three
- * frames the component comes in; the hero is what these lines render, so
- * the section shows no picture of its own.
+ * frames the component comes in; the hero's moments inside a product are
+ * what these lines render, so the section shows no picture of its own.
  */
 import * as React from "react";
 import Link from "next/link";

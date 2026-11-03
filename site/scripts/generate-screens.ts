@@ -8,8 +8,11 @@
  * encodings is smaller, and fails the build when an
  * approved picture is missing, is not the size its entry declares, or
  * converts to a file heavier than the per-file image budget in
- * test/bundle-budgets.json. Files the list no longer names are removed, so
- * a dropped screen is not served on.
+ * test/bundle-budgets.json. A set of screens one visit fetches together
+ * (the homepage hero's five moments, in one crop at one density) is weighed
+ * as a whole too, against its own budget there, and its sum is printed.
+ * Files the list no longer names are removed, so a dropped screen is not
+ * served on.
  *
  * The folder is build output, ignored by git: the approved PNG is the one
  * copy of each picture, and every build converts it again.
@@ -22,6 +25,7 @@ import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
 import budgets from "../../test/bundle-budgets.json";
+import { HERO_SETS } from "../src/lib/hero-moments";
 import { SCREEN_DENSITIES, SCREENS_DIR, SHOWN, SHOWN_SCALE, screenFile, shownSize, type Shown } from "../src/lib/screens";
 
 /** Where the visual suite keeps the pictures it approved for the site. */
@@ -47,18 +51,46 @@ async function smallestWebp(source: string, width: number, height: number): Prom
   return encoded.reduce((smallest, candidate) => (candidate.length < smallest.length ? candidate : smallest));
 }
 
-/** One conversion: the pictures to convert, where their approved PNGs are, where the files go and the most one file may weigh. */
+/** Screens a visit fetches together, and the most they may weigh at any one density. */
+export interface ScreenSet {
+  /** The set's name in the budget file and in what is printed: `site/hero whole`. */
+  readonly label: string;
+  readonly names: readonly string[];
+  readonly maxBytes: number;
+}
+
+/** One conversion: the pictures to convert, where their approved PNGs are, where the files go, the most one file may weigh, and the sets weighed whole. */
 export interface ScreensJob {
   readonly shown: readonly Shown[];
   readonly sourceDir: string;
   readonly outDir: string;
   readonly maxBytes: number;
+  readonly sets?: readonly ScreenSet[];
 }
 
 /** One file written, and its weight. */
 export interface WrittenScreen {
   readonly file: string;
   readonly bytes: number;
+}
+
+/** One set at one density, and what its files weigh together. */
+export interface SetWeight {
+  readonly set: ScreenSet;
+  readonly density: number;
+  readonly bytes: number;
+}
+
+/** Each set's weight at each density, from the files written; a file not written counts nothing, and its own problem says why. */
+export function setWeights(sets: readonly ScreenSet[], written: readonly WrittenScreen[]): SetWeight[] {
+  const bytesOf = new Map(written.map(({ file, bytes }) => [file, bytes]));
+  return sets.flatMap((set) =>
+    SCREEN_DENSITIES.map((density) => ({
+      set,
+      density,
+      bytes: set.names.reduce((sum, name) => sum + (bytesOf.get(screenFile(name, density)) ?? 0), 0),
+    })),
+  );
 }
 
 /**
@@ -100,6 +132,12 @@ export async function generateScreens(job: ScreensJob): Promise<WrittenScreen[]>
     }
   }
 
+  for (const { set, density, bytes } of setWeights(job.sets ?? [], written)) {
+    if (bytes > set.maxBytes) {
+      problems.push(`${set.label} at ${density}x: ${bytes} B together, over the ${set.maxBytes} B the set may weigh (test/bundle-budgets.json, images)`);
+    }
+  }
+
   const named = new Set(job.shown.flatMap((shown) => SCREEN_DENSITIES.map((density) => screenFile(shown.name, density))));
   for (const file of await fs.readdir(job.outDir)) {
     if (!named.has(file)) await fs.rm(path.join(job.outDir, file), { recursive: true, force: true });
@@ -111,14 +149,20 @@ export async function generateScreens(job: ScreensJob): Promise<WrittenScreen[]>
 
 async function main(): Promise<void> {
   console.log("🖥  Stigmer screens, from the visual suite's approved pictures");
+  // The hero's moments, one set per crop: a visit fetches one crop at one density.
+  const sets = HERO_SETS.map(({ crop, names }) => ({ label: `site/hero ${crop}`, names, maxBytes: budgets.images["site/hero"] }));
   try {
     const written = await generateScreens({
       shown: SHOWN,
       sourceDir: APPROVED,
       outDir: path.join(process.cwd(), "public", SCREENS_DIR),
       maxBytes: budgets.images["site/screen"],
+      sets,
     });
     for (const { file, bytes } of written) console.log(`  ✓ public/${SCREENS_DIR}/${file} (${bytes} B)`);
+    for (const { set, density, bytes } of setWeights(sets, written)) {
+      console.log(`  ✓ ${set.label} at ${density}x: ${bytes} B of ${set.maxBytes} B`);
+    }
   } catch (error) {
     console.error("\n❌ Error generating screens:\n", error instanceof Error ? error.message : error);
     process.exit(1);

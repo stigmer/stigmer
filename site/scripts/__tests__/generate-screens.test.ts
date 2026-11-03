@@ -1,10 +1,11 @@
 // @vitest-environment node
 /**
  * The screens the site serves, converted from the visual suite's approved
- * pictures. The real run converts the real list in a temporary site, and
- * fails the build when a file is over the image budget; direct calls on
- * tiny synthetic pictures cover a missing picture, a picture of the wrong
- * size, a file over the budget and a file the list no longer names.
+ * pictures. The real run converts the real list in a temporary site, weighs
+ * the hero's moments as sets, and fails the build when a file is over the
+ * image budget; direct calls on tiny synthetic pictures cover a missing
+ * picture, a picture of the wrong size, a file over the budget, a set over
+ * its budget and a file the list no longer names.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { mkdtemp, mkdir, readdir, rm, stat, writeFile } from "node:fs/promises";
@@ -82,10 +83,29 @@ describe("the site's screens, from the real list", () => {
   );
 
   it(
+    "weighs the hero's five moments as one set per crop and density, each within the hero's budget",
+    async () => {
+      await prepareSite();
+      const log = vi.spyOn(console, "log").mockImplementation(() => {});
+      const { generation } = await import("../generate-screens");
+      await generation;
+      const lines = log.mock.calls.flat().join("\n");
+      for (const crop of ["whole", "narrow"]) {
+        for (const density of [1, 2]) {
+          const [, sum] = new RegExp(`site/hero ${crop} at ${density}x: (\\d+) B of ${budgets.images["site/hero"]} B`).exec(lines) ?? [];
+          expect(Number(sum), `${crop} ${density}x`).toBeGreaterThan(0);
+          expect(Number(sum), `${crop} ${density}x`).toBeLessThanOrEqual(budgets.images["site/hero"]);
+        }
+      }
+    },
+    REAL_TIMEOUT_MS,
+  );
+
+  it(
     "stops the build, naming the file and its weight, when a screen is over the image budget",
     async () => {
       await prepareSite();
-      vi.doMock("../../../test/bundle-budgets.json", () => ({ default: { budgets: {}, images: { "site/screen": 1000 } } }));
+      vi.doMock("../../../test/bundle-budgets.json", () => ({ default: { budgets: {}, images: { "site/screen": 1000, "site/hero": 600_000 } } }));
       const error = vi.spyOn(console, "error").mockImplementation(() => {});
       const exit = vi.spyOn(process, "exit").mockImplementation((() => undefined) as typeof process.exit);
       const { generation } = await import("../generate-screens");
@@ -135,6 +155,34 @@ describe("generateScreens", () => {
       const lossless = (await sharp(source).resize(width, height).webp({ lossless: true, effort: 6 }).toBuffer()).length;
       expect(written.find((w) => w.file === `${name}-${density}x.webp`)?.bytes, `${name} ${density}x`).toBe(Math.min(lossy, lossless));
     }
+  });
+
+  it("weighs a set of screens together at each density, and names a set over its budget with its sum", async () => {
+    const { dir } = await prepareSite();
+    await png(dir, "first", 40, 30, true);
+    await png(dir, "second", 40, 30, true);
+    await png(dir, "apart", 40, 30, true);
+    const { generateScreens, setWeights } = await load();
+    const shown = [entry("first", 20, 15), entry("second", 20, 15), entry("apart", 20, 15)];
+    const set = { label: "site/hero whole", names: ["first", "second"], maxBytes: 1 };
+    const outDir = join(dir, "out");
+    const message = await generateScreens({ shown, sourceDir: dir, outDir, maxBytes: 100_000, sets: [set] }).then(
+      () => "converted with no problem",
+      (error: unknown) => (error instanceof Error ? error.message : String(error)),
+    );
+    const bytes = async (file: string) => (await stat(join(outDir, file))).size;
+    for (const density of [1, 2]) {
+      const sum = (await bytes(`first-${density}x.webp`)) + (await bytes(`second-${density}x.webp`));
+      expect(message).toContain(`site/hero whole at ${density}x: ${sum} B together, over the 1 B the set may weigh`);
+    }
+    // Only the set's own files count, at their own density.
+    const written = await Promise.all(
+      ["first", "second", "apart"].flatMap((name) => [1, 2].map(async (density) => ({ file: `${name}-${density}x.webp`, bytes: await bytes(`${name}-${density}x.webp`) }))),
+    );
+    expect(setWeights([set], written).map(({ density, bytes: sum }) => [density, sum])).toEqual([
+      [1, (await bytes("first-1x.webp")) + (await bytes("second-1x.webp"))],
+      [2, (await bytes("first-2x.webp")) + (await bytes("second-2x.webp"))],
+    ]);
   });
 
   it("names every problem at once: a missing picture, one of the wrong size, a file over the budget", async () => {

@@ -1,22 +1,18 @@
 "use client";
 
 /**
- * The homepage's first screen: the headline over a picture of Stigmer at
- * work inside a product.
+ * The homepage's first screen: the headline over the five hard parts,
+ * named, and a picture of the product that steps through a real moment of
+ * each (components/visuals/HeroMoments.tsx).
  *
- * The picture is the visual suite's drawing of an integrator's ledger
- * screen for its customer Northwind Books, with Stigmer's chat panel docked
- * beside it at the moment the ledger agent asks before it posts a
- * correction (test/visual/src/shown.ts, "in-product"). On a large screen it
- * spans the container; below `CROP_MEDIA` the whole screen would be
- * too small to read, so the page shows the panel's crop of the same
- * drawing instead. It is the page's largest paint, so it loads first and
- * does not fade in; the copy above it keeps its reveal.
- *
- * The picture carries no marks. It shows two of the five things every
- * customer's agent needs and none of the other three, and singling out
- * two would say there are two; one line under it points to the section
- * below, where all five are said with their proofs.
+ * It opens on the ask: an integrator's ledger screen for its customer
+ * Northwind Books, with Stigmer's chat panel docked beside it at the moment
+ * the ledger agent asks before it posts a correction. That picture is the
+ * page's largest paint, so it loads first and does not fade in, and it is
+ * the still a visitor who asked for less motion sees; the copy above keeps
+ * its reveal. The five names sit above the picture, so a visitor sees all
+ * five on the first screen, each linking to its row in the section below,
+ * which says them with their proofs.
  */
 import * as React from "react";
 import Link from "next/link";
@@ -26,22 +22,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Icon } from "@/components/ui/icon";
 import { FadeInUp, StaggerContainer, StaggerItem } from "@/components/ui/motion";
-import { ScreenPicture } from "@/components/visuals/ScreenPicture";
+import { HeroMoments } from "@/components/visuals/HeroMoments";
 
 export type HeroProps = React.HTMLAttributes<HTMLElement>;
-
-/** The shown picture of the whole screen, and its crop of the panel alone. */
-export const HERO_SCREEN = { whole: "in-product", panel: "in-product-panel" } as const;
-
-/** What the picture shows, for a reader who cannot see it; true of both crops. */
-export const HERO_ALT =
-  "Stigmer's chat panel inside a product, open beside Northwind Books' ledger. The ledger agent has read the ledger, found the Figma annual plan filed under office supplies, and waits for Approve or Deny before it posts the correction.";
-
-/** The line under the picture, pointing to the five below rather than at any one of them. */
-export const HERO_LINE = {
-  lead: "Behind that panel are five hard parts.",
-  link: "See how Stigmer handles each one",
-} as const;
 
 function Hero({ className, ...props }: HeroProps) {
   return (
@@ -113,22 +96,8 @@ function Hero({ className, ...props }: HeroProps) {
           </FadeInUp>
         </div>
 
-        {/* The product with Stigmer in it: the largest paint, so no entrance fade. */}
-        <div className="mt-10 sm:mt-12">
-          <ScreenPicture
-            name={HERO_SCREEN.whole}
-            narrow={HERO_SCREEN.panel}
-            alt={HERO_ALT}
-            sizes="(width >= 80rem) 1216px, calc(100vw - 4rem)"
-            priority
-          />
-          <p className="mt-6 text-center text-sm text-muted-foreground">
-            {HERO_LINE.lead}{" "}
-            <a href="#hard-parts" className="text-foreground underline underline-offset-4 hover:text-foreground/80">
-              {HERO_LINE.link}
-            </a>
-          </p>
-        </div>
+        {/* The five, and the product with Stigmer in it: the ask is the largest paint, so no entrance fade. */}
+        <HeroMoments className="mt-10 sm:mt-12" />
 
         {/* Stats bar */}
         <FadeInUp delay={0.6}>
