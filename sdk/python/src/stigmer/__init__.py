@@ -2,6 +2,8 @@
 
 Usage::
 
+    import os
+
     from stigmer import StigmerClient, AgentInput
 
     with StigmerClient(os.environ["STIGMER_API_KEY"]) as client:

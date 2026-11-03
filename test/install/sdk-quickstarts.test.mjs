@@ -20,10 +20,10 @@ const ROOT = fileURLToPath(new URL("../../", import.meta.url));
 /** `sk_` at the start of a token: `"sk_live_…"`, `` `sk_` ``, never `task_` or `stk_`. */
 const STRIPE_SHAPED_KEY = "(^|[^A-Za-z0-9_])sk_";
 
-/** Every `path:line: text` in the tracked tree whose line matches `pattern`. */
+/** Every `path:line: text` in the tracked text files whose line matches `pattern` (`-I`: a binary file is never a hit). */
 function trackedHits(pattern, pathspecs) {
   try {
-    return execFileSync("git", ["grep", "-nE", pattern, "--", ...pathspecs], { cwd: ROOT, encoding: "utf8" })
+    return execFileSync("git", ["grep", "-InE", pattern, "--", ...pathspecs], { cwd: ROOT, encoding: "utf8" })
       .split("\n")
       .filter(Boolean);
   } catch (error) {

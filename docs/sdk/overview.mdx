@@ -200,10 +200,10 @@ client, err := stigmer.NewClient(
 | `WithAPIKey(key)` | API key. Required unless the connection is insecure. |
 | `WithBaseURL(target)` | gRPC target address (`host:port`). Default: `api.stigmer.ai:443`. |
 | `WithInsecure()` | Disable TLS. Use only for local development. |
+| `WithDialOptions(opts...)` | Append additional gRPC dial options. |
 
 On your machine, `stigmer up` needs no key:
 `stigmer.NewClient(stigmer.WithBaseURL("localhost:7234"), stigmer.WithInsecure())`.
-| `WithDialOptions(opts...)` | Append additional gRPC dial options. |
 
 Always call `defer client.Close()` to release the underlying gRPC connection.
 </Tab>
