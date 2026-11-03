@@ -3,7 +3,8 @@
 // month unless told otherwise; the verdict read polls a run's scores past
 // the judge's pending score until a grade or a not-graded reason lands,
 // failing loudly once its budget is spent; the judge-run count reads the
-// organization's runs by the judge label. The clients are stubbed; nothing
+// organization's runs by the judge label, and its wait polls that count to
+// zero, failing loudly with the last count. The clients are stubbed; nothing
 // here starts a server.
 import { create } from "@bufbuild/protobuf";
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
@@ -15,6 +16,7 @@ import type { ConformanceClients } from "../../harness/clients";
 import {
   GRADES_RUN_LABEL,
   JUDGE,
+  awaitJudgeRunsGone,
   awaitJudgeVerdict,
   scoringRuleOrgMismatchMessage,
   judgeRunsOf,
@@ -85,5 +87,36 @@ describe("judgeRunsOf", () => {
       },
     } as unknown as ConformanceClients;
     expect(await judgeRunsOf(clients, "org_1", "run_1")).toBe(1);
+  });
+});
+
+describe("awaitJudgeRunsGone", () => {
+  const run = (labels: Record<string, string>) => create(RunSchema, { metadata: { labels } });
+  function runListing(counts: number[]): { clients: ConformanceClients; reads: () => number } {
+    let calls = 0;
+    const clients = {
+      agentExecutionQuery: {
+        list: async () => {
+          const count = counts[Math.min(calls, counts.length - 1)] ?? 0;
+          calls += 1;
+          return { entries: Array.from({ length: count }, () => run({ [GRADES_RUN_LABEL]: "run_1" })) };
+        },
+      },
+    } as unknown as ConformanceClients;
+    return { clients, reads: () => calls };
+  }
+
+  it("returns once the judge's run is deleted", async () => {
+    const { clients, reads } = runListing([1, 1, 0]);
+    await awaitJudgeRunsGone(clients, "org_1", "run_1", 5_000);
+    expect(reads()).toBe(3);
+  });
+
+  it("fails loudly with the last count once its budget is spent", async () => {
+    const { clients, reads } = runListing([1]);
+    await expect(awaitJudgeRunsGone(clients, "org_1", "run_1", 0)).rejects.toThrow(
+      "run run_1 still has 1 judge run(s) after 0 ms",
+    );
+    expect(reads(), "a zero budget still reads").toBeGreaterThanOrEqual(1);
   });
 });
