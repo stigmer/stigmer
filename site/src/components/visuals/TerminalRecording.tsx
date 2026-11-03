@@ -79,8 +79,8 @@ export function TerminalRecording({ name, alt, className }: TerminalRecordingPro
       setIndex(last);
       return;
     }
-    const element = box.current;
-    if (element === null || typeof IntersectionObserver === "undefined") return;
+    // The figure is mounted before its effects run, so the box is always there.
+    const element = box.current!;
     const observer = new IntersectionObserver((entries) => {
       if (entries.some((entry) => entry.isIntersecting)) {
         setPlaying(true);
