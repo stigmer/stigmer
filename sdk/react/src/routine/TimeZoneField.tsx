@@ -35,7 +35,8 @@ const MAX_VISIBLE = 100;
  * The zone list comes from the runtime's own tz database
  * (`Intl.supportedValuesOf`), which is also what {@link validateTimeZone}
  * checks against — the offered choices and the accepted choices cannot
- * drift.
+ * drift. Each zone is offered by its current IANA name
+ * ({@link currentTimeZoneName}), and a search finds it by its old one too.
  *
  * Internal to the routine folder by design: public API surface is a
  * contract, and this earns a barrel export only when a second consumer
@@ -59,7 +60,9 @@ export function TimeZoneField({
     if (query === null) return [];
     const needle = query.trim().toLowerCase().replace(/\s+/g, "_");
     const matches = needle
-      ? zones.filter((z) => z.toLowerCase().includes(needle))
+      ? zones.filter((z) =>
+          [z, FORMER_NAME[z] ?? ""].some((name) => name.toLowerCase().includes(needle)),
+        )
       : zones;
     return matches.slice(0, MAX_VISIBLE);
   }, [zones, query]);
@@ -157,7 +160,7 @@ export function TimeZoneField({
                 id={`stgm-timezone-${idx}`}
                 type="button"
                 role="option"
-                aria-selected={zone === value}
+                aria-selected={zone === currentTimeZoneName(value)}
                 // Runs before the input's blur, so selection wins over
                 // the close-on-blur revert.
                 onMouseDown={(e) => {
@@ -169,7 +172,7 @@ export function TimeZoneField({
                   idx === focusIndex
                     ? "stg:bg-accent stg:text-foreground"
                     : "stg:text-popover-foreground stg:hover:bg-accent-hover",
-                  zone === value && "stg:font-medium",
+                  zone === currentTimeZoneName(value) && "stg:font-medium",
                 )}
               >
                 {zone}
@@ -182,18 +185,60 @@ export function TimeZoneField({
   );
 }
 
-function allTimeZones(): readonly string[] {
+/**
+ * The zones IANA renamed whose old names the runtime's tz database still
+ * returns, each to its current name. Chromium's ICU follows CLDR, which keeps
+ * a renamed zone's first id: Chromium 148 offers `Asia/Calcutta` and no
+ * `Asia/Kolkata`, so a person searching for Kolkata found nothing, though the
+ * runtime, the server and the docs all accept and print the current name
+ * (stigmer#2888). Measured: each old name below is in Chromium 148's and
+ * Node 22's lists, and none of the current ones is.
+ */
+const RENAMED_ZONES: Readonly<Record<string, string>> = {
+  "Africa/Asmera": "Africa/Asmara",
+  "America/Buenos_Aires": "America/Argentina/Buenos_Aires",
+  "America/Catamarca": "America/Argentina/Catamarca",
+  "America/Coral_Harbour": "America/Atikokan",
+  "America/Cordoba": "America/Argentina/Cordoba",
+  "America/Godthab": "America/Nuuk",
+  "America/Indianapolis": "America/Indiana/Indianapolis",
+  "America/Jujuy": "America/Argentina/Jujuy",
+  "America/Louisville": "America/Kentucky/Louisville",
+  "America/Mendoza": "America/Argentina/Mendoza",
+  "Asia/Calcutta": "Asia/Kolkata",
+  "Asia/Katmandu": "Asia/Kathmandu",
+  "Asia/Rangoon": "Asia/Yangon",
+  "Asia/Saigon": "Asia/Ho_Chi_Minh",
+  "Atlantic/Faeroe": "Atlantic/Faroe",
+  "Europe/Kiev": "Europe/Kyiv",
+  "Pacific/Enderbury": "Pacific/Kanton",
+  "Pacific/Ponape": "Pacific/Pohnpei",
+  "Pacific/Truk": "Pacific/Chuuk",
+};
+
+/** Each renamed zone's current name to its old one, so a search by the old name still finds it. */
+const FORMER_NAME: Readonly<Record<string, string>> = Object.fromEntries(
+  Object.entries(RENAMED_ZONES).map(([former, current]) => [current, former]),
+);
+
+/** The current IANA name of `zone`: itself, unless IANA renamed it. */
+export function currentTimeZoneName(zone: string): string {
+  return RENAMED_ZONES[zone] ?? zone;
+}
+
+/** Every zone the runtime knows, by its current name, sorted, each once. */
+export function allTimeZones(): readonly string[] {
   try {
-    return Intl.supportedValuesOf("timeZone");
+    return [...new Set(Intl.supportedValuesOf("timeZone").map(currentTimeZoneName))].sort();
   } catch {
     // Pre-2022 runtimes without supportedValuesOf: offer the browser's
     // own zone plus UTC rather than an empty list.
-    const own = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    return own && own !== "UTC" ? [own, "UTC"] : ["UTC"];
+    const own = browserTimeZone();
+    return own !== "UTC" ? [own, "UTC"] : ["UTC"];
   }
 }
 
-/** The browser's own IANA time zone — the form's default. */
+/** The browser's own IANA time zone, by its current name — the form's default. */
 export function browserTimeZone(): string {
-  return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+  return currentTimeZoneName(Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC");
 }

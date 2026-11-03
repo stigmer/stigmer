@@ -18,6 +18,8 @@ import { AgentQueryController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/
 import { GrantQueryController } from "@stigmer/apis/ai/stigmer/iam/grant/v1/query_pb";
 import { IdentityAccountQueryController } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/query_pb";
 import { OrganizationQueryController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/query_pb";
+import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import type { ListAgentVersionsResponse } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/version_pb";
 import { AgentDetailView, type DetailAction } from "@stigmer/react-sdk";
 import { samples } from "@stigmer/react-sdk/test";
 import { ACCOUNT, LEDGER_AGENT, LEDGER_AGENT_VERSIONS, ORGANIZATION } from "../fixtures.ts";
@@ -38,8 +40,8 @@ export type AgentViewer = "owner" | "reader";
 function inert(): void {}
 
 /** The acts the web console's agent page passes to the view, in its order. */
-const START_SESSION: DetailAction = { id: "start-session", label: "Start session", onAction: inert };
-const MENU: readonly DetailAction[] = [
+export const START_SESSION: DetailAction = { id: "start-session", label: "Start session", onAction: inert };
+export const MENU: readonly DetailAction[] = [
   { id: "copy-id", label: "Copy ID", group: "clipboard", onAction: inert },
   { id: "copy-slug", label: "Copy slug", group: "clipboard", onAction: inert },
   { id: "edit-yaml", label: "Edit YAML", group: "export", requires: "can_edit", onAction: inert },
@@ -49,15 +51,22 @@ const MENU: readonly DetailAction[] = [
   { id: "delete", label: "Delete", variant: "destructive", group: "danger", requires: "can_delete", onAction: inert },
 ];
 
-function agentRoutes(viewer: AgentViewer) {
+/** The agent a page shows and its versions: the ledger agent's unless a scene names another. */
+export interface AgentPage {
+  readonly agent?: Agent;
+  readonly versions?: ListAgentVersionsResponse;
+}
+
+/** The calls the agent's page makes, answered for `viewer`. */
+export function agentRoutes(viewer: AgentViewer, { agent = LEDGER_AGENT, versions = LEDGER_AGENT_VERSIONS }: AgentPage = {}) {
   return (router: ConnectRouter) => {
     router.service(OrganizationQueryController, { listMine: () => samples.organizationList([ORGANIZATION]), get: () => ORGANIZATION });
     router.service(IdentityAccountQueryController, { whoAmI: () => ACCOUNT });
     router.service(GrantQueryController, { checkMyPermission: () => ({ isAuthorized: viewer === "owner" }) });
     router.service(AgentQueryController, {
-      getByReference: (input) => (input.slug === RECEIPT_MATCHER.metadata?.slug ? RECEIPT_MATCHER : LEDGER_AGENT),
-      get: () => LEDGER_AGENT,
-      listVersions: () => LEDGER_AGENT_VERSIONS,
+      getByReference: (input) => (input.slug === RECEIPT_MATCHER.metadata?.slug ? RECEIPT_MATCHER : agent),
+      get: () => agent,
+      listVersions: () => versions,
     });
     router.service(EnvironmentQueryController, { list: () => ({ entries: [] }) });
     router.service(ChannelQueryController, { listByAgent: () => ({ entries: [] }) });

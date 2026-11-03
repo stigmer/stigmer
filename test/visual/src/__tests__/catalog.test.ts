@@ -5,7 +5,7 @@
 import { THEME_PRESETS } from "@stigmer/design-tokens";
 import { SCENARIO_NAMES } from "@stigmer/react-sdk/test";
 import { describe, expect, it } from "vitest";
-import { MODES, PRESETS, SCENES, THREAD_DRAWN_ELSEWHERE, THREAD_STATES, screenshotsOf, sceneUrl } from "../catalog.ts";
+import { MODES, PRESETS, SCENES, THREAD_DRAWN_ELSEWHERE, THREAD_STATES, screenshotsOf, sceneUrl, type Act, type Scene } from "../catalog.ts";
 
 describe("the scene sweep", () => {
   it("draws every state of the scenario catalogue in the thread, or says what draws it instead", () => {
@@ -41,7 +41,30 @@ describe("the scenes' pictures", () => {
     expect(files.length).toBe(SCENES.reduce((total, scene) => total + scene.widths.length * MODES.length, 0));
   });
 
+  it("names a control and, for a field, what is typed, in every act a scene performs", () => {
+    expect(blankActs(SCENES)).toEqual([]);
+  });
+
+  it("finds a blank act", () => {
+    const planted: Scene = {
+      id: "thread-empty",
+      title: "planted",
+      widths: ["desktop"],
+      opens: [{ press: " ", role: "tab" }, { fill: "Name", with: "" }],
+    };
+    expect(blankActs([planted])).toEqual(["thread-empty act 1", "thread-empty act 2"]);
+  });
+
   it("addresses a scene by its id and mode", () => {
     expect(sceneUrl("thread-approval", "dark")).toBe("/?scene=thread-approval&mode=dark");
   });
 });
+
+/** Every act, as `<scene> act <n>`, that names no control or, filling a field, types nothing. */
+function blankActs(scenes: readonly Scene[]): string[] {
+  const blank = (act: Act): boolean =>
+    typeof act === "string" ? act.trim() === "" : "press" in act ? act.press.trim() === "" : act.fill.trim() === "" || act.with.trim() === "";
+  return scenes.flatMap((scene) =>
+    [scene.opens ?? []].flat().flatMap((act, index) => (blank(act) ? [`${scene.id} act ${index + 1}`] : [])),
+  );
+}
