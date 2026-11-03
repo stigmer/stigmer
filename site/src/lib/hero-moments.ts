@@ -18,7 +18,7 @@ export interface HeroScreens {
   readonly narrow: string;
 }
 
-/** Each hard part's moment. The ask is M8's picture, kept under its own names. */
+/** Each hard part's moment. The ask keeps the names the hero's one picture had (stigmer#2869). */
 export const HERO_SCREENS = {
   "own-computer": { whole: "own-computer", narrow: "own-computer-panel" },
   hours: { whole: "hours", narrow: "hours-panel" },
