@@ -20,8 +20,7 @@ import { tcpConnects } from "./net/tcp.js";
 import { dataDir } from "./paths.js";
 import { type ComponentState, type HealthState, componentLogsHint, loadHealthState } from "./state/health-state.js";
 import { DAEMON_PID_FILE } from "./constants.js";
-import { readPidFile } from "./state/pidfile.js";
-import { isProcessAlive } from "./state/proc.js";
+import { recordedLiveProcess } from "./state/pidfile.js";
 
 const COMPONENT_ORDER = ["temporal", "stigmer-server", "runner", "web-console"] as const;
 const COMPONENT_LABELS: Record<string, string> = {
@@ -44,8 +43,10 @@ export async function buildStatusResult(
   env: NodeJS.ProcessEnv = process.env,
 ): Promise<CommandResult> {
   const data = dataDir(home);
-  const pid = readPidFile(join(data, DAEMON_PID_FILE));
-  const daemonAlive = pid !== null && isProcessAlive(pid);
+  // A recorded PID counts only while it is the daemon recorded, never a
+  // program that inherited the number (stigmer#2750).
+  const pid = recordedLiveProcess(join(data, DAEMON_PID_FILE));
+  const daemonAlive = pid !== null;
   const portOpen = await probe(SERVER_PORT);
 
   if (!daemonAlive && !portOpen) {
