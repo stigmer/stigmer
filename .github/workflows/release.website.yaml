@@ -55,6 +55,8 @@ on:
       - "test/visual/index.html"
       - "test/visual/vite.config.ts"
       - "test/visual/package.json"
+      # The console's typefaces the gallery's stylesheet bundles.
+      - "client-apps/web/src/app/fonts/**"
       - "test/bundle-budgets.json"
       - ".github/workflows/build.website.yaml"
       - ".github/workflows/release.website.yaml"

@@ -451,6 +451,7 @@ export const LANES = {
       "test/visual/index.html",
       "test/visual/vite.config.ts",
       "test/visual/package.json",
+      "client-apps/web/src/app/fonts/**",
       "test/bundle-budgets.json",
       ".vale.ini",
       ".prettierrc",

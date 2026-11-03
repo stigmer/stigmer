@@ -36,7 +36,7 @@ export function Chat({ client, ...props }: ChatProps): ReactElement {
 
 function Conversation({ org, agent, sessionId: existing }: Omit<ChatProps, "client">): ReactElement {
   const [sessionId, setSessionId] = useState<string | null>(existing ?? null);
-  const { create, isCreating } = useCreateRun();
+  const { create, isCreating, error: startError } = useCreateRun();
   const conversation = useSessionConversation(sessionId, org);
 
   async function send(message: string): Promise<void> {
@@ -59,6 +59,17 @@ function Conversation({ org, agent, sessionId: existing }: Omit<ChatProps, "clie
       {conversation.asks.map((ask) => (
         <Ask key={ask.id} ask={ask} onAnswer={(answer) => conversation.answerToolUse(ask.id, answer)} />
       ))}
+      {startError && <p role="alert">The conversation did not start: {startError.message}</p>}
+      {conversation.sendError && (
+        <p role="alert">
+          “{conversation.pendingUserMessage}” was not sent: {conversation.sendError.message}{" "}
+          <button type="button" style={CONTROL} onClick={conversation.retryLastSend}>
+            Retry
+          </button>
+        </p>
+      )}
+      {conversation.answerError && <p role="alert">Your answer did not reach the agent: {conversation.answerError.message}</p>}
+      {conversation.stopError && <p role="alert">The turn did not stop: {conversation.stopError.message}</p>}
       <Composer
         busy={isCreating || conversation.isSending}
         canSend={sessionId === null || conversation.canSendFollowUp}
@@ -133,8 +144,14 @@ function Composer({
     event.preventDefault();
     const message = text.trim();
     if (message === "") return;
-    setText("");
-    await onSend(message);
+    // A message that fails to start a conversation stays in the box; a
+    // follow-up that fails is kept by the hook, shown above with Retry.
+    try {
+      await onSend(message);
+      setText("");
+    } catch {
+      // The error is shown above the composer.
+    }
   }
 
   return (
