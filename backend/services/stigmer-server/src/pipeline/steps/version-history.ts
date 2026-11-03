@@ -713,30 +713,49 @@ export function newTagVersionStep<
   };
 }
 
+/** What reconciling a head's live tag needs of a kind: where its hash and live tag live, and how a tag is written there. */
+export type HeadTagBinding<Desc extends DescMessage> = Pick<
+  VersionedResourceBinding<Desc>,
+  "kind" | "schema" | "noun" | "headHashOf" | "liveTagOf"
+> & {
+  overlayTag(resource: MessageShape<Desc>, tag: string): void;
+};
+
 /**
  * Writes onto the head the tag its version holds in the audit column, and
- * returns the written head once the two agree. The tag is read for a hash
- * outside the row's write (the store's modify callback is synchronous), so
- * two writers can land between the read and the write: an apply that
- * repoints the head, and a second move of the same tag that reconciles the
- * head first. The write therefore applies only while the row still holds
- * the hash the tag was read for (the guard version-archive.ts's amendHead
- * uses), and a read after it checks the written head against the column;
- * on a mismatch it goes again from the written head. Every tag move checks
- * after its own write, so the last one sees every move before it, and a
- * wrong live tag, which getByReference would match before the column, is
- * never left behind. A head that keeps changing is ABORTED WRITE_CONFLICT
- * after GUARDED_WRITE_ATTEMPTS writes, the budget and answer of any hot
- * row (pipeline/guarded-write.ts).
+ * returns the written head once the two agree. The one reconciler of the
+ * invariant every tag writer keeps: whoever writes a tag, the column (a tag
+ * move, a named-tag apply) or the head's live tag (any apply), re-reads the
+ * column after its own write and reconciles the head to it, so the last
+ * writer sees every write before it, and a wrong live tag, which
+ * getByReference would match before the column, is never left behind. Its
+ * callers are the tag move below and the apply's archive step
+ * (version-archive.ts).
+ *
+ * The tag is read for a hash outside the row's write (the store's modify
+ * callback is synchronous), so other writers can land between the read and
+ * the write: an apply that repoints the head, an apply that stores the head
+ * with its own tag, a move of a tag that reconciles the head first. The
+ * write therefore applies only while the row still holds the hash the tag
+ * was read for, and a read after it checks the written head against the
+ * column; on a mismatch it goes again from the written head. No other guard
+ * is needed: a write it overwrites belongs to a writer whose own check
+ * follows. `knownTag` is the column's tag for the loaded head's hash when
+ * the caller has just read or written it, and skips the first read. A head
+ * that keeps changing is ABORTED WRITE_CONFLICT after
+ * GUARDED_WRITE_ATTEMPTS writes, the budget and answer of any hot row
+ * (pipeline/guarded-write.ts).
  */
-async function reconcileHeadTag<Desc extends DescMessage>(
+export async function reconcileHeadTag<Desc extends DescMessage>(
   store: Store,
-  binding: Omit<VersionTagBinding<Desc, DescMessage>, "tagInput">,
+  binding: HeadTagBinding<Desc>,
   resourceId: string,
   loaded: MessageShape<Desc>,
+  knownTag?: string,
 ): Promise<MessageShape<Desc>> {
   let hash = binding.headHashOf(loaded);
-  let tag = await resolveHeadTag(store, binding, resourceId, hash);
+  let tag =
+    knownTag ?? (await resolveHeadTag(store, binding, resourceId, hash));
   for (let attempt = 1; ; attempt += 1) {
     const readFor = hash;
     const writing = tag;

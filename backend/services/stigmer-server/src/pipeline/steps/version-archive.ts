@@ -23,10 +23,20 @@
  * The archive runs after the chain's write, so an archived version is
  * always one that became live: a write that loses its compare-and-swap
  * and is retried from a fresh read (pipeline/guarded-write.ts) archives
- * nothing. A revert, and a tag shown from the archive, therefore reach
+ * nothing. A revert, a cleared tag and the head's tag therefore reach
  * the stored row through a narrow write of their one field onto the live
  * row, taken only while the live head still holds this version, so it
  * never undoes a write that landed after this one.
+ *
+ * Every tag writer, of the audit column or of the head's live tag,
+ * reconciles the head to the column after its own write
+ * (version-history.ts's reconcileHeadTag), so the last writer sees every
+ * write before it. An apply is one: the chain's write stores the head's
+ * live tag, and a named tag's assignment writes the column. So once its tag
+ * work is done the step reconciles the head, and a tag move, or another
+ * apply, landing between this apply's writes never leaves the head
+ * claiming a tag the column gives elsewhere (#2758, #2908). The response
+ * then carries the live tag and etag that were stored.
  *
  * The trade: a process that stops between the write and the archive, or
  * an archive failure whose narrow write then fails too, leaves a head
@@ -50,7 +60,9 @@
  * made since it loaded the row.
  *
  * Proven by the skill domain's __tests__/push-degradation.test.ts (the
- * failing-store arms), the agent domain's version tests, and
+ * failing-store arms), the shared steps'
+ * __tests__/version-steps.store-faults.test.ts (the apply's tag against
+ * concurrent tag writers), the agent domain's version tests, and
  * every versioned kind's conformance suite (the content-addressed
  * versioning blocks).
  */
@@ -67,6 +79,7 @@ import type { Store } from "../../store/interface.js";
 import { RESOURCE_ID_KEY } from "./delete.js";
 import { EXISTING_RESOURCE_KEY } from "./load-existing.js";
 import { metadataOf } from "./shapes.js";
+import { reconcileHeadTag } from "./version-history.js";
 
 /** The context key a kind's hash step stashes the head's new content hash under. */
 export const VERSION_HASH_KEY = "version_hash";
@@ -141,11 +154,15 @@ export interface ArchiveCurrentVersionBinding<Desc extends DescMessage> {
   /** Degradation arm: the live tag must agree with the audit column. */
   clearLiveTag(resource: MessageShape<Desc>): void;
   /**
-   * Shows on the head the tag its already-archived version holds, for a
-   * write that names none (the module doc). Absent for a kind whose tag is
-   * content (the plugin's manifest version).
+   * Writes `tag` where this kind's live tag lives, as
+   * VersionedResourceBinding's overlayTag does (version-history.ts): onto
+   * the head when the step reconciles it to the audit column, after a
+   * named tag's assignment and when a write naming none shows the tag its
+   * already-archived version holds (the module doc). Absent for a kind
+   * whose tag is content (the plugin's manifest version), which must never
+   * be rewritten.
    */
-  showArchivedTag?(resource: MessageShape<Desc>, tag: string): void;
+  overlayTag?(resource: MessageShape<Desc>, tag: string): void;
 }
 
 /**
@@ -272,6 +289,10 @@ export function newArchiveCurrentVersionStep<
         }
       }
 
+      // The column's tag for this version, once this step has written it or
+      // read it: the tag the head is reconciled to below.
+      let columnTag: string | undefined;
+
       // Assign the requested tag through setAuditTag — the single-holder
       // primitive — so the head version (freshly archived or repointed-to)
       // becomes the tag's sole holder; any prior holder is cleared.
@@ -283,6 +304,7 @@ export function newArchiveCurrentVersionStep<
             versionHash,
             tag,
           );
+          columnTag = tag;
         } catch (error) {
           logger.error(
             `Archived ${binding.noun} version but failed to assign its tag — clearing the live tag to stay consistent with the audit column`,
@@ -306,11 +328,13 @@ export function newArchiveCurrentVersionStep<
 
       // A write naming no tag onto a version already archived shows the tag
       // that version holds; it is read, never written, so a tag moved since
-      // this write loaded the row stays where it was moved. A failed read
-      // leaves the head untagged, the state the audit column cannot
-      // contradict.
-      const showArchivedTag = binding.showArchivedTag;
-      if (alreadyArchived && tag === "" && showArchivedTag !== undefined) {
+      // this write loaded the row stays where it was moved. A version that
+      // holds none needs no write: the read follows this apply's own write
+      // of the head, so any column write it missed is followed by its own
+      // writer's reconcile. A failed read leaves the head untagged, the
+      // state the audit column cannot contradict.
+      const overlayTag = binding.overlayTag;
+      if (alreadyArchived && tag === "" && overlayTag !== undefined) {
         try {
           const record = await store.getAuditRecordByHash(
             ctx.apiResourceKind,
@@ -318,11 +342,7 @@ export function newArchiveCurrentVersionStep<
             versionHash,
           );
           if (record.tag !== "") {
-            await amendHead(
-              "showing its archived tag",
-              (head) => binding.liveTagOf(head) === "",
-              (head) => showArchivedTag(head, record.tag),
-            );
+            columnTag = record.tag;
           }
         } catch (error) {
           logger.warn(
@@ -331,6 +351,51 @@ export function newArchiveCurrentVersionStep<
               [idField]: resourceId,
               versionHash,
               error: error instanceof Error ? error.message : String(error),
+            },
+          );
+        }
+      }
+
+      // This apply wrote the head's live tag (the chain's write) and maybe
+      // the column (setAuditTag), so it is a tag writer, and like every tag
+      // writer it reconciles the head to the column after its own write
+      // (reconcileHeadTag): a tag move or another apply that landed in
+      // between never leaves the head claiming a tag the column gives
+      // elsewhere (#2758, #2908). The response takes the stored live tag and
+      // etag while the head still holds this version; a head another write
+      // moved on is that write's to answer. A failure is logged, never a
+      // failed write: the next tag writer reconciles the head again.
+      if (columnTag !== undefined && overlayTag !== undefined) {
+        try {
+          const written = await reconcileHeadTag(
+            store,
+            {
+              kind: ctx.apiResourceKind,
+              schema: binding.schema,
+              noun: binding.noun,
+              headHashOf: binding.headHashOf,
+              liveTagOf: binding.liveTagOf,
+              overlayTag,
+            },
+            resourceId,
+            resource,
+            columnTag,
+          );
+          if (binding.headHashOf(written) === versionHash) {
+            overlayTag(resource, binding.liveTagOf(written));
+            const metadata = metadataOf(resource);
+            const etag = metadataOf(written)?.etag;
+            if (metadata !== undefined && etag !== undefined) {
+              metadata.etag = etag;
+            }
+          }
+        } catch (error) {
+          logger.error(
+            `failed to write ${binding.noun} after reconciling its tag`,
+            {
+              [idField]: resourceId,
+              versionHash,
+              error: describeError(error),
             },
           );
         }
@@ -395,4 +460,14 @@ export function newDeleteVersionArchivesStep<RequestDesc extends DescMessage>(
 
 function capitalize(word: string): string {
   return word.charAt(0).toUpperCase() + word.slice(1);
+}
+
+/** An error's text for a log line, with the store fault an Internal wraps. */
+function describeError(error: unknown): string {
+  if (!(error instanceof Error)) {
+    return String(error);
+  }
+  return error.cause instanceof Error
+    ? `${error.message}: ${error.cause.message}`
+    : error.message;
 }
