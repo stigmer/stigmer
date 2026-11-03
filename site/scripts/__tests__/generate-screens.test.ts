@@ -58,7 +58,7 @@ function entry(name: string, width: number, height: number): Shown {
   return { name, scene: "session-approval", title: name, viewport: { width, height } };
 }
 
-// Converting one 2560×1600 picture twice at the encoder's highest effort.
+// Converting the real list, every picture twice at the encoder's highest effort.
 const REAL_TIMEOUT_MS = 30_000;
 
 describe("the site's screens, from the real list", () => {
@@ -117,7 +117,8 @@ describe("the site's screens, from the real list", () => {
   );
 });
 
-describe("generateScreens", () => {
+// Each case loads the module first, and loading it converts the real list.
+describe("generateScreens", { timeout: REAL_TIMEOUT_MS }, () => {
   it("writes each density from the picture drawn at the suite's scale, and removes files the list no longer names", async () => {
     const { dir } = await prepareSite();
     const outDir = join(dir, "out");
