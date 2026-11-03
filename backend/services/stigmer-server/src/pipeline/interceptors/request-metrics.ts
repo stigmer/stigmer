@@ -30,10 +30,13 @@
  * end. For a server stream that is the END OF THE STREAM: the response iterable is re-wrapped, the error
  * boundary's idiom, and the one record fires in `finally` — OK when the
  * stream ran to completion, the error's code when it threw, CANCELLED
- * when the consumer stopped early (the client went away, or the
- * transport stopped pulling). The logging interceptor measures a stream
- * only to the handler's return; the difference is deliberate here and
- * disclosed there.
+ * when the consumer stopped early (the transport stopped pulling). A
+ * client that went away usually ends the stream as a normal return: connect
+ * aborts the request's signal and the stream handlers return on it, so
+ * that departure is counted OK here. The logging interceptor also
+ * measures a stream to its end but reads the departure from the signal
+ * and logs it cancelled; whether the metrics count it CANCELLED, which
+ * would feed `grpc-error-rate-spike`, is that alert's owner's call.
  */
 import { ConnectError } from "@connectrpc/connect";
 import type { Interceptor } from "@connectrpc/connect";
