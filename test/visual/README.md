@@ -12,7 +12,7 @@ In CI the `visual` job of `ci.ts-workspace.yaml` runs inside the same image, on 
 
 ## How a scene is drawn
 
-- `src/catalog.ts` lists the scenes as plain data: an id, a title, the widths it is drawn at, and a button to press first for a component whose state opens on a click. The spec, the index page and the unit checks read it.
+- `src/catalog.ts` lists the scenes as plain data: an id, a title, the widths it is drawn at, and the acts that bring a component to its state (`opens`): a button's name to press, `{ press, role }` for any other control (a tab, a radio, a menu item, a picker's option), or `{ fill, with }` to type into a labelled field. The spec, the index page and the unit checks read it. A control the scene cannot reach by its role and name has no accessible name: that is the kit's defect to fix, never the scene's to work around.
 - `src/scenes/` draws each id, inside `StigmerProvider` with the scene's colour mode, over the stylesheet the kit ships and the theme presets. The map in `src/scenes/index.ts` is typed by the catalogue's ids, so a scene listed without a drawing fails the typecheck.
 - `src/fake-server.ts` gives every scene a real client over an in-memory router: the kit's hooks run their own code. A drawing answers the calls its components make (`routes`); every other call answers `Unimplemented`, so a forgotten call shows the component's error state and fails its screenshot.
 - Data comes from the scenario catalogue and `samples` in `@stigmer/react-sdk/test`, and from `src/fixtures.ts` for what they do not hold (the model registry, provider keys, the dashboard's figures). The clock is the catalogue's, the typefaces are the console's vendored files (`client-apps/web/src/app/fonts`), and the page reads no network.
@@ -35,6 +35,8 @@ The site's build converts each approved picture into the files it serves (`site/
 1. Add its entry to `SHOWN` in `src/shown.ts`. Its scene must be in the catalogue; `src/__tests__/shown.test.ts` fails otherwise, and when a clip leaves the viewport.
 2. `make test-visual UPDATE=1` mints its picture. `tests/shown.spec.ts` fails while an entry has no picture, and while a picture has no entry.
 3. Embed it with `<Screen name="…" alt="…" />`.
+
+A docs page's picture draws the values the page prints (a routine's name, its message, an Environment's hosts) from that page's example in `src/docs-examples.ts`: the scene builds its fixtures from it (`src/docs-fixtures.ts`) and its acts type them, and the site's `docs-screens` test holds every value to the page's source. Change the page and the example together.
 
 ## The browser image
 
