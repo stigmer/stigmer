@@ -128,43 +128,29 @@ function logOutcome(
   const isHealth = request.service.typeName === HEALTH_SERVICE_TYPE_NAME;
   const abort = abortCode(request.signal);
   const departed = abort !== undefined && abort !== Code.DeadlineExceeded;
+  // A unary success after a departure did its whole job (the header).
+  const unarySuccess = outcome.ended === "completed" && !outcome.stream;
 
-  switch (outcome.ended) {
-    case "completed":
-      if (outcome.stream && departed) {
-        logCancelled(logger, isHealth, {
-          procedure,
-          code: Code[abort],
-          durationMs,
-        });
-      } else if (outcome.stream && abort === Code.DeadlineExceeded) {
-        logFailure(logger, procedure, durationMs, request.signal.reason);
-      } else {
-        logSuccess(logger, isHealth, { procedure, durationMs });
-      }
-      return;
-    case "stopped":
-      logCancelled(logger, isHealth, {
-        procedure,
-        code: Code[abort ?? Code.Canceled],
-        durationMs,
-      });
-      return;
-    case "threw":
-      if (departed) {
-        logCancelled(logger, isHealth, {
-          procedure,
-          code: Code[abort],
-          durationMs,
-        });
-      } else {
-        logFailure(logger, procedure, durationMs, outcome.error);
-      }
-      return;
-    default: {
-      const unreachable: never = outcome;
-      throw new Error(`unknown outcome ${String(unreachable)}`);
-    }
+  if (departed && !unarySuccess) {
+    logCancelled(logger, isHealth, {
+      procedure,
+      code: Code[abort],
+      durationMs,
+    });
+  } else if (outcome.ended === "threw") {
+    logFailure(logger, procedure, durationMs, outcome.error);
+  } else if (abort === Code.DeadlineExceeded && !unarySuccess) {
+    // A stream that ended on its deadline's abort.
+    logFailure(logger, procedure, durationMs, request.signal.reason);
+  } else if (outcome.ended === "stopped") {
+    // The consumer closed it with the signal still live.
+    logCancelled(logger, isHealth, {
+      procedure,
+      code: Code[Code.Canceled],
+      durationMs,
+    });
+  } else {
+    logSuccess(logger, isHealth, { procedure, durationMs });
   }
 }
 
