@@ -9,6 +9,12 @@
 // lines): a page edited without this file, or this file without its page,
 // fails in the docs lane before the picture goes stale.
 //
+// A control the page tells its reader to press or fill, in bold, is a value
+// too, named `…Label`: the scene's act reaches the control by it, matched
+// whole unless the control's name carries more than the page's word, and
+// the check holds it to the page's bold. A renamed button then fails its
+// picture's case or the page's check, whichever side moved.
+//
 // It imports nothing: the catalogue (read under Node) and the site's tests
 // read it, where the kit's sources do not load.
 
@@ -29,6 +35,9 @@ export const ROUTINE_EXAMPLE = {
   message: "Report yesterday's ledger variances against budget, and save the report as variances.csv.",
   cron: "0 9 * * *",
   timeZone: "Asia/Kolkata",
+  nameLabel: "Name",
+  messageLabel: "Message",
+  timeZoneLabel: "Time zone",
 } as const satisfies DocsExample;
 
 /** `docs/concepts/agents.mdx`: the Agent its YAML prints, which its detail page renders field by field. */
@@ -72,6 +81,13 @@ export const ENVIRONMENT_EXAMPLE = {
   pip: ["pandas", "sqlalchemy==2.0.30"],
   agent: "data-analyst",
   conversationRow: "data-science · the agent's default",
+  nameLabel: "Name",
+  networkLabel: "Limited to listed websites",
+  hostsLabel: "Websites",
+  aptLabel: "apt (Debian packages)",
+  pipLabel: "pip (Python packages)",
+  configureLabel: "Configure agent, tools, and skills",
+  runSettingsLabel: "Run settings",
 } as const satisfies DocsExample;
 
 /** `docs/guides/channels/create-a-chat-link.mdx`: the chat link it makes, by its permanent ID. */
@@ -80,6 +96,8 @@ export const CHAT_LINK_EXAMPLE = {
   channelId: "chn_01j9z3k8f2q4m6n7p8r9s0t1v2",
   link: "https://app.stigmer.ai/chat/chn_01j9z3k8f2q4m6n7p8r9s0t1v2",
   origin: "https://acme.com",
+  addLabel: "Add channel",
+  editLabel: "Edit",
 } as const satisfies DocsExample;
 
 /** `docs/guides/channels/embed-an-agent.mdx`: the snippet it pastes and the site it lets embed. */
@@ -88,6 +106,8 @@ export const EMBED_EXAMPLE = {
   script: '<script src="https://app.stigmer.ai/embed.js" async></script>',
   element: '<stigmer-agent channel="chn_01j9z3k8f2q4m6n7p8r9s0t1v2"></stigmer-agent>',
   origin: "https://acme.com",
+  editLabel: "Edit",
+  embedLabel: "Embed",
 } as const satisfies DocsExample;
 
 /** `docs/guides/channels/connect-slack.mdx`: the variance reporter's Slack channel and the vault its tools use, as its manifest prints them. */
@@ -96,6 +116,8 @@ export const SLACK_EXAMPLE = {
   agent: "variance-reporter",
   channel: "variance-reporter-slack",
   vault: "ledger-keys",
+  addLabel: "Add channel",
+  slackLabel: "Slack",
 } as const satisfies DocsExample;
 
 /** `docs/guides/channels/connect-whatsapp.mdx`: the WhatsApp channel, its number's ID and the Meta app it answers through. */
@@ -106,12 +128,17 @@ export const WHATSAPP_EXAMPLE = {
   phoneNumberId: "106540352242922",
   app: "acme-whatsapp",
   vault: "ledger-keys",
+  addLabel: "Add channel",
+  whatsappLabel: "WhatsApp",
+  phoneNumberIdLabel: "Phone number ID",
 } as const satisfies DocsExample;
 
 /** `docs/guides/channels/bring-your-own-slack-app.mdx`: the Slack app it registers, by the bot name the workspace mentions. */
 export const SLACK_APP_EXAMPLE = {
   page: "guides/channels/bring-your-own-slack-app",
   name: "Acme Books",
+  newLabel: "New channel app",
+  nameLabel: "Name",
 } as const satisfies DocsExample;
 
 /** `docs/guides/channels/take-over-conversations.mdx`: what its pictures show the platform and the controls saying. */

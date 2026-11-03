@@ -16,10 +16,20 @@ import "./gallery.css";
 
 import { StrictMode, type ReactElement } from "react";
 import { createRoot } from "react-dom/client";
-import { OrgProvider, StigmerProvider } from "@stigmer/react-sdk";
+import { OrgProvider, StigmerProvider, type StigmerProviderProps } from "@stigmer/react-sdk";
 import { MODES, SCENES, sceneUrl, type Mode, type Scene } from "./catalog.ts";
 import { fakeStigmer } from "./fake-server.ts";
+import type { Drawing } from "./scenes/drawing.ts";
 import { DRAWINGS } from "./scenes/index.ts";
+
+/**
+ * What a drawing tells the provider it is drawn in, in one place, so every
+ * provider on this page reads a drawing the same way and a field added to
+ * `Drawing` reaches each of them.
+ */
+function providerProps(drawing: Drawing): Pick<StigmerProviderProps, "preset" | "deploymentMode" | "publicBaseUrl"> {
+  return { preset: drawing.preset, deploymentMode: drawing.deploymentMode, publicBaseUrl: drawing.publicBaseUrl };
+}
 
 /** One scene in one mode. Its drawing and client are made once, outside React's render. */
 function sceneView(scene: Scene, mode: Mode): ReactElement {
@@ -30,9 +40,7 @@ function sceneView(scene: Scene, mode: Mode): ReactElement {
     <StigmerProvider
       client={client}
       colorMode={mode}
-      preset={drawing.preset}
-      deploymentMode={drawing.deploymentMode}
-      publicBaseUrl={drawing.publicBaseUrl}
+      {...providerProps(drawing)}
       className="gallery-scene"
     >
       {drawing.inOrganization ? <OrgProvider>{tree}</OrgProvider> : tree}
