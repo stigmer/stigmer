@@ -4,6 +4,7 @@
  * registered name, how it finds the server (by its name in the plugin, named
  * `plugin_<plugin>_<server>` to the MCP client), the destructive mark each
  * listed tool carries (an explicit `destructiveHint: true` and nothing else),
+ * the refusal of a listing on a session's task queue before anything starts,
  * the transport guard before any connection, the listing's values (fetched
  * for the attempt with the payload's token, taken only from this server's own
  * group, refused when its URL moved), the credential-delivery failures
@@ -12,6 +13,7 @@
  */
 import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
 import { create } from "@bufbuild/protobuf";
+import { ApplicationFailure } from "@temporalio/common";
 import { Code, ConnectError } from "@connectrpc/connect";
 import type { Connection } from "@langchain/mcp-adapters";
 import { PluginSchema, type Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
@@ -26,6 +28,7 @@ import { testConfig } from "../../__test-utils__/config-fixture.js";
 import type { StigmerClient } from "../../client/stigmer-client.js";
 import type { PlatformEndpoints } from "../../shared/platform-server-address.js";
 import { McpTransportError, type McpTransportPosture } from "../../shared/mcp-transport-guard.js";
+import { LISTING_ON_SESSION_QUEUE_FAILURE_TYPE } from "../../shared/task-queues.js";
 import {
   createListPluginToolsActivities,
   CredentialResolutionError,
@@ -46,6 +49,13 @@ vi.mock("@langchain/mcp-adapters", () => ({
     mcp.configs.push(config);
     return { initializeConnections: mcp.initializeConnections, getClient: mcp.getClient, close: mcp.close };
   }),
+}));
+
+// The activity reads its task queue from the Temporal activity context,
+// which a direct call has none of: the queue it serves is set per test.
+const activityContext = vi.hoisted(() => ({ taskQueue: "stigmer_runner" }));
+vi.mock("@temporalio/activity", () => ({
+  Context: { current: () => ({ info: { taskQueue: activityContext.taskQueue } }) },
 }));
 
 vi.mock("../../idle-watchdog.js", () => ({
@@ -155,6 +165,7 @@ function headersOf(connection: Connection): Record<string, string> | undefined {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  activityContext.taskQueue = "stigmer_runner";
   mcp.configs.length = 0;
   mcp.close.mockResolvedValue(undefined);
 });
@@ -189,6 +200,27 @@ describe("the activity factory", () => {
     const [intervalMs, details] = vi.mocked(startHeartbeat).mock.calls[0] ?? [];
     expect(intervalMs).toBe(15_000);
     expect(details?.()).toEqual({ phase: "listing_plugin_tools", pluginId: PLUGIN_ID, server: "api" });
+  });
+
+  it("refuses a listing scheduled on a session's queue, non-retryably, before anything starts", async () => {
+    // A workflow other than the connect workflow can schedule this activity
+    // straight onto a session's queue; the activity refuses it itself.
+    const { startHeartbeat } = await import("../../shared/heartbeat.js");
+    const { activityStarted } = await import("../../idle-watchdog.js");
+    activityContext.taskQueue = "session:ses_01m3zkdb7wxbe2gx0ezmf8fmaq";
+    const { DiscoverMcpServerCapabilities } = createListPluginToolsActivities(testConfig());
+
+    const refusal = await DiscoverMcpServerCapabilities({ pluginId: PLUGIN_ID, server: "api" }).then(
+      () => undefined,
+      (error: unknown) => error,
+    );
+
+    expect(refusal).toBeInstanceOf(ApplicationFailure);
+    expect((refusal as ApplicationFailure).type).toBe(LISTING_ON_SESSION_QUEUE_FAILURE_TYPE);
+    expect((refusal as ApplicationFailure).nonRetryable).toBe(true);
+    expect(startHeartbeat).not.toHaveBeenCalled();
+    expect(activityStarted).not.toHaveBeenCalled();
+    expect(mcp.configs).toEqual([]);
   });
 });
 

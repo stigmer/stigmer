@@ -66,8 +66,7 @@ import {
   registerWorkerShutdownSignal,
   unregisterWorkerShutdownSignal,
 } from "./shared/worker-shutdown.js";
-
-const SESSION_QUEUE_PREFIX = "session:";
+import { SESSION_QUEUE_PREFIX } from "./shared/task-queues.js";
 
 // Re-export for existing importers; the registry itself lives in
 // shared/worker-shutdown.ts so the static runner (runner.ts) and the

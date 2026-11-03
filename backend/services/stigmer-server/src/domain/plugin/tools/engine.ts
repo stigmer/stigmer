@@ -19,10 +19,14 @@
  * payload wire contract (the two execution_context_* names are pinned
  * bytes from before values were fetched from vaults: execution_context_id
  * carries the listing's attempt id). Ids-only except
- * execution_context_token, the ONE deliberate exception: the values fetch
- * answers only a runner credential bound to the execution, and the
- * listing activity has no execution of its own to exchange for one, so the
- * capability travels with the work item. It is a short-TTL token bound to
+ * execution_context_token, the ONE deliberate exception, and only on the
+ * shared runner queue: the values fetch answers only a runner credential
+ * bound to the execution, and a shared runner has no execution of its own
+ * to exchange for one, so the capability travels with the work item. A
+ * connect sandbox's input never carries it: that sandbox's runner was
+ * provisioned with its own credential for the same listing
+ * (tools/sandbox.ts), which the fetch uses instead
+ * (list-tools.ts `withCredential`). It is a short-TTL token bound to
  * this listing's attempt, ended when the listing settles. What it unlocks
  * depends on the posture: under trusted-local it fetches that listing's
  * values and nothing more; under the built-in authorization posture the

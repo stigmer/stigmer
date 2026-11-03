@@ -47,13 +47,14 @@
 
 import { createHash } from "node:crypto";
 import { RUNNER_SECRET_ENV_KEYS } from "../shared/runner-credential-keys.js";
+import { CONNECT_QUEUE_PREFIX, SESSION_QUEUE_PREFIX } from "../shared/task-queues.js";
 import { expiryClaimOf, isJwtShaped } from "../client/token-claims.js";
 import { parseSandboxEnvironment, type SandboxEnvironment } from "../environment/spec.js";
 
 /** The queue kinds a sandbox serves, with the server's scope codes for each. */
 const QUEUE_KINDS = [
-  { prefix: "session:", code: "ses" },
-  { prefix: "mcpconnect:", code: "mcp" },
+  { prefix: SESSION_QUEUE_PREFIX, code: "ses" },
+  { prefix: CONNECT_QUEUE_PREFIX, code: "mcp" },
 ] as const;
 
 const SECRET_NAMES: ReadonlySet<string> = new Set(RUNNER_SECRET_ENV_KEYS);
