@@ -34,7 +34,7 @@ import { DAEMON_PID_FILE, HEALTH_STATE_FILE, SERVER_PORT } from "../constants.js
 import { tcpConnects, waitForTcp } from "../net/tcp.js";
 import { dataDir, logDir } from "../paths.js";
 import { componentLogsHint, loadHealthState } from "../state/health-state.js";
-import { readPidFile, removePidFile } from "../state/pidfile.js";
+import { readPidRecord, recordedLiveProcess, removePidFile } from "../state/pidfile.js";
 import { findProcessByPort, isOtherLiveProcess, isProcessAlive, killProcess, processCommand } from "../state/proc.js";
 import { type StartupConfig, removeStartupConfig, saveStartupConfig } from "../state/startup-config.js";
 import { rotateLogs } from "../state/log-rotation.js";
@@ -270,14 +270,22 @@ async function prepareLaunch(options: UpOptions, home: string, serverPort: numbe
   return { data, logs, temporalAddress: temporal.address, env };
 }
 
-/** Stop the local stack. Returns false if nothing was running. */
-export async function down(home: string = homedir()): Promise<boolean> {
+/**
+ * Stop the local stack. Returns false if nothing was running. `serverPort` is
+ * where to look for a stack whose daemon left no PID file; tests move it off
+ * the real port.
+ */
+export async function down(home: string = homedir(), serverPort: number = SERVER_PORT): Promise<boolean> {
   const data = dataDir(home);
-  let pid = readPidFile(join(data, DAEMON_PID_FILE));
-  if (pid === null) pid = findProcessByPort(SERVER_PORT);
+  // A daemon on record is signalled only while it is the process recorded; a
+  // record naming another program now is stale, like a dead one. With no
+  // record at all, the server port's holder is the stack only when it is a
+  // Stigmer process (the rule refuseHeldPort applies to the same port).
+  const pidPath = join(data, DAEMON_PID_FILE);
+  const pid = readPidRecord(pidPath) === null ? stigmerPortHolder(serverPort) : recordedLiveProcess(pidPath);
 
   if (pid === null || !isOtherLiveProcess(pid)) {
-    removePidFile(join(data, DAEMON_PID_FILE));
+    removePidFile(pidPath);
     await clearLeftovers(home, data);
     return false;
   }
@@ -290,7 +298,7 @@ export async function down(home: string = homedir()): Promise<boolean> {
     log.warn("daemon did not stop gracefully, force killing", { pid });
     killProcess(pid, "SIGKILL");
   }
-  removePidFile(join(data, DAEMON_PID_FILE));
+  removePidFile(pidPath);
   removeStartupConfig(data);
   // Nothing to do after a clean teardown; after a forced one, or a daemon that
   // could not finish its own, this is what stops the rest.
@@ -298,24 +306,35 @@ export async function down(home: string = homedir()): Promise<boolean> {
   return true;
 }
 
-/** Whether the daemon is running: a live peer's PID, else a server-port fallback. */
+/** Whether the daemon is running: the live daemon on record, else a server-port fallback. */
 export async function isRunning(home: string = homedir()): Promise<boolean> {
-  const data = dataDir(home);
-  const pid = readPidFile(join(data, DAEMON_PID_FILE));
-  if (pid !== null) {
-    if (isOtherLiveProcess(pid)) return true;
-    removePidFile(join(data, DAEMON_PID_FILE)); // stale (dead, or a previous life of our own PID)
-  }
+  const pidPath = join(dataDir(home), DAEMON_PID_FILE);
+  if (recordedLiveProcess(pidPath) !== null) return true;
+  removePidFile(pidPath); // stale (dead, a previous life of our own PID, or another program now)
   return tcpConnects(SERVER_PORT, "127.0.0.1", 1000);
+}
+
+// The process holding the server's port when its command line names Stigmer;
+// null for nothing, or for another program, which `down` leaves alone.
+function stigmerPortHolder(port: number): number | null {
+  const holder = findProcessByPort(port);
+  if (holder === null) return null;
+  const command = processCommand(holder);
+  if (command !== null && command.includes("stigmer")) return holder;
+  log.info(`port ${port} is held by a program that is not Stigmer; leaving it alone`, {
+    pid: holder,
+    ...(command === null ? {} : { command: shorten(command) }),
+  });
+  return null;
 }
 
 // Refuse to start beside a stack that is running, still starting or still
 // stopping: the daemon on record is alive. Nothing is touched; `down` is the
-// one way to stop it. A recorded PID that is our own is a leftover, never a
-// stack (see cleanupOrphans).
+// one way to stop it. A recorded PID that is our own, or that names another
+// program now, is a leftover, never a stack (see cleanupOrphans).
 function refuseRunningStack(data: string): void {
-  const pid = readPidFile(join(data, DAEMON_PID_FILE));
-  if (pid === null || !isOtherLiveProcess(pid)) return;
+  const pid = recordedLiveProcess(join(data, DAEMON_PID_FILE));
+  if (pid === null) return;
   throw new CliExitError(`the local Stigmer stack is already running (daemon pid ${pid})`, ExitCode.General, [
     "Stop it with: stigmer down",
   ]);
@@ -325,8 +344,8 @@ function refuseRunningStack(data: string): void {
 // earlier stack still up, or another program. A server started beside it would
 // die on "address in use" while its readiness checks connected to the other
 // program, so this is refused before anything starts, naming the holder.
-// `stigmer down` is offered only for a Stigmer process: with no daemon PID
-// file it stops whatever holds the port.
+// `stigmer down` is offered only for a Stigmer process, the only holder it
+// stops when no daemon PID file names the stack.
 async function refuseHeldPort(port: number): Promise<void> {
   if (!(await tcpConnects(port, "127.0.0.1", 1000))) return;
   const holder = findProcessByPort(port);
@@ -374,17 +393,18 @@ async function clearLeftovers(home: string, data: string): Promise<void> {
 // run, and return once each has exited: SIGTERM, then SIGKILL after the
 // supervisor's grace, all in parallel, so a caller that next binds the
 // server's port never races a dying server. Only the recorded PID is
-// signalled, never its group: a PID file is trusted as it stands. A recorded
-// PID that is our own is a leftover, never a peer (the fresh PID namespace of
-// a restarted container hands the launcher the PID its last life had) —
-// signalling it would be signalling ourselves.
+// signalled, never its group, and only while it is the process recorded
+// (recordedLiveProcess): a reused PID now naming another program is left
+// alone and its file removed (stigmer#2750). A recorded PID that is our own is
+// a leftover, never a peer (the fresh PID namespace of a restarted container
+// hands the launcher the PID its last life had) — signalling it would be
+// signalling ourselves.
 async function cleanupOrphans(data: string): Promise<void> {
   await Promise.all(
     [DAEMON_PID_FILE, "stigmer-server.pid", "runner.pid"].map(async (name) => {
       const pidPath = join(data, name);
-      const pid = readPidFile(pidPath);
-      if (pid === null) return;
-      if (isOtherLiveProcess(pid)) {
+      const pid = recordedLiveProcess(pidPath);
+      if (pid !== null) {
         log.warn("stopping orphaned process from a previous run", { file: name, pid });
         killProcess(pid, "SIGTERM");
         if (!(await waitForExit(pid, GRACEFUL_STOP_TIMEOUT_MS))) {

@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { temporalPidFile } from "../../paths.js";
 import { writePidFile } from "../../state/pidfile.js";
@@ -65,6 +65,51 @@ describe("TemporalManager", () => {
         // already gone
       }
     }
+  });
+
+  // stigmer#2750: stop signals Temporal's whole process group, so the record
+  // is checked first; a PID the OS gave to another program is never signalled.
+  describe("stop beside a record that is not our Temporal", () => {
+    async function detachedProcess(argv: string[]): Promise<number> {
+      const child = spawn(process.execPath, ["-e", `process.stdout.write("ready\\n"); setInterval(() => {}, 1000);`, ...argv], {
+        detached: true,
+        stdio: ["ignore", "pipe", "ignore"],
+      });
+      await new Promise<void>((resolve) => child.stdout.once("data", () => resolve()));
+      return child.pid!;
+    }
+
+    async function expectStopLeavesAlone(home: string, pid: number): Promise<void> {
+      try {
+        const manager = TemporalManager.forHome(home);
+        await manager.stop();
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        expect(isProcessAlive(pid)).toBe(true);
+        expect(manager.getPid()).toBeNull();
+        expect(await manager.isRunning()).toBe(false);
+      } finally {
+        try {
+          process.kill(-pid, "SIGKILL");
+        } catch {
+          // already gone
+        }
+      }
+    }
+
+    it("leaves a Temporal-shaped process recorded with another start time alone", async () => {
+      const home = tempHome();
+      const pid = await detachedProcess(["temporal", "server", "start-dev"]);
+      mkdirSync(dirname(temporalPidFile(home)), { recursive: true });
+      writeFileSync(temporalPidFile(home), `${pid}\nstarted=another life\n`);
+      await expectStopLeavesAlone(home, pid);
+    });
+
+    it("leaves a process that is not Temporal alone, even recorded with its own start time", async () => {
+      const home = tempHome();
+      const pid = await detachedProcess([]);
+      writePidFile(temporalPidFile(home), pid);
+      await expectStopLeavesAlone(home, pid);
+    });
   });
 
   describe("STIGMER_TEMPORAL_BIN", () => {

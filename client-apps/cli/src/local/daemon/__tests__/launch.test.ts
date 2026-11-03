@@ -326,13 +326,14 @@ describe("upForeground (a held server port)", () => {
 // A real process standing in for a leftover from a daemon that died without its
 // teardown. It is ready once its SIGTERM handler is installed; on SIGTERM it
 // exits after a short delay, as a server draining its connections does, or
-// ignores it altogether.
+// ignores it altogether. `argv` names it, as the Temporal stand-in must be
+// named like the dev server for its manager to stop it.
 const leftovers: number[] = [];
-async function leftover(onTerm: "exit-after-a-moment" | "ignore", options: { detached?: boolean } = {}): Promise<number> {
+async function leftover(onTerm: "exit-after-a-moment" | "ignore", options: { detached?: boolean; argv?: string[] } = {}): Promise<number> {
   const handler = onTerm === "ignore" ? "() => {}" : "() => setTimeout(() => process.exit(0), 300)";
   const child = spawn(
     process.execPath,
-    ["-e", `process.on("SIGTERM", ${handler}); process.stdout.write("ready\\n"); setInterval(() => {}, 1000);`],
+    ["-e", `process.on("SIGTERM", ${handler}); process.stdout.write("ready\\n"); setInterval(() => {}, 1000);`, ...(options.argv ?? [])],
     { stdio: ["ignore", "pipe", "ignore"], detached: options.detached === true },
   );
   await new Promise<void>((resolve) => child.stdout.once("data", () => resolve()));
@@ -373,7 +374,7 @@ describe("down (after a daemon that died without its teardown)", () => {
   it("stops the recorded children and Temporal, and returns only once the children are gone", async () => {
     const server = await leftover("exit-after-a-moment");
     const runner = await leftover("exit-after-a-moment");
-    const temporal = await leftover("exit-after-a-moment", { detached: true });
+    const temporal = await leftover("exit-after-a-moment", { detached: true, argv: ["temporal", "server", "start-dev"] });
     const { home, data } = homeWithRecords({ daemon: await deadPid(), server, runner, temporal });
 
     expect(await down(home)).toBe(false);
@@ -458,5 +459,74 @@ describe("upForeground (a stack already on record)", () => {
 
     expect(code).toBe(0);
     expect(serverAliveAtStart).toBe(false);
+  });
+});
+
+// ---- stigmer#2750: a recorded PID the OS has since handed to another program
+// is never signalled. ----
+
+// A PID file naming `pid` as a process that started at another time: what a
+// leftover file says once its number belongs to something else.
+function recordAsAnotherLife(path: string, pid: number): void {
+  writeFileSync(path, `${pid}\nstarted=another life\n`);
+}
+
+// A program that is not Stigmer listening on a free port, as an editor or a
+// database might hold 7234. Its command line must not name Stigmer.
+async function foreignListener(): Promise<{ pid: number; port: number }> {
+  const child = spawn(
+    process.execPath,
+    ["-e", `require("node:net").createServer().listen(0, "127.0.0.1", function () { process.stdout.write(this.address().port + "\\n"); });`],
+    { stdio: ["ignore", "pipe", "ignore"] },
+  );
+  const port = await new Promise<number>((resolve) => child.stdout.once("data", (chunk: Buffer) => resolve(Number.parseInt(chunk.toString(), 10))));
+  leftovers.push(child.pid!);
+  return { pid: child.pid!, port };
+}
+
+// Long enough for a SIGTERM, had one been sent, to have ended a leftover.
+const SIGNAL_GRACE_MS = 600;
+
+describe("down (records naming other programs now)", () => {
+  it("signals none of them, removes their files and reports nothing running", async () => {
+    const daemon = await leftover("exit-after-a-moment");
+    const server = await leftover("exit-after-a-moment");
+    const { home, data } = homeWithRecords({ daemon: await deadPid() });
+    recordAsAnotherLife(join(data, "daemon.pid"), daemon);
+    recordAsAnotherLife(join(data, "stigmer-server.pid"), server);
+
+    expect(await down(home, await freePort())).toBe(false);
+
+    await new Promise((resolve) => setTimeout(resolve, SIGNAL_GRACE_MS));
+    expect(isProcessAlive(daemon)).toBe(true);
+    expect(isProcessAlive(server)).toBe(true);
+    for (const file of ["daemon.pid", "stigmer-server.pid"]) expect(existsSync(join(data, file))).toBe(false);
+  });
+
+  it("with no daemon on record, leaves a program that is not Stigmer on the server port alone", async () => {
+    const holder = await foreignListener();
+    const home = tempDir("stigmer-left-home-");
+
+    expect(await down(home, holder.port)).toBe(false);
+
+    await new Promise((resolve) => setTimeout(resolve, SIGNAL_GRACE_MS));
+    expect(isProcessAlive(holder.pid)).toBe(true);
+  });
+});
+
+describe("upForeground (a daemon record naming another program now)", () => {
+  it("leaves that program alone, removes the record and starts", async () => {
+    const stranger = await leftover("exit-after-a-moment");
+    const { home, data } = homeWithRecords({ daemon: await deadPid() });
+    recordAsAnotherLife(join(data, "daemon.pid"), stranger);
+    const runDaemon = vi.fn(async () => 0);
+
+    const code = await upForeground({}, home, { runDaemon, serverPort: await freePort(), shutdown: new AbortController().signal });
+
+    expect(code).toBe(0);
+    expect(runDaemon).toHaveBeenCalledOnce();
+    await new Promise((resolve) => setTimeout(resolve, SIGNAL_GRACE_MS));
+    expect(isProcessAlive(stranger)).toBe(true);
+    expect(existsSync(join(data, "daemon.pid"))).toBe(false);
   });
 });
