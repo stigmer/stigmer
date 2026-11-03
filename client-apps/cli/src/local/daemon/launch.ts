@@ -333,11 +333,16 @@ function stigmerPortHolder(port: number): number | null {
 
 // Refuse to start beside a stack that is running, still starting or still
 // stopping: the daemon on record is alive. Nothing is touched; `down` is the
-// one way to stop it. A recorded PID that is our own, or that names another
-// program now, is a leftover, never a stack (see cleanupOrphans).
+// one way to stop it. A recorded PID that is dead, our own, or names another
+// program now is a leftover, never a stack: its record is dropped here, so the
+// sweep after (cleanupOrphans) neither re-reads nor re-reports it.
 function refuseRunningStack(data: string): void {
-  const pid = recordedLiveProcess(join(data, DAEMON_PID_FILE));
-  if (pid === null) return;
+  const pidPath = join(data, DAEMON_PID_FILE);
+  const pid = recordedLiveProcess(pidPath);
+  if (pid === null) {
+    removePidFile(pidPath);
+    return;
+  }
   throw new CliExitError(`the local Stigmer stack is already running (daemon pid ${pid})`, ExitCode.General, [
     "Stop it with: stigmer down",
   ]);
