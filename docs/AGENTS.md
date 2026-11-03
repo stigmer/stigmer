@@ -41,8 +41,9 @@ and `vocabulary.md` are the truth.
   text carry the information. A `Screen`'s alt text, and a `Diagram`'s text
   (`site/src/components/visuals/diagrams.ts`), is what the exports carry in its
   place.
-- Every YAML block is contract-validated by `make check-docs-yaml`; an example
-  that would not apply does not ship.
+- Every YAML block is contract-validated (`make check-docs-yaml`), and every
+  TypeScript, Go, Python and Java block compiles against its SDK or says why not
+  (`make check-docs-snippets`; `STYLE.md`, "Code examples compile").
 - Match the register to the context from `vocabulary.md`; when unsure, write for
   the least technical reader in the audience. Use Stigmer's terms as proper
   nouns and never a synonym.

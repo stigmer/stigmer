@@ -79,6 +79,49 @@ never rule-checked — partial-by-intent is their point. Run
 `make report-docs-yaml-rules` for the rule findings as a report that never
 fails.
 
+### Code examples compile
+
+Every ` ```typescript `, ` ```tsx `, ` ```go `, ` ```python ` and ` ```java `
+block in `docs/` is compiled against the SDK it shows by
+`make check-docs-snippets` (CI lane `ci.docs-snippets`). A block is one of:
+
+1. **A whole file** — titled with its file name
+   (` ```typescript title="client.ts" `, the title's extension its language's
+   own), or a complete program (a Go `package` clause, a Java class). Compiled
+   as it stands. A relative import (`./client.js`) reads the nearest titled
+   block above it on the same page.
+2. **A fragment** — a few statements, compiled with what every page may take as
+   given and what the page shows:
+   - the client, under the names every page uses: `stigmer` (or `client`) in
+     TypeScript, `client` and `ctx` in Go, `client` in Python and Java. On the
+     React, React-core, Ink and theme pages, a name the kit exports is in scope
+     too. Nothing else is given: never an `id` or an `org`.
+   - the page's **prelude**: a visible block marked ` ```go prelude ` (one per
+     language) holding the imports the page's examples share, shown once where
+     the reader looks for them, typically under an "imports" heading. It is
+     never compiled alone, and a prelude with no fragment of its language on the
+     page fails.
+   - the block's own **hidden setup**: lines above a `// ---cut---` marker
+     (`# ---cut---` in Python) that the site, the copy button and the markdown
+     exports never show. Setup holds declarations only: a name the prose
+     introduced (`declare const user: PlatformUser;`, `var user PlatformUser`,
+     `user: Any = None`, a Java field), and imports the page does not show.
+     Never logic the reader needs to understand the example: if the hidden lines
+     carry meaning, they belong in the body.
+3. **Explicitly skipped** — ` ```go no-compile="reason" `, for pseudo-code, a
+   sketch with elided arguments, or a wrong value shown beside a right one. The
+   reason is mandatory and says why.
+
+An example that returns a value is the function it belongs to: write the
+`func provisionUser(...)` or the Java method, so the reader sees what it returns
+to, never a bare `return "", err`.
+
+The fences allowed to fail today are listed in
+`test/docs-snippets-known-failing.json`, by page and by the digest of their
+text. The list may only shrink: a changed block leaves it and must compile, and
+a block fixed while listed fails the gate until `--prune` drops it. Never add to
+it.
+
 ## Classify every page
 
 Every hand-authored page has an entry in `docs/_inventory/classification.yaml`,
