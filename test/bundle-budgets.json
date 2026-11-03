@@ -7,6 +7,7 @@
     "embed/loader": 1558
   },
   "images": {
-    "site/screen": 150000
+    "site/screen": 150000,
+    "site/hero": 600000
   }
 }

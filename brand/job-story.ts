@@ -30,6 +30,22 @@ export const JOB = {
   report: "variance-report.md",
 } as const;
 
+/**
+ * The same product's other names, for the pictures that need more than one
+ * customer or must name the integrator. `customer` is a second business the
+ * product serves, beside Northwind, for the picture of two customers asking
+ * the same agent, each conversation in its own books. `integrator` is the
+ * company that built the product, named only where Stigmer's own console
+ * names the organization it signs into (Models & providers says whose
+ * agents run on whose key) and in the address that saved the key; the
+ * product's own pages name no product, as above.
+ */
+export const OTHERS = {
+  customer: "Fernhill Bakery",
+  integrator: "Harbor Ledger",
+  integratorAdmin: "maya@harborledger.example",
+} as const;
+
 /** The story, in order. */
 export const STEPS = ["hands-over", "enters", "works", "asks", "approves", "returns"] as const;
 

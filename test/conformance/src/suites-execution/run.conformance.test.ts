@@ -142,7 +142,22 @@ beforeAll(async () => {
   mock = requireLlmProxy(target);
 });
 
+// The mock's record of which run received each answer, as the test ended.
+// afterEach takes it before reset() clears it, and a failed test prints it:
+// a run that waited out its poll, or an assertion that saw the wrong turn,
+// reads here as the run that took its answer.
+let trafficAtEnd: string | undefined;
+
+beforeEach((context) => {
+  trafficAtEnd = undefined;
+  // vitest runs failed hooks after afterEach, so the snapshot is taken by then.
+  context.onTestFailed(() => {
+    process.stderr.write(`\n[mock-llm] ${context.task.name}\n${trafficAtEnd ?? "(no traffic record: the test ended before afterEach)"}\n`);
+  });
+});
+
 afterEach(async () => {
+  trafficAtEnd = mock.describeTraffic();
   // Unblock any still-held turn first so a lifecycle test's runner activity (a
   // stopped turn the cancellation has not reached yet) finishes and frees
   // its session lock, instead of lingering into the next test and claiming its

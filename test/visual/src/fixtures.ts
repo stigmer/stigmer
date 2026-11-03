@@ -109,14 +109,18 @@ export const ACCOUNT = create(IdentityAccountSchema, {
   spec: { idpId: "auth0|ada", email: "ada@acme.example" },
 });
 
-/** The organization's own Anthropic key, checked with Anthropic, saved a week before the samples' instant and used a day before it. */
-export function ownAnthropicKey(): ProviderKey {
+/**
+ * The organization's own Anthropic key, checked with Anthropic, saved a week
+ * before the samples' instant (by Ada unless a scene names who) and used a
+ * day before it.
+ */
+export function ownAnthropicKey(savedBy = "ada@acme.example"): ProviderKey {
   return create(ProviderKeySchema, {
     org: ORG_ID,
     provider: "anthropic",
     keyHint: "x7Qa",
     check: ProviderKeyCheck.checked,
-    createdBy: "ada@acme.example",
+    createdBy: savedBy,
     createdAt: timestampFromDate(sampleDate(-7 * 86_400_000)),
     updatedAt: timestampFromDate(sampleDate(-7 * 86_400_000)),
     lastUsedAt: timestampFromDate(sampleDate(-86_400_000)),

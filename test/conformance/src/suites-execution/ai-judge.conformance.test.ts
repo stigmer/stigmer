@@ -49,6 +49,7 @@ import {
   JUDGE_LIMIT_REACHED_REASON,
   JUDGE_UNREADABLE_REASON,
   MADE_NOTHING_UP,
+  awaitJudgeRunsGone,
   awaitJudgeVerdict,
   judgeRunsOf,
   makeScoringRule,
@@ -161,7 +162,9 @@ describe("AI grading", () => {
     // Run health still grades the run on its own.
     expect((await awaitRunHealth(clients, runId)).status?.state).toBe(ScoreState.graded);
 
-    expect(await judgeRunsOf(clients, org, runId), "the judge's run is deleted with its session").toBe(0);
+    // The record step deletes the judge's session after the grade and the
+    // scoring rule's settlement, so the verdict is readable a moment before.
+    await awaitJudgeRunsGone(clients, org, runId);
     const scoringRule = await clients.scoringRuleQuery.get({ value: scoringRuleId! });
     expect(scoringRule.status?.graded).toBe(1);
     expect(scoringRule.status?.reservedUsd, "the grade's cap is given back").toBe(0);
