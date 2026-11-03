@@ -21,7 +21,7 @@
  *   3. Medium — a page classified `still` or `screenshot-journey` shows at
  *      least one `<Screen>` (a picture the visual suite draws), and a page of
  *      any other medium shows none. A page still waiting for its pictures is
- *      named in OWED_PICTURES with its reason, and that list only shrinks.
+ *      named in OWED_PICTURES with its reason, and leaves it once pictured.
  *
  * Layering mirrors llms-pages.ts: this module is pure logic with unit
  * tests; scripts/generate-docs-inventory/index.ts is the thin CLI wrapper.
@@ -100,8 +100,8 @@ export const PICTURED_MEDIUMS: readonly Medium[] = ["still", "screenshot-journey
 /**
  * The `still` and `screenshot-journey` pages still waiting for their
  * pictures, each with why. A page leaves the list in the change that
- * pictures it: the inventory fails while a listed page already shows one,
- * so the list only shrinks.
+ * pictures it: the inventory fails while a listed page already shows one.
+ * Adding a page is a choice a reviewer reads in the diff, with its reason.
  */
 export const OWED_PICTURES: Readonly<Record<string, string>> = {
   "guides/channels/create-a-chat-link": "the channel screens (the Channels tab, the chat link dialog) are not drawn yet",
@@ -117,17 +117,21 @@ export const OWED_PICTURES: Readonly<Record<string, string>> = {
 };
 
 /**
- * How many pictures (`<Screen` tags) a page's MDX source shows. A tag inside
- * a fenced code block is an example of the tag, not a picture.
+ * How many pictures (`<Screen` tags) a page's MDX source renders. A tag the
+ * page only shows or hides is no picture: one in a fenced code block, in an
+ * inline code span, or in an MDX comment. A fence closes, as in CommonMark,
+ * only on a line of its own character, at least as long, with no info string.
  */
 export function countScreens(source: string): number {
   let fence: string | null = null;
   let screens = 0;
-  for (const line of source.split("\n")) {
-    const opener = /^\s*(`{3,}|~{3,})/.exec(line)?.[1];
-    if (fence === null && opener) fence = opener;
-    else if (fence !== null && opener && opener[0] === fence[0] && opener.length >= fence.length) fence = null;
-    else if (fence === null) screens += (line.match(/<Screen\b/g) ?? []).length;
+  for (const line of source.replace(/\{\/\*[\s\S]*?\*\/\}/g, "").split("\n")) {
+    const fenceLine = /^\s*(`{3,}|~{3,})(.*)$/.exec(line);
+    if (fence === null && fenceLine) fence = fenceLine[1];
+    else if (fence !== null) {
+      const closes = fenceLine !== null && fenceLine[1][0] === fence[0] && fenceLine[1].length >= fence.length && fenceLine[2].trim() === "";
+      if (closes) fence = null;
+    } else screens += (line.replace(/(`+)[^`]*?\1/g, "").match(/<Screen\b/g) ?? []).length;
   }
   return screens;
 }

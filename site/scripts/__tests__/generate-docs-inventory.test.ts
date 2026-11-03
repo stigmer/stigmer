@@ -6,14 +6,13 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 const argv = process.argv;
-let root: string | undefined;
+const roots: string[] = [];
 afterEach(async () => {
   vi.restoreAllMocks();
   vi.doUnmock("../../src/lib/docs-inventory");
   vi.resetModules();
   process.argv = argv;
-  if (root) await rm(root, { recursive: true, force: true });
-  root = undefined;
+  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 
 /**
@@ -26,7 +25,8 @@ async function prepare(classification: string, owed: Record<string, string> = {}
     ...(await importActual<typeof import("../../src/lib/docs-inventory")>()),
     OWED_PICTURES: owed,
   }));
-  root = await mkdtemp(join(tmpdir(), "stigmer-docs-inventory-"));
+  const root = await mkdtemp(join(tmpdir(), "stigmer-docs-inventory-"));
+  roots.push(root);
   const site = join(root, "site");
   await mkdir(site);
   await mkdir(join(root, "docs", "_inventory"), { recursive: true });

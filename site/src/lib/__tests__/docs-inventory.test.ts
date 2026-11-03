@@ -419,6 +419,13 @@ describe("the medium a page declares", () => {
     expect(countScreens("~~~~\n```\n<Screen name=\"a\" alt=\"x\" />\n~~~~\n<Screen name=\"b\" alt=\"y\" />")).toBe(1);
     expect(countScreens("1. Open it.\n\n   <Screen\n     name=\"a\"\n     alt=\"x\"\n   />\n")).toBe(1);
   });
+
+  it("counts no picture the page does not render: in an MDX comment, in inline code, or after an info-string fence line inside a block", () => {
+    expect(countScreens('{/* <Screen name="a" alt="x" /> */}\n')).toBe(0);
+    expect(countScreens('{/*\n<Screen name="a" alt="x" />\n*/}\n<Screen name="b" alt="y" />')).toBe(1);
+    expect(countScreens("Embed it with `<Screen name alt />`, or ``<Screen>`` in a sentence.")).toBe(0);
+    expect(countScreens('```\n```mdx\n<Screen name="a" alt="x" />\n```\n')).toBe(0);
+  });
 });
 
 describe("renderReport", () => {
