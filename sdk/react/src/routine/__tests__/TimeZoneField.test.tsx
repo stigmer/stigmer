@@ -60,6 +60,17 @@ describe("TimeZoneField", () => {
     expect(screen.getByRole("option", { name: "Asia/Kolkata" }).getAttribute("aria-selected")).toBe("true");
   });
 
+  it("offers the browser's zone by its current name, and UTC, on a runtime that cannot list zones", () => {
+    vi.spyOn(Intl, "supportedValuesOf").mockImplementation(() => {
+      throw new TypeError("Intl.supportedValuesOf is not a function");
+    });
+    const resolved = vi.spyOn(Intl.DateTimeFormat.prototype, "resolvedOptions");
+    resolved.mockReturnValue({ ...new Intl.DateTimeFormat("en-US", { timeZone: "UTC" }).resolvedOptions(), timeZone: "Asia/Calcutta" });
+    expect(allTimeZones()).toEqual(["Asia/Kolkata", "UTC"]);
+    resolved.mockReturnValue({ ...new Intl.DateTimeFormat("en-US", { timeZone: "UTC" }).resolvedOptions(), timeZone: "UTC" });
+    expect(allTimeZones()).toEqual(["UTC"]);
+  });
+
   it("defaults to the browser's zone by its current name", () => {
     vi.spyOn(Intl.DateTimeFormat.prototype, "resolvedOptions").mockReturnValue({
       ...new Intl.DateTimeFormat("en-US", { timeZone: "UTC" }).resolvedOptions(),
