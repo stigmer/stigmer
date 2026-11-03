@@ -464,10 +464,7 @@ function capitalize(word: string): string {
 
 /** An error's text for a log line, with the store fault an Internal wraps. */
 function describeError(error: unknown): string {
-  if (!(error instanceof Error)) {
-    return String(error);
-  }
-  return error.cause instanceof Error
-    ? `${error.message}: ${error.cause.message}`
-    : error.message;
+  const text = error instanceof Error ? error.message : String(error);
+  const cause = error instanceof Error ? error.cause : undefined;
+  return cause instanceof Error ? `${text}: ${cause.message}` : text;
 }

@@ -27,7 +27,8 @@
  *     a move landing between a named-tag apply's two writes (#2908); a
  *     same-content apply's named tag survives a concurrent apply naming
  *     none; a tag that keeps moving is logged after GUARDED_WRITE_ATTEMPTS
- *     writes and the apply still succeeds; a shown tag answers the stored
+ *     writes and the apply still succeeds, as is a failing write with the
+ *     store's fault; a shown tag answers the stored
  *     etag for a kind whose tag is inside its spec; and a kind whose tag is
  *     its content (the plugin) never has its head written;
  *   - the version-metadata rule leaves a head with no hash or no metadata as
@@ -570,6 +571,17 @@ describe("the apply's tag", () => {
     expect(writes).toBe(GUARDED_WRITE_ATTEMPTS);
     expect(errors.map((line) => (JSON.parse(line) as { message: string }).message)).toEqual([
       "failed to write agent after reconciling its tag",
+    ]);
+  });
+
+  it("logs the store's fault when the reconcile cannot write the head, and the apply succeeds", async () => {
+    const live = liveAgent(agent(HEAD), [[HEAD, "stable"]]);
+    const store = { ...liveStore(live), updateResource: async () => Promise.reject(STORE_DOWN) } as Store;
+    const ctx = new RequestContext(AgentSchema, agent(HEAD), testCallerIdentity(), ApiResourceKind.agent);
+    await newSaveAgentVersionStep(store, logger).execute(ctx);
+    expect(tagOf(ctx.newState)).toBe("");
+    expect(errors.map((line) => (JSON.parse(line) as { error: string }).error)).toEqual([
+      "[internal] failed to reconcile agent head tag: store is down",
     ]);
   });
 
