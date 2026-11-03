@@ -26,13 +26,23 @@
  * stream.ts, attention.ts, transport/health.ts). So the departure is read
  * from `request.signal`: aborted with a reason whose code is not
  * DeadlineExceeded means the caller left, and the line is "rpc cancelled"
- * with the reason's code (Canceled, Aborted, or Internal for an HTTP/2
- * protocol reset). It covers a stream however it ended, a stream the
- * consumer stopped early, and a unary call that FAILED after the abort; a
- * unary call that succeeded after its caller left did its whole job and
- * stays "rpc completed". A deadline is not a departure: the server ran
- * out of the caller's budget, so it is tiered by its code like any other
- * failure, including a stream that returned on the deadline's abort.
+ * with the reason's code: Canceled for a close with no reason, Aborted or
+ * Internal for a reset, Unknown for the raw error of a write that failed
+ * first. It covers a stream however it ended, a stream the consumer
+ * stopped early, and a unary call that FAILED after the abort; a unary
+ * call that succeeded after its caller left did its whole job and stays
+ * "rpc completed". A call that threw keeps its error on the cancelled
+ * line (`error`, `cause`, and the stack at debug), so a real fault in a
+ * request its caller gave up on is still on record, beside the metrics'
+ * count of its code. A deadline is not a departure: the server ran out of
+ * the caller's budget, so it is tiered by its code like any other
+ * failure, including a stream that ended on the deadline's abort.
+ *
+ * What the signal cannot tell apart: connect also aborts it, with no
+ * reason, before it stops a stream it failed to send (a message over the
+ * write limit, or one that cannot be encoded). That stream logs
+ * "rpc cancelled" with Canceled while its client receives the failure,
+ * as a departure would; the error boundary and the metrics see neither.
  *
  * The request-metrics interceptor also measures a stream to its end but
  * labels a departure by how the iterable ended, so the two disagree on a
@@ -53,7 +63,7 @@ import type {
   UnaryRequest,
 } from "@connectrpc/connect";
 
-import type { Logger } from "../../boot/logger.js";
+import type { LogFields, Logger } from "../../boot/logger.js";
 import { causeFields, causeStack } from "../error-cause.js";
 
 /** Health successes are polled chatter, logged at debug. */
@@ -132,11 +142,16 @@ function logOutcome(
   const unarySuccess = outcome.ended === "completed" && !outcome.stream;
 
   if (departed && !unarySuccess) {
-    logCancelled(logger, isHealth, {
-      procedure,
-      code: Code[abort],
-      durationMs,
-    });
+    const fields = { procedure, code: Code[abort], durationMs };
+    if (outcome.ended === "threw") {
+      logCancelled(logger, isHealth, {
+        ...fields,
+        ...errorFields(outcome.error),
+      });
+      logStack(logger, procedure, outcome.error);
+    } else {
+      logCancelled(logger, isHealth, fields);
+    }
   } else if (outcome.ended === "threw") {
     logFailure(logger, procedure, durationMs, outcome.error);
   } else if (abort === Code.DeadlineExceeded && !unarySuccess) {
@@ -174,7 +189,7 @@ function logSuccess(
 function logCancelled(
   logger: Logger,
   isHealth: boolean,
-  fields: { procedure: string; code: string; durationMs: number },
+  fields: { procedure: string; code: string; durationMs: number } & LogFields,
 ): void {
   if (isHealth) {
     logger.debug("rpc cancelled", fields);
@@ -194,9 +209,7 @@ function logFailure(
     procedure,
     code: Code[connectError.code],
     durationMs,
-    // The real error, not the sanitized wire message.
-    error: error instanceof Error ? error.message : String(error),
-    ...causeFields(error),
+    ...errorFields(error),
   };
   switch (connectError.code) {
     case Code.NotFound:
@@ -210,6 +223,18 @@ function logFailure(
     default:
       logger.error("rpc failed", fields);
   }
+  logStack(logger, procedure, error);
+}
+
+/** The real error, not the sanitized wire message, and its cause chain. */
+function errorFields(error: unknown): LogFields {
+  return {
+    error: error instanceof Error ? error.message : String(error),
+    ...causeFields(error),
+  };
+}
+
+function logStack(logger: Logger, procedure: string, error: unknown): void {
   const stack = causeStack(error);
   if (stack !== undefined) {
     logger.debug("rpc failure stack", { procedure, stack });

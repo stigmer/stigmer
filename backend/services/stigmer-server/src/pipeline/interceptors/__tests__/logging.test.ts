@@ -9,8 +9,10 @@
  *   - the departure rule: a request whose signal aborted with a reason
  *     other than DeadlineExceeded logs "rpc cancelled" with the reason's
  *     code, for a stream however it ended and for a unary call that
- *     failed; a unary call that succeeded after the abort stays
- *     "rpc completed"; a deadline is tiered as a failure;
+ *     failed, and a call that threw keeps its error, cause and stack on
+ *     that line; a unary call that succeeded after the abort stays
+ *     "rpc completed"; a deadline is tiered as a failure, a stream the
+ *     consumer stopped under one included;
  *   - health lines are debug, cancelled ones included;
  *   - on the REAL server (createUnifiedPortServer, the real health
  *     service), a client that leaves a Health.watch stream part-way, over
@@ -226,8 +228,8 @@ describe("the logging interceptor on a server stream", () => {
     );
 
     await it.next();
-    // connect-node's writer: abort the context, then throw the raw write
-    // error into the iterable (an HTTP/1.1 reset reads Aborted).
+    // The socket's reset got there first (connect-node maps it to
+    // Aborted); then the writer throws its raw error into the iterable.
     controller.abort(new ConnectError("socket hang up", Code.Aborted));
     await expect(it.throw?.(new Error("write after close"))).rejects.toThrow(
       "write after close",
@@ -238,6 +240,38 @@ describe("the logging interceptor on a server stream", () => {
         level: "info",
         message: "rpc cancelled",
         code: "Aborted",
+        error: "write after close",
+      }),
+    ]);
+  });
+
+  it("reads Unknown when the failed write itself aborted the signal", async () => {
+    const { logger, lines } = capturingLogger();
+    const clock = fakeClock();
+    const controller = new AbortController();
+    const it = await interceptStream(
+      (async function* () {
+        yield "m1";
+        yield "m2";
+      })(),
+      logger,
+      clock,
+      fakeRequest(controller.signal),
+    );
+
+    await it.next();
+    // connect's handler wrapper: context.abort(e) with the raw write
+    // error, then the same error thrown into the iterable.
+    const writeError = new Error("write EPIPE");
+    controller.abort(writeError);
+    await expect(it.throw?.(writeError)).rejects.toThrow("write EPIPE");
+
+    expect(rpcLines(lines)).toEqual([
+      expect.objectContaining({
+        level: "info",
+        message: "rpc cancelled",
+        code: "Unknown",
+        error: "write EPIPE",
       }),
     ]);
   });
@@ -286,6 +320,35 @@ describe("the logging interceptor on a server stream", () => {
 
     await it.next();
     await expect(it.next()).rejects.toThrow("store read timed out");
+
+    expect(rpcLines(lines)).toEqual([
+      expect.objectContaining({
+        level: "error",
+        message: "rpc failed",
+        code: "DeadlineExceeded",
+      }),
+    ]);
+  });
+
+  it("tiers a stream the consumer stopped under a deadline as a failure", async () => {
+    const { logger, lines } = capturingLogger();
+    const clock = fakeClock();
+    const controller = new AbortController();
+    const it = await interceptStream(
+      (async function* () {
+        yield "m1";
+        yield "never-pulled";
+      })(),
+      logger,
+      clock,
+      fakeRequest(controller.signal),
+    );
+
+    await it.next();
+    controller.abort(
+      new ConnectError("the operation timed out", Code.DeadlineExceeded),
+    );
+    await it.return?.();
 
     expect(rpcLines(lines)).toEqual([
       expect.objectContaining({
@@ -380,8 +443,43 @@ describe("the departure rule on a unary call", () => {
         level: "info",
         message: "rpc cancelled",
         code: "Canceled",
+        error: "connection terminated",
       }),
     ]);
+  });
+
+  it("keeps the cause chain and the stack of a fault thrown after the caller left", async () => {
+    const { logger, lines } = capturingLogger();
+    const controller = new AbortController();
+    const interceptor = createLoggingInterceptor(logger);
+    const next = async () => {
+      controller.abort();
+      throw internalError(
+        new Error("load failed", { cause: new Error("database is locked") }),
+        "failed to get agent",
+      );
+    };
+
+    await expect(
+      interceptor(next as never)(
+        fakeRequest(controller.signal, { stream: false }),
+      ),
+    ).rejects.toThrow("failed to get agent");
+
+    const logged = rpcLines(lines);
+    expect(logged).toHaveLength(2);
+    expect(logged[0]).toMatchObject({
+      level: "info",
+      message: "rpc cancelled",
+      code: "Canceled",
+      error: "[internal] failed to get agent",
+      cause: "Error: load failed <- Error: database is locked",
+    });
+    expect(logged[1]).toMatchObject({
+      level: "debug",
+      message: "rpc failure stack",
+    });
+    expect(String(logged[1]?.["stack"])).toContain("database is locked");
   });
 
   it("logs 'rpc completed' for a call that succeeded after its caller left", async () => {
