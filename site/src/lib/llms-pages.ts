@@ -87,8 +87,8 @@ async function readJson<T>(p: string): Promise<T> {
  * Strips MDX/JSX authoring noise while preserving semantically useful
  * component tags that LLMs can interpret (Callout, Tabs, Term, etc.).
  * A `<Screen>` becomes the markdown image it stands for, linked on
- * `siteUrl`, and a `<Diagram>` the text it stands for (see
- * `picturesToMarkdown`).
+ * `siteUrl`, a `<Diagram>` the text it stands for, and a `<Live>` or the
+ * `<ThemePlayground>` a line linked to the demo (see `picturesToMarkdown`).
  */
 export function cleanContent(raw: string, siteUrl: string): string {
   const cleaned = raw
