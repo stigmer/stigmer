@@ -20,7 +20,11 @@ import { MODES, SCENES, WIDTHS, screenshotsOf, type Mode, type SceneId } from ".
 import { draw } from "./draw.ts";
 
 /** The rules each scene fails today, in each mode, against the issue that tracks each. */
-const KNOWN_VIOLATIONS: Readonly<Partial<Record<`${SceneId} ${Mode}`, readonly KnownViolation[]>>> = {};
+const KNOWN_VIOLATIONS: Readonly<Partial<Record<`${SceneId} ${Mode}`, readonly KnownViolation[]>>> = {
+  // A file read still running nests its file link inside the row's button.
+  "story-hours light": [{ rule: "nested-interactive", issue: "stigmer#2878" }],
+  "story-hours dark": [{ rule: "nested-interactive", issue: "stigmer#2878" }],
+};
 
 const SCREENSHOTS = fileURLToPath(new URL("./__screenshots__/", import.meta.url));
 
