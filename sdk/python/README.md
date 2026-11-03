@@ -12,23 +12,54 @@ pip install stigmer-sdk
 
 ## Quick Start
 
-```python
-import os
+Before you start, run Stigmer on your machine with `stigmer up` and give it a model key ([Start Stigmer and add your model key](https://stigmer.ai/docs/getting-started/quickstart#start-stigmer-and-add-your-model-key)). Without a key the server refuses the message, and the program prints why.
 
-from stigmer import StigmerClient, AgentInput
-
-with StigmerClient(os.environ["STIGMER_API_KEY"]) as client:
-    agent = client.agents.create(AgentInput(name="my-agent", org="my-org"))
-    print(agent.metadata.name)
-```
-
-Or without a context manager:
+This program connects to that Stigmer, sets up a small agent, asks it one thing and prints its answer:
 
 ```python
-client = StigmerClient(os.environ["STIGMER_API_KEY"])
-agent = client.agents.get("agent-id")
-client.close()
+"""The Stigmer quick start: connect to the Stigmer running on this machine,
+set up a small agent, ask it one thing and print its answer.
+
+Start Stigmer first with `stigmer up` (given a model key), then:
+python quickstart.py
+"""
+
+import sys
+
+from stigmer import AgentInput, ResourceRef, SessionSpecInput, StigmerClient, StigmerError
+
+try:
+    # `stigmer up` serves on localhost:7234 and needs no key on your machine.
+    with StigmerClient(base_url="localhost:7234", insecure=True) as client:
+        # apply creates the agent, or updates it when you run this again.
+        agent = client.agents.apply(
+            AgentInput(
+                name="greeter",
+                org="stigmer",
+                instructions="You greet people in one short, friendly sentence.",
+            )
+        )
+
+        turn = client.send_and_wait(
+            org="stigmer",
+            session_spec=SessionSpecInput(agent_ref=ResourceRef(org="stigmer", slug=agent.metadata.slug)),
+            message="Say hello to a developer trying Stigmer for the first time.",
+        )
+except StigmerError as err:
+    sys.exit(f"stigmer: {err}")
+
+if turn.phase != "completed":
+    sys.exit(f"the turn did not complete ({turn.phase}): {turn.error}")
+print(turn.answer)
 ```
+
+It is `examples/quickstart.py`. Run `python quickstart.py`; it prints the agent's answer, for example "Hello, and welcome to Stigmer!".
+
+`send_and_wait` sends the message and waits for the agent's answer, reconnecting if the stream drops. A turn that waits for a person's approval returns with `phase` `"waiting"` and its `asks`; answer them with `client.sessions.confirm_tool_use` and call `client.wait_for_turn` with the outcome's `last_seq`.
+
+### On Stigmer Cloud
+
+Make two changes: connect with an API key, `StigmerClient(os.environ["STIGMER_API_KEY"])` (keys read `stk_…`), and use your own organization, `os.environ["STIGMER_ORG"]`, where the program says `"stigmer"`.
 
 ## Resource Clients
 
@@ -225,7 +256,7 @@ cd sdk/python
 make codegen
 ```
 
-Handwritten code lives in `src/stigmer/` (outside `_gen/`): `_client.py`, `_transport.py`, `_interceptors.py`, `_search.py`, `_tokens.py`, and `__init__.py`.
+Handwritten code lives in `src/stigmer/` (outside `_gen/`): `_client.py`, `_transport.py`, `_interceptors.py`, `_search.py`, `_tokens.py`, `_turns.py`, and `__init__.py`.
 
 ## Tests
 

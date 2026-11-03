@@ -24,7 +24,7 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { docSteps, elidedRuns, firstOutOfOrder, firstUnmarkedGap } from "./lib/doc-steps.mjs";
+import { docSteps, elidedRuns, firstFence, firstOutOfOrder, firstUnmarkedGap } from "./lib/doc-steps.mjs";
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
 const read = (path) => readFileSync(`${ROOT}${path}`, "utf8");
@@ -35,15 +35,6 @@ const EXAMPLE_URL = `https://raw.githubusercontent.com/stigmer/stigmer/main/${EX
 const quickstart = docSteps(read("docs/getting-started/quickstart.mdx"));
 const quickstartCommands = quickstart.filter((step) => step.kind === "command").map((step) => step.line);
 const quickstartFiles = quickstart.filter((step) => step.kind === "file");
-
-/** The body of the first fence of `language` in `markdown`'s section under `## <heading>`. */
-function firstFence(markdown, heading, language) {
-  const section = new RegExp(`^## ${heading}\\n([\\s\\S]*?)(?=^## |(?![\\s\\S]))`, "mi").exec(markdown)?.[1];
-  assert.ok(section !== undefined, `a "## ${heading}" section`);
-  const body = new RegExp(`^\`\`\`${language}\\n([\\s\\S]*?)^\`\`\`$`, "m").exec(section)?.[1];
-  assert.ok(body !== undefined, `a \`\`\`${language} fence under "## ${heading}"`);
-  return body;
-}
 
 /** The README quick start's steps: its one bash fence, read as the smoke reads a page. */
 function readmeQuickStart() {

@@ -588,6 +588,16 @@ smoke-getting-started: build-runner build-server build-web ## Run the Getting St
 	@cd $(SERVER_DIR) && node scripts/bundle-slim.mjs
 	node test/install/smoke-getting-started.mjs
 
+# The Go, Python and Java quick starts run as a developer runs them, on the
+# same source CLI and slim server as the smokes above: each must print the
+# agent's answer (test/install/smoke-sdk-quickstarts.mjs). Needs go, python3,
+# java and mvn; SMOKE_SDK_QUICKSTARTS_ARGS passes the smoke's flags.
+.PHONY: smoke-sdk-quickstarts
+smoke-sdk-quickstarts: build-runner build-server build-web ## Run the Go, Python and Java quick starts as written against `stigmer up` from source: each prints the agent's answer
+	@command -v node >/dev/null 2>&1 || { echo "error: node not found"; exit 1; }
+	@cd $(SERVER_DIR) && node scripts/bundle-slim.mjs
+	node test/install/smoke-sdk-quickstarts.mjs $(SMOKE_SDK_QUICKSTARTS_ARGS)
+
 # The published TypeScript libraries as an outside developer installs them:
 # the terminal kit, the React kit, the embed and the design tokens, packed
 # from this checkout with their @stigmer/* closure, installed into an empty

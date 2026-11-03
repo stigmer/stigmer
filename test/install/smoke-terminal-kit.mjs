@@ -61,7 +61,7 @@ import { after, before, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { anthropicText, anthropicToolUse } from "../support/src/llm-wire.ts";
 import { docSteps } from "./lib/doc-steps.mjs";
-import { fakeModelEnv, startFakeModel } from "./lib/fake-model.mjs";
+import { fakeModelEnv, isTitleCall, startFakeModel } from "./lib/fake-model.mjs";
 import { CLI_SERVER_PORT, createCliInstall, spawnCommand } from "./lib/install-cli.mjs";
 import { assertPortFree } from "./lib/stigmer-smoke.mjs";
 import { configuredRegistry, installGap, waitForRegistry } from "../../scripts/publish-standalone.mjs";
@@ -201,10 +201,6 @@ function runKeys() {
   return keysRun;
 }
 
-// The runner's title call: its system prompt is the title generator's.
-function isTitleCall(request) {
-  return JSON.stringify(request.body?.system ?? "").includes("session title generator");
-}
 
 /** The reader's shell without CI flags, on a real terminal type: Ink draws live there. */
 function terminalEnv() {

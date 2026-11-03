@@ -59,6 +59,17 @@ export function fakeModelEnv(fake, host = "127.0.0.1") {
   return { ANTHROPIC_API_KEY: FAKE_MODEL_API_KEY, ANTHROPIC_BASE_URL: `http://${host}:${fake.port}` };
 }
 
+/**
+ * Whether a model call is the runner's title call, which it makes beside a
+ * conversation's first turn in no fixed order: its system prompt is the
+ * title generator's (backend/services/runner/src/activities/generate-session-subject.ts).
+ * A smoke that scripts a turn's answers routes the title's answer to this
+ * call alone and the turn's to every other, so neither takes the other's.
+ */
+export function isTitleCall(request) {
+  return JSON.stringify(request.body?.system ?? "").includes("session title generator");
+}
+
 /** The model a `--live-model` run pins: the cheapest Stigmer-harness model in the registry. */
 export const LIVE_MODEL = "claude-haiku-4.5";
 

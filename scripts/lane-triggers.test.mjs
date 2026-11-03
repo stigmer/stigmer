@@ -1113,12 +1113,13 @@ test("the setup rule still finds the setups and installs it exists for", () => {
     "libs-install",
     "plugins-static",
     "runner",
+    "sdk-quickstarts",
     "stigmer-server",
     "ts-workspace",
     "upgrade-rehearsal",
   ];
   assert.deepEqual(readers(".nvmrc"), [...rootInstalls, "crate"].sort());
-  assert.deepEqual(readers("go.work"), ["go-sdk"]);
+  assert.deepEqual(readers("go.work"), ["go-sdk", "sdk-quickstarts"]);
   assert.deepEqual(readers("package.json"), rootInstalls);
   assert.deepEqual(readers("package-lock.json"), rootInstalls);
   assert.deepEqual(readers("backend/services/stigmer-server/package-lock.json"), [
@@ -1181,6 +1182,7 @@ test("the make rule still finds the Makefiles, scripts and lanes it exists for",
     "helm-chart",
     "libs-install",
     "plugins-static",
+    "sdk-quickstarts",
     "stigmer-server",
     "ts-workspace",
     "upgrade-rehearsal",
@@ -1193,6 +1195,7 @@ test("the make rule still finds the Makefiles, scripts and lanes it exists for",
     "compose-stack",
     "ee",
     "helm-chart",
+    "sdk-quickstarts",
     "upgrade-rehearsal",
   ]);
   assert.deepEqual(readers("client-apps/cli/src/cli/stigmer.ts"), ["conformance-execution"]);

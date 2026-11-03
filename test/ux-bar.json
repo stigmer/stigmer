@@ -259,10 +259,7 @@
     },
     {
       "id": "SDK-01",
-      "promise": "Every language quickstart ends by printing the agent's answer.",
-      "pending": [
-        "stigmer#2634"
-      ]
+      "promise": "Every language quickstart ends by printing the agent's answer."
     },
     {
       "id": "SDK-02",

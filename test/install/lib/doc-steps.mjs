@@ -179,3 +179,16 @@ export function firstOutOfOrder(shown, source) {
   }
   return undefined;
 }
+
+/**
+ * The body of the first fence of `language` in `markdown`'s section under
+ * `## <heading>` (the section runs to the next `## ` heading); throws naming
+ * what is missing. How a pin test reads the code a README or a page shows.
+ */
+export function firstFence(markdown, heading, language) {
+  const section = new RegExp(`^## ${heading}\\n([\\s\\S]*?)(?=^## |(?![\\s\\S]))`, "mi").exec(markdown)?.[1];
+  if (section === undefined) throw new Error(`no "## ${heading}" section`);
+  const body = new RegExp(`^\`\`\`${language}\\n([\\s\\S]*?)^\`\`\`$`, "m").exec(section)?.[1];
+  if (body === undefined) throw new Error(`no \`\`\`${language} fence under "## ${heading}"`);
+  return body;
+}
