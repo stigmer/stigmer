@@ -6,7 +6,8 @@
 // refused (#2322). The real workflows are read as they are, and fixtures pin
 // each way the rule can drift: a blob-free job with no sign-in, a sign-in
 // placed after a step that already reads, a full checkout (not judged), a
-// partial clone by another filter, a job reached only through a call
+// partial clone by another filter or by `sparse-checkout` alone, another
+// action's `filter` input (not judged), a job reached only through a call
 // (judged), and a workflow outside the queue's set (not judged). The set is
 // pinned as not vacuous: it holds the five blob-free jobs the Gate runs today.
 // And the copies of the sign-in step are pinned equal, so a fix to one cannot
@@ -90,6 +91,14 @@ test("a blob-free checkout as a job's last step is refused", () => {
 
 test("a partial clone by another filter is judged too", () => {
   assert.equal(lazyFetchFindings(fixture({ suite: job(checkout("tree:0"), reads) })).length, 1);
+});
+
+test("a sparse checkout with no filter is judged: actions/checkout fetches it as blob:none", () => {
+  const sparse = { ...checkout(), with: { "sparse-checkout": "scripts\n" } };
+  const [finding, ...rest] = lazyFetchFindings(fixture({ suite: job(sparse, reads) }));
+  assert.equal(rest.length, 0);
+  assert.match(finding, /^ci\.root\.yaml suite checks out with `sparse-checkout` \(a `blob:none` clone\), but its next step does not sign in/);
+  assert.deepEqual(lazyFetchFindings(fixture({ suite: job(sparse, signIn, reads) })), []);
 });
 
 test("a full checkout is not judged", () => {

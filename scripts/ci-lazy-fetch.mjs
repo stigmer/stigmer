@@ -1,8 +1,9 @@
 /**
  * Every job the merge queue waits on that checks out without file contents signs in git's fetches of them.
  *
- * A checkout with a `filter` (`blob:none` in the Gate's jobs) is a partial
- * clone: the commit graph arrives, and git downloads each file's contents only
+ * A checkout with a `filter` (`blob:none` in the Gate's jobs), or with
+ * `sparse-checkout` and no `filter` (which actions/checkout fetches as
+ * `blob:none`), is a partial clone: the commit graph arrives, and git downloads each file's contents only
  * when a later step reads them (`git show`, `git diff -U0`, and the inexact
  * rename detection plain `git diff --name-only` runs). With
  * `persist-credentials: false` those downloads go out with no sign-in, and
@@ -41,6 +42,19 @@ export const SIGN_IN_MARK = "GIT_CONFIG_KEY_0=http.https://github.com/.extrahead
 
 const CHECKOUT = /^actions\/checkout@/;
 
+const set = (value) => value !== undefined && value !== null && value !== "";
+
+/**
+ * How a checkout's inputs make it a partial clone, or null when they do not.
+ * actions/checkout fetches with its `filter` when one is given, and with
+ * `blob:none` when `sparse-checkout` is given without one.
+ */
+function partialClone(inputs) {
+  if (set(inputs?.filter)) return `\`filter: ${inputs.filter}\``;
+  if (set(inputs?.["sparse-checkout"])) return "`sparse-checkout` (a `blob:none` clone)";
+  return null;
+}
+
 /** Each step of the queue's workflows that checks out without file contents, with the step after it. */
 function lazyCheckouts(workflows) {
   const byFile = new Map(workflows.map((workflow) => [workflow.file, workflow]));
@@ -49,9 +63,9 @@ function lazyCheckouts(workflows) {
     for (const [job, def] of Object.entries(byFile.get(file)?.doc?.jobs ?? {})) {
       const steps = Array.isArray(def?.steps) ? def.steps : [];
       steps.forEach((step, index) => {
-        const filter = step?.with?.filter;
-        if (!CHECKOUT.test(String(step?.uses ?? "")) || filter === undefined || filter === null || filter === "") return;
-        found.push({ file, job, filter: String(filter), next: steps[index + 1] });
+        if (!CHECKOUT.test(String(step?.uses ?? ""))) return;
+        const how = partialClone(step.with);
+        if (how !== null) found.push({ file, job, how, next: steps[index + 1] });
       });
     }
   }
@@ -68,7 +82,7 @@ export function lazyFetchFindings(workflows) {
   return lazyCheckouts(workflows)
     .filter(({ next }) => !(typeof next?.run === "string" && next.run.includes(SIGN_IN_MARK)))
     .map(
-      ({ file, job, filter }) =>
-        `${file} ${job} checks out with \`filter: ${filter}\`, but its next step does not sign in git's fetches of the contents it left out; a refused anonymous fetch would fail the job (#2322). Put the sign-in step scripts/ci-lazy-fetch.mjs's header describes right after the checkout`,
+      ({ file, job, how }) =>
+        `${file} ${job} checks out with ${how}, but its next step does not sign in git's fetches of the contents it left out; a refused anonymous fetch would fail the job (#2322). Put the sign-in step scripts/ci-lazy-fetch.mjs's header describes right after the checkout`,
     );
 }
