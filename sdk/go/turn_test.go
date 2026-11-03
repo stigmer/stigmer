@@ -224,6 +224,15 @@ func runStatus(seq int64, id, phase string) *sessionv1.StreamSessionEventsRespon
 	}}})
 }
 
+// bounded is the context every driver test waits with: a broken rule that
+// leaves the wait open fails here in seconds instead of hanging the suite.
+func bounded(t *testing.T) context.Context {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	t.Cleanup(cancel)
+	return ctx
+}
+
 func awaitClosed(t *testing.T, fake *turnFake) {
 	t.Helper()
 	select {
@@ -266,7 +275,7 @@ func TestSendAndWaitReconnectsFromTheLastPlaceAndClosesItsStream(t *testing.T) {
 		},
 	}
 	client := newTurnClient(t, fake)
-	outcome, err := client.SendAndWait(context.Background(), &RunInput{Org: "acme", SessionId: "ses_1", Message: "hi"})
+	outcome, err := client.SendAndWait(bounded(t), &RunInput{Org: "acme", SessionId: "ses_1", Message: "hi"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -290,7 +299,7 @@ func TestSendAndWaitInANewSessionReadsTheWholeLogAndKeepsAGivenName(t *testing.T
 		{frames: []*sessionv1.StreamSessionEventsResponse{message(1, "m1", "Hi."), runStatus(2, "st2", "completed")}, hold: true},
 	}}
 	client := newTurnClient(t, fake)
-	outcome, err := client.SendAndWait(context.Background(), &RunInput{
+	outcome, err := client.SendAndWait(bounded(t), &RunInput{
 		Org: "acme", Name: "mine", Message: "hi",
 		SessionSpec: &SessionSpecInput{AgentRef: ResourceRef{Org: "acme", Slug: "greeter"}},
 	})
@@ -309,7 +318,7 @@ func TestSendAndWaitInANewSessionReadsTheWholeLogAndKeepsAGivenName(t *testing.T
 func TestWaitForTurnEndsOnAFinalCodeWithoutRetrying(t *testing.T) {
 	fake := &turnFake{steps: []streamStep{{err: status.Error(codes.PermissionDenied, "no")}}}
 	client := newTurnClient(t, fake)
-	_, err := client.WaitForTurn(context.Background(), "ses_1", "run_1", 0)
+	_, err := client.WaitForTurn(bounded(t), "ses_1", "run_1", 0)
 	if !IsPermissionDenied(err) {
 		t.Fatalf("want permission-denied, got %v", err)
 	}
@@ -350,7 +359,7 @@ func TestWaitForTurnReturnsTheAsksOfAWaitingTurn(t *testing.T) {
 	}}})
 	fake := &turnFake{steps: []streamStep{{frames: []*sessionv1.StreamSessionEventsResponse{ask, idle}, hold: true}}}
 	client := newTurnClient(t, fake)
-	outcome, err := client.WaitForTurn(context.Background(), "ses_1", "run_1", 2)
+	outcome, err := client.WaitForTurn(bounded(t), "ses_1", "run_1", 2)
 	if err != nil {
 		t.Fatal(err)
 	}

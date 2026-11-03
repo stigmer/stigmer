@@ -131,6 +131,10 @@ class _Fake(query_pb2_grpc.SessionQueryControllerServicer, run_command_pb2_grpc.
         return run
 
 
+# Every driver call waits with a timeout, so a broken rule that leaves the
+# wait open fails in seconds instead of hanging the suite.
+
+
 @pytest.fixture()
 def serve(monkeypatch):
     monkeypatch.setattr(turns, "_BACKOFF_BASE", 0.01)
@@ -175,7 +179,7 @@ def test_reconnects_from_the_last_place_and_cancels_its_stream_once_decided(serv
         newest=7,
     )
     client = serve(fake)
-    outcome = client.send_and_wait(org="acme", message="hi", session_id="ses_1")
+    outcome = client.send_and_wait(org="acme", message="hi", session_id="ses_1", timeout=10)
     assert (outcome.phase, outcome.answer, outcome.run_id, outcome.session_id, outcome.last_seq) == (
         "completed",
         "Hello.",
@@ -193,7 +197,7 @@ def test_a_new_session_reads_the_whole_log_and_keeps_a_given_name(serve) -> None
     fake = _Fake([_Step([_message(1, "m1", "Hi."), _status(2, "st2", "completed")], hold=True)])
     client = serve(fake)
     spec = SessionSpecInput(agent_ref=ResourceRef(org="acme", slug="greeter"))
-    outcome = client.send_and_wait(org="acme", message="hi", session_spec=spec, name="mine")
+    outcome = client.send_and_wait(org="acme", message="hi", session_spec=spec, name="mine", timeout=10)
     assert fake.cancelled.wait(5)
     assert fake.lists == 0
     assert fake.requests[0].HasField("after_seq") and fake.requests[0].after_seq == 0
@@ -204,7 +208,7 @@ def test_ends_on_a_final_code_without_retrying(serve) -> None:
     fake = _Fake([_Step(code=grpc.StatusCode.PERMISSION_DENIED)])
     client = serve(fake)
     with pytest.raises(StigmerError) as raised:
-        client.wait_for_turn("ses_1", "run_1", 0)
+        client.wait_for_turn("ses_1", "run_1", 0, timeout=10)
     assert raised.value.code.value == "permission-denied"
     assert len(fake.requests) == 1
 
@@ -241,6 +245,6 @@ def test_returns_the_asks_of_a_waiting_turn(serve) -> None:
     )
     fake = _Fake([_Step([ask, idle], hold=True)])
     client = serve(fake)
-    outcome = client.wait_for_turn("ses_1", "run_1", 2)
+    outcome = client.wait_for_turn("ses_1", "run_1", 2, timeout=10)
     assert fake.cancelled.wait(5)
     assert (outcome.phase, outcome.asks, outcome.last_seq) == ("waiting", (TurnAsk(id="t3", name="Bash"),), 4)

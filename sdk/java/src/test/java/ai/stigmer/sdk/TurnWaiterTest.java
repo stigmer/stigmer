@@ -172,6 +172,9 @@ class TurnWaiterTest {
                 };
     }
 
+    /** Every driver call waits with it, so a broken rule that leaves the wait open fails in seconds. */
+    private static final Duration BOUND = Duration.ofSeconds(10);
+
     private Server server;
     private ManagedChannel channel;
     private StigmerClient client;
@@ -226,7 +229,7 @@ class TurnWaiterTest {
                 SendAndWaitInput.builder().sessionId("ses_1").message("hi").build(),
                 SendAndWaitInput.builder().org("acme").message("hi").build(),
                 SendAndWaitInput.builder().org("acme").sessionId("ses_1").sessionSpec(spec).message("hi").build())) {
-            StigmerException e = assertThrows(StigmerException.class, () -> waiter.sendAndWait(input, null));
+            StigmerException e = assertThrows(StigmerException.class, () -> waiter.sendAndWait(input, BOUND));
             assertEquals(ErrorCode.INVALID_ARGUMENT, e.getCode());
         }
         assertEquals(List.of(0, 0, 0), List.of(fake.lists, fake.created.size(), fake.requests.size()));
@@ -241,7 +244,7 @@ class TurnWaiterTest {
         fake.steps.add(new Step(List.of(message(9, "m9", "Hello."), status(10, "st10", "completed")), null, true));
         TurnWaiter waiter = serve(fake);
         TurnOutcome outcome = waiter.sendAndWait(
-                SendAndWaitInput.builder().org("acme").sessionId("ses_1").message("hi").build(), null);
+                SendAndWaitInput.builder().org("acme").sessionId("ses_1").message("hi").build(), BOUND);
         assertEquals(List.of("completed", "Hello.", "run_1", "ses_1", 10L),
                 List.of(outcome.phase(), outcome.answer(), outcome.runId(), outcome.sessionId(), outcome.lastSeq()));
         assertCancelled(fake);
@@ -258,7 +261,7 @@ class TurnWaiterTest {
         TurnWaiter waiter = serve(fake);
         RunInput.SessionSpecInput spec = RunInput.SessionSpecInput.builder().agentRef(ResourceRef.of("acme", "greeter")).build();
         TurnOutcome outcome = waiter.sendAndWait(
-                SendAndWaitInput.builder().org("acme").sessionSpec(spec).name("mine").message("hi").build(), null);
+                SendAndWaitInput.builder().org("acme").sessionSpec(spec).name("mine").message("hi").build(), BOUND);
         assertCancelled(fake);
         assertEquals(0, fake.lists);
         assertTrue(fake.requests.get(0).hasAfterSeq());
@@ -272,7 +275,7 @@ class TurnWaiterTest {
         Fake fake = new Fake();
         fake.steps.add(new Step(List.of(), Status.PERMISSION_DENIED, false));
         TurnWaiter waiter = serve(fake);
-        StigmerException e = assertThrows(StigmerException.class, () -> waiter.waitForTurn("ses_1", "run_1", 0, null));
+        StigmerException e = assertThrows(StigmerException.class, () -> waiter.waitForTurn("ses_1", "run_1", 0, BOUND));
         assertEquals(ErrorCode.PERMISSION_DENIED, e.getCode());
         assertEquals(1, fake.requests.size());
     }
@@ -304,7 +307,7 @@ class TurnWaiterTest {
                 .setId("i4").setStopReason(StopReason.newBuilder().setType("requires_action").addEventIds("t3"))));
         fake.steps.add(new Step(List.of(ask, idle), null, true));
         TurnWaiter waiter = serve(fake);
-        TurnOutcome outcome = waiter.waitForTurn("ses_1", "run_1", 2, null);
+        TurnOutcome outcome = waiter.waitForTurn("ses_1", "run_1", 2, BOUND);
         assertCancelled(fake);
         assertEquals(List.of(TurnOutcome.WAITING, List.of(new TurnAsk("t3", "Bash")), 4L),
                 List.of(outcome.phase(), outcome.asks(), outcome.lastSeq()));
