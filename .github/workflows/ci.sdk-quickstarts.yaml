@@ -1,0 +1,85 @@
+# =============================================================================
+# SDK Quick Starts — the Go, Python and Java quick starts, run as written
+# =============================================================================
+# Runs each language SDK's quick start (sdk/go/examples/quickstart,
+# sdk/python/examples/quickstart.py, sdk/java/examples/Quickstart.java, the
+# files each README and SDK page shows byte for byte) the way a developer
+# does: against `stigmer up` from source with the fake model, each must exit
+# 0 with the agent's answer as its last line
+# (test/install/smoke-sdk-quickstarts.mjs). It holds the UX bar's SDK-01.
+#
+# When it runs (its list in scripts/ci-lanes.mjs): the three SDKs and their
+# proto stubs, the smoke and the install layer it drives, and the shared turn
+# cases. A server or CLI change does not run it, to keep three toolchains off
+# every such pull request: a server rule that refuses what a quick start sends
+# is caught by the next SDK change or a dispatched run, not by the server's
+# own pull request. The shared turn cases hold the three readers.
+# =============================================================================
+
+name: ci.sdk-quickstarts
+
+on:
+  # Called by ci.gate.yaml when scripts/ci-lanes.mjs finds the change needs
+  # this lane (the path list and its reasons live there); `Gate` is the
+  # required check.
+  workflow_call:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+env:
+  # Inside the gate a missing test dependency fails instead of skipping
+  # (the Postgres and Temporal helpers read it); a caller's env does not
+  # reach a called workflow, so each lane sets it itself.
+  STIGMER_TEST_GATE: "1"
+
+jobs:
+  quickstarts:
+    name: the Go, Python and Java quick starts on stigmer up
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Restore the Turbo cache
+        uses: ./.github/actions/turbo-cache
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: ".nvmrc"
+
+      # The workspace's toolchain, as ci.go-sdk sets it up.
+      - name: Set up Go
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version-file: go.work
+          cache-dependency-path: |
+            apis/stubs/go/go.sum
+            sdk/go/go.sum
+
+      # The SDK's floor (sdk/python/pyproject.toml requires-python).
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.11'
+
+      - name: Set up Java
+        uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Install npm workspace dependencies
+        run: npm ci
+
+      # make smoke-sdk-quickstarts = build-runner + build-server + build-web +
+      # the slim bundle, then the smoke; the runner's own ~/.m2 is the Maven
+      # repository, which setup-java caches.
+      - name: Run the quick starts
+        run: make smoke-sdk-quickstarts SMOKE_SDK_QUICKSTARTS_ARGS="--maven-repo=$HOME/.m2/repository"

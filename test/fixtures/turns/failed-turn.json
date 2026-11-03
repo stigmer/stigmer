@@ -1,0 +1,75 @@
+{
+  "description": "A failed turn ends the wait with its phase, stop cause and error; the answer is what it wrote before.",
+  "runId": "run_1",
+  "frames": [
+    {
+      "event": {
+        "seq": "1",
+        "sessionId": "ses_1",
+        "runId": "run_1",
+        "userMessage": {
+          "id": "u1",
+          "content": [
+            {
+              "type": "text",
+              "text": "Hi."
+            }
+          ],
+          "processedAt": "2026-11-03T10:00:00Z"
+        }
+      }
+    },
+    {
+      "event": {
+        "seq": "2",
+        "sessionId": "ses_1",
+        "runId": "run_1",
+        "stigmerRunStatus": {
+          "id": "st2",
+          "processedAt": "2026-11-03T10:00:00Z",
+          "phase": "running"
+        }
+      }
+    },
+    {
+      "event": {
+        "seq": "3",
+        "sessionId": "ses_1",
+        "runId": "run_1",
+        "agentMessage": {
+          "id": "m3",
+          "content": [
+            {
+              "type": "text",
+              "text": "Let me check."
+            }
+          ],
+          "processedAt": "2026-11-03T10:00:00Z"
+        }
+      }
+    },
+    {
+      "event": {
+        "seq": "4",
+        "sessionId": "ses_1",
+        "runId": "run_1",
+        "stigmerRunStatus": {
+          "id": "st4",
+          "processedAt": "2026-11-03T10:00:00Z",
+          "phase": "failed",
+          "stopCause": "error",
+          "error": "The model provider refused the request."
+        }
+      }
+    }
+  ],
+  "expect": {
+    "decided": true,
+    "phase": "failed",
+    "answer": "Let me check.",
+    "stopCause": "error",
+    "error": "The model provider refused the request.",
+    "asks": [],
+    "lastSeq": "4"
+  }
+}

@@ -30,28 +30,64 @@ implementation("ai.stigmer:stigmer-sdk:0.1.0")
 
 ## Quick Start
 
-```java
-import ai.stigmer.sdk.StigmerClient;
-import ai.stigmer.sdk.gen.AgentInput;
-import ai.stigmer.agentic.agent.v1.Agent;
+Before you start, run Stigmer on your machine with `stigmer up` and give it a model key ([Start Stigmer and add your model key](https://stigmer.ai/docs/getting-started/quickstart#start-stigmer-and-add-your-model-key)). Without a key the server refuses the message, and the program prints why.
 
-try (StigmerClient client = StigmerClient.builder(System.getenv("STIGMER_API_KEY")).build()) {
-    Agent agent = client.agent.create(AgentInput.builder()
-        .name("my-agent")
-        .org("my-org")
-        .instructions("You are a helpful assistant")
-        .build());
-    System.out.println(agent.getMetadata().getId());
+This program connects to that Stigmer, sets up a small agent, asks it one thing and prints its answer:
+
+```java
+// The Stigmer quick start: connect to the Stigmer running on this machine,
+// set up a small agent, ask it one thing and print its answer.
+//
+// Start Stigmer first with `stigmer up` (given a model key), then run this
+// file with the SDK on the classpath: java -cp <classpath> Quickstart.java
+
+import ai.stigmer.agentic.agent.v1.Agent;
+import ai.stigmer.sdk.SendAndWaitInput;
+import ai.stigmer.sdk.StigmerClient;
+import ai.stigmer.sdk.TurnOutcome;
+import ai.stigmer.sdk.gen.AgentInput;
+import ai.stigmer.sdk.gen.ResourceRef;
+import ai.stigmer.sdk.gen.RunInput;
+import ai.stigmer.sdk.gen.StigmerException;
+
+public class Quickstart {
+    public static void main(String[] args) {
+        // `stigmer up` serves on localhost:7234 and needs no key on your machine.
+        try (StigmerClient client = StigmerClient.builder().baseUrl("localhost:7234").insecure().build()) {
+            // apply creates the agent, or updates it when you run this again.
+            Agent agent = client.agent.apply(AgentInput.builder()
+                    .name("greeter")
+                    .org("stigmer")
+                    .instructions("You greet people in one short, friendly sentence.")
+                    .build());
+
+            TurnOutcome turn = client.sendAndWait(SendAndWaitInput.builder()
+                    .org("stigmer")
+                    .sessionSpec(RunInput.SessionSpecInput.builder()
+                            .agentRef(ResourceRef.of("stigmer", agent.getMetadata().getSlug()))
+                            .build())
+                    .message("Say hello to a developer trying Stigmer for the first time.")
+                    .build());
+            if (!turn.phase().equals("completed")) {
+                System.err.println("the turn did not complete (" + turn.phase() + "): " + turn.error());
+                System.exit(1);
+            }
+            System.out.println(turn.answer());
+        } catch (StigmerException e) {
+            System.err.println("stigmer: " + e.getMessage());
+            System.exit(1);
+        }
+    }
 }
 ```
 
-Or without try-with-resources:
+It is `examples/Quickstart.java`. Run it with the SDK on the classpath (`java -cp <classpath> Quickstart.java`); it prints the agent's answer, for example "Hello, and welcome to Stigmer!".
 
-```java
-StigmerClient client = StigmerClient.builder(System.getenv("STIGMER_API_KEY")).build();
-Agent agent = client.agent.get("agent-id");
-client.close();
-```
+`sendAndWait` sends the message and waits for the agent's answer, reconnecting if the stream drops. A turn that waits for a person's approval returns with phase `TurnOutcome.WAITING` and its `asks`; answer them with `client.session.confirmToolUse` and call `client.waitForTurn` with the outcome's `lastSeq`. For a run field `SendAndWaitInput` does not carry, create the run with `client.run.create` and call `client.waitForTurn`.
+
+### On Stigmer Cloud
+
+Make two changes: connect with an API key, `StigmerClient.builder(System.getenv("STIGMER_API_KEY")).build()` (keys read `stk_…`), and use your own organization, `System.getenv("STIGMER_ORG")`, where the program says `"stigmer"`.
 
 For a CI job or a script, use a [service account's](https://stigmer.ai/docs/guides/authentication/service-accounts) API key, not a person's: it keeps working when that person leaves and works only in its own organization.
 

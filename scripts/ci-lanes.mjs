@@ -261,8 +261,10 @@ export const LANES = {
       "sdk/typescript/src/gen/**",
       "sdk/typescript/Makefile",
       // The Python SDK whole: its generated dir, the handwritten client,
-      // the tests the lane runs and the manifest they install from.
+      // the tests the lane runs and the manifest they install from, and the
+      // shared turn cases its test_turns.py reads.
       "sdk/python/**",
+      "test/fixtures/turns/**",
       "sdk/go/proto/**",
       // The substrate driver's Agent Substrate stubs and their generator
       // config (make gen-substrate-stubs-check).
@@ -534,6 +536,8 @@ export const LANES = {
       "apis/**",
       "sdk/go/**",
       "tools/codegen/**",
+      // The shared turn cases its turn_test.go reads.
+      "test/fixtures/turns/**",
       "go.work",
       "go.work.sum",
       // What the lane sets up and installs from (ci.all-in-one says why).
@@ -596,6 +600,8 @@ export const LANES = {
       "apis/**",
       "sdk/java/**",
       "tools/codegen/**",
+      // The shared turn cases its TurnWaiterTest reads.
+      "test/fixtures/turns/**",
       // What the lane sets up and installs from (ci.all-in-one says why).
       ".nvmrc",
       "package.json",
@@ -734,6 +740,44 @@ export const LANES = {
       // The Node version the lane sets up (ci.all-in-one says why).
       ".nvmrc",
       ".github/workflows/ci.runner.yaml",
+    ],
+  },
+  "ci.sdk-quickstarts.yaml": {
+    // The Go, Python and Java quick starts run as written on `stigmer up`
+    // (test/install/smoke-sdk-quickstarts.mjs, the UX bar's SDK-01). A server
+    // or CLI change does not run it, to keep three toolchains off every such
+    // pull request: a server rule that refuses what a quick start sends is
+    // caught by the next SDK change or a dispatched run, not by the server's
+    // own pull request. The shared turn cases hold the readers.
+    paths: [
+      "sdk/go/**",
+      "sdk/python/**",
+      "sdk/java/**",
+      "apis/stubs/go/**",
+      "apis/stubs/python/**",
+      "apis/stubs/java/**",
+      "go.work",
+      "go.work.sum",
+      "test/fixtures/turns/**",
+      "test/install/smoke-sdk-quickstarts.mjs",
+      // The install layer's drivers and probes, and the two test/support
+      // modules it loads (the fake model and its wire).
+      "test/install/lib/**",
+      "test/support/src/fake-llm-upstream.ts",
+      "test/support/src/llm-wire.ts",
+      "scripts/publish-standalone.mjs",
+      // The slim bundles `stigmer up` from source stages (ci.cli-up says
+      // why), and the shared helpers the bundlers import.
+      "scripts/lib/**",
+      "backend/services/runner/scripts/bundle-slim.mjs",
+      "backend/services/runner/scripts/claude-engine-pin.mjs",
+      "backend/services/stigmer-server/scripts/bundle-slim.mjs",
+      "Makefile",
+      // What the lane sets up and installs from (ci.all-in-one says why).
+      ".nvmrc",
+      "package.json",
+      "package-lock.json",
+      ".github/workflows/ci.sdk-quickstarts.yaml",
     ],
   },
   "ci.stigmer-server.yaml": {

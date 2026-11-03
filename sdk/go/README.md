@@ -10,55 +10,68 @@ go get go.stigmer.ai/sdk
 
 ## Quick Start
 
+Before you start, run Stigmer on your machine with `stigmer up` and give it a model key ([Start Stigmer and add your model key](https://stigmer.ai/docs/getting-started/quickstart#start-stigmer-and-add-your-model-key)). Without a key the server refuses the message, and the program prints why.
+
+This program connects to that Stigmer, sets up a small agent, asks it one thing and prints its answer:
+
 ```go
+// The Stigmer quick start: connect to the Stigmer running on this machine,
+// set up a small agent, ask it one thing and print its answer.
+//
+// Start Stigmer first with `stigmer up` (given a model key), then: go run .
 package main
 
 import (
-    "context"
-    "fmt"
-    "log"
-    "os"
+	"context"
+	"fmt"
+	"log"
 
-    stigmer "go.stigmer.ai/sdk"
+	stigmer "go.stigmer.ai/sdk"
 )
 
 func main() {
-    client, err := stigmer.NewClient(stigmer.WithAPIKey(os.Getenv("STIGMER_API_KEY")))
-    if err != nil {
-        log.Fatal(err)
-    }
-    defer client.Close()
+	log.SetFlags(0)
 
-    ctx := context.Background()
+	// `stigmer up` serves on localhost:7234 and needs no key on your machine.
+	client, err := stigmer.NewClient(stigmer.WithBaseURL("localhost:7234"), stigmer.WithInsecure())
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer client.Close()
+	ctx := context.Background()
 
-    // Create an agent
-    agent, err := client.Agent.Create(ctx, &stigmer.AgentInput{
-        Name:         "my-agent",
-        Org:          "my-org",
-        Instructions: "You are a helpful coding assistant.",
-    })
-    if err != nil {
-        log.Fatal(err)
-    }
-    fmt.Printf("Created: %s\n", agent.GetMetadata().GetId())
+	// Apply creates the agent, or updates it when you run this again.
+	agent, err := client.Agent.Apply(ctx, &stigmer.AgentInput{
+		Name:         "greeter",
+		Org:          "stigmer",
+		Instructions: "You greet people in one short, friendly sentence.",
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
 
-    // Start a conversation on the agent: the server creates its session
-    // and pins the agent's current version on it
-    run, err := client.Run.Create(ctx, &stigmer.RunInput{
-        SessionSpec: &stigmer.SessionSpecInput{
-            AgentRef: stigmer.ResourceRef{
-                Org:  agent.GetMetadata().GetOrg(),
-                Slug: agent.GetMetadata().GetSlug(),
-            },
-        },
-        Message: "Hello, what can you help me with?",
-    })
-    if err != nil {
-        log.Fatal(err)
-    }
-    fmt.Printf("Run: %s\n", run.GetMetadata().GetId())
+	turn, err := client.SendAndWait(ctx, &stigmer.RunInput{
+		Org:         "stigmer",
+		SessionSpec: &stigmer.SessionSpecInput{AgentRef: stigmer.ResourceRef{Org: "stigmer", Slug: agent.GetMetadata().GetSlug()}},
+		Message:     "Say hello to a developer trying Stigmer for the first time.",
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	if turn.Phase != "completed" {
+		log.Fatalf("the turn did not complete (%s): %s", turn.Phase, turn.Error)
+	}
+	fmt.Println(turn.Answer)
 }
 ```
+
+It is `examples/quickstart/main.go`. In a new folder, run `go mod init quickstart`, `go get go.stigmer.ai/sdk` and `go run .`; it prints the agent's answer, for example "Hello, and welcome to Stigmer!".
+
+`SendAndWait` sends the message and waits for the agent's answer, reconnecting if the stream drops. A turn that waits for a person's approval returns with `Phase` `waiting` and its `Asks`; answer them with `client.Session.ConfirmToolUse` and call `client.WaitForTurn` with the outcome's `LastSeq`.
+
+### On Stigmer Cloud
+
+Make two changes: connect with an API key, `stigmer.NewClient(stigmer.WithAPIKey(os.Getenv("STIGMER_API_KEY")))` (keys read `stk_…`), and use your own organization, `os.Getenv("STIGMER_ORG")`, where the program says `"stigmer"`.
 
 ## Resources
 
@@ -180,6 +193,7 @@ for {
 
 `sessionv1` is `go.stigmer.ai/sdk/proto/ai/stigmer/agentic/session/v1`.
 Answer a tool use that waits for approval with `client.Session.ConfirmToolUse`.
+To send a message and wait for the answer in one call, use `client.SendAndWait`.
 
 ## Types
 
@@ -190,6 +204,7 @@ Answer a tool use that waits for approval with `client.Session.ConfirmToolUse`.
 ## Examples
 
 See the `examples/` directory for complete usage patterns:
+- `quickstart/` — The quick start above: send a message and print the agent's answer
 - `basic_crud.go` — Create, get, list, delete agents
 - `streaming_run.go` — Create a run and follow its session's events
 - `error_handling.go` — Handle SDK errors

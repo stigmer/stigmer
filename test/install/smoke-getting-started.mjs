@@ -67,7 +67,7 @@ import { fileURLToPath } from "node:url";
 import { configuredRegistry, installGap, waitForRegistry } from "../../scripts/publish-standalone.mjs";
 import { anthropicText, anthropicToolUse } from "../support/src/llm-wire.ts";
 import { docSteps } from "./lib/doc-steps.mjs";
-import { fakeModelEnv, startFakeModel } from "./lib/fake-model.mjs";
+import { fakeModelEnv, isTitleCall, startFakeModel } from "./lib/fake-model.mjs";
 import { CLI_SERVER_PORT, createCliInstall, spawnCommand } from "./lib/install-cli.mjs";
 import { assertPortFree } from "./lib/stigmer-smoke.mjs";
 import { typeChecker } from "./lib/type-checker.mjs";
@@ -134,12 +134,6 @@ function scriptTheJob(fake) {
     }),
   });
   fake.enqueue({ kind: "anthropic", body: anthropicText("The variance report is saved as variance-report.md."), matches: turn });
-}
-
-// The runner's title call: its system prompt is the title generator's
-// (backend/services/runner/src/activities/generate-session-subject.ts).
-function isTitleCall(request) {
-  return JSON.stringify(request.body?.system ?? "").includes("session title generator");
 }
 
 // The SDK a reader's `npm install @stigmer/client` gets: this build's

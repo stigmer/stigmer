@@ -334,6 +334,10 @@ if err != nil {
     log.Fatal(err)
 }
 ```
+
+`client.WaitForTurn` follows a Session until a run ends or waits. When its
+`Phase` is `waiting`, answer each of its `Asks`, then call it again with its
+`LastSeq`. `client.SendAndWait` starts the run and waits in one call.
 </Tab>
 <Tab value="Python">
 ```python
@@ -344,6 +348,10 @@ client.sessions.confirm_tool_use(io_pb2.ConfirmToolUseInput(
     deny_message="Use the staging database instead.",
 ))
 ```
+
+`client.wait_for_turn` follows a Session until a run ends or waits. When its
+`phase` is `waiting`, answer each of its `asks`, then call it again with its
+`last_seq`. `client.send_and_wait` starts the run and waits in one call.
 </Tab>
 <Tab value="Java">
 ```java
@@ -354,6 +362,10 @@ client.session.confirmToolUse(ConfirmToolUseInput.newBuilder()
     .setDenyMessage("Use the staging database instead.")
     .build());
 ```
+
+`client.waitForTurn` follows a Session until a run ends or waits. When its
+phase is `TurnOutcome.WAITING`, answer each of its `asks`, then call it again
+with its `lastSeq`. `client.sendAndWait` starts the run and waits in one call.
 </Tab>
 </SDKTabs>
 

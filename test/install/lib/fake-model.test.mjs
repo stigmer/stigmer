@@ -1,7 +1,8 @@
 // Pins what the install journeys add to test/support's fake model
 // (fake-model.mjs): the fake starts under bare node by relative path, in the
 // mode the `--fake-model` flag names, and an install is handed exactly the
-// key and the base URL a user sets. The fake's own wire (the reply as JSON
+// key and the base URL a user sets, and a smoke tells the runner's title
+// call from a turn's. The fake's own wire (the reply as JSON
 // and SSE, the error mode, the 404) is pinned with the fake, in
 // test/support/src/__tests__/fake-llm-upstream.test.ts. Run via
 // `npm run test:scripts` (node --test; wired into the root `npm test`).
@@ -14,6 +15,7 @@ import {
   FAKE_MODEL_ERROR_MESSAGE,
   FAKE_MODEL_REPLY_TEXT,
   fakeModelEnv,
+  isTitleCall,
   liveModelEnv,
   parseFakeModelArg,
   startFakeModel,
@@ -88,4 +90,11 @@ test("reads the --fake-model flag, refusing a mode it does not know", () => {
   assert.equal(parseFakeModelArg("--fake-model=reply"), "reply");
   assert.equal(parseFakeModelArg("--build"), undefined);
   assert.throws(() => parseFakeModelArg("--fake-model=silent"), /--fake-model must be one of: reply, error/);
+});
+
+test("tells the runner's title call from a turn's, by the title generator's system prompt", () => {
+  assert.equal(isTitleCall({ body: { system: "You are a session title generator. Given a user's message" } }), true);
+  assert.equal(isTitleCall({ body: { system: [{ type: "text", text: "You are a session title generator." }] } }), true);
+  assert.equal(isTitleCall({ body: { system: "You greet people in one short, friendly sentence." } }), false);
+  assert.equal(isTitleCall({ body: {} }), false);
 });

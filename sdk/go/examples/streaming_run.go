@@ -10,6 +10,10 @@
 // session, then each new one as it is appended, so nothing the turn
 // produced before the stream opened is missed. The turn's own
 // stigmer.run.status event says when it ended.
+//
+// To send a message and only wait for the answer, client.SendAndWait does
+// all of this in one call (examples/quickstart); follow the events yourself
+// when you show them as they happen.
 package examples
 
 import (

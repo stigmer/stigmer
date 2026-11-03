@@ -695,7 +695,8 @@ for {
 
 `sessionv1` is
 `go.stigmer.ai/sdk/proto/ai/stigmer/agentic/session/v1`, and
-`proto` is `google.golang.org/protobuf/proto`.
+`proto` is `google.golang.org/protobuf/proto`. To send a message and wait for
+the answer in one call, use `client.SendAndWait`.
 </Tab>
 <Tab value="Python">
 ```python
@@ -714,6 +715,9 @@ for frame in client.sessions.stream_events(request):
     if kind == "stigmer_run_status" and event.stigmer_run_status.phase in ENDED:
         break
 ```
+
+To send a message and wait for the answer in one call, use
+`client.send_and_wait`.
 </Tab>
 <Tab value="Java">
 ```java
@@ -741,6 +745,9 @@ while (stream.hasNext()) {
     }
 }
 ```
+
+To send a message and wait for the answer in one call, use
+`client.sendAndWait`.
 </Tab>
 </SDKTabs>
 

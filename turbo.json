@@ -132,14 +132,16 @@
       "outputs": ["dist/**"],
       "env": ["TAURI_ENV_PLATFORM", "TAURI_ENV_DEBUG"]
     },
-    // Two SDK suites read fixtures that live outside their package.
+    // Two SDK suites read fixtures that live outside their package (the
+    // client's: the tool views and the shared turn cases).
     "@stigmer/client#test": {
       "dependsOn": ["^build"],
       "outputs": [],
       "inputs": [
         "$TURBO_DEFAULT$",
         "$TURBO_ROOT$/apis/ai/stigmer/agentic/evalrun/v1/**",
-        "$TURBO_ROOT$/test/fixtures/tool-view/**"
+        "$TURBO_ROOT$/test/fixtures/tool-view/**",
+        "$TURBO_ROOT$/test/fixtures/turns/**"
       ]
     },
     // The fold's golden check reads every hermetic event and status golden

@@ -10,7 +10,7 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { HARNESS_LINES, docSteps, parseInfo } from "./doc-steps.mjs";
+import { HARNESS_LINES, docSteps, firstFence, parseInfo } from "./doc-steps.mjs";
 
 const fence = (info, body) => ["```" + info, ...body, "```"].join("\n");
 
@@ -109,4 +109,11 @@ test("the embedding tutorial parses into the app, its install, its files and its
     steps.filter((step) => step.kind === "command").map((step) => step.line),
     ["cd my-app", "npm install"],
   );
+});
+
+test("firstFence reads the first fence of a language under a heading, and names what is missing", () => {
+  const md = "# T\n\n## Quick Start\n\nText.\n\n```go\npackage main\n```\n\n```go\nsecond\n```\n\n## Next\n\n```python\nx\n```\n";
+  assert.equal(firstFence(md, "Quick Start", "go"), "package main\n");
+  assert.throws(() => firstFence(md, "Quick Start", "python"), /no ```python fence under "## Quick Start"/);
+  assert.throws(() => firstFence(md, "Missing", "go"), /no "## Missing" section/);
 });

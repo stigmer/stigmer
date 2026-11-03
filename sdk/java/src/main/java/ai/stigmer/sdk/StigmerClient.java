@@ -1,9 +1,12 @@
 package ai.stigmer.sdk;
 
+import ai.stigmer.sdk.gen.ErrorCode;
 import ai.stigmer.sdk.gen.GeneratedClient;
+import ai.stigmer.sdk.gen.StigmerException;
 import ai.stigmer.sdk.internal.transport.StigmerChannel;
 import io.grpc.ManagedChannel;
 
+import java.time.Duration;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
@@ -22,6 +25,8 @@ import java.util.concurrent.TimeUnit;
  *   <li>Cross-resource {@link #search()} client</li>
  *   <li>{@link #github()} OAuth integration client</li>
  *   <li>{@link #tokens()} user token minting client</li>
+ *   <li>{@link #sendAndWait} and {@link #waitForTurn}: send a message and
+ *       wait for the agent's answer</li>
  * </ul>
  *
  * <pre>{@code
@@ -57,6 +62,7 @@ public final class StigmerClient extends GeneratedClient implements AutoCloseabl
     private final GitHubClient github;
     private final TokenClient tokens;
     private final RunnerAdapter runnerAdapter;
+    private final TurnWaiter turns;
 
     private StigmerClient(ManagedChannel channel, RunnerAdapter runnerAdapter) {
         super(channel);
@@ -66,6 +72,7 @@ public final class StigmerClient extends GeneratedClient implements AutoCloseabl
         this.github = new GitHubClient(channel);
         this.tokens = new TokenClient(channel);
         this.runnerAdapter = runnerAdapter;
+        this.turns = new TurnWaiter(channel, this.run::create, TurnWaiter.BACKOFF_BASE, TurnWaiter.BACKOFF_MAX);
     }
 
     /**
@@ -140,6 +147,63 @@ public final class StigmerClient extends GeneratedClient implements AutoCloseabl
      * when executionTarget is LOCAL.
      */
     public RunnerAdapter runnerAdapter() { return runnerAdapter; }
+
+    // -- Turns ----------------------------------------------------------------
+
+    /**
+     * Sends a message as a new turn and waits for its answer, with no
+     * timeout. See {@link #sendAndWait(SendAndWaitInput, Duration)}.
+     */
+    public TurnOutcome sendAndWait(SendAndWaitInput input) {
+        return turns.sendAndWait(input, null);
+    }
+
+    /**
+     * Sends a message as a new turn and waits for its answer.
+     *
+     * <p>The turn runs in the input's {@code sessionId}, or in a session
+     * bootstrapped from its {@code sessionSpec}: exactly one of them is
+     * required, and so is {@code org}, the organization the turn runs in;
+     * both are checked before any call. An empty name becomes
+     * {@code run-<epoch ms>}, as the console names its turns. For an existing
+     * session the log's newest place is read first, so the wait sees only
+     * this turn's events.
+     *
+     * <p>Returns when the turn ends (phase completed, failed, cancelled or
+     * terminated) or waits for a person's answer (phase
+     * {@link TurnOutcome#WAITING}, with its asks); answer each ask, then call
+     * {@link #waitForTurn} with the outcome's {@code lastSeq}.
+     *
+     * @param timeout bounds the whole wait, reconnections included; null for none
+     * @throws StigmerException with {@link ErrorCode#INVALID_ARGUMENT} for a
+     *         missing org or session; the server's refusal of the run, or of
+     *         the stream with a code a reconnect cannot fix; or, when the
+     *         timeout passes, one whose {@code getGrpcCode()} is
+     *         {@code DEADLINE_EXCEEDED}
+     */
+    public TurnOutcome sendAndWait(SendAndWaitInput input, Duration timeout) {
+        return turns.sendAndWait(input, timeout);
+    }
+
+    /**
+     * Waits for one turn of a session, with no timeout. See
+     * {@link #waitForTurn(String, String, long, Duration)}.
+     */
+    public TurnOutcome waitForTurn(String sessionId, String runId, long afterSeq) {
+        return turns.waitForTurn(sessionId, runId, afterSeq, null);
+    }
+
+    /**
+     * Waits for one turn of a session: until it ends, or waits for an answer.
+     *
+     * @param afterSeq where in the log the turn's events begin, or later: a
+     *                 previous outcome's {@code lastSeq} to resume after
+     *                 answering its asks, or 0 to read the whole log
+     * @param timeout  bounds the whole wait, reconnections included; null for none
+     */
+    public TurnOutcome waitForTurn(String sessionId, String runId, long afterSeq, Duration timeout) {
+        return turns.waitForTurn(sessionId, runId, afterSeq, timeout);
+    }
 
     // -- Lifecycle ------------------------------------------------------------
 
