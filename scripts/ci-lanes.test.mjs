@@ -62,7 +62,8 @@ test("a path in a lane's list selects that lane; the always lane runs for every 
     "runner",
     "ts-workspace",
   ]);
-  assert.deepEqual(selected(["docs/guides/x.mdx"]), ["docs", "ts-workspace"]);
+  // A page's code examples compile in their own lane, beside the site's build.
+  assert.deepEqual(selected(["docs/guides/x.mdx"]), ["docs", "docs-snippets", "ts-workspace"]);
   // Enterprise runs its own suite and the shared one against its licensed
   // server, never the open-source targets.
   assert.deepEqual(selected(["ee/server/src/extension/enterprise-identity.ts"]), [

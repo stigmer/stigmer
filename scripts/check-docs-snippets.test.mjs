@@ -5,8 +5,8 @@
  * split from what the reader sees with every line kept on its page line,
  * how a page's prelude reaches its fragments and is refused without one,
  * how a relative import finds the titled fence above it, which lines an
- * assembled file owes to the prelude, and the list of known failures, which
- * may only shrink. The compilers themselves are pinned against real
+ * assembled file owes to the prelude, the theme playground's looks the gate
+ * writes code for, and the list of known failures, which may only shrink. The compilers themselves are pinned against real
  * toolchains by scripts/lib/docs-snippets/compilers.test.mjs, in the lane
  * that sets them up.
  */
@@ -19,6 +19,7 @@ import { Assembly, located } from "./lib/docs-snippets/assemble.mjs";
 import { collectPage, relativeImports } from "./lib/docs-snippets/collect.mjs";
 import { classify, scanFences } from "./lib/docs-snippets/fences.mjs";
 import { packageName } from "./lib/docs-snippets/go.mjs";
+import { livePresets, themeUnits } from "./lib/docs-snippets/theme-snippets.mjs";
 import {
   compareToList,
   entryKey,
@@ -214,4 +215,19 @@ test("a run over some pages calls only their entries stale", () => {
   const verdict = judge({ units: [], errors: [] }, { listed: new Map([[inRun, 1], [outside, 1]]), base: null, pages: ["a.mdx"], languages: ["go"] });
   assert.equal(verdict.stale.length, 1);
   assert.equal(verdict.stale[0].page, "a.mdx");
+});
+
+test("the playground's code is written for every live preset, in both modes, at both radii", () => {
+  const presets = livePresets('export const LIVE_PRESETS = ["default", "corporate", "monochrome"] as const;\nexport type LivePreset = 1;');
+  assert.deepEqual(presets, ["default", "corporate", "monochrome"]);
+  const seen = [];
+  const units = themeUnits((theme) => {
+    seen.push(theme);
+    return { tsx: `// ${theme.preset}\n` };
+  }, presets, 40);
+  assert.equal(units.length, 12);
+  assert.deepEqual(units.map((u) => u.id), Array.from({ length: 12 }, (_, i) => 40 + i));
+  assert.deepEqual(new Set(seen.map((t) => `${t.mode}:${t.radius}`)), new Set(["light:null", "dark:null", "light:0.75", "dark:0.75"]));
+  assert.ok(units.every((u) => u.kind === "file" && u.language === "typescript" && u.page === "site/src/lib/theme-snippet.mjs"));
+  assert.throws(() => livePresets("export const OTHER = [];"), /no LIVE_PRESETS/);
 });

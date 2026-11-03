@@ -33,6 +33,10 @@
  *     [--page=<path prefix>] [--python=<path>] [--java-classpath=<file>]
  *     [--base=<git ref>] [--prune] [--init-list] [--docs-root=<dir>] [--summary]
  *
+ * The theme playground's code (`site/src/lib/theme-snippet.mjs`) is compiled
+ * too, for every look it offers, when the tree has it and the run is not
+ * narrowed to other pages.
+ *
  * `--docs-root` reads the pages (and the list) from another checkout, with
  * this checkout's compilers and libraries. `--init-list` writes the list
  * from today's failures, only where none exists. Exits 1 when the gate
@@ -62,6 +66,7 @@ import {
   prune,
   within,
 } from "./lib/docs-snippets/ratchet.mjs";
+import { THEME_SNIPPET_FILE, themeSnippetUnits } from "./lib/docs-snippets/theme-snippets.mjs";
 import { checkTypeScript } from "./lib/docs-snippets/typescript.mjs";
 
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
@@ -76,12 +81,15 @@ export function docsPages(root) {
 }
 
 /**
- * Compiles the pages' fences and returns what it found; the CLI weighs it
- * against the list.
- * @param {{root: string, docsRoot?: string, pages: string[], languages: string[], python?: string, javaClasspath?: string}} opts
+ * Compiles the pages' fences, and with `withTheme` the theme playground's
+ * code for every look it offers (lib/docs-snippets/theme-snippets.mjs), and
+ * returns what it found; the CLI weighs it against the list.
+ * @param {{root: string, docsRoot?: string, pages: string[], languages: string[], python?: string, javaClasspath?: string, withTheme?: boolean}} opts
  */
-export function runGate({ root, docsRoot = root, pages, languages, python, javaClasspath }) {
-  const { units, skipped, problems } = collectUnits(docsRoot, pages);
+export async function runGate({ root, docsRoot = root, pages, languages, python, javaClasspath, withTheme = false }) {
+  const { units: fenceUnits, skipped, problems } = collectUnits(docsRoot, pages);
+  const theme = withTheme && languages.includes("typescript") ? await themeSnippetUnits(docsRoot, fenceUnits.length) : [];
+  const units = [...fenceUnits, ...theme];
   const counted = units.filter((u) => languages.includes(u.language));
   const errors = [];
   const checkers = {
@@ -99,7 +107,14 @@ export function runGate({ root, docsRoot = root, pages, languages, python, javaC
     units: counted,
     skipped: skipped.filter((s) => languages.includes(s.language)),
     problems,
-    errors: dedupe(errors).map((e) => ({ ...e, generated: byUnit.get(e.id)?.generated === true })),
+    errors: dedupe(
+      errors.map((e) => {
+        const unit = byUnit.get(e.id);
+        // The playground's code has no page line: name the look and the line of what it wrote.
+        const where = unit?.variant === undefined ? e : { ...e, line: 1, message: `in the code written for ${unit.variant}, its line ${e.line}: ${e.message}` };
+        return { ...where, generated: unit?.generated === true };
+      }),
+    ),
   };
 }
 
@@ -141,7 +156,7 @@ function readBaseList(docsRoot, ref) {
   }
 }
 
-function main() {
+async function main() {
   let values;
   try {
     ({ values } = parseArgs({
@@ -175,7 +190,8 @@ function main() {
     process.exit(2);
   }
   const pages = docsPages(docsRoot).filter((p) => values.page === undefined || p.startsWith(values.page));
-  const run = runGate({ root: repoRoot, docsRoot, pages, languages, python: values.python, javaClasspath: values["java-classpath"] });
+  const withTheme = values.page === undefined || THEME_SNIPPET_FILE.startsWith(values.page);
+  const run = await runGate({ root: repoRoot, docsRoot, pages, languages, python: values.python, javaClasspath: values["java-classpath"], withTheme });
 
   if (values["init-list"]) {
     const failing = failingMultiset(run.units, new Set(run.errors.map((e) => e.id)));
@@ -235,4 +251,4 @@ function main() {
   process.stdout.write(`✓ docs snippets: every fence compiles or says why it cannot (${listedCount} listed failures allowed, ${KNOWN_FAILING_FILE})\n`);
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1]).href) main();
+if (import.meta.url === pathToFileURL(process.argv[1]).href) await main();

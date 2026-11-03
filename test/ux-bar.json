@@ -154,6 +154,13 @@
       "promise": "No library entry grows past its size budget unnoticed."
     },
     {
+      "id": "LIB-04",
+      "promise": "Every TypeScript example in the docs compiles against the library it shows, or says why it cannot.",
+      "pending": [
+        "stigmer#1"
+      ]
+    },
+    {
       "id": "KIT-01",
       "promise": "An app with only the peers on the React kit's install line imports the kit and builds."
     },
@@ -264,6 +271,10 @@
     {
       "id": "SDK-02",
       "promise": "Examples show API keys as stk_."
+    },
+    {
+      "id": "SDK-03",
+      "promise": "Every Go, Python and Java example in the docs compiles against its SDK, or says why it cannot."
     }
   ]
 }

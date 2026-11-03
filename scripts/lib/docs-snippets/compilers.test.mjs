@@ -81,7 +81,7 @@ const java = page("java", [
   { lang: "java", label: "broken", body: ["var agents = client.agents();"] },
 ]);
 
-const gate = (pages, languages) =>
+const gate = (pages, languages, withTheme = false) =>
   runGate({
     root: repoRoot,
     docsRoot,
@@ -89,33 +89,65 @@ const gate = (pages, languages) =>
     languages,
     python: languages.includes("python") ? required("DOCS_SNIPPETS_PYTHON") : undefined,
     javaClasspath: languages.includes("java") ? required("DOCS_SNIPPETS_JAVA_CLASSPATH") : undefined,
+    withTheme,
   });
 
 /** The pages and lines a run reported, as `page:line`. */
 const where = (run) => [...new Set(run.errors.map((e) => `${e.page}:${e.line}`))].sort();
 
-test("LIB-04: a TypeScript example that does not compile is reported at its page and line; one that does is not", () => {
-  const run = gate([typescript], ["typescript"]);
+test("LIB-04 a TypeScript example that does not compile is reported at its page and line; one that does is not", async () => {
+  const run = await gate([typescript], ["typescript"]);
   assert.deepEqual(run.problems, []);
   assert.deepEqual(where(run), [`${typescript.path}:${typescript.at.broken + 2}`]);
   assert.match(run.errors[0].message, /agnet/);
 });
 
-test("SDK-03: a Go example that does not compile is reported at its page and line, its prelude's unused imports forgiven", () => {
-  const run = gate([go], ["go"]);
+test("SDK-03 a Go example that does not compile is reported at its page and line, its prelude's unused imports forgiven", async () => {
+  const run = await gate([go], ["go"]);
   assert.deepEqual(run.problems, []);
   assert.deepEqual(where(run), [`${go.path}:${go.at.broken}`]);
   assert.match(run.errors[0].message, /not enough arguments/);
 });
 
-test("SDK-03: a Python example calling with a keyword the SDK lacks is reported at its page and line", () => {
-  const run = gate([python], ["python"]);
+test("SDK-03 a Python example calling with a keyword the SDK lacks is reported at its page and line", async () => {
+  const run = await gate([python], ["python"]);
   assert.deepEqual(where(run), [`${python.path}:${python.at.broken}`]);
   assert.match(run.errors.map((e) => e.message).join("\n"), /colour/);
 });
 
-test("SDK-03: a Java example calling a method the SDK lacks is reported at its page and line", () => {
-  const run = gate([java], ["java"]);
+test("SDK-03 a Java example calling a method the SDK lacks is reported at its page and line", async () => {
+  const run = await gate([java], ["java"]);
   assert.deepEqual(where(run), [`${java.path}:${java.at.broken}`]);
   assert.match(run.errors[0].message, /agents\(\)/);
+});
+
+test("LIB-04 the theme playground's code compiles for every look it offers, and a look that does not is named", async () => {
+  // A writer shaped like site/src/lib/theme-snippet.mjs whose code for one
+  // preset passes a prop the provider lacks.
+  mkdirSync(join(docsRoot, "site", "src", "lib"), { recursive: true });
+  mkdirSync(join(docsRoot, "test", "visual", "src"), { recursive: true });
+  writeFileSync(join(docsRoot, "test", "visual", "src", "live.ts"), 'export const LIVE_PRESETS = ["default", "corporate"] as const;\n');
+  writeFileSync(
+    join(docsRoot, "site", "src", "lib", "theme-snippet.mjs"),
+    [
+      "export function themeSnippet({ preset, mode, radius }) {",
+      "  const extra = preset === \"corporate\" && mode === \"dark\" && radius !== null ? \" shade=\\\"deep\\\"\" : \"\";",
+      "  const tsx = [",
+      "    'import type { ReactNode } from \"react\";',",
+      "    'import type { Stigmer } from \"@stigmer/client\";',",
+      "    'import { StigmerProvider } from \"@stigmer/react-sdk\";',",
+      "    'export function Themed({ client, children }: { client: Stigmer; children: ReactNode }) {',",
+      "    `  return <StigmerProvider client={client} colorMode=\"${mode}\"${extra}>{children}</StigmerProvider>;`,",
+      "    '}',",
+      "  ].join(\"\\n\");",
+      "  return { tsx, css: null };",
+      "}",
+    ].join("\n"),
+  );
+  const run = await gate([], ["typescript"], true);
+  assert.equal(run.units.length, 8);
+  assert.equal(run.errors.length, 1);
+  assert.equal(run.errors[0].page, "site/src/lib/theme-snippet.mjs");
+  assert.match(run.errors[0].message, /preset corporate, dark, radius 0\.75/);
+  assert.match(run.errors[0].message, /shade/);
 });

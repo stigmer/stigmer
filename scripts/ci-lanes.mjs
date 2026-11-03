@@ -744,6 +744,42 @@ export const LANES = {
       ".github/workflows/ci.runner.yaml",
     ],
   },
+  "ci.docs-snippets.yaml": {
+    // Every TypeScript, Go, Python and Java block under docs/ compiles against
+    // the SDK it shows, and the theme playground's code for every look
+    // (scripts/check-docs-snippets.mjs, the UX bar's LIB-04 and SDK-03). It
+    // runs on what the blocks are and what they compile against: the docs,
+    // every SDK and the stubs beneath them, the generators that write the
+    // reference pages' blocks, the gate and its list. A docs-only change pays
+    // for four toolchains; stigmer is public, so the minutes cost nothing.
+    paths: [
+      "docs/**",
+      "sdk/**",
+      "apis/stubs/**",
+      "go.work",
+      "go.work.sum",
+      "tools/codegen/src/generator/sdk-docs*.ts",
+      "tools/codegen/src/generator/sdk-client-*.ts",
+      "tools/codegen/src/generator/lang-names.ts",
+      "site/scripts/generate-react-sdk-docs/**",
+      "site/scripts/generate-react-core-docs/**",
+      "site/scripts/generate-ink-sdk-docs/**",
+      // The split of a block's hidden setup, which the site renders and the
+      // gate compiles, and the playground's code with the presets it offers.
+      "site/src/lib/snippet-setup.mjs",
+      "site/src/lib/theme-snippet.mjs",
+      "test/visual/src/live.ts",
+      "scripts/check-docs-snippets.mjs",
+      "scripts/lib/docs-snippets/**",
+      "test/docs-snippets-known-failing.json",
+      "Makefile",
+      // What the lane sets up and installs from (ci.all-in-one says why).
+      ".nvmrc",
+      "package.json",
+      "package-lock.json",
+      ".github/workflows/ci.docs-snippets.yaml",
+    ],
+  },
   "ci.sdk-quickstarts.yaml": {
     // The Go, Python and Java quick starts run as written on `stigmer up`
     // (test/install/smoke-sdk-quickstarts.mjs, the UX bar's SDK-01). A server

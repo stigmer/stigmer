@@ -1105,6 +1105,7 @@ test("the setup rule still finds the setups and installs it exists for", () => {
     "conformance-enterprise",
     "conformance-execution",
     "docs",
+    "docs-snippets",
     "e2e-interactive",
     "ee",
     "go-sdk",
@@ -1119,7 +1120,7 @@ test("the setup rule still finds the setups and installs it exists for", () => {
     "upgrade-rehearsal",
   ];
   assert.deepEqual(readers(".nvmrc"), [...rootInstalls, "crate"].sort());
-  assert.deepEqual(readers("go.work"), ["go-sdk", "sdk-quickstarts"]);
+  assert.deepEqual(readers("go.work"), ["docs-snippets", "go-sdk", "sdk-quickstarts"]);
   assert.deepEqual(readers("package.json"), rootInstalls);
   assert.deepEqual(readers("package-lock.json"), rootInstalls);
   assert.deepEqual(readers("backend/services/stigmer-server/package-lock.json"), [
@@ -1177,6 +1178,7 @@ test("the make rule still finds the Makefiles, scripts and lanes it exists for",
     "conformance-execution",
     "crate",
     "docs",
+    "docs-snippets",
     "e2e-interactive",
     "ee",
     "helm-chart",
