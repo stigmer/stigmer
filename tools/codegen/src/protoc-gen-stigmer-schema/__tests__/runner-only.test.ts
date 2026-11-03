@@ -13,9 +13,23 @@
  * while its service stays; every kept service keeps the role it had while
  * the runner-only services were still listed, since roles become field names
  * on every generated client; and a type a person's method also answers stays.
+ *
+ * The real packages cannot show the role rule on their own: each one's query
+ * service lives in query.proto and takes the bare role however the claim is
+ * shared. So a synthetic package pins it. Its one person-facing service sits
+ * outside query.proto and shares the default "query" claim with a runner-only
+ * service. Assigned over both, each gets its name-derived role; were the
+ * runner-only service dropped before assignment, the kept one would take the
+ * bare "query" instead, renaming its field on every client.
  */
-import { create, createFileRegistry, type DescFile, type FileRegistry } from "@bufbuild/protobuf";
-import { FileDescriptorSetSchema, type FileDescriptorProto } from "@bufbuild/protobuf/wkt";
+import { create, createFileRegistry, setExtension, type DescFile, type FileRegistry } from "@bufbuild/protobuf";
+import {
+  file_google_protobuf_empty,
+  FileDescriptorProtoSchema,
+  FileDescriptorSetSchema,
+  MethodOptionsSchema,
+  type FileDescriptorProto,
+} from "@bufbuild/protobuf/wkt";
 import { file_ai_stigmer_agentic_eval_v1_command } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/command_pb";
 import { file_ai_stigmer_agentic_eval_v1_query } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/query_pb";
 import { file_ai_stigmer_agentic_eval_v1_run_eval_case } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/run_eval_case_pb";
@@ -28,6 +42,7 @@ import { file_ai_stigmer_agentic_vault_v1_command } from "@stigmer/apis/ai/stigm
 import { file_ai_stigmer_agentic_vault_v1_connect_link } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/connect_link_pb";
 import { file_ai_stigmer_agentic_vault_v1_query } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/query_pb";
 import { file_ai_stigmer_agentic_vault_v1_values } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/values_pb";
+import { file_ai_stigmer_commons_rpc_method_options, is_runner_only } from "@stigmer/apis/ai/stigmer/commons/rpc/method_options_pb";
 import { describe, expect, it } from "vitest";
 
 import { CommentIndex } from "../comments.js";
@@ -63,6 +78,44 @@ function extract(roots: readonly DescFile[]): ServiceSchema {
     comments: new CommentIndex(),
     options: new OptionsReader(registry),
   });
+  if (schema === null) throw new Error("no service schema extracted");
+  return schema;
+}
+
+const SYNTHETIC_PACKAGE = "ai.stigmer.synthetic.v1";
+
+/** One file of the synthetic package declaring one service with one Empty-to-Empty method. */
+function syntheticFile(file: string, service: string, runnerOnly: boolean): FileDescriptorProto {
+  const options = create(MethodOptionsSchema);
+  if (runnerOnly) setExtension(options, is_runner_only, true);
+  return create(FileDescriptorProtoSchema, {
+    name: `ai/stigmer/synthetic/v1/${file}`,
+    package: SYNTHETIC_PACKAGE,
+    syntax: "proto3",
+    dependency: ["google/protobuf/empty.proto", "ai/stigmer/commons/rpc/method_options.proto"],
+    service: [
+      {
+        name: service,
+        method: [{ name: "fetch", inputType: ".google.protobuf.Empty", outputType: ".google.protobuf.Empty", options }],
+      },
+    ],
+  });
+}
+
+/** The synthetic package's service schema: a person's ConnectLinkController beside a runner-only RunThingController. */
+function extractSynthetic(): ServiceSchema {
+  const files = [
+    syntheticFile("connect_link.proto", "ConnectLinkController", false),
+    syntheticFile("run_thing.proto", "RunThingController", true),
+  ];
+  const deps = closure([file_google_protobuf_empty, file_ai_stigmer_commons_rpc_method_options]);
+  const registry = createFileRegistry(create(FileDescriptorSetSchema, { file: [...deps.values(), ...files] }));
+  const group = files.map((file) => {
+    const desc = registry.getFile(file.name);
+    if (desc === undefined) throw new Error(`${file.name} is not in the registry`);
+    return desc;
+  });
+  const schema = extractServiceSchemas(group, { comments: new CommentIndex(), options: new OptionsReader(registry) });
   if (schema === null) throw new Error("no service schema extracted");
   return schema;
 }
@@ -143,5 +196,11 @@ describe("the service schemas leave runner-only methods out", () => {
     expect(methodsOf(schema, "EvalQueryController")).toContain("GetDownloadUrl");
     expect(typeNames(schema)).toContain("EvalArchiveDownloadUrl");
     expect(typeNames(schema)).not.toContain("GetRunEvalCaseArchiveInput");
+  });
+
+  it("assigns roles over every service before leaving one out, so a kept service's role never moves", () => {
+    const schema = extractSynthetic();
+
+    expect(roles(schema)).toEqual({ ConnectLinkController: "connectLink" });
   });
 });
