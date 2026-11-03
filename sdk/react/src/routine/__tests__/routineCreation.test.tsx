@@ -21,6 +21,7 @@ import type { ModelInfo } from "@stigmer/react-core";
 import { useCreateRoutine } from "../useCreateRoutine";
 import { CadenceField } from "../CadenceField";
 import { RoutineForm } from "../RoutineForm";
+import { browserTimeZone } from "../TimeZoneField";
 import { VaultPicker } from "../../vault/VaultPicker";
 import type { CadencePreset } from "../cadence";
 
@@ -320,7 +321,7 @@ describe("RoutineForm", () => {
       org: "isc",
       // The default cadence: daily at 09:00.
       cron: "0 9 * * *",
-      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+      timeZone: browserTimeZone(),
       // Staged-disabled by default — validate with Run now, then enable.
       enabled: false,
       agent: {

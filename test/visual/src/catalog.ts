@@ -2,17 +2,20 @@
 //
 // A scene is one component in one state ("the thread with an approval
 // waiting"), drawn from fixed data. This file names the scenes and how each
-// is pictured (its widths, its colour modes, a button to press first); the
-// page draws them from `scenes/index.ts`, whose map is typed by these ids,
-// so a scene listed here without a drawing, or drawn without being listed,
-// fails the typecheck. It imports nothing at run time: the Playwright spec
-// and the unit checks read it under Node, where the kit's sources do not
-// load.
+// is pictured (its widths, its colour modes, the acts that bring it to its
+// state); the page draws them from `scenes/index.ts`, whose map is typed by
+// these ids, so a scene listed here without a drawing, or drawn without
+// being listed, fails the typecheck. It imports no kit source at run time:
+// the Playwright spec and the unit checks read it under Node, where the
+// kit's sources do not load. The values a docs page prints come from
+// `docs-examples.ts`, which is plain data.
 //
 // Every picture is `<scene>-<mode>-<width>.png` under
 // tests/__screenshots__; `screenshotsOf` is the one place that name is made.
+import type { Page } from "@playwright/test";
 import type { ScenarioName } from "@stigmer/react-sdk/test";
 import type { ThemePresetId } from "@stigmer/design-tokens";
+import { ENVIRONMENT_EXAMPLE, ROUTINE_EXAMPLE } from "./docs-examples.ts";
 
 /** The colour modes every scene is drawn in. */
 export const MODES = ["light", "dark"] as const;
@@ -54,16 +57,41 @@ export type SceneId =
   | `settings-${SettingsSceneName}`
   | "agent-profile-owner"
   | "agent-profile-viewer"
+  | "agent-profile-variance-reporter"
+  | "skill-detail"
   | "marketplace-admin"
   | "marketplace-member"
   | `session-${SessionSceneName}`
   | `story-${StorySceneName}`
   | "agent-chat-page"
+  | `routine-${RoutineSceneName}`
+  | `environment-${EnvironmentSceneName}`
   | "agent-chat-panel"
   | "agent-chat-popup-closed"
   | "agent-chat-popup"
   | "from-hooks"
   | `preset-${Preset}`;
+
+/** The roles a control is pressed by: Playwright's own list, the one `getByRole` takes. */
+export type AriaRole = Parameters<Page["getByRole"]>[0];
+
+/**
+ * One act a case performs before the picture and the audit, as a reader
+ * would: press a control, or type into a field. A plain string presses the
+ * button of that accessible name.
+ *
+ * - `{ press, role }` presses the control of that role and name: a tab, a
+ *   radio, a menu item, a picker's option or a link. A picker is a press on
+ *   it, then a press on its option.
+ * - `{ fill, with }` types `with` into the field labelled `fill`.
+ *
+ * A control a scene cannot reach by its role and name has no accessible
+ * name, which is the kit's defect to fix, never the scene's to work around.
+ */
+export type Act =
+  | string
+  | { readonly press: string; readonly role: AriaRole }
+  | { readonly fill: string; readonly with: string };
 
 /** One scene and how it is pictured. */
 export interface Scene {
@@ -72,11 +100,12 @@ export interface Scene {
   readonly title: string;
   readonly widths: readonly WidthName[];
   /**
-   * The accessible names of the buttons the case presses, in order, before
-   * the picture and the audit: a component whose state of interest opens on
-   * a click (a picker's list, a panel and a File in it) is pictured open.
+   * The acts the case performs, in order, before the picture and the audit:
+   * a component whose state of interest opens on a click (a picker's list,
+   * a panel and a File in it) is pictured open, and a form a docs page fills
+   * is pictured filled.
    */
-  readonly opens?: string | readonly string[];
+  readonly opens?: Act | readonly Act[];
 }
 
 /**
@@ -137,7 +166,7 @@ const SESSION_SCENES = [
   { id: "session-guest", title: "Session: the finished turn, for a chat link's guest", widths: ["desktop", "narrow"] },
   { id: "session-observer", title: "Session: the finished turn, for a reviewer who reads it", widths: ["desktop"] },
   { id: "session-load-failed", title: "Session: the conversation cannot load", widths: ["desktop"] },
-] as const satisfies readonly { readonly id: `session-${string}`; readonly title: string; readonly widths: readonly WidthName[]; readonly opens?: string | readonly string[] }[];
+] as const satisfies readonly { readonly id: `session-${string}`; readonly title: string; readonly widths: readonly WidthName[]; readonly opens?: Act | readonly Act[] }[];
 
 /**
  * The story's scenes: moments of the job every picture of Stigmer at work
@@ -200,6 +229,63 @@ const SETTINGS_SCENES = [
   { id: "settings-loading", title: "Settings, any page while its rows are read", widths: ["desktop"] },
 ] as const satisfies readonly { readonly id: `settings-${string}`; readonly title: string; readonly widths: readonly WidthName[] }[];
 
+/**
+ * The routines page's screens (docs/guides/routines/run-an-agent-on-a-schedule.mdx),
+ * each a step the page's reader takes: the New routine form filled with the
+ * page's example, the routine as made (switched off, offering Enable & run
+ * now), and its History tab after that first run.
+ */
+export type RoutineSceneName = (typeof ROUTINE_SCENES)[number]["id"] extends `routine-${infer Name}` ? Name : never;
+
+const ROUTINE_SCENES = [
+  {
+    id: "routine-new",
+    title: "New routine: the routines page's daily variance report, filled in, its schedule every day at 09:00 in Kolkata",
+    widths: ["desktop"],
+    opens: [
+      { fill: "Name", with: ROUTINE_EXAMPLE.name },
+      { press: "Agent to run", role: "button" },
+      { press: ROUTINE_EXAMPLE.agent, role: "option" },
+      { fill: "Message", with: ROUTINE_EXAMPLE.message },
+      { fill: "Time zone", with: ROUTINE_EXAMPLE.timeZone },
+      { press: ROUTINE_EXAMPLE.timeZone, role: "option" },
+    ],
+  },
+  { id: "routine-disabled", title: "Routine page: the daily variance report as made, switched off, offering Enable & run now", widths: ["desktop"] },
+  { id: "routine-history", title: "Routine page, History: the daily variance report's first run, started by hand", widths: ["desktop"] },
+] as const satisfies readonly { readonly id: `routine-${string}`; readonly title: string; readonly widths: readonly WidthName[]; readonly opens?: readonly Act[] }[];
+
+/**
+ * The environments page's screens (docs/guides/environments/set-up-an-environment.mdx):
+ * the New environment form filled with the page's data-science, the data
+ * team's Agent once its Environment section names it, and a conversation's
+ * run settings naming the Environment it got and why.
+ */
+export type EnvironmentSceneName = (typeof ENVIRONMENT_SCENES)[number]["id"] extends `environment-${infer Name}` ? Name : never;
+
+const ENVIRONMENT_SCENES = [
+  {
+    id: "environment-new",
+    title: "New environment: the environments page's data-science, limited to two websites, with its apt and pip packages",
+    widths: ["desktop"],
+    opens: [
+      { fill: "Name", with: ENVIRONMENT_EXAMPLE.slug },
+      { fill: "Description (optional)", with: ENVIRONMENT_EXAMPLE.description },
+      { press: "Limited to listed websites", role: "radio" },
+      { fill: "Websites", with: ENVIRONMENT_EXAMPLE.hosts.join("\n") },
+      { fill: "apt (Debian packages)", with: ENVIRONMENT_EXAMPLE.apt.join("\n") },
+      { fill: "pip (Python packages)", with: ENVIRONMENT_EXAMPLE.pip.join("\n") },
+    ],
+  },
+  { id: "environment-agent", title: "Agent page: the data team's Agent, its Environment section naming Data science", widths: ["desktop"] },
+  {
+    id: "environment-run-settings",
+    title: "Session: a conversation's run settings, opened from the composer, its Environment row data-science, the agent's default",
+    widths: ["desktop"],
+    opens: ["Configure agent, tools, and skills", { press: "Run settings", role: "menuitem" }],
+  },
+] as const satisfies readonly { readonly id: `environment-${string}`; readonly title: string; readonly widths: readonly WidthName[]; readonly opens?: readonly Act[] }[];
+
 /** The presets the `completed` thread is drawn in beyond the default look, which `thread-completed` is. */
 export const PRESETS = ["corporate", "startup", "friendly", "fintech", "monochrome"] as const satisfies readonly ThemePresetId[];
 
@@ -254,10 +340,18 @@ export const SCENES: readonly Scene[] = [
   ...SETTINGS_SCENES,
   { id: "agent-profile-owner", title: "Agent page: the ledger agent, as its owner sees it", widths: ["desktop", "narrow"] },
   { id: "agent-profile-viewer", title: "Agent page: the ledger agent, as a person who may only read it sees it", widths: ["desktop"] },
+  {
+    id: "agent-profile-variance-reporter",
+    title: "Agent page: the agents page's variance reporter, each section one of the YAML fields the page prints",
+    widths: ["desktop"],
+  },
+  { id: "skill-detail", title: "Skill page: the skills page's variance-report, its description over its rendered body", widths: ["desktop"] },
   { id: "marketplace-admin", title: "Marketplace: the official catalogue, for an admin", widths: ["desktop", "narrow"] },
   { id: "marketplace-member", title: "Marketplace: the official catalogue, for a member", widths: ["desktop"] },
   ...SESSION_SCENES,
   ...STORY_SCENES,
+  ...ROUTINE_SCENES,
+  ...ENVIRONMENT_SCENES,
   {
     id: "agent-chat-page",
     title: "AgentChat: a whole page of its own, on a finished turn",

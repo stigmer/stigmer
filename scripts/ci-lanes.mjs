@@ -437,13 +437,15 @@ export const LANES = {
       // Getting Started smoke's page parser, which the homepage's snippet
       // test reads the pages with; the visual suite's shown list, its
       // approved pictures and the image budget, which the screens script
-      // converts and checks; and the visual suite's gallery, which the build
+      // converts and checks; the docs' examples, which the docs-screens test
+      // holds to the pages; and the visual suite's gallery, which the build
       // builds under /gallery/ for the live demos and whose demo list the
       // site reads.
       "brand/**",
       "blog/**",
       "test/install/lib/doc-steps.mjs",
       "test/visual/src/shown.ts",
+      "test/visual/src/docs-examples.ts",
       "test/visual/tests/__shown__/**",
       "test/visual/src/**",
       "test/visual/index.html",

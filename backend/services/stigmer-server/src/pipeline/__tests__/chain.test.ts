@@ -15,7 +15,13 @@
  *     carries whatever the handler threw;
  *   - an internalError's cause chain is logged on its line, and its
  *     deepest stack at debug, while the wire carries only the copy
- *     (stigmer/stigmer#1383).
+ *     (stigmer/stigmer#1383);
+ *   - a server stream logs once, at its END: a stream that throws
+ *     part-way logs "rpc failed" at error after its messages, never a
+ *     "completed" line at the handler's return (stigmer/stigmer#2691). An
+ *     error is tiered by its code whatever the service; only health
+ *     successes and departures drop to debug. The departure rule and the
+ *     real-server proof are ../interceptors/__tests__/logging.test.ts.
  */
 import {
   Code,
@@ -57,6 +63,7 @@ interface CapturedLine {
 
 function testHarness(handlers: {
   create?: (context: { values: { get<T>(key: { id: symbol }): T } }) => unknown;
+  watch?: () => AsyncIterable<unknown>;
 }) {
   const lines: CapturedLine[] = [];
   const logger = createLogger({
@@ -77,7 +84,7 @@ function testHarness(handlers: {
       router.service(Health, {
         check: () => ({ status: ServingStatus.SERVING }),
         list: () => ({ statuses: {} }),
-        watch: async function* () {},
+        watch: () => (handlers.watch?.() ?? emptyStream()) as never,
       });
     },
     // The serving-shape identity source with zero verifiers — the OSS
@@ -93,6 +100,8 @@ function testHarness(handlers: {
   );
   return { transport, lines };
 }
+
+async function* emptyStream(): AsyncIterable<unknown> {}
 
 function rpcLines(lines: CapturedLine[]): CapturedLine[] {
   return lines.filter((line) => line.message.startsWith("rpc"));
@@ -233,5 +242,40 @@ describe("interceptor chain over the in-process transport", () => {
       message: "rpc failure stack",
     });
     expect(String(logged[1]?.["stack"])).toContain("database is locked");
+  });
+
+  it("logs a server stream that fails part-way once, at error, at its end", async () => {
+    const { transport, lines } = testHarness({
+      watch: async function* () {
+        yield { status: ServingStatus.SERVING };
+        throw internalError(
+          new Error("subscribe failed", { cause: new Error("listener gone") }),
+          "failed to watch health",
+        );
+      },
+    });
+
+    const received: ServingStatus[] = [];
+    const failure = await (async () => {
+      for await (const response of createClient(Health, transport).watch({})) {
+        received.push(response.status);
+      }
+    })()
+      .then(() => null)
+      .catch((error: unknown) => ConnectError.from(error));
+
+    expect(received).toEqual([ServingStatus.SERVING]);
+    expect(failure?.code).toBe(Code.Internal);
+    const logged = rpcLines(lines);
+    expect(logged.map((line) => line.message)).toEqual([
+      "rpc failed",
+      "rpc failure stack",
+    ]);
+    expect(logged[0]).toMatchObject({
+      level: "error",
+      procedure: "/grpc.health.v1.Health/Watch",
+      code: "Internal",
+      cause: "Error: subscribe failed <- Error: listener gone",
+    });
   });
 });

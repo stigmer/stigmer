@@ -19,7 +19,7 @@
 
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { buildInventory, renderReport } from "../../src/lib/docs-inventory";
+import { OWED_PICTURES, buildInventory, renderReport } from "../../src/lib/docs-inventory";
 
 const DOCS_DIR = path.resolve(process.cwd(), "..", "docs");
 const CLASSIFICATION_PATH = path.join(DOCS_DIR, "_inventory", "classification.yaml");
@@ -46,7 +46,7 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  const inventory = await buildInventory(DOCS_DIR, classificationRaw);
+  const inventory = await buildInventory(DOCS_DIR, classificationRaw, OWED_PICTURES);
 
   if (check) {
     if (inventory.violations.length > 0) {
