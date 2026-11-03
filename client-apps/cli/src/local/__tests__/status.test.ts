@@ -6,6 +6,7 @@ import { configPath } from "../../config/paths.js";
 import { DAEMON_PID_FILE } from "../constants.js";
 import { dataDir } from "../paths.js";
 import type { HealthState } from "../state/health-state.js";
+import { writePidFile } from "../state/pidfile.js";
 import { formatElapsed as formatDuration } from "@stigmer/client";
 import { buildStatusResult } from "../status.js";
 
@@ -21,9 +22,12 @@ function field(result: Awaited<ReturnType<typeof buildStatusResult>>, section: s
   return result.sections.find((s) => s.title === section)?.fields.find((f) => f.key === key)?.value;
 }
 
+// The daemon on record is a live process other than this one (status never
+// counts its own PID as the daemon): the test runner's parent, recorded by the
+// daemon's own writer.
 function writeHealth(state: HealthState): void {
   mkdirSync(dataDir(home), { recursive: true });
-  writeFileSync(join(dataDir(home), DAEMON_PID_FILE), String(process.pid));
+  writePidFile(join(dataDir(home), DAEMON_PID_FILE), process.ppid);
   writeFileSync(join(dataDir(home), "health-state.json"), JSON.stringify(state));
 }
 
@@ -107,6 +111,15 @@ describe("buildStatusResult", () => {
     });
     const result = await buildStatusResult(home, open);
     expect(field(result, "Runner", "Status")).toBe("Running ✓ (starting)");
+  });
+
+  // stigmer#2750: a recorded PID the OS has since handed to another program is
+  // not the daemon.
+  it("is not running when the daemon on record names another program now", async () => {
+    writeHealth({ daemon_pid: process.ppid, started_at: new Date().toISOString(), components: {} });
+    writeFileSync(join(dataDir(home), DAEMON_PID_FILE), `${process.ppid}\nstarted=another life\n`);
+    const result = await buildStatusResult(home, closed);
+    expect(result.message).toBe("Stigmer server is not running");
   });
 
   it("shows a failed component's last error and where its logs are", async () => {
