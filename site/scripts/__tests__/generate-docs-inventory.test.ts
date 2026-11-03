@@ -9,14 +9,23 @@ const argv = process.argv;
 let root: string | undefined;
 afterEach(async () => {
   vi.restoreAllMocks();
+  vi.doUnmock("../../src/lib/docs-inventory");
   vi.resetModules();
   process.argv = argv;
   if (root) await rm(root, { recursive: true, force: true });
   root = undefined;
 });
 
-/** A docs tree of one page beside a site directory, with `classification` as its record. */
-async function prepare(classification: string) {
+/**
+ * A docs tree of one page beside a site directory, with `classification` as
+ * its record and `owed` as the pages owed their pictures (the real list names
+ * pages this tree does not have).
+ */
+async function prepare(classification: string, owed: Record<string, string> = {}) {
+  vi.doMock("../../src/lib/docs-inventory", async (importActual) => ({
+    ...(await importActual<typeof import("../../src/lib/docs-inventory")>()),
+    OWED_PICTURES: owed,
+  }));
   root = await mkdtemp(join(tmpdir(), "stigmer-docs-inventory-"));
   const site = join(root, "site");
   await mkdir(site);
@@ -57,5 +66,19 @@ describe("the docs inventory gate", () => {
     await run;
     expect(logs.join("\n")).toContain("docs inventory gate: 1 pages OK (1 classified, 0 cohort-covered)");
     expect(exit).not.toHaveBeenCalled();
+  });
+
+  it("holds a still page to its picture unless the owed list names it", async () => {
+    const still = "pages:\n  index:\n    fate: keep\n    diataxis: landing\n    teaches: Where to start.\n    medium: still\n    why: One screen.\ncohorts: {}\n";
+    const unpictured = await prepare(still);
+    await (await import("../generate-docs-inventory/index")).run;
+    expect(unpictured.errors.join("\n")).toContain("index [missing-picture]");
+    expect(unpictured.exit).toHaveBeenCalledWith(1);
+
+    vi.restoreAllMocks();
+    vi.resetModules();
+    const owed = await prepare(still, { index: "its screen is not drawn yet" });
+    await (await import("../generate-docs-inventory/index")).run;
+    expect(owed.exit).not.toHaveBeenCalled();
   });
 });
