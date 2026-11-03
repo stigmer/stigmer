@@ -109,9 +109,14 @@ the shown list in `test/visual/src/shown.ts` (a gallery scene, cropped with
 and embed it with `<Screen>` (see [Screen](#screen)). When the product's look
 changes, the suite fails until the picture is drawn again, and the redrawn
 picture reaches the site in the same pull request. Never add a screenshot
-captured by hand, not even as a placeholder: it goes stale with no signal. Pages
-whose medium is `animated-tour` or `interactive` stay prose, code, and diagrams
-until those media are built.
+captured by hand, not even as a placeholder: it goes stale with no signal.
+
+An `interactive` page embeds the kit live with `<Live>` or `<ThemePlayground>`
+(see [Live](#live)): a gallery scene the visual suite draws, framed in its docs
+mode, where a scripted server answers a reader's send, approval and Stop. Never
+build a demo of your own for a page: a demo kept beside the product goes stale
+the way a captured screenshot does. Pages whose medium is `animated-tour` stay
+prose, code, and diagrams until that medium is built.
 
 Generated pages (the `cli/commands/`, `sdk/react/`, `sdk/resources/`,
 `sdk/ink/`, and `sdk/theme/` reference sets) are covered by cohort rules in the
@@ -253,6 +258,28 @@ alt text. The build fails on a name the list does not hold or on blank alt text.
   alt="A file edit waits for approval, with Approve and Deny"
 />
 ```
+
+### Live
+
+A part of the React kit, live: a gallery scene the visual suite draws, framed in
+its docs mode. `name` is an entry in `test/visual/src/live.ts`; `alt` describes
+what the demo shows. A reader can send a message, approve the command the agent
+asks to run, and stop a turn; a scripted server answers, and the caption under
+the frame says so. In the markdown exports the tag becomes the alt text, linked
+to the demo. The build fails on a name the list does not hold or on blank alt
+text. To embed a scene the list lacks, add its entry (`test/visual/README.md`,
+"Live demos").
+
+```mdx
+<Live
+  name="chat-popup"
+  alt="AgentChat as a corner popup, open on a finished turn"
+/>
+```
+
+`<ThemePlayground />` is the theming page's: the six presets, light or dark and
+the corner radius on a live chat panel, with the code that gives a product that
+look.
 
 ### Diagram
 

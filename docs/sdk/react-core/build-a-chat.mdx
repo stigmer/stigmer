@@ -1,0 +1,229 @@
+---
+title: Build a chat from the hooks
+description: A whole chat in about a hundred lines of your own markup, using only the hooks in @stigmer/react-core — start a conversation, follow its turns, answer an approval and stop a turn.
+---
+
+`AgentChat` is the chat with Stigmer's look. When your product needs its own
+look, or a chat that is not a chat window at all, build it from the hooks
+`@stigmer/react-core` exports. They hold everything a conversation needs:
+starting it, following its turns as they stream, answering the agent's
+questions, and stopping a turn. You write only the markup.
+
+This guide walks through one small program, `Chat.tsx`, that does all of that
+with plain HTML. It is compiled with the package on every change, so the code
+below is code that builds. Here it is running, answered by a scripted server
+instead of an agent:
+
+<Live
+  name="from-hooks"
+  alt="A plain chat built from the hooks: a finished turn with its file edit and answer, and a textarea to send the next message"
+/>
+
+Type a message and send it: the agent reads two files, asks before it runs a
+command, and answers when you allow it.
+
+## Before you start
+
+Install the hooks and the client:
+
+```bash
+npm install @stigmer/react-core @stigmer/client @stigmer/apis
+```
+
+You need a `Stigmer` client in the browser. See
+[Browser authentication](/docs/sdk/react#browser-authentication) for how to
+create one with your sign-in.
+
+## Give the hooks a client
+
+Every hook reads the client from `StigmerContext`. Put it there once, around
+the conversation:
+
+```tsx title="Chat.tsx" no-compile="a run of sdk/react-core/examples/chat/Chat.tsx, which the package's typecheck compiles whole"
+import { useState, type FormEvent, type ReactElement } from "react";
+import type { Stigmer, ToolUse, Turn } from "@stigmer/client";
+import { StigmerContext, useCreateRun, useSessionConversation } from "@stigmer/react-core";
+// …
+interface ChatProps {
+  client: Stigmer;
+  /** The organization the conversation runs in. */
+  org: string;
+  /** The agent it talks to, as `org/slug`. */
+  agent: string;
+  /** A conversation to continue; omitted, the first message starts one. */
+  sessionId?: string;
+}
+
+/** The chat, given a client, the organization it runs in and the agent it talks to. */
+export function Chat({ client, ...props }: ChatProps): ReactElement {
+  return (
+    <StigmerContext.Provider value={client}>
+      <Conversation {...props} />
+    </StigmerContext.Provider>
+  );
+}
+```
+
+`StigmerContext` is all `StigmerProvider` adds for the hooks. The kit's
+provider also scopes its theme, which a chat with its own markup does not need.
+
+## Start the conversation, then follow it
+
+`useCreateRun` starts a conversation with its first message. Its `sessionSpec`
+names the agent, and the server creates the conversation and returns its ID.
+`useSessionConversation` follows that conversation: its `turns` fill in as the
+agent works, and `sendFollowUp` sends every message after the first.
+
+```tsx title="Chat.tsx" no-compile="a run of sdk/react-core/examples/chat/Chat.tsx, which the package's typecheck compiles whole"
+function Conversation({ org, agent, sessionId: existing }: Omit<ChatProps, "client">): ReactElement {
+  const [sessionId, setSessionId] = useState<string | null>(existing ?? null);
+  const { create, isCreating } = useCreateRun();
+  const conversation = useSessionConversation(sessionId, org);
+
+  async function send(message: string): Promise<void> {
+    if (sessionId !== null) {
+      await conversation.sendFollowUp(message);
+      return;
+    }
+    const [agentOrg, slug] = agent.split("/");
+    const started = await create({ org, message, sessionSpec: { agentRef: { org: agentOrg ?? org, slug: slug ?? agent } } });
+    setSessionId(started.sessionId);
+  }
+```
+
+## Draw the turns
+
+Each turn holds the person's message and the agent's `items` in the order the
+agent produced them: messages, tool calls, thinking. This chat shows messages
+and a line for each tool call, and says when a turn failed:
+
+```tsx title="Chat.tsx" no-compile="a run of sdk/react-core/examples/chat/Chat.tsx, which the package's typecheck compiles whole"
+  return (
+    <section aria-label="Conversation" style={{ display: "flex", flexDirection: "column", gap: 12, height: "100%" }}>
+      <ol style={{ flex: 1, overflowY: "auto", listStyle: "none", margin: 0, padding: 0 }}>
+        {conversation.turns.map((turn) => (
+          <TurnView key={turn.runId} turn={turn} />
+        ))}
+      </ol>
+      {conversation.asks.map((ask) => (
+// …
+function TurnView({ turn }: { turn: Turn }): ReactElement {
+  return (
+    <li style={{ marginBottom: 16 }}>
+      {turn.userMessage && <p style={{ fontWeight: 600 }}>{turn.userMessage.text}</p>}
+      {turn.items.map((item) => {
+        if (item.kind === "message") return <p key={item.id}>{item.text}</p>;
+        if (item.kind === "tool_use") return <ToolLine key={item.id} tool={item} />;
+        return null;
+      })}
+      {turn.status?.phase === "failed" && <p role="alert">The turn failed: {turn.status.error}</p>}
+    </li>
+  );
+}
+
+function ToolLine({ tool }: { tool: ToolUse }): ReactElement {
+  const target = typeof tool.input.path === "string" ? tool.input.path : typeof tool.input.command === "string" ? tool.input.command : "";
+  const done = tool.result !== undefined ? "done" : tool.state;
+  return (
+    <p style={{ fontFamily: "monospace", fontSize: 13, opacity: 0.8 }}>
+      {tool.name} {target} · {done}
+    </p>
+  );
+}
+```
+
+Text is shown as written. To render the agent's markdown, pass `item.text` to
+the markdown renderer you already use.
+
+## Answer the agent's questions
+
+When the agent asks before it acts, the ask appears in `asks`. Answer it with
+`answerToolUse`: `"allow"` lets the call run, `"deny"` refuses it and the agent
+carries on without it.
+
+```tsx title="Chat.tsx" no-compile="a run of sdk/react-core/examples/chat/Chat.tsx, which the package's typecheck compiles whole"
+        <Ask key={ask.id} ask={ask} onAnswer={(answer) => conversation.answerToolUse(ask.id, answer)} />
+      ))}
+      <Composer
+// …
+function Ask({ ask, onAnswer }: { ask: ToolUse; onAnswer: (answer: "allow" | "deny") => Promise<void> }): ReactElement {
+  const command = typeof ask.input.command === "string" ? ask.input.command : ask.name;
+  return (
+    <div role="group" aria-label={`The agent asks to run ${command}`} style={{ border: "1px solid currentColor", borderRadius: 6, padding: 12 }}>
+      <p>
+        The agent asks to run <code>{command}</code>.
+      </p>
+      <button type="button" style={CONTROL} onClick={() => void onAnswer("allow")}>
+        Allow
+      </button>{" "}
+      <button type="button" style={CONTROL} onClick={() => void onAnswer("deny")}>
+        Deny
+      </button>
+    </div>
+  );
+}
+```
+
+## Send and stop
+
+The composer sends through the `send` function above, and offers **Stop**
+while a turn can be stopped. `stop` interrupts every unfinished turn in the
+conversation.
+
+```tsx title="Chat.tsx" no-compile="a run of sdk/react-core/examples/chat/Chat.tsx, which the package's typecheck compiles whole"
+        busy={isCreating || conversation.isSending}
+        canSend={sessionId === null || conversation.canSendFollowUp}
+        onSend={send}
+        onStop={conversation.isStoppable ? () => conversation.stop() : undefined}
+      />
+    </section>
+// …
+function Composer({
+  busy,
+  canSend,
+  onSend,
+  onStop,
+}: {
+  busy: boolean;
+  canSend: boolean;
+  onSend: (message: string) => Promise<void>;
+  onStop: (() => Promise<void>) | undefined;
+}): ReactElement {
+  const [text, setText] = useState("");
+
+  async function submit(event: FormEvent): Promise<void> {
+    event.preventDefault();
+    const message = text.trim();
+    if (message === "") return;
+    setText("");
+    await onSend(message);
+  }
+
+  return (
+    <form onSubmit={(event) => void submit(event)} style={{ display: "flex", gap: 8 }}>
+      <textarea
+        aria-label="Message"
+        value={text}
+        onChange={(event) => setText(event.target.value)}
+        rows={2}
+        style={{ ...CONTROL, flex: 1, resize: "vertical" }}
+      />
+      <button type="submit" style={CONTROL} disabled={busy || !canSend}>
+        Send
+      </button>
+      {onStop && (
+        <button type="button" style={CONTROL} onClick={() => void onStop()}>
+          Stop
+        </button>
+      )}
+    </form>
+  );
+}
+```
+
+## What's next
+
+- [Gallery](/docs/sdk/react/gallery): the kit's own chat, live, to compare
+  with yours.
+- [React core reference](/docs/sdk/react-core/reference): every hook and what
+  it returns.

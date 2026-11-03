@@ -48,6 +48,13 @@ on:
       # stigmer.ai with the change that redrew it.
       - "test/visual/src/shown.ts"
       - "test/visual/tests/__shown__/**"
+      # The kit's gallery, which the build builds under /gallery/ for the
+      # docs' live demos (site/scripts/generate-gallery.ts): its page, its
+      # scenes and its list of demos.
+      - "test/visual/src/**"
+      - "test/visual/index.html"
+      - "test/visual/vite.config.ts"
+      - "test/visual/package.json"
       - "test/bundle-budgets.json"
       - ".github/workflows/build.website.yaml"
       - ".github/workflows/release.website.yaml"

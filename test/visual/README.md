@@ -36,6 +36,20 @@ The site's build converts each approved picture into the files it serves (`site/
 2. `make test-visual UPDATE=1` mints its picture. `tests/shown.spec.ts` fails while an entry has no picture, and while a picture has no entry.
 3. Embed it with `<Screen name="…" alt="…" />`.
 
+## Live demos
+
+The docs embed some scenes live: `<Live name="chat-popup" alt="…" />` on a page frames the gallery in its docs mode (`&embed=1`), which the site builds under `/gallery/` (`site/scripts/generate-gallery.ts`). `src/live.ts` lists them as plain data, each with a name pages use, its scene, its frame's height and whether a reader can talk to it. In the docs mode the page:
+
+- draws only the scenes `src/live.ts` names, and under `/gallery/` sends an address with no scene to the docs' Gallery page;
+- gives the kit an in-memory storage, so a demo neither reads nor writes the docs site's own;
+- answers a scene's conversation through the scripted server (`src/live-server.ts`): a send plays the scripted turn from the kit's scenario catalogue (`scriptedTurn`), an approval or a denial lets it go on, Stop ends it, and a message sent while a turn works waits in the queue, as on the real server. A drawing opts in with `liveRoutes`;
+- takes its look from its address (`preset`, `mode`, `radius`), then from the theme messages the docs' playground posts from the same origin.
+
+`tests/live.spec.ts` draws every demo in both modes and audits it (`KIT-12`), and drives a send, an approval and a stop (`KIT-13`); `src/__tests__/live.test.ts` holds every entry to the catalogue and `src/__tests__/live-server.test.ts` the scripted server. The pictures stay the scenes' own screenshots. To embed a new one:
+
+1. Add its entry to `LIVE` in `src/live.ts`. Its scene must be in the catalogue; a demo a reader can talk to needs a drawing with `liveRoutes`.
+2. Embed it with `<Live name="…" alt="…" />`.
+
 ## The browser image
 
 `playwright-image.json` names the official Playwright image by tag and digest, in its arm64 manifest, which an Apple-silicon Mac and GitHub's arm64 runner both run natively; an x64 machine runs it under emulation, with the same pixels. `src/__tests__/image-pin.test.ts` holds the `visual` job's `container.image` and runner, and the Playwright the lockfile pins, to it. Moving the pin re-mints every screenshot in one reviewed change. The file is a gate file (`test/README.md`, rule 5).

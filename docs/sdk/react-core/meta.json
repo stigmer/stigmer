@@ -1,6 +1,7 @@
 {
   "title": "React core",
   "pages": [
+    "build-a-chat",
     "reference"
   ]
 }

@@ -30,6 +30,7 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import matter from "gray-matter";
 import { diagram } from "../components/visuals/diagrams";
+import { LIVE_CAPTION, liveUrl } from "./live";
 import { SHOWN_SCALE, screenPath, shownScreen } from "./screens";
 
 export interface SectionMeta {
@@ -133,6 +134,11 @@ interface PictureTag {
  * - `<Diagram name="…" />` becomes the drawing's text, as its own paragraph
  *   (src/components/visuals/diagrams.ts); a drawing the docs do not hold
  *   throws.
+ * - `<Live name="…" alt="…" />` becomes its alt text linked to the demo
+ *   on `siteUrl`, said to be a scripted replay, as its own paragraph; blank
+ *   alt text, or a demo the visual suite does not list, throws.
+ * - `<ThemePlayground />` becomes a line saying what the playground offers,
+ *   linked to the theming page that holds it.
  */
 const PICTURES: readonly PictureTag[] = [
   {
@@ -151,6 +157,24 @@ const PICTURES: readonly PictureTag[] = [
     needs: ["name"],
     block: true,
     rewrite: (attributes) => `\n\n${diagram(attributes.get("name")!).text}\n\n`,
+  },
+  {
+    name: "Live",
+    needs: ["name", "alt"],
+    block: true,
+    rewrite: (attributes, siteUrl) => {
+      const name = attributes.get("name")!;
+      const alt = attributes.get("alt")!;
+      if (alt.trim() === "") throw new Error(`<Live name="${name}">: alt text is required; the export carries it in the demo's place`);
+      return `\n\n[${markdownAlt(alt)}](${siteUrl}${liveUrl(name)}) (live demo; ${LIVE_CAPTION.charAt(0).toLowerCase()}${LIVE_CAPTION.slice(1)})\n\n`;
+    },
+  },
+  {
+    name: "ThemePlayground",
+    needs: [],
+    block: true,
+    rewrite: (_attributes, siteUrl) =>
+      `\n\n[The theme playground: the six presets, light or dark and the corner radius on a live chat panel, with the code to copy](${siteUrl}/docs/sdk/theme/theming)\n\n`,
   },
 ];
 
