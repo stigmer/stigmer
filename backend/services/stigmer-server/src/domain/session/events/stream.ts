@@ -21,6 +21,14 @@
  * an append publishes its previews before its events (append.ts), so their
  * relative order holds.
  *
+ * A stream that asked for stigmer.run.liveness also receives, once, right
+ * after its first read, the newest liveness of each turn that works now
+ * (broker.ts keeps them): a page that opens or reconnects mid-turn learns
+ * what the turn is doing at once, not at the runner's next interval send
+ * (stigmer#2657). Not before the read: a client's fold drops a liveness for
+ * a turn whose events it has not read. Any liveness sent later is newer and
+ * replaces it, and one sent earlier was the same or older.
+ *
  * Nothing per watcher is held in server memory but its bounded previews,
  * so a slow reader is never ended: it reads when it is ready, as a resume
  * does. The stream stays open for the client's lifetime (a session always
@@ -56,7 +64,7 @@ import { callerIdentityOf } from "../../../pipeline/interceptors/auth.js";
 import { authorizeDirect } from "../../../pipeline/steps/authorize.js";
 import type { Store } from "../../../store/interface.js";
 import type { SessionEventQuery, SessionEventRecord } from "../../../store/session-events.js";
-import { SESSION_EVENT_BROKER_CLOSED_MESSAGE, type SessionEventBroker } from "./broker.js";
+import { SESSION_EVENT_BROKER_CLOSED_MESSAGE, SESSION_EVENT_LIVENESS_TYPE, type SessionEventBroker } from "./broker.js";
 import { eventOf } from "./codec.js";
 
 export interface StreamSessionEventsDeps {
@@ -143,6 +151,8 @@ export async function* streamSessionEvents(
     // by the bell or fired by the tail timer.
     let readDue = true;
     let tailFired = false;
+    // The kept liveness goes out once, after that first read (the header says why).
+    let livenessDue = req.eventDeltas.includes(SESSION_EVENT_LIVENESS_TYPE);
     while (!context.signal.aborted) {
       endIfClosed();
       let frame = broker.take(subscription);
@@ -174,6 +184,13 @@ export async function* streamSessionEvents(
             await reauthorizeWhenDue();
             yield frame;
             frame = broker.take(subscription);
+          }
+        }
+        if (livenessDue && !context.signal.aborted) {
+          livenessDue = false;
+          for (const liveness of broker.currentLiveness(sessionId)) {
+            await reauthorizeWhenDue();
+            yield liveness;
           }
         }
         if (delivered) {

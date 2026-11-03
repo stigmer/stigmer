@@ -13,11 +13,17 @@
 // with `auto_approve_all`, so no gate holds it. The ticking command prints a
 // line every two seconds, so its row is seen running before it ends.
 //
+// A page that opens while the turn already waits for its command shows the
+// wait at once: the server hands a late stream the turn's newest liveness
+// right after the stored events, so the page does not wait for the runner's
+// next interval send, 30 seconds apart (stigmer#2657).
+//
 // Serial + a shared single-FIFO mock queue: the project runs `--workers=1` and
 // resets the queue per test.
 import { test, expect } from "../../fixtures";
 import {
   MockControl,
+  awaitMockRemaining,
   getMockControlUrl,
   seedGatedSession,
   seedToolRunSession,
@@ -86,6 +92,29 @@ test.describe("a command the agent runs in the background (deterministic mock LL
     const row = toolCallRow(page).filter({ hasText: "Background" }).first();
     await row.locator('[data-cursor-target="background-command-stop"]').click();
     await expect(row.locator('[data-cursor-target="background-command-status"]')).toHaveText("Stopped by a person", { timeout: 30_000 });
+    await expect(page.getByText("You stopped the server.")).toBeVisible({ timeout: 30_000 });
+  });
+
+  test("a page opened while the turn waits for the command names it at once", async ({ page, stigmerClient }) => {
+    seeded = await seedToolRunSession(stigmerClient, control, {
+      toolTurns: [[shellBlock("call_bg_late", "sleep 300", { background: true })]],
+      closingTexts: ["It runs in the background.", "I will wait for the server.", "You stopped the server."],
+      message: "Start the server in the background.",
+    });
+    // The mock has served the reply after which the turn waits: one text is left.
+    await awaitMockRemaining(control, 1);
+    // The runner sends a liveness within its 500 ms streaming floor once the
+    // reply ends; `sleep 300` prints nothing and opens nothing after, so the
+    // next one would come at the 30 s interval. Open the page after the first.
+    await page.waitForTimeout(2_000);
+    await page.goto(`/sessions/${seeded.sessionId}`);
+
+    await expect(page.getByText("I will wait for the server.")).toBeVisible({ timeout: 30_000 });
+    // Well under the runner's 30 s interval: only a liveness the server kept can meet it.
+    await expect(page.locator('[data-cursor-target="liveness-status-line"]')).toContainText("Waiting for `sleep 300`", { timeout: 10_000 });
+
+    const row = toolCallRow(page).filter({ hasText: "Background" }).first();
+    await row.locator('[data-cursor-target="background-command-stop"]').click();
     await expect(page.getByText("You stopped the server.")).toBeVisible({ timeout: 30_000 });
   });
 

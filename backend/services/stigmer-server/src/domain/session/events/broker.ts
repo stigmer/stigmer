@@ -26,6 +26,21 @@
  * shows text with a hole in it, and the stored event that follows replaces
  * the preview whole.
  *
+ * A turn's liveness is the one preview the broker also keeps: the newest
+ * per working turn (keyed by session, then run), so a stream that opens
+ * mid-turn, a reload or a reconnect, learns what the turn is doing at once
+ * instead of at the runner's next interval send (stigmer#2657). The stream
+ * asks for them right after its first read of the log (stream.ts), because
+ * a client's fold drops a liveness for a turn it has not read yet.
+ * `currentLiveness` moves each age forward by the time the broker held it,
+ * on a monotonic clock. A turn's entry goes when its stigmer.run.status
+ * says it stopped working (waiting, paused or ended: the runner stops
+ * sending then, and a resumed turn sends again at once), and is never
+ * handed back once `SESSION_EVENT_LIVENESS_KEPT_MS` passes without a newer
+ * one, which covers a runner that died before its run's end was written.
+ * Like the bell, it is this process's memory only: during a rolling update
+ * a stream on the other process waits for the next interval send.
+ *
  * Shutdown closes the broker first (boot/compose.ts): every stream ends
  * with UNAVAILABLE and a new one is refused, so a watcher resumes on the
  * server that stays instead of waiting on one that is leaving.
@@ -41,9 +56,14 @@
  *
  * Proven by __tests__/broker.test.ts.
  */
-import { create, toBinary } from "@bufbuild/protobuf";
+import { clone, create, toBinary } from "@bufbuild/protobuf";
+import { DurationSchema, type Duration } from "@bufbuild/protobuf/wkt";
 
-import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
+import {
+  RunLivenessSchema,
+  type RunLiveness,
+  type SessionEvent,
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 import type { SessionEventPreview } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 import {
   StreamSessionEventsResponseSchema,
@@ -73,6 +93,27 @@ export const SESSION_EVENT_PREVIEW_MAX_BYTES = 32 * 1024 * 1024;
  * streaming after this many newer drops could show its hole.
  */
 export const SESSION_EVENT_DROPPED_IDS_KEPT = 4096;
+
+/** The previewed type a stream names in event_deltas to receive turns' liveness. */
+export const SESSION_EVENT_LIVENESS_TYPE = "stigmer.run.liveness";
+
+/**
+ * How long a turn's liveness is kept without a newer one. The runner sends
+ * one at least this often while the turn works (RunLiveness, event.proto),
+ * and this is also the console's slow watch (a follow that delivers nothing
+ * this long), so a kept liveness never vouches for a silence the console
+ * would already call slow. Past it, the turn's runner is presumed gone.
+ */
+export const SESSION_EVENT_LIVENESS_KEPT_MS = 60_000;
+
+/** The phases (stigmer.run.status) in which a turn's runner sends no liveness. */
+const LIVENESS_STOPS_IN: ReadonlySet<string> = new Set(["waiting", "paused", "completed", "failed", "cancelled", "terminated"]);
+
+/** A turn's newest liveness, and when (the broker's clock) it arrived. */
+interface KeptLiveness {
+  readonly liveness: RunLiveness;
+  readonly at: number;
+}
 
 /** Where an organization's attention streams subscribe: a key no session id takes. */
 export function sessionIdleBellOf(org: string): string {
@@ -108,9 +149,20 @@ export interface SessionEventSubscription {
 
 export class SessionEventBroker {
   private readonly subscribers = new Map<string, Set<SessionEventSubscription>>();
+  /** Each working turn's newest liveness, by session, then run. */
+  private readonly kept = new Map<string, Map<string, KeptLiveness>>();
+  private sweptAt = -Infinity;
   private closedBecause: string | undefined;
 
-  constructor(private readonly logger: Logger) {}
+  /**
+   * `now` is a monotonic millisecond clock, injectable for tests: it only
+   * measures how long a liveness was kept, which a wall-clock step must not
+   * stretch or reverse.
+   */
+  constructor(
+    private readonly logger: Logger,
+    private readonly now: () => number = () => performance.now(),
+  ) {}
 
   /**
    * Registers a stream; the caller MUST unsubscribe when it ends. Once the
@@ -166,6 +218,7 @@ export class SessionEventBroker {
       }
     }
     this.subscribers.clear();
+    this.kept.clear();
   }
 
   /**
@@ -176,6 +229,11 @@ export class SessionEventBroker {
   publish(sessionId: string, org: string, events: ReadonlyArray<SessionEvent>): void {
     if (events.length === 0) {
       return;
+    }
+    for (const event of events) {
+      if (event.event.case === "stigmerRunStatus" && LIVENESS_STOPS_IN.has(event.event.value.phase)) {
+        this.forget(sessionId, event.runId);
+      }
     }
     const idle = org !== "" && events.some((event) => event.event.case === "sessionStatusIdle");
     const bells = idle ? [sessionId, sessionIdleBellOf(org)] : [sessionId];
@@ -219,11 +277,12 @@ export class SessionEventBroker {
           frame = create(StreamSessionEventsResponseSchema, {
             frame: { case: "stigmerRunLiveness", value: preview.preview.value },
           });
-          type = "stigmer.run.liveness";
+          type = SESSION_EVENT_LIVENESS_TYPE;
           // Each liveness is the whole of what the turn has open: a dropped
           // one costs nothing the next does not say again, so it is never
           // remembered and never skipped.
           id = undefined;
+          this.keep(sessionId, preview.preview.value);
           break;
         case undefined:
           continue;
@@ -243,6 +302,32 @@ export class SessionEventBroker {
     subscription.queuedBytes -= subscription.sizes.shift() ?? 0;
     subscription.ids.shift();
     return frame;
+  }
+
+  /**
+   * One frame per working turn of the session: its newest liveness, every
+   * age moved forward by the time it was kept. Empty when no turn of the
+   * session sent one within `SESSION_EVENT_LIVENESS_KEPT_MS`.
+   */
+  currentLiveness(sessionId: string): StreamSessionEventsResponse[] {
+    const runs = this.kept.get(sessionId);
+    if (runs === undefined) {
+      return [];
+    }
+    const at = this.now();
+    const frames: StreamSessionEventsResponse[] = [];
+    for (const kept of runs.values()) {
+      const heldMs = at - kept.at;
+      if (heldMs >= SESSION_EVENT_LIVENESS_KEPT_MS) {
+        continue;
+      }
+      frames.push(
+        create(StreamSessionEventsResponseSchema, {
+          frame: { case: "stigmerRunLiveness", value: aged(kept.liveness, heldMs) },
+        }),
+      );
+    }
+    return frames;
   }
 
   /** Streams open on a session. */
@@ -286,6 +371,46 @@ export class SessionEventBroker {
     }
   }
 
+  /** Keeps a turn's liveness in place of the one before; nothing once closed. */
+  private keep(sessionId: string, liveness: RunLiveness): void {
+    if (this.closedBecause !== undefined || liveness.runId === "") {
+      return;
+    }
+    const at = this.now();
+    this.sweep(at);
+    const runs = this.kept.get(sessionId) ?? new Map<string, KeptLiveness>();
+    runs.set(liveness.runId, { liveness, at });
+    this.kept.set(sessionId, runs);
+  }
+
+  private forget(sessionId: string, runId: string): void {
+    const runs = this.kept.get(sessionId);
+    if (runs?.delete(runId) === true && runs.size === 0) {
+      this.kept.delete(sessionId);
+    }
+  }
+
+  /**
+   * Drops every liveness kept past its bound, at most once per bound, so a
+   * session nobody streams again does not keep a dead turn's forever.
+   */
+  private sweep(at: number): void {
+    if (at - this.sweptAt < SESSION_EVENT_LIVENESS_KEPT_MS) {
+      return;
+    }
+    this.sweptAt = at;
+    for (const [sessionId, runs] of this.kept) {
+      for (const [runId, kept] of runs) {
+        if (at - kept.at >= SESSION_EVENT_LIVENESS_KEPT_MS) {
+          runs.delete(runId);
+        }
+      }
+      if (runs.size === 0) {
+        this.kept.delete(sessionId);
+      }
+    }
+  }
+
   private wake(subscription: SessionEventSubscription): void {
     subscription.notify?.();
     subscription.notify = undefined;
@@ -312,4 +437,23 @@ function remember(subscription: SessionEventSubscription, id: string): void {
     }
     subscription.droppedIds.delete(oldest);
   }
+}
+
+/** A copy of `liveness` with every age (each operation's elapsed, the model wait) longer by `ms`. */
+function aged(liveness: RunLiveness, ms: number): RunLiveness {
+  const copy = clone(RunLivenessSchema, liveness);
+  for (const operation of copy.operations) {
+    if (operation.elapsed !== undefined) {
+      operation.elapsed = longer(operation.elapsed, ms);
+    }
+  }
+  if (copy.awaitingModelFor !== undefined) {
+    copy.awaitingModelFor = longer(copy.awaitingModelFor, ms);
+  }
+  return copy;
+}
+
+function longer(duration: Duration, ms: number): Duration {
+  const nanos = duration.seconds * 1_000_000_000n + BigInt(duration.nanos) + BigInt(Math.round(ms * 1_000_000));
+  return create(DurationSchema, { seconds: nanos / 1_000_000_000n, nanos: Number(nanos % 1_000_000_000n) });
 }
