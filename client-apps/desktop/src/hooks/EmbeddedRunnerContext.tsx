@@ -10,17 +10,9 @@
  */
 
 import { createContext, useContext, useEffect, type ReactNode } from "react";
-import { useEmbeddedRunner } from "./useEmbeddedRunner";
+import { useEmbeddedRunner, type UseEmbeddedRunnerResult } from "./useEmbeddedRunner";
 
-interface EmbeddedRunnerContext {
-  isRunning: boolean;
-  activeSessions: string[];
-  addSession: (sessionId: string) => Promise<string>;
-  removeSession: (sessionId: string) => Promise<void>;
-  updateRunnerToken: (token: string | null) => Promise<void>;
-  refreshStatus: () => Promise<void>;
-  error: string | null;
-}
+type EmbeddedRunnerContext = UseEmbeddedRunnerResult;
 
 const RunnerContext = createContext<EmbeddedRunnerContext | null>(null);
 
@@ -40,7 +32,9 @@ export function EmbeddedRunnerProvider({
   // While the runner is up, periodically reconcile activeSessions with its
   // truth. This is what lets the sidebar's "running in background" dot appear
   // for a session whose worker is kept alive by an in-flight run and
-  // disappear once that run drains. Idle when the runner isn't running.
+  // disappear once that run drains, and how a runner that stopped by itself
+  // is noticed: the read that finds it gone turns the sidebar's row to
+  // "Agents stopped", with Restart. Idle when the runner isn't running.
   useEffect(() => {
     if (!isRunning) return;
     const id = setInterval(() => {

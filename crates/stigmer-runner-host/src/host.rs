@@ -86,6 +86,9 @@ impl RunnerHost {
     /// Spawn the runner, await the `ready` handshake, and negotiate the protocol version.
     pub async fn start(&self, config: RunnerConfig) -> Result<(), RunnerHostError> {
         let mut guard = self.process.lock().await;
+        // A runner that died on its own (a crash, a kill from outside) leaves its handle
+        // behind; forget it here so a restart is not refused as already running.
+        self.forget_if_exited(&mut guard);
         if guard.is_some() {
             return Err(RunnerHostError::AlreadyRunning);
         }
@@ -276,9 +279,11 @@ impl RunnerHost {
         Ok(())
     }
 
-    /// Current lifecycle snapshot (running flag + active sessions).
+    /// Current lifecycle snapshot (running flag + active sessions). A runner that has
+    /// exited is reported as not running, whatever ended it.
     pub async fn status(&self) -> RunnerStatus {
-        let guard = self.process.lock().await;
+        let mut guard = self.process.lock().await;
+        self.forget_if_exited(&mut guard);
         match guard.as_ref() {
             Some(proc) => RunnerStatus {
                 running: true,
@@ -291,6 +296,30 @@ impl RunnerHost {
                 active_sessions: Vec::new(),
                 pid: None,
             },
+        }
+    }
+}
+
+impl RunnerHost {
+    /// Drop the handle of a runner whose process has exited, reaping it on the way.
+    ///
+    /// The stdout reader only tears the handle down on a fatal IPC error, so a runner
+    /// that crashed or was killed from outside would otherwise be reported as running
+    /// forever, and a restart refused. `try_wait` never blocks and reaps an exited child,
+    /// so no zombie is left either.
+    fn forget_if_exited(&self, slot: &mut Option<RunnerProcess>) {
+        let Some(proc) = slot.as_mut() else { return };
+        match proc.child.try_wait() {
+            Ok(None) => {}
+            Ok(Some(exit)) => {
+                (self.log)(format!("[runner-ipc] runner exited on its own ({exit})"));
+                *slot = None;
+            }
+            Err(err) => {
+                (self.log)(format!(
+                    "[runner-ipc] cannot read the runner's state: {err}"
+                ));
+            }
         }
     }
 }

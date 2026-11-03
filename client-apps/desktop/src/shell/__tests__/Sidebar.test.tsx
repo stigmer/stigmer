@@ -4,8 +4,9 @@
 // (the sidebar never fetches for itself). Each recents row's accessory marks a
 // session the embedded runner is still running in the background (any session
 // but the one on screen) with the background-run dot, and every other row with
-// nothing. The sidebar chrome is the SDK's, pinned by its own suite; here it is
-// stubbed to read the props it is given.
+// nothing. The footer holds the runner's status row above the user menu. The
+// sidebar chrome is the SDK's, pinned by its own suite; here it is stubbed to
+// read the props it is given.
 
 import type { ReactNode } from "react";
 import { render, screen } from "@testing-library/react";
@@ -20,6 +21,7 @@ const shell = vi.hoisted(() => ({
   badge: [] as (number | undefined)[],
   activeSessions: [] as string[],
   accessory: undefined as ((entry: RecentActivityEntry) => ReactNode) | undefined,
+  footer: undefined as ReactNode,
 }));
 
 vi.mock("@stigmer/react-sdk", () => ({
@@ -37,17 +39,21 @@ vi.mock("@stigmer/react-sdk/console", () => ({
   WorkspaceSidebar: ({
     conversationsBadgeCount,
     renderEntryAccessory,
+    footer,
   }: {
     conversationsBadgeCount?: number;
     renderEntryAccessory?: (entry: RecentActivityEntry) => ReactNode;
+    footer?: ReactNode;
   }) => {
     shell.badge.push(conversationsBadgeCount);
     shell.accessory = renderEntryAccessory;
+    shell.footer = footer;
     return null;
   },
 }));
 
-vi.mock("../UserMenu", () => ({ UserMenu: () => null }));
+vi.mock("../UserMenu", () => ({ UserMenu: () => <p>user menu</p> }));
+vi.mock("../RunnerStatus", () => ({ RunnerStatus: () => <p>runner status</p> }));
 
 vi.mock("../../hooks/EmbeddedRunnerContext", () => ({
   useRunner: () => ({ activeSessions: shell.activeSessions }),
@@ -77,6 +83,7 @@ beforeEach(() => {
   shell.badge.length = 0;
   shell.activeSessions = [];
   shell.accessory = undefined;
+  shell.footer = undefined;
 });
 
 describe("desktop Sidebar — the Conversations badge", () => {
@@ -112,5 +119,15 @@ describe("desktop Sidebar — the recents row accessory", () => {
     renderAccessory("ses_viewed");
     renderAccessory("ses_idle");
     expect(screen.queryByRole("status")).toBeNull();
+  });
+});
+
+describe("DSK-05 desktop Sidebar — the footer", () => {
+  it("shows the runner's status row above the user menu", () => {
+    renderSidebar();
+
+    render(<>{shell.footer}</>);
+    const lines = screen.getAllByText(/runner status|user menu/).map((node) => node.textContent);
+    expect(lines).toEqual(["runner status", "user menu"]);
   });
 });

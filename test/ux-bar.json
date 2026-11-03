@@ -227,7 +227,7 @@
       "id": "DSK-01",
       "promise": "Clicking the Dock icon reopens a closed window.",
       "pending": [
-        "stigmer#2622"
+        "stigmer#2845"
       ]
     },
     {
@@ -240,17 +240,18 @@
     },
     {
       "id": "DSK-03",
-      "promise": "Commands the app runs see the user's own PATH.",
-      "pending": [
-        "stigmer#1347"
-      ]
+      "promise": "Commands the app runs see the user's own PATH."
     },
     {
       "id": "DSK-04",
       "promise": "A notification opens the thread it is about.",
       "pending": [
-        "stigmer#2633"
+        "stigmer#2842"
       ]
+    },
+    {
+      "id": "DSK-05",
+      "promise": "The app shows whether agents are running on this computer, and offers Restart when they stopped."
     },
     {
       "id": "SDK-01",

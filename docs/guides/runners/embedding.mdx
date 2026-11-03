@@ -403,6 +403,27 @@ immediate `SIGKILL` and reaps the child without a timer, so it cannot park.
 Reserve `stop()` for an explicit in-app stop (a "stop runner" action) while the
 event loop is still healthy.
 
+#### Give your agents' tools the person's PATH
+
+The tools an agent starts (an MCP server run as `npx …`, a shell step calling
+`brew` or `uv`) inherit the runner's environment, which is your app's. An app
+launched from Finder, the Dock or a desktop launcher has the session's bare
+`PATH` (`/usr/bin:/bin:/usr/sbin:/sbin` on macOS), so those tools fail with
+"command not found" although they work in the person's terminal. `PATH` is not a
+reserved key, so pass the one their shell builds in `extra_env`:
+
+```rust
+extra_env: [("PATH".to_string(), login_shell_path)].into(),
+```
+
+The Stigmer desktop app reads it once at start, in the background, by running
+the person's login shell as `$SHELL -i -l -c` and printing `$PATH` between two
+markers, with a five-second limit and the app's own `PATH` when that fails
+(`client-apps/desktop/src-tauri/src/user_path.rs`). Pass `PATH` alone: the rest
+of a login shell's environment can hold secrets, and a tool should receive only
+the ones it declares. The runner's own engine is unaffected, because you pass it
+by absolute path (below).
+
 ### Ship the runner and its Node runtime
 
 The Rust crate _drives_ the runner, but it does not contain it. A packaged app

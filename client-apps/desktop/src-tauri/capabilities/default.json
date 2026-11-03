@@ -8,7 +8,7 @@
     "core:event:default",
     "core:window:allow-show",
     "dialog:default",
-    "notification:default",
+    "notifications:default",
     "updater:default",
     "process:default",
     "window-state:default",

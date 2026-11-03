@@ -969,7 +969,7 @@ launch-desktop: kill-desktop ## Start desktop app in dev mode (Tauri + Vite hot-
 		sleep 1; \
 		caddy start --config client-apps/desktop/scripts/Caddyfile.dev; \
 	fi
-	npm run tauri dev -w desktop
+	npm run tauri:dev -w desktop
 	@-caddy stop 2>/dev/null || true
 	@-pkill -f "grpcwebproxy.*9091" 2>/dev/null || true
 

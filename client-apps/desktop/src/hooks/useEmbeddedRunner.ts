@@ -4,7 +4,10 @@
  * Uses lazy startup: the runner is started on the first
  * addSession call, not at mount time.
  * Provides methods to add/remove per-session Workers and
- * push token updates to the running runner process.
+ * push token updates to the running runner process, and keeps the
+ * runner's state for the sidebar (runner-state.ts): a runner that was up
+ * and is gone reads as stopped, and starting it again gives it back every
+ * conversation the window holds.
  *
  * The runner always operates in proxy mode: LLM calls route through
  * the Stigmer server's proxy (which injects platform API keys
@@ -17,10 +20,11 @@
  * backend. Set VITE_STIGMER_TEMPORAL_ADDRESS to pin it for local development.
  */
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { resolveResource } from "@tauri-apps/api/path";
 import { loadTokens } from "../auth/token-store";
+import { runnerStateOf, type RunnerState } from "./runner-state";
 
 export interface RunnerConfig {
   nodeBinary: string;
@@ -32,6 +36,8 @@ export interface RunnerConfig {
   stigmerToken?: string;
   workspaceRootDir?: string;
   proxyEndpoint?: string;
+  /** Extra environment for the runner; the app passes the person's PATH. */
+  extraEnv?: Record<string, string>;
 }
 
 interface RunnerStatus {
@@ -54,6 +60,14 @@ export interface UseEmbeddedRunnerResult {
    * indicators clear once a run drains.
    */
   refreshStatus: () => Promise<void>;
+  /**
+   * Starts the runner again after it stopped or failed to start, and gives
+   * it back every conversation the window holds, the same call a
+   * conversation makes when it opens.
+   */
+  restart: () => Promise<void>;
+  /** What the runner is doing, as the sidebar shows it. */
+  state: RunnerState;
   error: string | null;
 }
 
@@ -134,6 +148,14 @@ export async function getRunnerConfig(): Promise<RunnerConfig> {
   // resolves it because Rust knows the platform's executable suffix.
   const nodeBinary = await invoke<string>("bundled_node_path");
 
+  // The PATH the person's terminal sees, read once from their login shell by
+  // the Rust host (src-tauri/src/user_path.rs). The runner's own engine is the
+  // bundled Node above; this PATH is for the tools its agents start, an `npx`
+  // MCP server or a shell step calling `brew`, which an app opened from Finder
+  // would otherwise not find (stigmer/stigmer#1347). Only PATH crosses: no
+  // other variable from the shell reaches the runner.
+  const userPath = await invoke<string>("user_tool_path");
+
   return {
     nodeBinary,
     runnerEntry,
@@ -142,84 +164,153 @@ export async function getRunnerConfig(): Promise<RunnerConfig> {
     stigmerEndpoint,
     stigmerToken,
     proxyEndpoint,
+    ...(userPath ? { extraEnv: { PATH: userPath } } : {}),
   };
 }
 
 export function useEmbeddedRunner(): UseEmbeddedRunnerResult {
   const [isRunning, setIsRunning] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
+  const [hasRun, setHasRun] = useState(false);
   const [activeSessions, setActiveSessions] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const startingRef = useRef<Promise<void> | null>(null);
+  // The conversations the window holds: added when one opens, dropped when
+  // it closes. Restart gives each back to a new runner.
+  const heldSessionsRef = useRef(new Set<string>());
 
-  const ensureRunning = useCallback(async (): Promise<void> => {
-    // One check-and-start at a time. The guard covers the status read as well
-    // as the start: set after the read, two callers arriving together would
-    // both see "not running" and both start, and the host refuses the second
-    // (stigmer/stigmer#1505). It clears once the attempt settles, so a later
-    // call reads the host again and restarts a runner that has since exited.
-    if (!startingRef.current) {
-      const attempt = (async () => {
+  // The app never stops the runner while the window lives, so one that has
+  // been up and is not up now stopped by itself (runner-state.ts).
+  const markRunning = useCallback(
+    (running: boolean) => {
+      if (running) setHasRun(true);
+      setIsRunning(running);
+    },
+    // Stryker disable next-line ArrayDeclaration: the callback reads nothing from the render, so any dependency list keeps it alike
+    [],
+  );
+
+  const ensureRunning = useCallback(
+    async (): Promise<void> => {
+      // One check-and-start at a time. The guard covers the status read as well
+      // as the start: set after the read, two callers arriving together would
+      // both see "not running" and both start, and the host refuses the second
+      // (stigmer/stigmer#1505). It clears once the attempt settles, so a later
+      // call reads the host again and restarts a runner that has since exited.
+      if (!startingRef.current) {
+        const attempt = (async () => {
+          const status = await invoke<RunnerStatus>("runner_status");
+          if (status.running) {
+            markRunning(true);
+            setActiveSessions(status.activeSessions);
+            return;
+          }
+          setIsStarting(true);
+          const config = await getRunnerConfig();
+          await invoke("start_runner", { config });
+          // A new runner holds no conversation. Give it every one the window
+          // holds, so a runner that stopped by itself and starts again (from
+          // Restart, or because another conversation opened) serves them all.
+          // The host's add is idempotent, so the caller's own add that follows
+          // is an acknowledgement.
+          for (const sessionId of heldSessionsRef.current) {
+            await invoke<string>("add_session", { sessionId });
+          }
+          markRunning(true);
+          setError(null);
+        })();
+        startingRef.current = attempt;
+        attempt
+          .finally(() => {
+            // Stryker disable next-line ConditionalExpression: no other attempt can begin while this one holds the guard, so the check holds; it keeps a later change from clearing an attempt that is not this one
+            if (startingRef.current === attempt) startingRef.current = null;
+            setIsStarting(false);
+          })
+          .catch(() => {});
+      }
+
+      try {
+        await startingRef.current;
+      } catch (err) {
+        setError(String(err));
+        setIsRunning(false);
+        throw err;
+      }
+    },
+    // Stryker disable next-line ArrayDeclaration: markRunning never changes, so any dependency list keeps this alike
+    [markRunning],
+  );
+
+  const addSession = useCallback(
+    async (sessionId: string): Promise<string> => {
+      heldSessionsRef.current.add(sessionId);
+      await ensureRunning();
+      const taskQueue = await invoke<string>("add_session", { sessionId });
+      setActiveSessions((prev) =>
+        prev.includes(sessionId) ? prev : [...prev, sessionId],
+      );
+      return taskQueue;
+    },
+    // Stryker disable next-line ArrayDeclaration: ensureRunning never changes, so any dependency list keeps this alike
+    [ensureRunning],
+  );
+
+  const refreshStatus = useCallback(
+    async (): Promise<void> => {
+      try {
         const status = await invoke<RunnerStatus>("runner_status");
-        if (status.running) {
-          setIsRunning(true);
-          setActiveSessions(status.activeSessions);
-          return;
-        }
-        const config = await getRunnerConfig();
-        await invoke("start_runner", { config });
-        setIsRunning(true);
-        setError(null);
-      })();
-      startingRef.current = attempt;
-      attempt
-        .finally(() => {
-          if (startingRef.current === attempt) startingRef.current = null;
-        })
-        .catch(() => {});
-    }
+        markRunning(status.running);
+        setActiveSessions(status.activeSessions);
+      } catch {
+        // Status polling is best-effort; a transient IPC failure must not surface.
+      }
+    },
+    // Stryker disable next-line ArrayDeclaration: markRunning never changes, so any dependency list keeps this alike
+    [markRunning],
+  );
 
-    try {
-      await startingRef.current;
-    } catch (err) {
-      setError(String(err));
-      setIsRunning(false);
-      throw err;
-    }
-  }, []);
+  const removeSession = useCallback(
+    async (sessionId: string): Promise<void> => {
+      heldSessionsRef.current.delete(sessionId);
+      await invoke("remove_session", { sessionId });
+      // The runner keeps the worker alive in the background when a run is
+      // still in flight (deferred teardown), so reconcile from the runner's truth
+      // rather than optimistically dropping the session — a backgrounded run must
+      // stay visible (and drives the "running in background" indicator).
+      await refreshStatus();
+    },
+    // Stryker disable next-line ArrayDeclaration: refreshStatus never changes, so any dependency list keeps this alike
+    [refreshStatus],
+  );
 
-  const addSession = useCallback(async (sessionId: string): Promise<string> => {
-    await ensureRunning();
-    const taskQueue = await invoke<string>("add_session", { sessionId });
-    setActiveSessions((prev) =>
-      prev.includes(sessionId) ? prev : [...prev, sessionId],
-    );
-    return taskQueue;
-  }, [ensureRunning]);
+  const restart = useCallback(
+    async (): Promise<void> => {
+      try {
+        await ensureRunning();
+      } catch {
+        // ensureRunning recorded the failure; the row shows it with Try again.
+        return;
+      }
+      await refreshStatus();
+    },
+    // Stryker disable next-line ArrayDeclaration: neither callback ever changes, so any dependency list keeps this alike
+    [ensureRunning, refreshStatus],
+  );
 
-  const refreshStatus = useCallback(async (): Promise<void> => {
-    try {
+  const updateRunnerToken = useCallback(
+    async (token: string | null): Promise<void> => {
       const status = await invoke<RunnerStatus>("runner_status");
-      setIsRunning(status.running);
-      setActiveSessions(status.activeSessions);
-    } catch {
-      // Status polling is best-effort; a transient IPC failure must not surface.
-    }
-  }, []);
+      if (!status.running) return;
+      await invoke("update_runner_token", { token });
+    },
+    // Stryker disable next-line ArrayDeclaration: the callback reads nothing from the render, so any dependency list keeps it alike
+    [],
+  );
 
-  const removeSession = useCallback(async (sessionId: string): Promise<void> => {
-    await invoke("remove_session", { sessionId });
-    // The runner keeps the worker alive in the background when a run is
-    // still in flight (deferred teardown), so reconcile from the runner's truth
-    // rather than optimistically dropping the session — a backgrounded run must
-    // stay visible (and drives the "running in background" indicator).
-    await refreshStatus();
-  }, [refreshStatus]);
-
-  const updateRunnerToken = useCallback(async (token: string | null): Promise<void> => {
-    const status = await invoke<RunnerStatus>("runner_status");
-    if (!status.running) return;
-    await invoke("update_runner_token", { token });
-  }, []);
+  const state = useMemo(
+    () => runnerStateOf({ isRunning, isStarting, hasRun, error, activeSessions }),
+    [isRunning, isStarting, hasRun, error, activeSessions],
+  );
 
   return {
     isRunning,
@@ -228,6 +319,8 @@ export function useEmbeddedRunner(): UseEmbeddedRunnerResult {
     removeSession,
     updateRunnerToken,
     refreshStatus,
+    restart,
+    state,
     error,
   };
 }

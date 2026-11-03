@@ -8,13 +8,15 @@
 //
 //   - getRunnerConfig: the control-plane endpoint, the proxy endpoint (only
 //     with a session, always with a scheme), the Temporal override, the
-//     runner entry (absolute, or the dev build's live tree) and the bundled
-//     Node runtime;
+//     runner entry (absolute, or the dev build's live tree), the bundled
+//     Node runtime, and the person's PATH for the tools agents start;
 //   - the lifecycle: the runner starts lazily, once, however many sessions
 //     ask at the same moment; a failed start surfaces its error and can be
 //     retried; a runner the host already runs is adopted, not restarted;
 //   - the host's truth wins after a remove, and a token update reaches only a
-//     running runner.
+//     running runner;
+//   - the runner's state: a runner that was up and is gone reads as stopped,
+//     and starting it again gives back every conversation the window holds.
 // ---------------------------------------------------------------------------
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
@@ -36,6 +38,10 @@ import {
 // path of the Node runtime the build carries (src-tauri/src/runner.rs).
 const BUNDLED_NODE = "/abs/resource/resources/runtime/node";
 
+// What `user_tool_path` answers: the PATH the person's login shell builds
+// (src-tauri/src/user_path.rs), with Homebrew's and nvm's directories on it.
+const USER_PATH = "/Users/ada/.nvm/versions/node/v22/bin:/opt/homebrew/bin:/usr/bin:/bin";
+
 interface HostState {
   running: boolean;
   activeSessions: string[];
@@ -53,6 +59,7 @@ function runnerHost(overrides: CommandHandlers = {}): {
   const tauri = mockTauri({
     runner_status: () => ({ ...state }),
     bundled_node_path: () => BUNDLED_NODE,
+    user_tool_path: () => USER_PATH,
     "plugin:path|resolve_directory": (args: CommandArgs) =>
       `/abs/resource/${String(args.path)}`,
     start_runner: () => {
@@ -139,6 +146,8 @@ describe("getRunnerConfig: the session and the proxy", () => {
   it.each([
     ["a bare host", "localhost:9090", "http://localhost:9090"],
     ["a bare TLS host", "api.stigmer.ai:443", "https://api.stigmer.ai:443"],
+    ["a URL that has one", "http://localhost:9090", "http://localhost:9090"],
+    ["a TLS URL that has one", "https://api.acme.example:8443", "https://api.acme.example:8443"],
   ])(
     "gives the proxy a URL scheme when the only endpoint is %s",
     async (_label, sidecar, proxy) => {
@@ -151,6 +160,19 @@ describe("getRunnerConfig: the session and the proxy", () => {
       expect(config.proxyEndpoint).toBe(proxy);
     },
   );
+});
+
+describe("getRunnerConfig: the proxy beside a sidecar", () => {
+  it("points the proxy at the API, not at the dev sidecar the control plane goes through", async () => {
+    vi.stubEnv("VITE_STIGMER_SIDECAR_ENDPOINT", "localhost:9090");
+    vi.stubEnv("VITE_STIGMER_API_URL", "https://api.stigmer.ai");
+    runnerHost();
+    signIn("token");
+
+    const config = await getRunnerConfig();
+    expect(config.stigmerEndpoint).toBe("localhost:9090");
+    expect(config.proxyEndpoint).toBe("https://api.stigmer.ai");
+  });
 });
 
 describe("getRunnerConfig: Temporal and the control-plane endpoint", () => {
@@ -254,12 +276,202 @@ describe("getRunnerConfig: the runner entry and the Node runtime", () => {
   });
 });
 
+describe("DSK-03 the tools agents start see the person's own PATH", () => {
+  it("hands the runner the PATH the person's login shell builds", async () => {
+    // stigmer/stigmer#1347: an app opened from Finder sees only the session's
+    // bare PATH, so an `npx` MCP server or a shell step calling `brew` failed
+    // with "command not found". The host reads the login shell's PATH and the
+    // runner passes it to the tools it starts.
+    const { tauri } = runnerHost();
+
+    const config = await startedConfig(tauri);
+    expect(tauri.callsTo("user_tool_path")).toHaveLength(1);
+    expect(config.extraEnv).toEqual({ PATH: USER_PATH });
+  });
+
+  it("passes only PATH from the shell, nothing else", async () => {
+    runnerHost();
+
+    const config = await getRunnerConfig();
+    expect(Object.keys(config.extraEnv ?? {})).toEqual(["PATH"]);
+  });
+
+  it("leaves the runner's environment alone when the host has no PATH to give", async () => {
+    runnerHost({ user_tool_path: () => "" });
+
+    expect("extraEnv" in (await getRunnerConfig())).toBe(false);
+  });
+});
+
+describe("DSK-05 the runner's state", () => {
+  it("reads idle before anything ran, then ready with the conversations it holds", async () => {
+    runnerHost();
+    const { result } = renderHook(() => useEmbeddedRunner());
+    expect(result.current.state).toEqual({ kind: "idle" });
+
+    await act(async () => {
+      await result.current.addSession("s1");
+    });
+    expect(result.current.state).toEqual({ kind: "ready", conversations: 1 });
+  });
+
+  it("reads starting while the runner starts", async () => {
+    let finishStart: () => void = () => {};
+    const { tauri, state } = runnerHost({
+      start_runner: () =>
+        new Promise<null>((resolve) => {
+          finishStart = () => {
+            state.running = true;
+            resolve(null);
+          };
+        }),
+    });
+    const { result } = renderHook(() => useEmbeddedRunner());
+
+    let added: Promise<string> = Promise.resolve("");
+    await act(async () => {
+      added = result.current.addSession("s1");
+      await vi.waitFor(() => expect(tauri.callsTo("start_runner")).toHaveLength(1));
+    });
+    expect(result.current.state).toEqual({ kind: "starting" });
+
+    await act(async () => {
+      finishStart();
+      await added;
+    });
+    expect(result.current.state.kind).toBe("ready");
+  });
+
+  it("reads stopped when a status read finds gone a runner that was up", async () => {
+    const { state } = runnerHost();
+    const { result } = renderHook(() => useEmbeddedRunner());
+    await act(async () => {
+      await result.current.addSession("s1");
+    });
+
+    state.running = false;
+    state.activeSessions = [];
+    await act(async () => {
+      await result.current.refreshStatus();
+    });
+
+    expect(result.current.state).toEqual({ kind: "stopped" });
+  });
+
+  it("does not read a runner that never ran as stopped", async () => {
+    runnerHost();
+    const { result } = renderHook(() => useEmbeddedRunner());
+
+    await act(async () => {
+      await result.current.refreshStatus();
+    });
+
+    expect(result.current.state).toEqual({ kind: "idle" });
+  });
+
+  it("restarts a stopped runner and gives it back every conversation the window holds", async () => {
+    const { tauri, state } = runnerHost();
+    const { result } = renderHook(() => useEmbeddedRunner());
+    await act(async () => {
+      await result.current.addSession("s1");
+      await result.current.addSession("s2");
+      await result.current.addSession("closed");
+    });
+    // A conversation the window closed is not given back.
+    state.activeSessions = ["s1", "s2"];
+    await act(async () => {
+      await result.current.removeSession("closed");
+    });
+
+    state.running = false;
+    state.activeSessions = [];
+    await act(async () => {
+      await result.current.refreshStatus();
+    });
+    const addsBefore = tauri.callsTo("add_session").length;
+
+    await act(async () => {
+      await result.current.restart();
+    });
+
+    expect(tauri.callsTo("start_runner")).toHaveLength(2);
+    expect(tauri.callsTo("add_session").slice(addsBefore)).toEqual([
+      { sessionId: "s1" },
+      { sessionId: "s2" },
+    ]);
+    expect(state.activeSessions).toEqual(["s1", "s2"]);
+    expect(result.current.state).toEqual({ kind: "ready", conversations: 2 });
+  });
+
+  it("gives the held conversations back when another conversation starts a stopped runner", async () => {
+    const { tauri, state } = runnerHost();
+    const { result } = renderHook(() => useEmbeddedRunner());
+    await act(async () => {
+      await result.current.addSession("s1");
+    });
+    state.running = false;
+    state.activeSessions = [];
+    await act(async () => {
+      await result.current.refreshStatus();
+    });
+
+    await act(async () => {
+      await result.current.addSession("s2");
+    });
+
+    expect(tauri.callsTo("start_runner")).toHaveLength(2);
+    expect(state.activeSessions).toEqual(["s1", "s2"]);
+    expect(result.current.state).toEqual({ kind: "ready", conversations: 2 });
+  });
+
+  it("reads failed with the host's reason, and Try again starts it", async () => {
+    let failing = true;
+    const { state } = runnerHost({
+      start_runner: () => {
+        if (failing) throw "node binary `/x/node` was not found";
+        state.running = true;
+        return null;
+      },
+    });
+    const { result } = renderHook(() => useEmbeddedRunner());
+    await act(async () => {
+      await expect(result.current.addSession("s1")).rejects.toBeDefined();
+    });
+    expect(result.current.state).toEqual({
+      kind: "failed",
+      reason: "node binary `/x/node` was not found",
+    });
+
+    failing = false;
+    await act(async () => {
+      await result.current.restart();
+    });
+    expect(result.current.state).toEqual({ kind: "ready", conversations: 1 });
+  });
+
+  it("keeps the failure when Restart fails again, and reads the host no further", async () => {
+    const { tauri } = runnerHost({
+      start_runner: () => {
+        throw "spawn failed";
+      },
+    });
+    const { result } = renderHook(() => useEmbeddedRunner());
+
+    await act(async () => {
+      await result.current.restart();
+    });
+    expect(result.current.state).toEqual({ kind: "failed", reason: "spawn failed" });
+    expect(tauri.callsTo("runner_status")).toHaveLength(1);
+  });
+});
+
 describe("the runner lifecycle", () => {
   it("starts the runner lazily: nothing at mount, then on the first session", async () => {
     const { tauri } = runnerHost();
     const { result } = renderHook(() => useEmbeddedRunner());
     expect(tauri.calls).toEqual([]);
     expect(result.current.isRunning).toBe(false);
+    expect(result.current.activeSessions).toEqual([]);
 
     let queue = "";
     await act(async () => {
@@ -420,6 +632,8 @@ describe("the runner lifecycle", () => {
 
     expect(tauri.callsTo("start_runner")).toEqual([]);
     expect(result.current.activeSessions).toEqual(["earlier", "s1"]);
+    expect(result.current.isRunning).toBe(true);
+    expect(result.current.state).toEqual({ kind: "ready", conversations: 2 });
   });
 
   it("lists a session once, however many times it is added", async () => {

@@ -1,8 +1,9 @@
 // ---------------------------------------------------------------------------
 // AppShell — the signed-in shell mounts the app-wide hooks
 //
-// The shell runs the keyboard shortcuts, the billing return and the
-// attention notifications once, and renders the session sidebar outside
+// The shell runs the keyboard shortcuts, the billing return, the attention
+// notifications and the listener that opens a clicked one, and renders the
+// session sidebar outside
 // settings. The sidebars, the organization gate and the hooks are stubbed;
 // each is pinned in its own suite.
 // ---------------------------------------------------------------------------
@@ -12,11 +13,12 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 
-const mounted = vi.hoisted(() => ({ shortcuts: 0, billing: 0, attention: 0 }));
+const mounted = vi.hoisted(() => ({ shortcuts: 0, billing: 0, attention: 0, clicks: 0 }));
 vi.mock("../../hooks/useAppShortcuts", () => ({ useAppShortcuts: () => (mounted.shortcuts += 1) }));
 vi.mock("../../hooks/useDesktopBillingReturn", () => ({ useDesktopBillingReturn: () => (mounted.billing += 1) }));
 vi.mock("../../hooks/useDesktopAttentionNotifications", () => ({
   useDesktopAttentionNotifications: () => (mounted.attention += 1),
+  useOpenNotifiedConversation: () => (mounted.clicks += 1),
 }));
 vi.mock("../../org/OrgGate", () => ({ OrgGate: ({ children }: { children: ReactNode }) => <>{children}</> }));
 vi.mock("../Sidebar", () => ({ Sidebar: () => <nav>session sidebar</nav> }));
@@ -37,6 +39,11 @@ describe("AppShell", () => {
     );
     expect(screen.getByText("the conversation")).toBeTruthy();
     expect(screen.getByText("session sidebar")).toBeTruthy();
-    expect([mounted.shortcuts > 0, mounted.billing > 0, mounted.attention > 0]).toEqual([true, true, true]);
+    expect([mounted.shortcuts > 0, mounted.billing > 0, mounted.attention > 0, mounted.clicks > 0]).toEqual([
+      true,
+      true,
+      true,
+      true,
+    ]);
   });
 });

@@ -16,7 +16,6 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = ["tray-icon", "image-png", "unstable"] }
 tauri-plugin-opener = "2"
 tauri-plugin-dialog = "2"
-tauri-plugin-notification = "2"
 tauri-plugin-updater = "2"
 tauri-plugin-process = "2"
 tauri-plugin-window-state = "2"
@@ -39,6 +38,33 @@ url = "2"
 # Embedded-runner IPC driver, vendored in-repo. The `tauri` feature provides the
 # #[tauri::command] surface that `runner.rs` re-exports.
 stigmer-runner-host = { path = "../../../crates/stigmer-runner-host", features = ["tauri"] }
+
+# System notifications, and the click that opens the conversation one is about.
+# Pinned exactly to a release candidate: 0.4.6, the newest stable release,
+# drops a notification's data from its macOS click report, and 0.5.0-rc.14
+# carries it. Move to 0.5.0 once it is released.
+#
+# Split by target. On macOS the default `notify-rust` backend reports no click
+# at all, so it is turned off and the plugin's own `UNUserNotificationCenter`
+# code runs (it needs the rpath line in build.rs). Linux and Windows keep the
+# default backend, the one the official plugin used there.
+[target.'cfg(target_os = "macos")'.dependencies]
+tauri-plugin-notifications = { version = "=0.5.0-rc.14", default-features = false }
+
+[target.'cfg(not(target_os = "macos"))'.dependencies]
+tauri-plugin-notifications = { version = "=0.5.0-rc.14" }
+
+[features]
+# Development builds run a bare binary, and the plugin's macOS click code
+# refuses to start outside an app bundle ("Notifications plugin requires the
+# app to run from a .app bundle"). `make desktop-dev` turns this on, through
+# the `tauri:dev` script, so a development build shows notifications through
+# the cross-platform backend, without the click. Release builds leave it off.
+dev-notifications = ["tauri-plugin-notifications/notify-rust"]
+
+# The account's login shell, when $SHELL names none (user_path.rs).
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
 
 [dev-dependencies]
 tempfile = "3"

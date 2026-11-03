@@ -30,6 +30,8 @@ export const APP_COMMANDS = [
   "update_runner_token",
   "runner_status",
   "bundled_node_path",
+  "user_tool_path",
+  "show_main_window",
   "list_workspace_files",
   "read_workspace_file",
   "search_workspace_content",
