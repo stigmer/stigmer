@@ -6,9 +6,13 @@
  * and are dropped (never the stream) when a reader falls behind, the stream
  * is a cursor over the stored log (exactly once and in order, whichever
  * process wrote the event, and a slow reader only lags), and a closing
- * broker ends every stream with UNAVAILABLE.
+ * broker ends every stream with UNAVAILABLE. A working turn's newest
+ * liveness is kept until the turn stops working or goes a minute without a
+ * newer one, and a stream that asked for liveness receives it, aged by the
+ * time it was held, right after its first read of the log.
  */
 import { create } from "@bufbuild/protobuf";
+import { DurationSchema, type Duration } from "@bufbuild/protobuf/wkt";
 import { Code } from "@connectrpc/connect";
 import type { HandlerContext } from "@connectrpc/connect";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -17,7 +21,7 @@ import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { SessionEventSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
+import type { RunLiveness, SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 import {
   SessionEventPreviewSchema,
   StreamSessionEventsRequestSchema,
@@ -33,6 +37,7 @@ import { newPermissiveSingleTeamAuthorizer } from "../../../../pipeline/steps/au
 import {
   SESSION_EVENT_BROKER_CLOSED_MESSAGE,
   SESSION_EVENT_DROPPED_IDS_KEPT,
+  SESSION_EVENT_LIVENESS_KEPT_MS,
   SESSION_EVENT_PREVIEW_CAPACITY,
   SESSION_EVENT_PREVIEW_MAX_BYTES,
   SessionEventBroker,
@@ -58,6 +63,33 @@ function delta(eventId: string, text: string): SessionEventPreview {
   return create(SessionEventPreviewSchema, {
     preview: { case: "eventDelta", value: { eventId, delta: { type: "content_delta", content: { type: "text", text } } } },
   });
+}
+
+/** A working turn's liveness: one open operation `elapsedMs` old, and a model wait when given. */
+function workingLiveness(runId: string, elapsedMs: number, awaitingModelMs?: number): SessionEventPreview {
+  const duration = (ms: number) => create(DurationSchema, { seconds: BigInt(Math.floor(ms / 1000)), nanos: (ms % 1000) * 1_000_000 });
+  return create(SessionEventPreviewSchema, {
+    preview: {
+      case: "stigmerRunLiveness",
+      value: {
+        runId,
+        operations: [{ toolUseId: `u_${runId}`, name: "Bash", elapsed: duration(elapsedMs) }],
+        awaitingModelFor: awaitingModelMs === undefined ? undefined : duration(awaitingModelMs),
+      },
+    },
+  });
+}
+
+function runStatus(runId: string, phase: string): SessionEvent {
+  return create(SessionEventSchema, { runId, event: { case: "stigmerRunStatus", value: { id: `st_${runId}_${phase}`, phase } } });
+}
+
+function livenessOf(frames: ReadonlyArray<StreamSessionEventsResponse>): RunLiveness[] {
+  return frames.flatMap((frame) => (frame.frame.case === "stigmerRunLiveness" ? [frame.frame.value] : []));
+}
+
+function millisOf(duration: Duration | undefined): number | undefined {
+  return duration === undefined ? undefined : Number(duration.seconds) * 1000 + duration.nanos / 1_000_000;
 }
 
 function context(signal: AbortSignal): HandlerContext {
@@ -140,6 +172,68 @@ describe("the broker", () => {
     expect([...slow.droppedIds], "the liveness named nothing to remember").toEqual(["m1"]);
     broker.publishPreviews("s1", [liveness("r2")]);
     expect(slow.previews.map((f) => (f.frame.case === "stigmerRunLiveness" ? f.frame.value.runId : ""))).toEqual(["r2"]);
+  });
+
+  it("keeps each working turn's newest liveness and hands it back aged by the time it held it", () => {
+    let clock = 1_000;
+    const broker = new SessionEventBroker(silentLogger, () => clock);
+    broker.publishPreviews("s1", [workingLiveness("r1", 5_000), workingLiveness("r2", 0)]);
+    clock += 2_000;
+    broker.publishPreviews("s1", [workingLiveness("r1", 7_000, 1_000)]);
+    clock += 3_500;
+    const held = livenessOf(broker.currentLiveness("s1"));
+    expect(held.map((l) => l.runId).sort(), "one per working turn, nothing from before the replacement").toEqual(["r1", "r2"]);
+    const r1 = held.find((l) => l.runId === "r1");
+    expect(millisOf(r1?.operations[0]?.elapsed), "7 s when sent, held 3.5 s").toBe(10_500);
+    expect(millisOf(r1?.awaitingModelFor)).toBe(4_500);
+    const r2 = held.find((l) => l.runId === "r2");
+    expect(millisOf(r2?.operations[0]?.elapsed), "held since the first publish").toBe(5_500);
+    expect(r2?.awaitingModelFor, "a turn not waiting on its model stays so").toBeUndefined();
+    expect(broker.currentLiveness("s2"), "another session holds nothing").toEqual([]);
+    expect(
+      millisOf(livenessOf(broker.currentLiveness("s1")).find((l) => l.runId === "r1")?.operations[0]?.elapsed),
+      "handing it back does not age the kept one",
+    ).toBe(10_500);
+  });
+
+  it("forgets a turn's liveness once that turn stops working, and only that turn's", () => {
+    const broker = new SessionEventBroker(silentLogger, () => 0);
+    broker.publishPreviews("s1", [workingLiveness("r1", 0), workingLiveness("r2", 0), workingLiveness("r3", 0)]);
+    broker.publish("s1", "acme", [runStatus("r1", "completed")]);
+    expect(livenessOf(broker.currentLiveness("s1")).map((l) => l.runId).sort()).toEqual(["r2", "r3"]);
+    broker.publish("s1", "acme", [runStatus("r2", "running"), runStatus("r3", "pending")]);
+    expect(livenessOf(broker.currentLiveness("s1")).map((l) => l.runId).sort(), "running and pending do not stop a turn").toEqual([
+      "r2",
+      "r3",
+    ]);
+    broker.publish("s2", "acme", [runStatus("r2", "failed")]);
+    expect(livenessOf(broker.currentLiveness("s1")).map((l) => l.runId).sort(), "another session's event").toEqual(["r2", "r3"]);
+    for (const phase of ["waiting", "paused", "failed", "cancelled", "terminated"]) {
+      broker.publishPreviews("s1", [workingLiveness("r2", 0)]);
+      broker.publish("s1", "acme", [runStatus("r2", phase)]);
+      expect(livenessOf(broker.currentLiveness("s1")).map((l) => l.runId), phase).toEqual(["r3"]);
+    }
+  });
+
+  it("never hands back a liveness its turn did not renew within a minute", () => {
+    let clock = 0;
+    const broker = new SessionEventBroker(silentLogger, () => clock);
+    broker.publishPreviews("s1", [workingLiveness("r1", 0)]);
+    clock = SESSION_EVENT_LIVENESS_KEPT_MS - 1;
+    broker.publishPreviews("s1", [workingLiveness("r2", 0)]);
+    expect(livenessOf(broker.currentLiveness("s1")).map((l) => l.runId).sort()).toEqual(["r1", "r2"]);
+    clock = SESSION_EVENT_LIVENESS_KEPT_MS;
+    expect(livenessOf(broker.currentLiveness("s1")).map((l) => l.runId), "r1 went silent for a minute").toEqual(["r2"]);
+    expect(SESSION_EVENT_LIVENESS_KEPT_MS).toBe(60_000);
+  });
+
+  it("closing forgets every kept liveness and keeps no later one", () => {
+    const broker = new SessionEventBroker(silentLogger, () => 0);
+    broker.publishPreviews("s1", [workingLiveness("r1", 0)]);
+    broker.close();
+    expect(broker.currentLiveness("s1")).toEqual([]);
+    broker.publishPreviews("s1", [workingLiveness("r2", 0)]);
+    expect(broker.currentLiveness("s1")).toEqual([]);
   });
 
   it("drops a slow stream's previews, never the stream, and skips the dropped messages' later fragments", () => {
@@ -378,6 +472,37 @@ describe("the stream", () => {
     expect((await first).value?.frame.case).toBe("eventDelta");
     expect(seqOf((await stream.next()).value)).toBe(1n);
     await stream.return(undefined);
+  });
+
+  it("a stream that asked for liveness receives each working turn's newest once, right after its first read; one that did not, none", async () => {
+    await commit("a", "b");
+    const broker = new SessionEventBroker(silentLogger);
+    broker.publishPreviews("s1", [workingLiveness("run_r", 1_000)]);
+    const nextCase = async (stream: AsyncGenerator<StreamSessionEventsResponse>) => (await stream.next()).value?.frame.case;
+    const thenDelta = async (stream: AsyncGenerator<StreamSessionEventsResponse>) => {
+      const next = nextCase(stream);
+      await settle();
+      broker.publishPreviews("s1", [delta("m", "x")]);
+      return next;
+    };
+
+    const asked = open(broker, { afterSeq: 0n, eventDeltas: ["stigmer.run.liveness", "agent.message"] });
+    expect([await nextCase(asked), await nextCase(asked), await nextCase(asked)], "after the stored events").toEqual([
+      "event",
+      "event",
+      "stigmerRunLiveness",
+    ]);
+    expect(await thenDelta(asked), "once, not after every read").toBe("eventDelta");
+    await asked.return(undefined);
+
+    const fromNow = open(broker, { eventDeltas: ["stigmer.run.liveness"] });
+    expect(await nextCase(fromNow), "a stream that starts after the newest event receives it too").toBe("stigmerRunLiveness");
+    await fromNow.return(undefined);
+
+    const notAsked = open(broker, { afterSeq: 0n, eventDeltas: ["agent.message"] });
+    expect([await nextCase(notAsked), await nextCase(notAsked)]).toEqual(["event", "event"]);
+    expect(await thenDelta(notAsked), "no liveness for a stream that did not ask").toBe("eventDelta");
+    await notAsked.return(undefined);
   });
 
   it("ends with UNAVAILABLE when the broker closes, and refuses a stream opened after", async () => {

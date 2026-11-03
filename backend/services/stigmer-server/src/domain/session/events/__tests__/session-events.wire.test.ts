@@ -1,7 +1,8 @@
 /**
  * The session event log over the wire, on a composed server (SQLite, no
  * engine): listEvents' paging, order and filters; streamEvents delivering
- * events appended after it opens and only the previews it asked for;
+ * events appended after it opens and only the previews it asked for, and
+ * a working turn's newest liveness to a stream that opens late;
  * streamAttention telling the conversation's creator its turn finished; a
  * run's delete ending its session's turn; and a session's delete removing
  * its log. Events are written the way the run
@@ -240,7 +241,71 @@ describe("streamEvents", () => {
       "session.status_idle",
     ]);
   });
+
+  it("hands a stream that opens while a turn works the turn's newest liveness right after the stored events, and none once the turn ended", async () => {
+    const sessionId = await newSession();
+    const runId = `run_${counter}_working`;
+    await turn(sessionId, runId, false);
+    server.sessionEventBroker.publishPreviews(sessionId, [
+      create(SessionEventPreviewSchema, {
+        preview: {
+          case: "stigmerRunLiveness",
+          value: { runId, operations: [{ toolUseId: "u1", name: "Bash", elapsed: { seconds: 2n } }] },
+        },
+      }),
+    ]);
+    const stored = (await query.listEvents({ sessionId })).events.length;
+    expect(stored).toBeGreaterThan(0);
+
+    const late = await readStream({ sessionId, afterSeq: 0n, eventDeltas: ["stigmer.run.liveness"] }, (frames) =>
+      frames.length === stored + 1,
+    );
+    expect(late.slice(stored), "right after the stored events").toEqual(["stigmerRunLiveness"]);
+    expect(late.slice(0, stored).includes("stigmerRunLiveness")).toBe(false);
+
+    // A stream that did not ask: once its stored events are read, the next
+    // frame is the preview published then, not a liveness.
+    const startAfter = (count: number) => (frames: string[]) => {
+      if (frames.length === count) {
+        server.sessionEventBroker.publishPreviews(sessionId, [
+          create(SessionEventPreviewSchema, {
+            preview: { case: "eventStart", value: { event: { id: `m_${frames.length}`, type: "agent.message" } } },
+          }),
+        ]);
+      }
+      return frames.at(-1) === "eventStart";
+    };
+    const notAsked = await readStream({ sessionId, afterSeq: 0n, eventDeltas: ["agent.message"] }, startAfter(stored));
+    expect(notAsked.slice(stored)).toEqual(["eventStart"]);
+
+    await updateRunAppendingEvents(deps(), runId, (run) => {
+      run.status!.phase = RunPhase.RUN_COMPLETED;
+    });
+    const ended = (await query.listEvents({ sessionId })).events.length;
+    const afterEnd = await readStream(
+      { sessionId, afterSeq: 0n, eventDeltas: ["stigmer.run.liveness", "agent.message"] },
+      startAfter(ended),
+    );
+    expect(afterEnd.slice(ended), "the turn's end forgot its liveness").toEqual(["eventStart"]);
+  });
 });
+
+/** Reads one stream until `done` says so, naming each frame by its event type or frame case. */
+async function readStream(
+  request: { sessionId: string; afterSeq: bigint; eventDeltas: string[] },
+  done: (frames: string[]) => boolean,
+): Promise<string[]> {
+  const controller = new AbortController();
+  const frames: string[] = [];
+  for await (const frame of query.streamEvents(request, { signal: controller.signal })) {
+    frames.push(frame.frame.case === "event" ? eventTypeOf(frame.frame.value) : String(frame.frame.case));
+    if (done(frames)) {
+      break;
+    }
+  }
+  controller.abort();
+  return frames;
+}
 
 describe("streamAttention", () => {
   it("tells the conversation's creator its turn finished, from a cursor, by the organization's slug", async () => {
