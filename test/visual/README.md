@@ -36,7 +36,7 @@ The site's build converts each approved picture into the files it serves (`site/
 2. `make test-visual UPDATE=1` mints its picture. `tests/shown.spec.ts` fails while an entry has no picture, and while a picture has no entry.
 3. Embed it with `<Screen name="…" alt="…" />`.
 
-A docs page's picture draws the values the page prints (a routine's name, its message, an Environment's hosts) from that page's example in `src/docs-examples.ts`: the scene builds its fixtures from it (`src/docs-fixtures.ts`) and its acts type them, and the site's `docs-screens` test holds every value to the page's source. A control the page names in bold is a value named `…Label` there, which the act presses or fills by, matched `exact` unless the control's name carries more than the page's word, and which the check holds to the page's bold. Change the page and the example together.
+A docs page's picture draws the values the page prints (a routine's name, its message, an Environment's hosts) from that page's example in `src/docs-examples.ts`: the scene builds its fixtures from it (`src/docs-fixtures.ts`) and its acts type them, and the site's `docs-screens` test holds every value to the page's source. A control the page names in bold is a value named `…Label` there, which the act presses or fills by, matched `exact` unless the control's name carries more than the page's word (then a rename that keeps the page's word inside the name, or a change of case, goes unheld), and which the check holds to the page's bold. Change the page and the example together.
 
 ## The browser image
 

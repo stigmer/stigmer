@@ -131,6 +131,7 @@ export const WHATSAPP_EXAMPLE = {
   addLabel: "Add channel",
   whatsappLabel: "WhatsApp",
   phoneNumberIdLabel: "Phone number ID",
+  connectAsLabel: "Connect as",
 } as const satisfies DocsExample;
 
 /** `docs/guides/channels/bring-your-own-slack-app.mdx`: the Slack app it registers, by the bot name the workspace mentions. */
@@ -145,9 +146,9 @@ export const SLACK_APP_EXAMPLE = {
 export const TAKE_OVER_EXAMPLE = {
   page: "guides/channels/take-over-conversations",
   acknowledgment: "Someone from our team is looking at this and will reply here.",
-  takeOver: "Take over",
-  handBack: "Hand back to agent",
-  filter: "Needs human",
+  takeOverLabel: "Take over",
+  handBackLabel: "Hand back to agent",
+  filterLabel: "Needs human",
 } as const satisfies DocsExample;
 
 /** Every page's example, for the site's check. */

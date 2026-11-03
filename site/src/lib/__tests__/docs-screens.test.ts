@@ -72,5 +72,6 @@ describe("the docs' pictures say what their pages say", () => {
       "slackLabel: **Slack**",
     ]);
     expect(missingValues({ page: "p", secretLabel: "Client secret" }, "the **Client Secret**")).toEqual(["secretLabel: **Client secret**"]);
+    expect(missingValues({ page: "p", accountsLabel: "Service accounts" }, "Open **Settings > Service accounts**.")).toEqual([]);
   });
 });

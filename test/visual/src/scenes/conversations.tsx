@@ -14,6 +14,7 @@ import type { ConnectRouter } from "@connectrpc/connect";
 import { ChannelQueryController } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/query_pb";
 import { ChannelConversationQueryController } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/conversation_query_pb";
 import {
+  ChannelConversationListFilter,
   ChannelConversationSchema,
   ConversationControl,
   ConversationItemAuthor,
@@ -131,8 +132,8 @@ export function conversationsScene(holder: Holder): Drawing {
       router.service(GrantQueryController, { checkMyPermission: () => ({ isAuthorized: true }) });
       router.service(ChannelQueryController, { get: () => WHATSAPP_CHANNEL, list: () => ({ entries: [WHATSAPP_CHANNEL] }) });
       router.service(ChannelConversationQueryController, {
-        list: (input) => ({ entries: input.filter === 1 ? conversations.filter((c) => c.needsAttention || c.awaitingReply) : conversations }),
-        countConversations: () => ({ count: holder === "agent" ? 1 : 1 }),
+        list: (input) => ({ entries: input.filter === ChannelConversationListFilter.filter_wants_human ? conversations.filter((c) => c.needsAttention || c.awaitingReply) : conversations }),
+        countConversations: () => ({ count: 1 }),
         getConversation: (input) => conversations.find((c) => c.conversationKey === input.conversationKey) ?? conversations[0],
         listTimeline: (input) => ({ entries: input.conversationKey === "15550100142" ? northwindTimeline(holder) : [] }),
       });
