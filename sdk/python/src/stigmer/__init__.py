@@ -23,6 +23,7 @@ from ._runner_adapter import RunnerAdapter
 from ._github import GitHubClient, GitHubRepoParams
 from ._search import ApiResourceKind, SearchClient, SearchParams, SearchResponse
 from ._tokens import MintUserTokenResult, TokenClient
+from ._turns import TURN_PHASE_WAITING, TurnAsk, TurnOutcome
 
 # --- Resource clients and input types (generated) --------------------------
 
@@ -43,6 +44,7 @@ from ._gen._plugin import PluginClient
 from ._gen._run import (
     RunClient,
     RunInput,
+    SessionSpecInput,
 )
 from ._gen._session import (
     FileResourceInput,
@@ -104,6 +106,10 @@ __all__ = [
     # User tokens
     "MintUserTokenResult",
     "TokenClient",
+    # Send a message and wait for the answer
+    "TURN_PHASE_WAITING",
+    "TurnAsk",
+    "TurnOutcome",
     # Resource clients
     "AgentClient",
     "ApiKeyClient",
@@ -140,6 +146,7 @@ __all__ = [
     "RunInput",
     "RunConfigInput",
     "SessionInput",
+    "SessionSpecInput",
     "SessionResourceInput",
     "SkillInput",
     "VaultConnectionInput",

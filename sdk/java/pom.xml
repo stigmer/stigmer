@@ -92,6 +92,13 @@
         </dependency>
 
         <!-- Test -->
+        <!-- JsonFormat, to read the shared turn cases (test/fixtures/turns) as protobuf JSON. -->
+        <dependency>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java-util</artifactId>
+            <version>${protobuf-java.version}</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>

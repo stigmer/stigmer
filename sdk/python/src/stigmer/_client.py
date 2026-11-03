@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Literal
+import time
+from typing import Iterable, Literal
 from types import TracebackType
 
 import grpc
@@ -10,12 +11,14 @@ import grpc
 from ._billing import BillingClient
 from ._file import RoutedFileClient
 from ._gen._client import GeneratedClient
+from ._gen._run import RunConfigInput, SessionSpecInput
 from ._github import GitHubClient
 from ._runner_adapter import RunnerAdapter
 from ._search import SearchClient
 from ._skill import RoutedSkillClient
 from ._tokens import TokenClient
 from ._transport import DEFAULT_TARGET, create_channel
+from ._turns import TurnOutcome, send_and_wait, wait_for_turn
 
 ExecutionTargetOption = Literal["local", "cloud"]
 
@@ -40,6 +43,8 @@ class StigmerClient(GeneratedClient):
     - :attr:`github` OAuth integration client
     - :attr:`billing` bounded-context client
     - :attr:`tokens` user-token minting client (service-account keys)
+    - :meth:`send_and_wait` and :meth:`wait_for_turn`: send a message and
+      wait for the agent's answer
 
     Usage (keys read ``stk_…``)::
 
@@ -132,6 +137,75 @@ class StigmerClient(GeneratedClient):
         # The same for files: `client.files.upload_file` routes a file's
         # content by size, so a large file rides the same lane.
         self.files = RoutedFileClient(self._channel)
+
+    def send_and_wait(
+        self,
+        *,
+        org: str,
+        message: str,
+        session_id: str = "",
+        session_spec: SessionSpecInput | None = None,
+        name: str = "",
+        run_config: RunConfigInput | None = None,
+        file_ids: Iterable[str] = (),
+        timeout: float | None = None,
+    ) -> TurnOutcome:
+        """Send a message as a new turn and wait for its answer.
+
+        The turn runs in ``session_id``, or in a session bootstrapped from
+        ``session_spec``: exactly one of them is required, and so is ``org``,
+        the organization the turn runs in; both are checked before any call.
+        An empty ``name`` becomes ``run-<epoch ms>``, as the console names
+        its turns. For an existing session the log's newest place is read
+        first, so the wait sees only this turn's events.
+
+        Returns when the turn ends (``phase`` completed, failed, cancelled or
+        terminated) or waits for a person's answer (``phase`` ``"waiting"``,
+        with its ``asks``); answer each ask, then call :meth:`wait_for_turn`
+        with the outcome's ``last_seq``. For a run field this call does not
+        take, create the run with ``runs.create`` and call
+        :meth:`wait_for_turn`.
+
+        Raises:
+            StigmerError: the server refused the run, or the stream with a
+                code a reconnect cannot fix; or the input was invalid.
+            TimeoutError: ``timeout`` seconds passed, reconnections included.
+        """
+        return send_and_wait(
+            self._channel,
+            self.runs,
+            self.sessions,
+            org=org,
+            message=message,
+            session_id=session_id,
+            session_spec=session_spec,
+            name=name,
+            run_config=run_config,
+            file_ids=file_ids,
+            timeout=timeout,
+        )
+
+    def wait_for_turn(
+        self,
+        session_id: str,
+        run_id: str,
+        after_seq: int = 0,
+        *,
+        timeout: float | None = None,
+    ) -> TurnOutcome:
+        """Wait for one turn of a session: until it ends, or waits for an answer.
+
+        ``after_seq`` is where in the log the turn's events begin, or later:
+        pass a previous outcome's ``last_seq`` to resume after answering its
+        asks, or 0 to read the whole log.
+
+        Raises:
+            StigmerError: the stream was refused with a code a reconnect
+                cannot fix.
+            TimeoutError: ``timeout`` seconds passed, reconnections included.
+        """
+        deadline = None if timeout is None else time.monotonic() + timeout
+        return wait_for_turn(self._channel, session_id, run_id, after_seq, deadline=deadline)
 
     def close(self) -> None:
         """Release the underlying gRPC channel."""

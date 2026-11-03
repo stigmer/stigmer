@@ -1,0 +1,96 @@
+{
+  "description": "An event delivered twice (a stream resumed from an older place) is read once: the replayed first message does not become the answer.",
+  "runId": "run_1",
+  "frames": [
+    {
+      "event": {
+        "seq": "1",
+        "sessionId": "ses_1",
+        "runId": "run_1",
+        "userMessage": {
+          "id": "u1",
+          "content": [
+            {
+              "type": "text",
+              "text": "Hi."
+            }
+          ],
+          "processedAt": "2026-11-03T10:00:00Z"
+        }
+      }
+    },
+    {
+      "event": {
+        "seq": "2",
+        "sessionId": "ses_1",
+        "runId": "run_1",
+        "agentMessage": {
+          "id": "m2",
+          "content": [
+            {
+              "type": "text",
+              "text": "First."
+            }
+          ],
+          "processedAt": "2026-11-03T10:00:00Z"
+        }
+      }
+    },
+    {
+      "event": {
+        "seq": "3",
+        "sessionId": "ses_1",
+        "runId": "run_1",
+        "agentMessage": {
+          "id": "m3",
+          "content": [
+            {
+              "type": "text",
+              "text": "Second."
+            }
+          ],
+          "processedAt": "2026-11-03T10:00:00Z"
+        }
+      }
+    },
+    {
+      "event": {
+        "seq": "2",
+        "sessionId": "ses_1",
+        "runId": "run_1",
+        "agentMessage": {
+          "id": "m2",
+          "content": [
+            {
+              "type": "text",
+              "text": "First."
+            }
+          ],
+          "processedAt": "2026-11-03T10:00:00Z"
+        }
+      }
+    },
+    {
+      "event": {
+        "seq": "4",
+        "sessionId": "ses_1",
+        "runId": "run_1",
+        "stigmerRunStatus": {
+          "id": "st4",
+          "processedAt": "2026-11-03T10:00:00Z",
+          "phase": "completed",
+          "stopCause": "end_turn"
+        }
+      }
+    }
+  ],
+  "expect": {
+    "decided": true,
+    "phase": "completed",
+    "answer": "Second.",
+    "stopCause": "end_turn",
+    "error": "",
+    "asks": [],
+    "lastSeq": "4"
+  }
+}

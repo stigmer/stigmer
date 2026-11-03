@@ -1,0 +1,87 @@
+{
+  "description": "A wait resumed after the person answered (from the outcome's last place): the confirmed ask is not waited on, and the turn's later answer is returned.",
+  "runId": "run_1",
+  "frames": [
+    {
+      "event": {
+        "seq": "7",
+        "sessionId": "ses_1",
+        "runId": "run_1",
+        "sessionStatusRunning": {
+          "id": "s7",
+          "processedAt": "2026-11-03T10:00:00Z"
+        }
+      }
+    },
+    {
+      "event": {
+        "seq": "8",
+        "sessionId": "ses_1",
+        "runId": "run_1",
+        "userToolConfirmation": {
+          "id": "c8",
+          "result": "allow",
+          "toolUseId": "t4",
+          "processedAt": "2026-11-03T10:00:00Z"
+        }
+      }
+    },
+    {
+      "event": {
+        "seq": "9",
+        "sessionId": "ses_1",
+        "runId": "run_1",
+        "agentToolResult": {
+          "id": "r9",
+          "processedAt": "2026-11-03T10:00:00Z",
+          "toolUseId": "t4",
+          "content": [
+            {
+              "type": "text",
+              "text": "removed 3 files"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "event": {
+        "seq": "10",
+        "sessionId": "ses_1",
+        "runId": "run_1",
+        "agentMessage": {
+          "id": "m10",
+          "content": [
+            {
+              "type": "text",
+              "text": "Done: removed 3 files."
+            }
+          ],
+          "processedAt": "2026-11-03T10:00:00Z"
+        }
+      }
+    },
+    {
+      "event": {
+        "seq": "11",
+        "sessionId": "ses_1",
+        "runId": "run_1",
+        "stigmerRunStatus": {
+          "id": "st11",
+          "processedAt": "2026-11-03T10:00:00Z",
+          "phase": "completed",
+          "stopCause": "end_turn"
+        }
+      }
+    }
+  ],
+  "expect": {
+    "decided": true,
+    "phase": "completed",
+    "answer": "Done: removed 3 files.",
+    "stopCause": "end_turn",
+    "error": "",
+    "asks": [],
+    "lastSeq": "11"
+  }
+}

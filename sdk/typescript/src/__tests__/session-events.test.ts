@@ -12,8 +12,15 @@
  * Against a server older than the liveness preview, a follow that asked
  * for it asks again without it, once and for good. An attention follow
  * resumes from the last cursor it delivered and delivers each id once.
+ * The shared turn cases (test/fixtures/turns), which the Go, Python and Java
+ * readers also read, run through the real `waitForTurn` over the fold, so
+ * the fold is the reference those readers are held to.
  */
-import { create, type MessageInitShape } from "@bufbuild/protobuf";
+import { readdirSync, readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+import { create, fromJson, type JsonValue, type MessageInitShape } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { describe, expect, it, vi } from "vitest";
 
@@ -440,5 +447,81 @@ describe("followAttention", () => {
       }
       expect([requests.length, sleep.mock.calls.length], then).toEqual([1, 0]);
     }
+  });
+});
+
+interface TurnCase {
+  readonly description: string;
+  readonly runId: string;
+  readonly frames: JsonValue[];
+  readonly expect:
+    | { readonly decided: false }
+    | {
+        readonly decided: true;
+        readonly phase: string;
+        readonly answer: string;
+        readonly stopCause: string;
+        readonly error: string;
+        readonly asks: ReadonlyArray<{ readonly id: string; readonly name: string }>;
+        readonly lastSeq: string;
+      };
+}
+
+const turnsDir = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../test/fixtures/turns");
+const turnCases = readdirSync(turnsDir)
+  .filter((file) => file.endsWith(".json"))
+  .sort()
+  .map((file) => ({ file, value: JSON.parse(readFileSync(resolve(turnsDir, file), "utf8")) as TurnCase }));
+
+describe("the shared turn cases (test/fixtures/turns)", () => {
+  it("has the cases the other languages read", () => {
+    expect(turnCases.length).toBeGreaterThanOrEqual(10);
+  });
+
+  it.each(turnCases)("$file", async ({ value }) => {
+    const frames = value.frames.map((frame) => fromJson(StreamSessionEventsResponseSchema, frame));
+    const controller = new AbortController();
+    let streams = 0;
+    const client = {
+      session: {
+        // The first stream serves the case's frames; a reconnect means the
+        // frames never decided, so the wait is stopped there.
+        async *streamEvents() {
+          streams += 1;
+          if (streams === 1) {
+            yield* frames;
+          }
+        },
+        async listEvents() {
+          return create(SessionEventListSchema, {});
+        },
+      },
+    };
+    const waiting = waitForTurn(client, "ses_1", value.runId, {
+      signal: controller.signal,
+      sleep: async () => {
+        controller.abort();
+      },
+    });
+    if (!value.expect.decided) {
+      await expect(waiting).rejects.toMatchObject({ code: "cancelled" });
+      return;
+    }
+    const outcome = await waiting;
+    expect({
+      phase: outcome.phase,
+      answer: outcome.answer,
+      stopCause: outcome.stopCause,
+      error: outcome.error,
+      asks: outcome.asks.map((ask) => ({ id: ask.id, name: ask.name })),
+      lastSeq: String(outcome.lastSeq),
+    }).toEqual({
+      phase: value.expect.phase,
+      answer: value.expect.answer,
+      stopCause: value.expect.stopCause,
+      error: value.expect.error,
+      asks: value.expect.asks,
+      lastSeq: value.expect.lastSeq,
+    });
   });
 });

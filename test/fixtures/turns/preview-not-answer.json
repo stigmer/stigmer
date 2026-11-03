@@ -1,0 +1,94 @@
+{
+  "description": "A live preview (event_start, event_delta) is never the answer; only a stored message is.",
+  "runId": "run_1",
+  "frames": [
+    {
+      "event": {
+        "seq": "1",
+        "sessionId": "ses_1",
+        "runId": "run_1",
+        "userMessage": {
+          "id": "u1",
+          "content": [
+            {
+              "type": "text",
+              "text": "Hi."
+            }
+          ],
+          "processedAt": "2026-11-03T10:00:00Z"
+        }
+      }
+    },
+    {
+      "event": {
+        "seq": "2",
+        "sessionId": "ses_1",
+        "runId": "run_1",
+        "stigmerRunStatus": {
+          "id": "st2",
+          "processedAt": "2026-11-03T10:00:00Z",
+          "phase": "running"
+        }
+      }
+    },
+    {
+      "event": {
+        "seq": "3",
+        "sessionId": "ses_1",
+        "runId": "run_1",
+        "agentMessage": {
+          "id": "run_1.root.m0",
+          "content": [
+            {
+              "type": "text",
+              "text": "Stored."
+            }
+          ],
+          "processedAt": "2026-11-03T10:00:00Z"
+        }
+      }
+    },
+    {
+      "eventStart": {
+        "event": {
+          "id": "run_1.root.m1",
+          "type": "agent.message"
+        }
+      }
+    },
+    {
+      "eventDelta": {
+        "eventId": "run_1.root.m1",
+        "delta": {
+          "content": {
+            "type": "text",
+            "text": "Still being writ"
+          },
+          "type": "content_delta"
+        }
+      }
+    },
+    {
+      "event": {
+        "seq": "4",
+        "sessionId": "ses_1",
+        "runId": "run_1",
+        "stigmerRunStatus": {
+          "id": "st4",
+          "processedAt": "2026-11-03T10:00:00Z",
+          "phase": "completed",
+          "stopCause": "end_turn"
+        }
+      }
+    }
+  ],
+  "expect": {
+    "decided": true,
+    "phase": "completed",
+    "answer": "Stored.",
+    "stopCause": "end_turn",
+    "error": "",
+    "asks": [],
+    "lastSeq": "4"
+  }
+}
