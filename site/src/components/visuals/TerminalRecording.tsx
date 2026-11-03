@@ -104,7 +104,8 @@ export function TerminalRecording({ name, alt, className }: TerminalRecordingPro
   const done = index >= last;
   return (
     <figure ref={box} className={cn("not-prose my-6", className)}>
-      <div className="overflow-x-auto rounded-lg border border-fd-border bg-black">
+      {/* A phone scrolls the terminal sideways, so the box takes focus for a keyboard to scroll it. */}
+      <div tabIndex={0} role="region" aria-label="Terminal recording" className="overflow-x-auto rounded-lg border border-fd-border bg-black">
         <pre
           role="img"
           aria-label={alt}

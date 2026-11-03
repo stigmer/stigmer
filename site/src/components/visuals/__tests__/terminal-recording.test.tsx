@@ -86,6 +86,12 @@ describe("TerminalRecording", () => {
     expect(screen.queryByRole("button")).toBeNull();
   });
 
+  it("lets a keyboard reach the box that scrolls the terminal sideways on a narrow screen", () => {
+    render(<TerminalRecording name="run-approval" alt="A run" />);
+    const region = screen.getByRole("region", { name: "Terminal recording" });
+    expect(region.getAttribute("tabindex")).toBe("0");
+  });
+
   it("refuses a recording the kit does not hold, and blank alt text", () => {
     expect(() => render(<TerminalRecording name="run-denial" alt={ALT} />)).toThrow(/no terminal recording named "run-denial"/);
     expect(() => render(<TerminalRecording name="run-approval" alt=" " />)).toThrow(/alt text is required/);
