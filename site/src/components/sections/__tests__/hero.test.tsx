@@ -18,7 +18,7 @@ import { SITE_CONFIG } from "@/lib/constants";
 import { AGENT_GET_IDS } from "@/lib/agent-gets";
 import { screenSrcSet, shownScreen, shownSize } from "@/lib/screens";
 import { CROP_MEDIA } from "@/components/visuals/ScreenPicture";
-import { HERO_BASE, HERO_LINK, HERO_MOMENTS, HERO_SCREENS, momentName, proofHref } from "@/components/visuals/hero-moments";
+import { HERO_BASE, HERO_LINK, HERO_MOMENTS, HERO_SCREENS, momentName } from "@/components/visuals/hero-moments";
 import { HardParts } from "../HardParts";
 import { Hero } from "../Hero";
 
@@ -104,11 +104,12 @@ describe("Hero", () => {
     // Each name is read once: its lit copy is hidden from the reading order.
     const links = within(names).getAllByRole("link");
     expect(links).toEqual(AGENT_GET_IDS.map((id) => within(names).getByRole("link", { name: momentName(id) })));
-    expect(links.map((link) => link.getAttribute("href"))).toEqual(AGENT_GET_IDS.map((id) => proofHref(id)));
+    // Each to the row HardParts anchors for it, spelled here rather than read from the hero's own data.
+    expect(links.map((link) => link.getAttribute("href"))).toEqual(AGENT_GET_IDS.map((id) => `#hard-parts-${id}`));
     expect(names.compareDocumentPosition(picture(HERO_BASE)) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     cleanup();
     const { container } = render(<HardParts />);
-    for (const id of AGENT_GET_IDS) expect(container.querySelector(proofHref(id)), id).not.toBeNull();
+    for (const id of AGENT_GET_IDS) expect(container.querySelector(`#hard-parts-${id}`), id).not.toBeNull();
   });
 
   it("lights each name and caption with its own moment, and keeps both out of the reading order", () => {
