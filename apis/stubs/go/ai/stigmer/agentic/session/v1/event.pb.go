@@ -2511,8 +2511,14 @@ func (x *ToolOutputDelta) GetDelta() string {
 
 // RunLiveness says a working turn is alive and what it is doing:
 // stigmer.run.liveness. The runner sends it when the turn's open operations
-// change and at an interval while the turn runs (30 seconds by default).
-// Streamed, never stored; the newest one replaces the one before.
+// change and at an interval while the turn runs (30 seconds by default, and
+// always under a minute). Streamed, never stored; the newest one replaces
+// the one before. A stream that asks for it and opens while the turn works
+// receives the turn's newest one right after the stored events it reads
+// first, its ages moved forward by the time the server held it, when the
+// server process serving the stream received that one within the last
+// minute; otherwise, as on another process during a rolling update, the
+// stream waits for the runner's next send.
 type RunLiveness struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The run (turn) that is working.
