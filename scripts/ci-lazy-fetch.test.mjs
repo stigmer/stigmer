@@ -98,6 +98,11 @@ test("a full checkout is not judged", () => {
   assert.deepEqual(lazyFetchJobs(all), []);
 });
 
+test("another action's `filter` input is not a checkout and is not judged", () => {
+  const paths = { uses: "dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36", with: { filter: "blob:none" } };
+  assert.deepEqual(lazyFetchFindings(fixture({ suite: job(checkout(), paths, reads) })), []);
+});
+
 test("a blob-free job reached only through a call is judged", () => {
   const lane = { file: "ci.lane.yaml", doc: { on: { workflow_call: null }, jobs: { changes: job(checkout("blob:none"), reads) } } };
   const findings = lazyFetchFindings(fixture({ lane: { uses: "./.github/workflows/ci.lane.yaml" } }, [lane]));
