@@ -68,7 +68,7 @@ describe("the hero's walk", () => {
     });
   });
 
-  it("shows only the ask in the finished picture, and only the ask once it clears", () => {
+  it("shows only the ask in the finished picture, and only its own moment at each step", () => {
     for (const id of WALK) expect(isOn(WALK, PARTS[id], "part", "hold"), id).toBe(id === HERO_BASE);
     for (const step of WALK) {
       expect(WALK.filter((id) => isOn(WALK, PARTS[id], "part", step)), step).toEqual([step]);

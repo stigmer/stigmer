@@ -172,7 +172,7 @@ const STORY_SCENES = [
   },
   {
     id: "story-keys",
-    title: "Story: the integrator's Stigmer console, Models & providers, Anthropic on the organization's own key",
+    title: "Story: the integrator's Stigmer console, Models & providers, Anthropic and OpenAI on the organization's own keys",
     widths: ["desktop", "narrow"],
   },
 ] as const satisfies readonly { readonly id: `story-${string}`; readonly title: string; readonly widths: readonly WidthName[] }[];
