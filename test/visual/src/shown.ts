@@ -158,6 +158,39 @@ export const SHOWN: readonly Shown[] = [
     viewport: { width: 437, height: 1000 },
     clip: { x: 23, y: 23, width: 391, height: 954 },
   },
+  // The docs' pictures: each the part of a console screen one step of a
+  // docs page acts on, drawn at the console's desktop width so it lays out as
+  // on the reader's screen, cropped so it shows near 1:1 in the docs column.
+  // The routines page (docs/guides/routines/run-an-agent-on-a-schedule.mdx).
+  {
+    name: "routine-new",
+    scene: "routine-new",
+    title: "New routine, filled in with the routines page's daily variance report: its Agent, message, every day at 09:00, Asia/Kolkata",
+    // Tall enough that the whole form shows: it ends at y 1303.
+    viewport: { width: 1280, height: 1360 },
+    // The form, measured from the drawn screen: x 216 to 888, y 56 to 1303,
+    // with 16 px of the page around it.
+    clip: { x: 200, y: 40, width: 704, height: 1279 },
+  },
+  {
+    name: "routine-disabled",
+    scene: "routine-disabled",
+    title: "The new routine's page: Routine is disabled, with Enable & run now beside its name",
+    viewport: { width: 1280, height: 800 },
+    // The banner, the header and the tabs, measured from the drawn screen:
+    // the column spans x 216 to 1064, the banner starts at y 56 and the tabs
+    // end at y 329.
+    clip: { x: 200, y: 40, width: 880, height: 305 },
+  },
+  {
+    name: "routine-history",
+    scene: "routine-history",
+    title: "The routine's History tab after Enable & run now: one start, Manual, by Ada Lovelace",
+    viewport: { width: 1280, height: 800 },
+    // The header, the tabs and the history, measured from the drawn screen:
+    // the column spans x 216 to 1064, the history's table ends at y 284.
+    clip: { x: 200, y: 40, width: 880, height: 260 },
+  },
 ];
 
 /** The CSS size of one shown picture: its clip, or the whole viewport. */

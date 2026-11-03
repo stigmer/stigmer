@@ -9,7 +9,7 @@
  * covered by directory-prefix cohort rules instead of per-page entries,
  * because their classification belongs to the generator, not the page.
  *
- * Two invariants keep the record honest:
+ * Three invariants keep the record honest:
  *
  *   1. Completeness — every hand-authored page ON DISK has an entry, and
  *      every generated page is covered by a cohort. The universe is a disk
@@ -18,6 +18,10 @@
  *   2. Existence — every entry resolves to a page on disk. Executing a
  *      fate (delete/move/merge) must remove or re-key the entry in the
  *      same commit; git history is the decision record.
+ *   3. Medium — a page classified `still` or `screenshot-journey` shows at
+ *      least one `<Screen>` (a picture the visual suite draws), and a page of
+ *      any other medium shows none. A page still waiting for its pictures is
+ *      named in OWED_PICTURES with its reason, and that list only shrinks.
  *
  * Layering mirrors llms-pages.ts: this module is pure logic with unit
  * tests; scripts/generate-docs-inventory/index.ts is the thin CLI wrapper.
@@ -88,6 +92,47 @@ export interface DocsClassification {
   pages: Record<string, PageClassification>;
   /** Keyed by directory prefix ending in "/" (e.g. "sdk/react/"). */
   cohorts: Record<string, CohortRule>;
+}
+
+/** The media a page carries as pictures the visual suite draws (`<Screen>`). */
+export const PICTURED_MEDIUMS: readonly Medium[] = ["still", "screenshot-journey"];
+
+/**
+ * The `still` and `screenshot-journey` pages still waiting for their
+ * pictures, each with why. A page leaves the list in the change that
+ * pictures it: the inventory fails while a listed page already shows one,
+ * so the list only shrinks.
+ */
+export const OWED_PICTURES: Readonly<Record<string, string>> = {
+  "concepts/agents": "its Agent's page is drawn next, from the YAML the page prints",
+  "concepts/skills": "its Skill's page is drawn next, from the SKILL.md the page prints",
+  "guides/environments/set-up-an-environment": "its environment form and the Agent's and conversation's environment rows are drawn next",
+  "guides/channels/create-a-chat-link": "the channel screens (the Channels tab, the chat link dialog) are not drawn yet",
+  "guides/channels/embed-an-agent": "the chat link dialog's Embed tab and the widget on a host page are not drawn yet",
+  "guides/channels/connect-slack": "the Connect Slack dialog and the Slack card are not drawn yet",
+  "guides/channels/connect-whatsapp": "the Connect WhatsApp dialog and the WhatsApp card are not drawn yet",
+  "guides/channels/bring-your-own-slack-app": "the channel app's register form and Finish setup panel are not drawn yet",
+  "guides/channels/take-over-conversations": "the Conversations workbench is not drawn yet",
+  "guides/authentication/service-accounts": "the service account screens are not drawn yet",
+  "guides/integrations/bring-your-own-oauth": "the OAuth app form is not drawn yet",
+  "sdk/ink":
+    "a terminal frame is pictured by the docs' recorded terminal examples, not a browser screenshot: stigmer#2889",
+};
+
+/**
+ * How many pictures (`<Screen` tags) a page's MDX source shows. A tag inside
+ * a fenced code block is an example of the tag, not a picture.
+ */
+export function countScreens(source: string): number {
+  let fence: string | null = null;
+  let screens = 0;
+  for (const line of source.split("\n")) {
+    const opener = /^\s*(`{3,}|~{3,})/.exec(line)?.[1];
+    if (fence === null && opener) fence = opener;
+    else if (fence !== null && opener && opener[0] === fence[0] && opener.length >= fence.length) fence = null;
+    else if (fence === null) screens += (line.match(/<Screen\b/g) ?? []).length;
+  }
+  return screens;
 }
 
 // ---------------------------------------------------------------------------
@@ -233,7 +278,11 @@ export interface Violation {
     | "unclassified-page"
     | "generated-page-classified"
     | "uncovered-generated-page"
-    | "unknown-page";
+    | "unknown-page"
+    | "missing-picture"
+    | "picture-on-unpictured-medium"
+    | "owed-picture-shown"
+    | "owed-page-not-pictured";
   /** Classification key (or file path for schema problems). */
   key: string;
   message: string;
@@ -300,6 +349,8 @@ async function resolveKey(docsDir: string, key: string): Promise<string | null> 
 export async function buildInventory(
   docsDir: string,
   classificationRaw: string,
+  /** The pages owed their pictures; the gate passes OWED_PICTURES. */
+  owedPictures: Readonly<Record<string, string>> = {},
 ): Promise<Inventory> {
   const violations: Violation[] = [];
 
@@ -372,12 +423,25 @@ export async function buildInventory(
           "hand-authored page has no classification entry — add it to " +
           "docs/_inventory/classification.yaml (fate, diataxis, teaches, medium)",
       });
+    } else if ((MEDIUMS as readonly unknown[]).includes(entry.medium)) {
+      violations.push(...mediumViolations(key, entry.medium, countScreens(raw), owedPictures));
     }
   }
 
   // Invariant 2 — existence. Executing a fate must remove or re-key the
   // entry in the same commit, so a dangling key is always a mistake.
   const knownKeys = new Set(pages.map((page) => page.key));
+  for (const key of Object.keys(owedPictures)) {
+    if (!(PICTURED_MEDIUMS as readonly unknown[]).includes(pagesRecord[key]?.medium)) {
+      violations.push({
+        kind: "owed-page-not-pictured",
+        key,
+        message:
+          "the owed-pictures list names a page that is not a classified still or " +
+          "screenshot-journey page — take it off OWED_PICTURES in site/src/lib/docs-inventory.ts",
+      });
+    }
+  }
   for (const key of Object.keys(pagesRecord)) {
     if (!knownKeys.has(key)) {
       violations.push({
@@ -391,6 +455,51 @@ export async function buildInventory(
   }
 
   return { pages, cohorts, violations };
+}
+
+/**
+ * Invariant 3 — medium. A pictured medium shows a `<Screen>`, unless the
+ * page is owed its pictures; an owed page that shows one has left the list;
+ * any other medium shows none, because `none` and `diagram` pages are no
+ * screens and `animated-tour` and `interactive` pages stay prose until those
+ * media are built (docs/STYLE.md, "Classify every page").
+ */
+function mediumViolations(
+  key: string,
+  medium: Medium,
+  screens: number,
+  owedPictures: Readonly<Record<string, string>>,
+): Violation[] {
+  const pictured = PICTURED_MEDIUMS.includes(medium);
+  const owed = key in owedPictures;
+  if (pictured && screens === 0 && !owed) {
+    return [{
+      kind: "missing-picture",
+      key,
+      message:
+        `a ${medium} page shows no <Screen>: picture the screen its reader acts on ` +
+        "(test/visual/src/shown.ts), or reclassify the page",
+    }];
+  }
+  if (pictured && screens > 0 && owed) {
+    return [{
+      kind: "owed-picture-shown",
+      key,
+      message:
+        "the page now shows its pictures — take it off OWED_PICTURES in " +
+        "site/src/lib/docs-inventory.ts",
+    }];
+  }
+  if (!pictured && screens > 0) {
+    return [{
+      kind: "picture-on-unpictured-medium",
+      key,
+      message:
+        `a ${medium} page shows ${screens} <Screen> picture(s): only still and ` +
+        "screenshot-journey pages carry them — reclassify the page or remove the picture",
+    }];
+  }
+  return [];
 }
 
 // ---------------------------------------------------------------------------

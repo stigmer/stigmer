@@ -28,6 +28,7 @@ import {
   modelsHubLocalScene,
   modelsHubScene,
 } from "./models.tsx";
+import { routineDetailScene, routineNewScene } from "./routine.tsx";
 import { modelSelectorScene } from "./settings.tsx";
 import { sessionScene } from "./session.tsx";
 import { asksFirstScene, hoursScene, inProductScene, keysScene, ownComputerScene, wallsScene } from "./story.tsx";
@@ -88,6 +89,9 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "story-hours": hoursScene,
   "story-walls": wallsScene,
   "story-keys": keysScene,
+  "routine-new": routineNewScene,
+  "routine-disabled": () => routineDetailScene("disabled"),
+  "routine-history": () => routineDetailScene("history"),
   "agent-chat-panel": () => agentChatScene("busy", "panel", true),
   "agent-chat-popup-closed": () => agentChatScene("busy", "popup", false),
   "agent-chat-popup": () => agentChatScene("finished", "popup", true),
