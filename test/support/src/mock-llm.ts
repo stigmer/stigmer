@@ -157,6 +157,14 @@ export const DEFAULT_ERROR_BODY = {
 //   router's background answer, marked outOfBand, is out-of-band).
 export type RequestDisposition = "scripted" | "out-of-band" | "fenced" | "unscripted" | "routed";
 
+// The header every model call the runner makes for a run carries
+// (shared/llm-proxy.ts buildProxyHeaders), as Node lower-cases it.
+export const EXECUTION_ID_HEADER = "x-stigmer-execution-id";
+
+// The most requests describeTraffic() lists one line each; the count it
+// opens with is always whole.
+export const TRAFFIC_SAMPLE_LIMIT = 40;
+
 export interface CapturedLlmRequest {
   path: string;
   body: unknown;
@@ -502,6 +510,24 @@ export class MockLlmProxy {
     return this.captured;
   }
 
+  // The captured requests as text, for a failure message: the count, then
+  // one line per request (milliseconds since the first, disposition, the run
+  // it named or "-", path), at most TRAFFIC_SAMPLE_LIMIT lines. Which run
+  // received each answer is read here, from the record the answering branch
+  // wrote, never re-derived.
+  describeTraffic(): string {
+    const first = this.captured[0]?.receivedAt ?? 0;
+    const lines = this.captured.slice(0, TRAFFIC_SAMPLE_LIMIT).map((request) => {
+      const offset = String(request.receivedAt - first).padStart(6);
+      return `  +${offset} ms  ${request.disposition.padEnd(11)}  ${executionIdOf(request.headers) ?? "-"}  ${request.path}`;
+    });
+    const hidden = this.captured.length - lines.length;
+    if (hidden > 0) {
+      lines.push(`  (${hidden} more not listed)`);
+    }
+    return [`MockLlmProxy: ${this.captured.length} model request(s) since the last reset()`, ...lines].join("\n");
+  }
+
   // The requests that claimed a queued turn, in arrival order: exactly the
   // agent loop under test, with the background titling call and every fenced
   // or unscripted call left out. The assertion target for arms that read the
@@ -769,6 +795,13 @@ export class MockLlmProxy {
     };
     writeJson(res, 200, response);
   }
+}
+
+// The run a request names, or undefined when it names none.
+function executionIdOf(headers: Record<string, string | string[] | undefined>): string | undefined {
+  const value = headers[EXECUTION_ID_HEADER];
+  const first = Array.isArray(value) ? value[0] : value;
+  return first === undefined || first === "" ? undefined : first;
 }
 
 async function readBody(req: IncomingMessage): Promise<string> {

@@ -19,7 +19,9 @@
 // installs (routeWith) lasts until reset(), its background answers are
 // out of band, and loopRequests() is the loop's calls however answered; a
 // held call its caller hangs up is stamped hungUpAt at the hang-up, and one
-// releaseHolds() ends is served and never stamped.
+// releaseHolds() ends is served and never stamped; describeTraffic() names
+// each request's offset, disposition, run and path under a whole count, at
+// most its sample limit of lines.
 import { readFileSync } from "node:fs";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import {
@@ -31,6 +33,7 @@ import {
   type EmbeddingsResponseBody,
   MOCK_CONVERSATION_SUMMARY,
   SUMMARY_PROMPT_OPENING,
+  TRAFFIC_SAMPLE_LIMIT,
 } from "../mock-llm.ts";
 
 const mock = new MockLlmProxy();
@@ -57,6 +60,16 @@ function post(path: string, body: unknown): Promise<Response> {
   return fetch(`${mock.url()}${path}`, {
     method: "POST",
     headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+// A chat request as the runner sends one for a run: the run's id in the
+// execution-id header, or no header when `run` is undefined.
+function postFor(run: string | undefined, body: unknown = { model: "m", messages: [] }): Promise<Response> {
+  return fetch(`${mock.url()}${ANTHROPIC_PATH}`, {
+    method: "POST",
+    headers: { "content-type": "application/json", ...(run === undefined ? {} : { "x-stigmer-execution-id": run }) },
     body: JSON.stringify(body),
   });
 }
@@ -320,6 +333,32 @@ describe("MockLlmProxy's capture observer", () => {
     } finally {
       await observed.close();
     }
+  });
+});
+
+describe("MockLlmProxy.describeTraffic", () => {
+  it("lists each request's offset, disposition, run and path under the count", async () => {
+    mock.enqueue(anthropicText("the agent's turn"));
+    await postFor("run_traffic_a");
+    await postFor(undefined);
+    const lines = mock.describeTraffic().split("\n");
+    expect(lines[0]).toBe("MockLlmProxy: 2 model request(s) since the last reset()");
+    expect(lines[1]).toMatch(new RegExp(`^  \\+ +0 ms  scripted +run_traffic_a  ${ANTHROPIC_PATH}$`));
+    expect(lines[2]).toMatch(new RegExp(`^  \\+ +\\d+ ms  unscripted +-  ${ANTHROPIC_PATH}$`));
+    expect(lines).toHaveLength(3);
+  });
+
+  it("keeps the count whole and caps the lines at its sample limit", async () => {
+    const total = TRAFFIC_SAMPLE_LIMIT + 3;
+    for (let i = 0; i < total; i += 1) await postFor(undefined);
+    const lines = mock.describeTraffic().split("\n");
+    expect(lines[0]).toBe(`MockLlmProxy: ${total} model request(s) since the last reset()`);
+    expect(lines).toHaveLength(1 + TRAFFIC_SAMPLE_LIMIT + 1);
+    expect(lines.at(-1)).toBe("  (3 more not listed)");
+  });
+
+  it("is empty after reset()", () => {
+    expect(mock.describeTraffic()).toBe("MockLlmProxy: 0 model request(s) since the last reset()");
   });
 });
 
