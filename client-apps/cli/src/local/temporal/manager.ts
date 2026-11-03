@@ -2,7 +2,9 @@
 //
 // Built on the shared primitives (file lock, PID file, TCP readiness). It installs the
 // `temporal` binary on demand, starts the dev server in its own process group,
-// and answers "is it really running?" with a layered check (PID present -> alive -> actually Temporal -> port listening). Start is
+// and answers "is it really running?" with a layered check (the process recorded, by PID and start
+// time, still alive -> actually Temporal -> port listening); stop signals the group only after the same
+// check, so a PID the OS has handed to another program is never signalled (stigmer#2750). Start is
 // idempotent: a healthy instance — ours or another process's — is reused.
 // Stop returns only once the process itself has exited, not when its port
 // closes: the dev server goes on writing its database for a moment after it
@@ -20,7 +22,7 @@ import { tcpConnects, waitForTcp } from "../net/tcp.js";
 import { binDir, logDir, temporalDataDir, temporalLockFile, temporalPidFile } from "../paths.js";
 import { TEMPORAL_PORT, TEMPORAL_UI_PORT } from "../constants.js";
 import { type FileLock, acquireLock } from "../state/lock.js";
-import { readPidFile, removePidFile, writePidFile } from "../state/pidfile.js";
+import { readPidFile, recordedLiveProcess, removePidFile, writePidFile } from "../state/pidfile.js";
 import { findProcessByPort, isOtherLiveProcess, killProcessGroup } from "../state/proc.js";
 import { DEFAULT_TEMPORAL_VERSION, downloadTemporalCli, isTemporalInstalled } from "./download.js";
 import { isLikelyTemporal } from "./inspect.js";
@@ -168,12 +170,16 @@ export class TemporalManager {
     }
   }
 
-  /** Stop the dev server gracefully (SIGTERM, then SIGKILL), releasing the lock. */
+  /**
+   * Stop the dev server gracefully (SIGTERM, then SIGKILL), releasing the lock.
+   * The process group is signalled only once the recorded PID is proven to be
+   * the process recorded and a Temporal server; a record naming anything else
+   * is released with no signal sent (stigmer#2750).
+   */
   async stop(): Promise<void> {
-    const pid = this.getPid();
+    const pid = this.recordedTemporal();
     if (pid === null) {
-      this.lock?.release();
-      this.lock = null;
+      this.finishStop();
       return;
     }
 
@@ -195,13 +201,17 @@ export class TemporalManager {
     this.finishStop();
   }
 
-  /** Layered liveness: PID present -> alive -> actually Temporal -> port open. */
+  /** Layered liveness: the process recorded, still alive -> actually Temporal -> port open. */
   async isRunning(): Promise<boolean> {
-    const pid = this.getPid();
-    if (pid === null) return false;
-    if (!isOtherLiveProcess(pid)) return false;
-    if (!isLikelyTemporal(pid, this.binPath)) return false;
+    if (this.recordedTemporal() === null) return false;
     return this.isPortInUse();
+  }
+
+  // The recorded PID while it is the process recorded (same PID, same start
+  // time) and still looks like the Temporal server; null otherwise.
+  private recordedTemporal(): number | null {
+    const pid = recordedLiveProcess(this.pidFile);
+    return pid !== null && isLikelyTemporal(pid, this.binPath) ? pid : null;
   }
 
   // Gone, or the PID no longer names a Temporal process: a PID reused by
@@ -249,11 +259,8 @@ export class TemporalManager {
 
   // Remove a stale PID file, or kill an orphaned Temporal occupying our port.
   private cleanupStaleProcesses(): void {
-    const pid = this.getPid();
-    if (pid !== null) {
-      if (!isOtherLiveProcess(pid) || !isLikelyTemporal(pid, this.binPath)) {
-        removePidFile(this.pidFile);
-      }
+    if (this.getPid() !== null) {
+      if (this.recordedTemporal() === null) removePidFile(this.pidFile);
       return;
     }
     const orphan = findProcessByPort(this.port);

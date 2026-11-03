@@ -1,12 +1,12 @@
-import { mkdtempSync, readFileSync, statSync, utimesSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, statSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { type HealthState, loadHealthState, writeHealthState } from "../health-state.js";
 import { acquireLock } from "../lock.js";
 import { cleanupOldLogs, rotateLogs } from "../log-rotation.js";
-import { readPidFile, removePidFile, writePidFile } from "../pidfile.js";
-import { isOtherLiveProcess, isProcessAlive, processCommand } from "../proc.js";
+import { readPidFile, readPidRecord, recordedLiveProcess, removePidFile, writePidFile } from "../pidfile.js";
+import { isOtherLiveProcess, isProcessAlive, processCommand, processStartTime } from "../proc.js";
 import { loadStartupConfig, removeStartupConfig, saveStartupConfig, type StartupConfig } from "../startup-config.js";
 
 function tempDir(prefix: string): string {
@@ -42,6 +42,54 @@ describe("pidfile", () => {
   });
 });
 
+// stigmer#2750: a PID file names one process, not whichever program the OS
+// later gives the number to.
+describe("pidfile (the process's start time)", () => {
+  it("records the start time beside the PID, and reads both back", () => {
+    const path = join(tempDir("stigmer-pid-"), "daemon.pid");
+    writePidFile(path, process.ppid);
+    const started = processStartTime(process.ppid);
+    expect(started).not.toBeNull();
+    expect(readFileSync(path, "utf8")).toBe(`${process.ppid}\nstarted=${started}\n`);
+    expect(readPidRecord(path)).toEqual({ pid: process.ppid, started });
+    expect(readPidFile(path)).toBe(process.ppid);
+  });
+
+  it("writes the bare PID when the process's start cannot be read", () => {
+    const path = join(tempDir("stigmer-pid-"), "runner.pid");
+    writePidFile(path, DEAD_PID);
+    expect(readFileSync(path, "utf8")).toBe(`${DEAD_PID}\n`);
+    expect(readPidRecord(path)).toEqual({ pid: DEAD_PID, started: null });
+  });
+
+  it("answers with a live process only while it is the process recorded", () => {
+    const path = join(tempDir("stigmer-pid-"), "daemon.pid");
+    writePidFile(path, process.ppid);
+    expect(recordedLiveProcess(path)).toBe(process.ppid);
+
+    // The same number, started at another time: another program now.
+    writeFileSync(path, `${process.ppid}\nstarted=another life\n`);
+    expect(recordedLiveProcess(path)).toBeNull();
+  });
+
+  // A file from a CLI before the start-time line is trusted as it was, so an
+  // upgrade never forgets a running stack.
+  it("trusts a file with no start time on liveness alone", () => {
+    const path = join(tempDir("stigmer-pid-"), "daemon.pid");
+    writeFileSync(path, `${process.ppid}\n`);
+    expect(recordedLiveProcess(path)).toBe(process.ppid);
+  });
+
+  it("never answers with this process, a dead one, or a missing file", () => {
+    const dir = tempDir("stigmer-pid-");
+    writePidFile(join(dir, "own.pid"), process.pid);
+    expect(recordedLiveProcess(join(dir, "own.pid"))).toBeNull();
+    writePidFile(join(dir, "dead.pid"), DEAD_PID);
+    expect(recordedLiveProcess(join(dir, "dead.pid"))).toBeNull();
+    expect(recordedLiveProcess(join(dir, "absent.pid"))).toBeNull();
+  });
+});
+
 describe("isProcessAlive", () => {
   it("is true for the current process and false for a dead PID", () => {
     expect(isProcessAlive(process.pid)).toBe(true);
@@ -59,6 +107,72 @@ describe("isOtherLiveProcess", () => {
     expect(isOtherLiveProcess(DEAD_PID)).toBe(false);
     expect(isProcessAlive(0)).toBe(false);
     expect(isProcessAlive(-1)).toBe(false);
+  });
+});
+
+describe("processStartTime", () => {
+  it("reads the same token for a live process every time, and null for a dead PID", () => {
+    const first = processStartTime(process.pid);
+    expect(first).not.toBeNull();
+    expect(processStartTime(process.pid)).toBe(first);
+    expect(processStartTime(DEAD_PID)).toBeNull();
+    expect(processStartTime(0)).toBeNull();
+  });
+
+  // The daemon writes the token in the environment `up` handed it; a later
+  // `down` reads it from another shell, maybe in another zone and locale.
+  it("reads the same token through ps whatever the caller's zone and locale", () => {
+    const plain = processStartTime(process.ppid, { procRoot: null });
+    expect(plain).not.toBeNull();
+    const saved = { TZ: process.env.TZ, LC_ALL: process.env.LC_ALL };
+    try {
+      process.env.TZ = "Asia/Kolkata";
+      process.env.LC_ALL = "fr_FR.UTF-8";
+      expect(processStartTime(process.ppid, { procRoot: null })).toBe(plain);
+    } finally {
+      for (const [key, value] of Object.entries(saved)) {
+        if (value === undefined) delete process.env[key];
+        else process.env[key] = value;
+      }
+    }
+  });
+
+  describe("the procfs reader", () => {
+    // A /proc/<pid>/stat line whose command name holds ") (": fields are
+    // counted after the last ")", so field 22 (start ticks) is still found.
+    function procRoot(options: { bootId?: string } = {}): string {
+      const root = tempDir("stigmer-proc-");
+      mkdirSync(join(root, "4242"));
+      const afterName = ["S", ...Array.from({ length: 18 }, (_, i) => String(i + 4)), "987654", "123", "456"];
+      writeFileSync(join(root, "4242", "stat"), `4242 (we) (ird) ${afterName.join(" ")}\n`);
+      if (options.bootId !== undefined) {
+        mkdirSync(join(root, "sys", "kernel", "random"), { recursive: true });
+        writeFileSync(join(root, "sys", "kernel", "random", "boot_id"), `${options.bootId}\n`);
+      }
+      return root;
+    }
+
+    it("reads the boot id and the start ticks", () => {
+      expect(processStartTime(4242, { procRoot: procRoot({ bootId: "b0b-1d" }) })).toBe("b0b-1d:987654");
+    });
+
+    it("reads the ticks alone where the boot id is hidden", () => {
+      expect(processStartTime(4242, { procRoot: procRoot() })).toBe("987654");
+    });
+
+    it("falls back to ps for a PID it cannot read", () => {
+      expect(processStartTime(DEAD_PID, { procRoot: procRoot() })).toBeNull();
+      expect(processStartTime(process.pid, { procRoot: procRoot() })).toBe(processStartTime(process.pid, { procRoot: null }));
+    });
+
+    it("refuses a malformed stat line", () => {
+      const root = tempDir("stigmer-proc-");
+      mkdirSync(join(root, String(DEAD_PID)));
+      writeFileSync(join(root, String(DEAD_PID), "stat"), `${DEAD_PID} (short) S 1 2\n`);
+      expect(processStartTime(DEAD_PID, { procRoot: root })).toBeNull();
+      writeFileSync(join(root, String(DEAD_PID), "stat"), "no name at all\n");
+      expect(processStartTime(DEAD_PID, { procRoot: root })).toBeNull();
+    });
   });
 });
 

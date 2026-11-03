@@ -166,8 +166,8 @@ async function boundaryError(
   const procedure = `/${request.service.typeName}/${request.method.name}`;
 
   // Arm 1: the structural raw-error conversion. The logging
-  // interceptor inside already recorded unary failures; this line is the
-  // only record for mid-stream and identity-chassis raws, and it names
+  // interceptor inside already recorded unary and mid-stream failures;
+  // this line is the only record for identity-chassis raws, and it names
   // the conversion the operator would otherwise not know happened.
   let connectError: ConnectError;
   if (error instanceof ConnectError) {
