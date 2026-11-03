@@ -6,6 +6,7 @@ import {
 } from "fumadocs-mdx/config";
 import { z } from "zod";
 import remarkMermaid from "./src/lib/remark-mermaid";
+import remarkSnippetSetup from "./src/lib/remark-snippet-setup";
 
 export const docs = defineDocs({
   dir: "../docs",
@@ -36,6 +37,6 @@ export const blogPosts = defineCollections({
 
 export default defineConfig({
   mdxOptions: {
-    remarkPlugins: (plugins) => [remarkMermaid, ...plugins],
+    remarkPlugins: (plugins) => [remarkSnippetSetup, remarkMermaid, ...plugins],
   },
 });

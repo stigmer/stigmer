@@ -31,6 +31,7 @@ import * as path from "node:path";
 import matter from "gray-matter";
 import { diagram } from "../components/visuals/diagrams";
 import { SHOWN_SCALE, screenPath, shownScreen } from "./screens";
+import { splitSnippetSetup } from "./snippet-setup.mjs";
 
 export interface SectionMeta {
   title?: string;
@@ -87,7 +88,8 @@ async function readJson<T>(p: string): Promise<T> {
  * component tags that LLMs can interpret (Callout, Tabs, Term, etc.).
  * A `<Screen>` becomes the markdown image it stands for, linked on
  * `siteUrl`, and a `<Diagram>` the text it stands for (see
- * `picturesToMarkdown`).
+ * `picturesToMarkdown`). A code example's hidden setup is dropped, as the
+ * page drops it (`hideFenceSetup`).
  */
 export function cleanContent(raw: string, siteUrl: string): string {
   const cleaned = raw
@@ -97,11 +99,39 @@ export function cleanContent(raw: string, siteUrl: string): string {
     // MDX comments add no value for readers.
     .replace(/\{\/\*[\s\S]*?\*\/\}/g, "");
   return (
-    picturesToMarkdown(cleaned, siteUrl)
+    picturesToMarkdown(hideFenceSetup(cleaned), siteUrl)
       // Collapse runs of blank lines left by the above removals.
       .replace(/\n{3,}/g, "\n\n")
       .trim()
   );
+}
+
+/**
+ * Drops every code example's hidden setup: the lines above a `---cut---`
+ * marker in a TypeScript, Go, Python or Java fence, and the marker, as the
+ * rendered page drops them (src/lib/remark-snippet-setup.ts), through the
+ * same split (./snippet-setup.mjs). Every other line is kept as written.
+ */
+export function hideFenceSetup(text: string): string {
+  const out: string[] = [];
+  let fence: { close: RegExp; lang: string; body: string[] } | null = null;
+  for (const line of text.split("\n")) {
+    if (fence) {
+      if (fence.close.test(line)) {
+        if (fence.body.length > 0) out.push(...splitSnippetSetup(fence.lang, fence.body.join("\n")).body.split("\n"));
+        out.push(line);
+        fence = null;
+      } else {
+        fence.body.push(line);
+      }
+      continue;
+    }
+    const open = /^\s{0,3}(`{3,}|~{3,})\s*([\w-]*)/.exec(line);
+    out.push(line);
+    if (open) fence = { close: new RegExp(`^\\s*\\${open[1][0]}{${open[1].length},}\\s*$`), lang: open[2], body: [] };
+  }
+  if (fence) out.push(...fence.body);
+  return out.join("\n");
 }
 
 /** One attribute of a tag: its name, then a double- or single-quoted value, or an `{expression}`. */
