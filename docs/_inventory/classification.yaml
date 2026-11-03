@@ -13,11 +13,14 @@
 #   diataxis  tutorial | how-to | explanation | reference | landing
 #   teaches   One sentence: what the reader walks away knowing or having done.
 #   medium    none | diagram | still | screenshot-journey | animated-tour |
-#             interactive — the page's TARGET demonstration centerpiece.
-#             Prose and code are the substrate of every page, not a
-#             medium. `still` and `screenshot-journey` are never
-#             hand-captured screenshots (see docs/STYLE.md, "Classify every
-#             page").
+#             interactive — the page's demonstration centerpiece. Prose and
+#             code are the substrate of every page, not a medium. `still`
+#             and `screenshot-journey` are held: the page shows at least one
+#             <Screen> the visual suite draws (never a hand-captured
+#             screenshot), or waits in OWED_PICTURES in
+#             site/src/lib/docs-inventory.ts; a page of any other medium
+#             shows none. The other media remain the page's target (see
+#             docs/STYLE.md, "Classify every page").
 #   why       Rationale, required by the gate for a non-"none" medium (why
 #             that centerpiece) and for a non-"keep" fate (why the page
 #             doesn't survive as-is) — one sentence each when both apply.

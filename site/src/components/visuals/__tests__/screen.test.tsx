@@ -8,7 +8,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import { shownScreen, shownSize } from "@/lib/screens";
-import { DOCS_IMAGE_SIZES, Screen } from "../Screen";
+import { DOCS_IMAGE_SIZES, SCREEN_FRAME, Screen } from "../Screen";
 
 afterEach(cleanup);
 
@@ -34,6 +34,11 @@ describe("Screen", () => {
     const img = screen.getByRole("img", { name: ALT });
     expect(img.getAttribute("sizes")).toBe("100vw");
     expect(img.className).toContain("rounded");
+  });
+
+  it("frames the picture, so a dark screen keeps its edge on the docs' dark ground", () => {
+    render(<Screen name="approval" alt={ALT} />);
+    expect(screen.getByRole("img", { name: ALT }).className).toContain(SCREEN_FRAME);
   });
 
   it("refuses a screen the visual suite does not show", () => {

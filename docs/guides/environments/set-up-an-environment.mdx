@@ -44,6 +44,11 @@ applies only on a server that does.
    `pandas` and `sqlalchemy==2.0.30` on two lines in **pip (Python packages)**.
 6. Click **Create environment**.
 
+<Screen
+  name="environment-new"
+  alt="The New environment form filled in: Name data-science, its description, Network Limited to listed websites with api.github.com and our-api.example.com, Also allow package registries and code hosts ticked, poppler-utils under apt and pandas and sqlalchemy==2.0.30 under pip"
+/>
+
 If **Limited to listed websites** is greyed, with "This server's sandboxes can't
 limit networking to listed websites." beside it, your server's sandboxes can't
 enforce a list; the same goes for packages. See
@@ -81,6 +86,11 @@ Open the Agent, click the edit button on its **Environment** section, choose
 `data-science`, and click **Save**. Every conversation on the Agent now runs in
 it, unless the conversation or its routine names another.
 
+<Screen
+  name="agent-environment"
+  alt="The Agent's Environment section after Save, naming Data science, with its edit button"
+/>
+
 In the Agent's manifest, the same default is a reference:
 
 ```yaml validate-as="Agent.spec"
@@ -107,8 +117,14 @@ new conversation.
 
 ## Check which one a conversation got
 
-Open the conversation and its **Setup** tab. The **Environment** row names it
-and says why, such as `data-science · the agent's default`.
+Open the conversation, click **Configure agent, tools, and skills** beside its
+message box, and choose **Run settings**. The **Environment** row names it and
+says why, such as `data-science · the agent's default`.
+
+<Screen
+  name="run-settings"
+  alt="A conversation's Run settings, opened from the configure button beside its message box: Harness Stigmer, Environment data-science · the agent's default, and the Auto-approve switch"
+/>
 
 From the CLI, `stigmer list sessions -o json` prints each conversation's
 `status.environment` and `status.environment_source`, here

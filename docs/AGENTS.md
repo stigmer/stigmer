@@ -32,7 +32,10 @@ and `vocabulary.md` are the truth.
 - A page shows a screen only as a picture the visual suite draws: an entry in
   `test/visual/src/shown.ts`, embedded with `<Screen name alt />` (`STYLE.md`,
   "Classify every page"). Never a hand-captured screenshot, not even as a
-  placeholder.
+  placeholder. The values the page prints and the picture shows live in
+  `test/visual/src/docs-examples.ts`, held to the page by the site's
+  `docs-screens` test. A `still` or `screenshot-journey` page carries at least
+  one `<Screen>` and other pages none (`make check-docs-inventory`).
 - A page shows the kit working only as a live demo the visual suite draws: an
   entry in `test/visual/src/live.ts`, embedded with `<Live name alt />`
   (`STYLE.md`, "Live"). Never a demo built for the page.

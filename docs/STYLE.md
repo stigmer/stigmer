@@ -103,20 +103,32 @@ seen working. Getting-started journeys and console procedures are
 `screenshot-journey`: the reader compares their own screen against the depicted
 one and sets the pace.
 
-A page shows a screen only as a picture the visual suite draws. Add an entry to
-the shown list in `test/visual/src/shown.ts` (a gallery scene, cropped with
-`clip` when the lesson is one card), mint it with `make test-visual UPDATE=1`,
-and embed it with `<Screen>` (see [Screen](#screen)). When the product's look
-changes, the suite fails until the picture is drawn again, and the redrawn
-picture reaches the site in the same pull request. Never add a screenshot
-captured by hand, not even as a placeholder: it goes stale with no signal.
+A page shows a screen only as a picture the visual suite draws. Put the values
+the page prints and the picture shows in the page's example in
+`test/visual/src/docs-examples.ts`, add an entry to the shown list in
+`test/visual/src/shown.ts` (a gallery scene, cropped with `clip` to the part of
+the screen the step acts on), mint it with `make test-visual UPDATE=1`, and
+embed it with `<Screen>` right after the step it shows (see [Screen](#screen)).
+When the product's look changes, the suite fails until the picture is drawn
+again, and the redrawn picture reaches the site in the same pull request; when
+the page's words change, the site's `docs-screens` test fails until the example
+changes with them. Never add a screenshot captured by hand, not even as a
+placeholder: it goes stale with no signal. Navigation and other sites' screens
+stay prose.
+
+`still` and `screenshot-journey` are held, not only planned:
+`make check-docs-inventory` fails a page of either medium with no `<Screen>`,
+and a page of any other medium with one. A page still waiting for its pictures
+is listed with its reason in `OWED_PICTURES` (`site/src/lib/docs-inventory.ts`),
+and leaves the list in the change that pictures it. Pages whose medium is
+`animated-tour` stay prose, code, and diagrams until that medium is built; for
+them, as for `diagram`, `medium` remains the page's target.
 
 An `interactive` page embeds the kit live with `<Live>` or `<ThemePlayground>`
 (see [Live](#live)): a gallery scene the visual suite draws, framed in its docs
 mode, where a scripted server answers a reader's send, approval and Stop. Never
 build a demo of your own for a page: a demo kept beside the product goes stale
-the way a captured screenshot does. Pages whose medium is `animated-tour` stay
-prose, code, and diagrams until that medium is built.
+the way a captured screenshot does.
 
 Generated pages (the `cli/commands/`, `sdk/react/`, `sdk/resources/`,
 `sdk/ink/`, and `sdk/theme/` reference sets) are covered by cohort rules in the

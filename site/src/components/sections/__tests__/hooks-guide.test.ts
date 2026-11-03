@@ -18,9 +18,9 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { elidedRuns, firstUnmarkedGap } from "../../../../../test/install/lib/doc-steps.mjs";
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../..");
-const GUIDE = readFileSync(resolve(ROOT, "docs/sdk/react-core/build-a-chat.mdx"), "utf8");
-const PROGRAM = readFileSync(resolve(ROOT, "sdk/react-core/examples/chat/Chat.tsx"), "utf8").split("\n");
+const HERE = dirname(fileURLToPath(import.meta.url));
+const GUIDE = readFileSync(resolve(HERE, "../../../../../docs/sdk/react-core/build-a-chat.mdx"), "utf8");
+const PROGRAM = readFileSync(resolve(HERE, "../../../../../sdk/react-core/examples/chat/Chat.tsx"), "utf8").split("\n");
 
 /** The bodies of the guide's fences titled `Chat.tsx`, as lines. */
 function quotedFences(markdown: string): string[][] {
