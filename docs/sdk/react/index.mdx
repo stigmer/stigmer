@@ -42,7 +42,7 @@ reference page names its entry.
 `AgentChat` is the whole chat: the first message, then the conversation. Name
 the Agent as `"org/slug"` and pick a frame:
 
-```tsx
+```tsx no-compile="three alternatives side by side, one per variant"
 import { AgentChat } from "@stigmer/react-sdk/chat";
 
 <AgentChat agent="acme/variance-reporter" />                  // fills its box
@@ -67,6 +67,8 @@ Import the stylesheet, create a client, and wrap your component tree in
 `StigmerProvider`:
 
 ```tsx
+declare function YourApp(): null;
+// ---cut---
 import { Stigmer } from "@stigmer/client";
 import { StigmerProvider } from "@stigmer/react-sdk";
 import "@stigmer/react-sdk/styles.css";
@@ -79,7 +81,7 @@ const client = new Stigmer({
 function App() {
   return (
     <StigmerProvider client={client}>
-      {/* your app */}
+      <YourApp />
     </StigmerProvider>
   );
 }
@@ -107,13 +109,16 @@ Your users authenticate through their existing OIDC provider (Auth0, Okta,
 Cognito, Entra ID). The SDK sends their JWT directly to Stigmer for validation.
 
 ```tsx
+declare function YourApp(): null;
+declare function useAuth(): { getAccessToken: () => Promise<string | null> };
+// ---cut---
 import { useMemo } from "react";
 import { Stigmer } from "@stigmer/client";
 import { StigmerProvider } from "@stigmer/react-sdk";
 import "@stigmer/react-sdk/styles.css";
-import { useAuth } from "./your-auth-provider";
 
 function App() {
+  // useAuth is your auth provider's hook; getAccessToken returns the user's JWT.
   const { getAccessToken } = useAuth();
 
   const client = useMemo(
@@ -127,7 +132,7 @@ function App() {
 
   return (
     <StigmerProvider client={client}>
-      {/* your app */}
+      <YourApp />
     </StigmerProvider>
   );
 }
@@ -150,6 +155,8 @@ JWT. Your frontend fetches this token, and `createTokenCache` keeps it until a
 minute before it expires.
 
 ```tsx
+declare function YourApp(): null;
+// ---cut---
 import { useMemo } from "react";
 import { Stigmer, createTokenCache } from "@stigmer/client";
 import { StigmerProvider } from "@stigmer/react-sdk";
@@ -174,7 +181,7 @@ function App() {
 
   return (
     <StigmerProvider client={client}>
-      {/* your app */}
+      <YourApp />
     </StigmerProvider>
   );
 }
@@ -239,7 +246,9 @@ import {
 
 function ApiKeySection() {
   const available = useResourceAvailable(ApiResourceKind.api_key);
-  if (!available) return <CloudFeatureNotice />;
+  if (!available) {
+    return <CloudFeatureNotice>API keys come with Stigmer Cloud.</CloudFeatureNotice>;
+  }
   return <ApiKeyListPanel />;
 }
 ```

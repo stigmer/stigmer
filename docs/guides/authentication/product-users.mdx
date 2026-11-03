@@ -109,6 +109,19 @@ account's API key.
 ### TypeScript (Node.js)
 
 ```typescript
+interface Request {
+  user: { id: string; email: string; name: string };
+}
+interface Response {
+  json(body: unknown): void;
+}
+declare const app: {
+  get(
+    path: string,
+    handler: (req: Request, res: Response) => Promise<void>,
+  ): void;
+};
+// ---cut---
 import { createNodeClient } from "@stigmer/client/node";
 
 const stigmer = createNodeClient({
@@ -131,7 +144,14 @@ app.get("/api/stigmer-token", async (req, res) => {
 ### Go
 
 ```go
-import stigmer "go.stigmer.ai/sdk"
+var user struct{ ID, Email, Name string }
+// ---cut---
+import (
+	"log"
+	"os"
+
+	stigmer "go.stigmer.ai/sdk"
+)
 
 client, err := stigmer.NewClient(stigmer.WithAPIKey(os.Getenv("STIGMER_API_KEY")))
 if err != nil {
@@ -150,6 +170,12 @@ result, err := client.Tokens.MintUserToken(ctx, &stigmer.MintUserTokenInput{
 ### Python
 
 ```python
+from typing import Any
+
+current_user: Any = None
+# ---cut---
+import os
+
 from stigmer import StigmerClient
 
 with StigmerClient(os.environ["STIGMER_API_KEY"]) as client:
@@ -164,6 +190,10 @@ with StigmerClient(os.environ["STIGMER_API_KEY"]) as client:
 ### Java
 
 ```java
+interface CurrentUser { String getId(); String getEmail(); String getName(); }
+
+CurrentUser currentUser;
+// ---cut---
 import ai.stigmer.sdk.MintUserTokenInput;
 import ai.stigmer.sdk.MintUserTokenResult;
 import ai.stigmer.sdk.StigmerClient;
@@ -184,6 +214,8 @@ Your frontend fetches the token from your backend and passes it to
 `StigmerProvider`. No key is needed in the browser.
 
 ```tsx
+declare function YourApp(): null;
+// ---cut---
 import { StigmerProvider } from "@stigmer/react-sdk";
 import { Stigmer, createTokenCache } from "@stigmer/client";
 
@@ -202,7 +234,7 @@ const stigmer = new Stigmer({
 function App() {
   return (
     <StigmerProvider client={stigmer}>
-      {/* Your app with Stigmer components */}
+      <YourApp />
     </StigmerProvider>
   );
 }

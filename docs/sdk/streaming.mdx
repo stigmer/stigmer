@@ -21,6 +21,60 @@ This guide covers the production patterns you need after that.
 Code written for Claude Managed Agents can read and answer the same log with
 Anthropic's own SDK: see [Use Anthropic's SDK](/docs/sdk/managed-agents).
 
+## The examples' imports
+
+The examples on this page call a client set up as the
+[SDK pages](/docs/sdk/overview) show: `stigmer` in TypeScript, `client` in Go,
+Python and Java, and a `ctx` in Go. The Go, Python and Java examples use these
+imports:
+
+<SDKTabs>
+<Tab value="TypeScript">
+
+Each TypeScript example imports what it uses.
+
+</Tab>
+<Tab value="Go">
+
+```go prelude
+import (
+	"context"
+	"errors"
+	"fmt"
+	"io"
+	"log"
+	"time"
+
+	stigmer "go.stigmer.ai/sdk"
+	sessionv1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/session/v1"
+	"google.golang.org/protobuf/proto"
+)
+```
+
+</Tab>
+<Tab value="Python">
+
+```python prelude
+import time
+
+from stigmer import ErrorCode, StigmerError, is_retryable
+from ai.stigmer.agentic.session.v1 import io_pb2
+```
+
+</Tab>
+<Tab value="Java">
+
+```java prelude
+import ai.stigmer.agentic.session.v1.ConfirmToolUseInput;
+import ai.stigmer.agentic.session.v1.StreamSessionEventsRequest;
+import ai.stigmer.sdk.gen.ErrorCode;
+import ai.stigmer.sdk.gen.StigmerException;
+import java.util.Set;
+```
+
+</Tab>
+</SDKTabs>
+
 ## Follow a run
 
 Create a run, then stream its Session from the start (`after_seq` 0). Keep the
@@ -30,6 +84,9 @@ events of your run, print what the Agent does, and stop when the run's
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
+declare const sessionId: string;
+declare const runId: string;
+// ---cut---
 import { followSession } from "@stigmer/client";
 
 const ended = ["completed", "failed", "cancelled", "terminated"];
@@ -54,6 +111,10 @@ reconnects from the last event it delivered when the stream drops.
 </Tab>
 <Tab value="Go">
 ```go
+var sessionID, runID string
+
+var turnEnded func(phase string) bool
+// ---cut---
 stream, err := client.Session.StreamEvents(ctx, &sessionv1.StreamSessionEventsRequest{
     SessionId: sessionID,
     AfterSeq:  proto.Int64(0),
@@ -97,6 +158,12 @@ for {
 </Tab>
 <Tab value="Python">
 ```python
+from typing import Callable, cast
+
+session_id = ""
+run_id = ""
+is_ended = cast(Callable[[str], bool], None)
+# ---cut---
 from ai.stigmer.agentic.session.v1 import io_pb2
 
 request = io_pb2.StreamSessionEventsRequest(session_id=session_id, after_seq=0)
@@ -120,6 +187,11 @@ for frame in client.sessions.stream_events(request):
 </Tab>
 <Tab value="Java">
 ```java
+String sessionId;
+String runId;
+
+native boolean isEnded(String phase);
+// ---cut---
 var stream = client.session.streamEvents(StreamSessionEventsRequest.newBuilder()
     .setSessionId(sessionId)
     .setAfterSeq(0)
@@ -187,6 +259,9 @@ with its items in order, the calls waiting for an answer (`asks`), its to-do
 list, its status, and its final `answer`:
 
 ```typescript
+declare const sessionId: string;
+declare const runId: string;
+// ---cut---
 import { SessionLog, followSession } from "@stigmer/client";
 
 const log = new SessionLog();
@@ -305,6 +380,9 @@ answered.
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
+declare const sessionId: string;
+declare const toolUseId: string;
+// ---cut---
 import { create } from "@bufbuild/protobuf";
 import { ConfirmToolUseInputSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 
@@ -324,6 +402,8 @@ await stigmer.session.confirmToolUse(
 </Tab>
 <Tab value="Go">
 ```go
+var sessionID, toolUseID string
+// ---cut---
 _, err := client.Session.ConfirmToolUse(ctx, &sessionv1.ConfirmToolUseInput{
     SessionId:   sessionID,
     ToolUseId:   toolUseID,
@@ -341,6 +421,9 @@ if err != nil {
 </Tab>
 <Tab value="Python">
 ```python
+session_id = ""
+tool_use_id = ""
+# ---cut---
 client.sessions.confirm_tool_use(io_pb2.ConfirmToolUseInput(
     session_id=session_id,
     tool_use_id=tool_use_id,
@@ -355,6 +438,9 @@ client.sessions.confirm_tool_use(io_pb2.ConfirmToolUseInput(
 </Tab>
 <Tab value="Java">
 ```java
+String sessionId;
+String toolUseId;
+// ---cut---
 client.session.confirmToolUse(ConfirmToolUseInput.newBuilder()
     .setSessionId(sessionId)
     .setToolUseId(toolUseId)
@@ -389,6 +475,8 @@ lags, and its stream is never ended for it. Wait a moment between attempts.
 It throws only when a retry can't help, such as a Session you can't read:
 
 ```typescript
+declare const sessionId: string;
+// ---cut---
 import { followSession, isNotFound } from "@stigmer/client";
 
 try {
@@ -406,6 +494,8 @@ try {
 </Tab>
 <Tab value="Go">
 ```go
+var sessionID string
+// ---cut---
 var lastSeq int64
 for {
     stream, err := client.Session.StreamEvents(ctx, &sessionv1.StreamSessionEventsRequest{
@@ -436,6 +526,8 @@ for {
 </Tab>
 <Tab value="Python">
 ```python
+session_id = ""
+# ---cut---
 import time
 
 from stigmer import ErrorCode, StigmerError, is_retryable
@@ -456,6 +548,8 @@ while True:
 </Tab>
 <Tab value="Java">
 ```java
+String sessionId;
+// ---cut---
 long lastSeq = 0;
 while (true) {
     var request = StreamSessionEventsRequest.newBuilder()
@@ -509,6 +603,9 @@ In TypeScript, pass `previews` to `followSession`, and let `SessionLog` place
 each preview:
 
 ```typescript
+declare const sessionId: string;
+declare function render(snapshot: unknown): void;
+// ---cut---
 import { ALL_SESSION_PREVIEWS, SessionLog, followSession } from "@stigmer/client";
 
 const log = new SessionLog();
@@ -530,6 +627,10 @@ Pass an `AbortSignal` to `followSession`. Abort the controller to end the
 stream:
 
 ```typescript
+import { followSession } from "@stigmer/client";
+
+declare const sessionId: string;
+// ---cut---
 const controller = new AbortController();
 setTimeout(() => controller.abort(), 30_000);
 
@@ -546,6 +647,8 @@ for await (const frame of followSession(stigmer, sessionId, {
 Cancel the `context.Context` to close the stream:
 
 ```go
+var request *sessionv1.StreamSessionEventsRequest
+// ---cut---
 ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 defer cancel()
 
@@ -569,6 +672,11 @@ Break out of the iterator to stop reading. The underlying gRPC channel cleans
 up when the iterator is garbage collected:
 
 ```python
+from typing import Callable, cast
+
+request = io_pb2.StreamSessionEventsRequest()
+should_stop = cast(Callable[[], bool], None)
+# ---cut---
 for frame in client.sessions.stream_events(request):
     if should_stop():
         break
@@ -581,6 +689,10 @@ Break out of the iteration loop. The underlying gRPC stream cleans up when the
 `StigmerStream` is garbage collected:
 
 ```java
+StreamSessionEventsRequest request;
+
+native boolean shouldStop();
+// ---cut---
 var stream = client.session.streamEvents(request);
 while (stream.hasNext()) {
     var frame = stream.next();
@@ -636,6 +748,12 @@ In React, `useAttentionNotifications` follows it and hands each attention to
 your own `notify`, skipping the conversation the person is looking at:
 
 ```tsx
+declare const org: string;
+declare const notificationsOn: boolean;
+declare const openSessionId: string;
+// ---cut---
+import { useAttentionNotifications } from "@stigmer/react-sdk/headless";
+
 useAttentionNotifications({
   org,
   enabled: notificationsOn,

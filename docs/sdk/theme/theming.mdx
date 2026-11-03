@@ -72,6 +72,9 @@ Then give the provider a definite-height ancestor and the conversation
 fills the pane, with the transcript scrolling internally:
 
 ```tsx
+declare const sessionId: string;
+declare const org: string;
+// ---cut---
 <div style={{ height: 480, overflow: "hidden" }}>
   <StigmerProvider client={client} preset="monochrome" colorMode="dark">
     <SessionViewer sessionId={sessionId} org={org} audience="endUser" />
@@ -102,7 +105,11 @@ Two things to know:
 Pass `colorMode` to `StigmerProvider`:
 
 ```tsx
+declare function YourApp(): null;
+// ---cut---
 <StigmerProvider client={client} colorMode="dark">
+  <YourApp />
+</StigmerProvider>
 ```
 
 - `"light"` (default) and `"dark"` set the mode explicitly.
@@ -114,8 +121,13 @@ your app already has a theme state (next-themes, MUI, your own context),
 pass its current value straight through:
 
 ```tsx
+declare function YourApp(): null;
+declare function useTheme(): { resolvedTheme?: string };
+// ---cut---
 const { resolvedTheme } = useTheme(); // next-themes
 <StigmerProvider client={client} colorMode={resolvedTheme === "dark" ? "dark" : "light"}>
+  <YourApp />
+</StigmerProvider>
 ```
 
 ## Start from a preset
@@ -125,10 +137,14 @@ treatment — shipped as CSS classes. Import the CSS once and select the
 preset on the provider:
 
 ```tsx
+declare function YourApp(): null;
+// ---cut---
 import "@stigmer/design-tokens/tokens.css";
 import "@stigmer/design-tokens/presets/corporate.css";
 
 <StigmerProvider client={client} preset="corporate" colorMode="system">
+  <YourApp />
+</StigmerProvider>
 ```
 
 See [Presets](/docs/sdk/theme/presets) for the six built-in design languages
@@ -156,7 +172,11 @@ through to the [defaults](/docs/sdk/theme/tokens).
 ```
 
 ```tsx
+declare function YourApp(): null;
+// ---cut---
 <StigmerProvider client={client} className="acme-theme" colorMode="dark">
+  <YourApp />
+</StigmerProvider>
 ```
 
 Two rules keep custom themes correct:
@@ -236,12 +256,15 @@ built-in's props, so an override can always delegate back to the default
 for the cases it does not customize:
 
 ```tsx
-import {
-  MessageEntry,
-  type MessageEntryProps,
-  type MessageThreadSlots,
-  type TodoRowProps,
-} from "@stigmer/react-sdk";
+declare function AcmeCheckIcon(props: { done: boolean }): null;
+declare const id: string;
+declare const org: string;
+// ---cut---
+import type { ComponentProps } from "react";
+import { MessageEntry, SessionViewer, type MessageEntryProps } from "@stigmer/react-sdk";
+import type { MessageThreadSlots } from "@stigmer/react-sdk/headless";
+
+type TodoRowProps = ComponentProps<NonNullable<MessageThreadSlots["TodoRow"]>>;
 
 // Restyle only user bubbles; every other message keeps the built-in.
 function BrandedMessageEntry(props: MessageEntryProps) {

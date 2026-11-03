@@ -210,6 +210,12 @@ const agent = await stigmer.agent.apply({
 <Tab value="Go">
 
 ```go
+import (
+  "log"
+
+  stigmer "go.stigmer.ai/sdk"
+)
+
 agent, err := client.Agent.Apply(ctx, &stigmer.AgentInput{
   Org:          "acme-books",
   Name:         "Variance reporter",
@@ -222,7 +228,7 @@ agent, err := client.Agent.Apply(ctx, &stigmer.AgentInput{
   Tools: []string{"Read", "mcp__ledger"},
 })
 if err != nil {
-  return fmt.Errorf("apply agent: %w", err)
+  log.Fatalf("apply agent: %v", err)
 }
 ```
 
@@ -230,6 +236,8 @@ if err != nil {
 <Tab value="Python">
 
 ```python
+from stigmer import AgentInput, AgentMcpServerInput
+
 agent = client.agents.apply(AgentInput(
     org="acme-books",
     name="Variance reporter",
@@ -247,6 +255,11 @@ agent = client.agents.apply(AgentInput(
 <Tab value="Java">
 
 ```java
+import ai.stigmer.agentic.agent.v1.Agent;
+import ai.stigmer.sdk.gen.AgentInput;
+import java.util.List;
+import java.util.Map;
+
 Agent agent = client.agent.apply(AgentInput.builder()
     .org("acme-books")
     .name("Variance reporter")

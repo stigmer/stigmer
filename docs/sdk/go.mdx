@@ -20,7 +20,12 @@ Authenticate with an API key from an environment variable. Always call
 `defer client.Close()` to release the underlying gRPC connection:
 
 ```go
-import stigmer "go.stigmer.ai/sdk"
+import (
+    "log"
+    "os"
+
+    stigmer "go.stigmer.ai/sdk"
+)
 
 client, err := stigmer.NewClient(stigmer.WithAPIKey(os.Getenv("STIGMER_API_KEY")))
 if err != nil {
@@ -113,6 +118,13 @@ Every resource has its own client with methods like `Get`, `Create`, `List`,
 takes a `context.Context` as its first argument:
 
 ```go
+import (
+	"fmt"
+	"log"
+)
+
+var id string
+// ---cut---
 agent, err := client.Agent.Get(ctx, id)
 if err != nil {
     if stigmer.IsNotFound(err) {

@@ -105,6 +105,8 @@ In `server.ts`, mint each user's token into their customer's Organization
 instead of yours. Change the `org` the mint names:
 
 ```typescript
+declare const user: { id: string; email: string; name: string };
+// ---cut---
 const { accessToken, expiresAt } = await stigmer.tokens.mintUserToken({
   org: "northwind-books",
   userId: user.id,
@@ -122,13 +124,16 @@ In `src/App.tsx`, the conversation now lives in the customer's Organization,
 while the Agent still lives in yours. Read both:
 
 ```tsx
+// A Vite project types import.meta.env through src/vite-env.d.ts.
+import "vite/client";
+// ---cut---
 const org = import.meta.env.VITE_STIGMER_ORG;
 const agentOrg = import.meta.env.VITE_STIGMER_AGENT_ORG;
 ```
 
 and name the Agent by your Organization:
 
-```tsx
+```tsx no-compile="one attribute of the AgentChat element in src/App.tsx, shown alone"
 initialAgentRef={{ org: agentOrg, slug: "variance-reporter" }}
 ```
 

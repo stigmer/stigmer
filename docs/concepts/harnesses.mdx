@@ -167,6 +167,8 @@ const session = await client.session.create({
   <Tab value="Go">
 
 ```go
+import sessionv1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/session/v1"
+// ---cut---
 session, err := client.Session.Create(ctx, &stigmer.SessionInput{
     Name:     "q3-variance-review",
     Org:      "acme",

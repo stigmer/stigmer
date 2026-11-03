@@ -103,7 +103,11 @@ The kit draws Stigmer's look: black and white, with colour only for success,
 warnings and errors. Pass your own by role, to `runInTerminal` or the provider:
 
 ```tsx
+declare function YourTerminalApp(): null;
+// ---cut---
 <InkStigmerProvider client={client} theme={{ accent: "magenta" }}>
+  <YourTerminalApp />
+</InkStigmerProvider>
 ```
 
 The roles are `accent` (prompts, the selected row, spinners), `muted`,
@@ -115,6 +119,8 @@ colour, so they read on a light and a dark terminal. If your own colours differ
 between the two, pass the theme as a function of the background:
 
 ```tsx
+declare const input: Parameters<typeof runInTerminal>[1];
+// ---cut---
 await runInTerminal(client, input, {
   theme: (background) => ({ accent: background === "light" ? "#5b21b6" : "#c4b5fd" }),
 });
@@ -165,6 +171,9 @@ commands and its completions behind a trigger character, and passes them as
 `composer` to `runInTerminal` or `SessionView`:
 
 ```ts
+declare const input: Parameters<typeof runInTerminal>[1];
+declare function searchTickets(query: string): Promise<{ title: string; key: string }[]>;
+// ---cut---
 import type { ComposerExtensions } from "@stigmer/ink-ui";
 
 const composer: ComposerExtensions = {
@@ -201,6 +210,8 @@ For more control, create the client yourself and wrap your tree in
 `InkStigmerProvider`:
 
 ```tsx
+declare function YourTerminalApp(): null;
+// ---cut---
 import { render } from "ink";
 import { InkStigmerProvider, createNodeClient } from "@stigmer/ink-ui";
 
@@ -211,7 +222,7 @@ const client = createNodeClient({
 
 render(
   <InkStigmerProvider client={client}>
-    {/* your terminal components */}
+    <YourTerminalApp />
   </InkStigmerProvider>
 );
 ```

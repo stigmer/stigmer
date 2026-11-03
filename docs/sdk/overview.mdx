@@ -118,6 +118,10 @@ your platform's auth provider, and the callback returns their JWT. With
 enabled, Stigmer creates accounts automatically on first authentication:
 
 ```typescript
+import { Stigmer } from "@stigmer/client";
+
+declare function fetchTokenFromAuthProvider(): Promise<string>;
+// ---cut---
 const stigmer = new Stigmer({
   baseUrl: "https://api.stigmer.ai",
   getAccessToken: () => fetchTokenFromAuthProvider(),
@@ -128,7 +132,12 @@ Provide exactly one of `apiKey` or `getAccessToken`, not both.
 </Tab>
 <Tab value="Go">
 ```go
-import stigmer "go.stigmer.ai/sdk"
+import (
+	"log"
+	"os"
+
+	stigmer "go.stigmer.ai/sdk"
+)
 
 client, err := stigmer.NewClient(stigmer.WithAPIKey(os.Getenv("STIGMER_API_KEY")))
 if err != nil {
@@ -139,6 +148,8 @@ defer client.Close()
 </Tab>
 <Tab value="Python">
 ```python
+import os
+
 from stigmer import StigmerClient
 
 client = StigmerClient(os.environ["STIGMER_API_KEY"])
@@ -147,6 +158,10 @@ client = StigmerClient(os.environ["STIGMER_API_KEY"])
 The Python client also supports the context manager protocol:
 
 ```python
+import os
+
+from stigmer import StigmerClient
+# ---cut---
 with StigmerClient(os.environ["STIGMER_API_KEY"]) as client:
     agent = client.agents.get("agent-id")
 ```
@@ -172,6 +187,8 @@ connecting to a different server:
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
+import { Stigmer } from "@stigmer/client";
+// ---cut---
 const stigmer = new Stigmer({
   baseUrl: "https://custom-api.example.com",
   apiKey: process.env.STIGMER_API_KEY!,
@@ -189,6 +206,8 @@ const stigmer = new Stigmer({
 </Tab>
 <Tab value="Go">
 ```go
+import "os"
+// ---cut---
 client, err := stigmer.NewClient(
     stigmer.WithAPIKey(os.Getenv("STIGMER_API_KEY")),
     stigmer.WithBaseURL("custom-api.example.com:443"),
@@ -209,6 +228,10 @@ Always call `defer client.Close()` to release the underlying gRPC connection.
 </Tab>
 <Tab value="Python">
 ```python
+import os
+
+from stigmer import StigmerClient
+# ---cut---
 client = StigmerClient(
     os.environ["STIGMER_API_KEY"],
     base_url="custom-api.example.com:443",
@@ -226,6 +249,8 @@ On your machine, `stigmer up` needs no key:
 </Tab>
 <Tab value="Java">
 ```java
+import ai.stigmer.sdk.StigmerClient;
+// ---cut---
 var client = StigmerClient.builder(System.getenv("STIGMER_API_KEY"))
     .baseUrl("custom-api.example.com:443")
     .build();
@@ -254,7 +279,7 @@ own client with methods like `get`, `create`, `list`, `apply`, `update`,
 
 <SDKTabs>
 <Tab value="TypeScript">
-```typescript
+```typescript no-compile="a sketch of each SDK's naming, its arguments elided"
 stigmer.agent.get(id)
 stigmer.session.create(input)
 stigmer.session.streamEvents(request)
@@ -263,7 +288,7 @@ stigmer.session.streamEvents(request)
 TypeScript uses singular camelCase accessors on the `Stigmer` instance.
 </Tab>
 <Tab value="Go">
-```go
+```go no-compile="a sketch of each SDK's naming, its arguments elided"
 client.Agent.Get(ctx, id)
 client.Session.Create(ctx, &stigmer.SessionInput{...})
 client.Session.StreamEvents(ctx, request)
@@ -273,7 +298,7 @@ Go uses singular PascalCase fields. Every method takes a `context.Context` as
 its first argument.
 </Tab>
 <Tab value="Python">
-```python
+```python no-compile="a sketch of each SDK's naming, its arguments elided"
 client.agents.get(id)
 client.sessions.create(SessionInput(...))
 client.sessions.stream_events(request)
@@ -282,7 +307,7 @@ client.sessions.stream_events(request)
 Python uses plural snake_case attributes.
 </Tab>
 <Tab value="Java">
-```java
+```java no-compile="a sketch of each SDK's naming, its arguments elided"
 client.agent.get(id);
 client.session.create(SessionInput.builder()...build());
 client.session.streamEvents(request);
@@ -320,6 +345,8 @@ helpers to check common error conditions without inspecting codes directly.
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
+declare const id: string;
+// ---cut---
 import { StigmerError, isNotFound, isRetryable } from "@stigmer/client";
 
 try {
@@ -343,6 +370,10 @@ The TypeScript SDK also exports `classifyError(err)` which returns an
 </Tab>
 <Tab value="Go">
 ```go
+import "log"
+
+var id string
+// ---cut---
 agent, err := client.Agent.Get(ctx, id)
 if err != nil {
     if stigmer.IsNotFound(err) {
@@ -355,6 +386,8 @@ if err != nil {
 </Tab>
 <Tab value="Python">
 ```python
+id = ""
+# ---cut---
 from stigmer import StigmerError, is_not_found, is_retryable
 
 try:
@@ -370,6 +403,8 @@ except StigmerError as err:
 </Tab>
 <Tab value="Java">
 ```java
+String id;
+// ---cut---
 import ai.stigmer.sdk.gen.StigmerException;
 
 try {
@@ -419,6 +454,8 @@ for reading for 30 days. Renaming needs the permission to delete the resource.
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
+declare const id: string;
+// ---cut---
 import { getErrorReason, StigmerError } from "@stigmer/client";
 
 const current = await stigmer.agent.get(id);
@@ -442,6 +479,13 @@ try {
 </Tab>
 <Tab value="Go">
 ```go
+import (
+	"errors"
+	"log"
+)
+
+var id string
+// ---cut---
 current, err := client.Agent.Get(ctx, id)
 if err != nil {
     log.Fatal(err)
@@ -458,6 +502,8 @@ The Go error carries the code; the reason is not exposed.
 </Tab>
 <Tab value="Python">
 ```python
+id = ""
+# ---cut---
 from stigmer import ErrorCode, StigmerError
 
 current = client.agents.get(id)
@@ -474,6 +520,8 @@ The Python error carries the code; the reason is not exposed.
 </Tab>
 <Tab value="Java">
 ```java
+String id;
+// ---cut---
 import ai.stigmer.sdk.gen.ErrorCode;
 import ai.stigmer.sdk.gen.StigmerException;
 
@@ -525,6 +573,13 @@ const next = await stigmer.session.list({ org: "acme", pageSize: 25, pageToken: 
 </Tab>
 <Tab value="Go">
 ```go
+import (
+	"fmt"
+	"log"
+
+	sessionv1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/session/v1"
+)
+// ---cut---
 for s, err := range client.Session.ListAll(ctx, &sessionv1.ListSessionsRequest{Org: "acme"}) {
     if err != nil {
         log.Fatal(err)
@@ -599,6 +654,13 @@ for await (const session of stigmer.session.listAll({ org: "acme", labels: { tea
 </Tab>
 <Tab value="Go">
 ```go
+import (
+	"fmt"
+	"log"
+
+	sessionv1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/session/v1"
+)
+// ---cut---
 req := &sessionv1.ListSessionsRequest{Org: "acme", Labels: map[string]string{"team": "support"}}
 for s, err := range client.Session.ListAll(ctx, req) {
     if err != nil {
@@ -610,6 +672,8 @@ for s, err := range client.Session.ListAll(ctx, req) {
 </Tab>
 <Tab value="Python">
 ```python
+from ai.stigmer.agentic.session.v1 import io_pb2
+# ---cut---
 request = io_pb2.ListSessionsRequest(org="acme", labels={"team": "support"})
 for session in client.sessions.list_all(request):
     print(session.metadata.name)
@@ -617,6 +681,8 @@ for session in client.sessions.list_all(request):
 </Tab>
 <Tab value="Java">
 ```java
+import ai.stigmer.agentic.session.v1.ListSessionsRequest;
+// ---cut---
 var request = ListSessionsRequest.newBuilder().setOrg("acme").putLabels("team", "support").build();
 for (var session : client.session.listAll(request)) {
     System.out.println(session.getMetadata().getName());
@@ -640,6 +706,9 @@ the Agent's messages for one run until the run ends.
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
+declare const sessionId: string;
+declare const runId: string;
+// ---cut---
 import { followSession } from "@stigmer/client";
 
 const ended = ["completed", "failed", "cancelled", "terminated"];
@@ -662,6 +731,16 @@ one call, use `sendAndWait`.
 </Tab>
 <Tab value="Go">
 ```go
+import (
+	"fmt"
+	"log"
+
+	sessionv1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/session/v1"
+	"google.golang.org/protobuf/proto"
+)
+
+var sessionID, runID string
+// ---cut---
 stream, err := client.Session.StreamEvents(ctx, &sessionv1.StreamSessionEventsRequest{
     SessionId: sessionID,
     AfterSeq:  proto.Int64(0),
@@ -700,6 +779,9 @@ the answer in one call, use `client.SendAndWait`.
 </Tab>
 <Tab value="Python">
 ```python
+session_id = ""
+run_id = ""
+# ---cut---
 from ai.stigmer.agentic.session.v1 import io_pb2
 
 ENDED = {"completed", "failed", "cancelled", "terminated"}
@@ -721,6 +803,11 @@ To send a message and wait for the answer in one call, use
 </Tab>
 <Tab value="Java">
 ```java
+import java.util.Set;
+
+String sessionId;
+String runId;
+// ---cut---
 import ai.stigmer.agentic.session.v1.StreamSessionEventsRequest;
 
 var ended = Set.of("completed", "failed", "cancelled", "terminated");

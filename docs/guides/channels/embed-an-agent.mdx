@@ -126,6 +126,11 @@ surface in `@stigmer/react-sdk` accepts it
 [`useCreateRun`](/docs/sdk/react/run#usecreaterun)'s bootstrap `sessionSpec`):
 
 ```tsx
+declare function navigate(path: string): void;
+declare const user: { name: string; role: string };
+// ---cut---
+import { useNewSessionFlow } from "@stigmer/react-sdk/headless";
+
 const flow = useNewSessionFlow({
   org: "acme",
   onSessionCreated: (id) => navigate(`/sessions/${id}`),
