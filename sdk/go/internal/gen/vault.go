@@ -21,7 +21,6 @@ type VaultClient struct {
 	command     vaultv1.VaultCommandControllerClient
 	connectLink vaultv1.ConnectLinkControllerClient
 	query       vaultv1.VaultQueryControllerClient
-	vaultValue  vaultv1.VaultValueControllerClient
 }
 
 func NewVaultClient(conn grpc.ClientConnInterface) *VaultClient {
@@ -29,7 +28,6 @@ func NewVaultClient(conn grpc.ClientConnInterface) *VaultClient {
 		command:     vaultv1.NewVaultCommandControllerClient(conn),
 		connectLink: vaultv1.NewConnectLinkControllerClient(conn),
 		query:       vaultv1.NewVaultQueryControllerClient(conn),
-		vaultValue:  vaultv1.NewVaultValueControllerClient(conn),
 	}
 }
 
@@ -172,11 +170,6 @@ func (v *VaultClient) ListAll(ctx context.Context, input *vaultv1.ListVaultsRequ
 			req.PageToken = page.GetNextPageToken()
 		}
 	}
-}
-
-func (v *VaultClient) FetchValues(ctx context.Context, input *vaultv1.FetchExecutionValuesInput) (*vaultv1.ExecutionValues, error) {
-	resp, err := v.vaultValue.FetchValues(ctx, input)
-	return resp, wrapErr(err)
 }
 
 // VaultInput holds the fields for creating or applying a Vault.

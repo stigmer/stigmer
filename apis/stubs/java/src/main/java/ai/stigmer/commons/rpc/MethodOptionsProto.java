@@ -22,6 +22,7 @@ public final class MethodOptionsProto extends com.google.protobuf.GeneratedFile 
     registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.config);
     registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.isPublic);
     registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.isSkipAuthorization);
+    registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.isRunnerOnly);
   }
 
   public static void registerAllExtensions(
@@ -74,6 +75,27 @@ public final class MethodOptionsProto extends com.google.protobuf.GeneratedFile 
           .newFileScopedGeneratedExtension(
         java.lang.Boolean.class,
         null);
+  public static final int IS_RUNNER_ONLY_FIELD_NUMBER = 50059;
+  /**
+   * <pre>
+   * When true, only a runner presenting the run's credential ever calls the
+   * RPC, never a person, so the SDK generators leave it out of every public
+   * client and reference page. It is a codegen mark, not an authorization
+   * posture: the server does not read it, and the method's handler still
+   * holds the gate that refuses every other caller. A marked method also
+   * carries is_skip_authorization, since a person's permission cannot tell
+   * a runner from the person it acts for.
+   * </pre>
+   *
+   * <code>extend .google.protobuf.MethodOptions { ... }</code>
+   */
+  public static final
+    com.google.protobuf.GeneratedMessage.GeneratedExtension<
+      com.google.protobuf.DescriptorProtos.MethodOptions,
+      java.lang.Boolean> isRunnerOnly = com.google.protobuf.GeneratedMessage
+          .newFileScopedGeneratedExtension(
+        java.lang.Boolean.class,
+        null);
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -93,11 +115,12 @@ public final class MethodOptionsProto extends com.google.protobuf.GeneratedFile 
       "le.protobuf.MethodOptions\030\211\207\003 \001(\010R\010isPub" +
       "lic:T\n\025is_skip_authorization\022\036.google.pr" +
       "otobuf.MethodOptions\030\212\207\003 \001(\010R\023isSkipAuth" +
-      "orizationB\220\001B\022MethodOptionsProtoP\001\242\002\004ASC" +
-      "R\252\002\026Ai.Stigmer.Commons.Rpc\312\002\026Ai\\Stigmer\\" +
-      "Commons\\Rpc\342\002\"Ai\\Stigmer\\Commons\\Rpc\\GPB" +
-      "Metadata\352\002\031Ai::Stigmer::Commons::Rpcb\006pr" +
-      "oto3"
+      "orization:F\n\016is_runner_only\022\036.google.pro" +
+      "tobuf.MethodOptions\030\213\207\003 \001(\010R\014isRunnerOnl" +
+      "yB\220\001B\022MethodOptionsProtoP\001\242\002\004ASCR\252\002\026Ai.S" +
+      "tigmer.Commons.Rpc\312\002\026Ai\\Stigmer\\Commons\\" +
+      "Rpc\342\002\"Ai\\Stigmer\\Commons\\Rpc\\GPBMetadata" +
+      "\352\002\031Ai::Stigmer::Commons::Rpcb\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -108,6 +131,7 @@ public final class MethodOptionsProto extends com.google.protobuf.GeneratedFile 
     config.internalInit(descriptor.getExtension(0));
     isPublic.internalInit(descriptor.getExtension(1));
     isSkipAuthorization.internalInit(descriptor.getExtension(2));
+    isRunnerOnly.internalInit(descriptor.getExtension(3));
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.commons.rpc.AuthorizationConfigProto.getDescriptor();
     com.google.protobuf.DescriptorProtos.getDescriptor();

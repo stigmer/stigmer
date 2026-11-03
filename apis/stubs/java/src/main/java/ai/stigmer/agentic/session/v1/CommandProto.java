@@ -42,7 +42,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "\032&ai/stigmer/agentic/session/v1/io.proto" +
       "\0328ai/stigmer/commons/apiresource/rpc_ser" +
       "vice_options.proto\032+ai/stigmer/commons/r" +
-      "pc/method_options.proto2\342\017\n\030SessionComma" +
+      "pc/method_options.proto2\352\017\n\030SessionComma" +
       "ndController\022W\n\005apply\022&.ai.stigmer.agent" +
       "ic.session.v1.Session\032&.ai.stigmer.agent" +
       "ic.session.v1.Session\022\245\001\n\006create\022&.ai.st" +
@@ -86,18 +86,18 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "tigmer.agentic.session.v1.SessionId\032&.ai" +
       ".stigmer.agentic.session.v1.Session\"/\302\270\030" +
       "+\010\003\020*\"\005value*\036unauthorized to delete ses" +
-      "sion\022\211\001\n\014appendEvents\0227.ai.stigmer.agent" +
+      "sion\022\215\001\n\014appendEvents\0227.ai.stigmer.agent" +
       "ic.session.v1.AppendSessionEventsInput\032:" +
       ".ai.stigmer.agentic.session.v1.AppendSes" +
-      "sionEventsResponse\"\004\320\270\030\001\022\203\001\n\nclaimInput\022" +
-      "5.ai.stigmer.agentic.session.v1.ClaimSes" +
-      "sionInputInput\0328.ai.stigmer.agentic.sess" +
-      "ion.v1.ClaimSessionInputResponse\"\004\320\270\030\001\032\004" +
-      "\240\377+*B\247\001B\014CommandProtoP\001\242\002\004ASAS\252\002\035Ai.Stig" +
-      "mer.Agentic.Session.V1\312\002\035Ai\\Stigmer\\Agen" +
-      "tic\\Session\\V1\342\002)Ai\\Stigmer\\Agentic\\Sess" +
-      "ion\\V1\\GPBMetadata\352\002!Ai::Stigmer::Agenti" +
-      "c::Session::V1b\006proto3"
+      "sionEventsResponse\"\010\320\270\030\001\330\270\030\001\022\207\001\n\nclaimIn" +
+      "put\0225.ai.stigmer.agentic.session.v1.Clai" +
+      "mSessionInputInput\0328.ai.stigmer.agentic." +
+      "session.v1.ClaimSessionInputResponse\"\010\320\270" +
+      "\030\001\330\270\030\001\032\004\240\377+*B\247\001B\014CommandProtoP\001\242\002\004ASAS\252\002" +
+      "\035Ai.Stigmer.Agentic.Session.V1\312\002\035Ai\\Stig" +
+      "mer\\Agentic\\Session\\V1\342\002)Ai\\Stigmer\\Agen" +
+      "tic\\Session\\V1\\GPBMetadata\352\002!Ai::Stigmer" +
+      "::Agentic::Session::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -118,6 +118,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(ai.stigmer.commons.apiresource.RpcServiceOptionsProto.apiResourceKind);
     registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.config);
+    registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.isRunnerOnly);
     registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.isSkipAuthorization);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);

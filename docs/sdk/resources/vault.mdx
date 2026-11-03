@@ -66,7 +66,6 @@ Vault vault = client.vaults().get("vlt_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`completeConnectLink`](#completeconnectlink) | Finish a Connect link's sign-in and spend the link. |
 | [`completeSignIn`](#completesignin) | Finish a sign-in: exchange the code the login page handed back and save the login in the vault the sign-in was started for, replacing any login saved at the address. |
 | [`createConnectLink`](#createconnectlink) | Make a Connect link: a one-time page where someone without a Stigmer account signs in at an address, and the login is saved into a shared vault. |
-| [`fetchValues`](#fetchvalues) | Fetch the values of a run or of a tools listing, grouped by who declared them, opened from the vaults the run's source manifest names (RunStatus.credentials.sources) as they are now. |
 | [`removeConnections`](#removeconnections) | Remove logins from a vault by address. |
 | [`removeSecrets`](#removesecrets) | Remove secrets from a vault by name. |
 | [`rename`](#rename) | Rename a vault: change its slug, the name people type. |
@@ -713,45 +712,6 @@ ConnectLink connectLink = client.vaults().createConnectLink(CreateConnectLinkInp
 **Parameters**: [`CreateConnectLinkInput`](#createconnectlinkinput)
 
 **Returns**: [`ConnectLink`](#connectlink)
-
-### fetchValues
-
-Fetch the values of a run or of a tools listing, grouped by who declared them, opened from the vaults the run's source manifest names (RunStatus.credentials.sources) as they are now.
-
-<SDKTabs>
-<Tab value="TypeScript">
-```typescript
-const executionValues = await stigmer.vault.fetchValues({
-  executionId: "...",
-});
-```
-</Tab>
-<Tab value="Go">
-```go
-executionValues, err := client.Vault.FetchValues(ctx, &stigmer.FetchExecutionValuesInput{
-  ExecutionId: "...",
-})
-```
-</Tab>
-<Tab value="Python">
-```python
-execution_values = client.vaults.fetch_values(FetchExecutionValuesInput(
-    execution_id="...",
-))
-```
-</Tab>
-<Tab value="Java">
-```java
-ExecutionValues executionValues = client.vaults().fetchValues(FetchExecutionValuesInput.builder()
-    .executionId("...")
-    .build());
-```
-</Tab>
-</SDKTabs>
-
-**Parameters**: [`FetchExecutionValuesInput`](#fetchexecutionvaluesinput)
-
-**Returns**: [`ExecutionValues`](#executionvalues)
 
 ### removeConnections
 
@@ -1405,30 +1365,6 @@ VaultList contains a paginated list of vaults.
   type={{
     entries: { type: "VaultInput[]", description: "Vaults in the current page.", typeDescriptionLink: "#vaultinput" },
     nextPageToken: { type: "string", description: "Set when more entries may follow: pass it as page_token to continue." },
-  }}
-/>
-
-### FetchExecutionValuesInput
-
-Which execution's values to fetch.
-
-<TypeTable
-  type={{
-    executionId: { type: "string", description: "The run's id, or the id of a tools listing's connect attempt." },
-  }}
-/>
-
-### ExecutionValues
-
-ExecutionValues are one execution's values, grouped by who declared them: each declarer receives only its own.
-
-<TypeTable
-  type={{
-    agent: { type: "Record<string, string>", description: "The agent's own keys, for its shell and its own hooks: secrets by name and plain defaults, never a connection or a repository's token, and never a key a tool or a plugin of the run declares." },
-    tools: { type: "ToolValuesInput[]", description: "Each tool's keys, by tool." },
-    repositories: { type: "RepositoryValuesInput[]", description: "Each repository's token, for its clone and write-back only." },
-    plugins: { type: "PluginValuesInput[]", description: "Each plugin's keys, for that plugin's hooks only." },
-    subagents: { type: "SubagentValuesInput[]", description: "Each subagent's own keys, for its shell and its own hooks: what agent holds for the agent, for a saved agent the turn's agent lists." },
   }}
 />
 

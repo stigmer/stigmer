@@ -8,7 +8,6 @@ import { FileSchema, type File } from "@stigmer/apis/ai/stigmer/agentic/file/v1/
 import { FileCommandController } from "@stigmer/apis/ai/stigmer/agentic/file/v1/command_pb";
 import { FileIdSchema, UploadFileInputSchema, CreateFileUploadUrlInputSchema, FileUploadUrlSchema, UpdateFileInputSchema, ListFilesRequestSchema, FileListSchema, FileDownloadUrlSchema, GetFileContentInputSchema, FileContentSchema, type UploadFileInput, type CreateFileUploadUrlInput, type FileUploadUrl, type ListFilesRequest, type FileList, type FileDownloadUrl, type GetFileContentInput, type FileContent } from "@stigmer/apis/ai/stigmer/agentic/file/v1/io_pb";
 import { FileQueryController } from "@stigmer/apis/ai/stigmer/agentic/file/v1/query_pb";
-import { RunFileController, MountRunFilesInputSchema, RunFileMountsSchema, CreateOutputUploadsInputSchema, OutputUploadsSchema, RegisterOutputsInputSchema, RegisteredOutputsSchema, type MountRunFilesInput, type RunFileMounts, type CreateOutputUploadsInput, type OutputUploads, type RegisterOutputsInput, type RegisteredOutputs } from "@stigmer/apis/ai/stigmer/agentic/file/v1/run_files_pb";
 import { FileSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/spec_pb";
 import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 import { type UpdateVisibilityInput, type UpdateVisibilityInputSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
@@ -18,12 +17,10 @@ import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apir
 export class FileClient {
   private readonly command: Client<typeof FileCommandController>;
   private readonly query: Client<typeof FileQueryController>;
-  private readonly runFile: Client<typeof RunFileController>;
 
   constructor(transport: Transport) {
     this.command = createClient(FileCommandController, transport);
     this.query = createClient(FileQueryController, transport);
-    this.runFile = createClient(RunFileController, transport);
   }
 
   async upload(input: MessageInitShape<typeof UploadFileInputSchema>): Promise<File> {
@@ -91,24 +88,6 @@ export class FileClient {
   async getContent(input: MessageInitShape<typeof GetFileContentInputSchema>): Promise<FileContent> {
     try {
       return await this.query.getContent(input);
-    } catch (e) { throw wrapError(e); }
-  }
-
-  async mount(input: MessageInitShape<typeof MountRunFilesInputSchema>): Promise<RunFileMounts> {
-    try {
-      return await this.runFile.mount(input);
-    } catch (e) { throw wrapError(e); }
-  }
-
-  async createOutputUploads(input: MessageInitShape<typeof CreateOutputUploadsInputSchema>): Promise<OutputUploads> {
-    try {
-      return await this.runFile.createOutputUploads(input);
-    } catch (e) { throw wrapError(e); }
-  }
-
-  async registerOutputs(input: MessageInitShape<typeof RegisterOutputsInputSchema>): Promise<RegisteredOutputs> {
-    try {
-      return await this.runFile.registerOutputs(input);
     } catch (e) { throw wrapError(e); }
   }
 }

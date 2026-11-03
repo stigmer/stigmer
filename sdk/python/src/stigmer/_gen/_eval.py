@@ -10,9 +10,7 @@ import grpc
 from ai.stigmer.agentic.eval.v1 import api_pb2
 from ai.stigmer.agentic.eval.v1 import command_pb2_grpc
 from ai.stigmer.agentic.eval.v1 import query_pb2_grpc
-from ai.stigmer.agentic.eval.v1 import run_eval_case_pb2_grpc
 from ai.stigmer.agentic.eval.v1 import io_pb2
-from ai.stigmer.agentic.eval.v1 import run_eval_case_pb2
 from ai.stigmer.agentic.eval.v1 import spec_pb2
 from ai.stigmer.commons.apiresource import metadata_pb2
 from ai.stigmer.commons.apiresource.apiresourcekind import api_resource_kind_pb2
@@ -28,7 +26,6 @@ class EvalClient:
     def __init__(self, channel: grpc.Channel) -> None:
         self._command = command_pb2_grpc.EvalCommandControllerStub(channel)
         self._query = query_pb2_grpc.EvalQueryControllerStub(channel)
-        self._runEvalCase = run_eval_case_pb2_grpc.RunEvalCaseControllerStub(channel)
 
     def push(self, input: io_pb2.PushEvalRequest) -> api_pb2.Eval:
         try:
@@ -135,12 +132,6 @@ class EvalClient:
     def build_case_from_run(self, input: io_pb2.BuildEvalCaseFromRunRequest) -> io_pb2.EvalCaseArchive:
         try:
             return self._query.buildCaseFromRun(input)
-        except grpc.RpcError as e:
-            raise wrap_error(e) from e
-
-    def get_archive_download_url(self, input: run_eval_case_pb2.GetRunEvalCaseArchiveInput) -> io_pb2.EvalArchiveDownloadUrl:
-        try:
-            return self._runEvalCase.getArchiveDownloadUrl(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 

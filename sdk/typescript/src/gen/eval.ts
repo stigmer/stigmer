@@ -9,7 +9,6 @@ import { EvalSchema, type Eval } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/
 import { EvalCommandController } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/command_pb";
 import { EvalIdSchema, PushEvalRequestSchema, AddEvalCaseFromRunRequestSchema, CreateEvalArtifactUploadUrlRequestSchema, EvalArtifactUploadUrlSchema, ListEvalsRequestSchema, EvalListSchema, ListEvalVersionsInputSchema, ListEvalVersionsResponseSchema, EvalArchiveSchema, EvalArchiveDownloadUrlSchema, BuildEvalCaseFromRunRequestSchema, EvalCaseArchiveSchema, type PushEvalRequest, type AddEvalCaseFromRunRequest, type CreateEvalArtifactUploadUrlRequest, type EvalArtifactUploadUrl, type ListEvalsRequest, type EvalList, type ListEvalVersionsInput, type ListEvalVersionsResponse, type EvalArchive, type EvalArchiveDownloadUrl, type BuildEvalCaseFromRunRequest, type EvalCaseArchive } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/io_pb";
 import { EvalQueryController } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/query_pb";
-import { RunEvalCaseController, GetRunEvalCaseArchiveInputSchema, type GetRunEvalCaseArchiveInput } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/run_eval_case_pb";
 import { EvalSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
@@ -20,12 +19,10 @@ import { ApiResourceMetadataSchema, ApiResourceMetadataVersionSchema } from "@st
 export class EvalClient {
   private readonly command: Client<typeof EvalCommandController>;
   private readonly query: Client<typeof EvalQueryController>;
-  private readonly runEvalCase: Client<typeof RunEvalCaseController>;
 
   constructor(transport: Transport) {
     this.command = createClient(EvalCommandController, transport);
     this.query = createClient(EvalQueryController, transport);
-    this.runEvalCase = createClient(RunEvalCaseController, transport);
   }
 
   async push(input: MessageInitShape<typeof PushEvalRequestSchema>): Promise<Eval> {
@@ -131,12 +128,6 @@ export class EvalClient {
   async buildCaseFromRun(input: MessageInitShape<typeof BuildEvalCaseFromRunRequestSchema>): Promise<EvalCaseArchive> {
     try {
       return await this.query.buildCaseFromRun(input);
-    } catch (e) { throw wrapError(e); }
-  }
-
-  async getArchiveDownloadUrl(input: MessageInitShape<typeof GetRunEvalCaseArchiveInputSchema>): Promise<EvalArchiveDownloadUrl> {
-    try {
-      return await this.runEvalCase.getArchiveDownloadUrl(input);
     } catch (e) { throw wrapError(e); }
   }
 }

@@ -19,7 +19,9 @@ import "buf/validate/validate.proto";
 // another address (a sandbox on a local stack, a self-host's private
 // network), so its link is minted here. The authority is the runner
 // credential acting for the run, and the run's own spec names the Eval and
-// its version: no request field can name another.
+// its version: no request field can name another. Every method here carries
+// is_runner_only, so the generators keep it out of the public SDKs; a method
+// added here without that option reaches every SDK.
 service RunEvalCaseController {
   // A link to the archive of the Eval version a run's case names, valid
   // for an hour.
@@ -33,6 +35,7 @@ service RunEvalCaseController {
   // version or archive is NOT_FOUND, as on EvalQueryController.
   rpc getArchiveDownloadUrl(GetRunEvalCaseArchiveInput) returns (EvalArchiveDownloadUrl) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+    option (ai.stigmer.commons.rpc.is_runner_only) = true;
   }
 }
 

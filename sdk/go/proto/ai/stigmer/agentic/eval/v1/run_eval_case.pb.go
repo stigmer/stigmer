@@ -75,9 +75,9 @@ const file_ai_stigmer_agentic_eval_v1_run_eval_case_proto_rawDesc = "" +
 	"\n" +
 	".ai/stigmer/agentic/eval/v1/run_eval_case.proto\x12\x1aai.stigmer.agentic.eval.v1\x1a#ai/stigmer/agentic/eval/v1/io.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a\x1bbuf/validate/validate.proto\"<\n" +
 	"\x1aGetRunEvalCaseArchiveInput\x12\x1e\n" +
-	"\x06run_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x05runId2\xa3\x01\n" +
-	"\x15RunEvalCaseController\x12\x89\x01\n" +
-	"\x15getArchiveDownloadUrl\x126.ai.stigmer.agentic.eval.v1.GetRunEvalCaseArchiveInput\x1a2.ai.stigmer.agentic.eval.v1.EvalArchiveDownloadUrl\"\x04и\x18\x01B\xfc\x01\n" +
+	"\x06run_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x05runId2\xa7\x01\n" +
+	"\x15RunEvalCaseController\x12\x8d\x01\n" +
+	"\x15getArchiveDownloadUrl\x126.ai.stigmer.agentic.eval.v1.GetRunEvalCaseArchiveInput\x1a2.ai.stigmer.agentic.eval.v1.EvalArchiveDownloadUrl\"\bи\x18\x01ظ\x18\x01B\xfc\x01\n" +
 	"\x1ecom.ai.stigmer.agentic.eval.v1B\x10RunEvalCaseProtoP\x01Z9go.stigmer.ai/sdk/proto/ai/stigmer/agentic/eval/v1;evalv1\xa2\x02\x04ASAE\xaa\x02\x1aAi.Stigmer.Agentic.Eval.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Eval_\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Eval_\\V1\\GPBMetadata\xea\x02\x1eAi::Stigmer::Agentic::Eval::V1b\x06proto3"
 
 var (
