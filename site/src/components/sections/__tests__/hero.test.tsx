@@ -16,6 +16,7 @@
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { renderToString } from "react-dom/server";
 import { SITE_CONFIG } from "@/lib/constants";
 import { AGENT_GET_IDS, type AgentGetId } from "@/lib/agent-gets";
 import { screenSrcSet, shownScreen, shownSize } from "@/lib/screens";
@@ -225,6 +226,15 @@ describe("Hero", () => {
     expect(pause.getAttribute("aria-pressed")).toBe("false");
     fireEvent.focus(screen.getByRole("link", { name: "See the proof" }));
     expect(hero.getAttribute("data-held")).toBe("true");
+  });
+
+  it("renders the ask, not stepping, before the page wakes, so the exported page and the woken one agree", () => {
+    preferReducedMotion(false);
+    const html = renderToString(<Hero />);
+    // The attribute on an element, not the stylesheet's selector for it.
+    expect(html).not.toContain('data-hero-moments-progress=""');
+    expect(html).not.toContain("Pause animation");
+    expect(html).toMatch(/aria-selected="true"[^>]*id="hero-moments-tab-asks-first"|id="hero-moments-tab-asks-first"[^>]*aria-selected="true"/);
   });
 
   it("never steps when the visitor asked for less motion, and the tabs still work", () => {
