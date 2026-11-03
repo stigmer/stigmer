@@ -50,6 +50,17 @@ import { AgentChat } from "@stigmer/react-sdk/chat";
 <AgentChat agent="acme/variance-reporter" variant="popup" />  // a corner button
 ```
 
+Here is the popup, open on a finished turn. Send it a message: a scripted
+server answers in place of an agent.
+
+<Live
+  name="chat-popup"
+  alt="AgentChat as a corner popup, open on a finished turn, with the composer ready for a reply"
+/>
+
+The [Gallery](/docs/sdk/react/gallery) shows the page and panel frames and every
+state of the thread.
+
 The popup never traps focus or takes a key from your page. Escape closes it
 while focus is inside, and its button says what the Agent is doing while it is
 closed. The chat writes no storage: keep the ID `onSessionChange` hands you to

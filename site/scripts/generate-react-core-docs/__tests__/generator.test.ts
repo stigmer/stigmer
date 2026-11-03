@@ -90,7 +90,7 @@ describe("the React core reference", () => {
     expect(mdx).toContain("## Contexts and providers\n\n### StigmerContext\n\nThe client.");
     expect(mdx).toContain("## Hooks\n\n### useSessionList\n\nLists sessions.\n\n**Returns** — `UseSessionListReturn`\n\n<TypeTable");
     expect(mdx).toContain('sessions: { type: "string", description: "", required: true },');
-    expect(JSON.parse(renderMetaJson())).toEqual({ title: "React core", pages: ["reference"] });
+    expect(JSON.parse(renderMetaJson())).toEqual({ title: "React core", pages: ["build-a-chat", "reference"] });
   });
 });
 
@@ -116,7 +116,7 @@ describe("the comment parts, examples and the writer", () => {
     await parse([fn(1, "useThing", "Does it.")]);
     expect(await generate(path.join(dir, "api.json"), out)).toBe(1);
     expect(await fs.readFile(path.join(out, "reference.mdx"), "utf-8")).toContain("### useThing");
-    expect(JSON.parse(await fs.readFile(path.join(out, "meta.json"), "utf-8")).pages).toEqual(["reference"]);
+    expect(JSON.parse(await fs.readFile(path.join(out, "meta.json"), "utf-8")).pages).toEqual(["build-a-chat", "reference"]);
     await expect(generate(path.join(dir, "missing.json"), out)).rejects.toThrow("does not exist");
     await parse([]);
     await expect(generate(path.join(dir, "api.json"), out)).rejects.toThrow("no exports");

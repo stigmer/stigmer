@@ -347,7 +347,7 @@ export function newArchiveCurrentEvalStep(
         head.spec.tag = "";
       }
     },
-    showArchivedTag: (head, tag) => {
+    overlayTag: (head, tag) => {
       head.spec ??= create(EvalSpecSchema, {});
       head.spec.tag = tag;
     },

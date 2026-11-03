@@ -5,7 +5,7 @@
  *   ValidateProto → ResolveArtifactSource → BuildInitialSkill →
  *   ExtractAndHashArtifact → ResolveSlugForPush → FindExistingBySlug →
  *   GenerateIDIfNeeded → CheckAndStoreArtifact → PopulateSkillFields →
- *   GuardReservedLabels → ArchiveCurrentSkill → StoreSkill →
+ *   GuardReservedLabels → StoreSkill → ArchiveCurrentSkill →
  *   IndexSkillSearch
  *
  * Step names are frozen vocabulary. GuardReservedLabels runs because
@@ -399,7 +399,7 @@ export function newArchiveCurrentSkillStep(
       clearLiveTag: (skill) => {
         skill.spec!.tag = "";
       },
-      showArchivedTag: (skill, tag) => {
+      overlayTag: (skill, tag) => {
         if (skill.spec !== undefined) {
           skill.spec.tag = tag;
         }
