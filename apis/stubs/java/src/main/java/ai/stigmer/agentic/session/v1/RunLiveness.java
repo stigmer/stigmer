@@ -13,7 +13,10 @@ package ai.stigmer.agentic.session.v1;
  * always under a minute). Streamed, never stored; the newest one replaces
  * the one before. A stream that asks for it and opens while the turn works
  * receives the turn's newest one right after the stored events it reads
- * first, its ages moved forward by the time the server held it.
+ * first, its ages moved forward by the time the server held it, when the
+ * server process serving the stream received that one within the last
+ * minute; otherwise, as on another process during a rolling update, the
+ * stream waits for the runner's next send.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.session.v1.RunLiveness}
@@ -413,7 +416,10 @@ private static final long serialVersionUID = 0L;
    * always under a minute). Streamed, never stored; the newest one replaces
    * the one before. A stream that asks for it and opens while the turn works
    * receives the turn's newest one right after the stored events it reads
-   * first, its ages moved forward by the time the server held it.
+   * first, its ages moved forward by the time the server held it, when the
+   * server process serving the stream received that one within the last
+   * minute; otherwise, as on another process during a rolling update, the
+   * stream waits for the runner's next send.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.session.v1.RunLiveness}
