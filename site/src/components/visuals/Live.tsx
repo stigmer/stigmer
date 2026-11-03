@@ -13,19 +13,17 @@
  * src/lib/llms-pages.ts).
  */
 import { cn } from "@/lib/utils";
-import { LIVE_CAPTION, liveDemo, liveUrl, type LiveTheme } from "@/lib/live";
+import { LIVE_CAPTION, liveDemo, liveUrl } from "@/lib/live";
 
 export interface LiveProps {
   /** The demo's name in test/visual/src/live.ts. */
   name: string;
   /** What the demo shows, for a reader who cannot see it; the markdown exports carry it too. */
   alt: string;
-  /** The look it is drawn in; the site's dark mode in the default look when omitted. */
-  theme?: LiveTheme;
   className?: string;
 }
 
-export function Live({ name, alt, theme, className }: LiveProps) {
+export function Live({ name, alt, className }: LiveProps) {
   const demo = liveDemo(name);
   // MDX is not typechecked, so a page can leave `alt` out entirely.
   if (!alt || alt.trim() === "") {
@@ -34,7 +32,7 @@ export function Live({ name, alt, theme, className }: LiveProps) {
   return (
     <figure className={cn("not-prose my-6", className)}>
       <iframe
-        src={liveUrl(name, theme)}
+        src={liveUrl(name)}
         title={demo.title}
         aria-label={alt}
         loading="lazy"

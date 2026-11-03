@@ -18,13 +18,13 @@
 import { useEffect, useRef, useState } from "react";
 import { DynamicCodeBlock } from "fumadocs-ui/components/dynamic-codeblock";
 import { THEME_PRESETS } from "@stigmer/design-tokens";
-import { cn } from "@/lib/utils";
 import {
   LIVE_MODES,
   LIVE_THEME_MESSAGE,
   liveDemo,
   liveUrl,
   LIVE_CAPTION,
+  isLiveReadyMessage,
   type LivePreset,
   type LiveTheme,
   type LiveThemeMessage,
@@ -48,6 +48,10 @@ export function ThemePlayground() {
   const demo = liveDemo(DEMO);
   const snippet = themeSnippet(theme);
 
+  // The look the frame should have now, for a ready message that arrives after a change.
+  const current = useRef(theme);
+  current.current = theme;
+
   useEffect(() => {
     const target = frame.current?.contentWindow;
     if (!target) return;
@@ -55,60 +59,66 @@ export function ThemePlayground() {
     target.postMessage(message, window.location.origin);
   }, [theme]);
 
-  // A frame that loads after a change takes the current look as it loads.
-  const onLoad = () => {
-    const message: LiveThemeMessage = { type: LIVE_THEME_MESSAGE, ...theme };
-    frame.current?.contentWindow?.postMessage(message, window.location.origin);
-  };
+  // The frame says when it listens; a look picked while it loaded is sent then.
+  useEffect(() => {
+    const onReady = (event: MessageEvent<unknown>) => {
+      const target = frame.current?.contentWindow;
+      if (event.origin !== window.location.origin || !target || event.source !== target || !isLiveReadyMessage(event.data)) return;
+      const message: LiveThemeMessage = { type: LIVE_THEME_MESSAGE, ...current.current };
+      target.postMessage(message, window.location.origin);
+    };
+    window.addEventListener("message", onReady);
+    return () => window.removeEventListener("message", onReady);
+  }, []);
 
   return (
     <figure className="not-prose my-6 rounded-lg border border-fd-border bg-fd-card">
       <div className="flex flex-col gap-4 border-b border-fd-border p-4">
         <fieldset>
           <legend className="mb-2 text-sm font-medium">Preset</legend>
-          <div role="radiogroup" aria-label="Preset" className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {THEME_PRESETS.map((preset) => {
-              const checked = theme.preset === preset.id;
-              return (
-                <button
-                  key={preset.id}
-                  type="button"
-                  role="radio"
-                  aria-checked={checked}
-                  onClick={() => setTheme((current) => ({ ...current, preset: preset.id as LivePreset }))}
-                  className={cn(
-                    "flex items-start gap-2 rounded-md border p-2 text-left text-xs transition-colors",
-                    checked ? "border-fd-foreground" : "border-fd-border hover:border-fd-muted-foreground",
-                  )}
-                >
-                  <span aria-hidden className="mt-0.5 size-3 shrink-0 rounded-full" style={{ background: preset.swatch }} />
-                  <span>
-                    <span className="block font-medium">{preset.name}</span>
-                    <span className="block text-fd-muted-foreground">{preset.description}</span>
-                  </span>
-                </button>
-              );
-            })}
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {THEME_PRESETS.map((preset) => (
+              <label
+                key={preset.id}
+                className="flex cursor-pointer items-start gap-2 rounded-md border border-fd-border p-2 text-xs transition-colors hover:border-fd-muted-foreground has-[:checked]:border-fd-foreground has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-fd-ring"
+              >
+                <input
+                  type="radio"
+                  name="theme-playground-preset"
+                  value={preset.id}
+                  checked={theme.preset === preset.id}
+                  onChange={() => setTheme((now) => ({ ...now, preset: preset.id as LivePreset }))}
+                  className="sr-only"
+                />
+                <span aria-hidden className="mt-0.5 size-3 shrink-0 rounded-full" style={{ background: preset.swatch }} />
+                <span>
+                  <span className="block font-medium">{preset.name}</span>
+                  <span className="block text-fd-muted-foreground">{preset.description}</span>
+                </span>
+              </label>
+            ))}
           </div>
         </fieldset>
         <div className="flex flex-wrap items-center gap-6">
-          <div role="radiogroup" aria-label="Colour mode" className="flex rounded-md border border-fd-border p-0.5 text-xs">
+          <fieldset className="flex rounded-md border border-fd-border p-0.5 text-xs">
+            <legend className="sr-only">Colour mode</legend>
             {LIVE_MODES.map((mode) => (
-              <button
+              <label
                 key={mode}
-                type="button"
-                role="radio"
-                aria-checked={theme.mode === mode}
-                onClick={() => setTheme((current) => ({ ...current, mode }))}
-                className={cn(
-                  "rounded px-3 py-1 capitalize",
-                  theme.mode === mode ? "bg-fd-foreground text-fd-background" : "text-fd-muted-foreground",
-                )}
+                className="cursor-pointer rounded px-3 py-1 capitalize text-fd-muted-foreground has-[:checked]:bg-fd-foreground has-[:checked]:text-fd-background has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-fd-ring"
               >
+                <input
+                  type="radio"
+                  name="theme-playground-mode"
+                  value={mode}
+                  checked={theme.mode === mode}
+                  onChange={() => setTheme((now) => ({ ...now, mode }))}
+                  className="sr-only"
+                />
                 {mode}
-              </button>
+              </label>
             ))}
-          </div>
+          </fieldset>
           <label className="flex items-center gap-3 text-xs">
             <span className="font-medium">Radius</span>
             <input
@@ -139,7 +149,6 @@ export function ThemePlayground() {
         title={demo.title}
         aria-label="The chat panel in the look picked above"
         loading="lazy"
-        onLoad={onLoad}
         className="block w-full border-b border-fd-border"
         style={{ height: demo.height }}
       />

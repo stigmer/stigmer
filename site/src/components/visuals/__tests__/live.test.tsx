@@ -1,6 +1,6 @@
 /**
  * `<Live>`: the docs' live demo by its name, framed at the gallery's docs
- * address in the look asked for, lazily, at the list's height, titled for
+ * address, lazily, at the list's height, titled for
  * assistive technology and captioned as a replay; refusing a name the list
  * does not hold or blank alt text, so the build fails on the page that
  * asked.
@@ -24,13 +24,6 @@ describe("Live", () => {
     expect(frame.getAttribute("aria-label")).toBe(ALT);
     expect(frame.style.height).toBe(`${liveDemo("chat-popup").height}px`);
     expect(screen.getByText(LIVE_CAPTION)).toBeTruthy();
-  });
-
-  it("frames the look a page asks for", () => {
-    const { container } = render(<Live name="chat-panel" alt={ALT} theme={{ preset: "fintech", mode: "light", radius: 0.25 }} />);
-    expect(container.querySelector("iframe")!.getAttribute("src")).toBe(
-      "/gallery/?scene=agent-chat-panel&mode=light&embed=1&preset=fintech&radius=0.25",
-    );
   });
 
   it("refuses a demo the visual suite does not list, and blank alt text", () => {

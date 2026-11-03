@@ -451,6 +451,7 @@ export const LANES = {
       "test/visual/index.html",
       "test/visual/vite.config.ts",
       "test/visual/package.json",
+      "client-apps/web/src/app/fonts/**",
       // The terminal recordings the site plays: the kit's list and its frames
       // (sdk/ink/** above already holds them; named here as the site's reads).
       "sdk/ink/src/recordings.ts",

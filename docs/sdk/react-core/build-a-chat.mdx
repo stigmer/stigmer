@@ -64,8 +64,8 @@ export function Chat({ client, ...props }: ChatProps): ReactElement {
 }
 ```
 
-`StigmerContext` is all `StigmerProvider` adds for the hooks. The kit's
-provider also scopes its theme, which a chat with its own markup does not need.
+`StigmerContext` is all `StigmerProvider` adds for the hooks. The kit's provider
+also scopes its theme, which a chat with its own markup does not need.
 
 ## Start the conversation, then follow it
 
@@ -77,7 +77,7 @@ agent works, and `sendFollowUp` sends every message after the first.
 ```tsx title="Chat.tsx" no-compile="a run of sdk/react-core/examples/chat/Chat.tsx, which the package's typecheck compiles whole"
 function Conversation({ org, agent, sessionId: existing }: Omit<ChatProps, "client">): ReactElement {
   const [sessionId, setSessionId] = useState<string | null>(existing ?? null);
-  const { create, isCreating } = useCreateRun();
+  const { create, isCreating, error: startError } = useCreateRun();
   const conversation = useSessionConversation(sessionId, org);
 
   async function send(message: string): Promise<void> {
@@ -105,7 +105,6 @@ and a line for each tool call, and says when a turn failed:
           <TurnView key={turn.runId} turn={turn} />
         ))}
       </ol>
-      {conversation.asks.map((ask) => (
 // …
 function TurnView({ turn }: { turn: Turn }): ReactElement {
   return (
@@ -142,9 +141,9 @@ When the agent asks before it acts, the ask appears in `asks`. Answer it with
 carries on without it.
 
 ```tsx title="Chat.tsx" no-compile="a run of sdk/react-core/examples/chat/Chat.tsx, which the package's typecheck compiles whole"
+      {conversation.asks.map((ask) => (
         <Ask key={ask.id} ask={ask} onAnswer={(answer) => conversation.answerToolUse(ask.id, answer)} />
       ))}
-      <Composer
 // …
 function Ask({ ask, onAnswer }: { ask: ToolUse; onAnswer: (answer: "allow" | "deny") => Promise<void> }): ReactElement {
   const command = typeof ask.input.command === "string" ? ask.input.command : ask.name;
@@ -164,19 +163,44 @@ function Ask({ ask, onAnswer }: { ask: ToolUse; onAnswer: (answer: "allow" | "de
 }
 ```
 
+## Say what went wrong
+
+A call that fails does not throw from these hooks: each keeps its error for you
+to show. `sendError` keeps the message that was not sent in
+`pendingUserMessage`, and `retryLastSend` sends it again; `answerError` and
+`stopError` say an answer or a Stop did not reach the server. A conversation
+that fails to start throws from `create`, and `useCreateRun` keeps the error.
+
+```tsx title="Chat.tsx" no-compile="a run of sdk/react-core/examples/chat/Chat.tsx, which the package's typecheck compiles whole"
+      {startError && <p role="alert">The conversation did not start: {startError.message}</p>}
+      {conversation.sendError && (
+        <p role="alert">
+          “{conversation.pendingUserMessage}” was not sent: {conversation.sendError.message}{" "}
+          <button type="button" style={CONTROL} onClick={conversation.retryLastSend}>
+            Retry
+          </button>
+        </p>
+      )}
+      {conversation.answerError && <p role="alert">Your answer did not reach the agent: {conversation.answerError.message}</p>}
+      {conversation.stopError && <p role="alert">The turn did not stop: {conversation.stopError.message}</p>}
+```
+
 ## Send and stop
 
-The composer sends through the `send` function above, and offers **Stop**
-while a turn can be stopped. `stop` interrupts every unfinished turn in the
+The composer sends through the `send` function above, and offers **Stop** while
+a turn can be stopped. `stop` interrupts every unfinished turn in the
 conversation.
 
 ```tsx title="Chat.tsx" no-compile="a run of sdk/react-core/examples/chat/Chat.tsx, which the package's typecheck compiles whole"
+      <Composer
         busy={isCreating || conversation.isSending}
         canSend={sessionId === null || conversation.canSendFollowUp}
         onSend={send}
         onStop={conversation.isStoppable ? () => conversation.stop() : undefined}
       />
     </section>
+  );
+}
 // …
 function Composer({
   busy,
@@ -195,8 +219,14 @@ function Composer({
     event.preventDefault();
     const message = text.trim();
     if (message === "") return;
-    setText("");
-    await onSend(message);
+    // A message that fails to start a conversation stays in the box; a
+    // follow-up that fails is kept by the hook, shown above with Retry.
+    try {
+      await onSend(message);
+      setText("");
+    } catch {
+      // The error is shown above the composer.
+    }
   }
 
   return (
@@ -223,7 +253,7 @@ function Composer({
 
 ## What's next
 
-- [Gallery](/docs/sdk/react/gallery): the kit's own chat, live, to compare
-  with yours.
-- [React core reference](/docs/sdk/react-core/reference): every hook and what
-  it returns.
+- [Gallery](/docs/sdk/react/gallery): the kit's own chat, live, to compare with
+  yours.
+- [React core reference](/docs/sdk/react-core/reference): every hook and what it
+  returns.

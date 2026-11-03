@@ -1,13 +1,14 @@
 /**
  * `<ThemePlayground>`: the chat panel demo framed in the default look, the
  * six presets, light or dark and a radius as controls, each change posted to
- * the frame from the page's own origin (and posted again when the frame
- * loads), and the code beside it following the pick.
+ * the frame from the page's own origin (and again when the frame says it
+ * listens), native radios to pick with, and the code beside it following
+ * the pick.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { THEME_PRESETS } from "@stigmer/design-tokens";
-import { LIVE_CAPTION, LIVE_THEME_MESSAGE } from "@/lib/live";
+import { LIVE_CAPTION, LIVE_READY_MESSAGE, LIVE_THEME_MESSAGE } from "@/lib/live";
 import { ThemePlayground } from "../ThemePlayground";
 
 vi.mock("fumadocs-ui/components/dynamic-codeblock", () => ({
@@ -33,7 +34,7 @@ describe("ThemePlayground", () => {
     expect(frame.getAttribute("src")).toBe("/gallery/?scene=agent-chat-panel&mode=dark&embed=1");
     expect(frame.getAttribute("loading")).toBe("lazy");
     expect(screen.getByText(LIVE_CAPTION)).toBeTruthy();
-    expect(screen.getAllByRole("radio", { checked: true }).map((radio) => radio.textContent)).toEqual([expect.stringContaining("Default"), "dark"]);
+    expect(screen.getAllByRole("radio", { checked: true }).map((radio) => (radio as HTMLInputElement).value)).toEqual(["default", "dark"]);
     expect(document.querySelector('pre[data-title="Themed.tsx"]')!.textContent).toContain('<StigmerProvider client={client} colorMode="dark">');
     expect(document.querySelector('pre[data-title="my-theme.css"]')).toBeNull();
   });
@@ -63,11 +64,21 @@ describe("ThemePlayground", () => {
     expect(screen.getByText("the preset's own")).toBeTruthy();
   });
 
-  it("gives a frame that loads after a change the look picked so far", () => {
+  it("sends the look picked so far when its frame says it listens, and only then", () => {
     const { frame, postMessage } = draw();
     fireEvent.click(screen.getByRole("radio", { name: /^Fintech/ }));
     postMessage.mockClear();
-    fireEvent.load(frame);
+    const ready = (init: MessageEventInit) => act(() => void window.dispatchEvent(new MessageEvent("message", { data: { type: LIVE_READY_MESSAGE }, ...init })));
+    ready({ origin: "https://elsewhere.test", source: frame.contentWindow });
+    ready({ origin: window.location.origin, source: window });
+    expect(postMessage).not.toHaveBeenCalled();
+    ready({ origin: window.location.origin, source: frame.contentWindow });
     expect(postMessage).toHaveBeenCalledWith(expect.objectContaining({ preset: "fintech" }), window.location.origin);
+  });
+
+  it("is driven by native radios: one group per choice, each named once", () => {
+    draw();
+    expect(screen.getAllByRole("group").map((group) => group.getAttribute("aria-label") ?? group.querySelector("legend")?.textContent)).toEqual(["Preset", "Colour mode"]);
+    expect(screen.getAllByRole("radio").every((radio) => radio.tagName === "INPUT")).toBe(true);
   });
 });

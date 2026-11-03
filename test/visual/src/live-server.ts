@@ -15,7 +15,10 @@
 //   turn ends interrupted, and a message waiting behind it is dropped.
 //
 // A message sent while a turn works waits in the session's queue, as on the
-// real server, and starts its own scripted turn when the working one ends.
+// real server, and starts its own scripted turn the moment the working one
+// ends; a Stop drops it, as the real server's interrupt does. An answer that
+// comes before the ask's last events were sent sends them first. A new
+// conversation (`run.create`) is refused while a turn works.
 // Every event is stamped with the page's clock as it is sent, so the
 // conversation's durations read as they would live. The page reads no
 // network: nothing leaves the browser.
@@ -82,6 +85,8 @@ export class LiveConversation {
   private baseWorking: string | undefined;
   private queue: Waiting[] = [];
   private turns = 0;
+  /** How many messages have queued, ever: each queued message's id is its own. */
+  private queued = 0;
 
   constructor(
     private readonly base: SessionReplay,
@@ -141,7 +146,10 @@ export class LiveConversation {
     return (router: ConnectRouter) => {
       viewer(router);
       router.service(RunCommandController, {
-        create: (run) => this.start(run.spec?.message ?? "").run,
+        create: (run) => {
+          if (this.working) throw new ConnectError("a turn is working in this conversation", Code.FailedPrecondition);
+          return this.start(run.spec?.message ?? "").run;
+        },
         sendMessage: (run) => {
           const text = run.spec?.message ?? "";
           if (this.working) return create(SendMessageResponseSchema, { message: this.enqueue(text) });
@@ -177,7 +185,8 @@ export class LiveConversation {
 
   /** A `user.message` with no run: the queue's sighting of a message sent while a turn works. */
   private enqueue(text: string): SessionEvent {
-    const id = `live-queued-${this.queue.length + this.turns + 1}`;
+    this.queued += 1;
+    const id = `live-queued-${this.queued}`;
     this.queue.push({ id, text });
     const sighting = create(SessionEventSchema, {
       sessionId: this.base.session?.metadata?.id ?? "",
@@ -194,6 +203,10 @@ export class LiveConversation {
       throw new ConnectError("no tool call waits for an answer", Code.FailedPrecondition);
     }
     playing.answered = true;
+    // The ask shows from its tool use; the events that follow it may not have
+    // been sent yet. They go first, so no chain is left half-played.
+    clearTimeout(this.timer);
+    for (const pending of this.outbox.splice(0)) this.append(pending);
     const [confirmation, ...rest] = result === "allow" ? playing.script.approved : playing.script.denied;
     const sent = this.append(confirmation!);
     this.play(rest);
@@ -223,8 +236,9 @@ export class LiveConversation {
     return { event: interrupt, runIds };
   }
 
-  /** Sends `events` one every `paceMs`; when the last ends the turn, the next waiting message starts its own. */
+  /** Sends `events` one every `paceMs`, in place of any still unsent; when the last ends the turn, the next waiting message starts its own at once. */
   private play(events: readonly SessionEvent[]): void {
+    clearTimeout(this.timer);
     this.outbox = [...events];
     const next = () => {
       const event = this.outbox.shift();
@@ -237,7 +251,7 @@ export class LiveConversation {
       if (this.playing?.answered) {
         this.playing = undefined;
         const waiting = this.queue.shift();
-        if (waiting !== undefined) this.timer = setTimeout(() => this.start(waiting.text, waiting.id), this.paceMs);
+        if (waiting !== undefined) this.start(waiting.text, waiting.id);
       }
     };
     this.timer = setTimeout(next, this.paceMs);
