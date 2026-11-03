@@ -36,12 +36,12 @@ function authAs(isAuthEnabled: boolean): void {
   const state: AuthState = {
     isAuthEnabled,
     isAuthenticated: true,
-    isLoading: false,
     isInitialized: true,
     user: isAuthEnabled
       ? { sub: "auth0|desktop", email: "ada@example.com", name: "Ada" }
       : null,
     getAccessToken: () => null,
+    provider: null,
     login: async () => {},
     logout: () => {},
   };

@@ -126,9 +126,12 @@
       "concurrency": 4
     },
     "desktop-shell": {
-      "title": "the desktop app's runner state, its PATH for tools, and notification clicks",
+      "title": "the desktop app's runner state, its PATH for tools, notification clicks, and the server it connects to",
       "package": "client-apps/desktop",
       "mutate": [
+        "src/server/connect.ts",
+        "src/server/ServerProvider.tsx",
+        "src/auth/AuthProvider.tsx",
         "src/hooks/runner-state.ts",
         "src/hooks/useEmbeddedRunner.ts",
         "src/hooks/useDesktopAttentionNotifications.ts",

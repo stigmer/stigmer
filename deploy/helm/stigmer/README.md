@@ -109,6 +109,7 @@ server:
     issuer: https://your-issuer.example.com
     audience: https://stigmer.example.com
     consoleClientId: stigmer-console
+    nativeClientId: stigmer-desktop
 ingress:
   enabled: true
   className: nginx
@@ -148,7 +149,9 @@ export STIGMER_SERVER_ADDRESS=stigmer.example.com:443
 
 Authentication is on when `server.oidc.issuer` and `server.oidc.audience` are
 set, and the console signs in through the public PKCE client named in
-`server.oidc.consoleClientId`. The full walk-through, including what to register
+`server.oidc.consoleClientId`. The desktop app signs in through the public native
+client named in `server.oidc.nativeClientId`, which the server tells it about.
+The full walk-through, including what to register
 at your identity provider, is the
 [authentication guide](https://stigmer.ai/docs/guides/self-hosting/authentication).
 
@@ -161,7 +164,7 @@ member who started it, whoever's key the runner process holds. Only someone
 signed in can create a key, so an authenticated install is two steps, and
 sign-in comes first:
 
-1. Set the issuer: below as an upgrade of a running install, or the same three
+1. Set the issuer: below as an upgrade of a running install, or the same
    values in a first install, with the Ingress if you add one. The issuer is an
    `https` URL. The pod runs the server alone, and the install notes say the
    runner is waiting for its key:
@@ -170,7 +173,8 @@ sign-in comes first:
 helm upgrade stigmer oci://ghcr.io/stigmer/charts/stigmer -n stigmer --reset-then-reuse-values \
   --set server.oidc.issuer=https://your-issuer.example.com \
   --set server.oidc.audience=https://stigmer.example.com \
-  --set server.oidc.consoleClientId=stigmer-console
+  --set server.oidc.consoleClientId=stigmer-console \
+  --set server.oidc.nativeClientId=stigmer-desktop
 ```
 
 2. Sign in, create the runner's key with no expiry (Settings → API Keys, or
@@ -188,7 +192,10 @@ authentication is on, with a message saying so. Create keys after you sign in.
 
 Register the console's redirect URI at your provider:
 `https://stigmer.example.com/auth/callback`, and the post-logout redirect
-`https://stigmer.example.com/login`.
+`https://stigmer.example.com/login`. Register the desktop app's native client
+with the redirects `stigmer://auth/callback` and
+`http://127.0.0.1:17234/auth/callback` (and ports 17235 and 17236), refresh
+tokens on, and the API audience above.
 
 ## Stigmer Enterprise
 
@@ -207,6 +214,7 @@ helm install stigmer oci://ghcr.io/stigmer/charts/stigmer -n stigmer \
   --set server.oidc.issuer=https://your-issuer.example.com \
   --set server.oidc.audience=https://stigmer.example.com \
   --set server.oidc.consoleClientId=stigmer-console \
+  --set server.oidc.nativeClientId=stigmer-desktop \
   --set enterprise.license.existingSecret=stigmer-license
 ```
 
@@ -455,7 +463,7 @@ the map.
 | `fullnameOverride`                                | The name every Service takes; defaults to the release name.                                                                                                                                     |
 | `image`                                           | Registry, repositories (`stigmer-server`, `stigmer-runner`; `server.enterpriseRepository`, run under a license), tags (empty means this chart's version), pull policy, pull Secrets.            |
 | `secrets`                                         | `existingSecret`, required: `STIGMER_ENCRYPTION_KEY`, `STIGMER_RUNNER_TOKEN_KEY`, and `POSTGRES_PASSWORD` when Postgres is bundled; optional: `STIGMER_PLATFORM_TOKEN_KEY`.                     |
-| `server`                                          | `publicUrl`, `artifactPublicUrl`, `allowUnauthenticatedExposure`, `operator.{email,name}`, `oidc.{issuer,audience,consoleClientId}`, `resources`, `persistence`, `securityContext`, `extraEnv`. |
+| `server`                                          | `publicUrl`, `artifactPublicUrl`, `allowUnauthenticatedExposure`, `operator.{email,name}`, `oidc.{issuer,audience,consoleClientId,nativeClientId}`, `resources`, `persistence`, `securityContext`, `extraEnv`. |
 | `runner`                                          | `llm.existingSecret`, `stigmerToken.{existingSecret,key}`, `resources`, `persistence`, `securityContext`, `extraEnv`.                                                                           |
 | `artifacts`                                       | `persistence` for the shared artifact disk.                                                                                                                                                     |
 | `terminationGracePeriodSeconds`                   | How long a stopping pod may drain (60 s; the runner finishes in-flight activities).                                                                                                             |

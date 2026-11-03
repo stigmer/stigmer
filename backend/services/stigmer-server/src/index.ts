@@ -87,6 +87,7 @@ export type {
 // The extension-point types (the seven-point registry).
 export type {
   ExtensionServiceRegistration,
+  NativeSignInDeclaration,
   ResolvedExtensions,
   ResolvedServiceRegistration,
   ResolvedUnitHook,

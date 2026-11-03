@@ -449,9 +449,15 @@ describe("extension composition (require-authentication posture)", () => {
   // authenticates only while that account exists.
   const UNIT_SUBJECT = "fake|unit-caller";
   const UNIT_ACCOUNT_ID = accountIdFor(UNIT_SUBJECT);
+  const NATIVE_SIGN_IN = {
+    issuer: "https://id.fake.example/",
+    audience: "https://api.fake.example/",
+    clientId: "fake-native-client",
+  };
   const requiringExtension: ServerExtension = {
     name: "fake-identity",
     requireAuthentication: true,
+    nativeSignIn: NATIVE_SIGN_IN,
     identityVerifiers: [
       {
         name: "fake-verifier",
@@ -538,6 +544,13 @@ describe("extension composition (require-authentication posture)", () => {
     const client = createClient(PlatformQueryController, transportWith());
     const info = await client.getServerInfo({});
     expect(info.edition).toBe(ServerEdition.oss);
+  });
+
+  it("getServerInfo tells an installed app, before sign-in, how the declaring unit signs it in", async () => {
+    const client = createClient(PlatformQueryController, transportWith());
+    const info = await client.getServerInfo({});
+    expect(info.authenticationRequired).toBe(true);
+    expect(info.nativeSignIn).toEqual(expect.objectContaining(NATIVE_SIGN_IN));
   });
 
   it("the gRPC health service stays reachable tokenless (the probe contract, stigmer#974)", async () => {
@@ -706,6 +719,64 @@ describe("extension composition (require-authentication posture)", () => {
       );
     } finally {
       rmSync(orphanDir, { recursive: true, force: true });
+    }
+  });
+
+  it("a native sign-in declared on a composition that trusts every request is a boot throw naming the unit", async () => {
+    const trustingDir = mkdtempSync(path.join(tmpdir(), "native-sign-in-trusting-"));
+    try {
+      await expect(
+        composeServer({
+          config: loadConfig({
+            STIGMER_MODEL_REGISTRY_REFRESH: "off",
+            DB_PATH: path.join(trustingDir, "stigmer.db"),
+            ARTIFACT_LOCAL_BASE_PATH: path.join(trustingDir, "artifacts"),
+          }),
+          logger: createLogger({ level: "error", pretty: false, write: () => {} }),
+          extensions: [
+            {
+              name: "postureless-iam",
+              nativeSignIn: { issuer: "https://id.fake.example/", audience: "a", clientId: "c" },
+            },
+          ],
+          portOverride: 0,
+          host: "127.0.0.1",
+        }),
+      ).rejects.toThrowError(
+        /extension 'postureless-iam' declares native sign-in on a composition without the require-authentication posture/,
+      );
+    } finally {
+      rmSync(trustingDir, { recursive: true, force: true });
+    }
+  });
+
+  it("a native sign-in declared beside STIGMER_OIDC_NATIVE_CLIENT_ID is a boot throw naming the unit", async () => {
+    const doubleDir = mkdtempSync(path.join(tmpdir(), "native-sign-in-double-"));
+    try {
+      await expect(
+        composeServer({
+          config: loadConfig({
+            STIGMER_MODEL_REGISTRY_REFRESH: "off",
+            DB_PATH: path.join(doubleDir, "stigmer.db"),
+            ARTIFACT_LOCAL_BASE_PATH: path.join(doubleDir, "artifacts"),
+            STIGMER_OIDC_NATIVE_CLIENT_ID: "native-1",
+          }),
+          logger: createLogger({ level: "error", pretty: false, write: () => {} }),
+          extensions: [
+            {
+              name: "double-iam",
+              requireAuthentication: true,
+              nativeSignIn: { issuer: "https://id.fake.example/", audience: "a", clientId: "c" },
+            },
+          ],
+          portOverride: 0,
+          host: "127.0.0.1",
+        }),
+      ).rejects.toThrowError(
+        /extension 'double-iam' declares native sign-in, and STIGMER_OIDC_NATIVE_CLIENT_ID is set too/,
+      );
+    } finally {
+      rmSync(doubleDir, { recursive: true, force: true });
     }
   });
 

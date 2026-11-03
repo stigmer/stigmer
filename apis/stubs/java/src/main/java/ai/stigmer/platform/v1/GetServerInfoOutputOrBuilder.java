@@ -169,4 +169,61 @@ public interface GetServerInfoOutputOrBuilder extends
    * <code>.ai.stigmer.platform.v1.EnvironmentAvailability environments = 5 [json_name = "environments"];</code>
    */
   ai.stigmer.platform.v1.EnvironmentAvailabilityOrBuilder getEnvironmentsOrBuilder();
+
+  /**
+   * <pre>
+   * How an app installed on a person's computer (the desktop app) signs
+   * its person in to this server.
+   *
+   * Set when the server signs its callers in and its operator registered
+   * a public native client at the identity provider (RFC 8252: an
+   * Authorization Code flow with PKCE, a `stigmer://auth/callback` or
+   * loopback redirect, no client secret). Absent when the server trusts
+   * every request (`authentication_required` false: nothing to sign in
+   * to), and when no native client is registered, which a client says
+   * instead of guessing an identity provider. Read before sign-in, like
+   * the rest of this answer.
+   * </pre>
+   *
+   * <code>.ai.stigmer.platform.v1.NativeSignIn native_sign_in = 6 [json_name = "nativeSignIn"];</code>
+   * @return Whether the nativeSignIn field is set.
+   */
+  boolean hasNativeSignIn();
+  /**
+   * <pre>
+   * How an app installed on a person's computer (the desktop app) signs
+   * its person in to this server.
+   *
+   * Set when the server signs its callers in and its operator registered
+   * a public native client at the identity provider (RFC 8252: an
+   * Authorization Code flow with PKCE, a `stigmer://auth/callback` or
+   * loopback redirect, no client secret). Absent when the server trusts
+   * every request (`authentication_required` false: nothing to sign in
+   * to), and when no native client is registered, which a client says
+   * instead of guessing an identity provider. Read before sign-in, like
+   * the rest of this answer.
+   * </pre>
+   *
+   * <code>.ai.stigmer.platform.v1.NativeSignIn native_sign_in = 6 [json_name = "nativeSignIn"];</code>
+   * @return The nativeSignIn.
+   */
+  ai.stigmer.platform.v1.NativeSignIn getNativeSignIn();
+  /**
+   * <pre>
+   * How an app installed on a person's computer (the desktop app) signs
+   * its person in to this server.
+   *
+   * Set when the server signs its callers in and its operator registered
+   * a public native client at the identity provider (RFC 8252: an
+   * Authorization Code flow with PKCE, a `stigmer://auth/callback` or
+   * loopback redirect, no client secret). Absent when the server trusts
+   * every request (`authentication_required` false: nothing to sign in
+   * to), and when no native client is registered, which a client says
+   * instead of guessing an identity provider. Read before sign-in, like
+   * the rest of this answer.
+   * </pre>
+   *
+   * <code>.ai.stigmer.platform.v1.NativeSignIn native_sign_in = 6 [json_name = "nativeSignIn"];</code>
+   */
+  ai.stigmer.platform.v1.NativeSignInOrBuilder getNativeSignInOrBuilder();
 }

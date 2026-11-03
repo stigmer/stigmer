@@ -29,18 +29,30 @@ class GetServerInfoInput(_message.Message):
     def __init__(self) -> None: ...
 
 class GetServerInfoOutput(_message.Message):
-    __slots__ = ("edition", "version", "authentication_required", "single_org", "environments")
+    __slots__ = ("edition", "version", "authentication_required", "single_org", "environments", "native_sign_in")
     EDITION_FIELD_NUMBER: _ClassVar[int]
     VERSION_FIELD_NUMBER: _ClassVar[int]
     AUTHENTICATION_REQUIRED_FIELD_NUMBER: _ClassVar[int]
     SINGLE_ORG_FIELD_NUMBER: _ClassVar[int]
     ENVIRONMENTS_FIELD_NUMBER: _ClassVar[int]
+    NATIVE_SIGN_IN_FIELD_NUMBER: _ClassVar[int]
     edition: ServerEdition
     version: str
     authentication_required: bool
     single_org: bool
     environments: EnvironmentAvailability
-    def __init__(self, edition: _Optional[_Union[ServerEdition, str]] = ..., version: _Optional[str] = ..., authentication_required: bool = ..., single_org: bool = ..., environments: _Optional[_Union[EnvironmentAvailability, _Mapping]] = ...) -> None: ...
+    native_sign_in: NativeSignIn
+    def __init__(self, edition: _Optional[_Union[ServerEdition, str]] = ..., version: _Optional[str] = ..., authentication_required: bool = ..., single_org: bool = ..., environments: _Optional[_Union[EnvironmentAvailability, _Mapping]] = ..., native_sign_in: _Optional[_Union[NativeSignIn, _Mapping]] = ...) -> None: ...
+
+class NativeSignIn(_message.Message):
+    __slots__ = ("issuer", "audience", "client_id")
+    ISSUER_FIELD_NUMBER: _ClassVar[int]
+    AUDIENCE_FIELD_NUMBER: _ClassVar[int]
+    CLIENT_ID_FIELD_NUMBER: _ClassVar[int]
+    issuer: str
+    audience: str
+    client_id: str
+    def __init__(self, issuer: _Optional[str] = ..., audience: _Optional[str] = ..., client_id: _Optional[str] = ...) -> None: ...
 
 class EnvironmentAvailability(_message.Message):
     __slots__ = ("applies", "limited_networking", "packages")

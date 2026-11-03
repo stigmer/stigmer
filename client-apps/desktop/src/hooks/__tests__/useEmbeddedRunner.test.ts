@@ -4,7 +4,7 @@
 //
 // Run over Tauri's IPC mock (src/__test-utils__/tauri.ts): the hook's real
 // `invoke` and `resolveResource` calls reach handlers named by their wire
-// commands, and the session comes from the real token store. Pinned here:
+// commands, and the session is the token the sign-in holds in memory. Pinned here:
 //
 //   - getRunnerConfig: the control-plane endpoint, the proxy endpoint (only
 //     with a session, always with a scheme), the Temporal override, the
@@ -27,11 +27,11 @@ import {
   type CommandHandlers,
   type TauriMock,
 } from "../../__test-utils__/tauri";
-import { saveTokens } from "../../auth/token-store";
 import {
   getRunnerConfig,
   useEmbeddedRunner,
   type RunnerConfig,
+  type RunnerTarget,
 } from "../useEmbeddedRunner";
 
 // What the desktop's `bundled_node_path` command answers in these tests: the absolute
@@ -79,17 +79,22 @@ function runnerHost(overrides: CommandHandlers = {}): {
   return { tauri, state };
 }
 
+// The server the app talks to in these tests, and the person's token on it.
+const SERVER = "https://stigmer.acme.internal";
+let target: RunnerTarget = { server: SERVER, accessToken: null };
+const getAccessToken = () => target.accessToken;
+
 function signIn(accessToken: string) {
-  saveTokens({
-    accessToken,
-    refreshToken: "refresh",
-    expiresAt: Date.now() + 3_600_000,
-  });
+  target = { ...target, accessToken };
+}
+
+function useRunnerOnServer() {
+  return useEmbeddedRunner({ server: target.server, getAccessToken });
 }
 
 /** Start the runner through the hook, as the first session does, and read the config it was given. */
 async function startedConfig(tauri: TauriMock): Promise<RunnerConfig> {
-  const { result } = renderHook(() => useEmbeddedRunner());
+  const { result } = renderHook(() => useRunnerOnServer());
   await act(async () => {
     await result.current.addSession("test-session");
   });
@@ -99,7 +104,7 @@ async function startedConfig(tauri: TauriMock): Promise<RunnerConfig> {
 }
 
 beforeEach(() => {
-  localStorage.clear();
+  target = { server: SERVER, accessToken: null };
   vi.unstubAllEnvs();
 });
 
@@ -108,18 +113,17 @@ afterEach(() => {
 });
 
 describe("getRunnerConfig: the session and the proxy", () => {
-  it("hands the runner the stored access token as its control-plane credential", async () => {
-    runnerHost();
-    signIn("real-auth0-token");
+  it("hands the runner the person's access token as its control-plane credential", async () => {
+    const { tauri } = runnerHost();
+    signIn("real-access-token");
 
-    const config = await getRunnerConfig();
-    expect(config.stigmerToken).toBe("real-auth0-token");
+    expect((await startedConfig(tauri)).stigmerToken).toBe("real-access-token");
   });
 
   it("gives no token and no proxy when nobody is signed in", async () => {
     runnerHost();
 
-    const config = await getRunnerConfig();
+    const config = await getRunnerConfig(target);
     expect(config.stigmerToken).toBeUndefined();
     expect(config.proxyEndpoint).toBeUndefined();
   });
@@ -128,50 +132,50 @@ describe("getRunnerConfig: the session and the proxy", () => {
     runnerHost();
     signIn("");
 
-    const config = await getRunnerConfig();
+    const config = await getRunnerConfig(target);
     expect(config.stigmerToken).toBeUndefined();
     expect(config.proxyEndpoint).toBeUndefined();
   });
 
-  it("points the proxy at VITE_STIGMER_API_URL when set", async () => {
-    vi.stubEnv("VITE_STIGMER_API_URL", "http://localhost:9090");
+  it("points the control plane and the proxy at the server the app talks to", async () => {
     runnerHost();
-    signIn("cloud-token");
+    signIn("acme-token");
 
-    const config = await getRunnerConfig();
-    expect(config.proxyEndpoint).toBe("http://localhost:9090");
-    expect(config.stigmerToken).toBe("cloud-token");
+    const config = await getRunnerConfig(target);
+    expect(config.stigmerEndpoint).toBe(SERVER);
+    expect(config.proxyEndpoint).toBe(SERVER);
+    expect(config.stigmerToken).toBe("acme-token");
   });
-
-  it.each([
-    ["a bare host", "localhost:9090", "http://localhost:9090"],
-    ["a bare TLS host", "api.stigmer.ai:443", "https://api.stigmer.ai:443"],
-    ["a URL that has one", "http://localhost:9090", "http://localhost:9090"],
-    ["a TLS URL that has one", "https://api.acme.example:8443", "https://api.acme.example:8443"],
-  ])(
-    "gives the proxy a URL scheme when the only endpoint is %s",
-    async (_label, sidecar, proxy) => {
-      vi.stubEnv("VITE_STIGMER_API_URL", "");
-      vi.stubEnv("VITE_STIGMER_SIDECAR_ENDPOINT", sidecar);
-      runnerHost();
-      signIn("token");
-
-      const config = await getRunnerConfig();
-      expect(config.proxyEndpoint).toBe(proxy);
-    },
-  );
 });
 
 describe("getRunnerConfig: the proxy beside a sidecar", () => {
   it("points the proxy at the API, not at the dev sidecar the control plane goes through", async () => {
     vi.stubEnv("VITE_STIGMER_SIDECAR_ENDPOINT", "localhost:9090");
-    vi.stubEnv("VITE_STIGMER_API_URL", "https://api.stigmer.ai");
+    vi.stubEnv("VITE_STIGMER_API_URL", "http://localhost:9090");
     runnerHost();
     signIn("token");
 
-    const config = await getRunnerConfig();
+    const config = await getRunnerConfig({ server: "http://localhost:9090", accessToken: "token" });
     expect(config.stigmerEndpoint).toBe("localhost:9090");
-    expect(config.proxyEndpoint).toBe("https://api.stigmer.ai");
+    expect(config.proxyEndpoint).toBe("http://localhost:9090");
+  });
+
+  it("uses no sidecar when the build's own address is not one", async () => {
+    vi.stubEnv("VITE_STIGMER_SIDECAR_ENDPOINT", "localhost:9090");
+    vi.stubEnv("VITE_STIGMER_API_URL", "not an address");
+    runnerHost();
+
+    const config = await getRunnerConfig({ server: SERVER, accessToken: null });
+    expect(config.stigmerEndpoint).toBe(SERVER);
+  });
+
+  it("goes straight to another server the person chose, past the build's sidecar", async () => {
+    vi.stubEnv("VITE_STIGMER_SIDECAR_ENDPOINT", "localhost:9090");
+    vi.stubEnv("VITE_STIGMER_API_URL", "http://localhost:9090");
+    runnerHost();
+
+    const config = await getRunnerConfig({ server: SERVER, accessToken: "token" });
+    expect(config.stigmerEndpoint).toBe(SERVER);
   });
 });
 
@@ -182,37 +186,26 @@ describe("getRunnerConfig: Temporal and the control-plane endpoint", () => {
 
   it("omits temporalAddress by default so the runner self-discovers it", async () => {
     vi.stubEnv("VITE_STIGMER_TEMPORAL_ADDRESS", "");
-    vi.stubEnv("VITE_STIGMER_API_URL", "https://api.stigmer.ai");
     runnerHost();
 
-    expect("temporalAddress" in (await getRunnerConfig())).toBe(false);
+    expect("temporalAddress" in (await getRunnerConfig(target))).toBe(false);
   });
 
   it("honors an explicit VITE_STIGMER_TEMPORAL_ADDRESS override", async () => {
     vi.stubEnv("VITE_STIGMER_TEMPORAL_ADDRESS", "temporal.dev:7233");
-    vi.stubEnv("VITE_STIGMER_API_URL", "https://api.stigmer.ai");
     runnerHost();
 
-    expect((await getRunnerConfig()).temporalAddress).toBe("temporal.dev:7233");
-  });
-
-  it("derives the control-plane endpoint from VITE_STIGMER_API_URL when no sidecar is set", async () => {
-    // The production case: no sidecar var, so the runner must point at the cloud
-    // API (not localhost) for both control-plane traffic and Temporal discovery.
-    vi.stubEnv("VITE_STIGMER_API_URL", "https://api.stigmer.ai");
-    runnerHost();
-
-    expect((await getRunnerConfig()).stigmerEndpoint).toBe(
-      "https://api.stigmer.ai",
-    );
+    expect((await getRunnerConfig(target)).temporalAddress).toBe("temporal.dev:7233");
   });
 
   it("prefers the sidecar endpoint over the API URL when both are set (local dev)", async () => {
     vi.stubEnv("VITE_STIGMER_SIDECAR_ENDPOINT", "localhost:9090");
-    vi.stubEnv("VITE_STIGMER_API_URL", "https://api.stigmer.ai");
+    vi.stubEnv("VITE_STIGMER_API_URL", "http://localhost:9090/");
     runnerHost();
 
-    expect((await getRunnerConfig()).stigmerEndpoint).toBe("localhost:9090");
+    expect((await getRunnerConfig({ server: "http://localhost:9090", accessToken: "t" })).stigmerEndpoint).toBe(
+      "localhost:9090",
+    );
   });
 });
 
@@ -223,7 +216,7 @@ describe("getRunnerConfig: the runner entry and the Node runtime", () => {
     // start_runner an absolute path produced by resolveResource.
     const { tauri } = runnerHost();
 
-    const config = await getRunnerConfig();
+    const config = await getRunnerConfig(target);
     expect(tauri.callsTo("plugin:path|resolve_directory")).toEqual([
       expect.objectContaining({ path: "resources/runner/dist/main.js" }),
     ]);
@@ -243,7 +236,7 @@ describe("getRunnerConfig: the runner entry and the Node runtime", () => {
     );
     const { tauri } = runnerHost();
 
-    const config = await getRunnerConfig();
+    const config = await getRunnerConfig(target);
     expect(tauri.callsTo("plugin:path|resolve_directory")).toEqual([]);
     expect(config.runnerEntry).toBe(
       "/repo/backend/services/runner/dist/main.js",
@@ -258,7 +251,7 @@ describe("getRunnerConfig: the runner entry and the Node runtime", () => {
     );
     runnerHost();
 
-    expect((await getRunnerConfig()).runnerEntry).toBe(
+    expect((await getRunnerConfig(target)).runnerEntry).toBe(
       "/abs/resource/resources/runner/dist/main.js",
     );
   });
@@ -292,21 +285,21 @@ describe("DSK-03 the tools agents start see the person's own PATH", () => {
   it("passes only PATH from the shell, nothing else", async () => {
     runnerHost();
 
-    const config = await getRunnerConfig();
+    const config = await getRunnerConfig(target);
     expect(Object.keys(config.extraEnv ?? {})).toEqual(["PATH"]);
   });
 
   it("leaves the runner's environment alone when the host has no PATH to give", async () => {
     runnerHost({ user_tool_path: () => "" });
 
-    expect("extraEnv" in (await getRunnerConfig())).toBe(false);
+    expect("extraEnv" in (await getRunnerConfig(target))).toBe(false);
   });
 });
 
 describe("DSK-05 the runner's state", () => {
   it("reads idle before anything ran, then ready with the conversations it holds", async () => {
     runnerHost();
-    const { result } = renderHook(() => useEmbeddedRunner());
+    const { result } = renderHook(() => useRunnerOnServer());
     expect(result.current.state).toEqual({ kind: "idle" });
 
     await act(async () => {
@@ -326,7 +319,7 @@ describe("DSK-05 the runner's state", () => {
           };
         }),
     });
-    const { result } = renderHook(() => useEmbeddedRunner());
+    const { result } = renderHook(() => useRunnerOnServer());
 
     let added: Promise<string> = Promise.resolve("");
     await act(async () => {
@@ -344,7 +337,7 @@ describe("DSK-05 the runner's state", () => {
 
   it("reads stopped when a status read finds gone a runner that was up", async () => {
     const { state } = runnerHost();
-    const { result } = renderHook(() => useEmbeddedRunner());
+    const { result } = renderHook(() => useRunnerOnServer());
     await act(async () => {
       await result.current.addSession("s1");
     });
@@ -360,7 +353,7 @@ describe("DSK-05 the runner's state", () => {
 
   it("does not read a runner that never ran as stopped", async () => {
     runnerHost();
-    const { result } = renderHook(() => useEmbeddedRunner());
+    const { result } = renderHook(() => useRunnerOnServer());
 
     await act(async () => {
       await result.current.refreshStatus();
@@ -371,7 +364,7 @@ describe("DSK-05 the runner's state", () => {
 
   it("restarts a stopped runner and gives it back every conversation the window holds", async () => {
     const { tauri, state } = runnerHost();
-    const { result } = renderHook(() => useEmbeddedRunner());
+    const { result } = renderHook(() => useRunnerOnServer());
     await act(async () => {
       await result.current.addSession("s1");
       await result.current.addSession("s2");
@@ -405,7 +398,7 @@ describe("DSK-05 the runner's state", () => {
 
   it("gives the held conversations back when another conversation starts a stopped runner", async () => {
     const { tauri, state } = runnerHost();
-    const { result } = renderHook(() => useEmbeddedRunner());
+    const { result } = renderHook(() => useRunnerOnServer());
     await act(async () => {
       await result.current.addSession("s1");
     });
@@ -433,7 +426,7 @@ describe("DSK-05 the runner's state", () => {
         return null;
       },
     });
-    const { result } = renderHook(() => useEmbeddedRunner());
+    const { result } = renderHook(() => useRunnerOnServer());
     await act(async () => {
       await expect(result.current.addSession("s1")).rejects.toBeDefined();
     });
@@ -455,7 +448,7 @@ describe("DSK-05 the runner's state", () => {
         throw "spawn failed";
       },
     });
-    const { result } = renderHook(() => useEmbeddedRunner());
+    const { result } = renderHook(() => useRunnerOnServer());
 
     await act(async () => {
       await result.current.restart();
@@ -468,7 +461,7 @@ describe("DSK-05 the runner's state", () => {
 describe("the runner lifecycle", () => {
   it("starts the runner lazily: nothing at mount, then on the first session", async () => {
     const { tauri } = runnerHost();
-    const { result } = renderHook(() => useEmbeddedRunner());
+    const { result } = renderHook(() => useRunnerOnServer());
     expect(tauri.calls).toEqual([]);
     expect(result.current.isRunning).toBe(false);
     expect(result.current.activeSessions).toEqual([]);
@@ -498,7 +491,7 @@ describe("the runner lifecycle", () => {
           };
         }),
     });
-    const { result } = renderHook(() => useEmbeddedRunner());
+    const { result } = renderHook(() => useRunnerOnServer());
 
     let both: Promise<[string, string]> = Promise.resolve(["", ""]);
     await act(async () => {
@@ -523,7 +516,7 @@ describe("the runner lifecycle", () => {
     // The second half of stigmer/stigmer#1505: a start that succeeded is not
     // remembered forever, so a runner that later exited is started again.
     const { tauri, state } = runnerHost();
-    const { result } = renderHook(() => useEmbeddedRunner());
+    const { result } = renderHook(() => useRunnerOnServer());
     await act(async () => {
       await result.current.addSession("s1");
     });
@@ -546,7 +539,7 @@ describe("the runner lifecycle", () => {
           fail = reject;
         }),
     });
-    const { result } = renderHook(() => useEmbeddedRunner());
+    const { result } = renderHook(() => useRunnerOnServer());
 
     let outcomes: Promise<PromiseSettledResult<string>[]> = Promise.resolve([]);
     await act(async () => {
@@ -579,7 +572,7 @@ describe("the runner lifecycle", () => {
         throw missing;
       },
     });
-    const { result } = renderHook(() => useEmbeddedRunner());
+    const { result } = renderHook(() => useRunnerOnServer());
 
     await act(async () => {
       await expect(result.current.addSession("test-session")).rejects.toBe(
@@ -601,7 +594,7 @@ describe("the runner lifecycle", () => {
         return null;
       },
     });
-    const { result } = renderHook(() => useEmbeddedRunner());
+    const { result } = renderHook(() => useRunnerOnServer());
 
     await act(async () => {
       await expect(result.current.addSession("s1")).rejects.toBe(
@@ -624,7 +617,7 @@ describe("the runner lifecycle", () => {
     const { tauri, state } = runnerHost();
     state.running = true;
     state.activeSessions = ["earlier"];
-    const { result } = renderHook(() => useEmbeddedRunner());
+    const { result } = renderHook(() => useRunnerOnServer());
 
     await act(async () => {
       await result.current.addSession("s1");
@@ -638,7 +631,7 @@ describe("the runner lifecycle", () => {
 
   it("lists a session once, however many times it is added", async () => {
     runnerHost();
-    const { result } = renderHook(() => useEmbeddedRunner());
+    const { result } = renderHook(() => useRunnerOnServer());
 
     await act(async () => {
       await result.current.addSession("s1");
@@ -649,7 +642,7 @@ describe("the runner lifecycle", () => {
 
   it("takes the host's word after a remove, keeping a session whose run continues in the background", async () => {
     const { tauri, state } = runnerHost();
-    const { result } = renderHook(() => useEmbeddedRunner());
+    const { result } = renderHook(() => useRunnerOnServer());
     await act(async () => {
       await result.current.addSession("s1");
       await result.current.addSession("s2");
@@ -667,7 +660,7 @@ describe("the runner lifecycle", () => {
 
   it("keeps the last known state when a status poll fails", async () => {
     const { tauri } = runnerHost();
-    const { result } = renderHook(() => useEmbeddedRunner());
+    const { result } = renderHook(() => useRunnerOnServer());
     await act(async () => {
       await result.current.addSession("s1");
     });
@@ -690,7 +683,7 @@ describe("updateRunnerToken", () => {
   it("sends the new token to a running runner", async () => {
     const { tauri, state } = runnerHost();
     state.running = true;
-    const { result } = renderHook(() => useEmbeddedRunner());
+    const { result } = renderHook(() => useRunnerOnServer());
 
     await act(async () => {
       await result.current.updateRunnerToken("new-token");
@@ -702,7 +695,7 @@ describe("updateRunnerToken", () => {
 
   it("sends nothing when the runner is not running", async () => {
     const { tauri } = runnerHost();
-    const { result } = renderHook(() => useEmbeddedRunner());
+    const { result } = renderHook(() => useRunnerOnServer());
 
     await act(async () => {
       await result.current.updateRunnerToken("new-token");

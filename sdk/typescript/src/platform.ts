@@ -62,6 +62,29 @@ export interface ServerInfo {
    * let the server's own refusals decide.
    */
   readonly environments: EnvironmentAvailability | undefined;
+  /**
+   * How an app installed on a person's computer signs in to this server:
+   * the identity provider's issuer, the audience its access tokens carry
+   * here, and the public native client registered for such apps. Read its
+   * endpoints from the issuer's discovery document; never guess them.
+   *
+   * `undefined` when the server trusts every request (nothing to sign in
+   * to), when it signs people in but registered no native client, and on a
+   * server released before the field. Read it with
+   * {@link authenticationRequired}: required and absent means the server
+   * offers no sign-in to an installed app.
+   */
+  readonly nativeSignIn: NativeSignIn | undefined;
+}
+
+/** How an installed app signs in, as {@link ServerInfo.nativeSignIn} reports it. */
+export interface NativeSignIn {
+  /** The OpenID Connect issuer, exactly as its discovery document spells it. */
+  readonly issuer: string;
+  /** The audience the access token must carry for this server to accept it. */
+  readonly audience: string;
+  /** The public native client's id at the issuer: an identifier, not a secret. */
+  readonly clientId: string;
 }
 
 /** What an Environment does on a server, as {@link ServerInfo.environments} reports it. */
@@ -95,8 +118,9 @@ export class PlatformClient {
 
   /**
    * Retrieve the connected server's edition, version, authentication
-   * posture, whether it holds one organization, and what an Environment
-   * does there.
+   * posture, how an installed app signs in, whether it holds one
+   * organization, and what an Environment does there. Answered before
+   * sign-in: no credential is needed.
    *
    * Maps the proto {@link ServerEdition} to a {@link DeploymentMode}
    * through {@link deploymentModeOf}:
@@ -115,6 +139,14 @@ export class PlatformClient {
         edition: resp.edition,
         version: resp.version,
         authenticationRequired: resp.authenticationRequired,
+        nativeSignIn:
+          resp.nativeSignIn === undefined
+            ? undefined
+            : {
+                issuer: resp.nativeSignIn.issuer,
+                audience: resp.nativeSignIn.audience,
+                clientId: resp.nativeSignIn.clientId,
+              },
         singleOrg: resp.singleOrg,
         environments:
           resp.environments === undefined

@@ -364,6 +364,8 @@ spec:
               value: "https://stigmer.example.com"
             - name: STIGMER_OIDC_CONSOLE_CLIENT_ID
               value: "stigmer-console"
+            - name: STIGMER_OIDC_NATIVE_CLIENT_ID
+              value: "stigmer-desktop"
           ports:
             - name: grpc-api
               containerPort: 7234

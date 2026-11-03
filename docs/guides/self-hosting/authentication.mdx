@@ -30,18 +30,20 @@ machines (CI jobs, the runner, scripts) use API keys. The
   a plain-HTTP issuer at boot unless it is on `localhost`), the **audience**
   your provider stamps on access tokens minted for Stigmer (usually configured
   in the provider as an "API" or "resource server" entry), and the **client ID**
-  of the console client you register in the first step.
+  of the console client you register in the first step. For the desktop app, the
+  client ID of a second, native client (the last step).
 
 Every setting on this page is one line in the file your shape already uses,
 `.env` for Compose and your values file for the chart:
 
-| Setting              | Docker Compose (`.env`)          | Kubernetes (values file)             |
-| -------------------- | -------------------------------- | ------------------------------------ |
-| Issuer               | `STIGMER_OIDC_ISSUER`            | `server.oidc.issuer`                 |
-| Audience             | `STIGMER_OIDC_AUDIENCE`          | `server.oidc.audience`               |
-| Console client ID    | `STIGMER_OIDC_CONSOLE_CLIENT_ID` | `server.oidc.consoleClientId`        |
-| The runner's API key | `STIGMER_TOKEN`                  | `runner.stigmerToken.existingSecret` |
-| Operator email       | `STIGMER_OPERATOR_EMAIL`         | `server.operator.email`              |
+| Setting               | Docker Compose (`.env`)          | Kubernetes (values file)             |
+| --------------------- | -------------------------------- | ------------------------------------ |
+| Issuer                | `STIGMER_OIDC_ISSUER`            | `server.oidc.issuer`                 |
+| Audience              | `STIGMER_OIDC_AUDIENCE`          | `server.oidc.audience`               |
+| Console client ID     | `STIGMER_OIDC_CONSOLE_CLIENT_ID` | `server.oidc.consoleClientId`        |
+| Desktop app client ID | `STIGMER_OIDC_NATIVE_CLIENT_ID`  | `server.oidc.nativeClientId`         |
+| The runner's API key  | `STIGMER_TOKEN`                  | `runner.stigmerToken.existingSecret` |
+| Operator email        | `STIGMER_OPERATOR_EMAIL`         | `server.operator.email`              |
 
 On Kubernetes the runner's key lives in a Secret whose key is `STIGMER_TOKEN`,
 and the value names that Secret.
@@ -332,18 +334,69 @@ From the boot that read the issuer, every request needs a credential:
 - An admin's lists show the Organization's Agents and Skills, not other members'
   Sessions, vaults or API keys.
 
+## Let the desktop app sign in
+
+The desktop app asks the server it points at how to sign in, before anyone signs
+in, and the server answers with your issuer, your audience and the client the
+app should use. Nothing about your provider is built into the app: a person
+chooses **Use another server**, types your address, and signs in through your
+provider in their own browser.
+
+The app needs its own client, separate from the console's. Register a second
+client with your provider:
+
+- **Client type: public native app, using PKCE, with no client secret.** In
+  Keycloak a client with "Client authentication" off; in Auth0 a "Native"
+  application; in Okta a "Native App"; in Dex a public client.
+- **Redirect URIs**: `stigmer://auth/callback`, and for builds that sign in
+  through a local port, `http://127.0.0.1:17234/auth/callback`,
+  `http://127.0.0.1:17235/auth/callback` and
+  `http://127.0.0.1:17236/auth/callback`.
+- **Refresh tokens allowed**, so the app keeps people signed in.
+- **The access token carries your audience**, as for the console.
+
+Then set its client ID, `STIGMER_OIDC_NATIVE_CLIENT_ID` in `.env` or
+`server.oidc.nativeClientId` in your values file, and restart or upgrade as
+before. Until you do, the server logs a warning at start, and the app tells
+people this server has not been set up for it.
+
+The app connects only over `https` to another machine, so give people the
+address your TLS setup serves, `https://stigmer.example.com`. It keeps sign-in
+keys in the system keychain.
+
+### Where the app's agents run
+
+The app carries a runner of its own, which runs the Agents of the conversations
+started in it, on the person's computer. That runner listens only on each
+conversation's own queue, so it receives work only when your server routes runs
+per conversation, `STIGMER_ACTIVITY_ROUTING=session`.
+
+On the default, `global`, the server puts every run on its one shared queue
+([How a run reaches the runner](./runners#how-a-run-reaches-the-runner)), and
+your stack's runner answers the app's conversations on the server. They work,
+but nothing runs on the person's computer, and the app still shows its own
+runner in the sidebar as working. A server with no runner of its own leaves them
+unanswered.
+
+`session` sends every conversation's runs to that conversation's own queue,
+including the console's. A conversation started in the console then waits for a
+runner the server provisions for it
+([A runner per Session](./runners#a-runner-per-session)); without a provisioner
+it gets none. So keep the default unless everyone works from the desktop app.
+The server saying which it does, so the app can say where Agents run, is tracked
+as [stigmer#2861](https://github.com/stigmer/stigmer/issues/2861).
+
 ## What still needs an API key
 
-The `stigmer` CLI and the desktop app cannot sign in to a self-hosted server
-through your OIDC provider yet. Point the CLI at the stack with an API key, as
-the last step shows. If you hold an access token from your provider, the CLI
-accepts it in place of a key: `STIGMER_API_KEY=<oidc-access-token>` in front of
+The `stigmer` CLI cannot sign in to a self-hosted server through your OIDC
+provider yet. Point the CLI at the stack with an API key, as the last step
+shows. If you hold an access token from your provider, the CLI accepts it in
+place of a key: `STIGMER_API_KEY=<oidc-access-token>` in front of
 `stigmer auth whoami` creates your Identity Account if you have never signed in,
 and in front of `stigmer apikey create --name ci` mints a key without the
-console. How you obtain that token is your provider's business. Console-style
-sign-in for the CLI and the desktop app is tracked as
-[stigmer#1077](https://github.com/stigmer/stigmer/issues/1077) and
-[stigmer#1080](https://github.com/stigmer/stigmer/issues/1080).
+console. How you obtain that token is your provider's business. Sign-in for the
+CLI is tracked as
+[stigmer#1077](https://github.com/stigmer/stigmer/issues/1077).
 
 ## Next step
 

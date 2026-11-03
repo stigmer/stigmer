@@ -9,47 +9,15 @@ pub(crate) struct AuthCallbackPayload {
     pub error_description: Option<String>,
 }
 
-/// Opens the authorization URL in the user's default system browser.
-///
-/// The browser handles the full OIDC flow (Auth0 → Google → passkey /
-/// Touch ID). After authentication, Auth0 redirects to the
-/// `stigmer://auth/callback` custom scheme, which the OS routes back
-/// to the app via the deep-link plugin. The deep-link handler in
-/// `lib.rs` emits the `auth-callback` event to complete the flow.
+/// Opens a URL in the person's default browser: Stripe's pages, GitHub's
+/// sign-in, an agent's chat in the web console. The name is older than its
+/// callers; the app's own sign-in opens its browser from Rust (`oidc.rs`).
 #[tauri::command]
 pub async fn open_auth_in_browser(app: tauri::AppHandle, auth_url: String) -> Result<(), String> {
     use tauri_plugin_opener::OpenerExt;
     app.opener()
         .open_url(&auth_url, None::<&str>)
         .map_err(|e| format!("Failed to open browser: {e}"))
-}
-
-/// Emits `auth-cancelled` so the frontend's pending login promise
-/// settles gracefully when the user dismisses the sign-in flow.
-#[tauri::command]
-pub async fn cancel_auth(app: tauri::AppHandle) -> Result<(), String> {
-    let _ = app.emit("auth-cancelled", ());
-    Ok(())
-}
-
-// ── One-shot localhost callback servers ──────────────────────────────
-//
-// Both the Auth0 sign-in and a sign-in at an address need a localhost HTTP server to
-// receive the redirect callback when `window.open()` is unavailable
-// (Tauri webview). The shared `start_oauth_callback_server` helper
-// handles the TCP plumbing; the public Tauri commands configure the
-// event name and port range for each provider.
-
-/// Auth0 callback server for dev mode.
-///
-/// In dev mode the `stigmer://` deep link is typically owned by the
-/// production `.app` bundle in `/Applications`, so the callback never
-/// reaches the dev instance. This server provides an alternative
-/// redirect URI (`http://127.0.0.1:<port>/auth/callback`) that works
-/// regardless of which `.app` is installed.
-#[tauri::command]
-pub async fn start_auth_callback_server(app: tauri::AppHandle) -> Result<u16, String> {
-    start_oauth_callback_server(app, "auth-callback", &[17234, 17235, 17236])
 }
 
 /// Sign-in callback server: the loopback page a sign-in at an address
@@ -62,19 +30,24 @@ pub async fn start_auth_callback_server(app: tauri::AppHandle) -> Result<u16, St
 /// `sign-in-callback` event to complete the sign-in.
 #[tauri::command]
 pub async fn start_sign_in_callback_server(app: tauri::AppHandle) -> Result<u16, String> {
-    start_oauth_callback_server(app, "sign-in-callback", &[17237, 17238, 17239])
+    start_oauth_callback_server(&[17237, 17238, 17239], "sign-in-callback", move |payload| {
+        let _ = app.emit("sign-in-callback", payload);
+        crate::window::bring_forward(&app);
+    })
 }
 
-/// Starts a one-shot localhost HTTP server that waits for a single
-/// OAuth callback request, extracts `code` / `state` / `error` query
-/// parameters, emits them as a Tauri event, and responds with a
-/// "you can close this tab" HTML page.
+/// Starts a one-shot localhost HTTP server on the first free port of
+/// `ports` that waits for a single OAuth callback request, hands its
+/// `code` / `state` / `error` query parameters to `on_callback`, and
+/// answers with a "you can close this tab" page. Used by the GitHub
+/// sign-in above and by a debug build's own sign-in (`oidc.rs`), whose
+/// `stigmer://` deep link usually belongs to an installed release app.
 ///
 /// Returns the port the server is listening on.
-fn start_oauth_callback_server(
-    app: tauri::AppHandle,
-    event_name: &'static str,
+pub(crate) fn start_oauth_callback_server(
     ports: &[u16],
+    label: &str,
+    on_callback: impl FnOnce(AuthCallbackPayload) + Send + 'static,
 ) -> Result<u16, String> {
     use std::io::{Read, Write};
     use std::net::TcpListener;
@@ -92,8 +65,8 @@ fn start_oauth_callback_server(
         }
     }
 
-    let listener = listener_result
-        .map_err(|e| format!("Failed to bind {event_name} callback server: {e}"))?;
+    let listener =
+        listener_result.map_err(|e| format!("Failed to bind the {label} callback server: {e}"))?;
 
     let port = listener
         .local_addr()
@@ -109,9 +82,7 @@ fn start_oauth_callback_server(
         let n = stream.read(&mut buf).unwrap_or(0);
         let request = String::from_utf8_lossy(&buf[..n]);
 
-        let payload = parse_callback_request(&request);
-        let _ = app.emit(event_name, payload);
-        crate::window::bring_forward(&app);
+        on_callback(parse_callback_request(&request));
 
         let html = concat!(
             "<!DOCTYPE html><html><body style=\"font-family:system-ui;display:flex;",

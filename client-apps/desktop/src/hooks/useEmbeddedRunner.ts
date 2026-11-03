@@ -11,8 +11,8 @@
  *
  * The runner always operates in proxy mode: LLM calls route through
  * the Stigmer server's proxy (which injects platform API keys
- * server-side). The proxy endpoint is derived from VITE_STIGMER_API_URL
- * and gated on auth token presence — no async server-info call needed.
+ * server-side). The proxy is the server the app talks to, gated on the
+ * person's token — no async server-info call needed.
  *
  * The Temporal address is NOT configured here. The embedded runner
  * self-discovers it from the control plane during boot using the auth token
@@ -23,8 +23,8 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { resolveResource } from "@tauri-apps/api/path";
-import { loadTokens } from "../auth/token-store";
 import { runnerStateOf, type RunnerState } from "./runner-state";
+import { buildDefaultServer } from "../config";
 
 export interface RunnerConfig {
   nodeBinary: string;
@@ -71,53 +71,50 @@ export interface UseEmbeddedRunnerResult {
   error: string | null;
 }
 
-function normalizeToUrl(endpoint: string): string {
-  if (endpoint.startsWith("http://") || endpoint.startsWith("https://")) {
-    return endpoint;
+function originOf(url: string): string {
+  try {
+    return new URL(url).origin;
+  } catch {
+    return url;
   }
-  return endpoint.endsWith(":443") ? `https://${endpoint}` : `http://${endpoint}`;
+}
+
+/** What the runner is started against: the chosen server and the person's token. */
+export interface RunnerTarget {
+  /** The server the app talks to, an origin with its scheme (server/ServerProvider.tsx). */
+  readonly server: string;
+  /** The person's access token, or none on a server that trusts every request. */
+  readonly accessToken: string | null;
 }
 
 /**
  * The configuration the embedded runner starts with. Exported for its tests;
  * the hook below is its only caller.
  */
-export async function getRunnerConfig(): Promise<RunnerConfig> {
-  // The runner's control-plane endpoint. In local dev this is the grpcwebproxy
-  // sidecar; in production it is the Stigmer Cloud API. Falling back to
-  // VITE_STIGMER_API_URL (not localhost) is what lets the production desktop —
-  // which sets no sidecar — point the runner at the cloud control plane, which
-  // is also the server the runner queries to self-discover Temporal.
-  const stigmerEndpoint =
-    import.meta.env.VITE_STIGMER_SIDECAR_ENDPOINT
-    || import.meta.env.VITE_STIGMER_API_URL
-    || localStorage.getItem("stigmer.serverEndpoint")
-    || "http://localhost:7234";
+export async function getRunnerConfig(target: RunnerTarget): Promise<RunnerConfig> {
+  // The runner's control-plane endpoint: the server the app talks to, which
+  // is also the server the runner asks for its Temporal address. A
+  // development build may route it through the local grpcwebproxy sidecar,
+  // which fronts the build's own server and no other.
+  const sidecar = import.meta.env.VITE_STIGMER_SIDECAR_ENDPOINT;
+  const stigmerEndpoint = sidecar && target.server === originOf(buildDefaultServer()) ? sidecar : target.server;
   // Optional override only. Left undefined by default so the runner discovers
-  // the Temporal address from the control plane using the auth token.
-  const temporalAddress =
-    import.meta.env.VITE_STIGMER_TEMPORAL_ADDRESS
-    || localStorage.getItem("stigmer.temporalAddress")
-    || undefined;
-  // This is the runner's CONTROL-PLANE credential: the Auth0 access token the
-  // runner presents to the Stigmer server for bootstrap + activity gRPC. It is
-  // NOT what authenticates the runner's LLM proxy traffic — on cloud the
-  // server mints a dedicated iss=stigmer token during bootstrap and the runner
-  // owns/refreshes that proxy credential itself (see runner-manager.ts). The
-  // desktop only needs to keep this Auth0 token fresh (TokenBridge in App.tsx),
-  // which in turn lets the runner re-mint its proxy token indefinitely.
-  const stigmerToken = loadTokens()?.accessToken || undefined;
+  // the Temporal address from the control plane using the token.
+  const temporalAddress = import.meta.env.VITE_STIGMER_TEMPORAL_ADDRESS || undefined;
+  // This is the runner's CONTROL-PLANE credential: the person's access token,
+  // which the runner presents to the Stigmer server for bootstrap + activity
+  // gRPC. It is NOT what authenticates the runner's LLM proxy traffic — on
+  // cloud the server mints a dedicated iss=stigmer token during bootstrap and
+  // the runner owns/refreshes that proxy credential itself (see
+  // runner-manager.ts). The desktop only keeps this token fresh (TokenBridge
+  // in App.tsx), which lets the runner re-mint its proxy token indefinitely.
+  // It comes from the sign-in's memory, never from web storage.
+  const stigmerToken = target.accessToken || undefined;
 
-  // Proxy endpoint for the runner's LLM traffic, with a URL scheme.
-  //
-  // Precedence: general API URL > stored API URL > the control-plane endpoint.
-  // Token presence gates proxy mode: authenticated against a cloud-edition
-  // server implies the proxy is available.
-  const proxyEndpoint = stigmerToken
-    ? (import.meta.env.VITE_STIGMER_API_URL
-       || localStorage.getItem("stigmer.apiUrl")
-       || normalizeToUrl(stigmerEndpoint))
-    : undefined;
+  // The proxy for the runner's LLM traffic: the server itself. A token gates
+  // proxy mode: a signed-in person on a server that signs people in implies
+  // the proxy is there.
+  const proxyEndpoint = stigmerToken ? target.server : undefined;
 
   // Resolve the staged runner to an ABSOLUTE path. `node` resolves a relative
   // script argument against the process working directory, which for a packaged
@@ -168,7 +165,15 @@ export async function getRunnerConfig(): Promise<RunnerConfig> {
   };
 }
 
-export function useEmbeddedRunner(): UseEmbeddedRunnerResult {
+export function useEmbeddedRunner({
+  server,
+  getAccessToken,
+}: {
+  /** The server the app talks to; the runner's control plane and proxy. */
+  readonly server: string;
+  /** The person's current access token, read at start. */
+  readonly getAccessToken: () => string | null;
+}): UseEmbeddedRunnerResult {
   const [isRunning, setIsRunning] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
   const [hasRun, setHasRun] = useState(false);
@@ -206,7 +211,7 @@ export function useEmbeddedRunner(): UseEmbeddedRunnerResult {
             return;
           }
           setIsStarting(true);
-          const config = await getRunnerConfig();
+          const config = await getRunnerConfig({ server, accessToken: getAccessToken() });
           await invoke("start_runner", { config });
           // A new runner holds no conversation. Give it every one the window
           // holds, so a runner that stopped by itself and starts again (from
@@ -237,8 +242,8 @@ export function useEmbeddedRunner(): UseEmbeddedRunnerResult {
         throw err;
       }
     },
-    // Stryker disable next-line ArrayDeclaration: markRunning never changes, so any dependency list keeps this alike
-    [markRunning],
+    // Stryker disable next-line ArrayDeclaration: none of these changes while the provider is mounted (another server mounts another provider), so any dependency list keeps this alike
+    [markRunning, server, getAccessToken],
   );
 
   const addSession = useCallback(

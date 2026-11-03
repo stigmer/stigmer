@@ -17,7 +17,6 @@
     {
       "identifier": "http:default",
       "allow": [
-        { "url": "https://stigmer-prod.us.auth0.com/**" },
         { "url": "https://api.stigmer.ai/**" },
         { "url": "https://*.stigmer.ai/**" },
         { "url": "http://localhost:*/**" }

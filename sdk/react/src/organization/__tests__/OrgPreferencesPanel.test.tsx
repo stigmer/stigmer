@@ -26,6 +26,7 @@ function answering(authenticationRequired: boolean): UseServerInfoReturn {
       authenticationRequired,
       singleOrg: undefined,
       environments: undefined,
+      nativeSignIn: undefined,
     },
     isLoading: false,
     error: null,

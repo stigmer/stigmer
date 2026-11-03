@@ -1,381 +1,276 @@
 // ---------------------------------------------------------------------------
-// AuthProvider — the desktop's sign-in, session renewal and sign-out
+// AuthProvider — the desktop's sign-in, session renewal and sign-out, in the
+// mode the server's answer picks
 //
-// Driven end to end over Tauri's IPC mock: the real provider asks the host to
-// open the system browser, and the test answers as the deep link would, by
-// emitting `auth-callback` through Tauri's event layer. Only Auth0's token
-// endpoint (Tauri's HTTP plugin) is stubbed at its module. Pinned here:
+// Driven over Tauri's IPC mock: the real provider asks the Rust host for the
+// session (`auth_session`), to sign in (`auth_sign_in`), to renew
+// (`auth_refresh`) and to sign out (`auth_sign_out`), and the test answers as
+// the host would. The flow itself (discovery, PKCE, the browser, the
+// callback's state, the code exchange, the keychain) is the host's, pinned in
+// src-tauri/src/oidc.rs and session_store.rs. Pinned here:
 //
-//   - the mode: a local API URL runs signed in with no token; any other URL,
-//     an unusable one included, signs in, and the sign-in screen names a URL
-//     that is not a usable http(s) URL;
-//   - the flow: the callback's state must be the one sent, an identity
-//     provider error or a cancel ends the flow, a code is exchanged with the
-//     verifier whose challenge was sent, and a flow nobody finishes times out;
-//   - the session: it is renewed five minutes before expiry (at once when
-//     already inside that window), a failed renewal signs the person out, and
-//     the token getter stays one function across renewals;
-//   - sign-out clears the session and revokes the refresh token.
+//   - the mode: a server that trusts every request runs signed in with no
+//     token; one that signs people in signs in through the provider it
+//     announced, for that server;
+//   - the session: the host's session restores the person signed in, it is
+//     renewed five minutes before expiry with one token getter throughout, a
+//     refused renewal signs the person out, and sign-out asks the host to
+//     forget and revoke it;
+//   - web storage holds no sign-in, and the tokens older builds kept there
+//     are forgotten.
 // ---------------------------------------------------------------------------
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { mockTauri, type TauriMock } from "../../__test-utils__/tauri";
-import { generateChallenge, type StoredTokens } from "../pkce";
+import type { NativeSignIn } from "@stigmer/client";
+import { mockTauri, type CommandArgs } from "../../__test-utils__/tauri";
 
-const env = vi.hoisted(() => ({ apiUrl: "https://api.stigmer.ai" }));
-vi.mock("../../config", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../../config")>();
-  return {
-    ...actual,
-    get API_URL() {
-      return env.apiUrl;
-    },
-  };
-});
+const sonner = vi.hoisted(() => ({ message: vi.fn() }));
+vi.mock("sonner", () => ({ toast: { message: sonner.message } }));
+import { AuthProvider, useAuth, type SessionView } from "../AuthProvider";
 
-const http = vi.hoisted(() => ({
-  fetch: vi.fn<(url: string, init?: RequestInit) => Promise<Response>>(),
-}));
-vi.mock("@tauri-apps/plugin-http", () => ({ fetch: http.fetch }));
-
-import { AuthProvider, useAuth } from "../AuthProvider";
-import { LoginScreen } from "../LoginScreen";
-
-const TOKENS_KEY = "stigmer:auth:tokens";
-const LOOPBACK_PORT = 17001;
+const SERVER = "https://stigmer.acme.internal";
+const ACME: NativeSignIn = {
+  issuer: "https://id.acme.internal/",
+  audience: "https://stigmer.acme.internal",
+  clientId: "acme-desktop",
+};
+const NOW = 1_800_000_000_000;
 const MINUTE = 60_000;
 
-function jwt(claims: Record<string, unknown>): string {
-  const encode = (value: object) =>
-    btoa(JSON.stringify(value))
-      .replace(/\+/g, "-")
-      .replace(/\//g, "_")
-      .replace(/=+$/, "");
-  return `${encode({ alg: "none" })}.${encode(claims)}.signature`;
+function view(accessToken: string, expiresAt: number): SessionView {
+  return {
+    accessToken,
+    expiresAt,
+    user: { sub: "acme|ada", email: "ada@acme.internal", name: "Ada" },
+    keptBetweenLaunches: true,
+  };
 }
 
-function storeTokens(tokens: StoredTokens) {
-  localStorage.setItem(TOKENS_KEY, JSON.stringify(tokens));
-}
-
-function storedTokens(): StoredTokens | null {
-  return JSON.parse(localStorage.getItem(TOKENS_KEY) ?? "null");
-}
-
-function tokenAnswer(body: Record<string, unknown>): Response {
-  return new Response(JSON.stringify(body), {
-    status: 200,
-    headers: { "content-type": "application/json" },
-  });
-}
-
-/** The form fields of every request sent to one Auth0 endpoint. */
-function formsSentTo(path: string): Record<string, string>[] {
-  return http.fetch.mock.calls
-    .filter(([url]) => String(url).endsWith(path))
-    .map(([, init]) =>
-      Object.fromEntries(new URLSearchParams(String(init?.body))),
-    );
-}
-
-let outcome: string[] = [];
-let lastGetter: (() => string | null) | null = null;
+let lastGetter: (() => string | null) | undefined;
 
 function Probe() {
-  const auth = useAuth();
-  lastGetter = auth.getAccessToken;
+  const { isAuthEnabled, isAuthenticated, isInitialized, getAccessToken, user, provider, login, logout } = useAuth();
+  lastGetter = getAccessToken;
   return (
     <div>
-      <p>
-        enabled={String(auth.isAuthEnabled)} authenticated=
-        {String(auth.isAuthenticated)} initialized={String(auth.isInitialized)}{" "}
-        token={String(auth.getAccessToken())} user=
-        {auth.user?.email ?? "none"}
+      <p data-testid="state">
+        enabled={String(isAuthEnabled)} authenticated={String(isAuthenticated)} initialized=
+        {String(isInitialized)} token={String(getAccessToken())} user={user?.email ?? "none"} provider=
+        {provider === null ? "unknown" : `${provider.host}/${provider.sameSite ? "same" : "other"}`}
       </p>
-      <button
-        onClick={() => {
-          auth.login().then(
-            () => outcome.push("signed in"),
-            (err: Error) => outcome.push(`${err.name}: ${err.message}`),
-          );
-        }}
-      >
-        sign in
-      </button>
-      <button onClick={auth.logout}>sign out</button>
+      <button onClick={() => void login().catch(() => {})}>sign in</button>
+      <button onClick={() => void login({ providerConfirmed: true }).catch(() => {})}>sign in elsewhere</button>
+      <button onClick={logout}>sign out</button>
     </div>
   );
 }
 
-function renderProvider() {
+function stateLine(): string {
+  return screen.getByTestId("state").textContent ?? "";
+}
+
+function renderSignIn() {
   return render(
-    <AuthProvider>
+    <AuthProvider mode="sign-in" server={SERVER} nativeSignIn={ACME}>
       <Probe />
     </AuthProvider>,
   );
 }
 
-function stateLine(): string {
-  return screen.getByText(/^enabled=/).textContent ?? "";
-}
-
-/** Click sign in and wait for the host to be asked to open the browser. */
-async function startSignIn(tauri: TauriMock): Promise<URL> {
-  await userEvent.click(screen.getByRole("button", { name: "sign in" }));
-  await waitFor(() =>
-    expect(tauri.callsTo("open_auth_in_browser")).toHaveLength(1),
-  );
-  return new URL(String(tauri.callsTo("open_auth_in_browser")[0]?.authUrl));
-}
-
-function hostMock(): TauriMock {
-  return mockTauri({
-    start_auth_callback_server: () => LOOPBACK_PORT,
-    open_auth_in_browser: () => null,
-  });
-}
+beforeEach(() => {
+  localStorage.clear();
+  lastGetter = undefined;
+});
 
 describe("the auth mode", () => {
-  beforeEach(() => {
-    localStorage.clear();
-    http.fetch.mockReset();
-  });
-
-  it("runs signed in with no token and no sign-in against a local server", () => {
-    env.apiUrl = "http://localhost:7234";
-    mockTauri();
-    renderProvider();
-
-    expect(stateLine()).toBe(
-      "enabled=false authenticated=true initialized=true token=null user=none",
-    );
-  });
-
-  it("signs in against a remote server", () => {
-    env.apiUrl = "https://api.stigmer.ai";
-    mockTauri();
-    renderProvider();
-
-    expect(stateLine()).toContain("enabled=true authenticated=false");
-  });
-
-  it("fails closed on an API URL that does not parse, and the sign-in screen says why", () => {
-    env.apiUrl = "api.stigmer.ai:443";
-    mockTauri();
+  it("runs signed in with no token and asks the host nothing on a server that trusts every request", () => {
+    const tauri = mockTauri();
     render(
-      <AuthProvider>
+      <AuthProvider mode="open">
         <Probe />
-        <LoginScreen />
       </AuthProvider>,
     );
 
-    expect(stateLine()).toContain("enabled=true authenticated=false");
-    expect(screen.getByRole("alert").textContent).toContain(
-      "This build’s API address is not a valid URL (api.stigmer.ai:443)",
-    );
+    expect(stateLine()).toContain("enabled=false authenticated=true initialized=true token=null");
+    expect(tauri.calls).toEqual([]);
   });
 
-  it("names no URL problem on the sign-in screen for a valid URL", () => {
-    env.apiUrl = "https://api.stigmer.ai";
-    mockTauri();
-    render(
-      <AuthProvider>
-        <LoginScreen />
-      </AuthProvider>,
-    );
+  it("DSK-02 signs in through the provider the server announced, for that server", async () => {
+    const tauri = mockTauri({
+      auth_session: () => null,
+      auth_sign_in: () => view("access-1", Date.now() + 60 * MINUTE),
+    });
+    renderSignIn();
+    await waitFor(() => expect(stateLine()).toContain("enabled=true authenticated=false initialized=true"));
 
-    expect(screen.queryByRole("alert")).toBeNull();
-    expect(screen.getByRole("button", { name: "Sign in" })).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: "sign in" }));
+
+    await waitFor(() => expect(stateLine()).toContain("authenticated=true"));
+    expect(tauri.callsTo("auth_sign_in")).toEqual([{ server: SERVER, signIn: ACME, providerConfirmed: false }]);
+    expect(stateLine()).toContain("token=access-1 user=ada@acme.internal");
+  });
+
+  it("asks the host where the server sends people, and passes on the person's choice of a provider elsewhere", async () => {
+    const tauri = mockTauri({
+      auth_session: () => null,
+      auth_provider: () => ({ host: "acme.okta.com", sameSite: false }),
+      auth_sign_in: () => view("access-1", Date.now() + 60 * MINUTE),
+    });
+    renderSignIn();
+    await waitFor(() => expect(stateLine()).toContain("provider=acme.okta.com/other"));
+    expect(tauri.callsTo("auth_provider")).toEqual([{ server: SERVER, signIn: ACME }]);
+
+    await userEvent.click(screen.getByRole("button", { name: "sign in elsewhere" }));
+
+    await waitFor(() => expect(stateLine()).toContain("authenticated=true"));
+    expect(tauri.callsTo("auth_sign_in")).toEqual([{ server: SERVER, signIn: ACME, providerConfirmed: true }]);
+  });
+
+  it("asks the host for a session through the provider the server announces now", async () => {
+    // The host drops a session signed in through another provider, so the
+    // question has to name the one announced (an operator may have moved it).
+    const tauri = mockTauri({ auth_session: () => null });
+    renderSignIn();
+    await waitFor(() => expect(stateLine()).toContain("initialized=true"));
+
+    expect(tauri.callsTo("auth_session")).toEqual([{ server: SERVER, signIn: ACME }]);
   });
 });
 
-describe("signing in", () => {
-  beforeEach(() => {
-    env.apiUrl = "https://api.stigmer.ai";
-    localStorage.clear();
-    http.fetch.mockReset();
-    outcome = [];
-    // The provider logs every failed sign-in; the outcomes are asserted.
-    vi.spyOn(console, "error").mockImplementation(() => {});
+describe("DSK-06 the sign-in stays out of web storage", () => {
+  it("leaves no token in the page's storage after signing in", async () => {
+    mockTauri({
+      auth_session: () => null,
+      auth_sign_in: () => view("access-secret", Date.now() + 60 * MINUTE),
+    });
+    renderSignIn();
+    await waitFor(() => expect(stateLine()).toContain("initialized=true"));
+
+    await userEvent.click(screen.getByRole("button", { name: "sign in" }));
+    await waitFor(() => expect(stateLine()).toContain("authenticated=true"));
+
+    const stored = [
+      ...Array.from({ length: localStorage.length }, (_, i) => localStorage.getItem(localStorage.key(i) ?? "")),
+      ...Array.from({ length: sessionStorage.length }, (_, i) => sessionStorage.getItem(sessionStorage.key(i) ?? "")),
+    ].join("\n");
+    expect(stored).not.toContain("access-secret");
   });
 
-  afterEach(() => {
-    vi.unstubAllEnvs();
-    vi.useRealTimers();
-    vi.restoreAllMocks();
+  it("forgets the tokens an older build kept in web storage", () => {
+    localStorage.setItem("stigmer:auth:tokens", JSON.stringify({ accessToken: "old", refreshToken: "old-refresh" }));
+    localStorage.setItem("stigmer:lastRoute", "/dashboard");
+    mockTauri({ auth_session: () => null });
+    renderSignIn();
+
+    expect(localStorage.getItem("stigmer:auth:tokens")).toBeNull();
+    expect(localStorage.getItem("stigmer:lastRoute"), "other settings stay").toBe("/dashboard");
+  });
+});
+
+describe("the provider's lifetime", () => {
+  it("is not initialized until the host has answered", async () => {
+    let answer: (found: SessionView | null) => void = () => {};
+    mockTauri({ auth_session: () => new Promise((resolve) => (answer = resolve)) });
+    renderSignIn();
+
+    expect(stateLine()).toContain("initialized=false");
+    await act(async () => answer(null));
+    expect(stateLine()).toContain("initialized=true");
   });
 
-  it("exchanges the returned code with the verifier whose challenge it sent, and stores the session", async () => {
-    const tauri = hostMock();
-    http.fetch.mockResolvedValue(
-      tokenAnswer({
-        access_token: "access-1",
-        refresh_token: "refresh-1",
-        id_token: jwt({ sub: "auth0|1", email: "ada@example.com" }),
-        expires_in: 3600,
-      }),
-    );
-    renderProvider();
-
-    const authorize = await startSignIn(tauri);
-    const state = authorize.searchParams.get("state");
-    expect(state).toBeTruthy();
-
-    await act(() => tauri.emit("auth-callback", { code: "code-1", state }));
-    await waitFor(() => expect(outcome).toEqual(["signed in"]));
-
-    const [exchange] = formsSentTo("/oauth/token");
-    expect(exchange?.code).toBe("code-1");
-    // The verifier sent now must be the one whose challenge went out first.
-    expect(await generateChallenge(exchange?.code_verifier ?? "")).toBe(
-      authorize.searchParams.get("code_challenge"),
-    );
-    expect(storedTokens()?.accessToken).toBe("access-1");
-    expect(stateLine()).toContain(
-      "authenticated=true initialized=true token=access-1 user=ada@example.com",
-    );
-  });
-
-  it("in a development build, redirects to the host's loopback server, and exchanges with the same redirect", async () => {
-    const tauri = hostMock();
-    http.fetch.mockResolvedValue(tokenAnswer({ access_token: "a" }));
-    renderProvider();
-
-    const authorize = await startSignIn(tauri);
-    const redirect = `http://127.0.0.1:${LOOPBACK_PORT}/auth/callback`;
-    expect(authorize.searchParams.get("redirect_uri")).toBe(redirect);
-
-    await act(() =>
-      tauri.emit("auth-callback", {
-        code: "c",
-        state: authorize.searchParams.get("state"),
-      }),
-    );
-    await waitFor(() => expect(outcome).toEqual(["signed in"]));
-    expect(formsSentTo("/oauth/token")[0]?.redirect_uri).toBe(redirect);
-  });
-
-  it("in a packaged build, redirects to the app's deep link and starts no loopback server", async () => {
+  it("adopts nothing the host answers after the provider left", async () => {
     vi.stubEnv("DEV", false);
-    const tauri = hostMock();
-    renderProvider();
+    sonner.message.mockReset();
+    let answer: (found: SessionView | null) => void = () => {};
+    mockTauri({ auth_session: () => new Promise((resolve) => (answer = resolve)) });
+    const { unmount } = renderSignIn();
 
-    const authorize = await startSignIn(tauri);
-    expect(authorize.searchParams.get("redirect_uri")).toBe(
-      "stigmer://auth/callback",
-    );
-    expect(tauri.callsTo("start_auth_callback_server")).toEqual([]);
+    unmount();
+    await act(async () => answer({ ...view("late", Date.now() + 60 * MINUTE), keptBetweenLaunches: false }));
+    expect(sonner.message).not.toHaveBeenCalled();
+    vi.unstubAllEnvs();
   });
 
-  it("refuses a callback whose state is not the one it sent, and exchanges nothing", async () => {
-    const tauri = hostMock();
-    renderProvider();
-
-    await startSignIn(tauri);
-    await act(() =>
-      tauri.emit("auth-callback", { code: "code-1", state: "forged" }),
-    );
-
-    await waitFor(() =>
-      expect(outcome).toEqual(["Error: OAuth state mismatch"]),
-    );
-    expect(http.fetch).not.toHaveBeenCalled();
-    expect(storedTokens()).toBeNull();
-  });
-
-  it("ends the flow with the identity provider's own description of an error", async () => {
-    const tauri = hostMock();
-    renderProvider();
-
-    const authorize = await startSignIn(tauri);
-    await act(() =>
-      tauri.emit("auth-callback", {
-        state: authorize.searchParams.get("state"),
-        error: "access_denied",
-        error_description: "The user denied access",
-      }),
-    );
-
-    await waitFor(() =>
-      expect(outcome).toEqual(["Error: The user denied access"]),
-    );
-    expect(http.fetch).not.toHaveBeenCalled();
-  });
-
-  it("refuses a callback that carries the right state but no code", async () => {
-    const tauri = hostMock();
-    renderProvider();
-
-    const authorize = await startSignIn(tauri);
-    await act(() =>
-      tauri.emit("auth-callback", {
-        state: authorize.searchParams.get("state"),
-      }),
-    );
-
-    await waitFor(() =>
-      expect(outcome).toEqual(["Error: No authorization code received"]),
-    );
-  });
-
-  it("ends the flow as a cancel, which the sign-in screen treats as no failure", async () => {
-    const tauri = hostMock();
-    renderProvider();
-
-    await startSignIn(tauri);
-    await act(() => tauri.emit("auth-cancelled"));
-
-    await waitFor(() =>
-      expect(outcome).toEqual(["LoginCancelledError: Login cancelled"]),
-    );
-  });
-
-  it("times a flow nobody finishes out after five minutes", async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
-    const tauri = hostMock();
-    renderProvider();
-
-    await startSignIn(tauri);
-    // A second short of the deadline (the clock also runs in real time).
-    await act(async () => {
-      vi.advanceTimersByTime(5 * MINUTE - 1000);
+  it("starts a new sign-in state for another server, never showing the old one's", async () => {
+    mockTauri({
+      auth_session: (args) =>
+        args.server === SERVER ? view("access-acme", Date.now() + 60 * MINUTE) : new Promise(() => {}),
     });
-    expect(outcome).toEqual([]);
+    const { rerender } = renderSignIn();
+    await waitFor(() => expect(stateLine()).toContain("token=access-acme"));
 
-    await act(async () => {
-      vi.advanceTimersByTime(1000);
-    });
-    await waitFor(() =>
-      expect(outcome).toEqual(["Error: Authentication timed out"]),
+    rerender(
+      <AuthProvider mode="sign-in" server="https://stigmer.other.internal" nativeSignIn={ACME}>
+        <Probe />
+      </AuthProvider>,
     );
+
+    expect(stateLine()).toContain("authenticated=false");
+    expect(stateLine()).toContain("token=null");
   });
 
-  it("ignores a second callback once the flow has ended", async () => {
-    const tauri = hostMock();
-    http.fetch.mockResolvedValue(tokenAnswer({ access_token: "a" }));
-    renderProvider();
+  it("starts a new sign-in state when the server announces another audience", async () => {
+    mockTauri({
+      auth_session: (args) =>
+        (args.signIn as { audience: string }).audience === ACME.audience
+          ? view("access-acme", Date.now() + 60 * MINUTE)
+          : new Promise(() => {}),
+    });
+    const { rerender } = renderSignIn();
+    await waitFor(() => expect(stateLine()).toContain("token=access-acme"));
 
-    const authorize = await startSignIn(tauri);
-    const state = authorize.searchParams.get("state");
-    await act(() => tauri.emit("auth-callback", { code: "first", state }));
-    await waitFor(() => expect(outcome).toEqual(["signed in"]));
+    rerender(
+      <AuthProvider mode="sign-in" server={SERVER} nativeSignIn={{ ...ACME, audience: "https://api.moved.example" }}>
+        <Probe />
+      </AuthProvider>,
+    );
 
-    await act(() => tauri.emit("auth-callback", { code: "second", state }));
-    expect(formsSentTo("/oauth/token").map((form) => form.code)).toEqual([
-      "first",
-    ]);
+    expect(stateLine()).toContain("token=null");
+  });
+
+  it("refuses to be read outside the provider", () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(() => render(<Probe />)).toThrowError("useAuth must be used within AuthProvider");
+  });
+});
+
+describe("a sign-in nothing keeps", () => {
+  it("says, once a person signs in, that the app will ask again next time when no keychain keeps it", async () => {
+    vi.stubEnv("DEV", false);
+    sonner.message.mockReset();
+    mockTauri({
+      auth_session: () => null,
+      auth_sign_in: () => ({ ...view("access-1", Date.now() + 60 * MINUTE), keptBetweenLaunches: false }),
+    });
+    renderSignIn();
+    await waitFor(() => expect(stateLine()).toContain("initialized=true"));
+
+    await userEvent.click(screen.getByRole("button", { name: "sign in" }));
+
+    await waitFor(() => expect(stateLine()).toContain("authenticated=true"));
+    expect(sonner.message).toHaveBeenCalledWith(
+      "This computer has no keychain the app can use, so you will sign in again next time.",
+      { id: "sign-in-not-kept" },
+    );
+    vi.unstubAllEnvs();
+  });
+
+  it("says nothing when the keychain keeps the sign-in", async () => {
+    vi.stubEnv("DEV", false);
+    sonner.message.mockReset();
+    mockTauri({ auth_session: () => view("access-1", Date.now() + 60 * MINUTE) });
+    renderSignIn();
+
+    await waitFor(() => expect(stateLine()).toContain("authenticated=true"));
+    expect(sonner.message).not.toHaveBeenCalled();
+    vi.unstubAllEnvs();
   });
 });
 
 describe("the session", () => {
-  const NOW = 1_800_000_000_000;
-
   beforeEach(() => {
-    env.apiUrl = "https://api.stigmer.ai";
-    localStorage.clear();
-    http.fetch.mockReset();
     vi.useFakeTimers({ shouldAdvanceTime: true });
     vi.setSystemTime(NOW);
   });
@@ -384,140 +279,122 @@ describe("the session", () => {
     vi.useRealTimers();
   });
 
-  it("restores a stored, unexpired session as signed in", () => {
-    storeTokens({
-      accessToken: "access-1",
-      refreshToken: "refresh-1",
-      expiresAt: NOW + 60 * MINUTE,
-    });
-    mockTauri();
-    renderProvider();
+  it("restores a stored, unexpired session as signed in", async () => {
+    const tauri = mockTauri({ auth_session: () => view("access-1", NOW + 60 * MINUTE) });
+    renderSignIn();
 
-    expect(stateLine()).toContain(
-      "authenticated=true initialized=true token=access-1",
-    );
-    expect(http.fetch).not.toHaveBeenCalled();
+    await waitFor(() => expect(stateLine()).toContain("authenticated=true initialized=true token=access-1"));
+    expect(tauri.callsTo("auth_session")).toEqual([{ server: SERVER, signIn: ACME }]);
+  });
+
+  it("shows the sign-in screen when the host holds no session, or cannot ask the provider", async () => {
+    mockTauri({
+      auth_session: () => {
+        throw "The app could not reach the sign-in provider";
+      },
+    });
+    renderSignIn();
+
+    await waitFor(() => expect(stateLine()).toContain("authenticated=false initialized=true token=null"));
   });
 
   it("renews five minutes before the expiry, keeping one token getter across the renewal", async () => {
-    storeTokens({
-      accessToken: "access-1",
-      refreshToken: "refresh-1",
-      expiresAt: NOW + 20 * MINUTE,
+    const refreshes: CommandArgs[] = [];
+    mockTauri({
+      auth_session: () => view("access-1", NOW + 20 * MINUTE),
+      auth_refresh: (args) => {
+        refreshes.push(args);
+        return view("access-2", NOW + 80 * MINUTE);
+      },
     });
-    http.fetch.mockResolvedValue(
-      tokenAnswer({ access_token: "access-2", expires_in: 3600 }),
-    );
-    mockTauri();
-    renderProvider();
+    renderSignIn();
+    await waitFor(() => expect(stateLine()).toContain("token=access-1"));
     const getterBefore = lastGetter;
 
     await act(async () => {
-      vi.advanceTimersByTime(15 * MINUTE - 1);
+      vi.advanceTimersByTime(14 * MINUTE);
     });
-    expect(http.fetch).not.toHaveBeenCalled();
+    expect(refreshes).toEqual([]);
 
     await act(async () => {
-      vi.advanceTimersByTime(1);
+      vi.advanceTimersByTime(2 * MINUTE);
     });
     await waitFor(() => expect(stateLine()).toContain("token=access-2"));
-    expect(formsSentTo("/oauth/token")[0]).toMatchObject({
-      grant_type: "refresh_token",
-      refresh_token: "refresh-1",
-    });
-    expect(storedTokens()?.accessToken).toBe("access-2");
+    expect(refreshes).toEqual([{ server: SERVER }]);
     expect(lastGetter).toBe(getterBefore);
   });
 
-  it("renews at once, before it counts as initialized, a session already inside the five-minute window", async () => {
-    storeTokens({
-      accessToken: "access-1",
-      refreshToken: "refresh-1",
-      expiresAt: NOW + 30_000,
-    });
-    let answer: (response: Response) => void = () => {};
-    http.fetch.mockReturnValue(
-      new Promise<Response>((resolve) => {
-        answer = resolve;
-      }),
-    );
-    mockTauri();
-    renderProvider();
-
-    expect(stateLine()).toContain("initialized=false");
-    await act(async () => {
-      answer(tokenAnswer({ access_token: "access-2", expires_in: 3600 }));
-    });
-    await waitFor(() =>
-      expect(stateLine()).toContain(
-        "authenticated=true initialized=true token=access-2",
-      ),
-    );
-  });
-
   it("signs the person out when a renewal fails", async () => {
-    storeTokens({
-      accessToken: "access-1",
-      refreshToken: "refresh-1",
-      expiresAt: NOW + 30_000,
+    mockTauri({
+      auth_session: () => view("access-1", NOW + 30_000),
+      auth_refresh: () => null,
     });
-    http.fetch.mockResolvedValue(new Response("revoked", { status: 401 }));
-    mockTauri();
-    renderProvider();
+    renderSignIn();
 
-    await waitFor(() =>
-      expect(stateLine()).toContain(
-        "authenticated=false initialized=true token=null",
-      ),
-    );
-    expect(storedTokens()).toBeNull();
+    await waitFor(() => expect(stateLine()).toContain("authenticated=false initialized=true token=null"));
   });
 
-  it("treats an expired session with no refresh token as signed out, without calling Auth0", () => {
-    storeTokens({ accessToken: "access-1", expiresAt: NOW - MINUTE });
-    mockTauri();
-    renderProvider();
+  it("keeps the session when the provider cannot be reached for a renewal", async () => {
+    mockTauri({
+      auth_session: () => view("access-1", NOW + 30 * MINUTE),
+      auth_refresh: () => {
+        throw "The app could not reach the sign-in provider";
+      },
+    });
+    renderSignIn();
+    await waitFor(() => expect(stateLine()).toContain("token=access-1"));
 
-    expect(stateLine()).toContain("authenticated=false initialized=true");
-    expect(http.fetch).not.toHaveBeenCalled();
+    await act(async () => {
+      vi.advanceTimersByTime(25 * MINUTE);
+    });
+    expect(stateLine()).toContain("authenticated=true");
+    expect(stateLine()).toContain("token=access-1");
+  });
+
+  it("reads a session the host answers already expired as signed out", async () => {
+    // The renewal never answers, so only the expiry decides.
+    mockTauri({ auth_session: () => view("access-old", NOW - MINUTE), auth_refresh: () => new Promise(() => {}) });
+    renderSignIn();
+
+    await waitFor(() => expect(stateLine()).toContain("initialized=true"));
+    expect(stateLine()).toContain("authenticated=false");
+  });
+
+  it("stops renewing once the person signs out", async () => {
+    const refreshes: CommandArgs[] = [];
+    mockTauri({
+      auth_session: () => view("access-1", NOW + 20 * MINUTE),
+      auth_refresh: (args) => {
+        refreshes.push(args);
+        return view("access-2", NOW + 80 * MINUTE);
+      },
+      auth_sign_out: () => null,
+    });
+    renderSignIn();
+    await waitFor(() => expect(stateLine()).toContain("token=access-1"));
+
+    await userEvent.click(screen.getByRole("button", { name: "sign out" }));
+    await act(async () => {
+      vi.advanceTimersByTime(30 * MINUTE);
+    });
+
+    expect(refreshes).toEqual([]);
   });
 
   it("signs out by clearing the session and revoking its refresh token", async () => {
-    storeTokens({
-      accessToken: "access-1",
-      refreshToken: "refresh-1",
-      expiresAt: NOW + 60 * MINUTE,
+    const tauri = mockTauri({
+      auth_session: () => view("access-1", NOW + 60 * MINUTE),
+      auth_sign_out: () => null,
     });
-    http.fetch.mockResolvedValue(new Response(null, { status: 200 }));
-    mockTauri();
-    renderProvider();
+    renderSignIn();
+    await waitFor(() => expect(stateLine()).toContain("authenticated=true"));
 
     await userEvent.click(screen.getByRole("button", { name: "sign out" }));
 
-    expect(storedTokens()).toBeNull();
     expect(stateLine()).toContain("authenticated=false");
-    expect(formsSentTo("/oauth/revoke")).toEqual([
-      expect.objectContaining({ token: "refresh-1" }),
-    ]);
-  });
-
-  it("reads the person's name and email from the ID token, and none from a malformed one", () => {
-    storeTokens({
-      accessToken: "a",
-      expiresAt: NOW + 60 * MINUTE,
-      idToken: jwt({ sub: "auth0|1", email: "ada@example.com" }),
-    });
-    mockTauri();
-    const { unmount } = renderProvider();
-    expect(stateLine()).toContain("user=ada@example.com");
-    unmount();
-
-    storeTokens({
-      accessToken: "a",
-      expiresAt: NOW + 60 * MINUTE,
-      idToken: "not-a-jwt",
-    });
-    renderProvider();
-    expect(stateLine()).toContain("user=none");
+    expect(stateLine()).toContain("token=null");
+    // The host forgets the keychain entry and revokes the refresh token at
+    // the provider's revocation endpoint (src-tauri/src/oidc.rs).
+    expect(tauri.callsTo("auth_sign_out")).toEqual([{ server: SERVER }]);
   });
 });
