@@ -1,18 +1,19 @@
 "use client";
 
 /**
- * The homepage's first screen: the headline over the five hard parts,
- * named, and a picture of the product that steps through a real moment of
- * each (components/visuals/HeroMoments.tsx).
+ * The homepage's first screen: the headline over the five hard parts, as
+ * tabs above a picture of the product that shows a real moment of each,
+ * with the worry it answers and what it proves
+ * (components/visuals/HeroMoments.tsx).
  *
  * It opens on the ask: an integrator's ledger screen for its customer
  * Northwind Books, with Stigmer's chat panel docked beside it at the moment
  * the ledger agent asks before it posts a correction. That picture is the
  * page's largest paint, so it loads first and does not fade in, and it is
- * the still a visitor who asked for less motion sees; the copy above keeps
- * its reveal. The five names sit above the picture, so a visitor sees all
- * five on the first screen, each linking to its row in the section below,
- * which says them with their proofs.
+ * where a visitor who asked for less motion stays; the copy above keeps its
+ * reveal. The five names sit above the picture, so a visitor sees all five
+ * on the first screen, and each moment links to its row in the section
+ * below, which says it with its proof.
  */
 import * as React from "react";
 import Link from "next/link";
