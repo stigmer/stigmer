@@ -98,4 +98,28 @@ export async function judgeRunsOf(
   return list.entries.filter((run) => run.metadata?.labels[GRADES_RUN_LABEL] === runId).length;
 }
 
+// The count of `runId`'s judge runs, polled until it reaches zero. The
+// grading workflow's record step writes the grade, then settles the scoring
+// rule's spend and count, then deletes the judge's session, so a verdict is
+// readable before the judge's run is gone. Waiting for the delete, the last
+// of the three, also covers the scoring rule's settled counts.
+export async function awaitJudgeRunsGone(
+  clients: ConformanceClients,
+  org: string,
+  runId: string,
+  timeoutMs = 30_000,
+): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    const left = await judgeRunsOf(clients, org, runId);
+    if (left === 0) {
+      return;
+    }
+    if (Date.now() > deadline) {
+      throw new Error(`run ${runId} still has ${left} judge run(s) after ${timeoutMs} ms`);
+    }
+    await new Promise<void>((resolve) => setTimeout(resolve, 250));
+  }
+}
+
 export const GRADES_RUN_LABEL = "stigmer.ai/grades-run";
