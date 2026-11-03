@@ -14,7 +14,9 @@ import "buf/validate/validate.proto";
 // one surface that answers plaintext is one file to audit. The authority is
 // the runner credential the server minted for the execution, not a
 // permission: runners act as the person who owns the run, so a permission
-// cannot tell them apart from that person.
+// cannot tell them apart from that person. Every method here carries
+// is_runner_only, so the generators keep it out of the public SDKs; a method
+// added here without that option reaches every SDK.
 service VaultValueController {
   // Fetch the values of a run or of a tools listing, grouped by who declared
   // them, opened from the vaults the run's source manifest names
@@ -43,6 +45,7 @@ service VaultValueController {
   // listing person's My vault for that one server.
   rpc fetchValues(FetchExecutionValuesInput) returns (ExecutionValues) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+    option (ai.stigmer.commons.rpc.is_runner_only) = true;
   }
 }
 

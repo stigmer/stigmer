@@ -260,6 +260,7 @@ service SessionCommandController {
   // authorizeRunnerForRun capability, else the execution-scoped binding).
   rpc appendEvents(AppendSessionEventsInput) returns (AppendSessionEventsResponse) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+    option (ai.stigmer.commons.rpc.is_runner_only) = true;
   }
 
   // Take the messages queued in a run's session for the run to read.
@@ -276,5 +277,6 @@ service SessionCommandController {
   // when a call would take something.
   rpc claimInput(ClaimSessionInputInput) returns (ClaimSessionInputResponse) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+    option (ai.stigmer.commons.rpc.is_runner_only) = true;
   }
 }

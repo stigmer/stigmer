@@ -89,16 +89,6 @@ func (s *SessionClient) Delete(ctx context.Context, id string) (*sessionv1.Sessi
 	return resp, wrapErr(err)
 }
 
-func (s *SessionClient) AppendEvents(ctx context.Context, input *sessionv1.AppendSessionEventsInput) (*sessionv1.AppendSessionEventsResponse, error) {
-	resp, err := s.command.AppendEvents(ctx, input)
-	return resp, wrapErr(err)
-}
-
-func (s *SessionClient) ClaimInput(ctx context.Context, input *sessionv1.ClaimSessionInputInput) (*sessionv1.ClaimSessionInputResponse, error) {
-	resp, err := s.command.ClaimInput(ctx, input)
-	return resp, wrapErr(err)
-}
-
 func (s *SessionClient) Get(ctx context.Context, id string) (*sessionv1.Session, error) {
 	resp, err := s.query.Get(ctx, &sessionv1.SessionId{Value: id})
 	return resp, wrapErr(err)

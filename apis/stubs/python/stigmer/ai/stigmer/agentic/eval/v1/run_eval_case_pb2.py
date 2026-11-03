@@ -27,7 +27,7 @@ from ai.stigmer.commons.rpc import method_options_pb2 as ai_dot_stigmer_dot_comm
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n.ai/stigmer/agentic/eval/v1/run_eval_case.proto\x12\x1a\x61i.stigmer.agentic.eval.v1\x1a#ai/stigmer/agentic/eval/v1/io.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a\x1b\x62uf/validate/validate.proto\"<\n\x1aGetRunEvalCaseArchiveInput\x12\x1e\n\x06run_id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x05runId2\xa3\x01\n\x15RunEvalCaseController\x12\x89\x01\n\x15getArchiveDownloadUrl\x12\x36.ai.stigmer.agentic.eval.v1.GetRunEvalCaseArchiveInput\x1a\x32.ai.stigmer.agentic.eval.v1.EvalArchiveDownloadUrl\"\x04\xd0\xb8\x18\x01\x42\xc1\x01\n\x1e\x63om.ai.stigmer.agentic.eval.v1B\x10RunEvalCaseProtoP\x01\xa2\x02\x04\x41SAE\xaa\x02\x1a\x41i.Stigmer.Agentic.Eval.V1\xca\x02\x1b\x41i\\Stigmer\\Agentic\\Eval_\\V1\xe2\x02\'Ai\\Stigmer\\Agentic\\Eval_\\V1\\GPBMetadata\xea\x02\x1e\x41i::Stigmer::Agentic::Eval::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n.ai/stigmer/agentic/eval/v1/run_eval_case.proto\x12\x1a\x61i.stigmer.agentic.eval.v1\x1a#ai/stigmer/agentic/eval/v1/io.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a\x1b\x62uf/validate/validate.proto\"<\n\x1aGetRunEvalCaseArchiveInput\x12\x1e\n\x06run_id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x05runId2\xa7\x01\n\x15RunEvalCaseController\x12\x8d\x01\n\x15getArchiveDownloadUrl\x12\x36.ai.stigmer.agentic.eval.v1.GetRunEvalCaseArchiveInput\x1a\x32.ai.stigmer.agentic.eval.v1.EvalArchiveDownloadUrl\"\x08\xd0\xb8\x18\x01\xd8\xb8\x18\x01\x42\xc1\x01\n\x1e\x63om.ai.stigmer.agentic.eval.v1B\x10RunEvalCaseProtoP\x01\xa2\x02\x04\x41SAE\xaa\x02\x1a\x41i.Stigmer.Agentic.Eval.V1\xca\x02\x1b\x41i\\Stigmer\\Agentic\\Eval_\\V1\xe2\x02\'Ai\\Stigmer\\Agentic\\Eval_\\V1\\GPBMetadata\xea\x02\x1e\x41i::Stigmer::Agentic::Eval::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -38,9 +38,9 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_GETRUNEVALCASEARCHIVEINPUT'].fields_by_name['run_id']._loaded_options = None
   _globals['_GETRUNEVALCASEARCHIVEINPUT'].fields_by_name['run_id']._serialized_options = b'\272H\004r\002\020\001'
   _globals['_RUNEVALCASECONTROLLER'].methods_by_name['getArchiveDownloadUrl']._loaded_options = None
-  _globals['_RUNEVALCASECONTROLLER'].methods_by_name['getArchiveDownloadUrl']._serialized_options = b'\320\270\030\001'
+  _globals['_RUNEVALCASECONTROLLER'].methods_by_name['getArchiveDownloadUrl']._serialized_options = b'\320\270\030\001\330\270\030\001'
   _globals['_GETRUNEVALCASEARCHIVEINPUT']._serialized_start=189
   _globals['_GETRUNEVALCASEARCHIVEINPUT']._serialized_end=249
   _globals['_RUNEVALCASECONTROLLER']._serialized_start=252
-  _globals['_RUNEVALCASECONTROLLER']._serialized_end=415
+  _globals['_RUNEVALCASECONTROLLER']._serialized_end=419
 # @@protoc_insertion_point(module_scope)

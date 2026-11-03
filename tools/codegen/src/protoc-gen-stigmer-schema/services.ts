@@ -2,8 +2,15 @@
 // helpers (role assignment, method-type collection, enum collection, and
 // resource/status extraction). One ServiceSchemaFile value per resource,
 // serialized to services/<resource>.json.
+//
+// Only SDK generators read these schemas, so they hold only the methods a
+// person can call: a method marked is_runner_only is left out here, once,
+// rather than skipped by every generator. Roles are assigned before that
+// filter, over every service the package declares, so leaving a method or a
+// whole runner-only service out never renames a kept service's role; a
+// service left with no methods drops out with its types.
 
-import type { DescEnum, DescField, DescFile, DescMessage, DescMethod } from "@bufbuild/protobuf";
+import type { DescEnum, DescField, DescFile, DescMessage, DescMethod, DescService } from "@bufbuild/protobuf";
 
 import type { GoJsonStruct } from "../gojson.js";
 import { stripText } from "../internalcomment/internalcomment.js";
@@ -94,7 +101,7 @@ export function extractServiceSchemas(
   // Collect every service before assigning roles: assignment must see the
   // whole package at once so that adding a proto file can never rename an
   // existing service's role (see assignServiceRoles).
-  const packageServices: Array<{ svc: DescFile["services"][number]; fd: DescFile }> = [];
+  const packageServices: Array<{ svc: DescService; fd: DescFile }> = [];
   const roleInputs: ServiceRoleInput[] = [];
   for (const fd of groupFiles) {
     if (schema.package === "") {
@@ -109,7 +116,7 @@ export function extractServiceSchemas(
   const roles = assignServiceRoles(roleInputs);
 
   for (const { svc, fd } of packageServices) {
-    const methods: MethodSchemaValue[] = svc.methods.map((method) => ({
+    const methods: MethodSchemaValue[] = sdkMethods(svc, ctx).map((method) => ({
       name: capitalize(method.name),
       inputType: method.input.name,
       inputFullType: method.input.typeName,
@@ -142,6 +149,11 @@ export function extractServiceSchemas(
   schema.enumTypes = collectEnumTypes(groupFiles, schema, ctx);
 
   return schema;
+}
+
+/** A service's methods a person can call: every one not marked is_runner_only. */
+function sdkMethods(svc: DescService, ctx: ExtractContext): DescMethod[] {
+  return svc.methods.filter((method) => !ctx.options.isRunnerOnly(method));
 }
 
 function methodDescription(method: DescMethod, ctx: ExtractContext): string {
@@ -244,7 +256,7 @@ function collectEnumTypes(
   };
   for (const fd of groupFiles) {
     for (const svc of fd.services) {
-      for (const method of svc.methods) {
+      for (const method of sdkMethods(svc, ctx)) {
         walkMessage(method.input);
         walkMessage(method.output);
       }

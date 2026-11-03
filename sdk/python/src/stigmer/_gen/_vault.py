@@ -11,10 +11,8 @@ from ai.stigmer.agentic.vault.v1 import api_pb2
 from ai.stigmer.agentic.vault.v1 import command_pb2_grpc
 from ai.stigmer.agentic.vault.v1 import connect_link_pb2_grpc
 from ai.stigmer.agentic.vault.v1 import query_pb2_grpc
-from ai.stigmer.agentic.vault.v1 import values_pb2_grpc
 from ai.stigmer.agentic.vault.v1 import io_pb2
 from ai.stigmer.agentic.vault.v1 import connect_link_pb2
-from ai.stigmer.agentic.vault.v1 import values_pb2
 from ai.stigmer.agentic.vault.v1 import spec_pb2
 from ai.stigmer.commons.apiresource import metadata_pb2
 from google.protobuf import field_mask_pb2
@@ -32,7 +30,6 @@ class VaultClient:
         self._command = command_pb2_grpc.VaultCommandControllerStub(channel)
         self._connectLink = connect_link_pb2_grpc.ConnectLinkControllerStub(channel)
         self._query = query_pb2_grpc.VaultQueryControllerStub(channel)
-        self._vaultValue = values_pb2_grpc.VaultValueControllerStub(channel)
 
     def create(self, input: VaultInput) -> api_pb2.Vault:
         try:
@@ -169,12 +166,6 @@ class VaultClient:
             if not page.next_page_token:
                 return
             request.page_token = page.next_page_token
-
-    def fetch_values(self, input: values_pb2.FetchExecutionValuesInput) -> values_pb2.ExecutionValues:
-        try:
-            return self._vaultValue.fetchValues(input)
-        except grpc.RpcError as e:
-            raise wrap_error(e) from e
 
 
 @dataclass

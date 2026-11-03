@@ -13,7 +13,7 @@ import { file_google_protobuf_descriptor } from "@bufbuild/protobuf/wkt";
  * Describes the file ai/stigmer/commons/rpc/method_options.proto.
  */
 export const file_ai_stigmer_commons_rpc_method_options: GenFile = /*@__PURE__*/
-  fileDesc("CithaS9zdGlnbWVyL2NvbW1vbnMvcnBjL21ldGhvZF9vcHRpb25zLnByb3RvEhZhaS5zdGlnbWVyLmNvbW1vbnMucnBjOmgKBmNvbmZpZxIeLmdvb2dsZS5wcm90b2J1Zi5NZXRob2RPcHRpb25zGIiHAyABKAsyLi5haS5zdGlnbWVyLmNvbW1vbnMucnBjLlJwY0F1dGhvcml6YXRpb25Db25maWdSBmNvbmZpZzo9Cglpc19wdWJsaWMSHi5nb29nbGUucHJvdG9idWYuTWV0aG9kT3B0aW9ucxiJhwMgASgIUghpc1B1YmxpYzpUChVpc19za2lwX2F1dGhvcml6YXRpb24SHi5nb29nbGUucHJvdG9idWYuTWV0aG9kT3B0aW9ucxiKhwMgASgIUhNpc1NraXBBdXRob3JpemF0aW9uYgZwcm90bzM", [file_ai_stigmer_commons_rpc_authorization_config, file_google_protobuf_descriptor]);
+  fileDesc("CithaS9zdGlnbWVyL2NvbW1vbnMvcnBjL21ldGhvZF9vcHRpb25zLnByb3RvEhZhaS5zdGlnbWVyLmNvbW1vbnMucnBjOmgKBmNvbmZpZxIeLmdvb2dsZS5wcm90b2J1Zi5NZXRob2RPcHRpb25zGIiHAyABKAsyLi5haS5zdGlnbWVyLmNvbW1vbnMucnBjLlJwY0F1dGhvcml6YXRpb25Db25maWdSBmNvbmZpZzo9Cglpc19wdWJsaWMSHi5nb29nbGUucHJvdG9idWYuTWV0aG9kT3B0aW9ucxiJhwMgASgIUghpc1B1YmxpYzpUChVpc19za2lwX2F1dGhvcml6YXRpb24SHi5nb29nbGUucHJvdG9idWYuTWV0aG9kT3B0aW9ucxiKhwMgASgIUhNpc1NraXBBdXRob3JpemF0aW9uOkYKDmlzX3J1bm5lcl9vbmx5Eh4uZ29vZ2xlLnByb3RvYnVmLk1ldGhvZE9wdGlvbnMYi4cDIAEoCFIMaXNSdW5uZXJPbmx5YgZwcm90bzM", [file_ai_stigmer_commons_rpc_authorization_config, file_google_protobuf_descriptor]);
 
 /**
  * Full authorization configuration: permission, resource kind, field path, and error message.
@@ -38,4 +38,18 @@ export const is_public: GenExtension<MethodOptions, boolean> = /*@__PURE__*/
  */
 export const is_skip_authorization: GenExtension<MethodOptions, boolean> = /*@__PURE__*/
   extDesc(file_ai_stigmer_commons_rpc_method_options, 2);
+
+/**
+ * When true, only a runner presenting the run's credential ever calls the
+ * RPC, never a person, so the SDK generators leave it out of every public
+ * client and reference page. It is a codegen mark, not an authorization
+ * posture: the server does not read it, and the method's handler still
+ * holds the gate that refuses every other caller. A marked method also
+ * carries is_skip_authorization, since a person's permission cannot tell
+ * a runner from the person it acts for.
+ *
+ * @generated from extension: bool is_runner_only = 50059;
+ */
+export const is_runner_only: GenExtension<MethodOptions, boolean> = /*@__PURE__*/
+  extDesc(file_ai_stigmer_commons_rpc_method_options, 3);
 

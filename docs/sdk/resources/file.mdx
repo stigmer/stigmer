@@ -71,10 +71,7 @@ File file = client.files().get("file_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`update`](#update) | Update a File's labels and tags: the fields update_mask names change, every other field keeps its stored value. |
 | [`updateVisibility`](#updatevisibility) | Update the visibility of a File. |
 | [`delete`](#delete) | Delete a File. |
-| [`createOutputUploads`](#createoutputuploads) | One upload link per file the turn saved in .stigmer/outputs/ and changed since it was last returned, each valid for an hour. |
 | [`createUploadUrl`](#createuploadurl) | Mint a short-lived, single-use URL to put a file's bytes to, for a file too large to upload inline. |
-| [`mount`](#mount) | The Files a run's conversation holds (SessionSpec.resources), each with where the agent finds it under .stigmer/uploads/ and a link to its bytes, valid for an hour. |
-| [`registerOutputs`](#registeroutputs) | Makes each uploaded output a File of the run's conversation: written by the run, owned by the person who started it, named by its filename, with where it was saved in output_path. |
 | [`upload`](#upload) | Upload a File: its bytes inline, or the reference of bytes already put to a URL createUploadUrl returned. |
 
 ### get
@@ -386,49 +383,6 @@ File file = client.files().delete(id);
 
 **Returns**: [`File`](#file)
 
-### createOutputUploads
-
-One upload link per file the turn saved in .stigmer/outputs/ and changed since it was last returned, each valid for an hour. The runner puts each file's bytes to its link, then registers them.
-
-<SDKTabs>
-<Tab value="TypeScript">
-```typescript
-const outputUploads = await stigmer.file.createOutputUploads({
-  runId: "...",
-  entries: [],
-});
-```
-</Tab>
-<Tab value="Go">
-```go
-outputUploads, err := client.File.CreateOutputUploads(ctx, &stigmer.CreateOutputUploadsInput{
-  RunId:   "...",
-  Entries: []stigmer.OutputUploadRequestInput{},
-})
-```
-</Tab>
-<Tab value="Python">
-```python
-output_uploads = client.files.create_output_uploads(CreateOutputUploadsInput(
-    run_id="...",
-    entries=[],
-))
-```
-</Tab>
-<Tab value="Java">
-```java
-OutputUploads outputUploads = client.files().createOutputUploads(CreateOutputUploadsInput.builder()
-    .runId("...")
-    .entries(List.of())
-    .build());
-```
-</Tab>
-</SDKTabs>
-
-**Parameters**: [`CreateOutputUploadsInput`](#createoutputuploadsinput)
-
-**Returns**: [`OutputUploads`](#outputuploads)
-
 ### createUploadUrl
 
 Mint a short-lived, single-use URL to put a file's bytes to, for a file too large to upload inline. Then PUT exactly size_bytes bytes to the URL and call upload with the returned upload_ref.
@@ -477,88 +431,6 @@ FileUploadUrl fileUploadUrl = client.files().createUploadUrl(CreateFileUploadUrl
 **Parameters**: [`CreateFileUploadUrlInput`](#createfileuploadurlinput)
 
 **Returns**: [`FileUploadUrl`](#fileuploadurl)
-
-### mount
-
-The Files a run's conversation holds (SessionSpec.resources), each with where the agent finds it under .stigmer/uploads/ and a link to its bytes, valid for an hour.
-
-<SDKTabs>
-<Tab value="TypeScript">
-```typescript
-const runFileMounts = await stigmer.file.mount({
-  runId: "...",
-});
-```
-</Tab>
-<Tab value="Go">
-```go
-runFileMounts, err := client.File.Mount(ctx, &stigmer.MountRunFilesInput{
-  RunId: "...",
-})
-```
-</Tab>
-<Tab value="Python">
-```python
-run_file_mounts = client.files.mount(MountRunFilesInput(
-    run_id="...",
-))
-```
-</Tab>
-<Tab value="Java">
-```java
-RunFileMounts runFileMounts = client.files().mount(MountRunFilesInput.builder()
-    .runId("...")
-    .build());
-```
-</Tab>
-</SDKTabs>
-
-**Parameters**: [`MountRunFilesInput`](#mountrunfilesinput)
-
-**Returns**: [`RunFileMounts`](#runfilemounts)
-
-### registerOutputs
-
-Makes each uploaded output a File of the run's conversation: written by the run, owned by the person who started it, named by its filename, with where it was saved in output_path.
-
-<SDKTabs>
-<Tab value="TypeScript">
-```typescript
-const registeredOutputs = await stigmer.file.registerOutputs({
-  runId: "...",
-  entries: [],
-});
-```
-</Tab>
-<Tab value="Go">
-```go
-registeredOutputs, err := client.File.RegisterOutputs(ctx, &stigmer.RegisterOutputsInput{
-  RunId:   "...",
-  Entries: []stigmer.OutputToRegisterInput{},
-})
-```
-</Tab>
-<Tab value="Python">
-```python
-registered_outputs = client.files.register_outputs(RegisterOutputsInput(
-    run_id="...",
-    entries=[],
-))
-```
-</Tab>
-<Tab value="Java">
-```java
-RegisteredOutputs registeredOutputs = client.files().registerOutputs(RegisterOutputsInput.builder()
-    .runId("...")
-    .entries(List.of())
-    .build());
-```
-</Tab>
-</SDKTabs>
-
-**Parameters**: [`RegisterOutputsInput`](#registeroutputsinput)
-
-**Returns**: [`RegisteredOutputs`](#registeredoutputs)
 
 ### upload
 
@@ -758,68 +630,6 @@ The start of a File's bytes.
   type={{
     data: { type: "Uint8Array", description: "The File's first bytes, at most the request's max_bytes." },
     truncated: { type: "boolean", description: "Whether the File holds more bytes than data carries." },
-  }}
-/>
-
-### MountRunFilesInput
-
-Which run's Files to mount.
-
-<TypeTable
-  type={{
-    runId: { type: "string", description: "The run's id." },
-  }}
-/>
-
-### RunFileMounts
-
-RunFileMounts are the Files a run's conversation holds, ready to mount.
-
-<TypeTable
-  type={{
-    entries: { type: "FileMountInput[]", description: "One per File the conversation holds, in its resources' order." },
-  }}
-/>
-
-### CreateOutputUploadsInput
-
-The files a turn saved in its outputs folder, to upload.
-
-<TypeTable
-  type={{
-    runId: { type: "string", description: "The run's id." },
-    entries: { type: "OutputUploadRequestInput[]", description: "One per output to upload, at most 500 a turn." },
-  }}
-/>
-
-### OutputUploads
-
-OutputUploads are the upload links for one turn's outputs.
-
-<TypeTable
-  type={{
-    entries: { type: "OutputUploadInput[]", description: "One per requested output, in the request's order." },
-  }}
-/>
-
-### RegisterOutputsInput
-
-The uploaded outputs of a turn, to make Files of.
-
-<TypeTable
-  type={{
-    runId: { type: "string", description: "The run's id." },
-    entries: { type: "OutputToRegisterInput[]", description: "One per uploaded output, at most 500 a turn." },
-  }}
-/>
-
-### RegisteredOutputs
-
-RegisteredOutputs are the Files a turn's outputs became.
-
-<TypeTable
-  type={{
-    files: { type: "FileInput[]", description: "One per registered output, in the request's order.", typeDescriptionLink: "#fileinput" },
   }}
 />
 

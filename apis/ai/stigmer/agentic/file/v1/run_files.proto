@@ -18,7 +18,9 @@ import "buf/validate/validate.proto";
 // audit, and no SDK carries a runner-only method beside a person's. The
 // authority is the runner credential the server minted for the run, not a
 // permission: a runner acts as the person who owns the run, so a
-// permission cannot tell it from that person.
+// permission cannot tell it from that person. Every method here carries
+// is_runner_only, so the generators keep it out of the public SDKs; a method
+// added here without that option reaches every SDK.
 service RunFileController {
   // The Files a run's conversation holds (SessionSpec.resources), each with
   // where the agent finds it under .stigmer/uploads/ and a link to its
@@ -33,6 +35,7 @@ service RunFileController {
   // as its own is left out; each link is signed for the runner's reader.
   rpc mount(MountRunFilesInput) returns (RunFileMounts) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+    option (ai.stigmer.commons.rpc.is_runner_only) = true;
   }
 
   // One upload link per file the turn saved in .stigmer/outputs/ and
@@ -48,6 +51,7 @@ service RunFileController {
   // to FILE_MAX_BYTES when it is minted.
   rpc createOutputUploads(CreateOutputUploadsInput) returns (OutputUploads) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+    option (ai.stigmer.commons.rpc.is_runner_only) = true;
   }
 
   // Makes each uploaded output a File of the run's conversation: written by
@@ -62,6 +66,7 @@ service RunFileController {
   // already made instead of promoting a spent reference again.
   rpc registerOutputs(RegisterOutputsInput) returns (RegisteredOutputs) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+    option (ai.stigmer.commons.rpc.is_runner_only) = true;
   }
 }
 

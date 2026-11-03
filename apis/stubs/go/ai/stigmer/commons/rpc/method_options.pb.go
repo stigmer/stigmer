@@ -46,6 +46,14 @@ var file_ai_stigmer_commons_rpc_method_options_proto_extTypes = []protoimpl.Exte
 		Tag:           "varint,50058,opt,name=is_skip_authorization",
 		Filename:      "ai/stigmer/commons/rpc/method_options.proto",
 	},
+	{
+		ExtendedType:  (*descriptorpb.MethodOptions)(nil),
+		ExtensionType: (*bool)(nil),
+		Field:         50059,
+		Name:          "ai.stigmer.commons.rpc.is_runner_only",
+		Tag:           "varint,50059,opt,name=is_runner_only",
+		Filename:      "ai/stigmer/commons/rpc/method_options.proto",
+	},
 }
 
 // Extension fields to descriptorpb.MethodOptions.
@@ -62,6 +70,16 @@ var (
 	//
 	// optional bool is_skip_authorization = 50058;
 	E_IsSkipAuthorization = &file_ai_stigmer_commons_rpc_method_options_proto_extTypes[2]
+	// When true, only a runner presenting the run's credential ever calls the
+	// RPC, never a person, so the SDK generators leave it out of every public
+	// client and reference page. It is a codegen mark, not an authorization
+	// posture: the server does not read it, and the method's handler still
+	// holds the gate that refuses every other caller. A marked method also
+	// carries is_skip_authorization, since a person's permission cannot tell
+	// a runner from the person it acts for.
+	//
+	// optional bool is_runner_only = 50059;
+	E_IsRunnerOnly = &file_ai_stigmer_commons_rpc_method_options_proto_extTypes[3]
 )
 
 var File_ai_stigmer_commons_rpc_method_options_proto protoreflect.FileDescriptor
@@ -71,7 +89,8 @@ const file_ai_stigmer_commons_rpc_method_options_proto_rawDesc = "" +
 	"+ai/stigmer/commons/rpc/method_options.proto\x12\x16ai.stigmer.commons.rpc\x1a1ai/stigmer/commons/rpc/authorization_config.proto\x1a google/protobuf/descriptor.proto:h\n" +
 	"\x06config\x12\x1e.google.protobuf.MethodOptions\x18\x88\x87\x03 \x01(\v2..ai.stigmer.commons.rpc.RpcAuthorizationConfigR\x06config:=\n" +
 	"\tis_public\x12\x1e.google.protobuf.MethodOptions\x18\x89\x87\x03 \x01(\bR\bisPublic:T\n" +
-	"\x15is_skip_authorization\x12\x1e.google.protobuf.MethodOptions\x18\x8a\x87\x03 \x01(\bR\x13isSkipAuthorizationB\xed\x01\n" +
+	"\x15is_skip_authorization\x12\x1e.google.protobuf.MethodOptions\x18\x8a\x87\x03 \x01(\bR\x13isSkipAuthorization:F\n" +
+	"\x0eis_runner_only\x12\x1e.google.protobuf.MethodOptions\x18\x8b\x87\x03 \x01(\bR\fisRunnerOnlyB\xed\x01\n" +
 	"\x1acom.ai.stigmer.commons.rpcB\x12MethodOptionsProtoP\x01Z?github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/rpc\xa2\x02\x04ASCR\xaa\x02\x16Ai.Stigmer.Commons.Rpc\xca\x02\x16Ai\\Stigmer\\Commons\\Rpc\xe2\x02\"Ai\\Stigmer\\Commons\\Rpc\\GPBMetadata\xea\x02\x19Ai::Stigmer::Commons::Rpcb\x06proto3"
 
 var file_ai_stigmer_commons_rpc_method_options_proto_goTypes = []any{
@@ -82,11 +101,12 @@ var file_ai_stigmer_commons_rpc_method_options_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.commons.rpc.config:extendee -> google.protobuf.MethodOptions
 	0, // 1: ai.stigmer.commons.rpc.is_public:extendee -> google.protobuf.MethodOptions
 	0, // 2: ai.stigmer.commons.rpc.is_skip_authorization:extendee -> google.protobuf.MethodOptions
-	1, // 3: ai.stigmer.commons.rpc.config:type_name -> ai.stigmer.commons.rpc.RpcAuthorizationConfig
-	4, // [4:4] is the sub-list for method output_type
-	4, // [4:4] is the sub-list for method input_type
-	3, // [3:4] is the sub-list for extension type_name
-	0, // [0:3] is the sub-list for extension extendee
+	0, // 3: ai.stigmer.commons.rpc.is_runner_only:extendee -> google.protobuf.MethodOptions
+	1, // 4: ai.stigmer.commons.rpc.config:type_name -> ai.stigmer.commons.rpc.RpcAuthorizationConfig
+	5, // [5:5] is the sub-list for method output_type
+	5, // [5:5] is the sub-list for method input_type
+	4, // [4:5] is the sub-list for extension type_name
+	0, // [0:4] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
 }
 
@@ -103,7 +123,7 @@ func file_ai_stigmer_commons_rpc_method_options_proto_init() {
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_commons_rpc_method_options_proto_rawDesc), len(file_ai_stigmer_commons_rpc_method_options_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   0,
-			NumExtensions: 3,
+			NumExtensions: 4,
 			NumServices:   0,
 		},
 		GoTypes:           file_ai_stigmer_commons_rpc_method_options_proto_goTypes,

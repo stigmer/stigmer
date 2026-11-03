@@ -183,21 +183,6 @@
           "description": "List the vaults the caller can see in an organization: their own My\n vault and the shared vaults they may view."
         }
       ]
-    },
-    {
-      "name": "VaultValueController",
-      "role": "vaultValue",
-      "protoFile": "ai/stigmer/agentic/vault/v1/values.proto",
-      "methods": [
-        {
-          "name": "FetchValues",
-          "inputType": "FetchExecutionValuesInput",
-          "inputFullType": "ai.stigmer.agentic.vault.v1.FetchExecutionValuesInput",
-          "outputType": "ExecutionValues",
-          "outputFullType": "ai.stigmer.agentic.vault.v1.ExecutionValues",
-          "description": "Fetch the values of a run or of a tools listing, grouped by who declared\n them, opened from the vaults the run's source manifest names\n (RunStatus.credentials.sources) as they are now."
-        }
-      ]
     }
   ],
   "methodTypes": [
@@ -1190,107 +1175,6 @@
             "kind": "string"
           },
           "description": "Set when more entries may follow: pass it as page_token to continue.\n A page may be short, even empty, and still carry a token.",
-          "required": false
-        }
-      ]
-    },
-    {
-      "name": "FetchExecutionValuesInput",
-      "description": "Which execution's values to fetch.",
-      "protoType": "ai.stigmer.agentic.vault.v1.FetchExecutionValuesInput",
-      "protoFile": "apis/ai/stigmer/agentic/vault/v1/values.proto",
-      "fields": [
-        {
-          "name": "ExecutionId",
-          "jsonName": "executionId",
-          "protoField": "execution_id",
-          "type": {
-            "kind": "string"
-          },
-          "description": "The run's id, or the id of a tools listing's connect attempt.",
-          "required": false,
-          "validation": {
-            "minLength": 1
-          }
-        }
-      ]
-    },
-    {
-      "name": "ExecutionValues",
-      "description": "ExecutionValues are one execution's values, grouped by who declared them:\n each declarer receives only its own.",
-      "protoType": "ai.stigmer.agentic.vault.v1.ExecutionValues",
-      "protoFile": "apis/ai/stigmer/agentic/vault/v1/values.proto",
-      "fields": [
-        {
-          "name": "Agent",
-          "jsonName": "agent",
-          "protoField": "agent",
-          "type": {
-            "kind": "map",
-            "keyType": {
-              "kind": "string"
-            },
-            "valueType": {
-              "kind": "string"
-            }
-          },
-          "description": "The agent's own keys, for its shell and its own hooks: secrets by name\n and plain defaults, never a connection or a repository's token, and\n never a key a tool or a plugin of the run declares.",
-          "required": false
-        },
-        {
-          "name": "Tools",
-          "jsonName": "tools",
-          "protoField": "tools",
-          "type": {
-            "kind": "array",
-            "elementType": {
-              "kind": "message",
-              "messageType": "ToolValues"
-            }
-          },
-          "description": "Each tool's keys, by tool.",
-          "required": false
-        },
-        {
-          "name": "Repositories",
-          "jsonName": "repositories",
-          "protoField": "repositories",
-          "type": {
-            "kind": "array",
-            "elementType": {
-              "kind": "message",
-              "messageType": "RepositoryValues"
-            }
-          },
-          "description": "Each repository's token, for its clone and write-back only.",
-          "required": false
-        },
-        {
-          "name": "Plugins",
-          "jsonName": "plugins",
-          "protoField": "plugins",
-          "type": {
-            "kind": "array",
-            "elementType": {
-              "kind": "message",
-              "messageType": "PluginValues"
-            }
-          },
-          "description": "Each plugin's keys, for that plugin's hooks only.",
-          "required": false
-        },
-        {
-          "name": "Subagents",
-          "jsonName": "subagents",
-          "protoField": "subagents",
-          "type": {
-            "kind": "array",
-            "elementType": {
-              "kind": "message",
-              "messageType": "SubagentValues"
-            }
-          },
-          "description": "Each subagent's own keys, for its shell and its own hooks: what\n agent holds for the agent, for a saved agent the turn's agent lists.",
           "required": false
         }
       ]

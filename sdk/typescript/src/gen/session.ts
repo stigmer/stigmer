@@ -9,7 +9,7 @@ import { SessionSchema, type Session } from "@stigmer/apis/ai/stigmer/agentic/se
 import { SessionCommandController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/command_pb";
 import { Harness, ExecutionTarget, GitWriteBackMode } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { SessionEventSchema, type SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
-import { SessionIdSchema, UpdateSessionInputSchema, UpdateSessionSubjectRequestSchema, ReviewFileChangesInputSchema, ReviewFileChangesResponseSchema, ConfirmToolUseInputSchema, GrantPermissionInputSchema, GrantPermissionResponseSchema, StopBackgroundCommandInputSchema, InterruptSessionInputSchema, InterruptSessionResponseSchema, AppendSessionEventsInputSchema, AppendSessionEventsResponseSchema, ClaimSessionInputInputSchema, ClaimSessionInputResponseSchema, ListSessionsRequestSchema, SessionListSchema, ListSessionsByAgentRequestSchema, ListSessionsByChannelRequestSchema, ListSessionEventsRequestSchema, SessionEventListSchema, StreamSessionEventsRequestSchema, StreamSessionEventsResponseSchema, StreamAttentionRequestSchema, AttentionSchema, type UpdateSessionSubjectRequest, type ReviewFileChangesInput, type ReviewFileChangesResponse, type ConfirmToolUseInput, type GrantPermissionInput, type GrantPermissionResponse, type StopBackgroundCommandInput, type InterruptSessionInput, type InterruptSessionResponse, type AppendSessionEventsInput, type AppendSessionEventsResponse, type ClaimSessionInputInput, type ClaimSessionInputResponse, type ListSessionsRequest, type SessionList, type ListSessionsByAgentRequest, type ListSessionsByChannelRequest, type ListSessionEventsRequest, type SessionEventList, type StreamSessionEventsRequest, type StreamSessionEventsResponse, type StreamAttentionRequest, type Attention } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
+import { SessionIdSchema, UpdateSessionInputSchema, UpdateSessionSubjectRequestSchema, ReviewFileChangesInputSchema, ReviewFileChangesResponseSchema, ConfirmToolUseInputSchema, GrantPermissionInputSchema, GrantPermissionResponseSchema, StopBackgroundCommandInputSchema, InterruptSessionInputSchema, InterruptSessionResponseSchema, ListSessionsRequestSchema, SessionListSchema, ListSessionsByAgentRequestSchema, ListSessionsByChannelRequestSchema, ListSessionEventsRequestSchema, SessionEventListSchema, StreamSessionEventsRequestSchema, StreamSessionEventsResponseSchema, StreamAttentionRequestSchema, AttentionSchema, type UpdateSessionSubjectRequest, type ReviewFileChangesInput, type ReviewFileChangesResponse, type ConfirmToolUseInput, type GrantPermissionInput, type GrantPermissionResponse, type StopBackgroundCommandInput, type InterruptSessionInput, type InterruptSessionResponse, type ListSessionsRequest, type SessionList, type ListSessionsByAgentRequest, type ListSessionsByChannelRequest, type ListSessionEventsRequest, type SessionEventList, type StreamSessionEventsRequest, type StreamSessionEventsResponse, type StreamAttentionRequest, type Attention } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 import { SessionQueryController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/query_pb";
 import { FileResourceSchema, GitRepositoryResourceSchema, LocalPathResourceSchema, SessionResourceSchema, type FileResource, type GitRepositoryResource, type LocalPathResource, type SessionResource } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import { SessionSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
@@ -84,18 +84,6 @@ export class SessionClient {
   async delete(id: string): Promise<Session> {
     try {
       return await this.command.delete(create(SessionIdSchema, { value: id }));
-    } catch (e) { throw wrapError(e); }
-  }
-
-  async appendEvents(input: MessageInitShape<typeof AppendSessionEventsInputSchema>): Promise<AppendSessionEventsResponse> {
-    try {
-      return await this.command.appendEvents(input);
-    } catch (e) { throw wrapError(e); }
-  }
-
-  async claimInput(input: MessageInitShape<typeof ClaimSessionInputInputSchema>): Promise<ClaimSessionInputResponse> {
-    try {
-      return await this.command.claimInput(input);
     } catch (e) { throw wrapError(e); }
   }
 

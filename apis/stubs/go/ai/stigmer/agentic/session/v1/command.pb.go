@@ -26,7 +26,7 @@ var File_ai_stigmer_agentic_session_v1_command_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_session_v1_command_proto_rawDesc = "" +
 	"\n" +
-	"+ai/stigmer/agentic/session/v1/command.proto\x12\x1dai.stigmer.agentic.session.v1\x1a'ai/stigmer/agentic/session/v1/api.proto\x1a)ai/stigmer/agentic/session/v1/event.proto\x1a&ai/stigmer/agentic/session/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xe2\x0f\n" +
+	"+ai/stigmer/agentic/session/v1/command.proto\x12\x1dai.stigmer.agentic.session.v1\x1a'ai/stigmer/agentic/session/v1/api.proto\x1a)ai/stigmer/agentic/session/v1/event.proto\x1a&ai/stigmer/agentic/session/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xea\x0f\n" +
 	"\x18SessionCommandController\x12W\n" +
 	"\x05apply\x12&.ai.stigmer.agentic.session.v1.Session\x1a&.ai.stigmer.agentic.session.v1.Session\x12\xa5\x01\n" +
 	"\x06create\x12&.ai.stigmer.agentic.session.v1.Session\x1a&.ai.stigmer.agentic.session.v1.Session\"K¸\x18G\b\b\x10\x1e\"\fmetadata.org*3unauthorized to create session in this organization\x12\xa3\x01\n" +
@@ -42,10 +42,10 @@ const file_ai_stigmer_agentic_session_v1_command_proto_rawDesc = "" +
 	"session_id*4unauthorized to stop a background command in session\x12\xb3\x01\n" +
 	"\tinterrupt\x124.ai.stigmer.agentic.session.v1.InterruptSessionInput\x1a7.ai.stigmer.agentic.session.v1.InterruptSessionResponse\"7¸\x183\b\x02\x10*\"\n" +
 	"session_id*!unauthorized to interrupt session\x12\x8b\x01\n" +
-	"\x06delete\x12(.ai.stigmer.agentic.session.v1.SessionId\x1a&.ai.stigmer.agentic.session.v1.Session\"/¸\x18+\b\x03\x10*\"\x05value*\x1eunauthorized to delete session\x12\x89\x01\n" +
-	"\fappendEvents\x127.ai.stigmer.agentic.session.v1.AppendSessionEventsInput\x1a:.ai.stigmer.agentic.session.v1.AppendSessionEventsResponse\"\x04и\x18\x01\x12\x83\x01\n" +
+	"\x06delete\x12(.ai.stigmer.agentic.session.v1.SessionId\x1a&.ai.stigmer.agentic.session.v1.Session\"/¸\x18+\b\x03\x10*\"\x05value*\x1eunauthorized to delete session\x12\x8d\x01\n" +
+	"\fappendEvents\x127.ai.stigmer.agentic.session.v1.AppendSessionEventsInput\x1a:.ai.stigmer.agentic.session.v1.AppendSessionEventsResponse\"\bи\x18\x01ظ\x18\x01\x12\x87\x01\n" +
 	"\n" +
-	"claimInput\x125.ai.stigmer.agentic.session.v1.ClaimSessionInputInput\x1a8.ai.stigmer.agentic.session.v1.ClaimSessionInputResponse\"\x04и\x18\x01\x1a\x04\xa0\xff+*B\x9c\x02\n" +
+	"claimInput\x125.ai.stigmer.agentic.session.v1.ClaimSessionInputInput\x1a8.ai.stigmer.agentic.session.v1.ClaimSessionInputResponse\"\bи\x18\x01ظ\x18\x01\x1a\x04\xa0\xff+*B\x9c\x02\n" +
 	"!com.ai.stigmer.agentic.session.v1B\fCommandProtoP\x01ZPgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1;sessionv1\xa2\x02\x04ASAS\xaa\x02\x1dAi.Stigmer.Agentic.Session.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_session_v1_command_proto_goTypes = []any{

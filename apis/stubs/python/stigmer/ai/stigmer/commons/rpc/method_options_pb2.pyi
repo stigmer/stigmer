@@ -10,3 +10,5 @@ IS_PUBLIC_FIELD_NUMBER: _ClassVar[int]
 is_public: _descriptor.FieldDescriptor
 IS_SKIP_AUTHORIZATION_FIELD_NUMBER: _ClassVar[int]
 is_skip_authorization: _descriptor.FieldDescriptor
+IS_RUNNER_ONLY_FIELD_NUMBER: _ClassVar[int]
+is_runner_only: _descriptor.FieldDescriptor
