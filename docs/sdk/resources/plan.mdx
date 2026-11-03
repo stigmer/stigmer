@@ -33,7 +33,7 @@ spec:
 
 ## Client Access
 
-Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Each language's first block holds the imports the page's examples use.
+Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Where a language's examples import anything, its tab opens with those imports.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -137,7 +137,6 @@ Returns the active plans; set include_retired to see retired ones too. Any signe
 const plans = await stigmer.plan.list({
   includeRetired: false,
   pageSize: 0,
-  pageToken: "...",
   labels: {},
 });
 ```
@@ -147,7 +146,6 @@ const plans = await stigmer.plan.list({
 plans, err := client.Plan.List(ctx, &planv1.ListPlansInput{
   IncludeRetired: false,
   PageSize:       0,
-  PageToken:      "...",
   Labels:         map[string]string{},
 })
 ```
@@ -157,7 +155,6 @@ plans, err := client.Plan.List(ctx, &planv1.ListPlansInput{
 plans = client.plans.list(io_pb2.ListPlansInput(
     include_retired=False,
     page_size=0,
-    page_token="...",
     labels={},
 ))
 ```
@@ -167,7 +164,6 @@ plans = client.plans.list(io_pb2.ListPlansInput(
 Plans plans = client.plan.list(ListPlansInput.newBuilder()
     .setIncludeRetired(false)
     .setPageSize(0)
-    .setPageToken("...")
     .putAllLabels(Map.of())
     .build());
 ```

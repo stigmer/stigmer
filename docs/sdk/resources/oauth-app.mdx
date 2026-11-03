@@ -30,7 +30,7 @@ spec:
 
 ## Client Access
 
-Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Each language's first block holds the imports the page's examples use.
+Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Where a language's examples import anything, its tab opens with those imports.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -45,7 +45,7 @@ const oAuthApp = await stigmer.oauthapp.get("oapp_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```go prelude
 import (
 	stigmer "go.stigmer.ai/sdk"
-	apiresource "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	"go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
 	oauthappv1 "go.stigmer.ai/sdk/proto/ai/stigmer/iam/oauthapp/v1"
 )
 ```
@@ -174,9 +174,8 @@ Returns the OAuthApps of the input org that the caller may view, newest first, o
 <Tab value="TypeScript">
 ```typescript
 const oAuthApps = await stigmer.oauthapp.list({
-  org: "...",
+  org: "acme",
   pageSize: 0,
-  pageToken: "...",
   labels: {},
 });
 ```
@@ -184,19 +183,17 @@ const oAuthApps = await stigmer.oauthapp.list({
 <Tab value="Go">
 ```go
 oAuthApps, err := client.OAuthApp.List(ctx, &oauthappv1.ListOAuthAppsInput{
-  Org:       "...",
-  PageSize:  0,
-  PageToken: "...",
-  Labels:    map[string]string{},
+  Org:      "acme",
+  PageSize: 0,
+  Labels:   map[string]string{},
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
 o_auth_apps = client.oauthapps.list(io_pb2.ListOAuthAppsInput(
-    org="...",
+    org="acme",
     page_size=0,
-    page_token="...",
     labels={},
 ))
 ```
@@ -204,9 +201,8 @@ o_auth_apps = client.oauthapps.list(io_pb2.ListOAuthAppsInput(
 <Tab value="Java">
 ```java
 OAuthApps oAuthApps = client.oauthapp.list(ListOAuthAppsInput.newBuilder()
-    .setOrg("...")
+    .setOrg("acme")
     .setPageSize(0)
-    .setPageToken("...")
     .putAllLabels(Map.of())
     .build());
 ```

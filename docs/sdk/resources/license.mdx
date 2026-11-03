@@ -38,7 +38,7 @@ spec:
 
 ## Client Access
 
-Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Each language's first block holds the imports the page's examples use.
+Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Where a language's examples import anything, its tab opens with those imports.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -139,7 +139,6 @@ List issued licenses, optionally for one customer.
 const licenses = await stigmer.license.list({
   customerId: "...",
   pageSize: 0,
-  pageToken: "...",
   labels: {},
 });
 ```
@@ -149,7 +148,6 @@ const licenses = await stigmer.license.list({
 licenses, err := client.License.List(ctx, &licensev1.ListLicensesInput{
   CustomerId: "...",
   PageSize:   0,
-  PageToken:  "...",
   Labels:     map[string]string{},
 })
 ```
@@ -159,7 +157,6 @@ licenses, err := client.License.List(ctx, &licensev1.ListLicensesInput{
 licenses = client.licenses.list(io_pb2.ListLicensesInput(
     customer_id="...",
     page_size=0,
-    page_token="...",
     labels={},
 ))
 ```
@@ -169,7 +166,6 @@ licenses = client.licenses.list(io_pb2.ListLicensesInput(
 Licenses licenses = client.license.list(ListLicensesInput.newBuilder()
     .setCustomerId("...")
     .setPageSize(0)
-    .setPageToken("...")
     .putAllLabels(Map.of())
     .build());
 ```

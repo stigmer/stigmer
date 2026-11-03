@@ -21,7 +21,7 @@ spec:
 
 ## Client Access
 
-Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Each language's first block holds the imports the page's examples use.
+Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Where a language's examples import anything, its tab opens with those imports.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -33,7 +33,7 @@ const organization = await stigmer.organization.get("org_01j5q3k7m8r2s4tnz2hfp0q
 ```go prelude
 import (
 	stigmer "go.stigmer.ai/sdk"
-	apiresource "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	"go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
 	organizationv1 "go.stigmer.ai/sdk/proto/ai/stigmer/tenancy/organization/v1"
 )
 ```
@@ -177,9 +177,8 @@ List an organization's child organizations, newest first.
 <Tab value="TypeScript">
 ```typescript
 const result = await stigmer.organization.listChildOrgs({
-  org: "...",
+  org: "acme",
   pageSize: 0,
-  pageToken: "...",
   labels: {},
 });
 ```
@@ -187,19 +186,17 @@ const result = await stigmer.organization.listChildOrgs({
 <Tab value="Go">
 ```go
 result, err := client.Organization.ListChildOrgs(ctx, &organizationv1.ListChildOrgsInput{
-  Org:       "...",
-  PageSize:  0,
-  PageToken: "...",
-  Labels:    map[string]string{},
+  Org:      "acme",
+  PageSize: 0,
+  Labels:   map[string]string{},
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
 result = client.organizations.list_child_orgs(io_pb2.ListChildOrgsInput(
-    org="...",
+    org="acme",
     page_size=0,
-    page_token="...",
     labels={},
 ))
 ```
@@ -207,9 +204,8 @@ result = client.organizations.list_child_orgs(io_pb2.ListChildOrgsInput(
 <Tab value="Java">
 ```java
 ChildOrgList result = client.organization.listChildOrgs(ListChildOrgsInput.newBuilder()
-    .setOrg("...")
+    .setOrg("acme")
     .setPageSize(0)
-    .setPageToken("...")
     .putAllLabels(Map.of())
     .build());
 ```
@@ -231,7 +227,6 @@ List the organizations the authenticated caller is a member of. Returns only org
 ```typescript
 const organizations = await stigmer.organization.listMine({
   pageSize: 0,
-  pageToken: "...",
   labels: {},
 });
 ```
@@ -239,9 +234,8 @@ const organizations = await stigmer.organization.listMine({
 <Tab value="Go">
 ```go
 organizations, err := client.Organization.ListMine(ctx, &organizationv1.ListMyOrganizationsInput{
-  PageSize:  0,
-  PageToken: "...",
-  Labels:    map[string]string{},
+  PageSize: 0,
+  Labels:   map[string]string{},
 })
 ```
 </Tab>
@@ -249,7 +243,6 @@ organizations, err := client.Organization.ListMine(ctx, &organizationv1.ListMyOr
 ```python
 organizations = client.organizations.list_mine(io_pb2.ListMyOrganizationsInput(
     page_size=0,
-    page_token="...",
     labels={},
 ))
 ```
@@ -258,7 +251,6 @@ organizations = client.organizations.list_mine(io_pb2.ListMyOrganizationsInput(
 ```java
 Organizations organizations = client.organization.listMine(ListMyOrganizationsInput.newBuilder()
     .setPageSize(0)
-    .setPageToken("...")
     .putAllLabels(Map.of())
     .build());
 ```

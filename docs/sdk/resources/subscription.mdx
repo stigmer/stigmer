@@ -31,7 +31,7 @@ status:
 
 ## Client Access
 
-Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Each language's first block holds the imports the page's examples use.
+Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Where a language's examples import anything, its tab opens with those imports.
 
 <SDKTabs>
 <Tab value="Go">
@@ -85,28 +85,28 @@ NOT_FOUND for a child organization: a child organization is on its parent's plan
 <Tab value="TypeScript">
 ```typescript
 const agentHours = await stigmer.subscription.getAgentHours({
-  org: "...",
+  org: "acme",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 agentHours, err := client.Subscription.GetAgentHours(ctx, &subscriptionv1.GetAgentHoursInput{
-  Org: "...",
+  Org: "acme",
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
 agent_hours = client.subscriptions.get_agent_hours(io_pb2.GetAgentHoursInput(
-    org="...",
+    org="acme",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
 AgentHours agentHours = client.subscription.getAgentHours(GetAgentHoursInput.newBuilder()
-    .setOrg("...")
+    .setOrg("acme")
     .build());
 ```
 </Tab>
@@ -126,28 +126,28 @@ The answer is derived, never stored: the entitlements of the plan the organizati
 <Tab value="TypeScript">
 ```typescript
 const getEntitlementsOutput = await stigmer.subscription.getEntitlements({
-  org: "...",
+  org: "acme",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 getEntitlementsOutput, err := client.Subscription.GetEntitlements(ctx, &subscriptionv1.GetEntitlementsInput{
-  Org: "...",
+  Org: "acme",
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
 get_entitlements_output = client.subscriptions.get_entitlements(io_pb2.GetEntitlementsInput(
-    org="...",
+    org="acme",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
 GetEntitlementsOutput getEntitlementsOutput = client.subscription.getEntitlements(GetEntitlementsInput.newBuilder()
-    .setOrg("...")
+    .setOrg("acme")
     .build());
 ```
 </Tab>
@@ -167,28 +167,28 @@ NOT_FOUND when the organization has none: it is on the Free plan, which is not a
 <Tab value="TypeScript">
 ```typescript
 const subscription = await stigmer.subscription.getForOrg({
-  org: "...",
+  org: "acme",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 subscription, err := client.Subscription.GetForOrg(ctx, &subscriptionv1.GetSubscriptionForOrgInput{
-  Org: "...",
+  Org: "acme",
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
 subscription = client.subscriptions.get_for_org(io_pb2.GetSubscriptionForOrgInput(
-    org="...",
+    org="acme",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
 Subscription subscription = client.subscription.getForOrg(GetSubscriptionForOrgInput.newBuilder()
-    .setOrg("...")
+    .setOrg("acme")
     .build());
 ```
 </Tab>
@@ -210,28 +210,28 @@ NOT_FOUND when the organization has no live subscription: it is on Free, or it i
 <Tab value="TypeScript">
 ```typescript
 const periodEstimate = await stigmer.subscription.getPeriodEstimate({
-  org: "...",
+  org: "acme",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 periodEstimate, err := client.Subscription.GetPeriodEstimate(ctx, &subscriptionv1.GetPeriodEstimateInput{
-  Org: "...",
+  Org: "acme",
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
 period_estimate = client.subscriptions.get_period_estimate(io_pb2.GetPeriodEstimateInput(
-    org="...",
+    org="acme",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
 PeriodEstimate periodEstimate = client.subscription.getPeriodEstimate(GetPeriodEstimateInput.newBuilder()
-    .setOrg("...")
+    .setOrg("acme")
     .build());
 ```
 </Tab>
@@ -251,28 +251,28 @@ The organization keeps its plan to the end of the current period and is on Free 
 <Tab value="TypeScript">
 ```typescript
 const subscription = await stigmer.subscription.cancel({
-  org: "...",
+  org: "acme",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 subscription, err := client.Subscription.Cancel(ctx, &subscriptionv1.CancelSubscriptionInput{
-  Org: "...",
+  Org: "acme",
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
 subscription = client.subscriptions.cancel(io_pb2.CancelSubscriptionInput(
-    org="...",
+    org="acme",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
 Subscription subscription = client.subscription.cancel(CancelSubscriptionInput.newBuilder()
-    .setOrg("...")
+    .setOrg("acme")
     .build());
 ```
 </Tab>
@@ -296,7 +296,7 @@ Refusals a client should branch on carry a google.rpc.ErrorInfo detail (domain "
 <Tab value="TypeScript">
 ```typescript
 const subscription = await stigmer.subscription.changePlan({
-  org: "...",
+  org: "acme",
   planId: "...",
 });
 ```
@@ -304,7 +304,7 @@ const subscription = await stigmer.subscription.changePlan({
 <Tab value="Go">
 ```go
 subscription, err := client.Subscription.ChangePlan(ctx, &subscriptionv1.ChangePlanInput{
-  Org:    "...",
+  Org:    "acme",
   PlanId: "...",
 })
 ```
@@ -312,7 +312,7 @@ subscription, err := client.Subscription.ChangePlan(ctx, &subscriptionv1.ChangeP
 <Tab value="Python">
 ```python
 subscription = client.subscriptions.change_plan(io_pb2.ChangePlanInput(
-    org="...",
+    org="acme",
     plan_id="...",
 ))
 ```
@@ -320,7 +320,7 @@ subscription = client.subscriptions.change_plan(io_pb2.ChangePlanInput(
 <Tab value="Java">
 ```java
 Subscription subscription = client.subscription.changePlan(ChangePlanInput.newBuilder()
-    .setOrg("...")
+    .setOrg("acme")
     .setPlanId("...")
     .build());
 ```

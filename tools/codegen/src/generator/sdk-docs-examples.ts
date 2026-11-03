@@ -127,10 +127,13 @@ export class DocImports {
       }
       case "go": {
         if (this.go.size === 0) return null;
-        const lines = [...this.go.entries()]
-          .sort(([, a], [, b]) => compareStrings(a, b))
-          .map(([alias, importPath]) => `\t${alias} "${importPath}"`);
-        return `import (\n${lines.join("\n")}\n)`;
+        // The standard library first, then the rest, as goimports groups them.
+        const line = ([alias, importPath]: [string, string]) =>
+          importPath.slice(importPath.lastIndexOf("/") + 1) === alias ? `\t"${importPath}"` : `\t${alias} "${importPath}"`;
+        const sorted = [...this.go.entries()].sort(([, a], [, b]) => compareStrings(a, b));
+        const isStd = ([, importPath]: [string, string]) => !importPath.split("/")[0].includes(".");
+        const groups = [sorted.filter(isStd), sorted.filter((e) => !isStd(e))].filter((g) => g.length > 0);
+        return `import (\n${groups.map((g) => g.map(line).join("\n")).join("\n\n")}\n)`;
       }
       case "python": {
         if (this.py.size === 0) return null;
@@ -203,7 +206,12 @@ function goSdk(env: DocExampleEnv): string {
   return env.imports.goPackage("stigmer", GO_SDK_IMPORT);
 }
 
-/** An SDK type the Python package declares: from `stigmer` when it exports it, else from the generated module. */
+/**
+ * An SDK type the Python package declares: from `stigmer` when it exports
+ * it, else from the generated module `stigmer._gen`, until the package
+ * exports every resource's input (stigmer#2897); then every name is read
+ * from `__init__.py` as exported, and this falls away with no change here.
+ */
 function pySdk(env: DocExampleEnv, name: string): string {
   const from = env.pyPublic === null || env.pyPublic.has(name) ? "stigmer" : "stigmer._gen";
   return env.imports.pyName(from, name);
@@ -488,17 +496,26 @@ function goPackagePath(pkg: string): string {
   return SDK_PROTO_IMPORT_PREFIX + "/" + pkg.replaceAll(".", "/");
 }
 
-/** The fields a protobuf message example sets: each real oneof's first member only, and no field whose message cannot be named. */
+/**
+ * The fields a protobuf message example sets: each real oneof's first
+ * member only, no field whose message cannot be named, and no page token;
+ * an organization is the page's example one.
+ */
 function protoEntries(env: DocExampleEnv, lang: DocLang, containerFull: string, fields: readonly FieldSchema[]): Entry[] {
   const entries: Entry[] = [];
   const oneofsSeen = new Set<string>();
   for (const f of fields) {
+    // A list's first page names no token: the token continues a list.
+    if (f.protoField === "page_token") continue;
     if (isRealOneofMember(f)) {
       const group = f.oneofGroup ?? "";
       if (oneofsSeen.has(group)) continue;
       oneofsSeen.add(group);
     }
-    const value = protoValue(env, lang, f.type, containerFull);
+    const value =
+      f.protoField === "org" && f.type.kind === "string" && !isEnum(f.type)
+        ? `"${DOC_EXAMPLE_ORG}"`
+        : protoValue(env, lang, f.type, containerFull);
     if (value === null) continue;
     entries.push(protoEntry(env, lang, f, value, containerFull));
   }
@@ -909,6 +926,11 @@ export function javaResultType(env: DocExampleEnv, fullType: string): string {
 /** Java's `List.of(...)`, imported. */
 export function javaListOf(env: DocExampleEnv, items: string): string {
   return `${env.imports.javaType("java.util.List")}.of(${items})`;
+}
+
+/** Go's standard-library package `name`, imported. */
+export function goStd(env: DocExampleEnv, name: string): string {
+  return env.imports.goPackage(name, name);
 }
 
 /** The SDK's Java stream type, imported. */

@@ -13,7 +13,7 @@ Example YAML (single-use targeted invite): apiVersion: iam.stigmer.ai/v1 kind: I
 
 ## Client Access
 
-Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Each language's first block holds the imports the page's examples use.
+Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Where a language's examples import anything, its tab opens with those imports.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -163,9 +163,8 @@ Returns invitations ordered by creation time (newest first).
 <Tab value="TypeScript">
 ```typescript
 const invitations = await stigmer.invitation.list({
-  org: "...",
+  org: "acme",
   pageSize: 0,
-  pageToken: "...",
   labels: {},
 });
 ```
@@ -173,19 +172,17 @@ const invitations = await stigmer.invitation.list({
 <Tab value="Go">
 ```go
 invitations, err := client.Invitation.List(ctx, &invitationv1.ListInvitationsInput{
-  Org:       "...",
-  PageSize:  0,
-  PageToken: "...",
-  Labels:    map[string]string{},
+  Org:      "acme",
+  PageSize: 0,
+  Labels:   map[string]string{},
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
 invitations = client.invitations.list(io_pb2.ListInvitationsInput(
-    org="...",
+    org="acme",
     page_size=0,
-    page_token="...",
     labels={},
 ))
 ```
@@ -193,9 +190,8 @@ invitations = client.invitations.list(io_pb2.ListInvitationsInput(
 <Tab value="Java">
 ```java
 Invitations invitations = client.invitation.list(ListInvitationsInput.newBuilder()
-    .setOrg("...")
+    .setOrg("acme")
     .setPageSize(0)
-    .setPageToken("...")
     .putAllLabels(Map.of())
     .build());
 ```

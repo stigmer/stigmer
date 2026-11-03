@@ -29,7 +29,7 @@ spec:
 
 ## Client Access
 
-Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Each language's first block holds the imports the page's examples use.
+Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Where a language's examples import anything, its tab opens with those imports.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -47,7 +47,7 @@ const skill = await stigmer.skill.get("skl_01j5q3k7m8r2s4tnz2hfp0q0c3");
 import (
 	stigmer "go.stigmer.ai/sdk"
 	skillv1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/skill/v1"
-	apiresource "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	"go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
 )
 ```
 ```go
@@ -265,9 +265,8 @@ Returns the skills of the input org that the caller may view, one page at a time
 <Tab value="TypeScript">
 ```typescript
 const result = await stigmer.skill.list({
-  org: "...",
+  org: "acme",
   pageSize: 0,
-  pageToken: "...",
   labels: {},
 });
 ```
@@ -275,19 +274,17 @@ const result = await stigmer.skill.list({
 <Tab value="Go">
 ```go
 result, err := client.Skill.List(ctx, &skillv1.ListSkillsRequest{
-  Org:       "...",
-  PageSize:  0,
-  PageToken: "...",
-  Labels:    map[string]string{},
+  Org:      "acme",
+  PageSize: 0,
+  Labels:   map[string]string{},
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
 result = client.skills.list(io_pb2.ListSkillsRequest(
-    org="...",
+    org="acme",
     page_size=0,
-    page_token="...",
     labels={},
 ))
 ```
@@ -295,9 +292,8 @@ result = client.skills.list(io_pb2.ListSkillsRequest(
 <Tab value="Java">
 ```java
 SkillList result = client.skill.list(ListSkillsRequest.newBuilder()
-    .setOrg("...")
+    .setOrg("acme")
     .setPageSize(0)
-    .setPageToken("...")
     .putAllLabels(Map.of())
     .build());
 ```
@@ -320,9 +316,8 @@ Returns all historical versions ordered by push time (newest first). Each entry 
 <Tab value="TypeScript">
 ```typescript
 const listSkillVersionsResponse = await stigmer.skill.listVersions({
-  org: "...",
+  org: "acme",
   slug: "...",
-  pageToken: "...",
   pageSize: 0,
 });
 ```
@@ -330,19 +325,17 @@ const listSkillVersionsResponse = await stigmer.skill.listVersions({
 <Tab value="Go">
 ```go
 listSkillVersionsResponse, err := client.Skill.ListVersions(ctx, &skillv1.ListSkillVersionsInput{
-  Org:       "...",
-  Slug:      "...",
-  PageToken: "...",
-  PageSize:  0,
+  Org:      "acme",
+  Slug:     "...",
+  PageSize: 0,
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
 list_skill_versions_response = client.skills.list_versions(io_pb2.ListSkillVersionsInput(
-    org="...",
+    org="acme",
     slug="...",
-    page_token="...",
     page_size=0,
 ))
 ```
@@ -350,9 +343,8 @@ list_skill_versions_response = client.skills.list_versions(io_pb2.ListSkillVersi
 <Tab value="Java">
 ```java
 ListSkillVersionsResponse listSkillVersionsResponse = client.skill.listVersions(ListSkillVersionsInput.newBuilder()
-    .setOrg("...")
+    .setOrg("acme")
     .setSlug("...")
-    .setPageToken("...")
     .setPageSize(0)
     .build());
 ```
@@ -455,7 +447,7 @@ The server refuses over-limit size_bytes here, before any bytes move.
 <Tab value="TypeScript">
 ```typescript
 const skillArtifactUploadUrl = await stigmer.skill.createArtifactUploadUrl({
-  org: "...",
+  org: "acme",
   sizeBytes: 0n,
 });
 ```
@@ -463,7 +455,7 @@ const skillArtifactUploadUrl = await stigmer.skill.createArtifactUploadUrl({
 <Tab value="Go">
 ```go
 skillArtifactUploadUrl, err := client.Skill.CreateArtifactUploadUrl(ctx, &skillv1.CreateSkillArtifactUploadUrlRequest{
-  Org:       "...",
+  Org:       "acme",
   SizeBytes: 0,
 })
 ```
@@ -471,7 +463,7 @@ skillArtifactUploadUrl, err := client.Skill.CreateArtifactUploadUrl(ctx, &skillv
 <Tab value="Python">
 ```python
 skill_artifact_upload_url = client.skills.create_artifact_upload_url(io_pb2.CreateSkillArtifactUploadUrlRequest(
-    org="...",
+    org="acme",
     size_bytes=0,
 ))
 ```
@@ -479,7 +471,7 @@ skill_artifact_upload_url = client.skills.create_artifact_upload_url(io_pb2.Crea
 <Tab value="Java">
 ```java
 SkillArtifactUploadUrl skillArtifactUploadUrl = client.skill.createArtifactUploadUrl(CreateSkillArtifactUploadUrlRequest.newBuilder()
-    .setOrg("...")
+    .setOrg("acme")
     .setSizeBytes(0L)
     .build());
 ```
@@ -498,7 +490,7 @@ Push a skill artifact. Creates a skill if it does not exist, or creates a new ve
 <Tab value="TypeScript">
 ```typescript
 const skill = await stigmer.skill.push(create(PushSkillRequestSchema, {
-  org: "...",
+  org: "acme",
   artifact: new Uint8Array(),
   tag: "...",
   gitProvenance: {},
@@ -511,7 +503,7 @@ const skill = await stigmer.skill.push(create(PushSkillRequestSchema, {
 <Tab value="Go">
 ```go
 skill, err := client.Skill.Push(ctx, &skillv1.PushSkillRequest{
-  Org:               "...",
+  Org:               "acme",
   Artifact:          []byte{},
   Tag:               "...",
   GitProvenance:     &skillv1.GitProvenance{},
@@ -524,7 +516,7 @@ skill, err := client.Skill.Push(ctx, &skillv1.PushSkillRequest{
 <Tab value="Python">
 ```python
 skill = client.skills.push(io_pb2.PushSkillRequest(
-    org="...",
+    org="acme",
     artifact=b"",
     tag="...",
     git_provenance=status_pb2.GitProvenance(),
@@ -537,7 +529,7 @@ skill = client.skills.push(io_pb2.PushSkillRequest(
 <Tab value="Java">
 ```java
 Skill skill = client.skill.push(PushSkillRequest.newBuilder()
-    .setOrg("...")
+    .setOrg("acme")
     .setArtifact(ByteString.EMPTY)
     .setTag("...")
     .setGitProvenance(GitProvenance.getDefaultInstance())
@@ -561,7 +553,7 @@ Push a skill from a File holding its ZIP archive. Use this when an agent saved a
 <Tab value="TypeScript">
 ```typescript
 const skill = await stigmer.skill.pushFromFile({
-  org: "...",
+  org: "acme",
   fileId: "...",
   tag: "...",
 });
@@ -570,7 +562,7 @@ const skill = await stigmer.skill.pushFromFile({
 <Tab value="Go">
 ```go
 skill, err := client.Skill.PushFromFile(ctx, &skillv1.PushSkillFromFileRequest{
-  Org:    "...",
+  Org:    "acme",
   FileId: "...",
   Tag:    "...",
 })
@@ -579,7 +571,7 @@ skill, err := client.Skill.PushFromFile(ctx, &skillv1.PushSkillFromFileRequest{
 <Tab value="Python">
 ```python
 skill = client.skills.push_from_file(io_pb2.PushSkillFromFileRequest(
-    org="...",
+    org="acme",
     file_id="...",
     tag="...",
 ))
@@ -588,7 +580,7 @@ skill = client.skills.push_from_file(io_pb2.PushSkillFromFileRequest(
 <Tab value="Java">
 ```java
 Skill skill = client.skill.pushFromFile(PushSkillFromFileRequest.newBuilder()
-    .setOrg("...")
+    .setOrg("acme")
     .setFileId("...")
     .setTag("...")
     .build());

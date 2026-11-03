@@ -59,7 +59,7 @@ status:
 
 ## Client Access
 
-Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Each language's first block holds the imports the page's examples use.
+Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Where a language's examples import anything, its tab opens with those imports.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -77,7 +77,7 @@ const evalResource = await stigmer.eval.get("evs_01j5q3k7m8r2s4tnz2hfp0q0c3");
 import (
 	stigmer "go.stigmer.ai/sdk"
 	evalv1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/eval/v1"
-	apiresource "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	"go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
 )
 ```
 ```go
@@ -252,9 +252,8 @@ Returns the evals of the input org that the caller may view, one page at a time.
 <Tab value="TypeScript">
 ```typescript
 const result = await stigmer.eval.list({
-  org: "...",
+  org: "acme",
   pageSize: 0,
-  pageToken: "...",
   labels: {},
 });
 ```
@@ -262,19 +261,17 @@ const result = await stigmer.eval.list({
 <Tab value="Go">
 ```go
 result, err := client.Eval.List(ctx, &evalv1.ListEvalsRequest{
-  Org:       "...",
-  PageSize:  0,
-  PageToken: "...",
-  Labels:    map[string]string{},
+  Org:      "acme",
+  PageSize: 0,
+  Labels:   map[string]string{},
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
 result = client.evals.list(io_pb2.ListEvalsRequest(
-    org="...",
+    org="acme",
     page_size=0,
-    page_token="...",
     labels={},
 ))
 ```
@@ -282,9 +279,8 @@ result = client.evals.list(io_pb2.ListEvalsRequest(
 <Tab value="Java">
 ```java
 EvalList result = client.eval.list(ListEvalsRequest.newBuilder()
-    .setOrg("...")
+    .setOrg("acme")
     .setPageSize(0)
-    .setPageToken("...")
     .putAllLabels(Map.of())
     .build());
 ```
@@ -305,9 +301,8 @@ List an eval's versions, newest first, each with its digest, tag, message and wh
 <Tab value="TypeScript">
 ```typescript
 const listEvalVersionsResponse = await stigmer.eval.listVersions({
-  org: "...",
+  org: "acme",
   slug: "...",
-  pageToken: "...",
   pageSize: 0,
 });
 ```
@@ -315,19 +310,17 @@ const listEvalVersionsResponse = await stigmer.eval.listVersions({
 <Tab value="Go">
 ```go
 listEvalVersionsResponse, err := client.Eval.ListVersions(ctx, &evalv1.ListEvalVersionsInput{
-  Org:       "...",
-  Slug:      "...",
-  PageToken: "...",
-  PageSize:  0,
+  Org:      "acme",
+  Slug:     "...",
+  PageSize: 0,
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
 list_eval_versions_response = client.evals.list_versions(io_pb2.ListEvalVersionsInput(
-    org="...",
+    org="acme",
     slug="...",
-    page_token="...",
     page_size=0,
 ))
 ```
@@ -335,9 +328,8 @@ list_eval_versions_response = client.evals.list_versions(io_pb2.ListEvalVersions
 <Tab value="Java">
 ```java
 ListEvalVersionsResponse listEvalVersionsResponse = client.eval.listVersions(ListEvalVersionsInput.newBuilder()
-    .setOrg("...")
+    .setOrg("acme")
     .setSlug("...")
-    .setPageToken("...")
     .setPageSize(0)
     .build());
 ```
@@ -554,7 +546,7 @@ Mint a short-lived, single-use upload URL for staging an eval archive that excee
 <Tab value="TypeScript">
 ```typescript
 const evalArtifactUploadUrl = await stigmer.eval.createArtifactUploadUrl({
-  org: "...",
+  org: "acme",
   slug: "...",
   sizeBytes: 0n,
 });
@@ -563,7 +555,7 @@ const evalArtifactUploadUrl = await stigmer.eval.createArtifactUploadUrl({
 <Tab value="Go">
 ```go
 evalArtifactUploadUrl, err := client.Eval.CreateArtifactUploadUrl(ctx, &evalv1.CreateEvalArtifactUploadUrlRequest{
-  Org:       "...",
+  Org:       "acme",
   Slug:      "...",
   SizeBytes: 0,
 })
@@ -572,7 +564,7 @@ evalArtifactUploadUrl, err := client.Eval.CreateArtifactUploadUrl(ctx, &evalv1.C
 <Tab value="Python">
 ```python
 eval_artifact_upload_url = client.evals.create_artifact_upload_url(io_pb2.CreateEvalArtifactUploadUrlRequest(
-    org="...",
+    org="acme",
     slug="...",
     size_bytes=0,
 ))
@@ -581,7 +573,7 @@ eval_artifact_upload_url = client.evals.create_artifact_upload_url(io_pb2.Create
 <Tab value="Java">
 ```java
 EvalArtifactUploadUrl evalArtifactUploadUrl = client.eval.createArtifactUploadUrl(CreateEvalArtifactUploadUrlRequest.newBuilder()
-    .setOrg("...")
+    .setOrg("acme")
     .setSlug("...")
     .setSizeBytes(0L)
     .build());
@@ -636,7 +628,7 @@ Error Cases:
 <Tab value="TypeScript">
 ```typescript
 const evalResource = await stigmer.eval.push(create(PushEvalRequestSchema, {
-  org: "...",
+  org: "acme",
   slug: "...",
   name: "...",
   artifact: new Uint8Array(),
@@ -650,7 +642,7 @@ const evalResource = await stigmer.eval.push(create(PushEvalRequestSchema, {
 <Tab value="Go">
 ```go
 evalResource, err := client.Eval.Push(ctx, &evalv1.PushEvalRequest{
-  Org:               "...",
+  Org:               "acme",
   Slug:              "...",
   Name:              "...",
   Artifact:          []byte{},
@@ -664,7 +656,7 @@ evalResource, err := client.Eval.Push(ctx, &evalv1.PushEvalRequest{
 <Tab value="Python">
 ```python
 eval_resource = client.evals.push(io_pb2.PushEvalRequest(
-    org="...",
+    org="acme",
     slug="...",
     name="...",
     artifact=b"",
@@ -678,7 +670,7 @@ eval_resource = client.evals.push(io_pb2.PushEvalRequest(
 <Tab value="Java">
 ```java
 Eval evalResource = client.eval.push(PushEvalRequest.newBuilder()
-    .setOrg("...")
+    .setOrg("acme")
     .setSlug("...")
     .setName("...")
     .setArtifact(ByteString.EMPTY)

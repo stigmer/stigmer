@@ -27,7 +27,7 @@ spec:
 
 ## Client Access
 
-Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Each language's first block holds the imports the page's examples use.
+Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Where a language's examples import anything, its tab opens with those imports.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -42,7 +42,7 @@ const federationIssuer = await stigmer.federationIssuer.get("fis_01j5q3k7m8r2s4t
 ```go prelude
 import (
 	stigmer "go.stigmer.ai/sdk"
-	apiresource "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	"go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
 	federationissuerv1 "go.stigmer.ai/sdk/proto/ai/stigmer/iam/federationissuer/v1"
 	iamv1 "go.stigmer.ai/sdk/proto/ai/stigmer/iam/v1"
 )
@@ -172,9 +172,8 @@ Returns the FederationIssuers whose metadata.org matches the input org and that 
 <Tab value="TypeScript">
 ```typescript
 const federationIssuers = await stigmer.federationIssuer.list({
-  org: "...",
+  org: "acme",
   pageSize: 0,
-  pageToken: "...",
   labels: {},
 });
 ```
@@ -182,19 +181,17 @@ const federationIssuers = await stigmer.federationIssuer.list({
 <Tab value="Go">
 ```go
 federationIssuers, err := client.FederationIssuer.List(ctx, &federationissuerv1.ListFederationIssuersInput{
-  Org:       "...",
-  PageSize:  0,
-  PageToken: "...",
-  Labels:    map[string]string{},
+  Org:      "acme",
+  PageSize: 0,
+  Labels:   map[string]string{},
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
 federation_issuers = client.federation_issuers.list(io_pb2.ListFederationIssuersInput(
-    org="...",
+    org="acme",
     page_size=0,
-    page_token="...",
     labels={},
 ))
 ```
@@ -202,9 +199,8 @@ federation_issuers = client.federation_issuers.list(io_pb2.ListFederationIssuers
 <Tab value="Java">
 ```java
 FederationIssuers federationIssuers = client.federationIssuer.list(ListFederationIssuersInput.newBuilder()
-    .setOrg("...")
+    .setOrg("acme")
     .setPageSize(0)
-    .setPageToken("...")
     .putAllLabels(Map.of())
     .build());
 ```

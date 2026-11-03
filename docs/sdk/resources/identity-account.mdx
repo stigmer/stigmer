@@ -25,7 +25,7 @@ spec:
 
 ## Client Access
 
-Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Each language's first block holds the imports the page's examples use.
+Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Where a language's examples import anything, its tab opens with those imports.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -41,7 +41,7 @@ const identityAccount = await stigmer.identityAccount.get("ida_01j5q3k7m8r2s4tnz
 ```go prelude
 import (
 	stigmer "go.stigmer.ai/sdk"
-	apiresource "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	"go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
 	identityaccountv1 "go.stigmer.ai/sdk/proto/ai/stigmer/iam/identityaccount/v1"
 	iamv1 "go.stigmer.ai/sdk/proto/ai/stigmer/iam/v1"
 )
@@ -233,7 +233,7 @@ Authorization: Requires can_create_identity_account on the organization that own
 <Tab value="TypeScript">
 ```typescript
 const identityAccount = await stigmer.identityAccount.getByExternalSub({
-  org: "...",
+  org: "acme",
   federationIssuerRef: {},
   externalSub: "...",
 });
@@ -242,7 +242,7 @@ const identityAccount = await stigmer.identityAccount.getByExternalSub({
 <Tab value="Go">
 ```go
 identityAccount, err := client.IdentityAccount.GetByExternalSub(ctx, &identityaccountv1.ExternalSubLookup{
-  Org:                 "...",
+  Org:                 "acme",
   FederationIssuerRef: &apiresource.ApiResourceReference{},
   ExternalSub:         "...",
 })
@@ -251,7 +251,7 @@ identityAccount, err := client.IdentityAccount.GetByExternalSub(ctx, &identityac
 <Tab value="Python">
 ```python
 identity_account = client.identity_accounts.get_by_external_sub(io_pb2.ExternalSubLookup(
-    org="...",
+    org="acme",
     federation_issuer_ref=apiresource_io_pb2.ApiResourceReference(),
     external_sub="...",
 ))
@@ -260,7 +260,7 @@ identity_account = client.identity_accounts.get_by_external_sub(io_pb2.ExternalS
 <Tab value="Java">
 ```java
 IdentityAccount identityAccount = client.identityAccount.getByExternalSub(ExternalSubLookup.newBuilder()
-    .setOrg("...")
+    .setOrg("acme")
     .setFederationIssuerRef(ApiResourceReference.getDefaultInstance())
     .setExternalSub("...")
     .build());
@@ -321,9 +321,8 @@ Authorization: Requires can_create_identity_account on the organization.
 <Tab value="TypeScript">
 ```typescript
 const result = await stigmer.identityAccount.listServiceAccounts({
-  org: "...",
+  org: "acme",
   pageSize: 0,
-  pageToken: "...",
   labels: {},
 });
 ```
@@ -331,19 +330,17 @@ const result = await stigmer.identityAccount.listServiceAccounts({
 <Tab value="Go">
 ```go
 result, err := client.IdentityAccount.ListServiceAccounts(ctx, &identityaccountv1.ListServiceAccountsInput{
-  Org:       "...",
-  PageSize:  0,
-  PageToken: "...",
-  Labels:    map[string]string{},
+  Org:      "acme",
+  PageSize: 0,
+  Labels:   map[string]string{},
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
 result = client.identity_accounts.list_service_accounts(io_pb2.ListServiceAccountsInput(
-    org="...",
+    org="acme",
     page_size=0,
-    page_token="...",
     labels={},
 ))
 ```
@@ -351,9 +348,8 @@ result = client.identity_accounts.list_service_accounts(io_pb2.ListServiceAccoun
 <Tab value="Java">
 ```java
 IdentityAccountsList result = client.identityAccount.listServiceAccounts(ListServiceAccountsInput.newBuilder()
-    .setOrg("...")
+    .setOrg("acme")
     .setPageSize(0)
-    .setPageToken("...")
     .putAllLabels(Map.of())
     .build());
 ```
@@ -520,7 +516,7 @@ Authorization: Requires can_create_identity_account on the organization that own
 <Tab value="TypeScript">
 ```typescript
 const identityAccount = await stigmer.identityAccount.updateFederatedAccount({
-  org: "...",
+  org: "acme",
   federationIssuerRef: {},
   externalSub: "...",
   email: "...",
@@ -533,7 +529,7 @@ const identityAccount = await stigmer.identityAccount.updateFederatedAccount({
 <Tab value="Go">
 ```go
 identityAccount, err := client.IdentityAccount.UpdateFederatedAccount(ctx, &identityaccountv1.UpdateFederatedAccountInput{
-  Org:                 "...",
+  Org:                 "acme",
   FederationIssuerRef: &apiresource.ApiResourceReference{},
   ExternalSub:         "...",
   Email:               "...",
@@ -546,7 +542,7 @@ identityAccount, err := client.IdentityAccount.UpdateFederatedAccount(ctx, &iden
 <Tab value="Python">
 ```python
 identity_account = client.identity_accounts.update_federated_account(io_pb2.UpdateFederatedAccountInput(
-    org="...",
+    org="acme",
     federation_issuer_ref=apiresource_io_pb2.ApiResourceReference(),
     external_sub="...",
     email="...",
@@ -559,7 +555,7 @@ identity_account = client.identity_accounts.update_federated_account(io_pb2.Upda
 <Tab value="Java">
 ```java
 IdentityAccount identityAccount = client.identityAccount.updateFederatedAccount(UpdateFederatedAccountInput.newBuilder()
-    .setOrg("...")
+    .setOrg("acme")
     .setFederationIssuerRef(ApiResourceReference.getDefaultInstance())
     .setExternalSub("...")
     .setEmail("...")
@@ -626,7 +622,7 @@ Authorization: Requires can_create_identity_account on the organization that own
 <Tab value="TypeScript">
 ```typescript
 const identityAccount = await stigmer.identityAccount.createFederatedAccount({
-  org: "...",
+  org: "acme",
   federationIssuerRef: {},
   externalSub: "...",
   email: "...",
@@ -639,7 +635,7 @@ const identityAccount = await stigmer.identityAccount.createFederatedAccount({
 <Tab value="Go">
 ```go
 identityAccount, err := client.IdentityAccount.CreateFederatedAccount(ctx, &identityaccountv1.CreateFederatedAccountInput{
-  Org:                 "...",
+  Org:                 "acme",
   FederationIssuerRef: &apiresource.ApiResourceReference{},
   ExternalSub:         "...",
   Email:               "...",
@@ -652,7 +648,7 @@ identityAccount, err := client.IdentityAccount.CreateFederatedAccount(ctx, &iden
 <Tab value="Python">
 ```python
 identity_account = client.identity_accounts.create_federated_account(io_pb2.CreateFederatedAccountInput(
-    org="...",
+    org="acme",
     federation_issuer_ref=apiresource_io_pb2.ApiResourceReference(),
     external_sub="...",
     email="...",
@@ -665,7 +661,7 @@ identity_account = client.identity_accounts.create_federated_account(io_pb2.Crea
 <Tab value="Java">
 ```java
 IdentityAccount identityAccount = client.identityAccount.createFederatedAccount(CreateFederatedAccountInput.newBuilder()
-    .setOrg("...")
+    .setOrg("acme")
     .setFederationIssuerRef(ApiResourceReference.getDefaultInstance())
     .setExternalSub("...")
     .setEmail("...")
@@ -695,7 +691,7 @@ Authorization: Requires can_create_identity_account on the organization. A servi
 <Tab value="TypeScript">
 ```typescript
 const identityAccount = await stigmer.identityAccount.createServiceAccount({
-  org: "...",
+  org: "acme",
   name: "...",
   role: IamRole.owner,
 });
@@ -704,7 +700,7 @@ const identityAccount = await stigmer.identityAccount.createServiceAccount({
 <Tab value="Go">
 ```go
 identityAccount, err := client.IdentityAccount.CreateServiceAccount(ctx, &identityaccountv1.CreateServiceAccountInput{
-  Org:  "...",
+  Org:  "acme",
   Name: "...",
   Role: iamv1.IamRole_owner,
 })
@@ -713,7 +709,7 @@ identityAccount, err := client.IdentityAccount.CreateServiceAccount(ctx, &identi
 <Tab value="Python">
 ```python
 identity_account = client.identity_accounts.create_service_account(io_pb2.CreateServiceAccountInput(
-    org="...",
+    org="acme",
     name="...",
     role=iam_enum_pb2.owner,
 ))
@@ -722,7 +718,7 @@ identity_account = client.identity_accounts.create_service_account(io_pb2.Create
 <Tab value="Java">
 ```java
 IdentityAccount identityAccount = client.identityAccount.createServiceAccount(CreateServiceAccountInput.newBuilder()
-    .setOrg("...")
+    .setOrg("acme")
     .setName("...")
     .setRole(IamRole.owner)
     .build());
@@ -750,7 +746,7 @@ Authorization: Requires can_create_identity_account on the organization that own
 <Tab value="TypeScript">
 ```typescript
 const identityAccount = await stigmer.identityAccount.deprovisionFederatedAccount({
-  org: "...",
+  org: "acme",
   federationIssuerRef: {},
   externalSub: "...",
   deleteAccount: false,
@@ -760,7 +756,7 @@ const identityAccount = await stigmer.identityAccount.deprovisionFederatedAccoun
 <Tab value="Go">
 ```go
 identityAccount, err := client.IdentityAccount.DeprovisionFederatedAccount(ctx, &identityaccountv1.DeprovisionFederatedAccountInput{
-  Org:                 "...",
+  Org:                 "acme",
   FederationIssuerRef: &apiresource.ApiResourceReference{},
   ExternalSub:         "...",
   DeleteAccount:       false,
@@ -770,7 +766,7 @@ identityAccount, err := client.IdentityAccount.DeprovisionFederatedAccount(ctx, 
 <Tab value="Python">
 ```python
 identity_account = client.identity_accounts.deprovision_federated_account(io_pb2.DeprovisionFederatedAccountInput(
-    org="...",
+    org="acme",
     federation_issuer_ref=apiresource_io_pb2.ApiResourceReference(),
     external_sub="...",
     delete_account=False,
@@ -780,7 +776,7 @@ identity_account = client.identity_accounts.deprovision_federated_account(io_pb2
 <Tab value="Java">
 ```java
 IdentityAccount identityAccount = client.identityAccount.deprovisionFederatedAccount(DeprovisionFederatedAccountInput.newBuilder()
-    .setOrg("...")
+    .setOrg("acme")
     .setFederationIssuerRef(ApiResourceReference.getDefaultInstance())
     .setExternalSub("...")
     .setDeleteAccount(false)

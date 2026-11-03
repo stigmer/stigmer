@@ -45,7 +45,7 @@ spec:
 
 ## Client Access
 
-Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Each language's first block holds the imports the page's examples use.
+Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Where a language's examples import anything, its tab opens with those imports.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -59,9 +59,13 @@ const session = await stigmer.session.get("ses_01j5q3k7m8r2s4tnz2hfp0q0c3");
 <Tab value="Go">
 ```go prelude
 import (
+	"errors"
+	"io"
+	"log"
+
 	stigmer "go.stigmer.ai/sdk"
 	sessionv1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/session/v1"
-	proto "google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 ```
 ```go
@@ -182,8 +186,7 @@ An eval run's tries are left out: each runs in a session of its own, read throug
 ```typescript
 const result = await stigmer.session.list({
   pageSize: 0,
-  pageToken: "...",
-  org: "...",
+  org: "acme",
   labels: {},
 });
 ```
@@ -191,10 +194,9 @@ const result = await stigmer.session.list({
 <Tab value="Go">
 ```go
 result, err := client.Session.List(ctx, &sessionv1.ListSessionsRequest{
-  PageSize:  0,
-  PageToken: "...",
-  Org:       "...",
-  Labels:    map[string]string{},
+  PageSize: 0,
+  Org:      "acme",
+  Labels:   map[string]string{},
 })
 ```
 </Tab>
@@ -202,8 +204,7 @@ result, err := client.Session.List(ctx, &sessionv1.ListSessionsRequest{
 ```python
 result = client.sessions.list(io_pb2.ListSessionsRequest(
     page_size=0,
-    page_token="...",
-    org="...",
+    org="acme",
     labels={},
 ))
 ```
@@ -212,8 +213,7 @@ result = client.sessions.list(io_pb2.ListSessionsRequest(
 ```java
 SessionList result = client.session.list(ListSessionsRequest.newBuilder()
     .setPageSize(0)
-    .setPageToken("...")
-    .setOrg("...")
+    .setOrg("acme")
     .putAllLabels(Map.of())
     .build());
 ```
@@ -238,7 +238,6 @@ Results are filtered to the sessions the caller can view. An eval run's tries ar
 const result = await stigmer.session.listByAgent({
   agentId: "...",
   pageSize: 0,
-  pageToken: "...",
   labels: {},
 });
 ```
@@ -246,10 +245,9 @@ const result = await stigmer.session.listByAgent({
 <Tab value="Go">
 ```go
 result, err := client.Session.ListByAgent(ctx, &sessionv1.ListSessionsByAgentRequest{
-  AgentId:   "...",
-  PageSize:  0,
-  PageToken: "...",
-  Labels:    map[string]string{},
+  AgentId:  "...",
+  PageSize: 0,
+  Labels:   map[string]string{},
 })
 ```
 </Tab>
@@ -258,7 +256,6 @@ result, err := client.Session.ListByAgent(ctx, &sessionv1.ListSessionsByAgentReq
 result = client.sessions.list_by_agent(io_pb2.ListSessionsByAgentRequest(
     agent_id="...",
     page_size=0,
-    page_token="...",
     labels={},
 ))
 ```
@@ -268,7 +265,6 @@ result = client.sessions.list_by_agent(io_pb2.ListSessionsByAgentRequest(
 SessionList result = client.session.listByAgent(ListSessionsByAgentRequest.newBuilder()
     .setAgentId("...")
     .setPageSize(0)
-    .setPageToken("...")
     .putAllLabels(Map.of())
     .build());
 ```
@@ -293,7 +289,6 @@ Returns the sessions the given channel's visitors or its Slack or WhatsApp runti
 const result = await stigmer.session.listByChannel({
   channelId: "...",
   pageSize: 0,
-  pageToken: "...",
   labels: {},
 });
 ```
@@ -303,7 +298,6 @@ const result = await stigmer.session.listByChannel({
 result, err := client.Session.ListByChannel(ctx, &sessionv1.ListSessionsByChannelRequest{
   ChannelId: "...",
   PageSize:  0,
-  PageToken: "...",
   Labels:    map[string]string{},
 })
 ```
@@ -313,7 +307,6 @@ result, err := client.Session.ListByChannel(ctx, &sessionv1.ListSessionsByChanne
 result = client.sessions.list_by_channel(io_pb2.ListSessionsByChannelRequest(
     channel_id="...",
     page_size=0,
-    page_token="...",
     labels={},
 ))
 ```
@@ -323,7 +316,6 @@ result = client.sessions.list_by_channel(io_pb2.ListSessionsByChannelRequest(
 SessionList result = client.session.listByChannel(ListSessionsByChannelRequest.newBuilder()
     .setChannelId("...")
     .setPageSize(0)
-    .setPageToken("...")
     .putAllLabels(Map.of())
     .build());
 ```
@@ -348,7 +340,6 @@ The events are Claude Managed Agents session events, in the order they were appe
 const result = await stigmer.session.listEvents({
   sessionId: "...",
   pageSize: 0,
-  pageToken: "...",
   order: "...",
   types: [],
   createdAtGt: "...",
@@ -364,7 +355,6 @@ const result = await stigmer.session.listEvents({
 result, err := client.Session.ListEvents(ctx, &sessionv1.ListSessionEventsRequest{
   SessionId:    "...",
   PageSize:     0,
-  PageToken:    "...",
   Order:        "...",
   Types:        []string{},
   CreatedAtGt:  "...",
@@ -380,7 +370,6 @@ result, err := client.Session.ListEvents(ctx, &sessionv1.ListSessionEventsReques
 result = client.sessions.list_events(io_pb2.ListSessionEventsRequest(
     session_id="...",
     page_size=0,
-    page_token="...",
     order="...",
     types=[],
     created_at_gt="...",
@@ -396,7 +385,6 @@ result = client.sessions.list_events(io_pb2.ListSessionEventsRequest(
 SessionEventList result = client.session.listEvents(ListSessionEventsRequest.newBuilder()
     .setSessionId("...")
     .setPageSize(0)
-    .setPageToken("...")
     .setOrder("...")
     .addAllTypes(List.of())
     .setCreatedAtGt("...")
@@ -1015,7 +1003,7 @@ It reads the conversations' log, so nothing is missed across a reconnect: with a
 <Tab value="TypeScript">
 ```typescript
 const stream = stigmer.session.streamAttention({
-  org: "...",
+  org: "acme",
   afterCursor: "...",
 });
 for await (const attention of stream) {
@@ -1026,13 +1014,19 @@ for await (const attention of stream) {
 <Tab value="Go">
 ```go
 stream, err := client.Session.StreamAttention(ctx, &sessionv1.StreamAttentionRequest{
-  Org:         "...",
+  Org:         "acme",
   AfterCursor: "...",
 })
+if err != nil {
+    log.Fatal(err)
+}
 for {
-    attention, err := stream.Recv()
-    if err != nil {
+    attention, recvErr := stream.Recv()
+    if errors.Is(recvErr, io.EOF) {
         break
+    }
+    if recvErr != nil {
+        log.Fatal(recvErr)
     }
     // process attention
 }
@@ -1041,7 +1035,7 @@ for {
 <Tab value="Python">
 ```python
 for attention in client.sessions.stream_attention(io_pb2.StreamAttentionRequest(
-    org="...",
+    org="acme",
     after_cursor="...",
 )):
     print(attention)
@@ -1050,7 +1044,7 @@ for attention in client.sessions.stream_attention(io_pb2.StreamAttentionRequest(
 <Tab value="Java">
 ```java
 StigmerStream<Attention> stream = client.session.streamAttention(StreamAttentionRequest.newBuilder()
-    .setOrg("...")
+    .setOrg("acme")
     .setAfterCursor("...")
     .build());
 while (stream.hasNext()) {
@@ -1093,10 +1087,16 @@ stream, err := client.Session.StreamEvents(ctx, &sessionv1.StreamSessionEventsRe
   EventDeltas: []string{},
   AfterSeq:    proto.Int64(0),
 })
+if err != nil {
+    log.Fatal(err)
+}
 for {
-    streamSessionEventsResponse, err := stream.Recv()
-    if err != nil {
+    streamSessionEventsResponse, recvErr := stream.Recv()
+    if errors.Is(recvErr, io.EOF) {
         break
+    }
+    if recvErr != nil {
+        log.Fatal(recvErr)
     }
     // process streamSessionEventsResponse
 }

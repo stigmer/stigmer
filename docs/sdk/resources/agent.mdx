@@ -45,7 +45,7 @@ spec:
 
 ## Client Access
 
-Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Each language's first block holds the imports the page's examples use.
+Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Where a language's examples import anything, its tab opens with those imports.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -63,7 +63,7 @@ import (
 	stigmer "go.stigmer.ai/sdk"
 	agentv1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/agent/v1"
 	sessionv1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/session/v1"
-	apiresource "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	"go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
 )
 ```
 ```go
@@ -246,9 +246,8 @@ Returns the agents of the input org that the caller may view, one page at a time
 <Tab value="TypeScript">
 ```typescript
 const result = await stigmer.agent.list({
-  org: "...",
+  org: "acme",
   pageSize: 0,
-  pageToken: "...",
   labels: {},
 });
 ```
@@ -256,19 +255,17 @@ const result = await stigmer.agent.list({
 <Tab value="Go">
 ```go
 result, err := client.Agent.List(ctx, &agentv1.ListAgentsRequest{
-  Org:       "...",
-  PageSize:  0,
-  PageToken: "...",
-  Labels:    map[string]string{},
+  Org:      "acme",
+  PageSize: 0,
+  Labels:   map[string]string{},
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
 result = client.agents.list(io_pb2.ListAgentsRequest(
-    org="...",
+    org="acme",
     page_size=0,
-    page_token="...",
     labels={},
 ))
 ```
@@ -276,9 +273,8 @@ result = client.agents.list(io_pb2.ListAgentsRequest(
 <Tab value="Java">
 ```java
 AgentList result = client.agent.list(ListAgentsRequest.newBuilder()
-    .setOrg("...")
+    .setOrg("acme")
     .setPageSize(0)
-    .setPageToken("...")
     .putAllLabels(Map.of())
     .build());
 ```
@@ -301,9 +297,8 @@ Returns all historical versions, newest first. Each entry carries the version ha
 <Tab value="TypeScript">
 ```typescript
 const listAgentVersionsResponse = await stigmer.agent.listVersions({
-  org: "...",
+  org: "acme",
   slug: "...",
-  pageToken: "...",
   pageSize: 0,
 });
 ```
@@ -311,19 +306,17 @@ const listAgentVersionsResponse = await stigmer.agent.listVersions({
 <Tab value="Go">
 ```go
 listAgentVersionsResponse, err := client.Agent.ListVersions(ctx, &agentv1.ListAgentVersionsInput{
-  Org:       "...",
-  Slug:      "...",
-  PageToken: "...",
-  PageSize:  0,
+  Org:      "acme",
+  Slug:     "...",
+  PageSize: 0,
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
 list_agent_versions_response = client.agents.list_versions(version_pb2.ListAgentVersionsInput(
-    org="...",
+    org="acme",
     slug="...",
-    page_token="...",
     page_size=0,
 ))
 ```
@@ -331,9 +324,8 @@ list_agent_versions_response = client.agents.list_versions(version_pb2.ListAgent
 <Tab value="Java">
 ```java
 ListAgentVersionsResponse listAgentVersionsResponse = client.agent.listVersions(ListAgentVersionsInput.newBuilder()
-    .setOrg("...")
+    .setOrg("acme")
     .setSlug("...")
-    .setPageToken("...")
     .setPageSize(0)
     .build());
 ```

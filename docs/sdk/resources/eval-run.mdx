@@ -73,7 +73,7 @@ status:
 
 ## Client Access
 
-Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Each language's first block holds the imports the page's examples use.
+Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Where a language's examples import anything, its tab opens with those imports.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -179,7 +179,6 @@ Each eval run comes with its scores, aggregates, per-target results and notes, b
 const result = await stigmer.evalrun.listByAgent({
   agentId: "...",
   pageSize: 0,
-  pageToken: "...",
   labels: {},
 });
 ```
@@ -187,10 +186,9 @@ const result = await stigmer.evalrun.listByAgent({
 <Tab value="Go">
 ```go
 result, err := client.EvalRun.ListByAgent(ctx, &evalrunv1.ListEvalRunsByAgentRequest{
-  AgentId:   "...",
-  PageSize:  0,
-  PageToken: "...",
-  Labels:    map[string]string{},
+  AgentId:  "...",
+  PageSize: 0,
+  Labels:   map[string]string{},
 })
 ```
 </Tab>
@@ -199,7 +197,6 @@ result, err := client.EvalRun.ListByAgent(ctx, &evalrunv1.ListEvalRunsByAgentReq
 result = client.evalruns.list_by_agent(io_pb2.ListEvalRunsByAgentRequest(
     agent_id="...",
     page_size=0,
-    page_token="...",
     labels={},
 ))
 ```
@@ -209,7 +206,6 @@ result = client.evalruns.list_by_agent(io_pb2.ListEvalRunsByAgentRequest(
 EvalRunList result = client.evalrun.listByAgent(ListEvalRunsByAgentRequest.newBuilder()
     .setAgentId("...")
     .setPageSize(0)
-    .setPageToken("...")
     .putAllLabels(Map.of())
     .build());
 ```
@@ -234,7 +230,6 @@ Each comes as listByAgent's entries do, with every arm's `tries` list empty.
 const result = await stigmer.evalrun.listByPlugin({
   pluginId: "...",
   pageSize: 0,
-  pageToken: "...",
   labels: {},
 });
 ```
@@ -242,10 +237,9 @@ const result = await stigmer.evalrun.listByPlugin({
 <Tab value="Go">
 ```go
 result, err := client.EvalRun.ListByPlugin(ctx, &evalrunv1.ListEvalRunsByPluginRequest{
-  PluginId:  "...",
-  PageSize:  0,
-  PageToken: "...",
-  Labels:    map[string]string{},
+  PluginId: "...",
+  PageSize: 0,
+  Labels:   map[string]string{},
 })
 ```
 </Tab>
@@ -254,7 +248,6 @@ result, err := client.EvalRun.ListByPlugin(ctx, &evalrunv1.ListEvalRunsByPluginR
 result = client.evalruns.list_by_plugin(io_pb2.ListEvalRunsByPluginRequest(
     plugin_id="...",
     page_size=0,
-    page_token="...",
     labels={},
 ))
 ```
@@ -264,7 +257,6 @@ result = client.evalruns.list_by_plugin(io_pb2.ListEvalRunsByPluginRequest(
 EvalRunList result = client.evalrun.listByPlugin(ListEvalRunsByPluginRequest.newBuilder()
     .setPluginId("...")
     .setPageSize(0)
-    .setPageToken("...")
     .putAllLabels(Map.of())
     .build());
 ```

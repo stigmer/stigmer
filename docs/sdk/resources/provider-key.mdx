@@ -7,7 +7,7 @@ description: "SDK reference for Provider Key resources."
 
 ## Client Access
 
-Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Each language's first block holds the imports the page's examples use.
+Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Where a language's examples import anything, its tab opens with those imports.
 
 <SDKTabs>
 <Tab value="Go">
@@ -49,36 +49,32 @@ List the keys that serve the organization, its own and any it inherits from its 
 <Tab value="TypeScript">
 ```typescript
 const listProviderKeysOutput = await stigmer.providerkey.list({
-  org: "...",
+  org: "acme",
   pageSize: 0,
-  pageToken: "...",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 listProviderKeysOutput, err := client.ProviderKey.List(ctx, &providerkeyv1.ListProviderKeysInput{
-  Org:       "...",
-  PageSize:  0,
-  PageToken: "...",
+  Org:      "acme",
+  PageSize: 0,
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
 list_provider_keys_output = client.providerkeys.list(io_pb2.ListProviderKeysInput(
-    org="...",
+    org="acme",
     page_size=0,
-    page_token="...",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
 ListProviderKeysOutput listProviderKeysOutput = client.providerkey.list(ListProviderKeysInput.newBuilder()
-    .setOrg("...")
+    .setOrg("acme")
     .setPageSize(0)
-    .setPageToken("...")
     .build());
 ```
 </Tab>
@@ -100,7 +96,7 @@ NOT_FOUND when the organization holds no key for the provider. Returns the remov
 <Tab value="TypeScript">
 ```typescript
 const providerKey = await stigmer.providerkey.delete({
-  org: "...",
+  org: "acme",
   provider: "...",
 });
 ```
@@ -108,7 +104,7 @@ const providerKey = await stigmer.providerkey.delete({
 <Tab value="Go">
 ```go
 providerKey, err := client.ProviderKey.Delete(ctx, &providerkeyv1.DeleteProviderKeyInput{
-  Org:      "...",
+  Org:      "acme",
   Provider: "...",
 })
 ```
@@ -116,7 +112,7 @@ providerKey, err := client.ProviderKey.Delete(ctx, &providerkeyv1.DeleteProvider
 <Tab value="Python">
 ```python
 provider_key = client.providerkeys.delete(io_pb2.DeleteProviderKeyInput(
-    org="...",
+    org="acme",
     provider="...",
 ))
 ```
@@ -124,7 +120,7 @@ provider_key = client.providerkeys.delete(io_pb2.DeleteProviderKeyInput(
 <Tab value="Java">
 ```java
 ProviderKey providerKey = client.providerkey.delete(DeleteProviderKeyInput.newBuilder()
-    .setOrg("...")
+    .setOrg("acme")
     .setProvider("...")
     .build());
 ```
@@ -145,7 +141,7 @@ Allowed on every plan. The key is checked once against the provider (or the base
 <Tab value="TypeScript">
 ```typescript
 const providerKey = await stigmer.providerkey.set({
-  org: "...",
+  org: "acme",
   provider: "...",
   apiKey: "...",
   baseUrl: "...",
@@ -155,7 +151,7 @@ const providerKey = await stigmer.providerkey.set({
 <Tab value="Go">
 ```go
 providerKey, err := client.ProviderKey.Set(ctx, &providerkeyv1.SetProviderKeyInput{
-  Org:      "...",
+  Org:      "acme",
   Provider: "...",
   ApiKey:   "...",
   BaseUrl:  "...",
@@ -165,7 +161,7 @@ providerKey, err := client.ProviderKey.Set(ctx, &providerkeyv1.SetProviderKeyInp
 <Tab value="Python">
 ```python
 provider_key = client.providerkeys.set(io_pb2.SetProviderKeyInput(
-    org="...",
+    org="acme",
     provider="...",
     api_key="...",
     base_url="...",
@@ -175,7 +171,7 @@ provider_key = client.providerkeys.set(io_pb2.SetProviderKeyInput(
 <Tab value="Java">
 ```java
 ProviderKey providerKey = client.providerkey.set(SetProviderKeyInput.newBuilder()
-    .setOrg("...")
+    .setOrg("acme")
     .setProvider("...")
     .setApiKey("...")
     .setBaseUrl("...")

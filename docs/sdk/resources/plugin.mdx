@@ -76,7 +76,7 @@ an agent of the organization lists it.
 
 ## Client Access
 
-Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Each language's first block holds the imports the page's examples use.
+Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Where a language's examples import anything, its tab opens with those imports.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -94,7 +94,7 @@ const plugin = await stigmer.plugin.get("plg_01j5q3k7m8r2s4tnz2hfp0q0c3");
 import (
 	stigmer "go.stigmer.ai/sdk"
 	pluginv1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/plugin/v1"
-	apiresource "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	"go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
 )
 ```
 ```go
@@ -312,9 +312,8 @@ Returns the plugins of the input org that the caller may view, one page at a tim
 <Tab value="TypeScript">
 ```typescript
 const result = await stigmer.plugin.list({
-  org: "...",
+  org: "acme",
   pageSize: 0,
-  pageToken: "...",
   labels: {},
 });
 ```
@@ -322,19 +321,17 @@ const result = await stigmer.plugin.list({
 <Tab value="Go">
 ```go
 result, err := client.Plugin.List(ctx, &pluginv1.ListPluginsRequest{
-  Org:       "...",
-  PageSize:  0,
-  PageToken: "...",
-  Labels:    map[string]string{},
+  Org:      "acme",
+  PageSize: 0,
+  Labels:   map[string]string{},
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
 result = client.plugins.list(io_pb2.ListPluginsRequest(
-    org="...",
+    org="acme",
     page_size=0,
-    page_token="...",
     labels={},
 ))
 ```
@@ -342,9 +339,8 @@ result = client.plugins.list(io_pb2.ListPluginsRequest(
 <Tab value="Java">
 ```java
 PluginList result = client.plugin.list(ListPluginsRequest.newBuilder()
-    .setOrg("...")
+    .setOrg("acme")
     .setPageSize(0)
-    .setPageToken("...")
     .putAllLabels(Map.of())
     .build());
 ```
@@ -369,7 +365,7 @@ Errors: - FAILED_PRECONDITION: a key the server needs is in none of the caller's
 const listPluginToolsOutput = await stigmer.plugin.listTools({
   pluginId: "...",
   server: "...",
-  org: "...",
+  org: "acme",
 });
 ```
 </Tab>
@@ -378,7 +374,7 @@ const listPluginToolsOutput = await stigmer.plugin.listTools({
 listPluginToolsOutput, err := client.Plugin.ListTools(ctx, &pluginv1.ListPluginToolsInput{
   PluginId: "...",
   Server:   "...",
-  Org:      "...",
+  Org:      "acme",
 })
 ```
 </Tab>
@@ -387,7 +383,7 @@ listPluginToolsOutput, err := client.Plugin.ListTools(ctx, &pluginv1.ListPluginT
 list_plugin_tools_output = client.plugins.list_tools(io_pb2.ListPluginToolsInput(
     plugin_id="...",
     server="...",
-    org="...",
+    org="acme",
 ))
 ```
 </Tab>
@@ -396,7 +392,7 @@ list_plugin_tools_output = client.plugins.list_tools(io_pb2.ListPluginToolsInput
 ListPluginToolsOutput listPluginToolsOutput = client.plugin.listTools(ListPluginToolsInput.newBuilder()
     .setPluginId("...")
     .setServer("...")
-    .setOrg("...")
+    .setOrg("acme")
     .build());
 ```
 </Tab>
@@ -416,9 +412,8 @@ Returns every installed version ordered by push time (newest first), with its di
 <Tab value="TypeScript">
 ```typescript
 const listPluginVersionsResponse = await stigmer.plugin.listVersions({
-  org: "...",
+  org: "acme",
   slug: "...",
-  pageToken: "...",
   pageSize: 0,
 });
 ```
@@ -426,19 +421,17 @@ const listPluginVersionsResponse = await stigmer.plugin.listVersions({
 <Tab value="Go">
 ```go
 listPluginVersionsResponse, err := client.Plugin.ListVersions(ctx, &pluginv1.ListPluginVersionsInput{
-  Org:       "...",
-  Slug:      "...",
-  PageToken: "...",
-  PageSize:  0,
+  Org:      "acme",
+  Slug:     "...",
+  PageSize: 0,
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
 list_plugin_versions_response = client.plugins.list_versions(io_pb2.ListPluginVersionsInput(
-    org="...",
+    org="acme",
     slug="...",
-    page_token="...",
     page_size=0,
 ))
 ```
@@ -446,9 +439,8 @@ list_plugin_versions_response = client.plugins.list_versions(io_pb2.ListPluginVe
 <Tab value="Java">
 ```java
 ListPluginVersionsResponse listPluginVersionsResponse = client.plugin.listVersions(ListPluginVersionsInput.newBuilder()
-    .setOrg("...")
+    .setOrg("acme")
     .setSlug("...")
-    .setPageToken("...")
     .setPageSize(0)
     .build());
 ```
@@ -549,7 +541,7 @@ Mint a short-lived, single-use upload URL for staging a plugin archive that exce
 <Tab value="TypeScript">
 ```typescript
 const pluginArtifactUploadUrl = await stigmer.plugin.createArtifactUploadUrl({
-  org: "...",
+  org: "acme",
   sizeBytes: 0n,
 });
 ```
@@ -557,7 +549,7 @@ const pluginArtifactUploadUrl = await stigmer.plugin.createArtifactUploadUrl({
 <Tab value="Go">
 ```go
 pluginArtifactUploadUrl, err := client.Plugin.CreateArtifactUploadUrl(ctx, &pluginv1.CreatePluginArtifactUploadUrlRequest{
-  Org:       "...",
+  Org:       "acme",
   SizeBytes: 0,
 })
 ```
@@ -565,7 +557,7 @@ pluginArtifactUploadUrl, err := client.Plugin.CreateArtifactUploadUrl(ctx, &plug
 <Tab value="Python">
 ```python
 plugin_artifact_upload_url = client.plugins.create_artifact_upload_url(io_pb2.CreatePluginArtifactUploadUrlRequest(
-    org="...",
+    org="acme",
     size_bytes=0,
 ))
 ```
@@ -573,7 +565,7 @@ plugin_artifact_upload_url = client.plugins.create_artifact_upload_url(io_pb2.Cr
 <Tab value="Java">
 ```java
 PluginArtifactUploadUrl pluginArtifactUploadUrl = client.plugin.createArtifactUploadUrl(CreatePluginArtifactUploadUrlRequest.newBuilder()
-    .setOrg("...")
+    .setOrg("acme")
     .setSizeBytes(0L)
     .build());
 ```
@@ -592,7 +584,7 @@ Push a plugin archive to install or upgrade it. Creates the plugin if it does no
 <Tab value="TypeScript">
 ```typescript
 const plugin = await stigmer.plugin.push(create(PushPluginRequestSchema, {
-  org: "...",
+  org: "acme",
   artifact: new Uint8Array(),
   artifactUploadRef: "...",
   visibility: ApiResourceVisibility.visibility_private,
@@ -603,7 +595,7 @@ const plugin = await stigmer.plugin.push(create(PushPluginRequestSchema, {
 <Tab value="Go">
 ```go
 plugin, err := client.Plugin.Push(ctx, &pluginv1.PushPluginRequest{
-  Org:               "...",
+  Org:               "acme",
   Artifact:          []byte{},
   ArtifactUploadRef: "...",
   Visibility:        apiresource.ApiResourceVisibility_visibility_private,
@@ -614,7 +606,7 @@ plugin, err := client.Plugin.Push(ctx, &pluginv1.PushPluginRequest{
 <Tab value="Python">
 ```python
 plugin = client.plugins.push(io_pb2.PushPluginRequest(
-    org="...",
+    org="acme",
     artifact=b"",
     artifact_upload_ref="...",
     visibility=apiresource_enum_pb2.visibility_private,
@@ -625,7 +617,7 @@ plugin = client.plugins.push(io_pb2.PushPluginRequest(
 <Tab value="Java">
 ```java
 Plugin plugin = client.plugin.push(PushPluginRequest.newBuilder()
-    .setOrg("...")
+    .setOrg("acme")
     .setArtifact(ByteString.EMPTY)
     .setArtifactUploadRef("...")
     .setVisibility(ApiResourceVisibility.visibility_private)

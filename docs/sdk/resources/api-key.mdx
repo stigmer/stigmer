@@ -20,7 +20,7 @@ spec:
 
 ## Client Access
 
-Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Each language's first block holds the imports the page's examples use.
+Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Where a language's examples import anything, its tab opens with those imports.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -33,7 +33,7 @@ const apiKey = await stigmer.apiKey.get("key_01j5q3k7m8r2s4tnz2hfp0q0c3");
 import (
 	stigmer "go.stigmer.ai/sdk"
 	apikeyv1 "go.stigmer.ai/sdk/proto/ai/stigmer/iam/apikey/v1"
-	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 ```
 ```go
@@ -167,7 +167,6 @@ Returns only the keys that speak for the identity account in the auth header; a 
 ```typescript
 const apiKeys = await stigmer.apiKey.list({
   pageSize: 0,
-  pageToken: "...",
   labels: {},
 });
 ```
@@ -175,9 +174,8 @@ const apiKeys = await stigmer.apiKey.list({
 <Tab value="Go">
 ```go
 apiKeys, err := client.ApiKey.List(ctx, &apikeyv1.ListApiKeysInput{
-  PageSize:  0,
-  PageToken: "...",
-  Labels:    map[string]string{},
+  PageSize: 0,
+  Labels:   map[string]string{},
 })
 ```
 </Tab>
@@ -185,7 +183,6 @@ apiKeys, err := client.ApiKey.List(ctx, &apikeyv1.ListApiKeysInput{
 ```python
 api_keys = client.api_keys.list(io_pb2.ListApiKeysInput(
     page_size=0,
-    page_token="...",
     labels={},
 ))
 ```
@@ -194,7 +191,6 @@ api_keys = client.api_keys.list(io_pb2.ListApiKeysInput(
 ```java
 ApiKeys apiKeys = client.apiKey.list(ListApiKeysInput.newBuilder()
     .setPageSize(0)
-    .setPageToken("...")
     .putAllLabels(Map.of())
     .build());
 ```
@@ -221,7 +217,6 @@ Authorization: Requires can_view on the identity account.
 const apiKeys = await stigmer.apiKey.listByAccount({
   accountId: "...",
   pageSize: 0,
-  pageToken: "...",
   labels: {},
 });
 ```
@@ -231,7 +226,6 @@ const apiKeys = await stigmer.apiKey.listByAccount({
 apiKeys, err := client.ApiKey.ListByAccount(ctx, &apikeyv1.ListApiKeysByAccountInput{
   AccountId: "...",
   PageSize:  0,
-  PageToken: "...",
   Labels:    map[string]string{},
 })
 ```
@@ -241,7 +235,6 @@ apiKeys, err := client.ApiKey.ListByAccount(ctx, &apikeyv1.ListApiKeysByAccountI
 api_keys = client.api_keys.list_by_account(io_pb2.ListApiKeysByAccountInput(
     account_id="...",
     page_size=0,
-    page_token="...",
     labels={},
 ))
 ```
@@ -251,7 +244,6 @@ api_keys = client.api_keys.list_by_account(io_pb2.ListApiKeysByAccountInput(
 ApiKeys apiKeys = client.apiKey.listByAccount(ListApiKeysByAccountInput.newBuilder()
     .setAccountId("...")
     .setPageSize(0)
-    .setPageToken("...")
     .putAllLabels(Map.of())
     .build());
 ```

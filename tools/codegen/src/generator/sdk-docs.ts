@@ -37,6 +37,7 @@ import {
   javaListOf,
   javaResultType,
   javaStream,
+  goStd,
   readPythonPublicNames,
   sdkDeleteInput,
   sdkResourceRef,
@@ -470,7 +471,7 @@ function docWriteClientAccess(buf: string[], schema: ServiceSchemaFile, cfg: Sdk
 
   buf.push("## Client Access\n\n");
   buf.push(
-    "Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Each language's first block holds the imports the page's examples use.\n\n",
+    "Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Where a language's examples import anything, its tab opens with those imports.\n\n",
   );
   buf.push("<SDKTabs>\n");
   buf.push(tabs.join(""));
@@ -732,8 +733,11 @@ function docWriteStreamingSigs(
   docWriteTab(buf, "TypeScript", "typescript",
     `const stream = stigmer.${names.ts}.${tsName}(${arg("typescript")});\nfor await (const ${eventVar} of stream) {\n  // process ${eventVar}\n}`, meta("typescript"));
 
+  const errors = goStd(env, "errors");
+  const io = goStd(env, "io");
+  const log = goStd(env, "log");
   docWriteTab(buf, "Go", "go",
-    `stream, err := client.${names.go}.${m.name}(ctx, ${arg("go")})\nfor {\n    ${eventVar}, err := stream.Recv()\n    if err != nil {\n        break\n    }\n    // process ${eventVar}\n}`, meta("go"));
+    `stream, err := client.${names.go}.${m.name}(ctx, ${arg("go")})\nif err != nil {\n    ${log}.Fatal(err)\n}\nfor {\n    ${eventVar}, recvErr := stream.Recv()\n    if ${errors}.Is(recvErr, ${io}.EOF) {\n        break\n    }\n    if recvErr != nil {\n        ${log}.Fatal(recvErr)\n    }\n    // process ${eventVar}\n}`, meta("go"));
 
   docWriteTab(buf, "Python", "python",
     `for ${pyEventVar} in client.${names.py}.${pyName}(${arg("python")}):\n    print(${pyEventVar})`, meta("python"));

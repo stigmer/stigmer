@@ -35,7 +35,7 @@ spec:
 
 ## Client Access
 
-Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Each language's first block holds the imports the page's examples use.
+Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Where a language's examples import anything, its tab opens with those imports.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -181,7 +181,7 @@ const getAgentUsageReportOutput = await stigmer.run.getAgentUsageReport({
   agentId: "...",
   fromDate: "...",
   toDate: "...",
-  org: "...",
+  org: "acme",
 });
 ```
 </Tab>
@@ -191,7 +191,7 @@ getAgentUsageReportOutput, err := client.Run.GetAgentUsageReport(ctx, &runv1.Get
   AgentId:  "...",
   FromDate: "...",
   ToDate:   "...",
-  Org:      "...",
+  Org:      "acme",
 })
 ```
 </Tab>
@@ -201,7 +201,7 @@ get_agent_usage_report_output = client.runs.get_agent_usage_report(io_pb2.GetAge
     agent_id="...",
     from_date="...",
     to_date="...",
-    org="...",
+    org="acme",
 ))
 ```
 </Tab>
@@ -211,7 +211,7 @@ GetAgentUsageReportOutput getAgentUsageReportOutput = client.run.getAgentUsageRe
     .setAgentId("...")
     .setFromDate("...")
     .setToDate("...")
-    .setOrg("...")
+    .setOrg("acme")
     .build());
 ```
 </Tab>
@@ -335,7 +335,7 @@ Returns org-wide token totals, the agents with the most tokens, the model breakd
 <Tab value="TypeScript">
 ```typescript
 const getOrgUsageReportOutput = await stigmer.run.getOrgUsageReport({
-  org: "...",
+  org: "acme",
   fromDate: "...",
   toDate: "...",
 });
@@ -344,7 +344,7 @@ const getOrgUsageReportOutput = await stigmer.run.getOrgUsageReport({
 <Tab value="Go">
 ```go
 getOrgUsageReportOutput, err := client.Run.GetOrgUsageReport(ctx, &runv1.GetOrgUsageReportInput{
-  Org:      "...",
+  Org:      "acme",
   FromDate: "...",
   ToDate:   "...",
 })
@@ -353,7 +353,7 @@ getOrgUsageReportOutput, err := client.Run.GetOrgUsageReport(ctx, &runv1.GetOrgU
 <Tab value="Python">
 ```python
 get_org_usage_report_output = client.runs.get_org_usage_report(io_pb2.GetOrgUsageReportInput(
-    org="...",
+    org="acme",
     from_date="...",
     to_date="...",
 ))
@@ -362,7 +362,7 @@ get_org_usage_report_output = client.runs.get_org_usage_report(io_pb2.GetOrgUsag
 <Tab value="Java">
 ```java
 GetOrgUsageReportOutput getOrgUsageReportOutput = client.run.getOrgUsageReport(GetOrgUsageReportInput.newBuilder()
-    .setOrg("...")
+    .setOrg("acme")
     .setFromDate("...")
     .setToDate("...")
     .build());
@@ -384,7 +384,7 @@ Returns counts by phase, active count, average duration, and top failing agents 
 <Tab value="TypeScript">
 ```typescript
 const runSummary = await stigmer.run.getRunSummary({
-  org: "...",
+  org: "acme",
   timeWindow: RunSummaryTimeWindow.LAST_24H,
 });
 ```
@@ -392,7 +392,7 @@ const runSummary = await stigmer.run.getRunSummary({
 <Tab value="Go">
 ```go
 runSummary, err := client.Run.GetRunSummary(ctx, &runv1.GetRunSummaryRequest{
-  Org:        "...",
+  Org:        "acme",
   TimeWindow: runv1.RunSummaryTimeWindow_RUN_SUMMARY_TIME_WINDOW_LAST_24H,
 })
 ```
@@ -400,7 +400,7 @@ runSummary, err := client.Run.GetRunSummary(ctx, &runv1.GetRunSummaryRequest{
 <Tab value="Python">
 ```python
 run_summary = client.runs.get_run_summary(io_pb2.GetRunSummaryRequest(
-    org="...",
+    org="acme",
     time_window=io_pb2.RUN_SUMMARY_TIME_WINDOW_LAST_24H,
 ))
 ```
@@ -408,7 +408,7 @@ run_summary = client.runs.get_run_summary(io_pb2.GetRunSummaryRequest(
 <Tab value="Java">
 ```java
 RunSummary runSummary = client.run.getRunSummary(GetRunSummaryRequest.newBuilder()
-    .setOrg("...")
+    .setOrg("acme")
     .setTimeWindow(RunSummaryTimeWindow.RUN_SUMMARY_TIME_WINDOW_LAST_24H)
     .build());
 ```
@@ -510,9 +510,8 @@ List all runs with pagination and optional filtering.
 ```typescript
 const result = await stigmer.run.list({
   pageSize: 0,
-  pageToken: "...",
   phase: RunPhase.RUN_PENDING,
-  org: "...",
+  org: "acme",
   labels: {},
 });
 ```
@@ -520,11 +519,10 @@ const result = await stigmer.run.list({
 <Tab value="Go">
 ```go
 result, err := client.Run.List(ctx, &runv1.ListRunsRequest{
-  PageSize:  0,
-  PageToken: "...",
-  Phase:     runv1.RunPhase_RUN_PENDING,
-  Org:       "...",
-  Labels:    map[string]string{},
+  PageSize: 0,
+  Phase:    runv1.RunPhase_RUN_PENDING,
+  Org:      "acme",
+  Labels:   map[string]string{},
 })
 ```
 </Tab>
@@ -532,9 +530,8 @@ result, err := client.Run.List(ctx, &runv1.ListRunsRequest{
 ```python
 result = client.runs.list(io_pb2.ListRunsRequest(
     page_size=0,
-    page_token="...",
     phase=enum_pb2.RUN_PENDING,
-    org="...",
+    org="acme",
     labels={},
 ))
 ```
@@ -543,9 +540,8 @@ result = client.runs.list(io_pb2.ListRunsRequest(
 ```java
 RunList result = client.run.list(ListRunsRequest.newBuilder()
     .setPageSize(0)
-    .setPageToken("...")
     .setPhase(RunPhase.RUN_PENDING)
-    .setOrg("...")
+    .setOrg("acme")
     .putAllLabels(Map.of())
     .build());
 ```
@@ -568,7 +564,6 @@ List all runs in a specific session.
 const result = await stigmer.run.listBySession({
   sessionId: "...",
   pageSize: 0,
-  pageToken: "...",
   labels: {},
 });
 ```
@@ -578,7 +573,6 @@ const result = await stigmer.run.listBySession({
 result, err := client.Run.ListBySession(ctx, &runv1.ListRunsBySessionRequest{
   SessionId: "...",
   PageSize:  0,
-  PageToken: "...",
   Labels:    map[string]string{},
 })
 ```
@@ -588,7 +582,6 @@ result, err := client.Run.ListBySession(ctx, &runv1.ListRunsBySessionRequest{
 result = client.runs.list_by_session(io_pb2.ListRunsBySessionRequest(
     session_id="...",
     page_size=0,
-    page_token="...",
     labels={},
 ))
 ```
@@ -598,7 +591,6 @@ result = client.runs.list_by_session(io_pb2.ListRunsBySessionRequest(
 RunList result = client.run.listBySession(ListRunsBySessionRequest.newBuilder()
     .setSessionId("...")
     .setPageSize(0)
-    .setPageToken("...")
     .putAllLabels(Map.of())
     .build());
 ```

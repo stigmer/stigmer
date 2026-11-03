@@ -446,6 +446,9 @@ export const LANES = {
       "test/visual/src/docs-examples.ts",
       "test/visual/tests/__shown__/**",
       "test/bundle-budgets.json",
+      // The resource reference generator reads which inputs the Python
+      // package exports, to import each from where a reader can.
+      "sdk/python/src/stigmer/__init__.py",
       ".vale.ini",
       ".prettierrc",
       ".lychee.toml",

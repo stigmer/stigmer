@@ -26,7 +26,7 @@ spec:
 
 ## Client Access
 
-Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Each language's first block holds the imports the page's examples use.
+Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Where a language's examples import anything, its tab opens with those imports.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -38,7 +38,7 @@ const grant = await stigmer.grant.get("grt_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```go prelude
 import (
 	grantv1 "go.stigmer.ai/sdk/proto/ai/stigmer/iam/grant/v1"
-	proto "google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 ```
 ```go
@@ -202,7 +202,7 @@ Input: GetPrincipalsCountInput with org and principal_kind Output: PrincipalsCou
 <Tab value="TypeScript">
 ```typescript
 const principalsCount = await stigmer.grant.getPrincipalsCount({
-  org: "...",
+  org: "acme",
   principalKind: "...",
 });
 ```
@@ -210,7 +210,7 @@ const principalsCount = await stigmer.grant.getPrincipalsCount({
 <Tab value="Go">
 ```go
 principalsCount, err := client.Grant.GetPrincipalsCount(ctx, &grantv1.GetPrincipalsCountInput{
-  Org:           "...",
+  Org:           "acme",
   PrincipalKind: "...",
 })
 ```
@@ -218,7 +218,7 @@ principalsCount, err := client.Grant.GetPrincipalsCount(ctx, &grantv1.GetPrincip
 <Tab value="Python">
 ```python
 principals_count = client.grants.get_principals_count(io_pb2.GetPrincipalsCountInput(
-    org="...",
+    org="acme",
     principal_kind="...",
 ))
 ```
@@ -226,7 +226,7 @@ principals_count = client.grants.get_principals_count(io_pb2.GetPrincipalsCountI
 <Tab value="Java">
 ```java
 PrincipalsCount principalsCount = client.grant.getPrincipalsCount(GetPrincipalsCountInput.newBuilder()
-    .setOrg("...")
+    .setOrg("acme")
     .setPrincipalKind("...")
     .build());
 ```
@@ -251,9 +251,8 @@ Only the organization's owners and administrators may read it, and a parent orga
 <Tab value="TypeScript">
 ```typescript
 const accessHistoryPage = await stigmer.grant.listAccessHistory({
-  org: "...",
+  org: "acme",
   pageSize: 0,
-  pageToken: "...",
   afterSequence: 0n,
 });
 ```
@@ -261,9 +260,8 @@ const accessHistoryPage = await stigmer.grant.listAccessHistory({
 <Tab value="Go">
 ```go
 accessHistoryPage, err := client.Grant.ListAccessHistory(ctx, &grantv1.ListAccessHistoryInput{
-  Org:           "...",
+  Org:           "acme",
   PageSize:      0,
-  PageToken:     "...",
   AfterSequence: proto.Int64(0),
 })
 ```
@@ -271,9 +269,8 @@ accessHistoryPage, err := client.Grant.ListAccessHistory(ctx, &grantv1.ListAcces
 <Tab value="Python">
 ```python
 access_history_page = client.grants.list_access_history(io_pb2.ListAccessHistoryInput(
-    org="...",
+    org="acme",
     page_size=0,
-    page_token="...",
     after_sequence=0,
 ))
 ```
@@ -281,9 +278,8 @@ access_history_page = client.grants.list_access_history(io_pb2.ListAccessHistory
 <Tab value="Java">
 ```java
 AccessHistoryPage accessHistoryPage = client.grant.listAccessHistory(ListAccessHistoryInput.newBuilder()
-    .setOrg("...")
+    .setOrg("acme")
     .setPageSize(0)
-    .setPageToken("...")
     .setAfterSequence(0L)
     .build());
 ```
@@ -617,7 +613,7 @@ The system-flow twin of revokeOrgAccess: identical revocation behavior, but auth
 ```typescript
 await stigmer.grant.bootstrapRevokeOrgAccess({
   identityAccountId: "...",
-  org: "...",
+  org: "acme",
 });
 ```
 </Tab>
@@ -625,7 +621,7 @@ await stigmer.grant.bootstrapRevokeOrgAccess({
 ```go
 err := client.Grant.BootstrapRevokeOrgAccess(ctx, &grantv1.RevokeOrgAccessInput{
   IdentityAccountId: "...",
-  Org:               "...",
+  Org:               "acme",
 })
 ```
 </Tab>
@@ -633,7 +629,7 @@ err := client.Grant.BootstrapRevokeOrgAccess(ctx, &grantv1.RevokeOrgAccessInput{
 ```python
 client.grants.bootstrap_revoke_org_access(io_pb2.RevokeOrgAccessInput(
     identity_account_id="...",
-    org="...",
+    org="acme",
 ))
 ```
 </Tab>
@@ -641,7 +637,7 @@ client.grants.bootstrap_revoke_org_access(io_pb2.RevokeOrgAccessInput(
 ```java
 client.grant.bootstrapRevokeOrgAccess(RevokeOrgAccessInput.newBuilder()
     .setIdentityAccountId("...")
-    .setOrg("...")
+    .setOrg("acme")
     .build());
 ```
 </Tab>
@@ -819,7 +815,7 @@ Removes every role the identity account holds on the organization, then every gr
 ```typescript
 await stigmer.grant.revokeOrgAccess({
   identityAccountId: "...",
-  org: "...",
+  org: "acme",
 });
 ```
 </Tab>
@@ -827,7 +823,7 @@ await stigmer.grant.revokeOrgAccess({
 ```go
 err := client.Grant.RevokeOrgAccess(ctx, &grantv1.RevokeOrgAccessInput{
   IdentityAccountId: "...",
-  Org:               "...",
+  Org:               "acme",
 })
 ```
 </Tab>
@@ -835,7 +831,7 @@ err := client.Grant.RevokeOrgAccess(ctx, &grantv1.RevokeOrgAccessInput{
 ```python
 client.grants.revoke_org_access(io_pb2.RevokeOrgAccessInput(
     identity_account_id="...",
-    org="...",
+    org="acme",
 ))
 ```
 </Tab>
@@ -843,7 +839,7 @@ client.grants.revoke_org_access(io_pb2.RevokeOrgAccessInput(
 ```java
 client.grant.revokeOrgAccess(RevokeOrgAccessInput.newBuilder()
     .setIdentityAccountId("...")
-    .setOrg("...")
+    .setOrg("acme")
     .build());
 ```
 </Tab>

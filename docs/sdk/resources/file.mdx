@@ -37,7 +37,7 @@ status:
 
 ## Client Access
 
-Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Each language's first block holds the imports the page's examples use.
+Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Where a language's examples import anything, its tab opens with those imports.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -54,7 +54,7 @@ const file = await stigmer.file.get("file_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```go prelude
 import (
 	filev1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/file/v1"
-	apiresource "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	"go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
 )
 ```
 ```go
@@ -228,10 +228,9 @@ List an organization's Files, newest first: every File of the org the caller may
 <Tab value="TypeScript">
 ```typescript
 const result = await stigmer.file.list({
-  org: "...",
+  org: "acme",
   sessionId: "...",
   pageSize: 0,
-  pageToken: "...",
   labels: {},
   runId: "...",
   withoutSession: false,
@@ -241,10 +240,9 @@ const result = await stigmer.file.list({
 <Tab value="Go">
 ```go
 result, err := client.File.List(ctx, &filev1.ListFilesRequest{
-  Org:            "...",
+  Org:            "acme",
   SessionId:      "...",
   PageSize:       0,
-  PageToken:      "...",
   Labels:         map[string]string{},
   RunId:          "...",
   WithoutSession: false,
@@ -254,10 +252,9 @@ result, err := client.File.List(ctx, &filev1.ListFilesRequest{
 <Tab value="Python">
 ```python
 result = client.files.list(io_pb2.ListFilesRequest(
-    org="...",
+    org="acme",
     session_id="...",
     page_size=0,
-    page_token="...",
     labels={},
     run_id="...",
     without_session=False,
@@ -267,10 +264,9 @@ result = client.files.list(io_pb2.ListFilesRequest(
 <Tab value="Java">
 ```java
 FileList result = client.file.list(ListFilesRequest.newBuilder()
-    .setOrg("...")
+    .setOrg("acme")
     .setSessionId("...")
     .setPageSize(0)
-    .setPageToken("...")
     .putAllLabels(Map.of())
     .setRunId("...")
     .setWithoutSession(false)
@@ -426,7 +422,7 @@ A size over the server's limit is refused here, before any bytes move.
 <Tab value="TypeScript">
 ```typescript
 const fileUploadUrl = await stigmer.file.createUploadUrl({
-  org: "...",
+  org: "acme",
   sessionId: "...",
   sizeBytes: 0n,
 });
@@ -435,7 +431,7 @@ const fileUploadUrl = await stigmer.file.createUploadUrl({
 <Tab value="Go">
 ```go
 fileUploadUrl, err := client.File.CreateUploadUrl(ctx, &filev1.CreateFileUploadUrlInput{
-  Org:       "...",
+  Org:       "acme",
   SessionId: "...",
   SizeBytes: 0,
 })
@@ -444,7 +440,7 @@ fileUploadUrl, err := client.File.CreateUploadUrl(ctx, &filev1.CreateFileUploadU
 <Tab value="Python">
 ```python
 file_upload_url = client.files.create_upload_url(io_pb2.CreateFileUploadUrlInput(
-    org="...",
+    org="acme",
     session_id="...",
     size_bytes=0,
 ))
@@ -453,7 +449,7 @@ file_upload_url = client.files.create_upload_url(io_pb2.CreateFileUploadUrlInput
 <Tab value="Java">
 ```java
 FileUploadUrl fileUploadUrl = client.file.createUploadUrl(CreateFileUploadUrlInput.newBuilder()
-    .setOrg("...")
+    .setOrg("acme")
     .setSessionId("...")
     .setSizeBytes(0L)
     .build());
@@ -477,7 +473,7 @@ A file over the server's limit (500 MB unless the operator set another) is refus
 <Tab value="TypeScript">
 ```typescript
 const file = await stigmer.file.upload(create(UploadFileInputSchema, {
-  org: "...",
+  org: "acme",
   sessionId: "...",
   filename: "...",
   mimeType: "...",
@@ -488,7 +484,7 @@ const file = await stigmer.file.upload(create(UploadFileInputSchema, {
 <Tab value="Go">
 ```go
 file, err := client.File.Upload(ctx, &filev1.UploadFileInput{
-  Org:       "...",
+  Org:       "acme",
   SessionId: "...",
   Filename:  "...",
   MimeType:  "...",
@@ -499,7 +495,7 @@ file, err := client.File.Upload(ctx, &filev1.UploadFileInput{
 <Tab value="Python">
 ```python
 file = client.files.upload(io_pb2.UploadFileInput(
-    org="...",
+    org="acme",
     session_id="...",
     filename="...",
     mime_type="...",
@@ -510,7 +506,7 @@ file = client.files.upload(io_pb2.UploadFileInput(
 <Tab value="Java">
 ```java
 File file = client.file.upload(UploadFileInput.newBuilder()
-    .setOrg("...")
+    .setOrg("acme")
     .setSessionId("...")
     .setFilename("...")
     .setMimeType("...")

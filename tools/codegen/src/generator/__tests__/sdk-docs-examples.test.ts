@@ -10,7 +10,10 @@
  * bytes, a Go list or map of pointers. "Client Access" shows each
  * language's imports block (a `prelude` fence) holding what the page's
  * examples import, and no example names an id or an input it never
- * declares.
+ * declares. A list names the page's example organization and no page
+ * token; a Go stream checks the error that opens it and reads to io.EOF
+ * with no shadowed `err`; a Python input the package does not export is
+ * imported from its generated module.
  *
  * The generator runs over the real schemas and API tree into a temporary
  * directory, and these cases read what it wrote; `DocImports` and
@@ -108,6 +111,34 @@ describe("the SDK resource pages' examples", () => {
     expect(access).toContain("import ai.stigmer.sdk.gen.AgentInput;\n");
     const preludes = fences(agent).filter((f) => f.info.endsWith(" prelude"));
     expect(preludes.map((f) => f.info)).toEqual(["typescript prelude", "go prelude", "python prelude", "java prelude"]);
+  });
+
+  it("lists in the page's example organization, from the first page", () => {
+    const list = fences(read("agent")).filter((f) => /\.(list|List)\(/.test(f.body));
+    expect(list).toHaveLength(4);
+    for (const fence of list) {
+      expect(fence.body).toMatch(/[oO]rg[:=]\s*"acme"|\.setOrg\("acme"\)/);
+      expect(fence.body).not.toMatch(/page_?[tT]oken/);
+    }
+  });
+
+  it("checks a Go stream's opening error and reads it to io.EOF without shadowing err", () => {
+    const session = read("session");
+    const stream = fences(session).find((f) => f.info === "go" && f.body.includes("client.Session.StreamEvents("));
+    expect(stream?.body).toMatch(/^stream, err := client\.Session\.StreamEvents\(ctx, &sessionv1\.StreamSessionEventsRequest\{/);
+    expect(stream?.body).toContain("\nif err != nil {\n    log.Fatal(err)\n}\nfor {\n    streamSessionEventsResponse, recvErr := stream.Recv()\n");
+    expect(stream?.body).toContain("    if errors.Is(recvErr, io.EOF) {\n        break\n    }\n");
+    expect(stream?.body.match(/err :=/g)).toHaveLength(1);
+    expect(session).toMatch(/```go prelude\nimport \(\n\t"errors"\n\t"io"\n\t"log"\n\n\tstigmer "go\.stigmer\.ai\/sdk"/);
+  });
+
+  it("imports a Python input the package does not export from its generated module", () => {
+    expect(read("team")).toContain("from stigmer._gen import TeamInput\n");
+    expect(read("agent")).toContain("from stigmer import AgentInput, ResourceRef, RunConfigInput\n");
+  });
+
+  it("says a tab opens with its imports only where the language imports anything", () => {
+    expect(read("agent")).toContain("Where a language's examples import anything, its tab opens with those imports.");
   });
 
   it("names no id or input an example does not declare", () => {

@@ -33,7 +33,7 @@ status:
 
 ## Client Access
 
-Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Each language's first block holds the imports the page's examples use.
+Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Where a language's examples import anything, its tab opens with those imports.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -133,9 +133,8 @@ Returns only memories the caller can view — for memories that is always exactl
 <Tab value="TypeScript">
 ```typescript
 const result = await stigmer.memory.list({
-  org: "...",
+  org: "acme",
   pageSize: 0,
-  pageToken: "...",
   labels: {},
 });
 ```
@@ -143,19 +142,17 @@ const result = await stigmer.memory.list({
 <Tab value="Go">
 ```go
 result, err := client.Memory.List(ctx, &memoryv1.ListMemoriesRequest{
-  Org:       "...",
-  PageSize:  0,
-  PageToken: "...",
-  Labels:    map[string]string{},
+  Org:      "acme",
+  PageSize: 0,
+  Labels:   map[string]string{},
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
 result = client.memorys.list(io_pb2.ListMemoriesRequest(
-    org="...",
+    org="acme",
     page_size=0,
-    page_token="...",
     labels={},
 ))
 ```
@@ -163,9 +160,8 @@ result = client.memorys.list(io_pb2.ListMemoriesRequest(
 <Tab value="Java">
 ```java
 MemoryList result = client.memory.list(ListMemoriesRequest.newBuilder()
-    .setOrg("...")
+    .setOrg("acme")
     .setPageSize(0)
-    .setPageToken("...")
     .putAllLabels(Map.of())
     .build());
 ```

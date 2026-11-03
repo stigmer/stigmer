@@ -91,7 +91,7 @@ spec:
 
 ## Client Access
 
-Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Each language's first block holds the imports the page's examples use.
+Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Where a language's examples import anything, its tab opens with those imports.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -107,7 +107,7 @@ const channel = await stigmer.channel.get("chn_01j5q3k7m8r2s4tnz2hfp0q0c3");
 import (
 	stigmer "go.stigmer.ai/sdk"
 	channelv1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/channel/v1"
-	apiresource "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	"go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
 )
 ```
 ```go
@@ -456,9 +456,8 @@ List channels with optional label filtering.
 <Tab value="TypeScript">
 ```typescript
 const result = await stigmer.channel.list({
-  org: "...",
+  org: "acme",
   pageSize: 0,
-  pageToken: "...",
   labels: {},
 });
 ```
@@ -466,19 +465,17 @@ const result = await stigmer.channel.list({
 <Tab value="Go">
 ```go
 result, err := client.Channel.List(ctx, &channelv1.ListChannelsRequest{
-  Org:       "...",
-  PageSize:  0,
-  PageToken: "...",
-  Labels:    map[string]string{},
+  Org:      "acme",
+  PageSize: 0,
+  Labels:   map[string]string{},
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
 result = client.channels.list(io_pb2.ListChannelsRequest(
-    org="...",
+    org="acme",
     page_size=0,
-    page_token="...",
     labels={},
 ))
 ```
@@ -486,9 +483,8 @@ result = client.channels.list(io_pb2.ListChannelsRequest(
 <Tab value="Java">
 ```java
 ChannelList result = client.channel.list(ListChannelsRequest.newBuilder()
-    .setOrg("...")
+    .setOrg("acme")
     .setPageSize(0)
-    .setPageToken("...")
     .putAllLabels(Map.of())
     .build());
 ```
@@ -512,9 +508,8 @@ This is how the agent's console tab and the CLI find an agent's channels regardl
 ```typescript
 const result = await stigmer.channel.listByAgent({
   agentId: "...",
-  org: "...",
+  org: "acme",
   pageSize: 0,
-  pageToken: "...",
   labels: {},
 });
 ```
@@ -522,11 +517,10 @@ const result = await stigmer.channel.listByAgent({
 <Tab value="Go">
 ```go
 result, err := client.Channel.ListByAgent(ctx, &channelv1.ListChannelsByAgentRequest{
-  AgentId:   "...",
-  Org:       "...",
-  PageSize:  0,
-  PageToken: "...",
-  Labels:    map[string]string{},
+  AgentId:  "...",
+  Org:      "acme",
+  PageSize: 0,
+  Labels:   map[string]string{},
 })
 ```
 </Tab>
@@ -534,9 +528,8 @@ result, err := client.Channel.ListByAgent(ctx, &channelv1.ListChannelsByAgentReq
 ```python
 result = client.channels.list_by_agent(io_pb2.ListChannelsByAgentRequest(
     agent_id="...",
-    org="...",
+    org="acme",
     page_size=0,
-    page_token="...",
     labels={},
 ))
 ```
@@ -545,9 +538,8 @@ result = client.channels.list_by_agent(io_pb2.ListChannelsByAgentRequest(
 ```java
 ChannelList result = client.channel.listByAgent(ListChannelsByAgentRequest.newBuilder()
     .setAgentId("...")
-    .setOrg("...")
+    .setOrg("acme")
     .setPageSize(0)
-    .setPageToken("...")
     .putAllLabels(Map.of())
     .build());
 ```
@@ -570,44 +562,40 @@ Returns conversations across all of the org's channels the caller can view, opti
 <Tab value="TypeScript">
 ```typescript
 const result = await stigmer.channel.listConversations({
-  org: "...",
+  org: "acme",
   channelId: "...",
   filter: ChannelConversationListFilter.filter_wants_human,
   pageSize: 0,
-  pageToken: "...",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 result, err := client.Channel.ListConversations(ctx, &channelv1.ListChannelConversationsInput{
-  Org:       "...",
+  Org:       "acme",
   ChannelId: "...",
   Filter:    channelv1.ChannelConversationListFilter_filter_wants_human,
   PageSize:  0,
-  PageToken: "...",
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
 result = client.channels.list_conversations(conversation_io_pb2.ListChannelConversationsInput(
-    org="...",
+    org="acme",
     channel_id="...",
     filter=conversation_io_pb2.filter_wants_human,
     page_size=0,
-    page_token="...",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
 ChannelConversationList result = client.channel.listConversations(ListChannelConversationsInput.newBuilder()
-    .setOrg("...")
+    .setOrg("acme")
     .setChannelId("...")
     .setFilter(ChannelConversationListFilter.filter_wants_human)
     .setPageSize(0)
-    .setPageToken("...")
     .build());
 ```
 </Tab>
@@ -663,7 +651,7 @@ Read live from the channel provider's registry (WhatsApp: the WABA's templates),
 ```typescript
 const channelTemplates = await stigmer.channel.listTemplates({
   channel: "...",
-  org: "...",
+  org: "acme",
   approvedOnly: false,
 });
 ```
@@ -672,7 +660,7 @@ const channelTemplates = await stigmer.channel.listTemplates({
 ```go
 channelTemplates, err := client.Channel.ListTemplates(ctx, &channelv1.ListChannelTemplatesInput{
   Channel:      "...",
-  Org:          "...",
+  Org:          "acme",
   ApprovedOnly: false,
 })
 ```
@@ -681,7 +669,7 @@ channelTemplates, err := client.Channel.ListTemplates(ctx, &channelv1.ListChanne
 ```python
 channel_templates = client.channels.list_templates(message_io_pb2.ListChannelTemplatesInput(
     channel="...",
-    org="...",
+    org="acme",
     approved_only=False,
 ))
 ```
@@ -690,7 +678,7 @@ channel_templates = client.channels.list_templates(message_io_pb2.ListChannelTem
 ```java
 ChannelTemplates channelTemplates = client.channel.listTemplates(ListChannelTemplatesInput.newBuilder()
     .setChannel("...")
-    .setOrg("...")
+    .setOrg("acme")
     .setApprovedOnly(false)
     .build());
 ```
@@ -714,7 +702,6 @@ const conversationTimeline = await stigmer.channel.listTimeline({
   channelId: "...",
   conversationKey: "...",
   pageSize: 0,
-  pageToken: "...",
 });
 ```
 </Tab>
@@ -724,7 +711,6 @@ conversationTimeline, err := client.Channel.ListTimeline(ctx, &channelv1.ListCon
   ChannelId:       "...",
   ConversationKey: "...",
   PageSize:        0,
-  PageToken:       "...",
 })
 ```
 </Tab>
@@ -734,7 +720,6 @@ conversation_timeline = client.channels.list_timeline(conversation_io_pb2.ListCo
     channel_id="...",
     conversation_key="...",
     page_size=0,
-    page_token="...",
 ))
 ```
 </Tab>
@@ -744,7 +729,6 @@ ConversationTimeline conversationTimeline = client.channel.listTimeline(ListConv
     .setChannelId("...")
     .setConversationKey("...")
     .setPageSize(0)
-    .setPageToken("...")
     .build());
 ```
 </Tab>
@@ -1110,7 +1094,7 @@ The number behind a badge such as the inbox's "needs you": the same predicate li
 <Tab value="TypeScript">
 ```typescript
 const channelConversationCount = await stigmer.channel.countConversations({
-  org: "...",
+  org: "acme",
   channelId: "...",
   filter: ChannelConversationListFilter.filter_wants_human,
 });
@@ -1119,7 +1103,7 @@ const channelConversationCount = await stigmer.channel.countConversations({
 <Tab value="Go">
 ```go
 channelConversationCount, err := client.Channel.CountConversations(ctx, &channelv1.CountChannelConversationsInput{
-  Org:       "...",
+  Org:       "acme",
   ChannelId: "...",
   Filter:    channelv1.ChannelConversationListFilter_filter_wants_human,
 })
@@ -1128,7 +1112,7 @@ channelConversationCount, err := client.Channel.CountConversations(ctx, &channel
 <Tab value="Python">
 ```python
 channel_conversation_count = client.channels.count_conversations(conversation_io_pb2.CountChannelConversationsInput(
-    org="...",
+    org="acme",
     channel_id="...",
     filter=conversation_io_pb2.filter_wants_human,
 ))
@@ -1137,7 +1121,7 @@ channel_conversation_count = client.channels.count_conversations(conversation_io
 <Tab value="Java">
 ```java
 ChannelConversationCount channelConversationCount = client.channel.countConversations(CountChannelConversationsInput.newBuilder()
-    .setOrg("...")
+    .setOrg("acme")
     .setChannelId("...")
     .setFilter(ChannelConversationListFilter.filter_wants_human)
     .build());
@@ -1428,7 +1412,7 @@ The message is durably recorded and attempted once inline; transient failures ar
 ```typescript
 const sendChannelMessageOutput = await stigmer.channel.sendMessage({
   channel: "...",
-  org: "...",
+  org: "acme",
   recipient: "...",
   payload: {},
 });
@@ -1438,7 +1422,7 @@ const sendChannelMessageOutput = await stigmer.channel.sendMessage({
 ```go
 sendChannelMessageOutput, err := client.Channel.SendMessage(ctx, &channelv1.SendChannelMessageInput{
   Channel:   "...",
-  Org:       "...",
+  Org:       "acme",
   Recipient: "...",
   Payload:   &channelv1.ChannelOutboundPayload{},
 })
@@ -1448,7 +1432,7 @@ sendChannelMessageOutput, err := client.Channel.SendMessage(ctx, &channelv1.Send
 ```python
 send_channel_message_output = client.channels.send_message(message_io_pb2.SendChannelMessageInput(
     channel="...",
-    org="...",
+    org="acme",
     recipient="...",
     payload=message_io_pb2.ChannelOutboundPayload(),
 ))
@@ -1458,7 +1442,7 @@ send_channel_message_output = client.channels.send_message(message_io_pb2.SendCh
 ```java
 SendChannelMessageOutput sendChannelMessageOutput = client.channel.sendMessage(SendChannelMessageInput.newBuilder()
     .setChannel("...")
-    .setOrg("...")
+    .setOrg("acme")
     .setRecipient("...")
     .setPayload(ChannelOutboundPayload.getDefaultInstance())
     .build());
