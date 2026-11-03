@@ -29,8 +29,10 @@
  *     none; a tag that keeps moving is logged after GUARDED_WRITE_ATTEMPTS
  *     writes and the apply still succeeds, as is a failing write with the
  *     store's fault; a shown tag answers the stored
- *     etag for a kind whose tag is inside its spec; and a kind whose tag is
- *     its content (the plugin) never has its head written;
+ *     etag for a kind whose tag is inside its spec, and the response's own
+ *     content's etag when another write of the same version landed
+ *     mid-apply; and a kind whose tag is its content (the plugin) never has
+ *     its head written;
  *   - the version-metadata rule leaves a head with no hash or no metadata as
  *     it is, and on an unchanged hash keeps the stored id and chain;
  *   - a version page whose head hash no audit row holds marks no version
@@ -68,7 +70,7 @@ import {
   ResourceNotFoundError,
 } from "../../../store/interface.js";
 import type { AuditRecord, Store } from "../../../store/interface.js";
-import { stampEtag } from "../../../store/etag.js";
+import { etagOf, stampEtag } from "../../../store/etag.js";
 import { PUSHED_RESOURCE_KEY } from "../archive-push.js";
 import { EXISTING_RESOURCE_KEY } from "../load-existing.js";
 import { VERSION_HASH_KEY, newPopulateVersionStep } from "../version-archive.js";
@@ -612,6 +614,25 @@ describe("the apply's tag", () => {
     expect(skill.spec?.tag).toBe("stable");
     expect(skill.metadata?.etag).not.toBe(stored);
     expect(skill.metadata?.etag).toBe(live.row.metadata?.etag);
+  });
+
+  it("answers its own content's etag when another write of the same version landed mid-apply", async () => {
+    // A second update of the same spec stored other labels before the
+    // reconcile; the response shows this apply's labels, so the etag it
+    // answers must not admit an editor's save over the other write's.
+    const response = agent(HEAD);
+    response.metadata!.labels = { team: "x" };
+    stampEtag(AgentSchema, response);
+    const live = liveAgent(clone(AgentSchema, response), [[HEAD, "stable"]], (write) => {
+      if (write === 1) live.row.metadata!.labels = { team: "y" };
+    });
+    const ctx = new RequestContext(AgentSchema, response, testCallerIdentity(), ApiResourceKind.agent);
+
+    await newSaveAgentVersionStep(liveStore(live), logger).execute(ctx);
+
+    expect(tagOf(ctx.newState)).toBe("stable");
+    expect(ctx.newState.metadata?.etag).toBe(etagOf(AgentSchema, ctx.newState));
+    expect(ctx.newState.metadata?.etag).not.toBe(live.row.metadata?.etag);
   });
 
   it("never writes the head of a kind whose tag is its content", async () => {

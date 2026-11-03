@@ -25,8 +25,10 @@
  * and is retried from a fresh read (pipeline/guarded-write.ts) archives
  * nothing. A revert, a cleared tag and the head's tag therefore reach
  * the stored row through a narrow write of their one field onto the live
- * row, taken only while the live head still holds this version, so it
- * never undoes a write that landed after this one.
+ * row, taken only while the live head still holds this version. A revert
+ * and a cleared tag never undo a write that landed after this one; the
+ * head's tag is the audit column's, and may replace a later write's live
+ * tag on purpose, because that write's own reconcile follows (below).
  *
  * Every tag writer, of the audit column or of the head's live tag,
  * reconciles the head to the column after its own write
@@ -36,7 +38,8 @@
  * work is done the step reconciles the head, and a tag move, or another
  * apply, landing between this apply's writes never leaves the head
  * claiming a tag the column gives elsewhere (#2758, #2908). The response
- * then carries the live tag and etag that were stored.
+ * then carries the live tag that was stored, and the etag of what it
+ * shows.
  *
  * The trade: a process that stops between the write and the archive, or
  * an archive failure whose narrow write then fails too, leaves a head
@@ -76,6 +79,7 @@ import type { PipelineStep } from "../pipeline.js";
 import type { RequestContext } from "../request-context.js";
 import { AuditNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
+import { stampEtag } from "../../store/etag.js";
 import { RESOURCE_ID_KEY } from "./delete.js";
 import { EXISTING_RESOURCE_KEY } from "./load-existing.js";
 import { metadataOf } from "./shapes.js";
@@ -361,9 +365,9 @@ export function newArchiveCurrentVersionStep<
       // writer it reconciles the head to the column after its own write
       // (reconcileHeadTag): a tag move or another apply that landed in
       // between never leaves the head claiming a tag the column gives
-      // elsewhere (#2758, #2908). The response takes the stored live tag and
-      // etag while the head still holds this version; a head another write
-      // moved on is that write's to answer. A failure is logged, never a
+      // elsewhere (#2758, #2908). The response takes the stored live tag,
+      // and the etag of what it then shows, while the head still holds this
+      // version; a head another write moved on is that write's to answer. A failure is logged, never a
       // failed write: the next tag writer reconciles the head again.
       if (columnTag !== undefined && overlayTag !== undefined) {
         try {
@@ -382,12 +386,13 @@ export function newArchiveCurrentVersionStep<
             columnTag,
           );
           if (binding.headHashOf(written) === versionHash) {
+            // The etag is the response's own fingerprint, never the written
+            // row's: another write of this version may have stored other
+            // labels or a name, and an etag of content the caller was not
+            // shown would let its next save overwrite that write. With no
+            // such write the two are equal.
             overlayTag(resource, binding.liveTagOf(written));
-            const metadata = metadataOf(resource);
-            const etag = metadataOf(written)?.etag;
-            if (metadata !== undefined && etag !== undefined) {
-              metadata.etag = etag;
-            }
+            stampEtag(binding.schema, resource);
           }
         } catch (error) {
           logger.error(
