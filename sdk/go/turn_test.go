@@ -131,6 +131,14 @@ type turnFake struct {
 	closed   chan struct{}
 }
 
+// seen is what the fake recorded, read under its lock: the server's
+// goroutines append while a test reads.
+func (f *turnFake) seen() (requests []*sessionv1.StreamSessionEventsRequest, lists int, created []*runv1.Run) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return append([]*sessionv1.StreamSessionEventsRequest(nil), f.requests...), f.lists, append([]*runv1.Run(nil), f.created...)
+}
+
 func (f *turnFake) ListEvents(_ context.Context, _ *sessionv1.ListSessionEventsRequest) (*sessionv1.SessionEventList, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -261,8 +269,9 @@ func TestSendAndWaitChecksItsInputBeforeAnyCall(t *testing.T) {
 	if _, err := client.SendAndWait(ctx, nil); err == nil {
 		t.Error("nil input: want an error")
 	}
-	if fake.lists != 0 || len(fake.created) != 0 || len(fake.requests) != 0 {
-		t.Fatalf("calls were made: %d lists, %d creates, %d streams", fake.lists, len(fake.created), len(fake.requests))
+	requests, lists, created := fake.seen()
+	if lists != 0 || len(created) != 0 || len(requests) != 0 {
+		t.Fatalf("calls were made: %d lists, %d creates, %d streams", lists, len(created), len(requests))
 	}
 }
 
@@ -283,14 +292,15 @@ func TestSendAndWaitReconnectsFromTheLastPlaceAndClosesItsStream(t *testing.T) {
 		t.Fatalf("outcome: %+v", outcome)
 	}
 	awaitClosed(t, fake)
-	if got := []int64{fake.requests[0].GetAfterSeq(), fake.requests[1].GetAfterSeq()}; got[0] != 7 || got[1] != 8 {
+	requests, _, created := fake.seen()
+	if got := []int64{requests[0].GetAfterSeq(), requests[1].GetAfterSeq()}; got[0] != 7 || got[1] != 8 {
 		t.Fatalf("after_seq per stream: %v, want [7 8]", got)
 	}
-	if name := fake.created[0].GetMetadata().GetName(); !regexp.MustCompile(`^run-\d+$`).MatchString(name) {
+	if name := created[0].GetMetadata().GetName(); !regexp.MustCompile(`^run-\d+$`).MatchString(name) {
 		t.Fatalf("run name %q, want run-<epoch ms>", name)
 	}
-	if fake.created[0].GetMetadata().GetOrg() != "acme" {
-		t.Fatalf("run org %q", fake.created[0].GetMetadata().GetOrg())
+	if created[0].GetMetadata().GetOrg() != "acme" {
+		t.Fatalf("run org %q", created[0].GetMetadata().GetOrg())
 	}
 }
 
@@ -307,11 +317,12 @@ func TestSendAndWaitInANewSessionReadsTheWholeLogAndKeepsAGivenName(t *testing.T
 		t.Fatal(err)
 	}
 	awaitClosed(t, fake)
-	if fake.lists != 0 || fake.requests[0].AfterSeq == nil || fake.requests[0].GetAfterSeq() != 0 {
-		t.Fatalf("a new session's log is read whole: %d lists, after_seq %v", fake.lists, fake.requests[0].AfterSeq)
+	requests, lists, created := fake.seen()
+	if lists != 0 || requests[0].AfterSeq == nil || requests[0].GetAfterSeq() != 0 {
+		t.Fatalf("a new session's log is read whole: %d lists, after_seq %v", lists, requests[0].AfterSeq)
 	}
-	if outcome.SessionID != "ses_new" || fake.created[0].GetMetadata().GetName() != "mine" {
-		t.Fatalf("outcome %+v, name %q", outcome, fake.created[0].GetMetadata().GetName())
+	if outcome.SessionID != "ses_new" || created[0].GetMetadata().GetName() != "mine" {
+		t.Fatalf("outcome %+v, name %q", outcome, created[0].GetMetadata().GetName())
 	}
 }
 
@@ -322,8 +333,8 @@ func TestWaitForTurnEndsOnAFinalCodeWithoutRetrying(t *testing.T) {
 	if !IsPermissionDenied(err) {
 		t.Fatalf("want permission-denied, got %v", err)
 	}
-	if len(fake.requests) != 1 {
-		t.Fatalf("a final code was retried: %d streams", len(fake.requests))
+	if requests, _, _ := fake.seen(); len(requests) != 1 {
+		t.Fatalf("a final code was retried: %d streams", len(requests))
 	}
 }
 
@@ -344,10 +355,10 @@ func TestWaitForTurnStopsAtTheDeadlineAcrossReconnectsAndClosesItsStream(t *test
 	if elapsed := time.Since(start); elapsed > 3*time.Second {
 		t.Fatalf("the deadline did not bound the wait: %v", elapsed)
 	}
-	if len(fake.requests) != 3 {
-		t.Fatalf("streams: %d, want 3 (two drops, then the held one)", len(fake.requests))
-	}
 	awaitClosed(t, fake)
+	if requests, _, _ := fake.seen(); len(requests) != 3 {
+		t.Fatalf("streams: %d, want 3 (two drops, then the held one)", len(requests))
+	}
 }
 
 func TestWaitForTurnReturnsTheAsksOfAWaitingTurn(t *testing.T) {
