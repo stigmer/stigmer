@@ -151,6 +151,42 @@ export const TAKE_OVER_EXAMPLE = {
   filterLabel: "Needs human",
 } as const satisfies DocsExample;
 
+/**
+ * `docs/guides/authentication/service-accounts.mdx`: the CI job's service
+ * account, its role, and its first key with the lifetime the page's CLI line
+ * gives it.
+ */
+export const SERVICE_ACCOUNT_EXAMPLE = {
+  page: "guides/authentication/service-accounts",
+  name: "ci-deploy",
+  role: "Member",
+  key: "github-actions",
+  newLabel: "New service account",
+  expiryLabel: "90 days",
+  createKeyLabel: "Create key",
+} as const satisfies DocsExample;
+
+/** `docs/guides/integrations/bring-your-own-oauth.mdx`: the Slack app its YAML registers, as the form takes it. */
+export const OAUTH_APP_EXAMPLE = {
+  page: "guides/integrations/bring-your-own-oauth",
+  name: "Slack",
+  provider: "Slack",
+  clientId: "1234567890.abcdef",
+  clientSecret: "replace-with-your-secret",
+  authorizationUrl: "https://slack.com/oauth/v2/authorize",
+  tokenUrl: "https://slack.com/api/oauth.v2.access",
+  scopes: ["channels:read", "chat:write"],
+  scopeParameterName: "user_scope",
+  addresses: ["https://mcp.slack.com/mcp"],
+  newLabel: "New OAuth app",
+  nameLabel: "Name",
+  providerLabel: "Provider",
+  clientIdLabel: "Client ID",
+  secretLabel: "Client secret",
+  addressesLabel: "Addresses",
+  advancedLabel: "Advanced settings",
+} as const satisfies DocsExample;
+
 /** Every page's example, for the site's check. */
 export const DOCS_EXAMPLES: readonly DocsExample[] = [
   ROUTINE_EXAMPLE,
@@ -163,4 +199,6 @@ export const DOCS_EXAMPLES: readonly DocsExample[] = [
   WHATSAPP_EXAMPLE,
   SLACK_APP_EXAMPLE,
   TAKE_OVER_EXAMPLE,
+  SERVICE_ACCOUNT_EXAMPLE,
+  OAUTH_APP_EXAMPLE,
 ];

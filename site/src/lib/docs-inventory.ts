@@ -103,10 +103,7 @@ export const PICTURED_MEDIUMS: readonly Medium[] = ["still", "screenshot-journey
  * pictures it: the inventory fails while a listed page already shows one.
  * Adding a page is a choice a reviewer reads in the diff, with its reason.
  */
-export const OWED_PICTURES: Readonly<Record<string, string>> = {
-  "guides/authentication/service-accounts": "the service account screens are not drawn yet",
-  "guides/integrations/bring-your-own-oauth": "the OAuth app form is not drawn yet",
-};
+export const OWED_PICTURES: Readonly<Record<string, string>> = {};
 
 /**
  * How many pictures (`<Screen` tags) a page's MDX source renders. A tag the

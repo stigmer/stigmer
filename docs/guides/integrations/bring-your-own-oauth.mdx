@@ -48,14 +48,21 @@ gives the full order.
    `/auth/oauth/callback`. For the desktop app, also add the same URL ending in
    `?source=desktop`, and `http://127.0.0.1/auth/oauth/callback` if the vendor
    accepts loopback addresses.
-2. **Open Settings > Configuration > OAuth Apps** and create an app. Enter the
-   provider's name, the **Client ID** and **Client Secret** from the vendor's
-   portal, its authorization and token URLs, the scopes to request, and the
+2. **Open Settings > Configuration > OAuth Apps** and select **New OAuth app**.
+   Enter a **Name** and the **Provider**, the **Client ID** and **Client
+   secret** from the vendor's portal, its authorization and token URLs, and the
    **Addresses** the app signs in to: the URL of each tool
-   (`https://mcp.slack.com/mcp`) or a Git host (`github.com`).
-3. **Save.** The next sign-in at any of those addresses, by anyone in your
-   Organization, goes through your app, and the vendor's consent page shows your
-   app's name.
+   (`https://mcp.slack.com/mcp`) or a Git host (`github.com`). Under **Advanced
+   settings**, enter the scopes to request and, for a vendor with its own name
+   for them, the scope parameter name (`user_scope` for Slack).
+3. **Select Create OAuth app.** The next sign-in at any of those addresses, by
+   anyone in your Organization, goes through your app, and the vendor's consent
+   page shows your app's name.
+
+<Screen
+  name="oauth-app-new"
+  alt="The New OAuth app form under Settings, OAuth apps, filled for Slack: Name and Provider Slack, the Client ID, the Client secret as dots, Slack's authorization and token URLs, the address https://mcp.slack.com/mcp, and Advanced settings open with the scopes channels:read and chat:write and the scope parameter name user_scope"
+/>
 
 The same app as a definition you can keep in a repository and `stigmer apply`:
 

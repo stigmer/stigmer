@@ -24,11 +24,14 @@ import { ChannelAudience } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/spe
 import { ChannelInstallState } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/status_pb";
 import { ChannelAppSchema, type ChannelApp } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { VaultSchema, type Vault } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
+import { ApiKeySchema, type ApiKey } from "@stigmer/apis/ai/stigmer/iam/apikey/v1/api_pb";
+import { IdentityAccountSchema, type IdentityAccount } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
 import {
   AGENT_EXAMPLE,
   CHAT_LINK_EXAMPLE,
   ENVIRONMENT_EXAMPLE,
   ROUTINE_EXAMPLE,
+  SERVICE_ACCOUNT_EXAMPLE,
   SKILL_EXAMPLE,
   SLACK_APP_EXAMPLE,
   SLACK_EXAMPLE,
@@ -271,3 +274,40 @@ export const WHATSAPP_CHANNEL: Channel = create(ChannelSchema, {
   },
 });
 
+
+/** The service accounts page's CI account, made by Ada at the samples' instant. */
+export const CI_DEPLOY: IdentityAccount = create(IdentityAccountSchema, {
+  apiVersion: "iam.stigmer.ai/v1",
+  kind: "IdentityAccount",
+  metadata: { id: "ia_00000000000000000000000081", name: SERVICE_ACCOUNT_EXAMPLE.name, slug: SERVICE_ACCOUNT_EXAMPLE.name, org: ORG_ID },
+  status: { audit: madeBy(0) },
+});
+
+/**
+ * The key the "shown once" picture prints. A real key is `stk_` and 32
+ * random bytes in base64url, 43 characters (the server's
+ * `domain/apikey/keymaterial.ts`); this one has that length and shape, and
+ * its body reads as an example, so a public picture of it never looks like
+ * a leaked key.
+ */
+export const DOCS_EXAMPLE_RAW_KEY = `stk_${"docs-example-key-for-ci-deploy".padEnd(43, "0")}`;
+
+/** The key the create returns: its raw value in `spec.keyHash` this once, expiring in 90 days. */
+export const GITHUB_ACTIONS_KEY_CREATED: ApiKey = create(ApiKeySchema, {
+  apiVersion: "iam.stigmer.ai/v1",
+  kind: "ApiKey",
+  metadata: { id: "ak_00000000000000000000000082", name: SERVICE_ACCOUNT_EXAMPLE.key, org: ORG_ID },
+  // A service account's key is bound to its organization, as the server's create stores it.
+  spec: { keyHash: DOCS_EXAMPLE_RAW_KEY, expiresAt: timestampFromDate(sampleDate(90 * DAY_MS)), boundOrg: ORG_ID },
+  status: { audit: madeBy(0) },
+});
+
+/** The same key as the account's page lists it two days later: created then, expiring 90 days on, used an hour ago. */
+export const GITHUB_ACTIONS_KEY: ApiKey = create(ApiKeySchema, {
+  apiVersion: "iam.stigmer.ai/v1",
+  kind: "ApiKey",
+  metadata: { id: "ak_00000000000000000000000082", name: SERVICE_ACCOUNT_EXAMPLE.key, org: ORG_ID },
+  // The server's fingerprint is the key's last six characters (`fingerprintOf`).
+  spec: { fingerprint: DOCS_EXAMPLE_RAW_KEY.slice(-6), expiresAt: timestampFromDate(sampleDate(88 * DAY_MS)), boundOrg: ORG_ID },
+  status: { lastUsedAt: timestampFromDate(sampleDate(-60 * MINUTE_MS)), audit: madeBy(2) },
+});
