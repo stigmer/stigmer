@@ -3,8 +3,9 @@
 // of a sensible height; the address a page frames and the look a frame
 // reads back agree; and a frame takes only a well-formed theme message.
 import { describe, expect, it } from "vitest";
-import { SCENES } from "../catalog.ts";
-import { DEFAULT_LIVE_THEME, LIVE, LIVE_BASE, LIVE_THEME_MESSAGE, isLiveThemeMessage, liveDemo, liveUrl, themeOf } from "../live.ts";
+import { PRESETS, SCENES } from "../catalog.ts";
+import { THEME_PRESETS } from "@stigmer/design-tokens";
+import { DEFAULT_LIVE_THEME, LIVE, LIVE_BASE, LIVE_PRESETS, LIVE_READY_MESSAGE, LIVE_THEME_MESSAGE, isLiveReadyMessage, isLiveThemeMessage, liveDemo, liveUrl, themeOf } from "../live.ts";
 import { DRAWINGS } from "../scenes/index.ts";
 
 describe("KIT-12 the docs show the kit's parts live, drawn by the same code the screenshot check approves", () => {
@@ -49,6 +50,18 @@ describe("a demo's look", () => {
   it("reads an unknown preset, mode or radius as the default", () => {
     expect(themeOf("?preset=neon&mode=sepia&radius=9")).toEqual(DEFAULT_LIVE_THEME);
     expect(themeOf("?radius=-1")).toEqual(DEFAULT_LIVE_THEME);
+  });
+
+  it("offers exactly the theme package's presets, the ones the gallery draws", () => {
+    expect([...LIVE_PRESETS]).toEqual(THEME_PRESETS.map((preset) => preset.id));
+    expect(LIVE_PRESETS.slice(1)).toEqual([...PRESETS]);
+  });
+
+  it("knows a frame's ready message from anything else", () => {
+    expect(isLiveReadyMessage({ type: LIVE_READY_MESSAGE })).toBe(true);
+    expect(isLiveReadyMessage({ type: LIVE_THEME_MESSAGE })).toBe(false);
+    expect(isLiveReadyMessage(null)).toBe(false);
+    expect(isLiveReadyMessage(LIVE_READY_MESSAGE)).toBe(false);
   });
 
   it("changes only on a well-formed theme message", () => {

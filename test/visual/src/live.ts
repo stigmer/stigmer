@@ -52,7 +52,7 @@ export const LIVE: readonly LiveDemo[] = [
   { name: "from-hooks", scene: "from-hooks", title: "A chat built from the hooks alone", height: 560, interactive: true },
 ];
 
-/** The presets the playground offers, beside the default look (`default`, no preset). */
+/** The presets the playground offers, beside the default look (`default`, no preset): the theme package's own list, held to it by live.test.ts. */
 export const LIVE_PRESETS = ["default", "corporate", "startup", "friendly", "fintech", "monochrome"] as const;
 export type LivePreset = (typeof LIVE_PRESETS)[number];
 
@@ -74,6 +74,14 @@ export interface LiveThemeMessage extends LiveTheme {
 
 /** The `type` of {@link LiveThemeMessage}. */
 export const LIVE_THEME_MESSAGE = "stigmer-live-theme";
+
+/** What a demo's frame posts to the page that frames it, from its own origin, once it listens for theme messages. */
+export const LIVE_READY_MESSAGE = "stigmer-live-ready";
+
+/** Whether `data`, posted by a demo's frame, says the frame is listening. */
+export function isLiveReadyMessage(data: unknown): boolean {
+  return typeof data === "object" && data !== null && (data as Record<string, unknown>).type === LIVE_READY_MESSAGE;
+}
 
 /** The look a demo has when the page names none: the default preset in the site's dark mode. */
 export const DEFAULT_LIVE_THEME: LiveTheme = { preset: "default", mode: "dark", radius: null };

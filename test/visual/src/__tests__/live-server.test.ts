@@ -140,6 +140,70 @@ describe("KIT-13 a message sent in a docs demo gets a scripted answer, never an 
     expect(fold.turns).toHaveLength(scenarios.busy.fold.turns.length);
   });
 
+  it("takes an approval sent before the ask's last events, sending each event once, in order", async () => {
+    const conversation = new LiveConversation(scenarios.completed);
+    const client = talkTo(conversation);
+    const base = scenarios.completed.events.length;
+    await send(client, "what changed?");
+    // The ask shows from the tool use, before its permission and the waiting phase are sent.
+    await vi.waitFor(async () => {
+      await vi.advanceTimersByTimeAsync(PACE_MS);
+      expect(foldOf(conversation).turns.at(-1)!.asks).toHaveLength(1);
+    });
+    expect(casesAfter(conversation, base).at(-1)).toBe("agentToolUse");
+    await client.session.confirmToolUse({ sessionId: SESSION_ID, toolUseId: foldOf(conversation).turns.at(-1)!.asks[0]!.id, result: "allow" });
+    await vi.advanceTimersByTimeAsync(PACE_MS * 20);
+    const ids = conversation.replay.events.slice(base).map((event) => event.event.value?.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(casesAfter(conversation, base).slice(-8, -3)).toEqual(["agentToolUse", "stigmerPermissionAsked", "stigmerRunStatus", "userToolConfirmation", "stigmerRunStatus"]);
+    expect(foldOf(conversation).turns.at(-1)!.answer).toMatch(/^Two changes this week/);
+  });
+
+  it("starts a queued message's turn the moment the working one ends, so a send just after it queues and a Stop stops it", async () => {
+    const conversation = new LiveConversation(scenarios.completed);
+    const client = talkTo(conversation);
+    await send(client, "what changed?");
+    await send(client, "and last week?");
+    await vi.advanceTimersByTimeAsync(PACE_MS * 20);
+    await client.session.confirmToolUse({ sessionId: SESSION_ID, toolUseId: foldOf(conversation).turns.at(-1)!.asks[0]!.id, result: "allow" });
+    // The four events after the confirmation, one per pace: the turn ends on the last.
+    await vi.advanceTimersByTimeAsync(PACE_MS * 4);
+    expect(foldOf(conversation).turns.at(-2)!.status?.phase).toBe("completed");
+    expect(foldOf(conversation).turns.at(-1)!.userMessage?.text).toBe("and last week?");
+    expect(conversation.working).toBe(true);
+    expect((await send(client, "and the week before?")).run).toBeUndefined();
+    await client.session.interrupt({ sessionId: SESSION_ID });
+    const length = conversation.replay.events.length;
+    await vi.advanceTimersByTimeAsync(PACE_MS * 40);
+    expect(conversation.replay.events.length).toBe(length);
+    expect(foldOf(conversation).turns.at(-1)!.status?.phase).toBe("cancelled");
+    expect(foldOf(conversation).queued.map((message) => message.state)).toEqual(["dropped"]);
+  });
+
+  it("gives every queued message its own id, before and after a Stop", async () => {
+    const conversation = new LiveConversation(scenarios.completed);
+    const client = talkTo(conversation);
+    await send(client, "one");
+    const a = (await send(client, "two")).message!.event.value!.id;
+    const b = (await send(client, "three")).message!.event.value!.id;
+    await client.session.interrupt({ sessionId: SESSION_ID });
+    await send(client, "four");
+    const d = (await send(client, "five")).message!.event.value!.id;
+    expect(new Set([a, b, d]).size).toBe(3);
+    expect(foldOf(conversation).queued.map((message) => [message.text, message.state])).toEqual([
+      ["two", "dropped"],
+      ["three", "dropped"],
+      ["five", "waiting"],
+    ]);
+  });
+
+  it("refuses a new conversation while a turn works", async () => {
+    const conversation = new LiveConversation(scenarios.completed);
+    const client = talkTo(conversation);
+    await send(client, "what changed?");
+    await expect(client.run.create({ name: "run-y", org: "demo", sessionId: SESSION_ID, message: "again" })).rejects.toThrow(/a turn is working/);
+  });
+
   it("refuses an answer when no tool call waits for one", async () => {
     const conversation = new LiveConversation(scenarios.completed);
     const client = talkTo(conversation);

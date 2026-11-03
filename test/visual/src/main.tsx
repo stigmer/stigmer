@@ -12,9 +12,10 @@
 // only the scenes src/live.ts names, answers a reader's sends, approvals
 // and Stop through the scripted server (src/live-server.ts), and takes its
 // look from the address (`preset`, `mode`, `radius`) and then from the
-// theme messages the docs' playground posts, from this page's own origin
-// only. It never touches the browser's storage, which on the docs site is
-// the site's own: the kit is given an in-memory one instead. Under
+// theme messages the docs' playground posts, from the page that frames it on
+// this page's own origin only, which it tells when it is listening. It
+// never touches the browser's storage, which on the docs site is the
+// site's own: the kit is given an in-memory one instead. Under
 // /gallery/ there is no index: an address with no scene goes to the docs'
 // Gallery page.
 import "@stigmer/react-sdk/styles.css";
@@ -30,7 +31,7 @@ import { createRoot } from "react-dom/client";
 import { OrgProvider, StigmerProvider } from "@stigmer/react-sdk";
 import { MODES, SCENES, sceneUrl, type Mode, type Scene } from "./catalog.ts";
 import { fakeStigmer } from "./fake-server.ts";
-import { LIVE, isLiveThemeMessage, themeOf, type LiveTheme } from "./live.ts";
+import { LIVE, LIVE_READY_MESSAGE, isLiveThemeMessage, themeOf, type LiveTheme } from "./live.ts";
 import { DRAWINGS } from "./scenes/index.ts";
 
 /** One scene in one mode. Its drawing and client are made once, outside React's render. */
@@ -81,7 +82,7 @@ function Unknown({ id }: { readonly id: string }): ReactElement {
   return (
     <main className="gallery-index">
       <h1>No scene is called “{id}”</h1>
-      <a href="/">Every scene</a>
+      <a href={import.meta.env.BASE_URL === "/gallery/" ? DOCS_GALLERY : "/"}>Every scene</a>
     </main>
   );
 }
@@ -129,10 +130,15 @@ function LiveScene({ scene, initial }: { readonly scene: Scene; readonly initial
   }, [scene.id]);
   useEffect(() => {
     const onMessage = (event: MessageEvent<unknown>) => {
-      if (event.origin !== window.location.origin || !isLiveThemeMessage(event.data)) return;
+      // Only the page that frames this one (the docs' playground), on the
+      // same origin, changes its look; a message from anywhere else is ignored.
+      if (event.origin !== window.location.origin || (event.source !== window.parent && event.source !== window)) return;
+      if (!isLiveThemeMessage(event.data)) return;
       setTheme({ preset: event.data.preset, mode: event.data.mode, radius: event.data.radius });
     };
     window.addEventListener("message", onMessage);
+    // Say it is listening, so a look picked while this page loaded is sent again.
+    if (window.parent !== window) window.parent.postMessage({ type: LIVE_READY_MESSAGE }, window.location.origin);
     return () => window.removeEventListener("message", onMessage);
   }, []);
   const tree = drawing.render();
@@ -161,7 +167,6 @@ function livePage(id: string | null): ReactElement | null {
   const scene = LIVE.some((demo) => demo.scene === id) ? SCENES.find((s) => s.id === id) : undefined;
   if (scene === undefined) return <Unknown id={id} />;
   Object.defineProperty(window, "localStorage", { value: new MemoryStorage(), configurable: true });
-  document.documentElement.dataset.embed = "1";
   return <LiveScene scene={scene} initial={themeOf(window.location.search)} />;
 }
 

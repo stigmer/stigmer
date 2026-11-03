@@ -64,6 +64,25 @@ test.describe("KIT-12 the docs show the kit's parts live, drawn by the same code
     await expect(page.getByRole("heading", { name: "No scene is called “settings-members”" })).toBeVisible();
   });
 
+  test("a theme message from a page on another origin is ignored", async ({ page }) => {
+    // A page on another origin (another port is another origin, and a browser
+    // lets a local page frame a local one) frames the demo, as any site
+    // could, and posts it a well-formed theme message.
+    const demo = `http://localhost:4179${framed("chat-popup", { preset: "default", mode: "dark", radius: null })}`;
+    await page.route("http://localhost:4180/", (route) =>
+      route.fulfill({ contentType: "text/html", body: `<iframe id="demo" src="${demo}" style="width:900px;height:640px"></iframe>` }),
+    );
+    await page.goto("http://localhost:4180/");
+    const frame = page.frameLocator("#demo");
+    await frame.locator(".gallery-scene[data-stgm-root]").waitFor();
+    await page.evaluate(
+      ([type]) => (document.getElementById("demo") as HTMLIFrameElement).contentWindow!.postMessage({ type, preset: "friendly", mode: "light", radius: 1 }, "*"),
+      [LIVE_THEME_MESSAGE],
+    );
+    await page.waitForTimeout(500);
+    await expect(frame.locator(".gallery-scene[data-stgm-root]")).not.toHaveClass(/stgm-theme-friendly/);
+  });
+
   test("a theme message from the page's own origin changes the look without a reload", async ({ page }) => {
     await open(page, "chat-popup");
     const scope = page.locator(".gallery-scene[data-stgm-root]");
