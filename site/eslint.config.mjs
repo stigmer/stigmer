@@ -18,6 +18,8 @@ const eslintConfig = [
       ".source/**",
       "out/**",
       "build/**",
+      // The kit's gallery, built for the docs' live demos (scripts/generate-gallery.ts).
+      "public/gallery/**",
       "next-env.d.ts",
     ],
   },

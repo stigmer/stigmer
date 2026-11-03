@@ -12,9 +12,9 @@
  *     column;
  *   - an entry carries the version's full spec (spec_snapshot), which is
  *     what a turn recorded on that version runs.
- * The archive runs after Persist on create (the snapshot carries the
- * persisted row), so it re-persists a revert there; on update Persist
- * follows it.
+ * The archive runs after Persist on create and update (the snapshot
+ * carries the persisted row), so a revert or a reconciled tag reaches the
+ * stored row through a narrow write of its own.
  *
  * Proven by __tests__/agent-versions.test.ts and the agent conformance
  * suite's version arms.
@@ -158,7 +158,7 @@ export function newSaveAgentVersionStep(
         agent.metadata.version.tag = "";
       }
     },
-    showArchivedTag: overlayTag,
+    overlayTag,
   });
 }
 

@@ -26,6 +26,7 @@ import { AgentQueryController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/
 import { FileQueryController } from "@stigmer/apis/ai/stigmer/agentic/file/v1/query_pb";
 import { RunQueryController } from "@stigmer/apis/ai/stigmer/agentic/run/v1/query_pb";
 import { ScoreQueryController } from "@stigmer/apis/ai/stigmer/agentic/score/v1/query_pb";
+import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 import {
   StreamSessionEventsResponseSchema,
   type StreamSessionEventsRequest,
@@ -41,6 +42,7 @@ import { OrganizationQueryController } from "@stigmer/apis/ai/stigmer/tenancy/or
 import { SessionInspector, SessionViewer, type SessionAudience } from "@stigmer/react-sdk";
 import { samples, scenarios, type Scenario, type ScenarioName } from "@stigmer/react-sdk/test";
 import { ACCOUNT } from "../fixtures.ts";
+import { LiveConversation } from "../live-server.ts";
 import type { Drawing } from "./drawing.ts";
 
 /** The organization the scenarios' session lives in, as the person's organization list names it. */
@@ -62,18 +64,42 @@ export interface Framing {
 }
 
 /**
- * The follow: every event after the client's place, the scenario's liveness
- * preview, then open until the viewer leaves. The client's call settles on
- * the first frame, so a scenario with no events would hold the scene
- * unsettled; none drawn here has none.
+ * A conversation that grows while the viewer follows it: the docs' scripted
+ * server (src/live-server.ts) appends to it as a reader sends, approves and
+ * stops.
  */
-async function* follow(scenario: SessionReplay, request: StreamSessionEventsRequest, context: HandlerContext) {
-  const after = request.afterSeq ?? 0n;
-  for (const event of scenario.events) if (event.seq > after) yield samples.eventFrame(event);
+export interface LiveFeed {
+  /** The events after log place `after`, once there are any; never resolves after `signal` aborts. */
+  readonly after: (after: bigint, signal: AbortSignal) => Promise<readonly SessionEvent[]>;
+}
+
+/**
+ * The follow: every event after the client's place, the scenario's liveness
+ * preview, then open until the viewer leaves; with a live feed, each event
+ * the feed appends as it comes. The client's call settles on the first
+ * frame, so a scenario with no events would hold the scene unsettled; none
+ * drawn here has none.
+ */
+async function* follow(scenario: SessionReplay, request: StreamSessionEventsRequest, context: HandlerContext, live?: LiveFeed) {
+  let after = request.afterSeq ?? 0n;
+  for (const event of scenario.events) {
+    if (event.seq <= after) continue;
+    yield samples.eventFrame(event);
+    after = event.seq;
+  }
   if (scenario.liveness !== undefined) {
     yield create(StreamSessionEventsResponseSchema, { frame: { case: "stigmerRunLiveness", value: scenario.liveness } });
   }
-  await new Promise((resolve) => context.signal.addEventListener("abort", resolve));
+  if (live === undefined) {
+    await new Promise((resolve) => context.signal.addEventListener("abort", resolve));
+    return;
+  }
+  while (!context.signal.aborted) {
+    for (const event of await live.after(after, context.signal)) {
+      yield samples.eventFrame(event);
+      after = event.seq;
+    }
+  }
 }
 
 /** `answer`, or the refusal of a scenario whose session cannot load (the server is unreachable). */
@@ -87,10 +113,12 @@ export interface Answering {
   readonly agent?: Agent;
   /** Further conversations the scene draws beside `scenario`, each answered by its session's id. */
   readonly others?: readonly SessionReplay[];
+  /** What the follow streams after `scenario`'s events, for a conversation the docs' scripted server grows. */
+  readonly live?: LiveFeed;
 }
 
 /** The calls the viewer makes for `scenario`, answered as for the session's owner. */
-export function sessionRoutes(scenario: SessionReplay, { agent = samples.agent(), others = [] }: Answering = {}) {
+export function sessionRoutes(scenario: SessionReplay, { agent = samples.agent(), others = [], live }: Answering = {}) {
   const replays = [scenario, ...others];
   // With one conversation every call is answered from it, whatever id it
   // names, as the scenes always have; with more, from the one it names.
@@ -116,7 +144,7 @@ export function sessionRoutes(scenario: SessionReplay, { agent = samples.agent()
       },
       streamEvents: (request, context) => {
         const replay = replayOf(request.sessionId);
-        return follow(loadable(replay, replay), request, context);
+        return follow(loadable(replay, replay), request, context, replay === scenario ? live : undefined);
       },
     });
     router.service(RunQueryController, {
@@ -166,6 +194,7 @@ export function sessionDrawing(replay: SessionReplay, framing: Framing = {}): Dr
   return {
     inOrganization: true,
     routes: sessionRoutes(replay),
+    liveRoutes: () => new LiveConversation(replay).routes(),
     render: () => (
       <div style={{ height: "calc(100vh - 48px)" }}>
         <SessionViewer

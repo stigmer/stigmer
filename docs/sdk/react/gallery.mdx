@@ -1,0 +1,123 @@
+---
+title: Gallery
+description: The React kit's chat, thread and session view, live on the page — send a message, approve a command and stop a turn before you install anything.
+---
+
+Every demo on this page is the real `@stigmer/react-sdk` component, drawn by the
+same code the kit's screenshot tests approve. A scripted server answers instead
+of an agent: send a message and the agent reads two files, asks before it runs
+`git log`, and answers when you approve. Nothing you type leaves your browser.
+
+## AgentChat
+
+`AgentChat` is the whole chat in one component. It comes in three frames: a
+page of its own, a panel you dock beside your product, and a corner popup. See
+[The chat in one component](/docs/sdk/react#the-chat-in-one-component) for the
+props.
+
+### As a page
+
+<Live
+  name="chat-page"
+  alt="AgentChat as a full page on a finished turn: the agent's reply, the files it returned, and the composer"
+/>
+
+### As a panel
+
+The panel opens on a long turn at work: a to-do list, settled commands, a
+subagent and a test run still going. A message you send now waits in the queue
+behind it, as it would in your product; **Stop** ends the turn and drops what
+waits. Stop it, then send your own message.
+
+<Live
+  name="chat-panel"
+  alt="AgentChat as a panel docked beside a product, a long turn at work with its to-dos, a subagent and a running test suite"
+/>
+
+### As a popup
+
+<Live
+  name="chat-popup"
+  alt="AgentChat as a corner popup, open on a finished turn, with the composer ready for a reply"
+/>
+
+## The session view as an end user sees it
+
+`SessionViewer` with `audience="endUser"` is what a person inside your product
+sees: the conversation alone, with no builder tools.
+
+<Live
+  name="end-user"
+  alt="The session view for an end user inside a product: a long turn at work, its progress and the composer"
+/>
+
+## The thread, state by state
+
+`MessageThread` draws a conversation. These are the states a turn passes
+through, each drawn from the same data the kit's tests use.
+
+<Live name="thread-loading" alt="The thread's skeleton while the session loads" />
+
+<Live name="thread-empty" alt="A new session with no turns yet" />
+
+<Live
+  name="thread-streaming"
+  alt="The agent's reply streaming in after the person's message"
+/>
+
+<Live
+  name="thread-tools"
+  alt="Two tool calls: a file read that returned and a test run still running"
+/>
+
+<Live
+  name="thread-approval"
+  alt="A file write waiting for the person's approval"
+/>
+
+<Live
+  name="thread-file-review"
+  alt="A finished turn whose two file edits wait for review"
+/>
+
+<Live
+  name="thread-subagent-running"
+  alt="A subagent at work, its search shown inside the parent turn"
+/>
+
+<Live
+  name="thread-subagent-finished"
+  alt="A subagent finished, its reply handed back to the parent turn"
+/>
+
+<Live
+  name="thread-failed"
+  alt="A failed turn with the error the model provider returned"
+/>
+
+<Live
+  name="thread-completed"
+  alt="A completed turn: an edit and the agent's answer"
+/>
+
+<Live
+  name="thread-markdown"
+  alt="A long reply in markdown: a heading, a numbered list, a code block and a table"
+/>
+
+## Reviewing file edits
+
+`FileReviewDock` sits above the composer while a turn's file edits wait for a
+decision.
+
+<Live
+  name="file-review-dock"
+  alt="The review dock over two edited files waiting for a decision"
+/>
+
+## Make it yours
+
+The [theme playground](/docs/sdk/theme/theming#try-a-look) dresses the chat in
+each preset, light or dark, and shows the code to copy. To build a chat of your
+own from the hooks alone, see
+[Build a chat from the hooks](/docs/sdk/react-core/build-a-chat).

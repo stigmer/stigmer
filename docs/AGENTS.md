@@ -29,18 +29,15 @@ and `vocabulary.md` are the truth.
   and code are the substrate, not a medium. Getting-started journeys and console
   procedures are screenshot journeys; an animated tour is for a flow whose
   timing is the lesson.
-- A page shows a screen only as a picture the visual suite draws: an entry in
-  `test/visual/src/shown.ts`, embedded with `<Screen name alt />` (`STYLE.md`,
-  "Classify every page"). Never a hand-captured screenshot, not even as a
-  placeholder. The values the page prints and the picture shows live in
-  `test/visual/src/docs-examples.ts`, held to the page by the site's
-  `docs-screens` test. A `still` or `screenshot-journey` page carries at least
-  one `<Screen>` and other pages none (`make check-docs-inventory`).
+- A page shows the product only as the test suites draw it, never captured or
+  built by hand (`STYLE.md`, "Classify every page"): a screen as `<Screen>` from
+  `test/visual/src/shown.ts` (its values in `test/visual/src/docs-examples.ts`),
+  the kit working as `<Live>` from `test/visual/src/live.ts`. A `still` or
+  `screenshot-journey` page carries at least one `<Screen>` and other pages none
+  (`make check-docs-inventory`).
 - Every visual carries prose that stands alone: the markdown exports and the
-  Copy-as-Markdown button see no image or diagram, so the lead-in and the alt
-  text carry the information. A `Screen`'s alt text, and a `Diagram`'s text
-  (`site/src/components/visuals/diagrams.ts`), is what the exports carry in its
-  place.
+  Copy-as-Markdown button see no image or demo, so the lead-in and the alt text
+  carry the information, and the exports carry each visual's text in its place.
 - Every YAML block is contract-validated by `make check-docs-yaml`; an example
   that would not apply does not ship.
 - Match the register to the context from `vocabulary.md`; when unsure, write for

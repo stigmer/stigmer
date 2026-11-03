@@ -192,6 +192,27 @@ describe("a <Diagram> in the export", () => {
   });
 });
 
+describe("a <Live> and the <ThemePlayground> in the export", () => {
+  it("become the demo's alt text linked to the demo on the site, said to be a replay, as their own paragraph", () => {
+    const body = 'Before.\n\n<Live\n  name="chat-popup"\n  alt="The popup, open on a finished turn"\n/>\n\nAfter.';
+    expect(cleanContent(body, SITE_URL)).toBe(
+      `Before.\n\n[The popup, open on a finished turn](${SITE_URL}/gallery/?scene=agent-chat-popup&mode=dark&embed=1) (live demo; a scripted replay; no agent is running.)\n\nAfter.`,
+    );
+  });
+
+  it("refuse a demo the visual suite does not list, and blank alt text", () => {
+    expect(() => cleanContent('<Live name="chat-popover" alt="A popup" />', SITE_URL)).toThrow(/no live demo named "chat-popover"/);
+    expect(() => cleanContent('<Live name="chat-popup" alt=" " />', SITE_URL)).toThrow(/alt text is required/);
+    expect(() => cleanContent('<Live name="chat-popup" />', SITE_URL)).toThrow(/needs name="…" and alt="…"/);
+  });
+
+  it("turn the playground into a line that says what it offers, linked to its page", () => {
+    expect(cleanContent("Pick one.\n\n<ThemePlayground />\n\nThen copy.", SITE_URL)).toBe(
+      `Pick one.\n\n[The theme playground: the six presets, light or dark and the corner radius on a live chat panel, with the code to copy](${SITE_URL}/docs/sdk/theme/theming)\n\nThen copy.`,
+    );
+  });
+});
+
 describe("collectDocsPages", () => {
   it("assigns separator group labels as sections to cross-folder page refs", async () => {
     const dir = await setup({
