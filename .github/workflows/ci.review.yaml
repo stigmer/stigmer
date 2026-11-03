@@ -80,9 +80,10 @@ jobs:
       issues: read
     steps:
       # Full commit graph, no blobs: the script finds the merge base and reads
-      # only the blobs of the diff it hashes. The base branch's tip, not the
-      # merge ref: see the header. The queue event has no base branch and
-      # checks out its own commit.
+      # only the blobs of the diff it hashes, which git fetches signed in, by
+      # the next step. The base branch's tip, not the merge ref: see the
+      # header. The queue event has no base branch and checks out its own
+      # commit.
       - name: Checkout the base branch (full history, no blobs)
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
@@ -90,6 +91,21 @@ jobs:
           fetch-depth: 0
           filter: blob:none
           persist-credentials: false
+
+      # The checkout above left the file contents out, and git fetches each one a
+      # later step reads. Signed in with this job's read-only token, so a refused
+      # anonymous fetch cannot fail the job (#2322); nothing is written to disk.
+      - name: Sign in git's fetches of the files the checkout left out
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          auth=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')
+          echo "::add-mask::$auth"
+          {
+            echo "GIT_CONFIG_COUNT=1"
+            echo "GIT_CONFIG_KEY_0=http.https://github.com/.extraheader"
+            echo "GIT_CONFIG_VALUE_0=AUTHORIZATION: basic $auth"
+          } >> "$GITHUB_ENV"
 
       # Every value reaches the shell through `env`, never through `${{ }}`
       # inside `run`. The runner's own Node runs the script, which needs no

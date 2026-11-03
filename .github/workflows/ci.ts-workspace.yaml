@@ -39,7 +39,9 @@
 # summary shows base, head and turbo's reason per task, so a skipped job can
 # be trusted from the PR.
 # It is the only job that needs git history: a full commit graph without
-# blobs (`filter: blob:none`), since `git diff --name-only` reads trees.
+# blobs (`filter: blob:none`), since `git diff --name-only` reads trees, and
+# blobs only for an inexact rename; git fetches those signed in, by the step
+# after the checkout.
 #
 # Skipped, not absent: a job whose packages did not change reports
 # conclusion "skipped", and the lane still succeeds as a whole, which is what
@@ -127,6 +129,21 @@ jobs:
           fetch-depth: 0
           filter: blob:none
           persist-credentials: false
+
+      # The checkout above left the file contents out, and git fetches each one a
+      # later step reads. Signed in with this job's read-only token, so a refused
+      # anonymous fetch cannot fail the job (#2322); nothing is written to disk.
+      - name: Sign in git's fetches of the files the checkout left out
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          auth=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')
+          echo "::add-mask::$auth"
+          {
+            echo "GIT_CONFIG_COUNT=1"
+            echo "GIT_CONFIG_KEY_0=http.https://github.com/.extraheader"
+            echo "GIT_CONFIG_VALUE_0=AUTHORIZATION: basic $auth"
+          } >> "$GITHUB_ENV"
 
       - name: Restore the Turbo cache
         uses: ./.github/actions/turbo-cache

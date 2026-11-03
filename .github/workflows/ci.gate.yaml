@@ -113,13 +113,29 @@ jobs:
       workflows: ${{ steps.select.outputs.workflows }}
     steps:
       # Full commit graph, no blobs: the selection diffs trees against the
-      # range's base (the ci.ts-workspace `changes` job's checkout).
+      # range's base (the ci.ts-workspace `changes` job's checkout), and git
+      # fetches the blobs of an inexact rename, signed in by the next step.
       - name: Checkout (full history, no blobs)
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
           filter: blob:none
           persist-credentials: false
+
+      # The checkout above left the file contents out, and git fetches each one a
+      # later step reads. Signed in with this job's read-only token, so a refused
+      # anonymous fetch cannot fail the job (#2322); nothing is written to disk.
+      - name: Sign in git's fetches of the files the checkout left out
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          auth=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')
+          echo "::add-mask::$auth"
+          {
+            echo "GIT_CONFIG_COUNT=1"
+            echo "GIT_CONFIG_KEY_0=http.https://github.com/.extraheader"
+            echo "GIT_CONFIG_VALUE_0=AUTHORIZATION: basic $auth"
+          } >> "$GITHUB_ENV"
 
       - name: Setup Node
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
@@ -268,13 +284,29 @@ jobs:
     timeout-minutes: 10
     steps:
       # Full commit graph, no blobs: the changed-lines rule diffs the change
-      # against its base, and git fetches the blobs that diff reads.
+      # against its base, and git fetches the blobs that diff reads, signed in
+      # by the next step.
       - name: Checkout (full history, no blobs)
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
           filter: blob:none
           persist-credentials: false
+
+      # The checkout above left the file contents out, and git fetches each one a
+      # later step reads. Signed in with this job's read-only token, so a refused
+      # anonymous fetch cannot fail the job (#2322); nothing is written to disk.
+      - name: Sign in git's fetches of the files the checkout left out
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          auth=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')
+          echo "::add-mask::$auth"
+          {
+            echo "GIT_CONFIG_COUNT=1"
+            echo "GIT_CONFIG_KEY_0=http.https://github.com/.extraheader"
+            echo "GIT_CONFIG_VALUE_0=AUTHORIZATION: basic $auth"
+          } >> "$GITHUB_ENV"
 
       - name: Setup Node
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
