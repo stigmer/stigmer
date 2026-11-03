@@ -5,7 +5,7 @@
 // models that cannot run here.
 //
 // Every scene answers the server's readiness from fixtures.ts, the person's
-// organizations, the key list, the billing permission and the person's
+// organizations (`modelsRoutes`, which the story's console moment reuses), the key list, the billing permission and the person's
 // account; the launcher's scenes answer the calls its flow and composer make
 // too (`launcherRoutes`): no Environments, no My vault yet, a server that
 // predates the server-info fields.
@@ -21,6 +21,7 @@ import {
   type GetModelReadinessOutput,
 } from "@stigmer/apis/ai/stigmer/platform/v1/model_readiness_pb";
 import { PlatformQueryController } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
+import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import { OrganizationQueryController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/query_pb";
 import { ModelSelector, ModelsHub, NewSessionViewer, SessionInspector, useModelReadiness } from "@stigmer/react-sdk";
 import { samples } from "@stigmer/react-sdk/test";
@@ -32,12 +33,21 @@ const ORG_ID = ORGANIZATION.metadata?.id ?? "";
 function inert(): void {}
 
 /** Who is looking at a cloud organization: an admin may add keys, a member may not. */
-type Viewer = "admin" | "member";
+export type Viewer = "admin" | "member";
 
-/** The calls every scene here makes: the organizations, readiness, the key list, the permission, the account. */
-function modelsRoutes(answer: GetModelReadinessOutput, keys: readonly ProviderKey[], viewer: Viewer) {
+/**
+ * The calls every scene here makes: the organizations, readiness, the key
+ * list, the permission, the account. The organization is the samples' unless
+ * a scene names its own (the story's integrator), under the same id.
+ */
+export function modelsRoutes(
+  answer: GetModelReadinessOutput,
+  keys: readonly ProviderKey[],
+  viewer: Viewer,
+  organization: Organization = ORGANIZATION,
+) {
   return (router: ConnectRouter) => {
-    router.service(OrganizationQueryController, { listMine: () => samples.organizationList([ORGANIZATION]) });
+    router.service(OrganizationQueryController, { listMine: () => samples.organizationList([organization]) });
     router.service(PlatformQueryController, { getModelReadiness: () => answer });
     router.service(ProviderKeyQueryController, { list: () => ({ entries: [...keys], nextPageToken: "" }) });
     router.service(GrantQueryController, { checkMyPermission: () => ({ isAuthorized: viewer === "admin" }) });

@@ -155,6 +155,26 @@ const STORY_SCENES = [
     title: "Story: the same ask in Stigmer's chat panel, docked beside the integrator's ledger screen for Northwind Books",
     widths: ["desktop"],
   },
+  {
+    id: "story-own-computer",
+    title: "Story: after the yes, the panel hands back the variance report the agent wrote in its outputs folder",
+    widths: ["desktop"],
+  },
+  {
+    id: "story-hours",
+    title: "Story: two hours into reconciling Northwind's year, month by month, in the panel beside the year's ledger",
+    widths: ["desktop"],
+  },
+  {
+    id: "story-walls",
+    title: "Story: two customers of one product ask the same agent about their own books, each in its own window and organization",
+    widths: ["desktop", "narrow"],
+  },
+  {
+    id: "story-keys",
+    title: "Story: the integrator's Stigmer console, Models & providers, Anthropic and OpenAI on the organization's own keys",
+    widths: ["desktop", "narrow"],
+  },
 ] as const satisfies readonly { readonly id: `story-${string}`; readonly title: string; readonly widths: readonly WidthName[] }[];
 
 /**

@@ -15,7 +15,10 @@
 // permission to act in the session, the session's agent, no scores, no My
 // vault yet, and a server that predates the server-info fields (the panel
 // asks). A guest skips the organization reads; the router answers only
-// what is asked.
+// what is asked. A scene that draws more than one conversation (two
+// customers' panels side by side) names the others, and each call is then
+// answered from the session it asks for, by its id, with every session's
+// organization in the person's list.
 import { Code, ConnectError, type ConnectRouter, type HandlerContext } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
 import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
@@ -79,35 +82,65 @@ function loadable<T>(scenario: SessionReplay, answer: T): T {
   return answer;
 }
 
-/** Who answers the session: the samples' agent unless a scene names its own. */
+/** Who answers the session: the samples' agent unless a scene names its own, and the other sessions a scene draws. */
 export interface Answering {
   readonly agent?: Agent;
+  /** Further conversations the scene draws beside `scenario`, each answered by its session's id. */
+  readonly others?: readonly SessionReplay[];
 }
 
 /** The calls the viewer makes for `scenario`, answered as for the session's owner. */
-export function sessionRoutes(scenario: SessionReplay, { agent = samples.agent() }: Answering = {}) {
+export function sessionRoutes(scenario: SessionReplay, { agent = samples.agent(), others = [] }: Answering = {}) {
+  const replays = [scenario, ...others];
+  // With one conversation every call is answered from it, whatever id it
+  // names, as the scenes always have; with more, from the one it names.
+  const replayOf = (sessionId: string): SessionReplay => {
+    if (others.length === 0) return scenario;
+    const replay = replays.find((candidate) => candidate.session?.metadata?.id === sessionId);
+    if (replay === undefined) throw new ConnectError(`no session ${sessionId}`, Code.NotFound);
+    return replay;
+  };
+  const organizations =
+    others.length === 0
+      ? [SESSION_ORG]
+      : [...new Set(replays.map((replay) => replay.session?.metadata?.org ?? ""))].map((org) => samples.organization({ id: org, slug: org }));
   return (router: ConnectRouter) => {
     router.service(SessionQueryController, {
-      get: () => loadable(scenario, scenario.session!),
-      listEvents: () => loadable(scenario, samples.sessionEventList(scenario.events)),
-      streamEvents: (request, context) => follow(loadable(scenario, scenario), request, context),
+      get: (request) => {
+        const replay = replayOf(request.value);
+        return loadable(replay, replay.session!);
+      },
+      listEvents: (request) => {
+        const replay = replayOf(request.sessionId);
+        return loadable(replay, samples.sessionEventList(replay.events));
+      },
+      streamEvents: (request, context) => {
+        const replay = replayOf(request.sessionId);
+        return follow(loadable(replay, replay), request, context);
+      },
     });
     router.service(RunQueryController, {
-      listBySession: () => samples.runList([...scenario.runs]),
+      listBySession: (request) => samples.runList([...replayOf(request.sessionId).runs]),
       get: (request) => {
-        const run = scenario.runs.find((candidate) => candidate.metadata?.id === request.value);
+        const run = replays.flatMap((replay) => replay.runs).find((candidate) => candidate.metadata?.id === request.value);
         if (run === undefined) throw new ConnectError(`no run ${request.value}`, Code.NotFound);
         return run;
       },
     });
     router.service(FileQueryController, {
-      list: () => ({ entries: [...scenario.files] }),
+      // A list by turn alone names no session: its Files are the turn's, wherever they live.
+      list: (request) => ({
+        entries:
+          others.length > 0 && request.sessionId === ""
+            ? replays.flatMap((replay) => replay.files).filter((file) => file.status?.runId === request.runId)
+            : [...replayOf(request.sessionId).files],
+      }),
       // A File opened in the inspector reads its first bytes.
       getContent: () => ({ data: AUDIT_REPORT, truncated: false }),
     });
     router.service(ScoreQueryController, { listBySession: () => ({ entries: [] }) });
     router.service(AgentQueryController, { getByReference: () => agent });
-    router.service(OrganizationQueryController, { listMine: () => samples.organizationList([SESSION_ORG]) });
+    router.service(OrganizationQueryController, { listMine: () => samples.organizationList(organizations) });
     router.service(IdentityAccountQueryController, { whoAmI: () => ACCOUNT });
     router.service(GrantQueryController, { checkMyPermission: () => ({ isAuthorized: true }) });
     router.service(PlatformQueryController, { getServerInfo: () => ({}) });
