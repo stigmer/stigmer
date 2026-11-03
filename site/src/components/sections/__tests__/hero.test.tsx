@@ -197,6 +197,9 @@ describe("Hero", () => {
     expect(document.activeElement).toBe(tab("keys"));
     fireEvent.keyDown(list, { key: "End" });
     expect(tab("keys").getAttribute("aria-selected")).toBe("true");
+    // Any other key is the page's, and moves nothing.
+    fireEvent.keyDown(list, { key: "a" });
+    expect(tab("keys").getAttribute("aria-selected")).toBe("true");
   });
 
   it("steps to the next moment when the lit name's line has filled, and fills it again", () => {
@@ -224,8 +227,14 @@ describe("Hero", () => {
     expect([hero.getAttribute("data-held"), pause.getAttribute("aria-pressed")]).toEqual(["true", "true"]);
     fireEvent.click(pause);
     expect(pause.getAttribute("aria-pressed")).toBe("false");
-    fireEvent.focus(screen.getByRole("link", { name: "See the proof" }));
+    const proof = screen.getByRole("link", { name: "See the proof" });
+    fireEvent.focus(proof);
     expect(hero.getAttribute("data-held")).toBe("true");
+    // Focus moving within the hero keeps it held; leaving it lets it go.
+    fireEvent.blur(proof, { relatedTarget: tab("hours") });
+    expect(hero.getAttribute("data-held")).toBe("true");
+    fireEvent.blur(proof, { relatedTarget: document.body });
+    expect(hero.getAttribute("data-held")).toBe("false");
   });
 
   it("renders the ask, not stepping, before the page wakes, so the exported page and the woken one agree", () => {
