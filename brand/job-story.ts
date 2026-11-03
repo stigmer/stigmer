@@ -5,8 +5,8 @@
  * gets a yes, and hands back a report.
  *
  * `PARTS` says when each part of the picture first shows and when it is lit,
- * and `isOn` turns a part, a layer and a moment into on or off. The homepage
- * hero's loop (site/src/components/visuals/job-path.ts) and the job film
+ * and `isOn` turns a part, a layer and a moment into on or off. The docs
+ * front page's loop (site/src/components/visuals/job-path.ts) and the job film
  * (marketing/src/films/job/) both read them, so the two light the same parts
  * at the same steps; only their clocks differ. Each part lights on layers
  * named for itself, so lighting the computer never brightens the parts drawn

@@ -98,8 +98,11 @@ export const SHOWN: readonly Shown[] = [
     // x 23 and 1256, y 23 and 976; the page's margin around it is left off,
     // so the picture sits on the site's own ground.
     clip: { x: 23, y: 23, width: 1234, height: 954 },
+    // Two of the five claims are drawn here: the agent stops at the
+    // approval card, and the host's switcher scopes the screen to one
+    // customer. The read row shows a read, not a computer of its own, so it
+    // carries no pin; hours and keys are not drawn at all.
     marks: {
-      "own-computer": { role: "button", name: "Read 1 file 1 s", box: { x: 899, y: 262, width: 325, height: 32 } },
       "asks-first": { role: "button", name: "Approve", box: { x: 923, y: 647, width: 74, height: 30 } },
       walls: { role: "button", name: "Northwind Books", box: { x: 40, y: 34, width: 181, height: 32 } },
     },

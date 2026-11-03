@@ -1,5 +1,5 @@
 /**
- * The hero's picture of the job: its words, its figure and its loop.
+ * The docs front page's picture of the job: its words, its figure and its loop.
  *
  * The picture's words are the docs' own: each name the job uses must still
  * be spelled the same on the page that runs or explains it, and its labels

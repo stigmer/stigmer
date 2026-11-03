@@ -21,7 +21,7 @@ import { corners, fraction, type Connector as ConnectorData, type Layout, type S
 /** A line's thickness, in px; a turning end runs on by half of it. */
 const LINE = 1.5;
 
-/** The open chevron at an arrow's end, the hero's, turned to face its way. */
+/** The open chevron at an arrow's end, the job picture's, turned to face its way. */
 const CHEVRONS = {
   right: { box: "0 0 6 8", path: "M1 .75 5.25 4 1 7.25", className: "right-0 top-[calc(50%-4px)] h-2 w-1.5" },
   left: { box: "0 0 6 8", path: "M5 .75.75 4 5 7.25", className: "left-0 top-[calc(50%-4px)] h-2 w-1.5" },

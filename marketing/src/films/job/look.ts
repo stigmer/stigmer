@@ -3,7 +3,7 @@
  * faces (brand/type.ts), so the film reads like the picture it retells.
  *
  * The colours are the site's dark tokens (site/src/app/globals.css) as the
- * hero's picture uses them. The faces are the site's: Instrument Sans for the
+ * job picture uses them. The faces are the site's: Instrument Sans for the
  * headline and the closing sentence, Geist for the picture's words, Geist Mono
  * for step labels and the address. They are fetched from Google Fonts at
  * render time, since the films render by hand and never in CI; the site and

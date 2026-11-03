@@ -1,5 +1,5 @@
 /**
- * The loop that plays the hero's picture of the job.
+ * The loop that plays the docs front page's picture of the job.
  *
  * The job itself (its names, its steps, the parts of the picture and the rule
  * for when each is shown and lit) is brand/job-story.ts, which the job film in
@@ -32,7 +32,7 @@ export const TIMELINE = {
   settles: 85,
 } as const satisfies Timeline<Step>;
 
-/** The hero's loop, as the shared loop engine reads it. */
+/** The picture's loop, as the shared loop engine reads it. */
 export const JOB_PATH_LOOP = {
   prefix: "job-path",
   steps: STEPS,

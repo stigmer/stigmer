@@ -1,19 +1,20 @@
 /**
- * The job film: the homepage hero's picture of a customer's agent at work,
+ * The job film: the docs front page's picture of a customer's agent at work
+ * (site/src/components/visuals/JobPath.tsx),
  * played once, silent, with its words on screen.
  *
- * It opens on the headline, sets out the stage, plays the hero's six steps
+ * It opens on the headline, sets out the stage, plays the job's six steps
  * with a line under the picture for each, holds the finished picture and
  * ends on the one sentence and the address. Every frame is a pure function of
  * the frame number: what is shown and lit comes from storyboard.ts, which
- * takes it from the job's data and rule the hero reads too, so the film lights
- * exactly what the hero lights, step by step.
+ * takes it from the job's data and rule the picture reads too, so the film
+ * lights exactly what the picture lights, step by step.
  *
- * The picture is the hero's compact arrangement (the customer and the
+ * The picture is that picture's compact arrangement (the customer and the
  * computer side by side, the wall and the other customers below), drawn at
  * film scale with no word under 28px, so the square cut stays readable in a
- * phone's feed. The landscape cut sets the headline beside it, as the hero
- * sits on a wide screen; the square cut opens on the headline alone.
+ * phone's feed. The landscape cut sets the headline beside it; the square
+ * cut opens on the headline alone.
  */
 import type * as React from "react";
 import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
@@ -258,7 +259,7 @@ function OtherCustomer({ named }: { named: boolean }) {
   );
 }
 
-/** The hero's picture at a frame. */
+/** The job picture at a frame. */
 function Picture({ frame }: { frame: number }) {
   const cell = (column: Column, row: Row): React.CSSProperties => ({
     gridColumn: COLUMN[column],
@@ -315,7 +316,7 @@ function Picture({ frame }: { frame: number }) {
         />
       </div>
 
-      {/* Every part of the story, each in its cell, shown and lit as the hero's rule says. */}
+      {/* Every part of the story, each in its cell, shown and lit as the job's rule says. */}
       {(Object.keys(COLUMN) as Column[]).flatMap((column) =>
         ROWS.map((row) => {
           const here = PART_IDS.filter((id) => PLACEMENTS[id].column === column && PLACEMENTS[id].row === row);

@@ -2,12 +2,12 @@
  * The job film's storyboard: when each part of the picture shows and lights,
  * and the words on screen, frame by frame.
  *
- * The story is the homepage hero's, taken from the data the hero reads rather
- * than copied: the job's names, the steps in order, the parts and the rule
+ * The story is the job picture's (the docs front page's), taken from the data
+ * that picture reads rather than copied: the job's names, the steps in order, the parts and the rule
  * that says which layer of which part is on at each moment all come from
  * brand/job-story.ts, the headline and the one sentence from
  * brand/positioning.ts, and the titles from brand/agent-gets.ts. Only the
- * clock is the film's own: the hero loops, the film opens on the headline,
+ * clock is the film's own: the picture loops, the film opens on the headline,
  * plays the job once and ends on the one sentence.
  *
  * Pure data and arithmetic, with no React or Remotion import, so its test
@@ -30,7 +30,7 @@ import {
 
 export const FPS = 30;
 
-/** Seconds each step holds the screen; the agent's work longest, as the hero's loop gives it the longest share. */
+/** Seconds each step holds the screen; the agent's work longest, as the picture's loop gives it the longest share. */
 const STEP_SECONDS: Readonly<Record<Step, number>> = {
   "hands-over": 2.1,
   enters: 2.1,
@@ -131,7 +131,7 @@ function settled(id: PartId, layer: Layer | "part", moment: Moment): number {
 }
 
 /**
- * A layer's opacity at a frame: the value the hero's rule gives the beat on
+ * A layer's opacity at a frame: the value the job's rule gives the beat on
  * screen, eased in over `RAMP_FRAMES` from the value of the beat before it.
  */
 export function layerOpacity(id: PartId, layer: Layer | "part", frame: number): number {

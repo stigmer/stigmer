@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * The picture of the job the homepage hero and the docs front page show: a
+ * The picture of the job the docs front page and the job film show: a
  * customer inside your product hands its agent a ledger, the agent works in
  * its own computer, asks before a risky step, gets a yes and hands back a
  * report, while other customers' computers sit behind a wall.

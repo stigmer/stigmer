@@ -274,7 +274,7 @@ export const PARTS = {
 export type PartId = keyof typeof PARTS;
 
 /**
- * Where things happen in the cycle, in percent: the hero's cycle and ramp,
+ * Where things happen in the cycle, in percent: the job picture's cycle and ramp,
  * so the two pictures breathe alike. The finished picture holds across the
  * seam for about five seconds, then the seven steps take about a second and
  * a half each.
