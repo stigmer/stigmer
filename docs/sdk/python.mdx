@@ -34,9 +34,8 @@ connection when the block exits:
 
 ```python
 import os
-
 from stigmer import StigmerClient
-# ---cut---
+
 with StigmerClient(os.environ["STIGMER_API_KEY"]) as client:
     agent = client.agents.get("agent-id")
 ```

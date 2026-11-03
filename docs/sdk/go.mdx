@@ -118,13 +118,13 @@ Every resource has its own client with methods like `Get`, `Create`, `List`,
 takes a `context.Context` as its first argument:
 
 ```go
+var id string
+// ---cut---
 import (
 	"fmt"
 	"log"
 )
 
-var id string
-// ---cut---
 agent, err := client.Agent.Get(ctx, id)
 if err != nil {
     if stigmer.IsNotFound(err) {

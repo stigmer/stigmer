@@ -627,10 +627,10 @@ Pass an `AbortSignal` to `followSession`. Abort the controller to end the
 stream:
 
 ```typescript
-import { followSession } from "@stigmer/client";
-
 declare const sessionId: string;
 // ---cut---
+import { followSession } from "@stigmer/client";
+
 const controller = new AbortController();
 setTimeout(() => controller.abort(), 30_000);
 

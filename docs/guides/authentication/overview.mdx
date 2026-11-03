@@ -92,10 +92,10 @@ Regardless of which path you choose, the React SDK uses the same
 `getAccessToken` callback pattern for browser apps:
 
 ```tsx
-import { Stigmer } from "@stigmer/client";
-
 declare const getAccessToken: () => Promise<string | null>;
 // ---cut---
+import { Stigmer } from "@stigmer/client";
+
 const stigmer = new Stigmer({
   baseUrl: "https://api.stigmer.ai",
   getAccessToken, // returns a JWT — from your IdP or from your backend

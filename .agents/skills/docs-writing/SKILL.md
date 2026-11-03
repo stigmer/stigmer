@@ -144,9 +144,10 @@ a reader will paste it:
   and `ctx` in Go, `client` in Python and Java. A name the page's prose
   introduces (a `user` the previous step signed in, an `accountId` the last call
   returned) is declared in the block's hidden setup, above `// ---cut---`
-  (`# ---cut---` in Python). The setup holds declarations and imports only,
-  never logic the reader needs; if it carries meaning, it moves into the body.
-  The prose still names the given, as it always has.
+  (`# ---cut---` in Python). The setup holds declarations and the imports they
+  alone need, never an import the visible code uses and never logic the reader
+  needs; if it carries meaning, it moves into the body. The prose still names
+  the given, as it always has.
 - Use the SDK's real names and types: the proto message a method takes, an enum
   value rather than its string, the field a client exposes. The resource
   reference pages show each language's form.
