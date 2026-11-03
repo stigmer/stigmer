@@ -20,12 +20,23 @@
  *     tag, a second move of the same tag mid-move leaves the head with the
  *     audit column's tag, and a head whose tag keeps moving is ABORTED
  *     WRITE_CONFLICT after GUARDED_WRITE_ATTEMPTS writes;
+ *   - the apply's tag (the archive step, another tag writer): an apply naming
+ *     none shows the tag its archived version holds with one write, and
+ *     writes nothing when that version holds none; a tag move landing
+ *     mid-apply leaves the head with the audit column's tag (#2758), as does
+ *     a move landing between a named-tag apply's two writes (#2908); a
+ *     same-content apply's named tag survives a concurrent apply naming
+ *     none; a tag that keeps moving is logged after GUARDED_WRITE_ATTEMPTS
+ *     writes and the apply still succeeds; a shown tag answers the stored
+ *     etag for a kind whose tag is inside its spec; and a kind whose tag is
+ *     its content (the plugin) never has its head written;
  *   - the version-metadata rule leaves a head with no hash or no metadata as
  *     it is, and on an unchanged hash keeps the stored id and chain;
  *   - a version page whose head hash no audit row holds marks no version
  *     current, and a failing read of the current record is Internal.
  */
 import { clone, create, toBinary } from "@bufbuild/protobuf";
+import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
 import { ConnectError, Code } from "@connectrpc/connect";
 import { beforeEach, describe, expect, it } from "vitest";
 
@@ -36,11 +47,18 @@ import {
   TagAgentVersionInputSchema,
 } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/version_pb";
 import type { ListAgentVersionsResponse } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/version_pb";
+import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
+import { PushPluginRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/io_pb";
+import { SkillSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
+import { PushSkillRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import { ErrorInfoSchema } from "@stigmer/apis/google/rpc/error_details_pb";
 
-import { agentVersionBinding } from "../../../domain/agent/versions.js";
+import { createLogger } from "../../../boot/logger.js";
+import { agentVersionBinding, newSaveAgentVersionStep } from "../../../domain/agent/versions.js";
+import { newArchiveCurrentPluginStep } from "../../../domain/plugin/push.js";
+import { SKILL_KEY, newArchiveCurrentSkillStep } from "../../../domain/skill/push.js";
 import { GUARDED_WRITE_ATTEMPTS, WRITE_CONFLICT_REASON } from "../../guarded-write.js";
 import { RequestContext } from "../../request-context.js";
 import { testCallerIdentity } from "../../__tests__/support.js";
@@ -49,6 +67,8 @@ import {
   ResourceNotFoundError,
 } from "../../../store/interface.js";
 import type { AuditRecord, Store } from "../../../store/interface.js";
+import { stampEtag } from "../../../store/etag.js";
+import { PUSHED_RESOURCE_KEY } from "../archive-push.js";
 import { EXISTING_RESOURCE_KEY } from "../load-existing.js";
 import { VERSION_HASH_KEY, newPopulateVersionStep } from "../version-archive.js";
 import {
@@ -88,6 +108,14 @@ function record(hash: string, tag: string): AuditRecord {
 /** A store exposing only what a step touches; every member may be overridden. */
 function storeWith(members: Record<string, unknown>): Store {
   return members as unknown as Store;
+}
+
+/** setAuditTag's single-holder move over a tag column by hash: any prior holder is cleared. */
+function moveTag(audit: Map<string, string>, hash: string, tag: string): void {
+  for (const [held, heldTag] of audit) {
+    if (heldTag === tag) audit.set(held, "");
+  }
+  audit.set(hash, tag);
 }
 
 async function failureOf(run: Promise<unknown>): Promise<ConnectError> {
@@ -340,10 +368,7 @@ describe("the tag move", () => {
     await newTagVersionStep(
       storeWith({
         setAuditTag: async (_k: unknown, _id: unknown, hash: string, tag: string) => {
-          for (const [held, heldTag] of shared.audit) {
-            if (heldTag === tag) shared.audit.set(held, "");
-          }
-          shared.audit.set(hash, tag);
+          moveTag(shared.audit, hash, tag);
         },
         getAuditRecordByHash: async (_k: unknown, _id: unknown, hash: string) => {
           const tag = shared.audit.get(hash);
@@ -419,6 +444,187 @@ describe("the tag move", () => {
     expect(conflict.rawMessage).toBe("Agent 'acme/reviewer' kept changing while this update was being saved; try again");
     expect(conflict.findDetails(ErrorInfoSchema)[0]?.reason).toBe(WRITE_CONFLICT_REASON);
     expect(writes).toBe(GUARDED_WRITE_ATTEMPTS);
+  });
+});
+
+describe("the apply's tag", () => {
+  /**
+   * The store an apply's archive step shares with other writers: `row` is
+   * the live head, already holding what the chain's own write stored and
+   * restamped on every write as every driver does; `audit` is the tag column
+   * by hash; `beforeWrite(n)` lands another writer's commit just before the
+   * step's n-th head write.
+   */
+  interface Live<Desc extends DescMessage> {
+    schema: Desc;
+    row: MessageShape<Desc>;
+    audit: Map<string, string>;
+    beforeWrite(write: number): void;
+  }
+
+  // How many head writes, and which error lines, the apply steps made.
+  let writes = 0;
+  let errors: string[] = [];
+  beforeEach(() => {
+    writes = 0;
+    errors = [];
+  });
+  const logger = createLogger({ level: "error", pretty: false, write: (line) => errors.push(line) });
+
+  function liveStore<Desc extends DescMessage>(live: Live<Desc>): Store {
+    return storeWith({
+      getAuditByHash: async (_k: unknown, _id: unknown, hash: string) => {
+        if (!live.audit.has(hash)) throw new AuditNotFoundError(hash);
+        return clone(live.schema, live.row);
+      },
+      saveAudit: async (_k: unknown, _id: unknown, _s: unknown, _r: unknown, hash: string) => {
+        live.audit.set(hash, "");
+      },
+      setAuditTag: async (_k: unknown, _id: unknown, hash: string, tag: string) => {
+        moveTag(live.audit, hash, tag);
+      },
+      getAuditRecordByHash: async (_k: unknown, _id: unknown, hash: string) => {
+        const tag = live.audit.get(hash);
+        if (tag === undefined) throw new AuditNotFoundError(hash);
+        return record(hash, tag);
+      },
+      updateResource: async (_k: unknown, _id: unknown, _s: unknown, modify: (row: MessageShape<Desc>) => void) => {
+        writes += 1;
+        live.beforeWrite(writes);
+        modify(live.row);
+        stampEtag(live.schema, live.row);
+        return clone(live.schema, live.row);
+      },
+    });
+  }
+
+  function liveAgent(row: Agent, audit: Array<[string, string]>, beforeWrite = (_write: number): void => {}): Live<typeof AgentSchema> {
+    return { schema: AgentSchema, row, audit: new Map(audit), beforeWrite };
+  }
+
+  /** Runs the agent's archive step for an apply whose stored head is `head`, and answers its response. */
+  async function apply(head: Agent, live: Live<typeof AgentSchema>): Promise<Agent> {
+    const ctx = new RequestContext(AgentSchema, head, testCallerIdentity(), ApiResourceKind.agent);
+    await newSaveAgentVersionStep(liveStore(live), logger).execute(ctx);
+    return ctx.newState;
+  }
+
+  const tagOf = (head: Agent): string | undefined => head.metadata?.version?.tag;
+
+  it("shows the tag its archived version holds, with one write", async () => {
+    const live = liveAgent(agent(HEAD), [[HEAD, "stable"]]);
+    const response = await apply(agent(HEAD), live);
+    expect([tagOf(live.row), tagOf(response), writes]).toEqual(["stable", "stable", 1]);
+  });
+
+  it("writes nothing when its archived version holds no tag", async () => {
+    const live = liveAgent(agent(HEAD), [[HEAD, ""]]);
+    const response = await apply(agent(HEAD), live);
+    expect([tagOf(live.row), tagOf(response), writes]).toEqual(["", "", 0]);
+  });
+
+  it("leaves the head with the audit column's tag when a tag move lands mid-apply (#2758)", async () => {
+    const live = liveAgent(
+      agent(HEAD),
+      [
+        [HEAD, "stable"],
+        [OLD, ""],
+      ],
+      (write) => {
+        if (write === 1) moveTag(live.audit, OLD, "stable");
+      },
+    );
+    const response = await apply(agent(HEAD), live);
+    expect([tagOf(live.row), tagOf(response)]).toEqual(["", ""]);
+  });
+
+  it("shows the named tag when a tag move's reconcile landed between the apply's two writes (#2908)", async () => {
+    // The move read the column before the apply's setAuditTag and wrote
+    // that tag over the one the apply's row landed with.
+    const live = liveAgent(agent(HEAD, "old"), [[HEAD, "old"]]);
+    const response = await apply(agent(HEAD, "beta"), live);
+    expect([tagOf(live.row), tagOf(response), live.audit.get(HEAD)]).toEqual(["beta", "beta", "beta"]);
+  });
+
+  it("keeps a same-content apply's named tag over a concurrent apply naming none", async () => {
+    const live = liveAgent(agent(HEAD), [[HEAD, "stable"]], (write) => {
+      // The second apply's row lands, naming beta; its setAuditTag is to come.
+      if (write === 1) live.row = agent(HEAD, "beta");
+    });
+    await apply(agent(HEAD), live);
+    live.beforeWrite = () => {};
+    await apply(agent(HEAD, "beta"), live);
+    expect([tagOf(live.row), live.audit.get(HEAD)]).toEqual(["beta", "beta"]);
+  });
+
+  it("logs a tag that keeps moving after GUARDED_WRITE_ATTEMPTS writes, and the apply succeeds", async () => {
+    const live = liveAgent(
+      agent(HEAD),
+      [
+        [HEAD, "stable"],
+        [OLD, ""],
+      ],
+      () => moveTag(live.audit, live.audit.get(HEAD) === "stable" ? OLD : HEAD, "stable"),
+    );
+    await apply(agent(HEAD), live);
+    expect(writes).toBe(GUARDED_WRITE_ATTEMPTS);
+    expect(errors.map((line) => (JSON.parse(line) as { message: string }).message)).toEqual([
+      "failed to write agent after reconciling its tag",
+    ]);
+  });
+
+  it("answers the stored etag when it shows a tag kept inside the spec", async () => {
+    const skill = create(SkillSchema, {
+      metadata: { id: "skl_1", org: "acme", slug: "notes", version: { id: HEAD } },
+      spec: { tag: "" },
+      status: { versionHash: HEAD },
+    });
+    stampEtag(SkillSchema, skill);
+    const stored = skill.metadata?.etag;
+    const live: Live<typeof SkillSchema> = {
+      schema: SkillSchema,
+      row: clone(SkillSchema, skill),
+      audit: new Map([[HEAD, "stable"]]),
+      beforeWrite: () => {},
+    };
+    const ctx = new RequestContext(
+      PushSkillRequestSchema,
+      create(PushSkillRequestSchema, {}),
+      testCallerIdentity(),
+      ApiResourceKind.skill,
+    );
+    ctx.set(SKILL_KEY, skill);
+
+    await newArchiveCurrentSkillStep(liveStore(live), logger).execute(ctx);
+
+    expect(skill.spec?.tag).toBe("stable");
+    expect(skill.metadata?.etag).not.toBe(stored);
+    expect(skill.metadata?.etag).toBe(live.row.metadata?.etag);
+  });
+
+  it("never writes the head of a kind whose tag is its content", async () => {
+    const plugin = create(PluginSchema, {
+      metadata: { id: "plg_1", org: "acme", slug: "kit" },
+      spec: { version: "1.2.0" },
+      status: { digest: HEAD },
+    });
+    const live: Live<typeof PluginSchema> = {
+      schema: PluginSchema,
+      row: clone(PluginSchema, plugin),
+      audit: new Map([[HEAD, "1.0.0"]]),
+      beforeWrite: () => {},
+    };
+    const ctx = new RequestContext(
+      PushPluginRequestSchema,
+      create(PushPluginRequestSchema, {}),
+      testCallerIdentity(),
+      ApiResourceKind.plugin,
+    );
+    ctx.set(PUSHED_RESOURCE_KEY, plugin);
+
+    await newArchiveCurrentPluginStep(liveStore(live), logger).execute(ctx);
+
+    expect([live.audit.get(HEAD), writes]).toEqual(["1.2.0", 0]);
   });
 });
 
