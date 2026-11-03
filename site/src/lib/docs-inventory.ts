@@ -104,9 +104,6 @@ export const PICTURED_MEDIUMS: readonly Medium[] = ["still", "screenshot-journey
  * so the list only shrinks.
  */
 export const OWED_PICTURES: Readonly<Record<string, string>> = {
-  "concepts/agents": "its Agent's page is drawn next, from the YAML the page prints",
-  "concepts/skills": "its Skill's page is drawn next, from the SKILL.md the page prints",
-  "guides/environments/set-up-an-environment": "its environment form and the Agent's and conversation's environment rows are drawn next",
   "guides/channels/create-a-chat-link": "the channel screens (the Channels tab, the chat link dialog) are not drawn yet",
   "guides/channels/embed-an-agent": "the chat link dialog's Embed tab and the widget on a host page are not drawn yet",
   "guides/channels/connect-slack": "the Connect Slack dialog and the Slack card are not drawn yet",

@@ -191,6 +191,57 @@ export const SHOWN: readonly Shown[] = [
     // the column spans x 216 to 1064, the history's table ends at y 284.
     clip: { x: 200, y: 40, width: 880, height: 260 },
   },
+  // The agents page (docs/concepts/agents.mdx).
+  {
+    name: "agent",
+    scene: "agent-profile-variance-reporter",
+    title: "The agents page's variance-reporter on its page in the console: its header, description and instructions",
+    viewport: { width: 1280, height: 800 },
+    // The header through the Instructions section, measured from the drawn
+    // screen: the column spans x 216 to 1064, the header starts at y 56 and
+    // Instructions ends at y 781.
+    clip: { x: 200, y: 40, width: 880, height: 757 },
+  },
+  // The skills page (docs/concepts/skills.mdx).
+  {
+    name: "skill",
+    scene: "skill-detail",
+    title: "The skills page's variance-report Skill on its page in the console: its description over its rendered body",
+    viewport: { width: 1280, height: 900 },
+    // The header, Description and Skill content, measured from the drawn
+    // screen: the column spans x 216 to 1064, Skill content ends at y 825.
+    clip: { x: 200, y: 40, width: 880, height: 801 },
+  },
+  // The environments page (docs/guides/environments/set-up-an-environment.mdx).
+  {
+    name: "environment-new",
+    scene: "environment-new",
+    title: "New environment, filled in with data-science: limited to api.github.com and our-api.example.com, poppler-utils from apt, pandas and sqlalchemy from pip",
+    // Tall enough that the whole form shows: it ends at y 1017.
+    viewport: { width: 1280, height: 1080 },
+    // The form, measured from the drawn screen: x 216 to 888, y 56 to 1017.
+    clip: { x: 200, y: 40, width: 704, height: 993 },
+  },
+  {
+    name: "agent-environment",
+    scene: "environment-agent",
+    title: "The data team's Agent's Environment section, naming Data science, with its edit button",
+    // Tall enough to hold the section: it ends at y 981.
+    viewport: { width: 1280, height: 1000 },
+    // The Environment section, measured from the drawn screen: x 216 to
+    // 1064, y 859 to 981.
+    clip: { x: 200, y: 843, width: 880, height: 154 },
+  },
+  {
+    name: "run-settings",
+    scene: "environment-run-settings",
+    title: "A conversation's Run settings, opened from the composer's configure button: Environment data-science, the agent's default",
+    viewport: { width: 1280, height: 800 },
+    // The Run settings panel and the composer's buttons under it, measured
+    // from the drawn screen: the panel spans x 927 to 1228 and y 518 to 715,
+    // the composer ends at y 764.
+    clip: { x: 860, y: 502, width: 400, height: 278 },
+  },
 ];
 
 /** The CSS size of one shown picture: its clip, or the whole viewport. */

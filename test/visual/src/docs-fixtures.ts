@@ -5,6 +5,7 @@
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { AgentSchema, type Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import { ListAgentVersionsResponseSchema, type ListAgentVersionsResponse } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/version_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 import { RoutineSchema, type Routine } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
@@ -14,8 +15,11 @@ import {
   RoutineFireOutcome,
   type RoutineFireList,
 } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/io_pb";
+import { EnvironmentSchema, type Environment } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/api_pb";
+import { NetworkingType } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/spec_pb";
+import { SkillSchema, type Skill } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
 import { sampleDate } from "@stigmer/react-sdk/test";
-import { AGENT_EXAMPLE, ROUTINE_EXAMPLE } from "./docs-examples.ts";
+import { AGENT_EXAMPLE, ENVIRONMENT_EXAMPLE, ROUTINE_EXAMPLE, SKILL_EXAMPLE } from "./docs-examples.ts";
 import { ORGANIZATION } from "./fixtures.ts";
 
 const ORG_ID = ORGANIZATION.metadata?.id ?? "";
@@ -60,6 +64,63 @@ export const VARIANCE_REPORTER: Agent = create(AgentSchema, {
 
 /** The run the routine's first start began. */
 const FIRST_RUN_ID = "run_00000000000000000000000062";
+
+/** The Skill the skills page prints as one SKILL.md, pushed by Ada a month ago. */
+export const VARIANCE_REPORT_SKILL: Skill = create(SkillSchema, {
+  apiVersion: "agentic.stigmer.ai/v1",
+  kind: "Skill",
+  metadata: {
+    id: "skl_00000000000000000000000052",
+    name: SKILL_EXAMPLE.name,
+    slug: SKILL_EXAMPLE.name,
+    org: ORG_ID,
+    visibility: ApiResourceVisibility.visibility_org,
+  },
+  spec: { name: SKILL_EXAMPLE.name, description: SKILL_EXAMPLE.description, skillMd: SKILL_EXAMPLE.skillMd },
+  status: { audit: madeBy(30) },
+});
+
+/** The Environment the environments page makes: pandas and poppler, GitHub and the team's own API only. */
+export const DATA_SCIENCE: Environment = create(EnvironmentSchema, {
+  apiVersion: "agentic.stigmer.ai/v1",
+  kind: "Environment",
+  metadata: {
+    id: "env_00000000000000000000000053",
+    name: ENVIRONMENT_EXAMPLE.name,
+    slug: ENVIRONMENT_EXAMPLE.slug,
+    org: ORG_ID,
+    visibility: ApiResourceVisibility.visibility_org,
+  },
+  spec: {
+    description: ENVIRONMENT_EXAMPLE.description,
+    networking: { type: NetworkingType.limited, allowedHosts: [...ENVIRONMENT_EXAMPLE.hosts], allowPackageManagers: true },
+    packages: { apt: [...ENVIRONMENT_EXAMPLE.apt], pip: [...ENVIRONMENT_EXAMPLE.pip] },
+  },
+  status: { audit: madeBy(1) },
+});
+
+/** The data team's Agent the environments page makes data-science the default of. */
+export const DATA_ANALYST: Agent = create(AgentSchema, {
+  apiVersion: "agentic.stigmer.ai/v1",
+  kind: "Agent",
+  metadata: {
+    id: "agt_00000000000000000000000054",
+    name: ENVIRONMENT_EXAMPLE.agent,
+    slug: ENVIRONMENT_EXAMPLE.agent,
+    org: ORG_ID,
+    visibility: ApiResourceVisibility.visibility_org,
+  },
+  spec: {
+    instructions: "You answer the data team's questions from its reports and its API.",
+    environmentRef: { org: ORG_ID, kind: ApiResourceKind.environment, slug: ENVIRONMENT_EXAMPLE.slug },
+  },
+  status: { audit: madeBy(30) },
+});
+
+/** The variance reporter's one version: the YAML the agents page prints, applied once. */
+export const VARIANCE_REPORTER_VERSIONS: ListAgentVersionsResponse = create(ListAgentVersionsResponseSchema, {
+  entries: [{ versionHash: "5d0e8b31", appliedAt: timestampFromDate(sampleDate(-30 * DAY_MS)), isCurrent: true, message: "First version" }],
+});
 
 /**
  * The routine the routines page makes: `enabled` off as the page's form

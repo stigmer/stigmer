@@ -15,7 +15,7 @@
 import type { Page } from "@playwright/test";
 import type { ScenarioName } from "@stigmer/react-sdk/test";
 import type { ThemePresetId } from "@stigmer/design-tokens";
-import { ROUTINE_EXAMPLE } from "./docs-examples.ts";
+import { ENVIRONMENT_EXAMPLE, ROUTINE_EXAMPLE } from "./docs-examples.ts";
 
 /** The colour modes every scene is drawn in. */
 export const MODES = ["light", "dark"] as const;
@@ -57,11 +57,14 @@ export type SceneId =
   | `settings-${SettingsSceneName}`
   | "agent-profile-owner"
   | "agent-profile-viewer"
+  | "agent-profile-variance-reporter"
+  | "skill-detail"
   | "marketplace-admin"
   | "marketplace-member"
   | `session-${SessionSceneName}`
   | `story-${StorySceneName}`
   | `routine-${RoutineSceneName}`
+  | `environment-${EnvironmentSceneName}`
   | "agent-chat-panel"
   | "agent-chat-popup-closed"
   | "agent-chat-popup"
@@ -250,6 +253,37 @@ const ROUTINE_SCENES = [
   { id: "routine-history", title: "Routine page, History: the daily variance report's first run, started by hand", widths: ["desktop"] },
 ] as const satisfies readonly { readonly id: `routine-${string}`; readonly title: string; readonly widths: readonly WidthName[]; readonly opens?: readonly Act[] }[];
 
+/**
+ * The environments page's screens (docs/guides/environments/set-up-an-environment.mdx):
+ * the New environment form filled with the page's data-science, the data
+ * team's Agent once its Environment section names it, and a conversation's
+ * run settings naming the Environment it got and why.
+ */
+export type EnvironmentSceneName = (typeof ENVIRONMENT_SCENES)[number]["id"] extends `environment-${infer Name}` ? Name : never;
+
+const ENVIRONMENT_SCENES = [
+  {
+    id: "environment-new",
+    title: "New environment: the environments page's data-science, limited to two websites, with its apt and pip packages",
+    widths: ["desktop"],
+    opens: [
+      { fill: "Name", with: ENVIRONMENT_EXAMPLE.slug },
+      { fill: "Description (optional)", with: ENVIRONMENT_EXAMPLE.description },
+      { press: "Limited to listed websites", role: "radio" },
+      { fill: "Websites", with: ENVIRONMENT_EXAMPLE.hosts.join("\n") },
+      { fill: "apt (Debian packages)", with: ENVIRONMENT_EXAMPLE.apt.join("\n") },
+      { fill: "pip (Python packages)", with: ENVIRONMENT_EXAMPLE.pip.join("\n") },
+    ],
+  },
+  { id: "environment-agent", title: "Agent page: the data team's Agent, its Environment section naming Data science", widths: ["desktop"] },
+  {
+    id: "environment-run-settings",
+    title: "Session: a conversation's run settings, opened from the composer, its Environment row data-science, the agent's default",
+    widths: ["desktop"],
+    opens: ["Configure agent, tools, and skills", { press: "Run settings", role: "menuitem" }],
+  },
+] as const satisfies readonly { readonly id: `environment-${string}`; readonly title: string; readonly widths: readonly WidthName[]; readonly opens?: readonly Act[] }[];
+
 /** The presets the `completed` thread is drawn in beyond the default look, which `thread-completed` is. */
 export const PRESETS = ["corporate", "startup", "friendly", "fintech", "monochrome"] as const satisfies readonly ThemePresetId[];
 
@@ -304,11 +338,18 @@ export const SCENES: readonly Scene[] = [
   ...SETTINGS_SCENES,
   { id: "agent-profile-owner", title: "Agent page: the ledger agent, as its owner sees it", widths: ["desktop", "narrow"] },
   { id: "agent-profile-viewer", title: "Agent page: the ledger agent, as a person who may only read it sees it", widths: ["desktop"] },
+  {
+    id: "agent-profile-variance-reporter",
+    title: "Agent page: the agents page's variance reporter, each section one of the YAML fields the page prints",
+    widths: ["desktop"],
+  },
+  { id: "skill-detail", title: "Skill page: the skills page's variance-report, its description over its rendered body", widths: ["desktop"] },
   { id: "marketplace-admin", title: "Marketplace: the official catalogue, for an admin", widths: ["desktop", "narrow"] },
   { id: "marketplace-member", title: "Marketplace: the official catalogue, for a member", widths: ["desktop"] },
   ...SESSION_SCENES,
   ...STORY_SCENES,
   ...ROUTINE_SCENES,
+  ...ENVIRONMENT_SCENES,
   {
     id: "agent-chat-panel",
     title: "AgentChat: a long turn at work, in a panel docked beside a product",

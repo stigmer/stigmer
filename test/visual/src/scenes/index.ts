@@ -6,6 +6,8 @@ import { inheritedOpenAiKey, NOTHING_CONNECTED, NOTHING_ON_THE_RUNNER, ownAnthro
 import { fileReviewDockScene } from "./conversation.tsx";
 import { agentChatScene } from "./agent-chat.tsx";
 import { agentProfileScene } from "./agent.tsx";
+import { varianceReporterScene } from "./agent-pages.tsx";
+import { skillDetailScene } from "./skill.tsx";
 import { dashboardPageScene, dashboardScene } from "./dashboard.tsx";
 import { marketplaceScene } from "./marketplace.tsx";
 import {
@@ -28,6 +30,7 @@ import {
   modelsHubLocalScene,
   modelsHubScene,
 } from "./models.tsx";
+import { agentEnvironmentScene, environmentNewScene, runSettingsScene } from "./environment.tsx";
 import { routineDetailScene, routineNewScene } from "./routine.tsx";
 import { modelSelectorScene } from "./settings.tsx";
 import { sessionScene } from "./session.tsx";
@@ -72,6 +75,8 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "settings-loading": settingsLoadingScene,
   "agent-profile-owner": () => agentProfileScene("owner"),
   "agent-profile-viewer": () => agentProfileScene("reader"),
+  "agent-profile-variance-reporter": varianceReporterScene,
+  "skill-detail": skillDetailScene,
   "marketplace-admin": () => marketplaceScene("admin"),
   "marketplace-member": () => marketplaceScene("member"),
   "session-busy": () => sessionScene("busy", { inspector: true }),
@@ -92,6 +97,9 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "routine-new": routineNewScene,
   "routine-disabled": () => routineDetailScene("disabled"),
   "routine-history": () => routineDetailScene("history"),
+  "environment-new": environmentNewScene,
+  "environment-agent": agentEnvironmentScene,
+  "environment-run-settings": runSettingsScene,
   "agent-chat-panel": () => agentChatScene("busy", "panel", true),
   "agent-chat-popup-closed": () => agentChatScene("busy", "popup", false),
   "agent-chat-popup": () => agentChatScene("finished", "popup", true),

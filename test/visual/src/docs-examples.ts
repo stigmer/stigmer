@@ -48,5 +48,31 @@ export const AGENT_EXAMPLE = {
   envDescriptions: ["Base URL of the ledger API", "API key for the ledger API"],
 } as const satisfies DocsExample;
 
+/** `docs/concepts/skills.mdx`: the Skill it prints as one SKILL.md, whose page shows the description over the body. */
+export const SKILL_EXAMPLE = {
+  page: "concepts/skills",
+  name: "variance-report",
+  description:
+    "How to lay out a variance report and which variances to flag. Use when a customer asks for a variance report, or hands over a ledger to review against its budget.",
+  skillMd: "---\nname: variance-report\ndescription: >\n  How to lay out a variance report and which variances to flag. Use when a\n  customer asks for a variance report, or hands over a ledger to review against\n  its budget.\n---\n\n# Variance report\n\n## What to flag\n\n- Flag every account more than 10% over or under its budget.\n- Flag any account more than 5,000 over or under, whatever its percentage.\n- Revenue under budget is always flagged, even by 1%.\n\n## Layout\n\nSave the report as `variance-report.md`, laid out like\n`references/report-template.md`:\n\n- a two-sentence summary of the quarter;\n- one table of every account (budget, actual, variance in money and as a\n  percentage), flagged accounts first;\n- one line under the table for each flagged account, saying what could explain\n  it.\n\n## When the ledger doesn't add up\n\n- An account with no budget is listed but not flagged; say so in its line.\n- If the totals don't match the ledger's own total row, stop and say which rows\n  differ instead of writing the report.\n",
+} as const satisfies DocsExample;
+
+/**
+ * `docs/guides/environments/set-up-an-environment.mdx`: the Environment it
+ * makes, in the console and as a file, the data team's Agent it becomes the
+ * default of, and how a conversation names it.
+ */
+export const ENVIRONMENT_EXAMPLE = {
+  page: "guides/environments/set-up-an-environment",
+  name: "Data science",
+  slug: "data-science",
+  description: "pandas and poppler, GitHub and our API only",
+  hosts: ["api.github.com", "our-api.example.com"],
+  apt: ["poppler-utils"],
+  pip: ["pandas", "sqlalchemy==2.0.30"],
+  agent: "data-analyst",
+  conversationRow: "data-science · the agent's default",
+} as const satisfies DocsExample;
+
 /** Every page's example, for the site's check. */
-export const DOCS_EXAMPLES: readonly DocsExample[] = [ROUTINE_EXAMPLE, AGENT_EXAMPLE];
+export const DOCS_EXAMPLES: readonly DocsExample[] = [ROUTINE_EXAMPLE, AGENT_EXAMPLE, SKILL_EXAMPLE, ENVIRONMENT_EXAMPLE];
