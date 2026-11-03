@@ -128,7 +128,7 @@ export function ThemePlayground() {
               onClick={() => setTheme((current) => ({ ...current, radius: null }))}
               className="text-xs text-fd-muted-foreground underline underline-offset-2"
             >
-              Use the preset's radius
+              Use the preset&rsquo;s radius
             </button>
           )}
         </div>
