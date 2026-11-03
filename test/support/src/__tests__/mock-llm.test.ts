@@ -429,3 +429,40 @@ describe("MockLlmProxy bind host", () => {
     }
   });
 });
+
+describe("MockLlmProxy retired runs", () => {
+  it("refuses a run heard from before reset() with a 410 it never retries, and leaves the next test's turn queued", async () => {
+    mock.enqueue(anthropicText("the earlier test's turn"));
+    expect((await postFor("run_stale")).status).toBe(200);
+    mock.reset();
+
+    mock.enqueue(anthropicText("this test's turn"));
+    const stale = await postFor("run_stale");
+    expect(stale.status).toBe(410);
+    expect(stale.headers.get("x-should-retry"), "the provider's no-retry hint").toBe("false");
+    expect(JSON.stringify(await stale.json())).toContain("run_stale belongs to a test that already ended");
+    expect(mock.remaining(), "the stale run took nothing").toBe(1);
+    expect(mock.requests().map((r) => r.disposition)).toEqual(["retired"]);
+    expect(mock.scriptedRequests(), "a retired request is never scripted").toHaveLength(0);
+  });
+
+  it("serves a run first heard after reset(), and a request that names no run", async () => {
+    await postFor("run_before");
+    mock.reset();
+
+    mock.enqueue(anthropicText("one")).enqueue(anthropicText("two"));
+    expect((await postFor("run_after")).status).toBe(200);
+    expect((await postFor(undefined)).status).toBe(200);
+    expect(mock.requests().map((r) => r.disposition)).toEqual(["scripted", "scripted"]);
+    expect(mock.remaining()).toBe(0);
+  });
+
+  it("retires a run heard from through any answer, an unscripted one included", async () => {
+    expect((await postFor("run_unscripted")).status, "the queue is empty").toBe(500);
+    mock.reset();
+
+    mock.enqueue(anthropicText("this test's turn"));
+    expect((await postFor("run_unscripted")).status).toBe(410);
+    expect(mock.remaining()).toBe(1);
+  });
+});

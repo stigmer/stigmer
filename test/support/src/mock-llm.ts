@@ -19,7 +19,7 @@
 // Temporal fire-and-forget racing the agent turn, and letting it claim queued
 // turns broke every agent suite at once (approval gates sailed to COMPLETED on
 // the eaten tool_use turn, forced failures completed, smoke turns starved —
-// stigmer/stigmer#715). Two defenses, in order:
+// stigmer/stigmer#715). Three defenses, in order:
 //   1. Provider fence — this mock speaks ONLY Anthropic; a request on any
 //      other provider's proxy path is answered with a loud 500 instead of a
 //      queued turn (#715's thief was the titling call leaving on the OpenAI
@@ -30,10 +30,21 @@
 //      prompt) are answered out-of-band with a canned body, never from the
 //      queue. A NEW background call class surfaces as a hard 500 ("no queued
 //      response") — extend the signature match here, never the test queues.
+//   3. Retired runs — the queue belongs to the test that wrote it. Every
+//      model call names its run (X-Stigmer-Execution-Id, which the runner's
+//      proxy headers carry), and reset() retires every run the mock has heard
+//      from. A later call from a retired run is answered 410, a refusal the
+//      runner never retries, instead of taking the next test's turns: a turn
+//      a test left behind (a superseded turn's client still retrying an
+//      aborted call) otherwise claimed the next test's answer, or met the
+//      empty queue's 500 and retried it for up to two minutes into later
+//      tests. A call that names no run is never retired. reset() at the
+//      afterEach boundary, or mid-test after earlier runs ended, is already
+//      the point every suite treats as "the runs before this are done".
 // Out-of-band and fenced requests still appear in requests(): that surface's
 // contract is "everything the model received over the wire". Each captured
 // request also carries the DISPOSITION the branch that answered it decided
-// (scripted, out-of-band, fenced, unscripted), so a suite that wants only the
+// (scripted, out-of-band, fenced, unscripted, retired), so a suite that wants only the
 // agent loop's requests reads scriptedRequests() — never re-deriving the
 // titling match from prompt text, which would be a second copy of the
 // signature this mock owns.
@@ -153,9 +164,11 @@ export const DEFAULT_ERROR_BODY = {
 // - fenced: refused by the provider fence (a non-Anthropic proxy path);
 // - unscripted: found the queue empty (answered with the 500 authoring error,
 //   or with the persistent fault a scripted turn left behind);
+// - retired: came from a run an earlier reset() retired, and was refused
+//   with a 410 before the queue was consulted;
 // - routed: answered by the router from the request's own content (a
 //   router's background answer, marked outOfBand, is out-of-band).
-export type RequestDisposition = "scripted" | "out-of-band" | "fenced" | "unscripted" | "routed";
+export type RequestDisposition = "scripted" | "out-of-band" | "fenced" | "unscripted" | "routed" | "retired";
 
 // The header every model call the runner makes for a run carries
 // (shared/llm-proxy.ts buildProxyHeaders), as Node lower-cases it.
@@ -346,6 +359,12 @@ export class MockLlmProxy {
   // same way and for the same reason: a summary claiming a turn would derail
   // the script.
   private summaryRequestCount = 0;
+  // The runs the mock has heard from since the last reset(), and the runs an
+  // earlier reset() retired (the header's third defense). Retired ids are kept
+  // for the file's life: run ids are unique, so the set only grows by the
+  // runs a file starts.
+  private readonly heardRuns = new Set<string>();
+  private readonly retiredRuns = new Set<string>();
   // Whether the embeddings path is answered (by computation) or fenced (the
   // default, the no-embedder posture). A per-file posture, so reset() leaves it.
   private embeddingsServed = false;
@@ -488,9 +507,14 @@ export class MockLlmProxy {
   }
 
   // Drop any unconsumed turns and the router a test installed, zero the
-  // consumed counter, clear captured requests, and re-arm holds. Call in afterEach so a prior test's leftovers
-  // can't leak into the next one.
+  // consumed counter, clear captured requests, re-arm holds, and retire every
+  // run heard from so far (the header's third defense). Call in afterEach so a
+  // prior test's leftovers can't leak into the next one.
   reset(): void {
+    for (const run of this.heardRuns) {
+      this.retiredRuns.add(run);
+    }
+    this.heardRuns.clear();
     this.queue.length = 0;
     this.consumedCount = 0;
     this.captured.length = 0;
@@ -608,6 +632,10 @@ export class MockLlmProxy {
   }
 
   private capture(request: CapturedLlmRequest): CapturedLlmRequest {
+    const run = executionIdOf(request.headers);
+    if (run !== undefined && !this.retiredRuns.has(run)) {
+      this.heardRuns.add(run);
+    }
     this.captured.push(request);
     this.onCapture?.(request);
     return request;
@@ -717,6 +745,27 @@ export class MockLlmProxy {
       } else {
         writeJson(res, 200, body);
       }
+      return;
+    }
+
+    // A run an earlier reset() retired never takes this test's turns (the
+    // header's third defense): refused with a status the runner does not
+    // retry, and the provider's own no-retry hint, so the stale turn ends now.
+    const run = executionIdOf(headers);
+    if (run !== undefined && this.retiredRuns.has(run)) {
+      this.capture({ path, body: parsedBody, disposition: "retired", headers, receivedAt });
+      writeJson(
+        res,
+        410,
+        {
+          type: "error",
+          error: {
+            type: "invalid_request_error",
+            message: `MockLlmProxy: run ${run} belongs to a test that already ended (reset() retired it); its calls never take a later test's queued turns`,
+          },
+        },
+        { "x-should-retry": "false" },
+      );
       return;
     }
 
