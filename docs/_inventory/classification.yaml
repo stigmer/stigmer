@@ -864,7 +864,10 @@ pages:
     teaches:
       Install the CLI, point it at a local or cloud backend, and run first
       commands.
-    medium: none
+    medium: animated-tour
+    why:
+      What stigmer run draws is a turn unfolding — tool calls, an ask, the
+      approval, the answer — whose order is the lesson.
 
   # ── SDK ────────────────────────────────────────────────────────────────
   sdk:
@@ -969,10 +972,10 @@ pages:
     teaches:
       Run a turn in the terminal with runInTerminal and get control back, give
       the kit your colours, or compose InkStigmerProvider with components.
-    medium: still
+    medium: animated-tour
     why:
-      A terminal UI documented with no visual at all; one frame of SessionApp
-      rendering a session shows the outcome.
+      The session view is learned by watching a turn unfold in it — what is
+      written once to the scrollback, what redraws, the ask and its answer.
 
   sdk/ink/cli-integration:
     fate: keep

@@ -10,6 +10,7 @@ import { Card, Cards } from "fumadocs-ui/components/card";
 import { Diagram, Hero, Mermaid, ReactSdkDomains, SDKTabs, Term } from "@/components/docs";
 import { Live } from "@/components/visuals/Live";
 import { Screen } from "@/components/visuals/Screen";
+import { TerminalRecording } from "@/components/visuals/TerminalRecording";
 import { ThemePlayground } from "@/components/visuals/ThemePlayground";
 
 export function getMDXComponents(components?: MDXComponents) {
@@ -36,6 +37,7 @@ export function getMDXComponents(components?: MDXComponents) {
     Screen,
     SDKTabs,
     Term,
+    TerminalRecording,
     ThemePlayground,
     ...components,
   } satisfies MDXComponents;
