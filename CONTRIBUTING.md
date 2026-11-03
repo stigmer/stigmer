@@ -22,17 +22,17 @@ git clone https://github.com/stigmer/stigmer.git
 cd stigmer
 make setup     # Install Go dependencies and git hooks
 npm install    # Install Node.js dependencies (web console + proto stubs)
-make local     # Build the local stigmer-server (the CLI runs from @stigmer/cli)
+make local     # Build the local server and runner (the CLI runs from @stigmer/cli)
 make test      # Run tests
 ```
 
 **Development workflow**:
 
 ```bash
-# Rebuild the local stigmer-server after backend changes
+# Rebuild the local server and runner after backend changes
 make local
 
-# Run the CLI from source (resolves the local server build automatically)
+# Run the CLI from source (resolves the local server and runner builds automatically)
 npm start -w @stigmer/cli -- up
 ```
 

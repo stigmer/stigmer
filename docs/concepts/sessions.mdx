@@ -29,20 +29,16 @@ complete thread when processing each new message.
 
 ## How Sessions fit in the lifecycle
 
-A Session names the Agent it talks to, and each message in it is one run:
+A Session names the Agent it talks to, and each message in it is one run. Here
+is Northwind Books' Session after its two messages, as its log of events:
 
-{/* prettier-ignore */}
-<Mermaid
-  chart={`
-graph LR
-  A["Agent"] --> S["Session"]
-  S --> E1["run 1"]
-  S --> E2["run 2"]
-  S --> E3["run 3"]
-`}
-/>
+<Diagram name="session-log" />
 
-Each request-response cycle within a Session creates an
+The log is in the Claude Managed Agents event format. Stigmer's own events
+(`stigmer.*`, each run's phase among them) sit beside these on Stigmer's own
+API; [Stigmer's own events](/docs/sdk/streaming#stigmers-own-events) lists them.
+
+Each request-response cycle within a Session creates a
 [run](/docs/concepts/agents#blueprint-vs-runtime). The run sees all previous
 messages from the Session — this is how the Agent remembers context.
 
@@ -62,7 +58,9 @@ A Session keeps three things for as long as it exists:
 - **Its events.** Everything the Agent does is written to one ordered log of
   events, in the Claude Managed Agents event format: its messages, its tool uses
   and their results, the calls waiting for an approval, and each run's phase.
-  Your app follows the log as it grows ([Streaming](/docs/sdk/streaming)).
+  Stigmer's server writes the messages, the answers and the Session's status;
+  the runner writes what the Agent did. Your app follows the log as it grows
+  ([Streaming](/docs/sdk/streaming)).
 - **Its files.** The Files you give it, and what the Agent saves in its outputs
   folder, which come back as Files of the Session
   ([Files](/docs/concepts/files)).

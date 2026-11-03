@@ -17,7 +17,8 @@
  *
  * The types and their starters:
  *   - "stigmer/mcp-server/connect": the server's plugin tools listing (`temporal/plugintools/names.ts` in the
- *     server), by plugin id and server name.
+ *     server), by plugin id and server name; refused on a session's queue
+ *     (`list-plugin-tools.ts`), where the server never starts it.
  *
  * ES2022 arbitrary module export names (`export { fn as "..." }`) let
  * us map TypeScript function names to the slash-delimited Temporal

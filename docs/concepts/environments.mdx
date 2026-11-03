@@ -58,7 +58,9 @@ way.
   `PATH`, so a package's install script gets exactly the rights the Agent's own
   `npm install` would. Each entry is a package name from its registry, never a
   web address, a git source, a file path or a file name such as `x.tgz`. An
-  `apt` entry never ends in `-`, which apt reads as removing the package.
+  `apt` entry never ends in `-`, which apt reads as removing the package. It
+  names one package exactly: an entry that matches no package fails the install,
+  rather than installing every package with a similar name.
 - **Its network.** Either **unrestricted** or **limited to listed websites**.
   Limited means a list of host names, such as `api.github.com`, reached over
   HTTPS; a host written `*.example.com` matches exactly one more label, so

@@ -35,8 +35,9 @@ and `vocabulary.md` are the truth.
   placeholder.
 - Every visual carries prose that stands alone: the markdown exports and the
   Copy-as-Markdown button see no image or diagram, so the lead-in and the alt
-  text carry the information. A `Screen`'s alt text is what the exports carry in
-  its place.
+  text carry the information. A `Screen`'s alt text, and a `Diagram`'s text
+  (`site/src/components/visuals/diagrams.ts`), is what the exports carry in its
+  place.
 - Every YAML block is contract-validated by `make check-docs-yaml`; an example
   that would not apply does not ship.
 - Match the register to the context from `vocabulary.md`; when unsure, write for

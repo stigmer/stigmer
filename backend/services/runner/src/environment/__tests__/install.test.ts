@@ -2,12 +2,13 @@
  * Pins the Environment's install (`install.ts`):
  *
  *   - the commands each manager runs, as argv, in the order apt, cargo,
- *     gem, go, npm, pip: apt updates then installs after `--`; cargo
- *     installs into the prefix; gem installs its unpinned entries together
- *     and each `name:ver` as `name -v ver`; go runs one `go install` per
- *     module with GOBIN, GOPATH and GOCACHE in the prefix; npm installs
- *     globally into the prefix after `--`; pip makes the venv, then installs
- *     with the venv's pip after `--`; only apt runs as root;
+ *     gem, go, npm, pip: apt updates then installs after `--`, by exact
+ *     name (`APT::Cmd::Pattern-Only`); cargo installs into the prefix; gem
+ *     installs its unpinned entries together and each `name:ver` as
+ *     `name -v ver`; go runs one `go install` per module with GOBIN, GOPATH
+ *     and GOCACHE in the prefix; npm installs globally into the prefix after
+ *     `--`; pip makes the venv, then installs with the venv's pip after `--`;
+ *     only apt runs as root;
  *   - the environment a command runs with: an agent command never carries a
  *     runner secret, carries the agent's HOME and the CA variables, and its
  *     PATH starts with the prefix's folders; apt's is only the PATH, the
@@ -118,7 +119,7 @@ describe("installCommands", () => {
     const gemArgs = ["gem", "install", "--no-document", "--install-dir", `${PREFIX}/gem`, "--bindir", bin];
     expect(commands.map((command) => [command.manager, command.argv, command.asAgent])).toEqual([
       ["apt", ["apt-get", "update"], false],
-      ["apt", ["apt-get", "install", "-y", "--no-install-recommends", "--", "poppler-utils=22.02.0-2", "jq"], false],
+      ["apt", ["apt-get", "install", "-y", "--no-install-recommends", "-o", "APT::Cmd::Pattern-Only=true", "--", "poppler-utils=22.02.0-2", "jq"], false],
       ["cargo", ["cargo", "install", "--root", PREFIX, "hyperfine@1.18.0", "ripgrep"], true],
       ["gem", [...gemArgs, "nokogiri", "rspec"], true],
       ["gem", [...gemArgs, "rails", "-v", "7.1.0"], true],
@@ -246,7 +247,7 @@ describe("installEnvironment", () => {
     expect(await installEnvironment(set, { identity, prefix, env: { PATH: programs }, run, log })).toBe("installed");
     expect(calls.map((call) => call.argv)).toEqual([
       [join(programs, "apt-get"), "update"],
-      [join(programs, "apt-get"), "install", "-y", "--no-install-recommends", "--", "jq"],
+      [join(programs, "apt-get"), "install", "-y", "--no-install-recommends", "-o", "APT::Cmd::Pattern-Only=true", "--", "jq"],
       [
         join(programs, "setpriv"),
         `--reuid=${identity.uid}`,

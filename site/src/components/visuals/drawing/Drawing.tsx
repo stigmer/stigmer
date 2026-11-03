@@ -1,6 +1,6 @@
 /**
- * The pieces every drawn picture is made of: its connectors (each line piece
- * and its chevron), its frames and a part's lit border.
+ * The pieces every drawn picture is made of: its boxes, its connectors (each
+ * line piece and its chevron), its frames and a part's lit border.
  *
  * Each piece is placed by the picture's stylesheet (`grid.ts`), by the
  * `data-area` or `data-frame` it carries, and lights by the layers the loop's
@@ -8,7 +8,13 @@
  * the foreground colour on a `data-stroke` layer that rests dim and fades up;
  * a connector no step lights rests quiet with no layer. They hold no state
  * and no hooks.
+ *
+ * A still picture uses the same pieces with no loop stylesheet: nothing
+ * dims its `data-stroke` layers, so the connectors given a part are its lit
+ * path, drawn in the foreground colour, and the rest stay quiet.
  */
+import type { ReactNode } from "react";
+import { Icon, type IconName } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
 import { corners, fraction, type Connector as ConnectorData, type Layout, type Segment } from "./grid";
 
@@ -143,4 +149,52 @@ function Ring({ part }: { part: string }) {
   );
 }
 
-export { Connector, Frame, Ring };
+export interface BoxProps {
+  /** The grid area it fills. */
+  area: string;
+  name: string;
+  /** Its small line under the name. */
+  detail?: string | null;
+  /** The part whose ring and ink a loop lights; a box in a still picture has none. */
+  part?: string;
+  /** A small icon before its name. */
+  icon?: IconName;
+  /** Drawn quiet: its name alone, muted, held to the top of its row, as a place the picture only points at. */
+  quiet?: boolean;
+  /** What it holds under its words, such as chips. */
+  children?: ReactNode;
+}
+
+/** A place in a picture: its name, its small line, and anything it holds, on the card colour. */
+function Box({ area, name, detail, part, icon, quiet = false, children }: BoxProps) {
+  if (quiet) {
+    return (
+      <span
+        data-area={area}
+        data-box=""
+        className="flex items-center justify-center self-start rounded-lg border border-subtle bg-card px-3 py-3 text-center text-muted-foreground"
+      >
+        {name}
+      </span>
+    );
+  }
+  return (
+    <span
+      data-area={area}
+      data-box=""
+      className="relative flex flex-col items-center justify-center gap-2 rounded-lg border border-subtle bg-card px-3 py-2.5 text-center"
+    >
+      {part ? <Ring part={part} /> : null}
+      <span data-ink={part} className="flex flex-col items-center gap-0.5 text-foreground">
+        <span className="flex items-center gap-1.5 font-medium">
+          {icon ? <Icon name={icon} className="h-4 w-4 shrink-0" /> : null}
+          {name}
+        </span>
+        {detail ? <span className="text-xs leading-4 text-muted-foreground">{detail}</span> : null}
+      </span>
+      {children ? <span className="grid max-w-full place-items-center">{children}</span> : null}
+    </span>
+  );
+}
+
+export { Box, Connector, Frame, Ring };

@@ -254,6 +254,20 @@ alt text. The build fails on a name the list does not hold or on blank alt text.
 />
 ```
 
+### Diagram
+
+A drawing in the site's own language: the homepage's boxes, frames and lines, or
+a list styled as a picture. `name` is an entry in
+`site/src/components/visuals/diagrams.ts`, which holds each drawing and the text
+it stands for. The drawing lays out by its own width, from a wide layout down to
+the phone's, and its words are page text. In the markdown exports the tag
+becomes that text, as its own paragraph. The build fails on a name the list does
+not hold.
+
+```mdx
+<Diagram name="runner-queue" />
+```
+
 ### ImageZoom
 
 Click-to-zoom for an image that is not a screen of the product, such as an
@@ -297,13 +311,20 @@ description: Step-by-step guide to defining and running your first Agent.
 - Use `code` formatting for CLI commands, file paths, config keys, and API
   fields.
 - Use tables to compare options or list parameters.
-- Use Mermaid diagrams for architecture, data flows, and state machines.
+- Use Mermaid diagrams for architecture, data flows, and state machines; a
+  concept page's own system picture is a `Diagram` (see "Diagrams").
 
 ## Diagrams
 
 Fenced ` ```mermaid ` code blocks render as interactive diagrams (client-side
 via Mermaid.js) in the site's dark theme. Prefer diagrams over lengthy textual
 descriptions of architecture or data flow.
+
+A concept page's picture of its own system, the one a reader returns to, is a
+`Diagram`: drawn in the site's language, readable at phone width, and carried
+into the markdown exports as text (the Runners page's queue, the Sessions page's
+log). Every other diagram is Mermaid. A new `Diagram` is code: its drawing, its
+text and its test live in `site/src/components/visuals/`.
 
 ````mdx
 ```mermaid
@@ -342,9 +363,11 @@ Stigmer documentation as plain text, following the
 
 The script `site/scripts/generate-llms-txt.ts` runs automatically after
 `next build`. It reads all `.mdx` files from `docs/`, strips frontmatter and
-import statements, and writes cleaned markdown to `out/`. Page ordering follows
-the `meta.json` files. Individual CLI command pages and the contributing section
-are placed in an "Optional" section in `llms.txt`.
+import statements, and writes cleaned markdown to `out/`. A `Screen` becomes a
+markdown image of its alt text, and a `Diagram` becomes the text it stands for,
+so no picture leaves a bare tag behind. Page ordering follows the `meta.json`
+files. Individual CLI command pages and the contributing section are placed in
+an "Optional" section in `llms.txt`.
 
 ### Commands
 

@@ -22,16 +22,11 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 import { Icon, type IconName } from "@/components/ui/icon";
 import { AGENT_GETS, type AgentGetId } from "@/lib/agent-gets";
-import { JOB, jobPathCss, type PartId } from "./job-path";
+import { CAPTION, JOB, jobPathCss, type PartId } from "./job-path";
 import { Ring } from "./drawing/Drawing";
 import { LoopPause } from "./drawing/LoopPause";
 
 const JOB_PATH_CSS = jobPathCss();
-
-const CAPTION =
-  `${JOB.customer}, a customer in your product, hands its agent ${JOB.ledger}. ` +
-  `The agent works through it for hours in its own computer, asks before it posts an adjustment, ` +
-  `and hands back ${JOB.report}, while every other customer's agent stays behind a wall.`;
 
 /** The small uppercase label the picture names things with. */
 const LABEL = "font-mono text-[11px] leading-[14px] tracking-[0.05em] uppercase";
