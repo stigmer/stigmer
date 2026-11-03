@@ -81,7 +81,7 @@ each one said as the visitor's worry with what a team would build, what Stigmer
 gives and its proofs, and the three more things the homepage says we built. The
 homepage's "hard parts" section and its "also built" strip render the claims,
 the job picture on the docs front page reads the titles through
-`site/src/lib/agent-gets.ts`, the homepage's first screen pins two of them, and
+`site/src/lib/agent-gets.ts`, and
 the job film in `marketing/` reads the titles here. A proof (`proof.ts`) is a
 measured figure, a picture the visual suite draws, a public test quoted in its
 own words, or a file or page; `__tests__/proofs.test.ts` fails, naming the

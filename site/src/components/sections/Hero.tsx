@@ -8,15 +8,15 @@
  * screen for its customer Northwind Books, with Stigmer's chat panel docked
  * beside it at the moment the ledger agent asks before it posts a
  * correction (test/visual/src/shown.ts, "in-product"). On a large screen it
- * spans the container; below `CROP_BREAKPOINT` the whole screen would be
+ * spans the container; below `CROP_MEDIA` the whole screen would be
  * too small to read, so the page shows the panel's crop of the same
  * drawing instead. It is the page's largest paint, so it loads first and
  * does not fade in; the copy above it keeps its reveal.
  *
- * Pins point at the parts of the drawing that prove a claim, only where
- * the drawing shows one (the suite checks where each part is drawn), and
- * the list under the picture says what each pin is and links to its proof
- * further down.
+ * The picture carries no marks. It shows two of the five things every
+ * customer's agent needs and none of the other three, and singling out
+ * two would say there are two; one line under it points to the section
+ * below, where all five are said with their proofs.
  */
 import * as React from "react";
 import Link from "next/link";
@@ -26,8 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Icon } from "@/components/ui/icon";
 import { FadeInUp, StaggerContainer, StaggerItem } from "@/components/ui/motion";
-import { CROP_BREAKPOINT, ScreenPicture } from "@/components/visuals/ScreenPicture";
-import { PinRail, ScreenPins } from "@/components/visuals/ScreenPins";
+import { ScreenPicture } from "@/components/visuals/ScreenPicture";
 
 export type HeroProps = React.HTMLAttributes<HTMLElement>;
 
@@ -37,6 +36,12 @@ export const HERO_SCREEN = { whole: "in-product", panel: "in-product-panel" } as
 /** What the picture shows, for a reader who cannot see it; true of both crops. */
 export const HERO_ALT =
   "Stigmer's chat panel inside a product, open beside Northwind Books' ledger. The ledger agent has read the ledger, found the Figma annual plan filed under office supplies, and waits for Approve or Deny before it posts the correction.";
+
+/** The line under the picture, pointing to the five below rather than at any one of them. */
+export const HERO_LINE = {
+  lead: "Behind that panel are five hard parts.",
+  link: "See how Stigmer handles each one",
+} as const;
 
 function Hero({ className, ...props }: HeroProps) {
   return (
@@ -116,12 +121,13 @@ function Hero({ className, ...props }: HeroProps) {
             alt={HERO_ALT}
             sizes="(width >= 80rem) 1216px, calc(100vw - 4rem)"
             priority
-          >
-            <ScreenPins source={HERO_SCREEN.whole} on={HERO_SCREEN.panel} className={CROP_BREAKPOINT.narrowOnly} />
-            <ScreenPins source={HERO_SCREEN.whole} className={CROP_BREAKPOINT.wideOnly} />
-          </ScreenPicture>
-          <PinRail source={HERO_SCREEN.whole} on={HERO_SCREEN.panel} className={cn("mt-6", CROP_BREAKPOINT.narrowOnly)} />
-          <PinRail source={HERO_SCREEN.whole} className={cn("mt-6", CROP_BREAKPOINT.wideOnly)} />
+          />
+          <p className="mt-6 text-center text-sm text-muted-foreground">
+            {HERO_LINE.lead}{" "}
+            <a href="#hard-parts" className="text-foreground underline underline-offset-4 hover:text-foreground/80">
+              {HERO_LINE.link}
+            </a>
+          </p>
         </div>
 
         {/* Stats bar */}

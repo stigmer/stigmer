@@ -10,15 +10,10 @@
  * and the markdown exports link the sharpest one in the tag's place
  * (`cleanContent` in ./llms-pages.ts). All three name the files through
  * this module, so they cannot disagree on one.
- *
- * A picture's marks (the parts a page points a pin at) come from the same
- * list, where the suite checks each against the drawing; `placedMarks`
- * places them on the picture or on a crop of the same drawing.
  */
-import { AGENT_GET_ORDER, type AgentGetId } from "../../../brand/agent-gets";
-import { SHOWN, SHOWN_SCALE, shownSize, type Shown, type ShownMark } from "../../../test/visual/src/shown";
+import { SHOWN, SHOWN_SCALE, shownSize, type Shown } from "../../../test/visual/src/shown";
 
-export { SHOWN, SHOWN_SCALE, shownSize, type Shown, type ShownMark };
+export { SHOWN, SHOWN_SCALE, shownSize, type Shown };
 
 /** The folder under `public/` the converted screens are written to, and the path they are served from. */
 export const SCREENS_DIR = "screens";
@@ -52,43 +47,3 @@ export function screenSrcSet(name: string): string {
   return SCREEN_DENSITIES.map((density) => `${screenPath(name, density)} ${width * density}w`).join(", ");
 }
 
-/** A mark placed on a picture: the claim it labels and its box, in percent of the picture. */
-export interface PlacedMark {
-  readonly id: AgentGetId;
-  readonly left: number;
-  readonly top: number;
-  readonly width: number;
-  readonly height: number;
-}
-
-/**
- * The marks of the picture `source`, placed on the picture `on`: the same
- * picture, or another crop of the same drawing. A mark that does not lie
- * wholly inside `on` is left off, so a pin never points past the picture's
- * edge. In the brand's order, so the pins number the claims as every list
- * of them does.
- */
-export function placedMarks(source: string, on: string = source): PlacedMark[] {
-  const from = shownScreen(source);
-  const to = shownScreen(on);
-  if (from.scene !== to.scene || from.viewport.width !== to.viewport.width || from.viewport.height !== to.viewport.height) {
-    throw new Error(`"${on}" is not a crop of the drawing "${source}" marks`);
-  }
-  const crop = to.clip ?? { x: 0, y: 0, ...to.viewport };
-  const marks: Readonly<Record<string, ShownMark>> = from.marks ?? {};
-  return AGENT_GET_ORDER.flatMap((id) => {
-    const mark = marks[id];
-    if (mark === undefined) return [];
-    const { x, y, width, height } = mark.box;
-    if (x < crop.x || y < crop.y || x + width > crop.x + crop.width || y + height > crop.y + crop.height) return [];
-    return [
-      {
-        id,
-        left: ((x - crop.x) / crop.width) * 100,
-        top: ((y - crop.y) / crop.height) * 100,
-        width: (width / crop.width) * 100,
-        height: (height / crop.height) * 100,
-      },
-    ];
-  });
-}
