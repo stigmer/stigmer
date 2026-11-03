@@ -72,7 +72,8 @@ describe("pidfile (the process's start time)", () => {
     expect(recordedLiveProcess(path)).toBeNull();
   });
 
-  // G1: a file from a CLI before the start-time line is trusted as it was.
+  // A file from a CLI before the start-time line is trusted as it was, so an
+  // upgrade never forgets a running stack.
   it("trusts a file with no start time on liveness alone", () => {
     const path = join(tempDir("stigmer-pid-"), "daemon.pid");
     writeFileSync(path, `${process.ppid}\n`);
