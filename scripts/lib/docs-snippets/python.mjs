@@ -96,7 +96,7 @@ function assemble(unit) {
   const used = [...unit.prelude, ...unit.setup, ...unit.body].map((l) => l.text).join("\n");
   a.add(...convention.imports);
   for (const [name, type] of Object.entries(convention.context)) {
-    if (new RegExp(`\\b${name}\\b`).test(used)) a.add(`${name} = cast(${JSON.stringify(type)}, None)`);
+    if (new RegExp(`\\b${name}\\b`).test(used)) a.add(`${name} = _stigmer_docs_cast(${JSON.stringify(type)}, None)`);
   }
   a.addPrelude(unit.prelude.map((l) => l.text), unit.prelude.map((l) => l.line));
   a.addSource(unit.setup);

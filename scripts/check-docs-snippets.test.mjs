@@ -6,7 +6,8 @@
  * how a page's prelude reaches its fragments and is refused without one,
  * how a relative import finds the titled fence above it, which lines an
  * assembled file owes to the prelude, the theme playground's looks the gate
- * writes code for, and the list of known failures, which may only shrink. The compilers themselves are pinned against real
+ * writes code for, the list of known failures, which may only shrink, and
+ * the CLI's use of it against a base branch's list in a scratch repository. The compilers themselves are pinned against real
  * toolchains by scripts/lib/docs-snippets/compilers.test.mjs, in the lane
  * that sets them up.
  */
@@ -14,11 +15,17 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { splitSnippetSetup } from "../site/src/lib/snippet-setup.mjs";
-import { judge } from "./check-docs-snippets.mjs";
+import { execFileSync, spawnSync } from "node:child_process";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+import { judge, scopeOf } from "./check-docs-snippets.mjs";
 import { Assembly, located } from "./lib/docs-snippets/assemble.mjs";
 import { collectPage, relativeImports } from "./lib/docs-snippets/collect.mjs";
 import { classify, scanFences } from "./lib/docs-snippets/fences.mjs";
-import { packageName } from "./lib/docs-snippets/go.mjs";
+import { packageName, safeImportPaths } from "./lib/docs-snippets/go.mjs";
 import { livePresets, themeUnits } from "./lib/docs-snippets/theme-snippets.mjs";
 import {
   compareToList,
@@ -212,7 +219,7 @@ test("a run over some pages calls only their entries stale", () => {
   const outside = entryKey({ page: "b.mdx", language: "go", sha: "bbbbbbbbbbbb" });
   const scoped = within(new Map([[inRun, 1], [outside, 1]]), new Set(["a.mdx"]), new Set(["go"]));
   assert.deepEqual([...scoped.keys()], [inRun]);
-  const verdict = judge({ units: [], errors: [] }, { listed: new Map([[inRun, 1], [outside, 1]]), base: null, pages: ["a.mdx"], languages: ["go"] });
+  const verdict = judge({ units: [], errors: [] }, { listed: new Map([[inRun, 1], [outside, 1]]), base: null, scope: new Set(["a.mdx"]), languages: ["go"] });
   assert.equal(verdict.stale.length, 1);
   assert.equal(verdict.stale[0].page, "a.mdx");
 });
@@ -230,4 +237,99 @@ test("the playground's code is written for every live preset, in both modes, at 
   assert.deepEqual(new Set(seen.map((t) => `${t.mode}:${t.radius}`)), new Set(["light:null", "dark:null", "light:0.75", "dark:0.75"]));
   assert.ok(units.every((u) => u.kind === "file" && u.language === "typescript" && u.page === "site/src/lib/theme-snippet.mjs"));
   assert.throws(() => livePresets("export const OTHER = [];"), /no LIVE_PRESETS/);
+});
+
+test("a tilde fence is scanned as a backtick fence is, and closes only on its own character", () => {
+  const fences = scanFences("p.mdx", "~~~go\nx := 1\n```\n~~~\n~~~~python title=\"a`b.py\"\nprint(1)\n~~~~\n");
+  assert.equal(fences.length, 2);
+  assert.equal(fences[0].body, "x := 1\n```\n");
+  assert.equal(fences[1].lang, "python");
+});
+
+test("a Go fence cannot import a path the go command would read as a flag", () => {
+  assert.deepEqual(safeImportPaths(["fmt", "go.stigmer.ai/sdk"]), ["fmt", "go.stigmer.ai/sdk"]);
+  assert.throws(() => safeImportPaths(["fmt", "-toolexec=/bin/sh"]), /not an import path/);
+});
+
+test("a full run answers for every listed page, a narrowed run for its own, and the playground only when it compiled", () => {
+  const key = (page) => entryKey({ page, language: "go", sha: "aaaaaaaaaaaa" });
+  const listed = new Map([[key("docs/gone.mdx"), 1], [key("site/src/lib/theme-snippet.mjs"), 1]]);
+  assert.deepEqual([...scopeOf({ pages: ["docs/a.mdx"], units: [], listed, full: true })].sort(), ["docs/a.mdx", "docs/gone.mdx"]);
+  assert.deepEqual([...scopeOf({ pages: ["docs/a.mdx"], units: [], listed, full: false })], ["docs/a.mdx"]);
+  const withTheme = scopeOf({ pages: [], units: [{ page: "site/src/lib/theme-snippet.mjs" }], listed, full: false });
+  assert.deepEqual([...withTheme], ["site/src/lib/theme-snippet.mjs"]);
+});
+
+// The CLI against a scratch repository: a page with a fence that fails
+// (a string where a number goes) and one that compiles, in TypeScript alone,
+// which needs no toolchain beyond the workspace's compiler.
+const CLI = fileURLToPath(new URL("./check-docs-snippets.mjs", import.meta.url));
+const FAILS = "const total: number = \"12\";\n";
+const OTHER_FAILS = "const count: number = \"7\";\n";
+const page = (...bodies) => ["# Page", "", ...bodies.flatMap((b) => ["```typescript", b.trimEnd(), "```", ""])].join("\n");
+const listOf = (entries) => formatList(new Map(entries.map(([p, text]) => [entryKey({ page: p, language: "typescript", sha: fenceDigest(text) }), 1])));
+
+function scratchRepo(files) {
+  const dir = mkdtempSync(join(tmpdir(), "docs-snippets-cli-"));
+  for (const [path, text] of Object.entries(files)) {
+    mkdirSync(join(dir, path, ".."), { recursive: true });
+    writeFileSync(join(dir, path), text);
+  }
+  const git = (...args) => execFileSync("git", args, { cwd: dir, stdio: "pipe" });
+  git("init", "-q");
+  git("add", "-A");
+  git("-c", "user.email=docs@example.test", "-c", "user.name=docs", "commit", "-qm", "base");
+  const write = (path, text) => {
+    mkdirSync(join(dir, path, ".."), { recursive: true });
+    writeFileSync(join(dir, path), text);
+  };
+  return { dir, git, write };
+}
+
+const cli = (dir, ...args) => spawnSync(process.execPath, [CLI, "--lang=typescript", `--docs-root=${dir}`, ...args], { encoding: "utf8" });
+
+test("the CLI refuses a list that grew against the base's, and takes a base without one as the bootstrap", () => {
+  const repo = scratchRepo({
+    "docs/a.mdx": page(FAILS, "const ok = 1;\n"),
+    "test/docs-snippets-known-failing.json": listOf([["docs/a.mdx", FAILS]]),
+  });
+  try {
+    assert.equal(cli(repo.dir, "--base=HEAD").status, 0);
+    repo.write("docs/a.mdx", page(FAILS, OTHER_FAILS));
+    repo.write("test/docs-snippets-known-failing.json", listOf([["docs/a.mdx", FAILS], ["docs/a.mdx", OTHER_FAILS]]));
+    const grown = cli(repo.dir, "--base=HEAD");
+    assert.equal(grown.status, 1);
+    assert.match(grown.stdout, /is not on HEAD's list; the list may only shrink/);
+  } finally {
+    rmSync(repo.dir, { recursive: true, force: true });
+  }
+  const bootstrap = scratchRepo({ "docs/a.mdx": page(FAILS) });
+  try {
+    bootstrap.write("test/docs-snippets-known-failing.json", listOf([["docs/a.mdx", FAILS]]));
+    assert.equal(cli(bootstrap.dir, "--base=HEAD").status, 0);
+  } finally {
+    rmSync(bootstrap.dir, { recursive: true, force: true });
+  }
+});
+
+test("--prune drops what a run no longer fails, keeps entries outside the run, and a full run calls a vanished page's entry stale", () => {
+  const repo = scratchRepo({
+    "docs/a.mdx": page("const fixed = 1;\n"),
+    "docs/b.mdx": page(OTHER_FAILS),
+    "test/docs-snippets-known-failing.json": listOf([["docs/a.mdx", FAILS], ["docs/b.mdx", OTHER_FAILS], ["docs/gone.mdx", FAILS]]),
+  });
+  try {
+    const stale = cli(repo.dir);
+    assert.equal(stale.status, 1);
+    assert.match(stale.stdout, /docs\/a\.mdx: a listed typescript fence/);
+    assert.match(stale.stdout, /docs\/gone\.mdx: a listed typescript fence/);
+    assert.equal(cli(repo.dir, "--page=docs/a.mdx", "--prune").status, 0);
+    const kept = parseList(readFileSync(join(repo.dir, "test/docs-snippets-known-failing.json"), "utf8"));
+    assert.deepEqual([...kept.keys()].map((k) => k.split("\u0000")[0]).sort(), ["docs/b.mdx", "docs/gone.mdx"]);
+    assert.equal(cli(repo.dir, "--prune").status, 0);
+    const full = parseList(readFileSync(join(repo.dir, "test/docs-snippets-known-failing.json"), "utf8"));
+    assert.deepEqual([...full.keys()].map((k) => k.split("\u0000")[0]), ["docs/b.mdx"]);
+  } finally {
+    rmSync(repo.dir, { recursive: true, force: true });
+  }
 });

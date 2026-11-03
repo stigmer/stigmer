@@ -5,10 +5,11 @@
 //
 // A docs fragment shows a call, not a program, so the variables it declares
 // often go unused; Go's compiler refuses that outright, and this checker
-// ignores exactly that error and reports every other one.
+// ignores exactly that error in a fragment and reports every other one. A
+// whole file is a program, held to Go's own rule.
 //
 // Input (stdin, JSON): {"exports": {"<import path>": "<export file>"},
-// "units": [{"id": 1, "src": "package main ..."}]}.
+// "units": [{"id": 1, "src": "package main ...", "fragment": true}]}.
 // Output (stdout, JSON): [{"id": 1, "line": 3, "message": "..."}].
 package main
 
@@ -26,8 +27,9 @@ import (
 )
 
 type unit struct {
-	ID  int    `json:"id"`
-	Src string `json:"src"`
+	ID       int    `json:"id"`
+	Src      string `json:"src"`
+	Fragment bool   `json:"fragment"`
 }
 
 type input struct {
@@ -82,7 +84,7 @@ func check(u unit, exports map[string]string) []finding {
 		Importer: importer.ForCompiler(fset, "gc", lookup),
 		Error: func(err error) {
 			te, ok := err.(types.Error)
-			if ok && unusedVariable(te.Msg) {
+			if ok && u.Fragment && unusedVariable(te.Msg) {
 				return
 			}
 			out = append(out, positioned(u.ID, fset, err))
@@ -93,7 +95,7 @@ func check(u unit, exports map[string]string) []finding {
 }
 
 // unusedVariable reports go/types' "declared and not used" error, the one
-// error a fragment that shows a call is allowed.
+// error a fragment that shows a call is allowed; a whole file is not.
 func unusedVariable(msg string) bool {
 	return strings.HasPrefix(msg, "declared and not used")
 }

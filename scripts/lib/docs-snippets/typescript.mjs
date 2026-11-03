@@ -40,6 +40,10 @@ const COMPILER_OPTIONS = {
   allowImportingTsExtensions: true,
   resolveJsonModule: true,
   esModuleInterop: true,
+  // The runner is a package of its own (its own lockfile, outside the npm
+  // workspace), so the docs read its types from its source, as its published
+  // declarations are built from it.
+  paths: { "@stigmer/runner": ["./backend/services/runner/src/index.ts"] },
 };
 
 /**

@@ -42,8 +42,13 @@ export const GO_PRELUDES = {
   },
 };
 
+// The convention's own imports are under private names, so a fragment that
+// uses `StigmerClient` or `cast` still has to import it, as a reader's file does.
 export const PYTHON_PRELUDES = {
-  sdk: { imports: ["from typing import cast", "from stigmer import StigmerClient"], context: { client: "StigmerClient" } },
+  sdk: {
+    imports: ["from typing import cast as _stigmer_docs_cast", "from stigmer import StigmerClient as _StigmerDocsClient"],
+    context: { client: "_StigmerDocsClient" },
+  },
 };
 
 export const JAVA_PRELUDES = {

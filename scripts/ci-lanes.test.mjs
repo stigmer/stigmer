@@ -54,11 +54,13 @@ test("laneId is the workflow file without `ci.` and the extension", () => {
 });
 
 test("a path in a lane's list selects that lane; the always lane runs for every change", () => {
+  // The docs compile the runner's library examples against its source.
   assert.deepEqual(selected(["backend/services/runner/src/x.ts"]), [
     "conformance",
     "conformance-enterprise",
     "conformance-execution",
     "e2e-interactive",
+    "docs-snippets",
     "runner",
     "ts-workspace",
   ]);
@@ -75,7 +77,7 @@ test("a path in a lane's list selects that lane; the always lane runs for every 
 });
 
 test("the runner's model path runs every install journey beside the runner's own lanes", () => {
-  const installs = ["all-in-one", "cli-up", "compose-stack", "conformance", "conformance-enterprise", "conformance-execution", "e2e-interactive", "helm-chart", "runner", "ts-workspace"];
+  const installs = ["all-in-one", "cli-up", "compose-stack", "conformance", "conformance-enterprise", "conformance-execution", "e2e-interactive", "docs-snippets", "helm-chart", "runner", "ts-workspace"];
   assert.deepEqual(selected(["backend/services/runner/src/shared/model-client.ts"]), installs);
   assert.deepEqual(selected(["backend/services/runner/src/shared/llm-backend.ts"]), installs);
   assert.deepEqual(selected(["backend/services/runner/src/shared/llm-proxy.ts"]), installs);

@@ -131,15 +131,35 @@ function dedupe(errors) {
 }
 
 /**
+ * The pages a run answers for on the list: the pages it read, the theme
+ * playground's writer when it compiled its code, and, in a full run, every
+ * page the list names, so an entry for a page no longer in the tree is stale.
+ * The writer is the exception: a tree without it has no such units to judge.
+ * @param {{pages: string[], units: {page: string}[], listed: Map<string, number>, full: boolean}} opts
+ * @returns {Set<string>}
+ */
+export function scopeOf({ pages, units, listed, full }) {
+  const scope = new Set(pages);
+  if (units.some((u) => u.page === THEME_SNIPPET_FILE)) scope.add(THEME_SNIPPET_FILE);
+  if (full) {
+    for (const key of listed.keys()) {
+      const page = key.split("\u0000")[0];
+      if (page !== THEME_SNIPPET_FILE) scope.add(page);
+    }
+  }
+  return scope;
+}
+
+/**
  * The gate's verdict over one run: which failures the list covers, which it
  * does not, the stale entries and the growth against the base.
  * @param {{units: object[], errors: object[]}} run
- * @param {{listed: Map<string, number>, base: Map<string, number> | null, pages: string[], languages: string[]}} list
+ * @param {{listed: Map<string, number>, base: Map<string, number> | null, scope: Set<string>, languages: string[]}} list
  */
-export function judge(run, { listed, base, pages, languages }) {
+export function judge(run, { listed, base, scope, languages }) {
   const failingIds = new Set(run.errors.map((e) => e.id));
   const failing = failingMultiset(run.units, failingIds);
-  const scoped = within(listed, new Set(pages), new Set(languages));
+  const scoped = within(listed, scope, new Set(languages));
   const { unlisted, stale } = compareToList(failing, scoped);
   const unlistedKeys = new Set(unlisted.map(entryKey));
   return { failing, unlisted, stale, grown: growthAgainstBase(listed, base), unlistedKeys };
@@ -202,13 +222,14 @@ async function main() {
 
   const listed = existsSync(listFile) ? parseList(readFileSync(listFile, "utf8")) : new Map();
   const base = values.base === undefined ? null : readBaseList(docsRoot, values.base);
-  const verdict = judge(run, { listed, base, pages, languages });
+  const scope = scopeOf({ pages, units: run.units, listed, full: values.page === undefined });
+  const verdict = judge(run, { listed, base, scope, languages });
 
   if (values.prune) {
-    const scope = within(listed, new Set(pages), new Set(languages));
-    const kept = prune(scope, verdict.failing);
+    const inRun = within(listed, scope, new Set(languages));
+    const kept = prune(inRun, verdict.failing);
     // Entries outside this run's pages and languages are kept as they are.
-    for (const [key, count] of listed) if (!scope.has(key)) kept.set(key, count);
+    for (const [key, count] of listed) if (!inRun.has(key)) kept.set(key, count);
     writeFileSync(listFile, formatList(kept));
     process.stdout.write(`pruned ${KNOWN_FAILING_FILE}: ${[...kept.values()].reduce((a, b) => a + b, 0)} listed\n`);
     verdict.stale = [];

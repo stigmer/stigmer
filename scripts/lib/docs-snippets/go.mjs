@@ -15,7 +15,8 @@
  * functions or types of its own at the left margin, when it stays at package
  * level.
  *
- * Only "declared and not used" is ignored (the tool says why), and an unused
+ * Only "declared and not used" is ignored, in a fragment alone (the tool says
+ * why; a whole file is held to Go's own rule), and an unused
  * import the convention or the prelude added: a fragment uses the part of
  * the prelude it needs, not all of it.
  */
@@ -41,7 +42,7 @@ export function checkGo(units, { repoRoot }) {
   const out = execFileSync("go", ["run", "."], {
     cwd: TOOL_DIR,
     env: { ...process.env, GOWORK: "off", GOFLAGS: "-mod=mod" },
-    input: JSON.stringify({ exports, units: assembled.map((a) => ({ id: a.unit.id, src: a.assembly.text() })) }),
+    input: JSON.stringify({ exports, units: assembled.map((a) => ({ id: a.unit.id, src: a.assembly.text(), fragment: a.unit.kind === "fragment" })) }),
     encoding: "utf8",
     maxBuffer: 64 * 1024 * 1024,
   });
@@ -56,10 +57,23 @@ export function checkGo(units, { repoRoot }) {
   return errors;
 }
 
+/**
+ * The import paths a fence names, refused when one could read as a flag:
+ * `go list` would take `import "-toolexec=…"` as an option and run it.
+ * @param {string[]} paths
+ */
+export function safeImportPaths(paths) {
+  for (const path of paths) {
+    if (path.startsWith("-")) throw new Error(`a Go fence imports "${path}", which is not an import path`);
+  }
+  return paths;
+}
+
 // Export data for every package the fences import and their dependencies,
-// built in the SDK module so its requirements resolve them.
+// built in the SDK module so its requirements resolve them. The paths follow
+// `--`, so none is read as a flag.
 function exportData(repoRoot, paths) {
-  const out = execFileSync("go", ["list", "-e", "-export", "-deps", "-json=ImportPath,Export,Error", ...paths], {
+  const out = execFileSync("go", ["list", "-e", "-export", "-deps", "-json=ImportPath,Export,Error", "--", ...safeImportPaths(paths)], {
     cwd: join(repoRoot, "sdk", "go"),
     encoding: "utf8",
     maxBuffer: 256 * 1024 * 1024,

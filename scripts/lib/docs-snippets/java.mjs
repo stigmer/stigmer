@@ -54,7 +54,11 @@ export function checkJava(units, { repoRoot, classpathFile }) {
     const errors = [];
     let pending = [...files.keys()];
     while (pending.length > 0) {
-      const found = parseJavac(javac(dir, classpath, pending), files);
+      const out = javac(dir, classpath, pending);
+      const found = parseJavac(out, files);
+      // javac exited non-zero with nothing the gate can place on a page (a
+      // bad classpath, a crash): the run is not a pass.
+      if (found.length === 0 && out !== "") throw new Error(`javac failed with no error the snippet gate can place:\n${out}`);
       if (found.length === 0) break;
       errors.push(...found);
       const failed = new Set(found.map((e) => e.file));

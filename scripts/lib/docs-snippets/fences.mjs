@@ -4,8 +4,8 @@
  *
  * Scanning follows CommonMark fence rules (the docs YAML gate's scanner,
  * `tools/codegen/src/generator/mdx-fence-scanner.ts`, follows the same ones):
- * a fence opened with N backticks closes only on a line of at least N
- * backticks, fences may be indented up to three spaces (inside list items)
+ * a fence opened with N backticks (or N tildes) closes only on a line of at
+ * least N of the same, fences may be indented up to three spaces (inside list items)
  * and that indent is stripped from the body, and an unclosed fence is an
  * error, so a truncated block fails loudly instead of slipping past.
  *
@@ -66,12 +66,12 @@ export function scanFences(path, src) {
       const opening = parseOpening(line);
       if (opening === null) continue;
       const [lang, meta] = splitInfo(opening.info);
-      open = { path, line: i + 1, lang, meta, body: "", ticks: opening.ticks, indent: opening.indent };
+      open = { path, line: i + 1, lang, meta, body: "", ticks: opening.ticks, char: opening.char, indent: opening.indent };
       body = [];
       continue;
     }
-    if (isClosing(line, open.ticks)) {
-      const { ticks: _t, indent: _i, ...fence } = open;
+    if (isClosing(line, open.char, open.ticks)) {
+      const { ticks: _t, char: _c, indent: _i, ...fence } = open;
       fences.push({ ...fence, body: body.length > 0 ? `${body.join("\n")}\n` : "" });
       open = null;
       continue;
@@ -88,18 +88,21 @@ function parseOpening(line) {
   const indent = leading(line, " ");
   if (indent > 3) return null;
   const rest = line.slice(indent);
-  const ticks = leading(rest, "`");
+  const char = rest[0];
+  if (char !== "`" && char !== "~") return null;
+  const ticks = leading(rest, char);
   if (ticks < 3) return null;
   const info = rest.slice(ticks).trim();
-  if (info.includes("`")) return null;
-  return { indent, ticks, info };
+  // A backtick fence's info string cannot hold a backtick; a tilde fence's can.
+  if (char === "`" && info.includes("`")) return null;
+  return { indent, ticks, char, info };
 }
 
-function isClosing(line, ticks) {
+function isClosing(line, char, ticks) {
   const indent = leading(line, " ");
   if (indent > 3) return false;
   const rest = line.slice(indent);
-  const n = leading(rest, "`");
+  const n = leading(rest, char);
   return n >= ticks && rest.slice(n).trim() === "";
 }
 

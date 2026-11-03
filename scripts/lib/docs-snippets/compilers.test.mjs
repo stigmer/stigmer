@@ -69,11 +69,15 @@ const go = page("go", [
   { lang: "go", label: "good", body: ["me, err := client.IdentityAccount.WhoAmI(ctx)", "if err != nil {", "\tlog.Fatal(err)", "}", "fmt.Println(me)"] },
   { lang: "go", label: "setup", body: ["type ledger struct{ org string }", "", "var books ledger", "// ---cut---", "fmt.Println(books.org)"] },
   { lang: "go", label: "broken", body: ["agent, err := client.Agent.Get(ctx)", "fmt.Println(agent, err)"] },
+  // A whole program is held to Go's own rule: its unused variable is an error.
+  { lang: "go", label: "file", meta: 'title="main.go"', body: ["package main", "", "func main() {", "\tunused := 1", "}"] },
 ]);
 
 const python = page("python", [
   { lang: "python", label: "good", body: ["me = client.identity_accounts.who_am_i()", "print(me)"] },
   { lang: "python", label: "broken", body: ['agent = client.agents.get(id="agt_01", colour="red")'] },
+  // The gate's own client import is private: a fragment that names the class imports it.
+  { lang: "python", label: "unimported", body: ['local = StigmerClient(base_url="localhost:7234", insecure=True)'] },
 ]);
 
 const java = page("java", [
@@ -102,16 +106,18 @@ test("LIB-04 a TypeScript example that does not compile is reported at its page 
   assert.match(run.errors[0].message, /agnet/);
 });
 
-test("SDK-03 a Go example that does not compile is reported at its page and line, its prelude's unused imports forgiven", async () => {
+test("SDK-03 a Go example that does not compile is reported at its page and line, its prelude's unused imports forgiven and a whole file's unused variable not", async () => {
   const run = await gate([go], ["go"]);
   assert.deepEqual(run.problems, []);
-  assert.deepEqual(where(run), [`${go.path}:${go.at.broken}`]);
-  assert.match(run.errors[0].message, /not enough arguments/);
+  assert.deepEqual(where(run), [`${go.path}:${go.at.broken}`, `${go.path}:${go.at.file + 3}`].sort());
+  assert.match(run.errors.map((e) => e.message).join("\n"), /not enough arguments/);
+  assert.match(run.errors.map((e) => e.message).join("\n"), /declared and not used/);
 });
 
-test("SDK-03 a Python example calling with a keyword the SDK lacks is reported at its page and line", async () => {
+test("SDK-03 a Python example calling with a keyword the SDK lacks, or naming a class it never imported, is reported at its page and line", async () => {
   const run = await gate([python], ["python"]);
-  assert.deepEqual(where(run), [`${python.path}:${python.at.broken}`]);
+  assert.deepEqual(where(run), [`${python.path}:${python.at.broken}`, `${python.path}:${python.at.unimported}`].sort());
+  assert.match(run.errors.map((e) => e.message).join("\n"), /"StigmerClient" is not defined/);
   assert.match(run.errors.map((e) => e.message).join("\n"), /colour/);
 });
 
