@@ -30,9 +30,9 @@ func TestDefaultConfig(t *testing.T) {
 
 func TestWithAPIKey(t *testing.T) {
 	cfg := defaultConfig()
-	WithAPIKey("sk_test_123")(&cfg)
-	if cfg.apiKey != "sk_test_123" {
-		t.Errorf("expected sk_test_123, got %q", cfg.apiKey)
+	WithAPIKey("stk_test_123")(&cfg)
+	if cfg.apiKey != "stk_test_123" {
+		t.Errorf("expected stk_test_123, got %q", cfg.apiKey)
 	}
 }
 

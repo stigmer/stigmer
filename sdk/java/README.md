@@ -35,7 +35,7 @@ import ai.stigmer.sdk.StigmerClient;
 import ai.stigmer.sdk.gen.AgentInput;
 import ai.stigmer.agentic.agent.v1.Agent;
 
-try (StigmerClient client = StigmerClient.builder("sk_live_abc123").build()) {
+try (StigmerClient client = StigmerClient.builder(System.getenv("STIGMER_API_KEY")).build()) {
     Agent agent = client.agent.create(AgentInput.builder()
         .name("my-agent")
         .org("my-org")
@@ -48,7 +48,7 @@ try (StigmerClient client = StigmerClient.builder("sk_live_abc123").build()) {
 Or without try-with-resources:
 
 ```java
-StigmerClient client = StigmerClient.builder("sk_live_abc123").build();
+StigmerClient client = StigmerClient.builder(System.getenv("STIGMER_API_KEY")).build();
 Agent agent = client.agent.get("agent-id");
 client.close();
 ```
@@ -93,7 +93,7 @@ import ai.stigmer.agentic.agent.v1.AgentList;
 import ai.stigmer.agentic.agent.v1.ListAgentsRequest;
 import ai.stigmer.commons.apiresource.RenameInput;
 
-try (StigmerClient client = StigmerClient.builder("sk_live_abc123").build()) {
+try (StigmerClient client = StigmerClient.builder(System.getenv("STIGMER_API_KEY")).build()) {
     // Create
     Agent agent = client.agent.create(AgentInput.builder()
         .name("my-agent")
@@ -156,7 +156,7 @@ import ai.stigmer.sdk.SearchClient;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
 import java.util.List;
 
-try (StigmerClient client = StigmerClient.builder("sk_live_abc123").build()) {
+try (StigmerClient client = StigmerClient.builder(System.getenv("STIGMER_API_KEY")).build()) {
     SearchClient.SearchResponse results = client.search().query(
         SearchClient.SearchParams.builder()
             .org("my-org")
@@ -183,7 +183,7 @@ import ai.stigmer.sdk.BillingClient;
 import ai.stigmer.billing.v1.BillingAccount;
 import ai.stigmer.billing.v1.CreatePaymentMethodSetupSessionResponse;
 
-try (StigmerClient client = StigmerClient.builder("sk_live_abc123").build()) {
+try (StigmerClient client = StigmerClient.builder(System.getenv("STIGMER_API_KEY")).build()) {
     BillingAccount account = client.billing().getBillingAccount(org);
 
     CreatePaymentMethodSetupSessionResponse setup = client.billing().createPaymentMethodSetupSession(
@@ -226,7 +226,7 @@ All SDK operations throw `StigmerException` (unchecked) with structured error co
 ```java
 import ai.stigmer.sdk.gen.StigmerException;
 
-try (StigmerClient client = StigmerClient.builder("sk_live_abc123").build()) {
+try (StigmerClient client = StigmerClient.builder(System.getenv("STIGMER_API_KEY")).build()) {
     try {
         client.agent.get("nonexistent");
     } catch (StigmerException e) {
@@ -246,20 +246,22 @@ Error codes: `NOT_FOUND`, `PERMISSION_DENIED`, `UNAUTHENTICATED`, `INVALID_ARGUM
 ## Configuration
 
 ```java
-// Default endpoint (api.stigmer.ai:443)
-StigmerClient client = StigmerClient.builder("sk_live_...").build();
+// Default endpoint (api.stigmer.ai:443); keys read "stk_…"
+StigmerClient client = StigmerClient.builder(System.getenv("STIGMER_API_KEY")).build();
 
 // Custom endpoint
-StigmerClient client = StigmerClient.builder("sk_live_...")
-    .baseUrl("localhost:9090")
+StigmerClient client = StigmerClient.builder(System.getenv("STIGMER_API_KEY"))
+    .baseUrl("stigmer.example.com:443")
     .build();
 
-// Local development (no TLS)
-StigmerClient client = StigmerClient.builder("sk_live_...")
-    .baseUrl("localhost:9090")
+// On your machine: `stigmer up` serves on localhost:7234 and needs no key
+StigmerClient client = StigmerClient.builder()
+    .baseUrl("localhost:7234")
     .insecure()
     .build();
 ```
+
+`builder()` with no key sends no `authorization` header, and `build()` refuses it unless `.insecure()` was called: only a plaintext connection to a local server may go without a key. `builder(apiKey)` refuses a null or empty key.
 
 ## Code Generation
 

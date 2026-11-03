@@ -5,7 +5,7 @@ describe("createNodeTransport", () => {
   it("creates a transport with an API key", () => {
     const transport = createNodeTransport({
       baseUrl: "https://api.stigmer.ai",
-      apiKey: "sk_test_123",
+      apiKey: "stk_test_123",
     });
     expect(transport).toBeDefined();
   });
@@ -28,7 +28,7 @@ describe("createNodeTransport", () => {
   it("creates a native gRPC transport when protocol is grpc", () => {
     const transport = createNodeTransport({
       baseUrl: "https://api.stigmer.ai",
-      apiKey: "sk_test_123",
+      apiKey: "stk_test_123",
       protocol: "grpc",
     });
     expect(transport).toBeDefined();
@@ -47,7 +47,7 @@ describe("createNodeClient", () => {
   it("creates a Stigmer client with API key", () => {
     const client = createNodeClient({
       baseUrl: "https://api.stigmer.ai",
-      apiKey: "sk_test_123",
+      apiKey: "stk_test_123",
     });
     expect(client).toBeDefined();
     expect(client.baseUrl).toBe("https://api.stigmer.ai");
@@ -65,7 +65,7 @@ describe("createNodeClient", () => {
   it("exposes resource sub-clients", () => {
     const client = createNodeClient({
       baseUrl: "https://api.stigmer.ai",
-      apiKey: "sk_test_123",
+      apiKey: "stk_test_123",
     });
     expect(client.agent).toBeDefined();
     expect(client.session).toBeDefined();

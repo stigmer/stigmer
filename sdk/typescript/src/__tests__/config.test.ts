@@ -4,7 +4,7 @@ import { validateConfig, type StigmerConfig } from "../config";
 describe("validateConfig", () => {
   const validApiKeyConfig: StigmerConfig = {
     baseUrl: "https://api.stigmer.ai",
-    apiKey: "sk_live_abc123",
+    apiKey: "stk_test_abc123",
   };
 
   const validTokenProviderConfig: StigmerConfig = {
@@ -42,7 +42,7 @@ describe("validateConfig", () => {
     expect(() =>
       validateConfig({
         baseUrl: "https://api.stigmer.ai",
-        apiKey: "sk_live_abc123",
+        apiKey: "stk_test_abc123",
         getAccessToken: () => "token",
       }),
     ).toThrow(

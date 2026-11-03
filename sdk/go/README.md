@@ -17,12 +17,13 @@ import (
     "context"
     "fmt"
     "log"
+    "os"
 
     stigmer "go.stigmer.ai/sdk"
 )
 
 func main() {
-    client, err := stigmer.NewClient(stigmer.WithAPIKey("sk_live_your_api_key"))
+    client, err := stigmer.NewClient(stigmer.WithAPIKey(os.Getenv("STIGMER_API_KEY")))
     if err != nil {
         log.Fatal(err)
     }
@@ -127,14 +128,14 @@ setup, err := client.Billing.CreatePaymentMethodSetupSession(ctx, &stigmer.Creat
 ## Configuration
 
 ```go
-// API key authentication (default endpoint api.stigmer.ai:443)
-client, _ := stigmer.NewClient(stigmer.WithAPIKey("sk_live_..."))
+// API key authentication (default endpoint api.stigmer.ai:443); keys read "stk_…"
+client, _ := stigmer.NewClient(stigmer.WithAPIKey(os.Getenv("STIGMER_API_KEY")))
 
 // Token authentication (from interactive login)
 client, _ := stigmer.NewClient(stigmer.WithToken(loginToken))
 
 // Custom endpoint
-client, _ := stigmer.NewClient(stigmer.WithAPIKey("sk_live_..."), stigmer.WithBaseURL("localhost:9090"))
+client, _ := stigmer.NewClient(stigmer.WithAPIKey(os.Getenv("STIGMER_API_KEY")), stigmer.WithBaseURL("stigmer.example.com:443"))
 
 // Local development (no TLS, no credentials required)
 client, _ := stigmer.NewClient(stigmer.WithBaseURL("localhost:7234"), stigmer.WithInsecure())

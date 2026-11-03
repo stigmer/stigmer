@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 
 	stigmer "go.stigmer.ai/sdk"
 	agentv1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/agent/v1"
@@ -17,7 +18,7 @@ func BasicCRUD() {
 	ctx := context.Background()
 
 	client, err := stigmer.NewClient(
-		stigmer.WithAPIKey("sk_live_your_api_key"),
+		stigmer.WithAPIKey(os.Getenv("STIGMER_API_KEY")),
 		stigmer.WithBaseURL("api.stigmer.ai:443"),
 	)
 	if err != nil {

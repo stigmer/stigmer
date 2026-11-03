@@ -41,20 +41,25 @@ class StigmerClient(GeneratedClient):
     - :attr:`billing` bounded-context client
     - :attr:`tokens` user-token minting client (service-account keys)
 
-    Usage::
+    Usage (keys read ``stk_…``)::
 
-        client = StigmerClient("sk_live_abc123")
+        client = StigmerClient(os.environ["STIGMER_API_KEY"])
         agent = client.agents.get("agent-id")
         client.close()
 
     As a context manager::
 
-        with StigmerClient("sk_live_abc123") as client:
+        with StigmerClient(os.environ["STIGMER_API_KEY"]) as client:
             agent = client.agents.get("agent-id")
+
+    On your machine, against ``stigmer up`` (no key on a plain-text
+    connection)::
+
+        client = StigmerClient(base_url="localhost:7234", insecure=True)
 
     With an app-level execution target::
 
-        client = StigmerClient("sk_live_abc123", execution_target="local")
+        client = StigmerClient(os.environ["STIGMER_API_KEY"], execution_target="local")
     """
 
     search: SearchClient
@@ -68,7 +73,7 @@ class StigmerClient(GeneratedClient):
 
     def __init__(
         self,
-        api_key: str,
+        api_key: str | None = None,
         *,
         base_url: str = DEFAULT_TARGET,
         insecure: bool = False,
@@ -78,7 +83,11 @@ class StigmerClient(GeneratedClient):
         """Create a Stigmer client.
 
         Args:
-            api_key: Stigmer API key (``sk_live_...``).
+            api_key: Stigmer API key (``stk_…``), sent as
+                ``Authorization: Bearer <key>``. Required on a TLS
+                connection; may be left out with ``insecure=True``, where
+                the client sends no ``authorization`` header (a local
+                server started by ``stigmer up`` needs none).
             base_url: gRPC target address. Defaults to ``api.stigmer.ai:443``.
             insecure: Disable TLS (local development only).
             execution_target: Default execution target for all sessions
@@ -90,8 +99,20 @@ class StigmerClient(GeneratedClient):
                 adapter is driven when a session opens and closes.
                 Cloud consumers omit this.
         """
-        if not api_key:
-            raise ValueError("stigmer: API key is required")
+        # The same rule as the Go SDK: only a plain-text connection, which
+        # is a local server's, may go without a credential. An empty string
+        # is a misconfiguration (an unset variable read as ""), never a
+        # request for a keyless connection.
+        if api_key is not None and not api_key:
+            raise ValueError(
+                "stigmer: API key is required: the key given is empty"
+                " (leave it out only with insecure=True for a local server)"
+            )
+        if api_key is None and not insecure:
+            raise ValueError(
+                "stigmer: API key is required on a TLS connection: pass an"
+                " API key, or insecure=True for a local server"
+            )
 
         self._channel = create_channel(base_url, api_key, insecure=insecure)
         super().__init__(self._channel)

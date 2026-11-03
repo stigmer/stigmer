@@ -29,7 +29,7 @@ func defaultConfig() clientConfig {
 // ClientOption configures the Stigmer client.
 type ClientOption func(*clientConfig)
 
-// WithAPIKey authenticates using a Stigmer API key (e.g. "sk_live_...").
+// WithAPIKey authenticates using a Stigmer API key (they read "stk_…").
 // Mutually exclusive with WithToken.
 func WithAPIKey(key string) ClientOption {
 	return func(c *clientConfig) {
@@ -84,7 +84,7 @@ func WithDialOptions(opts ...grpc.DialOption) ClientOption {
 // setting, not a per-session choice.
 //
 //	client, _ := stigmer.NewClient(
-//	    stigmer.WithAPIKey("sk_live_..."),
+//	    stigmer.WithAPIKey(os.Getenv("STIGMER_API_KEY")),
 //	    stigmer.WithExecutionTarget(sessionv1.ExecutionTarget_EXECUTION_TARGET_LOCAL),
 //	)
 func WithExecutionTarget(target sessionv1.ExecutionTarget) ClientOption {
@@ -101,7 +101,7 @@ func WithExecutionTarget(target sessionv1.ExecutionTarget) ClientOption {
 // consumers omit this option entirely.
 //
 //	client, _ := stigmer.NewClient(
-//	    stigmer.WithAPIKey("sk_live_..."),
+//	    stigmer.WithAPIKey(os.Getenv("STIGMER_API_KEY")),
 //	    stigmer.WithExecutionTarget(sessionv1.ExecutionTarget_EXECUTION_TARGET_LOCAL),
 //	    stigmer.WithRunnerAdapter(myAdapter),
 //	)

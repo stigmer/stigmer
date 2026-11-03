@@ -23,7 +23,7 @@ _CHANNEL_OPTIONS = [
 
 def create_channel(
     target: str,
-    api_key: str,
+    api_key: str | None,
     *,
     insecure: bool = False,
 ) -> grpc.Channel:
@@ -32,6 +32,8 @@ def create_channel(
     Args:
         target: gRPC target address (``host:port``).
         api_key: Stigmer API key used for ``Authorization: Bearer`` metadata.
+            ``None`` sends no ``authorization`` header; the caller allows it
+            only on an insecure (local) connection.
         insecure: When ``True``, skip TLS. Use only for local development.
 
     Returns:
@@ -44,4 +46,6 @@ def create_channel(
             target, grpc.ssl_channel_credentials(), options=_CHANNEL_OPTIONS
         )
 
+    if api_key is None:
+        return channel
     return grpc.intercept_channel(channel, AuthInterceptor(api_key))

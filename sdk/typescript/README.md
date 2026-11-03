@@ -19,7 +19,7 @@ import { Stigmer } from "@stigmer/client";
 
 const stigmer = new Stigmer({
   baseUrl: "https://api.stigmer.ai",
-  apiKey: "sk_live_abc123",
+  apiKey: process.env.STIGMER_API_KEY, // "stk_…"
 });
 
 const agent = await stigmer.agent.get("agent-id");
@@ -223,13 +223,13 @@ The SDK supports two transport protocols. Both are supported by the Stigmer serv
 // gRPC-Web (default) — compact binary protocol
 const stigmer = new Stigmer({
   baseUrl: "https://api.stigmer.ai",
-  apiKey: "sk_live_abc123",
+  apiKey: process.env.STIGMER_API_KEY, // "stk_…"
 });
 
 // Connect protocol — HTTP/JSON, easier to debug with browser devtools
 const stigmer = new Stigmer({
   baseUrl: "https://api.stigmer.ai",
-  apiKey: "sk_live_abc123",
+  apiKey: process.env.STIGMER_API_KEY, // "stk_…"
   transport: "connect",
 });
 ```

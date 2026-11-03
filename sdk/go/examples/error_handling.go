@@ -6,13 +6,14 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
 
 	stigmer "go.stigmer.ai/sdk"
 )
 
 func ErrorHandling() {
 	ctx := context.Background()
-	client, err := stigmer.NewClient(stigmer.WithAPIKey("sk_live_your_api_key"))
+	client, err := stigmer.NewClient(stigmer.WithAPIKey(os.Getenv("STIGMER_API_KEY")))
 	if err != nil {
 		log.Fatal(err)
 	}

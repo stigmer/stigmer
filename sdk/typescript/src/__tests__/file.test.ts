@@ -267,7 +267,7 @@ describe("RoutedFileClient.uploadFile size routing", () => {
 
 describe("Stigmer.file", () => {
   it("is the routed client", () => {
-    const stigmer = new Stigmer({ baseUrl: "http://localhost:1", apiKey: "sk_test" });
+    const stigmer = new Stigmer({ baseUrl: "http://localhost:1", apiKey: "stk_test" });
     expect(stigmer.file).toBeInstanceOf(RoutedFileClient);
   });
 });

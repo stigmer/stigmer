@@ -41,7 +41,7 @@ class RunnerAdapterTest {
     void builder_withRunnerAdapter_setsAdapter() {
         MockRunnerAdapter adapter = new MockRunnerAdapter();
 
-        try (StigmerClient client = StigmerClient.builder("sk_test_key")
+        try (StigmerClient client = StigmerClient.builder("stk_test_key")
                 .runnerAdapter(adapter)
                 .build()) {
             assertSame(adapter, client.runnerAdapter());
@@ -50,7 +50,7 @@ class RunnerAdapterTest {
 
     @Test
     void builder_withoutRunnerAdapter_returnsNull() {
-        try (StigmerClient client = StigmerClient.builder("sk_test_key").build()) {
+        try (StigmerClient client = StigmerClient.builder("stk_test_key").build()) {
             assertNull(client.runnerAdapter());
         }
     }

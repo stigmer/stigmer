@@ -13,9 +13,11 @@ pip install stigmer-sdk
 ## Quick Start
 
 ```python
+import os
+
 from stigmer import StigmerClient, AgentInput
 
-with StigmerClient("sk_live_abc123") as client:
+with StigmerClient(os.environ["STIGMER_API_KEY"]) as client:
     agent = client.agents.create(AgentInput(name="my-agent", org="my-org"))
     print(agent.metadata.name)
 ```
@@ -23,7 +25,7 @@ with StigmerClient("sk_live_abc123") as client:
 Or without a context manager:
 
 ```python
-client = StigmerClient("sk_live_abc123")
+client = StigmerClient(os.environ["STIGMER_API_KEY"])
 agent = client.agents.get("agent-id")
 client.close()
 ```
@@ -51,11 +53,13 @@ Every resource type has a typed client accessible as a property on `StigmerClien
 ## Common Operations
 
 ```python
+import os
+
 from ai.stigmer.agentic.agent.v1 import io_pb2 as agent_io_pb2
 from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2
 from stigmer import StigmerClient, AgentInput, ResourceRef
 
-with StigmerClient("sk_live_abc123") as client:
+with StigmerClient(os.environ["STIGMER_API_KEY"]) as client:
     # Create
     agent = client.agents.create(AgentInput(
         name="my-agent",
@@ -103,9 +107,11 @@ with StigmerClient("sk_live_abc123") as client:
 ## Cross-Resource Search
 
 ```python
+import os
+
 from stigmer import StigmerClient, ApiResourceKind, SearchParams
 
-with StigmerClient("sk_live_abc123") as client:
+with StigmerClient(os.environ["STIGMER_API_KEY"]) as client:
     results = client.search.query(SearchParams(
         kinds=[ApiResourceKind.agent, ApiResourceKind.skill],
         org="my-org",
@@ -123,6 +129,8 @@ Pass `access_token` to the React SDK's `StigmerProvider` through
 `getAccessToken`:
 
 ```python
+import os
+
 from stigmer import StigmerClient
 
 with StigmerClient(os.environ["STIGMER_API_KEY"]) as client:
@@ -148,9 +156,11 @@ billing commands require `can_manage_billing`. The operator pricing methods
 platform:
 
 ```python
+import os
+
 from stigmer import CreatePaymentMethodSetupSessionParams, StigmerClient
 
-with StigmerClient("sk_live_abc123") as client:
+with StigmerClient(os.environ["STIGMER_API_KEY"]) as client:
     account = client.billing.get_billing_account(org)
 
     setup = client.billing.create_payment_method_setup_session(
@@ -167,9 +177,11 @@ with StigmerClient("sk_live_abc123") as client:
 All SDK operations raise `StigmerError` with structured error codes:
 
 ```python
+import os
+
 from stigmer import StigmerClient, StigmerError, is_not_found, is_retryable
 
-with StigmerClient("sk_live_abc123") as client:
+with StigmerClient(os.environ["STIGMER_API_KEY"]) as client:
     try:
         agent = client.agents.get("nonexistent")
     except StigmerError as err:
@@ -187,12 +199,20 @@ Error codes: `not-found`, `permission-denied`, `unauthenticated`, `invalid-argum
 
 ```python
 StigmerClient(
-    api_key: str,               # Stigmer API key (required)
+    api_key: str | None = None, # Stigmer API key, "stk_…" (required unless insecure)
     *,
     base_url: str = "api.stigmer.ai:443",  # gRPC target address
     insecure: bool = False,     # Skip TLS (local development only)
 )
 ```
+
+On your machine, `stigmer up` serves on `localhost:7234` and needs no key; leave the key out on that plain-text connection, and the client sends no `authorization` header:
+
+```python
+client = StigmerClient(base_url="localhost:7234", insecure=True)
+```
+
+A client with no key on a TLS connection is refused at construction, as is an empty key.
 
 For a CI job or a script, use a [service account's](https://stigmer.ai/docs/guides/authentication/service-accounts) API key, not a person's: it keeps working when that person leaves and works only in its own organization.
 
