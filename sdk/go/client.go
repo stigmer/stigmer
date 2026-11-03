@@ -51,7 +51,7 @@ type Client struct {
 // Authentication is configured via options:
 //
 //	// API key authentication (CI, scripts)
-//	client, err := stigmer.NewClient(stigmer.WithAPIKey("sk_live_abc123"))
+//	client, err := stigmer.NewClient(stigmer.WithAPIKey(os.Getenv("STIGMER_API_KEY"))) // "stk_…"
 //
 //	// Token authentication (interactive login)
 //	client, err := stigmer.NewClient(stigmer.WithToken(loginToken))

@@ -333,5 +333,5 @@ def test_unreachable_url_is_not_named() -> None:
 
 
 def test_client_files_is_the_routed_client() -> None:
-    with StigmerClient("sk_test", base_url="localhost:1", insecure=True) as client:
+    with StigmerClient("stk_test", base_url="localhost:1", insecure=True) as client:
         assert isinstance(client.files, RoutedFileClient)

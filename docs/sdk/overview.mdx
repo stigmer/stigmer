@@ -86,7 +86,7 @@ works only in its own Organization and keeps working after the admin who created
 it leaves.
 
 <Callout type="warn">
-  API keys start with `sk_`. Store them in environment variables. Never commit
+  API keys start with `stk_`. Store them in environment variables. Never commit
   them to source control.
 </Callout>
 
@@ -190,15 +190,19 @@ const stigmer = new Stigmer({
 <Tab value="Go">
 ```go
 client, err := stigmer.NewClient(
-    os.Getenv("STIGMER_API_KEY"),
+    stigmer.WithAPIKey(os.Getenv("STIGMER_API_KEY")),
     stigmer.WithBaseURL("custom-api.example.com:443"),
 )
 ```
 
 | Option | Description |
 |--------|-------------|
+| `WithAPIKey(key)` | API key. Required unless the connection is insecure. |
 | `WithBaseURL(target)` | gRPC target address (`host:port`). Default: `api.stigmer.ai:443`. |
 | `WithInsecure()` | Disable TLS. Use only for local development. |
+
+On your machine, `stigmer up` needs no key:
+`stigmer.NewClient(stigmer.WithBaseURL("localhost:7234"), stigmer.WithInsecure())`.
 | `WithDialOptions(opts...)` | Append additional gRPC dial options. |
 
 Always call `defer client.Close()` to release the underlying gRPC connection.
@@ -213,9 +217,12 @@ client = StigmerClient(
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `api_key` | `str` | — | API key. Required. |
+| `api_key` | `str \| None` | `None` | API key. Required unless `insecure` is set. |
 | `base_url` | `str` | `api.stigmer.ai:443` | gRPC target address (`host:port`). |
 | `insecure` | `bool` | `False` | Disable TLS. Use only for local development. |
+
+On your machine, `stigmer up` needs no key:
+`StigmerClient(base_url="localhost:7234", insecure=True)`.
 </Tab>
 <Tab value="Java">
 ```java
@@ -226,8 +233,13 @@ var client = StigmerClient.builder(System.getenv("STIGMER_API_KEY"))
 
 | Method | Description |
 |--------|-------------|
+| `builder(apiKey)` | Starts a client with an API key. |
+| `builder()` | Starts a client with no key; `build()` refuses it unless `.insecure()` was called. |
 | `.baseUrl(target)` | gRPC target address (`host:port`). Default: `api.stigmer.ai:443`. |
 | `.insecure()` | Disable TLS. Use only for local development. |
+
+On your machine, `stigmer up` needs no key:
+`StigmerClient.builder().baseUrl("localhost:7234").insecure().build()`.
 
 `StigmerClient` implements `AutoCloseable`. Use try-with-resources to ensure
 the gRPC channel shuts down cleanly.

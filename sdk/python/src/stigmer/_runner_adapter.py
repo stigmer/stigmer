@@ -23,7 +23,7 @@ Usage::
         async def on_session_closed(self, session_id: str) -> None:
             await stop_worker(session_id)
 
-    client = StigmerClient("sk_live_...", runner_adapter=MyRunnerAdapter())
+    client = StigmerClient(os.environ["STIGMER_API_KEY"], runner_adapter=MyRunnerAdapter())
 """
 
 from __future__ import annotations

@@ -12,6 +12,10 @@ import java.util.Objects;
  *
  * <p>TLS is enabled by default using the system trust store. Use
  * {@link Config#insecure} for plaintext connections during local development.
+ *
+ * <p>The key rule is the Go SDK's: only a plaintext connection, which is a
+ * local server's, may go without a key, and then no {@code authorization}
+ * header is sent at all. A keyless TLS channel is refused.
  */
 public final class StigmerChannel {
 
@@ -30,7 +34,10 @@ public final class StigmerChannel {
     /** Creates a {@link ManagedChannel} from the given configuration. */
     public static ManagedChannel create(Config config) {
         Objects.requireNonNull(config.target, "target must not be null");
-        Objects.requireNonNull(config.apiKey, "apiKey must not be null");
+        if (config.apiKey == null && !config.insecure) {
+            throw new IllegalArgumentException(
+                    "stigmer: an API key is required on a TLS connection");
+        }
 
         ManagedChannelBuilder<?> builder;
         if (config.insecure) {
@@ -40,7 +47,9 @@ public final class StigmerChannel {
         }
 
         builder.maxInboundMessageSize(MAX_INBOUND_MESSAGE_SIZE);
-        builder.intercept(new ApiKeyInterceptor(config.apiKey));
+        if (config.apiKey != null) {
+            builder.intercept(new ApiKeyInterceptor(config.apiKey));
+        }
 
         return builder.build();
     }
@@ -51,6 +60,10 @@ public final class StigmerChannel {
         final String apiKey;
         final boolean insecure;
 
+        /**
+         * @param apiKey the API key sent as {@code Authorization: Bearer};
+         *               {@code null} only when {@code insecure}
+         */
         public Config(String target, String apiKey, boolean insecure) {
             this.target = target;
             this.apiKey = apiKey;

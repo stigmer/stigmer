@@ -40,7 +40,7 @@ type ExecutionTargetOption = StigmerConfig["executionTarget"];
  * ```typescript
  * const stigmer = new Stigmer({
  *   baseUrl: "https://api.stigmer.ai",
- *   apiKey: "sk_live_abc123",
+ *   apiKey: process.env.STIGMER_API_KEY, // "stk_…"
  * });
  *
  * const agent = await stigmer.agent.get("agent-id");

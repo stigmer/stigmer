@@ -264,7 +264,7 @@ class RoutedFileClientTest {
     @Test
     @DisplayName("StigmerClient.file is the routed client")
     void stigmerClientFileIsRouted() {
-        try (StigmerClient stigmer = StigmerClient.builder("sk_test_key").insecure().build()) {
+        try (StigmerClient stigmer = StigmerClient.builder("stk_test_key").insecure().build()) {
             assertInstanceOf(RoutedFileClient.class, stigmer.file);
         }
     }

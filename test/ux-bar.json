@@ -266,10 +266,7 @@
     },
     {
       "id": "SDK-02",
-      "promise": "Examples show API keys as stk_.",
-      "pending": [
-        "stigmer#1436"
-      ]
+      "promise": "Examples show API keys as stk_."
     }
   ]
 }

@@ -15,7 +15,7 @@ func TestNewClient_NoCredentials(t *testing.T) {
 }
 
 func TestNewClient_MutuallyExclusiveCredentials(t *testing.T) {
-	_, err := NewClient(WithAPIKey("sk_test"), WithToken("tok_test"))
+	_, err := NewClient(WithAPIKey("stk_test"), WithToken("tok_test"))
 	if err == nil {
 		t.Fatal("expected error when both WithAPIKey and WithToken are provided")
 	}

@@ -4,7 +4,7 @@ Usage::
 
     from stigmer import StigmerClient, AgentInput
 
-    with StigmerClient("sk_live_abc123") as client:
+    with StigmerClient(os.environ["STIGMER_API_KEY"]) as client:
         agent = client.agents.create(AgentInput(name="my-agent", org="my-org"))
         print(agent.metadata.name)
 """

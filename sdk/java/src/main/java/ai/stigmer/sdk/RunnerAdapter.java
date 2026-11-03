@@ -33,7 +33,7 @@ package ai.stigmer.sdk;
  *     }
  * };
  *
- * try (StigmerClient client = StigmerClient.builder("sk_live_...")
+ * try (StigmerClient client = StigmerClient.builder(System.getenv("STIGMER_API_KEY"))
  *         .runnerAdapter(adapter)
  *         .build()) {
  *     // adapter drives the runner lifecycle for local sessions

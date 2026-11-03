@@ -110,7 +110,7 @@ export function createNodeTransport(config: NodeClientConfig): Transport {
  *
  * const stigmer = createNodeClient({
  *   baseUrl: "https://api.stigmer.ai",
- *   apiKey: "sk_live_abc123",
+ *   apiKey: process.env.STIGMER_API_KEY, // "stk_…"
  * });
  *
  * const agent = await stigmer.agent.get("my-agent");

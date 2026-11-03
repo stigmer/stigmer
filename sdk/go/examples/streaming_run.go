@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"os"
 	"strings"
 
 	stigmer "go.stigmer.ai/sdk"
@@ -36,7 +37,7 @@ func turnEnded(phase string) bool {
 func StreamingRun() {
 	ctx := context.Background()
 
-	client, err := stigmer.NewClient(stigmer.WithAPIKey("sk_live_your_api_key"))
+	client, err := stigmer.NewClient(stigmer.WithAPIKey(os.Getenv("STIGMER_API_KEY")))
 	if err != nil {
 		log.Fatal(err)
 	}

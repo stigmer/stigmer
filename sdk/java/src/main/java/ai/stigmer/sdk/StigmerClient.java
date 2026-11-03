@@ -25,13 +25,25 @@ import java.util.concurrent.TimeUnit;
  * </ul>
  *
  * <pre>{@code
- * try (StigmerClient client = StigmerClient.builder("sk_live_abc123").build()) {
+ * // keys read "stk_…"
+ * try (StigmerClient client = StigmerClient.builder(System.getenv("STIGMER_API_KEY")).build()) {
  *     Agent agent = client.agent.create(AgentInput.builder()
  *         .name("my-agent")
  *         .org("my-org")
  *         .instructions("You are a helpful assistant")
  *         .build());
  * }
+ * }</pre>
+ *
+ * <p>On your machine, {@code stigmer up} serves on {@code localhost:7234} and
+ * needs no key; a plaintext connection may leave it out and then sends no
+ * {@code authorization} header:
+ *
+ * <pre>{@code
+ * StigmerClient client = StigmerClient.builder()
+ *     .baseUrl("localhost:7234")
+ *     .insecure()
+ *     .build();
  * }</pre>
  */
 public final class StigmerClient extends GeneratedClient implements AutoCloseable {
@@ -56,9 +68,29 @@ public final class StigmerClient extends GeneratedClient implements AutoCloseabl
         this.runnerAdapter = runnerAdapter;
     }
 
-    /** Creates a new builder. The API key is required for all requests. */
+    /**
+     * Creates a builder that authenticates with an API key, sent as
+     * {@code Authorization: Bearer <key>} on every request.
+     *
+     * @throws NullPointerException     if {@code apiKey} is null
+     * @throws IllegalArgumentException if {@code apiKey} is empty
+     */
     public static Builder builder(String apiKey) {
+        Objects.requireNonNull(apiKey, "stigmer: API key must not be null");
+        if (apiKey.isEmpty()) {
+            throw new IllegalArgumentException("stigmer: API key must not be empty");
+        }
         return new Builder(apiKey);
+    }
+
+    /**
+     * Creates a builder with no API key, for a local server on a plaintext
+     * connection: {@link Builder#build()} refuses it unless
+     * {@link Builder#insecure()} was called. No {@code authorization} header
+     * is sent.
+     */
+    public static Builder builder() {
+        return new Builder(null);
     }
 
     /**
@@ -142,10 +174,7 @@ public final class StigmerClient extends GeneratedClient implements AutoCloseabl
         private RunnerAdapter runnerAdapter;
 
         private Builder(String apiKey) {
-            this.apiKey = Objects.requireNonNull(apiKey, "stigmer: API key must not be null");
-            if (apiKey.isEmpty()) {
-                throw new IllegalArgumentException("stigmer: API key must not be empty");
-            }
+            this.apiKey = apiKey;
         }
 
         /** Sets the gRPC target address (host:port). Default is {@code api.stigmer.ai:443}. */
@@ -172,8 +201,18 @@ public final class StigmerClient extends GeneratedClient implements AutoCloseabl
             return this;
         }
 
-        /** Builds the {@link StigmerClient}. */
+        /**
+         * Builds the {@link StigmerClient}.
+         *
+         * @throws IllegalStateException if no API key was given and the
+         *                               connection is not {@link #insecure()}
+         */
         public StigmerClient build() {
+            if (apiKey == null && !insecure) {
+                throw new IllegalStateException(
+                        "stigmer: an API key is required on a TLS connection:"
+                                + " use builder(apiKey), or insecure() for a local server");
+            }
             ManagedChannel channel = StigmerChannel.create(new StigmerChannel.Config(
                     baseUrl, apiKey, insecure));
             return new StigmerClient(channel, runnerAdapter);
