@@ -80,7 +80,8 @@ own computer" to "Your keys, your servers"), the order every list says them in,
 each one said as the visitor's worry with what a team would build, what Stigmer
 gives and its proofs, and the three more things the homepage says we built. The
 homepage's "hard parts" section and its "also built" strip render the claims,
-the hero's picture reads the titles through `site/src/lib/agent-gets.ts`, and
+the job picture on the docs front page reads the titles through
+`site/src/lib/agent-gets.ts`, and
 the job film in `marketing/` reads the titles here. A proof (`proof.ts`) is a
 measured figure, a picture the visual suite draws, a public test quoted in its
 own words, or a file or page; `__tests__/proofs.test.ts` fails, naming the
@@ -99,7 +100,7 @@ time; the sleep panel links to the hard parts' sandbox row, which reads
 
 `job-story.ts` holds the job those pictures tell: a customer's names for it
 (Northwind Books, `ledger.csv`, `variance-report.md`), its steps, the parts of
-the picture and the rule for when each is shown and lit. The homepage hero's
+the picture and the rule for when each is shown and lit. The docs front page's
 loop (`site/src/components/visuals/job-path.ts`) and the job film both read it,
 so they light the same parts at the same steps.
 

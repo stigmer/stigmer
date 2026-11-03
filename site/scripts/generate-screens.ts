@@ -4,7 +4,8 @@
  * Every screen is a picture the visual suite draws and approves
  * (test/visual/src/shown.ts, approved under test/visual/tests/__shown__).
  * This writes each one to `public/screens` once per density
- * (src/lib/screens.ts names the files) as WebP, and fails the build when an
+ * (src/lib/screens.ts names the files) as WebP, in whichever of its two
+ * encodings is smaller, and fails the build when an
  * approved picture is missing, is not the size its entry declares, or
  * converts to a file heavier than the per-file image budget in
  * test/bundle-budgets.json. Files the list no longer names are removed, so
@@ -27,11 +28,24 @@ import { SCREEN_DENSITIES, SCREENS_DIR, SHOWN, SHOWN_SCALE, screenFile, shownSiz
 const APPROVED = fileURLToPath(new URL("../../test/visual/tests/__shown__/", import.meta.url));
 
 /**
- * The encoder's settings. Quality 90 keeps the edges of small text clean,
- * which is most of what a screen of the product is; effort 6 spends the
- * build's time once for a smaller file on every visit.
+ * The encoder's two settings; each file is written in the smaller. Lossless
+ * keeps the drawing's own pixels, and wins where those are served as drawn
+ * (the density the suite draws at), since a screen of the product is flat
+ * colour and text. Quality 90 keeps the edges of small text clean, and wins
+ * where the picture is scaled down, which blends new colours into every
+ * edge. Effort 6 spends the build's time once for a smaller file on every
+ * visit.
  */
-const WEBP = { quality: 90, effort: 6 } as const;
+const WEBP_SETTINGS = [
+  { quality: 90, effort: 6 },
+  { lossless: true, effort: 6 },
+] as const;
+
+/** `source` at `width`×`height` as WebP, in the smaller of the encoder's settings. */
+async function smallestWebp(source: string, width: number, height: number): Promise<Buffer> {
+  const encoded = await Promise.all(WEBP_SETTINGS.map((settings) => sharp(source).resize(width, height).webp(settings).toBuffer()));
+  return encoded.reduce((smallest, candidate) => (candidate.length < smallest.length ? candidate : smallest));
+}
 
 /** One conversion: the pictures to convert, where their approved PNGs are, where the files go and the most one file may weigh. */
 export interface ScreensJob {
@@ -77,10 +91,7 @@ export async function generateScreens(job: ScreensJob): Promise<WrittenScreen[]>
     }
     for (const density of SCREEN_DENSITIES) {
       const file = screenFile(shown.name, density);
-      const data = await sharp(source)
-        .resize(size.width * density, size.height * density)
-        .webp(WEBP)
-        .toBuffer();
+      const data = await smallestWebp(source, size.width * density, size.height * density);
       await fs.writeFile(path.join(job.outDir, file), data);
       written.push({ file, bytes: data.length });
       if (data.length > job.maxBytes) {

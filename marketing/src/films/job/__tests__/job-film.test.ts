@@ -1,7 +1,7 @@
 /**
- * Hold the job film to the homepage hero it retells: the same steps in the
- * same order, the same parts lit at each of them by the rule the hero lights
- * by (brand/job-story.ts), and words drawn from the job, the shared titles and
+ * Hold the job film to the job picture it retells (the docs front page's):
+ * the same steps in the same order, the same parts lit at each of them by the
+ * rule the picture lights by (brand/job-story.ts), and words drawn from the job, the shared titles and
  * the positioning. A word, a step or a part's lighting changed there fails
  * here until the film agrees, and then the film is rendered again. Its three
  * faces are the brand's (brand/type.ts), read from the film's pure font
@@ -42,7 +42,7 @@ const layersOf = (id: PartId): (Layer | "part")[] => ["part", ...PARTS[id].layer
 
 const stepBeats = BEATS.filter((beat) => beat.moment !== "clear" && beat.moment !== "hold");
 
-test("the film plays the hero's steps in order, each with a line, inside its length", () => {
+test("the film plays the job's steps in order, each with a line, inside its length", () => {
   assert.deepEqual(
     stepBeats.map((beat) => beat.moment),
     [...STEPS],
@@ -64,7 +64,7 @@ test("the film plays the hero's steps in order, each with a line, inside its len
   assert.equal(END_CARD.to, DURATION_IN_FRAMES);
 });
 
-test("every part's every layer settles where the hero's rule puts it, at every moment", () => {
+test("every part's every layer settles where the job's rule puts it, at every moment", () => {
   for (const beat of BEATS) {
     const settledFrame = beat.from + RAMP_FRAMES;
     for (const id of PART_IDS) {
@@ -81,7 +81,7 @@ test("every part's every layer settles where the hero's rule puts it, at every m
   assert.equal(momentAt(PICTURE.to - 1), "hold");
 });
 
-test("the words come from the hero's job, the shared titles and the positioning", () => {
+test("the words come from the story's job, the shared titles and the positioning", () => {
   const lines = BEATS.map((beat) => beat.line ?? "").join("\n");
   for (const name of [JOB.customer, JOB.ledger, JOB.report]) {
     assert.ok(lines.includes(name), `a line names ${name}`);

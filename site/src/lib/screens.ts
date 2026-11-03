@@ -40,3 +40,10 @@ export function screenFile(name: string, density: number): string {
 export function screenPath(name: string, density: number): string {
   return `/${SCREENS_DIR}/${screenFile(name, density)}`;
 }
+
+/** One screen's files at every density, as a `srcset` of widths. */
+export function screenSrcSet(name: string): string {
+  const { width } = shownSize(shownScreen(name));
+  return SCREEN_DENSITIES.map((density) => `${screenPath(name, density)} ${width * density}w`).join(", ");
+}
+

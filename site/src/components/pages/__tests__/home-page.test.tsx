@@ -3,8 +3,8 @@
  *
  * Pins that the homepage leads with the headline from brand/positioning.ts
  * and tells the story in its order: the hard parts, each answered with its
- * proof, three more things we built, the sandbox up close, how it fits, open
- * source, the first job.
+ * proof, three more things we built, the sandbox up close, how it fits, the
+ * lines that drop the panel into an app, open source, the first job.
  *
  * Pins too that every internal link on the homepage, the page on why we
  * built Stigmer and the comparison lands on a path the site serves, never on
@@ -35,6 +35,7 @@ describe("HomePage", () => {
       "also-built-heading",
       "sandbox-heading",
       "how-it-fits-heading",
+      "drop-it-in-heading",
       "open-source-heading",
       "final-cta-heading",
     ]);

@@ -2,10 +2,13 @@
  * Every line of code the homepage shows is a line the Getting Started smoke
  * runs.
  *
- * The closing section shows the quickstart's commands.
- * test/install/smoke-getting-started.mjs runs that page as written, reading
- * its steps with docSteps, so this reads it with the same parser. The closing
- * commands must be the quickstart's commands, in its order. A homepage line
+ * The closing section shows the quickstart's commands, and "Drop it in" the
+ * embed guide's src/App.tsx. test/install/smoke-getting-started.mjs runs
+ * those pages as written, reading their steps with docSteps, so this reads
+ * them with the same parser, and quotes them under the rule the README's
+ * copy follows (test/install/lib/doc-steps.mjs). The closing commands must
+ * be the quickstart's commands, in its order; "Drop it in" must be runs of
+ * the guide's consecutive lines, every gap marked `// …`. A homepage line
  * that drifts from its page, or a page that drops the line, fails here,
  * naming the line.
  */
@@ -14,7 +17,13 @@ import { cleanup, render } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { docSteps } from "../../../../../test/install/lib/doc-steps.mjs";
+import {
+  docSteps,
+  elidedRuns,
+  firstOutOfOrder,
+  firstUnmarkedGap,
+} from "../../../../../test/install/lib/doc-steps.mjs";
+import { DropItIn } from "../DropItIn";
 import { FinalCTA } from "../FinalCTA";
 
 afterEach(cleanup);
@@ -37,17 +46,6 @@ function shownLines(container: HTMLElement): string[] {
     .filter((line) => line.trim() !== "");
 }
 
-/** The first shown line that is not one of `source`'s lines after the line before it, or undefined. */
-function firstOutOfOrder(shown: readonly string[], source: readonly string[]): string | undefined {
-  let from = 0;
-  for (const line of shown) {
-    const at = source.indexOf(line, from);
-    if (at === -1) return line;
-    from = at + 1;
-  }
-  return undefined;
-}
-
 describe("the homepage's snippets", () => {
   it("shows the closing commands as the quickstart's own steps, in order", () => {
     const commands = steps("quickstart.mdx").flatMap((step) => (step.kind === "file" ? [] : [step.line]));
@@ -56,6 +54,18 @@ describe("the homepage's snippets", () => {
 
     expect(shown).toContain("stigmer up");
     expect(firstOutOfOrder(shown, commands)).toBeUndefined();
+  });
+
+  it("shows the embed guide's src/App.tsx as runs of its lines, every gap marked", () => {
+    const app = steps("embed-agent.mdx").find((step) => step.kind === "file" && step.path === "src/App.tsx");
+    if (app?.kind !== "file") throw new Error("embed-agent.mdx writes src/App.tsx");
+
+    const shown = [...render(<DropItIn />).container.querySelectorAll("[data-code-line]")].map((line) => line.textContent ?? "");
+    const runs = elidedRuns(shown);
+
+    expect(runs.flat()).toContain("        <AgentChat agent={`${org}/variance-reporter`} />");
+    expect(runs.length).toBeGreaterThan(1);
+    expect(firstUnmarkedGap(runs, app.content.split("\n"))).toBeUndefined();
   });
 
   it("names the line that left its page", () => {

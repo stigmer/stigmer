@@ -71,7 +71,7 @@ function Place({ id, children }: { id: PlaceId; children?: React.ReactNode }) {
   );
 }
 
-/** Another customer's sandbox, dimmed beside Northwind's, as the hero draws them. */
+/** Another customer's sandbox, dimmed beside Northwind's, as the job picture draws them. */
 function OtherSandbox({ id }: { id: OtherId }) {
   const label = OTHERS[id];
   return (

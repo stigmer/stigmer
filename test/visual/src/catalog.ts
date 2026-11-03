@@ -150,6 +150,11 @@ const STORY_SCENES = [
     title: "Story: Northwind's ledger agent asks before it posts an adjustment, inside a customer's product",
     widths: ["desktop"],
   },
+  {
+    id: "story-in-product",
+    title: "Story: the same ask in Stigmer's chat panel, docked beside the integrator's ledger screen for Northwind Books",
+    widths: ["desktop"],
+  },
 ] as const satisfies readonly { readonly id: `story-${string}`; readonly title: string; readonly widths: readonly WidthName[] }[];
 
 /**

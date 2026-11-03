@@ -111,6 +111,32 @@ describe("generateScreens", () => {
     expect((await readdir(outDir)).sort()).toEqual(["card-1x.webp", "card-2x.webp"]);
   });
 
+  it("writes each file in the smaller of the lossless and the quality-90 encoding", async () => {
+    const { dir } = await prepareSite();
+    const outDir = join(dir, "out");
+    await mkdir(outDir);
+    await png(dir, "flat", 40, 30);
+    await png(dir, "noisy", 40, 30, true);
+    const { generateScreens } = await load();
+    const written = await generateScreens({
+      shown: [entry("flat", 20, 15), entry("noisy", 20, 15)],
+      sourceDir: dir,
+      outDir,
+      maxBytes: 100_000,
+    });
+    for (const [name, density] of [
+      ["flat", 2],
+      ["noisy", 2],
+      ["noisy", 1],
+    ] as const) {
+      const source = join(dir, `${name}.png`);
+      const [width, height] = [20 * density, 15 * density];
+      const lossy = (await sharp(source).resize(width, height).webp({ quality: 90, effort: 6 }).toBuffer()).length;
+      const lossless = (await sharp(source).resize(width, height).webp({ lossless: true, effort: 6 }).toBuffer()).length;
+      expect(written.find((w) => w.file === `${name}-${density}x.webp`)?.bytes, `${name} ${density}x`).toBe(Math.min(lossy, lossless));
+    }
+  });
+
   it("names every problem at once: a missing picture, one of the wrong size, a file over the budget", async () => {
     const { dir } = await prepareSite();
     await png(dir, "wrong", 30, 30);
