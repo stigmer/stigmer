@@ -257,7 +257,8 @@ real costs the author a fix. Be complete, and be right.
    checkout, with the base from `gh pr view <n> -R <repo> --json baseRefName`.
 2. The pull request's body (`gh pr view <n> -R <repo> --json body`). Its claims
    are to be checked, not trusted. The test plan quotes each check's summary
-   line; `Verify at train` lists what only production can show.
+   line; a behaviour only a released build can show is a check the change adds
+   to the release workflow, never a promise in the body.
 3. Each declaration in the body (`Test-removal:`, `Quarantine:`, `Skip:`,
    `RPC-waiver:`, `Coverage-drop:`), and the integrity tool's report of the
    change:
