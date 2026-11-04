@@ -12,6 +12,12 @@ export interface Drawing {
   readonly render: () => ReactElement;
   /** The calls the tree makes, answered; every other call answers `Unimplemented`. */
   readonly routes?: Routes;
+  /**
+   * The calls the tree makes in the docs mode (`?embed=1`), where a reader
+   * can talk to it: its conversation answered by the scripted server
+   * (src/live-server.ts). Omitted, the docs mode answers `routes`.
+   */
+  readonly liveRoutes?: () => Routes;
   /** The provider's edition; the kit's default (`cloud`) when omitted. */
   readonly deploymentMode?: DeploymentMode;
   /** The theme preset; the default look when omitted. */

@@ -71,12 +71,14 @@ export type SceneId =
   | "marketplace-member"
   | `session-${SessionSceneName}`
   | `story-${StorySceneName}`
+  | "agent-chat-page"
   | `routine-${RoutineSceneName}`
   | `environment-${EnvironmentSceneName}`
   | `channel-${ChannelSceneName}`
   | "agent-chat-panel"
   | "agent-chat-popup-closed"
   | "agent-chat-popup"
+  | "from-hooks"
   | `preset-${Preset}`;
 
 /** The roles a control is pressed by: Playwright's own list, the one `getByRole` takes. */
@@ -460,6 +462,11 @@ export const SCENES: readonly Scene[] = [
   ...ENVIRONMENT_SCENES,
   ...CHANNEL_SCENES,
   {
+    id: "agent-chat-page",
+    title: "AgentChat: a whole page of its own, on a finished turn",
+    widths: ["desktop", "narrow"],
+  },
+  {
     id: "agent-chat-panel",
     title: "AgentChat: a long turn at work, in a panel docked beside a product",
     widths: ["desktop"],
@@ -472,6 +479,11 @@ export const SCENES: readonly Scene[] = [
   {
     id: "agent-chat-popup",
     title: "AgentChat: the popup open on a finished turn (a phone's screen is the popup)",
+    widths: ["desktop", "narrow"],
+  },
+  {
+    id: "from-hooks",
+    title: "The hooks guide's chat: a completed turn, drawn by the program built from the hooks alone",
     widths: ["desktop", "narrow"],
   },
   ...PRESETS.map((preset) => ({

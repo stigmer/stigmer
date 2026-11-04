@@ -2,6 +2,7 @@
   "title": "React SDK",
   "pages": [
     "---Foundation---",
+    "gallery",
     "core",
     "---Sessions & Runs---",
     "agent-chat",

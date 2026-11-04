@@ -63,6 +63,9 @@ export const SCENARIO_NAMES = [
 /** One of the catalogue's states. */
 export type ScenarioName = (typeof SCENARIO_NAMES)[number];
 
+/** A story the catalogue tells beside its states: the scripted turn the docs play, whole. */
+export type StoryName = "scripted-turn";
+
 /** What the session's usage report says, in the few figures the surfaces show. */
 export interface ScenarioUsage {
   readonly totalTokens: number;
@@ -73,7 +76,7 @@ export interface ScenarioUsage {
 
 /** One named state of a conversation: its events, their fold, its runs, and how its load went. */
 export interface Scenario {
-  readonly name: ScenarioName;
+  readonly name: ScenarioName | StoryName;
   /** The state in a few words, as a reader of a frame would say it. */
   readonly title: string;
   /** The session, or null while it loads. */
@@ -105,8 +108,8 @@ const SESSION_ID = samples.session().metadata!.id;
 type EventInit = MessageInitShape<typeof SessionEventSchema>["event"];
 
 /** An event of the demo session, filed under the demo run and a thread ("" for the primary). */
-function event(init: EventInit, threadId = ""): SessionEvent {
-  return create(SessionEventSchema, { sessionId: SESSION_ID, runId: RUN_ID, threadId, event: init });
+function event(init: EventInit, threadId = "", runId: string = RUN_ID): SessionEvent {
+  return create(SessionEventSchema, { sessionId: SESSION_ID, runId, threadId, event: init });
 }
 
 /** A tool use that waits for a person: its use, with permission `ask`, and the ask. */
@@ -301,7 +304,7 @@ function routineSession(): Session {
 }
 
 /** Builds a loaded scenario from its events, its one turn's run phase and what it holds beside them. */
-function loaded(name: ScenarioName, title: string, events: readonly SessionEvent[], beside: Beside = {}): Scenario {
+function loaded(name: ScenarioName | StoryName, title: string, events: readonly SessionEvent[], beside: Beside = {}): Scenario {
   const ordered = numbered(events);
   const fold = foldWithLiveness(events, beside.liveness);
   const runs = fold.turns.map((turn) =>
@@ -574,3 +577,123 @@ export function usageOf(scenario: Scenario): UseSessionUsageReturn {
 
 /** When a scenario's frames are drawn: ninety seconds after its events, so a running duration reads "1m 30s". */
 export const SCENARIO_CLOCK = sampleInstant(90_000);
+
+// ---------------------------------------------------------------------------
+// The scripted turn: one short turn the docs play, in the browser and in the
+// terminal
+// ---------------------------------------------------------------------------
+
+/** What a docs reader is offered to send, and what the terminal recording types. */
+export const SCRIPTED_MESSAGE = "What changed in billing this week?";
+
+/** The command the scripted turn asks to run. */
+const SCRIPTED_COMMAND = "git log --oneline -3 -- src/billing";
+
+/**
+ * The scripted turn, in the parts a reader's acts choose between: the turn up
+ * to the ask, then what follows an approval, a denial or a stop. Every event
+ * carries its time from the turn's start (`processedAt`, from
+ * the demo's frozen instant), which a recording paces its frames by and a live
+ * page replaces with its own clock as it sends each one.
+ */
+export interface ScriptedTurn {
+  /** The person's message, the turn starting, two file reads, the command it asks to run and the ask; the turn then waits. */
+  readonly untilAsk: readonly SessionEvent[];
+  /** After the person allows the command: their answer, the command's output, the answer and the turn's end. */
+  readonly approved: readonly SessionEvent[];
+  /** After the person denies it: their answer, the agent's reply from the two files alone, and the turn's end. */
+  readonly denied: readonly SessionEvent[];
+  /** After the person stops the turn: its end, interrupted. */
+  readonly stopped: readonly SessionEvent[];
+}
+
+/**
+ * The scripted turn for `message`, filed under `runId` in the demo session:
+ * the agent reads the changelog and the invoice module, asks before it runs
+ * `git log`, and answers. One story, played by the docs' live demo
+ * (test/visual's scripted server) and the terminal kit's recordings, so the
+ * browser and the terminal show the same turn.
+ */
+export function scriptedTurn(message: string = SCRIPTED_MESSAGE, runId: string = RUN_ID): ScriptedTurn {
+  const o = (atMs: number, id?: string) => ({ runId, processedAt: sampleInstant(atMs), ...(id === undefined ? {} : { id }) });
+  const read = (path: string, result: string, atMs: number, id: string): SessionEvent[] => {
+    const use = samples.toolUseEvent("read_file", { path }, { ...o(atMs), id });
+    return [use, samples.toolResultEvent(id, result, o(atMs + 600))];
+  };
+  const askId = `${runId}.tc-execute`;
+  return {
+    untilAsk: [
+      samples.userMessageEvent(message, o(0)),
+      samples.runStatusEvent("running", o(400)),
+      ...read("CHANGELOG.md", "## This week\n- Invoices round once, at the total\n- Credit notes follow the same rule", 1_200, `${runId}.tc-read_file`),
+      ...read(
+        "src/billing/invoice.ts",
+        "export function invoiceTotal(lines: readonly Line[]): Cents {\n  return roundHalfEven(lines.reduce((sum, line) => sum + lineTotal(line), 0));\n}",
+        2_600,
+        `${runId}.tc-read_file-2`,
+      ),
+      samples.agentMessageEvent("The changelog names two changes. I'd like to check the commits behind them.", o(4_000, `${runId}.root.m0`)),
+      samples.toolUseEvent("execute", { command: SCRIPTED_COMMAND }, { ...o(4_800), id: askId, evaluatedPermission: "ask" }),
+      samples.permissionAskedEvent(askId, { ...o(4_900), argsPreview: JSON.stringify({ command: SCRIPTED_COMMAND }) }),
+      samples.runStatusEvent("waiting", o(5_000)),
+    ],
+    approved: [
+      event({ case: "userToolConfirmation", value: { id: `${askId}.c`, toolUseId: askId, result: "allow", processedAt: sampleInstant(8_000) } }, "", runId),
+      samples.runStatusEvent("running", { ...o(8_100), id: `${runId}.status.running-2` }),
+      samples.toolResultEvent(
+        askId,
+        "a41c9e2 Round credit notes once, at the total\n7d03b51 Round invoices once, at the total\n19f2e88 Add half-cent test cases",
+        o(9_300),
+      ),
+      samples.agentMessageEvent(
+        "Two changes this week. Invoices now round once, at the total, instead of per line (7d03b51), and credit notes follow the same rule (a41c9e2). A third commit adds tests for the half-cent cases.",
+        o(10_500, `${runId}.root.m1`),
+      ),
+      samples.runStatusEvent("completed", o(11_000)),
+    ],
+    denied: [
+      event(
+        { case: "userToolConfirmation", value: { id: `${askId}.c`, toolUseId: askId, result: "deny", denyMessage: "", processedAt: sampleInstant(8_000) } },
+        "",
+        runId,
+      ),
+      samples.runStatusEvent("running", { ...o(8_100), id: `${runId}.status.running-2` }),
+      samples.agentMessageEvent(
+        "I won't run it. From the changelog alone: invoices now round once, at the total, and credit notes follow the same rule.",
+        o(9_000, `${runId}.root.m1`),
+      ),
+      samples.runStatusEvent("completed", o(9_500)),
+    ],
+    stopped: [samples.runStatusEvent("cancelled", { ...o(8_000), stopCause: "interrupted" })],
+  };
+}
+
+/**
+ * The scripted turn as a story, whole: the person asks what changed, the
+ * agent reads two files, asks before it runs `git log`, is allowed, and
+ * answers. The terminal kit's recordings draw it event by event
+ * ({@link upTo}), so a docs reader watches the turn the live demos play.
+ */
+export function scriptedStory(message: string = SCRIPTED_MESSAGE): Scenario {
+  const turn = scriptedTurn(message);
+  return loaded("scripted-turn", "the scripted turn: two reads, an ask allowed, the answer", [...turn.untilAsk, ...turn.approved]);
+}
+
+/**
+ * `scenario` as it stood after its first `n` events: their fold, each
+ * turn's run in the phase it had reached, and the scenario's session.
+ * What lives beside the events (usage, the liveness preview, the Files)
+ * is kept only when `n` covers them all, since it belongs to the whole.
+ * Built through the catalogue's one assembly, so a part-way state is folded
+ * exactly as a whole one is.
+ */
+export function upTo(scenario: Scenario, n: number): Scenario {
+  if (!Number.isInteger(n) || n < 0 || n > scenario.events.length) {
+    throw new RangeError(`upTo: ${scenario.name} has ${scenario.events.length} events; ${n} is not a count of them`);
+  }
+  const whole = n === scenario.events.length;
+  return loaded(scenario.name, scenario.title, scenario.events.slice(0, n), {
+    ...(scenario.session === null ? {} : { session: scenario.session }),
+    ...(whole ? { usage: scenario.usage, liveness: scenario.liveness, files: scenario.files } : {}),
+  });
+}

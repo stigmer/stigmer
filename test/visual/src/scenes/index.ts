@@ -6,6 +6,7 @@ import { inheritedOpenAiKey, NOTHING_CONNECTED, NOTHING_ON_THE_RUNNER, ownAnthro
 import { fileReviewDockScene } from "./conversation.tsx";
 import { agentChatScene } from "./agent-chat.tsx";
 import { agentProfileScene } from "./agent.tsx";
+import { fromHooksScene } from "./from-hooks.tsx";
 import { varianceReporterScene } from "./agent-pages.tsx";
 import { skillDetailScene } from "./skill.tsx";
 import { dashboardPageScene, dashboardScene } from "./dashboard.tsx";
@@ -98,6 +99,7 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "story-walls": wallsScene,
   "story-keys": keysScene,
   "story-embed": embedWidgetScene,
+  "agent-chat-page": () => agentChatScene("finished", "page", true),
   "routine-new": routineNewScene,
   "routine-disabled": () => routineDetailScene("disabled"),
   "routine-history": () => routineDetailScene("history"),
@@ -117,5 +119,6 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "agent-chat-panel": () => agentChatScene("busy", "panel", true),
   "agent-chat-popup-closed": () => agentChatScene("busy", "popup", false),
   "agent-chat-popup": () => agentChatScene("finished", "popup", true),
+  "from-hooks": fromHooksScene,
   ...presets,
 };

@@ -31,8 +31,14 @@ export function renderReferencePage(ref: CoreReference): string {
   return mdx;
 }
 
+/**
+ * The folder's meta.json: the hand-written guide that builds a chat from the
+ * hooks (build-a-chat.mdx), then the generated reference. Fumadocs lists only
+ * the pages a meta.json names, and this is written whole, so the guide is
+ * named here.
+ */
 export function renderMetaJson(): string {
-  return `${JSON.stringify({ title: "React core", pages: ["reference"] }, null, 2)}\n`;
+  return `${JSON.stringify({ title: "React core", pages: ["build-a-chat", "reference"] }, null, 2)}\n`;
 }
 
 function renderExport(exp: CoreExport): string {

@@ -16,13 +16,13 @@
  * And the version step's degradations (ArchiveCurrentEval): an archive
  * write that fails clears the head's digest, a tag the store cannot assign
  * is cleared from the head, and a push naming no tag onto an archived
- * version shows the tag it holds.
+ * version shows the tag it holds, on the stored row and the response.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { create } from "@bufbuild/protobuf";
+import { clone, create } from "@bufbuild/protobuf";
 import { Code, createClient, createRouterTransport } from "@connectrpc/connect";
 import type { Client } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
@@ -235,19 +235,24 @@ describe("ArchiveCurrentEval's degradations", () => {
     return { ctx, head };
   }
 
-  /** A store of the version operations alone, each answering as given. */
+  /** A store of the version operations alone, each answering as given; a narrow write modifies `row`. */
   function versions(answers: {
     archived: boolean;
     saveAudit?: () => Promise<void>;
     setAuditTag?: () => Promise<void>;
     recordTag?: string;
+    row?: Eval;
   }): Store {
+    const row = answers.row ?? create(EvalSchema);
     return {
       getAuditByHash: () => (answers.archived ? Promise.resolve(create(EvalSchema)) : Promise.reject(new AuditNotFoundError("none"))),
       saveAudit: answers.saveAudit ?? (() => Promise.resolve()),
       setAuditTag: answers.setAuditTag ?? (() => Promise.resolve()),
       getAuditRecordByHash: () => Promise.resolve({ tag: answers.recordTag ?? "" } as AuditRecord),
-      updateResource: () => Promise.resolve(create(EvalSchema)),
+      updateResource: (_k: unknown, _id: unknown, _s: unknown, modify: (stored: Eval) => void) => {
+        modify(row);
+        return Promise.resolve(clone(EvalSchema, row));
+      },
     } as unknown as Store;
   }
 
@@ -267,7 +272,8 @@ describe("ArchiveCurrentEval's degradations", () => {
 
   it("shows the tag an archived version holds when the push named none", async () => {
     const { ctx, head } = headCtx("");
-    await newArchiveCurrentEvalStep(versions({ archived: true, recordTag: "stable" }), silentLogger).execute(ctx);
-    expect(head.spec?.tag).toBe("stable");
+    const row = clone(EvalSchema, head);
+    await newArchiveCurrentEvalStep(versions({ archived: true, recordTag: "stable", row }), silentLogger).execute(ctx);
+    expect([row.spec?.tag, head.spec?.tag]).toEqual(["stable", "stable"]);
   });
 });

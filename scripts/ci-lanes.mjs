@@ -438,13 +438,24 @@ export const LANES = {
       // test reads the pages with; the visual suite's shown list, its
       // approved pictures and the image budget, which the screens script
       // converts and checks; the docs' examples, which the docs-screens test
-      // holds to the pages.
+      // holds to the pages; and the visual suite's gallery, which the build
+      // builds under /gallery/ for the live demos and whose demo list the
+      // site reads.
       "brand/**",
       "blog/**",
       "test/install/lib/doc-steps.mjs",
       "test/visual/src/shown.ts",
       "test/visual/src/docs-examples.ts",
       "test/visual/tests/__shown__/**",
+      "test/visual/src/**",
+      "test/visual/index.html",
+      "test/visual/vite.config.ts",
+      "test/visual/package.json",
+      "client-apps/web/src/app/fonts/**",
+      // The terminal recordings the site plays: the kit's list and its frames
+      // (sdk/ink/** above already holds them; named here as the site's reads).
+      "sdk/ink/src/recordings.ts",
+      "sdk/ink/src/__tests__/__recordings__/**",
       "test/bundle-budgets.json",
       ".vale.ini",
       ".prettierrc",

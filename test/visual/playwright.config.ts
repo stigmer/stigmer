@@ -19,7 +19,8 @@ import { SHOWN_SCALE } from "./src/shown.ts";
  * Baselines carry no platform suffix, since there is one drawing platform.
  *
  * Two projects draw: `gallery`, every scene at one device pixel per CSS
- * pixel, compared at CSS scale; and `shown`, the pictures the site and the
+ * pixel, compared at CSS scale, and the docs' live demos driven as a reader
+ * drives them (live.spec.ts); and `shown`, the pictures the site and the
  * docs show (src/shown.ts), drawn at the device scale the site serves and
  * kept apart under tests/__shown__, because the gallery's spec holds its own
  * folder equal to the catalogue.
@@ -48,7 +49,7 @@ export default defineConfig({
   projects: [
     {
       name: "gallery",
-      testMatch: "gallery.spec.ts",
+      testMatch: ["gallery.spec.ts", "live.spec.ts"],
       snapshotPathTemplate: "{testDir}/__screenshots__/{arg}{ext}",
       expect: { toHaveScreenshot: { ...EXACT, scale: "css" } },
       use: { deviceScaleFactor: 1 },
