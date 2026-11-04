@@ -43,18 +43,13 @@ import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/spec_pb";
 import { RoutineSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
 import type { Routine } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
-import {
-  RunConfigSchema,
-  type AgentInvocation,
-} from "@stigmer/apis/ai/stigmer/agentic/run/v1/invocation_pb";
-import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
-import { SessionSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
+import { RunConfigSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/invocation_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
-import { ApiResourceReferenceSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { AccountsByCaller } from "../../domain/identityaccount/resolve.js";
+import { invocationOf, routineSessionSpec } from "../../domain/routine/fired-session.js";
 import { resolveRoutineOwner } from "../../domain/routine/owner.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import type { RoutineFireCaller } from "../../extensions/routine-fire-caller.js";
@@ -288,10 +283,6 @@ function utcParts(date: Date): {
   };
 }
 
-function invocationOf(routine: Routine): AgentInvocation | undefined {
-  return routine.spec?.agent;
-}
-
 /** Who a composition's fires act as (the module header). */
 export type RoutineFireIdentity =
   /** The trusted-local laptop: its one person's internal identity. */
@@ -520,43 +511,11 @@ export class RunStarter {
     agent: Agent,
     fire: RoutineFireRequest,
   ): Run {
-    const invocation = invocationOf(routine);
-    const runConfig = invocation?.runConfig;
-
-    // The fresh per-fire session speaks the invocation's session half: it
-    // runs the routine's agent at the version the routine names (none:
-    // the agent's current version when the fire starts), and harness and
-    // resources come from the owner's spec. An unspecified harness stays
-    // unset — the agent's engine applies, else the platform default (OSS:
-    // Stigmer). Resources are Files and git repositories (the contract
-    // refuses a folder); each File becomes the new conversation's own copy
-    // when its session is created, asked again of the owner the fire acts
-    // as. Credentials, when a repo is private, ride a vault the routine
-    // names holding a GITHUB_TOKEN secret or a connection for the
-    // repository's host.
-    const sessionSpec = create(SessionSpecSchema, {
-      agentRef: create(ApiResourceReferenceSchema, {
-        kind: ApiResourceKind.agent,
-        org: agent.metadata?.org ?? "",
-        id: agent.metadata?.id ?? "",
-        version: invocation?.agentRef?.version ?? "",
-      }),
-      subject: routine.metadata?.name || (routine.metadata?.slug ?? ""),
-      resources: invocation?.resources ?? [],
+    const runConfig = invocationOf(routine)?.runConfig;
+    const sessionSpec = routineSessionSpec(routine, {
+      org: agent.metadata?.org ?? "",
+      id: agent.metadata?.id ?? "",
     });
-    if (
-      invocation !== undefined &&
-      invocation.harness !== Harness.UNSPECIFIED
-    ) {
-      sessionSpec.harness = invocation.harness;
-    }
-    // The routine's Environment, when it names one, is the conversation's
-    // own choice: the session records it with source routine
-    // (domain/session/resolve-session-environment.ts), and each turn asks
-    // the owner the fire acts as whether they may still view it.
-    if (invocation?.environmentRef !== undefined && invocation.environmentRef.id !== "") {
-      sessionSpec.environmentRef = clone(ApiResourceReferenceSchema, invocation.environmentRef);
-    }
 
     return create(RunSchema, {
       apiVersion: "agentic.stigmer.ai/v1",
