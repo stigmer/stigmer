@@ -45,8 +45,10 @@ export interface TerminalSessionProps {
  *
  * @example
  * ```tsx
- * <TerminalSession command="ls -la" stdout="total 8\n..." exitCode={0} />
- * <TerminalSession command="npm test" /> // gate: command only
+ * <>
+ *   <TerminalSession command="ls -la" stdout="total 8" exitCode={0} />
+ *   <TerminalSession command="npm test" />
+ * </>
  * ```
  */
 export function TerminalSession({

@@ -28,10 +28,16 @@ export interface UseConfirmMemoryReturn {
  *
  * @example
  * ```tsx
- * const { confirmMemory, isConfirming } = useConfirmMemory();
+ * import type { Memory } from "@stigmer/apis/ai/stigmer/agentic/memory/v1/api_pb";
  *
- * await confirmMemory(memory.metadata?.id ?? "");
- * refetch(); // refresh the list after the decision
+ * function KeepMemory({ memory, onDecided }: { memory: Memory; onDecided: () => void }) {
+ *   const { confirmMemory, isConfirming } = useConfirmMemory();
+ *   const keep = async () => {
+ *     await confirmMemory(memory.metadata?.id ?? "");
+ *     onDecided(); // refresh the list after the decision
+ *   };
+ *   return <button onClick={keep} disabled={isConfirming}>Keep</button>;
+ * }
  * ```
  */
 export function useConfirmMemory(): UseConfirmMemoryReturn {

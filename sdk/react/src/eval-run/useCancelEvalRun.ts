@@ -34,8 +34,10 @@ export interface UseCancelEvalRunReturn {
  *
  * @example
  * ```tsx
- * const { cancel } = useCancelEvalRun();
- * await cancel(evalRun.metadata.id);
+ * function CancelEvalRun({ evalRunId }: { evalRunId: string }) {
+ *   const { cancel, isCancelling } = useCancelEvalRun();
+ *   return <button onClick={() => cancel(evalRunId)} disabled={isCancelling}>Cancel</button>;
+ * }
  * ```
  */
 export function useCancelEvalRun(): UseCancelEvalRunReturn {

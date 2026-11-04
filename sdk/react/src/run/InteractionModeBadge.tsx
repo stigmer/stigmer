@@ -23,7 +23,9 @@ export interface InteractionModeBadgeProps {
  *
  * @example
  * ```tsx
- * <InteractionModeBadge mode={InteractionMode.PLAN} />
+ * import { InteractionMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+ *
+ * <InteractionModeBadge mode={InteractionMode.PLAN} />;
  * ```
  */
 export const InteractionModeBadge = memo(function InteractionModeBadge({

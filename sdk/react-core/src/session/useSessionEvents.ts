@@ -153,7 +153,7 @@ const INTERRUPTED_MESSAGE = "The connection to the conversation was interrupted.
  *
  * @example
  * ```tsx
- * const { fold, isReconnecting } = useSessionEvents(sessionId);
+ * const { fold, isReconnecting } = useSessionEvents("ses_01jabc");
  * const turns = fold?.turns ?? [];
  * ```
  */

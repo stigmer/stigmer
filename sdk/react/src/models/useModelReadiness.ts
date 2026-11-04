@@ -60,7 +60,7 @@ export function modelReadinessCacheKey(org: string): string {
  *
  * @example
  * ```tsx
- * const { readinessOf } = useModelReadiness(org);
+ * const { readinessOf } = useModelReadiness("acme");
  * const needsKey = readinessOf("stigmer", "claude-sonnet-4-6")?.availability.state === "missing";
  * ```
  */

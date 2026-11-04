@@ -31,10 +31,16 @@ export interface UseRejectMemoryReturn {
  *
  * @example
  * ```tsx
- * const { rejectMemory, isRejecting } = useRejectMemory();
+ * import type { Memory } from "@stigmer/apis/ai/stigmer/agentic/memory/v1/api_pb";
  *
- * await rejectMemory(memory.metadata?.id ?? "");
- * refetch(); // refresh the list after the decision
+ * function RejectMemory({ memory, onDecided }: { memory: Memory; onDecided: () => void }) {
+ *   const { rejectMemory, isRejecting } = useRejectMemory();
+ *   const reject = async () => {
+ *     await rejectMemory(memory.metadata?.id ?? "");
+ *     onDecided(); // refresh the list after the decision
+ *   };
+ *   return <button onClick={reject} disabled={isRejecting}>Not true</button>;
+ * }
  * ```
  */
 export function useRejectMemory(): UseRejectMemoryReturn {

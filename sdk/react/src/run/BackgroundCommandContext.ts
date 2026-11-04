@@ -53,8 +53,11 @@ export interface UseBackgroundStopResult {
  *
  * @example
  * ```tsx
- * const stop = useBackgroundStop(toolUse);
- * if (stop) {
+ * import type { ToolUse } from "@stigmer/client";
+ *
+ * function StopButton({ toolUse }: { toolUse: ToolUse }) {
+ *   const stop = useBackgroundStop(toolUse);
+ *   if (!stop) return null;
  *   return <button onClick={stop.onStop} disabled={stop.isStopping}>Stop</button>;
  * }
  * ```

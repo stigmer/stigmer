@@ -46,8 +46,15 @@ export interface UseSaveScoringRuleReturn {
  *
  * @example
  * ```tsx
- * const { save, isSaving } = useSaveScoringRule();
- * await save({ id: agentId, org }, { ...settings, enabled: true }, scoringRule);
+ * import type { ScoringRule } from "@stigmer/apis/ai/stigmer/agentic/scoringrule/v1/api_pb";
+ *
+ * type Props = { agentId: string; org: string; scoringRule: ScoringRule | null };
+ *
+ * function GradeRuns({ agentId, org, scoringRule }: Props) {
+ *   const { save, isSaving } = useSaveScoringRule();
+ *   const turnOn = () => save({ id: agentId, org }, DEFAULT_GRADING_SETTINGS, scoringRule);
+ *   return <button onClick={turnOn} disabled={isSaving}>Grade this agent's runs</button>;
+ * }
  * ```
  */
 export function useSaveScoringRule(): UseSaveScoringRuleReturn {

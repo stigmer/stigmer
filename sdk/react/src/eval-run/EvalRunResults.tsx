@@ -91,7 +91,9 @@ export interface EvalRunResultsProps {
  *
  * @example
  * ```tsx
- * <EvalRunResults evalRunId={id} subjectSlug="reviewer" canEdit onNavigateToRun={openRun} />
+ * function EvalRunPage({ evalRunId, onOpenRun }: { evalRunId: string; onOpenRun: (runId: string) => void }) {
+ *   return <EvalRunResults evalRunId={evalRunId} subjectSlug="reviewer" canEdit onNavigateToRun={onOpenRun} />;
+ * }
  * ```
  */
 export function EvalRunResults({

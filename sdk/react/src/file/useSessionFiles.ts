@@ -52,8 +52,14 @@ export interface UseSessionFilesReturn {
  *
  * @example
  * ```tsx
- * const refreshKey = runs.map((r) => `${r.metadata?.id}:${isSettled(r)}`).join(",");
- * const { outputsByRun } = useSessionFiles(org, sessionId, refreshKey);
+ * import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+ *
+ * function RunsWithFiles({ org, sessionId, runs }: { org: string; sessionId: string; runs: readonly Run[] }) {
+ *   // Refetch as each run ends, so the files it made appear.
+ *   const refreshKey = runs.map((r) => `${r.metadata?.id}:${isTerminalPhase(r.status?.phase ?? 0)}`).join(",");
+ *   const { outputsByRun } = useSessionFiles(org, sessionId, refreshKey);
+ *   return <p>{outputsByRun.size} runs made files</p>;
+ * }
  * ```
  */
 export function useSessionFiles(

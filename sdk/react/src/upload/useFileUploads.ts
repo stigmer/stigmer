@@ -76,15 +76,16 @@ export type FileUploadPhase = "preparing" | "uploading" | "ready" | "error";
  *
  * @example
  * ```tsx
- * const uploads = useFileUploads({ org });
- *
- * uploads.entries.map((entry) => (
- *   <span key={entry.id}>
- *     {entry.file.name}
- *     {entry.phase === "uploading" && <Spinner />}
- *     {entry.phase === "error" && <span>{entry.error}</span>}
- *   </span>
- * ));
+ * function UploadList({ org }: { org: string }) {
+ *   const uploads = useFileUploads({ org });
+ *   return uploads.entries.map((entry) => (
+ *     <span key={entry.id}>
+ *       {entry.file.name}
+ *       {entry.phase === "uploading" && " (uploading…)"}
+ *       {entry.phase === "error" && <span role="alert">{entry.error}</span>}
+ *     </span>
+ *   ));
+ * }
  * ```
  */
 export interface FileUploadEntry {
@@ -245,21 +246,20 @@ export function toFileChipView(entry: FileUploadEntry): MessageFileView {
  *
  * @example
  * ```tsx
- * function CustomComposer({ org, sessionId, send }: Props) {
- *   const uploads = useFileUploads({ org, sessionId });
+ * type Props = { org: string; sessionId: string; send: (message: string, fileIds: string[]) => Promise<void> };
  *
- *   const submit = async (message: string) => {
+ * function AttachAndSend({ org, sessionId, send }: Props) {
+ *   const uploads = useFileUploads({ org, sessionId });
+ *   const submit = async () => {
  *     const files = uploads.handOff();
- *     await send(message, files.fileIds);
+ *     await send("Here are the files", files.fileIds);
  *     await files.release();
  *   };
- *
  *   return (
- *     <input
- *       type="file"
- *       multiple
- *       onChange={(e) => e.target.files && uploads.addFiles(e.target.files)}
- *     />
+ *     <>
+ *       <input type="file" multiple onChange={(e) => e.target.files && uploads.addFiles(e.target.files)} />
+ *       <button onClick={submit} disabled={!uploads.allReady}>Send</button>
+ *     </>
  *   );
  * }
  * ```

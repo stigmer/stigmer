@@ -33,26 +33,27 @@ export interface UseSessionReturn {
  *
  * @example
  * ```tsx
- * function SessionDetail({ sessionId }: { sessionId: string }) {
+ * function SessionTitle({ sessionId }: { sessionId: string }) {
  *   const { session, isLoading, error, refetch } = useSession(sessionId);
- *
- *   if (isLoading) return <Skeleton />;
- *   if (error) return <ErrorMessage error={error} />;
- *   if (!session) return <NotFound />;
- *
+ *   if (isLoading) return <p>Loading…</p>;
+ *   if (error) return <p role="alert">{error.message}</p>;
+ *   if (!session) return <p>No such conversation.</p>;
  *   return (
- *     <div>
- *       <h1>{session.status?.subject ?? "Untitled session"}</h1>
+ *     <header>
+ *       <h1>{session.spec?.subject || "Untitled conversation"}</h1>
  *       <button onClick={refetch}>Refresh</button>
- *     </div>
+ *     </header>
  *   );
  * }
  * ```
  *
  * @example
  * ```tsx
- * // Skip fetching until session ID is available
- * const { session } = useSession(sessionId ?? null);
+ * // Skip fetching until a conversation is selected.
+ * function Selected({ sessionId }: { sessionId?: string }) {
+ *   const { session } = useSession(sessionId ?? null);
+ *   return session ? <h2>{session.spec?.subject}</h2> : <p>Pick a conversation.</p>;
+ * }
  * ```
  */
 export function useSession(id: string | null): UseSessionReturn {

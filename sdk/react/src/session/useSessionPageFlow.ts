@@ -296,32 +296,24 @@ export interface UseSessionPageFlowReturn {
  *
  * @example
  * ```tsx
- * const flow = useSessionPageFlow({ sessionId: "ses_abc", org: "acme" });
- *
- * if (flow.conv.isLoading) return <Spinner />;
- * if (flow.conv.loadError) return <ErrorView error={flow.conv.loadError} />;
- *
- * return (
- *   <>
- *     <MessageThread
- *       turns={flow.conv.turns}
- *       runs={flow.conv.runs}
- *       onAnswerToolUse={flow.answerToolUse}
- *       sandboxWorkspaceRoot={flow.sandboxWorkspaceRoot}
- *     />
- *     <SessionComposer
- *       onSubmit={flow.handleSubmit}
- *       isSubmitting={flow.conv.isSending}
- *       disabled={!flow.conv.canSendFollowUp}
- *       workspace={flow.workspace}
- *       agentRef={flow.agentRef}
- *       onAgentRefChange={flow.setAgentRef}
- *       onAgentResolutionChange={flow.setResolution}
- *       defaultModelId={flow.model[0]}
- *       onModelChange={flow.model[1]}
- *     />
- *   </>
- * );
+ * function ConversationPage({ sessionId }: { sessionId: string }) {
+ *   const flow = useSessionPageFlow({ sessionId, org: "acme" });
+ *   if (flow.conv.isLoading) return <p>Loading…</p>;
+ *   if (flow.conv.loadError) return <p role="alert">{flow.conv.loadError.message}</p>;
+ *   return (
+ *     <>
+ *       <MessageThread turns={flow.conv.turns} runs={flow.conv.runs} onAnswerToolUse={flow.answerToolUse} />
+ *       <SessionComposer
+ *         onSubmit={flow.handleSubmit}
+ *         isSubmitting={flow.conv.isSending}
+ *         disabled={!flow.conv.canSendFollowUp}
+ *         workspace={flow.workspace}
+ *         defaultModelId={flow.model[0]}
+ *         onModelChange={flow.model[1]}
+ *       />
+ *     </>
+ *   );
+ * }
  * ```
  */
 export function useSessionPageFlow(

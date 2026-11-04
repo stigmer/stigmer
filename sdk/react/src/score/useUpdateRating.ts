@@ -28,8 +28,13 @@ export interface UseUpdateRatingReturn {
  *
  * @example
  * ```tsx
- * const { updateRating } = useUpdateRating();
- * await updateRating(myRating, { passed: true });
+ * import type { Score } from "@stigmer/apis/ai/stigmer/agentic/score/v1/api_pb";
+ *
+ * function MarkPassed({ myRating }: { myRating: Score }) {
+ *   const { updateRating, isUpdating } = useUpdateRating();
+ *   const pass = () => updateRating(myRating, { passed: true });
+ *   return <button onClick={pass} disabled={isUpdating}>Mark passed</button>;
+ * }
  * ```
  */
 export function useUpdateRating(): UseUpdateRatingReturn {

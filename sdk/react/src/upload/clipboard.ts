@@ -76,11 +76,15 @@ function synthesizePastedImageName(mimeType: string, now: Date): string {
  *
  * @example
  * ```tsx
- * function handlePaste(e: React.ClipboardEvent<HTMLTextAreaElement>) {
- *   const files = extractClipboardFiles(e);
- *   if (files.length === 0) return; // plain text paste — leave it alone
- *   e.preventDefault();
- *   uploads.addFiles(files);
+ * function PasteBox({ org }: { org: string }) {
+ *   const uploads = useFileUploads({ org });
+ *   const onPaste = (e: ClipboardEvent<HTMLTextAreaElement>) => {
+ *     const files = extractClipboardFiles(e);
+ *     if (files.length === 0) return; // plain text paste: leave it alone
+ *     e.preventDefault();
+ *     uploads.addFiles(files);
+ *   };
+ *   return <textarea onPaste={onPaste} />;
  * }
  * ```
  */

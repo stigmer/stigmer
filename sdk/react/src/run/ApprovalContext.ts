@@ -67,9 +67,11 @@ export interface UseApprovalResult {
  *
  * @example
  * ```tsx
- * const approval = useApproval(toolUse);
- * if (approval) {
- *   return <ApprovalCardBody {...approval} />;
+ * import type { ToolUse } from "@stigmer/client";
+ *
+ * function ToolAsk({ toolUse }: { toolUse: ToolUse }) {
+ *   const approval = useApproval(toolUse);
+ *   return approval ? <ApprovalCardBody {...approval} /> : null;
  * }
  * ```
  */

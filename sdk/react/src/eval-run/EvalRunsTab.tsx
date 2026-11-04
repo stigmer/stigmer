@@ -140,8 +140,11 @@ export type EvalRunsTabProps = (
  *
  * @example
  * ```tsx
- * <EvalRunsTab agent={agent} onNavigateToRun={(runId) => router.push(`/runs/${runId}`)} />
- * <EvalRunsTab plugin={plugin} onNavigateToRun={(runId) => router.push(`/runs/${runId}`)} />
+ * import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+ *
+ * function AgentEvals({ agent, onOpenRun }: { agent: Agent; onOpenRun: (runId: string) => void }) {
+ *   return <EvalRunsTab agent={agent} onNavigateToRun={onOpenRun} />;
+ * }
  * ```
  */
 export function EvalRunsTab(props: EvalRunsTabProps) {

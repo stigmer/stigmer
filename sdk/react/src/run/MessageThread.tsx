@@ -1162,13 +1162,10 @@ function fileReviewContextOf(turns: readonly Turn[], runs: readonly Run[]): File
  *
  * @example
  * ```tsx
- * const conv = useSessionConversation(sessionId, org);
- *
- * <MessageThread
- *   turns={conv.turns}
- *   runs={conv.runs}
- *   onAnswerToolUse={conv.answerToolUse}
- * />
+ * function Conversation({ sessionId, org }: { sessionId: string; org: string }) {
+ *   const conv = useSessionConversation(sessionId, org);
+ *   return <MessageThread turns={conv.turns} runs={conv.runs} onAnswerToolUse={conv.answerToolUse} />;
+ * }
  * ```
  */
 export function MessageThread({

@@ -37,9 +37,12 @@ export interface RunProgressProps {
  *
  * @example
  * ```tsx
- * <div className="rounded-lg border border-border bg-card p-3">
- *   <RunProgress run={run} todos={turn.todos} />
- * </div>
+ * import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+ * import type { Turn } from "@stigmer/client";
+ *
+ * function TurnProgress({ run, turn }: { run: Run; turn: Turn }) {
+ *   return <RunProgress run={run} todos={turn.todos} />;
+ * }
  * ```
  */
 export function RunProgress({

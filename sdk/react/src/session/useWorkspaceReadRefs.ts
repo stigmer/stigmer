@@ -38,8 +38,12 @@ import type { WorkspaceEntry } from "../workspace/useWorkspaceEntries.js";
  *
  * @example
  * ```tsx
- * const surfaceEntries = useWorkspaceReadRefs(flow.allRuns, flow.workspace.entries);
- * <WorkspaceSurface entries={surfaceEntries} ... />
+ * import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+ *
+ * function EntryRefs({ runs, entries }: { runs: readonly Run[]; entries: readonly WorkspaceEntry[] }) {
+ *   const readable = useWorkspaceReadRefs(runs, entries);
+ *   return <ul>{readable.map((e) => <li key={e.id}>{e.name} at {e.readRef ?? e.gitBranch}</li>)}</ul>;
+ * }
  * ```
  *
  * @see useSessionWriteBacks — the write-back list this projection derives from

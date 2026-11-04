@@ -51,8 +51,9 @@ export interface FilePathLinkProps {
  *
  * @example
  * ```tsx
- * <FilePathLink path="src/main.go" />              // shows "main.go"
- * <FilePathLink path="src/main.go" dirDisplay="dim" /> // shows "src/main.go"
+ * <p>
+ *   Edited <FilePathLink path="src/main.go" /> and <FilePathLink path="src/util.go" dirDisplay="dim" />
+ * </p>
  * ```
  */
 export function FilePathLink({

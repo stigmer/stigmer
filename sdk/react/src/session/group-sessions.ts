@@ -52,7 +52,7 @@ interface SearchResultBucket {
  *           <h3>{group.label}</h3>
  *           <ul>
  *             {group.sessions.map((s) => (
- *               <li key={s.metadata?.id}>{s.status?.subject}</li>
+ *               <li key={s.metadata?.id}>{s.spec?.subject}</li>
  *             ))}
  *           </ul>
  *         </section>

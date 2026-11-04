@@ -55,7 +55,11 @@ export interface TodoCardProps {
  *
  * @example
  * ```tsx
- * <TodoCard todos={turn.todos} />
+ * import type { Turn } from "@stigmer/client";
+ *
+ * function TurnTodoCard({ turn }: { turn: Turn }) {
+ *   return <TodoCard todos={turn.todos} />;
+ * }
  * ```
  */
 export const TodoCard = memo(function TodoCard({

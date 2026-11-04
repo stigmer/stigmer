@@ -27,10 +27,16 @@ export interface UseDeleteMemoryReturn {
  *
  * @example
  * ```tsx
- * const { deleteMemory, isDeleting, error } = useDeleteMemory();
+ * import type { Memory } from "@stigmer/apis/ai/stigmer/agentic/memory/v1/api_pb";
  *
- * await deleteMemory(memory.metadata?.id ?? "");
- * refetch(); // refresh the list after deletion
+ * function ForgetMemory({ memory, onDeleted }: { memory: Memory; onDeleted: () => void }) {
+ *   const { deleteMemory, isDeleting } = useDeleteMemory();
+ *   const forget = async () => {
+ *     await deleteMemory(memory.metadata?.id ?? "");
+ *     onDeleted(); // refresh the list after deletion
+ *   };
+ *   return <button onClick={forget} disabled={isDeleting}>Forget</button>;
+ * }
  * ```
  */
 export function useDeleteMemory(): UseDeleteMemoryReturn {

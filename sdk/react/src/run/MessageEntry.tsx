@@ -99,7 +99,9 @@ export interface MessageEntryProps {
  *
  * @example
  * ```tsx
- * <MessageEntry message={item} />
+ * function Message({ message }: { message: ThreadMessage }) {
+ *   return <MessageEntry message={message} />;
+ * }
  * ```
  */
 export const MessageEntry = memo(function MessageEntry({

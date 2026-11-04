@@ -41,8 +41,10 @@ export interface ModelDefaultsProps {
  *
  * @example
  * ```tsx
- * const { readinessOf } = useModelReadiness(org);
- * <ModelDefaults readinessOf={readinessOf} />
+ * function OrgModelDefaults({ org }: { org: string }) {
+ *   const { readinessOf } = useModelReadiness(org);
+ *   return <ModelDefaults readinessOf={readinessOf} />;
+ * }
  * ```
  */
 export function ModelDefaults({ readinessOf, className }: ModelDefaultsProps) {

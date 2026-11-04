@@ -338,28 +338,22 @@ export interface UseNewSessionFlowReturn {
  *
  * @example
  * ```tsx
- * const flow = useNewSessionFlow({
- *   org: "acme",
- *   onSessionCreated: (id) => navigate(`/sessions/${id}`),
- *   onError: (msg) => toast.error(msg),
- * });
- *
- * <SessionComposer
- *   onSubmit={flow.submit}
- *   isSubmitting={flow.isSubmitting}
- *   org="acme"
- *   workspace={flow.workspace}
- *   agentRef={flow.agentRef}
- *   onAgentRefChange={flow.setAgentRef}
- *   onAgentResolutionChange={flow.setResolution}
- *   pluginRefs={flow.pluginRefs}
- *   onPluginRefsChange={flow.setPluginRefs}
- *   skillRefs={flow.skillRefs}
- *   onSkillRefsChange={flow.setSkillRefs}
-
- *   defaultModelId={flow.modelId}
- *   onModelChange={flow.setModelId}
- * />
+ * function NewConversation({ onOpen }: { onOpen: (sessionId: string) => void }) {
+ *   const flow = useNewSessionFlow({ org: "acme", onSessionCreated: onOpen, onError: (msg) => toast.error(msg) });
+ *   return (
+ *     <SessionComposer
+ *       org="acme"
+ *       onSubmit={flow.submit}
+ *       isSubmitting={flow.isSubmitting}
+ *       workspace={flow.workspace}
+ *       agentRef={flow.agentRef}
+ *       onAgentRefChange={flow.setAgentRef}
+ *       onAgentResolutionChange={flow.setResolution}
+ *       defaultModelId={flow.modelId}
+ *       onModelChange={flow.setModelId}
+ *     />
+ *   );
+ * }
  * ```
  */
 export function useNewSessionFlow(

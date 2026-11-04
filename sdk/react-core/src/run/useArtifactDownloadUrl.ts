@@ -74,10 +74,12 @@ export interface UseArtifactDownloadUrlOptions {
  *
  * @example
  * ```tsx
- * // Render an offloaded screenshot with an always-fresh URL.
- * const { url, isLoading } = useArtifactDownloadUrl(executionId, storageKey);
- * if (isLoading) return <Skeleton />;
- * return url ? <img src={url} alt="Tool output" /> : null;
+ * // An offloaded screenshot, with a URL that is always fresh.
+ * function Screenshot({ executionId, storageKey }: { executionId: string; storageKey: string }) {
+ *   const { url, isLoading } = useArtifactDownloadUrl(executionId, storageKey);
+ *   if (isLoading) return <p>Loading…</p>;
+ *   return url ? <img src={url} alt="Tool output" /> : null;
+ * }
  * ```
  *
  * @see useArtifactContent — reads the stored text through the API (text preview)

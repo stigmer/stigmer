@@ -262,17 +262,17 @@ export interface SessionViewerProps {
  *
  * @example
  * ```tsx
- * // An embedding product's end user: the conversation alone
- * <SessionViewer sessionId={id} org={org} audience="endUser" />
+ * // An embedding product's end user: the conversation alone.
+ * <SessionViewer sessionId="ses_01jabc" org="acme" audience="endUser" />;
+ * ```
  *
- * // The console, with the builder mode
- * <SessionViewer
- *   sessionId={id}
- *   org={org}
- *   gitHubConnection={gitHubConnection}
- *   enableGitHub
- *   inspector={<SessionInspector workspaceFileLister={lister} workspaceFileReader={reader} />}
- * />
+ * @example
+ * ```tsx
+ * // The console, with the builder mode.
+ * function BuilderConversation({ sessionId, org }: { sessionId: string; org: string }) {
+ *   const gitHub = useGitHubConnection(org);
+ *   return <SessionViewer sessionId={sessionId} org={org} gitHubConnection={gitHub} enableGitHub inspector={<SessionInspector />} />;
+ * }
  * ```
  */
 export function SessionViewer({

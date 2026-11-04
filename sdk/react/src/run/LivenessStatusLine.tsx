@@ -65,7 +65,6 @@ export function backgroundWaitLabel(waitingOn: ReadonlyArray<ToolUse>, elapsedMs
  *
  * @example
  * ```tsx
- * <LivenessStatusLine />
  * <LivenessStatusLine label="Reviewing your data…" />
  * ```
  */

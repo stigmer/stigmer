@@ -47,7 +47,7 @@ export interface UseAgentQualityReportReturn {
  *
  * @example
  * ```tsx
- * const { report, error } = useAgentQualityReport(agent.metadata?.id ?? "", 30);
+ * const { report, error } = useAgentQualityReport("agt_01jabc", 30);
  * ```
  */
 export function useAgentQualityReport(

@@ -38,9 +38,15 @@ export interface UseStartEvalRunReturn {
  *
  * @example
  * ```tsx
- * const { start } = useStartEvalRun();
- * // Unnamed: the server names the eval run by its id.
- * const started = await start({ name: "", org, agentId, comparedPluginId, maxCostUsd: 5 });
+ * function RunEvals({ org, agentId, onStarted }: { org: string; agentId: string; onStarted: (id: string) => void }) {
+ *   const { start, isStarting } = useStartEvalRun();
+ *   const run = async () => {
+ *     // Unnamed: the server names the eval run by its id.
+ *     const started = await start({ name: "", org, agentId, maxCostUsd: 5 });
+ *     onStarted(started.metadata?.id ?? "");
+ *   };
+ *   return <button onClick={run} disabled={isStarting}>Run evals</button>;
+ * }
  * ```
  */
 export function useStartEvalRun(): UseStartEvalRunReturn {

@@ -72,10 +72,16 @@ export interface UseConversationMediaUrlOptions {
  *
  * @example
  * ```tsx
- * // Render an inbound photo with an always-fresh URL.
- * const { url, isLoading } = useConversationMediaUrl(channelId, key, item.itemId);
- * if (isLoading) return <Skeleton />;
- * return url ? <img src={url} alt={item.media?.filename} /> : null;
+ * import type { ConversationTimelineItem } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/conversation_io_pb";
+ *
+ * type Props = { channelId: string; conversationKey: string; item: ConversationTimelineItem };
+ *
+ * // An inbound photo, with a URL that is always fresh.
+ * function InboundPhoto({ channelId, conversationKey, item }: Props) {
+ *   const { url, isLoading } = useConversationMediaUrl(channelId, conversationKey, item.itemId);
+ *   if (isLoading) return <p>Loading…</p>;
+ *   return url ? <img src={url} alt={item.media?.filename} /> : null;
+ * }
  * ```
  *
  * @see useArtifactDownloadUrl — the run stored-content counterpart this mirrors

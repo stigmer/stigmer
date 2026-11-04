@@ -533,24 +533,13 @@ export interface UseSessionConversationReturn {
  * ```tsx
  * function Chat({ sessionId, org }: { sessionId: string; org: string }) {
  *   const conv = useSessionConversation(sessionId, org);
- *
- *   if (conv.isLoading) return <Spinner />;
- *
+ *   if (conv.isLoading) return <p>Loading…</p>;
+ *   const send = (data: FormData) => conv.sendFollowUp(String(data.get("message")));
  *   return (
- *     <>
- *       <MessageThread
- *         turns={conv.turns}
- *         runs={conv.runs}
- *         pendingUserMessage={conv.pendingUserMessage}
- *         onAnswerToolUse={conv.answerToolUse}
- *         answeringToolUseIds={conv.answeringToolUseIds}
- *       />
- *       <SessionComposer
- *         onSubmit={(msg, model) => conv.sendFollowUp(msg, { modelName: model })}
- *         disabled={!conv.canSendFollowUp}
- *         isSubmitting={conv.isSending}
- *       />
- *     </>
+ *     <form action={send}>
+ *       {conv.turns.map((turn) => <p key={turn.runId}>{turn.answer}</p>)}
+ *       <input name="message" disabled={!conv.canSendFollowUp} />
+ *     </form>
  *   );
  * }
  * ```

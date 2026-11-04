@@ -59,12 +59,11 @@ export interface ToolArgsViewProps {
  *
  * @example
  * ```tsx
- * // In approval card (from argsPreview string):
- * const args = JSON.parse(pendingApproval.argsPreview);
- * <ToolArgsView toolName={toolName} args={args} mcpServerSlug={slug} />
+ * import type { ToolUse } from "@stigmer/client";
  *
- * // In detail view (from ToolCall):
- * <ToolArgsView toolName={tc.name} args={tc.args} mcpServerSlug={tc.mcpServerSlug} />
+ * function ToolArgs({ toolUse }: { toolUse: ToolUse }) {
+ *   return <ToolArgsView toolName={toolUse.name} args={toolUse.input} mcpServerSlug={toolUse.mcpServerName} />;
+ * }
  * ```
  */
 export function ToolArgsView({

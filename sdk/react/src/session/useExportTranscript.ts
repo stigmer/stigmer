@@ -51,11 +51,16 @@ export interface UseExportTranscriptReturn {
  *
  * @example
  * ```tsx
- * const exporter = useExportTranscript(sessionId);
- *
- * <ActionMenu.Item onSelect={exporter.copyMarkdown}>Copy transcript</ActionMenu.Item>
- * <ActionMenu.Item onSelect={exporter.downloadMarkdown}>Download .md</ActionMenu.Item>
- * <ActionMenu.Item onSelect={exporter.downloadJson}>Download .json</ActionMenu.Item>
+ * function TranscriptActions({ sessionId }: { sessionId: string }) {
+ *   const exporter = useExportTranscript(sessionId);
+ *   return (
+ *     <>
+ *       <button onClick={exporter.copyMarkdown} disabled={exporter.isExporting}>Copy transcript</button>
+ *       <button onClick={exporter.downloadMarkdown} disabled={exporter.isExporting}>Download .md</button>
+ *       <button onClick={exporter.downloadJson} disabled={exporter.isExporting}>Download .json</button>
+ *     </>
+ *   );
+ * }
  * ```
  */
 export function useExportTranscript(

@@ -68,11 +68,13 @@ const EMPTY_GROUPS: readonly WorkspaceFileSearchGroup[] = [];
  *
  * @example
  * ```tsx
- * const { groups, totalMatches, isLoading } = useWorkspaceFileSearch({
- *   entries: workspace.entries,
- *   lister: workspaceFileLister,
- *   query,
- * });
+ * type Props = { entries: readonly WorkspaceEntry[]; lister: WorkspaceFileLister; query: string };
+ *
+ * function FileNameMatches({ entries, lister, query }: Props) {
+ *   const { groups, totalMatches, isLoading } = useWorkspaceFileSearch({ entries, lister, query });
+ *   if (isLoading) return <p>Searching…</p>;
+ *   return <p>{totalMatches} files in {groups.length} repositories</p>;
+ * }
  * ```
  */
 export function useWorkspaceFileSearch({

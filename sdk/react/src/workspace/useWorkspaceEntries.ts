@@ -161,16 +161,14 @@ function deriveNameFromPath(path: string): string {
  *
  * @example
  * ```tsx
- * function SessionSetup() {
- *   const workspace = useWorkspaceEntries();
+ * import type { SessionResourceInput } from "@stigmer/client";
  *
+ * function SessionSetup({ onStart }: { onStart: (message: string, resources: SessionResourceInput[]) => void }) {
+ *   const workspace = useWorkspaceEntries();
  *   return (
  *     <div>
  *       <WorkspaceEditor workspace={workspace} />
- *       <SessionComposer
- *         onSubmit={(msg) => createSession(msg, workspace.toInput())}
- *         workspace={workspace}
- *       />
+ *       <SessionComposer onSubmit={(msg) => onStart(msg, workspace.toInput())} workspace={workspace} />
  *     </div>
  *   );
  * }

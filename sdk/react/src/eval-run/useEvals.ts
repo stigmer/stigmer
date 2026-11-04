@@ -48,7 +48,7 @@ export interface UseEvalsReturn {
  *
  * @example
  * ```tsx
- * const { evals } = useEvals(agent?.metadata?.org ?? "");
+ * const { evals } = useEvals("acme");
  * ```
  */
 export function useEvals(org: string): UseEvalsReturn {

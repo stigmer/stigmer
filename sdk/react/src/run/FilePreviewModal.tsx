@@ -90,14 +90,13 @@ export interface FilePreviewContentProps {
  *
  * @example
  * ```tsx
- * // Inside a dialog, modal, or overlay:
- * <FilePreviewContent
- *   file={file}
- *   org={activeOrg}
- *   isTerminal={isTerminalPhase(run.status?.phase)}
- *   onClose={() => setOpen(false)}
- *   onApplied={(result) => toast(`${result.kind} applied`)}
- * />
+ * import type { File } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
+ *
+ * // Inside a dialog, a panel or an overlay of your own.
+ * function FilePanel({ file, org, onClose }: { file: File; org: string; onClose: () => void }) {
+ *   const applied = (result: { kind: string }) => toast(`${result.kind} applied`);
+ *   return <FilePreviewContent file={file} org={org} isTerminal onClose={onClose} onApplied={applied} />;
+ * }
  * ```
  *
  * @see {@link FilePreviewModal} — wraps this component in a native `<dialog>`
@@ -243,18 +242,17 @@ export interface FilePreviewModalProps {
  *
  * @example
  * ```tsx
- * const [previewFile, setPreviewFile] = useState<File | null>(null);
+ * import type { File } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
  *
- * {previewFile && (
- *   <FilePreviewModal
- *     file={previewFile}
- *     org={activeOrg}
- *     isTerminal={isTerminalPhase(run.status?.phase)}
- *     open
- *     onClose={() => setPreviewFile(null)}
- *     onApplied={(result) => toast(`${result.kind} applied`)}
- *   />
- * )}
+ * function FileLink({ file, org }: { file: File; org: string }) {
+ *   const [open, setOpen] = useState(false);
+ *   return (
+ *     <>
+ *       <button onClick={() => setOpen(true)}>{file.metadata?.name}</button>
+ *       <FilePreviewModal file={file} org={org} isTerminal open={open} onClose={() => setOpen(false)} />
+ *     </>
+ *   );
+ * }
  * ```
  *
  * @see {@link FilePreviewContent} — the content component (use directly for non-dialog contexts)

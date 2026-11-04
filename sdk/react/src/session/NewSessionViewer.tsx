@@ -214,23 +214,18 @@ export interface NewSessionViewerProps {
  *
  * @example
  * ```tsx
- * // Desktop
- * <NewSessionViewer
- *   org={org}
- *   onSessionCreated={(id) => navigate(`/sessions/${id}`)}
- *   onError={(msg) => toast.error(msg)}
- *   enableLocal
- *   onBrowseLocalFolder={browseLocalFolder}
- * />
- *
- * // Web
- * <NewSessionViewer
- *   org={org}
- *   onSessionCreated={navigateToSession}
- *   onError={(msg) => toast.error(msg)}
- *   enableGitHub
- *   gitHubConnection={gitHubConnection}
- * />
+ * function NewConversationPage({ org, onOpen }: { org: string; onOpen: (sessionId: string) => void }) {
+ *   const gitHub = useGitHubConnection(org);
+ *   return (
+ *     <NewSessionViewer
+ *       org={org}
+ *       onSessionCreated={onOpen}
+ *       onError={(msg) => toast.error(msg)}
+ *       enableGitHub
+ *       gitHubConnection={gitHub}
+ *     />
+ *   );
+ * }
  * ```
  */
 export function NewSessionViewer({

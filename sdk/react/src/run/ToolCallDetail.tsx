@@ -55,7 +55,11 @@ export interface ToolCallDetailProps {
  *
  * @example
  * ```tsx
- * <ToolCallDetail toolUse={toolUse} />
+ * import type { ToolUse } from "@stigmer/client";
+ *
+ * function ToolCall({ toolUse }: { toolUse: ToolUse }) {
+ *   return <ToolCallDetail toolUse={toolUse} />;
+ * }
  * ```
  */
 export function ToolCallDetail({

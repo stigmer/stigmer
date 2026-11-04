@@ -91,14 +91,12 @@ function buildSteps(
  *
  * @example
  * ```tsx
- * // Awaiting response (IN_PROGRESS, no messages yet)
- * <SetupProgress isAwaitingResponse />
+ * import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
  *
- * // Server-driven (preferred during PENDING)
- * <SetupProgress serverPhase={run.status?.setupProgress?.currentPhase} />
- *
- * // Timer fallback (PENDING, no server phase available)
- * <SetupProgress resources={session.spec?.resources} />
+ * // The server's phase, while the run is pending.
+ * function RunSetup({ run }: { run: Run }) {
+ *   return <SetupProgress serverPhase={run.status?.setupProgress?.currentPhase} />;
+ * }
  * ```
  */
 export const SetupProgress = memo(function SetupProgress({

@@ -47,7 +47,7 @@ const PENDING_LOOKUP: MemoryLookup = { memory: null, notFound: false };
  *
  * @example
  * ```tsx
- * const { memory, isLoading, notFound } = useMemory(memoryId);
+ * const { memory, isLoading, notFound } = useMemory("mem_01jabc");
  * ```
  */
 export function useMemory(id: string | null): UseMemoryReturn {

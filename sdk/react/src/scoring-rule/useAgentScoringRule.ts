@@ -32,7 +32,7 @@ export interface UseAgentScoringRuleReturn {
  *
  * @example
  * ```tsx
- * const { scoringRule } = useAgentScoringRule(agent?.metadata?.id ?? "");
+ * const { scoringRule } = useAgentScoringRule("agt_01jabc");
  * ```
  */
 export function useAgentScoringRule(agentId: string): UseAgentScoringRuleReturn {

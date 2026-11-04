@@ -35,13 +35,12 @@ export interface UseResolveRunSessionReturn {
  *
  * @example
  * ```tsx
- * function DrillDown({ agentExecutionId }: { agentExecutionId: string }) {
+ * function DrillDown({ agentExecutionId, onOpen }: { agentExecutionId: string; onOpen: (sessionId: string) => void }) {
  *   const { sessionId, isLoading } = useResolveRunSession(agentExecutionId);
  *   useEffect(() => {
- *     if (sessionId) navigateToSession(sessionId);
- *   }, [sessionId]);
- *   if (isLoading) return <Spinner />;
- *   return null;
+ *     if (sessionId) onOpen(sessionId);
+ *   }, [sessionId, onOpen]);
+ *   return isLoading ? <p>Opening the conversation…</p> : null;
  * }
  * ```
  */

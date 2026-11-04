@@ -62,7 +62,7 @@ export interface UseEvalRunsReturn {
  *
  * @example
  * ```tsx
- * const { evalRuns } = useEvalRuns({ agentId: agent?.metadata?.id ?? "" });
+ * const { evalRuns } = useEvalRuns({ agentId: "agt_01jabc" });
  * ```
  */
 export function useEvalRuns(of: EvalRunsOf): UseEvalRunsReturn {

@@ -88,11 +88,13 @@ const NO_DECISION_ERRORS: ReadonlyMap<string, Error> = new Map();
  *
  * @example
  * ```tsx
- * const { reviewFileChanges } = useReviewFileChanges();
+ * import type { FileReviewSet } from "@stigmer/client";
  *
- * await reviewFileChanges(sessionId, set.changeSetId, "keep", {
- *   expectedDigest: set.aggregateDigest,
- * });
+ * function KeepAll({ sessionId, set }: { sessionId: string; set: FileReviewSet }) {
+ *   const { reviewFileChanges } = useReviewFileChanges();
+ *   const keep = () => reviewFileChanges(sessionId, set.changeSetId, "keep", { expectedDigest: set.aggregateDigest });
+ *   return <button onClick={keep}>Keep all</button>;
+ * }
  * ```
  */
 export function useReviewFileChanges(): UseReviewFileChangesReturn {

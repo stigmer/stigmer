@@ -43,8 +43,10 @@ export interface UseFileReturn {
  *
  * @example
  * ```tsx
- * const { file } = useFile(fileId);
- * return <span>{file?.spec?.filename ?? "file"}</span>;
+ * function FileName({ fileId }: { fileId: string }) {
+ *   const { file } = useFile(fileId);
+ *   return <span>{file?.spec?.filename ?? "file"}</span>;
+ * }
  * ```
  */
 export function useFile(fileId: string | null): UseFileReturn {
@@ -107,10 +109,14 @@ export interface UseFileDownloadReturn {
  *
  * @example
  * ```tsx
- * const { download, isDownloading } = useFileDownload();
- * <button onClick={() => download(fileId, "ledger.xlsx")} disabled={isDownloading}>
- *   Download
- * </button>
+ * function DownloadLedger({ fileId }: { fileId: string }) {
+ *   const { download, isDownloading } = useFileDownload();
+ *   return (
+ *     <button onClick={() => download(fileId, "ledger.xlsx")} disabled={isDownloading}>
+ *       Download
+ *     </button>
+ *   );
+ * }
  * ```
  */
 export function useFileDownload(): UseFileDownloadReturn {

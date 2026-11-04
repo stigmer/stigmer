@@ -63,11 +63,12 @@ export interface SubagentSectionProps {
  *
  * @example
  * ```tsx
- * // Standalone collapsible card (default)
- * <SubagentSection thread={toolUse.thread} subject={subagentSubjectOf(toolUse)} />
+ * import type { ToolUse } from "@stigmer/client";
  *
- * // Flat layout inside a parent expand/collapse
- * <SubagentSection thread={toolUse.thread} collapsible={false} />
+ * function Subagent({ toolUse }: { toolUse: ToolUse }) {
+ *   if (!toolUse.thread) return null;
+ *   return <SubagentSection thread={toolUse.thread} subject={subagentSubjectOf(toolUse)} />;
+ * }
  * ```
  */
 export const SubagentSection = memo(function SubagentSection({

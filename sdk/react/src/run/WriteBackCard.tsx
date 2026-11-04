@@ -49,14 +49,12 @@ export interface WriteBackCardProps {
  *
  * @example
  * ```tsx
- * const { writeBacks } = useWorkspaceWriteBacks(run);
+ * import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
  *
- * {writeBacks.map((wb) => (
- *   <WriteBackCard
- *     key={wb.workspaceEntryName}
- *     writeBack={wb}
- *   />
- * ))}
+ * function RunWriteBacks({ run }: { run: Run }) {
+ *   const { writeBacks } = useWorkspaceWriteBacks(run);
+ *   return <>{writeBacks.map((wb) => <WriteBackCard key={wb.workspaceEntryName} writeBack={wb} />)}</>;
+ * }
  * ```
  *
  * @see useWorkspaceWriteBacks — extracts write-back data from a run

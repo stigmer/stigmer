@@ -76,7 +76,11 @@ export function toolCallGroupPropsEqual(
  *
  * @example
  * ```tsx
- * <ToolCallGroup toolUses={toolUses} />
+ * import type { ToolUse } from "@stigmer/client";
+ *
+ * function Steps({ toolUses }: { toolUses: readonly ToolUse[] }) {
+ *   return <ToolCallGroup toolUses={toolUses} />;
+ * }
  * ```
  */
 export const ToolCallGroup = memo(function ToolCallGroup({

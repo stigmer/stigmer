@@ -49,11 +49,10 @@ export interface UsageWidgetProps {
  *
  * @example
  * ```tsx
- * const conv = useSessionConversation(sessionId, org);
- *
- * <UsageWidget
- *   runs={conv.runs}
- * />
+ * function ConversationUsage({ sessionId, org }: { sessionId: string; org: string }) {
+ *   const conv = useSessionConversation(sessionId, org);
+ *   return <UsageWidget runs={conv.runs} />;
+ * }
  * ```
  *
  * @see {@link useSessionUsage} — headless session-level usage hook
