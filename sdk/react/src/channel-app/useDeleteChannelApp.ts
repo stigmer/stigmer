@@ -28,10 +28,14 @@ export interface UseDeleteChannelAppReturn {
  *
  * @example
  * ```tsx
- * const { deleteApp, isDeleting, error } = useDeleteChannelApp();
- *
- * await deleteApp("chapp_abc123");
- * refetch(); // refresh the list after deletion
+ * function DeleteAppButton({ appId, onDeleted }: { appId: string; onDeleted: () => void }) {
+ *   const { deleteApp, isDeleting } = useDeleteChannelApp();
+ *   const remove = async () => {
+ *     await deleteApp(appId);
+ *     onDeleted(); // refetch the list
+ *   };
+ *   return <button onClick={remove} disabled={isDeleting}>Delete</button>;
+ * }
  * ```
  */
 export function useDeleteChannelApp(): UseDeleteChannelAppReturn {

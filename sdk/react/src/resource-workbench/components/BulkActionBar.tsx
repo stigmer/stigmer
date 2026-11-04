@@ -28,14 +28,20 @@ export interface BulkActionBarProps<TData> {
  *
  * @example
  * ```tsx
- * {selection.hasSelection && (
- *   <BulkActionBar
- *     selectedCount={selection.selectedCount}
- *     selectedItems={selection.selectedItems}
- *     actions={agentBulkActions}
- *     onCancel={selection.clearSelection}
- *   />
- * )}
+ * import type { SearchResult } from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
+ *
+ * function AgentBulkActions({ items, onDelete }: { items: readonly SearchResult[]; onDelete: (agents: readonly SearchResult[]) => void }) {
+ *   const selection = useResourceSelection(items, (item) => item.id);
+ *   if (!selection.hasSelection) return null;
+ *   return (
+ *     <BulkActionBar
+ *       selectedCount={selection.selectedCount}
+ *       selectedItems={selection.selectedItems}
+ *       actions={[{ id: "delete", label: "Delete", variant: "destructive", onAction: onDelete }]}
+ *       onCancel={selection.clearSelection}
+ *     />
+ *   );
+ * }
  * ```
  */
 export function BulkActionBar<TData>({

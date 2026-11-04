@@ -128,10 +128,14 @@ export interface UseVaultSignInReturn {
  *
  * @example
  * ```tsx
- * const signIn = useVaultSignIn();
- * <button onClick={() => signIn.signIn("https://mcp.linear.app/mcp", { org }).then(refetch)}>
- *   Sign in again
- * </button>
+ * function SignInAgainButton({ onSignedIn }: { onSignedIn: () => void }) {
+ *   const signIn = useVaultSignIn();
+ *   return (
+ *     <button onClick={() => signIn.signIn("https://mcp.linear.app/mcp", { org: "acme" }).then(onSignedIn)}>
+ *       Sign in again
+ *     </button>
+ *   );
+ * }
  * ```
  */
 export function useVaultSignIn(): UseVaultSignInReturn {

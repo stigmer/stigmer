@@ -17,11 +17,12 @@ import { formatRelativeTime } from "../activity/format-relative-time.js";
  *
  * @example
  * ```tsx
- * <VersionTimelineEntry
- *   entry={version}
- *   isSelected={selectedId === version.id}
- *   onSelect={() => setSelectedId(version.id)}
- * />
+ * function VersionList({ versions }: { versions: readonly VersionEntry[] }) {
+ *   const [selectedId, setSelectedId] = useState<string>();
+ *   return versions.map((version) => (
+ *     <VersionTimelineEntry key={version.id} entry={version} isSelected={selectedId === version.id} onSelect={() => setSelectedId(version.id)} />
+ *   ));
+ * }
  * ```
  */
 export function VersionTimelineEntry({

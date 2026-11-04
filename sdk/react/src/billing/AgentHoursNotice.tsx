@@ -67,7 +67,10 @@ export interface AgentHoursNoticeProps {
  *
  * @example
  * ```tsx
- * if (agentHoursUsedUp(error) !== null) return <AgentHoursNotice error={error} />;
+ * function RunError({ error }: { error: Error }) {
+ *   if (agentHoursUsedUp(error) !== null) return <AgentHoursNotice error={error} />;
+ *   return <ErrorMessage error={error} />;
+ * }
  * ```
  */
 export function AgentHoursNotice({ error, billingHref = DEFAULT_BILLING_HREF, className }: AgentHoursNoticeProps) {

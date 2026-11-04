@@ -31,7 +31,7 @@ export interface UseChannelReturn {
  *
  * @example
  * ```tsx
- * const { channel, isLoading, refetch } = useChannel(channelId);
+ * const { channel, isLoading, refetch } = useChannel("chn_01jabc");
  * ```
  */
 export function useChannel(id: string): UseChannelReturn {

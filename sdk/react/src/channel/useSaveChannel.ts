@@ -56,12 +56,16 @@ export interface UseSaveChannelReturn {
  *
  * @example
  * ```tsx
- * const { update, isPending } = useSaveChannel();
+ * import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
  *
- * const handleToggle = async (channel: Channel, enabled: boolean) => {
- *   await update(channel, { enabled });
- *   refetch(); // refresh the channel list
- * };
+ * function ChannelToggle({ channel, onSaved }: { channel: Channel; onSaved: () => void }) {
+ *   const { update, isPending } = useSaveChannel();
+ *   const toggle = async (enabled: boolean) => {
+ *     await update(channel, { enabled });
+ *     onSaved(); // refetch the channel list
+ *   };
+ *   return <Switch checked={channel.spec?.enabled ?? false} disabled={isPending} onCheckedChange={toggle} />;
+ * }
  * ```
  */
 export function useSaveChannel(): UseSaveChannelReturn {

@@ -105,14 +105,16 @@ const VALIDATE_DEBOUNCE_MS = 500;
  *
  * @example
  * ```tsx
- * const manifest = useApplyManifest(activeOrg);
- *
- * <textarea value={manifest.content}
- *           onChange={(e) => manifest.setContent(e.target.value)} />
- * {manifest.entries?.map((e) => (
- *   <PreviewRow key={e.document.slug} entry={e} />
- * ))}
- * <button onClick={manifest.applyAll} disabled={!manifest.entries}>Apply</button>
+ * function ApplyManifestPanel() {
+ *   const manifest = useApplyManifest("acme");
+ *   return (
+ *     <>
+ *       <textarea value={manifest.content} onChange={(e) => manifest.setContent(e.target.value)} />
+ *       <ul>{manifest.entries?.map((e) => <li key={e.document.slug}>{e.action} {e.document.slug}</li>)}</ul>
+ *       <button onClick={manifest.applyAll} disabled={!manifest.entries}>Apply</button>
+ *     </>
+ *   );
+ * }
  * ```
  *
  * @see {@link ApplyManifestDialog} for the styled component composing this hook

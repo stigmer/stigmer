@@ -81,15 +81,16 @@ const MESSAGE_COUNTER_THRESHOLD = 500;
  *
  * @example
  * ```tsx
- * const slugForOrg = useOrgSlugForId();
- *
- * <RoutineForm
- *   org="acme"
- *   onComplete={(s) =>
- *     navigate(`/library/routines/${slugForOrg(s.metadata?.org ?? "")}/${s.metadata?.slug}`)
- *   }
- *   onCancel={() => navigate("/library/routines")}
- * />
+ * function NewRoutinePage({ onOpen }: { onOpen: (href: string) => void }) {
+ *   const slugForOrg = useOrgSlugForId();
+ *   return (
+ *     <RoutineForm
+ *       org="acme"
+ *       onComplete={(r) => onOpen(`/library/routines/${slugForOrg(r.metadata?.org ?? "")}/${r.metadata?.slug}`)}
+ *       onCancel={() => onOpen("/library/routines")}
+ *     />
+ *   );
+ * }
  * ```
  */
 export function RoutineForm({

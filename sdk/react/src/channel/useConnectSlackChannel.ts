@@ -79,20 +79,16 @@ export interface UseConnectSlackChannelReturn {
  *
  * @example
  * ```tsx
- * const slack = useConnectSlackChannel();
- *
- * async function handleConnect() {
- *   try {
- *     const installed = await slack.connect(channel.metadata.id);
- *     refetch();
- *   } catch {
- *     // error is available via slack.error
- *   }
+ * function ConnectSlackButton({ channelId, onConnected }: { channelId: string; onConnected: () => void }) {
+ *   const slack = useConnectSlackChannel();
+ *   // A failure stays on slack.error for the page to show.
+ *   const connect = () => slack.connect(channelId).then(onConnected, () => {});
+ *   return (
+ *     <button onClick={connect} disabled={slack.isInProgress}>
+ *       {slack.isInProgress ? "Connecting…" : "Connect to Slack"}
+ *     </button>
+ *   );
  * }
- *
- * <button onClick={handleConnect} disabled={slack.isInProgress}>
- *   {slack.isInProgress ? "Connecting..." : "Connect to Slack"}
- * </button>
  * ```
  */
 export function useConnectSlackChannel(): UseConnectSlackChannelReturn {

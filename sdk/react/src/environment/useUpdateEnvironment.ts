@@ -36,8 +36,13 @@ export interface UseUpdateEnvironmentReturn {
  *
  * @example
  * ```tsx
- * const { update } = useUpdateEnvironment();
- * await update(environment, { description: "Pandas and the GitHub API" });
+ * import type { Environment } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/api_pb";
+ *
+ * function DescribeButton({ environment }: { environment: Environment }) {
+ *   const { update, isUpdating } = useUpdateEnvironment();
+ *   const save = () => update(environment, { description: "Pandas and the GitHub API" });
+ *   return <button onClick={save} disabled={isUpdating}>Save description</button>;
+ * }
  * ```
  */
 export function useUpdateEnvironment(): UseUpdateEnvironmentReturn {

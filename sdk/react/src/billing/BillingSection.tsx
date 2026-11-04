@@ -51,8 +51,10 @@ export interface BillingSectionProps {
  *
  * @example
  * ```tsx
- * // In a settings page, resuming the plan a saved card was for:
- * <BillingSection resumePlanId={searchParams.plan} />
+ * // A settings page, resuming the plan a saved card was for (`?plan=team`):
+ * function BillingSettings({ planFromUrl }: { planFromUrl?: string }) {
+ *   return <BillingSection resumePlanId={planFromUrl} />;
+ * }
  * ```
  */
 export function BillingSection({

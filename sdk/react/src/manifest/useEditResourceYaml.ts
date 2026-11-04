@@ -121,13 +121,19 @@ const TARGET_CHECK_DEBOUNCE_MS = 400;
  *
  * @example
  * ```tsx
- * const edit = useEditResourceYaml({ resource: agent });
- *
- * <YamlEditor value={edit.yaml} onChange={edit.setYaml} />
- * {edit.validation.status === "invalid" && <p>{edit.validation.message}</p>}
- * <button disabled={edit.validation.status !== "valid"} onClick={edit.apply}>
- *   {edit.target?.action === "create" ? "Create" : "Apply changes"}
- * </button>
+ * function EditAgentYaml({ slug }: { slug: string }) {
+ *   const { agent } = useAgent("acme", slug);
+ *   const edit = useEditResourceYaml({ resource: agent });
+ *   return (
+ *     <>
+ *       <YamlEditor value={edit.yaml} onChange={edit.setYaml} />
+ *       {edit.validation.status === "invalid" && <p>{edit.validation.message}</p>}
+ *       <button disabled={edit.validation.status !== "valid"} onClick={edit.apply}>
+ *         {edit.target?.action === "create" ? "Create" : "Apply changes"}
+ *       </button>
+ *     </>
+ *   );
+ * }
  * ```
  *
  * @see {@link EditResourceYamlDialog} for the styled component composing this hook

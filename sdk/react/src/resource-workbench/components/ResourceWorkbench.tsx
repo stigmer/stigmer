@@ -197,16 +197,21 @@ const DEBOUNCE_MS = 300;
  *
  * @example
  * ```tsx
- * <ResourceWorkbench
- *   listFn={createLibraryListFn(stigmer, ApiResourceKind.agent)}
- *   org={activeOrg}
- *   columns={agentColumns}
- *   filterDefs={agentFilterDefs}
- *   renderItemAction={(item) => <AgentActionMenu item={item} />}
- *   onItemClick={(item) => navigate(`/agents/${item.slug}`)}
- *   emptyTitle="No agents yet"
- *   emptyDescription="Create an agent to get started."
- * />
+ * import { ApiResourceKind } from "@stigmer/client";
+ *
+ * function AgentsPage({ onOpen }: { onOpen: (href: string) => void }) {
+ *   const stigmer = useStigmer();
+ *   const listFn = useMemo(() => createLibraryListFn(stigmer, ApiResourceKind.agent), [stigmer]);
+ *   return (
+ *     <ResourceWorkbench
+ *       listFn={listFn}
+ *       org="acme"
+ *       onItemClick={(item) => onOpen(`/agents/${item.slug}`)}
+ *       emptyTitle="No agents yet"
+ *       emptyDescription="Create an agent to get started."
+ *     />
+ *   );
+ * }
  * ```
  */
 export function ResourceWorkbench<TData = SearchResult>({

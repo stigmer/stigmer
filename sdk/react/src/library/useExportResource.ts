@@ -57,13 +57,16 @@ export interface UseExportResourceReturn {
  *
  * @example
  * ```tsx
- * const { agent } = useAgent(org, slug);
- * const { copyYaml, downloadYaml } = useExportResource({
- *   resource: agent,
- * });
- *
- * <ActionMenu.Item onSelect={copyYaml}>Export YAML</ActionMenu.Item>
- * <ActionMenu.Item onSelect={downloadYaml}>Download YAML</ActionMenu.Item>
+ * function ExportAgentButtons({ slug }: { slug: string }) {
+ *   const { agent } = useAgent("acme", slug);
+ *   const { copyYaml, downloadYaml } = useExportResource({ resource: agent });
+ *   return (
+ *     <>
+ *       <button onClick={copyYaml}>Copy YAML</button>
+ *       <button onClick={downloadYaml}>Download YAML</button>
+ *     </>
+ *   );
+ * }
  * ```
  *
  * @see {@link serializeManifest} for the underlying serializer

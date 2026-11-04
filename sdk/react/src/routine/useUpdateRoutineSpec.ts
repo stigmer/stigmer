@@ -45,12 +45,17 @@ export interface UseUpdateRoutineSpecReturn {
  *
  * @example
  * ```tsx
- * const { updateSpec, isUpdating } = useUpdateRoutineSpec();
+ * import type { Routine } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
  *
- * await updateSpec(routine, (spec) => {
- *   spec.cron = "0 9 * * 1-5";
- *   spec.timeZone = "Asia/Kolkata";
- * });
+ * function WeekdayMorningsButton({ routine }: { routine: Routine }) {
+ *   const { updateSpec, isUpdating } = useUpdateRoutineSpec();
+ *   const save = () =>
+ *     updateSpec(routine, (spec) => {
+ *       spec.cron = "0 9 * * 1-5";
+ *       spec.timeZone = "Asia/Kolkata";
+ *     });
+ *   return <button onClick={save} disabled={isUpdating}>Weekday mornings</button>;
+ * }
  * ```
  */
 export function useUpdateRoutineSpec(): UseUpdateRoutineSpecReturn {

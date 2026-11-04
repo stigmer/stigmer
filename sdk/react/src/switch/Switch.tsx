@@ -43,11 +43,10 @@ export interface SwitchProps {
  *
  * @example
  * ```tsx
- * <Switch
- *   checked={sharing.enabled}
- *   onCheckedChange={(next) => save({ ...sharing, enabled: next })}
- *   aria-label="Enable sharing"
- * />
+ * function SharingToggle() {
+ *   const [enabled, setEnabled] = useState(false);
+ *   return <Switch checked={enabled} onCheckedChange={setEnabled} aria-label="Enable sharing" />;
+ * }
  * ```
  */
 export function Switch({

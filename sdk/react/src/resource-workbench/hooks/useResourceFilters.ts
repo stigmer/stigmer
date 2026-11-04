@@ -88,11 +88,13 @@ const DEFAULT_DEBOUNCE_MS = 300;
  *
  * @example
  * ```tsx
- * const filters = useResourceFilters({
- *   filterDefs: agentFilterDefs,
- *   sortDefs: agentSortDefs,
- *   onStateChange: (state) => syncToUrl(state),
- * });
+ * function AgentSearchBox({ onStateChange }: { onStateChange: (state: FilterSortState) => void }) {
+ *   const filters = useResourceFilters({
+ *     sortDefs: [{ id: "name", label: "Name" }],
+ *     onStateChange, // e.g. written to the URL's search params
+ *   });
+ *   return <input value={filters.query} onChange={(e) => filters.setQuery(e.target.value)} />;
+ * }
  * ```
  */
 export function useResourceFilters(

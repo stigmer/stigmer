@@ -279,14 +279,16 @@ export interface StigmerProviderProps {
  *
  * @example
  * ```tsx
- * const client = useMemo(
- *   () => new Stigmer({ baseUrl, getAccessToken }),
- *   [getAccessToken],
- * );
+ * import { Stigmer, type TokenProvider } from "@stigmer/client";
  *
- * <StigmerProvider client={client} preset="fintech" colorMode="dark">
- *   <App />
- * </StigmerProvider>
+ * function AppShell({ getAccessToken, children }: { getAccessToken: TokenProvider; children: ReactNode }) {
+ *   const client = useMemo(() => new Stigmer({ baseUrl: "https://api.stigmer.ai", getAccessToken }), [getAccessToken]);
+ *   return (
+ *     <StigmerProvider client={client} preset="fintech" colorMode="dark">
+ *       {children}
+ *     </StigmerProvider>
+ *   );
+ * }
  * ```
  */
 export function StigmerProvider({

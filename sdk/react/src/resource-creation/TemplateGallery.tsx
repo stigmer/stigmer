@@ -49,10 +49,9 @@ export interface TemplateGalleryProps<TData> {
  *
  * @example
  * ```tsx
- * <TemplateGallery
- *   templates={AGENT_TEMPLATES}
- *   onSelect={(template) => startWizardWithTemplate(template)}
- * />
+ * function AgentTemplates({ onPick }: { onPick: (data: Partial<AgentWizardData>) => void }) {
+ *   return <TemplateGallery templates={AGENT_TEMPLATES} onSelect={(template) => onPick(template.data)} />;
+ * }
  * ```
  */
 export function TemplateGallery<TData>({

@@ -46,8 +46,14 @@ export type ChannelTemplateReadiness =
  *
  * @example
  * ```tsx
- * const readiness = useChannelTemplateReadiness(channel);
- * if (readiness.status !== "ready") return <TeachingState ... />;
+ * import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
+ *
+ * function TemplatesTab({ channel, children }: { channel: Channel; children: ReactNode }) {
+ *   const readiness = useChannelTemplateReadiness(channel);
+ *   if (readiness.status === "not-installed") return <p>Install the channel to read its templates.</p>;
+ *   if (readiness.status !== "ready") return <p>Templates are not available here ({readiness.status}).</p>;
+ *   return <>{children}</>;
+ * }
  * ```
  */
 export function useChannelTemplateReadiness(

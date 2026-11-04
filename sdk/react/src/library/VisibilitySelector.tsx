@@ -93,12 +93,14 @@ export interface VisibilitySelectorProps {
  *
  * @example
  * ```tsx
- * <VisibilitySelector
- *   visibility={agent.metadata.visibility}
- *   options={blueprintVisibilityLevels({ offersChildOrgs })}
- *   onVisibilityChange={updateVisibility}
- *   isPending={isPending}
- * />
+ * import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
+ *
+ * function VisibilityChoice() {
+ *   const [visibility, setVisibility] = useState(ApiResourceVisibility.visibility_private);
+ *   return (
+ *     <VisibilitySelector visibility={visibility} options={blueprintVisibilityLevels({ offersChildOrgs: true })} onVisibilityChange={setVisibility} />
+ *   );
+ * }
  * ```
  */
 export function VisibilitySelector({

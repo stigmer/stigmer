@@ -51,14 +51,16 @@ export interface EditResourceYamlDialogProps {
  *
  * @example
  * ```tsx
- * const { agent, refetch } = useAgent(org, slug);
- *
- * <EditResourceYamlDialog
- *   open={editOpen}
- *   onOpenChange={setEditOpen}
- *   resource={agent}
- *   onApplied={() => refetch()}
- * />
+ * function EditAgentButton({ slug }: { slug: string }) {
+ *   const { agent, refetch } = useAgent("acme", slug);
+ *   const [editOpen, setEditOpen] = useState(false);
+ *   return (
+ *     <>
+ *       <button onClick={() => setEditOpen(true)}>Edit YAML</button>
+ *       <EditResourceYamlDialog open={editOpen} onOpenChange={setEditOpen} resource={agent} onApplied={refetch} />
+ *     </>
+ *   );
+ * }
  * ```
  */
 export function EditResourceYamlDialog({

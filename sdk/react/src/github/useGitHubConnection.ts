@@ -137,23 +137,24 @@ function userFor(login: string): GitHubUser {
  *
  * @example
  * ```tsx
- * function GitHubConnect({ org }: { org: string }) {
+ * function GitHubConnect({ org, onRepo }: { org: string; onRepo: (repoUrl: string, branch: string) => void }) {
  *   const gh = useGitHubConnection(org);
- *   if (gh.isLoading) return <Skeleton />;
- *   if (!gh.isConnected) {
+ *   if (gh.isLoading) return <p>Loading…</p>;
+ *   if (!gh.isConnected || !gh.readOrg) {
  *     return <button onClick={() => void gh.connect()}>Connect GitHub</button>;
  *   }
- *   return <GitHubRepoPicker org={gh.readOrg!} onSelect={addRepo} />;
+ *   return <GitHubRepoPicker org={gh.readOrg} onSelect={onRepo} />;
  * }
  * ```
  *
  * @example
  * ```tsx
- * const gh = useGitHubConnection(org, {
- *   openUrl: (url) => invoke("open_auth_in_browser", { authUrl: url }),
- *   returnTo: { kind: "desktop" },
- * });
- * // The deep link handler calls gh.handleCallback(code, state).
+ * // A desktop app opens sign-in in the system browser and gets the
+ * // callback through its deep link, which calls gh.handleCallback(code, state).
+ * function DesktopGitHubConnect({ openInBrowser }: { openInBrowser: (url: string) => Promise<void> }) {
+ *   const gh = useGitHubConnection("acme", { openUrl: openInBrowser, returnTo: { kind: "desktop" } });
+ *   return <button onClick={() => void gh.connect()} disabled={gh.isConnecting}>Connect GitHub</button>;
+ * }
  * ```
  */
 export function useGitHubConnection(

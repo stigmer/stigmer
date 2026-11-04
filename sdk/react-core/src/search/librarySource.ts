@@ -39,8 +39,10 @@ export type LibraryClient = Pick<Stigmer, "agent" | "skill" | "plugin" | "search
  *
  * @example
  * ```tsx
- * const listFn = useMemo(() => createLibraryListFn(stigmer, ApiResourceKind.agent), [stigmer]);
- * <ResourceWorkbench listFn={listFn} org={org} />
+ * import { ApiResourceKind } from "@stigmer/client";
+ *
+ * const listAgents = createLibraryListFn(stigmer, ApiResourceKind.agent);
+ * const page = await listAgents({ org: "acme", query: "review", pageSize: 25, pageToken: "" });
  * ```
  */
 export function createLibraryListFn(client: LibraryClient, kind: LibraryKind): WorkbenchListFn {

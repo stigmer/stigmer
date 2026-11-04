@@ -62,15 +62,18 @@ export interface SettingsSidebarProps {
  *
  * @example
  * ```tsx
- * <SettingsSidebar
- *   groups={useSettingsNavGroups()}
- *   activePath={usePathname()}
- *   backHref={lastSessionZonePath ?? "/"}
- *   renderLink={({ href, children, ...rest }) => (
- *     <Link href={href} {...rest}>{children}</Link>
- *   )}
- *   footer={<UserMenu />}
- * />
+ * function SettingsNavigation({ path, onSignOut }: { path: string; onSignOut: () => void }) {
+ *   const groups = useSettingsNavGroups();
+ *   return (
+ *     <SettingsSidebar
+ *       groups={groups}
+ *       activePath={path}
+ *       backHref="/"
+ *       renderLink={({ href, children, ...rest }) => <a href={href} {...rest}>{children}</a>}
+ *       footer={<UserMenu user={{ name: "Jane" }} onSignOut={onSignOut} />}
+ *     />
+ *   );
+ * }
  * ```
  */
 export function SettingsSidebar({

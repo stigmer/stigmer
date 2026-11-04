@@ -57,7 +57,7 @@ export interface UseProviderKeysReturn {
  *
  * @example
  * ```tsx
- * const { keys } = useProviderKeys(org);
+ * const { keys } = useProviderKeys("acme");
  * ```
  */
 export function useProviderKeys(org: string | null, options?: UseProviderKeysOptions): UseProviderKeysReturn {

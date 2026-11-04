@@ -48,7 +48,7 @@ export interface UseGitHubSearchReturn {
  *         onChange={(e) => setQuery(e.target.value)}
  *         placeholder="Search repositories…"
  *       />
- *       {isSearching && <Spinner />}
+ *       {isSearching && <p>Searching…</p>}
  *       <ul>
  *         {results.map((repo) => (
  *           <li key={repo.id}>{repo.fullName}</li>

@@ -51,12 +51,15 @@ export interface EnvironmentPickerProps {
  *
  * @example
  * ```tsx
- * <EnvironmentPicker
- *   org="acme"
- *   value={environmentRef}
- *   onChange={setEnvironmentRef}
- *   defaultLabel={inheritedRowLabel(inherited)}
- * />
+ * import type { ResourceRef } from "@stigmer/client";
+ *
+ * function ConversationEnvironment() {
+ *   const [environmentRef, setEnvironmentRef] = useState<ResourceRef | undefined>();
+ *   const inherited = resolveEnvironmentChoice({ agent: { org: "acme", slug: "data-science" } });
+ *   return (
+ *     <EnvironmentPicker org="acme" value={environmentRef} onChange={setEnvironmentRef} defaultLabel={inheritedRowLabel(inherited)} />
+ *   );
+ * }
  * ```
  */
 export function EnvironmentPicker({

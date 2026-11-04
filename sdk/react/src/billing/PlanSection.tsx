@@ -67,7 +67,10 @@ export interface PlanSectionProps {
  *
  * @example
  * ```tsx
- * <PlanSection org={org} hasPaymentMethod={hasCard} />
+ * function Plans({ org }: { org: string }) {
+ *   const { account } = useBillingAccount(org);
+ *   return <PlanSection org={org} hasPaymentMethod={account?.defaultPaymentMethod !== undefined} />;
+ * }
  * ```
  */
 export function PlanSection({

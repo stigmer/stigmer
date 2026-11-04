@@ -34,11 +34,14 @@ export interface UseCreateBillingPortalSessionReturn {
  *
  * @example
  * ```tsx
- * const { openPortal, isLoading } = useCreateBillingPortalSession();
- *
- * <button onClick={() => openPortal(org)} disabled={isLoading}>
- *   Manage payment methods
- * </button>
+ * function ManagePaymentButton({ org }: { org: string }) {
+ *   const { openPortal, isLoading } = useCreateBillingPortalSession();
+ *   return (
+ *     <button onClick={() => openPortal(org)} disabled={isLoading}>
+ *       Manage payment methods
+ *     </button>
+ *   );
+ * }
  * ```
  */
 export function useCreateBillingPortalSession(

@@ -57,9 +57,7 @@ export interface UseChannelSessionsReturn {
  *
  * @example
  * ```tsx
- * const { sessions, isLoading, error } = useChannelSessions(
- *   channel.metadata?.id ?? "",
- * );
+ * const { sessions, isLoading, error } = useChannelSessions("chn_01jabc");
  * ```
  */
 export function useChannelSessions(channelId: string): UseChannelSessionsReturn {

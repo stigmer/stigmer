@@ -72,7 +72,7 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
  *
  * @example
  * ```ts
- * const result = detectStigmerResource(yamlString);
+ * const result = detectStigmerResource("apiVersion: agentic.stigmer.ai/v1\nkind: Agent\nmetadata:\n  name: reviewer\n");
  * if (result.detected) {
  *   console.log(`Found ${result.displayName}: ${result.resourceName}`);
  * }
