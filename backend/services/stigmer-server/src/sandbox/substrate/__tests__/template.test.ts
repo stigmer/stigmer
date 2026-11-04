@@ -26,7 +26,12 @@
  *     atespace's bindings when it may not write them;
  *   - the keeper prepares once however many callers wait, waits for the
  *     golden snapshot, recreates a failed template once and then fails, and
- *     gives up after its cap.
+ *     gives up after its cap;
+ *   - a golden actor that crashed (Substrate's GoldenActorCrashed, in
+ *     0.6's short form and 1.0's longer one) is logged and thrown with
+ *     where a refusing runner's own line is, by the template's label; any
+ *     other golden error passes through as Substrate wrote it
+ *     (stigmer/stigmer#1848).
  */
 import { describe, expect, it } from "vitest";
 
@@ -45,13 +50,30 @@ import {
   GoldenSnapshotMode,
   SnapshotFidelity,
 } from "../gen/ateapipb/ateapi_pb.js";
-import { buildRunnerTemplate, newTemplateKeeper } from "../template.js";
+import {
+  buildRunnerTemplate,
+  goldenFailureMessage,
+  newTemplateKeeper,
+} from "../template.js";
 
 const silentLogger = createLogger({
   level: "error",
   pretty: false,
   write: () => {},
 });
+
+/** Substrate 0.6's golden error for a crashed golden actor, as it reads. */
+const CRASHED_06 =
+  "GoldenActorCrashed: golden actor crashed before its snapshot was taken";
+/** The same crash on Substrate 1.0, which appends the actor's crash message. */
+const CRASHED_10 = `${CRASHED_06}: gVisor sandbox exited`;
+/** A golden error Substrate's own detail already explains. */
+const INVALID = "GoldenActorInvalid: the golden actor's spec is invalid";
+const REFUSAL_POINTER = (template: string) =>
+  "If the runner refused to start (a runner layer from another release " +
+  "than this server's, or a base image the layer cannot run), its " +
+  "one-line reason is in the Substrate worker's log, in the runner " +
+  `container's entry labelled ate.template.name=${template}.`;
 
 const config: SandboxDriverConfig = {
   backendEndpoint: "http://stigmer.stigmer.svc:7234",
@@ -334,7 +356,7 @@ describe("the keeper", () => {
   it("recreates a template whose golden snapshot failed, once", async () => {
     const substrate = new FakeSubstrate();
     const k = keeper(substrate);
-    substrate.goldenErrors.set(k.name, "the runner exited");
+    substrate.goldenErrors.set(k.name, CRASHED_06);
     await expect(k.ready()).resolves.toBe(k.name);
     expect(
       substrate.calls.filter((c) => c.startsWith("deleteTemplate")),
@@ -344,16 +366,45 @@ describe("the keeper", () => {
   it("fails after the one recreation fails too, and a later call tries again", async () => {
     const substrate = new FakeSubstrate();
     const k = keeper(substrate);
-    substrate.goldenErrors.set(k.name, "the runner exited");
+    substrate.goldenErrors.set(k.name, CRASHED_06);
     const deleteTemplate = substrate.deleteTemplate.bind(substrate);
     substrate.deleteTemplate = async (t) => {
       await deleteTemplate(t);
-      substrate.goldenErrors.set(k.name, "still broken");
+      substrate.goldenErrors.set(k.name, INVALID);
     };
     await expect(k.ready()).rejects.toThrow(
-      /failed to publish its golden snapshot: still broken/,
+      `Substrate template ${k.name} failed to publish its golden snapshot: ${INVALID}`,
     );
     expect(k.readyNow()).toBe(false);
+  });
+
+  it("logs and throws a crashed golden actor with where a refusing runner's line is", async () => {
+    const logged: unknown[] = [];
+    const logger = createLogger({
+      level: "info",
+      pretty: false,
+      write: () => {},
+      sink: (entry) => {
+        if (
+          entry.message ===
+          "Substrate template failed its golden snapshot; recreating once"
+        ) {
+          logged.push(entry.fields?.["error"]);
+        }
+      },
+    });
+    const substrate = new FakeSubstrate();
+    const k = keeper(substrate, logger);
+    substrate.goldenErrors.set(k.name, CRASHED_06);
+    const deleteTemplate = substrate.deleteTemplate.bind(substrate);
+    substrate.deleteTemplate = async (t) => {
+      await deleteTemplate(t);
+      substrate.goldenErrors.set(k.name, CRASHED_06);
+    };
+    const expected = goldenFailureMessage(k.name, CRASHED_06);
+    expect(expected).toContain(REFUSAL_POINTER(k.name));
+    await expect(k.ready()).rejects.toThrow(expected);
+    expect(logged).toEqual([expected]);
   });
 
   it("gives up when the golden snapshot never publishes", async () => {
@@ -362,5 +413,42 @@ describe("the keeper", () => {
     await expect(keeper(substrate).ready()).rejects.toThrow(
       /did not publish its golden snapshot within 180 s/,
     );
+  });
+});
+
+describe("a failed golden snapshot's message", () => {
+  const template = "stigmer-runner-0123456789ab";
+
+  it("says where a refusing runner's line is when the golden actor crashed", () => {
+    expect(goldenFailureMessage(template, CRASHED_06)).toBe(
+      `Substrate template ${template} failed to publish its golden snapshot: ` +
+        `${CRASHED_06}. ${REFUSAL_POINTER(template)}`,
+    );
+  });
+
+  it("reads the reason alone, so Substrate 1.0's longer detail says the same", () => {
+    expect(goldenFailureMessage(template, CRASHED_10)).toBe(
+      `Substrate template ${template} failed to publish its golden snapshot: ` +
+        `${CRASHED_10}. ${REFUSAL_POINTER(template)}`,
+    );
+  });
+
+  it("adds no second stop after a detail that ends with one", () => {
+    expect(goldenFailureMessage(template, `${CRASHED_06}.`)).toBe(
+      `Substrate template ${template} failed to publish its golden snapshot: ` +
+        `${CRASHED_06}. ${REFUSAL_POINTER(template)}`,
+    );
+  });
+
+  it("passes any other reason, or a text with none, through as Substrate wrote it", () => {
+    for (const error of [
+      INVALID,
+      "golden actor crashed before its snapshot was taken",
+      "GoldenActorCrashedSoon: not this reason",
+    ]) {
+      expect(goldenFailureMessage(template, error)).toBe(
+        `Substrate template ${template} failed to publish its golden snapshot: ${error}`,
+      );
+    }
   });
 });

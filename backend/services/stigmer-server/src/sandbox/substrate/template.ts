@@ -40,6 +40,9 @@
  * A template whose snapshot failed (a terminal error on its status) is
  * deleted and created once more per process; after that its error is
  * thrown into every ensure until the operator fixes the cause.
+ * Substrate's error for a golden actor that crashed carries no reason a
+ * runner gave, so the failure says where a refusing runner's own line is
+ * (goldenFailureMessage).
  *
  * The runner's HOME is set here, as every image driver sets it, and so is
  * the server's release when it is one (runner-launch.ts).
@@ -226,6 +229,46 @@ export function buildRunnerTemplate(input: RunnerTemplateInput): ActorTemplate {
 const GOLDEN_POLL_MS = 2_000;
 const GOLDEN_WAIT_MS = 180_000;
 
+/**
+ * The reason Substrate's template reconciler gives a golden snapshot whose
+ * actor crashed before the snapshot was taken (Substrate's
+ * cmd/ateapi/internal/controlapi/template_reconciler.go). A template's
+ * golden error reads `<Reason>: <detail>`.
+ */
+export const GOLDEN_ACTOR_CRASHED_REASON = "GoldenActorCrashed";
+
+/**
+ * The text a failed golden snapshot is logged and thrown with; the thrown
+ * text is also the error the run that waited for the sandbox carries.
+ *
+ * A golden actor crashes most often because the runner's start script
+ * refused to start (a layer from another release, a base image the layer
+ * cannot run; the runner's layer/start.sh), and that refusal's one line
+ * reaches only the Substrate worker's log: Substrate's error says just that
+ * the actor crashed, and the actor's atespace is not this server's to read.
+ * So a crash adds where that line is. It is said as an "if", because a
+ * crash can have other causes (a lost worker, an out-of-memory kill), and
+ * only the reason is read, never Substrate's detail, whose wording changes
+ * between Substrate releases.
+ */
+export function goldenFailureMessage(
+  templateName: string,
+  goldenError: string,
+): string {
+  const failed = `Substrate template ${templateName} failed to publish its golden snapshot: ${goldenError}`;
+  const separator = goldenError.indexOf(": ");
+  const reason =
+    separator === -1 ? goldenError : goldenError.slice(0, separator);
+  if (reason !== GOLDEN_ACTOR_CRASHED_REASON) return failed;
+  const stop = /[.!?]$/.test(failed) ? "" : ".";
+  return (
+    `${failed}${stop} If the runner refused to start (a runner layer from ` +
+    "another release than this server's, or a base image the layer cannot " +
+    "run), its one-line reason is in the Substrate worker's log, in the " +
+    `runner container's entry labelled ate.template.name=${templateName}.`
+  );
+}
+
 export interface TemplateKeeper {
   /** The current template's name. */
   readonly name: string;
@@ -289,18 +332,12 @@ export function newTemplateKeeper(options: {
         isReady = true;
         return name;
       } else if (current.goldenError !== "") {
-        if (recreated) {
-          throw new Error(
-            `Substrate template ${name} failed to publish its golden snapshot: ${current.goldenError}`,
-          );
-        }
+        const failure = goldenFailureMessage(name, current.goldenError);
+        if (recreated) throw new Error(failure);
         recreated = true;
         logger.info(
           "Substrate template failed its golden snapshot; recreating once",
-          {
-            template: name,
-            error: current.goldenError,
-          },
+          { template: name, error: failure },
         );
         await gateway.deleteTemplate(current);
         continue;
