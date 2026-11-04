@@ -1,7 +1,8 @@
 // Lifecycle manager for the local Temporal dev server.
 //
 // Built on the shared primitives (file lock, PID file, TCP readiness). It installs the
-// `temporal` binary on demand, starts the dev server in its own process group,
+// `temporal` binary on demand, replacing one under ~/.stigmer/bin that reports
+// a version other than the pin (stigmer#1319), starts the dev server in its own process group,
 // and answers "is it really running?" with a layered check (the process recorded, by PID and start
 // time, still alive -> actually Temporal -> port listening); stop signals the group only after the same
 // check, so a PID the OS has handed to another program is never signalled (stigmer#2750). Start is
@@ -11,7 +12,7 @@
 // stops listening, and a new one started meanwhile would open the same file
 // (stigmer#1175).
 
-import { mkdirSync, openSync } from "node:fs";
+import { existsSync, mkdirSync, openSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { spawn } from "node:child_process";
@@ -24,7 +25,13 @@ import { TEMPORAL_PORT, TEMPORAL_UI_PORT } from "../constants.js";
 import { type FileLock, acquireLock } from "../state/lock.js";
 import { readPidFile, recordedLiveProcess, removePidFile, writePidFile } from "../state/pidfile.js";
 import { findProcessByPort, isOtherLiveProcess, killProcessGroup } from "../state/proc.js";
-import { DEFAULT_TEMPORAL_VERSION, downloadTemporalCli, isTemporalInstalled } from "./download.js";
+import {
+  DEFAULT_TEMPORAL_VERSION,
+  downloadTemporalCli,
+  installedTemporalVersion,
+  type TarballInstall,
+  type TemporalDownloadTarget,
+} from "./download.js";
 import { isLikelyTemporal } from "./inspect.js";
 
 const READY_TIMEOUT_MS = 10_000;
@@ -35,7 +42,9 @@ const STOP_TIMEOUT_MS = 10_000;
  * Env var naming a pre-installed `temporal` binary to use instead of the one
  * the CLI downloads into ~/.stigmer/bin — the STIGMER_NODE_BIN precedent. The
  * all-in-one image bakes the binary read-only off its data volume and points
- * here; `ensureInstalled` then has nothing to download.
+ * here; `ensureInstalled` then has nothing to download. A binary named here is
+ * the operator's: one that reports another version is warned about and run,
+ * never replaced.
  */
 export const TEMPORAL_BIN_ENV = "STIGMER_TEMPORAL_BIN";
 
@@ -53,6 +62,13 @@ export interface TemporalManagerOptions {
   version?: string;
   port?: number;
   uiPort?: number;
+  /**
+   * Whether the binary at `binPath` is the CLI's own, so one reporting another
+   * version is replaced. False for a STIGMER_TEMPORAL_BIN binary. Default true.
+   */
+  ownsBinary?: boolean;
+  /** Installs the pinned binary; defaults to the release download (tests inject one). */
+  install?: (target: TemporalDownloadTarget) => Promise<TarballInstall>;
 }
 
 export class TemporalManager {
@@ -65,6 +81,8 @@ export class TemporalManager {
   private readonly version: string;
   private readonly port: number;
   private readonly uiPort: number;
+  private readonly ownsBinary: boolean;
+  private readonly install: (target: TemporalDownloadTarget) => Promise<TarballInstall>;
   private lock: FileLock | null = null;
 
   constructor(options: TemporalManagerOptions) {
@@ -76,17 +94,27 @@ export class TemporalManager {
     this.version = options.version ?? DEFAULT_TEMPORAL_VERSION;
     this.port = options.port ?? TEMPORAL_PORT;
     this.uiPort = options.uiPort ?? TEMPORAL_UI_PORT;
+    this.ownsBinary = options.ownsBinary ?? true;
+    this.install = options.install ?? downloadTemporalCli;
   }
 
   /**
    * Build a manager from the standard ~/.stigmer layout. The binary alone may
    * be relocated through STIGMER_TEMPORAL_BIN; the dev server's data, log,
    * PID and lock stay under the home, because they are state, not software.
+   * `seams` carries the installer tests inject.
    */
-  static forHome(home: string = homedir(), env: NodeJS.ProcessEnv = process.env): TemporalManager {
+  static forHome(
+    home: string = homedir(),
+    env: NodeJS.ProcessEnv = process.env,
+    seams: Pick<TemporalManagerOptions, "install"> = {},
+  ): TemporalManager {
     const binOverride = env[TEMPORAL_BIN_ENV];
+    const overridden = binOverride !== undefined && binOverride !== "";
     return new TemporalManager({
-      binPath: binOverride !== undefined && binOverride !== "" ? binOverride : join(binDir(home), "temporal"),
+      ...seams,
+      binPath: overridden ? binOverride : join(binDir(home), "temporal"),
+      ownsBinary: !overridden,
       dataDir: temporalDataDir(home),
       logFile: join(logDir(home), "temporal.log"),
       pidFile: temporalPidFile(home),
@@ -104,15 +132,32 @@ export class TemporalManager {
     return readPidFile(this.pidFile);
   }
 
-  /** Install the Temporal binary on demand if it is not already present. */
+  /**
+   * Make the binary at `binPath` the pinned version, installing it on demand.
+   * A present binary is asked its version, and one that reports the pin is
+   * kept. The CLI's own binary is replaced when it reports another version or
+   * none, so a pin bump reaches a machine that installed an older one; a
+   * STIGMER_TEMPORAL_BIN binary is warned about and started as configured.
+   */
   async ensureInstalled(): Promise<void> {
-    if (isTemporalInstalled(this.binPath)) {
-      log.debug("temporal CLI already installed", { path: this.binPath });
-      return;
+    if (existsSync(this.binPath)) {
+      const found = installedTemporalVersion(this.binPath);
+      if (found === this.version) {
+        log.debug("temporal CLI already installed", { path: this.binPath, version: found });
+        return;
+      }
+      if (!this.ownsBinary) {
+        log.warn(
+          `Temporal CLI at ${this.binPath} is ${found ?? "unknown"}, stigmer expects ${this.version}; starting it as configured`,
+        );
+        return;
+      }
+      log.info("replacing Temporal CLI", { from: found ?? "unknown", to: this.version });
+    } else {
+      log.info("downloading Temporal CLI", { version: this.version });
     }
-    log.info("downloading Temporal CLI", { version: this.version });
-    await downloadTemporalCli({ version: this.version, binPath: this.binPath });
-    log.info("Temporal CLI installed", { path: this.binPath });
+    await this.install({ version: this.version, binPath: this.binPath });
+    log.info("Temporal CLI installed", { path: this.binPath, version: this.version });
   }
 
   /**

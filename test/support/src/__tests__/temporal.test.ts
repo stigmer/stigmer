@@ -21,7 +21,7 @@ import {
 
 // The CLI version the captured output came from; temporal-cli-<version>/ is
 // the folder it lives in.
-const CAPTURED_WITH = "1.5.1";
+const CAPTURED_WITH = "1.10.0";
 const FIXTURES = fileURLToPath(new URL("./fixtures/", import.meta.url));
 const CAPTURED = `${FIXTURES}temporal-cli-${CAPTURED_WITH}/`;
 const captured = (name: string): string => readFileSync(`${CAPTURED}${name}`, "utf8");
@@ -38,7 +38,7 @@ describe("the captured output matches the pinned CLI", () => {
         "`start-dev --port <it>`; boot it once cleanly) into fixtures/temporal-cli-<version>/, then update CAPTURED_WITH",
     ).toBe(CAPTURED_WITH);
     expect(readdirSync(FIXTURES)).toContain(`temporal-cli-${CAPTURED_WITH}`);
-    expect(captured("clean-boot.txt").startsWith(`CLI ${CAPTURED_WITH} `)).toBe(true);
+    expect(captured("clean-boot.txt").startsWith(`Temporal CLI ${CAPTURED_WITH} `)).toBe(true);
   });
 });
 
@@ -46,7 +46,7 @@ describe("classifyTemporalExit", () => {
   it("recognises the CLI's pre-check refusing a taken frontend port", () => {
     expect(classifyTemporalExit(captured("frontend-port-taken.txt"))).toEqual({
       kind: "port-collision",
-      line: expect.stringContaining("can't set frontend port 53518: listen tcp 127.0.0.1:53518: bind: address already in use"),
+      line: expect.stringContaining("can't set frontend port 57197: listen tcp 127.0.0.1:57197: bind: address already in use"),
     });
   });
 
@@ -55,7 +55,7 @@ describe("classifyTemporalExit", () => {
   });
 
   it("recognises the frontend's panic over a port it binds after the pre-check", () => {
-    // The message shape of temporal v1.29.1 service/frontend/http_api_server.go:91-92
+    // The message shape of temporal v1.32.2 service/frontend/http_api_server.go:92
     // ("failed listening for HTTP API on %v: %w" over Go's net error), as the
     // dev server's panic prints it ahead of its stack: the death the issue's
     // CI run lost the first line of.
@@ -87,11 +87,17 @@ describe("classifyTemporalExit", () => {
 describe("bannerNamesPort", () => {
   it("proves the frontend only on the port this child was given", () => {
     const banner = captured("clean-boot.txt");
-    expect(bannerNamesPort(banner, 54124)).toBe(true);
+    expect(bannerNamesPort(banner, 56794)).toBe(true);
     // The metrics line names another port, and a sibling's port is not ours.
-    expect(bannerNamesPort(banner, 54126)).toBe(false);
+    expect(bannerNamesPort(banner, 56796)).toBe(false);
     expect(bannerNamesPort(banner, 7233)).toBe(false);
-    expect(bannerNamesPort("", 54124)).toBe(false);
+    expect(bannerNamesPort("", 56794)).toBe(false);
+  });
+
+  it("still reads the banner CLIs before 1.7 print, for a machine not yet moved to the pin", () => {
+    const older = "CLI 1.5.1 (Server 1.29.1, UI 2.42.1)\n\nServer:  localhost:54124\nMetrics: http://localhost:54126/metrics\n";
+    expect(bannerNamesPort(older, 54124)).toBe(true);
+    expect(bannerNamesPort(older, 54126)).toBe(false);
   });
 });
 

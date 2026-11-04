@@ -8,9 +8,13 @@
 // outage: a matching cached pair installs with no request at all, a miss keeps
 // the pair it verified, a copy that does not match (or belongs to another
 // version) is downloaded again, and a directory that cannot be written fails.
+// The version reader and the replace cases pin what moves an installed binary to
+// a new pin (stigmer#1319): the binary is asked its version, and a replace puts
+// a new file in place by rename, so a running binary keeps its inode and a
+// failed write leaves neither a truncated binary nor a temp file behind.
 
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { gzipSync } from "fflate";
@@ -21,6 +25,7 @@ import {
   TEMPORAL_CHECKSUMS_FILE,
   downloadTemporalCli,
   extractTarEntry,
+  installedTemporalVersion,
   temporalArchiveName,
   temporalReleaseAssetUrl,
 } from "../download.js";
@@ -142,6 +147,65 @@ describe("downloadTemporalCli", () => {
     const fetchImpl = release("9.9.9", {}, "");
     const binPath = join(mkdtempSync(join(tmpdir(), "stigmer-temporal-")), "temporal");
     await expect(downloadTemporalCli({ version: "9.9.9", binPath, fetchImpl })).rejects.toThrow(/HTTP 404/);
+  });
+});
+
+describe("installedTemporalVersion", () => {
+  function script(body: string): string {
+    const path = join(mkdtempSync(join(tmpdir(), "stigmer-temporal-version-")), "temporal");
+    writeFileSync(path, `#!/bin/sh\n${body}\n`, { mode: 0o755 });
+    chmodSync(path, 0o755);
+    return path;
+  }
+
+  it("reads the version from the line the CLI prints", () => {
+    expect(installedTemporalVersion(script("echo 'temporal version 1.10.0 (Server 1.32.2, UI 2.56.1)'"))).toBe("1.10.0");
+    expect(installedTemporalVersion(script("echo 'temporal version 1.5.1 (Server 1.29.1, UI 2.42.1)'"))).toBe("1.5.1");
+  });
+
+  it("is null for output it cannot read", () => {
+    expect(installedTemporalVersion(script("echo 'not a version line'"))).toBeNull();
+  });
+
+  it("is null for a binary that fails", () => {
+    expect(installedTemporalVersion(script("echo 'temporal version 1.10.0'; exit 1"))).toBeNull();
+  });
+
+  it("is null for a missing file", () => {
+    expect(installedTemporalVersion(join(tmpdir(), "stigmer-no-such-dir", "temporal"))).toBeNull();
+  });
+});
+
+describe("downloadTemporalCli over an installed binary", () => {
+  const linuxArm = temporalArchiveName("1.5.1", "linux", "arm64");
+  const arm = archiveFor(Buffer.from("the-new-binary"));
+  const good = release("1.5.1", { [linuxArm]: arm }, `${sha256(arm)}  ${linuxArm}\n`);
+
+  it("puts the new binary in place as a new file, executable, with no temp file left", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "stigmer-temporal-replace-"));
+    const binPath = join(dir, "temporal");
+    writeFileSync(binPath, "the-old-binary", { mode: 0o755 });
+    const before = statSync(binPath).ino;
+
+    await downloadTemporalCli({ version: "1.5.1", binPath, platform: "linux", arch: "arm64", fetchImpl: good });
+
+    expect(readFileSync(binPath, "utf8")).toBe("the-new-binary");
+    expect(statSync(binPath).ino).not.toBe(before);
+    expect(statSync(binPath).mode & 0o777).toBe(0o755);
+    expect(readdirSync(dir)).toEqual(["temporal"]);
+  });
+
+  it("leaves no temp file when the binary cannot be put in place", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "stigmer-temporal-replace-"));
+    const binPath = join(dir, "temporal");
+    // A non-empty directory where the binary goes: the rename over it fails.
+    mkdirSync(join(binPath, "occupied"), { recursive: true });
+
+    await expect(
+      downloadTemporalCli({ version: "1.5.1", binPath, platform: "linux", arch: "arm64", fetchImpl: good }),
+    ).rejects.toThrow();
+    expect(readdirSync(dir)).toEqual(["temporal"]);
+    expect(readdirSync(binPath)).toEqual(["occupied"]);
   });
 });
 

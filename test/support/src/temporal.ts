@@ -27,16 +27,17 @@
 // "bind: address already in use", which both paths carry (the pre-check's
 // "can't set ... port N: listen tcp ...: bind: address already in use", and
 // the frontend's "failed listening for HTTP API on ...: %w" wrapping the same
-// net error, temporal v1.29.1 service/frontend/http_api_server.go:91-92). It
+// net error, temporal v1.32.2 service/frontend/http_api_server.go:92). It
 // is the operating system's error as Go spells it, not Temporal's wording,
 // and __tests__/temporal.test.ts holds captured output from the pinned CLI and
 // fails when the pin moves until that output is captured again.
 //
 // Readiness is three gates, in order:
-//   1. our child's banner: the CLI prints "Server:  <host>:<port>" only after
-//      its server has started (cli v1.5.1 temporalcli/commands.server.go:
-//      150-157), so the line, read from this child's own stdout, proves the
-//      frontend on that port is ours. A TCP accept alone could be a sibling
+//   1. our child's banner: the CLI prints "Temporal Server:  <host>:<port>"
+//      (before 1.7, "Server:  <host>:<port>") only after its server has
+//      started (cli v1.10.0 internal/temporalcli/commands.server.go:157-164),
+//      so the line, read from this child's own stdout, proves the frontend on
+//      that port is ours. A TCP accept alone could be a sibling
 //      suite's dev server that took the port.
 //   2. `operator cluster health` reports SERVING, which only happens once the
 //      frontend and every internal service are up. The caller
@@ -113,12 +114,14 @@ export function classifyTemporalExit(output: string): TemporalExit {
   return { kind: "other", panicLine: lines.find((line) => line.startsWith("panic:"))?.trim() };
 }
 
-// True once the CLI has printed its "Server:" banner for `port` (header, gate
-// 1). The host is whatever the CLI prints for the frontend IP (`localhost`
-// for 127.0.0.1); the port is what makes it this attempt's server.
+// True once the CLI has printed its "Temporal Server:" banner for `port`
+// (header, gate 1). The host is whatever the CLI prints for the frontend IP
+// (`localhost` for 127.0.0.1); the port is what makes it this attempt's server.
+// The older "Server:" form is still read, so a machine whose `temporal` has not
+// yet been moved to the pin boots rather than waiting on a line it never prints.
 export function bannerNamesPort(stdout: string, port: number): boolean {
   return stdout.split("\n").some((line) => {
-    const match = /^Server:\s+\S+:(\d+)\s*$/.exec(line);
+    const match = /^(?:Temporal )?Server:\s+\S+:(\d+)\s*$/.exec(line);
     return match !== null && Number(match[1]) === port;
   });
 }

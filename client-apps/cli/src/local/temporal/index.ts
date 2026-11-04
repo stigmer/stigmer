@@ -5,7 +5,7 @@ export {
   TEMPORAL_CHECKSUMS_FILE,
   downloadTemporalCli,
   extractTarEntry,
-  isTemporalInstalled,
+  installedTemporalVersion,
   temporalArchiveName,
   temporalReleaseAssetUrl,
 } from "./download.js";
