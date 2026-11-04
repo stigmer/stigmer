@@ -8,6 +8,7 @@
  */
 
 import * as fs from "node:fs/promises";
+import * as path from "node:path";
 import type {
   TypeDocProject,
   Reflection,
@@ -17,6 +18,7 @@ import type {
 } from "./typedoc-types";
 import { ReflectionKind, isExternalTarget } from "./typedoc-types";
 import type { Signature } from "./mdx-utils";
+import { createTypeImportResolver } from "./type-imports";
 import type {
   Domain,
   Hook,
@@ -383,12 +385,12 @@ export interface ParseResult {
 
 /**
  * Parses the kit's TypeDoc JSON. `resolveTypeImport` says where a reader
- * imports each type a signature names from (`type-imports.ts` reads it from
- * the kit's own package).
+ * imports each type a signature names from; by default it is read from the
+ * kit's own package, the folder the JSON is written in (`type-imports.ts`).
  */
 export async function parseTypeDocJson(
   apiJsonPath: string,
-  resolveTypeImport: TypeImportResolver,
+  resolveTypeImport: TypeImportResolver = createTypeImportResolver(path.dirname(apiJsonPath)),
 ): Promise<ParseResult> {
   const raw = await fs.readFile(apiJsonPath, "utf-8");
   const project = JSON.parse(raw) as TypeDocProject;

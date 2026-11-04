@@ -7,8 +7,10 @@
  * in parentheses); the types it names that a reader imports from a package
  * they install sit above the fence's `---cut---` line, one line per module,
  * and a type the resolver gives no module (the kit's own, or a plain
- * dependency's) gets no line. A type inside `readonly T[]` is found, and
- * two types of one name from two modules are refused.
+ * dependency's) gets no line. A function type in a union, an intersection
+ * or an array keeps its parentheses, and a rest parameter its `...`. A type
+ * inside `readonly T[]` is found, and two types of one name from two
+ * modules are refused.
  */
 
 import { describe, expect, it } from "vitest";
@@ -71,6 +73,16 @@ describe("signatureOf and renderSignature", () => {
       param("tail", STRING, { flags: { isOptional: true } }),
     ]);
     expect(render(s)).toContain("function useThing(keys: string | undefined, onDone: (() => void) | undefined, mode: string, tail?: string): void");
+  });
+
+  it("parenthesises a function type in a union or an intersection, and writes a rest parameter", () => {
+    const fn: TypeDocType = { type: "reflection", declaration: { id: 5, name: "__type", variant: "declaration", kind: 65536, flags: {}, signatures: [sig([], STRING)] } };
+    const s = sig([
+      param("label", { type: "union", types: [STRING, fn] }),
+      param("both", { type: "intersection", types: [{ type: "reference", name: "Base", target: 9 }, fn] }),
+      param("rest", { type: "array", elementType: STRING }, { flags: { isRest: true } }),
+    ]);
+    expect(render(s)).toContain("function useThing(label: string | (() => string), both: Base & (() => string), ...rest: string[]): void");
   });
 
   it("names a destructured parameter `options`, and drops `this`", () => {
