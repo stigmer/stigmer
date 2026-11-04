@@ -80,8 +80,13 @@ const reactKit = page("sdk/react/kit", [
   { lang: "tsx", label: "peer-import", body: ['import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";', 'import { IamRole } from "@stigmer/client";', "", "export const seen = (run: Run) => [run.metadata?.id, IamRole.viewer];"] },
 ]);
 const reactConsole = page("sdk/react/settings", [{ lang: "tsx", label: "console-only", body: [consoleOnly] }]);
-// Ink names React core as a peer: its reader installs it.
-const inkKit = page("sdk/ink/kit", [{ lang: "tsx", label: "core-import", body: [coreImport, "", "export const use = useStigmer;"] }]);
+// Ink names React core as a peer: its reader installs it. A reader's own
+// file (a titled fence above) and Node's built-ins are theirs on any page.
+const inkKit = page("sdk/ink/kit", [
+  { lang: "tsx", label: "core-import", body: [coreImport, "", "export const use = useStigmer;"] },
+  { lang: "typescript", label: "own-file", meta: 'title="org.ts"', body: ['export const org = "acme";'] },
+  { lang: "typescript", label: "own-import", body: ['import { readFileSync } from "node:fs";', 'import { org } from "./org.js";', "", "export const config = readFileSync(`${org}.json`, \"utf8\");"] },
+]);
 
 const go = page("go", [
   { lang: "go", label: "prelude", meta: "prelude", body: ["import (", '\t"fmt"', '\t"log"', ")"] },
