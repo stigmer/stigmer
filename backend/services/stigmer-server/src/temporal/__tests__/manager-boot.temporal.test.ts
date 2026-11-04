@@ -60,7 +60,8 @@ async function freePort(): Promise<number> {
     server.once("error", reject);
     server.listen(0, "127.0.0.1", () => {
       const address = server.address();
-      const port = typeof address === "object" && address !== null ? address.port : 0;
+      const port =
+        typeof address === "object" && address !== null ? address.port : 0;
       server.close(() => resolve(port));
     });
   });
@@ -124,36 +125,32 @@ describe("TemporalManager boot schedule (real SDK, #2178)", () => {
     expect(manager.getClient()).toBeUndefined();
   });
 
-  it(
-    "connects a Temporal that starts after boot in the background, with a polling worker and one hook",
-    async (testCtx) => {
-      manager.startHealthMonitor();
-      try {
-        const { TestWorkflowEnvironment: TWE } =
-          await import("@temporalio/testing");
-        env = await TWE.createLocal({ server: { port } });
-      } catch (error) {
-        console.warn(
-          `Temporal test server unavailable (test skipped): ${error instanceof Error ? error.message : String(error)}`,
-        );
-        return testCtx.skip();
-      }
-
-      const connected = await waitFor(
-        () => manager.isConnected(),
-        LATE_CONNECT_DEADLINE_MS,
+  it("connects a Temporal that starts after boot in the background, with a polling worker and one hook", async (testCtx) => {
+    manager.startHealthMonitor();
+    try {
+      const { TestWorkflowEnvironment: TWE } =
+        await import("@temporalio/testing");
+      env = await TWE.createLocal({ server: { port } });
+    } catch (error) {
+      console.warn(
+        `Temporal test server unavailable (test skipped): ${error instanceof Error ? error.message : String(error)}`,
       );
-      expect(connected, "the monitor connects the late engine").toBe(true);
-      expect(manager.getClient()).toBeDefined();
+      return testCtx.skip();
+    }
 
-      await env.client.workflow.execute(SDK_LOG_PROBE_WORKFLOW, {
-        taskQueue: TASK_QUEUE,
-        workflowId: `manager-boot-e2e-${Date.now()}`,
-        workflowExecutionTimeout: "30 seconds",
-      });
-      expect(activityRuns, "the late-built worker ran the activity").toBe(1);
-      expect(hooks, "each reconnect hook fires once on the late connect").toBe(1);
-    },
-    90_000,
-  );
+    const connected = await waitFor(
+      () => manager.isConnected(),
+      LATE_CONNECT_DEADLINE_MS,
+    );
+    expect(connected, "the monitor connects the late engine").toBe(true);
+    expect(manager.getClient()).toBeDefined();
+
+    await env.client.workflow.execute(SDK_LOG_PROBE_WORKFLOW, {
+      taskQueue: TASK_QUEUE,
+      workflowId: `manager-boot-e2e-${Date.now()}`,
+      workflowExecutionTimeout: "30 seconds",
+    });
+    expect(activityRuns, "the late-built worker ran the activity").toBe(1);
+    expect(hooks, "each reconnect hook fires once on the late connect").toBe(1);
+  }, 90_000);
 });
