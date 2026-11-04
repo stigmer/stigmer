@@ -39,7 +39,7 @@ import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 
 import type { OAuthConfig } from "./config.js";
 import type { BackendTarget } from "./domains/client.js";
-import { MAX_COLLECTION_ITEMS, oversizedCollection } from "./collection-bound.js";
+import { collectionBoundMessage, crossedCollectionBound } from "./collection-bound.js";
 import { log } from "./logger.js";
 import { routedServerFactory, type RouteServerFactory } from "./server.js";
 import { trimTrailing } from "./trim.js";
@@ -225,10 +225,10 @@ async function serveRequest(
 
   // Before any schema sees it: a collection beyond the bound would cost
   // memory per element in the schema library (collection-bound.ts).
-  const oversized = oversizedCollection(read.body);
-  if (oversized !== undefined) {
-    log.warn("mcp request holds a collection over the bound", { path, items: oversized, max_items: MAX_COLLECTION_ITEMS });
-    jsonRpcError(res, 400, -32600, `Invalid Request: a collection holds ${oversized} items, more than ${MAX_COLLECTION_ITEMS}`);
+  const crossed = crossedCollectionBound(read.body);
+  if (crossed !== undefined) {
+    log.warn("mcp request crosses a collection bound", { path, bound: crossed.bound, items: crossed.items });
+    jsonRpcError(res, 400, -32600, collectionBoundMessage(crossed));
     return;
   }
 

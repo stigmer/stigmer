@@ -20,7 +20,7 @@ import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/se
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { OAuthConfig } from "../config";
-import { MAX_COLLECTION_ITEMS } from "../collection-bound";
+import { MAX_BODY_ITEMS, MAX_COLLECTION_ITEMS } from "../collection-bound";
 import { createMcpHttpHandler, createRoutedHandler, type BearerVerdict, type McpHttpHandler } from "../http-handler";
 import { configureLogger } from "../logger";
 
@@ -202,7 +202,7 @@ describe("the body cap", () => {
     ).toThrow("maxBodyBytes must be a positive finite number");
   });
 
-  it("refuses a body holding a collection over the bound 400 before the server sees it, and keeps serving", async () => {
+  it("refuses a body over either collection bound 400 before the server sees it, and keeps serving", async () => {
     let served = 0;
     const handler = createRoutedHandler(
       () => {
@@ -228,9 +228,23 @@ describe("the body cap", () => {
     expect(body.error.message).toBe(
       `Invalid Request: a collection holds ${MAX_COLLECTION_ITEMS + 1} items, more than ${MAX_COLLECTION_ITEMS}`,
     );
+    const nested = await fetch(`${base}/`, {
+      method: "POST",
+      headers: headers(),
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 2,
+        method: "tools/call",
+        params: { name: "whoami", arguments: { hooks: Array.from({ length: 20 }, () => ({ args: Array(900).fill(1) })) } },
+      }),
+    });
+    expect(nested.status).toBe(400);
+    expect(((await nested.json()) as { error: { message: string } }).error.message).toBe(
+      `Invalid Request: the body holds more than ${MAX_BODY_ITEMS} collection items`,
+    );
     const within = await fetch(`${base}/`, { method: "POST", headers: headers(), body: TOOLS_LIST });
     expect(within.status).toBe(200);
-    expect(served).toBe(2);
+    expect(served).toBe(3);
   });
 
   it("serves a body under the cap", async () => {
