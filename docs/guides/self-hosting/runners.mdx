@@ -421,7 +421,7 @@ Each entry is one JSON line, and the runner's line is its `message`. The server
 boots the template twice before it gives up, so the line usually appears twice:
 
 ```text
-{"labels":{"ate.actor.container.name":"runner","ate.actor.name":"e6733661-f833-44cd-8b91-7f632266bcaf","ate.actor.uid":"6d0d6637-09f3-46d0-bc00-dd1b25bfa633","ate.atespace":"cloudup0","ate.template.atespace":"cloudup0","ate.template.name":"stigmer-runner-967d8dabb3b2"},"message":"stigmer runner: this base image cannot run the runner layer: missing from PATH: git. The base image needs glibc 2.28 or newer, root, bash, git and standard text tools: https://stigmer.ai/docs/guides/self-hosting/runners#bring-your-own-base-image","time":"2026-11-04T09:21:08.222179096Z"}
+{"labels":{"ate.actor.container.name":"runner","ate.actor.name":"e6733661-f833-44cd-8b91-7f632266bcaf","ate.actor.uid":"6d0d6637-09f3-46d0-bc00-dd1b25bfa633","ate.atespace":"stigmer","ate.template.atespace":"stigmer","ate.template.name":"stigmer-runner-967d8dabb3b2"},"message":"stigmer runner: this base image cannot run the runner layer: missing from PATH: git. The base image needs glibc 2.28 or newer, root, bash, git and standard text tools: https://stigmer.ai/docs/guides/self-hosting/runners#bring-your-own-base-image","time":"2026-11-04T09:21:08.222179096Z"}
 ```
 
 Leave off the last `grep` to see everything the runner's container wrote, which
