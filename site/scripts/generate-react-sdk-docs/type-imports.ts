@@ -64,6 +64,12 @@ function typesTarget(entry: unknown): string | null {
  * The subpath of a package whose `exports` pattern holds a declaring file,
  * or null when no pattern matches: `dist/ai/x_pb.d.ts` under
  * `"./*": { "types": "./dist/*.d.ts" }` is `ai/x_pb`.
+ *
+ * TypeDoc gives the file relative to the nearest `package.json` above it,
+ * and a library built for publishing has one in `dist/` too
+ * (`scripts/publish-libs.mjs`), so the same file can arrive as
+ * `ai/x_pb.d.ts`. The pattern's prefix may therefore be met from any of its
+ * folders down, never from inside a folder name.
  */
 export function patternSubpath(exportsMap: unknown, packagePath: string): string | null {
   if (typeof exportsMap !== "object" || exportsMap === null) return null;
@@ -72,10 +78,14 @@ export function patternSubpath(exportsMap: unknown, packagePath: string): string
     const target = typesTarget(entry);
     if (target === null || !target.includes("*")) continue;
     const [prefix, suffix] = target.replace(/^\.\//, "").split("*");
-    if (!packagePath.startsWith(prefix) || !packagePath.endsWith(suffix)) continue;
-    const star = packagePath.slice(prefix.length, packagePath.length - suffix.length);
-    if (star === "") continue;
-    return key.replace(/^\.\//, "").replace("*", star);
+    if (!packagePath.endsWith(suffix)) continue;
+    const stem = packagePath.slice(0, packagePath.length - suffix.length);
+    const folders = prefix.split("/").filter((p) => p !== "");
+    const roots = folders.map((_, i) => `${folders.slice(i).join("/")}/`).concat(prefix === "" || prefix.endsWith("/") ? [""] : []);
+    // The wildcard names a file: never empty, never ending in a folder.
+    const root = roots.find((r) => stem.startsWith(r) && stem.length > r.length && !stem.endsWith("/"));
+    if (root === undefined) continue;
+    return key.replace(/^\.\//, "").replace("*", stem.slice(root.length));
   }
   return null;
 }
