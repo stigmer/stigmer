@@ -27,6 +27,11 @@ function panel() {
   return <div data-testid="panel">panel</div>;
 }
 
+/** The split's primary pane: the separator's previous sibling (the panel is open). */
+function primaryPane(): HTMLElement {
+  return screen.getByRole("separator").previousElementSibling as HTMLElement;
+}
+
 describe("SessionViewerLayout", () => {
   it("collapsed (panel null): conversation renders, panel absent, no separator exposed", () => {
     render(<SessionViewerLayout conversation={conversation()} panel={null} />);
@@ -69,9 +74,46 @@ describe("SessionViewerLayout", () => {
     expect(screen.getByTestId("conversation")).toBe(node);
   });
 
+  // SessionViewer stops passing headerActions once a session shows its first
+  // turn: the row's coming and going must not move the conversation, or the
+  // thread and the composer, with the focus a person put in it, are mounted
+  // again (stigmer/stigmer#1570).
+  it("never remounts the conversation, or its focus, when the control row comes or goes", () => {
+    const focusable = (
+      <div data-testid="conversation">
+        <textarea aria-label="Message" />
+      </div>
+    );
+    const { rerender } = render(
+      <SessionViewerLayout
+        conversation={focusable}
+        panel={null}
+        headerActions={<button type="button">Share</button>}
+      />,
+    );
+    const node = screen.getByTestId("conversation");
+    const input = screen.getByRole("textbox", { name: "Message" });
+    input.focus();
+
+    rerender(<SessionViewerLayout conversation={focusable} panel={null} />);
+    expect(screen.getByTestId("conversation")).toBe(node);
+    expect(document.activeElement).toBe(input);
+    expect(screen.queryByRole("button", { name: "Share" })).toBeNull();
+
+    rerender(
+      <SessionViewerLayout
+        conversation={focusable}
+        panel={null}
+        chip={<button type="button">Toggle panel</button>}
+      />,
+    );
+    expect(screen.getByTestId("conversation")).toBe(node);
+    expect(document.activeElement).toBe(input);
+  });
+
   it("open panel sizes the conversation pane at the shared default width", () => {
     render(<SessionViewerLayout conversation={conversation()} panel={panel()} />);
-    const pane = screen.getByTestId("conversation").parentElement!;
+    const pane = primaryPane();
     expect(pane.style.width).toBe("420px");
   });
 
@@ -83,7 +125,7 @@ describe("SessionViewerLayout", () => {
     const { container } = render(
       <SessionViewerLayout conversation={conversation()} panel={panel()} />,
     );
-    const pane = screen.getByTestId("conversation").parentElement!;
+    const pane = primaryPane();
     expect(pane.className).toContain("stg:@max-3xl/resizable-split:hidden");
     // The separator hides with it, so the panel is the full narrow row.
     expect(
@@ -123,7 +165,7 @@ describe("SessionViewerLayout", () => {
         splitStorageKey="stgm-test-chat-width"
       />,
     );
-    const pane = screen.getByTestId("conversation").parentElement!;
+    const pane = primaryPane();
     expect(pane.style.width).toBe("512px");
   });
 

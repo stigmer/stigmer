@@ -91,7 +91,9 @@ export interface SessionViewerLayoutProps {
  * - **The collapse mechanics** — collapse goes through the split's
  *   `collapsedPane` (CSS, not conditional structure), so the conversation
  *   is always the same first child and an open/close toggle never
- *   remounts it.
+ *   remounts it. The control row is the one conditional element, rendered
+ *   above the conversation's fixed position, so its coming and going never
+ *   remounts the conversation either.
  *
  * Everything rendered inside the panes belongs to the host: the layout
  * takes opaque `ReactNode`s and never inspects them.
@@ -107,6 +109,11 @@ export function SessionViewerLayout({
   className,
 }: SessionViewerLayoutProps) {
   const isPanelOpen = panel != null;
+  // Only the control row is conditional. The conversation keeps one path
+  // from the root whether the row shows or not, so a host that drops its
+  // header actions mid-session (SessionViewer does at the first turn) never
+  // remounts the thread and the composer (stigmer/stigmer#1570).
+  const hasControlRow = headerActions != null || chip != null;
 
   return (
     <div className={cn("stg:relative stg:flex stg:h-full stg:w-full stg:flex-col", className)}>
@@ -122,17 +129,15 @@ export function SessionViewerLayout({
         ariaLabel={resizeAriaLabel}
         className="stg:min-h-0 stg:flex-1"
         primary={
-          headerActions != null || chip != null ? (
-            <div className="stg:flex stg:h-full stg:min-w-0 stg:flex-col">
+          <div className="stg:flex stg:h-full stg:min-w-0 stg:flex-col">
+            {hasControlRow && (
               <div className="stg:flex stg:shrink-0 stg:items-center stg:justify-end stg:gap-2 stg:px-4 stg:pt-2">
                 {headerActions}
                 {chip}
               </div>
-              <div className="stg:min-h-0 stg:flex-1">{conversation}</div>
-            </div>
-          ) : (
-            conversation
-          )
+            )}
+            <div className="stg:min-h-0 stg:flex-1">{conversation}</div>
+          </div>
         }
         secondary={panel}
       />

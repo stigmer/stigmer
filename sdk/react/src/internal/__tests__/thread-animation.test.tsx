@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, cleanup, fireEvent } from "@testing-library/react";
+import { render, screen, cleanup, fireEvent, act } from "@testing-library/react";
 import React from "react";
 import { ThreadItemWrapper } from "../ThreadItemWrapper";
 import { JumpToLatestButton } from "../JumpToLatestButton";
@@ -42,36 +42,82 @@ describe("ThreadItemWrapper", () => {
     expect(screen.getByText("content")).toBeTruthy();
   });
 
-  it("renders children directly when animate=false (no wrapper div)", () => {
+  it("renders the same plain wrapper when animate=false, so an item's shape never depends on whether it animated", () => {
     const { container } = render(
       <ThreadItemWrapper animate={false}>
         <span data-testid="child">no-animation</span>
       </ThreadItemWrapper>,
     );
 
-    expect(container.querySelector(".stgm-thread-item-enter")).toBeNull();
-    expect(screen.getByTestId("child")).toBeTruthy();
+    const wrapper = container.firstElementChild as HTMLElement;
+    expect(wrapper.tagName).toBe("DIV");
+    expect(wrapper.classList.contains("stgm-thread-item-enter")).toBe(false);
+    expect(wrapper.firstElementChild).toBe(screen.getByTestId("child"));
   });
 
-  it("renders children directly after animation completes (no residual wrapper)", () => {
+  // An item that renders nothing (a turn with no outcome to show) must take
+  // no gap in the thread's column, as it did when the settled wrapper was no
+  // element at all.
+  it("hides the wrapper of an item that renders nothing", () => {
+    const { container } = render(<ThreadItemWrapper animate={false}>{null}</ThreadItemWrapper>);
+
+    const wrapper = container.firstElementChild as HTMLElement;
+    expect(wrapper.matches(":empty")).toBe(true);
+    expect(wrapper.classList.contains("stg:empty:hidden")).toBe(true);
+  });
+
+  // The wrapper keeps one element for its whole life: a root that changed
+  // from the wrapper div to the bare child when the animation ended made
+  // React replace the whole item, and with it a focused control inside it
+  // (stigmer/stigmer#1570).
+  it("keeps its element and the child's after animationend, focus included", () => {
     const { container, rerender } = render(
       <ThreadItemWrapper animate>
-        <span>content</span>
+        <button type="button">Approve</button>
       </ThreadItemWrapper>,
     );
 
     const wrapper = container.firstElementChild as HTMLElement;
-    fireEvent.animationEnd(wrapper);
+    const button = screen.getByRole("button", { name: "Approve" });
+    button.focus();
 
+    fireEvent.animationEnd(wrapper);
     rerender(
       <ThreadItemWrapper animate>
-        <span>content</span>
+        <button type="button">Approve</button>
       </ThreadItemWrapper>,
     );
 
-    const span = screen.getByText("content");
-    expect(span.tagName).toBe("SPAN");
-    expect(container.querySelector(".stgm-thread-item-enter")).toBeNull();
+    expect(container.firstElementChild).toBe(wrapper);
+    expect(wrapper.classList.contains("stgm-thread-item-enter")).toBe(false);
+    expect(screen.getByRole("button", { name: "Approve" })).toBe(button);
+    expect(document.activeElement).toBe(button);
+  });
+
+  it("keeps its element and the child's when the fallback timer ends the entrance", () => {
+    vi.useFakeTimers();
+    try {
+      const { container } = render(
+        <ThreadItemWrapper animate>
+          <button type="button">Approve</button>
+        </ThreadItemWrapper>,
+      );
+
+      const wrapper = container.firstElementChild as HTMLElement;
+      const button = screen.getByRole("button", { name: "Approve" });
+      button.focus();
+
+      act(() => {
+        vi.advanceTimersByTime(300);
+      });
+
+      expect(container.firstElementChild).toBe(wrapper);
+      expect(wrapper.classList.contains("stgm-thread-item-enter")).toBe(false);
+      expect(screen.getByRole("button", { name: "Approve" })).toBe(button);
+      expect(document.activeElement).toBe(button);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 
