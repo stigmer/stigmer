@@ -387,16 +387,48 @@ stigmer runner: this base image cannot run the runner layer: no glibc dynamic lo
 ```
 
 A base that passes, carrying a layer from another release than the server's, is
-refused the same way: exit code 78 and one line. With the `docker` driver,
-`docker logs` on the sandbox's container shows it. With `substrate`, the shared
-template fails to prepare, and the server logs only that its golden actor
-crashed; the line itself is in the log of the Substrate worker pod that booted
-it, in an entry labelled with the template's name
-([stigmer#1848](https://github.com/stigmer/stigmer/issues/1848)):
+refused the same way: exit code 78 and one line.
 
 ```text
 stigmer runner: this runner layer is from release 0.1.0, but the server is 0.2.0: use the runner layer of release 0.2.0 (re-join your image at every server upgrade): https://stigmer.ai/docs/guides/self-hosting/runners#bring-your-own-base-image
 ```
+
+With the `docker` driver, `docker logs` on the sandbox's container shows the
+line. With `substrate`, the shared template fails to prepare. The server's log,
+and the error on every run that waits for a sandbox, say that the template's
+golden actor crashed, and that if the runner refused to start, its line is in
+the Substrate worker's log, labelled with the template's name:
+
+```text
+Substrate template stigmer-runner-967d8dabb3b2 failed to publish its golden snapshot: GoldenActorCrashed: golden actor crashed before its snapshot was taken. If the runner refused to start (a runner layer from another release than this server's, or a base image the layer cannot run), its one-line reason is in the Substrate worker's log, in the runner container's entry labelled ate.template.name=stigmer-runner-967d8dabb3b2.
+```
+
+The worker pods run in the namespace of your Substrate install's WorkerPool,
+which `kubectl get workerpools --all-namespaces` lists, and carry the label
+`ate.dev/worker-pool`. Search their logs for the template's name and the
+runner's prefix, with `substrate-workers` and the template's name replaced by
+yours. `--tail=-1` matters: with a selector, `kubectl logs` keeps only the last
+10 lines of each pod otherwise.
+
+```bash
+kubectl logs --namespace substrate-workers --selector ate.dev/worker-pool \
+  --all-containers --tail=-1 \
+  | grep '"ate.template.name":"stigmer-runner-967d8dabb3b2"' \
+  | grep 'stigmer runner:'
+```
+
+Each entry is one JSON line, and the runner's line is its `message`. The server
+boots the template twice before it gives up, so the line usually appears twice:
+
+```text
+{"labels":{"ate.actor.container.name":"runner","ate.actor.name":"e6733661-f833-44cd-8b91-7f632266bcaf","ate.actor.uid":"6d0d6637-09f3-46d0-bc00-dd1b25bfa633","ate.atespace":"stigmer","ate.template.atespace":"stigmer","ate.template.name":"stigmer-runner-967d8dabb3b2"},"message":"stigmer runner: this base image cannot run the runner layer: missing from PATH: git. The base image needs glibc 2.28 or newer, root, bash, git and standard text tools: https://stigmer.ai/docs/guides/self-hosting/runners#bring-your-own-base-image","time":"2026-11-04T09:21:08.222179096Z"}
+```
+
+Leave off the last `grep` to see everything the runner's container wrote, which
+is where an error that isn't the runner's own, such as an old glibc's below,
+appears. `kubectl logs` reaches only what the worker pods still hold; if your
+cluster ships its logs to a log store, search there for the same label,
+`ate.template.name`.
 
 A glibc older than 2.28 isn't detected up front. The runner's Node refuses it
 itself, naming the version it needs:
