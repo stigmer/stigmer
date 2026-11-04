@@ -146,4 +146,24 @@ describe("useSessionAgentVersion", () => {
     expect(result.current.updateError).toBeNull();
     expect(result.current.isUpdating).toBe(false);
   });
+
+  it("shows another conversation no failure from the last one's update", async () => {
+    const client = makeClient("h_new");
+    const move = vi.fn().mockRejectedValue(new Error("denied"));
+    const other = session("h_old");
+    other.metadata!.id = "ses_2";
+    const { result, rerender } = renderHook(
+      ({ shown }: { shown: Session }) =>
+        useSessionAgentVersion(shown, { enabled: true, moveToCurrentVersion: move }),
+      { wrapper: wrapperFor(client), initialProps: { shown: session("h_old") } },
+    );
+    await act(async () => {
+      await result.current.update();
+    });
+    expect(result.current.updateError?.message).toBe("denied");
+
+    rerender({ shown: other });
+    expect(result.current.updateError).toBeNull();
+    expect(result.current.isUpdating).toBe(false);
+  });
 });
