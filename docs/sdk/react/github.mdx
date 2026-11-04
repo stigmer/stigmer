@@ -50,22 +50,23 @@ function useGitHubConnection(org: string | null, config?: UseGitHubConnectionCon
 />
 
 ```tsx
-function GitHubConnect({ org }: { org: string }) {
+function GitHubConnect({ org, onRepo }: { org: string; onRepo: (repoUrl: string, branch: string) => void }) {
   const gh = useGitHubConnection(org);
-  if (gh.isLoading) return <Skeleton />;
-  if (!gh.isConnected) {
+  if (gh.isLoading) return <p>Loading…</p>;
+  if (!gh.isConnected || !gh.readOrg) {
     return <button onClick={() => void gh.connect()}>Connect GitHub</button>;
   }
-  return <GitHubRepoPicker org={gh.readOrg!} onSelect={addRepo} />;
+  return <GitHubRepoPicker org={gh.readOrg} onSelect={onRepo} />;
 }
 ```
 
 ```tsx
-const gh = useGitHubConnection(org, {
-  openUrl: (url) => invoke("open_auth_in_browser", { authUrl: url }),
-  returnTo: { kind: "desktop" },
-});
-// The deep link handler calls gh.handleCallback(code, state).
+// A desktop app opens sign-in in the system browser and gets the
+// callback through its deep link, which calls gh.handleCallback(code, state).
+function DesktopGitHubConnect({ openInBrowser }: { openInBrowser: (url: string) => Promise<void> }) {
+  const gh = useGitHubConnection("acme", { openUrl: openInBrowser, returnTo: { kind: "desktop" } });
+  return <button onClick={() => void gh.connect()} disabled={gh.isConnecting}>Connect GitHub</button>;
+}
 ```
 
 
@@ -98,9 +99,11 @@ function useGitHubFileReader(org: string | null): WorkspaceFileReader | undefine
 />
 
 ```tsx
-const gitHubConnection = useGitHubConnection(org);
-const fileReader = useGitHubFileReader(gitHubConnection.readOrg);
-<SessionViewer sessionId={id} org={org} inspector={<SessionInspector workspaceFileReader={fileReader} />} />
+function SessionWithRepoFiles({ sessionId, org }: { sessionId: string; org: string }) {
+  const gitHubConnection = useGitHubConnection(org);
+  const fileReader = useGitHubFileReader(gitHubConnection.readOrg);
+  return <SessionViewer sessionId={sessionId} org={org} inspector={<SessionInspector workspaceFileReader={fileReader} />} />;
+}
 ```
 
 
@@ -144,7 +147,7 @@ function RepoList({ org }: { org: string }) {
   const { repos, isLoading, search, setSearch, fetchBranches } =
     useGitHubRepos(org);
 
-  if (isLoading) return <Skeleton />;
+  if (isLoading) return <p>Loading…</p>;
 
   return (
     <div>
@@ -164,8 +167,12 @@ function RepoList({ org }: { org: string }) {
 ```
 
 ```tsx
-// Skip fetching until GitHub is connected
-const { repos } = useGitHubRepos(gitHubConnection.readOrg);
+// Fetches nothing until GitHub is connected (readOrg is null until then).
+function RepoCount({ org }: { org: string }) {
+  const { readOrg } = useGitHubConnection(org);
+  const { repos } = useGitHubRepos(readOrg);
+  return <span>{repos.length} repositories</span>;
+}
 ```
 
 
@@ -213,7 +220,7 @@ function GitHubSearch({ org }: { org: string | null }) {
         onChange={(e) => setQuery(e.target.value)}
         placeholder="Search repositories…"
       />
-      {isSearching && <Spinner />}
+      {isSearching && <p>Searching…</p>}
       <ul>
         {results.map((repo) => (
           <li key={repo.id}>{repo.fullName}</li>
@@ -248,10 +255,11 @@ function useGitHubTreeLister(org: string | null): WorkspaceFileLister | undefine
 />
 
 ```tsx
-const gitHubConnection = useGitHubConnection(org);
-const fileLister = useGitHubTreeLister(gitHubConnection.readOrg);
-
-<SessionViewer sessionId={id} org={org} inspector={<SessionInspector workspaceFileLister={fileLister} />} />
+function SessionWithRepoTree({ sessionId, org }: { sessionId: string; org: string }) {
+  const gitHubConnection = useGitHubConnection(org);
+  const fileLister = useGitHubTreeLister(gitHubConnection.readOrg);
+  return <SessionViewer sessionId={sessionId} org={org} inspector={<SessionInspector workspaceFileLister={fileLister} />} />;
+}
 ```
 
 
@@ -286,14 +294,8 @@ All visual properties flow through `--stgm-*` tokens.
 />
 
 ```tsx
-function RepoSelector({ org }: { org: string }) {
-  return (
-    <GitHubRepoPicker
-      org={org}
-      onSelect={(url, branch) => workspace.addGitRepo(url, branch)}
-      onCancel={() => setShowPicker(false)}
-    />
-  );
+function RepoSelector({ org, onAdd, onClose }: { org: string; onAdd: (repoUrl: string, branch: string) => void; onClose: () => void }) {
+  return <GitHubRepoPicker org={org} onSelect={onAdd} onCancel={onClose} />;
 }
 ```
 

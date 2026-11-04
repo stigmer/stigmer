@@ -113,12 +113,12 @@ export interface FileViewerHandle {
  *
  * @example
  * ```tsx
- * <FileViewer
- *   selectedFile={{ entryId: entry.id, path: "src/index.ts" }}
- *   entries={workspace.entries}
- *   reader={workspaceFileReader}
- *   onClose={() => setSelected(null)}
- * />
+ * type Props = { entries: readonly WorkspaceEntry[]; reader: WorkspaceFileReader; onClose: () => void };
+ *
+ * function IndexViewer({ entries, reader, onClose }: Props) {
+ *   const selectedFile = { entryId: entries[0]?.id ?? "", path: "src/index.ts" };
+ *   return <FileViewer selectedFile={selectedFile} entries={entries} reader={reader} onClose={onClose} />;
+ * }
  * ```
  */
 export const FileViewer = forwardRef<FileViewerHandle, FileViewerProps>(

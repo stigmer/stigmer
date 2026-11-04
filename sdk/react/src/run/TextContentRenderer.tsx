@@ -71,7 +71,7 @@ export interface TextContentRendererProps {
  * ```tsx
  * import { TextContentRenderer, useFileContent } from "@stigmer/react-sdk";
  *
- * function MyFilePanel({ fileId, fileName }) {
+ * function FilePanel({ fileId, fileName }: { fileId: string; fileName: string }) {
  *   const { content } = useFileContent(fileId);
  *   if (!content) return null;
  *   return <TextContentRenderer content={content} fileName={fileName} />;

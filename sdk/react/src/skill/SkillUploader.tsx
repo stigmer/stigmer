@@ -51,15 +51,16 @@ export interface SkillUploaderProps {
  *
  * @example
  * ```tsx
- * const slugForOrg = useOrgSlugForId();
- *
- * <SkillUploader
- *   org="acme"
- *   onComplete={(skill) =>
- *     router.push(`/library/skills/${slugForOrg(skill.metadata?.org ?? "")}/${skill.metadata?.slug}`)
- *   }
- *   onCancel={() => router.back()}
- * />
+ * function UploadSkillPage({ onOpen, onBack }: { onOpen: (href: string) => void; onBack: () => void }) {
+ *   const slugForOrg = useOrgSlugForId();
+ *   return (
+ *     <SkillUploader
+ *       org="acme"
+ *       onComplete={(skill) => onOpen(`/library/skills/${slugForOrg(skill.metadata?.org ?? "")}/${skill.metadata?.slug}`)}
+ *       onCancel={onBack}
+ *     />
+ *   );
+ * }
  * ```
  */
 export function SkillUploader({

@@ -36,8 +36,14 @@ const NOTHING: PluginPresentation = {};
  *
  * @example
  * ```tsx
- * const { presentation, logoUrl } = usePluginPresentation(opened, entry);
- * const title = presentation.displayName ?? entry.name;
+ * function EntryTitle({ opened, entry }: { opened: OpenedMarketplace; entry: MarketplaceEntry }) {
+ *   const { presentation, logoUrl } = usePluginPresentation(opened, entry);
+ *   return (
+ *     <h3>
+ *       {logoUrl && <img src={logoUrl} alt="" width={20} />} {presentation.displayName ?? entry.name}
+ *     </h3>
+ *   );
+ * }
  * ```
  */
 export function usePluginPresentation(opened: OpenedMarketplace | null, entry: MarketplaceEntry | null): UsePluginPresentationReturn {

@@ -98,9 +98,9 @@ function useSkill(org: string | null, slug: string | null, version?: string): Us
 function SkillDetail({ org, slug }: { org: string; slug: string }) {
   const { skill, isLoading, error } = useSkill(org, slug);
 
-  if (isLoading) return <Skeleton />;
-  if (error) return <ErrorMessage error={error} />;
-  if (!skill) return <NotFound />;
+  if (isLoading) return <p>Loading…</p>;
+  if (error) return <p>{error.message}</p>;
+  if (!skill) return <p>No skill named {slug}.</p>;
 
   return <h1>{skill.metadata?.name}</h1>;
 }
@@ -147,13 +147,11 @@ function useSkillArtifact(artifactStorageKey: string | null): UseSkillArtifactRe
 />
 
 ```tsx
-const { skill } = useSkill(org, slug);
-const { files, getFileContent, isLoading } = useSkillArtifact(
-  skill?.status?.artifactStorageKey ?? null
-);
-
-if (files) {
-  const readme = getFileContent("SKILL.md");
+function SkillReadme() {
+  const { skill } = useSkill("acme", "code-review");
+  const { files, getFileContent } = useSkillArtifact(skill?.status?.artifactStorageKey ?? null);
+  if (!files) return <p>Loading…</p>;
+  return <pre>{getFileContent("SKILL.md")}</pre>;
 }
 ```
 
@@ -234,11 +232,12 @@ function useSkillDiff(fromArtifactKey: string | null, toArtifactKey: string | nu
 />
 
 ```tsx
-const { getArtifactKey } = useSkillVersions(org, slug);
-const { diff, isLoading } = useSkillDiff(
-  getArtifactKey(fromHash),
-  getArtifactKey(toHash),
-);
+function SkillChanges({ fromHash, toHash }: { fromHash: string; toHash: string }) {
+  const { getArtifactKey } = useSkillVersions("acme", "code-review");
+  const { diff, isLoading } = useSkillDiff(getArtifactKey(fromHash), getArtifactKey(toHash));
+  if (isLoading || !diff) return <p>Loading…</p>;
+  return <p>{diff.files.length} files changed</p>;
+}
 ```
 
 
@@ -378,18 +377,18 @@ function useSkillUpload(): UseSkillUploadReturn
 />
 
 ```tsx
-const upload = useSkillUpload();
-
-const handleDrop = (file: File) => upload.processFile(file);
-
-if (upload.preview) {
-  // Show preview UI
-  console.log(upload.preview.name, upload.preview.files);
-}
-
-if (upload.artifact) {
-  // Ready to push
-  await push({ org: "acme", artifact: upload.artifact });
+function UploadSkill() {
+  const upload = useSkillUpload();
+  const { push, isPushing } = usePushSkill();
+  const { preview, artifact } = upload;
+  if (!preview || !artifact) {
+    return <input type="file" accept=".zip" onChange={(e) => e.target.files?.[0] && upload.processFile(e.target.files[0])} />;
+  }
+  return (
+    <button disabled={isPushing} onClick={() => push({ org: "acme", artifact })}>
+      Push {preview.name} ({preview.files.length} files)
+    </button>
+  );
 }
 ```
 
@@ -555,11 +554,10 @@ All visual properties flow through `--stgm-*` design tokens.
 />
 
 ```tsx
-const { skill } = useSkill(org, slug);
-
-<SkillFileBrowser
-  artifactStorageKey={skill?.status?.artifactStorageKey ?? null}
-/>
+function SkillFiles() {
+  const { skill } = useSkill("acme", "code-review");
+  return <SkillFileBrowser artifactStorageKey={skill?.status?.artifactStorageKey ?? null} />;
+}
 ```
 
 
@@ -589,6 +587,8 @@ All visual properties flow through `--stgm-*` tokens.
 />
 
 ```tsx
+import type { ResourceRef } from "@stigmer/client";
+
 function SkillSelector({ org }: { org: string }) {
   const [skills, setSkills] = useState<ResourceRef[]>([]);
 
@@ -634,15 +634,16 @@ the slug.
 />
 
 ```tsx
-const slugForOrg = useOrgSlugForId();
-
-<SkillUploader
-  org="acme"
-  onComplete={(skill) =>
-    router.push(`/library/skills/${slugForOrg(skill.metadata?.org ?? "")}/${skill.metadata?.slug}`)
-  }
-  onCancel={() => router.back()}
-/>
+function UploadSkillPage({ onOpen, onBack }: { onOpen: (href: string) => void; onBack: () => void }) {
+  const slugForOrg = useOrgSlugForId();
+  return (
+    <SkillUploader
+      org="acme"
+      onComplete={(skill) => onOpen(`/library/skills/${slugForOrg(skill.metadata?.org ?? "")}/${skill.metadata?.slug}`)}
+      onCancel={onBack}
+    />
+  );
+}
 ```
 
 

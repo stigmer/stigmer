@@ -46,7 +46,11 @@ export interface PluginServerSignInProps {
  *
  * @example
  * ```tsx
- * <PluginServerSignIn org="acme" server={plugin.status.mcpServers[0]} />
+ * import type { Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
+ *
+ * function ServerSignIns({ plugin }: { plugin: Plugin }) {
+ *   return plugin.status?.mcpServers.map((server) => <PluginServerSignIn key={server.name} org="acme" server={server} />) ?? null;
+ * }
  * ```
  */
 export function PluginServerSignIn({ org, server, onSignedIn, optionalSignIn = false, className }: PluginServerSignInProps) {

@@ -38,7 +38,11 @@ export interface ServiceAccountListPanelProps {
  *
  * @example
  * ```tsx
- * <ServiceAccountListPanel org={orgId} onOpen={(account) => setOpen(account)} />
+ * import type { IdentityAccount } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
+ *
+ * function ServiceAccounts({ onOpen }: { onOpen: (account: IdentityAccount) => void }) {
+ *   return <ServiceAccountListPanel org="org_acme" onOpen={onOpen} />;
+ * }
  * ```
  */
 export function ServiceAccountListPanel({

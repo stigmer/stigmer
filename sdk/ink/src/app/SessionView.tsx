@@ -170,14 +170,12 @@ function FailureBlock({ error, baseUrl, step }: { error: unknown; baseUrl: strin
  *
  * @example
  * ```tsx
- * import { InkStigmerProvider, createNodeClient, SessionView } from "@stigmer/ink-ui";
- *
- * const client = createNodeClient({ baseUrl: "...", apiKey: "..." });
+ * import { render } from "ink";
  *
  * render(
  *   <InkStigmerProvider client={client}>
- *     <SessionView sessionId="ses_xxx" org="my-org" />
- *   </InkStigmerProvider>
+ *     <SessionView sessionId="ses_01jabc" org="acme" />
+ *   </InkStigmerProvider>,
  * );
  * ```
  */

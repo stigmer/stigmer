@@ -71,10 +71,7 @@ const PENDING_POLL_INTERVAL_MS = 60_000;
  *
  * @example
  * ```tsx
- * const { templates, isLoading, error } = useChannelTemplateList(
- *   channel.metadata?.slug ?? "",
- *   channel.metadata?.org ?? "",
- * );
+ * const { templates, isLoading, error } = useChannelTemplateList("support-whatsapp", "acme");
  * ```
  */
 export function useChannelTemplateList(

@@ -48,8 +48,10 @@ export interface FileChangeProgressBarProps {
  *
  * @example
  * ```tsx
- * const conv = useSessionConversation(sessionId);
- * <FileChangeProgressBar progress={conv.fileChangeProgress} />
+ * function ChangeProgress({ sessionId, org }: { sessionId: string; org: string }) {
+ *   const conv = useSessionConversation(sessionId, org);
+ *   return <FileChangeProgressBar progress={conv.fileChangeProgress} />;
+ * }
  * ```
  */
 export const FileChangeProgressBar = memo(function FileChangeProgressBar({

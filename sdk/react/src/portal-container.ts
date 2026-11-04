@@ -74,22 +74,13 @@ export const PortalContainerContext = createContext<
  *
  * @example
  * ```tsx
- * import { Popover } from "@base-ui/react/popover";
- * import { useStigmerPortalContainer } from "@stigmer/react-sdk";
+ * import { createPortal } from "react-dom";
  *
- * function MyPopover() {
- *   const portalContainer = useStigmerPortalContainer();
- *
- *   return (
- *     <Popover.Root>
- *       <Popover.Trigger>Open</Popover.Trigger>
- *       <Popover.Portal container={portalContainer}>
- *         <Popover.Positioner>
- *           <Popover.Popup>Content</Popover.Popup>
- *         </Popover.Positioner>
- *       </Popover.Portal>
- *     </Popover.Root>
- *   );
+ * function ThemedToast({ children }: { children: ReactNode }) {
+ *   const container = useStigmerPortalContainer();
+ *   // null: the themed container has not mounted yet, so wait for it.
+ *   if (container === null) return null;
+ *   return createPortal(<div role="status">{children}</div>, container ?? document.body);
  * }
  * ```
  */

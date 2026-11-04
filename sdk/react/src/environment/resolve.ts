@@ -111,8 +111,11 @@ function referenceOf(ref: EnvironmentReference | ResourceRef): EnvironmentRefere
  *
  * @example
  * ```ts
- * resolveEnvironmentChoice({ agent: agentSpec.environmentRef, organization: prefs.defaultEnvironmentRef });
- * // { kind: "chosen", environment: { org, slug: "data-science" }, source: "agent" }
+ * resolveEnvironmentChoice({
+ *   agent: { org: "acme", slug: "data-science" },
+ *   organization: { org: "acme", slug: "standard" },
+ * });
+ * // { kind: "chosen", environment: { org: "acme", slug: "data-science" }, source: "agent" }
  * ```
  */
 export function resolveEnvironmentChoice(inputs: EnvironmentChoiceInputs): EnvironmentChoice {

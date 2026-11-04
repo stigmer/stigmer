@@ -24,14 +24,16 @@ import { useOrgSlugForId } from "../organization/useOrgRefs.js";
  *
  * @example
  * ```tsx
- * const { tree, isEmpty } = useDependencyGraph({
- *   agentName: agent.metadata.name,
- *   agentOrg: agent.metadata.org,
- *   spec: agent.spec,
- * });
+ * import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
  *
- * if (!isEmpty && tree) {
- *   return <DependencyGraph tree={tree} onNodeClick={handleClick} />;
+ * function AgentDependencies({ agent }: { agent: Agent }) {
+ *   const { tree, isEmpty } = useDependencyGraph({
+ *     agentName: agent.metadata?.name ?? "",
+ *     agentOrg: agent.metadata?.org ?? "",
+ *     spec: agent.spec,
+ *   });
+ *   if (isEmpty || !tree) return <p>No dependencies.</p>;
+ *   return <DependencyGraph tree={tree} />;
  * }
  * ```
  */

@@ -88,11 +88,12 @@ const EMPTY_GROUPS: readonly WorkspaceContentSearchGroup[] = [];
  *
  * @example
  * ```tsx
- * const { groups, totalMatches, isRefetching } = useWorkspaceContentSearch({
- *   entries: workspace.entries,
- *   searcher: workspaceContentSearcher,
- *   query,
- * });
+ * type Props = { entries: readonly WorkspaceEntry[]; searcher: WorkspaceContentSearcher; query: string };
+ *
+ * function SearchSummary({ entries, searcher, query }: Props) {
+ *   const { groups, totalMatches, isRefetching } = useWorkspaceContentSearch({ entries, searcher, query });
+ *   return <p>{totalMatches} matches in {groups.length} repositories{isRefetching ? "…" : ""}</p>;
+ * }
  * ```
  */
 export function useWorkspaceContentSearch({

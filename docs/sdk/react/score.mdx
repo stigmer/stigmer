@@ -41,7 +41,7 @@ function useAgentQualityReport(agentId: string, days: number): UseAgentQualityRe
 />
 
 ```tsx
-const { report, error } = useAgentQualityReport(agent.metadata?.id ?? "", 30);
+const { report, error } = useAgentQualityReport("agt_01jabc", 30);
 ```
 
 
@@ -82,7 +82,7 @@ function useFlaggedRuns(agentId: string, days: number): UseFlaggedRunsReturn
 />
 
 ```tsx
-const { items, hasMore, loadMore } = useFlaggedRuns(agentId, 30);
+const { items, hasMore, loadMore } = useFlaggedRuns("agt_01jabc", 30);
 ```
 
 
@@ -112,8 +112,11 @@ function useRateRun(): UseRateRunReturn
 />
 
 ```tsx
-const { rateRun, isRating } = useRateRun();
-await rateRun({ org, runId, passed: false, comment: "picked the wrong label" });
+function WrongAnswer({ org, runId }: { org: string; runId: string }) {
+  const { rateRun, isRating } = useRateRun();
+  const rate = () => rateRun({ org, runId, passed: false, comment: "picked the wrong label" });
+  return <button onClick={rate} disabled={isRating}>Wrong answer</button>;
+}
 ```
 
 
@@ -156,7 +159,7 @@ function useSessionScores(sessionId: string | null): UseSessionScoresReturn
 />
 
 ```tsx
-const { scores, refetch } = useSessionScores(sessionId);
+const { scores, refetch } = useSessionScores("ses_01jabc");
 ```
 
 
@@ -184,8 +187,13 @@ function useUpdateRating(): UseUpdateRatingReturn
 />
 
 ```tsx
-const { updateRating } = useUpdateRating();
-await updateRating(myRating, { passed: true });
+import type { Score } from "@stigmer/apis/ai/stigmer/agentic/score/v1/api_pb";
+
+function MarkPassed({ myRating }: { myRating: Score }) {
+  const { updateRating, isUpdating } = useUpdateRating();
+  const pass = () => updateRating(myRating, { passed: true });
+  return <button onClick={pass} disabled={isUpdating}>Mark passed</button>;
+}
 ```
 
 
@@ -209,10 +217,11 @@ runs.
 />
 
 ```tsx
-<AgentQualityReportView
-  agent={agent}
-  onNavigateToRun={(runId) => router.push(`/runs/${runId}`)}
-/>
+import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+
+function AgentQuality({ agent, onOpenRun }: { agent: Agent; onOpenRun: (runId: string) => void }) {
+  return <AgentQualityReportView agent={agent} onNavigateToRun={onOpenRun} />;
+}
 ```
 
 

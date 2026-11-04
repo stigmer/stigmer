@@ -60,10 +60,14 @@ export interface UseRenameResourceReturn {
  *
  * @example
  * ```tsx
- * const { rename, isRenaming, error } = useRenameResource("agent");
- *
- * const renamed = await rename(agent.metadata.id, "variance-reporter");
- * canonicalSlug(renamed.metadata?.slug ?? "");
+ * function RenameButton({ agentId, onRenamed }: { agentId: string; onRenamed: (slug: string) => void }) {
+ *   const { rename, isRenaming } = useRenameResource("agent");
+ *   const save = async () => {
+ *     const renamed = await rename(agentId, "variance-reporter");
+ *     onRenamed(renamed.metadata?.slug ?? "");
+ *   };
+ *   return <button onClick={save} disabled={isRenaming}>Rename</button>;
+ * }
  * ```
  */
 export function useRenameResource(

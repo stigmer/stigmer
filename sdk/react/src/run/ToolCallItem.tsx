@@ -118,7 +118,11 @@ export interface ToolCallItemProps {
  *
  * @example
  * ```tsx
- * <ToolCallItem toolUse={toolUse} />
+ * import type { ToolUse } from "@stigmer/client";
+ *
+ * function Step({ toolUse }: { toolUse: ToolUse }) {
+ *   return <ToolCallItem toolUse={toolUse} />;
+ * }
  * ```
  */
 export const ToolCallItem = memo(function ToolCallItem({

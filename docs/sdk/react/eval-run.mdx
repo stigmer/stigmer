@@ -33,8 +33,10 @@ function useCancelEvalRun(): UseCancelEvalRunReturn
 />
 
 ```tsx
-const { cancel } = useCancelEvalRun();
-await cancel(evalRun.metadata.id);
+function CancelEvalRun({ evalRunId }: { evalRunId: string }) {
+  const { cancel, isCancelling } = useCancelEvalRun();
+  return <button onClick={() => cancel(evalRunId)} disabled={isCancelling}>Cancel</button>;
+}
 ```
 
 
@@ -115,7 +117,7 @@ function useEvalRuns(of: EvalRunsOf): UseEvalRunsReturn
 />
 
 ```tsx
-const { evalRuns } = useEvalRuns({ agentId: agent?.metadata?.id ?? "" });
+const { evalRuns } = useEvalRuns({ agentId: "agt_01jabc" });
 ```
 
 
@@ -155,7 +157,7 @@ function useEvals(org: string): UseEvalsReturn
 />
 
 ```tsx
-const { evals } = useEvals(agent?.metadata?.org ?? "");
+const { evals } = useEvals("acme");
 ```
 
 
@@ -186,9 +188,15 @@ function useStartEvalRun(): UseStartEvalRunReturn
 />
 
 ```tsx
-const { start } = useStartEvalRun();
-// Unnamed: the server names the eval run by its id.
-const started = await start({ name: "", org, agentId, comparedPluginId, maxCostUsd: 5 });
+function RunEvals({ org, agentId, onStarted }: { org: string; agentId: string; onStarted: (id: string) => void }) {
+  const { start, isStarting } = useStartEvalRun();
+  const run = async () => {
+    // Unnamed: the server names the eval run by its id.
+    const started = await start({ name: "", org, agentId, maxCostUsd: 5 });
+    onStarted(started.metadata?.id ?? "");
+  };
+  return <button onClick={run} disabled={isStarting}>Run evals</button>;
+}
 ```
 
 
@@ -212,7 +220,9 @@ The results of one eval run, plugin by plugin and case by case.
 />
 
 ```tsx
-<EvalRunResults evalRunId={id} subjectSlug="reviewer" canEdit onNavigateToRun={openRun} />
+function EvalRunPage({ evalRunId, onOpenRun }: { evalRunId: string; onOpenRun: (runId: string) => void }) {
+  return <EvalRunResults evalRunId={evalRunId} subjectSlug="reviewer" canEdit onNavigateToRun={onOpenRun} />;
+}
 ```
 
 
@@ -222,8 +232,11 @@ The Evals tab of an agent or a plugin: what runs, Run evals for editors,
 past eval runs with their results, and Compare.
 
 ```tsx
-<EvalRunsTab agent={agent} onNavigateToRun={(runId) => router.push(`/runs/${runId}`)} />
-<EvalRunsTab plugin={plugin} onNavigateToRun={(runId) => router.push(`/runs/${runId}`)} />
+import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+
+function AgentEvals({ agent, onOpenRun }: { agent: Agent; onOpenRun: (runId: string) => void }) {
+  return <EvalRunsTab agent={agent} onNavigateToRun={onOpenRun} />;
+}
 ```
 
 

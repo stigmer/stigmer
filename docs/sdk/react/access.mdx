@@ -48,13 +48,21 @@ function useManageAccess(options: UseManageAccessArgs): UseManageAccessReturn
 />
 
 ```tsx
-const access = useManageAccess({
-  resource: meta ? { kind: ApiResourceKind.agent, kindString: "agent", id: meta.id, org: meta.org } : null,
-  visibility: meta ? { kind: "agent", current: meta.visibility, org: meta.org, onChanged: refetch } : undefined,
-});
-// ...
-<ResourceDetailShell actions={access.action ? [...actions, access.action] : actions} ... />
-{access.dialog}
+import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+
+function AgentActions({ agent, onChanged }: { agent: Agent; onChanged: () => void }) {
+  const meta = agent.metadata;
+  const access = useManageAccess({
+    resource: meta ? { kind: ApiResourceKind.agent, kindString: "agent", id: meta.id, org: meta.org } : null,
+    visibility: meta ? { kind: "agent", current: meta.visibility, org: meta.org, onChanged } : undefined,
+  });
+  return (
+    <>
+      <ResourceActionBar actions={access.action ? [access.action] : []} />
+      {access.dialog}
+    </>
+  );
+}
 ```
 
 
@@ -87,15 +95,11 @@ All visual properties flow through `--stgm-*` design tokens.
 ```tsx
 // A session has no visibility axis, so the dialog shows only People.
 <SessionViewer
-  sessionId={id}
+  org="acme"
+  sessionId="ses_01jabc"
   headerActions={
     <ManageAccessButton
-      resource={{
-        kind: ApiResourceKind.session,
-        kindString: "session",
-        id,
-        org,
-      }}
+      resource={{ kind: ApiResourceKind.session, kindString: "session", id: "ses_01jabc", org: "acme" }}
     />
   }
 />
@@ -142,15 +146,23 @@ only when you own the open-state.
 />
 
 ```tsx
-const [open, setOpen] = useState(false);
+import type { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 
 // A blueprint has both axes: General access (visibility) over People.
-<ManageAccessDialog
-  open={open}
-  onOpenChange={setOpen}
-  resource={{ kind: ApiResourceKind.agent, kindString: "agent", id, org, name }}
-  visibility={{ kind: "agent", current: visibility, org, onChanged: refetch }}
-/>
+function ShareAgent({ id, org, visibility, onChanged }: { id: string; org: string; visibility: ApiResourceVisibility; onChanged: () => void }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button onClick={() => setOpen(true)}>Share</button>
+      <ManageAccessDialog
+        open={open}
+        onOpenChange={setOpen}
+        resource={{ kind: ApiResourceKind.agent, kindString: "agent", id, org }}
+        visibility={{ kind: "agent", current: visibility, org, onChanged }}
+      />
+    </>
+  );
+}
 ```
 
 

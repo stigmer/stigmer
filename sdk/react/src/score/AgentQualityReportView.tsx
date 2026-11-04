@@ -95,10 +95,11 @@ type VersionLabeller = (hash: string) => string;
  *
  * @example
  * ```tsx
- * <AgentQualityReportView
- *   agent={agent}
- *   onNavigateToRun={(runId) => router.push(`/runs/${runId}`)}
- * />
+ * import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+ *
+ * function AgentQuality({ agent, onOpenRun }: { agent: Agent; onOpenRun: (runId: string) => void }) {
+ *   return <AgentQualityReportView agent={agent} onNavigateToRun={onOpenRun} />;
+ * }
  * ```
  */
 export function AgentQualityReportView({

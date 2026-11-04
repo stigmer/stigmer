@@ -50,7 +50,7 @@ export interface UseFileContentReturn {
  *
  * @example
  * ```tsx
- * const { content, isLoading } = useFileContent(file.metadata?.id ?? null);
+ * const { content, isLoading } = useFileContent("fil_01jabc");
  * ```
  */
 export function useFileContent(fileId: string | null): UseFileContentReturn {

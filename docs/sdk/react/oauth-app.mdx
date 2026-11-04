@@ -80,10 +80,14 @@ function useDeleteOAuthApp(): UseDeleteOAuthAppReturn
 />
 
 ```tsx
-const { deleteApp, isDeleting, error } = useDeleteOAuthApp();
-
-await deleteApp("oauth-app-id-abc123");
-refetch(); // refresh the list after deletion
+function DeleteAppButton({ appId, onDeleted }: { appId: string; onDeleted: () => void }) {
+  const { deleteApp, isDeleting } = useDeleteOAuthApp();
+  const onClick = async () => {
+    await deleteApp(appId);
+    onDeleted(); // refresh the list after deletion
+  };
+  return <button disabled={isDeleting} onClick={onClick}>Delete</button>;
+}
 ```
 
 
@@ -129,10 +133,11 @@ function useOAuthAppList(org: string | null): UseOAuthAppListReturn
 />
 
 ```tsx
-const { oauthApps, isLoading, error } = useOAuthAppList(org);
-
-if (isLoading) return <Spinner />;
-oauthApps.map((app) => app.spec?.provider);
+function OAuthApps() {
+  const { oauthApps, isLoading } = useOAuthAppList("acme");
+  if (isLoading) return <p>Loading…</p>;
+  return <ul>{oauthApps.map((app) => <li key={app.metadata?.id}>{app.spec?.provider}</li>)}</ul>;
+}
 ```
 
 
@@ -169,15 +174,13 @@ function useUpdateOAuthApp(): UseUpdateOAuthAppReturn
 />
 
 ```tsx
-const { update, isUpdating, error } = useUpdateOAuthApp();
+import type { OAuthApp } from "@stigmer/apis/ai/stigmer/iam/oauthapp/v1/api_pb";
 
-await update(
-  {
-    metadata: { id: app.metadata!.id, etag: app.metadata!.etag },
-    spec: { scopes: ["chat:write", "users:read"] },
-  },
-  ["spec.scopes"],
-);
+function SlackScopes({ app }: { app: OAuthApp }) {
+  const { update, isUpdating } = useUpdateOAuthApp();
+  const save = () => update({ metadata: app.metadata, spec: { scopes: ["chat:write", "users:read"] } }, ["spec.scopes"]);
+  return <button disabled={isUpdating} onClick={save}>Save scopes</button>;
+}
 ```
 
 
@@ -212,14 +215,10 @@ All visual properties flow through `--stgm-*` design tokens.
 />
 
 ```tsx
-<CreateOAuthAppForm
-  org="acme"
-  onCreated={(app) => {
-    refetch();
-    setShowForm(false);
-  }}
-  onCancel={() => setShowForm(false)}
-/>
+function NewOAuthApp({ onDone }: { onDone: () => void }) {
+  // onDone closes the form and refreshes the list.
+  return <CreateOAuthAppForm org="acme" onCreated={onDone} onCancel={onDone} />;
+}
 ```
 
 
@@ -258,12 +257,14 @@ All visual properties flow through `--stgm-*` design tokens.
 />
 
 ```tsx
-<OAuthAppDetailPanel
-  oauthApp={app}
-  onUpdated={(updated) => refetch()}
-  onDeleted={() => { refetch(); setFlow({ phase: "idle" }); }}
-  onBack={() => setFlow({ phase: "idle" })}
-/>
+import type { OAuthApp } from "@stigmer/apis/ai/stigmer/iam/oauthapp/v1/api_pb";
+
+type Props = { app: OAuthApp; onChanged: () => void; onBack: () => void };
+
+// onChanged refreshes the list; after a delete the panel goes back too.
+function AppDetail({ app, onChanged, onBack }: Props) {
+  return <OAuthAppDetailPanel oauthApp={app} onUpdated={onChanged} onDeleted={() => { onChanged(); onBack(); }} onBack={onBack} />;
+}
 ```
 
 
@@ -297,10 +298,10 @@ All visual properties flow through `--stgm-*` design tokens.
 ```
 
 ```tsx
-<OAuthAppListPanel
-  org="acme"
-  onEdit={(app) => setFlow({ phase: "editing", oauthApp: app })}
-  onRefetchRef={(refetch) => { listRefetchRef.current = refetch; }}
-/>
+import type { OAuthApp } from "@stigmer/apis/ai/stigmer/iam/oauthapp/v1/api_pb";
+
+function OAuthApps({ onEdit }: { onEdit: (app: OAuthApp) => void }) {
+  return <OAuthAppListPanel org="acme" onEdit={onEdit} />;
+}
 ```
 

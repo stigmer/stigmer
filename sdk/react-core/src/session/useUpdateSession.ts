@@ -40,15 +40,17 @@ export interface UseUpdateSessionReturn {
  *
  * @example
  * ```tsx
- * const { update, isUpdating, error } = useUpdateSession();
+ * import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
  *
- * await update(
- *   {
- *     metadata: { id: session.metadata!.id, etag: session.metadata!.etag },
- *     spec: { metadata: { ...session.spec?.metadata, "acme/reviewed": "true" } },
- *   },
- *   ["spec.metadata"],
- * );
+ * function MarkReviewed({ session }: { session: Session }) {
+ *   const { update, isUpdating } = useUpdateSession();
+ *   const markReviewed = () =>
+ *     update(
+ *       { metadata: { id: session.metadata?.id, etag: session.metadata?.etag }, spec: { metadata: { ...session.spec?.metadata, "acme/reviewed": "true" } } },
+ *       ["spec.metadata"],
+ *     );
+ *   return <button onClick={markReviewed} disabled={isUpdating}>Mark reviewed</button>;
+ * }
  * ```
  */
 export function useUpdateSession(): UseUpdateSessionReturn {

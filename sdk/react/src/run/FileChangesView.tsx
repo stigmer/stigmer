@@ -39,8 +39,12 @@ export interface FileChangesViewProps {
  *
  * @example
  * ```tsx
- * const { fileChanges } = useSessionFileChanges(allRuns);
- * <FileChangesView changes={fileChanges} />
+ * import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+ *
+ * function ChangedFiles({ runs }: { runs: readonly Run[] }) {
+ *   const { fileChanges } = useSessionFileChanges(runs);
+ *   return <FileChangesView changes={fileChanges} />;
+ * }
  * ```
  */
 export function FileChangesView({ changes, className }: FileChangesViewProps) {

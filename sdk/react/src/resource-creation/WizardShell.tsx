@@ -28,19 +28,18 @@ import { WizardNav } from "./WizardNav.js";
  *
  * @example
  * ```tsx
- * <WizardShell
- *   steps={steps}
- *   currentStepIndex={wizard.currentStepIndex}
- *   submitLabel="Create agent"
- *   isSubmitting={isCreating}
- *   canGoNext={wizard.canGoNext}
- *   canGoBack={wizard.canGoBack}
- *   onNext={wizard.goNext}
- *   onBack={wizard.goBack}
- *   onCancel={handleCancel}
- * >
- *   {renderCurrentStep()}
- * </WizardShell>
+ * const STEPS = [{ id: "name", label: "Name" }, { id: "review", label: "Review" }];
+ *
+ * function NewAgentWizard({ onCreate, onCancel }: { onCreate: (name: string) => void; onCancel: () => void }) {
+ *   const wizard = useWizardState({ steps: STEPS, initialData: { name: "" } });
+ *   const next = () => (wizard.isLastStep ? onCreate(wizard.data.name) : wizard.goNext());
+ *   return (
+ *     <WizardShell steps={STEPS} currentStepIndex={wizard.currentStepIndex} submitLabel="Create agent"
+ *       canGoNext={wizard.canGoNext} canGoBack={wizard.canGoBack} onNext={next} onBack={wizard.goBack} onCancel={onCancel}>
+ *       <input value={wizard.data.name} onChange={(e) => wizard.updateData({ name: e.target.value })} />
+ *     </WizardShell>
+ *   );
+ * }
  * ```
  */
 export function WizardShell({

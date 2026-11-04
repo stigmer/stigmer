@@ -51,10 +51,15 @@ const EMPTY_TREE: readonly TreeNode[] = [];
  *
  * @example
  * ```tsx
- * const { tree, isLoading, error, truncated, refresh } = useWorkspaceFiles({
- *   entry: selectedEntry,
- *   lister: workspaceFileLister,
- * });
+ * function TopLevel({ entry, lister }: { entry: WorkspaceEntry; lister: WorkspaceFileLister }) {
+ *   const { tree, isLoading, truncated, refresh } = useWorkspaceFiles({ entry, lister });
+ *   if (isLoading) return <p>Loading…</p>;
+ *   return (
+ *     <p>
+ *       {tree.length} entries{truncated ? " (more not shown)" : ""} <button onClick={refresh}>Refresh</button>
+ *     </p>
+ *   );
+ * }
  * ```
  */
 export function useWorkspaceFiles({

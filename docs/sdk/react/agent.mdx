@@ -57,17 +57,20 @@ function useAgent(org: string | null, slug: string | null): UseAgentReturn
 function AgentDetail({ org, slug }: { org: string; slug: string }) {
   const { agent, isLoading, error } = useAgent(org, slug);
 
-  if (isLoading) return <Skeleton />;
-  if (error) return <ErrorMessage error={error} />;
-  if (!agent) return <NotFound />;
+  if (isLoading) return <p>Loading…</p>;
+  if (error) return <p>{error.message}</p>;
+  if (!agent) return <p>No agent named {slug}.</p>;
 
   return <h1>{agent.metadata?.name}</h1>;
 }
 ```
 
 ```tsx
-// Skip fetching until slug is known
-const { agent } = useAgent(org, slug ?? null);
+// Fetches nothing until the slug is known.
+function AgentName({ slug }: { slug?: string }) {
+  const { agent } = useAgent("acme", slug ?? null);
+  return <span>{agent?.metadata?.name}</span>;
+}
 ```
 
 
@@ -265,15 +268,17 @@ function useAgentSetup(org: string | null, poolKeys?: Set<string>, conversationV
 />
 
 ```tsx
-const { state, resolveAgent, submitEnvVars } = useAgentSetup("acme");
-
-const result = await resolveAgent({ org: "acme", slug: "variance-reporter" });
-
-if (result.status === "needsEnvVars") {
-  // Render AgentEnvForm with result.missingVariables
-  // On form submit, the values are saved in My vault:
-  const ready = await submitEnvVars(formValues);
-  // ready.resolution.mode === "saved"
+function StartReporter({ onReady }: { onReady: () => void }) {
+  const { resolveAgent, submitEnvVars } = useAgentSetup("acme");
+  const [missing, setMissing] = useState<EnvVarFormVariable[]>([]);
+  const start = async () => {
+    const result = await resolveAgent({ org: "acme", slug: "variance-reporter" });
+    if (result.status === "needsEnvVars") setMissing(result.missingVariables);
+    else onReady();
+  };
+  if (missing.length === 0) return <button onClick={start}>Start</button>;
+  // The values are saved in My vault; the agent is then ready.
+  return <AgentEnvForm agentName="Variance reporter" variables={missing} onSubmit={(values) => submitEnvVars(values).then(onReady)} />;
 }
 ```
 
@@ -466,7 +471,13 @@ function useRunAgentSpec(agentRef: ResourceRef | null, versionHash?: string): Us
 />
 
 ```tsx
-const { spec } = useRunAgentSpec(agentRef, session.status?.agentVersionHash);
+import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+
+// The instructions the agent ran with: its spec at the session's version.
+function SessionInstructions({ session }: { session: Session }) {
+  const { spec } = useRunAgentSpec(agentRefOfSession(session), session.status?.agentVersionHash);
+  return <pre>{spec?.instructions}</pre>;
+}
 ```
 
 
@@ -500,15 +511,13 @@ function useUpdateAgent(): UseUpdateAgentReturn
 />
 
 ```tsx
-const { update, isUpdating, error } = useUpdateAgent();
+import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 
-await update(
-  {
-    metadata: { id: agent.metadata!.id, etag: agent.metadata!.etag },
-    spec: { description: "Reviews pull requests" },
-  },
-  ["spec.description"],
-);
+function DescribeAsReviewer({ agent }: { agent: Agent }) {
+  const { update, isUpdating } = useUpdateAgent();
+  const save = () => update({ metadata: agent.metadata, spec: { description: "Reviews pull requests" } }, ["spec.description"]);
+  return <button disabled={isUpdating} onClick={save}>Save description</button>;
+}
 ```
 
 
@@ -566,13 +575,16 @@ refused.
 />
 
 ```tsx
-const slugForOrg = useOrgSlugForId();
-
-<AgentCreationWizard
-  org="acme"
-  onComplete={({ org, slug }) => navigate(`/agents/${slugForOrg(org)}/${slug}`)}
-  onCancel={() => navigate("/agents")}
-/>
+function NewAgent({ onOpen }: { onOpen: (href: string) => void }) {
+  const slugForOrg = useOrgSlugForId();
+  return (
+    <AgentCreationWizard
+      org="acme"
+      onComplete={({ org, slug }) => onOpen(`/agents/${slugForOrg(org)}/${slug}`)}
+      onCancel={() => onOpen("/agents")}
+    />
+  );
+}
 ```
 
 
@@ -637,17 +649,18 @@ All visual properties flow through `--stgm-*` design tokens.
 
 ```tsx
 // Operational hub with actions in a Console page
-<AgentDetailView
-  org={org}
-  slug={slug}
-  primaryAction={{ id: "edit", label: "Edit", onAction: handleEdit }}
-  actions={[
-    { id: "copy-id", label: "Copy ID", onAction: () => copyId(id) },
-    { id: "delete", label: "Delete", variant: "destructive", requires: "can_delete", onAction: handleDelete },
-  ]}
-  onPluginClick={({ org, slug }) => navigateToDetail("plugins", org, slug)}
-  onSkillClick={({ org, slug }) => navigateToDetail("skills", org, slug)}
-/>
+function AgentPage({ onEdit, onDelete, onOpen }: { onEdit: () => void; onDelete: () => void; onOpen: (href: string) => void }) {
+  return (
+    <AgentDetailView
+      org="acme"
+      slug="reviewer"
+      primaryAction={{ id: "edit", label: "Edit", onAction: onEdit }}
+      actions={[{ id: "delete", label: "Delete", variant: "destructive", requires: "can_delete", onAction: onDelete }]}
+      onPluginClick={({ org, slug }) => onOpen(`/plugins/${org}/${slug}`)}
+      onSkillClick={({ org, slug }) => onOpen(`/skills/${org}/${slug}`)}
+    />
+  );
+}
 ```
 
 
@@ -677,15 +690,19 @@ saved in My vault, since a conversation keeps no values of its own.
 />
 
 ```tsx
-<AgentEnvForm
-  agentName="GitHub Reviewer"
-  variables={[
-    { key: "GITHUB_TOKEN", isSecret: true, description: "Personal access token" },
-    { key: "REPO_OWNER", isSecret: false },
-  ]}
-  onSubmit={(values) => saveToMyVault(values)}
-  onCancel={() => console.log("cancelled")}
-/>
+function ReviewerSetup({ onSave, onCancel }: { onSave: (values: Record<string, EnvVarInput>) => void; onCancel: () => void }) {
+  return (
+    <AgentEnvForm
+      agentName="GitHub Reviewer"
+      variables={[
+        { key: "GITHUB_TOKEN", isSecret: true, description: "Personal access token" },
+        { key: "REPO_OWNER", isSecret: false },
+      ]}
+      onSubmit={onSave}
+      onCancel={onCancel}
+    />
+  );
+}
 ```
 
 
@@ -709,12 +726,14 @@ admins, adds, changes and removes them.
 />
 
 ```tsx
-<AgentMcpServersSection
-  servers={agent.spec.mcpServers}
-  org={agent.metadata.org}
-  editable
-  onSave={(servers) => saveField("mcpServers", servers)}
-/>
+import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import type { AgentMcpServerInput } from "@stigmer/client";
+
+type Props = { agent: Agent; onSave: (servers: AgentMcpServerInput[]) => Promise<boolean> };
+
+function AgentServers({ agent, onSave }: Props) {
+  return <AgentMcpServersSection servers={agent.spec?.mcpServers ?? []} org="acme" editable onSave={onSave} />;
+}
 ```
 
 
@@ -753,12 +772,17 @@ All visual properties flow through `--stgm-*` tokens.
 />
 
 ```tsx
-// Platform builder: standalone agent picker
-const [agent, setAgent] = useState<ResourceRef | null>(null);
-<AgentPicker org="acme" value={agent} onChange={setAgent} />
+import type { ResourceRef } from "@stigmer/client";
 
-// Access the selected agent
-if (agent) console.log(`Selected: ${agent.org}/${agent.slug}`);
+function ChooseAgent() {
+  const [agent, setAgent] = useState<ResourceRef | null>(null);
+  return (
+    <>
+      <AgentPicker org="acme" value={agent} onChange={setAgent} />
+      {agent && <p>Selected: {agent.org}/{agent.slug}</p>}
+    </>
+  );
+}
 ```
 
 
@@ -832,7 +856,11 @@ Zero Console dependencies — safe for platform builder embedding.
 />
 
 ```tsx
-<AgentVersionsTab agent={agent} />
+import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+
+function History({ agent }: { agent: Agent }) {
+  return <AgentVersionsTab agent={agent} />;
+}
 ```
 
 
@@ -917,8 +945,12 @@ function agentRunDefaultsFor(spec: AgentSpec | undefined, harness: HarnessOption
 ```
 
 ```tsx
-const defaults = agentRunDefaultsFor(agent.spec, "stigmer");
-// { modelName: "claude-sonnet-4.6", thinkingMode: "enabled" }
+import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+
+function stigmerDefaults(agent: Agent) {
+  return agentRunDefaultsFor(agent.spec, "stigmer");
+  // { modelName: "claude-sonnet-4.6", thinkingMode: "enabled" }
+}
 ```
 
 
@@ -992,8 +1024,12 @@ function agentVersionLabel(versions: readonly VersionEntry[], versionHash: strin
 ```
 
 ```tsx
-const { versions } = useAgentVersions(org, slug);
-agentVersionLabel(versions, run.status?.agentVersionHash ?? ""); // "v2" or "3f2a9c1e0b7d"
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+
+function RunVersion({ run }: { run: Run }) {
+  const { versions } = useAgentVersions("acme", "reviewer");
+  return <span>{agentVersionLabel(versions, run.status?.agentVersionHash ?? "")}</span>; // "v2" or "3f2a9c1e0b7d"
+}
 ```
 
 

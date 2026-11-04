@@ -39,10 +39,13 @@ export interface UseStopBackgroundCommandReturn {
  *
  * @example
  * ```tsx
- * const { stopBackgroundCommand, stoppingToolUseIds } = useStopBackgroundCommand();
+ * import { isBackgroundRunning, type ToolUse } from "@stigmer/client";
  *
- * if (isBackgroundRunning(toolUse)) {
- *   await stopBackgroundCommand(sessionId, toolUse.id);
+ * function StopCommand({ sessionId, toolUse }: { sessionId: string; toolUse: ToolUse }) {
+ *   const { stopBackgroundCommand, stoppingToolUseIds } = useStopBackgroundCommand();
+ *   if (!isBackgroundRunning(toolUse)) return null;
+ *   const stop = () => stopBackgroundCommand(sessionId, toolUse.id);
+ *   return <button onClick={stop} disabled={stoppingToolUseIds.has(toolUse.id)}>Stop</button>;
  * }
  * ```
  */

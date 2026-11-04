@@ -36,11 +36,9 @@ export interface ApiKeyCreatedAlertProps {
  *
  * @example
  * ```tsx
- * <ApiKeyCreatedAlert
- *   rawKey="stgm_live_abc123..."
- *   keyName="ci-deploy-key"
- *   onDismiss={() => setRevealedKey(null)}
- * />
+ * function KeyReveal({ rawKey, onDone }: { rawKey: string; onDone: () => void }) {
+ *   return <ApiKeyCreatedAlert rawKey={rawKey} keyName="ci-deploy-key" onDismiss={onDone} />;
+ * }
  * ```
  */
 export function ApiKeyCreatedAlert({

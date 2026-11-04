@@ -26,7 +26,9 @@ const AI_LINE_WIDTHS = [
  *
  * @example
  * ```tsx
- * if (isLoading) return <ThreadSkeleton className="flex-1" />;
+ * function Thread({ isLoading, children }: { isLoading: boolean; children: ReactNode }) {
+ *   return isLoading ? <ThreadSkeleton className="flex-1" /> : children;
+ * }
  * ```
  */
 export function ThreadSkeleton({ className }: ThreadSkeletonProps) {

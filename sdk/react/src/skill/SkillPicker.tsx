@@ -53,6 +53,8 @@ const LIST_ID = "stgm-skill-list";
  *
  * @example
  * ```tsx
+ * import type { ResourceRef } from "@stigmer/client";
+ *
  * function SkillSelector({ org }: { org: string }) {
  *   const [skills, setSkills] = useState<ResourceRef[]>([]);
  *

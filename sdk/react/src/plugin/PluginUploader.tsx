@@ -62,7 +62,9 @@ const DOTFILE_HINT =
  *
  * @example
  * ```tsx
- * <PluginUploader org={org} onComplete={({ plugin }) => navigateToDetail("plugins", org, plugin.metadata.slug)} />
+ * function UploadPlugin({ onOpen }: { onOpen: (href: string) => void }) {
+ *   return <PluginUploader org="acme" onComplete={({ plugin }) => onOpen(`/plugins/acme/${plugin.metadata?.slug}`)} />;
+ * }
  * ```
  */
 export function PluginUploader(props: PluginUploaderProps) {

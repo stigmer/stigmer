@@ -47,13 +47,15 @@ export interface UseBillingAccountReturn {
  *
  * @example
  * ```tsx
- * const { account, isLoading, error } = useBillingAccount(org);
+ * function CardOnFile({ org }: { org: string }) {
+ *   const { account, isLoading, error } = useBillingAccount(org);
  *
- * if (isLoading) return <Skeleton />;
- * if (error) return <ErrorMessage error={error} />;
- * if (!account) return null;
+ *   if (isLoading) return <p>Loading…</p>;
+ *   if (error) return <ErrorMessage error={error} />;
+ *   if (!account) return null;
  *
- * return <div>Card: {account.defaultPaymentMethod?.last4 ?? "none"}</div>;
+ *   return <div>Card: {account.defaultPaymentMethod?.last4 ?? "none"}</div>;
+ * }
  * ```
  */
 export function useBillingAccount(

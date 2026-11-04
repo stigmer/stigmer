@@ -84,11 +84,12 @@ const EMPTY_CONTENT: FileContentData = { content: null };
  *
  * @example
  * ```tsx
- * const { content, isLoading, error, isUnsupported } = useWorkspaceFileContent({
- *   entry,
- *   path: "src/index.ts",
- *   reader: workspaceFileReader,
- * });
+ * function IndexFile({ entry, reader }: { entry: WorkspaceEntry; reader: WorkspaceFileReader }) {
+ *   const { content, isLoading, isUnsupported } = useWorkspaceFileContent({ entry, path: "src/index.ts", reader });
+ *   if (isUnsupported) return <p>This workspace cannot be read here.</p>;
+ *   if (isLoading) return <p>Loading…</p>;
+ *   return <pre>{content?.text}</pre>;
+ * }
  * ```
  */
 export function useWorkspaceFileContent({

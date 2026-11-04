@@ -96,8 +96,13 @@ function useResourceAvailable(kind: ApiResourceKind): boolean
 />
 
 ```tsx
-const available = useResourceAvailable(ApiResourceKind.api_key);
-if (!available) return <CloudFeatureNotice>...</CloudFeatureNotice>;
+import { ApiResourceKind } from "@stigmer/client";
+
+function ApiKeysSection({ children }: { children: ReactNode }) {
+  const available = useResourceAvailable(ApiResourceKind.api_key);
+  if (!available) return <p>API keys are available on Stigmer Cloud.</p>;
+  return <section>{children}</section>;
+}
 ```
 
 
@@ -202,9 +207,13 @@ function useStigmer(): Stigmer
 ```
 
 ```tsx
-function AgentDetail({ id }: { id: string }) {
+function RefreshAgentButton({ agentId }: { agentId: string }) {
   const stigmer = useStigmer();
-  const agent = await stigmer.agent.get(id);
+  const refresh = async () => {
+    const agent = await stigmer.agent.get(agentId);
+    console.log(agent.spec?.description);
+  };
+  return <button onClick={refresh}>Refresh</button>;
 }
 ```
 
@@ -242,22 +251,13 @@ function useStigmerPortalContainer(): HTMLElement | null | undefined
 ```
 
 ```tsx
-import { Popover } from "@base-ui/react/popover";
-import { useStigmerPortalContainer } from "@stigmer/react-sdk";
+import { createPortal } from "react-dom";
 
-function MyPopover() {
-  const portalContainer = useStigmerPortalContainer();
-
-  return (
-    <Popover.Root>
-      <Popover.Trigger>Open</Popover.Trigger>
-      <Popover.Portal container={portalContainer}>
-        <Popover.Positioner>
-          <Popover.Popup>Content</Popover.Popup>
-        </Popover.Positioner>
-      </Popover.Portal>
-    </Popover.Root>
-  );
+function ThemedToast({ children }: { children: ReactNode }) {
+  const container = useStigmerPortalContainer();
+  // null: the themed container has not mounted yet, so wait for it.
+  if (container === null) return null;
+  return createPortal(<div role="status">{children}</div>, container ?? document.body);
 }
 ```
 
@@ -311,17 +311,25 @@ components unmount and remount. Without this provider, `useFetch`
 works exactly as before — no cache, no behavior change.
 
 ```tsx
-// In your app shell (above the session key boundary):
-<FetchCacheProvider>
-  <SessionPageInner key={activeSessionId} id={activeSessionId} />
-</FetchCacheProvider>
+// Above the session's key boundary, so switching sessions keeps the cache.
+function SessionShell({ sessionId, children }: { sessionId: string; children: ReactNode }) {
+  return (
+    <FetchCacheProvider>
+      <div key={sessionId}>{children}</div>
+    </FetchCacheProvider>
+  );
+}
 ```
 
 ```tsx
-// With custom limits:
-<FetchCacheProvider maxEntries={50} ttl={120_000}>
-  <App />
-</FetchCacheProvider>
+// With custom limits: 50 entries, each kept two minutes.
+function AppShell({ children }: { children: ReactNode }) {
+  return (
+    <FetchCacheProvider maxEntries={50} ttl={120_000}>
+      {children}
+    </FetchCacheProvider>
+  );
+}
 ```
 
 
@@ -402,14 +410,16 @@ for custom styling.
 />
 
 ```tsx
-const client = useMemo(
-  () => new Stigmer({ baseUrl, getAccessToken }),
-  [getAccessToken],
-);
+import { Stigmer, type TokenProvider } from "@stigmer/client";
 
-<StigmerProvider client={client} preset="fintech" colorMode="dark">
-  <App />
-</StigmerProvider>
+function AppShell({ getAccessToken, children }: { getAccessToken: TokenProvider; children: ReactNode }) {
+  const client = useMemo(() => new Stigmer({ baseUrl: "https://api.stigmer.ai", getAccessToken }), [getAccessToken]);
+  return (
+    <StigmerProvider client={client} preset="fintech" colorMode="dark">
+      {children}
+    </StigmerProvider>
+  );
+}
 ```
 
 

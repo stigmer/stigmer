@@ -36,11 +36,9 @@ export interface InvitationCreatedAlertProps {
  *
  * @example
  * ```tsx
- * <InvitationCreatedAlert
- *   inviteUrl="https://app.stigmer.ai/invite/abc123..."
- *   label="Engineering team invite"
- *   onDismiss={() => setCreatedUrl(null)}
- * />
+ * function InviteReveal({ inviteUrl, onDone }: { inviteUrl: string; onDone: () => void }) {
+ *   return <InvitationCreatedAlert inviteUrl={inviteUrl} label="Engineering team invite" onDismiss={onDone} />;
+ * }
  * ```
  */
 export function InvitationCreatedAlert({

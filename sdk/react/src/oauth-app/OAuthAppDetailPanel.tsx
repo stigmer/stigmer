@@ -58,12 +58,14 @@ export interface OAuthAppDetailPanelProps {
  *
  * @example
  * ```tsx
- * <OAuthAppDetailPanel
- *   oauthApp={app}
- *   onUpdated={(updated) => refetch()}
- *   onDeleted={() => { refetch(); setFlow({ phase: "idle" }); }}
- *   onBack={() => setFlow({ phase: "idle" })}
- * />
+ * import type { OAuthApp } from "@stigmer/apis/ai/stigmer/iam/oauthapp/v1/api_pb";
+ *
+ * type Props = { app: OAuthApp; onChanged: () => void; onBack: () => void };
+ *
+ * // onChanged refreshes the list; after a delete the panel goes back too.
+ * function AppDetail({ app, onChanged, onBack }: Props) {
+ *   return <OAuthAppDetailPanel oauthApp={app} onUpdated={onChanged} onDeleted={() => { onChanged(); onBack(); }} onBack={onBack} />;
+ * }
  * ```
  */
 export function OAuthAppDetailPanel({

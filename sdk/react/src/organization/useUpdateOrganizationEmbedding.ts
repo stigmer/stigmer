@@ -53,8 +53,13 @@ export interface UseUpdateOrganizationEmbeddingReturn {
  *
  * @example
  * ```tsx
- * const { updateEmbedding, isUpdating } = useUpdateOrganizationEmbedding();
- * await updateEmbedding(orgId, { ...organizationEmbeddingOf(org), allowedOrigins: ["https://app.example"] });
+ * import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
+ *
+ * function AllowAppOrigin({ organization }: { organization: Organization }) {
+ *   const { updateEmbedding, isUpdating } = useUpdateOrganizationEmbedding();
+ *   const allow = () => updateEmbedding("acme", { ...organizationEmbeddingOf(organization), allowedOrigins: ["https://app.example"] });
+ *   return <button disabled={isUpdating} onClick={allow}>Allow app.example</button>;
+ * }
  * ```
  */
 export function useUpdateOrganizationEmbedding(): UseUpdateOrganizationEmbeddingReturn {

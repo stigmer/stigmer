@@ -54,7 +54,7 @@ export interface InkStigmerProviderProps {
  * @example
  * ```tsx
  * import { render } from "ink";
- * import { InkStigmerProvider, createNodeClient } from "@stigmer/ink-ui";
+ * import { InkStigmerProvider, SessionView, createNodeClient } from "@stigmer/ink-ui";
  *
  * const client = createNodeClient({
  *   baseUrl: "https://api.stigmer.ai",
@@ -63,8 +63,8 @@ export interface InkStigmerProviderProps {
  *
  * render(
  *   <InkStigmerProvider client={client}>
- *     <MyTerminalApp />
- *   </InkStigmerProvider>
+ *     <SessionView sessionId="ses_01jabc" org="acme" />
+ *   </InkStigmerProvider>,
  * );
  * ```
  */

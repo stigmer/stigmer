@@ -88,12 +88,14 @@ export interface UseSessionAgentVersionReturn {
  *
  * @example
  * ```tsx
- * const version = useSessionAgentVersion(conv.session, {
- *   enabled: true,
- *   moveToCurrentVersion: conv.moveToCurrentAgentVersion,
- * });
- * if (version.isOutdated) {
- *   return <button onClick={version.update}>Update</button>;
+ * function AgentVersionNotice({ sessionId, org }: { sessionId: string; org: string }) {
+ *   const conv = useSessionConversation(sessionId, org);
+ *   const version = useSessionAgentVersion(conv.session, {
+ *     enabled: true,
+ *     moveToCurrentVersion: conv.moveToCurrentAgentVersion,
+ *   });
+ *   if (!version.isOutdated) return null;
+ *   return <button onClick={version.update}>Move to the agent's current version</button>;
  * }
  * ```
  */

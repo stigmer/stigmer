@@ -85,8 +85,12 @@ export function outputKey(file: StigmerFile): string {
  *
  * @example
  * ```tsx
- * const { files } = useSessionFiles(org, sessionId, refreshKey);
- * const { outputs } = useSessionOutputs(files, runs);
+ * function MadeFiles({ sessionId, org }: { sessionId: string; org: string }) {
+ *   const conv = useSessionConversation(sessionId, org);
+ *   const { files } = useSessionFiles(org, sessionId, String(conv.runs.length));
+ *   const { outputCount } = useSessionOutputs(files, conv.runs);
+ *   return <p>{outputCount} files made</p>;
+ * }
  * ```
  */
 export function useSessionOutputs(

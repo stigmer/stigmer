@@ -37,8 +37,8 @@ export interface UseFederationIssuerListReturn {
  * function IssuerSettings({ org }: { org: string }) {
  *   const { federationIssuers, isLoading, error } = useFederationIssuerList(org);
  *
- *   if (isLoading) return <Skeleton />;
- *   if (error) return <ErrorMessage error={error} />;
+ *   if (isLoading) return <p>Loading…</p>;
+ *   if (error) return <p>{error.message}</p>;
  *
  *   return (
  *     <ul>
@@ -52,8 +52,11 @@ export interface UseFederationIssuerListReturn {
  *
  * @example
  * ```tsx
- * // Skip fetching until org is known
- * const { federationIssuers } = useFederationIssuerList(org ?? null);
+ * // Fetches nothing until the organization is known.
+ * function IssuerCount({ org }: { org?: string }) {
+ *   const { federationIssuers } = useFederationIssuerList(org ?? null);
+ *   return <span>{federationIssuers.length}</span>;
+ * }
  * ```
  */
 export function useFederationIssuerList(

@@ -28,10 +28,14 @@ export interface UseDeleteApiKeyReturn {
  *
  * @example
  * ```tsx
- * const { deleteKey, isDeleting, error } = useDeleteApiKey();
- *
- * await deleteKey("key-id-abc123");
- * refetch(); // refresh the list after deletion
+ * function RevokeKeyButton({ keyId, onRevoked }: { keyId: string; onRevoked: () => void }) {
+ *   const { deleteKey, isDeleting } = useDeleteApiKey();
+ *   const revoke = async () => {
+ *     await deleteKey(keyId);
+ *     onRevoked(); // refresh the list after deletion
+ *   };
+ *   return <button disabled={isDeleting} onClick={revoke}>Revoke</button>;
+ * }
  * ```
  */
 export function useDeleteApiKey(): UseDeleteApiKeyReturn {

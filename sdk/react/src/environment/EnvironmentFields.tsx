@@ -144,8 +144,12 @@ export interface NetworkingFieldsProps {
  *
  * @example
  * ```tsx
- * const [network, setNetwork] = useState(networkingDraftOf(environment.spec?.networking));
- * <NetworkingFields value={network} onChange={setNetwork} />
+ * import type { Environment } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/api_pb";
+ *
+ * function NetworkSection({ environment }: { environment: Environment }) {
+ *   const [network, setNetwork] = useState(networkingDraftOf(environment.spec?.networking));
+ *   return <NetworkingFields value={network} onChange={setNetwork} />;
+ * }
  * ```
  */
 export function NetworkingFields({ value, onChange, disabled = false, availability, className }: NetworkingFieldsProps) {
@@ -267,8 +271,12 @@ export interface PackagesFieldsProps {
  *
  * @example
  * ```tsx
- * const [packages, setPackages] = useState(packagesDraftOf(environment.spec?.packages));
- * <PackagesFields value={packages} onChange={setPackages} />
+ * import type { Environment } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/api_pb";
+ *
+ * function PackagesSection({ environment }: { environment: Environment }) {
+ *   const [packages, setPackages] = useState(packagesDraftOf(environment.spec?.packages));
+ *   return <PackagesFields value={packages} onChange={setPackages} />;
+ * }
  * ```
  */
 export function PackagesFields({ value, onChange, disabled = false, availability, className }: PackagesFieldsProps) {

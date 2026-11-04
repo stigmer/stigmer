@@ -82,14 +82,18 @@ export interface FileReviewDockProps {
  *
  * @example
  * ```tsx
- * const conv = useSessionConversation(sessionId, org);
- * <FileReviewDock
- *   fileReviewSets={conv.fileReviewSets}
- *   captures={conv.fileChangeCaptures}
- *   onSubmit={conv.reviewFileChanges}
- *   submittingDecisionKeys={conv.submittingFileDecisionKeys}
- *   decisionErrors={conv.fileDecisionErrors}
- * />
+ * function ReviewDock({ sessionId, org }: { sessionId: string; org: string }) {
+ *   const conv = useSessionConversation(sessionId, org);
+ *   return (
+ *     <FileReviewDock
+ *       fileReviewSets={conv.fileReviewSets}
+ *       captures={conv.fileChangeCaptures}
+ *       onSubmit={conv.reviewFileChanges}
+ *       submittingDecisionKeys={conv.submittingFileDecisionKeys}
+ *       decisionErrors={conv.fileDecisionErrors}
+ *     />
+ *   );
+ * }
  * ```
  */
 export function FileReviewDock({

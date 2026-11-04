@@ -4,7 +4,16 @@
  * page uses (`docs/STYLE.md`, "Code examples"): `client` or `stigmer` in
  * TypeScript, `client` and `ctx` in Go, `client` in Python and Java. For a
  * kit's own pages (the React, React-core, Ink and theme docs), a name the
- * kit's entry exports is in scope too, as the reference pages present them.
+ * entry the page tells its reader to import from exports is in scope too,
+ * and `react`'s: exactly what "Import from `@stigmer/react-sdk`" gives a
+ * reader, never a package the kit merely depends on. The React kit's three
+ * console pages import from `@stigmer/react-sdk/console`, so their rule
+ * names them before the folder's.
+ *
+ * A kit's convention also names the kit (`kit`, its folder): a fragment on
+ * its pages may import only the kit's own package and the kit's peer
+ * dependencies, read from its `package.json`, because those are what its
+ * reader installs (typescript.mjs reports any other import).
  *
  * Nothing else is given. Imports a page's examples share are the page's
  * visible `prelude` fence; a name an example takes from the prose (a `user`
@@ -17,7 +26,7 @@
  *
  * TypeScript: `context` maps a free name to its type; `entries` are the
  * modules an unimported name is looked up in, first match wins (empty but on
- * a kit's pages). Go: `imports` maps a package name to its import path,
+ * a kit's pages); `kit` is the folder of the kit a page documents. Go: `imports` maps a package name to its import path,
  * `context` a free name to its type. Python and Java: `imports` are lines put
  * before the fragment, `context` maps a free name to its type.
  */
@@ -29,9 +38,10 @@ const TS_CONTEXT = { stigmer: CLIENT_TYPE, client: CLIENT_TYPE };
 
 export const TYPESCRIPT_PRELUDES = {
   client: { entries: [], context: TS_CONTEXT },
-  react: { entries: ["@stigmer/react-sdk", "@stigmer/react-core", "@stigmer/client", "react"], context: TS_CONTEXT },
-  "react-core": { entries: ["@stigmer/react-core", "@stigmer/client", "react"], context: TS_CONTEXT },
-  ink: { entries: ["@stigmer/ink-ui", "@stigmer/client", "ink", "react"], context: TS_CONTEXT },
+  react: { entries: ["@stigmer/react-sdk", "react"], context: TS_CONTEXT, kit: "sdk/react" },
+  "react-console": { entries: ["@stigmer/react-sdk/console", "react"], context: TS_CONTEXT, kit: "sdk/react" },
+  "react-core": { entries: ["@stigmer/react-core", "react"], context: TS_CONTEXT, kit: "sdk/react-core" },
+  ink: { entries: ["@stigmer/ink-ui", "react"], context: TS_CONTEXT, kit: "sdk/ink" },
   theme: { entries: ["@stigmer/react-sdk", "@stigmer/design-tokens", "react"], context: TS_CONTEXT },
 };
 
@@ -65,8 +75,16 @@ export const PRELUDES = {
 /** Each language's convention when no page rule names a kit's. */
 export const DEFAULT_PRELUDE = { typescript: "client", go: "sdk", python: "sdk", java: "sdk" };
 
-/** Page path prefixes whose TypeScript fragments see a kit's exports; the first match wins. */
+/**
+ * The pages whose TypeScript fragments see a kit's exports, by exact `page`
+ * or by path `prefix`; the first match wins. A React page's rule must name the
+ * entry its "Import from" line does (scripts/check-docs-snippets.test.mjs
+ * holds the two together).
+ */
 export const PAGE_PRELUDES = [
+  { page: "docs/sdk/react/settings.mdx", typescript: "react-console" },
+  { page: "docs/sdk/react/sidebar.mdx", typescript: "react-console" },
+  { page: "docs/sdk/react/user.mdx", typescript: "react-console" },
   { prefix: "docs/sdk/react-core/", typescript: "react-core" },
   { prefix: "docs/sdk/react/", typescript: "react" },
   { prefix: "docs/sdk/ink/", typescript: "ink" },
@@ -79,6 +97,6 @@ export const PAGE_PRELUDES = [
  * @param {string} language a key of PRELUDES
  */
 export function conventionFor(page, language) {
-  const rule = PAGE_PRELUDES.find((r) => page.startsWith(r.prefix) && r[language] !== undefined);
+  const rule = PAGE_PRELUDES.find((r) => (r.page === undefined ? page.startsWith(r.prefix) : page === r.page) && r[language] !== undefined);
   return PRELUDES[language][rule?.[language] ?? DEFAULT_PRELUDE[language]];
 }

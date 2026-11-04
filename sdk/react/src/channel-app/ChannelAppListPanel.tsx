@@ -51,10 +51,13 @@ export interface ChannelAppListPanelProps {
  *
  * @example
  * ```tsx
- * <ChannelAppListPanel
- *   org="acme"
- *   onEdit={(app) => setFlow({ phase: "editing", channelApp: app })}
- * />
+ * import type { ChannelApp } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/api_pb";
+ *
+ * function ChannelAppsPage() {
+ *   const [editing, setEditing] = useState<ChannelApp | null>(null);
+ *   if (editing) return <p>Editing {editing.metadata?.name}</p>;
+ *   return <ChannelAppListPanel org="acme" onEdit={setEditing} />;
+ * }
  * ```
  */
 export function ChannelAppListPanel({

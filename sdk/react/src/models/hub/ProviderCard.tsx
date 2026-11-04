@@ -96,7 +96,20 @@ export interface ProviderCardProps {
  *
  * @example
  * ```tsx
- * <ProviderCard org={org} orgName="Acme" report={report} viewer={{ canManage: true, local: false }} models={models} />
+ * function ProviderCards() {
+ *   const hub = useModelsHubData("acme");
+ *   const models = hub.models ?? [];
+ *   return hub.providers?.map((report) => (
+ *     <ProviderCard
+ *       key={report.provider}
+ *       org={hub.org}
+ *       orgName={hub.orgName}
+ *       report={report}
+ *       viewer={hub.viewer}
+ *       models={models.filter((model) => model.provider === report.provider)}
+ *     />
+ *   ));
+ * }
  * ```
  */
 export function ProviderCard({

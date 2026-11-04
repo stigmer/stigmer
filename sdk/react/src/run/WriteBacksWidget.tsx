@@ -39,11 +39,10 @@ export interface WriteBacksWidgetProps {
  *
  * @example
  * ```tsx
- * const conv = useSessionConversation(sessionId, org);
- *
- * <WriteBacksWidget
- *   runs={conv.runs}
- * />
+ * function ConversationWriteBacks({ sessionId, org }: { sessionId: string; org: string }) {
+ *   const conv = useSessionConversation(sessionId, org);
+ *   return <WriteBacksWidget runs={conv.runs} />;
+ * }
  * ```
  *
  * @see {@link WriteBackCard} — dense row group per write-back

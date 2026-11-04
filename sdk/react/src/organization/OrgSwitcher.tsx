@@ -68,7 +68,9 @@ export interface OrgSwitcherProps {
  *
  * @example
  * ```tsx
- * <OrgSwitcher onOrgChanged={(org) => navigate("/")} />
+ * function Switcher({ onOpen }: { onOpen: (href: string) => void }) {
+ *   return <OrgSwitcher onOrgChanged={() => onOpen("/")} />;
+ * }
  * ```
  */
 export function OrgSwitcher({ onOrgChanged, className }: OrgSwitcherProps) {

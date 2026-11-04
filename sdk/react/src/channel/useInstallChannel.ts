@@ -58,11 +58,13 @@ export interface UseInstallChannelReturn {
  *
  * @example
  * ```tsx
- * const installer = useInstallChannel();
- *
- * async function handleConnect() {
- *   await installer.install(channel.metadata.id);
- *   refetch();
+ * function InstallButton({ channelId, onInstalled }: { channelId: string; onInstalled: () => void }) {
+ *   const installer = useInstallChannel();
+ *   const install = async () => {
+ *     await installer.install(channelId);
+ *     onInstalled();
+ *   };
+ *   return <button onClick={install} disabled={installer.isInProgress}>Install</button>;
  * }
  * ```
  */

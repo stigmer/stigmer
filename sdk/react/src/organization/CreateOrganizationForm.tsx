@@ -38,10 +38,9 @@ export interface CreateOrganizationFormProps {
  *
  * @example
  * ```tsx
- * <CreateOrganizationForm
- *   onCreated={(org) => console.log("Created:", org.metadata?.slug)}
- *   onCancel={() => setShowForm(false)}
- * />
+ * function NewOrganization({ onOpen, onClose }: { onOpen: (href: string) => void; onClose: () => void }) {
+ *   return <CreateOrganizationForm onCreated={(org) => onOpen(`/${org.metadata?.slug}`)} onCancel={onClose} />;
+ * }
  * ```
  */
 export function CreateOrganizationForm({

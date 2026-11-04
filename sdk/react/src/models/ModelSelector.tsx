@@ -200,12 +200,11 @@ export interface ModelSelectorProps {
  *
  * @example
  * ```tsx
- * <ModelSelector
- *   value={modelId}
- *   onValueChange={setModelId}
- *   harness={harness}
- *   onHarnessChange={setHarness}
- * />
+ * function ModelPick() {
+ *   const [modelId, setModelId] = useState<string>();
+ *   const [harness, setHarness] = useState<HarnessOption>("stigmer");
+ *   return <ModelSelector value={modelId} onValueChange={setModelId} harness={harness} onHarnessChange={setHarness} />;
+ * }
  * ```
  */
 export function ModelSelector({

@@ -41,15 +41,18 @@ export interface UseUpdateIdentityAccountReturn {
  *
  * @example
  * ```tsx
- * const { update, isUpdating, error } = useUpdateIdentityAccount();
+ * import type { IdentityAccount } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
  *
- * await update(
- *   {
- *     metadata: { id: account.metadata!.id, etag: account.metadata!.etag },
- *     spec: { preferences: { ...account.spec?.preferences, standingContext: "Keep answers terse." } },
- *   },
- *   ["spec.preferences"],
- * );
+ * function TerseAnswersButton({ account }: { account: IdentityAccount }) {
+ *   const { update, isUpdating } = useUpdateIdentityAccount();
+ *   // Naming the one field keeps every other preference as stored.
+ *   const save = () =>
+ *     update(
+ *       { metadata: account.metadata, spec: { preferences: { standingContext: "Keep answers terse." } } },
+ *       ["spec.preferences.standing_context"],
+ *     );
+ *   return <button disabled={isUpdating} onClick={save}>Prefer terse answers</button>;
+ * }
  * ```
  */
 export function useUpdateIdentityAccount(): UseUpdateIdentityAccountReturn {

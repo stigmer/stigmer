@@ -56,12 +56,14 @@ export interface AgentMcpServersSectionProps {
  *
  * @example
  * ```tsx
- * <AgentMcpServersSection
- *   servers={agent.spec.mcpServers}
- *   org={agent.metadata.org}
- *   editable
- *   onSave={(servers) => saveField("mcpServers", servers)}
- * />
+ * import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+ * import type { AgentMcpServerInput } from "@stigmer/client";
+ *
+ * type Props = { agent: Agent; onSave: (servers: AgentMcpServerInput[]) => Promise<boolean> };
+ *
+ * function AgentServers({ agent, onSave }: Props) {
+ *   return <AgentMcpServersSection servers={agent.spec?.mcpServers ?? []} org="acme" editable onSave={onSave} />;
+ * }
  * ```
  */
 export function AgentMcpServersSection({

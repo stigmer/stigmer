@@ -80,31 +80,35 @@ export interface ResourceCountCardProps {
  *
  * @example
  * ```tsx
- * // Static display
- * const { count, isLoading } = useAgentCount("acme");
+ * import { Bot } from "lucide-react";
  *
- * <ResourceCountCard
- *   icon={<BotIcon className="h-5 w-5" aria-hidden="true" />}
- *   label="Agents"
- *   count={count}
- *   isLoading={isLoading}
- * />
+ * function AgentCountCard() {
+ *   const { count, isLoading } = useAgentCount("acme");
+ *   return <ResourceCountCard icon={<Bot aria-hidden="true" />} label="Agents" count={count} isLoading={isLoading} />;
+ * }
  * ```
  *
  * @example
  * ```tsx
- * // Navigable card with SPA routing
- * <ResourceCountCard
- *   icon={<BotIcon className="h-5 w-5" aria-hidden="true" />}
- *   label="Agents"
- *   count={agentCount}
- *   isLoading={isAgentLoading}
- *   href="/library/agents"
- *   onClick={(e) => {
- *     e.preventDefault();
- *     router.push("/library/agents");
- *   }}
- * />
+ * // A card that opens the agents list through the host's router.
+ * import { Bot } from "lucide-react";
+ *
+ * function AgentsLinkCard({ onOpen }: { onOpen: (href: string) => void }) {
+ *   const { count, isLoading } = useAgentCount("acme");
+ *   return (
+ *     <ResourceCountCard
+ *       icon={<Bot aria-hidden="true" />}
+ *       label="Agents"
+ *       count={count}
+ *       isLoading={isLoading}
+ *       href="/library/agents"
+ *       onClick={(e) => {
+ *         e.preventDefault();
+ *         onOpen("/library/agents");
+ *       }}
+ *     />
+ *   );
+ * }
  * ```
  *
  * @see {@link useAgentCount} — data hook for agent count

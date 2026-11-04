@@ -66,10 +66,18 @@ export interface UseAnswerToolUseReturn {
  *
  * @example
  * ```tsx
- * const { answerToolUse, submittingToolUseIds } = useAnswerToolUse();
+ * import type { ToolUse } from "@stigmer/client";
  *
- * await answerToolUse(sessionId, toolUse.id, "allow");
- * await answerToolUse(sessionId, toolUse.id, "deny", "Use the staging database instead");
+ * function AskButtons({ sessionId, ask }: { sessionId: string; ask: ToolUse }) {
+ *   const { answerToolUse, submittingToolUseIds } = useAnswerToolUse();
+ *   const busy = submittingToolUseIds.has(ask.id);
+ *   return (
+ *     <>
+ *       <button disabled={busy} onClick={() => answerToolUse(sessionId, ask.id, "allow")}>Allow</button>
+ *       <button disabled={busy} onClick={() => answerToolUse(sessionId, ask.id, "deny", "Use the staging database instead")}>Deny</button>
+ *     </>
+ *   );
+ * }
  * ```
  */
 export function useAnswerToolUse(): UseAnswerToolUseReturn {

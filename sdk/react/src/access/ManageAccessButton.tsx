@@ -37,15 +37,11 @@ export interface ManageAccessButtonProps {
  * ```tsx
  * // A session has no visibility axis, so the dialog shows only People.
  * <SessionViewer
- *   sessionId={id}
+ *   org="acme"
+ *   sessionId="ses_01jabc"
  *   headerActions={
  *     <ManageAccessButton
- *       resource={{
- *         kind: ApiResourceKind.session,
- *         kindString: "session",
- *         id,
- *         org,
- *       }}
+ *       resource={{ kind: ApiResourceKind.session, kindString: "session", id: "ses_01jabc", org: "acme" }}
  *     />
  *   }
  * />

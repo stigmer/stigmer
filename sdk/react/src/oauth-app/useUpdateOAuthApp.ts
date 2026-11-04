@@ -41,15 +41,13 @@ export interface UseUpdateOAuthAppReturn {
  *
  * @example
  * ```tsx
- * const { update, isUpdating, error } = useUpdateOAuthApp();
+ * import type { OAuthApp } from "@stigmer/apis/ai/stigmer/iam/oauthapp/v1/api_pb";
  *
- * await update(
- *   {
- *     metadata: { id: app.metadata!.id, etag: app.metadata!.etag },
- *     spec: { scopes: ["chat:write", "users:read"] },
- *   },
- *   ["spec.scopes"],
- * );
+ * function SlackScopes({ app }: { app: OAuthApp }) {
+ *   const { update, isUpdating } = useUpdateOAuthApp();
+ *   const save = () => update({ metadata: app.metadata, spec: { scopes: ["chat:write", "users:read"] } }, ["spec.scopes"]);
+ *   return <button disabled={isUpdating} onClick={save}>Save scopes</button>;
+ * }
  * ```
  */
 export function useUpdateOAuthApp(): UseUpdateOAuthAppReturn {

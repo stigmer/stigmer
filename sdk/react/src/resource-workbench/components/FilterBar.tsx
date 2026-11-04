@@ -26,12 +26,17 @@ export interface FilterBarProps {
  *
  * @example
  * ```tsx
- * <FilterBar
- *   filters={filtersHook.filters}
- *   filterDefs={agentFilterDefs}
- *   onRemoveFilter={filtersHook.removeFilter}
- *   onClearAll={filtersHook.clearFilters}
- * />
+ * function AgentFilters({ filterDefs }: { filterDefs: readonly FilterDef[] }) {
+ *   const filtersHook = useResourceFilters({ filterDefs });
+ *   return (
+ *     <FilterBar
+ *       filters={filtersHook.filters}
+ *       filterDefs={filterDefs}
+ *       onRemoveFilter={filtersHook.removeFilter}
+ *       onClearAll={filtersHook.clearFilters}
+ *     />
+ *   );
+ * }
  * ```
  */
 export function FilterBar({

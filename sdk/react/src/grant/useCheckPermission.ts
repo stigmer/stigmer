@@ -97,13 +97,11 @@ export interface UseCheckPermissionReturn {
  *
  * @example
  * ```tsx
- * const { allowed } = useCheckPermission(
- *   { kind: "agent", id: agentId },
- *   "can_edit",
- *   { fail: "closed" },
- * );
- *
- * if (!allowed) return null; // no edit button until the server says yes
+ * function EditAgentButton({ agentId, onEdit }: { agentId: string; onEdit: () => void }) {
+ *   const { allowed } = useCheckPermission({ kind: "agent", id: agentId }, "can_edit", { fail: "closed" });
+ *   if (!allowed) return null; // no edit button until the server says yes
+ *   return <button onClick={onEdit}>Edit</button>;
+ * }
  * ```
  */
 export function useCheckPermission(

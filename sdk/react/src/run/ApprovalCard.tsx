@@ -73,11 +73,18 @@ export interface ApprovalCardProps {
  *
  * @example
  * ```tsx
- * <ApprovalCard
- *   toolUse={ask}
- *   onAnswer={(answer, message) => answerToolUse(sessionId, ask.id, answer, message)}
- *   isSubmitting={submittingToolUseIds.has(ask.id)}
- * />
+ * import type { ToolUse } from "@stigmer/client";
+ *
+ * function Ask({ sessionId, ask }: { sessionId: string; ask: ToolUse }) {
+ *   const { answerToolUse, submittingToolUseIds } = useAnswerToolUse();
+ *   return (
+ *     <ApprovalCard
+ *       toolUse={ask}
+ *       onAnswer={(answer, message) => answerToolUse(sessionId, ask.id, answer, message)}
+ *       isSubmitting={submittingToolUseIds.has(ask.id)}
+ *     />
+ *   );
+ * }
  * ```
  */
 export const ApprovalCard = memo(function ApprovalCard({

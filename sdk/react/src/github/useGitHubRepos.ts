@@ -101,7 +101,7 @@ async function fetchRepoPage(
  *   const { repos, isLoading, search, setSearch, fetchBranches } =
  *     useGitHubRepos(org);
  *
- *   if (isLoading) return <Skeleton />;
+ *   if (isLoading) return <p>Loading…</p>;
  *
  *   return (
  *     <div>
@@ -122,8 +122,12 @@ async function fetchRepoPage(
  *
  * @example
  * ```tsx
- * // Skip fetching until GitHub is connected
- * const { repos } = useGitHubRepos(gitHubConnection.readOrg);
+ * // Fetches nothing until GitHub is connected (readOrg is null until then).
+ * function RepoCount({ org }: { org: string }) {
+ *   const { readOrg } = useGitHubConnection(org);
+ *   const { repos } = useGitHubRepos(readOrg);
+ *   return <span>{repos.length} repositories</span>;
+ * }
  * ```
  */
 export function useGitHubRepos(org: string | null): UseGitHubReposReturn {

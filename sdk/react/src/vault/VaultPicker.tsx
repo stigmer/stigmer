@@ -76,7 +76,12 @@ function vaultLabel(vault: Vault): string {
  *
  * @example
  * ```tsx
- * <VaultPicker org="acme" value={vaults} onChange={setVaults} />
+ * import type { ResourceRef } from "@stigmer/client";
+ *
+ * function RunVaults() {
+ *   const [vaults, setVaults] = useState<ResourceRef[]>([]);
+ *   return <VaultPicker org="acme" value={vaults} onChange={setVaults} />;
+ * }
  * ```
  */
 export function VaultPicker({

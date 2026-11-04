@@ -19,13 +19,16 @@ import type { PermissionCheckResource } from "../grant/useCheckPermission.js";
  *
  * @example
  * ```tsx
- * <AgentDetailView
- *   org="acme"
- *   slug="my-agent"
- *   additionalTabs={[
- *     { id: "dependencies", label: "Dependencies", content: <DependencyGraph /> },
- *   ]}
- * />
+ * // The host's own panel, as a tab beside the built-in ones.
+ * function AgentPageWithUsage({ usagePanel }: { usagePanel: ReactNode }) {
+ *   return (
+ *     <AgentDetailView
+ *       org="acme"
+ *       slug="my-agent"
+ *       additionalTabs={[{ id: "usage", label: "Usage", content: usagePanel }]}
+ *     />
+ *   );
+ * }
  * ```
  */
 export interface AdditionalTab extends TabItem {

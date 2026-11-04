@@ -47,8 +47,11 @@ export interface UseSessionWriteBacksReturn {
  *
  * @example
  * ```tsx
- * const conv = useSessionConversation(sessionId, org);
- * const { writeBacks, hasWriteBacks } = useSessionWriteBacks(conv.runs);
+ * function PushedCommits({ sessionId, org }: { sessionId: string; org: string }) {
+ *   const conv = useSessionConversation(sessionId, org);
+ *   const { writeBackCount, hasWriteBacks } = useSessionWriteBacks(conv.runs);
+ *   return hasWriteBacks ? <span>{writeBackCount} commits pushed</span> : null;
+ * }
  * ```
  *
  * @see useWorkspaceWriteBacks — single-execution write-back derivation

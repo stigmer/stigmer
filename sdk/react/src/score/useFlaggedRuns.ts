@@ -69,7 +69,7 @@ const NO_SCORES: readonly Score[] = [];
  *
  * @example
  * ```tsx
- * const { items, hasMore, loadMore } = useFlaggedRuns(agentId, 30);
+ * const { items, hasMore, loadMore } = useFlaggedRuns("agt_01jabc", 30);
  * ```
  */
 export function useFlaggedRuns(

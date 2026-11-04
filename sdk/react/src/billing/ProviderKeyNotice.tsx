@@ -57,7 +57,10 @@ export interface ProviderKeyNoticeProps {
  *
  * @example
  * ```tsx
- * if (providerKeyRequired(error) !== null) return <ProviderKeyNotice error={error} />;
+ * function RunError({ error }: { error: Error }) {
+ *   if (providerKeyRequired(error) !== null) return <ProviderKeyNotice error={error} />;
+ *   return <ErrorMessage error={error} />;
+ * }
  * ```
  */
 export function ProviderKeyNotice({

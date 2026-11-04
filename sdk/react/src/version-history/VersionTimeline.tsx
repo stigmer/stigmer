@@ -24,12 +24,11 @@ import { LoadingRegion } from "../internal/LoadingRegion.js";
  *
  * @example
  * ```tsx
- * const { versions } = useSkillVersions(org, slug);
- *
- * <VersionTimeline
- *   entries={versions}
- *   onEntrySelect={(id) => console.log("Selected:", id)}
- * />
+ * function SkillHistory({ slug }: { slug: string }) {
+ *   const { versions } = useSkillVersions("acme", slug);
+ *   const [selectedId, setSelectedId] = useState<string>();
+ *   return <VersionTimeline entries={versions} selectedId={selectedId} onEntrySelect={setSelectedId} />;
+ * }
  * ```
  */
 export function VersionTimeline({

@@ -95,7 +95,9 @@ const PHASE_CONFIG: ReadonlyMap<RunPhase, PhaseConfig> = new Map([
  *
  * @example
  * ```tsx
- * <RunPhaseBadge phase={RunPhase.RUN_COMPLETED} />
+ * import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+ *
+ * <RunPhaseBadge phase={RunPhase.RUN_COMPLETED} />;
  * ```
  */
 export const RunPhaseBadge = memo(function RunPhaseBadge({

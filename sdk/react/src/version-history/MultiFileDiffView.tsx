@@ -31,8 +31,11 @@ export interface MultiFileDiffViewProps {
  *
  * @example
  * ```tsx
- * const diff = computeMultiFileDiff(oldFiles, newFiles);
- * <MultiFileDiffView diff={diff} />
+ * // Each map is a version's files, by path.
+ * function VersionDiff({ before, after }: { before: ReadonlyMap<string, string>; after: ReadonlyMap<string, string> }) {
+ *   const diff = useMemo(() => computeMultiFileDiff(before, after), [before, after]);
+ *   return <MultiFileDiffView diff={diff} />;
+ * }
  * ```
  */
 export function MultiFileDiffView({

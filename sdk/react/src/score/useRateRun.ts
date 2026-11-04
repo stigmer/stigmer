@@ -37,8 +37,11 @@ export interface UseRateRunReturn {
  *
  * @example
  * ```tsx
- * const { rateRun, isRating } = useRateRun();
- * await rateRun({ org, runId, passed: false, comment: "picked the wrong label" });
+ * function WrongAnswer({ org, runId }: { org: string; runId: string }) {
+ *   const { rateRun, isRating } = useRateRun();
+ *   const rate = () => rateRun({ org, runId, passed: false, comment: "picked the wrong label" });
+ *   return <button onClick={rate} disabled={isRating}>Wrong answer</button>;
+ * }
  * ```
  */
 export function useRateRun(): UseRateRunReturn {

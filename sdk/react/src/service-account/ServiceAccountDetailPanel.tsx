@@ -67,13 +67,13 @@ export interface ServiceAccountDetailPanelProps {
  *
  * @example
  * ```tsx
- * <ServiceAccountDetailPanel
- *   serviceAccount={account}
- *   org={orgId}
- *   onUpdated={() => refetch()}
- *   onDeleted={() => setOpen(null)}
- *   onBack={() => setOpen(null)}
- * />
+ * import type { IdentityAccount } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
+ *
+ * type Props = { account: IdentityAccount; onUpdated: () => void; onClose: () => void };
+ *
+ * function AccountDetail({ account, onUpdated, onClose }: Props) {
+ *   return <ServiceAccountDetailPanel serviceAccount={account} org="acme" onUpdated={onUpdated} onDeleted={onClose} onBack={onClose} />;
+ * }
  * ```
  */
 export function ServiceAccountDetailPanel({

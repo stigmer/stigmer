@@ -53,11 +53,12 @@ function useWorkspaceContentSearch(options: UseWorkspaceContentSearchOptions): U
 />
 
 ```tsx
-const { groups, totalMatches, isRefetching } = useWorkspaceContentSearch({
-  entries: workspace.entries,
-  searcher: workspaceContentSearcher,
-  query,
-});
+type Props = { entries: readonly WorkspaceEntry[]; searcher: WorkspaceContentSearcher; query: string };
+
+function SearchSummary({ entries, searcher, query }: Props) {
+  const { groups, totalMatches, isRefetching } = useWorkspaceContentSearch({ entries, searcher, query });
+  return <p>{totalMatches} matches in {groups.length} repositories{isRefetching ? "…" : ""}</p>;
+}
 ```
 
 
@@ -92,16 +93,14 @@ function useWorkspaceEntries(): UseWorkspaceEntriesReturn
 />
 
 ```tsx
-function SessionSetup() {
-  const workspace = useWorkspaceEntries();
+import type { SessionResourceInput } from "@stigmer/client";
 
+function SessionSetup({ onStart }: { onStart: (message: string, resources: SessionResourceInput[]) => void }) {
+  const workspace = useWorkspaceEntries();
   return (
     <div>
       <WorkspaceEditor workspace={workspace} />
-      <SessionComposer
-        onSubmit={(msg) => createSession(msg, workspace.toInput())}
-        workspace={workspace}
-      />
+      <SessionComposer onSubmit={(msg) => onStart(msg, workspace.toInput())} workspace={workspace} />
     </div>
   );
 }
@@ -164,11 +163,12 @@ function useWorkspaceFileContent(options: UseWorkspaceFileContentOptions): UseWo
 />
 
 ```tsx
-const { content, isLoading, error, isUnsupported } = useWorkspaceFileContent({
-  entry,
-  path: "src/index.ts",
-  reader: workspaceFileReader,
-});
+function IndexFile({ entry, reader }: { entry: WorkspaceEntry; reader: WorkspaceFileReader }) {
+  const { content, isLoading, isUnsupported } = useWorkspaceFileContent({ entry, path: "src/index.ts", reader });
+  if (isUnsupported) return <p>This workspace cannot be read here.</p>;
+  if (isLoading) return <p>Loading…</p>;
+  return <pre>{content?.text}</pre>;
+}
 ```
 
 
@@ -212,10 +212,15 @@ function useWorkspaceFiles(options: UseWorkspaceFilesOptions): UseWorkspaceFiles
 />
 
 ```tsx
-const { tree, isLoading, error, truncated, refresh } = useWorkspaceFiles({
-  entry: selectedEntry,
-  lister: workspaceFileLister,
-});
+function TopLevel({ entry, lister }: { entry: WorkspaceEntry; lister: WorkspaceFileLister }) {
+  const { tree, isLoading, truncated, refresh } = useWorkspaceFiles({ entry, lister });
+  if (isLoading) return <p>Loading…</p>;
+  return (
+    <p>
+      {tree.length} entries{truncated ? " (more not shown)" : ""} <button onClick={refresh}>Refresh</button>
+    </p>
+  );
+}
 ```
 
 
@@ -259,11 +264,13 @@ function useWorkspaceFileSearch(options: UseWorkspaceFileSearchOptions): UseWork
 />
 
 ```tsx
-const { groups, totalMatches, isLoading } = useWorkspaceFileSearch({
-  entries: workspace.entries,
-  lister: workspaceFileLister,
-  query,
-});
+type Props = { entries: readonly WorkspaceEntry[]; lister: WorkspaceFileLister; query: string };
+
+function FileNameMatches({ entries, lister, query }: Props) {
+  const { groups, totalMatches, isLoading } = useWorkspaceFileSearch({ entries, lister, query });
+  if (isLoading) return <p>Searching…</p>;
+  return <p>{totalMatches} files in {groups.length} repositories</p>;
+}
 ```
 
 
@@ -308,12 +315,12 @@ function useWorkspaceSources(options?: UseWorkspaceSourcesOptions): UseWorkspace
 />
 
 ```tsx
-// Desktop app (has native folder picker via Tauri)
-const sources = useWorkspaceSources({ hasLocalPicker: true });
+// Desktop app (has a native folder picker)
+const desktop = useWorkspaceSources({ hasLocalPicker: true });
 // -> { enableGitHub: false, enableLocal: true }
 
 // Web app (cloud deployment, no native picker)
-const sources = useWorkspaceSources();
+const web = useWorkspaceSources();
 // -> { enableGitHub: true, enableLocal: false }
 ```
 
@@ -497,11 +504,10 @@ All visual properties flow through `--stgm-*` tokens.
 />
 
 ```tsx
-const { session } = useSession(sessionId);
-
-<WorkspaceSummary
-  entries={session?.spec?.resources ?? []}
-/>
+function SessionWorkspace({ sessionId }: { sessionId: string }) {
+  const { session } = useSession(sessionId);
+  return <WorkspaceSummary entries={session?.spec?.resources ?? []} />;
+}
 ```
 
 
@@ -575,12 +581,12 @@ Framework-agnostic and themed via `--stgm-*` tokens: a
 platform builder can mount it directly given a `reader` and a selection.
 
 ```tsx
-<FileViewer
-  selectedFile={{ entryId: entry.id, path: "src/index.ts" }}
-  entries={workspace.entries}
-  reader={workspaceFileReader}
-  onClose={() => setSelected(null)}
-/>
+type Props = { entries: readonly WorkspaceEntry[]; reader: WorkspaceFileReader; onClose: () => void };
+
+function IndexViewer({ entries, reader, onClose }: Props) {
+  const selectedFile = { entryId: entries[0]?.id ?? "", path: "src/index.ts" };
+  return <FileViewer selectedFile={selectedFile} entries={entries} reader={reader} onClose={onClose} />;
+}
 ```
 
 

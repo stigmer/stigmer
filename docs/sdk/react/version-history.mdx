@@ -76,8 +76,10 @@ Zero Console dependencies — safe for platform builder embedding.
 />
 
 ```tsx
-const hunks = computeDiff(oldText, newText);
-<DiffViewer hunks={hunks} filePath="SKILL.md" />
+function SkillDiff({ before, after }: { before: string; after: string }) {
+  const hunks = useMemo(() => computeDiff(before, after), [before, after]);
+  return <DiffViewer hunks={hunks} filePath="SKILL.md" />;
+}
 ```
 
 
@@ -102,8 +104,11 @@ Zero Console dependencies — safe for platform builder embedding.
 />
 
 ```tsx
-const diff = computeMultiFileDiff(oldFiles, newFiles);
-<MultiFileDiffView diff={diff} />
+// Each map is a version's files, by path.
+function VersionDiff({ before, after }: { before: ReadonlyMap<string, string>; after: ReadonlyMap<string, string> }) {
+  const diff = useMemo(() => computeMultiFileDiff(before, after), [before, after]);
+  return <MultiFileDiffView diff={diff} />;
+}
 ```
 
 
@@ -139,12 +144,11 @@ Zero Console dependencies — safe for platform builder embedding.
 />
 
 ```tsx
-const { versions } = useSkillVersions(org, slug);
-
-<VersionTimeline
-  entries={versions}
-  onEntrySelect={(id) => console.log("Selected:", id)}
-/>
+function SkillHistory({ slug }: { slug: string }) {
+  const { versions } = useSkillVersions("acme", slug);
+  const [selectedId, setSelectedId] = useState<string>();
+  return <VersionTimeline entries={versions} selectedId={selectedId} onEntrySelect={setSelectedId} />;
+}
 ```
 
 
@@ -173,11 +177,12 @@ Zero Console dependencies — safe for platform builder embedding.
 />
 
 ```tsx
-<VersionTimelineEntry
-  entry={version}
-  isSelected={selectedId === version.id}
-  onSelect={() => setSelectedId(version.id)}
-/>
+function VersionList({ versions }: { versions: readonly VersionEntry[] }) {
+  const [selectedId, setSelectedId] = useState<string>();
+  return versions.map((version) => (
+    <VersionTimelineEntry key={version.id} entry={version} isSelected={selectedId === version.id} onSelect={() => setSelectedId(version.id)} />
+  ));
+}
 ```
 
 

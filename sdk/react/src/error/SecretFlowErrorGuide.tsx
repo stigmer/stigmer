@@ -79,14 +79,14 @@ function isFailedPreconditionError(error: Error): boolean {
  *
  * @example
  * ```tsx
- * {error && (
- *   <SecretFlowErrorGuide error={error} />
- *   ?? <ErrorMessage error={error} />
- * )}
- *
- * // Or in a single expression:
- * <SecretFlowErrorGuide error={error} />
- * {error && !isSecretFlowError(error) && <ErrorMessage error={error} />}
+ * function RunStartError({ error }: { error: Error | null }) {
+ *   return (
+ *     <>
+ *       <SecretFlowErrorGuide error={error} />
+ *       {error && !isSecretFlowError(error) && <ErrorMessage error={error} />}
+ *     </>
+ *   );
+ * }
  * ```
  */
 export function SecretFlowErrorGuide({

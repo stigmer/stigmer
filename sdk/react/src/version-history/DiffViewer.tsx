@@ -28,8 +28,10 @@ export interface DiffViewerProps {
  *
  * @example
  * ```tsx
- * const hunks = computeDiff(oldText, newText);
- * <DiffViewer hunks={hunks} filePath="SKILL.md" />
+ * function SkillDiff({ before, after }: { before: string; after: string }) {
+ *   const hunks = useMemo(() => computeDiff(before, after), [before, after]);
+ *   return <DiffViewer hunks={hunks} filePath="SKILL.md" />;
+ * }
  * ```
  */
 export function DiffViewer({ hunks, filePath, className }: DiffViewerProps) {

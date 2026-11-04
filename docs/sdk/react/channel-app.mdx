@@ -47,10 +47,11 @@ function useChannelAppList(org: string | null): UseChannelAppListReturn
 />
 
 ```tsx
-const { channelApps, isLoading, error } = useChannelAppList(org);
-
-if (isLoading) return <Spinner />;
-channelApps.map((app) => app.metadata?.name);
+function ChannelAppNames({ org }: { org: string }) {
+  const { channelApps, isLoading } = useChannelAppList(org);
+  if (isLoading) return <p>Loading…</p>;
+  return <ul>{channelApps.map((app) => <li key={app.metadata?.id}>{app.metadata?.name}</li>)}</ul>;
+}
 ```
 
 
@@ -124,10 +125,14 @@ function useDeleteChannelApp(): UseDeleteChannelAppReturn
 />
 
 ```tsx
-const { deleteApp, isDeleting, error } = useDeleteChannelApp();
-
-await deleteApp("chapp_abc123");
-refetch(); // refresh the list after deletion
+function DeleteAppButton({ appId, onDeleted }: { appId: string; onDeleted: () => void }) {
+  const { deleteApp, isDeleting } = useDeleteChannelApp();
+  const remove = async () => {
+    await deleteApp(appId);
+    onDeleted(); // refetch the list
+  };
+  return <button onClick={remove} disabled={isDeleting}>Delete</button>;
+}
 ```
 
 
@@ -166,15 +171,15 @@ function useUpdateChannelApp(): UseUpdateChannelAppReturn
 />
 
 ```tsx
-const { update, isUpdating, error } = useUpdateChannelApp();
+import type { ChannelApp } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/api_pb";
 
-await update(
-  {
-    metadata: { id: app.metadata!.id, etag: app.metadata!.etag },
-    spec: { slack: { clientId: "123456.789012", clientSecret: "***REDACTED***", signingSecret: "new-signing-secret" } },
-  },
-  ["spec.slack"],
-);
+function RotateSigningSecret({ app, signingSecret }: { app: ChannelApp; signingSecret: string }) {
+  const { update, isUpdating } = useUpdateChannelApp();
+  // The marker keeps the stored client secret; only the signing secret changes.
+  const slack = { clientId: "123456.789012", clientSecret: "***REDACTED***", signingSecret };
+  const save = () => update({ metadata: app.metadata, spec: { providerConfig: { case: "slack", value: slack } } }, ["spec.slack"]);
+  return <button onClick={save} disabled={isUpdating}>Save signing secret</button>;
+}
 ```
 
 
@@ -244,10 +249,13 @@ All visual properties flow through `--stgm-*` design tokens.
 />
 
 ```tsx
-<ChannelAppListPanel
-  org="acme"
-  onEdit={(app) => setFlow({ phase: "editing", channelApp: app })}
-/>
+import type { ChannelApp } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/api_pb";
+
+function ChannelAppsPage() {
+  const [editing, setEditing] = useState<ChannelApp | null>(null);
+  if (editing) return <p>Editing {editing.metadata?.name}</p>;
+  return <ChannelAppListPanel org="acme" onEdit={setEditing} />;
+}
 ```
 
 

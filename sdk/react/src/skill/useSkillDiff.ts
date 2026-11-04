@@ -46,11 +46,12 @@ const MAX_ARTIFACT_BYTES = 10 * 1024 * 1024;
  *
  * @example
  * ```tsx
- * const { getArtifactKey } = useSkillVersions(org, slug);
- * const { diff, isLoading } = useSkillDiff(
- *   getArtifactKey(fromHash),
- *   getArtifactKey(toHash),
- * );
+ * function SkillChanges({ fromHash, toHash }: { fromHash: string; toHash: string }) {
+ *   const { getArtifactKey } = useSkillVersions("acme", "code-review");
+ *   const { diff, isLoading } = useSkillDiff(getArtifactKey(fromHash), getArtifactKey(toHash));
+ *   if (isLoading || !diff) return <p>Loading…</p>;
+ *   return <p>{diff.files.length} files changed</p>;
+ * }
  * ```
  */
 export function useSkillDiff(

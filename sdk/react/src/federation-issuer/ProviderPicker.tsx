@@ -26,7 +26,10 @@ export interface ProviderPickerProps {
  *
  * @example
  * ```tsx
- * <ProviderPicker onSelect={(preset) => setSelectedPreset(preset)} />
+ * function ChooseProvider() {
+ *   const [preset, setPreset] = useState<ProviderPreset | null>(null);
+ *   return preset ? <p>{preset.label}</p> : <ProviderPicker onSelect={setPreset} />;
+ * }
  * ```
  */
 export function ProviderPicker({ onSelect, className }: ProviderPickerProps) {

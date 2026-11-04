@@ -39,19 +39,15 @@ export interface UseDeleteResourceReturn {
  *
  * @example
  * ```tsx
- * const { deleteResource, isDeleting } = useDeleteResource(
- *   "agent",
- *   resourceId,
- *   "PR Review Agent",
- * );
- *
- * const handleDelete = async () => {
- *   const confirmed = await confirm({ ... });
- *   if (confirmed) {
+ * function DeleteAgentButton({ agentId, onDeleted }: { agentId: string; onDeleted: () => void }) {
+ *   const { deleteResource, isDeleting } = useDeleteResource("agent", agentId, "PR Review Agent");
+ *   const remove = async () => {
+ *     if (!window.confirm("Delete PR Review Agent?")) return;
  *     await deleteResource();
- *     router.push("/library/agents");
- *   }
- * };
+ *     onDeleted();
+ *   };
+ *   return <button onClick={remove} disabled={isDeleting}>Delete</button>;
+ * }
  * ```
  */
 export function useDeleteResource(

@@ -59,7 +59,7 @@ function useAccessHistory(org: string | null, options?: UseAccessHistoryOptions)
 />
 
 ```tsx
-const { entries, hasMore, loadMore } = useAccessHistory(orgId);
+const { entries, hasMore, loadMore } = useAccessHistory("acme");
 ```
 
 
@@ -127,13 +127,11 @@ function useCheckPermission(resource: PermissionCheckResource | null, relation: 
 />
 
 ```tsx
-const { allowed } = useCheckPermission(
-  { kind: "agent", id: agentId },
-  "can_edit",
-  { fail: "closed" },
-);
-
-if (!allowed) return null; // no edit button until the server says yes
+function EditAgentButton({ agentId, onEdit }: { agentId: string; onEdit: () => void }) {
+  const { allowed } = useCheckPermission({ kind: "agent", id: agentId }, "can_edit", { fail: "closed" });
+  if (!allowed) return null; // no edit button until the server says yes
+  return <button onClick={onEdit}>Edit</button>;
+}
 ```
 
 
@@ -176,13 +174,15 @@ function useCheckPermissions<R extends string>(resource: PermissionCheckResource
 />
 
 ```tsx
-const can = useCheckPermissions(
-  { kind: "agent", id: agentId },
-  ["can_edit", "can_delete"],
-  { fail: "closed" },
-);
-
-{can.can_delete.allowed && <DeleteButton />}
+function AgentButtons({ agentId }: { agentId: string }) {
+  const can = useCheckPermissions({ kind: "agent", id: agentId }, ["can_edit", "can_delete"], { fail: "closed" });
+  return (
+    <>
+      {can.can_edit.allowed && <button>Edit</button>}
+      {can.can_delete.allowed && <button>Delete</button>}
+    </>
+  );
+}
 ```
 
 
@@ -214,13 +214,18 @@ function useCreateGrant(): UseCreateGrantReturn
 />
 
 ```tsx
-const { create, isCreating, error } = useCreateGrant();
+import { create } from "@bufbuild/protobuf";
+import { GrantSpecSchema } from "@stigmer/apis/ai/stigmer/iam/grant/v1/spec_pb";
 
-await create({
-  principal: { kind: "identity_account", id: accountId },
-  resource: { kind: "organization", id: org },
-  relation: "admin",
-});
+function MakeAdminButton({ accountId }: { accountId: string }) {
+  const { create: createGrant, isCreating } = useCreateGrant();
+  const spec = create(GrantSpecSchema, {
+    principal: { kind: "identity_account", id: accountId },
+    resource: { kind: "organization", id: "acme" },
+    relation: "admin",
+  });
+  return <button disabled={isCreating} onClick={() => createGrant(spec)}>Make admin</button>;
+}
 ```
 
 
@@ -251,13 +256,18 @@ function useDeleteGrant(): UseDeleteGrantReturn
 />
 
 ```tsx
-const { remove, isDeleting, error } = useDeleteGrant();
+import { create } from "@bufbuild/protobuf";
+import { GrantSpecSchema } from "@stigmer/apis/ai/stigmer/iam/grant/v1/spec_pb";
 
-await remove({
-  principal: { kind: "identity_account", id: accountId },
-  resource: { kind: "organization", id: org },
-  relation: "admin",
-});
+function RemoveAdminButton({ accountId }: { accountId: string }) {
+  const { remove, isDeleting } = useDeleteGrant();
+  const spec = create(GrantSpecSchema, {
+    principal: { kind: "identity_account", id: accountId },
+    resource: { kind: "organization", id: "acme" },
+    relation: "admin",
+  });
+  return <button disabled={isDeleting} onClick={() => remove(spec)}>Remove admin</button>;
+}
 ```
 
 
@@ -328,10 +338,7 @@ function useGranteeCandidates(options: UseGranteeCandidatesOptions): UseGranteeC
 />
 
 ```tsx
-const { people, appUsers, serviceAccounts, teams } = useGranteeCandidates({
-  org,
-  includeTeams: share.canShareWithTeams,
-});
+const { people, appUsers, serviceAccounts, teams } = useGranteeCandidates({ org: "acme", includeTeams: true });
 ```
 
 
@@ -378,7 +385,7 @@ function usePrincipalsCount(org: string | null, principalKind?: string): UsePrin
 />
 
 ```tsx
-const { count, isLoading } = usePrincipalsCount(org);
+const { count, isLoading } = usePrincipalsCount("acme");
 // count = 5
 ```
 
@@ -424,10 +431,7 @@ function useResourceAccess(resource: ResourceAccessRef | null, options?: UseReso
 />
 
 ```tsx
-const { members, isLoading } = useResourceAccess(
-  { kind: "organization", id: org },
-  { includeInherited: true },
-);
+const { members, isLoading } = useResourceAccess({ kind: "organization", id: "acme" }, { includeInherited: true });
 ```
 
 
@@ -459,10 +463,14 @@ function useRevokeOrgAccess(): UseRevokeOrgAccessReturn
 />
 
 ```tsx
-const { revoke, isRevoking, error } = useRevokeOrgAccess();
-
-await revoke("ia-alice-123", "org-demo-456");
-refetchMembers();
+function RemoveMemberButton({ accountId, onRemoved }: { accountId: string; onRemoved: () => void }) {
+  const { revoke, isRevoking } = useRevokeOrgAccess();
+  const remove = async () => {
+    await revoke(accountId, "acme");
+    onRemoved(); // refetch the member list
+  };
+  return <button disabled={isRevoking} onClick={remove}>Remove from organization</button>;
+}
 ```
 
 
@@ -563,17 +571,16 @@ function useShareFlow(resource: ShareFlowResource | null): UseShareFlowReturn
 />
 
 ```tsx
-const share = useShareFlow({
-  kind: "agent",
-  id: agentId,
-  resourceKind: ApiResourceKind.agent,
-});
+import { IamRole, personGrantee, teamGrantee } from "@stigmer/client";
 
-await share.grant(personGrantee(accountId), IamRole.viewer);
-if (share.canShareWithTeams) {
-  await share.grant(teamGrantee(teamId), IamRole.viewer);
+function ShareWithReviewers({ agentId, accountId, teamId }: { agentId: string; accountId: string; teamId: string }) {
+  const share = useShareFlow({ kind: "agent", id: agentId, resourceKind: ApiResourceKind.agent });
+  const shareWithReviewers = async () => {
+    await share.grant(personGrantee(accountId), IamRole.viewer);
+    if (share.canShareWithTeams) await share.grant(teamGrantee(teamId), IamRole.viewer);
+  };
+  return <button disabled={share.isGranting} onClick={shareWithReviewers}>Share with reviewers</button>;
 }
-await share.revoke(teamGrantee(teamId));
 ```
 
 
@@ -643,15 +650,20 @@ All visual properties flow through `--stgm-*` design tokens.
 />
 
 ```tsx
-<GrantAccessForm
-  resourceKind={ApiResourceKind.agent}
-  resourceKindString="agent"
-  resourceId={agentId}
-  org={org}
-  includeTeams={share.canShareWithTeams}
-  onGranted={() => share.refetch()}
-  onCancel={() => setShowForm(false)}
-/>
+function AddPeople({ agentId, onClose }: { agentId: string; onClose: () => void }) {
+  const share = useShareFlow({ kind: "agent", id: agentId, resourceKind: ApiResourceKind.agent });
+  return (
+    <GrantAccessForm
+      resourceKind={ApiResourceKind.agent}
+      resourceKindString="agent"
+      resourceId={agentId}
+      org="acme"
+      includeTeams={share.canShareWithTeams}
+      onGranted={share.refetch}
+      onCancel={onClose}
+    />
+  );
+}
 ```
 
 
@@ -701,7 +713,7 @@ All visual properties flow through `--stgm-*` design tokens.
 />
 
 ```tsx
-<OrgMembersPanel org={activeOrg.metadata.id} />
+<OrgMembersPanel org="org_acme" />
 ```
 
 
@@ -771,17 +783,17 @@ what the client renders.
 />
 
 ```tsx
-<PermissionGate resource={{ kind: "agent", id }} relation="can_edit">
-  <EditButton onClick={handleEdit} />
-</PermissionGate>
-
-<PermissionGate
-  resource={{ kind: "session", id }}
-  relation="can_grant_access"
-  fallback={<Tooltip content="You don't have permission to share" />}
->
-  <ShareButton onClick={openShareDialog} />
-</PermissionGate>
+function ShareButton({ sessionId, onShare }: { sessionId: string; onShare: () => void }) {
+  return (
+    <PermissionGate
+      resource={{ kind: "session", id: sessionId }}
+      relation="can_grant_access"
+      fallback={<span>You don't have permission to share</span>}
+    >
+      <button onClick={onShare}>Share</button>
+    </PermissionGate>
+  );
+}
 ```
 
 
@@ -856,10 +868,12 @@ All visual properties flow through `--stgm-*` design tokens.
 />
 
 ```tsx
-<RoleSelector
-  kind={ApiResourceKind.organization}
-  onSelect={(role) => setRole(role)}
-/>
+import type { IamRole } from "@stigmer/client";
+
+function InviteRole() {
+  const [role, setRole] = useState<IamRole | null>(null);
+  return <RoleSelector kind={ApiResourceKind.organization} selected={role} onSelect={setRole} />;
+}
 ```
 
 
@@ -891,11 +905,10 @@ All visual properties flow through `--stgm-*` design tokens.
 
 ```tsx
 <SharePanel
-  resource={{ kind: "session", id: sessionId, resourceKind: ApiResourceKind.session }}
+  resource={{ kind: "session", id: "ses_01jabc", resourceKind: ApiResourceKind.session }}
   resourceKindString="session"
   resourceKind={ApiResourceKind.session}
-  org={org}
-  onClose={() => setOpen(false)}
+  org="acme"
 />
 ```
 

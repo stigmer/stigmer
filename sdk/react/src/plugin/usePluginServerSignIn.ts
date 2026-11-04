@@ -106,8 +106,13 @@ export interface UsePluginServerSignInOptions {
  *
  * @example
  * ```tsx
- * const signIn = usePluginServerSignIn(org, plugin.status.mcpServers[0]);
- * if (signIn.kind === "sign-in-needed") return <button onClick={signIn.signIn}>Sign in</button>;
+ * import type { McpServerEntry } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
+ *
+ * function SignInButton({ server }: { server: McpServerEntry }) {
+ *   const signIn = usePluginServerSignIn("acme", server);
+ *   if (signIn.kind !== "sign-in-needed") return null;
+ *   return <button onClick={signIn.signIn}>Sign in</button>;
+ * }
  * ```
  */
 export function usePluginServerSignIn(

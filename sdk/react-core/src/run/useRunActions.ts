@@ -53,13 +53,14 @@ export interface UseRunActionsReturn {
  *
  * @example
  * ```tsx
- * const actions = useRunActions(executionId, {
- *   onSuccess: () => refetch(),
- * });
- *
- * <button onClick={() => actions.pause()} disabled={actions.isSubmitting}>
- *   Pause
- * </button>
+ * function PauseButton({ executionId, onPaused }: { executionId: string; onPaused: () => void }) {
+ *   const actions = useRunActions(executionId, { onSuccess: onPaused });
+ *   return (
+ *     <button onClick={() => actions.pause()} disabled={actions.isSubmitting}>
+ *       Pause
+ *     </button>
+ *   );
+ * }
  * ```
  */
 export function useRunActions(

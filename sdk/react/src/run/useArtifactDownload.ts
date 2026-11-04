@@ -44,10 +44,14 @@ export interface UseArtifactDownloadReturn {
  *
  * @example
  * ```tsx
- * const { download, isDownloading } = useArtifactDownload(executionId);
- * <button onClick={() => download(outputRef.storageKey, "output.txt")} disabled={isDownloading}>
- *   Download
- * </button>
+ * function DownloadOutput({ executionId, storageKey }: { executionId: string; storageKey: string }) {
+ *   const { download, isDownloading } = useArtifactDownload(executionId);
+ *   return (
+ *     <button onClick={() => download(storageKey, "output.txt")} disabled={isDownloading}>
+ *       Download
+ *     </button>
+ *   );
+ * }
  * ```
  *
  * @see useArtifactDownloadUrl — declarative URL resolver (image src, links)

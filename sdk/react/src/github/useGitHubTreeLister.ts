@@ -34,10 +34,11 @@ const TRUNCATION_MARKER: WorkspaceFileEntry = {
  *
  * @example
  * ```tsx
- * const gitHubConnection = useGitHubConnection(org);
- * const fileLister = useGitHubTreeLister(gitHubConnection.readOrg);
- *
- * <SessionViewer sessionId={id} org={org} inspector={<SessionInspector workspaceFileLister={fileLister} />} />
+ * function SessionWithRepoTree({ sessionId, org }: { sessionId: string; org: string }) {
+ *   const gitHubConnection = useGitHubConnection(org);
+ *   const fileLister = useGitHubTreeLister(gitHubConnection.readOrg);
+ *   return <SessionViewer sessionId={sessionId} org={org} inspector={<SessionInspector workspaceFileLister={fileLister} />} />;
+ * }
  * ```
  */
 export function useGitHubTreeLister(

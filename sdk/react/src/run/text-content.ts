@@ -49,7 +49,12 @@ const TEXT_EXTENSIONS = new Set([
  *
  * @example
  * ```ts
- * const shouldFetch = isTextFile(file);
+ * import type { File } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
+ *
+ * function FilePreview({ file }: { file: File }) {
+ *   const { content } = useFileContent(isTextFile(file) ? (file.metadata?.id ?? null) : null);
+ *   return content ? <pre>{content}</pre> : <p>No preview for this file.</p>;
+ * }
  * ```
  */
 export function isTextFile(file: StigmerFile): boolean {

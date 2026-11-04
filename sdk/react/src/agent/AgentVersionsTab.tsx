@@ -31,7 +31,11 @@ export interface AgentVersionsTabProps {
  *
  * @example
  * ```tsx
- * <AgentVersionsTab agent={agent} />
+ * import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+ *
+ * function History({ agent }: { agent: Agent }) {
+ *   return <AgentVersionsTab agent={agent} />;
+ * }
  * ```
  */
 export function AgentVersionsTab({ agent, className }: AgentVersionsTabProps) {

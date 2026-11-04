@@ -234,11 +234,15 @@ Tokens come from the org usage report (`getOrgUsageReport`), which
 counts each run once, so the dashboard matches the Usage page.
 
 ```tsx
-<OperationalDashboard
-  org="acme"
-  onFailedRunClick={(id) => navigate(`/runs/${id}`)}
-  firstStepLinks={{ connectProvider: "/models", createAgent: "/library/agents/new", startSession: "/" }}
-/>
+function Home({ onOpen }: { onOpen: (href: string) => void }) {
+  return (
+    <OperationalDashboard
+      org="acme"
+      onFailedRunClick={(id) => onOpen(`/runs/${id}`)}
+      firstStepLinks={{ connectProvider: "/models", createAgent: "/library/agents/new", startSession: "/" }}
+    />
+  );
+}
 ```
 
 

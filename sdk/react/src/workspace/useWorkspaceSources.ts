@@ -49,12 +49,12 @@ export interface UseWorkspaceSourcesReturn {
  *
  * @example
  * ```tsx
- * // Desktop app (has native folder picker via Tauri)
- * const sources = useWorkspaceSources({ hasLocalPicker: true });
+ * // Desktop app (has a native folder picker)
+ * const desktop = useWorkspaceSources({ hasLocalPicker: true });
  * // -> { enableGitHub: false, enableLocal: true }
  *
  * // Web app (cloud deployment, no native picker)
- * const sources = useWorkspaceSources();
+ * const web = useWorkspaceSources();
  * // -> { enableGitHub: true, enableLocal: false }
  * ```
  */

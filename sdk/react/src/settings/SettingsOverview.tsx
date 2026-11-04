@@ -42,7 +42,8 @@ const LINK_CLASS = cn(
  *
  * @example
  * ```tsx
- * <SettingsOverview renderLink={({ href, children, ...rest }) => <Link href={href} {...rest}>{children}</Link>} />
+ * // renderLink is where the host's router link goes; a plain anchor works too.
+ * <SettingsOverview renderLink={({ href, children, ...rest }) => <a href={href} {...rest}>{children}</a>} />
  * ```
  */
 export function SettingsOverview({ renderLink, groups, className }: SettingsOverviewProps) {

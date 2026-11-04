@@ -56,10 +56,14 @@ export interface UseArtifactCopyReturn {
  *
  * @example
  * ```tsx
- * const { copy, isCopying, copied } = useArtifactCopy(executionId);
- * <button onClick={() => copy(outputRef.storageKey)} disabled={isCopying}>
- *   {copied ? "Copied" : "Copy"}
- * </button>
+ * function CopyOutput({ executionId, storageKey }: { executionId: string; storageKey: string }) {
+ *   const { copy, isCopying, copied } = useArtifactCopy(executionId);
+ *   return (
+ *     <button onClick={() => copy(storageKey)} disabled={isCopying}>
+ *       {copied ? "Copied" : "Copy"}
+ *     </button>
+ *   );
+ * }
  * ```
  *
  * @see useArtifactDownload — imperative save-to-disk counterpart

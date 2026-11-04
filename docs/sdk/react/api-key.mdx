@@ -45,10 +45,11 @@ function useApiKeyList(): UseApiKeyListReturn
 />
 
 ```tsx
-const { apiKeys, isLoading, error, refetch } = useApiKeyList();
-
-if (isLoading) return <Spinner />;
-apiKeys.map((k) => k.metadata?.name);
+function ApiKeyNames() {
+  const { apiKeys, isLoading } = useApiKeyList();
+  if (isLoading) return <p>Loading…</p>;
+  return <ul>{apiKeys.map((k) => <li key={k.metadata?.id}>{k.metadata?.name}</li>)}</ul>;
+}
 ```
 
 
@@ -128,10 +129,14 @@ function useDeleteApiKey(): UseDeleteApiKeyReturn
 />
 
 ```tsx
-const { deleteKey, isDeleting, error } = useDeleteApiKey();
-
-await deleteKey("key-id-abc123");
-refetch(); // refresh the list after deletion
+function RevokeKeyButton({ keyId, onRevoked }: { keyId: string; onRevoked: () => void }) {
+  const { deleteKey, isDeleting } = useDeleteApiKey();
+  const revoke = async () => {
+    await deleteKey(keyId);
+    onRevoked(); // refresh the list after deletion
+  };
+  return <button disabled={isDeleting} onClick={revoke}>Revoke</button>;
+}
 ```
 
 
@@ -163,11 +168,9 @@ All visual properties flow through `--stgm-*` design tokens.
 />
 
 ```tsx
-<ApiKeyCreatedAlert
-  rawKey="stgm_live_abc123..."
-  keyName="ci-deploy-key"
-  onDismiss={() => setRevealedKey(null)}
-/>
+function KeyReveal({ rawKey, onDone }: { rawKey: string; onDone: () => void }) {
+  return <ApiKeyCreatedAlert rawKey={rawKey} keyName="ci-deploy-key" onDismiss={onDone} />;
+}
 ```
 
 
@@ -201,11 +204,11 @@ All visual properties flow through `--stgm-*` design tokens.
 />
 
 ```tsx
-<ApiKeyListPanel />
-
-<ApiKeyListPanel
-  onRefetchRef={(refetch) => { listRefetchRef.current = refetch; }}
-/>
+// The page keeps the list's refetch, to call after it creates a key.
+function ApiKeysPage() {
+  const refetchList = useRef<() => void>(() => {});
+  return <ApiKeyListPanel onRefetchRef={(refetch) => { refetchList.current = refetch; }} />;
+}
 ```
 
 
@@ -237,10 +240,14 @@ All visual properties flow through `--stgm-*` design tokens.
 />
 
 ```tsx
-<CreateApiKeyForm
-  org="acme"
-  onCreated={(key) => setRevealedKey(key)}
-  onCancel={() => setShowForm(false)}
-/>
+import type { ApiKey } from "@stigmer/apis/ai/stigmer/iam/apikey/v1/api_pb";
+
+function NewApiKey({ onClose }: { onClose: () => void }) {
+  const [created, setCreated] = useState<ApiKey | null>(null);
+  if (created) {
+    return <ApiKeyCreatedAlert rawKey={created.spec?.keyHash ?? ""} keyName={created.metadata?.name ?? ""} onDismiss={onClose} />;
+  }
+  return <CreateApiKeyForm org="acme" onCreated={setCreated} onCancel={onClose} />;
+}
 ```
 

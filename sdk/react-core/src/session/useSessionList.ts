@@ -61,23 +61,13 @@ function sessionIdentity(session: Session): string {
  *
  * @example
  * ```tsx
- * function SessionSidebar() {
- *   const org = useActiveOrgId();
- *   const { sessions, isLoading, hasMore, loadMore, isLoadingMore } =
- *     useSessionList({ org, pageSize: 25 });
- *
- *   if (isLoading) return <Skeleton />;
- *
+ * function SessionSidebar({ org }: { org: string }) {
+ *   const { sessions, isLoading, hasMore, loadMore, isLoadingMore } = useSessionList({ org, pageSize: 25 });
+ *   if (isLoading) return <p>Loading…</p>;
  *   return (
  *     <ul>
- *       {sessions.map((s) => (
- *         <li key={s.metadata?.id}>
- *           {s.spec?.subject || "Untitled"}
- *         </li>
- *       ))}
- *       {hasMore && (
- *         <button onClick={loadMore} disabled={isLoadingMore}>Show more</button>
- *       )}
+ *       {sessions.map((s) => <li key={s.metadata?.id}>{s.spec?.subject || "Untitled"}</li>)}
+ *       {hasMore && <button onClick={loadMore} disabled={isLoadingMore}>Show more</button>}
  *     </ul>
  *   );
  * }

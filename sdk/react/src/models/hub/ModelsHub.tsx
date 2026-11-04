@@ -63,8 +63,11 @@ export interface ModelsHubData {
  *
  * @example
  * ```tsx
- * const hub = useModelsHubData(org);
- * if (hub.providers === null) return null;
+ * function ProviderCount() {
+ *   const hub = useModelsHubData("acme");
+ *   if (hub.providers === null) return null;
+ *   return <p>{hub.providers.length} providers</p>;
+ * }
  * ```
  */
 export function useModelsHubData(org: string | null): ModelsHubData {

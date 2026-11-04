@@ -59,10 +59,9 @@ export interface RoutineFiresTableProps {
  *
  * @example
  * ```tsx
- * <RoutineFiresTable
- *   routineId={routine.metadata.id}
- *   onNavigateToRun={(id) => router.push(`/runs/${id}`)}
- * />
+ * function RoutineFires({ routineId, onOpen }: { routineId: string; onOpen: (href: string) => void }) {
+ *   return <RoutineFiresTable routineId={routineId} onNavigateToRun={(id) => onOpen(`/runs/${id}`)} />;
+ * }
  * ```
  */
 export function RoutineFiresTable({

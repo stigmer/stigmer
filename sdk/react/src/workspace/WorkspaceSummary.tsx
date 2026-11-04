@@ -33,11 +33,10 @@ export interface WorkspaceSummaryProps {
  *
  * @example
  * ```tsx
- * const { session } = useSession(sessionId);
- *
- * <WorkspaceSummary
- *   entries={session?.spec?.resources ?? []}
- * />
+ * function SessionWorkspace({ sessionId }: { sessionId: string }) {
+ *   const { session } = useSession(sessionId);
+ *   return <WorkspaceSummary entries={session?.spec?.resources ?? []} />;
+ * }
  * ```
  */
 export function WorkspaceSummary({

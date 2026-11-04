@@ -32,10 +32,14 @@ export interface UseRevokeInvitationReturn {
  *
  * @example
  * ```tsx
- * const { revoke, isRevoking, error } = useRevokeInvitation();
- *
- * await revoke("inv-abc123");
- * refetch(); // refresh the invitation list
+ * function RevokeInviteButton({ invitationId, onRevoked }: { invitationId: string; onRevoked: () => void }) {
+ *   const { revoke, isRevoking } = useRevokeInvitation();
+ *   const onClick = async () => {
+ *     await revoke(invitationId);
+ *     onRevoked(); // refresh the invitation list
+ *   };
+ *   return <button disabled={isRevoking} onClick={onClick}>Revoke</button>;
+ * }
  * ```
  */
 export function useRevokeInvitation(): UseRevokeInvitationReturn {

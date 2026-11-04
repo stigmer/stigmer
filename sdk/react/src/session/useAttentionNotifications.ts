@@ -74,12 +74,15 @@ const RECONNECT_MS = 1_000;
  *
  * @example
  * ```tsx
- * useAttentionNotifications({
- *   org,
- *   enabled: notificationsOn,
- *   isShowing: (sessionId) => sessionId === openSessionId,
- *   notify: (notice) => new Notification(notice.title, { body: notice.body, tag: notice.id }),
- * });
+ * function DesktopNotifications({ openSessionId }: { openSessionId: string | null }) {
+ *   useAttentionNotifications({
+ *     org: "acme",
+ *     enabled: Notification.permission === "granted",
+ *     isShowing: (sessionId) => sessionId === openSessionId,
+ *     notify: (notice) => new Notification(notice.title, { body: notice.body, tag: notice.id }),
+ *   });
+ *   return null;
+ * }
  * ```
  */
 export function useAttentionNotifications(options: UseAttentionNotificationsOptions): void {

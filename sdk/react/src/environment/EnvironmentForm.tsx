@@ -55,7 +55,15 @@ export function startingNetworkOf(availability: EnvironmentAvailability | undefi
  *
  * @example
  * ```tsx
- * <EnvironmentForm org="acme" onCreated={(env) => navigate(env)} onCancel={() => navigate(list)} />
+ * function NewEnvironmentPage({ onOpen }: { onOpen: (href: string) => void }) {
+ *   return (
+ *     <EnvironmentForm
+ *       org="acme"
+ *       onCreated={(environment) => onOpen(`/library/environments/${environment.metadata?.slug}`)}
+ *       onCancel={() => onOpen("/library/environments")}
+ *     />
+ *   );
+ * }
  * ```
  */
 export function EnvironmentForm(props: EnvironmentFormProps) {

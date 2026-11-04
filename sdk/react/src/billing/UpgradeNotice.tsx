@@ -63,8 +63,11 @@ export interface UpgradeNoticeProps {
  *
  * @example
  * ```tsx
- * const feature = planUpgradeFeature(error);
- * if (feature !== null) return <UpgradeNotice feature={feature} error={error} />;
+ * function RunError({ error }: { error: Error }) {
+ *   const feature = planUpgradeFeature(error);
+ *   if (feature !== null) return <UpgradeNotice feature={feature} error={error} />;
+ *   return <ErrorMessage error={error} />;
+ * }
  * ```
  */
 export function UpgradeNotice({

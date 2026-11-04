@@ -62,15 +62,13 @@ export interface UseOrgUsageReportReturn {
  *
  * @example
  * ```tsx
- * const range = dateRangeFromPreset("30d");
- * const { report, isLoading, error } = useOrgUsageReport(org, range);
- *
- * if (isLoading) return <Skeleton />;
- * if (error) return <ErrorMessage error={error} />;
- * if (!report) return null;
- *
- * const tokens = report.totalUsage?.totalTokens ?? 0n;
- * return <div>{tokens.toLocaleString()} tokens</div>;
+ * function MonthTokens({ org }: { org: string }) {
+ *   const { report, isLoading, error } = useOrgUsageReport(org, dateRangeFromPreset("30d"));
+ *   if (isLoading) return <p>Loading…</p>;
+ *   if (error) return <p role="alert">{error.message}</p>;
+ *   const tokens = report?.totalUsage?.totalTokens ?? 0n;
+ *   return <p>{tokens.toLocaleString()} tokens in the last 30 days</p>;
+ * }
  * ```
  */
 export function useOrgUsageReport(

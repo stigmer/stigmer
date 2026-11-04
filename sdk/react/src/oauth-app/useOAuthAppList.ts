@@ -42,10 +42,11 @@ export interface UseOAuthAppListReturn {
  *
  * @example
  * ```tsx
- * const { oauthApps, isLoading, error } = useOAuthAppList(org);
- *
- * if (isLoading) return <Spinner />;
- * oauthApps.map((app) => app.spec?.provider);
+ * function OAuthApps() {
+ *   const { oauthApps, isLoading } = useOAuthAppList("acme");
+ *   if (isLoading) return <p>Loading…</p>;
+ *   return <ul>{oauthApps.map((app) => <li key={app.metadata?.id}>{app.spec?.provider}</li>)}</ul>;
+ * }
  * ```
  */
 export function useOAuthAppList(

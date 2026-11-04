@@ -37,10 +37,18 @@ function useAnswerToolUse(): UseAnswerToolUseReturn
 />
 
 ```tsx
-const { answerToolUse, submittingToolUseIds } = useAnswerToolUse();
+import type { ToolUse } from "@stigmer/client";
 
-await answerToolUse(sessionId, toolUse.id, "allow");
-await answerToolUse(sessionId, toolUse.id, "deny", "Use the staging database instead");
+function AskButtons({ sessionId, ask }: { sessionId: string; ask: ToolUse }) {
+  const { answerToolUse, submittingToolUseIds } = useAnswerToolUse();
+  const busy = submittingToolUseIds.has(ask.id);
+  return (
+    <>
+      <button disabled={busy} onClick={() => answerToolUse(sessionId, ask.id, "allow")}>Allow</button>
+      <button disabled={busy} onClick={() => answerToolUse(sessionId, ask.id, "deny", "Use the staging database instead")}>Deny</button>
+    </>
+  );
+}
 ```
 
 
@@ -67,9 +75,11 @@ function useApproval(toolUse: ToolUse): UseApprovalResult | null
 />
 
 ```tsx
-const approval = useApproval(toolUse);
-if (approval) {
-  return <ApprovalCardBody {...approval} />;
+import type { ToolUse } from "@stigmer/client";
+
+function ToolAsk({ toolUse }: { toolUse: ToolUse }) {
+  const approval = useApproval(toolUse);
+  return approval ? <ApprovalCardBody {...approval} /> : null;
 }
 ```
 
@@ -121,7 +131,11 @@ function useArtifactContent(executionId: string | null, storageKey: string | nul
 />
 
 ```tsx
-const { content, isLoading } = useArtifactContent(executionId, outputRef.storageKey);
+function ToolOutput({ executionId, storageKey }: { executionId: string; storageKey: string }) {
+  const { content, isLoading } = useArtifactContent(executionId, storageKey);
+  if (isLoading) return <p>Loading…</p>;
+  return <pre>{content}</pre>;
+}
 ```
 
 
@@ -167,10 +181,14 @@ function useArtifactCopy(executionId: string | null): UseArtifactCopyReturn
 />
 
 ```tsx
-const { copy, isCopying, copied } = useArtifactCopy(executionId);
-<button onClick={() => copy(outputRef.storageKey)} disabled={isCopying}>
-  {copied ? "Copied" : "Copy"}
-</button>
+function CopyOutput({ executionId, storageKey }: { executionId: string; storageKey: string }) {
+  const { copy, isCopying, copied } = useArtifactCopy(executionId);
+  return (
+    <button onClick={() => copy(storageKey)} disabled={isCopying}>
+      {copied ? "Copied" : "Copy"}
+    </button>
+  );
+}
 ```
 
 
@@ -212,10 +230,14 @@ function useArtifactDownload(executionId: string | null): UseArtifactDownloadRet
 />
 
 ```tsx
-const { download, isDownloading } = useArtifactDownload(executionId);
-<button onClick={() => download(outputRef.storageKey, "output.txt")} disabled={isDownloading}>
-  Download
-</button>
+function DownloadOutput({ executionId, storageKey }: { executionId: string; storageKey: string }) {
+  const { download, isDownloading } = useArtifactDownload(executionId);
+  return (
+    <button onClick={() => download(storageKey, "output.txt")} disabled={isDownloading}>
+      Download
+    </button>
+  );
+}
 ```
 
 
@@ -269,10 +291,12 @@ function useArtifactDownloadUrl(executionId: string | null, storageKey: string |
 />
 
 ```tsx
-// Render an offloaded screenshot with an always-fresh URL.
-const { url, isLoading } = useArtifactDownloadUrl(executionId, storageKey);
-if (isLoading) return <Skeleton />;
-return url ? <img src={url} alt="Tool output" /> : null;
+// An offloaded screenshot, with a URL that is always fresh.
+function Screenshot({ executionId, storageKey }: { executionId: string; storageKey: string }) {
+  const { url, isLoading } = useArtifactDownloadUrl(executionId, storageKey);
+  if (isLoading) return <p>Loading…</p>;
+  return url ? <img src={url} alt="Tool output" /> : null;
+}
 ```
 
 
@@ -296,8 +320,11 @@ function useBackgroundStop(toolUse: ToolUse): UseBackgroundStopResult | null
 />
 
 ```tsx
-const stop = useBackgroundStop(toolUse);
-if (stop) {
+import type { ToolUse } from "@stigmer/client";
+
+function StopButton({ toolUse }: { toolUse: ToolUse }) {
+  const stop = useBackgroundStop(toolUse);
+  if (!stop) return null;
   return <button onClick={stop.onStop} disabled={stop.isStopping}>Stop</button>;
 }
 ```
@@ -600,13 +627,12 @@ function useResolveRunSession(agentExecutionId: string | null): UseResolveRunSes
 />
 
 ```tsx
-function DrillDown({ agentExecutionId }: { agentExecutionId: string }) {
+function DrillDown({ agentExecutionId, onOpen }: { agentExecutionId: string; onOpen: (sessionId: string) => void }) {
   const { sessionId, isLoading } = useResolveRunSession(agentExecutionId);
   useEffect(() => {
-    if (sessionId) navigateToSession(sessionId);
-  }, [sessionId]);
-  if (isLoading) return <Spinner />;
-  return null;
+    if (sessionId) onOpen(sessionId);
+  }, [sessionId, onOpen]);
+  return isLoading ? <p>Opening the conversation…</p> : null;
 }
 ```
 
@@ -642,11 +668,13 @@ function useReviewFileChanges(): UseReviewFileChangesReturn
 />
 
 ```tsx
-const { reviewFileChanges } = useReviewFileChanges();
+import type { FileReviewSet } from "@stigmer/client";
 
-await reviewFileChanges(sessionId, set.changeSetId, "keep", {
-  expectedDigest: set.aggregateDigest,
-});
+function KeepAll({ sessionId, set }: { sessionId: string; set: FileReviewSet }) {
+  const { reviewFileChanges } = useReviewFileChanges();
+  const keep = () => reviewFileChanges(sessionId, set.changeSetId, "keep", { expectedDigest: set.aggregateDigest });
+  return <button onClick={keep}>Keep all</button>;
+}
 ```
 
 
@@ -692,13 +720,14 @@ function useRunActions(executionId: string | null, options?: UseRunActionsOption
 />
 
 ```tsx
-const actions = useRunActions(executionId, {
-  onSuccess: () => refetch(),
-});
-
-<button onClick={() => actions.pause()} disabled={actions.isSubmitting}>
-  Pause
-</button>
+function PauseButton({ executionId, onPaused }: { executionId: string; onPaused: () => void }) {
+  const actions = useRunActions(executionId, { onSuccess: onPaused });
+  return (
+    <button onClick={() => actions.pause()} disabled={actions.isSubmitting}>
+      Pause
+    </button>
+  );
+}
 ```
 
 
@@ -732,10 +761,13 @@ function useStopBackgroundCommand(): UseStopBackgroundCommandReturn
 />
 
 ```tsx
-const { stopBackgroundCommand, stoppingToolUseIds } = useStopBackgroundCommand();
+import { isBackgroundRunning, type ToolUse } from "@stigmer/client";
 
-if (isBackgroundRunning(toolUse)) {
-  await stopBackgroundCommand(sessionId, toolUse.id);
+function StopCommand({ sessionId, toolUse }: { sessionId: string; toolUse: ToolUse }) {
+  const { stopBackgroundCommand, stoppingToolUseIds } = useStopBackgroundCommand();
+  if (!isBackgroundRunning(toolUse)) return null;
+  const stop = () => stopBackgroundCommand(sessionId, toolUse.id);
+  return <button onClick={stop} disabled={stoppingToolUseIds.has(toolUse.id)}>Stop</button>;
 }
 ```
 
@@ -843,11 +875,16 @@ function useWorkspaceWriteBacks(execution: Run | null): UseWorkspaceWriteBacksRe
 />
 
 ```tsx
-const { run } = useLiveRun(executionId);
-const { writeBacks, hasWriteBacks } = useWorkspaceWriteBacks(run);
-
-if (hasWriteBacks) {
-  writeBacks.forEach((wb) => console.log(wb.workspaceEntryName, wb.pullRequestUrl));
+function PullRequests({ executionId }: { executionId: string }) {
+  const { run } = useLiveRun(executionId);
+  const { writeBacks } = useWorkspaceWriteBacks(run);
+  return (
+    <ul>
+      {writeBacks.map((wb) => (
+        <li key={wb.workspaceEntryName}><a href={wb.pullRequestUrl}>{wb.workspaceEntryName}</a></li>
+      ))}
+    </ul>
+  );
 }
 ```
 
@@ -1028,8 +1065,12 @@ Zero Console dependencies — safe for platform builder embedding.
 />
 
 ```tsx
-const { fileChanges } = useSessionFileChanges(allRuns);
-<FileChangesView changes={fileChanges} />
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+
+function ChangedFiles({ runs }: { runs: readonly Run[] }) {
+  const { fileChanges } = useSessionFileChanges(runs);
+  return <FileChangesView changes={fileChanges} />;
+}
 ```
 
 
@@ -1120,8 +1161,9 @@ Platform builders can override the default behavior via the
 />
 
 ```tsx
-<FilePathLink path="src/main.go" />              // shows "main.go"
-<FilePathLink path="src/main.go" dirDisplay="dim" /> // shows "src/main.go"
+<p>
+  Edited <FilePathLink path="src/main.go" /> and <FilePathLink path="src/util.go" dirDisplay="dim" />
+</p>
 ```
 
 
@@ -1165,14 +1207,13 @@ mount this component rather than passing an `active` flag.
 />
 
 ```tsx
-// Inside a dialog, modal, or overlay:
-<FilePreviewContent
-  file={file}
-  org={activeOrg}
-  isTerminal={isTerminalPhase(run.status?.phase)}
-  onClose={() => setOpen(false)}
-  onApplied={(result) => toast(`${result.kind} applied`)}
-/>
+import type { File } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
+
+// Inside a dialog, a panel or an overlay of your own.
+function FilePanel({ file, org, onClose }: { file: File; org: string; onClose: () => void }) {
+  const applied = (result: { kind: string }) => toast(`${result.kind} applied`);
+  return <FilePreviewContent file={file} org={org} isTerminal onClose={onClose} onApplied={applied} />;
+}
 ```
 
 
@@ -1208,18 +1249,17 @@ automatically when the dialog closes.
 />
 
 ```tsx
-const [previewFile, setPreviewFile] = useState<File | null>(null);
+import type { File } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 
-{previewFile && (
-  <FilePreviewModal
-    file={previewFile}
-    org={activeOrg}
-    isTerminal={isTerminalPhase(run.status?.phase)}
-    open
-    onClose={() => setPreviewFile(null)}
-    onApplied={(result) => toast(`${result.kind} applied`)}
-  />
-)}
+function FileLink({ file, org }: { file: File; org: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button onClick={() => setOpen(true)}>{file.metadata?.name}</button>
+      <FilePreviewModal file={file} org={org} isTerminal open={open} onClose={() => setOpen(false)} />
+    </>
+  );
+}
 ```
 
 
@@ -1268,14 +1308,18 @@ same seam.
 />
 
 ```tsx
-const conv = useSessionConversation(sessionId, org);
-<FileReviewDock
-  fileReviewSets={conv.fileReviewSets}
-  captures={conv.fileChangeCaptures}
-  onSubmit={conv.reviewFileChanges}
-  submittingDecisionKeys={conv.submittingFileDecisionKeys}
-  decisionErrors={conv.fileDecisionErrors}
-/>
+function ReviewDock({ sessionId, org }: { sessionId: string; org: string }) {
+  const conv = useSessionConversation(sessionId, org);
+  return (
+    <FileReviewDock
+      fileReviewSets={conv.fileReviewSets}
+      captures={conv.fileChangeCaptures}
+      onSubmit={conv.reviewFileChanges}
+      submittingDecisionKeys={conv.submittingFileDecisionKeys}
+      decisionErrors={conv.fileDecisionErrors}
+    />
+  );
+}
 ```
 
 
@@ -1389,7 +1433,11 @@ with structured formatting:
 />
 
 ```tsx
-<McpToolDetail toolUse={toolUse} />
+import type { ToolUse } from "@stigmer/client";
+
+function McpCall({ toolUse }: { toolUse: ToolUse }) {
+  return <McpToolDetail toolUse={toolUse} />;
+}
 ```
 
 
@@ -1450,13 +1498,10 @@ All visual properties flow through `--stgm-*` tokens.
 />
 
 ```tsx
-const conv = useSessionConversation(sessionId, org);
-
-<MessageThread
-  turns={conv.turns}
-  runs={conv.runs}
-  onAnswerToolUse={conv.answerToolUse}
-/>
+function Conversation({ sessionId, org }: { sessionId: string; org: string }) {
+  const conv = useSessionConversation(sessionId, org);
+  return <MessageThread turns={conv.turns} runs={conv.runs} onAnswerToolUse={conv.answerToolUse} />;
+}
 ```
 
 
@@ -1538,9 +1583,12 @@ All visual properties flow through `--stgm-*` tokens.
 />
 
 ```tsx
-<div className="rounded-lg border border-border bg-card p-3">
-  <RunProgress run={run} todos={turn.todos} />
-</div>
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import type { Turn } from "@stigmer/client";
+
+function TurnProgress({ run, turn }: { run: Run; turn: Turn }) {
+  return <RunProgress run={run} todos={turn.todos} />;
+}
 ```
 
 
@@ -1568,8 +1616,10 @@ platform builders composing custom tool UIs.
 />
 
 ```tsx
-<TerminalSession command="ls -la" stdout="total 8\n..." exitCode={0} />
-<TerminalSession command="npm test" /> // gate: command only
+<>
+  <TerminalSession command="ls -la" stdout="total 8" exitCode={0} />
+  <TerminalSession command="npm test" />
+</>
 ```
 
 
@@ -1644,7 +1694,7 @@ Platform builders who want to render file content outside of
 ```tsx
 import { TextContentRenderer, useFileContent } from "@stigmer/react-sdk";
 
-function MyFilePanel({ fileId, fileName }) {
+function FilePanel({ fileId, fileName }: { fileId: string; fileName: string }) {
   const { content } = useFileContent(fileId);
   if (!content) return null;
   return <TextContentRenderer content={content} fileName={fileName} />;
@@ -1696,7 +1746,9 @@ All visual properties flow through `--stgm-*` tokens.
 />
 
 ```tsx
-if (isLoading) return <ThreadSkeleton className="flex-1" />;
+function Thread({ isLoading, children }: { isLoading: boolean; children: ReactNode }) {
+  return isLoading ? <ThreadSkeleton className="flex-1" /> : children;
+}
 ```
 
 
@@ -1729,7 +1781,11 @@ All visual properties flow through `--stgm-*` tokens.
 />
 
 ```tsx
-<TodoList todos={turn.todos} />
+import type { Turn } from "@stigmer/client";
+
+function TurnTodos({ turn }: { turn: Turn }) {
+  return <TodoList todos={turn.todos} />;
+}
 ```
 
 
@@ -1761,12 +1817,11 @@ appropriate category-specific view:
 />
 
 ```tsx
-// In approval card (from argsPreview string):
-const args = JSON.parse(pendingApproval.argsPreview);
-<ToolArgsView toolName={toolName} args={args} mcpServerSlug={slug} />
+import type { ToolUse } from "@stigmer/client";
 
-// In detail view (from ToolCall):
-<ToolArgsView toolName={tc.name} args={tc.args} mcpServerSlug={tc.mcpServerSlug} />
+function ToolArgs({ toolUse }: { toolUse: ToolUse }) {
+  return <ToolArgsView toolName={toolUse.name} args={toolUse.input} mcpServerSlug={toolUse.mcpServerName} />;
+}
 ```
 
 
@@ -1799,7 +1854,11 @@ Importable on its own by platform builders composing custom tool UIs.
 />
 
 ```tsx
-<ToolCallDetail toolUse={toolUse} />
+import type { ToolUse } from "@stigmer/client";
+
+function ToolCall({ toolUse }: { toolUse: ToolUse }) {
+  return <ToolCallDetail toolUse={toolUse} />;
+}
 ```
 
 
@@ -1828,11 +1887,10 @@ Console dependencies.
 />
 
 ```tsx
-const conv = useSessionConversation(sessionId, org);
-
-<UsageWidget
-  runs={conv.runs}
-/>
+function ConversationUsage({ sessionId, org }: { sessionId: string; org: string }) {
+  const conv = useSessionConversation(sessionId, org);
+  return <UsageWidget runs={conv.runs} />;
+}
 ```
 
 
@@ -1872,14 +1930,12 @@ their Tailwind/CSS configuration.
 />
 
 ```tsx
-const { writeBacks } = useWorkspaceWriteBacks(run);
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 
-{writeBacks.map((wb) => (
-  <WriteBackCard
-    key={wb.workspaceEntryName}
-    writeBack={wb}
-  />
-))}
+function RunWriteBacks({ run }: { run: Run }) {
+  const { writeBacks } = useWorkspaceWriteBacks(run);
+  return <>{writeBacks.map((wb) => <WriteBackCard key={wb.workspaceEntryName} writeBack={wb} />)}</>;
+}
 ```
 
 
@@ -1909,11 +1965,10 @@ Console dependencies.
 />
 
 ```tsx
-const conv = useSessionConversation(sessionId, org);
-
-<WriteBacksWidget
-  runs={conv.runs}
-/>
+function ConversationWriteBacks({ sessionId, org }: { sessionId: string; org: string }) {
+  const conv = useSessionConversation(sessionId, org);
+  return <WriteBacksWidget runs={conv.runs} />;
+}
 ```
 
 
@@ -1937,11 +1992,18 @@ Wrapped in `React.memo`: the session fold keeps an unchanged tool use's
 reference, so the card skips re-renders during unrelated stream updates.
 
 ```tsx
-<ApprovalCard
-  toolUse={ask}
-  onAnswer={(answer, message) => answerToolUse(sessionId, ask.id, answer, message)}
-  isSubmitting={submittingToolUseIds.has(ask.id)}
-/>
+import type { ToolUse } from "@stigmer/client";
+
+function Ask({ sessionId, ask }: { sessionId: string; ask: ToolUse }) {
+  const { answerToolUse, submittingToolUseIds } = useAnswerToolUse();
+  return (
+    <ApprovalCard
+      toolUse={ask}
+      onAnswer={(answer, message) => answerToolUse(sessionId, ask.id, answer, message)}
+      isSubmitting={submittingToolUseIds.has(ask.id)}
+    />
+  );
+}
 ```
 
 
@@ -2359,8 +2421,10 @@ Purely presentational (headless-first): the data lives in
 the dock by default.
 
 ```tsx
-const conv = useSessionConversation(sessionId);
-<FileChangeProgressBar progress={conv.fileChangeProgress} />
+function ChangeProgress({ sessionId, org }: { sessionId: string; org: string }) {
+  const conv = useSessionConversation(sessionId, org);
+  return <FileChangeProgressBar progress={conv.fileChangeProgress} />;
+}
 ```
 
 
@@ -2536,12 +2600,18 @@ Wrapped in `React.memo` — the session fold keeps an unchanged set's
 reference, so review cards skip re-renders during unrelated stream updates.
 
 ```tsx
-const { reviewFileChanges, submittingDecisionKeys } = useReviewFileChanges();
-<FileReviewCard
-  fileReviewSet={set}
-  onSubmit={(action, opts) => reviewFileChanges(sessionId, set.changeSetId, action, opts)}
-  submittingDecisionKeys={submittingDecisionKeys}
-/>
+import type { FileReviewSet } from "@stigmer/client";
+
+function ReviewCard({ sessionId, set }: { sessionId: string; set: FileReviewSet }) {
+  const { reviewFileChanges, submittingDecisionKeys } = useReviewFileChanges();
+  return (
+    <FileReviewCard
+      fileReviewSet={set}
+      onSubmit={(action, opts) => reviewFileChanges(sessionId, set.changeSetId, action, opts)}
+      submittingDecisionKeys={submittingDecisionKeys}
+    />
+  );
+}
 ```
 
 
@@ -2770,7 +2840,9 @@ visual distinction.
 All visual properties flow through `--stgm-*` tokens.
 
 ```tsx
-<InteractionModeBadge mode={InteractionMode.PLAN} />
+import { InteractionMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+
+<InteractionModeBadge mode={InteractionMode.PLAN} />;
 ```
 
 
@@ -2824,7 +2896,12 @@ function isTextFile(file: File): boolean
 ```
 
 ```tsx
-const shouldFetch = isTextFile(file);
+import type { File } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
+
+function FilePreview({ file }: { file: File }) {
+  const { content } = useFileContent(isTextFile(file) ? (file.metadata?.id ?? null) : null);
+  return content ? <pre>{content}</pre> : <p>No preview for this file.</p>;
+}
 ```
 
 
@@ -2867,7 +2944,6 @@ SetupProgress precedent) for hosts that want their own liveness voice.
 All visual properties flow through `--stgm-*` tokens.
 
 ```tsx
-<LivenessStatusLine />
 <LivenessStatusLine label="Reviewing your data…" />
 ```
 
@@ -2905,7 +2981,9 @@ Purely presentational — no data fetching, no state.
 All visual properties flow through `--stgm-*` tokens.
 
 ```tsx
-<MessageEntry message={item} />
+function Message({ message }: { message: ThreadMessage }) {
+  return <MessageEntry message={message} />;
+}
 ```
 
 
@@ -3381,7 +3459,9 @@ Renders nothing for `RUN_PHASE_UNSPECIFIED`.
 All visual properties flow through `--stgm-*` tokens.
 
 ```tsx
-<RunPhaseBadge phase={RunPhase.RUN_COMPLETED} />
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+
+<RunPhaseBadge phase={RunPhase.RUN_COMPLETED} />;
 ```
 
 
@@ -3431,14 +3511,12 @@ Operates in three modes (highest-priority first):
 All visual properties flow through `--stgm-*` tokens.
 
 ```tsx
-// Awaiting response (IN_PROGRESS, no messages yet)
-<SetupProgress isAwaitingResponse />
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 
-// Server-driven (preferred during PENDING)
-<SetupProgress serverPhase={run.status?.setupProgress?.currentPhase} />
-
-// Timer fallback (PENDING, no server phase available)
-<SetupProgress resources={session.spec?.resources} />
+// The server's phase, while the run is pending.
+function RunSetup({ run }: { run: Run }) {
+  return <SetupProgress serverPhase={run.status?.setupProgress?.currentPhase} />;
+}
 ```
 
 
@@ -3518,11 +3596,12 @@ Wrapped in `React.memo` — the session fold keeps an unchanged thread's
 reference, so a finished subagent skips re-renders entirely.
 
 ```tsx
-// Standalone collapsible card (default)
-<SubagentSection thread={toolUse.thread} subject={subagentSubjectOf(toolUse)} />
+import type { ToolUse } from "@stigmer/client";
 
-// Flat layout inside a parent expand/collapse
-<SubagentSection thread={toolUse.thread} collapsible={false} />
+function Subagent({ toolUse }: { toolUse: ToolUse }) {
+  if (!toolUse.thread) return null;
+  return <SubagentSection thread={toolUse.thread} subject={subagentSubjectOf(toolUse)} />;
+}
 ```
 
 
@@ -3653,7 +3732,11 @@ updates, never per preview frame of another turn.
 All visual properties flow through `--stgm-*` tokens.
 
 ```tsx
-<TodoCard todos={turn.todos} />
+import type { Turn } from "@stigmer/client";
+
+function TurnTodoCard({ turn }: { turn: Turn }) {
+  return <TodoCard todos={turn.todos} />;
+}
 ```
 
 
@@ -3723,7 +3806,11 @@ elements by reference (the session fold keeps unchanged `ToolUse` objects
 stable), so settled rows skip re-renders while siblings stream.
 
 ```tsx
-<ToolCallGroup toolUses={toolUses} />
+import type { ToolUse } from "@stigmer/client";
+
+function Steps({ toolUses }: { toolUses: readonly ToolUse[] }) {
+  return <ToolCallGroup toolUses={toolUses} />;
+}
 ```
 
 
@@ -3798,7 +3885,11 @@ Wrapped in `React.memo` — the session fold keeps an unchanged tool use's
 reference, so a settled row skips re-renders while sibling tools stream.
 
 ```tsx
-<ToolCallItem toolUse={toolUse} />
+import type { ToolUse } from "@stigmer/client";
+
+function Step({ toolUse }: { toolUse: ToolUse }) {
+  return <ToolCallItem toolUse={toolUse} />;
+}
 ```
 
 

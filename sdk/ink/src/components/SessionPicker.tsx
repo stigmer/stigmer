@@ -28,9 +28,11 @@ const PENDING_SUBJECT = "Auto-created session";
  *
  * @example
  * ```tsx
+ * import { render } from "ink";
+ *
  * render(
  *   <InkStigmerProvider client={client}>
- *     <SessionPicker onSelect={(s) => resume(s.metadata?.id)} onCancel={() => process.exit(0)} />
+ *     <SessionPicker onSelect={(session) => console.log(session.metadata?.id)} onCancel={() => process.exit(0)} />
  *   </InkStigmerProvider>,
  * );
  * ```

@@ -40,8 +40,13 @@ export function useDeploymentMode(): DeploymentMode {
  *
  * @example
  * ```tsx
- * const available = useResourceAvailable(ApiResourceKind.api_key);
- * if (!available) return <CloudFeatureNotice>...</CloudFeatureNotice>;
+ * import { ApiResourceKind } from "@stigmer/client";
+ *
+ * function ApiKeysSection({ children }: { children: ReactNode }) {
+ *   const available = useResourceAvailable(ApiResourceKind.api_key);
+ *   if (!available) return <p>API keys are available on Stigmer Cloud.</p>;
+ *   return <section>{children}</section>;
+ * }
  * ```
  */
 export function useResourceAvailable(kind: ApiResourceKind): boolean {

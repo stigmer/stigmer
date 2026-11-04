@@ -31,7 +31,9 @@ export interface CreateVaultFormProps {
  *
  * @example
  * ```tsx
- * <CreateVaultForm org="acme" onCreated={() => refetch()} />
+ * function NewVault({ onCreated }: { onCreated: () => void }) {
+ *   return <CreateVaultForm org="acme" onCreated={onCreated} />;
+ * }
  * ```
  */
 export function CreateVaultForm({

@@ -61,10 +61,11 @@ export const DISABLED_PROVIDERS: ReadonlySet<Provider> = new Set([
  *
  * @example
  * ```tsx
- * const { getModel, defaultModel } = useModelRegistry();
- * const model = getModel(selectedId) ?? defaultModel;
- *
- * <span>{model.displayName} ({model.costTier})</span>
+ * function ModelLabel({ selectedId }: { selectedId: string }) {
+ *   const { getModel, defaultModel } = useModelRegistry();
+ *   const model = getModel(selectedId) ?? defaultModel;
+ *   return model ? <span>{model.displayName} ({model.costTier})</span> : null;
+ * }
  * ```
  */
 export interface ModelInfo {

@@ -61,8 +61,12 @@ const LIST_ID = "stgm-plugin-list";
  *
  * @example
  * ```tsx
- * const [plugins, setPlugins] = useState<ResourceRef[]>([]);
- * <PluginPicker org="acme" value={plugins} onChange={setPlugins} />
+ * import type { ResourceRef } from "@stigmer/client";
+ *
+ * function ChoosePlugins() {
+ *   const [plugins, setPlugins] = useState<ResourceRef[]>([]);
+ *   return <PluginPicker org="acme" value={plugins} onChange={setPlugins} />;
+ * }
  * ```
  */
 export function PluginPicker({

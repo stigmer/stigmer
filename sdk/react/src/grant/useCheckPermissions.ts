@@ -69,13 +69,15 @@ function checkKey(resource: PermissionCheckResource, relation: string): string {
  *
  * @example
  * ```tsx
- * const can = useCheckPermissions(
- *   { kind: "agent", id: agentId },
- *   ["can_edit", "can_delete"],
- *   { fail: "closed" },
- * );
- *
- * {can.can_delete.allowed && <DeleteButton />}
+ * function AgentButtons({ agentId }: { agentId: string }) {
+ *   const can = useCheckPermissions({ kind: "agent", id: agentId }, ["can_edit", "can_delete"], { fail: "closed" });
+ *   return (
+ *     <>
+ *       {can.can_edit.allowed && <button>Edit</button>}
+ *       {can.can_delete.allowed && <button>Delete</button>}
+ *     </>
+ *   );
+ * }
  * ```
  */
 export function useCheckPermissions<R extends string>(

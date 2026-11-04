@@ -50,7 +50,7 @@ export const PENDING_POLL_LIMIT_MS = 3 * 60 * 1_000;
  *
  * @example
  * ```tsx
- * const { scores, refetch } = useSessionScores(sessionId);
+ * const { scores, refetch } = useSessionScores("ses_01jabc");
  * ```
  */
 export function useSessionScores(

@@ -44,7 +44,11 @@ export interface McpToolDetailProps {
  *
  * @example
  * ```tsx
- * <McpToolDetail toolUse={toolUse} />
+ * import type { ToolUse } from "@stigmer/client";
+ *
+ * function McpCall({ toolUse }: { toolUse: ToolUse }) {
+ *   return <McpToolDetail toolUse={toolUse} />;
+ * }
  * ```
  */
 export function McpToolDetail({ toolUse, className }: McpToolDetailProps) {

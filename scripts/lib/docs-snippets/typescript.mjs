@@ -15,10 +15,17 @@
  * one, beside a copy of every titled fence above it that it imports
  * (`./client.js`), so a page's files resolve as a reader's project would.
  *
+ * On a kit's pages, a fence may import only what the kit's reader installs:
+ * the kit's own package and its peer dependencies, read from the kit's
+ * `package.json`. The workspace resolves every package, so without this rule
+ * an import of a package the kit merely depends on would compile here and
+ * fail in the reader's project.
+ *
  * The files are virtual, placed under the repository root so module
  * resolution finds the workspace's `node_modules`; nothing is written.
  */
 
+import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 
@@ -72,7 +79,7 @@ export function checkTypeScript(units, { repoRoot, ts = require(join(repoRoot, "
 
   const host = virtualHost(ts, options, texts);
   const program = ts.createProgram([...files.keys()], options, host);
-  const errors = [];
+  const errors = uninstalledImports(ts, units, repoRoot);
   for (const [fileName, { unit, assembly }] of files) {
     const sf = program.getSourceFile(fileName);
     const diagnostics = [...program.getSyntacticDiagnostics(sf), ...program.getSemanticDiagnostics(sf)];
@@ -107,6 +114,69 @@ function entryExports(ts, options, dir, units) {
   }
   for (const e of list) if (!result.has(e)) throw new Error(`the snippet gate read no exports of ${e}`);
   return result;
+}
+
+/**
+ * The packages a reader of a kit's pages installs: the kit's own and its
+ * peer dependencies, from the kit's `package.json`.
+ * @param {string} repoRoot
+ * @param {string} kit the kit's folder (`sdk/react`)
+ * @returns {{name: string, peers: string[]}}
+ */
+export function kitPackages(repoRoot, kit) {
+  const pkg = JSON.parse(readFileSync(join(repoRoot, kit, "package.json"), "utf8"));
+  return { name: pkg.name, peers: Object.keys(pkg.peerDependencies ?? {}) };
+}
+
+/** The package an import names, without its subpath: `@stigmer/apis/ai/…` is `@stigmer/apis`. */
+export function packageOf(specifier) {
+  const parts = specifier.split("/");
+  return specifier.startsWith("@") ? parts.slice(0, 2).join("/") : parts[0];
+}
+
+/**
+ * Every module some fence lines import (an import or export declaration, an
+ * `import("…")` type or call, a `require("…")`), each with the page line it
+ * is on.
+ * @param {{text: string, line: number}[]} lines
+ */
+export function importedModules(ts, lines, tsx) {
+  const sf = ts.createSourceFile(tsx ? "x.tsx" : "x.ts", lines.map((l) => l.text).join("\n"), ts.ScriptTarget.ES2022, true, tsx ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
+  const found = [];
+  const add = (literal) => found.push({ specifier: literal.text, line: lines[sf.getLineAndCharacterOfPosition(literal.getStart(sf)).line].line });
+  const visit = (node) => {
+    if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) && node.moduleSpecifier !== undefined && ts.isStringLiteral(node.moduleSpecifier)) add(node.moduleSpecifier);
+    if (ts.isImportTypeNode(node) && ts.isLiteralTypeNode(node.argument) && ts.isStringLiteral(node.argument.literal)) add(node.argument.literal);
+    const loads = ts.isCallExpression(node) && (node.expression.kind === ts.SyntaxKind.ImportKeyword || (ts.isIdentifier(node.expression) && node.expression.text === "require"));
+    if (loads && node.arguments[0] !== undefined && ts.isStringLiteral(node.arguments[0])) add(node.arguments[0]);
+    ts.forEachChild(node, visit);
+  };
+  visit(sf);
+  return found;
+}
+
+// An import on a kit's page of a package its reader does not install: one
+// error per import line, at that line.
+function uninstalledImports(ts, units, repoRoot) {
+  const kits = new Map();
+  const errors = [];
+  for (const unit of units) {
+    const { kit } = conventionFor(unit.page, "typescript");
+    if (kit === undefined) continue;
+    if (!kits.has(kit)) kits.set(kit, kitPackages(repoRoot, kit));
+    const { name, peers } = kits.get(kit);
+    const installed = new Set([name, ...peers]);
+    for (const { specifier, line } of importedModules(ts, [...unit.prelude, ...unit.setup, ...unit.body], unit.lang === "tsx")) {
+      if (specifier.startsWith(".") || specifier.startsWith("node:") || installed.has(packageOf(specifier))) continue;
+      errors.push({
+        id: unit.id,
+        page: unit.page,
+        line,
+        message: `imports ${specifier}, which a reader of ${name} does not install: import from ${name} or a package it names as a peer dependency (${peers.join(", ")})`,
+      });
+    }
+  }
+  return errors;
 }
 
 function virtualHost(ts, options, files) {

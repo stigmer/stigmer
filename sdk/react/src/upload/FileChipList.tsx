@@ -47,7 +47,7 @@ export interface FileChipListProps {
  *
  * @example
  * ```tsx
- * function CustomComposer() {
+ * function AttachedFiles({ org, sessionId }: { org: string; sessionId: string }) {
  *   const uploads = useFileUploads({ org, sessionId });
  *
  *   return (

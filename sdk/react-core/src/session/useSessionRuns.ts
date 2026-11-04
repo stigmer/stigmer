@@ -56,20 +56,20 @@ export interface UseSessionRunsReturn {
  *
  * @example
  * ```tsx
- * function ConversationThread({ sessionId }: { sessionId: string }) {
+ * function TurnCount({ sessionId }: { sessionId: string }) {
  *   const { runs, isLoading } = useSessionRuns(sessionId);
- *   const { fold } = useSessionEvents(sessionId);
- *
- *   if (isLoading) return <Skeleton />;
- *
- *   return <MessageThread turns={fold?.turns ?? []} runs={runs} />;
+ *   if (isLoading) return <p>Loading…</p>;
+ *   return <p>{runs.length} turns</p>;
  * }
  * ```
  *
  * @example
  * ```tsx
- * // Skip fetching until a session is selected
- * const { runs } = useSessionRuns(sessionId ?? null);
+ * // Skip fetching until a conversation is selected.
+ * function SelectedTurns({ sessionId }: { sessionId?: string }) {
+ *   const { runs } = useSessionRuns(sessionId ?? null);
+ *   return <p>{runs.length} turns</p>;
+ * }
  * ```
  */
 export function useSessionRuns(

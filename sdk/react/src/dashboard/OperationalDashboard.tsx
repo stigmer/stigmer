@@ -58,11 +58,15 @@ function quietWeek(summary: DashboardSummary | null): boolean {
  *
  * @example
  * ```tsx
- * <OperationalDashboard
- *   org="acme"
- *   onFailedRunClick={(id) => navigate(`/runs/${id}`)}
- *   firstStepLinks={{ connectProvider: "/models", createAgent: "/library/agents/new", startSession: "/" }}
- * />
+ * function Home({ onOpen }: { onOpen: (href: string) => void }) {
+ *   return (
+ *     <OperationalDashboard
+ *       org="acme"
+ *       onFailedRunClick={(id) => onOpen(`/runs/${id}`)}
+ *       firstStepLinks={{ connectProvider: "/models", createAgent: "/library/agents/new", startSession: "/" }}
+ *     />
+ *   );
+ * }
  * ```
  */
 export const OperationalDashboard = memo(function OperationalDashboard({

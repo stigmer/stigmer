@@ -334,12 +334,17 @@ function useUpdateRoutineSpec(): UseUpdateRoutineSpecReturn
 />
 
 ```tsx
-const { updateSpec, isUpdating } = useUpdateRoutineSpec();
+import type { Routine } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
 
-await updateSpec(routine, (spec) => {
-  spec.cron = "0 9 * * 1-5";
-  spec.timeZone = "Asia/Kolkata";
-});
+function WeekdayMorningsButton({ routine }: { routine: Routine }) {
+  const { updateSpec, isUpdating } = useUpdateRoutineSpec();
+  const save = () =>
+    updateSpec(routine, (spec) => {
+      spec.cron = "0 9 * * 1-5";
+      spec.timeZone = "Asia/Kolkata";
+    });
+  return <button onClick={save} disabled={isUpdating}>Weekday mornings</button>;
+}
 ```
 
 
@@ -503,10 +508,9 @@ All visual properties flow through `--stgm-*` design tokens.
 />
 
 ```tsx
-<RoutineFiresTable
-  routineId={routine.metadata.id}
-  onNavigateToRun={(id) => router.push(`/runs/${id}`)}
-/>
+function RoutineFires({ routineId, onOpen }: { routineId: string; onOpen: (href: string) => void }) {
+  return <RoutineFiresTable routineId={routineId} onNavigateToRun={(id) => onOpen(`/runs/${id}`)} />;
+}
 ```
 
 
@@ -545,15 +549,16 @@ carries the slug.
 />
 
 ```tsx
-const slugForOrg = useOrgSlugForId();
-
-<RoutineForm
-  org="acme"
-  onComplete={(s) =>
-    navigate(`/library/routines/${slugForOrg(s.metadata?.org ?? "")}/${s.metadata?.slug}`)
-  }
-  onCancel={() => navigate("/library/routines")}
-/>
+function NewRoutinePage({ onOpen }: { onOpen: (href: string) => void }) {
+  const slugForOrg = useOrgSlugForId();
+  return (
+    <RoutineForm
+      org="acme"
+      onComplete={(r) => onOpen(`/library/routines/${slugForOrg(r.metadata?.org ?? "")}/${r.metadata?.slug}`)}
+      onCancel={() => onOpen("/library/routines")}
+    />
+  );
+}
 ```
 
 

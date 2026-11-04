@@ -39,7 +39,11 @@ export interface UseSessionFileChangesReturn {
  *
  * @example
  * ```tsx
- * const { fileChanges, hasFileChanges } = useSessionFileChanges(conv.runs);
+ * function ChangedFileCount({ sessionId, org }: { sessionId: string; org: string }) {
+ *   const conv = useSessionConversation(sessionId, org);
+ *   const { fileChangeCount, hasFileChanges } = useSessionFileChanges(conv.runs);
+ *   return hasFileChanges ? <span>{fileChangeCount} files changed</span> : null;
+ * }
  * ```
  *
  * @see useSessionWriteBacks — git-mode (PR) counterpart, which does drive the

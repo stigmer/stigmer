@@ -14,9 +14,13 @@ import { StigmerContext } from "./context.js";
  *
  * @example
  * ```tsx
- * function AgentDetail({ id }: { id: string }) {
+ * function RefreshAgentButton({ agentId }: { agentId: string }) {
  *   const stigmer = useStigmer();
- *   const agent = await stigmer.agent.get(id);
+ *   const refresh = async () => {
+ *     const agent = await stigmer.agent.get(agentId);
+ *     console.log(agent.spec?.description);
+ *   };
+ *   return <button onClick={refresh}>Refresh</button>;
  * }
  * ```
  */

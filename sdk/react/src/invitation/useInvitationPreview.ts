@@ -48,13 +48,13 @@ export interface UseInvitationPreviewReturn {
  *
  * @example
  * ```tsx
- * const { preview, isLoading, error } = useInvitationPreview(token);
- *
- * if (isLoading) return <Spinner />;
- * if (!preview) return <NotFound />;
- * if (!preview.isValid) return <Expired reason={preview.invalidReason} />;
- *
- * return <p>Join {preview.orgName} as {preview.role}</p>;
+ * function InvitePreview({ token }: { token: string }) {
+ *   const { preview, isLoading } = useInvitationPreview(token);
+ *   if (isLoading) return <p>Loading…</p>;
+ *   if (!preview) return <p>This invitation does not exist.</p>;
+ *   if (!preview.isValid) return <p>This invitation has expired: {preview.invalidReason}</p>;
+ *   return <p>Join {preview.orgName} as {preview.role}</p>;
+ * }
  * ```
  */
 export function useInvitationPreview(

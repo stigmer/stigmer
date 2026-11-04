@@ -28,10 +28,16 @@ export interface UseUpdateMemoryContentReturn {
  *
  * @example
  * ```tsx
- * const { updateContent, isUpdating } = useUpdateMemoryContent();
+ * import type { Memory } from "@stigmer/apis/ai/stigmer/agentic/memory/v1/api_pb";
  *
- * await updateContent(memory, editedText);
- * refetch(); // refresh the list after the edit
+ * function SaveEdit({ memory, text, onSaved }: { memory: Memory; text: string; onSaved: () => void }) {
+ *   const { updateContent, isUpdating } = useUpdateMemoryContent();
+ *   const save = async () => {
+ *     await updateContent(memory, text);
+ *     onSaved(); // refresh the list after the edit
+ *   };
+ *   return <button onClick={save} disabled={isUpdating}>Save</button>;
+ * }
  * ```
  */
 export function useUpdateMemoryContent(): UseUpdateMemoryContentReturn {

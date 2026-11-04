@@ -80,11 +80,10 @@ const BOX = "stg:flex stg:items-center stg:justify-center stg:rounded-md stg:bor
  *
  * @example
  * ```tsx
- * <YamlEditor
- *   value={yaml}
- *   onChange={setYaml}
- *   diagnostics={diagnostics}
- * />
+ * function ManifestField({ diagnostics }: { diagnostics: readonly YamlEditorDiagnostic[] }) {
+ *   const [yaml, setYaml] = useState("kind: Agent\n");
+ *   return <YamlEditor value={yaml} onChange={setYaml} diagnostics={diagnostics} />;
+ * }
  * ```
  */
 export const YamlEditor = memo(function YamlEditor(props: YamlEditorProps) {

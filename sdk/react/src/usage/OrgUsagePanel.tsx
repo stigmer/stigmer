@@ -65,7 +65,7 @@ export interface OrgUsagePanelProps {
  *
  * @example
  * ```tsx
- * <OrgUsagePanel org={activeOrg.metadata.id} />
+ * <OrgUsagePanel org="org_acme" />;
  * ```
  */
 export function OrgUsagePanel({ org, className }: OrgUsagePanelProps) {

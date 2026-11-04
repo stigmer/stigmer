@@ -47,7 +47,9 @@ export interface ChildOrganizationsListProps {
  *
  * @example
  * ```tsx
- * <ChildOrganizationsList org="org-id-123" onOrgChanged={() => navigate("/dashboard")} />
+ * function ChildOrgs({ onOpen }: { onOpen: (href: string) => void }) {
+ *   return <ChildOrganizationsList org="org_acme" onOrgChanged={() => onOpen("/dashboard")} />;
+ * }
  * ```
  */
 export function ChildOrganizationsList({

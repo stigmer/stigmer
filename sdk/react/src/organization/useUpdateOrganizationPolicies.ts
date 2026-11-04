@@ -44,8 +44,13 @@ export interface UseUpdateOrganizationPoliciesReturn {
  *
  * @example
  * ```tsx
- * const { updatePolicies, isUpdating } = useUpdateOrganizationPolicies();
- * await updatePolicies(orgId, { ...organizationPoliciesOf(org), membersCanCreateAgents: false });
+ * import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
+ *
+ * function LockAgentCreation({ organization }: { organization: Organization }) {
+ *   const { updatePolicies, isUpdating } = useUpdateOrganizationPolicies();
+ *   const lock = () => updatePolicies("acme", { ...organizationPoliciesOf(organization), membersCanCreateAgents: false });
+ *   return <button disabled={isUpdating} onClick={lock}>Only admins create agents</button>;
+ * }
  * ```
  */
 export function useUpdateOrganizationPolicies(): UseUpdateOrganizationPoliciesReturn {

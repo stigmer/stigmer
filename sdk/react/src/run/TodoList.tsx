@@ -40,7 +40,11 @@ const STATUS_SORT_ORDER: Readonly<Record<Todo["status"], number>> = {
  *
  * @example
  * ```tsx
- * <TodoList todos={turn.todos} />
+ * import type { Turn } from "@stigmer/client";
+ *
+ * function TurnTodos({ turn }: { turn: Turn }) {
+ *   return <TodoList todos={turn.todos} />;
+ * }
  * ```
  */
 export function TodoList({

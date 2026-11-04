@@ -65,19 +65,16 @@ const MAX_VISIBLE = 10;
  *
  * @example
  * ```tsx
- * const { results, isLoading, query, setQuery } = useAgentSearch("acme");
- * const items = results.map((r) => ({ id: r.id, title: r.qualifiedSlug }));
- * render(
- *   <ResourcePicker
- *     prompt="Select an agent"
- *     items={items}
- *     query={query}
- *     onQueryChange={setQuery}
- *     isLoading={isLoading}
- *     onSelect={(item) => console.log(item.id)}
- *     onCancel={() => process.exit(0)}
- *   />,
- * );
+ * import { useAgentSearch } from "@stigmer/react-core";
+ *
+ * function PickAgent({ onPick }: { onPick: (agentId: string) => void }) {
+ *   const { results, isLoading, query, setQuery } = useAgentSearch("acme");
+ *   const items = results.map((r) => ({ id: r.id, title: r.qualifiedSlug }));
+ *   return (
+ *     <ResourcePicker prompt="Select an agent" items={items} query={query} onQueryChange={setQuery}
+ *       isLoading={isLoading} onSelect={(item) => onPick(item.id)} onCancel={() => process.exit(0)} />
+ *   );
+ * }
  * ```
  */
 export function ResourcePicker({

@@ -39,8 +39,10 @@ const PHASE_LABELS: Record<StatusPhase, string> = {
  *
  * @example
  * ```tsx
- * <StatusBadge phase="ready" />
- * <StatusBadge phase="failed" label="Unreachable" tooltip="Last checked 2m ago" />
+ * <>
+ *   <StatusBadge phase="ready" />
+ *   <StatusBadge phase="failed" label="Unreachable" tooltip="Last checked 2m ago" />
+ * </>
  * ```
  */
 export function StatusBadge({

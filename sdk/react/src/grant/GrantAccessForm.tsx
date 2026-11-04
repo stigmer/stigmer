@@ -95,15 +95,20 @@ function participantNote(kind: ApiResourceKind, role: IamRole | null): string | 
  *
  * @example
  * ```tsx
- * <GrantAccessForm
- *   resourceKind={ApiResourceKind.agent}
- *   resourceKindString="agent"
- *   resourceId={agentId}
- *   org={org}
- *   includeTeams={share.canShareWithTeams}
- *   onGranted={() => share.refetch()}
- *   onCancel={() => setShowForm(false)}
- * />
+ * function AddPeople({ agentId, onClose }: { agentId: string; onClose: () => void }) {
+ *   const share = useShareFlow({ kind: "agent", id: agentId, resourceKind: ApiResourceKind.agent });
+ *   return (
+ *     <GrantAccessForm
+ *       resourceKind={ApiResourceKind.agent}
+ *       resourceKindString="agent"
+ *       resourceId={agentId}
+ *       org="acme"
+ *       includeTeams={share.canShareWithTeams}
+ *       onGranted={share.refetch}
+ *       onCancel={onClose}
+ *     />
+ *   );
+ * }
  * ```
  */
 export function GrantAccessForm({

@@ -137,12 +137,18 @@ export interface FileReviewCardProps {
  *
  * @example
  * ```tsx
- * const { reviewFileChanges, submittingDecisionKeys } = useReviewFileChanges();
- * <FileReviewCard
- *   fileReviewSet={set}
- *   onSubmit={(action, opts) => reviewFileChanges(sessionId, set.changeSetId, action, opts)}
- *   submittingDecisionKeys={submittingDecisionKeys}
- * />
+ * import type { FileReviewSet } from "@stigmer/client";
+ *
+ * function ReviewCard({ sessionId, set }: { sessionId: string; set: FileReviewSet }) {
+ *   const { reviewFileChanges, submittingDecisionKeys } = useReviewFileChanges();
+ *   return (
+ *     <FileReviewCard
+ *       fileReviewSet={set}
+ *       onSubmit={(action, opts) => reviewFileChanges(sessionId, set.changeSetId, action, opts)}
+ *       submittingDecisionKeys={submittingDecisionKeys}
+ *     />
+ *   );
+ * }
  * ```
  */
 export const FileReviewCard = memo(function FileReviewCard({

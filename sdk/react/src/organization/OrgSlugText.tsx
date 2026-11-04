@@ -21,7 +21,8 @@ export interface OrgSlugTextProps {
  *
  * @example
  * ```tsx
- * cell: (item) => <OrgSlugText orgId={item.org} className="text-muted-foreground" />
+ * // A stored `metadata.org` is an id; the cell reads the organization's slug.
+ * <OrgSlugText orgId="org_01jabc" />
  * ```
  */
 export function OrgSlugText({ orgId, className }: OrgSlugTextProps) {

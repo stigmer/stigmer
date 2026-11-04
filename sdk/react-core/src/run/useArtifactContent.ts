@@ -84,7 +84,11 @@ export interface UseArtifactContentReturn {
  *
  * @example
  * ```tsx
- * const { content, isLoading } = useArtifactContent(executionId, outputRef.storageKey);
+ * function ToolOutput({ executionId, storageKey }: { executionId: string; storageKey: string }) {
+ *   const { content, isLoading } = useArtifactContent(executionId, storageKey);
+ *   if (isLoading) return <p>Loading…</p>;
+ *   return <pre>{content}</pre>;
+ * }
  * ```
  *
  * @see useToolOutputContent — the tool-output reader built on this hook

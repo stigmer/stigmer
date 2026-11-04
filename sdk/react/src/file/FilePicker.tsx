@@ -50,7 +50,10 @@ export interface FilePickerProps {
  *
  * @example
  * ```tsx
- * <FilePicker org="acme" value={fileIds} onChange={setFileIds} />
+ * function Attachments() {
+ *   const [fileIds, setFileIds] = useState<string[]>([]);
+ *   return <FilePicker org="acme" value={fileIds} onChange={setFileIds} />;
+ * }
  * ```
  */
 export function FilePicker({ org, value, onChange, disabled = false, className }: FilePickerProps) {

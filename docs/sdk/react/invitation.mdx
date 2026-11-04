@@ -43,16 +43,22 @@ function useCreateInvitation(): UseCreateInvitationReturn
 />
 
 ```tsx
-const { create, isCreating, error } = useCreateInvitation();
+import { IamRole } from "@stigmer/client";
 
-const invitation = await create({
-  name: "engineering-link",
-  org: "acme",
-  role: IamRole.VIEWER,
-  expiresAt: new Date(Date.now() + 30 * 86_400_000),
-  label: "Engineering team invite",
-});
-const inviteUrl = `${window.location.origin}/invite/${invitation.status?.token}`;
+function InviteLinkButton({ onLink }: { onLink: (url: string) => void }) {
+  const { create, isCreating } = useCreateInvitation();
+  const invite = async () => {
+    const invitation = await create({
+      name: "engineering-link",
+      org: "acme",
+      role: IamRole.viewer,
+      expiresAt: new Date(Date.now() + 30 * 86_400_000),
+      label: "Engineering team invite",
+    });
+    onLink(`${window.location.origin}/invite/${invitation.status?.token}`);
+  };
+  return <button disabled={isCreating} onClick={invite}>Create invite link</button>;
+}
 ```
 
 
@@ -105,13 +111,13 @@ function useInvitationPreview(token: string | null): UseInvitationPreviewReturn
 />
 
 ```tsx
-const { preview, isLoading, error } = useInvitationPreview(token);
-
-if (isLoading) return <Spinner />;
-if (!preview) return <NotFound />;
-if (!preview.isValid) return <Expired reason={preview.invalidReason} />;
-
-return <p>Join {preview.orgName} as {preview.role}</p>;
+function InvitePreview({ token }: { token: string }) {
+  const { preview, isLoading } = useInvitationPreview(token);
+  if (isLoading) return <p>Loading…</p>;
+  if (!preview) return <p>This invitation does not exist.</p>;
+  if (!preview.isValid) return <p>This invitation has expired: {preview.invalidReason}</p>;
+  return <p>Join {preview.orgName} as {preview.role}</p>;
+}
 ```
 
 
@@ -238,10 +244,14 @@ function useRevokeInvitation(): UseRevokeInvitationReturn
 />
 
 ```tsx
-const { revoke, isRevoking, error } = useRevokeInvitation();
-
-await revoke("inv-abc123");
-refetch(); // refresh the invitation list
+function RevokeInviteButton({ invitationId, onRevoked }: { invitationId: string; onRevoked: () => void }) {
+  const { revoke, isRevoking } = useRevokeInvitation();
+  const onClick = async () => {
+    await revoke(invitationId);
+    onRevoked(); // refresh the invitation list
+  };
+  return <button disabled={isRevoking} onClick={onClick}>Revoke</button>;
+}
 ```
 
 
@@ -273,11 +283,9 @@ All visual properties flow through `--stgm-*` design tokens.
 />
 
 ```tsx
-<InvitationCreatedAlert
-  inviteUrl="https://app.stigmer.ai/invite/abc123..."
-  label="Engineering team invite"
-  onDismiss={() => setCreatedUrl(null)}
-/>
+function InviteReveal({ inviteUrl, onDone }: { inviteUrl: string; onDone: () => void }) {
+  return <InvitationCreatedAlert inviteUrl={inviteUrl} label="Engineering team invite" onDismiss={onDone} />;
+}
 ```
 
 
@@ -314,12 +322,8 @@ All visual properties flow through `--stgm-*` design tokens.
 />
 
 ```tsx
-<InvitationManager org="acme" />
-
-<InvitationManager
-  org="acme"
-  buildInviteUrl={(token) => `https://myapp.com/join/${token}`}
-/>
+// Links point at your own join page; omit buildInviteUrl to use this origin's /invite/<token>.
+<InvitationManager org="acme" buildInviteUrl={(token) => `https://myapp.com/join/${token}`} />
 ```
 
 
@@ -362,18 +366,18 @@ All visual properties flow through `--stgm-*` design tokens.
 />
 
 ```tsx
-<InvitationRedemption
-  token={tokenFromUrl}
-  onAccepted={(inv) => router.push("/dashboard")}
-/>
+type JoinPageProps = { token: string; signedIn: boolean; onOpen: (href: string) => void; onSignIn: () => void };
 
-<InvitationRedemption
-  token={tokenFromUrl}
-  isAuthenticated={!!currentUser}
-  autoAccept={shouldAutoAccept}
-  onAccepted={(inv) => router.push(`/org/${inv.metadata?.org}`)}
-  onAuthRequired={() => redirectToLogin()}
-/>
+function JoinPage({ token, signedIn, onOpen, onSignIn }: JoinPageProps) {
+  return (
+    <InvitationRedemption
+      token={token}
+      isAuthenticated={signedIn}
+      onAccepted={(invitation) => onOpen(`/org/${invitation.metadata?.org}`)}
+      onAuthRequired={onSignIn}
+    />
+  );
+}
 ```
 
 

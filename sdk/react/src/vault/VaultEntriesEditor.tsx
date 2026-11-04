@@ -85,15 +85,19 @@ function connectionLine(connection: VaultConnection): string {
  *
  * @example
  * ```tsx
- * const myVault = useMyVault(org);
- * <VaultEntriesEditor
- *   vault={myVault.vault}
- *   onSetSecrets={myVault.setSecrets}
- *   onRemoveSecrets={myVault.removeSecrets}
- *   onSetConnection={myVault.setConnection}
- *   onRemoveConnections={myVault.removeConnections}
- *   isMutating={myVault.isMutating}
- * />
+ * function MyVaultPage() {
+ *   const myVault = useMyVault("acme");
+ *   return (
+ *     <VaultEntriesEditor
+ *       vault={myVault.vault}
+ *       onSetSecrets={myVault.setSecrets}
+ *       onRemoveSecrets={myVault.removeSecrets}
+ *       onSetConnection={myVault.setConnection}
+ *       onRemoveConnections={myVault.removeConnections}
+ *       isMutating={myVault.isMutating}
+ *     />
+ *   );
+ * }
  * ```
  */
 export function VaultEntriesEditor({

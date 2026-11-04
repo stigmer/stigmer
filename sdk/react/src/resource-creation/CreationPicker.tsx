@@ -63,15 +63,19 @@ type PickerView = "options" | "gallery";
  *
  * @example
  * ```tsx
- * <CreationPicker
- *   resourceLabel="agent"
- *   templates={AGENT_TEMPLATES}
- *   onSelect={(path) => {
- *     if (path.kind === "scratch") startWizard();
- *     if (path.kind === "template") startWizard(path.data);
- *     if (path.kind === "import") openImportDialog();
- *   }}
- * />
+ * function NewAgentChoice({ onStart, onImport }: { onStart: (template?: Partial<unknown>) => void; onImport: () => void }) {
+ *   return (
+ *     <CreationPicker
+ *       resourceLabel="agent"
+ *       templates={AGENT_TEMPLATES}
+ *       onSelect={(path) => {
+ *         if (path.kind === "scratch") onStart();
+ *         if (path.kind === "template") onStart(path.data);
+ *         if (path.kind === "import") onImport();
+ *       }}
+ *     />
+ *   );
+ * }
  * ```
  */
 export function CreationPicker<TData>({

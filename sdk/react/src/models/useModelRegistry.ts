@@ -82,11 +82,11 @@ export interface UseModelRegistryReturn {
  *
  * @example
  * ```tsx
- * // Unified mode — flat picker with all models
+ * // Unified mode: a flat picker with every model
  * const { featured, models, getByKey, isLoading } = useModelRegistry();
  *
  * // Single-harness mode
- * const { models, defaultModel } = useModelRegistry({ harness: "stigmer" });
+ * const { models: stigmerModels, defaultModel } = useModelRegistry({ harness: "stigmer" });
  * ```
  */
 export function useModelRegistry(options?: UseModelRegistryOptions): UseModelRegistryReturn {

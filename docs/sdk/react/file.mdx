@@ -75,8 +75,10 @@ function useFile(fileId: string | null): UseFileReturn
 />
 
 ```tsx
-const { file } = useFile(fileId);
-return <span>{file?.spec?.filename ?? "file"}</span>;
+function FileName({ fileId }: { fileId: string }) {
+  const { file } = useFile(fileId);
+  return <span>{file?.spec?.filename ?? "file"}</span>;
+}
 ```
 
 
@@ -110,7 +112,7 @@ function useFileContent(fileId: string | null): UseFileContentReturn
 />
 
 ```tsx
-const { content, isLoading } = useFileContent(file.metadata?.id ?? null);
+const { content, isLoading } = useFileContent("fil_01jabc");
 ```
 
 
@@ -177,10 +179,14 @@ function useFileDownload(): UseFileDownloadReturn
 />
 
 ```tsx
-const { download, isDownloading } = useFileDownload();
-<button onClick={() => download(fileId, "ledger.xlsx")} disabled={isDownloading}>
-  Download
-</button>
+function DownloadLedger({ fileId }: { fileId: string }) {
+  const { download, isDownloading } = useFileDownload();
+  return (
+    <button onClick={() => download(fileId, "ledger.xlsx")} disabled={isDownloading}>
+      Download
+    </button>
+  );
+}
 ```
 
 
@@ -244,8 +250,14 @@ function useSessionFiles(org: string | null, sessionId: string | null, refreshKe
 />
 
 ```tsx
-const refreshKey = runs.map((r) => `${r.metadata?.id}:${isSettled(r)}`).join(",");
-const { outputsByRun } = useSessionFiles(org, sessionId, refreshKey);
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+
+function RunsWithFiles({ org, sessionId, runs }: { org: string; sessionId: string; runs: readonly Run[] }) {
+  // Refetch as each run ends, so the files it made appear.
+  const refreshKey = runs.map((r) => `${r.metadata?.id}:${isTerminalPhase(r.status?.phase ?? 0)}`).join(",");
+  const { outputsByRun } = useSessionFiles(org, sessionId, refreshKey);
+  return <p>{outputsByRun.size} runs made files</p>;
+}
 ```
 
 
@@ -269,7 +281,10 @@ uploaded.
 />
 
 ```tsx
-<FilePicker org="acme" value={fileIds} onChange={setFileIds} />
+function Attachments() {
+  const [fileIds, setFileIds] = useState<string[]>([]);
+  return <FilePicker org="acme" value={fileIds} onChange={setFileIds} />;
+}
 ```
 
 

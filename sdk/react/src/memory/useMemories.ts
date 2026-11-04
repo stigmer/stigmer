@@ -41,7 +41,7 @@ export interface UseMemoriesReturn {
  *
  * @example
  * ```tsx
- * const { memories, isLoading, refetch } = useMemories(org);
+ * const { memories, isLoading, refetch } = useMemories("acme");
  * const groups = groupMemoriesByLifecycle(memories);
  * ```
  */

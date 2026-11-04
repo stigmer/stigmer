@@ -192,8 +192,11 @@ function useVaultEntries(org: string | null, vaultId: string | null): UseVaultEn
 />
 
 ```tsx
-const entries = useVaultEntries("acme", vault.metadata!.id);
-await entries.setSecrets({ LEDGER_API_KEY: "..." });
+function SaveLedgerKey({ vaultId, apiKey }: { vaultId: string; apiKey: string }) {
+  const entries = useVaultEntries("acme", vaultId);
+  const save = () => entries.setSecrets({ LEDGER_API_KEY: apiKey });
+  return <button onClick={save} disabled={entries.isMutating}>Save key</button>;
+}
 ```
 
 
@@ -255,10 +258,14 @@ function useVaultSignIn(): UseVaultSignInReturn
 />
 
 ```tsx
-const signIn = useVaultSignIn();
-<button onClick={() => signIn.signIn("https://mcp.linear.app/mcp", { org }).then(refetch)}>
-  Sign in again
-</button>
+function SignInAgainButton({ onSignedIn }: { onSignedIn: () => void }) {
+  const signIn = useVaultSignIn();
+  return (
+    <button onClick={() => signIn.signIn("https://mcp.linear.app/mcp", { org: "acme" }).then(onSignedIn)}>
+      Sign in again
+    </button>
+  );
+}
 ```
 
 
@@ -280,7 +287,9 @@ Compact form for creating a shared vault.
 />
 
 ```tsx
-<CreateVaultForm org="acme" onCreated={() => refetch()} />
+function NewVault({ onCreated }: { onCreated: () => void }) {
+  return <CreateVaultForm org="acme" onCreated={onCreated} />;
+}
 ```
 
 
@@ -333,7 +342,7 @@ All visual properties flow through `--stgm-*` design tokens.
     { key: "GITHUB_TOKEN", isSecret: true, description: "Personal access token" },
     { key: "REPO_OWNER", isSecret: false },
   ]}
-  onSubmit={(values) => saveToMyVault(values)}
+  onSubmit={(values) => console.log(values.GITHUB_TOKEN.value)}
   onCancel={() => console.log("cancelled")}
 />
 ```
@@ -401,15 +410,19 @@ Write-only editor for a vault's secrets and logins.
 />
 
 ```tsx
-const myVault = useMyVault(org);
-<VaultEntriesEditor
-  vault={myVault.vault}
-  onSetSecrets={myVault.setSecrets}
-  onRemoveSecrets={myVault.removeSecrets}
-  onSetConnection={myVault.setConnection}
-  onRemoveConnections={myVault.removeConnections}
-  isMutating={myVault.isMutating}
-/>
+function MyVaultPage() {
+  const myVault = useMyVault("acme");
+  return (
+    <VaultEntriesEditor
+      vault={myVault.vault}
+      onSetSecrets={myVault.setSecrets}
+      onRemoveSecrets={myVault.removeSecrets}
+      onSetConnection={myVault.setConnection}
+      onRemoveConnections={myVault.removeConnections}
+      isMutating={myVault.isMutating}
+    />
+  );
+}
 ```
 
 
@@ -455,7 +468,12 @@ accessible reorder buttons.
 />
 
 ```tsx
-<VaultPicker org="acme" value={vaults} onChange={setVaults} />
+import type { ResourceRef } from "@stigmer/client";
+
+function RunVaults() {
+  const [vaults, setVaults] = useState<ResourceRef[]>([]);
+  return <VaultPicker org="acme" value={vaults} onChange={setVaults} />;
+}
 ```
 
 

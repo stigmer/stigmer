@@ -31,11 +31,16 @@ export interface UseWorkspaceWriteBacksReturn {
  *
  * @example
  * ```tsx
- * const { run } = useLiveRun(executionId);
- * const { writeBacks, hasWriteBacks } = useWorkspaceWriteBacks(run);
- *
- * if (hasWriteBacks) {
- *   writeBacks.forEach((wb) => console.log(wb.workspaceEntryName, wb.pullRequestUrl));
+ * function PullRequests({ executionId }: { executionId: string }) {
+ *   const { run } = useLiveRun(executionId);
+ *   const { writeBacks } = useWorkspaceWriteBacks(run);
+ *   return (
+ *     <ul>
+ *       {writeBacks.map((wb) => (
+ *         <li key={wb.workspaceEntryName}><a href={wb.pullRequestUrl}>{wb.workspaceEntryName}</a></li>
+ *       ))}
+ *     </ul>
+ *   );
  * }
  * ```
  */

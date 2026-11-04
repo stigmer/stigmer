@@ -73,17 +73,18 @@ import {
  *
  * @example
  * ```tsx
- * const composerRef = useRef<SessionComposerHandle>(null);
- *
- * function handleBuildFromPlan() {
- *   // Switch to Agent mode and run immediately — no manual Send.
- *   composerRef.current?.submit("Build from plan", {
- *     interactionMode: "agent",
- *     buildFromPlan: true,
- *   });
+ * function PlanComposer({ onSubmit }: { onSubmit: SessionComposerProps["onSubmit"] }) {
+ *   const composerRef = useRef<SessionComposerHandle>(null);
+ *   // Switch to Agent mode and run at once, with no manual Send.
+ *   const buildFromPlan = () =>
+ *     composerRef.current?.submit("Build from plan", { interactionMode: "agent", buildFromPlan: true });
+ *   return (
+ *     <>
+ *       <button onClick={buildFromPlan}>Build from plan</button>
+ *       <SessionComposer ref={composerRef} onSubmit={onSubmit} />
+ *     </>
+ *   );
  * }
- *
- * <SessionComposer ref={composerRef} onSubmit={handleSubmit} />
  * ```
  */
 export interface SessionComposerHandle {

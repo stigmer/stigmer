@@ -14,8 +14,12 @@ import { environmentsNotApplying, type EnvironmentsNotApplying } from "./resolve
  *
  * @example
  * ```tsx
- * const notApplying = useEnvironmentsNotApplying();
- * if (notApplying === undefined) return <EnvironmentConfigureItem />;
+ * function EnvironmentSettings({ children }: { children: ReactNode }) {
+ *   const notApplying = useEnvironmentsNotApplying();
+ *   if (notApplying === "own-machine") return <p>Conversations run on your machine: no Environment applies.</p>;
+ *   if (notApplying === "not-on-server") return <p>This server starts no sandboxes.</p>;
+ *   return <>{children}</>;
+ * }
  * ```
  */
 export function useEnvironmentsNotApplying(): EnvironmentsNotApplying | undefined {
