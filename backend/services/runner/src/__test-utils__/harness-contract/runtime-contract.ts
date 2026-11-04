@@ -441,9 +441,11 @@ export async function assertFileReviewRoundTrip(harness: RuntimeContractHarness,
   expect(rows.get(keepId)?.fileChangeSetId, `${subject.name}: a flowed row is badged with the change set`).toBe(changeSetId);
   expect(rows.get(dropId)?.fileChangeSetId).toBe(changeSetId);
   expect(rows.get(keepId)?.status, `${subject.name}: a flowed row is COMPLETED, never gated`).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
-  // The strip is the runtime's, attached on its writes. Its COUNT is
-  // the capture floor's (#1114); the arm asserts the ownership, not the floor.
+  // The strip is the runtime's, attached on its writes. Mid-turn its count
+  // is the capture floor's (#1114); the turn's final write captures past the
+  // floor (#2425), so on the final status it is the turn's own: both files.
   expect(afterCapture.fileChangeProgress?.changeSetId, `${subject.name}: the runtime carries this turn's strip`).toBe(changeSetId);
+  expect([...(afterCapture.fileChangeProgress?.entries ?? []).map((e) => e.pathAfter)].sort(), `${subject.name}: the final strip counts both writes`).toEqual([DROPPED, KEPT]);
   expect(afterCapture.fileChanges.map((set) => set.id), `${subject.name}: the run's file record carries the captured change set`).toEqual([changeSetId]);
   expect([...afterCapture.fileChanges[0]!.changes.map((c) => c.pathAfter)].sort(), `${subject.name}: the file record holds both files`).toEqual([DROPPED, KEPT]);
   expect(afterCapture.completedAt, `${subject.name}: the turn is complete`).not.toBe("");

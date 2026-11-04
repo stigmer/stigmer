@@ -242,6 +242,12 @@ export function newProgressCaptureState(): ProgressCaptureState {
  * the floor stays spent, so a failure that persists costs one attempt per
  * interval, as a healthy capture does. The substrates leave their caches at the
  * last capture that succeeded, so the next one converges.
+ *
+ * `force` skips the floor: the turn's final write passes it (#2425), so the
+ * strip a turn ends with is always that turn's own. That write runs after the
+ * engine settled, when no write of the agent's can race the capture, and it
+ * costs one capture per turn; a mid-turn capture the floor turned away, or one
+ * that failed racing a write, no longer leaves the strip stale for good.
  */
 export async function captureFileChangeProgress(opts: {
   readonly status: RunStatus;
@@ -250,9 +256,11 @@ export async function captureFileChangeProgress(opts: {
   readonly state: ProgressCaptureState;
   /** Injectable clock for tests; defaults to `Date.now()`. */
   readonly nowMs?: number;
+  /** Capture even inside the floor: the turn's final write. */
+  readonly force?: boolean;
 }): Promise<void> {
   const now = opts.nowMs ?? Date.now();
-  if (!shouldCaptureProgress(opts.state.lastAtMs, now)) return;
+  if (opts.force !== true && !shouldCaptureProgress(opts.state.lastAtMs, now)) return;
   opts.state.lastAtMs = now;
 
   let capture: ProgressCapture;
