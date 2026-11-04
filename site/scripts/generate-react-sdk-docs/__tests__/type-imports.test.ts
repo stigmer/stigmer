@@ -24,6 +24,13 @@ describe("patternSubpath", () => {
     expect(patternSubpath({ "./gen/*": "./out/*.d.ts" }, "out/a/b.d.ts")).toBe("gen/a/b");
   });
 
+  it("reads a file TypeDoc gave relative to a package.json inside the pattern's folder (a library built for publishing)", () => {
+    expect(patternSubpath(exportsMap, "ai/stigmer/agentic/run/v1/api_pb.d.ts")).toBe("ai/stigmer/agentic/run/v1/api_pb");
+    expect(patternSubpath({ "./*": "./build/types/*.d.ts" }, "types/a_pb.d.ts")).toBe("a_pb");
+    // A folder name is never split: `ist/` is not a folder of `dist/`.
+    expect(patternSubpath({ "./*": "./dist*.d.ts" }, "x.d.ts")).toBeNull();
+  });
+
   it("gives nothing for a file outside every pattern, or a map without one", () => {
     expect(patternSubpath(exportsMap, "src/index.ts")).toBeNull();
     expect(patternSubpath({ ".": "./dist/index.js" }, "dist/index.d.ts")).toBeNull();
