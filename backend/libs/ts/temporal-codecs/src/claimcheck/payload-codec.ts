@@ -32,7 +32,7 @@ interface ClaimcheckMarker {
    * "binary/claimcheck" encoding and no payload converter could interpret
    * it. Absent when the relocated payload carried no metadata
    * (`serializeMetadata` writes nothing for none); such a marker decodes
-   * with the marker payload's own metadata.
+   * to a payload with no metadata, exactly as it went in.
    */
   metadata?: Record<string, string>;
 }
@@ -107,12 +107,11 @@ export class ClaimcheckPayloadCodec implements PayloadCodec {
     }
     const dataBuf = marker.compressed ? decompress(rawBuf) : rawBuf;
 
-    return {
-      metadata: marker.metadata
-        ? deserializeMetadata(marker.metadata)
-        : payload.metadata,
-      data: dataBuf,
-    };
+    // Omit the key, not `metadata: undefined`, so the restored payload has
+    // the same shape as the one that was relocated.
+    return marker.metadata
+      ? { metadata: deserializeMetadata(marker.metadata), data: dataBuf }
+      : { data: dataBuf };
   }
 
   private isClaimcheckPayload(payload: Payload): boolean {
