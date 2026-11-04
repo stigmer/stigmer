@@ -1082,6 +1082,55 @@ describe.skipIf(!capabilities.authorizationQueries)(
       );
     });
 
+    it("the other three lanes refuse a person's contextual grants too: an asserted relation to another organization reads nothing back", async () => {
+      const me =
+        (await clients.identityAccountQuery.whoAmI({})).metadata?.id ?? "";
+      const mine = await createOwnedOrganization();
+      const theirs = await createOwnedOrganization();
+      // The asserted rows: my organization claims theirs as a child, and
+      // I claim theirs' admin role. Evaluated as held, the first lists
+      // their members through child_org_viewer, the second lists their
+      // resources (stigmer#2944).
+      const asserted = [
+        grantTriple({ kind: "organization", id: theirs }, "child_org", {
+          kind: "organization",
+          id: mine,
+        }),
+        organizationRole(me, "admin", theirs),
+      ];
+      await expectGrpcCode(
+        () =>
+          clients.grantQuery.listAuthorizedPrincipalIds({
+            resource: ref("organization", mine),
+            principalKind: "identity_account",
+            relation: "child_org_viewer",
+            contextualGrants: asserted,
+          }),
+        Code.PermissionDenied,
+        "listAuthorizedPrincipalIds with a person's contextual grants",
+      );
+      await expectGrpcCode(
+        () =>
+          clients.grantQuery.listAuthorizedResourceIds({
+            principal: ref("identity_account", me),
+            resourceKind: "organization",
+            relation: "can_view",
+            contextualGrants: asserted,
+          }),
+        Code.PermissionDenied,
+        "listAuthorizedResourceIds with a person's contextual grants",
+      );
+      await expectGrpcCode(
+        () =>
+          clients.grantQuery.checkAuthorization({
+            grant: organizationRole(me, "admin", theirs),
+            contextualGrants: asserted,
+          }),
+        Code.PermissionDenied,
+        "checkAuthorization with a person's contextual grants",
+      );
+    });
+
     it("a relation the asked kind does not have is false and an empty list, never INTERNAL", async () => {
       const me =
         (await clients.identityAccountQuery.whoAmI({})).metadata?.id ?? "";

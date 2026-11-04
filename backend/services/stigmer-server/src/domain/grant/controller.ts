@@ -77,7 +77,9 @@
  * `checkMyPermission` has one definition, in this order:
  * UNAUTHENTICATED for an empty identity; the relation must be an
  * IamPermission name; the resource kind must be known; contextual
- * grants ride the query engine or refuse UNIMPLEMENTED; then (1) a kind
+ * grants refuse UNIMPLEMENTED with no engine, PERMISSION_DENIED from a
+ * caller that is not the platform's own pipeline, and otherwise ride the
+ * query engine (refuseCallerContextualGrants); then (1) a kind
  * this edition does not serve is `false` — nobody holds a permission on a
  * kind that does not exist here, which is what keeps the operator-only
  * settings navigation hidden on open source; (2) `can_grant_access` on a
