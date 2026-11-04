@@ -77,7 +77,7 @@ import { platformReadRoot } from "../../shared/workspace/stigmer-link.js";
 import { toAnthropicImageBlocks } from "../../shared/attachment-vision.js";
 import { emitTimingLog } from "../../shared/cold-start-timing.js";
 import { getExecutionContext } from "../../shared/execution-context.js";
-import { isPathCapturable } from "../../shared/filereview/git-substrate.js";
+import { isPathCapturable, resolvesIntoGitDirectory } from "../../shared/filereview/git-substrate.js";
 import { declaredServerCount } from "../../shared/mcp-resolver.js";
 import { describeExecutionError } from "../../shared/model-error.js";
 import { modelLaneUrl, modelLanes } from "../../shared/model-lanes.js";
@@ -344,6 +344,8 @@ async function engineTurn(input: TurnInput, sink: TurnSink, config: ClaudeAdapte
       bridge: { serverOf: bridge.serverOf, mcpDefault: buildMcpApprovalDefault(bridge.listing, input.mcp.leases) },
       paths: { platformDir, engineHome: home, readsSkillContent: skillContentReadCheck(platformDir), platformReadRoot: await platformReadRoot(workspace.primaryDir, platformDir) },
       isCapturablePath: isCapturable,
+      inGitDirectory: (path: string) =>
+        workspace.gitWorkspace ? resolvesIntoGitDirectory(workspace.primaryDir, path.replace(/^\/+/, "")) : Promise.resolve(false),
       hooks,
       waitingCallOf: (id) => waiting.get(id),
       pending,

@@ -65,13 +65,15 @@
  *   never disturbed.
  */
 
-import { dirname, join } from "node:path";
+import { dirname, join, relative } from "node:path";
 import { agentFs } from "../agent-fs.js";
 import { STIGMER_LOCAL_STATE_DIR } from "../workspace/stigmer-link.js";
 import { bytesLookBinary } from "../file-change.js";
 import { sha256Bytes } from "./digest.js";
 import type { CapturedContent } from "./events.js";
 import { FileChangeType } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
+import { RUNTIME_GIT_CONFIG } from "../workspace/runtime-git.js";
+import { isGitDirectoryPath } from "../file-edit-policy.js";
 
 
 /** Build `:(exclude)` pathspecs for the runner-owned files a harness passes in. */
@@ -151,9 +153,10 @@ async function git(
   args: string[],
   env?: Record<string, string>,
 ): Promise<string> {
-  // Run by the agent's operations: the repository is the agent's, so are its
-  // hooks and config, and the process gets the performer's environment.
-  const { stdout } = await agentFs().execFile("git", args, {
+  // Run by the agent's operations: the repository is the agent's, and the
+  // process gets the performer's environment; its hooks and fsmonitor never
+  // run (RUNTIME_GIT_CONFIG).
+  const { stdout } = await agentFs().execFile("git", [...RUNTIME_GIT_CONFIG, ...args], {
     cwd: gitRoot,
     ...(env ? { env } : {}),
     maxBuffer: 256 * 1024 * 1024,
@@ -163,7 +166,7 @@ async function git(
 
 /** Run a git command returning raw stdout BYTES (for exact file-body reads). */
 async function gitBuffer(gitRoot: string, args: string[]): Promise<Buffer> {
-  const { stdout } = await agentFs().execFile("git", args, {
+  const { stdout } = await agentFs().execFile("git", [...RUNTIME_GIT_CONFIG, ...args], {
     cwd: gitRoot,
     maxBuffer: 256 * 1024 * 1024,
   });
@@ -193,11 +196,40 @@ export async function isGitWorkTree(dir: string): Promise<boolean> {
  */
 export async function isPathCapturable(gitRoot: string, path: string): Promise<boolean> {
   if (!path) return false;
+  if (await resolvesIntoGitDirectory(gitRoot, path)) return false;
   try {
     await git(gitRoot, ["check-ignore", "-q", "--", path]);
     return false; // exit 0 -> ignored -> not capturable
-  } catch {
-    return true; // exit 1 (not ignored) or error -> capturable
+  } catch (error) {
+    // Exit 1 is "not ignored": capturable. Any other failure (a path beyond
+    // a symbolic link, which git refuses to judge, or a fault) is not, so
+    // the write asks rather than flowing on an answer git never gave
+    // (stigmer#2962).
+    return (error as { code?: unknown }).code === 1;
+  }
+}
+
+/**
+ * Whether `path` (relative to `gitRoot`, or rooted at it) lands inside a
+ * `.git` directory once links are followed: by its name, or through a
+ * work-tree symlink to `.git` or to a file in it. A path that does not
+ * exist yet is judged by its nearest existing ancestor. A path whose
+ * resolution fails for another reason counts as inside, so its write asks.
+ */
+export async function resolvesIntoGitDirectory(gitRoot: string, path: string): Promise<boolean> {
+  const rel = path.replace(/^\/+/, "");
+  if (isGitDirectoryPath(rel)) return true;
+  const root = await agentFs().realpath(gitRoot).catch(() => gitRoot);
+  let probe = join(gitRoot, rel);
+  for (;;) {
+    try {
+      return isGitDirectoryPath(relative(root, await agentFs().realpath(probe)));
+    } catch (error) {
+      if ((error as { code?: unknown }).code !== "ENOENT") return true;
+      const parent = dirname(probe);
+      if (parent === probe) return false;
+      probe = parent;
+    }
   }
 }
 

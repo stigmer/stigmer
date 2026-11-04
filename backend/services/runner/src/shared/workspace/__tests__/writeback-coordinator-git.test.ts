@@ -16,7 +16,7 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { create } from "@bufbuild/protobuf";
@@ -147,6 +147,27 @@ afterEach(() => {
 });
 
 describe("WriteBackCoordinator against real git", () => {
+  it(
+    "never runs the clone's hooks or fsmonitor while it adds, commits and pushes (stigmer#2962)",
+    async () => {
+      mockGithubApi();
+      const marker = join(tmpRoot, "agent-command-ran");
+      const hooks = join(workDir, ".git", "agent-hooks");
+      mkdirSync(hooks);
+      for (const hook of ["pre-commit", "commit-msg", "pre-push", "post-checkout", "reference-transaction"]) {
+        writeFileSync(join(hooks, hook), `#!/bin/sh\necho ${hook} >> ${marker}\n`, { mode: 0o755 });
+      }
+      git(workDir, ["config", "core.hooksPath", hooks]);
+      git(workDir, ["config", "core.fsmonitor", `echo fsmonitor >> ${marker}; false`]);
+      writeFileSync(join(workDir, "notes.md"), "approved content\n");
+      const status = create(RunStatusSchema, {});
+      await makeCoordinator("exec-hooks", new TranscriptBuilder("exec-int", create(TurnRowsSchema), status)).finalize();
+      expect(status.workspaceWriteBacks[0]?.branchName).toBe(SESSION_BRANCH);
+      expect(existsSync(marker), existsSync(marker) ? readFileSync(marker, "utf8") : "").toBe(false);
+    },
+    GIT_TEST_TIMEOUT_MS,
+  );
+
   it(
     "pushes turn 1 to the session branch, then turn 2 (new instance) appends to it and adopts the PR",
     async () => {

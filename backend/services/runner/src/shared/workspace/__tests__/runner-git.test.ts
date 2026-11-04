@@ -217,7 +217,7 @@ describe("the runner's repository", () => {
     expect(git(workspace, ["rev-parse", "--abbrev-ref", "@{upstream}"]).trim()).toBe("origin/stigmer/ses_wide");
   }, GIT_TEST_TIMEOUT_MS);
 
-  it("never lets a hook the agent planted see the token", async () => {
+  it("never runs a hook the agent planted, so none sees the token", async () => {
     const { workspace, provisioned } = await cloneWorkspace();
     // The plant: hooks in .git/hooks and in a directory the clone's
     // core.hooksPath names, each writing git's whole environment out.
@@ -241,7 +241,9 @@ describe("the runner's repository", () => {
         return "";
       }
     })();
-    expect(seen, "the clone's own hooks ran").not.toBe("");
+    // The runtime's git in the clone runs no hook at all (stigmer#2962), so
+    // none can see the token; the runner's own git never ran them either.
+    expect(seen, "a planted hook ran").toBe("");
     expect(seen.includes(TOKEN) || seen.includes(BASIC), "a planted hook saw the token").toBe(false);
     expectNoTokenUnder(join(workspace, ".git"));
   }, GIT_TEST_TIMEOUT_MS);
