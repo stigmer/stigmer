@@ -1058,21 +1058,28 @@ describe.skipIf(!capabilities.authorizationQueries)(
       expect(principals.principalIds).toContain(me);
     });
 
-    it("checkMyPermission carrying contextual grants is answered by the engine, not refused", async () => {
+    it("checkMyPermission carrying a person's contextual grants is refused, never evaluated", async () => {
       const me =
         (await clients.identityAccountQuery.whoAmI({})).metadata?.id ?? "";
       const org = await createOwnedOrganization();
 
-      // The contextual rows ride into the FGA check.
-      // The owner is a viewer by the ladder, so the answer is true whether
-      // or not the row is considered; the arm pins that the lane is SERVED
-      // here (its open-source twin above pins the refusal).
-      const contextual = await clients.grantQuery.checkMyPermission({
-        resource: ref("organization", org),
-        relation: "can_view_access",
-        contextualGrants: [organizationRole(me, "viewer", org)],
-      });
-      expect(contextual.isAuthorized).toBe(true);
+      // Contextual rows are evaluated as held, so a person who could name
+      // them could assert a relation to an organization they do not belong
+      // to and read it back (stigmer#2944). They are the platform's own
+      // pipelines', and a person's are refused before the engine is asked,
+      // whatever they assert (here a row the owner already holds by the
+      // ladder). Its open-source twin above pins UNIMPLEMENTED: an edition
+      // with no engine answers that first, whoever asks.
+      await expectGrpcCode(
+        () =>
+          clients.grantQuery.checkMyPermission({
+            resource: ref("organization", org),
+            relation: "can_view_access",
+            contextualGrants: [organizationRole(me, "viewer", org)],
+          }),
+        Code.PermissionDenied,
+        "checkMyPermission with a person's contextual grants",
+      );
     });
 
     it("a relation the asked kind does not have is false and an empty list, never INTERNAL", async () => {

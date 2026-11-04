@@ -169,6 +169,7 @@ import { buildPrincipalAccessList, resolveHierarchy } from "./access-lists.js";
 import {
   AUTHENTICATION_REQUIRED_MESSAGE,
   AUTHORIZATION_QUERIES_UNIMPLEMENTED_MESSAGE,
+  CONTEXTUAL_GRANTS_REFUSED_MESSAGE,
   grantNotFoundMessage,
   unknownPermissionMessage,
 } from "./constants.js";
@@ -571,6 +572,7 @@ async function checkMyPermission(
 
   if (input.contextualGrants.length > 0) {
     const engine = requireQueryEngine(deps);
+    refuseCallerContextualGrants(caller, input.contextualGrants);
     const principal = create(ApiResourceRefSchema, {
       kind: kindEnumName(ApiResourceKind.identity_account),
       id: await callerPrincipalId(deps, caller),
@@ -632,6 +634,7 @@ async function checkAuthorization(
   await enforcePrincipalTrust(deps, caller, grant.principal);
   requireWellFormedTriple(grant);
   const engine = requireQueryEngine(deps);
+  refuseCallerContextualGrants(caller, input.contextualGrants);
   if (!(await bindingReaches(deps, caller, grant))) {
     return create(CheckAuthorizationResultSchema, { isAuthorized: false });
   }
@@ -680,6 +683,7 @@ async function listAuthorizedResourceIds(
   requireKnownPrincipalKind(principal.kind);
   requireKnownResourceKind(input.resourceKind);
   const engine = requireQueryEngine(deps);
+  refuseCallerContextualGrants(caller, input.contextualGrants);
   const resourceIds = await engine.listResourceIds(
     principal,
     input.relation,
@@ -717,6 +721,7 @@ async function listAuthorizedPrincipalIds(
     input,
   );
   const engine = requireQueryEngine(deps);
+  refuseCallerContextualGrants(callerIdentityOf(ctx), input.contextualGrants);
   const principalIds = await engine.listPrincipalIds(
     resource,
     input.relation,
@@ -857,6 +862,31 @@ async function callerPrincipalId(
     "failed to resolve the caller's account",
   );
   return account?.metadata?.id ?? caller.identityId;
+}
+
+/**
+ * Contextual grants are tuples the engine evaluates as if held, so whoever
+ * supplies them chooses the facts its answer rests on: a person who could
+ * name them could assert a relation to an organization they do not belong
+ * to and read its members or resources back. No product caller sends them;
+ * they are the platform's own pipelines' (isPlatformPipelineCaller), and
+ * every other caller is refused before the engine is asked (stigmer#2944).
+ * Asked after the engine is required, so an edition without one still
+ * answers UNIMPLEMENTED whoever asks.
+ */
+function refuseCallerContextualGrants(
+  caller: CallerIdentity | undefined,
+  contextualGrants: ReadonlyArray<GrantSpec>,
+): void {
+  if (
+    contextualGrants.length > 0 &&
+    (caller === undefined || !isPlatformPipelineCaller(caller))
+  ) {
+    throw new ConnectError(
+      CONTEXTUAL_GRANTS_REFUSED_MESSAGE,
+      Code.PermissionDenied,
+    );
+  }
 }
 
 /**

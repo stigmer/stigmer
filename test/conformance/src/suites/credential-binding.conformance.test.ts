@@ -354,7 +354,7 @@ describe("credential binding — a credential that names an organization works t
     expect(bound.isAuthorized, "the key limited to A may not").toBe(false);
   });
 
-  it("[rpc:GrantQueryController.checkMyPermission] a key limited to A gets false when it asks, with contextual grants, about a resource of B", async (ctx) => {
+  it("[rpc:GrantQueryController.checkMyPermission] a key limited to A gets no answer when it asks, with contextual grants, about a resource of B", async (ctx) => {
     if (lane === undefined) return ctx.skip(laneReason);
     const on = lane;
     if (!target.capabilities.authorizationQueries) {
@@ -368,8 +368,9 @@ describe("credential binding — a credential that names an organization works t
       organizationRole(personId, "member", b.org),
     );
     const elsewhere = await founderVault(on, b.org);
-    // Any contextual grant routes the question to the query engine (the
-    // lane the binding must also cover); this one changes no answer.
+    // Any contextual grant routes the question to the query engine, and a
+    // person's are refused before it is asked (stigmer#2944), so neither
+    // the person nor the key limited to A reaches B through that lane.
     const question = {
       resource: ref("vault", elsewhere),
       relation: "can_view",
@@ -381,11 +382,17 @@ describe("credential binding — a credential that names an organization works t
       ],
     };
 
-    const unbound = await person.grantQuery.checkMyPermission(question);
-    expect(unbound.isAuthorized, "the person may view B's row").toBe(true);
+    await expectGrpcCode(
+      () => person.grantQuery.checkMyPermission(question),
+      Code.PermissionDenied,
+      "the person's contextual grants",
+    );
     const key = await keyOf(on, person, a.org);
-    const bound = await key.clients.grantQuery.checkMyPermission(question);
-    expect(bound.isAuthorized, "the key limited to A may not").toBe(false);
+    await expectGrpcCode(
+      () => key.clients.grantQuery.checkMyPermission(question),
+      Code.PermissionDenied,
+      "the key limited to A, with contextual grants",
+    );
   });
 
   it("[rpc:OrganizationCommandController.create] a key limited to A cannot found an organization", async (ctx) => {

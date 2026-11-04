@@ -252,6 +252,14 @@ export const PER_RESOURCE_GRANTS_UNIMPLEMENTED_MESSAGE =
 export const AUTHORIZATION_QUERIES_UNIMPLEMENTED_MESSAGE =
   "authorization queries are served by the Enterprise and Cloud editions";
 
+/**
+ * Contextual grants from a caller that is not one of the platform's own
+ * pipelines (PERMISSION_DENIED). They are tuples the engine evaluates as if
+ * held, so whoever supplies them chooses the facts its answer rests on.
+ */
+export const CONTEXTUAL_GRANTS_REFUSED_MESSAGE =
+  "contextual grants are accepted only from the platform's own pipelines";
+
 /** listAccessHistory on open source, which keeps no history (UNIMPLEMENTED). */
 export const ACCESS_HISTORY_UNIMPLEMENTED_MESSAGE =
   "the access history is served by the Enterprise and Cloud editions";
