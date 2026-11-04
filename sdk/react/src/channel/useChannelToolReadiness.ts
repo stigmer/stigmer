@@ -7,13 +7,17 @@ import {
   useToolCredentialsReadiness,
   type ToolCredentialsReadiness,
 } from "../vault/useToolCredentialsReadiness.js";
-import { agentUsesTools } from "../agent/runServers.js";
+import { useRunUsesTools } from "../agent/useRunUsesTools.js";
+
+const CHECKING: ToolCredentialsReadiness = { status: "checking" };
 
 /**
  * Channel-scoped wrapper over {@link useToolCredentialsReadiness}:
  * checks whether a tool-using agent's credentials will work over a
  * channel — i.e. whether the channel names vaults
- * (`ChannelSpec.vaults`) and each one is a shared vault.
+ * (`ChannelSpec.vaults`) and each one is a shared vault. A tool-using
+ * agent is one whose run dials MCP servers: the agent's own or its
+ * plugins', or those of a subagent it lists.
  *
  * Channel runs have no person, so they use only the channel's own vaults
  * — exactly the share contract, without the audience arm (channels have no
@@ -22,7 +26,9 @@ import { agentUsesTools } from "../agent/runServers.js";
  *
  * The check runs only when serving is enabled (a paused channel serves
  * no traffic), the deployment is cloud (the channel runtime is
- * cloud-only), and the agent dials MCP servers (its own or its plugins', which read keys).
+ * cloud-only), and the run dials MCP servers (the agent's or a subagent's
+ * it lists, their own or their plugins', which read keys). While the
+ * subagents are read the answer is `checking`.
  */
 export function useChannelToolReadiness(
   agent: Agent,
@@ -30,8 +36,9 @@ export function useChannelToolReadiness(
   vaults: readonly ResourceRef[],
 ): ToolCredentialsReadiness {
   const deploymentMode = useDeploymentMode();
-  const usesTools = agentUsesTools(agent.spec);
-  const applicable = enabled && deploymentMode === "cloud" && usesTools;
+  const usesTools = useRunUsesTools(agent);
+  const surfaceApplies = enabled && deploymentMode === "cloud";
 
-  return useToolCredentialsReadiness(applicable, vaults);
+  const readiness = useToolCredentialsReadiness(surfaceApplies && usesTools === true, vaults);
+  return surfaceApplies && usesTools === null ? CHECKING : readiness;
 }

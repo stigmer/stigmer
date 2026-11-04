@@ -1,10 +1,12 @@
 // ChatLinkDialog: create a web channel (name, slug, audience) and edit it
 // (serving switch, link, embed, origins, credentials, messages, link reset),
-// every edit naming the dialog's fields on the channel as loaded.
+// every edit naming the dialog's fields on the channel as loaded. An agent
+// whose only tools are a subagent's warns and opens its credentials once the
+// subagent is read, unless the person shut the section first.
 
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
 import { sentRefs, sentUpdate } from "../../internal/__tests__/sent-update";
-import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
+import { act, render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { Code } from "@connectrpc/connect";
 import { ChannelAudience } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/spec_pb";
@@ -40,6 +42,8 @@ interface MockOverrides {
   getOrCreateBillingAccount?: (orgId: string) => Promise<unknown>;
   vaults?: unknown[];
   baseUrl?: string;
+  /** agent.getVersion: a listed subagent's pinned version. */
+  getVersion?: (input: unknown) => Promise<unknown>;
 }
 
 const CLOUD_API_BASE_URL = "https://api.stigmer.ai";
@@ -63,6 +67,9 @@ function sentChatLink(update: { mock: { calls: unknown[][] } }) {
 function createMockStigmer(overrides: MockOverrides = {}) {
   return {
     baseUrl: overrides.baseUrl ?? CLOUD_API_BASE_URL,
+    agent: {
+      getVersion: overrides.getVersion ?? vi.fn().mockRejectedValue(new Error("no version")),
+    },
     channel: {
       create: overrides.create ?? vi.fn().mockResolvedValue({}),
       update: overrides.update ?? vi.fn().mockResolvedValue({}),
@@ -117,6 +124,17 @@ function Providers({
       </DeploymentModeContext.Provider>
     </FetchCacheContext.Provider>
   );
+}
+
+/** The pinned version a subagent with a GitHub plugin reads as. */
+const SUBAGENT_WITH_TOOLS = { specSnapshot: { plugins: [{ org: "acme", slug: "github" }] } };
+
+/** An agent with no tools of its own that hands work to one subagent. */
+function makeDelegatingAgent() {
+  return {
+    metadata: { id: "agt_1", org: "acme", slug: "support-agent", name: "Support Agent" },
+    spec: { subagents: [{ org: "acme", id: "agt_sub", version: "a".repeat(64) }] },
+  } as never;
 }
 
 function makeAgent(overrides?: { plugins?: boolean }) {
@@ -753,6 +771,39 @@ describe("ChatLinkDialog", () => {
       // a chat link, so the picker never offers it.
       expect(screen.getByText("GitHub Creds")).toBeTruthy();
       expect(screen.queryByText("My vault")).toBeNull();
+    });
+
+    it("warns and opens the section once a subagent's reading says the run uses tools", async () => {
+      renderOpenDialog(createMockStigmer({ getVersion: vi.fn().mockResolvedValue(SUBAGENT_WITH_TOOLS) }), {
+        agent: makeDelegatingAgent(),
+        channel: makeChatLink({ enabled: true }),
+      });
+
+      const toggle = screen.getByRole("button", { name: "Tool credentials", hidden: true });
+      await waitFor(() => expect(toggle.getAttribute("aria-expanded")).toBe("true"));
+      expect(screen.getByText(/this\s+chat\s+link names no vault/i)).toBeTruthy();
+    });
+
+    it("keeps the section shut when the person shut it before the subagent's reading landed", async () => {
+      let answer: (version: unknown) => void = () => {};
+      const getVersion = vi.fn().mockReturnValue(new Promise((resolve) => (answer = resolve)));
+      renderOpenDialog(createMockStigmer({ getVersion }), {
+        agent: makeDelegatingAgent(),
+        channel: makeChatLink({ enabled: true }),
+      });
+
+      const toggle = screen.getByRole("button", { name: "Tool credentials", hidden: true });
+      expect(toggle.getAttribute("aria-expanded")).toBe("false");
+      expect(screen.queryByText(/this\s+chat\s+link names no vault/i)).toBeNull();
+      fireEvent.click(toggle);
+      fireEvent.click(toggle);
+      await act(async () => {
+        answer(SUBAGENT_WITH_TOOLS);
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+
+      expect(screen.getByText(/this\s+chat\s+link names no vault/i)).toBeTruthy();
+      expect(toggle.getAttribute("aria-expanded")).toBe("false");
     });
 
     it("hides the section entirely for org-audience chat links", () => {

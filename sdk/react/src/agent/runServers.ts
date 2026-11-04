@@ -56,6 +56,13 @@
  * nothing reads that name but the runner, so it is never declared here
  * and never asked for.
  *
+ * Whether a run uses tools at all is the question the channel and
+ * chat-link screens ask (`runUsesTools`, through `useRunUsesTools`): a
+ * surface whose runs have no person must name a vault when any agent of
+ * the run dials a server, the subagents included. It reads the subagents
+ * only, never a plugin: listing one is already using tools, and the
+ * agent's own spec is answered without a read (`agentUsesTools`).
+ *
  * Pinned by `__tests__/runServers.test.ts`.
  */
 
@@ -197,6 +204,15 @@ function named(ref: Pick<ApiResourceReference, "id" | "slug">): boolean {
  */
 export function subagentOrgs(spec: Pick<AgentSpec, "subagents"> | undefined, defaultOrg: string): string[] {
   return (spec?.subagents ?? []).filter(named).map((ref) => ref.org || defaultOrg);
+}
+
+/**
+ * One string per subagent `spec` lists, naming it and the version it is
+ * pinned at, in the order listed: a key for a reading of the subagents,
+ * which a pinned version never changes.
+ */
+export function subagentPins(spec: Pick<AgentSpec, "subagents"> | undefined, defaultOrg: string): string[] {
+  return (spec?.subagents ?? []).filter(named).map((ref) => `${ref.org || defaultOrg}/${ref.id || ref.slug}@${ref.version}`);
 }
 
 /** Each subagent `spec` lists that can be read, at its pinned version, in the order listed. */
@@ -372,7 +388,22 @@ export function serversOf(reading: RunServersReading): McpServerEntry[] {
   return reading.servers.map((server) => server.entry);
 }
 
-/** Whether a run of the agent dials any MCP server: it lists a plugin, or writes a server of its own. */
+/** Whether the agent at `spec` itself dials any MCP server: it lists a plugin, or writes a server of its own. */
 export function agentUsesTools(spec: Pick<AgentSpec, "plugins" | "mcpServers"> | undefined): boolean {
   return (spec?.plugins?.length ?? 0) > 0 || (spec?.mcpServers?.length ?? 0) > 0;
+}
+
+/**
+ * Whether a run of the agent at `spec` dials an MCP server through a
+ * subagent it lists: one of them, read at its pin, uses tools. A subagent
+ * that cannot be read is left out (the module header), so this resolves
+ * always. The agent's own tools are the caller's to judge first.
+ */
+export async function runUsesTools(
+  stigmer: Pick<Stigmer, "agent">,
+  spec: Pick<AgentSpec, "subagents">,
+  defaultOrg: string,
+): Promise<boolean> {
+  const subagents = await readSubagents(stigmer, spec, defaultOrg);
+  return subagents.some((subagent) => agentUsesTools(subagent.spec));
 }

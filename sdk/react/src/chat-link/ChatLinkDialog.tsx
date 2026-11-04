@@ -42,7 +42,7 @@ import { useRotateChannelLink } from "./useRotateChannelLink.js";
 import { useChatLinkToolReadiness } from "./useChatLinkToolReadiness.js";
 import { trimTrailing } from "../internal/trim.js";
 import { useOrgSlugForId } from "../organization/useOrgRefs.js";
-import { agentUsesTools } from "../agent/runServers.js";
+import { useToolCredentialsDisclosure } from "../vault/useToolCredentialsDisclosure.js";
 
 /** Maximum length of each visitor message (proto: `string.max_len = 300`). */
 const MAX_MESSAGE_LENGTH = 300;
@@ -982,8 +982,10 @@ function ResetLinkControl({
  * Public audience only; the section disappears for
  * org chat links, whose members run on their own keys.
  *
- * Expanded by default when the agent dials MCP servers, its own or its plugins' — for those agents
- * this is essential configuration, not an advanced option.
+ * Expanded by default when the run dials MCP servers, the agent's or a
+ * subagent's it lists — for those agents this is essential configuration,
+ * not an advanced option. When it opens is
+ * `useToolCredentialsDisclosure`'s rule.
  */
 function ToolCredentialsSection({
   org,
@@ -1001,10 +1003,7 @@ function ToolCredentialsSection({
     successMessage: string,
   ) => Promise<boolean>;
 }) {
-  const usesTools = agentUsesTools(agent.spec);
-  const [expanded, setExpanded] = useState(
-    usesTools || draft.vaults.length > 0,
-  );
+  const { expanded, toggle } = useToolCredentialsDisclosure(agent, draft.vaults.length > 0);
 
   const handleChange = useCallback(
     (refs: ResourceRef[]) => {
@@ -1021,7 +1020,7 @@ function ToolCredentialsSection({
     <section>
       <button
         type="button"
-        onClick={() => setExpanded((v) => !v)}
+        onClick={toggle}
         aria-expanded={expanded}
         className={cn(
           "stg:inline-flex stg:items-center stg:gap-1 stg:text-xs stg:font-medium stg:text-muted-foreground",
