@@ -44,25 +44,22 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      # Pre-publish hard gate: the prod bridge image (mcp-server/Dockerfile)
-      # installs the npm version named by its pinned ARG default, and the prod
-      # deploy pipeline rebuilds from that default on every mcp-server-touching
-      # push to main. If the pin does not move with the release, prod silently
-      # keeps serving the previous bridge — which is exactly what happened on
-      # five consecutive releases (3.5.0 → 3.6.0) until the 2026-08-05
-      # stale-roster incident. The rule is now enforced, not remembered: bump
-      # the pin in the commit you tag, or this release fails here.
-      #
-      # Ordering note: the pin-bump commit reaches main before this workflow
-      # publishes the version it names, so the Planton bridge build that commit
-      # triggers can fail once (npm 404) — re-run it after this publish lands.
+      # Pre-publish hard gate: the MCP server image (mcp-server/Dockerfile)
+      # installs the npm version named by its pinned ARG default whenever a
+      # build passes none, such as a hand `docker build`, and a moved pin is
+      # what re-runs that install past Docker's layer cache. If the pin does
+      # not move with the release, a build of the release's commit installs
+      # the previous version, which is what happened on five consecutive
+      # releases (3.5.0 → 3.6.0) until the 2026-08-05 stale-roster incident.
+      # The rule is now enforced, not remembered: bump the pin in the commit
+      # you tag, or this release fails here.
       - name: Verify mcp-server Dockerfile pin matches release (pre-publish gate)
         run: |
           PIN="$(sed -n 's/^ARG MCP_SERVER_VERSION=//p' mcp-server/Dockerfile)"
           VERSION="${NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION}"
           if [ "$PIN" != "$VERSION" ]; then
             echo "ERROR: mcp-server/Dockerfile pins MCP_SERVER_VERSION=$PIN but this release publishes $VERSION."
-            echo "Prod deploys the pin, not the tag — bump the pin in the same commit you tag."
+            echo "A build of the tagged commit installs the pin — bump the pin in the same commit you tag."
             exit 1
           fi
           echo "mcp-server/Dockerfile pin $PIN matches release version $VERSION"

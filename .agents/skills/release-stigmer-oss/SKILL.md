@@ -115,7 +115,8 @@ the user's confirmation.
 Five pins travel in the commit the tag is cut from, and `make release` refuses
 to tag until all five name the new version: the MCP server image version in
 `mcp-server/Dockerfile` (the npm publish lane refuses a version that does not
-match it; production deploys the pin, not the tag), the compose stack's
+match it; a hand build of the image installs the pin, and a moved pin is what
+re-runs that install past Docker's layer cache), the compose stack's
 `STIGMER_VERSION` in `docker-compose.yml` and `.env.example` (the stack a fresh
 clone runs), `version` and `appVersion` in `deploy/helm/stigmer/Chart.yaml` (the
 chart's image tags default to the app version), and the two upgrade examples on
@@ -212,24 +213,26 @@ Never force-push a tag; if one exists, stop and say so.
 
 Every lane triggers on the `v*` tag; the list is
 `.github/workflows/release.*.yaml` and `make release` prints the summary. In
-short: protos to the Buf registry; CLI binaries and the GitHub release; desktop
-installers as a draft; the `@stigmer/*` npm packages including `@stigmer/server`
-(the library the cloud composition pins) and `@stigmer/server-slim`, then, once
-that run is green, a copy of the release's packages into Stigmer's own npm
-repository (`release.npm-mirror.yaml`, its own run, where compositions install
-`@stigmer/*` from; a failed copy is re-run by dispatching that workflow with the
-version, and a release dispatched rather than tagged is copied that way), and
-the MCP server image, after that same green run (`release.mcp-server.yaml`, its
-own run; a failed build, a release dispatched rather than tagged, or one tagged
-before this trigger is built by dispatching it from main with the version), with
-the server, Enterprise server, runner and all-in-one images pushed to GHCR and
-the Helm chart to its OCI registry, each smoked before promotion; the Go SDK
-through the module proxy; the Python packages to PyPI; the Java SDK to Maven;
-the Rust crate; the sandbox cloud image, whose `runner:v<version>` tag and
-`prod` appear only after its smoke test passes. When the npm release succeeds
-for a release tag (a prerelease tag ends the run green with nothing run),
-`ci.live.yaml` runs the tagged commit's live suites and the published CLI
-against the real model providers. A red run files a `live-failure` issue: a
-broken provider path is fixed like any defect, an outage is waited out, and a
-person closes the issue once a dispatch of the workflow runs green. A dispatch
-installs a published CLI, so a fix on the CLI's side needs a release first.
+short: protos to the Buf registry; CLI binaries and the GitHub release; the
+signed desktop installers and the updater's `latest.json` onto that same public
+release (a draft only when the CLI's release never appears, after five minutes);
+the `@stigmer/*` npm packages including `@stigmer/server` (the library the cloud
+composition pins) and `@stigmer/server-slim`, then, once that run is green, a
+copy of the release's packages into Stigmer's own npm repository
+(`release.npm-mirror.yaml`, its own run, where compositions install `@stigmer/*`
+from; a failed copy is re-run by dispatching that workflow with the version, and
+a release dispatched rather than tagged is copied that way), and the MCP server
+image, after that same green run (`release.mcp-server.yaml`, its own run; a
+failed build, a release dispatched rather than tagged, or one tagged before this
+trigger is built by dispatching it from main with the version), with the server,
+Enterprise server, runner and all-in-one images pushed to GHCR and the Helm
+chart to its OCI registry, each smoked before promotion; the Go SDK through the
+module proxy; the Python packages to PyPI; the Java SDK to Maven; the Rust
+crate; the sandbox cloud image, whose `runner:v<version>` tag and `prod` appear
+only after its smoke test passes. When the npm release succeeds for a release
+tag (a prerelease tag ends the run green with nothing run), `ci.live.yaml` runs
+the tagged commit's live suites and the published CLI against the real model
+providers. A red run files a `live-failure` issue: a broken provider path is
+fixed like any defect, an outage is waited out, and a person closes the issue
+once a dispatch of the workflow runs green. A dispatch installs a published CLI,
+so a fix on the CLI's side needs a release first.

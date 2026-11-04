@@ -136,20 +136,31 @@ jobs:
             echo "Extracted TAG_BODY length: ${#TAG_BODY}"
           fi
 
+          # Written for a first-time reader, on every release. The install
+          # script and npm lead because they serve the new version the moment
+          # npm has it; the Homebrew tap follows a day later on purpose
+          # (reconcile-homebrew.yaml, stigmer/stigmer#210), so `brew install`
+          # comes third and says so.
           INSTALL_SECTION=$(cat <<'INST'
-          ## Installation
+          ## Install
 
-          ### Homebrew (macOS/Linux)
           ```bash
-          brew upgrade stigmer
+          curl -fsSL https://stigmer.ai/install.sh | sh
           ```
 
-          ### npm
+          Or with npm (Node 22.13 or later):
+
           ```bash
           npm install -g @stigmer/cli
           ```
 
-          The server and runner are acquired automatically on first `stigmer up`.
+          Or with Homebrew, about a day after the release:
+
+          ```bash
+          brew install stigmer/tap/stigmer
+          ```
+
+          Already on an earlier 0.x release? `brew upgrade stigmer`, or the npm line again, moves you to this release. Then run `stigmer up`.
           INST
           )
 
@@ -160,19 +171,6 @@ jobs:
               echo ""
               echo "$TAG_BODY"
             } > /tmp/changelog.txt
-          elif [ -z "$PREVIOUS_TAG" ]; then
-            cat > /tmp/changelog.txt <<FIRST
-          ## Installation
-
-          ### Homebrew (macOS/Linux)
-          \`\`\`bash
-          brew install stigmer/tap/stigmer
-          \`\`\`
-
-          ## What's New
-
-          First release of Stigmer CLI. Agent-runner runs as a native process — no Docker required.
-          FIRST
           else
             # Fallback: generate changelog from git log
             echo "Falling back to git log changelog ($PREVIOUS_TAG..$VERSION)"
