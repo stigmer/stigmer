@@ -64,11 +64,15 @@ LABEL org.opencontainers.image.source="https://github.com/stigmer/stigmer" \
 # keys — under one mount, with the exact on-disk layout of a bare-metal
 # ~/.stigmer: /data/.stigmer is byte-portable to and from `stigmer up`.
 #
-# ARTIFACT_HTTP_HOST=0.0.0.0: the artifact file server defaults
-# to loopback, which is unreachable through the container boundary even
-# with -p; the container network namespace is the isolation here.
+# ARTIFACT_HTTP_HOST=0.0.0.0 and GRPC_HOST=0.0.0.0: the artifact file
+# server, and the unified port of a server without sign-in, default to
+# loopback, which is unreachable through the container boundary even with
+# -p; the container network namespace is the isolation here, and the
+# publish address (docker-compose.yml: the host's loopback) decides who
+# reaches it.
 ENV HOME=/data \
-    ARTIFACT_HTTP_HOST=0.0.0.0
+    ARTIFACT_HTTP_HOST=0.0.0.0 \
+    GRPC_HOST=0.0.0.0
 
 # /data must exist owned by the runtime user before VOLUME freezes it:
 # named volumes initialize from the image and inherit this ownership.

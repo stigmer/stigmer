@@ -292,6 +292,7 @@ import {
 } from "../transport/console/handler.js";
 import { createRegistryLanes } from "../transport/registry/lanes.js";
 import { createUnifiedPortServer } from "../transport/server.js";
+import { chooseListenHost } from "./listen-host.js";
 import { registerExtensionServicesUnshadowed } from "./route-shadowing.js";
 import { defaultSandboxRunnerImage, type ServerConfig } from "./config.js";
 import { createInProcessClients } from "./inprocess.js";
@@ -2471,6 +2472,7 @@ export async function composeServer(
     ...(fileTransferLane === undefined ? {} : { fileTransferLane }),
     managedAgentsLane,
     consoleLane,
+    localOnly: !requireAuthentication,
   });
 
   // The hand-over (extensions/composed-services.ts): every unit receives
@@ -2654,15 +2656,22 @@ export async function composeServer(
       // Undefined when an extension provider substituted the catalog —
       // that implementation owns its own freshness.
       ossModelRegistryStore?.startRefresh();
+      const listenHost = chooseListenHost({
+        chosen: options.host ?? config.grpcHost,
+        requireAuthentication,
+      });
+      if (listenHost.warning !== undefined) {
+        logger.warn(listenHost.warning);
+      }
       const port = await server.listen(
         options.portOverride ?? config.grpcPort,
-        options.host,
+        listenHost.host,
       );
       // Recorded in the listen continuation, a microtask that runs before
       // the first accepted connection is dispatched, so no wire request
       // can mint a skill transfer URL before the port it names is known.
       unifiedBoundPort = port;
-      logger.info("stigmer-server listening", { port });
+      logger.info("stigmer-server listening", { port, host: listenHost.host });
       return port;
     },
 

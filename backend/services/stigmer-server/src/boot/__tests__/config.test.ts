@@ -79,6 +79,15 @@ describe("loadConfig", () => {
     );
   });
 
+  // stigmer#2945: unset leaves the unified port's bind to the sign-in
+  // posture (boot/listen-host.ts), so a server without sign-in stays on
+  // loopback; the container images set it.
+  it("reads GRPC_HOST, and leaves it to the sign-in posture when unset or blank", () => {
+    expect(loadConfig({}).grpcHost).toBeUndefined();
+    expect(loadConfig({ GRPC_HOST: "" }).grpcHost).toBeUndefined();
+    expect(loadConfig({ GRPC_HOST: " 0.0.0.0 " }).grpcHost).toBe("0.0.0.0");
+  });
+
   // stigmer#1089: the artifact lane's port and serve URL follow the unified
   // port the composition binds (boot/artifact-lane.ts), so the loader keeps
   // only what the operator set and derives nothing.
