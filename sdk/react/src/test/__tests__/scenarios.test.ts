@@ -7,6 +7,9 @@
  * open, a finished session's Files and origin); that the adapter's live turn, phase
  * and composer state follow the hook's rules; that its actions are inert;
  * and that no scenario carries a timestamp other than the frozen instant's.
+ * Beside the states: the scripted turn the docs play, its parts in the order
+ * a reader's acts choose between, and `upTo`, which draws any scenario part
+ * of the way through.
  */
 import { describe, it, expect } from "vitest";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
@@ -14,12 +17,14 @@ import type { ToolUse } from "@stigmer/client";
 import {
   SCENARIO_CLOCK,
   SCENARIO_NAMES,
+  SCRIPTED_MESSAGE,
   conversationOf,
   scenarios,
+  scriptedStory,
+  scriptedTurn,
+  upTo,
   usageOf,
   type ScenarioName,
-  scriptedTurn,
-  SCRIPTED_MESSAGE,
 } from "../scenarios";
 import { SAMPLE_INSTANT, samples } from "@stigmer/react-core/test";
 
@@ -205,6 +210,62 @@ describe("the scenario catalogue", () => {
       conversation.clearFileReviewError();
       conversation.reconnectStream();
     }).not.toThrow();
+  });
+});
+
+describe("the scripted turn and upTo", () => {
+  it("waits at the ask, then ends with the answer when allowed, the reply without the command when denied, interrupted when stopped", () => {
+    const turn = scriptedTurn("what changed?", "run_x");
+    for (const [tail, phase, answer] of [
+      [turn.approved, "completed", /^Two changes this week/],
+      [turn.denied, "completed", /^I won't run it/],
+    ] as const) {
+      const events = [...turn.untilAsk, ...tail];
+      const story = upTo({ ...scriptedStory(), events: events.map((e, i) => ({ ...e, seq: BigInt(i + 1) })) }, events.length);
+      const last = story.fold.turns.at(-1)!;
+      expect(last.userMessage?.text).toBe("what changed?");
+      expect(last.status?.phase).toBe(phase);
+      expect(last.answer).toMatch(answer);
+    }
+    expect(turn.stopped.map((e) => e.event.case === "stigmerRunStatus" && e.event.value.phase)).toEqual(["cancelled"]);
+  });
+
+  it("tells the story whole: two reads, the ask, the answer, every event stamped in order from the frozen instant", () => {
+    const story = scriptedStory();
+    const turn = story.fold.turns[0]!;
+    expect(turn.userMessage?.text).toBe(SCRIPTED_MESSAGE);
+    expect(turn.items.flatMap((item) => (item.kind === "tool_use" ? [item.name] : []))).toEqual(["read_file", "read_file", "execute"]);
+    expect(turn.status?.phase).toBe("completed");
+    expect(story.runs.map((run) => run.status?.phase)).toEqual([RunPhase.RUN_COMPLETED]);
+    const stamps = story.events.map((e) => Date.parse((e.event.value as { processedAt?: string }).processedAt ?? ""));
+    expect(stamps.every((stamp, i) => i === 0 || stamp >= stamps[i - 1]!)).toBe(true);
+    expect(stamps[0]).toBe(Date.parse(SAMPLE_INSTANT));
+  });
+
+  it("draws a scenario part of the way: the turn waiting at its ask, the run in its phase, the session kept", () => {
+    const story = scriptedStory();
+    const atAsk = story.events.findIndex((e) => e.event.case === "stigmerRunStatus" && e.event.value.phase === "waiting") + 1;
+    const waiting = upTo(story, atAsk);
+    expect(waiting.events).toHaveLength(atAsk);
+    expect(waiting.fold.turns[0]!.asks.map((ask) => ask.name)).toEqual(["execute"]);
+    expect(waiting.runs.map((run) => run.status?.phase)).toEqual([RunPhase.RUN_WAITING_FOR_APPROVAL]);
+    expect(waiting.session).toBe(story.session);
+    expect(conversationOf(waiting).activePhase).toBe("waiting");
+  });
+
+  it("keeps what lives beside the events only when every event is drawn", () => {
+    const busy = scenarios.busy;
+    expect(upTo(busy, busy.events.length).liveness).toBe(busy.liveness);
+    expect(upTo(busy, busy.events.length - 1).liveness).toBeUndefined();
+    expect(upTo(scenarios.finished, scenarios.finished.events.length).files).toEqual(scenarios.finished.files);
+    expect(upTo(scenarios.finished, 3).files).toEqual([]);
+    expect(upTo(scenarios.finished, 3).usage).toBeUndefined();
+  });
+
+  it("refuses a count that is not one of the scenario's events", () => {
+    expect(() => upTo(scenarios.completed, -1)).toThrow(RangeError);
+    expect(() => upTo(scenarios.completed, scenarios.completed.events.length + 1)).toThrow(/has \d+ events/);
+    expect(() => upTo(scenarios.completed, 1.5)).toThrow(RangeError);
   });
 });
 

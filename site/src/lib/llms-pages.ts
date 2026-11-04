@@ -31,6 +31,7 @@ import * as path from "node:path";
 import matter from "gray-matter";
 import { diagram } from "../components/visuals/diagrams";
 import { LIVE_CAPTION, liveUrl } from "./live";
+import { lastFrameText } from "./recordings";
 import { SHOWN_SCALE, screenPath, shownScreen } from "./screens";
 import { splitSnippetSetup } from "./snippet-setup.mjs";
 
@@ -177,6 +178,9 @@ interface PictureTag {
  *   alt text, or a demo the visual suite does not list, throws.
  * - `<ThemePlayground />` becomes a line saying what the playground offers,
  *   linked to the theming page that holds it.
+ * - `<TerminalRecording name="…" alt="…" />` becomes its alt text, then the
+ *   recording's last frame as a `text` block, as its own paragraph; blank alt
+ *   text, or a recording the terminal kit does not hold, throws.
  */
 const PICTURES: readonly PictureTag[] = [
   {
@@ -205,6 +209,17 @@ const PICTURES: readonly PictureTag[] = [
       const alt = attributes.get("alt")!;
       if (alt.trim() === "") throw new Error(`<Live name="${name}">: alt text is required; the export carries it in the demo's place`);
       return `\n\n[${markdownAlt(alt)}](${siteUrl}${liveUrl(name)}) (live demo; ${LIVE_CAPTION.charAt(0).toLowerCase()}${LIVE_CAPTION.slice(1)})\n\n`;
+    },
+  },
+  {
+    name: "TerminalRecording",
+    needs: ["name", "alt"],
+    block: true,
+    rewrite: (attributes) => {
+      const name = attributes.get("name")!;
+      const alt = attributes.get("alt")!;
+      if (alt.trim() === "") throw new Error(`<TerminalRecording name="${name}">: alt text is required; the export carries it in the recording's place`);
+      return `\n\n${alt.replace(/\s+/g, " ").trim().replace(/\.$/, "")}. The recording ends on this frame:\n\n\`\`\`text\n${lastFrameText(name)}\n\`\`\`\n\n`;
     },
   },
   {

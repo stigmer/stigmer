@@ -58,6 +58,10 @@ on:
       - "test/visual/package.json"
       # The console's typefaces the gallery's stylesheet bundles.
       - "client-apps/web/src/app/fonts/**"
+      # The terminal recordings the docs play (<TerminalRecording>): the
+      # terminal kit's list and the frames its test holds.
+      - "sdk/ink/src/recordings.ts"
+      - "sdk/ink/src/__tests__/__recordings__/**"
       - "test/bundle-budgets.json"
       - ".github/workflows/build.website.yaml"
       - ".github/workflows/preview.website.yaml"

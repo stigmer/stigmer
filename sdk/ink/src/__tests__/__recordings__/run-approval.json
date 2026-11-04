@@ -1,0 +1,74 @@
+{
+  "name": "run-approval",
+  "story": "scripted-turn",
+  "columns": 80,
+  "rows": 24,
+  "command": "stigmer run demo/demo-agent -m \"What changed in billing this week?\"",
+  "title": "stigmer run: the agent reads two files, asks before it runs git log, and answers once allowed",
+  "frames": [
+    {
+      "at": 0,
+      "text": "$ stigmer run demo/demo-agent -m \"What changed in billing this week?\""
+    },
+    {
+      "at": 1200,
+      "text": " \u001b[1m\u001b[2mFix invoice rounding\u001b[22m\n\n \u001b[1mYou\u001b[22m\n What changed in billing this week?\n\n \u001b[1m⠋\u001b[22m Working\u001b[2m · 0s · Esc to stop\u001b[22m\n \u001b[2mAgent mode — full tool access\u001b[22m\n\n \u001b[1m❯\u001b[22m \u001b[7mR\u001b[27m\u001b[2meply...\u001b[22m\n   \u001b[2mEnter send · \\⏎ newline · Shift+Tab plan mode · Ctrl+C leave · ? keys\u001b[22m"
+    },
+    {
+      "at": 2400,
+      "text": " \u001b[1m\u001b[2mFix invoice rounding\u001b[22m\n\n \u001b[1mYou\u001b[22m\n What changed in billing this week?\n\n  \u001b[33m⠋\u001b[39m \u001b[2m▶\u001b[22m read_file\n\n \u001b[1m⠋\u001b[22m Reading CHANGELOG.md\u001b[2m · 1s · Esc to stop\u001b[22m\n \u001b[2mAgent mode — full tool access\u001b[22m\n\n \u001b[1m❯\u001b[22m \u001b[7mR\u001b[27m\u001b[2meply...\u001b[22m\n   \u001b[2mEnter send · \\⏎ newline · Shift+Tab plan mode · Ctrl+C leave · ? keys\u001b[22m"
+    },
+    {
+      "at": 3000,
+      "text": " \u001b[1m\u001b[2mFix invoice rounding\u001b[22m\n\n \u001b[1mYou\u001b[22m\n What changed in billing this week?\n\n  \u001b[32m✓\u001b[39m \u001b[2m▶\u001b[22m read_file\n\n \u001b[1m⠋\u001b[22m Working\u001b[2m · 1s · Esc to stop\u001b[22m\n \u001b[2mAgent mode — full tool access\u001b[22m\n\n \u001b[1m❯\u001b[22m \u001b[7mR\u001b[27m\u001b[2meply...\u001b[22m\n   \u001b[2mEnter send · \\⏎ newline · Shift+Tab plan mode · Ctrl+C leave · ? keys\u001b[22m"
+    },
+    {
+      "at": 3800,
+      "text": " \u001b[1m\u001b[2mFix invoice rounding\u001b[22m\n\n \u001b[1mYou\u001b[22m\n What changed in billing this week?\n\n  \u001b[33m⠋\u001b[39m \u001b[2m▶\u001b[22m 2 tool calls\n\n \u001b[1m⠋\u001b[22m Reading invoice.ts\u001b[2m · 2s · Esc to stop\u001b[22m\n \u001b[2mAgent mode — full tool access\u001b[22m\n\n \u001b[1m❯\u001b[22m \u001b[7mR\u001b[27m\u001b[2meply...\u001b[22m\n   \u001b[2mEnter send · \\⏎ newline · Shift+Tab plan mode · Ctrl+C leave · ? keys\u001b[22m"
+    },
+    {
+      "at": 4400,
+      "text": " \u001b[1m\u001b[2mFix invoice rounding\u001b[22m\n\n \u001b[1mYou\u001b[22m\n What changed in billing this week?\n\n  \u001b[32m✓\u001b[39m \u001b[2m▶\u001b[22m 2 tool calls\n\n \u001b[1m⠋\u001b[22m Working\u001b[2m · 3s · Esc to stop\u001b[22m\n \u001b[2mAgent mode — full tool access\u001b[22m\n\n \u001b[1m❯\u001b[22m \u001b[7mR\u001b[27m\u001b[2meply...\u001b[22m\n   \u001b[2mEnter send · \\⏎ newline · Shift+Tab plan mode · Ctrl+C leave · ? keys\u001b[22m"
+    },
+    {
+      "at": 5200,
+      "text": " \u001b[1m\u001b[2mFix invoice rounding\u001b[22m\n\n \u001b[1mYou\u001b[22m\n What changed in billing this week?\n\n  \u001b[32m✓\u001b[39m \u001b[2m▶\u001b[22m 2 tool calls\n\n \u001b[1m\u001b[32mAgent\u001b[39m\u001b[22m\n The changelog names two changes. I'd like to check the commits behind them.\n\n \u001b[1m⠋\u001b[22m Working\u001b[2m · 4s · Esc to stop\u001b[22m\n \u001b[2mAgent mode — full tool access\u001b[22m\n\n \u001b[1m❯\u001b[22m \u001b[7mR\u001b[27m\u001b[2meply...\u001b[22m\n   \u001b[2mEnter send · \\⏎ newline · Shift+Tab plan mode · Ctrl+C leave · ? keys\u001b[22m"
+    },
+    {
+      "at": 6000,
+      "text": " \u001b[1m\u001b[2mFix invoice rounding\u001b[22m\n\n \u001b[1mYou\u001b[22m\n What changed in billing this week?\n\n  \u001b[32m✓\u001b[39m \u001b[2m▶\u001b[22m 2 tool calls\n\n \u001b[1m\u001b[32mAgent\u001b[39m\u001b[22m\n The changelog names two changes. I'd like to check the commits behind them.\n\n  ○ \u001b[2m▶\u001b[22m execute\n\n\u001b[33m╭───────────────────────────────────────────────────────────────╮\u001b[39m\n\u001b[33m│\u001b[39m \u001b[1m\u001b[33m⚠ Approval required\u001b[39m\u001b[22m                                           \u001b[33m│\u001b[39m\n\u001b[33m│\u001b[39m   \u001b[2mTool:\u001b[22m \u001b[1mexecute\u001b[22m                                               \u001b[33m│\u001b[39m\n\u001b[33m│\u001b[39m   \u001b[1m\u001b[32m▸ [y] Approve\u001b[39m\u001b[22m  \u001b[2m  [a] Approve all shell commands\u001b[22m  \u001b[2m  [n] Deny\u001b[22m \u001b[33m│\u001b[39m\n\u001b[33m╰───────────────────────────────────────────────────────────────╯\u001b[39m\n\n \u001b[1m○\u001b[22m Waiting for you\u001b[2m · 4s · Esc to stop\u001b[22m\n \u001b[2mAgent mode — full tool access\u001b[22m\n\n \u001b[1m❯\u001b[22m \u001b[7mR\u001b[27m\u001b[2meply...\u001b[22m\n   \u001b[2mEnter send · \\⏎ newline · Shift+Tab plan mode · Ctrl+C leave · ? keys\u001b[22m"
+    },
+    {
+      "at": 6100,
+      "text": " \u001b[1m\u001b[2mFix invoice rounding\u001b[22m\n\n \u001b[1mYou\u001b[22m\n What changed in billing this week?\n\n  \u001b[32m✓\u001b[39m \u001b[2m▶\u001b[22m 2 tool calls\n\n \u001b[1m\u001b[32mAgent\u001b[39m\u001b[22m\n The changelog names two changes. I'd like to check the commits behind them.\n\n  ○ \u001b[2m▶\u001b[22m execute\n\n\u001b[33m╭───────────────────────────────────────────────────────────────╮\u001b[39m\n\u001b[33m│\u001b[39m \u001b[1m\u001b[33m⚠ Approval required\u001b[39m\u001b[22m                                           \u001b[33m│\u001b[39m\n\u001b[33m│\u001b[39m   \u001b[2mTool:\u001b[22m \u001b[1mexecute\u001b[22m                                               \u001b[33m│\u001b[39m\n\u001b[33m│\u001b[39m   \u001b[2mArgs:\u001b[22m {\"command\":\"git log --oneline -3 -- src/billing\"}     \u001b[33m│\u001b[39m\n\u001b[33m│\u001b[39m   \u001b[2mWhy:\u001b[22m \u001b[3m\u001b[2mrequired by built-in tool policy\u001b[22m\u001b[23m                       \u001b[33m│\u001b[39m\n\u001b[33m│\u001b[39m   \u001b[1m\u001b[32m▸ [y] Approve\u001b[39m\u001b[22m  \u001b[2m  [a] Approve all shell commands\u001b[22m  \u001b[2m  [n] Deny\u001b[22m \u001b[33m│\u001b[39m\n\u001b[33m╰───────────────────────────────────────────────────────────────╯\u001b[39m\n\n \u001b[1m○\u001b[22m Waiting for you\u001b[2m · 4s · Esc to stop\u001b[22m\n \u001b[2mAgent mode — full tool access\u001b[22m\n\n \u001b[1m❯\u001b[22m \u001b[7mR\u001b[27m\u001b[2meply...\u001b[22m\n   \u001b[2mEnter send · \\⏎ newline · Shift+Tab plan mode · Ctrl+C leave · ? keys\u001b[22m"
+    },
+    {
+      "at": 6200,
+      "text": " \u001b[1m\u001b[2mFix invoice rounding\u001b[22m\n\n \u001b[1mYou\u001b[22m\n What changed in billing this week?\n\n  \u001b[32m✓\u001b[39m \u001b[2m▶\u001b[22m 2 tool calls\n\n \u001b[1m\u001b[32mAgent\u001b[39m\u001b[22m\n The changelog names two changes. I'd like to check the commits behind them.\n\n  ○ \u001b[2m▶\u001b[22m execute\n\n\u001b[33m╭───────────────────────────────────────────────────────────────╮\u001b[39m\n\u001b[33m│\u001b[39m \u001b[1m\u001b[33m⚠ Approval required\u001b[39m\u001b[22m                                           \u001b[33m│\u001b[39m\n\u001b[33m│\u001b[39m   \u001b[2mTool:\u001b[22m \u001b[1mexecute\u001b[22m                                               \u001b[33m│\u001b[39m\n\u001b[33m│\u001b[39m   \u001b[2mArgs:\u001b[22m {\"command\":\"git log --oneline -3 -- src/billing\"}     \u001b[33m│\u001b[39m\n\u001b[33m│\u001b[39m   \u001b[2mWhy:\u001b[22m \u001b[3m\u001b[2mrequired by built-in tool policy\u001b[22m\u001b[23m                       \u001b[33m│\u001b[39m\n\u001b[33m│\u001b[39m   \u001b[1m\u001b[32m▸ [y] Approve\u001b[39m\u001b[22m  \u001b[2m  [a] Approve all shell commands\u001b[22m  \u001b[2m  [n] Deny\u001b[22m \u001b[33m│\u001b[39m\n\u001b[33m╰───────────────────────────────────────────────────────────────╯\u001b[39m\n\n \u001b[1m○\u001b[22m Waiting for you\u001b[2m · 5s · Esc to stop\u001b[22m\n\n \u001b[1m❯\u001b[22m \u001b[2mReply...\u001b[22m\n   \u001b[2mEnter send · \\⏎ newline · Shift+Tab plan mode · Ctrl+C leave · ? keys\u001b[22m"
+    },
+    {
+      "at": 8700,
+      "text": " \u001b[1m\u001b[2mFix invoice rounding\u001b[22m\n\n \u001b[1mYou\u001b[22m\n What changed in billing this week?\n\n  \u001b[32m✓\u001b[39m \u001b[2m▶\u001b[22m 2 tool calls\n\n \u001b[1m\u001b[32mAgent\u001b[39m\u001b[22m\n The changelog names two changes. I'd like to check the commits behind them.\n\n  \u001b[33m⠋\u001b[39m \u001b[2m▶\u001b[22m execute\n\n \u001b[1m⠋\u001b[22m Running a command\u001b[2m · 8s · Esc to stop\u001b[22m\n\n \u001b[1m❯\u001b[22m \u001b[2mReply...\u001b[22m\n   \u001b[2mEnter send · \\⏎ newline · Shift+Tab plan mode · Ctrl+C leave · ? keys\u001b[22m"
+    },
+    {
+      "at": 8800,
+      "text": " \u001b[1m\u001b[2mFix invoice rounding\u001b[22m\n\n \u001b[1mYou\u001b[22m\n What changed in billing this week?\n\n  \u001b[32m✓\u001b[39m \u001b[2m▶\u001b[22m 2 tool calls\n\n \u001b[1m\u001b[32mAgent\u001b[39m\u001b[22m\n The changelog names two changes. I'd like to check the commits behind them.\n\n  \u001b[33m⠋\u001b[39m \u001b[2m▶\u001b[22m execute\n\n \u001b[1m⠋\u001b[22m Running a command\u001b[2m · 8s · Esc to stop\u001b[22m\n \u001b[2mAgent mode — full tool access\u001b[22m\n\n \u001b[1m❯\u001b[22m \u001b[7mR\u001b[27m\u001b[2meply...\u001b[22m\n   \u001b[2mEnter send · \\⏎ newline · Shift+Tab plan mode · Ctrl+C leave · ? keys\u001b[22m"
+    },
+    {
+      "at": 10000,
+      "text": " \u001b[1m\u001b[2mFix invoice rounding\u001b[22m\n\n \u001b[1mYou\u001b[22m\n What changed in billing this week?\n\n  \u001b[32m✓\u001b[39m \u001b[2m▶\u001b[22m 2 tool calls\n\n \u001b[1m\u001b[32mAgent\u001b[39m\u001b[22m\n The changelog names two changes. I'd like to check the commits behind them.\n\n  \u001b[32m✓\u001b[39m \u001b[2m▶\u001b[22m execute\n\n \u001b[1m⠋\u001b[22m Working\u001b[2m · 9s · Esc to stop\u001b[22m\n \u001b[2mAgent mode — full tool access\u001b[22m\n\n \u001b[1m❯\u001b[22m \u001b[7mR\u001b[27m\u001b[2meply...\u001b[22m\n   \u001b[2mEnter send · \\⏎ newline · Shift+Tab plan mode · Ctrl+C leave · ? keys\u001b[22m"
+    },
+    {
+      "at": 11200,
+      "text": " \u001b[1m\u001b[2mFix invoice rounding\u001b[22m\n\n \u001b[1mYou\u001b[22m\n What changed in billing this week?\n\n  \u001b[32m✓\u001b[39m \u001b[2m▶\u001b[22m 2 tool calls\n\n \u001b[1m\u001b[32mAgent\u001b[39m\u001b[22m\n The changelog names two changes. I'd like to check the commits behind them.\n\n  \u001b[32m✓\u001b[39m \u001b[2m▶\u001b[22m execute\n\n \u001b[1m\u001b[32mAgent\u001b[39m\u001b[22m\n Two changes this week. Invoices now round once, at the total, instead of per\n line (7d03b51), and credit notes follow the same rule (a41c9e2). A third commit\n  adds tests for the half-cent cases.\n\n \u001b[1m⠋\u001b[22m Working\u001b[2m · 10s · Esc to stop\u001b[22m\n \u001b[2mAgent mode — full tool access\u001b[22m\n\n \u001b[1m❯\u001b[22m \u001b[7mR\u001b[27m\u001b[2meply...\u001b[22m\n   \u001b[2mEnter send · \\⏎ newline · Shift+Tab plan mode · Ctrl+C leave · ? keys\u001b[22m"
+    },
+    {
+      "at": 11700,
+      "text": " \u001b[1m\u001b[2mFix invoice rounding\u001b[22m\n\n \u001b[1mYou\u001b[22m\n What changed in billing this week?\n\n  \u001b[32m✓\u001b[39m \u001b[2m▶\u001b[22m 2 tool calls\n\n \u001b[1m\u001b[32mAgent\u001b[39m\u001b[22m\n The changelog names two changes. I'd like to check the commits behind them.\n\n  \u001b[32m✓\u001b[39m \u001b[2m▶\u001b[22m execute\n\n \u001b[1m\u001b[32mAgent\u001b[39m\u001b[22m\n Two changes this week. Invoices now round once, at the total, instead of per\n line (7d03b51), and credit notes follow the same rule (a41c9e2). A third commit\n  adds tests for the half-cent cases.\n\n \u001b[2m✻ Worked for 11s\u001b[22m\n\n \u001b[2mAgent mode — full tool access\u001b[22m\n\n \u001b[1m❯\u001b[22m \u001b[7mR\u001b[27m\u001b[2meply...\u001b[22m\n   \u001b[2mEnter send · \\⏎ newline · Shift+Tab plan mode · Ctrl+C leave · ? keys\u001b[22m"
+    },
+    {
+      "at": 14700,
+      "text": " \u001b[1m\u001b[2mFix invoice rounding\u001b[22m\n\n \u001b[1mYou\u001b[22m\n What changed in billing this week?\n\n  \u001b[32m✓\u001b[39m \u001b[2m▶\u001b[22m 2 tool calls\n\n \u001b[1m\u001b[32mAgent\u001b[39m\u001b[22m\n The changelog names two changes. I'd like to check the commits behind them.\n\n  \u001b[32m✓\u001b[39m \u001b[2m▶\u001b[22m execute\n\n \u001b[1m\u001b[32mAgent\u001b[39m\u001b[22m\n Two changes this week. Invoices now round once, at the total, instead of per\n line (7d03b51), and credit notes follow the same rule (a41c9e2). A third commit\n  adds tests for the half-cent cases.\n\n \u001b[2m✻ Worked for 11s\u001b[22m\n\n \u001b[2mAgent mode — full tool access\u001b[22m\n\n \u001b[1m❯\u001b[22m \u001b[7mR\u001b[27m\u001b[2meply...\u001b[22m\n   \u001b[2mEnter send · \\⏎ newline · Shift+Tab plan mode · Ctrl+C leave · ? keys\u001b[22m"
+    }
+  ]
+}

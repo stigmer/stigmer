@@ -32,7 +32,8 @@ and `vocabulary.md` are the truth.
 - A page shows the product only as the test suites draw it, never captured or
   built by hand (`STYLE.md`, "Classify every page"): a screen as `<Screen>` from
   `test/visual/src/shown.ts` (its values in `test/visual/src/docs-examples.ts`),
-  the kit working as `<Live>` from `test/visual/src/live.ts`. A `still` or
+  the kit working as `<Live>` from `test/visual/src/live.ts`, a terminal session
+  as `<TerminalRecording>` from `sdk/ink/src/recordings.ts`. A `still` or
   `screenshot-journey` page carries at least one `<Screen>` and other pages none
   (`make check-docs-inventory`).
 - Every visual carries prose that stands alone: the markdown exports and the

@@ -63,6 +63,9 @@ export const SCENARIO_NAMES = [
 /** One of the catalogue's states. */
 export type ScenarioName = (typeof SCENARIO_NAMES)[number];
 
+/** A story the catalogue tells beside its states: the scripted turn the docs play, whole. */
+export type StoryName = "scripted-turn";
+
 /** What the session's usage report says, in the few figures the surfaces show. */
 export interface ScenarioUsage {
   readonly totalTokens: number;
@@ -73,7 +76,7 @@ export interface ScenarioUsage {
 
 /** One named state of a conversation: its events, their fold, its runs, and how its load went. */
 export interface Scenario {
-  readonly name: ScenarioName;
+  readonly name: ScenarioName | StoryName;
   /** The state in a few words, as a reader of a frame would say it. */
   readonly title: string;
   /** The session, or null while it loads. */
@@ -301,7 +304,7 @@ function routineSession(): Session {
 }
 
 /** Builds a loaded scenario from its events, its one turn's run phase and what it holds beside them. */
-function loaded(name: ScenarioName, title: string, events: readonly SessionEvent[], beside: Beside = {}): Scenario {
+function loaded(name: ScenarioName | StoryName, title: string, events: readonly SessionEvent[], beside: Beside = {}): Scenario {
   const ordered = numbered(events);
   const fold = foldWithLiveness(events, beside.liveness);
   const runs = fold.turns.map((turn) =>
@@ -663,4 +666,34 @@ export function scriptedTurn(message: string = SCRIPTED_MESSAGE, runId: string =
     ],
     stopped: [samples.runStatusEvent("cancelled", { ...o(8_000), stopCause: "interrupted" })],
   };
+}
+
+/**
+ * The scripted turn as a story, whole: the person asks what changed, the
+ * agent reads two files, asks before it runs `git log`, is allowed, and
+ * answers. The terminal kit's recordings draw it event by event
+ * ({@link upTo}), so a docs reader watches the turn the live demos play.
+ */
+export function scriptedStory(message: string = SCRIPTED_MESSAGE): Scenario {
+  const turn = scriptedTurn(message);
+  return loaded("scripted-turn", "the scripted turn: two reads, an ask allowed, the answer", [...turn.untilAsk, ...turn.approved]);
+}
+
+/**
+ * `scenario` as it stood after its first `n` events: their fold, each
+ * turn's run in the phase it had reached, and the scenario's session.
+ * What lives beside the events (usage, the liveness preview, the Files)
+ * is kept only when `n` covers them all, since it belongs to the whole.
+ * Built through the catalogue's one assembly, so a part-way state is folded
+ * exactly as a whole one is.
+ */
+export function upTo(scenario: Scenario, n: number): Scenario {
+  if (!Number.isInteger(n) || n < 0 || n > scenario.events.length) {
+    throw new RangeError(`upTo: ${scenario.name} has ${scenario.events.length} events; ${n} is not a count of them`);
+  }
+  const whole = n === scenario.events.length;
+  return loaded(scenario.name, scenario.title, scenario.events.slice(0, n), {
+    ...(scenario.session === null ? {} : { session: scenario.session }),
+    ...(whole ? { usage: scenario.usage, liveness: scenario.liveness, files: scenario.files } : {}),
+  });
 }

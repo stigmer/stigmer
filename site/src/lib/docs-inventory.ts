@@ -112,8 +112,6 @@ export const OWED_PICTURES: Readonly<Record<string, string>> = {
   "guides/channels/take-over-conversations": "the Conversations workbench is not drawn yet",
   "guides/authentication/service-accounts": "the service account screens are not drawn yet",
   "guides/integrations/bring-your-own-oauth": "the OAuth app form is not drawn yet",
-  "sdk/ink":
-    "a terminal frame is pictured by the docs' recorded terminal examples, not a browser screenshot: stigmer#2889",
 };
 
 /**
