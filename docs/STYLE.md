@@ -94,8 +94,11 @@ block in `docs/` is compiled against the SDK it shows by
    given and what the page shows:
    - the client, under the names every page uses: `stigmer` (or `client`) in
      TypeScript, `client` and `ctx` in Go, `client` in Python and Java. On the
-     React, React-core, Ink and theme pages, a name the kit exports is in scope
-     too. Nothing else is given: never an `id` or an `org`.
+     React, React core and Ink pages, a name the entry in the page's "Import
+     from" line exports is in scope too, and `react`'s; a block there may import
+     only the kit and its peer dependencies, the packages its reader installs.
+     On the theme pages, the React kit's and the tokens' names are. Nothing else
+     is given: never an `id` or an `org`.
    - the page's **prelude**: a visible block marked ` ```go prelude ` (one per
      language) holding the imports the page's examples share, shown once where
      the reader looks for them, typically under an "imports" heading. It is

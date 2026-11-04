@@ -76,6 +76,11 @@ const coreImport = 'import { useStigmer } from "@stigmer/react-core";';
 const reactKit = page("sdk/react/kit", [
   { lang: "tsx", label: "core-only", body: [coreOnly] },
   { lang: "tsx", label: "core-import", body: [coreImport, "", "export const use = useStigmer;"] },
+  // Every other way a fence can load a module is held to the same rule.
+  { lang: "typescript", label: "core-reexport", body: ['export { useStigmer } from "@stigmer/react-core";'] },
+  { lang: "typescript", label: "core-import-type", body: ['export type Seen = import("@stigmer/react-core").StreamState;'] },
+  { lang: "typescript", label: "core-dynamic", body: ['export const core = await import("@stigmer/react-core");'] },
+  { lang: "typescript", label: "core-require", body: ['const { useStigmer } = require("@stigmer/react-core");', "export const use = useStigmer;"] },
   { lang: "tsx", label: "console-only", body: [consoleOnly] },
   { lang: "tsx", label: "peer-import", body: ['import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";', 'import { IamRole } from "@stigmer/client";', "", "export const seen = (run: Run) => [run.metadata?.id, IamRole.viewer];"] },
 ]);
@@ -133,7 +138,8 @@ test("LIB-04 a TypeScript example that does not compile is reported at its page 
 test("LIB-04 a kit's example compiles as its reader imports it: the page's entry and react implicit, imports only from the kit and its peers", async () => {
   const run = await gate([reactKit, reactConsole, inkKit], ["typescript"]);
   assert.deepEqual(run.problems, []);
-  assert.deepEqual(where(run), [`${reactKit.path}:${reactKit.at["core-only"]}`, `${reactKit.path}:${reactKit.at["core-import"]}`, `${reactKit.path}:${reactKit.at["console-only"]}`].sort());
+  const refused = ["core-only", "core-import", "core-reexport", "core-import-type", "core-dynamic", "core-require", "console-only"];
+  assert.deepEqual(where(run), refused.map((label) => `${reactKit.path}:${reactKit.at[label]}`).sort());
   const messages = run.errors.map((e) => e.message).join("\n");
   assert.match(messages, /Cannot find name 'StreamState'/);
   assert.match(messages, /Cannot find name 'SettingsNavGroup'/);

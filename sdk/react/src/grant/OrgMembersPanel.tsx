@@ -91,7 +91,7 @@ export interface OrgMembersPanelProps {
  *
  * @example
  * ```tsx
- * <OrgMembersPanel org="acme" />
+ * <OrgMembersPanel org="org_acme" />
  * ```
  */
 export function OrgMembersPanel({

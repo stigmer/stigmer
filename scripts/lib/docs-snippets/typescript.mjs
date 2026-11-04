@@ -136,7 +136,8 @@ export function packageOf(specifier) {
 
 /**
  * Every module some fence lines import (an import or export declaration, an
- * `import("…")` type or call), each with the page line it is on.
+ * `import("…")` type or call, a `require("…")`), each with the page line it
+ * is on.
  * @param {{text: string, line: number}[]} lines
  */
 export function importedModules(ts, lines, tsx) {
@@ -146,7 +147,8 @@ export function importedModules(ts, lines, tsx) {
   const visit = (node) => {
     if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) && node.moduleSpecifier !== undefined && ts.isStringLiteral(node.moduleSpecifier)) add(node.moduleSpecifier);
     if (ts.isImportTypeNode(node) && ts.isLiteralTypeNode(node.argument) && ts.isStringLiteral(node.argument.literal)) add(node.argument.literal);
-    if (ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword && node.arguments[0] !== undefined && ts.isStringLiteral(node.arguments[0])) add(node.arguments[0]);
+    const loads = ts.isCallExpression(node) && (node.expression.kind === ts.SyntaxKind.ImportKeyword || (ts.isIdentifier(node.expression) && node.expression.text === "require"));
+    if (loads && node.arguments[0] !== undefined && ts.isStringLiteral(node.arguments[0])) add(node.arguments[0]);
     ts.forEachChild(node, visit);
   };
   visit(sf);

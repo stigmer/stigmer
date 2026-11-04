@@ -41,7 +41,7 @@ export interface ServiceAccountListPanelProps {
  * import type { IdentityAccount } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
  *
  * function ServiceAccounts({ onOpen }: { onOpen: (account: IdentityAccount) => void }) {
- *   return <ServiceAccountListPanel org="acme" onOpen={onOpen} />;
+ *   return <ServiceAccountListPanel org="org_acme" onOpen={onOpen} />;
  * }
  * ```
  */
