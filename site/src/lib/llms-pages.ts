@@ -120,8 +120,7 @@ export function hideFenceSetup(text: string): string {
   for (const line of text.split("\n")) {
     if (fence) {
       if (fence.close.test(line)) {
-        if (fence.body.length > 0) out.push(...splitSnippetSetup(fence.lang, fence.body.join("\n")).body.split("\n"));
-        out.push(line);
+        out.push(...fenceBody(fence), line);
         fence = null;
       } else {
         fence.body.push(line);
@@ -134,8 +133,14 @@ export function hideFenceSetup(text: string): string {
     // at most three spaces, as CommonMark (and so remark and the gate) reads it.
     if (open) fence = { close: new RegExp(`^ {0,3}\\${open[1][0]}{${open[1].length},}\\s*$`), lang: open[2], body: [] };
   }
-  if (fence) out.push(...fence.body);
+  // An unclosed fence runs to the page's end, as CommonMark reads it.
+  if (fence) out.push(...fenceBody(fence));
   return out.join("\n");
+}
+
+/** A fence's lines without its setup, or none for an empty fence. */
+function fenceBody(fence: { lang: string; body: string[] }): string[] {
+  return fence.body.length > 0 ? splitSnippetSetup(fence.lang, fence.body.join("\n")).body.split("\n") : [];
 }
 
 /** One attribute of a tag: its name, then a double- or single-quoted value, or an `{expression}`. */

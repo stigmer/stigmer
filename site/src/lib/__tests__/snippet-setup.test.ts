@@ -8,7 +8,8 @@
 import { describe, expect, it } from "vitest";
 import type { Code, Root } from "mdast";
 import { cleanContent, hideFenceSetup } from "../llms-pages";
-import { hideSnippetSetup } from "../remark-snippet-setup";
+import { unified } from "unified";
+import remarkSnippetSetup, { hideSnippetSetup } from "../remark-snippet-setup";
 import { SETUP_MARKERS, splitSnippetSetup } from "../snippet-setup.mjs";
 
 const EXAMPLE = ["declare const user: PlatformUser;", "// ---cut---", 'await stigmer.run.create({ org: user.org, message: "hi" });'].join("\n");
@@ -54,6 +55,12 @@ describe("the rendered block", () => {
     const code = tree.children.filter((node): node is Code => node.type === "code");
     expect(code.map((node) => node.value)).toEqual(['await stigmer.run.create({ org: user.org, message: "hi" });', "# ---cut---\nls"]);
   });
+
+  it("is what the remark plugin runs on every page", () => {
+    const tree: Root = { type: "root", children: [{ type: "code", lang: "typescript", value: EXAMPLE }] };
+    const out = unified().use(remarkSnippetSetup).runSync(tree) as Root;
+    expect(out.children).toEqual([{ type: "code", lang: "typescript", value: 'await stigmer.run.create({ org: user.org, message: "hi" });' }]);
+  });
 });
 
 describe("the markdown export", () => {
@@ -68,6 +75,12 @@ describe("the markdown export", () => {
   it("reads a fence's end as CommonMark does: a run indented four spaces is the fence's own text", () => {
     const page = ["```typescript", "declare const a: string;", "// ---cut---", "const md = `", "    ```", "`;", "```", "After."].join("\n");
     expect(hideFenceSetup(page)).toBe(["```typescript", "const md = `", "    ```", "`;", "```", "After."].join("\n"));
+  });
+
+  it("drops the setup of a fence left open, which runs to the page's end as the page renders it", () => {
+    const page = ["Text.", "", "```typescript", "declare const a: string;", "// ---cut---", "a;"].join("\n");
+    expect(hideFenceSetup(page)).toBe(["Text.", "", "```typescript", "a;"].join("\n"));
+    expect(hideFenceSetup("```go\n```")).toBe("```go\n```");
   });
 
   it("leaves a page without setup exactly as it was", () => {
