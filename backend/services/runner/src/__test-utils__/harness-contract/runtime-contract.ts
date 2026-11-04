@@ -346,6 +346,17 @@ export async function assertCompletedTurn(harness: RuntimeContractHarness, label
 // ── Arm: awaiting_approval then APPROVE ─────────────────────────────────────
 
 /**
+ * What the engine's model read for `toolCallId`, for an assertion message:
+ * ` (the model read: '…')`, or nothing when the subject cannot say. A call
+ * the kit expected to run that did not was answered by something else (a
+ * gate's refusal, a stale call, the shell's failure); this names which.
+ */
+function modelRead(subject: HarnessContractSubject, toolCallId: string): string {
+  const text = subject.resultSeen?.(toolCallId);
+  return text === undefined ? "" : ` (the model read: '${text}')`;
+}
+
+/**
  * The approval round trip: the proposal RETURNS `WAITING_FOR_APPROVAL` with
  * one WAITING row and nothing executed; the user approves; the reinvocation
  * executes it exactly once, clears the wait and completes. The proposal is a `shell`, the built-in every harness
@@ -373,7 +384,7 @@ export async function assertApprovalRoundTrip(harness: RuntimeContractHarness, g
     invocations.push(second);
     expect(slimOf(subject, second).phase, `${subject.name}: after APPROVE the turn completes`).toBe("RUN_COMPLETED");
     expect(aiMessages(finalRowsOf(harness, driver)).at(-1)).toBe("Done.");
-    expect(subject.executionCount(id), `${subject.name}: APPROVE executes exactly once`).toBe(1);
+    expect(subject.executionCount(id), `${subject.name}: APPROVE executes exactly once${modelRead(subject, id)}`).toBe(1);
     expect(driver.record.waitingToolCalls(), `${subject.name}: nothing waits after the approval`).toHaveLength(0);
   });
   return { driver, invocations, final: finalStatusOf(harness, driver) };

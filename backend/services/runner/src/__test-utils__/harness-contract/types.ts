@@ -254,6 +254,15 @@ export interface HarnessContractSubject {
    */
   executionCount(toolCallId: string): number;
   /**
+   * The text of the result the engine's model read for `toolCallId`, as the
+   * subject's double saw it (an error result prefixed `error: `); undefined
+   * when the model read none. Only for messages: when a call the kit expected
+   * to run did not, the assertion names what answered it instead (a gate's
+   * refusal, a stale call, the shell's failure), so one red in CI says its
+   * own cause. A subject whose double reads no conversation omits it.
+   */
+  resultSeen?(toolCallId: string): string | undefined;
+  /**
    * The long-turn controls: a subject that can play `open` and `compact`
    * provides them all (`runtime-contract.ts` refuses an arm on a subject
    * that lacks one, naming it). Each is the engine's own fact, read off its
