@@ -54,7 +54,7 @@ import { LocalWorkspaceBackend } from "../../shared/workspace/local-backend.js";
 import type { WorkspaceBackend } from "../../shared/workspace/types.js";
 import { connectMcpServers, type McpConnectionResult } from "../../shared/mcp-manager.js";
 import { formatChannelTemplatesSection } from "../../shared/channel-attachment.js";
-import { isPathCapturable } from "../../shared/filereview/git-substrate.js";
+import { isPathCapturable, resolvesIntoGitDirectory } from "../../shared/filereview/git-substrate.js";
 import { resolveWorkspacePath } from "../../shared/file-change.js";
 import { buildPlanModePermissions } from "../../shared/plan-mode-permissions.js";
 import { buildMiddlewareStack } from "../../middleware/index.js";
@@ -138,6 +138,8 @@ export interface DeepAgentWorkspace {
   readonly casObserver: CasCaptureObserver;
   /** Git-tracked capturability, consulted by the gate to route a file write to git-diff (tracked) vs CAS (ignored). */
   readonly isCapturablePath: (rawPath: string) => Promise<boolean>;
+  /** Whether a path resolves into the repository's `.git` directory once links are followed. */
+  readonly inGitDirectory: (rawPath: string) => Promise<boolean>;
 }
 
 /** The tool surface once connected: LangChain tools, each named by its server, plus the index the builders attribute by. */
@@ -256,7 +258,11 @@ export function buildDeepAgentWorkspace(input: TurnInput): DeepAgentWorkspace {
       ? async (relPath) => !(await isPathCapturable(primaryDir, relPath))
       : async () => true,
   });
-  return { backend, casObserver, isCapturablePath };
+  const inGitDirectory = gitWorkspace
+    ? (rawPath: string): Promise<boolean> =>
+        resolvesIntoGitDirectory(primaryDir, resolveWorkspacePath(rawPath, primaryDir, true).path)
+    : (_rawPath: string): Promise<boolean> => Promise.resolve(false);
+  return { backend, casObserver, isCapturablePath, inGitDirectory };
 }
 
 /**
@@ -588,6 +594,7 @@ export async function buildEngine(
         fileReviewOff: !input.workspace.fileReview,
         fileCaptureSubstrate: input.workspace.captureSubstrate,
         isCapturablePath: workspace.isCapturablePath,
+        inGitDirectory: workspace.inGitDirectory,
         captureIgnored: captureMode && !!artifactStorage,
         recordBlockedSecret: (rawPath: string) => workspace.casObserver.recordBlockedSecret(rawPath),
         // Pre-delete byte capture (issue #303): a flowing delete's before-bytes

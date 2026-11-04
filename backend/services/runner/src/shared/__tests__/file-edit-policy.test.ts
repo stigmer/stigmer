@@ -71,9 +71,23 @@ describe("a repository's own .git directory never flows (stigmer#2962)", () => {
     }
   });
 
+  it("asks for a path the engine resolves into .git through a link, even where ignored writes flow", async () => {
+    const throughLink: FileEditPosture = {
+      ...CAPTURE,
+      captureIgnored: true,
+      isCapturablePath: async () => false,
+      inGitDirectory: async (path) => path === "/ln/config",
+    };
+    expect(await captureFlows(throughLink, { path: "/ln/config" }, "", "write")).toBe(false);
+    expect(await fileEditFlow(throughLink, { path: "/ln/config" }, "", "write")).toBeUndefined();
+    expect(await fileEditFlow({ fileReviewOff: true, inGitDirectory: async () => true }, { path: "/ln/config" }, "", "write")).toBeUndefined();
+    expect(await captureFlows(throughLink, { path: "/build/out" }, "", "write"), "an ignored write elsewhere still flows").toBe(true);
+  });
+
   it("asks even with file review off, where every other write flows", async () => {
     expect(await fileEditFlow({ fileReviewOff: true }, { path: "/.git/config" }, "", "write")).toBeUndefined();
     expect(await fileEditFlow({ fileReviewOff: true }, { path: "/.gitignore" }, "", "write")).toBe("file_review_off");
+    expect(await fileEditFlow({ fileReviewOff: true, inGitDirectory: async () => true }, {}, "", "write"), "a call with no path is not judged by its path").toBe("file_review_off");
   });
 });
 

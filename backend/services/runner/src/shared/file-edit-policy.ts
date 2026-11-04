@@ -58,6 +58,14 @@ export interface FileEditPosture {
    */
   readonly isCapturablePath?: (rawPath: string) => Promise<boolean>;
   /**
+   * Whether a path resolves into a repository's own `.git` directory once
+   * links are followed (a work-tree symlink to `.git` or to a file in it),
+   * injected by the engine, which owns the workspace root. Such a write never
+   * flows, as a `.git` path by name never does ({@link isGitDirectoryPath}).
+   * Absent ⇒ only the name is judged.
+   */
+  readonly inGitDirectory?: (rawPath: string) => Promise<boolean>;
+  /**
    * Route gitignored `write`/`edit` edits into CAS capture (apply-then-review)
    * instead of the interrupt gate, applying the secret gate. When off, a
    * gitignored path stays on the interrupt gate exactly as before.
@@ -145,7 +153,7 @@ export async function fileEditFlow(
   category: ToolApprovalCategory | undefined,
 ): Promise<PolicySource | undefined> {
   if (serverSlug || (category !== "write" && category !== "delete")) return undefined;
-  if (inGitDirectory(args)) return undefined;
+  if (await inGitDirectory(posture, args)) return undefined;
   if ((posture.fileReviewOff || posture.fileCaptureMode) && inOutputsFolder(args)) return "outputs";
   if (posture.fileReviewOff) return "file_review_off";
   return (await captureFlows(posture, args, serverSlug, category)) ? "file_capture" : undefined;
@@ -179,7 +187,7 @@ export async function captureFlows(
   if (!posture.fileCaptureMode || !posture.isCapturablePath || serverSlug) return false;
   if (category !== "write" && category !== "delete") return false;
   const path = extractFilePath(args);
-  if (path === null || isInOutputsFolder(path) || isGitDirectoryPath(path)) return false;
+  if (path === null || isInOutputsFolder(path) || (await inGitDirectory(posture, args))) return false;
   if (await posture.isCapturablePath(path)) return true;
   if (!posture.captureIgnored) return false;
   if (category === "write") return true;
@@ -190,7 +198,6 @@ export async function captureFlows(
   return false;
 }
 
-/** Whether a built-in file call's path lies inside the outputs folder (`outputs.ts`). */
 /**
  * Whether `path` names a repository's own git directory or anything in it
  * (a `.git` segment, matched without case: the default macOS filesystem
@@ -204,11 +211,15 @@ export function isGitDirectoryPath(path: string): boolean {
   return path.split(/[\\/]/).some((segment) => segment.toLowerCase() === ".git");
 }
 
-function inGitDirectory(args: Record<string, unknown>): boolean {
+/** Whether a call's path is in a `.git` directory, by its name or once the engine resolves its links. */
+async function inGitDirectory(posture: FileEditPosture, args: Record<string, unknown>): Promise<boolean> {
   const path = extractFilePath(args);
-  return path !== null && isGitDirectoryPath(path);
+  if (path === null) return false;
+  if (isGitDirectoryPath(path)) return true;
+  return posture.inGitDirectory !== undefined && (await posture.inGitDirectory(path));
 }
 
+/** Whether a built-in file call's path lies inside the outputs folder (`outputs.ts`). */
 function inOutputsFolder(args: Record<string, unknown>): boolean {
   const path = extractFilePath(args);
   return path !== null && isInOutputsFolder(path);

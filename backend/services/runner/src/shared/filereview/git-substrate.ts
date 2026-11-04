@@ -65,13 +65,15 @@
  *   never disturbed.
  */
 
-import { dirname, join } from "node:path";
+import { dirname, join, relative } from "node:path";
 import { agentFs } from "../agent-fs.js";
 import { STIGMER_LOCAL_STATE_DIR } from "../workspace/stigmer-link.js";
 import { bytesLookBinary } from "../file-change.js";
 import { sha256Bytes } from "./digest.js";
 import type { CapturedContent } from "./events.js";
 import { FileChangeType } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
+import { RUNTIME_GIT_CONFIG } from "../workspace/runtime-git.js";
+import { isGitDirectoryPath } from "../file-edit-policy.js";
 
 
 /** Build `:(exclude)` pathspecs for the runner-owned files a harness passes in. */
@@ -143,20 +145,6 @@ export interface CaptureResult {
 }
 
 /**
- * What the runtime's own git in the agent's clone never runs: the clone's
- * hooks and its fsmonitor. The repository and its configuration are the
- * agent's, so these would run a command the agent wrote, unapproved, every
- * time review captures a change (stigmer#2962). The runner's own git with a
- * token switches off the same two (workspace/git-credential.ts).
- */
-export const RUNTIME_GIT_CONFIG: readonly string[] = [
-  "-c",
-  "core.fsmonitor=false",
-  "-c",
-  "core.hooksPath=/dev/null",
-];
-
-/**
  * Run a git command in `gitRoot`. Returns stdout as a UTF-8 string. Binary
  * output (file bodies) must use {@link gitBuffer} instead so bytes are exact.
  */
@@ -208,11 +196,40 @@ export async function isGitWorkTree(dir: string): Promise<boolean> {
  */
 export async function isPathCapturable(gitRoot: string, path: string): Promise<boolean> {
   if (!path) return false;
+  if (await resolvesIntoGitDirectory(gitRoot, path)) return false;
   try {
     await git(gitRoot, ["check-ignore", "-q", "--", path]);
     return false; // exit 0 -> ignored -> not capturable
-  } catch {
-    return true; // exit 1 (not ignored) or error -> capturable
+  } catch (error) {
+    // Exit 1 is "not ignored": capturable. Any other failure (a path beyond
+    // a symbolic link, which git refuses to judge, or a fault) is not, so
+    // the write asks rather than flowing on an answer git never gave
+    // (stigmer#2962).
+    return (error as { code?: unknown }).code === 1;
+  }
+}
+
+/**
+ * Whether `path` (relative to `gitRoot`, or rooted at it) lands inside a
+ * `.git` directory once links are followed: by its name, or through a
+ * work-tree symlink to `.git` or to a file in it. A path that does not
+ * exist yet is judged by its nearest existing ancestor. A path whose
+ * resolution fails for another reason counts as inside, so its write asks.
+ */
+export async function resolvesIntoGitDirectory(gitRoot: string, path: string): Promise<boolean> {
+  const rel = path.replace(/^\/+/, "");
+  if (isGitDirectoryPath(rel)) return true;
+  const root = await agentFs().realpath(gitRoot).catch(() => gitRoot);
+  let probe = join(gitRoot, rel);
+  for (;;) {
+    try {
+      return isGitDirectoryPath(relative(root, await agentFs().realpath(probe)));
+    } catch (error) {
+      if ((error as { code?: unknown }).code !== "ENOENT") return true;
+      const parent = dirname(probe);
+      if (parent === probe) return false;
+      probe = parent;
+    }
   }
 }
 

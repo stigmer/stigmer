@@ -17,7 +17,7 @@
  */
 
 import { execFile } from "node:child_process";
-import { mkdtemp, mkdir, readFile, rm, symlink, writeFile, stat } from "node:fs/promises";
+import { chmod, mkdtemp, mkdir, readFile, rm, symlink, writeFile, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
@@ -29,10 +29,12 @@ import {
   isGitWorkTree,
   isPathCapturable,
   recomputeChangeSet,
+  resolvesIntoGitDirectory,
   restoreToBaseline,
   snapshotBaseline,
 } from "../git-substrate.js";
 import { sha256Bytes } from "../digest.js";
+import { agentFs, installAgentFs } from "../../agent-fs.js";
 import { FileChangeType } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const execFileAsync = promisify(execFile);
@@ -114,13 +116,48 @@ describe("the runtime's git never runs what the agent wrote into .git (stigmer#2
     // What an agent would write into .git/config: a command git runs on its
     // next index refresh, and a hook directory of its own.
     await git(["config", "core.fsmonitor", `touch ${marker}; false`]);
-    await write(".git/agent-hooks/pre-commit", `#!/bin/sh\ntouch ${marker}\n`);
+    // An executable hook the substrate's own git would run: update-ref
+    // (pinning the snapshot) fires reference-transaction.
+    await write(".git/agent-hooks/reference-transaction", `#!/bin/sh\ntouch ${marker}\n`);
+    await chmod(join(repo, ".git/agent-hooks/reference-transaction"), 0o755);
     await git(["config", "core.hooksPath", ".git/agent-hooks"]);
     await write("src/main.ts", "export const x = 2;\n");
     const baseline = await snapshotBaseline(repo, EXEC_ID);
     expect(baseline).toMatch(/^[0-9a-f]{40}$/);
     const ran = await stat(marker).then(() => true, () => false);
     expect(ran, "the clone's fsmonitor ran").toBe(false);
+  });
+});
+
+describe("a link into .git is judged where it lands (stigmer#2962)", () => {
+  it("is never capturable, through a directory link or a file link, and a path git refuses to judge asks", async () => {
+    await symlink(".git", join(repo, "ln"));
+    await symlink(".git/config", join(repo, "cfg"));
+    for (const path of ["ln/config", "ln/hooks/pre-commit", "cfg", "ln/new-file"]) {
+      expect(await resolvesIntoGitDirectory(repo, path), path).toBe(true);
+      expect(await isPathCapturable(repo, path), path).toBe(false);
+    }
+    expect(await resolvesIntoGitDirectory(repo, "src/main.ts")).toBe(false);
+    expect(await resolvesIntoGitDirectory(repo, "src/brand/new.ts")).toBe(false);
+    expect(await isPathCapturable(repo, "src/main.ts")).toBe(true);
+  });
+
+  it("judges a .git name without resolving it, and a path that will not resolve as inside", async () => {
+    await write("src/main.ts", "export const x = 1;\n");
+    expect(await resolvesIntoGitDirectory(repo, "/.git/config")).toBe(true);
+    expect(await resolvesIntoGitDirectory(repo, "src/main.ts/inner"), "a path under a file asks").toBe(true);
+    expect(await isPathCapturable(repo, "src/main.ts/inner")).toBe(false);
+    expect(await resolvesIntoGitDirectory(join(repo, "no-such-root"), "src/new.ts"), "a missing root is judged by its nearest ancestor").toBe(false);
+  });
+
+  it("stops at the filesystem root when nothing on the way exists", async () => {
+    const gone = Object.assign(new Error("gone"), { code: "ENOENT" });
+    const restore = installAgentFs({ ...agentFs(), realpath: () => Promise.reject(gone) });
+    try {
+      expect(await resolvesIntoGitDirectory(repo, "src/new.ts")).toBe(false);
+    } finally {
+      restore();
+    }
   });
 });
 
