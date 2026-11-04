@@ -142,6 +142,10 @@
       "promise": "Leaving a session says the agent keeps working and how to come back."
     },
     {
+      "id": "INK-18",
+      "promise": "The docs' terminal recordings are the terminal kit's own frames."
+    },
+    {
       "id": "LIB-01",
       "promise": "Every library installs from its packed tarball and imports under Node."
     },
