@@ -1529,7 +1529,7 @@ release: release-preflight ## Tag and push a release (usage: make release [bump=
 	DOCS_PIN=$$(git show HEAD:docs/guides/self-hosting/operations.mdx | sed -n -E 's/^STIGMER_VERSION=v(.*)$$/\1/p; s/^ +--version ([0-9A-Za-z.+-]+) \\$$/\1/p' | sort -u | tr '\n' ' ' | sed 's/ $$//'); \
 	if [ "$$PIN" != "$$NEW_VERSION" ] || [ "$$COMPOSE_PIN" != "$$NEW_VERSION" ] || [ "$$ENV_PIN" != "$$NEW_VERSION" ] || [ "$$CHART_PIN" != "$$NEW_VERSION" ] || [ "$$CHART_APP_PIN" != "$$NEW_VERSION" ] || [ "$$DOCS_PIN" != "$$NEW_VERSION" ]; then \
 		echo "error: the release pins at HEAD do not all name $$NEW_VERSION:"; \
-		echo "  mcp-server/Dockerfile  MCP_SERVER_VERSION=$$PIN   (release.npm-libs refuses to publish on a mismatch; prod deploys the pin, not the tag)"; \
+		echo "  mcp-server/Dockerfile  MCP_SERVER_VERSION=$$PIN   (release.npm-libs refuses to publish on a mismatch; a hand build of the image installs the pin)"; \
 		echo "  docker-compose.yml     STIGMER_VERSION:-v$$COMPOSE_PIN   (a fresh clone runs this stack)"; \
 		echo "  .env.example           #STIGMER_VERSION=v$$ENV_PIN"; \
 		echo "  deploy/helm/stigmer/Chart.yaml  version=$$CHART_PIN appVersion=$$CHART_APP_PIN   (the chart's image tags default to v<appVersion>; release.npm-libs refuses to package on a mismatch)"; \
@@ -1550,7 +1550,7 @@ release: release-preflight ## Tag and push a release (usage: make release [bump=
 	@echo "Tags pushed. CI will handle:"
 	@echo "  - Protos to BSR                  (release.buf.yaml)"
 	@echo "  - CLI binaries + GitHub release  (release.cli.yaml)"
-	@echo "  - Desktop app installers (draft) (release.desktop.yaml)"
+	@echo "  - Desktop installers on the release (release.desktop.yaml)"
 	@echo "  - @stigmer/* npm packages        (release.npm-libs.yaml)"
 	@echo "    + the server, Enterprise server, runner and all-in-one images on GHCR, and the Helm chart"
 	@echo "      at oci://ghcr.io/stigmer/charts/stigmer, each smoked before it is promoted or pushed"
