@@ -25,7 +25,7 @@
 //   - the organization's access list names that person an app user (identity
 //     origin `app_user`) and its founder not;
 //   - with account creation off, an unknown person is refused with the pinned
-//     copy.
+//     copy, which names the organization by its slug, never its id.
 //
 // The minter's contract on every serving-edge request a user token bears:
 //   - deleting the minting service account revokes its tokens on the NEXT
@@ -50,6 +50,7 @@ import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
+import { organizationSlug } from "../support/organizations";
 import { makeSession } from "../support/sessions";
 import { uniqueName } from "../support/naming";
 import {
@@ -87,9 +88,9 @@ function originRefusalMessage(origin: string): string {
   );
 }
 
-function noAccountMessage(userId: string, org: string): string {
+function noAccountMessage(userId: string, orgName: string): string {
   return (
-    `User '${userId}' has no Stigmer account in organization '${org}'. ` +
+    `User '${userId}' has no Stigmer account in organization '${orgName}'. ` +
     "Turn on create_accounts_on_sign_in in the organization's embedding " +
     "settings or create the account first."
   );
@@ -271,7 +272,12 @@ describe.skipIf(!enforcementServed)(
         Code.FailedPrecondition,
         "a mint for an unknown person with account creation off",
       );
-      expect(refused.rawMessage).toBe(noAccountMessage(userId, context.org));
+      expect(refused.rawMessage).toBe(
+        noAccountMessage(
+          userId,
+          await organizationSlug(lane.clients.organizationQuery, context.org),
+        ),
+      );
     });
   },
 );

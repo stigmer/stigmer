@@ -36,8 +36,16 @@ export const BEARER_TOKEN_TYPE = "Bearer";
 export const MINT_REQUIRES_SERVICE_ACCOUNT_MESSAGE =
   "mintUserToken is called with a service account's API key: create a service account with the admin role, create a key for it, and call mintUserToken from your product's backend with that key";
 
-export function noAccountMessage(externalUserId: string, org: string): string {
-  return `User '${externalUserId}' has no Stigmer account in organization '${org}'. Turn on create_accounts_on_sign_in in the organization's embedding settings or create the account first.`;
+/**
+ * The mint's refusal of a person with no account while the settings create
+ * none. `orgName` is the token's organization as a person names it (its
+ * slug; mint.ts organizationForPeople), never the id the handler holds.
+ */
+export function noAccountMessage(
+  externalUserId: string,
+  orgName: string,
+): string {
+  return `User '${externalUserId}' has no Stigmer account in organization '${orgName}'. Turn on create_accounts_on_sign_in in the organization's embedding settings or create the account first.`;
 }
 
 export const OWNER_SIGN_IN_ROLE_MESSAGE =
@@ -73,11 +81,16 @@ export function subjectSeparatorMessage(
   return `${part} must not contain the separator character '|': ${value}`;
 }
 
+/**
+ * The mint's refusal of a person whose subject resolves to an account a
+ * mint did not create. `orgName` is the token's organization as a person
+ * names it (its slug), as for noAccountMessage.
+ */
 export function foreignAccountMessage(
   externalUserId: string,
-  org: string,
+  orgName: string,
 ): string {
-  return `User '${externalUserId}' in organization '${org}' resolves to an account no mint created — refusing to mint a token for it`;
+  return `User '${externalUserId}' in organization '${orgName}' resolves to an account no mint created — refusing to mint a token for it`;
 }
 
 export const MINTING_REQUIRES_AUTHENTICATION_MESSAGE =

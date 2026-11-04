@@ -10,7 +10,7 @@
  *   - what a mint does: the token authenticates as the derived app-user
  *     account (its subject names the organization by id), which sees that
  *     organization alone; with account creation off an unknown person is
- *     refused; the sign-in role is granted once, as an ordinary grant made
+ *     refused, the refusal naming the organization by its slug; the sign-in role is granted once, as an ordinary grant made
  *     by the minting service account, and a later change of the setting
  *     does not reach an existing account;
  *   - what a resource an app user writes records: the minting service
@@ -196,7 +196,7 @@ describe("what a mint does", () => {
       const refused = await refusal(mint(adminKey, acme, "u-unknown"));
       expect([refused.code, refused.rawMessage]).toEqual([
         Code.FailedPrecondition,
-        noAccountMessage("u-unknown", acme),
+        noAccountMessage("u-unknown", "token-acme"),
       ]);
     } finally {
       await setEmbedding(acme, { createAccountsOnSignIn: true, signInRole: IamRole.member });

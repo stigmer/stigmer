@@ -67,6 +67,14 @@
  *
  * The email and name in the token and on the account are the product's
  * assertion; nothing on the server derives authority from either.
+ *
+ * The two refusals of the person (no account, an account no mint made)
+ * name the token's organization by its current slug, the name the
+ * developer chose (#2716): the request's `org` reaches the handler as an
+ * id whichever the caller sent (pipeline/interceptors/organization-names.ts).
+ * The name is read only when refusing, so a mint that succeeds reads
+ * nothing more, and the caller may read it: authorization above made them
+ * an admin of that organization or of its parent.
  */
 import { Code, ConnectError } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
@@ -98,6 +106,7 @@ import {
 import { internalError } from "../../pipeline/errors.js";
 import { serverActingFor } from "../../pipeline/interceptors/auth.js";
 import { authorizeDirect } from "../../pipeline/steps/authorize.js";
+import { organizationNameForPeople } from "../../pipeline/steps/names.js";
 import { fittedName } from "../../pipeline/steps/slug.js";
 import { validator } from "../../pipeline/steps/validation.js";
 import {
@@ -139,8 +148,11 @@ import {
 const SUBJECT_SEPARATOR = "|";
 
 export interface UserTokenMintDeps {
-  /** Where the minting organization's embedding settings are read. */
-  readonly store: Pick<Store, "getResource">;
+  /**
+   * Where the minting organization's embedding settings are read, and the
+   * token organization's name when a refusal names it.
+   */
+  readonly store: Pick<Store, "getResource" | "resourceNames">;
   readonly authorizer: Authorizer;
   /** The any-mode subject lookup: an existing person is found whatever wrote it. */
   readonly accounts: Pick<IdentityAccountStore, "findByIdpId">;
@@ -273,12 +285,12 @@ async function resolveOrProvisionAccount(
   const idpId = appUserSubject(org, user.externalUserId);
   const existing = await findAccount(deps, idpId);
   if (existing !== undefined) {
-    return appUserAccountId(existing, user, org);
+    return await appUserAccountId(deps, existing, user, org);
   }
 
   if (embedding?.createAccountsOnSignIn !== true) {
     throw new ConnectError(
-      noAccountMessage(user.externalUserId, org),
+      noAccountMessage(user.externalUserId, await organizationForPeople(deps, org)),
       Code.FailedPrecondition,
     );
   }
@@ -302,7 +314,7 @@ async function resolveOrProvisionAccount(
     const winner = await resolveCreateRace(error, () =>
       deps.accounts.findByIdpId(idpId),
     );
-    return appUserAccountId(winner, user, org);
+    return await appUserAccountId(deps, winner, user, org);
   }
 }
 
@@ -319,19 +331,35 @@ async function findAccount(
 }
 
 /**
+ * The token's organization as a refusal names it to a person: its current
+ * slug, else the id. A store fault is INTERNAL, like every other read here.
+ */
+async function organizationForPeople(
+  deps: UserTokenMintDeps,
+  org: string,
+): Promise<string> {
+  try {
+    return await organizationNameForPeople(deps.store, org);
+  } catch (error) {
+    throw internalError(error, "failed to read the organization's name");
+  }
+}
+
+/**
  * The account's id, when a mint created it: a row under a `stgm_pc|`
  * subject in any other mode is refused rather than minted for.
  */
-function appUserAccountId(
+async function appUserAccountId(
+  deps: UserTokenMintDeps,
   account: IdentityAccount,
   user: AppUser,
   org: string,
-): string {
+): Promise<string> {
   if (
     account.spec?.provisioningMode !== IdentityAccountProvisioningMode.app_user
   ) {
     throw new ConnectError(
-      foreignAccountMessage(user.externalUserId, org),
+      foreignAccountMessage(user.externalUserId, await organizationForPeople(deps, org)),
       Code.FailedPrecondition,
     );
   }
