@@ -1334,6 +1334,32 @@ check-docs-yaml: ## Validate every docs YAML block + raw examples/plugins/docs-a
 	@npm run build -w @stigmer/apis --silent
 	@node_modules/.bin/tsx tools/codegen/src/generator/main.ts --target=docs-yaml-check --docs-dir docs --authoring-dirs examples,plugins,docs-agent --rules=enforce
 
+# The docs snippet gate: every TypeScript, Go, Python and Java fence under
+# docs/ compiles against the SDK it shows, or carries no-compile="<reason>"
+# (scripts/check-docs-snippets.mjs; docs/STYLE.md, "Code examples"). The
+# fences allowed to fail today are test/docs-snippets-known-failing.json,
+# which may only shrink: BASE=<ref> refuses a list that grew against that
+# ref's. Python is checked in a virtual environment with the stubs and the
+# SDK installed, Java against the SDK's classpath; both are made under
+# DOCS_SNIPPETS_DIR (ignored by git) unless their paths are given.
+DOCS_SNIPPETS_DIR ?= .docs-snippets-toolchains
+DOCS_SNIPPETS_PYTHON ?= $(DOCS_SNIPPETS_DIR)/venv/bin/python
+DOCS_SNIPPETS_JAVA_CLASSPATH ?= $(DOCS_SNIPPETS_DIR)/java-classpath.txt
+DOCS_SNIPPETS_MAVEN_REPO ?= $(HOME)/.m2/repository
+
+.PHONY: check-docs-snippets docs-snippets-toolchains
+
+check-docs-snippets: docs-snippets-toolchains ## Compile every TypeScript, Go, Python and Java docs fence against its SDK; BASE=<ref> holds the known-failing list to that ref's (CI)
+	@npm run build:libs --silent
+	node scripts/check-docs-snippets.mjs --python=$(abspath $(DOCS_SNIPPETS_PYTHON)) --java-classpath=$(abspath $(DOCS_SNIPPETS_JAVA_CLASSPATH)) $(if $(BASE),--base=$(BASE))
+
+docs-snippets-toolchains: ## The Python venv and Java classpath the docs snippet gate compiles against, from this tree's stubs and SDKs
+	@test -x $(DOCS_SNIPPETS_PYTHON) || python3 -m venv $(DOCS_SNIPPETS_DIR)/venv
+	@$(DOCS_SNIPPETS_PYTHON) -m pip install --quiet --disable-pip-version-check ./apis/stubs/python/stigmer ./sdk/python
+	@mkdir -p $(DOCS_SNIPPETS_DIR)
+	@cd apis/stubs/java && mvn -q -B install -DskipTests -Dmaven.repo.local=$(DOCS_SNIPPETS_MAVEN_REPO)
+	@cd sdk/java && mvn -q -B install -DskipTests -Dmaven.repo.local=$(DOCS_SNIPPETS_MAVEN_REPO) && mvn -q -B dependency:build-classpath -Dmdep.outputFile=$(abspath $(DOCS_SNIPPETS_JAVA_CLASSPATH)) -Dmaven.repo.local=$(DOCS_SNIPPETS_MAVEN_REPO)
+
 report-docs-yaml-rules: ## Protovalidate rule report over docs YAML manifests (never fails)
 	@test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
 	@npm run build -w @stigmer/apis --silent

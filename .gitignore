@@ -176,3 +176,6 @@ _roles/
 /tools/proto2schema
 /tools/codegen/generator/generator
 /tools/codegen/proto2schema/proto2schema
+
+# The docs snippet gate's Python venv and Java classpath (make docs-snippets-toolchains)
+/.docs-snippets-toolchains/

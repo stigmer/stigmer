@@ -139,10 +139,14 @@ falls through to the defaults. Apply one via the \`preset\` prop on
 
   mdx += `
 \`\`\`tsx
+declare function YourApp(): null;
+// ---cut---
 import "@stigmer/design-tokens/tokens.css";
 import "@stigmer/design-tokens/presets/corporate.css";
 
 <StigmerProvider client={client} preset="corporate" colorMode="dark">
+  <YourApp />
+</StigmerProvider>
 \`\`\`
 `;
 

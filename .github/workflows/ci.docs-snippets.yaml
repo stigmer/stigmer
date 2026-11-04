@@ -1,0 +1,113 @@
+# =============================================================================
+# Docs snippets — every code example in the docs compiles against its SDK
+# =============================================================================
+# Compiles every TypeScript, Go, Python and Java block under docs/ against the
+# SDK it shows, and the theme playground's code for every look it offers
+# (`make check-docs-snippets`, scripts/check-docs-snippets.mjs). A block that
+# cannot compile says why (`no-compile="<reason>"`); the blocks allowed to
+# fail today are test/docs-snippets-known-failing.json, which may only shrink:
+# the run is held to the base's list, so a change cannot add to it. Then the
+# gate's own compilers are held against planted breaks
+# (scripts/lib/docs-snippets/compilers.test.mjs, the UX bar's LIB-04 and
+# SDK-03).
+#
+# When it runs (its list in scripts/ci-lanes.mjs): the docs, every SDK and
+# the stubs they compile against, the generators that write the reference
+# pages, the gate itself, and the list. It sets up the four toolchains
+# ci.sdk-quickstarts does.
+# =============================================================================
+
+name: ci.docs-snippets
+
+on:
+  # Called by ci.gate.yaml when scripts/ci-lanes.mjs finds the change needs
+  # this lane (the path list and its reasons live there); `Gate` is the
+  # required check.
+  workflow_call:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+env:
+  # Inside the gate a missing test dependency fails instead of skipping; a
+  # caller's env does not reach a called workflow, so each lane sets it.
+  STIGMER_TEST_GATE: "1"
+
+jobs:
+  snippets:
+    name: every docs example compiles against its SDK
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      # Full commit graph, no blobs: the list of known failures is read at the
+      # base (git show), so the base must be in the clone.
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+          filter: blob:none
+          persist-credentials: false
+
+      # The checkout above left the file contents out, and git fetches each
+      # one a later step reads. Signed in with this job's read-only token, so
+      # a refused anonymous fetch cannot fail the job (#2322).
+      - name: Sign in git's fetches of the files the checkout left out
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          auth=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')
+          echo "::add-mask::$auth"
+          {
+            echo "GIT_CONFIG_COUNT=1"
+            echo "GIT_CONFIG_KEY_0=http.https://github.com/.extraheader"
+            echo "GIT_CONFIG_VALUE_0=AUTHORIZATION: basic $auth"
+          } >> "$GITHUB_ENV"
+
+      - name: Restore the Turbo cache
+        uses: ./.github/actions/turbo-cache
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: ".nvmrc"
+
+      # The workspace's toolchain, as ci.go-sdk sets it up.
+      - name: Set up Go
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version-file: go.work
+          cache-dependency-path: |
+            apis/stubs/go/go.sum
+            sdk/go/go.sum
+
+      # The SDK's floor (sdk/python/pyproject.toml requires-python).
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.11'
+
+      - name: Set up Java
+        uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Install npm workspace dependencies
+        run: npm ci
+
+      # The base is the pull request's base branch, or the commit the merge
+      # queue builds on; a manual dispatch has none, and is held to the list
+      # alone. The target builds the libraries, the Python venv and the Java
+      # classpath, into the runner's own ~/.m2, which setup-java caches.
+      - name: Every docs example compiles, or the list holds it
+        env:
+          BASE: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || github.event.merge_group.base_sha }}
+        run: make check-docs-snippets BASE="$BASE" DOCS_SNIPPETS_MAVEN_REPO="$HOME/.m2/repository"
+
+      - name: The gate's compilers catch a planted break in each language
+        env:
+          DOCS_SNIPPETS_PYTHON: ${{ github.workspace }}/.docs-snippets-toolchains/venv/bin/python
+          DOCS_SNIPPETS_JAVA_CLASSPATH: ${{ github.workspace }}/.docs-snippets-toolchains/java-classpath.txt
+        run: node --test scripts/lib/docs-snippets/compilers.test.mjs
