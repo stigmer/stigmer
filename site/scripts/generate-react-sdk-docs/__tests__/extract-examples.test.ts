@@ -49,6 +49,10 @@ describe("extractExamples", () => {
     expect(extractExamples({ summary: [] }, OWNER)).toEqual([]);
     expect(extractExamples(undefined, OWNER)).toEqual([]);
   });
+
+  it("skips an @example that holds only whitespace", () => {
+    expect(extractExamples(examples("  \n ", "a();"), OWNER)).toEqual([{ meta: "", code: "a();" }]);
+  });
 });
 
 describe("renderExample", () => {

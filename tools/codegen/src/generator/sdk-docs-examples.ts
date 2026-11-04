@@ -467,7 +467,6 @@ export function docProtoInput(
       return `${name}.newBuilder()\n${entries.map((e) => `    .${e.name}(${e.value})`).join("\n")}\n    .build()`;
     }
   }
-  return null;
 }
 
 /** The TypeScript stub module that declares message `typeName` (`@stigmer/apis/…/io_pb`), or null when no file declares it. */
@@ -555,7 +554,6 @@ function protoEntry(env: DocExampleEnv, lang: DocLang, f: FieldSchema, value: st
       return { name: `set${cap}`, value };
     }
   }
-  return { name: f.protoField, value };
 }
 
 /** The `proto` package's helper that boxes a Go scalar for a presence field. */
@@ -606,7 +604,6 @@ function protoValue(env: DocExampleEnv, lang: DocLang, ts: TypeSpec, containerFu
         case "java":
           return `${env.imports.javaType("com.google.protobuf.ByteString")}.EMPTY`;
       }
-      return null;
     case "timestamp":
       return wellKnown(env, lang, "Timestamp", "timestamppb", "google.golang.org/protobuf/types/known/timestamppb", "timestamp_pb2");
     case "struct":
@@ -661,7 +658,6 @@ function protoMessageRef(env: DocExampleEnv, lang: DocLang, ts: TypeSpec, contai
     case "java":
       return `${env.imports.javaType(resolveJavaFQCN(full))}.getDefaultInstance()`;
   }
-  return null;
 }
 
 /** The Go type of a protobuf list element or map value, or null when its message cannot be named. */
@@ -705,22 +701,15 @@ function wellKnown(env: DocExampleEnv, lang: DocLang, name: string, goAlias: str
     case "java":
       return `${env.imports.javaType(`com.google.protobuf.${name}`)}.getDefaultInstance()`;
   }
-  return "{}";
 }
 
 function emptyList(env: DocExampleEnv, lang: DocLang): string {
   return lang === "java" ? `${env.imports.javaType("java.util.List")}.of()` : "[]";
 }
 
+/** An empty map, in a language other than Go (whose map types are written from the field's own types). */
 function emptyMap(env: DocExampleEnv, lang: DocLang): string {
-  switch (lang) {
-    case "java":
-      return `${env.imports.javaType("java.util.Map")}.of()`;
-    case "go":
-      return "map[string]string{}";
-    default:
-      return "{}";
-  }
+  return lang === "java" ? `${env.imports.javaType("java.util.Map")}.of()` : "{}";
 }
 
 // =========================================================================
@@ -782,7 +771,6 @@ function sdkConstruct(env: DocExampleEnv, lang: DocLang, inputName: string, entr
       return `${name}.builder()\n${entries.map((e) => `    .${e.name}(${e.value})`).join("\n")}\n    .build()`;
     }
   }
-  return "";
 }
 
 /** One field of an SDK input, as `lang` names it. */
@@ -797,7 +785,6 @@ function sdkEntry(lang: DocLang, f: FieldSchema, value: string): Entry {
     case "java":
       return { name: javaCamel(f.protoField), value };
   }
-  return { name: f.protoField, value };
 }
 
 /** How deep a nested SDK input's required fields are filled in before the example stops. */
@@ -832,7 +819,6 @@ function sdkValue(env: DocExampleEnv, lang: DocLang, ts: TypeSpec, depth: number
         case "java":
           return "new byte[0]";
       }
-      return '""';
     case "struct":
       return lang === "go" ? "map[string]any{}" : emptyMap(env, lang);
     case "value":
@@ -874,7 +860,6 @@ export function sdkResourceRef(env: DocExampleEnv, lang: DocLang, slug = "..."):
     case "java":
       return `${javaSdk(env, "ResourceRef")}.of("${DOC_EXAMPLE_ORG}", "${slug}")`;
   }
-  return "";
 }
 
 /** A delete's input: the id of the resource it deletes. */
@@ -889,7 +874,6 @@ export function sdkDeleteInput(env: DocExampleEnv, lang: DocLang, id: string): s
     case "java":
       return `${javaSdk(env, "DeleteResourceInput")}.builder()\n    .resourceId("${id}")\n    .build()`;
   }
-  return "";
 }
 
 /**

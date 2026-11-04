@@ -313,7 +313,7 @@ function docWriteMetaJSON(outputDir: string, pages: string[]): void {
 // Page generation
 // =========================================================================
 
-interface DocLangNames {
+export interface DocLangNames {
   ts: string;
   go: string;
   py: string;
@@ -435,7 +435,7 @@ const DOC_TABS: Readonly<Record<DocLang, { tab: string; fence: string }>> = {
  * uses, written last, once every example has been) and, when the kind has
  * a Get, the read by id.
  */
-function docWriteClientAccess(buf: string[], schema: ServiceSchemaFile, cfg: SdkResourceConfig, names: DocLangNames, env: DocExampleEnv): void {
+export function docWriteClientAccess(buf: string[], schema: ServiceSchemaFile, cfg: SdkResourceConfig, names: DocLangNames, env: DocExampleEnv): void {
   const varName = docVarName(cfg.protoResType);
   const pyVarName = docPyVarName(cfg.protoResType);
   const exampleID = docExampleID(cfg.idPrefix);

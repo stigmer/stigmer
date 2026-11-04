@@ -181,6 +181,31 @@ describe("renderDomainPage", () => {
     expect(renderDomainPage(domain("zz-unlisted"))).toMatch(/^---\ntitle: zz-unlisted\n---\n/);
   });
 
+  it("writes each hook's, component's and type's examples as tsx fences under its section", () => {
+    const example = (code: string) => [{ meta: 'title="x.tsx"', code }];
+    const page = renderDomainPage({
+      ...domain("skill"),
+      hooks: [
+        {
+          name: "useSkill",
+          description: [],
+          parameters: [],
+          returnType: { name: "void", typeString: "void" },
+          returnInterface: null,
+          examples: example("useSkill();"),
+          sourceUrl: "",
+        },
+      ],
+      components: [{ name: "SkillPicker", description: [], hasProps: false, propsInterface: null, examples: example("<SkillPicker />"), sourceUrl: "" }],
+      types: [
+        { name: "skillLabel", description: [], category: "other", fields: [], associatedExport: null, signature: null, examples: example("skillLabel(s);") },
+      ],
+    });
+    for (const code of ["useSkill();", "<SkillPicker />", "skillLabel(s);"]) {
+      expect(page).toContain('```tsx title="x.tsx"\n' + code + "\n```\n");
+    }
+  });
+
   it("renders a Types section for a standalone type, with its fields' links", () => {
     const page = renderDomainPage({
       ...domain("session"),
