@@ -4,7 +4,8 @@
  * host default, the account preference and an armed live run seed it; while
  * armed, the live turn's waiting tool uses are granted one at a time, never
  * on a guest's, observer's, channel conversation's or participant's behalf;
- * and the page's display runs are the conversation's runs.
+ * a choice made in one conversation arms nothing in the next, which takes
+ * its own seeds; and the page's display runs are the conversation's runs.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
@@ -548,6 +549,47 @@ describe("useSessionPageFlow — a participant's follow-up (canDecide false)", (
     renderHook(() => useSessionPageFlow({ ...OPTS, canDecide: false }));
     expect(mockAnswerToolUse).not.toHaveBeenCalled();
     mockConv.asks = [];
+  });
+});
+
+describe("useSessionPageFlow — moving to another conversation (stigmer/stigmer#2760)", () => {
+  beforeEach(() => {
+    mockAnswerToolUse.mockResolvedValue(undefined);
+  });
+  afterEach(() => {
+    mockConv.asks = [];
+    vi.clearAllMocks();
+  });
+
+  it("an 'Approve all' given in one conversation arms nothing in the next", async () => {
+    const { result, rerender } = renderHook(
+      ({ sessionId }: { sessionId: string }) => useSessionPageFlow({ sessionId, org: "acme" }),
+      { initialProps: { sessionId: "ses_1" } },
+    );
+    await act(async () => {
+      await result.current.answerToolUse("tc_a", "grant");
+    });
+    expect(result.current.autoApproveAll).toBe(true);
+    mockAnswerToolUse.mockClear();
+
+    // The next conversation has a call waiting for a person.
+    mockConv.asks = [{ id: "tc_b" }];
+    await act(async () => rerender({ sessionId: "ses_2" }));
+
+    expect(result.current.autoApproveAll).toBe(false);
+    expect(mockAnswerToolUse).not.toHaveBeenCalled();
+  });
+
+  it("the next conversation still takes the host default as its own seed", async () => {
+    const { result, rerender } = renderHook(
+      ({ sessionId }: { sessionId: string }) => useSessionPageFlow({ sessionId, org: "acme" }),
+      { initialProps: { sessionId: "ses_1" }, wrapper: hostDefaultWrapper(true) },
+    );
+    act(() => result.current.setAutoApproveAll(false));
+    expect(result.current.autoApproveAll).toBe(false);
+
+    await act(async () => rerender({ sessionId: "ses_2" }));
+    expect(result.current.autoApproveAll).toBe(true);
   });
 });
 
