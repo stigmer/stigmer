@@ -21,6 +21,8 @@ spec:
 
 ## Client Access
 
+Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Where a language's examples import anything, its tab opens with those imports.
+
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
@@ -28,18 +30,47 @@ const organization = await stigmer.organization.get("org_01j5q3k7m8r2s4tnz2hfp0q
 ```
 </Tab>
 <Tab value="Go">
+```go prelude
+import (
+	stigmer "go.stigmer.ai/sdk"
+	"go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	organizationv1 "go.stigmer.ai/sdk/proto/ai/stigmer/tenancy/organization/v1"
+)
+```
 ```go
 organization, err := client.Organization.Get(ctx, "org_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
+```python prelude
+from stigmer import OrganizationInput
+from stigmer._gen import OrganizationEmbeddingInput, OrganizationPoliciesInput, OrganizationPreferencesInput
+from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2
+from ai.stigmer.tenancy.organization.v1 import io_pb2, spec_pb2
+```
 ```python
 organization = client.organizations.get("org_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
+```java prelude
+import ai.stigmer.commons.apiresource.RenameInput;
+import ai.stigmer.sdk.gen.OrganizationInput;
+import ai.stigmer.tenancy.organization.v1.ChildOrgList;
+import ai.stigmer.tenancy.organization.v1.ListChildOrgsInput;
+import ai.stigmer.tenancy.organization.v1.ListMyOrganizationsInput;
+import ai.stigmer.tenancy.organization.v1.Organization;
+import ai.stigmer.tenancy.organization.v1.OrganizationEmbedding;
+import ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup;
+import ai.stigmer.tenancy.organization.v1.OrganizationPolicies;
+import ai.stigmer.tenancy.organization.v1.Organizations;
+import ai.stigmer.tenancy.organization.v1.UpdateOrganizationEmbeddingInput;
+import ai.stigmer.tenancy.organization.v1.UpdateOrganizationPoliciesInput;
+import java.util.List;
+import java.util.Map;
+```
 ```java
-Organization organization = client.organizations().get("org_01j5q3k7m8r2s4tnz2hfp0q0c3");
+Organization organization = client.organization.get("org_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -67,22 +98,22 @@ Get an organization by ID.
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const organization = await stigmer.organization.get(id);
+const organization = await stigmer.organization.get("org_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
 ```go
-organization, err := client.Organization.Get(ctx, id)
+organization, err := client.Organization.Get(ctx, "org_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
 ```python
-organization = client.organizations.get(id)
+organization = client.organizations.get("org_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Organization organization = client.organizations().get(id);
+Organization organization = client.organization.get("org_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -110,7 +141,7 @@ const organization = await stigmer.organization.getByExternalId({
 </Tab>
 <Tab value="Go">
 ```go
-organization, err := client.Organization.GetByExternalId(ctx, &stigmer.OrganizationExternalLookup{
+organization, err := client.Organization.GetByExternalId(ctx, &organizationv1.OrganizationExternalLookup{
   ExternalId: "...",
   ParentOrg:  "...",
 })
@@ -118,7 +149,7 @@ organization, err := client.Organization.GetByExternalId(ctx, &stigmer.Organizat
 </Tab>
 <Tab value="Python">
 ```python
-organization = client.organizations.get_by_external_id(OrganizationExternalLookup(
+organization = client.organizations.get_by_external_id(io_pb2.OrganizationExternalLookup(
     external_id="...",
     parent_org="...",
 ))
@@ -126,9 +157,9 @@ organization = client.organizations.get_by_external_id(OrganizationExternalLooku
 </Tab>
 <Tab value="Java">
 ```java
-Organization organization = client.organizations().getByExternalId(OrganizationExternalLookup.builder()
-    .externalId("...")
-    .parentOrg("...")
+Organization organization = client.organization.getByExternalId(OrganizationExternalLookup.newBuilder()
+    .setExternalId("...")
+    .setParentOrg("...")
     .build());
 ```
 </Tab>
@@ -146,40 +177,36 @@ List an organization's child organizations, newest first.
 <Tab value="TypeScript">
 ```typescript
 const result = await stigmer.organization.listChildOrgs({
-  org: "...",
+  org: "acme",
   pageSize: 0,
-  pageToken: "...",
   labels: {},
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-result, err := client.Organization.ListChildOrgs(ctx, &stigmer.ListChildOrgsInput{
-  Org:       "...",
-  PageSize:  0,
-  PageToken: "...",
-  Labels:    map[string]string{},
+result, err := client.Organization.ListChildOrgs(ctx, &organizationv1.ListChildOrgsInput{
+  Org:      "acme",
+  PageSize: 0,
+  Labels:   map[string]string{},
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-result = client.organizations.list_child_orgs(ListChildOrgsInput(
-    org="...",
+result = client.organizations.list_child_orgs(io_pb2.ListChildOrgsInput(
+    org="acme",
     page_size=0,
-    page_token="...",
     labels={},
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-ChildOrgList result = client.organizations().listChildOrgs(ListChildOrgsInput.builder()
-    .org("...")
-    .pageSize(0)
-    .pageToken("...")
-    .labels(Map.of())
+ChildOrgList result = client.organization.listChildOrgs(ListChildOrgsInput.newBuilder()
+    .setOrg("acme")
+    .setPageSize(0)
+    .putAllLabels(Map.of())
     .build());
 ```
 </Tab>
@@ -200,35 +227,31 @@ List the organizations the authenticated caller is a member of. Returns only org
 ```typescript
 const organizations = await stigmer.organization.listMine({
   pageSize: 0,
-  pageToken: "...",
   labels: {},
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-organizations, err := client.Organization.ListMine(ctx, &stigmer.ListMyOrganizationsInput{
-  PageSize:  0,
-  PageToken: "...",
-  Labels:    map[string]string{},
+organizations, err := client.Organization.ListMine(ctx, &organizationv1.ListMyOrganizationsInput{
+  PageSize: 0,
+  Labels:   map[string]string{},
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-organizations = client.organizations.list_mine(ListMyOrganizationsInput(
+organizations = client.organizations.list_mine(io_pb2.ListMyOrganizationsInput(
     page_size=0,
-    page_token="...",
     labels={},
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Organizations organizations = client.organizations().listMine(ListMyOrganizationsInput.builder()
-    .pageSize(0)
-    .pageToken("...")
-    .labels(Map.of())
+Organizations organizations = client.organization.listMine(ListMyOrganizationsInput.newBuilder()
+    .setPageSize(0)
+    .putAllLabels(Map.of())
     .build());
 ```
 </Tab>
@@ -292,26 +315,26 @@ organization = client.organizations.apply(OrganizationInput(
     description="...",
     logo_url="...",
     external_id="...",
-    preferences=None,
+    preferences=OrganizationPreferencesInput(),
     parent_org="...",
-    policies=None,
-    embedding=None,
+    policies=OrganizationPoliciesInput(),
+    embedding=OrganizationEmbeddingInput(),
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Organization organization = client.organizations().apply(OrganizationInput.builder()
+Organization organization = client.organization.apply(OrganizationInput.builder()
     .name("my-organization")
     .slug("...")
     .labels(Map.of())
     .description("...")
     .logoUrl("...")
     .externalId("...")
-    .preferences(null)
+    .preferences(OrganizationInput.OrganizationPreferencesInput.builder().build())
     .parentOrg("...")
-    .policies(null)
-    .embedding(null)
+    .policies(OrganizationInput.OrganizationPoliciesInput.builder().build())
+    .embedding(OrganizationInput.OrganizationEmbeddingInput.builder().build())
     .build());
 ```
 </Tab>
@@ -395,26 +418,26 @@ organization = client.organizations.create(OrganizationInput(
     description="...",
     logo_url="...",
     external_id="...",
-    preferences=None,
+    preferences=OrganizationPreferencesInput(),
     parent_org="...",
-    policies=None,
-    embedding=None,
+    policies=OrganizationPoliciesInput(),
+    embedding=OrganizationEmbeddingInput(),
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Organization organization = client.organizations().create(OrganizationInput.builder()
+Organization organization = client.organization.create(OrganizationInput.builder()
     .name("my-organization")
     .slug("...")
     .labels(Map.of())
     .description("...")
     .logoUrl("...")
     .externalId("...")
-    .preferences(null)
+    .preferences(OrganizationInput.OrganizationPreferencesInput.builder().build())
     .parentOrg("...")
-    .policies(null)
-    .embedding(null)
+    .policies(OrganizationInput.OrganizationPoliciesInput.builder().build())
+    .embedding(OrganizationInput.OrganizationEmbeddingInput.builder().build())
     .build());
 ```
 </Tab>
@@ -458,10 +481,10 @@ updated = client.organizations.update(organization, ["metadata.name"])
 </Tab>
 <Tab value="Java">
 ```java
-Organization organization = client.organizations().get("org_01j5q3k7m8r2s4tnz2hfp0q0c3");
-Organization updated = client.organizations().update(
+Organization organization = client.organization.get("org_01j5q3k7m8r2s4tnz2hfp0q0c3");
+Organization updated = client.organization.update(
     organization.toBuilder().setMetadata(organization.getMetadata().toBuilder().setName("New name")).build(),
-    java.util.List.of("metadata.name"));
+    List.of("metadata.name"));
 ```
 </Tab>
 </SDKTabs>
@@ -492,25 +515,25 @@ const organization = await stigmer.organization.updateEmbedding({
 </Tab>
 <Tab value="Go">
 ```go
-organization, err := client.Organization.UpdateEmbedding(ctx, &stigmer.UpdateOrganizationEmbeddingInput{
+organization, err := client.Organization.UpdateEmbedding(ctx, &organizationv1.UpdateOrganizationEmbeddingInput{
   OrgId:     "...",
-  Embedding: &stigmer.OrganizationEmbeddingInput{},
+  Embedding: &organizationv1.OrganizationEmbedding{},
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-organization = client.organizations.update_embedding(UpdateOrganizationEmbeddingInput(
+organization = client.organizations.update_embedding(io_pb2.UpdateOrganizationEmbeddingInput(
     org_id="...",
-    embedding=None,
+    embedding=spec_pb2.OrganizationEmbedding(),
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Organization organization = client.organizations().updateEmbedding(UpdateOrganizationEmbeddingInput.builder()
-    .orgId("...")
-    .embedding(null)
+Organization organization = client.organization.updateEmbedding(UpdateOrganizationEmbeddingInput.newBuilder()
+    .setOrgId("...")
+    .setEmbedding(OrganizationEmbedding.getDefaultInstance())
     .build());
 ```
 </Tab>
@@ -535,25 +558,25 @@ const organization = await stigmer.organization.updatePolicies({
 </Tab>
 <Tab value="Go">
 ```go
-organization, err := client.Organization.UpdatePolicies(ctx, &stigmer.UpdateOrganizationPoliciesInput{
+organization, err := client.Organization.UpdatePolicies(ctx, &organizationv1.UpdateOrganizationPoliciesInput{
   OrgId:    "...",
-  Policies: &stigmer.OrganizationPoliciesInput{},
+  Policies: &organizationv1.OrganizationPolicies{},
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-organization = client.organizations.update_policies(UpdateOrganizationPoliciesInput(
+organization = client.organizations.update_policies(io_pb2.UpdateOrganizationPoliciesInput(
     org_id="...",
-    policies=None,
+    policies=spec_pb2.OrganizationPolicies(),
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Organization organization = client.organizations().updatePolicies(UpdateOrganizationPoliciesInput.builder()
-    .orgId("...")
-    .policies(null)
+Organization organization = client.organization.updatePolicies(UpdateOrganizationPoliciesInput.newBuilder()
+    .setOrgId("...")
+    .setPolicies(OrganizationPolicies.getDefaultInstance())
     .build());
 ```
 </Tab>
@@ -582,22 +605,22 @@ A parent whose children are all being deleted may be deleted; its purge finishes
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const organization = await stigmer.organization.delete(id);
+const organization = await stigmer.organization.delete("org_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
 ```go
-organization, err := client.Organization.Delete(ctx, id)
+organization, err := client.Organization.Delete(ctx, "org_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
 ```python
-organization = client.organizations.delete(id)
+organization = client.organizations.delete("org_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Organization organization = client.organizations().delete(id);
+Organization organization = client.organization.delete("org_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -627,7 +650,7 @@ const organization = await stigmer.organization.rename({
 </Tab>
 <Tab value="Go">
 ```go
-organization, err := client.Organization.Rename(ctx, &stigmer.RenameInput{
+organization, err := client.Organization.Rename(ctx, &apiresource.RenameInput{
   ResourceId: "...",
   Slug:       "...",
 })
@@ -635,7 +658,7 @@ organization, err := client.Organization.Rename(ctx, &stigmer.RenameInput{
 </Tab>
 <Tab value="Python">
 ```python
-organization = client.organizations.rename(RenameInput(
+organization = client.organizations.rename(apiresource_io_pb2.RenameInput(
     resource_id="...",
     slug="...",
 ))
@@ -643,9 +666,9 @@ organization = client.organizations.rename(RenameInput(
 </Tab>
 <Tab value="Java">
 ```java
-Organization organization = client.organizations().rename(RenameInput.builder()
-    .resourceId("...")
-    .slug("...")
+Organization organization = client.organization.rename(RenameInput.newBuilder()
+    .setResourceId("...")
+    .setSlug("...")
     .build());
 ```
 </Tab>

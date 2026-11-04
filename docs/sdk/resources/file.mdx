@@ -37,25 +37,58 @@ status:
 
 ## Client Access
 
+Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Where a language's examples import anything, its tab opens with those imports.
+
 <SDKTabs>
 <Tab value="TypeScript">
+```typescript prelude
+import { create } from "@bufbuild/protobuf";
+import { UploadFileInputSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/io_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
+```
 ```typescript
 const file = await stigmer.file.get("file_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
+```go prelude
+import (
+	filev1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/file/v1"
+	"go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+)
+```
 ```go
 file, err := client.File.Get(ctx, "file_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
+```python prelude
+from ai.stigmer.agentic.file.v1 import io_pb2
+from ai.stigmer.commons.apiresource import enum_pb2 as apiresource_enum_pb2, io_pb2 as apiresource_io_pb2
+```
 ```python
 file = client.files.get("file_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
+```java prelude
+import ai.stigmer.agentic.file.v1.CreateFileUploadUrlInput;
+import ai.stigmer.agentic.file.v1.File;
+import ai.stigmer.agentic.file.v1.FileContent;
+import ai.stigmer.agentic.file.v1.FileDownloadUrl;
+import ai.stigmer.agentic.file.v1.FileList;
+import ai.stigmer.agentic.file.v1.FileUploadUrl;
+import ai.stigmer.agentic.file.v1.GetFileContentInput;
+import ai.stigmer.agentic.file.v1.ListFilesRequest;
+import ai.stigmer.agentic.file.v1.UploadFileInput;
+import ai.stigmer.commons.apiresource.ApiResourceVisibility;
+import ai.stigmer.commons.apiresource.UpdateVisibilityInput;
+import com.google.protobuf.ByteString;
+import java.util.List;
+import java.util.Map;
+```
 ```java
-File file = client.files().get("file_01j5q3k7m8r2s4tnz2hfp0q0c3");
+File file = client.file.get("file_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -81,22 +114,22 @@ Get a File by its id.
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const file = await stigmer.file.get(id);
+const file = await stigmer.file.get("file_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
 ```go
-file, err := client.File.Get(ctx, id)
+file, err := client.File.Get(ctx, "file_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
 ```python
-file = client.files.get(id)
+file = client.files.get("file_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-File file = client.files().get(id);
+File file = client.file.get("file_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -118,13 +151,13 @@ The start of a File's bytes, read through the server: at most 512 KB, enough to 
 ```typescript
 const fileContent = await stigmer.file.getContent({
   id: "...",
-  maxBytes: 0,
+  maxBytes: 0n,
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-fileContent, err := client.File.GetContent(ctx, &stigmer.GetFileContentInput{
+fileContent, err := client.File.GetContent(ctx, &filev1.GetFileContentInput{
   Id:       "...",
   MaxBytes: 0,
 })
@@ -132,7 +165,7 @@ fileContent, err := client.File.GetContent(ctx, &stigmer.GetFileContentInput{
 </Tab>
 <Tab value="Python">
 ```python
-file_content = client.files.get_content(GetFileContentInput(
+file_content = client.files.get_content(io_pb2.GetFileContentInput(
     id="...",
     max_bytes=0,
 ))
@@ -140,9 +173,9 @@ file_content = client.files.get_content(GetFileContentInput(
 </Tab>
 <Tab value="Java">
 ```java
-FileContent fileContent = client.files().getContent(GetFileContentInput.builder()
-    .id("...")
-    .maxBytes(0)
+FileContent fileContent = client.file.getContent(GetFileContentInput.newBuilder()
+    .setId("...")
+    .setMaxBytes(0L)
     .build());
 ```
 </Tab>
@@ -159,22 +192,22 @@ A link to download a File's bytes, valid for an hour. A browser opening it saves
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const fileDownloadUrl = await stigmer.file.getDownloadUrl(id);
+const fileDownloadUrl = await stigmer.file.getDownloadUrl("file_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
 ```go
-fileDownloadUrl, err := client.File.GetDownloadUrl(ctx, id)
+fileDownloadUrl, err := client.File.GetDownloadUrl(ctx, "file_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
 ```python
-file_download_url = client.files.get_download_url(id)
+file_download_url = client.files.get_download_url("file_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-FileDownloadUrl fileDownloadUrl = client.files().getDownloadUrl(id);
+FileDownloadUrl fileDownloadUrl = client.file.getDownloadUrl("file_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -195,10 +228,9 @@ List an organization's Files, newest first: every File of the org the caller may
 <Tab value="TypeScript">
 ```typescript
 const result = await stigmer.file.list({
-  org: "...",
+  org: "acme",
   sessionId: "...",
   pageSize: 0,
-  pageToken: "...",
   labels: {},
   runId: "...",
   withoutSession: false,
@@ -207,11 +239,10 @@ const result = await stigmer.file.list({
 </Tab>
 <Tab value="Go">
 ```go
-result, err := client.File.List(ctx, &stigmer.ListFilesRequest{
-  Org:            "...",
+result, err := client.File.List(ctx, &filev1.ListFilesRequest{
+  Org:            "acme",
   SessionId:      "...",
   PageSize:       0,
-  PageToken:      "...",
   Labels:         map[string]string{},
   RunId:          "...",
   WithoutSession: false,
@@ -220,11 +251,10 @@ result, err := client.File.List(ctx, &stigmer.ListFilesRequest{
 </Tab>
 <Tab value="Python">
 ```python
-result = client.files.list(ListFilesRequest(
-    org="...",
+result = client.files.list(io_pb2.ListFilesRequest(
+    org="acme",
     session_id="...",
     page_size=0,
-    page_token="...",
     labels={},
     run_id="...",
     without_session=False,
@@ -233,14 +263,13 @@ result = client.files.list(ListFilesRequest(
 </Tab>
 <Tab value="Java">
 ```java
-FileList result = client.files().list(ListFilesRequest.builder()
-    .org("...")
-    .sessionId("...")
-    .pageSize(0)
-    .pageToken("...")
-    .labels(Map.of())
-    .runId("...")
-    .withoutSession(false)
+FileList result = client.file.list(ListFilesRequest.newBuilder()
+    .setOrg("acme")
+    .setSessionId("...")
+    .setPageSize(0)
+    .putAllLabels(Map.of())
+    .setRunId("...")
+    .setWithoutSession(false)
     .build());
 ```
 </Tab>
@@ -284,10 +313,10 @@ updated = client.files.update(file, ["metadata.name"])
 </Tab>
 <Tab value="Java">
 ```java
-File file = client.files().get("file_01j5q3k7m8r2s4tnz2hfp0q0c3");
-File updated = client.files().update(
+File file = client.file.get("file_01j5q3k7m8r2s4tnz2hfp0q0c3");
+File updated = client.file.update(
     file.toBuilder().setMetadata(file.getMetadata().toBuilder().setName("New name")).build(),
-    java.util.List.of("metadata.name"));
+    List.of("metadata.name"));
 ```
 </Tab>
 </SDKTabs>
@@ -312,31 +341,31 @@ Setting org lets every member of the organization see the File.
 ```typescript
 const file = await stigmer.file.updateVisibility({
   resourceId: "...",
-  visibility: "...",
+  visibility: ApiResourceVisibility.visibility_private,
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-file, err := client.File.UpdateVisibility(ctx, &stigmer.UpdateVisibilityInput{
+file, err := client.File.UpdateVisibility(ctx, &apiresource.UpdateVisibilityInput{
   ResourceId: "...",
-  Visibility: "...",
+  Visibility: apiresource.ApiResourceVisibility_visibility_private,
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-file = client.files.update_visibility(UpdateVisibilityInput(
+file = client.files.update_visibility(apiresource_io_pb2.UpdateVisibilityInput(
     resource_id="...",
-    visibility="...",
+    visibility=apiresource_enum_pb2.visibility_private,
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-File file = client.files().updateVisibility(UpdateVisibilityInput.builder()
-    .resourceId("...")
-    .visibility("...")
+File file = client.file.updateVisibility(UpdateVisibilityInput.newBuilder()
+    .setResourceId("...")
+    .setVisibility(ApiResourceVisibility.visibility_private)
     .build());
 ```
 </Tab>
@@ -355,22 +384,22 @@ Its uploader may delete it, and so may the owner of the conversation it belongs 
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const file = await stigmer.file.delete(id);
+const file = await stigmer.file.delete("file_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
 ```go
-file, err := client.File.Delete(ctx, id)
+file, err := client.File.Delete(ctx, "file_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
 ```python
-file = client.files.delete(id)
+file = client.files.delete("file_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-File file = client.files().delete(id);
+File file = client.file.delete("file_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -393,16 +422,16 @@ A size over the server's limit is refused here, before any bytes move.
 <Tab value="TypeScript">
 ```typescript
 const fileUploadUrl = await stigmer.file.createUploadUrl({
-  org: "...",
+  org: "acme",
   sessionId: "...",
-  sizeBytes: 0,
+  sizeBytes: 0n,
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-fileUploadUrl, err := client.File.CreateUploadUrl(ctx, &stigmer.CreateFileUploadUrlInput{
-  Org:       "...",
+fileUploadUrl, err := client.File.CreateUploadUrl(ctx, &filev1.CreateFileUploadUrlInput{
+  Org:       "acme",
   SessionId: "...",
   SizeBytes: 0,
 })
@@ -410,8 +439,8 @@ fileUploadUrl, err := client.File.CreateUploadUrl(ctx, &stigmer.CreateFileUpload
 </Tab>
 <Tab value="Python">
 ```python
-file_upload_url = client.files.create_upload_url(CreateFileUploadUrlInput(
-    org="...",
+file_upload_url = client.files.create_upload_url(io_pb2.CreateFileUploadUrlInput(
+    org="acme",
     session_id="...",
     size_bytes=0,
 ))
@@ -419,10 +448,10 @@ file_upload_url = client.files.create_upload_url(CreateFileUploadUrlInput(
 </Tab>
 <Tab value="Java">
 ```java
-FileUploadUrl fileUploadUrl = client.files().createUploadUrl(CreateFileUploadUrlInput.builder()
-    .org("...")
-    .sessionId("...")
-    .sizeBytes(0)
+FileUploadUrl fileUploadUrl = client.file.createUploadUrl(CreateFileUploadUrlInput.newBuilder()
+    .setOrg("acme")
+    .setSessionId("...")
+    .setSizeBytes(0L)
     .build());
 ```
 </Tab>
@@ -443,49 +472,45 @@ A file over the server's limit (500 MB unless the operator set another) is refus
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const file = await stigmer.file.upload({
-  org: "...",
+const file = await stigmer.file.upload(create(UploadFileInputSchema, {
+  org: "acme",
   sessionId: "...",
   filename: "...",
   mimeType: "...",
-  data: "...",
-  uploadRef: "...",
-});
+  source: { case: "data", value: new Uint8Array() },
+}));
 ```
 </Tab>
 <Tab value="Go">
 ```go
-file, err := client.File.Upload(ctx, &stigmer.UploadFileInput{
-  Org:       "...",
+file, err := client.File.Upload(ctx, &filev1.UploadFileInput{
+  Org:       "acme",
   SessionId: "...",
   Filename:  "...",
   MimeType:  "...",
-  Data:      "...",
-  UploadRef: "...",
+  Source:    &filev1.UploadFileInput_Data{Data: []byte{}},
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-file = client.files.upload(UploadFileInput(
-    org="...",
+file = client.files.upload(io_pb2.UploadFileInput(
+    org="acme",
     session_id="...",
     filename="...",
     mime_type="...",
-    data="...",
-    upload_ref="...",
+    data=b"",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-File file = client.files().upload(UploadFileInput.builder()
-    .org("...")
-    .sessionId("...")
-    .filename("...")
-    .mimeType("...")
-    .data("...")
-    .uploadRef("...")
+File file = client.file.upload(UploadFileInput.newBuilder()
+    .setOrg("acme")
+    .setSessionId("...")
+    .setFilename("...")
+    .setMimeType("...")
+    .setData(ByteString.EMPTY)
     .build());
 ```
 </Tab>

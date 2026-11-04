@@ -40,6 +40,8 @@ status:
 
 ## Client Access
 
+Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Where a language's examples import anything, its tab opens with those imports.
+
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
@@ -47,18 +49,35 @@ const scoringRule = await stigmer.scoringrule.get("srl_01j5q3k7m8r2s4tnz2hfp0q0c
 ```
 </Tab>
 <Tab value="Go">
+```go prelude
+import (
+	stigmer "go.stigmer.ai/sdk"
+	scoringrulev1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/scoringrule/v1"
+)
+```
 ```go
 scoringRule, err := client.ScoringRule.Get(ctx, "srl_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
+```python prelude
+from stigmer._gen import ScoringRuleInput
+from ai.stigmer.agentic.scoringrule.v1 import io_pb2
+```
 ```python
 scoring_rule = client.scoringrules.get("srl_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
+```java prelude
+import ai.stigmer.agentic.scoringrule.v1.GetScoringRuleByAgentRequest;
+import ai.stigmer.agentic.scoringrule.v1.ScoringRule;
+import ai.stigmer.sdk.gen.ScoringRuleInput;
+import java.util.List;
+import java.util.Map;
+```
 ```java
-ScoringRule scoringRule = client.scoringrules().get("srl_01j5q3k7m8r2s4tnz2hfp0q0c3");
+ScoringRule scoringRule = client.scoringrule.get("srl_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -80,22 +99,22 @@ Get a single scoring rule by ID.
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const scoringRule = await stigmer.scoringrule.get(id);
+const scoringRule = await stigmer.scoringrule.get("srl_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
 ```go
-scoringRule, err := client.ScoringRule.Get(ctx, id)
+scoringRule, err := client.ScoringRule.Get(ctx, "srl_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
 ```python
-scoring_rule = client.scoringrules.get(id)
+scoring_rule = client.scoringrules.get("srl_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-ScoringRule scoringRule = client.scoringrules().get(id);
+ScoringRule scoringRule = client.scoringrule.get("srl_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -124,22 +143,22 @@ const scoringRule = await stigmer.scoringrule.getByAgent({
 </Tab>
 <Tab value="Go">
 ```go
-scoringRule, err := client.ScoringRule.GetByAgent(ctx, &stigmer.GetScoringRuleByAgentRequest{
+scoringRule, err := client.ScoringRule.GetByAgent(ctx, &scoringrulev1.GetScoringRuleByAgentRequest{
   AgentId: "...",
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-scoring_rule = client.scoringrules.get_by_agent(GetScoringRuleByAgentRequest(
+scoring_rule = client.scoringrules.get_by_agent(io_pb2.GetScoringRuleByAgentRequest(
     agent_id="...",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-ScoringRule scoringRule = client.scoringrules().getByAgent(GetScoringRuleByAgentRequest.builder()
-    .agentId("...")
+ScoringRule scoringRule = client.scoringrule.getByAgent(GetScoringRuleByAgentRequest.newBuilder()
+    .setAgentId("...")
     .build());
 ```
 </Tab>
@@ -195,15 +214,15 @@ scoring_rule = client.scoringrules.create(ScoringRuleInput(
     labels={},
     agent_id="...",
     enabled=False,
-    sample_rate=0,
-    monthly_limit_usd=0,
+    sample_rate=0.0,
+    monthly_limit_usd=0.0,
     model_name="...",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-ScoringRule scoringRule = client.scoringrules().create(ScoringRuleInput.builder()
+ScoringRule scoringRule = client.scoringrule.create(ScoringRuleInput.builder()
     .name("my-scoring-rule")
     .org("acme")
     .slug("...")
@@ -258,10 +277,10 @@ updated = client.scoringrules.update(scoring_rule, ["metadata.name"])
 </Tab>
 <Tab value="Java">
 ```java
-ScoringRule scoringRule = client.scoringrules().get("srl_01j5q3k7m8r2s4tnz2hfp0q0c3");
-ScoringRule updated = client.scoringrules().update(
+ScoringRule scoringRule = client.scoringrule.get("srl_01j5q3k7m8r2s4tnz2hfp0q0c3");
+ScoringRule updated = client.scoringrule.update(
     scoringRule.toBuilder().setMetadata(scoringRule.getMetadata().toBuilder().setName("New name")).build(),
-    java.util.List.of("metadata.name"));
+    List.of("metadata.name"));
 ```
 </Tab>
 </SDKTabs>
@@ -284,22 +303,22 @@ Scores already recorded stay on their runs.
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const scoringRule = await stigmer.scoringrule.delete(id);
+const scoringRule = await stigmer.scoringrule.delete("srl_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
 ```go
-scoringRule, err := client.ScoringRule.Delete(ctx, id)
+scoringRule, err := client.ScoringRule.Delete(ctx, "srl_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
 ```python
-scoring_rule = client.scoringrules.delete(id)
+scoring_rule = client.scoringrules.delete("srl_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-ScoringRule scoringRule = client.scoringrules().delete(id);
+ScoringRule scoringRule = client.scoringrule.delete("srl_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>

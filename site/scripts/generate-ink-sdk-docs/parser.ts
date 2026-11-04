@@ -16,6 +16,7 @@ import {
   serializeType,
   flattenCommentParts,
   extractExamples,
+  type Example,
 } from "../generate-react-sdk-docs/mdx-utils";
 import type { CommentPart, Field } from "../generate-react-sdk-docs/model";
 
@@ -30,7 +31,7 @@ export interface InkExport {
   category: InkCategory;
   description: CommentPart[];
   propsInterface: InkPropsInterface | null;
-  examples: string[];
+  examples: Example[];
   sourceUrl: string;
   isReExport: boolean;
 }
@@ -158,7 +159,7 @@ export async function parseTypeDocJson(
     const category = classifyFunction(name);
     const sig = refl.signatures?.[0];
     const description = parseCommentParts(sig?.comment?.summary);
-    const examples = extractExamples(sig?.comment);
+    const examples = extractExamples(sig?.comment, refl);
 
     const isReExport = category === "transport";
 

@@ -29,6 +29,39 @@ status:
   current_period_end: "2026-10-01T00:00:00Z"
 ```
 
+## Client Access
+
+Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Where a language's examples import anything, its tab opens with those imports.
+
+<SDKTabs>
+<Tab value="Go">
+```go prelude
+import (
+	subscriptionv1 "go.stigmer.ai/sdk/proto/ai/stigmer/billing/subscription/v1"
+)
+```
+</Tab>
+<Tab value="Python">
+```python prelude
+from ai.stigmer.billing.subscription.v1 import io_pb2
+```
+</Tab>
+<Tab value="Java">
+```java prelude
+import ai.stigmer.billing.subscription.v1.AgentHours;
+import ai.stigmer.billing.subscription.v1.CancelSubscriptionInput;
+import ai.stigmer.billing.subscription.v1.ChangePlanInput;
+import ai.stigmer.billing.subscription.v1.GetAgentHoursInput;
+import ai.stigmer.billing.subscription.v1.GetEntitlementsInput;
+import ai.stigmer.billing.subscription.v1.GetEntitlementsOutput;
+import ai.stigmer.billing.subscription.v1.GetPeriodEstimateInput;
+import ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput;
+import ai.stigmer.billing.subscription.v1.PeriodEstimate;
+import ai.stigmer.billing.subscription.v1.Subscription;
+```
+</Tab>
+</SDKTabs>
+
 ## Methods
 
 | Method | Description |
@@ -52,28 +85,28 @@ NOT_FOUND for a child organization: a child organization is on its parent's plan
 <Tab value="TypeScript">
 ```typescript
 const agentHours = await stigmer.subscription.getAgentHours({
-  org: "...",
+  org: "acme",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-agentHours, err := client.Subscription.GetAgentHours(ctx, &stigmer.GetAgentHoursInput{
-  Org: "...",
+agentHours, err := client.Subscription.GetAgentHours(ctx, &subscriptionv1.GetAgentHoursInput{
+  Org: "acme",
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-agent_hours = client.subscriptions.get_agent_hours(GetAgentHoursInput(
-    org="...",
+agent_hours = client.subscriptions.get_agent_hours(io_pb2.GetAgentHoursInput(
+    org="acme",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-AgentHours agentHours = client.subscriptions().getAgentHours(GetAgentHoursInput.builder()
-    .org("...")
+AgentHours agentHours = client.subscription.getAgentHours(GetAgentHoursInput.newBuilder()
+    .setOrg("acme")
     .build());
 ```
 </Tab>
@@ -93,28 +126,28 @@ The answer is derived, never stored: the entitlements of the plan the organizati
 <Tab value="TypeScript">
 ```typescript
 const getEntitlementsOutput = await stigmer.subscription.getEntitlements({
-  org: "...",
+  org: "acme",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-getEntitlementsOutput, err := client.Subscription.GetEntitlements(ctx, &stigmer.GetEntitlementsInput{
-  Org: "...",
+getEntitlementsOutput, err := client.Subscription.GetEntitlements(ctx, &subscriptionv1.GetEntitlementsInput{
+  Org: "acme",
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-get_entitlements_output = client.subscriptions.get_entitlements(GetEntitlementsInput(
-    org="...",
+get_entitlements_output = client.subscriptions.get_entitlements(io_pb2.GetEntitlementsInput(
+    org="acme",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-GetEntitlementsOutput getEntitlementsOutput = client.subscriptions().getEntitlements(GetEntitlementsInput.builder()
-    .org("...")
+GetEntitlementsOutput getEntitlementsOutput = client.subscription.getEntitlements(GetEntitlementsInput.newBuilder()
+    .setOrg("acme")
     .build());
 ```
 </Tab>
@@ -134,28 +167,28 @@ NOT_FOUND when the organization has none: it is on the Free plan, which is not a
 <Tab value="TypeScript">
 ```typescript
 const subscription = await stigmer.subscription.getForOrg({
-  org: "...",
+  org: "acme",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-subscription, err := client.Subscription.GetForOrg(ctx, &stigmer.GetSubscriptionForOrgInput{
-  Org: "...",
+subscription, err := client.Subscription.GetForOrg(ctx, &subscriptionv1.GetSubscriptionForOrgInput{
+  Org: "acme",
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-subscription = client.subscriptions.get_for_org(GetSubscriptionForOrgInput(
-    org="...",
+subscription = client.subscriptions.get_for_org(io_pb2.GetSubscriptionForOrgInput(
+    org="acme",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Subscription subscription = client.subscriptions().getForOrg(GetSubscriptionForOrgInput.builder()
-    .org("...")
+Subscription subscription = client.subscription.getForOrg(GetSubscriptionForOrgInput.newBuilder()
+    .setOrg("acme")
     .build());
 ```
 </Tab>
@@ -177,28 +210,28 @@ NOT_FOUND when the organization has no live subscription: it is on Free, or it i
 <Tab value="TypeScript">
 ```typescript
 const periodEstimate = await stigmer.subscription.getPeriodEstimate({
-  org: "...",
+  org: "acme",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-periodEstimate, err := client.Subscription.GetPeriodEstimate(ctx, &stigmer.GetPeriodEstimateInput{
-  Org: "...",
+periodEstimate, err := client.Subscription.GetPeriodEstimate(ctx, &subscriptionv1.GetPeriodEstimateInput{
+  Org: "acme",
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-period_estimate = client.subscriptions.get_period_estimate(GetPeriodEstimateInput(
-    org="...",
+period_estimate = client.subscriptions.get_period_estimate(io_pb2.GetPeriodEstimateInput(
+    org="acme",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-PeriodEstimate periodEstimate = client.subscriptions().getPeriodEstimate(GetPeriodEstimateInput.builder()
-    .org("...")
+PeriodEstimate periodEstimate = client.subscription.getPeriodEstimate(GetPeriodEstimateInput.newBuilder()
+    .setOrg("acme")
     .build());
 ```
 </Tab>
@@ -218,28 +251,28 @@ The organization keeps its plan to the end of the current period and is on Free 
 <Tab value="TypeScript">
 ```typescript
 const subscription = await stigmer.subscription.cancel({
-  org: "...",
+  org: "acme",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-subscription, err := client.Subscription.Cancel(ctx, &stigmer.CancelSubscriptionInput{
-  Org: "...",
+subscription, err := client.Subscription.Cancel(ctx, &subscriptionv1.CancelSubscriptionInput{
+  Org: "acme",
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-subscription = client.subscriptions.cancel(CancelSubscriptionInput(
-    org="...",
+subscription = client.subscriptions.cancel(io_pb2.CancelSubscriptionInput(
+    org="acme",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Subscription subscription = client.subscriptions().cancel(CancelSubscriptionInput.builder()
-    .org("...")
+Subscription subscription = client.subscription.cancel(CancelSubscriptionInput.newBuilder()
+    .setOrg("acme")
     .build());
 ```
 </Tab>
@@ -263,32 +296,32 @@ Refusals a client should branch on carry a google.rpc.ErrorInfo detail (domain "
 <Tab value="TypeScript">
 ```typescript
 const subscription = await stigmer.subscription.changePlan({
-  org: "...",
+  org: "acme",
   planId: "...",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-subscription, err := client.Subscription.ChangePlan(ctx, &stigmer.ChangePlanInput{
-  Org:    "...",
+subscription, err := client.Subscription.ChangePlan(ctx, &subscriptionv1.ChangePlanInput{
+  Org:    "acme",
   PlanId: "...",
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-subscription = client.subscriptions.change_plan(ChangePlanInput(
-    org="...",
+subscription = client.subscriptions.change_plan(io_pb2.ChangePlanInput(
+    org="acme",
     plan_id="...",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Subscription subscription = client.subscriptions().changePlan(ChangePlanInput.builder()
-    .org("...")
-    .planId("...")
+Subscription subscription = client.subscription.changePlan(ChangePlanInput.newBuilder()
+    .setOrg("acme")
+    .setPlanId("...")
     .build());
 ```
 </Tab>

@@ -45,25 +45,75 @@ spec:
 
 ## Client Access
 
+Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Where a language's examples import anything, its tab opens with those imports.
+
 <SDKTabs>
 <Tab value="TypeScript">
+```typescript prelude
+import { ExecutionTarget, Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+```
 ```typescript
 const session = await stigmer.session.get("ses_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
+```go prelude
+import (
+	"errors"
+	"io"
+	"log"
+
+	stigmer "go.stigmer.ai/sdk"
+	sessionv1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/session/v1"
+	"google.golang.org/protobuf/proto"
+)
+```
 ```go
 session, err := client.Session.Get(ctx, "ses_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
+```python prelude
+from stigmer import ResourceRef, SessionInput
+from ai.stigmer.agentic.session.v1 import enum_pb2, io_pb2
+```
 ```python
 session = client.sessions.get("ses_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
+```java prelude
+import ai.stigmer.agentic.session.v1.Attention;
+import ai.stigmer.agentic.session.v1.ConfirmToolUseInput;
+import ai.stigmer.agentic.session.v1.ExecutionTarget;
+import ai.stigmer.agentic.session.v1.GrantPermissionInput;
+import ai.stigmer.agentic.session.v1.GrantPermissionResponse;
+import ai.stigmer.agentic.session.v1.Harness;
+import ai.stigmer.agentic.session.v1.InterruptSessionInput;
+import ai.stigmer.agentic.session.v1.InterruptSessionResponse;
+import ai.stigmer.agentic.session.v1.ListSessionEventsRequest;
+import ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest;
+import ai.stigmer.agentic.session.v1.ListSessionsByChannelRequest;
+import ai.stigmer.agentic.session.v1.ListSessionsRequest;
+import ai.stigmer.agentic.session.v1.ReviewFileChangesInput;
+import ai.stigmer.agentic.session.v1.ReviewFileChangesResponse;
+import ai.stigmer.agentic.session.v1.Session;
+import ai.stigmer.agentic.session.v1.SessionEvent;
+import ai.stigmer.agentic.session.v1.SessionEventList;
+import ai.stigmer.agentic.session.v1.SessionList;
+import ai.stigmer.agentic.session.v1.StopBackgroundCommandInput;
+import ai.stigmer.agentic.session.v1.StreamAttentionRequest;
+import ai.stigmer.agentic.session.v1.StreamSessionEventsRequest;
+import ai.stigmer.agentic.session.v1.StreamSessionEventsResponse;
+import ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest;
+import ai.stigmer.sdk.gen.ResourceRef;
+import ai.stigmer.sdk.gen.SessionInput;
+import ai.stigmer.sdk.gen.StigmerStream;
+import java.util.List;
+import java.util.Map;
+```
 ```java
-Session session = client.sessions().get("ses_01j5q3k7m8r2s4tnz2hfp0q0c3");
+Session session = client.session.get("ses_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -97,22 +147,22 @@ Get a single session by ID.
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const session = await stigmer.session.get(id);
+const session = await stigmer.session.get("ses_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
 ```go
-session, err := client.Session.Get(ctx, id)
+session, err := client.Session.Get(ctx, "ses_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
 ```python
-session = client.sessions.get(id)
+session = client.sessions.get("ses_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Session session = client.sessions().get(id);
+Session session = client.session.get("ses_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -136,39 +186,35 @@ An eval run's tries are left out: each runs in a session of its own, read throug
 ```typescript
 const result = await stigmer.session.list({
   pageSize: 0,
-  pageToken: "...",
-  org: "...",
+  org: "acme",
   labels: {},
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-result, err := client.Session.List(ctx, &stigmer.ListSessionsRequest{
-  PageSize:  0,
-  PageToken: "...",
-  Org:       "...",
-  Labels:    map[string]string{},
+result, err := client.Session.List(ctx, &sessionv1.ListSessionsRequest{
+  PageSize: 0,
+  Org:      "acme",
+  Labels:   map[string]string{},
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-result = client.sessions.list(ListSessionsRequest(
+result = client.sessions.list(io_pb2.ListSessionsRequest(
     page_size=0,
-    page_token="...",
-    org="...",
+    org="acme",
     labels={},
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-SessionList result = client.sessions().list(ListSessionsRequest.builder()
-    .pageSize(0)
-    .pageToken("...")
-    .org("...")
-    .labels(Map.of())
+SessionList result = client.session.list(ListSessionsRequest.newBuilder()
+    .setPageSize(0)
+    .setOrg("acme")
+    .putAllLabels(Map.of())
     .build());
 ```
 </Tab>
@@ -192,38 +238,34 @@ Results are filtered to the sessions the caller can view. An eval run's tries ar
 const result = await stigmer.session.listByAgent({
   agentId: "...",
   pageSize: 0,
-  pageToken: "...",
   labels: {},
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-result, err := client.Session.ListByAgent(ctx, &stigmer.ListSessionsByAgentRequest{
-  AgentId:   "...",
-  PageSize:  0,
-  PageToken: "...",
-  Labels:    map[string]string{},
+result, err := client.Session.ListByAgent(ctx, &sessionv1.ListSessionsByAgentRequest{
+  AgentId:  "...",
+  PageSize: 0,
+  Labels:   map[string]string{},
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-result = client.sessions.list_by_agent(ListSessionsByAgentRequest(
+result = client.sessions.list_by_agent(io_pb2.ListSessionsByAgentRequest(
     agent_id="...",
     page_size=0,
-    page_token="...",
     labels={},
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-SessionList result = client.sessions().listByAgent(ListSessionsByAgentRequest.builder()
-    .agentId("...")
-    .pageSize(0)
-    .pageToken("...")
-    .labels(Map.of())
+SessionList result = client.session.listByAgent(ListSessionsByAgentRequest.newBuilder()
+    .setAgentId("...")
+    .setPageSize(0)
+    .putAllLabels(Map.of())
     .build());
 ```
 </Tab>
@@ -247,38 +289,34 @@ Returns the sessions the given channel's visitors or its Slack or WhatsApp runti
 const result = await stigmer.session.listByChannel({
   channelId: "...",
   pageSize: 0,
-  pageToken: "...",
   labels: {},
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-result, err := client.Session.ListByChannel(ctx, &stigmer.ListSessionsByChannelRequest{
+result, err := client.Session.ListByChannel(ctx, &sessionv1.ListSessionsByChannelRequest{
   ChannelId: "...",
   PageSize:  0,
-  PageToken: "...",
   Labels:    map[string]string{},
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-result = client.sessions.list_by_channel(ListSessionsByChannelRequest(
+result = client.sessions.list_by_channel(io_pb2.ListSessionsByChannelRequest(
     channel_id="...",
     page_size=0,
-    page_token="...",
     labels={},
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-SessionList result = client.sessions().listByChannel(ListSessionsByChannelRequest.builder()
-    .channelId("...")
-    .pageSize(0)
-    .pageToken("...")
-    .labels(Map.of())
+SessionList result = client.session.listByChannel(ListSessionsByChannelRequest.newBuilder()
+    .setChannelId("...")
+    .setPageSize(0)
+    .putAllLabels(Map.of())
     .build());
 ```
 </Tab>
@@ -302,7 +340,6 @@ The events are Claude Managed Agents session events, in the order they were appe
 const result = await stigmer.session.listEvents({
   sessionId: "...",
   pageSize: 0,
-  pageToken: "...",
   order: "...",
   types: [],
   createdAtGt: "...",
@@ -315,10 +352,9 @@ const result = await stigmer.session.listEvents({
 </Tab>
 <Tab value="Go">
 ```go
-result, err := client.Session.ListEvents(ctx, &stigmer.ListSessionEventsRequest{
+result, err := client.Session.ListEvents(ctx, &sessionv1.ListSessionEventsRequest{
   SessionId:    "...",
   PageSize:     0,
-  PageToken:    "...",
   Order:        "...",
   Types:        []string{},
   CreatedAtGt:  "...",
@@ -331,10 +367,9 @@ result, err := client.Session.ListEvents(ctx, &stigmer.ListSessionEventsRequest{
 </Tab>
 <Tab value="Python">
 ```python
-result = client.sessions.list_events(ListSessionEventsRequest(
+result = client.sessions.list_events(io_pb2.ListSessionEventsRequest(
     session_id="...",
     page_size=0,
-    page_token="...",
     order="...",
     types=[],
     created_at_gt="...",
@@ -347,17 +382,16 @@ result = client.sessions.list_events(ListSessionEventsRequest(
 </Tab>
 <Tab value="Java">
 ```java
-SessionEventList result = client.sessions().listEvents(ListSessionEventsRequest.builder()
-    .sessionId("...")
-    .pageSize(0)
-    .pageToken("...")
-    .order("...")
-    .types(List.of())
-    .createdAtGt("...")
-    .createdAtGte("...")
-    .createdAtLt("...")
-    .createdAtLte("...")
-    .runId("...")
+SessionEventList result = client.session.listEvents(ListSessionEventsRequest.newBuilder()
+    .setSessionId("...")
+    .setPageSize(0)
+    .setOrder("...")
+    .addAllTypes(List.of())
+    .setCreatedAtGt("...")
+    .setCreatedAtGte("...")
+    .setCreatedAtLt("...")
+    .setCreatedAtLte("...")
+    .setRunId("...")
     .build());
 ```
 </Tab>
@@ -379,17 +413,17 @@ const session = await stigmer.session.apply({
   org: "acme",
   slug: "...",
   labels: {},
-  agentRef: {},
+  agentRef: { org: "acme", slug: "..." },
   subject: "...",
   metadata: {},
   skillRefs: [],
-  harness: "...",
-  executionTarget: "...",
+  harness: Harness.STIGMER,
+  executionTarget: ExecutionTarget.LOCAL,
   vaults: [],
   includeMyVault: false,
   plugins: [],
   fileReview: false,
-  environmentRef: {},
+  environmentRef: { org: "acme", slug: "..." },
   resources: [],
 });
 ```
@@ -401,18 +435,18 @@ session, err := client.Session.Apply(ctx, &stigmer.SessionInput{
   Org:             "acme",
   Slug:            "...",
   Labels:          map[string]string{},
-  AgentRef:        &stigmer.ResourceRef{},
+  AgentRef:        stigmer.ResourceRef{Org: "acme", Slug: "..."},
   Subject:         "...",
   Metadata:        map[string]string{},
   SkillRefs:       []stigmer.ResourceRef{},
-  Harness:         "...",
-  ExecutionTarget: "...",
+  Harness:         sessionv1.Harness_HARNESS_STIGMER,
+  ExecutionTarget: sessionv1.ExecutionTarget_EXECUTION_TARGET_LOCAL,
   Vaults:          []stigmer.ResourceRef{},
   IncludeMyVault:  false,
   Plugins:         []stigmer.ResourceRef{},
   FileReview:      false,
-  EnvironmentRef:  &stigmer.ResourceRef{},
-  Resources:       []stigmer.SessionResourceInput{},
+  EnvironmentRef:  stigmer.ResourceRef{Org: "acme", Slug: "..."},
+  Resources:       []*stigmer.SessionResourceInput{},
 })
 ```
 </Tab>
@@ -423,39 +457,39 @@ session = client.sessions.apply(SessionInput(
     org="acme",
     slug="...",
     labels={},
-    agent_ref=None,
+    agent_ref=ResourceRef(org="acme", slug="..."),
     subject="...",
     metadata={},
     skill_refs=[],
-    harness="...",
-    execution_target="...",
+    harness=enum_pb2.HARNESS_STIGMER,
+    execution_target=enum_pb2.EXECUTION_TARGET_LOCAL,
     vaults=[],
     include_my_vault=False,
     plugins=[],
     file_review=False,
-    environment_ref=None,
+    environment_ref=ResourceRef(org="acme", slug="..."),
     resources=[],
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Session session = client.sessions().apply(SessionInput.builder()
+Session session = client.session.apply(SessionInput.builder()
     .name("my-session")
     .org("acme")
     .slug("...")
     .labels(Map.of())
-    .agentRef(null)
+    .agentRef(ResourceRef.of("acme", "..."))
     .subject("...")
     .metadata(Map.of())
     .skillRefs(List.of())
-    .harness("...")
-    .executionTarget("...")
+    .harness(Harness.HARNESS_STIGMER)
+    .executionTarget(ExecutionTarget.EXECUTION_TARGET_LOCAL)
     .vaults(List.of())
     .includeMyVault(false)
     .plugins(List.of())
     .fileReview(false)
-    .environmentRef(null)
+    .environmentRef(ResourceRef.of("acme", "..."))
     .resources(List.of())
     .build());
 ```
@@ -478,17 +512,17 @@ const session = await stigmer.session.create({
   org: "acme",
   slug: "...",
   labels: {},
-  agentRef: {},
+  agentRef: { org: "acme", slug: "..." },
   subject: "...",
   metadata: {},
   skillRefs: [],
-  harness: "...",
-  executionTarget: "...",
+  harness: Harness.STIGMER,
+  executionTarget: ExecutionTarget.LOCAL,
   vaults: [],
   includeMyVault: false,
   plugins: [],
   fileReview: false,
-  environmentRef: {},
+  environmentRef: { org: "acme", slug: "..." },
   resources: [],
 });
 ```
@@ -500,18 +534,18 @@ session, err := client.Session.Create(ctx, &stigmer.SessionInput{
   Org:             "acme",
   Slug:            "...",
   Labels:          map[string]string{},
-  AgentRef:        &stigmer.ResourceRef{},
+  AgentRef:        stigmer.ResourceRef{Org: "acme", Slug: "..."},
   Subject:         "...",
   Metadata:        map[string]string{},
   SkillRefs:       []stigmer.ResourceRef{},
-  Harness:         "...",
-  ExecutionTarget: "...",
+  Harness:         sessionv1.Harness_HARNESS_STIGMER,
+  ExecutionTarget: sessionv1.ExecutionTarget_EXECUTION_TARGET_LOCAL,
   Vaults:          []stigmer.ResourceRef{},
   IncludeMyVault:  false,
   Plugins:         []stigmer.ResourceRef{},
   FileReview:      false,
-  EnvironmentRef:  &stigmer.ResourceRef{},
-  Resources:       []stigmer.SessionResourceInput{},
+  EnvironmentRef:  stigmer.ResourceRef{Org: "acme", Slug: "..."},
+  Resources:       []*stigmer.SessionResourceInput{},
 })
 ```
 </Tab>
@@ -522,39 +556,39 @@ session = client.sessions.create(SessionInput(
     org="acme",
     slug="...",
     labels={},
-    agent_ref=None,
+    agent_ref=ResourceRef(org="acme", slug="..."),
     subject="...",
     metadata={},
     skill_refs=[],
-    harness="...",
-    execution_target="...",
+    harness=enum_pb2.HARNESS_STIGMER,
+    execution_target=enum_pb2.EXECUTION_TARGET_LOCAL,
     vaults=[],
     include_my_vault=False,
     plugins=[],
     file_review=False,
-    environment_ref=None,
+    environment_ref=ResourceRef(org="acme", slug="..."),
     resources=[],
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Session session = client.sessions().create(SessionInput.builder()
+Session session = client.session.create(SessionInput.builder()
     .name("my-session")
     .org("acme")
     .slug("...")
     .labels(Map.of())
-    .agentRef(null)
+    .agentRef(ResourceRef.of("acme", "..."))
     .subject("...")
     .metadata(Map.of())
     .skillRefs(List.of())
-    .harness("...")
-    .executionTarget("...")
+    .harness(Harness.HARNESS_STIGMER)
+    .executionTarget(ExecutionTarget.EXECUTION_TARGET_LOCAL)
     .vaults(List.of())
     .includeMyVault(false)
     .plugins(List.of())
     .fileReview(false)
-    .environmentRef(null)
+    .environmentRef(ResourceRef.of("acme", "..."))
     .resources(List.of())
     .build());
 ```
@@ -599,10 +633,10 @@ updated = client.sessions.update(session, ["metadata.name"])
 </Tab>
 <Tab value="Java">
 ```java
-Session session = client.sessions().get("ses_01j5q3k7m8r2s4tnz2hfp0q0c3");
-Session updated = client.sessions().update(
+Session session = client.session.get("ses_01j5q3k7m8r2s4tnz2hfp0q0c3");
+Session updated = client.session.update(
     session.toBuilder().setMetadata(session.getMetadata().toBuilder().setName("New name")).build(),
-    java.util.List.of("metadata.name"));
+    List.of("metadata.name"));
 ```
 </Tab>
 </SDKTabs>
@@ -633,7 +667,7 @@ const session = await stigmer.session.updateSubject({
 </Tab>
 <Tab value="Go">
 ```go
-session, err := client.Session.UpdateSubject(ctx, &stigmer.UpdateSessionSubjectRequest{
+session, err := client.Session.UpdateSubject(ctx, &sessionv1.UpdateSessionSubjectRequest{
   Id:      "...",
   Subject: "...",
 })
@@ -641,7 +675,7 @@ session, err := client.Session.UpdateSubject(ctx, &stigmer.UpdateSessionSubjectR
 </Tab>
 <Tab value="Python">
 ```python
-session = client.sessions.update_subject(UpdateSessionSubjectRequest(
+session = client.sessions.update_subject(io_pb2.UpdateSessionSubjectRequest(
     id="...",
     subject="...",
 ))
@@ -649,9 +683,9 @@ session = client.sessions.update_subject(UpdateSessionSubjectRequest(
 </Tab>
 <Tab value="Java">
 ```java
-Session session = client.sessions().updateSubject(UpdateSessionSubjectRequest.builder()
-    .id("...")
-    .subject("...")
+Session session = client.session.updateSubject(UpdateSessionSubjectRequest.newBuilder()
+    .setId("...")
+    .setSubject("...")
     .build());
 ```
 </Tab>
@@ -672,22 +706,22 @@ Fails with FAILED_PRECONDITION while any run in the session is still active (pen
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const session = await stigmer.session.delete(id);
+const session = await stigmer.session.delete("ses_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
 ```go
-session, err := client.Session.Delete(ctx, id)
+session, err := client.Session.Delete(ctx, "ses_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
 ```python
-session = client.sessions.delete(id)
+session = client.sessions.delete("ses_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Session session = client.sessions().delete(id);
+Session session = client.session.delete("ses_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -719,7 +753,7 @@ const sessionEvent = await stigmer.session.confirmToolUse({
 </Tab>
 <Tab value="Go">
 ```go
-sessionEvent, err := client.Session.ConfirmToolUse(ctx, &stigmer.ConfirmToolUseInput{
+sessionEvent, err := client.Session.ConfirmToolUse(ctx, &sessionv1.ConfirmToolUseInput{
   SessionId:   "...",
   ToolUseId:   "...",
   Result:      "...",
@@ -729,7 +763,7 @@ sessionEvent, err := client.Session.ConfirmToolUse(ctx, &stigmer.ConfirmToolUseI
 </Tab>
 <Tab value="Python">
 ```python
-session_event = client.sessions.confirm_tool_use(ConfirmToolUseInput(
+session_event = client.sessions.confirm_tool_use(io_pb2.ConfirmToolUseInput(
     session_id="...",
     tool_use_id="...",
     result="...",
@@ -739,11 +773,11 @@ session_event = client.sessions.confirm_tool_use(ConfirmToolUseInput(
 </Tab>
 <Tab value="Java">
 ```java
-SessionEvent sessionEvent = client.sessions().confirmToolUse(ConfirmToolUseInput.builder()
-    .sessionId("...")
-    .toolUseId("...")
-    .result("...")
-    .denyMessage("...")
+SessionEvent sessionEvent = client.session.confirmToolUse(ConfirmToolUseInput.newBuilder()
+    .setSessionId("...")
+    .setToolUseId("...")
+    .setResult("...")
+    .setDenyMessage("...")
     .build());
 ```
 </Tab>
@@ -770,7 +804,7 @@ const grantPermissionResponse = await stigmer.session.grantPermission({
 </Tab>
 <Tab value="Go">
 ```go
-grantPermissionResponse, err := client.Session.GrantPermission(ctx, &stigmer.GrantPermissionInput{
+grantPermissionResponse, err := client.Session.GrantPermission(ctx, &sessionv1.GrantPermissionInput{
   SessionId: "...",
   ToolUseId: "...",
 })
@@ -778,7 +812,7 @@ grantPermissionResponse, err := client.Session.GrantPermission(ctx, &stigmer.Gra
 </Tab>
 <Tab value="Python">
 ```python
-grant_permission_response = client.sessions.grant_permission(GrantPermissionInput(
+grant_permission_response = client.sessions.grant_permission(io_pb2.GrantPermissionInput(
     session_id="...",
     tool_use_id="...",
 ))
@@ -786,9 +820,9 @@ grant_permission_response = client.sessions.grant_permission(GrantPermissionInpu
 </Tab>
 <Tab value="Java">
 ```java
-GrantPermissionResponse grantPermissionResponse = client.sessions().grantPermission(GrantPermissionInput.builder()
-    .sessionId("...")
-    .toolUseId("...")
+GrantPermissionResponse grantPermissionResponse = client.session.grantPermission(GrantPermissionInput.newBuilder()
+    .setSessionId("...")
+    .setToolUseId("...")
     .build());
 ```
 </Tab>
@@ -815,7 +849,7 @@ const interruptSessionResponse = await stigmer.session.interrupt({
 </Tab>
 <Tab value="Go">
 ```go
-interruptSessionResponse, err := client.Session.Interrupt(ctx, &stigmer.InterruptSessionInput{
+interruptSessionResponse, err := client.Session.Interrupt(ctx, &sessionv1.InterruptSessionInput{
   SessionId:       "...",
   SessionThreadId: "...",
 })
@@ -823,7 +857,7 @@ interruptSessionResponse, err := client.Session.Interrupt(ctx, &stigmer.Interrup
 </Tab>
 <Tab value="Python">
 ```python
-interrupt_session_response = client.sessions.interrupt(InterruptSessionInput(
+interrupt_session_response = client.sessions.interrupt(io_pb2.InterruptSessionInput(
     session_id="...",
     session_thread_id="...",
 ))
@@ -831,9 +865,9 @@ interrupt_session_response = client.sessions.interrupt(InterruptSessionInput(
 </Tab>
 <Tab value="Java">
 ```java
-InterruptSessionResponse interruptSessionResponse = client.sessions().interrupt(InterruptSessionInput.builder()
-    .sessionId("...")
-    .sessionThreadId("...")
+InterruptSessionResponse interruptSessionResponse = client.session.interrupt(InterruptSessionInput.newBuilder()
+    .setSessionId("...")
+    .setSessionThreadId("...")
     .build());
 ```
 </Tab>
@@ -866,7 +900,7 @@ const reviewFileChangesResponse = await stigmer.session.reviewFileChanges({
 </Tab>
 <Tab value="Go">
 ```go
-reviewFileChangesResponse, err := client.Session.ReviewFileChanges(ctx, &stigmer.ReviewFileChangesInput{
+reviewFileChangesResponse, err := client.Session.ReviewFileChanges(ctx, &sessionv1.ReviewFileChangesInput{
   SessionId:               "...",
   ChangeSetId:             "...",
   Scope:                   "...",
@@ -880,7 +914,7 @@ reviewFileChangesResponse, err := client.Session.ReviewFileChanges(ctx, &stigmer
 </Tab>
 <Tab value="Python">
 ```python
-review_file_changes_response = client.sessions.review_file_changes(ReviewFileChangesInput(
+review_file_changes_response = client.sessions.review_file_changes(io_pb2.ReviewFileChangesInput(
     session_id="...",
     change_set_id="...",
     scope="...",
@@ -894,15 +928,15 @@ review_file_changes_response = client.sessions.review_file_changes(ReviewFileCha
 </Tab>
 <Tab value="Java">
 ```java
-ReviewFileChangesResponse reviewFileChangesResponse = client.sessions().reviewFileChanges(ReviewFileChangesInput.builder()
-    .sessionId("...")
-    .changeSetId("...")
-    .scope("...")
-    .fileChangeId("...")
-    .action("...")
-    .expectedDigest("...")
-    .reason("...")
-    .acknowledgeUnreviewable(false)
+ReviewFileChangesResponse reviewFileChangesResponse = client.session.reviewFileChanges(ReviewFileChangesInput.newBuilder()
+    .setSessionId("...")
+    .setChangeSetId("...")
+    .setScope("...")
+    .setFileChangeId("...")
+    .setAction("...")
+    .setExpectedDigest("...")
+    .setReason("...")
+    .setAcknowledgeUnreviewable(false)
     .build());
 ```
 </Tab>
@@ -929,7 +963,7 @@ const sessionEvent = await stigmer.session.stopBackgroundCommand({
 </Tab>
 <Tab value="Go">
 ```go
-sessionEvent, err := client.Session.StopBackgroundCommand(ctx, &stigmer.StopBackgroundCommandInput{
+sessionEvent, err := client.Session.StopBackgroundCommand(ctx, &sessionv1.StopBackgroundCommandInput{
   SessionId: "...",
   ToolUseId: "...",
 })
@@ -937,7 +971,7 @@ sessionEvent, err := client.Session.StopBackgroundCommand(ctx, &stigmer.StopBack
 </Tab>
 <Tab value="Python">
 ```python
-session_event = client.sessions.stop_background_command(StopBackgroundCommandInput(
+session_event = client.sessions.stop_background_command(io_pb2.StopBackgroundCommandInput(
     session_id="...",
     tool_use_id="...",
 ))
@@ -945,9 +979,9 @@ session_event = client.sessions.stop_background_command(StopBackgroundCommandInp
 </Tab>
 <Tab value="Java">
 ```java
-SessionEvent sessionEvent = client.sessions().stopBackgroundCommand(StopBackgroundCommandInput.builder()
-    .sessionId("...")
-    .toolUseId("...")
+SessionEvent sessionEvent = client.session.stopBackgroundCommand(StopBackgroundCommandInput.newBuilder()
+    .setSessionId("...")
+    .setToolUseId("...")
     .build());
 ```
 </Tab>
@@ -968,7 +1002,10 @@ It reads the conversations' log, so nothing is missed across a reconnect: with a
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const stream = stigmer.session.streamAttention(input);
+const stream = stigmer.session.streamAttention({
+  org: "acme",
+  afterCursor: "...",
+});
 for await (const attention of stream) {
   // process attention
 }
@@ -976,11 +1013,20 @@ for await (const attention of stream) {
 </Tab>
 <Tab value="Go">
 ```go
-stream, err := client.Session.StreamAttention(ctx, input)
+stream, err := client.Session.StreamAttention(ctx, &sessionv1.StreamAttentionRequest{
+  Org:         "acme",
+  AfterCursor: "...",
+})
+if err != nil {
+    log.Fatal(err)
+}
 for {
-    attention, err := stream.Recv()
-    if err != nil {
+    attention, recvErr := stream.Recv()
+    if errors.Is(recvErr, io.EOF) {
         break
+    }
+    if recvErr != nil {
+        log.Fatal(recvErr)
     }
     // process attention
 }
@@ -988,15 +1034,23 @@ for {
 </Tab>
 <Tab value="Python">
 ```python
-for attention in client.sessions.stream_attention(input):
-    # process attention
+for attention in client.sessions.stream_attention(io_pb2.StreamAttentionRequest(
+    org="acme",
+    after_cursor="...",
+)):
+    print(attention)
 ```
 </Tab>
 <Tab value="Java">
 ```java
-client.sessions().streamAttention(input, attention -> {
+StigmerStream<Attention> stream = client.session.streamAttention(StreamAttentionRequest.newBuilder()
+    .setOrg("acme")
+    .setAfterCursor("...")
+    .build());
+while (stream.hasNext()) {
+    Attention attention = stream.next();
     // process attention
-});
+}
 ```
 </Tab>
 </SDKTabs>
@@ -1016,7 +1070,11 @@ Without after_seq the stream starts at the moment it opens, as Managed Agents' d
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const stream = stigmer.session.streamEvents(input);
+const stream = stigmer.session.streamEvents({
+  sessionId: "...",
+  eventDeltas: [],
+  afterSeq: 0n,
+});
 for await (const streamSessionEventsResponse of stream) {
   // process streamSessionEventsResponse
 }
@@ -1024,11 +1082,21 @@ for await (const streamSessionEventsResponse of stream) {
 </Tab>
 <Tab value="Go">
 ```go
-stream, err := client.Session.StreamEvents(ctx, input)
+stream, err := client.Session.StreamEvents(ctx, &sessionv1.StreamSessionEventsRequest{
+  SessionId:   "...",
+  EventDeltas: []string{},
+  AfterSeq:    proto.Int64(0),
+})
+if err != nil {
+    log.Fatal(err)
+}
 for {
-    streamSessionEventsResponse, err := stream.Recv()
-    if err != nil {
+    streamSessionEventsResponse, recvErr := stream.Recv()
+    if errors.Is(recvErr, io.EOF) {
         break
+    }
+    if recvErr != nil {
+        log.Fatal(recvErr)
     }
     // process streamSessionEventsResponse
 }
@@ -1036,15 +1104,25 @@ for {
 </Tab>
 <Tab value="Python">
 ```python
-for stream_session_events_response in client.sessions.stream_events(input):
-    # process stream_session_events_response
+for stream_session_events_response in client.sessions.stream_events(io_pb2.StreamSessionEventsRequest(
+    session_id="...",
+    event_deltas=[],
+    after_seq=0,
+)):
+    print(stream_session_events_response)
 ```
 </Tab>
 <Tab value="Java">
 ```java
-client.sessions().streamEvents(input, streamSessionEventsResponse -> {
+StigmerStream<StreamSessionEventsResponse> stream = client.session.streamEvents(StreamSessionEventsRequest.newBuilder()
+    .setSessionId("...")
+    .addAllEventDeltas(List.of())
+    .setAfterSeq(0L)
+    .build());
+while (stream.hasNext()) {
+    StreamSessionEventsResponse streamSessionEventsResponse = stream.next();
     // process streamSessionEventsResponse
-});
+}
 ```
 </Tab>
 </SDKTabs>

@@ -21,12 +21,22 @@ tab) and copy the code from the **Embed** tab:
 <stigmer-agent channel="chn_01j9z3k8f2q4m6n7p8r9s0t1v2"></stigmer-agent>
 ```
 
+<Screen
+  name="chat-link-embed"
+  alt="The chat link's dialog on its Embed tab: the two-line snippet with Copy, and Allowed embed origins listing https://acme.com"
+/>
+
 Paste it where you want the chat to appear. The `<script>` tag loads once per
 page, even if you embed several Agents. The `<stigmer-agent>` tag marks the spot
 where the chat renders, and its `channel` attribute names the channel by its
 permanent ID — so renaming your Organization never breaks the embed. If you
 reset the chat link, the snippet also carries a `token` attribute; re-copy it
 after every reset.
+
+<Screen
+  name="embed-widget"
+  alt="The embedded chat on a help page of acme.com: a 400 by 600 widget headed variance-reporter, with Chat with variance-reporter and a message box"
+/>
 
 If you run your own Stigmer server, the dialog fills in your server's address
 automatically — the snippet works the same way.

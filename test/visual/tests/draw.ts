@@ -34,8 +34,8 @@ export async function draw(page: Page, scene: Scene, mode: Mode, size: { readonl
 /** Performs one act as a reader would: presses a control by its role and name, or types into a field by its label. */
 async function perform(page: Page, act: Act): Promise<void> {
   if (typeof act === "string") await page.getByRole("button", { name: act }).click();
-  else if ("press" in act) await page.getByRole(act.role, { name: act.press }).click();
-  else await page.getByLabel(act.fill, { exact: true }).fill(act.with);
+  else if ("press" in act) await page.getByRole(act.role, { name: act.press, exact: act.exact }).click();
+  else await page.getByLabel(act.fill, { exact: act.exact }).fill(act.with);
 }
 
 async function settled(page: Page): Promise<void> {
