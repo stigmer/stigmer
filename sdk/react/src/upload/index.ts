@@ -1,4 +1,5 @@
 export { MAX_MESSAGE_FILES, useFileUploads, toFileChipView } from "./useFileUploads.js";
+export type { MessageFileView } from "@stigmer/react-core";
 export type {
   AddFilesOptions,
   FileHandOff,

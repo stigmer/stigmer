@@ -44,10 +44,14 @@ export interface Reflection {
   groups?: ReflectionGroup[];
   signatures?: Reflection[];
   parameters?: Reflection[];
+  /** On a call signature: its type parameters, each with its constraint (`type`) and `default`. */
+  typeParameters?: Reflection[];
   sources?: Source[];
   comment?: Comment;
   type?: TypeDocType;
   defaultValue?: string;
+  /** On a type parameter: its default type. */
+  default?: TypeDocType;
   /** On a reference: the id of the reflection it names. */
   target?: number;
 }
@@ -60,6 +64,7 @@ export interface ReflectionFlags {
   isStatic?: boolean;
   isAbstract?: boolean;
   isConst?: boolean;
+  isRest?: boolean;
 }
 
 export interface ReflectionGroup {

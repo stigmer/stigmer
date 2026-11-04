@@ -29,8 +29,8 @@ packages, which platform builders embed too.
 - Generated types are the source of truth. Each SDK's `gen` directory is written
   by `make codegen`; no hand-written copy of a generated type, no raw fetch
   beside a generated client.
-- Every export is a public API. Renaming or removing one is a breaking change
-  with a migration path; the barrel is where the surface is reviewed.
+- Every export is a public API, reviewed at the barrel; renaming or removing one
+  needs a migration path. Types its signature names are exported, or a peer's.
 - Dependencies are MIT or Apache-2.0 compatible; a licence that binds the
   consumer is a blocker.
 

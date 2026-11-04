@@ -217,13 +217,13 @@ catalogue, a tree the reader refuses.
 **Signature**
 
 ```tsx
-function useMarketplace(source: MarketplaceSource | null, options: UseMarketplaceOptions): UseMarketplaceReturn
+function useMarketplace(source: MarketplaceSource | null, options?: UseMarketplaceOptions): UseMarketplaceReturn
 ```
 
 <TypeTable
   type={{
     source: { type: "MarketplaceSource | null", description: "", required: true },
-    options: { type: "UseMarketplaceOptions", description: "", required: true },
+    options: { type: "UseMarketplaceOptions", description: "" },
   }}
 />
 
@@ -252,13 +252,13 @@ Read every source in `marketplaces` independently.
 **Signature**
 
 ```tsx
-function useMarketplaceCatalog(marketplaces: readonly KnownMarketplace[], options: UseMarketplaceCatalogOptions): UseMarketplaceCatalogReturn
+function useMarketplaceCatalog(marketplaces: readonly KnownMarketplace[], options?: UseMarketplaceCatalogOptions): UseMarketplaceCatalogReturn
 ```
 
 <TypeTable
   type={{
     marketplaces: { type: "readonly KnownMarketplace[]", description: "", required: true },
-    options: { type: "UseMarketplaceCatalogOptions", description: "", required: true },
+    options: { type: "UseMarketplaceCatalogOptions", description: "" },
   }}
 />
 
@@ -289,12 +289,12 @@ the `storage` event.
 **Signature**
 
 ```tsx
-function useMarketplaces(options: UseMarketplacesOptions): UseMarketplacesReturn
+function useMarketplaces(options?: UseMarketplacesOptions): UseMarketplacesReturn
 ```
 
 <TypeTable
   type={{
-    options: { type: "UseMarketplacesOptions", description: "", required: true },
+    options: { type: "UseMarketplacesOptions", description: "" },
   }}
 />
 
@@ -505,6 +505,8 @@ argument to hold the hook idle.
 **Signature**
 
 ```tsx
+import type { McpServerEntry } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
+// ---cut---
 function usePluginServerSignIn(org: string | null, server: McpServerEntry | null, onSignedIn?: (address: string) => void, options?: UsePluginServerSignInOptions): UsePluginServerSignInReturn
 ```
 
@@ -1265,7 +1267,7 @@ built-in vendors and for any repository a user adds alike, so the SDK
 ships no vendor artwork and a new source needs no new asset.
 
 ```tsx
-function githubAvatarUrl(owner: string, size: number): string
+function githubAvatarUrl(owner: string, size?: number): string
 ```
 
 
@@ -1366,6 +1368,8 @@ A marketplace the console can read, named as the user sees it.
 Whether the agent's `plugins` already name this plugin.
 
 ```tsx
+import type { AgentInput, ResourceRef } from "@stigmer/client";
+// ---cut---
 function listsPlugin(input: AgentInput, ref: ResourceRef): boolean
 ```
 
@@ -1480,12 +1484,17 @@ function monogramRing(name: string): "stg:border-chart-1" | "stg:border-chart-2"
 ```
 
 
+### NarrowedStoredEntry
+
+A stored marketplace entry read as a source, or the reason it is not one.
+
+
 ### narrowStoredEntry
 
 The loose stored entry as a source, or the reason it is not one (the CLI's `narrowEntry`).
 
 ```tsx
-function narrowStoredEntry(entry: unknown): Narrowed
+function narrowStoredEntry(entry: unknown): NarrowedStoredEntry
 ```
 
 
@@ -1555,7 +1564,9 @@ function openMarketplace(tree: MarketplaceTree): Promise<OpenedMarketplace>
 Open and read the marketplace `source` names.
 
 ```tsx
-function openMarketplaceSource(source: MarketplaceSource, stigmer: Stigmer, options: OpenSourceOptions): Promise<OpenedMarketplace>
+import type { Stigmer } from "@stigmer/client";
+// ---cut---
+function openMarketplaceSource(source: MarketplaceSource, stigmer: Stigmer, options?: OpenSourceOptions): Promise<OpenedMarketplace>
 ```
 
 
@@ -1689,6 +1700,8 @@ function rawUrl(repo: string, commit: string, path: string): string
 How a server is reached, in one line: its URL, or the program and its arguments.
 
 ```tsx
+import type { McpServerEntry } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
+// ---cut---
 function reachedBy(server: McpServerEntry): string
 ```
 
@@ -1698,6 +1711,8 @@ function reachedBy(server: McpServerEntry): string
 The picks remembered for `org`, oldest first; empty when none or unreadable.
 
 ```tsx
+import type { ResourceRef } from "@stigmer/client";
+// ---cut---
 function readRememberedPluginPicks(org: string): ResourceRef[]
 ```
 
@@ -1707,6 +1722,8 @@ function readRememberedPluginPicks(org: string): ResourceRef[]
 Remember `refs` as the last picks for `org`; an empty list forgets them.
 
 ```tsx
+import type { ResourceRef } from "@stigmer/client";
+// ---cut---
 function rememberPluginPicks(org: string, refs: readonly ResourceRef[]): void
 ```
 
@@ -1753,6 +1770,8 @@ function summariseInstall(outcome: InstallPluginOutcome): string
 ### toolsLeaveOut
 
 ```tsx
+import type { AgentInput } from "@stigmer/client";
+// ---cut---
 function toolsLeaveOut(input: AgentInput, pluginName: string, servers: readonly string[]): boolean
 ```
 
@@ -1861,6 +1880,8 @@ Everything else, the agent's other plugins and their order included, is
 kept as it is.
 
 ```tsx
+import type { AgentInput, ResourceRef } from "@stigmer/client";
+// ---cut---
 function withPlugin(input: AgentInput, ref: ResourceRef): AgentInput
 ```
 

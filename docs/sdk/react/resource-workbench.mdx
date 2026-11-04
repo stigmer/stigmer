@@ -26,7 +26,9 @@ directly. The `ResourceWorkbench` shell composes it internally.
 **Signature**
 
 ```tsx
-function useResourceCollection(options: UseResourceCollectionOptions<TData>): UseResourceCollectionReturn<TData>
+import type { SearchResult } from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
+// ---cut---
+function useResourceCollection<TData = SearchResult>(options: UseResourceCollectionOptions<TData>): UseResourceCollectionReturn<TData>
 ```
 
 <TypeTable
@@ -80,12 +82,12 @@ for full control. The `ResourceWorkbench` shell composes both.
 **Signature**
 
 ```tsx
-function useResourceFilters(options: UseResourceFiltersOptions): UseResourceFiltersReturn
+function useResourceFilters(options?: UseResourceFiltersOptions): UseResourceFiltersReturn
 ```
 
 <TypeTable
   type={{
-    options: { type: "UseResourceFiltersOptions", description: "", required: true },
+    options: { type: "UseResourceFiltersOptions", description: "" },
   }}
 />
 
@@ -126,7 +128,7 @@ filter change).
 **Signature**
 
 ```tsx
-function useResourceSelection(items: readonly TData[], getItemId: (item: TData) => string): UseResourceSelectionReturn<TData>
+function useResourceSelection<TData>(items: readonly TData[], getItemId: (item: TData) => string): UseResourceSelectionReturn<TData>
 ```
 
 <TypeTable

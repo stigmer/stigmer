@@ -5,9 +5,12 @@
  * - Text escaping        (MDX content, JS string literals)
  * - Comment rendering    (CommentPart[] → MDX text)
  * - Example extraction   (TypeDoc blockTags → code string)
+ * - Signatures           (TypeDoc call signature → a declaration that compiles)
  */
 
-import type { TypeDocType, Comment, CommentDisplayPart } from "./typedoc-types";
+import { SETUP_MARKERS } from "../../src/lib/snippet-setup.mjs";
+import type { TypeDocType, Comment, CommentDisplayPart, ExternalTarget, Reflection } from "./typedoc-types";
+import { isExternalTarget } from "./typedoc-types";
 import type { CommentPart } from "./model";
 
 // ---------------------------------------------------------------------------
@@ -23,17 +26,16 @@ export function serializeType(type: TypeDocType): string {
       return type.value === null ? "null" : JSON.stringify(type.value);
 
     case "union":
-      return type.types.map(serializeType).join(" | ");
+      return type.types.map((t) => serializeMember(t)).join(" | ");
 
     case "intersection":
-      return type.types.map(serializeType).join(" & ");
+      return type.types.map((t) => serializeMember(t, "intersection")).join(" & ");
 
     case "array": {
-      const inner = serializeType(type.elementType);
-      const needsParens =
-        type.elementType.type === "union" ||
-        type.elementType.type === "intersection";
-      return needsParens ? `(${inner})[]` : `${inner}[]`;
+      // `keyof T[]` is `keyof (T[])`, so an operator's element is wrapped too.
+      const element = type.elementType;
+      const wrap = element.type === "union" || element.type === "intersection" || element.type === "typeOperator";
+      return wrap ? `(${serializeType(element)})[]` : `${serializeMember(element)}[]`;
     }
 
     case "reference": {
@@ -78,8 +80,12 @@ export function serializeType(type: TypeDocType): string {
       return `${type.name}${opt}: ${serializeType(type.element)}`;
     }
 
-    case "typeOperator":
-      return `${type.operator} ${serializeType(type.target)}`;
+    case "typeOperator": {
+      // `keyof (A | B)` is not `keyof A | B`.
+      const operand = type.target;
+      const wrap = operand.type === "union" || operand.type === "intersection";
+      return `${type.operator} ${wrap ? `(${serializeType(operand)})` : serializeMember(operand)}`;
+    }
 
     case "query":
       return `typeof ${serializeType(type.queryType)}`;
@@ -125,6 +131,19 @@ export function serializeType(type: TypeDocType): string {
     default:
       return "unknown";
   }
+}
+
+/**
+ * A type as a member of a union or intersection: a function type or a
+ * conditional type in parentheses, since `() => void | null` reads as a
+ * function returning `void | null`, and in an intersection a union too, since
+ * `A & B | C` is `(A & B) | C`.
+ */
+export function serializeMember(type: TypeDocType, within: "union" | "intersection" = "union"): string {
+  const text = serializeType(type);
+  const isFunction = type.type === "reflection" && (type.declaration.signatures?.length ?? 0) > 0;
+  const wrap = isFunction || type.type === "conditional" || (within === "intersection" && type.type === "union");
+  return wrap ? `(${text})` : text;
 }
 
 // ---------------------------------------------------------------------------
@@ -210,16 +229,25 @@ export interface ExampleOwner {
 /** One fence and nothing else: its language, its attributes, its code. */
 const WHOLE_FENCE = /^```(\w*)([^\n]*)\n([\s\S]*?)\n?```$/;
 
+/** The lines that end a docs fence's hidden setup, in every language the site knows. */
+const SETUP_MARKER_LINES = new Set(Object.values(SETUP_MARKERS));
+
 /**
  * Every `@example` of a TypeDoc comment. An example is exactly one fence,
  * whose line is kept (the reference writes ```` ```tsx <meta> ````), or bare
  * code with no fence, rendered as `tsx`. Anything else (prose around a
  * fence, or two fences) throws, naming the export and its file: rendered
  * whole, it would put a fence inside a fence.
+ *
+ * An example holds no hidden setup either: a `// ---cut---` line throws.
+ * The example also ships in the kit's type declarations, where an editor
+ * shows it on hover with nothing hidden, so it carries everything it needs
+ * (`docs/STYLE.md`, "Code examples compile").
  */
 export function extractExamples(comment: Comment | undefined, owner: ExampleOwner): Example[] {
   if (!comment?.blockTags) return [];
 
+  const file = owner.sources?.[0]?.fileName ?? "an unknown file";
   const results: Example[] = [];
   for (const tag of comment.blockTags) {
     if (tag.tag !== "@example" || !tag.content.length) continue;
@@ -230,19 +258,24 @@ export function extractExamples(comment: Comment | undefined, owner: ExampleOwne
       .trim();
     if (raw === "") continue;
 
+    let example: Example;
     if (!raw.includes("```")) {
-      results.push({ meta: "", code: raw });
-      continue;
+      example = { meta: "", code: raw };
+    } else {
+      const fence = WHOLE_FENCE.exec(raw);
+      if (fence === null || fence[3].includes("```")) {
+        throw new Error(
+          `@example on ${owner.name} (${file}) must be one code fence or bare code: move prose above the tag, and give each example its own @example`,
+        );
+      }
+      example = { meta: fence[2].trim(), code: fence[3].trim() };
     }
-    const fence = WHOLE_FENCE.exec(raw);
-    if (fence === null || fence[3].includes("```")) {
-      const file = owner.sources?.[0]?.fileName ?? "an unknown file";
+    if (example.code.split("\n").some((line) => SETUP_MARKER_LINES.has(line.trim()))) {
       throw new Error(
-        `@example on ${owner.name} (${file}) must be one code fence or bare code: move prose above the tag, and give each example its own @example`,
+        `@example on ${owner.name} (${file}) has a hidden-setup line ("---cut---"): an editor shows a kit's example whole, so write what it takes as given in the example itself (a literal, or a component's typed props)`,
       );
     }
-    const code = fence[3].trim();
-    if (code !== "") results.push({ meta: fence[2].trim(), code });
+    if (example.code !== "") results.push(example);
   }
 
   return results;
@@ -252,4 +285,164 @@ export function extractExamples(comment: Comment | undefined, owner: ExampleOwne
 export function renderExample(example: Example): string {
   const meta = example.meta === "" ? "" : ` ${example.meta}`;
   return `\`\`\`tsx${meta}\n${example.code}\n\`\`\`\n\n`;
+}
+
+// ---------------------------------------------------------------------------
+// Signatures — TypeDoc call signature → a declaration that compiles
+// ---------------------------------------------------------------------------
+
+/** One parameter of a signature, as the reference declares it. */
+export interface SignatureParameter {
+  readonly name: string;
+  readonly type: string;
+  /** Whether a caller may leave it out: TypeDoc flags it optional, or it has a default value. */
+  readonly optional: boolean;
+  /** The type as a union member, for `T | undefined` (see renderSignature). */
+  readonly memberType: string;
+  readonly rest: boolean;
+}
+
+/** A type a signature names, and the module a reader imports it from. */
+export interface TypeImport {
+  readonly name: string;
+  readonly from: string;
+}
+
+/** A function's signature as the reference renders it. */
+export interface Signature {
+  readonly name: string;
+  /** Each type parameter as written: `TData`, `T extends Base = Base`. */
+  readonly typeParameters: readonly string[];
+  readonly parameters: readonly SignatureParameter[];
+  readonly returnType: string;
+  /** The types it names that the reader imports from a package of their own, sorted. */
+  readonly imports: readonly TypeImport[];
+}
+
+/**
+ * The module a reader imports a type from, or null when they need no import
+ * line for it: a global, a type the kit itself exports, or one no package
+ * they install exports (which the docs snippet gate then reports at its
+ * page). TypeDoc names the package a type is declared in, which is not
+ * always the one a reader installs (`type-imports.ts` decides).
+ */
+export type TypeImportResolver = (name: string, target: ExternalTarget) => string | null;
+
+/** A call signature's parameter as the reference names it: a destructured one is `options`. */
+export function parameterName(p: Reflection): string {
+  return p.name === "__namedParameters" ? "options" : p.name;
+}
+
+/** Whether a caller may leave a parameter out: optional, or given a default value. */
+export function isParameterOptional(p: Reflection): boolean {
+  return p.flags.isOptional === true || p.defaultValue !== undefined;
+}
+
+/**
+ * The signature of an exported function, from its TypeDoc call signature:
+ * its type parameters as written, each parameter optional when a caller may
+ * leave it out, and the import of every type it names that the reader takes
+ * from a package they install, resolved by `resolve`.
+ */
+export function signatureOf(name: string, sig: Reflection, resolve: TypeImportResolver): Signature {
+  const types: TypeDocType[] = [];
+  const typeParameters = (sig.typeParameters ?? []).map((tp) => {
+    let text = tp.name;
+    if (tp.type) {
+      types.push(tp.type);
+      text += ` extends ${serializeType(tp.type)}`;
+    }
+    if (tp.default) {
+      types.push(tp.default);
+      text += ` = ${serializeType(tp.default)}`;
+    }
+    return text;
+  });
+  const parameters = (sig.parameters ?? [])
+    .filter((p) => p.name !== "this")
+    .map((p): SignatureParameter => {
+      if (p.type) types.push(p.type);
+      return {
+        name: parameterName(p),
+        type: p.type ? serializeType(p.type) : "unknown",
+        memberType: p.type ? serializeMember(p.type) : "unknown",
+        optional: isParameterOptional(p),
+        rest: p.flags.isRest === true,
+      };
+    });
+  if (sig.type) types.push(sig.type);
+
+  const imports = new Map<string, string>();
+  for (const ref of externalReferences(types)) {
+    const from = resolve(ref.name, ref.target);
+    if (from === null) continue;
+    const seen = imports.get(ref.name);
+    if (seen !== undefined && seen !== from) {
+      throw new Error(`the signature of ${name} names two types called ${ref.name}, from ${seen} and ${from}: the reference cannot import both`);
+    }
+    imports.set(ref.name, from);
+  }
+
+  return {
+    name,
+    typeParameters,
+    parameters,
+    returnType: sig.type ? serializeType(sig.type) : "void",
+    imports: [...imports]
+      .map(([n, from]) => ({ name: n, from }))
+      .sort((a, b) => a.from.localeCompare(b.from) || a.name.localeCompare(b.name)),
+  };
+}
+
+/** Every reference to another package's type within some types, in the order met. */
+function externalReferences(types: TypeDocType[]): { name: string; target: ExternalTarget }[] {
+  const found: { name: string; target: ExternalTarget }[] = [];
+  const visit = (value: unknown): void => {
+    if (Array.isArray(value)) {
+      for (const v of value) visit(v);
+      return;
+    }
+    if (typeof value !== "object" || value === null) return;
+    const node = value as Record<string, unknown>;
+    if (node.type === "reference" && isExternalTarget(node.target as ExternalTarget | number | undefined)) {
+      found.push({ name: node.name as string, target: node.target as ExternalTarget });
+    }
+    // A reference's `target` is where it points, not a type; a type
+    // operator's (`readonly T[]`) is the type it applies to.
+    for (const [key, child] of Object.entries(node)) if (key !== "target" || node.type !== "reference") visit(child);
+  };
+  visit(types);
+  return found;
+}
+
+/**
+ * A signature as the reference writes it: a `tsx` fence holding the
+ * function's declaration, which the docs snippet gate compiles as an ambient
+ * one. The imports of the types it names sit above the fence's `---cut---`
+ * marker, so the page shows only the declaration (a signature is read, not
+ * copied) and the gate still finds every type. A type the kit exports needs
+ * no line: the gate imports it from the page's entry, as the reader does.
+ *
+ * A parameter a caller may leave out is written `name?: T`, unless a
+ * required parameter follows it (legal in source as a default value,
+ * inexpressible with `?`): then it is `name: T | undefined`.
+ */
+export function renderSignature(signature: Signature): string {
+  const lines: string[] = [];
+  const byModule = new Map<string, string[]>();
+  for (const { name, from } of signature.imports) byModule.set(from, [...(byModule.get(from) ?? []), name]);
+  for (const [from, names] of byModule) lines.push(`import type { ${names.join(", ")} } from "${from}";`);
+  if (lines.length > 0) lines.push(SETUP_MARKERS.tsx);
+
+  const lastRequired = signature.parameters.findLastIndex((p) => !p.optional && !p.rest);
+  const params = signature.parameters
+    .map((p, i) => {
+      if (p.rest) return `...${p.name}: ${p.type}`;
+      if (!p.optional) return `${p.name}: ${p.type}`;
+      return i < lastRequired ? `${p.name}: ${p.memberType} | undefined` : `${p.name}?: ${p.type}`;
+    })
+    .join(", ");
+  const generics = signature.typeParameters.length > 0 ? `<${signature.typeParameters.join(", ")}>` : "";
+  lines.push(`function ${signature.name}${generics}(${params}): ${signature.returnType}`);
+  return `\`\`\`tsx\n${lines.join("\n")}\n\`\`\`\n\n`;
 }

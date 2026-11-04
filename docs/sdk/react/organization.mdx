@@ -89,13 +89,13 @@ permission and pass `null` otherwise, which keeps it idle.
 **Signature**
 
 ```tsx
-function useChildOrganizations(org: string | null, options: UseChildOrganizationsOptions): UseChildOrganizationsReturn
+function useChildOrganizations(org: string | null, options?: UseChildOrganizationsOptions): UseChildOrganizationsReturn
 ```
 
 <TypeTable
   type={{
     org: { type: "string | null", description: "", required: true },
-    options: { type: "UseChildOrganizationsOptions", description: "", required: true },
+    options: { type: "UseChildOrganizationsOptions", description: "" },
   }}
 />
 
@@ -169,6 +169,8 @@ to the conversation, when the person belongs to it.
 **Signature**
 
 ```tsx
+import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+// ---cut---
 function useFollowSessionOrganization(session: Session | null): void
 ```
 
@@ -775,6 +777,8 @@ Must be rendered inside an [`OrgProvider`](#orgprovider).
 The display name of a sign-in role; unspecified reads as "None".
 
 ```tsx
+import type { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
+// ---cut---
 function formatSignInRole(role: IamRole): string
 ```
 
@@ -785,6 +789,8 @@ An organization's embedding settings as they stand. An organization that
 stores none creates no accounts, grants nothing and allows every origin.
 
 ```tsx
+import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
+// ---cut---
 function organizationEmbeddingOf(organization: Organization | null | undefined): OrganizationEmbeddingValue
 ```
 
@@ -809,6 +815,8 @@ An organization's policies as they stand. An organization that stores no
 policies holds the defaults: members may create agents.
 
 ```tsx
+import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
+// ---cut---
 function organizationPoliciesOf(organization: Organization | null | undefined): OrganizationPoliciesValue
 ```
 

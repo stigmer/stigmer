@@ -445,6 +445,8 @@ Convert a proto `Harness` enum to a [`HarnessOption`](#harnessoption) string.
 `UNSPECIFIED` and any unknown values map to `"stigmer"`.
 
 ```tsx
+import type { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+// ---cut---
 function fromProtoHarness(h: Harness): HarnessOption
 ```
 
@@ -761,6 +763,8 @@ function thinkingSelectable(model: ModelInfo): boolean
 Convert a [`HarnessOption`](#harnessoption) string to the proto `Harness` enum.
 
 ```tsx
+import type { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+// ---cut---
 function toProtoHarness(h: HarnessOption): Harness
 ```
 

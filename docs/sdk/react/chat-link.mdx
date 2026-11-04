@@ -93,6 +93,8 @@ gating), and the agent dials MCP servers (its own or its plugins', which read ke
 **Signature**
 
 ```tsx
+import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+// ---cut---
 function useChatLinkToolReadiness(agent: Agent, draft: WebChannelDraft): ToolCredentialsReadiness
 ```
 
@@ -276,6 +278,8 @@ organization's members by contract, so a chat link reaches the internet
 only when someone chose "Anyone with the link".
 
 ```tsx
+import type { ChannelAudience } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/spec_pb";
+// ---cut---
 function chatLinkAudienceFromProto(audience: ChannelAudience | undefined): ChatLinkAudience
 ```
 
@@ -298,6 +302,8 @@ on first create.
 Shared by the chat-link dialog (draft seeding) and the chat-link card.
 
 ```tsx
+import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
+// ---cut---
 function draftFromWebChannel(channel: Channel | null): WebChannelDraft
 ```
 
@@ -341,6 +347,9 @@ Without an identity the server names the channel: slug
 `<agent slug>-web`, name `<agent name> (Web)`.
 
 ```tsx
+import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import type { ChannelInput } from "@stigmer/client";
+// ---cut---
 function webChannelCreateInput(agent: Agent, draft: WebChannelDraft, identity?: WebChannelCreateIdentity): ChannelInput
 ```
 
@@ -384,7 +393,9 @@ are named one by one (`spec.web.audience`, `spec.web.allowed_origins`,
 `spec.web.messages`), never the web arm whole.
 
 ```tsx
-function webChannelPatch(draft: WebChannelDraft, fields?: readonly keyof WebChannelDraft[]): Partial<ChannelInput>
+import type { ChannelInput } from "@stigmer/client";
+// ---cut---
+function webChannelPatch(draft: WebChannelDraft, fields?: readonly (keyof WebChannelDraft)[]): Partial<ChannelInput>
 ```
 
 ```tsx
@@ -399,6 +410,9 @@ const persisted = await update(channel, webChannelPatch(draft));
 The web arm of a channel's `spec.type`, or `undefined` for any other type.
 
 ```tsx
+import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
+import type { WebChannelConfig } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/spec_pb";
+// ---cut---
 function webConfigOf(channel: Channel | null | undefined): WebChannelConfig | undefined
 ```
 
@@ -410,6 +424,8 @@ of `status.typeStatus`), or `""` when the link is plain or the channel
 is another type. Server-owned: `rotateLink` is its sole writer.
 
 ```tsx
+import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
+// ---cut---
 function webLinkTokenOf(channel: Channel | null | undefined): string
 ```
 

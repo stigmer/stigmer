@@ -55,6 +55,8 @@ renders, so it can flow straight into a memoized approval body.
 **Signature**
 
 ```tsx
+import type { ToolUse } from "@stigmer/client";
+// ---cut---
 function useApproval(toolUse: ToolUse): UseApprovalResult | null
 ```
 
@@ -282,6 +284,8 @@ when it runs no command now (or no stop handler is wired).
 **Signature**
 
 ```tsx
+import type { ToolUse } from "@stigmer/client";
+// ---cut---
 function useBackgroundStop(toolUse: ToolUse): UseBackgroundStopResult | null
 ```
 
@@ -461,6 +465,8 @@ detection, the Apply mutation, and in-memory clipboard copy.
 **Signature**
 
 ```tsx
+import type { File } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
+// ---cut---
 function useFileInspection(file: File, org: string, options?: UseFileInspectionOptions): FileInspection
 ```
 
@@ -487,6 +493,8 @@ describe the same file.
 **Signature**
 
 ```tsx
+import type { CapturedFileChange } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
+// ---cut---
 function useFileReviewRowChange(runId: string, rowPath: string | null): CapturedFileChange | null
 ```
 
@@ -749,13 +757,13 @@ user actually expands the output (lazy), keeping long threads cheap.
 **Signature**
 
 ```tsx
-function useToolOutputContent(outputRef: ToolOutputRefLike | null | undefined, enabled: boolean): UseToolOutputContentReturn
+function useToolOutputContent(outputRef: ToolOutputRefLike | null | undefined, enabled?: boolean): UseToolOutputContentReturn
 ```
 
 <TypeTable
   type={{
     outputRef: { type: "ToolOutputRefLike | null | undefined", description: "The offloaded-output reference, or `null` to skip.", required: true },
-    enabled: { type: "boolean", description: "When `false`, the hook stays idle. Defaults to `true`.", required: true },
+    enabled: { type: "boolean", description: "When `false`, the hook stays idle. Defaults to `true`." },
   }}
 />
 
@@ -782,6 +790,8 @@ leaves of the streaming thread.
 **Signature**
 
 ```tsx
+import type { ToolUse } from "@stigmer/client";
+// ---cut---
 function useToolPresentation(toolUse: ToolUse): ToolPresentation
 ```
 
@@ -811,6 +821,8 @@ branch/commit/push/PR workflow.
 **Signature**
 
 ```tsx
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+// ---cut---
 function useWorkspaceWriteBacks(execution: Run | null): UseWorkspaceWriteBacksReturn
 ```
 
@@ -2016,6 +2028,8 @@ out", "Stopped by a person", "Stopped by the agent", "Stopped when the
 turn paused for approval", "Stopped with the turn", "Failed to start").
 
 ```tsx
+import type { BackgroundCommandView } from "@stigmer/client";
+// ---cut---
 function backgroundStatusLabel(background: BackgroundCommandView): string
 ```
 
@@ -2060,6 +2074,8 @@ workspace-root-relative, so the match accepts an exact match or a
 `/`-boundary suffix. Presentation-only — never a correlation key.
 
 ```tsx
+import type { CapturedFileChange, FileChangeSet } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
+// ---cut---
 function changeForRowPath(set: FileChangeSet, rowPath: string): CapturedFileChange | null
 ```
 
@@ -2069,6 +2085,8 @@ function changeForRowPath(set: FileChangeSet, rowPath: string): CapturedFileChan
 Classify a set from its files' reviewability.
 
 ```tsx
+import type { FileReviewSet } from "@stigmer/client";
+// ---cut---
 function changeSetReviewability(set: Pick<FileReviewSet, "files">): ChangeSetReviewability
 ```
 
@@ -2167,6 +2185,8 @@ Counts for captures stay derivable by the presentation layer, matching
 the contract the SDK `tool-view` established.
 
 ```tsx
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+// ---cut---
 function deriveRunFileChanges(executions: readonly Run[]): readonly DisplayFileChange[]
 ```
 
@@ -2208,6 +2228,9 @@ record. Returns the record's own array (no copy), so memoized consumers
 keep their reference.
 
 ```tsx
+import type { RunStatus } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import type { FileChangeSet } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
+// ---cut---
 function displayFileChangeSets(status: RunStatus | undefined): readonly FileChangeSet[]
 ```
 
@@ -2242,6 +2265,8 @@ tools, slug for MCP tools, etc.).
 Returns `null` when the tool has no recognised arguments.
 
 ```tsx
+import type { ToolUse } from "@stigmer/client";
+// ---cut---
 function extractPrimaryArg(toolUse: Pick<ToolUse, "name" | "mcpServerName" | "input">): string | null
 ```
 
@@ -2253,6 +2278,8 @@ when absent (a model that skipped the optional arg, and every non-shell
 kind). See [`SHELL_INTENT_ARG_FIELD`](#shell_intent_arg_field).
 
 ```tsx
+import type { ToolUse } from "@stigmer/client";
+// ---cut---
 function extractShellIntent(tool: Pick<ToolUse, "name" | "mcpServerName" | "input">): string | null
 ```
 
@@ -2264,6 +2291,8 @@ ask's JSON `argsPreview` instead of the tool use's input; mirrors
 `extractPrimaryArgFromPreview`'s kind resolution.
 
 ```tsx
+import type { ToolKind } from "@stigmer/client";
+// ---cut---
 function extractShellIntentFromPreview(toolName: string, argsPreview: string, mcpServerSlug?: string, toolKind?: ToolKind): string | null
 ```
 
@@ -2297,6 +2326,8 @@ The `FileChangeKind` a file's change word names (`added`,
 `UNSPECIFIED` for any other word.
 
 ```tsx
+import type { FileChangeKind } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+// ---cut---
 function fileChangeKindOf(change: string): FileChangeKind
 ```
 
@@ -2351,6 +2382,9 @@ One captured change set of a run's file record, by its id: what a review
 card joins to a folded `FileReviewSet` (`changeSetId`) to render its diffs.
 
 ```tsx
+import type { RunStatus } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import type { FileChangeSet } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
+// ---cut---
 function fileChangeSetOf(status: RunStatus | undefined, changeSetId: string): FileChangeSet | undefined
 ```
 
@@ -2371,6 +2405,8 @@ The file of a turn's review a transcript row's path refers to, or `null`.
 Presentation-only — never a correlation key.
 
 ```tsx
+import type { FileReviewFile, FileReviewSet } from "@stigmer/client";
+// ---cut---
 function fileForRowPath(set: Pick<FileReviewSet, "files">, rowPath: string): FileReviewFile | null
 ```
 
@@ -2431,6 +2467,8 @@ Classify a file of a turn's review by its `reviewable` word (the runner's
 `complete`, `binary`, `secret` or `partial`).
 
 ```tsx
+import type { FileReviewFile } from "@stigmer/client";
+// ---cut---
 function fileReviewability(file: Pick<FileReviewFile, "reviewable">): FileReviewability
 ```
 
@@ -2566,6 +2604,8 @@ incomplete diff (binary, secret-withheld, elided) that cannot honestly
 render.
 
 ```tsx
+import type { CapturedFileChange, FileChangeSet } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
+// ---cut---
 function fileReviewRowChange(set: FileChangeSet | undefined, rowPath: string | null): CapturedFileChange | null
 ```
 
@@ -2576,6 +2616,8 @@ The [`FileReviewRowState`](#filereviewrowstate) of a row's file across a turn's 
 sets (a later set wins), or `null`.
 
 ```tsx
+import type { FileReviewSet } from "@stigmer/client";
+// ---cut---
 function fileReviewRowState(sets: readonly Pick<FileReviewSet, "files">[], rowPath: string | null): FileReviewRowState | null
 ```
 
@@ -2615,6 +2657,8 @@ Returns the first in-progress to-do, or `null`. Used by [`TodoCard`](#todocard) 
 decide whether the plan is being worked.
 
 ```tsx
+import type { Todo } from "@stigmer/client";
+// ---cut---
 function findActiveTodo(todos: readonly Todo[]): Todo | null
 ```
 
@@ -2644,7 +2688,9 @@ function formatTokenCount(count: number): string
 Adapts a File to a row item.
 
 ```tsx
-function fromFile(file: File, hasNameCollision: boolean, place?: string): FileRowItem
+import type { File } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
+// ---cut---
+function fromFile(file: File, hasNameCollision?: boolean, place?: string): FileRowItem
 ```
 
 
@@ -2692,6 +2738,8 @@ getTextRenderMode("unknown", "application/json"); // "json"
 Returns the registered presenter for a kind, if any.
 
 ```tsx
+import type { ToolKind } from "@stigmer/client";
+// ---cut---
 function getToolPresenter(kind: ToolKind): ToolPresenter | undefined
 ```
 
@@ -2743,6 +2791,8 @@ Props for [`InteractionModeBadge`](#interactionmodebadge).
 Whether a File is an image the browser draws from its download link.
 
 ```tsx
+import type { File } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
+// ---cut---
 function isImageFile(file: File): boolean
 ```
 
@@ -2753,6 +2803,8 @@ Returns `true` when the given phase represents a final, immutable
 execution state — no further updates will arrive from the server.
 
 ```tsx
+import type { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+// ---cut---
 function isTerminalPhase(phase: RunPhase): boolean
 ```
 
@@ -2766,6 +2818,8 @@ Use this to decide whether to read a File's text with `useFileContent`.
 Binary or unknown Files are downloaded instead.
 
 ```tsx
+import type { File } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
+// ---cut---
 function isTextFile(file: File): boolean
 ```
 
@@ -2779,6 +2833,8 @@ const shouldFetch = isTextFile(file);
 Whether a File's name says it holds a zip archive, the shape a skill is pushed in.
 
 ```tsx
+import type { File } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
+// ---cut---
 function isZipFile(file: File): boolean
 ```
 
@@ -2867,6 +2923,23 @@ Props for [`MessageEntry`](#messageentry).
     message: { type: "ThreadMessage", description: "The message to render.", required: true, typeDescriptionLink: "#threadmessage" },
     onEdit: { type: "() => void", description: "When provided on a person's message, a hover-revealed \"Edit\" button appears on the bubble. Clicking it invokes this callback — the session chat uses it to stop the in-flight turn and pre-fill the composer with this message for editing. Ignored for other messages." },
     runId: { type: "string", description: "The run the files were sent with — enables their byte-backed affordances (image previews, document downloads), each link minted from the File when it is needed. Absent on the optimistic pending bubble, where the files render as inert chips until the real run record replaces it." },
+  }}
+/>
+
+
+### MessageFileView
+
+One file given with a message, as the thread shows it.
+
+Built from a run's `status.messageFiles` (`messageFileViews`) for a
+turn the server recorded, and from the chat box's hand-off
+(`FileHandOff.files`) for the optimistic bubble.
+
+<TypeTable
+  type={{
+    fileId: { type: "string", description: "The File's id (`\"file_01j…\"`): what its name, size and link are read by." },
+    filename: { type: "string", description: "The filename, when known without reading the File." },
+    kind: { type: "\"document\" | \"image\"", description: "`\"image\"` shows a preview tile; `\"document\"` a click-to-download chip.", required: true },
   }}
 />
 
@@ -3152,6 +3225,8 @@ for that kind (or the default). Most apps register once at startup and ignore
 it; tests and dynamic hosts use it to avoid leaking global state.
 
 ```tsx
+import type { ToolKind } from "@stigmer/client";
+// ---cut---
 function registerToolPresenter(kind: ToolKind, presenter: ToolPresenter): () => void
 ```
 
@@ -3198,6 +3273,9 @@ bug upstream — it is skipped, never invented. The summary count stays
 the event's truth (`injectedMemoryIds.length`) regardless.
 
 ```tsx
+import type { RecalledMemoryFact } from "@stigmer/apis/ai/stigmer/agentic/run/v1/spec_pb";
+import type { MemoryRecall } from "@stigmer/client";
+// ---cut---
 function resolveInjectedFacts(recall: MemoryRecall, facts: readonly RecalledMemoryFact[]): RecalledMemoryFact[]
 ```
 
@@ -3220,6 +3298,8 @@ Resolution strategy (mirrors the CLI's `buildHyperlinkedPath`):
 5. **Fallback** → copy the raw path.
 
 ```tsx
+import type { SessionResource } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
+// ---cut---
 function resolvePathAction(path: string, resources: readonly SessionResource[]): ResolvedPathAction
 ```
 
@@ -3253,6 +3333,8 @@ tool name and MCP slug, for a surface that already holds the kind. Falls
 back to name-based resolution when the kind is `unknown`.
 
 ```tsx
+import type { ToolKind } from "@stigmer/client";
+// ---cut---
 function resolveToolCategoryFromKind(toolKind: ToolKind, toolName: string, mcpServerSlug?: string): ToolCategoryInfo
 ```
 
@@ -3322,6 +3404,9 @@ one (`RunPhaseBadge`, `RunProgress`). A word this client does not know
 reads as `RUN_PHASE_UNSPECIFIED`.
 
 ```tsx
+import type { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import type { TurnPhase } from "@stigmer/client";
+// ---cut---
 function runPhaseOf(phase: TurnPhase): RunPhase
 ```
 
@@ -3463,6 +3548,8 @@ What a `task` call asked its subagent to do, in a few words: the call's
 `description` input, or "" when it carries none.
 
 ```tsx
+import type { ToolUse } from "@stigmer/client";
+// ---cut---
 function subagentSubjectOf(toolUse: Pick<ToolUse, "input">): string
 ```
 
@@ -3496,6 +3583,8 @@ collapsed tool row (e.g. "+40 -0", "exit 1", "2 matches"). Returns null when
 there is nothing useful to summarize.
 
 ```tsx
+import type { ToolResultView } from "@stigmer/client";
+// ---cut---
 function summarizeResultView(view: ToolResultView): string | null
 ```
 
@@ -3532,6 +3621,8 @@ Adapts a `CapturedFileChange` to the [`DisplayFileChange`](#displayfilechange) t
 diff renderers consume.
 
 ```tsx
+import type { CapturedFileChange } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
+// ---cut---
 function toDisplayFileChange(captured: CapturedFileChange): DisplayFileChange
 ```
 
@@ -3585,6 +3676,8 @@ Builds a compact completion summary string (e.g. "3/5 completed").
 Returns `null` when there are no to-dos.
 
 ```tsx
+import type { Todo } from "@stigmer/client";
+// ---cut---
 function todoCompletionSummary(todos: readonly Todo[]): string | null
 ```
 
@@ -3723,6 +3816,33 @@ Props for [`ToolCallItem`](#toolcallitem).
 />
 
 
+### ToolCategory
+
+Discriminated tool categories for type-aware rendering.
+
+This is the presentation taxonomy. Classification (name -> kind) lives in
+`@stigmer/client`'s `resolveToolKind` (single source of truth, shared with the
+runner, @stigmer/ink-ui, and the CLI's headless renderers); this file maps each
+`ToolKind` to its presentation metadata (label, primary argument).
+`"mcp"` covers tools originating from an MCP server, whose names are
+dynamic.
+
+
+### ToolCategoryInfo
+
+Resolved display metadata for a tool call, returned by [`resolveToolCategory`](#resolvetoolcategory).
+
+<TypeTable
+  type={{
+    category: { type: "ToolCategory", description: "Semantic category of the tool.", required: true, typeDescriptionLink: "#toolcategory" },
+    fallbackArgFields: { type: "readonly string[]", description: "Fallback argument keys tried when the primary key is absent.", required: true },
+    intentArgField: { type: "string", description: "JSON argument key carrying a model-authored intent phrase for this kind (stigmer#276), or `undefined` for kinds without one. Shell is the only carrier today: every harness converges on `description` — the Claude harness's built-in shell tool ships it natively, and the Stigmer harness's tool-intent middleware adds it to the `execute` schema at bind time." },
+    label: { type: "string", description: "Human-readable label for the tool (e.g., `\"Shell\"`, `\"Read\"`).", required: true },
+    primaryArgField: { type: "string", description: "JSON argument key that provides the primary display value (e.g., `\"command\"` for shell).", required: true },
+  }}
+/>
+
+
 ### ToolDisclosure
 
 How much of a settled tool call to reveal inline by default in the thread.
@@ -3750,11 +3870,18 @@ calls fold into one chip). A category can be result-rich but never folded
 (`shell`), or foldable but never previewed (`read`).
 
 
+### ToolIdentity
+
+What the presentation helpers read of a tool use: its name, MCP server and input.
+
+
 ### toolKindToCategoryInfo
 
 Maps a `ToolKind` to its presentation metadata.
 
 ```tsx
+import type { ToolKind } from "@stigmer/client";
+// ---cut---
 function toolKindToCategoryInfo(kind: ToolKind, toolName: string): ToolCategoryInfo
 ```
 
@@ -3772,7 +3899,7 @@ The fully-resolved presentation for a tool call, returned by [`useToolPresentati
 
 <TypeTable
   type={{
-    category: { type: "ToolCategory", description: "Presentation category (1:1 with kind).", required: true },
+    category: { type: "ToolCategory", description: "Presentation category (1:1 with kind).", required: true, typeDescriptionLink: "#toolcategory" },
     chrome: { type: "ToolChrome", description: "Default chrome tier for this tool — `\"quiet\"` renders an unboxed line, `\"card\"` a bordered card (see `ToolChrome`). A pending gate or a failure escalates to `\"card\"` in the component layer; this is the *settled* default.", required: true },
     disclosure: { type: "ToolDisclosure", description: "Default inline disclosure for this tool — `\"preview\"` keeps a bounded, persistent preview of the result, `\"summary\"` keeps a compact row. The active/awaiting state can still force a row open; this is the *settled* default.", required: true, typeDescriptionLink: "#tooldisclosure" },
     intent: { type: "string | null", description: "The model-authored intent phrase for a SHELL call (stigmer#276), or null when absent (a skipped optional arg, non-shell kinds). Raw extraction — precedence against overrides is resolved in ToolPresentation.title.", required: true },
@@ -3929,6 +4056,8 @@ blank title, fall back through what the record can still prove:
 3. `"Workspace"` — the honest generic label when neither exists.
 
 ```tsx
+import type { WorkspaceWriteBack } from "@stigmer/apis/ai/stigmer/agentic/run/v1/writeback_pb";
+// ---cut---
 function writeBackDisplayName(writeBack: WorkspaceWriteBack): string
 ```
 

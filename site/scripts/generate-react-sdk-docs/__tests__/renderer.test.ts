@@ -189,6 +189,7 @@ describe("renderDomainPage", () => {
         {
           name: "useSkill",
           description: [],
+          signature: { name: "useSkill", typeParameters: [], parameters: [], returnType: "void", imports: [] },
           parameters: [],
           returnType: { name: "void", typeString: "void" },
           returnInterface: null,
@@ -204,6 +205,26 @@ describe("renderDomainPage", () => {
     for (const code of ["useSkill();", "<SkillPicker />", "skillLabel(s);"]) {
       expect(page).toContain('```tsx title="x.tsx"\n' + code + "\n```\n");
     }
+  });
+
+  it("writes a hook's signature under **Signature**, and a helper's above its examples", () => {
+    const signature = (name: string) => ({
+      name,
+      typeParameters: [],
+      parameters: [{ name: "run", type: "Run", memberType: "Run", optional: false, rest: false }],
+      returnType: "string",
+      imports: [{ name: "Run", from: "@stigmer/apis/run_pb" }],
+    });
+    const page = renderDomainPage({
+      ...domain("run"),
+      hooks: [
+        { name: "useRunLabel", description: [], signature: signature("useRunLabel"), parameters: [], returnType: { name: "string", typeString: "string" }, returnInterface: null, examples: [], sourceUrl: "" },
+      ],
+      types: [{ name: "runLabel", description: [], category: "other", fields: [], associatedExport: null, signature: signature("runLabel"), examples: [] }],
+    });
+    const fence = (name: string) => '```tsx\nimport type { Run } from "@stigmer/apis/run_pb";\n// ---cut---\nfunction ' + name + "(run: Run): string\n```\n";
+    expect(page).toContain("**Signature**\n\n" + fence("useRunLabel"));
+    expect(page).toContain("### runLabel\n\n" + fence("runLabel"));
   });
 
   it("renders a Types section for a standalone type, with its fields' links", () => {

@@ -25,13 +25,15 @@ so no affordance flashes before the bar is evaluated.
 **Signature**
 
 ```tsx
-function useAddChannelOptions(agent: Agent | null, options: UseAddChannelOptionsOptions): UseAddChannelOptionsReturn
+import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+// ---cut---
+function useAddChannelOptions(agent: Agent | null, options?: UseAddChannelOptionsOptions): UseAddChannelOptionsReturn
 ```
 
 <TypeTable
   type={{
     agent: { type: "Agent | null", description: "The agent to add a channel to, or `null` while loading.", required: true },
-    options: { type: "UseAddChannelOptionsOptions", description: "", required: true },
+    options: { type: "UseAddChannelOptionsOptions", description: "" },
   }}
 />
 
@@ -82,6 +84,8 @@ no affordance flashes before the gate can be evaluated.
 **Signature**
 
 ```tsx
+import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+// ---cut---
 function useCanCreateChannel(agent: Agent | null): UseCanCreateChannelReturn
 ```
 
@@ -319,6 +323,8 @@ across pending/revoked, because `providerPresentation`'s
 **Signature**
 
 ```tsx
+import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
+// ---cut---
 function useChannelTemplateReadiness(channel: Channel): ChannelTemplateReadiness
 ```
 
@@ -353,6 +359,9 @@ cloud-only), and the agent dials MCP servers (its own or its plugins', which rea
 **Signature**
 
 ```tsx
+import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import type { ResourceRef } from "@stigmer/client";
+// ---cut---
 function useChannelToolReadiness(agent: Agent, enabled: boolean, vaults: readonly ResourceRef[]): ToolCredentialsReadiness
 ```
 
@@ -889,6 +898,14 @@ included.
 ```tsx
 function channelInstallsAvailable(mode: DeploymentMode): boolean
 ```
+
+
+### ChannelProviderId
+
+Identifier of a channel provider — matches the `type` oneof case name
+on `ChannelSpec` (its Slack and WhatsApp arms) and the `provider_config`
+case name on `ChannelAppSpec`, the wire discriminators every channel
+surface already switches on.
 
 
 ### ChannelTemplateReadiness

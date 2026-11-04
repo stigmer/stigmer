@@ -45,7 +45,7 @@ export { AgentDetailView } from "./AgentDetailView.js";
 export type { AgentDetailViewProps } from "./AgentDetailView.js";
 
 export { agentVersionLabel, useAgentVersionCount, useAgentVersions } from "./useAgentVersions.js";
-export type { UseAgentVersionsReturn } from "./useAgentVersions.js";
+export type { AgentVersionCount, UseAgentVersionsReturn } from "./useAgentVersions.js";
 
 export { AgentVersionsTab } from "./AgentVersionsTab.js";
 export type { AgentVersionsTabProps } from "./AgentVersionsTab.js";

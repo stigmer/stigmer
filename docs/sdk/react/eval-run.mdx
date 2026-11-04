@@ -277,6 +277,9 @@ function compareCaseSources(before: EvalCaseSource, after: EvalCaseSource): read
 The plugin an eval run about an agent compares, as its status lists it; undefined when it compares none.
 
 ```tsx
+import type { EvalRun } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/api_pb";
+import type { EvalRunPlugin } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/status_pb";
+// ---cut---
 function comparedPluginOf(evalRun: EvalRun): EvalRunPlugin | undefined
 ```
 
@@ -290,6 +293,8 @@ plugin is matched by its slug. Evals follow the plugins the same way,
 matched by their slug.
 
 ```tsx
+import type { EvalRun } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/api_pb";
+// ---cut---
 function compareEvalRuns(before: EvalRun, after: EvalRun): readonly EvalRunCompareSection[]
 ```
 
@@ -360,6 +365,9 @@ names and its phase (which says what a try not finished is).
 One plugin's or Eval's cases in an eval run as a case list the results table reads.
 
 ```tsx
+import type { EvalRun } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/api_pb";
+import type { EvalRunPlugin } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/status_pb";
+// ---cut---
 function evalCaseSourceOf(evalRun: EvalRun, source: Pick<EvalRunPlugin, "cases">): EvalCaseSource
 ```
 
@@ -485,7 +493,9 @@ plugin, then each Eval, by its slug in the agent's organization (an
 Eval at its current version).
 
 ```tsx
-function evalRunInputOf(subject: EvalSubjectRef, settings: EvalFormSettings, defaultCaseSources: readonly string[]): EvalRunInput
+import type { EvalRunInput } from "@stigmer/client";
+// ---cut---
+function evalRunInputOf(subject: EvalSubjectRef, settings: EvalFormSettings, defaultCaseSources?: readonly string[]): EvalRunInput
 ```
 
 
@@ -499,7 +509,9 @@ without payroll · started …". `formatTime` defaults to the
 reader's locale.
 
 ```tsx
-function evalRunLabelOf(evalRun: EvalRun, pluginName: string, formatTime: (at: Date) => string): string
+import type { EvalRun } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/api_pb";
+// ---cut---
+function evalRunLabelOf(evalRun: EvalRun, pluginName?: string, formatTime?: (at: Date) => string): string
 ```
 
 
@@ -531,6 +543,8 @@ One plugin a try loaded, or one Eval whose cases ran on the agent, as an eval ru
 An eval run's results, one section per plugin a try loaded in the eval run's order, then one per Eval.
 
 ```tsx
+import type { EvalRun } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/api_pb";
+// ---cut---
 function evalRunSectionsOf(evalRun: EvalRun): readonly EvalRunPluginSection[]
 ```
 
@@ -560,6 +574,8 @@ Whose eval runs to list: an agent's, or a plugin's (the ones about the plugin).
 The agent version an eval run ran: the status's stamp, else the spec's (a tag or empty before create stamps it); empty on a plugin.
 
 ```tsx
+import type { EvalRun } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/api_pb";
+// ---cut---
 function evalRunVersionOf(evalRun: EvalRun): string
 ```
 
@@ -587,6 +603,8 @@ The agent or plugin an eval run is started for.
 The targets the settings send: none while `caseModels` is on, else each model picked.
 
 ```tsx
+import type { EvalRunTargetInput } from "@stigmer/client";
+// ---cut---
 function evalTargetsOf(settings: EvalRunSettings): EvalRunTargetInput[]
 ```
 
@@ -610,6 +628,8 @@ One try, as a cell's link lists it.
 Whether an eval run is about an agent.
 
 ```tsx
+import type { EvalRun } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/api_pb";
+// ---cut---
 function isAboutAgent(evalRun: EvalRun): boolean
 ```
 
@@ -619,6 +639,8 @@ function isAboutAgent(evalRun: EvalRun): boolean
 Whether each case of an eval run ran with and without a plugin.
 
 ```tsx
+import type { EvalRun } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/api_pb";
+// ---cut---
 function isComparing(evalRun: EvalRun): boolean
 ```
 

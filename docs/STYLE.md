@@ -110,7 +110,9 @@ block in `docs/` is compiled against the SDK it shows by
      those declarations need. An import the visible code uses is shown, in the
      block or the page's prelude, never hidden. Never logic the reader needs to
      understand the example: if the hidden lines carry meaning, they belong in
-     the body.
+     the body. The one exception is a generated reference's **Signature**, whose
+     setup imports the types it names: a signature is read, not copied, and its
+     generator writes those lines.
 3. **Explicitly skipped** — ` ```go no-compile="reason" `, for pseudo-code, a
    sketch with elided arguments, or a wrong value shown beside a right one. The
    reason is mandatory and says why.
@@ -118,6 +120,26 @@ block in `docs/` is compiled against the SDK it shows by
 An example that returns a value is the function it belongs to: write the
 `func provisionUser(...)` or the Java method, so the reader sees what it returns
 to, never a bare `return "", err`.
+
+A kit's `@example` (the TSDoc in `sdk/react`, `sdk/react-core` and `sdk/ink`,
+rendered on its reference page) holds **no hidden setup**: it also ships in the
+kit's type declarations, where an editor shows it on hover, whole. The
+generators refuse a `---cut---` line in one. What it takes as given is written
+in it, in this order:
+
+1. a literal, for an id or a name the reader types: `org: "acme"`,
+   `slug: "reviewer"`;
+2. a small component named for its job, when it needs an object the reader got
+   elsewhere, awaits an action, or renders next to a hook: the givens are its
+   typed props, the hook is called at its top, and an action runs in a handler,
+   never after a hook at the top level;
+3. a prop or plain markup for the host app's own things
+   (`onOpen: (href: string) => void`, never `router` or `navigate`;
+   `<p>Loading…</p>`, never a `Skeleton` the kit does not export).
+
+It imports what the reader imports: a proto type from its `@stigmer/apis/…`
+module, a client type from `@stigmer/client`, and nothing for a name the page's
+entry exports.
 
 The fences allowed to fail today are listed in
 `test/docs-snippets-known-failing.json`, by page and by the digest of their

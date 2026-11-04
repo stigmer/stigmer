@@ -196,7 +196,7 @@ computed diff and a parsed unified diff render line-for-line identically.
 Pure function — no side effects, safe to call outside React.
 
 ```tsx
-function computeDiff(oldText: string, newText: string, contextLines: number): readonly DiffHunk[]
+function computeDiff(oldText: string, newText: string, contextLines?: number): readonly DiffHunk[]
 ```
 
 

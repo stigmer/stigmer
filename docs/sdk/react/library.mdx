@@ -488,6 +488,9 @@ plan is current.
 Returns `undefined` when no run in the session returned a plan.
 
 ```tsx
+import type { File } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+// ---cut---
 function findLatestSessionPlan(files: readonly File[], runs: readonly Run[]): SessionPlan | undefined
 ```
 
@@ -498,6 +501,9 @@ Finds the plan File a Plan-mode run returned, or `undefined` when the run
 is not a Plan-mode run or returned no plan.
 
 ```tsx
+import type { File } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+// ---cut---
 function findPlanFile(files: readonly File[], run: Run | null | undefined): File | undefined
 ```
 
@@ -531,6 +537,9 @@ message is ever considered — an earlier message is settled narration, and
 falling back to it would promote the wrong text.
 
 ```tsx
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import type { Turn } from "@stigmer/client";
+// ---cut---
 function findStreamingPlan(turn: Turn | null | undefined, run: Run | null | undefined): StreamingPlan | undefined
 ```
 
@@ -543,6 +552,8 @@ Whether that run ran in Plan mode is [`findPlanFile`](#findplanfile)'s check, wh
 has the run.
 
 ```tsx
+import type { File } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
+// ---cut---
 function isPlanFile(file: File): boolean
 ```
 
@@ -579,6 +590,9 @@ Each Plan-mode run's plan File, by run id: what the message thread takes
 as its `planFiles` so a completed plan collapses into its card.
 
 ```tsx
+import type { File } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+// ---cut---
 function planFilesByRun(files: readonly File[], runs: readonly Run[]): ReadonlyMap<string, File>
 ```
 
@@ -694,6 +708,8 @@ detail panels resolve enum-to-text, so no surface ever falls through to
 "Private" (or "unknown") for org/child organizations.
 
 ```tsx
+import type { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
+// ---cut---
 function visibilityLabel(visibility: ApiResourceVisibility): string
 ```
 

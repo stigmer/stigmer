@@ -21,6 +21,8 @@ additional RPC calls. Supports two formats:
 **Signature**
 
 ```tsx
+import type { GetOrgUsageReportOutput } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
+// ---cut---
 function useExportCSV(report: GetOrgUsageReportOutput | null, org: string): UseExportCSVReturn
 ```
 
@@ -204,7 +206,7 @@ The `to` day is always today's UTC date (inclusive). The `from` day is
 calendar days.
 
 ```tsx
-function dateRangeFromPreset(preset: DateRangePreset, now: Date): DateRange
+function dateRangeFromPreset(preset: DateRangePreset, now?: Date): DateRange
 ```
 
 

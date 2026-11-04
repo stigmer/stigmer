@@ -241,6 +241,18 @@ touches every day.
 - Naming is critical: a name becomes part of the platform builder's codebase and
   is expensive to change.
 - Every exported hook, component and type is a public API contract.
+- A reader can name every type a public signature takes or returns. A type from
+  a peer dependency (`@stigmer/apis`, `@stigmer/client`, `react`) is imported
+  from the peer; any other (the kit's own, or one from a plain dependency such
+  as `@stigmer/react-core` or `@stigmer/plugin-package`) is exported by the kit,
+  as a type, from the entry the function is in. A reader installs only the kit
+  and its peers. The docs snippet gate compiles every reference signature and
+  names one that breaks this at its page and line.
+- An `@example` is read in two places: its reference page and the editor's hover
+  over the `.d.ts`, where nothing is hidden. So it holds no hidden setup (the
+  generators refuse a `---cut---` line). It takes what it needs as a literal or
+  as a small component's typed props, imports what its reader imports, and
+  compiles on its page (`docs/STYLE.md`, "Code examples compile").
 
 ## Before writing any component
 

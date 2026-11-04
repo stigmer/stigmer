@@ -193,6 +193,7 @@ export type {
   UseSessionListReturn,
   UseSessionSearchOptions,
   UseSessionSearchReturn,
+  UseSessionRunsOptions,
   UseSessionRunsReturn,
   SendFollowUpOptions,
   UseSessionEventsOptions,
@@ -358,6 +359,9 @@ export type {
   ToolPresentation,
   ToolPresenter,
   ToolDisclosure,
+  ToolCategory,
+  ToolCategoryInfo,
+  ToolIdentity,
   ThreadMessage,
   UserMessageItem,
   MessageThreadSlots,
@@ -408,6 +412,7 @@ export {
   visionPreflightMessage,
 } from "./upload/index.js";
 export type {
+  MessageFileView,
   AddFilesOptions,
   FileHandOff,
   FileUploadPhase,
@@ -592,6 +597,11 @@ export type {
   UseMarketplacesReturn,
   UseMarketplacesOptions,
   AddSourceOutcome,
+  NarrowedStoredEntry,
+  Marketplace,
+  MarketplaceEntry,
+  LazyCandidate,
+  PreparedPlugin,
   UseMarketplaceOptions,
   UseMarketplaceReturn,
   UseMarketplaceCatalogOptions,
@@ -674,6 +684,7 @@ export {
   useRunAgentSpec,
 } from "./agent/index.js";
 export type {
+  AgentVersionCount,
   UseAgentReturn,
   AgentRunDefaults,
   UseRunAgentSpecReturn,
@@ -1156,6 +1167,7 @@ export {
   FREE_PLAN,
   offeredFeatures,
   planTermLines,
+  type OfferedFeature,
 } from "./billing/plan-features.js";
 export { FEATURE_COPY, type NamedFeature } from "./internal/features.js";
 
@@ -1347,6 +1359,7 @@ export type {
   UseAddChannelOptionsReturn,
   ChannelTypeDescriptor,
   ChannelTypeId,
+  ChannelProviderId,
   UseConnectSlackChannelReturn,
   SlackConnectPhase,
   UseInstallChannelReturn,

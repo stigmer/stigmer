@@ -685,6 +685,8 @@ order (newest first), and a sort affordance that silently does
 nothing would lie.
 
 ```tsx
+import type { Routine } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
+// ---cut---
 function createRoutineColumns(options?: RoutineColumnsOptions): WorkbenchColumnDef<Routine>[]
 ```
 
@@ -699,6 +701,8 @@ Consumers type their workbench as `ResourceWorkbench<Routine>` and pass
 (render the workbench with `searchable={false}`).
 
 ```tsx
+import type { Routine } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
+// ---cut---
 function createRoutineListFn(client: RoutineListClient): WorkbenchListFn<Routine>
 ```
 
@@ -726,6 +730,9 @@ A missing spec derives as "disabled" — the same fail-closed reading the
 server applies to a manifest that omits `enabled`.
 
 ```tsx
+import type { RoutineSpec } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/spec_pb";
+import type { RoutineStatus } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/status_pb";
+// ---cut---
 function deriveRoutineState(spec: RoutineSpec | undefined, status: RoutineStatus | undefined): RoutineStateInfo
 ```
 
@@ -777,7 +784,7 @@ Fetch one page of an organization's routines via the direct query:
 the page `pageToken` names (`""` for the first), at most `pageSize`.
 
 ```tsx
-function listRoutinesPage(client: RoutineListClient, org: string, page: { pageSize?: number; pageToken?: string }): Promise<RoutinePage>
+function listRoutinesPage(client: RoutineListClient, org: string, page?: { pageSize?: number; pageToken?: string }): Promise<RoutinePage>
 ```
 
 
