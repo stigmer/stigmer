@@ -22,7 +22,8 @@
  *   after the agent's and each once (a reference with no organization
  *   names the subagent's), and a subagent that cannot be read or an empty
  *   reference is left out;
- * - each subagent's organization is read from its reference alone;
+ * - each subagent's organization, and its pin as a reading's key, are
+ *   read from its reference alone;
  * - the run's keys are its tools' and hooks', then each agent's own for a
  *   key no tool reads: a tool's declaration stands over any agent's.
  * - the servers that sign in are a plugin's, one per address, named by
@@ -30,7 +31,11 @@
  *   server never has a sign-in record;
  * - reading the plugins either fails on one that cannot be read or leaves
  *   it out, as the caller asks;
- * - an agent uses tools when it lists a plugin or writes a server.
+ * - an agent uses tools when it lists a plugin or writes a server;
+ * - a run uses tools through a subagent when one it lists, read at its
+ *   pin, lists a plugin or writes a server; one with neither, one that
+ *   cannot be read and an empty reference count for nothing; the
+ *   question reads no plugin.
  */
 
 import { describe, expect, it } from "vitest";
@@ -51,11 +56,13 @@ import {
   readAgentServers,
   runDeclarations,
   type RunReading,
+  runUsesTools,
   serversOf,
   signInKeys,
   signInServers,
   strongerDeclaration,
   subagentOrgs,
+  subagentPins,
 } from "../runServers.js";
 
 const LINEAR_URL = "https://mcp.linear.app/mcp";
@@ -390,6 +397,13 @@ describe("subagentOrgs", () => {
     ).toEqual(["globex", "acme"]);
     expect(subagentOrgs(undefined, "acme")).toEqual([]);
   });
+
+  it("keys each listed subagent by organization, id and pinned version, skipping an empty reference", () => {
+    expect(
+      subagentPins(spec({ subagents: [{ org: "globex", id: "agt_1", version: PIN }, { id: "agt_2", version: PIN }, {}] }), "acme"),
+    ).toEqual([`globex/agt_1@${PIN}`, `acme/agt_2@${PIN}`]);
+    expect(subagentPins(undefined, "acme")).toEqual([]);
+  });
 });
 
 describe("runDeclarations and strongerDeclaration", () => {
@@ -473,5 +487,45 @@ describe("agentUsesTools", () => {
     expect(agentUsesTools(spec({ mcpServers: [{ name: "zendesk", url: ZENDESK_URL }] }))).toBe(true);
     expect(agentUsesTools(spec({}))).toBe(false);
     expect(agentUsesTools(undefined)).toBe(false);
+  });
+});
+
+describe("runUsesTools", () => {
+  /** A run of an agent with no tools of its own, listing each id at its pin. */
+  function lists(...ids: string[]) {
+    return spec({ subagents: ids.map((id) => ({ org: "acme", id, version: PIN })) });
+  }
+
+  it("is true for a subagent that lists a plugin, or that writes a server, reading no plugin", async () => {
+    const reads: Reads = { plugins: [], versions: [] };
+    const stigmer = client({}, { agt_gh: { plugins: [{ slug: "github" }] }, agt_zd: { mcpServers: [{ name: "zendesk", url: ZENDESK_URL }] } }, reads);
+
+    expect(await runUsesTools(stigmer, lists("agt_gh"), "acme")).toBe(true);
+    expect(await runUsesTools(stigmer, lists("agt_zd"), "acme")).toBe(true);
+    expect(reads.versions).toEqual([
+      { agentId: "agt_gh", versionHash: PIN },
+      { agentId: "agt_zd", versionHash: PIN },
+    ]);
+    expect(reads.plugins).toEqual([]);
+  });
+
+  it("is false for a subagent with neither, one it cannot read, and an empty reference", async () => {
+    const reads: Reads = { plugins: [], versions: [] };
+    const stigmer = client({}, { agt_plain: { instructions: "summarise" } }, reads);
+
+    expect(await runUsesTools(stigmer, lists("agt_plain"), "acme")).toBe(false);
+    expect(await runUsesTools(stigmer, lists("agt_gone"), "acme")).toBe(false);
+    expect(await runUsesTools(stigmer, spec({ subagents: [{}] }), "acme")).toBe(false);
+    expect(await runUsesTools(stigmer, spec({}), "acme")).toBe(false);
+    expect(reads.versions.map((read) => read.agentId)).toEqual(["agt_plain", "agt_gone"]);
+    expect(reads.plugins).toEqual([]);
+  });
+
+  it("is true when any of two subagents uses tools, whichever is listed first", async () => {
+    const stigmer = client({}, { agt_plain: {}, agt_gh: { plugins: [{ slug: "github" }] } });
+
+    expect(await runUsesTools(stigmer, lists("agt_plain", "agt_gh"), "acme")).toBe(true);
+    expect(await runUsesTools(stigmer, lists("agt_gh", "agt_plain"), "acme")).toBe(true);
+    expect(await runUsesTools(stigmer, lists("agt_plain", "agt_gone"), "acme")).toBe(false);
   });
 });

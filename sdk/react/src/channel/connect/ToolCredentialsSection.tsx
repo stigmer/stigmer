@@ -1,19 +1,19 @@
 "use client";
 
-import { useState } from "react";
 import { cn } from "@stigmer/design-tokens";
 import type { ResourceRef } from "@stigmer/client";
 import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { ChannelToolCredentials } from "../ChannelToolCredentials.js";
 import { ChevronIcon } from "./icons.js";
-import { agentUsesTools } from "../../agent/runServers.js";
+import { useToolCredentialsDisclosure } from "../../vault/useToolCredentialsDisclosure.js";
 
 /**
  * Collapsible vault section for the connect dialogs' create mode (the
  * ChatLinkDialog ToolCredentialsSection pattern). Expanded by default
- * when the agent dials MCP servers, its own or its plugins' — for those agents this is essential
- * configuration, not an advanced option: without a vault, every channel
- * message that needs a tool is refused.
+ * when the run dials MCP servers, the agent's or a subagent's it lists —
+ * for those agents this is essential configuration, not an advanced
+ * option: without a vault, every channel message that needs a tool is
+ * refused. When it opens is `useToolCredentialsDisclosure`'s rule.
  *
  * Provider-agnostic by construction: the vaults a channel names are agent
  * and vault facts, so both connect dialogs render this section unchanged.
@@ -31,14 +31,13 @@ export function ToolCredentialsSection({
   readonly onChange: (refs: ResourceRef[]) => void;
   readonly disabled: boolean;
 }) {
-  const usesTools = agentUsesTools(agent.spec);
-  const [expanded, setExpanded] = useState(usesTools || value.length > 0);
+  const { expanded, toggle } = useToolCredentialsDisclosure(agent, value.length > 0);
 
   return (
     <section>
       <button
         type="button"
-        onClick={() => setExpanded((v) => !v)}
+        onClick={toggle}
         aria-expanded={expanded}
         className={cn(
           "stg:inline-flex stg:items-center stg:gap-1 stg:text-xs stg:font-medium stg:text-muted-foreground",

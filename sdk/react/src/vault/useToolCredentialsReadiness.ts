@@ -23,7 +23,8 @@ import { useStigmer } from "@stigmer/react-core";
  *
  * - `na` — the caller decided the check does not apply.
  * - `needs-credentials` — the check applies but no vault is named.
- * - `checking` — lookups in flight.
+ * - `checking` — the run or its vaults being read: whether a subagent
+ *   the agent lists uses tools, or the named vaults' lookups in flight.
  * - `ready` — every named vault is a shared vault the viewer can read.
  * - `blocked` — one or more named vaults cannot serve; their `org/slug`
  *   references are listed.

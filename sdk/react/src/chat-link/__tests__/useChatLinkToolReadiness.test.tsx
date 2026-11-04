@@ -4,6 +4,8 @@ import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import { AgentSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
+import { AgentVersionEntrySchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/version_pb";
 import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 import { StigmerContext } from "@stigmer/react-core";
 import { DeploymentModeContext } from "@stigmer/react-core";
@@ -41,11 +43,30 @@ function makeDraft(overrides?: {
   };
 }
 
+/** An agent with no tools of its own that hands work to the subagent `agt_sub` at its pin. */
+const DELEGATING: Agent = create(AgentSchema, {
+  metadata: { id: "agt_desk", org: "acme", slug: "desk" },
+  spec: { instructions: "route", subagents: [{ org: "acme", id: "agt_sub", version: "a".repeat(64) }] },
+});
+
 function mockStigmer(overrides: {
   envVisibility?: Record<string, ApiResourceVisibility>;
   envError?: boolean;
+  /** The pinned spec `agt_sub` reads as; `"pending"` never answers. */
+  subagent?: { plugins?: { slug: string }[] } | "pending";
 }) {
   return {
+    agent: {
+      getVersion: vi.fn().mockImplementation(() =>
+        overrides.subagent === "pending"
+          ? new Promise(() => {})
+          : Promise.resolve(
+              create(AgentVersionEntrySchema, {
+                specSnapshot: create(AgentSpecSchema, overrides.subagent ?? {}),
+              }),
+            ),
+      ),
+    },
     vault: {
       getByReference: vi.fn().mockImplementation(
         ({ slug }: { org: string; slug: string }) => {
@@ -229,5 +250,29 @@ describe("useChatLinkToolReadiness", () => {
     );
 
     expect(result.current).toEqual({ status: "na" });
+  });
+
+  it("reports needs-credentials when only a subagent uses tools, checking while it is read", async () => {
+    const client = mockStigmer({ subagent: { plugins: [{ slug: "github" }] } });
+    const { result } = renderHook(() => useChatLinkToolReadiness(DELEGATING, makeDraft()), { wrapper: wrapper(client) });
+
+    // The agent itself lists no tool, but a run dials its subagent's
+    // plugin, which reads keys only the chat link's vaults can give.
+    expect(result.current).toEqual({ status: "checking" });
+    await waitFor(() => expect(result.current).toEqual({ status: "needs-credentials" }));
+    expect(envLookup(client)).not.toHaveBeenCalled();
+  });
+
+  it("stays checking while the subagent's read is pending", () => {
+    const { result } = renderHook(() => useChatLinkToolReadiness(DELEGATING, makeDraft()), { wrapper: wrapper(mockStigmer({ subagent: "pending" })) });
+    expect(result.current).toEqual({ status: "checking" });
+  });
+
+  it("is n/a when no subagent uses tools either", async () => {
+    const client = mockStigmer({ subagent: {} });
+    const { result } = renderHook(() => useChatLinkToolReadiness(DELEGATING, makeDraft()), { wrapper: wrapper(client) });
+
+    await waitFor(() => expect(result.current).toEqual({ status: "na" }));
+    expect(envLookup(client)).not.toHaveBeenCalled();
   });
 });

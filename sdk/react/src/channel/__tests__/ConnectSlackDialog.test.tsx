@@ -1,14 +1,15 @@
 // ConnectSlackDialog: connecting an agent to a Slack workspace. Pins the
 // create-then-install flow through the OAuth popup, the serving-app picker
 // (platform or the org's own Slack app), the tool-credential section, the
-// guided and verbatim refusals, a reconnect that skips the create step, and
+// guided and verbatim refusals, the section opening once a subagent's
+// reading says the run uses tools (and staying shut once the person shut it), a reconnect that skips the create step, and
 // the cloud notice that preempts the flow on every edition without vendor
 // installs (open source and Enterprise). The done-step ticks and the
 // connected tick are drawn in the ready colour the theme contract measures as
 // text in a dialog, never the badge-fill green.
 
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vitest";
-import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
+import { act, render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { StigmerError, type ChannelInput } from "@stigmer/client";
@@ -54,6 +55,8 @@ interface MockOverrides {
   channelApps?: unknown[];
   /** Org-wide channels returned by channel.list (pre-OAuth advisory). */
   orgChannels?: unknown[];
+  /** agent.getVersion: a listed subagent's pinned version. */
+  getVersion?: (input: unknown) => Promise<unknown>;
 }
 
 /** A registered BYO Slack app as channelapp.list returns it. */
@@ -66,6 +69,9 @@ function makeChannelApp(slug = "acme-support-app", name = "Acme Support App") {
 
 function createMockStigmer(overrides: MockOverrides = {}) {
   return {
+    agent: {
+      getVersion: overrides.getVersion ?? vi.fn().mockRejectedValue(new Error("no version")),
+    },
     channelapp: {
       list: vi.fn().mockResolvedValue({
         entries: overrides.channelApps ?? [],
@@ -133,6 +139,17 @@ function Providers({
       </DeploymentModeContext.Provider>
     </FetchCacheContext.Provider>
   );
+}
+
+/** The pinned version a subagent with a GitHub plugin reads as. */
+const SUBAGENT_WITH_TOOLS = { specSnapshot: { plugins: [{ org: "acme", slug: "github" }] } };
+
+/** An agent with no tools of its own that hands work to one subagent. */
+function makeDelegatingAgent() {
+  return {
+    metadata: { id: "agt_1", org: "acme", slug: "support-agent", name: "Support Agent" },
+    spec: { subagents: [{ org: "acme", id: "agt_sub", version: "a".repeat(64) }] },
+  } as never;
 }
 
 function makeAgent(overrides: { withTools?: boolean } = {}) {
@@ -292,6 +309,44 @@ describe("ConnectSlackDialog", () => {
     const toggle = await screen.findByRole("button", { name: "Tool credentials" });
     expect(toggle.getAttribute("aria-expanded")).toBe("false");
     expect(screen.queryByLabelText("Add vault")).toBeNull();
+  });
+
+  it("opens the tool-credentials section once a subagent's reading says the run uses tools", async () => {
+    const client = createMockStigmer({ getVersion: vi.fn().mockResolvedValue(SUBAGENT_WITH_TOOLS) });
+    render(
+      <Providers client={client}>
+        <ConnectSlackDialog open onOpenChange={() => {}} agent={makeDelegatingAgent()} />
+      </Providers>,
+    );
+
+    const toggle = await screen.findByRole("button", { name: "Tool credentials" });
+    await waitFor(() => expect(toggle.getAttribute("aria-expanded")).toBe("true"));
+    expect(await screen.findByText(/this channel names no vault/i)).toBeTruthy();
+  });
+
+  it("keeps the section shut when the person shut it before the subagent's reading landed", async () => {
+    let answer: (version: unknown) => void = () => {};
+    const getVersion = vi.fn().mockReturnValue(new Promise((resolve) => (answer = resolve)));
+    render(
+      <Providers client={createMockStigmer({ getVersion })}>
+        <ConnectSlackDialog open onOpenChange={() => {}} agent={makeDelegatingAgent()} />
+      </Providers>,
+    );
+
+    const toggle = await screen.findByRole("button", { name: "Tool credentials" });
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    fireEvent.click(toggle);
+    fireEvent.click(toggle);
+    await waitFor(() => expect(getVersion).toHaveBeenCalled());
+    await act(async () => {
+      answer(SUBAGENT_WITH_TOOLS);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+
+    // The reading did land: opened by hand, the section warns.
+    fireEvent.click(toggle);
+    expect(await screen.findByText(/this channel names no vault/i)).toBeTruthy();
   });
 
   it("names vaults at connect time — create carries the chosen vaults", async () => {
