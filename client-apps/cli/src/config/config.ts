@@ -12,9 +12,24 @@
 // The `backend.local` section (daemon/LLM/Temporal settings owned by the
 // local-mode modules) is carried through verbatim, so a save never drops a key
 // this module does not model.
+//
+// A save replaces the file in one step (a temporary file renamed over it), so a
+// reader never sees it half-written. Many CLI processes write this file, and a
+// long-running one (`stigmer mcp-server`) re-reads it while others save; a
+// truncated file would parse as the default config and read as "no such
+// backend". The temporary name carries the writer's pid so two processes never
+// share one, and a config that is a symlink is written through its link.
 
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname } from "node:path";
+import {
+  mkdirSync,
+  readFileSync,
+  readlinkSync,
+  realpathSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { dirname, resolve } from "node:path";
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 import { UsageError } from "../errors/index.js";
 import { isStandalone } from "../runtime.js";
@@ -131,13 +146,40 @@ export function load(path: string = configPath()): Config {
 
 /**
  * Persist the config to disk (0600 file in a 0755 directory), with the
- * documentation header. A pristine local config (no named backends) writes no
- * backend keys at all.
+ * documentation header, replacing the file in one step. A pristine local config
+ * (no named backends) writes no backend keys at all.
  */
 export function save(config: Config, path: string = configPath()): void {
   mkdirSync(dirname(path), { recursive: true, mode: 0o755 });
   const body = stringifyYaml(stripUndefined(serializable(config)));
-  writeFileSync(path, SAVE_HEADER + body, { mode: 0o600 });
+  const target = writeTarget(path);
+  const temporary = `${target}.${process.pid}.tmp`;
+  try {
+    writeFileSync(temporary, SAVE_HEADER + body, { mode: 0o600 });
+    renameSync(temporary, target);
+  } catch (err) {
+    rmSync(temporary, { force: true });
+    throw err;
+  }
+}
+
+/**
+ * The file a save replaces: the config itself, or, when it is a symlink, the
+ * file the link points at, so the rename keeps the link instead of replacing
+ * it with a regular file. A link whose target does not exist yet is written
+ * where it points, as a plain write through the link would.
+ */
+function writeTarget(path: string): string {
+  try {
+    return realpathSync(path);
+  } catch {
+    // Missing, or a link whose target is missing: read the link, if it is one.
+  }
+  try {
+    return resolve(dirname(path), readlinkSync(path));
+  } catch {
+    return path;
+  }
 }
 
 /** The active backend's name (normalize always stamps current_backend). */

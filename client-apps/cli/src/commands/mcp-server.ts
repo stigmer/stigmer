@@ -15,10 +15,24 @@
 // > server defaults. We realize that precedence by bridging config into the
 // environment only where unset, then letting explicit flags override, and finally
 // letting the server read its Config from the environment.
+//
+// A cloud sign-in is the exception: its access token expires within the hour,
+// and an IDE keeps this server running all day. So the token is not copied into
+// the environment once; the server is handed a token provider over the signed-in
+// backend instead (auth/token.ts, createBackendTokenSource), which refreshes the
+// sign-in and saves it as every other command does. A given key (flag or
+// environment) still wins and is never refreshed.
 
 import type { Command } from "commander";
 import { type Config, activeBackend } from "../config/config.js";
 import { DEFAULT_CLOUD_ENDPOINT } from "../config/resolve.js";
+
+/** The cloud backend whose sign-in the server's credential comes from. */
+export interface CloudSignIn {
+  readonly name: string;
+  /** The address the server dials, the entry's own or Stigmer Cloud's. */
+  readonly endpoint: string;
+}
 
 /** Flags the command bridges into the server's environment. */
 export interface McpServerFlags {
@@ -62,17 +76,22 @@ async function runMcpServer(flags: McpServerFlags): Promise<void> {
   // Flags first, then the config fills only what is still unset: the same
   // precedence, with the final address known before a credential is bridged.
   applyFlagsEnv(flags, process.env);
-  applyConfigEnv(load(), process.env);
+  const signIn = applyConfigEnv(load(), process.env);
 
   // Imported lazily so `stigmer --help`/`version` never pull in the MCP stack.
   const { run, defaultConfig } = await import("@stigmer/mcp-server");
+  const { createBackendTokenSource } = await import("../auth/token.js");
+  const options =
+    signIn === undefined
+      ? {}
+      : { getAccessToken: createBackendTokenSource(signIn.name, signIn.endpoint).getAccessToken };
 
   const controller = new AbortController();
   const onSignal = (): void => controller.abort();
   process.once("SIGINT", onSignal);
   process.once("SIGTERM", onSignal);
   try {
-    await run(defaultConfig(), controller.signal);
+    await run(defaultConfig(), controller.signal, options);
   } finally {
     process.removeListener("SIGINT", onSignal);
     process.removeListener("SIGTERM", onSignal);
@@ -83,26 +102,29 @@ async function runMcpServer(flags: McpServerFlags): Promise<void> {
  * Bridge the active backend into the server's environment, but only where
  * unset, so a pre-existing environment variable (or a flag bridged before this)
  * wins. The local daemon is reached without auth; a named backend contributes
- * its endpoint and its credential (a cloud login's token, a self-hosted
- * entry's API key). The credential goes only to its own backend: when the
- * environment already names another address (a runner spawning this command
- * for its server), none is bridged.
+ * its endpoint, and a self-hosted entry its API key. A cloud entry's sign-in is
+ * returned instead of bridged, for the caller to hand the server as a token
+ * provider. The credential goes only to its own backend: when the environment
+ * already names another address (a runner spawning this command for its
+ * server), none applies, and none does when a key was already given.
  */
-export function applyConfigEnv(config: Config, env: NodeJS.ProcessEnv): void {
+export function applyConfigEnv(config: Config, env: NodeJS.ProcessEnv): CloudSignIn | undefined {
   // Both already given (flags, or a runner's own environment): the config is
   // not read, so a dangling current_backend cannot stop a server that needs
   // nothing from it.
-  if (isSet(env.STIGMER_SERVER_ADDRESS) && isSet(env.STIGMER_API_KEY)) return;
-  const { entry } = activeBackend(config);
+  if (isSet(env.STIGMER_SERVER_ADDRESS) && isSet(env.STIGMER_API_KEY)) return undefined;
+  const { name, entry } = activeBackend(config);
   if (entry === undefined) {
     setIfEmpty(env, "STIGMER_SERVER_ADDRESS", "localhost:7234");
-    return;
+    return undefined;
   }
   const endpoint = entry.endpoint || (entry.type === "cloud" ? DEFAULT_CLOUD_ENDPOINT : undefined);
-  if (endpoint === undefined) return;
+  if (endpoint === undefined) return undefined;
   setIfEmpty(env, "STIGMER_SERVER_ADDRESS", endpoint);
-  if (env.STIGMER_SERVER_ADDRESS !== endpoint) return;
-  setIfEmpty(env, "STIGMER_API_KEY", entry.type === "cloud" ? entry.token : entry.api_key);
+  if (env.STIGMER_SERVER_ADDRESS !== endpoint || isSet(env.STIGMER_API_KEY)) return undefined;
+  if (entry.type === "cloud") return { name, endpoint };
+  setIfEmpty(env, "STIGMER_API_KEY", entry.api_key);
+  return undefined;
 }
 
 /** Bridge explicitly-set flags into the server's environment (highest precedence). */

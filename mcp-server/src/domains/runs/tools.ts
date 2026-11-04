@@ -83,7 +83,7 @@ export function registerRunTools(server: McpServer, target: BackendTarget): stri
     },
     (args, extra) =>
       textOrError(async () =>
-        runAgent(target.serverAddress, resolveToken(extra, target.apiKey), {
+        runAgent(target.serverAddress, await resolveToken(extra, target), {
           org: args.org,
           agent: args.agent,
           message: args.message,
@@ -124,10 +124,10 @@ export function registerRunTools(server: McpServer, target: BackendTarget): stri
       },
     },
     (args, extra) =>
-      textOrError(() =>
+      textOrError(async () =>
         fetchRun(
           target.serverAddress,
-          resolveToken(extra, target.apiKey),
+          await resolveToken(extra, target),
           args.run_id,
           args.view ?? "compact",
           args.item_limit ?? DEFAULT_ITEM_LIMIT,
@@ -164,8 +164,8 @@ export function registerRunTools(server: McpServer, target: BackendTarget): stri
       },
     },
     (args, extra) =>
-      textOrError(() =>
-        submitRunApproval(target.serverAddress, resolveToken(extra, target.apiKey), {
+      textOrError(async () =>
+        submitRunApproval(target.serverAddress, await resolveToken(extra, target), {
           runId: args.run_id,
           toolUseId: args.tool_use_id,
           decision: args.decision,
@@ -194,7 +194,7 @@ export function registerRunControlTools(server: McpServer, target: BackendTarget
       },
     },
     (args, extra) =>
-      textOrError(() => cancelRun(target.serverAddress, resolveToken(extra, target.apiKey), args.run_id)),
+      textOrError(async () => cancelRun(target.serverAddress, await resolveToken(extra, target), args.run_id)),
   );
 
   return ["cancel_run"];

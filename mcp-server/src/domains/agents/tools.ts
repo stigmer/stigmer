@@ -35,8 +35,8 @@ export function registerAgentTools(server: McpServer, target: BackendTarget): st
       },
     },
     (args, extra) =>
-      textOrError(() =>
-        fetchAgent(target.serverAddress, resolveToken(extra, target.apiKey), args.org, args.slug),
+      textOrError(async () =>
+        fetchAgent(target.serverAddress, await resolveToken(extra, target), args.org, args.slug),
       ),
   );
 
@@ -48,7 +48,7 @@ export function registerAgentTools(server: McpServer, target: BackendTarget): st
       inputSchema: AgentInputShape,
     },
     (args, extra) =>
-      textOrError(() => applyAgent(target.serverAddress, resolveToken(extra, target.apiKey), args)),
+      textOrError(async () => applyAgent(target.serverAddress, await resolveToken(extra, target), args)),
   );
 
   server.registerTool(
@@ -68,8 +68,8 @@ export function registerAgentTools(server: McpServer, target: BackendTarget): st
       },
     },
     (args, extra) =>
-      textOrError(() =>
-        deleteAgent(target.serverAddress, resolveToken(extra, target.apiKey), args.org, args.slug),
+      textOrError(async () =>
+        deleteAgent(target.serverAddress, await resolveToken(extra, target), args.org, args.slug),
       ),
   );
 
