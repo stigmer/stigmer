@@ -114,5 +114,6 @@ describe("createTypeImportResolver", () => {
     expect(resolve("Offered", t("@acme/kit", "src/offered.ts"))).toBeNull();
     expect(resolve("Promise", t("typescript", "lib/lib.es5.d.ts"))).toBeNull();
     expect(resolve("Plain", t("plain"))).toBeNull();
+    expect(resolve("Lost", t("nowhere"))).toBeNull();
   });
 });
