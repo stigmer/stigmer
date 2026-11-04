@@ -54,6 +54,7 @@
 import { agentFs, type AgentStats } from "../agent-fs.js";
 import { dirname, isAbsolute, join, relative, sep } from "node:path";
 import { getDisplacedDir } from "./platform-dir.js";
+import { RUNTIME_GIT_CONFIG } from "./runtime-git.js";
 
 /** The workspace-visible name of the platform namespace. */
 export const STIGMER_LOCAL_STATE_DIR = ".stigmer";
@@ -100,7 +101,7 @@ export async function ensureStigmerSymlink(
 async function excludeFromGit(workspaceDir: string): Promise<void> {
   let reported: string;
   try {
-    reported = (await agentFs().execFile("git", ["-C", workspaceDir, "rev-parse", "--git-path", "info/exclude"])).stdout
+    reported = (await agentFs().execFile("git", [...RUNTIME_GIT_CONFIG, "-C", workspaceDir, "rev-parse", "--git-path", "info/exclude"])).stdout
       .toString("utf8")
       .trim();
   } catch {
