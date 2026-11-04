@@ -1,3 +1,14 @@
+/**
+ * Unit tests for the claim-check codec.
+ *
+ * Covers the codec in isolation over the in-memory storage double: payloads
+ * below the threshold pass through untouched, larger ones are compressed
+ * (when that helps) and relocated behind a small marker, and decode restores
+ * the relocated payload exactly as it went in, bytes and metadata alike,
+ * including a payload that carried no metadata or an empty map. A failed
+ * download keeps its key-scoped error contract.
+ */
+
 import { describe, it, expect, beforeEach } from "vitest";
 import { ClaimcheckPayloadCodec } from "../claimcheck/payload-codec.js";
 import { compress } from "../claimcheck/compressor.js";
@@ -172,7 +183,7 @@ describe("ClaimcheckPayloadCodec", () => {
       expect(Buffer.from(decoded.data!)).toEqual(original.data);
     });
 
-    it("restores the bytes of a payload that carried no metadata", async () => {
+    it("restores a payload that carried no metadata exactly as it went in", async () => {
       const original: Payload = { data: Buffer.alloc(2048, "x") };
       const [encoded] = await codec.encode([original]);
 
@@ -180,8 +191,17 @@ describe("ClaimcheckPayloadCodec", () => {
       const marker = JSON.parse(Buffer.from(encoded.data!).toString());
       expect(marker.metadata).toBeUndefined();
 
+      // The restored payload must not borrow the marker's binary/claimcheck
+      // encoding, or a reader would take it for a marker still.
       const [decoded] = await codec.decode([encoded]);
-      expect(Buffer.from(decoded.data!)).toEqual(original.data);
+      expect(decoded).toStrictEqual(original);
+    });
+
+    it("restores a payload with an empty metadata map as an empty map", async () => {
+      const original: Payload = { metadata: {}, data: Buffer.alloc(2048, "x") };
+      const [encoded] = await codec.encode([original]);
+      const [decoded] = await codec.decode([encoded]);
+      expect(decoded).toStrictEqual(original);
     });
 
     it("retrieves uncompressed payloads correctly", async () => {
