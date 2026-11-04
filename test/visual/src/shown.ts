@@ -242,6 +242,119 @@ export const SHOWN: readonly Shown[] = [
     // the composer ends at y 764.
     clip: { x: 860, y: 502, width: 400, height: 278 },
   },
+  // The channel pages (docs/guides/channels/). A dialog is drawn in a window
+  // tall enough to hold it whole, and kept with 8 px of the dimmed page
+  // around its ring, measured from the drawn screen.
+  {
+    name: "channels-add",
+    scene: "channel-add",
+    title: "The Agent's Channels tab with its chat link, Add channel open on Chat link, Slack and WhatsApp",
+    viewport: { width: 1280, height: 800 },
+    // The tab's header row from y 252 and the chat link card to y 418, the menu at x 840 to 1064 over it.
+    clip: { x: 200, y: 240, width: 880, height: 186 },
+  },
+  {
+    name: "chat-link-link",
+    scene: "channel-chat-link",
+    title: "The chat link's dialog on its Link tab: Anyone with the link can chat, the public link with Copy and Open, Reset link and Tool credentials",
+    viewport: { width: 1280, height: 1000 },
+    // The dialog: x 384 to 896, y 36 to 964.
+    clip: { x: 376, y: 28, width: 528, height: 944 },
+  },
+  {
+    name: "chat-link-card",
+    scene: "channel-list",
+    title: "The chat link's card on the Channels tab: its link with a copy button, Anyone with the link, the on switch and its menu",
+    viewport: { width: 1280, height: 800 },
+    // The first card: x 216 to 1064, y 301 to 418.
+    clip: { x: 208, y: 293, width: 864, height: 133 },
+  },
+  {
+    name: "chat-link-embed",
+    scene: "channel-chat-link-embed",
+    title: "The chat link's dialog on its Embed tab: the two-line snippet with Copy, and https://acme.com under Allowed embed origins",
+    viewport: { width: 1280, height: 1000 },
+    // The dialog: x 384 to 896, y 106 to 895.
+    clip: { x: 376, y: 97, width: 528, height: 806 },
+  },
+  {
+    name: "embed-widget",
+    scene: "story-embed",
+    title: "The embedded chat on a help page of acme.com: the variance reporter's name and description over Chat with variance-reporter, at 400×600",
+    // Narrow enough that the host page's text sits beside the widget without a gulf between them.
+    viewport: { width: 1000, height: 712 },
+    // The host page's window, its ring at x 23 and 977, y 23 and 689.
+    clip: { x: 23, y: 23, width: 954, height: 666 },
+  },
+  {
+    name: "connect-slack",
+    scene: "channel-connect-slack",
+    title: "Connect to Slack: Channel name variance-reporter-slack, Connect as the platform Stigmer app, and Tool credentials",
+    viewport: { width: 1280, height: 1000 },
+    // The dialog: x 416 to 864, y 100 to 900.
+    clip: { x: 408, y: 92, width: 464, height: 816 },
+  },
+  {
+    name: "slack-card",
+    scene: "channel-list",
+    title: "The Slack channel's card: variance-reporter-slack, Installed in the Acme workspace, serving through the Stigmer app",
+    viewport: { width: 1280, height: 800 },
+    // The second card: x 216 to 1064, y 427 to 538.
+    clip: { x: 208, y: 419, width: 864, height: 127 },
+  },
+  {
+    name: "connect-whatsapp",
+    scene: "channel-connect-whatsapp",
+    title: "Connect to WhatsApp: variance-reporter-whatsapp, phone number ID 106540352242922, Connect as acme-whatsapp, and Tool credentials",
+    viewport: { width: 1280, height: 1000 },
+    // The dialog: x 416 to 864, y 51 to 949.
+    clip: { x: 408, y: 43, width: 464, height: 914 },
+  },
+  {
+    name: "whatsapp-card",
+    scene: "channel-list",
+    title: "The WhatsApp channel's card: variance-reporter-whatsapp, Installed, its number and verified business name, serving through acme-whatsapp",
+    viewport: { width: 1280, height: 800 },
+    // The third card: x 216 to 1064, y 547 to 658.
+    clip: { x: 208, y: 539, width: 864, height: 127 },
+  },
+  {
+    name: "channel-app-new",
+    scene: "channel-app-new",
+    title: "Settings, Channel Apps, the register form: Provider Slack, Name Acme Books, the Slack app manifest for that name, and the three credentials",
+    // Tall enough for the whole form: it ends at y 932.
+    viewport: { width: 1280, height: 1000 },
+    // The form's card: x 152 to 1128, from y 176.
+    clip: { x: 144, y: 168, width: 992, height: 776 },
+  },
+  {
+    name: "channel-app-setup",
+    scene: "channel-app-setup",
+    title: "The Acme Books app's panel: its slug, and Finish setup in Slack with the Events request URL to copy",
+    viewport: { width: 1280, height: 800 },
+    // The panel's card from y 176 through the Events request URL row; the
+    // OAuth redirect row below it names the drawing machine's own address.
+    clip: { x: 144, y: 168, width: 992, height: 338 },
+  },
+  {
+    name: "conversations-needs-human",
+    scene: "channel-conversations-needs-human",
+    title: "Conversations on Needs human: Northwind Books, its escalation banner with Take over, and the conversation as the customer's phone shows it",
+    // Narrow enough to show near 1:1 in the docs column; as tall as the
+    // scene's workbench, which fits the whole conversation (stigmer#2911).
+    viewport: { width: 1000, height: 1048 },
+    // The workbench: x 24 to 976, y 24 to 1024.
+    clip: { x: 24, y: 24, width: 952, height: 1000 },
+  },
+  {
+    name: "conversation-taken-over",
+    scene: "channel-conversation-taken-over",
+    title: "Conversations: you have Northwind's conversation, the platform's acknowledgment sent, Hand back to agent, and a reply typed",
+    // As `conversations-needs-human`, taller for the messages since.
+    viewport: { width: 1000, height: 1188 },
+    // The workbench: x 24 to 976, y 24 to 1164.
+    clip: { x: 24, y: 24, width: 952, height: 1140 },
+  },
 ];
 
 /** The CSS size of one shown picture: its clip, or the whole viewport. */

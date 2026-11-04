@@ -15,7 +15,15 @@
 import type { Page } from "@playwright/test";
 import type { ScenarioName } from "@stigmer/react-sdk/test";
 import type { ThemePresetId } from "@stigmer/design-tokens";
-import { ENVIRONMENT_EXAMPLE, ROUTINE_EXAMPLE } from "./docs-examples.ts";
+import {
+  CHAT_LINK_EXAMPLE,
+  EMBED_EXAMPLE,
+  ENVIRONMENT_EXAMPLE,
+  ROUTINE_EXAMPLE,
+  SLACK_APP_EXAMPLE,
+  SLACK_EXAMPLE,
+  WHATSAPP_EXAMPLE,
+} from "./docs-examples.ts";
 
 /** The colour modes every scene is drawn in. */
 export const MODES = ["light", "dark"] as const;
@@ -66,6 +74,7 @@ export type SceneId =
   | "agent-chat-page"
   | `routine-${RoutineSceneName}`
   | `environment-${EnvironmentSceneName}`
+  | `channel-${ChannelSceneName}`
   | "agent-chat-panel"
   | "agent-chat-popup-closed"
   | "agent-chat-popup"
@@ -85,13 +94,18 @@ export type AriaRole = Parameters<Page["getByRole"]>[0];
  *   it, then a press on its option.
  * - `{ fill, with }` types `with` into the field labelled `fill`.
  *
+ * A name matches as a part of the control's or label's, as Playwright's
+ * locators do (a label that wraps its hint names the field with both),
+ * unless `exact` holds it to the whole: a card named `variance-reporter`
+ * beside one named `variance-reporter-slack`.
+ *
  * A control a scene cannot reach by its role and name has no accessible
  * name, which is the kit's defect to fix, never the scene's to work around.
  */
 export type Act =
   | string
-  | { readonly press: string; readonly role: AriaRole }
-  | { readonly fill: string; readonly with: string };
+  | { readonly press: string; readonly role: AriaRole; readonly exact?: boolean }
+  | { readonly fill: string; readonly with: string; readonly exact?: boolean };
 
 /** One scene and how it is pictured. */
 export interface Scene {
@@ -206,6 +220,11 @@ const STORY_SCENES = [
     title: "Story: the integrator's Stigmer console, Models & providers, Anthropic and OpenAI on the organization's own keys",
     widths: ["desktop", "narrow"],
   },
+  {
+    id: "story-embed",
+    title: "Story: the variance reporter's chat link embedded on a help page of acme.com, at the snippet's default 400×600",
+    widths: ["desktop"],
+  },
 ] as const satisfies readonly { readonly id: `story-${string}`; readonly title: string; readonly widths: readonly WidthName[] }[];
 
 /**
@@ -243,11 +262,11 @@ const ROUTINE_SCENES = [
     title: "New routine: the routines page's daily variance report, filled in, its schedule every day at 09:00 in Kolkata",
     widths: ["desktop"],
     opens: [
-      { fill: "Name", with: ROUTINE_EXAMPLE.name },
+      { fill: ROUTINE_EXAMPLE.nameLabel, with: ROUTINE_EXAMPLE.name, exact: true },
       { press: "Agent to run", role: "button" },
       { press: ROUTINE_EXAMPLE.agent, role: "option" },
-      { fill: "Message", with: ROUTINE_EXAMPLE.message },
-      { fill: "Time zone", with: ROUTINE_EXAMPLE.timeZone },
+      { fill: ROUTINE_EXAMPLE.messageLabel, with: ROUTINE_EXAMPLE.message, exact: true },
+      { fill: ROUTINE_EXAMPLE.timeZoneLabel, with: ROUTINE_EXAMPLE.timeZone, exact: true },
       { press: ROUTINE_EXAMPLE.timeZone, role: "option" },
     ],
   },
@@ -269,12 +288,13 @@ const ENVIRONMENT_SCENES = [
     title: "New environment: the environments page's data-science, limited to two websites, with its apt and pip packages",
     widths: ["desktop"],
     opens: [
-      { fill: "Name", with: ENVIRONMENT_EXAMPLE.slug },
+      { fill: ENVIRONMENT_EXAMPLE.nameLabel, with: ENVIRONMENT_EXAMPLE.slug, exact: true },
       { fill: "Description (optional)", with: ENVIRONMENT_EXAMPLE.description },
-      { press: "Limited to listed websites", role: "radio" },
-      { fill: "Websites", with: ENVIRONMENT_EXAMPLE.hosts.join("\n") },
-      { fill: "apt (Debian packages)", with: ENVIRONMENT_EXAMPLE.apt.join("\n") },
-      { fill: "pip (Python packages)", with: ENVIRONMENT_EXAMPLE.pip.join("\n") },
+      // The radio's label wraps its hint, so its name carries more than the page's word.
+      { press: ENVIRONMENT_EXAMPLE.networkLabel, role: "radio" },
+      { fill: ENVIRONMENT_EXAMPLE.hostsLabel, with: ENVIRONMENT_EXAMPLE.hosts.join("\n"), exact: true },
+      { fill: ENVIRONMENT_EXAMPLE.aptLabel, with: ENVIRONMENT_EXAMPLE.apt.join("\n"), exact: true },
+      { fill: ENVIRONMENT_EXAMPLE.pipLabel, with: ENVIRONMENT_EXAMPLE.pip.join("\n"), exact: true },
     ],
   },
   { id: "environment-agent", title: "Agent page: the data team's Agent, its Environment section naming Data science", widths: ["desktop"] },
@@ -282,9 +302,97 @@ const ENVIRONMENT_SCENES = [
     id: "environment-run-settings",
     title: "Session: a conversation's run settings, opened from the composer, its Environment row data-science, the agent's default",
     widths: ["desktop"],
-    opens: ["Configure agent, tools, and skills", { press: "Run settings", role: "menuitem" }],
+    opens: [
+      { press: ENVIRONMENT_EXAMPLE.configureLabel, role: "button", exact: true },
+      // The menu item's name carries its summary (the engine, the target) after the page's word.
+      { press: ENVIRONMENT_EXAMPLE.runSettingsLabel, role: "menuitem" },
+    ],
   },
 ] as const satisfies readonly { readonly id: `environment-${string}`; readonly title: string; readonly widths: readonly WidthName[]; readonly opens?: readonly Act[] }[];
+
+/**
+ * The channel pages' screens (docs/guides/channels/): the variance reporter's
+ * Channels tab and the dialogs the pages open from it.
+ */
+export type ChannelSceneName = (typeof CHANNEL_SCENES)[number]["id"] extends `channel-${infer Name}` ? Name : never;
+
+const CHANNEL_SCENES = [
+  { id: "channel-list", title: "Agent page, Channels: the variance reporter's chat link, Slack workspace and WhatsApp number", widths: ["desktop"] },
+  {
+    id: "channel-add",
+    title: "Agent page, Channels: the chat link alone, with Add channel open on Chat link, Slack and WhatsApp",
+    widths: ["desktop"],
+    opens: [{ press: CHAT_LINK_EXAMPLE.addLabel, role: "button", exact: true }],
+  },
+  {
+    id: "channel-chat-link",
+    title: "The chat link's dialog on its Link tab: the link, its on switch and who can chat",
+    widths: ["desktop"],
+    opens: [
+      { press: "Actions for variance-reporter", role: "button", exact: true },
+      { press: CHAT_LINK_EXAMPLE.editLabel, role: "menuitem", exact: true },
+    ],
+  },
+  {
+    id: "channel-chat-link-embed",
+    title: "The chat link's dialog on its Embed tab: the two-line snippet and the allowed embed origins",
+    widths: ["desktop"],
+    opens: [
+      { press: "Actions for variance-reporter", role: "button", exact: true },
+      { press: EMBED_EXAMPLE.editLabel, role: "menuitem", exact: true },
+      { press: EMBED_EXAMPLE.embedLabel, role: "tab", exact: true },
+    ],
+  },
+  {
+    id: "channel-connect-slack",
+    title: "Connect to Slack: the channel's name, Connect as the platform Stigmer app, and Tool credentials",
+    widths: ["desktop"],
+    opens: [
+      { press: SLACK_EXAMPLE.addLabel, role: "button", exact: true },
+      { press: SLACK_EXAMPLE.slackLabel, role: "menuitem", exact: true },
+      { fill: "Channel name", with: SLACK_EXAMPLE.channel },
+    ],
+  },
+  {
+    id: "channel-connect-whatsapp",
+    title: "Connect to WhatsApp: the connect page's phone number ID, its Meta app chosen to serve it, and Tool credentials",
+    widths: ["desktop"],
+    opens: [
+      { press: WHATSAPP_EXAMPLE.addLabel, role: "button", exact: true },
+      { press: WHATSAPP_EXAMPLE.whatsappLabel, role: "menuitem", exact: true },
+      { fill: "Channel name", with: WHATSAPP_EXAMPLE.channel },
+      // The field's label wraps its hint, so its name carries more than the page's word.
+      { fill: WHATSAPP_EXAMPLE.phoneNumberIdLabel, with: WHATSAPP_EXAMPLE.phoneNumberId },
+    ],
+  },
+  {
+    id: "channel-app-new",
+    title: "Settings, Channel Apps: Register channel app, Slack, named Acme Books, with its ready-to-paste manifest",
+    widths: ["desktop"],
+    opens: [
+      { press: SLACK_APP_EXAMPLE.newLabel, role: "button", exact: true },
+      { fill: SLACK_APP_EXAMPLE.nameLabel, with: SLACK_APP_EXAMPLE.name, exact: true },
+    ],
+  },
+  {
+    id: "channel-app-setup",
+    title: "Settings, Channel Apps: the registered Acme Books app's panel, Finish setup in Slack with its events request URL",
+    widths: ["desktop"],
+    opens: [SLACK_APP_EXAMPLE.name],
+  },
+  {
+    id: "channel-conversations-needs-human",
+    title: "Conversations on Needs human: Northwind Books asked for a person, and the Agent escalated",
+    widths: ["desktop"],
+    opens: [{ press: "Conversations where a human action is wanted", role: "radio" }],
+  },
+  {
+    id: "channel-conversation-taken-over",
+    title: "Conversations: Ada holds Northwind's conversation, the platform has acknowledged, and her reply is typed",
+    widths: ["desktop"],
+    opens: [{ fill: "Reply to the customer", with: "Hi, this is Ada from Acme Books. We can move half of it to Q4; I'll send the adjusted budget today." }],
+  },
+] as const satisfies readonly { readonly id: `channel-${string}`; readonly title: string; readonly widths: readonly WidthName[]; readonly opens?: readonly Act[] }[];
 
 /** The presets the `completed` thread is drawn in beyond the default look, which `thread-completed` is. */
 export const PRESETS = ["corporate", "startup", "friendly", "fintech", "monochrome"] as const satisfies readonly ThemePresetId[];
@@ -352,6 +460,7 @@ export const SCENES: readonly Scene[] = [
   ...STORY_SCENES,
   ...ROUTINE_SCENES,
   ...ENVIRONMENT_SCENES,
+  ...CHANNEL_SCENES,
   {
     id: "agent-chat-page",
     title: "AgentChat: a whole page of its own, on a finished turn",

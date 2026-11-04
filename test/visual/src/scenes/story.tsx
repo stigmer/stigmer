@@ -282,7 +282,7 @@ function hostLedgerPage({ customer, period, span, entries, count = entries.lengt
 }
 
 /** A product window: the frame every story moment inside a product is drawn in. */
-function productWindow(content: ReactElement): ReactElement {
+export function productWindow(content: ReactElement): ReactElement {
   return <div style={{ borderRadius: 12, overflow: "hidden", boxShadow: "0 0 0 1px var(--stgm-border)" }}>{content}</div>;
 }
 
