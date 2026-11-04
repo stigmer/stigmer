@@ -28,13 +28,18 @@ export interface UseDeleteGrantReturn {
  *
  * @example
  * ```tsx
- * const { remove, isDeleting, error } = useDeleteGrant();
+ * import { create } from "@bufbuild/protobuf";
+ * import { GrantSpecSchema } from "@stigmer/apis/ai/stigmer/iam/grant/v1/spec_pb";
  *
- * await remove({
- *   principal: { kind: "identity_account", id: accountId },
- *   resource: { kind: "organization", id: org },
- *   relation: "admin",
- * });
+ * function RemoveAdminButton({ accountId }: { accountId: string }) {
+ *   const { remove, isDeleting } = useDeleteGrant();
+ *   const spec = create(GrantSpecSchema, {
+ *     principal: { kind: "identity_account", id: accountId },
+ *     resource: { kind: "organization", id: "acme" },
+ *     relation: "admin",
+ *   });
+ *   return <button disabled={isDeleting} onClick={() => remove(spec)}>Remove admin</button>;
+ * }
  * ```
  */
 export function useDeleteGrant(): UseDeleteGrantReturn {

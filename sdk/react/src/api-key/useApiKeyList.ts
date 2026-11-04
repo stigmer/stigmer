@@ -42,10 +42,11 @@ export interface UseApiKeyListReturn {
  *
  * @example
  * ```tsx
- * const { apiKeys, isLoading, error, refetch } = useApiKeyList();
- *
- * if (isLoading) return <Spinner />;
- * apiKeys.map((k) => k.metadata?.name);
+ * function ApiKeyNames() {
+ *   const { apiKeys, isLoading } = useApiKeyList();
+ *   if (isLoading) return <p>Loading…</p>;
+ *   return <ul>{apiKeys.map((k) => <li key={k.metadata?.id}>{k.metadata?.name}</li>)}</ul>;
+ * }
  * ```
  */
 export function useApiKeyList(): UseApiKeyListReturn {

@@ -56,11 +56,11 @@ export interface ApiKeyListPanelProps {
  *
  * @example
  * ```tsx
- * <ApiKeyListPanel />
- *
- * <ApiKeyListPanel
- *   onRefetchRef={(refetch) => { listRefetchRef.current = refetch; }}
- * />
+ * // The page keeps the list's refetch, to call after it creates a key.
+ * function ApiKeysPage() {
+ *   const refetchList = useRef<() => void>(() => {});
+ *   return <ApiKeyListPanel onRefetchRef={(refetch) => { refetchList.current = refetch; }} />;
+ * }
  * ```
  */
 export function ApiKeyListPanel({

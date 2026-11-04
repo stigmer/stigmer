@@ -48,12 +48,11 @@ export interface CreateServiceAccountKeyFormProps {
  *
  * @example
  * ```tsx
- * <CreateServiceAccountKeyForm
- *   serviceAccountId={account.metadata!.id}
- *   serviceAccountName="ci-deploy"
- *   onCreated={(key) => setRevealed(key)}
- *   onCancel={() => setCreating(false)}
- * />
+ * import type { ApiKey } from "@stigmer/apis/ai/stigmer/iam/apikey/v1/api_pb";
+ *
+ * function NewKey({ onCreated, onClose }: { onCreated: (key: ApiKey) => void; onClose: () => void }) {
+ *   return <CreateServiceAccountKeyForm serviceAccountId="ida_01jabc" serviceAccountName="ci-deploy" onCreated={onCreated} onCancel={onClose} />;
+ * }
  * ```
  */
 export function CreateServiceAccountKeyForm({

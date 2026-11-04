@@ -51,15 +51,25 @@ export interface PluginInstallDialogProps {
  *
  * @example
  * ```tsx
- * <PluginInstallDialog
- *   opened={opened}
- *   entryName={selected}
- *   sourceName="acme-plugins"
- *   org={org}
- *   open={selected !== null}
- *   onClose={() => setSelected(null)}
- *   onInstalled={({ plugin }) => navigateToDetail("plugins", org, plugin.metadata.slug)}
- * />
+ * type Props = { opened: OpenedMarketplace; onOpen: (href: string) => void };
+ *
+ * function InstallFromSource({ opened, onOpen }: Props) {
+ *   const [selected, setSelected] = useState<string | null>(null);
+ *   return (
+ *     <>
+ *       {opened.marketplace.plugins.map((entry) => <button key={entry.name} onClick={() => setSelected(entry.name)}>{entry.name}</button>)}
+ *       <PluginInstallDialog
+ *         opened={opened}
+ *         entryName={selected}
+ *         sourceName="acme-plugins"
+ *         org="acme"
+ *         open={selected !== null}
+ *         onClose={() => setSelected(null)}
+ *         onInstalled={({ plugin }) => onOpen(`/plugins/acme/${plugin.metadata?.slug}`)}
+ *       />
+ *     </>
+ *   );
+ * }
  * ```
  */
 export function PluginInstallDialog({

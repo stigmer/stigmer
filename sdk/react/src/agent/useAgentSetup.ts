@@ -245,15 +245,17 @@ export interface UseAgentSetupReturn {
  *
  * @example
  * ```tsx
- * const { state, resolveAgent, submitEnvVars } = useAgentSetup("acme");
- *
- * const result = await resolveAgent({ org: "acme", slug: "variance-reporter" });
- *
- * if (result.status === "needsEnvVars") {
- *   // Render AgentEnvForm with result.missingVariables
- *   // On form submit, the values are saved in My vault:
- *   const ready = await submitEnvVars(formValues);
- *   // ready.resolution.mode === "saved"
+ * function StartReporter({ onReady }: { onReady: () => void }) {
+ *   const { resolveAgent, submitEnvVars } = useAgentSetup("acme");
+ *   const [missing, setMissing] = useState<EnvVarFormVariable[]>([]);
+ *   const start = async () => {
+ *     const result = await resolveAgent({ org: "acme", slug: "variance-reporter" });
+ *     if (result.status === "needsEnvVars") setMissing(result.missingVariables);
+ *     else onReady();
+ *   };
+ *   if (missing.length === 0) return <button onClick={start}>Start</button>;
+ *   // The values are saved in My vault; the agent is then ready.
+ *   return <AgentEnvForm agentName="Variance reporter" variables={missing} onSubmit={(values) => submitEnvVars(values).then(onReady)} />;
  * }
  * ```
  */

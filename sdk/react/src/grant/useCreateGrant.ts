@@ -29,13 +29,18 @@ export interface UseCreateGrantReturn {
  *
  * @example
  * ```tsx
- * const { create, isCreating, error } = useCreateGrant();
+ * import { create } from "@bufbuild/protobuf";
+ * import { GrantSpecSchema } from "@stigmer/apis/ai/stigmer/iam/grant/v1/spec_pb";
  *
- * await create({
- *   principal: { kind: "identity_account", id: accountId },
- *   resource: { kind: "organization", id: org },
- *   relation: "admin",
- * });
+ * function MakeAdminButton({ accountId }: { accountId: string }) {
+ *   const { create: createGrant, isCreating } = useCreateGrant();
+ *   const spec = create(GrantSpecSchema, {
+ *     principal: { kind: "identity_account", id: accountId },
+ *     resource: { kind: "organization", id: "acme" },
+ *     relation: "admin",
+ *   });
+ *   return <button disabled={isCreating} onClick={() => createGrant(spec)}>Make admin</button>;
+ * }
  * ```
  */
 export function useCreateGrant(): UseCreateGrantReturn {

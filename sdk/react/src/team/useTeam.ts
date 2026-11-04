@@ -32,7 +32,7 @@ export interface UseTeamReturn {
  *
  * @example
  * ```tsx
- * const { team, isLoading, error } = useTeam(teamId);
+ * const { team, isLoading, error } = useTeam("team_01jabc");
  * ```
  */
 export function useTeam(id: string | null): UseTeamReturn {

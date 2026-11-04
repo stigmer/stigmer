@@ -44,8 +44,13 @@ export interface UseCreateServiceAccountReturn {
  *
  * @example
  * ```tsx
- * const { create, isCreating, error } = useCreateServiceAccount();
- * const account = await create({ org, name: "ci-deploy", role: IamRole.member });
+ * import { IamRole } from "@stigmer/client";
+ *
+ * function NewCiAccount() {
+ *   const { create, isCreating } = useCreateServiceAccount();
+ *   const onClick = () => create({ org: "acme", name: "ci-deploy", role: IamRole.member });
+ *   return <button disabled={isCreating} onClick={onClick}>Create ci-deploy</button>;
+ * }
  * ```
  */
 export function useCreateServiceAccount(): UseCreateServiceAccountReturn {

@@ -253,17 +253,18 @@ export interface AgentDetailViewProps {
  * @example
  * ```tsx
  * // Operational hub with actions in a Console page
- * <AgentDetailView
- *   org={org}
- *   slug={slug}
- *   primaryAction={{ id: "edit", label: "Edit", onAction: handleEdit }}
- *   actions={[
- *     { id: "copy-id", label: "Copy ID", onAction: () => copyId(id) },
- *     { id: "delete", label: "Delete", variant: "destructive", requires: "can_delete", onAction: handleDelete },
- *   ]}
- *   onPluginClick={({ org, slug }) => navigateToDetail("plugins", org, slug)}
- *   onSkillClick={({ org, slug }) => navigateToDetail("skills", org, slug)}
- * />
+ * function AgentPage({ onEdit, onDelete, onOpen }: { onEdit: () => void; onDelete: () => void; onOpen: (href: string) => void }) {
+ *   return (
+ *     <AgentDetailView
+ *       org="acme"
+ *       slug="reviewer"
+ *       primaryAction={{ id: "edit", label: "Edit", onAction: onEdit }}
+ *       actions={[{ id: "delete", label: "Delete", variant: "destructive", requires: "can_delete", onAction: onDelete }]}
+ *       onPluginClick={({ org, slug }) => onOpen(`/plugins/${org}/${slug}`)}
+ *       onSkillClick={({ org, slug }) => onOpen(`/skills/${org}/${slug}`)}
+ *     />
+ *   );
+ * }
  * ```
  */
 export function AgentDetailView({

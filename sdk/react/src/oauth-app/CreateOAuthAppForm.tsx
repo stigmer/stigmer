@@ -46,14 +46,10 @@ export interface CreateOAuthAppFormProps {
  *
  * @example
  * ```tsx
- * <CreateOAuthAppForm
- *   org="acme"
- *   onCreated={(app) => {
- *     refetch();
- *     setShowForm(false);
- *   }}
- *   onCancel={() => setShowForm(false)}
- * />
+ * function NewOAuthApp({ onDone }: { onDone: () => void }) {
+ *   // onDone closes the form and refreshes the list.
+ *   return <CreateOAuthAppForm org="acme" onCreated={onDone} onCancel={onDone} />;
+ * }
  * ```
  */
 export function CreateOAuthAppForm({

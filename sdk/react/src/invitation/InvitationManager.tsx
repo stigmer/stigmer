@@ -82,12 +82,8 @@ type FlowState =
  *
  * @example
  * ```tsx
- * <InvitationManager org="acme" />
- *
- * <InvitationManager
- *   org="acme"
- *   buildInviteUrl={(token) => `https://myapp.com/join/${token}`}
- * />
+ * // Links point at your own join page; omit buildInviteUrl to use this origin's /invite/<token>.
+ * <InvitationManager org="acme" buildInviteUrl={(token) => `https://myapp.com/join/${token}`} />
  * ```
  */
 export function InvitationManager({

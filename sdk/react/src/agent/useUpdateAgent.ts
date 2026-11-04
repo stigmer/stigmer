@@ -38,15 +38,13 @@ export interface UseUpdateAgentReturn {
  *
  * @example
  * ```tsx
- * const { update, isUpdating, error } = useUpdateAgent();
+ * import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
  *
- * await update(
- *   {
- *     metadata: { id: agent.metadata!.id, etag: agent.metadata!.etag },
- *     spec: { description: "Reviews pull requests" },
- *   },
- *   ["spec.description"],
- * );
+ * function DescribeAsReviewer({ agent }: { agent: Agent }) {
+ *   const { update, isUpdating } = useUpdateAgent();
+ *   const save = () => update({ metadata: agent.metadata, spec: { description: "Reviews pull requests" } }, ["spec.description"]);
+ *   return <button disabled={isUpdating} onClick={save}>Save description</button>;
+ * }
  * ```
  */
 export function useUpdateAgent(): UseUpdateAgentReturn {

@@ -108,12 +108,16 @@ export interface PluginDetailViewProps {
  *
  * @example
  * ```tsx
- * <PluginDetailView
- *   org="acme"
- *   slug="linear"
- *   onStartChat={({ org, slug }) => router.push(getPluginChatUrl(org, slug))}
- *   onAgentClick={({ org, slug }) => navigateToDetail("agents", org, slug)}
- * />
+ * function LinearPlugin({ onOpen }: { onOpen: (href: string) => void }) {
+ *   return (
+ *     <PluginDetailView
+ *       org="acme"
+ *       slug="linear"
+ *       onStartChat={({ org, slug }) => onOpen(`/chat?plugin=${org}/${slug}`)}
+ *       onAgentClick={({ org, slug }) => onOpen(`/agents/${org}/${slug}`)}
+ *     />
+ *   );
+ * }
  * ```
  */
 export function PluginDetailView({

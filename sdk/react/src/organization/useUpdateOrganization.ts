@@ -42,15 +42,13 @@ export interface UseUpdateOrganizationReturn {
  *
  * @example
  * ```tsx
- * const { update, isUpdating, error } = useUpdateOrganization();
+ * import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
  *
- * await update(
- *   {
- *     metadata: { id: organization.metadata!.id, etag: organization.metadata!.etag },
- *     spec: { description: "Updated description" },
- *   },
- *   ["spec.description"],
- * );
+ * function DescriptionSave({ organization, description }: { organization: Organization; description: string }) {
+ *   const { update, isUpdating } = useUpdateOrganization();
+ *   const save = () => update({ metadata: organization.metadata, spec: { description } }, ["spec.description"]);
+ *   return <button disabled={isUpdating} onClick={save}>Save</button>;
+ * }
  * ```
  */
 export function useUpdateOrganization(): UseUpdateOrganizationReturn {

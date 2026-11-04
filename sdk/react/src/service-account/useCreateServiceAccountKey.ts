@@ -48,9 +48,14 @@ export interface UseCreateServiceAccountKeyReturn {
  *
  * @example
  * ```tsx
- * const { create } = useCreateServiceAccountKey();
- * const key = await create({ serviceAccountId, name: "github-actions", neverExpires: true });
- * // key.spec?.keyHash is the raw key: show it once
+ * function NewCiKey({ serviceAccountId, onKey }: { serviceAccountId: string; onKey: (rawKey: string) => void }) {
+ *   const { create, isCreating } = useCreateServiceAccountKey();
+ *   const onClick = async () => {
+ *     const key = await create({ serviceAccountId, name: "github-actions", neverExpires: true });
+ *     onKey(key.spec?.keyHash ?? ""); // the raw key: show it once
+ *   };
+ *   return <button disabled={isCreating} onClick={onClick}>New key</button>;
+ * }
  * ```
  */
 export function useCreateServiceAccountKey(): UseCreateServiceAccountKeyReturn {

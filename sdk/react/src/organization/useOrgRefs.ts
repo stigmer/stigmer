@@ -28,8 +28,11 @@ import type { ResourceRef } from "@stigmer/client";
  *
  * @example
  * ```tsx
- * const slugForOrg = useOrgSlugForId();
- * navigate(`/library/agents/${slugForOrg(agent.metadata.org)}/${agent.metadata.slug}`);
+ * // A stored `metadata.org` is an id; links read the organization's slug.
+ * function AgentLink({ org, slug, name }: { org: string; slug: string; name: string }) {
+ *   const slugForOrg = useOrgSlugForId();
+ *   return <a href={`/library/agents/${slugForOrg(org)}/${slug}`}>{name}</a>;
+ * }
  * ```
  */
 export function useOrgSlugForId(): (orgId: string) => string {
@@ -56,8 +59,13 @@ export function useOrgSlugForId(): (orgId: string) => string {
  *
  * @example
  * ```tsx
- * const orgIdFor = useOrgIdForRef();
- * const isOwn = agent.metadata?.org === orgIdFor(routeOrg);
+ * import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+ *
+ * // The route's org segment may be a slug; the agent stores an id.
+ * function OwnAgentBadge({ agent, routeOrg }: { agent: Agent; routeOrg: string }) {
+ *   const orgIdFor = useOrgIdForRef();
+ *   return agent.metadata?.org === orgIdFor(routeOrg) ? <span>Yours</span> : null;
+ * }
  * ```
  */
 export function useOrgIdForRef(): (orgRef: string) => string {

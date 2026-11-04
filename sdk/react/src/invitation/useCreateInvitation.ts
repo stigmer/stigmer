@@ -43,16 +43,22 @@ export interface UseCreateInvitationReturn {
  *
  * @example
  * ```tsx
- * const { create, isCreating, error } = useCreateInvitation();
+ * import { IamRole } from "@stigmer/client";
  *
- * const invitation = await create({
- *   name: "engineering-link",
- *   org: "acme",
- *   role: IamRole.VIEWER,
- *   expiresAt: new Date(Date.now() + 30 * 86_400_000),
- *   label: "Engineering team invite",
- * });
- * const inviteUrl = `${window.location.origin}/invite/${invitation.status?.token}`;
+ * function InviteLinkButton({ onLink }: { onLink: (url: string) => void }) {
+ *   const { create, isCreating } = useCreateInvitation();
+ *   const invite = async () => {
+ *     const invitation = await create({
+ *       name: "engineering-link",
+ *       org: "acme",
+ *       role: IamRole.viewer,
+ *       expiresAt: new Date(Date.now() + 30 * 86_400_000),
+ *       label: "Engineering team invite",
+ *     });
+ *     onLink(`${window.location.origin}/invite/${invitation.status?.token}`);
+ *   };
+ *   return <button disabled={isCreating} onClick={invite}>Create invite link</button>;
+ * }
  * ```
  */
 export function useCreateInvitation(): UseCreateInvitationReturn {

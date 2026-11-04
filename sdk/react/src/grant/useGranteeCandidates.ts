@@ -110,10 +110,7 @@ export interface UseGranteeCandidatesReturn {
  *
  * @example
  * ```tsx
- * const { people, appUsers, serviceAccounts, teams } = useGranteeCandidates({
- *   org,
- *   includeTeams: share.canShareWithTeams,
- * });
+ * const { people, appUsers, serviceAccounts, teams } = useGranteeCandidates({ org: "acme", includeTeams: true });
  * ```
  */
 export function useGranteeCandidates({

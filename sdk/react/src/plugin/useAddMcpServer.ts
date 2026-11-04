@@ -104,8 +104,14 @@ export async function prepareMcpServerPlugin(input: McpServerFormInput): Promise
  *
  * @example
  * ```tsx
- * const { add, isAdding } = useAddMcpServer();
- * const plugin = await add({ name: "linear", url: "https://mcp.linear.app/mcp" }, { org });
+ * function AddLinearButton({ onAdded }: { onAdded: (slug: string) => void }) {
+ *   const { add, isAdding } = useAddMcpServer();
+ *   const onClick = async () => {
+ *     const plugin = await add({ name: "linear", url: "https://mcp.linear.app/mcp" }, { org: "acme" });
+ *     onAdded(plugin.metadata?.slug ?? "");
+ *   };
+ *   return <button disabled={isAdding} onClick={onClick}>Add Linear</button>;
+ * }
  * ```
  */
 export function useAddMcpServer(): UseAddMcpServerReturn {

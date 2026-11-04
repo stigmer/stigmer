@@ -43,9 +43,9 @@ export interface UseSkillReturn {
  * function SkillDetail({ org, slug }: { org: string; slug: string }) {
  *   const { skill, isLoading, error } = useSkill(org, slug);
  *
- *   if (isLoading) return <Skeleton />;
- *   if (error) return <ErrorMessage error={error} />;
- *   if (!skill) return <NotFound />;
+ *   if (isLoading) return <p>Loading…</p>;
+ *   if (error) return <p>{error.message}</p>;
+ *   if (!skill) return <p>No skill named {slug}.</p>;
  *
  *   return <h1>{skill.metadata?.name}</h1>;
  * }

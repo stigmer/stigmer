@@ -48,11 +48,13 @@ export interface FederationIssuerDetailPanelProps {
  *
  * @example
  * ```tsx
- * <FederationIssuerDetailPanel
- *   federationIssuer={issuer}
- *   onUpdated={(updated) => refetch()}
- *   onBack={() => setFlow({ phase: "idle" })}
- * />
+ * import type { FederationIssuer } from "@stigmer/apis/ai/stigmer/iam/federationissuer/v1/api_pb";
+ *
+ * type Props = { issuer: FederationIssuer; onUpdated: () => void; onBack: () => void };
+ *
+ * function IssuerDetail({ issuer, onUpdated, onBack }: Props) {
+ *   return <FederationIssuerDetailPanel federationIssuer={issuer} onUpdated={onUpdated} onBack={onBack} />;
+ * }
  * ```
  */
 export function FederationIssuerDetailPanel({

@@ -40,8 +40,15 @@ export interface UsePluginToolsReturn {
  *
  * @example
  * ```tsx
- * const tools = usePluginTools(plugin.metadata.id, "linear", org);
- * <button onClick={() => void tools.check()}>Check tools</button>
+ * function CheckLinearTools({ pluginId }: { pluginId: string }) {
+ *   const tools = usePluginTools(pluginId, "linear", "acme");
+ *   return (
+ *     <>
+ *       <button disabled={tools.isChecking} onClick={() => void tools.check()}>Check tools</button>
+ *       {tools.tools && <p>{tools.tools.length} tools</p>}
+ *     </>
+ *   );
+ * }
  * ```
  */
 export function usePluginTools(pluginId: string | null, server: string, org: string): UsePluginToolsReturn {

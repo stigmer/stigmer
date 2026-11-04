@@ -59,11 +59,15 @@ export interface CreateApiKeyFormProps {
  *
  * @example
  * ```tsx
- * <CreateApiKeyForm
- *   org="acme"
- *   onCreated={(key) => setRevealedKey(key)}
- *   onCancel={() => setShowForm(false)}
- * />
+ * import type { ApiKey } from "@stigmer/apis/ai/stigmer/iam/apikey/v1/api_pb";
+ *
+ * function NewApiKey({ onClose }: { onClose: () => void }) {
+ *   const [created, setCreated] = useState<ApiKey | null>(null);
+ *   if (created) {
+ *     return <ApiKeyCreatedAlert rawKey={created.spec?.keyHash ?? ""} keyName={created.metadata?.name ?? ""} onDismiss={onClose} />;
+ *   }
+ *   return <CreateApiKeyForm org="acme" onCreated={setCreated} onCancel={onClose} />;
+ * }
  * ```
  */
 export function CreateApiKeyForm({

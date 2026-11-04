@@ -39,11 +39,10 @@ export interface SharePanelProps {
  * @example
  * ```tsx
  * <SharePanel
- *   resource={{ kind: "session", id: sessionId, resourceKind: ApiResourceKind.session }}
+ *   resource={{ kind: "session", id: "ses_01jabc", resourceKind: ApiResourceKind.session }}
  *   resourceKindString="session"
  *   resourceKind={ApiResourceKind.session}
- *   org={org}
- *   onClose={() => setOpen(false)}
+ *   org="acme"
  * />
  * ```
  */

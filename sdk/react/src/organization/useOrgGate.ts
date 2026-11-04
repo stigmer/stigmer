@@ -24,8 +24,9 @@ export interface UseOrgGateOptions {
  * Narrow on `status` to access variant-specific data:
  *
  * ```ts
- * if (state.status === "error") {
- *   console.log(state.message); // string — only available on "error"
+ * // `message` exists only on "error".
+ * function gateError(state: OrgGateState): string | null {
+ *   return state.status === "error" ? state.message : null;
  * }
  * ```
  */
@@ -98,18 +99,12 @@ export interface UseOrgGateReturn {
  *
  * @example
  * ```tsx
- * const { state, retry, refresh } = useOrgGate({ isBypassed });
- *
- * switch (state.status) {
- *   case "bypassed":
- *   case "ready":
- *     return <>{children}</>;
- *   case "loading":
- *     return <Spinner />;
- *   case "error":
- *     return <ErrorScreen message={state.message} onRetry={retry} />;
- *   case "no-orgs":
- *     return <OnboardingForm onCreated={(org) => refresh(org.metadata?.id)} />;
+ * function OrgGate({ children }: { children: ReactNode }) {
+ *   const { state, retry, refresh } = useOrgGate({ isBypassed: false });
+ *   if (state.status === "loading") return <p>Loading…</p>;
+ *   if (state.status === "error") return <p>{state.message} <button onClick={retry}>Try again</button></p>;
+ *   if (state.status === "no-orgs") return <CreateOrganizationForm onCreated={(org) => refresh(org.metadata?.id)} />;
+ *   return <>{children}</>;
  * }
  * ```
  */

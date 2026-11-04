@@ -29,7 +29,12 @@ export interface HookConfigListProps {
  *
  * @example
  * ```tsx
- * {plugin.status?.hooks && <HookConfigList config={plugin.status.hooks} />}
+ * import type { Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
+ *
+ * function PluginHooks({ plugin }: { plugin: Plugin }) {
+ *   const hooks = plugin.status?.hooks;
+ *   return hooks ? <HookConfigList config={hooks} /> : null;
+ * }
  * ```
  */
 export function HookConfigList({ config, className }: HookConfigListProps) {

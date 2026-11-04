@@ -66,7 +66,7 @@ export interface UseAccessHistoryReturn {
  *
  * @example
  * ```tsx
- * const { entries, hasMore, loadMore } = useAccessHistory(orgId);
+ * const { entries, hasMore, loadMore } = useAccessHistory("acme");
  * ```
  */
 export function useAccessHistory(

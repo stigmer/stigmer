@@ -59,7 +59,13 @@ export interface UseRunAgentSpecReturn {
  *
  * @example
  * ```tsx
- * const { spec } = useRunAgentSpec(agentRef, session.status?.agentVersionHash);
+ * import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+ *
+ * // The instructions the agent ran with: its spec at the session's version.
+ * function SessionInstructions({ session }: { session: Session }) {
+ *   const { spec } = useRunAgentSpec(agentRefOfSession(session), session.status?.agentVersionHash);
+ *   return <pre>{spec?.instructions}</pre>;
+ * }
  * ```
  */
 export function useRunAgentSpec(

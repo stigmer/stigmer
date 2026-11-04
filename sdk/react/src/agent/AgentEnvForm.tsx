@@ -48,15 +48,19 @@ export interface AgentEnvFormProps {
  *
  * @example
  * ```tsx
- * <AgentEnvForm
- *   agentName="GitHub Reviewer"
- *   variables={[
- *     { key: "GITHUB_TOKEN", isSecret: true, description: "Personal access token" },
- *     { key: "REPO_OWNER", isSecret: false },
- *   ]}
- *   onSubmit={(values) => saveToMyVault(values)}
- *   onCancel={() => console.log("cancelled")}
- * />
+ * function ReviewerSetup({ onSave, onCancel }: { onSave: (values: Record<string, EnvVarInput>) => void; onCancel: () => void }) {
+ *   return (
+ *     <AgentEnvForm
+ *       agentName="GitHub Reviewer"
+ *       variables={[
+ *         { key: "GITHUB_TOKEN", isSecret: true, description: "Personal access token" },
+ *         { key: "REPO_OWNER", isSecret: false },
+ *       ]}
+ *       onSubmit={onSave}
+ *       onCancel={onCancel}
+ *     />
+ *   );
+ * }
  * ```
  */
 export function AgentEnvForm({ agentName, ...rest }: AgentEnvFormProps) {

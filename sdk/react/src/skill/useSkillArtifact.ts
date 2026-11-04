@@ -39,13 +39,11 @@ export interface UseSkillArtifactReturn {
  *
  * @example
  * ```tsx
- * const { skill } = useSkill(org, slug);
- * const { files, getFileContent, isLoading } = useSkillArtifact(
- *   skill?.status?.artifactStorageKey ?? null
- * );
- *
- * if (files) {
- *   const readme = getFileContent("SKILL.md");
+ * function SkillReadme() {
+ *   const { skill } = useSkill("acme", "code-review");
+ *   const { files, getFileContent } = useSkillArtifact(skill?.status?.artifactStorageKey ?? null);
+ *   if (!files) return <p>Loading…</p>;
+ *   return <pre>{getFileContent("SKILL.md")}</pre>;
  * }
  * ```
  */

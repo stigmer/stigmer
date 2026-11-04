@@ -137,13 +137,15 @@ function knownOrgs(
  *
  * @example
  * ```tsx
- * <StigmerProvider client={client}>
- *   <FetchCacheProvider>
- *     <OrgProvider>
- *       <App />
- *     </OrgProvider>
- *   </FetchCacheProvider>
- * </StigmerProvider>
+ * function Providers({ children }: { children: ReactNode }) {
+ *   return (
+ *     <StigmerProvider client={client}>
+ *       <FetchCacheProvider>
+ *         <OrgProvider>{children}</OrgProvider>
+ *       </FetchCacheProvider>
+ *     </StigmerProvider>
+ *   );
+ * }
  * ```
  */
 export function OrgProvider({ children }: { children: ReactNode }) {

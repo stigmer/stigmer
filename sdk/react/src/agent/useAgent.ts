@@ -42,9 +42,9 @@ export interface UseAgentReturn {
  * function AgentDetail({ org, slug }: { org: string; slug: string }) {
  *   const { agent, isLoading, error } = useAgent(org, slug);
  *
- *   if (isLoading) return <Skeleton />;
- *   if (error) return <ErrorMessage error={error} />;
- *   if (!agent) return <NotFound />;
+ *   if (isLoading) return <p>Loading…</p>;
+ *   if (error) return <p>{error.message}</p>;
+ *   if (!agent) return <p>No agent named {slug}.</p>;
  *
  *   return <h1>{agent.metadata?.name}</h1>;
  * }
@@ -52,8 +52,11 @@ export interface UseAgentReturn {
  *
  * @example
  * ```tsx
- * // Skip fetching until slug is known
- * const { agent } = useAgent(org, slug ?? null);
+ * // Fetches nothing until the slug is known.
+ * function AgentName({ slug }: { slug?: string }) {
+ *   const { agent } = useAgent("acme", slug ?? null);
+ *   return <span>{agent?.metadata?.name}</span>;
+ * }
  * ```
  */
 export function useAgent(

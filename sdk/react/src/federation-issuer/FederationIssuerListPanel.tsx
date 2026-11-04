@@ -56,11 +56,9 @@ export interface FederationIssuerListPanelProps {
  *
  * @example
  * ```tsx
- * <FederationIssuerListPanel
- *   org="acme"
- *   onEdit={(issuer) => navigate(`/settings/issuer/${issuer.metadata?.id}`)}
- *   onRefetchRef={(refetch) => { listRefetchRef.current = refetch; }}
- * />
+ * function Issuers({ onOpen }: { onOpen: (href: string) => void }) {
+ *   return <FederationIssuerListPanel org="acme" onEdit={(issuer) => onOpen(`/settings/issuer/${issuer.metadata?.id}`)} />;
+ * }
  * ```
  */
 export function FederationIssuerListPanel({

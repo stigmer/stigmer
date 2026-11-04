@@ -82,8 +82,19 @@ const NOTHING: AddPluginOutcome = { added: false };
  *
  * @example
  * ```tsx
- * const flow = useAddPluginToAgent({ plugin: { org, slug }, name: "linear", servers: ["linear"] });
- * <AgentPicker org={org} value={picked} onChange={flow.pick} />
+ * import type { ResourceRef } from "@stigmer/client";
+ *
+ * function AddLinearToAgent() {
+ *   const flow = useAddPluginToAgent({ plugin: { org: "acme", slug: "linear" }, name: "linear", servers: ["linear"] });
+ *   const [picked, setPicked] = useState<ResourceRef | null>(null);
+ *   const pick = (ref: ResourceRef | null) => { setPicked(ref); flow.pick(ref); };
+ *   return (
+ *     <>
+ *       <AgentPicker org="acme" value={picked} onChange={pick} />
+ *       {flow.phase.status === "ready" && <button onClick={flow.add}>Add to {flow.phase.agent.metadata?.name}</button>}
+ *     </>
+ *   );
+ * }
  * ```
  */
 export function useAddPluginToAgent(offer: PluginOffer): UseAddPluginToAgentReturn {

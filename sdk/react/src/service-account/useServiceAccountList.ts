@@ -41,8 +41,10 @@ export interface UseServiceAccountListReturn {
  *
  * @example
  * ```tsx
- * const { serviceAccounts, isLoading, error } = useServiceAccountList(orgId);
- * serviceAccounts.map((account) => account.metadata?.name);
+ * function ServiceAccountNames() {
+ *   const { serviceAccounts } = useServiceAccountList("acme");
+ *   return <ul>{serviceAccounts.map((account) => <li key={account.metadata?.id}>{account.metadata?.name}</li>)}</ul>;
+ * }
  * ```
  */
 export function useServiceAccountList(

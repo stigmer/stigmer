@@ -41,11 +41,10 @@ export interface SkillFileBrowserProps {
  *
  * @example
  * ```tsx
- * const { skill } = useSkill(org, slug);
- *
- * <SkillFileBrowser
- *   artifactStorageKey={skill?.status?.artifactStorageKey ?? null}
- * />
+ * function SkillFiles() {
+ *   const { skill } = useSkill("acme", "code-review");
+ *   return <SkillFileBrowser artifactStorageKey={skill?.status?.artifactStorageKey ?? null} />;
+ * }
  * ```
  */
 export function SkillFileBrowser({

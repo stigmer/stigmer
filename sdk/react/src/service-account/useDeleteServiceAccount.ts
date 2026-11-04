@@ -29,8 +29,10 @@ export interface UseDeleteServiceAccountReturn {
  *
  * @example
  * ```tsx
- * const { deleteServiceAccount, isDeleting } = useDeleteServiceAccount();
- * await deleteServiceAccount(account.metadata!.id);
+ * function DeleteAccountButton({ accountId }: { accountId: string }) {
+ *   const { deleteServiceAccount, isDeleting } = useDeleteServiceAccount();
+ *   return <button disabled={isDeleting} onClick={() => deleteServiceAccount(accountId)}>Delete</button>;
+ * }
  * ```
  */
 export function useDeleteServiceAccount(): UseDeleteServiceAccountReturn {
