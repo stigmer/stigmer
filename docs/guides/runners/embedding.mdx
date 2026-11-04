@@ -145,6 +145,10 @@ harness, execution target, MCP servers, skills) and dispatches the message in
 the same request:
 
 ```typescript
+import type { RunnerAdapter } from "@stigmer/client";
+
+declare const runnerAdapter: RunnerAdapter;
+// ---cut---
 import { ExecutionTarget } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 
 const run = await stigmer.run.create({
@@ -158,7 +162,9 @@ const run = await stigmer.run.create({
   },
 });
 
-const sessionId = run.spec!.sessionId; // the created session
+// The run names the session the server created for it.
+const target = run.spec?.target;
+const sessionId = target?.case === "sessionId" ? target.value : "";
 
 // Local target only: attach your runner's worker to the new session.
 await runnerAdapter.onSessionOpened(sessionId);
@@ -202,6 +208,11 @@ closed.
 In React, pass the adapter and the target to `StigmerProvider`:
 
 ```tsx
+import type { RunnerAdapter } from "@stigmer/client";
+
+declare const myRunnerAdapter: RunnerAdapter;
+declare function YourApp(): null;
+// ---cut---
 import { StigmerProvider } from "@stigmer/react-sdk";
 
 <StigmerProvider
@@ -209,7 +220,7 @@ import { StigmerProvider } from "@stigmer/react-sdk";
   executionTarget="local"
   runnerAdapter={myRunnerAdapter}
 >
-  {/* your app */}
+  <YourApp />
 </StigmerProvider>;
 ```
 
@@ -227,6 +238,8 @@ manager (below), the desktop's embedded-runner context, or your own runner API â
 pass it to `createRunnerAdapter` and it wires the lifecycle mapping for you:
 
 ```typescript
+declare const myRunnerHost: Parameters<typeof createRunnerAdapter>[0];
+// ---cut---
 import { createRunnerAdapter } from "@stigmer/client";
 
 const runnerAdapter = createRunnerAdapter(myRunnerHost);

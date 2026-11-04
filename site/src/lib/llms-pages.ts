@@ -33,6 +33,7 @@ import { diagram } from "../components/visuals/diagrams";
 import { LIVE_CAPTION, liveUrl } from "./live";
 import { lastFrameText } from "./recordings";
 import { SHOWN_SCALE, screenPath, shownScreen } from "./screens";
+import { splitSnippetSetup } from "./snippet-setup.mjs";
 
 export interface SectionMeta {
   title?: string;
@@ -89,7 +90,9 @@ async function readJson<T>(p: string): Promise<T> {
  * component tags that LLMs can interpret (Callout, Tabs, Term, etc.).
  * A `<Screen>` becomes the markdown image it stands for, linked on
  * `siteUrl`, a `<Diagram>` the text it stands for, and a `<Live>` or the
- * `<ThemePlayground>` a line linked to the demo (see `picturesToMarkdown`).
+ * `<ThemePlayground>` a line linked to the demo (see `picturesToMarkdown`). A
+ * code example's hidden setup is dropped, as the page drops it
+ * (`hideFenceSetup`).
  */
 export function cleanContent(raw: string, siteUrl: string): string {
   const cleaned = raw
@@ -99,11 +102,46 @@ export function cleanContent(raw: string, siteUrl: string): string {
     // MDX comments add no value for readers.
     .replace(/\{\/\*[\s\S]*?\*\/\}/g, "");
   return (
-    picturesToMarkdown(cleaned, siteUrl)
+    picturesToMarkdown(hideFenceSetup(cleaned), siteUrl)
       // Collapse runs of blank lines left by the above removals.
       .replace(/\n{3,}/g, "\n\n")
       .trim()
   );
+}
+
+/**
+ * Drops every code example's hidden setup: the lines above a `---cut---`
+ * marker in a TypeScript, Go, Python or Java fence, and the marker, as the
+ * rendered page drops them (src/lib/remark-snippet-setup.ts), through the
+ * same split (./snippet-setup.mjs). Every other line is kept as written.
+ */
+export function hideFenceSetup(text: string): string {
+  const out: string[] = [];
+  let fence: { close: RegExp; lang: string; body: string[] } | null = null;
+  for (const line of text.split("\n")) {
+    if (fence) {
+      if (fence.close.test(line)) {
+        out.push(...fenceBody(fence), line);
+        fence = null;
+      } else {
+        fence.body.push(line);
+      }
+      continue;
+    }
+    const open = /^ {0,3}(`{3,}|~{3,})\s*([\w-]*)/.exec(line);
+    out.push(line);
+    // A fence closes on a run of its own character at least as long, indented
+    // at most three spaces, as CommonMark (and so remark and the gate) reads it.
+    if (open) fence = { close: new RegExp(`^ {0,3}\\${open[1][0]}{${open[1].length},}\\s*$`), lang: open[2], body: [] };
+  }
+  // An unclosed fence runs to the page's end, as CommonMark reads it.
+  if (fence) out.push(...fenceBody(fence));
+  return out.join("\n");
+}
+
+/** A fence's lines without its setup, or none for an empty fence. */
+function fenceBody(fence: { lang: string; body: string[] }): string[] {
+  return fence.body.length > 0 ? splitSnippetSetup(fence.lang, fence.body.join("\n")).body.split("\n") : [];
 }
 
 /** One attribute of a tag: its name, then a double- or single-quoted value, or an `{expression}`. */

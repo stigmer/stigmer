@@ -82,6 +82,73 @@ A child organization records two facts, both fixed when it is created:
 Child organizations are one level deep: a child cannot have children of its own,
 and a child is never moved to another parent.
 
+## The examples' imports
+
+The examples on this page call a client set up as the
+[SDK pages](/docs/sdk/overview) show, with the API key of an admin of your
+Organization: `stigmer` in TypeScript, `client` in Go, Python and Java, and a
+`ctx` in Go. `user` is your platform's record of the person. The examples use
+these imports:
+
+<SDKTabs>
+<Tab value="TypeScript">
+
+```typescript prelude
+import { IamRole } from "@stigmer/client";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { IdentityAccount } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
+import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
+```
+
+</Tab>
+<Tab value="Go">
+
+```go prelude
+import (
+	"fmt"
+	"log"
+
+	stigmer "go.stigmer.ai/sdk"
+	"go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	"go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource/apiresourcekind"
+	grantv1 "go.stigmer.ai/sdk/proto/ai/stigmer/iam/grant/v1"
+	identityaccountv1 "go.stigmer.ai/sdk/proto/ai/stigmer/iam/identityaccount/v1"
+	organizationv1 "go.stigmer.ai/sdk/proto/ai/stigmer/tenancy/organization/v1"
+)
+```
+
+</Tab>
+<Tab value="Python">
+
+```python prelude
+from stigmer import FederationIssuerInput, OrganizationInput
+from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io
+from ai.stigmer.iam.grant.v1 import spec_pb2 as grant_spec
+from ai.stigmer.iam.identityaccount.v1 import io_pb2 as identityaccount_io
+from ai.stigmer.tenancy.organization.v1 import io_pb2 as organization_io
+```
+
+</Tab>
+<Tab value="Java">
+
+```java prelude
+import ai.stigmer.commons.apiresource.ApiResourceReference;
+import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
+import ai.stigmer.iam.federationissuer.v1.FederationIssuer;
+import ai.stigmer.iam.grant.v1.ApiResourceRef;
+import ai.stigmer.iam.grant.v1.GrantSpec;
+import ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput;
+import ai.stigmer.iam.identityaccount.v1.IdentityAccount;
+import ai.stigmer.sdk.gen.FederationIssuerInput;
+import ai.stigmer.sdk.gen.OrganizationInput;
+import ai.stigmer.tenancy.organization.v1.Organization;
+import ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup;
+import java.util.List;
+```
+
+</Tab>
+</SDKTabs>
+
 ## Create a child organization
 
 When a new customer signs up on your platform, create its Organization under
@@ -99,7 +166,7 @@ const child = await stigmer.organization.create({
   externalId: "cust-4411",
 });
 
-console.log(`Created child organization: ${child.metadata.id}`);
+console.log(`Created child organization: ${child.metadata?.id}`);
 ```
 
 </Tab>
@@ -107,16 +174,16 @@ console.log(`Created child organization: ${child.metadata.id}`);
 
 ```go
 child, err := client.Organization.Create(ctx, &stigmer.OrganizationInput{
-  Name:        "Tenant Alpha",
-  Slug:        "tenant-alpha",
-  Description: "Acme Cloud customer: Tenant Alpha",
-  ParentOrg:   "acme",
-  ExternalId:  "cust-4411",
+	Name:        "Tenant Alpha",
+	Slug:        "tenant-alpha",
+	Description: "Acme Cloud customer: Tenant Alpha",
+	ParentOrg:   "acme",
+	ExternalId:  "cust-4411",
 })
 if err != nil {
-  return fmt.Errorf("create child organization: %w", err)
+	log.Fatalf("create child organization: %v", err)
 }
-fmt.Printf("Created child organization: %s\n", child.Metadata.Id)
+fmt.Printf("Created child organization: %s\n", child.GetMetadata().GetId())
 ```
 
 </Tab>
@@ -138,7 +205,7 @@ print(f"Created child organization: {child.metadata.id}")
 <Tab value="Java">
 
 ```java
-Organization child = client.organizations().create(OrganizationInput.builder()
+Organization child = client.organization.create(OrganizationInput.builder()
     .name("Tenant Alpha")
     .slug("tenant-alpha")
     .description("Acme Cloud customer: Tenant Alpha")
@@ -227,7 +294,7 @@ const child = await stigmer.organization.getByExternalId({
   externalId: "cust-4411",
 });
 
-console.log(`Found: ${child.metadata.slug} (${child.metadata.id})`);
+console.log(`Found: ${child.metadata?.slug} (${child.metadata?.id})`);
 ```
 
 </Tab>
@@ -235,20 +302,20 @@ console.log(`Found: ${child.metadata.slug} (${child.metadata.id})`);
 
 ```go
 child, err := client.Organization.GetByExternalId(ctx, &organizationv1.OrganizationExternalLookup{
-  ParentOrg:  "acme",
-  ExternalId: "cust-4411",
+	ParentOrg:  "acme",
+	ExternalId: "cust-4411",
 })
 if err != nil {
-  return fmt.Errorf("find child organization: %w", err)
+	log.Fatalf("find child organization: %v", err)
 }
-fmt.Printf("Found: %s (%s)\n", child.Metadata.Slug, child.Metadata.Id)
+fmt.Printf("Found: %s (%s)\n", child.GetMetadata().GetSlug(), child.GetMetadata().GetId())
 ```
 
 </Tab>
 <Tab value="Python">
 
 ```python
-child = client.organizations.get_by_external_id(OrganizationExternalLookup(
+child = client.organizations.get_by_external_id(organization_io.OrganizationExternalLookup(
     parent_org="acme",
     external_id="cust-4411",
 ))
@@ -260,7 +327,7 @@ print(f"Found: {child.metadata.slug} ({child.metadata.id})")
 <Tab value="Java">
 
 ```java
-Organization child = client.organizations().getByExternalId(OrganizationExternalLookup.newBuilder()
+Organization child = client.organization.getByExternalId(OrganizationExternalLookup.newBuilder()
     .setParentOrg("acme")
     .setExternalId("cust-4411")
     .build());
@@ -344,14 +411,14 @@ const issuer = await stigmer.federationIssuer.create({
 
 ```go
 issuer, err := client.FederationIssuer.Create(ctx, &stigmer.FederationIssuerInput{
-  Name:             "Acme Cloud Auth",
-  Org:              "acme",
-  Slug:             "acme-cloud-auth",
-  DisplayName:      "Acme Cloud Auth",
-  JwksUri:          "https://acme.us.auth0.com/.well-known/jwks.json",
-  AllowedIssuers:   []string{"https://acme.us.auth0.com/"},
-  ExpectedAudience: "https://api.acme.com/stigmer",
-  ExternalIdClaim:  "org_id",
+	Name:             "Acme Cloud Auth",
+	Org:              "acme",
+	Slug:             "acme-cloud-auth",
+	DisplayName:      "Acme Cloud Auth",
+	JwksUri:          "https://acme.us.auth0.com/.well-known/jwks.json",
+	AllowedIssuers:   []string{"https://acme.us.auth0.com/"},
+	ExpectedAudience: "https://api.acme.com/stigmer",
+	ExternalIdClaim:  "org_id",
 })
 ```
 
@@ -375,7 +442,7 @@ issuer = client.federation_issuers.create(FederationIssuerInput(
 <Tab value="Java">
 
 ```java
-FederationIssuer issuer = client.federationIssuers().create(FederationIssuerInput.builder()
+FederationIssuer issuer = client.federationIssuer.create(FederationIssuerInput.builder()
     .name("Acme Cloud Auth")
     .org("acme")
     .slug("acme-cloud-auth")
@@ -433,6 +500,8 @@ of an admin service account of its own Organization routes its customers the
 same way: name the child organization as `org` when you mint.
 
 ```typescript
+declare const user: { id: string; email: string };
+// ---cut---
 import { createNodeClient } from "@stigmer/client/node";
 
 const stigmer = createNodeClient({
@@ -468,11 +537,18 @@ the claim that [routes it](#route-your-customers-sign-ins).
 <Tab value="TypeScript">
 
 ```typescript
+declare const user: {
+  oidcSubject: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+};
+// ---cut---
 const account = await stigmer.identityAccount.createFederatedAccount({
   org: "acme",
   federationIssuerRef: {
     org: "acme",
-    kind: "federation_issuer",
+    kind: ApiResourceKind.federation_issuer,
     slug: "acme-cloud-auth",
   },
   externalSub: user.oidcSubject,
@@ -486,20 +562,24 @@ const account = await stigmer.identityAccount.createFederatedAccount({
 <Tab value="Go">
 
 ```go
-account, err := client.IdentityAccount.CreateFederatedAccount(ctx, &stigmer.CreateFederatedAccountInput{
-  Org: "acme",
-  FederationIssuerRef: &stigmer.ResourceRef{
-    Org:  "acme",
-    Kind: "federation_issuer",
-    Slug: "acme-cloud-auth",
-  },
-  ExternalSub: user.OIDCSubject,
-  Email:       user.Email,
-  FirstName:   user.FirstName,
-  LastName:    user.LastName,
+type PlatformUser struct{ OIDCSubject, Email, NewEmail, FirstName, LastName, AvatarURL string }
+
+var user PlatformUser
+// ---cut---
+account, err := client.IdentityAccount.CreateFederatedAccount(ctx, &identityaccountv1.CreateFederatedAccountInput{
+	Org:                 "acme",
+	FederationIssuerRef: &apiresource.ApiResourceReference{
+		Org:  "acme",
+		Kind: apiresourcekind.ApiResourceKind_federation_issuer,
+		Slug: "acme-cloud-auth",
+	},
+	ExternalSub:         user.OIDCSubject,
+	Email:               user.Email,
+	FirstName:           user.FirstName,
+	LastName:            user.LastName,
 })
 if err != nil {
-  return fmt.Errorf("provision user: %w", err)
+	log.Fatalf("provision user: %v", err)
 }
 ```
 
@@ -507,9 +587,22 @@ if err != nil {
 <Tab value="Python">
 
 ```python
-account = client.identity_accounts.create_federated_account(CreateFederatedAccountInput(
+class PlatformUser:
+    """Your platform's record of the person."""
+
+    oidc_subject: str
+    email: str
+    new_email: str
+    first_name: str
+    last_name: str
+    avatar_url: str
+
+
+user = PlatformUser()
+# ---cut---
+account = client.identity_accounts.create_federated_account(identityaccount_io.CreateFederatedAccountInput(
     org="acme",
-    federation_issuer_ref=ResourceRef(
+    federation_issuer_ref=apiresource_io.ApiResourceReference(
         org="acme",
         kind="federation_issuer",
         slug="acme-cloud-auth",
@@ -525,17 +618,19 @@ account = client.identity_accounts.create_federated_account(CreateFederatedAccou
 <Tab value="Java">
 
 ```java
-IdentityAccount account = client.identityAccounts().createFederatedAccount(CreateFederatedAccountInput.builder()
-    .org("acme")
-    .federationIssuerRef(ResourceRef.builder()
-        .org("acme")
-        .kind("federation_issuer")
-        .slug("acme-cloud-auth")
-        .build())
-    .externalSub(user.getOidcSubject())
-    .email(user.getEmail())
-    .firstName(user.getFirstName())
-    .lastName(user.getLastName())
+interface PlatformUser { String getOidcSubject(); String getEmail(); String getNewEmail(); String getFirstName(); String getLastName(); String getAvatarUrl(); }
+PlatformUser user;
+// ---cut---
+IdentityAccount account = client.identityAccount.createFederatedAccount(CreateFederatedAccountInput.newBuilder()
+    .setOrg("acme")
+    .setFederationIssuerRef(ApiResourceReference.newBuilder()
+        .setOrg("acme")
+        .setKind(ApiResourceKind.federation_issuer)
+        .setSlug("acme-cloud-auth"))
+    .setExternalSub(user.getOidcSubject())
+    .setEmail(user.getEmail())
+    .setFirstName(user.getFirstName())
+    .setLastName(user.getLastName())
     .build());
 ```
 
@@ -563,9 +658,12 @@ own Organization, scoped to the child's id:
 <Tab value="TypeScript">
 
 ```typescript
+declare const account: IdentityAccount;
+declare const child: Organization;
+// ---cut---
 await stigmer.grant.create({
-  principal: { kind: "identity_account", id: account.metadata.id },
-  resource: { kind: "organization", id: child.metadata.id },
+  principal: { kind: "identity_account", id: account.metadata?.id ?? "" },
+  resource: { kind: "organization", id: child.metadata?.id ?? "" },
   relation: "viewer",
 });
 ```
@@ -574,10 +672,13 @@ await stigmer.grant.create({
 <Tab value="Go">
 
 ```go
-_, err = client.Grant.Create(ctx, &stigmer.GrantSpec{
-  Principal: &stigmer.ApiResourceRefInput{Kind: "identity_account", Id: account.Metadata.Id},
-  Resource:  &stigmer.ApiResourceRefInput{Kind: "organization", Id: child.Metadata.Id},
-  Relation:  "viewer",
+var account *identityaccountv1.IdentityAccount
+var child *organizationv1.Organization
+// ---cut---
+_, err := client.Grant.Create(ctx, &grantv1.GrantSpec{
+	Principal: &grantv1.ApiResourceRef{Kind: "identity_account", Id: account.GetMetadata().GetId()},
+	Resource:  &grantv1.ApiResourceRef{Kind: "organization", Id: child.GetMetadata().GetId()},
+	Relation:  "viewer",
 })
 ```
 
@@ -585,9 +686,17 @@ _, err = client.Grant.Create(ctx, &stigmer.GrantSpec{
 <Tab value="Python">
 
 ```python
-client.grants.create(GrantSpec(
-    principal=ApiResourceRefInput(kind="identity_account", id=account.metadata.id),
-    resource=ApiResourceRefInput(kind="organization", id=child.metadata.id),
+from typing import cast
+
+from ai.stigmer.iam.identityaccount.v1.api_pb2 import IdentityAccount
+from ai.stigmer.tenancy.organization.v1.api_pb2 import Organization
+
+account = cast(IdentityAccount, None)
+child = cast(Organization, None)
+# ---cut---
+client.grants.create(grant_spec.GrantSpec(
+    principal=grant_spec.ApiResourceRef(kind="identity_account", id=account.metadata.id),
+    resource=grant_spec.ApiResourceRef(kind="organization", id=child.metadata.id),
     relation="viewer",
 ))
 ```
@@ -596,10 +705,13 @@ client.grants.create(GrantSpec(
 <Tab value="Java">
 
 ```java
-client.grants().create(GrantSpec.builder()
-    .principal(ApiResourceRefInput.builder().kind("identity_account").id(account.getMetadata().getId()).build())
-    .resource(ApiResourceRefInput.builder().kind("organization").id(child.getMetadata().getId()).build())
-    .relation("viewer")
+IdentityAccount account;
+Organization child;
+// ---cut---
+client.grant.create(GrantSpec.newBuilder()
+    .setPrincipal(ApiResourceRef.newBuilder().setKind("identity_account").setId(account.getMetadata().getId()))
+    .setResource(ApiResourceRef.newBuilder().setKind("organization").setId(child.getMetadata().getId()))
+    .setRelation("viewer")
     .build());
 ```
 
@@ -626,7 +738,7 @@ const issuer = await stigmer.federationIssuer.create({
   allowedIssuers: ["https://acme.us.auth0.com/"],
   expectedAudience: "https://api.acme.com/stigmer",
   createAccountsOnSignIn: true,
-  signInRole: "member",
+  signInRole: IamRole.member,
   externalIdClaim: "org_id",
 });
 ```
@@ -702,15 +814,30 @@ flowchart TD
 {/* vale on */}
 
 ```typescript
-async function onboardCustomer(customer: PlatformCustomer): Promise<string> {
-  const child = await stigmer.organization.create({
+interface PlatformCustomer {
+  id: string;
+  name: string;
+  slug: string;
+}
+interface PlatformUser {
+  oidcSubject: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  avatarUrl: string;
+}
+declare function provisionUser(user: PlatformUser): Promise<IdentityAccount>;
+// ---cut---
+async function onboardCustomer(
+  customer: PlatformCustomer,
+): Promise<Organization> {
+  return stigmer.organization.create({
     name: customer.name,
     slug: customer.slug,
     description: `Acme Cloud customer: ${customer.name}`,
     parentOrg: "acme",
     externalId: customer.id,
   });
-  return child.metadata.id;
 }
 
 async function onboardCustomerUser(
@@ -723,11 +850,11 @@ async function onboardCustomerUser(
   });
 
   // One account per user, whichever customers they join.
-  const accountId = await provisionUser(user);
+  const account = await provisionUser(user);
 
   await stigmer.grant.create({
-    principal: { kind: "identity_account", id: accountId },
-    resource: { kind: "organization", id: child.metadata.id },
+    principal: { kind: "identity_account", id: account.metadata?.id ?? "" },
+    resource: { kind: "organization", id: child.metadata?.id ?? "" },
     relation: "viewer",
   });
 }

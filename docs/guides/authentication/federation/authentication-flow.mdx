@@ -164,14 +164,19 @@ provider's tokens directly.
 <Tab value="TypeScript">
 
 ```typescript
+declare const userJwt: string;
+// ---cut---
 import { Stigmer } from "@stigmer/client";
 
 const stigmer = new Stigmer({
-  accessToken: userJwt,
+  baseUrl: "https://api.stigmer.ai",
+  getAccessToken: () => userJwt,
 });
 
 const session = await stigmer.session.create({
-  agentRef: { slug: "variance-reporter" },
+  name: "variance-report",
+  org: "acme",
+  agentRef: { org: "acme", slug: "variance-reporter" },
 });
 ```
 
@@ -179,15 +184,23 @@ const session = await stigmer.session.create({
 <Tab value="Go">
 
 ```go
-client, err := stigmer.NewClient(
-  stigmer.WithAccessToken(userJWT),
+var userJWT string
+// ---cut---
+import (
+	"log"
+
+	stigmer "go.stigmer.ai/sdk"
 )
+
+client, err := stigmer.NewClient(stigmer.WithToken(userJWT))
 if err != nil {
-  log.Fatal(err)
+	log.Fatal(err)
 }
 
 session, err := client.Session.Create(ctx, &stigmer.SessionInput{
-  AgentRef: &stigmer.ResourceRef{Slug: "variance-reporter"},
+	Name:     "variance-report",
+	Org:      "acme",
+	AgentRef: stigmer.ResourceRef{Org: "acme", Slug: "variance-reporter"},
 })
 ```
 
@@ -195,12 +208,17 @@ session, err := client.Session.Create(ctx, &stigmer.SessionInput{
 <Tab value="Python">
 
 ```python
-from stigmer import Stigmer
+user_jwt = ""
+# ---cut---
+from stigmer import ResourceRef, SessionInput, StigmerClient
 
-client = Stigmer(access_token=user_jwt)
+# The user's JWT is sent as the bearer token, as an API key is.
+client = StigmerClient(api_key=user_jwt)
 
 session = client.sessions.create(SessionInput(
-    agent_ref=ResourceRef(slug="variance-reporter"),
+    name="variance-report",
+    org="acme",
+    agent_ref=ResourceRef(org="acme", slug="variance-reporter"),
 ))
 ```
 
@@ -208,12 +226,20 @@ session = client.sessions.create(SessionInput(
 <Tab value="Java">
 
 ```java
-StigmerClient client = StigmerClient.builder()
-    .accessToken(userJwt)
-    .build();
+String userJwt;
+// ---cut---
+import ai.stigmer.agentic.session.v1.Session;
+import ai.stigmer.sdk.StigmerClient;
+import ai.stigmer.sdk.gen.ResourceRef;
+import ai.stigmer.sdk.gen.SessionInput;
 
-Session session = client.sessions().create(SessionInput.builder()
-    .agentRef(ResourceRef.builder().slug("variance-reporter").build())
+// The user's JWT is sent as the bearer token, as an API key is.
+StigmerClient client = StigmerClient.builder(userJwt).build();
+
+Session session = client.session.create(SessionInput.builder()
+    .name("variance-report")
+    .org("acme")
+    .agentRef(ResourceRef.of("acme", "variance-reporter"))
     .build());
 ```
 

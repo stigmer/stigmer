@@ -117,6 +117,9 @@ export default defineConfig({
 Replace `src/App.tsx`:
 
 ```tsx title="src/App.tsx"
+// A Vite project types import.meta.env through src/vite-env.d.ts.
+import "vite/client";
+// ---cut---
 import { Stigmer, createTokenCache } from "@stigmer/client";
 import { AgentChat, StigmerProvider } from "@stigmer/react-sdk/chat";
 import "@stigmer/react-sdk/styles.css";
