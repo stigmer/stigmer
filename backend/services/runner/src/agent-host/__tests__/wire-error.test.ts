@@ -1,9 +1,12 @@
 /**
  * An error crossing the agent host's pipe (`agent-host/protocol.ts`): a
- * failed turn's cause keeps its chain (each link's name, string code and
- * message, an `AggregateError`'s members), so the runner's failed-turn log
- * can print the network error under it; every other error crosses flat, as
- * it always has, so what the runtime words for the user does not change.
+ * failed turn's cause and a thrown adapter error keep their chain (each
+ * link's class, name, string code and message, an `AggregateError`'s
+ * members), so the runner's failed-turn log can print the network error
+ * under a cause, and the runtime words a thrown error for the user exactly
+ * as it would have in the runner's own process. A failed call's error
+ * crosses flat, with its class. A class name the host sends is read by
+ * shape: anything but a plain identifier rebuilds as the base class.
  */
 import { describe, expect, it } from "vitest";
 
@@ -14,6 +17,7 @@ import { loopbackHostedRow } from "../../__test-utils__/loopback-host.js";
 import { turnInputFixture } from "../../__test-utils__/turn-input-fixture.js";
 import type { HarnessAdapter, TurnOutcome } from "../../harness/types.js";
 import { describeCauseChain } from "../../shared/error-chain.js";
+import { describeExecutionError } from "../../shared/model-error.js";
 import { MAX_WIRE_CAUSE_LINKS, fromWireError, toWireError, toWireErrorChain, type WireError } from "../protocol.js";
 
 function coded(message: string, code: string | number, name = "Error"): Error {
@@ -29,6 +33,30 @@ function connectFailure(): Error {
   const outer = new Error("Failed to connect to MCP server \"docs\"", { cause: fetchFailed });
   outer.name = "MCPClientError";
   return outer;
+}
+
+/** The MCP adapter's connect error, a class of its own as the adapter's is. */
+class MCPClientError extends Error {
+  override name = "MCPClientError";
+}
+
+/** Undici's socket error, a class of its own whose name it sets. */
+class SocketError extends Error {
+  override name = "SocketError";
+  readonly code = "UND_ERR_SOCKET";
+}
+
+/** A connect that failed on a reset socket, with every link its own class, as an engine meets it in process. */
+function classedConnectFailure(): Error {
+  const fetchFailed = new TypeError("fetch failed", { cause: new SocketError("other side closed") });
+  return new MCPClientError("Failed to connect to MCP server \"docs\"", { cause: fetchFailed });
+}
+
+/** Each link's class name, outermost first. */
+function classesOf(err: unknown): string[] {
+  const names: string[] = [];
+  for (let current: unknown = err; current instanceof Error; current = current.cause) names.push(current.constructor.name);
+  return names;
 }
 
 /** As it crosses: through the pipe's JSON. */
@@ -101,9 +129,46 @@ describe("a failed turn's cause on the wire", () => {
   });
 });
 
+describe("an error's class on the wire", () => {
+  it("crosses for every link, and the rebuilt link is an instance of a class of that name", () => {
+    const rebuilt = crossed(toWireErrorChain(classedConnectFailure()));
+    expect(classesOf(rebuilt)).toEqual(["MCPClientError", "TypeError", "SocketError"]);
+    expect(rebuilt).toBeInstanceOf(Error);
+    expect((rebuilt.cause as Error).cause).toMatchObject({ name: "SocketError", code: "UND_ERR_SOCKET" });
+  });
+
+  it("crosses for an AggregateError and each of its members", () => {
+    class ConnectRefusedError extends Error {}
+    class FetchAggregateError extends AggregateError {}
+    const aggregate = new FetchAggregateError([new ConnectRefusedError("connect ECONNREFUSED ::1:3000"), new Error("plain")], "");
+    const rebuilt = crossed(toWireErrorChain(new TypeError("fetch failed", { cause: aggregate })));
+    expect(rebuilt.cause).toBeInstanceOf(AggregateError);
+    expect((rebuilt.cause as Error).constructor.name).toBe("FetchAggregateError");
+    expect((rebuilt.cause as AggregateError).errors.map((member: Error) => member.constructor.name)).toEqual(["ConnectRefusedError", "Error"]);
+  });
+
+  it("rebuilds a plain Error as a plain Error, so a reader testing `constructor === Error` reads it as in process", () => {
+    const rebuilt = crossed(toWireErrorChain(new Error("plain", { cause: new TypeError("inner") })));
+    expect(rebuilt.constructor).toBe(Error);
+    expect((rebuilt.cause as Error).constructor.name).toBe("TypeError");
+  });
+
+  it("rebuilds as the base class when a host sends a class name that is not a plain identifier", () => {
+    const hostile: unknown[] = [7, "", "not an identifier", "a.b", "__proto__", "x".repeat(129), "1abc", "Error\u2028"];
+    for (const className of hostile) {
+      const rebuilt = crossed({ name: "Probe", message: "m", className } as unknown as WireError);
+      expect(rebuilt.constructor).toBe(Error);
+      expect(rebuilt.name).toBe("Probe");
+    }
+    const aggregate = crossed({ name: "AggregateError", message: "", className: "__proto__", errors: [{ name: "Error", message: "m" }] } as unknown as WireError);
+    expect(aggregate.constructor).toBe(AggregateError);
+  });
+});
+
 describe("an error sent flat", () => {
-  it("rebuilds flat, as it always has", () => {
-    const rebuilt = crossed(toWireError(connectFailure()));
+  it("rebuilds flat, as it always has, with its class", () => {
+    const rebuilt = crossed(toWireError(classedConnectFailure()));
+    expect(rebuilt.constructor.name).toBe("MCPClientError");
     expect(rebuilt.name).toBe("MCPClientError");
     expect(rebuilt.message).toBe("Failed to connect to MCP server \"docs\"");
     expect(rebuilt.cause).toBeUndefined();
@@ -140,21 +205,32 @@ describe("a hosted turn", () => {
     }
   });
 
-  it("whose adapter threw still reaches the runtime flat", async () => {
+  async function thrownBy(failure: () => Error): Promise<unknown> {
     const row = hostedRow(async () => {
-      throw connectFailure();
+      throw failure();
     });
     await row.adapter.boot(testConfig());
     try {
-      const thrown = await row.adapter.runTurn(turnInputFixture(), new RecordingTurnSink()).then(
+      return await row.adapter.runTurn(turnInputFixture(), new RecordingTurnSink()).then(
         () => undefined,
         (err: unknown) => err,
       );
-      expect(thrown).toBeInstanceOf(Error);
-      expect((thrown as Error).name).toBe("MCPClientError");
-      expect((thrown as Error).cause).toBeUndefined();
     } finally {
       await row.adapter.shutdown();
     }
+  }
+
+  it("whose adapter threw reaches the runtime with its whole chain and each link's class", async () => {
+    const thrown = await thrownBy(classedConnectFailure);
+    expect(thrown).toBeInstanceOf(Error);
+    expect(describeCauseChain(thrown)).toBe(describeCauseChain(classedConnectFailure()));
+    expect(classesOf(thrown)).toEqual(["MCPClientError", "TypeError", "SocketError"]);
+  });
+
+  it("whose adapter threw is worded for the user as it would be in the runner's own process", async () => {
+    const thrown = await thrownBy(classedConnectFailure);
+    const ctx = { proxyMode: false };
+    expect(describeExecutionError(thrown, ctx)).toEqual(describeExecutionError(classedConnectFailure(), ctx));
+    expect(describeExecutionError(thrown, ctx).errorType).toBe("MCPClientError");
   });
 });

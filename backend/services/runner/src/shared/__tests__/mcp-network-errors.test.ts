@@ -240,4 +240,11 @@ describe("a failed MCP connect, through the real adapter", () => {
     expect(networkLines()).toEqual([expect.stringMatching(/^\[MCP\] Server 'docs' did not connect: execution=run_claude, network=Error ECONNRESET: /)]);
     expectWordedAsTheAdapters(err, url);
   });
+
+  it("words the adapter's error for the user once it carries the network error as its cause, as the adapter's next major does", async () => {
+    const url = `${await resettingServer()}/mcp`;
+    const err = await rejectionOf(runWithExecutionContext("run_stigmer", () => connectMcpServers([httpServer(url)])));
+    err.cause = new TypeError("fetch failed", { cause: Object.assign(new Error("read ECONNRESET"), { code: "ECONNRESET" }) });
+    expectWordedAsTheAdapters(err, url);
+  });
 });

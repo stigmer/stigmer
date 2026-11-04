@@ -24,13 +24,12 @@ import {
 } from "../model-error.js";
 
 /**
- * Mimic LangChain's MiddlewareError: message copied from the inner error,
- * original preserved on `cause` (langchain dist/agents/errors.js:50-57).
+ * Wrap as LangChain does, with its own `MiddlewareError`: name and message
+ * copied from the inner error, the original kept on `cause`. The real class,
+ * never a look-alike, because `describeExecutionError` skips it by class.
  */
 function middlewareWrap(inner: Error): Error {
-  const wrapped = new Error(inner.message);
-  wrapped.cause = inner;
-  return wrapped;
+  return MiddlewareError.wrap(inner, "probe") as Error;
 }
 
 /**
@@ -542,6 +541,26 @@ describe("describeExecutionError", () => {
 
     expect(errorType).toBe("WorkspaceLockTimeoutError");
     expect(errorMessage).toBe("workspace busy");
+  });
+
+  it("names a failure that carries its own cause as itself, not its root", () => {
+    class MCPClientError extends Error {}
+    const socket = Object.assign(new Error("read ECONNRESET"), { code: "ECONNRESET" });
+    const connect = new MCPClientError("Failed to connect to MCP server \"docs\", url: http://mcp.test/mcp", { cause: new TypeError("fetch failed", { cause: socket }) });
+    for (const err of [connect, middlewareWrap(connect), wrapLikeMiddlewareStack(connect, DEEP_STACK)]) {
+      expect(describeExecutionError(err, { proxyMode: false })).toEqual({
+        errorType: "MCPClientError",
+        errorMessage: "Failed to connect to MCP server \"docs\", url: http://mcp.test/mcp",
+      });
+    }
+  });
+
+  it("names the innermost wrapper's cause when every link is a wrapper but the last", () => {
+    const root = new RangeError("index out of range");
+    expect(describeExecutionError(wrapLikeMiddlewareStack(root, 3), { proxyMode: false })).toEqual({
+      errorType: "RangeError",
+      errorMessage: "index out of range",
+    });
   });
 
   it("handles non-Error throwables", () => {
