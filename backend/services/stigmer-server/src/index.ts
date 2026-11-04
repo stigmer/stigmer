@@ -731,6 +731,7 @@ export type {
   ResourceNameRename,
   ResourceNameState,
   ResourceNameStore,
+  ResourceNameUndo,
 } from "./store/interface.js";
 export { ORGANIZATION_SLUG_RESERVED } from "./domain/organization/names.js";
 // Every named kind's slug is a name in that table (pipeline/steps/names.ts):

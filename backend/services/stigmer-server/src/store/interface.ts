@@ -301,16 +301,26 @@ export type ResourceNameClaim =
   | { readonly claimed: false; readonly entry: ResourceNameEntry };
 
 /**
- * A rename's outcome, as a claim's. A won rename that took back one of the
- * resource's own previous names carries that name as it stood before
- * (`takenBack`), so a move back can restore it rather than let it go.
+ * What a won rename changed beside taking `to`, each name as it stood
+ * before, so `revertRename` can leave the table as if the rename never ran
+ * (#2764). A won rename's outcome is one, and its caller passes it back as
+ * it stands.
  */
+export interface ResourceNameUndo {
+  /** `to`, when it was one of the resource's own previous names, as it stood before the rename took it back. */
+  readonly takenBack?: ResourceNameEntry;
+  /**
+   * Every name the rename moved from current to previous, as it stood
+   * before (`current`, its own `claimedAt`): `from`, or the name an
+   * overlapping rename made current first. Empty when `to` was the only
+   * current name; required, so no outcome reverts less than it changed.
+   */
+  readonly demoted: ReadonlyArray<ResourceNameEntry>;
+}
+
+/** A rename's outcome, as a claim's; a won one carries what it changed (`ResourceNameUndo`). */
 export type ResourceNameRenamed =
-  | {
-      readonly claimed: true;
-      readonly entry: ResourceNameEntry;
-      readonly takenBack?: ResourceNameEntry;
-    }
+  | ({ readonly claimed: true; readonly entry: ResourceNameEntry } & ResourceNameUndo)
   | { readonly claimed: false; readonly entry: ResourceNameEntry };
 
 /** One rename: `id`'s current name `from` becomes `to`. */
@@ -372,17 +382,32 @@ export interface ResourceNameStore {
    * own previous names) and every other current name of `id`, `from`
    * included, becomes previous until `fromExpiresAt`, so `id` is left with
    * exactly one current name however renames interleave. Lost, with
-   * nothing changed, when another resource holds `to`.
+   * nothing changed, when another resource holds `to`. A won outcome lists
+   * what it changed (`ResourceNameUndo`), reported by the write that
+   * changed it.
    */
   rename(rename: ResourceNameRename): Promise<ResourceNameRenamed>;
   /**
-   * Undoes a rename whose resource write failed: `to` is let go, or, when
-   * the rename took it back (`takenBack`, from the rename's outcome),
-   * restored to that earlier state; and `from` is current again, unless a
-   * rename that overlapped this one has made its own name current since,
-   * which stands. Idempotent.
+   * Undoes a rename whose resource write failed, with the rename's won
+   * outcome as `undo`, so the table is left as if the rename never ran
+   * (#2764). In one transaction:
+   *
+   * 1. `to` is let go, or, when the rename took it back, restored as
+   *    `undo.takenBack` stood.
+   * 2. When `id` then holds no current name, each `undo.demoted` name whose
+   *    row is still as this rename left it (`id`'s, previous, stamped
+   *    `now` and `fromExpiresAt`) gets its earlier state back. A name a
+   *    later rename restamped, or another resource took since, is left as
+   *    it is.
+   * 3. When `id` still holds no current name, `from` is made current, the
+   *    last resort that keeps a live resource named.
+   *
+   * A name another rename made current since stays current: steps 2 and 3
+   * run only when `id` holds none. Idempotent. Between the rename and its
+   * undo the names it demoted are previous names, and free at once under
+   * an immediate expiry; that window is #2926.
    */
-  revertRename(rename: ResourceNameRename, takenBack?: ResourceNameEntry): Promise<void>;
+  revertRename(rename: ResourceNameRename, undo: ResourceNameUndo): Promise<void>;
   /**
    * Lets go of every name `id` holds in the kind and scope (its delete, or a
    * create whose row never landed). Idempotent.

@@ -58,6 +58,7 @@ import { ResourceNotFoundError } from "../../store/interface.js";
 import type {
   ResourceNameEntry,
   ResourceNameRename,
+  ResourceNameUndo,
   Store,
 } from "../../store/interface.js";
 
@@ -162,7 +163,7 @@ export function newKeepStoredOwnerAndEntriesStep(): PipelineStep<VaultDesc> {
 /** What an external id change did to the name table, for undoing it when the write fails. */
 type ExternalIdMove =
   | { readonly kind: "claimed"; readonly entry: ResourceNameEntry }
-  | { readonly kind: "renamed"; readonly rename: ResourceNameRename; readonly takenBack?: ResourceNameEntry };
+  | { readonly kind: "renamed"; readonly rename: ResourceNameRename; readonly undo: ResourceNameUndo };
 
 /**
  * Takes the external id a create sets, or moves the vault's id to the one
@@ -220,15 +221,9 @@ export function newClaimExternalIdStep(store: Store): PipelineStep<VaultDesc> {
       };
       const moved = await moveName(store, rename, holder);
       if (!moved.claimed) {
-        taken(moved.entry.id);
+        return taken(moved.entry.id);
       }
-      ctx.set(CLAIMED_EXTERNAL_ID_KEY, {
-        kind: "renamed",
-        rename,
-        ...(moved.claimed && moved.takenBack !== undefined
-          ? { takenBack: moved.takenBack }
-          : {}),
-      });
+      ctx.set(CLAIMED_EXTERNAL_ID_KEY, { kind: "renamed", rename, undo: moved });
     },
   };
 }
@@ -278,7 +273,7 @@ export async function undoExternalIdMoveAfterFailure(
   }
   try {
     if (move.kind === "renamed") {
-      await store.resourceNames.revertRename(move.rename, move.takenBack);
+      await store.resourceNames.revertRename(move.rename, move.undo);
       return;
     }
     if (ctx.get(EXISTING_RESOURCE_KEY) !== undefined) {

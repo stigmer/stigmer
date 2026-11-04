@@ -6,8 +6,10 @@
  * for a current name, and renames as it pins a rename: the new name
  * current, every other current name of the id previous until the move's
  * `fromExpiresAt`, a held name refused, an id's own previous name taken
- * back, and a revert restoring both. An expired previous name resolves to
- * nothing and is free. The composed suites run the real table.
+ * back, and a revert restoring the name it took back and, when the id
+ * then holds no current name, the names it pushed aside that are still as
+ * it left them, else `from`. An expired previous name resolves to nothing
+ * and is free. The composed suites run the real table.
  *
  * `rowsHold`, when given, makes every row a rig stores hold its name, as
  * the backfill and every create chain make it on a server: a name nobody
@@ -81,30 +83,48 @@ export function inMemoryNames(
         return { claimed: false, entry: held };
       }
       const takenBack = held !== undefined && held.state === "previous" ? held : undefined;
+      const demoted: ResourceNameEntry[] = [];
       for (const [key, entry] of entries) {
-        if (entry.kind === move.kind && entry.org === move.org && entry.id === move.id && entry.state === "current") {
+        if (
+          entry.kind === move.kind && entry.org === move.org && entry.id === move.id &&
+          entry.state === "current" && entry.name !== move.to
+        ) {
+          demoted.push(entry);
           entries.set(key, { ...entry, state: "previous", claimedAt: move.now, expiresAt: move.fromExpiresAt });
         }
       }
       const entry: ResourceNameEntry = { ...toKey, id: move.id, state: "current", claimedAt: move.now, expiresAt: "" };
       entries.set(keyOf(toKey), entry);
-      return takenBack === undefined ? { claimed: true, entry } : { claimed: true, entry, takenBack };
+      return takenBack === undefined ? { claimed: true, entry, demoted } : { claimed: true, entry, takenBack, demoted };
     },
-    revertRename: (move, takenBack) => {
+    revertRename: (move, undo) => {
       const toKey = keyOf({ kind: move.kind, org: move.org, name: move.to });
       if (entries.get(toKey)?.id === move.id) {
-        if (takenBack === undefined) {
+        if (undo.takenBack === undefined) {
           entries.delete(toKey);
         } else {
-          entries.set(toKey, takenBack);
+          entries.set(toKey, undo.takenBack);
+        }
+      }
+      const holdsCurrent = (): boolean =>
+        [...entries.values()].some(
+          (entry) => entry.kind === move.kind && entry.org === move.org && entry.id === move.id && entry.state === "current",
+        );
+      if (!holdsCurrent()) {
+        for (const before of undo.demoted) {
+          const name = keyOf(before);
+          const now = entries.get(name);
+          if (
+            now?.id === move.id && now.state === "previous" &&
+            now.claimedAt === move.now && now.expiresAt === move.fromExpiresAt
+          ) {
+            entries.set(name, before);
+          }
         }
       }
       const fromKey = keyOf({ kind: move.kind, org: move.org, name: move.from });
       const from = entries.get(fromKey);
-      const otherCurrent = [...entries.values()].some(
-        (entry) => entry.kind === move.kind && entry.org === move.org && entry.id === move.id && entry.state === "current",
-      );
-      if (from?.id === move.id && !otherCurrent) {
+      if (from?.id === move.id && !holdsCurrent()) {
         entries.set(fromKey, { ...from, state: "current", expiresAt: "" });
       }
       return Promise.resolve();

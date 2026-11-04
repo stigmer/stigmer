@@ -54,6 +54,7 @@ import type {
   ResourceNameRename,
   ResourceNameRenamed,
   ResourceNameStore,
+  ResourceNameUndo,
   PendingOAuthState,
   OrganizationDeletion,
   OrganizationDeletionStore,
@@ -2086,7 +2087,16 @@ class SqliteResourceNameStore implements ResourceNameStore {
       }
       // Every other current name, not only `from`: a concurrent rename that
       // moved `from` first leaves its own new name current, and this one
-      // demotes it too.
+      // demotes it too. Read as they stood, then demoted: the outcome lists
+      // them for revertRename (#2764). The one synchronous BEGIN IMMEDIATE
+      // transaction lets nothing in between the two statements.
+      const demoted = db
+        .prepare(
+          `SELECT ${RESOURCE_NAME_COLUMNS} FROM resource_names
+           WHERE kind = ? AND org = ? AND id = ?
+             AND state = 'current' AND name <> ?`,
+        )
+        .all(rename.kind, rename.org, rename.id, rename.to) as unknown as ResourceNameRow[];
       db.prepare(
         `UPDATE resource_names
          SET state = 'previous', claimed_at = ?, expires_at = ?
@@ -2100,16 +2110,19 @@ class SqliteResourceNameStore implements ResourceNameStore {
         rename.id,
         rename.to,
       );
-      return takenBack === undefined
-        ? { claimed: true, entry: resourceNameEntryOf(row) }
-        : { claimed: true, entry: resourceNameEntryOf(row), takenBack: resourceNameEntryOf(takenBack) };
+      const undo: ResourceNameUndo = {
+        demoted: demoted.map(resourceNameEntryOf),
+        ...(takenBack === undefined ? {} : { takenBack: resourceNameEntryOf(takenBack) }),
+      };
+      return { claimed: true, entry: resourceNameEntryOf(row), ...undo };
     });
   }
 
   async revertRename(
     rename: ResourceNameRename,
-    takenBack?: ResourceNameEntry,
+    undo: ResourceNameUndo,
   ): Promise<void> {
+    const { takenBack } = undo;
     this.transaction((db) => {
       if (takenBack === undefined) {
         db.prepare(
@@ -2130,8 +2143,39 @@ class SqliteResourceNameStore implements ResourceNameStore {
           rename.id,
         );
       }
-      // `from` is current again unless a rename that overlapped this one
-      // made its own name current meanwhile (postgres/store.ts says why).
+      // The names this rename demoted get their earlier state back, each
+      // only while its row is as this rename left it, and only when the
+      // resource holds no current name, judged once for them all
+      // (postgres/store.ts says why, #2764).
+      const holdsCurrent = (): boolean =>
+        db
+          .prepare(
+            `SELECT 1 FROM resource_names
+             WHERE kind = ? AND org = ? AND id = ? AND state = 'current'`,
+          )
+          .get(rename.kind, rename.org, rename.id) !== undefined;
+      if (!holdsCurrent()) {
+        const restore = db.prepare(
+          `UPDATE resource_names SET state = 'current', claimed_at = ?, expires_at = ?
+           WHERE kind = ? AND org = ? AND name = ? AND id = ?
+             AND state = 'previous' AND claimed_at = ? AND expires_at = ?`,
+        );
+        for (const name of undo.demoted) {
+          restore.run(
+            name.claimedAt,
+            name.expiresAt,
+            rename.kind,
+            rename.org,
+            name.name,
+            rename.id,
+            rename.now,
+            rename.fromExpiresAt,
+          );
+        }
+      }
+      // The last resort: `from` is current again when nothing listed could
+      // be restored and no overlapping rename made its own name current
+      // meanwhile (postgres/store.ts says why).
       db.prepare(
         `UPDATE resource_names SET state = 'current', expires_at = ''
          WHERE kind = ? AND org = ? AND name = ? AND id = ?

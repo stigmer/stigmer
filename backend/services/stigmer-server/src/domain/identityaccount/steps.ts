@@ -112,8 +112,8 @@ import {
 import { DuplicateAccountError } from "./store.js";
 import type { IdentityAccountStore } from "./store.js";
 import type {
-  ResourceNameEntry,
   ResourceNameRename,
+  ResourceNameUndo,
   Store,
 } from "../../store/interface.js";
 
@@ -479,7 +479,7 @@ const SERVICE_ACCOUNT_RENAME_KEY = "serviceAccountRename";
 
 interface ServiceAccountRename {
   readonly move: ResourceNameRename;
-  readonly takenBack: ResourceNameEntry | undefined;
+  readonly undo: ResourceNameUndo;
 }
 
 /**
@@ -530,7 +530,7 @@ export function newRenameServiceAccountStep(
       if (!renamed.claimed) {
         throw serviceAccountNameTakenError(metadata.name);
       }
-      const moved: ServiceAccountRename = { move, takenBack: renamed.takenBack };
+      const moved: ServiceAccountRename = { move, undo: renamed };
       ctx.set(SERVICE_ACCOUNT_RENAME_KEY, moved);
       metadata.slug = slug;
     },
@@ -554,7 +554,7 @@ export function revertServiceAccountRenameOnFailure(
       | undefined;
     if (moved !== undefined) {
       try {
-        await store.resourceNames.revertRename(moved.move, moved.takenBack);
+        await store.resourceNames.revertRename(moved.move, moved.undo);
       } catch (revertError) {
         logger.error(
           "service account rename failed and its name could not be moved back",
