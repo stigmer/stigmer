@@ -43,7 +43,8 @@
  *     `<out>/<target>/`. Stryker edits the package's own files while it runs
  *     and restores them when it ends, keeping its copies of the originals in
  *     the package's `.stryker-tmp`, which it removes; so `--run` refuses a
- *     package with uncommitted or untracked files. `--dry-run` runs only
+ *     package with uncommitted or untracked files. Its restore drops a file's
+ *     execute bit, which the script puts back from git. `--dry-run` runs only
  *     Stryker's first, unchanged run of the target's tests, which proves it
  *     can run them; it writes to `<out>/<target>.dry-run/` and leaves no
  *     record. `--only <file>` sweeps one file, which
@@ -108,7 +109,7 @@
 
 import { execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { isAbsolute, join, posix, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -202,7 +203,8 @@ export function issueTargetsPath(targetsPath, repoRoot) {
  *     ends, rather than in a copy one directory deeper: a test that reads a
  *     shared fixture by a relative path climbing out of its package (the
  *     runner's wire-contract test reads `test/fixtures/` that way) breaks in a
- *     copy. The caller refuses a package with uncommitted changes, so a killed
+ *     copy. Its restore drops execute bits, which the caller puts back from
+ *     git. The caller refuses a package with uncommitted changes, so a killed
  *     run is undone with `git checkout`;
  *   - every output is pointed into `outDir`, outside the tree, and Stryker's
  *     own directory of originals is removed whatever the outcome, so a sweep
@@ -841,6 +843,54 @@ function removeStrykerSetupFiles(packageDir) {
   }
 }
 
+/** The two modes git gives a regular file; any other (a link, a submodule, a deletion) is not an execute bit. */
+const REGULAR_MODES = new Set(["100644", "100755"]);
+
+/**
+ * Reads `git diff --raw -z --no-renames` and returns each regular file whose
+ * mode changed, as `{ path, executable }`, `executable` being what git has
+ * (the index side). Each record is a header, `:<old> <new> <sha> <sha>
+ * <status>`, then the path, each ended by a NUL, so a path is never quoted.
+ */
+export function modeChanges(raw) {
+  const fields = raw.split("\0");
+  const changes = [];
+  for (let i = 0; i + 1 < fields.length; i += 2) {
+    const [from, to] = fields[i].slice(1).split(" ");
+    if (from !== to && REGULAR_MODES.has(from) && REGULAR_MODES.has(to)) changes.push({ path: fields[i + 1], executable: from === "100755" });
+  }
+  return changes;
+}
+
+/**
+ * A file's mode with its execute bit put back the way git writes one: on
+ * wherever read is allowed, so the person's umask still holds, or off
+ * everywhere. Git tracks only whether a file is executable, not a mode.
+ */
+export function executableMode(mode, executable) {
+  return executable ? mode | ((mode & 0o444) >> 2) : mode & ~0o111;
+}
+
+/**
+ * Puts back every file mode in the package that differs from git's. Stryker
+ * restores each file it rewrote by renaming a fresh copy over it, which drops
+ * an execute bit, and it rewrites every script of the package, mutated or not,
+ * to disable type checks in it: a run left the terminal kit's launcher
+ * `sdk/ink/src/cli/stigmer-ink.tsx` and the runner's
+ * `scripts/gen-turn-stubs.mjs` non-executable (Stryker 10.0.0, 2026-11-04),
+ * which the next run refuses as an uncommitted change. The caller refused a
+ * package with any change before Stryker ran, so every mode difference here
+ * is the run's own, and putting it back cannot undo the person's work.
+ * Content is never touched: a file Stryker left changed is still refused.
+ */
+function restoreModes(repo, pkg) {
+  const raw = execFileSync("git", ["diff", "--raw", "-z", "--no-renames", "--", pkg], { cwd: repo, encoding: "utf8" });
+  for (const { path, executable } of modeChanges(raw)) {
+    const file = join(repo, path);
+    chmodSync(file, executableMode(statSync(file).mode, executable) & 0o7777);
+  }
+}
+
 async function runTarget(opts) {
   const { targets } = loadTargets(opts.targets);
   const target = targets[opts.run];
@@ -871,6 +921,7 @@ async function runTarget(opts) {
   const commit = execFileSync("git", ["rev-parse", "HEAD"], { cwd: repo, encoding: "utf8" }).trim();
   const result = spawnSync("npx", ["--no-install", "stryker", "run", configPath], { cwd: packageDir, stdio: "inherit" });
   removeStrykerSetupFiles(packageDir);
+  restoreModes(repo, target.package);
   if (result.error) throw result.error;
   if (result.status !== 0) return result.status ?? 2;
   if (opts.dryRun) {
