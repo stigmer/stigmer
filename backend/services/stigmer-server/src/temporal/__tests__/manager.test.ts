@@ -24,7 +24,14 @@
  *   - the manager's logger is attached to the SDK log bridge before
  *     every native connect, first start and reconnect alike (#1037: the
  *     first native connect creates the Runtime, after which its logger
- *     cannot be installed).
+ *     cannot be installed);
+ *   - the boot schedule (#2178): initialConnect() makes exactly one dial,
+ *     so an absent engine costs boot one dial window, and a healthy one is
+ *     connected before it resolves; while the engine has never connected,
+ *     the monitor makes the initial schedule's remaining attempts at 1s
+ *     and 2s through the reconnect path (workers recreated, each hook
+ *     fired once), then falls back to its own cadence; close() inside
+ *     that window leaves no timer and adopts nothing.
  *
  * The manager's private dial, the SDK's NativeConnection/Worker.create and
  * the process SDK log bridge are stubbed (module mock + private-seam
@@ -456,5 +463,221 @@ describe("TemporalManager SDK log routing (#1037)", () => {
       "native-connect",
     ]);
     expect(sdkSpy.attachedLoggers).toEqual([logger, logger]);
+  });
+});
+
+describe("TemporalManager boot schedule (#2178)", () => {
+  /** A connection double the monitor's health check reads as SERVING. */
+  function healthyConnection(): unknown {
+    return {
+      close: async () => {},
+      withDeadline: (_deadline: number, fn: () => Promise<unknown>) => fn(),
+      healthService: { check: async () => ({ status: 1 }) },
+    };
+  }
+
+  /**
+   * Fails the first `failures` dials, then answers with a healthy pair;
+   * `dials` counts every call.
+   */
+  function flakyDial(failures: number): {
+    readonly dial: () => Promise<{ connection: unknown; client: unknown }>;
+    readonly dials: () => number;
+  } {
+    let dials = 0;
+    return {
+      dial: async () => {
+        dials++;
+        if (dials <= failures) {
+          throw new Error("connect ECONNREFUSED 127.0.0.1:1");
+        }
+        return { connection: healthyConnection(), client: { dial: dials } };
+      },
+      dials: () => dials,
+    };
+  }
+
+  afterEach(async () => {
+    // Closed under the fake clock that armed their timers, before it goes.
+    for (const manager of managers.splice(0)) {
+      await manager.close();
+    }
+    vi.useRealTimers();
+  });
+
+  it("a refused first dial returns from initialConnect after one attempt", async () => {
+    const manager = newManager([]);
+    const dial = flakyDial(Number.POSITIVE_INFINITY);
+    stubDial(manager, dial.dial);
+
+    const started = Date.now();
+    const connected = await manager.initialConnect();
+
+    expect(connected).toBe(false);
+    expect(dial.dials(), "boot makes one dial, never the whole schedule").toBe(1);
+    expect(
+      Date.now() - started,
+      "no retry sleep inside the awaited connect",
+    ).toBeLessThan(500);
+    expect(manager.getClient()).toBeUndefined();
+  });
+
+  it("a healthy first dial is connected before initialConnect resolves, and the monitor dials nothing more", async () => {
+    vi.useFakeTimers({
+      toFake: ["setTimeout", "clearTimeout", "setInterval", "clearInterval", "Date"],
+    });
+    const record: FakeWorkerRecord = { shutdowns: 0 };
+    let created = 0;
+    const factory = fakeWorkerFactory(record);
+    const manager = newManager([
+      async (deps) => {
+        created++;
+        return factory(deps);
+      },
+    ]);
+    const dial = flakyDial(0);
+    stubDial(manager, dial.dial);
+
+    const connected = await manager.initialConnect();
+    expect(connected).toBe(true);
+    expect(manager.isConnected()).toBe(true);
+    expect(manager.getClient()).toEqual({ dial: 1 });
+    await manager.startWorkers();
+    manager.startHealthMonitor();
+    await vi.advanceTimersByTimeAsync(31_000);
+
+    expect(dial.dials(), "a healthy engine is never re-dialed").toBe(1);
+    expect(created, "workers are started once, by startWorkers").toBe(1);
+  });
+
+  it("makes the remaining initial attempts at 1s and 2s through the reconnect path", async () => {
+    vi.useFakeTimers({
+      toFake: ["setTimeout", "clearTimeout", "setInterval", "clearInterval", "Date"],
+    });
+    let created = 0;
+    const factory = fakeWorkerFactory({ shutdowns: 0 });
+    const manager = newManager([
+      async (deps) => {
+        created++;
+        return factory(deps);
+      },
+    ]);
+    let hooks = 0;
+    manager.addReconnectHook(() => {
+      hooks++;
+    });
+    const dial = flakyDial(2);
+    stubDial(manager, dial.dial);
+
+    expect(await manager.initialConnect()).toBe(false);
+    await manager.startWorkers();
+    manager.startHealthMonitor();
+
+    await vi.advanceTimersByTimeAsync(999);
+    expect(dial.dials(), "the second attempt waits the first backoff").toBe(1);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(dial.dials(), "the second attempt runs at 1s").toBe(2);
+    expect(manager.isConnected()).toBe(false);
+
+    await vi.advanceTimersByTimeAsync(1_999);
+    expect(dial.dials(), "the third attempt waits the second backoff").toBe(2);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(dial.dials(), "the third attempt runs 2s later").toBe(3);
+
+    expect(manager.isConnected()).toBe(true);
+    expect(manager.getClient()).toEqual({ dial: 3 });
+    expect(created, "the late connect creates the workers").toBe(1);
+    expect(hooks, "each reconnect hook fires once on the late connect").toBe(1);
+
+    await vi.advanceTimersByTimeAsync(31_000);
+    expect(dial.dials(), "a connected engine is not re-dialed").toBe(3);
+    expect(hooks).toBe(1);
+  });
+
+  it("falls back to the monitor's cadence once the initial schedule is spent", async () => {
+    vi.useFakeTimers({
+      toFake: ["setTimeout", "clearTimeout", "setInterval", "clearInterval", "Date"],
+    });
+    const manager = newManager([]);
+    const dial = flakyDial(Number.POSITIVE_INFINITY);
+    stubDial(manager, dial.dial);
+
+    await manager.initialConnect();
+    manager.startHealthMonitor();
+    await vi.advanceTimersByTimeAsync(3_000);
+    expect(dial.dials(), "three attempts on the initial schedule").toBe(3);
+
+    await vi.advanceTimersByTimeAsync(11_999);
+    expect(dial.dials(), "nothing more before the monitor's tick").toBe(3);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(dial.dials(), "the monitor's 15s tick dials next").toBe(4);
+  });
+
+  it("close() in the window leaves no timer and adopts nothing", async () => {
+    vi.useFakeTimers({
+      toFake: ["setTimeout", "clearTimeout", "setInterval", "clearInterval", "Date"],
+    });
+    const manager = newManager([]);
+    let hooks = 0;
+    manager.addReconnectHook(() => {
+      hooks++;
+    });
+    const dial = flakyDial(1);
+    stubDial(manager, dial.dial);
+
+    await manager.initialConnect();
+    manager.startHealthMonitor();
+    await manager.close();
+    expect(vi.getTimerCount(), "close() clears the pending attempt").toBe(0);
+
+    await vi.advanceTimersByTimeAsync(31_000);
+    expect(dial.dials(), "no dial after close").toBe(1);
+    expect(manager.getClient()).toBeUndefined();
+    expect(hooks).toBe(0);
+  });
+
+  it("a scheduled dial that lands after close() is discarded, with no hook fired", async () => {
+    vi.useFakeTimers({
+      toFake: ["setTimeout", "clearTimeout", "setInterval", "clearInterval", "Date"],
+    });
+    const manager = newManager([]);
+    let hooks = 0;
+    manager.addReconnectHook(() => {
+      hooks++;
+    });
+    let dials = 0;
+    let releaseDial: (() => void) | undefined;
+    const dialGate = new Promise<void>((resolve) => {
+      releaseDial = resolve;
+    });
+    let closes = 0;
+    stubDial(manager, async () => {
+      dials++;
+      if (dials === 1) {
+        throw new Error("connect ECONNREFUSED 127.0.0.1:1");
+      }
+      await dialGate;
+      return {
+        connection: {
+          close: async () => {
+            closes++;
+          },
+        },
+        client: {},
+      };
+    });
+
+    await manager.initialConnect();
+    manager.startHealthMonitor();
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(dials, "the scheduled attempt is dialing").toBe(2);
+    await manager.close();
+    releaseDial!();
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(manager.getClient(), "the late dial is not adopted").toBeUndefined();
+    expect(closes, "its connection is closed").toBe(1);
+    expect(hooks).toBe(0);
+    expect(vi.getTimerCount()).toBe(0);
   });
 });
