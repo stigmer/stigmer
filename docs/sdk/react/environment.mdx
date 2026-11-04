@@ -425,6 +425,8 @@ Columns are not sortable: the direct query has one fixed server-side
 order (newest first), and a sort affordance that did nothing would lie.
 
 ```tsx
+import type { Environment } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/api_pb";
+// ---cut---
 function createEnvironmentColumns(): WorkbenchColumnDef<Environment>[]
 ```
 
@@ -439,6 +441,8 @@ and pass `getItemId={(e) => e.metadata?.id}`.
 (render the workbench with `searchable={false}`).
 
 ```tsx
+import type { Environment } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/api_pb";
+// ---cut---
 function createEnvironmentListFn(client: EnvironmentListClient): WorkbenchListFn<Environment>
 ```
 
@@ -451,7 +455,7 @@ environment: the server's standard sandbox", or why none applies.
 display name where the page has it); the slug is used otherwise.
 
 ```tsx
-function describeEnvironmentChoice(choice: EnvironmentChoice, nameOf: (environment: { id?: string; org: string; slug: string }) => string): string
+function describeEnvironmentChoice(choice: EnvironmentChoice, nameOf?: (environment: { id?: string; org: string; slug: string }) => string): string
 ```
 
 
@@ -460,6 +464,8 @@ function describeEnvironmentChoice(choice: EnvironmentChoice, nameOf: (environme
 The network an Environment allows, in a list's few words: "Unrestricted" or "Limited · 3 hosts".
 
 ```tsx
+import type { Environment } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/api_pb";
+// ---cut---
 function describeNetworkShort(environment: Environment): string
 ```
 
@@ -469,6 +475,8 @@ function describeNetworkShort(environment: Environment): string
 The packages an Environment installs, in a list's few words: "None" or "4 packages".
 
 ```tsx
+import type { Environment } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/api_pb";
+// ---cut---
 function describePackagesShort(environment: Environment): string
 ```
 
@@ -519,7 +527,10 @@ standard sandbox, or, for a conversation on the person's own machine
 (`ownMachine`), none governs it.
 
 ```tsx
-function environmentChoiceOfStatus(status: { environment?: ApiResourceReference; environmentSource: EnvironmentSource } | undefined, ownMachine: boolean): EnvironmentChoice
+import type { EnvironmentSource } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import type { ApiResourceReference } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+// ---cut---
+function environmentChoiceOfStatus(status: { environment?: ApiResourceReference; environmentSource: EnvironmentSource } | undefined, ownMachine?: boolean): EnvironmentChoice
 ```
 
 
@@ -544,6 +555,8 @@ The slice of the Stigmer client this module needs (mockable in tests).
 The name a person knows an Environment by: its display name, else its slug.
 
 ```tsx
+import type { Environment } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/api_pb";
+// ---cut---
 function environmentName(environment: Environment): string
 ```
 
@@ -601,6 +614,8 @@ Why no Environment governs a conversation: it runs on the person's own machine, 
 The wire's source as a name; undefined for UNSPECIFIED (none applied).
 
 ```tsx
+import type { EnvironmentSource } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+// ---cut---
 function environmentSourceName(source: EnvironmentSource): EnvironmentSourceName | undefined
 ```
 
@@ -617,7 +632,7 @@ The first row of a picker: what applies when the field is left empty.
 nothing further down the order names one.
 
 ```tsx
-function inheritedRowLabel(inherited: EnvironmentChoice, nameOf: (environment: { id?: string; org: string; slug: string }) => string): string
+function inheritedRowLabel(inherited: EnvironmentChoice, nameOf?: (environment: { id?: string; org: string; slug: string }) => string): string
 ```
 
 
@@ -642,7 +657,7 @@ direct query: the page `pageToken` names (`""` for the first), at most
 `pageSize`.
 
 ```tsx
-function listEnvironmentsPage(client: EnvironmentListClient, org: string, page: { pageSize?: number; pageToken?: string }): Promise<EnvironmentPage>
+function listEnvironmentsPage(client: EnvironmentListClient, org: string, page?: { pageSize?: number; pageToken?: string }): Promise<EnvironmentPage>
 ```
 
 
@@ -665,6 +680,8 @@ An Environment's network as a person edits it.
 A stored network as a draft; unset reads as unrestricted, as the server reads it.
 
 ```tsx
+import type { EnvironmentNetworking } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/spec_pb";
+// ---cut---
 function networkingDraftOf(networking: EnvironmentNetworking | undefined): NetworkingDraft
 ```
 
@@ -676,6 +693,8 @@ contract refuses hosts or flags beside it; limited carries the listed
 hosts and both flags.
 
 ```tsx
+import type { EnvironmentNetworkingInput } from "@stigmer/client";
+// ---cut---
 function networkingInputOf(draft: NetworkingDraft): EnvironmentNetworkingInput
 ```
 
@@ -700,6 +719,8 @@ The installers an Environment's packages are listed by, in the order the server 
 How many packages a stored set lists, across every installer.
 
 ```tsx
+import type { EnvironmentPackages } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/spec_pb";
+// ---cut---
 function packageCountOf(packages: EnvironmentPackages | undefined): number
 ```
 
@@ -724,6 +745,8 @@ An Environment's packages as a person edits them: one box per installer, one ent
 Stored packages as a draft.
 
 ```tsx
+import type { EnvironmentPackages } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/spec_pb";
+// ---cut---
 function packagesDraftOf(packages: EnvironmentPackages | undefined): PackagesDraft
 ```
 
@@ -733,6 +756,8 @@ function packagesDraftOf(packages: EnvironmentPackages | undefined): PackagesDra
 A draft as the SDK's input: every installer, empty ones as empty lists, so a save clears what was removed.
 
 ```tsx
+import type { EnvironmentPackagesInput } from "@stigmer/client";
+// ---cut---
 function packagesInputOf(draft: PackagesDraft): EnvironmentPackagesInput
 ```
 
@@ -759,6 +784,8 @@ resolveEnvironmentChoice({ agent: agentSpec.environmentRef, organization: prefs.
 The network a new Environment starts with on a server that can do `availability`.
 
 ```tsx
+import type { EnvironmentAvailability } from "@stigmer/client";
+// ---cut---
 function startingNetworkOf(availability: EnvironmentAvailability | undefined): NetworkingDraft
 ```
 

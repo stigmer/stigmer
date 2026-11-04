@@ -5,7 +5,7 @@
  * parsed from TypeDoc JSON, independent of the output format.
  */
 
-import type { Example } from "./mdx-utils";
+import type { Example, Signature } from "./mdx-utils";
 
 // ---------------------------------------------------------------------------
 // Top-level grouping
@@ -36,6 +36,8 @@ export interface Domain {
 export interface Hook {
   name: string;
   description: CommentPart[];
+  /** The declaration the reference shows under "Signature". */
+  signature: Signature;
   parameters: Param[];
   returnType: TypeRef;
   /** Resolved return-type interface (set during linking). */
@@ -67,7 +69,7 @@ export interface TypeDef {
   /** Name of the hook or component this type is associated with (null = standalone). */
   associatedExport: string | null;
   /** Function signature, present when this TypeDef represents an exported utility function. */
-  signature: string | null;
+  signature: Signature | null;
   examples: Example[];
 }
 
@@ -88,6 +90,7 @@ export interface Param {
   name: string;
   typeString: string;
   description: string;
+  /** Whether a caller must pass it: not optional and with no default value. */
   required: boolean;
 }
 

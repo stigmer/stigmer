@@ -67,6 +67,12 @@ packages, which platform builders embed too.
   focus, hijack shortcuts or inject global styles.
 - A kit's promises live on `test/ux-bar.json`, each held by a test or an open
   issue.
+- A type a public signature names is one a reader can import: from a peer
+  dependency that exports it, or else exported by the kit, as a type, from the
+  entry the function is in. The docs snippet gate compiles every reference
+  signature and reports one that is not.
+- An `@example` compiles on its reference page and holds no hidden setup,
+  because an editor shows it whole (`docs/STYLE.md`, "Code examples compile").
 
 ## Skills
 

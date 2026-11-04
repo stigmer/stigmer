@@ -16,6 +16,7 @@ import type {
   ExternalTarget,
 } from "./typedoc-types";
 import { ReflectionKind, isExternalTarget } from "./typedoc-types";
+import type { Signature } from "./mdx-utils";
 import type {
   Domain,
   Hook,
@@ -31,6 +32,10 @@ import {
   toAnchor,
   flattenCommentParts,
   extractExamples,
+  isParameterOptional,
+  parameterName,
+  signatureOf,
+  type TypeImportResolver,
 } from "./mdx-utils";
 
 // ---------------------------------------------------------------------------
@@ -376,8 +381,14 @@ export interface ParseResult {
   warnings: string[];
 }
 
+/**
+ * Parses the kit's TypeDoc JSON. `resolveTypeImport` says where a reader
+ * imports each type a signature names from (`type-imports.ts` reads it from
+ * the kit's own package).
+ */
 export async function parseTypeDocJson(
   apiJsonPath: string,
+  resolveTypeImport: TypeImportResolver,
 ): Promise<ParseResult> {
   const raw = await fs.readFile(apiJsonPath, "utf-8");
   const project = JSON.parse(raw) as TypeDocProject;
@@ -417,7 +428,7 @@ export async function parseTypeDocJson(
   const domains: Domain[] = [];
   for (const [slug, items] of classified) {
     domains.push(
-      parseDomain(slug, items, reflectionById, exportDomainMap, headlessIds, warnings),
+      parseDomain(slug, items, reflectionById, exportDomainMap, headlessIds, resolveTypeImport, warnings),
     );
   }
 
@@ -588,6 +599,7 @@ function parseDomain(
   reflectionById: Map<number, Reflection>,
   exportDomainMap: Map<string, string>,
   headlessIds: Set<number>,
+  resolveTypeImport: TypeImportResolver,
   warnings: string[],
 ): Domain {
   const meta = DOMAIN_META[slug] ?? { title: slug, description: "" };
@@ -616,7 +628,7 @@ function parseDomain(
 
   const hooks = items.hooks
     .sort((a, b) => a.name.localeCompare(b.name))
-    .map((r) => parseHook(r, slug, reflectionById, exportDomainMap));
+    .map((r) => parseHook(r, slug, reflectionById, exportDomainMap, resolveTypeImport));
 
   const components = items.components
     .sort((a, b) => a.name.localeCompare(b.name))
@@ -631,7 +643,7 @@ function parseDomain(
       parseTypeAlias(r, slug, reflectionById, exportDomainMap),
     ),
     ...items.variables.map((r) =>
-      parseVariable(r, slug, reflectionById, exportDomainMap),
+      parseVariable(r, slug, reflectionById, exportDomainMap, resolveTypeImport),
     ),
   ];
 
@@ -659,8 +671,10 @@ function parseHook(
   currentDomain: string,
   reflectionById: Map<number, Reflection>,
   exportDomainMap: Map<string, string>,
+  resolveTypeImport: TypeImportResolver,
 ): Hook {
   const sig = reflection.signatures?.[0];
+  if (sig === undefined) throw new Error(`TypeDoc gave the hook ${reflection.name} no call signature`);
   const comment = sig?.comment;
 
   const description = comment?.summary
@@ -672,18 +686,19 @@ function parseHook(
       )
     : [];
 
-  const parameters: Param[] = (sig?.parameters ?? []).map((p) => ({
-    name: p.name === "__namedParameters" ? "options" : p.name,
+  const parameters: Param[] = (sig.parameters ?? []).map((p) => ({
+    name: parameterName(p),
     typeString: p.type ? serializeType(p.type) : "unknown",
     description: flattenCommentParts(p.comment?.summary),
-    required: !p.flags.isOptional,
+    required: !isParameterOptional(p),
   }));
 
   return {
     name: reflection.name,
     description,
+    signature: signatureOf(reflection.name, sig, resolveTypeImport),
     parameters,
-    returnType: extractReturnType(sig?.type),
+    returnType: extractReturnType(sig.type),
     returnInterface: null,
     examples: extractExamples(comment, reflection),
     sourceUrl: reflection.sources?.[0]?.url ?? "",
@@ -791,24 +806,16 @@ function parseVariable(
   currentDomain: string,
   reflectionById: Map<number, Reflection>,
   exportDomainMap: Map<string, string>,
+  resolveTypeImport: TypeImportResolver,
 ): TypeDef {
-  // Utility functions come through this path (camelCase kind-64 exports).
-  // Build a signature string if the reflection has call signatures.
-  let signature: string | null = null;
+  // Utility functions come through this path (camelCase kind-64 exports),
+  // with the signature of their first call signature.
+  let signature: Signature | null = null;
   let description: CommentPart[] = [];
 
   if (reflection.signatures && reflection.signatures.length > 0) {
     const sig = reflection.signatures[0];
-    const params = (sig.parameters ?? [])
-      .map((p) => {
-        const pName = p.name === "__namedParameters" ? "options" : p.name;
-        const opt = p.flags.isOptional ? "?" : "";
-        const pType = p.type ? serializeType(p.type) : "unknown";
-        return `${pName}${opt}: ${pType}`;
-      })
-      .join(", ");
-    const ret = sig.type ? serializeType(sig.type) : "void";
-    signature = `function ${reflection.name}(${params}): ${ret}`;
+    signature = signatureOf(reflection.name, sig, resolveTypeImport);
 
     description = sig.comment?.summary
       ? convertCommentParts(

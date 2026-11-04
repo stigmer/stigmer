@@ -320,6 +320,8 @@ Columns are not sortable: the direct query has one fixed server-side
 order (newest first), and a sort affordance that did nothing would lie.
 
 ```tsx
+import type { File } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
+// ---cut---
 function createFileColumns(): WorkbenchColumnDef<File>[]
 ```
 
@@ -334,6 +336,8 @@ Consumers type their workbench as `ResourceWorkbench<File>` and pass
 (render the workbench with `searchable={false}`).
 
 ```tsx
+import type { File } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
+// ---cut---
 function createFileListFn(client: FileListClient): WorkbenchListFn<File>
 ```
 
@@ -343,6 +347,8 @@ function createFileListFn(client: FileListClient): WorkbenchListFn<File>
 A File's media type in a list's few words: "image/png", or "—" when it has none.
 
 ```tsx
+import type { File } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
+// ---cut---
 function describeFileType(file: File): string
 ```
 
@@ -352,6 +358,8 @@ function describeFileType(file: File): string
 When a File was uploaded, in a list's few words: "3h", "Jul 12".
 
 ```tsx
+import type { File } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
+// ---cut---
 function describeUploaded(file: File): string
 ```
 
@@ -422,7 +430,7 @@ Fetch one page of the Files of no conversation the caller can view in
 `pageSize`.
 
 ```tsx
-function listLibraryFilesPage(client: FileListClient, org: string, page: { pageSize?: number; pageToken?: string }): Promise<FilePage>
+function listLibraryFilesPage(client: FileListClient, org: string, page?: { pageSize?: number; pageToken?: string }): Promise<FilePage>
 ```
 
 

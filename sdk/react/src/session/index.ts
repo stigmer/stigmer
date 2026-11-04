@@ -27,7 +27,7 @@ export { useSessionList } from "@stigmer/react-core";
 export type { UseSessionListOptions, UseSessionListReturn } from "@stigmer/react-core";
 
 export { useSessionRuns } from "@stigmer/react-core";
-export type { UseSessionRunsReturn } from "@stigmer/react-core";
+export type { UseSessionRunsOptions, UseSessionRunsReturn } from "@stigmer/react-core";
 
 export { useAttentionNotifications, noticeOf } from "./useAttentionNotifications.js";
 export type {

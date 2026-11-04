@@ -32,13 +32,13 @@ and `accessHistoryJsonLine` from `@stigmer/client`.
 **Signature**
 
 ```tsx
-function useAccessHistory(org: string | null, options: UseAccessHistoryOptions): UseAccessHistoryReturn
+function useAccessHistory(org: string | null, options?: UseAccessHistoryOptions): UseAccessHistoryReturn
 ```
 
 <TypeTable
   type={{
     org: { type: "string | null", description: "", required: true },
-    options: { type: "UseAccessHistoryOptions", description: "", required: true },
+    options: { type: "UseAccessHistoryOptions", description: "" },
   }}
 />
 
@@ -164,7 +164,7 @@ arrives, and an answer for one resource is never reported for another.
 **Signature**
 
 ```tsx
-function useCheckPermissions(resource: PermissionCheckResource | null, relations: readonly R[], options?: CheckPermissionOptions): UseCheckPermissionsReturn<R>
+function useCheckPermissions<R extends string>(resource: PermissionCheckResource | null, relations: readonly R[], options?: CheckPermissionOptions): UseCheckPermissionsReturn<R>
 ```
 
 <TypeTable
@@ -355,13 +355,13 @@ Pass `null` as `org` to skip fetching (stable no-op).
 **Signature**
 
 ```tsx
-function usePrincipalsCount(org: string | null, principalKind: string): UsePrincipalsCountReturn
+function usePrincipalsCount(org: string | null, principalKind?: string): UsePrincipalsCountReturn
 ```
 
 <TypeTable
   type={{
     org: { type: "string | null", description: "Organization ID, or `null` to skip.", required: true },
-    principalKind: { type: "string", description: "Kind of principals to count. Defaults to `\"identity_account\"`.", required: true },
+    principalKind: { type: "string", description: "Kind of principals to count. Defaults to `\"identity_account\"`." },
   }}
 />
 
@@ -478,15 +478,17 @@ need a custom role picker UI; for the styled version, use
 **Signature**
 
 ```tsx
-function useRoleSelector(kind: ApiResourceKind | null, defaultRole?: IamRole, granteeKind: "identity_account" | "team", omit: readonly IamRole[]): UseRoleSelectorReturn
+import type { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
+// ---cut---
+function useRoleSelector(kind: ApiResourceKind | null, defaultRole?: IamRole, granteeKind?: "identity_account" | "team", omit?: readonly IamRole[]): UseRoleSelectorReturn
 ```
 
 <TypeTable
   type={{
     kind: { type: "ApiResourceKind | null", description: "The resource kind to show grantable roles for, or `null`.", required: true },
     defaultRole: { type: "IamRole", description: "Optional initial selection." },
-    granteeKind: { type: "\"identity_account\" | \"team\"", description: "Who the role is for: a person (the default) may   hold any grantable role, a team only the kind's team roles.", required: true },
-    omit: { type: "readonly IamRole[]", description: "Roles to leave out even though the kind grants them: the   ones the caller may not assign (an organization's `owner`, for anyone   who is not its owner). The server refuses them anyway; leaving them out   keeps a choice off the screen that could only fail. Pass a stable list   (a constant, or a memoized one): the options follow its identity.", required: true },
+    granteeKind: { type: "\"identity_account\" | \"team\"", description: "Who the role is for: a person (the default) may   hold any grantable role, a team only the kind's team roles." },
+    omit: { type: "readonly IamRole[]", description: "Roles to leave out even though the kind grants them: the   ones the caller may not assign (an organization's `owner`, for anyone   who is not its owner). The server refuses them anyway; leaving them out   keeps a choice off the screen that could only fail. Pass a stable list   (a constant, or a memoized one): the options follow its identity." },
   }}
 />
 
@@ -966,6 +968,8 @@ direct sign-ups, or a FederationIssuer's display name for federated ones)
 is what lets the UI tell those accounts apart.
 
 ```tsx
+import type { ApiResourceRefView } from "@stigmer/apis/ai/stigmer/iam/grant/v1/io_pb";
+// ---cut---
 function providerLabel(principal: ApiResourceRefView | undefined): string
 ```
 

@@ -1,0 +1,146 @@
+/**
+ * Where a reader imports a type a kit's signature names from.
+ *
+ * TypeDoc names the package a type is declared in (`ExternalTarget`), which
+ * is not always the package a reader installs: `ToolUse` is declared in
+ * `@stigmer/session-log` and reaches readers through `@stigmer/client`;
+ * `ReactNode` is declared in `@types/react` and imported from `react`. A
+ * reader installs the kit and its peer dependencies, so an import is only
+ * ever from a peer, read from the kit's own `package.json`:
+ *
+ *   - a peer whose `exports` map has a pattern (`@stigmer/apis`'s `./*`)
+ *     is imported from the subpath the declaring file matches
+ *     (`dist/ai/stigmer/agentic/run/v1/api_pb.d.ts` →
+ *     `@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb`);
+ *   - otherwise from the first peer whose root exports the name, the
+ *     declaring package (or the package its `@types/` package types) first.
+ *
+ * A type of the kit's own, a global, or one no peer exports has no import:
+ * the docs snippet gate imports the kit's names from the page's entry, and
+ * reports any other at its page and line, where the fix is the kit
+ * exporting the type. A peer's root exports are read with the TypeScript
+ * checker from the kit's own folder, as the gate reads an entry's.
+ */
+
+import * as fs from "node:fs";
+import * as path from "node:path";
+import ts from "typescript";
+import type { ExternalTarget } from "./typedoc-types";
+import type { TypeImportResolver } from "./mdx-utils";
+
+/** The package a type is declared in, as a reader would install it: `@types/react` → `react`. */
+function installedName(packageName: string): string {
+  if (!packageName.startsWith("@types/")) return packageName;
+  const bare = packageName.slice("@types/".length);
+  return bare.includes("__") ? `@${bare.replace("__", "/")}` : bare;
+}
+
+interface PackageJson {
+  readonly name: string;
+  readonly peerDependencies?: Readonly<Record<string, string>>;
+  readonly exports?: unknown;
+}
+
+/** The nearest `node_modules/<name>/package.json` above a folder, as Node finds a package. */
+function findPackageJson(fromDir: string, name: string): PackageJson {
+  for (let dir = fromDir; ; dir = path.dirname(dir)) {
+    const file = path.join(dir, "node_modules", name, "package.json");
+    if (fs.existsSync(file)) return JSON.parse(fs.readFileSync(file, "utf8")) as PackageJson;
+    if (path.dirname(dir) === dir) throw new Error(`cannot find the package ${name} from ${fromDir}: install the workspace first`);
+  }
+}
+
+/** The types file of an `exports` entry: the `types` condition, or the entry itself when it is a path. */
+function typesTarget(entry: unknown): string | null {
+  if (typeof entry === "string") return entry;
+  if (typeof entry === "object" && entry !== null) {
+    const conditions = entry as Record<string, unknown>;
+    return typesTarget(conditions.types ?? conditions.import ?? conditions.default);
+  }
+  return null;
+}
+
+/**
+ * The subpath of a package whose `exports` pattern holds a declaring file,
+ * or null when no pattern matches: `dist/ai/x_pb.d.ts` under
+ * `"./*": { "types": "./dist/*.d.ts" }` is `ai/x_pb`.
+ */
+export function patternSubpath(exportsMap: unknown, packagePath: string): string | null {
+  if (typeof exportsMap !== "object" || exportsMap === null) return null;
+  for (const [key, entry] of Object.entries(exportsMap)) {
+    if (!key.includes("*")) continue;
+    const target = typesTarget(entry);
+    if (target === null || !target.includes("*")) continue;
+    const [prefix, suffix] = target.replace(/^\.\//, "").split("*");
+    if (!packagePath.startsWith(prefix) || !packagePath.endsWith(suffix)) continue;
+    const star = packagePath.slice(prefix.length, packagePath.length - suffix.length);
+    if (star === "") continue;
+    return key.replace(/^\.\//, "").replace("*", star);
+  }
+  return null;
+}
+
+/** Whether a package's `exports` map gives it a root entry (no map at all is a root too). */
+function hasRoot(pkg: PackageJson): boolean {
+  if (pkg.exports === undefined) return true;
+  if (typeof pkg.exports === "string") return true;
+  const map = pkg.exports as Record<string, unknown>;
+  return "." in map || !Object.keys(map).some((k) => k.startsWith("."));
+}
+
+/** The names each peer's root exports, read once with the TypeScript checker from the kit's folder. */
+function readRootExports(kitDir: string, peers: readonly string[]): Map<string, Set<string>> {
+  const options: ts.CompilerOptions = {
+    module: ts.ModuleKind.ESNext,
+    moduleResolution: ts.ModuleResolutionKind.Bundler,
+    target: ts.ScriptTarget.ES2022,
+    jsx: ts.JsxEmit.ReactJSX,
+    allowImportingTsExtensions: true,
+    noEmit: true,
+    skipLibCheck: true,
+    types: [],
+  };
+  const probe = path.join(kitDir, "__signature-imports__.ts");
+  const text = peers.map((p, i) => `import * as p${i} from ${JSON.stringify(p)};\nexport { p${i} };`).join("\n");
+  const host = ts.createCompilerHost(options, true);
+  const getSourceFile = host.getSourceFile.bind(host);
+  const fileExists = host.fileExists.bind(host);
+  host.getSourceFile = (fileName, version, onError, create) =>
+    fileName === probe ? ts.createSourceFile(fileName, text, version, true) : getSourceFile(fileName, version, onError, create);
+  host.fileExists = (fileName) => fileName === probe || fileExists(fileName);
+  const program = ts.createProgram([probe], options, host);
+  const checker = program.getTypeChecker();
+  const result = new Map<string, Set<string>>();
+  const sf = program.getSourceFile(probe);
+  for (const stmt of sf?.statements ?? []) {
+    if (!ts.isImportDeclaration(stmt) || !ts.isStringLiteral(stmt.moduleSpecifier)) continue;
+    const symbol = checker.getSymbolAtLocation(stmt.moduleSpecifier);
+    if (symbol === undefined) throw new Error(`cannot resolve the peer ${stmt.moduleSpecifier.text} from ${kitDir}: build the workspace's libraries first`);
+    result.set(stmt.moduleSpecifier.text, new Set(checker.getExportsOfModule(symbol).map((s) => s.name)));
+  }
+  return result;
+}
+
+/**
+ * The resolver for one kit, from its folder (where its `package.json` is).
+ * Its peers' root exports are read on first use, once.
+ */
+export function createTypeImportResolver(kitDir: string): TypeImportResolver {
+  const kit = JSON.parse(fs.readFileSync(path.join(kitDir, "package.json"), "utf8")) as PackageJson;
+  const peers = Object.keys(kit.peerDependencies ?? {});
+  const packages = new Map(peers.map((p) => [p, findPackageJson(kitDir, p)]));
+  const rooted = peers.filter((p) => hasRoot(packages.get(p)!));
+  let roots: Map<string, Set<string>> | undefined;
+
+  return (name: string, target: ExternalTarget): string | null => {
+    const declaring = installedName(target.packageName);
+    if (declaring === kit.name || target.packageName === "typescript") return null;
+    if (packages.has(declaring)) {
+      const subpath = patternSubpath(packages.get(declaring)!.exports, target.packagePath);
+      if (subpath !== null) return `${declaring}/${subpath}`;
+    }
+    roots ??= readRootExports(kitDir, rooted);
+    const order = packages.has(declaring) ? [declaring, ...rooted.filter((p) => p !== declaring)] : rooted;
+    return order.find((p) => roots!.get(p)?.has(name)) ?? null;
+  };
+}

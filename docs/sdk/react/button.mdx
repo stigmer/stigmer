@@ -102,7 +102,7 @@ This is an SDK component — embeddable by platform builders.
     enterKeyHint: { type: "\"done\" | \"go\" | \"next\" | \"search\" | \"send\" | \"enter\" | \"previous\"", description: "" },
     exportparts: { type: "string", description: "" },
     form: { type: "string", description: "" },
-    formAction: { type: "string | (formData: FormData) => void | Promise<void>", description: "" },
+    formAction: { type: "string | ((formData: FormData) => void | Promise<void>)", description: "" },
     formEncType: { type: "string", description: "" },
     formMethod: { type: "string", description: "" },
     formNoValidate: { type: "boolean", description: "" },

@@ -134,10 +134,13 @@ function parseRaw(raw: string): StoredEntries {
   }
 }
 
-type Narrowed = { readonly ok: true; readonly source: MarketplaceSource } | { readonly ok: false; readonly reason: string };
+/** A stored marketplace entry read as a source, or the reason it is not one. */
+export type NarrowedStoredEntry =
+  | { readonly ok: true; readonly source: MarketplaceSource }
+  | { readonly ok: false; readonly reason: string };
 
 /** The loose stored entry as a source, or the reason it is not one (the CLI's `narrowEntry`). */
-export function narrowStoredEntry(entry: unknown): Narrowed {
+export function narrowStoredEntry(entry: unknown): NarrowedStoredEntry {
   if (typeof entry !== "object" || entry === null) return { ok: false, reason: "not an object" };
   const record = entry as Record<string, unknown>;
   switch (record["type"]) {

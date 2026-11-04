@@ -11,6 +11,7 @@ import {
   escapeJsString,
   renderCommentParts,
   renderExample,
+  renderSignature,
 } from "./mdx-utils";
 
 // Hand-maintained sidebar grouping, ordered by adoption journey. Each group
@@ -267,15 +268,8 @@ function renderHookSection(hook: Hook): string {
     s += renderCommentParts(hook.description) + "\n\n";
   }
 
-  // Signature
-  const paramStr = hook.parameters
-    .map((p) => {
-      const opt = p.required ? "" : "?";
-      return `${p.name}${opt}: ${p.typeString}`;
-    })
-    .join(", ");
   s += "**Signature**\n\n";
-  s += `\`\`\`tsx\nfunction ${hook.name}(${paramStr}): ${hook.returnType.typeString}\n\`\`\`\n\n`;
+  s += renderSignature(hook.signature);
 
   // Parameters table
   if (hook.parameters.length > 0) {
@@ -338,7 +332,7 @@ function renderTypeDefSection(typeDef: TypeDef): string {
   }
 
   if (typeDef.signature) {
-    s += `\`\`\`tsx\n${typeDef.signature}\n\`\`\`\n\n`;
+    s += renderSignature(typeDef.signature);
   }
 
   if (typeDef.fields.length > 0) {

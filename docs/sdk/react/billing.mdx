@@ -798,11 +798,26 @@ on 2026-10-25, kept by hand because Free has no catalog row; a change to
 them changes this value.
 
 
+### OfferedFeature
+
+One feature a plan offers today, with its words.
+
+<TypeTable
+  type={{
+    description: { type: "string", description: "", required: true },
+    feature: { type: "NamedFeature", description: "", required: true, typeDescriptionLink: "/docs/sdk/react/core#namedfeature" },
+    label: { type: "string", description: "", required: true },
+  }}
+/>
+
+
 ### offeredFeatures
 
 The features `entitlements` grant that Cloud offers today, in contract order.
 
 ```tsx
+import type { Entitlements } from "@stigmer/apis/ai/stigmer/platform/v1/entitlement_pb";
+// ---cut---
 function offeredFeatures(entitlements: Entitlements | undefined): readonly OfferedFeature[]
 ```
 
@@ -823,6 +838,8 @@ include (iam/team/v1 and tenancy/organization/v1 command.proto).
 The move choosing `target` (a plan, or `"free"`) makes from `standing`, or `null` for none.
 
 ```tsx
+import type { Plan } from "@stigmer/apis/ai/stigmer/billing/plan/v1/api_pb";
+// ---cut---
 function planMove(standing: PlanStanding, target: Plan | "free", periodEnd: Date | undefined): PlanMove | null
 ```
 
@@ -839,6 +856,8 @@ rule (active, past due, or canceled but not yet at its period's end),
 else Free. `null` (never subscribed) is Free.
 
 ```tsx
+import type { Subscription } from "@stigmer/apis/ai/stigmer/billing/subscription/v1/api_pb";
+// ---cut---
 function planStanding(subscription: Subscription | null, now: Date): PlanStanding
 ```
 
@@ -855,6 +874,9 @@ plan list shows them: its child organizations, its agent hours and how
 many agents it runs at once. A term the plan does not state is left out.
 
 ```tsx
+import type { PlanTerms } from "@stigmer/apis/ai/stigmer/billing/plan/v1/spec_pb";
+import type { Entitlements } from "@stigmer/apis/ai/stigmer/platform/v1/entitlement_pb";
+// ---cut---
 function planTermLines(entitlements: Entitlements | undefined, terms: PlanTerms | undefined): readonly string[]
 ```
 
@@ -865,6 +887,8 @@ The feature a refusal says the organization's plan lacks, when `error`
 is Stigmer Cloud's `PLAN_UPGRADE_REQUIRED`; `null` for any other error.
 
 ```tsx
+import type { Feature } from "@stigmer/apis/ai/stigmer/platform/v1/entitlement_pb";
+// ---cut---
 function planUpgradeFeature(error: unknown): Feature | null
 ```
 

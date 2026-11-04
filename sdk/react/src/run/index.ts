@@ -327,7 +327,7 @@ export {
   isRunGroupableCategory,
 } from "@stigmer/react-core/internal";
 export type { ToolDisclosure } from "@stigmer/react-core";
-export type { ToolCategory, ToolCategoryInfo } from "@stigmer/react-core";
+export type { ToolCategory, ToolCategoryInfo, ToolIdentity } from "@stigmer/react-core";
 
 export { FilePathLink } from "./FilePathLink.js";
 export type { FilePathLinkProps } from "./FilePathLink.js";

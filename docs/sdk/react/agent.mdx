@@ -119,6 +119,8 @@ What an agent is made of, as facts: its model, then counts of its skills, plugin
 **Signature**
 
 ```tsx
+import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+// ---cut---
 function useAgentFacts(agent: Agent, counts: { channelCount?: number; versionCount?: number }): readonly AgentFact[]
 ```
 
@@ -238,14 +240,14 @@ Pass `null` as `org` to disable all operations (stable no-op).
 **Signature**
 
 ```tsx
-function useAgentSetup(org: string | null, poolKeys?: Set<string>, conversationVaults: ConversationVaults): UseAgentSetupReturn
+function useAgentSetup(org: string | null, poolKeys?: Set<string>, conversationVaults?: ConversationVaults): UseAgentSetupReturn
 ```
 
 <TypeTable
   type={{
     org: { type: "string | null", description: "Organization id (a slug is also accepted). Pass `null` to disable.", required: true },
     poolKeys: { type: "Set<string>", description: "Optional set of env-var keys filled elsewhere (the   platform's own keys, which the runner sets). Agents whose `env` keys   are fully covered by `poolKeys` and the vaults the run reads   auto-resolve to `ready` without prompting. Reactive — when `poolKeys`   changes, `needsEnvVars` is re-evaluated." },
-    conversationVaults: { type: "ConversationVaults", description: "The vaults the conversation uses (its   sender's My vault when included, then the listed vaults). Only what   they hold counts as saved, and a login in My vault counts only when   My vault is included. Omitted, the run is taken to read My vault   alone. Reactive — when the choice changes, an agent already resolved   is resolved again over it.", required: true },
+    conversationVaults: { type: "ConversationVaults", description: "The vaults the conversation uses (its   sender's My vault when included, then the listed vaults). Only what   they hold counts as saved, and a login in My vault counts only when   My vault is included. Omitted, the run is taken to read My vault   alone. Reactive — when the choice changes, an agent already resolved   is resolved again over it." },
   }}
 />
 
@@ -441,13 +443,15 @@ read it).
 **Signature**
 
 ```tsx
-function useRunAgentSpec(agentRef: ResourceRef | null, versionHash: string): UseRunAgentSpecReturn
+import type { ResourceRef } from "@stigmer/client";
+// ---cut---
+function useRunAgentSpec(agentRef: ResourceRef | null, versionHash?: string): UseRunAgentSpecReturn
 ```
 
 <TypeTable
   type={{
     agentRef: { type: "ResourceRef | null", description: "", required: true },
-    versionHash: { type: "string", description: "", required: true },
+    versionHash: { type: "string", description: "" },
   }}
 />
 
@@ -865,6 +869,8 @@ The harness the agent names, or `undefined` when it names none: a new
 conversation on the agent starts on it unless the person picks another.
 
 ```tsx
+import type { AgentSpec } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
+// ---cut---
 function agentHarnessOf(spec: AgentSpec | undefined): HarnessOption | undefined
 ```
 
@@ -905,6 +911,8 @@ The agent's model choices that apply to a conversation running
 names a harness other than the one the conversation runs.
 
 ```tsx
+import type { AgentSpec } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
+// ---cut---
 function agentRunDefaultsFor(spec: AgentSpec | undefined, harness: HarnessOption): AgentRunDefaults | undefined
 ```
 
@@ -958,6 +966,18 @@ orthogonal error slot.
 Errors can occur in any async transition (`resolving`, `submitting`)
 and are surfaced alongside the phase so the UI can show inline
 error messages without losing the current phase context.
+
+
+### AgentVersionCount
+
+How many versions an agent has, as far as a count of them reaches.
+
+<TypeTable
+  type={{
+    count: { type: "number", description: "The versions on the history's first page; `0` while loading.", required: true },
+    isLowerBound: { type: "boolean", description: "`true` when more versions follow the first page: the history carries no total, so a badge reads \"50+\" rather than a number it cannot know.", required: true },
+  }}
+/>
 
 
 ### agentVersionLabel

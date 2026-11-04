@@ -62,6 +62,8 @@ server's refusals speak, as it always did.
 **Signature**
 
 ```tsx
+import type { EnvironmentAvailability } from "@stigmer/client";
+// ---cut---
 function useEnvironmentAvailability(): EnvironmentAvailability | undefined
 ```
 
@@ -194,6 +196,8 @@ failures at runtime.
 **Signature**
 
 ```tsx
+import type { Stigmer } from "@stigmer/client";
+// ---cut---
 function useStigmer(): Stigmer
 ```
 
@@ -470,6 +474,8 @@ The adapter does not add its own state: idempotency and deduplication are the
 host's responsibility (the SDK calls `onSessionOpened` on every open).
 
 ```tsx
+import type { RunnerAdapter } from "@stigmer/client";
+// ---cut---
 function createRunnerAdapter(host: RunnerWorkerHost): RunnerAdapter
 ```
 
@@ -579,6 +585,8 @@ resolves). The one reading, so no caller re-derives it. A session that pins an a
 the built-in assistant: its next turn fails naming the agent.
 
 ```tsx
+import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+// ---cut---
 function isBuiltInAssistant(session: Pick<Session, "status" | "spec"> | undefined): boolean
 ```
 

@@ -11,6 +11,7 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { parseTypeDocJson } from "./parser";
+import { createTypeImportResolver } from "./type-imports";
 import { renderDomainPage, renderMetaJson, renderSummaryJson } from "./renderer";
 
 const API_JSON_PATH = path.resolve(
@@ -45,7 +46,10 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  const { domains, warnings } = await parseTypeDocJson(API_JSON_PATH);
+  const { domains, warnings } = await parseTypeDocJson(
+    API_JSON_PATH,
+    createTypeImportResolver(path.dirname(API_JSON_PATH)),
+  );
 
   if (domains.length === 0) {
     console.error("[react-sdk-docs] Error: no domains found in TypeDoc output.");

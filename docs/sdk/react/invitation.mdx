@@ -132,13 +132,13 @@ and pass `null` otherwise.
 **Signature**
 
 ```tsx
-function useOrgInvitations(org: string | null, options: UseOrgInvitationsOptions): UseOrgInvitationsReturn
+function useOrgInvitations(org: string | null, options?: UseOrgInvitationsOptions): UseOrgInvitationsReturn
 ```
 
 <TypeTable
   type={{
     org: { type: "string | null", description: "Organization id (a slug is also accepted), or `null` to skip fetching.", required: true },
-    options: { type: "UseOrgInvitationsOptions", description: "", required: true },
+    options: { type: "UseOrgInvitationsOptions", description: "" },
   }}
 />
 

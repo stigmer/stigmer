@@ -54,6 +54,7 @@ export {
 } from "./useMarketplaces.js";
 export type {
   AddSourceOutcome,
+  NarrowedStoredEntry,
   UnreadableMarketplace,
   UseMarketplacesOptions,
   UseMarketplacesReturn,
@@ -88,6 +89,9 @@ export type {
 } from "./sources/types.js";
 export { PluginReadRefusal, entryCandidates, findEntry, openMarketplace, prepareEntry } from "./sources/read.js";
 export type { InstallOrigin, OpenedMarketplace, PreparedInstall } from "./sources/read.js";
+// What the marketplace helpers take and return, from the package that reads plugins.
+export type { Marketplace, MarketplaceEntry } from "@stigmer/plugin-package";
+export type { LazyCandidate, PreparedPlugin } from "@stigmer/plugin-package/client";
 export { LocalPluginError, folderPick, folderPickFromInput, prepareLocalPlugin, zipPick } from "./sources/local.js";
 export type { LocalFile, LocalPick } from "./sources/local.js";
 export { openMarketplaceSource } from "./sources/open.js";

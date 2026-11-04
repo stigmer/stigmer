@@ -10,6 +10,8 @@
  * no link. And for the package's entries: each domain names the entry its
  * exports import from, and which of its hooks ./headless also carries; an
  * entry the generator does not know, or a domain split across two, fails.
+ * And for signatures: a hook's and a helper's carry the imports the
+ * resolver gives, and a parameter with a default value is not required.
  * The input is a minimal TypeDoc JSON written to a temporary file.
  */
 
@@ -17,6 +19,7 @@ import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import type { TypeImportResolver } from "../mdx-utils";
 import { parseTypeDocJson } from "../parser";
 import { ReflectionKind } from "../typedoc-types";
 import type { ExternalTarget, Reflection, TypeDocProject, TypeDocType } from "../typedoc-types";
@@ -43,7 +46,7 @@ function typeAlias(id: number, name: string, fileName: string): Reflection {
   };
 }
 
-async function parse(children: Reflection[]) {
+async function parse(children: Reflection[], resolve: TypeImportResolver = () => null) {
   const project: TypeDocProject = {
     schemaVersion: "2.0",
     id: 0,
@@ -56,7 +59,7 @@ async function parse(children: Reflection[]) {
   };
   const file = path.join(dir, "api.json");
   await fs.writeFile(file, JSON.stringify(project));
-  return parseTypeDocJson(file);
+  return parseTypeDocJson(file, resolve);
 }
 
 describe("parseTypeDocJson — domains", () => {
@@ -194,6 +197,30 @@ describe("parseTypeDocJson — the package's entries", () => {
         entry(300, "console", [hook(2, "useSkillAdmin", "sdk/react/src/skill/admin.ts")]),
       ]),
     ).rejects.toThrow(/skill domain's exports import from @stigmer\/react-sdk and @stigmer\/react-sdk\/console/);
+  });
+});
+
+describe("parseTypeDocJson — signatures", () => {
+  const run: TypeDocType = { type: "reference", name: "Run", target: { packageName: "@stigmer/apis", packagePath: "dist/run_pb.d.ts", qualifiedName: "Run" } };
+  const param = (name: string, extra: Partial<Reflection>): Reflection => ({ id: 0, name, variant: "param", kind: ReflectionKind.Parameter, flags: {}, type: run, ...extra });
+
+  it("gives a hook and a helper their signatures, with the imports the resolver names, a defaulted parameter not required", async () => {
+    const useRuns = hook(1, "useRuns", "sdk/react/src/run/useRuns.ts");
+    useRuns.signatures![0].parameters = [param("first", {}), param("last", { defaultValue: "undefined" })];
+    const helper = hook(2, "runLabel", "sdk/react/src/run/label.ts");
+    helper.signatures![0].parameters = [param("run", {})];
+    const asked: string[] = [];
+    const { domains } = await parse([useRuns, helper], (name, target) => {
+      asked.push(`${name} ${target.packageName}`);
+      return "@stigmer/apis/run_pb";
+    });
+
+    const [domain] = domains;
+    expect(domain.hooks[0].parameters.map((p) => [p.name, p.required])).toEqual([["first", true], ["last", false]]);
+    expect(domain.hooks[0].signature).toMatchObject({ name: "useRuns", imports: [{ name: "Run", from: "@stigmer/apis/run_pb" }] });
+    expect(domain.hooks[0].signature.parameters.map((p) => p.optional)).toEqual([false, true]);
+    expect(domain.types.find((t) => t.name === "runLabel")?.signature).toMatchObject({ name: "runLabel", returnType: "void" });
+    expect(asked).toContain("Run @stigmer/apis");
   });
 });
 

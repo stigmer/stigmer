@@ -4,7 +4,9 @@
  * line's attributes and is written as a `tsx` fence carrying them; bare
  * code with no fence is written as `tsx`; and prose around a fence, or a
  * second fence, is refused with the export and its file named, since
- * written whole it would put a fence inside a fence.
+ * written whole it would put a fence inside a fence. A hidden-setup line
+ * (`// ---cut---`) is refused too: the example ships in the kit's type
+ * declarations, where an editor shows it whole.
  */
 
 import { describe, expect, it } from "vitest";
@@ -48,6 +50,17 @@ describe("extractExamples", () => {
     expect(extractExamples(examples("a();", "```ts\nb();\n```"), OWNER).map((e) => e.code)).toEqual(["a();", "b();"]);
     expect(extractExamples({ summary: [] }, OWNER)).toEqual([]);
     expect(extractExamples(undefined, OWNER)).toEqual([]);
+  });
+
+  it("refuses hidden setup in a fence or in bare code, naming the export and its file", () => {
+    const fenced = examples('```tsx\ndeclare const org: string;\n// ---cut---\nuseThing(org);\n```');
+    expect(() => extractExamples(fenced, OWNER)).toThrow(/useThing \(sdk\/react\/src\/thing\/useThing\.ts\) has a hidden-setup line/);
+    expect(() => extractExamples(examples("declare const org: string;\n  // ---cut---  \nuseThing(org);"), OWNER)).toThrow(/hidden-setup line/);
+    expect(() => extractExamples(examples("```python\nx = 1\n# ---cut---\nthing(x)\n```"), OWNER)).toThrow(/hidden-setup line/);
+  });
+
+  it("keeps a line that only mentions the marker", () => {
+    expect(extractExamples(examples('const note = "// ---cut---";'), OWNER)).toEqual([{ meta: "", code: 'const note = "// ---cut---";' }]);
   });
 
   it("skips an @example that holds only whitespace", () => {

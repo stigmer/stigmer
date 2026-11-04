@@ -90,6 +90,8 @@ Wrappers: [`useChatLinkToolReadiness`](/docs/sdk/react/chat-link#usechatlinktool
 **Signature**
 
 ```tsx
+import type { ResourceRef } from "@stigmer/client";
+// ---cut---
 function useToolCredentialsReadiness(applicable: boolean, vaults: readonly ResourceRef[]): ToolCredentialsReadiness
 ```
 
@@ -130,6 +132,8 @@ Data hook that fetches a single vault by reference. Pass `null` to skip.
 **Signature**
 
 ```tsx
+import type { ResourceRef } from "@stigmer/client";
+// ---cut---
 function useVault(ref: ResourceRef | null): UseVaultReturn
 ```
 
@@ -561,6 +565,8 @@ The Git host every GitHub repository clones from.
 Whether a vault is a person's own My vault rather than an organization's shared vault.
 
 ```tsx
+import type { Vault } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
+// ---cut---
 function isMyVault(vault: Vault): boolean
 ```
 
@@ -630,6 +636,8 @@ server, and none for a local program, which takes its keys as secrets by
 name (as it does for a URL holding a placeholder).
 
 ```tsx
+import type { McpServerEntry } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
+// ---cut---
 function toolAddressOf(server: McpServerEntry | null | undefined): string | null
 ```
 
@@ -655,6 +663,8 @@ rule. A login saved at the tool's address fills it; `null` when the tool
 has no login slot and takes only secrets by name.
 
 ```tsx
+import type { McpServerEntry } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
+// ---cut---
 function toolLoginKeyOf(server: McpServerEntry | null | undefined): string | null
 ```
 

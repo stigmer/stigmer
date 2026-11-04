@@ -317,6 +317,8 @@ agent/session display names are not resolvable from the record alone,
 so ids are shown — they are what links back to the source surfaces.
 
 ```tsx
+import type { Memory } from "@stigmer/apis/ai/stigmer/agentic/memory/v1/api_pb";
+// ---cut---
 function formatMemoryProvenance(memory: Memory): string | null
 ```
 
@@ -333,6 +335,8 @@ stamps `proposed`); it is bucketed with proposals so a decision
 surface is always offered rather than hiding the record.
 
 ```tsx
+import type { Memory } from "@stigmer/apis/ai/stigmer/agentic/memory/v1/api_pb";
+// ---cut---
 function groupMemoriesByLifecycle(memories: readonly Memory[]): MemoryGroups
 ```
 

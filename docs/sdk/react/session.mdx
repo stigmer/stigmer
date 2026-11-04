@@ -381,6 +381,8 @@ version. See the module header for the rules.
 **Signature**
 
 ```tsx
+import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+// ---cut---
 function useSessionAgentVersion(session: Session | null, options: UseSessionAgentVersionOptions): UseSessionAgentVersionReturn
 ```
 
@@ -618,6 +620,8 @@ are all documented on the core.
 **Signature**
 
 ```tsx
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+// ---cut---
 function useSessionFileChanges(executions: readonly Run[]): UseSessionFileChangesReturn
 ```
 
@@ -649,6 +653,9 @@ Lists the Files given to a conversation, each with its place.
 **Signature**
 
 ```tsx
+import type { File } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
+import type { SessionResource } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
+// ---cut---
 function useSessionGivenFiles(files: readonly File[], resources: readonly SessionResource[]): UseSessionGivenFilesReturn
 ```
 
@@ -741,6 +748,9 @@ conversation's outputs.
 **Signature**
 
 ```tsx
+import type { File } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+// ---cut---
 function useSessionOutputs(files: readonly File[], runs: readonly Run[]): UseSessionOutputsReturn
 ```
 
@@ -1016,6 +1026,8 @@ report has tokens.
 **Signature**
 
 ```tsx
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+// ---cut---
 function useSessionUsage(runs: readonly Run[]): UseSessionUsageReturn
 ```
 
@@ -1066,6 +1078,8 @@ most recent one is the one users care about.
 **Signature**
 
 ```tsx
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+// ---cut---
 function useSessionWriteBacks(executions: readonly Run[]): UseSessionWriteBacksReturn
 ```
 
@@ -1167,6 +1181,8 @@ downstream listing/content effects never churn.
 **Signature**
 
 ```tsx
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+// ---cut---
 function useWorkspaceReadRefs(executions: readonly Run[], entries: readonly WorkspaceEntry[]): readonly WorkspaceEntry[]
 ```
 
@@ -1536,6 +1552,9 @@ The agent `session` names, or `null` when it names none (the built-in
 assistant) or has not loaded.
 
 ```tsx
+import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import type { ResourceRef } from "@stigmer/client";
+// ---cut---
 function agentRefOfSession(session: Pick<Session, "spec"> | null | undefined): ResourceRef | null
 ```
 
@@ -1602,6 +1621,8 @@ for non-channel sessions. An opaque provider id (e.g. `U0AB12CD3`) in
 v1 — display-name resolution is a future enhancement.
 
 ```tsx
+import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+// ---cut---
 function channelSessionExternalUserKey(session: Session | null | undefined): string | undefined
 ```
 
@@ -1684,6 +1705,8 @@ buckets, identical to [`groupSessionsByTime`](#groupsessionsbytime) but for ligh
 search results.
 
 ```tsx
+import type { SearchResult } from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
+// ---cut---
 function groupSearchResultsByTime(entries: readonly SearchResult[], now?: Date): readonly SearchResultGroup[]
 ```
 
@@ -1697,6 +1720,8 @@ Empty groups are omitted. Sessions with missing timestamps are placed
 in the last group. Input order is preserved within each group.
 
 ```tsx
+import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+// ---cut---
 function groupSessionsByTime(sessions: readonly Session[], now?: Date): readonly SessionGroup[]
 ```
 
@@ -1739,6 +1764,8 @@ self-select the `"observer"` audience — every entry point renders
 read-only without host wiring.
 
 ```tsx
+import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+// ---cut---
 function isChannelOriginSession(session: Session | null | undefined): boolean
 ```
 
@@ -1748,6 +1775,8 @@ function isChannelOriginSession(session: Session | null | undefined): boolean
 Whether two references name the same agent (organization and slug).
 
 ```tsx
+import type { ResourceRef } from "@stigmer/client";
+// ---cut---
 function isSameAgent(a: ResourceRef | null | undefined, b: ResourceRef | null | undefined): boolean
 ```
 
@@ -1775,6 +1804,8 @@ Per-model token breakdown.
 The notice an attention makes; undefined for a reason this client does not know.
 
 ```tsx
+import type { Attention } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
+// ---cut---
 function noticeOf(attention: Attention): AttentionNotice | undefined
 ```
 
@@ -1796,6 +1827,8 @@ Its basename doubles as the editor tab's label (paths render as their last
 `/` segment in `EditorTabs`).
 
 ```tsx
+import type { File } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
+// ---cut---
 function outputKey(file: File): string
 ```
 
@@ -2338,6 +2371,18 @@ Options for [`useSessionRailViews`](#usesessionrailviews).
     org: { type: "string", description: "Organization id for the Apply CTA (a slug is also accepted).", required: true },
     outputs: { type: "readonly SessionOutputEntry[]", description: "What the agent saved (`useSessionOutputs` over the session's Files): with given, drives the Files facet and its badge." },
     sessionConfig: { type: "SetupTabProps | undefined", description: "Session configuration for the Config facet.", required: true },
+  }}
+/>
+
+
+### UseSessionRunsOptions
+
+Options for [`useSessionRuns`](#usesessionruns).
+
+<TypeTable
+  type={{
+    refetchInterval: { type: "number | false", description: "Poll interval in milliseconds for re-listing the session's runs. Used by the conversation loop to re-discover a created-but-not-yet-listed run. Pass `false` (the default) to disable polling and rely on the live stream plus imperative UseSessionRunsReturn.refetch." },
+    refetchOnWindowFocus: { type: "boolean", description: "Re-list when the window regains focus / the tab becomes visible — covers the app-relaunch case where a run may have appeared while backgrounded. Defaults to `false`." },
   }}
 />
 
