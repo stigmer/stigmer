@@ -23,6 +23,7 @@ import { ResourceNotFoundError } from "../../../store/interface.js";
 import type {
   ResourceNameEntry,
   ResourceNameRename,
+  ResourceNameUndo,
   Store,
 } from "../../../store/interface.js";
 import { testCallerIdentity } from "../../__tests__/support.js";
@@ -107,6 +108,8 @@ function names(
 ) {
   const moves: ResourceNameRename[] = [];
   const reverted: ResourceNameRename[] = [];
+  const outcomes: ResourceNameUndo[] = [];
+  const undos: ResourceNameUndo[] = [];
   const table: NameTable = {
     resourceNames: {
       current: async (kind: string, org: string, id: string) => {
@@ -144,17 +147,24 @@ function names(
           claimedAt: move.now,
           expiresAt: "",
         };
-        return { claimed: true, entry };
+        const outcome = {
+          claimed: true as const,
+          entry,
+          demoted: [{ ...entry, name: move.from, claimedAt: "2026-01-01T00:00:00.000Z" }],
+        };
+        outcomes.push(outcome);
+        return outcome;
       },
-      revertRename: async (move: ResourceNameRename) => {
+      revertRename: async (move: ResourceNameRename, undo: ResourceNameUndo) => {
         if (options.revertFails === true) {
           throw new Error("names unavailable");
         }
         reverted.push(move);
+        undos.push(undo);
       },
     },
   } as unknown as NameTable;
-  return { table, moves, reverted };
+  return { table, moves, reverted, outcomes, undos };
 }
 
 /** Rows a test controls: what `find` and `modify` answer. */
@@ -295,7 +305,7 @@ describe("PersistRenamed", () => {
   }
 
   it("answers NotFound and moves the names back when the row is gone before the write", async () => {
-    const { table, moves, reverted } = names();
+    const { table, moves, reverted, outcomes, undos } = names();
     const gone = rows({ modify: async () => undefined });
     const ctx = await renamed(table, gone);
     const missing = await refusalOf(() =>
@@ -304,6 +314,7 @@ describe("PersistRenamed", () => {
     expect(missing.code).toBe(Code.NotFound);
     expect(missing.rawMessage).toBe(`Agent not found: ${AGENT_ID}`);
     expect(reverted).toEqual(moves);
+    expect(undos, "the move back gets the rename's outcome, every name it pushed aside included").toEqual(outcomes);
     expect(ctx.get(RENAMED_RESOURCE_KEY)).toBeUndefined();
   });
 

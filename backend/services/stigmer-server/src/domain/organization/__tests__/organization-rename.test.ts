@@ -29,9 +29,9 @@ import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import { RequestContext } from "../../../pipeline/request-context.js";
 import { ResourceNotFoundError } from "../../../store/interface.js";
 import type {
-  ResourceNameClaim,
   ResourceNameEntry,
   ResourceNameRename,
+  ResourceNameRenamed,
   Store,
 } from "../../../store/interface.js";
 import { ABANDONED_NAME_AFTER_MS, organizationNameKey } from "../names.js";
@@ -151,7 +151,7 @@ describe("RenameOrganizationSlug", () => {
         current: async () => entry("acme-new"),
         rename: async (move: ResourceNameRename) => {
           moves.push(move);
-          return { claimed: true, entry: entry(move.to) };
+          return { claimed: true, entry: entry(move.to), demoted: [] };
         },
       },
     } as unknown as Store;
@@ -192,7 +192,7 @@ describe("RenameOrganizationSlug", () => {
       },
       resourceNames: {
         current: async () => undefined,
-        rename: async (move: ResourceNameRename): Promise<ResourceNameClaim> => {
+        rename: async (move: ResourceNameRename): Promise<ResourceNameRenamed> => {
           moves.push(move);
           return released.length === 0
             ? {
@@ -202,6 +202,7 @@ describe("RenameOrganizationSlug", () => {
             : {
                 claimed: true,
                 entry: { ...heldBy(ACME, move.to, 0), claimedAt: move.now },
+                demoted: [],
               };
         },
         releaseName: async (key: { name: string }, id: string) => {
@@ -224,7 +225,7 @@ describe("RenameOrganizationSlug", () => {
       getResource: async () => create(OrganizationSchema),
       resourceNames: {
         current: async () => undefined,
-        rename: async (move: ResourceNameRename): Promise<ResourceNameClaim> => ({
+        rename: async (move: ResourceNameRename): Promise<ResourceNameRenamed> => ({
           claimed: false,
           entry: heldBy("org_01jhhhhhhhhhhhhhhhhhhhhhhh", move.to, ABANDONED_NAME_AFTER_MS + 1000),
         }),
@@ -277,9 +278,10 @@ describe("IndexOrganizationAfterRename", () => {
     const store = {
       resourceNames: {
         current: async () => undefined,
-        rename: async (move: ResourceNameRename): Promise<ResourceNameClaim> => ({
+        rename: async (move: ResourceNameRename): Promise<ResourceNameRenamed> => ({
           claimed: true,
           entry: { ...heldBy(ACME, move.to, 0), claimedAt: move.now },
+          demoted: [],
         }),
       },
       upsertSearchIndex,

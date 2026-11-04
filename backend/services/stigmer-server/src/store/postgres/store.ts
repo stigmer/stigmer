@@ -62,6 +62,7 @@ import type {
   ResourceNameRename,
   ResourceNameRenamed,
   ResourceNameStore,
+  ResourceNameUndo,
   PendingOAuthState,
   OrganizationDeletion,
   OrganizationDeletionStore,
@@ -2023,12 +2024,23 @@ class PostgresResourceNameStore implements ResourceNameStore {
       }
       // Every other current name, not only `from`: a concurrent rename that
       // moved `from` first leaves its own new name current, and this one
-      // demotes it too.
-      await client.query(
-        `UPDATE resource_names
+      // demotes it too. One statement reads each row as it stood and demotes
+      // it, so the outcome lists exactly what changed, even against a claim,
+      // which takes no lock above (revertRename restores from the list,
+      // #2764). One UPDATE ... FROM rather than a read then an update, which
+      // could each see a different set of rows.
+      const demoted = await client.query<{ name: string; claimed_at: string }>(
+        `WITH before AS (
+           SELECT name, claimed_at FROM resource_names
+           WHERE kind = $1 AND org = $2 AND id = $4
+             AND state = 'current' AND name <> $3
+           FOR UPDATE
+         )
+         UPDATE resource_names n
          SET state = 'previous', claimed_at = $5, expires_at = $6
-         WHERE kind = $1 AND org = $2 AND id = $4
-           AND state = 'current' AND name <> $3`,
+         FROM before
+         WHERE n.kind = $1 AND n.org = $2 AND n.name = before.name
+         RETURNING n.name, before.claimed_at`,
         [
           rename.kind,
           rename.org,
@@ -2038,16 +2050,27 @@ class PostgresResourceNameStore implements ResourceNameStore {
           rename.fromExpiresAt,
         ],
       );
-      return takenBack === undefined
-        ? { claimed: true, entry: resourceNameEntryOf(row) }
-        : { claimed: true, entry: resourceNameEntryOf(row), takenBack: resourceNameEntryOf(takenBack) };
+      const undo: ResourceNameUndo = {
+        demoted: demoted.rows.map((d) => ({
+          kind: rename.kind,
+          org: rename.org,
+          name: d.name,
+          id: rename.id,
+          state: "current",
+          claimedAt: d.claimed_at,
+          expiresAt: "",
+        })),
+        ...(takenBack === undefined ? {} : { takenBack: resourceNameEntryOf(takenBack) }),
+      };
+      return { claimed: true, entry: resourceNameEntryOf(row), ...undo };
     });
   }
 
   async revertRename(
     rename: ResourceNameRename,
-    takenBack?: ResourceNameEntry,
+    undo: ResourceNameUndo,
   ): Promise<void> {
+    const { takenBack } = undo;
     await this.transaction(async (client) => {
       // One at a time with the resource's renames (rename's lock).
       await client.query(
@@ -2075,9 +2098,39 @@ class PostgresResourceNameStore implements ResourceNameStore {
           ],
         );
       }
-      // `from` is current again unless a rename that overlapped this one
-      // made its own name current meanwhile: that later rename stands, and
-      // the resource keeps exactly one current name.
+      // The names this rename demoted get their earlier state back, each
+      // only while its row is as this rename left it, and only when the
+      // resource holds no current name: a rename that overlapped this one
+      // and made its own name current since stands, and one that restamped
+      // a listed name owns it now (#2764). One statement, so every listed
+      // name is judged against the same "holds no current name".
+      if (undo.demoted.length > 0) {
+        await client.query(
+          `UPDATE resource_names n
+           SET state = 'current', claimed_at = d.claimed_at, expires_at = d.expires_at
+           FROM unnest($5::text[], $6::text[], $7::text[]) AS d(name, claimed_at, expires_at)
+           WHERE n.kind = $1 AND n.org = $2 AND n.name = d.name AND n.id = $3
+             AND n.state = 'previous' AND n.claimed_at = $4 AND n.expires_at = $8
+             AND NOT EXISTS (
+               SELECT 1 FROM resource_names
+               WHERE kind = $1 AND org = $2 AND id = $3 AND state = 'current'
+             )`,
+          [
+            rename.kind,
+            rename.org,
+            rename.id,
+            rename.now,
+            undo.demoted.map((d) => d.name),
+            undo.demoted.map((d) => d.claimedAt),
+            undo.demoted.map((d) => d.expiresAt),
+            rename.fromExpiresAt,
+          ],
+        );
+      }
+      // The last resort: `from` is current again when nothing listed could
+      // be restored (another resource took it) and no overlapping rename
+      // made its own name current meanwhile, so the resource keeps exactly
+      // one current name.
       await client.query(
         `UPDATE resource_names SET state = 'current', expires_at = ''
          WHERE kind = $1 AND org = $2 AND name = $3 AND id = $4

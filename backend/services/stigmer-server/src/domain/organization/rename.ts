@@ -26,7 +26,7 @@
  */
 import type { Logger } from "../../boot/logger.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
-import type { ResourceNameEntry, ResourceNameRename, Store } from "../../store/interface.js";
+import type { ResourceNameRename, ResourceNameUndo, Store } from "../../store/interface.js";
 import { internalError, notFoundError } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
@@ -55,10 +55,10 @@ export const RENAMED_ORGANIZATION_KEY = "renamedOrganization";
 /** Where RenameOrganizationSlug leaves the move it made, for the write that follows. */
 const NAME_MOVE_KEY = "organizationNameMove";
 
-/** The move RenameOrganizationSlug made, and the earlier state of a name it took back. */
+/** The move RenameOrganizationSlug made, and what it changed, for its undo. */
 interface NameMove {
   readonly move: ResourceNameRename;
-  readonly takenBack?: ResourceNameEntry;
+  readonly undo: ResourceNameUndo;
 }
 
 /** Loads the organization by resource_id; a missing one answers NotFound, a store fault Internal. */
@@ -138,7 +138,7 @@ export function newRenameOrganizationSlugStep(
       if (!moved.claimed) {
         throw refusalForHeldName(moved.entry);
       }
-      const recorded: NameMove = moved.takenBack === undefined ? { move } : { move, takenBack: moved.takenBack };
+      const recorded: NameMove = { move, undo: moved };
       ctx.set(NAME_MOVE_KEY, recorded);
     },
   };
@@ -161,7 +161,7 @@ export function newPersistRenamedOrganizationStep(
       if (recorded === undefined) {
         return; // the slug was already the organization's
       }
-      const { move, takenBack } = recorded;
+      const { move, undo } = recorded;
       const identity = ctx.callerIdentity;
       let organization: Organization;
       try {
@@ -178,7 +178,7 @@ export function newPersistRenamedOrganizationStep(
         );
       } catch (error) {
         try {
-          await store.resourceNames.revertRename(move, takenBack);
+          await store.resourceNames.revertRename(move, undo);
         } catch (revertError) {
           logger.error(
             "organization rename failed and its names could not be moved back; both slugs lead to the organization until a retry",

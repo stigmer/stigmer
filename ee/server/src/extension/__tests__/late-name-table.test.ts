@@ -11,6 +11,7 @@ import type {
   ResourceNameEntry,
   ResourceNameRename,
   ResourceNameStore,
+  ResourceNameUndo,
 } from "@stigmer/server";
 
 import { lateNameTable } from "../late-name-table.js";
@@ -32,6 +33,8 @@ const MOVE: ResourceNameRename = {
   fromExpiresAt: "",
   now: "2026-10-12T00:00:00.000Z",
 };
+
+const UNDO: ResourceNameUndo = { demoted: [{ ...ENTRY, name: "platform" }] };
 
 const HOLDER = { kind: "team", org: "org_acme", id: "tem_1" };
 
@@ -56,7 +59,7 @@ describe("lateNameTable", () => {
       current: record("current", ENTRY),
       currentMany: record("currentMany", [ENTRY]),
       claim: record("claim", { claimed: true, entry: ENTRY }),
-      rename: record("rename", { claimed: true, entry: ENTRY }),
+      rename: record("rename", { claimed: true, entry: ENTRY, demoted: [] }),
       revertRename: record("revertRename", undefined),
       release: record("release", undefined),
       releaseName: record("releaseName", undefined),
@@ -69,8 +72,8 @@ describe("lateNameTable", () => {
     expect(await names.current("team", "org_acme", "tem_1")).toBe(ENTRY);
     expect(await names.currentMany([HOLDER])).toEqual([ENTRY]);
     expect(await names.claim(KEY, "tem_1", "now")).toEqual({ claimed: true, entry: ENTRY });
-    expect(await names.rename(MOVE)).toEqual({ claimed: true, entry: ENTRY });
-    await names.revertRename(MOVE, ENTRY);
+    expect(await names.rename(MOVE)).toEqual({ claimed: true, entry: ENTRY, demoted: [] });
+    await names.revertRename(MOVE, UNDO);
     await names.release("team", "org_acme", "tem_1");
     await names.releaseName(KEY, "tem_1");
 
@@ -80,7 +83,7 @@ describe("lateNameTable", () => {
       ["currentMany", [[HOLDER]]],
       ["claim", [KEY, "tem_1", "now"]],
       ["rename", [MOVE]],
-      ["revertRename", [MOVE, ENTRY]],
+      ["revertRename", [MOVE, UNDO]],
       ["release", ["team", "org_acme", "tem_1"]],
       ["releaseName", [KEY, "tem_1"]],
     ]);

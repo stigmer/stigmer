@@ -55,9 +55,9 @@ import type { Authorizer } from "../../extensions/authorizer.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type {
-  ResourceNameEntry,
   ResourceNameRename,
   ResourceNameRenamed,
+  ResourceNameUndo,
   Store,
 } from "../../store/interface.js";
 import { getKindName, kindEnumName } from "../apiresource-meta.js";
@@ -186,10 +186,10 @@ export const RENAMED_RESOURCE_KEY = "renamedResource";
 /** Where RenameName leaves the move it made, for the write that follows. */
 const NAME_MOVE_KEY = "resourceNameMove";
 
-/** The move RenameName made, and the earlier state of a name it took back. */
+/** The move RenameName made, and what it changed, for its undo. */
 interface NameMove {
   readonly move: ResourceNameRename;
-  readonly takenBack?: ResourceNameEntry;
+  readonly undo: ResourceNameUndo;
 }
 
 /**
@@ -319,10 +319,7 @@ export function newRenameNameStep<Desc extends DescMessage>(
       if (!moved.claimed) {
         throw await nameTakenError(names, kind, moved.entry);
       }
-      const recorded: NameMove =
-        moved.takenBack === undefined
-          ? { move }
-          : { move, takenBack: moved.takenBack };
+      const recorded: NameMove = { move, undo: moved };
       ctx.set(NAME_MOVE_KEY, recorded);
     },
   };
@@ -348,7 +345,7 @@ export function newPersistRenamedStep<Desc extends DescMessage>(
       if (recorded === undefined) {
         return; // the slug was already the resource's
       }
-      const { move, takenBack } = recorded;
+      const { move, undo } = recorded;
       const identity = ctx.callerIdentity;
       let written: MessageShape<Desc> | undefined;
       let failure: unknown;
@@ -377,7 +374,7 @@ export function newPersistRenamedStep<Desc extends DescMessage>(
         return;
       }
       try {
-        await names.resourceNames.revertRename(move, takenBack);
+        await names.resourceNames.revertRename(move, undo);
       } catch (revertError) {
         logger.error(
           "rename failed and its names could not be moved back; both slugs lead to the resource until a retry",

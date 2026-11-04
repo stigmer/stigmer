@@ -63,6 +63,8 @@ import { ApiResourceAuditActorSchema, ApiResourceAuditSchema } from "@stigmer/ap
 import { AuditNotFoundError, ResourceNotFoundError } from "../interface.js";
 import type {
   PendingOAuthState,
+  ResourceNameRename,
+  ResourceNameUndo,
   SearchIndexEntry,
   Store,
   StoreOpenOptions,
@@ -1739,23 +1741,114 @@ export function describeStoreContract(
       expect(await names().resolve(key("acme"), T1)).toMatchObject({ state: "current" });
     });
 
+    /** A rename that must win, and what it changed, for its undo. */
+    const won = async (move: ResourceNameRename): Promise<ResourceNameUndo> => {
+      const moved = await names().rename(move);
+      if (!moved.claimed) {
+        throw new Error(`rename to '${move.to}' lost to ${moved.entry.id}`);
+      }
+      return moved;
+    };
+
     it("revertRename puts the names back, and is idempotent", async () => {
       await names().claim(key("acme"), "org_a", T0);
       const move = { ...ORG, id: "org_a", from: "acme", to: "acme-corp", fromExpiresAt: T3, now: T1 };
-      await names().rename(move);
-      await names().revertRename(move);
-      await names().revertRename(move);
-      expect(await names().resolve(key("acme"), T2)).toMatchObject({ id: "org_a", state: "current", expiresAt: "" });
+      const undo = await won(move);
+      await names().revertRename(move, undo);
+      await names().revertRename(move, undo);
+      expect(await names().resolve(key("acme"), T2)).toEqual({
+        ...key("acme"), id: "org_a", state: "current", claimedAt: T0, expiresAt: "",
+      });
       expect(await names().resolve(key("acme-corp"), T2)).toBeUndefined();
+    });
+
+    it("a won rename lists each name it pushed aside as it stood, and nothing when `to` was the only current name", async () => {
+      await names().claim(key("acme"), "org_a", T0);
+      const first = await won({ ...ORG, id: "org_a", from: "acme", to: "acme-corp", fromExpiresAt: T3, now: T1 });
+      expect(first.demoted).toEqual([
+        { ...key("acme"), id: "org_a", state: "current", claimedAt: T0, expiresAt: "" },
+      ]);
+      // The same rename again (two identical edits that overlapped): `to` is
+      // already the one current name, so nothing is pushed aside.
+      const again = await won({ ...ORG, id: "org_a", from: "acme", to: "acme-corp", fromExpiresAt: T3, now: T2 });
+      expect(again.demoted).toEqual([]);
+    });
+
+    it("an undone rename that lost the race restores the winner's name, which nobody else can take (#2764)", async () => {
+      // A service account's move: its old name is free at once.
+      await names().claim(key("deploy-bot"), "org_a", T0);
+      const a = { ...ORG, id: "org_a", from: "deploy-bot", to: "ci-bot", fromExpiresAt: T1, now: T1 };
+      const b = { ...ORG, id: "org_a", from: "deploy-bot", to: "build-bot", fromExpiresAt: T1, now: T1 };
+      await won(a);
+      // B read `deploy-bot` too; its table move lands after A's, then its
+      // row write loses to A's and B is undone.
+      const undoB = await won(b);
+      await names().revertRename(b, undoB);
+
+      expect(await names().current("organization", "", "org_a")).toEqual({
+        ...key("ci-bot"), id: "org_a", state: "current", claimedAt: T1, expiresAt: "",
+      });
+      expect(await names().resolve(key("deploy-bot"), T2), "the old name stays free, as A left it").toBeUndefined();
+      expect(await names().resolve(key("build-bot"), T1)).toBeUndefined();
+      const stolen = await names().claim(key("ci-bot"), "org_b", T2);
+      expect(stolen.claimed, "the winner's name stays its own").toBe(false);
+      expect(stolen.entry.id).toBe("org_a");
+    });
+
+    it("an undo run twice leaves the restored name as the first run left it", async () => {
+      await names().claim(key("acme"), "org_a", T0);
+      await won({ ...ORG, id: "org_a", from: "acme", to: "acme-y", fromExpiresAt: T3, now: T1 });
+      const b = { ...ORG, id: "org_a", from: "acme", to: "acme-z", fromExpiresAt: T3, now: T1 };
+      const undoB = await won(b);
+      await names().revertRename(b, undoB);
+      await names().revertRename(b, undoB);
+
+      expect(await names().current("organization", "", "org_a")).toMatchObject({ name: "acme-y", claimedAt: T1 });
+      expect(await names().resolve(key("acme"), T1)).toMatchObject({ state: "previous" });
+      expect(await names().resolve(key("acme-z"), T1)).toBeUndefined();
+    });
+
+    it("an undo leaves a pushed-aside name a later rename restamped as that rename left it", async () => {
+      await names().claim(key("acme"), "org_a", T0);
+      await won({ ...ORG, id: "org_a", from: "acme", to: "acme-y", fromExpiresAt: T3, now: T1 });
+      const b = { ...ORG, id: "org_a", from: "acme", to: "acme-z", fromExpiresAt: T3, now: T1 };
+      const undoB = await won(b);
+      // Later renames take `acme-y` back and push it aside again: its row
+      // now carries their stamp, not B's.
+      await won({ ...ORG, id: "org_a", from: "acme-z", to: "acme-y", fromExpiresAt: T3, now: T2 });
+      await won({ ...ORG, id: "org_a", from: "acme-y", to: "acme-z", fromExpiresAt: T3, now: T2 });
+      await names().revertRename(b, undoB);
+
+      expect(await names().resolve(key("acme-y"), T2)).toMatchObject({
+        id: "org_a", state: "previous", claimedAt: T2, expiresAt: T3,
+      });
+      expect(await names().current("organization", "", "org_a")).toMatchObject({ name: "acme" });
+    });
+
+    it("an undo leaves a pushed-aside name another resource took since alone, and makes `from` current", async () => {
+      await names().claim(key("first"), "org_a", T0);
+      await won({ ...ORG, id: "org_a", from: "first", to: "second", fromExpiresAt: T1, now: T1 });
+      const b = { ...ORG, id: "org_a", from: "first", to: "third", fromExpiresAt: T1, now: T1 };
+      const undoB = await won(b);
+      // `second` was pushed aside with an immediate expiry; another
+      // resource takes it before B's undo runs (#2926).
+      expect((await names().claim(key("second"), "org_b", T2)).claimed).toBe(true);
+      await names().revertRename(b, undoB);
+
+      expect(await names().resolve(key("second"), T2), "the other resource's entry, untouched").toEqual({
+        ...key("second"), id: "org_b", state: "current", claimedAt: T2, expiresAt: "",
+      });
+      expect(await names().current("organization", "", "org_a")).toMatchObject({ name: "first" });
+      expect(await names().resolve(key("third"), T2)).toBeUndefined();
     });
 
     it("a move back after an overlapping rename leaves the later rename's name the one current name", async () => {
       await names().claim(key("acme"), "org_a", T0);
       const first = { ...ORG, id: "org_a", from: "acme", to: "acme-y", fromExpiresAt: T2, now: T1 };
-      await names().rename(first);
+      const undoFirst = await won(first);
       await names().rename({ ...ORG, id: "org_a", from: "acme", to: "acme-z", fromExpiresAt: T2, now: T1 });
       // The first rename's row write fails: its names move back.
-      await names().revertRename(first);
+      await names().revertRename(first, undoFirst);
 
       expect(await names().resolve(key("acme-y"), T1)).toBeUndefined();
       expect(await names().current("organization", "", "org_a")).toMatchObject({ name: "acme-z" });
@@ -1766,13 +1859,11 @@ export function describeStoreContract(
       await names().claim(key("acme"), "org_a", T0);
       await names().rename({ ...ORG, id: "org_a", from: "acme", to: "acme-corp", fromExpiresAt: T3, now: T1 });
       const back = { ...ORG, id: "org_a", from: "acme-corp", to: "acme", fromExpiresAt: T3, now: T2 };
-      const moved = await names().rename(back);
-      expect(moved.claimed).toBe(true);
-      const takenBack = moved.claimed ? moved.takenBack : undefined;
-      expect(takenBack).toMatchObject({ name: "acme", id: "org_a", state: "previous", expiresAt: T3 });
+      const undo = await won(back);
+      expect(undo.takenBack).toMatchObject({ name: "acme", id: "org_a", state: "previous", expiresAt: T3 });
 
-      await names().revertRename(back, takenBack);
-      await names().revertRename(back, takenBack);
+      await names().revertRename(back, undo);
+      await names().revertRename(back, undo);
       expect(await names().resolve(key("acme-corp"), T2)).toMatchObject({ state: "current", expiresAt: "" });
       expect(await names().resolve(key("acme"), T2)).toMatchObject({ id: "org_a", state: "previous", expiresAt: T3 });
     });

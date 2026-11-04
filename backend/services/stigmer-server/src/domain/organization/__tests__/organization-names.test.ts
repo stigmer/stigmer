@@ -74,6 +74,7 @@ import { ResourceNotFoundError } from "../../../store/interface.js";
 import type {
   ResourceNameEntry,
   ResourceNameRename,
+  ResourceNameUndo,
   Store,
 } from "../../../store/interface.js";
 import { fakeGrantStore } from "../../grant/__tests__/support.js";
@@ -689,6 +690,7 @@ describe("a rename whose row write fails", () => {
           return {
             claimed: true,
             entry: { ...organizationNameKey(move.to), id: move.id, state: "current", claimedAt: move.now, expiresAt: "" },
+            demoted: [],
           };
         },
         revertRename: async (move: ResourceNameRename) => {
@@ -728,7 +730,7 @@ describe("a rename whose row write fails", () => {
     expect(errors).toHaveLength(1);
   });
 
-  it("hands the move back the name it took back, so the store restores it rather than letting it go", async () => {
+  it("hands the move back what the rename changed, so the store restores it rather than letting it go", async () => {
     const takenBack: ResourceNameEntry = {
       ...organizationNameKey("acme-corp"),
       id: "org_01jaaaaaaaaaaaaaaaaaaaaaaa",
@@ -736,7 +738,14 @@ describe("a rename whose row write fails", () => {
       claimedAt: "2026-09-01T00:00:00.000Z",
       expiresAt: "2026-10-01T00:00:00.000Z",
     };
-    const reverts: Array<ResourceNameEntry | undefined> = [];
+    const pushedAside: ResourceNameEntry = {
+      ...organizationNameKey("acme-inc"),
+      id: "org_01jaaaaaaaaaaaaaaaaaaaaaaa",
+      state: "current",
+      claimedAt: "2026-09-02T00:00:00.000Z",
+      expiresAt: "",
+    };
+    const reverts: ResourceNameUndo[] = [];
     const store = {
       resourceNames: {
         current: async () => undefined,
@@ -744,9 +753,10 @@ describe("a rename whose row write fails", () => {
           claimed: true,
           entry: { ...takenBack, state: "current", claimedAt: move.now, expiresAt: "" },
           takenBack,
+          demoted: [pushedAside],
         }),
-        revertRename: async (_move: ResourceNameRename, restored?: ResourceNameEntry) => {
-          reverts.push(restored);
+        revertRename: async (_move: ResourceNameRename, undo: ResourceNameUndo) => {
+          reverts.push(undo);
         },
       },
       saveResource: async () => {
@@ -758,7 +768,7 @@ describe("a rename whose row write fails", () => {
     const ctx = renameRequest();
     await newRenameOrganizationSlugStep(store).execute(ctx);
     await expect(newPersistRenamedOrganizationStep(store, logger).execute(ctx)).rejects.toThrow();
-    expect(reverts).toEqual([takenBack]);
+    expect(reverts).toEqual([expect.objectContaining({ takenBack, demoted: [pushedAside] })]);
   });
 });
 

@@ -47,6 +47,7 @@ import {
 import type {
   ResourceNameKey,
   ResourceNameRename,
+  ResourceNameUndo,
   Store,
 } from "../../../store/interface.js";
 
@@ -115,8 +116,9 @@ async function failureOf(run: () => Promise<void> | void): Promise<ConnectError 
 }
 
 /** A name table that records what it is asked, or fails every call. */
-function names(fail = false): { store: Store; calls: string[] } {
+function names(fail = false): { store: Store; calls: string[]; undos: unknown[] } {
   const calls: string[] = [];
+  const undos: unknown[] = [];
   const record = (what: string) => async () => {
     calls.push(what);
     if (fail) {
@@ -130,10 +132,13 @@ function names(fail = false): { store: Store; calls: string[] } {
     resourceNames: {
       release: record("release"),
       releaseName: (key: ResourceNameKey) => record(`releaseName:${key.name}`)(),
-      revertRename: record("revertRename"),
+      revertRename: (_rename: ResourceNameRename, undo: ResourceNameUndo) => {
+        undos.push(undo);
+        return record("revertRename")();
+      },
     },
   } as unknown as Store;
-  return { store, calls };
+  return { store, calls, undos };
 }
 
 function loggerRecording(errors: string[]): Logger {
@@ -202,12 +207,14 @@ describe("undoExternalIdMoveAfterFailure", () => {
     expiresAt: "",
   };
 
-  it("reverts a rename", async () => {
-    const { store, calls } = names();
+  it("reverts a rename with what the rename changed", async () => {
+    const { store, calls, undos } = names();
     const ctx = ctxOf(vault({}), vault({ externalId: "old" }));
-    ctx.set(CLAIMED_EXTERNAL_ID_KEY, { kind: "renamed", rename });
+    const undo: ResourceNameUndo = { demoted: [{ ...entry, name: "old" }] };
+    ctx.set(CLAIMED_EXTERNAL_ID_KEY, { kind: "renamed", rename, undo });
     await undoExternalIdMoveAfterFailure(store, silentLogger, ctx);
     expect(calls).toEqual(["revertRename"]);
+    expect(undos).toEqual([undo]);
   });
 
   it("releases an update's first claim by name", async () => {
@@ -231,7 +238,7 @@ describe("undoExternalIdMoveAfterFailure", () => {
     const errors: string[] = [];
     const { store } = names(true);
     const ctx = ctxOf(vault({}), vault({ externalId: "old" }));
-    ctx.set(CLAIMED_EXTERNAL_ID_KEY, { kind: "renamed", rename });
+    ctx.set(CLAIMED_EXTERNAL_ID_KEY, { kind: "renamed", rename, undo: { demoted: [] } });
     await undoExternalIdMoveAfterFailure(store, loggerRecording(errors), ctx);
     expect(errors).toEqual(["vault write failed and its external id claim could not be undone"]);
   });
