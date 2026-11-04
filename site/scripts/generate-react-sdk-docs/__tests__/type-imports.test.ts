@@ -58,13 +58,18 @@ describe("createTypeImportResolver", () => {
   beforeAll(() => {
     root = fs.mkdtempSync(path.join(os.tmpdir(), "react-sdk-docs-imports-"));
     kitDir = path.join(root, "kit");
-    write("kit/package.json", JSON.stringify({ name: "@acme/kit", peerDependencies: { client: "*", protos: "*", typed: "*", single: "*" }, dependencies: { plain: "*" } }));
+    write("kit/package.json", JSON.stringify({ name: "@acme/kit", peerDependencies: { client: "*", protos: "*", typed: "*", single: "*", "@scope/pkg": "*" }, dependencies: { plain: "*" } }));
+    // A scoped package typed by `@types/scope__pkg`.
+    write("node_modules/@scope/pkg/package.json", JSON.stringify({ name: "@scope/pkg" }));
+    write("node_modules/@types/scope__pkg/package.json", JSON.stringify({ name: "@types/scope__pkg", types: "index.d.ts" }));
+    write("node_modules/@types/scope__pkg/index.d.ts", "export interface Scoped {}\n");
     // A peer whose `exports` is one path: its root is that file.
     write("node_modules/single/package.json", JSON.stringify({ name: "single", exports: "./index.js", types: "index.d.ts" }));
     write("node_modules/single/index.d.ts", "export interface Single {}\n");
     write("node_modules/client/package.json", JSON.stringify({ name: "client", types: "index.d.ts" }));
     // The client also has a `Node`: the declaring package's peer wins over the first peer that has the name.
-    write("node_modules/client/index.d.ts", 'export interface Client {}\nexport type Node = number;\nexport type { ToolUse } from "log";\n');
+    // It also has a `Plain` of its own: never the plain dependency's `Plain`.
+    write("node_modules/client/index.d.ts", 'export interface Client {}\nexport type Node = number;\nexport interface Plain { mine: true }\nexport type { ToolUse } from "log";\n');
     write("node_modules/log/package.json", JSON.stringify({ name: "log", types: "index.d.ts" }));
     write("node_modules/log/index.d.ts", "export interface ToolUse {}\n");
     write("node_modules/protos/package.json", JSON.stringify({ name: "protos", exports: { "./*": { types: "./dist/*.d.ts" } } }));
@@ -100,7 +105,11 @@ describe("createTypeImportResolver", () => {
     expect(createTypeImportResolver(kitDir)("Node", t("@types/typed"))).toBe("typed");
   });
 
-  it("gives the kit's own types, the language's globals and a plain dependency's types no import", () => {
+  it("imports a scoped @types package's type from the scoped package", () => {
+    expect(createTypeImportResolver(kitDir)("Scoped", t("@types/scope__pkg"))).toBe("@scope/pkg");
+  });
+
+  it("gives the kit's own types, the language's globals and a plain dependency's types no import, even when a peer has a type of that name", () => {
     const resolve = createTypeImportResolver(kitDir);
     expect(resolve("Offered", t("@acme/kit", "src/offered.ts"))).toBeNull();
     expect(resolve("Promise", t("typescript", "lib/lib.es5.d.ts"))).toBeNull();

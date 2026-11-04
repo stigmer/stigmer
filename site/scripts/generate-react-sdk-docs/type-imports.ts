@@ -15,6 +15,10 @@
  *   - otherwise from the first peer whose root exports the name, the
  *     declaring package (or the package its `@types/` package types) first.
  *
+ * A peer's root export counts only when the checker says it is the declaring
+ * package's own type, so an unrelated type of the same name in another peer
+ * is never imported in its place.
+ *
  * A type of the kit's own, a global, or one no peer exports has no import:
  * the docs snippet gate imports the kit's names from the page's entry, and
  * reports any other at its page and line, where the fix is the kit
@@ -41,12 +45,12 @@ interface PackageJson {
   readonly exports?: unknown;
 }
 
-/** The nearest `node_modules/<name>/package.json` above a folder, as Node finds a package. */
-function findPackageJson(fromDir: string, name: string): PackageJson {
+/** The nearest `node_modules/<name>` above a folder, as Node finds a package: its manifest and its real folder. */
+function findPackage(fromDir: string, name: string): { manifest: PackageJson; dir: string } | null {
   for (let dir = fromDir; ; dir = path.dirname(dir)) {
     const file = path.join(dir, "node_modules", name, "package.json");
-    if (fs.existsSync(file)) return JSON.parse(fs.readFileSync(file, "utf8")) as PackageJson;
-    if (path.dirname(dir) === dir) throw new Error(`cannot find the package ${name} from ${fromDir}: install the workspace first`);
+    if (fs.existsSync(file)) return { manifest: JSON.parse(fs.readFileSync(file, "utf8")) as PackageJson, dir: fs.realpathSync(path.dirname(file)) };
+    if (path.dirname(dir) === dir) return null;
   }
 }
 
@@ -98,8 +102,11 @@ function hasRoot(pkg: PackageJson): boolean {
   return "." in map || !Object.keys(map).some((k) => k.startsWith("."));
 }
 
-/** The names each peer's root exports, read once with the TypeScript checker from the kit's folder. */
-function readRootExports(kitDir: string, peers: readonly string[]): Map<string, Set<string>> {
+/**
+ * What each peer's root exports, read once with the TypeScript checker from
+ * the kit's folder: each name with the files its declarations are in.
+ */
+function readRootExports(kitDir: string, peers: readonly string[]): Map<string, Map<string, string[]>> {
   const options: ts.CompilerOptions = {
     module: ts.ModuleKind.ESNext,
     moduleResolution: ts.ModuleResolutionKind.Bundler,
@@ -120,13 +127,18 @@ function readRootExports(kitDir: string, peers: readonly string[]): Map<string, 
   host.fileExists = (fileName) => fileName === probe || fileExists(fileName);
   const program = ts.createProgram([probe], options, host);
   const checker = program.getTypeChecker();
-  const result = new Map<string, Set<string>>();
+  const result = new Map<string, Map<string, string[]>>();
   const sf = program.getSourceFile(probe);
   for (const stmt of sf?.statements ?? []) {
     if (!ts.isImportDeclaration(stmt) || !ts.isStringLiteral(stmt.moduleSpecifier)) continue;
     const symbol = checker.getSymbolAtLocation(stmt.moduleSpecifier);
     if (symbol === undefined) throw new Error(`cannot resolve the peer ${stmt.moduleSpecifier.text} from ${kitDir}: build the workspace's libraries first`);
-    result.set(stmt.moduleSpecifier.text, new Set(checker.getExportsOfModule(symbol).map((s) => s.name)));
+    const names = new Map<string, string[]>();
+    for (const exported of checker.getExportsOfModule(symbol)) {
+      const declared = exported.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(exported) : exported;
+      names.set(exported.name, (declared.declarations ?? []).map((d) => d.getSourceFile().fileName));
+    }
+    result.set(stmt.moduleSpecifier.text, names);
   }
   return result;
 }
@@ -138,9 +150,15 @@ function readRootExports(kitDir: string, peers: readonly string[]): Map<string, 
 export function createTypeImportResolver(kitDir: string): TypeImportResolver {
   const kit = JSON.parse(fs.readFileSync(path.join(kitDir, "package.json"), "utf8")) as PackageJson;
   const peers = Object.keys(kit.peerDependencies ?? {});
-  const packages = new Map(peers.map((p) => [p, findPackageJson(kitDir, p)]));
+  const packages = new Map(
+    peers.map((p) => {
+      const found = findPackage(kitDir, p);
+      if (found === null) throw new Error(`cannot find the package ${p} from ${kitDir}: install the workspace first`);
+      return [p, found.manifest];
+    }),
+  );
   const rooted = peers.filter((p) => hasRoot(packages.get(p)!));
-  let roots: Map<string, Set<string>> | undefined;
+  let roots: Map<string, Map<string, string[]>> | undefined;
 
   return (name: string, target: ExternalTarget): string | null => {
     const declaring = installedName(target.packageName);
@@ -149,8 +167,11 @@ export function createTypeImportResolver(kitDir: string): TypeImportResolver {
       const subpath = patternSubpath(packages.get(declaring)!.exports, target.packagePath);
       if (subpath !== null) return `${declaring}/${subpath}`;
     }
+    const home = findPackage(kitDir, target.packageName)?.dir;
+    if (home === undefined) return null;
     roots ??= readRootExports(kitDir, rooted);
     const order = packages.has(declaring) ? [declaring, ...rooted.filter((p) => p !== declaring)] : rooted;
-    return order.find((p) => roots!.get(p)?.has(name)) ?? null;
+    const isTheType = (p: string) => (roots!.get(p)?.get(name) ?? []).some((file) => file.startsWith(home + path.sep));
+    return order.find(isTheType) ?? null;
   };
 }

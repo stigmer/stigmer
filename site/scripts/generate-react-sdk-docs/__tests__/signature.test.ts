@@ -85,6 +85,15 @@ describe("signatureOf and renderSignature", () => {
     expect(render(s)).toContain("function useThing(label: string | (() => string), both: Base & (() => string), ...rest: string[]): void");
   });
 
+  it("parenthesises a union inside an intersection or under a type operator", () => {
+    const union: TypeDocType = { type: "union", types: [{ type: "reference", name: "B", target: 7 }, { type: "reference", name: "C", target: 8 }] };
+    const s = sig([
+      param("both", { type: "intersection", types: [{ type: "reference", name: "A", target: 6 }, union] }),
+      param("key", { type: "typeOperator", operator: "keyof", target: union }),
+    ]);
+    expect(render(s)).toContain("function useThing(both: A & (B | C), key: keyof (B | C)): void");
+  });
+
   it("names a destructured parameter `options`, and drops `this`", () => {
     const options: TypeDocType = { type: "reflection", declaration: { id: 4, name: "__type", variant: "declaration", kind: 65536, flags: {}, children: [param("org", STRING, { kind: ReflectionKind.Property })] } };
     expect(render(sig([param("this", STRING), param("__namedParameters", options)]))).toContain("function useThing(options: { org: string }): void");
