@@ -7,7 +7,9 @@
  * how a relative import finds the titled fence above it, which lines an
  * assembled file owes to the prelude, the theme playground's looks the gate
  * writes code for, the list of known failures, which may only shrink, and
- * the CLI's use of it against a base branch's list in a scratch repository. The compilers themselves are pinned against real
+ * the CLI's use of it against a base branch's list in a scratch repository.
+ * And that each React reference page compiles against the entry its
+ * "Import from" line names. The compilers themselves are pinned against real
  * toolchains by scripts/lib/docs-snippets/compilers.test.mjs, in the lane
  * that sets them up.
  */
@@ -16,7 +18,7 @@ import { test } from "node:test";
 
 import { splitSnippetSetup } from "../site/src/lib/snippet-setup.mjs";
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -24,9 +26,11 @@ import { fileURLToPath } from "node:url";
 import { judge, scopeOf } from "./check-docs-snippets.mjs";
 import { Assembly, located } from "./lib/docs-snippets/assemble.mjs";
 import { collectPage, relativeImports } from "./lib/docs-snippets/collect.mjs";
-import { classify, scanFences } from "./lib/docs-snippets/fences.mjs";
+import { classify, isGeneratedPage, scanFences } from "./lib/docs-snippets/fences.mjs";
 import { packageName, safeImportPaths } from "./lib/docs-snippets/go.mjs";
+import { conventionFor } from "./lib/docs-snippets/preludes.mjs";
 import { livePresets, themeUnits } from "./lib/docs-snippets/theme-snippets.mjs";
+import { packageOf } from "./lib/docs-snippets/typescript.mjs";
 import {
   compareToList,
   entryKey,
@@ -332,4 +336,28 @@ test("--prune drops what a run no longer fails, keeps entries outside the run, a
   } finally {
     rmSync(repo.dir, { recursive: true, force: true });
   }
+});
+
+test("each React reference page compiles against the entry its Import from line names", () => {
+  const root = fileURLToPath(new URL("..", import.meta.url));
+  const dir = join(root, "docs", "sdk", "react");
+  const pages = readdirSync(dir).filter((f) => f.endsWith(".mdx"));
+  let generated = 0;
+  for (const file of pages) {
+    const src = readFileSync(join(dir, file), "utf8");
+    if (!isGeneratedPage(src)) continue;
+    generated++;
+    const line = /^Import from `([^`]+)`/m.exec(src);
+    assert.ok(line, `docs/sdk/react/${file} has no "Import from" line`);
+    const page = `docs/sdk/react/${file}`;
+    assert.equal(conventionFor(page, "typescript").entries[0], line[1], `${page} tells its reader to import from ${line[1]}; scripts/lib/docs-snippets/preludes.mjs compiles it against another entry`);
+  }
+  assert.ok(generated > 40, `read ${generated} generated React pages; expected the whole reference`);
+});
+
+test("an import names its package without the subpath", () => {
+  assert.equal(packageOf("@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb"), "@stigmer/apis");
+  assert.equal(packageOf("@stigmer/react-sdk/console"), "@stigmer/react-sdk");
+  assert.equal(packageOf("react/jsx-runtime"), "react");
+  assert.equal(packageOf("ink"), "ink");
 });

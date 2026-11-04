@@ -3,7 +3,10 @@
  * toolchains: a temporary docs tree with one fence that compiles and one
  * planted break per language, each break reported at its page and line, and
  * none of the good fences reported. The UX bar's LIB-04 (TypeScript) and
- * SDK-03 (Go, Python, Java) are held by these titles.
+ * SDK-03 (Go, Python, Java) are held by these titles. On a kit's pages, a
+ * fence compiles as its reader installs and imports the kit: only the entry
+ * the page names and `react` are implicit, and an import of a package the
+ * kit merely depends on is refused.
  *
  * It needs what the gate needs (scripts/check-docs-snippets.mjs): the built
  * workspace libraries, Go, a Python virtual environment with the stubs and
@@ -15,7 +18,7 @@
 import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { after, test } from "node:test";
 import { fileURLToPath } from "node:url";
 
@@ -46,7 +49,7 @@ function page(name, parts) {
     lines.push(...part.body, "```", "");
   }
   const path = `docs/${name}.mdx`;
-  mkdirSync(join(docsRoot, "docs"), { recursive: true });
+  mkdirSync(dirname(join(docsRoot, path)), { recursive: true });
   writeFileSync(join(docsRoot, path), lines.join("\n"));
   return { path, at };
 }
@@ -63,6 +66,22 @@ const typescript = page("typescript", [
     body: ['import { AgentChat } from "@stigmer/react-sdk";', "", 'export const App = () => <AgentChat agnet="acme/ledger" />;'],
   },
 ]);
+
+// The React kit's pages: `StreamState` is React core's, which the kit does
+// not re-export, and `@stigmer/react-core` is a plain dependency of the kit,
+// which its reader never installs; `SettingsNavGroup` is the console entry's.
+const coreOnly = "export type Seen = StreamState;";
+const consoleOnly = "export type Groups = readonly SettingsNavGroup[];";
+const coreImport = 'import { useStigmer } from "@stigmer/react-core";';
+const reactKit = page("sdk/react/kit", [
+  { lang: "tsx", label: "core-only", body: [coreOnly] },
+  { lang: "tsx", label: "core-import", body: [coreImport, "", "export const use = useStigmer;"] },
+  { lang: "tsx", label: "console-only", body: [consoleOnly] },
+  { lang: "tsx", label: "peer-import", body: ['import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";', 'import { IamRole } from "@stigmer/client";', "", "export const seen = (run: Run) => [run.metadata?.id, IamRole.viewer];"] },
+]);
+const reactConsole = page("sdk/react/settings", [{ lang: "tsx", label: "console-only", body: [consoleOnly] }]);
+// Ink names React core as a peer: its reader installs it.
+const inkKit = page("sdk/ink/kit", [{ lang: "tsx", label: "core-import", body: [coreImport, "", "export const use = useStigmer;"] }]);
 
 const go = page("go", [
   { lang: "go", label: "prelude", meta: "prelude", body: ["import (", '\t"fmt"', '\t"log"', ")"] },
@@ -104,6 +123,16 @@ test("LIB-04 a TypeScript example that does not compile is reported at its page 
   assert.deepEqual(run.problems, []);
   assert.deepEqual(where(run), [`${typescript.path}:${typescript.at.broken + 2}`]);
   assert.match(run.errors[0].message, /agnet/);
+});
+
+test("LIB-04 a kit's example compiles as its reader imports it: the page's entry and react implicit, imports only from the kit and its peers", async () => {
+  const run = await gate([reactKit, reactConsole, inkKit], ["typescript"]);
+  assert.deepEqual(run.problems, []);
+  assert.deepEqual(where(run), [`${reactKit.path}:${reactKit.at["core-only"]}`, `${reactKit.path}:${reactKit.at["core-import"]}`, `${reactKit.path}:${reactKit.at["console-only"]}`].sort());
+  const messages = run.errors.map((e) => e.message).join("\n");
+  assert.match(messages, /Cannot find name 'StreamState'/);
+  assert.match(messages, /Cannot find name 'SettingsNavGroup'/);
+  assert.match(messages, /imports @stigmer\/react-core, which a reader of @stigmer\/react-sdk does not install/);
 });
 
 test("SDK-03 a Go example that does not compile is reported at its page and line, its prelude's unused imports forgiven and a whole file's unused variable not", async () => {
