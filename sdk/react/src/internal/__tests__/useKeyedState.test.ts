@@ -10,6 +10,8 @@
  * - a setter created under an old key (a late write from an awaited path)
  *   never changes the new key's value, and returning to the old key seeds
  *   it fresh rather than resurrecting that write;
+ * - a setter from an earlier visit to the same key writes nothing after a
+ *   return to it: each visit is its own;
  * - the setter keeps its identity while the key holds, and changes it only
  *   when the key does (callback deps name it).
  */
@@ -76,6 +78,20 @@ describe("useKeyedState", () => {
 
     rerender({ k: "A" });
     expect(result.current[0]).toBe("seed");
+  });
+
+  it("drops a write from an earlier visit to the same key", () => {
+    const { result, rerender } = renderKeyed("seed");
+    const setForFirstVisit = result.current[1];
+    rerender({ k: "B" });
+    rerender({ k: "A" });
+    expect(result.current[0]).toBe("seed");
+
+    act(() => setForFirstVisit("late-from-first-visit"));
+    expect(result.current[0]).toBe("seed");
+
+    act(() => result.current[1]("chosen-on-return"));
+    expect(result.current[0]).toBe("chosen-on-return");
   });
 
   it("keeps the setter's identity until the key changes", () => {
