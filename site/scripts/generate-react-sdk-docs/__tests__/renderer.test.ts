@@ -14,6 +14,7 @@ import {
   renderDomainPage,
   renderMetaJson,
   DOMAIN_GROUPS,
+  HAND_WRITTEN_PAGES,
   type DomainGroup,
 } from "../renderer";
 import type { Domain } from "../model";
@@ -41,6 +42,7 @@ describe("renderMetaJson", () => {
     const out = renderMetaJson(
       [domain("skill"), domain("core"), domain("mcp-server")],
       TEST_GROUPS,
+      {},
     );
     const meta = JSON.parse(out) as { title: string; pages: string[] };
 
@@ -52,6 +54,14 @@ describe("renderMetaJson", () => {
       "mcp-server",
       "skill",
     ]);
+  });
+
+  it("names each hand-written page first in its group, so the sidebar lists it", () => {
+    const meta = JSON.parse(
+      renderMetaJson([domain("skill"), domain("core"), domain("mcp-server")], TEST_GROUPS, { Foundation: ["gallery"] }),
+    ) as { pages: string[] };
+    expect(meta.pages.slice(0, 3)).toEqual(["---Foundation---", "gallery", "core"]);
+    expect(JSON.parse(renderMetaJson([domain("core"), domain("skill"), domain("mcp-server")], TEST_GROUPS)).pages).toContain("gallery");
   });
 
   it("orders pages by the group definition, not by domain input order", () => {
@@ -125,11 +135,13 @@ describe("renderMetaJson", () => {
       (p) => p.startsWith("---") && p.endsWith("---"),
     );
     expect(separators).toEqual(DOMAIN_GROUPS.map((g) => `---${g.label}---`));
-    // Every non-separator entry is a domain, each exactly once.
+    // Every non-separator entry is a domain or a hand-written page, each exactly once.
     const pageSlugs = meta.pages.filter((p) => !separators.includes(p));
     expect(pageSlugs.sort()).toEqual(
-      DOMAIN_GROUPS.flatMap((g) => g.slugs).sort(),
+      [...DOMAIN_GROUPS.flatMap((g) => g.slugs), ...Object.values(HAND_WRITTEN_PAGES).flat()].sort(),
     );
+    // Every hand-written page's group is one the sidebar has.
+    expect(Object.keys(HAND_WRITTEN_PAGES).filter((label) => !DOMAIN_GROUPS.some((g) => g.label === label))).toEqual([]);
   });
 });
 
@@ -167,6 +179,31 @@ describe("renderDomainPage", () => {
 
   it("leaves the description out of the frontmatter when the domain has none", () => {
     expect(renderDomainPage(domain("zz-unlisted"))).toMatch(/^---\ntitle: zz-unlisted\n---\n/);
+  });
+
+  it("writes each hook's, component's and type's examples as tsx fences under its section", () => {
+    const example = (code: string) => [{ meta: 'title="x.tsx"', code }];
+    const page = renderDomainPage({
+      ...domain("skill"),
+      hooks: [
+        {
+          name: "useSkill",
+          description: [],
+          parameters: [],
+          returnType: { name: "void", typeString: "void" },
+          returnInterface: null,
+          examples: example("useSkill();"),
+          sourceUrl: "",
+        },
+      ],
+      components: [{ name: "SkillPicker", description: [], hasProps: false, propsInterface: null, examples: example("<SkillPicker />"), sourceUrl: "" }],
+      types: [
+        { name: "skillLabel", description: [], category: "other", fields: [], associatedExport: null, signature: null, examples: example("skillLabel(s);") },
+      ],
+    });
+    for (const code of ["useSkill();", "<SkillPicker />", "skillLabel(s);"]) {
+      expect(page).toContain('```tsx title="x.tsx"\n' + code + "\n```\n");
+    }
   });
 
   it("renders a Types section for a standalone type, with its fields' links", () => {

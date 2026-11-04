@@ -13,6 +13,7 @@ import {
   separatorLabel,
 } from "../llms-pages";
 import { diagram } from "../../components/visuals/diagrams";
+import { lastFrameText } from "../recordings";
 
 const SITE_URL = "https://example.test";
 
@@ -189,6 +190,41 @@ describe("a <Diagram> in the export", () => {
       "guide.mdx": `${mdx("Guide")}\n<Diagram name="nope" />\n`,
     });
     await expect(collectDocsPages(dir, SITE_URL)).rejects.toThrow(/^docs\/guide\.mdx: no diagram named "nope"/);
+  });
+});
+
+describe("a <Live> and the <ThemePlayground> in the export", () => {
+  it("become the demo's alt text linked to the demo on the site, said to be a replay, as their own paragraph", () => {
+    const body = 'Before.\n\n<Live\n  name="chat-popup"\n  alt="The popup, open on a finished turn"\n/>\n\nAfter.';
+    expect(cleanContent(body, SITE_URL)).toBe(
+      `Before.\n\n[The popup, open on a finished turn](${SITE_URL}/gallery/?scene=agent-chat-popup&mode=dark&embed=1) (live demo; a scripted replay; no agent is running.)\n\nAfter.`,
+    );
+  });
+
+  it("refuse a demo the visual suite does not list, and blank alt text", () => {
+    expect(() => cleanContent('<Live name="chat-popover" alt="A popup" />', SITE_URL)).toThrow(/no live demo named "chat-popover"/);
+    expect(() => cleanContent('<Live name="chat-popup" alt=" " />', SITE_URL)).toThrow(/alt text is required/);
+    expect(() => cleanContent('<Live name="chat-popup" />', SITE_URL)).toThrow(/needs name="…" and alt="…"/);
+  });
+
+  it("turn the playground into a line that says what it offers, linked to its page", () => {
+    expect(cleanContent("Pick one.\n\n<ThemePlayground />\n\nThen copy.", SITE_URL)).toBe(
+      `Pick one.\n\n[The theme playground: the six presets, light or dark and the corner radius on a live chat panel, with the code to copy](${SITE_URL}/docs/sdk/theme/theming)\n\nThen copy.`,
+    );
+  });
+});
+
+describe("a <TerminalRecording> in the export", () => {
+  it("becomes its alt text and the recording's last frame as a text block, as its own paragraph", () => {
+    const body = 'Before.\n\n<TerminalRecording name="run-approval" alt="The agent asks, then answers." />\n\nAfter.';
+    expect(cleanContent(body, SITE_URL)).toBe(
+      `Before.\n\nThe agent asks, then answers. The recording ends on this frame:\n\n\`\`\`text\n${lastFrameText("run-approval")}\n\`\`\`\n\nAfter.`,
+    );
+  });
+
+  it("refuses a recording the terminal kit does not hold, and blank alt text", () => {
+    expect(() => cleanContent('<TerminalRecording name="run-denial" alt="x" />', SITE_URL)).toThrow(/no terminal recording named "run-denial"/);
+    expect(() => cleanContent('<TerminalRecording name="run-approval" alt="" />', SITE_URL)).toThrow(/alt text is required/);
   });
 });
 

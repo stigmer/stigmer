@@ -406,8 +406,8 @@ pages:
       restrict origins, and pass per-user session context.
     medium: still
     why:
-      The page documents a rendered widget the reader currently never sees; one
-      frame of the widget on a host page shows the outcome.
+      The page documents a rendered widget; one frame of the widget on a host
+      page shows the outcome, beside the Embed tab the snippet comes from.
 
   guides/channels/connect-slack:
     fate: keep
@@ -471,8 +471,7 @@ pages:
     why:
       A console procedure the reader follows at their own pace — the
       Conversations inbox, timeline, and banners are depictable stills (the
-      connect-guide precedent); the page ships prose-only until the stills are
-      rendered.
+      connect-guide precedent).
 
   concepts/routines:
     fate: keep
@@ -864,7 +863,10 @@ pages:
     teaches:
       Install the CLI, point it at a local or cloud backend, and run first
       commands.
-    medium: none
+    medium: animated-tour
+    why:
+      What stigmer run draws is a turn unfolding — tool calls, an ask, the
+      approval, the answer — whose order is the lesson.
 
   # ── SDK ────────────────────────────────────────────────────────────────
   sdk:
@@ -941,16 +943,38 @@ pages:
       credential per environment, and find the hooks.
     medium: none
 
+  sdk/react/gallery:
+    fate: keep
+    diataxis: reference
+    teaches:
+      See AgentChat as page, panel and popup, the session view and every thread
+      state working, and try a send, an approval and Stop before installing.
+    medium: interactive
+    why:
+      An embedder judges a chat by using it; the kit's own components answer a
+      scripted turn in place.
+
+  sdk/react-core/build-a-chat:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Build a whole chat with your own markup from useCreateRun and
+      useSessionConversation — start, follow, answer an ask, stop.
+    medium: interactive
+    why:
+      The program the guide quotes runs beside it, so the reader sees each
+      hook's effect as they read the code that produces it.
+
   sdk/ink:
     fate: keep
     diataxis: how-to
     teaches:
       Run a turn in the terminal with runInTerminal and get control back, give
       the kit your colours, or compose InkStigmerProvider with components.
-    medium: still
+    medium: animated-tour
     why:
-      A terminal UI documented with no visual at all; one frame of SessionApp
-      rendering a session shows the outcome.
+      The session view is learned by watching a turn unfold in it — what is
+      written once to the scrollback, what redraws, the ask and its answer.
 
   sdk/ink/cli-integration:
     fate: keep

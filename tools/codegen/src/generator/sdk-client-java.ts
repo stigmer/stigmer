@@ -75,7 +75,7 @@ function javaMethodLower(name: string): string {
   return name.slice(0, 1).toLowerCase() + name.slice(1);
 }
 
-function resolveJavaFQCN(fullType: string): string {
+export function resolveJavaFQCN(fullType: string): string {
   if (isEmptyType(fullType)) return "com.google.protobuf.Empty";
   return fullType;
 }

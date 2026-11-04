@@ -20,6 +20,8 @@ import { IdentityAccountQueryController } from "@stigmer/apis/ai/stigmer/iam/ide
 import { OrganizationQueryController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/query_pb";
 import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import type { ListAgentVersionsResponse } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/version_pb";
+import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
+import type { Vault } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
 import { AgentDetailView, type DetailAction } from "@stigmer/react-sdk";
 import { samples } from "@stigmer/react-sdk/test";
 import { ACCOUNT, LEDGER_AGENT, LEDGER_AGENT_VERSIONS, ORGANIZATION } from "../fixtures.ts";
@@ -51,14 +53,16 @@ export const MENU: readonly DetailAction[] = [
   { id: "delete", label: "Delete", variant: "destructive", group: "danger", requires: "can_delete", onAction: inert },
 ];
 
-/** The agent a page shows and its versions: the ledger agent's unless a scene names another. */
+/** The agent a page shows, its versions, its channels and the vaults they bind: the ledger agent's, with none, unless a scene names others. */
 export interface AgentPage {
   readonly agent?: Agent;
   readonly versions?: ListAgentVersionsResponse;
+  readonly channels?: readonly Channel[];
+  readonly vaults?: readonly Vault[];
 }
 
 /** The calls the agent's page makes, answered for `viewer`. */
-export function agentRoutes(viewer: AgentViewer, { agent = LEDGER_AGENT, versions = LEDGER_AGENT_VERSIONS }: AgentPage = {}) {
+export function agentRoutes(viewer: AgentViewer, { agent = LEDGER_AGENT, versions = LEDGER_AGENT_VERSIONS, channels = [], vaults = [] }: AgentPage = {}) {
   return (router: ConnectRouter) => {
     router.service(OrganizationQueryController, { listMine: () => samples.organizationList([ORGANIZATION]), get: () => ORGANIZATION });
     router.service(IdentityAccountQueryController, { whoAmI: () => ACCOUNT });
@@ -69,9 +73,18 @@ export function agentRoutes(viewer: AgentViewer, { agent = LEDGER_AGENT, version
       listVersions: () => versions,
     });
     router.service(EnvironmentQueryController, { list: () => ({ entries: [] }) });
-    router.service(ChannelQueryController, { listByAgent: () => ({ entries: [] }) });
+    router.service(ChannelQueryController, {
+      listByAgent: () => ({ entries: [...channels] }),
+      list: () => ({ entries: [...channels] }),
+    });
     router.service(PlatformQueryController, { getServerInfo: () => ({}) });
     router.service(VaultQueryController, {
+      list: () => ({ entries: [...vaults] }),
+      getByReference: (input) => {
+        const vault = vaults.find((candidate) => candidate.metadata?.slug === input.slug);
+        if (vault === undefined) throw new ConnectError(`no vault ${input.slug}`, Code.NotFound);
+        return vault;
+      },
       getMine: () => {
         throw new ConnectError("no My vault yet", Code.NotFound);
       },

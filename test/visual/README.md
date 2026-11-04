@@ -12,7 +12,7 @@ In CI the `visual` job of `ci.ts-workspace.yaml` runs inside the same image, on 
 
 ## How a scene is drawn
 
-- `src/catalog.ts` lists the scenes as plain data: an id, a title, the widths it is drawn at, and the acts that bring a component to its state (`opens`): a button's name to press, `{ press, role }` for any other control (a tab, a radio, a menu item, a picker's option), or `{ fill, with }` to type into a labelled field. The spec, the index page and the unit checks read it. A control the scene cannot reach by its role and name has no accessible name: that is the kit's defect to fix, never the scene's to work around.
+- `src/catalog.ts` lists the scenes as plain data: an id, a title, the widths it is drawn at, and the acts that bring a component to its state (`opens`): a button's name to press, `{ press, role }` for any other control (a tab, a radio, a menu item, a picker's option), or `{ fill, with }` to type into a labelled field. A name matches as a part of the control's or label's, case aside, as Playwright's locators do (a label that wraps its hint names the field with both); `exact: true` holds it to the whole, for a name that is part of another's or one held to a page's word. The spec, the index page and the unit checks read it. A control the scene cannot reach by its role and name has no accessible name: that is the kit's defect to fix, never the scene's to work around.
 - `src/scenes/` draws each id, inside `StigmerProvider` with the scene's colour mode, over the stylesheet the kit ships and the theme presets. The map in `src/scenes/index.ts` is typed by the catalogue's ids, so a scene listed without a drawing fails the typecheck.
 - `src/fake-server.ts` gives every scene a real client over an in-memory router: the kit's hooks run their own code. A drawing answers the calls its components make (`routes`); every other call answers `Unimplemented`, so a forgotten call shows the component's error state and fails its screenshot.
 - Data comes from the scenario catalogue and `samples` in `@stigmer/react-sdk/test`, and from `src/fixtures.ts` for what they do not hold (the model registry, provider keys, the dashboard's figures). The clock is the catalogue's, the typefaces are the console's vendored files (`client-apps/web/src/app/fonts`), and the page reads no network.
@@ -36,7 +36,21 @@ The site's build converts each approved picture into the files it serves (`site/
 2. `make test-visual UPDATE=1` mints its picture. `tests/shown.spec.ts` fails while an entry has no picture, and while a picture has no entry.
 3. Embed it with `<Screen name="…" alt="…" />`.
 
-A docs page's picture draws the values the page prints (a routine's name, its message, an Environment's hosts) from that page's example in `src/docs-examples.ts`: the scene builds its fixtures from it (`src/docs-fixtures.ts`) and its acts type them, and the site's `docs-screens` test holds every value to the page's source. Change the page and the example together.
+A docs page's picture draws the values the page prints (a routine's name, its message, an Environment's hosts) from that page's example in `src/docs-examples.ts`: the scene builds its fixtures from it (`src/docs-fixtures.ts`) and its acts type them, and the site's `docs-screens` test holds every value to the page's source. A control the page names in bold is a value named `…Label` there, which the act presses or fills by, matched `exact` unless the control's name carries more than the page's word (then a rename that keeps the page's word inside the name, or a change of case, goes unheld), and which the check holds to the page's bold. Change the page and the example together.
+
+## Live demos
+
+The docs embed some scenes live: `<Live name="chat-popup" alt="…" />` on a page frames the gallery in its docs mode (`&embed=1`), which the site builds under `/gallery/` (`site/scripts/generate-gallery.ts`). `src/live.ts` lists them as plain data, each with a name pages use, its scene, its frame's height and whether a reader can talk to it. In the docs mode the page:
+
+- draws only the scenes `src/live.ts` names, and under `/gallery/` sends an address with no scene to the docs' Gallery page;
+- gives the kit an in-memory storage, so a demo neither reads nor writes the docs site's own;
+- answers a scene's conversation through the scripted server (`src/live-server.ts`): a send plays the scripted turn from the kit's scenario catalogue (`scriptedTurn`), an approval or a denial lets it go on, Stop ends it, and a message sent while a turn works waits in the queue, as on the real server. A drawing opts in with `liveRoutes`;
+- takes its look from its address (`preset`, `mode`, `radius`), then from the theme messages the docs' playground posts from the same origin.
+
+`tests/live.spec.ts` draws every demo in both modes and audits it (`KIT-12`), and drives a send, an approval and a stop (`KIT-13`); `src/__tests__/live.test.ts` holds every entry to the catalogue and `src/__tests__/live-server.test.ts` the scripted server. The pictures stay the scenes' own screenshots. To embed a new one:
+
+1. Add its entry to `LIVE` in `src/live.ts`. Its scene must be in the catalogue; a demo a reader can talk to needs a drawing with `liveRoutes`.
+2. Embed it with `<Live name="…" alt="…" />`.
 
 ## The browser image
 

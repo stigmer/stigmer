@@ -33,6 +33,8 @@ status:
 
 ## Client Access
 
+Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Where a language's examples import anything, its tab opens with those imports.
+
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
@@ -40,18 +42,36 @@ const memory = await stigmer.memory.get("mem_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
+```go prelude
+import (
+	stigmer "go.stigmer.ai/sdk"
+	memoryv1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/memory/v1"
+)
+```
 ```go
 memory, err := client.Memory.Get(ctx, "mem_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
+```python prelude
+from stigmer._gen import MemoryInput, MemoryProvenanceInput
+from ai.stigmer.agentic.memory.v1 import io_pb2
+```
 ```python
 memory = client.memorys.get("mem_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
+```java prelude
+import ai.stigmer.agentic.memory.v1.ListMemoriesRequest;
+import ai.stigmer.agentic.memory.v1.Memory;
+import ai.stigmer.agentic.memory.v1.MemoryList;
+import ai.stigmer.sdk.gen.MemoryInput;
+import java.util.List;
+import java.util.Map;
+```
 ```java
-Memory memory = client.memories().get("mem_01j5q3k7m8r2s4tnz2hfp0q0c3");
+Memory memory = client.memory.get("mem_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -75,22 +95,22 @@ Get a single memory by ID.
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const memory = await stigmer.memory.get(id);
+const memory = await stigmer.memory.get("mem_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
 ```go
-memory, err := client.Memory.Get(ctx, id)
+memory, err := client.Memory.Get(ctx, "mem_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
 ```python
-memory = client.memorys.get(id)
+memory = client.memorys.get("mem_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Memory memory = client.memories().get(id);
+Memory memory = client.memory.get("mem_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -113,40 +133,36 @@ Returns only memories the caller can view — for memories that is always exactl
 <Tab value="TypeScript">
 ```typescript
 const result = await stigmer.memory.list({
-  org: "...",
+  org: "acme",
   pageSize: 0,
-  pageToken: "...",
   labels: {},
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-result, err := client.Memory.List(ctx, &stigmer.ListMemoriesRequest{
-  Org:       "...",
-  PageSize:  0,
-  PageToken: "...",
-  Labels:    map[string]string{},
+result, err := client.Memory.List(ctx, &memoryv1.ListMemoriesRequest{
+  Org:      "acme",
+  PageSize: 0,
+  Labels:   map[string]string{},
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-result = client.memorys.list(ListMemoriesRequest(
-    org="...",
+result = client.memorys.list(io_pb2.ListMemoriesRequest(
+    org="acme",
     page_size=0,
-    page_token="...",
     labels={},
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-MemoryList result = client.memories().list(ListMemoriesRequest.builder()
-    .org("...")
-    .pageSize(0)
-    .pageToken("...")
-    .labels(Map.of())
+MemoryList result = client.memory.list(ListMemoriesRequest.newBuilder()
+    .setOrg("acme")
+    .setPageSize(0)
+    .putAllLabels(Map.of())
     .build());
 ```
 </Tab>
@@ -200,20 +216,20 @@ memory = client.memorys.create(MemoryInput(
     labels={},
     content="...",
     subject_identity_account_id="...",
-    provenance=None,
+    provenance=MemoryProvenanceInput(),
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Memory memory = client.memories().create(MemoryInput.builder()
+Memory memory = client.memory.create(MemoryInput.builder()
     .name("my-memory")
     .org("acme")
     .slug("...")
     .labels(Map.of())
     .content("...")
     .subjectIdentityAccountId("...")
-    .provenance(null)
+    .provenance(MemoryInput.MemoryProvenanceInput.builder().build())
     .build());
 ```
 </Tab>
@@ -259,10 +275,10 @@ updated = client.memorys.update(memory, ["metadata.name"])
 </Tab>
 <Tab value="Java">
 ```java
-Memory memory = client.memories().get("mem_01j5q3k7m8r2s4tnz2hfp0q0c3");
-Memory updated = client.memories().update(
+Memory memory = client.memory.get("mem_01j5q3k7m8r2s4tnz2hfp0q0c3");
+Memory updated = client.memory.update(
     memory.toBuilder().setMetadata(memory.getMetadata().toBuilder().setName("New name")).build(),
-    java.util.List.of("metadata.name"));
+    List.of("metadata.name"));
 ```
 </Tab>
 </SDKTabs>
@@ -285,22 +301,22 @@ Deletion is the retention mechanism: deleting a confirmed memory is how consent 
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const memory = await stigmer.memory.delete(id);
+const memory = await stigmer.memory.delete("mem_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
 ```go
-memory, err := client.Memory.Delete(ctx, id)
+memory, err := client.Memory.Delete(ctx, "mem_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
 ```python
-memory = client.memorys.delete(id)
+memory = client.memorys.delete("mem_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Memory memory = client.memories().delete(id);
+Memory memory = client.memory.delete("mem_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -322,22 +338,22 @@ Confirmation is the consent act: from the next eligible run on, the fact is inje
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const memory = await stigmer.memory.confirm(id);
+const memory = await stigmer.memory.confirm("mem_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
 ```go
-memory, err := client.Memory.Confirm(ctx, id)
+memory, err := client.Memory.Confirm(ctx, "mem_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
 ```python
-memory = client.memorys.confirm(id)
+memory = client.memorys.confirm("mem_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Memory memory = client.memories().confirm(id);
+Memory memory = client.memory.confirm("mem_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -359,22 +375,22 @@ A rejected memory is never recalled. The record is kept rather than deleted so t
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const memory = await stigmer.memory.reject(id);
+const memory = await stigmer.memory.reject("mem_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
 ```go
-memory, err := client.Memory.Reject(ctx, id)
+memory, err := client.Memory.Reject(ctx, "mem_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
 ```python
-memory = client.memorys.reject(id)
+memory = client.memorys.reject("mem_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Memory memory = client.memories().reject(id);
+Memory memory = client.memory.reject("mem_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>

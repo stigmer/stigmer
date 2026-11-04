@@ -162,6 +162,19 @@ describe("parseTypeDocJson — the package's entries", () => {
     expect(domains[0].headless).toEqual({ rootOnly: ["SessionContext", "useSessionAlpha", "useSessionZeta"] });
   });
 
+  it("reads a component's @example from its signature's comment, keeping the fence's attributes", async () => {
+    const component = hook(1, "SkillPicker", "sdk/react/src/skill/SkillPicker.tsx");
+    component.signatures![0].comment = {
+      summary: [],
+      blockTags: [{ tag: "@example", content: [{ kind: "code", text: '```tsx title="Picker.tsx"\n<SkillPicker />\n```' }] }],
+    };
+    const { domains } = await parse([component]);
+
+    expect(domains[0].components.map((c) => [c.name, c.examples])).toEqual([
+      ["SkillPicker", [{ meta: 'title="Picker.tsx"', code: "<SkillPicker />" }]],
+    ]);
+  });
+
   it("reads a single-entry run's top-level exports as the root's", async () => {
     const { domains } = await parse([typeAlias(1, "SkillPickerProps", "sdk/react/src/skill/SkillPicker.tsx")]);
 

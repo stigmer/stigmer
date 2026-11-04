@@ -27,25 +27,56 @@ spec:
 
 ## Client Access
 
+Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Where a language's examples import anything, its tab opens with those imports.
+
 <SDKTabs>
 <Tab value="TypeScript">
+```typescript prelude
+import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
+```
 ```typescript
 const federationIssuer = await stigmer.federationIssuer.get("fis_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
+```go prelude
+import (
+	stigmer "go.stigmer.ai/sdk"
+	"go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	federationissuerv1 "go.stigmer.ai/sdk/proto/ai/stigmer/iam/federationissuer/v1"
+	iamv1 "go.stigmer.ai/sdk/proto/ai/stigmer/iam/v1"
+)
+```
 ```go
 federationIssuer, err := client.FederationIssuer.Get(ctx, "fis_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
+```python prelude
+from stigmer import DeleteResourceInput, FederationIssuerInput, ResourceRef
+from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2
+from ai.stigmer.iam.federationissuer.v1 import io_pb2
+from ai.stigmer.iam.v1 import enum_pb2 as iam_enum_pb2
+```
 ```python
 federation_issuer = client.federation_issuers.get("fis_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
+```java prelude
+import ai.stigmer.commons.apiresource.RenameInput;
+import ai.stigmer.iam.federationissuer.v1.FederationIssuer;
+import ai.stigmer.iam.federationissuer.v1.FederationIssuers;
+import ai.stigmer.iam.federationissuer.v1.ListFederationIssuersInput;
+import ai.stigmer.iam.v1.IamRole;
+import ai.stigmer.sdk.gen.DeleteResourceInput;
+import ai.stigmer.sdk.gen.FederationIssuerInput;
+import ai.stigmer.sdk.gen.ResourceRef;
+import java.util.List;
+import java.util.Map;
+```
 ```java
-FederationIssuer federationIssuer = client.federationIssuers().get("fis_01j5q3k7m8r2s4tnz2hfp0q0c3");
+FederationIssuer federationIssuer = client.federationIssuer.get("fis_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -70,22 +101,22 @@ Get a federation issuer by its unique identifier.
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const federationIssuer = await stigmer.federationIssuer.get(id);
+const federationIssuer = await stigmer.federationIssuer.get("fis_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
 ```go
-federationIssuer, err := client.FederationIssuer.Get(ctx, id)
+federationIssuer, err := client.FederationIssuer.Get(ctx, "fis_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
 ```python
-federation_issuer = client.federation_issuers.get(id)
+federation_issuer = client.federation_issuers.get("fis_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-FederationIssuer federationIssuer = client.federationIssuers().get(id);
+FederationIssuer federationIssuer = client.federationIssuer.get("fis_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -107,46 +138,22 @@ Resolves a human-readable reference like "acme/planton" to the full FederationIs
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const federationIssuer = await stigmer.federationIssuer.getByReference({
-  org: "...",
-  kind: "...",
-  slug: "...",
-  version: "...",
-  id: "...",
-});
+const federationIssuer = await stigmer.federationIssuer.getByReference({ org: "acme", slug: "my-federation-issuer" });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-federationIssuer, err := client.FederationIssuer.GetByReference(ctx, &stigmer.ApiResourceReference{
-  Org:     "...",
-  Kind:    "...",
-  Slug:    "...",
-  Version: "...",
-  Id:      "...",
-})
+federationIssuer, err := client.FederationIssuer.GetByReference(ctx, stigmer.ResourceRef{Org: "acme", Slug: "my-federation-issuer"})
 ```
 </Tab>
 <Tab value="Python">
 ```python
-federation_issuer = client.federation_issuers.get_by_reference(ApiResourceReference(
-    org="...",
-    kind="...",
-    slug="...",
-    version="...",
-    id="...",
-))
+federation_issuer = client.federation_issuers.get_by_reference(ResourceRef(org="acme", slug="my-federation-issuer"))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-FederationIssuer federationIssuer = client.federationIssuers().getByReference(ApiResourceReference.builder()
-    .org("...")
-    .kind("...")
-    .slug("...")
-    .version("...")
-    .id("...")
-    .build());
+FederationIssuer federationIssuer = client.federationIssuer.getByReference(ResourceRef.of("acme", "my-federation-issuer"));
 ```
 </Tab>
 </SDKTabs>
@@ -165,40 +172,36 @@ Returns the FederationIssuers whose metadata.org matches the input org and that 
 <Tab value="TypeScript">
 ```typescript
 const federationIssuers = await stigmer.federationIssuer.list({
-  org: "...",
+  org: "acme",
   pageSize: 0,
-  pageToken: "...",
   labels: {},
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-federationIssuers, err := client.FederationIssuer.List(ctx, &stigmer.ListFederationIssuersInput{
-  Org:       "...",
-  PageSize:  0,
-  PageToken: "...",
-  Labels:    map[string]string{},
+federationIssuers, err := client.FederationIssuer.List(ctx, &federationissuerv1.ListFederationIssuersInput{
+  Org:      "acme",
+  PageSize: 0,
+  Labels:   map[string]string{},
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-federation_issuers = client.federation_issuers.list(ListFederationIssuersInput(
-    org="...",
+federation_issuers = client.federation_issuers.list(io_pb2.ListFederationIssuersInput(
+    org="acme",
     page_size=0,
-    page_token="...",
     labels={},
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-FederationIssuers federationIssuers = client.federationIssuers().list(ListFederationIssuersInput.builder()
-    .org("...")
-    .pageSize(0)
-    .pageToken("...")
-    .labels(Map.of())
+FederationIssuers federationIssuers = client.federationIssuer.list(ListFederationIssuersInput.newBuilder()
+    .setOrg("acme")
+    .setPageSize(0)
+    .putAllLabels(Map.of())
     .build());
 ```
 </Tab>
@@ -237,7 +240,7 @@ const federationIssuer = await stigmer.federationIssuer.apply({
   userinfoEndpoint: "...",
   externalIdClaim: "...",
   createAccountsOnSignIn: false,
-  signInRole: "...",
+  signInRole: IamRole.owner,
 });
 ```
 </Tab>
@@ -255,7 +258,7 @@ federationIssuer, err := client.FederationIssuer.Apply(ctx, &stigmer.FederationI
   UserinfoEndpoint:       "...",
   ExternalIdClaim:        "...",
   CreateAccountsOnSignIn: false,
-  SignInRole:             "...",
+  SignInRole:             iamv1.IamRole_owner,
 })
 ```
 </Tab>
@@ -273,13 +276,13 @@ federation_issuer = client.federation_issuers.apply(FederationIssuerInput(
     userinfo_endpoint="...",
     external_id_claim="...",
     create_accounts_on_sign_in=False,
-    sign_in_role="...",
+    sign_in_role=iam_enum_pb2.owner,
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-FederationIssuer federationIssuer = client.federationIssuers().apply(FederationIssuerInput.builder()
+FederationIssuer federationIssuer = client.federationIssuer.apply(FederationIssuerInput.builder()
     .name("my-federation-issuer")
     .org("acme")
     .slug("...")
@@ -291,7 +294,7 @@ FederationIssuer federationIssuer = client.federationIssuers().apply(FederationI
     .userinfoEndpoint("...")
     .externalIdClaim("...")
     .createAccountsOnSignIn(false)
-    .signInRole("...")
+    .signInRole(IamRole.owner)
     .build());
 ```
 </Tab>
@@ -330,7 +333,7 @@ const federationIssuer = await stigmer.federationIssuer.create({
   userinfoEndpoint: "...",
   externalIdClaim: "...",
   createAccountsOnSignIn: false,
-  signInRole: "...",
+  signInRole: IamRole.owner,
 });
 ```
 </Tab>
@@ -348,7 +351,7 @@ federationIssuer, err := client.FederationIssuer.Create(ctx, &stigmer.Federation
   UserinfoEndpoint:       "...",
   ExternalIdClaim:        "...",
   CreateAccountsOnSignIn: false,
-  SignInRole:             "...",
+  SignInRole:             iamv1.IamRole_owner,
 })
 ```
 </Tab>
@@ -366,13 +369,13 @@ federation_issuer = client.federation_issuers.create(FederationIssuerInput(
     userinfo_endpoint="...",
     external_id_claim="...",
     create_accounts_on_sign_in=False,
-    sign_in_role="...",
+    sign_in_role=iam_enum_pb2.owner,
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-FederationIssuer federationIssuer = client.federationIssuers().create(FederationIssuerInput.builder()
+FederationIssuer federationIssuer = client.federationIssuer.create(FederationIssuerInput.builder()
     .name("my-federation-issuer")
     .org("acme")
     .slug("...")
@@ -384,7 +387,7 @@ FederationIssuer federationIssuer = client.federationIssuers().create(Federation
     .userinfoEndpoint("...")
     .externalIdClaim("...")
     .createAccountsOnSignIn(false)
-    .signInRole("...")
+    .signInRole(IamRole.owner)
     .build());
 ```
 </Tab>
@@ -432,10 +435,10 @@ updated = client.federation_issuers.update(federation_issuer, ["metadata.name"])
 </Tab>
 <Tab value="Java">
 ```java
-FederationIssuer federationIssuer = client.federationIssuers().get("fis_01j5q3k7m8r2s4tnz2hfp0q0c3");
-FederationIssuer updated = client.federationIssuers().update(
+FederationIssuer federationIssuer = client.federationIssuer.get("fis_01j5q3k7m8r2s4tnz2hfp0q0c3");
+FederationIssuer updated = client.federationIssuer.update(
     federationIssuer.toBuilder().setMetadata(federationIssuer.getMetadata().toBuilder().setName("New name")).build(),
-    java.util.List.of("metadata.name"));
+    List.of("metadata.name"));
 ```
 </Tab>
 </SDKTabs>
@@ -458,25 +461,23 @@ The federated accounts the issuer vouches for are deleted with it, with every ro
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const federationIssuer = await stigmer.federationIssuer.delete({ resourceId: id });
+const federationIssuer = await stigmer.federationIssuer.delete({ resourceId: "fis_01j5q3k7m8r2s4tnz2hfp0q0c3" });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-federationIssuer, err := client.FederationIssuer.Delete(ctx, &stigmer.DeleteResourceInput{
-  ResourceID: id,
-})
+federationIssuer, err := client.FederationIssuer.Delete(ctx, &stigmer.DeleteResourceInput{ResourceID: "fis_01j5q3k7m8r2s4tnz2hfp0q0c3"})
 ```
 </Tab>
 <Tab value="Python">
 ```python
-federation_issuer = client.federation_issuers.delete(DeleteResourceInput(resource_id=id))
+federation_issuer = client.federation_issuers.delete(DeleteResourceInput(resource_id="fis_01j5q3k7m8r2s4tnz2hfp0q0c3"))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-FederationIssuer federationIssuer = client.federationIssuers().delete(DeleteResourceInput.builder()
-    .resourceId(id)
+FederationIssuer federationIssuer = client.federationIssuer.delete(DeleteResourceInput.builder()
+    .resourceId("fis_01j5q3k7m8r2s4tnz2hfp0q0c3")
     .build());
 ```
 </Tab>
@@ -511,7 +512,7 @@ const federationIssuer = await stigmer.federationIssuer.rename({
 </Tab>
 <Tab value="Go">
 ```go
-federationIssuer, err := client.FederationIssuer.Rename(ctx, &stigmer.RenameInput{
+federationIssuer, err := client.FederationIssuer.Rename(ctx, &apiresource.RenameInput{
   ResourceId: "...",
   Slug:       "...",
 })
@@ -519,7 +520,7 @@ federationIssuer, err := client.FederationIssuer.Rename(ctx, &stigmer.RenameInpu
 </Tab>
 <Tab value="Python">
 ```python
-federation_issuer = client.federation_issuers.rename(RenameInput(
+federation_issuer = client.federation_issuers.rename(apiresource_io_pb2.RenameInput(
     resource_id="...",
     slug="...",
 ))
@@ -527,9 +528,9 @@ federation_issuer = client.federation_issuers.rename(RenameInput(
 </Tab>
 <Tab value="Java">
 ```java
-FederationIssuer federationIssuer = client.federationIssuers().rename(RenameInput.builder()
-    .resourceId("...")
-    .slug("...")
+FederationIssuer federationIssuer = client.federationIssuer.rename(RenameInput.newBuilder()
+    .setResourceId("...")
+    .setSlug("...")
     .build());
 ```
 </Tab>

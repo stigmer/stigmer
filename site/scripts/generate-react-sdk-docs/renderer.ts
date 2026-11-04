@@ -10,6 +10,7 @@ import type { Domain, Hook, Component, TypeDef, Field } from "./model";
 import {
   escapeJsString,
   renderCommentParts,
+  renderExample,
 } from "./mdx-utils";
 
 // Hand-maintained sidebar grouping, ordered by adoption journey. Each group
@@ -26,6 +27,16 @@ export interface DomainGroup {
   readonly label: string;
   readonly slugs: readonly string[];
 }
+
+/**
+ * The hand-written pages in the React SDK's folder, each listed first in
+ * the group named here. Fumadocs lists only the pages a meta.json names, and
+ * this generator writes the folder's meta.json whole, so a hand-written
+ * page stays out of the sidebar until it is named here.
+ */
+export const HAND_WRITTEN_PAGES: Readonly<Record<string, readonly string[]>> = {
+  Foundation: ["gallery"],
+};
 
 export const DOMAIN_GROUPS: readonly DomainGroup[] = [
   {
@@ -137,6 +148,7 @@ export function renderDomainPage(domain: Domain): string {
 export function renderMetaJson(
   domains: Domain[],
   groups: readonly DomainGroup[] = DOMAIN_GROUPS,
+  handWritten: Readonly<Record<string, readonly string[]>> = HAND_WRITTEN_PAGES,
 ): string {
   const domainSlugs = new Set(domains.map((d) => d.slug));
   const allGroupSlugs = groups.flatMap((g) => g.slugs);
@@ -180,7 +192,7 @@ export function renderMetaJson(
   const pages: string[] = [];
   for (const group of groups) {
     pages.push(`---${group.label}---`);
-    pages.push(...group.slugs);
+    pages.push(...(handWritten[group.label] ?? []), ...group.slugs);
   }
   const meta = {
     title: "React SDK",
@@ -285,7 +297,7 @@ function renderHookSection(hook: Hook): string {
 
   // Examples
   for (const example of hook.examples) {
-    s += `\`\`\`tsx\n${example}\n\`\`\`\n\n`;
+    s += renderExample(example);
   }
 
   return s;
@@ -308,7 +320,7 @@ function renderComponentSection(component: Component): string {
   }
 
   for (const example of component.examples) {
-    s += `\`\`\`tsx\n${example}\n\`\`\`\n\n`;
+    s += renderExample(example);
   }
 
   return s;
@@ -334,7 +346,7 @@ function renderTypeDefSection(typeDef: TypeDef): string {
   }
 
   for (const example of typeDef.examples) {
-    s += `\`\`\`tsx\n${example}\n\`\`\`\n\n`;
+    s += renderExample(example);
   }
 
   return s;

@@ -6,7 +6,7 @@
 
 import type { CoreExport, CoreReference, CoreCategory } from "./parser";
 import type { Field } from "../generate-react-sdk-docs/model";
-import { escapeJsString, renderCommentParts } from "../generate-react-sdk-docs/mdx-utils";
+import { escapeJsString, renderCommentParts, renderExample } from "../generate-react-sdk-docs/mdx-utils";
 
 const HEADINGS: Record<CoreCategory, string> = {
   context: "Contexts and providers",
@@ -31,8 +31,14 @@ export function renderReferencePage(ref: CoreReference): string {
   return mdx;
 }
 
+/**
+ * The folder's meta.json: the hand-written guide that builds a chat from the
+ * hooks (build-a-chat.mdx), then the generated reference. Fumadocs lists only
+ * the pages a meta.json names, and this is written whole, so the guide is
+ * named here.
+ */
 export function renderMetaJson(): string {
-  return `${JSON.stringify({ title: "React core", pages: ["reference"] }, null, 2)}\n`;
+  return `${JSON.stringify({ title: "React core", pages: ["build-a-chat", "reference"] }, null, 2)}\n`;
 }
 
 function renderExport(exp: CoreExport): string {
@@ -41,7 +47,7 @@ function renderExport(exp: CoreExport): string {
   for (const table of exp.tables) {
     s += `**${table.role}** — \`${table.name}\`\n\n${renderTypeTable(table.fields)}\n\n`;
   }
-  for (const example of exp.examples) s += `\`\`\`tsx\n${example}\n\`\`\`\n\n`;
+  for (const example of exp.examples) s += renderExample(example);
   return s;
 }
 

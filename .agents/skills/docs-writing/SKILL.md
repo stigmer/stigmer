@@ -65,11 +65,12 @@ yes wins. Two doctrines sit behind it:
   contributes text to the exports (per-step prose, alt text, or the Mermaid
   source itself), and the prose around an embed carries the information on its
   own. A `Screen` contributes its alt text and a link to its picture: the export
-  turns the tag into a markdown image. A `Diagram` contributes the text it
-  stands for, kept beside its drawing in `site/src/components/visuals/`: the
-  export turns the tag into that text. A concept page's own system picture is a
-  `Diagram`, drawn in the site's language; every other diagram is Mermaid
-  (`docs/STYLE.md`, "Diagrams").
+  turns the tag into a markdown image. A `Live` contributes its alt text, linked
+  to the demo. A `TerminalRecording` contributes its alt text and its last frame
+  as text. A `Diagram` contributes the text it stands for, kept beside its
+  drawing in `site/src/components/visuals/`: the export turns the tag into that
+  text. A concept page's own system picture is a `Diagram`, drawn in the site's
+  language; every other diagram is Mermaid (`docs/STYLE.md`, "Diagrams").
 
 ## Screens come from the visual suite
 
@@ -95,9 +96,32 @@ provider's) stay prose. A hand-captured screenshot rots with no signal, so it is
 never added, not even as a placeholder. `make check-docs-inventory` holds every
 `still` and `screenshot-journey` page to at least one `<Screen>` and every other
 page to none; a page still waiting for its pictures is listed, with its reason,
-in `OWED_PICTURES` (`site/src/lib/docs-inventory.ts`). A page whose `medium` is
-`animated-tour` or `interactive` stays prose, code and diagrams until those
-media are built.
+in `OWED_PICTURES` (`site/src/lib/docs-inventory.ts`).
+
+## Live demos come from the visual suite too
+
+An `interactive` page embeds the kit itself, live: `<Live name="…" alt="…" />`
+frames a gallery scene in the gallery's docs mode, where a scripted server
+answers a reader's send, approval and Stop with one scripted turn (the kit's
+scenario catalogue holds it). The demos are listed in `test/visual/src/live.ts`;
+a scene the list lacks gets its entry there (`test/visual/README.md`, "Live
+demos"), and the visual suite's live spec drives it. The theming page's
+`<ThemePlayground />` is one of them, with the code to copy. Never build a demo
+for a page: the docs had one until it went stale with every refactor, and the
+gallery is drawn by the code the screenshot check already holds.
+
+## Terminal recordings come from the terminal kit
+
+An `animated-tour` page about the terminal plays a recording:
+`<TerminalRecording name="…" alt="…" />`. A recording is the terminal kit's
+`SessionView` drawn over a story of the scenario catalogue one event at a time,
+listed in `sdk/ink/src/recordings.ts` and held, frame by frame, by the kit's
+test (`sdk/ink/src/__tests__/recordings.test.tsx`), so a change to the
+terminal's look fails there and redraws the docs in the same pull request. A new
+recording gets its entry there and is minted with `npx vitest run -u` in
+`sdk/ink`. Never record a real terminal for a page: its timing varies and it
+drifts with no test noticing. An `animated-tour` page with nothing to play stays
+prose, code and diagrams until it has a recording.
 
 ## Alt text describes the screen
 

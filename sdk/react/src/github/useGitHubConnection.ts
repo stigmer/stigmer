@@ -127,7 +127,9 @@ function userFor(login: string): GitHubUser {
 /**
  * Behavior hook that manages the GitHub connection lifecycle.
  *
- * Pass `null` as `org` to disable (the hook reports not connected).
+ * Pass `null` as `org` to disable (the hook reports not connected). A
+ * desktop app (Tauri) opens the system browser and takes the result through
+ * a deep link: the second example.
  *
  * @param org - The active organization id (a slug is also accepted).
  * @param config - Optional configuration for desktop / non-browser
@@ -145,7 +147,7 @@ function userFor(login: string): GitHubUser {
  * }
  * ```
  *
- * @example Desktop (Tauri): the system browser, the result through a deep link
+ * @example
  * ```tsx
  * const gh = useGitHubConnection(org, {
  *   openUrl: (url) => invoke("open_auth_in_browser", { authUrl: url }),

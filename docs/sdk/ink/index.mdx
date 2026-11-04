@@ -127,6 +127,14 @@ provider's `background`.
 
 ## What the session draws
 
+Here is a turn as `SessionView` draws it: the person's question, two file reads,
+an ask before a command runs, the approval, and the answer.
+
+<TerminalRecording
+  name="run-approval"
+  alt="A terminal session: the agent reads two files, asks before it runs git log, is approved with y, and answers that invoices and credit notes now round once, at the total."
+/>
+
 What can no longer change is written once into the terminal's scrollback: the
 person's message, each finished block of a reply, a tool group whose calls
 returned, a finished subagent. Only what is still changing redraws in place, so
@@ -235,6 +243,8 @@ It is re-exported from `@stigmer/client/node` for convenience.
 Every hook `@stigmer/react-core` exports works under `InkStigmerProvider`. This
 is the main reason to choose `@stigmer/ink-ui` over building a terminal UI from
 scratch: you get the complete data layer for free.
+[Build a chat from the hooks](/docs/sdk/react-core/build-a-chat) walks through a
+whole chat built on them, in the browser; the same hooks drive it here.
 
 ```tsx
 import { useSessionConversation } from "@stigmer/react-core";

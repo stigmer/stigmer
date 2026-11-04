@@ -142,6 +142,10 @@
       "promise": "Leaving a session says the agent keeps working and how to come back."
     },
     {
+      "id": "INK-18",
+      "promise": "The docs' terminal recordings are the terminal kit's own frames."
+    },
+    {
       "id": "LIB-01",
       "promise": "Every library installs from its packed tarball and imports under Node."
     },
@@ -174,7 +178,12 @@
     },
     {
       "id": "KIT-04",
-      "promise": "Every hero screen passes the accessibility audit in light and dark."
+      "promise": "Every hero screen passes the accessibility audit in light and dark.",
+      "pending": [
+        "stigmer#2878",
+        "stigmer#2898",
+        "stigmer#2899"
+      ]
     },
     {
       "id": "KIT-05",
@@ -206,6 +215,14 @@
     {
       "id": "KIT-11",
       "promise": "The panel and popup never trap focus or take a key the host uses, and closing the popup returns focus to what opened it."
+    },
+    {
+      "id": "KIT-12",
+      "promise": "The docs show the kit's parts live, drawn by the same code the screenshot check approves."
+    },
+    {
+      "id": "KIT-13",
+      "promise": "A message sent in a docs demo gets a scripted answer, never an error."
     },
     {
       "id": "CON-01",

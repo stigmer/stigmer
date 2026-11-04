@@ -120,9 +120,20 @@ stay prose.
 `make check-docs-inventory` fails a page of either medium with no `<Screen>`,
 and a page of any other medium with one. A page still waiting for its pictures
 is listed with its reason in `OWED_PICTURES` (`site/src/lib/docs-inventory.ts`),
-and leaves the list in the change that pictures it. Pages whose medium is
-`animated-tour` or `interactive` stay prose, code, and diagrams until those
-media are built; for them, as for `diagram`, `medium` remains the page's target.
+and leaves the list in the change that pictures it. For an `animated-tour` page
+with no recording yet, as for `diagram`, `medium` remains the page's target.
+
+An `interactive` page embeds the kit live with `<Live>` or `<ThemePlayground>`
+(see [Live](#live)): a gallery scene the visual suite draws, framed in its docs
+mode, where a scripted server answers a reader's send, approval and Stop. Never
+build a demo of your own for a page: a demo kept beside the product goes stale
+the way a captured screenshot does.
+
+An `animated-tour` page about the terminal embeds `<TerminalRecording>` (see
+[TerminalRecording](#terminalrecording)): the terminal kit's own frames, drawn
+over a story of the scenario catalogue one event at a time and held by the kit's
+tests. Never record a terminal by hand for a page. An `animated-tour` page with
+no recording to play stays prose, code, and diagrams until it has one.
 
 Generated pages (the `cli/commands/`, `sdk/react/`, `sdk/resources/`,
 `sdk/ink/`, and `sdk/theme/` reference sets) are covered by cohort rules in the
@@ -262,6 +273,45 @@ alt text. The build fails on a name the list does not hold or on blank alt text.
 <Screen
   name="approval"
   alt="A file edit waits for approval, with Approve and Deny"
+/>
+```
+
+### Live
+
+A part of the React kit, live: a gallery scene the visual suite draws, framed in
+its docs mode. `name` is an entry in `test/visual/src/live.ts`; `alt` describes
+what the demo shows. A reader can send a message, approve the command the agent
+asks to run, and stop a turn; a scripted server answers, and the caption under
+the frame says so. In the markdown exports the tag becomes the alt text, linked
+to the demo. The build fails on a name the list does not hold or on blank alt
+text. To embed a scene the list lacks, add its entry (`test/visual/README.md`,
+"Live demos").
+
+```mdx
+<Live
+  name="chat-popup"
+  alt="AgentChat as a corner popup, open on a finished turn"
+/>
+```
+
+`<ThemePlayground />` is the theming page's: the six presets, light or dark and
+the corner radius on a live chat panel, with the code that gives a product that
+look.
+
+### TerminalRecording
+
+A terminal session, played: the frames the terminal kit's `SessionView` draws
+over a story, event by event. `name` is an entry in `sdk/ink/src/recordings.ts`,
+whose frames the kit's test holds in `sdk/ink/src/__tests__/__recordings__/`;
+`alt` describes what the session shows. It plays when scrolled into view, pauses
+and replays, and shows the last frame to a reader who asked for less motion. In
+the markdown exports the tag becomes the alt text and the last frame as a text
+block. The build fails on a name the list does not hold or on blank alt text.
+
+```mdx
+<TerminalRecording
+  name="run-approval"
+  alt="The agent reads two files, asks before it runs git log, and answers"
 />
 ```
 

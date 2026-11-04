@@ -12,13 +12,15 @@
  *     possible duplicate row beats a failed push);
  *   - already-archived content repoints: saveAudit is never called, the
  *     tag assignment still runs (re-pushing under a new tag is skills'
- *     only retag path).
+ *     only retag path), and the stored head is reconciled to the tag it
+ *     assigned.
  */
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
-import { create } from "@bufbuild/protobuf";
+import { clone, create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 
 import { SkillSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
+import type { Skill } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
 import { PushSkillRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
@@ -42,6 +44,10 @@ interface FakeAuditStore {
   setAuditTagError: Error | undefined;
   saveAuditCalls: number;
   setAuditTagCalls: Array<{ versionHash: string; tag: string }>;
+  /** The stored head, which a narrow write of the step modifies. */
+  row: Skill;
+  /** The audit column's tag for HASH. */
+  columnTag: string;
 }
 
 /** A store exposing ONLY the members the step touches; the cast is the seam. */
@@ -55,6 +61,12 @@ function fakeStore(overrides?: Partial<FakeAuditStore>): {
     setAuditTagError: undefined,
     saveAuditCalls: 0,
     setAuditTagCalls: [],
+    row: create(SkillSchema, {
+      metadata: { id: "skl_test", org: "acme", version: { id: HASH } },
+      spec: {},
+      status: { versionHash: HASH },
+    }),
+    columnTag: "",
     ...overrides,
   };
   const store = {
@@ -80,6 +92,23 @@ function fakeStore(overrides?: Partial<FakeAuditStore>): {
       if (state.setAuditTagError !== undefined) {
         throw state.setAuditTagError;
       }
+      state.columnTag = tag;
+    },
+    async getAuditRecordByHash(
+      _k: unknown,
+      _r: unknown,
+      versionHash: string,
+    ): Promise<{ versionHash: string; tag: string }> {
+      return { versionHash, tag: state.columnTag };
+    },
+    async updateResource(
+      _k: unknown,
+      _r: unknown,
+      _s: unknown,
+      modify: (row: Skill) => void,
+    ): Promise<Skill> {
+      modify(state.row);
+      return clone(SkillSchema, state.row);
     },
   } as unknown as Store;
   return { store, state };
@@ -141,13 +170,17 @@ describe("ArchiveCurrentSkill — safe degradation", () => {
 
   it("already-archived content repoints without a new row; the tag still moves", async () => {
     const { store, state } = fakeStore({ getAuditByHashError: undefined });
-    const { ctx } = contextWithSkill("stable");
+    const { ctx, skill } = contextWithSkill("stable");
 
     await newArchiveCurrentSkillStep(store, silentLogger).execute(ctx);
 
     expect(state.saveAuditCalls).toBe(0);
     expect(state.setAuditTagCalls).toEqual([
       { versionHash: HASH, tag: "stable" },
+    ]);
+    expect([state.row.spec?.tag, skill.spec?.tag]).toEqual([
+      "stable",
+      "stable",
     ]);
   });
 

@@ -13,7 +13,7 @@
 import * as fs from "node:fs/promises";
 import type { CommentDisplayPart, Reflection, TypeDocProject, TypeDocType } from "../generate-react-sdk-docs/typedoc-types";
 import { ReflectionKind } from "../generate-react-sdk-docs/typedoc-types";
-import { extractExamples, flattenCommentParts, serializeType } from "../generate-react-sdk-docs/mdx-utils";
+import { extractExamples, flattenCommentParts, serializeType, type Example } from "../generate-react-sdk-docs/mdx-utils";
 import type { CommentPart, Field } from "../generate-react-sdk-docs/model";
 
 export type CoreCategory = "context" | "hook" | "function" | "constant";
@@ -30,7 +30,7 @@ export interface CoreExport {
   readonly category: CoreCategory;
   readonly description: CommentPart[];
   readonly tables: CoreTable[];
-  readonly examples: string[];
+  readonly examples: Example[];
 }
 
 export interface CoreReference {
@@ -91,7 +91,7 @@ export async function parseTypeDocJson(jsonPath: string): Promise<CoreReference>
       category,
       description: parts(comment?.summary),
       tables: category === "hook" ? [...table("Options", `${base}Options`), ...table("Returns", `${base}Return`)] : [],
-      examples: extractExamples(comment),
+      examples: extractExamples(comment, refl),
     });
   }
   exports.sort((a, b) => ORDER[a.category] - ORDER[b.category] || a.name.localeCompare(b.name));

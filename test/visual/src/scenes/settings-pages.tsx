@@ -81,7 +81,7 @@ function settingsRoutes(router: ConnectRouter): void {
 }
 
 /** A settings page with `extra` answered beside the common calls. */
-function settingsScene(
+export function settingsScene(
   page: () => ReactNode,
   extra: (router: ConnectRouter) => void = () => {},
   deploymentMode?: Drawing["deploymentMode"],
