@@ -33,6 +33,7 @@ import {
 } from "./models.tsx";
 import { agentChannelsScene, embedWidgetScene } from "./channel.tsx";
 import { channelAppsScene } from "./channel-app.tsx";
+import { oauthAppsScene, serviceAccountsScene } from "./access.tsx";
 import { conversationsScene } from "./conversations.tsx";
 import { agentEnvironmentScene, environmentNewScene, runSettingsScene } from "./environment.tsx";
 import { routineDetailScene, routineNewScene } from "./routine.tsx";
@@ -116,6 +117,11 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "channel-app-setup": () => channelAppsScene(true),
   "channel-conversations-needs-human": () => conversationsScene("agent"),
   "channel-conversation-taken-over": () => conversationsScene("ada"),
+  "access-service-account-new": () => serviceAccountsScene("not-yet"),
+  "access-service-account-first-key": () => serviceAccountsScene("not-yet"),
+  "access-service-account-key-revealed": () => serviceAccountsScene("not-yet"),
+  "access-service-account-detail": () => serviceAccountsScene("made"),
+  "access-oauth-app-new": () => oauthAppsScene(),
   "agent-chat-panel": () => agentChatScene("busy", "panel", true),
   "agent-chat-popup-closed": () => agentChatScene("busy", "popup", false),
   "agent-chat-popup": () => agentChatScene("finished", "popup", true),

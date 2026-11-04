@@ -19,7 +19,9 @@ import {
   CHAT_LINK_EXAMPLE,
   EMBED_EXAMPLE,
   ENVIRONMENT_EXAMPLE,
+  OAUTH_APP_EXAMPLE,
   ROUTINE_EXAMPLE,
+  SERVICE_ACCOUNT_EXAMPLE,
   SLACK_APP_EXAMPLE,
   SLACK_EXAMPLE,
   WHATSAPP_EXAMPLE,
@@ -75,6 +77,7 @@ export type SceneId =
   | `routine-${RoutineSceneName}`
   | `environment-${EnvironmentSceneName}`
   | `channel-${ChannelSceneName}`
+  | `access-${AccessSceneName}`
   | "agent-chat-panel"
   | "agent-chat-popup-closed"
   | "agent-chat-popup"
@@ -394,6 +397,75 @@ const CHANNEL_SCENES = [
   },
 ] as const satisfies readonly { readonly id: `channel-${string}`; readonly title: string; readonly widths: readonly WidthName[]; readonly opens?: readonly Act[] }[];
 
+/**
+ * The access pages' screens: the service accounts page's CI account from
+ * its form to its first key shown once, then its own page
+ * (docs/guides/authentication/service-accounts.mdx), and the
+ * bring-your-own-OAuth page's Slack app in the New OAuth app form
+ * (docs/guides/integrations/bring-your-own-oauth.mdx).
+ */
+export type AccessSceneName = (typeof ACCESS_SCENES)[number]["id"] extends `access-${infer Name}` ? Name : never;
+
+/** The service account form, filled with the page's name: the reader's first step. */
+const SERVICE_ACCOUNT_NEW: readonly Act[] = [
+  { press: SERVICE_ACCOUNT_EXAMPLE.newLabel, role: "button", exact: true },
+  { fill: "Name", with: SERVICE_ACCOUNT_EXAMPLE.name, exact: true },
+];
+
+/** The account created, and its first key named, with the lifetime the page's CLI line gives it. */
+const SERVICE_ACCOUNT_FIRST_KEY: readonly Act[] = [
+  ...SERVICE_ACCOUNT_NEW,
+  { press: "Create service account", role: "button", exact: true },
+  { fill: "Key name", with: SERVICE_ACCOUNT_EXAMPLE.key, exact: true },
+  { press: SERVICE_ACCOUNT_EXAMPLE.expiryLabel, role: "radio", exact: true },
+];
+
+const ACCESS_SCENES = [
+  {
+    id: "access-service-account-new",
+    title: "Settings, Service accounts: New service account named ci-deploy, Member chosen",
+    widths: ["desktop"],
+    opens: SERVICE_ACCOUNT_NEW,
+  },
+  {
+    id: "access-service-account-first-key",
+    title: "Settings, Service accounts: ci-deploy created with the Member role, its first key github-actions to expire in 90 days",
+    widths: ["desktop"],
+    opens: SERVICE_ACCOUNT_FIRST_KEY,
+  },
+  {
+    id: "access-service-account-key-revealed",
+    title: "Settings, Service accounts: github-actions's key shown once, with Copy",
+    widths: ["desktop"],
+    opens: [...SERVICE_ACCOUNT_FIRST_KEY, { press: SERVICE_ACCOUNT_EXAMPLE.createKeyLabel, role: "button", exact: true }],
+  },
+  {
+    id: "access-service-account-detail",
+    title: "Settings, Service accounts: ci-deploy's page, its role, its github-actions key with expiry and last use, and Delete",
+    widths: ["desktop"],
+    opens: [{ press: `Open ${SERVICE_ACCOUNT_EXAMPLE.name}`, role: "button", exact: true }],
+  },
+  {
+    id: "access-oauth-app-new",
+    title: "Settings, OAuth apps: New OAuth app filled for the page's Slack app, its advanced settings open",
+    widths: ["desktop"],
+    opens: [
+      { press: OAUTH_APP_EXAMPLE.newLabel, role: "button", exact: true },
+      // Whole: Advanced settings adds Scope parameter name, which holds "name".
+      { fill: OAUTH_APP_EXAMPLE.nameLabel, with: OAUTH_APP_EXAMPLE.name, exact: true },
+      { fill: OAUTH_APP_EXAMPLE.providerLabel, with: OAUTH_APP_EXAMPLE.provider, exact: true },
+      { fill: OAUTH_APP_EXAMPLE.clientIdLabel, with: OAUTH_APP_EXAMPLE.clientId, exact: true },
+      { fill: OAUTH_APP_EXAMPLE.secretLabel, with: OAUTH_APP_EXAMPLE.clientSecret, exact: true },
+      { fill: "Authorization URL", with: OAUTH_APP_EXAMPLE.authorizationUrl, exact: true },
+      { fill: "Token URL", with: OAUTH_APP_EXAMPLE.tokenUrl, exact: true },
+      { fill: OAUTH_APP_EXAMPLE.addressesLabel, with: OAUTH_APP_EXAMPLE.addresses.join(", "), exact: true },
+      { press: OAUTH_APP_EXAMPLE.advancedLabel, role: "button", exact: true },
+      { fill: "Scopes", with: OAUTH_APP_EXAMPLE.scopes.join(", "), exact: true },
+      { fill: "Scope parameter name", with: OAUTH_APP_EXAMPLE.scopeParameterName, exact: true },
+    ],
+  },
+] as const satisfies readonly { readonly id: `access-${string}`; readonly title: string; readonly widths: readonly WidthName[]; readonly opens?: readonly Act[] }[];
+
 /** The presets the `completed` thread is drawn in beyond the default look, which `thread-completed` is. */
 export const PRESETS = ["corporate", "startup", "friendly", "fintech", "monochrome"] as const satisfies readonly ThemePresetId[];
 
@@ -461,6 +533,7 @@ export const SCENES: readonly Scene[] = [
   ...ROUTINE_SCENES,
   ...ENVIRONMENT_SCENES,
   ...CHANNEL_SCENES,
+  ...ACCESS_SCENES,
   {
     id: "agent-chat-page",
     title: "AgentChat: a whole page of its own, on a finished turn",

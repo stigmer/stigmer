@@ -355,6 +355,47 @@ export const SHOWN: readonly Shown[] = [
     // The workbench: x 24 to 976, y 24 to 1164.
     clip: { x: 24, y: 24, width: 952, height: 1140 },
   },
+  {
+    name: "service-account-new",
+    scene: "access-service-account-new",
+    title: "Settings, Service accounts, New service account: Name ci-deploy and the role picker with Member chosen",
+    viewport: { width: 1280, height: 800 },
+    // The form's card: x 152 to 1128, y 176 to 461.
+    clip: { x: 144, y: 168, width: 992, height: 301 },
+  },
+  {
+    name: "service-account-first-key",
+    scene: "access-service-account-first-key",
+    title: "ci-deploy created with the Member role: its first key named github-actions, 90 days chosen, Create key and Not now",
+    viewport: { width: 1280, height: 800 },
+    // The form's card: x 152 to 1128, y 176 to 456.
+    clip: { x: 144, y: 168, width: 992, height: 296 },
+  },
+  {
+    name: "service-account-key-revealed",
+    scene: "access-service-account-key-revealed",
+    title: "github-actions's key shown once, with Copy",
+    viewport: { width: 1280, height: 800 },
+    // The alert's card: x 152 to 1128, y 176 to 358.
+    clip: { x: 144, y: 168, width: 992, height: 198 },
+  },
+  {
+    name: "service-account-detail",
+    scene: "access-service-account-detail",
+    title: "ci-deploy's page: Rename, its Organization role, API keys with github-actions's expiry and last use, New key, and Delete service account",
+    viewport: { width: 1280, height: 800 },
+    // The panel's card: x 152 to 1128, y 176 to 732.
+    clip: { x: 144, y: 168, width: 992, height: 572 },
+  },
+  {
+    name: "oauth-app-new",
+    scene: "access-oauth-app-new",
+    title: "Settings, OAuth apps, New OAuth app filled for Slack, its advanced settings open",
+    // Tall enough for the whole form: it ends at y 1394.
+    viewport: { width: 1280, height: 1440 },
+    // The form's card: x 152 to 1128, from y 136.
+    clip: { x: 144, y: 128, width: 992, height: 1274 },
+  },
 ];
 
 /** The CSS size of one shown picture: its clip, or the whole viewport. */
