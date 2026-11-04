@@ -88,9 +88,12 @@ naming the server and its host. And a conversation with a repository the sandbox
 could not reach is refused before it starts, naming the repository and the hosts
 it needs: its own host, and for a GitHub repository `api.github.com` too, where
 its pull request is opened. List them, or turn on the package registries and
-code hosts switch, which opens GitHub, GitLab and Bitbucket. Each turn asks the
-last two rules again, so an Environment edited after a conversation started is
-caught at that conversation's next message.
+code hosts switch, which opens GitHub, GitLab and Bitbucket. Saving a
+[routine](/docs/concepts/routines) asks the last two rules of the conversation
+its runs would start, so a routine its Environment could never run is refused
+when you save it, not at each run. Each turn asks the last two rules again, so
+an Environment edited after a conversation started, or after a routine was
+saved, is caught at that conversation's next message.
 
 ## Which one a conversation gets
 

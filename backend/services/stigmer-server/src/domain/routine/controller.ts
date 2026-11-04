@@ -22,6 +22,11 @@
  * resource must be writable offline. A routine with no cron needs no clock
  * at all: it is created, updated and fired with the engine away.
  *
+ * A routine its fires' conversations would be refused in (its Environment,
+ * a plugin's local program, an agent version the agent does not hold) is
+ * refused when it is saved, with that conversation's sentence
+ * (admit-run.ts); each fire asks again.
+ *
  * Authorization rides the composed Authorizer at position 1 of every
  * chain, from the contract's annotations (can_fire for fire); the owner's
  * lock (owners-lock.ts) adds the one rule the model cannot state.
@@ -160,6 +165,9 @@ import { newOwnersLockStep } from "./owners-lock.js";
 import { newVaultAttachmentsStep } from "../vault/attachments.js";
 import { ROUTINE_VAULT_ATTACHMENTS } from "./vault-attachments.js";
 import { newCheckRoutineFilesStep } from "../file/routine-files.js";
+import type { EnvironmentPolicy } from "../run/environment-admission.js";
+import type { LocalProgramPolicy } from "../run/local-programs.js";
+import { newAdmitRoutineRunStep } from "./admit-run.js";
 
 export interface RoutineControllerDeps {
   readonly store: Store;
@@ -197,6 +205,13 @@ export interface RoutineControllerDeps {
   readonly listReadScope: ListReadScope | undefined;
   /** Hand fires allowed per routine per hour (fire-rate.ts); below 1, no limit. */
   readonly firesPerHour: number;
+  /**
+   * The deployment's Environment rule and local-program rule, the objects
+   * a session's create asks: AdmitRoutineRun asks them of the conversation
+   * a fire would start, when the routine is saved (admit-run.ts).
+   */
+  readonly environmentPolicy: EnvironmentPolicy;
+  readonly localPrograms: LocalProgramPolicy;
 }
 
 /** Registers both routine services on the router (routes stage). */
@@ -302,6 +317,7 @@ async function createRoutine(
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
     .addStep(newCheckRoutineFilesStep(deps))
+    .addStep(newAdmitRoutineRunStep(deps))
     .addStep(newVaultAttachmentsStep(deps.store, deps.authorizer, ROUTINE_VAULT_ATTACHMENTS))
     .addStep(newClaimNameStep(deps.store, ApiResourceKind.routine))
     .addStep(newPersistStep(deps.store, deps.credentialBinding))
@@ -362,6 +378,7 @@ async function update(
       .addStep(newGuardReservedLabelsStep(deps.authorizer))
       .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
       .addStep(newCheckRoutineFilesStep(deps))
+      .addStep(newAdmitRoutineRunStep(deps))
       .addStep(newVaultAttachmentsStep(deps.store, deps.authorizer, ROUTINE_VAULT_ATTACHMENTS))
       .addStep(newPersistRoutineUpdateStep(deps.store))
       .addStep(newArmRoutineStep(deps.clock, deps.logger))

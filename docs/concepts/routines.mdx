@@ -50,7 +50,9 @@ way.
   tools use the [vaults](/docs/concepts/vaults) the routine names.
 - **Optionally, an Environment.** The [Environment](/docs/concepts/environments)
   its runs' sandboxes use, ahead of the Agent's default: the packages installed
-  and the websites they may reach.
+  and the websites they may reach. A routine its Environment could not run, such
+  as one whose Agent uses an MCP server at a host the Environment doesn't list,
+  is refused when you save it, with the reason.
 - **Its history.** Every start is recorded: when it happened, whether the
   schedule or a person or system started it, who that was, and the run it began
   or the reason it did not begin.

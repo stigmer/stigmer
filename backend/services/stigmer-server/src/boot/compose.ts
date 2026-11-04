@@ -2073,6 +2073,8 @@ export async function composeServer(
       authorizationLifecycle,
       listReadScope,
       firesPerHour: config.routineFiresPerHour,
+      environmentPolicy,
+      localPrograms: newLocalProgramPolicy(sandboxLane, temporalConfig),
     });
     registerMemoryServices(router, {
       store,

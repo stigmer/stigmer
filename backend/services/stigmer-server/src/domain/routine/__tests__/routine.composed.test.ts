@@ -27,7 +27,11 @@
  *     an agent row gone without its cascade (a store restored from a backup
  *     older than the routine), which these cases stage through the store;
  *   - the fire ledger: manual rows, cascade on delete, listFires paging,
- *     and an in-flight row's outcome read from its run's live phase.
+ *     and an in-flight row's outcome read from its run's live phase;
+ *   - a routine naming an Environment on this server, where no sandbox it
+ *     starts runs the fires, is refused when saved with the conversation's
+ *     own sentence (admit-run.ts): at create, and at an update that names
+ *     one, while an update that leaves it alone passes.
  */
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase, ServiceTier } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
@@ -44,6 +48,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { AgentCommandController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/command_pb";
 import { AgentQueryController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/query_pb";
+import { EnvironmentCommandController } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/command_pb";
 import { RoutineCommandController } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/command_pb";
 import { RoutineQueryController } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/query_pb";
 import { RoutineSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
@@ -61,6 +66,8 @@ import type { ComposedServer } from "../../../boot/compose.js";
 import { createLogger } from "../../../boot/logger.js";
 import { writeLandsMidUpdate } from "../../../pipeline/__tests__/race-support.js";
 import { releaseNamesOfDeleted } from "../../../pipeline/steps/names.js";
+import { LOCAL_ENVIRONMENT_MESSAGE } from "../../run/environment-admission.js";
+import { environmentInput } from "../../environment/__tests__/support.js";
 import { FIRE_DISABLED_MESSAGE } from "../fire.js";
 import {
   organizationId,
@@ -342,6 +349,63 @@ describe("create — the defaults resolver through the real chain", () => {
     expect(
       (await refusal(() => command.create(routineInput({ name: "Z", timeZone: "Local" })))).code,
     ).toBe(Code.InvalidArgument);
+  });
+});
+
+describe("the Environment a routine's fires would run in, asked at save", () => {
+  async function environmentId(name: string): Promise<string> {
+    const environments = createClient(EnvironmentCommandController, transport);
+    const created = await environments.create(environmentInput("acme", name));
+    return created.metadata?.id ?? "";
+  }
+
+  it("refuses creating a routine that names an Environment on a server without hosted sandboxes", async () => {
+    const box = await environmentId("Routine Box");
+    const input = routineInput({ name: "Boxed" });
+    const err = await refusal(() =>
+      command.create({
+        ...input,
+        spec: {
+          ...input.spec,
+          agent: { ...input.spec.agent, environmentRef: { kind: ApiResourceKind.environment, org: "acme", id: box } },
+        },
+      }),
+    );
+    expect(err.code).toBe(Code.FailedPrecondition);
+    expect(err.rawMessage).toBe(LOCAL_ENVIRONMENT_MESSAGE);
+    // The refusal claimed no name: the same name saves once the Environment goes.
+    const saved = await command.create(input);
+    expect(saved.metadata?.slug).toBe("boxed");
+  });
+
+  it("refuses an update naming one, and passes one that leaves it alone", async () => {
+    const box = await environmentId("Update Box");
+    const created = await command.create(routineInput({ name: "Unboxed", slug: "unboxed" }));
+    const input = routineInput({ name: "Unboxed", slug: "unboxed" });
+    const err = await refusal(() =>
+      command.update({
+        resource: {
+          ...input,
+          metadata: created.metadata,
+          spec: {
+            ...input.spec,
+            agent: { ...input.spec.agent, environmentRef: { kind: ApiResourceKind.environment, org: "acme", id: box } },
+          },
+        },
+        updateMask: { paths: ["*"] },
+      }),
+    );
+    expect(err.code).toBe(Code.FailedPrecondition);
+    expect(err.rawMessage).toBe(LOCAL_ENVIRONMENT_MESSAGE);
+    const updated = await command.update({
+      resource: {
+        ...input,
+        metadata: created.metadata,
+        spec: { ...input.spec, agent: { ...input.spec.agent, message: "Do the evening rounds" } },
+      },
+      updateMask: { paths: ["*"] },
+    });
+    expect(updated.spec?.agent?.message).toBe("Do the evening rounds");
   });
 });
 
