@@ -11,9 +11,9 @@
 // as for a user's first `stigmer up` and the all-in-one image. The suites then
 // run against the Temporal users run, not whatever an installer calls latest.
 //
-// It never trusts a binary already in place (the downloader's
-// `isTemporalInstalled` checks only that the file exists), so a rerun after a
-// pin bump moves the machine to the new version. With `--cache-dir` it keeps the
+// It never trusts a binary already in place: it reinstalls on every run, so a
+// rerun after a pin bump moves the machine to the new version. (`stigmer up`
+// keeps a binary that reports the pinned version and replaces any other.) With `--cache-dir` it keeps the
 // verified archive and its checksums.txt in that directory and installs from
 // them when they still match, so a CI lane whose cache holds the pair installs
 // while GitHub's release host is down; the line it prints says which source

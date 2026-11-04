@@ -2,11 +2,12 @@ import { spawn } from "node:child_process";
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { freePort } from "../../../__test-utils__/ports.js";
 import { temporalPidFile } from "../../paths.js";
 import { writePidFile } from "../../state/pidfile.js";
 import { isProcessAlive } from "../../state/proc.js";
+import { DEFAULT_TEMPORAL_VERSION, installedTemporalVersion, type TarballInstall, type TemporalDownloadTarget } from "../download.js";
 import { TemporalManager } from "../manager.js";
 
 function tempHome(): string {
@@ -105,13 +106,16 @@ describe("TemporalManager", () => {
       await expectStopLeavesAlone(home, pid);
     });
 
-    // A stand-in `temporal` binary: it listens on the --port it is given,
-    // as the dev server's frontend does, and its command line names Temporal.
+    // A stand-in `temporal` binary: it reports the pinned version, so the
+    // manager keeps it; it listens on the --port it is given, as the dev
+    // server's frontend does; and its command line names Temporal.
     function fakeTemporal(dir: string): string {
       const bin = join(dir, "temporal");
       writeFileSync(
         bin,
-        `#!${process.execPath}\nconst args = process.argv.slice(2);\nrequire("node:net").createServer().listen(Number(args[args.indexOf("--port") + 1]), "127.0.0.1");\n`,
+        `#!${process.execPath}\nconst args = process.argv.slice(2);\n` +
+          `if (args[0] === "--version") { console.log("temporal version ${DEFAULT_TEMPORAL_VERSION} (Server 1.32.2, UI 2.56.1)"); process.exit(0); }\n` +
+          `require("node:net").createServer().listen(Number(args[args.indexOf("--port") + 1]), "127.0.0.1");\n`,
       );
       chmodSync(bin, 0o755);
       return bin;
@@ -183,6 +187,123 @@ describe("TemporalManager", () => {
       const home = tempHome();
       const manager = TemporalManager.forHome(home, { STIGMER_TEMPORAL_BIN: "" });
       expect(manager.binPath).toBe(join(home, ".stigmer", "bin", "temporal"));
+    });
+  });
+
+  // stigmer#1319: a pin bump reaches a laptop that already has a binary only if
+  // `up` asks that binary its version. The installer is injected, so these cases
+  // replace binaries without the network; the fakes print the line the real CLI
+  // prints (`temporal version 1.10.0 (Server 1.32.2, UI 2.56.1)`).
+  describe("installing", () => {
+    const PIN = DEFAULT_TEMPORAL_VERSION;
+
+    function fakeTemporal(binPath: string, versionLine: string | null): void {
+      mkdirSync(dirname(binPath), { recursive: true });
+      const body = versionLine === null ? "#!/bin/sh\nexit 0\n" : `#!/bin/sh\necho '${versionLine}'\n`;
+      writeFileSync(binPath, body, { mode: 0o755 });
+      chmodSync(binPath, 0o755);
+    }
+
+    function versionLine(version: string): string {
+      return `temporal version ${version} (Server 1.32.2, UI 2.56.1)`;
+    }
+
+    // An installer that writes a fake binary of the requested version and records each call.
+    function recordingInstaller(): { install: (t: TemporalDownloadTarget) => Promise<TarballInstall>; calls: TemporalDownloadTarget[] } {
+      const calls: TemporalDownloadTarget[] = [];
+      const install = async (target: TemporalDownloadTarget): Promise<TarballInstall> => {
+        calls.push(target);
+        fakeTemporal(target.binPath, versionLine(target.version));
+        return { source: "network", cache: "unused" };
+      };
+      return { install, calls };
+    }
+
+    function homeBin(home: string): string {
+      return join(home, ".stigmer", "bin", "temporal");
+    }
+
+    // The lines the CLI's logger writes to stderr while `fn` runs.
+    async function stderrOf(fn: () => Promise<void>): Promise<string[]> {
+      const lines: string[] = [];
+      vi.spyOn(process.stderr, "write").mockImplementation((chunk: string | Uint8Array) => {
+        lines.push(String(chunk).trimEnd());
+        return true;
+      });
+      await fn();
+      return lines;
+    }
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it("keeps an installed binary that reports the pinned version, installing nothing", async () => {
+      const home = tempHome();
+      fakeTemporal(homeBin(home), versionLine(PIN));
+      const installer = recordingInstaller();
+
+      await TemporalManager.forHome(home, {}, { install: installer.install }).ensureInstalled();
+
+      expect(installer.calls).toEqual([]);
+    });
+
+    it("replaces an installed binary of another version with the pinned one", async () => {
+      const home = tempHome();
+      fakeTemporal(homeBin(home), versionLine("1.5.1"));
+      const installer = recordingInstaller();
+
+      const lines = await stderrOf(() => TemporalManager.forHome(home, {}, { install: installer.install }).ensureInstalled());
+
+      expect(installer.calls).toEqual([{ version: PIN, binPath: homeBin(home) }]);
+      expect(installedTemporalVersion(homeBin(home))).toBe(PIN);
+      expect(lines).toContain(`info replacing Temporal CLI from=1.5.1 to=${PIN}`);
+    });
+
+    it("replaces an installed binary that does not say its version", async () => {
+      const home = tempHome();
+      fakeTemporal(homeBin(home), null);
+      const installer = recordingInstaller();
+
+      const lines = await stderrOf(() => TemporalManager.forHome(home, {}, { install: installer.install }).ensureInstalled());
+
+      expect(installer.calls).toEqual([{ version: PIN, binPath: homeBin(home) }]);
+      expect(lines).toContain(`info replacing Temporal CLI from=unknown to=${PIN}`);
+    });
+
+    it("installs the pinned version when no binary is present", async () => {
+      const home = tempHome();
+      const installer = recordingInstaller();
+
+      const lines = await stderrOf(() => TemporalManager.forHome(home, {}, { install: installer.install }).ensureInstalled());
+
+      expect(installer.calls).toEqual([{ version: PIN, binPath: homeBin(home) }]);
+      expect(lines).toContain(`info downloading Temporal CLI version=${PIN}`);
+    });
+
+    it("keeps a STIGMER_TEMPORAL_BIN binary of another version, and starts it as configured", async () => {
+      const home = tempHome();
+      const binPath = join(tempHome(), "opt", "temporal");
+      fakeTemporal(binPath, versionLine("1.5.1"));
+      const installer = recordingInstaller();
+
+      const lines = await stderrOf(() =>
+        TemporalManager.forHome(home, { STIGMER_TEMPORAL_BIN: binPath }, { install: installer.install }).ensureInstalled(),
+      );
+
+      expect(installer.calls).toEqual([]);
+      expect(installedTemporalVersion(binPath)).toBe("1.5.1");
+      expect(lines).toContain(`warn Temporal CLI at ${binPath} is 1.5.1, stigmer expects ${PIN}; starting it as configured`);
+    });
+
+    it("installs to a STIGMER_TEMPORAL_BIN path that holds no binary yet", async () => {
+      const home = tempHome();
+      const binPath = join(tempHome(), "opt", "temporal");
+      const installer = recordingInstaller();
+
+      await TemporalManager.forHome(home, { STIGMER_TEMPORAL_BIN: binPath }, { install: installer.install }).ensureInstalled();
+
+      expect(installer.calls).toEqual([{ version: PIN, binPath }]);
     });
   });
 });

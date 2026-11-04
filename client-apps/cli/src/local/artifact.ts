@@ -21,7 +21,7 @@
 // default: a user's machine already keeps the binary it installed, so
 // `stigmer up` and the image staging pass none.
 
-import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import {
   ArtifactFetchError,
@@ -165,9 +165,15 @@ function compareDigest(
   return { matches: expected !== "" && expected === actual, expected, actual };
 }
 
-// Extract the entry from verified archive bytes and write it executable.
+// Extract the entry from verified archive bytes and put it in place executable.
 // `origin` is where the bytes came from (the URL, or the cached file), so an
 // archive without the entry is reported against the copy that lacked it.
+//
+// The binary is written beside its destination and renamed over it, never
+// written in place: an install may replace a binary that is running (Linux
+// refuses to write one, ETXTBSY), and a crash mid-write must not leave a
+// truncated binary that the next run takes for an installed one. The temp file
+// is removed when either step fails.
 function installEntry(archive: Uint8Array, src: TarballBinarySource, origin: string): void {
   const tarBytes = gunzipSync(archive);
   const binary = extractTarEntry(tarBytes, src.entryName);
@@ -178,8 +184,15 @@ function installEntry(archive: Uint8Array, src: TarballBinarySource, origin: str
   }
 
   mkdirSync(dirname(src.binPath), { recursive: true });
-  writeFileSync(src.binPath, binary, { mode: 0o755 });
-  chmodSync(src.binPath, 0o755);
+  const staged = `${src.binPath}.${process.pid}.tmp`;
+  try {
+    writeFileSync(staged, binary, { mode: 0o755 });
+    chmodSync(staged, 0o755);
+    renameSync(staged, src.binPath);
+  } catch (err) {
+    rmSync(staged, { force: true });
+    throw err;
+  }
 }
 
 // A cached pair is named by the archive, which carries the version, so an entry
