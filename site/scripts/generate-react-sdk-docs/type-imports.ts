@@ -89,7 +89,7 @@ export function patternSubpath(exportsMap: unknown, packagePath: string): string
     // The wildcard names a file: never empty, never ending in a folder.
     const root = roots.find((r) => stem.startsWith(r) && stem.length > r.length && !stem.endsWith("/"));
     if (root === undefined) continue;
-    return key.replace(/^\.\//, "").replace("*", stem.slice(root.length));
+    return key.replace(/^\.\//, "").replaceAll("*", stem.slice(root.length));
   }
   return null;
 }
