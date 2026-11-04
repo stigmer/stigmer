@@ -26,12 +26,12 @@ stable `vX.Y.Z` tag and gives the next version, for the dev lane and for
 
 Releases are batched. Finishing an issue or a pull request never cuts one: the
 change merges to `main` and ships with the next release, which the maintainer
-cuts on the release train (on a fixed weekly day, or whenever the maintainer
-asks for a train), and every change merged since the previous `v*` tag ships in
-it. A plan names a release of its own only when the maintainer rules that its
-change cannot wait for the train. On 2026-09-28 ten releases were cut in one
-day, one per change, each running the whole release fleet; the train replaces
-that.
+cuts on the release train (whenever the maintainer asks for a train, and at
+least weekly while changes land), and every change merged since the previous
+`v*` tag ships in it. A plan names a release of its own only when the maintainer
+rules that its change cannot wait for the train. On 2026-09-28 ten releases were
+cut in one day, one per change, each running the whole release fleet; the train
+replaces that.
 
 ## 0. Preflight: the hold and the working tree
 
