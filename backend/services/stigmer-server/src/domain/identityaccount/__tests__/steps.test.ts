@@ -386,6 +386,25 @@ describe("RenameServiceAccount — the slug follows the name, unique in the orga
     expect(errors).toEqual([expect.stringMatching(/could not be moved back/)]);
   });
 
+  it("an edit that loses to an overlapping rename moves back without freeing the winner's name (#2764)", async () => {
+    const accounts = await seeded();
+    const loaded = existing(accounts, "ida_self");
+    // Two edits read the account as `ci-deploy`; the first one's move and
+    // write land, then the second one's move lands and its write loses.
+    const winner = renaming(loaded, "CI Deploy Prod");
+    await newRenameServiceAccountStep(accounts.store, accounts).execute(winner);
+    const loser = renaming(loaded, "CI Deploy Staging");
+    await newRenameServiceAccountStep(accounts.store, accounts).execute(loser);
+    const lost = new Error("write conflict");
+    await expect(
+      revertServiceAccountRenameOnFailure(accounts.store, silentLogger, loser)(lost),
+    ).rejects.toBe(lost);
+
+    expect(await nameOf(accounts.store, ORG, "ci-deploy-prod"), "the winner's name is its own again").toBe("ida_self");
+    expect(await nameOf(accounts.store, ORG, "ci-deploy-staging")).toBeUndefined();
+    expect(await nameOf(accounts.store, ORG, "ci-deploy"), "the old name stays given up").toBeUndefined();
+  });
+
   it("a name table that faults is INTERNAL, never a name check that passed", async () => {
     const accounts = await seeded();
     const faulting = {

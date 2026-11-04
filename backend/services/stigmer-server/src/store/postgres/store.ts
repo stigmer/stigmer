@@ -2027,7 +2027,7 @@ class PostgresResourceNameStore implements ResourceNameStore {
       // demotes it too. One statement reads each row as it stood and demotes
       // it, so the outcome lists exactly what changed, even against a claim,
       // which takes no lock above (revertRename restores from the list,
-      // #2764). The store's only UPDATE ... FROM: a read then an update
+      // #2764). One UPDATE ... FROM rather than a read then an update, which
       // could each see a different set of rows.
       const demoted = await client.query<{ name: string; claimed_at: string }>(
         `WITH before AS (
