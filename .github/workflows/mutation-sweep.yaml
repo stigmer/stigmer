@@ -20,8 +20,9 @@ name: mutation-sweep
 # A pull request that changes the sweep runs every target's first, unchanged
 # Stryker run (it proves the target's tests run under Stryker, on this
 # machine), and sweeps one file end to end with the report printed and nothing
-# published. GitHub dispatches a workflow only once it is on the default
-# branch, so the full sweep is first dispatched after the merge.
+# published, then checks the swept package is left exactly as git has it.
+# GitHub dispatches a workflow only once it is on the default branch, so the
+# full sweep is first dispatched after the merge.
 
 on:
   schedule:
@@ -220,6 +221,19 @@ jobs:
 
       - name: Print the issue it would write
         run: node scripts/mutation-sweep.mjs --targets "$TARGETS" --report --input "$RUNNER_TEMP/sweep"
+
+      # The sweep refuses a package with any change, so whatever it leaves
+      # behind stops a person's next run: once a worker's setup file, once an
+      # execute bit Stryker's restore dropped. Scoped to the package, as the
+      # sweep's own rule is, so a build's output elsewhere cannot trip it.
+      - name: Check the swept package is left as git has it
+        run: |
+          left=$(git status --porcelain -- "$SELF_TEST_PACKAGE")
+          if [ -n "$left" ]; then
+            echo "::error::the sweep left $SELF_TEST_PACKAGE changed"
+            echo "$left"
+            exit 1
+          fi
 
   publish:
     name: Rewrite the issues
