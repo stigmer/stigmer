@@ -161,6 +161,15 @@ export interface ServerConfig {
    * with the port published.
    */
   readonly artifactHttpHost: string;
+  /**
+   * The unified port's bind host (GRPC_HOST), or undefined to follow the
+   * sign-in posture: every interface when callers are signed in, loopback
+   * when they are not, because a server without sign-in treats every
+   * tokenless request as its operator (boot/listen-host.ts). Containers set
+   * 0.0.0.0 (the official images do), since a loopback bind is unreachable
+   * through the container boundary.
+   */
+  readonly grpcHost: string | undefined;
   /** Cloudflare R2 settings (S3-compatible; validated when type is "r2"). */
   readonly r2Bucket: string;
   readonly r2Endpoint: string;
@@ -470,6 +479,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
   }
   return {
     grpcPort,
+    grpcHost: env.GRPC_HOST?.trim() || undefined,
     artifactHttpPort,
     artifactHttpHost,
     ...r2,

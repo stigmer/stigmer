@@ -57,6 +57,7 @@ import {
   isRpcPreflight,
 } from "./cors.js";
 import { createProtocolDemuxServer } from "./demux.js";
+import { localOnlyRefusal } from "./local-only.js";
 import type { LaneHandler, LaneRequest, LaneResponse } from "./lanes.js";
 
 export type { LaneHandler } from "./lanes.js";
@@ -101,6 +102,12 @@ export interface UnifiedPortServerOptions {
    * service-shaped paths.
    */
   consoleLane?: LaneHandler;
+  /**
+   * The server signs nobody in, so every tokenless request is its
+   * operator: refuse a request from another site or naming another host
+   * before any lane sees it (local-only.ts).
+   */
+  localOnly?: boolean;
 }
 
 export interface UnifiedPortServer {
@@ -122,6 +129,16 @@ export function createUnifiedPortServer(
 
   const laneRouter = (request: LaneRequest, response: LaneResponse): void => {
     const path = (request.url ?? "").split("?", 1)[0] ?? "";
+
+    if (options.localOnly === true) {
+      const refusal = localOnlyRefusal(request);
+      if (refusal !== undefined) {
+        response.statusCode = 403;
+        response.setHeader("content-type", "text/plain; charset=utf-8");
+        response.end(refusal);
+        return;
+      }
+    }
 
     if (path === MODEL_REGISTRY_PATH) {
       options.modelRegistryLane(request, response);

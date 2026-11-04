@@ -34,7 +34,7 @@ from install to a first Agent in the terminal.
 
 ```bash
 docker run -d --name stigmer \
-  -p 7234:7234 -p 7235:7235 \
+  -p 127.0.0.1:7234:7234 -p 127.0.0.1:7235:7235 \
   -v stigmer-data:/data \
   -e ANTHROPIC_API_KEY=sk-ant-... \
   ghcr.io/stigmer/stigmer:latest
@@ -55,8 +55,8 @@ architectures before the image publishes.
 
 | Flag                       | Why                                                                                                                   |
 | -------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `-p 7234:7234`             | The one port for the API and the console.                                                                             |
-| `-p 7235:7235`             | The file server. Files are uploaded and downloaded through it.                                                        |
+| `-p 127.0.0.1:7234:7234`   | The one port for the API and the console, on this machine only: without sign-in, every caller is the operator.        |
+| `-p 127.0.0.1:7235:7235`   | The file server. Files are uploaded and downloaded through it.                                                        |
 | `-v stigmer-data:/data`    | Everything the stack stores: the database, its encryption keys, Temporal's history, Workspaces, files, logs. Keep it. |
 | `-e ANTHROPIC_API_KEY=...` | The runner's LLM credential. Without one the console works, but no Agent runs — the container warns you on start.     |
 

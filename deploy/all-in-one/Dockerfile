@@ -105,13 +105,15 @@ COPY --chmod=755 entrypoint.sh /usr/local/bin/stigmer-all-in-one
 # database, the auto-generated encryption keys, config.yaml, Temporal's own
 # database, the runner's session checkpoints, the artifacts, the logs. One
 # volume holds all of it, byte-portable with a laptop's ~/.stigmer.
-# ARTIFACT_HTTP_HOST=0.0.0.0: the artifact file server defaults to loopback,
+# ARTIFACT_HTTP_HOST=0.0.0.0 and GRPC_HOST=0.0.0.0: the artifact file server,
+# and the unified port of a server without sign-in, default to loopback,
 # unreachable through the container boundary even with -p.
 # PATH: the `stigmer` bin the install laid down — the entrypoint's command,
 # `docker exec … stigmer status`, and the runner's `stigmer mcp-server`
 # spawn for memory and channel attachments all resolve it from here.
 ENV HOME=/data \
     ARTIFACT_HTTP_HOST=0.0.0.0 \
+    GRPC_HOST=0.0.0.0 \
     PATH="/opt/stigmer/runtimes/${STIGMER_VERSION}/node_modules/.bin:${PATH}"
 
 # /data must exist owned by the runtime user before VOLUME freezes it: named
