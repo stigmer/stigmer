@@ -55,7 +55,9 @@
  *
  * Placement: right after the chain's Authorize step, before any read or
  * write the request names. The refusal is PERMISSION_DENIED with the act
- * named, so the person reading the CI log knows an admin must do it.
+ * named and who may do it: an admin, for a service account's credential;
+ * the person, signed in as themselves, for a credential for one piece of
+ * work.
  */
 import type { DescMessage } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
@@ -159,7 +161,10 @@ export async function refuseServiceAccountCaller(
   }
 }
 
-/** The step form; `act` completes "a service account cannot …". */
+/**
+ * The step form; `act` completes both refusals, "a credential for one run
+ * or lane cannot …" and "a service account cannot …".
+ */
 export function newRefuseServiceAccountCallerStep<Desc extends DescMessage>(
   act: string,
   lookup: ServiceAccountLookup,
