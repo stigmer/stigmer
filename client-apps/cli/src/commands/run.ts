@@ -8,11 +8,17 @@
 // a bare `stigmer run` on a terminal opens the agent picker with the
 // assistant as its first row. Off a terminal with no message there is
 // nothing to run and the guidance names both forms.
+//
+// Bare text is looked up as an agent's slug. Only the server's answer that
+// the text names no agent opens the picker or prints "No agent found"; every
+// other failure of the lookup (an unreachable server, an expired sign-in, an
+// agent that is not the caller's) is the command's error.
 
 import type { Command } from "commander";
+import { Code } from "@connectrpc/connect";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ensureAuthenticated, resolveOrganization } from "../config/index.js";
-import { UsageError } from "../errors/index.js";
+import { classify, UsageError } from "../errors/index.js";
 import { interactiveBrowseEnabled } from "../resources/picker/tty.js";
 import {
   addAgentExecFlags,
@@ -117,14 +123,15 @@ async function runSmart(
     );
   }
 
-  // Bare text: try to resolve as an agent reference; on failure, fall back to
-  // the interactive picker (pre-filled with the typed text) on a TTY, otherwise
-  // guide the user.
+  // Bare text: try to resolve as an agent reference; when the server answers
+  // that the text names no agent, fall back to the interactive picker
+  // (pre-filled with the typed text) on a TTY, otherwise guide the user.
   const { resolveAgentRef } = await import("../resources/run/resolve.js");
   let agent: import("@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb").Agent;
   try {
     agent = await resolveAgentRef(client.stigmer, value, org);
-  } catch {
+  } catch (err) {
+    if (!namesNoAgent(err)) throw err;
     if (interactiveBrowseEnabled(outputMode)) {
       await browseAndRunAgent(value, options, org, outputMode, client);
       return;
@@ -132,6 +139,12 @@ async function runSmart(
     throw browseUnavailableError(value);
   }
   await runResolvedAgent(agent, options, org, outputMode, client);
+}
+
+/** Whether a failed lookup says the text names no agent: no agent has that slug (NotFound), or it is not a slug and so a search (InvalidArgument). */
+function namesNoAgent(err: unknown): boolean {
+  const code = classify(err)?.code;
+  return code === Code.NotFound || code === Code.InvalidArgument;
 }
 
 // Resolve a complete agent ID, then run.
