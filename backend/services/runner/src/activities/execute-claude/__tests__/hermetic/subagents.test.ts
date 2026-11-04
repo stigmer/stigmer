@@ -20,13 +20,16 @@
  *  - A runner lost while a sub-agent works: the next invocation continues
  *    from the session store, the sub-agent's row settles, and nothing the
  *    sub-agent ran runs twice.
+ *  - A drain while a sub-agent works: the helper ends its own work, the
+ *    main agent stops at the batch boundary after the delegation, and the
+ *    continuation reads the helper's answer.
  *
  * Regenerate ONLY after a deliberate behavior change:
  *   npx vitest run src/activities/execute-claude/__tests__/hermetic/subagents.test.ts -u
  */
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { create } from "@bufbuild/protobuf";
 import { AgentMcpServerSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
@@ -42,7 +45,16 @@ vi.mock("../../../../client/stigmer-client.js", async () =>
 );
 
 import type { StigmerClient } from "../../../../client/stigmer-client.js";
-import { ScriptedClock, createHermeticEnvironment, rowsGolden, rowsGoldenPath, statusGolden, type ExecutionRecord, type InvocationControls } from "../../../../__test-utils__/hermetic-activity.js";
+import {
+  ScriptedClock,
+  continuationCauseOf,
+  createHermeticEnvironment,
+  rowsGolden,
+  rowsGoldenPath,
+  statusGolden,
+  type ExecutionRecord,
+  type InvocationControls,
+} from "../../../../__test-utils__/hermetic-activity.js";
 import { savedAgentFixture } from "../../../../__test-utils__/execution-record-fixture.js";
 import { ToolCallStatus } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 import { unattendedSkipMessage } from "../../../../shared/approval-policy.js";
@@ -128,6 +140,9 @@ function agentsScript(
     return next === undefined ? anthropicText(plan.closing, usage) : anthropicToolUses([{ toolCallId: next.id, toolName: next.name, toolInput: next.input }], usage);
   };
 }
+
+/** What the main agent would say past a drained turn's boundary; never asked for. */
+const NEVER_PAST_THE_BOUNDARY = "This text must never be asked for.";
 
 const DELEGATE: Step = { id: "toolu_delegate", name: "Agent", input: { description: "run the tests", prompt: "Run the tests and report.", subagent_type: "test-runner" } };
 
@@ -375,5 +390,57 @@ describe("ExecuteClaude hermetic — sub-agents", () => {
     const delegate = record.toolCalls().find((row) => row.id === "toolu_delegate");
     expect(delegate?.status, "the delegation's row settled").not.toBe(ToolCallStatus.TOOL_CALL_RUNNING);
     expect(record.toolCalls().filter((row) => row.status === ToolCallStatus.TOOL_CALL_RUNNING), "no row is left running").toEqual([]);
+  });
+  it("a drain while a sub-agent's call runs: the helper ends its own work, the main agent stops at its batch boundary, and the continuation reads the delegation", async () => {
+    // stigmer#2855: the boundary hook (`gate.ts` `gateHooks`) holds the main
+    // thread's batch only. A sub-agent's batch is left to run on, since its
+    // delegation is the main thread's open call: the helper reads its
+    // command's result and answers, and only then is the boundary reached.
+    const record = claudeExecutionRecord({ message: "Get the tests run.", subagents: [runnerAgent()], autoApproveAll: true });
+    const dir = sessionWorkspaceDir(env);
+    const command = "echo ran >> .runner-ledger; touch .runner-open; while [ ! -f .runner-release ]; do sleep 0.05; done; echo passed";
+    const tally = { input: 0, output: 0 };
+    const asked: Who[] = [];
+    let controls: InvocationControls | undefined;
+    const script = agentsScript(
+      {
+        root: { steps: [DELEGATE], closing: NEVER_PAST_THE_BOUNDARY },
+        runner: { steps: [{ id: "toolu_runner_held", name: "Bash", input: { command } }], closing: "The tests passed." },
+      },
+      tally,
+    );
+    const running = file.run(
+      record,
+      (c) => {
+        asked.push(whoAsks(c));
+        return script(c);
+      },
+      { clientOverrides: runnerClient(), onControls: (c) => (controls = c) },
+    );
+    await vi.waitFor(() => expect(existsSync(join(dir, ".runner-open")), "the helper's command is running").toBe(true), { timeout: 30_000, interval: 20 });
+    controls!.signalWorkerShutdown();
+    // The pipe to the agent host delivers on a microtask: one macrotask turn
+    // and the yield is in the engine's turn before the command is let finish.
+    await new Promise((resolve) => setImmediate(resolve));
+    writeFileSync(join(dir, ".runner-release"), "");
+    const first = await running;
+
+    expect(continuationCauseOf(first.outcome), "the drained invocation continues").toBe("drain");
+    expect(asked, "the helper answered after its command; the main agent was not asked after the delegation").toEqual(["root", "runner", "runner"]);
+    const delegate = record.toolCalls().find((row) => row.id === "toolu_delegate");
+    expect(delegate?.status, "the delegation's result is in the transcript").toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+
+    let resumedWith: WireConversation | undefined;
+    const second = await file.resume(
+      record,
+      (c) => {
+        if (whoAsks(c) === "root") resumedWith = c;
+        return anthropicText("Picked up: the tests passed.");
+      },
+      { clientOverrides: runnerClient(), turnSeq: 1 },
+    );
+    expect(phaseOf(second)).toBe("RUN_COMPLETED");
+    expect(resumedWith?.toolResults.get("toolu_delegate")?.text, "the continuation reads the helper's answer").toContain("The tests passed.");
+    expect(readFileSync(join(dir, ".runner-ledger"), "utf8"), "the helper's command ran once").toBe("ran\n");
   });
 });

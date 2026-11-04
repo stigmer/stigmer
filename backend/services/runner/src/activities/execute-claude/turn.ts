@@ -50,10 +50,15 @@
  *
  * Stop: the runtime's stop interrupts the engine at once, and aborts it
  * after a grace if it does not end; the host's shell stops its command
- * group with the same signal. Yield: the engine is interrupted at the first
- * moment no tool call is open, and the gate refuses any call reached after
- * either signal, so nothing runs past the boundary. Both settle
- * `interrupted`.
+ * group with the same signal. Yield: the boundary is held in the engine.
+ * Its `PostToolBatch` hook (`gate.ts` `gateHooks`) answers `continue: false`
+ * once the open calls have their results, so the engine ends its run before
+ * it asks its model again, and the gate refuses any call reached after
+ * either signal, so nothing runs past the boundary. The runner's interrupt
+ * at the first moment the stream shows no call open is the backstop: it
+ * reaches the engine only after the engine has the result, and alone it let
+ * a reply past the boundary into the transcript (stigmer#2855). Both settle
+ * `interrupted`, whatever result the engine ends with (`settle.ts`).
  *
  * Never throws: a thrown engine or SDK error is `failed` on the `internal`
  * surface with the shared model-error wording. Imports nothing from

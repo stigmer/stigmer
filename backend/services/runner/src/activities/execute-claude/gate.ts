@@ -166,6 +166,9 @@ export const STALE_CALL_MESSAGE = "This call was waiting for an answer when its 
 /** What a call reached after the turn began to stop or yield is refused with. */
 export const HALTED_MESSAGE = "The turn paused before this call; it was not run.";
 
+/** Why the engine ended its run at a halted turn's batch boundary (`PostToolBatch`, {@link gateHooks}); the engine's own log line, never shown to a person. */
+export const BOUNDARY_STOP_REASON = "The turn paused at this step's boundary.";
+
 /** What a call from a sub-agent the gate cannot name is refused with. */
 export const UNKNOWN_CALLER_MESSAGE = "This call came from a helper this turn did not start; it was not run.";
 
@@ -425,6 +428,11 @@ export class ClaudeGate {
     this.primaryRoots = spellingsOf(facts.primaryDir);
     this.engineHomes = spellingsOf(facts.engineHome);
     this.platformDirs = facts.platformDir === undefined ? [] : spellingsOf(facts.platformDir);
+  }
+
+  /** Whether the turn is stopping or yielding: the boundary item 0 holds, read by the batch hook too. */
+  halting(): boolean {
+    return this.halted();
   }
 
   /** A sub-agent started: the engine's id for it, and the definition it runs. */
@@ -749,8 +757,21 @@ function allowed(verdict: AllowVerdict): { readonly updatedInput?: Record<string
 
 /**
  * The engine's callbacks over the gate: `SubagentStart` tells it which
- * definition a sub-agent runs, and `PreToolUse` allows, refuses or defers
- * each call, judged as its caller's (the header).
+ * definition a sub-agent runs, `PreToolUse` allows, refuses or defers
+ * each call, judged as its caller's (the header), and `PostToolBatch` holds
+ * a stopping or yielding turn's boundary (item 0) in the engine.
+ *
+ * The engine fires `PostToolBatch` once every call of a batch has its
+ * result, before it asks its model for the next reply (SDK 0.3.311,
+ * `PostToolBatchHookInput`). While the turn is halted the main thread's
+ * batch answers `continue: false`, so the engine ends its run there with
+ * the results in its transcript and never asks the model again. The
+ * runner's interrupt after the batch (`turn.ts`) is the backstop: it
+ * reaches the engine only once the stream has carried the result back,
+ * by which time the engine may already have asked its model, and a reply
+ * past the boundary reached the transcript (stigmer#2855). A sub-agent's
+ * batch is left to run on: its call is the main thread's open call, which
+ * the boundary waits for, and the gate refuses every call it reaches.
  */
 export function gateHooks(gate: ClaudeGate): Partial<Record<HookEvent, HookCallbackMatcher[]>> {
   const preToolUse: HookCallback = async (hookInput) => {
@@ -775,7 +796,11 @@ export function gateHooks(gate: ClaudeGate): Partial<Record<HookEvent, HookCallb
     if (hookInput.hook_event_name === "SubagentStart") gate.subagentStarted(hookInput.agent_id, hookInput.agent_type);
     return {};
   };
-  return { PreToolUse: [{ hooks: [preToolUse] }], SubagentStart: [{ hooks: [subagentStart] }] };
+  const postToolBatch: HookCallback = async (hookInput) => {
+    if (hookInput.hook_event_name !== "PostToolBatch" || hookInput.agent_id !== undefined || !gate.halting()) return {};
+    return { continue: false, stopReason: BOUNDARY_STOP_REASON };
+  };
+  return { PreToolUse: [{ hooks: [preToolUse] }], SubagentStart: [{ hooks: [subagentStart] }], PostToolBatch: [{ hooks: [postToolBatch] }] };
 }
 
 /** The engine's `canUseTool` over the same decision, failing closed (the header). */
