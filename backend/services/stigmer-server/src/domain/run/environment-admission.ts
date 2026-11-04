@@ -1,6 +1,7 @@
 /**
  * Whether a conversation's Environment can be honoured, asked up front: when
- * the conversation is made (session create's AdmitSessionEnvironment) and
+ * the conversation is made (session create's AdmitSessionEnvironment), when
+ * a routine whose fires make one is saved (domain/routine/admit-run.ts) and
  * when each turn is created or recovered (planRunValues), so a person
  * learns it before a turn fails on it, never by an Environment silently
  * ignored. The local-program rule's shape (local-programs.ts).
@@ -64,7 +65,7 @@ import { hostAdmits } from "../environment/hosts.js";
 import { PACKAGE_MANAGER_HOSTS } from "../environment/package-manager-hosts.js";
 import { ROUTING_SESSION } from "./temporal/config.js";
 import type { AgentExecutionTemporalConfig } from "./temporal/config.js";
-import type { RunServer } from "./run-servers.js";
+import type { RunServer, RunServersInput } from "./run-servers.js";
 import { runServers, turnServerName } from "./run-servers.js";
 
 /** Whether this server starts the sandbox a conversation runs in, and what its sandboxes can do. */
@@ -203,11 +204,11 @@ export async function loadSessionEnvironment(
 }
 
 /**
- * Every MCP server a conversation's turns would dial, read as a turn reads
- * them: the pinned agent version, each subagent at its pinned version, and
- * the plugins (the agent's, the conversation's and the subagents').
+ * The agent tree a conversation's turns would read, as a turn reads it:
+ * the pinned agent version, each subagent at its pinned version, and the
+ * plugins (the agent's, the conversation's and the subagents').
  */
-export async function sessionRunServers(store: Store, session: Session): Promise<RunServer[]> {
+export async function sessionRunTree(store: Store, session: Session): Promise<RunServersInput> {
   const org = session.metadata?.org ?? "";
   const agentId = session.status?.agentId ?? "";
   const versionHash = session.status?.agentVersionHash ?? "";
@@ -218,14 +219,19 @@ export async function sessionRunServers(store: Store, session: Session): Promise
   const agentSpec = agent?.spec;
   const subagents = await runSubagents(store, agentSpec, org);
   const plugins = await loadRunPlugins(store, runPluginReferences(agentSpec, session, org, subagents), org);
-  return runServers({
+  return {
     agent:
       agent === undefined || agentSpec === undefined
         ? undefined
         : { id: agentId, name: agent.metadata?.slug ?? "", version: versionHash, spec: agentSpec },
     subagents,
     plugins,
-  });
+  };
+}
+
+/** Every MCP server a conversation's turns would dial, from its agent tree (sessionRunTree). */
+export async function sessionRunServers(store: Store, session: Session): Promise<RunServer[]> {
+  return runServers(await sessionRunTree(store, session));
 }
 
 /**

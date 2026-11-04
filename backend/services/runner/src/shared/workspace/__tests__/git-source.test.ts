@@ -17,6 +17,7 @@ import { fakeRunnerRepository, type FakeRunnerRepository } from "../../../__test
 import { provisionGit } from "../sources/git.js";
 import type { RunnerRepository } from "../runner-git.js";
 import { WorkspaceProvisionError } from "../types.js";
+import { runtimeGitEnv } from "../runtime-git.js";
 
 const runnerGit = vi.hoisted(() => ({ withRunnerRepository: vi.fn() }));
 vi.mock("../runner-git.js", () => runnerGit);
@@ -271,7 +272,9 @@ describe("provisionGit", () => {
     expect(cmds.some((c) => c.includes("origin --auto") || c.startsWith("git fetch --quiet origin"))).toBe(false);
     for (const run of runs(backend)) {
       expect(run.cmd).not.toContain(TOKEN);
-      expect(run.env).toBeUndefined();
+      // The clone's commands carry only the runtime's git settings (hooks and
+      // fsmonitor off, stigmer#2962), never a token.
+      expect(run.env).toEqual(runtimeGitEnv());
     }
     expect(calls(backend)).toContain("git remote add origin 'https://github.com/org/repo.git'");
   });
@@ -335,7 +338,9 @@ describe("provisionGit", () => {
 
     for (const run of runs(backend)) {
       expect(run.cmd).not.toContain(TOKEN);
-      expect(run.env).toBeUndefined();
+      // The clone's commands carry only the runtime's git settings (hooks and
+      // fsmonitor off, stigmer#2962), never a token.
+      expect(run.env).toEqual(runtimeGitEnv());
     }
     expect(runnerGit.withRunnerRepository).not.toHaveBeenCalled();
     expect(result.gitMetadata!.writeBackReady).toBe(false);

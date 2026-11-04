@@ -18,6 +18,10 @@
  *   - checkMyPermission's full order, incl. the arms the Authorizer is
  *     NEVER consulted on, and the account id (not the stamped email) the
  *     contextual arm hands the engine;
+ *   - contextual grants come from the platform's own pipelines only: a
+ *     person's (a signed-in user, the trusted-local operator) are refused
+ *     PERMISSION_DENIED on all four RPCs that take them, with the engine
+ *     never asked; a machine's or the server's own ride the engine;
  *   - checkAuthorization's and listAuthorizedResourceIds's principal-trust
  *     rule against the caller's ACCOUNT; listAuthorizedPrincipalIds's
  *     annotation-driven check; the wire-kind refusals on every lane;
@@ -90,6 +94,7 @@ import {
   ACCESS_HISTORY_UNIMPLEMENTED_MESSAGE,
   AUTHENTICATION_REQUIRED_MESSAGE,
   AUTHORIZATION_QUERIES_UNIMPLEMENTED_MESSAGE,
+  CONTEXTUAL_GRANTS_REFUSED_MESSAGE,
   LAST_OWNER_MESSAGE,
   OWNER_ASSIGNMENT_DENIED_MESSAGE,
   grantIdFor,
@@ -491,7 +496,7 @@ describe("checkMyPermission", () => {
   });
 
   it("contextual grants ride the engine with the caller's ACCOUNT as the principal — even when the caller is stamped by email", async () => {
-    const h = await harness({ caller: operator, engine: true });
+    const h = await harness({ caller: internal, engine: true });
     const contextual = [orgRole(OPERATOR_ID, "viewer", "acme")];
     const result = await h.query.checkMyPermission({
       resource: acme,
@@ -729,7 +734,7 @@ describe("the self-query lanes under a credential bound to one organization", ()
 
   it("checkMyPermission with contextual grants answers false for a resource outside the binding, and never asks the engine", async () => {
     const h = await harness({
-      caller: boundAlice,
+      caller: { ...machine, boundOrg: "acme" },
       engine: true,
       outsideIds: new Set(["agt_elsewhere"]),
     });
@@ -784,6 +789,66 @@ describe("the self-query lanes under a credential bound to one organization", ()
   });
 });
 
+describe("contextual grants are the platform's own pipelines'", () => {
+  // A person who could name them could assert a relation to an
+  // organization they do not belong to (organization:mine#child_org@
+  // organization:theirs) and read its members or resources back through
+  // an engine that evaluates them as held (stigmer#2944).
+  const asserted = [
+    create(GrantSpecSchema, {
+      principal: ref("organization", "org_theirs"),
+      relation: "child_org",
+      resource: ref("organization", "org_mine"),
+    }),
+  ];
+
+  for (const [who, caller, accountId] of [
+    ["a signed-in person", alice, ALICE_ID],
+    ["the trusted-local operator", operator, OPERATOR_ID],
+  ] as const) {
+    it(`${who} is refused PERMISSION_DENIED on all four RPCs, and the engine is never asked`, async () => {
+      const h = await harness({ caller, engine: true });
+      const calls: ReadonlyArray<() => Promise<unknown>> = [
+        () =>
+          h.query.checkMyPermission({
+            resource: ref("organization", "org_mine"),
+            relation: "can_view",
+            contextualGrants: asserted,
+          }),
+        () =>
+          h.query.checkAuthorization({
+            grant: create(GrantSpecSchema, {
+              principal: ref("identity_account", accountId),
+              relation: "can_view",
+              resource: ref("organization", "org_theirs"),
+            }),
+            contextualGrants: asserted,
+          }),
+        () =>
+          h.query.listAuthorizedResourceIds({
+            principal: ref("identity_account", accountId),
+            resourceKind: "agent",
+            relation: "can_view",
+            contextualGrants: asserted,
+          }),
+        () =>
+          h.query.listAuthorizedPrincipalIds({
+            resource: ref("organization", "org_mine"),
+            principalKind: "identity_account",
+            relation: "child_org_viewer",
+            contextualGrants: asserted,
+          }),
+      ];
+      for (const call of calls) {
+        const error = await refusal(call);
+        expect(error.code).toBe(Code.PermissionDenied);
+        expect(error.rawMessage).toBe(CONTEXTUAL_GRANTS_REFUSED_MESSAGE);
+      }
+      expect(h.engine?.calls).toEqual([]);
+    });
+  }
+});
+
 describe("the two listings", () => {
   it("listAuthorizedResourceIds: a user may list only for their own account; the engine receives the proto's argument order", async () => {
     const h = await harness({ caller: alice, engine: true });
@@ -799,7 +864,6 @@ describe("the two listings", () => {
       principal: ref("identity_account", ALICE_ID),
       resourceKind: "agent",
       relation: "can_view",
-      contextualGrants: [orgRole(ALICE_ID, "viewer", "acme")],
     });
     expect(own.resourceIds).toEqual(["r1"]);
     const [call] = h.engine?.calls ?? [];
@@ -807,8 +871,20 @@ describe("the two listings", () => {
     expect((call?.args[0] as { id: string }).id).toBe(ALICE_ID);
     expect(call?.args[1]).toBe("can_view");
     expect(call?.args[2]).toBe("agent");
-    expect(call?.args[3]).toHaveLength(1);
+    expect(call?.args[3]).toHaveLength(0);
     expect(h.authorizer.checks).toEqual([]);
+  });
+
+  it("listAuthorizedResourceIds: the platform's own pipeline asks with contextual grants, and they reach the engine", async () => {
+    const h = await harness({ caller: machine, engine: true });
+    const listed = await h.query.listAuthorizedResourceIds({
+      principal: ref("identity_account", ALICE_ID),
+      resourceKind: "agent",
+      relation: "can_view",
+      contextualGrants: [orgRole(ALICE_ID, "viewer", "acme")],
+    });
+    expect(listed.resourceIds).toEqual(["r1"]);
+    expect(h.engine?.calls[0]?.args[3]).toHaveLength(1);
   });
 
   it("listAuthorizedResourceIds: a garbage resource_kind is INVALID_ARGUMENT; no engine, UNIMPLEMENTED", async () => {
@@ -853,6 +929,18 @@ describe("the two listings", () => {
     expect((call?.args[0] as { id: string }).id).toBe("agt_1");
     expect(call?.args[1]).toBe("can_view");
     expect(call?.args[2]).toBe("identity_account");
+  });
+
+  it("listAuthorizedPrincipalIds: the platform's own pipeline asks with contextual grants, and they reach the engine", async () => {
+    const h = await harness({ caller: internal, engine: true });
+    const result = await h.query.listAuthorizedPrincipalIds({
+      resource: ref("organization", "acme"),
+      principalKind: "identity_account",
+      relation: "admin",
+      contextualGrants: [orgRole(ALICE_ID, "viewer", "acme")],
+    });
+    expect(result.principalIds).toEqual(["p1"]);
+    expect(h.engine?.calls[0]?.args[3]).toHaveLength(1);
   });
 
   it("listAuthorizedPrincipalIds: a garbage principal_kind is INVALID_ARGUMENT with the principal sentence", async () => {

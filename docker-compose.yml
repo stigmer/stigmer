@@ -101,7 +101,7 @@ services:
       retries: 30
 
   stigmer-server:
-    image: ghcr.io/stigmer/stigmer-server:${STIGMER_VERSION:-v3.41.0}
+    image: ghcr.io/stigmer/stigmer-server:${STIGMER_VERSION:-v0.1.0}
     restart: unless-stopped
     depends_on:
       postgres:
@@ -115,9 +115,14 @@ services:
       # 7234: the unified port — gRPC, Connect, the web console.
       # 7235: the artifact file server (downloads); a separate listener by
       #       design, bound 0.0.0.0 inside the container (the image sets
-      #       ARTIFACT_HTTP_HOST; the laptop tier keeps its loopback default).
-      - "7234:7234"
-      - "7235:7235"
+      #       ARTIFACT_HTTP_HOST and GRPC_HOST; the laptop tier keeps its
+      #       loopback default).
+      # Published on the host's loopback: until .env names an issuer, the
+      # server signs nobody in and every caller is the operator, and on
+      # Linux a host firewall does not filter ports Docker publishes. Set
+      # STIGMER_PUBLISH_ADDRESS=0.0.0.0 only after configuring sign-in.
+      - "${STIGMER_PUBLISH_ADDRESS:-127.0.0.1}:7234:7234"
+      - "${STIGMER_PUBLISH_ADDRESS:-127.0.0.1}:7235:7235"
     environment:
       GRPC_PORT: "7234"
       # Non-empty DATABASE_URL selects the Postgres driver; the
@@ -172,7 +177,7 @@ services:
     # runner's depends_on gates on it.
 
   stigmer-runner:
-    image: ghcr.io/stigmer/stigmer-runner:${STIGMER_VERSION:-v3.41.0}
+    image: ghcr.io/stigmer/stigmer-runner:${STIGMER_VERSION:-v0.1.0}
     restart: unless-stopped
     depends_on:
       stigmer-server:

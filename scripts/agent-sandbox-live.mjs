@@ -27,7 +27,8 @@
  *     (no CI variable) the run says before it starts which listeners are
  *     open to the machine's network for those minutes: on Linux the dev
  *     server, the turn proof's server and its mock LLM; on Docker Desktop
- *     the proof's server alone (the shipped server takes no listen address).
+ *     the proof's server alone (it listens on every interface because its
+ *     sandboxes dial it at an address beyond loopback).
  * Then it runs `npm run test:live` in the server package with those
  * addresses (the server's live class: this driver's test, and the Docker
  * driver's, which drives the host's own Docker), and, when that passes, the turn proof
@@ -229,7 +230,7 @@ export function temporalBindAddress(platform) {
 /**
  * The warning a run outside CI prints before it opens listeners to every
  * interface, or undefined in CI. The turn proof's server listens on every
- * interface wherever it runs (the shipped server takes no listen address),
+ * interface wherever it runs (its sandboxes dial it beyond loopback),
  * holding the run's kubeconfig; on Linux, Temporal and the proof's mock LLM
  * do too, bound where the kind network's gateway lands.
  */

@@ -48,6 +48,7 @@ import { GitWriteBackMode } from "@stigmer/apis/ai/stigmer/agentic/session/v1/en
 import type { SessionResource } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import type { WorkspaceBackend, ProvisionResult } from "./types.js";
 import { gitCommitAsAgent } from "./git-identity.js";
+import { runtimeGitEnv } from "./runtime-git.js";
 import { cloneHaves, cloneTrackingTips, fetchFromRunner, pushThroughRunner } from "./clone-handoff.js";
 import { withRunnerRepository, type RunnerRepository } from "./runner-git.js";
 import { repositoryTokenFor, type RepositoryToken } from "../run-values.js";
@@ -232,7 +233,7 @@ export class WriteBackCoordinator {
     const rootDir = entry.rootDir;
 
     const exec = async (cmd: string): Promise<string> => {
-      return this.workspaceBackend.execute(`cd ${rootDir} && ${cmd}`);
+      return this.workspaceBackend.execute(`cd ${rootDir} && ${cmd}`, { env: runtimeGitEnv() });
     };
     const cycle = async (repository: RunnerRepository | null): Promise<void> => {
       const git: EntryGit = { exec, repository };

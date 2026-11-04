@@ -44,7 +44,7 @@ LABEL org.opencontainers.image.licenses="Apache-2.0"
 # The bump is ENFORCED, not remembered: release.npm-libs refuses to publish
 # a version this pin does not match, so a build of the release's commit
 # installs that release. Bump the pin in the same commit you tag.
-ARG MCP_SERVER_VERSION=3.41.0
+ARG MCP_SERVER_VERSION=0.1.0
 ENV STIGMER_MCP_VERSION=$MCP_SERVER_VERSION
 ENV NODE_ENV=production
 

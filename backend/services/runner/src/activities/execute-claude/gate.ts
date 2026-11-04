@@ -340,6 +340,8 @@ export interface GateFactSources {
     readonly platformReadRoot: string;
   };
   readonly isCapturablePath: (workspacePath: string) => Promise<boolean>;
+  /** Whether a path resolves into the repository's `.git` directory once links are followed. */
+  readonly inGitDirectory?: (workspacePath: string) => Promise<boolean>;
   readonly hooks: TurnHookEvaluators;
   readonly waitingCallOf: GateFacts["waitingCallOf"];
   readonly pending: { readonly staleCallId: string | undefined; readonly unproposedCallId: string | undefined };
@@ -361,6 +363,7 @@ export function gateFactsOf(input: TurnInput, sources: GateFactSources): GateFac
       fileReviewOff: !workspace.fileReview,
       fileCaptureSubstrate: workspace.captureSubstrate,
       isCapturablePath: sources.isCapturablePath,
+      ...(sources.inGitDirectory === undefined ? {} : { inGitDirectory: sources.inGitDirectory }),
       // An ignored path flows into review only where the gate records its
       // before-bytes first and the turn can keep them.
       captureIgnored: workspace.captureMode && input.artifactStorage !== undefined,

@@ -622,32 +622,11 @@ describe("FileReviewRecord — line stats", () => {
 });
 
 // --- FileDiffBody ---------------------------------------------------------
-
-/**
- * Polls the rendered frame until it contains `needle`, then returns. Replaces a
- * fixed sleep: an artifact fetch resolves on its own microtask schedule (and a
- * truncated side chains a second download-url fetch), so any single delay raced
- * green locally but timed out under CI load. Polling waits exactly as long as
- * the render needs and no longer, and fails with the actual frame on timeout.
- */
-async function waitForFrame(
-  lastFrame: () => string | undefined,
-  needle: string,
-  timeoutMs = 2000,
-): Promise<void> {
-  const deadline = Date.now() + timeoutMs;
-  for (;;) {
-    if ((lastFrame() ?? "").includes(needle)) return;
-    if (Date.now() >= deadline) {
-      throw new Error(
-        `waitForFrame timed out after ${timeoutMs}ms waiting for ${JSON.stringify(
-          needle,
-        )}; last frame was ${JSON.stringify(lastFrame() ?? "")}`,
-      );
-    }
-    await new Promise((resolve) => setTimeout(resolve, 10));
-  }
-}
+//
+// An artifact fetch resolves on its own schedule (and a truncated side chains a
+// second download-url fetch), so the cases that read a fetched side wait, with
+// `vi.waitFor`, until the frame holds what they check; any fixed delay raced
+// green locally but timed out under CI load.
 
 function inlineSide(text: string): FileContent {
   return create(FileContentSchema, { body: { case: "inline", value: text } });
@@ -743,8 +722,10 @@ describe("FileDiffBody", () => {
       },
     });
     const { lastFrame } = renderWithClient(<FileDiffBody change={change} />, client);
-    await waitForFrame(lastFrame, "too large to diff inline");
-    expect(lastFrame() ?? "").toContain("too large to diff inline");
+    await vi.waitFor(
+      () => expect(lastFrame() ?? "").toContain("too large to diff inline"),
+      { timeout: 2000 },
+    );
   });
 
   it("surfaces a fetch failure as an honest error notice", async () => {
@@ -757,8 +738,10 @@ describe("FileDiffBody", () => {
       },
     });
     const { lastFrame } = renderWithClient(<FileDiffBody change={change} />, client);
-    await waitForFrame(lastFrame, "Could not load this file's contents.");
-    expect(lastFrame() ?? "").toContain("Could not load this file's contents.");
+    await vi.waitFor(
+      () => expect(lastFrame() ?? "").toContain("Could not load this file's contents."),
+      { timeout: 2000 },
+    );
   });
 
   it("caps an oversized diff and reports the overflow", () => {

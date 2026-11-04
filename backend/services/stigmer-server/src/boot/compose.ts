@@ -292,6 +292,7 @@ import {
 } from "../transport/console/handler.js";
 import { createRegistryLanes } from "../transport/registry/lanes.js";
 import { createUnifiedPortServer } from "../transport/server.js";
+import { chooseListenHost } from "./listen-host.js";
 import { registerExtensionServicesUnshadowed } from "./route-shadowing.js";
 import { defaultSandboxRunnerImage, type ServerConfig } from "./config.js";
 import { createInProcessClients } from "./inprocess.js";
@@ -2073,6 +2074,8 @@ export async function composeServer(
       authorizationLifecycle,
       listReadScope,
       firesPerHour: config.routineFiresPerHour,
+      environmentPolicy,
+      localPrograms: newLocalProgramPolicy(sandboxLane, temporalConfig),
     });
     registerMemoryServices(router, {
       store,
@@ -2469,6 +2472,7 @@ export async function composeServer(
     ...(fileTransferLane === undefined ? {} : { fileTransferLane }),
     managedAgentsLane,
     consoleLane,
+    localOnly: !requireAuthentication,
   });
 
   // The hand-over (extensions/composed-services.ts): every unit receives
@@ -2568,7 +2572,12 @@ export async function composeServer(
       // initial connect leaves the engine unavailable and the monitor
       // retrying; a failed worker start is a warning. Health below flips
       // SERVING regardless — engine availability is modeled in the
-      // agentexecution domain, never in gRPC health.
+      // agentexecution domain, never in gRPC health. Boot awaits exactly
+      // one dial (#2178): a running engine is connected, with its workers
+      // polling, before the server answers, so no run create or approval
+      // meets a disconnected engine on a healthy boot; an absent one costs
+      // one dial window, and the monitor makes the rest of the initial
+      // schedule in the background (temporal/manager.ts, "Boot schedule").
       const connected = await temporalManager.initialConnect();
       if (connected) {
         await temporalManager.startWorkers();
@@ -2647,15 +2656,24 @@ export async function composeServer(
       // Undefined when an extension provider substituted the catalog —
       // that implementation owns its own freshness.
       ossModelRegistryStore?.startRefresh();
+      const listenHost = chooseListenHost({
+        chosen: options.host ?? config.grpcHost,
+        requireAuthentication,
+        sandboxEndpoint:
+          config.sandboxProvisionerType === "" ? "" : config.sandboxBackendEndpoint,
+      });
+      if (listenHost.warning !== undefined) {
+        logger.warn(listenHost.warning);
+      }
       const port = await server.listen(
         options.portOverride ?? config.grpcPort,
-        options.host,
+        listenHost.host,
       );
       // Recorded in the listen continuation, a microtask that runs before
       // the first accepted connection is dispatched, so no wire request
       // can mint a skill transfer URL before the port it names is known.
       unifiedBoundPort = port;
-      logger.info("stigmer-server listening", { port });
+      logger.info("stigmer-server listening", { port, host: listenHost.host });
       return port;
     },
 

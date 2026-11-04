@@ -65,6 +65,10 @@ export interface AuthorizationQueryEngine {
   /**
    * Whether `grant` is effectively held — its principal has its relation
    * on its resource — given `contextualGrants` evaluated as if held.
+   * Contextual grants reach an engine only from the platform's own
+   * pipelines: the grant controller refuses them from any other caller
+   * before it asks (domain/grant/controller.ts), because whoever supplies
+   * them chooses the facts the answer rests on.
    * The proto's CheckAuthorizationInput shape; `checkMyPermission` builds
    * the spec from the caller's account ref. The spec's refs are present
    * (boundary-validated, or controller-built).

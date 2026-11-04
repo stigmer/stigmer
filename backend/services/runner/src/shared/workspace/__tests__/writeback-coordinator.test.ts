@@ -30,6 +30,7 @@ import {
 import type { RunnerRepository } from "../runner-git.js";
 import { FAKE_PUSHED_SHA, fakeRunnerRepository, type FakeRunnerRepository } from "../../../__test-utils__/fake-runner-repository.js";
 import { TurnRowsSchema } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { runtimeGitEnv } from "../runtime-git.js";
 
 const runnerGit = vi.hoisted(() => ({ withRunnerRepository: vi.fn() }));
 vi.mock("../runner-git.js", () => runnerGit);
@@ -334,7 +335,9 @@ describe("WriteBackCoordinator", () => {
     const runs = (backend.execute as ReturnType<typeof vi.fn>).mock.calls
       .map((c: any) => ({ cmd: c[0] as string, env: (c[1] as { env?: Record<string, string> } | undefined)?.env }));
     for (const run of runs) {
-      expect(run.env).toBeUndefined();
+      // Only the runtime's git settings (hooks and fsmonitor off,
+      // stigmer#2962), never a token.
+      expect(run.env).toEqual(runtimeGitEnv());
       expect(run.cmd).not.toContain("ghp_entry_token");
     }
     expect(runs.some((run) => /git (ls-remote|push)|git fetch origin/.test(run.cmd)), "no clone command talks to origin").toBe(false);
@@ -355,7 +358,10 @@ describe("WriteBackCoordinator", () => {
     await coord.finalize();
 
     const envs = (backend.execute as ReturnType<typeof vi.fn>).mock.calls.map((c: any) => c[1]?.env);
-    expect(envs.every((env: unknown) => env === undefined), "a token for another URL is not this entry's").toBe(true);
+    expect(
+      envs.every((env: unknown) => JSON.stringify(env ?? {}) === JSON.stringify(runtimeGitEnv())),
+      "a token for another URL is not this entry's",
+    ).toBe(true);
     expect(status.workspaceWriteBacks[0]?.error).toContain("No GitHub token available");
   });
 

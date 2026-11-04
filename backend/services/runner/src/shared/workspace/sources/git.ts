@@ -33,6 +33,7 @@ import {
 import { maskToken } from "../git-credential.js";
 import { cloneHaves, fetchFromRunner, shellQuote, type CloneExec } from "../clone-handoff.js";
 import { withRunnerRepository, type RunnerRepository } from "../runner-git.js";
+import { runtimeGitEnv } from "../runtime-git.js";
 
 export interface GitProvisionOptions {
   url: string;
@@ -146,9 +147,9 @@ async function cloneInPlace(
   target: CloneTarget,
   token: string,
 ): Promise<void> {
-  await backend.execute(`git init -q ${shellQuote(cloneDir)}`);
+  await backend.execute(`git init -q ${shellQuote(cloneDir)}`, { env: runtimeGitEnv() });
 
-  const exec: CloneExec = (cmd) => backend.execute(cmd, { cwd: cloneDir });
+  const exec: CloneExec = (cmd) => backend.execute(cmd, { cwd: cloneDir, env: runtimeGitEnv() });
   await exec(`git remote add origin ${shellQuote(cloneUrl)}`);
   if (token === "") {
     await fetchFromOrigin(exec, target);
@@ -270,11 +271,11 @@ async function extractGitMetadata(
   let headSha = "";
 
   try {
-    branchName = (await backend.execute("git rev-parse --abbrev-ref HEAD", { cwd: cloneDir })).trim();
+    branchName = (await backend.execute("git rev-parse --abbrev-ref HEAD", { cwd: cloneDir, env: runtimeGitEnv() })).trim();
   } catch { /* non-fatal */ }
 
   try {
-    headSha = (await backend.execute("git rev-parse HEAD", { cwd: cloneDir })).trim();
+    headSha = (await backend.execute("git rev-parse HEAD", { cwd: cloneDir, env: runtimeGitEnv() })).trim();
   } catch { /* non-fatal */ }
 
   return {

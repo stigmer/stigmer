@@ -1058,21 +1058,77 @@ describe.skipIf(!capabilities.authorizationQueries)(
       expect(principals.principalIds).toContain(me);
     });
 
-    it("checkMyPermission carrying contextual grants is answered by the engine, not refused", async () => {
+    it("checkMyPermission carrying a person's contextual grants is refused, never evaluated", async () => {
       const me =
         (await clients.identityAccountQuery.whoAmI({})).metadata?.id ?? "";
       const org = await createOwnedOrganization();
 
-      // The contextual rows ride into the FGA check.
-      // The owner is a viewer by the ladder, so the answer is true whether
-      // or not the row is considered; the arm pins that the lane is SERVED
-      // here (its open-source twin above pins the refusal).
-      const contextual = await clients.grantQuery.checkMyPermission({
-        resource: ref("organization", org),
-        relation: "can_view_access",
-        contextualGrants: [organizationRole(me, "viewer", org)],
-      });
-      expect(contextual.isAuthorized).toBe(true);
+      // Contextual rows are evaluated as held, so a person who could name
+      // them could assert a relation to an organization they do not belong
+      // to and read it back (stigmer#2944). They are the platform's own
+      // pipelines', and a person's are refused before the engine is asked,
+      // whatever they assert (here a row the owner already holds by the
+      // ladder). Its open-source twin above pins UNIMPLEMENTED: an edition
+      // with no engine answers that first, whoever asks.
+      await expectGrpcCode(
+        () =>
+          clients.grantQuery.checkMyPermission({
+            resource: ref("organization", org),
+            relation: "can_view_access",
+            contextualGrants: [organizationRole(me, "viewer", org)],
+          }),
+        Code.PermissionDenied,
+        "checkMyPermission with a person's contextual grants",
+      );
+    });
+
+    it("the other three lanes refuse a person's contextual grants too: an asserted relation to another organization reads nothing back", async () => {
+      const me =
+        (await clients.identityAccountQuery.whoAmI({})).metadata?.id ?? "";
+      const mine = await createOwnedOrganization();
+      const theirs = await createOwnedOrganization();
+      // The asserted rows: my organization claims theirs as a child, and
+      // I claim theirs' admin role. Evaluated as held, the first lists
+      // their members through child_org_viewer, the second lists their
+      // resources (stigmer#2944).
+      const asserted = [
+        grantTriple({ kind: "organization", id: theirs }, "child_org", {
+          kind: "organization",
+          id: mine,
+        }),
+        organizationRole(me, "admin", theirs),
+      ];
+      await expectGrpcCode(
+        () =>
+          clients.grantQuery.listAuthorizedPrincipalIds({
+            resource: ref("organization", mine),
+            principalKind: "identity_account",
+            relation: "child_org_viewer",
+            contextualGrants: asserted,
+          }),
+        Code.PermissionDenied,
+        "listAuthorizedPrincipalIds with a person's contextual grants",
+      );
+      await expectGrpcCode(
+        () =>
+          clients.grantQuery.listAuthorizedResourceIds({
+            principal: ref("identity_account", me),
+            resourceKind: "organization",
+            relation: "can_view",
+            contextualGrants: asserted,
+          }),
+        Code.PermissionDenied,
+        "listAuthorizedResourceIds with a person's contextual grants",
+      );
+      await expectGrpcCode(
+        () =>
+          clients.grantQuery.checkAuthorization({
+            grant: organizationRole(me, "admin", theirs),
+            contextualGrants: asserted,
+          }),
+        Code.PermissionDenied,
+        "checkAuthorization with a person's contextual grants",
+      );
     });
 
     it("a relation the asked kind does not have is false and an empty list, never INTERNAL", async () => {

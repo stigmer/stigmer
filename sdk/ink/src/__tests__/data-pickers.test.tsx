@@ -1,3 +1,11 @@
+// Pins the terminal kit's data pickers over a fake client: AgentPicker shows
+// its organization's agents and returns the one chosen on Enter, offers the
+// built-in assistant as the first row only when a handler for it is given,
+// and seeds its search box from `initialQuery`; SessionPicker filters the
+// session list on the client by its seeded query and returns the chosen
+// session. The pickers fetch and re-render on their own schedule, so every
+// check waits, through `vi.waitFor`, until the frame or the callback it reads
+// holds, never for a fixed delay that a slow or instrumented run outlasts.
 import React from "react";
 import { describe, it, expect, vi } from "vitest";
 import { render } from "ink-testing-library";
@@ -10,11 +18,6 @@ import { SessionPicker } from "../components/SessionPicker.js";
 import { fakeClient } from "./test-support.js";
 
 const KEY = { enter: "\r" } as const;
-
-// Allow the hooks' async fetch + a re-render to settle.
-function settle(): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, 60));
-}
 
 // An agent as its organization's list answers it; the picker shows it as
 // search would, by its qualified slug and description.
@@ -47,13 +50,14 @@ describe("AgentPicker", () => {
       </InkStigmerProvider>,
     );
 
-    await settle();
-    expect(lastFrame() ?? "").toContain("acme/alpha");
-    expect(lastFrame() ?? "").toContain("first");
+    await vi.waitFor(() => {
+      const frame = lastFrame() ?? "";
+      expect(frame).toContain("acme/alpha");
+      expect(frame).toContain("first");
+    });
 
     stdin.write(KEY.enter);
-    await settle();
-    expect(onSelect).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() => expect(onSelect).toHaveBeenCalledTimes(1));
     expect(onSelect.mock.calls[0][0].id).toBe("agt_1");
   });
 
@@ -76,15 +80,17 @@ describe("AgentPicker", () => {
       </InkStigmerProvider>,
     );
 
-    await settle();
-    const frame = lastFrame() ?? "";
-    expect(frame).toContain("Assistant (built-in)");
-    // First row: above every agent the search found.
-    expect(frame.indexOf("Assistant (built-in)")).toBeLessThan(frame.indexOf("acme/alpha"));
+    // Waits for the agent's row too: the order is only told once both are drawn.
+    await vi.waitFor(() => {
+      const frame = lastFrame() ?? "";
+      expect(frame).toContain("Assistant (built-in)");
+      expect(frame).toContain("acme/alpha");
+      // First row: above every agent the search found.
+      expect(frame.indexOf("Assistant (built-in)")).toBeLessThan(frame.indexOf("acme/alpha"));
+    });
 
     stdin.write(KEY.enter);
-    await settle();
-    expect(onSelectBuiltInAssistant).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() => expect(onSelectBuiltInAssistant).toHaveBeenCalledTimes(1));
     expect(onSelect).not.toHaveBeenCalled();
   });
 
@@ -97,7 +103,10 @@ describe("AgentPicker", () => {
         <AgentPicker org="acme" onSelect={vi.fn()} onCancel={vi.fn()} />
       </InkStigmerProvider>,
     );
-    await settle();
+    // An absence is told only once the list is drawn: the empty label shows
+    // when loading ends with no rows, and the assistant row, which comes from
+    // props, would be among them by then.
+    await vi.waitFor(() => expect(lastFrame() ?? "").toContain("no agents found"));
     expect(lastFrame() ?? "").not.toContain("Assistant (built-in)");
   });
 
@@ -112,10 +121,10 @@ describe("AgentPicker", () => {
       </InkStigmerProvider>,
     );
 
-    await settle();
     // The picker pre-fills the input with the unresolved query the user
-    // already typed; useAgentSearch then searches it (debounced).
-    expect(lastFrame() ?? "").toContain("deploy");
+    // already typed, on the re-render after its mount effect; useAgentSearch
+    // then searches it (debounced).
+    await vi.waitFor(() => expect(lastFrame() ?? "").toContain("deploy"));
   });
 });
 
@@ -137,15 +146,17 @@ describe("SessionPicker", () => {
       </InkStigmerProvider>,
     );
 
-    await settle();
-    const frame = lastFrame() ?? "";
-    expect(frame).toContain("deploy staging");
-    expect(frame).toContain("deploy prod");
-    expect(frame).not.toContain("review PR");
+    // The filter is seeded as initial state, so no frame shows the list
+    // unfiltered; only the fetch is waited for.
+    await vi.waitFor(() => {
+      const frame = lastFrame() ?? "";
+      expect(frame).toContain("deploy staging");
+      expect(frame).toContain("deploy prod");
+      expect(frame).not.toContain("review PR");
+    });
 
     stdin.write(KEY.enter);
-    await settle();
-    expect(onSelect).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() => expect(onSelect).toHaveBeenCalledTimes(1));
     expect(onSelect.mock.calls[0][0].metadata.id).toBe("ses_1");
   });
 });
