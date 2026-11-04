@@ -51,13 +51,17 @@ export interface SettingsPageProps {
  *
  * @example
  * ```tsx
- * <SettingsPage
- *   title="Teams"
- *   description="Groups of people you share agents and other resources with at once."
- *   unavailable={!teamsServed && "Teams come with Stigmer Enterprise and Cloud. On this edition …"}
- * >
- *   <TeamList org={org} />
- * </SettingsPage>
+ * function TeamsSettings({ teamsServed, children }: { teamsServed: boolean; children: ReactNode }) {
+ *   return (
+ *     <SettingsPage
+ *       title="Teams"
+ *       description="Groups of people you share agents and other resources with at once."
+ *       unavailable={!teamsServed && "Teams come with Stigmer Enterprise and Cloud."}
+ *     >
+ *       {children}
+ *     </SettingsPage>
+ *   );
+ * }
  * ```
  */
 export function SettingsPage({ title, description, actions, unavailable, denied = false, children, className }: SettingsPageProps) {

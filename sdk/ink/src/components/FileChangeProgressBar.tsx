@@ -44,8 +44,12 @@ export interface FileChangeProgressBarProps {
  *
  * @example
  * ```tsx
- * const conv = useSessionConversation(sessionId, org);
- * <FileChangeProgressBar progress={conv.fileChangeProgress} expanded={expandTools} />
+ * import { useSessionConversation } from "@stigmer/react-core";
+ *
+ * function ChangesSoFar({ expanded }: { expanded: boolean }) {
+ *   const conv = useSessionConversation("ses_01jabc", "acme");
+ *   return <FileChangeProgressBar progress={conv.fileChangeProgress} expanded={expanded} />;
+ * }
  * ```
  */
 export function FileChangeProgressBar({

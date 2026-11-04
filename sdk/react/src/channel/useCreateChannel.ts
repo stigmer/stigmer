@@ -36,15 +36,14 @@ export interface UseCreateChannelReturn {
  *
  * @example
  * ```tsx
- * const { createChannel, isPending } = useCreateChannel();
+ * import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
  *
- * const channel = await createChannel({
- *   name: "Support Slack",
- *   org: agent.metadata.org,
- *   agentRef: { org: agent.metadata.org, slug: agent.metadata.slug },
- *   enabled: true,
- *   slack: {},
- * });
+ * function AddSlackChannelButton({ onCreated }: { onCreated: (channel: Channel) => void }) {
+ *   const { createChannel, isPending } = useCreateChannel();
+ *   const create = async () =>
+ *     onCreated(await createChannel({ name: "Support Slack", org: "acme", agentRef: { org: "acme", slug: "support" }, enabled: true, slack: {} }));
+ *   return <button onClick={create} disabled={isPending}>Add Slack channel</button>;
+ * }
  * ```
  */
 export function useCreateChannel(): UseCreateChannelReturn {

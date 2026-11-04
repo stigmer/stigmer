@@ -46,10 +46,7 @@ export interface UseChannelListReturn {
  *
  * @example
  * ```tsx
- * const { channels, isLoading, refetch } = useChannelList(
- *   agent?.metadata?.id ?? "",
- *   viewerOrg,
- * );
+ * const { channels, isLoading, refetch } = useChannelList("agt_01jabc", "acme");
  * const chatLinks = channels.filter((c) => c.spec?.type?.case === "web");
  * ```
  */

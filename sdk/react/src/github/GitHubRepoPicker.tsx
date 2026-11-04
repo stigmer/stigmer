@@ -162,14 +162,8 @@ const GITHUB_INSTALLATIONS_URL = "https://github.com/settings/installations";
  *
  * @example
  * ```tsx
- * function RepoSelector({ org }: { org: string }) {
- *   return (
- *     <GitHubRepoPicker
- *       org={org}
- *       onSelect={(url, branch) => workspace.addGitRepo(url, branch)}
- *       onCancel={() => setShowPicker(false)}
- *     />
- *   );
+ * function RepoSelector({ org, onAdd, onClose }: { org: string; onAdd: (repoUrl: string, branch: string) => void; onClose: () => void }) {
+ *   return <GitHubRepoPicker org={org} onSelect={onAdd} onCancel={onClose} />;
  * }
  * ```
  */

@@ -78,11 +78,9 @@ type EditingSection = "description" | "network" | "packages";
  *
  * @example
  * ```tsx
- * <EnvironmentDetailView
- *   org="acme"
- *   slug="data-science"
- *   onDeleted={() => router.push("/library/environments")}
- * />
+ * function EnvironmentPage({ onOpen }: { onOpen: (href: string) => void }) {
+ *   return <EnvironmentDetailView org="acme" slug="data-science" onDeleted={() => onOpen("/library/environments")} />;
+ * }
  * ```
  */
 export function EnvironmentDetailView({

@@ -105,22 +105,19 @@ export interface UseApplyResourceReturn {
  *
  * @example
  * ```tsx
- * const { applyYamlResource, pushSkillFromFile, isApplying, error, clearError } =
- *   useApplyResource();
- * const [result, setResult] = useState<ApplyResourceResult | null>(null);
- *
- * const handleApply = async () => {
- *   clearError();
- *   try {
- *     if (yamlDetection.detected) {
- *       setResult(await applyYamlResource(content!, activeOrg));
- *     } else if (skillArchiveId) {
- *       setResult(await pushSkillFromFile({ org: activeOrg, fileId: skillArchiveId }));
- *     }
- *   } catch {
- *     // error state is set by the hook
- *   }
- * };
+ * function ApplyYamlButton({ yaml }: { yaml: string }) {
+ *   const { applyYamlResource, isApplying, error } = useApplyResource();
+ *   const [result, setResult] = useState<ApplyResourceResult | null>(null);
+ *   // A failure stays on `error`, which the hook sets.
+ *   const apply = () => applyYamlResource(yaml, "acme").then(setResult, () => {});
+ *   if (result) return <p>Applied.</p>;
+ *   return (
+ *     <>
+ *       <button onClick={apply} disabled={isApplying}>Apply</button>
+ *       {error && <ErrorMessage error={error} />}
+ *     </>
+ *   );
+ * }
  * ```
  *
  * @see {@link parseManifest} for the YAML-to-proto conversion

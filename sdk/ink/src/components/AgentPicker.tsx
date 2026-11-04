@@ -49,9 +49,11 @@ const BUILT_IN_ASSISTANT_ITEM: PickerItem = {
  *
  * @example
  * ```tsx
+ * import { render } from "ink";
+ *
  * render(
  *   <InkStigmerProvider client={client}>
- *     <AgentPicker org="acme" onSelect={(a) => run(a.id)} onCancel={() => process.exit(0)} />
+ *     <AgentPicker org="acme" onSelect={(agent) => console.log(agent.id)} onCancel={() => process.exit(0)} />
  *   </InkStigmerProvider>,
  * );
  * ```

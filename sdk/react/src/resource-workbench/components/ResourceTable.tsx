@@ -42,13 +42,14 @@ export interface ResourceTableProps<TData> {
  *
  * @example
  * ```tsx
- * const { table } = useResourceCollection({ ... });
- * <ResourceTable
- *   table={table}
- *   enableSelection
- *   renderRowAction={(item) => <AgentActionMenu item={item} />}
- *   onRowClick={(item) => navigate(item.slug)}
- * />
+ * import type { SearchResult } from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
+ *
+ * function AgentTable({ listFn, onOpen }: { listFn: WorkbenchListFn; onOpen: (slug: string) => void }) {
+ *   const columns = [{ id: "name", header: "Name", cell: (item: SearchResult) => item.name }];
+ *   const { table } = useResourceCollection({ listFn, org: "acme", columns, enableSelection: true });
+ *   if (!table) return null;
+ *   return <ResourceTable table={table} enableSelection onRowClick={(item) => onOpen(item.slug)} />;
+ * }
  * ```
  */
 export function ResourceTable<TData>({

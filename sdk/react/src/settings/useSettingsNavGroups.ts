@@ -61,8 +61,14 @@ const ORG_ADMIN_ITEMS_AFTER = "/settings/teams";
  *
  * @example
  * ```tsx
- * const groups = useSettingsNavGroups();
- * return groups.map((group) => <NavGroup key={group.label} group={group} />);
+ * function SettingsNav() {
+ *   const groups = useSettingsNavGroups();
+ *   return groups.map((group) => (
+ *     <nav key={group.label} aria-label={group.label}>
+ *       {group.items.map((item) => <a key={item.href} href={item.href}>{item.label}</a>)}
+ *     </nav>
+ *   ));
+ * }
  * ```
  */
 export function useSettingsNavGroups(): readonly SettingsNavGroup[] {

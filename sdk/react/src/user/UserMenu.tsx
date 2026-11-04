@@ -100,13 +100,20 @@ export interface UserMenuProps {
  *
  * @example
  * ```tsx
- * <UserMenu
- *   user={{ name: "Jane", email: "jane@acme.com" }}
- *   colorMode="dark"
- *   onColorModeChange={(mode) => setTheme(mode)}
- *   onSettingsClick={() => router.push("/settings")}
- *   onSignOut={() => logout()}
- * />
+ * import type { ColorMode } from "@stigmer/react-sdk";
+ *
+ * function AccountMenu({ onOpen, onSignOut }: { onOpen: (href: string) => void; onSignOut: () => void }) {
+ *   const [colorMode, setColorMode] = useState<ColorMode>("system");
+ *   return (
+ *     <UserMenu
+ *       user={{ name: "Jane", email: "jane@acme.com" }}
+ *       colorMode={colorMode}
+ *       onColorModeChange={setColorMode}
+ *       onSettingsClick={() => onOpen("/settings")}
+ *       onSignOut={onSignOut}
+ *     />
+ *   );
+ * }
  * ```
  */
 export function UserMenu({

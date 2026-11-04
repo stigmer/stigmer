@@ -120,14 +120,19 @@ export interface WorkspaceSidebarProps {
  *
  * @example
  * ```tsx
- * <WorkspaceSidebar
- *   activeNav="library"
- *   renderLink={({ href, children, ...rest }) => (
- *     <Link href={href} {...rest}>{children}</Link>
- *   )}
- *   recentActivity={useRecentActivity()}
- *   footer={<UserMenu />}
- * />
+ * import { useRecentActivity } from "@stigmer/react-sdk";
+ *
+ * function AppSidebar({ onSignOut }: { onSignOut: () => void }) {
+ *   const recentActivity = useRecentActivity();
+ *   return (
+ *     <WorkspaceSidebar
+ *       activeNav="library"
+ *       renderLink={({ href, children, ...rest }) => <a href={href} {...rest}>{children}</a>}
+ *       recentActivity={recentActivity}
+ *       footer={<UserMenu user={{ name: "Jane" }} onSignOut={onSignOut} />}
+ *     />
+ *   );
+ * }
  * ```
  */
 export function WorkspaceSidebar({

@@ -57,11 +57,14 @@ function formatExpiry(month: number, year: number): string {
  *
  * @example
  * ```tsx
- * <PaymentMethodCard
- *   paymentMethod={account.defaultPaymentMethod}
- *   accountStatus={account.status}
- *   onManage={() => openPortal(org)}
- * />
+ * function PaymentMethod({ org }: { org: string }) {
+ *   const { account } = useBillingAccount(org);
+ *   const { openPortal } = useCreateBillingPortalSession();
+ *   if (!account) return null;
+ *   return (
+ *     <PaymentMethodCard paymentMethod={account.defaultPaymentMethod} accountStatus={account.status} onManage={() => openPortal(org)} />
+ *   );
+ * }
  * ```
  */
 export function PaymentMethodCard({

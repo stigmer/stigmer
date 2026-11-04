@@ -37,12 +37,14 @@ export interface UseDeleteChannelReturn {
  *
  * @example
  * ```tsx
- * const { deleteChannel, isDeleting } = useDeleteChannel();
- *
- * const handleDelete = async () => {
- *   await deleteChannel(channel.metadata.id);
- *   refetch(); // refresh the channel list
- * };
+ * function DeleteChannelButton({ channelId, onDeleted }: { channelId: string; onDeleted: () => void }) {
+ *   const { deleteChannel, isDeleting } = useDeleteChannel();
+ *   const remove = async () => {
+ *     await deleteChannel(channelId);
+ *     onDeleted(); // refetch the channel list
+ *   };
+ *   return <button onClick={remove} disabled={isDeleting}>Delete</button>;
+ * }
  * ```
  */
 export function useDeleteChannel(): UseDeleteChannelReturn {

@@ -25,25 +25,19 @@ export interface ConfirmDialogProps {
  *
  * @example
  * ```tsx
- * const { confirmState, confirm, handleConfirm, handleCancel } = useConfirmAction();
- *
- * // Trigger
- * const handleDelete = async () => {
- *   const ok = await confirm({
- *     title: "Delete agent?",
- *     description: "This cannot be undone.",
- *     confirmLabel: "Delete",
- *     variant: "destructive",
- *   });
- *   if (ok) await deleteAgent();
- * };
- *
- * // Render
- * <ConfirmDialog
- *   state={confirmState}
- *   onConfirm={handleConfirm}
- *   onCancel={handleCancel}
- * />
+ * function DeleteWithConfirm({ onDelete }: { onDelete: () => Promise<void> }) {
+ *   const { confirmState, confirm, handleConfirm, handleCancel } = useConfirmAction();
+ *   const remove = async () => {
+ *     const ok = await confirm({ title: "Delete agent?", description: "This cannot be undone.", confirmLabel: "Delete", variant: "destructive" });
+ *     if (ok) await onDelete();
+ *   };
+ *   return (
+ *     <>
+ *       <button onClick={remove}>Delete</button>
+ *       <ConfirmDialog state={confirmState} onConfirm={handleConfirm} onCancel={handleCancel} />
+ *     </>
+ *   );
+ * }
  * ```
  */
 export function ConfirmDialog({

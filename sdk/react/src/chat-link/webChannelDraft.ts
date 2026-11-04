@@ -174,10 +174,14 @@ export interface WebChannelCreateIdentity {
  *
  * @example
  * ```tsx
- * const { createChannel } = useCreateChannel();
- * const created = await createChannel(
- *   webChannelCreateInput(agent, { ...draftFromWebChannel(null), enabled: true }, { name, slug }),
- * );
+ * import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+ *
+ * function CreateChatLinkButton({ agent }: { agent: Agent }) {
+ *   const { createChannel, isPending } = useCreateChannel();
+ *   const draft = { ...draftFromWebChannel(null), enabled: true };
+ *   const create = () => createChannel(webChannelCreateInput(agent, draft, { name: "Website chat", slug: "website-chat" }));
+ *   return <button onClick={create} disabled={isPending}>Create chat link</button>;
+ * }
  * ```
  */
 export function webChannelCreateInput(
@@ -207,9 +211,14 @@ export function webChannelCreateInput(
  *
  * @example
  * ```tsx
- * const { update } = useSaveChannel();
- * const persisted = await update(channel, webChannelPatch(draft));
- * // the web arm of persisted.status.typeStatus carries the live link token
+ * import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
+ *
+ * function SaveChatLinkButton({ channel, draft }: { channel: Channel; draft: WebChannelDraft }) {
+ *   const { update, isPending } = useSaveChannel();
+ *   // The saved channel carries the live link token: webLinkTokenOf(saved).
+ *   const save = () => update(channel, webChannelPatch(draft));
+ *   return <button onClick={save} disabled={isPending}>Save</button>;
+ * }
  * ```
  */
 export function webChannelPatch(

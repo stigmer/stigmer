@@ -26,18 +26,26 @@ export const FetchCacheContext = createContext<FetchCache | null>(null);
  *
  * @example
  * ```tsx
- * // In your app shell (above the session key boundary):
- * <FetchCacheProvider>
- *   <SessionPageInner key={activeSessionId} id={activeSessionId} />
- * </FetchCacheProvider>
+ * // Above the session's key boundary, so switching sessions keeps the cache.
+ * function SessionShell({ sessionId, children }: { sessionId: string; children: ReactNode }) {
+ *   return (
+ *     <FetchCacheProvider>
+ *       <div key={sessionId}>{children}</div>
+ *     </FetchCacheProvider>
+ *   );
+ * }
  * ```
  *
  * @example
  * ```tsx
- * // With custom limits:
- * <FetchCacheProvider maxEntries={50} ttl={120_000}>
- *   <App />
- * </FetchCacheProvider>
+ * // With custom limits: 50 entries, each kept two minutes.
+ * function AppShell({ children }: { children: ReactNode }) {
+ *   return (
+ *     <FetchCacheProvider maxEntries={50} ttl={120_000}>
+ *       {children}
+ *     </FetchCacheProvider>
+ *   );
+ * }
  * ```
  */
 export function FetchCacheProvider({

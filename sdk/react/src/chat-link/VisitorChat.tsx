@@ -91,15 +91,19 @@ export interface VisitorChatProps {
  *
  * @example
  * ```tsx
- * const guestAuth = createGuestAuth({ baseUrl, channelId });
- * const client = useMemo(
- *   () => new Stigmer({ baseUrl, getAccessToken: guestAuth.getAccessToken }),
- *   [guestAuth],
- * );
+ * import { Stigmer, createGuestAuth } from "@stigmer/client";
  *
- * <StigmerProvider client={client} colorMode="system">
- *   <VisitorChat channelId={channelId} />
- * </StigmerProvider>
+ * function ChatLinkPage({ channelId }: { channelId: string }) {
+ *   const client = useMemo(() => {
+ *     const guestAuth = createGuestAuth({ baseUrl: "https://api.stigmer.ai", channelId });
+ *     return new Stigmer({ baseUrl: "https://api.stigmer.ai", getAccessToken: guestAuth.getAccessToken });
+ *   }, [channelId]);
+ *   return (
+ *     <StigmerProvider client={client} colorMode="system">
+ *       <VisitorChat channelId={channelId} />
+ *     </StigmerProvider>
+ *   );
+ * }
  * ```
  */
 export function VisitorChat({

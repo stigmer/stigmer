@@ -50,8 +50,13 @@ export interface UseEntitlementsReturn {
  *
  * @example
  * ```tsx
- * const { allows } = useEntitlements(org);
- * if (allows(Feature.teams) === false) return <UpgradeNotice feature={Feature.teams} />;
+ * import { Feature } from "@stigmer/apis/ai/stigmer/platform/v1/entitlement_pb";
+ *
+ * function TeamsPage({ org, children }: { org: string; children: ReactNode }) {
+ *   const { allows } = useEntitlements(org);
+ *   if (allows(Feature.teams) === false) return <UpgradeNotice feature={Feature.teams} />;
+ *   return <>{children}</>;
+ * }
  * ```
  */
 export function useEntitlements(

@@ -51,8 +51,11 @@ const CATEGORY_TITLES: Record<ErrorCategory, string> = {
  *
  * @example
  * ```tsx
- * const { data, isLoading, error, refetch } = useAgent(id);
- * if (error) return <ErrorMessage error={error} retry={refetch} />;
+ * function AgentName({ slug }: { slug: string }) {
+ *   const { agent, error, refetch } = useAgent("acme", slug);
+ *   if (error) return <ErrorMessage error={error} retry={refetch} />;
+ *   return <h1>{agent?.metadata?.name}</h1>;
+ * }
  * ```
  */
 export function ErrorMessage({

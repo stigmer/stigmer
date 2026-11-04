@@ -42,12 +42,11 @@ export interface UseRotateChannelLinkReturn {
  *
  * @example
  * ```tsx
- * const { rotateLink, isPending } = useRotateChannelLink(
- *   channel?.metadata?.id ?? null,
- * );
- *
- * const updated = await rotateLink();
- * // webLinkTokenOf(updated) is the new token
+ * function RotateLinkButton({ channelId, onRotated }: { channelId: string; onRotated: (token: string) => void }) {
+ *   const { rotateLink, isPending } = useRotateChannelLink(channelId);
+ *   const rotate = async () => onRotated(webLinkTokenOf(await rotateLink()));
+ *   return <button onClick={rotate} disabled={isPending}>Rotate link</button>;
+ * }
  * ```
  */
 export function useRotateChannelLink(

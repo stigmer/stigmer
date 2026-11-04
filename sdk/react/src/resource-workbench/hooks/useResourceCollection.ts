@@ -126,12 +126,14 @@ const DEFAULT_PAGE_SIZE = 20;
  *
  * @example
  * ```tsx
- * const collection = useResourceCollection({
- *   listFn: createLibraryListFn(stigmer, ApiResourceKind.agent),
- *   org: "acme",
- *   query: debouncedQuery,
- *   columns: agentColumns,
- * });
+ * import { ApiResourceKind } from "@stigmer/client";
+ *
+ * function AgentRows() {
+ *   const stigmer = useStigmer();
+ *   const listFn = useMemo(() => createLibraryListFn(stigmer, ApiResourceKind.agent), [stigmer]);
+ *   const collection = useResourceCollection({ listFn, org: "acme", query: "review" });
+ *   return <ul>{collection.items.map((item) => <li key={item.id}>{item.name}</li>)}</ul>;
+ * }
  * ```
  */
 export function useResourceCollection<TData = SearchResult>(

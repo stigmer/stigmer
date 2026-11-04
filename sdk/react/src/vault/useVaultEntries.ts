@@ -47,8 +47,11 @@ export interface UseVaultEntriesReturn {
  *
  * @example
  * ```tsx
- * const entries = useVaultEntries("acme", vault.metadata!.id);
- * await entries.setSecrets({ LEDGER_API_KEY: "..." });
+ * function SaveLedgerKey({ vaultId, apiKey }: { vaultId: string; apiKey: string }) {
+ *   const entries = useVaultEntries("acme", vaultId);
+ *   const save = () => entries.setSecrets({ LEDGER_API_KEY: apiKey });
+ *   return <button onClick={save} disabled={entries.isMutating}>Save key</button>;
+ * }
  * ```
  */
 export function useVaultEntries(

@@ -59,12 +59,15 @@ export interface ApplyManifestDialogProps {
  *
  * @example
  * ```tsx
- * <ApplyManifestDialog
- *   open={open}
- *   onOpenChange={setOpen}
- *   org={activeOrg}
- *   onApplied={() => refetchList()}
- * />
+ * function ApplyButton({ onApplied }: { onApplied: () => void }) {
+ *   const [open, setOpen] = useState(false);
+ *   return (
+ *     <>
+ *       <button onClick={() => setOpen(true)}>Apply YAML</button>
+ *       <ApplyManifestDialog open={open} onOpenChange={setOpen} org="acme" onApplied={onApplied} />
+ *     </>
+ *   );
+ * }
  * ```
  */
 export function ApplyManifestDialog({

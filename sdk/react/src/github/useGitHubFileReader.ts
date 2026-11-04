@@ -36,9 +36,11 @@ import { parseGitUrl } from "./parseGitUrl.js";
  *
  * @example
  * ```tsx
- * const gitHubConnection = useGitHubConnection(org);
- * const fileReader = useGitHubFileReader(gitHubConnection.readOrg);
- * <SessionViewer sessionId={id} org={org} inspector={<SessionInspector workspaceFileReader={fileReader} />} />
+ * function SessionWithRepoFiles({ sessionId, org }: { sessionId: string; org: string }) {
+ *   const gitHubConnection = useGitHubConnection(org);
+ *   const fileReader = useGitHubFileReader(gitHubConnection.readOrg);
+ *   return <SessionViewer sessionId={sessionId} org={org} inspector={<SessionInspector workspaceFileReader={fileReader} />} />;
+ * }
  * ```
  */
 export function useGitHubFileReader(

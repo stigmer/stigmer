@@ -24,11 +24,10 @@ const NOT_DETECTED: StigmerResourceDetection = { detected: false } as const;
  *
  * @example
  * ```tsx
- * const { content } = useArtifactContent(executionId, storageKey);
- * const detection = useDetectStigmerResource(content);
- *
- * if (detection.detected) {
- *   return <Badge>{detection.displayName}</Badge>;
+ * function ResourceBadge({ yaml }: { yaml: string | null }) {
+ *   const detection = useDetectStigmerResource(yaml);
+ *   if (!detection.detected) return null;
+ *   return <span>{detection.displayName}</span>;
  * }
  * ```
  *

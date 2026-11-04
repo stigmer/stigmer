@@ -42,7 +42,12 @@ export interface UseResourceSelectionReturn<TData> {
  *
  * @example
  * ```tsx
- * const selection = useResourceSelection(items, (item) => item.id);
+ * import type { SearchResult } from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
+ *
+ * function SelectableAgents({ items }: { items: readonly SearchResult[] }) {
+ *   const selection = useResourceSelection(items, (item) => item.id);
+ *   return <button onClick={selection.toggleAll}>{selection.selectedCount} selected</button>;
+ * }
  * ```
  */
 export function useResourceSelection<TData>(

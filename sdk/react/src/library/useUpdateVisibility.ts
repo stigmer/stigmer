@@ -50,14 +50,20 @@ export interface UseUpdateVisibilityReturn {
  *
  * @example
  * ```tsx
- * const { updateVisibility, isPending } = useUpdateVisibility("agent", agent.metadata.id);
+ * import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+ * import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
  *
- * <VisibilitySelector
- *   visibility={agent.metadata.visibility}
- *   options={options}
- *   onVisibilityChange={updateVisibility}
- *   isPending={isPending}
- * />
+ * function AgentVisibility({ agent }: { agent: Agent }) {
+ *   const { updateVisibility, isPending } = useUpdateVisibility("agent", agent.metadata?.id ?? null);
+ *   return (
+ *     <VisibilitySelector
+ *       visibility={agent.metadata?.visibility ?? ApiResourceVisibility.visibility_private}
+ *       options={blueprintVisibilityLevels({ offersChildOrgs: false })}
+ *       onVisibilityChange={updateVisibility}
+ *       isPending={isPending}
+ *     />
+ *   );
+ * }
  * ```
  */
 export function useUpdateVisibility(

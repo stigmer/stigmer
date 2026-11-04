@@ -69,9 +69,15 @@ const SIZE_CLASSES: Record<ButtonSize, string> = {
  *
  * @example
  * ```tsx
- * <Button variant="outline" size="xs" icon={<PlusIcon />} onClick={onCreate}>
- *   Add channel
- * </Button>
+ * import { Plus } from "lucide-react";
+ *
+ * function AddChannelButton({ onAdd }: { onAdd: () => void }) {
+ *   return (
+ *     <Button variant="outline" size="xs" icon={<Plus />} onClick={onAdd}>
+ *       Add channel
+ *     </Button>
+ *   );
+ * }
  * ```
  */
 export function Button({

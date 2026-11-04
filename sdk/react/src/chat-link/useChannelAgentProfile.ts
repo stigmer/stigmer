@@ -86,13 +86,15 @@ export interface UseChannelAgentProfileReturn {
  *
  * @example
  * ```tsx
- * const { profile, isLoading, error } = useChannelAgentProfile(channelId);
+ * function ChatLinkHeader({ channelId }: { channelId: string }) {
+ *   const { profile, isLoading, error } = useChannelAgentProfile(channelId);
  *
- * if (isLoading) return <Spinner />;
- * if (error) return <ErrorCard error={error} />;
- * if (!profile) return <AgentUnavailable />;
+ *   if (isLoading) return <p>Loading…</p>;
+ *   if (error) return <ErrorMessage error={error} />;
+ *   if (!profile) return <p>This agent is not available.</p>;
  *
- * return <h1>{profile.name}</h1>;
+ *   return <h1>{profile.name}</h1>;
+ * }
  * ```
  */
 export function useChannelAgentProfile(

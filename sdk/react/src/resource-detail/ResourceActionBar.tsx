@@ -57,20 +57,21 @@ export interface ResourceActionBarProps {
  *
  * @example
  * ```tsx
- * <ResourceActionBar
- *   resource={{ kind: "agent", id }}
- *   primaryAction={{
- *     id: "edit",
- *     label: "Edit",
- *     icon: <PencilIcon />,
- *     requires: "can_edit",
- *     onAction: () => router.push(editUrl),
- *   }}
- *   actions={[
- *     { id: "copy-id", label: "Copy ID", onAction: () => copyId(id) },
- *     { id: "delete", label: "Delete", variant: "destructive", requires: "can_delete", onAction: handleDelete },
- *   ]}
- * />
+ * import { Pencil } from "lucide-react";
+ *
+ * function AgentActions({ id, onEdit, onDelete }: { id: string; onEdit: () => void; onDelete: () => void }) {
+ *   const { copyId } = useCopyResource();
+ *   return (
+ *     <ResourceActionBar
+ *       resource={{ kind: "agent", id }}
+ *       primaryAction={{ id: "edit", label: "Edit", icon: <Pencil />, requires: "can_edit", onAction: onEdit }}
+ *       actions={[
+ *         { id: "copy-id", label: "Copy ID", onAction: () => copyId(id) },
+ *         { id: "delete", label: "Delete", variant: "destructive", requires: "can_delete", onAction: onDelete },
+ *       ]}
+ *     />
+ *   );
+ * }
  * ```
  */
 export function ResourceActionBar({

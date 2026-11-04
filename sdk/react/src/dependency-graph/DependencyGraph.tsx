@@ -24,20 +24,20 @@ import { DependencyTreeNode } from "./DependencyTreeNode.js";
  *
  * @example
  * ```tsx
- * const { tree } = useDependencyGraph({
- *   agentName: "variance-reporter",
- *   agentOrg: "acme",
- *   spec: agent.spec,
- * });
+ * import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
  *
- * {tree && (
- *   <DependencyGraph
- *     tree={tree}
- *     onNodeClick={(node) => {
- *       if (node.kind === "plugin") navigateTo(`/plugins/${node.ref!.slug}`);
- *     }}
- *   />
- * )}
+ * function PluginLinks({ agent, onOpen }: { agent: Agent; onOpen: (href: string) => void }) {
+ *   const { tree } = useDependencyGraph({ agentName: "variance-reporter", agentOrg: "acme", spec: agent.spec });
+ *   if (!tree) return null;
+ *   return (
+ *     <DependencyGraph
+ *       tree={tree}
+ *       onNodeClick={(node) => {
+ *         if (node.kind === "plugin" && node.ref) onOpen(`/plugins/${node.ref.slug}`);
+ *       }}
+ *     />
+ *   );
+ * }
  * ```
  */
 export function DependencyGraph({

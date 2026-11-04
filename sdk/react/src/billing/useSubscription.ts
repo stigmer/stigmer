@@ -42,7 +42,7 @@ export interface UseSubscriptionReturn {
  *
  * @example
  * ```tsx
- * const { subscription } = useSubscription(org);
+ * const { subscription } = useSubscription("acme");
  * ```
  */
 export function useSubscription(org: string | null): UseSubscriptionReturn {

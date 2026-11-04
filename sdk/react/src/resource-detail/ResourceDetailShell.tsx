@@ -25,21 +25,19 @@ import { useOrgSlugForId } from "../organization/useOrgRefs.js";
  *
  * @example
  * ```tsx
- * const { agent } = useAgent(org, slug);
- *
- * <ResourceDetailShell
- *   header={{
- *     name: agent.metadata.name,
- *     id: agent.metadata.id,
- *     org: agent.metadata.org,
- *     slug: agent.metadata.slug,
- *     description: agent.spec.description,
- *   }}
- *   primaryAction={{ id: "edit", label: "Edit", onAction: handleEdit }}
- *   actions={[...]}
- * >
- *   <AgentOverview agent={agent} />
- * </ResourceDetailShell>
+ * function AgentPage({ slug, onEdit }: { slug: string; onEdit: () => void }) {
+ *   const { agent } = useAgent("acme", slug);
+ *   if (!agent?.metadata) return <p>Loading…</p>;
+ *   const { name, id, org } = agent.metadata;
+ *   return (
+ *     <ResourceDetailShell
+ *       header={{ name, id, org, slug: agent.metadata.slug, description: agent.spec?.description }}
+ *       primaryAction={{ id: "edit", label: "Edit", onAction: onEdit }}
+ *     >
+ *       <p>{agent.spec?.description}</p>
+ *     </ResourceDetailShell>
+ *   );
+ * }
  * ```
  */
 export function ResourceDetailShell({

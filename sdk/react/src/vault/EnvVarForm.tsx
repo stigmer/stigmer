@@ -117,7 +117,7 @@ export interface EnvVarFormProps {
  *     { key: "GITHUB_TOKEN", isSecret: true, description: "Personal access token" },
  *     { key: "REPO_OWNER", isSecret: false },
  *   ]}
- *   onSubmit={(values) => saveToMyVault(values)}
+ *   onSubmit={(values) => console.log(values.GITHUB_TOKEN.value)}
  *   onCancel={() => console.log("cancelled")}
  * />
  * ```

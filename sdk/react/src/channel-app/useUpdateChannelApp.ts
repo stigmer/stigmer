@@ -43,15 +43,15 @@ export interface UseUpdateChannelAppReturn {
  *
  * @example
  * ```tsx
- * const { update, isUpdating, error } = useUpdateChannelApp();
+ * import type { ChannelApp } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/api_pb";
  *
- * await update(
- *   {
- *     metadata: { id: app.metadata!.id, etag: app.metadata!.etag },
- *     spec: { slack: { clientId: "123456.789012", clientSecret: "***REDACTED***", signingSecret: "new-signing-secret" } },
- *   },
- *   ["spec.slack"],
- * );
+ * function RotateSigningSecret({ app, signingSecret }: { app: ChannelApp; signingSecret: string }) {
+ *   const { update, isUpdating } = useUpdateChannelApp();
+ *   // The marker keeps the stored client secret; only the signing secret changes.
+ *   const slack = { clientId: "123456.789012", clientSecret: "***REDACTED***", signingSecret };
+ *   const save = () => update({ metadata: app.metadata, spec: { providerConfig: { case: "slack", value: slack } } }, ["spec.slack"]);
+ *   return <button onClick={save} disabled={isUpdating}>Save signing secret</button>;
+ * }
  * ```
  */
 export function useUpdateChannelApp(): UseUpdateChannelAppReturn {

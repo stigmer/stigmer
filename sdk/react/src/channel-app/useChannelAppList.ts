@@ -36,10 +36,11 @@ export interface UseChannelAppListReturn {
  *
  * @example
  * ```tsx
- * const { channelApps, isLoading, error } = useChannelAppList(org);
- *
- * if (isLoading) return <Spinner />;
- * channelApps.map((app) => app.metadata?.name);
+ * function ChannelAppNames({ org }: { org: string }) {
+ *   const { channelApps, isLoading } = useChannelAppList(org);
+ *   if (isLoading) return <p>Loading…</p>;
+ *   return <ul>{channelApps.map((app) => <li key={app.metadata?.id}>{app.metadata?.name}</li>)}</ul>;
+ * }
  * ```
  */
 export function useChannelAppList(

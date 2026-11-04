@@ -25,11 +25,10 @@ export interface UseCopyResourceReturn {
  *
  * @example
  * ```tsx
- * const { copyId, copySlug, copy } = useCopyResource();
- *
- * <ActionMenu.Item onSelect={() => copyId(resource.id)}>
- *   Copy ID
- * </ActionMenu.Item>
+ * function CopyIdButton({ resourceId }: { resourceId: string }) {
+ *   const { copyId } = useCopyResource();
+ *   return <button onClick={() => copyId(resourceId)}>Copy ID</button>;
+ * }
  * ```
  */
 export function useCopyResource(): UseCopyResourceReturn {
