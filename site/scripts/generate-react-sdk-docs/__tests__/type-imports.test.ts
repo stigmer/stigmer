@@ -47,7 +47,8 @@ describe("createTypeImportResolver", () => {
     kitDir = path.join(root, "kit");
     write("kit/package.json", JSON.stringify({ name: "@acme/kit", peerDependencies: { client: "*", protos: "*", typed: "*" }, dependencies: { plain: "*" } }));
     write("node_modules/client/package.json", JSON.stringify({ name: "client", types: "index.d.ts" }));
-    write("node_modules/client/index.d.ts", 'export interface Client {}\nexport type { ToolUse } from "log";\n');
+    // The client also has a `Node`: the declaring package's peer wins over the first peer that has the name.
+    write("node_modules/client/index.d.ts", 'export interface Client {}\nexport type Node = number;\nexport type { ToolUse } from "log";\n');
     write("node_modules/log/package.json", JSON.stringify({ name: "log", types: "index.d.ts" }));
     write("node_modules/log/index.d.ts", "export interface ToolUse {}\n");
     write("node_modules/protos/package.json", JSON.stringify({ name: "protos", exports: { "./*": { types: "./dist/*.d.ts" } } }));
@@ -70,7 +71,7 @@ describe("createTypeImportResolver", () => {
     expect(resolve("ToolUse", t("log", "index.d.ts"))).toBe("client");
   });
 
-  it("imports an @types package's type from the package it types", () => {
+  it("imports an @types package's type from the package it types, ahead of another peer with the name", () => {
     expect(createTypeImportResolver(kitDir)("Node", t("@types/typed"))).toBe("typed");
   });
 
