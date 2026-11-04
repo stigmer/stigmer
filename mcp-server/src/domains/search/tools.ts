@@ -75,8 +75,8 @@ export function registerSearchTools(server: McpServer, target: BackendTarget): s
       },
     },
     (args, extra) =>
-      textOrError(() =>
-        search(target.serverAddress, resolveToken(extra, target.apiKey), {
+      textOrError(async () =>
+        search(target.serverAddress, await resolveToken(extra, target), {
           kinds: args.kinds,
           query: args.query,
           org: args.org,

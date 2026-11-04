@@ -4,6 +4,12 @@
 // then run() the server until the provided AbortSignal fires. The Stigmer CLI
 // embeds the whole server through run(); a host that serves MCP beside its own
 // traffic mounts createMcpHttpHandler on its own node:http listener instead.
+//
+// Config stays plain, environment-shaped data. A credential that changes while
+// the server runs (a sign-in its host refreshes) is not data, so it comes in
+// through RunOptions as a token provider, named as the SDK names it.
+
+import type { TokenProvider } from "@stigmer/client";
 
 import { loadConfigFromEnv, validateConfig, type Config } from "./config.js";
 import { configureLogger, log } from "./logger.js";
@@ -42,6 +48,16 @@ export {
   SERVER_VERSION,
 } from "./server.js";
 
+/** What an embedder passes to {@link run} beside the Config. */
+export interface RunOptions {
+  /**
+   * Asked for the backend credential on every call that brings no bearer of
+   * its own, so a long-running server follows a sign-in its host refreshes.
+   * When set, `cfg.apiKey` is not used. `null` means no credential.
+   */
+  readonly getAccessToken?: TokenProvider;
+}
+
 /** Returns a Config populated from environment variables (no validation). */
 export function defaultConfig(): Config {
   return loadConfigFromEnv();
@@ -55,11 +71,17 @@ export function defaultConfig(): Config {
  * const ac = new AbortController();
  * process.on("SIGINT", () => ac.abort());
  * await run(defaultConfig(), ac.signal);
+ * // or, with a credential the host keeps fresh:
+ * await run(defaultConfig(), ac.signal, { getAccessToken: tokens.getAccessToken });
  * ```
  *
  * A clean client disconnect resolves normally (see {@link isNormalShutdown}).
  */
-export async function run(cfg: Config, signal: AbortSignal): Promise<void> {
+export async function run(
+  cfg: Config,
+  signal: AbortSignal,
+  options: RunOptions = {},
+): Promise<void> {
   configureLogger({ level: cfg.logLevel, format: cfg.logFormat });
   validateConfig(cfg);
 
@@ -68,6 +90,7 @@ export async function run(cfg: Config, signal: AbortSignal): Promise<void> {
   const target: BackendTarget = {
     serverAddress: cfg.stigmerServerAddress,
     apiKey: cfg.apiKey,
+    ...(options.getAccessToken === undefined ? {} : { getAccessToken: options.getAccessToken }),
   };
 
   try {
