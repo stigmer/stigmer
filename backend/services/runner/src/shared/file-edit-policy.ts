@@ -145,6 +145,7 @@ export async function fileEditFlow(
   category: ToolApprovalCategory | undefined,
 ): Promise<PolicySource | undefined> {
   if (serverSlug || (category !== "write" && category !== "delete")) return undefined;
+  if (inGitDirectory(args)) return undefined;
   if ((posture.fileReviewOff || posture.fileCaptureMode) && inOutputsFolder(args)) return "outputs";
   if (posture.fileReviewOff) return "file_review_off";
   return (await captureFlows(posture, args, serverSlug, category)) ? "file_capture" : undefined;
@@ -178,7 +179,7 @@ export async function captureFlows(
   if (!posture.fileCaptureMode || !posture.isCapturablePath || serverSlug) return false;
   if (category !== "write" && category !== "delete") return false;
   const path = extractFilePath(args);
-  if (path === null || isInOutputsFolder(path)) return false;
+  if (path === null || isInOutputsFolder(path) || isGitDirectoryPath(path)) return false;
   if (await posture.isCapturablePath(path)) return true;
   if (!posture.captureIgnored) return false;
   if (category === "write") return true;
@@ -190,6 +191,24 @@ export async function captureFlows(
 }
 
 /** Whether a built-in file call's path lies inside the outputs folder (`outputs.ts`). */
+/**
+ * Whether `path` names a repository's own git directory or anything in it
+ * (a `.git` segment, matched without case: the default macOS filesystem
+ * reads `.GIT` as `.git`). A write there is never a reviewable change, since
+ * git never stages its own directory, yet it decides what the runtime's next
+ * git command runs (a hook, the fsmonitor, a filter, where `.git` points).
+ * So such a write never flows: the approval gate asks, in every posture
+ * (stigmer#2962).
+ */
+export function isGitDirectoryPath(path: string): boolean {
+  return path.split(/[\\/]/).some((segment) => segment.toLowerCase() === ".git");
+}
+
+function inGitDirectory(args: Record<string, unknown>): boolean {
+  const path = extractFilePath(args);
+  return path !== null && isGitDirectoryPath(path);
+}
+
 function inOutputsFolder(args: Record<string, unknown>): boolean {
   const path = extractFilePath(args);
   return path !== null && isInOutputsFolder(path);

@@ -107,6 +107,23 @@ describe("isGitWorkTree", () => {
   });
 });
 
+describe("the runtime's git never runs what the agent wrote into .git (stigmer#2962)", () => {
+  it("does not run the clone's fsmonitor or hooks when review captures", async () => {
+    const marker = join(repo, "..", `fsmonitor-ran-${EXEC_ID}`);
+    await rm(marker, { force: true });
+    // What an agent would write into .git/config: a command git runs on its
+    // next index refresh, and a hook directory of its own.
+    await git(["config", "core.fsmonitor", `touch ${marker}; false`]);
+    await write(".git/agent-hooks/pre-commit", `#!/bin/sh\ntouch ${marker}\n`);
+    await git(["config", "core.hooksPath", ".git/agent-hooks"]);
+    await write("src/main.ts", "export const x = 2;\n");
+    const baseline = await snapshotBaseline(repo, EXEC_ID);
+    expect(baseline).toMatch(/^[0-9a-f]{40}$/);
+    const ran = await stat(marker).then(() => true, () => false);
+    expect(ran, "the clone's fsmonitor ran").toBe(false);
+  });
+});
+
 describe("capture lifecycle", () => {
   it("captures create+modify+delete, restores to baseline, and nothing lands until apply", async () => {
     const baseline = await snapshotBaseline(repo, EXEC_ID);

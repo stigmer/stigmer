@@ -7,13 +7,22 @@
  * through LangChain's middleware and Claude's through its gate, and this
  * file pins the rules without either. The cases are the ones that decide
  * whether a person's review can be skipped: what capture lets flow, what it
- * never does (the shell, an MCP tool, the outputs folder), and the
+ * never does (the shell, an MCP tool, the outputs folder, a repository's own
+ * `.git` directory, in every posture: git never stages it, and what is
+ * written there decides what the runtime's next git command runs), and the
  * secret-like write block that holds whatever capture or review says.
  */
 
 import { describe, expect, it, vi } from "vitest";
 
-import { blockedSecretPath, captureFlows, fileEditFlow, secretBlockMessage, type FileEditPosture } from "../file-edit-policy.js";
+import {
+  blockedSecretPath,
+  captureFlows,
+  fileEditFlow,
+  isGitDirectoryPath,
+  secretBlockMessage,
+  type FileEditPosture,
+} from "../file-edit-policy.js";
 
 const CAPTURE: FileEditPosture = { fileCaptureMode: true, fileCaptureSubstrate: true, captureIgnored: false, isCapturablePath: async () => true };
 
@@ -39,6 +48,32 @@ describe("captureFlows", () => {
     expect(await captureFlows(observed, { path: "/build/a" }, "", "delete")).toBe(true);
     expect(captureDeleteBefore).toHaveBeenCalledWith("/build/a");
     expect(await captureFlows(observed, { path: "/.env" }, "", "delete"), "a secret-like delete stays on the gate").toBe(false);
+  });
+});
+
+describe("a repository's own .git directory never flows (stigmer#2962)", () => {
+  const gitPaths = ["/.git/config", ".git/hooks/pre-commit", "/sub/.git/config", "/.GIT/config", "/.git", "C:\\repo\\.git\\config"];
+
+  it("is named by any .git segment, without case, and nothing else", () => {
+    for (const path of gitPaths) expect(isGitDirectoryPath(path), path).toBe(true);
+    for (const path of ["/.gitignore", "/.github/workflows/ci.yml", "/src/git/a.ts", "/x.git/a", "/.gitattributes"]) {
+      expect(isGitDirectoryPath(path), path).toBe(false);
+    }
+  });
+
+  it("is never captured, so a write or delete there asks, though git calls it capturable", async () => {
+    const observed: FileEditPosture = { ...CAPTURE, captureIgnored: true, captureDeleteBefore: async () => {} };
+    for (const path of gitPaths) {
+      for (const category of ["write", "delete"] as const) {
+        expect(await captureFlows(observed, { path }, "", category), `${category} ${path}`).toBe(false);
+        expect(await fileEditFlow(observed, { path }, "", category), `${category} ${path}`).toBeUndefined();
+      }
+    }
+  });
+
+  it("asks even with file review off, where every other write flows", async () => {
+    expect(await fileEditFlow({ fileReviewOff: true }, { path: "/.git/config" }, "", "write")).toBeUndefined();
+    expect(await fileEditFlow({ fileReviewOff: true }, { path: "/.gitignore" }, "", "write")).toBe("file_review_off");
   });
 });
 

@@ -143,6 +143,20 @@ export interface CaptureResult {
 }
 
 /**
+ * What the runtime's own git in the agent's clone never runs: the clone's
+ * hooks and its fsmonitor. The repository and its configuration are the
+ * agent's, so these would run a command the agent wrote, unapproved, every
+ * time review captures a change (stigmer#2962). The runner's own git with a
+ * token switches off the same two (workspace/git-credential.ts).
+ */
+export const RUNTIME_GIT_CONFIG: readonly string[] = [
+  "-c",
+  "core.fsmonitor=false",
+  "-c",
+  "core.hooksPath=/dev/null",
+];
+
+/**
  * Run a git command in `gitRoot`. Returns stdout as a UTF-8 string. Binary
  * output (file bodies) must use {@link gitBuffer} instead so bytes are exact.
  */
@@ -151,9 +165,10 @@ async function git(
   args: string[],
   env?: Record<string, string>,
 ): Promise<string> {
-  // Run by the agent's operations: the repository is the agent's, so are its
-  // hooks and config, and the process gets the performer's environment.
-  const { stdout } = await agentFs().execFile("git", args, {
+  // Run by the agent's operations: the repository is the agent's, and the
+  // process gets the performer's environment; its hooks and fsmonitor never
+  // run (RUNTIME_GIT_CONFIG).
+  const { stdout } = await agentFs().execFile("git", [...RUNTIME_GIT_CONFIG, ...args], {
     cwd: gitRoot,
     ...(env ? { env } : {}),
     maxBuffer: 256 * 1024 * 1024,
@@ -163,7 +178,7 @@ async function git(
 
 /** Run a git command returning raw stdout BYTES (for exact file-body reads). */
 async function gitBuffer(gitRoot: string, args: string[]): Promise<Buffer> {
-  const { stdout } = await agentFs().execFile("git", args, {
+  const { stdout } = await agentFs().execFile("git", [...RUNTIME_GIT_CONFIG, ...args], {
     cwd: gitRoot,
     maxBuffer: 256 * 1024 * 1024,
   });
