@@ -36,11 +36,11 @@ export function registerSkillTools(server: McpServer, target: BackendTarget): st
       },
     },
     (args, extra) =>
-      textOrError(() =>
+      textOrError(async () =>
         // An empty version means "latest".
         fetchSkill(
           target.serverAddress,
-          resolveToken(extra, target.apiKey),
+          await resolveToken(extra, target),
           args.org,
           args.slug,
           args.version ?? "",
@@ -68,8 +68,8 @@ export function registerSkillTools(server: McpServer, target: BackendTarget): st
       },
     },
     (args, extra) =>
-      textOrError(() =>
-        deleteSkill(target.serverAddress, resolveToken(extra, target.apiKey), args.org, args.slug),
+      textOrError(async () =>
+        deleteSkill(target.serverAddress, await resolveToken(extra, target), args.org, args.slug),
       ),
   );
 
@@ -100,8 +100,8 @@ export function registerSkillTools(server: McpServer, target: BackendTarget): st
       },
     },
     (args, extra) =>
-      textOrError(() =>
-        listSkillVersions(target.serverAddress, resolveToken(extra, target.apiKey), {
+      textOrError(async () =>
+        listSkillVersions(target.serverAddress, await resolveToken(extra, target), {
           org: args.org,
           slug: args.slug,
           pageSize: args.page_size,

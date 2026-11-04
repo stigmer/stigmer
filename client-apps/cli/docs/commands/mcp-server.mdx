@@ -7,8 +7,15 @@ process and communicates over stdin/stdout.
 
 When running via the CLI, the server address and API key are automatically
 resolved from the active backend in `~/.stigmer/config.yaml`. The local backend
-connects without authentication; a cloud backend uses the stored sign-in token,
-and a self-hosted backend its API key.
+connects without authentication; a cloud backend uses your `stigmer auth login`
+sign-in, and a self-hosted backend its API key.
+
+A cloud sign-in is refreshed while the server runs, so an MCP client can keep it
+running all day: when the access token expires, the next tool call gets a fresh
+one and saves it as every other command does. Signing in again with
+`stigmer auth login` takes effect without restarting the server. An API key you
+pass with `--api-key` or `STIGMER_API_KEY` is used instead, and is never
+refreshed.
 
 {/* AUTO_USAGE */}
 
@@ -55,7 +62,7 @@ Configuration precedence: CLI flags > environment variables >
 | Variable | Default | Purpose |
 |----------|---------|---------|
 | `STIGMER_SERVER_ADDRESS` | From CLI config or `localhost:7234` | gRPC address of stigmer-server |
-| `STIGMER_API_KEY` | From CLI config | API key (the active backend's credential) |
+| `STIGMER_API_KEY` | From CLI config | API key; when set, used instead of the active backend's credential |
 | `STIGMER_MCP_TRANSPORT` | `stdio` | Transport mode |
 | `STIGMER_MCP_HTTP_PORT` | `8080` | HTTP listen port |
 | `STIGMER_MCP_HTTP_AUTH_ENABLED` | `true` | Enable HTTP authentication |
