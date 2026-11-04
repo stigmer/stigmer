@@ -2,7 +2,8 @@
  * Tests for the theme token docs renderer. The tokens page lists every
  * default token under its `@group` heading with its light and dark values;
  * the presets page tables each preset, shows a preset's CSS import from
- * `@stigmer/design-tokens` and its class, and lists only the tokens that
+ * `@stigmer/design-tokens` and its class, shows the provider taking a
+ * preset as a whole element (its child declared above a hidden-setup cut), and lists only the tokens that
  * preset overrides, in the defaults' order (a preset that overrides
  * nothing says so in a sentence, with no table). Both carry the do-not-edit
  * banner. The input is hand-built token maps.
@@ -75,6 +76,15 @@ describe("renderPresetsPage", () => {
         'Enterprise SaaS — tight radius — `import "@stigmer/design-tokens/presets/corporate.css"`, class `stgm-theme-corporate`.\n\n',
     );
     expect(mdx).toContain('import "@stigmer/design-tokens/tokens.css";');
+  });
+
+  it("shows the provider taking a preset as a whole element, its child declared out of sight", () => {
+    const mdx = renderPresetsPage(DEFAULTS, [CORPORATE]);
+    expect(mdx).toContain(
+      "```tsx\ndeclare function YourApp(): null;\n// ---cut---\nimport \"@stigmer/design-tokens/tokens.css\";\n" +
+        'import "@stigmer/design-tokens/presets/corporate.css";\n\n' +
+        '<StigmerProvider client={client} preset="corporate" colorMode="dark">\n  <YourApp />\n</StigmerProvider>\n```\n',
+    );
   });
 
   it("lists only the tokens a preset overrides, in the defaults' order", () => {

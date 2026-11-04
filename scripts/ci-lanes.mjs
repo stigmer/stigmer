@@ -533,6 +533,7 @@ export const LANES = {
       "site/scripts/generate-react-sdk-docs/**",
       "site/scripts/generate-react-core-docs/**",
       "site/scripts/generate-ink-sdk-docs/**",
+      "site/scripts/generate-theme-docs/**",
       // The split of a block's hidden setup, which the site renders and the
       // gate compiles, and the playground's code with the presets it offers.
       "site/src/lib/snippet-setup.mjs",
