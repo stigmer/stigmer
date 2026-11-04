@@ -90,16 +90,15 @@ function useIdentityAccountGate(options: { isEnabled: boolean }): UseIdentityAcc
 />
 
 ```tsx
-const { state, retry } = useIdentityAccountGate({ isEnabled: true });
-
-switch (state.status) {
-  case "checking":
-  case "provisioning":
-    return <Spinner />;
-  case "ready":
-    return <>{children}</>;
-  case "error":
-    return <ErrorScreen message={state.message} onRetry={retry} />;
+function AccountGate({ children }: { children: ReactNode }) {
+  const { state, retry } = useIdentityAccountGate({ isEnabled: true });
+  if (state.status === "ready") return <>{children}</>;
+  if (state.status !== "error") return <p>Setting up your account…</p>;
+  return (
+    <p>
+      {state.message} <button onClick={retry}>Try again</button>
+    </p>
+  );
 }
 ```
 
@@ -190,15 +189,18 @@ function useUpdateIdentityAccount(): UseUpdateIdentityAccountReturn
 />
 
 ```tsx
-const { update, isUpdating, error } = useUpdateIdentityAccount();
+import type { IdentityAccount } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
 
-await update(
-  {
-    metadata: { id: account.metadata!.id, etag: account.metadata!.etag },
-    spec: { preferences: { ...account.spec?.preferences, standingContext: "Keep answers terse." } },
-  },
-  ["spec.preferences"],
-);
+function TerseAnswersButton({ account }: { account: IdentityAccount }) {
+  const { update, isUpdating } = useUpdateIdentityAccount();
+  // Naming the one field keeps every other preference as stored.
+  const save = () =>
+    update(
+      { metadata: account.metadata, spec: { preferences: { standingContext: "Keep answers terse." } } },
+      ["spec.preferences.standing_context"],
+    );
+  return <button disabled={isUpdating} onClick={save}>Prefer terse answers</button>;
+}
 ```
 
 
@@ -276,8 +278,8 @@ account gate.
 Narrow on `status` to access variant-specific data:
 
 ```ts
-if (state.status === "ready") {
-  console.log(state.account.metadata?.id);
+function accountIdOf(state: IdentityAccountGateState): string | undefined {
+  return state.status === "ready" ? state.account.metadata?.id : undefined;
 }
 ```
 

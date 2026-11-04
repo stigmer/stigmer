@@ -30,8 +30,11 @@ function useCreateTeam(): UseCreateTeamReturn
 />
 
 ```tsx
-const { create, isCreating, error } = useCreateTeam();
-await create({ name: "Site Reliability", org: orgSlug, description: "On call" });
+function NewTeamButton() {
+  const { create, isCreating } = useCreateTeam();
+  const onClick = () => create({ name: "Site Reliability", org: "acme", description: "On call" });
+  return <button disabled={isCreating} onClick={onClick}>New team</button>;
+}
 ```
 
 
@@ -57,8 +60,10 @@ function useDeleteTeam(): UseDeleteTeamReturn
 />
 
 ```tsx
-const { deleteTeam } = useDeleteTeam();
-await deleteTeam({ resourceId: team.metadata?.id ?? "" });
+function DeleteTeamButton({ teamId }: { teamId: string }) {
+  const { deleteTeam, isDeleting } = useDeleteTeam();
+  return <button disabled={isDeleting} onClick={() => deleteTeam({ resourceId: teamId })}>Delete team</button>;
+}
 ```
 
 
@@ -93,7 +98,7 @@ function useTeam(id: string | null): UseTeamReturn
 />
 
 ```tsx
-const { team, isLoading, error } = useTeam(teamId);
+const { team, isLoading, error } = useTeam("team_01jabc");
 ```
 
 
@@ -130,7 +135,7 @@ function useTeamList(org: string | null): UseTeamListReturn
 
 ```tsx
 const teamsServed = useResourceAvailable(ApiResourceKind.team);
-const { teams, isLoading } = useTeamList(teamsServed ? orgSlug : null);
+const { teams, isLoading } = useTeamList(teamsServed ? "acme" : null);
 ```
 
 
@@ -159,11 +164,13 @@ function useUpdateTeam(): UseUpdateTeamReturn
 />
 
 ```tsx
-const { update } = useUpdateTeam();
-await update(
-  { metadata: { id: team.metadata!.id, etag: team.metadata!.etag }, spec: { description: next } },
-  ["spec.description"],
-);
+import type { Team } from "@stigmer/apis/ai/stigmer/iam/team/v1/api_pb";
+
+function RenameTeamDescription({ team, description }: { team: Team; description: string }) {
+  const { update, isUpdating } = useUpdateTeam();
+  const save = () => update({ metadata: team.metadata, spec: { description } }, ["spec.description"]);
+  return <button disabled={isUpdating} onClick={save}>Save description</button>;
+}
 ```
 
 
@@ -228,8 +235,12 @@ All visual properties flow through `--stgm-*` design tokens.
 />
 
 ```tsx
-const list = useTeamList(orgSlug);
-<TeamListPanel {...list} onOpen={(team) => setOpenTeam(team)} />
+import type { Team } from "@stigmer/apis/ai/stigmer/iam/team/v1/api_pb";
+
+function Teams({ onOpen }: { onOpen: (team: Team) => void }) {
+  const list = useTeamList("acme");
+  return <TeamListPanel {...list} onRetry={list.refetch} onOpen={onOpen} />;
+}
 ```
 
 

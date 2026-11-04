@@ -159,10 +159,7 @@
     },
     {
       "id": "LIB-04",
-      "promise": "Every TypeScript example in the docs compiles against the library it shows, or says why it cannot.",
-      "pending": [
-        "stigmer#2905"
-      ]
+      "promise": "Every TypeScript example in the docs compiles against the library it shows, or says why it cannot."
     },
     {
       "id": "KIT-01",

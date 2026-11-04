@@ -54,14 +54,16 @@ function useApplyManifest(org: string): UseApplyManifestReturn
 />
 
 ```tsx
-const manifest = useApplyManifest(activeOrg);
-
-<textarea value={manifest.content}
-          onChange={(e) => manifest.setContent(e.target.value)} />
-{manifest.entries?.map((e) => (
-  <PreviewRow key={e.document.slug} entry={e} />
-))}
-<button onClick={manifest.applyAll} disabled={!manifest.entries}>Apply</button>
+function ApplyManifestPanel() {
+  const manifest = useApplyManifest("acme");
+  return (
+    <>
+      <textarea value={manifest.content} onChange={(e) => manifest.setContent(e.target.value)} />
+      <ul>{manifest.entries?.map((e) => <li key={e.document.slug}>{e.action} {e.document.slug}</li>)}</ul>
+      <button onClick={manifest.applyAll} disabled={!manifest.entries}>Apply</button>
+    </>
+  );
+}
 ```
 
 
@@ -115,13 +117,19 @@ function useEditResourceYaml(options: UseEditResourceYamlOptions): UseEditResour
 />
 
 ```tsx
-const edit = useEditResourceYaml({ resource: agent });
-
-<YamlEditor value={edit.yaml} onChange={edit.setYaml} />
-{edit.validation.status === "invalid" && <p>{edit.validation.message}</p>}
-<button disabled={edit.validation.status !== "valid"} onClick={edit.apply}>
-  {edit.target?.action === "create" ? "Create" : "Apply changes"}
-</button>
+function EditAgentYaml({ slug }: { slug: string }) {
+  const { agent } = useAgent("acme", slug);
+  const edit = useEditResourceYaml({ resource: agent });
+  return (
+    <>
+      <YamlEditor value={edit.yaml} onChange={edit.setYaml} />
+      {edit.validation.status === "invalid" && <p>{edit.validation.message}</p>}
+      <button disabled={edit.validation.status !== "valid"} onClick={edit.apply}>
+        {edit.target?.action === "create" ? "Create" : "Apply changes"}
+      </button>
+    </>
+  );
+}
 ```
 
 
@@ -162,12 +170,15 @@ Zero Console dependencies — safe for platform builder embedding.
 />
 
 ```tsx
-<ApplyManifestDialog
-  open={open}
-  onOpenChange={setOpen}
-  org={activeOrg}
-  onApplied={() => refetchList()}
-/>
+function ApplyButton({ onApplied }: { onApplied: () => void }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button onClick={() => setOpen(true)}>Apply YAML</button>
+      <ApplyManifestDialog open={open} onOpenChange={setOpen} org="acme" onApplied={onApplied} />
+    </>
+  );
+}
 ```
 
 
@@ -206,14 +217,16 @@ Zero Console dependencies — safe for platform builder embedding.
 />
 
 ```tsx
-const { agent, refetch } = useAgent(org, slug);
-
-<EditResourceYamlDialog
-  open={editOpen}
-  onOpenChange={setEditOpen}
-  resource={agent}
-  onApplied={() => refetch()}
-/>
+function EditAgentButton({ slug }: { slug: string }) {
+  const { agent, refetch } = useAgent("acme", slug);
+  const [editOpen, setEditOpen] = useState(false);
+  return (
+    <>
+      <button onClick={() => setEditOpen(true)}>Edit YAML</button>
+      <EditResourceYamlDialog open={editOpen} onOpenChange={setEditOpen} resource={agent} onApplied={refetch} />
+    </>
+  );
+}
 ```
 
 
@@ -301,11 +314,10 @@ replaced it, the network dropped), the box says so, and the next mount
 tries again.
 
 ```tsx
-<YamlEditor
-  value={yaml}
-  onChange={setYaml}
-  diagnostics={diagnostics}
-/>
+function ManifestField({ diagnostics }: { diagnostics: readonly YamlEditorDiagnostic[] }) {
+  const [yaml, setYaml] = useState("kind: Agent\n");
+  return <YamlEditor value={yaml} onChange={setYaml} diagnostics={diagnostics} />;
+}
 ```
 
 

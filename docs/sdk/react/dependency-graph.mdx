@@ -43,14 +43,16 @@ function useDependencyGraph(options: UseDependencyGraphOptions): UseDependencyGr
 />
 
 ```tsx
-const { tree, isEmpty } = useDependencyGraph({
-  agentName: agent.metadata.name,
-  agentOrg: agent.metadata.org,
-  spec: agent.spec,
-});
+import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 
-if (!isEmpty && tree) {
-  return <DependencyGraph tree={tree} onNodeClick={handleClick} />;
+function AgentDependencies({ agent }: { agent: Agent }) {
+  const { tree, isEmpty } = useDependencyGraph({
+    agentName: agent.metadata?.name ?? "",
+    agentOrg: agent.metadata?.org ?? "",
+    spec: agent.spec,
+  });
+  if (isEmpty || !tree) return <p>No dependencies.</p>;
+  return <DependencyGraph tree={tree} />;
 }
 ```
 
@@ -86,20 +88,20 @@ Zero Console dependencies — safe for platform builder embedding.
 />
 
 ```tsx
-const { tree } = useDependencyGraph({
-  agentName: "variance-reporter",
-  agentOrg: "acme",
-  spec: agent.spec,
-});
+import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 
-{tree && (
-  <DependencyGraph
-    tree={tree}
-    onNodeClick={(node) => {
-      if (node.kind === "plugin") navigateTo(`/plugins/${node.ref!.slug}`);
-    }}
-  />
-)}
+function PluginLinks({ agent, onOpen }: { agent: Agent; onOpen: (href: string) => void }) {
+  const { tree } = useDependencyGraph({ agentName: "variance-reporter", agentOrg: "acme", spec: agent.spec });
+  if (!tree) return null;
+  return (
+    <DependencyGraph
+      tree={tree}
+      onNodeClick={(node) => {
+        if (node.kind === "plugin" && node.ref) onOpen(`/plugins/${node.ref.slug}`);
+      }}
+    />
+  );
+}
 ```
 
 

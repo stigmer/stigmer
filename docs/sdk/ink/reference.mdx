@@ -32,7 +32,7 @@ All hooks from `@stigmer/react-core` (`useStigmer`, `useSessionConversation`,
 
 ```tsx
 import { render } from "ink";
-import { InkStigmerProvider, createNodeClient } from "@stigmer/ink-ui";
+import { InkStigmerProvider, SessionView, createNodeClient } from "@stigmer/ink-ui";
 
 const client = createNodeClient({
   baseUrl: "https://api.stigmer.ai",
@@ -41,8 +41,8 @@ const client = createNodeClient({
 
 render(
   <InkStigmerProvider client={client}>
-    <MyTerminalApp />
-  </InkStigmerProvider>
+    <SessionView sessionId="ses_01jabc" org="acme" />
+  </InkStigmerProvider>,
 );
 ```
 
@@ -161,9 +161,11 @@ that result to resolve and run the agent.
 />
 
 ```tsx
+import { render } from "ink";
+
 render(
   <InkStigmerProvider client={client}>
-    <AgentPicker org="acme" onSelect={(a) => run(a.id)} onCancel={() => process.exit(0)} />
+    <AgentPicker org="acme" onSelect={(agent) => console.log(agent.id)} onCancel={() => process.exit(0)} />
   </InkStigmerProvider>,
 );
 ```
@@ -223,8 +225,12 @@ distinguishes it from the loud, bordered decision prompt.
 />
 
 ```tsx
-const conv = useSessionConversation(sessionId, org);
-<FileChangeProgressBar progress={conv.fileChangeProgress} expanded={expandTools} />
+import { useSessionConversation } from "@stigmer/react-core";
+
+function ChangesSoFar({ expanded }: { expanded: boolean }) {
+  const conv = useSessionConversation("ses_01jabc", "acme");
+  return <FileChangeProgressBar progress={conv.fileChangeProgress} expanded={expanded} />;
+}
 ```
 
 
@@ -467,19 +473,16 @@ function to pick any resource.
 />
 
 ```tsx
-const { results, isLoading, query, setQuery } = useAgentSearch("acme");
-const items = results.map((r) => ({ id: r.id, title: r.qualifiedSlug }));
-render(
-  <ResourcePicker
-    prompt="Select an agent"
-    items={items}
-    query={query}
-    onQueryChange={setQuery}
-    isLoading={isLoading}
-    onSelect={(item) => console.log(item.id)}
-    onCancel={() => process.exit(0)}
-  />,
-);
+import { useAgentSearch } from "@stigmer/react-core";
+
+function PickAgent({ onPick }: { onPick: (agentId: string) => void }) {
+  const { results, isLoading, query, setQuery } = useAgentSearch("acme");
+  const items = results.map((r) => ({ id: r.id, title: r.qualifiedSlug }));
+  return (
+    <ResourcePicker prompt="Select an agent" items={items} query={query} onQueryChange={setQuery}
+      isLoading={isLoading} onSelect={(item) => onPick(item.id)} onCancel={() => process.exit(0)} />
+  );
+}
 ```
 
 
@@ -522,9 +525,11 @@ session list. The selected `Session` is returned via `onSelect`; use
 />
 
 ```tsx
+import { render } from "ink";
+
 render(
   <InkStigmerProvider client={client}>
-    <SessionPicker onSelect={(s) => resume(s.metadata?.id)} onCancel={() => process.exit(0)} />
+    <SessionPicker onSelect={(session) => console.log(session.metadata?.id)} onCancel={() => process.exit(0)} />
   </InkStigmerProvider>,
 );
 ```
@@ -751,14 +756,12 @@ drop into their Ink apps for a complete agent conversation UI.
 />
 
 ```tsx
-import { InkStigmerProvider, createNodeClient, SessionView } from "@stigmer/ink-ui";
-
-const client = createNodeClient({ baseUrl: "...", apiKey: "..." });
+import { render } from "ink";
 
 render(
   <InkStigmerProvider client={client}>
-    <SessionView sessionId="ses_xxx" org="my-org" />
-  </InkStigmerProvider>
+    <SessionView sessionId="ses_01jabc" org="acme" />
+  </InkStigmerProvider>,
 );
 ```
 

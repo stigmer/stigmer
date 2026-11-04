@@ -137,7 +137,7 @@ function useChannel(id: string): UseChannelReturn
 />
 
 ```tsx
-const { channel, isLoading, refetch } = useChannel(channelId);
+const { channel, isLoading, refetch } = useChannel("chn_01jabc");
 ```
 
 
@@ -186,10 +186,7 @@ function useChannelList(agentId: string, org?: string): UseChannelListReturn
 />
 
 ```tsx
-const { channels, isLoading, refetch } = useChannelList(
-  agent?.metadata?.id ?? "",
-  viewerOrg,
-);
+const { channels, isLoading, refetch } = useChannelList("agt_01jabc", "acme");
 const chatLinks = channels.filter((c) => c.spec?.type?.case === "web");
 ```
 
@@ -238,9 +235,7 @@ function useChannelSessions(channelId: string): UseChannelSessionsReturn
 />
 
 ```tsx
-const { sessions, isLoading, error } = useChannelSessions(
-  channel.metadata?.id ?? "",
-);
+const { sessions, isLoading, error } = useChannelSessions("chn_01jabc");
 ```
 
 
@@ -294,10 +289,7 @@ function useChannelTemplateList(channelSlug: string, org: string, options?: UseC
 />
 
 ```tsx
-const { templates, isLoading, error } = useChannelTemplateList(
-  channel.metadata?.slug ?? "",
-  channel.metadata?.org ?? "",
-);
+const { templates, isLoading, error } = useChannelTemplateList("support-whatsapp", "acme");
 ```
 
 
@@ -335,8 +327,14 @@ function useChannelTemplateReadiness(channel: Channel): ChannelTemplateReadiness
 />
 
 ```tsx
-const readiness = useChannelTemplateReadiness(channel);
-if (readiness.status !== "ready") return <TeachingState ... />;
+import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
+
+function TemplatesTab({ channel, children }: { channel: Channel; children: ReactNode }) {
+  const readiness = useChannelTemplateReadiness(channel);
+  if (readiness.status === "not-installed") return <p>Install the channel to read its templates.</p>;
+  if (readiness.status !== "ready") return <p>Templates are not available here ({readiness.status}).</p>;
+  return <>{children}</>;
+}
 ```
 
 
@@ -408,20 +406,16 @@ function useConnectSlackChannel(): UseConnectSlackChannelReturn
 />
 
 ```tsx
-const slack = useConnectSlackChannel();
-
-async function handleConnect() {
-  try {
-    const installed = await slack.connect(channel.metadata.id);
-    refetch();
-  } catch {
-    // error is available via slack.error
-  }
+function ConnectSlackButton({ channelId, onConnected }: { channelId: string; onConnected: () => void }) {
+  const slack = useConnectSlackChannel();
+  // A failure stays on slack.error for the page to show.
+  const connect = () => slack.connect(channelId).then(onConnected, () => {});
+  return (
+    <button onClick={connect} disabled={slack.isInProgress}>
+      {slack.isInProgress ? "Connecting…" : "Connect to Slack"}
+    </button>
+  );
 }
-
-<button onClick={handleConnect} disabled={slack.isInProgress}>
-  {slack.isInProgress ? "Connecting..." : "Connect to Slack"}
-</button>
 ```
 
 
@@ -454,15 +448,14 @@ function useCreateChannel(): UseCreateChannelReturn
 />
 
 ```tsx
-const { createChannel, isPending } = useCreateChannel();
+import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
 
-const channel = await createChannel({
-  name: "Support Slack",
-  org: agent.metadata.org,
-  agentRef: { org: agent.metadata.org, slug: agent.metadata.slug },
-  enabled: true,
-  slack: {},
-});
+function AddSlackChannelButton({ onCreated }: { onCreated: (channel: Channel) => void }) {
+  const { createChannel, isPending } = useCreateChannel();
+  const create = async () =>
+    onCreated(await createChannel({ name: "Support Slack", org: "acme", agentRef: { org: "acme", slug: "support" }, enabled: true, slack: {} }));
+  return <button onClick={create} disabled={isPending}>Add Slack channel</button>;
+}
 ```
 
 
@@ -494,12 +487,14 @@ function useDeleteChannel(): UseDeleteChannelReturn
 />
 
 ```tsx
-const { deleteChannel, isDeleting } = useDeleteChannel();
-
-const handleDelete = async () => {
-  await deleteChannel(channel.metadata.id);
-  refetch(); // refresh the channel list
-};
+function DeleteChannelButton({ channelId, onDeleted }: { channelId: string; onDeleted: () => void }) {
+  const { deleteChannel, isDeleting } = useDeleteChannel();
+  const remove = async () => {
+    await deleteChannel(channelId);
+    onDeleted(); // refetch the channel list
+  };
+  return <button onClick={remove} disabled={isDeleting}>Delete</button>;
+}
 ```
 
 
@@ -532,11 +527,13 @@ function useInstallChannel(): UseInstallChannelReturn
 />
 
 ```tsx
-const installer = useInstallChannel();
-
-async function handleConnect() {
-  await installer.install(channel.metadata.id);
-  refetch();
+function InstallButton({ channelId, onInstalled }: { channelId: string; onInstalled: () => void }) {
+  const installer = useInstallChannel();
+  const install = async () => {
+    await installer.install(channelId);
+    onInstalled();
+  };
+  return <button onClick={install} disabled={installer.isInProgress}>Install</button>;
 }
 ```
 
@@ -569,12 +566,16 @@ function useSaveChannel(): UseSaveChannelReturn
 />
 
 ```tsx
-const { update, isPending } = useSaveChannel();
+import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
 
-const handleToggle = async (channel: Channel, enabled: boolean) => {
-  await update(channel, { enabled });
-  refetch(); // refresh the channel list
-};
+function ChannelToggle({ channel, onSaved }: { channel: Channel; onSaved: () => void }) {
+  const { update, isPending } = useSaveChannel();
+  const toggle = async (enabled: boolean) => {
+    await update(channel, { enabled });
+    onSaved(); // refetch the channel list
+  };
+  return <Switch checked={channel.spec?.enabled ?? false} disabled={isPending} onCheckedChange={toggle} />;
+}
 ```
 
 

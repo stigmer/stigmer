@@ -28,17 +28,25 @@ components unmount and remount. Without this provider, `useFetch`
 works exactly as before — no cache, no behavior change.
 
 ```tsx
-// In your app shell (above the session key boundary):
-<FetchCacheProvider>
-  <SessionPageInner key={activeSessionId} id={activeSessionId} />
-</FetchCacheProvider>
+// Above the session's key boundary, so switching sessions keeps the cache.
+function SessionShell({ sessionId, children }: { sessionId: string; children: ReactNode }) {
+  return (
+    <FetchCacheProvider>
+      <div key={sessionId}>{children}</div>
+    </FetchCacheProvider>
+  );
+}
 ```
 
 ```tsx
-// With custom limits:
-<FetchCacheProvider maxEntries={50} ttl={120_000}>
-  <App />
-</FetchCacheProvider>
+// With custom limits: 50 entries, each kept two minutes.
+function AppShell({ children }: { children: ReactNode }) {
+  return (
+    <FetchCacheProvider maxEntries={50} ttl={120_000}>
+      {children}
+    </FetchCacheProvider>
+  );
+}
 ```
 
 
@@ -103,10 +111,18 @@ directly; `ApprovalCard` takes the answer callback it produces.
 />
 
 ```tsx
-const { answerToolUse, submittingToolUseIds } = useAnswerToolUse();
+import type { ToolUse } from "@stigmer/client";
 
-await answerToolUse(sessionId, toolUse.id, "allow");
-await answerToolUse(sessionId, toolUse.id, "deny", "Use the staging database instead");
+function AskButtons({ sessionId, ask }: { sessionId: string; ask: ToolUse }) {
+  const { answerToolUse, submittingToolUseIds } = useAnswerToolUse();
+  const busy = submittingToolUseIds.has(ask.id);
+  return (
+    <>
+      <button disabled={busy} onClick={() => answerToolUse(sessionId, ask.id, "allow")}>Allow</button>
+      <button disabled={busy} onClick={() => answerToolUse(sessionId, ask.id, "deny", "Use the staging database instead")}>Deny</button>
+    </>
+  );
+}
 ```
 
 
@@ -141,7 +157,11 @@ download via `useArtifactDownloadUrl`.
 />
 
 ```tsx
-const { content, isLoading } = useArtifactContent(executionId, outputRef.storageKey);
+function ToolOutput({ executionId, storageKey }: { executionId: string; storageKey: string }) {
+  const { content, isLoading } = useArtifactContent(executionId, storageKey);
+  if (isLoading) return <p>Loading…</p>;
+  return <pre>{content}</pre>;
+}
 ```
 
 
@@ -189,10 +209,12 @@ with the `useArtifactContent(null, null)` convention.
 />
 
 ```tsx
-// Render an offloaded screenshot with an always-fresh URL.
-const { url, isLoading } = useArtifactDownloadUrl(executionId, storageKey);
-if (isLoading) return <Skeleton />;
-return url ? <img src={url} alt="Tool output" /> : null;
+// An offloaded screenshot, with a URL that is always fresh.
+function Screenshot({ executionId, storageKey }: { executionId: string; storageKey: string }) {
+  const { url, isLoading } = useArtifactDownloadUrl(executionId, storageKey);
+  if (isLoading) return <p>Loading…</p>;
+  return url ? <img src={url} alt="Tool output" /> : null;
+}
 ```
 
 
@@ -338,8 +360,13 @@ edition ranks at or above the kind's minimum edition (oss < enterprise <
 cloud).
 
 ```tsx
-const available = useResourceAvailable(ApiResourceKind.api_key);
-if (!available) return <CloudFeatureNotice>...</CloudFeatureNotice>;
+import { ApiResourceKind } from "@stigmer/client";
+
+function ApiKeysSection({ children }: { children: ReactNode }) {
+  const available = useResourceAvailable(ApiResourceKind.api_key);
+  if (!available) return <p>API keys are available on Stigmer Cloud.</p>;
+  return <section>{children}</section>;
+}
 ```
 
 
@@ -368,11 +395,13 @@ Platform builders who render their own review UI use this hook directly;
 />
 
 ```tsx
-const { reviewFileChanges } = useReviewFileChanges();
+import type { FileReviewSet } from "@stigmer/client";
 
-await reviewFileChanges(sessionId, set.changeSetId, "keep", {
-  expectedDigest: set.aggregateDigest,
-});
+function KeepAll({ sessionId, set }: { sessionId: string; set: FileReviewSet }) {
+  const { reviewFileChanges } = useReviewFileChanges();
+  const keep = () => reviewFileChanges(sessionId, set.changeSetId, "keep", { expectedDigest: set.aggregateDigest });
+  return <button onClick={keep}>Keep all</button>;
+}
 ```
 
 
@@ -413,13 +442,14 @@ and escalates to `UseRunActionsReturn.terminate` on a repeat press.
 />
 
 ```tsx
-const actions = useRunActions(executionId, {
-  onSuccess: () => refetch(),
-});
-
-<button onClick={() => actions.pause()} disabled={actions.isSubmitting}>
-  Pause
-</button>
+function PauseButton({ executionId, onPaused }: { executionId: string; onPaused: () => void }) {
+  const actions = useRunActions(executionId, { onSuccess: onPaused });
+  return (
+    <button onClick={() => actions.pause()} disabled={actions.isSubmitting}>
+      Pause
+    </button>
+  );
+}
 ```
 
 
@@ -458,25 +488,26 @@ access to metadata, spec, and status without additional calls.
 />
 
 ```tsx
-function SessionDetail({ sessionId }: { sessionId: string }) {
+function SessionTitle({ sessionId }: { sessionId: string }) {
   const { session, isLoading, error, refetch } = useSession(sessionId);
-
-  if (isLoading) return <Skeleton />;
-  if (error) return <ErrorMessage error={error} />;
-  if (!session) return <NotFound />;
-
+  if (isLoading) return <p>Loading…</p>;
+  if (error) return <p role="alert">{error.message}</p>;
+  if (!session) return <p>No such conversation.</p>;
   return (
-    <div>
-      <h1>{session.status?.subject ?? "Untitled session"}</h1>
+    <header>
+      <h1>{session.spec?.subject || "Untitled conversation"}</h1>
       <button onClick={refetch}>Refresh</button>
-    </div>
+    </header>
   );
 }
 ```
 
 ```tsx
-// Skip fetching until session ID is available
-const { session } = useSession(sessionId ?? null);
+// Skip fetching until a conversation is selected.
+function Selected({ sessionId }: { sessionId?: string }) {
+  const { session } = useSession(sessionId ?? null);
+  return session ? <h2>{session.spec?.subject}</h2> : <p>Pick a conversation.</p>;
+}
 ```
 
 
@@ -565,24 +596,13 @@ locally, so it is safe in every environment.
 ```tsx
 function Chat({ sessionId, org }: { sessionId: string; org: string }) {
   const conv = useSessionConversation(sessionId, org);
-
-  if (conv.isLoading) return <Spinner />;
-
+  if (conv.isLoading) return <p>Loading…</p>;
+  const send = (data: FormData) => conv.sendFollowUp(String(data.get("message")));
   return (
-    <>
-      <MessageThread
-        turns={conv.turns}
-        runs={conv.runs}
-        pendingUserMessage={conv.pendingUserMessage}
-        onAnswerToolUse={conv.answerToolUse}
-        answeringToolUseIds={conv.answeringToolUseIds}
-      />
-      <SessionComposer
-        onSubmit={(msg, model) => conv.sendFollowUp(msg, { modelName: model })}
-        disabled={!conv.canSendFollowUp}
-        isSubmitting={conv.isSending}
-      />
-    </>
+    <form action={send}>
+      {conv.turns.map((turn) => <p key={turn.runId}>{turn.answer}</p>)}
+      <input name="message" disabled={!conv.canSendFollowUp} />
+    </form>
   );
 }
 ```
@@ -644,7 +664,7 @@ Pass `null` to follow nothing. A new id resets the fold.
 />
 
 ```tsx
-const { fold, isReconnecting } = useSessionEvents(sessionId);
+const { fold, isReconnecting } = useSessionEvents("ses_01jabc");
 const turns = fold?.turns ?? [];
 ```
 
@@ -687,23 +707,13 @@ session or navigating between views.
 />
 
 ```tsx
-function SessionSidebar() {
-  const org = useActiveOrgId();
-  const { sessions, isLoading, hasMore, loadMore, isLoadingMore } =
-    useSessionList({ org, pageSize: 25 });
-
-  if (isLoading) return <Skeleton />;
-
+function SessionSidebar({ org }: { org: string }) {
+  const { sessions, isLoading, hasMore, loadMore, isLoadingMore } = useSessionList({ org, pageSize: 25 });
+  if (isLoading) return <p>Loading…</p>;
   return (
     <ul>
-      {sessions.map((s) => (
-        <li key={s.metadata?.id}>
-          {s.spec?.subject || "Untitled"}
-        </li>
-      ))}
-      {hasMore && (
-        <button onClick={loadMore} disabled={isLoadingMore}>Show more</button>
-      )}
+      {sessions.map((s) => <li key={s.metadata?.id}>{s.spec?.subject || "Untitled"}</li>)}
+      {hasMore && <button onClick={loadMore} disabled={isLoadingMore}>Show more</button>}
     </ul>
   );
 }
@@ -744,19 +754,19 @@ without bound, and the view needs them whole.
 />
 
 ```tsx
-function ConversationThread({ sessionId }: { sessionId: string }) {
+function TurnCount({ sessionId }: { sessionId: string }) {
   const { runs, isLoading } = useSessionRuns(sessionId);
-  const { fold } = useSessionEvents(sessionId);
-
-  if (isLoading) return <Skeleton />;
-
-  return <MessageThread turns={fold?.turns ?? []} runs={runs} />;
+  if (isLoading) return <p>Loading…</p>;
+  return <p>{runs.length} turns</p>;
 }
 ```
 
 ```tsx
-// Skip fetching until a session is selected
-const { runs } = useSessionRuns(sessionId ?? null);
+// Skip fetching until a conversation is selected.
+function SelectedTurns({ sessionId }: { sessionId?: string }) {
+  const { runs } = useSessionRuns(sessionId ?? null);
+  return <p>{runs.length} turns</p>;
+}
 ```
 
 
@@ -800,9 +810,13 @@ immediately during development rather than producing silent `null`
 failures at runtime.
 
 ```tsx
-function AgentDetail({ id }: { id: string }) {
+function RefreshAgentButton({ agentId }: { agentId: string }) {
   const stigmer = useStigmer();
-  const agent = await stigmer.agent.get(id);
+  const refresh = async () => {
+    const agent = await stigmer.agent.get(agentId);
+    console.log(agent.spec?.description);
+  };
+  return <button onClick={refresh}>Refresh</button>;
 }
 ```
 
@@ -831,10 +845,13 @@ console's rows.
 />
 
 ```tsx
-const { stopBackgroundCommand, stoppingToolUseIds } = useStopBackgroundCommand();
+import { isBackgroundRunning, type ToolUse } from "@stigmer/client";
 
-if (isBackgroundRunning(toolUse)) {
-  await stopBackgroundCommand(sessionId, toolUse.id);
+function StopCommand({ sessionId, toolUse }: { sessionId: string; toolUse: ToolUse }) {
+  const { stopBackgroundCommand, stoppingToolUseIds } = useStopBackgroundCommand();
+  if (!isBackgroundRunning(toolUse)) return null;
+  const stop = () => stopBackgroundCommand(sessionId, toolUse.id);
+  return <button onClick={stop} disabled={stoppingToolUseIds.has(toolUse.id)}>Stop</button>;
 }
 ```
 
@@ -866,15 +883,17 @@ To change only the subject, prefer the field-level
 />
 
 ```tsx
-const { update, isUpdating, error } = useUpdateSession();
+import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 
-await update(
-  {
-    metadata: { id: session.metadata!.id, etag: session.metadata!.etag },
-    spec: { metadata: { ...session.spec?.metadata, "acme/reviewed": "true" } },
-  },
-  ["spec.metadata"],
-);
+function MarkReviewed({ session }: { session: Session }) {
+  const { update, isUpdating } = useUpdateSession();
+  const markReviewed = () =>
+    update(
+      { metadata: { id: session.metadata?.id, etag: session.metadata?.etag }, spec: { metadata: { ...session.spec?.metadata, "acme/reviewed": "true" } } },
+      ["spec.metadata"],
+    );
+  return <button onClick={markReviewed} disabled={isUpdating}>Mark reviewed</button>;
+}
 ```
 
 
@@ -949,8 +968,10 @@ A workbench data source for one Library kind: `list` while
 `request.query` is empty, search while it holds text.
 
 ```tsx
-const listFn = useMemo(() => createLibraryListFn(stigmer, ApiResourceKind.agent), [stigmer]);
-<ResourceWorkbench listFn={listFn} org={org} />
+import { ApiResourceKind } from "@stigmer/client";
+
+const listAgents = createLibraryListFn(stigmer, ApiResourceKind.agent);
+const page = await listAgents({ org: "acme", query: "review", pageSize: 25, pageToken: "" });
 ```
 
 

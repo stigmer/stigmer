@@ -51,22 +51,19 @@ function useApplyResource(): UseApplyResourceReturn
 />
 
 ```tsx
-const { applyYamlResource, pushSkillFromFile, isApplying, error, clearError } =
-  useApplyResource();
-const [result, setResult] = useState<ApplyResourceResult | null>(null);
-
-const handleApply = async () => {
-  clearError();
-  try {
-    if (yamlDetection.detected) {
-      setResult(await applyYamlResource(content!, activeOrg));
-    } else if (skillArchiveId) {
-      setResult(await pushSkillFromFile({ org: activeOrg, fileId: skillArchiveId }));
-    }
-  } catch {
-    // error state is set by the hook
-  }
-};
+function ApplyYamlButton({ yaml }: { yaml: string }) {
+  const { applyYamlResource, isApplying, error } = useApplyResource();
+  const [result, setResult] = useState<ApplyResourceResult | null>(null);
+  // A failure stays on `error`, which the hook sets.
+  const apply = () => applyYamlResource(yaml, "acme").then(setResult, () => {});
+  if (result) return <p>Applied.</p>;
+  return (
+    <>
+      <button onClick={apply} disabled={isApplying}>Apply</button>
+      {error && <ErrorMessage error={error} />}
+    </>
+  );
+}
 ```
 
 
@@ -123,11 +120,10 @@ function useDetectStigmerResource(content: string | null): StigmerResourceDetect
 />
 
 ```tsx
-const { content } = useArtifactContent(executionId, storageKey);
-const detection = useDetectStigmerResource(content);
-
-if (detection.detected) {
-  return <Badge>{detection.displayName}</Badge>;
+function ResourceBadge({ yaml }: { yaml: string | null }) {
+  const detection = useDetectStigmerResource(yaml);
+  if (!detection.detected) return null;
+  return <span>{detection.displayName}</span>;
 }
 ```
 
@@ -171,13 +167,16 @@ function useExportResource(options: UseExportResourceOptions): UseExportResource
 />
 
 ```tsx
-const { agent } = useAgent(org, slug);
-const { copyYaml, downloadYaml } = useExportResource({
-  resource: agent,
-});
-
-<ActionMenu.Item onSelect={copyYaml}>Export YAML</ActionMenu.Item>
-<ActionMenu.Item onSelect={downloadYaml}>Download YAML</ActionMenu.Item>
+function ExportAgentButtons({ slug }: { slug: string }) {
+  const { agent } = useAgent("acme", slug);
+  const { copyYaml, downloadYaml } = useExportResource({ resource: agent });
+  return (
+    <>
+      <button onClick={copyYaml}>Copy YAML</button>
+      <button onClick={downloadYaml}>Download YAML</button>
+    </>
+  );
+}
 ```
 
 
@@ -223,14 +222,20 @@ function useUpdateVisibility(kind: VisibilityResourceKind, resourceId: string | 
 />
 
 ```tsx
-const { updateVisibility, isPending } = useUpdateVisibility("agent", agent.metadata.id);
+import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 
-<VisibilitySelector
-  visibility={agent.metadata.visibility}
-  options={options}
-  onVisibilityChange={updateVisibility}
-  isPending={isPending}
-/>
+function AgentVisibility({ agent }: { agent: Agent }) {
+  const { updateVisibility, isPending } = useUpdateVisibility("agent", agent.metadata?.id ?? null);
+  return (
+    <VisibilitySelector
+      visibility={agent.metadata?.visibility ?? ApiResourceVisibility.visibility_private}
+      options={blueprintVisibilityLevels({ offersChildOrgs: false })}
+      onVisibilityChange={updateVisibility}
+      isPending={isPending}
+    />
+  );
+}
 ```
 
 
@@ -279,30 +284,34 @@ All visual properties flow through `--stgm-*` tokens.
 />
 
 ```tsx
-// Static display
-const { count, isLoading } = useAgentCount("acme");
+import { Bot } from "lucide-react";
 
-<ResourceCountCard
-  icon={<BotIcon className="h-5 w-5" aria-hidden="true" />}
-  label="Agents"
-  count={count}
-  isLoading={isLoading}
-/>
+function AgentCountCard() {
+  const { count, isLoading } = useAgentCount("acme");
+  return <ResourceCountCard icon={<Bot aria-hidden="true" />} label="Agents" count={count} isLoading={isLoading} />;
+}
 ```
 
 ```tsx
-// Navigable card with SPA routing
-<ResourceCountCard
-  icon={<BotIcon className="h-5 w-5" aria-hidden="true" />}
-  label="Agents"
-  count={agentCount}
-  isLoading={isAgentLoading}
-  href="/library/agents"
-  onClick={(e) => {
-    e.preventDefault();
-    router.push("/library/agents");
-  }}
-/>
+// A card that opens the agents list through the host's router.
+import { Bot } from "lucide-react";
+
+function AgentsLinkCard({ onOpen }: { onOpen: (href: string) => void }) {
+  const { count, isLoading } = useAgentCount("acme");
+  return (
+    <ResourceCountCard
+      icon={<Bot aria-hidden="true" />}
+      label="Agents"
+      count={count}
+      isLoading={isLoading}
+      href="/library/agents"
+      onClick={(e) => {
+        e.preventDefault();
+        onOpen("/library/agents");
+      }}
+    />
+  );
+}
 ```
 
 
@@ -378,12 +387,14 @@ active theme.
 />
 
 ```tsx
-<VisibilitySelector
-  visibility={agent.metadata.visibility}
-  options={blueprintVisibilityLevels({ offersChildOrgs })}
-  onVisibilityChange={updateVisibility}
-  isPending={isPending}
-/>
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
+
+function VisibilityChoice() {
+  const [visibility, setVisibility] = useState(ApiResourceVisibility.visibility_private);
+  return (
+    <VisibilitySelector visibility={visibility} options={blueprintVisibilityLevels({ offersChildOrgs: true })} onVisibilityChange={setVisibility} />
+  );
+}
 ```
 
 
@@ -446,8 +457,10 @@ function createLibraryListFn(client: LibraryClient, kind: LibraryKind): Workbenc
 ```
 
 ```tsx
-const listFn = useMemo(() => createLibraryListFn(stigmer, ApiResourceKind.agent), [stigmer]);
-<ResourceWorkbench listFn={listFn} org={org} />
+import { ApiResourceKind } from "@stigmer/client";
+
+const listAgents = createLibraryListFn(stigmer, ApiResourceKind.agent);
+const page = await listAgents({ org: "acme", query: "review", pageSize: 25, pageToken: "" });
 ```
 
 
@@ -470,7 +483,7 @@ function detectStigmerResource(content: string): StigmerResourceDetection
 ```
 
 ```tsx
-const result = detectStigmerResource(yamlString);
+const result = detectStigmerResource("apiVersion: agentic.stigmer.ai/v1\nkind: Agent\nmetadata:\n  name: reviewer\n");
 if (result.detected) {
   console.log(`Found ${result.displayName}: ${result.resourceName}`);
 }

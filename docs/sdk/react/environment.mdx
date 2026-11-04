@@ -210,8 +210,12 @@ function useEnvironmentsNotApplying(): EnvironmentsNotApplying | undefined
 ```
 
 ```tsx
-const notApplying = useEnvironmentsNotApplying();
-if (notApplying === undefined) return <EnvironmentConfigureItem />;
+function EnvironmentSettings({ children }: { children: ReactNode }) {
+  const notApplying = useEnvironmentsNotApplying();
+  if (notApplying === "own-machine") return <p>Conversations run on your machine: no Environment applies.</p>;
+  if (notApplying === "not-on-server") return <p>This server starts no sandboxes.</p>;
+  return <>{children}</>;
+}
 ```
 
 
@@ -240,8 +244,13 @@ function useUpdateEnvironment(): UseUpdateEnvironmentReturn
 />
 
 ```tsx
-const { update } = useUpdateEnvironment();
-await update(environment, { description: "Pandas and the GitHub API" });
+import type { Environment } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/api_pb";
+
+function DescribeButton({ environment }: { environment: Environment }) {
+  const { update, isUpdating } = useUpdateEnvironment();
+  const save = () => update(environment, { description: "Pandas and the GitHub API" });
+  return <button onClick={save} disabled={isUpdating}>Save description</button>;
+}
 ```
 
 
@@ -282,11 +291,9 @@ edited in place by its editors; rename, access, export and delete.
 />
 
 ```tsx
-<EnvironmentDetailView
-  org="acme"
-  slug="data-science"
-  onDeleted={() => router.push("/library/environments")}
-/>
+function EnvironmentPage({ onOpen }: { onOpen: (href: string) => void }) {
+  return <EnvironmentDetailView org="acme" slug="data-science" onDeleted={() => onOpen("/library/environments")} />;
+}
 ```
 
 
@@ -306,7 +313,15 @@ Single-page form for creating an Environment.
 />
 
 ```tsx
-<EnvironmentForm org="acme" onCreated={(env) => navigate(env)} onCancel={() => navigate(list)} />
+function NewEnvironmentPage({ onOpen }: { onOpen: (href: string) => void }) {
+  return (
+    <EnvironmentForm
+      org="acme"
+      onCreated={(environment) => onOpen(`/library/environments/${environment.metadata?.slug}`)}
+      onCancel={() => onOpen("/library/environments")}
+    />
+  );
+}
 ```
 
 
@@ -335,12 +350,15 @@ Single-select for naming an Environment on a surface.
 />
 
 ```tsx
-<EnvironmentPicker
-  org="acme"
-  value={environmentRef}
-  onChange={setEnvironmentRef}
-  defaultLabel={inheritedRowLabel(inherited)}
-/>
+import type { ResourceRef } from "@stigmer/client";
+
+function ConversationEnvironment() {
+  const [environmentRef, setEnvironmentRef] = useState<ResourceRef | undefined>();
+  const inherited = resolveEnvironmentChoice({ agent: { org: "acme", slug: "data-science" } });
+  return (
+    <EnvironmentPicker org="acme" value={environmentRef} onChange={setEnvironmentRef} defaultLabel={inheritedRowLabel(inherited)} />
+  );
+}
 ```
 
 
@@ -384,8 +402,12 @@ them on request.
 />
 
 ```tsx
-const [network, setNetwork] = useState(networkingDraftOf(environment.spec?.networking));
-<NetworkingFields value={network} onChange={setNetwork} />
+import type { Environment } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/api_pb";
+
+function NetworkSection({ environment }: { environment: Environment }) {
+  const [network, setNetwork] = useState(networkingDraftOf(environment.spec?.networking));
+  return <NetworkingFields value={network} onChange={setNetwork} />;
+}
 ```
 
 
@@ -407,8 +429,12 @@ per installer in the order the server runs them, one entry per line.
 />
 
 ```tsx
-const [packages, setPackages] = useState(packagesDraftOf(environment.spec?.packages));
-<PackagesFields value={packages} onChange={setPackages} />
+import type { Environment } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/api_pb";
+
+function PackagesSection({ environment }: { environment: Environment }) {
+  const [packages, setPackages] = useState(packagesDraftOf(environment.spec?.packages));
+  return <PackagesFields value={packages} onChange={setPackages} />;
+}
 ```
 
 
@@ -774,8 +800,11 @@ function resolveEnvironmentChoice(inputs: EnvironmentChoiceInputs): EnvironmentC
 ```
 
 ```tsx
-resolveEnvironmentChoice({ agent: agentSpec.environmentRef, organization: prefs.defaultEnvironmentRef });
-// { kind: "chosen", environment: { org, slug: "data-science" }, source: "agent" }
+resolveEnvironmentChoice({
+  agent: { org: "acme", slug: "data-science" },
+  organization: { org: "acme", slug: "standard" },
+});
+// { kind: "chosen", environment: { org: "acme", slug: "data-science" }, source: "agent" }
 ```
 
 

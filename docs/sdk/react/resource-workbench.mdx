@@ -58,12 +58,14 @@ function useResourceCollection<TData = SearchResult>(options: UseResourceCollect
 />
 
 ```tsx
-const collection = useResourceCollection({
-  listFn: createLibraryListFn(stigmer, ApiResourceKind.agent),
-  org: "acme",
-  query: debouncedQuery,
-  columns: agentColumns,
-});
+import { ApiResourceKind } from "@stigmer/client";
+
+function AgentRows() {
+  const stigmer = useStigmer();
+  const listFn = useMemo(() => createLibraryListFn(stigmer, ApiResourceKind.agent), [stigmer]);
+  const collection = useResourceCollection({ listFn, org: "acme", query: "review" });
+  return <ul>{collection.items.map((item) => <li key={item.id}>{item.name}</li>)}</ul>;
+}
 ```
 
 
@@ -109,11 +111,13 @@ function useResourceFilters(options?: UseResourceFiltersOptions): UseResourceFil
 />
 
 ```tsx
-const filters = useResourceFilters({
-  filterDefs: agentFilterDefs,
-  sortDefs: agentSortDefs,
-  onStateChange: (state) => syncToUrl(state),
-});
+function AgentSearchBox({ onStateChange }: { onStateChange: (state: FilterSortState) => void }) {
+  const filters = useResourceFilters({
+    sortDefs: [{ id: "name", label: "Name" }],
+    onStateChange, // e.g. written to the URL's search params
+  });
+  return <input value={filters.query} onChange={(e) => filters.setQuery(e.target.value)} />;
+}
 ```
 
 
@@ -156,7 +160,12 @@ function useResourceSelection<TData>(items: readonly TData[], getItemId: (item: 
 />
 
 ```tsx
-const selection = useResourceSelection(items, (item) => item.id);
+import type { SearchResult } from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
+
+function SelectableAgents({ items }: { items: readonly SearchResult[] }) {
+  const selection = useResourceSelection(items, (item) => item.id);
+  return <button onClick={selection.toggleAll}>{selection.selectedCount} selected</button>;
+}
 ```
 
 
@@ -225,14 +234,20 @@ count when it changes.
 />
 
 ```tsx
-{selection.hasSelection && (
-  <BulkActionBar
-    selectedCount={selection.selectedCount}
-    selectedItems={selection.selectedItems}
-    actions={agentBulkActions}
-    onCancel={selection.clearSelection}
-  />
-)}
+import type { SearchResult } from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
+
+function AgentBulkActions({ items, onDelete }: { items: readonly SearchResult[]; onDelete: (agents: readonly SearchResult[]) => void }) {
+  const selection = useResourceSelection(items, (item) => item.id);
+  if (!selection.hasSelection) return null;
+  return (
+    <BulkActionBar
+      selectedCount={selection.selectedCount}
+      selectedItems={selection.selectedItems}
+      actions={[{ id: "delete", label: "Delete", variant: "destructive", onAction: onDelete }]}
+      onCancel={selection.clearSelection}
+    />
+  );
+}
 ```
 
 
@@ -278,12 +293,17 @@ and mutation logic live in [`useResourceFilters`](#useresourcefilters). The pare
 />
 
 ```tsx
-<FilterBar
-  filters={filtersHook.filters}
-  filterDefs={agentFilterDefs}
-  onRemoveFilter={filtersHook.removeFilter}
-  onClearAll={filtersHook.clearFilters}
-/>
+function AgentFilters({ filterDefs }: { filterDefs: readonly FilterDef[] }) {
+  const filtersHook = useResourceFilters({ filterDefs });
+  return (
+    <FilterBar
+      filters={filtersHook.filters}
+      filterDefs={filterDefs}
+      onRemoveFilter={filtersHook.removeFilter}
+      onClearAll={filtersHook.clearFilters}
+    />
+  );
+}
 ```
 
 
@@ -420,13 +440,14 @@ switching, and pagination are handled by the parent `ResourceWorkbench`.
 />
 
 ```tsx
-const { table } = useResourceCollection({ ... });
-<ResourceTable
-  table={table}
-  enableSelection
-  renderRowAction={(item) => <AgentActionMenu item={item} />}
-  onRowClick={(item) => navigate(item.slug)}
-/>
+import type { SearchResult } from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
+
+function AgentTable({ listFn, onOpen }: { listFn: WorkbenchListFn; onOpen: (slug: string) => void }) {
+  const columns = [{ id: "name", header: "Name", cell: (item: SearchResult) => item.name }];
+  const { table } = useResourceCollection({ listFn, org: "acme", columns, enableSelection: true });
+  if (!table) return null;
+  return <ResourceTable table={table} enableSelection onRowClick={(item) => onOpen(item.slug)} />;
+}
 ```
 
 
@@ -485,16 +506,21 @@ individual hooks and view components directly.
 />
 
 ```tsx
-<ResourceWorkbench
-  listFn={createLibraryListFn(stigmer, ApiResourceKind.agent)}
-  org={activeOrg}
-  columns={agentColumns}
-  filterDefs={agentFilterDefs}
-  renderItemAction={(item) => <AgentActionMenu item={item} />}
-  onItemClick={(item) => navigate(`/agents/${item.slug}`)}
-  emptyTitle="No agents yet"
-  emptyDescription="Create an agent to get started."
-/>
+import { ApiResourceKind } from "@stigmer/client";
+
+function AgentsPage({ onOpen }: { onOpen: (href: string) => void }) {
+  const stigmer = useStigmer();
+  const listFn = useMemo(() => createLibraryListFn(stigmer, ApiResourceKind.agent), [stigmer]);
+  return (
+    <ResourceWorkbench
+      listFn={listFn}
+      org="acme"
+      onItemClick={(item) => onOpen(`/agents/${item.slug}`)}
+      emptyTitle="No agents yet"
+      emptyDescription="Create an agent to get started."
+    />
+  );
+}
 ```
 
 
@@ -539,8 +565,10 @@ and dark modes.
 />
 
 ```tsx
-<StatusBadge phase="ready" />
-<StatusBadge phase="failed" label="Unreachable" tooltip="Last checked 2m ago" />
+<>
+  <StatusBadge phase="ready" />
+  <StatusBadge phase="failed" label="Unreachable" tooltip="Last checked 2m ago" />
+</>
 ```
 
 

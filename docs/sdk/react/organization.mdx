@@ -70,10 +70,15 @@ function useCanonicalOrgSlug(orgSegment: string | null | undefined): string | nu
 />
 
 ```tsx
-const canonical = useCanonicalOrgSlug(params.org);
-useEffect(() => {
-  if (canonical) navigate(`/library/agents/${canonical}/${params.slug}`, { replace: true });
-}, [canonical]);
+type AgentRouteProps = { org: string; slug: string; replaceUrl: (href: string) => void };
+
+function CanonicalAgentUrl({ org, slug, replaceUrl }: AgentRouteProps) {
+  const canonical = useCanonicalOrgSlug(org);
+  useEffect(() => {
+    if (canonical) replaceUrl(`/library/agents/${canonical}/${slug}`);
+  }, [canonical, slug, replaceUrl]);
+  return null;
+}
 ```
 
 
@@ -115,7 +120,7 @@ function useChildOrganizations(org: string | null, options?: UseChildOrganizatio
 />
 
 ```tsx
-const { children, hasMore, loadMore } = useChildOrganizations(orgId);
+const { children, hasMore, loadMore } = useChildOrganizations("acme");
 ```
 
 
@@ -127,7 +132,7 @@ state.
 Creates an Organization resource — a tenancy boundary that owns
 agents, vaults, skills, MCP servers, and other platform
 resources. The caller provides an `OrganizationInput` with
-`name`, `org`, and optionally `description` and `logoUrl`.
+`name`, and optionally `slug`, `description` and `logoUrl`.
 
 Returns the full `Organization` proto including
 server-generated metadata (id, slug, version, timestamps) so
@@ -151,13 +156,14 @@ function useCreateOrganization(): UseCreateOrganizationReturn
 />
 
 ```tsx
-const { create, isCreating, error } = useCreateOrganization();
-
-const org = await create({
-  name: "Acme Corp",
-  org: "acme-corp",
-  description: "Main engineering organization",
-});
+function CreateAcmeButton({ onCreated }: { onCreated: (orgId: string) => void }) {
+  const { create, isCreating } = useCreateOrganization();
+  const onClick = async () => {
+    const org = await create({ name: "Acme Corp", slug: "acme-corp", description: "Main engineering organization" });
+    onCreated(org.metadata?.id ?? "");
+  };
+  return <button disabled={isCreating} onClick={onClick}>Create organization</button>;
+}
 ```
 
 
@@ -285,18 +291,12 @@ function useOrgGate(options: UseOrgGateOptions): UseOrgGateReturn
 />
 
 ```tsx
-const { state, retry, refresh } = useOrgGate({ isBypassed });
-
-switch (state.status) {
-  case "bypassed":
-  case "ready":
-    return <>{children}</>;
-  case "loading":
-    return <Spinner />;
-  case "error":
-    return <ErrorScreen message={state.message} onRetry={retry} />;
-  case "no-orgs":
-    return <OnboardingForm onCreated={(org) => refresh(org.metadata?.id)} />;
+function OrgGate({ children }: { children: ReactNode }) {
+  const { state, retry, refresh } = useOrgGate({ isBypassed: false });
+  if (state.status === "loading") return <p>Loading…</p>;
+  if (state.status === "error") return <p>{state.message} <button onClick={retry}>Try again</button></p>;
+  if (state.status === "no-orgs") return <CreateOrganizationForm onCreated={(org) => refresh(org.metadata?.id)} />;
+  return <>{children}</>;
 }
 ```
 
@@ -319,8 +319,13 @@ function useOrgIdForRef(): (orgRef: string) => string
 ```
 
 ```tsx
-const orgIdFor = useOrgIdForRef();
-const isOwn = agent.metadata?.org === orgIdFor(routeOrg);
+import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+
+// The route's org segment may be a slug; the agent stores an id.
+function OwnAgentBadge({ agent, routeOrg }: { agent: Agent; routeOrg: string }) {
+  const orgIdFor = useOrgIdForRef();
+  return agent.metadata?.org === orgIdFor(routeOrg) ? <span>Yours</span> : null;
+}
 ```
 
 
@@ -339,8 +344,11 @@ function useOrgSlugForId(): (orgId: string) => string
 ```
 
 ```tsx
-const slugForOrg = useOrgSlugForId();
-navigate(`/library/agents/${slugForOrg(agent.metadata.org)}/${agent.metadata.slug}`);
+// A stored `metadata.org` is an id; links read the organization's slug.
+function AgentLink({ org, slug, name }: { org: string; slug: string; name: string }) {
+  const slugForOrg = useOrgSlugForId();
+  return <a href={`/library/agents/${slugForOrg(org)}/${slug}`}>{name}</a>;
+}
 ```
 
 
@@ -372,10 +380,14 @@ function useRenameOrganization(): UseRenameOrganizationReturn
 />
 
 ```tsx
-const { rename, isRenaming, error } = useRenameOrganization();
-
-const renamed = await rename(org.metadata.id, "acme-labs");
-refresh(renamed.metadata?.id);
+function RenameToAcmeLabs({ orgId, onRenamed }: { orgId: string; onRenamed: (orgId?: string) => void }) {
+  const { rename, isRenaming } = useRenameOrganization();
+  const onClick = async () => {
+    const renamed = await rename(orgId, "acme-labs");
+    onRenamed(renamed.metadata?.id); // e.g. useOrgGate's refresh
+  };
+  return <button disabled={isRenaming} onClick={onClick}>Rename to acme-labs</button>;
+}
 ```
 
 
@@ -413,15 +425,13 @@ function useUpdateOrganization(): UseUpdateOrganizationReturn
 />
 
 ```tsx
-const { update, isUpdating, error } = useUpdateOrganization();
+import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 
-await update(
-  {
-    metadata: { id: organization.metadata!.id, etag: organization.metadata!.etag },
-    spec: { description: "Updated description" },
-  },
-  ["spec.description"],
-);
+function DescriptionSave({ organization, description }: { organization: Organization; description: string }) {
+  const { update, isUpdating } = useUpdateOrganization();
+  const save = () => update({ metadata: organization.metadata, spec: { description } }, ["spec.description"]);
+  return <button disabled={isUpdating} onClick={save}>Save</button>;
+}
 ```
 
 
@@ -449,8 +459,13 @@ function useUpdateOrganizationEmbedding(): UseUpdateOrganizationEmbeddingReturn
 />
 
 ```tsx
-const { updateEmbedding, isUpdating } = useUpdateOrganizationEmbedding();
-await updateEmbedding(orgId, { ...organizationEmbeddingOf(org), allowedOrigins: ["https://app.example"] });
+import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
+
+function AllowAppOrigin({ organization }: { organization: Organization }) {
+  const { updateEmbedding, isUpdating } = useUpdateOrganizationEmbedding();
+  const allow = () => updateEmbedding("acme", { ...organizationEmbeddingOf(organization), allowedOrigins: ["https://app.example"] });
+  return <button disabled={isUpdating} onClick={allow}>Allow app.example</button>;
+}
 ```
 
 
@@ -478,8 +493,13 @@ function useUpdateOrganizationPolicies(): UseUpdateOrganizationPoliciesReturn
 />
 
 ```tsx
-const { updatePolicies, isUpdating } = useUpdateOrganizationPolicies();
-await updatePolicies(orgId, { ...organizationPoliciesOf(org), membersCanCreateAgents: false });
+import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
+
+function LockAgentCreation({ organization }: { organization: Organization }) {
+  const { updatePolicies, isUpdating } = useUpdateOrganizationPolicies();
+  const lock = () => updatePolicies("acme", { ...organizationPoliciesOf(organization), membersCanCreateAgents: false });
+  return <button disabled={isUpdating} onClick={lock}>Only admins create agents</button>;
+}
 ```
 
 
@@ -515,7 +535,9 @@ list says so.
 />
 
 ```tsx
-<ChildOrganizationsList org="org-id-123" onOrgChanged={() => navigate("/dashboard")} />
+function ChildOrgs({ onOpen }: { onOpen: (href: string) => void }) {
+  return <ChildOrganizationsList org="acme" onOrgChanged={() => onOpen("/dashboard")} />;
+}
 ```
 
 
@@ -542,10 +564,9 @@ All visual properties flow through `--stgm-*` design tokens.
 />
 
 ```tsx
-<CreateOrganizationForm
-  onCreated={(org) => console.log("Created:", org.metadata?.slug)}
-  onCancel={() => setShowForm(false)}
-/>
+function NewOrganization({ onOpen, onClose }: { onOpen: (href: string) => void; onClose: () => void }) {
+  return <CreateOrganizationForm onCreated={(org) => onOpen(`/${org.metadata?.slug}`)} onCancel={onClose} />;
+}
 ```
 
 
@@ -703,13 +724,15 @@ never bleed into the new one. Navigation on switch stays the host's
 responsibility via `OrgSwitcher`'s `onOrgChanged` callback.
 
 ```tsx
-<StigmerProvider client={client}>
-  <FetchCacheProvider>
-    <OrgProvider>
-      <App />
-    </OrgProvider>
-  </FetchCacheProvider>
-</StigmerProvider>
+function Providers({ children }: { children: ReactNode }) {
+  return (
+    <StigmerProvider client={client}>
+      <FetchCacheProvider>
+        <OrgProvider>{children}</OrgProvider>
+      </FetchCacheProvider>
+    </StigmerProvider>
+  );
+}
 ```
 
 
@@ -728,7 +751,8 @@ person's organizations, and the id itself otherwise.
 />
 
 ```tsx
-cell: (item) => <OrgSlugText orgId={item.org} className="text-muted-foreground" />
+// A stored `metadata.org` is an id; the cell reads the organization's slug.
+<OrgSlugText orgId="org_01jabc" />
 ```
 
 
@@ -766,7 +790,9 @@ Must be rendered inside an [`OrgProvider`](#orgprovider).
 />
 
 ```tsx
-<OrgSwitcher onOrgChanged={(org) => navigate("/")} />
+function Switcher({ onOpen }: { onOpen: (href: string) => void }) {
+  return <OrgSwitcher onOrgChanged={() => onOpen("/")} />;
+}
 ```
 
 
@@ -856,8 +882,9 @@ Discriminated union representing the current state of the org gate.
 Narrow on `status` to access variant-specific data:
 
 ```ts
-if (state.status === "error") {
-  console.log(state.message); // string — only available on "error"
+// `message` exists only on "error".
+function gateError(state: OrgGateState): string | null {
+  return state.status === "error" ? state.message : null;
 }
 ```
 

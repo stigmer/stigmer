@@ -50,21 +50,20 @@ function useFileUploads(options?: UseFileUploadsOptions): UseFileUploadsReturn
 />
 
 ```tsx
-function CustomComposer({ org, sessionId, send }: Props) {
-  const uploads = useFileUploads({ org, sessionId });
+type Props = { org: string; sessionId: string; send: (message: string, fileIds: string[]) => Promise<void> };
 
-  const submit = async (message: string) => {
+function AttachAndSend({ org, sessionId, send }: Props) {
+  const uploads = useFileUploads({ org, sessionId });
+  const submit = async () => {
     const files = uploads.handOff();
-    await send(message, files.fileIds);
+    await send("Here are the files", files.fileIds);
     await files.release();
   };
-
   return (
-    <input
-      type="file"
-      multiple
-      onChange={(e) => e.target.files && uploads.addFiles(e.target.files)}
-    />
+    <>
+      <input type="file" multiple onChange={(e) => e.target.files && uploads.addFiles(e.target.files)} />
+      <button onClick={submit} disabled={!uploads.allReady}>Send</button>
+    </>
   );
 }
 ```
@@ -102,7 +101,7 @@ All visual properties flow through `--stgm-*` tokens.
 />
 
 ```tsx
-function CustomComposer() {
+function AttachedFiles({ org, sessionId }: { org: string; sessionId: string }) {
   const uploads = useFileUploads({ org, sessionId });
 
   return (
@@ -216,11 +215,15 @@ function extractClipboardFiles(event: ClipboardFilesSource): File[]
 ```
 
 ```tsx
-function handlePaste(e: React.ClipboardEvent<HTMLTextAreaElement>) {
-  const files = extractClipboardFiles(e);
-  if (files.length === 0) return; // plain text paste — leave it alone
-  e.preventDefault();
-  uploads.addFiles(files);
+function PasteBox({ org }: { org: string }) {
+  const uploads = useFileUploads({ org });
+  const onPaste = (e: ClipboardEvent<HTMLTextAreaElement>) => {
+    const files = extractClipboardFiles(e);
+    if (files.length === 0) return; // plain text paste: leave it alone
+    e.preventDefault();
+    uploads.addFiles(files);
+  };
+  return <textarea onPaste={onPaste} />;
 }
 ```
 
@@ -260,15 +263,16 @@ produces two entries with distinct ids and two Files.
 />
 
 ```tsx
-const uploads = useFileUploads({ org });
-
-uploads.entries.map((entry) => (
-  <span key={entry.id}>
-    {entry.file.name}
-    {entry.phase === "uploading" && <Spinner />}
-    {entry.phase === "error" && <span>{entry.error}</span>}
-  </span>
-));
+function UploadList({ org }: { org: string }) {
+  const uploads = useFileUploads({ org });
+  return uploads.entries.map((entry) => (
+    <span key={entry.id}>
+      {entry.file.name}
+      {entry.phase === "uploading" && " (uploading…)"}
+      {entry.phase === "error" && <span role="alert">{entry.error}</span>}
+    </span>
+  ));
+}
 ```
 
 

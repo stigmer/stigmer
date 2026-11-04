@@ -36,10 +36,16 @@ function useConfirmMemory(): UseConfirmMemoryReturn
 />
 
 ```tsx
-const { confirmMemory, isConfirming } = useConfirmMemory();
+import type { Memory } from "@stigmer/apis/ai/stigmer/agentic/memory/v1/api_pb";
 
-await confirmMemory(memory.metadata?.id ?? "");
-refetch(); // refresh the list after the decision
+function KeepMemory({ memory, onDecided }: { memory: Memory; onDecided: () => void }) {
+  const { confirmMemory, isConfirming } = useConfirmMemory();
+  const keep = async () => {
+    await confirmMemory(memory.metadata?.id ?? "");
+    onDecided(); // refresh the list after the decision
+  };
+  return <button onClick={keep} disabled={isConfirming}>Keep</button>;
+}
 ```
 
 
@@ -70,10 +76,16 @@ function useDeleteMemory(): UseDeleteMemoryReturn
 />
 
 ```tsx
-const { deleteMemory, isDeleting, error } = useDeleteMemory();
+import type { Memory } from "@stigmer/apis/ai/stigmer/agentic/memory/v1/api_pb";
 
-await deleteMemory(memory.metadata?.id ?? "");
-refetch(); // refresh the list after deletion
+function ForgetMemory({ memory, onDeleted }: { memory: Memory; onDeleted: () => void }) {
+  const { deleteMemory, isDeleting } = useDeleteMemory();
+  const forget = async () => {
+    await deleteMemory(memory.metadata?.id ?? "");
+    onDeleted(); // refresh the list after deletion
+  };
+  return <button onClick={forget} disabled={isDeleting}>Forget</button>;
+}
 ```
 
 
@@ -120,7 +132,7 @@ function useMemories(org: string | null): UseMemoriesReturn
 />
 
 ```tsx
-const { memories, isLoading, refetch } = useMemories(org);
+const { memories, isLoading, refetch } = useMemories("acme");
 const groups = groupMemoriesByLifecycle(memories);
 ```
 
@@ -164,7 +176,7 @@ function useMemory(id: string | null): UseMemoryReturn
 />
 
 ```tsx
-const { memory, isLoading, notFound } = useMemory(memoryId);
+const { memory, isLoading, notFound } = useMemory("mem_01jabc");
 ```
 
 
@@ -199,10 +211,16 @@ function useRejectMemory(): UseRejectMemoryReturn
 />
 
 ```tsx
-const { rejectMemory, isRejecting } = useRejectMemory();
+import type { Memory } from "@stigmer/apis/ai/stigmer/agentic/memory/v1/api_pb";
 
-await rejectMemory(memory.metadata?.id ?? "");
-refetch(); // refresh the list after the decision
+function RejectMemory({ memory, onDecided }: { memory: Memory; onDecided: () => void }) {
+  const { rejectMemory, isRejecting } = useRejectMemory();
+  const reject = async () => {
+    await rejectMemory(memory.metadata?.id ?? "");
+    onDecided(); // refresh the list after the decision
+  };
+  return <button onClick={reject} disabled={isRejecting}>Not true</button>;
+}
 ```
 
 
@@ -234,10 +252,16 @@ function useUpdateMemoryContent(): UseUpdateMemoryContentReturn
 />
 
 ```tsx
-const { updateContent, isUpdating } = useUpdateMemoryContent();
+import type { Memory } from "@stigmer/apis/ai/stigmer/agentic/memory/v1/api_pb";
 
-await updateContent(memory, editedText);
-refetch(); // refresh the list after the edit
+function SaveEdit({ memory, text, onSaved }: { memory: Memory; text: string; onSaved: () => void }) {
+  const { updateContent, isUpdating } = useUpdateMemoryContent();
+  const save = async () => {
+    await updateContent(memory, text);
+    onSaved(); // refresh the list after the edit
+  };
+  return <button onClick={save} disabled={isUpdating}>Save</button>;
+}
 ```
 
 

@@ -34,8 +34,11 @@ Console-specific dependencies — safe for platform builder embedding.
 />
 
 ```tsx
-const { data, isLoading, error, refetch } = useAgent(id);
-if (error) return <ErrorMessage error={error} retry={refetch} />;
+function AgentName({ slug }: { slug: string }) {
+  const { agent, error, refetch } = useAgent("acme", slug);
+  if (error) return <ErrorMessage error={error} retry={refetch} />;
+  return <h1>{agent?.metadata?.name}</h1>;
+}
 ```
 
 
@@ -64,14 +67,14 @@ Platform builders embedding Stigmer components get the same guidance.
 />
 
 ```tsx
-{error && (
-  <SecretFlowErrorGuide error={error} />
-  ?? <ErrorMessage error={error} />
-)}
-
-// Or in a single expression:
-<SecretFlowErrorGuide error={error} />
-{error && !isSecretFlowError(error) && <ErrorMessage error={error} />}
+function RunStartError({ error }: { error: Error | null }) {
+  return (
+    <>
+      <SecretFlowErrorGuide error={error} />
+      {error && !isSecretFlowError(error) && <ErrorMessage error={error} />}
+    </>
+  );
+}
 ```
 
 

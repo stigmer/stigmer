@@ -36,12 +36,15 @@ function useAttentionNotifications(options: UseAttentionNotificationsOptions): v
 />
 
 ```tsx
-useAttentionNotifications({
-  org,
-  enabled: notificationsOn,
-  isShowing: (sessionId) => sessionId === openSessionId,
-  notify: (notice) => new Notification(notice.title, { body: notice.body, tag: notice.id }),
-});
+function DesktopNotifications({ openSessionId }: { openSessionId: string | null }) {
+  useAttentionNotifications({
+    org: "acme",
+    enabled: Notification.permission === "granted",
+    isShowing: (sessionId) => sessionId === openSessionId,
+    notify: (notice) => new Notification(notice.title, { body: notice.body, tag: notice.id }),
+  });
+  return null;
+}
 ```
 
 
@@ -135,11 +138,16 @@ function useExportTranscript(sessionId: string | null, options?: UseExportTransc
 />
 
 ```tsx
-const exporter = useExportTranscript(sessionId);
-
-<ActionMenu.Item onSelect={exporter.copyMarkdown}>Copy transcript</ActionMenu.Item>
-<ActionMenu.Item onSelect={exporter.downloadMarkdown}>Download .md</ActionMenu.Item>
-<ActionMenu.Item onSelect={exporter.downloadJson}>Download .json</ActionMenu.Item>
+function TranscriptActions({ sessionId }: { sessionId: string }) {
+  const exporter = useExportTranscript(sessionId);
+  return (
+    <>
+      <button onClick={exporter.copyMarkdown} disabled={exporter.isExporting}>Copy transcript</button>
+      <button onClick={exporter.downloadMarkdown} disabled={exporter.isExporting}>Download .md</button>
+      <button onClick={exporter.downloadJson} disabled={exporter.isExporting}>Download .json</button>
+    </>
+  );
+}
 ```
 
 
@@ -202,28 +210,22 @@ function useNewSessionFlow(options: UseNewSessionFlowOptions): UseNewSessionFlow
 />
 
 ```tsx
-const flow = useNewSessionFlow({
-  org: "acme",
-  onSessionCreated: (id) => navigate(`/sessions/${id}`),
-  onError: (msg) => toast.error(msg),
-});
-
-<SessionComposer
-  onSubmit={flow.submit}
-  isSubmitting={flow.isSubmitting}
-  org="acme"
-  workspace={flow.workspace}
-  agentRef={flow.agentRef}
-  onAgentRefChange={flow.setAgentRef}
-  onAgentResolutionChange={flow.setResolution}
-  pluginRefs={flow.pluginRefs}
-  onPluginRefsChange={flow.setPluginRefs}
-  skillRefs={flow.skillRefs}
-  onSkillRefsChange={flow.setSkillRefs}
-
-  defaultModelId={flow.modelId}
-  onModelChange={flow.setModelId}
-/>
+function NewConversation({ onOpen }: { onOpen: (sessionId: string) => void }) {
+  const flow = useNewSessionFlow({ org: "acme", onSessionCreated: onOpen, onError: (msg) => toast.error(msg) });
+  return (
+    <SessionComposer
+      org="acme"
+      onSubmit={flow.submit}
+      isSubmitting={flow.isSubmitting}
+      workspace={flow.workspace}
+      agentRef={flow.agentRef}
+      onAgentRefChange={flow.setAgentRef}
+      onAgentResolutionChange={flow.setResolution}
+      defaultModelId={flow.modelId}
+      onModelChange={flow.setModelId}
+    />
+  );
+}
 ```
 
 
@@ -325,25 +327,26 @@ function useSession(id: string | null): UseSessionReturn
 />
 
 ```tsx
-function SessionDetail({ sessionId }: { sessionId: string }) {
+function SessionTitle({ sessionId }: { sessionId: string }) {
   const { session, isLoading, error, refetch } = useSession(sessionId);
-
-  if (isLoading) return <Skeleton />;
-  if (error) return <ErrorMessage error={error} />;
-  if (!session) return <NotFound />;
-
+  if (isLoading) return <p>Loading…</p>;
+  if (error) return <p role="alert">{error.message}</p>;
+  if (!session) return <p>No such conversation.</p>;
   return (
-    <div>
-      <h1>{session.status?.subject ?? "Untitled session"}</h1>
+    <header>
+      <h1>{session.spec?.subject || "Untitled conversation"}</h1>
       <button onClick={refetch}>Refresh</button>
-    </div>
+    </header>
   );
 }
 ```
 
 ```tsx
-// Skip fetching until session ID is available
-const { session } = useSession(sessionId ?? null);
+// Skip fetching until a conversation is selected.
+function Selected({ sessionId }: { sessionId?: string }) {
+  const { session } = useSession(sessionId ?? null);
+  return session ? <h2>{session.spec?.subject}</h2> : <p>Pick a conversation.</p>;
+}
 ```
 
 
@@ -410,12 +413,14 @@ function useSessionAgentVersion(session: Session | null, options: UseSessionAgen
 />
 
 ```tsx
-const version = useSessionAgentVersion(conv.session, {
-  enabled: true,
-  moveToCurrentVersion: conv.moveToCurrentAgentVersion,
-});
-if (version.isOutdated) {
-  return <button onClick={version.update}>Update</button>;
+function AgentVersionNotice({ sessionId, org }: { sessionId: string; org: string }) {
+  const conv = useSessionConversation(sessionId, org);
+  const version = useSessionAgentVersion(conv.session, {
+    enabled: true,
+    moveToCurrentVersion: conv.moveToCurrentAgentVersion,
+  });
+  if (!version.isOutdated) return null;
+  return <button onClick={version.update}>Move to the agent's current version</button>;
 }
 ```
 
@@ -518,24 +523,13 @@ function useSessionConversation(sessionId: string | null, org: string): UseSessi
 ```tsx
 function Chat({ sessionId, org }: { sessionId: string; org: string }) {
   const conv = useSessionConversation(sessionId, org);
-
-  if (conv.isLoading) return <Spinner />;
-
+  if (conv.isLoading) return <p>Loading…</p>;
+  const send = (data: FormData) => conv.sendFollowUp(String(data.get("message")));
   return (
-    <>
-      <MessageThread
-        turns={conv.turns}
-        runs={conv.runs}
-        pendingUserMessage={conv.pendingUserMessage}
-        onAnswerToolUse={conv.answerToolUse}
-        answeringToolUseIds={conv.answeringToolUseIds}
-      />
-      <SessionComposer
-        onSubmit={(msg, model) => conv.sendFollowUp(msg, { modelName: model })}
-        disabled={!conv.canSendFollowUp}
-        isSubmitting={conv.isSending}
-      />
-    </>
+    <form action={send}>
+      {conv.turns.map((turn) => <p key={turn.runId}>{turn.answer}</p>)}
+      <input name="message" disabled={!conv.canSendFollowUp} />
+    </form>
   );
 }
 ```
@@ -598,7 +592,7 @@ function useSessionEvents(sessionId: string | null, options?: UseSessionEventsOp
 />
 
 ```tsx
-const { fold, isReconnecting } = useSessionEvents(sessionId);
+const { fold, isReconnecting } = useSessionEvents("ses_01jabc");
 const turns = fold?.turns ?? [];
 ```
 
@@ -642,7 +636,11 @@ function useSessionFileChanges(executions: readonly Run[]): UseSessionFileChange
 />
 
 ```tsx
-const { fileChanges, hasFileChanges } = useSessionFileChanges(conv.runs);
+function ChangedFileCount({ sessionId, org }: { sessionId: string; org: string }) {
+  const conv = useSessionConversation(sessionId, org);
+  const { fileChangeCount, hasFileChanges } = useSessionFileChanges(conv.runs);
+  return hasFileChanges ? <span>{fileChangeCount} files changed</span> : null;
+}
 ```
 
 
@@ -716,23 +714,13 @@ function useSessionList(options?: UseSessionListOptions): UseSessionListReturn
 />
 
 ```tsx
-function SessionSidebar() {
-  const org = useActiveOrgId();
-  const { sessions, isLoading, hasMore, loadMore, isLoadingMore } =
-    useSessionList({ org, pageSize: 25 });
-
-  if (isLoading) return <Skeleton />;
-
+function SessionSidebar({ org }: { org: string }) {
+  const { sessions, isLoading, hasMore, loadMore, isLoadingMore } = useSessionList({ org, pageSize: 25 });
+  if (isLoading) return <p>Loading…</p>;
   return (
     <ul>
-      {sessions.map((s) => (
-        <li key={s.metadata?.id}>
-          {s.spec?.subject || "Untitled"}
-        </li>
-      ))}
-      {hasMore && (
-        <button onClick={loadMore} disabled={isLoadingMore}>Show more</button>
-      )}
+      {sessions.map((s) => <li key={s.metadata?.id}>{s.spec?.subject || "Untitled"}</li>)}
+      {hasMore && <button onClick={loadMore} disabled={isLoadingMore}>Show more</button>}
     </ul>
   );
 }
@@ -772,8 +760,12 @@ function useSessionOutputs(files: readonly File[], runs: readonly Run[]): UseSes
 />
 
 ```tsx
-const { files } = useSessionFiles(org, sessionId, refreshKey);
-const { outputs } = useSessionOutputs(files, runs);
+function MadeFiles({ sessionId, org }: { sessionId: string; org: string }) {
+  const conv = useSessionConversation(sessionId, org);
+  const { files } = useSessionFiles(org, sessionId, String(conv.runs.length));
+  const { outputCount } = useSessionOutputs(files, conv.runs);
+  return <p>{outputCount} files made</p>;
+}
 ```
 
 
@@ -835,32 +827,24 @@ function useSessionPageFlow(options: UseSessionPageFlowOptions): UseSessionPageF
 />
 
 ```tsx
-const flow = useSessionPageFlow({ sessionId: "ses_abc", org: "acme" });
-
-if (flow.conv.isLoading) return <Spinner />;
-if (flow.conv.loadError) return <ErrorView error={flow.conv.loadError} />;
-
-return (
-  <>
-    <MessageThread
-      turns={flow.conv.turns}
-      runs={flow.conv.runs}
-      onAnswerToolUse={flow.answerToolUse}
-      sandboxWorkspaceRoot={flow.sandboxWorkspaceRoot}
-    />
-    <SessionComposer
-      onSubmit={flow.handleSubmit}
-      isSubmitting={flow.conv.isSending}
-      disabled={!flow.conv.canSendFollowUp}
-      workspace={flow.workspace}
-      agentRef={flow.agentRef}
-      onAgentRefChange={flow.setAgentRef}
-      onAgentResolutionChange={flow.setResolution}
-      defaultModelId={flow.model[0]}
-      onModelChange={flow.model[1]}
-    />
-  </>
-);
+function ConversationPage({ sessionId }: { sessionId: string }) {
+  const flow = useSessionPageFlow({ sessionId, org: "acme" });
+  if (flow.conv.isLoading) return <p>Loading…</p>;
+  if (flow.conv.loadError) return <p role="alert">{flow.conv.loadError.message}</p>;
+  return (
+    <>
+      <MessageThread turns={flow.conv.turns} runs={flow.conv.runs} onAnswerToolUse={flow.answerToolUse} />
+      <SessionComposer
+        onSubmit={flow.handleSubmit}
+        isSubmitting={flow.conv.isSending}
+        disabled={!flow.conv.canSendFollowUp}
+        workspace={flow.workspace}
+        defaultModelId={flow.model[0]}
+        onModelChange={flow.model[1]}
+      />
+    </>
+  );
+}
 ```
 
 
@@ -943,19 +927,19 @@ function useSessionRuns(sessionId: string | null, options?: UseSessionRunsOption
 />
 
 ```tsx
-function ConversationThread({ sessionId }: { sessionId: string }) {
+function TurnCount({ sessionId }: { sessionId: string }) {
   const { runs, isLoading } = useSessionRuns(sessionId);
-  const { fold } = useSessionEvents(sessionId);
-
-  if (isLoading) return <Skeleton />;
-
-  return <MessageThread turns={fold?.turns ?? []} runs={runs} />;
+  if (isLoading) return <p>Loading…</p>;
+  return <p>{runs.length} turns</p>;
 }
 ```
 
 ```tsx
-// Skip fetching until a session is selected
-const { runs } = useSessionRuns(sessionId ?? null);
+// Skip fetching until a conversation is selected.
+function SelectedTurns({ sessionId }: { sessionId?: string }) {
+  const { runs } = useSessionRuns(sessionId ?? null);
+  return <p>{runs.length} turns</p>;
+}
 ```
 
 
@@ -1100,8 +1084,11 @@ function useSessionWriteBacks(executions: readonly Run[]): UseSessionWriteBacksR
 />
 
 ```tsx
-const conv = useSessionConversation(sessionId, org);
-const { writeBacks, hasWriteBacks } = useSessionWriteBacks(conv.runs);
+function PushedCommits({ sessionId, org }: { sessionId: string; org: string }) {
+  const conv = useSessionConversation(sessionId, org);
+  const { writeBackCount, hasWriteBacks } = useSessionWriteBacks(conv.runs);
+  return hasWriteBacks ? <span>{writeBackCount} commits pushed</span> : null;
+}
 ```
 
 
@@ -1138,15 +1125,17 @@ function useUpdateSession(): UseUpdateSessionReturn
 />
 
 ```tsx
-const { update, isUpdating, error } = useUpdateSession();
+import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 
-await update(
-  {
-    metadata: { id: session.metadata!.id, etag: session.metadata!.etag },
-    spec: { metadata: { ...session.spec?.metadata, "acme/reviewed": "true" } },
-  },
-  ["spec.metadata"],
-);
+function MarkReviewed({ session }: { session: Session }) {
+  const { update, isUpdating } = useUpdateSession();
+  const markReviewed = () =>
+    update(
+      { metadata: { id: session.metadata?.id, etag: session.metadata?.etag }, spec: { metadata: { ...session.spec?.metadata, "acme/reviewed": "true" } } },
+      ["spec.metadata"],
+    );
+  return <button onClick={markReviewed} disabled={isUpdating}>Mark reviewed</button>;
+}
 ```
 
 
@@ -1194,8 +1183,12 @@ function useWorkspaceReadRefs(executions: readonly Run[], entries: readonly Work
 />
 
 ```tsx
-const surfaceEntries = useWorkspaceReadRefs(flow.allRuns, flow.workspace.entries);
-<WorkspaceSurface entries={surfaceEntries} ... />
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+
+function EntryRefs({ runs, entries }: { runs: readonly Run[]; entries: readonly WorkspaceEntry[] }) {
+  const readable = useWorkspaceReadRefs(runs, entries);
+  return <ul>{readable.map((e) => <li key={e.id}>{e.name} at {e.readRef ?? e.gitBranch}</li>)}</ul>;
+}
 ```
 
 
@@ -1269,23 +1262,18 @@ apps inject platform-specific values via props.
 />
 
 ```tsx
-// Desktop
-<NewSessionViewer
-  org={org}
-  onSessionCreated={(id) => navigate(`/sessions/${id}`)}
-  onError={(msg) => toast.error(msg)}
-  enableLocal
-  onBrowseLocalFolder={browseLocalFolder}
-/>
-
-// Web
-<NewSessionViewer
-  org={org}
-  onSessionCreated={navigateToSession}
-  onError={(msg) => toast.error(msg)}
-  enableGitHub
-  gitHubConnection={gitHubConnection}
-/>
+function NewConversationPage({ org, onOpen }: { org: string; onOpen: (sessionId: string) => void }) {
+  const gitHub = useGitHubConnection(org);
+  return (
+    <NewSessionViewer
+      org={org}
+      onSessionCreated={onOpen}
+      onError={(msg) => toast.error(msg)}
+      enableGitHub
+      gitHubConnection={gitHub}
+    />
+  );
+}
 ```
 
 
@@ -1426,17 +1414,16 @@ apps inject platform-specific values via props.
 />
 
 ```tsx
-// An embedding product's end user: the conversation alone
-<SessionViewer sessionId={id} org={org} audience="endUser" />
+// An embedding product's end user: the conversation alone.
+<SessionViewer sessionId="ses_01jabc" org="acme" audience="endUser" />;
+```
 
-// The console, with the builder mode
-<SessionViewer
-  sessionId={id}
-  org={org}
-  gitHubConnection={gitHubConnection}
-  enableGitHub
-  inspector={<SessionInspector workspaceFileLister={lister} workspaceFileReader={reader} />}
-/>
+```tsx
+// The console, with the builder mode.
+function BuilderConversation({ sessionId, org }: { sessionId: string; org: string }) {
+  const gitHub = useGitHubConnection(org);
+  return <SessionViewer sessionId={sessionId} org={org} gitHubConnection={gitHub} enableGitHub inspector={<SessionInspector />} />;
+}
 ```
 
 
@@ -1737,7 +1724,7 @@ function GroupedSessionList() {
           <h3>{group.label}</h3>
           <ul>
             {group.sessions.map((s) => (
-              <li key={s.metadata?.id}>{s.status?.subject}</li>
+              <li key={s.metadata?.id}>{s.spec?.subject}</li>
             ))}
           </ul>
         </section>

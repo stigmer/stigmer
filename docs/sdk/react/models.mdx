@@ -47,7 +47,7 @@ function useModelReadiness(org: string | null): UseModelReadinessReturn
 />
 
 ```tsx
-const { readinessOf } = useModelReadiness(org);
+const { readinessOf } = useModelReadiness("acme");
 const needsKey = readinessOf("stigmer", "claude-sonnet-4-6")?.availability.state === "missing";
 ```
 
@@ -100,11 +100,11 @@ function useModelRegistry(options?: UseModelRegistryOptions): UseModelRegistryRe
 />
 
 ```tsx
-// Unified mode — flat picker with all models
+// Unified mode: a flat picker with every model
 const { featured, models, getByKey, isLoading } = useModelRegistry();
 
 // Single-harness mode
-const { models, defaultModel } = useModelRegistry({ harness: "stigmer" });
+const { models: stigmerModels, defaultModel } = useModelRegistry({ harness: "stigmer" });
 ```
 
 
@@ -127,8 +127,11 @@ function useModelsHubData(org: string | null): ModelsHubData
 />
 
 ```tsx
-const hub = useModelsHubData(org);
-if (hub.providers === null) return null;
+function ProviderCount() {
+  const hub = useModelsHubData("acme");
+  if (hub.providers === null) return null;
+  return <p>{hub.providers.length} providers</p>;
+}
 ```
 
 
@@ -206,8 +209,10 @@ that conversation.
 />
 
 ```tsx
-const { readinessOf } = useModelReadiness(org);
-<ModelDefaults readinessOf={readinessOf} />
+function OrgModelDefaults({ org }: { org: string }) {
+  const { readinessOf } = useModelReadiness(org);
+  return <ModelDefaults readinessOf={readinessOf} />;
+}
 ```
 
 
@@ -292,12 +297,11 @@ base per-token rates and costs more only through extra reasoning
 />
 
 ```tsx
-<ModelSelector
-  value={modelId}
-  onValueChange={setModelId}
-  harness={harness}
-  onHarnessChange={setHarness}
-/>
+function ModelPick() {
+  const [modelId, setModelId] = useState<string>();
+  const [harness, setHarness] = useState<HarnessOption>("stigmer");
+  return <ModelSelector value={modelId} onValueChange={setModelId} harness={harness} onHarnessChange={setHarness} />;
+}
 ```
 
 
@@ -346,7 +350,20 @@ person looking can take.
 />
 
 ```tsx
-<ProviderCard org={org} orgName="Acme" report={report} viewer={{ canManage: true, local: false }} models={models} />
+function ProviderCards() {
+  const hub = useModelsHubData("acme");
+  const models = hub.models ?? [];
+  return hub.providers?.map((report) => (
+    <ProviderCard
+      key={report.provider}
+      org={hub.org}
+      orgName={hub.orgName}
+      report={report}
+      viewer={hub.viewer}
+      models={models.filter((model) => model.provider === report.provider)}
+    />
+  ));
+}
 ```
 
 
@@ -496,10 +513,11 @@ UI-relevant metadata for a single platform-supported LLM model.
 />
 
 ```tsx
-const { getModel, defaultModel } = useModelRegistry();
-const model = getModel(selectedId) ?? defaultModel;
-
-<span>{model.displayName} ({model.costTier})</span>
+function ModelLabel({ selectedId }: { selectedId: string }) {
+  const { getModel, defaultModel } = useModelRegistry();
+  const model = getModel(selectedId) ?? defaultModel;
+  return model ? <span>{model.displayName} ({model.costTier})</span> : null;
+}
 ```
 
 

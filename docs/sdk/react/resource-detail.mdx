@@ -64,11 +64,10 @@ function useCopyResource(): UseCopyResourceReturn
 />
 
 ```tsx
-const { copyId, copySlug, copy } = useCopyResource();
-
-<ActionMenu.Item onSelect={() => copyId(resource.id)}>
-  Copy ID
-</ActionMenu.Item>
+function CopyIdButton({ resourceId }: { resourceId: string }) {
+  const { copyId } = useCopyResource();
+  return <button onClick={() => copyId(resourceId)}>Copy ID</button>;
+}
 ```
 
 
@@ -106,19 +105,15 @@ function useDeleteResource(kind: DeletableResourceKind, resourceId: string | nul
 />
 
 ```tsx
-const { deleteResource, isDeleting } = useDeleteResource(
-  "agent",
-  resourceId,
-  "PR Review Agent",
-);
-
-const handleDelete = async () => {
-  const confirmed = await confirm({ ... });
-  if (confirmed) {
+function DeleteAgentButton({ agentId, onDeleted }: { agentId: string; onDeleted: () => void }) {
+  const { deleteResource, isDeleting } = useDeleteResource("agent", agentId, "PR Review Agent");
+  const remove = async () => {
+    if (!window.confirm("Delete PR Review Agent?")) return;
     await deleteResource();
-    router.push("/library/agents");
-  }
-};
+    onDeleted();
+  };
+  return <button onClick={remove} disabled={isDeleting}>Delete</button>;
+}
 ```
 
 
@@ -151,10 +146,14 @@ function useRenameResource(kind: RenamableResourceKind): UseRenameResourceReturn
 />
 
 ```tsx
-const { rename, isRenaming, error } = useRenameResource("agent");
-
-const renamed = await rename(agent.metadata.id, "variance-reporter");
-canonicalSlug(renamed.metadata?.slug ?? "");
+function RenameButton({ agentId, onRenamed }: { agentId: string; onRenamed: (slug: string) => void }) {
+  const { rename, isRenaming } = useRenameResource("agent");
+  const save = async () => {
+    const renamed = await rename(agentId, "variance-reporter");
+    onRenamed(renamed.metadata?.slug ?? "");
+  };
+  return <button onClick={save} disabled={isRenaming}>Rename</button>;
+}
 ```
 
 
@@ -181,25 +180,19 @@ Pairs with [`useConfirmAction`](#useconfirmaction) which manages the imperative
 />
 
 ```tsx
-const { confirmState, confirm, handleConfirm, handleCancel } = useConfirmAction();
-
-// Trigger
-const handleDelete = async () => {
-  const ok = await confirm({
-    title: "Delete agent?",
-    description: "This cannot be undone.",
-    confirmLabel: "Delete",
-    variant: "destructive",
-  });
-  if (ok) await deleteAgent();
-};
-
-// Render
-<ConfirmDialog
-  state={confirmState}
-  onConfirm={handleConfirm}
-  onCancel={handleCancel}
-/>
+function DeleteWithConfirm({ onDelete }: { onDelete: () => Promise<void> }) {
+  const { confirmState, confirm, handleConfirm, handleCancel } = useConfirmAction();
+  const remove = async () => {
+    const ok = await confirm({ title: "Delete agent?", description: "This cannot be undone.", confirmLabel: "Delete", variant: "destructive" });
+    if (ok) await onDelete();
+  };
+  return (
+    <>
+      <button onClick={remove}>Delete</button>
+      <ConfirmDialog state={confirmState} onConfirm={handleConfirm} onCancel={handleCancel} />
+    </>
+  );
+}
 ```
 
 
@@ -250,20 +243,21 @@ nothing.
 />
 
 ```tsx
-<ResourceActionBar
-  resource={{ kind: "agent", id }}
-  primaryAction={{
-    id: "edit",
-    label: "Edit",
-    icon: <PencilIcon />,
-    requires: "can_edit",
-    onAction: () => router.push(editUrl),
-  }}
-  actions={[
-    { id: "copy-id", label: "Copy ID", onAction: () => copyId(id) },
-    { id: "delete", label: "Delete", variant: "destructive", requires: "can_delete", onAction: handleDelete },
-  ]}
-/>
+import { Pencil } from "lucide-react";
+
+function AgentActions({ id, onEdit, onDelete }: { id: string; onEdit: () => void; onDelete: () => void }) {
+  const { copyId } = useCopyResource();
+  return (
+    <ResourceActionBar
+      resource={{ kind: "agent", id }}
+      primaryAction={{ id: "edit", label: "Edit", icon: <Pencil />, requires: "can_edit", onAction: onEdit }}
+      actions={[
+        { id: "copy-id", label: "Copy ID", onAction: () => copyId(id) },
+        { id: "delete", label: "Delete", variant: "destructive", requires: "can_delete", onAction: onDelete },
+      ]}
+    />
+  );
+}
 ```
 
 
@@ -306,21 +300,19 @@ Zero Console dependencies — safe for platform builder embedding.
 />
 
 ```tsx
-const { agent } = useAgent(org, slug);
-
-<ResourceDetailShell
-  header={{
-    name: agent.metadata.name,
-    id: agent.metadata.id,
-    org: agent.metadata.org,
-    slug: agent.metadata.slug,
-    description: agent.spec.description,
-  }}
-  primaryAction={{ id: "edit", label: "Edit", onAction: handleEdit }}
-  actions={[...]}
->
-  <AgentOverview agent={agent} />
-</ResourceDetailShell>
+function AgentPage({ slug, onEdit }: { slug: string; onEdit: () => void }) {
+  const { agent } = useAgent("acme", slug);
+  if (!agent?.metadata) return <p>Loading…</p>;
+  const { name, id, org } = agent.metadata;
+  return (
+    <ResourceDetailShell
+      header={{ name, id, org, slug: agent.metadata.slug, description: agent.spec?.description }}
+      primaryAction={{ id: "edit", label: "Edit", onAction: onEdit }}
+    >
+      <p>{agent.spec?.description}</p>
+    </ResourceDetailShell>
+  );
+}
 ```
 
 
@@ -393,13 +385,16 @@ providing both the tab metadata and the content to render.
 />
 
 ```tsx
-<AgentDetailView
-  org="acme"
-  slug="my-agent"
-  additionalTabs={[
-    { id: "dependencies", label: "Dependencies", content: <DependencyGraph /> },
-  ]}
-/>
+// The host's own panel, as a tab beside the built-in ones.
+function AgentPageWithUsage({ usagePanel }: { usagePanel: ReactNode }) {
+  return (
+    <AgentDetailView
+      org="acme"
+      slug="my-agent"
+      additionalTabs={[{ id: "usage", label: "Usage", content: usagePanel }]}
+    />
+  );
+}
 ```
 
 

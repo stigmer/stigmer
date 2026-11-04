@@ -86,13 +86,15 @@ function useBillingAccount(org: string | null, options?: UseBillingAccountOption
 />
 
 ```tsx
-const { account, isLoading, error } = useBillingAccount(org);
+function CardOnFile({ org }: { org: string }) {
+  const { account, isLoading, error } = useBillingAccount(org);
 
-if (isLoading) return <Skeleton />;
-if (error) return <ErrorMessage error={error} />;
-if (!account) return null;
+  if (isLoading) return <p>Loading…</p>;
+  if (error) return <ErrorMessage error={error} />;
+  if (!account) return null;
 
-return <div>Card: {account.defaultPaymentMethod?.last4 ?? "none"}</div>;
+  return <div>Card: {account.defaultPaymentMethod?.last4 ?? "none"}</div>;
+}
 ```
 
 
@@ -177,11 +179,14 @@ function useCreateBillingPortalSession(redirect?: BillingRedirect): UseCreateBil
 />
 
 ```tsx
-const { openPortal, isLoading } = useCreateBillingPortalSession();
-
-<button onClick={() => openPortal(org)} disabled={isLoading}>
-  Manage payment methods
-</button>
+function ManagePaymentButton({ org }: { org: string }) {
+  const { openPortal, isLoading } = useCreateBillingPortalSession();
+  return (
+    <button onClick={() => openPortal(org)} disabled={isLoading}>
+      Manage payment methods
+    </button>
+  );
+}
 ```
 
 
@@ -256,8 +261,13 @@ function useEntitlements(org: string | null, options?: UseEntitlementsOptions): 
 />
 
 ```tsx
-const { allows } = useEntitlements(org);
-if (allows(Feature.teams) === false) return <UpgradeNotice feature={Feature.teams} />;
+import { Feature } from "@stigmer/apis/ai/stigmer/platform/v1/entitlement_pb";
+
+function TeamsPage({ org, children }: { org: string; children: ReactNode }) {
+  const { allows } = useEntitlements(org);
+  if (allows(Feature.teams) === false) return <UpgradeNotice feature={Feature.teams} />;
+  return <>{children}</>;
+}
 ```
 
 
@@ -407,7 +417,7 @@ function useProviderKeys(org: string | null, options?: UseProviderKeysOptions): 
 />
 
 ```tsx
-const { keys } = useProviderKeys(org);
+const { keys } = useProviderKeys("acme");
 ```
 
 
@@ -450,7 +460,7 @@ function useSubscription(org: string | null): UseSubscriptionReturn
 />
 
 ```tsx
-const { subscription } = useSubscription(org);
+const { subscription } = useSubscription("acme");
 ```
 
 
@@ -474,7 +484,10 @@ its hours are its parent's.
 />
 
 ```tsx
-if (agentHoursUsedUp(error) !== null) return <AgentHoursNotice error={error} />;
+function RunError({ error }: { error: Error }) {
+  if (agentHoursUsedUp(error) !== null) return <AgentHoursNotice error={error} />;
+  return <ErrorMessage error={error} />;
+}
 ```
 
 
@@ -515,8 +528,10 @@ mode) and the org-not-selected state.
 />
 
 ```tsx
-// In a settings page, resuming the plan a saved card was for:
-<BillingSection resumePlanId={searchParams.plan} />
+// A settings page, resuming the plan a saved card was for (`?plan=team`):
+function BillingSettings({ planFromUrl }: { planFromUrl?: string }) {
+  return <BillingSection resumePlanId={planFromUrl} />;
+}
 ```
 
 
@@ -571,11 +586,14 @@ add, update, or remove payment methods.
 />
 
 ```tsx
-<PaymentMethodCard
-  paymentMethod={account.defaultPaymentMethod}
-  accountStatus={account.status}
-  onManage={() => openPortal(org)}
-/>
+function PaymentMethod({ org }: { org: string }) {
+  const { account } = useBillingAccount(org);
+  const { openPortal } = useCreateBillingPortalSession();
+  if (!account) return null;
+  return (
+    <PaymentMethodCard paymentMethod={account.defaultPaymentMethod} accountStatus={account.status} onManage={() => openPortal(org)} />
+  );
+}
 ```
 
 
@@ -654,7 +672,10 @@ an edition that serves no subscriptions.
 />
 
 ```tsx
-<PlanSection org={org} hasPaymentMethod={hasCard} />
+function Plans({ org }: { org: string }) {
+  const { account } = useBillingAccount(org);
+  return <PlanSection org={org} hasPaymentMethod={account?.defaultPaymentMethod !== undefined} />;
+}
 ```
 
 
@@ -676,7 +697,10 @@ refusal.
 />
 
 ```tsx
-if (providerKeyRequired(error) !== null) return <ProviderKeyNotice error={error} />;
+function RunError({ error }: { error: Error }) {
+  if (providerKeyRequired(error) !== null) return <ProviderKeyNotice error={error} />;
+  return <ErrorMessage error={error} />;
+}
 ```
 
 
@@ -699,8 +723,11 @@ working; only creating more is refused.
 />
 
 ```tsx
-const feature = planUpgradeFeature(error);
-if (feature !== null) return <UpgradeNotice feature={feature} error={error} />;
+function RunError({ error }: { error: Error }) {
+  const feature = planUpgradeFeature(error);
+  if (feature !== null) return <UpgradeNotice feature={feature} error={error} />;
+  return <ErrorMessage error={error} />;
+}
 ```
 
 
