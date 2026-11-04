@@ -91,6 +91,8 @@ stigmer vault set-secret LEDGER_API_KEY --vault cust-4411-keys --from-env LEDGER
 From your backend, find the vault by your id and save the key into it:
 
 ```typescript
+declare const ledgerKey: string;
+// ---cut---
 const vault = await stigmer.vault.getByExternalId({
   org: "acme-books",
   externalId: "cust-4411",

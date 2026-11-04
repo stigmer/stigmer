@@ -128,6 +128,56 @@ See the AWS docs:
 </Accordion>
 </Accordions>
 
+## The examples' imports
+
+The examples on this page call a client set up as the
+[SDK pages](/docs/sdk/overview) show: `stigmer` in TypeScript, `client` in Go,
+Python and Java, and a `ctx` in Go. They use these imports:
+
+<SDKTabs>
+<Tab value="TypeScript">
+
+```typescript prelude
+import { IamRole } from "@stigmer/client";
+```
+
+</Tab>
+<Tab value="Go">
+
+```go prelude
+import (
+	"fmt"
+	"log"
+
+	stigmer "go.stigmer.ai/sdk"
+	federationissuerv1 "go.stigmer.ai/sdk/proto/ai/stigmer/iam/federationissuer/v1"
+	iamv1 "go.stigmer.ai/sdk/proto/ai/stigmer/iam/v1"
+)
+```
+
+</Tab>
+<Tab value="Python">
+
+```python prelude
+from stigmer import FederationIssuerInput, ResourceRef
+from ai.stigmer.iam.federationissuer.v1 import io_pb2 as federationissuer_io
+from ai.stigmer.iam.v1 import enum_pb2 as iam_enum
+```
+
+</Tab>
+<Tab value="Java">
+
+```java prelude
+import ai.stigmer.iam.federationissuer.v1.*;
+import ai.stigmer.iam.v1.IamRole;
+import ai.stigmer.sdk.gen.FederationIssuerInput;
+import ai.stigmer.sdk.gen.ResourceRef;
+import java.util.List;
+```
+
+</Tab>
+</SDKTabs>
+
 ## Create the Federation Issuer
 
 Use the SDK to register a Federation Issuer in your Organization.
@@ -146,7 +196,7 @@ const issuer = await stigmer.federationIssuer.create({
   expectedAudience: "https://api.acme.com/stigmer",
 });
 
-console.log(`Created Federation Issuer: ${issuer.metadata.id}`);
+console.log(`Created Federation Issuer: ${issuer.metadata?.id}`);
 ```
 
 </Tab>
@@ -154,18 +204,18 @@ console.log(`Created Federation Issuer: ${issuer.metadata.id}`);
 
 ```go
 issuer, err := client.FederationIssuer.Create(ctx, &stigmer.FederationIssuerInput{
-  Name:             "Acme Cloud Auth",
-  Org:              "acme",
-  Slug:             "acme-cloud-auth",
-  DisplayName:      "Acme Cloud Auth",
-  JwksUri:          "https://acme.us.auth0.com/.well-known/jwks.json",
-  AllowedIssuers:   []string{"https://acme.us.auth0.com/"},
-  ExpectedAudience: "https://api.acme.com/stigmer",
+	Name:             "Acme Cloud Auth",
+	Org:              "acme",
+	Slug:             "acme-cloud-auth",
+	DisplayName:      "Acme Cloud Auth",
+	JwksUri:          "https://acme.us.auth0.com/.well-known/jwks.json",
+	AllowedIssuers:   []string{"https://acme.us.auth0.com/"},
+	ExpectedAudience: "https://api.acme.com/stigmer",
 })
 if err != nil {
-  log.Fatal(err)
+	log.Fatal(err)
 }
-fmt.Printf("Created Federation Issuer: %s\n", issuer.Metadata.Id)
+fmt.Printf("Created Federation Issuer: %s\n", issuer.GetMetadata().GetId())
 ```
 
 </Tab>
@@ -189,7 +239,7 @@ print(f"Created Federation Issuer: {issuer.metadata.id}")
 <Tab value="Java">
 
 ```java
-FederationIssuer issuer = client.federationIssuers().create(FederationIssuerInput.builder()
+FederationIssuer issuer = client.federationIssuer.create(FederationIssuerInput.builder()
     .name("Acme Cloud Auth")
     .org("acme")
     .slug("acme-cloud-auth")
@@ -266,10 +316,10 @@ const issuer = await stigmer.federationIssuer.create({
   allowedIssuers: ["https://acme.us.auth0.com/"],
   expectedAudience: "https://api.acme.com/stigmer",
   createAccountsOnSignIn: true,
-  signInRole: "viewer",
+  signInRole: IamRole.viewer,
 });
 
-console.log(`Created JIT-enabled Federation Issuer: ${issuer.metadata.id}`);
+console.log(`Created JIT-enabled Federation Issuer: ${issuer.metadata?.id}`);
 ```
 
 </Tab>
@@ -277,20 +327,20 @@ console.log(`Created JIT-enabled Federation Issuer: ${issuer.metadata.id}`);
 
 ```go
 issuer, err := client.FederationIssuer.Create(ctx, &stigmer.FederationIssuerInput{
-  Name:                   "Acme Cloud Auth",
-  Org:                    "acme",
-  Slug:                   "acme-cloud-auth",
-  DisplayName:            "Acme Cloud Auth",
-  JwksUri:                "https://acme.us.auth0.com/.well-known/jwks.json",
-  AllowedIssuers:         []string{"https://acme.us.auth0.com/"},
-  ExpectedAudience:       "https://api.acme.com/stigmer",
-  CreateAccountsOnSignIn: true,
-  SignInRole:             "viewer",
+	Name:                   "Acme Cloud Auth",
+	Org:                    "acme",
+	Slug:                   "acme-cloud-auth",
+	DisplayName:            "Acme Cloud Auth",
+	JwksUri:                "https://acme.us.auth0.com/.well-known/jwks.json",
+	AllowedIssuers:         []string{"https://acme.us.auth0.com/"},
+	ExpectedAudience:       "https://api.acme.com/stigmer",
+	CreateAccountsOnSignIn: true,
+	SignInRole:             iamv1.IamRole_viewer,
 })
 if err != nil {
-  log.Fatal(err)
+	log.Fatal(err)
 }
-fmt.Printf("Created JIT-enabled Federation Issuer: %s\n", issuer.Metadata.Id)
+fmt.Printf("Created JIT-enabled Federation Issuer: %s\n", issuer.GetMetadata().GetId())
 ```
 
 </Tab>
@@ -306,7 +356,7 @@ issuer = client.federation_issuers.create(FederationIssuerInput(
     allowed_issuers=["https://acme.us.auth0.com/"],
     expected_audience="https://api.acme.com/stigmer",
     create_accounts_on_sign_in=True,
-    sign_in_role="viewer",
+    sign_in_role=iam_enum.viewer,
 ))
 
 print(f"Created JIT-enabled Federation Issuer: {issuer.metadata.id}")
@@ -316,7 +366,7 @@ print(f"Created JIT-enabled Federation Issuer: {issuer.metadata.id}")
 <Tab value="Java">
 
 ```java
-FederationIssuer issuer = client.federationIssuers().create(FederationIssuerInput.builder()
+FederationIssuer issuer = client.federationIssuer.create(FederationIssuerInput.builder()
     .name("Acme Cloud Auth")
     .org("acme")
     .slug("acme-cloud-auth")
@@ -325,7 +375,7 @@ FederationIssuer issuer = client.federationIssuers().create(FederationIssuerInpu
     .allowedIssuers(List.of("https://acme.us.auth0.com/"))
     .expectedAudience("https://api.acme.com/stigmer")
     .createAccountsOnSignIn(true)
-    .signInRole("viewer")
+    .signInRole(IamRole.viewer)
     .build());
 
 System.out.println("Created JIT-enabled Federation Issuer: " + issuer.getMetadata().getId());
@@ -394,38 +444,35 @@ After creation, confirm the Federation Issuer is registered correctly:
 ```typescript
 const issuer = await stigmer.federationIssuer.getByReference({
   org: "acme",
-  kind: "federation_issuer",
   slug: "acme-cloud-auth",
 });
 
-console.log(`Name: ${issuer.spec.displayName}`);
-console.log(`JWKS: ${issuer.spec.jwksUri}`);
-console.log(`Issuers: ${issuer.spec.allowedIssuers}`);
+console.log(`Name: ${issuer.spec?.displayName}`);
+console.log(`JWKS: ${issuer.spec?.jwksUri}`);
+console.log(`Issuers: ${issuer.spec?.allowedIssuers}`);
 ```
 
 </Tab>
 <Tab value="Go">
 
 ```go
-issuer, err := client.FederationIssuer.GetByReference(ctx, &stigmer.ApiResourceReference{
-  Org:  "acme",
-  Kind: "federation_issuer",
-  Slug: "acme-cloud-auth",
+issuer, err := client.FederationIssuer.GetByReference(ctx, stigmer.ResourceRef{
+	Org:  "acme",
+	Slug: "acme-cloud-auth",
 })
 if err != nil {
-  log.Fatal(err)
+	log.Fatal(err)
 }
-fmt.Printf("Name: %s\n", issuer.Spec.DisplayName)
-fmt.Printf("JWKS: %s\n", issuer.Spec.JwksUri)
+fmt.Printf("Name: %s\n", issuer.GetSpec().GetDisplayName())
+fmt.Printf("JWKS: %s\n", issuer.GetSpec().GetJwksUri())
 ```
 
 </Tab>
 <Tab value="Python">
 
 ```python
-issuer = client.federation_issuers.get_by_reference(ApiResourceReference(
+issuer = client.federation_issuers.get_by_reference(ResourceRef(
     org="acme",
-    kind="federation_issuer",
     slug="acme-cloud-auth",
 ))
 
@@ -437,11 +484,7 @@ print(f"JWKS: {issuer.spec.jwks_uri}")
 <Tab value="Java">
 
 ```java
-FederationIssuer issuer = client.federationIssuers().getByReference(ApiResourceReference.builder()
-    .org("acme")
-    .kind("federation_issuer")
-    .slug("acme-cloud-auth")
-    .build());
+FederationIssuer issuer = client.federationIssuer.getByReference(ResourceRef.of("acme", "acme-cloud-auth"));
 
 System.out.println("Name: " + issuer.getSpec().getDisplayName());
 System.out.println("JWKS: " + issuer.getSpec().getJwksUri());
@@ -464,7 +507,7 @@ time (follow `nextPageToken` for the next page):
 const result = await stigmer.federationIssuer.list({ org: "acme" });
 
 for (const issuer of result.entries) {
-  console.log(`${issuer.metadata.slug}: ${issuer.spec.displayName}`);
+  console.log(`${issuer.metadata?.slug}: ${issuer.spec?.displayName}`);
 }
 ```
 
@@ -472,14 +515,14 @@ for (const issuer of result.entries) {
 <Tab value="Go">
 
 ```go
-result, err := client.FederationIssuer.List(ctx, &stigmer.ListFederationIssuersInput{
-  Org: "acme",
+result, err := client.FederationIssuer.List(ctx, &federationissuerv1.ListFederationIssuersInput{
+	Org: "acme",
 })
 if err != nil {
-  log.Fatal(err)
+	log.Fatal(err)
 }
-for _, issuer := range result.Entries {
-  fmt.Printf("%s: %s\n", issuer.Metadata.Slug, issuer.Spec.DisplayName)
+for _, issuer := range result.GetEntries() {
+	fmt.Printf("%s: %s\n", issuer.GetMetadata().GetSlug(), issuer.GetSpec().GetDisplayName())
 }
 ```
 
@@ -487,7 +530,7 @@ for _, issuer := range result.Entries {
 <Tab value="Python">
 
 ```python
-result = client.federation_issuers.list(ListFederationIssuersInput(
+result = client.federation_issuers.list(federationissuer_io.ListFederationIssuersInput(
     org="acme",
 ))
 
@@ -499,12 +542,12 @@ for issuer in result.entries:
 <Tab value="Java">
 
 ```java
-FederationIssuers result = client.federationIssuers().list(ListFederationIssuersInput.builder()
-    .org("acme")
+FederationIssuers result = client.federationIssuer.list(ListFederationIssuersInput.newBuilder()
+    .setOrg("acme")
     .build());
 
-for (FederationIssuer issuer : result.getEntries()) {
-  System.out.println(issuer.getMetadata().getSlug() + ": " + issuer.getSpec().getDisplayName());
+for (FederationIssuer issuer : result.getEntriesList()) {
+    System.out.println(issuer.getMetadata().getSlug() + ": " + issuer.getSpec().getDisplayName());
 }
 ```
 

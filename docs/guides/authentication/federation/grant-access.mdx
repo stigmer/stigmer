@@ -32,6 +32,63 @@ A Grant binds all three. When Stigmer receives an API call, it checks whether a
 grant exists that matches the caller, the target resource, and the required
 permission.
 
+## The examples' imports
+
+The examples on this page call a client set up as the
+[SDK pages](/docs/sdk/overview) show: `stigmer` in TypeScript, `client` in Go,
+Python and Java, and a `ctx` in Go. They use these imports:
+
+<SDKTabs>
+<Tab value="TypeScript">
+
+```typescript prelude
+import { isNotFound } from "@stigmer/client";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+```
+
+</Tab>
+<Tab value="Go">
+
+```go prelude
+import (
+	"context"
+	"fmt"
+	"log"
+
+	stigmer "go.stigmer.ai/sdk"
+	"go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	"go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource/apiresourcekind"
+	grantv1 "go.stigmer.ai/sdk/proto/ai/stigmer/iam/grant/v1"
+	identityaccountv1 "go.stigmer.ai/sdk/proto/ai/stigmer/iam/identityaccount/v1"
+)
+```
+
+</Tab>
+<Tab value="Python">
+
+```python prelude
+from stigmer import StigmerClient, StigmerError, is_not_found
+from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io
+from ai.stigmer.iam.grant.v1 import io_pb2 as grant_io
+from ai.stigmer.iam.grant.v1 import spec_pb2 as grant_spec
+from ai.stigmer.iam.identityaccount.v1 import io_pb2 as identityaccount_io
+```
+
+</Tab>
+<Tab value="Java">
+
+```java prelude
+import ai.stigmer.commons.apiresource.ApiResourceReference;
+import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
+import ai.stigmer.iam.grant.v1.*;
+import ai.stigmer.iam.identityaccount.v1.*;
+import ai.stigmer.sdk.StigmerClient;
+import ai.stigmer.sdk.gen.StigmerException;
+```
+
+</Tab>
+</SDKTabs>
+
 ## Grant an Organization role
 
 The most common pattern is granting a role on the Organization itself. This
@@ -56,6 +113,9 @@ as the principal, and the Organization ID as the resource.
 <Tab value="TypeScript">
 
 ```typescript
+declare const accountId: string;
+declare const organizationId: string;
+// ---cut---
 const grant = await stigmer.grant.create({
   principal: {
     kind: "identity_account",
@@ -68,40 +128,45 @@ const grant = await stigmer.grant.create({
   relation: "viewer",
 });
 
-console.log(`Granted viewer role: ${grant.metadata.id}`);
+console.log(`Granted viewer role: ${grant.metadata?.id}`);
 ```
 
 </Tab>
 <Tab value="Go">
 
 ```go
-grant, err := client.Grant.Create(ctx, &stigmer.GrantSpec{
-  Principal: &stigmer.ApiResourceRefInput{
-    Kind: "identity_account",
-    Id:   accountId,
-  },
-  Resource: &stigmer.ApiResourceRefInput{
-    Kind: "organization",
-    Id:   organizationId,
-  },
-  Relation: "viewer",
+var accountID, organizationID string
+// ---cut---
+grant, err := client.Grant.Create(ctx, &grantv1.GrantSpec{
+	Principal: &grantv1.ApiResourceRef{
+		Kind: "identity_account",
+		Id:   accountID,
+	},
+	Resource: &grantv1.ApiResourceRef{
+		Kind: "organization",
+		Id:   organizationID,
+	},
+	Relation: "viewer",
 })
 if err != nil {
-  return fmt.Errorf("grant org role: %w", err)
+	log.Fatalf("grant org role: %v", err)
 }
-fmt.Printf("Granted viewer role: %s\n", grant.Metadata.Id)
+fmt.Printf("Granted viewer role: %s\n", grant.GetMetadata().GetId())
 ```
 
 </Tab>
 <Tab value="Python">
 
 ```python
-grant = client.grants.create(GrantSpec(
-    principal=ApiResourceRefInput(
+account_id = ""
+organization_id = ""
+# ---cut---
+grant = client.grants.create(grant_spec.GrantSpec(
+    principal=grant_spec.ApiResourceRef(
         kind="identity_account",
         id=account_id,
     ),
-    resource=ApiResourceRefInput(
+    resource=grant_spec.ApiResourceRef(
         kind="organization",
         id=organization_id,
     ),
@@ -115,16 +180,17 @@ print(f"Granted viewer role: {grant.metadata.id}")
 <Tab value="Java">
 
 ```java
-Grant grant = client.grants().create(GrantSpec.builder()
-    .principal(ApiResourceRefInput.builder()
-        .kind("identity_account")
-        .id(accountId)
-        .build())
-    .resource(ApiResourceRefInput.builder()
-        .kind("organization")
-        .id(organizationId)
-        .build())
-    .relation("viewer")
+String accountId;
+String organizationId;
+// ---cut---
+Grant grant = client.grant.create(GrantSpec.newBuilder()
+    .setPrincipal(ApiResourceRef.newBuilder()
+        .setKind("identity_account")
+        .setId(accountId))
+    .setResource(ApiResourceRef.newBuilder()
+        .setKind("organization")
+        .setId(organizationId))
+    .setRelation("viewer")
     .build());
 
 System.out.println("Granted viewer role: " + grant.getMetadata().getId());
@@ -142,26 +208,34 @@ Here's the combined pattern:
 <Tab value="TypeScript">
 
 ```typescript
-async function onboardUser(user: PlatformUser): Promise<void> {
+interface PlatformUser {
+  oidcSubject: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  avatarUrl: string;
+}
+// ---cut---
+async function onboardUser(
+  user: PlatformUser,
+  organizationId: string,
+): Promise<void> {
   const issuerRef = {
     org: "acme",
-    kind: "federation_issuer",
+    kind: ApiResourceKind.federation_issuer,
     slug: "acme-cloud-auth",
   };
 
-  let accountId: string;
-
+  let account;
   try {
-    const existing = await stigmer.identityAccount.getByExternalSub({
+    account = await stigmer.identityAccount.getByExternalSub({
       org: "acme",
       federationIssuerRef: issuerRef,
       externalSub: user.oidcSubject,
     });
-    accountId = existing.metadata.id;
   } catch (err) {
-    if (err.code !== "NOT_FOUND") throw err;
-
-    const account = await stigmer.identityAccount.createFederatedAccount({
+    if (!isNotFound(err)) throw err;
+    account = await stigmer.identityAccount.createFederatedAccount({
       org: "acme",
       federationIssuerRef: issuerRef,
       externalSub: user.oidcSubject,
@@ -170,11 +244,10 @@ async function onboardUser(user: PlatformUser): Promise<void> {
       lastName: user.lastName,
       pictureUrl: user.avatarUrl,
     });
-    accountId = account.metadata.id;
   }
 
   await stigmer.grant.create({
-    principal: { kind: "identity_account", id: accountId },
+    principal: { kind: "identity_account", id: account.metadata?.id ?? "" },
     resource: { kind: "organization", id: organizationId },
     relation: "viewer",
   });
@@ -185,46 +258,41 @@ async function onboardUser(user: PlatformUser): Promise<void> {
 <Tab value="Go">
 
 ```go
-func onboardUser(ctx context.Context, client *stigmer.Client, user PlatformUser, orgId string) error {
-  issuerRef := &stigmer.ResourceRef{
-    Org:  "acme",
-    Kind: "federation_issuer",
-    Slug: "acme-cloud-auth",
-  }
+type PlatformUser struct{ OIDCSubject, Email, NewEmail, FirstName, LastName, AvatarURL string }
+// ---cut---
+func onboardUser(ctx context.Context, client *stigmer.Client, user PlatformUser, organizationID string) error {
+	issuerRef := &apiresource.ApiResourceReference{
+		Org:  "acme",
+		Kind: apiresourcekind.ApiResourceKind_federation_issuer,
+		Slug: "acme-cloud-auth",
+	}
 
-  var accountId string
+	account, err := client.IdentityAccount.GetByExternalSub(ctx, &identityaccountv1.ExternalSubLookup{
+		Org:                 "acme",
+		FederationIssuerRef: issuerRef,
+		ExternalSub:         user.OIDCSubject,
+	})
+	if stigmer.IsNotFound(err) {
+		account, err = client.IdentityAccount.CreateFederatedAccount(ctx, &identityaccountv1.CreateFederatedAccountInput{
+			Org:                 "acme",
+			FederationIssuerRef: issuerRef,
+			ExternalSub:         user.OIDCSubject,
+			Email:               user.Email,
+			FirstName:           user.FirstName,
+			LastName:            user.LastName,
+			PictureUrl:          user.AvatarURL,
+		})
+	}
+	if err != nil {
+		return fmt.Errorf("provision account: %w", err)
+	}
 
-  existing, err := client.IdentityAccount.GetByExternalSub(ctx, &stigmer.ExternalSubLookup{
-    Org:                 "acme",
-    FederationIssuerRef: issuerRef,
-    ExternalSub:         user.OIDCSubject,
-  })
-  if err == nil {
-    accountId = existing.Metadata.Id
-  } else if status.Code(err) == codes.NotFound {
-    account, createErr := client.IdentityAccount.CreateFederatedAccount(ctx, &stigmer.CreateFederatedAccountInput{
-      Org:                 "acme",
-      FederationIssuerRef: issuerRef,
-      ExternalSub:         user.OIDCSubject,
-      Email:               user.Email,
-      FirstName:           user.FirstName,
-      LastName:            user.LastName,
-      PictureUrl:          user.AvatarURL,
-    })
-    if createErr != nil {
-      return fmt.Errorf("create account: %w", createErr)
-    }
-    accountId = account.Metadata.Id
-  } else {
-    return err
-  }
-
-  _, err = client.Grant.Create(ctx, &stigmer.GrantSpec{
-    Principal: &stigmer.ApiResourceRefInput{Kind: "identity_account", Id: accountId},
-    Resource:  &stigmer.ApiResourceRefInput{Kind: "organization", Id: orgId},
-    Relation:  "viewer",
-  })
-  return err
+	_, err = client.Grant.Create(ctx, &grantv1.GrantSpec{
+		Principal: &grantv1.ApiResourceRef{Kind: "identity_account", Id: account.GetMetadata().GetId()},
+		Resource:  &grantv1.ApiResourceRef{Kind: "organization", Id: organizationID},
+		Relation:  "viewer",
+	})
+	return err
 }
 ```
 
@@ -232,20 +300,33 @@ func onboardUser(ctx context.Context, client *stigmer.Client, user PlatformUser,
 <Tab value="Python">
 
 ```python
-def onboard_user(client, user: PlatformUser, organization_id: str) -> None:
-    issuer_ref = ResourceRef(org="acme", kind="federation_issuer", slug="acme-cloud-auth")
+class PlatformUser:
+    """Your platform's record of the person."""
+
+    oidc_subject: str
+    email: str
+    new_email: str
+    first_name: str
+    last_name: str
+    avatar_url: str
+# ---cut---
+def onboard_user(client: StigmerClient, user: PlatformUser, organization_id: str) -> None:
+    issuer_ref = apiresource_io.ApiResourceReference(
+        org="acme",
+        kind="federation_issuer",
+        slug="acme-cloud-auth",
+    )
 
     try:
-        existing = client.identity_accounts.get_by_external_sub(ExternalSubLookup(
+        account = client.identity_accounts.get_by_external_sub(identityaccount_io.ExternalSubLookup(
             org="acme",
             federation_issuer_ref=issuer_ref,
             external_sub=user.oidc_subject,
         ))
-        account_id = existing.metadata.id
-    except RpcError as e:
-        if e.code() != StatusCode.NOT_FOUND:
+    except StigmerError as e:
+        if not is_not_found(e):
             raise
-        account = client.identity_accounts.create_federated_account(CreateFederatedAccountInput(
+        account = client.identity_accounts.create_federated_account(identityaccount_io.CreateFederatedAccountInput(
             org="acme",
             federation_issuer_ref=issuer_ref,
             external_sub=user.oidc_subject,
@@ -254,11 +335,10 @@ def onboard_user(client, user: PlatformUser, organization_id: str) -> None:
             last_name=user.last_name,
             picture_url=user.avatar_url,
         ))
-        account_id = account.metadata.id
 
-    client.grants.create(GrantSpec(
-        principal=ApiResourceRefInput(kind="identity_account", id=account_id),
-        resource=ApiResourceRefInput(kind="organization", id=organization_id),
+    client.grants.create(grant_spec.GrantSpec(
+        principal=grant_spec.ApiResourceRef(kind="identity_account", id=account.metadata.id),
+        resource=grant_spec.ApiResourceRef(kind="organization", id=organization_id),
         relation="viewer",
     ))
 ```
@@ -267,29 +347,40 @@ def onboard_user(client, user: PlatformUser, organization_id: str) -> None:
 <Tab value="Java">
 
 ```java
+interface PlatformUser { String getOidcSubject(); String getEmail(); String getNewEmail(); String getFirstName(); String getLastName(); String getAvatarUrl(); }
+// ---cut---
 public void onboardUser(StigmerClient client, PlatformUser user, String organizationId) {
-    ResourceRef issuerRef = ResourceRef.builder()
-        .org("acme").kind("federation_issuer").slug("acme-cloud-auth").build();
+    ApiResourceReference issuerRef = ApiResourceReference.newBuilder()
+        .setOrg("acme")
+        .setKind(ApiResourceKind.federation_issuer)
+        .setSlug("acme-cloud-auth")
+        .build();
 
-    String accountId;
-
+    IdentityAccount account;
     try {
-        IdentityAccount existing = client.identityAccounts().getByExternalSub(ExternalSubLookup.builder()
-            .org("acme").federationIssuerRef(issuerRef).externalSub(user.getOidcSubject()).build());
-        accountId = existing.getMetadata().getId();
-    } catch (StatusRuntimeException e) {
-        if (e.getStatus().getCode() != Status.Code.NOT_FOUND) throw e;
-        IdentityAccount account = client.identityAccounts().createFederatedAccount(CreateFederatedAccountInput.builder()
-            .org("acme").federationIssuerRef(issuerRef).externalSub(user.getOidcSubject())
-            .email(user.getEmail()).firstName(user.getFirstName())
-            .lastName(user.getLastName()).pictureUrl(user.getAvatarUrl()).build());
-        accountId = account.getMetadata().getId();
+        account = client.identityAccount.getByExternalSub(ExternalSubLookup.newBuilder()
+            .setOrg("acme")
+            .setFederationIssuerRef(issuerRef)
+            .setExternalSub(user.getOidcSubject())
+            .build());
+    } catch (StigmerException e) {
+        if (!e.isNotFound()) throw e;
+        account = client.identityAccount.createFederatedAccount(CreateFederatedAccountInput.newBuilder()
+            .setOrg("acme")
+            .setFederationIssuerRef(issuerRef)
+            .setExternalSub(user.getOidcSubject())
+            .setEmail(user.getEmail())
+            .setFirstName(user.getFirstName())
+            .setLastName(user.getLastName())
+            .setPictureUrl(user.getAvatarUrl())
+            .build());
     }
 
-    client.grants().create(GrantSpec.builder()
-        .principal(ApiResourceRefInput.builder().kind("identity_account").id(accountId).build())
-        .resource(ApiResourceRefInput.builder().kind("organization").id(organizationId).build())
-        .relation("viewer").build());
+    client.grant.create(GrantSpec.newBuilder()
+        .setPrincipal(ApiResourceRef.newBuilder().setKind("identity_account").setId(account.getMetadata().getId()))
+        .setResource(ApiResourceRef.newBuilder().setKind("organization").setId(organizationId))
+        .setRelation("viewer")
+        .build());
 }
 ```
 
@@ -306,6 +397,9 @@ grants on child resources like Vaults and Agents.
 <Tab value="TypeScript">
 
 ```typescript
+declare const accountId: string;
+declare const organizationId: string;
+// ---cut---
 await stigmer.grant.revokeOrgAccess({
   identityAccountId: accountId,
   org: organizationId,
@@ -316,9 +410,11 @@ await stigmer.grant.revokeOrgAccess({
 <Tab value="Go">
 
 ```go
-_, err := client.Grant.RevokeOrgAccess(ctx, &stigmer.RevokeOrgAccessInput{
-  IdentityAccountId: accountId,
-  Org:               organizationId,
+var accountID, organizationID string
+// ---cut---
+err := client.Grant.RevokeOrgAccess(ctx, &grantv1.RevokeOrgAccessInput{
+	IdentityAccountId: accountID,
+	Org:               organizationID,
 })
 ```
 
@@ -326,7 +422,10 @@ _, err := client.Grant.RevokeOrgAccess(ctx, &stigmer.RevokeOrgAccessInput{
 <Tab value="Python">
 
 ```python
-client.grants.revoke_org_access(RevokeOrgAccessInput(
+account_id = ""
+organization_id = ""
+# ---cut---
+client.grants.revoke_org_access(grant_io.RevokeOrgAccessInput(
     identity_account_id=account_id,
     org=organization_id,
 ))
@@ -336,9 +435,12 @@ client.grants.revoke_org_access(RevokeOrgAccessInput(
 <Tab value="Java">
 
 ```java
-client.grants().revokeOrgAccess(RevokeOrgAccessInput.builder()
-    .identityAccountId(accountId)
-    .org(organizationId)
+String accountId;
+String organizationId;
+// ---cut---
+client.grant.revokeOrgAccess(RevokeOrgAccessInput.newBuilder()
+    .setIdentityAccountId(accountId)
+    .setOrg(organizationId)
     .build());
 ```
 

@@ -19,6 +19,8 @@ pip install stigmer-sdk
 Authenticate with an API key from an environment variable:
 
 ```python
+import os
+
 from stigmer import StigmerClient
 
 client = StigmerClient(os.environ["STIGMER_API_KEY"])
@@ -31,6 +33,9 @@ The client also supports the context manager protocol, which closes the
 connection when the block exits:
 
 ```python
+import os
+from stigmer import StigmerClient
+
 with StigmerClient(os.environ["STIGMER_API_KEY"]) as client:
     agent = client.agents.get("agent-id")
 ```
@@ -99,6 +104,8 @@ Every resource has its own client with methods like `get`, `create`, `list`,
 ([Update and apply](/docs/sdk/overview#update-and-apply)). Python uses plural snake_case attributes:
 
 ```python
+agent_id = ""
+# ---cut---
 from stigmer import StigmerError, is_not_found
 
 try:

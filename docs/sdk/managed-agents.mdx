@@ -50,9 +50,14 @@ Console, as the [SDK Overview](/docs/sdk/overview) shows, then use its ID here.
 next page as you iterate:
 
 ```typescript
+import Anthropic from "@anthropic-ai/sdk";
+
+declare const client: Anthropic;
+declare const sessionId: string;
+// ---cut---
 for await (const event of client.beta.sessions.events.list(sessionId)) {
   if (event.type === "agent.message") {
-    console.log(event.content.map((block) => block.text).join(""));
+    console.log(event.content.map((block) => (block.type === "text" ? block.text : "")).join(""));
   }
 }
 ```
@@ -69,6 +74,11 @@ stream opens. Ask for `agent.message` previews to show the Agent's words as it
 writes them:
 
 ```typescript
+import Anthropic from "@anthropic-ai/sdk";
+
+declare const client: Anthropic;
+declare const sessionId: string;
+// ---cut---
 const stream = await client.beta.sessions.events.stream(sessionId, {
   event_deltas: ["agent.message"],
 });
@@ -102,6 +112,12 @@ falls behind only lags; its stream is not ended for it.
 - `user.interrupt` stops the Session's unfinished work.
 
 ```typescript
+import Anthropic from "@anthropic-ai/sdk";
+
+declare const client: Anthropic;
+declare const sessionId: string;
+declare const toolUseId: string;
+// ---cut---
 await client.beta.sessions.events.send(sessionId, {
   events: [{ type: "user.message", content: [{ type: "text", text: "Summarize the README." }] }],
 });
@@ -134,6 +150,13 @@ turn the retry off for sends and list the Session's newest events to learn
 whether a send landed:
 
 ```typescript
+import Anthropic from "@anthropic-ai/sdk";
+import type { EventSendParams } from "@anthropic-ai/sdk/resources/beta/sessions/events";
+
+declare const client: Anthropic;
+declare const sessionId: string;
+declare const events: EventSendParams["events"];
+// ---cut---
 await client.beta.sessions.events.send(sessionId, { events }, { maxRetries: 0 });
 ```
 

@@ -156,6 +156,33 @@ For any content where pages form a sequence:
 - Entry-point ordering, path convergence and prerequisite chains belong to the
   information architecture; a page author does not decide path structure.
 
+## Code examples compile, or say why they cannot
+
+Every TypeScript, Go, Python and Java block is compiled against the SDK it shows
+(`docs/STYLE.md`, "Code examples compile", has the mechanics). Write each one as
+a reader will paste it:
+
+- Show the imports. A page whose examples share them shows them once in a
+  visible `prelude` block per language; a single example imports in place.
+- Take as given only the client: `stigmer` or `client` in TypeScript, `client`
+  and `ctx` in Go, `client` in Python and Java. A name the page's prose
+  introduces (a `user` the previous step signed in, an `accountId` the last call
+  returned) is declared in the block's hidden setup, above `// ---cut---`
+  (`# ---cut---` in Python). The setup holds declarations and the imports they
+  alone need, never an import the visible code uses and never logic the reader
+  needs; if it carries meaning, it moves into the body. The prose still names
+  the given, as it always has.
+- Use the SDK's real names and types: the proto message a method takes, an enum
+  value rather than its string, the field a client exposes. The resource
+  reference pages show each language's form.
+- An example that returns a value is the function it belongs to.
+- Mark a block `no-compile="reason"` only when it cannot compile and should not:
+  pseudo-code, a sketch with arguments elided, a wrong value shown beside a
+  right one. The reason says which.
+
+The gate's list of blocks allowed to fail today may only shrink; never add to
+it.
+
 ## Reference pages generated from protos
 
 SDK reference pages are generated from the proto schemas; the generator lives
