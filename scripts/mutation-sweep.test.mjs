@@ -6,6 +6,8 @@
 // sweep starts (its `check` command included), and the committed one names
 // packages that exist and globs that match tracked files; every target's config skips static mutants, writes only the
 // JSON report, points every output outside the tree and removes its sandbox;
+// a file mode git reports changed is read as the execute bit to put back, and
+// the bit goes back wherever read is allowed, never as a fixed mode;
 // a finding is named by what changed and where, not by Stryker's id or its
 // line, so a line moved by an edit above it keeps its name and two identical
 // changes in one file stay two; only the changes no test noticed and the lines
@@ -24,13 +26,15 @@
 // `npx` in a throwaway repository, `--run` end to end: its record, the
 // confirm step's verdicts and their cache, an interrupted run, a signal sent
 // to the sweep alone, a run cut short by its budget, a dry run, a related run
-// that hangs, `--list`, and the refusals of a dirty package, an untracked
+// that hangs, an execute bit Stryker's restore dropped put back after a run,
+// a failed one and a dry run so the next run starts, `--list`, and the
+// refusals of a dirty package, an untracked
 // file and a file outside it. The confirm step's budget is also driven by a
 // fake clock: no check starts that its limit could carry past the deadline.
 
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
@@ -43,12 +47,14 @@ import {
   confirmFindings,
   confirmTimeout,
   defaultCheck,
+  executableMode,
   findingKey,
   hasWork,
   issueTargetsPath,
   keepVerdicts,
   keysFromBody,
   MAX_BODY,
+  modeChanges,
   oneLine,
   orphanedIssues,
   publishPlan,
@@ -174,6 +180,44 @@ test("--only sweeps one file and does not read or write the incremental file", (
   const config = strykerConfig(TARGET, "/out/credit-gate", { only: "src/gate/allowed.ts" });
   assert.deepEqual(config.mutate, ["src/gate/allowed.ts"]);
   assert.equal(config.incremental, false);
+});
+
+// ─── What Stryker's restore leaves behind ───────────────────────────────
+
+/** One record of `git diff --raw -z`, as git prints it worktree against the index. */
+const rawRecord = (from, to, status, path) => `:${from} ${to} 63d8dbd 0000000 ${status}\0${path}\0`;
+
+test("a mode git reports changed is read as the bit to put back; content, a deletion, a link or a submodule is not", () => {
+  const cases = [
+    ["an executable file that lost its bit", rawRecord("100755", "100644", "M", "bin/run.mjs"), [{ path: "bin/run.mjs", executable: true }]],
+    ["a plain file that gained one", rawRecord("100644", "100755", "M", "src/a.ts"), [{ path: "src/a.ts", executable: false }]],
+    ["content and mode changed together", rawRecord("100755", "100644", "M", "bin/edited.mjs"), [{ path: "bin/edited.mjs", executable: true }]],
+    ["content changed alone", rawRecord("100644", "100644", "M", "src/b.ts"), []],
+    ["a deletion", rawRecord("100644", "000000", "D", "src/gone.ts"), []],
+    ["a symlink", rawRecord("120000", "100644", "T", "src/link"), []],
+    ["a submodule", rawRecord("160000", "160000", "M", "vendor/sub"), []],
+    ["a path with a space", rawRecord("100755", "100644", "M", "bin/a b.mjs"), [{ path: "bin/a b.mjs", executable: true }]],
+    ["a path with a newline", rawRecord("100755", "100644", "M", "bin/odd\nname.mjs"), [{ path: "bin/odd\nname.mjs", executable: true }]],
+    ["no output", "", []],
+  ];
+  for (const [name, raw, expected] of cases) assert.deepEqual(modeChanges(raw), expected, name);
+  assert.deepEqual(
+    modeChanges(cases.map(([, raw]) => raw).join("")),
+    cases.flatMap(([, , expected]) => expected),
+    "every record of one output is read, in order",
+  );
+});
+
+test("an execute bit is put back wherever read is allowed, or taken off everywhere, and the rest of the mode is kept", () => {
+  assert.equal(executableMode(0o644, true), 0o755);
+  assert.equal(executableMode(0o640, true), 0o750);
+  assert.equal(executableMode(0o600, true), 0o700);
+  assert.equal(executableMode(0o755, false), 0o644);
+  assert.equal(executableMode(0o750, false), 0o640);
+  assert.equal(executableMode(0o700, false), 0o600);
+  assert.equal(executableMode(0o755, true), 0o755);
+  assert.equal(executableMode(0o100644, true), 0o100755, "the file-type bits are kept");
+  assert.equal(executableMode(0o100755, false), 0o100644);
 });
 
 // ─── Reading the report ─────────────────────────────────────────────────
@@ -829,6 +873,9 @@ function runFixture() {
   writeFileSync(join(pkg, "package.json"), "{}\n");
   writeFileSync(join(pkg, "src/gate/allowed.ts"), SOURCE);
   writeFileSync(join(pkg, "src/gate/__tests__/allowed.test.ts"), "// the gate's tests\n");
+  mkdirSync(join(pkg, "bin"));
+  writeFileSync(join(pkg, "bin/example.mjs"), "#!/usr/bin/env node\n");
+  chmodSync(join(pkg, "bin/example.mjs"), 0o755);
   writeFileSync(join(dir, "targets.json"), JSON.stringify({ targets: { "credit-gate": TARGET } }));
   const git = (...args) => spawnSync("git", args, { cwd: repo, encoding: "utf8" });
   git("init", "-q");
@@ -843,12 +890,16 @@ function runFixture() {
   writeFileSync(
     join(bin, "npx"),
     `#!${process.execPath}
-const { appendFileSync, copyFileSync, readFileSync, writeFileSync } = require("node:fs");
+const { appendFileSync, copyFileSync, readFileSync, renameSync, writeFileSync } = require("node:fs");
 const { join, resolve } = require("node:path");
 const args = process.argv.slice(2);
 if (args[1] === "stryker") {
   // Stryker's vitest runner leaves its per-worker setup file in the package, as the real one can.
   writeFileSync("stryker-setup-1.js", "// a worker's setup\\n");
+  // Stryker rewrites every script of the package and restores each by renaming
+  // a fresh copy over it, which drops an execute bit, as the real one does.
+  writeFileSync("bin/example.mjs.backup", readFileSync("bin/example.mjs"));
+  renameSync("bin/example.mjs.backup", "bin/example.mjs");
   if (process.env.FAKE_STRYKER_STATUS) process.exit(Number(process.env.FAKE_STRYKER_STATUS));
   const config = JSON.parse(readFileSync(args[3], "utf8"));
   if (config.dryRunOnly) process.exit(0);
@@ -914,6 +965,39 @@ test("--run writes the target's record, confirms one finding, refutes the other,
     assert.equal(spawnSync("git", ["status", "--porcelain"], { cwd: f.repo, encoding: "utf8" }).stdout, "");
   } finally {
     rmSync(f.dir, { recursive: true, force: true });
+  }
+});
+
+test("--run puts back the execute bit Stryker's restore drops, so the next run starts, whatever Stryker's outcome", () => {
+  const f = runFixture();
+  const script = join(f.pkg, "bin/example.mjs");
+  const executable = () => (statSync(script).mode & 0o100) === 0o100;
+  const status = (repo) => spawnSync("git", ["status", "--porcelain"], { cwd: repo, encoding: "utf8" }).stdout;
+  try {
+    for (const run of ["first run", "second run"]) {
+      const out = f.run();
+      assert.equal(out.status, 0, `${run}: ${out.stderr}`);
+      assert.ok(executable(), run);
+      assert.equal(status(f.repo), "", run);
+    }
+    assert.equal(f.run({ FAKE_STRYKER_STATUS: "1" }).status, 1);
+    assert.ok(executable(), "a failed Stryker run");
+    assert.equal(status(f.repo), "", "a failed Stryker run");
+    assert.equal(f.run({}, ["--dry-run"]).status, 0);
+    assert.ok(executable(), "a dry run");
+    assert.equal(status(f.repo), "", "a dry run");
+  } finally {
+    rmSync(f.dir, { recursive: true, force: true });
+  }
+  const dirty = runFixture();
+  try {
+    const out = dirty.run({ FAKE_STRYKER_DIRTY: "1" });
+    assert.equal(out.status, 2);
+    assert.match(out.stderr, /uncommitted changes/, "content Stryker left changed is still refused");
+    assert.ok((statSync(join(dirty.pkg, "bin/example.mjs")).mode & 0o100) === 0o100);
+    assert.equal(status(dirty.repo), " M backend/services/example/src/gate/allowed.ts\n", "only the content is left changed");
+  } finally {
+    rmSync(dirty.dir, { recursive: true, force: true });
   }
 });
 
