@@ -26,10 +26,10 @@ export function serializeType(type: TypeDocType): string {
       return type.value === null ? "null" : JSON.stringify(type.value);
 
     case "union":
-      return type.types.map(serializeMember).join(" | ");
+      return type.types.map((t) => serializeMember(t)).join(" | ");
 
     case "intersection":
-      return type.types.map(serializeMember).join(" & ");
+      return type.types.map((t) => serializeMember(t, "intersection")).join(" & ");
 
     case "array": {
       // `keyof T[]` is `keyof (T[])`, so an operator's element is wrapped too.
@@ -80,8 +80,12 @@ export function serializeType(type: TypeDocType): string {
       return `${type.name}${opt}: ${serializeType(type.element)}`;
     }
 
-    case "typeOperator":
-      return `${type.operator} ${serializeType(type.target)}`;
+    case "typeOperator": {
+      // `keyof (A | B)` is not `keyof A | B`.
+      const operand = type.target;
+      const wrap = operand.type === "union" || operand.type === "intersection";
+      return `${type.operator} ${wrap ? `(${serializeType(operand)})` : serializeMember(operand)}`;
+    }
 
     case "query":
       return `typeof ${serializeType(type.queryType)}`;
@@ -132,12 +136,14 @@ export function serializeType(type: TypeDocType): string {
 /**
  * A type as a member of a union or intersection: a function type or a
  * conditional type in parentheses, since `() => void | null` reads as a
- * function returning `void | null`.
+ * function returning `void | null`, and in an intersection a union too, since
+ * `A & B | C` is `(A & B) | C`.
  */
-export function serializeMember(type: TypeDocType): string {
+export function serializeMember(type: TypeDocType, within: "union" | "intersection" = "union"): string {
   const text = serializeType(type);
   const isFunction = type.type === "reflection" && (type.declaration.signatures?.length ?? 0) > 0;
-  return isFunction || type.type === "conditional" ? `(${text})` : text;
+  const wrap = isFunction || type.type === "conditional" || (within === "intersection" && type.type === "union");
+  return wrap ? `(${text})` : text;
 }
 
 // ---------------------------------------------------------------------------
