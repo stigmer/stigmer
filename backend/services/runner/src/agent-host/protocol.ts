@@ -74,15 +74,23 @@ export const AGENT_HOST_CHANNEL_FD = 3;
 // ─── What crosses ───────────────────────────────────────────────────────────
 
 /**
- * An error as it crosses: its name, message and stack, rebuilt as an `Error`
- * on the far side. A failed turn's cause also carries what is under it
- * ({@link toWireErrorChain}): its string `code`, its `cause`, and an
- * `AggregateError`'s `errors`. The fields are optional, so an error sent
- * flat rebuilds exactly as before they existed.
+ * An error as it crosses: its class, name, message and stack, rebuilt on the
+ * far side as an `Error` of that class's name. A failed turn's cause and a
+ * thrown adapter error also carry what is under them
+ * ({@link toWireErrorChain}): a string `code`, the `cause`, and an
+ * `AggregateError`'s `errors`. The fields are optional, so the protocol's
+ * version holds: one bundle builds both sides, and a field missing rebuilds
+ * as before it existed.
  */
 export interface WireError {
   readonly name: string;
   readonly message: string;
+  /**
+   * The link's class (`constructor.name`), which the far side rebuilds the
+   * link as, so a reader that decides by class reads what it would in the
+   * sender's process. Absent for a class with no name.
+   */
+  readonly className?: string;
   readonly stack?: string;
   /** An errno or undici string code (`ECONNRESET`, `UND_ERR_SOCKET`); a numeric code does not cross. */
   readonly code?: string;
@@ -163,7 +171,8 @@ export type WireOutcome =
  * What `runTurn` answers: how the turn ended, the rows and status fields the adapter
  * owns, and the engine's last CAS snapshot. Exactly one of `outcome` and
  * `thrown` is set: `thrown` is an adapter that broke its contract and
- * threw, which the runtime then handles as it would in-process.
+ * threw, which the runtime then handles as it would in-process, so it
+ * crosses with its chain and each link's class ({@link toWireErrorChain}).
  */
 export interface WireSettlement {
   readonly outcome: WireOutcome | null;
@@ -388,9 +397,15 @@ export type HostEnvelope = HelloEnvelope | CallEnvelope<RunnerCalls> | NoticeEnv
 
 // ─── Errors ────────────────────────────────────────────────────────────────
 
+/** One error flat: its class, name, message and stack, never its cause. */
 export function toWireError(err: unknown): WireError {
-  if (err instanceof Error) return { name: err.name, message: err.message, ...(err.stack ? { stack: err.stack } : {}) };
+  if (err instanceof Error) return { name: err.name, message: err.message, ...classNameOf(err), ...(err.stack ? { stack: err.stack } : {}) };
   return { name: "Error", message: String(err) };
+}
+
+function classNameOf(err: Error): Pick<WireError, "className"> {
+  const className = (err.constructor as { name?: unknown } | undefined)?.name;
+  return typeof className === "string" && className !== "" ? { className } : {};
 }
 
 /**
@@ -401,20 +416,21 @@ export function toWireError(err: unknown): WireError {
 export const MAX_WIRE_CAUSE_LINKS = 256;
 
 /**
- * A failed turn's cause with its chain, for the runner's failed-turn log line
- * (`harness/run-turn.ts`), which reads nothing else of it. Every other error
- * that crosses (a thrown adapter, a failed call) goes flat through
- * {@link toWireError}: the runtime words a thrown error's root for the user
- * (`describeExecutionError`), and that message does not change here. The
- * walk is `causeChainOf`'s, so a cycle ends it; only the outermost link
- * keeps its stack, since the log prints none.
+ * An error with its chain, each link with its class: a failed turn's cause,
+ * for the runner's failed-turn log line (`harness/run-turn.ts`), and an
+ * adapter's thrown error, which the runtime words for the user
+ * (`describeExecutionError`) and must read as it would have in-process. A
+ * failed call's error goes flat through {@link toWireError}: it is the
+ * channel's own failure, worded by its callers. The walk is
+ * `causeChainOf`'s, so a cycle ends it; only the outermost link keeps its
+ * stack, since nothing prints an inner one.
  */
 export function toWireErrorChain(err: unknown): WireError {
   const links = causeChainOf(err).slice(0, MAX_WIRE_CAUSE_LINKS);
   const endCause = links.length === MAX_WIRE_CAUSE_LINKS ? undefined : links[links.length - 1]?.cause;
   const end = endCause !== undefined && endCause !== null && !(endCause instanceof Error) ? toWireError(endCause) : undefined;
   const chain = links.reduceRight<WireError | undefined>((below, link, index) => ({
-    ...(index === 0 ? toWireError(link) : { name: link.name, message: link.message }),
+    ...(index === 0 ? toWireError(link) : { name: link.name, message: link.message, ...classNameOf(link) }),
     ...wireLinkFields(link),
     ...(below !== undefined ? { cause: below } : {}),
   }), end);
@@ -424,7 +440,7 @@ export function toWireErrorChain(err: unknown): WireError {
 function wireLink(err: unknown): WireError {
   if (!(err instanceof Error)) return toWireError(err);
   const code = errorCodeOf(err);
-  return { name: err.name, message: err.message, ...(code !== undefined ? { code } : {}) };
+  return { name: err.name, message: err.message, ...classNameOf(err), ...(code !== undefined ? { code } : {}) };
 }
 
 function wireLinkFields(link: Error): Pick<WireError, "code" | "errors"> {
@@ -437,15 +453,55 @@ function wireLinkFields(link: Error): Pick<WireError, "code" | "errors"> {
 }
 
 /**
+ * The longest class name a link is rebuilt as; a real one is a few dozen
+ * characters, and a host's name is the agent's to choose.
+ */
+const MAX_WIRE_CLASS_NAME_CHARS = 128;
+
+/** A plain identifier, the shape every class name an engine throws has. */
+const WIRE_CLASS_NAME = /^[A-Za-z_$][\w$]*$/;
+
+type ErrorClass = new (message: string, options?: ErrorOptions) => Error;
+type AggregateErrorClass = new (errors: Iterable<unknown>, message: string, options?: ErrorOptions) => AggregateError;
+
+function isWireClassName(value: unknown): value is string {
+  return typeof value === "string"
+    && value.length <= MAX_WIRE_CLASS_NAME_CHARS
+    && WIRE_CLASS_NAME.test(value)
+    && value !== "__proto__";
+}
+
+/** A fresh subclass of a base, named as the far side's class was; nothing of the host's text is evaluated. */
+function named<C extends object>(subclass: C, className: string): C {
+  return Object.defineProperty(subclass, "name", { value: className });
+}
+
+/** The class a plain link is rebuilt as: `Error` itself, or a subclass of it carrying the sent class's name. */
+function errorClassFor(className: unknown): ErrorClass {
+  return isWireClassName(className) && className !== Error.name ? named(class extends Error {}, className) : Error;
+}
+
+/** The same for an `AggregateError`, which stays one, so its members are still read. */
+function aggregateErrorClassFor(className: unknown): AggregateErrorClass {
+  return isWireClassName(className) && className !== AggregateError.name ? named(class extends AggregateError {}, className) : AggregateError;
+}
+
+/**
  * One link as the far side sent it, read by shape: the host is the agent's,
- * so a field of the wrong type is dropped, never trusted.
+ * so a field of the wrong type is dropped, never trusted. A link is rebuilt
+ * as an instance of its class's name (a subclass of `Error` or
+ * `AggregateError`, made per link and never cached, since the names are the
+ * host's), so `constructor.name` reads as it did there; `instanceof` the
+ * host's real class cannot, as the runner holds none of them.
  */
 function linkFromWire(wire: WireError, cause: Error | undefined): Error {
   const members = Array.isArray(wire.errors)
     ? wire.errors.filter(isWireLink).map((member) => linkFromWire(member, undefined))
     : undefined;
   const options = cause !== undefined ? { cause } : undefined;
-  const err = members !== undefined ? new AggregateError(members, wire.message, options) : new Error(wire.message, options);
+  const err = members !== undefined
+    ? new (aggregateErrorClassFor(wire.className))(members, wire.message, options)
+    : new (errorClassFor(wire.className))(wire.message, options);
   err.name = wire.name;
   if (typeof wire.stack === "string" && wire.stack !== "") err.stack = wire.stack;
   if (typeof wire.code === "string") Object.assign(err, { code: wire.code });
@@ -457,7 +513,7 @@ function isWireLink(value: unknown): value is WireError {
   return typeof shaped === "object" && shaped !== null && typeof shaped.name === "string" && typeof shaped.message === "string";
 }
 
-/** The error rebuilt: the flat form as it always was, and a chain's links, innermost first, up to {@link MAX_WIRE_CAUSE_LINKS}. */
+/** The error rebuilt: the flat form as it always was, and a chain's links, innermost first, up to {@link MAX_WIRE_CAUSE_LINKS}, each as its class. */
 export function fromWireError(wire: WireError): Error {
   const links: WireError[] = [wire];
   for (let next = wire.cause; isWireLink(next) && links.length < MAX_WIRE_CAUSE_LINKS; next = next.cause) links.push(next);

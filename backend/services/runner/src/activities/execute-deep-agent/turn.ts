@@ -184,8 +184,9 @@ function stopsBeforeTheEngine(sink: TurnSink): boolean {
  * a hook that cannot run as written (`hooks-setup.ts`). Anything else
  * is described by `describeExecutionError` (a model error arrives
  * MiddlewareError-wrapped with raw provider prose and is unwrapped to its
- * stable platform code; non-model errors keep the root error's identity) on
- * the `internal` surface: the runner or its transport broke.
+ * stable platform code; a non-model error is named by its first layer under
+ * those wrappers) on the `internal` surface: the runner or its transport
+ * broke.
  */
 function classifyThrown(err: unknown, input: TurnInput, config: DeepAgentAdapterConfig, modelName: string | undefined): TurnOutcome {
   if (isToolCallBudgetStop(err)) {
