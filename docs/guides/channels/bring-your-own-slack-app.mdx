@@ -35,8 +35,8 @@ once the Channel App exists.
 
 ## Step 1 — Create the app and register it
 
-1. In the web console, open **Settings → Channel Apps** and click **Register
-   channel app**.
+1. In the web console, open **Settings → Channel Apps** and click **New channel
+   app**.
 2. Enter the **Name**. This becomes the bot name your workspace will @mention,
    so pick what your team should see — for example `Acme Books`.
 3. The form shows a ready-to-paste **Slack app manifest** for that name. On
@@ -49,7 +49,17 @@ once the Channel App exists.
    secrets at rest and never shows them again.
 5. Click **Register channel app**.
 
+<Screen
+  name="channel-app-new"
+  alt="The register form under Settings, Channel Apps: Provider Slack, Name Acme Books, the Slack app manifest for that name with Copy, the Client ID, Client secret and Signing secret fields, and Register channel app"
+/>
+
 ## Step 2 — Finish setup in Slack
+
+<Screen
+  name="channel-app-setup"
+  alt="The Acme Books app's detail panel: its slug, and Finish setup in Slack with the Events request URL https://api.stigmer.ai/webhook/slack/ followed by the app's ID, and Copy"
+/>
 
 The saved Channel App now has its own webhook address — the URL Slack delivers
 this app's events to. The app's detail panel shows it under **Finish setup in

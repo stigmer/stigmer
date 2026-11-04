@@ -104,12 +104,6 @@ export const PICTURED_MEDIUMS: readonly Medium[] = ["still", "screenshot-journey
  * Adding a page is a choice a reviewer reads in the diff, with its reason.
  */
 export const OWED_PICTURES: Readonly<Record<string, string>> = {
-  "guides/channels/create-a-chat-link": "the channel screens (the Channels tab, the chat link dialog) are not drawn yet",
-  "guides/channels/embed-an-agent": "the chat link dialog's Embed tab and the widget on a host page are not drawn yet",
-  "guides/channels/connect-slack": "the Connect Slack dialog and the Slack card are not drawn yet",
-  "guides/channels/connect-whatsapp": "the Connect WhatsApp dialog and the WhatsApp card are not drawn yet",
-  "guides/channels/bring-your-own-slack-app": "the channel app's register form and Finish setup panel are not drawn yet",
-  "guides/channels/take-over-conversations": "the Conversations workbench is not drawn yet",
   "guides/authentication/service-accounts": "the service account screens are not drawn yet",
   "guides/integrations/bring-your-own-oauth": "the OAuth app form is not drawn yet",
 };

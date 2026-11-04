@@ -24,6 +24,27 @@ const KNOWN_VIOLATIONS: Readonly<Partial<Record<`${SceneId} ${Mode}`, readonly K
   // A file read still running nests its file link inside the row's button.
   "story-hours light": [{ rule: "nested-interactive", issue: "stigmer#2878" }],
   "story-hours dark": [{ rule: "nested-interactive", issue: "stigmer#2878" }],
+  // The channel cards' audience and serving-app lines are in the faint muted tone.
+  "channel-list light": [{ rule: "color-contrast", issue: "stigmer#2898" }],
+  "channel-list dark": [{ rule: "color-contrast", issue: "stigmer#2898" }],
+  // The chat link card's audience line, under the open Add channel menu.
+  "channel-add light": [{ rule: "color-contrast", issue: "stigmer#2898" }],
+  "channel-add dark": [{ rule: "color-contrast", issue: "stigmer#2898" }],
+  // The embed snippet scrolls, and takes no keyboard focus.
+  "channel-chat-link-embed light": [{ rule: "scrollable-region-focusable", issue: "stigmer#2899" }],
+  "channel-chat-link-embed dark": [{ rule: "scrollable-region-focusable", issue: "stigmer#2899" }],
+  // The Slack app manifest scrolls, and takes no keyboard focus.
+  "channel-app-new light": [{ rule: "scrollable-region-focusable", issue: "stigmer#2899" }],
+  "channel-app-new dark": [{ rule: "scrollable-region-focusable", issue: "stigmer#2899" }],
+  // The completed manifest, as above.
+  "channel-app-setup light": [{ rule: "scrollable-region-focusable", issue: "stigmer#2899" }],
+  "channel-app-setup dark": [{ rule: "scrollable-region-focusable", issue: "stigmer#2899" }],
+  // Row numbers and message times in the faint tone (the timeline fits, so nothing scrolls).
+  "channel-conversations-needs-human light": [{ rule: "color-contrast", issue: "stigmer#2898" }],
+  "channel-conversations-needs-human dark": [{ rule: "color-contrast", issue: "stigmer#2898" }],
+  // As the Needs human scene.
+  "channel-conversation-taken-over light": [{ rule: "color-contrast", issue: "stigmer#2898" }],
+  "channel-conversation-taken-over dark": [{ rule: "color-contrast", issue: "stigmer#2898" }],
 };
 
 const SCREENSHOTS = fileURLToPath(new URL("./__screenshots__/", import.meta.url));
