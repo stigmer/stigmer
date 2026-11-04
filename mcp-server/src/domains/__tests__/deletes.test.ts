@@ -17,6 +17,9 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentCommandController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/command_pb";
 import { AgentQueryController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/query_pb";
+import { SkillSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
+import { SkillCommandController } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/command_pb";
+import { SkillQueryController } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/query_pb";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { configureLogger } from "../../logger";
@@ -30,9 +33,16 @@ const resolvedAgent = create(AgentSchema, {
   metadata: { name: "Code Reviewer", slug: "code-reviewer", org: "acme", id: "agt_123" },
 });
 
+const resolvedSkill = create(SkillSchema, {
+  apiVersion: "v1",
+  kind: "skill",
+  metadata: { name: "Code Review", slug: "code-review", org: "acme", id: "skl_123" },
+});
+
 let backend: Http2Server;
 let client: Client;
 let deletedAgentId: string | undefined;
+let deletedSkillId: string | undefined;
 let lastAgentReferenceOrg: string | undefined;
 const openSessions = new Set<ServerHttp2Session>();
 
@@ -57,6 +67,13 @@ beforeAll(async () => {
       delete: (req) => {
         deletedAgentId = req.value;
         return resolvedAgent;
+      },
+    });
+    router.service(SkillQueryController, { getByReference: () => resolvedSkill });
+    router.service(SkillCommandController, {
+      delete: (req) => {
+        deletedSkillId = req.value;
+        return resolvedSkill;
       },
     });
   };
@@ -107,5 +124,14 @@ describe("delete tools integration", () => {
     expect(result.isError).toBeFalsy();
     expect(lastAgentReferenceOrg).toBe("");
     expect(deletedAgentId).toBe("agt_123");
+  });
+
+  it("delete_skill resolves the id then deletes via the typed SkillId", async () => {
+    const result = await callTool("delete_skill", { org: "acme", slug: "code-review" });
+    expect(result.isError).toBeFalsy();
+    expect(deletedSkillId).toBe("skl_123");
+    expect(JSON.parse(result.content[0]?.text ?? "{}")).toEqual(
+      toJson(SkillSchema, resolvedSkill, { useProtoFieldName: true }),
+    );
   });
 });

@@ -6,13 +6,17 @@
 // handles a low volume of calls and transport setup is cheap. Pooling can be
 // introduced later without touching call sites.
 //
-// Credential source:
-//   - stdio: the API key is captured once at startup (constant per process).
+// Credential source, in order:
 //   - http: every request carries its own Bearer token via authInfo, which the
 //     transport injected from the Authorization header.
+//   - an embedder's token provider (BackendTarget.getAccessToken), asked on
+//     every call, so a long-running stdio server follows a sign-in its host
+//     refreshes (the CLI's `stigmer mcp-server` passes one for a cloud login).
+//   - the API key captured once at startup (constant per process).
 
 import { createClient, type Client, type CallOptions, type Transport } from "@connectrpc/connect";
 import type { DescService } from "@bufbuild/protobuf";
+import type { TokenProvider } from "@stigmer/client";
 import { createNodeTransport, normalizeEndpoint } from "@stigmer/client/node";
 
 /**
@@ -30,6 +34,13 @@ export interface BackendTarget {
   readonly serverAddress: string;
   /** stdio startup API key; "" when targeting an unauthenticated backend. */
   readonly apiKey: string;
+  /**
+   * A provider asked for the credential on every call that brings no bearer of
+   * its own, named and typed as the SDK's `StigmerConfig.getAccessToken`. An
+   * alternative to `apiKey`: when set, `apiKey` is not used. `null` means no
+   * credential; a provider that throws fails that one call.
+   */
+  readonly getAccessToken?: TokenProvider;
 }
 
 /** The subset of the MCP request `extra` this layer reads to resolve a token. */
@@ -39,12 +50,18 @@ export interface RequestAuth {
 
 /**
  * Resolve the credential for an inbound tool call: the per-request Bearer token
- * (http) when present, otherwise the startup API key (stdio). Returns "" when
- * targeting an unauthenticated backend, in which case no credential is attached.
+ * (http) when present, otherwise the target's token provider when it has one,
+ * otherwise its startup API key (stdio). Returns "" when no credential applies,
+ * in which case none is attached.
  */
-export function resolveToken(extra: RequestAuth | undefined, fallback: string): string {
+export async function resolveToken(
+  extra: RequestAuth | undefined,
+  target: BackendTarget,
+): Promise<string> {
   const token = extra?.authInfo?.token;
-  return token !== undefined && token !== "" ? token : fallback;
+  if (token !== undefined && token !== "") return token;
+  if (target.getAccessToken !== undefined) return (await target.getAccessToken()) ?? "";
+  return target.apiKey;
 }
 
 /**

@@ -101,8 +101,8 @@ export function registerChannelTools(server: McpServer, target: BackendTarget): 
               "template otherwise",
         ));
       }
-      return channelResult(`message to "${args.recipient}"`, () =>
-        sendChannelMessage(target.serverAddress, resolveToken(extra, target.apiKey), {
+      return channelResult(`message to "${args.recipient}"`, async () =>
+        sendChannelMessage(target.serverAddress, await resolveToken(extra, target), {
           recipient: args.recipient,
           text: args.text,
           template: args.template as TemplateArg | undefined,

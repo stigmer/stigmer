@@ -17,17 +17,21 @@
  * live conversation look outdated against an agent it never ran. Labels
  * come from the agent's version history (a tag where the version has
  * one, else a short hash), read once per agent. An agent the viewer can
- * no longer read, or one deleted since, reports nothing outdated.
+ * no longer read, or one deleted since, reports nothing outdated. The
+ * update's progress and failure belong to the conversation it was made
+ * in: a page that moves to another conversation shows that one none of
+ * them.
  *
  * Pinned by `__tests__/useSessionAgentVersion.test.tsx`.
  */
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import { useStigmer } from "@stigmer/react-core";
 import { useFetch } from "@stigmer/react-core/internal";
 import { toError } from "@stigmer/react-core/internal";
 import { agentVersionLabel, useAgentVersions } from "../agent/useAgentVersions.js";
+import { useKeyedState } from "../internal/useKeyedState.js";
 import { usePersonalKeys } from "../agent/usePersonalKeys.js";
 
 /** Options for {@link useSessionAgentVersion}. */
@@ -142,8 +146,9 @@ export function useSessionAgentVersion(
     [versions],
   );
 
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [updateError, setUpdateError] = useState<Error | null>(null);
+  const conversationId = session?.metadata?.id ?? "";
+  const [isUpdating, setIsUpdating] = useKeyedState(conversationId, false);
+  const [updateError, setUpdateError] = useKeyedState<Error | null>(conversationId, null);
 
   const update = useCallback(async (): Promise<void> => {
     setIsUpdating(true);
@@ -157,7 +162,7 @@ export function useSessionAgentVersion(
     } finally {
       setIsUpdating(false);
     }
-  }, [moveToCurrentVersion, refetchAgent]);
+  }, [moveToCurrentVersion, refetchAgent, setIsUpdating, setUpdateError]);
 
   return useMemo(
     () => ({

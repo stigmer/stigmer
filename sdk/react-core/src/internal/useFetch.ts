@@ -69,6 +69,10 @@ export interface UseFetchReturn<T> {
  *   `isLoading` stays `false` and `isRefetching` becomes `true` —
  *   existing data remains visible, preventing skeleton flash.
  * - On error during a refetch, stale data is preserved.
+ * - Data never crosses an identity, in any render: the render whose deps
+ *   differ from the ones the held data belongs to already returns the new
+ *   identity's state (its cached value, else `initialData`), never the
+ *   previous identity's data or error.
  *
  * @param fetchFn  Async function that returns data, or `null` to skip.
  * @param deps     Dependency list — a new fetch fires when any dep changes.
@@ -110,10 +114,11 @@ export function useFetch<T>(
   const cacheRef = useRef(cache);
   cacheRef.current = cache;
 
-  // Track previous identity deps so the effect can distinguish an
-  // identity change (e.g. executionId A→B) from a plain refetch().
-  // Identity changes reset data to prevent stale cross-identity leaks;
-  // refetches preserve stale data for stale-while-revalidate rendering.
+  // The identity deps the held `data` and `error` belong to. The effect
+  // compares against them to tell an identity change (e.g. executionId
+  // A→B) from a plain refetch(): identity changes reset the stored data,
+  // refetches keep it for stale-while-revalidate rendering. Written only in
+  // the effect, so a render reads the deps of the committed state.
   const prevIdentityDepsRef = useRef<DependencyList>(deps);
 
   const refetch = useCallback(() => setFetchKey((k) => k + 1), []);
@@ -129,28 +134,18 @@ export function useFetch<T>(
       return;
     }
 
-    const identityChanged =
-      deps.length !== prevIdentityDepsRef.current.length ||
-      deps.some((d, i) => !Object.is(d, prevIdentityDepsRef.current[i]));
+    const identityChanged = !sameDeps(deps, prevIdentityDepsRef.current);
     prevIdentityDepsRef.current = deps;
 
-    // On identity dep change, reset data so stale data from a different
-    // identity (e.g. session A's data while session B loads) is not shown.
-    // On plain refetch(), skip the reset — stale data stays visible.
+    // On identity dep change, store the new identity's starting point (what
+    // the render already returned, below), so stale data from a different
+    // identity (e.g. session A's data while session B loads) is never kept,
+    // with or without a cache provider. On plain refetch(), skip the reset:
+    // stale data stays visible.
     if (identityChanged) {
-      if (cacheKey && cacheRef.current) {
-        const cached = cacheRef.current.get<T>(cacheKey);
-        if (cached !== undefined) {
-          setData(cached);
-          hasDataRef.current = true;
-        } else {
-          setData(initialData);
-          hasDataRef.current = false;
-        }
-      } else if (!cacheKey) {
-        setData(initialData);
-        hasDataRef.current = false;
-      }
+      const cached = cacheKey && cacheRef.current ? cacheRef.current.get<T>(cacheKey) : undefined;
+      setData(cached !== undefined ? cached : initialData);
+      hasDataRef.current = cached !== undefined;
     }
 
     const cancelled = { current: false };
@@ -220,8 +215,32 @@ export function useFetch<T>(
     };
   }, [refetchOnWindowFocus, fetchEnabled, refetch]);
 
+  // The render that carries new identity deps runs before the effect that
+  // resets the stored state, so it returns what that effect is about to
+  // store: the new key's cached value, else `initialData` (always, for a
+  // disabled fetch), with no error, and the loading flags of the fetch that
+  // effect starts. Without this, a consumer seeding state at render from
+  // `data` (the session page seeds its agent from the session read) would
+  // seed the new identity from the previous one's data in that one render.
+  if (!sameDeps(deps, prevIdentityDepsRef.current)) {
+    const cached = fetchEnabled && cacheKey && cache ? cache.get<T>(cacheKey) : undefined;
+    const hasCached = cached !== undefined;
+    return {
+      data: hasCached ? cached : initialData,
+      isLoading: fetchEnabled && !hasCached,
+      isRefetching: fetchEnabled && hasCached,
+      error: null,
+      refetch,
+    };
+  }
+
   const isLoading = isFetching && !hasDataRef.current;
   const isRefetching = isFetching && hasDataRef.current;
 
   return { data, isLoading, isRefetching, error, refetch };
+}
+
+/** Whether two dependency lists hold the same values, compared as React compares deps. */
+function sameDeps(a: DependencyList, b: DependencyList): boolean {
+  return a.length === b.length && a.every((d, i) => Object.is(d, b[i]));
 }

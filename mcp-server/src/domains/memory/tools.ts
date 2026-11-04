@@ -61,10 +61,10 @@ export function registerMemoryTools(
       },
     },
     (args, extra) =>
-      memoryResult("memory proposal", () =>
+      memoryResult("memory proposal", async () =>
         proposeMemory(
           target.serverAddress,
-          resolveToken(extra, target.apiKey),
+          await resolveToken(extra, target),
           args.fact,
           resolveCaptureContext(extra as RequestHeaders, startupContext),
         ),

@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ResourceRef } from "@stigmer/client";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
-import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import type { AgentResolution } from "../agent/index.js";
+import { useKeyedState } from "../internal/useKeyedState.js";
 import { useApprovalDefaults } from "../approval-defaults-context.js";
 import { useWorkspaceEntries, type UseWorkspaceEntriesReturn } from "../workspace/index.js";
 
@@ -366,7 +366,10 @@ export function useSessionPageFlow(
   // Interaction mode mirrors the model derivation: an explicit user override
   // wins; otherwise reflect the latest execution's mode so a completed Plan
   // keeps the composer on "Plan" until the user implements or switches. This
-  // is derived state (always consistent), never an effect-synced copy.
+  // is derived state (always consistent), never an effect-synced copy. The
+  // override, like every choice below that belongs to the conversation, is
+  // keyed to it: moving to another conversation starts from that one's own
+  // state (stigmer/stigmer#2760).
   const lastExecInteractionMode = useMemo(
     () =>
       fromProtoInteractionMode(
@@ -375,7 +378,7 @@ export function useSessionPageFlow(
     [conv.runs],
   );
   const [interactionModeOverride, setInteractionMode] =
-    useState<InteractionModeOption | null>(null);
+    useKeyedState<InteractionModeOption | null>(sessionId, null);
   const interactionMode: UseSessionPageFlowReturn["interactionMode"] = [
     interactionModeOverride ?? lastExecInteractionMode ?? "agent",
     setInteractionMode,
@@ -408,18 +411,19 @@ export function useSessionPageFlow(
   //   from history: deriving from past runs would silently survive a
   //   reload independent of the seeds above.
   //
-  // The explicit choice lives only in memory for the life of this page —
-  // reset on reload re-applies the seeds (the account preference now being
-  // the persisted one the user actually declared), never a per-session flip.
+  // The explicit choice lives only in memory, for this conversation while
+  // the page shows it: moving to another conversation, or a reload,
+  // re-applies the seeds (the account preference now being the persisted
+  // one the user actually declared), never another conversation's flip.
   const approvalDefaults = useApprovalDefaults();
-  const [autoApproveChoice, setAutoApproveChoice] = useState<boolean | null>(null);
+  const [autoApproveChoice, setAutoApproveChoice] = useKeyedState<boolean | null>(sessionId, null);
   const accountSeed = !isGuest && (options.accountDefaults?.autoApprove ?? false);
   const hostSeed = !isGuest && (approvalDefaults?.autoApproveAll ?? false);
   const runArmed = conv.activeRun?.spec?.autoApproveAll === true;
   const autoApproveAll = autoApproveChoice ?? (accountSeed || hostSeed || runArmed);
   const setAutoApproveAll = useCallback((value: boolean) => {
     setAutoApproveChoice(value);
-  }, []);
+  }, [setAutoApproveChoice]);
 
   const answerToolUse = useCallback<UseSessionConversationReturn["answerToolUse"]>(
     async (toolUseId, answer, denyMessage) => {
@@ -431,7 +435,7 @@ export function useSessionPageFlow(
       }
       await conv.answerToolUse(toolUseId, answer, denyMessage);
     },
-    [conv.answerToolUse],
+    [conv.answerToolUse, setAutoApproveChoice],
   );
 
   // Armed responder (#816, the walk-away scenario): while auto-approve is ON,
@@ -484,21 +488,26 @@ export function useSessionPageFlow(
     moveToCurrentVersion: conv.moveToCurrentAgentVersion,
   });
 
-  const [agentRef, setAgentRefState] = useState<ResourceRef | null>(null);
-  const [resolution, setResolutionState] = useState<AgentResolution | null>(null);
+  // The selection belongs to the conversation shown: keyed to it, so the
+  // next conversation starts unseeded and seeds from its own read.
+  const [agentRef, setAgentRefState] = useKeyedState<ResourceRef | null>(sessionId, null);
+  const [resolution, setResolutionState] = useKeyedState<AgentResolution | null>(sessionId, null);
   // The user dropped the session's agent and no follow-up has carried the
   // clear to the server yet. Distinguishes "no agent selected because the
   // person removed it" from "no agent selected because the session has
   // none", so only the first sends an override.
-  const [agentCleared, setAgentCleared] = useState(false);
-  const [agentInitDone, setAgentInitDone] = useState(false);
+  const [agentCleared, setAgentCleared] = useKeyedState(sessionId, false);
+  const [agentInitDone, setAgentInitDone] = useKeyedState(sessionId, false);
 
   // Seed the selection from the session once it is known: its agent when
-  // it names one, nothing when it runs the built-in assistant. Runs once,
-  // so a later pick or clear by the person is never overwritten by a
-  // derived ref arriving after the fact. Guests are never seeded: their
-  // composer has no agent machinery, and a follow-up of theirs carries no
-  // override, so it continues on the session's own agent and pin.
+  // it names one, nothing when it runs the built-in assistant. Runs once
+  // per conversation, so a later pick or clear by the person is never
+  // overwritten by a derived ref arriving after the fact, and moving to
+  // another conversation seeds from that one's read (the session read is
+  // never another conversation's, in any render). Guests are never seeded:
+  // their composer has no agent machinery, and a follow-up of theirs
+  // carries no override, so it continues on the session's own agent and
+  // pin.
   if (!agentInitDone && !isGuest && sessionAgentRef !== undefined) {
     setAgentInitDone(true);
     if (sessionAgentRef !== null) {
@@ -511,7 +520,7 @@ export function useSessionPageFlow(
     setAgentRefState(null);
     setResolutionState(null);
     setAgentCleared(true);
-  }, []);
+  }, [setAgentRefState, setResolutionState, setAgentCleared]);
   // A `null` ref is the drop, whichever surface it arrives from: the setup
   // tab calls `clearAgent`, the composer's agent picker deselects through
   // `setAgentRef(null)`. One implementation for one act, so the two
@@ -523,11 +532,11 @@ export function useSessionPageFlow(
     }
     setAgentRefState(ref);
     setAgentCleared(false);
-  }, [clearAgent]);
+  }, [clearAgent, setAgentRefState, setAgentCleared]);
   const setResolution = useCallback((r: AgentResolution | null) => {
     setResolutionState(r);
     if (r !== null) setAgentCleared(false);
-  }, []);
+  }, [setResolutionState, setAgentCleared]);
 
   // -------------------------------------------------------------------------
   // Model — the agent's run defaults, then the person's own picks
@@ -553,8 +562,9 @@ export function useSessionPageFlow(
   // picked for other conversations, and sending it would override the
   // agent's default the person never touched here.
   // The person chose the agent's default back in the picker: the last
-  // pick no longer seeds the composer or the send until they pick again.
-  const [modelPickCleared, setModelPickCleared] = useState(false);
+  // pick no longer seeds the composer or the send until they pick again,
+  // in this conversation.
+  const [modelPickCleared, setModelPickCleared] = useKeyedState(sessionId, false);
   const modelId = agentRunDefaults
     ? (modelPickCleared ? undefined : lastRequestedModelId)
     : (persistedModelId ?? lastRequestedModelId);
@@ -563,9 +573,9 @@ export function useSessionPageFlow(
       setModelPickCleared(false);
       setPersistedModelId(id);
     },
-    [setPersistedModelId],
+    [setPersistedModelId, setModelPickCleared],
   );
-  const clearModelPick = useCallback(() => setModelPickCleared(true), []);
+  const clearModelPick = useCallback(() => setModelPickCleared(true), [setModelPickCleared]);
   const model: UsePersistedModelReturn = [modelId, setModelId] as const;
 
   // -------------------------------------------------------------------------
@@ -579,11 +589,10 @@ export function useSessionPageFlow(
   // follow-up neither drops what the page cannot show nor overwrites
   // another participant's edit. `null` until the conversation is loaded.
   const knownFields = useRef<FollowUpFields | null>(null);
-  // The conversation the fields belong to, and a read of the previous one
-  // still on hand after the page moved on (the session read resets a
-  // render later).
+  // The conversation the fields belong to. The session read is never
+  // another conversation's, in any render, so the read on hand after a
+  // move is the new conversation's own (or none yet).
   const fieldsFor = useRef<string | null>(null);
-  const previousRead = useRef<Session | null>(null);
 
   const { addGitRepo, addLocalPath, clear: clearWorkspace, toInput: workspaceInput } = workspace;
   useEffect(() => {
@@ -595,13 +604,11 @@ export function useSessionPageFlow(
         setPluginRefs([]);
         setSkillRefs([]);
         knownFields.current = null;
-        previousRead.current = conv.session;
       }
       fieldsFor.current = sessionId;
     }
     const session = conv.session;
-    if (!session || session === previousRead.current) return;
-    previousRead.current = null;
+    if (!session) return;
     const read = followUpFieldsOf(session.spec);
     const known = knownFields.current;
 

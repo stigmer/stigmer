@@ -173,7 +173,10 @@ describe("PluginPicker", () => {
       pageSize: 30,
       pageToken: "",
     });
-    const [only] = screen.getAllByRole("option");
+    // The new query's results replace the last one's once they arrive;
+    // until then the list shows none of the previous query's.
+    const [only, ...others] = await screen.findAllByRole("option");
+    expect(others).toEqual([]);
     expect(only?.textContent).toContain("Linear");
     const highlighted = within(only!).getByText("Lin");
     expect(highlighted.className).toContain("stg:font-semibold");

@@ -76,7 +76,7 @@ export function registerConversationTools(server: McpServer, target: BackendTarg
       conversationResult("escalation", async () => {
         await escalateConversation(
           target.serverAddress,
-          resolveToken(extra, target.apiKey),
+          await resolveToken(extra, target),
           args.reason,
         );
         return ESCALATION_RECORDED_COPY;

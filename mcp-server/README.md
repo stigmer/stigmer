@@ -140,6 +140,20 @@ process.on("SIGINT", () => controller.abort());
 await run(defaultConfig(), controller.signal);
 ```
 
+A host whose credential changes while the server runs passes a token provider,
+named and typed as `@stigmer/client`'s `getAccessToken`. The server asks it on
+every call that brings no bearer of its own, in place of `STIGMER_API_KEY`; the
+CLI passes one over the signed-in cloud backend, so a sign-in that expires
+within the hour is refreshed instead of failing. `createTokenCache` from
+`@stigmer/client` keeps one token until it is about to expire:
+
+```ts
+import { createTokenCache } from "@stigmer/client";
+
+const tokens = createTokenCache(fetchMyToken); // () => Promise<{ accessToken, expiresAt } | null>
+await run(defaultConfig(), controller.signal, { getAccessToken: tokens.getAccessToken });
+```
+
 Or mount the HTTP handler on a listener the host already runs, beside its own
 routes. The request must reach the handler unread (it reads the body itself,
 under its cap). The host answers its own probes; the handler serves the four MCP routes

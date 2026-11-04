@@ -53,7 +53,7 @@ export function registerResource(
     { title: opts.title, description: opts.description, mimeType: "application/json" },
     async (uri, _vars, extra) => {
       const { org, slug } = parseResourceURI(uri.href);
-      const text = await opts.fetch(target.serverAddress, resolveToken(extra, target.apiKey), org, slug);
+      const text = await opts.fetch(target.serverAddress, await resolveToken(extra, target), org, slug);
       return jsonResource(uri.href, text);
     },
   );
@@ -73,7 +73,7 @@ export function registerVersionedResource(
       const { org, slug, version } = parseVersionedResourceURI(uri.href);
       const text = await opts.fetch(
         target.serverAddress,
-        resolveToken(extra, target.apiKey),
+        await resolveToken(extra, target),
         org,
         slug,
         version,
