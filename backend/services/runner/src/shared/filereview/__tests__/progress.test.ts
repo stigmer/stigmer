@@ -9,7 +9,8 @@
  *  - `captureFileChangeProgress` — a capture that fails is skipped, never
  *    thrown: the snapshot already attached stands, the floor is spent, one
  *    warning names the change set and the cause, and the next capture
- *    converges (over a fake substrate and over real git).
+ *    converges (over a fake substrate and over real git); a forced capture
+ *    (the turn's final write) runs past the floor.
  *  - `createHybridProgressSubstrate` — the slice merge, and a slice's change
  *    carried across a capture its sibling failed.
  */
@@ -440,6 +441,32 @@ describe("captureFileChangeProgress: a failed capture is skipped, never thrown",
       const line = String(warn.mock.calls[0]![0]);
       expect(line).toContain(`changeSet=${CHANGE_SET_ID}`);
       expect(line).toContain("short read while indexing a.ts");
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it("a forced capture runs past an unexpired floor, so the turn's final write carries the strip a mid-turn failure left unset", async () => {
+    // #2425: a mid-turn capture raced the engine's write of kept.md and
+    // failed; the floor it spent kept every later capture away, the final
+    // write's included, so the turn ended with no strip.
+    const status = create(RunStatusSchema, {});
+    const state = newProgressCaptureState();
+    const substrate = scriptedSubstrate([
+      new Error("Command failed: git add -A -- .\nerror: short read while indexing kept.md"),
+      { delta: { entries: [progressEntry("kept.md"), progressEntry("dropped.md")] }, changed: true },
+    ]);
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      await captureFileChangeProgress({ status, changeSetId: CHANGE_SET_ID, substrate, state, nowMs: 10_000 });
+      expect(status.fileChangeProgress, "the racing capture failed").toBeUndefined();
+
+      await captureFileChangeProgress({ status, changeSetId: CHANGE_SET_ID, substrate, state, nowMs: 10_500 });
+      expect(status.fileChangeProgress, "mid-turn, the floor still holds after a failure").toBeUndefined();
+
+      await captureFileChangeProgress({ status, changeSetId: CHANGE_SET_ID, substrate, state, nowMs: 10_500, force: true });
+      expect(status.fileChangeProgress?.filesChanged, "the forced capture ran inside the floor and attached the turn's strip").toBe(2);
+      expect(state.lastAtMs, "a forced capture stamps the floor like any other").toBe(10_500);
     } finally {
       warn.mockRestore();
     }

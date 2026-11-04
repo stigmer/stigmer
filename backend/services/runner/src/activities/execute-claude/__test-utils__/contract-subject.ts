@@ -255,6 +255,14 @@ class ClaudeSubject implements ClaudeContractSubject {
       .filter((line) => line === toolCallId).length;
   }
 
+  resultSeen(toolCallId: string): string | undefined {
+    for (const conversation of this.lastConversations.values()) {
+      const result = conversation.toolResults.get(toolCallId);
+      if (result !== undefined) return result.isError ? `error: ${result.text}` : result.text;
+    }
+    return undefined;
+  }
+
   workspaceDirOf(sessionId: string): string {
     return join(this.env.workspaceRootDir, "sessions", sessionId);
   }

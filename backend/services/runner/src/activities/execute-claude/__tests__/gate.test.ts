@@ -59,6 +59,7 @@ import {
   ClaudeGate,
   spellingsOf,
   HALTED_MESSAGE,
+  BOUNDARY_STOP_REASON,
   HIDDEN_SKILLS_MESSAGE,
   PLATFORM_READ_ONLY_MESSAGE,
   NOT_ADMITTED_MESSAGE,
@@ -895,5 +896,24 @@ describe("the engine's callbacks", () => {
     const canUseTool = canUseToolOf(gate);
     expect(await canUseTool("Read", {}, { signal, toolUseID: "toolu_p3", requestId: "r", agentID: "agent_runner" })).toEqual({ behavior: "allow" });
     expect(gate.verdictOf("toolu_p3")).toEqual(allowed(undefined, RUNNER));
+  });
+
+  it("end the engine's run at the main thread's batch boundary while the turn is halted, and only then (stigmer#2855)", async () => {
+    let halted = false;
+    const hooks = gateHooks(new ClaudeGate(facts(), () => halted));
+    const signal = new AbortController().signal;
+    const postToolBatch = hooks.PostToolBatch![0]!.hooks[0]!;
+    const batch = (agentId?: string): HookInput => ({
+      session_id: "s",
+      transcript_path: "",
+      cwd: WORKSPACE,
+      hook_event_name: "PostToolBatch",
+      tool_calls: [{ tool_name: SHELL, tool_input: { command: "npm test" }, tool_use_id: "toolu_b1", tool_response: "ok" }],
+      ...(agentId === undefined ? {} : { agent_id: agentId, agent_type: "test-runner" }),
+    });
+    expect(await postToolBatch(batch(), undefined, { signal }), "a running turn's batch goes on to its next model call").toEqual({});
+    halted = true;
+    expect(await postToolBatch(batch(), undefined, { signal }), "a halted turn's engine stops at the boundary").toEqual({ continue: false, stopReason: BOUNDARY_STOP_REASON });
+    expect(await postToolBatch(batch("agent_runner"), undefined, { signal }), "a sub-agent's batch runs on: its call is the boundary's open call").toEqual({});
   });
 });

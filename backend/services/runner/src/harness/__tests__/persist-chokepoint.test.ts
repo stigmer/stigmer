@@ -3,7 +3,7 @@
  * backstop, which runs before the session's events are read from the rows,
  * so a secret-like write that waits for a person reaches the log withheld;
  * the usage summary, the heartbeat, the STOP; a failed progress capture
- * never fails a write), and how requests
+ * never fails a write; the final write captures past the floor), and how requests
  * coalesce (one write in flight, one follow-up at most, every request's
  * promise resolving only once its state is on the wire).
  */
@@ -16,7 +16,7 @@ import { RunControlSignal, FileChangeKind, ServiceTier, ThinkingMode } from "@st
 
 import type { StigmerClient } from "../../client/stigmer-client.js";
 import type { TurnProgress } from "../capture.js";
-import { newProgressCaptureState, type ProgressSubstrate } from "../../shared/filereview/progress.js";
+import { newProgressCaptureState, type ProgressCapture, type ProgressSubstrate } from "../../shared/filereview/progress.js";
 import { PersistChokepoint } from "../persist-chokepoint.js";
 import { SessionEventEmitter } from "../events/emitter.js";
 import { AppendSessionEventsResponseSchema, type SessionEventPreview } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
@@ -241,6 +241,41 @@ describe("PersistChokepoint: one write", () => {
       expect(await outcome, "requestPersist never rejects").toBe("resolved");
       expect(status.fileChangeProgress).toBeUndefined();
       expect(heartbeat).toHaveBeenCalledTimes(1);
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it("captures on the final write past an unexpired floor, so a turn whose mid-turn capture failed still ends with its strip", async () => {
+    const { client, gates } = heldClient();
+    const answers: Array<Error | ProgressCapture> = [
+      new Error("Command failed: git add -A -- .\nerror: short read while indexing kept.md"),
+      { delta: { entries: [{ pathBefore: "", pathAfter: "kept.md", kind: FileChangeKind.ADD, linesAdded: 1, linesRemoved: 0 }] }, changed: true },
+    ];
+    const substrate: ProgressSubstrate = {
+      capture: () => {
+        const next = answers.shift();
+        if (next === undefined) throw new Error("more captures than scripted");
+        return next instanceof Error ? Promise.reject(next) : Promise.resolve(next);
+      },
+    };
+    const { chokepoint, status } = chokepointOver(client, {
+      progress: { changeSetId: "run_test:0", substrate, state: newProgressCaptureState() },
+    });
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const midTurn = chokepoint.write();
+      await vi.waitFor(() => expect(gates).toHaveLength(1));
+      expect(status.fileChangeProgress, "the mid-turn capture raced a write and failed").toBeUndefined();
+      gates[0]!.open();
+      await midTurn;
+
+      const final = chokepoint.write({ final: true });
+      await vi.waitFor(() => expect(gates).toHaveLength(2));
+      expect(status.fileChangeProgress?.filesChanged, "the final write captured inside the floor").toBe(1);
+      gates[1]!.open();
+      await final;
+      expect(answers, "both scripted captures ran").toHaveLength(0);
     } finally {
       warn.mockRestore();
     }

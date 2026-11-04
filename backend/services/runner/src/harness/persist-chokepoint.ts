@@ -15,7 +15,10 @@
  *     files changed so far" strip) when the turn is in capture mode:
  *     the tree is read at most once per floor interval and only re-attached
  *     when it moved (`shared/filereview/progress.ts`), so a write that
- *     changed nothing on disk carries the snapshot it already had. Before
+ *     changed nothing on disk carries the snapshot it already had. The
+ *     turn's final write reads it past the floor: the engine has settled,
+ *     so nothing races that read, and the strip the turn ends with is its
+ *     own (#2425). Before
  *     #1096 each adapter's stream loop did this before its own persists; the
  *     runtime owns the capture now, so the display field it derives is
  *     refreshed where every other runtime-owned field is — here. A capture
@@ -185,14 +188,21 @@ export class PersistChokepoint {
    * flight (before `runTurn` or after it settled), so they need no
    * coalescing, and they must not be deferred behind one. `final` marks the
    * turn's terminal write: the boundary has run and nothing streams, so the
-   * session event emitter writes every row that is left.
+   * session event emitter writes every row that is left, and the progress
+   * capture runs past its floor.
    */
   async write(opts: { readonly final?: boolean } = {}): Promise<void> {
     const { client, executionId, status, rows, offload, heartbeat } = this.deps;
     withholdSecretContentFromMessages(rows.messages, rows.subAgentRuns);
     const progress = this.deps.progress();
     if (progress) {
-      await captureFileChangeProgress({ status, changeSetId: progress.changeSetId, substrate: progress.substrate, state: progress.state });
+      await captureFileChangeProgress({
+        status,
+        changeSetId: progress.changeSetId,
+        substrate: progress.substrate,
+        state: progress.state,
+        force: opts.final === true,
+      });
     }
     const usage = this.deps.usage();
     if (usage?.hasTurns) {
