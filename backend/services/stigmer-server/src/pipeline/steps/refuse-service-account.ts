@@ -20,6 +20,18 @@
  *   - an edition's own doors of the same kind (the hosted edition's
  *     invitations and federation issuers splice the step).
  *
+ * The same acts are refused to every credential that speaks for one piece
+ * of work rather than for a person or the platform: a run's credential
+ * (class `runner`) and every lane class an edition mints for its
+ * sandboxes, connects, evaluations and visitors. Such a credential acts as
+ * the person who started the work, with the person's whole role, but it
+ * is meant to end with that work; holding it must not become the person's
+ * lasting API key, a new service account, or a change to who belongs to
+ * the organization (stigmer#2946). Admitted: a person's own credential
+ * (`user`), the platform's own machine accounts (`machine`), and a request
+ * the server composed itself (`internal`, or anything that entered
+ * in-process).
+ *
  * So a leaked key, acting as itself, can neither outlive its revocation, by
  * minting another credential, nor widen the organization. What it reaches
  * through the mint is its app users' own reach, the trust an organization
@@ -51,7 +63,11 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import type { IdentityAccount } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/enum_pb";
 
-import { isServiceAccountCaller } from "../../extensions/identity.js";
+import {
+  isServerComposedRequest,
+  isServiceAccountCaller,
+  SERVICE_ACCOUNT_CALLER_CLASS,
+} from "../../extensions/identity.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import { internalError } from "../errors.js";
 import type { PipelineStep } from "../pipeline.js";
@@ -65,6 +81,33 @@ export interface ServiceAccountLookup {
 /** The refusal's copy: what was refused and who may do it. */
 export function serviceAccountRefusedMessage(act: string): string {
   return `a service account cannot ${act}; an organization admin must do it`;
+}
+
+/**
+ * The refusal when a credential for one piece of work asks for one of the
+ * acts; `act` completes "a credential for one run or lane cannot …".
+ */
+export function workCredentialRefusedMessage(act: string): string {
+  return `a credential for one run or lane cannot ${act}; the person must do it signed in as themselves`;
+}
+
+/** The classes that speak for a person or the platform itself; `service_account` has its own refusal. */
+const PERSON_OR_PLATFORM_CLASSES: ReadonlySet<string> = new Set([
+  "user",
+  "machine",
+  SERVICE_ACCOUNT_CALLER_CLASS,
+]);
+
+/**
+ * Whether `caller` is a credential for one piece of work (a run's, or an
+ * edition's lane credential) rather than a person's own, a machine
+ * account's or the server's: the class answers, with no read.
+ */
+export function speaksForOnePieceOfWork(caller: CallerIdentity): boolean {
+  return (
+    !isServerComposedRequest(caller) &&
+    !PERSON_OR_PLATFORM_CLASSES.has(caller.callerClass)
+  );
 }
 
 /** An account id's shape (`ida_…`), the only principal a row can be read for. */
@@ -93,12 +136,21 @@ export async function speaksForServiceAccount(
   );
 }
 
-/** Throws PERMISSION_DENIED when `caller` speaks for a service account. */
+/**
+ * Throws PERMISSION_DENIED when `caller` is a credential for one piece of
+ * work or speaks for a service account.
+ */
 export async function refuseServiceAccountCaller(
   caller: CallerIdentity,
   act: string,
   lookup: ServiceAccountLookup,
 ): Promise<void> {
+  if (speaksForOnePieceOfWork(caller)) {
+    throw new ConnectError(
+      workCredentialRefusedMessage(act),
+      Code.PermissionDenied,
+    );
+  }
   if (await speaksForServiceAccount(caller, lookup)) {
     throw new ConnectError(
       serviceAccountRefusedMessage(act),
