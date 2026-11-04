@@ -94,7 +94,14 @@ describe("the rules", () => {
     );
   });
 
-  it("checks the Host only for a request that arrived on loopback, reading HTTP/2's :authority first", () => {
+  it("lets a sandbox on Docker Desktop through by its runtime's name for the host, and nothing like it", () => {
+    for (const host of ["host.docker.internal:7234", "HOST.DOCKER.INTERNAL", "gateway.docker.internal", "host.containers.internal:7234", "host.lima.internal"]) {
+      expect(localOnlyRefusal(laneRequest({ host }, "127.0.0.1")), host).toBeUndefined();
+    }
+    expect(localOnlyRefusal(laneRequest({ host: "host.docker.internal.evil.example" }, "127.0.0.1"))).toBe(FOREIGN_HOST_REFUSED);
+  });
+
+  it("checks the Host only for a request that arrived on loopback, reading :authority before Host when a request carries it", () => {
     expect(localOnlyRefusal(laneRequest({ host: "stigmer-server:7234" }, "172.18.0.3"))).toBeUndefined();
     expect(localOnlyRefusal(laneRequest({ ":authority": "evil.example:7234" }, "127.0.0.1"))).toBe(FOREIGN_HOST_REFUSED);
     expect(localOnlyRefusal(laneRequest({ ":authority": "localhost:7234", host: "evil.example" }, "::1"))).toBeUndefined();
@@ -201,16 +208,32 @@ describe("a server that signs its callers in", () => {
 
 describe("the bind host", () => {
   it("is loopback without sign-in and every interface with it, when nobody chose", () => {
-    expect(chooseListenHost({ chosen: undefined, requireAuthentication: false })).toEqual({ host: LOOPBACK_LISTEN_HOST });
-    expect(chooseListenHost({ chosen: undefined, requireAuthentication: true })).toEqual({ host: ALL_INTERFACES_LISTEN_HOST });
+    expect(chooseListenHost({ chosen: undefined, requireAuthentication: false, sandboxEndpoint: "" })).toEqual({ host: LOOPBACK_LISTEN_HOST });
+    expect(chooseListenHost({ chosen: undefined, requireAuthentication: true, sandboxEndpoint: "" })).toEqual({ host: ALL_INTERFACES_LISTEN_HOST });
+  });
+
+  it("listens where its sandboxes dial it: every interface for an endpoint beyond loopback, warned about without sign-in", () => {
+    for (const endpoint of ["host.docker.internal:7234", "http://172.18.0.1:7234", "stigmer:7234", "http://[fd00::1]:7234", "::not a url::"]) {
+      const choice = chooseListenHost({ chosen: undefined, requireAuthentication: false, sandboxEndpoint: endpoint });
+      expect(choice.host, endpoint).toBe(ALL_INTERFACES_LISTEN_HOST);
+      expect(choice.warning, endpoint).toMatch(/^listening on 0\.0\.0\.0 without sign-in/);
+    }
+    for (const endpoint of ["127.0.0.1:7234", "http://localhost:7234", "http://[::1]:7234"]) {
+      expect(chooseListenHost({ chosen: undefined, requireAuthentication: false, sandboxEndpoint: endpoint }), endpoint).toEqual({
+        host: LOOPBACK_LISTEN_HOST,
+      });
+    }
+    expect(chooseListenHost({ chosen: "127.0.0.1", requireAuthentication: false, sandboxEndpoint: "host.docker.internal:7234" })).toEqual({
+      host: "127.0.0.1",
+    });
   });
 
   it("keeps an operator's choice, and warns only about a wider bind without sign-in", () => {
-    expect(chooseListenHost({ chosen: "0.0.0.0", requireAuthentication: true })).toEqual({ host: "0.0.0.0" });
+    expect(chooseListenHost({ chosen: "0.0.0.0", requireAuthentication: true, sandboxEndpoint: "" })).toEqual({ host: "0.0.0.0" });
     for (const loopback of ["127.0.0.1", "localhost", "::1"]) {
-      expect(chooseListenHost({ chosen: loopback, requireAuthentication: false })).toEqual({ host: loopback });
+      expect(chooseListenHost({ chosen: loopback, requireAuthentication: false, sandboxEndpoint: "" })).toEqual({ host: loopback });
     }
-    const wide = chooseListenHost({ chosen: "0.0.0.0", requireAuthentication: false });
+    const wide = chooseListenHost({ chosen: "0.0.0.0", requireAuthentication: false, sandboxEndpoint: "" });
     expect(wide.host).toBe("0.0.0.0");
     expect(wide.warning).toMatch(/^listening on 0\.0\.0\.0 without sign-in: anyone who can reach this address acts as the operator/);
   });

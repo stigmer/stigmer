@@ -26,7 +26,8 @@
 // which moves with main), pointed at this file's mock LLM through the
 // operator's runner list (STIGMER_SANDBOX_RUNNER_ENV). The mock listens where
 // the pod reaches the host (STIGMER_AGENT_SANDBOX_LIVE_BIND), the server on
-// every interface (the shipped server takes no listen address), and the pod
+// every interface (a server whose sandboxes dial it at an address beyond
+// loopback, STIGMER_SANDBOX_BACKEND_ENDPOINT, listens there), and the pod
 // names the host by STIGMER_AGENT_SANDBOX_LIVE_POD_HOST.
 
 import { execFileSync, spawn, type ChildProcess } from "node:child_process";

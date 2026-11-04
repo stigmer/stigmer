@@ -9,6 +9,13 @@
  * unreachable through the container boundary; the compose file publishes
  * the port on the host's loopback.
  *
+ * One more fact decides the default: a server whose operator configured a
+ * container sandbox driver has named, in STIGMER_SANDBOX_BACKEND_ENDPOINT,
+ * the address its sandboxes dial it at. When that address is not a
+ * loopback one, the server listens on every interface by default, because
+ * that is where its sandboxes come from, and says so at boot when it signs
+ * nobody in.
+ *
  * An operator who chooses a wider bind without sign-in is told, once at
  * boot, what that exposes; the transport still refuses other sites and
  * rebinding names (transport/local-only.ts).
@@ -28,23 +35,37 @@ export interface ListenHostChoice {
 export function chooseListenHost(input: {
   readonly chosen: string | undefined;
   readonly requireAuthentication: boolean;
+  /** The address the sandboxes dial (STIGMER_SANDBOX_BACKEND_ENDPOINT), "" when no container driver names one. */
+  readonly sandboxEndpoint: string;
 }): ListenHostChoice {
-  if (input.chosen === undefined) {
-    return {
-      host: input.requireAuthentication
-        ? ALL_INTERFACES_LISTEN_HOST
-        : LOOPBACK_LISTEN_HOST,
-    };
-  }
-  const loopback =
-    input.chosen === "localhost" ||
-    input.chosen === "::1" ||
-    input.chosen.startsWith("127.");
-  if (input.requireAuthentication || loopback) {
-    return { host: input.chosen };
+  const host =
+    input.chosen ??
+    (input.requireAuthentication || sandboxesDialIn(input.sandboxEndpoint)
+      ? ALL_INTERFACES_LISTEN_HOST
+      : LOOPBACK_LISTEN_HOST);
+  if (input.requireAuthentication || isLoopbackListenHost(host)) {
+    return { host };
   }
   return {
-    host: input.chosen,
-    warning: `listening on ${input.chosen} without sign-in: anyone who can reach this address acts as the operator; configure sign-in (STIGMER_OIDC_ISSUER) before serving a network`,
+    host,
+    warning: `listening on ${host} without sign-in: anyone who can reach this address acts as the operator; configure sign-in (STIGMER_OIDC_ISSUER) before serving a network`,
   };
+}
+
+function isLoopbackListenHost(host: string): boolean {
+  return host === "localhost" || host === "::1" || host.startsWith("127.");
+}
+
+/** Whether a configured sandbox endpoint names an address beyond loopback, so sandboxes dial in over the network. */
+function sandboxesDialIn(endpoint: string): boolean {
+  if (endpoint === "") {
+    return false;
+  }
+  let hostname: string;
+  try {
+    hostname = new URL(endpoint.includes("://") ? endpoint : `http://${endpoint}`).hostname.replace(/^\[|\]$/g, "");
+  } catch {
+    return true;
+  }
+  return !isLoopbackListenHost(hostname);
 }

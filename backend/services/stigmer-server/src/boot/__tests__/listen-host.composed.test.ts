@@ -56,6 +56,7 @@ describe("the bind a server without sign-in chooses", () => {
     const listening = lines.find((line) => textOf(line) === "stigmer-server listening");
     expect(listening?.host).toBe("0.0.0.0");
     const warning = lines.find((line) => textOf(line).startsWith("listening on 0.0.0.0 without sign-in"));
-    expect(warning?.level ?? "warn").toMatch(/warn|40/);
+    expect(warning, "the boot warns about a wider bind without sign-in").toBeDefined();
+    expect(warning?.level).toBe("warn");
   });
 });

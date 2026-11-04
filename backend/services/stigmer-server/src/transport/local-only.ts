@@ -19,7 +19,13 @@
  *   - DNS rebinding: a page whose own name resolves to 127.0.0.1 reaches
  *     the loopback listener as the same origin, so the `Host` it sends is
  *     its own name. A request that arrived on a loopback address must name
- *     a loopback host.
+ *     a loopback host, or one of the names a container runtime gives the
+ *     machine it runs on (`host.docker.internal` and its siblings): a
+ *     sandbox on Docker Desktop dials the server by that name and arrives
+ *     on loopback, and no public page can make a browser send it. The
+ *     check reads HTTP/1.1 requests: cleartext HTTP/2 reaches the server
+ *     through the protocol demux with no local address, and no browser
+ *     speaks it, so it carries no rebinding page.
  *
  * "This machine's" origins: http and https on a loopback name, and the
  * desktop app's webview (`tauri://localhost`, and `tauri.localhost` where
@@ -28,6 +34,14 @@
  * the Origin rule; its Host is whatever name the network gives it.
  */
 import type { LaneRequest } from "./lanes.js";
+
+/** The names container runtimes give the machine a container runs on: a sandbox's own way to the server. */
+const CONTAINER_HOST_NAMES: ReadonlySet<string> = new Set([
+  "host.docker.internal",
+  "gateway.docker.internal",
+  "host.containers.internal",
+  "host.lima.internal",
+]);
 
 /** The loopback names a Host or an Origin may carry. */
 const LOOPBACK_NAMES: ReadonlySet<string> = new Set(["localhost", "::1"]);
@@ -90,7 +104,8 @@ export function localOnlyRefusal(request: LaneRequest): string | undefined {
   const arrivedOn = request.socket.localAddress;
   if (arrivedOn !== undefined && isLoopbackHostname(arrivedOn)) {
     const authority = request.headers[":authority"] ?? request.headers.host;
-    if (typeof authority === "string" && !isLoopbackHostname(hostnameOf(authority))) {
+    const hostname = typeof authority === "string" ? hostnameOf(authority).toLowerCase() : "";
+    if (typeof authority === "string" && !isLoopbackHostname(hostname) && !CONTAINER_HOST_NAMES.has(hostname)) {
       return FOREIGN_HOST_REFUSED;
     }
   }

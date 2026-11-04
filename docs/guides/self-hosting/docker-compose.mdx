@@ -231,9 +231,12 @@ stigmer config backend use prod
 The console needs nothing: it reads its own origin, so the proxy needs no
 forwarded-header configuration. The stack publishes ports 7234 and 7235 on the
 machine's loopback only, so the proxy on the same machine is the only way in.
-Until authentication is on, every caller is the operator: publish them on every
-interface (`STIGMER_PUBLISH_ADDRESS=0.0.0.0` in `.env`) only after you turn it
-on.
+
+Turn authentication on (next section) before the proxy serves anyone. Until it
+is on, every caller is the operator, so anyone who reaches the proxy acts as
+you, and the console refuses to answer pages served from another origin, the
+proxy's included. Publish the ports on every interface
+(`STIGMER_PUBLISH_ADDRESS=0.0.0.0` in `.env`) only after you turn it on.
 
 ## Turn authentication on
 

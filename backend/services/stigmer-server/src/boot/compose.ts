@@ -2659,6 +2659,8 @@ export async function composeServer(
       const listenHost = chooseListenHost({
         chosen: options.host ?? config.grpcHost,
         requireAuthentication,
+        sandboxEndpoint:
+          config.sandboxProvisionerType === "" ? "" : config.sandboxBackendEndpoint,
       });
       if (listenHost.warning !== undefined) {
         logger.warn(listenHost.warning);
