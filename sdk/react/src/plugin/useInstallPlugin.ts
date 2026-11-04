@@ -52,8 +52,14 @@ export interface UseInstallPluginReturn {
  *
  * @example
  * ```tsx
- * const { install, isInstalling } = useInstallPlugin();
- * const outcome = await install(prepared, { org, installedFrom: "acme-plugins" });
+ * function InstallButton({ prepared, onInstalled }: { prepared: PreparedInstall; onInstalled: (slug: string) => void }) {
+ *   const { install, isInstalling } = useInstallPlugin();
+ *   const onClick = async () => {
+ *     const { plugin } = await install(prepared, { org: "acme", installedFrom: "acme-plugins" });
+ *     onInstalled(plugin.metadata?.slug ?? "");
+ *   };
+ *   return <button disabled={isInstalling} onClick={onClick}>Install</button>;
+ * }
  * ```
  */
 export function useInstallPlugin(): UseInstallPluginReturn {

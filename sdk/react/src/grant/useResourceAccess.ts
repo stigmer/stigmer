@@ -56,10 +56,7 @@ export interface UseResourceAccessReturn {
  *
  * @example
  * ```tsx
- * const { members, isLoading } = useResourceAccess(
- *   { kind: "organization", id: org },
- *   { includeInherited: true },
- * );
+ * const { members, isLoading } = useResourceAccess({ kind: "organization", id: "acme" }, { includeInherited: true });
  * ```
  */
 export function useResourceAccess(

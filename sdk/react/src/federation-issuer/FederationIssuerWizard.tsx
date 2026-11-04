@@ -53,11 +53,10 @@ type WizardStep = "pick" | "configure" | "review" | "success";
  *
  * @example
  * ```tsx
- * <FederationIssuerWizard
- *   org="acme"
- *   onCreated={(issuer) => { refetch(); setShowWizard(false); }}
- *   onCancel={() => setShowWizard(false)}
- * />
+ * function ConnectIssuer({ onDone }: { onDone: () => void }) {
+ *   // onDone closes the wizard and refreshes the list.
+ *   return <FederationIssuerWizard org="acme" onCreated={onDone} onCancel={onDone} />;
+ * }
  * ```
  */
 export function FederationIssuerWizard({

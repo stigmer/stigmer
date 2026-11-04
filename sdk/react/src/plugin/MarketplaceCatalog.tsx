@@ -86,10 +86,9 @@ export const CATALOG_PAGE_SIZE = 24;
  *
  * @example
  * ```tsx
- * <MarketplaceCatalog
- *   org={org}
- *   onInstalled={({ plugin }) => navigateToDetail("plugins", org, plugin.metadata.slug)}
- * />
+ * function Catalog({ onOpen }: { onOpen: (href: string) => void }) {
+ *   return <MarketplaceCatalog org="acme" onInstalled={({ plugin }) => onOpen(`/plugins/acme/${plugin.metadata?.slug}`)} />;
+ * }
  * ```
  */
 export function MarketplaceCatalog({ org, onInstalled, fetchImpl, className }: MarketplaceCatalogProps) {

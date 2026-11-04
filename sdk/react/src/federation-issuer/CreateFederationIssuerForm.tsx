@@ -43,14 +43,10 @@ export interface CreateFederationIssuerFormProps {
  *
  * @example
  * ```tsx
- * <CreateFederationIssuerForm
- *   org="acme"
- *   onCreated={(issuer) => {
- *     refetch();
- *     setShowForm(false);
- *   }}
- *   onCancel={() => setShowForm(false)}
- * />
+ * function NewIssuer({ onDone }: { onDone: () => void }) {
+ *   // onDone closes the form and refreshes the list.
+ *   return <CreateFederationIssuerForm org="acme" onCreated={onDone} onCancel={onDone} />;
+ * }
  * ```
  */
 export function CreateFederationIssuerForm({

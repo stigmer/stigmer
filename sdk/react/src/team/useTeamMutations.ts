@@ -80,8 +80,11 @@ function useTracked<A, R>(call: (arg: A) => Promise<R>) {
  *
  * @example
  * ```tsx
- * const { create, isCreating, error } = useCreateTeam();
- * await create({ name: "Site Reliability", org: orgSlug, description: "On call" });
+ * function NewTeamButton() {
+ *   const { create, isCreating } = useCreateTeam();
+ *   const onClick = () => create({ name: "Site Reliability", org: "acme", description: "On call" });
+ *   return <button disabled={isCreating} onClick={onClick}>New team</button>;
+ * }
  * ```
  */
 export function useCreateTeam(): UseCreateTeamReturn {
@@ -102,11 +105,13 @@ export function useCreateTeam(): UseCreateTeamReturn {
  *
  * @example
  * ```tsx
- * const { update } = useUpdateTeam();
- * await update(
- *   { metadata: { id: team.metadata!.id, etag: team.metadata!.etag }, spec: { description: next } },
- *   ["spec.description"],
- * );
+ * import type { Team } from "@stigmer/apis/ai/stigmer/iam/team/v1/api_pb";
+ *
+ * function RenameTeamDescription({ team, description }: { team: Team; description: string }) {
+ *   const { update, isUpdating } = useUpdateTeam();
+ *   const save = () => update({ metadata: team.metadata, spec: { description } }, ["spec.description"]);
+ *   return <button disabled={isUpdating} onClick={save}>Save description</button>;
+ * }
  * ```
  */
 export function useUpdateTeam(): UseUpdateTeamReturn {
@@ -132,8 +137,10 @@ export function useUpdateTeam(): UseUpdateTeamReturn {
  *
  * @example
  * ```tsx
- * const { deleteTeam } = useDeleteTeam();
- * await deleteTeam({ resourceId: team.metadata?.id ?? "" });
+ * function DeleteTeamButton({ teamId }: { teamId: string }) {
+ *   const { deleteTeam, isDeleting } = useDeleteTeam();
+ *   return <button disabled={isDeleting} onClick={() => deleteTeam({ resourceId: teamId })}>Delete team</button>;
+ * }
  * ```
  */
 export function useDeleteTeam(): UseDeleteTeamReturn {

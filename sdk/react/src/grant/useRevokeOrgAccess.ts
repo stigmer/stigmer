@@ -37,10 +37,14 @@ export interface UseRevokeOrgAccessReturn {
  *
  * @example
  * ```tsx
- * const { revoke, isRevoking, error } = useRevokeOrgAccess();
- *
- * await revoke("ia-alice-123", "org-demo-456");
- * refetchMembers();
+ * function RemoveMemberButton({ accountId, onRemoved }: { accountId: string; onRemoved: () => void }) {
+ *   const { revoke, isRevoking } = useRevokeOrgAccess();
+ *   const remove = async () => {
+ *     await revoke(accountId, "acme");
+ *     onRemoved(); // refetch the member list
+ *   };
+ *   return <button disabled={isRevoking} onClick={remove}>Remove from organization</button>;
+ * }
  * ```
  */
 export function useRevokeOrgAccess(): UseRevokeOrgAccessReturn {

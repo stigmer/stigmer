@@ -42,7 +42,7 @@ const NO_TEAMS: Team[] = [];
  * @example
  * ```tsx
  * const teamsServed = useResourceAvailable(ApiResourceKind.team);
- * const { teams, isLoading } = useTeamList(teamsServed ? orgSlug : null);
+ * const { teams, isLoading } = useTeamList(teamsServed ? "acme" : null);
  * ```
  */
 export function useTeamList(org: string | null): UseTeamListReturn {

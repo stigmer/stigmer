@@ -174,8 +174,12 @@ const SHORT_HASH_LENGTH = 12;
  *
  * @example
  * ```tsx
- * const { versions } = useAgentVersions(org, slug);
- * agentVersionLabel(versions, run.status?.agentVersionHash ?? ""); // "v2" or "3f2a9c1e0b7d"
+ * import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+ *
+ * function RunVersion({ run }: { run: Run }) {
+ *   const { versions } = useAgentVersions("acme", "reviewer");
+ *   return <span>{agentVersionLabel(versions, run.status?.agentVersionHash ?? "")}</span>; // "v2" or "3f2a9c1e0b7d"
+ * }
  * ```
  */
 export function agentVersionLabel(

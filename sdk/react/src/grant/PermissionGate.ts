@@ -45,17 +45,17 @@ export interface PermissionGateProps {
  *
  * @example
  * ```tsx
- * <PermissionGate resource={{ kind: "agent", id }} relation="can_edit">
- *   <EditButton onClick={handleEdit} />
- * </PermissionGate>
- *
- * <PermissionGate
- *   resource={{ kind: "session", id }}
- *   relation="can_grant_access"
- *   fallback={<Tooltip content="You don't have permission to share" />}
- * >
- *   <ShareButton onClick={openShareDialog} />
- * </PermissionGate>
+ * function ShareButton({ sessionId, onShare }: { sessionId: string; onShare: () => void }) {
+ *   return (
+ *     <PermissionGate
+ *       resource={{ kind: "session", id: sessionId }}
+ *       relation="can_grant_access"
+ *       fallback={<span>You don't have permission to share</span>}
+ *     >
+ *       <button onClick={onShare}>Share</button>
+ *     </PermissionGate>
+ *   );
+ * }
  * ```
  */
 export function PermissionGate({

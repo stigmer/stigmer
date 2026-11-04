@@ -43,12 +43,15 @@ export interface AddMcpServerDialogProps {
  *
  * @example
  * ```tsx
- * <AddMcpServerDialog
- *   org={org}
- *   open={adding}
- *   onClose={() => setAdding(false)}
- *   onAdded={(plugin) => navigateToDetail("plugins", org, plugin.metadata?.slug ?? "")}
- * />
+ * function AddServer({ onOpen }: { onOpen: (href: string) => void }) {
+ *   const [adding, setAdding] = useState(false);
+ *   return (
+ *     <>
+ *       <button onClick={() => setAdding(true)}>Add MCP server</button>
+ *       <AddMcpServerDialog org="acme" open={adding} onClose={() => setAdding(false)} onAdded={(plugin) => onOpen(`/plugins/acme/${plugin.metadata?.slug}`)} />
+ *     </>
+ *   );
+ * }
  * ```
  */
 export function AddMcpServerDialog({ org, open, onClose, onAdded, className }: AddMcpServerDialogProps) {

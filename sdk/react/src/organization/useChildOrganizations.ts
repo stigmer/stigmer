@@ -42,7 +42,7 @@ export interface UseChildOrganizationsReturn {
  *
  * @example
  * ```tsx
- * const { children, hasMore, loadMore } = useChildOrganizations(orgId);
+ * const { children, hasMore, loadMore } = useChildOrganizations("acme");
  * ```
  */
 export function useChildOrganizations(

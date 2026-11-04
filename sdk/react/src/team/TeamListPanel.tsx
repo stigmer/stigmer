@@ -38,8 +38,12 @@ export interface TeamListPanelProps {
  *
  * @example
  * ```tsx
- * const list = useTeamList(orgSlug);
- * <TeamListPanel {...list} onOpen={(team) => setOpenTeam(team)} />
+ * import type { Team } from "@stigmer/apis/ai/stigmer/iam/team/v1/api_pb";
+ *
+ * function Teams({ onOpen }: { onOpen: (team: Team) => void }) {
+ *   const list = useTeamList("acme");
+ *   return <TeamListPanel {...list} onRetry={list.refetch} onOpen={onOpen} />;
+ * }
  * ```
  */
 export function TeamListPanel({

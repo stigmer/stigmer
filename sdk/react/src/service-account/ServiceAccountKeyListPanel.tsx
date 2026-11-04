@@ -31,7 +31,7 @@ export interface ServiceAccountKeyListPanelProps {
  *
  * @example
  * ```tsx
- * <ServiceAccountKeyListPanel serviceAccountId={account.metadata!.id} />
+ * <ServiceAccountKeyListPanel serviceAccountId="ida_01jabc" />
  * ```
  */
 export function ServiceAccountKeyListPanel({

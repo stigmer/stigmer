@@ -38,10 +38,14 @@ export interface UseRenameOrganizationReturn {
  *
  * @example
  * ```tsx
- * const { rename, isRenaming, error } = useRenameOrganization();
- *
- * const renamed = await rename(org.metadata.id, "acme-labs");
- * refresh(renamed.metadata?.id);
+ * function RenameToAcmeLabs({ orgId, onRenamed }: { orgId: string; onRenamed: (orgId?: string) => void }) {
+ *   const { rename, isRenaming } = useRenameOrganization();
+ *   const onClick = async () => {
+ *     const renamed = await rename(orgId, "acme-labs");
+ *     onRenamed(renamed.metadata?.id); // e.g. useOrgGate's refresh
+ *   };
+ *   return <button disabled={isRenaming} onClick={onClick}>Rename to acme-labs</button>;
+ * }
  * ```
  */
 export function useRenameOrganization(): UseRenameOrganizationReturn {

@@ -45,7 +45,7 @@ export interface UseServiceAccountKeyListReturn {
  *
  * @example
  * ```tsx
- * const { apiKeys, refetch } = useServiceAccountKeyList(account.metadata?.id ?? null);
+ * const { apiKeys, refetch } = useServiceAccountKeyList("ida_01jabc");
  * ```
  */
 export function useServiceAccountKeyList(

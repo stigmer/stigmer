@@ -68,12 +68,10 @@ type Step =
  *
  * @example
  * ```tsx
- * <CreateServiceAccountForm
- *   org={orgId}
- *   onCreated={() => refetch()}
- *   onDone={() => setCreating(false)}
- *   onCancel={() => setCreating(false)}
- * />
+ * // onCreated refreshes the list; onClose closes the form.
+ * function NewServiceAccount({ onCreated, onClose }: { onCreated: () => void; onClose: () => void }) {
+ *   return <CreateServiceAccountForm org="acme" onCreated={onCreated} onDone={onClose} onCancel={onClose} />;
+ * }
  * ```
  */
 export function CreateServiceAccountForm({

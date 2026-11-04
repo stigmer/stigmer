@@ -58,11 +58,11 @@ export interface OAuthAppListPanelProps {
  *
  * @example
  * ```tsx
- * <OAuthAppListPanel
- *   org="acme"
- *   onEdit={(app) => setFlow({ phase: "editing", oauthApp: app })}
- *   onRefetchRef={(refetch) => { listRefetchRef.current = refetch; }}
- * />
+ * import type { OAuthApp } from "@stigmer/apis/ai/stigmer/iam/oauthapp/v1/api_pb";
+ *
+ * function OAuthApps({ onEdit }: { onEdit: (app: OAuthApp) => void }) {
+ *   return <OAuthAppListPanel org="acme" onEdit={onEdit} />;
+ * }
  * ```
  */
 export function OAuthAppListPanel({

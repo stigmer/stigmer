@@ -47,10 +47,12 @@ export interface RoleSelectorProps {
  *
  * @example
  * ```tsx
- * <RoleSelector
- *   kind={ApiResourceKind.organization}
- *   onSelect={(role) => setRole(role)}
- * />
+ * import type { IamRole } from "@stigmer/client";
+ *
+ * function InviteRole() {
+ *   const [role, setRole] = useState<IamRole | null>(null);
+ *   return <RoleSelector kind={ApiResourceKind.organization} selected={role} onSelect={setRole} />;
+ * }
  * ```
  */
 export function RoleSelector({

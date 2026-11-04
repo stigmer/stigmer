@@ -75,18 +75,18 @@ const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---/;
  *
  * @example
  * ```tsx
- * const upload = useSkillUpload();
- *
- * const handleDrop = (file: File) => upload.processFile(file);
- *
- * if (upload.preview) {
- *   // Show preview UI
- *   console.log(upload.preview.name, upload.preview.files);
- * }
- *
- * if (upload.artifact) {
- *   // Ready to push
- *   await push({ org: "acme", artifact: upload.artifact });
+ * function UploadSkill() {
+ *   const upload = useSkillUpload();
+ *   const { push, isPushing } = usePushSkill();
+ *   const { preview, artifact } = upload;
+ *   if (!preview || !artifact) {
+ *     return <input type="file" accept=".zip" onChange={(e) => e.target.files?.[0] && upload.processFile(e.target.files[0])} />;
+ *   }
+ *   return (
+ *     <button disabled={isPushing} onClick={() => push({ org: "acme", artifact })}>
+ *       Push {preview.name} ({preview.files.length} files)
+ *     </button>
+ *   );
  * }
  * ```
  */

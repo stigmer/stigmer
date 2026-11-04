@@ -67,12 +67,17 @@ const LIST_ID = "stgm-agent-list";
  *
  * @example
  * ```tsx
- * // Platform builder: standalone agent picker
- * const [agent, setAgent] = useState<ResourceRef | null>(null);
- * <AgentPicker org="acme" value={agent} onChange={setAgent} />
+ * import type { ResourceRef } from "@stigmer/client";
  *
- * // Access the selected agent
- * if (agent) console.log(`Selected: ${agent.org}/${agent.slug}`);
+ * function ChooseAgent() {
+ *   const [agent, setAgent] = useState<ResourceRef | null>(null);
+ *   return (
+ *     <>
+ *       <AgentPicker org="acme" value={agent} onChange={setAgent} />
+ *       {agent && <p>Selected: {agent.org}/{agent.slug}</p>}
+ *     </>
+ *   );
+ * }
  * ```
  */
 export function AgentPicker({

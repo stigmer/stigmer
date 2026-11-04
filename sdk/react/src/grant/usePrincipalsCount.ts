@@ -40,7 +40,7 @@ export interface UsePrincipalsCountReturn {
  *
  * @example
  * ```tsx
- * const { count, isLoading } = usePrincipalsCount(org);
+ * const { count, isLoading } = usePrincipalsCount("acme");
  * // count = 5
  * ```
  */

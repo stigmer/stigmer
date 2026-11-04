@@ -104,17 +104,16 @@ export interface UseShareFlowReturn {
  *
  * @example
  * ```tsx
- * const share = useShareFlow({
- *   kind: "agent",
- *   id: agentId,
- *   resourceKind: ApiResourceKind.agent,
- * });
+ * import { IamRole, personGrantee, teamGrantee } from "@stigmer/client";
  *
- * await share.grant(personGrantee(accountId), IamRole.viewer);
- * if (share.canShareWithTeams) {
- *   await share.grant(teamGrantee(teamId), IamRole.viewer);
+ * function ShareWithReviewers({ agentId, accountId, teamId }: { agentId: string; accountId: string; teamId: string }) {
+ *   const share = useShareFlow({ kind: "agent", id: agentId, resourceKind: ApiResourceKind.agent });
+ *   const shareWithReviewers = async () => {
+ *     await share.grant(personGrantee(accountId), IamRole.viewer);
+ *     if (share.canShareWithTeams) await share.grant(teamGrantee(teamId), IamRole.viewer);
+ *   };
+ *   return <button disabled={share.isGranting} onClick={shareWithReviewers}>Share with reviewers</button>;
  * }
- * await share.revoke(teamGrantee(teamId));
  * ```
  */
 export function useShareFlow(

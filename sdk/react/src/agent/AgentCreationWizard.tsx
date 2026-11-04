@@ -98,13 +98,16 @@ const STEPS: WizardStepDef<AgentWizardData>[] = [
  *
  * @example
  * ```tsx
- * const slugForOrg = useOrgSlugForId();
- *
- * <AgentCreationWizard
- *   org="acme"
- *   onComplete={({ org, slug }) => navigate(`/agents/${slugForOrg(org)}/${slug}`)}
- *   onCancel={() => navigate("/agents")}
- * />
+ * function NewAgent({ onOpen }: { onOpen: (href: string) => void }) {
+ *   const slugForOrg = useOrgSlugForId();
+ *   return (
+ *     <AgentCreationWizard
+ *       org="acme"
+ *       onComplete={({ org, slug }) => onOpen(`/agents/${slugForOrg(org)}/${slug}`)}
+ *       onCancel={() => onOpen("/agents")}
+ *     />
+ *   );
+ * }
  * ```
  */
 export function AgentCreationWizard(props: AgentCreationWizardProps) {

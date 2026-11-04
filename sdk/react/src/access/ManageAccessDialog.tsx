@@ -56,15 +56,23 @@ export interface ManageAccessDialogProps {
  *
  * @example
  * ```tsx
- * const [open, setOpen] = useState(false);
+ * import type { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
  *
  * // A blueprint has both axes: General access (visibility) over People.
- * <ManageAccessDialog
- *   open={open}
- *   onOpenChange={setOpen}
- *   resource={{ kind: ApiResourceKind.agent, kindString: "agent", id, org, name }}
- *   visibility={{ kind: "agent", current: visibility, org, onChanged: refetch }}
- * />
+ * function ShareAgent({ id, org, visibility, onChanged }: { id: string; org: string; visibility: ApiResourceVisibility; onChanged: () => void }) {
+ *   const [open, setOpen] = useState(false);
+ *   return (
+ *     <>
+ *       <button onClick={() => setOpen(true)}>Share</button>
+ *       <ManageAccessDialog
+ *         open={open}
+ *         onOpenChange={setOpen}
+ *         resource={{ kind: ApiResourceKind.agent, kindString: "agent", id, org }}
+ *         visibility={{ kind: "agent", current: visibility, org, onChanged }}
+ *       />
+ *     </>
+ *   );
+ * }
  * ```
  */
 export function ManageAccessDialog({

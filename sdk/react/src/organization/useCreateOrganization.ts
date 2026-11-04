@@ -25,7 +25,7 @@ export interface UseCreateOrganizationReturn {
  * Creates an Organization resource — a tenancy boundary that owns
  * agents, vaults, skills, MCP servers, and other platform
  * resources. The caller provides an {@link OrganizationInput} with
- * `name`, `org`, and optionally `description` and `logoUrl`.
+ * `name`, and optionally `slug`, `description` and `logoUrl`.
  *
  * Returns the full {@link Organization} proto including
  * server-generated metadata (id, slug, version, timestamps) so
@@ -33,13 +33,14 @@ export interface UseCreateOrganizationReturn {
  *
  * @example
  * ```tsx
- * const { create, isCreating, error } = useCreateOrganization();
- *
- * const org = await create({
- *   name: "Acme Corp",
- *   org: "acme-corp",
- *   description: "Main engineering organization",
- * });
+ * function CreateAcmeButton({ onCreated }: { onCreated: (orgId: string) => void }) {
+ *   const { create, isCreating } = useCreateOrganization();
+ *   const onClick = async () => {
+ *     const org = await create({ name: "Acme Corp", slug: "acme-corp", description: "Main engineering organization" });
+ *     onCreated(org.metadata?.id ?? "");
+ *   };
+ *   return <button disabled={isCreating} onClick={onClick}>Create organization</button>;
+ * }
  * ```
  */
 export function useCreateOrganization(): UseCreateOrganizationReturn {

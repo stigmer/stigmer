@@ -88,18 +88,18 @@ export interface InvitationRedemptionProps {
  *
  * @example
  * ```tsx
- * <InvitationRedemption
- *   token={tokenFromUrl}
- *   onAccepted={(inv) => router.push("/dashboard")}
- * />
+ * type JoinPageProps = { token: string; signedIn: boolean; onOpen: (href: string) => void; onSignIn: () => void };
  *
- * <InvitationRedemption
- *   token={tokenFromUrl}
- *   isAuthenticated={!!currentUser}
- *   autoAccept={shouldAutoAccept}
- *   onAccepted={(inv) => router.push(`/org/${inv.metadata?.org}`)}
- *   onAuthRequired={() => redirectToLogin()}
- * />
+ * function JoinPage({ token, signedIn, onOpen, onSignIn }: JoinPageProps) {
+ *   return (
+ *     <InvitationRedemption
+ *       token={token}
+ *       isAuthenticated={signedIn}
+ *       onAccepted={(invitation) => onOpen(`/org/${invitation.metadata?.org}`)}
+ *       onAuthRequired={onSignIn}
+ *     />
+ *   );
+ * }
  * ```
  */
 export function InvitationRedemption({

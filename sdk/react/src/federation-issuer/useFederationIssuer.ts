@@ -33,9 +33,9 @@ export interface UseFederationIssuerReturn {
  * function IssuerDetail({ issuerId }: { issuerId: string }) {
  *   const { federationIssuer, isLoading, error } = useFederationIssuer(issuerId);
  *
- *   if (isLoading) return <Skeleton />;
- *   if (error) return <ErrorMessage error={error} />;
- *   if (!federationIssuer) return <NotFound />;
+ *   if (isLoading) return <p>Loading…</p>;
+ *   if (error) return <p>{error.message}</p>;
+ *   if (!federationIssuer) return <p>No such issuer.</p>;
  *
  *   return <h1>{federationIssuer.spec?.displayName}</h1>;
  * }

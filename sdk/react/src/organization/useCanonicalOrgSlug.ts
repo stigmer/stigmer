@@ -42,10 +42,15 @@ interface LookedUpSlug {
  *
  * @example
  * ```tsx
- * const canonical = useCanonicalOrgSlug(params.org);
- * useEffect(() => {
- *   if (canonical) navigate(`/library/agents/${canonical}/${params.slug}`, { replace: true });
- * }, [canonical]);
+ * type AgentRouteProps = { org: string; slug: string; replaceUrl: (href: string) => void };
+ *
+ * function CanonicalAgentUrl({ org, slug, replaceUrl }: AgentRouteProps) {
+ *   const canonical = useCanonicalOrgSlug(org);
+ *   useEffect(() => {
+ *     if (canonical) replaceUrl(`/library/agents/${canonical}/${slug}`);
+ *   }, [canonical, slug, replaceUrl]);
+ *   return null;
+ * }
  * ```
  */
 export function useCanonicalOrgSlug(

@@ -55,13 +55,21 @@ export interface UseManageAccessReturn {
  *
  * @example
  * ```tsx
- * const access = useManageAccess({
- *   resource: meta ? { kind: ApiResourceKind.agent, kindString: "agent", id: meta.id, org: meta.org } : null,
- *   visibility: meta ? { kind: "agent", current: meta.visibility, org: meta.org, onChanged: refetch } : undefined,
- * });
- * // ...
- * <ResourceDetailShell actions={access.action ? [...actions, access.action] : actions} ... />
- * {access.dialog}
+ * import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+ *
+ * function AgentActions({ agent, onChanged }: { agent: Agent; onChanged: () => void }) {
+ *   const meta = agent.metadata;
+ *   const access = useManageAccess({
+ *     resource: meta ? { kind: ApiResourceKind.agent, kindString: "agent", id: meta.id, org: meta.org } : null,
+ *     visibility: meta ? { kind: "agent", current: meta.visibility, org: meta.org, onChanged } : undefined,
+ *   });
+ *   return (
+ *     <>
+ *       <ResourceActionBar actions={access.action ? [access.action] : []} />
+ *       {access.dialog}
+ *     </>
+ *   );
+ * }
  * ```
  */
 export function useManageAccess({

@@ -41,13 +41,19 @@ export interface AddPluginToAgentDialogProps {
  *
  * @example
  * ```tsx
- * <AddPluginToAgentDialog
- *   org={org}
- *   offer={{ plugin: { org, slug }, name: plugin.metadata.name, servers: plugin.status.mcpServers.map((s) => s.name) }}
- *   open={adding}
- *   onClose={() => setAdding(false)}
- *   onAgentClick={({ org, slug }) => navigateToDetail("agents", org, slug)}
- * />
+ * type Props = { open: boolean; onClose: () => void; onOpen: (href: string) => void };
+ *
+ * function AddLinearDialog({ open, onClose, onOpen }: Props) {
+ *   return (
+ *     <AddPluginToAgentDialog
+ *       org="acme"
+ *       offer={{ plugin: { org: "acme", slug: "linear" }, name: "linear", servers: ["linear"] }}
+ *       open={open}
+ *       onClose={onClose}
+ *       onAgentClick={({ org, slug }) => onOpen(`/agents/${org}/${slug}`)}
+ *     />
+ *   );
+ * }
  * ```
  */
 export function AddPluginToAgentDialog({ org, offer, open, onClose, onAgentClick, className }: AddPluginToAgentDialogProps) {

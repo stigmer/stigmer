@@ -29,10 +29,14 @@ export interface UseDeleteOAuthAppReturn {
  *
  * @example
  * ```tsx
- * const { deleteApp, isDeleting, error } = useDeleteOAuthApp();
- *
- * await deleteApp("oauth-app-id-abc123");
- * refetch(); // refresh the list after deletion
+ * function DeleteAppButton({ appId, onDeleted }: { appId: string; onDeleted: () => void }) {
+ *   const { deleteApp, isDeleting } = useDeleteOAuthApp();
+ *   const onClick = async () => {
+ *     await deleteApp(appId);
+ *     onDeleted(); // refresh the list after deletion
+ *   };
+ *   return <button disabled={isDeleting} onClick={onClick}>Delete</button>;
+ * }
  * ```
  */
 export function useDeleteOAuthApp(): UseDeleteOAuthAppReturn {

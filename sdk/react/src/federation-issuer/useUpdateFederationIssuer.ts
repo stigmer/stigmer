@@ -38,15 +38,13 @@ export interface UseUpdateFederationIssuerReturn {
  *
  * @example
  * ```tsx
- * const { update, isUpdating, error } = useUpdateFederationIssuer();
+ * import type { FederationIssuer } from "@stigmer/apis/ai/stigmer/iam/federationissuer/v1/api_pb";
  *
- * await update(
- *   {
- *     metadata: { id: issuer.metadata!.id, etag: issuer.metadata!.etag },
- *     spec: { displayName: "Acme Platform" },
- *   },
- *   ["spec.display_name"],
- * );
+ * function RenameIssuer({ issuer }: { issuer: FederationIssuer }) {
+ *   const { update, isUpdating } = useUpdateFederationIssuer();
+ *   const save = () => update({ metadata: issuer.metadata, spec: { displayName: "Acme Platform" } }, ["spec.display_name"]);
+ *   return <button disabled={isUpdating} onClick={save}>Rename to Acme Platform</button>;
+ * }
  * ```
  */
 export function useUpdateFederationIssuer(): UseUpdateFederationIssuerReturn {

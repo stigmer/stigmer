@@ -17,8 +17,8 @@ import { toError } from "@stigmer/react-core/internal";
  * Narrow on `status` to access variant-specific data:
  *
  * ```ts
- * if (state.status === "ready") {
- *   console.log(state.account.metadata?.id);
+ * function accountIdOf(state: IdentityAccountGateState): string | undefined {
+ *   return state.status === "ready" ? state.account.metadata?.id : undefined;
  * }
  * ```
  */
@@ -88,16 +88,15 @@ export interface UseIdentityAccountGateReturn {
  *
  * @example
  * ```tsx
- * const { state, retry } = useIdentityAccountGate({ isEnabled: true });
- *
- * switch (state.status) {
- *   case "checking":
- *   case "provisioning":
- *     return <Spinner />;
- *   case "ready":
- *     return <>{children}</>;
- *   case "error":
- *     return <ErrorScreen message={state.message} onRetry={retry} />;
+ * function AccountGate({ children }: { children: ReactNode }) {
+ *   const { state, retry } = useIdentityAccountGate({ isEnabled: true });
+ *   if (state.status === "ready") return <>{children}</>;
+ *   if (state.status !== "error") return <p>Setting up your account…</p>;
+ *   return (
+ *     <p>
+ *       {state.message} <button onClick={retry}>Try again</button>
+ *     </p>
+ *   );
  * }
  * ```
  */

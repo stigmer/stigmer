@@ -28,10 +28,14 @@ export interface UseDeleteFederationIssuerReturn {
  *
  * @example
  * ```tsx
- * const { deleteProvider, isDeleting, error } = useDeleteFederationIssuer();
- *
- * await deleteProvider({ resourceId: "issuer-abc123" });
- * refetch(); // refresh the list after deletion
+ * function DeleteIssuerButton({ issuerId, onDeleted }: { issuerId: string; onDeleted: () => void }) {
+ *   const { deleteProvider, isDeleting } = useDeleteFederationIssuer();
+ *   const onClick = async () => {
+ *     await deleteProvider({ resourceId: issuerId });
+ *     onDeleted(); // refresh the list after deletion
+ *   };
+ *   return <button disabled={isDeleting} onClick={onClick}>Delete</button>;
+ * }
  * ```
  */
 export function useDeleteFederationIssuer(): UseDeleteFederationIssuerReturn {

@@ -49,8 +49,12 @@ export function agentHarnessOf(spec: AgentSpec | undefined): HarnessOption | und
  *
  * @example
  * ```ts
- * const defaults = agentRunDefaultsFor(agent.spec, "stigmer");
- * // { modelName: "claude-sonnet-4.6", thinkingMode: "enabled" }
+ * import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+ *
+ * function stigmerDefaults(agent: Agent) {
+ *   return agentRunDefaultsFor(agent.spec, "stigmer");
+ *   // { modelName: "claude-sonnet-4.6", thinkingMode: "enabled" }
+ * }
  * ```
  */
 export function agentRunDefaultsFor(
