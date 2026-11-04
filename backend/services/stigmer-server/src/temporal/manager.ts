@@ -27,6 +27,17 @@
  * errors, and the health monitor swaps in a fresh client when the server
  * returns.
  *
+ * Boot schedule (#2178): boot awaits exactly ONE dial. A running engine is
+ * therefore connected, and its workers started, before the server answers,
+ * so no run create, approval or purge meets a disconnected engine on a
+ * healthy boot. An absent engine costs boot one dial window instead of the
+ * whole initial schedule (about 6s, spent on every boot of every composed
+ * test against a closed port); the schedule's remaining attempts run in the
+ * background, at the reconnect backoff's own delays, through the reconnect
+ * path, so a late first connect gets its single-flight guard, its
+ * post-close re-checks, its worker recreation and its hooks from the same
+ * code as every later reconnect.
+ *
  * One choke point for connection security: `connection` (TLS, mutual TLS,
  * an API key; `@stigmer/temporal-codecs`' `loadTemporalConnectionConfig`)
  * is spread into BOTH connects, the client's and the workers' native one,
@@ -57,19 +68,21 @@ import type { Logger } from "../boot/logger.js";
 import { processSdkLogBridge } from "./sdk-logger.js";
 
 /**
- * Initial connect: 3 attempts with exponential backoff (1s, 2s between
- * attempts), then give up NON-fatally — the server boots and serves with
- * the engine unavailable; the health monitor keeps retrying.
+ * The initial schedule: 3 attempts, 1s and 2s apart (the reconnect
+ * backoff's first two steps). Boot awaits the first; the monitor makes the
+ * other two while the engine has never connected, then its own 15s ticks
+ * take over. Every failure is NON-fatal: the server serves with the engine
+ * unavailable.
  */
 const INITIAL_CONNECT_MAX_ATTEMPTS = 3;
-const INITIAL_CONNECT_BASE_DELAY_MS = 1_000;
 
 /**
  * Per-dial connect window. grpc-js keeps re-dialing a refused connection
- * inside its connectTimeout (default 10s), which would turn the non-fatal 3-attempt
- * boot into a ~33s stall when Temporal is absent (the Class A conformance
- * harness deliberately points at a closed port). A short window keeps the
- * boot fail-fast; the retry loop and the health monitor supply all
+ * inside its connectTimeout (default 10s), which would turn boot's one
+ * awaited dial into a ~10s stall when Temporal is absent (the Class A
+ * conformance harness deliberately points at a closed port). A short window
+ * keeps the boot fail-fast; it is also the whole of what an absent engine
+ * costs a boot. The background attempts and the health monitor supply all
  * the patience a slow-starting Temporal needs.
  */
 const DIAL_CONNECT_TIMEOUT_MS = 1_000;
@@ -184,6 +197,8 @@ export class TemporalManager {
   /** One reconnection attempt at a time. */
   private reconnecting = false;
   private monitor: NodeJS.Timeout | undefined;
+  /** The initial schedule's next background attempt, while one is pending. */
+  private initialRetry: NodeJS.Timeout | undefined;
   private closed = false;
   private readonly reconnectHooks: Array<() => void> = [];
 
@@ -212,7 +227,8 @@ export class TemporalManager {
 
   /**
    * Registers a callback run after every successful RECONNECTION, once
-   * workers are recreated. Its consumer is the
+   * workers are recreated; a first connect made in the background after a
+   * failed initialConnect() is one. Its consumer is the
    * schedule reconciliation kick — an OSS reconnect very
    * often means the dev server restarted with empty state.
    */
@@ -221,50 +237,39 @@ export class TemporalManager {
   }
 
   /**
-   * Attempts the initial connection with bounded retries; returns true on
-   * success, false after all retries (NON-fatal — the health monitor takes
-   * over).
+   * The initial schedule's first attempt, the only one boot awaits (the
+   * module header's boot schedule): true when the engine answered, false
+   * after one dial window (NON-fatal). A failure counts as the reconnect
+   * path's first, so startHealthMonitor() continues the schedule from it.
    */
   async initialConnect(): Promise<boolean> {
-    this.logger.info("Attempting initial Temporal connection with retry", {
+    this.logger.info("Attempting initial Temporal connection", {
       host_port: this.hostPort,
       namespace: this.namespace,
-      max_retries: INITIAL_CONNECT_MAX_ATTEMPTS,
     });
-
-    for (let attempt = 1; attempt <= INITIAL_CONNECT_MAX_ATTEMPTS; attempt++) {
-      try {
-        const { connection, client } = await this.dial();
-        this.connection = connection;
-        this.client = client;
-        this.connected = true;
-        this.consecutiveFails = 0;
-        this.logger.info("Initial Temporal connection successful", {
-          host_port: this.hostPort,
-          attempt,
-        });
-        return true;
-      } catch (error) {
-        if (attempt < INITIAL_CONNECT_MAX_ATTEMPTS) {
-          const delayMs = 2 ** (attempt - 1) * INITIAL_CONNECT_BASE_DELAY_MS;
-          this.logger.warn("Temporal connection failed, retrying", {
-            error: errorMessage(error),
-            attempt,
-            retry_in_ms: delayMs,
-          });
-          await sleep(delayMs);
-        } else {
-          this.logger.warn(
-            "Failed initial Temporal connection after all retries - will retry via health monitor",
-            { error: errorMessage(error), attempts: attempt },
-          );
-          this.connected = false;
-          this.consecutiveFails = attempt;
-          this.lastAttemptMs = Date.now();
-        }
-      }
+    try {
+      const { connection, client } = await this.dial();
+      this.connection = connection;
+      this.client = client;
+      this.connected = true;
+      this.consecutiveFails = 0;
+      this.logger.info("Initial Temporal connection successful", {
+        host_port: this.hostPort,
+      });
+      return true;
+    } catch (error) {
+      this.connected = false;
+      this.consecutiveFails = 1;
+      this.lastAttemptMs = Date.now();
+      this.logger.warn(
+        "Initial Temporal connection failed - serving without the engine, retrying in the background",
+        {
+          error: errorMessage(error),
+          retry_in_ms: this.calculateBackoff(),
+        },
+      );
+      return false;
     }
-    return false;
   }
 
   /**
@@ -297,9 +302,10 @@ export class TemporalManager {
   }
 
   /**
-   * Starts the periodic health check + reconnection loop: an immediate check, then 15s ticks. The interval
-   * is unref'd so an unclosed manager cannot keep the process alive past
-   * main's intent; close() clears it deliberately.
+   * Starts the periodic health check + reconnection loop: an immediate check, then 15s ticks. While the engine
+   * has never connected it also arms the initial schedule's next attempt.
+   * Both timers are unref'd so an unclosed manager cannot keep the process
+   * alive past main's intent; close() clears them deliberately.
    */
   startHealthMonitor(): void {
     this.logger.info("Starting Temporal health monitor");
@@ -308,6 +314,7 @@ export class TemporalManager {
       void this.checkAndReconnect();
     }, HEALTH_CHECK_INTERVAL_MS);
     this.monitor.unref();
+    this.scheduleInitialRetry();
   }
 
   /** Stops the monitor, shuts down workers, closes connections. */
@@ -316,6 +323,10 @@ export class TemporalManager {
     if (this.monitor !== undefined) {
       clearInterval(this.monitor);
       this.monitor = undefined;
+    }
+    if (this.initialRetry !== undefined) {
+      clearTimeout(this.initialRetry);
+      this.initialRetry = undefined;
     }
     await this.shutdownWorkers();
     if (this.nativeConnection !== undefined) {
@@ -382,12 +393,44 @@ export class TemporalManager {
     }
   }
 
-  private async attemptReconnection(): Promise<void> {
+  /**
+   * Arms the initial schedule's next attempt, at the reconnect backoff's
+   * delay, while the engine has never connected and the schedule is not
+   * spent. Only a started monitor arms it, and only one is ever pending.
+   */
+  private scheduleInitialRetry(): void {
+    if (
+      this.closed ||
+      this.monitor === undefined ||
+      this.initialRetry !== undefined ||
+      this.client !== undefined ||
+      this.consecutiveFails >= INITIAL_CONNECT_MAX_ATTEMPTS
+    ) {
+      return;
+    }
+    this.initialRetry = setTimeout(() => {
+      this.initialRetry = undefined;
+      void this.attemptReconnection({ scheduled: true });
+    }, this.calculateBackoff());
+    this.initialRetry.unref();
+  }
+
+  /**
+   * One reconnection attempt. `scheduled` marks the initial schedule's
+   * timer, which IS the backoff: it skips the too-soon check, which reads
+   * the wall clock and can see a timer fire a millisecond early.
+   */
+  private async attemptReconnection(
+    options: { readonly scheduled?: boolean } = {},
+  ): Promise<void> {
     if (this.reconnecting) {
       return; // Another attempt is in flight.
     }
     const backoffMs = this.calculateBackoff();
-    if (Date.now() - this.lastAttemptMs < backoffMs) {
+    if (
+      options.scheduled !== true &&
+      Date.now() - this.lastAttemptMs < backoffMs
+    ) {
       return; // Too soon to retry.
     }
     this.reconnecting = true;
@@ -408,6 +451,7 @@ export class TemporalManager {
           error: errorMessage(error),
           consecutive_failures: this.consecutiveFails,
         });
+        this.scheduleInitialRetry();
         return;
       }
 
@@ -581,10 +625,6 @@ export class TemporalManager {
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function closeQuietly(

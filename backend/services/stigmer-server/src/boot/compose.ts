@@ -2568,7 +2568,12 @@ export async function composeServer(
       // initial connect leaves the engine unavailable and the monitor
       // retrying; a failed worker start is a warning. Health below flips
       // SERVING regardless — engine availability is modeled in the
-      // agentexecution domain, never in gRPC health.
+      // agentexecution domain, never in gRPC health. Boot awaits exactly
+      // one dial (#2178): a running engine is connected, with its workers
+      // polling, before the server answers, so no run create or approval
+      // meets a disconnected engine on a healthy boot; an absent one costs
+      // one dial window, and the monitor makes the rest of the initial
+      // schedule in the background (temporal/manager.ts, "Boot schedule").
       const connected = await temporalManager.initialConnect();
       if (connected) {
         await temporalManager.startWorkers();
