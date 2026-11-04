@@ -26,11 +26,13 @@
  * its error class is not exported), the first recorded error of a request to
  * that server's configured URL, as one line naming the server and the turn's
  * execution, which the failed turn's own line (`harness/run-turn.ts`) names
- * too. The error is rethrown untouched. It is not given the network error as
- * its `cause`: the engines word a thrown error for the user by its ROOT
- * (`model-error.ts` `describeExecutionError`), so a cause would replace the
- * adapter's message, which names the server and its URL, with the bare
- * network error ("read ECONNRESET").
+ * too. The error is rethrown untouched, and is not given the network error
+ * as its `cause`: attaching it is the adapter's own 2.x behaviour, and the
+ * runner keeps 1.x's shape until it moves there. Either shape words the
+ * same for the user, since `model-error.ts` `describeExecutionError` names a
+ * failure by its first layer under LangChain's wrappers, here the adapter's
+ * message naming the server and its URL, never the bare network error
+ * ("read ECONNRESET") under it.
  */
 
 import { AsyncLocalStorage } from "node:async_hooks";

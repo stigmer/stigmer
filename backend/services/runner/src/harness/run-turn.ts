@@ -996,8 +996,9 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
     }
 
     // Unwrap + classify before formatting: a model error arrives
-    // MiddlewareError-wrapped with raw provider prose; non-model errors keep
-    // the root error's own identity.
+    // MiddlewareError-wrapped with raw provider prose; a non-model error is
+    // named by its first layer under those wrappers, the same whether the
+    // engine threw it here or in the agent host.
     const { errorType, errorMessage } = describeExecutionError(err, { proxyMode: !!config.proxyEndpoint });
     console.error(`${activityName} failed: execution=${executionId}, [${errorType}] ${errorMessage}`);
     return settleWith(unexpectedErrorArm(errorType, errorMessage));

@@ -41,7 +41,6 @@ import { decodeTurnInput, encodeAdapterProjection, encodeCasSnapshot } from "./c
 import { HostTurn, type HostPeer } from "./host-sink.js";
 import {
   AGENT_HOST_PROTOCOL_VERSION,
-  toWireError,
   toWireErrorChain,
   type HostCalls,
   type HostNotices,
@@ -149,7 +148,7 @@ export function serveAgentHost(channel: LineChannel, rows: readonly HarnessRow[]
       const reader = turn.cas;
       return {
         outcome: outcome === undefined ? null : toWireOutcome(outcome),
-        thrown: outcome === undefined ? toWireError(thrown) : null,
+        thrown: outcome === undefined ? toWireErrorChain(thrown) : null,
         projection: encodeAdapterProjection(turn),
         cas: reader ? encodeCasSnapshot(await reader()) : null,
       };

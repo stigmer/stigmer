@@ -470,9 +470,33 @@ export function providerErrorTypeOf(link: Error): string | undefined {
 }
 
 /**
+ * LangChain's wrapper for a failure inside a middleware (`MiddlewareError`),
+ * matched by class name: its brand is an own field, which an error rebuilt
+ * from the agent host's pipe does not carry, and the name check reads the
+ * same on both sides of it.
+ */
+const MIDDLEWARE_ERROR_CLASS = "MiddlewareError";
+
+/**
+ * The layer of a failure a person is told about: the first link of its
+ * chain that is not a LangChain middleware wrapper, or the last link when
+ * every one is. The wrappers copy their cause's name and message and say
+ * nothing of their own; the layer under them is the one that knows what
+ * broke (which MCP server, which URL), where its own cause is the bare
+ * network error a person cannot act on. The log keeps every link.
+ */
+function namedLayerOf(err: unknown): unknown {
+  const links = causeChainOf(err);
+  return links.find((link) => link.constructor.name !== MIDDLEWARE_ERROR_CLASS) ?? links[links.length - 1] ?? err;
+}
+
+/**
  * Describe an arbitrary activity failure for the execution's user-visible
- * error field: model-call errors get classified codes and messages; anything
- * else keeps the ROOT error's identity (never a wrapper's class name).
+ * error field: model-call errors get classified codes and messages, read
+ * off the whole chain; anything else is named by its first layer under
+ * LangChain's middleware wrappers ({@link namedLayerOf}), never a wrapper's
+ * class name, and not its root, so a failure that keeps its network error
+ * as a cause still reads as itself.
  */
 export function describeExecutionError(
   err: unknown,
@@ -483,10 +507,10 @@ export function describeExecutionError(
     return { errorType: classified.code, errorMessage: classified.message };
   }
 
-  const root = unwrapModelError(err);
+  const named = namedLayerOf(err);
   return {
-    errorType: root instanceof Error ? root.constructor.name : "UnknownError",
-    errorMessage: root instanceof Error ? root.message : String(root),
+    errorType: named instanceof Error ? named.constructor.name : "UnknownError",
+    errorMessage: named instanceof Error ? named.message : String(named),
   };
 }
 
