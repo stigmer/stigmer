@@ -1447,7 +1447,9 @@ The layout owns exactly three things:
 - **The collapse mechanics** — collapse goes through the split's
   `collapsedPane` (CSS, not conditional structure), so the conversation
   is always the same first child and an open/close toggle never
-  remounts it.
+  remounts it. The control row is the one conditional element, rendered
+  above the conversation's fixed position, so its coming and going never
+  remounts the conversation either.
 
 Everything rendered inside the panes belongs to the host: the layout
 takes opaque `ReactNode`s and never inspects them.

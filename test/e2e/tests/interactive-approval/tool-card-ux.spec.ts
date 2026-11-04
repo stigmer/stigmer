@@ -46,11 +46,14 @@ import type { Locator } from "@playwright/test";
  * emits `oklch(...)`, which a text `rgb(...)` regex (this helper's previous
  * form) silently fails on. A fully transparent background resolves to a=0.
  *
- * One read is one moment: callers poll it (`expect.poll`). The gate row is
- * re-rendered by a refetch just after it first becomes visible, and a read
- * that lands on the replaced element sees empty computed styles: an empty
+ * One read is one moment: callers poll it (`expect.poll`). A read that lands
+ * on a detached element sees empty computed styles: an empty
  * `backgroundColor` leaves the canvas at its opaque black default, so a
- * detached button reads as a=1 (stigmer#1527).
+ * detached button reads as a=1 (stigmer#1527). The gate row used to be
+ * replaced just after it appeared, when the thread's enter wrapper changed
+ * its root element at the animation's end; the row now stays the same
+ * element (stigmer#1570, held by the keyboard test below), and the reads
+ * stay polled because a style can still settle after the first frame.
  */
 function resolvedBackgroundRgba(
   locator: Locator,
@@ -155,9 +158,9 @@ test.describe("tool-card & approval-diff UX (deterministic mock LLM)", () => {
   // gallery, test/visual, now compares with no tolerance) and the jsdom
   // unit tests assert only the class *string*, never the rendered width. This
   // reads the real computed style in Chromium, so a layer regression fails loudly.
-  // Each read is polled: a read on the row a refetch has just replaced sees
-  // empty widths (NaN) and waits instead of failing, while a real regression
-  // never converges.
+  // Each read is polled: a read on a detached element sees empty widths
+  // (NaN) and waits instead of failing, while a real regression never
+  // converges (see resolvedBackgroundRgba).
   test("the approval gate card renders a visible neutral border + accent", async ({
     page,
     stigmerClient,
@@ -201,7 +204,7 @@ test.describe("tool-card & approval-diff UX (deterministic mock LLM)", () => {
   // swap on a small button, so assert the real computed colors — the same
   // "rendered, not class-string" philosophy as the border guard above.
   // Deny is read first: its transparent resting fill is reachable only on the
-  // live, styled button, while a read on a replaced button (opaque black, see
+  // live, styled button, while a read on a detached button (opaque black, see
   // resolvedBackgroundRgba) would pass Approve's checks by accident.
   test("decision buttons are quiet: Approve is a neutral chip, Deny has no resting fill", async ({
     page,
@@ -279,6 +282,11 @@ test.describe("tool-card & approval-diff UX (deterministic mock LLM)", () => {
   // renders its content, not a diff.
 
   // --- Accessibility: axe + keyboard operability ---------------------------
+  // Approve is focused as soon as the gate shows, as a keyboard user would,
+  // and must keep the focus while the page settles: the thread's enter
+  // animation ends and the page catches up with the server during the axe
+  // scan. A row replaced in that time drops the focus silently, so Enter
+  // does nothing (stigmer#1570).
   test("approval gate card is accessible and keyboard-operable", async ({
     page,
     stigmerClient,
@@ -290,6 +298,15 @@ test.describe("tool-card & approval-diff UX (deterministic mock LLM)", () => {
 
     const gateRow = toolCallRow(page).filter({ has: approveButton(page) }).first();
     await expect(gateRow).toBeVisible({ timeout: 30_000 });
+
+    const approve = approveButton(gateRow);
+    await approve.focus();
+    await expect(approve).toBeFocused();
+    const focused = await approve.elementHandle();
+    // The gate's thread item has finished its enter animation.
+    await expect(
+      page.locator(".stgm-thread-item-enter").filter({ has: gateRow }),
+    ).toHaveCount(0);
 
     // No critical/serious axe violations on the page while the gate is shown.
     const results = await new AxeBuilder({ page })
@@ -304,9 +321,10 @@ test.describe("tool-card & approval-diff UX (deterministic mock LLM)", () => {
       `axe violations:\n${serious.map((v) => `[${v.impact}] ${v.id}`).join("\n")}`,
     ).toHaveLength(0);
 
-    // The approve action is reachable and operable by keyboard.
-    const approve = approveButton(gateRow);
-    await approve.focus();
+    // The approve action kept the keyboard focus, on the same element, through
+    // the scan and everything the page did meanwhile.
+    expect(await focused!.evaluate((el) => el.isConnected)).toBe(true);
     await expect(approve).toBeFocused();
+    expect(await focused!.evaluate((el) => el === document.activeElement)).toBe(true);
   });
 });
