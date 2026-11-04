@@ -5,7 +5,9 @@
 // OAuth clients act on (refused is 401 with the challenge, unavailable and a
 // throwing check are 503, a token-less request never reaches the check), the
 // trusted-proxy mode ignores the Authorization header entirely, the
-// body cap answers 413 whether the size is declared or streamed, and no
+// body cap answers 413 whether the size is declared or streamed, a body
+// holding a collection over the bound is refused 400 before any schema sees
+// it (the schema library allocates per failing element, stigmer#2951), and no
 // failure escapes the handler's promise (a transport fault before or after its
 // headers, a failing close, a client gone mid-upload or mid-answer): a
 // rejection inside a node:http listener exits the host process.
@@ -18,6 +20,7 @@ import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/se
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { OAuthConfig } from "../config";
+import { MAX_BODY_ITEMS, MAX_COLLECTION_ITEMS } from "../collection-bound";
 import { createMcpHttpHandler, createRoutedHandler, type BearerVerdict, type McpHttpHandler } from "../http-handler";
 import { configureLogger } from "../logger";
 
@@ -197,6 +200,51 @@ describe("the body cap", () => {
     expect(() =>
       createRoutedHandler(() => echoServer(), { authRequired: false, oauth: { ...OAUTH, enabled: false }, maxBodyBytes: cap }),
     ).toThrow("maxBodyBytes must be a positive finite number");
+  });
+
+  it("refuses a body over either collection bound 400 before the server sees it, and keeps serving", async () => {
+    let served = 0;
+    const handler = createRoutedHandler(
+      () => {
+        served += 1;
+        return echoServer();
+      },
+      { authRequired: false, oauth: { ...OAUTH, enabled: false } },
+    );
+    const base = await mount(handler);
+    const over = await fetch(`${base}/`, {
+      method: "POST",
+      headers: headers(),
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "tools/call",
+        params: { name: "whoami", arguments: { tags: Array.from({ length: MAX_COLLECTION_ITEMS + 1 }, (_, i) => i) } },
+      }),
+    });
+    expect(over.status).toBe(400);
+    const body = (await over.json()) as { error: { code: number; message: string } };
+    expect(body.error.code).toBe(-32600);
+    expect(body.error.message).toBe(
+      `Invalid Request: a collection holds ${MAX_COLLECTION_ITEMS + 1} items, more than ${MAX_COLLECTION_ITEMS}`,
+    );
+    const nested = await fetch(`${base}/`, {
+      method: "POST",
+      headers: headers(),
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 2,
+        method: "tools/call",
+        params: { name: "whoami", arguments: { hooks: Array.from({ length: 20 }, () => ({ args: Array(900).fill(1) })) } },
+      }),
+    });
+    expect(nested.status).toBe(400);
+    expect(((await nested.json()) as { error: { message: string } }).error.message).toBe(
+      `Invalid Request: the body holds more than ${MAX_BODY_ITEMS} collection items`,
+    );
+    const within = await fetch(`${base}/`, { method: "POST", headers: headers(), body: TOOLS_LIST });
+    expect(within.status).toBe(200);
+    expect(served).toBe(3);
   });
 
   it("serves a body under the cap", async () => {

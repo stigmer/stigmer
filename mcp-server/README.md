@@ -39,7 +39,9 @@ MCP client ──JSON-RPC──▶ stdio | HTTP (stateless) ──▶ tool handl
   response, so any number of replicas can serve, and a restart drops no
   client. `GET` and `DELETE` answer `405` (no stream to open, no session to
   end), a body that is not JSON answers `400`, and a body over 10 MiB
-  (stigmer-server's own message limit) answers `413`.
+  (stigmer-server's own message limit) answers `413`. A body holding a
+  collection over 1,000 items, or more than 10,000 collection items in all,
+  answers `400` before any input schema sees it (`src/collection-bound.ts`).
 - **`apply_*` ergonomics are generated.** The flattened, LLM-friendly input
   schemas for the `apply_*` tools (metadata hoisting, enum→string, reference
   flattening, oneof expansion) are produced at build time by the codegen in
