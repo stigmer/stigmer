@@ -28,6 +28,8 @@ spec:
 
 ## Client Access
 
+Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Where a language's examples import anything, its tab opens with those imports.
+
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
@@ -35,18 +37,42 @@ const team = await stigmer.team.get("tm_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
+```go prelude
+import (
+	stigmer "go.stigmer.ai/sdk"
+	"go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	teamv1 "go.stigmer.ai/sdk/proto/ai/stigmer/iam/team/v1"
+)
+```
 ```go
 team, err := client.Team.Get(ctx, "tm_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
+```python prelude
+from stigmer import DeleteResourceInput, ResourceRef
+from stigmer._gen import TeamInput
+from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2
+from ai.stigmer.iam.team.v1 import io_pb2
+```
 ```python
 team = client.teams.get("tm_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
+```java prelude
+import ai.stigmer.commons.apiresource.RenameInput;
+import ai.stigmer.iam.team.v1.ListTeamsInput;
+import ai.stigmer.iam.team.v1.Team;
+import ai.stigmer.iam.team.v1.Teams;
+import ai.stigmer.sdk.gen.DeleteResourceInput;
+import ai.stigmer.sdk.gen.ResourceRef;
+import ai.stigmer.sdk.gen.TeamInput;
+import java.util.List;
+import java.util.Map;
+```
 ```java
-Team team = client.teams().get("tm_01j5q3k7m8r2s4tnz2hfp0q0c3");
+Team team = client.team.get("tm_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -70,22 +96,22 @@ Get a team by its unique identifier.
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const team = await stigmer.team.get(id);
+const team = await stigmer.team.get("tm_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
 ```go
-team, err := client.Team.Get(ctx, id)
+team, err := client.Team.Get(ctx, "tm_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
 ```python
-team = client.teams.get(id)
+team = client.teams.get("tm_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Team team = client.teams().get(id);
+Team team = client.team.get("tm_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -105,46 +131,22 @@ Get a team by its organization-scoped reference (org/slug).
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const team = await stigmer.team.getByReference({
-  org: "...",
-  kind: "...",
-  slug: "...",
-  version: "...",
-  id: "...",
-});
+const team = await stigmer.team.getByReference({ org: "acme", slug: "my-team" });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-team, err := client.Team.GetByReference(ctx, &stigmer.ApiResourceReference{
-  Org:     "...",
-  Kind:    "...",
-  Slug:    "...",
-  Version: "...",
-  Id:      "...",
-})
+team, err := client.Team.GetByReference(ctx, stigmer.ResourceRef{Org: "acme", Slug: "my-team"})
 ```
 </Tab>
 <Tab value="Python">
 ```python
-team = client.teams.get_by_reference(ApiResourceReference(
-    org="...",
-    kind="...",
-    slug="...",
-    version="...",
-    id="...",
-))
+team = client.teams.get_by_reference(ResourceRef(org="acme", slug="my-team"))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Team team = client.teams().getByReference(ApiResourceReference.builder()
-    .org("...")
-    .kind("...")
-    .slug("...")
-    .version("...")
-    .id("...")
-    .build());
+Team team = client.team.getByReference(ResourceRef.of("acme", "my-team"));
 ```
 </Tab>
 </SDKTabs>
@@ -161,40 +163,36 @@ List the teams of an organization, newest first.
 <Tab value="TypeScript">
 ```typescript
 const teams = await stigmer.team.list({
-  org: "...",
+  org: "acme",
   pageSize: 0,
-  pageToken: "...",
   labels: {},
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-teams, err := client.Team.List(ctx, &stigmer.ListTeamsInput{
-  Org:       "...",
-  PageSize:  0,
-  PageToken: "...",
-  Labels:    map[string]string{},
+teams, err := client.Team.List(ctx, &teamv1.ListTeamsInput{
+  Org:      "acme",
+  PageSize: 0,
+  Labels:   map[string]string{},
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-teams = client.teams.list(ListTeamsInput(
-    org="...",
+teams = client.teams.list(io_pb2.ListTeamsInput(
+    org="acme",
     page_size=0,
-    page_token="...",
     labels={},
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Teams teams = client.teams().list(ListTeamsInput.builder()
-    .org("...")
-    .pageSize(0)
-    .pageToken("...")
-    .labels(Map.of())
+Teams teams = client.team.list(ListTeamsInput.newBuilder()
+    .setOrg("acme")
+    .setPageSize(0)
+    .putAllLabels(Map.of())
     .build());
 ```
 </Tab>
@@ -258,7 +256,7 @@ team = client.teams.create(TeamInput(
 </Tab>
 <Tab value="Java">
 ```java
-Team team = client.teams().create(TeamInput.builder()
+Team team = client.team.create(TeamInput.builder()
     .name("my-team")
     .org("acme")
     .slug("...")
@@ -309,10 +307,10 @@ updated = client.teams.update(team, ["metadata.name"])
 </Tab>
 <Tab value="Java">
 ```java
-Team team = client.teams().get("tm_01j5q3k7m8r2s4tnz2hfp0q0c3");
-Team updated = client.teams().update(
+Team team = client.team.get("tm_01j5q3k7m8r2s4tnz2hfp0q0c3");
+Team updated = client.team.update(
     team.toBuilder().setMetadata(team.getMetadata().toBuilder().setName("New name")).build(),
-    java.util.List.of("metadata.name"));
+    List.of("metadata.name"));
 ```
 </Tab>
 </SDKTabs>
@@ -335,25 +333,23 @@ Deleting a team removes its memberships and every share made with it.
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const team = await stigmer.team.delete({ resourceId: id });
+const team = await stigmer.team.delete({ resourceId: "tm_01j5q3k7m8r2s4tnz2hfp0q0c3" });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-team, err := client.Team.Delete(ctx, &stigmer.DeleteResourceInput{
-  ResourceID: id,
-})
+team, err := client.Team.Delete(ctx, &stigmer.DeleteResourceInput{ResourceID: "tm_01j5q3k7m8r2s4tnz2hfp0q0c3"})
 ```
 </Tab>
 <Tab value="Python">
 ```python
-team = client.teams.delete(DeleteResourceInput(resource_id=id))
+team = client.teams.delete(DeleteResourceInput(resource_id="tm_01j5q3k7m8r2s4tnz2hfp0q0c3"))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Team team = client.teams().delete(DeleteResourceInput.builder()
-    .resourceId(id)
+Team team = client.team.delete(DeleteResourceInput.builder()
+    .resourceId("tm_01j5q3k7m8r2s4tnz2hfp0q0c3")
     .build());
 ```
 </Tab>
@@ -388,7 +384,7 @@ const team = await stigmer.team.rename({
 </Tab>
 <Tab value="Go">
 ```go
-team, err := client.Team.Rename(ctx, &stigmer.RenameInput{
+team, err := client.Team.Rename(ctx, &apiresource.RenameInput{
   ResourceId: "...",
   Slug:       "...",
 })
@@ -396,7 +392,7 @@ team, err := client.Team.Rename(ctx, &stigmer.RenameInput{
 </Tab>
 <Tab value="Python">
 ```python
-team = client.teams.rename(RenameInput(
+team = client.teams.rename(apiresource_io_pb2.RenameInput(
     resource_id="...",
     slug="...",
 ))
@@ -404,9 +400,9 @@ team = client.teams.rename(RenameInput(
 </Tab>
 <Tab value="Java">
 ```java
-Team team = client.teams().rename(RenameInput.builder()
-    .resourceId("...")
-    .slug("...")
+Team team = client.team.rename(RenameInput.newBuilder()
+    .setResourceId("...")
+    .setSlug("...")
     .build());
 ```
 </Tab>

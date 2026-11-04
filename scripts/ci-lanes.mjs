@@ -457,6 +457,9 @@ export const LANES = {
       "sdk/ink/src/recordings.ts",
       "sdk/ink/src/__tests__/__recordings__/**",
       "test/bundle-budgets.json",
+      // The resource reference generator reads which inputs the Python
+      // package exports, to import each from where a reader can.
+      "sdk/python/src/stigmer/__init__.py",
       ".vale.ini",
       ".prettierrc",
       ".lychee.toml",

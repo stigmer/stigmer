@@ -43,7 +43,7 @@ import { deriveResourceConfig, loadSpecSchemaWithTypes, META_FIELD_NAMES } from 
 import type { FieldSchema, SpecSchema, TypeSchema, TypeSpec } from "./schema.js";
 import { readDirSorted } from "./schema.js";
 
-const SDK_PROTO_IMPORT_PREFIX = "go.stigmer.ai/sdk/proto";
+export const SDK_PROTO_IMPORT_PREFIX = "go.stigmer.ai/sdk/proto";
 
 interface FromProtoFuncInfo {
   funcName: string;
@@ -132,7 +132,7 @@ function deriveGoImportPath(pkg: string): string {
   return SDK_PROTO_IMPORT_PREFIX + "/" + pkg.replaceAll(".", "/");
 }
 
-function resolveType(fullType: string, shortType: string, schemaPkg: string, alias: string): [string, string] {
+export function resolveType(fullType: string, shortType: string, schemaPkg: string, alias: string): [string, string] {
   if (isEmptyType(fullType)) {
     return ["emptypb", "Empty"];
   }
@@ -174,7 +174,7 @@ function collectSubPackageImports(schema: ServiceSchemaFile): Map<string, string
 // SDK enum imports (cross-package enums)
 // =========================================================================
 
-function goSDKEnumGoType(enumProtoType: string): string {
+export function goSDKEnumGoType(enumProtoType: string): string {
   const parts = enumProtoType.split(".");
   if (parts.length === 0) return "string";
   const enumName = parts[parts.length - 1];
@@ -740,7 +740,7 @@ function goTypeForField(f: FieldSchema): string {
   return isValuedOneofScalar(f) ? "*" + t : t;
 }
 
-function goTypeForTypeSpec(ts: TypeSpec): string {
+export function goTypeForTypeSpec(ts: TypeSpec): string {
   switch (ts.kind) {
     case "string":
       if (ts.enumType !== undefined && ts.enumType !== "") {

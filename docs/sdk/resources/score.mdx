@@ -41,25 +41,53 @@ status:
 
 ## Client Access
 
+Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Where a language's examples import anything, its tab opens with those imports.
+
 <SDKTabs>
 <Tab value="TypeScript">
+```typescript prelude
+import { ScoreSource } from "@stigmer/apis/ai/stigmer/agentic/score/v1/enum_pb";
+```
 ```typescript
 const score = await stigmer.score.get("scr_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
+```go prelude
+import (
+	stigmer "go.stigmer.ai/sdk"
+	scorev1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/score/v1"
+)
+```
 ```go
 score, err := client.Score.Get(ctx, "scr_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
+```python prelude
+from stigmer._gen import ScoreInput
+from ai.stigmer.agentic.score.v1 import enum_pb2, io_pb2
+```
 ```python
 score = client.scores.get("scr_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
+```java prelude
+import ai.stigmer.agentic.score.v1.AgentQualityReport;
+import ai.stigmer.agentic.score.v1.GetAgentQualityReportRequest;
+import ai.stigmer.agentic.score.v1.ListFlaggedScoresByAgentRequest;
+import ai.stigmer.agentic.score.v1.ListScoresByRunRequest;
+import ai.stigmer.agentic.score.v1.ListScoresBySessionRequest;
+import ai.stigmer.agentic.score.v1.Score;
+import ai.stigmer.agentic.score.v1.ScoreList;
+import ai.stigmer.agentic.score.v1.ScoreSource;
+import ai.stigmer.sdk.gen.ScoreInput;
+import java.util.List;
+import java.util.Map;
+```
 ```java
-Score score = client.scores().get("scr_01j5q3k7m8r2s4tnz2hfp0q0c3");
+Score score = client.score.get("scr_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -84,22 +112,22 @@ Get a single score by ID.
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const score = await stigmer.score.get(id);
+const score = await stigmer.score.get("scr_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
 ```go
-score, err := client.Score.Get(ctx, id)
+score, err := client.Score.Get(ctx, "scr_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
 ```python
-score = client.scores.get(id)
+score = client.scores.get("scr_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Score score = client.scores().get(id);
+Score score = client.score.get("scr_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -122,7 +150,7 @@ Counts every run of the agent in the organization, including runs the caller can
 <Tab value="TypeScript">
 ```typescript
 const agentQualityReport = await stigmer.score.getAgentQualityReport({
-  org: "...",
+  org: "acme",
   agentId: "...",
   days: 0,
 });
@@ -130,8 +158,8 @@ const agentQualityReport = await stigmer.score.getAgentQualityReport({
 </Tab>
 <Tab value="Go">
 ```go
-agentQualityReport, err := client.Score.GetAgentQualityReport(ctx, &stigmer.GetAgentQualityReportRequest{
-  Org:     "...",
+agentQualityReport, err := client.Score.GetAgentQualityReport(ctx, &scorev1.GetAgentQualityReportRequest{
+  Org:     "acme",
   AgentId: "...",
   Days:    0,
 })
@@ -139,8 +167,8 @@ agentQualityReport, err := client.Score.GetAgentQualityReport(ctx, &stigmer.GetA
 </Tab>
 <Tab value="Python">
 ```python
-agent_quality_report = client.scores.get_agent_quality_report(GetAgentQualityReportRequest(
-    org="...",
+agent_quality_report = client.scores.get_agent_quality_report(io_pb2.GetAgentQualityReportRequest(
+    org="acme",
     agent_id="...",
     days=0,
 ))
@@ -148,10 +176,10 @@ agent_quality_report = client.scores.get_agent_quality_report(GetAgentQualityRep
 </Tab>
 <Tab value="Java">
 ```java
-AgentQualityReport agentQualityReport = client.scores().getAgentQualityReport(GetAgentQualityReportRequest.builder()
-    .org("...")
-    .agentId("...")
-    .days(0)
+AgentQualityReport agentQualityReport = client.score.getAgentQualityReport(GetAgentQualityReportRequest.newBuilder()
+    .setOrg("acme")
+    .setAgentId("...")
+    .setDays(0)
     .build());
 ```
 </Tab>
@@ -171,38 +199,34 @@ List the scores of a run, newest first.
 const result = await stigmer.score.listByRun({
   runId: "...",
   pageSize: 0,
-  pageToken: "...",
   labels: {},
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-result, err := client.Score.ListByRun(ctx, &stigmer.ListScoresByRunRequest{
-  RunId:     "...",
-  PageSize:  0,
-  PageToken: "...",
-  Labels:    map[string]string{},
+result, err := client.Score.ListByRun(ctx, &scorev1.ListScoresByRunRequest{
+  RunId:    "...",
+  PageSize: 0,
+  Labels:   map[string]string{},
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-result = client.scores.list_by_run(ListScoresByRunRequest(
+result = client.scores.list_by_run(io_pb2.ListScoresByRunRequest(
     run_id="...",
     page_size=0,
-    page_token="...",
     labels={},
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-ScoreList result = client.scores().listByRun(ListScoresByRunRequest.builder()
-    .runId("...")
-    .pageSize(0)
-    .pageToken("...")
-    .labels(Map.of())
+ScoreList result = client.score.listByRun(ListScoresByRunRequest.newBuilder()
+    .setRunId("...")
+    .setPageSize(0)
+    .putAllLabels(Map.of())
     .build());
 ```
 </Tab>
@@ -224,38 +248,34 @@ List the scores of every run in a session, newest first.
 const result = await stigmer.score.listBySession({
   sessionId: "...",
   pageSize: 0,
-  pageToken: "...",
   labels: {},
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-result, err := client.Score.ListBySession(ctx, &stigmer.ListScoresBySessionRequest{
+result, err := client.Score.ListBySession(ctx, &scorev1.ListScoresBySessionRequest{
   SessionId: "...",
   PageSize:  0,
-  PageToken: "...",
   Labels:    map[string]string{},
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-result = client.scores.list_by_session(ListScoresBySessionRequest(
+result = client.scores.list_by_session(io_pb2.ListScoresBySessionRequest(
     session_id="...",
     page_size=0,
-    page_token="...",
     labels={},
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-ScoreList result = client.scores().listBySession(ListScoresBySessionRequest.builder()
-    .sessionId("...")
-    .pageSize(0)
-    .pageToken("...")
-    .labels(Map.of())
+ScoreList result = client.score.listBySession(ListScoresBySessionRequest.newBuilder()
+    .setSessionId("...")
+    .setPageSize(0)
+    .putAllLabels(Map.of())
     .build());
 ```
 </Tab>
@@ -277,48 +297,44 @@ Lists only the runs the caller can open. Requires can_view on the organization n
 <Tab value="TypeScript">
 ```typescript
 const result = await stigmer.score.listFlaggedByAgent({
-  org: "...",
+  org: "acme",
   agentId: "...",
   days: 0,
   pageSize: 0,
-  pageToken: "...",
   labels: {},
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-result, err := client.Score.ListFlaggedByAgent(ctx, &stigmer.ListFlaggedScoresByAgentRequest{
-  Org:       "...",
-  AgentId:   "...",
-  Days:      0,
-  PageSize:  0,
-  PageToken: "...",
-  Labels:    map[string]string{},
+result, err := client.Score.ListFlaggedByAgent(ctx, &scorev1.ListFlaggedScoresByAgentRequest{
+  Org:      "acme",
+  AgentId:  "...",
+  Days:     0,
+  PageSize: 0,
+  Labels:   map[string]string{},
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-result = client.scores.list_flagged_by_agent(ListFlaggedScoresByAgentRequest(
-    org="...",
+result = client.scores.list_flagged_by_agent(io_pb2.ListFlaggedScoresByAgentRequest(
+    org="acme",
     agent_id="...",
     days=0,
     page_size=0,
-    page_token="...",
     labels={},
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-ScoreList result = client.scores().listFlaggedByAgent(ListFlaggedScoresByAgentRequest.builder()
-    .org("...")
-    .agentId("...")
-    .days(0)
-    .pageSize(0)
-    .pageToken("...")
-    .labels(Map.of())
+ScoreList result = client.score.listFlaggedByAgent(ListFlaggedScoresByAgentRequest.newBuilder()
+    .setOrg("acme")
+    .setAgentId("...")
+    .setDays(0)
+    .setPageSize(0)
+    .putAllLabels(Map.of())
     .build());
 ```
 </Tab>
@@ -347,9 +363,8 @@ const score = await stigmer.score.create({
   runId: "...",
   sessionId: "...",
   metric: "...",
-  source: "...",
+  source: ScoreSource.check,
   evaluatorVersion: "...",
-  passed: false,
   criteria: [],
   comment: "...",
   judgeModel: "...",
@@ -366,10 +381,9 @@ score, err := client.Score.Create(ctx, &stigmer.ScoreInput{
   RunId:            "...",
   SessionId:        "...",
   Metric:           "...",
-  Source:           "...",
+  Source:           scorev1.ScoreSource_score_source_check,
   EvaluatorVersion: "...",
-  Passed:           false,
-  Criteria:         []stigmer.ScoreCriterionInput{},
+  Criteria:         []*stigmer.ScoreCriterionInput{},
   Comment:          "...",
   JudgeModel:       "...",
 })
@@ -385,9 +399,8 @@ score = client.scores.create(ScoreInput(
     run_id="...",
     session_id="...",
     metric="...",
-    source="...",
+    source=enum_pb2.score_source_check,
     evaluator_version="...",
-    passed=False,
     criteria=[],
     comment="...",
     judge_model="...",
@@ -396,7 +409,7 @@ score = client.scores.create(ScoreInput(
 </Tab>
 <Tab value="Java">
 ```java
-Score score = client.scores().create(ScoreInput.builder()
+Score score = client.score.create(ScoreInput.builder()
     .name("my-score")
     .org("acme")
     .slug("...")
@@ -404,9 +417,8 @@ Score score = client.scores().create(ScoreInput.builder()
     .runId("...")
     .sessionId("...")
     .metric("...")
-    .source("...")
+    .source(ScoreSource.score_source_check)
     .evaluatorVersion("...")
-    .passed(false)
     .criteria(List.of())
     .comment("...")
     .judgeModel("...")
@@ -455,10 +467,10 @@ updated = client.scores.update(score, ["metadata.name"])
 </Tab>
 <Tab value="Java">
 ```java
-Score score = client.scores().get("scr_01j5q3k7m8r2s4tnz2hfp0q0c3");
-Score updated = client.scores().update(
+Score score = client.score.get("scr_01j5q3k7m8r2s4tnz2hfp0q0c3");
+Score updated = client.score.update(
     score.toBuilder().setMetadata(score.getMetadata().toBuilder().setName("New name")).build(),
-    java.util.List.of("metadata.name"));
+    List.of("metadata.name"));
 ```
 </Tab>
 </SDKTabs>
@@ -481,22 +493,22 @@ A person deletes their own rating; the run's owner may delete any score on the r
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const score = await stigmer.score.delete(id);
+const score = await stigmer.score.delete("scr_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
 ```go
-score, err := client.Score.Delete(ctx, id)
+score, err := client.Score.Delete(ctx, "scr_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
 ```python
-score = client.scores.delete(id)
+score = client.scores.delete("scr_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Score score = client.scores().delete(id);
+Score score = client.score.delete("scr_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>

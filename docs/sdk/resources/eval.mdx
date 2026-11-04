@@ -59,25 +59,66 @@ status:
 
 ## Client Access
 
+Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Where a language's examples import anything, its tab opens with those imports.
+
 <SDKTabs>
 <Tab value="TypeScript">
+```typescript prelude
+import { create } from "@bufbuild/protobuf";
+import { PushEvalRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/io_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
+```
 ```typescript
 const evalResource = await stigmer.eval.get("evs_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
+```go prelude
+import (
+	stigmer "go.stigmer.ai/sdk"
+	evalv1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/eval/v1"
+	"go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+)
+```
 ```go
 evalResource, err := client.Eval.Get(ctx, "evs_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
+```python prelude
+from stigmer import ResourceRef
+from ai.stigmer.agentic.eval.v1 import io_pb2
+from ai.stigmer.commons.apiresource import enum_pb2 as apiresource_enum_pb2, io_pb2 as apiresource_io_pb2
+```
 ```python
 eval_resource = client.evals.get("evs_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
+```java prelude
+import ai.stigmer.agentic.eval.v1.AddEvalCaseFromRunRequest;
+import ai.stigmer.agentic.eval.v1.BuildEvalCaseFromRunRequest;
+import ai.stigmer.agentic.eval.v1.CreateEvalArtifactUploadUrlRequest;
+import ai.stigmer.agentic.eval.v1.Eval;
+import ai.stigmer.agentic.eval.v1.EvalArchive;
+import ai.stigmer.agentic.eval.v1.EvalArchiveDownloadUrl;
+import ai.stigmer.agentic.eval.v1.EvalArtifactUploadUrl;
+import ai.stigmer.agentic.eval.v1.EvalCaseArchive;
+import ai.stigmer.agentic.eval.v1.EvalList;
+import ai.stigmer.agentic.eval.v1.ListEvalVersionsInput;
+import ai.stigmer.agentic.eval.v1.ListEvalVersionsResponse;
+import ai.stigmer.agentic.eval.v1.ListEvalsRequest;
+import ai.stigmer.agentic.eval.v1.PushEvalRequest;
+import ai.stigmer.commons.apiresource.ApiResourceReference;
+import ai.stigmer.commons.apiresource.ApiResourceVisibility;
+import ai.stigmer.commons.apiresource.RenameInput;
+import ai.stigmer.commons.apiresource.UpdateVisibilityInput;
+import ai.stigmer.sdk.gen.ResourceRef;
+import com.google.protobuf.ByteString;
+import java.util.Map;
+```
 ```java
-Eval evalResource = client.evals().get("evs_01j5q3k7m8r2s4tnz2hfp0q0c3");
+Eval evalResource = client.eval.get("evs_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -107,22 +148,22 @@ Get a single eval by ID.
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const evalResource = await stigmer.eval.get(id);
+const evalResource = await stigmer.eval.get("evs_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
 ```go
-evalResource, err := client.Eval.Get(ctx, id)
+evalResource, err := client.Eval.Get(ctx, "evs_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
 ```python
-eval_resource = client.evals.get(id)
+eval_resource = client.evals.get("evs_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Eval evalResource = client.evals().get(id);
+Eval evalResource = client.eval.get("evs_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -144,46 +185,22 @@ Version resolution (via ApiResourceReference.version field): - Empty/"latest" â†
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const evalResource = await stigmer.eval.getByReference({
-  org: "...",
-  kind: "...",
-  slug: "...",
-  version: "...",
-  id: "...",
-});
+const evalResource = await stigmer.eval.getByReference({ org: "acme", slug: "my-eval" });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-evalResource, err := client.Eval.GetByReference(ctx, &stigmer.ApiResourceReference{
-  Org:     "...",
-  Kind:    "...",
-  Slug:    "...",
-  Version: "...",
-  Id:      "...",
-})
+evalResource, err := client.Eval.GetByReference(ctx, stigmer.ResourceRef{Org: "acme", Slug: "my-eval"})
 ```
 </Tab>
 <Tab value="Python">
 ```python
-eval_resource = client.evals.get_by_reference(ApiResourceReference(
-    org="...",
-    kind="...",
-    slug="...",
-    version="...",
-    id="...",
-))
+eval_resource = client.evals.get_by_reference(ResourceRef(org="acme", slug="my-eval"))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Eval evalResource = client.evals().getByReference(ApiResourceReference.builder()
-    .org("...")
-    .kind("...")
-    .slug("...")
-    .version("...")
-    .id("...")
-    .build());
+Eval evalResource = client.eval.getByReference(ResourceRef.of("acme", "my-eval"));
 ```
 </Tab>
 </SDKTabs>
@@ -201,46 +218,22 @@ Preferred over download for anything that might exceed the gRPC message-size cap
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const evalArchiveDownloadUrl = await stigmer.eval.getDownloadUrl({
-  org: "...",
-  kind: "...",
-  slug: "...",
-  version: "...",
-  id: "...",
-});
+const evalArchiveDownloadUrl = await stigmer.eval.getDownloadUrl({ org: "acme", slug: "my-eval" });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-evalArchiveDownloadUrl, err := client.Eval.GetDownloadUrl(ctx, &stigmer.ApiResourceReference{
-  Org:     "...",
-  Kind:    "...",
-  Slug:    "...",
-  Version: "...",
-  Id:      "...",
-})
+evalArchiveDownloadUrl, err := client.Eval.GetDownloadUrl(ctx, stigmer.ResourceRef{Org: "acme", Slug: "my-eval"})
 ```
 </Tab>
 <Tab value="Python">
 ```python
-eval_archive_download_url = client.evals.get_download_url(ApiResourceReference(
-    org="...",
-    kind="...",
-    slug="...",
-    version="...",
-    id="...",
-))
+eval_archive_download_url = client.evals.get_download_url(ResourceRef(org="acme", slug="my-eval"))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-EvalArchiveDownloadUrl evalArchiveDownloadUrl = client.evals().getDownloadUrl(ApiResourceReference.builder()
-    .org("...")
-    .kind("...")
-    .slug("...")
-    .version("...")
-    .id("...")
-    .build());
+EvalArchiveDownloadUrl evalArchiveDownloadUrl = client.eval.getDownloadUrl(ResourceRef.of("acme", "my-eval"));
 ```
 </Tab>
 </SDKTabs>
@@ -259,40 +252,36 @@ Returns the evals of the input org that the caller may view, one page at a time.
 <Tab value="TypeScript">
 ```typescript
 const result = await stigmer.eval.list({
-  org: "...",
+  org: "acme",
   pageSize: 0,
-  pageToken: "...",
   labels: {},
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-result, err := client.Eval.List(ctx, &stigmer.ListEvalsRequest{
-  Org:       "...",
-  PageSize:  0,
-  PageToken: "...",
-  Labels:    map[string]string{},
+result, err := client.Eval.List(ctx, &evalv1.ListEvalsRequest{
+  Org:      "acme",
+  PageSize: 0,
+  Labels:   map[string]string{},
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-result = client.evals.list(ListEvalsRequest(
-    org="...",
+result = client.evals.list(io_pb2.ListEvalsRequest(
+    org="acme",
     page_size=0,
-    page_token="...",
     labels={},
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-EvalList result = client.evals().list(ListEvalsRequest.builder()
-    .org("...")
-    .pageSize(0)
-    .pageToken("...")
-    .labels(Map.of())
+EvalList result = client.eval.list(ListEvalsRequest.newBuilder()
+    .setOrg("acme")
+    .setPageSize(0)
+    .putAllLabels(Map.of())
     .build());
 ```
 </Tab>
@@ -312,40 +301,36 @@ List an eval's versions, newest first, each with its digest, tag, message and wh
 <Tab value="TypeScript">
 ```typescript
 const listEvalVersionsResponse = await stigmer.eval.listVersions({
-  org: "...",
+  org: "acme",
   slug: "...",
-  pageToken: "...",
   pageSize: 0,
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-listEvalVersionsResponse, err := client.Eval.ListVersions(ctx, &stigmer.ListEvalVersionsInput{
-  Org:       "...",
-  Slug:      "...",
-  PageToken: "...",
-  PageSize:  0,
+listEvalVersionsResponse, err := client.Eval.ListVersions(ctx, &evalv1.ListEvalVersionsInput{
+  Org:      "acme",
+  Slug:     "...",
+  PageSize: 0,
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-list_eval_versions_response = client.evals.list_versions(ListEvalVersionsInput(
-    org="...",
+list_eval_versions_response = client.evals.list_versions(io_pb2.ListEvalVersionsInput(
+    org="acme",
     slug="...",
-    page_token="...",
     page_size=0,
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-ListEvalVersionsResponse listEvalVersionsResponse = client.evals().listVersions(ListEvalVersionsInput.builder()
-    .org("...")
-    .slug("...")
-    .pageToken("...")
-    .pageSize(0)
+ListEvalVersionsResponse listEvalVersionsResponse = client.eval.listVersions(ListEvalVersionsInput.newBuilder()
+    .setOrg("acme")
+    .setSlug("...")
+    .setPageSize(0)
     .build());
 ```
 </Tab>
@@ -366,31 +351,31 @@ Update the visibility of an eval: the whole organization, or its owner alone. On
 ```typescript
 const evalResource = await stigmer.eval.updateVisibility({
   resourceId: "...",
-  visibility: "...",
+  visibility: ApiResourceVisibility.visibility_private,
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-evalResource, err := client.Eval.UpdateVisibility(ctx, &stigmer.UpdateVisibilityInput{
+evalResource, err := client.Eval.UpdateVisibility(ctx, &apiresource.UpdateVisibilityInput{
   ResourceId: "...",
-  Visibility: "...",
+  Visibility: apiresource.ApiResourceVisibility_visibility_private,
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-eval_resource = client.evals.update_visibility(UpdateVisibilityInput(
+eval_resource = client.evals.update_visibility(apiresource_io_pb2.UpdateVisibilityInput(
     resource_id="...",
-    visibility="...",
+    visibility=apiresource_enum_pb2.visibility_private,
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Eval evalResource = client.evals().updateVisibility(UpdateVisibilityInput.builder()
-    .resourceId("...")
-    .visibility("...")
+Eval evalResource = client.eval.updateVisibility(UpdateVisibilityInput.newBuilder()
+    .setResourceId("...")
+    .setVisibility(ApiResourceVisibility.visibility_private)
     .build());
 ```
 </Tab>
@@ -407,22 +392,22 @@ Delete an eval and every version of it.
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const evalResource = await stigmer.eval.delete(id);
+const evalResource = await stigmer.eval.delete("evs_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
 ```go
-evalResource, err := client.Eval.Delete(ctx, id)
+evalResource, err := client.Eval.Delete(ctx, "evs_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
 ```python
-eval_resource = client.evals.delete(id)
+eval_resource = client.evals.delete("evs_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Eval evalResource = client.evals().delete(id);
+Eval evalResource = client.eval.delete("evs_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -458,9 +443,9 @@ const evalResource = await stigmer.eval.addCaseFromRun({
 </Tab>
 <Tab value="Go">
 ```go
-evalResource, err := client.Eval.AddCaseFromRun(ctx, &stigmer.AddEvalCaseFromRunRequest{
+evalResource, err := client.Eval.AddCaseFromRun(ctx, &evalv1.AddEvalCaseFromRunRequest{
   RunId:    "...",
-  Eval:     &stigmer.ResourceRef{},
+  Eval:     &apiresource.ApiResourceReference{},
   CaseName: "...",
   Skill:    "...",
   Message:  "...",
@@ -470,9 +455,9 @@ evalResource, err := client.Eval.AddCaseFromRun(ctx, &stigmer.AddEvalCaseFromRun
 </Tab>
 <Tab value="Python">
 ```python
-eval_resource = client.evals.add_case_from_run(AddEvalCaseFromRunRequest(
+eval_resource = client.evals.add_case_from_run(io_pb2.AddEvalCaseFromRunRequest(
     run_id="...",
-    eval=None,
+    eval=apiresource_io_pb2.ApiResourceReference(),
     case_name="...",
     skill="...",
     message="...",
@@ -482,13 +467,13 @@ eval_resource = client.evals.add_case_from_run(AddEvalCaseFromRunRequest(
 </Tab>
 <Tab value="Java">
 ```java
-Eval evalResource = client.evals().addCaseFromRun(AddEvalCaseFromRunRequest.builder()
-    .runId("...")
-    .eval(null)
-    .caseName("...")
-    .skill("...")
-    .message("...")
-    .tag("...")
+Eval evalResource = client.eval.addCaseFromRun(AddEvalCaseFromRunRequest.newBuilder()
+    .setRunId("...")
+    .setEval(ApiResourceReference.getDefaultInstance())
+    .setCaseName("...")
+    .setSkill("...")
+    .setMessage("...")
+    .setTag("...")
     .build());
 ```
 </Tab>
@@ -520,7 +505,7 @@ const evalCaseArchive = await stigmer.eval.buildCaseFromRun({
 </Tab>
 <Tab value="Go">
 ```go
-evalCaseArchive, err := client.Eval.BuildCaseFromRun(ctx, &stigmer.BuildEvalCaseFromRunRequest{
+evalCaseArchive, err := client.Eval.BuildCaseFromRun(ctx, &evalv1.BuildEvalCaseFromRunRequest{
   RunId:    "...",
   CaseName: "...",
   Skill:    "...",
@@ -529,7 +514,7 @@ evalCaseArchive, err := client.Eval.BuildCaseFromRun(ctx, &stigmer.BuildEvalCase
 </Tab>
 <Tab value="Python">
 ```python
-eval_case_archive = client.evals.build_case_from_run(BuildEvalCaseFromRunRequest(
+eval_case_archive = client.evals.build_case_from_run(io_pb2.BuildEvalCaseFromRunRequest(
     run_id="...",
     case_name="...",
     skill="...",
@@ -538,10 +523,10 @@ eval_case_archive = client.evals.build_case_from_run(BuildEvalCaseFromRunRequest
 </Tab>
 <Tab value="Java">
 ```java
-EvalCaseArchive evalCaseArchive = client.evals().buildCaseFromRun(BuildEvalCaseFromRunRequest.builder()
-    .runId("...")
-    .caseName("...")
-    .skill("...")
+EvalCaseArchive evalCaseArchive = client.eval.buildCaseFromRun(BuildEvalCaseFromRunRequest.newBuilder()
+    .setRunId("...")
+    .setCaseName("...")
+    .setSkill("...")
     .build());
 ```
 </Tab>
@@ -561,16 +546,16 @@ Mint a short-lived, single-use upload URL for staging an eval archive that excee
 <Tab value="TypeScript">
 ```typescript
 const evalArtifactUploadUrl = await stigmer.eval.createArtifactUploadUrl({
-  org: "...",
+  org: "acme",
   slug: "...",
-  sizeBytes: 0,
+  sizeBytes: 0n,
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-evalArtifactUploadUrl, err := client.Eval.CreateArtifactUploadUrl(ctx, &stigmer.CreateEvalArtifactUploadUrlRequest{
-  Org:       "...",
+evalArtifactUploadUrl, err := client.Eval.CreateArtifactUploadUrl(ctx, &evalv1.CreateEvalArtifactUploadUrlRequest{
+  Org:       "acme",
   Slug:      "...",
   SizeBytes: 0,
 })
@@ -578,8 +563,8 @@ evalArtifactUploadUrl, err := client.Eval.CreateArtifactUploadUrl(ctx, &stigmer.
 </Tab>
 <Tab value="Python">
 ```python
-eval_artifact_upload_url = client.evals.create_artifact_upload_url(CreateEvalArtifactUploadUrlRequest(
-    org="...",
+eval_artifact_upload_url = client.evals.create_artifact_upload_url(io_pb2.CreateEvalArtifactUploadUrlRequest(
+    org="acme",
     slug="...",
     size_bytes=0,
 ))
@@ -587,10 +572,10 @@ eval_artifact_upload_url = client.evals.create_artifact_upload_url(CreateEvalArt
 </Tab>
 <Tab value="Java">
 ```java
-EvalArtifactUploadUrl evalArtifactUploadUrl = client.evals().createArtifactUploadUrl(CreateEvalArtifactUploadUrlRequest.builder()
-    .org("...")
-    .slug("...")
-    .sizeBytes(0)
+EvalArtifactUploadUrl evalArtifactUploadUrl = client.eval.createArtifactUploadUrl(CreateEvalArtifactUploadUrlRequest.newBuilder()
+    .setOrg("acme")
+    .setSlug("...")
+    .setSizeBytes(0L)
     .build());
 ```
 </Tab>
@@ -607,46 +592,22 @@ Download one version of an eval as the ZIP archive it was pushed as. The referen
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const evalArchive = await stigmer.eval.download({
-  org: "...",
-  kind: "...",
-  slug: "...",
-  version: "...",
-  id: "...",
-});
+const evalArchive = await stigmer.eval.download({ org: "acme", slug: "my-eval" });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-evalArchive, err := client.Eval.Download(ctx, &stigmer.ApiResourceReference{
-  Org:     "...",
-  Kind:    "...",
-  Slug:    "...",
-  Version: "...",
-  Id:      "...",
-})
+evalArchive, err := client.Eval.Download(ctx, stigmer.ResourceRef{Org: "acme", Slug: "my-eval"})
 ```
 </Tab>
 <Tab value="Python">
 ```python
-eval_archive = client.evals.download(ApiResourceReference(
-    org="...",
-    kind="...",
-    slug="...",
-    version="...",
-    id="...",
-))
+eval_archive = client.evals.download(ResourceRef(org="acme", slug="my-eval"))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-EvalArchive evalArchive = client.evals().download(ApiResourceReference.builder()
-    .org("...")
-    .kind("...")
-    .slug("...")
-    .version("...")
-    .id("...")
-    .build());
+EvalArchive evalArchive = client.eval.download(ResourceRef.of("acme", "my-eval"));
 ```
 </Tab>
 </SDKTabs>
@@ -666,27 +627,27 @@ Error Cases:
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const evalResource = await stigmer.eval.push({
-  org: "...",
+const evalResource = await stigmer.eval.push(create(PushEvalRequestSchema, {
+  org: "acme",
   slug: "...",
   name: "...",
-  artifact: "...",
+  artifact: new Uint8Array(),
   artifactUploadRef: "...",
-  visibility: "...",
+  visibility: ApiResourceVisibility.visibility_private,
   message: "...",
   tag: "...",
-});
+}));
 ```
 </Tab>
 <Tab value="Go">
 ```go
-evalResource, err := client.Eval.Push(ctx, &stigmer.PushEvalRequest{
-  Org:               "...",
+evalResource, err := client.Eval.Push(ctx, &evalv1.PushEvalRequest{
+  Org:               "acme",
   Slug:              "...",
   Name:              "...",
-  Artifact:          "...",
+  Artifact:          []byte{},
   ArtifactUploadRef: "...",
-  Visibility:        "...",
+  Visibility:        apiresource.ApiResourceVisibility_visibility_private,
   Message:           "...",
   Tag:               "...",
 })
@@ -694,13 +655,13 @@ evalResource, err := client.Eval.Push(ctx, &stigmer.PushEvalRequest{
 </Tab>
 <Tab value="Python">
 ```python
-eval_resource = client.evals.push(PushEvalRequest(
-    org="...",
+eval_resource = client.evals.push(io_pb2.PushEvalRequest(
+    org="acme",
     slug="...",
     name="...",
-    artifact="...",
+    artifact=b"",
     artifact_upload_ref="...",
-    visibility="...",
+    visibility=apiresource_enum_pb2.visibility_private,
     message="...",
     tag="...",
 ))
@@ -708,15 +669,15 @@ eval_resource = client.evals.push(PushEvalRequest(
 </Tab>
 <Tab value="Java">
 ```java
-Eval evalResource = client.evals().push(PushEvalRequest.builder()
-    .org("...")
-    .slug("...")
-    .name("...")
-    .artifact("...")
-    .artifactUploadRef("...")
-    .visibility("...")
-    .message("...")
-    .tag("...")
+Eval evalResource = client.eval.push(PushEvalRequest.newBuilder()
+    .setOrg("acme")
+    .setSlug("...")
+    .setName("...")
+    .setArtifact(ByteString.EMPTY)
+    .setArtifactUploadRef("...")
+    .setVisibility(ApiResourceVisibility.visibility_private)
+    .setMessage("...")
+    .setTag("...")
     .build());
 ```
 </Tab>
@@ -743,7 +704,7 @@ const evalResource = await stigmer.eval.rename({
 </Tab>
 <Tab value="Go">
 ```go
-evalResource, err := client.Eval.Rename(ctx, &stigmer.RenameInput{
+evalResource, err := client.Eval.Rename(ctx, &apiresource.RenameInput{
   ResourceId: "...",
   Slug:       "...",
 })
@@ -751,7 +712,7 @@ evalResource, err := client.Eval.Rename(ctx, &stigmer.RenameInput{
 </Tab>
 <Tab value="Python">
 ```python
-eval_resource = client.evals.rename(RenameInput(
+eval_resource = client.evals.rename(apiresource_io_pb2.RenameInput(
     resource_id="...",
     slug="...",
 ))
@@ -759,9 +720,9 @@ eval_resource = client.evals.rename(RenameInput(
 </Tab>
 <Tab value="Java">
 ```java
-Eval evalResource = client.evals().rename(RenameInput.builder()
-    .resourceId("...")
-    .slug("...")
+Eval evalResource = client.eval.rename(RenameInput.newBuilder()
+    .setResourceId("...")
+    .setSlug("...")
     .build());
 ```
 </Tab>

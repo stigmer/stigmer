@@ -93,7 +93,7 @@ describe("renderReferencePage", () => {
             description: [],
             fields: [{ name: "width", typeString: "number", description: "", required: false, typeLink: null }],
           },
-          examples: ['renderMarkdown("# Hi")'],
+          examples: [{ meta: "", code: 'renderMarkdown("# Hi")' }],
         }),
       ]),
     );

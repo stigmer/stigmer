@@ -5,6 +5,8 @@
  * parsed from TypeDoc JSON, independent of the output format.
  */
 
+import type { Example } from "./mdx-utils";
+
 // ---------------------------------------------------------------------------
 // Top-level grouping
 // ---------------------------------------------------------------------------
@@ -38,7 +40,7 @@ export interface Hook {
   returnType: TypeRef;
   /** Resolved return-type interface (set during linking). */
   returnInterface: TypeDef | null;
-  examples: string[];
+  examples: Example[];
   sourceUrl: string;
 }
 
@@ -49,7 +51,7 @@ export interface Component {
   hasProps: boolean;
   /** Resolved props interface (set during linking). */
   propsInterface: TypeDef | null;
-  examples: string[];
+  examples: Example[];
   sourceUrl: string;
 }
 
@@ -66,7 +68,7 @@ export interface TypeDef {
   associatedExport: string | null;
   /** Function signature, present when this TypeDef represents an exported utility function. */
   signature: string | null;
-  examples: string[];
+  examples: Example[];
 }
 
 export interface Field {

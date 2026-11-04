@@ -26,25 +26,75 @@ spec:
 
 ## Client Access
 
+Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Where a language's examples import anything, its tab opens with those imports.
+
 <SDKTabs>
 <Tab value="TypeScript">
+```typescript prelude
+import { SignInReturn } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/io_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
+```
 ```typescript
 const vault = await stigmer.vault.get("vlt_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
+```go prelude
+import (
+	stigmer "go.stigmer.ai/sdk"
+	vaultv1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/vault/v1"
+	"go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+)
+```
 ```go
 vault, err := client.Vault.Get(ctx, "vlt_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
+```python prelude
+from stigmer import DeleteResourceInput, ResourceRef, VaultInput
+from ai.stigmer.agentic.vault.v1 import connect_link_pb2, io_pb2
+from ai.stigmer.commons.apiresource import enum_pb2 as apiresource_enum_pb2, io_pb2 as apiresource_io_pb2
+```
 ```python
 vault = client.vaults.get("vlt_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
+```java prelude
+import ai.stigmer.agentic.vault.v1.CompleteConnectLinkInput;
+import ai.stigmer.agentic.vault.v1.CompleteConnectLinkOutput;
+import ai.stigmer.agentic.vault.v1.CompleteSignInInput;
+import ai.stigmer.agentic.vault.v1.CompleteSignInOutput;
+import ai.stigmer.agentic.vault.v1.ConnectLink;
+import ai.stigmer.agentic.vault.v1.ConnectLinkInfo;
+import ai.stigmer.agentic.vault.v1.ConnectLinkTokenInput;
+import ai.stigmer.agentic.vault.v1.CreateConnectLinkInput;
+import ai.stigmer.agentic.vault.v1.GetMyVaultInput;
+import ai.stigmer.agentic.vault.v1.GetVaultByExternalIdInput;
+import ai.stigmer.agentic.vault.v1.ListVaultsRequest;
+import ai.stigmer.agentic.vault.v1.RemoveVaultConnectionsInput;
+import ai.stigmer.agentic.vault.v1.RemoveVaultSecretsInput;
+import ai.stigmer.agentic.vault.v1.SetVaultConnectionInput;
+import ai.stigmer.agentic.vault.v1.SetVaultSecretsInput;
+import ai.stigmer.agentic.vault.v1.SignInReturn;
+import ai.stigmer.agentic.vault.v1.StartConnectLinkOutput;
+import ai.stigmer.agentic.vault.v1.StartSignInInput;
+import ai.stigmer.agentic.vault.v1.StartSignInOutput;
+import ai.stigmer.agentic.vault.v1.Vault;
+import ai.stigmer.agentic.vault.v1.VaultList;
+import ai.stigmer.agentic.vault.v1.VaultTarget;
+import ai.stigmer.commons.apiresource.ApiResourceVisibility;
+import ai.stigmer.commons.apiresource.RenameInput;
+import ai.stigmer.commons.apiresource.UpdateVisibilityInput;
+import ai.stigmer.sdk.gen.DeleteResourceInput;
+import ai.stigmer.sdk.gen.ResourceRef;
+import ai.stigmer.sdk.gen.VaultInput;
+import java.util.List;
+import java.util.Map;
+```
 ```java
-Vault vault = client.vaults().get("vlt_01j5q3k7m8r2s4tnz2hfp0q0c3");
+Vault vault = client.vault.get("vlt_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -81,22 +131,22 @@ Get a vault by ID.
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const vault = await stigmer.vault.get(id);
+const vault = await stigmer.vault.get("vlt_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
 ```go
-vault, err := client.Vault.Get(ctx, id)
+vault, err := client.Vault.Get(ctx, "vlt_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
 ```python
-vault = client.vaults.get(id)
+vault = client.vaults.get("vlt_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Vault vault = client.vaults().get(id);
+Vault vault = client.vault.get("vlt_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -117,32 +167,32 @@ Get a shared vault by the integrator's own id for it.
 <Tab value="TypeScript">
 ```typescript
 const vault = await stigmer.vault.getByExternalId({
-  org: "...",
+  org: "acme",
   externalId: "...",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-vault, err := client.Vault.GetByExternalId(ctx, &stigmer.GetVaultByExternalIdInput{
-  Org:        "...",
+vault, err := client.Vault.GetByExternalId(ctx, &vaultv1.GetVaultByExternalIdInput{
+  Org:        "acme",
   ExternalId: "...",
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-vault = client.vaults.get_by_external_id(GetVaultByExternalIdInput(
-    org="...",
+vault = client.vaults.get_by_external_id(io_pb2.GetVaultByExternalIdInput(
+    org="acme",
     external_id="...",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Vault vault = client.vaults().getByExternalId(GetVaultByExternalIdInput.builder()
-    .org("...")
-    .externalId("...")
+Vault vault = client.vault.getByExternalId(GetVaultByExternalIdInput.newBuilder()
+    .setOrg("acme")
+    .setExternalId("...")
     .build());
 ```
 </Tab>
@@ -159,46 +209,22 @@ Get a vault by its organization-scoped reference (org/slug).
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const vault = await stigmer.vault.getByReference({
-  org: "...",
-  kind: "...",
-  slug: "...",
-  version: "...",
-  id: "...",
-});
+const vault = await stigmer.vault.getByReference({ org: "acme", slug: "my-vault" });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-vault, err := client.Vault.GetByReference(ctx, &stigmer.ApiResourceReference{
-  Org:     "...",
-  Kind:    "...",
-  Slug:    "...",
-  Version: "...",
-  Id:      "...",
-})
+vault, err := client.Vault.GetByReference(ctx, stigmer.ResourceRef{Org: "acme", Slug: "my-vault"})
 ```
 </Tab>
 <Tab value="Python">
 ```python
-vault = client.vaults.get_by_reference(ApiResourceReference(
-    org="...",
-    kind="...",
-    slug="...",
-    version="...",
-    id="...",
-))
+vault = client.vaults.get_by_reference(ResourceRef(org="acme", slug="my-vault"))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Vault vault = client.vaults().getByReference(ApiResourceReference.builder()
-    .org("...")
-    .kind("...")
-    .slug("...")
-    .version("...")
-    .id("...")
-    .build());
+Vault vault = client.vault.getByReference(ResourceRef.of("acme", "my-vault"));
 ```
 </Tab>
 </SDKTabs>
@@ -221,22 +247,22 @@ const connectLinkInfo = await stigmer.vault.getConnectLink({
 </Tab>
 <Tab value="Go">
 ```go
-connectLinkInfo, err := client.Vault.GetConnectLink(ctx, &stigmer.ConnectLinkTokenInput{
+connectLinkInfo, err := client.Vault.GetConnectLink(ctx, &vaultv1.ConnectLinkTokenInput{
   Token: "...",
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-connect_link_info = client.vaults.get_connect_link(ConnectLinkTokenInput(
+connect_link_info = client.vaults.get_connect_link(connect_link_pb2.ConnectLinkTokenInput(
     token="...",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-ConnectLinkInfo connectLinkInfo = client.vaults().getConnectLink(ConnectLinkTokenInput.builder()
-    .token("...")
+ConnectLinkInfo connectLinkInfo = client.vault.getConnectLink(ConnectLinkTokenInput.newBuilder()
+    .setToken("...")
     .build());
 ```
 </Tab>
@@ -256,28 +282,28 @@ Answers NOT_FOUND until the caller saves their first login or secret.
 <Tab value="TypeScript">
 ```typescript
 const vault = await stigmer.vault.getMine({
-  org: "...",
+  org: "acme",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-vault, err := client.Vault.GetMine(ctx, &stigmer.GetMyVaultInput{
-  Org: "...",
+vault, err := client.Vault.GetMine(ctx, &vaultv1.GetMyVaultInput{
+  Org: "acme",
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-vault = client.vaults.get_mine(GetMyVaultInput(
-    org="...",
+vault = client.vaults.get_mine(io_pb2.GetMyVaultInput(
+    org="acme",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Vault vault = client.vaults().getMine(GetMyVaultInput.builder()
-    .org("...")
+Vault vault = client.vault.getMine(GetMyVaultInput.newBuilder()
+    .setOrg("acme")
     .build());
 ```
 </Tab>
@@ -295,40 +321,36 @@ List the vaults the caller can see in an organization: their own My vault and th
 <Tab value="TypeScript">
 ```typescript
 const result = await stigmer.vault.list({
-  org: "...",
+  org: "acme",
   pageSize: 0,
-  pageToken: "...",
   labels: {},
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-result, err := client.Vault.List(ctx, &stigmer.ListVaultsRequest{
-  Org:       "...",
-  PageSize:  0,
-  PageToken: "...",
-  Labels:    map[string]string{},
+result, err := client.Vault.List(ctx, &vaultv1.ListVaultsRequest{
+  Org:      "acme",
+  PageSize: 0,
+  Labels:   map[string]string{},
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-result = client.vaults.list(ListVaultsRequest(
-    org="...",
+result = client.vaults.list(io_pb2.ListVaultsRequest(
+    org="acme",
     page_size=0,
-    page_token="...",
     labels={},
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-VaultList result = client.vaults().list(ListVaultsRequest.builder()
-    .org("...")
-    .pageSize(0)
-    .pageToken("...")
-    .labels(Map.of())
+VaultList result = client.vault.list(ListVaultsRequest.newBuilder()
+    .setOrg("acme")
+    .setPageSize(0)
+    .putAllLabels(Map.of())
     .build());
 ```
 </Tab>
@@ -376,8 +398,8 @@ vault, err := client.Vault.Create(ctx, &stigmer.VaultInput{
   Person:      "...",
   Description: "...",
   ExternalId:  "...",
-  Secrets:     map[string]string{},
-  Connections: map[string]string{},
+  Secrets:     map[string]*stigmer.VaultSecretInput{},
+  Connections: map[string]*stigmer.VaultConnectionInput{},
 })
 ```
 </Tab>
@@ -398,7 +420,7 @@ vault = client.vaults.create(VaultInput(
 </Tab>
 <Tab value="Java">
 ```java
-Vault vault = client.vaults().create(VaultInput.builder()
+Vault vault = client.vault.create(VaultInput.builder()
     .name("my-vault")
     .org("acme")
     .slug("...")
@@ -453,10 +475,10 @@ updated = client.vaults.update(vault, ["metadata.name"])
 </Tab>
 <Tab value="Java">
 ```java
-Vault vault = client.vaults().get("vlt_01j5q3k7m8r2s4tnz2hfp0q0c3");
-Vault updated = client.vaults().update(
+Vault vault = client.vault.get("vlt_01j5q3k7m8r2s4tnz2hfp0q0c3");
+Vault updated = client.vault.update(
     vault.toBuilder().setMetadata(vault.getMetadata().toBuilder().setName("New name")).build(),
-    java.util.List.of("metadata.name"));
+    List.of("metadata.name"));
 ```
 </Tab>
 </SDKTabs>
@@ -481,31 +503,31 @@ Setting org lets every member of the organization use the vault in their runs. M
 ```typescript
 const vault = await stigmer.vault.updateVisibility({
   resourceId: "...",
-  visibility: "...",
+  visibility: ApiResourceVisibility.visibility_private,
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-vault, err := client.Vault.UpdateVisibility(ctx, &stigmer.UpdateVisibilityInput{
+vault, err := client.Vault.UpdateVisibility(ctx, &apiresource.UpdateVisibilityInput{
   ResourceId: "...",
-  Visibility: "...",
+  Visibility: apiresource.ApiResourceVisibility_visibility_private,
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-vault = client.vaults.update_visibility(UpdateVisibilityInput(
+vault = client.vaults.update_visibility(apiresource_io_pb2.UpdateVisibilityInput(
     resource_id="...",
-    visibility="...",
+    visibility=apiresource_enum_pb2.visibility_private,
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Vault vault = client.vaults().updateVisibility(UpdateVisibilityInput.builder()
-    .resourceId("...")
-    .visibility("...")
+Vault vault = client.vault.updateVisibility(UpdateVisibilityInput.newBuilder()
+    .setResourceId("...")
+    .setVisibility(ApiResourceVisibility.visibility_private)
     .build());
 ```
 </Tab>
@@ -524,25 +546,23 @@ Sessions, routines, channels and embedding settings that name the vault are refu
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const vault = await stigmer.vault.delete({ resourceId: id });
+const vault = await stigmer.vault.delete({ resourceId: "vlt_01j5q3k7m8r2s4tnz2hfp0q0c3" });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-vault, err := client.Vault.Delete(ctx, &stigmer.DeleteResourceInput{
-  ResourceID: id,
-})
+vault, err := client.Vault.Delete(ctx, &stigmer.DeleteResourceInput{ResourceID: "vlt_01j5q3k7m8r2s4tnz2hfp0q0c3"})
 ```
 </Tab>
 <Tab value="Python">
 ```python
-vault = client.vaults.delete(DeleteResourceInput(resource_id=id))
+vault = client.vaults.delete(DeleteResourceInput(resource_id="vlt_01j5q3k7m8r2s4tnz2hfp0q0c3"))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Vault vault = client.vaults().delete(DeleteResourceInput.builder()
-    .resourceId(id)
+Vault vault = client.vault.delete(DeleteResourceInput.builder()
+    .resourceId("vlt_01j5q3k7m8r2s4tnz2hfp0q0c3")
     .build());
 ```
 </Tab>
@@ -575,7 +595,7 @@ const completeConnectLinkOutput = await stigmer.vault.completeConnectLink({
 </Tab>
 <Tab value="Go">
 ```go
-completeConnectLinkOutput, err := client.Vault.CompleteConnectLink(ctx, &stigmer.CompleteConnectLinkInput{
+completeConnectLinkOutput, err := client.Vault.CompleteConnectLink(ctx, &vaultv1.CompleteConnectLinkInput{
   Token: "...",
   State: "...",
   Code:  "...",
@@ -585,7 +605,7 @@ completeConnectLinkOutput, err := client.Vault.CompleteConnectLink(ctx, &stigmer
 </Tab>
 <Tab value="Python">
 ```python
-complete_connect_link_output = client.vaults.complete_connect_link(CompleteConnectLinkInput(
+complete_connect_link_output = client.vaults.complete_connect_link(connect_link_pb2.CompleteConnectLinkInput(
     token="...",
     state="...",
     code="...",
@@ -595,11 +615,11 @@ complete_connect_link_output = client.vaults.complete_connect_link(CompleteConne
 </Tab>
 <Tab value="Java">
 ```java
-CompleteConnectLinkOutput completeConnectLinkOutput = client.vaults().completeConnectLink(CompleteConnectLinkInput.builder()
-    .token("...")
-    .state("...")
-    .code("...")
-    .error("...")
+CompleteConnectLinkOutput completeConnectLinkOutput = client.vault.completeConnectLink(CompleteConnectLinkInput.newBuilder()
+    .setToken("...")
+    .setState("...")
+    .setCode("...")
+    .setError("...")
     .build());
 ```
 </Tab>
@@ -626,7 +646,7 @@ const completeSignInOutput = await stigmer.vault.completeSignIn({
 </Tab>
 <Tab value="Go">
 ```go
-completeSignInOutput, err := client.Vault.CompleteSignIn(ctx, &stigmer.CompleteSignInInput{
+completeSignInOutput, err := client.Vault.CompleteSignIn(ctx, &vaultv1.CompleteSignInInput{
   State: "...",
   Code:  "...",
 })
@@ -634,7 +654,7 @@ completeSignInOutput, err := client.Vault.CompleteSignIn(ctx, &stigmer.CompleteS
 </Tab>
 <Tab value="Python">
 ```python
-complete_sign_in_output = client.vaults.complete_sign_in(CompleteSignInInput(
+complete_sign_in_output = client.vaults.complete_sign_in(io_pb2.CompleteSignInInput(
     state="...",
     code="...",
 ))
@@ -642,9 +662,9 @@ complete_sign_in_output = client.vaults.complete_sign_in(CompleteSignInInput(
 </Tab>
 <Tab value="Java">
 ```java
-CompleteSignInOutput completeSignInOutput = client.vaults().completeSignIn(CompleteSignInInput.builder()
-    .state("...")
-    .code("...")
+CompleteSignInOutput completeSignInOutput = client.vault.completeSignIn(CompleteSignInInput.newBuilder()
+    .setState("...")
+    .setCode("...")
     .build());
 ```
 </Tab>
@@ -666,7 +686,7 @@ Refused for My vault, and for an address the organization has no approved login 
 <Tab value="TypeScript">
 ```typescript
 const connectLink = await stigmer.vault.createConnectLink({
-  org: "...",
+  org: "acme",
   vaultId: "...",
   address: "...",
   returnUrl: "...",
@@ -676,8 +696,8 @@ const connectLink = await stigmer.vault.createConnectLink({
 </Tab>
 <Tab value="Go">
 ```go
-connectLink, err := client.Vault.CreateConnectLink(ctx, &stigmer.CreateConnectLinkInput{
-  Org:              "...",
+connectLink, err := client.Vault.CreateConnectLink(ctx, &vaultv1.CreateConnectLinkInput{
+  Org:              "acme",
   VaultId:          "...",
   Address:          "...",
   ReturnUrl:        "...",
@@ -687,8 +707,8 @@ connectLink, err := client.Vault.CreateConnectLink(ctx, &stigmer.CreateConnectLi
 </Tab>
 <Tab value="Python">
 ```python
-connect_link = client.vaults.create_connect_link(CreateConnectLinkInput(
-    org="...",
+connect_link = client.vaults.create_connect_link(io_pb2.CreateConnectLinkInput(
+    org="acme",
     vault_id="...",
     address="...",
     return_url="...",
@@ -698,12 +718,12 @@ connect_link = client.vaults.create_connect_link(CreateConnectLinkInput(
 </Tab>
 <Tab value="Java">
 ```java
-ConnectLink connectLink = client.vaults().createConnectLink(CreateConnectLinkInput.builder()
-    .org("...")
-    .vaultId("...")
-    .address("...")
-    .returnUrl("...")
-    .expiresInSeconds(0)
+ConnectLink connectLink = client.vault.createConnectLink(CreateConnectLinkInput.newBuilder()
+    .setOrg("acme")
+    .setVaultId("...")
+    .setAddress("...")
+    .setReturnUrl("...")
+    .setExpiresInSeconds(0)
     .build());
 ```
 </Tab>
@@ -728,25 +748,25 @@ const vault = await stigmer.vault.removeConnections({
 </Tab>
 <Tab value="Go">
 ```go
-vault, err := client.Vault.RemoveConnections(ctx, &stigmer.RemoveVaultConnectionsInput{
-  Vault:     &stigmer.VaultTargetInput{},
+vault, err := client.Vault.RemoveConnections(ctx, &vaultv1.RemoveVaultConnectionsInput{
+  Vault:     &vaultv1.VaultTarget{},
   Addresses: []string{},
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-vault = client.vaults.remove_connections(RemoveVaultConnectionsInput(
-    vault=None,
+vault = client.vaults.remove_connections(io_pb2.RemoveVaultConnectionsInput(
+    vault=io_pb2.VaultTarget(),
     addresses=[],
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Vault vault = client.vaults().removeConnections(RemoveVaultConnectionsInput.builder()
-    .vault(null)
-    .addresses(List.of())
+Vault vault = client.vault.removeConnections(RemoveVaultConnectionsInput.newBuilder()
+    .setVault(VaultTarget.getDefaultInstance())
+    .addAllAddresses(List.of())
     .build());
 ```
 </Tab>
@@ -771,25 +791,25 @@ const vault = await stigmer.vault.removeSecrets({
 </Tab>
 <Tab value="Go">
 ```go
-vault, err := client.Vault.RemoveSecrets(ctx, &stigmer.RemoveVaultSecretsInput{
-  Vault: &stigmer.VaultTargetInput{},
+vault, err := client.Vault.RemoveSecrets(ctx, &vaultv1.RemoveVaultSecretsInput{
+  Vault: &vaultv1.VaultTarget{},
   Names: []string{},
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-vault = client.vaults.remove_secrets(RemoveVaultSecretsInput(
-    vault=None,
+vault = client.vaults.remove_secrets(io_pb2.RemoveVaultSecretsInput(
+    vault=io_pb2.VaultTarget(),
     names=[],
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Vault vault = client.vaults().removeSecrets(RemoveVaultSecretsInput.builder()
-    .vault(null)
-    .names(List.of())
+Vault vault = client.vault.removeSecrets(RemoveVaultSecretsInput.newBuilder()
+    .setVault(VaultTarget.getDefaultInstance())
+    .addAllNames(List.of())
     .build());
 ```
 </Tab>
@@ -818,7 +838,7 @@ const vault = await stigmer.vault.rename({
 </Tab>
 <Tab value="Go">
 ```go
-vault, err := client.Vault.Rename(ctx, &stigmer.RenameInput{
+vault, err := client.Vault.Rename(ctx, &apiresource.RenameInput{
   ResourceId: "...",
   Slug:       "...",
 })
@@ -826,7 +846,7 @@ vault, err := client.Vault.Rename(ctx, &stigmer.RenameInput{
 </Tab>
 <Tab value="Python">
 ```python
-vault = client.vaults.rename(RenameInput(
+vault = client.vaults.rename(apiresource_io_pb2.RenameInput(
     resource_id="...",
     slug="...",
 ))
@@ -834,9 +854,9 @@ vault = client.vaults.rename(RenameInput(
 </Tab>
 <Tab value="Java">
 ```java
-Vault vault = client.vaults().rename(RenameInput.builder()
-    .resourceId("...")
-    .slug("...")
+Vault vault = client.vault.rename(RenameInput.newBuilder()
+    .setResourceId("...")
+    .setSlug("...")
     .build());
 ```
 </Tab>
@@ -865,8 +885,8 @@ const vault = await stigmer.vault.setConnection({
 </Tab>
 <Tab value="Go">
 ```go
-vault, err := client.Vault.SetConnection(ctx, &stigmer.SetVaultConnectionInput{
-  Vault:       &stigmer.VaultTargetInput{},
+vault, err := client.Vault.SetConnection(ctx, &vaultv1.SetVaultConnectionInput{
+  Vault:       &vaultv1.VaultTarget{},
   Address:     "...",
   Token:       "...",
   Description: "...",
@@ -875,8 +895,8 @@ vault, err := client.Vault.SetConnection(ctx, &stigmer.SetVaultConnectionInput{
 </Tab>
 <Tab value="Python">
 ```python
-vault = client.vaults.set_connection(SetVaultConnectionInput(
-    vault=None,
+vault = client.vaults.set_connection(io_pb2.SetVaultConnectionInput(
+    vault=io_pb2.VaultTarget(),
     address="...",
     token="...",
     description="...",
@@ -885,11 +905,11 @@ vault = client.vaults.set_connection(SetVaultConnectionInput(
 </Tab>
 <Tab value="Java">
 ```java
-Vault vault = client.vaults().setConnection(SetVaultConnectionInput.builder()
-    .vault(null)
-    .address("...")
-    .token("...")
-    .description("...")
+Vault vault = client.vault.setConnection(SetVaultConnectionInput.newBuilder()
+    .setVault(VaultTarget.getDefaultInstance())
+    .setAddress("...")
+    .setToken("...")
+    .setDescription("...")
     .build());
 ```
 </Tab>
@@ -916,25 +936,25 @@ const vault = await stigmer.vault.setSecrets({
 </Tab>
 <Tab value="Go">
 ```go
-vault, err := client.Vault.SetSecrets(ctx, &stigmer.SetVaultSecretsInput{
-  Vault:   &stigmer.VaultTargetInput{},
-  Secrets: map[string]string{},
+vault, err := client.Vault.SetSecrets(ctx, &vaultv1.SetVaultSecretsInput{
+  Vault:   &vaultv1.VaultTarget{},
+  Secrets: map[string]*vaultv1.VaultSecretInput{},
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-vault = client.vaults.set_secrets(SetVaultSecretsInput(
-    vault=None,
+vault = client.vaults.set_secrets(io_pb2.SetVaultSecretsInput(
+    vault=io_pb2.VaultTarget(),
     secrets={},
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Vault vault = client.vaults().setSecrets(SetVaultSecretsInput.builder()
-    .vault(null)
-    .secrets(Map.of())
+Vault vault = client.vault.setSecrets(SetVaultSecretsInput.newBuilder()
+    .setVault(VaultTarget.getDefaultInstance())
+    .putAllSecrets(Map.of())
     .build());
 ```
 </Tab>
@@ -958,22 +978,22 @@ const startConnectLinkOutput = await stigmer.vault.startConnectLink({
 </Tab>
 <Tab value="Go">
 ```go
-startConnectLinkOutput, err := client.Vault.StartConnectLink(ctx, &stigmer.ConnectLinkTokenInput{
+startConnectLinkOutput, err := client.Vault.StartConnectLink(ctx, &vaultv1.ConnectLinkTokenInput{
   Token: "...",
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-start_connect_link_output = client.vaults.start_connect_link(ConnectLinkTokenInput(
+start_connect_link_output = client.vaults.start_connect_link(connect_link_pb2.ConnectLinkTokenInput(
     token="...",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-StartConnectLinkOutput startConnectLinkOutput = client.vaults().startConnectLink(ConnectLinkTokenInput.builder()
-    .token("...")
+StartConnectLinkOutput startConnectLinkOutput = client.vault.startConnectLink(ConnectLinkTokenInput.newBuilder()
+    .setToken("...")
     .build());
 ```
 </Tab>
@@ -997,38 +1017,38 @@ The login fills every HTTP tool whose URL is the address, and a Git host's login
 const startSignInOutput = await stigmer.vault.startSignIn({
   vault: {},
   address: "...",
-  returnTo: "...",
+  returnTo: SignInReturn.web,
   loopbackPort: 0,
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-startSignInOutput, err := client.Vault.StartSignIn(ctx, &stigmer.StartSignInInput{
-  Vault:        &stigmer.VaultTargetInput{},
+startSignInOutput, err := client.Vault.StartSignIn(ctx, &vaultv1.StartSignInInput{
+  Vault:        &vaultv1.VaultTarget{},
   Address:      "...",
-  ReturnTo:     "...",
+  ReturnTo:     vaultv1.SignInReturn_web,
   LoopbackPort: 0,
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-start_sign_in_output = client.vaults.start_sign_in(StartSignInInput(
-    vault=None,
+start_sign_in_output = client.vaults.start_sign_in(io_pb2.StartSignInInput(
+    vault=io_pb2.VaultTarget(),
     address="...",
-    return_to="...",
+    return_to=io_pb2.web,
     loopback_port=0,
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-StartSignInOutput startSignInOutput = client.vaults().startSignIn(StartSignInInput.builder()
-    .vault(null)
-    .address("...")
-    .returnTo("...")
-    .loopbackPort(0)
+StartSignInOutput startSignInOutput = client.vault.startSignIn(StartSignInInput.newBuilder()
+    .setVault(VaultTarget.getDefaultInstance())
+    .setAddress("...")
+    .setReturnTo(SignInReturn.web)
+    .setLoopbackPort(0)
     .build());
 ```
 </Tab>

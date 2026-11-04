@@ -45,25 +45,63 @@ spec:
 
 ## Client Access
 
+Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Where a language's examples import anything, its tab opens with those imports.
+
 <SDKTabs>
 <Tab value="TypeScript">
+```typescript prelude
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
+```
 ```typescript
 const agent = await stigmer.agent.get("agt_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
+```go prelude
+import (
+	stigmer "go.stigmer.ai/sdk"
+	agentv1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/agent/v1"
+	sessionv1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/session/v1"
+	"go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+)
+```
 ```go
 agent, err := client.Agent.Get(ctx, "agt_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
+```python prelude
+from stigmer import AgentInput, ResourceRef, RunConfigInput
+from ai.stigmer.agentic.agent.v1 import io_pb2, version_pb2
+from ai.stigmer.agentic.session.v1 import enum_pb2 as session_enum_pb2
+from ai.stigmer.commons.apiresource import enum_pb2 as apiresource_enum_pb2, io_pb2 as apiresource_io_pb2
+```
 ```python
 agent = client.agents.get("agt_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
+```java prelude
+import ai.stigmer.agentic.agent.v1.Agent;
+import ai.stigmer.agentic.agent.v1.AgentList;
+import ai.stigmer.agentic.agent.v1.AgentVersionEntry;
+import ai.stigmer.agentic.agent.v1.GetAgentVersionInput;
+import ai.stigmer.agentic.agent.v1.ListAgentVersionsInput;
+import ai.stigmer.agentic.agent.v1.ListAgentVersionsResponse;
+import ai.stigmer.agentic.agent.v1.ListAgentsRequest;
+import ai.stigmer.agentic.agent.v1.TagAgentVersionInput;
+import ai.stigmer.agentic.session.v1.Harness;
+import ai.stigmer.commons.apiresource.ApiResourceVisibility;
+import ai.stigmer.commons.apiresource.RenameInput;
+import ai.stigmer.commons.apiresource.UpdateVisibilityInput;
+import ai.stigmer.sdk.gen.AgentInput;
+import ai.stigmer.sdk.gen.ResourceRef;
+import java.util.List;
+import java.util.Map;
+```
 ```java
-Agent agent = client.agents().get("agt_01j5q3k7m8r2s4tnz2hfp0q0c3");
+Agent agent = client.agent.get("agt_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -92,22 +130,22 @@ Get a single agent by ID.
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const agent = await stigmer.agent.get(id);
+const agent = await stigmer.agent.get("agt_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
 ```go
-agent, err := client.Agent.Get(ctx, id)
+agent, err := client.Agent.Get(ctx, "agt_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
 ```python
-agent = client.agents.get(id)
+agent = client.agents.get("agt_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Agent agent = client.agents().get(id);
+Agent agent = client.agent.get("agt_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -129,46 +167,22 @@ Version resolution (via ApiResourceReference.version field): - Empty/"latest" â†
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const agent = await stigmer.agent.getByReference({
-  org: "...",
-  kind: "...",
-  slug: "...",
-  version: "...",
-  id: "...",
-});
+const agent = await stigmer.agent.getByReference({ org: "acme", slug: "my-agent" });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-agent, err := client.Agent.GetByReference(ctx, &stigmer.ApiResourceReference{
-  Org:     "...",
-  Kind:    "...",
-  Slug:    "...",
-  Version: "...",
-  Id:      "...",
-})
+agent, err := client.Agent.GetByReference(ctx, stigmer.ResourceRef{Org: "acme", Slug: "my-agent"})
 ```
 </Tab>
 <Tab value="Python">
 ```python
-agent = client.agents.get_by_reference(ApiResourceReference(
-    org="...",
-    kind="...",
-    slug="...",
-    version="...",
-    id="...",
-))
+agent = client.agents.get_by_reference(ResourceRef(org="acme", slug="my-agent"))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Agent agent = client.agents().getByReference(ApiResourceReference.builder()
-    .org("...")
-    .kind("...")
-    .slug("...")
-    .version("...")
-    .id("...")
-    .build());
+Agent agent = client.agent.getByReference(ResourceRef.of("acme", "my-agent"));
 ```
 </Tab>
 </SDKTabs>
@@ -194,7 +208,7 @@ const agentVersionEntry = await stigmer.agent.getVersion({
 </Tab>
 <Tab value="Go">
 ```go
-agentVersionEntry, err := client.Agent.GetVersion(ctx, &stigmer.GetAgentVersionInput{
+agentVersionEntry, err := client.Agent.GetVersion(ctx, &agentv1.GetAgentVersionInput{
   AgentId:     "...",
   VersionHash: "...",
 })
@@ -202,7 +216,7 @@ agentVersionEntry, err := client.Agent.GetVersion(ctx, &stigmer.GetAgentVersionI
 </Tab>
 <Tab value="Python">
 ```python
-agent_version_entry = client.agents.get_version(GetAgentVersionInput(
+agent_version_entry = client.agents.get_version(version_pb2.GetAgentVersionInput(
     agent_id="...",
     version_hash="...",
 ))
@@ -210,9 +224,9 @@ agent_version_entry = client.agents.get_version(GetAgentVersionInput(
 </Tab>
 <Tab value="Java">
 ```java
-AgentVersionEntry agentVersionEntry = client.agents().getVersion(GetAgentVersionInput.builder()
-    .agentId("...")
-    .versionHash("...")
+AgentVersionEntry agentVersionEntry = client.agent.getVersion(GetAgentVersionInput.newBuilder()
+    .setAgentId("...")
+    .setVersionHash("...")
     .build());
 ```
 </Tab>
@@ -232,40 +246,36 @@ Returns the agents of the input org that the caller may view, one page at a time
 <Tab value="TypeScript">
 ```typescript
 const result = await stigmer.agent.list({
-  org: "...",
+  org: "acme",
   pageSize: 0,
-  pageToken: "...",
   labels: {},
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-result, err := client.Agent.List(ctx, &stigmer.ListAgentsRequest{
-  Org:       "...",
-  PageSize:  0,
-  PageToken: "...",
-  Labels:    map[string]string{},
+result, err := client.Agent.List(ctx, &agentv1.ListAgentsRequest{
+  Org:      "acme",
+  PageSize: 0,
+  Labels:   map[string]string{},
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-result = client.agents.list(ListAgentsRequest(
-    org="...",
+result = client.agents.list(io_pb2.ListAgentsRequest(
+    org="acme",
     page_size=0,
-    page_token="...",
     labels={},
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-AgentList result = client.agents().list(ListAgentsRequest.builder()
-    .org("...")
-    .pageSize(0)
-    .pageToken("...")
-    .labels(Map.of())
+AgentList result = client.agent.list(ListAgentsRequest.newBuilder()
+    .setOrg("acme")
+    .setPageSize(0)
+    .putAllLabels(Map.of())
     .build());
 ```
 </Tab>
@@ -287,40 +297,36 @@ Returns all historical versions, newest first. Each entry carries the version ha
 <Tab value="TypeScript">
 ```typescript
 const listAgentVersionsResponse = await stigmer.agent.listVersions({
-  org: "...",
+  org: "acme",
   slug: "...",
-  pageToken: "...",
   pageSize: 0,
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-listAgentVersionsResponse, err := client.Agent.ListVersions(ctx, &stigmer.ListAgentVersionsInput{
-  Org:       "...",
-  Slug:      "...",
-  PageToken: "...",
-  PageSize:  0,
+listAgentVersionsResponse, err := client.Agent.ListVersions(ctx, &agentv1.ListAgentVersionsInput{
+  Org:      "acme",
+  Slug:     "...",
+  PageSize: 0,
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-list_agent_versions_response = client.agents.list_versions(ListAgentVersionsInput(
-    org="...",
+list_agent_versions_response = client.agents.list_versions(version_pb2.ListAgentVersionsInput(
+    org="acme",
     slug="...",
-    page_token="...",
     page_size=0,
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-ListAgentVersionsResponse listAgentVersionsResponse = client.agents().listVersions(ListAgentVersionsInput.builder()
-    .org("...")
-    .slug("...")
-    .pageToken("...")
-    .pageSize(0)
+ListAgentVersionsResponse listAgentVersionsResponse = client.agent.listVersions(ListAgentVersionsInput.newBuilder()
+    .setOrg("acme")
+    .setSlug("...")
+    .setPageSize(0)
     .build());
 ```
 </Tab>
@@ -357,11 +363,11 @@ const agent = await stigmer.agent.apply({
   disallowedTools: [],
   hooks: [],
   runConfig: {},
-  harness: "...",
+  harness: Harness.STIGMER,
   plugins: [],
   subagents: [],
   mcpServers: [],
-  environmentRef: {},
+  environmentRef: { org: "acme", slug: "..." },
 });
 ```
 </Tab>
@@ -376,16 +382,16 @@ agent, err := client.Agent.Apply(ctx, &stigmer.AgentInput{
   IconUrl:         "...",
   Instructions:    "...",
   SkillRefs:       []stigmer.ResourceRef{},
-  Env:             map[string]string{},
+  Env:             map[string]*stigmer.EnvVarDeclarationInput{},
   Tools:           []string{},
   DisallowedTools: []string{},
-  Hooks:           []stigmer.HookSourceInput{},
+  Hooks:           []*stigmer.HookSourceInput{},
   RunConfig:       &stigmer.RunConfigInput{},
-  Harness:         "...",
+  Harness:         sessionv1.Harness_HARNESS_STIGMER,
   Plugins:         []stigmer.ResourceRef{},
   Subagents:       []stigmer.ResourceRef{},
-  McpServers:      []stigmer.AgentMcpServerInput{},
-  EnvironmentRef:  &stigmer.ResourceRef{},
+  McpServers:      []*stigmer.AgentMcpServerInput{},
+  EnvironmentRef:  stigmer.ResourceRef{Org: "acme", Slug: "..."},
 })
 ```
 </Tab>
@@ -404,18 +410,18 @@ agent = client.agents.apply(AgentInput(
     tools=[],
     disallowed_tools=[],
     hooks=[],
-    run_config=None,
-    harness="...",
+    run_config=RunConfigInput(),
+    harness=session_enum_pb2.HARNESS_STIGMER,
     plugins=[],
     subagents=[],
     mcp_servers=[],
-    environment_ref=None,
+    environment_ref=ResourceRef(org="acme", slug="..."),
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Agent agent = client.agents().apply(AgentInput.builder()
+Agent agent = client.agent.apply(AgentInput.builder()
     .name("my-agent")
     .org("acme")
     .slug("...")
@@ -428,12 +434,12 @@ Agent agent = client.agents().apply(AgentInput.builder()
     .tools(List.of())
     .disallowedTools(List.of())
     .hooks(List.of())
-    .runConfig(null)
-    .harness("...")
+    .runConfig(AgentInput.RunConfigInput.builder().build())
+    .harness(Harness.HARNESS_STIGMER)
     .plugins(List.of())
     .subagents(List.of())
     .mcpServers(List.of())
-    .environmentRef(null)
+    .environmentRef(ResourceRef.of("acme", "..."))
     .build());
 ```
 </Tab>
@@ -468,11 +474,11 @@ const agent = await stigmer.agent.create({
   disallowedTools: [],
   hooks: [],
   runConfig: {},
-  harness: "...",
+  harness: Harness.STIGMER,
   plugins: [],
   subagents: [],
   mcpServers: [],
-  environmentRef: {},
+  environmentRef: { org: "acme", slug: "..." },
 });
 ```
 </Tab>
@@ -487,16 +493,16 @@ agent, err := client.Agent.Create(ctx, &stigmer.AgentInput{
   IconUrl:         "...",
   Instructions:    "...",
   SkillRefs:       []stigmer.ResourceRef{},
-  Env:             map[string]string{},
+  Env:             map[string]*stigmer.EnvVarDeclarationInput{},
   Tools:           []string{},
   DisallowedTools: []string{},
-  Hooks:           []stigmer.HookSourceInput{},
+  Hooks:           []*stigmer.HookSourceInput{},
   RunConfig:       &stigmer.RunConfigInput{},
-  Harness:         "...",
+  Harness:         sessionv1.Harness_HARNESS_STIGMER,
   Plugins:         []stigmer.ResourceRef{},
   Subagents:       []stigmer.ResourceRef{},
-  McpServers:      []stigmer.AgentMcpServerInput{},
-  EnvironmentRef:  &stigmer.ResourceRef{},
+  McpServers:      []*stigmer.AgentMcpServerInput{},
+  EnvironmentRef:  stigmer.ResourceRef{Org: "acme", Slug: "..."},
 })
 ```
 </Tab>
@@ -515,18 +521,18 @@ agent = client.agents.create(AgentInput(
     tools=[],
     disallowed_tools=[],
     hooks=[],
-    run_config=None,
-    harness="...",
+    run_config=RunConfigInput(),
+    harness=session_enum_pb2.HARNESS_STIGMER,
     plugins=[],
     subagents=[],
     mcp_servers=[],
-    environment_ref=None,
+    environment_ref=ResourceRef(org="acme", slug="..."),
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Agent agent = client.agents().create(AgentInput.builder()
+Agent agent = client.agent.create(AgentInput.builder()
     .name("my-agent")
     .org("acme")
     .slug("...")
@@ -539,12 +545,12 @@ Agent agent = client.agents().create(AgentInput.builder()
     .tools(List.of())
     .disallowedTools(List.of())
     .hooks(List.of())
-    .runConfig(null)
-    .harness("...")
+    .runConfig(AgentInput.RunConfigInput.builder().build())
+    .harness(Harness.HARNESS_STIGMER)
     .plugins(List.of())
     .subagents(List.of())
     .mcpServers(List.of())
-    .environmentRef(null)
+    .environmentRef(ResourceRef.of("acme", "..."))
     .build());
 ```
 </Tab>
@@ -588,10 +594,10 @@ updated = client.agents.update(agent, ["metadata.name"])
 </Tab>
 <Tab value="Java">
 ```java
-Agent agent = client.agents().get("agt_01j5q3k7m8r2s4tnz2hfp0q0c3");
-Agent updated = client.agents().update(
+Agent agent = client.agent.get("agt_01j5q3k7m8r2s4tnz2hfp0q0c3");
+Agent updated = client.agent.update(
     agent.toBuilder().setMetadata(agent.getMetadata().toBuilder().setName("New name")).build(),
-    java.util.List.of("metadata.name"));
+    List.of("metadata.name"));
 ```
 </Tab>
 </SDKTabs>
@@ -618,31 +624,31 @@ Raising the level is refused while a skill, plugin or agent the agent references
 ```typescript
 const agent = await stigmer.agent.updateVisibility({
   resourceId: "...",
-  visibility: "...",
+  visibility: ApiResourceVisibility.visibility_private,
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-agent, err := client.Agent.UpdateVisibility(ctx, &stigmer.UpdateVisibilityInput{
+agent, err := client.Agent.UpdateVisibility(ctx, &apiresource.UpdateVisibilityInput{
   ResourceId: "...",
-  Visibility: "...",
+  Visibility: apiresource.ApiResourceVisibility_visibility_private,
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-agent = client.agents.update_visibility(UpdateVisibilityInput(
+agent = client.agents.update_visibility(apiresource_io_pb2.UpdateVisibilityInput(
     resource_id="...",
-    visibility="...",
+    visibility=apiresource_enum_pb2.visibility_private,
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Agent agent = client.agents().updateVisibility(UpdateVisibilityInput.builder()
-    .resourceId("...")
-    .visibility("...")
+Agent agent = client.agent.updateVisibility(UpdateVisibilityInput.newBuilder()
+    .setResourceId("...")
+    .setVisibility(ApiResourceVisibility.visibility_private)
     .build());
 ```
 </Tab>
@@ -661,22 +667,22 @@ Deletion also removes the agent's version history and every channel in the agent
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const agent = await stigmer.agent.delete(id);
+const agent = await stigmer.agent.delete("agt_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
 ```go
-agent, err := client.Agent.Delete(ctx, id)
+agent, err := client.Agent.Delete(ctx, "agt_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
 ```python
-agent = client.agents.delete(id)
+agent = client.agents.delete("agt_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Agent agent = client.agents().delete(id);
+Agent agent = client.agent.delete("agt_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -708,7 +714,7 @@ const agent = await stigmer.agent.rename({
 </Tab>
 <Tab value="Go">
 ```go
-agent, err := client.Agent.Rename(ctx, &stigmer.RenameInput{
+agent, err := client.Agent.Rename(ctx, &apiresource.RenameInput{
   ResourceId: "...",
   Slug:       "...",
 })
@@ -716,7 +722,7 @@ agent, err := client.Agent.Rename(ctx, &stigmer.RenameInput{
 </Tab>
 <Tab value="Python">
 ```python
-agent = client.agents.rename(RenameInput(
+agent = client.agents.rename(apiresource_io_pb2.RenameInput(
     resource_id="...",
     slug="...",
 ))
@@ -724,9 +730,9 @@ agent = client.agents.rename(RenameInput(
 </Tab>
 <Tab value="Java">
 ```java
-Agent agent = client.agents().rename(RenameInput.builder()
-    .resourceId("...")
-    .slug("...")
+Agent agent = client.agent.rename(RenameInput.newBuilder()
+    .setResourceId("...")
+    .setSlug("...")
     .build());
 ```
 </Tab>
@@ -754,7 +760,7 @@ const agent = await stigmer.agent.tagVersion({
 </Tab>
 <Tab value="Go">
 ```go
-agent, err := client.Agent.TagVersion(ctx, &stigmer.TagAgentVersionInput{
+agent, err := client.Agent.TagVersion(ctx, &agentv1.TagAgentVersionInput{
   AgentId:     "...",
   VersionHash: "...",
   Tag:         "...",
@@ -763,7 +769,7 @@ agent, err := client.Agent.TagVersion(ctx, &stigmer.TagAgentVersionInput{
 </Tab>
 <Tab value="Python">
 ```python
-agent = client.agents.tag_version(TagAgentVersionInput(
+agent = client.agents.tag_version(version_pb2.TagAgentVersionInput(
     agent_id="...",
     version_hash="...",
     tag="...",
@@ -772,10 +778,10 @@ agent = client.agents.tag_version(TagAgentVersionInput(
 </Tab>
 <Tab value="Java">
 ```java
-Agent agent = client.agents().tagVersion(TagAgentVersionInput.builder()
-    .agentId("...")
-    .versionHash("...")
-    .tag("...")
+Agent agent = client.agent.tagVersion(TagAgentVersionInput.newBuilder()
+    .setAgentId("...")
+    .setVersionHash("...")
+    .setTag("...")
     .build());
 ```
 </Tab>

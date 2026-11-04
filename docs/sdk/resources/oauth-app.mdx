@@ -30,25 +30,55 @@ spec:
 
 ## Client Access
 
+Every example on this page calls a client created as the [SDK overview](/docs/sdk/overview) shows: `stigmer` in TypeScript, `client` in Go, Python and Java, and Go's `ctx`. Where a language's examples import anything, its tab opens with those imports.
+
 <SDKTabs>
 <Tab value="TypeScript">
+```typescript prelude
+import { TokenEndpointAuthMethod, VendorApprovalStatus } from "@stigmer/apis/ai/stigmer/iam/oauthapp/v1/spec_pb";
+```
 ```typescript
 const oAuthApp = await stigmer.oauthapp.get("oapp_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
+```go prelude
+import (
+	stigmer "go.stigmer.ai/sdk"
+	"go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	oauthappv1 "go.stigmer.ai/sdk/proto/ai/stigmer/iam/oauthapp/v1"
+)
+```
 ```go
 oAuthApp, err := client.OAuthApp.Get(ctx, "oapp_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
+```python prelude
+from stigmer import DeleteResourceInput, OAuthAppInput, ResourceRef
+from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2
+from ai.stigmer.iam.oauthapp.v1 import io_pb2, spec_pb2
+```
 ```python
 o_auth_app = client.oauthapps.get("oapp_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
+```java prelude
+import ai.stigmer.commons.apiresource.RenameInput;
+import ai.stigmer.iam.oauthapp.v1.ListOAuthAppsInput;
+import ai.stigmer.iam.oauthapp.v1.OAuthApp;
+import ai.stigmer.iam.oauthapp.v1.OAuthApps;
+import ai.stigmer.iam.oauthapp.v1.TokenEndpointAuthMethod;
+import ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus;
+import ai.stigmer.sdk.gen.DeleteResourceInput;
+import ai.stigmer.sdk.gen.OAuthAppInput;
+import ai.stigmer.sdk.gen.ResourceRef;
+import java.util.List;
+import java.util.Map;
+```
 ```java
-OAuthApp oAuthApp = client.oauthapps().get("oapp_01j5q3k7m8r2s4tnz2hfp0q0c3");
+OAuthApp oAuthApp = client.oauthapp.get("oapp_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -73,22 +103,22 @@ Get an OAuth app by its unique identifier.
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const oAuthApp = await stigmer.oauthapp.get(id);
+const oAuthApp = await stigmer.oauthapp.get("oapp_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
 ```go
-oAuthApp, err := client.OAuthApp.Get(ctx, id)
+oAuthApp, err := client.OAuthApp.Get(ctx, "oapp_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Python">
 ```python
-o_auth_app = client.oauthapps.get(id)
+o_auth_app = client.oauthapps.get("oapp_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-OAuthApp oAuthApp = client.oauthapps().get(id);
+OAuthApp oAuthApp = client.oauthapp.get("oapp_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -110,46 +140,22 @@ Resolves a human-readable reference like "acme/slack-oauth" to the full OAuthApp
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const oAuthApp = await stigmer.oauthapp.getByReference({
-  org: "...",
-  kind: "...",
-  slug: "...",
-  version: "...",
-  id: "...",
-});
+const oAuthApp = await stigmer.oauthapp.getByReference({ org: "acme", slug: "my-oauth-app" });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-oAuthApp, err := client.OAuthApp.GetByReference(ctx, &stigmer.ApiResourceReference{
-  Org:     "...",
-  Kind:    "...",
-  Slug:    "...",
-  Version: "...",
-  Id:      "...",
-})
+oAuthApp, err := client.OAuthApp.GetByReference(ctx, stigmer.ResourceRef{Org: "acme", Slug: "my-oauth-app"})
 ```
 </Tab>
 <Tab value="Python">
 ```python
-o_auth_app = client.oauthapps.get_by_reference(ApiResourceReference(
-    org="...",
-    kind="...",
-    slug="...",
-    version="...",
-    id="...",
-))
+o_auth_app = client.oauthapps.get_by_reference(ResourceRef(org="acme", slug="my-oauth-app"))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-OAuthApp oAuthApp = client.oauthapps().getByReference(ApiResourceReference.builder()
-    .org("...")
-    .kind("...")
-    .slug("...")
-    .version("...")
-    .id("...")
-    .build());
+OAuthApp oAuthApp = client.oauthapp.getByReference(ResourceRef.of("acme", "my-oauth-app"));
 ```
 </Tab>
 </SDKTabs>
@@ -168,40 +174,36 @@ Returns the OAuthApps of the input org that the caller may view, newest first, o
 <Tab value="TypeScript">
 ```typescript
 const oAuthApps = await stigmer.oauthapp.list({
-  org: "...",
+  org: "acme",
   pageSize: 0,
-  pageToken: "...",
   labels: {},
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-oAuthApps, err := client.OAuthApp.List(ctx, &stigmer.ListOAuthAppsInput{
-  Org:       "...",
-  PageSize:  0,
-  PageToken: "...",
-  Labels:    map[string]string{},
+oAuthApps, err := client.OAuthApp.List(ctx, &oauthappv1.ListOAuthAppsInput{
+  Org:      "acme",
+  PageSize: 0,
+  Labels:   map[string]string{},
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-o_auth_apps = client.oauthapps.list(ListOAuthAppsInput(
-    org="...",
+o_auth_apps = client.oauthapps.list(io_pb2.ListOAuthAppsInput(
+    org="acme",
     page_size=0,
-    page_token="...",
     labels={},
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-OAuthApps oAuthApps = client.oauthapps().list(ListOAuthAppsInput.builder()
-    .org("...")
-    .pageSize(0)
-    .pageToken("...")
-    .labels(Map.of())
+OAuthApps oAuthApps = client.oauthapp.list(ListOAuthAppsInput.newBuilder()
+    .setOrg("acme")
+    .setPageSize(0)
+    .putAllLabels(Map.of())
     .build());
 ```
 </Tab>
@@ -239,9 +241,9 @@ const oAuthApp = await stigmer.oauthapp.apply({
   scopes: [],
   userinfoUrl: "...",
   scopeParameterName: "...",
-  vendorApprovalStatus: "...",
+  vendorApprovalStatus: VendorApprovalStatus.PENDING,
   vendorApprovalDocsUrl: "...",
-  tokenEndpointAuthMethod: "...",
+  tokenEndpointAuthMethod: TokenEndpointAuthMethod.CLIENT_SECRET_BASIC,
   addresses: [],
 });
 ```
@@ -261,9 +263,9 @@ oAuthApp, err := client.OAuthApp.Apply(ctx, &stigmer.OAuthAppInput{
   Scopes:                  []string{},
   UserinfoUrl:             "...",
   ScopeParameterName:      "...",
-  VendorApprovalStatus:    "...",
+  VendorApprovalStatus:    oauthappv1.VendorApprovalStatus_VENDOR_APPROVAL_STATUS_PENDING,
   VendorApprovalDocsUrl:   "...",
-  TokenEndpointAuthMethod: "...",
+  TokenEndpointAuthMethod: oauthappv1.TokenEndpointAuthMethod_TOKEN_ENDPOINT_AUTH_METHOD_CLIENT_SECRET_BASIC,
   Addresses:               []string{},
 })
 ```
@@ -283,16 +285,16 @@ o_auth_app = client.oauthapps.apply(OAuthAppInput(
     scopes=[],
     userinfo_url="...",
     scope_parameter_name="...",
-    vendor_approval_status="...",
+    vendor_approval_status=spec_pb2.VENDOR_APPROVAL_STATUS_PENDING,
     vendor_approval_docs_url="...",
-    token_endpoint_auth_method="...",
+    token_endpoint_auth_method=spec_pb2.TOKEN_ENDPOINT_AUTH_METHOD_CLIENT_SECRET_BASIC,
     addresses=[],
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-OAuthApp oAuthApp = client.oauthapps().apply(OAuthAppInput.builder()
+OAuthApp oAuthApp = client.oauthapp.apply(OAuthAppInput.builder()
     .name("my-oauth-app")
     .org("acme")
     .slug("...")
@@ -305,9 +307,9 @@ OAuthApp oAuthApp = client.oauthapps().apply(OAuthAppInput.builder()
     .scopes(List.of())
     .userinfoUrl("...")
     .scopeParameterName("...")
-    .vendorApprovalStatus("...")
+    .vendorApprovalStatus(VendorApprovalStatus.VENDOR_APPROVAL_STATUS_PENDING)
     .vendorApprovalDocsUrl("...")
-    .tokenEndpointAuthMethod("...")
+    .tokenEndpointAuthMethod(TokenEndpointAuthMethod.TOKEN_ENDPOINT_AUTH_METHOD_CLIENT_SECRET_BASIC)
     .addresses(List.of())
     .build());
 ```
@@ -344,9 +346,9 @@ const oAuthApp = await stigmer.oauthapp.create({
   scopes: [],
   userinfoUrl: "...",
   scopeParameterName: "...",
-  vendorApprovalStatus: "...",
+  vendorApprovalStatus: VendorApprovalStatus.PENDING,
   vendorApprovalDocsUrl: "...",
-  tokenEndpointAuthMethod: "...",
+  tokenEndpointAuthMethod: TokenEndpointAuthMethod.CLIENT_SECRET_BASIC,
   addresses: [],
 });
 ```
@@ -366,9 +368,9 @@ oAuthApp, err := client.OAuthApp.Create(ctx, &stigmer.OAuthAppInput{
   Scopes:                  []string{},
   UserinfoUrl:             "...",
   ScopeParameterName:      "...",
-  VendorApprovalStatus:    "...",
+  VendorApprovalStatus:    oauthappv1.VendorApprovalStatus_VENDOR_APPROVAL_STATUS_PENDING,
   VendorApprovalDocsUrl:   "...",
-  TokenEndpointAuthMethod: "...",
+  TokenEndpointAuthMethod: oauthappv1.TokenEndpointAuthMethod_TOKEN_ENDPOINT_AUTH_METHOD_CLIENT_SECRET_BASIC,
   Addresses:               []string{},
 })
 ```
@@ -388,16 +390,16 @@ o_auth_app = client.oauthapps.create(OAuthAppInput(
     scopes=[],
     userinfo_url="...",
     scope_parameter_name="...",
-    vendor_approval_status="...",
+    vendor_approval_status=spec_pb2.VENDOR_APPROVAL_STATUS_PENDING,
     vendor_approval_docs_url="...",
-    token_endpoint_auth_method="...",
+    token_endpoint_auth_method=spec_pb2.TOKEN_ENDPOINT_AUTH_METHOD_CLIENT_SECRET_BASIC,
     addresses=[],
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-OAuthApp oAuthApp = client.oauthapps().create(OAuthAppInput.builder()
+OAuthApp oAuthApp = client.oauthapp.create(OAuthAppInput.builder()
     .name("my-oauth-app")
     .org("acme")
     .slug("...")
@@ -410,9 +412,9 @@ OAuthApp oAuthApp = client.oauthapps().create(OAuthAppInput.builder()
     .scopes(List.of())
     .userinfoUrl("...")
     .scopeParameterName("...")
-    .vendorApprovalStatus("...")
+    .vendorApprovalStatus(VendorApprovalStatus.VENDOR_APPROVAL_STATUS_PENDING)
     .vendorApprovalDocsUrl("...")
-    .tokenEndpointAuthMethod("...")
+    .tokenEndpointAuthMethod(TokenEndpointAuthMethod.TOKEN_ENDPOINT_AUTH_METHOD_CLIENT_SECRET_BASIC)
     .addresses(List.of())
     .build());
 ```
@@ -457,10 +459,10 @@ updated = client.oauthapps.update(o_auth_app, ["metadata.name"])
 </Tab>
 <Tab value="Java">
 ```java
-OAuthApp oAuthApp = client.oauthapps().get("oapp_01j5q3k7m8r2s4tnz2hfp0q0c3");
-OAuthApp updated = client.oauthapps().update(
+OAuthApp oAuthApp = client.oauthapp.get("oapp_01j5q3k7m8r2s4tnz2hfp0q0c3");
+OAuthApp updated = client.oauthapp.update(
     oAuthApp.toBuilder().setMetadata(oAuthApp.getMetadata().toBuilder().setName("New name")).build(),
-    java.util.List.of("metadata.name"));
+    List.of("metadata.name"));
 ```
 </Tab>
 </SDKTabs>
@@ -483,25 +485,23 @@ Its addresses are released: a sign-in at them uses Stigmer's own login app or th
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const oAuthApp = await stigmer.oauthapp.delete({ resourceId: id });
+const oAuthApp = await stigmer.oauthapp.delete({ resourceId: "oapp_01j5q3k7m8r2s4tnz2hfp0q0c3" });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-oAuthApp, err := client.OAuthApp.Delete(ctx, &stigmer.DeleteResourceInput{
-  ResourceID: id,
-})
+oAuthApp, err := client.OAuthApp.Delete(ctx, &stigmer.DeleteResourceInput{ResourceID: "oapp_01j5q3k7m8r2s4tnz2hfp0q0c3"})
 ```
 </Tab>
 <Tab value="Python">
 ```python
-o_auth_app = client.oauthapps.delete(DeleteResourceInput(resource_id=id))
+o_auth_app = client.oauthapps.delete(DeleteResourceInput(resource_id="oapp_01j5q3k7m8r2s4tnz2hfp0q0c3"))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-OAuthApp oAuthApp = client.oauthapps().delete(DeleteResourceInput.builder()
-    .resourceId(id)
+OAuthApp oAuthApp = client.oauthapp.delete(DeleteResourceInput.builder()
+    .resourceId("oapp_01j5q3k7m8r2s4tnz2hfp0q0c3")
     .build());
 ```
 </Tab>
@@ -536,7 +536,7 @@ const oAuthApp = await stigmer.oauthapp.rename({
 </Tab>
 <Tab value="Go">
 ```go
-oAuthApp, err := client.OAuthApp.Rename(ctx, &stigmer.RenameInput{
+oAuthApp, err := client.OAuthApp.Rename(ctx, &apiresource.RenameInput{
   ResourceId: "...",
   Slug:       "...",
 })
@@ -544,7 +544,7 @@ oAuthApp, err := client.OAuthApp.Rename(ctx, &stigmer.RenameInput{
 </Tab>
 <Tab value="Python">
 ```python
-o_auth_app = client.oauthapps.rename(RenameInput(
+o_auth_app = client.oauthapps.rename(apiresource_io_pb2.RenameInput(
     resource_id="...",
     slug="...",
 ))
@@ -552,9 +552,9 @@ o_auth_app = client.oauthapps.rename(RenameInput(
 </Tab>
 <Tab value="Java">
 ```java
-OAuthApp oAuthApp = client.oauthapps().rename(RenameInput.builder()
-    .resourceId("...")
-    .slug("...")
+OAuthApp oAuthApp = client.oauthapp.rename(RenameInput.newBuilder()
+    .setResourceId("...")
+    .setSlug("...")
     .build());
 ```
 </Tab>
