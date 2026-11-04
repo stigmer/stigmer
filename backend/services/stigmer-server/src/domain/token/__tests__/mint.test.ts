@@ -13,6 +13,9 @@
  *   - an existing app-user account is reused with no grant and no write;
  *     an account under the subject in any other mode is refused;
  *   - settings that do not create accounts refuse an unknown person;
+ *   - both refusals of the person name the token's organization by its
+ *     current slug, read only when refusing (a mint that succeeds reads no
+ *     name), the id when it holds none, and a fault reading it is INTERNAL;
  *   - provisioning GRANTS FIRST on the derived account id, as an ordinary
  *     grant made acting for the minting service account, then creates the
  *     account as that account with the name split; a failed grant writes
@@ -104,6 +107,7 @@ function harness(
     failGrant?: boolean;
     failCreate?: "fault" | "lost-race";
     failLookup?: boolean;
+    name?: "fault" | "none";
   } = {},
 ): Harness {
   const events: string[] = [];
@@ -112,7 +116,7 @@ function harness(
   const granted: Harness["granted"] = [];
   const accounts = new Map<string, IdentityAccount>();
   const embedding = options.embedding ?? { createAccountsOnSignIn: true };
-  const organizations: Pick<Store, "getResource"> = {
+  const organizations: Pick<Store, "getResource" | "resourceNames"> = {
     getResource: (async (_kind: unknown, id: string) => {
       events.push(`read ${id}`);
       if (options.organization === "unreadable") throw new Error("store down");
@@ -121,6 +125,16 @@ function harness(
       }
       return create(OrganizationSchema, { metadata: { id }, spec: { embedding } });
     }) as Store["getResource"],
+    resourceNames: {
+      current: async (kind: string, org: string, id: string) => {
+        events.push(`name ${id}`);
+        if (options.name === "fault") throw new Error("name table down");
+        const name = options.name === "none" ? undefined : SLUGS[id];
+        return name === undefined
+          ? undefined
+          : { kind, org, name, id, state: "current", claimedAt: "", expiresAt: "" };
+      },
+    } as unknown as Store["resourceNames"],
   };
   const authorizer: Authorizer = {
     authorize: async (_caller, check) => {
@@ -196,6 +210,12 @@ async function refusal(promise: Promise<unknown>): Promise<ConnectError> {
 }
 
 const SUBJECT = appUserSubject("acme", "user-7");
+
+/** Each organization's current slug, distinct from its id, as a person names it. */
+const SLUGS: Readonly<Record<string, string>> = {
+  acme: "acme-slug",
+  org_acmecust: "acme-cust",
+};
 
 describe("mintUserToken — the server and the caller", () => {
   it("refuses without a ring and with a verify-only ring, before reading the caller", async () => {
@@ -333,8 +353,9 @@ describe("mintUserToken — the person", () => {
     const denied = await refusal(mintUserToken(h.deps, request(), KEY_CALLER));
     expect([denied.code, denied.rawMessage]).toEqual([
       Code.FailedPrecondition,
-      foreignAccountMessage("user-7", "acme"),
+      foreignAccountMessage("user-7", "acme-slug"),
     ]);
+    expect(h.events).toEqual(["read acme", "lookup", "name acme"]);
   });
 
   it("refuses an unknown person when the settings do not create accounts, as with none set", async () => {
@@ -343,10 +364,54 @@ describe("mintUserToken — the person", () => {
       const denied = await refusal(mintUserToken(h.deps, request(), KEY_CALLER));
       expect([denied.code, denied.rawMessage]).toEqual([
         Code.FailedPrecondition,
-        noAccountMessage("user-7", "acme"),
+        noAccountMessage("user-7", "acme-slug"),
       ]);
-      expect(h.events).toEqual(["read acme", "lookup"]);
+      expect(h.events).toEqual(["read acme", "lookup", "name acme"]);
     }
+  });
+
+  it("names a child the token is for by the child's slug, not the minting organization's", async () => {
+    const h = harness({ embedding: { createAccountsOnSignIn: false } });
+    const denied = await refusal(
+      mintUserToken(h.deps, request({ org: "org_acmecust" }), KEY_CALLER),
+    );
+    expect([denied.code, denied.rawMessage]).toEqual([
+      Code.FailedPrecondition,
+      noAccountMessage("user-7", "acme-cust"),
+    ]);
+    expect(h.events).toEqual(["read acme", "lookup", "name org_acmecust"]);
+  });
+
+  it("names the organization by its id when it holds no current name", async () => {
+    const h = harness({ embedding: { createAccountsOnSignIn: false }, name: "none" });
+    const denied = await refusal(mintUserToken(h.deps, request(), KEY_CALLER));
+    expect([denied.code, denied.rawMessage]).toEqual([
+      Code.FailedPrecondition,
+      noAccountMessage("user-7", "acme"),
+    ]);
+  });
+
+  it("answers a fault reading the organization's name INTERNAL, on either refusal", async () => {
+    const unknown = harness({ embedding: { createAccountsOnSignIn: false }, name: "fault" });
+    const noAccount = await refusal(mintUserToken(unknown.deps, request(), KEY_CALLER));
+    expect([noAccount.code, noAccount.rawMessage]).toEqual([
+      Code.Internal,
+      "failed to read the organization's name",
+    ]);
+
+    const foreign = harness({ name: "fault" });
+    foreign.accounts.set(
+      SUBJECT,
+      create(IdentityAccountSchema, {
+        metadata: { id: "ida_direct" },
+        spec: { idpId: SUBJECT, provisioningMode: IdentityAccountProvisioningMode.direct },
+      }),
+    );
+    const refused = await refusal(mintUserToken(foreign.deps, request(), KEY_CALLER));
+    expect([refused.code, refused.rawMessage]).toEqual([
+      Code.Internal,
+      "failed to read the organization's name",
+    ]);
   });
 
   it("grants first on the derived id as an ordinary grant by the minting account, then creates the account as it", async () => {
