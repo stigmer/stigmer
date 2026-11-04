@@ -172,9 +172,13 @@ jobs:
               echo "$TAG_BODY"
             } > /tmp/changelog.txt
           else
-            # Fallback: generate changelog from git log
-            echo "Falling back to git log changelog ($PREVIOUS_TAG..$VERSION)"
-            CHANGES=$(git log --pretty=format:"- %s (%h)" "$PREVIOUS_TAG..$VERSION" | grep -v "^- Merge")
+            # Fallback: generate changelog from git log. With no previous
+            # tag (the line's first release tagged without a body) the range
+            # is every commit the tag reaches; `|| true` keeps an empty list
+            # from failing the step under `bash -e`.
+            if [ -n "$PREVIOUS_TAG" ]; then RANGE="$PREVIOUS_TAG..$VERSION"; else RANGE="$VERSION"; fi
+            echo "Falling back to git log changelog ($RANGE)"
+            CHANGES=$(git log --pretty=format:"- %s (%h)" "$RANGE" | grep -v "^- Merge" || true)
             {
               echo "$INSTALL_SECTION"
               echo ""
