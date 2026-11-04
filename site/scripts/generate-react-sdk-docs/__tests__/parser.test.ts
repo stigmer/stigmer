@@ -184,6 +184,12 @@ describe("parseTypeDocJson — the package's entries", () => {
     expect(domains[0]).toMatchObject({ importPath: "@stigmer/react-sdk", headless: null });
   });
 
+  it("refuses a hook TypeDoc gave no call signature", async () => {
+    const bare = hook(1, "useBare", "sdk/react/src/skill/useBare.ts");
+    delete bare.signatures;
+    await expect(parse([bare])).rejects.toThrow(/TypeDoc gave the hook useBare no call signature/);
+  });
+
   it("refuses an entry it has no import path for", async () => {
     await expect(parse([entry(100, "widget", [typeAlias(1, "Zeta", "sdk/react/src/skill/zeta.ts")])])).rejects.toThrow(
       /entry named "widget" that ENTRY_IMPORT_PATHS/,

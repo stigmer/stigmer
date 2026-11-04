@@ -29,6 +29,12 @@ describe("patternSubpath", () => {
     expect(patternSubpath({ ".": "./dist/index.js" }, "dist/index.d.ts")).toBeNull();
     expect(patternSubpath(undefined, "dist/a.d.ts")).toBeNull();
   });
+
+  it("gives nothing for a pattern whose target has no wildcard or no path, or a match that leaves the wildcard empty", () => {
+    expect(patternSubpath({ "./*": "./dist/index.d.ts" }, "dist/index.d.ts")).toBeNull();
+    expect(patternSubpath({ "./*": null }, "dist/a.d.ts")).toBeNull();
+    expect(patternSubpath(exportsMap, "dist/.d.ts")).toBeNull();
+  });
 });
 
 describe("createTypeImportResolver", () => {
@@ -45,7 +51,10 @@ describe("createTypeImportResolver", () => {
   beforeAll(() => {
     root = fs.mkdtempSync(path.join(os.tmpdir(), "react-sdk-docs-imports-"));
     kitDir = path.join(root, "kit");
-    write("kit/package.json", JSON.stringify({ name: "@acme/kit", peerDependencies: { client: "*", protos: "*", typed: "*" }, dependencies: { plain: "*" } }));
+    write("kit/package.json", JSON.stringify({ name: "@acme/kit", peerDependencies: { client: "*", protos: "*", typed: "*", single: "*" }, dependencies: { plain: "*" } }));
+    // A peer whose `exports` is one path: its root is that file.
+    write("node_modules/single/package.json", JSON.stringify({ name: "single", exports: "./index.js", types: "index.d.ts" }));
+    write("node_modules/single/index.d.ts", "export interface Single {}\n");
     write("node_modules/client/package.json", JSON.stringify({ name: "client", types: "index.d.ts" }));
     // The client also has a `Node`: the declaring package's peer wins over the first peer that has the name.
     write("node_modules/client/index.d.ts", 'export interface Client {}\nexport type Node = number;\nexport type { ToolUse } from "log";\n');
@@ -69,6 +78,15 @@ describe("createTypeImportResolver", () => {
     const resolve = createTypeImportResolver(kitDir);
     expect(resolve("Client", t("client"))).toBe("client");
     expect(resolve("ToolUse", t("log", "index.d.ts"))).toBe("client");
+  });
+
+  it("imports a type from a peer whose exports map is one path", () => {
+    expect(createTypeImportResolver(kitDir)("Single", t("single"))).toBe("single");
+  });
+
+  it("refuses a kit whose peer is not installed", () => {
+    write("lonely/package.json", JSON.stringify({ name: "@acme/lonely", peerDependencies: { absent: "*" } }));
+    expect(() => createTypeImportResolver(path.join(root, "lonely"))).toThrow(/cannot find the package absent/);
   });
 
   it("imports an @types package's type from the package it types, ahead of another peer with the name", () => {
