@@ -1,5 +1,6 @@
 // Pins how a Getting Started page becomes the steps the smoke runs
-// (doc-steps.mjs): titled fences are files, bash lines are commands, the
+// (doc-steps.mjs): titled fences are files (without the hidden setup above
+// a `---cut---` line, which the reader never sees), bash lines are commands, the
 // Stigmer Cloud tab is skipped, the install's own lines are the harness's,
 // and a command the smoke cannot run as written refuses the parse. The last
 // case reads the real path pages, so a page edit that the smoke could not
@@ -25,6 +26,19 @@ test("a titled fence is a file, a bash fence is one command per line, and every 
     { kind: "file", path: "agent.yaml", content: "kind: Agent\nmetadata:\n  name: a\n" },
     { kind: "command", line: "stigmer apply -f agent.yaml" },
     { kind: "command", line: "stigmer run a -m hi" },
+  ]);
+});
+
+test("a titled fence is written as the reader copies it, without the hidden setup above its cut", () => {
+  const mdx = [
+    fence('tsx title="src/App.tsx"', ['import "vite/client";', "// ---cut---", 'import { AgentChat } from "@stigmer/react-sdk/chat";']),
+    fence('python title="app.py"', ["user = None", "# ---cut---", "print(user)"]),
+    fence('yaml title="agent.yaml"', ["# ---cut---", "kind: Agent"]),
+  ].join("\n\n");
+  assert.deepEqual(docSteps(mdx), [
+    { kind: "file", path: "src/App.tsx", content: 'import { AgentChat } from "@stigmer/react-sdk/chat";\n' },
+    { kind: "file", path: "app.py", content: "print(user)\n" },
+    { kind: "file", path: "agent.yaml", content: "# ---cut---\nkind: Agent\n" },
   ]);
 });
 

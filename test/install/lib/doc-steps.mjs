@@ -29,8 +29,14 @@
  * (`elidedRuns`, `firstUnmarkedGap`), or single lines in the page's order
  * (`firstOutOfOrder`).
  *
+ * A file is written as the reader copies it: without the hidden setup a
+ * TypeScript, Go, Python or Java fence may open with, above its `---cut---`
+ * line, split by the one function the site and the docs snippet gate use.
+ *
  * Plain node, no dependencies, like its neighbours.
  */
+
+import { splitSnippetSetup } from "../../../site/src/lib/snippet-setup.mjs";
 
 /** The page's own lines the harness performs instead of running, each with what it does instead. */
 export const HARNESS_LINES = Object.freeze([
@@ -92,7 +98,9 @@ export function docSteps(mdx) {
     if (tabs.includes(SKIPPED_TAB)) continue;
     const { language, title } = parseInfo(info);
     if (title !== undefined) {
-      steps.push({ kind: "file", path: title, content: `${body.join("\n")}\n` });
+      // The reader copies what the page shows: a hidden setup above the
+      // `---cut---` line is the docs snippet gate's, never the reader's.
+      steps.push({ kind: "file", path: title, content: `${splitSnippetSetup(language, body.join("\n")).body}\n` });
     } else if (language === "bash") {
       for (const line of body) steps.push(...commandStep(line));
     }

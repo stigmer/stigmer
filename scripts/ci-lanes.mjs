@@ -155,6 +155,8 @@ export const LANES = {
       // modules it loads (the fake model and its wire); the rest of
       // test/support is the contract and e2e suites' machinery.
       "test/install/lib/**",
+      // The hidden-setup split doc-steps.mjs writes a page's files through.
+      "site/src/lib/snippet-setup.mjs",
       "test/support/src/fake-llm-upstream.ts",
       "test/support/src/llm-wire.ts",
       "scripts/publish-libs.mjs",
@@ -233,6 +235,8 @@ export const LANES = {
       // modules it loads (the fake model and its wire); the rest of
       // test/support is the contract and e2e suites' machinery.
       "test/install/lib/**",
+      // The hidden-setup split doc-steps.mjs writes a page's files through.
+      "site/src/lib/snippet-setup.mjs",
       "test/support/src/fake-llm-upstream.ts",
       "test/support/src/llm-wire.ts",
       // The published install's registry wait (test/install/lib/install-cli.mjs).
@@ -299,6 +303,8 @@ export const LANES = {
       // modules it loads (the fake model and its wire); the rest of
       // test/support is the contract and e2e suites' machinery.
       "test/install/lib/**",
+      // The hidden-setup split doc-steps.mjs writes a page's files through.
+      "site/src/lib/snippet-setup.mjs",
       "test/support/src/fake-llm-upstream.ts",
       "test/support/src/llm-wire.ts",
       // The compose-runner image installs the CLI tarballs these two stage
@@ -485,6 +491,13 @@ export const LANES = {
   "ci.e2e-interactive.yaml": {
     paths: [
       "test/e2e/**",
+      // The embedding tutorial runs these pages as a reader would, read by
+      // test/install/lib/doc-steps.mjs, which writes a file without its
+      // hidden setup through site/src/lib/snippet-setup.mjs.
+      "docs/getting-started/embed-agent.mdx",
+      "docs/getting-started/quickstart.mdx",
+      "test/install/lib/doc-steps.mjs",
+      "site/src/lib/snippet-setup.mjs",
       // The console-login stack shape runs the shared OIDC issuer
       // (test/support's local-oidc-issuer-main) as a process.
       "test/support/**",
@@ -588,6 +601,8 @@ export const LANES = {
       // probe (test/install/lib/stigmer-smoke.mjs; ci.stigmer-server says
       // why: #1087).
       "test/install/lib/**",
+      // The hidden-setup split doc-steps.mjs writes a page's files through.
+      "site/src/lib/snippet-setup.mjs",
       // The Makefile its build target comes from (ci.all-in-one says why).
       "Makefile",
       // The Node version the lane sets up (ci.all-in-one says why).
@@ -624,6 +639,8 @@ export const LANES = {
       // modules it loads (the fake model and its wire); the rest of
       // test/support is the contract and e2e suites' machinery.
       "test/install/lib/**",
+      // The hidden-setup split doc-steps.mjs writes a page's files through.
+      "site/src/lib/snippet-setup.mjs",
       "test/support/src/fake-llm-upstream.ts",
       "test/support/src/llm-wire.ts",
       // The kind gate builds the compose-runner image, which installs the
@@ -734,6 +751,8 @@ export const LANES = {
       "test/install/smoke-budgets.mjs",
       "test/bundle-budgets.json",
       "test/install/lib/**",
+      // The hidden-setup split doc-steps.mjs writes a page's files through.
+      "site/src/lib/snippet-setup.mjs",
       // build-libs builds through turbo's task graph.
       "turbo.json",
       "scripts/turbo-set.mjs",
@@ -827,6 +846,8 @@ export const LANES = {
       // The install layer's drivers and probes, and the two test/support
       // modules it loads (the fake model and its wire).
       "test/install/lib/**",
+      // The hidden-setup split doc-steps.mjs writes a page's files through.
+      "site/src/lib/snippet-setup.mjs",
       "test/support/src/fake-llm-upstream.ts",
       "test/support/src/llm-wire.ts",
       "scripts/publish-standalone.mjs",
@@ -867,6 +888,8 @@ export const LANES = {
       // main).
       "scripts/lib/**",
       "test/install/lib/**",
+      // The hidden-setup split doc-steps.mjs writes a page's files through.
+      "site/src/lib/snippet-setup.mjs",
       "scripts/verify-static-export-routes.mjs",
       "test/extension-consumer/**",
       "Makefile",
@@ -900,6 +923,8 @@ export const LANES = {
       // modules it loads (the fake model and its wire); the rest of
       // test/support is the contract and e2e suites' machinery.
       "test/install/lib/**",
+      // The hidden-setup split doc-steps.mjs writes a page's files through.
+      "site/src/lib/snippet-setup.mjs",
       "test/support/src/fake-llm-upstream.ts",
       "test/support/src/llm-wire.ts",
       "scripts/publish-standalone.mjs",
