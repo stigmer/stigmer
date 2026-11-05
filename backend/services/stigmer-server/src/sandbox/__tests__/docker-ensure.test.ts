@@ -46,6 +46,10 @@ let originalPath: string | undefined;
 /** The fake CLI: answers `inspect` from the state file, records every call. */
 const FAKE_DOCKER = `#!/bin/sh
 echo "$*" >> "$FAKE_DOCKER_DIR/calls.log"
+if [ "$1" = "image" ] && [ -f "$FAKE_DOCKER_DIR/no-carry-image" ]; then
+  echo "Error: No such image" >&2
+  exit 1
+fi
 if [ "$1" = "inspect" ] && [ "$3" = "{{json .Config.Env}}" ]; then
   cat "$FAKE_DOCKER_DIR/env"
   exit 0
@@ -172,11 +176,16 @@ describe("docker driver ensure", () => {
     }
   });
 
-  it("removes a recreated sandbox's carry image with it", async () => {
-    setState("stopped");
-    const { logger } = capturingLogger();
-    await newDockerSandboxProvisioner({ config: CONFIG, logger }).deprovisionSessionSandbox("ses_ensure");
-    expect(calls()).toEqual([`rm --force ${name}`, `image rm ${carryImageOf(name)}`]);
+  it("removes a recreated sandbox's carry image with it, and a sandbox never recreated has none to remove", async () => {
+    for (const carried of [true, false]) {
+      setState("stopped");
+      if (!carried) writeFileSync(path.join(dir, "no-carry-image"), "");
+      const { logger, infos } = capturingLogger();
+      await newDockerSandboxProvisioner({ config: CONFIG, logger }).deprovisionSessionSandbox("ses_ensure");
+      expect(calls()).toEqual([`rm --force ${name}`, `image rm ${carryImageOf(name)}`]);
+      expect(infos.map(([message]) => message)).toEqual(["Docker sandbox deprovisioned"]);
+      rmSync(path.join(dir, "no-carry-image"), { force: true });
+    }
   });
 
   it("creates a connect sandbox on its connect queue and answers its id", async () => {
