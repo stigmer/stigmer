@@ -10,8 +10,9 @@
 // `started=<token>`, the process's start time (state/proc.ts), and every
 // reader about to signal or trust a recorded PID asks recordedLiveProcess,
 // which answers with the PID only while the live process is still the one
-// recorded. The first line stays the bare PID every reader, an older CLI's
-// included, expects.
+// recorded. The Temporal start lock (state/lock.ts) is such a record too, and
+// judges its owner the same way (stigmer#2900). The first line stays the bare
+// PID every reader, an older CLI's included, expects.
 
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { basename, dirname } from "node:path";
@@ -28,15 +29,19 @@ export interface PidRecord {
 }
 
 /**
- * Write a PID file (creating its directory if needed), with the process's
- * start time as a second line when it can be read. Every writer is the process
- * itself or its parent right after the spawn, so the time read is that
- * process's.
+ * The text of a PID record: the PID, then the process's start time as a
+ * second line when it can be read. Every writer is the process itself or its
+ * parent right after the spawn, so the time read is that process's.
  */
+export function pidRecordText(pid: number): string {
+  const started = processStartTime(pid);
+  return started === null ? `${pid}\n` : `${pid}\n${STARTED_KEY}${started}\n`;
+}
+
+/** Write a PID file (creating its directory if needed) holding pidRecordText. */
 export function writePidFile(path: string, pid: number): void {
   mkdirSync(dirname(path), { recursive: true });
-  const started = processStartTime(pid);
-  writeFileSync(path, started === null ? `${pid}\n` : `${pid}\n${STARTED_KEY}${started}\n`, "utf8");
+  writeFileSync(path, pidRecordText(pid), "utf8");
 }
 
 /**
