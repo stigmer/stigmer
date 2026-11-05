@@ -24,8 +24,13 @@
  *     open-source server and carries OIDC and the runner token as optional
  *     inputs).
  *
- * The two third-party images the chart bundles, Postgres and Temporal, are
- * compose's two tags exactly: one bump moves both.
+ * The third-party images the chart bundles (Postgres, Temporal's server and
+ * its setup tools) are compose's tags exactly: one bump moves both, and every
+ * Temporal image in compose names one version, so the server and its tools
+ * move together. Temporal's two setup scripts are compose's byte for byte
+ * after compose's `$$` escaping (the registrar then stays up to carry the
+ * pod's readiness, where compose's exits), its containers take compose's
+ * variables name for name, and its dynamic-config text is compose's.
  *
  * A variable added to compose without the chart, or the reverse, is red here.
  * The compose file stays the canonical statement; this test makes it binding.
@@ -263,9 +268,114 @@ test("the bundled Postgres and Temporal run compose's images, tag for tag", () =
   const values = readValues();
   assert.equal(values.postgres.image, compose.postgres.image);
   assert.equal(values.temporal.image, compose.temporal.image);
+  assert.equal(values.temporal.adminToolsImage, compose["temporal-schema"].image);
+  assert.equal(values.temporal.adminToolsImage, compose["temporal-namespace"].image);
   // The init containers use the bundled Postgres image for pg_isready.
   assert.equal(values.waitForDependencies.image, compose.postgres.image);
-  for (const image of [compose.postgres.image, compose.temporal.image]) {
+  for (const image of [
+    compose.postgres.image,
+    compose.temporal.image,
+    values.temporal.adminToolsImage,
+  ]) {
     assert.match(image, /:\d+\.\d+(\.\d+)?$/, `${image} is not an exact release`);
   }
+});
+
+test("every Temporal image in compose names one version, so the server and its tools move together", () => {
+  const images = Object.values(readCompose().services)
+    .map((service) => service.image)
+    .filter((image) => image.startsWith("temporalio/"));
+  assert.deepEqual(
+    images.map((image) => image.split(":")[0]).sort(),
+    ["temporalio/admin-tools", "temporalio/admin-tools", "temporalio/server"],
+  );
+  assert.equal(new Set(images.map((image) => image.split(":")[1])).size, 1, images.join(", "));
+});
+
+/** A compose `sh -c` script as the shell receives it: compose reads `$$` as a literal `$`. */
+function composeScript(service) {
+  const command = readCompose().services[service].command;
+  assert.deepEqual(command.slice(0, 2), ["sh", "-c"], `${service} runs a sh -c script`);
+  return command[2].replaceAll("$$", "$");
+}
+
+/** A chart container's `sh -c` script. */
+function chartScript(container) {
+  assert.deepEqual(container.command.slice(0, 2), ["sh", "-c"], `${container.name} runs a sh -c script`);
+  return container.command[2];
+}
+
+// What the chart's registrar runs after compose's script: it stays up, as the
+// image's own command does, so its readiness exec keeps reporting.
+const REGISTRAR_STAYS_UP = `# Stay up, as the image's own command does, so the readiness
+# exec below keeps reporting the namespace.
+trap exit INT HUP TERM
+sleep infinity & wait
+`;
+
+test("the bundled Temporal's setup scripts are compose's, byte for byte", () => {
+  const temporal = findOne(renderProfile("bundled"), "Deployment", `${RELEASE}-temporal`)
+    .spec.template.spec;
+  assert.equal(
+    chartScript(containerNamed(temporal, "temporal-schema", { init: true })),
+    composeScript("temporal-schema"),
+  );
+  assert.equal(
+    chartScript(containerNamed(temporal, "temporal-namespace")),
+    composeScript("temporal-namespace") + REGISTRAR_STAYS_UP,
+  );
+});
+
+test("the bundled Temporal's containers take compose's variables, name for name", () => {
+  const compose = readCompose().services;
+  const temporal = findOne(renderProfile("bundled"), "Deployment", `${RELEASE}-temporal`)
+    .spec.template.spec;
+  const names = (container) => [...envMap(container).keys()].sort();
+  const pairs = [
+    ["temporal-schema", containerNamed(temporal, "temporal-schema", { init: true }), []],
+    ["temporal", containerNamed(temporal, "temporal"), []],
+    // The registrar dials the pod's own address, which only the chart has.
+    ["temporal-namespace", containerNamed(temporal, "temporal-namespace"), ["POD_IP"]],
+  ];
+  for (const [service, container, chartOnly] of pairs) {
+    assert.deepEqual(
+      names(container),
+      [...Object.keys(compose[service].environment ?? {}), ...chartOnly].sort(),
+      service,
+    );
+    for (const [name, value] of Object.entries(compose[service].environment ?? {})) {
+      const entry = envMap(container).get(name);
+      if (REQUIRED.test(String(value))) {
+        assert.equal(entry.valueFrom?.secretKeyRef?.key, "POSTGRES_PASSWORD", `${service} ${name}`);
+      }
+    }
+  }
+  // The values that are not addresses are one value on both sides.
+  const env = (container) => envMap(container);
+  assert.equal(
+    env(containerNamed(temporal, "temporal")).get("DYNAMIC_CONFIG_FILE_PATH")?.value,
+    compose.temporal.environment.DYNAMIC_CONFIG_FILE_PATH,
+  );
+  assert.equal(
+    env(containerNamed(temporal, "temporal-schema", { init: true })).get("SQL_PLUGIN")?.value,
+    compose["temporal-schema"].environment.SQL_PLUGIN,
+  );
+  assert.equal(
+    env(containerNamed(temporal, "temporal")).get("DB")?.value,
+    compose.temporal.environment.DB,
+  );
+});
+
+test("the bundled Temporal's dynamic config is compose's text, at compose's path", () => {
+  const compose = readCompose();
+  const docs = renderProfile("bundled");
+  const configMap = findOne(docs, "ConfigMap", `${RELEASE}-temporal`);
+  const text = compose.configs["temporal-dynamic-config"].content;
+  assert.ok(!text.includes("$"), "compose interpolates this text");
+  assert.equal(configMap.data["dynamic-config.yaml"], text);
+  const path = compose.services.temporal.environment.DYNAMIC_CONFIG_FILE_PATH;
+  assert.deepEqual(
+    compose.services.temporal.configs.map((config) => [config.source, config.target]),
+    [["temporal-dynamic-config", path]],
+  );
 });

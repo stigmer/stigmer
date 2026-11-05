@@ -87,8 +87,8 @@ import {
 } from "./lib/install-compose.mjs";
 import { LAYER_ENGINES, assertClaudeReady } from "./lib/claude-engine.mjs";
 
-// First boot pulls/starts four containers, runs Temporal schema setup, and
-// waits for the server's start-period; generous on shared CI hosts.
+// First boot pulls/starts six containers, runs Temporal's schema and namespace
+// steps, and waits for the server's start-period; generous on shared CI hosts.
 const SERVER_HEALTHY_TIMEOUT_MS = 240_000;
 // The end-to-end run additionally needs the runner's worker to connect
 // (it restarts until Temporal answers) and the first task-queue poll.

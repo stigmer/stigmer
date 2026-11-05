@@ -15,12 +15,17 @@
  *   - the init container waits for the dependencies compose orders with
  *     `depends_on`, reading their addresses from env, never from shell text
  *     the chart splices values into;
- *   - every bundled container (Postgres, Temporal, the init containers) runs
- *     as its image's own user by number, non-root, with nothing to escalate
- *     to, every capability dropped and the runtime's seccomp profile; the
- *     Postgres pod's fsGroup is that user's group, re-owned only on a root
- *     mismatch, and a context set to null (a cluster that assigns its own
- *     UIDs) renders with neither;
+ *   - every bundled container (Postgres, Temporal and its two setup steps,
+ *     the init containers) runs as its image's own user by number, non-root,
+ *     with nothing to escalate to, every capability dropped and the
+ *     runtime's seccomp profile, and a container the case does not list
+ *     fails it rather than passing unchecked; the Postgres pod's fsGroup is
+ *     that user's group, re-owned only on a root mismatch, and a context set
+ *     to null (a cluster that assigns its own UIDs) renders with neither;
+ *   - the bundled Temporal is Ready only from its namespace step, which
+ *     dials the pod's own address; its schema step runs before the server
+ *     whether or not the chart waits for Postgres; the server reads the
+ *     dynamic-config file it is named from the release's ConfigMap;
  *   - the server's DATABASE_URL names no password and no database (they
  *     arrive as PGPASSWORD by secretKeyRef and PGDATABASE), and its user is
  *     percent-encoded the way node-postgres decodes it;
@@ -254,9 +259,15 @@ for (const profile of PROFILES) {
     const expected = {
       [`${RELEASE}-postgres/postgres`]: 999,
       [`${RELEASE}-temporal/temporal`]: 1000,
+      [`${RELEASE}-temporal/temporal-schema`]: 1000,
+      [`${RELEASE}-temporal/temporal-namespace`]: 1000,
       [`${RELEASE}-temporal/wait-for-postgres`]: 999,
       [`${RELEASE}/wait-for-dependencies`]: 999,
     };
+    // The bundled workloads run third-party images whole, so every container
+    // of theirs is listed; the stigmer pod's own two containers have their
+    // case above, and only its init container is bundled.
+    const bundled = new Set([`${RELEASE}-postgres`, `${RELEASE}-temporal`]);
     const seen = [];
     for (const { name, spec } of podTemplates(renderProfile(profile))) {
       for (const container of [
@@ -264,7 +275,14 @@ for (const profile of PROFILES) {
         ...(spec.containers ?? []),
       ]) {
         const key = `${name}/${container.name}`;
-        if (!(key in expected)) continue;
+        const isInit = (spec.initContainers ?? []).includes(container);
+        if (!(key in expected)) {
+          assert.ok(
+            !bundled.has(name) && !isInit,
+            `${key} is a bundled container this case does not list`,
+          );
+          continue;
+        }
         seen.push(key);
         const context = container.securityContext ?? {};
         assert.equal(context.runAsNonRoot, true, `${key} runs as root`);
@@ -342,11 +360,56 @@ test("the bundled Temporal is Ready only when the default namespace exists (stig
   const docs = renderProfile("bundled");
   const temporal = findOne(docs, "Deployment", `${RELEASE}-temporal`).spec
     .template.spec;
-  const container = containerNamed(temporal, "temporal");
+  const registrar = containerNamed(temporal, "temporal-namespace");
   assert.match(
-    container.readinessProbe.exec.command.join(" "),
+    registrar.readinessProbe.exec.command.join(" "),
     /temporal operator namespace describe -n default/,
   );
+  assert.equal(
+    containerNamed(temporal, "temporal").readinessProbe,
+    undefined,
+    "the server image has no client to probe with; readiness is the registrar's",
+  );
+  // The server binds the pod's address, not loopback, so the registrar and
+  // its probe dial that address, through the CLI's own variable.
+  const env = envMap(registrar);
+  assert.equal(env.get("POD_IP")?.valueFrom?.fieldRef?.fieldPath, "status.podIP");
+  assert.equal(env.get("TEMPORAL_ADDRESS")?.value, "$(POD_IP):7233");
+  assert.ok(
+    env.has("POD_IP") &&
+      [...env.keys()].indexOf("POD_IP") < [...env.keys()].indexOf("TEMPORAL_ADDRESS"),
+    "Kubernetes expands $(POD_IP) only from a variable defined before it",
+  );
+});
+
+test("the bundled Temporal's schema step runs before the server, with or without the wait for Postgres", () => {
+  for (const sets of [[], ["waitForDependencies.enabled=false"]]) {
+    const temporal = findOne(renderProfile("bundled", { sets }), "Deployment", `${RELEASE}-temporal`)
+      .spec.template.spec;
+    const inits = (temporal.initContainers ?? []).map((c) => c.name);
+    assert.equal(inits.at(-1), "temporal-schema", `init containers ${inits.join(", ")}`);
+    const env = envMap(containerNamed(temporal, "temporal-schema", { init: true }));
+    assert.equal(env.get("SQL_PASSWORD")?.value, undefined, "the password is never a plain value");
+    assert.ok(env.get("SQL_PASSWORD")?.valueFrom?.secretKeyRef, "the password arrives by secretKeyRef");
+  }
+});
+
+test("the bundled Temporal server reads the dynamic-config file it is named, from the release's ConfigMap", () => {
+  const docs = renderProfile("bundled");
+  const temporal = findOne(docs, "Deployment", `${RELEASE}-temporal`).spec
+    .template.spec;
+  const server = containerNamed(temporal, "temporal");
+  const path = envMap(server).get("DYNAMIC_CONFIG_FILE_PATH")?.value;
+  assert.ok(path, "the server refuses to start without a dynamic-config file");
+  const mount = (server.volumeMounts ?? []).find((m) =>
+    path.startsWith(`${m.mountPath.replace(/\/+$/, "")}/`),
+  );
+  assert.ok(mount, `no mount holds ${path}`);
+  assert.equal(mount.readOnly, true);
+  const volume = temporal.volumes.find((v) => v.name === mount.name);
+  const configMap = findOne(docs, "ConfigMap", volume.configMap?.name);
+  const key = path.slice(mount.mountPath.replace(/\/+$/, "").length + 1);
+  assert.equal(typeof configMap.data?.[key], "string", `the ConfigMap has no ${key}`);
 });
 
 test("with the issuer set and no runner key, the pod is the server alone until the key is named (stigmer/stigmer#1169)", () => {

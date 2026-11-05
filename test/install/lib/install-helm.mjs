@@ -60,8 +60,8 @@ const ENTERPRISE_LOCAL_TAG = "stigmer-server-ee:smoke-local";
 /** The Secret each release's namespace carries for runner.llm.existingSecret. */
 const LLM_SECRET = "stigmer-smoke-llm";
 // First install pulls or loads two large images, starts Postgres, lets
-// auto-setup create Temporal's schema, and waits through the server's
-// startup probe; generous on shared CI hosts.
+// the Temporal pod create its schema and namespace, and waits through the
+// server's startup probe; generous on shared CI hosts.
 const INSTALL_TIMEOUT = "12m";
 
 /** The values file of one of the chart's CI profiles (ci/values-<profile>.yaml). */
@@ -319,7 +319,9 @@ export function createStigmerRelease(cluster, { namespace, valuesFile, modelBase
         ["stigmer", "server"],
         ["stigmer", "runner"],
         ["temporal", "wait-for-postgres"],
+        ["temporal", "temporal-schema"],
         ["temporal", "temporal"],
+        ["temporal", "temporal-namespace"],
         ["postgres", "postgres"],
       ];
       for (const [component, container] of targets) {

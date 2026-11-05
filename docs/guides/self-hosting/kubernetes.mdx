@@ -133,9 +133,10 @@ helm install stigmer oci://ghcr.io/stigmer/charts/stigmer \
   --wait
 ```
 
-The first install pulls two images, starts Postgres, lets Temporal create its
-schema, and waits for the server to answer. The chart's notes print what to do
-next.
+The first install pulls five images (Stigmer's server and runner, Postgres, and
+Temporal's server and setup tools), starts Postgres, lets Temporal create its
+schema and its namespace, and waits for the server to answer. The chart's notes
+print what to do next.
 
 <Callout type="info">
   Back up `values.yaml` beside the Secret. Every change on this page is a line

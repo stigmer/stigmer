@@ -4,13 +4,18 @@
 #   docker compose up -d
 #   open http://localhost:7234
 #
-# Topology — four services, one Postgres instance:
+# Topology — four long-running services on one Postgres instance, and two
+# Temporal setup steps that run to completion on every boot:
 #   postgres        one instance, three databases: `stigmer` (the app, created
 #                   by POSTGRES_DB), plus `temporal` + `temporal_visibility`
-#                   (created by Temporal's auto-setup). One container, one
-#                   volume, one backup story.
-#   temporal        a real Temporal server (temporalio/auto-setup), NOT the
-#                   CLI's dev-server binary.
+#                   (created by temporal-schema). One container, one volume,
+#                   one backup story.
+#   temporal-schema creates Temporal's two databases and brings their
+#                   schemas to the server's version, then exits.
+#   temporal        a real Temporal server (temporalio/server), NOT the CLI's
+#                   dev-server binary.
+#   temporal-namespace registers Temporal's `default` namespace, then exits;
+#                   the two Stigmer services start only after it has.
 #   stigmer-server  the control plane + web console + artifact file server.
 #   stigmer-runner  the execution worker (agent runs). stdio MCP
 #                   servers spawn INSIDE this container — they can reach this
@@ -64,7 +69,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?missing — copy .env.example to .env and fill it in}
-      # The app database. Temporal's auto-setup creates its own two
+      # The app database. temporal-schema creates Temporal's own two
       # (`temporal`, `temporal_visibility`) on this same instance at first
       # boot.
       POSTGRES_DB: stigmer
@@ -76,32 +81,121 @@ services:
       timeout: 5s
       retries: 10
 
-  temporal:
-    image: temporalio/auto-setup:1.28.0
-    restart: unless-stopped
+  # Temporal's two databases and their schemas: the steps Temporal's retired
+  # all-in-one auto-setup image ran before its server. Every step is safe to
+  # repeat: `create` accepts a database that exists, `setup-schema -v 0.0`
+  # never lowers a recorded version, and `update-schema` applies only the
+  # versions a database lacks. So every boot runs it, and leaves a current
+  # schema as it is, and a failed attempt is retried for a minute. The
+  # password reaches the tool as SQL_PASSWORD, never on a command line. The chart runs the same script as an init container of
+  # the Temporal pod, and its parity test holds the two equal ($$ is
+  # compose-escaping for a literal $).
+  temporal-schema:
+    # Temporal's setup tools at the server's own version; the parity test
+    # holds every Temporal image here to one version, so they move together.
+    image: temporalio/admin-tools:1.32.2
+    restart: "no"
     depends_on:
       postgres:
         condition: service_healthy
+    environment:
+      SQL_PLUGIN: postgres12
+      SQL_HOST: postgres
+      SQL_PORT: "5432"
+      SQL_USER: postgres
+      SQL_PASSWORD: ${POSTGRES_PASSWORD:?missing — copy .env.example to .env and fill it in}
+    command:
+      - sh
+      - -c
+      - |
+        set -u
+        schema=/etc/temporal/schema/postgresql/v12
+        setup() {
+          for pair in temporal:temporal temporal_visibility:visibility; do
+            db=$${pair%%:*}
+            dir=$${pair##*:}
+            temporal-sql-tool --db "$$db" create &&
+              temporal-sql-tool --db "$$db" setup-schema -v 0.0 &&
+              temporal-sql-tool --db "$$db" update-schema -d "$$schema/$$dir/versioned" ||
+              return 1
+          done
+        }
+        # Connections can fail for a few seconds after Postgres or this step starts,
+        # while the network settles (seen on a reinstall onto kept disks). The
+        # sequence is safe to repeat, so it is retried for a minute before failing.
+        deadline=$$(( $$(date +%s) + 60 ))
+        until setup; do
+          if [ "$$(date +%s)" -ge "$$deadline" ]; then
+            echo "temporal-schema: gave up after a minute of failed attempts" >&2
+            exit 1
+          fi
+          echo "temporal-schema: an attempt failed; retrying in 3s" >&2
+          sleep 3
+        done
+
+  temporal:
+    image: temporalio/server:1.32.2
+    restart: unless-stopped
+    depends_on:
+      temporal-schema:
+        condition: service_completed_successfully
+    # The server reads its configuration from these variables, through the
+    # template built into its image.
     environment:
       DB: postgres12
       DB_PORT: "5432"
       POSTGRES_USER: postgres
       POSTGRES_PWD: ${POSTGRES_PASSWORD:?missing — copy .env.example to .env and fill it in}
       POSTGRES_SEEDS: postgres
-    # Ready means "the default namespace is registered", NOT "the frontend
-    # answers": auto-setup registers the namespace a few seconds AFTER the
-    # frontend starts serving, and a server that connects in that window
-    # fails its Temporal worker creation without a later retry (the health
-    # monitor watches connection health, which is green — issue #904,
-    # stigmer-server src/temporal/manager.ts). Encoding real readiness
-    # here makes first boot deterministic. $$ is compose-escaping for a
-    # literal $; the CLI must dial the container IP because the frontend
-    # binds it, not loopback.
-    healthcheck:
-      test: ["CMD-SHELL", "temporal operator namespace describe -n default --address $$(hostname -i):7233"]
-      interval: 5s
-      timeout: 5s
-      retries: 30
+      DYNAMIC_CONFIG_FILE_PATH: /etc/temporal/config/dynamicconfig/dynamic-config.yaml
+    configs:
+      - source: temporal-dynamic-config
+        target: /etc/temporal/config/dynamicconfig/dynamic-config.yaml
+    # No healthcheck: the server image carries no client to probe with, and
+    # readiness is temporal-namespace's to say.
+
+  # Registers the `default` namespace the Stigmer services use, with the
+  # retention auto-setup gave it (24h), once the server answers. It exits 0
+  # only when the namespace can be described, so its completion means what
+  # this stack's readiness has always meant: a server that connects before
+  # the namespace exists fails its Temporal worker creation without a later
+  # retry (stigmer#904; its health monitor watches connection health, which
+  # is green). It gives up after four minutes with a line naming what it
+  # waited for. The chart runs the same script in a container of the
+  # Temporal pod and reports the pod Ready from it.
+  temporal-namespace:
+    image: temporalio/admin-tools:1.32.2
+    restart: "no"
+    depends_on:
+      temporal:
+        condition: service_started
+    environment:
+      # The temporal CLI's own variable for the server it dials.
+      TEMPORAL_ADDRESS: temporal:7233
+    command:
+      - sh
+      - -c
+      - |
+        set -u
+        deadline=$$(( $$(date +%s) + 240 ))
+        wait_until() {
+          what=$$1
+          shift
+          until "$$@" >/dev/null 2>&1; do
+            if [ "$$(date +%s)" -ge "$$deadline" ]; then
+              echo "temporal-namespace: gave up waiting for $$what at $$TEMPORAL_ADDRESS" >&2
+              exit 1
+            fi
+            sleep 2
+          done
+        }
+        serving() { temporal operator cluster health | grep -q SERVING; }
+        wait_until "the server to answer SERVING" serving
+        if ! temporal operator namespace describe -n default >/dev/null 2>&1; then
+          temporal operator namespace create -n default --retention 24h || true
+        fi
+        wait_until "the default namespace" temporal operator namespace describe -n default
+        echo "temporal-namespace: the default namespace is registered"
 
   stigmer-server:
     image: ghcr.io/stigmer/stigmer-server:${STIGMER_VERSION:-v0.1.0}
@@ -109,11 +203,11 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      # service_healthy = the default namespace exists (see the temporal
-      # service): the server's worker creation needs the namespace, and its
-      # health monitor does not re-run it on a healthy connection.
-      temporal:
-        condition: service_healthy
+      # Completed = the default namespace exists (see temporal-namespace):
+      # the server's worker creation needs the namespace, and its health
+      # monitor does not re-run it on a healthy connection.
+      temporal-namespace:
+        condition: service_completed_successfully
     ports:
       # 7234: the unified port — gRPC, Connect, the web console.
       # 7235: the artifact file server (downloads); a separate listener by
@@ -185,8 +279,8 @@ services:
     depends_on:
       stigmer-server:
         condition: service_healthy
-      temporal:
-        condition: service_healthy
+      temporal-namespace:
+        condition: service_completed_successfully
     environment:
       # local mode: stdio MCP servers are allowed (they spawn inside this
       # container — see the header) and the LangGraph checkpointer uses its
@@ -237,6 +331,18 @@ services:
       - type: volume
         source: artifacts
         target: *artifacts-path
+
+# The Temporal server refuses to start without a dynamic-config file, and its
+# image ships none. This one is empty on purpose: Temporal's defaults are this
+# stack's settings. A Temporal setting this stack ever needs goes here, under
+# Temporal's own dynamic-config key, and the chart's <release>-temporal
+# ConfigMap carries the same text (its parity test holds the two equal).
+# Compose interpolates this text, so it carries no dollar sign. Inline content
+# needs Docker Compose 2.23.1 or newer.
+configs:
+  temporal-dynamic-config:
+    content: |
+      # Temporal dynamic config. Empty: every setting is Temporal's default.
 
 volumes:
   postgres-data:
