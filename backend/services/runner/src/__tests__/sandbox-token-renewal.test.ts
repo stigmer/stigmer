@@ -29,8 +29,13 @@ function sandboxToken(ttlSeconds: number, tokenType = "sandbox"): string {
 }
 
 describe("isRenewableSandboxToken", () => {
-  it("accepts a sandbox token with an expiry", () => {
+  it("accepts a sandbox token with an expiry, the cloud's and open source's", () => {
     expect(isRenewableSandboxToken(sandboxToken(3600))).toBe(true);
+    expect(isRenewableSandboxToken(sandboxToken(3600, "execution_scoped"))).toBe(true);
+  });
+
+  it("rejects open source's run credential, which carries no expiry", () => {
+    expect(isRenewableSandboxToken(fakeJwt({ token_type: "execution_scoped", iat: 1 }))).toBe(false);
   });
 
   it("rejects every non-sandbox credential class", () => {

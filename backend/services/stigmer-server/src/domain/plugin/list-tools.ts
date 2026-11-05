@@ -7,8 +7,9 @@
  *
  * The listing runs on a RUNNER, never in this server: the server's address
  * or local program is reached from where the organization's turns run.
- * This module starts the runner's connect workflow (the wire name
- * `stigmer/mcp-server/connect`) through the engine seam (tools/engine.ts)
+ * This module starts the connect workflow (the wire name
+ * `stigmer/mcp-server/connect`, the server's own workflow, whose one
+ * activity runs on the runner) through the engine seam (tools/engine.ts)
  * and waits for its answer. Which runner serves it — the shared queue's,
  * or a connect sandbox provisioned for this listing alone — is
  * tools/sandbox.ts's decision (stigmer/stigmer#1474).

@@ -39,6 +39,7 @@ import {
 import { loadTemporalConnectionConfig } from "@stigmer/temporal-codecs";
 import type { TemporalConnectionConfig } from "@stigmer/temporal-codecs";
 import { markBoot, emitRunnerBootTiming } from "./shared/cold-start-timing.js";
+import { bootTemporalLane, newTemporalApiKeySink } from "./temporal-lane.js";
 
 /**
  * Configuration for creating a Stigmer runner.
@@ -171,9 +172,10 @@ export interface StigmerRunner {
  * proxy credential, so one write here rotates it everywhere.
  * Nothing holds the value: `Config` carries the ref alone (config.ts header).
  */
-async function startStaticSandboxTokenRenewal(
+export async function startStaticSandboxTokenRenewal(
   config: Config,
   tokenRef: TokenRef,
+  onRenewed: (token: string) => void,
 ): Promise<{ stop(): void } | null> {
   const { isRenewableSandboxToken, startSandboxTokenRenewal } = await import(
     "./sandbox-token-renewal.js"
@@ -199,6 +201,7 @@ async function startStaticSandboxTokenRenewal(
     applyToken: (token) => {
       tokenRef.current = token;
       setRunnerSecret("STIGMER_TOKEN", token);
+      onRenewed(token);
     },
   });
 }
@@ -281,6 +284,16 @@ async function buildStigmerRunner(
   };
   markBoot("bootstrap_resolved");
 
+  // Directly, or through the Stigmer server (temporal-lane.ts): decided
+  // before anything dials, so a contradiction stops the boot with its
+  // sentence.
+  const lane = await bootTemporalLane({
+    temporalAddress: config.temporalAddress,
+    backendEndpoint: config.stigmerBackendEndpoint,
+    token: tokenRef.current,
+    directConnection: config.temporalConnection,
+  });
+
   // Host and boot the harnesses. The modules imported here load no engine's
   // SDK (`harness-adapters.ts`, `harness/registry.ts`,
   // `agent-host/hosting.ts`; `__tests__/harness-boot-order.test.ts`). The
@@ -335,7 +348,10 @@ async function buildStigmerRunner(
   // Cloud sandbox credential self-renewal (no-op for desktop/OSS/local
   // credentials — see the helper). Started before the worker so the first
   // renewal point is scheduled even if the pod boots with a part-used token.
-  const tokenRenewal = await startStaticSandboxTokenRenewal(config, tokenRef);
+  // A renewed token is also the Temporal API key behind the server; the
+  // connection exists only once the worker is created below.
+  const temporalApiKey = newTemporalApiKeySink();
+  const tokenRenewal = await startStaticSandboxTokenRenewal(config, tokenRef, temporalApiKey.apply);
 
   const activities = await createAllActivities(config, hosted.rows);
   markBoot("activities_imported");
@@ -385,7 +401,8 @@ async function buildStigmerRunner(
   const shutdownController = registerWorkerShutdownSignal(config.taskQueue);
 
   const { startWorker } = await import("./worker.js");
-  const { worker, connection } = await startWorker({ config, activities, payloadCodecs });
+  const { worker, connection } = await startWorker({ config, activities, payloadCodecs, lane });
+  temporalApiKey.attach(lane, connection);
   markBoot("worker_created");
 
   return {

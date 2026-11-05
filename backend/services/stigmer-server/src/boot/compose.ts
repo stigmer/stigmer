@@ -292,6 +292,14 @@ import {
 } from "../transport/console/handler.js";
 import { createRegistryLanes } from "../transport/registry/lanes.js";
 import { createUnifiedPortServer } from "../transport/server.js";
+import {
+  createTemporalWorkerDoorLane,
+  credentialQueueOf,
+  currentConnectionOf,
+} from "../transport/temporal-worker-door/lane.js";
+import { temporalAddressThroughServer } from "../transport/temporal-worker-door/address.js";
+import { newReceiptKeySource } from "../transport/temporal-worker-door/receipt-key.js";
+import { initWorkQueueMetrics } from "../observability/runner-work-queue-metrics.js";
 import { chooseListenHost } from "./listen-host.js";
 import { registerExtensionServicesUnshadowed } from "./route-shadowing.js";
 import { defaultSandboxRunnerImage, type ServerConfig } from "./config.js";
@@ -705,7 +713,7 @@ export async function composeServer(
           accounts: identityAccounts,
           credentialBinding,
         })
-      : newExecutionScopedRunnerCredentialProvider(runnerAuthService));
+      : newExecutionScopedRunnerCredentialProvider(runnerAuthService, store));
   // The ONE composed Authorizer, bound here — after the store,
   // the account port and the Grant port it reads — and handed to every
   // controller as an explicit dependency; the Authorize step at position 1
@@ -2229,6 +2237,10 @@ export async function composeServer(
     // Platform registers LAST of all controllers.
     registerPlatformServices(router, {
       runnerBootstrapTemporalAddress: config.runnerBootstrapTemporalAddress,
+      sandboxTemporalAddress:
+        config.sandboxBackendEndpoint === ""
+          ? ""
+          : temporalAddressThroughServer(config.sandboxBackendEndpoint),
       runnerBootstrapMcpBridgeEndpoint: config.runnerBootstrapMcpBridgeEndpoint,
       temporalNamespace: config.temporalNamespace,
       runnerAuthService: runnerCredentials,
@@ -2456,6 +2468,19 @@ export async function composeServer(
     logger,
   });
 
+  // The Temporal worker lane (transport/temporal-worker-door/lane.ts): a
+  // sandboxed runner's only way to Temporal, on the server's own
+  // connection, admitting each caller to the one queue its credential's
+  // sandbox serves. A provider that throws is a composition fault, logged
+  // and refused.
+  const temporalWorkerDoorLane = createTemporalWorkerDoorLane({
+    logger,
+    namespace: config.temporalNamespace,
+    connection: currentConnectionOf(temporalManager),
+    queueOf: credentialQueueOf(runnerCredentials, logger),
+    receiptKey: newReceiptKeySource(store.bootstrapState),
+  });
+
   const server = createUnifiedPortServer({
     logger,
     routes,
@@ -2471,6 +2496,7 @@ export async function composeServer(
     skillTransferLane,
     ...(fileTransferLane === undefined ? {} : { fileTransferLane }),
     managedAgentsLane,
+    temporalWorkerDoorLane,
     consoleLane,
     localOnly: !requireAuthentication,
   });
@@ -2645,10 +2671,11 @@ export async function composeServer(
       // "inert" is the OSS default until an export bootstrap exists —
       // two states an operator must be able to tell apart in the log.
       await initRpcMetrics();
+      await initWorkQueueMetrics();
       logger.info("request metrics", {
         posture: await metricsExportPosture(),
         instruments:
-          "stigmer.grpc.request.count, stigmer.grpc.request.duration",
+          "stigmer.grpc.request.count, stigmer.grpc.request.duration, stigmer.runner.work_queue.calls",
       });
       // Wiring complete → SERVING → background refresh → bind. The port
       // must be the LAST observable effect (serverGate contract).

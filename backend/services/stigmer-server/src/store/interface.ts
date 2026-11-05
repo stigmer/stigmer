@@ -239,16 +239,29 @@ export interface SearchIndexQueryResult {
 
 /**
  * Key-value state for one-shot boot work that must run once per database.
- * Two writers today: the membership rules' server-organization pass
- * (`grant/constants.ts` SERVER_ORGANIZATION_ROLES_KEY) and the boot step
+ * Three writers today: the membership rules' server-organization pass
+ * (`grant/constants.ts` SERVER_ORGANIZATION_ROLES_KEY), the boot step
  * that makes a
  * one-organization server's organization (`domain/organization/limit.ts`
- * SINGLE_ORG_KEY). A key nothing reads is kept as written.
+ * SINGLE_ORG_KEY), and the signing key of the receipts the Temporal worker
+ * lane hands sandboxed runners in place of Temporal's task tokens
+ * (`transport/temporal-worker-door/receipt-key.ts`), the one writer that
+ * claims rather than sets: every replica must sign with the same key, so
+ * the first to write it wins and the rest read the winner. A key nothing
+ * reads is kept as written.
  */
 export interface BootstrapStateStore {
   /** Returns "" (not an error) when the key does not exist. */
   get(key: string): Promise<string>;
   set(key: string, value: string): Promise<void>;
+  /**
+   * Writes `value` under `key` only when the key does not exist, and returns
+   * the value the key holds afterwards: `value` when this call wrote it,
+   * the earlier writer's otherwise. First writer wins across concurrent
+   * callers and replicas sharing the database. "" only when the key was
+   * deleted between the write and the read.
+   */
+  claim(key: string, value: string): Promise<string>;
   getAll(): Promise<Map<string, string>>;
   /** No error if the key does not exist. */
   delete(key: string): Promise<void>;

@@ -19,6 +19,13 @@
  *                                                   everything under the
  *                                                   prefix, OPTIONS
  *                                                   included)
+ *      prefix       /temporal.api.workflowservice.v1.WorkflowService/
+ *                                                  (the Temporal worker
+ *                                                   lane: a sandboxed
+ *                                                   runner's only way to
+ *                                                   Temporal; HTTP/2
+ *                                                   gRPC, its own checks,
+ *                                                   temporal-worker-door/)
  *   3. guarded      console statics                (GET/HEAD only, never RPC
  *                                                   or /v1/* paths; absent
  *                                                   when no export is bundled)
@@ -59,6 +66,7 @@ import {
 import { createProtocolDemuxServer } from "./demux.js";
 import { localOnlyRefusal } from "./local-only.js";
 import type { LaneHandler, LaneRequest, LaneResponse } from "./lanes.js";
+import { TEMPORAL_WORKFLOW_SERVICE_PATH_PREFIX } from "./temporal-worker-door/lane.js";
 
 export type { LaneHandler } from "./lanes.js";
 
@@ -94,6 +102,13 @@ export interface UnifiedPortServerOptions {
    * through to the adapter's 404.
    */
   managedAgentsLane?: LaneHandler;
+  /**
+   * Lane 2: the Temporal worker lane (temporal-worker-door/lane.ts), the
+   * only way a sandboxed runner reaches Temporal. It authenticates each
+   * call itself, so it sits ahead of the adapter's chain. When absent, the
+   * prefix falls through to the adapter, which serves no such service.
+   */
+  temporalWorkerDoorLane?: LaneHandler;
   /**
    * Lane 3: console statics + /config.json. Present only when a
    * console export is bundled/configured — absent, every request flows
@@ -167,6 +182,13 @@ export function createUnifiedPortServer(
       path.startsWith(MANAGED_AGENTS_PATH_PREFIX)
     ) {
       options.managedAgentsLane(request, response);
+      return;
+    }
+    if (
+      options.temporalWorkerDoorLane !== undefined &&
+      path.startsWith(TEMPORAL_WORKFLOW_SERVICE_PATH_PREFIX)
+    ) {
+      options.temporalWorkerDoorLane(request, response);
       return;
     }
     if (options.consoleLane !== undefined && consoleLaneEligible(request)) {

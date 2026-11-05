@@ -68,8 +68,12 @@
  *     not a run. Liveness is NOT judged at mint — both lanes that
  *     accept the token judge it, by one rule (bound-execution.ts), and a
  *     third judge here would be a divergence waiting to happen. The
- *     renewal and unset arms answer not-minted, the
- *     controller's arms verbatim; keyless answers not-minted too.
+ *     unset arm answers not-minted, the controller's arm verbatim;
+ *     keyless answers not-minted too. The renewal arm renews the caller's own sandbox token while its session
+ *     exists (sandbox-credential.ts), and answers not-minted otherwise.
+ *   - `temporalTaskQueueOf` and `renewSandboxToken`: open source's sandbox
+ *     credential, shared with the default provider
+ *     (runner-credential-provider.ts `sandboxCredentialCapabilities`).
  *
  * Deliberately UNDEFINED here: `bootstrapCredentials`,
  * `mintSandboxCredential`, `authorizeExecutionValuesRead`,
@@ -108,7 +112,10 @@ import type {
   RunnerScopedTokenExchange,
   RunnerScopedTokenRequest,
 } from "./runner-credential-provider.js";
-import { newExecutionScopedRunnerCredentialProvider } from "./runner-credential-provider.js";
+import {
+  newExecutionScopedRunnerCredentialProvider,
+  sandboxCredentialCapabilities,
+} from "./runner-credential-provider.js";
 import type { RunnerAuthService } from "./runnerauth.js";
 
 /** What a runner-class caller's credential is bound to. */
@@ -156,11 +163,13 @@ export function newBuiltInRunnerCredentialProvider(
   const { service, store, accounts } = deps;
   const lane = newExecutionScopedRunnerCredentialProvider(service);
   const mintRunCredential = lane.mintRunCredential!.bind(lane);
+  const sandboxCredential = sandboxCredentialCapabilities(service, store);
   return {
     isEnabled: lane.isEnabled,
     mint: lane.mint,
     verify: lane.verify,
     mintRunCredential,
+    ...sandboxCredential,
 
     async exchangeScopedToken(
       request: RunnerScopedTokenRequest,
@@ -216,6 +225,9 @@ export function newBuiltInRunnerCredentialProvider(
           };
         }
         case "renewal":
+          // The sandbox token's own renewal (sandbox-credential.ts): the
+          // caller's credential decides, never the request.
+          return sandboxCredential.renewSandboxToken(caller.rawToken);
         case "unset":
           return { minted: false };
         default: {

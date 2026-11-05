@@ -272,3 +272,31 @@ describe("releaseAfterDrain", () => {
     expect(logError.mock.calls[0]?.[0]).toContain("close boom");
   });
 });
+
+describe("startStaticSandboxTokenRenewal", () => {
+  it("hands a renewed sandbox token to the ref, the credential store and the Temporal key sink", async () => {
+    const renewed = "renewed.token.value";
+    vi.doMock("../client/stigmer-client.js", () => ({
+      StigmerClient: class {
+        getRunnerScopedToken = vi.fn(async () => ({ token: renewed, expiresInSeconds: 3600 }));
+      },
+    }));
+    vi.resetModules();
+    const { startStaticSandboxTokenRenewal } = await import("../runner.js");
+    const now = Math.floor(Date.now() / 1000);
+    const claims = Buffer.from(JSON.stringify({ token_type: "execution_scoped", iat: now - 1000, exp: now + 10 })).toString("base64url");
+    const tokenRef: TokenRef = { current: `h.${claims}.s` };
+    const sink = vi.fn();
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    const renewal = await startStaticSandboxTokenRenewal(
+      { stigmerBackendEndpoint: "http://stigmer:7234" } as never,
+      tokenRef,
+      sink,
+    );
+    await vi.waitFor(() => expect(sink).toHaveBeenCalledWith(renewed));
+    expect(tokenRef.current).toBe(renewed);
+    renewal?.stop();
+    vi.doUnmock("../client/stigmer-client.js");
+    vi.resetModules();
+  });
+});

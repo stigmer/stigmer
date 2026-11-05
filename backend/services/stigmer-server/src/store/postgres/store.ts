@@ -1855,6 +1855,25 @@ class PostgresBootstrapStateStore implements BootstrapStateStore {
     );
   }
 
+  async claim(key: string, value: string): Promise<string> {
+    // The insert either writes the row or yields to the one already there
+    // (a concurrent insert waits on the unique index and then does nothing);
+    // the read then sees whichever value won.
+    await this.open().query(
+      `INSERT INTO bootstrap_state (key, value, updated_at) VALUES ($1, $2, now())
+       ON CONFLICT (key) DO NOTHING`,
+      [key, value],
+    );
+    const result = await this.open().query(
+      `SELECT value FROM bootstrap_state WHERE key = $1`,
+      [key],
+    );
+    const row = result.rows[0] as { value: string } | undefined;
+    // "" only when a delete ran between the two statements; the caller
+    // treats it as no value, as `get` does.
+    return row?.value ?? "";
+  }
+
   async getAll(): Promise<Map<string, string>> {
     const result = await this.open().query(
       `SELECT key, value FROM bootstrap_state`,

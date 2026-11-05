@@ -231,7 +231,7 @@ describe("platform domain (composed server)", () => {
     );
   });
 
-  it("answers the not-minted shape for empty ids and renewal", async () => {
+  it("answers the not-minted shape for empty ids and a renewal with no sandbox token", async () => {
     const arms: MessageInitShape<typeof GetRunnerScopedTokenInputSchema>[] = [
       { scope: { case: "runId", value: "" } },
       { scope: { case: "renewal", value: {} } },
@@ -522,6 +522,7 @@ describe("platform domain (native sign-in)", () => {
     const transport = createRouterTransport((router) => {
       registerPlatformServices(router, {
         runnerBootstrapTemporalAddress: "localhost:7233",
+        sandboxTemporalAddress: "",
         runnerBootstrapMcpBridgeEndpoint: "",
         temporalNamespace: "default",
         runnerAuthService: newExecutionScopedRunnerCredentialProvider(
@@ -571,6 +572,7 @@ describe("platform domain (keyless runner-token service)", () => {
     const transport = createRouterTransport((router) => {
       registerPlatformServices(router, {
         runnerBootstrapTemporalAddress: "localhost:7233",
+        sandboxTemporalAddress: "",
         runnerBootstrapMcpBridgeEndpoint: "",
         temporalNamespace: "default",
         runnerAuthService: newExecutionScopedRunnerCredentialProvider(
@@ -611,6 +613,7 @@ describe("platform domain (environment availability)", () => {
     const transport = createRouterTransport((router) => {
       registerPlatformServices(router, {
         runnerBootstrapTemporalAddress: "localhost:7233",
+        sandboxTemporalAddress: "",
         runnerBootstrapMcpBridgeEndpoint: "",
         temporalNamespace: "default",
         runnerAuthService: newExecutionScopedRunnerCredentialProvider(
@@ -679,6 +682,7 @@ describe("platform domain (license status)", () => {
     const transport = createRouterTransport((router) => {
       registerPlatformServices(router, {
         runnerBootstrapTemporalAddress: "localhost:7233",
+        sandboxTemporalAddress: "",
         runnerBootstrapMcpBridgeEndpoint: "",
         temporalNamespace: "default",
         runnerAuthService: newExecutionScopedRunnerCredentialProvider(
@@ -936,5 +940,80 @@ describe("platform domain (capability-delegating provider)", () => {
     } finally {
       bootstrapThrows = false;
     }
+  });
+});
+
+/**
+ * A sandbox's own credential on the platform's runner lanes: the renewal arm
+ * renews it through the provider's `renewSandboxToken` (open source's, with
+ * no exchange composed), reading the request's own bearer; and the bootstrap
+ * tells a sandbox the server's own address, never Temporal's. Anything that
+ * is not a sandbox credential keeps the earlier answers.
+ */
+describe("platform domain (a sandbox's own credential)", () => {
+  function clientWith(provider: RunnerCredentialProvider): PlatformClient {
+    const transport = createRouterTransport((router) => {
+      registerPlatformServices(router, {
+        runnerBootstrapTemporalAddress: "temporal.internal:7233",
+        sandboxTemporalAddress: "stigmer.internal:7234",
+        runnerBootstrapMcpBridgeEndpoint: "",
+        temporalNamespace: "default",
+        runnerAuthService: provider,
+        edition: ServerEdition.oss,
+        version: "dev",
+        authenticationRequired: false,
+        nativeSignIn: undefined,
+        singleOrganization: undefined,
+        licenseStatus: ABSENT_LICENSE_STATUS,
+        providerAvailability: runnerProviderAvailability(undefined),
+        modelCatalog: newModelCatalogProviderFromDocument(bundledModelRegistryDocument()),
+        authorizer: newPermissiveSingleTeamAuthorizer(),
+        environmentPolicy: NO_SANDBOX_POLICY,
+        now: () => new Date(),
+        logger: silentLogger,
+      });
+    });
+    return createClient(PlatformQueryController, transport);
+  }
+  const base = newExecutionScopedRunnerCredentialProvider(RunnerAuthService.create(RUNNER_KEY));
+  const sandboxAware: RunnerCredentialProvider = {
+    ...base,
+    temporalTaskQueueOf: async (token) => {
+      if (token === "broken") throw new Error("store down");
+      return token === "sandbox-token" ? "session:ses_1" : undefined;
+    },
+    renewSandboxToken: async (token) =>
+      token === "sandbox-token"
+        ? { minted: true, token: "renewed-token", expiresInSeconds: 14_400 }
+        : { minted: false },
+  };
+  const bearer = (token: string) => ({ headers: { authorization: `Bearer ${token}` } });
+
+  it("renews a sandbox's own token and nothing else", async () => {
+    const client = clientWith(sandboxAware);
+    const renewal = { scope: { case: "renewal" as const, value: {} } };
+    expect(await client.getRunnerScopedToken(renewal, bearer("sandbox-token"))).toMatchObject({
+      runnerScopedToken: "renewed-token",
+      tokenType: "Bearer",
+      expiresInSeconds: 14_400,
+    });
+    for (const options of [bearer("a-person's-key"), {}]) {
+      expect((await client.getRunnerScopedToken(renewal, options)).runnerScopedToken).toBe("");
+    }
+    // A provider without the capability answers not-minted, as before.
+    expect((await clientWith(base).getRunnerScopedToken(renewal, bearer("sandbox-token"))).runnerScopedToken).toBe("");
+  });
+
+  it("tells a sandbox the server's own address, and every other runner Temporal's", async () => {
+    const client = clientWith(sandboxAware);
+    expect((await client.getRunnerBootstrapConfig({}, bearer("sandbox-token"))).temporalAddress).toBe(
+      "stigmer.internal:7234",
+    );
+    for (const options of [bearer("a-person's-key"), bearer("broken"), {}]) {
+      expect((await client.getRunnerBootstrapConfig({}, options)).temporalAddress).toBe("temporal.internal:7233");
+    }
+    expect((await clientWith(base).getRunnerBootstrapConfig({}, bearer("sandbox-token"))).temporalAddress).toBe(
+      "temporal.internal:7233",
+    );
   });
 });
