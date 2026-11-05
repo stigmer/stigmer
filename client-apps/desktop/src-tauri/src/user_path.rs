@@ -220,12 +220,26 @@ mod tests {
     use std::os::unix::fs::PermissionsExt;
     use std::path::{Path, PathBuf};
 
-    /// A stand-in shell: a script that runs whatever `-c` gave it under `body`.
-    fn fake_shell(dir: &Path, body: &str) -> PathBuf {
+    /// Held by each test that starts a shell, from writing its stand-in until
+    /// it has been started.
+    /// Tests run in parallel threads of one process, and a child forked by
+    /// one test inherits, until it execs, any file another test has open for
+    /// writing; Linux then refuses to exec that file ("Text file busy",
+    /// stigmer/stigmer#2986). One test at a time writes and starts a shell, and
+    /// a test that starts one without writing it takes the lock too.
+    static SHELLS: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+    /// A stand-in shell: a script that runs whatever `-c` gave it under
+    /// `body`, with the lock that keeps other tests from forking while it is
+    /// written. Hold the guard until the shell has been started.
+    fn fake_shell(dir: &Path, body: &str) -> (std::sync::MutexGuard<'static, ()>, PathBuf) {
+        let held = SHELLS
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         let path = dir.join("fake-shell");
         std::fs::write(&path, format!("#!/bin/sh\n{body}\n")).unwrap();
         std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).unwrap();
-        path
+        (held, path)
     }
 
     #[test]
@@ -258,7 +272,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         // Prints a banner, as a noisy rc file would, then runs the command
         // with the PATH the person's rc files would have built.
-        let shell = fake_shell(
+        let (_held, shell) = fake_shell(
             dir.path(),
             "echo 'rc banner'\nPATH=/opt/homebrew/bin:/usr/bin exec /bin/sh -c \"$4\"",
         );
@@ -272,7 +286,7 @@ mod tests {
     fn the_shell_is_started_as_an_interactive_login_shell() {
         let dir = tempfile::tempdir().unwrap();
         // Prints its first two arguments where PATH would be.
-        let shell = fake_shell(
+        let (_held, shell) = fake_shell(
             dir.path(),
             &format!("printf '%s%s%s%s' '{START_MARKER}' \"$1\" \"$2\" '{END_MARKER}'"),
         );
@@ -285,7 +299,7 @@ mod tests {
     #[test]
     fn a_shell_that_hangs_is_given_up_on() {
         let dir = tempfile::tempdir().unwrap();
-        let shell = fake_shell(dir.path(), "sleep 30");
+        let (_held, shell) = fake_shell(dir.path(), "sleep 30");
         let started = std::time::Instant::now();
         let outcome = unix::read_path_from(&shell, Duration::from_millis(300));
         assert_eq!(outcome, Err("it took longer than 300ms".to_string()));
@@ -302,7 +316,7 @@ mod tests {
         // interactive shell sharing the app's group would take a launching
         // terminal's foreground, and keep it when killed (Ctrl+C then no
         // longer reaches `make desktop-dev`).
-        let shell = fake_shell(
+        let (_held, shell) = fake_shell(
             dir.path(),
             &format!(
                 "printf '%s%s %s%s' '{START_MARKER}' \"$(ps -o pgid= -p $$ | tr -d ' ')\" \"$$\" '{END_MARKER}'"
@@ -320,7 +334,7 @@ mod tests {
         // An rc file that leaves a process behind, then the PATH, then a
         // shell that would linger: the reader stops at the end marker and
         // ends the whole group.
-        let shell = fake_shell(
+        let (_held, shell) = fake_shell(
             dir.path(),
             &format!(
                 "sleep 30 &\necho $! > '{}'\nprintf '%s%s%s' '{START_MARKER}' /a '{END_MARKER}'\nsleep 30",
@@ -350,13 +364,17 @@ mod tests {
     #[test]
     fn a_shell_that_fails_says_how() {
         let dir = tempfile::tempdir().unwrap();
-        let shell = fake_shell(dir.path(), "exit 3");
+        let (_held, shell) = fake_shell(dir.path(), "exit 3");
         let outcome = unix::read_path_from(&shell, Duration::from_secs(5)).unwrap_err();
         assert!(outcome.starts_with("it exited with"), "{outcome}");
     }
 
     #[test]
     fn a_shell_that_does_not_exist_says_it_would_not_start() {
+        // Writes no shell, but still forks, so it waits out any test writing one.
+        let _held = SHELLS
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         let outcome = unix::read_path_from(Path::new("/nonexistent/shell"), Duration::from_secs(5))
             .unwrap_err();
         assert!(outcome.starts_with("it would not start"), "{outcome}");

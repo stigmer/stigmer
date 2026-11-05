@@ -410,6 +410,26 @@ jobs:
         env:
           NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION: ${{ needs.determine-version.outputs.version }}
 
+      # The Tauri arguments for this leg. An RPM version cannot carry a
+      # prerelease's `-` (the bundler's rpm crate refuses it), so a Linux
+      # build of a prerelease version (every dev build's 0.0.0-<run>, or a
+      # tag like v1.2.0-rc.1) bundles the .deb and the AppImage, the updater's
+      # target, and leaves the RPM to a release version.
+      - name: Choose bundles
+        id: tauri-args
+        shell: bash
+        run: |
+          ARGS="${MATRIX_TAURI_ARGS}"
+          VERSION="${NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION#v}"
+          if [ "${RUNNER_OS}" = "Linux" ] && [[ "${VERSION}" == *-* ]]; then
+            ARGS="${ARGS:+${ARGS} }--bundles deb,appimage"
+            echo "Prerelease version ${VERSION}: no RPM bundle"
+          fi
+          echo "args=${ARGS}" >> "$GITHUB_OUTPUT"
+        env:
+          MATRIX_TAURI_ARGS: ${{ matrix.tauri_args }}
+          NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION: ${{ needs.determine-version.outputs.version }}
+
       # Upload this platform's signed bundles to the shared draft release.
       # includeUpdaterJson is disabled: latest.json is assembled once in the
       # publish job to avoid the parallel read-modify-write race. On macOS the
@@ -427,7 +447,7 @@ jobs:
           releaseId: ${{ needs.create-release.outputs.release_id }}
           includeUpdaterJson: false
           retryAttempts: 3
-          args: ${{ matrix.tauri_args }}
+          args: ${{ steps.tauri-args.outputs.args }}
 
       - name: Build only (no release)
         if: needs.determine-version.outputs.should_release != 'true'
@@ -439,7 +459,7 @@ jobs:
         with:
           projectPath: client-apps/desktop
           includeUpdaterJson: false
-          args: ${{ matrix.tauri_args }}
+          args: ${{ steps.tauri-args.outputs.args }}
 
       # Tauri notarizes and staples the .app and signs the DMG, but never
       # notarizes the DMG container; a first-time download is the DMG. The

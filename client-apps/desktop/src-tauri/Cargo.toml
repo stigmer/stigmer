@@ -10,13 +10,21 @@ name = "app_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
-tauri-build = { version = "2", features = [] }
+# The build half of the Tauri 2.12 line the `tauri` floor below names.
+tauri-build = { version = "2.7", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = ["tray-icon", "image-png", "unstable"] }
+# Floor at the 2.12 line: 2.11.1 fixed the `is_local_url` origin advisory, and
+# every current plugin release (the updater's zip fix among them) needs ^2.12.
+tauri = { version = "2.12", features = ["tray-icon", "image-png", "unstable"] }
 tauri-plugin-opener = "2"
 tauri-plugin-dialog = "2"
-tauri-plugin-updater = "2"
+# 2.14.1 is the first release that can bind an update to its signed version
+# (`requireSignedVersion`, tauri.conf.json). Its default `zip` feature is off:
+# it unpacks only a zipped Windows update or a compressed AppImage, and the
+# bundler publishes neither (raw installers and AppImage, the macOS app as
+# .tar.gz), so the zip code and its advisories stay out of the app.
+tauri-plugin-updater = { version = "2.14.1", default-features = false, features = ["rustls-tls", "system-proxy"] }
 tauri-plugin-process = "2"
 tauri-plugin-window-state = "2"
 tauri-plugin-deep-link = "2"
