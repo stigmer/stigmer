@@ -446,6 +446,8 @@ spec:
               value: "ida_01jq3v8k6m2n4p5r7s9t0v1w2x"
             - name: STIGMER_ACCESS_HISTORY_RETENTION_DAYS
               value: "365"
+            - name: STIGMER_SHARED_RUNNER_ACROSS_ORGANIZATIONS
+              value: "accepted"
           ports:
             - name: grpc-api
               containerPort: 7234

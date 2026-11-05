@@ -224,6 +224,15 @@ That brings [Authentication](#authentication)'s second step: the pod runs the
 server alone until you sign in, create the runner's key and upgrade with its
 Secret.
 
+**Several organizations share this chart's one runner.** The chart starts no
+runner per Session (its runner is the shared one, see
+[One trust domain](#one-trust-domain)), so every organization's agents run as
+one user, under one workspace root, with the runner's reach to Temporal. A
+licensed server that may hold more than one organization therefore refuses to
+start until you accept that sharing with `runner.sharedAcrossOrganizations:
+true`; it then logs one warning naming what is shared. A license limited to one
+organization (`maxOrgs: 1`) needs nothing.
+
 **No release trusts a production signing key yet.** Until one does, every key
 stops the server container with one `boot failed:` line saying why
 (`kubectl -n stigmer logs deploy/stigmer -c server`), and the pod never becomes
@@ -422,9 +431,10 @@ call for it. The agent's home is `/data/agent` on the runner's volume.
 Agents install user-level packages; bake system packages into your own runner
 image.
 
-Temporal belongs to that domain. Whoever reaches its frontend can start work on
-the runner's queue. The runner only runs the workflow types the server starts,
-and it reads each run's work back from the server. The bundled Temporal
+Temporal belongs to that domain. The runner dials it directly, and so can
+anything its agents run, so it is one organization's trust: the tenant
+boundary on a self-hosted install is a sandbox driver, whose runners reach
+Temporal only through the server, and this chart starts none. The bundled Temporal
 authenticates nothing, so the chart fences it with a NetworkPolicy
 (`temporal.networkPolicy`). Only the stigmer pod may connect, and a network
 plugin that ignores NetworkPolicy leaves it open. The runner's own tools share
@@ -464,7 +474,7 @@ the map.
 | `image`                                           | Registry, repositories (`stigmer-server`, `stigmer-runner`; `server.enterpriseRepository`, run under a license), tags (empty means this chart's version), pull policy, pull Secrets.            |
 | `secrets`                                         | `existingSecret`, required: `STIGMER_ENCRYPTION_KEY`, `STIGMER_RUNNER_TOKEN_KEY`, and `POSTGRES_PASSWORD` when Postgres is bundled; optional: `STIGMER_PLATFORM_TOKEN_KEY`.                     |
 | `server`                                          | `publicUrl`, `artifactPublicUrl`, `allowUnauthenticatedExposure`, `operator.{email,name}`, `oidc.{issuer,audience,consoleClientId,nativeClientId}`, `resources`, `persistence`, `securityContext`, `extraEnv`. |
-| `runner`                                          | `llm.existingSecret`, `stigmerToken.{existingSecret,key}`, `resources`, `persistence`, `securityContext`, `extraEnv`.                                                                           |
+| `runner`                                          | `llm.existingSecret`, `stigmerToken.{existingSecret,key}`, `sharedAcrossOrganizations` (a licensed server's acceptance that every organization shares this runner), `resources`, `persistence`, `securityContext`, `extraEnv`. |
 | `artifacts`                                       | `persistence` for the shared artifact disk.                                                                                                                                                     |
 | `terminationGracePeriodSeconds`                   | How long a stopping pod may drain (60 s; the runner finishes in-flight activities).                                                                                                             |
 | `waitForDependencies`                             | The init containers that wait for Postgres and Temporal (`enabled`, `image`, `securityContext`).                                                                                                |

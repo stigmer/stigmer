@@ -71,6 +71,7 @@
             "key": { "type": "string", "minLength": 1 }
           }
         },
+        "sharedAcrossOrganizations": { "type": "boolean" },
         "resources": { "$ref": "#/$defs/resources" },
         "persistence": { "$ref": "#/$defs/persistence" },
         "securityContext": { "$ref": "#/$defs/containerSecurityContext" },

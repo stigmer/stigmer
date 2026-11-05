@@ -150,7 +150,7 @@ describe("a key that does not verify", () => {
   const claims = licenseClaims({ issuedAt: ISSUED, days: 365, graceDays: 30 });
   const good = writeTicket(signer, claims);
   const boot = {
-    config: loadConfig({ STIGMER_MODEL_REGISTRY_REFRESH: "off", DATABASE_URL: "postgres://unused@127.0.0.1:1/unused" }),
+    config: loadConfig({ STIGMER_MODEL_REGISTRY_REFRESH: "off", STIGMER_SHARED_RUNNER_ACROSS_ORGANIZATIONS: "accepted", DATABASE_URL: "postgres://unused@127.0.0.1:1/unused" }),
     logger: SILENT_LOGGER,
   };
 
@@ -202,7 +202,7 @@ describe("a key that does not verify", () => {
   });
 
   it("refuses a key that verifies on a server with no Postgres", async () => {
-    const config = loadConfig({ STIGMER_MODEL_REGISTRY_REFRESH: "off" });
+    const config = loadConfig({ STIGMER_MODEL_REGISTRY_REFRESH: "off", STIGMER_SHARED_RUNNER_ACROSS_ORGANIZATIONS: "accepted" });
     await expect(
       composeEnterprise({ config, logger: SILENT_LOGGER }, { licenseKey: good, ring: signer.ring }),
     ).rejects.toThrow(ENTERPRISE_NEEDS_POSTGRES);

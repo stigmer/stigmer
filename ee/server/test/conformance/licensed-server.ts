@@ -116,6 +116,9 @@ async function main(): Promise<void> {
   // The shipped reading, as if the operator had pasted this key: the
   // Enterprise settings are read only beside a key.
   const settings = readEnterpriseSettings({ ...process.env, [LICENSE_KEY_VARIABLE]: licenseKey });
+  // The suite's organizations share its one runner, and it composes no
+  // sandbox driver: it accepts that sharing, as such an install must.
+  process.env["STIGMER_SHARED_RUNNER_ACROSS_ORGANIZATIONS"] ??= "accepted";
   await runServer({
     extensions: (boot) => composeEnterprise(boot, { ...settings, ring: signer.ring }),
   });

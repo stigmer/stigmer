@@ -1018,3 +1018,15 @@ test("the notes tell a fenced install with its own Postgres or Temporal how to l
   assert.ok(!renderNotes("byo").includes(HINT), "no fence, nothing to let through");
   assert.ok(!renderNotes("bundled", { sets: ["egressPolicy.enabled=true"] }).includes(`your Postgres`), "bundled is admitted by the fence itself");
 });
+
+test("a licensed server is handed the shared-runner acceptance only when the values give it", () => {
+  const server = (sets) =>
+    envMap(containerNamed(findOne(renderProfile("enterprise", { sets }), "Deployment", RELEASE).spec.template.spec, "server"));
+  assert.equal(server([]).get("STIGMER_SHARED_RUNNER_ACROSS_ORGANIZATIONS")?.value, "accepted");
+  // Always named on a licensed pod, so server.extraEnv may never set it behind the values.
+  assert.equal(server(["runner.sharedAcrossOrganizations=false"]).get("STIGMER_SHARED_RUNNER_ACROSS_ORGANIZATIONS")?.value, "");
+  const openSource = envMap(
+    containerNamed(findOne(renderProfile("bundled", { sets: ["runner.sharedAcrossOrganizations=true"] }), "Deployment", RELEASE).spec.template.spec, "server"),
+  );
+  assert.equal(openSource.has("STIGMER_SHARED_RUNNER_ACROSS_ORGANIZATIONS"), false);
+});

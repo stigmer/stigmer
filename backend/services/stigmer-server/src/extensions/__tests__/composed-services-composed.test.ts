@@ -126,6 +126,7 @@ async function compose(
   const server = await composeServer({
     config: loadConfig({
       STIGMER_MODEL_REGISTRY_REFRESH: "off",
+      STIGMER_SHARED_RUNNER_ACROSS_ORGANIZATIONS: "accepted",
       DB_PATH: path.join(dir, "stigmer.db"),
       ARTIFACT_LOCAL_BASE_PATH: path.join(dir, "artifacts"),
     }),

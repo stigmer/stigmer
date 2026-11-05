@@ -74,6 +74,7 @@ export const silentLogger = createLogger({
 export function baseConfig(dir: string): Record<string, string> {
   return {
     STIGMER_MODEL_REGISTRY_REFRESH: "off",
+    STIGMER_SHARED_RUNNER_ACROSS_ORGANIZATIONS: "accepted",
     TEMPORAL_HOST_PORT: "127.0.0.1:1",
     DB_PATH: path.join(dir, "stigmer.db"),
     STORAGE_PATH: path.join(dir, "storage"),
