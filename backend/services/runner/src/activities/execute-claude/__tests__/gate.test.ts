@@ -45,7 +45,7 @@ import { ApprovalMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import type { HookInput } from "@anthropic-ai/claude-agent-sdk";
 
 import { ApprovalAction } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
-import { CHANGED_MESSAGE, hookLeaseKey, resolveToolApproval, unattendedSkipMessage, type ActiveLeases, type McpApprovalDefault } from "../../../shared/approval-policy.js";
+import { CHANGED_MESSAGE, hookLeaseKey, resolveToolApproval, unattendedSkipMessage, type ActiveLeases, type McpApprovalDefault, type PolicySource } from "../../../shared/approval-policy.js";
 import { secretBlockMessage } from "../../../shared/file-edit-policy.js";
 import { HookEvaluator } from "../../../shared/hooks/evaluate.js";
 import { HookSet } from "../../../shared/hooks/hook-set.js";
@@ -116,17 +116,17 @@ const HELPER_REACH: Reach = { tools: new Set(["Read", "Write"]), skills: new Set
 const RUNNER: Caller = { kind: "subagent", type: "test-runner" };
 
 /** An allow under `source`, judged as `caller`. */
-function allowed(source: GateVerdict["source"], caller: Caller = ROOT_CALLER): unknown {
+function allowed(source: PolicySource | undefined, caller: Caller = ROOT_CALLER): unknown {
   return expect.objectContaining({ kind: "allow", source, caller });
 }
 
 /** A refusal no person made, judged as `caller`; `null` for a call whose caller could not be named. */
-function refused(message: string, source?: GateVerdict["source"], caller: Caller | null = ROOT_CALLER, hook?: string): GateVerdict {
+function refused(message: string, source?: PolicySource | undefined, caller: Caller | null = ROOT_CALLER, hook?: string): GateVerdict {
   return { kind: "refuse", message, source, caller: caller ?? undefined, hook, byPerson: false };
 }
 
 /** A pause with the card's `message`. */
-function paused(message: string, source: GateVerdict["source"], hook?: string): unknown {
+function paused(message: string, source: PolicySource | undefined, hook?: string): unknown {
   return expect.objectContaining({ kind: "pause", message, source, caller: ROOT_CALLER, hook });
 }
 
@@ -171,6 +171,7 @@ function facts(over: Partial<GateFacts> = {}): GateFacts {
     waitingCallOf: () => undefined,
     staleCallId: undefined,
     unproposedCallId: undefined,
+    resumesLeft: 2,
     observer: undefined,
     ...over,
   };
@@ -609,6 +610,7 @@ describe("the gate's facts", () => {
       hooks: NO_HOOKS,
       waitingCallOf,
       pending: { staleCallId: "toolu_s", unproposedCallId: undefined },
+      resumesLeft: 1,
       observer: undefined,
     });
     expect(read).toMatchObject({
@@ -623,6 +625,7 @@ describe("the gate's facts", () => {
       decisions: input.approvalDecisions,
       denyMessages: input.approvalDenyMessages,
       staleCallId: "toolu_s",
+      resumesLeft: 1,
     });
     expect(read.readsSkillContent).toBe(readsSkillContent);
     expect(read.waitingCallOf).toBe(waitingCallOf);

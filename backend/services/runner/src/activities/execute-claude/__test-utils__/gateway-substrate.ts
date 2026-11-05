@@ -186,6 +186,8 @@ function factsOf(world: DriveWorld, answer: { decision: ApprovalAction; shown: W
     waitingCallOf: (id) => (answer !== undefined && id === CALL_ID ? answer.shown : undefined),
     staleCallId: undefined,
     unproposedCallId: undefined,
+    // The drive's engine never hands the call back under its own shell's name.
+    resumesLeft: 0,
     observer: undefined,
   };
 }

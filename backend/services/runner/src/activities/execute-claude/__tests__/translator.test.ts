@@ -29,7 +29,7 @@ import type {
   SDKUserMessageReplay,
 } from "@anthropic-ai/claude-agent-sdk";
 
-import { ROOT_CALLER, type GateVerdict } from "../gate.js";
+import { ROOT_CALLER, type AllowVerdict, type GateVerdict } from "../gate.js";
 import { agentAnswerOf, ClaudeTranslator, resultText, type ClaudeTranslatorDeps } from "../translator.js";
 
 type StreamEvent = SDKPartialAssistantMessage["event"];
@@ -89,7 +89,7 @@ function user(content: readonly unknown[] | string, parent: string | null = null
 }
 
 /** The gate's allow for a main-agent call under `source`. */
-function allowVerdict(source: GateVerdict["source"]): GateVerdict {
+function allowVerdict(source: AllowVerdict["source"]): GateVerdict {
   return { kind: "allow", source, caller: ROOT_CALLER, toolName: "Read", args: {}, rewritten: false, hook: undefined, context: [] };
 }
 
