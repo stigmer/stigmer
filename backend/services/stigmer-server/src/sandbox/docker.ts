@@ -12,6 +12,22 @@
  * exists but stopped → start; running → fast path. State is derived
  * from the container itself — name + labels — never a store table.
  *
+ * A container keeps the environment it was created with, its token
+ * included, and the token is the runner's Temporal API key at the server's
+ * Temporal worker lane. So a stopped container whose token has expired is
+ * not started as it is: it would boot unable to take work, its renewal
+ * refused for an expired token. It is RECREATED with the fresh token
+ * instead, carrying its filesystem and nothing else: no volume backs the
+ * workspace, so `/workspace` and the runner's home are copied out of it
+ * as tar streams (`docker cp <c>:<dir> -`, whose headers keep each file's
+ * owner, the agent user's included) into a container created fresh from the
+ * runner image under a temporary name. Only then is the old container
+ * removed and the new one renamed and started. A fresh container takes
+ * the environment this ensure gives it and no other: a variable the
+ * driver no longer sets (a removed runner secret, a cleared Environment)
+ * does not survive, as it would through an image. A failure before the
+ * swap leaves the old container as it was.
+ *
  * Deliberate divergences from the cloud manifest, named:
  *
  *   - MODE=local, not cloud: the runner's MODE distinguishes
@@ -30,12 +46,16 @@
  * than inherited, because the image may be a base Stigmer did not build,
  * with its own USER and ENV (runner-launch.ts).
  *
- * Both endpoints are construct-time REQUIRED: a container cannot reach
- * the server or Temporal on this process's localhost, and a driver that
+ * The backend endpoint is construct-time REQUIRED: a container cannot
+ * reach the server on this process's localhost, and reaches Temporal only
+ * through the server, so a driver that
  * launched sandboxes pointing nowhere would fail as activity timeouts
  * minutes later — the loud-fail doctrine puts the error at boot instead.
  */
-import { execFile } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
+import { closeSync, mkdtempSync, openSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { promisify } from "node:util";
 
 import type {
@@ -46,6 +66,7 @@ import type {
   SandboxProvisionerFactory,
   SandboxScope,
 } from "./provisioner.js";
+import { temporalAddressThroughServer } from "../transport/temporal-worker-door/address.js";
 import {
   SANDBOX_ID_LABEL,
   SANDBOX_MANAGED_BY_LABEL,
@@ -71,11 +92,10 @@ const CONTAINER_WORKSPACE_DIR = "/workspace";
 /**
  * One sandbox's `docker run`: its arguments, and the secret values the CLI
  * must hold in its own environment for the value-less `--env NAME`
- * arguments to pick up (module header: no credential in argv). The token,
- * the Temporal connection settings and the operator's runner secrets ride
- * that channel, since they carry credentials and PEM text does not belong
- * on a command line; every other value, the operator's plain runner
- * settings included, rides argv like the endpoints.
+ * arguments to pick up (module header: no credential in argv). The token
+ * and the operator's runner secrets ride that channel, since they carry
+ * credentials; every other value, the operator's plain runner settings
+ * included, rides argv like the endpoints.
  */
 export function buildDockerRun(
   scope: SandboxScope,
@@ -110,7 +130,7 @@ export function buildDockerRun(
     "--env",
     `STIGMER_BACKEND_ENDPOINT=${config.backendEndpoint}`,
     "--env",
-    `TEMPORAL_SERVICE_ADDRESS=${config.temporalAddress}`,
+    `TEMPORAL_SERVICE_ADDRESS=${temporalAddressThroughServer(config.backendEndpoint)}`,
     "--env",
     `TEMPORAL_NAMESPACE=${config.temporalNamespace}`,
     "--env",
@@ -135,10 +155,7 @@ export function buildDockerRun(
   if (environment !== undefined) {
     args.push("--env", `${SANDBOX_ENVIRONMENT_ENV}=${environment}`);
   }
-  const secretEnv: Record<string, string> = {
-    ...config.runnerSecretEnv,
-    ...config.temporalConnectionEnv,
-  };
+  const secretEnv: Record<string, string> = { ...config.runnerSecretEnv };
   if (facts.stigmerToken !== "")
     secretEnv["STIGMER_TOKEN"] = facts.stigmerToken;
   for (const name of Object.keys(secretEnv)) args.push("--env", name);
@@ -159,11 +176,6 @@ export const newDockerSandboxProvisioner: SandboxProvisionerFactory = ({
       "sandbox provisioner 'docker' requires STIGMER_SANDBOX_BACKEND_ENDPOINT — a container cannot reach the server on this process's localhost",
     );
   }
-  if (config.temporalAddress === "") {
-    throw new Error(
-      "sandbox provisioner 'docker' requires STIGMER_SANDBOX_TEMPORAL_ADDRESS (or TEMPORAL_HOST_PORT) reachable from inside a container",
-    );
-  }
 
   async function docker(
     args: string[],
@@ -173,6 +185,31 @@ export const newDockerSandboxProvisioner: SandboxProvisionerFactory = ({
       env: env ?? process.env,
     });
     return stdout.trim();
+  }
+
+  /** A docker command whose standard output is written to `file`. */
+  function dockerToFile(args: string[], file: string): Promise<void> {
+    return dockerWithFile(args, file, "out");
+  }
+
+  /** A docker command whose standard input is read from `file`. */
+  function dockerFromFile(args: string[], file: string): Promise<void> {
+    return dockerWithFile(args, file, "in");
+  }
+
+  function dockerWithFile(args: string[], file: string, direction: "in" | "out"): Promise<void> {
+    const fd = openSync(file, direction === "out" ? "w" : "r");
+    return new Promise<void>((resolve, reject) => {
+      const child = spawn("docker", args, {
+        stdio: direction === "out" ? ["ignore", fd, "pipe"] : [fd, "ignore", "pipe"],
+      });
+      let stderr = "";
+      child.stderr?.on("data", (chunk: Buffer) => (stderr += chunk.toString()));
+      child.on("error", reject);
+      child.on("close", (code) =>
+        code === 0 ? resolve() : reject(new Error(`docker ${args.join(" ")} exited ${String(code)}: ${stderr.trim()}`)),
+      );
+    }).finally(() => closeSync(fd));
   }
 
   /** Live container state by name: absent | stopped | running (the live-state probe). */
@@ -204,11 +241,17 @@ export const newDockerSandboxProvisioner: SandboxProvisionerFactory = ({
       return; // The fast path.
     }
     if (state === "stopped") {
-      // The scale-up arm: the container keeps its original env (token
-      // included) — the cloud's defer-restart posture for a stale token
-      // degenerates here to "the next full recreate re-mints".
-      await docker(["start", name]);
-      logger.info("Docker sandbox restarted", { scope, id, container: name });
+      if (facts.stigmerToken === "" || !(await bakedTokenExpired(name))) {
+        // The scale-up arm: the container keeps its original env, its
+        // token still good.
+        await docker(["start", name]);
+        logger.info("Docker sandbox restarted", { scope, id, container: name });
+        return;
+      }
+      // Its token has expired: carry the filesystem over to a container
+      // holding the fresh one (the module header).
+      await recreateCarryingFiles(scope, id, facts, name);
+      logger.info("Docker sandbox recreated with a fresh token", { scope, id, container: name });
       return;
     }
     const run = buildDockerRun(scope, id, facts, config);
@@ -225,6 +268,54 @@ export const newDockerSandboxProvisioner: SandboxProvisionerFactory = ({
       taskQueue: facts.taskQueue,
       image: config.runnerImage,
     });
+  }
+
+  /**
+   * The recreate (module header): copy the filesystem out, create the new
+   * container beside the old one, copy in, then swap and start. The copy
+   * lives in a directory of this process's own, removed whatever happens.
+   */
+  async function recreateCarryingFiles(
+    scope: SandboxScope,
+    id: string,
+    facts: SandboxFacts,
+    name: string,
+  ): Promise<void> {
+    const carry = mkdtempSync(path.join(tmpdir(), "stigmer-sandbox-carry-"));
+    const fresh = `${name}${FRESH_SUFFIX}`;
+    try {
+      for (const dir of CARRIED_DIRS) {
+        await dockerToFile(["cp", `${name}:${dir}`, "-"], path.join(carry, `${carriedName(dir)}.tar`));
+      }
+      const run = buildDockerRun(scope, id, facts, config);
+      await docker(
+        createArgsFor(run.args, fresh),
+        Object.keys(run.secretEnv).length > 0 ? { ...process.env, ...run.secretEnv } : undefined,
+      );
+      try {
+        for (const dir of CARRIED_DIRS) {
+          await dockerFromFile(["cp", "--archive", "-", `${fresh}:/`], path.join(carry, `${carriedName(dir)}.tar`));
+        }
+      } catch (error) {
+        await docker(["rm", "--force", fresh]).catch(() => undefined);
+        throw error;
+      }
+      await docker(["rm", "--force", name]);
+      await docker(["rename", fresh, name]);
+      await docker(["start", name]);
+    } finally {
+      rmSync(carry, { recursive: true, force: true });
+    }
+  }
+
+  /** Whether a stopped container's own STIGMER_TOKEN is within EXPIRY_MARGIN_MS of its `exp`. */
+  async function bakedTokenExpired(name: string): Promise<boolean> {
+    const env = JSON.parse(await docker(["inspect", "--format", "{{json .Config.Env}}", name])) as unknown;
+    const entry = Array.isArray(env)
+      ? env.find((item): item is string => typeof item === "string" && item.startsWith("STIGMER_TOKEN="))
+      : undefined;
+    const exp = entry === undefined ? undefined : tokenExpiryMs(entry.slice("STIGMER_TOKEN=".length));
+    return exp !== undefined && exp - Date.now() < EXPIRY_MARGIN_MS;
   }
 
   async function deprovision(scope: SandboxScope, id: string): Promise<void> {
@@ -259,6 +350,46 @@ export const newDockerSandboxProvisioner: SandboxProvisionerFactory = ({
   };
   return provisioner;
 };
+
+/**
+ * How close to its expiry a stopped container's token may be and still be
+ * started as it is: a runner renews at 80% of the token's life, so one
+ * that boots with less than this left cannot be relied on to renew in time.
+ */
+const EXPIRY_MARGIN_MS = 10 * 60_000;
+
+/** What a recreate carries: the workspace and the runner's home (the agent's sessions and state). */
+const CARRIED_DIRS: readonly string[] = [CONTAINER_WORKSPACE_DIR, RUNNER_HOME];
+
+/** The temporary name of a recreate's new container, beside the old one until the swap. */
+const FRESH_SUFFIX = "-fresh";
+
+function carriedName(dir: string): string {
+  return dir.replaceAll("/", "_");
+}
+
+/** A `docker run --detach --name <old>` turned into `docker create --name <name>` with the same arguments. */
+export function createArgsFor(runArgs: readonly string[], name: string): string[] {
+  const [verb, detach, flag, , ...rest] = runArgs;
+  if (verb !== "run" || detach !== "--detach" || flag !== "--name") {
+    throw new Error(`a docker run's arguments start "run --detach --name"; got ${runArgs.slice(0, 3).join(" ")}`);
+  }
+  return ["create", "--name", name, ...rest];
+}
+
+/** A JWT's `exp` in milliseconds, read without verifying (the server verifies); undefined for anything else. */
+export function tokenExpiryMs(token: string): number | undefined {
+  const payload = token.split(".")[1];
+  if (payload === undefined) {
+    return undefined;
+  }
+  try {
+    const exp = (JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as { exp?: unknown }).exp;
+    return typeof exp === "number" ? exp * 1000 : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 /** Docker CLI's not-found shapes ("No such container"/"No such object"). */
 function isNoSuchContainer(error: unknown): boolean {

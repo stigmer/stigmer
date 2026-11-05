@@ -109,8 +109,8 @@ export interface ServerConfig {
    * it when they do not: a server in a cluster that dials Temporal by its
    * internal service name, and a desktop runner that must dial the
    * frontend's external ingress. The namespace is not split; one
-   * namespace is served on every ingress. Sandboxes are told their
-   * address by the provisioner (sandboxTemporalAddress), never by this.
+   * namespace is served on every ingress. Sandboxes reach Temporal only
+   * through this server (transport/temporal-worker-door), never by this.
    */
   readonly runnerBootstrapTemporalAddress: string;
   /**
@@ -321,13 +321,6 @@ export interface ServerConfig {
    */
   readonly sandboxMcpPublicEndpoint: string;
   /**
-   * Temporal address as reachable from inside a sandbox
-   * (STIGMER_SANDBOX_TEMPORAL_ADDRESS). Defaults to TEMPORAL_HOST_PORT —
-   * right whenever both resolve the same way (host networking,
-   * cluster-internal DNS); overridden when the sandbox network differs.
-   */
-  readonly sandboxTemporalAddress: string;
-  /**
    * The runner image container-based provisioners launch, as the operator
    * named it (STIGMER_SANDBOX_RUNNER_IMAGE). Empty means the composition's
    * release default: composeServer hands the drivers
@@ -448,7 +441,22 @@ export function defaultSandboxRunnerImage(serverVersion: string): string {
     : "ghcr.io/stigmer/runner:latest";
 }
 
+/**
+ * Settings the server no longer reads, each with the sentence a boot that
+ * still sets one stops on: silently ignoring one would leave an operator
+ * believing it still does what it did.
+ */
+const RETIRED_SETTINGS: Readonly<Record<string, string>> = {
+  STIGMER_SANDBOX_TEMPORAL_ADDRESS:
+    "STIGMER_SANDBOX_TEMPORAL_ADDRESS is retired: a sandbox's runner reaches Temporal only through the Stigmer server, at STIGMER_SANDBOX_BACKEND_ENDPOINT; remove the setting",
+};
+
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
+  for (const [name, sentence] of Object.entries(RETIRED_SETTINGS)) {
+    if (env[name] !== undefined) {
+      throw new Error(sentence);
+    }
+  }
   const { operatorEmail, operatorName } = loadOperatorIdentity(env);
   const grpcPort = envInt(env, "GRPC_PORT", DEFAULT_GRPC_PORT);
   // Unset (or malformed, the loader's leniency) leaves the lane to follow
@@ -538,11 +546,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
       env,
       "STIGMER_SANDBOX_MCP_PUBLIC_ENDPOINT",
       "",
-    ),
-    sandboxTemporalAddress: envString(
-      env,
-      "STIGMER_SANDBOX_TEMPORAL_ADDRESS",
-      envString(env, "TEMPORAL_HOST_PORT", "localhost:7233"),
     ),
     sandboxRunnerImage: envString(env, "STIGMER_SANDBOX_RUNNER_IMAGE", ""),
     sandboxRunnerCommand: envString(

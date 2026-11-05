@@ -46,9 +46,7 @@ import { sandboxBaseName } from "../../naming.js";
 const config: SandboxDriverConfig = {
   backendEndpoint: "http://stigmer-server.stigmer.svc:7234",
   mcpPublicEndpoint: "",
-  temporalAddress: "temporal.stigmer.svc:7233",
   temporalNamespace: "stigmer",
-  temporalConnectionEnv: {},
   runnerImage: "ghcr.io/stigmer/runner:v3.42.0",
   runnerCommand: "stigmer-runner",
   kubernetesNamespace: "stigmer-sandboxes",

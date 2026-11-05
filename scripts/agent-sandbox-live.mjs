@@ -402,11 +402,10 @@ async function main(argv) {
       ...process.env,
       KUBECONFIG: kubeconfig,
       STIGMER_SANDBOX_K8S_NAMESPACE: NAMESPACE,
-      STIGMER_SANDBOX_TEMPORAL_ADDRESS: `${host}:${port}`,
-      // Nothing serves it for the driver's live class: its runner polls
-      // Temporal without reaching a server, and that test asserts the poll,
-      // not a turn. The turn proof boots a server and sets its own.
-      STIGMER_SANDBOX_BACKEND_ENDPOINT: `http://${host}:1`,
+      // The driver's live class hosts the server's Temporal worker lane
+      // here, the runner's only way to Temporal, and asserts the poll, not
+      // a turn. The turn proof boots a server and sets its own.
+      STIGMER_SANDBOX_BACKEND_ENDPOINT: `http://${host}:${await freePort()}`,
       STIGMER_SANDBOX_RUNNER_IMAGE: opts.runnerImage,
       STIGMER_AGENT_SANDBOX_LIVE_TEMPORAL: `127.0.0.1:${port}`,
       STIGMER_AGENT_SANDBOX_LIVE_POD_HOST: host,

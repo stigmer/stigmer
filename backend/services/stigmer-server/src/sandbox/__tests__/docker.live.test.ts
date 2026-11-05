@@ -56,9 +56,7 @@ describe("docker driver against a Docker daemon", () => {
     // ensure state machine itself is pinned by docker-ensure.test.ts.
     backendEndpoint: "http://host.docker.internal:7234",
     mcpPublicEndpoint: "https://api.example.com",
-    temporalAddress: "host.docker.internal:7233",
     temporalNamespace: "default",
-    temporalConnectionEnv: {},
     runnerImage:
       process.env["STIGMER_SANDBOX_RUNNER_IMAGE"] ??
       "ghcr.io/stigmer/runner:latest",

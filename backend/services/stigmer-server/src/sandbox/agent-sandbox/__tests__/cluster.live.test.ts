@@ -11,7 +11,10 @@
  *
  *   - the ensure creates the Sandbox, its pod runs the runner image, and the
  *     runner polls the session's queue in Temporal (it booted with the
- *     driver's environment and reached Temporal from inside the cluster);
+ *     driver's environment and reached Temporal through the server's
+ *     Temporal worker lane, which this file hosts at the backend endpoint
+ *     on the server's own connection, admitting the pod's token to the
+ *     session's queue alone);
  *   - the idle sweep lists the Sandbox by its labels, reads its creation
  *     time, and suspends it once its session is idle past the window;
  *   - the agent's home is its own claim, handed to the agent's user by the
@@ -27,12 +30,15 @@
  * live config runs only when asked to.
  */
 import { execFileSync } from "node:child_process";
+import { createServer as createHttp2Server } from "node:http2";
 
-import { describe, expect, it } from "vitest";
+import { Connection } from "@temporalio/client";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { KubeConfig } from "@kubernetes/client-node";
 
 import { createLogger } from "../../../boot/logger.js";
+import { createTemporalWorkerDoorLane } from "../../../transport/temporal-worker-door/lane.js";
 import { sandboxBaseName } from "../../naming.js";
 import type {
   SandboxDriverConfig,
@@ -62,9 +68,7 @@ const temporalFromHost = required("STIGMER_AGENT_SANDBOX_LIVE_TEMPORAL");
 const config: SandboxDriverConfig = {
   backendEndpoint: required("STIGMER_SANDBOX_BACKEND_ENDPOINT"),
   mcpPublicEndpoint: "",
-  temporalAddress: required("STIGMER_SANDBOX_TEMPORAL_ADDRESS"),
   temporalNamespace: "default",
-  temporalConnectionEnv: {},
   runnerImage: required("STIGMER_SANDBOX_RUNNER_IMAGE"),
   runnerCommand: "unused-by-this-driver",
   kubernetesNamespace: namespace,
@@ -157,6 +161,29 @@ describe("the agent-sandbox driver on a live cluster", () => {
   const name = sandboxBaseName("session", sessionId);
   const taskQueue = `session:${sessionId}`;
   const env = { taskQueue, stigmerToken: "tok-live", callerClass: "user" };
+  // The server's Temporal worker lane at the backend endpoint: the pod's
+  // runner reaches Temporal nowhere else.
+  const lane = createHttp2Server();
+  let temporal: Connection | undefined;
+  beforeAll(async () => {
+    temporal = await Connection.connect({ address: temporalFromHost });
+    const handler = createTemporalWorkerDoorLane({
+      logger,
+      namespace: "default",
+      connection: () => temporal,
+      queueOf: async (token) => (token.startsWith("tok-live") ? taskQueue : undefined),
+      receiptKey: async () => Buffer.alloc(32, 7),
+    });
+    lane.on("request", handler);
+    const port = Number(new URL(config.backendEndpoint).port);
+    await new Promise<void>((resolve) =>
+      lane.listen(port, required("STIGMER_AGENT_SANDBOX_LIVE_BIND"), () => resolve()),
+    );
+  });
+  afterAll(async () => {
+    lane.close();
+    await temporal?.close();
+  });
   const kubeConfig = new KubeConfig();
   kubeConfig.loadFromDefault();
   const gateway = newAgentSandboxClientGateway(kubeConfig, namespace);

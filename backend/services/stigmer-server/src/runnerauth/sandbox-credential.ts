@@ -96,6 +96,27 @@ async function liveSandboxBinding(
   return bound;
 }
 
+/**
+ * Whether a clocked sandbox token bound to an ended run is still its
+ * sandbox's: its run's session exists. The token's own `exp` bounds it in
+ * time, and a run credential (no `exp`) never qualifies. The runner-subject
+ * verifier reads it under the built-in posture, so a session sandbox's
+ * token authenticates, and renews, while its session lives, as the hosted
+ * edition's session token does.
+ */
+export async function sandboxSessionLives(
+  store: SandboxCredentialStore,
+  token: string,
+  bound: BoundExecution,
+): Promise<boolean> {
+  return (
+    isClockedToken(token) &&
+    bound.kind === "agent-execution" &&
+    bound.sessionId !== "" &&
+    (await sessionExists(store, bound.sessionId))
+  );
+}
+
 async function sessionExists(store: SandboxCredentialStore, sessionId: string): Promise<boolean> {
   try {
     await store.getResource(ApiResourceKind.session, sessionId, SessionSchema);

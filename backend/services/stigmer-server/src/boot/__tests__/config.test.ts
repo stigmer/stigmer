@@ -449,3 +449,12 @@ describe("loadConfig", () => {
     });
   });
 });
+
+describe("retired settings", () => {
+  it("stops a boot that still sets STIGMER_SANDBOX_TEMPORAL_ADDRESS, naming what replaced it", () => {
+    expect(() => loadConfig({ STIGMER_SANDBOX_TEMPORAL_ADDRESS: "temporal:7233" })).toThrow(
+      "STIGMER_SANDBOX_TEMPORAL_ADDRESS is retired: a sandbox's runner reaches Temporal only through the Stigmer server, at STIGMER_SANDBOX_BACKEND_ENDPOINT; remove the setting",
+    );
+    expect(() => loadConfig({ STIGMER_SANDBOX_TEMPORAL_ADDRESS: "" })).toThrow(/is retired/);
+  });
+});

@@ -50,9 +50,7 @@ import {
 const config: SandboxDriverConfig = {
   backendEndpoint: "http://stigmer-server.stigmer.svc:7234",
   mcpPublicEndpoint: "https://api.example.com",
-  temporalAddress: "temporal.stigmer.svc:7233",
   temporalNamespace: "stigmer",
-  temporalConnectionEnv: {},
   runnerImage: "ghcr.io/stigmer/runner:latest",
   runnerCommand: "stigmer-runner",
   kubernetesNamespace: "stigmer-sandboxes",
@@ -178,8 +176,9 @@ describe("the runner container", () => {
     expect(byName.get("STIGMER_BACKEND_ENDPOINT")?.value).toBe(
       config.backendEndpoint,
     );
+    // The server's own address: its Temporal worker lane, never Temporal's.
     expect(byName.get("TEMPORAL_SERVICE_ADDRESS")?.value).toBe(
-      config.temporalAddress,
+      "stigmer-server.stigmer.svc:7234",
     );
     expect(byName.get("TEMPORAL_NAMESPACE")?.value).toBe("stigmer");
     expect(byName.get("WORKSPACE_ROOT_DIR")?.value).toBe("/workspace");
@@ -244,27 +243,14 @@ describe("the runner container", () => {
 describe("credentials live in the Secret", () => {
   const owner = { name: base, uid: "uid-1" };
 
-  it("an authenticated Temporal's settings live in the Secret and are only named by the pod template", () => {
-    const connectionEnv = {
-      STIGMER_TEMPORAL_TLS: "true",
-      STIGMER_TEMPORAL_API_KEY: "api-key-1",
-      STIGMER_TEMPORAL_TLS_SERVER_CA_CERT_DATA:
-        "-----BEGIN CERTIFICATE-----\nca\n-----END CERTIFICATE-----\n",
-    };
-    const authenticated = { ...config, temporalConnectionEnv: connectionEnv };
-    const secret = buildAgentSandboxSecret(
-      "session",
-      "ses_1",
-      "tok",
-      authenticated,
-      owner,
-    );
-    expect(secret.stringData).toEqual({
-      ...connectionEnv,
-      STIGMER_TOKEN: "tok",
-    });
-    const container = containerOf(authenticated);
-    for (const name of Object.keys(connectionEnv)) {
+  it("the token lives in the Secret, only named by the pod template, and no Temporal credential exists at all", () => {
+    const secret = buildAgentSandboxSecret("session", "ses_1", "tok", config, owner);
+    expect(secret.stringData).toEqual({ STIGMER_TOKEN: "tok" });
+    const container = containerOf(config);
+    expect(
+      (container?.env ?? []).filter((entry) => entry.name.startsWith("STIGMER_TEMPORAL_")),
+    ).toEqual([]);
+    for (const name of ["STIGMER_TOKEN"]) {
       const entry = (container?.env ?? []).find(
         (candidate) => candidate.name === name,
       );

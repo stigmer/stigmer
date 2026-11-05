@@ -27,9 +27,7 @@ const logger = createLogger({ level: "error", pretty: false, write: () => {} });
 const config: SandboxDriverConfig = {
   backendEndpoint: "http://stigmer-server.stigmer.svc:7234",
   mcpPublicEndpoint: "",
-  temporalAddress: "temporal.stigmer.svc:7233",
   temporalNamespace: "stigmer",
-  temporalConnectionEnv: {},
   runnerImage: "ghcr.io/stigmer/runner:latest",
   runnerCommand: "stigmer-runner",
   kubernetesNamespace: "stigmer-sandboxes",
@@ -61,7 +59,7 @@ describe("selecting the agent-sandbox driver", () => {
     );
   });
 
-  it("refuses to start without the in-cluster addresses of the server and Temporal", () => {
+  it("refuses to start without the in-cluster address of the server", () => {
     expect(() =>
       newAgentSandboxProvisioner({
         config: { ...config, backendEndpoint: "" },
@@ -69,14 +67,6 @@ describe("selecting the agent-sandbox driver", () => {
       }),
     ).toThrowError(
       "sandbox provisioner 'agent-sandbox' requires STIGMER_SANDBOX_BACKEND_ENDPOINT — a pod cannot reach the server on this process's localhost",
-    );
-    expect(() =>
-      newAgentSandboxProvisioner({
-        config: { ...config, temporalAddress: "" },
-        logger,
-      }),
-    ).toThrowError(
-      "sandbox provisioner 'agent-sandbox' requires STIGMER_SANDBOX_TEMPORAL_ADDRESS (or TEMPORAL_HOST_PORT) reachable from inside the cluster",
     );
   });
 

@@ -128,10 +128,9 @@ export function buildEgressRules(
         )
       : undefined;
   const destinations: Destination[] = [
+    // The server, which is also the runner's only way to Temporal (its
+    // Temporal worker lane): no sandbox has a lane to Temporal itself.
     urlDestination(config.backendEndpoint, "STIGMER_SANDBOX_BACKEND_ENDPOINT"),
-    // Temporal's TLS is its connection settings', which the driver
-    // refuses (driver.ts); its address is plain host:port.
-    urlDestination(config.temporalAddress, "STIGMER_SANDBOX_TEMPORAL_ADDRESS"),
     // An https:// one rides the HTTPS rule, or nothing (module header).
     ...(mcpPublic !== undefined && !mcpPublic.tls ? [mcpPublic] : []),
     ...settings.extraHttpEgress.map((d) => ({

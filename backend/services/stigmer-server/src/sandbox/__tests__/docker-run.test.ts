@@ -28,9 +28,7 @@ import {
 const config: SandboxDriverConfig = {
   backendEndpoint: "http://host.docker.internal:7234",
   mcpPublicEndpoint: "",
-  temporalAddress: "host.docker.internal:7233",
   temporalNamespace: "default",
-  temporalConnectionEnv: { STIGMER_TEMPORAL_API_KEY: "temporal-key" },
   runnerImage: "ghcr.io/stigmer/runner:latest",
   runnerCommand: "unused",
   kubernetesNamespace: "unused",
@@ -90,19 +88,16 @@ describe("buildDockerRun", () => {
 
   it("passes every credential by name only, its value through the CLI's environment", () => {
     const { args, secretEnv } = buildDockerRun("session", "ses_1", env, config);
-    for (const name of [
-      "ANTHROPIC_API_KEY",
-      "STIGMER_TEMPORAL_API_KEY",
-      "STIGMER_TOKEN",
-    ]) {
+    for (const name of ["ANTHROPIC_API_KEY", "STIGMER_TOKEN"]) {
       expect(args[args.indexOf(name) - 1]).toBe("--env");
     }
     expect(secretEnv).toEqual({
       ANTHROPIC_API_KEY: "sk-test",
-      STIGMER_TEMPORAL_API_KEY: "temporal-key",
       STIGMER_TOKEN: "tok",
     });
-    expect(args.join(" ")).not.toMatch(/sk-test|temporal-key|=tok\b/);
+    expect(args.join(" ")).not.toMatch(/sk-test|=tok\b|STIGMER_TEMPORAL_/);
+    // The server's own address: its Temporal worker lane, never Temporal's.
+    expect(args).toContain("TEMPORAL_SERVICE_ADDRESS=host.docker.internal:7234");
   });
 
   it("carries no token when none was minted, and the public address when one is named", () => {
@@ -114,7 +109,6 @@ describe("buildDockerRun", () => {
         ...config,
         mcpPublicEndpoint: "https://api.example.com",
         runnerSecretEnv: {},
-        temporalConnectionEnv: {},
       },
     );
     expect(secretEnv).toEqual({});

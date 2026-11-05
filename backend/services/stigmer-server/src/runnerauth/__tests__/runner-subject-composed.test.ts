@@ -25,7 +25,8 @@
  * server's own key mints the run credential; presenting it on the
  * execution's own `get` is ADMITTED (the runner acts as the person who
  * created the run), and once the row is terminal the same credential is
- * UNAUTHENTICATED. A forged token that names our type is refused by the
+ * UNAUTHENTICATED. A sandbox's own clocked token is admitted, and renews,
+ * while its run's session exists, ended run or not (stigmer#2977). A forged token that names our type is refused by the
  * runner verifier's sentence — never INTERNAL, never the OIDC copy.
  *
  * And the exchange as a MINT GATE (2026-09-16): over the same boot, a
@@ -350,6 +351,26 @@ describe("the built-in posture (OIDC, no unit Authorizer): the runner acts as th
 
     await seedAgentRun("run_done", RunPhase.RUN_COMPLETED);
     const failure = await failureOf(asRunner.get({ value: "run_done" }));
+    expect(failure.code).toBe(Code.Unauthenticated);
+    expect(failure.rawMessage).toBe(RUNNER_CREDENTIAL_NOT_LIVE_MESSAGE);
+  });
+
+  it("a sandbox's own clocked token is admitted, and renews, while its session exists, though its run has ended", async () => {
+    // A session sandbox keeps the token of the run that last ensured it.
+    await seedAgentRun("run_sandbox_ended", RunPhase.RUN_COMPLETED);
+    const token = server.runnerAuthService.mint("run_sandbox_ended", 600).token;
+    const asSandbox = createClient(RunQueryController, transportFor(port, token));
+    expect((await asSandbox.get({ value: "run_sandbox_ended" })).metadata?.id).toBe("run_sandbox_ended");
+
+    const renewed = await createClient(PlatformQueryController, transportFor(port, token)).getRunnerScopedToken({
+      scope: { case: "renewal", value: {} },
+    });
+    expect(renewed.runnerScopedToken).not.toBe("");
+    expect(server.runnerAuthService.verify(renewed.runnerScopedToken)).toBe("run_sandbox_ended");
+
+    // Once the session is gone, its sandbox's token is not live.
+    await server.store.deleteResource(ApiResourceKind.session, "ses_run_sandbox_ended");
+    const failure = await failureOf(asSandbox.get({ value: "run_sandbox_ended" }));
     expect(failure.code).toBe(Code.Unauthenticated);
     expect(failure.rawMessage).toBe(RUNNER_CREDENTIAL_NOT_LIVE_MESSAGE);
   });

@@ -179,16 +179,22 @@ built-in drivers exist, selected with `SANDBOX_PROVISIONER_TYPE` on the server:
 Session), `agent-sandbox` (a Kubernetes
 [agent-sandbox](https://github.com/kubernetes-sigs/agent-sandbox) `Sandbox` per
 Session, below) and `substrate` (an Agent Substrate actor per Session that
-sleeps while the Session is idle, below). The container drivers need the
-addresses a sandbox reaches the server and Temporal on,
-`STIGMER_SANDBOX_BACKEND_ENDPOINT` and `STIGMER_SANDBOX_TEMPORAL_ADDRESS`, and
-take the image from `STIGMER_SANDBOX_RUNNER_IMAGE`; `local-process` runs the
+sleeps while the Session is idle, below). The container drivers need the address
+a sandbox reaches the server on, `STIGMER_SANDBOX_BACKEND_ENDPOINT`, and take
+the image from `STIGMER_SANDBOX_RUNNER_IMAGE`; `local-process` runs the
 executable `STIGMER_SANDBOX_RUNNER_COMMAND` names. Every driver hands its
 runners the server's public address when `STIGMER_SANDBOX_MCP_PUBLIC_ENDPOINT`
 names it; without it, remote tool servers that declare `STIGMER_SERVER_ADDRESS`
-get no address. Each sandboxed runner gets the server's Temporal namespace and
-its `STIGMER_TEMPORAL_*` connection settings, the credentials through the same
-channel as the runner's token.
+get no address.
+
+A sandboxed runner reaches Temporal only through the Stigmer server. It is
+handed no Temporal address and no Temporal credential: its Temporal address is
+the server's own, where the server admits it, by its sandbox token, to its own
+Session's task queue and nothing else. It cannot list, read, signal or end
+anyone's runs, or take another sandbox's work. So a sandbox needs a network path
+to the server alone, and none to Temporal. The server's `STIGMER_TEMPORAL_*`
+settings never leave the server, and the retired
+`STIGMER_SANDBOX_TEMPORAL_ADDRESS` stops a server that still sets it.
 
 A released server (the server image, the all-in-one image), and a program that
 embeds the `@stigmer/server` library and states its release, defaults the image

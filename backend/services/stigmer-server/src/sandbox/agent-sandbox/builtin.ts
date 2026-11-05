@@ -31,11 +31,6 @@ export const newAgentSandboxProvisioner: SandboxProvisionerFactory = ({
       "sandbox provisioner 'agent-sandbox' requires STIGMER_SANDBOX_BACKEND_ENDPOINT — a pod cannot reach the server on this process's localhost",
     );
   }
-  if (config.temporalAddress === "") {
-    throw new Error(
-      "sandbox provisioner 'agent-sandbox' requires STIGMER_SANDBOX_TEMPORAL_ADDRESS (or TEMPORAL_HOST_PORT) reachable from inside the cluster",
-    );
-  }
   const settings = newAgentSandboxSettingsFromEnv();
   const kubeConfig = new KubeConfig();
   // The in-cluster service account or the operator's kubeconfig, in the

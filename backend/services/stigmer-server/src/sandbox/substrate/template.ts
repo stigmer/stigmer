@@ -65,6 +65,7 @@ import { createHash } from "node:crypto";
 import { create, toBinary } from "@bufbuild/protobuf";
 
 import type { SandboxDriverConfig } from "../provisioner.js";
+import { temporalAddressThroughServer } from "../../transport/temporal-worker-door/address.js";
 import {
   RUNNER_CAPABILITIES,
   RUNNER_HOME,
@@ -140,7 +141,8 @@ export function buildRunnerTemplate(input: RunnerTemplateInput): ActorTemplate {
     ...config.runnerEnv,
     MODE: runnerMode,
     STIGMER_BACKEND_ENDPOINT: config.backendEndpoint,
-    TEMPORAL_SERVICE_ADDRESS: config.temporalAddress,
+    // The server's own address: its Temporal worker lane (provisioner.ts).
+    TEMPORAL_SERVICE_ADDRESS: temporalAddressThroughServer(config.backendEndpoint),
     TEMPORAL_NAMESPACE: config.temporalNamespace,
     WORKSPACE_ROOT_DIR: WORKSPACE_MOUNT_PATH,
     HOME: RUNNER_HOME,
