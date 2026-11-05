@@ -220,11 +220,13 @@ mod tests {
     use std::os::unix::fs::PermissionsExt;
     use std::path::{Path, PathBuf};
 
-    /// Held by each test from writing its stand-in shell until it has run.
+    /// Held by each test that starts a shell, from writing its stand-in until
+    /// it has been started.
     /// Tests run in parallel threads of one process, and a child forked by
     /// one test inherits, until it execs, any file another test has open for
     /// writing; Linux then refuses to exec that file ("Text file busy",
-    /// stigmer/stigmer#2986). One test at a time writes and starts a shell.
+    /// stigmer/stigmer#2986). One test at a time writes and starts a shell, and
+    /// a test that starts one without writing it takes the lock too.
     static SHELLS: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
     /// A stand-in shell: a script that runs whatever `-c` gave it under
@@ -369,6 +371,10 @@ mod tests {
 
     #[test]
     fn a_shell_that_does_not_exist_says_it_would_not_start() {
+        // Writes no shell, but still forks, so it waits out any test writing one.
+        let _held = SHELLS
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         let outcome = unix::read_path_from(Path::new("/nonexistent/shell"), Duration::from_secs(5))
             .unwrap_err();
         assert!(outcome.starts_with("it would not start"), "{outcome}");
