@@ -42,7 +42,7 @@ Tokens without a **Dark** value inherit their light value in dark mode.
 
 | Token | Light | Dark | Purpose |
 |-------|-------|------|--------|
-| `--stgm-font-sans` | <TokenValue v="var(--font-geist-sans, system-ui, sans-serif)" /> | — | UI text font stack. Hosts override by defining the fallback variable on the root element (this token resolves there, so a variable defined lower comes too late) or the token itself. |
+| `--stgm-font-sans` | <TokenValue v="var(--font-geist-sans, system-ui, sans-serif)" /> | — | UI text font stack. Hosts override by defining the fallback variable on the root element (this token resolves there, so a variable defined lower comes too late) or the token itself. A theme class that changes it also declares `font-family: var(--stgm-font-sans)` beside it, so the text its scope inherits follows. |
 | `--stgm-font-mono` | <TokenValue v="var(--font-geist-mono, ui-monospace, monospace)" /> | — | Code and tabular-figure font stack. |
 | `--stgm-text-2xs` | <TokenValue v="0.6875rem" /> | — | Text size, step 2xs: the smallest step, 11px: dense metadata only (badges, counters, key hints). Nothing is drawn smaller; the scale check in CI holds every preset to it. |
 | `--stgm-leading-2xs` | <TokenValue v="1rem" /> | — | Line height paired with step 2xs. |

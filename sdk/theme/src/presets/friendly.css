@@ -3,6 +3,8 @@
 
 .stgm-theme-friendly {
   --stgm-font-sans: var(--font-nunito, "Nunito", system-ui, sans-serif);
+  /* The token alone reaches only text that reads it by name; this makes inherited text follow. */
+  font-family: var(--stgm-font-sans);
   --stgm-radius: 1.25rem;
   --stgm-background: oklch(0.97 0.015 65);
   --stgm-foreground: oklch(0.22 0.03 50);

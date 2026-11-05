@@ -112,6 +112,26 @@ Tokens without a **Dark** value inherit their light value in dark mode.
   return mdx;
 }
 
+/**
+ * The presets page's note on fonts: which presets name one (they set
+ * `--stgm-font-sans`, and the theme's contract test holds each to apply it
+ * with `font-family` on its own class), and that the host loads it. Empty
+ * when no preset names a font.
+ */
+function fontSentence(presets: readonly PresetDoc[]): string {
+  const names = presets
+    .filter(({ tokens }) => tokens.light.has("--stgm-font-sans"))
+    .map(({ meta }) => meta.name);
+  if (names.length === 0) return "";
+  const list =
+    names.length === 1 ? names[0] : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+  const verbs = names.length === 1 ? "names a font and puts" : "name a font and put";
+  return `
+${list} ${verbs} every piece of text inside the provider in it.
+Your page loads the font; see [Theming](/docs/sdk/theme/theming#start-from-a-preset).
+`;
+}
+
 export function renderPresetsPage(
   defaults: ThemeFileTokens,
   presets: readonly PresetDoc[],
@@ -127,7 +147,7 @@ A preset is a CSS class that overrides a subset of the
 [default tokens](/docs/sdk/theme/tokens); anything a preset does not override
 falls through to the defaults. Apply one via the \`preset\` prop on
 \`StigmerProvider\`, or import the CSS and add the class yourself.
-
+${fontSentence(presets)}
 | Preset | Class | Description |
 |--------|-------|-------------|
 | \`default\` | — | Stigmer's built-in palette (the token defaults) |

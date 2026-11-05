@@ -4,6 +4,8 @@
 .stgm-theme-fintech {
   --stgm-font-sans: var(--font-ibm-plex-sans, "IBM Plex Sans", system-ui, sans-serif);
   --stgm-font-mono: var(--font-ibm-plex-mono, "IBM Plex Mono", ui-monospace, monospace);
+  /* The token alone reaches only text that reads it by name; this makes inherited text follow. */
+  font-family: var(--stgm-font-sans);
   --stgm-radius: 0.125rem;
   --stgm-background: oklch(0.98 0.005 280);
   --stgm-foreground: oklch(0.15 0.04 280);
