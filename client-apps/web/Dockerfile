@@ -15,6 +15,7 @@ COPY backend/libs/ts/tool-vocabulary/package.json backend/libs/ts/tool-vocabular
 COPY backend/libs/ts/session-log/package.json backend/libs/ts/session-log/
 COPY sdk/typescript/package.json sdk/typescript/
 COPY sdk/theme/package.json sdk/theme/
+COPY sdk/react-core/package.json sdk/react-core/
 COPY sdk/react/package.json sdk/react/
 COPY sdk/embed/package.json sdk/embed/
 
@@ -24,6 +25,10 @@ COPY sdk/embed/package.json sdk/embed/
 # is @stigmer/eval-runtime, which its eval suite reader imports. The SDK
 # folds a session's events with @stigmer/session-log, which names to-do
 # tools through @stigmer/tool-vocabulary, so both are in the closure too.
+# @stigmer/react-sdk builds its conversation on @stigmer/react-core, which
+# exports source that next.config.ts transpiles, so it is copied and not
+# built. scripts/console-image-closure.test.mjs fails when a package the
+# console reaches is missing here or from service.yaml's trigger paths.
 COPY apis/stubs/ts/ apis/stubs/ts/
 COPY backend/libs/ts/eval-runtime/ backend/libs/ts/eval-runtime/
 COPY backend/libs/ts/plugin-package/ backend/libs/ts/plugin-package/
@@ -31,6 +36,7 @@ COPY backend/libs/ts/tool-vocabulary/ backend/libs/ts/tool-vocabulary/
 COPY backend/libs/ts/session-log/ backend/libs/ts/session-log/
 COPY sdk/typescript/ sdk/typescript/
 COPY sdk/theme/ sdk/theme/
+COPY sdk/react-core/ sdk/react-core/
 COPY sdk/react/ sdk/react/
 COPY sdk/embed/ sdk/embed/
 

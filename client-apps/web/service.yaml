@@ -28,7 +28,8 @@ spec:
     registry: gar-stigmer # the hosted service's Artifact Registry repository, which its clusters read
     imageRepositoryPath: stigmer-web # inside that repository, the path the kustomize base pulls
     triggers:
-      # Besides the project root, every other input the Dockerfile copies.
+      # Besides the project root, every other input the Dockerfile copies (scripts/console-image-closure.test.mjs
+      # fails when one is missing). Service Hub keeps its own copy of this list: re-register after a change.
       paths:
       - .dockerignore
       - package.json
@@ -40,6 +41,7 @@ spec:
       - backend/libs/ts/session-log
       - sdk/typescript
       - sdk/theme
+      - sdk/react-core
       - sdk/react
       - sdk/embed
       - brand
