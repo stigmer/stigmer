@@ -86,8 +86,8 @@ services:
   # repeat: `create` accepts a database that exists, `setup-schema -v 0.0`
   # never lowers a recorded version, and `update-schema` applies only the
   # versions a database lacks. So every boot runs it, and leaves a current
-  # schema as it is. The password reaches the tool as SQL_PASSWORD, never on
-  # a command line. The chart runs the same script as an init container of
+  # schema as it is, and a failed attempt is retried for a minute. The
+  # password reaches the tool as SQL_PASSWORD, never on a command line. The chart runs the same script as an init container of
   # the Temporal pod, and its parity test holds the two equal ($$ is
   # compose-escaping for a literal $).
   temporal-schema:
@@ -108,14 +108,29 @@ services:
       - sh
       - -c
       - |
-        set -eu
+        set -u
         schema=/etc/temporal/schema/postgresql/v12
-        for pair in temporal:temporal temporal_visibility:visibility; do
-          db=$${pair%%:*}
-          dir=$${pair##*:}
-          temporal-sql-tool --db "$$db" create
-          temporal-sql-tool --db "$$db" setup-schema -v 0.0
-          temporal-sql-tool --db "$$db" update-schema -d "$$schema/$$dir/versioned"
+        setup() {
+          for pair in temporal:temporal temporal_visibility:visibility; do
+            db=$${pair%%:*}
+            dir=$${pair##*:}
+            temporal-sql-tool --db "$$db" create &&
+              temporal-sql-tool --db "$$db" setup-schema -v 0.0 &&
+              temporal-sql-tool --db "$$db" update-schema -d "$$schema/$$dir/versioned" ||
+              return 1
+          done
+        }
+        # Connections can fail for a few seconds after Postgres or this step starts,
+        # while the network settles (seen on a reinstall onto kept disks). The
+        # sequence is safe to repeat, so it is retried for a minute before failing.
+        deadline=$$(( $$(date +%s) + 60 ))
+        until setup; do
+          if [ "$$(date +%s)" -ge "$$deadline" ]; then
+            echo "temporal-schema: gave up after a minute of failed attempts" >&2
+            exit 1
+          fi
+          echo "temporal-schema: an attempt failed; retrying in 3s" >&2
+          sleep 3
         done
 
   temporal:

@@ -6,8 +6,9 @@ test holds every Temporal image to compose's, and compose's to one version):
 
   - temporal-schema, an init container after wait-for-postgres, creates
     Temporal's two databases and brings their schemas to the server's
-    version; every step is safe to repeat, so every pod start runs it and a
-    reinstall onto kept disks leaves a current schema as it is;
+    version; every step is safe to repeat, so every pod start runs it, a
+    reinstall onto kept disks leaves a current schema as it is, and an attempt
+    that fails while the network settles is retried for a minute;
   - temporal-namespace, a container beside the server, registers the default
     namespace (retention 24h) once the server answers, then stays up and
     carries the pod's readiness.
@@ -141,14 +142,29 @@ spec:
             - sh
             - -c
             - |
-              set -eu
+              set -u
               schema=/etc/temporal/schema/postgresql/v12
-              for pair in temporal:temporal temporal_visibility:visibility; do
-                db=${pair%%:*}
-                dir=${pair##*:}
-                temporal-sql-tool --db "$db" create
-                temporal-sql-tool --db "$db" setup-schema -v 0.0
-                temporal-sql-tool --db "$db" update-schema -d "$schema/$dir/versioned"
+              setup() {
+                for pair in temporal:temporal temporal_visibility:visibility; do
+                  db=${pair%%:*}
+                  dir=${pair##*:}
+                  temporal-sql-tool --db "$db" create &&
+                    temporal-sql-tool --db "$db" setup-schema -v 0.0 &&
+                    temporal-sql-tool --db "$db" update-schema -d "$schema/$dir/versioned" ||
+                    return 1
+                done
+              }
+              # Connections can fail for a few seconds after Postgres or this step starts,
+              # while the network settles (seen on a reinstall onto kept disks). The
+              # sequence is safe to repeat, so it is retried for a minute before failing.
+              deadline=$(( $(date +%s) + 60 ))
+              until setup; do
+                if [ "$(date +%s)" -ge "$deadline" ]; then
+                  echo "temporal-schema: gave up after a minute of failed attempts" >&2
+                  exit 1
+                fi
+                echo "temporal-schema: an attempt failed; retrying in 3s" >&2
+                sleep 3
               done
           resources:
             requests:

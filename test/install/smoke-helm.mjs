@@ -239,9 +239,10 @@ function installByoInfra(postgresPassword) {
  * runner crash-loops until the frontend answers. A fresh install tolerates
  * nothing; the reinstall arm tolerates the runner, because the fix is its
  * boot posture and the arm's point is the data surviving, which is asserted
- * after. Temporal is not tolerated: its schema step runs before the server
- * and is safe to repeat on a reinstall's kept schema, so a restart there is a
- * finding.
+ * after. Temporal is not tolerated: its schema step runs before the server,
+ * is safe to repeat on a reinstall's kept schema, and retries a connection
+ * that fails while the reinstalled pods' network settles, so a restart there
+ * is a finding.
  */
 function assertZeroRestarts(namespace, { tolerate = [] } = {}) {
   const pods = kubectlJson(["-n", namespace, "get", "pods"]).items;
