@@ -22,9 +22,7 @@ import type { SandboxDriverConfig, SandboxFacts } from "../provisioner.js";
 const CONFIG: SandboxDriverConfig = {
   backendEndpoint: "http://host.docker.internal:7234",
   mcpPublicEndpoint: "https://api.example.com",
-  temporalAddress: "host.docker.internal:7233",
   temporalNamespace: "default",
-  temporalConnectionEnv: {},
   runnerImage: "ghcr.io/stigmer/runner:test",
   runnerCommand: "unused-by-this-driver",
   kubernetesNamespace: "unused-by-this-driver",

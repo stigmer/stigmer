@@ -48,9 +48,7 @@ const silentLogger = createLogger({
 const config: SandboxDriverConfig = {
   backendEndpoint: "http://stigmer.example:7234",
   mcpPublicEndpoint: "",
-  temporalAddress: "temporal.example:7233",
   temporalNamespace: "default",
-  temporalConnectionEnv: {},
   runnerImage: `r@sha256:${"a".repeat(64)}`,
   runnerCommand: "",
   kubernetesNamespace: "",

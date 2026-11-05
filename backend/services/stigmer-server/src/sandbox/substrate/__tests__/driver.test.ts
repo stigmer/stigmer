@@ -80,9 +80,7 @@ const silentLogger = createLogger({
 const config: SandboxDriverConfig = {
   backendEndpoint: "http://stigmer.stigmer.svc:7234",
   mcpPublicEndpoint: "",
-  temporalAddress: "temporal.stigmer.svc:7233",
   temporalNamespace: "default",
-  temporalConnectionEnv: {},
   runnerImage: `localhost:5001/runner@sha256:${"a".repeat(64)}`,
   runnerCommand: "unused",
   kubernetesNamespace: "unused",
@@ -1347,13 +1345,10 @@ describe("a session's Environment", () => {
 });
 
 describe("configuration the driver refuses", () => {
-  it("no backend endpoint, no Temporal address, an image not pinned by digest, a secret the runner does not take, or Temporal settings that ask for TLS", () => {
+  it("no backend endpoint, an image not pinned by digest, or a secret the runner does not take", () => {
     expect(() =>
       validateSubstrateDriverConfig({ ...config, backendEndpoint: "" }),
     ).toThrow(/STIGMER_SANDBOX_BACKEND_ENDPOINT/);
-    expect(() =>
-      validateSubstrateDriverConfig({ ...config, temporalAddress: "" }),
-    ).toThrow(/STIGMER_SANDBOX_TEMPORAL_ADDRESS/);
     expect(() =>
       validateSubstrateDriverConfig({
         ...config,
@@ -1366,18 +1361,5 @@ describe("configuration the driver refuses", () => {
         runnerSecretEnv: { GITHUB_TOKEN: "ghp" },
       }),
     ).toThrow(/cannot push GITHUB_TOKEN/);
-    // Every Temporal connection setting asks for TLS, which the runner's
-    // lane cannot carry through Substrate's gateway (egress.ts).
-    expect(() =>
-      validateSubstrateDriverConfig({
-        ...config,
-        temporalConnectionEnv: {
-          STIGMER_TEMPORAL_TLS: "true",
-          STIGMER_TEMPORAL_API_KEY: "temporal-key",
-        },
-      }),
-    ).toThrow(
-      /Temporal lane in cleartext .*\(STIGMER_TEMPORAL_API_KEY, STIGMER_TEMPORAL_TLS\)/,
-    );
   });
 });

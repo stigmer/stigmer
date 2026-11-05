@@ -336,17 +336,6 @@ export function validateSubstrateDriverConfig(
       "sandbox provisioner 'substrate' requires STIGMER_SANDBOX_BACKEND_ENDPOINT — a sandbox cannot reach the server on this process's localhost",
     );
   }
-  if (config.temporalAddress === "") {
-    throw new Error(
-      "sandbox provisioner 'substrate' requires STIGMER_SANDBOX_TEMPORAL_ADDRESS (or TEMPORAL_HOST_PORT) reachable from inside a sandbox",
-    );
-  }
-  const temporalSettings = Object.keys(config.temporalConnectionEnv);
-  if (temporalSettings.length > 0) {
-    throw new Error(
-      `sandbox provisioner 'substrate' needs the runner's Temporal lane in cleartext inside the cluster, but the server's Temporal connection settings ask for TLS (${temporalSettings.sort().join(", ")}): Substrate's egress gateway can carry TLS only by intercepting it, which breaks a client certificate or a pinned CA (egress.ts)`,
-    );
-  }
   const unknown = Object.keys(config.runnerSecretEnv).filter(
     (name) => !RUNNER_SECRET_NAMES.includes(name),
   );

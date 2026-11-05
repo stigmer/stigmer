@@ -41,9 +41,7 @@ import { buildEgressRules, egressDigest } from "../egress.js";
 const config: SandboxDriverConfig = {
   backendEndpoint: "http://host.docker.internal:7234",
   mcpPublicEndpoint: "",
-  temporalAddress: "host.docker.internal:7233",
   temporalNamespace: "default",
-  temporalConnectionEnv: {},
   runnerImage: `r@sha256:${"a".repeat(64)}`,
   runnerCommand: "",
   kubernetesNamespace: "",
@@ -80,10 +78,9 @@ function shape(rules: ReturnType<typeof buildEgressRules>) {
 }
 
 describe("the rules", () => {
-  it("allow the runner's plain lanes, once each, and nothing else when HTTPS egress is off", () => {
+  it("allow the runner's one plain lane, the server (no Temporal: the runner reaches it through the server), and nothing else when HTTPS egress is off", () => {
     expect(shape(buildEgressRules(config, settings))).toEqual([
       "http host.docker.internal:7234",
-      "http host.docker.internal:7233",
     ]);
   });
 
@@ -92,7 +89,6 @@ describe("the rules", () => {
       {
         ...config,
         backendEndpoint: "http://stigmer.stigmer.svc:7234",
-        temporalAddress: "temporal.temporal.svc:7233",
         mcpPublicEndpoint: "http://stigmer.stigmer.svc:7234",
       },
       {
@@ -103,7 +99,6 @@ describe("the rules", () => {
     );
     expect(shape(rules)).toEqual([
       "http stigmer.stigmer.svc:7234",
-      "http temporal.temporal.svc:7233",
       "http fake-model.example:18555",
       "https *:443",
     ]);
@@ -132,14 +127,12 @@ describe("an https:// public MCP endpoint", () => {
       shape(buildEgressRules(hosted, { ...settings, httpsEgress: "all" })),
     ).toEqual([
       "http host.docker.internal:7234",
-      "http host.docker.internal:7233",
       "https *:443",
     ]);
     expect(
       shape(buildEgressRules(hosted, { ...settings, httpsEgress: "none" })),
     ).toEqual([
       "http host.docker.internal:7234",
-      "http host.docker.internal:7233",
     ]);
   });
 
@@ -213,13 +206,8 @@ describe("what no rule may name", () => {
       ).toThrow(/single-label name/);
     }
     expect(() =>
-      buildEgressRules(
-        { ...config, temporalAddress: "temporal:7233" },
-        settings,
-      ),
-    ).toThrow(
-      /STIGMER_SANDBOX_TEMPORAL_ADDRESS names temporal, a single-label/,
-    );
+      buildEgressRules({ ...config, backendEndpoint: "http://stigmer:7234" }, settings),
+    ).toThrow(/STIGMER_SANDBOX_BACKEND_ENDPOINT names stigmer, a single-label/);
   });
 
   it("an address instead of a host", () => {
@@ -262,7 +250,6 @@ function limited(hosts: readonly EnvironmentHost[]): EnvironmentFacts {
 
 const lanes = [
   "http host.docker.internal:7234",
-  "http host.docker.internal:7233",
 ];
 
 describe("a session's Environment", () => {

@@ -9,10 +9,10 @@
  * Environment (`environment`, the runner's half: network mode and packages,
  * `environment/spec.ts`), which reaches the runner as
  * `STIGMER_SANDBOX_ENVIRONMENT`. Everything per-target and non-secret
- * belongs in the sandbox's own environment instead, including the Temporal
- * connection settings a pod's Secret also carries but that are not secrets
- * (the server's CA, a client certificate, the server name); and nothing
- * secret may be there: a snapshot of a waiting sandbox is cloned into every
+ * belongs in the sandbox's own environment instead, including its Temporal
+ * address, which is the Stigmer server's own (the runner reaches Temporal
+ * only through it, presenting the pushed `STIGMER_TOKEN`; src/temporal-lane.ts);
+ * and nothing secret may be there: a snapshot of a waiting sandbox is cloned into every
  * sandbox started from it, so it must hold no credential (the waiter's
  * module header, `waiter.ts`).
  *

@@ -267,20 +267,14 @@ export interface SandboxDriverConfig {
    * stays unresolved rather than guessed.
    */
   readonly mcpPublicEndpoint: string;
-  /** Temporal address as reachable from inside a sandbox (TEMPORAL_SERVICE_ADDRESS). */
-  readonly temporalAddress: string;
-  /** The Temporal namespace the sandbox's runner polls in (TEMPORAL_NAMESPACE). */
-  readonly temporalNamespace: string;
   /**
-   * How the sandbox's runner authenticates to that Temporal: the server's
-   * own `STIGMER_TEMPORAL_*` settings rendered by `temporalConnectionEnv`
-   * (`@stigmer/temporal-codecs`), every PEM item in its `_DATA` form so no
-   * file has to exist inside the sandbox. Empty for a plaintext Temporal.
-   * The values include credentials, so each driver passes them through the
-   * channel it uses for the token, never through argv or a plain manifest
-   * value.
+   * The Temporal namespace the sandbox's runner polls in
+   * (TEMPORAL_NAMESPACE): the server's own, the only one its Temporal worker
+   * lane serves. A sandbox is handed no Temporal address and no Temporal
+   * credential: its runner reaches Temporal through the server
+   * (`temporalAddressThroughServer`, transport/temporal-worker-door/address.ts).
    */
-  readonly temporalConnectionEnv: Readonly<Record<string, string>>;
+  readonly temporalNamespace: string;
   /** The runner image for container-based drivers (docker, agent-sandbox, substrate). */
   readonly runnerImage: string;
   /** The runner executable for the local-process driver. */

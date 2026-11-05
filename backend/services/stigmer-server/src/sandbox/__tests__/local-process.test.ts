@@ -58,9 +58,7 @@ describe.skipIf(process.platform === "win32")(
     const config: SandboxDriverConfig = {
       backendEndpoint: "http://127.0.0.1:7234",
       mcpPublicEndpoint: "http://127.0.0.1:7234",
-      temporalAddress: "127.0.0.1:7233",
       temporalNamespace: "stigmer-smoke",
-      temporalConnectionEnv: { STIGMER_TEMPORAL_TLS: "true", STIGMER_TEMPORAL_API_KEY: "k-smoke" },
       runnerImage: "unused-by-this-driver",
       runnerCommand: script,
       kubernetesNamespace: "unused-by-this-driver",
@@ -88,9 +86,10 @@ describe.skipIf(process.platform === "win32")(
     }
 
     it("ensure spawns once, injects the runner env contract, and is idempotent", async () => {
-      // A server configured by path: the child must get the rendered
-      // settings only, never the inherited _PATH item beside them.
+      // A server with its own Temporal credential: the child must inherit
+      // none of it, since it reaches Temporal only through the server.
       process.env["STIGMER_TEMPORAL_TLS_SERVER_CA_CERT_PATH"] = "/etc/inherited-ca.pem";
+      process.env["STIGMER_TEMPORAL_API_KEY"] = "k-server-only";
       await driver.ensureSessionSandbox("ses_smoke", {
         taskQueue: "session:ses_smoke",
         stigmerToken: "tok-smoke",
@@ -120,22 +119,20 @@ describe.skipIf(process.platform === "win32")(
       expect(dump).toContain(
         `STIGMER_BACKEND_ENDPOINT=${config.backendEndpoint}`,
       );
-      expect(dump).toContain(
-        `TEMPORAL_SERVICE_ADDRESS=${config.temporalAddress}`,
-      );
+      // The server's own address: its Temporal worker lane.
+      expect(dump).toContain("TEMPORAL_SERVICE_ADDRESS=127.0.0.1:7234");
       expect(dump).toContain(
         `STIGMER_MCP_PUBLIC_ENDPOINT=${config.mcpPublicEndpoint}`,
       );
       expect(dump).toMatch(/WORKSPACE_ROOT_DIR=.+session-ses_smoke/);
       expect(dump).toContain("TEMPORAL_NAMESPACE=stigmer-smoke");
-      expect(dump).toContain("STIGMER_TEMPORAL_TLS=true");
-      expect(dump).toContain("STIGMER_TEMPORAL_API_KEY=k-smoke");
+      expect(dump).not.toContain("STIGMER_TEMPORAL_");
       // The operator's runner lists reach the child (the server's config,
       // STIGMER_SANDBOX_RUNNER_ENV and STIGMER_SANDBOX_RUNNER_SECRETS).
       expect(dump).toContain("ANTHROPIC_BASE_URL=http://127.0.0.1:18555");
       expect(dump).toContain("ANTHROPIC_API_KEY=k-model-smoke");
-      expect(dump).not.toContain("STIGMER_TEMPORAL_TLS_SERVER_CA_CERT_PATH");
       delete process.env["STIGMER_TEMPORAL_TLS_SERVER_CA_CERT_PATH"];
+      delete process.env["STIGMER_TEMPORAL_API_KEY"];
     });
 
     it("deprovision kills the child; probe reports absent; re-ensure respawns", async () => {
@@ -195,9 +192,7 @@ describe("the local-process driver and an Environment", () => {
       config: {
         backendEndpoint: "http://127.0.0.1:7234",
         mcpPublicEndpoint: "",
-        temporalAddress: "127.0.0.1:7233",
         temporalNamespace: "default",
-        temporalConnectionEnv: {},
         runnerImage: "unused-by-this-driver",
         runnerCommand: "unused",
         kubernetesNamespace: "unused-by-this-driver",

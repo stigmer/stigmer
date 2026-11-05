@@ -78,9 +78,7 @@ const REFUSAL_POINTER = (template: string) =>
 const config: SandboxDriverConfig = {
   backendEndpoint: "http://stigmer.stigmer.svc:7234",
   mcpPublicEndpoint: "http://stigmer-mcp.stigmer.svc:8080",
-  temporalAddress: "temporal.stigmer.svc:7233",
   temporalNamespace: "default",
-  temporalConnectionEnv: {},
   runnerImage: `localhost:5001/runner@sha256:${"a".repeat(64)}`,
   runnerCommand: "unused",
   kubernetesNamespace: "unused",
@@ -138,7 +136,8 @@ describe("the template", () => {
     expect(env).toMatchObject({
       MODE: "local",
       STIGMER_BACKEND_ENDPOINT: "http://stigmer.stigmer.svc:7234",
-      TEMPORAL_SERVICE_ADDRESS: "temporal.stigmer.svc:7233",
+      // The server's own address: its Temporal worker lane, never Temporal's.
+      TEMPORAL_SERVICE_ADDRESS: "stigmer.stigmer.svc:7234",
       TEMPORAL_NAMESPACE: "default",
       WORKSPACE_ROOT_DIR: "/workspace",
       HOME: RUNNER_HOME,

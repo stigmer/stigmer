@@ -55,6 +55,7 @@ import type {
   SandboxFacts,
   SandboxScope,
 } from "../provisioner.js";
+import { temporalAddressThroughServer } from "../../transport/temporal-worker-door/address.js";
 import {
   SANDBOX_ID_LABEL,
   SANDBOX_MANAGED_BY_LABEL,
@@ -165,7 +166,10 @@ function runnerEnv(
     { name: "MODE", value: "local" },
     { name: "STIGMER_TASK_QUEUE", value: facts.taskQueue },
     { name: "STIGMER_BACKEND_ENDPOINT", value: config.backendEndpoint },
-    { name: "TEMPORAL_SERVICE_ADDRESS", value: config.temporalAddress },
+    {
+      name: "TEMPORAL_SERVICE_ADDRESS",
+      value: temporalAddressThroughServer(config.backendEndpoint),
+    },
     { name: "TEMPORAL_NAMESPACE", value: config.temporalNamespace },
     { name: "WORKSPACE_ROOT_DIR", value: WORKSPACE_MOUNT_PATH },
     { name: "HOME", value: RUNNER_HOME },
@@ -194,9 +198,6 @@ function runnerEnv(
   }
   if (facts.stigmerToken !== "") {
     entries.push(fromSecret("STIGMER_TOKEN"));
-  }
-  for (const name of Object.keys(config.temporalConnectionEnv)) {
-    entries.push(fromSecret(name));
   }
   return entries;
 }
@@ -289,10 +290,7 @@ export function buildAgentSandboxSecret(
   scope: SandboxScope,
   id: string,
   stigmerToken: string,
-  config: Pick<
-    SandboxDriverConfig,
-    "temporalConnectionEnv" | "runnerSecretEnv"
-  >,
+  config: Pick<SandboxDriverConfig, "runnerSecretEnv">,
   owner: { readonly name: string; readonly uid: string },
 ): V1Secret {
   return {
@@ -311,7 +309,6 @@ export function buildAgentSandboxSecret(
     type: "Opaque",
     stringData: {
       ...config.runnerSecretEnv,
-      ...config.temporalConnectionEnv,
       ...(stigmerToken !== "" ? { STIGMER_TOKEN: stigmerToken } : {}),
     },
   };

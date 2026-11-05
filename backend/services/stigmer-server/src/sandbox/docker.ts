@@ -46,6 +46,7 @@ import type {
   SandboxProvisionerFactory,
   SandboxScope,
 } from "./provisioner.js";
+import { temporalAddressThroughServer } from "../transport/temporal-worker-door/address.js";
 import {
   SANDBOX_ID_LABEL,
   SANDBOX_MANAGED_BY_LABEL,
@@ -110,7 +111,7 @@ export function buildDockerRun(
     "--env",
     `STIGMER_BACKEND_ENDPOINT=${config.backendEndpoint}`,
     "--env",
-    `TEMPORAL_SERVICE_ADDRESS=${config.temporalAddress}`,
+    `TEMPORAL_SERVICE_ADDRESS=${temporalAddressThroughServer(config.backendEndpoint)}`,
     "--env",
     `TEMPORAL_NAMESPACE=${config.temporalNamespace}`,
     "--env",
@@ -135,10 +136,7 @@ export function buildDockerRun(
   if (environment !== undefined) {
     args.push("--env", `${SANDBOX_ENVIRONMENT_ENV}=${environment}`);
   }
-  const secretEnv: Record<string, string> = {
-    ...config.runnerSecretEnv,
-    ...config.temporalConnectionEnv,
-  };
+  const secretEnv: Record<string, string> = { ...config.runnerSecretEnv };
   if (facts.stigmerToken !== "")
     secretEnv["STIGMER_TOKEN"] = facts.stigmerToken;
   for (const name of Object.keys(secretEnv)) args.push("--env", name);
@@ -157,11 +155,6 @@ export const newDockerSandboxProvisioner: SandboxProvisionerFactory = ({
   if (config.backendEndpoint === "") {
     throw new Error(
       "sandbox provisioner 'docker' requires STIGMER_SANDBOX_BACKEND_ENDPOINT — a container cannot reach the server on this process's localhost",
-    );
-  }
-  if (config.temporalAddress === "") {
-    throw new Error(
-      "sandbox provisioner 'docker' requires STIGMER_SANDBOX_TEMPORAL_ADDRESS (or TEMPORAL_HOST_PORT) reachable from inside a container",
     );
   }
 

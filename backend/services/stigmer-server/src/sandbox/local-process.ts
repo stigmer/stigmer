@@ -44,6 +44,10 @@ import type {
   SandboxProvisionerFactory,
   SandboxScope,
 } from "./provisioner.js";
+import { temporalAddressThroughServer } from "../transport/temporal-worker-door/address.js";
+
+/** The runner's own backend default in its local mode (runner src/config.ts). */
+const LOCAL_RUNNER_BACKEND_ENDPOINT = "http://localhost:7234";
 
 /** SIGTERM-first teardown; the runner's Temporal worker drains on it. */
 const DEPROVISION_SIGNAL: NodeJS.Signals = "SIGTERM";
@@ -101,18 +105,18 @@ export const newLocalProcessSandboxProvisioner: SandboxProvisionerFactory = ({
       // runner gets exactly what the operator listed on every driver.
       ...config.runnerEnv,
       ...config.runnerSecretEnv,
-      ...config.temporalConnectionEnv,
       MODE: "local",
       STIGMER_TASK_QUEUE: facts.taskQueue,
       TEMPORAL_NAMESPACE: config.temporalNamespace,
       WORKSPACE_ROOT_DIR: workspaceRoot,
     };
-    if (config.backendEndpoint !== "") {
-      childEnv["STIGMER_BACKEND_ENDPOINT"] = config.backendEndpoint;
-    }
-    if (config.temporalAddress !== "") {
-      childEnv["TEMPORAL_SERVICE_ADDRESS"] = config.temporalAddress;
-    }
+    // The runner's own local default when none is configured
+    // (runner src/config.ts), named here so its Temporal address can be
+    // the same server's.
+    const backendEndpoint =
+      config.backendEndpoint !== "" ? config.backendEndpoint : LOCAL_RUNNER_BACKEND_ENDPOINT;
+    childEnv["STIGMER_BACKEND_ENDPOINT"] = backendEndpoint;
+    childEnv["TEMPORAL_SERVICE_ADDRESS"] = temporalAddressThroughServer(backendEndpoint);
     if (config.mcpPublicEndpoint !== "") {
       childEnv["STIGMER_MCP_PUBLIC_ENDPOINT"] = config.mcpPublicEndpoint;
     }

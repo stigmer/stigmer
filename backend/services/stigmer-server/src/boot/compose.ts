@@ -107,7 +107,6 @@ import { newGrantPath } from "../domain/grant/grant-path.js";
 import { AccessHistoryRetentionRunner } from "../domain/grant/history-retention.js";
 import { nodeGuardedFetch } from "@stigmer/outbound/dial";
 import { isReleaseVersion } from "@stigmer/plugin-package/client";
-import { temporalConnectionEnv } from "@stigmer/temporal-codecs";
 import { newOrganizationOnlyGrantScope } from "../domain/grant/grant-scope.js";
 import { newMembershipRules } from "../domain/grant/membership.js";
 import { newResourceGrantStore } from "../domain/grant/resource-store.js";
@@ -1035,9 +1034,7 @@ export async function composeServer(
       config: {
         backendEndpoint: config.sandboxBackendEndpoint,
         mcpPublicEndpoint: config.sandboxMcpPublicEndpoint,
-        temporalAddress: config.sandboxTemporalAddress,
         temporalNamespace: config.temporalNamespace,
-        temporalConnectionEnv: temporalConnectionEnv(config.temporalConnection),
         runnerImage:
           config.sandboxRunnerImage !== ""
             ? config.sandboxRunnerImage
