@@ -29,7 +29,7 @@ import type {
   SDKUserMessageReplay,
 } from "@anthropic-ai/claude-agent-sdk";
 
-import { ROOT_CALLER, type AllowVerdict, type GateVerdict } from "../gate.js";
+import { MISNAMED_SHELL_MESSAGE, ROOT_CALLER, type AllowVerdict, type GateVerdict } from "../gate.js";
 import { agentAnswerOf, ClaudeTranslator, resultText, type ClaudeTranslatorDeps } from "../translator.js";
 
 type StreamEvent = SDKPartialAssistantMessage["event"];
@@ -236,10 +236,11 @@ describe("ClaudeTranslator: a call's row waits for its gate (stigmer#2614)", () 
     expect(t.admitted("toolu_unknown"), "a call it never opened").toEqual([]);
   });
 
-  it("keeps a call the gate refused or paused undecided, so its stamp or its ask reaches the log first", () => {
+  it("keeps a call the gate refused, paused or handed back undecided, so its stamp or its ask reaches the log first", () => {
     for (const verdict of [
       { kind: "refuse", message: "no", source: "builtin_category", caller: ROOT_CALLER, hook: undefined, byPerson: false },
       { kind: "pause", message: "ask", source: "builtin_category", caller: ROOT_CALLER, toolName: "Bash", args: {}, hook: undefined },
+      { kind: "resume_again", caller: ROOT_CALLER },
     ] as const satisfies readonly GateVerdict[]) {
       const t = translator({ verdictOf: () => verdict });
       expect(t.translate(assistant("msg_a", [{ type: "tool_use", id: "toolu_1", name: "Bash", input: { command: "rm" } }])), verdict.kind).toEqual([
@@ -279,6 +280,11 @@ describe("ClaudeTranslator: tool results", () => {
   it("stamps no provenance when the gate's verdict names no source", () => {
     const t = translator({ verdictOf: () => allowVerdict(undefined) });
     expect(t.translate(user([toolResult("toolu_1", "ok")]))).toEqual([{ kind: "tool_finished", callId: "toolu_1", result: "ok" }]);
+  });
+
+  it("stamps no provenance on a call the gate handed back for the engine to start again (stigmer#2667), which canUseTool refused", () => {
+    const t = translator({ verdictOf: () => ({ kind: "resume_again", caller: ROOT_CALLER }) });
+    expect(t.translate(user([toolResult("toolu_1", MISNAMED_SHELL_MESSAGE, true)]))).toEqual([{ kind: "tool_error", callId: "toolu_1", message: MISNAMED_SHELL_MESSAGE }]);
   });
 
   it("names the hook that decided on the row", () => {
