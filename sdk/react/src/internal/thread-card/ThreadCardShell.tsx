@@ -2,6 +2,7 @@
 
 import type { ReactNode, Ref } from "react";
 import { cn } from "@stigmer/design-tokens";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../tooltip.js";
 import { ChevronIcon } from "./glyphs.js";
 
 /**
@@ -17,9 +18,11 @@ import { ChevronIcon } from "./glyphs.js";
  *   row, or quiet unboxed line ({@link ThreadCardVariant}), plus the
  *   pending-gate accent.
  * - {@link ThreadCardHeader} — the one-line header region with a
- *   primary gesture: `expand` (summary rows, `aria-expanded`, appends
- *   the chevron) or `none` (preview rows — their body is always
- *   visible, so the header has no job beyond layout).
+ *   primary gesture: `expand` (summary rows: a toggle button with
+ *   `aria-expanded`, plus the chevron) or `none` (preview rows — their body
+ *   is always visible, so the header has no job beyond layout).
+ * - {@link ThreadCardHeaderControl} — the wrapper that keeps a control of
+ *   the header's own (a file link, a Stop button) reachable above the toggle.
  * - {@link ThreadCardBody} — the disclosed content area's padding
  *   contract.
  *
@@ -28,10 +31,17 @@ import { ChevronIcon } from "./glyphs.js";
  * beneath the threads' memoized row components and takes only primitives
  * and stable callbacks, so it never disturbs their memo bails.
  *
- * Interactive headers are `div[role=button]`, not `<button>` — they may
- * carry nested action buttons, and a `<button>` may not contain another.
- * Nested buttons must `stopPropagation` so their click never fires the
- * header's primary gesture.
+ * An interactive header holds no control inside its toggle. The toggle is a
+ * real, empty `<button>` laid over the whole header (any click on the row
+ * opens it, one tab stop, Enter and Space from the platform), named by the
+ * caller's `label`; the header's text sits beside it. A control the header
+ * carries (a file link, a Stop button) is the toggle's sibling, lifted above
+ * it by {@link ThreadCardHeaderControl}, so a screen reader reaches it as
+ * itself and its click never reaches the toggle. Nesting a control inside a
+ * `role=button` would hide it from assistive technology (axe's
+ * `nested-interactive`), which is why the toggle never wraps the content.
+ * The cost is that header text cannot be selected with the pointer; the
+ * disclosed body carries every value in selectable form.
  *
  * @internal Not part of the public API.
  */
@@ -112,9 +122,9 @@ export function ThreadCardShell({
 
 /**
  * The header's primary gesture. `expand` toggles a chevron-gated body
- * (`aria-expanded`; the chevron is appended automatically). `none` renders
- * a non-interactive layout row (preview cards — their body is always
- * visible).
+ * through a toggle button laid over the header (`aria-expanded`; the chevron
+ * is appended automatically). `none` renders a non-interactive layout row
+ * (preview cards — their body is always visible).
  */
 export type ThreadCardHeaderGesture =
   | { readonly kind: "none" }
@@ -122,22 +132,34 @@ export type ThreadCardHeaderGesture =
       readonly kind: "expand";
       readonly expanded: boolean;
       readonly onToggle: () => void;
+      /**
+       * The toggle's accessible name: what the row is, in its own words
+       * ("Read july-statement.csv", "Searched invoices, 12 matches"). Required
+       * because the toggle is empty; the header's text is its sibling.
+       */
+      readonly label: string;
+      /**
+       * Text the toggle shows on hover and keyboard focus: the full value of a
+       * subtitle the header cuts off. Omit it while nothing is cut off, so an
+       * uncut row shows no tooltip.
+       */
+      readonly hint?: string;
     };
 
 /** Props for {@link ThreadCardHeader}. */
 export interface ThreadCardHeaderProps {
   /** The primary gesture. Defaults to `{ kind: "none" }`. */
   readonly gesture?: ThreadCardHeaderGesture;
-  /** Accessible label for interactive headers whose content is not self-describing. */
-  readonly ariaLabel?: string;
   readonly children: ReactNode;
 }
 
-const HEADER_LAYOUT = "stg:flex stg:w-full stg:items-center stg:gap-2 stg:px-2.5 stg:py-1.5 stg:text-xs";
+// `isolate` keeps a lifted control's z-index inside the header, so it never
+// paints over the thread's own overlays (sticky bars, scroll fades).
+const HEADER_LAYOUT =
+  "stg:relative stg:isolate stg:flex stg:w-full stg:items-center stg:gap-2 stg:px-2.5 stg:py-1.5 stg:text-xs";
 
-const HEADER_INTERACTIVE = cn(
-  "stg:cursor-pointer stg:text-left stg:transition-colors",
-  "stg:hover:bg-muted-subtle",
+const TOGGLE_CLASSES = cn(
+  "stg:absolute stg:inset-0 stg:cursor-pointer",
   // ring-inset so the card's overflow-hidden does not clip the focus ring.
   "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring",
 );
@@ -145,40 +167,64 @@ const HEADER_INTERACTIVE = cn(
 /** The thread card's one-line header. See the module doc for the contract. */
 export function ThreadCardHeader({
   gesture = { kind: "none" },
-  ariaLabel,
   children,
 }: ThreadCardHeaderProps) {
   if (gesture.kind === "none") {
     return <div className={HEADER_LAYOUT}>{children}</div>;
   }
 
-  return (
-    <div
-      role="button"
-      tabIndex={0}
-      aria-label={ariaLabel}
+  const toggle = (
+    <button
+      type="button"
+      aria-label={gesture.label}
       aria-expanded={gesture.expanded}
       onClick={gesture.onToggle}
-      onKeyDown={(e) => {
-        // Only when the header itself is focused: a nested action button's
-        // Enter/Space fires its own click and must not ALSO trigger the
-        // header's primary gesture as the keydown bubbles up.
-        if (e.target !== e.currentTarget) return;
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          gesture.onToggle();
-        }
-      }}
+      data-cursor-target="thread-card-toggle"
+      className={TOGGLE_CLASSES}
+    />
+  );
+
+  return (
+    <div
       className={cn(
         HEADER_LAYOUT,
-        HEADER_INTERACTIVE,
+        "stg:transition-colors stg:hover:bg-muted-subtle",
         gesture.expanded && "stg:bg-muted-faint",
       )}
     >
+      {/* The Tooltip wraps the toggle whether or not a hint is set, so the
+          button is never remounted (and never loses focus) when a resize
+          cuts the subtitle off or lets it fit. */}
+      <Tooltip disabled={gesture.hint === undefined}>
+        <TooltipTrigger render={toggle} />
+        {gesture.hint !== undefined && (
+          <TooltipContent side="top" className="stg:break-all">
+            {gesture.hint}
+          </TooltipContent>
+        )}
+      </Tooltip>
       {children}
       <ChevronIcon expanded={gesture.expanded} />
     </div>
   );
+}
+
+/** Props for {@link ThreadCardHeaderControl}. */
+export interface ThreadCardHeaderControlProps {
+  /** Layout classes for the wrapper (`stg:shrink-0`, `stg:min-w-0`, …). */
+  readonly className?: string;
+  readonly children: ReactNode;
+}
+
+/**
+ * Lifts a control of the header's own (a file link, a Stop button) above the
+ * `expand` toggle, so the pointer and a screen reader reach it as itself.
+ * The header's toggle covers every pixel nothing is lifted over; anything
+ * interactive in a header goes through this wrapper. Harmless in a `none`
+ * header, so a control shared by both layouts can always use it.
+ */
+export function ThreadCardHeaderControl({ className, children }: ThreadCardHeaderControlProps) {
+  return <span className={cn("stg:relative stg:z-10", className)}>{children}</span>;
 }
 
 // ---------------------------------------------------------------------------

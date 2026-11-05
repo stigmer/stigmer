@@ -15,6 +15,7 @@
  */
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup, within, waitFor } from "@testing-library/react";
+import { RENAME_BUDGET_MS, renameThroughSlugField } from "../../__tests__/helpers/rename-slug";
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { AgentSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
 import { AgentStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/status_pb";
@@ -349,11 +350,9 @@ describe("AgentDetailView rename", () => {
 
   it("offers the slug field on the Overview to whoever may delete the agent, and reports the rename", async () => {
     const { rename, onRenamed } = renderRenamable(true, true);
-    const field = await screen.findByLabelText("Slug");
-    fireEvent.change(field, { target: { value: "pr-reviewer" } });
-    fireEvent.click(screen.getByRole("button", { name: "Rename" }));
+    await renameThroughSlugField("pr-reviewer");
 
-    await waitFor(() => expect(onRenamed).toHaveBeenCalledOnce());
+    await waitFor(() => expect(onRenamed).toHaveBeenCalledOnce(), { timeout: RENAME_BUDGET_MS });
     expect(rename.mock.calls[0]![0]).toMatchObject({ slug: "pr-reviewer" });
     expect(onRenamed.mock.calls[0]![0].metadata.slug).toBe("pr-reviewer");
   });

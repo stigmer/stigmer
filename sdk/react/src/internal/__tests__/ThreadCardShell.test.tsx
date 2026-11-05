@@ -1,15 +1,17 @@
 // Contract tests for the shared thread-card shell: the chrome
 // tiers (card / nested divider row / quiet unboxed line, gate accent), the
 // header gestures (`expand` / `none` — `select` died with the Inspect
-// drill-down) with their ARIA semantics, and the nested-button keydown
-// guard. The two consuming threads pin their own compositions; this file
-// pins what they share.
+// drill-down) with their ARIA semantics, the toggle's hint, and the rule
+// that a header's own control is the toggle's sibling, never inside it. The
+// consuming thread pins its own composition; this file pins what it shares.
 
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import {
   ThreadCardShell,
   ThreadCardHeader,
+  ThreadCardHeaderControl,
   ThreadCardBody,
 } from "../thread-card/index.js";
 
@@ -70,48 +72,71 @@ describe("ThreadCardShell chrome", () => {
 });
 
 describe("ThreadCardHeader gestures", () => {
-  it("expand gesture: aria-expanded header toggling on click and keyboard", () => {
+  it("expand gesture: a native toggle button, named by its label, toggling on click, Enter and Space", async () => {
     const onToggle = vi.fn();
     render(
-      <ThreadCardHeader gesture={{ kind: "expand", expanded: false, onToggle }}>
+      <ThreadCardHeader gesture={{ kind: "expand", expanded: false, onToggle, label: "Read a.ts" }}>
         row content
       </ThreadCardHeader>,
     );
-    const header = screen.getByRole("button");
-    expect(header.getAttribute("aria-expanded")).toBe("false");
-    expect(header.getAttribute("aria-pressed")).toBeNull();
+    const toggle = screen.getByRole("button", { name: "Read a.ts" });
+    expect(toggle.tagName).toBe("BUTTON");
+    expect(toggle.getAttribute("type")).toBe("button");
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    expect(toggle.getAttribute("aria-pressed")).toBeNull();
+    expect(toggle.getAttribute("data-cursor-target")).toBe("thread-card-toggle");
 
-    fireEvent.click(header);
-    fireEvent.keyDown(header, { key: "Enter" });
-    fireEvent.keyDown(header, { key: " " });
+    fireEvent.click(toggle);
+    toggle.focus();
+    await userEvent.keyboard("{Enter}");
+    await userEvent.keyboard(" ");
     expect(onToggle).toHaveBeenCalledTimes(3);
   });
 
-  it("a nested action button's Enter never doubles as the header gesture", () => {
+  it("a header control is the toggle's sibling, never its descendant, and its click and keys stay its own", async () => {
     const onToggle = vi.fn();
     const onAction = vi.fn();
     render(
-      <ThreadCardHeader gesture={{ kind: "expand", expanded: false, onToggle }}>
-        <button
-          type="button"
-          aria-label="Copy"
-          onClick={(e) => {
-            e.stopPropagation();
-            onAction();
-          }}
-        >
-          c
-        </button>
+      <ThreadCardHeader gesture={{ kind: "expand", expanded: false, onToggle, label: "Read a.ts" }}>
+        <ThreadCardHeaderControl>
+          {/* No stopPropagation: the structure alone keeps the toggle out. */}
+          <button type="button" aria-label="Copy" onClick={onAction}>
+            c
+          </button>
+        </ThreadCardHeaderControl>
       </ThreadCardHeader>,
     );
 
-    const nested = screen.getByRole("button", { name: "Copy" });
-    // The keydown bubbles to the header, whose guard must ignore it because
-    // the event target is the nested button, not the header itself.
-    fireEvent.keyDown(nested, { key: "Enter" });
-    fireEvent.click(nested);
-    expect(onAction).toHaveBeenCalledTimes(1);
+    const toggle = screen.getByRole("button", { name: "Read a.ts" });
+    const control = screen.getByRole("button", { name: "Copy" });
+    expect(toggle.contains(control)).toBe(false);
+    expect(toggle.parentElement?.contains(control)).toBe(true);
+
+    fireEvent.click(control);
+    control.focus();
+    await userEvent.keyboard("{Enter}");
+    expect(onAction).toHaveBeenCalledTimes(2);
     expect(onToggle).not.toHaveBeenCalled();
+  });
+
+  it("shows the hint on the toggle's focus, and keeps the same button when the hint comes and goes", async () => {
+    const gesture = (hint?: string) => ({
+      kind: "expand" as const,
+      expanded: false,
+      onToggle: () => undefined,
+      label: "Search invoices",
+      ...(hint !== undefined ? { hint } : {}),
+    });
+    const { rerender } = render(<ThreadCardHeader gesture={gesture()}>row</ThreadCardHeader>);
+    const before = screen.getByRole("button", { name: "Search invoices" });
+
+    rerender(<ThreadCardHeader gesture={gesture("invoices from every vendor")}>row</ThreadCardHeader>);
+    const toggle = screen.getByRole("button", { name: "Search invoices" });
+    expect(toggle, "never remounted, so a focused toggle keeps its focus").toBe(before);
+
+    await userEvent.tab();
+    expect(document.activeElement).toBe(toggle);
+    expect(await screen.findByText("invoices from every vendor")).toBeTruthy();
   });
 
   it("none gesture renders a non-interactive layout row", () => {

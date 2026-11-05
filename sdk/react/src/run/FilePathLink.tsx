@@ -85,9 +85,11 @@ export function FilePathLink({
 
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
-      // The link often sits inside a row whose own click toggles disclosure
-      // (ToolCallItem's role=button header); copying/opening a path must not
-      // also expand the row.
+      // Hosts rely on the click stopping here: a file review row whose own
+      // controls (Keep/Discard) must never fight the link (FileReviewCard),
+      // and any host row with a click of its own. A tool row's header needs
+      // nothing from it: the link is lifted beside the row's toggle, never
+      // inside it.
       e.stopPropagation();
 
       // Offer the click to the injected handler first. It returns `false` to
