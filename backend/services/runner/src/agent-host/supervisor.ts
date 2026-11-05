@@ -305,6 +305,13 @@ export const HOST_KILL_GRACE_MS = 15_000;
  * Spawn one host process with its channel on fd 3 and its output relayed
  * (`processHostStarter` says how). The child is handed back beside the
  * started host for the spawned-host tests, which kill it mid-turn.
+ *
+ * fd 3 is `"overlapped"`, not `"pipe"`: on Windows a `"pipe"` hands the child
+ * a synchronous handle, on which libuv runs a read and a write on worker
+ * threads that block each other, so the host's hello waits behind its own
+ * pending read while this side waits for the hello (#2983). Overlapped I/O
+ * lets both run at once. Everywhere else Node treats the two types the
+ * same. stdout and stderr only flow one way, so they stay `"pipe"`.
  */
 export function spawnHostProcess(
   command: string,
@@ -314,7 +321,7 @@ export function spawnHostProcess(
 ): { readonly started: StartedHost; readonly child: ChildProcess } {
   const child: ChildProcess = spawn(command, args, {
     env,
-    stdio: ["ignore", "pipe", "pipe", "pipe"],
+    stdio: ["ignore", "pipe", "pipe", "overlapped"],
   });
   // Piped above, so both streams exist.
   relayLines(child.stdout!, (line) => console.log(line));
