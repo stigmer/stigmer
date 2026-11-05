@@ -19,7 +19,9 @@
 // updater's `requireSignedVersion` (tauri.conf.json), so it refuses an update
 // whose signature's trusted comment names no version, or another one, than the
 // version latest.json announces. A leg whose bundle would be refused fails here,
-// before the release is published, rather than stranding every installed app.
+// and the publish job, which needs every leg, never uploads latest.json: no
+// installed app is offered an update it would refuse. (On a tag the leg's
+// installers may already be on the release; only the update feed is withheld.)
 //
 // Usage:
 //   node ci-latest-json.mjs fragment --target-dir <dir> --tag <vX.Y.Z> --out <file>
