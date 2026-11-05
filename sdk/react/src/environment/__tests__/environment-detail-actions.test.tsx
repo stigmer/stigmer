@@ -47,6 +47,7 @@ import { StigmerContext } from "@stigmer/react-core";
 import { ExecutionTargetContext } from "@stigmer/react-core/internal";
 import { FetchCacheContext } from "@stigmer/react-core/internal";
 import { openMenu } from "../../__tests__/helpers/open-menu";
+import { RENAME_BUDGET_MS, renameThroughSlugField } from "../../__tests__/helpers/rename-slug";
 
 vi.mock("../../grant/useCheckPermission", () => ({
   useCheckPermission: () => ({ allowed: true, isLoading: false, error: null }),
@@ -273,9 +274,8 @@ describe("renaming from the Environment page", () => {
     const s = server();
     const onRenamed = vi.fn();
     await renderPage(s, { onRenamed });
-    fireEvent.change(screen.getByLabelText("Slug"), { target: { value: "data-sci" } });
-    fireEvent.click(screen.getByRole("button", { name: "Rename" }));
-    await waitFor(() => expect(onRenamed).toHaveBeenCalledOnce());
+    await renameThroughSlugField("data-sci");
+    await waitFor(() => expect(onRenamed).toHaveBeenCalledOnce(), { timeout: RENAME_BUDGET_MS });
     expect(s.renames).toEqual(["data-sci"]);
     expect(onRenamed.mock.calls[0]![0].metadata.slug).toBe("data-sci");
   });

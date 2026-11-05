@@ -135,10 +135,10 @@ test.describe("tool-call disclosure timeline (deterministic mock LLM)", () => {
     await expect(row).toBeVisible({ timeout: 30_000 });
 
     // A settled preview card has NO competing header chevron — the diff body is
-    // always visible, so the row carries no aria-expanded disclosure toggle
-    // (RevealToggle is a native <button> with no explicit role attribute, so it
-    // deliberately does not match this pin).
-    await expect(row.locator('[role="button"][aria-expanded]')).toHaveCount(0);
+    // always visible, so the row carries no header toggle (the shell's
+    // `thread-card-toggle`; RevealToggle, the diff's own in-place reveal, is
+    // another button and deliberately does not match this pin).
+    await expect(row.locator('[data-cursor-target="thread-card-toggle"]')).toHaveCount(0);
 
     // Collapsed: the diff body is clipped to the budget — the shared
     // BoundedContent clamp (`stg:overflow-hidden` + the standard max height),

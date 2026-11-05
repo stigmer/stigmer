@@ -9,6 +9,7 @@ import { useIsTextTruncated } from "../internal/useIsTextTruncated.js";
 import {
   ThreadCardShell,
   ThreadCardHeader,
+  ThreadCardHeaderControl,
   ThreadCardBody,
   type ThreadCardVariant,
   SpinnerIcon,
@@ -26,6 +27,7 @@ import { BackgroundCommandTrail, BackgroundStopError } from "./BackgroundCommand
 import { useFileReviewRowState } from "@stigmer/react-core";
 import type { FileReviewRowState } from "@stigmer/react-core";
 import { FilePathLink } from "./FilePathLink.js";
+import { splitDisplayPath } from "./file-path-resolver.js";
 // ToolChrome is type-only here so the doc link below resolves; the strict
 // tsdoc gate (tsdoc:check) guards it against removal.
 import { subagentSubjectOf } from "@stigmer/react-core";
@@ -83,9 +85,10 @@ export interface ToolCallItemProps {
  *   result that isn't a terminal session (e.g. an offloaded `outputRef`)
  *   falls back to the preview layout — never hide evidence we cannot condense.
  * - **Summary / subagent** (read / list / search / delete / think, and
- *   subagent delegations): a chevron-gated `div[role=button]` header that
- *   discloses a body hidden by default — {@link ToolCallDetail}, a
- *   {@link SubagentSection}, or, when gated, an inline {@link ApprovalCardBody}.
+ *   subagent delegations): a chevron-gated header (a toggle button laid
+ *   over the whole row) that discloses a body hidden by default —
+ *   {@link ToolCallDetail}, a {@link SubagentSection}, or, when gated, an
+ *   inline {@link ApprovalCardBody}.
  *   {@link useAutoDisclosure} force-opens it while *running* or *awaiting
  *   approval*, then settles it closed; a manual click always wins thereafter.
  *
@@ -207,14 +210,69 @@ export const ToolCallItem = memo(function ToolCallItem({
   );
   const reviewBadge = reviewState ? REVIEW_BADGE[reviewState] : null;
 
-  // Search/list show their query/path as the header subtitle (truncated). Track
-  // whether it actually clips so the expanded detail can restate the full,
-  // wrapping value only when needed — avoiding a redundant repeat of a short
-  // value the header already shows in full. Gated to these two categories so
-  // only the rows that consume the signal pay for the measurement.
+  // Completed or denied Read items are non-expandable — the clickable
+  // path in the row is the complete information. Failed reads remain
+  // expandable to show the error.
+  const isNonExpandableRead =
+    !isSubagent &&
+    category === "read" &&
+    (toolUse.state === "completed" || toolUse.state === "denied");
+
+  // Shell headers stay minimal (icon + label + status + duration) — the
+  // command and exit summary live in the terminal session body — EXCEPT when
+  // the model authored an intent title (stigmer#276): the title then says
+  // *why*, so the command surfaces as the secondary text and a fully
+  // collapsed row still reads like a narrated log. Intent-less shell rows
+  // render byte-identically to before.
+  const displaySubtitle = isSubagent
+    ? null
+    : category === "shell"
+      ? (intent ? primaryArg : null)
+      : primaryArg;
+
+  // For file tools the subtitle is a path: render it filename-first through
+  // FilePathLink (full path on hover) rather than the raw, often-absolute string
+  // that buried the file name behind a long prefix.
+  const subtitleIsFilePath =
+    !isSubagent && primaryArg != null && isFileCategory(category);
+
+  // A tail row condenses only a terminal session. While gated it renders like
+  // preview — decision actions are never hidden behind a chevron — and any
+  // other result shape (an offloaded outputRef, bare error text) falls back to
+  // preview too: never hide evidence the tail cannot honestly condense.
+  const tailSession =
+    isTailCategory && approval == null && result.type === "terminal"
+      ? result
+      : null;
+
+  // Preview categories (edit, write, fetch, web-search, unknown, mcp) render
+  // their body ALWAYS — Cursor-style "previews aren't collapsible" — so no
+  // header chevron competes with the body's own in-place reveal. Summary
+  // categories and subagents keep the chevron: their body is genuinely hidden
+  // by default, so the chevron has a real job. The two disclosure axes
+  // (card-level chevron vs. content-overflow reveal) never govern one body.
+  const isPreviewLayout =
+    !isSubagent &&
+    (disclosure === "preview" || (isTailCategory && tailSession == null));
+
+  // The tail and summary layouts lay a toggle button over the header, which
+  // covers the plain subtitle, so the toggle carries the subtitle's full text
+  // on hover and focus instead (only while it is cut off). A preview header
+  // has no toggle and keeps the subtitle's own tooltip.
+  const headerIsToggle = !isNonExpandableRead && !isPreviewLayout;
+  const plainSubtitle = !subtitleIsFilePath && displaySubtitle ? displaySubtitle : null;
+
+  // Track whether the plain subtitle actually clips: search/list restate the
+  // full, wrapping value in the expanded detail only when it does (never a
+  // redundant repeat of a short value the header shows in full), and a toggle
+  // row shows its hint only when it does. Gated so only the rows that consume
+  // the signal pay for the measurement.
   const measuresSubtitle = category === "search" || category === "list";
-  const { ref: subtitleRef, isTruncated: primaryArgTruncated } =
-    useIsTextTruncated<HTMLSpanElement>(measuresSubtitle);
+  const measuresPlainSubtitle =
+    plainSubtitle !== null && (measuresSubtitle || headerIsToggle);
+  const { ref: subtitleRef, isTruncated: subtitleTruncated } =
+    useIsTextTruncated<HTMLSpanElement>(measuresPlainSubtitle);
+  const primaryArgTruncated = measuresSubtitle && subtitleTruncated;
 
   // Cursor-style chrome via the shared ThreadCardShell: each tool call
   // is its own self-contained card — a thin rounded neutral border. A pending
@@ -243,14 +301,6 @@ export const ToolCallItem = memo(function ToolCallItem({
     : chrome === "quiet" && !isSubagent && approval == null && !rowFailed
       ? "quiet"
       : "card";
-
-  // Completed or denied Read items are non-expandable — the clickable
-  // path in the row is the complete information. Failed reads remain
-  // expandable to show the error.
-  const isNonExpandableRead =
-    !isSubagent &&
-    category === "read" &&
-    (toolUse.state === "completed" || toolUse.state === "denied");
 
   const trailingContent = (
     <>
@@ -330,43 +380,6 @@ export const ToolCallItem = memo(function ToolCallItem({
     );
   }
 
-  // Shell headers stay minimal (icon + label + status + duration) — the
-  // command and exit summary live in the terminal session body — EXCEPT when
-  // the model authored an intent title (stigmer#276): the title then says
-  // *why*, so the command surfaces as the secondary text and a fully
-  // collapsed row still reads like a narrated log. Intent-less shell rows
-  // render byte-identically to before.
-  const displaySubtitle = isSubagent
-    ? null
-    : category === "shell"
-      ? (intent ? primaryArg : null)
-      : primaryArg;
-
-  // For file tools the subtitle is a path: render it filename-first through
-  // FilePathLink (full path on hover) rather than the raw, often-absolute string
-  // that buried the file name behind a long prefix.
-  const subtitleIsFilePath =
-    !isSubagent && primaryArg != null && isFileCategory(category);
-
-  // A tail row condenses only a terminal session. While gated it renders like
-  // preview — decision actions are never hidden behind a chevron — and any
-  // other result shape (an offloaded outputRef, bare error text) falls back to
-  // preview too: never hide evidence the tail cannot honestly condense.
-  const tailSession =
-    isTailCategory && approval == null && result.type === "terminal"
-      ? result
-      : null;
-
-  // Preview categories (edit, write, fetch, web-search, unknown, mcp) render
-  // their body ALWAYS — Cursor-style "previews aren't collapsible" — so no
-  // header chevron competes with the body's own in-place reveal. Summary
-  // categories and subagents keep the chevron: their body is genuinely hidden
-  // by default, so the chevron has a real job. The two disclosure axes
-  // (card-level chevron vs. content-overflow reveal) never govern one body.
-  const isPreviewLayout =
-    !isSubagent &&
-    (disclosure === "preview" || (isTailCategory && tailSession == null));
-
   // The disclosed body, shared by both layouts: a pending gate decides inline,
   // a subagent shows its delegation, a settled remember call renders the
   // memory-proposal consent surface, otherwise the category detail.
@@ -407,8 +420,9 @@ export const ToolCallItem = memo(function ToolCallItem({
     </>
   );
 
-  // The header's metadata, identical in both layouts (the chevron is appended
-  // only by the summary layout below).
+  // The header's metadata, identical in every layout (the chevron is appended
+  // only by the toggle layouts below).
+  const headerSummary = !isSubagent && category !== "shell" ? resultSummary : null;
   const headerInner = (
     <>
       <span className="stg:shrink-0 stg:text-muted-foreground" aria-hidden="true">
@@ -428,34 +442,46 @@ export const ToolCallItem = memo(function ToolCallItem({
           {displayLabel}
         </span>
         {subtitleIsFilePath && primaryArg ? (
-          <FilePathLink
-            path={primaryArg}
-            className="stg:min-w-0 stg:text-xs stg:text-muted-foreground"
-          />
+          // Its own control, beside the row's toggle rather than inside it.
+          <ThreadCardHeaderControl className="stg:inline-flex stg:min-w-0">
+            <FilePathLink
+              path={primaryArg}
+              className="stg:min-w-0 stg:text-xs stg:text-muted-foreground"
+            />
+          </ThreadCardHeaderControl>
         ) : (
-          displaySubtitle && (
+          plainSubtitle &&
+          (headerIsToggle ? (
+            // The toggle over the row carries this text's hint (see `hint`).
+            <span
+              ref={measuresPlainSubtitle ? subtitleRef : undefined}
+              className={SUBTITLE_CLASSES}
+            >
+              {plainSubtitle}
+            </span>
+          ) : (
             // Not TruncatedText: the span must carry the external measurement
             // ref (useIsTextTruncated) that the expanded detail reads.
             <Tooltip>
               <TooltipTrigger
                 render={
                   <span
-                    ref={measuresSubtitle ? subtitleRef : undefined}
-                    className="stg:min-w-0 stg:truncate stg:text-muted-foreground stg:font-mono"
+                    ref={measuresPlainSubtitle ? subtitleRef : undefined}
+                    className={SUBTITLE_CLASSES}
                   />
                 }
               >
-                {displaySubtitle}
+                {plainSubtitle}
               </TooltipTrigger>
               <TooltipContent side="top" className="stg:break-all">
-                {displaySubtitle}
+                {plainSubtitle}
               </TooltipContent>
             </Tooltip>
-          )
+          ))
         )}
-        {!isSubagent && category !== "shell" && resultSummary && (
+        {headerSummary && (
           <span className="stg:shrink-0 stg:tabular-nums stg:text-muted-foreground">
-            {resultSummary}
+            {headerSummary}
           </span>
         )}
       </span>
@@ -487,6 +513,21 @@ export const ToolCallItem = memo(function ToolCallItem({
     );
   }
 
+  // The toggle's name says what the row is, from the header's own words: the
+  // title, the subtitle (a file's base name, never the file control's own
+  // "Copy path: …" name) and the result summary.
+  const toggleGesture = {
+    kind: "expand",
+    expanded,
+    onToggle: handleToggle,
+    label: toggleLabel(
+      displayLabel,
+      subtitleIsFilePath && primaryArg ? splitDisplayPath(primaryArg).base : plainSubtitle,
+      headerSummary,
+    ),
+    ...(plainSubtitle && subtitleTruncated ? { hint: plainSubtitle } : {}),
+  } as const;
+
   // Tail layout: a chevron-gated header whose body is never fully hidden —
   // expanded it is the live/full terminal session, collapsed it is the dimmed
   // TerminalTail teaser. useAutoDisclosure keeps it open while the command
@@ -500,11 +541,7 @@ export const ToolCallItem = memo(function ToolCallItem({
         cursorTarget="tool-call-row"
         className={className}
       >
-        <ThreadCardHeader
-          gesture={{ kind: "expand", expanded, onToggle: handleToggle }}
-        >
-          {headerInner}
-        </ThreadCardHeader>
+        <ThreadCardHeader gesture={toggleGesture}>{headerInner}</ThreadCardHeader>
         {expanded ? (
           <ThreadCardBody cursorTarget="tool-preview">{body}</ThreadCardBody>
         ) : (
@@ -522,8 +559,8 @@ export const ToolCallItem = memo(function ToolCallItem({
   }
 
   // Summary / subagent layout: a chevron-gated header disclosing a body hidden
-  // by default. The shell's `expand` gesture renders the div[role=button]
-  // header with Enter/Space keyboard parity and the chevron.
+  // by default. The shell's `expand` gesture lays the toggle button over the
+  // header and appends the chevron.
   return (
     <ThreadCardShell
       variant={variant}
@@ -531,9 +568,7 @@ export const ToolCallItem = memo(function ToolCallItem({
       cursorTarget="tool-call-row"
       className={className}
     >
-      <ThreadCardHeader gesture={{ kind: "expand", expanded, onToggle: handleToggle }}>
-        {headerInner}
-      </ThreadCardHeader>
+      <ThreadCardHeader gesture={toggleGesture}>{headerInner}</ThreadCardHeader>
 
       {expanded && (
         <ThreadCardBody rail={variant === "quiet"}>{body}</ThreadCardBody>
@@ -541,6 +576,18 @@ export const ToolCallItem = memo(function ToolCallItem({
     </ThreadCardShell>
   );
 });
+
+const SUBTITLE_CLASSES = "stg:min-w-0 stg:truncate stg:text-muted-foreground stg:font-mono";
+
+/**
+ * The name of a row's toggle: "Read july-statement.csv", "Searched invoices,
+ * 12 matches". Spoken in place of the header's text, so it carries what the
+ * header says about the call; status and duration stay readable beside it.
+ */
+function toggleLabel(title: string, subtitle: string | null, summary: string | null): string {
+  const named = subtitle ? `${title} ${subtitle}` : title;
+  return summary ? `${named}, ${summary}` : named;
+}
 
 // ---------------------------------------------------------------------------
 // Approval badge

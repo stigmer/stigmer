@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { cleanup, render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { RENAME_BUDGET_MS, renameThroughSlugField } from "../../__tests__/helpers/rename-slug";
 import { clone, create } from "@bufbuild/protobuf";
 import {
   ChannelAppSchema,
@@ -137,15 +138,9 @@ describe("ChannelAppDetailPanel rename", () => {
       </StigmerContext.Provider>,
     );
 
-    fireEvent.change(await screen.findByLabelText("Slug", undefined, { timeout: 5000 }), {
-      target: { value: "renamed-slug" },
-    });
-    const button = screen.getByRole("button", { name: "Rename" }) as HTMLButtonElement;
-    // The field settles before it takes the rename, however slow the runner.
-    await waitFor(() => expect(button.disabled).toBe(false), { timeout: 5000 });
-    fireEvent.click(button);
+    await renameThroughSlugField("renamed-slug");
 
-    await waitFor(() => expect(onUpdated).toHaveBeenCalledWith(renamed), { timeout: 5000 });
+    await waitFor(() => expect(onUpdated).toHaveBeenCalledWith(renamed), { timeout: RENAME_BUDGET_MS });
     expect(rename.mock.calls[0]).toEqual([expect.objectContaining({ resourceId: SLACK_APP.metadata?.id, slug: "renamed-slug" })]);
   });
 });

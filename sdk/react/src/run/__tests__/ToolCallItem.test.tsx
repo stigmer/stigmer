@@ -2,10 +2,14 @@
 // modes (summary, preview, tail, subagent), the density tier, the status
 // vocabulary read from `ToolUse.state`, duration chips from the use and
 // result times, the inline decision for a waiting call (ApprovalContext), the
-// Approved/Denied answer badge, and the file-review badge a file-edit row
-// reads from its turn's review by path.
+// Approved/Denied answer badge, the file-review badge a file-edit row
+// reads from its turn's review by path, and the header's controls: one
+// toggle laid over the row, named for what the row is and carrying a cut-off
+// subtitle's full text, with the file control a sibling that acts without
+// toggling.
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { render, screen, cleanup, fireEvent } from "@testing-library/react";
+import { render, screen, cleanup, fireEvent, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import type { FileReviewSet, ToolUse } from "@stigmer/client";
 import { ToolCallItem } from "../ToolCallItem";
 import { ApprovalContext, type ApprovalContextValue } from "../ApprovalContext";
@@ -18,15 +22,14 @@ function answering(onAnswer: ApprovalContextValue["onAnswer"] = () => {}, errors
   return { onAnswer, submittingIds: new Set(), errorsByToolUseId: errors };
 }
 
-// The card-level disclosure (header chevron) lives ONLY on summary / subagent
-// rows: a `div[role="button"]` header inside the row. Preview (content-bearing)
-// rows have no such control — their body is always visible — so these helpers
-// target that header specifically rather than "any [aria-expanded]" (a block's
-// own RevealToggle also carries aria-expanded, on a native <button>, which has
-// no role attribute and so is excluded here).
-function rowHeaderToggle(container: HTMLElement): Element | null {
+// The card-level disclosure (header chevron) lives ONLY on summary / tail /
+// subagent rows: the header's toggle button. Preview (content-bearing) rows
+// have no such control — their body is always visible — so these helpers
+// target the toggle by its hook rather than "any [aria-expanded]" (a block's
+// own RevealToggle also carries aria-expanded, on another native <button>).
+function rowHeaderToggle(container: HTMLElement): HTMLElement | null {
   return container.querySelector(
-    '[data-cursor-target="tool-call-row"] [role="button"]',
+    '[data-cursor-target="tool-call-row"] [data-cursor-target="thread-card-toggle"]',
   );
 }
 function hasHeaderChevron(container: HTMLElement): boolean {
@@ -807,5 +810,69 @@ describe("ToolCallItem file-review badge", () => {
 
     const bare = render(<ToolCallItem toolUse={editRow()} />);
     expect(badge(bare.container)).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Header controls — one toggle per row, the file control beside it
+// ---------------------------------------------------------------------------
+
+describe("ToolCallItem header controls", () => {
+  const runningRead = () =>
+    toolUse({ name: "Read", input: { path: "/data/statements/july-statement.csv" }, state: "running" });
+
+  it("names the toggle for what the row is: the title, a file's base name, the result summary", () => {
+    const { container, unmount } = render(<ToolCallItem toolUse={runningRead()} />);
+    expect(rowHeaderToggle(container)?.getAttribute("aria-label")).toBe("Read july-statement.csv");
+    unmount();
+
+    const search = render(
+      <ToolCallItem toolUse={toolUse({ name: "Grep", input: { pattern: "invoices" }, result: "a.ts:1: x\nb.ts:2: y" })} />,
+    );
+    expect(rowHeaderToggle(search.container)?.getAttribute("aria-label")).toBe("Search invoices, 2 files");
+  });
+
+  it("keeps the file control out of the toggle: its own target, acting without opening or closing the row", () => {
+    const { container } = render(<ToolCallItem toolUse={runningRead()} />);
+    const toggle = rowHeaderToggle(container)!;
+    // The header's own: the open body carries the same file control too.
+    const file = within(toggle.parentElement!).getByRole("button", {
+      name: /: \/data\/statements\/july-statement\.csv$/,
+    });
+    expect(file).not.toBe(toggle);
+    expect(toggle.contains(file), "a control inside the toggle is hidden from assistive technology").toBe(false);
+    expect(toggle.tagName).toBe("BUTTON");
+
+    const before = toggle.getAttribute("aria-expanded");
+    fireEvent.click(file);
+    expect(toggle.getAttribute("aria-expanded"), "the file click stays on the file").toBe(before);
+    fireEvent.click(toggle);
+    expect(toggle.getAttribute("aria-expanded")).not.toBe(before);
+  });
+
+  it("shows a cut-off subtitle's full text on the toggle's focus, and no hint while it fits", async () => {
+    const query = "invoices from the July statement run, every vendor, every currency";
+    const row = () => toolUse({ name: "Grep", input: { pattern: query }, result: "a.ts:1: x" });
+
+    const fits = render(<ToolCallItem toolUse={row()} />);
+    expect(rowHeaderToggle(fits.container)?.getAttribute("aria-label")).toContain(query);
+    await userEvent.tab();
+    expect(document.activeElement).toBe(rowHeaderToggle(fits.container));
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(screen.queryAllByText(query), "only the subtitle itself, no tooltip").toHaveLength(1);
+    fits.unmount();
+
+    // happy-dom lays nothing out, so "cut off" is the measurement's word.
+    const scroll = vi.spyOn(HTMLElement.prototype, "scrollWidth", "get").mockReturnValue(400);
+    const client = vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(120);
+    try {
+      const cut = render(<ToolCallItem toolUse={row()} />);
+      await userEvent.tab();
+      expect(document.activeElement).toBe(rowHeaderToggle(cut.container));
+      await waitFor(() => expect(screen.queryAllByText(query)).toHaveLength(2));
+    } finally {
+      scroll.mockRestore();
+      client.mockRestore();
+    }
   });
 });
