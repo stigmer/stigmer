@@ -20,6 +20,10 @@
  *    compared on the head it kept), a hook's deny binds after an approval;
  *  - a call an earlier, stopped run left waiting, and one this run left
  *    pending without proposing it;
+ *  - the paused shell call the engine hands back under its own name
+ *    (stigmer#2667): an approval handed back before any hook, to start the
+ *    engine again, refused once no start is left; any other answer judged
+ *    as the host's shell; every other call under that name still refused;
  *  - the agent's hooks in the Stigmer harness's gate's order: deny, ask (with the
  *    hook named), allow (a lease on an ask included), a rewrite judged
  *    again and returned to the engine, an ask with a rewrite refused, under
@@ -37,7 +41,7 @@
 import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it, onTestFinished } from "vitest";
+import { describe, expect, it, onTestFinished, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { HookGroupSchema, HookHandlerSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { RunSchema, RunStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
@@ -61,6 +65,7 @@ import {
   HALTED_MESSAGE,
   BOUNDARY_STOP_REASON,
   HIDDEN_SKILLS_MESSAGE,
+  MISNAMED_SHELL_MESSAGE,
   PLATFORM_READ_ONLY_MESSAGE,
   NOT_ADMITTED_MESSAGE,
   READ_ONLY_MESSAGE,
@@ -72,6 +77,7 @@ import {
   gateFactsOf,
   gateHooks,
   helperOverrideMessage,
+  holdsCall,
   helperStartAskMessage,
   notOfferedMessage,
   sameAsShown,
@@ -451,6 +457,100 @@ describe("a person's answer, by the call's id", () => {
     expect(await decide(answered(ApprovalAction.APPROVE, { hooks: denying }), SHELL, { ...SHOWN }, "toolu_w")).toEqual(refused(hookRefusalMessage("safety", "frozen"), "hook", ROOT_CALLER, "safety"));
     const allowing = withRootHooks(hooksAnswering(hookSays("allow")));
     expect(await decide(answered(ApprovalAction.REJECT, { hooks: allowing }), SHELL, { ...SHOWN }, "toolu_w")).toMatchObject({ kind: "refuse", byPerson: true });
+  });
+});
+
+describe("the paused shell call the engine hands back under its own name (stigmer#2667)", () => {
+  const SHOWN = { command: "npm run build", description: "build" };
+  const signal = new AbortController().signal;
+  /** A gate whose answered call `toolu_w` waits as the row `shown`, with the agent's hooks recording every call they are asked about. */
+  const answered = (action: ApprovalAction, over: Partial<GateFacts> = {}, seen: Record<string, unknown>[] = []): ClaudeGate =>
+    new ClaudeGate(
+      facts({
+        decisions: new Map([["toolu_w", action]]),
+        waitingCallOf: (id) => (id === "toolu_w" ? { name: "Bash", mcpServerSlug: "", args: SHOWN } : undefined),
+        hooks: withRootHooks(hooksAnswering({}, { seen })),
+        ...over,
+      }),
+    );
+
+  it("an approval is handed back untouched to start the engine again: no hook runs, the engine defers it, canUseTool refuses it, and the host's tools never run it", async () => {
+    for (const action of [ApprovalAction.APPROVE, ApprovalAction.APPROVE_ALL]) {
+      const seen: Record<string, unknown>[] = [];
+      const gate = answered(action, {}, seen);
+      const verdict = await decide(gate, "Bash", { ...SHOWN }, "toolu_w");
+      expect(verdict).toEqual({ kind: "resume_again", caller: ROOT_CALLER });
+      expect(holdsCall(verdict)).toBe(true);
+      expect(seen, "the run that executes it runs the hooks").toEqual([]);
+      expect(gate.admit({ server: "stigmer", tool: "bash", args: { ...SHOWN }, toolUseId: "toolu_w" })).toBe(NOT_ADMITTED_MESSAGE);
+    }
+    const gate = answered(ApprovalAction.APPROVE);
+    const preToolUse = gateHooks(gate).PreToolUse![0]!.hooks[0]!;
+    const hookInput: HookInput = { hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { ...SHOWN }, tool_use_id: "toolu_w", session_id: "s", transcript_path: "", cwd: WORKSPACE };
+    expect(await preToolUse(hookInput, "toolu_w", { signal })).toEqual({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "defer" } });
+    expect(gate.deferredCall).toBe("toolu_w");
+    expect(await canUseToolOf(gate)("Bash", { ...SHOWN }, { signal, toolUseID: "toolu_w", requestId: "r1" })).toEqual({ behavior: "deny", message: MISNAMED_SHELL_MESSAGE });
+    expect(gate.deferredCall, "the deferral the engine ran past is free again").toBeUndefined();
+  });
+
+  it("an approval is deferred only as the invocation's one deferral", async () => {
+    const gate = answered(ApprovalAction.APPROVE);
+    expect(gate.claimDeferral("toolu_other")).toBe(true);
+    const preToolUse = gateHooks(gate).PreToolUse![0]!.hooks[0]!;
+    const hookInput: HookInput = { hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { ...SHOWN }, tool_use_id: "toolu_w", session_id: "s", transcript_path: "", cwd: WORKSPACE };
+    expect(await preToolUse(hookInput, "toolu_w", { signal })).toEqual({
+      hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: MISNAMED_SHELL_MESSAGE },
+    });
+  });
+
+  it("on the run that may not start the engine again, an approval is refused saying the command did not run", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    onTestFinished(() => warn.mockRestore());
+    expect(await decide(answered(ApprovalAction.APPROVE, { resumesLeft: 0 }), "Bash", { ...SHOWN }, "toolu_w")).toEqual(refused(MISNAMED_SHELL_MESSAGE));
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("call=toolu_w"));
+  });
+
+  it("a refusal carries the person's reason, judged as the host's shell after the agent's hooks", async () => {
+    const seen: Record<string, unknown>[] = [];
+    const gate = answered(ApprovalAction.REJECT, { denyMessages: new Map([["toolu_w", "not on main"]]) }, seen);
+    expect(await decide(gate, "Bash", { ...SHOWN }, "toolu_w")).toEqual({
+      kind: "refuse",
+      message: personDecisionSentence("Bash", "reject", "not on main"),
+      source: undefined,
+      caller: ROOT_CALLER,
+      hook: undefined,
+      byPerson: true,
+    });
+    expect(seen).toHaveLength(1);
+    expect(seen[0]).toMatchObject({ tool_name: "Bash", tool_use_id: "toolu_w" });
+    expect(await decide(answered(ApprovalAction.SKIP), "Bash", { ...SHOWN }, "toolu_w")).toMatchObject({ kind: "refuse", message: personDecisionSentence("Bash", "skip", ""), byPerson: true });
+    const denying = withRootHooks(hooksAnswering(hookSays("deny", { permissionDecisionReason: "frozen" })));
+    expect(await decide(answered(ApprovalAction.REJECT, { hooks: denying }), "Bash", { ...SHOWN }, "toolu_w"), "a hook's deny comes first, as for the shell by its right name").toEqual(
+      refused(hookRefusalMessage("safety", "frozen"), "hook", ROOT_CALLER, "safety"),
+    );
+  });
+
+  it("a call this run left pending without proposing it is asked for again alone; one now let run is handed back", async () => {
+    expect(await decide(new ClaudeGate(facts({ unproposedCallId: "toolu_old" })), "Bash", { command: "make" }, "toolu_old")).toEqual(refused(ASK_ALONE_MESSAGE, "builtin_category"));
+    const trusted = new ClaudeGate(facts({ unproposedCallId: "toolu_old", leases: leases({ global: true }) }));
+    expect(await decide(trusted, "Bash", { command: "make" }, "toolu_old"), "the engine would run its own shell").toEqual({ kind: "resume_again", caller: ROOT_CALLER });
+  });
+
+  it("a stopping turn, a call nobody answered and a caller the gate cannot name still win", async () => {
+    const halted = new ClaudeGate(facts({ decisions: new Map([["toolu_w", ApprovalAction.APPROVE]]), waitingCallOf: () => ({ name: "Bash", mcpServerSlug: "", args: SHOWN }) }), () => true);
+    expect(await decide(halted, "Bash", { ...SHOWN }, "toolu_w")).toEqual(refused(HALTED_MESSAGE));
+    expect(await decide(answered(ApprovalAction.APPROVE, { staleCallId: "toolu_w" }), "Bash", { ...SHOWN }, "toolu_w")).toEqual(refused(STALE_CALL_MESSAGE));
+    expect(await decide(answered(ApprovalAction.APPROVE), "Bash", { ...SHOWN }, "toolu_w", "agent_unknown")).toEqual(refused(UNKNOWN_CALLER_MESSAGE, undefined, null));
+  });
+
+  it("every other call under the engine's own name is still refused as not offered", async () => {
+    expect(await decide(answered(ApprovalAction.APPROVE), "Bash", { ...SHOWN }, "toolu_fresh"), "a call no one paused").toEqual(refused(notOfferedMessage("Bash")));
+    const helper = startedGate({ decisions: new Map([["toolu_w", ApprovalAction.APPROVE]]), waitingCallOf: () => ({ name: "Bash", mcpServerSlug: "", args: SHOWN }) });
+    expect(await decide(helper, "Bash", { ...SHOWN }, "toolu_w", "agent_runner"), "a sub-agent's").toEqual(refused(notOfferedMessage("Bash"), undefined, RUNNER));
+    for (const shown of [{ name: "Write", mcpServerSlug: "" }, { name: "Bash", mcpServerSlug: "docs" }]) {
+      const gate = answered(ApprovalAction.APPROVE, { waitingCallOf: () => ({ ...shown, args: SHOWN }) });
+      expect(await decide(gate, "Bash", { ...SHOWN }, "toolu_w"), `a paused ${shown.name} of server '${shown.mcpServerSlug}'`).toEqual(refused(notOfferedMessage("Bash")));
+    }
   });
 });
 
