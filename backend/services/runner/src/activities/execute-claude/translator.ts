@@ -187,7 +187,10 @@ export class ClaudeTranslator {
       const callId = block.tool_use_id;
       const verdict = this.deps.verdictOf(callId);
       if (verdict?.kind === "refuse" && verdict.byPerson) continue;
-      if (verdict?.source !== undefined) out.push({ kind: "tool_policy", callId, provenance: verdict.source, policyHook: verdict.hook ?? "", ...scope });
+      // A call the gate handed back for the engine to start again (`gate.ts` item 1) was decided by no policy.
+      if (verdict !== undefined && verdict.kind !== "resume_again" && verdict.source !== undefined) {
+        out.push({ kind: "tool_policy", callId, provenance: verdict.source, policyHook: verdict.hook ?? "", ...scope });
+      }
       const answer = this.agentCalls.has(callId) && block.is_error !== true ? agentAnswerOf(message.tool_use_result) : undefined;
       const text = answer ?? resultText(block.content);
       const feedback = this.deps.feedbackOf?.(callId);
