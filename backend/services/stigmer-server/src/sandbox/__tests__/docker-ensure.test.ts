@@ -3,7 +3,10 @@
  * Docker daemon: a fake `docker` on PATH answers `inspect` with the state
  * the case sets and records every call. A running container is the fast
  * path (nothing started), a stopped one is restarted as-is with its
- * original env, and an absent one is created (a connect sandbox on its
+ * original env while its baked token is good, and recreated from a commit
+ * of itself with the fresh token once that token has expired (its
+ * workspace carried over; deprovision removes the carry image), and an
+ * absent one is created (a connect sandbox on its
  * own queue), with the operator's runner
  * secrets beside the token, never on the command line. The real CLI and
  * image are the live test's (docker.live.test.ts).
@@ -15,7 +18,7 @@ import path from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import type { LogFields, Logger } from "../../boot/logger.js";
-import { newDockerSandboxProvisioner } from "../docker.js";
+import { carryImageOf, newDockerSandboxProvisioner, tokenExpiryMs } from "../docker.js";
 import { sandboxBaseName } from "../naming.js";
 import type { SandboxDriverConfig, SandboxFacts } from "../provisioner.js";
 
@@ -43,6 +46,10 @@ let originalPath: string | undefined;
 /** The fake CLI: answers `inspect` from the state file, records every call. */
 const FAKE_DOCKER = `#!/bin/sh
 echo "$*" >> "$FAKE_DOCKER_DIR/calls.log"
+if [ "$1" = "inspect" ] && [ "$3" = "{{json .Config.Env}}" ]; then
+  cat "$FAKE_DOCKER_DIR/env"
+  exit 0
+fi
 if [ "$1" = "inspect" ]; then
   state=$(cat "$FAKE_DOCKER_DIR/state")
   if [ "$state" = "absent" ]; then
@@ -55,9 +62,16 @@ fi
 echo ok
 `;
 
-function setState(state: "absent" | "stopped" | "running"): void {
+function setState(state: "absent" | "stopped" | "running", bakedToken = jwtExpiringIn(3600)): void {
   writeFileSync(path.join(dir, "state"), state);
+  writeFileSync(path.join(dir, "env"), JSON.stringify(["PATH=/usr/bin", `STIGMER_TOKEN=${bakedToken}`]));
   writeFileSync(path.join(dir, "calls.log"), "");
+}
+
+/** A token-shaped string whose `exp` is `seconds` from now (the driver reads, never verifies, it). */
+function jwtExpiringIn(seconds: number): string {
+  const claims = { token_type: "execution_scoped", exp: Math.floor(Date.now() / 1000) + seconds };
+  return `h.${Buffer.from(JSON.stringify(claims)).toString("base64url")}.s`;
 }
 
 function calls(): string[] {
@@ -114,10 +128,55 @@ describe("docker driver ensure", () => {
     const { logger, infos } = capturingLogger();
     await newDockerSandboxProvisioner({ config: CONFIG, logger }).ensureSessionSandbox("ses_ensure", ENV);
 
-    expect(calls()).toEqual([`inspect --format {{.State.Running}} ${name}`, `start ${name}`]);
+    expect(calls()).toEqual([
+      `inspect --format {{.State.Running}} ${name}`,
+      `inspect --format {{json .Config.Env}} ${name}`,
+      `start ${name}`,
+    ]);
     expect(infos).toEqual([
       ["Docker sandbox restarted", { scope: "session", id: "ses_ensure", container: name }],
     ]);
+  });
+
+  it("recreates a stopped container whose token has expired from a commit of itself, with the fresh token", async () => {
+    setState("stopped", jwtExpiringIn(-60));
+    const { logger, infos } = capturingLogger();
+    await newDockerSandboxProvisioner({ config: CONFIG, logger }).ensureSessionSandbox("ses_ensure", ENV);
+
+    const made = calls();
+    expect(made.slice(0, 4)).toEqual([
+      `inspect --format {{.State.Running}} ${name}`,
+      `inspect --format {{json .Config.Env}} ${name}`,
+      `commit ${name} ${carryImageOf(name)}`,
+      `rm --force ${name}`,
+    ]);
+    expect(made[4]?.startsWith(`run --detach --name ${name} `)).toBe(true);
+    expect(made[4]).toContain(` ${carryImageOf(name)} `);
+    expect(made[4]).toMatch(/ --env STIGMER_TOKEN( |$)/);
+    expect(made.some((c) => c.startsWith("start "))).toBe(false);
+    expect(infos[0]).toEqual([
+      "Docker sandbox recreated with a fresh token",
+      { scope: "session", id: "ses_ensure", container: name },
+    ]);
+  });
+
+  it("starts a stopped container as it is when it has no token, or none minted now", async () => {
+    for (const [baked, fresh] of [["", "token-ensure"], [jwtExpiringIn(-60), ""]] as const) {
+      setState("stopped", baked);
+      const { logger } = capturingLogger();
+      await newDockerSandboxProvisioner({ config: CONFIG, logger }).ensureSessionSandbox("ses_ensure", {
+        ...ENV,
+        stigmerToken: fresh,
+      });
+      expect(calls().at(-1)).toBe(`start ${name}`);
+    }
+  });
+
+  it("removes a recreated sandbox's carry image with it", async () => {
+    setState("stopped");
+    const { logger } = capturingLogger();
+    await newDockerSandboxProvisioner({ config: CONFIG, logger }).deprovisionSessionSandbox("ses_ensure");
+    expect(calls()).toEqual([`rm --force ${name}`, `image rm ${carryImageOf(name)}`]);
   });
 
   it("creates a connect sandbox on its connect queue and answers its id", async () => {
@@ -151,5 +210,14 @@ describe("docker driver ensure", () => {
     expect(made.join("\n")).not.toContain("sk-ensure");
     expect(made[1]).toContain("--env ANTHROPIC_BASE_URL=http://model.example:18555");
     expect(made.some((c) => c.startsWith("start "))).toBe(false);
+  });
+});
+
+describe("tokenExpiryMs", () => {
+  it("reads a JWT's exp in milliseconds, and nothing from anything else", () => {
+    expect(tokenExpiryMs(`h.${Buffer.from(JSON.stringify({ exp: 10 })).toString("base64url")}.s`)).toBe(10_000);
+    for (const token of ["opaque", "h.%%%.s", `h.${Buffer.from("{}").toString("base64url")}.s`]) {
+      expect(tokenExpiryMs(token)).toBeUndefined();
+    }
   });
 });

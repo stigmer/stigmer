@@ -12,6 +12,15 @@
  * exists but stopped → start; running → fast path. State is derived
  * from the container itself — name + labels — never a store table.
  *
+ * A container keeps the environment it was created with, its token
+ * included, and the token is the runner's Temporal API key at the server's
+ * Temporal worker lane. So a stopped container whose token has expired is
+ * not started as it is: it would boot unable to take work, its renewal
+ * refused for an expired token. It is RECREATED with the fresh token
+ * instead, from a commit of itself (`stigmer-sandbox-carry:<name>`), so
+ * the workspace it holds (no volume backs it) carries over; deprovision
+ * removes the carry image.
+ *
  * Deliberate divergences from the cloud manifest, named:
  *
  *   - MODE=local, not cloud: the runner's MODE distinguishes
@@ -30,8 +39,9 @@
  * than inherited, because the image may be a base Stigmer did not build,
  * with its own USER and ENV (runner-launch.ts).
  *
- * Both endpoints are construct-time REQUIRED: a container cannot reach
- * the server or Temporal on this process's localhost, and a driver that
+ * The backend endpoint is construct-time REQUIRED: a container cannot
+ * reach the server on this process's localhost, and reaches Temporal only
+ * through the server, so a driver that
  * launched sandboxes pointing nowhere would fail as activity timeouts
  * minutes later — the loud-fail doctrine puts the error at boot instead.
  */
@@ -196,15 +206,23 @@ export const newDockerSandboxProvisioner: SandboxProvisionerFactory = ({
     if (state === "running") {
       return; // The fast path.
     }
+    let image = config.runnerImage;
     if (state === "stopped") {
-      // The scale-up arm: the container keeps its original env (token
-      // included) — the cloud's defer-restart posture for a stale token
-      // degenerates here to "the next full recreate re-mints".
-      await docker(["start", name]);
-      logger.info("Docker sandbox restarted", { scope, id, container: name });
-      return;
+      if (facts.stigmerToken === "" || !(await bakedTokenExpired(name))) {
+        // The scale-up arm: the container keeps its original env, its
+        // token still good.
+        await docker(["start", name]);
+        logger.info("Docker sandbox restarted", { scope, id, container: name });
+        return;
+      }
+      // Its token has expired: carry the filesystem over to a container
+      // holding the fresh one (the module header).
+      image = carryImageOf(name);
+      await docker(["commit", name, image]);
+      await docker(["rm", "--force", name]);
+      logger.info("Docker sandbox recreated with a fresh token", { scope, id, container: name });
     }
-    const run = buildDockerRun(scope, id, facts, config);
+    const run = buildDockerRun(scope, id, facts, { ...config, runnerImage: image });
     await docker(
       run.args,
       Object.keys(run.secretEnv).length > 0
@@ -220,10 +238,22 @@ export const newDockerSandboxProvisioner: SandboxProvisionerFactory = ({
     });
   }
 
+  /** Whether a stopped container's own STIGMER_TOKEN is within EXPIRY_MARGIN_MS of its `exp`. */
+  async function bakedTokenExpired(name: string): Promise<boolean> {
+    const env = JSON.parse(await docker(["inspect", "--format", "{{json .Config.Env}}", name])) as unknown;
+    const entry = Array.isArray(env)
+      ? env.find((item): item is string => typeof item === "string" && item.startsWith("STIGMER_TOKEN="))
+      : undefined;
+    const exp = entry === undefined ? undefined : tokenExpiryMs(entry.slice("STIGMER_TOKEN=".length));
+    return exp !== undefined && exp - Date.now() < EXPIRY_MARGIN_MS;
+  }
+
   async function deprovision(scope: SandboxScope, id: string): Promise<void> {
     const name = sandboxBaseName(scope, id);
     try {
       await docker(["rm", "--force", name]);
+      // A carry image exists only for a sandbox once recreated; gone is fine.
+      await docker(["image", "rm", carryImageOf(name)]).catch(() => undefined);
       logger.info("Docker sandbox deprovisioned", {
         scope,
         id,
@@ -252,6 +282,32 @@ export const newDockerSandboxProvisioner: SandboxProvisionerFactory = ({
   };
   return provisioner;
 };
+
+/**
+ * How close to its expiry a stopped container's token may be and still be
+ * started as it is: a runner renews at 80% of the token's life, so one
+ * that boots with less than this left cannot be relied on to renew in time.
+ */
+const EXPIRY_MARGIN_MS = 10 * 60_000;
+
+/** The image a recreated sandbox carries its filesystem in. */
+export function carryImageOf(name: string): string {
+  return `stigmer-sandbox-carry:${name}`;
+}
+
+/** A JWT's `exp` in milliseconds, read without verifying (the server verifies); undefined for anything else. */
+export function tokenExpiryMs(token: string): number | undefined {
+  const payload = token.split(".")[1];
+  if (payload === undefined) {
+    return undefined;
+  }
+  try {
+    const exp = (JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as { exp?: unknown }).exp;
+    return typeof exp === "number" ? exp * 1000 : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 /** Docker CLI's not-found shapes ("No such container"/"No such object"). */
 function isNoSuchContainer(error: unknown): boolean {

@@ -4,7 +4,9 @@
  * posture ONLY (boot/compose.ts; authorization/posture.ts), between
  * `apikey` and `oidc`. It admits the bearer of an execution-scoped runner
  * token AS THE HUMAN WHO ASKED: for a run, the person the execution row's
- * creator stamp names, for as long as that run lives; for an MCP
+ * creator stamp names, for as long as that run lives (and, for a
+ * sandbox's clocked token, for as long as the run's session exists,
+ * within the token's own `exp`: sandbox-credential.ts); for an MCP
  * connect, the person who asked for the connect, whom the connect's
  * attempt row records for as long as that row exists
  * — in the `runner` caller class either way (runnerauth.ts header: the
@@ -91,6 +93,7 @@ import type {
   IdentityVerifier,
 } from "../extensions/identity.js";
 import { bindsARun, loadBoundExecution } from "./bound-execution.js";
+import { sandboxSessionLives } from "./sandbox-credential.js";
 import type { BoundExecutionStore } from "./bound-execution.js";
 import {
   RUNNER_CREDENTIAL_INVALID_MESSAGE,
@@ -140,7 +143,11 @@ export function newRunnerSubjectIdentityVerifier(
       if (!isClockedToken(token) && !bindsARun(execution.kind)) {
         throw invalidCredential();
       }
-      if (!execution.live) {
+      // A run credential lives with its run. A sandbox's clocked token
+      // lives with its session (sandbox-credential.ts): a session sandbox
+      // keeps the token of the run that last ensured it, and must still
+      // renew it once that run has ended.
+      if (!execution.live && !(await sandboxSessionLives(deps.store, token, execution))) {
         throw notLive();
       }
       // A row that names no organization cannot bind the credential, and an
