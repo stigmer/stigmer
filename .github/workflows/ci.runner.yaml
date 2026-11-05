@@ -21,6 +21,9 @@
 # loader rejects, so an import-time boot crash (#399) can pass every other
 # gate. See scripts/verify-dist-boot.mjs for the mechanism.
 #
+# It also boots the slim bundle on Windows (slim-boot-windows), the platform
+# no other Gate job runs the runner on; the job's comment says why.
+#
 # This is a SEPARATE lane from ci.conformance-execution (its closest sibling)
 # rather than an added step, so it has an independent signal and its own
 # path list (scripts/ci-lanes.mjs: the runner's own tree, the workspace libs
@@ -101,6 +104,57 @@ jobs:
               exit 1
             fi
           done
+
+  # The slim runner booted on Windows, the one platform no other job of the
+  # Gate runs it on: the desktop's release leg was the only Windows run, and
+  # it builds only on a tag or a dispatch, so a runner change that broke the
+  # Windows boot (the agent host's fd 3 pipe, stigmer#2983) went unseen for
+  # five weeks. This builds the slim bundle and runs the gate the desktop
+  # runs on its staged engine (client-apps/desktop/scripts/
+  # verify-staged-runtime.mjs) without Temporal: the size budget, the
+  # authenticated boot through the real agent host supervisor, the Claude
+  # engine pin and the agent host's own boot. It takes the desktop leg's
+  # route (release.desktop.yaml), not runner-vitest's: npm runs scripts
+  # through bash, since the runner's build script is POSIX shell, and the
+  # proto stubs are committed, so no buf step is needed.
+  slim-boot-windows:
+    name: Runner slim boot (Windows)
+    runs-on: windows-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Run npm scripts through bash
+        run: npm config set script-shell "$(which bash)"
+
+      - name: Install npm workspace dependencies
+        run: npm ci
+
+      - name: Build runner-linked workspace libs
+        run: npm run build:runner-deps
+
+      - name: Install unified runner dependencies
+        working-directory: backend/services/runner
+        run: npm ci
+
+      - name: Build the slim artifact
+        working-directory: backend/services/runner
+        run: npm run build:slim
+
+      - name: Verify the slim artifact boots (no Temporal)
+        working-directory: backend/services/runner
+        run: node scripts/verify-slim-artifact.mjs --no-temporal
 
   runner-vitest:
     name: Runner Vitest
