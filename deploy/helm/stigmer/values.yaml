@@ -231,7 +231,7 @@ artifacts:
 terminationGracePeriodSeconds: 60
 
 waitForDependencies:
-  # compose's `depends_on: condition: service_healthy`, translated. The
+  # compose's `depends_on` conditions, translated. The
   # server throws at boot when Postgres is unreachable and the runner exits
   # when Temporal is; without this both crash-loop through Kubernetes'
   # growing backoff until the dependencies are up. The init container waits
@@ -254,8 +254,8 @@ waitForDependencies:
 
 postgres:
   # Bundled Postgres: one instance, one claim, the compose stack's posture
-  # (one Postgres instance, one backup story). Temporal's
-  # auto-setup creates its two databases on it. Right for one team; for HA
+  # (one Postgres instance, one backup story). The bundled Temporal's
+  # schema step creates its two databases on it. Right for one team; for HA
   # or managed backups set enabled: false and fill externalDatabase.
   enabled: true
   # An exact minor release, never the floating `16`: the image compose runs,
@@ -312,21 +312,29 @@ externalDatabase:
   passwordKey: POSTGRES_PASSWORD
 
 temporal:
-  # Bundled Temporal: one temporalio/auto-setup pod, the compose stack's
-  # choice ("a real Temporal server, NOT the CLI's dev-server"). Ready
-  # only when the default namespace exists (stigmer#904). For production
-  # Temporal, Temporal's own chart is the path; set enabled: false and
-  # fill externalTemporal.
+  # Bundled Temporal: one pod running temporalio/server, the compose
+  # stack's choice ("a real Temporal server, NOT the CLI's dev-server"),
+  # with its two setup steps on temporalio/admin-tools: the schema before
+  # the server, and the default namespace beside it. Ready only when the
+  # default namespace exists (stigmer#904). For production Temporal,
+  # Temporal's own chart is the path; set enabled: false and fill
+  # externalTemporal.
   enabled: true
-  image: temporalio/auto-setup:1.28.0
+  # The server, and the setup tools at the same version: both are compose's
+  # tags (the parity test holds them equal), and they move together.
+  image: temporalio/server:1.32.2
+  adminToolsImage: temporalio/admin-tools:1.32.2
+  # The server's own. The two setup containers are sized apart from it
+  # (10m and 32Mi requested, 128Mi at most).
   resources:
     requests:
       cpu: 250m
       memory: 512Mi
     limits:
       memory: 1Gi
-  # The image runs as its user named `temporal`; Kubernetes needs the
-  # NUMBER to verify runAsNonRoot (uid 1000, read from the image).
+  # Every container of the pod: both images run as their user named
+  # `temporal`; Kubernetes needs the NUMBER to verify runAsNonRoot (uid 1000,
+  # read from the images).
   securityContext:
     runAsNonRoot: true
     runAsUser: 1000

@@ -4,8 +4,8 @@ whoever reaches its frontend can start work on the runner's task queue, so
 only this release's stigmer pod may connect: the server, the runner and the
 init container that waits for the frontend all carry its labels, and they
 are admitted to the frontend port alone. Temporal's own pod is admitted on
-every port, because auto-setup runs every Temporal service in one pod and
-they reach one another on its address. Ingress only: Temporal's connection
+every port, because its server runs every Temporal service in one process
+and they reach one another on the pod's address. Ingress only: Temporal's connection
 to Postgres is not restricted here.
 
 What it cannot fence: the runner's own tools and stdio MCP servers run inside

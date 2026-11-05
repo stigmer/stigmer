@@ -1,8 +1,8 @@
 {{- /*
 Bundled Postgres: compose's `postgres` service. One instance, one claim,
 the image compose runs (the parity test holds the two tags equal), the app
-database created by POSTGRES_DB; Temporal's auto-setup creates its two on
-the same instance at first boot (one Postgres, three databases, one backup
+database created by POSTGRES_DB; the Temporal pod's schema step creates
+its two on the same instance at first boot (one Postgres, three databases, one backup
 story). A StatefulSet so the claim follows the pod; its volumeClaimTemplate
 is retained on uninstall by Kubernetes' default policy. Right for one team;
 production brings its own through externalDatabase.
@@ -76,8 +76,8 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.secrets.existingSecret | quote }}
                   key: POSTGRES_PASSWORD
-            # The app database; auto-setup creates `temporal` and
-            # `temporal_visibility` beside it.
+            # The app database; the Temporal pod's schema step creates
+            # `temporal` and `temporal_visibility` beside it.
             - name: POSTGRES_DB
               value: stigmer
             # Postgres refuses to initialize a data directory that is the

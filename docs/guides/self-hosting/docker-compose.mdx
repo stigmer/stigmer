@@ -22,8 +22,11 @@ for the whole page: every setting you change is a line in `.env`. You never edit
 
 ## What's in the stack
 
-Four services. The server and the runner share one file-storage volume,
-`artifacts`: file sharing is the contract between them, not HTTP.
+Four services, and two Temporal setup steps that run to completion on every
+start: `temporal-schema` creates Temporal's databases before its server starts,
+and `temporal-namespace` registers the namespace Stigmer runs in. The server and
+the runner share one file-storage volume, `artifacts`: file sharing is the
+contract between them, not HTTP.
 
 ```mermaid
 flowchart LR
@@ -52,8 +55,9 @@ plus `.env` are a complete backup.
 
 ## What you need
 
-- A machine with Docker and the Compose plugin. Both amd64 and arm64 work; every
-  release is smoke-tested on both before its images publish.
+- A machine with Docker and the Compose plugin, version 2.23.1 or newer
+  (`docker compose version` prints it). Both amd64 and arm64 work; every release
+  is smoke-tested on both before its images publish.
 - Host ports 7234 and 7235 free. If the laptop stack runs on this machine, stop
   it first with `stigmer down`; it uses the same ports.
 - The Stigmer CLI on whichever machine you drive the stack from, this one or
@@ -117,10 +121,12 @@ Paste each value into its line. Two optional lines are worth setting now:
 docker compose up -d
 ```
 
-The first start pulls four images and lets Temporal create its databases, so
-give it a few minutes. `docker compose ps` is the health check: every service
-shows `Up`, and `postgres`, `temporal` and `stigmer-server` also show
-`(healthy)`.
+The first start pulls five images and lets Temporal create its databases and its
+namespace, so give it a few minutes. `docker compose ps` is the health check:
+every service shows `Up`, and `postgres` and `stigmer-server` also show
+`(healthy)`. The two setup steps exit once they finish, so `docker compose ps`
+leaves them out; `docker compose ps -a` lists them as `Exited (0)`, which is
+success.
 
 ### Open the console
 

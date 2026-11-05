@@ -20,8 +20,9 @@ image (see [Stigmer Enterprise](#stigmer-enterprise)).
   shares one laptop and Compose shares one host.
 - **Postgres**, bundled as one `postgres:16.15` instance with one disk (one
   team's posture), or yours through `externalDatabase`.
-- **Temporal**, bundled as one `temporalio/auto-setup` pod, or yours through
-  `externalTemporal`. For production Temporal,
+- **Temporal**, bundled as one pod running `temporalio/server` with its two
+  setup steps on `temporalio/admin-tools` (the version `stigmer up` runs), or
+  yours through `externalTemporal`. For production Temporal,
   [Temporal's own chart](https://github.com/temporalio/helm-charts) is the path.
 - **Your keys, explicitly.** The chart refuses to install until you name a
   Secret with the two server keys (and the database password when Postgres is
@@ -349,9 +350,10 @@ the server as `PGDATABASE` and the password as `PGPASSWORD` from its Secret, so
 the password never appears in rendered manifests and no character in either can
 break the URL. Connection options the Postgres client reads from the
 environment, such as `PGSSLMODE=require` for a managed database, go through
-`server.extraEnv`. When Temporal stays bundled and Postgres is yours, Temporal's
-`auto-setup` creates its two databases (`temporal`, `temporal_visibility`) on
-your instance at first boot and needs a user with `CREATE DATABASE`.
+`server.extraEnv`. When Temporal stays bundled and Postgres is yours, the
+Temporal pod's schema step creates its two databases (`temporal`,
+`temporal_visibility`) on your instance at first boot and needs a user with
+`CREATE DATABASE`.
 
 ## Backup, restore, upgrade
 
@@ -379,6 +381,11 @@ install notes print names the installed chart's `--version`, so its
 `--reuse-values` keeps the values with the chart they were written for. The pod is recreated, not rolled (it owns disks that can only be
 attached to one node), so there is a short interruption; in-flight agent turns
 resume from their Temporal checkpoints.
+
+The bundled Temporal's schema step brings Temporal's two databases to the
+server's version on every start. Temporal supports moving its data one minor
+version at a time, so an install made before the chart moved from Temporal 1.28
+to 1.32 (stigmer#2968) is not promised an in-place move; install it fresh.
 
 Restoring a Compose stack's data here: the database dumps and restores as usual;
 copy the `artifacts` volume's contents into the `<release>-artifacts` disk

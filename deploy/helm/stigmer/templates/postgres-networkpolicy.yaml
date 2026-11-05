@@ -2,8 +2,9 @@
 The bundled Postgres's fence. That Postgres holds everything Stigmer keeps
 and authenticates by password alone, so only this release's pods that use
 it may connect: the stigmer pod (the server, and the init container that
-waits for the database) and the Temporal pod (auto-setup keeps Temporal's
-two databases on this instance, and its init container waits here too).
+waits for the database) and the Temporal pod (Temporal keeps its two
+databases on this instance, and its init containers wait for it and create
+them).
 Both are admitted to the Postgres port alone. Ingress only.
 
 What it cannot fence: the runner's own tools and stdio MCP servers run

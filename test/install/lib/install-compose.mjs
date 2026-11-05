@@ -242,10 +242,11 @@ export function createComposeStack({ model, log }) {
     },
     diagnostics() {
       if (files.length === 0) return "--- the stack was never configured ---";
-      const ps = spawnSync("docker", [...composeArgs(), "ps"], { encoding: "utf8" });
+      // -a: Temporal's two setup steps have exited, and a failed one's exit code is the finding.
+      const ps = spawnSync("docker", [...composeArgs(), "ps", "-a"], { encoding: "utf8" });
       const logs = spawnSync("docker", [...composeArgs(), "logs", "--tail", "120"], { encoding: "utf8" });
       return [
-        "--- docker compose ps ---",
+        "--- docker compose ps -a ---",
         ps.stdout ?? "",
         "--- docker compose logs (last 120 lines/service) ---",
         logs.stdout ?? "",

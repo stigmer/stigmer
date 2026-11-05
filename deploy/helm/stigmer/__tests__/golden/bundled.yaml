@@ -76,6 +76,24 @@ spec:
               app.kubernetes.io/instance: stigmer
               app.kubernetes.io/component: temporal
 ---
+# Source: stigmer/templates/temporal.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: stigmer-temporal
+  labels:
+    app.kubernetes.io/name: stigmer
+    app.kubernetes.io/instance: stigmer
+    app.kubernetes.io/version: "<CHART_VERSION>"
+    app.kubernetes.io/managed-by: Helm
+    helm.sh/chart: stigmer-<CHART_VERSION>
+    app.kubernetes.io/component: temporal
+data:
+  # A Temporal setting this install ever needs goes here, under Temporal's own
+  # dynamic-config key, and in compose's temporal-dynamic-config alike.
+  dynamic-config.yaml: |
+    # Temporal dynamic config. Empty: every setting is Temporal's default.
+---
 # Source: stigmer/templates/pvc.yaml
 # the server's /data: the skill content store and everything under ~/.stigmer except artifacts
 apiVersion: v1
@@ -537,12 +555,63 @@ spec:
             runAsUser: 999
             seccompProfile:
               type: RuntimeDefault
+        - name: temporal-schema
+          image: "temporalio/admin-tools:1.32.2"
+          imagePullPolicy: IfNotPresent
+          # temporal-sql-tool reads its connection from these, the password
+          # by secretKeyRef, so nothing from values is spliced into the
+          # script.
+          env:
+            - name: SQL_PLUGIN
+              value: postgres12
+            - name: SQL_HOST
+              value: "stigmer-postgres"
+            - name: SQL_PORT
+              value: "5432"
+            - name: SQL_USER
+              value: "postgres"
+            - name: SQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: "stigmer-secrets"
+                  key: "POSTGRES_PASSWORD"
+          command:
+            - sh
+            - -c
+            - |
+              set -eu
+              schema=/etc/temporal/schema/postgresql/v12
+              for pair in temporal:temporal temporal_visibility:visibility; do
+                db=${pair%%:*}
+                dir=${pair##*:}
+                temporal-sql-tool --db "$db" create
+                temporal-sql-tool --db "$db" setup-schema -v 0.0
+                temporal-sql-tool --db "$db" update-schema -d "$schema/$dir/versioned"
+              done
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            runAsGroup: 1000
+            runAsNonRoot: true
+            runAsUser: 1000
+            seccompProfile:
+              type: RuntimeDefault
       containers:
         - name: temporal
-          image: "temporalio/auto-setup:1.28.0"
+          image: "temporalio/server:1.32.2"
           # An exact third-party tag: IfNotPresent by definition. image.pullPolicy
           # governs the two Stigmer images only.
           imagePullPolicy: IfNotPresent
+          # The server reads its configuration from these variables, through
+          # the template built into its image.
           env:
             - name: DB
               value: postgres12
@@ -557,21 +626,15 @@ spec:
                   key: "POSTGRES_PASSWORD"
             - name: POSTGRES_SEEDS
               value: "stigmer-postgres"
+            - name: DYNAMIC_CONFIG_FILE_PATH
+              value: /etc/temporal/config/dynamicconfig/dynamic-config.yaml
           ports:
             - name: frontend
               containerPort: 7233
-          readinessProbe:
-            exec:
-              command:
-                - sh
-                - -c
-                - temporal operator namespace describe -n default --address $(hostname -i):7233
-            periodSeconds: 5
-            # 10 s, not compose's 5: the exec runs the temporal CLI inside the
-            # pod, and on a loaded node (the CI gate saw it) 5 s times out
-            # while the frontend is actually serving.
-            timeoutSeconds: 10
-            failureThreshold: 60
+          volumeMounts:
+            - name: dynamic-config
+              mountPath: /etc/temporal/config/dynamicconfig
+              readOnly: true
           resources:
             limits:
               memory: 1Gi
@@ -588,6 +651,75 @@ spec:
             runAsUser: 1000
             seccompProfile:
               type: RuntimeDefault
+        - name: temporal-namespace
+          image: "temporalio/admin-tools:1.32.2"
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            # The temporal CLI's own variable for the server it dials, read by
+            # the script and the readiness exec alike.
+            - name: TEMPORAL_ADDRESS
+              value: $(POD_IP):7233
+          command:
+            - sh
+            - -c
+            - |
+              set -u
+              deadline=$(( $(date +%s) + 240 ))
+              wait_until() {
+                what=$1
+                shift
+                until "$@" >/dev/null 2>&1; do
+                  if [ "$(date +%s)" -ge "$deadline" ]; then
+                    echo "temporal-namespace: gave up waiting for $what at $TEMPORAL_ADDRESS" >&2
+                    exit 1
+                  fi
+                  sleep 2
+                done
+              }
+              serving() { temporal operator cluster health | grep -q SERVING; }
+              wait_until "the server to answer SERVING" serving
+              if ! temporal operator namespace describe -n default >/dev/null 2>&1; then
+                temporal operator namespace create -n default --retention 24h || true
+              fi
+              wait_until "the default namespace" temporal operator namespace describe -n default
+              echo "temporal-namespace: the default namespace is registered"
+              # Stay up, as the image's own command does, so the readiness
+              # exec below keeps reporting the namespace.
+              trap exit INT HUP TERM
+              sleep infinity & wait
+          readinessProbe:
+            exec:
+              command: [temporal, operator, namespace, describe, -n, default]
+            periodSeconds: 5
+            # 10 s: the exec runs the temporal CLI inside the pod, and on a
+            # loaded node (the CI gate saw it) 5 s timed out while the
+            # frontend was serving.
+            timeoutSeconds: 10
+            failureThreshold: 60
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            runAsGroup: 1000
+            runAsNonRoot: true
+            runAsUser: 1000
+            seccompProfile:
+              type: RuntimeDefault
+      volumes:
+        - name: dynamic-config
+          configMap:
+            name: stigmer-temporal
 ---
 # Source: stigmer/templates/postgres.yaml
 apiVersion: apps/v1
@@ -635,8 +767,8 @@ spec:
                 secretKeyRef:
                   name: "stigmer-secrets"
                   key: POSTGRES_PASSWORD
-            # The app database; auto-setup creates `temporal` and
-            # `temporal_visibility` beside it.
+            # The app database; the Temporal pod's schema step creates
+            # `temporal` and `temporal_visibility` beside it.
             - name: POSTGRES_DB
               value: stigmer
             # Postgres refuses to initialize a data directory that is the

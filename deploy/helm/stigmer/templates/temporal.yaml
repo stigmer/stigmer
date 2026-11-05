@@ -1,18 +1,36 @@
 {{- /*
-Bundled Temporal: compose's `temporal` service, a real Temporal server
-(temporalio/auto-setup), never the CLI's dev-server. Ready means "the default
-namespace is registered", NOT "the frontend answers": auto-setup registers
-the namespace seconds after the frontend starts serving, and a server that
-connects in that window fails its worker creation without a later retry
-(stigmer#904). The readiness exec encodes that, so the Service has no
-endpoint until the namespace exists and the stigmer pod's init container
-(a TCP connect) waits for exactly that moment. Waits for Postgres itself,
-as compose's depends_on does. For production Temporal, Temporal's own chart
-is the path (externalTemporal).
+Bundled Temporal: compose's three Temporal services in one pod, a real
+Temporal server (temporalio/server), never the CLI's dev-server. The two setup
+steps run on temporalio/admin-tools at the server's own version (the parity
+test holds every Temporal image to compose's, and compose's to one version):
 
-It runs as the image's own temporal user, by number (uid 1000): the image
-names its user, and Kubernetes can verify runAsNonRoot only against a
-numeric one. It mounts nothing, so the pod needs no fsGroup.
+  - temporal-schema, an init container after wait-for-postgres, creates
+    Temporal's two databases and brings their schemas to the server's
+    version; every step is safe to repeat, so every pod start runs it and a
+    reinstall onto kept disks leaves a current schema as it is;
+  - temporal-namespace, a container beside the server, registers the default
+    namespace (retention 24h) once the server answers, then stays up and
+    carries the pod's readiness.
+
+Ready means "the default namespace is registered", NOT "the frontend
+answers": a server that connects before the namespace exists fails its worker
+creation without a later retry (stigmer#904). The readiness exec encodes that,
+so the Service has no endpoint until the namespace exists and the stigmer
+pod's init container (a TCP connect) waits for exactly that moment. The
+registrar is a regular container, not a native sidecar, because the chart
+supports Kubernetes from 1.27. It dials the pod's own address: the server
+binds that address, not loopback. Both scripts are compose's, byte for byte
+after compose's $$ escaping; the parity test holds them equal.
+
+The server refuses to start without a dynamic-config file, and its image
+ships none, so the <release>-temporal ConfigMap carries one: empty, the same
+text as compose's, so every setting is Temporal's default.
+
+Every container runs as the images' own temporal user, by number (uid 1000):
+the images name their user, and Kubernetes can verify runAsNonRoot only
+against a numeric one. The one mount is a read-only ConfigMap, so the pod
+needs no fsGroup. For production Temporal, Temporal's own chart is the path
+(externalTemporal).
 */ -}}
 {{- if .Values.temporal.enabled }}
 {{- $fullname := include "stigmer.fullname" . }}
@@ -32,6 +50,19 @@ spec:
       port: 7233
       targetPort: frontend
       appProtocol: grpc
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $fullname }}-temporal
+  labels:
+    {{- include "stigmer.labels" . | nindent 4 }}
+    app.kubernetes.io/component: temporal
+data:
+  # A Temporal setting this install ever needs goes here, under Temporal's own
+  # dynamic-config key, and in compose's temporal-dynamic-config alike.
+  dynamic-config.yaml: |
+    # Temporal dynamic config. Empty: every setting is Temporal's default.
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -59,8 +90,8 @@ spec:
         - name: {{ . | quote }}
         {{- end }}
       {{- end }}
-      {{- if .Values.waitForDependencies.enabled }}
       initContainers:
+        {{- if .Values.waitForDependencies.enabled }}
         - name: wait-for-postgres
           image: {{ .Values.waitForDependencies.image | quote }}
           # The address arrives as env and pg_isready reads it, so nothing
@@ -85,13 +116,56 @@ spec:
               memory: 32Mi
           securityContext:
             {{- toYaml .Values.waitForDependencies.securityContext | nindent 12 }}
-      {{- end }}
+        {{- end }}
+        - name: temporal-schema
+          image: {{ .Values.temporal.adminToolsImage | quote }}
+          imagePullPolicy: IfNotPresent
+          # temporal-sql-tool reads its connection from these, the password
+          # by secretKeyRef, so nothing from values is spliced into the
+          # script.
+          env:
+            - name: SQL_PLUGIN
+              value: postgres12
+            - name: SQL_HOST
+              value: {{ include "stigmer.postgresHost" . | quote }}
+            - name: SQL_PORT
+              value: {{ include "stigmer.postgresPort" . | quote }}
+            - name: SQL_USER
+              value: {{ include "stigmer.postgresUser" . | quote }}
+            - name: SQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "stigmer.postgresPasswordSecret" . | quote }}
+                  key: {{ include "stigmer.postgresPasswordKey" . | quote }}
+          command:
+            - sh
+            - -c
+            - |
+              set -eu
+              schema=/etc/temporal/schema/postgresql/v12
+              for pair in temporal:temporal temporal_visibility:visibility; do
+                db=${pair%%:*}
+                dir=${pair##*:}
+                temporal-sql-tool --db "$db" create
+                temporal-sql-tool --db "$db" setup-schema -v 0.0
+                temporal-sql-tool --db "$db" update-schema -d "$schema/$dir/versioned"
+              done
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 128Mi
+          securityContext:
+            {{- toYaml .Values.temporal.securityContext | nindent 12 }}
       containers:
         - name: temporal
           image: {{ .Values.temporal.image | quote }}
           # An exact third-party tag: IfNotPresent by definition. image.pullPolicy
           # governs the two Stigmer images only.
           imagePullPolicy: IfNotPresent
+          # The server reads its configuration from these variables, through
+          # the template built into its image.
           env:
             - name: DB
               value: postgres12
@@ -106,23 +180,78 @@ spec:
                   key: {{ include "stigmer.postgresPasswordKey" . | quote }}
             - name: POSTGRES_SEEDS
               value: {{ include "stigmer.postgresHost" . | quote }}
+            - name: DYNAMIC_CONFIG_FILE_PATH
+              value: /etc/temporal/config/dynamicconfig/dynamic-config.yaml
           ports:
             - name: frontend
               containerPort: 7233
-          readinessProbe:
-            exec:
-              command:
-                - sh
-                - -c
-                - temporal operator namespace describe -n default --address $(hostname -i):7233
-            periodSeconds: 5
-            # 10 s, not compose's 5: the exec runs the temporal CLI inside the
-            # pod, and on a loaded node (the CI gate saw it) 5 s times out
-            # while the frontend is actually serving.
-            timeoutSeconds: 10
-            failureThreshold: 60
+          volumeMounts:
+            - name: dynamic-config
+              mountPath: /etc/temporal/config/dynamicconfig
+              readOnly: true
           resources:
             {{- toYaml .Values.temporal.resources | nindent 12 }}
           securityContext:
             {{- toYaml .Values.temporal.securityContext | nindent 12 }}
+        - name: temporal-namespace
+          image: {{ .Values.temporal.adminToolsImage | quote }}
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            # The temporal CLI's own variable for the server it dials, read by
+            # the script and the readiness exec alike.
+            - name: TEMPORAL_ADDRESS
+              value: $(POD_IP):7233
+          command:
+            - sh
+            - -c
+            - |
+              set -u
+              deadline=$(( $(date +%s) + 240 ))
+              wait_until() {
+                what=$1
+                shift
+                until "$@" >/dev/null 2>&1; do
+                  if [ "$(date +%s)" -ge "$deadline" ]; then
+                    echo "temporal-namespace: gave up waiting for $what at $TEMPORAL_ADDRESS" >&2
+                    exit 1
+                  fi
+                  sleep 2
+                done
+              }
+              serving() { temporal operator cluster health | grep -q SERVING; }
+              wait_until "the server to answer SERVING" serving
+              if ! temporal operator namespace describe -n default >/dev/null 2>&1; then
+                temporal operator namespace create -n default --retention 24h || true
+              fi
+              wait_until "the default namespace" temporal operator namespace describe -n default
+              echo "temporal-namespace: the default namespace is registered"
+              # Stay up, as the image's own command does, so the readiness
+              # exec below keeps reporting the namespace.
+              trap exit INT HUP TERM
+              sleep infinity & wait
+          readinessProbe:
+            exec:
+              command: [temporal, operator, namespace, describe, -n, default]
+            periodSeconds: 5
+            # 10 s: the exec runs the temporal CLI inside the pod, and on a
+            # loaded node (the CI gate saw it) 5 s timed out while the
+            # frontend was serving.
+            timeoutSeconds: 10
+            failureThreshold: 60
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 128Mi
+          securityContext:
+            {{- toYaml .Values.temporal.securityContext | nindent 12 }}
+      volumes:
+        - name: dynamic-config
+          configMap:
+            name: {{ $fullname }}-temporal
 {{- end }}

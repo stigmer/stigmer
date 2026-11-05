@@ -2,8 +2,9 @@
 # Temporal the chart did NOT install, in their own namespace, so the
 # externalDatabase and externalTemporal values are proven against
 # addresses the release does not own. Plain manifests mirroring the compose
-# services (postgres:16.15; temporalio/auto-setup with the namespace-exists
-# readiness, stigmer#904). The smoke creates the `byo-secrets` Secret with
+# services (postgres:16.15; temporalio/server with its schema and namespace
+# steps on temporalio/admin-tools, and the namespace-exists readiness,
+# stigmer#904). The smoke creates the `byo-secrets` Secret with
 # the same POSTGRES_PASSWORD it gives the chart's Secret before applying
 # this file. Not for any use beyond the smoke.
 apiVersion: v1
@@ -82,6 +83,15 @@ spec:
     - port: 7233
       targetPort: 7233
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: byo-temporal
+  namespace: byo-infra
+data:
+  dynamic-config.yaml: |
+    # Temporal dynamic config. Empty: every setting is Temporal's default.
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -101,9 +111,38 @@ spec:
         - name: wait-for-postgres
           image: postgres:16.15
           command: [sh, -c, "until pg_isready -h byo-postgres -U postgres; do sleep 2; done"]
+        - name: temporal-schema
+          image: temporalio/admin-tools:1.32.2
+          env:
+            - name: SQL_PLUGIN
+              value: postgres12
+            - name: SQL_HOST
+              value: byo-postgres
+            - name: SQL_PORT
+              value: "5432"
+            - name: SQL_USER
+              value: postgres
+            - name: SQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: byo-secrets
+                  key: POSTGRES_PASSWORD
+          command:
+            - sh
+            - -c
+            - |
+              set -eu
+              schema=/etc/temporal/schema/postgresql/v12
+              for pair in temporal:temporal temporal_visibility:visibility; do
+                db=${pair%%:*}
+                dir=${pair##*:}
+                temporal-sql-tool --db "$db" create
+                temporal-sql-tool --db "$db" setup-schema -v 0.0
+                temporal-sql-tool --db "$db" update-schema -d "$schema/$dir/versioned"
+              done
       containers:
         - name: temporal
-          image: temporalio/auto-setup:1.28.0
+          image: temporalio/server:1.32.2
           env:
             - name: DB
               value: postgres12
@@ -118,13 +157,39 @@ spec:
                   key: POSTGRES_PASSWORD
             - name: POSTGRES_SEEDS
               value: byo-postgres
+            - name: DYNAMIC_CONFIG_FILE_PATH
+              value: /etc/temporal/config/dynamicconfig/dynamic-config.yaml
           ports:
             - containerPort: 7233
+          volumeMounts:
+            - name: dynamic-config
+              mountPath: /etc/temporal/config/dynamicconfig
+              readOnly: true
+        - name: temporal-namespace
+          image: temporalio/admin-tools:1.32.2
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: TEMPORAL_ADDRESS
+              value: $(POD_IP):7233
+          command:
+            - sh
+            - -c
+            - |
+              until temporal operator cluster health 2>/dev/null | grep -q SERVING; do sleep 2; done
+              temporal operator namespace describe -n default >/dev/null 2>&1 ||
+                temporal operator namespace create -n default --retention 24h
+              trap exit INT HUP TERM
+              sleep infinity & wait
           readinessProbe:
             exec:
-              command:
-                - sh
-                - -c
-                - temporal operator namespace describe -n default --address $(hostname -i):7233
+              command: [temporal, operator, namespace, describe, -n, default]
             periodSeconds: 5
+            timeoutSeconds: 10
             failureThreshold: 60
+      volumes:
+        - name: dynamic-config
+          configMap:
+            name: byo-temporal
