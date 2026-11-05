@@ -939,6 +939,8 @@ The header's trail for a tool use that started a command in the
 background: a "Background" chip, its state (with a clock from its start
 while it runs), and Stop while it runs and a stop handler is wired
 ([`BackgroundCommandContext`](#backgroundcommandcontext)). Renders nothing for any other call.
+Stop is a control of the header's own, lifted above the row's toggle, so
+it is reached as itself and its click never opens or closes the row.
 
 
 ### EmptyChangeNotice
@@ -3851,9 +3853,10 @@ one-line row cannot, and does it stay content once the call settles?**
   result that isn't a terminal session (e.g. an offloaded `outputRef`)
   falls back to the preview layout — never hide evidence we cannot condense.
 - **Summary / subagent** (read / list / search / delete / think, and
-  subagent delegations): a chevron-gated `div[role=button]` header that
-  discloses a body hidden by default — [`ToolCallDetail`](#toolcalldetail), a
-  [`SubagentSection`](#subagentsection), or, when gated, an inline [`ApprovalCardBody`](#approvalcardbody).
+  subagent delegations): a chevron-gated header (a toggle button laid
+  over the whole row) that discloses a body hidden by default —
+  [`ToolCallDetail`](#toolcalldetail), a [`SubagentSection`](#subagentsection), or, when gated, an
+  inline [`ApprovalCardBody`](#approvalcardbody).
   `useAutoDisclosure` force-opens it while *running* or *awaiting
   approval*, then settles it closed; a manual click always wins thereafter.
 

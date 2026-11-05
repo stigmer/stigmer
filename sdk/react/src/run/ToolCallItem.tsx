@@ -85,9 +85,10 @@ export interface ToolCallItemProps {
  *   result that isn't a terminal session (e.g. an offloaded `outputRef`)
  *   falls back to the preview layout — never hide evidence we cannot condense.
  * - **Summary / subagent** (read / list / search / delete / think, and
- *   subagent delegations): a chevron-gated header, a toggle button laid over
- *   the whole row, that discloses a body hidden by default — {@link ToolCallDetail}, a
- *   {@link SubagentSection}, or, when gated, an inline {@link ApprovalCardBody}.
+ *   subagent delegations): a chevron-gated header (a toggle button laid
+ *   over the whole row) that discloses a body hidden by default —
+ *   {@link ToolCallDetail}, a {@link SubagentSection}, or, when gated, an
+ *   inline {@link ApprovalCardBody}.
  *   {@link useAutoDisclosure} force-opens it while *running* or *awaiting
  *   approval*, then settles it closed; a manual click always wins thereafter.
  *
