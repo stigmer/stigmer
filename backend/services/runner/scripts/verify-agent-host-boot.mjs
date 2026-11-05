@@ -50,7 +50,9 @@ process.on("exit", () => rmSync(home, { recursive: true, force: true }));
 
 const child = spawn(nodeBinary, [entry, "agent-host"], {
   env: { ...process.env, HOME: home, USERPROFILE: home },
-  stdio: ["ignore", "pipe", "pipe", "pipe"],
+  // The stdio the runner starts its host with (`spawnHostProcess` in
+  // src/agent-host/supervisor.ts says why fd 3 is overlapped).
+  stdio: ["ignore", "pipe", "pipe", "overlapped"],
 });
 let output = "";
 child.stdout.on("data", (chunk) => (output += chunk));
