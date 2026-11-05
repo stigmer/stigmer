@@ -305,6 +305,16 @@ export interface ServerConfig {
    */
   readonly sandboxProvisionerType: string;
   /**
+   * The operator's acknowledgement that an install serving more than one
+   * organization runs every agent on one shared runner, with no sandbox
+   * driver (STIGMER_SHARED_RUNNER_ACROSS_ORGANIZATIONS=accepted). A shared
+   * runner is one trust domain: every agent it runs shares its user, its
+   * workspace root and its reach to Temporal, so such an install refuses to
+   * boot without it (compose.ts `sharedRunnerRefusal`). Any value other
+   * than `accepted` fails the boot, so a typo never boots unsafe.
+   */
+  readonly sharedRunnerAcrossOrganizations: boolean;
+  /**
    * The server endpoint as reachable FROM INSIDE a provisioned sandbox
    * (STIGMER_SANDBOX_BACKEND_ENDPOINT) — a container cannot use this
    * process's localhost. Required (boot-fatal in compose.ts) when a
@@ -441,6 +451,22 @@ export function defaultSandboxRunnerImage(serverVersion: string): string {
     : "ghcr.io/stigmer/runner:latest";
 }
 
+/** The one value STIGMER_SHARED_RUNNER_ACROSS_ORGANIZATIONS accepts. */
+export const SHARED_RUNNER_ACKNOWLEDGED = "accepted";
+
+function loadSharedRunnerAcknowledgement(env: NodeJS.ProcessEnv): boolean {
+  const value = env["STIGMER_SHARED_RUNNER_ACROSS_ORGANIZATIONS"];
+  if (value === undefined || value === "") {
+    return false;
+  }
+  if (value !== SHARED_RUNNER_ACKNOWLEDGED) {
+    throw new Error(
+      `STIGMER_SHARED_RUNNER_ACROSS_ORGANIZATIONS is "${value}"; the one value it takes is "${SHARED_RUNNER_ACKNOWLEDGED}", or leave it unset`,
+    );
+  }
+  return true;
+}
+
 /**
  * Settings the server no longer reads, each with the sentence a boot that
  * still sets one stops on: silently ignoring one would leave an operator
@@ -537,6 +563,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     oidcConsoleClientId: envString(env, "STIGMER_OIDC_CONSOLE_CLIENT_ID", ""),
     oidcNativeClientId: envString(env, "STIGMER_OIDC_NATIVE_CLIENT_ID", "").trim(),
     sandboxProvisionerType: envString(env, "SANDBOX_PROVISIONER_TYPE", ""),
+    sharedRunnerAcrossOrganizations: loadSharedRunnerAcknowledgement(env),
     sandboxBackendEndpoint: envString(
       env,
       "STIGMER_SANDBOX_BACKEND_ENDPOINT",

@@ -126,7 +126,8 @@ const CHART_ONLY = {
  * explained here rather than a rule bent. The open-source profiles add none.
  * The Enterprise profile's license Secret runs the Enterprise image, which
  * reads the key and its three settings (compose runs the open-source server,
- * which reads none of them); its strict default fences the pod's outbound
+ * which reads none of them), and the acceptance that every organization
+ * shares the chart's one runner, which only a licensed server asks for; its strict default fences the pod's outbound
  * network, and the runner's fetch guard refuses private addresses to match.
  */
 const PROFILE_EXTRAS = {
@@ -139,6 +140,7 @@ const PROFILE_EXTRAS = {
       "STIGMER_OUTBOUND_EGRESS",
       "STIGMER_ORGANIZATION_CREATORS",
       "STIGMER_ACCESS_HISTORY_RETENTION_DAYS",
+      "STIGMER_SHARED_RUNNER_ACROSS_ORGANIZATIONS",
     ]),
     runner: new Set(["STIGMER_WEB_FETCH_ALLOW_PRIVATE"]),
   },

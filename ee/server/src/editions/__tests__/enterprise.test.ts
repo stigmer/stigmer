@@ -50,6 +50,7 @@ const KEY_LOADER = { env: {}, homeDir: mkdtempSync(path.join(tmpdir(), "enterpri
 const boot = {
   config: loadConfig({
     STIGMER_MODEL_REGISTRY_REFRESH: "off",
+    STIGMER_SHARED_RUNNER_ACROSS_ORGANIZATIONS: "accepted",
     DATABASE_URL: "postgres://unused@127.0.0.1:1/unused",
     STIGMER_OIDC_ISSUER: "https://sso.acme.example",
     STIGMER_OIDC_AUDIENCE: "https://stigmer.acme.example/api",

@@ -126,6 +126,8 @@ because a values file's number reaches a template as a float.
   value: {{ join "," .Values.enterprise.organizationCreators | quote }}
 - name: STIGMER_ACCESS_HISTORY_RETENTION_DAYS
   value: {{ ternary (toString (int $retention)) "" (not (empty $retention)) | quote }}
+- name: STIGMER_SHARED_RUNNER_ACROSS_ORGANIZATIONS
+  value: {{ ternary "accepted" "" .Values.runner.sharedAcrossOrganizations | quote }}
 {{- end -}}
 
 {{- define "stigmer.runnerEnv" -}}

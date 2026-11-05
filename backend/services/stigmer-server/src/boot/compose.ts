@@ -292,6 +292,11 @@ import {
 import { createRegistryLanes } from "../transport/registry/lanes.js";
 import { createUnifiedPortServer } from "../transport/server.js";
 import {
+  SHARED_RUNNER_REFUSAL,
+  SHARED_RUNNER_WARNING,
+  sharedRunnerRefusal,
+} from "./shared-runner.js";
+import {
   createTemporalWorkerDoorLane,
   credentialQueueOf,
   currentConnectionOf,
@@ -518,6 +523,23 @@ export async function composeServer(
     throw new Error(
       `the composition serves edition '${ServerEdition[extensions.edition]}' without the require-authentication posture — an edition above open source must sign its callers in: declare requireAuthentication on a unit that registers a verifier, or configure STIGMER_OIDC_ISSUER`,
     );
+  }
+  // A shared runner is one trust domain: every agent it runs shares its
+  // user, its workspace root and its reach to Temporal. So an edition that
+  // may hold more than one organization refuses, beside the sign-in
+  // refusal above and before any side effect, to run every agent on it,
+  // unless its operator has said they accept that (config.ts).
+  const sharedRunner = sharedRunnerRefusal({
+    edition: extensions.edition,
+    orgLimit: extensions.orgLimit,
+    sandboxProvisionerType: config.sandboxProvisionerType,
+    acknowledged: config.sharedRunnerAcrossOrganizations,
+  });
+  if (sharedRunner === "refused") {
+    throw new Error(SHARED_RUNNER_REFUSAL);
+  }
+  if (sharedRunner === "acknowledged") {
+    logger.warn(SHARED_RUNNER_WARNING);
   }
   // How an installed app signs in (native-sign-in.ts): the open-source
   // setting or a unit's declaration, held against the posture just

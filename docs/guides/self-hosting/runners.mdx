@@ -159,12 +159,25 @@ Two consequences for a team:
   on, that is your Organization's members; before it, anyone who can reach the
   port. The runner's network is your team's network: give the container the
   reach your team may have, and no more.
-- **Temporal is inside the domain too.** Whoever reaches Temporal can start work
-  on the runner's queue. The runner runs only the workflow types the server
-  starts, and reads each run's work back from the server. The chart fences its
-  bundled Temporal to the Stigmer pod. The runner's own tools share that pod, so
-  for a stronger boundary run your own Temporal with authentication on
+- **Temporal is inside the domain too.** The shared runner dials Temporal
+  directly, and so can anything its agents run. The chart fences its bundled
+  Temporal to the Stigmer pod, but the runner's own tools share that pod. For a
+  stronger boundary, run your own Temporal with authentication on
   ([Bring your own Postgres and Temporal](./kubernetes#bring-your-own-postgres-and-temporal)).
+- **Every agent shares one runner.** Every Agent the shared runner runs starts
+  as the same user, under the same workspace root. That is one Organization's
+  trust, which is what open source serves. The tenant boundary on a self-hosted
+  install is a sandbox driver ([A runner per Session](#a-runner-per-session)):
+  each sandboxed runner serves one Session and reaches Temporal only through the
+  Stigmer server.
+- **Several Organizations need a sandbox driver.** A Stigmer Enterprise server
+  whose license allows more than one Organization refuses to start without a
+  sandbox driver that isolates each Session (`docker`, `agent-sandbox` or
+  `substrate`; `local-process` runs every runner as the server's own user, so it
+  does not count). To run every Organization's Agents on the shared runner
+  anyway, set `STIGMER_SHARED_RUNNER_ACROSS_ORGANIZATIONS=accepted` (Helm:
+  `runner.sharedAcrossOrganizations: true`). The server then starts, and logs
+  one warning naming what is shared. Any other value stops the server.
 - **One runner, one replica.** The chart runs one replica on purpose and
   replaces the pod rather than rolling it, because two runners on one disk would
   race for the same working directories and checkpoints. Running a second shared

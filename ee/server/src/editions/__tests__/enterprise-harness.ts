@@ -116,6 +116,7 @@ export async function bootEnterprise(options: BootOptions): Promise<BootedServer
   const dir = options.home ?? mkdtempSync(path.join(tmpdir(), "enterprise-server-"));
   const config = loadConfig({
     STIGMER_MODEL_REGISTRY_REFRESH: "off",
+    STIGMER_SHARED_RUNNER_ACROSS_ORGANIZATIONS: "accepted",
     TEMPORAL_HOST_PORT: "127.0.0.1:1",
     STORAGE_PATH: path.join(dir, "storage"),
     ARTIFACT_LOCAL_BASE_PATH: path.join(dir, "artifacts"),

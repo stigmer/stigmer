@@ -4,7 +4,9 @@
 # reference, and the outbound fence the strict default turns on. Render and
 # golden here; the kind smoke runs it on request (--profiles=enterprise),
 # proving that a key the image cannot verify stops the pod with the server's
-# reason, since no released image trusts a production signing key yet.
+# reason, since no released image trusts a production signing key yet. The
+# license may hold several organizations and this chart starts no runner per
+# Session, so the profile accepts the shared runner, as such an install must.
 secrets:
   existingSecret: stigmer-secrets
 server:
@@ -16,6 +18,7 @@ server:
 runner:
   stigmerToken:
     existingSecret: stigmer-runner-token
+  sharedAcrossOrganizations: true
 enterprise:
   license:
     existingSecret: stigmer-license

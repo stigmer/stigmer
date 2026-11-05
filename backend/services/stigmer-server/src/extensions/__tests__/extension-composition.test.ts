@@ -69,6 +69,7 @@ import {
 
 import type { ArtifactStorage } from "../../artifactstorage/artifact-storage.js";
 import { loadConfig } from "../../boot/config.js";
+import { SHARED_RUNNER_REFUSAL, SHARED_RUNNER_WARNING } from "../../boot/shared-runner.js";
 import { composeServer } from "../../boot/compose.js";
 import type { ComposedServer } from "../../boot/compose.js";
 import { createLogger } from "../../boot/logger.js";
@@ -200,6 +201,7 @@ describe("extension composition (composed server)", () => {
     server = await composeServer({
       config: loadConfig({
         STIGMER_MODEL_REGISTRY_REFRESH: "off",
+        STIGMER_SHARED_RUNNER_ACROSS_ORGANIZATIONS: "accepted",
         DB_PATH: path.join(dir, "stigmer.db"),
         ARTIFACT_LOCAL_BASE_PATH: path.join(dir, "artifacts"),
       }),
@@ -310,6 +312,7 @@ describe("extension composition (enterprise edition on the wire)", () => {
     server = await composeServer({
       config: loadConfig({
         STIGMER_MODEL_REGISTRY_REFRESH: "off",
+        STIGMER_SHARED_RUNNER_ACROSS_ORGANIZATIONS: "accepted",
         DB_PATH: path.join(dir, "stigmer.db"),
         ARTIFACT_LOCAL_BASE_PATH: path.join(dir, "artifacts"),
       }),
@@ -370,6 +373,7 @@ describe("extension composition (caller guards)", () => {
     server = await composeServer({
       config: loadConfig({
         STIGMER_MODEL_REGISTRY_REFRESH: "off",
+        STIGMER_SHARED_RUNNER_ACROSS_ORGANIZATIONS: "accepted",
         DB_PATH: path.join(dir, "stigmer.db"),
         ARTIFACT_LOCAL_BASE_PATH: path.join(dir, "artifacts"),
       }),
@@ -496,6 +500,7 @@ describe("extension composition (require-authentication posture)", () => {
     server = await composeServer({
       config: loadConfig({
         STIGMER_MODEL_REGISTRY_REFRESH: "off",
+        STIGMER_SHARED_RUNNER_ACROSS_ORGANIZATIONS: "accepted",
         DB_PATH: path.join(dir, "stigmer.db"),
         ARTIFACT_LOCAL_BASE_PATH: path.join(dir, "artifacts"),
       }),
@@ -702,6 +707,7 @@ describe("extension composition (require-authentication posture)", () => {
         composeServer({
           config: loadConfig({
             STIGMER_MODEL_REGISTRY_REFRESH: "off",
+            STIGMER_SHARED_RUNNER_ACROSS_ORGANIZATIONS: "accepted",
             DB_PATH: path.join(orphanDir, "stigmer.db"),
             ARTIFACT_LOCAL_BASE_PATH: path.join(orphanDir, "artifacts"),
           }),
@@ -729,6 +735,7 @@ describe("extension composition (require-authentication posture)", () => {
         composeServer({
           config: loadConfig({
             STIGMER_MODEL_REGISTRY_REFRESH: "off",
+            STIGMER_SHARED_RUNNER_ACROSS_ORGANIZATIONS: "accepted",
             DB_PATH: path.join(trustingDir, "stigmer.db"),
             ARTIFACT_LOCAL_BASE_PATH: path.join(trustingDir, "artifacts"),
           }),
@@ -757,6 +764,7 @@ describe("extension composition (require-authentication posture)", () => {
         composeServer({
           config: loadConfig({
             STIGMER_MODEL_REGISTRY_REFRESH: "off",
+            STIGMER_SHARED_RUNNER_ACROSS_ORGANIZATIONS: "accepted",
             DB_PATH: path.join(doubleDir, "stigmer.db"),
             ARTIFACT_LOCAL_BASE_PATH: path.join(doubleDir, "artifacts"),
             STIGMER_OIDC_NATIVE_CLIENT_ID: "native-1",
@@ -780,6 +788,41 @@ describe("extension composition (require-authentication posture)", () => {
     }
   });
 
+  it("an Enterprise edition that may hold several organizations, with no sandbox driver, boots only once its operator accepts the shared runner", async () => {
+    const enterpriseDir = mkdtempSync(path.join(tmpdir(), "shared-runner-edition-"));
+    const warnings: string[] = [];
+    const compose = (acknowledged: boolean) =>
+      composeServer({
+        config: loadConfig({
+          STIGMER_MODEL_REGISTRY_REFRESH: "off",
+          ...(acknowledged ? { STIGMER_SHARED_RUNNER_ACROSS_ORGANIZATIONS: "accepted" } : {}),
+          DB_PATH: path.join(enterpriseDir, "stigmer.db"),
+          ARTIFACT_LOCAL_BASE_PATH: path.join(enterpriseDir, "artifacts"),
+        }),
+        logger: { ...createLogger({ level: "error", pretty: false, write: () => {} }), warn: (message: string) => warnings.push(message) },
+        extensions: [
+          {
+            ...requiringExtension,
+            name: "enterprise-shared-runner",
+            edition: ServerEdition.enterprise,
+            drivers: { platformTokenKeys: EDITION_RING },
+          },
+        ],
+        portOverride: 0,
+        host: "127.0.0.1",
+      });
+    try {
+      await expect(compose(false)).rejects.toThrowError(SHARED_RUNNER_REFUSAL);
+      expect(warnings).not.toContain(SHARED_RUNNER_WARNING);
+      // Accepted, the boot passes this check (and stops at the next, the
+      // row readers this bare unit lacks), having warned once.
+      await expect(compose(true)).rejects.toThrowError(/registers no row reader/);
+      expect(warnings.filter((warning) => warning === SHARED_RUNNER_WARNING)).toHaveLength(1);
+    } finally {
+      rmSync(enterpriseDir, { recursive: true, force: true });
+    }
+  });
+
   it("a wider edition on the built-in authorizer with no row readers is a boot throw naming every kind it cannot read", async () => {
     const enterpriseDir = mkdtempSync(
       path.join(tmpdir(), "require-auth-edition-"),
@@ -789,6 +832,7 @@ describe("extension composition (require-authentication posture)", () => {
         composeServer({
           config: loadConfig({
             STIGMER_MODEL_REGISTRY_REFRESH: "off",
+            STIGMER_SHARED_RUNNER_ACROSS_ORGANIZATIONS: "accepted",
             DB_PATH: path.join(enterpriseDir, "stigmer.db"),
             ARTIFACT_LOCAL_BASE_PATH: path.join(enterpriseDir, "artifacts"),
           }),
@@ -825,6 +869,7 @@ describe("extension composition (require-authentication posture)", () => {
         composeServer({
           config: loadConfig({
             STIGMER_MODEL_REGISTRY_REFRESH: "off",
+            STIGMER_SHARED_RUNNER_ACROSS_ORGANIZATIONS: "accepted",
             DB_PATH: path.join(enterpriseDir, "stigmer.db"),
             ARTIFACT_LOCAL_BASE_PATH: path.join(enterpriseDir, "artifacts"),
           }),
@@ -933,6 +978,7 @@ describe("extension composition (driver substitution)", () => {
     server = await composeServer({
       config: loadConfig({
         STIGMER_MODEL_REGISTRY_REFRESH: "off",
+        STIGMER_SHARED_RUNNER_ACROSS_ORGANIZATIONS: "accepted",
         DB_PATH: path.join(dir, "stigmer.db"),
         STORAGE_PATH: path.join(dir, "storage"),
         // The registered driver serves the GENERIC artifact store; the
@@ -1064,6 +1110,7 @@ describe("extension composition (gate slots + status hooks)", () => {
     server = await composeServer({
       config: loadConfig({
         STIGMER_MODEL_REGISTRY_REFRESH: "off",
+        STIGMER_SHARED_RUNNER_ACROSS_ORGANIZATIONS: "accepted",
         DB_PATH: path.join(dir, "stigmer.db"),
         STORAGE_PATH: path.join(dir, "storage"),
         ARTIFACT_LOCAL_BASE_PATH: path.join(dir, "artifacts"),
@@ -1306,6 +1353,7 @@ describe("extension composition (tuple lifecycle + organization directory)", () 
     server = await composeServer({
       config: loadConfig({
         STIGMER_MODEL_REGISTRY_REFRESH: "off",
+        STIGMER_SHARED_RUNNER_ACROSS_ORGANIZATIONS: "accepted",
         DB_PATH: path.join(dir, "stigmer.db"),
         STORAGE_PATH: path.join(dir, "storage"),
         ARTIFACT_LOCAL_BASE_PATH: path.join(dir, "artifacts"),
