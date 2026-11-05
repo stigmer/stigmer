@@ -3,6 +3,8 @@
 
 .stgm-theme-corporate {
   --stgm-font-sans: var(--font-inter, "Inter", system-ui, sans-serif);
+  /* The token alone reaches only text that reads it by name; this makes inherited text follow. */
+  font-family: var(--stgm-font-sans);
   --stgm-radius: 0.375rem;
   --stgm-background: oklch(0.97 0.01 250);
   --stgm-foreground: oklch(0.18 0.03 250);

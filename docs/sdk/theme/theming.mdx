@@ -140,8 +140,8 @@ const { resolvedTheme } = useTheme(); // next-themes
 ## Start from a preset
 
 Presets are complete design languages — radius, palette, surfaces, sidebar
-treatment — shipped as CSS classes. Import the CSS once and select the
-preset on the provider:
+treatment and, for three of them, a font — shipped as CSS classes. Import the
+CSS once and select the preset on the provider:
 
 ```tsx
 declare function YourApp(): null;
@@ -153,6 +153,13 @@ import "@stigmer/design-tokens/presets/corporate.css";
   <YourApp />
 </StigmerProvider>
 ```
+
+Corporate, Friendly and Fintech name a font (Inter, Nunito and IBM Plex Sans)
+and put every piece of text inside the provider in it, your own content and
+portaled surfaces included. The preset names the font; your page loads it,
+with an `@font-face` rule or a font loader. If the font isn't loaded, that
+text falls back to the system font, not to your page's. Default, Startup and
+Monochrome name no font, so text inside the provider keeps your page's.
 
 See [Presets](/docs/sdk/theme/presets) for the six built-in design languages
 and every token each one overrides.
@@ -199,6 +206,27 @@ Two rules keep custom themes correct:
   dark status pill fills (`--stgm-status-*-subtle`) are translucent tints of
   their status colour, so they read on your page, card and dialog surfaces
   without an override. If you replace one, keep it translucent.
+
+### Change the font
+
+Set `--stgm-font-sans` and declare `font-family` from it on the same class:
+
+```css
+.acme-theme {
+  --stgm-font-sans: "Acme Sans", system-ui, sans-serif;
+  font-family: var(--stgm-font-sans);
+}
+```
+
+Both lines matter. Text takes its font from its parent, and your page works
+that font out once, on its root element. The token alone reaches only the few
+spots that ask for it by name; the `font-family` line makes every piece of
+text inside the provider follow, including portaled surfaces. As with a
+preset, your page loads the font.
+
+Without a theme font, text inside the provider already uses your page's font.
+To bring the spots that ask for the token by name along too, set
+`--stgm-font-sans` to your page's font on `:root`.
 
 ## Tailwind hosts
 

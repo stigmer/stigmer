@@ -366,11 +366,16 @@ the host — which knows its layout — can apply it safely.
 own per-element resets (lists, fieldsets, form controls) and the
 markdown surfaces declare their margins explicitly, so they render
 correctly with no Tailwind-preflight-style reset in the host page
-(#695). Two deliberate boundaries remain the host's: font-family
-inherits from the host (an embedded widget adopting host typography
-is correct — set `--stgm-font-sans` to override), and the host's
-OWN content inside the provider keeps its user-agent styling — the
-SDK never resets elements it did not render. If your reset-less
+(#695). Two deliberate boundaries remain the host's. First,
+font-family inherits from the host (an embedded widget adopting host
+typography is correct) unless the theme names a typeface: the
+corporate, friendly and fintech presets, and a host theme class that
+sets `font-family: var(--stgm-font-sans)` beside the token (the
+theming guide's recipe), put every piece of text in the scope in it
+(#2824). To make the elements that read the token by name match the
+host's font too, set `--stgm-font-sans` on `:root`. Second, the
+host's OWN content inside the provider keeps its user-agent
+styling — the SDK never resets elements it did not render. If your reset-less
 page composes its own `<p>`/`<h*>` content between SDK components,
 their user-agent margins are yours to manage.
 

@@ -5,8 +5,10 @@
  * `@stigmer/design-tokens` and its class, shows the provider taking a
  * preset as a whole element (its child declared above a hidden-setup cut), and lists only the tokens that
  * preset overrides, in the defaults' order (a preset that overrides
- * nothing says so in a sentence, with no table). Both carry the do-not-edit
- * banner. The input is hand-built token maps.
+ * nothing says so in a sentence, with no table). It names the presets that
+ * set a font and says the page loads it, and says nothing about fonts when
+ * none does. Both carry the do-not-edit banner. The input is hand-built
+ * token maps.
  */
 
 import { describe, expect, it } from "vitest";
@@ -63,6 +65,33 @@ describe("renderTokensPage", () => {
 });
 
 describe("renderPresetsPage", () => {
+  function withFont(preset: PresetDoc, name: string): PresetDoc {
+    return {
+      meta: { ...preset.meta, id: name.toLowerCase(), name, className: `stgm-theme-${name.toLowerCase()}` },
+      tokens: tokens([{ name: "--stgm-font-sans", value: `"${name} Sans", sans-serif` }]),
+    };
+  }
+
+  it("names the presets that set a font, in order, and says the page loads it", () => {
+    const mdx = renderPresetsPage(DEFAULTS, [withFont(CORPORATE, "Corporate"), withFont(CORPORATE, "Friendly"), CORPORATE, withFont(CORPORATE, "Fintech")]);
+    expect(mdx).toContain(
+      "add the class yourself.\n\n" +
+        "Corporate, Friendly and Fintech name a font and put every piece of text inside the provider in it.\n" +
+        "Your page loads the font; see [Theming](/docs/sdk/theme/theming#start-from-a-preset).\n\n| Preset |",
+    );
+  });
+
+  it("agrees in the singular when one preset sets a font", () => {
+    const mdx = renderPresetsPage(DEFAULTS, [withFont(CORPORATE, "Friendly"), CORPORATE]);
+    expect(mdx).toContain("\nFriendly names a font and puts every piece of text inside the provider in it.\n");
+  });
+
+  it("says nothing about fonts when no preset sets one", () => {
+    const mdx = renderPresetsPage(DEFAULTS, [CORPORATE]);
+    expect(mdx).toContain("add the class yourself.\n\n| Preset |");
+    expect(mdx).not.toContain("a font");
+  });
+
   it("tables each preset with its class and description", () => {
     const mdx = renderPresetsPage(DEFAULTS, [CORPORATE]);
     expect(mdx).toContain(BANNER);
