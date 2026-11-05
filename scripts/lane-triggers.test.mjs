@@ -27,7 +27,8 @@
 // its install fields), then, from each package reached, `file:` links and
 // workspace members named in what a consumer compiles or runs from it
 // (dependencies, optionalDependencies, peerDependencies); a reached package's
-// devDependencies are its own build tools.
+// devDependencies are its own build tools. That walk is
+// scripts/package-links.mjs, shared with the console image's guard.
 //
 // The relative-read rule. A standalone package can also read a file outside
 // itself with no link at all: the docs site imports brand/'s geometry by
@@ -154,17 +155,10 @@ import { LANES, laneId, selectLanes } from "./ci-lanes.mjs";
 import { commandWords, parseMakeArguments, placeWords, targetClosure } from "./make-targets.mjs";
 import { everythingBecause } from "./turbo-affected.mjs";
 import { extractRelativeSpecifiers } from "./verify-esm-node.mjs";
+import { linkClosure, trackedManifests, workspaceDirsByName } from "./package-links.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
-/** The install fields a standalone package's own build reads. */
-const OWN_FIELDS = ["dependencies", "devDependencies", "optionalDependencies"];
-/** The fields of a reached package that its consumer compiles or runs. */
-const REACHED_FIELDS = [
-  "dependencies",
-  "optionalDependencies",
-  "peerDependencies",
-];
 /** Pattern syntax the three readers of a trigger list do not agree on. */
 const REFUSED_SYNTAX = /[{}[\]!?+]/;
 /** A file a `run:` step names under the checkout's root or the action's own folder: the variable, then the path. */
@@ -218,70 +212,6 @@ const NPM_INSTALL = new Set([
   "install-test",
   "it",
 ]);
-
-/** Every tracked manifest below the root, as repo-relative POSIX directory -> manifest. */
-export function trackedManifests(rootDir = root) {
-  const listed = execFileSync(
-    "git",
-    ["ls-files", "-z", "--", ":(glob)**/package.json"],
-    { cwd: rootDir, encoding: "utf8" },
-  );
-  const manifests = new Map();
-  for (const file of listed.split("\0").filter(Boolean)) {
-    const dir = posix.dirname(file);
-    if (dir === ".") continue; // the workspace root itself
-    manifests.set(dir, JSON.parse(readFileSync(join(rootDir, file), "utf8")));
-  }
-  return manifests;
-}
-
-/** The root `workspaces` members, as package name -> directory. */
-export function workspaceDirsByName(rootDir, manifests) {
-  const { workspaces } = JSON.parse(
-    readFileSync(join(rootDir, "package.json"), "utf8"),
-  );
-  return new Map(workspaces.map((dir) => [manifests.get(dir).name, dir]));
-}
-
-/**
- * The directories a package links through the given fields: `file:` targets,
- * plus workspace members named by version when `byName` is given (a
- * standalone package cannot resolve those, so its own role passes none).
- */
-function linksOf(dir, manifest, fields, byName) {
-  const links = [];
-  for (const field of fields) {
-    for (const [name, spec] of Object.entries(manifest[field] ?? {})) {
-      if (spec.startsWith("file:")) {
-        links.push(
-          posix.normalize(posix.join(dir, spec.slice("file:".length))),
-        );
-      } else if (byName?.has(name)) {
-        links.push(byName.get(name));
-      }
-    }
-  }
-  return links;
-}
-
-/** Every package a standalone package's build reads through its links, sorted. */
-export function linkClosure(dir, manifests, byName) {
-  const reached = new Set();
-  const visit = (from, fields, names) => {
-    for (const target of linksOf(from, manifests.get(from), fields, names)) {
-      if (target === dir || reached.has(target)) continue;
-      if (!manifests.has(target)) {
-        throw new Error(
-          `${from}/package.json links ${target}, which has no tracked package.json`,
-        );
-      }
-      reached.add(target);
-      visit(target, REACHED_FIELDS, byName);
-    }
-  };
-  visit(dir, OWN_FIELDS, undefined);
-  return [...reached].sort();
-}
 
 /** The standalone packages: tracked manifests outside the root `workspaces`. */
 export function standalonePackages(manifests, byName) {
