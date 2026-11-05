@@ -51,7 +51,9 @@ describe("preflightNodeRuntime", () => {
     // future edit can silently loosen — `>=22.13` once re-admitted the
     // 23.0–23.3 gap (oss#257) — so pin it byte-for-byte to the range that
     // excludes that gap. If the floors genuinely move, update the preflight
-    // message, this pin, and package.json together.
+    // message, this pin, and package.json together. These floors hold only
+    // while the runner loads nothing that needs more: runner-is-undici-free
+    // fences off undici, whose 22.19 / 23.8 floor is @stigmer/outbound's.
     const pkg = JSON.parse(
       readFileSync(new URL("../../package.json", import.meta.url), "utf8"),
     ) as { engines: { node: string } };

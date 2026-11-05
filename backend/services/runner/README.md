@@ -26,6 +26,8 @@ This runs `npm run build` in `backend/services/runner` (`tsc -p tsconfig.build.j
 
 Requires a Node.js whose built-in `node:sqlite` is available unflagged — `>= 22.13` in the 22.x line, and `>= 23.4` after that (23.0–23.3 lack it). The durable local checkpointer depends on it, and the runner probes for it at boot (`src/preflight.ts`), refusing to start with an actionable error rather than crashing on the import.
 
+On those floors below 22.19 / 23.8, npm may warn at install (`EBADENGINE`) that `@stigmer/outbound` and `undici` want a newer Node. That requirement belongs to outbound's `/dial` entry, which the runner never loads (`src/__tests__/runner-is-undici-free.test.ts` keeps it so), so the warning is safe to ignore.
+
 ### The slim embedding artifact
 
 The plain `dist/` resolves its dependencies from `node_modules` at runtime — ~508 MB unpacked, which is unshippable inside a desktop app ([#170](https://github.com/stigmer/stigmer/issues/170)). For embedding, build the **slim artifact**:
