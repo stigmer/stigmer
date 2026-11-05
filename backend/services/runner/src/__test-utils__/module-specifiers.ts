@@ -2,14 +2,17 @@
  * The module specifiers a TypeScript file names, read off its syntax tree —
  * the primitive behind the runner's import fences.
  *
- * Four fences stand on it: `src/harness/` and production `src/shared/` never
+ * Five fences stand on it: `src/harness/` and production `src/shared/` never
  * import `src/activities/` (`harness/__tests__/import-direction.test.ts`,
  * the rule the turn runtime is written under); an adapter never imports
  * `@temporalio/*` (`execute-deep-agent/__tests__/adapter-is-temporal-
  * free.test.ts`, what lets the contract kit run it outside an activity);
  * `src/harness/transcript/` names no package outside a short allow-list
  * (`harness/__tests__/transcript-is-engine-free.test.ts`, what keeps the one
- * transcript builder engine-neutral); and `loadConfig` is bound by `main.ts`
+ * transcript builder engine-neutral); no production module imports `undici`
+ * or `@stigmer/outbound/dial` (`__tests__/runner-is-undici-free.test.ts`,
+ * what keeps the runner's Node floors true to what it loads); and
+ * `loadConfig` is bound by `main.ts`
  * alone (`__tests__/config-boundary.test.ts`, what keeps one live credential
  * ref per process — `importedBindings` below reads the NAMES a file imports,
  * where the other fences read the modules).

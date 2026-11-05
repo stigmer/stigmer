@@ -6,7 +6,9 @@
  * HTTP server, logs nothing; a request outside a connect is never recorded.
  * The error itself is rethrown untouched, so what the runtime words for the
  * user still names the server. Hermetic: the servers are local sockets that
- * reset every connection.
+ * reset every connection. Each waits for the whole request before it resets:
+ * a reset that beat the client's write read as EPIPE instead of ECONNRESET on
+ * a loaded machine, and a client done writing can only see ECONNRESET.
  */
 import { channel } from "node:diagnostics_channel";
 import { createServer as createNetServer, type Server } from "node:net";
@@ -22,9 +24,35 @@ import { describeExecutionError } from "../model-error.js";
 const servers: Server[] = [];
 let consoleError: MockInstance<typeof console.error>;
 
-/** A local server that resets every connection it accepts; its base URL. */
+/**
+ * Whether `received` holds one whole HTTP request: its headers, then its
+ * body, sized by `Content-Length`, or to the last chunk when chunked, or
+ * empty when neither is named.
+ */
+function holdsWholeRequest(received: Buffer): boolean {
+  const headersEnd = received.indexOf("\r\n\r\n");
+  if (headersEnd === -1) return false;
+  const headers = received.subarray(0, headersEnd).toString("latin1");
+  const body = received.subarray(headersEnd + 4);
+  if (/^transfer-encoding:.*chunked/im.test(headers)) return body.includes("0\r\n\r\n");
+  const length = /^content-length:\s*(\d+)/im.exec(headers)?.[1];
+  return body.length >= Number(length ?? 0);
+}
+
+/** A local server that resets every connection once its request has arrived; its base URL. */
 async function resettingServer(): Promise<string> {
-  const server = createNetServer((socket) => socket.resetAndDestroy());
+  const server = createNetServer((socket) => {
+    let received = Buffer.alloc(0);
+    const reset = (): void => {
+      if (!socket.destroyed) socket.resetAndDestroy();
+    };
+    socket.on("data", (chunk: Buffer) => {
+      received = Buffer.concat([received, chunk]);
+      if (holdsWholeRequest(received)) reset();
+    });
+    socket.on("end", reset);
+    socket.on("error", () => undefined);
+  });
   servers.push(server);
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   const address = server.address();
