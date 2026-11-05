@@ -79,8 +79,13 @@ function linksOf(dir, manifest, fields, byName) {
   return links;
 }
 
-/** Every package a standalone package's build reads through its links, sorted. */
-export function linkClosure(dir, manifests, byName) {
+/**
+ * Every package a package's build reads through its links, sorted. A
+ * standalone package (outside the root `workspaces`) resolves only `file:`
+ * links from its own manifest; a workspace member (`member: true`) also
+ * resolves the members it names by version, as npm links them for it.
+ */
+export function linkClosure(dir, manifests, byName, { member = false } = {}) {
   const reached = new Set();
   const visit = (from, fields, names) => {
     for (const target of linksOf(from, manifests.get(from), fields, names)) {
@@ -94,6 +99,6 @@ export function linkClosure(dir, manifests, byName) {
       visit(target, REACHED_FIELDS, byName);
     }
   };
-  visit(dir, OWN_FIELDS, undefined);
+  visit(dir, OWN_FIELDS, member ? byName : undefined);
   return [...reached].sort();
 }
