@@ -22,6 +22,9 @@
  *    engine never read;
  *  - the engine's stderr reaches the runner's log, bounded;
  *  - an agent's tool list naming an MCP tool no server offers is warned of;
+ *  - an approved shell call the engine hands back under its own name
+ *    (stigmer#2667) starts the engine again on the same paused call, never
+ *    asking the person twice, at most twice more, and never past a stop;
  *  - a teardown that fails is logged and never masks the outcome.
  */
 
@@ -43,9 +46,9 @@ import { FIXTURE_CLAUDE_MODEL, stubRegistryFetch } from "../../../__test-utils__
 import { turnInputFixture } from "../../../__test-utils__/turn-input-fixture.js";
 import { HttpMcpServer } from "../../../__test-utils__/http-mcp-server.js";
 import { runMessageIdOf, sentMessageIdOf } from "../engine-session-id.js";
-import { ApprovalPolicySource, ToolCallStatus } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
-import { ROOT_CALLER, type GateVerdict } from "../gate.js";
-import { STOP_GRACE_MS, proposeDeferred, runClaudeTurn, type ClaudeAdapterConfig, type ClaudeSdk } from "../turn.js";
+import { ApprovalAction, ApprovalPolicySource, ToolCallStatus } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
+import { MISNAMED_SHELL_MESSAGE, ROOT_CALLER, type GateVerdict } from "../gate.js";
+import { MISNAMED_RESUMES, STOP_GRACE_MS, proposeDeferred, runClaudeTurn, type ClaudeAdapterConfig, type ClaudeSdk } from "../turn.js";
 
 const env = createHermeticEnvironment();
 const SESSION = "ses_turn_unit";
@@ -390,6 +393,111 @@ describe("runClaudeTurn", () => {
       chmodSync(engineDir, 0o700);
     }
     expect(warn.mock.calls.some((args) => String(args[0]).includes("engine directory cleanup failed"))).toBe(true);
+  });
+});
+
+describe("an approved shell call the engine hands back under its own name (stigmer#2667)", () => {
+  const CALL = "toolu_w";
+  const SHOWN = { command: "npm run build", description: "build" };
+  let registry: ReturnType<typeof stubRegistryFetch>;
+  beforeAll(() => {
+    registry = stubRegistryFetch();
+  });
+  afterEach(() => vi.restoreAllMocks());
+  afterAll(() => registry.restore());
+
+  /** A run that paused at the shell call `CALL`, approved: its transcript holds the call pending, its sink the WAITING row. */
+  function pausedRun(): { readonly turnInput: TurnInput; readonly sink: RecordingTurnSink } {
+    const turnInput = input({ approvalDecisions: new Map([[CALL, ApprovalAction.APPROVE]]) });
+    const file = join(getClaudeTranscriptDir(SESSION), encodeURIComponent(turnInput.threadId), "transcript.jsonl");
+    mkdirSync(join(file, ".."), { recursive: true });
+    const taken = { type: "user", uuid: runMessageIdOf(turnInput.executionId), message: { role: "user", content: "Build it." } };
+    const calling = { type: "assistant", uuid: "a1", message: { role: "assistant", content: [{ type: "tool_use", id: CALL, name: "mcp__stigmer__bash", input: SHOWN }] } };
+    writeFileSync(file, `${JSON.stringify(taken)}\n${JSON.stringify(calling)}\n`);
+    const sink = new RecordingTurnSink();
+    sink.transcript.apply({ kind: "approval_proposed", callId: CALL, name: "Bash", mcpServerSlug: "", args: SHOWN, message: "Run npm run build?" });
+    return { turnInput, sink };
+  }
+
+  /** The engine re-emitting the resumed call through its `PreToolUse` callback under `name`, as engine 2.1.311 does. */
+  async function resumedAs(run: Played, name: string): Promise<unknown> {
+    const preToolUse = run.options.hooks!.PreToolUse![0]!.hooks[0]!;
+    const hookInput = { hook_event_name: "PreToolUse", tool_name: name, tool_input: { ...SHOWN }, tool_use_id: CALL, session_id: "s", transcript_path: "", cwd: "/" } as const;
+    return preToolUse(hookInput, CALL, { signal: new AbortController().signal });
+  }
+
+  /** The result the engine ends a run with when it defers the call again. */
+  function deferredResult(): SDKMessage {
+    return { ...(result() as object), stop_reason: "tool_deferred", deferred_tool_use: { id: CALL, name: "Bash", input: SHOWN } } as unknown as SDKMessage;
+  }
+
+  const sqlite: ClaudeAdapterConfig = { ...CONFIG, checkpointerType: "sqlite" };
+  const decisionOf = (answer: unknown): unknown => (answer as { hookSpecificOutput?: { permissionDecision?: string } }).hookSpecificOutput?.permissionDecision;
+  const waitingRows = (sink: RecordingTurnSink) => sink.rows.messages.flatMap((message) => message.toolCalls).filter((row) => row.id === CALL);
+
+  it("starts the engine again on the same paused call, asking no one twice, and the call runs under its right name", async () => {
+    const warn = vi.spyOn(console, "warn");
+    const answers: unknown[] = [];
+    const { sdk, played } = scriptedSdk(async function* (run) {
+      yield init();
+      if (played.length === 1) {
+        answers.push(decisionOf(await resumedAs(run, "Bash")));
+        yield deferredResult();
+        return;
+      }
+      answers.push(decisionOf(await resumedAs(run, "mcp__stigmer__bash")));
+      yield result();
+    });
+    const { turnInput, sink } = pausedRun();
+    expect((await turn(turnInput, sink, sdk, sqlite)).kind).toBe("completed");
+    expect(played).toHaveLength(2);
+    expect(answers).toEqual(["defer", "allow"]);
+    const rows = waitingRows(sink);
+    expect(rows.map((row) => [row.name, row.mcpServerSlug, row.approvalMessage]), "one row, proposed once, the stream adding nothing to it").toEqual([["Bash", "", "Run npm run build?"]]);
+    const warned = warn.mock.calls.map((args) => String(args[0]));
+    expect(warned.filter((line) => line.includes("resuming again (1 of 2)"))).toHaveLength(1);
+  });
+
+  it("refuses the call on the last engine run, saying it did not run, and never starts the engine a fourth time", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const answers: unknown[] = [];
+    const { sdk, played } = scriptedSdk(async function* (run) {
+      yield init();
+      const answer = await resumedAs(run, "Bash");
+      answers.push(answer);
+      yield decisionOf(answer) === "defer" ? deferredResult() : result();
+    });
+    const { turnInput, sink } = pausedRun();
+    expect((await turn(turnInput, sink, sdk, sqlite)).kind).toBe("completed");
+    expect(played).toHaveLength(MISNAMED_RESUMES + 1);
+    expect(answers.map(decisionOf)).toEqual(["defer", "defer", "deny"]);
+    expect(answers[2]).toMatchObject({ hookSpecificOutput: { permissionDecisionReason: MISNAMED_SHELL_MESSAGE } });
+  });
+
+  it("settles a stop during the handed-back run as interrupted, and never starts the engine again", async () => {
+    const sink = pausedRun();
+    const { sdk, played } = scriptedSdk(async function* (run) {
+      yield init();
+      await resumedAs(run, "Bash");
+      sink.sink.abort();
+      yield deferredResult();
+    });
+    expect((await turn(sink.turnInput, sink.sink, sdk, sqlite)).kind).toBe("interrupted");
+    expect(played).toHaveLength(1);
+  });
+
+  it("fails on a store that lost a batch during the handed-back run, and never starts the engine again", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const { sdk, played } = scriptedSdk(async function* (run) {
+      yield init();
+      await resumedAs(run, "Bash");
+      yield { type: "system", subtype: "mirror_error", error: "batch lost", session_id: "s", uuid: "00000000-0000-4000-8000-000000000009" } as unknown as SDKMessage;
+      yield deferredResult();
+    });
+    const { turnInput, sink } = pausedRun();
+    const outcome = await turn(turnInput, sink, sdk, sqlite);
+    expect(outcome.kind === "failed" ? [outcome.surface, outcome.message] : []).toEqual(["internal", expect.stringContaining("batch lost")]);
+    expect(played).toHaveLength(1);
   });
 });
 

@@ -3,10 +3,13 @@
  *
  * The engine keeps its own `Bash` tool, the one its model was trained on,
  * name and schema, and the SDK's `toolAliases` sends every `Bash` call to
- * this server's `bash` tool instead (`engine-options.ts`). So the command is
- * started by the host, as the Stigmer harness's is, never by the engine: it is
- * no child of the process that holds the turn's key, and it runs with the
- * environment every engine's shell gets (`shared/shell-env.ts`
+ * this server's `bash` tool instead (`engine-options.ts`). Resuming a call it
+ * deferred, the engine sometimes resolves `Bash` without the alias
+ * (stigmer#2667, measured on SDK 0.3.311); the gate never lets that call run,
+ * and the turn starts the engine again on it (`gate.ts`, item 1). So the
+ * command is started by the host, as the Stigmer harness's is, never by the
+ * engine: it is no child of the process that holds the turn's key, and it
+ * runs with the environment every engine's shell gets (`shared/shell-env.ts`
  * `buildShellEnv`), the agent's own run values and nothing of the runner's.
  *
  * What a command is run with, and what it owes the turn:

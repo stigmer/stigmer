@@ -157,6 +157,39 @@ describe("TemporalManager", () => {
       }
     });
 
+    // stigmer#2900: the lock names the daemon that held it; after a reboot or
+    // an untidy exit the OS may give that number to any other program.
+    it("starts its own server when the lock names another program now", async () => {
+      const home = tempHome();
+      const stranger = await detachedProcess([]);
+      const lockFile = join(home, "temporal.lock");
+      writeFileSync(lockFile, `${stranger}\nstarted=another life\n`);
+      const manager = new TemporalManager({
+        binPath: fakeTemporal(home),
+        dataDir: join(home, "temporal-data"),
+        logFile: join(home, "logs", "temporal.log"),
+        pidFile: join(home, "temporal.pid"),
+        lockFile,
+        port: await freePort(),
+        uiPort: await freePort(),
+      });
+      try {
+        await manager.start();
+        expect(await manager.isRunning()).toBe(true);
+        expect(isProcessAlive(stranger)).toBe(true);
+
+        await manager.stop();
+        expect(isProcessAlive(stranger)).toBe(true);
+      } finally {
+        await manager.stop();
+        try {
+          process.kill(-stranger, "SIGKILL");
+        } catch {
+          // already gone
+        }
+      }
+    });
+
     it("leaves a process that is not Temporal alone, even recorded with its own start time", async () => {
       const home = tempHome();
       const pid = await detachedProcess([]);

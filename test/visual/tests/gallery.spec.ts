@@ -21,9 +21,6 @@ import { draw } from "./draw.ts";
 
 /** The rules each scene fails today, in each mode, against the issue that tracks each. */
 const KNOWN_VIOLATIONS: Readonly<Partial<Record<`${SceneId} ${Mode}`, readonly KnownViolation[]>>> = {
-  // A file read still running nests its file link inside the row's button.
-  "story-hours light": [{ rule: "nested-interactive", issue: "stigmer#2878" }],
-  "story-hours dark": [{ rule: "nested-interactive", issue: "stigmer#2878" }],
   // The channel cards' audience and serving-app lines are in the faint muted tone.
   "channel-list light": [{ rule: "color-contrast", issue: "stigmer#2898" }],
   "channel-list dark": [{ rule: "color-contrast", issue: "stigmer#2898" }],

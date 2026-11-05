@@ -90,11 +90,14 @@ describe("a background command's row", () => {
         <ToolCallItem toolUse={backgroundStart()} />
       </BackgroundCommandContext.Provider>,
     );
-    const header = rowOf(container).querySelector('[role="button"]');
-    const expandedBefore = header?.getAttribute("aria-expanded");
-    fireEvent.click(screen.getByRole("button", { name: "Stop" }));
+    const toggle = rowOf(container).querySelector('[data-cursor-target="thread-card-toggle"]');
+    const stopButton = screen.getByRole("button", { name: "Stop" });
+    expect(toggle, "the row has a toggle to stay off").not.toBeNull();
+    expect(toggle?.contains(stopButton), "Stop is the toggle's sibling, reached as itself").toBe(false);
+    const expandedBefore = toggle?.getAttribute("aria-expanded");
+    fireEvent.click(stopButton);
     expect(onStop).toHaveBeenCalledWith("run_1.bg-1");
-    expect(header?.getAttribute("aria-expanded"), "the click stays on the button").toBe(expandedBefore);
+    expect(toggle?.getAttribute("aria-expanded"), "the click stays on the button").toBe(expandedBefore);
   });
 
   it("shows no Stop without a handler (a viewer who may not act)", () => {

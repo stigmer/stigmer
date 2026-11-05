@@ -1,10 +1,10 @@
 "use client";
 
-import type { KeyboardEvent, MouseEvent } from "react";
 import type { BackgroundCommandView, ToolUse } from "@stigmer/client";
 import { cn } from "@stigmer/design-tokens";
 import { DecisionButton } from "../internal/DecisionButton.js";
 import { InCardDecisionError } from "../internal/InCardDecisionError.js";
+import { ThreadCardHeaderControl } from "../internal/thread-card/index.js";
 import { formatElapsed, useElapsedSince } from "../internal/useElapsedSince.js";
 import { useBackgroundStop } from "./BackgroundCommandContext.js";
 
@@ -38,16 +38,13 @@ export function backgroundStatusLabel(background: BackgroundCommandView): string
   }
 }
 
-/** Keeps a click or a key on a control inside a row's header from toggling the row. */
-function keepInside(event: MouseEvent | KeyboardEvent): void {
-  event.stopPropagation();
-}
-
 /**
  * The header's trail for a tool use that started a command in the
  * background: a "Background" chip, its state (with a clock from its start
  * while it runs), and Stop while it runs and a stop handler is wired
  * ({@link BackgroundCommandContext}). Renders nothing for any other call.
+ * Stop is a control of the header's own, lifted above the row's toggle, so
+ * it is reached as itself and its click never opens or closes the row.
  */
 export function BackgroundCommandTrail({ toolUse }: { readonly toolUse: ToolUse }) {
   const background = toolUse.background;
@@ -77,7 +74,7 @@ export function BackgroundCommandTrail({ toolUse }: { readonly toolUse: ToolUse 
           : backgroundStatusLabel(background)}
       </span>
       {stop && (
-        <span className="stg:shrink-0" onClick={keepInside} onKeyDown={keepInside}>
+        <ThreadCardHeaderControl className="stg:shrink-0">
           <DecisionButton
             label={stop.isStopping ? "Stopping…" : "Stop"}
             variant="danger"
@@ -87,7 +84,7 @@ export function BackgroundCommandTrail({ toolUse }: { readonly toolUse: ToolUse 
             className="stg:px-2 stg:py-0.5"
             cursorTarget="background-command-stop"
           />
-        </span>
+        </ThreadCardHeaderControl>
       )}
     </>
   );

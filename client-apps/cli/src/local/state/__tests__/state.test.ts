@@ -292,7 +292,7 @@ describe("lock", () => {
     const path = join(tempDir("stigmer-lock-"), "temporal.lock");
     const first = acquireLock(path);
     expect(first).not.toBeNull();
-    expect(readFileSync(path, "utf8").trim()).toBe(String(process.pid));
+    expect(readPidFile(path)).toBe(process.pid);
 
     // A second acquire while we (a live process) hold it must fail.
     expect(acquireLock(path)).toBeNull();
@@ -306,7 +306,7 @@ describe("lock", () => {
     writeFileSync(path, `${DEAD_PID}\n`);
     const lock = acquireLock(path);
     expect(lock).not.toBeNull();
-    expect(readFileSync(path, "utf8").trim()).toBe(String(process.pid));
+    expect(readPidFile(path)).toBe(process.pid);
   });
 
   // The container case: after an unclean stop the lock file on the volume names
@@ -320,6 +320,45 @@ describe("lock", () => {
     expect(lock).not.toBeNull();
     lock?.release();
     expect(acquireLock(path)).not.toBeNull();
+  });
+
+  // stigmer#2900: the lock is a PID record like every PID file, so a number
+  // the OS has since handed to another program does not hold it.
+  it("records its own start time beside its PID", () => {
+    const path = join(tempDir("stigmer-lock-"), "temporal.lock");
+    const lock = acquireLock(path);
+    expect(lock).not.toBeNull();
+    const started = processStartTime(process.pid);
+    expect(started).not.toBeNull();
+    expect(readFileSync(path, "utf8")).toBe(`${process.pid}\nstarted=${started}\n`);
+    lock?.release();
+  });
+
+  it("reclaims a lock whose owner PID is alive but started at another time", () => {
+    const path = join(tempDir("stigmer-lock-"), "temporal.lock");
+    writeFileSync(path, `${process.ppid}\nstarted=another life\n`);
+    const lock = acquireLock(path);
+    expect(lock).not.toBeNull();
+    expect(readPidFile(path)).toBe(process.pid);
+    lock?.release();
+  });
+
+  it("refuses a lock whose owner is alive and still the process recorded", () => {
+    const path = join(tempDir("stigmer-lock-"), "temporal.lock");
+    const started = processStartTime(process.ppid);
+    expect(started).not.toBeNull();
+    writeFileSync(path, `${process.ppid}\nstarted=${started}\n`);
+    expect(acquireLock(path)).toBeNull();
+    expect(readPidFile(path)).toBe(process.ppid);
+  });
+
+  // A lock an older CLI wrote carries the PID alone; it is trusted on liveness,
+  // as it always was, so an upgrade never steals a running stack's lock.
+  it("refuses a live owner in a lock with no start time, as an older CLI wrote it", () => {
+    const path = join(tempDir("stigmer-lock-"), "temporal.lock");
+    writeFileSync(path, `${process.ppid}\n`);
+    expect(acquireLock(path)).toBeNull();
+    expect(readPidFile(path)).toBe(process.ppid);
   });
 
   it("release is idempotent and only removes our own lock", () => {

@@ -46,6 +46,14 @@
  *     invocation instead, taking nothing: the turn proposes that call's
  *     WAITING row from the gate's pause verdict, with no arguments, so the
  *     row, the card and the session's log keep the model's own call.
+ *     A deferred call the gate handed back instead (an approved shell call
+ *     the engine named as its own shell, `gate.ts` item 1) proposes
+ *     nothing: the invocation ends, and the turn runs steps 2 to 4 again
+ *     ({@link MISNAMED_RESUMES} more times at most) with the bridge and
+ *     observer it holds. The store still holds the call pending with its
+ *     WAITING row and answer, so the next invocation resumes it again, and
+ *     no person is asked twice (stigmer#2667). A stop, a yield, a lost
+ *     store batch or an engine error ends the turn instead.
  *  5. Settle (`settle.ts`).
  *
  * Stop: the runtime's stop interrupts the engine at once, and aborts it
@@ -98,7 +106,7 @@ import { engineEnvironment } from "./engine-env.js";
 import { engineOptions, thinkingOf, userMessageOf } from "./engine-options.js";
 import { engineSessionIdOf, runMessageIdOf, sentMessageIdOf } from "./engine-session-id.js";
 import { FileTranscripts } from "./file-store.js";
-import { ClaudeGate, canUseToolOf, gateFactsOf, gateHooks, type Caller, type GateVerdict, type WaitingCall } from "./gate.js";
+import { ClaudeGate, canUseToolOf, gateFactsOf, gateHooks, holdsCall, type Caller, type GateVerdict, type WaitingCall } from "./gate.js";
 import { HookFeedback, turnHookEvaluators } from "./hooks.js";
 import { hostShellServer, HOST_SHELL_TOOL, isHostShell } from "./host-shell.js";
 import { HttpTranscripts } from "./http-store.js";
@@ -150,6 +158,20 @@ export async function admitHeld(gate: Pick<ClaudeGate, "admit">, mirrored: Mirro
   return undefined;
 }
 
+/**
+ * How many more times a turn starts the engine on the same paused call when
+ * the engine hands it back under its own shell's name (step 4 of the
+ * header): three engine runs in all. Each costs an engine start and no
+ * model call; at the measured one slip in ten, three in a row is about one
+ * in a thousand.
+ */
+export const MISNAMED_RESUMES = 2;
+
+/** An invocation that ended for the turn to start the engine again on the same paused call (step 4 of the header); never returned past the turn. */
+interface ResumeAgain {
+  readonly kind: "resume_again";
+}
+
 /** What a continued turn is told when there is nothing new to read: never the task again. */
 export const CONTINUE_NOTE = "Continue where you left off.";
 
@@ -171,7 +193,13 @@ export async function runClaudeTurn(input: TurnInput, sink: TurnSink, config: Cl
     const model = await resolveModel(input);
     const specs = await subagentSpecsOf(input);
     bridge = await connectTools(input, sink, specs);
-    return await engineTurn(input, sink, config, sdk, { model, bridge, home, specs, observer });
+    for (let resumesLeft = MISNAMED_RESUMES; ; resumesLeft -= 1) {
+      const outcome = await engineTurn(input, sink, config, sdk, { model, bridge, home, specs, observer, resumesLeft });
+      if (outcome.kind !== "resume_again") return outcome;
+      console.warn(
+        `[claude-turn] execution=${input.executionId} the engine handed the approved call back as its own Bash; resuming again (${MISNAMED_RESUMES - resumesLeft + 1} of ${MISNAMED_RESUMES})`,
+      );
+    }
   } catch (err) {
     if (err instanceof Refusal || err instanceof SkillNameClash || err instanceof HookSetupError) {
       console.warn(`ExecuteClaude refused the turn: execution=${input.executionId}, ${err.message}`);
@@ -318,9 +346,11 @@ interface EngineTurnDeps {
   readonly home: string;
   readonly specs: readonly SubagentSpec[];
   readonly observer: CasCaptureObserver;
+  /** How many more times the turn may start the engine on the same paused call (step 4 of the header). */
+  readonly resumesLeft: number;
 }
 
-async function engineTurn(input: TurnInput, sink: TurnSink, config: ClaudeAdapterConfig, sdk: ClaudeSdk, deps: EngineTurnDeps): Promise<TurnOutcome> {
+async function engineTurn(input: TurnInput, sink: TurnSink, config: ClaudeAdapterConfig, sdk: ClaudeSdk, deps: EngineTurnDeps): Promise<TurnOutcome | ResumeAgain> {
   const { bridge, model, home } = deps;
   const { workspace } = input;
   const turnKey = getExecutionContext().getStore()?.turnKey;
@@ -354,6 +384,7 @@ async function engineTurn(input: TurnInput, sink: TurnSink, config: ClaudeAdapte
       hooks,
       waitingCallOf: (id) => waiting.get(id),
       pending,
+      resumesLeft: deps.resumesLeft,
       observer: deps.observer,
     }),
     () => halted,
@@ -403,7 +434,7 @@ async function engineTurn(input: TurnInput, sink: TurnSink, config: ClaudeAdapte
     const openCalls = new Set<string>();
     const midTurn = new MidTurnInput(sink, stream, () => [...openCalls].every((id) => {
       const verdict = gate.verdictOf(id);
-      return verdict !== undefined && verdict.kind !== "pause";
+      return verdict !== undefined && !holdsCall(verdict);
     }));
     if (opening.kind === "resume") midTurn.holdUntilResultOf(opening.call);
     else for (const message of opening.messages) stream.push(message);
@@ -459,6 +490,7 @@ async function engineTurn(input: TurnInput, sink: TurnSink, config: ClaudeAdapte
       midTurn,
       openCalls,
       onDecided: (listener) => gate.onDecided(listener),
+      verdictOf: (id) => gate.verdictOf(id),
       options,
       abort,
       translator: new ClaudeTranslator({ serverOf: bridge.serverOf, verdictOf: (id) => gate.verdictOf(id), feedbackOf: (id) => feedback.sectionOf(id) }),
@@ -469,7 +501,7 @@ async function engineTurn(input: TurnInput, sink: TurnSink, config: ClaudeAdapte
       unattendedSkips: gate.unattendedSkips,
       propose: (callId) => proposeDeferred(sink, gate, bridge, callId),
     });
-    return settleClaudeTurn(sink, end);
+    return end.resumeAgain ? { kind: "resume_again" } : settleClaudeTurn(sink, end);
   } finally {
     await closeQuietly(input.executionId, "the tools' endpoint", () => endpoint?.close());
   }
@@ -519,6 +551,8 @@ interface EngineRun {
   readonly openCalls: Set<string>;
   /** Be told each time the gate decides a call. */
   readonly onDecided: (listener: (toolUseId: string, verdict: GateVerdict) => void) => void;
+  /** The decision the gate made for a call; undefined when none was. */
+  readonly verdictOf: (toolUseId: string) => GateVerdict | undefined;
   readonly options: Parameters<ClaudeSdk["query"]>[0]["options"];
   readonly abort: AbortController;
   readonly translator: ClaudeTranslator;
@@ -535,8 +569,13 @@ function deferredCallOf(result: SDKResultMessage): string | undefined {
   return (result as { deferred_tool_use?: { id?: unknown } }).deferred_tool_use?.id as string | undefined;
 }
 
+/** How an engine run ended: the settle's view, and whether the turn starts the engine again on the call it deferred (step 4 of the header). */
+interface EngineEnd extends InvocationEnd {
+  readonly resumeAgain: boolean;
+}
+
 /** Step 4 of the header: the engine run to its last result. */
-async function runEngine(input: TurnInput, sink: TurnSink, sdk: ClaudeSdk, run: EngineRun): Promise<InvocationEnd> {
+async function runEngine(input: TurnInput, sink: TurnSink, sdk: ClaudeSdk, run: EngineRun): Promise<EngineEnd> {
   const { stream, midTurn, abort, translator, usage } = run;
   const builder = sink.transcript;
   const scheduler = new StreamingUpdateScheduler(loadStreamingConfig());
@@ -664,9 +703,21 @@ async function runEngine(input: TurnInput, sink: TurnSink, sdk: ClaudeSdk, run: 
     if (forceAbort !== undefined) clearTimeout(forceAbort);
     query.close();
   }
-  const awaitingApproval = deferred !== undefined && !(stopped || yielding) && result?.is_error !== true;
+  // A deferral counts only when nothing settles the turn first: a stop, a yield, an engine error, and for the engine's restart a lost store batch.
+  const deferral = deferred !== undefined && !(stopped || yielding) && result?.is_error !== true;
+  const handedBack = deferral && run.verdictOf(deferred!)?.kind === "resume_again";
+  const awaitingApproval = deferral && !handedBack;
+  const resumeAgain = handedBack && mirrorError === undefined;
   if (awaitingApproval) run.propose(deferred!);
-  return { stopped: stopped || yielding, result, mirrorError, unattendedSkips: run.unattendedSkips, structuredOutput: input.structuredOutputSchema !== undefined, awaitingApproval };
+  return {
+    stopped: stopped || yielding,
+    result,
+    mirrorError,
+    unattendedSkips: run.unattendedSkips,
+    structuredOutput: input.structuredOutputSchema !== undefined,
+    awaitingApproval,
+    resumeAgain,
+  };
 }
 
 /** Best-effort teardown: a failed close is logged and never masks the turn's outcome. */

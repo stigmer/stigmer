@@ -36,7 +36,18 @@
  *     (only the host's, `host-shell.ts`), and a call to anything outside
  *     the caller's reach (its built-ins, the host's shell, its servers'
  *     tools) is refused before any policy is asked, so no gap in a
- *     classification table can open the gate.
+ *     classification table can open the gate. One call under that name is
+ *     still the host's shell: the main agent's call the turn left paused,
+ *     which the engine deferred under the alias and, resuming, sometimes
+ *     hands back under its own name (stigmer#2667). The engine cannot run
+ *     it, so the gate decides only what is final: an approval is handed
+ *     back untouched ({@link ResumeAgainVerdict}), before any hook, and the
+ *     turn starts the engine again on the same paused call (`turn.ts`),
+ *     where it arrives under its right name and is judged in full; any
+ *     other answer is judged as the host's shell, so a refusal carries the
+ *     person's reason and an unproposed call is asked for alone. On the
+ *     run that may not start the engine again ({@link GateFacts.resumesLeft}),
+ *     an approval is refused with {@link MISNAMED_SHELL_MESSAGE}.
  *  2. Scope, which no approval widens. `Skill` loads only a skill of the
  *     caller's own, in plan mode too (a skill writes nothing). `Agent`
  *     starts only a defined helper, on its own definition: a call that
@@ -84,6 +95,9 @@
  * a call never runs undecided. When it meets the very call deferred, the
  * engine ignored the deferral, so the invocation's one deferral is free
  * again. The turn turns the deferral into the WAITING row (`turn.ts`).
+ * A call handed back to resume again (item 1) is deferred the same way, and
+ * refused the same way at `canUseTool`, but it is no person's ask: it never
+ * becomes a WAITING row.
  *
  * A file tool's write the gate lets run is observed first when review
  * captures what git cannot (an ignored path, a workspace with no git): its
@@ -159,6 +173,9 @@ export function helperStartAskMessage(hook: string): string {
 
 /** What a call that would wait while another already waits is refused with: the model asks for it again, alone. */
 export const ASK_ALONE_MESSAGE = "Ask for this call on its own: it needs a person's approval, and only one call can wait at a time. It was not run.";
+
+/** What the paused shell call is refused with when the engine hands it back under its own name and may not be started again (the header, item 1). */
+export const MISNAMED_SHELL_MESSAGE = "This command could not reach the workspace's shell; it was not run. Ask for it again.";
 
 /** What a call left waiting by a stopped turn is refused with when a later run's engine reaches it. */
 export const STALE_CALL_MESSAGE = "This call was waiting for an answer when its turn was stopped; it was not run.";
@@ -280,8 +297,23 @@ export interface PauseVerdict {
   readonly hook: string | undefined;
 }
 
+/**
+ * The paused shell call, approved, that the engine handed back under its
+ * own name (the header, item 1): deferred again, so the turn starts the
+ * engine once more on it. No person is asked, so it carries no card.
+ */
+export interface ResumeAgainVerdict {
+  readonly kind: "resume_again";
+  readonly caller: Caller;
+}
+
 /** One call's decision. */
-export type GateVerdict = AllowVerdict | RefuseVerdict | PauseVerdict;
+export type GateVerdict = AllowVerdict | RefuseVerdict | PauseVerdict | ResumeAgainVerdict;
+
+/** Whether a verdict holds its call back from running in this engine run: a person's ask, or the engine to be started again. */
+export function holdsCall(verdict: GateVerdict): verdict is PauseVerdict | ResumeAgainVerdict {
+  return verdict.kind === "pause" || verdict.kind === "resume_again";
+}
 
 /** What the gate knows of the turn, read once before the engine starts. */
 export interface GateFacts {
@@ -319,6 +351,8 @@ export interface GateFacts {
   readonly staleCallId: string | undefined;
   /** A call this run's engine left pending that it never proposed (a yield crossed its deferral): asked for again alone. */
   readonly unproposedCallId: string | undefined;
+  /** How many more times the turn may start the engine again on the paused shell call (the header, item 1). */
+  readonly resumesLeft: number;
   /** Where a write's before-bytes and a blocked secret's path are recorded for review (the header). */
   readonly observer: Pick<CasCaptureObserver, "recordBefore" | "recordBlockedSecret"> | undefined;
 }
@@ -348,6 +382,7 @@ export interface GateFactSources {
   readonly hooks: TurnHookEvaluators;
   readonly waitingCallOf: GateFacts["waitingCallOf"];
   readonly pending: { readonly staleCallId: string | undefined; readonly unproposedCallId: string | undefined };
+  readonly resumesLeft: number;
   readonly observer: GateFacts["observer"];
 }
 
@@ -379,6 +414,7 @@ export function gateFactsOf(input: TurnInput, sources: GateFactSources): GateFac
     waitingCallOf: sources.waitingCallOf,
     staleCallId: sources.pending.staleCallId,
     unproposedCallId: sources.pending.unproposedCallId,
+    resumesLeft: sources.resumesLeft,
     observer: sources.observer,
   };
 }
@@ -526,6 +562,7 @@ export class ClaudeGate {
     if (who === undefined) return refusal(UNKNOWN_CALLER_MESSAGE, undefined);
     const { caller, reach } = who;
     const refuse = (message: string, source?: PolicySource, hook?: string): GateVerdict => refusal(message, caller, source, hook);
+    if (toolName === HOST_SHELL_TOOL.engineName && caller.kind === "root" && this.isPausedShellCall(toolUseId)) return this.misnamedShell(toolUseId, input, agentId, who);
     if (toolName === HOST_SHELL_TOOL.engineName || !reach.tools.has(toolName)) return refuse(notOfferedMessage(toolName));
     if (toolName === SKILL_TOOL) return this.skill(toolName, input, reach, caller);
     if (toolName === AGENT_TOOL) {
@@ -583,6 +620,38 @@ export class ClaudeGate {
     const requirement = resolveToolApproval(server?.tool ?? name, server?.slug ?? "", policyArgs, facts.mcpDefault, facts.leases.categories);
     if (!requirement.requiresApproval) return allow(requirement.source, undefined);
     return this.wouldAsk(call, caller, { message: requirement.message, source: requirement.source, hook: undefined }, args, allow);
+  }
+
+  /**
+   * Whether a call is the host shell's call the turn left paused (the
+   * header, item 1): the one a person answered, its WAITING row the shell's,
+   * or the one this run left pending without proposing it. The engine
+   * deferred either under the alias alone, so the id names the shell's call
+   * whatever name the engine hands it back under.
+   */
+  private isPausedShellCall(toolUseId: string): boolean {
+    if (toolUseId === this.facts.unproposedCallId) return true;
+    const shown = this.facts.waitingCallOf(toolUseId);
+    return shown !== undefined && shown.name === HOST_SHELL_TOOL.engineName && shown.mcpServerSlug === "";
+  }
+
+  /**
+   * The paused shell call the engine handed back under its own name (the
+   * header, item 1), which it cannot run. An approval is handed back before
+   * any step: the run that executes it judges it in full, so no hook runs
+   * for a judgment thrown away. Anything else is judged as the host's shell,
+   * and only a refusal stands; a verdict that would run or defer the call
+   * is handed back too, since the engine would run its own shell.
+   */
+  private async misnamedShell(toolUseId: string, input: Record<string, unknown>, agentId: string | undefined, who: { caller: Caller; reach: Reach }): Promise<GateVerdict> {
+    const answer = this.facts.decisions.get(toolUseId);
+    if (answer !== ApprovalAction.APPROVE && answer !== ApprovalAction.APPROVE_ALL) {
+      const verdict = await this.judge(HOST_SHELL_TOOL.aliasedName, toolUseId, input, agentId, who);
+      if (verdict.kind === "refuse") return verdict;
+    }
+    if (this.facts.resumesLeft > 0) return { kind: "resume_again", caller: who.caller };
+    console.warn(`[claude-gate] call=${toolUseId}: the engine handed the paused shell call back as its own Bash with no engine start left; refused`);
+    return refusal(MISNAMED_SHELL_MESSAGE, who.caller);
   }
 
   /** Whether an approved call is the one its WAITING row shows: its tool and server, and its arguments as the log holds them. */
@@ -790,6 +859,10 @@ export function gateHooks(gate: ClaudeGate): Partial<Record<HookEvent, HookCallb
         return gate.claimDeferral(id)
           ? { hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "defer" } }
           : { hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: ASK_ALONE_MESSAGE } };
+      case "resume_again":
+        return gate.claimDeferral(id)
+          ? { hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "defer" } }
+          : { hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: MISNAMED_SHELL_MESSAGE } };
       /* v8 ignore next 2 -- @preserve: the exhaustiveness guard over a closed union */
       default:
         return exhaustive(verdict);
@@ -818,6 +891,9 @@ export function canUseToolOf(gate: ClaudeGate): CanUseTool {
       case "pause":
         gate.releaseDeferral(options.toolUseID);
         return { behavior: "deny", message: ASK_ALONE_MESSAGE };
+      case "resume_again":
+        gate.releaseDeferral(options.toolUseID);
+        return { behavior: "deny", message: MISNAMED_SHELL_MESSAGE };
       /* v8 ignore next 2 -- @preserve: the exhaustiveness guard over a closed union */
       default:
         return exhaustive(verdict);
