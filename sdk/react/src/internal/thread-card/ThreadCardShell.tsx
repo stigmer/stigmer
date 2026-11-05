@@ -34,10 +34,10 @@ import { ChevronIcon } from "./glyphs.js";
  * An interactive header holds no control inside its toggle. The toggle is a
  * real, empty `<button>` laid over the whole header (any click on the row
  * opens it, one tab stop, Enter and Space from the platform), named by the
- * caller's `label`; the header's text sits beside it. A control the header
- * carries (a file link, a Stop button) is the toggle's sibling, lifted above
- * it by {@link ThreadCardHeaderControl}, so a screen reader reaches it as
- * itself and its click never reaches the toggle. Nesting a control inside a
+ * caller's `label`; the header's text sits beside it, painted under it. A
+ * control the header carries (a file link, a Stop button) is the toggle's
+ * sibling, lifted above it by {@link ThreadCardHeaderControl}, so a screen
+ * reader reaches it as itself and its click never reaches the toggle. Nesting a control inside a
  * `role=button` would hide it from assistive technology (axe's
  * `nested-interactive`), which is why the toggle never wraps the content.
  * The cost is that header text cannot be selected with the pointer; the
@@ -159,7 +159,11 @@ const HEADER_LAYOUT =
   "stg:relative stg:isolate stg:flex stg:w-full stg:items-center stg:gap-2 stg:px-2.5 stg:py-1.5 stg:text-xs";
 
 const TOGGLE_CLASSES = cn(
-  "stg:absolute stg:inset-0 stg:cursor-pointer",
+  // z-1, not auto: a header child that draws with a transform (the open
+  // chevron's rotation, a running spinner) is a stacking context of its own and
+  // would paint over an auto toggle, swallowing its clicks. A lifted control's
+  // z-10 still sits above it.
+  "stg:absolute stg:inset-0 stg:z-1 stg:cursor-pointer",
   // ring-inset so the card's overflow-hidden does not clip the focus ring.
   "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring",
 );

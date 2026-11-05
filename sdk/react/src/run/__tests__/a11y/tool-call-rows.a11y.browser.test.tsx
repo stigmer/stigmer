@@ -111,6 +111,26 @@ describe("a tool-call row's header in the browser", () => {
     expect(file.contains(hitAtCentre(file)), "the file control is lifted above the toggle").toBe(true);
   });
 
+  it("sends a click on an open row's chevron and a running row's spinner to the toggle", () => {
+    // Both draw with a transform (the chevron's rotation, the spinner's
+    // animation), which gives each its own stacking context: a toggle left at
+    // z-index auto would paint under them and their clicks would reach nothing.
+    const container = renderAudited(
+      <ToolCallItem toolUse={toolUse({ name: "Read", input: { path: FILE }, state: "running" })} />,
+      "light",
+      HIT_BOX,
+    );
+    const toggle = toggleOf(container);
+    expect(toggle.getAttribute("aria-expanded"), "a running read opens on its own").toBe("true");
+    const header = toggle.parentElement!;
+    const chevron = header.querySelector('[class~="stg:rotate-90"]');
+    const spinner = header.querySelector('[class~="stg:animate-spin"]');
+    expect(chevron, "the open row's rotated chevron").not.toBeNull();
+    expect(spinner, "the running row's spinner").not.toBeNull();
+    expect(hitAtCentre(chevron!)).toBe(toggle);
+    expect(hitAtCentre(spinner!)).toBe(toggle);
+  });
+
   it("sends a click on Stop to Stop", () => {
     const container = renderAudited(
       <BackgroundCommandContext.Provider value={stopping}>
