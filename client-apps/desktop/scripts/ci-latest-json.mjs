@@ -15,6 +15,12 @@
 // embedded runner's natives are staged for the build host, so a universal
 // shell would carry arm64-only natives.
 //
+// Every signature must be signed for the tag's version. The app turns on the
+// updater's `requireSignedVersion` (tauri.conf.json), so it refuses an update
+// whose signature's trusted comment names no version, or another one, than the
+// version latest.json announces. A leg whose bundle would be refused fails here,
+// before the release is published, rather than stranding every installed app.
+//
 // Usage:
 //   node ci-latest-json.mjs fragment --target-dir <dir> --tag <vX.Y.Z> --out <file>
 //   node ci-latest-json.mjs merge --fragments-dir <dir> --version <X.Y.Z> --out <file>
@@ -94,7 +100,10 @@ export function platformKeysFor(bundleName, sigPath) {
     const triple = macosTargetOf(sigPath);
     return triple ? MACOS_TARGETS[triple].platformKeys : null;
   }
-  if (bundleName.endsWith('.AppImage') || bundleName.endsWith('.AppImage.tar.gz')) {
+  // Only the AppImage itself: the app's updater is built without its `zip`
+  // feature, which is what unpacks a compressed `.AppImage.tar.gz`, and the
+  // bundler signs the AppImage raw.
+  if (bundleName.endsWith('.AppImage')) {
     return ['linux-x86_64'];
   }
   if (bundleName.endsWith('-setup.exe') || bundleName.endsWith('.msi')) {
@@ -114,6 +123,55 @@ export function uploadedBundleName(bundleName, sigPath) {
   const suffix = `_${MACOS_TARGETS[triple].uploadArch}`;
   const stem = bundleName.slice(0, -'.app.tar.gz'.length);
   return stem.endsWith(suffix) ? bundleName : `${stem}${suffix}.app.tar.gz`;
+}
+
+// The version a `.sig` file was signed for. The file is the base64 of a
+// minisign signature; the Tauri CLI writes its trusted comment as
+// tab-separated `key:value` fields (`timestamp:…\tfile:…\tversion:…`). Read
+// the way the updater reads it (tauri-plugin-updater `signed_version`): the
+// first field that starts with `version:`. Returns null when the comment has
+// no such field, and throws when there is no trusted comment at all.
+export function signedVersionOf(signature, sigPath) {
+  const text = Buffer.from(signature, 'base64').toString('utf8');
+  const line = text.split(/\r?\n/).find((l) => l.startsWith('trusted comment: '));
+  if (line === undefined) {
+    throw new Error(`${sigPath} has no trusted comment: it is not a minisign signature.`);
+  }
+  const field = line
+    .slice('trusted comment: '.length)
+    .split('\t')
+    .find((f) => f.startsWith('version:'));
+  return field === undefined ? null : field.slice('version:'.length);
+}
+
+// The updater's comparison (tauri-plugin-updater `verify_signed_version`): as
+// semver once leading `v`s are dropped, so `v1.2.3` matches `1.2.3`, or
+// literally when either side is not semver. Semver forbids leading zeros, so
+// two valid versions are equal exactly when their texts are.
+const SEMVER =
+  /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/;
+
+export function sameVersion(signed, announced) {
+  const a = signed.replace(/^v+/, '');
+  const b = announced.replace(/^v+/, '');
+  if (SEMVER.test(a) && SEMVER.test(b)) return a === b;
+  return signed === announced;
+}
+
+function assertSignedFor(signature, sigPath, tag) {
+  const signed = signedVersionOf(signature, sigPath);
+  if (signed === null) {
+    throw new Error(
+      `${sigPath} carries no signed version, and the app refuses an update without one ` +
+        `(requireSignedVersion). Sign it with Tauri CLI 2.12 or later for ${tag}.`,
+    );
+  }
+  if (!sameVersion(signed, tag)) {
+    throw new Error(
+      `${sigPath} is signed for ${signed}, but this release is ${tag}; ` +
+        'every installed app would refuse the update.',
+    );
+  }
 }
 
 function downloadUrl(repo, tag, bundleName) {
@@ -137,6 +195,7 @@ export function buildFragment({ targetDir, tag, repo }) {
     if (!keys) continue;
 
     const signature = readFileSync(sigPath, 'utf8').trim();
+    assertSignedFor(signature, sigPath, tag);
     const url = downloadUrl(repo, tag, bundleName);
 
     for (const key of keys) {

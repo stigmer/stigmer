@@ -50,6 +50,7 @@
       }
     },
     "updater": {
+      "requireSignedVersion": true,
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDZDNTRCNUE4NTg2RTZGQzMKUldURGIyNVlxTFZVYk9SbFU4anBpbU5QY1pRVkZWWmlGbnhnMVJhNkdGYXpIOGpxMDN6WEpRK1UK",
       "endpoints": [
         "https://github.com/stigmer/stigmer/releases/latest/download/latest.json"
