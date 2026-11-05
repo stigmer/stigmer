@@ -24,8 +24,9 @@
  * writes carries the person's email and display name that no token
  * could. The API-key verifier is the precedent for a store-reading
  * verifier (domain/apikey/verifier.ts: the key row, then the owner's
- * account); this one pays the same two reads. No cache: a run that ends,
- * or a connect that settles, stops admitting on the very next request.
+ * account); this one pays the same two reads. No cache: a run that ends
+ * (for a sandbox's clocked token, a session that goes), or a connect that
+ * settles, stops admitting on the very next request.
  *
  * The person is admitted BOUND to the execution's organization
  * (`CallerIdentity.boundOrg`, authorization/credential-binding.ts): a run

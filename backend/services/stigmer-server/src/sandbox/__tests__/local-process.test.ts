@@ -205,3 +205,42 @@ describe("the local-process driver and an Environment", () => {
     expect(provisioner.environmentSupport).toBeUndefined();
   });
 });
+
+describe.skipIf(process.platform === "win32")("the local-process driver with no backend endpoint configured", () => {
+  it("hands its runner the runner's own local default, and that same server as its Temporal address", async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "local-process-default-"));
+    const script = path.join(dir, "fake-runner.sh");
+    writeFileSync(script, `#!/bin/sh\nenv > "${dir}/env.dump"\nwhile true; do sleep 1; done\n`);
+    chmodSync(script, 0o755);
+    const driver = newLocalProcessSandboxProvisioner({
+      config: {
+        backendEndpoint: "",
+        mcpPublicEndpoint: "",
+        temporalNamespace: "default",
+        runnerImage: "unused-by-this-driver",
+        runnerCommand: script,
+        kubernetesNamespace: "unused-by-this-driver",
+        runnerEnv: {},
+        runnerSecretEnv: {},
+        serverRelease: "",
+      },
+      logger: silentLogger,
+    });
+    try {
+      await driver.ensureSessionSandbox("ses_default", {
+        taskQueue: "session:ses_default",
+        stigmerToken: "tok",
+        callerClass: "user",
+      });
+      await vi.waitFor(() => expect(existsSync(path.join(dir, "env.dump"))).toBe(true), {
+        timeout: CHILD_SETTLE_TIMEOUT_MS,
+      });
+      const dump = readFileSync(path.join(dir, "env.dump"), "utf8");
+      expect(dump).toContain("STIGMER_BACKEND_ENDPOINT=http://localhost:7234");
+      expect(dump).toContain("TEMPORAL_SERVICE_ADDRESS=localhost:7234");
+    } finally {
+      await driver.deprovisionSessionSandbox("ses_default");
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});

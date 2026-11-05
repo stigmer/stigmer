@@ -93,9 +93,9 @@ export const newLocalProcessSandboxProvisioner: SandboxProvisionerFactory = ({
     );
     mkdirSync(workspaceRoot, { recursive: true });
 
-    // The server's own Temporal connection settings are replaced by their
-    // rendered form, never inherited beside it: an inherited _PATH item
-    // next to its rendered _DATA twin is a boot refusal in the runner.
+    // The server's own Temporal connection settings are never inherited:
+    // the runner reaches Temporal through the server, and a STIGMER_TEMPORAL_*
+    // setting beside the server's address is a boot refusal in the runner.
     const inherited = Object.fromEntries(
       Object.entries(process.env).filter(([name]) => !TEMPORAL_CONNECTION_ENV_NAMES.includes(name)),
     );

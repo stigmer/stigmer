@@ -3,9 +3,11 @@
  * Docker daemon: a fake `docker` on PATH answers `inspect` with the state
  * the case sets and records every call. A running container is the fast
  * path (nothing started), a stopped one is restarted as-is with its
- * original env while its baked token is good, and recreated from a commit
- * of itself with the fresh token once that token has expired (its
- * workspace carried over; deprovision removes the carry image), and an
+ * original env while its baked token is good, and recreated with the
+ * fresh token once that token has expired: its workspace and home carried
+ * over as tar streams into a container created fresh from the runner image
+ * beside it, then swapped in, so no variable the driver no longer sets
+ * survives, and a failed copy leaves the old container as it was. An
  * absent one is created (a connect sandbox on its
  * own queue), with the operator's runner
  * secrets beside the token, never on the command line. The real CLI and
@@ -18,7 +20,7 @@ import path from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import type { LogFields, Logger } from "../../boot/logger.js";
-import { carryImageOf, newDockerSandboxProvisioner, tokenExpiryMs } from "../docker.js";
+import { createArgsFor, newDockerSandboxProvisioner, tokenExpiryMs } from "../docker.js";
 import { sandboxBaseName } from "../naming.js";
 import type { SandboxDriverConfig, SandboxFacts } from "../provisioner.js";
 
@@ -46,8 +48,12 @@ let originalPath: string | undefined;
 /** The fake CLI: answers `inspect` from the state file, records every call. */
 const FAKE_DOCKER = `#!/bin/sh
 echo "$*" >> "$FAKE_DOCKER_DIR/calls.log"
-if [ "$1" = "image" ] && [ -f "$FAKE_DOCKER_DIR/no-carry-image" ]; then
-  echo "Error: No such image" >&2
+if [ "$1" = "cp" ] && [ "$2" != "--archive" ] && [ -f "$FAKE_DOCKER_DIR/copy-out-fails" ]; then
+  echo "Error: no such path" >&2
+  exit 1
+fi
+if [ "$1" = "cp" ] && [ "$2" = "--archive" ] && [ -f "$FAKE_DOCKER_DIR/copy-in-fails" ]; then
+  echo "Error: copy failed" >&2
   exit 1
 fi
 if [ "$1" = "inspect" ] && [ "$3" = "{{json .Config.Env}}" ]; then
@@ -142,26 +148,64 @@ describe("docker driver ensure", () => {
     ]);
   });
 
-  it("recreates a stopped container whose token has expired from a commit of itself, with the fresh token", async () => {
+  it("recreates a stopped container whose token has expired, carrying its files and none of its old environment", async () => {
     setState("stopped", jwtExpiringIn(-60));
     const { logger, infos } = capturingLogger();
     await newDockerSandboxProvisioner({ config: CONFIG, logger }).ensureSessionSandbox("ses_ensure", ENV);
 
     const made = calls();
+    const fresh = `${name}-fresh`;
     expect(made.slice(0, 4)).toEqual([
       `inspect --format {{.State.Running}} ${name}`,
       `inspect --format {{json .Config.Env}} ${name}`,
-      `commit ${name} ${carryImageOf(name)}`,
-      `rm --force ${name}`,
+      `cp ${name}:/workspace -`,
+      `cp ${name}:/root -`,
     ]);
-    expect(made[4]?.startsWith(`run --detach --name ${name} `)).toBe(true);
-    expect(made[4]).toContain(` ${carryImageOf(name)} `);
+    // Created fresh from the runner image, with only what this ensure gives it.
+    expect(made[4]?.startsWith(`create --name ${fresh} `)).toBe(true);
+    expect(made[4]).toContain(` ${CONFIG.runnerImage} `);
     expect(made[4]).toMatch(/ --env STIGMER_TOKEN( |$)/);
-    expect(made.some((c) => c.startsWith("start "))).toBe(false);
-    expect(infos[0]).toEqual([
-      "Docker sandbox recreated with a fresh token",
-      { scope: "session", id: "ses_ensure", container: name },
+    expect(made[4]).not.toContain("STIGMER_TEMPORAL_");
+    expect(made.slice(5)).toEqual([
+      `cp --archive - ${fresh}:/`,
+      `cp --archive - ${fresh}:/`,
+      `rm --force ${name}`,
+      `rename ${fresh} ${name}`,
+      `start ${name}`,
     ]);
+    expect(infos).toEqual([
+      ["Docker sandbox recreated with a fresh token", { scope: "session", id: "ses_ensure", container: name }],
+    ]);
+  });
+
+  it("touches nothing when the files cannot be copied out of the old container", async () => {
+    setState("stopped", jwtExpiringIn(-60));
+    writeFileSync(path.join(dir, "copy-out-fails"), "");
+    try {
+      const { logger } = capturingLogger();
+      await expect(
+        newDockerSandboxProvisioner({ config: CONFIG, logger }).ensureSessionSandbox("ses_ensure", ENV),
+      ).rejects.toThrow(/exited 1: Error: no such path/);
+      expect(calls().at(-1)).toBe(`cp ${name}:/workspace -`);
+    } finally {
+      rmSync(path.join(dir, "copy-out-fails"), { force: true });
+    }
+  });
+
+  it("leaves the old container as it was when the files cannot be copied into the new one", async () => {
+    setState("stopped", jwtExpiringIn(-60));
+    writeFileSync(path.join(dir, "copy-in-fails"), "");
+    try {
+      const { logger } = capturingLogger();
+      await expect(
+        newDockerSandboxProvisioner({ config: CONFIG, logger }).ensureSessionSandbox("ses_ensure", ENV),
+      ).rejects.toThrow(/copy failed/);
+      const made = calls();
+      expect(made.at(-1)).toBe(`rm --force ${name}-fresh`);
+      expect(made).not.toContain(`rm --force ${name}`);
+    } finally {
+      rmSync(path.join(dir, "copy-in-fails"), { force: true });
+    }
   });
 
   it("starts a stopped container as it is when it has no token, or none minted now", async () => {
@@ -173,18 +217,6 @@ describe("docker driver ensure", () => {
         stigmerToken: fresh,
       });
       expect(calls().at(-1)).toBe(`start ${name}`);
-    }
-  });
-
-  it("removes a recreated sandbox's carry image with it, and a sandbox never recreated has none to remove", async () => {
-    for (const carried of [true, false]) {
-      setState("stopped");
-      if (!carried) writeFileSync(path.join(dir, "no-carry-image"), "");
-      const { logger, infos } = capturingLogger();
-      await newDockerSandboxProvisioner({ config: CONFIG, logger }).deprovisionSessionSandbox("ses_ensure");
-      expect(calls()).toEqual([`rm --force ${name}`, `image rm ${carryImageOf(name)}`]);
-      expect(infos.map(([message]) => message)).toEqual(["Docker sandbox deprovisioned"]);
-      rmSync(path.join(dir, "no-carry-image"), { force: true });
     }
   });
 
@@ -228,5 +260,19 @@ describe("tokenExpiryMs", () => {
     for (const token of ["opaque", "h.%%%.s", `h.${Buffer.from("{}").toString("base64url")}.s`]) {
       expect(tokenExpiryMs(token)).toBeUndefined();
     }
+  });
+});
+
+describe("createArgsFor", () => {
+  it("turns a docker run into a docker create under another name, and refuses anything else", () => {
+    expect(createArgsFor(["run", "--detach", "--name", "a", "--env", "X=1", "img"], "b")).toEqual([
+      "create",
+      "--name",
+      "b",
+      "--env",
+      "X=1",
+      "img",
+    ]);
+    expect(() => createArgsFor(["create", "--name", "a"], "b")).toThrow(/start "run --detach --name"/);
   });
 });
