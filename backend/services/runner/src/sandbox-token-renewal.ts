@@ -1,5 +1,5 @@
 /**
- * Self-renewal of a cloud sandbox's control-plane credential (STIGMER_TOKEN).
+ * Self-renewal of a sandbox's control-plane credential (STIGMER_TOKEN).
  *
  * A sandbox token is minted with a fixed TTL, but the sandbox it serves has no
  * fixed lifetime: an active conversation extends a session sandbox
@@ -18,9 +18,12 @@
  * module keeps that control-plane token itself fresh, so the two form one
  * chain with no expiring root. They stay separate modules because their
  * hosts differ — every proxy-mode runner has a coordinator, but only
- * in-cluster cloud sandbox runners hold a renewable credential; the
- * desktop's control-plane token is the user's own Auth0 token, refreshed by
- * the host app.
+ * sandbox runners hold a renewable credential (the cloud's `sandbox` token,
+ * and open source's clocked `execution_scoped` token, which the open-source
+ * server re-mints while the sandbox's session exists); the desktop's
+ * control-plane token is the user's own Auth0 token, refreshed by the host
+ * app. Behind the Stigmer server the same token is the runner's Temporal
+ * API key (temporal-lane.ts), so a lapsed one stops the sandbox taking work.
  *
  * The loop re-reads the CURRENT token every cycle rather than binding to
  * the boot credential, because the credential is replaced under it: every
@@ -53,8 +56,12 @@ const RECHECK_DELAY_MS = 60_000;
 /** Floor for any scheduled delay so a malformed expiry cannot spin a hot loop. */
 const MIN_DELAY_MS = 5_000;
 
-/** The token_type claims the renewal arm accepts (mirrors the server's gate). */
-const RENEWABLE_TOKEN_TYPES = new Set(["sandbox"]);
+/**
+ * The token_type claims the renewal arm accepts (mirrors the servers'
+ * gates): the cloud's session sandbox token, and open source's clocked
+ * sandbox token. A run credential carries no `exp`, so it never renews.
+ */
+const RENEWABLE_TOKEN_TYPES = new Set(["sandbox", "execution_scoped"]);
 
 export interface SandboxTokenRenewalOptions {
   /** Reads the credential currently in effect (re-read every cycle; see module doc). */

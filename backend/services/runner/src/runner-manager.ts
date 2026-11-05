@@ -7,20 +7,17 @@
  * activities.
  *
  * Used by the desktop app and any multi-session host that needs to
- * dynamically add/remove sessions without restarting the process.
+ * dynamically add/remove sessions without restarting the process. Each
+ * worker polls activity tasks only (worker.ts's header says why).
  */
 
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { homedir, tmpdir } from "node:os";
-import { createRequire } from "node:module";
 import {
   NativeConnection,
   Worker,
-  bundleWorkflowCode,
   type ActivityInterceptorsFactory,
-  type InjectedSinks,
-  type WorkflowBundleOption,
 } from "@temporalio/worker";
 import { releasingOnFailure, type HostedBoot } from "./agent-host/failed-boot.js";
 import type { Config, TokenRef } from "./config.js";
@@ -33,14 +30,9 @@ import {
   DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS,
 } from "./config.js";
 import type { WorkerActivities } from "./worker.js";
-import {
-  resolveWorkflowSource,
-  OTEL_WORKFLOW_INTERCEPTOR_MODULE,
-  type WorkflowSource,
-} from "./workflow-source.js";
 import { runCredentialActivityInterceptor } from "./interceptors/run-credential-activity.js";
 import { heartbeatWorkerOptions } from "./shared/heartbeat.js";
-import { collectorSpanExporter, contentGuardedExporter, telemetrySettings } from "./otel-export.js";
+import { telemetrySettings } from "./otel-export.js";
 import { resolveRunnerBootstrap, refreshRunnerAccessToken } from "./bootstrap.js";
 import { assertLlmBackendsPreflight } from "./preflight.js";
 import {
@@ -379,22 +371,6 @@ async function buildStigmerRunnerManager(
 
   const interceptorConfig = await buildInterceptorConfig();
 
-  // Prefer the build-time workflow bundle (slim/packaged artifacts ship it and
-  // cannot bundle at runtime); fall back to bundle-on-boot for dev and tests.
-  const workflowSource = resolveWorkflowSource();
-  let workflowBundle: WorkflowBundleOption;
-  if (workflowSource.kind === "prebuilt") {
-    console.log(`[runner-manager] Using pre-built workflow bundle: ${workflowSource.codePath}`);
-    workflowBundle = { codePath: workflowSource.codePath };
-  } else {
-    console.log("[runner-manager] Pre-bundling workflow code...");
-    workflowBundle = await bundleWorkflowCode({
-      workflowsPath: workflowSource.workflowsPath,
-      workflowInterceptorModules: interceptorConfig.workflowInterceptorModules,
-    });
-    console.log("[runner-manager] Workflow code bundled successfully");
-  }
-
   const sessions = new Map<string, ManagedSession>();
   let shuttingDown = false;
 
@@ -406,12 +382,10 @@ async function buildStigmerRunnerManager(
       namespace: config.temporalNamespace,
       taskQueue,
       activities,
-      workflowBundle,
       maxConcurrentActivityTaskExecutions: config.maxConcurrentActivities,
       // A pause reaches a turn on its next heartbeat; sent within seconds.
       ...heartbeatWorkerOptions,
       dataConverter: payloadCodecs?.length ? { payloadCodecs } : undefined,
-      sinks: interceptorConfig.sinks,
       interceptors: interceptorConfig.interceptors,
     });
 
@@ -706,37 +680,19 @@ async function createAllActivities(config: Config, harnessRows: readonly Harness
 }
 
 export interface InterceptorConfig {
-  sinks: InjectedSinks<any>;
-  interceptors: Record<string, any>;
-  /**
-   * Workflow-side interceptor modules. These must be compiled INTO the
-   * workflow bundle (Worker.create ignores `interceptors.workflowModules`
-   * when a pre-built `workflowBundle` is supplied), so the runtime-bundling
-   * path passes them to `bundleWorkflowCode` and the pre-built path relies
-   * on the build script having baked them in.
-   */
-  workflowInterceptorModules: string[];
+  interceptors: { activity: ActivityInterceptorsFactory[] };
 }
 
 /**
- * The manager's interceptors. `workflowSourceKind` decides whether the OTel
- * workflow module must be registered for bundling: a pre-built bundle has it
- * baked in (scripts/bundle-slim.mjs), and the slim artifact cannot resolve
- * the module at all, since it is compiled into the bundle rather than staged
- * beside it; only the runtime (bundle-on-boot) path resolves it, as worker.ts
- * does. The kind defaults to the source the manager will use
- * (resolveWorkflowSource, read again where the bundle is chosen). Exported
- * for its test.
+ * The manager's activity interceptors: the run credential, the in-flight
+ * counter, and OTel's activity spans when traces export. Exported for its
+ * test.
  */
-export async function buildInterceptorConfig(
-  workflowSourceKind: WorkflowSource["kind"] = resolveWorkflowSource().kind,
-): Promise<InterceptorConfig> {
+export async function buildInterceptorConfig(): Promise<InterceptorConfig> {
   // The run credential (shared/run-credential.ts), always on and inert
   // without a credential — the same interceptor the static root registers
   // (worker.ts).
   const activityInterceptors: ActivityInterceptorsFactory[] = [runCredentialActivityInterceptor];
-  let sinks: InjectedSinks<any> = {};
-  const workflowInterceptorModules: string[] = [];
 
   // In-flight activity counter: keeps a session worker alive while one of
   // its activities (notably a long turn) is running, so a view close
@@ -757,43 +713,15 @@ export async function buildInterceptorConfig(
 
   const telemetry = telemetrySettings();
   if (telemetry.traces.enabled) {
-    const { OpenTelemetryActivityInboundInterceptor, makeWorkflowExporter } =
-      await import("@temporalio/interceptors-opentelemetry");
-    const { resourceFromAttributes } = await import(
-      "@opentelemetry/resources"
+    const { OpenTelemetryActivityInboundInterceptor } = await import(
+      "@temporalio/interceptors-opentelemetry"
     );
-
     activityInterceptors.push((ctx) => ({
       inbound: new OpenTelemetryActivityInboundInterceptor(ctx),
     }));
-
-    const resource = resourceFromAttributes({
-      "service.name": "stigmer-runner-manager",
-    });
-    const exporter = contentGuardedExporter(await collectorSpanExporter(telemetry), telemetry.content);
-    const otelSinks = makeWorkflowExporter(
-      exporter as any,
-      resource as any,
-    ) as unknown as InjectedSinks<any>;
-    sinks = { ...sinks, ...otelSinks };
-
-    if (workflowSourceKind === "runtime") {
-      const esmRequire = createRequire(import.meta.url);
-      workflowInterceptorModules.push(
-        esmRequire.resolve(OTEL_WORKFLOW_INTERCEPTOR_MODULE),
-      );
-    }
   }
 
-  return {
-    sinks,
-    interceptors: {
-      ...(activityInterceptors.length > 0
-        ? { activity: activityInterceptors }
-        : {}),
-    },
-    workflowInterceptorModules,
-  };
+  return { interceptors: { activity: activityInterceptors } };
 }
 
 function resolveDefaultWorkspaceDir(): string {

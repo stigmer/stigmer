@@ -32,8 +32,10 @@ import type { SandboxProvisioner } from "./provisioner.js";
 /**
  * Sandbox credential TTL: 4 hours — the cloud edition's
  * SandboxTokenService TTL, kept identical so a sandbox outliving its
- * token behaves the same on both editions (the runner renews via
- * getRunnerScopedToken either way).
+ * token behaves the same on both editions: the runner renews via
+ * getRunnerScopedToken's renewal arm either way (open source's, while the
+ * session exists: runnerauth/sandbox-credential.ts). The token is also the
+ * sandbox's Temporal API key at the server's Temporal worker lane.
  */
 export const SANDBOX_TOKEN_TTL_SECONDS = 4 * 60 * 60;
 

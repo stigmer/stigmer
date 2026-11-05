@@ -1,10 +1,11 @@
 /**
- * Pins what startWorker hands Temporal: the run credential's activity
- * interceptor on every worker (the dispatch's input key is the credential's
- * one channel), no workflow-side interceptor module and no sinks unless
- * OpenTelemetry is configured, the workflow code the source resolves (a
- * pre-built bundle by path), and the heartbeat throttle a cancellation is
- * delivered within (`shared/heartbeat.ts`). NativeConnection and Worker are mocked; the
+ * Pins what startWorker hands Temporal: an ACTIVITY worker only (no
+ * workflow code at all), the run credential's activity interceptor on every
+ * worker (the dispatch's input key is the credential's one channel) and
+ * OpenTelemetry's beside it when traces export, the lane's connection
+ * options (temporal-lane.ts) with a fixed poll count behind the server, and
+ * the heartbeat throttle a cancellation is delivered within
+ * (`shared/heartbeat.ts`). NativeConnection and Worker are mocked; the
  * connection and worker the SDK returns are handed back unchanged.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -21,20 +22,14 @@ vi.mock("@temporalio/worker", () => ({
   Worker: { create: sdk.create },
 }));
 
-vi.mock("../workflow-source.js", () => ({
-  resolveWorkflowSource: () => ({
-    kind: "prebuilt",
-    codePath: "/runner/workflow-bundle.js",
-  }),
-  OTEL_WORKFLOW_INTERCEPTOR_MODULE:
-    "@temporalio/interceptors-opentelemetry/lib/workflow",
-}));
-
 import type { Config } from "../config.js";
 import { runCredentialActivityInterceptor } from "../interceptors/run-credential-activity.js";
 import { CANCELLATION_PULSE_MS } from "../shared/heartbeat.js";
 import { startWorker, type WorkerActivities } from "../worker.js";
 import { resetTelemetrySettingsForTests } from "../otel-export.js";
+import { THROUGH_SERVER_ACTIVITY_POLLS, type TemporalLane } from "../temporal-lane.js";
+
+const direct: TemporalLane = { kind: "direct", connection: {} };
 
 const config = {
   temporalAddress: "127.0.0.1:7233",
@@ -66,19 +61,18 @@ describe("startWorker", () => {
     else process.env.OTEL_EXPORTER_OTLP_ENDPOINT = otelEndpoint;
   });
 
-  it("adds OpenTelemetry's activity interceptor and workflow sinks when the settings export traces", async () => {
+  it("adds OpenTelemetry's activity interceptor when the settings export traces", async () => {
     process.env.OTEL_EXPORTER_OTLP_ENDPOINT = "http://127.0.0.1:4318";
     resetTelemetrySettingsForTests();
     vi.spyOn(console, "log").mockImplementation(() => {});
-    await startWorker({ config, activities });
-    const options = sdk.create.mock.calls[0]![0] as { interceptors: { activity: unknown[] }; sinks: Record<string, unknown> };
+    await startWorker({ config, activities, lane: direct });
+    const options = sdk.create.mock.calls[0]![0] as { interceptors: { activity: unknown[] } };
     expect(options.interceptors.activity).toHaveLength(2);
-    expect(Object.keys(options.sinks)).not.toHaveLength(0);
     resetTelemetrySettingsForTests();
   });
 
-  it("registers the run credential's activity interceptor and nothing workflow-side without OpenTelemetry", async () => {
-    const started = await startWorker({ config, activities });
+  it("registers the run credential's activity interceptor alone without OpenTelemetry", async () => {
+    const started = await startWorker({ config, activities, lane: direct });
 
     expect(sdk.connect).toHaveBeenCalledWith({ address: "127.0.0.1:7233" });
     expect(sdk.create).toHaveBeenCalledTimes(1);
@@ -86,20 +80,18 @@ describe("startWorker", () => {
     expect(options.interceptors).toEqual({
       activity: [runCredentialActivityInterceptor],
     });
-    expect(options.sinks).toEqual({});
     expect(options.dataConverter).toBeUndefined();
     expect(started).toEqual({ worker: sdk.worker, connection: sdk.connection });
   });
 
-  it("runs the pre-built bundle the source resolves, on the configured queue, with the codec chain", async () => {
+  it("serves activities only, on the configured queue, with the codec chain", async () => {
     const codec = { encode: async () => [], decode: async () => [] };
-    await startWorker({ config, activities, payloadCodecs: [codec] });
+    await startWorker({ config, activities, payloadCodecs: [codec], lane: direct });
 
     const options = sdk.create.mock.calls[0]![0];
-    expect(options.workflowBundle).toEqual({
-      codePath: "/runner/workflow-bundle.js",
-    });
+    expect(options.workflowBundle).toBeUndefined();
     expect(options.workflowsPath).toBeUndefined();
+    expect(options.maxConcurrentActivityTaskPolls).toBeUndefined();
     expect(options.taskQueue).toBe("stigmer_runner");
     expect(options.namespace).toBe("default");
     expect(options.maxConcurrentActivityTaskExecutions).toBe(4);
@@ -108,9 +100,20 @@ describe("startWorker", () => {
   });
 
   it("sends a heartbeat within the cancellation pulse, so a pause reaches a running turn in seconds", async () => {
-    await startWorker({ config, activities });
+    await startWorker({ config, activities, lane: direct });
 
     const options = sdk.create.mock.calls[0]![0];
     expect(options.maxHeartbeatThrottleInterval).toBe(CANCELLATION_PULSE_MS);
+  });
+
+  it("connects with the lane's options and polls a fixed few behind the server", async () => {
+    await startWorker({
+      config,
+      activities,
+      lane: { kind: "through-server", connection: { apiKey: "tok", tls: false } },
+    });
+    expect(sdk.connect).toHaveBeenCalledWith({ address: "127.0.0.1:7233", apiKey: "tok", tls: false });
+    const options = sdk.create.mock.calls[0]![0];
+    expect(options.maxConcurrentActivityTaskPolls).toBe(THROUGH_SERVER_ACTIVITY_POLLS);
   });
 });

@@ -137,6 +137,15 @@ export interface PlatformControllerDeps {
    * the server's own address; the namespace is the server's.
    */
   readonly runnerBootstrapTemporalAddress: string;
+  /**
+   * The address a SANDBOXED runner is told instead: this server's own, its
+   * Temporal worker lane (transport/temporal-worker-door), as a sandbox
+   * reaches it (sandbox/provisioner.ts `temporalAddressThroughServer` of
+   * the sandbox backend endpoint); "" where no sandbox backend endpoint is
+   * configured. A caller whose credential names a sandbox's queue (the
+   * provider's `temporalTaskQueueOf`) is never told Temporal's address.
+   */
+  readonly sandboxTemporalAddress: string;
   readonly temporalNamespace: string;
   /**
    * The MCP bridge published to the same runners, "" for none
@@ -412,7 +421,9 @@ async function getRunnerBootstrapConfig(
   ctx: HandlerContext,
 ): Promise<GetRunnerBootstrapConfigOutput> {
   const output = create(GetRunnerBootstrapConfigOutputSchema, {
-    temporalAddress: deps.runnerBootstrapTemporalAddress,
+    temporalAddress: (await isSandboxCaller(deps, ctx))
+      ? deps.sandboxTemporalAddress
+      : deps.runnerBootstrapTemporalAddress,
     temporalNamespace: deps.temporalNamespace,
     mcpBridgeEndpoint: deps.runnerBootstrapMcpBridgeEndpoint,
   });
@@ -457,8 +468,14 @@ async function getRunnerBootstrapConfig(
  *     session for multi-turn reuse; OSS runners exchange
  *     immediately before each read, so the tighter per-execution binding
  *     costs nothing.)
- *   - renewal / unset scope: the presence-based "not minted" shape —
- *     per-read minting makes renewal moot.
+ *   - renewal: the caller's own sandbox token re-minted on the same
+ *     binding while its session exists (the provider's
+ *     `renewSandboxToken`, runnerauth/sandbox-credential.ts), read from the
+ *     request's own bearer: a sandbox's runner presents it to Temporal too
+ *     (transport/temporal-worker-door), so it must outlive four hours.
+ *     Anything else, or a provider without the capability, is the
+ *     presence-based "not minted" shape;
+ *   - unset scope: "not minted".
  *
  * FAIL-SOFT is the contract: empty id, keyless service, or a mint error
  * all answer the empty output rather than a gRPC error — the runner's
@@ -513,8 +530,9 @@ async function getRunnerScopedToken(
       executionId = input.scope.value;
       break;
     case "renewal":
+      return renewSandboxToken(deps, ctx);
     case undefined:
-      // renewal, or an unset scope: nothing OSS mints for.
+      // An unset scope: nothing OSS mints for.
       return create(GetRunnerScopedTokenOutputSchema);
     default: {
       const exhaustive: never = input.scope;
@@ -575,4 +593,49 @@ function exchangeRequestOf(
       throw new Error(`unhandled scope arm: ${JSON.stringify(exhaustive)}`);
     }
   }
+}
+
+/** Whether the bearer is a sandbox's own credential (the provider's `temporalTaskQueueOf`). */
+async function isSandboxCaller(
+  deps: PlatformControllerDeps,
+  ctx: HandlerContext,
+): Promise<boolean> {
+  const queueOf = deps.runnerAuthService.temporalTaskQueueOf?.bind(deps.runnerAuthService);
+  const bearer = bearerOf(ctx);
+  if (queueOf === undefined || bearer === undefined) {
+    return false;
+  }
+  try {
+    return (await queueOf(bearer)) !== undefined;
+  } catch (error) {
+    deps.logger.warn("Runner credential's Temporal queue could not be read; answering as for any runner", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return false;
+  }
+}
+
+function bearerOf(ctx: HandlerContext): string | undefined {
+  return /^Bearer\s+(\S+)$/i.exec(ctx.requestHeader.get("authorization")?.trim() ?? "")?.[1];
+}
+
+/** The renewal arm without an exchange capability (getRunnerScopedToken's header). */
+async function renewSandboxToken(
+  deps: PlatformControllerDeps,
+  ctx: HandlerContext,
+): Promise<GetRunnerScopedTokenOutput> {
+  const renew = deps.runnerAuthService.renewSandboxToken?.bind(deps.runnerAuthService);
+  const bearer = bearerOf(ctx);
+  if (renew === undefined || bearer === undefined) {
+    return create(GetRunnerScopedTokenOutputSchema);
+  }
+  const renewed = await renew(bearer);
+  if (!renewed.minted) {
+    return create(GetRunnerScopedTokenOutputSchema);
+  }
+  return create(GetRunnerScopedTokenOutputSchema, {
+    runnerScopedToken: renewed.token,
+    tokenType: "Bearer",
+    expiresInSeconds: renewed.expiresInSeconds,
+  });
 }

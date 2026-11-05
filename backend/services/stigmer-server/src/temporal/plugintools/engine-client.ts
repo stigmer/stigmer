@@ -4,8 +4,9 @@
  * starting a listing run and awaiting it, with the run's failures
  * classified here (gRPC copy in the domain).
  *
- * No worker: the connect workflow is the RUNNER's; this module only
- * starts and awaits runs. The engine-state provider follows the
+ * The connect workflow is the server's own (workflows/list-plugin-tools.ts,
+ * on the agent-execution worker's queue); its one activity runs on the
+ * queue the domain chose, which rides as the workflow's second argument. The engine-state provider follows the
  * agent-execution engine client's idiom exactly: it reads the manager's
  * CURRENT client at request time and memoizes the engine per client
  * instance, so reconnects propagate automatically.
@@ -34,6 +35,7 @@ import type {
 import { PLUGIN_TOOLS_ENGINE_DISCONNECTED } from "../../domain/plugin/tools/engine.js";
 import type { TemporalManager } from "../manager.js";
 import { CONNECT_WORKFLOW_NAME, listingWorkflowIdFor } from "./names.js";
+import type { ListingPlacement } from "./workflows/list-plugin-tools.js";
 
 export interface PluginToolsEngineDeps {
   readonly client: Client;
@@ -58,11 +60,12 @@ export class TemporalPluginToolsEngine implements PluginToolsEngine {
     // sandbox serves — the domain decides which.
     const runnerQueue =
       taskQueue.kind === "runner" ? config.runnerQueue : taskQueue.name;
+    const placement: ListingPlacement = { activity_task_queue: runnerQueue };
     const handle = await client.workflow.start(CONNECT_WORKFLOW_NAME, {
       workflowId,
-      taskQueue: runnerQueue,
+      taskQueue: config.stigmerQueue,
       workflowRunTimeout: runTimeoutMs,
-      args: [input],
+      args: [input, placement],
     });
     logger.info("Started a plugin tools listing", {
       workflow_id: workflowId,

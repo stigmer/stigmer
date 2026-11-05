@@ -1,9 +1,10 @@
 /**
  * Pins the tools listing's Temporal glue against a fake client:
  *
- *   - startListing starts the runner's connect workflow under the attempt's
- *     own workflow id, with the run timeout and the input as the one
- *     argument, on the shared runner queue or the sandbox's own queue;
+ *   - startListing starts the server's connect workflow on the server's
+ *     own queue, under the attempt's own workflow id, with the run timeout,
+ *     the input, and the queue its activity runs on (the shared runner
+ *     queue or the sandbox's own) as the second argument;
  *   - a run's settle is classified into the seam's taxonomy: the output
  *     (an empty one for a null result), the runner's application message
  *     found anywhere in the cause chain and winning over a timeout, a run
@@ -102,7 +103,7 @@ function failed(cause: Error | undefined): WorkflowFailedError {
 }
 
 describe("TemporalPluginToolsEngine.startListing", () => {
-  it("starts the connect workflow under the attempt's id on the shared runner queue", async () => {
+  it("starts the connect workflow on the server's queue, its activity on the shared runner queue", async () => {
     const { client, startCalls } = stubClient(async () => ({ tools: [] }));
     const engine = new TemporalPluginToolsEngine({ client, config: config(), logger: silentLogger });
 
@@ -114,21 +115,22 @@ describe("TemporalPluginToolsEngine.startListing", () => {
         workflowType: CONNECT_WORKFLOW_NAME,
         options: {
           workflowId: `${CONNECT_WORKFLOW_NAME}/att_1`,
-          taskQueue: RUNNER_QUEUE,
+          taskQueue: "agent_execution_stigmer",
           workflowRunTimeout: 45_000,
-          args: [INPUT],
+          args: [INPUT, { activity_task_queue: RUNNER_QUEUE }],
         },
       },
     ]);
   });
 
-  it("starts a sandboxed listing on the queue its sandbox serves", async () => {
+  it("runs a sandboxed listing's activity on the queue its sandbox serves", async () => {
     const { client, startCalls } = stubClient(async () => ({ tools: [] }));
     const engine = new TemporalPluginToolsEngine({ client, config: config(), logger: silentLogger });
 
     await engine.startListing("att_2", INPUT, 45_000, { kind: "sandbox", name: "mcpconnect:att_2" });
 
-    expect(startCalls[0]?.options["taskQueue"]).toBe("mcpconnect:att_2");
+    expect(startCalls[0]?.options["taskQueue"]).toBe("agent_execution_stigmer");
+    expect(startCalls[0]?.options["args"]).toEqual([INPUT, { activity_task_queue: "mcpconnect:att_2" }]);
   });
 
   it("throws when the start fails", async () => {

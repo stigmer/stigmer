@@ -1,12 +1,13 @@
 /**
- * The tools listing's workflow wire identifiers: the runner's connect
- * workflow type, kept under its original name because a workflow type is a
+ * The tools listing's workflow wire identifiers: the connect workflow
+ * type (the server's own since 2026-11, workflows/list-plugin-tools.ts),
+ * kept under its original name because a workflow type is a
  * pinned wire identifier, the workflow id a listing starts under, and the
  * connect sandbox's task queue (stigmer/stigmer#1474), which a sandboxed
  * runner polls. Renaming one is a wire protocol break.
  */
 
-/** The runner's connect workflow type: lists one server's tools. */
+/** The connect workflow type: lists one plugin server's tools. */
 export const CONNECT_WORKFLOW_NAME = "stigmer/mcp-server/connect";
 
 /**

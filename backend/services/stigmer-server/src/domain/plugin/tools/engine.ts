@@ -3,9 +3,10 @@
  * operations the listing needs; availability is the modeled engine state,
  * the same idiom as agentexecution's engine.ts.
  *
- * The engine does NOT run a worker: the connect workflow
- * (stigmer/mcp-server/connect, a pinned wire name) is the RUNNER's — this
- * server only starts runs of it and awaits them. The temporal-side
+ * The connect workflow (stigmer/mcp-server/connect, a pinned wire name)
+ * runs on the server's agent-execution worker and schedules its one
+ * activity on the runner's queue (temporal/plugintools/workflows/); this
+ * seam only starts runs of it and awaits them. The temporal-side
  * implementation lives in src/temporal/plugintools/engine-client.ts; tests
  * fake this interface directly.
  *
@@ -45,7 +46,7 @@ export interface ToolsWorkflowInput {
 }
 
 /**
- * The connect workflow's result. Every field the runner emits must have a
+ * The connect workflow's result. Every field the workflow returns must have a
  * home here: a missing field is silently dropped during JSON
  * deserialization.
  */
@@ -111,7 +112,7 @@ export interface ToolsRun {
 /** The Temporal client operations the listing consumes. */
 export interface PluginToolsEngine {
   /**
-   * Starts the connect workflow on `taskQueue` under a workflow id of its
+   * Starts the connect workflow, its activity on `taskQueue`, under a workflow id of its
    * own (`attemptId` names it), so one person's listing is never served by
    * another's run. Throws on any start failure — the lane maps that to
    * Internal "failed to start the tools listing".

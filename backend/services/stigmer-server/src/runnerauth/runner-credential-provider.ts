@@ -35,10 +35,12 @@
  * # The optional capability methods
  *
  * Beyond the mint/verify primitives, an edition's runner credentials
- * surface at five OSS-owned touchpoints whose POLICY is edition-specific:
+ * surface at seven OSS-owned touchpoints whose POLICY is edition-specific:
  * the platform scoped-token exchange, the bootstrap credential response,
  * the token baked into a provisioned sandbox, the values fetch's trust
- * decision, and the session event append's. Each is an OPTIONAL method here; each OSS call
+ * decision, the session event append's, the Temporal worker lane's
+ * (`temporalTaskQueueOf`) and an open-source sandbox token's renewal
+ * (`renewSandboxToken`). Each is an OPTIONAL method here; each OSS call
  * site falls back to today's exact behavior when the method is absent,
  * and the OSS default provider defines none of these POLICY capabilities
  * — empty-composition behavior is byte-identical by construction (the
@@ -68,6 +70,12 @@
  * presence-based response the runner already handles.
  */
 import type { CallerIdentity } from "../extensions/identity.js";
+import { SANDBOX_TOKEN_TTL_SECONDS } from "../sandbox/lane.js";
+import {
+  renewSandboxCredential,
+  sandboxQueueOf,
+  type SandboxCredentialStore,
+} from "./sandbox-credential.js";
 import type { MintedToken } from "./runnerauth.js";
 import {
   InvalidTokenError,
@@ -291,6 +299,35 @@ export interface RunnerCredentialProvider {
   authorizeRunnerForRun?(rawToken: string, runId: string): Promise<boolean>;
 
   /**
+   * The trust decision for the Temporal worker lane
+   * (transport/temporal-worker-door/lane.ts), a sandboxed runner's only way
+   * to Temporal: the ONE task queue the bearer's sandbox serves
+   * (`session:<id>` or `mcpconnect:<id>`, sandbox/naming.ts), built from the
+   * credential's own claims and the implementation's records, or undefined
+   * to refuse: a person's key, a service account's, a run credential, an
+   * ended sandbox's token. The lane admits the caller to that queue alone,
+   * and to the receipts it issued for it. Never throws for an unrecognized
+   * or invalid token (a throw is a composition fault, logged and refused
+   * the same way). Absent, the lane refuses every caller: an edition that
+   * provisions sandboxes must say which queue each of its credentials
+   * serves. Open source's providers define it when composed with a store
+   * (sandbox-credential.ts).
+   */
+  temporalTaskQueueOf?(rawToken: string): Promise<string | undefined>;
+
+  /**
+   * The getRunnerScopedToken `renewal` arm for open source's own sandbox
+   * token (sandbox-credential.ts): the bearer's clocked execution-scoped
+   * token re-minted on the same binding with a fresh lifetime while its
+   * session exists, else not minted. The controller calls it when no
+   * `exchangeScopedToken` is composed; the built-in provider's exchange
+   * calls it for its own renewal arm. Behind the Temporal worker lane a
+   * sandbox's token is also its Temporal API key, so a token that lapsed
+   * would stop the sandbox taking work.
+   */
+  renewSandboxToken?(rawToken: string): Promise<RunnerScopedTokenExchange>;
+
+  /**
    * Decrypt-key material for a Temporal payload-encryption key id the
    * server's env-configured codec does not hold (the server-managed
    * per-identity `rpk_` keys bootstrapCredentials hands
@@ -330,16 +367,20 @@ export interface RunnerCredentialProvider {
 
 /**
  * The OSS default: RunnerAuthService behind the provider contract,
- * providing only the execution_scoped lane, plus the one capability that
- * is open source's own — the run credential a dispatch carries (module
- * header). A separate adapter rather than the service implementing the
- * interface: the service's concrete lane-free signatures are a stable
- * test surface.
+ * providing only the execution_scoped lane, plus the capabilities that are
+ * open source's own — the run credential a dispatch carries (module
+ * header), and, given the store its sandbox credentials' bindings live in,
+ * the Temporal worker lane's queue decision and the sandbox token's
+ * renewal (sandbox-credential.ts). A separate adapter rather than the
+ * service implementing the interface: the service's concrete lane-free
+ * signatures are a stable test surface.
  */
 export function newExecutionScopedRunnerCredentialProvider(
   service: RunnerAuthService,
+  store?: SandboxCredentialStore,
 ): RunnerCredentialProvider {
   return {
+    ...(store === undefined ? {} : sandboxCredentialCapabilities(service, store)),
     isEnabled(lane: string): boolean {
       return lane === TOKEN_TYPE_EXECUTION_SCOPED && service.isEnabled();
     },
@@ -366,6 +407,25 @@ export function newExecutionScopedRunnerCredentialProvider(
         return "";
       }
       return service.mintRunCredential(executionId);
+    },
+  };
+}
+
+/**
+ * The two capabilities open source's sandbox credential carries
+ * (sandbox-credential.ts), shared by the default and built-in providers.
+ */
+export function sandboxCredentialCapabilities(
+  service: RunnerAuthService,
+  store: SandboxCredentialStore,
+): Required<Pick<RunnerCredentialProvider, "temporalTaskQueueOf" | "renewSandboxToken">> {
+  return {
+    temporalTaskQueueOf: (rawToken) => sandboxQueueOf(service, store, rawToken),
+    async renewSandboxToken(rawToken) {
+      const renewed = await renewSandboxCredential(service, store, rawToken, SANDBOX_TOKEN_TTL_SECONDS);
+      return renewed === undefined
+        ? { minted: false }
+        : { minted: true, token: renewed.token, expiresInSeconds: renewed.ttlSeconds };
     },
   };
 }

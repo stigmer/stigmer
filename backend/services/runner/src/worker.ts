@@ -1,23 +1,19 @@
 /**
  * Temporal worker setup for the unified runner service.
  *
- * Registers both activities and workflows on a single queue.
- *
- * Workflows: exactly the types in `workflows/index.ts`, each started by
- * the server with ids (that file's header is the list and the rule).
- *
- * Architecture:
- * - The server starts connect workflows on the runner's task queue
- * - This TypeScript worker handles both workflow and activity tasks
- * - Activities are dispatched by name within the same queue
+ * The runner polls ACTIVITY tasks only, on its one queue, and registers no
+ * workflow: every workflow is the server's, which schedules the runner's
+ * activities on this queue (the connect listing's workflow moved to the
+ * server in 2026-11). A worker that serves workflow tasks keeps state per
+ * workflow on a sticky queue of its own, which a runner reaching Temporal
+ * through the Stigmer server (temporal-lane.ts) cannot be given.
  */
 
-import { createRequire } from "node:module";
-import { NativeConnection, Worker, type ActivityInterceptorsFactory, type InjectedSinks } from "@temporalio/worker";
+import { NativeConnection, Worker, type ActivityInterceptorsFactory } from "@temporalio/worker";
 import type { PayloadCodec } from "@temporalio/common";
 import type { Config } from "./config.js";
-import { resolveWorkflowSource, OTEL_WORKFLOW_INTERCEPTOR_MODULE } from "./workflow-source.js";
-import { collectorSpanExporter, contentGuardedExporter, telemetrySettings } from "./otel-export.js";
+import { telemetrySettings } from "./otel-export.js";
+import { THROUGH_SERVER_ACTIVITY_POLLS, type TemporalLane } from "./temporal-lane.js";
 import { runCredentialActivityInterceptor } from "./interceptors/run-credential-activity.js";
 import { heartbeatWorkerOptions } from "./shared/heartbeat.js";
 
@@ -30,6 +26,8 @@ export interface StartWorkerOptions {
   activities: WorkerActivities;
   /** Ordered codec chain from createPayloadCodecs (order is load-bearing). */
   payloadCodecs?: PayloadCodec[];
+  /** How the worker reaches Temporal (temporal-lane.ts). */
+  lane: TemporalLane;
 }
 
 /**
@@ -43,53 +41,27 @@ export interface StartedWorker {
 }
 
 export async function startWorker(opts: StartWorkerOptions): Promise<StartedWorker> {
-  const { config, activities, payloadCodecs } = opts;
+  const { config, activities, payloadCodecs, lane } = opts;
 
   const connection = await NativeConnection.connect({
     address: config.temporalAddress,
-    ...config.temporalConnection,
+    ...lane.connection,
   });
-
-  const workflowSource = resolveWorkflowSource();
 
   // The run credential (shared/run-credential.ts): the activity interceptor
   // enters the credential a dispatch carries for the client to present.
   // Always on; inert without a credential.
   const activityInterceptors: ActivityInterceptorsFactory[] = [runCredentialActivityInterceptor];
-  let sinks: InjectedSinks<any> = {};
-  const workflowInterceptorModules: string[] = [];
 
   const telemetry = telemetrySettings();
   if (telemetry.traces.enabled) {
-    const {
-      OpenTelemetryActivityInboundInterceptor,
-      makeWorkflowExporter,
-    } = await import("@temporalio/interceptors-opentelemetry");
-    const { resourceFromAttributes } = await import("@opentelemetry/resources");
-
+    const { OpenTelemetryActivityInboundInterceptor } = await import(
+      "@temporalio/interceptors-opentelemetry"
+    );
     activityInterceptors.push(
       (ctx) => ({ inbound: new OpenTelemetryActivityInboundInterceptor(ctx) }),
     );
-
-    const resource = resourceFromAttributes({ "service.name": "stigmer-runner" });
-    const exporter = contentGuardedExporter(await collectorSpanExporter(telemetry), telemetry.content);
-    // Type assertion needed due to OTel SDK version mismatch between
-    // @temporalio/interceptors-opentelemetry's bundled types and ours.
-    // Runtime types are compatible — this is a pure type-system issue.
-    const otelSinks = makeWorkflowExporter(exporter as any, resource as any) as unknown as InjectedSinks<any>;
-    sinks = { ...sinks, ...otelSinks };
-
-    // Workflow-side interceptors must live inside the workflow bundle. With a
-    // pre-built bundle they were baked in at build time; only the runtime
-    // (bundle-on-boot) path registers them here.
-    if (workflowSource.kind === "runtime") {
-      const esmRequire = createRequire(import.meta.url);
-      workflowInterceptorModules.push(
-        esmRequire.resolve(OTEL_WORKFLOW_INTERCEPTOR_MODULE),
-      );
-    }
-
-    console.log("Temporal OpenTelemetry interceptors enabled (activity + workflow)");
+    console.log("Temporal OpenTelemetry activity interceptor enabled");
   }
 
   const worker = await Worker.create({
@@ -97,20 +69,18 @@ export async function startWorker(opts: StartWorkerOptions): Promise<StartedWork
     namespace: config.temporalNamespace,
     taskQueue: config.taskQueue,
     activities,
-    ...(workflowSource.kind === "prebuilt"
-      ? { workflowBundle: { codePath: workflowSource.codePath } }
-      : { workflowsPath: workflowSource.workflowsPath }),
     maxConcurrentActivityTaskExecutions: config.maxConcurrentActivities,
+    // Behind the server, a fixed few polls: the server bounds what one
+    // sandbox may hold open (temporal-lane.ts).
+    ...(lane.kind === "through-server"
+      ? { maxConcurrentActivityTaskPolls: THROUGH_SERVER_ACTIVITY_POLLS }
+      : {}),
     // In-flight turns yield at a step boundary within it (`Config.drainGraceMs`).
     shutdownGraceTime: config.drainGraceMs,
     // A pause reaches a turn on its next heartbeat; sent within seconds.
     ...heartbeatWorkerOptions,
     dataConverter: payloadCodecs?.length ? { payloadCodecs } : undefined,
-    sinks,
-    interceptors: {
-      ...(activityInterceptors.length > 0 ? { activity: activityInterceptors } : {}),
-      ...(workflowInterceptorModules.length > 0 ? { workflowModules: workflowInterceptorModules } : {}),
-    },
+    interceptors: { activity: activityInterceptors },
   });
 
   return { worker, connection };

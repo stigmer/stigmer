@@ -21,9 +21,6 @@
  *                                    sandbox snapshot holds this waiter, which
  *                                    starts ../main.js on attach and loads
  *                                    none of the runner itself
- *      workflow-bundle.js          ← Temporal workflow code, pre-built here so
- *                                    webpack/@swc never ship (see
- *                                    src/workflow-source.ts)
  *      workflow-worker-thread.cjs  ← Temporal's workflow sandbox thread entry;
  *                                    worker_threads needs a real file on disk
  *      mappings.wasm               ← source-map's lazy-loaded wasm
@@ -67,7 +64,6 @@
  */
 
 import { build } from "esbuild";
-import { bundleWorkflowCode } from "@temporalio/worker";
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join, relative } from "node:path";
@@ -133,12 +129,6 @@ const CORE_BRIDGE_TRIPLES = {
   "win32-x64": "x86_64-pc-windows-msvc",
 };
 
-// Must stay in sync with src/workflow-source.ts. Imported from the compiled
-// dist (not src) so the script has no TypeScript loader dependency.
-const { OTEL_WORKFLOW_INTERCEPTOR_MODULE } = await import(
-  new URL("../dist/workflow-source.js", import.meta.url).href
-);
-
 function parseArgs() {
   const hostPlatform = `${process.platform}-${process.arch}`;
   let platform = hostPlatform;
@@ -172,22 +162,7 @@ function readPackageJson(dir) {
 
 const runnerPkg = readPackageJson(runnerRoot);
 
-// ─── Step 1: Pre-build the Temporal workflow bundle ─────────────────────────
-
-async function buildWorkflowBundle() {
-  console.log("[1/6] Pre-building Temporal workflow bundle...");
-  const { code } = await bundleWorkflowCode({
-    workflowsPath: join(distDir, "workflows", "index.js"),
-    // Baked in unconditionally; the OTel interceptor is inert unless the
-    // host configures the OTel sink. Baking also closes the gap where
-    // manager-mode runtime bundling historically omitted the OTel module
-    // (see runner-manager.ts).
-    workflowInterceptorModules: [require.resolve(OTEL_WORKFLOW_INTERCEPTOR_MODULE)],
-  });
-  writeFileSync(join(outDir, "workflow-bundle.js"), code);
-}
-
-// ─── Step 2: Bundle Temporal's workflow sandbox worker-thread entry ─────────
+// ─── Step 1: Bundle Temporal's workflow sandbox worker-thread entry ─────────
 
 /**
  * Temporal runs workflow isolates on a worker thread whose entry it locates
@@ -197,7 +172,7 @@ async function buildWorkflowBundle() {
  * is patched to point at it (see the plugin below).
  */
 async function buildWorkerThreadBundle() {
-  console.log("[2/6] Bundling Temporal workflow worker-thread entry...");
+  console.log("[1/5] Bundling Temporal workflow worker-thread entry...");
   await build({
     entryPoints: [join(nodeModulesDir, "@temporalio/worker/lib/workflow/workflow-worker-thread.js")],
     outfile: join(outDir, "workflow-worker-thread.cjs"),
@@ -219,12 +194,11 @@ async function buildWorkerThreadBundle() {
   });
 }
 
-// ─── Step 3: Bundle the runner itself ────────────────────────────────────────
+// ─── Step 2: Bundle the runner itself ────────────────────────────────────────
 
 /**
- * Replaces @temporalio/worker's runtime webpack bundler with a stub. Slim
- * builds always ship a pre-built workflow-bundle.js (workflow-source.ts
- * prefers it), so the bundler — and with it webpack, @swc/core, memfs and
+ * Replaces @temporalio/worker's runtime webpack bundler with a stub. The
+ * runner registers no workflow (src/worker.ts), so the bundler — and with it webpack, @swc/core, memfs and
  * friends (~45 MB) — must never enter the module graph. The stub keeps the
  * module's export shape and fails loudly if something calls it anyway.
  */
@@ -233,7 +207,7 @@ const stubTemporalBundlerPlugin = {
   setup(buildApi) {
     buildApi.onLoad({ filter: /@temporalio[\\/]worker[\\/]lib[\\/]workflow[\\/]bundler\.js$/ }, () => ({
       contents: `
-        const UNAVAILABLE = "Runtime workflow bundling is unavailable in the slim runner artifact; it ships a pre-built workflow-bundle.js (see workflow-source.ts)";
+        const UNAVAILABLE = "Workflow bundling is unavailable in the slim runner artifact; the runner registers no workflow (see src/worker.ts)";
         exports.defaultWorkflowInterceptorModules = [];
         exports.allowedBuiltinModules = ["assert", "url", "util"];
         exports.disallowedBuiltinModules = [];
@@ -300,7 +274,7 @@ globalThis.__stigmerWorkflowWorkerThreadPath = () => __stigmerJoin(__dirname, "w
 `;
 
 async function buildMainBundle() {
-  console.log("[3/6] Bundling runner entry (dist/main.js)...");
+  console.log("[2/5] Bundling runner entry (dist/main.js)...");
   const result = await build({
     entryPoints: [join(distDir, "main.js")],
     outfile: join(outDir, "main.js"),
@@ -350,7 +324,7 @@ async function buildMainBundle() {
   }
 }
 
-// ─── Step 4: Bundle the attach entry ────────────────────────────────────────
+// ─── Step 3: Bundle the attach entry ────────────────────────────────────────
 
 /**
  * The attach entry (dist/attach/main.js) as its own CJS bundle at
@@ -362,7 +336,7 @@ async function buildMainBundle() {
  * runner module reaching it fails the build.
  */
 async function buildAttachBundle() {
-  console.log("[4/6] Bundling the attach entry (dist/attach/main.js)...");
+  console.log("[3/5] Bundling the attach entry (dist/attach/main.js)...");
   const result = await build({
     entryPoints: [join(distDir, "attach", "main.js")],
     outfile: join(outDir, "attach", "main.js"),
@@ -504,7 +478,7 @@ function metaPackageJson() {
   };
 }
 
-// ─── Step 5: Stage node_modules for the self-contained shape ────────────────
+// ─── Step 4: Stage node_modules for the self-contained shape ────────────────
 
 /**
  * Copies the runtime externals plus their transitive production dependencies
@@ -514,7 +488,7 @@ function metaPackageJson() {
  * behaves exactly as it does in the full install.
  */
 function stageSelfContained(platform, isCrossBuild) {
-  console.log("[5/6] Staging native/runtime packages...");
+  console.log("[4/5] Staging native/runtime packages...");
   const stagedRoot = join(outDir, "node_modules");
   const staged = new Set();
 
@@ -603,7 +577,7 @@ function stageClaudeEngineHome(root, platform) {
   console.log(`  Claude engine home: ${home} (${names.join(", ")})`);
 }
 
-// ─── Step 6 (optional): publishable npm package directories ─────────────────
+// ─── Step 5 (optional): publishable npm package directories ─────────────────
 
 // Files that ship in the published @stigmer/runner-slim tarball. Sourcemaps are
 // deliberately EXCLUDED here (~26 MB) — they are still generated into dist-slim/
@@ -613,14 +587,13 @@ function stageClaudeEngineHome(root, platform) {
 const META_PACKAGE_FILES = [
   "main.js",
   "attach/main.js",
-  "workflow-bundle.js",
   "workflow-worker-thread.cjs",
   "mappings.wasm",
   ENGINE_PIN_FILE,
 ];
 
 function emitNpmPackages() {
-  console.log("[6/6] Emitting npm package directories...");
+  console.log("[5/5] Emitting npm package directories...");
   rmSync(pkgsDir, { recursive: true, force: true });
 
   const metaDir = join(pkgsDir, "runner-slim");
@@ -632,9 +605,7 @@ function emitNpmPackages() {
     if (file.endsWith(".js") || file.endsWith(".cjs")) {
       // We don't ship the .map files, so strip a trailing sourceMappingURL
       // pragma that points at one rather than leave the published bundle
-      // pointing at a 404 — but never an INLINED map (workflow-bundle.js):
-      // Temporal's Worker.create refuses a workflow bundle without its inlined
-      // source map. The rule lives once in scripts/lib/source-map-pragma.mjs.
+      // pointing at a 404 — but never an INLINED map. The rule lives once in scripts/lib/source-map-pragma.mjs.
       writeFileSync(dest, stripExternalSourceMapPragma(readFileSync(src, "utf8")));
     } else {
       cpSync(src, dest);
@@ -712,7 +683,6 @@ if (!existsSync(join(distDir, "main.js"))) {
 rmSync(outDir, { recursive: true, force: true });
 mkdirSync(outDir, { recursive: true });
 
-await buildWorkflowBundle();
 await buildWorkerThreadBundle();
 await buildMainBundle();
 await buildAttachBundle();

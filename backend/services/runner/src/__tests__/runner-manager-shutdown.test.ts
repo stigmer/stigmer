@@ -94,17 +94,6 @@ vi.mock("../preflight.js", () => ({
   assertLlmBackendsPreflight: () => {},
 }));
 
-vi.mock("../workflow-source.js", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../workflow-source.js")>();
-  return {
-    ...actual,
-    resolveWorkflowSource: () => ({
-      kind: "prebuilt",
-      codePath: "/nonexistent/workflow-bundle.js",
-    }),
-  };
-});
-
 vi.mock("../harness-adapters.js", () => ({ HARNESS_ADAPTERS: [] }));
 
 vi.mock("../agent-host/hosting.js", async (importOriginal) => {

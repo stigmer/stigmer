@@ -1579,6 +1579,16 @@ export function describeStoreContract(
       await fx.store.bootstrapState.clear();
       expect(await fx.store.bootstrapState.getAll()).toEqual(new Map());
     });
+
+    it("claim: the first writer wins and every caller reads the winner", async () => {
+      expect(await fx.store.bootstrapState.claim("door_key", "first")).toBe("first");
+      expect(await fx.store.bootstrapState.claim("door_key", "second")).toBe("first");
+      const racing = await Promise.all(
+        ["a", "b", "c", "d"].map((value) => fx.store.bootstrapState.claim("raced_key", value)),
+      );
+      expect(new Set(racing).size).toBe(1);
+      expect(await fx.store.bootstrapState.get("raced_key")).toBe(racing[0]);
+    });
   });
 
   describe("resource names", () => {

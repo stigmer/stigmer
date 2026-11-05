@@ -1781,6 +1781,22 @@ class SqliteBootstrapStateStore implements BootstrapStateStore {
       .run(key, value);
   }
 
+  async claim(key: string, value: string): Promise<string> {
+    // One synchronous connection: the insert and the read cannot interleave
+    // with another writer in this process, and SQLite serializes processes.
+    const db = this.open();
+    db.prepare(
+      `INSERT INTO bootstrap_state (key, value, updated_at) VALUES (?, ?, datetime('now'))
+       ON CONFLICT (key) DO NOTHING`,
+    ).run(key, value);
+    const row = db
+      .prepare(`SELECT value FROM bootstrap_state WHERE key = ?`)
+      .get(key) as { value: string } | undefined;
+    // "" only when a delete ran between the two statements; the caller
+    // treats it as no value, as `get` does.
+    return row?.value ?? "";
+  }
+
   async getAll(): Promise<Map<string, string>> {
     const rows = this.open()
       .prepare(`SELECT key, value FROM bootstrap_state`)
