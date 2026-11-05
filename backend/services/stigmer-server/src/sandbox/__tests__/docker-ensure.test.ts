@@ -52,6 +52,9 @@ if [ "$1" = "cp" ] && [ "$2" != "--archive" ] && [ -f "$FAKE_DOCKER_DIR/copy-out
   echo "Error: no such path" >&2
   exit 1
 fi
+if [ "$1" = "rm" ] && [ -f "$FAKE_DOCKER_DIR/copy-in-fails" ]; then
+  case "$3" in *-fresh) echo "Error: removal failed" >&2; exit 1;; esac
+fi
 if [ "$1" = "cp" ] && [ "$2" = "--archive" ] && [ -f "$FAKE_DOCKER_DIR/copy-in-fails" ]; then
   echo "Error: copy failed" >&2
   exit 1
@@ -192,7 +195,7 @@ describe("docker driver ensure", () => {
     }
   });
 
-  it("leaves the old container as it was when the files cannot be copied into the new one", async () => {
+  it("leaves the old container as it was when the files cannot be copied into the new one, its copy failure the one reported", async () => {
     setState("stopped", jwtExpiringIn(-60));
     writeFileSync(path.join(dir, "copy-in-fails"), "");
     try {
