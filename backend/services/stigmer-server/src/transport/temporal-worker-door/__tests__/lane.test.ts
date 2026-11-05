@@ -173,14 +173,17 @@ const pollRequest = (overrides: Record<string, unknown> = {}) =>
   });
 
 describe("what the lane never serves", () => {
-  it("answers an unlisted method UNIMPLEMENTED and counts nothing", async () => {
+  it("answers an unlisted method UNIMPLEMENTED, counted under one bounded name", async () => {
     counted.mockClear();
-    for (const method of ["ListWorkflowExecutions", "TerminateWorkflowExecution", "ShutdownWorker", "constructor"]) {
+    const methods = ["ListWorkflowExecutions", "TerminateWorkflowExecution", "ShutdownWorker", "constructor"];
+    for (const method of methods) {
       const answer = await call(method, frame(new Uint8Array()));
       expect(answer.grpcStatus, method).toBe("12");
       expect(decodeURIComponent(answer.grpcMessage ?? "")).toBe(WORDS.notServed(method));
     }
-    expect(counted).not.toHaveBeenCalled();
+    expect(counted.mock.calls.map(([c]) => c)).toEqual(
+      methods.map(() => ({ method: "unserved", decision: "refused", status: "UNIMPLEMENTED", check: "method" })),
+    );
   });
 
   it("answers HTTP/1 with a sentence, not gRPC", async () => {
@@ -339,11 +342,13 @@ describe("failures and limits", () => {
     expect((await call("PollActivityTaskQueue", pollRequest(), { "grpc-timeout": "100m" })).grpcStatus).toBe("4");
   });
 
-  it("is INTERNAL for a failure that is not Temporal's", async () => {
+  it("is INTERNAL for a failure that is not Temporal's, counted as a failure", async () => {
     const warn = vi.spyOn(silent, "warn");
+    counted.mockClear();
     current.service.getSystemInfo.mockRejectedValueOnce(new Error("bug"));
     expect((await call("GetSystemInfo", frame(new Uint8Array()))).grpcStatus).toBe("13");
     expect(warn).toHaveBeenCalled();
+    expect(counted).toHaveBeenCalledWith({ method: "GetSystemInfo", decision: "failed", status: "INTERNAL", check: "fault" });
   });
 
   it("is INTERNAL for a rejection that is no error at all", async () => {

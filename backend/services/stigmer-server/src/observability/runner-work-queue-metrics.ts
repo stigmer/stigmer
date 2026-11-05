@@ -7,7 +7,8 @@
  * (rpc-metrics.ts) never sees these calls: this counter is their only
  * count. Its attributes say what happened and never whose it was:
  *
- *   - `method`: the bare WorkflowService method;
+ *   - `method`: the bare WorkflowService method, or `unserved` for any the
+ *     lane does not serve (the caller names it, so it is never a value);
  *   - `decision`: `allowed` (forwarded and answered), `refused` (the lane
  *     said no), `temporal_failed` (Temporal answered an error, relayed as
  *     is) or `failed` (the lane could not do its part: no engine, no

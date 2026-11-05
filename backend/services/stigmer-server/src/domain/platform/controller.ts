@@ -140,7 +140,7 @@ export interface PlatformControllerDeps {
   /**
    * The address a SANDBOXED runner is told instead: this server's own, its
    * Temporal worker lane (transport/temporal-worker-door), as a sandbox
-   * reaches it (sandbox/provisioner.ts `temporalAddressThroughServer` of
+   * reaches it (transport/temporal-worker-door/address.ts `temporalAddressThroughServer` of
    * the sandbox backend endpoint); "" where no sandbox backend endpoint is
    * configured. A caller whose credential names a sandbox's queue (the
    * provider's `temporalTaskQueueOf`) is never told Temporal's address.

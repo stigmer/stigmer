@@ -42,9 +42,16 @@
  * (`SHUTDOWN_DRAIN_TIMEOUT_MS`) with Temporal's own empty answer, which the
  * SDK takes as "no task yet" and polls again.
  *
- * Every refusal is a sentence from words.ts; every served call is counted
+ * Every refusal is a sentence from words.ts; every gRPC call is counted
  * once (observability/runner-work-queue-metrics.ts), because these calls do
- * not pass the Connect chain that counts every other RPC.
+ * not pass the Connect chain that counts every other RPC: a method the lane
+ * does not serve under the one name `unserved`, since its name is the
+ * caller's own text. An HTTP/1 request is not gRPC and is not counted.
+ *
+ * Who may hold a sandbox credential is the server's posture. Where the
+ * server signs its callers in, only a sandbox holds its own; where it
+ * trusts every local caller (no sign-in), any caller can already act as
+ * the operator, and the lane draws no line the server does not.
  */
 import type { Http2ServerRequest, Http2ServerResponse } from "node:http2";
 
@@ -81,6 +88,9 @@ export const POLL_BUDGET_MS = 7_000;
 
 /** Room between the poll budget and the drain, for Temporal's answer to arrive and be relayed. */
 export const POLL_DRAIN_MARGIN_MS = 2_000;
+
+/** The counter's `method` for every method the lane does not serve (observability/runner-work-queue-metrics.ts). */
+export const UNSERVED_METHOD = "unserved";
 
 export interface TemporalWorkerDoorDeps {
   readonly logger: Logger;
@@ -309,6 +319,7 @@ export function createTemporalWorkerDoorLane(deps: TemporalWorkerDoorDeps): Lane
           error: error instanceof Error ? error.message : String(error),
         });
         writeGrpcAnswer(response as Http2ServerResponse, { code: GrpcCode.INTERNAL, text: WORDS.malformed });
+        recordWorkQueueCall({ method: methodOf(request), decision: "failed", status: "INTERNAL", check: "fault" });
       },
     );
   };
@@ -320,11 +331,13 @@ async function serve(
   request: Http2ServerRequest,
   response: Http2ServerResponse,
 ): Promise<void> {
-  const path = (request.url ?? "").split("?", 1)[0] ?? "";
-  const method = path.slice(TEMPORAL_WORKFLOW_SERVICE_PATH_PREFIX.length);
+  const method = (request.url ?? "").split("?", 1)[0]?.slice(TEMPORAL_WORKFLOW_SERVICE_PATH_PREFIX.length) ?? "";
   const handler = Object.hasOwn(HANDLERS, method) ? HANDLERS[method] : undefined;
   if (handler === undefined) {
     writeGrpcAnswer(response, { code: GrpcCode.UNIMPLEMENTED, text: WORDS.notServed(method) });
+    // Counted under one name: the method is the caller's own text, and an
+    // attribute it chooses would grow the series without bound.
+    recordWorkQueueCall({ method: UNSERVED_METHOD, decision: "refused", status: "UNIMPLEMENTED", check: "method" });
     return;
   }
   const outcome = await decide(deps, heldPolls, handler, request, response);
@@ -462,6 +475,12 @@ function temporalFailureOf(error: unknown): GrpcAnswer | undefined {
     text: typeof details === "string" ? details : "",
     ...(detailsBin instanceof Uint8Array ? { details: detailsBin } : {}),
   };
+}
+
+/** The `method` attribute of a call: a served method's name, or one bounded name for every other. */
+function methodOf(request: LaneRequest): string {
+  const method = (request.url ?? "").split("?", 1)[0]?.slice(TEMPORAL_WORKFLOW_SERVICE_PATH_PREFIX.length) ?? "";
+  return Object.hasOwn(HANDLERS, method) ? method : UNSERVED_METHOD;
 }
 
 /** A request message, or undefined for bytes that are not one. */
