@@ -335,25 +335,37 @@ function tailLogs(container) {
 async function startPostgres(suffix) {
   const network = `stigmer-ee-smoke-net-${suffix}`;
   const name = `stigmer-ee-smoke-pg-${suffix}`;
-  docker(["network", "create", network]);
-  docker([
-    "run", "--detach", "--name", name, "--network", network,
-    "-e", "POSTGRES_PASSWORD=smoke", "-e", "POSTGRES_DB=stigmer", "postgres:16",
-  ]);
-  const deadline = Date.now() + BOOT_TIMEOUT_MS;
-  for (;;) {
-    const ready = spawnSync("docker", ["exec", name, "pg_isready", "-U", "postgres", "-d", "stigmer"], { encoding: "utf8" });
-    if (ready.status === 0) break;
-    if (Date.now() > deadline) throw new Error(`postgres:16 not ready after ${BOOT_TIMEOUT_MS}ms`);
-    await sleep(500);
+  const cleanup = () => {
+    spawnSync("docker", ["rm", "--force", "--volumes", name]);
+    spawnSync("docker", ["network", "rm", network]);
+  };
+  try {
+    docker(["network", "create", network]);
+    docker([
+      "run", "--detach", "--name", name, "--network", network,
+      "-e", "POSTGRES_PASSWORD=smoke", "-e", "POSTGRES_DB=stigmer", "postgres:16",
+    ]);
+    const deadline = Date.now() + BOOT_TIMEOUT_MS;
+    for (;;) {
+      // Over TCP: the image's init-time server listens on its socket alone,
+      // so a socket answer can come before the server the boot will reach.
+      const ready = spawnSync(
+        "docker",
+        ["exec", name, "pg_isready", "-h", "127.0.0.1", "-U", "postgres", "-d", "stigmer"],
+        { encoding: "utf8" },
+      );
+      if (ready.status === 0) break;
+      if (Date.now() > deadline) throw new Error(`postgres:16 not ready after ${BOOT_TIMEOUT_MS}ms`);
+      await sleep(500);
+    }
+  } catch (error) {
+    cleanup();
+    throw error;
   }
   return {
     runArgs: ["--network", network],
     databaseUrl: `postgres://postgres:smoke@${name}:5432/stigmer`,
-    cleanup: () => {
-      spawnSync("docker", ["rm", "--force", "--volumes", name]);
-      spawnSync("docker", ["network", "rm", network]);
-    },
+    cleanup,
   };
 }
 
