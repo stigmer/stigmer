@@ -80,7 +80,7 @@ import {
   ResourceMetadataSchema,
   SnapshotFidelity,
   type ActorTemplate,
-} from "./gen/ateapipb/ateapi_pb.js";
+} from "./gen/api/ateapi/v1/ateapi_pb.js";
 import { delay } from "./delay.js";
 import type { SubstrateGateway } from "./gateway.js";
 

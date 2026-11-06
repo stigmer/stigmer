@@ -81,7 +81,7 @@ import {
   type Actor,
   type ActorTemplate,
   type EgressRule,
-} from "./gen/ateapipb/ateapi_pb.js";
+} from "./gen/api/ateapi/v1/ateapi_pb.js";
 import type { SubstrateDriverSettings } from "./config.js";
 import { caFromFile } from "./pem-files.js";
 

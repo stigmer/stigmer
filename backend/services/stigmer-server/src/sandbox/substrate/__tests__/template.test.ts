@@ -49,7 +49,7 @@ import {
   ActorMetadataField,
   GoldenSnapshotMode,
   SnapshotFidelity,
-} from "../gen/ateapipb/ateapi_pb.js";
+} from "../gen/api/ateapi/v1/ateapi_pb.js";
 import {
   buildRunnerTemplate,
   goldenFailureMessage,

@@ -22,7 +22,6 @@ plugins:
       - import_extension=js
 inputs:
   - git_repo: https://github.com/agent-substrate/substrate
-    ref: v0.6.0
-    subdir: pkg/proto
+    ref: v1.0.0
     paths:
-      - ateapipb/ateapi.proto
+      - api/ateapi/v1/ateapi.proto

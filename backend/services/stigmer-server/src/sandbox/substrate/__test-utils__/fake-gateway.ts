@@ -14,7 +14,7 @@ import {
   EgressRuleSchema,
   type ActorTemplate,
   type EgressRule,
-} from "../gen/ateapipb/ateapi_pb.js";
+} from "../gen/api/ateapi/v1/ateapi_pb.js";
 import type { RunnerEnvironment } from "../../environment.js";
 import type {
   AtespaceGrant,
