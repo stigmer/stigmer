@@ -890,6 +890,8 @@ interface ControlApi {
   sessions: number;
   /** Connections the server holds open now. */
   readonly open: Set<http2.ServerHttp2Session>;
+  /** The `:path` of every request the server received, in order. */
+  readonly paths: string[];
   /** Serves `certificate` to every connection from now on, as a rotation does. */
   serve(certificate: TestServerCertificate): void;
   /** Drops every connection, which the gateway would hold open, and stops. */
@@ -915,6 +917,7 @@ describe("the live client's CA", () => {
       endpoint: "",
       sessions: 0,
       open: new Set<http2.ServerHttp2Session>(),
+      paths: [] as string[],
       serve: (certificate: TestServerCertificate) =>
         server.setSecureContext({
           cert: certificate.cert,
@@ -926,6 +929,9 @@ describe("the live client's CA", () => {
           for (const session of api.open) session.destroy();
         }),
     };
+    server.on("stream", (_stream, headers) => {
+      api.paths.push(String(headers[":path"]));
+    });
     server.on("session", (session: http2.ServerHttp2Session) => {
       api.sessions += 1;
       api.open.add(session);
@@ -943,6 +949,19 @@ describe("the live client's CA", () => {
     getActor: (request: { actor?: { name: string } }) =>
       actor(request.actor?.name ?? "", ActorState.RUNNING),
   };
+
+  it("calls the Control service at Agent Substrate v1.0.0's method paths", async () => {
+    // v1.0.0 moved the API to the substrate.ateapi.v1 package, and its
+    // server answers only those paths; the fake serves whichever descriptor
+    // the stubs carry, so only the literal path catches stubs from another
+    // release.
+    const api = await controlApi(running);
+    const gateway = newSubstrateClientGateway(
+      liveSettings(api.endpoint, caFile(apiCa.pem)),
+    );
+    expect((await gateway.getActor("a"))?.state).toBe("running");
+    expect(api.paths).toEqual(["/substrate.ateapi.v1.Control/GetActor"]);
+  });
 
   it("trusts a CA file replaced on disk from the next call, on a new connection, and closes the one made under the old CA", async () => {
     const api = await controlApi(running);

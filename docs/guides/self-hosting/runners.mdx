@@ -618,11 +618,14 @@ What the driver needs:
   earlier release can't call it at all. Moving from a release before 1.0 is a
   reinstall: the new install starts with no actors, so every Session's sandbox
   starts again empty at its next turn. Upgrade the server in the same window.
-  From 1.0, Substrate moves one minor release at a time. On GKE, the install
-  also needs a service account of its own for snapshot transfers
-  (`SNAPSHOT_TRANSFER_GSA_NAME`) and an asset bucket beside the snapshot bucket,
-  which `tools/setup-gcp create bucket` and `create iam` in
-  [substrate-gke](https://github.com/ai-on-gke/substrate-gke) make (Substrate's
+  From 1.0, you upgrade Substrate one minor release at a time, in place, and
+  each move takes the Stigmer release that names the new Substrate release here,
+  deployed in the same window: a server runs only against the Substrate release
+  this guide names. On GKE, the install also needs a service account of its own
+  for snapshot transfers (`SNAPSHOT_TRANSFER_GSA_NAME`) and an asset bucket
+  beside the snapshot bucket, which `tools/setup-gcp create bucket` and
+  `create iam` in [substrate-gke](https://github.com/ai-on-gke/substrate-gke)
+  make (Substrate's
   [operator install guide](https://github.com/agent-substrate/substrate/blob/v1.0.0/docs/guides/operator-install.md)).
 - **Its Control API**: `STIGMER_SANDBOX_SUBSTRATE_API_ENDPOINT` (an `https://`
   URL; in the cluster, `https://api.ate-system.svc:443`), the CA that signs it
