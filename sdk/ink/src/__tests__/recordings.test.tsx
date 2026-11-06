@@ -228,7 +228,7 @@ describe("INK-18 the docs' terminal recordings are the terminal kit's own frames
     const { frames } = await recorded(recording);
     expect(frames.every((frame, i) => i === 0 || frame.at > frames[i - 1]!.at)).toBe(true);
     const plain = frames.map((frame) => stripVTControlCharacters(frame.text));
-    const ask = plain.findLastIndex((text) => text.includes("[y] Approve"));
+    const ask = plain.map((text) => text.includes("[y] Approve")).lastIndexOf(true);
     if (recording.asks) {
       expect(ask, "a frame waits for the person's answer").toBeGreaterThan(0);
       expect(frames[ask + 1]!.at - frames[ask]!.at).toBe(ASK_HOLD_MS);

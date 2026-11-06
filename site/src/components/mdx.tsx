@@ -7,7 +7,7 @@ import { File, Files, Folder } from "fumadocs-ui/components/files";
 import { ImageZoom } from "fumadocs-ui/components/image-zoom";
 import { Accordion, Accordions } from "fumadocs-ui/components/accordion";
 import { Card, Cards } from "fumadocs-ui/components/card";
-import { Diagram, Hero, Mermaid, ReactSdkDomains, SDKTabs, Term } from "@/components/docs";
+import { Diagram, FirstJob, Hero, Mermaid, ReactSdkDomains, SDKTabs, Term } from "@/components/docs";
 import { Live } from "@/components/visuals/Live";
 import { Screen } from "@/components/visuals/Screen";
 import { TerminalRecording } from "@/components/visuals/TerminalRecording";
@@ -30,6 +30,7 @@ export function getMDXComponents(components?: MDXComponents) {
     Card,
     Cards,
     Diagram,
+    FirstJob,
     Hero,
     Live,
     Mermaid,
