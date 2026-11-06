@@ -53,7 +53,7 @@ export function FirstJobApp({ moment, reduced }: FirstJobAppProps) {
       <div className="flex min-h-0 min-w-0 flex-col">
         <pre
           ref={column}
-          className="m-0 max-h-56 flex-1 overflow-auto bg-transparent py-3 font-mono text-[11.5px] leading-[1.6] min-[760px]:max-h-none"
+          className="relative m-0 max-h-56 flex-1 overflow-auto bg-transparent py-3 font-mono text-[11.5px] leading-[1.6] min-[760px]:max-h-none"
         >
           <code className="block min-w-max">
             {PROGRAM.map((line, i) => {
@@ -85,12 +85,14 @@ export function FirstJobApp({ moment, reduced }: FirstJobAppProps) {
         </div>
       </div>
 
-      <figure className="m-0 flex min-w-0 flex-col gap-2 overflow-auto border-t border-fd-border p-3.5 min-[760px]:border-t-0 min-[760px]:border-l">
-        <div aria-hidden="true" data-first-job-drawing="" className="flex flex-col gap-2 font-sans text-foreground">
-          <span className={cn(LABEL, "text-muted-foreground")}>In your product</span>
+      <figure className="m-0 flex min-w-0 flex-col overflow-auto border-t border-fd-border p-2.5 min-[760px]:border-t-0 min-[760px]:border-l">
+        <div aria-hidden="true" data-first-job-drawing="" className="flex flex-col font-sans text-foreground">
           <div className="flex flex-col rounded-lg border border-border bg-card">
-            <span className="border-b border-border px-3 py-2 text-[12.5px] font-semibold">{JOB.customer}</span>
-            <div className="flex flex-col gap-2.5 p-3 text-xs">
+            <span className="flex items-baseline gap-2 border-b border-border px-3 py-1.5 text-[12.5px] font-semibold">
+              {JOB.customer}
+              <span className={cn(LABEL, "ml-auto font-normal text-muted-foreground")}>In your product</span>
+            </span>
+            <div className="flex flex-col gap-2 px-3 pt-2.5 pb-2 text-xs">
               <div className="flex items-center gap-2.5">
                 <span className="flex h-8 w-7 shrink-0 items-end justify-center rounded border border-subtle pb-1 font-mono text-[8.5px] text-muted-foreground uppercase">
                   csv
@@ -113,7 +115,7 @@ export function FirstJobApp({ moment, reduced }: FirstJobAppProps) {
                 />
               </span>
               {moment.seconds !== null && (
-                <span data-working={working ? "working" : "finished"} className="flex items-center gap-2 border-t border-border pt-2.5">
+                <span data-working={working ? "working" : "finished"} className="flex items-center gap-2 border-t border-border pt-2">
                   <span
                     className={cn(
                       "h-1.5 w-1.5 shrink-0 rounded-full",
@@ -127,7 +129,7 @@ export function FirstJobApp({ moment, reduced }: FirstJobAppProps) {
                 </span>
               )}
               {moment.rows !== null && (
-                <div className="flex flex-col gap-1.5 border-t border-border pt-2.5">
+                <div className="flex flex-col gap-1 border-t border-border pt-2">
                   <span className="flex items-baseline gap-2 text-[12.5px] font-semibold">
                     {REPORT_TITLE}
                     <span className="font-mono text-[10.5px] font-normal text-muted-foreground">{JOB.report}</span>
@@ -140,10 +142,10 @@ export function FirstJobApp({ moment, reduced }: FirstJobAppProps) {
                           data-shown={i < moment.rows! || undefined}
                           className={cn("transition-opacity duration-300 motion-reduce:transition-none", i < moment.rows! ? "opacity-100" : "opacity-0")}
                         >
-                          <td className="border-b border-border py-1">{row.account}</td>
-                          <td className="border-b border-border py-1 pl-2 text-right text-muted-foreground">{row.variance}</td>
-                          <td className="border-b border-border py-1 pl-2 text-right text-muted-foreground">{row.percent}</td>
-                          <td className="border-b border-border py-1 pl-2 text-right">
+                          <td className="border-b border-border py-[3px]">{row.account}</td>
+                          <td className="border-b border-border py-[3px] pl-2 text-right text-muted-foreground">{row.variance}</td>
+                          <td className="border-b border-border py-[3px] pl-2 text-right text-muted-foreground">{row.percent}</td>
+                          <td className="border-b border-border py-[3px] pl-2 text-right">
                             {row.flag !== "" && (
                               <span className="rounded-sm border border-subtle px-1 font-mono text-[9.5px] tracking-[0.05em] uppercase">{row.flag}</span>
                             )}
