@@ -13,7 +13,9 @@ import {
   separatorLabel,
 } from "../llms-pages";
 import { diagram } from "../../components/visuals/diagrams";
-import { lastFrameText } from "../recordings";
+import { lastFrameText, recordingAsText } from "../recordings";
+import { INSTALL, RECORDING, TERMINAL_ALT } from "../../components/visuals/first-job";
+import { CAPTION as FIRST_JOB_APP_TEXT } from "../../components/visuals/first-job-app";
 
 const SITE_URL = "https://example.test";
 
@@ -225,6 +227,28 @@ describe("a <TerminalRecording> in the export", () => {
   it("refuses a recording the terminal kit does not hold, and blank alt text", () => {
     expect(() => cleanContent('<TerminalRecording name="run-denial" alt="x" />', SITE_URL)).toThrow(/no terminal recording named "run-denial"/);
     expect(() => cleanContent('<TerminalRecording name="run-approval" alt="" />', SITE_URL)).toThrow(/alt text is required/);
+  });
+});
+
+describe("a <FirstJob> in the export", () => {
+  it("becomes both tabs in words, the install line and the step-by-step pages, as its own paragraphs, inside the hero too", () => {
+    const text = cleanContent('<Hero title="Run your first agent job.">\n  <FirstJob />\n</Hero>\n\nAfter.', SITE_URL);
+    expect(text).toBe(
+      [
+        '<Hero title="Run your first agent job.">',
+        `**Terminal.** ${recordingAsText(RECORDING, TERMINAL_ALT)}`,
+        `**Your app.** ${FIRST_JOB_APP_TEXT}`,
+        `Install the CLI:\n\n\`\`\`bash\n${INSTALL}\n\`\`\``,
+        `Step by step: [Your first agent job](${SITE_URL}/docs/getting-started/quickstart) · [Do the same job from your app](${SITE_URL}/docs/getting-started/call-from-your-app)`,
+        "</Hero>",
+        "After.",
+      ].join("\n\n"),
+    );
+    expect(text).toContain("Worked for 38s");
+  });
+
+  it("must close itself", () => {
+    expect(() => cleanContent("<FirstJob></FirstJob>", SITE_URL)).toThrow(/<FirstJob> tag must close itself/);
   });
 });
 

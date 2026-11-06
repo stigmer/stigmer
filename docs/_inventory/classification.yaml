@@ -34,12 +34,14 @@ pages:
     fate: keep
     diataxis: landing
     teaches:
-      Stigmer's headline and subhead, and the path from a first agent job to
-      putting it in your product or running it on your servers.
+      The first agent job, run from the terminal and from your own code, and
+      the path from it to putting it in your product or running it on your
+      servers.
     medium: animated-tour
     why:
-      The hero exists to show the product working; motion is the pitch. The
-      quickstart is the first thing a reader does, so the hero shows it.
+      The hero exists to show the product working. The quickstart's job is the
+      first thing a reader does, so the hero plays it, as the terminal kit
+      records it and as the next page's code runs it.
 
   # ── Get Started ────────────────────────────────────────────────────────
   concepts/what-is-stigmer:
@@ -53,7 +55,8 @@ pages:
     medium: diagram
     why:
       Where Stigmer sits between your app and your model provider is structure;
-      one diagram of the job's path carries it.
+      one drawing of what each customer's agent has and one diagram of the
+      job's path carry it.
 
   getting-started/quickstart:
     fate: keep

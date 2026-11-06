@@ -74,7 +74,7 @@ describe("the docs' MDX components", () => {
     );
 
     expect(read).toContain("index.mdx");
-    expect(unimportedTags(readFileSync(join(DOCS, "index.mdx"), "utf8"))).toContain("Diagram");
+    expect(unimportedTags(readFileSync(join(DOCS, "index.mdx"), "utf8"))).toContain("FirstJob");
     expect(missing, `tags no import or getMDXComponents provides:\n${missing.join("\n")}`).toEqual([]);
   });
 });

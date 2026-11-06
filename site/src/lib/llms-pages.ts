@@ -30,8 +30,10 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import matter from "gray-matter";
 import { diagram } from "../components/visuals/diagrams";
+import { INSTALL, RECORDING, STEP_BY_STEP, TERMINAL_ALT } from "../components/visuals/first-job";
+import { CAPTION as FIRST_JOB_APP_TEXT } from "../components/visuals/first-job-app";
 import { LIVE_CAPTION, liveUrl } from "./live";
-import { lastFrameText } from "./recordings";
+import { recordingAsText } from "./recordings";
 import { SHOWN_SCALE, screenPath, shownScreen } from "./screens";
 import { splitSnippetSetup } from "./snippet-setup.mjs";
 
@@ -181,6 +183,11 @@ interface PictureTag {
  * - `<TerminalRecording name="…" alt="…" />` becomes its alt text, then the
  *   recording's last frame as a `text` block, as its own paragraph; blank alt
  *   text, or a recording the terminal kit does not hold, throws.
+ * - `<FirstJob />` becomes its two tabs in words, as its own paragraphs: the
+ *   Terminal tab as its recording's alt text and last frame, then what the
+ *   Your-app tab shows (src/components/visuals/first-job-app.ts's `CAPTION`),
+ *   then the install line as a `bash` block and the two step-by-step pages
+ *   linked on `siteUrl`.
  */
 const PICTURES: readonly PictureTag[] = [
   {
@@ -219,8 +226,22 @@ const PICTURES: readonly PictureTag[] = [
       const name = attributes.get("name")!;
       const alt = attributes.get("alt")!;
       if (alt.trim() === "") throw new Error(`<TerminalRecording name="${name}">: alt text is required; the export carries it in the recording's place`);
-      return `\n\n${alt.replace(/\s+/g, " ").trim().replace(/\.$/, "")}. The recording ends on this frame:\n\n\`\`\`text\n${lastFrameText(name)}\n\`\`\`\n\n`;
+      return `\n\n${recordingAsText(name, alt)}\n\n`;
     },
+  },
+  {
+    name: "FirstJob",
+    needs: [],
+    block: true,
+    rewrite: (_attributes, siteUrl) =>
+      [
+        "",
+        `**Terminal.** ${recordingAsText(RECORDING, TERMINAL_ALT)}`,
+        `**Your app.** ${FIRST_JOB_APP_TEXT}`,
+        `Install the CLI:\n\n\`\`\`bash\n${INSTALL}\n\`\`\``,
+        `Step by step: ${STEP_BY_STEP.map((page) => `[${page.title}](${siteUrl}${page.href})`).join(" · ")}`,
+        "",
+      ].join("\n\n"),
   },
   {
     name: "ThemePlayground",

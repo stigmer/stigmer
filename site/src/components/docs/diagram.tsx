@@ -10,7 +10,7 @@
  * `not-prose` opts the drawing out of DocsBody's `prose` typography, which
  * would otherwise number its lists and space its boxes. The vertical margin
  * sets it off from the paragraphs round it, and drops where the drawing is
- * the only thing in its slot, as in the front page's hero.
+ * the first or last thing in its slot.
  */
 import type { ComponentType } from "react";
 import { JobPath } from "@/components/visuals/JobPath";

@@ -386,6 +386,25 @@ block. The build fails on a name the list does not hold or on blank alt text.
 />
 ```
 
+### FirstJob
+
+The docs front page's first agent job, played in one box with two tabs.
+**Terminal** plays the terminal kit's `first-job` recording: the quickstart's
+`stigmer run`, as the terminal draws it. **Your app** shows the next page's
+`variance-report.ts` whole, lights each of its three calls in turn, and draws
+beside it what the customer sees as each call runs. The footer holds the install
+line and both step-by-step pages. The site's tests hold every word to its
+source: the program and what it prints to "Do the same job from your app", the
+report and the install line to the quickstart, the clock to the recording's last
+frame. It takes no attributes and belongs in the front page's `<Hero>` alone. In
+the markdown exports the tag becomes both tabs in words (the recording's alt
+text and last frame, then what the program does), the install line and the two
+links.
+
+```mdx
+<FirstJob />
+```
+
 ### Diagram
 
 A drawing in the site's own language: the homepage's boxes, frames and lines, or
