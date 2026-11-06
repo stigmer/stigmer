@@ -64,7 +64,7 @@ import {
   newSubstrateSandboxDriverOverGateway,
   validateSubstrateDriverConfig,
 } from "../driver.js";
-import type { EgressRule } from "../gen/ateapipb/ateapi_pb.js";
+import type { EgressRule } from "../gen/api/ateapi/v1/ateapi_pb.js";
 import {
   SubstrateAbortedError,
   SubstrateNoWorkerError,

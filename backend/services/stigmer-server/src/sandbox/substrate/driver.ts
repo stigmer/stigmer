@@ -127,7 +127,7 @@ import type { SubstrateDriverSettings } from "./config.js";
 import { delay } from "./delay.js";
 import { runnerEnvironmentOf } from "../environment.js";
 import { buildEgressRules, egressDigest } from "./egress.js";
-import type { EgressRule } from "./gen/ateapipb/ateapi_pb.js";
+import type { EgressRule } from "./gen/api/ateapi/v1/ateapi_pb.js";
 import {
   SubstrateAbortedError,
   SubstrateNoWorkerError,

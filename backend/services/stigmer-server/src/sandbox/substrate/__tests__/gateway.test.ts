@@ -69,7 +69,7 @@ import {
   DurabilityMode,
   EgressPolicySchema,
   EgressRuleSchema,
-} from "../gen/ateapipb/ateapi_pb.js";
+} from "../gen/api/ateapi/v1/ateapi_pb.js";
 import {
   bearerFromFile,
   newSubstrateClientGateway,
