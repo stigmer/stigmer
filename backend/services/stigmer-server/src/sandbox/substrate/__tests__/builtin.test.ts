@@ -68,7 +68,6 @@ beforeEach(() => {
     STIGMER_SANDBOX_SUBSTRATE_API_TOKEN_FILE: path.join(dir, "token"),
     STIGMER_SANDBOX_SUBSTRATE_ROUTER_URL: "http://router.example",
     STIGMER_SANDBOX_SUBSTRATE_ATESPACE: "stigmer",
-    STIGMER_SANDBOX_SUBSTRATE_STORAGE_LOCATION: "gs://b/p",
     STIGMER_SANDBOX_SUBSTRATE_WORKER_SELECTOR: "workload=stigmer",
   };
   for (const [key, value] of Object.entries(env)) vi.stubEnv(key, value);

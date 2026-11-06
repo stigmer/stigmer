@@ -84,7 +84,7 @@ import { APT_ARCHIVE_HOSTS } from "../../domain/environment/package-manager-host
 import type { EnvironmentFacts, SandboxDriverConfig } from "../provisioner.js";
 import { runnerPlatformHosts } from "../runner-lanes.js";
 import type { SubstrateDriverSettings } from "./config.js";
-import { EgressRuleSchema, type EgressRule } from "./gen/ateapipb/ateapi_pb.js";
+import { EgressRuleSchema, type EgressRule } from "./gen/api/ateapi/v1/ateapi_pb.js";
 
 interface Destination {
   readonly host: string;

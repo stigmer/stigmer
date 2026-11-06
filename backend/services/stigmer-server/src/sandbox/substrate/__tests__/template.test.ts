@@ -49,7 +49,7 @@ import {
   ActorMetadataField,
   GoldenSnapshotMode,
   SnapshotFidelity,
-} from "../gen/ateapipb/ateapi_pb.js";
+} from "../gen/api/ateapi/v1/ateapi_pb.js";
 import {
   buildRunnerTemplate,
   goldenFailureMessage,
@@ -97,7 +97,6 @@ const settings: SubstrateDriverSettings = {
   routerServerName: "",
   routerClientCertFile: "",
   atespace: "stigmer",
-  storageLocation: "gs://ate-snapshots/stigmer",
   workerSelector: { workload: "stigmer" },
   httpsEgress: "all",
   extraHttpEgress: [],
@@ -178,10 +177,12 @@ describe("the template", () => {
         }),
       }),
     ]);
-    // Substrate 0.6 has no such field, and refuses one it does not know.
+    // Substrate has no such field, and refuses one it does not know.
     expect(Object.keys(template)).not.toContain("sandboxConfig");
+    // Substrate 1.0 refuses a template that names its own snapshot
+    // location; its API server's --snapshot-location is the store.
+    expect(template.snapshotConfig?.storageLocation).toBe("");
     expect(template.snapshotConfig).toMatchObject({
-      storageLocation: "gs://ate-snapshots/stigmer",
       preferredFidelity: SnapshotFidelity.VOLUMES,
       goldenSnapshotConfig: { mode: GoldenSnapshotMode.ENABLED },
     });
