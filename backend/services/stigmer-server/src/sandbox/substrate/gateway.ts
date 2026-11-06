@@ -24,13 +24,14 @@
  * re-reading the actor, which handles both. RESOURCE_EXHAUSTED (no free
  * worker) becomes SubstrateNoWorkerError. PERMISSION_DENIED is thrown
  * with the grant the server lacks named, because an operator meets it
- * once, at the first sandbox. One denial is not about a grant: Substrate
- * denies a method it has no authorization rule for, before routing, with
- * "no authorization rule for <method>". On a matching release every method
- * this server calls has a rule, so that denial means the control plane
- * runs another Substrate release than this server speaks (release.ts), and
- * it is thrown naming both releases instead (skewSentence). Every call has
- * a deadline.
+ * once, at the first sandbox. UNIMPLEMENTED for a service or method the
+ * control plane does not know ("unknown service ateapi.Control", "unknown
+ * method <m> for service <s>", gRPC's own words, given before Substrate's
+ * interceptors run, measured on v1.0.0) becomes SubstrateReleaseError,
+ * naming the release this server speaks (release.ts): every method this
+ * server calls exists on its own release, and Substrate has no version
+ * call, so an unknown one means the control plane runs another release.
+ * Every call has a deadline.
  *
  * An actor's state is Substrate's, read as an enum. A suspend asks for
  * Substrate's asynchronous mode: the call returns once the snapshot is
@@ -110,14 +111,22 @@ export class SubstrateNoWorkerError extends Error {
   }
 }
 
-/**
- * The grant the server lacks, or the Substrate release it does not speak,
- * named for the operator (module header).
- */
+/** The grant the server lacks, named for the operator (module header). */
 export class SubstratePermissionError extends Error {
   constructor(message: string) {
     super(message);
     this.name = "SubstratePermissionError";
+  }
+}
+
+/**
+ * The control plane runs another Substrate release than this server
+ * speaks, both named for the operator (module header).
+ */
+export class SubstrateReleaseError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "SubstrateReleaseError";
   }
 }
 
@@ -558,12 +567,7 @@ export function newSubstrateGatewayOverTransport(
               }
             }
           } catch (error) {
-            if (
-              hasCode(error, Code.PermissionDenied) &&
-              skewSentence(error as ConnectError) === undefined
-            ) {
-              return "denied";
-            }
+            if (hasCode(error, Code.PermissionDenied)) return "denied";
             throw error;
           }
         },
@@ -775,29 +779,26 @@ function hasCode(error: unknown, code: Code): boolean {
 }
 
 /**
- * Substrate's denial of a method it has no authorization rule for, the same
- * words from v0.6.0 to v1.0.0 (its cmd/ateapi/internal/authz/interceptor.go).
+ * gRPC's answer for a service or method the server does not serve, before
+ * any interceptor runs: "unknown service <s>", "unknown method <m> for
+ * service <s>" (measured against Substrate v1.0.0, 2026-11-06).
  */
-const NO_RULE = /no authorization rule for (\S+)/;
+const UNKNOWN_CALL = /^unknown (?:service \S+|method \S+ for service \S+)$/;
 
-/**
- * The sentence for a denial that means a release skew (module header), or
- * undefined for any other denial, which keeps the grant sentence.
- */
-function skewSentence(error: ConnectError): string | undefined {
-  const method = NO_RULE.exec(error.rawMessage)?.[1];
-  if (method === undefined) return undefined;
-  return `Substrate's Control API has no authorization rule for ${method}, a method this server calls: this server speaks Agent Substrate ${SUBSTRATE_RELEASE}, and the control plane at STIGMER_SANDBOX_SUBSTRATE_API_ENDPOINT runs another release. Install Agent Substrate ${SUBSTRATE_RELEASE} there, or run the Stigmer release that speaks the installed one`;
-}
-
-/** ABORTED, RESOURCE_EXHAUSTED and PERMISSION_DENIED into the driver's typed errors (module header). */
+/** ABORTED, RESOURCE_EXHAUSTED, PERMISSION_DENIED and an unknown call into the driver's typed errors (module header). */
 async function translate<T>(body: () => Promise<T>): Promise<T> {
   try {
     return await body();
   } catch (error) {
+    if (
+      hasCode(error, Code.Unimplemented) &&
+      UNKNOWN_CALL.test((error as ConnectError).rawMessage)
+    ) {
+      throw new SubstrateReleaseError(
+        `Substrate's Control API does not serve a call this server makes (${(error as ConnectError).rawMessage}): this server speaks Agent Substrate ${SUBSTRATE_RELEASE}, and the control plane at STIGMER_SANDBOX_SUBSTRATE_API_ENDPOINT runs another release. Install Agent Substrate ${SUBSTRATE_RELEASE} there, or run the Stigmer release that speaks the installed one`,
+      );
+    }
     if (hasCode(error, Code.PermissionDenied)) {
-      const skew = skewSentence(error as ConnectError);
-      if (skew !== undefined) throw new SubstratePermissionError(skew);
       throw new SubstratePermissionError(
         `Substrate's Control API refused this server (${(error as ConnectError).rawMessage}); with authorization on, the server's identity (its token's subject, system:serviceaccount:<namespace>:<name>) needs the editor role on its atespace, and the atespace must exist unless the server is a global owner`,
       );
