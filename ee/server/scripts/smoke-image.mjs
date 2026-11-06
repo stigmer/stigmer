@@ -32,6 +32,12 @@
  *   node scripts/smoke-image.mjs [--image=TAG] [--database-url=URL]
  *   node scripts/smoke-image.mjs --build-only
  *
+ *   With --image: pulls it first, for this machine's linux arch, when the
+ *   local image store does not hold it, because the label check reads that
+ *   store and a release runner has only just pushed the tag from another
+ *   job (`docker image inspect` never pulls; the shared smoke's `docker run`
+ *   does). An image already there, such as the `ee` lane's second pass over
+ *   the local build, is used as it is.
  *   Without --image: stages dist-slim/ (bundled for THIS machine's linux
  *   arch, `make bundle-ee-slim`) into dist-slim-<arch>/ and builds
  *   stigmer-server-ee:smoke-local with the Enterprise labels first.
@@ -134,6 +140,17 @@ function buildLocalImage() {
   return LOCAL_TAG;
 }
 
+/** A pushed tag lives in the registry, not in this runner's image store; a local build lives only in the store. */
+function pullImage(image) {
+  if (spawnSync("docker", ["image", "inspect", image], { stdio: "ignore" }).status === 0) {
+    log(`${image} is in the local image store; not pulled`);
+    return;
+  }
+  const platform = `linux/${dockerArch()}`;
+  log(`docker pull --platform ${platform} ${image}`);
+  execFileSync("docker", ["pull", "--platform", platform, image], { stdio: "inherit" });
+}
+
 function assertLabels(image) {
   const labels = JSON.parse(docker(["image", "inspect", "--format", "{{json .Config.Labels}}", image]));
   for (const [name, want] of Object.entries(LABELS)) {
@@ -214,6 +231,7 @@ async function main() {
   const { image: imageArg, databaseUrl, buildOnly } = parseArgs();
   const image = imageArg !== "" ? imageArg : buildLocalImage();
   try {
+    if (imageArg !== "") pullImage(image);
     assertLabels(image);
     if (buildOnly) {
       log(`built ${image}`);
