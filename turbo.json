@@ -162,6 +162,13 @@
       "outputs": [],
       "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/test/fixtures/tool-view/**"]
     },
+    // The CLI holds the notes the docs' terminal recordings show `--download`
+    // writing to its own words, reading the terminal kit's held recordings.
+    "@stigmer/cli#test": {
+      "dependsOn": ["^build"],
+      "outputs": [],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/sdk/ink/src/__tests__/__recordings__/**"]
+    },
     // The client entry's parity test pins the digest of the official
     // catalogue's assistant plugin (the digest the live default plugin
     // carries), so a change to that tree must invalidate the cached pass.
