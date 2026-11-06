@@ -8,7 +8,9 @@
  *   - NOT_FOUND reads as absent and deletes as success; ALREADY_EXISTS
  *     creates as "exists"; FAILED_PRECONDITION moves as "refused";
  *   - ABORTED and RESOURCE_EXHAUSTED become the driver's two typed errors,
- *     and PERMISSION_DENIED one naming the grant the server needs;
+ *     and PERMISSION_DENIED one naming the grant the server needs, except
+ *     Substrate's "no authorization rule for <method>", which names the
+ *     release skew instead, in Substrate's own words at v0.6.0 and v1.0.0;
  *   - the atespace is read first and created only when it is missing, so
  *     an atespace granted to the server needs no global owner;
  *   - an actor's state is Substrate's, whatever snapshot it holds;
@@ -19,7 +21,7 @@
  *     existing atespace, the binding it lacks added and none
  *     removed, at the version read (read again after a lost race), nothing
  *     written when it holds them all; a refused write reported as denied,
- *     never thrown; the principal read from the token's subject;
+ *     never thrown, unless the refusal is a release skew; the principal read from the token's subject;
  *   - the egress policy is read by its singleton name, "default";
  *   - lists follow page tokens, in Substrate's list options;
  *   - a move replaces the stored actor with only its template changed, and
@@ -69,7 +71,7 @@ import {
   DurabilityMode,
   EgressPolicySchema,
   EgressRuleSchema,
-} from "../gen/ateapipb/ateapi_pb.js";
+} from "../gen/api/ateapi/v1/ateapi_pb.js";
 import {
   bearerFromFile,
   newSubstrateClientGateway,
@@ -83,6 +85,7 @@ import {
   SubstrateNoWorkerError,
   SubstratePermissionError,
 } from "../gateway.js";
+import { SUBSTRATE_RELEASE } from "../release.js";
 
 let dir: string;
 let tokenFile: string;
@@ -258,6 +261,31 @@ describe("error translation", () => {
       /needs the editor role on its atespace/,
     );
   });
+
+  // Substrate's interceptor words, the same at v0.6.0 and v1.0.0: a v0.6
+  // control plane meets this server's v1 method path, and a v1 control
+  // plane meets a v0.6 server's.
+  for (const method of [
+    "/substrate.ateapi.v1.Control/CreateActor",
+    "/ateapi.Control/CreateActor",
+  ]) {
+    it(`a denial for want of an authorization rule names the release skew, not a grant (${method})`, async () => {
+      const gateway = gatewayOver({
+        createActor() {
+          throw new ConnectError(
+            `permission denied: no authorization rule for ${method}`,
+            Code.PermissionDenied,
+          );
+        },
+      });
+      const refusal = gateway.createActor("a", "t");
+      await expect(refusal).rejects.toBeInstanceOf(SubstratePermissionError);
+      await expect(refusal).rejects.toThrow(
+        `Substrate's Control API has no authorization rule for ${method}, a method this server calls: this server speaks Agent Substrate ${SUBSTRATE_RELEASE}, and the control plane at STIGMER_SANDBOX_SUBSTRATE_API_ENDPOINT runs another release. Install Agent Substrate ${SUBSTRATE_RELEASE} there, or run the Stigmer release that speaks the installed one`,
+      );
+      await expect(refusal).rejects.not.toThrow(/editor role/);
+    });
+  }
 });
 
 describe("the atespace", () => {
@@ -405,6 +433,21 @@ describe("the atespace's access policy", () => {
       getAtespaceAccessPolicy: denied,
     });
     expect((await unreadable.ensureAtespace()).policy).toBe("denied");
+  });
+
+  it("throws, never reports as denied, a policy call the control plane has no rule for: that is a release skew", async () => {
+    const skewed = withAccess({
+      getAtespace: () => ({ metadata: { name: "stigmer" } }),
+      getAtespaceAccessPolicy() {
+        throw new ConnectError(
+          "permission denied: no authorization rule for /substrate.ateapi.v1.Control/GetAtespaceAccessPolicy",
+          Code.PermissionDenied,
+        );
+      },
+    });
+    await expect(skewed.ensureAtespace()).rejects.toThrow(
+      `this server speaks Agent Substrate ${SUBSTRATE_RELEASE}`,
+    );
   });
 
   it("creates the policy an existing atespace lacks, and reads it again after losing a race", async () => {
@@ -820,7 +863,6 @@ function liveSettings(
     routerServerName: "",
     routerClientCertFile: "",
     atespace: "stigmer",
-    storageLocation: "gs://b/p",
     workerSelector: { workload: "stigmer" },
     httpsEgress: "none",
     extraHttpEgress: [],

@@ -64,7 +64,7 @@ import {
   newSubstrateSandboxDriverOverGateway,
   validateSubstrateDriverConfig,
 } from "../driver.js";
-import type { EgressRule } from "../gen/ateapipb/ateapi_pb.js";
+import type { EgressRule } from "../gen/api/ateapi/v1/ateapi_pb.js";
 import {
   SubstrateAbortedError,
   SubstrateNoWorkerError,
@@ -99,7 +99,6 @@ const settings: SubstrateDriverSettings = {
   routerServerName: "",
   routerClientCertFile: "",
   atespace: "stigmer",
-  storageLocation: "gs://ate-snapshots/stigmer",
   workerSelector: { workload: "stigmer" },
   httpsEgress: "all",
   extraHttpEgress: [],

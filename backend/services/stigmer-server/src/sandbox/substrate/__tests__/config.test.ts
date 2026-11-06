@@ -15,7 +15,6 @@ const base: NodeJS.ProcessEnv = {
   STIGMER_SANDBOX_SUBSTRATE_API_TOKEN_FILE: "/var/run/secrets/ate/token",
   STIGMER_SANDBOX_SUBSTRATE_ROUTER_URL: "http://atenet-router.ate-system.svc//",
   STIGMER_SANDBOX_SUBSTRATE_ATESPACE: "stigmer",
-  STIGMER_SANDBOX_SUBSTRATE_STORAGE_LOCATION: "gs://ate-snapshots/stigmer",
   STIGMER_SANDBOX_SUBSTRATE_WORKER_SELECTOR: "workload=stigmer",
 };
 
@@ -31,7 +30,6 @@ describe("newSubstrateSettingsFromEnv", () => {
       routerServerName: "",
       routerClientCertFile: "",
       atespace: "stigmer",
-      storageLocation: "gs://ate-snapshots/stigmer",
       workerSelector: { workload: "stigmer" },
       httpsEgress: "all",
       extraHttpEgress: [],

@@ -46,9 +46,12 @@
  *
  * The runner's HOME is set here, as every image driver sets it, and so is
  * the server's release when it is one (runner-launch.ts).
- * Its user is not: Substrate's container carries no user or working
- * directory, so the base image's own USER decides, and the layer's start
- * script refuses one that is not root.
+ * Its user and working directory are not: Substrate's container carries
+ * neither, and since Substrate 1.0 the container runs as the image's own
+ * USER in its WORKDIR (the runner's sandbox image sets no USER and
+ * WORKDIR /workspace, the workspace mount). A base image whose USER is not
+ * root therefore meets the layer's start script, which refuses it with
+ * "running as uid …, not root"; that refusal is the line a user sees.
  *
  * Nor does it name a sandbox class or configuration: since Substrate 0.6
  * the WorkerPool its worker selector names chooses both.
@@ -80,7 +83,7 @@ import {
   ResourceMetadataSchema,
   SnapshotFidelity,
   type ActorTemplate,
-} from "./gen/ateapipb/ateapi_pb.js";
+} from "./gen/api/ateapi/v1/ateapi_pb.js";
 import { delay } from "./delay.js";
 import type { SubstrateGateway } from "./gateway.js";
 
@@ -210,8 +213,8 @@ export function buildRunnerTemplate(input: RunnerTemplateInput): ActorTemplate {
     ],
     resources: { limits: { ...LIMITS } },
     snapshotConfig: {
-      // The workspace only (module header).
-      storageLocation: settings.storageLocation,
+      // The workspace only (module header). No storage location: Substrate
+      // stores every snapshot under its API server's --snapshot-location.
       preferredFidelity: SnapshotFidelity.VOLUMES,
       goldenSnapshotConfig: { mode: GoldenSnapshotMode.ENABLED },
     },

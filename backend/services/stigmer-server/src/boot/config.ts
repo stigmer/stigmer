@@ -475,6 +475,8 @@ function loadSharedRunnerAcknowledgement(env: NodeJS.ProcessEnv): boolean {
 const RETIRED_SETTINGS: Readonly<Record<string, string>> = {
   STIGMER_SANDBOX_TEMPORAL_ADDRESS:
     "STIGMER_SANDBOX_TEMPORAL_ADDRESS is retired: a sandbox's runner reaches Temporal only through the Stigmer server, at STIGMER_SANDBOX_BACKEND_ENDPOINT; remove the setting",
+  STIGMER_SANDBOX_SUBSTRATE_STORAGE_LOCATION:
+    "STIGMER_SANDBOX_SUBSTRATE_STORAGE_LOCATION is retired: Agent Substrate v1.0 stores every snapshot under its API server's own --snapshot-location and refuses a template that names one; remove the setting",
 };
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
