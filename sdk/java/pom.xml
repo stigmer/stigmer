@@ -133,7 +133,8 @@
                     <plugin>
                         <groupId>org.sonatype.central</groupId>
                         <artifactId>central-publishing-maven-plugin</artifactId>
-                        <version>0.9.0</version>
+                        <!-- 0.12.0 or later: older versions copy local-repository files into the bundle under Maven 3.10 (apache/maven#13388), and Central refuses the bundle. -->
+                        <version>0.12.0</version>
                         <extensions>true</extensions>
                         <configuration>
                             <publishingServerId>central</publishingServerId>
