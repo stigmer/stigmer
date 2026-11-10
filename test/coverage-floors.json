@@ -11,34 +11,34 @@
       "cases": 46
     },
     "backend/libs/ts/eval-runtime": {
-      "lines": 98.1,
-      "branches": 86.8,
-      "cases": 57
+      "lines": 99.5,
+      "branches": 93.8,
+      "cases": 87
     },
     "backend/libs/ts/outbound": {
-      "lines": 90.8,
-      "branches": 86.6,
-      "cases": 94
+      "lines": 93.1,
+      "branches": 88.6,
+      "cases": 121
     },
     "backend/libs/ts/plugin-package": {
-      "lines": 93.4,
-      "branches": 86,
-      "cases": 261
-    },
-    "backend/libs/ts/temporal-codecs": {
-      "lines": 97.2,
-      "branches": 86,
-      "cases": 54
+      "lines": 95.9,
+      "branches": 90.9,
+      "cases": 640
     },
     "backend/libs/ts/session-log": {
       "lines": 100,
-      "branches": 94,
-      "cases": 188
+      "branches": 94.7,
+      "cases": 200
+    },
+    "backend/libs/ts/temporal-codecs": {
+      "lines": 97.3,
+      "branches": 86.8,
+      "cases": 56
     },
     "backend/libs/ts/tool-vocabulary": {
       "lines": 100,
       "branches": 100,
-      "cases": 21
+      "cases": 25
     },
     "backend/libs/ts/zip-structure": {
       "lines": 97.2,
@@ -46,89 +46,89 @@
       "cases": 10
     },
     "backend/services/runner": {
-      "lines": 86.8,
-      "branches": 80.9,
-      "cases": 4881
+      "lines": 96.9,
+      "branches": 91.5,
+      "cases": 6258
     },
     "backend/services/stigmer-server": {
-      "lines": 83.5,
-      "branches": 69.8,
-      "cases": 4652
+      "lines": 96.9,
+      "branches": 86.5,
+      "cases": 8614
     },
     "client-apps/cli": {
-      "lines": 68.7,
-      "branches": 60.4,
-      "cases": 1075
+      "lines": 90.7,
+      "branches": 82.5,
+      "cases": 2263
     },
     "client-apps/desktop": {
-      "lines": 35.3,
-      "branches": 28.5,
-      "cases": 205
+      "lines": 89.8,
+      "branches": 76.5,
+      "cases": 372
     },
     "client-apps/web": {
-      "lines": 37.6,
-      "branches": 37.1,
-      "cases": 207
+      "lines": 78.9,
+      "branches": 67.4,
+      "cases": 385
     },
     "ee/server": {
-      "lines": 96.4,
-      "branches": 80.4,
-      "cases": 677
+      "lines": 97,
+      "branches": 81.3,
+      "cases": 818
     },
     "mcp-server": {
-      "lines": 82.8,
-      "branches": 71.8,
-      "cases": 160
+      "lines": 92.6,
+      "branches": 79.8,
+      "cases": 201
     },
     "plugins": {
-      "lines": 51.7,
-      "branches": 55.5,
-      "cases": 162
+      "lines": 72.3,
+      "branches": 68.4,
+      "cases": 197
     },
     "sdk/embed": {
       "lines": 93.5,
       "branches": 85.8,
-      "cases": 31
+      "cases": 34
     },
     "sdk/ink": {
-      "lines": 65.6,
-      "branches": 53,
-      "cases": 121
+      "lines": 97,
+      "branches": 90.6,
+      "cases": 405
     },
     "sdk/react": {
-      "lines": 62.6,
-      "branches": 55.9,
-      "cases": 4265
+      "lines": 89.8,
+      "branches": 81.6,
+      "cases": 5316
     },
     "sdk/react-core": {
       "lines": 82.2,
-      "branches": 65.9,
-      "cases": 390
+      "branches": 66.1,
+      "cases": 399
     },
     "sdk/theme": {
-      "lines": 90.4,
-      "branches": 85.6,
-      "cases": 33
+      "lines": 96.1,
+      "branches": 89.9,
+      "cases": 45
     },
     "sdk/typescript": {
-      "lines": 78.1,
-      "branches": 74.2,
-      "cases": 548
+      "lines": 92.1,
+      "branches": 86.4,
+      "cases": 770
     },
     "site": {
-      "lines": 16.6,
-      "branches": 16.6,
-      "cases": 112
+      "lines": 81.6,
+      "branches": 74.5,
+      "cases": 527
     },
     "test/conformance": {
-      "lines": 45.9,
-      "branches": 43.8,
-      "cases": 210
+      "lines": 84.6,
+      "branches": 83.5,
+      "cases": 639
     },
     "tools/codegen": {
-      "lines": 4.1,
-      "branches": 4,
-      "cases": 72
+      "lines": 90.6,
+      "branches": 79.1,
+      "cases": 239
     }
   }
 }

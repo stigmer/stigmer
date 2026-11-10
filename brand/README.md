@@ -70,8 +70,10 @@ description and the two LinkedIn covers all import them from there. Their public
 form, with the rules for using them, is the "What Stigmer is, and who it is for"
 section of `docs/vocabulary.md`. To change the words, change that section and
 this file together; `__tests__/positioning.test.ts` fails, naming the copy,
-while the vocabulary or the docs front page disagrees, or while a site or
-console source spells the words out instead of importing them. The covers are
+while the vocabulary or "What is Stigmer?" disagrees, or while a site or
+console source spells the words out instead of importing them. The docs front
+page opens on the first agent job in its own words, and the same test holds it
+to them. The covers are
 uploads, which no test can read: after a words change, run
 `npm run generate:brand` and upload both covers again by hand.
 
@@ -80,7 +82,7 @@ own computer" to "Your keys, your servers"), the order every list says them in,
 each one said as the visitor's worry with what a team would build, what Stigmer
 gives and its proofs, and the three more things the homepage says we built. The
 homepage's "hard parts" section and its "also built" strip render the claims,
-the job picture on the docs front page reads the titles through
+the job picture on "What is Stigmer?" reads the titles through
 `site/src/lib/agent-gets.ts`, and
 the job film in `marketing/` reads the titles here. A proof (`proof.ts`) is a
 measured figure, a picture the visual suite draws, a public test quoted in its
@@ -100,9 +102,11 @@ time; the sleep panel links to the hard parts' sandbox row, which reads
 
 `job-story.ts` holds the job those pictures tell: a customer's names for it
 (Northwind Books, `ledger.csv`, `variance-report.md`), its steps, the parts of
-the picture and the rule for when each is shown and lit. The docs front page's
-loop (`site/src/components/visuals/job-path.ts`) and the job film both read it,
-so they light the same parts at the same steps.
+the picture and the rule for when each is shown and lit. The loop on "What is
+Stigmer?" (`site/src/components/visuals/job-path.ts`) and the job film both read
+it, so they light the same parts at the same steps. The docs front page's
+first-job block (`site/src/components/visuals/first-job.ts`) names the job with
+it too.
 
 The film is an upload, like the covers: after a change to these titles, to the
 job or to the words above, render it again (`marketing/README.md`) and replace

@@ -3,8 +3,10 @@
  *
  *   - every read is a fresh ring: a key added to one copy, or a byte
  *     changed in one copy's key, never reaches the next read. Proved on a
- *     ring of a test key, because the compiled ring is empty until the
- *     production issuer's key is compiled in;
+ *     ring of a test key, whose private half the test holds;
+ *   - the compiled ring is exactly the production issuer's keys written
+ *     below, so adding, dropping or editing a trusted key is a deliberate
+ *     change in two places;
  *   - every compiled key decodes, and the decoding refuses a key that is
  *     not canonical base64 of 32 bytes, and a kid listed twice, so a
  *     mangled or repeated paste fails here rather than at a customer's
@@ -53,6 +55,14 @@ describe("licenseKeyRing", () => {
 });
 
 describe("trustedLicenseKeys", () => {
+  it("trusts exactly the production issuer's keys", () => {
+    const ring = trustedLicenseKeys();
+    expect([...ring.keys()]).toEqual(["license-signing:v1"]);
+    expect(Buffer.from(ring.get("license-signing:v1") ?? new Uint8Array()).toString("base64")).toBe(
+      "2eKKaLG5hUNtnf0BU9GPFqXJ1GFHbQVnHZGusyLcg/4=",
+    );
+  });
+
   it("decodes every compiled key to 32 bytes and hands each caller its own ring", () => {
     const ring = trustedLicenseKeys();
     for (const [kid, raw] of ring) {

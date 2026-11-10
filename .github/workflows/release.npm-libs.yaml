@@ -843,8 +843,11 @@ jobs:
       # first push (publish-server-image says why it is not a step).
 
   # Native smokes of the PUSHED tag: the labels, no key booting as the
-  # open-source server (the server image's smoke, whole), and two keys it
-  # cannot verify refusing the boot.
+  # open-source server (the server image's smoke, whole), two keys it
+  # cannot verify refusing the boot, and a license from Stigmer's issuer
+  # (the repository secret STIGMER_EE_SMOKE_LICENSE_KEY) booting it licensed
+  # while the same license with one claim changed is refused.
+  # --require-license fails the job when the secret is missing.
   smoke-enterprise-image-amd64:
     needs: [determine-version, publish-enterprise-image]
     runs-on: ubuntu-24.04
@@ -867,10 +870,11 @@ jobs:
 
       - name: Smoke the pushed image (native amd64)
         run: |
-          node ee/server/scripts/smoke-image.mjs \
+          node ee/server/scripts/smoke-image.mjs --require-license \
             --image="ghcr.io/${{ github.repository_owner }}/stigmer-server-ee:v${NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION}"
         env:
           NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION: ${{ needs.determine-version.outputs.version }}
+          STIGMER_EE_SMOKE_LICENSE_KEY: ${{ secrets.STIGMER_EE_SMOKE_LICENSE_KEY }}
 
   smoke-enterprise-image-arm64:
     needs: [determine-version, publish-enterprise-image]
@@ -894,10 +898,11 @@ jobs:
 
       - name: Smoke the pushed image (native arm64)
         run: |
-          node ee/server/scripts/smoke-image.mjs \
+          node ee/server/scripts/smoke-image.mjs --require-license \
             --image="ghcr.io/${{ github.repository_owner }}/stigmer-server-ee:v${NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION}"
         env:
           NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION: ${{ needs.determine-version.outputs.version }}
+          STIGMER_EE_SMOKE_LICENSE_KEY: ${{ secrets.STIGMER_EE_SMOKE_LICENSE_KEY }}
 
   promote-enterprise-image-latest:
     needs: [determine-version, smoke-enterprise-image-amd64, smoke-enterprise-image-arm64]

@@ -38,6 +38,7 @@ import {
 } from "../__test-utils__/paused-session-fixture.js";
 import { THINK_CALL_ID, THINK_RETIREMENT_MESSAGE, thinkBoundSession } from "../__test-utils__/think-bound-session.js";
 import { ApprovalAction, ToolCallStatus } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
+import { toolUseEventId } from "../../../harness/events/ids.js";
 
 const LIVE_MODEL = "claude-haiku-4.5";
 const MAX_COST_USD = 0.05;
@@ -88,8 +89,21 @@ describe.skipIf(!liveSecret("ANTHROPIC_API_KEY"))("ExecuteDeepAgent live — a s
     const executed = rows.filter((r) => r.id === EXECUTE_CALL_A.id);
     expect(executed, `the approved command ran once; rows: [${seen}]`).toHaveLength(1);
     expect(executed[0]?.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
-    expect(rows.filter((r) => r.id === THINK_CALL_ID), "the old think row stays").toHaveLength(1);
-    expect(rows.filter((r) => r.name === "think" && r.id !== THINK_CALL_ID), "the model calls no new think").toHaveLength(0);
+    // The old engine's think call is the session log's, written once with the
+    // paused turn; the resumed rows carry no copy of it (#2267), as the
+    // hermetic twin asserts.
+    const thinkUse = toolUseEventId(record.executionId, THINK_CALL_ID);
+    const thinkEvents = record.sessionEvents.flatMap((e) => {
+      if (e.event.case === "agentToolUse" && e.event.value.id === thinkUse) return [["use", e.event.value.name]];
+      if (e.event.case === "agentToolResult" && e.event.value.toolUseId === thinkUse) return [["result", e.event.value.isError]];
+      return [];
+    });
+    expect(thinkEvents, "the old engine's think call stays in the log, once").toEqual([
+      ["use", "think"],
+      ["result", false],
+    ]);
+    expect(rows.some((r) => r.id === THINK_CALL_ID), "the resumed rows carry no copy of it").toBe(false);
+    expect(rows.filter((r) => r.name === "think"), "the model calls no new think").toHaveLength(0);
     expect(record.lastFullRows?.messages.at(-1)?.content, "the model answered after the command").not.toBe("I will run the command.");
     expect(record.lastFullRows?.messages.at(-1)?.content.length).toBeGreaterThan(0);
     expect(cost).toBeGreaterThan(0);

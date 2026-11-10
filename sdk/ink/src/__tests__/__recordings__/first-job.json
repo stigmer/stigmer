@@ -1,0 +1,68 @@
+{
+  "name": "first-job",
+  "story": "ledger-turn",
+  "columns": 80,
+  "rows": 16,
+  "command": "stigmer run variance-reporter --attach ledger.csv --download ./out --until turn -m \"Review this quarter's ledger.\"",
+  "title": "stigmer run: the Agent reads the customer's ledger, writes the variance report, names the flagged accounts, and the report is saved",
+  "endsWith": "Worked for 38s",
+  "asks": false,
+  "afterTurn": {
+    "saved": [
+      {
+        "path": "variance-report.md",
+        "bytes": 696
+      }
+    ],
+    "notes": [
+      "Downloading variance-report.md (696 B)...",
+      "Downloaded variance-report.md (696 B)"
+    ]
+  },
+  "frames": [
+    {
+      "at": 0,
+      "text": "$ stigmer run variance-reporter --attach ledger.csv --download ./out --until turn -m \"Review this quarter's ledger.\""
+    },
+    {
+      "at": 1200,
+      "text": " \u001b[1m\u001b[2mQuarterly variance report\u001b[22m\n\n \u001b[1mYou\u001b[22m\n Review this quarter's ledger.\n\n \u001b[1m⠋\u001b[22m Working\u001b[2m · 0s · Esc to stop\u001b[22m\n \u001b[2mAgent mode — full tool access\u001b[22m\n\n \u001b[1m❯\u001b[22m \u001b[7mR\u001b[27m\u001b[2meply...\u001b[22m\n   \u001b[2mEnter send · \\⏎ newline · Shift+Tab plan mode · Ctrl+C leave · ? keys\u001b[22m"
+    },
+    {
+      "at": 2700,
+      "text": " \u001b[1m\u001b[2mQuarterly variance report\u001b[22m\n\n \u001b[1mYou\u001b[22m\n Review this quarter's ledger.\n\n  \u001b[33m⠋\u001b[39m \u001b[2m▶\u001b[22m read_file\n\n \u001b[1m⠋\u001b[22m Reading ledger.csv\u001b[2m · 1s · Esc to stop\u001b[22m\n \u001b[2mAgent mode — full tool access\u001b[22m\n\n \u001b[1m❯\u001b[22m \u001b[7mR\u001b[27m\u001b[2meply...\u001b[22m\n   \u001b[2mEnter send · \\⏎ newline · Shift+Tab plan mode · Ctrl+C leave · ? keys\u001b[22m"
+    },
+    {
+      "at": 3300,
+      "text": " \u001b[1m\u001b[2mQuarterly variance report\u001b[22m\n\n \u001b[1mYou\u001b[22m\n Review this quarter's ledger.\n\n  \u001b[32m✓\u001b[39m \u001b[2m▶\u001b[22m read_file\n\n \u001b[1m⠋\u001b[22m Working\u001b[2m · 2s · Esc to stop\u001b[22m\n \u001b[2mAgent mode — full tool access\u001b[22m\n\n \u001b[1m❯\u001b[22m \u001b[7mR\u001b[27m\u001b[2meply...\u001b[22m\n   \u001b[2mEnter send · \\⏎ newline · Shift+Tab plan mode · Ctrl+C leave · ? keys\u001b[22m"
+    },
+    {
+      "at": 4800,
+      "text": " \u001b[1m\u001b[2mQuarterly variance report\u001b[22m\n\n \u001b[1mYou\u001b[22m\n Review this quarter's ledger.\n\n  \u001b[33m⠋\u001b[39m \u001b[2m▶\u001b[22m 2 tool calls\n\n \u001b[1m⠋\u001b[22m Writing variance-report.md\u001b[2m · 31s · Esc to stop\u001b[22m\n \u001b[2mAgent mode — full tool access\u001b[22m\n\n \u001b[1m❯\u001b[22m \u001b[7mR\u001b[27m\u001b[2meply...\u001b[22m\n   \u001b[2mEnter send · \\⏎ newline · Shift+Tab plan mode · Ctrl+C leave · ? keys\u001b[22m"
+    },
+    {
+      "at": 5100,
+      "text": " \u001b[1m\u001b[2mQuarterly variance report\u001b[22m\n\n \u001b[1mYou\u001b[22m\n Review this quarter's ledger.\n\n  \u001b[32m✓\u001b[39m \u001b[2m▶\u001b[22m 2 tool calls\n\n \u001b[1m⠋\u001b[22m Working\u001b[2m · 31s · Esc to stop\u001b[22m\n \u001b[2mAgent mode — full tool access\u001b[22m\n\n \u001b[1m❯\u001b[22m \u001b[7mR\u001b[27m\u001b[2meply...\u001b[22m\n   \u001b[2mEnter send · \\⏎ newline · Shift+Tab plan mode · Ctrl+C leave · ? keys\u001b[22m"
+    },
+    {
+      "at": 6600,
+      "text": " \u001b[1m\u001b[2mQuarterly variance report\u001b[22m\n\n \u001b[1mYou\u001b[22m\n Review this quarter's ledger.\n\n  \u001b[32m✓\u001b[39m \u001b[2m▶\u001b[22m 2 tool calls\n\n \u001b[1m\u001b[32mAgent\u001b[39m\u001b[22m\n Three accounts are flagged. Marketing ran 56.7% over budget and cost of goods\n sold 15% over, while travel came in 60% under. The report lists every account,\n flagged ones first.\n\n \u001b[1m⠋\u001b[22m Working\u001b[2m · 36s · Esc to stop\u001b[22m\n \u001b[2mAgent mode — full tool access\u001b[22m\n\n \u001b[1m❯\u001b[22m \u001b[7mR\u001b[27m\u001b[2meply...\u001b[22m\n   \u001b[2mEnter send · \\⏎ newline · Shift+Tab plan mode · Ctrl+C leave · ? keys\u001b[22m"
+    },
+    {
+      "at": 8100,
+      "text": " \u001b[1m\u001b[2mQuarterly variance report\u001b[22m\n\n \u001b[1mYou\u001b[22m\n Review this quarter's ledger.\n\n  \u001b[32m✓\u001b[39m \u001b[2m▶\u001b[22m 2 tool calls\n\n \u001b[1m\u001b[32mAgent\u001b[39m\u001b[22m\n Three accounts are flagged. Marketing ran 56.7% over budget and cost of goods\n sold 15% over, while travel came in 60% under. The report lists every account,\n flagged ones first.\n\n \u001b[2m✻ Worked for 38s\u001b[22m\n\n \u001b[2mAgent mode — full tool access\u001b[22m\n\n \u001b[1m❯\u001b[22m \u001b[7mR\u001b[27m\u001b[2meply...\u001b[22m\n   \u001b[2mEnter send · \\⏎ newline · Shift+Tab plan mode · Ctrl+C leave · ? keys\u001b[22m"
+    },
+    {
+      "at": 8800,
+      "text": " \u001b[1m\u001b[2mQuarterly variance report\u001b[22m\n\n \u001b[1mYou\u001b[22m\n Review this quarter's ledger.\n\n  \u001b[32m✓\u001b[39m \u001b[2m▶\u001b[22m 2 tool calls\n\n \u001b[1m\u001b[32mAgent\u001b[39m\u001b[22m\n Three accounts are flagged. Marketing ran 56.7% over budget and cost of goods\n sold 15% over, while travel came in 60% under. The report lists every account,\n flagged ones first.\n\n \u001b[2m✻ Worked for 38s\u001b[22m\n\n \u001b[2mDownloading variance-report.md (696 B)...\u001b[22m\n\n \u001b[2mAgent mode — full tool access\u001b[22m\n\n \u001b[1m❯\u001b[22m \u001b[7mR\u001b[27m\u001b[2meply...\u001b[22m\n   \u001b[2mEnter send · \\⏎ newline · Shift+Tab plan mode · Ctrl+C leave · ? keys\u001b[22m"
+    },
+    {
+      "at": 9500,
+      "text": " \u001b[1m\u001b[2mQuarterly variance report\u001b[22m\n\n \u001b[1mYou\u001b[22m\n Review this quarter's ledger.\n\n  \u001b[32m✓\u001b[39m \u001b[2m▶\u001b[22m 2 tool calls\n\n \u001b[1m\u001b[32mAgent\u001b[39m\u001b[22m\n Three accounts are flagged. Marketing ran 56.7% over budget and cost of goods\n sold 15% over, while travel came in 60% under. The report lists every account,\n flagged ones first.\n\n \u001b[2m✻ Worked for 38s\u001b[22m\n\n \u001b[2mDownloading variance-report.md (696 B)...\u001b[22m\n\n \u001b[2mDownloaded variance-report.md (696 B)\u001b[22m\n\n \u001b[2mAgent mode — full tool access\u001b[22m\n\n \u001b[1m❯\u001b[22m \u001b[7mR\u001b[27m\u001b[2meply...\u001b[22m\n   \u001b[2mEnter send · \\⏎ newline · Shift+Tab plan mode · Ctrl+C leave · ? keys\u001b[22m"
+    },
+    {
+      "at": 12500,
+      "text": " \u001b[1m\u001b[2mQuarterly variance report\u001b[22m\n\n \u001b[1mYou\u001b[22m\n Review this quarter's ledger.\n\n  \u001b[32m✓\u001b[39m \u001b[2m▶\u001b[22m 2 tool calls\n\n \u001b[1m\u001b[32mAgent\u001b[39m\u001b[22m\n Three accounts are flagged. Marketing ran 56.7% over budget and cost of goods\n sold 15% over, while travel came in 60% under. The report lists every account,\n flagged ones first.\n\n \u001b[2m✻ Worked for 38s\u001b[22m\n\n \u001b[2mDownloading variance-report.md (696 B)...\u001b[22m\n\n \u001b[2mDownloaded variance-report.md (696 B)\u001b[22m\n\n \u001b[2mAgent mode — full tool access\u001b[22m\n\n \u001b[1m❯\u001b[22m \u001b[7mR\u001b[27m\u001b[2meply...\u001b[22m\n   \u001b[2mEnter send · \\⏎ newline · Shift+Tab plan mode · Ctrl+C leave · ? keys\u001b[22m"
+    }
+  ]
+}

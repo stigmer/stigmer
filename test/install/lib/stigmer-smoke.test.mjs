@@ -808,25 +808,30 @@ test("a boot that logs no derived callback fails", () => {
   assert.throws(() => assertOAuthCallbackFromPublicOrigin(log, "http://127.0.0.1:7234"), /logged no derived OAuth callback/);
 });
 
-test("reads a CLI run's stream: the done phase and the last top-level reply, skipping what is not the stream", () => {
-  const line = (type, payload) => JSON.stringify({ type, ts: "2026-10-01T00:00:00Z", payload });
+test("reads a CLI run's stream: the last run status's phase and the last agent message's text, skipping what is not the stream", () => {
+  const line = (type, fields) => JSON.stringify({ id: `sevt_${type}`, processed_at: "2026-11-06T00:00:00Z", ...fields, type });
   const stream = [
     "a status line that is not JSON",
-    line("phase_change", { phase: "in_progress", previous: "pending" }),
-    line("ai_message", { content: "a sub-agent's words", sub_agent_id: "sub_1" }),
-    line("ai_message", { content: "Hello there." }),
-    line("done", { phase: "completed" }),
+    line("user.message", { content: [{ type: "text", text: "Say hello." }] }),
+    line("stigmer.run.status", { phase: "pending" }),
+    line("stigmer.run.status", { phase: "running" }),
+    line("agent.message", { content: [{ type: "text", text: "Hello " }, { type: "text", text: "there." }] }),
+    line("stigmer.run.status", { phase: "completed", stop_cause: "end_turn" }),
   ].join("\n");
   assert.deepEqual(streamedRunOutcome(stream), { phase: "completed", reply: "Hello there." });
-  // A streamed reply carries no ai_message: its text is ai_stream_end's.
-  const streamed = [
-    line("ai_stream_start", { content: "" }),
-    line("ai_stream_delta", { content: "Hel" }),
-    line("ai_stream_end", { content: "Hello, streamed.", tool_calls: [] }),
-    line("ai_stream_end", { content: "a sub-agent's streamed words", sub_agent_id: "sub_1" }),
-    line("done", { phase: "completed" }),
+  // The last message wins, and only its text blocks are the reply.
+  const twoMessages = [
+    line("agent.message", { content: [{ type: "text", text: "first" }] }),
+    line("agent.message", { content: [{ type: "thinking", thinking: "hm" }, { type: "text", text: "second" }] }),
+    line("stigmer.run.status", { phase: "completed" }),
   ].join("\n");
-  assert.deepEqual(streamedRunOutcome(streamed), { phase: "completed", reply: "Hello, streamed." });
-  assert.deepEqual(streamedRunOutcome(line("done", { phase: "failed", error: "boom" })), { phase: "failed", reply: "" });
+  assert.deepEqual(streamedRunOutcome(twoMessages), { phase: "completed", reply: "second" });
+  assert.deepEqual(streamedRunOutcome(line("stigmer.run.status", { phase: "failed" })), { phase: "failed", reply: "" });
+  // The retired event names are not this stream's.
+  const retired = [
+    JSON.stringify({ type: "ai_message", ts: "t", payload: { content: "old" } }),
+    JSON.stringify({ type: "done", ts: "t", payload: { phase: "completed" } }),
+  ].join("\n");
+  assert.deepEqual(streamedRunOutcome(retired), { phase: "", reply: "" });
   assert.deepEqual(streamedRunOutcome(""), { phase: "", reply: "" });
 });

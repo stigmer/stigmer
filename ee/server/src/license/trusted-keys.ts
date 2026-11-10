@@ -23,9 +23,13 @@
  * kid compiled twice is refused too: the second entry would replace the
  * first, and a rotation that reused a kid would drop a trusted key.
  *
- * The ring is empty until the production issuer's key is compiled in, so
- * every license key is refused as `unknown-key` until then. Tests pass a
- * ring of their own to the verifier and never touch this one.
+ * The ring holds the production issuer's key: Stigmer Cloud's Transit key
+ * `license-signing`, whose kid is the key's name and version. A rotation
+ * adds the next version beside it. A rebuilt vault starts its versions at
+ * 1 again, so it signs under a new key name and never reuses a kid; the
+ * twice-listed refusal above turns a reused one into a failed build. Tests
+ * pass a ring of their own to the verifier and never touch this one, except
+ * the case that pins this ring's exact contents.
  */
 
 /** One compiled key: its `kid` and its raw Ed25519 public key in base64. */
@@ -34,7 +38,10 @@ export type CompiledLicenseKey = readonly [keyId: string, publicKeyBase64: strin
 /** The raw length of an Ed25519 public key. */
 const ED25519_PUBLIC_KEY_BYTES = 32;
 
-const COMPILED_LICENSE_KEYS: ReadonlyArray<CompiledLicenseKey> = Object.freeze([]);
+const COMPILED_LICENSE_KEYS: ReadonlyArray<CompiledLicenseKey> = Object.freeze([
+  // Stigmer Cloud production's license-signing key, first signed 2026-11-06.
+  Object.freeze(["license-signing:v1", "2eKKaLG5hUNtnf0BU9GPFqXJ1GFHbQVnHZGusyLcg/4="] as const),
+]);
 
 /** The ring this build trusts, built afresh on every call. */
 export function trustedLicenseKeys(): ReadonlyMap<string, Uint8Array> {

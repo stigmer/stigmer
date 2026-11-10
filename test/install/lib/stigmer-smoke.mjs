@@ -495,12 +495,15 @@ export async function runReply(baseUrl, run) {
 
 /**
  * What a `stigmer run <agent> --json` stream says happened: the phase of its
- * `done` event and the content of its last top-level reply (the CLI writes
- * one `{type, ts, payload}` line per event; a line that is not JSON is not the
- * stream's and is skipped). A reply arrives whole as `ai_message`, or, when
- * the provider streamed it, as `ai_stream_start` / `_delta` / `_end`, whose
- * `ai_stream_end` carries the full text; the last of either kind is the reply.
- * A real model's words are never compared; the caller asks only that the run
+ * last `stigmer.run.status` event and the text of its last `agent.message`.
+ * The CLI writes one line per stored session event as Managed Agents JSON
+ * (client-apps/cli/src/resources/stream/render-ndjson.ts), so a run's status
+ * line is `{type: "stigmer.run.status", phase, ...}` and a reply is
+ * `{type: "agent.message", content: [{type: "text", text}], ...}`; a line
+ * that is not JSON is not the stream's and is skipped. The line carries no
+ * thread, so a sub-agent's message is not told apart: the smoke's agent has
+ * no tools and so no sub-agents, and its last message is its reply. A real
+ * model's words are never compared; the caller asks only that the run
  * completed with a reply.
  */
 export function streamedRunOutcome(ndjson) {
@@ -513,9 +516,13 @@ export function streamedRunOutcome(ndjson) {
     } catch {
       continue;
     }
-    if (event?.type === "done") phase = String(event.payload?.phase ?? "");
-    const isReply = event?.type === "ai_message" || event?.type === "ai_stream_end";
-    if (isReply && !event.payload?.sub_agent_id) reply = String(event.payload?.content ?? "");
+    if (event?.type === "stigmer.run.status") phase = String(event.phase ?? "");
+    if (event?.type === "agent.message") {
+      reply = (Array.isArray(event.content) ? event.content : [])
+        .filter((block) => block?.type === "text")
+        .map((block) => String(block.text ?? ""))
+        .join("");
+    }
   }
   return { phase, reply };
 }

@@ -63,8 +63,8 @@ export const SCENARIO_NAMES = [
 /** One of the catalogue's states. */
 export type ScenarioName = (typeof SCENARIO_NAMES)[number];
 
-/** A story the catalogue tells beside its states: the scripted turn the docs play, whole. */
-export type StoryName = "scripted-turn";
+/** A story the catalogue tells beside its states, whole: the scripted turn the docs play, or the first agent job's ledger turn. */
+export type StoryName = "scripted-turn" | "ledger-turn";
 
 /** What the session's usage report says, in the few figures the surfaces show. */
 export interface ScenarioUsage {
@@ -695,5 +695,65 @@ export function upTo(scenario: Scenario, n: number): Scenario {
   return loaded(scenario.name, scenario.title, scenario.events.slice(0, n), {
     ...(scenario.session === null ? {} : { session: scenario.session }),
     ...(whole ? { usage: scenario.usage, liveness: scenario.liveness, files: scenario.files } : {}),
+  });
+}
+
+// ---------------------------------------------------------------------------
+// The ledger turn: the Getting Started job, as the docs' front page plays it
+// ---------------------------------------------------------------------------
+
+/** What the quickstart's `stigmer run` sends with the customer's ledger (docs/getting-started/quickstart.mdx). */
+export const LEDGER_MESSAGE = "Review this quarter's ledger.";
+
+/** The ledger the quickstart has the reader make, as the Agent reads it from the conversation's uploads. */
+const LEDGER_CSV = [
+  "account,budget,actual",
+  "Revenue,120000,131500",
+  "Cost of goods sold,48000,55200",
+  "Salaries,36000,36400",
+  "Marketing,9000,14100",
+  "Software,4000,3900",
+  "Travel,3000,1200",
+].join("\n");
+
+/** The report the ledger turn hands back: the quickstart's sample report, 696 bytes. */
+const LEDGER_REPORT: StigmerFile = samples.outputFile("variance-report.md", { mimeType: "text/markdown", sizeBytes: 696n });
+
+/**
+ * The ledger turn, filed under `runId`: the person hands over the ledger
+ * with the quickstart's message, the Agent reads it from its uploads folder,
+ * writes the variance report to its outputs folder, says which accounts it
+ * flagged, and the turn completes 38 seconds after it began. No ask: the
+ * quickstart's Agent has no shell, so nothing waits for a yes.
+ */
+export function ledgerTurn(runId: string = RUN_ID): SessionEvent[] {
+  const o = (atMs: number, id?: string) => ({ runId, processedAt: sampleInstant(atMs), ...(id === undefined ? {} : { id }) });
+  const readId = `${runId}.tc-read_file`;
+  const writeId = `${runId}.tc-write_file`;
+  return [
+    samples.userMessageEvent(LEDGER_MESSAGE, o(0)),
+    samples.runStatusEvent("running", o(400)),
+    samples.toolUseEvent("read_file", { path: "/.stigmer/uploads/ledger.csv" }, { ...o(1_500), id: readId }),
+    samples.toolResultEvent(readId, LEDGER_CSV, o(2_100)),
+    samples.toolUseEvent("write_file", { path: "/.stigmer/outputs/variance-report.md" }, { ...o(31_000), id: writeId }),
+    samples.toolResultEvent(writeId, "Wrote 696 B", o(31_300)),
+    samples.agentMessageEvent(
+      "Three accounts are flagged. Marketing ran 56.7% over budget and cost of goods sold 15% over, while travel came in 60% under. The report lists every account, flagged ones first.",
+      o(36_000, `${runId}.root.m0`),
+    ),
+    samples.runStatusEvent("completed", o(38_000)),
+  ];
+}
+
+/**
+ * The ledger turn as a story, whole, with the report it returned among the
+ * session's Files. The terminal kit's `first-job` recording draws it event
+ * by event ({@link upTo}), so the docs' front page plays the quickstart's
+ * own job.
+ */
+export function ledgerStory(): Scenario {
+  return loaded("ledger-turn", "the first agent job: the ledger read, the report written, the flagged accounts named", ledgerTurn(), {
+    session: samples.session({ subject: "Quarterly variance report" }),
+    files: [LEDGER_REPORT],
   });
 }

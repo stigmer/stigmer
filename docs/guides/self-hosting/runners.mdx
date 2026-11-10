@@ -614,21 +614,26 @@ nothing uses any more.
 What the driver needs:
 
 - **Agent Substrate v1.0.0, exactly.** Substrate refuses fields it doesn't know,
-  so the server speaks the one release its stubs were generated from. Install it
-  from a v1.0.0 checkout with Substrate's published images:
+  so the server speaks the one release its stubs were generated from, and v1.0.0
+  moved its API to the `substrate.ateapi.v1` package, so a server built for an
+  earlier release can't call it at all. Install it from a v1.0.0 checkout with
+  Substrate's published images:
   `go run ./cmd/ate-setup deploy ate-system --image-repo ghcr.io/agent-substrate/substrate --image-tag v1.0.0`,
   with the flags below and Substrate's own storage settings
-  (`--storage-bucket-name`, or `--snapshot-location`). Moving from v0.6 is a
-  reinstall: the new install starts with no actors, so every Session's sandbox
-  starts again empty at its next turn. From 1.0, Substrate upgrades a patch or
-  the next minor in place by its rolling runbook, and a skipped minor or a new
-  major is still a reinstall. Upgrade the server in the same window, since a
-  server and a Substrate of different releases can't talk: the first Session
-  then fails with a message naming both releases. On GKE, the install also needs
-  a service account of its own for snapshot transfers
-  (`--snapshot-transfer-gsa-name`) and the snapshot bucket, both made by
-  `tools/setup-gcp create bucket` and `create iam` in
-  [substrate-gke](https://github.com/ai-on-gke/substrate-gke/blob/main/tools/setup-gcp/README.md).
+  (`--storage-bucket-name`, or `--snapshot-location`). Moving from a release
+  before 1.0 is a reinstall: the new install starts with no actors, so every
+  Session's sandbox starts again empty at its next turn. Upgrade the server in
+  the same window. From 1.0, you upgrade Substrate one minor release at a time,
+  in place, and each move takes the Stigmer release that names the new Substrate
+  release here, deployed in the same window: a server runs only against the
+  Substrate release this guide names, and against any other the first Session
+  fails with a message naming both releases. On GKE, the install also needs a
+  service account of its own for snapshot transfers
+  (`--snapshot-transfer-gsa-name`) and an asset bucket beside the snapshot
+  bucket, which `tools/setup-gcp create bucket` and `create iam` in
+  [substrate-gke](https://github.com/ai-on-gke/substrate-gke/blob/main/tools/setup-gcp/README.md)
+  make (Substrate's
+  [operator install guide](https://github.com/agent-substrate/substrate/blob/v1.0.0/docs/guides/operator-install.md)).
   Add `--sandbox-classes=gvisor` unless you also run microVM sandboxes.
 - **Its Control API**: `STIGMER_SANDBOX_SUBSTRATE_API_ENDPOINT` (an `https://`
   URL; in the cluster, `https://api.ate-system.svc:443`), the CA that signs it
@@ -640,11 +645,15 @@ What the driver needs:
   changes, so a projected ServiceAccount token can rotate: give it the audience
   `api.ate-system.svc`. Substrate's namespace denies traffic by default, so the
   server's own namespace carries the label `ate.dev/api-access=true`, or its
-  calls never arrive. The CA is the cluster's servicedns trust bundle, the
-  ClusterTrustBundle `servicedns.podcert.ate.dev:identity:primary-bundle`. The
-  server reads the CA file again when it changes too, so the bundle can rotate
-  under a running server, and it refuses to start when a certificate in the file
-  can't be read.
+  calls never arrive. The CA is the cluster's servicedns trust bundle: project
+  it into the server's pod with a `clusterTrustBundle` source naming the signer
+  `servicedns.podcert.ate.dev/identity` and the label selector
+  `podcert.ate.dev/canarying: live`, as Substrate's own components do, not the
+  bundle's name. A kubelet keeps serving a by-name projection the first content
+  it read, so after a reinstall a server mounting the bundle by name keeps
+  trusting the previous install's CA. The server reads the CA file again when it
+  changes too, so the bundle can rotate under a running server, and it refuses
+  to start when a certificate in the file can't be read.
 - **Its router**: `STIGMER_SANDBOX_SUBSTRATE_ROUTER_URL`, the address the server
   pushes each Session's queue and credentials through. In the cluster, use
   `https://atenet-router.ate-system.svc` with
@@ -661,13 +670,13 @@ What the driver needs:
   `STIGMER_SANDBOX_SUBSTRATE_ROUTER_CLIENT_CERT_FILE` at that bundle, and add
   the server's SPIFFE ID, `spiffe://cluster.local/ns/<namespace>/sa/<name>`, to
   the router's `--ingress-allowed-spiffe-ids`, which
-  `ate-setup deploy ate-system` takes (unset, no client reaches an actor through
-  the router). The server reads the bundle again when it changes, as the
-  certificate renews daily. Without it the router ends the handshake and the
-  first Session fails naming the setting. An `http://` router works too, as a
-  port-forward to its port 80, but the push then carries the Session's token and
-  the runner's secrets, model keys among them, across the cluster in cleartext,
-  and the server logs a warning at boot.
+  `ate-setup deploy ate-system` takes; both of the router's dataplanes require
+  it (unset, no client reaches an actor through the router). The server reads
+  the bundle again when it changes, as the certificate renews daily. Without it
+  the router ends the handshake and the first Session fails naming the setting.
+  An `http://` router works too, as a port-forward to its port 80, but the push
+  then carries the Session's token and the runner's secrets, model keys among
+  them, across the cluster in cleartext, and the server logs a warning at boot.
 - **Where actors live**: an atespace the server owns
   (`STIGMER_SANDBOX_SUBSTRATE_ATESPACE`; the server creates it when it is
   missing), the labels of the WorkerPool they run on
@@ -679,19 +688,19 @@ What the driver needs:
   the server names none, and a server that still sets
   `STIGMER_SANDBOX_SUBSTRATE_STORAGE_LOCATION` refuses to start, saying to
   remove it.
-- **Grants.** Substrate always enforces authorization (from v0.6.0), and names
-  the server by its token's subject, `system:serviceaccount:<namespace>:<name>`.
-  The server needs `editor` on its atespace and nothing else; atelet,
-  Substrate's process on each node, reads each actor's egress policy through a
-  system role of its own. The server writes its binding into the atespace's
-  access policy itself, when it creates the atespace and, for one that exists,
-  when the binding is missing; it never removes one. That takes an owner: list
-  the server among Substrate's bootstrap owners (`ate-setup`'s
-  `--ateapi-authz-bootstrap-owners`) and nothing else is needed. If it is no
-  owner, it logs once that the grant must be made and carries on; then, as a
-  global owner, create the atespace (`kubectl ate create atespace <name>`) and
-  give it an access policy binding `editor` to
-  `user:system:serviceaccount:<namespace>:<name>`
+- **Grants.** Substrate always enforces authorization, and names the server by
+  its token's subject, `system:serviceaccount:<namespace>:<name>`. The server
+  needs `editor` on its atespace and nothing else; atelet, Substrate's process
+  on each node, reads each actor's egress policy through a system role of its
+  own. The server writes its binding into the atespace's access policy itself,
+  when it creates the atespace and, for one that exists, when the binding is
+  missing; it never removes one. That takes an owner: list the server among
+  Substrate's bootstrap owners (`ATE_API_AUTHZ_BOOTSTRAP_OWNERS`, or
+  `ateapi.authz.bootstrapOwners` in `ate-setup`'s configuration) and nothing
+  else is needed. If it is no owner, it logs once that the grant must be made
+  and carries on; then, as a global owner, create the atespace
+  (`kubectl ate create atespace <name>`) and give it an access policy binding
+  `editor` to `user:system:serviceaccount:<namespace>:<name>`
   (`kubectl ate create access-policy -a <atespace> -f <manifest>`). Without
   `editor` the first Session fails with a message naming it.
 - **A runner image pinned by digest** in `STIGMER_SANDBOX_RUNNER_IMAGE`

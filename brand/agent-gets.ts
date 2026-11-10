@@ -4,8 +4,8 @@
  * built, each with its own.
  *
  * The homepage's "hard parts" section renders the claims in AGENT_GET_ORDER
- * (site/src/components/sections/HardParts.tsx); the job picture on the docs
- * front page labels its parts with the titles, looked up by id; the
+ * (site/src/components/sections/HardParts.tsx); the job picture on "What is
+ * Stigmer?" labels its parts with the titles, looked up by id; the
  * marketing films read the titles here. The video and the demo that tell
  * the same five read the claims here too, so a wording changed once changes
  * everywhere.

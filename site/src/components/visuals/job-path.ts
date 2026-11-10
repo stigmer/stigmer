@@ -1,5 +1,6 @@
 /**
- * The loop that plays the docs front page's picture of the job.
+ * The loop that plays the picture of the job on "What is Stigmer?", above
+ * the list of what each customer's agent has.
  *
  * The job itself (its names, its steps, the parts of the picture and the rule
  * for when each is shown and lit) is brand/job-story.ts, which the job film in
