@@ -493,16 +493,17 @@ runner's pod or container if you use one. Running Stigmer on your own machine
 you. Neither does the all-in-one container, which runs `stigmer up` as one user.
 The `agent-sandbox` and `docker` drivers set the user to root, `HOME` to `/root`
 and the working directory to `/workspace` whatever your image says. Agent
-Substrate can't set a container's user, so on the `substrate` driver your
-image's own `USER` must be root, or the runner refuses to start. There the
-runner also keeps Substrate's default `NET_BIND_SERVICE` and `AUDIT_WRITE` (its
-attach waiter listens on port 80), and opens the sandbox's root directory, which
-Substrate presents closed to other users, so the Agent's side can reach its
-programs. The runner clears `NODE_OPTIONS` and `NODE_PATH` before it starts, so
-a monitoring library your image loads through them (an APM tracer, say) never
-loads into the runner, nor into the commands Agents run. To trust an extra
-certificate authority in Node, use `NODE_EXTRA_CA_CERTS`, which is kept. The
-server refuses to boot when either cleared name is on its runner lists.
+Substrate can't set a container's user, and from v1.0 runs it as your image's
+own `USER` in its `WORKDIR`, so on the `substrate` driver that `USER` must be
+root, or the runner refuses to start. There the runner also keeps Substrate's
+default `NET_BIND_SERVICE` and `AUDIT_WRITE` (its attach waiter listens on port
+80), and opens the sandbox's root directory, which Substrate presents closed to
+other users, so the Agent's side can reach its programs. The runner clears
+`NODE_OPTIONS` and `NODE_PATH` before it starts, so a monitoring library your
+image loads through them (an APM tracer, say) never loads into the runner, nor
+into the commands Agents run. To trust an extra certificate authority in Node,
+use `NODE_EXTRA_CA_CERTS`, which is kept. The server refuses to boot when either
+cleared name is on its runner lists.
 
 **Stigmer's toolbox plus one tool.** To keep Stigmer's default tools and add
 one, start your base from `ghcr.io/stigmer/runner-base`, the default image
@@ -615,18 +616,25 @@ What the driver needs:
 - **Agent Substrate v1.0.0, exactly.** Substrate refuses fields it doesn't know,
   so the server speaks the one release its stubs were generated from, and v1.0.0
   moved its API to the `substrate.ateapi.v1` package, so a server built for an
-  earlier release can't call it at all. Moving from a release before 1.0 is a
-  reinstall: the new install starts with no actors, so every Session's sandbox
-  starts again empty at its next turn. Upgrade the server in the same window.
-  From 1.0, you upgrade Substrate one minor release at a time, in place, and
-  each move takes the Stigmer release that names the new Substrate release here,
-  deployed in the same window: a server runs only against the Substrate release
-  this guide names. On GKE, the install also needs a service account of its own
-  for snapshot transfers (`SNAPSHOT_TRANSFER_GSA_NAME`) and an asset bucket
-  beside the snapshot bucket, which `tools/setup-gcp create bucket` and
-  `create iam` in [substrate-gke](https://github.com/ai-on-gke/substrate-gke)
+  earlier release can't call it at all. Install it from a v1.0.0 checkout with
+  Substrate's published images:
+  `go run ./cmd/ate-setup deploy ate-system --image-repo ghcr.io/agent-substrate/substrate --image-tag v1.0.0`,
+  with the flags below and Substrate's own storage settings
+  (`--storage-bucket-name`, or `--snapshot-location`). Moving from a release
+  before 1.0 is a reinstall: the new install starts with no actors, so every
+  Session's sandbox starts again empty at its next turn. Upgrade the server in
+  the same window. From 1.0, you upgrade Substrate one minor release at a time,
+  in place, and each move takes the Stigmer release that names the new Substrate
+  release here, deployed in the same window: a server runs only against the
+  Substrate release this guide names, and against any other the first Session
+  fails with a message naming both releases. On GKE, the install also needs a
+  service account of its own for snapshot transfers
+  (`--snapshot-transfer-gsa-name`) and an asset bucket beside the snapshot
+  bucket, which `tools/setup-gcp create bucket` and `create iam` in
+  [substrate-gke](https://github.com/ai-on-gke/substrate-gke/blob/main/tools/setup-gcp/README.md)
   make (Substrate's
   [operator install guide](https://github.com/agent-substrate/substrate/blob/v1.0.0/docs/guides/operator-install.md)).
+  Add `--sandbox-classes=gvisor` unless you also run microVM sandboxes.
 - **Its Control API**: `STIGMER_SANDBOX_SUBSTRATE_API_ENDPOINT` (an `https://`
   URL; in the cluster, `https://api.ate-system.svc:443`), the CA that signs it
   (`STIGMER_SANDBOX_SUBSTRATE_API_CA_FILE`) and, when you reach it under another
@@ -663,20 +671,23 @@ What the driver needs:
   the server's SPIFFE ID, `spiffe://cluster.local/ns/<namespace>/sa/<name>`, to
   the router's `--ingress-allowed-spiffe-ids`, which
   `ate-setup deploy ate-system` takes; both of the router's dataplanes require
-  it. The server reads the bundle again when it changes, as the certificate
-  renews daily. Without it the router ends the handshake and the first Session
-  fails naming the setting. An `http://` router works too, as a port-forward to
-  its port 80, but the push then carries the Session's token and the runner's
-  secrets, model keys among them, across the cluster in cleartext, and the
-  server logs a warning at boot.
+  it (unset, no client reaches an actor through the router). The server reads
+  the bundle again when it changes, as the certificate renews daily. Without it
+  the router ends the handshake and the first Session fails naming the setting.
+  An `http://` router works too, as a port-forward to its port 80, but the push
+  then carries the Session's token and the runner's secrets, model keys among
+  them, across the cluster in cleartext, and the server logs a warning at boot.
 - **Where actors live**: an atespace the server owns
   (`STIGMER_SANDBOX_SUBSTRATE_ATESPACE`; the server creates it when it is
   missing), the labels of the WorkerPool they run on
   (`STIGMER_SANDBOX_SUBSTRATE_WORKER_SELECTOR`, as `key=value,…`, matching the
   pool's own labels; the pool's `sandboxClasses` entry is `gvisor`, and it
   chooses the sandbox's configuration, the class default unless it names a
-  `configRef`), and the bucket prefix their files are committed under
-  (`STIGMER_SANDBOX_SUBSTRATE_STORAGE_LOCATION`).
+  `configRef`). Where their files are committed is Substrate's own setting, its
+  API server's `--snapshot-location`: from v1.0 a template may not name one, so
+  the server names none, and a server that still sets
+  `STIGMER_SANDBOX_SUBSTRATE_STORAGE_LOCATION` refuses to start, saying to
+  remove it.
 - **Grants.** Substrate always enforces authorization, and names the server by
   its token's subject, `system:serviceaccount:<namespace>:<name>`. The server
   needs `editor` on its atespace and nothing else; atelet, Substrate's process

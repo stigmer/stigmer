@@ -457,4 +457,12 @@ describe("retired settings", () => {
     );
     expect(() => loadConfig({ STIGMER_SANDBOX_TEMPORAL_ADDRESS: "" })).toThrow(/is retired/);
   });
+
+  it("stops a boot that still sets STIGMER_SANDBOX_SUBSTRATE_STORAGE_LOCATION, naming Substrate's own store", () => {
+    expect(() =>
+      loadConfig({ STIGMER_SANDBOX_SUBSTRATE_STORAGE_LOCATION: "gs://ate-snapshots/stigmer" }),
+    ).toThrow(
+      "STIGMER_SANDBOX_SUBSTRATE_STORAGE_LOCATION is retired: Agent Substrate v1.0 stores every snapshot under its API server's own --snapshot-location and refuses a template that names one; remove the setting",
+    );
+  });
 });

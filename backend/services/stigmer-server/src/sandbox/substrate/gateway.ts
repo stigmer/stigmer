@@ -24,7 +24,14 @@
  * re-reading the actor, which handles both. RESOURCE_EXHAUSTED (no free
  * worker) becomes SubstrateNoWorkerError. PERMISSION_DENIED is thrown
  * with the grant the server lacks named, because an operator meets it
- * once, at the first sandbox. Every call has a deadline.
+ * once, at the first sandbox. UNIMPLEMENTED for a service or method the
+ * control plane does not know ("unknown service ateapi.Control", "unknown
+ * method <m> for service <s>", gRPC's own words, given before Substrate's
+ * interceptors run, measured on v1.0.0) becomes SubstrateReleaseError,
+ * naming the release this server speaks (release.ts): every method this
+ * server calls exists on its own release, and Substrate has no version
+ * call, so an unknown one means the control plane runs another release.
+ * Every call has a deadline.
  *
  * An actor's state is Substrate's, read as an enum. A suspend asks for
  * Substrate's asynchronous mode: the call returns once the snapshot is
@@ -84,6 +91,7 @@ import {
 } from "./gen/api/ateapi/v1/ateapi_pb.js";
 import type { SubstrateDriverSettings } from "./config.js";
 import { caFromFile } from "./pem-files.js";
+import { SUBSTRATE_RELEASE } from "./release.js";
 
 const API_CA_FILE_VARIABLE = "STIGMER_SANDBOX_SUBSTRATE_API_CA_FILE";
 
@@ -108,6 +116,17 @@ export class SubstratePermissionError extends Error {
   constructor(message: string) {
     super(message);
     this.name = "SubstratePermissionError";
+  }
+}
+
+/**
+ * The control plane runs another Substrate release than this server
+ * speaks, both named for the operator (module header).
+ */
+export class SubstrateReleaseError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "SubstrateReleaseError";
   }
 }
 
@@ -759,11 +778,26 @@ function hasCode(error: unknown, code: Code): boolean {
   return error instanceof ConnectError && error.code === code;
 }
 
-/** ABORTED, RESOURCE_EXHAUSTED and PERMISSION_DENIED into the driver's typed errors (module header). */
+/**
+ * gRPC's answer for a service or method the server does not serve, before
+ * any interceptor runs: "unknown service <s>", "unknown method <m> for
+ * service <s>" (measured against Substrate v1.0.0, 2026-11-06).
+ */
+const UNKNOWN_CALL = /^unknown (?:service \S+|method \S+ for service \S+)$/;
+
+/** ABORTED, RESOURCE_EXHAUSTED, PERMISSION_DENIED and an unknown call into the driver's typed errors (module header). */
 async function translate<T>(body: () => Promise<T>): Promise<T> {
   try {
     return await body();
   } catch (error) {
+    if (
+      hasCode(error, Code.Unimplemented) &&
+      UNKNOWN_CALL.test((error as ConnectError).rawMessage)
+    ) {
+      throw new SubstrateReleaseError(
+        `Substrate's Control API does not serve a call this server makes (${(error as ConnectError).rawMessage}): this server speaks Agent Substrate ${SUBSTRATE_RELEASE}, and the control plane at STIGMER_SANDBOX_SUBSTRATE_API_ENDPOINT runs another release. Install Agent Substrate ${SUBSTRATE_RELEASE} there, or run the Stigmer release that speaks the installed one`,
+      );
+    }
     if (hasCode(error, Code.PermissionDenied)) {
       throw new SubstratePermissionError(
         `Substrate's Control API refused this server (${(error as ConnectError).rawMessage}); with authorization on, the server's identity (its token's subject, system:serviceaccount:<namespace>:<name>) needs the editor role on its atespace, and the atespace must exist unless the server is a global owner`,

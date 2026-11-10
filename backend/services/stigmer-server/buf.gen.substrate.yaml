@@ -4,9 +4,15 @@
 #
 # The tag is the Substrate release this server speaks to. Substrate's API
 # server rejects any field it does not know (its RejectUnknownFields
-# interceptor), so stubs from any other release are wrong for a deployment
-# running this one: the tag moves only together with the Substrate version
-# the operator guide names (docs/guides/self-hosting/runners.mdx).
+# interceptor), and from v1.0.0 the API's package is versioned
+# (substrate.ateapi.v1), so stubs from any other release are wrong for a
+# deployment running this one: the tag moves only together with
+# SUBSTRATE_RELEASE (src/sandbox/substrate/release.ts, held equal to this tag
+# by its test) and the Substrate version the operator guide names
+# (docs/guides/self-hosting/runners.mdx).
+#
+# v1.0.0 keeps its buf module at the repository root (buf.yaml, module "."),
+# so the input takes no subdir and the file lands at gen/api/ateapi/v1.
 #
 #   make gen-substrate-stubs        regenerate src/sandbox/substrate/gen
 #   make gen-substrate-stubs-check  fail when the committed output is stale

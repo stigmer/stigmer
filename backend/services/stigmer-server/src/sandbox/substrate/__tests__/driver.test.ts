@@ -99,7 +99,6 @@ const settings: SubstrateDriverSettings = {
   routerServerName: "",
   routerClientCertFile: "",
   atespace: "stigmer",
-  storageLocation: "gs://ate-snapshots/stigmer",
   workerSelector: { workload: "stigmer" },
   httpsEgress: "all",
   extraHttpEgress: [],
