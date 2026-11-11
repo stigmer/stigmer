@@ -618,9 +618,11 @@ What the driver needs:
   moved its API to the `substrate.ateapi.v1` package, so a server built for an
   earlier release can't call it at all. Install it from a v1.0.0 checkout with
   Substrate's published images:
-  `go run ./cmd/ate-setup deploy ate-system --image-repo ghcr.io/agent-substrate/substrate --image-tag v1.0.0`,
+  `go run ./cmd/ate-setup deploy ate-system --image-repo ghcr.io/agent-substrate/substrate --image-tag v1.0.0 --credential-provider='{"enabled":false}'`,
   with the flags below and Substrate's own storage settings
-  (`--storage-bucket-name`, or `--snapshot-location`). Moving from a release
+  (`--storage-bucket-name`, or `--snapshot-location`). `ate-setup` requires a
+  credential provider; Stigmer turns it off, because the server pushes a
+  Session's credentials to its runner at every wake. Moving from a release
   before 1.0 is a reinstall: the new install starts with no actors, so every
   Session's sandbox starts again empty at its next turn. Upgrade the server in
   the same window. From 1.0, you upgrade Substrate one minor release at a time,
