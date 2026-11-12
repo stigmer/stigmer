@@ -15,6 +15,8 @@ import { Code, ConnectError, type ConnectRouter } from "@connectrpc/connect";
 import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentCommandController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/command_pb";
 import { AgentQueryController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/query_pb";
+import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
+import { FileCommandController } from "@stigmer/apis/ai/stigmer/agentic/file/v1/command_pb";
 import { RunQueryController } from "@stigmer/apis/ai/stigmer/agentic/run/v1/query_pb";
 import type { ProviderKey } from "@stigmer/apis/ai/stigmer/billing/providerkey/v1/api_pb";
 import { EnvironmentQueryController } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/query_pb";
@@ -130,8 +132,8 @@ export function launcherScene(answer: GetModelReadinessOutput, viewer: Viewer, l
 /**
  * The launcher as the console draws it for a newcomer: the first question,
  * in an organization where nothing has run, for an admin. A pick makes the
- * example's agent (the create answers it as made), and the composer reads
- * that agent back by its name.
+ * example's agent (the create answers it as made), the composer reads that
+ * agent back by its name, and the sample uploads.
  */
 export function launcherFirstQuestionScene(answer: GetModelReadinessOutput): Drawing {
   return {
@@ -143,6 +145,13 @@ export function launcherFirstQuestionScene(answer: GetModelReadinessOutput): Dra
         create(AgentSchema, { metadata: { id: `agt_${slug}`, org: ORG_ID, name, slug }, spec: { description: "", instructions: "" } });
       router.service(AgentCommandController, { create: (agent) => made(agent.metadata?.name ?? "", agent.metadata?.slug ?? "") });
       router.service(AgentQueryController, { getByReference: (ref) => made("Variance Reporter", ref.slug) });
+      router.service(FileCommandController, {
+        upload: (input) =>
+          create(FileSchema, {
+            metadata: { id: `fil_${input.filename}`, org: ORG_ID, name: input.filename },
+            spec: { filename: input.filename, mimeType: input.mimeType },
+          }),
+      });
     },
     render: () => (
       <div style={{ height: "calc(100vh - 48px)" }}>
