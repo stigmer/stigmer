@@ -33,6 +33,8 @@ import { WorkspaceContentSearch } from "./WorkspaceContentSearch.js";
 import { FileViewer, type FileViewerHandle } from "./FileViewer.js";
 import { EditorTabs, editorTabDomId } from "./EditorTabs.js";
 import { ExplorerTree } from "./ExplorerTree.js";
+import { Button } from "../button/Button.js";
+import { IconButton } from "../button/IconButton.js";
 
 /** The surface's built-in rail views (offered by default, opt-out per host). */
 const ALL_BUILT_IN_VIEWS = ["files", "search"] as const;
@@ -460,14 +462,9 @@ function ExplorerSidebar({
       </div>
       {onAddLocalFolder && (
         <div className="stg:shrink-0 stg:border-t stg:border-border-muted stg:p-1.5">
-          <button
-            type="button"
-            onClick={onAddLocalFolder}
-            className="stg:flex stg:w-full stg:items-center stg:gap-2 stg:rounded-md stg:px-2 stg:py-1.5 stg:text-xs stg:text-foreground stg:transition-colors stg:hover:bg-accent-hover stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
-          >
-            <FolderPlusIcon />
+          <Button variant="ghost" size="xs" onClick={onAddLocalFolder} icon={<FolderPlusIcon />} className="stg:w-full stg:justify-start">
             <span className="stg:flex-1 stg:text-left">Add Folder</span>
-          </button>
+          </Button>
         </div>
       )}
     </div>
@@ -805,21 +802,7 @@ function Breadcrumbs({
         })}
       </nav>
       {onRefresh && (
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <button
-                type="button"
-                onClick={onRefresh}
-                aria-label="Reload file"
-                className="stg:shrink-0 stg:rounded stg:p-0.5 stg:text-muted-foreground stg:transition-colors stg:hover:text-foreground stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring"
-              />
-            }
-          >
-            <RefreshIcon />
-          </TooltipTrigger>
-          <TooltipContent side="top">Reload file</TooltipContent>
-        </Tooltip>
+        <IconButton size="xs" label="Reload file" icon={<RefreshIcon />} onClick={onRefresh} />
       )}
     </div>
   );

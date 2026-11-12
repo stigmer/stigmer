@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useSyncExternalStore } from "react";
 import { Download, Monitor, X } from "lucide-react";
+import { IconButton } from "@stigmer/react-sdk";
 import { triggerDesktopDownload } from "@/lib/desktop-download";
 
 // ---------------------------------------------------------------------------
@@ -204,14 +205,7 @@ export function DesktopAppBanner({ onDismiss }: { onDismiss: () => void }) {
         Download
         <Download className="text-muted-foreground size-3" />
       </button>
-      <button
-        type="button"
-        onClick={onDismiss}
-        aria-label="Dismiss"
-        className="text-muted-foreground hover:text-foreground -mr-1 shrink-0 rounded p-0.5 transition-colors"
-      >
-        <X className="size-3.5" />
-      </button>
+      <IconButton label="Dismiss" size="xs" icon={<X className="size-3.5" />} onClick={onDismiss} className="-mr-1" />
     </aside>
   );
 }

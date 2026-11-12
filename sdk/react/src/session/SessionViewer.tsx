@@ -57,6 +57,7 @@ import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import type { SessionAudience } from "./audience.js";
 import { showsRunScores } from "./audience.js";
 import type { SessionRunConfig } from "./run-config.js";
+import { Button } from "../button/Button.js";
 /**
  * The build turn's user message — a short human-readable label, NOT the
  * implement instruction. The agent-facing instruction is runner-injected
@@ -1354,13 +1355,9 @@ function SessionLoadError({ error }: { error: Error }) {
           <h1 className="stg:text-lg stg:font-semibold">This session didn&rsquo;t open</h1>
           <p className="stg:text-sm stg:text-muted-foreground">{getUserMessage(error)}</p>
         </div>
-        <button
-          type="button"
-          onClick={() => window.location.reload()}
-          className="stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-lg stg:border stg:border-border stg:bg-card stg:px-3 stg:py-1.5 stg:text-sm stg:font-medium stg:hover:bg-muted"
-        >
+        <Button variant="outline" onClick={() => window.location.reload()}>
           Try again
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -1402,13 +1399,9 @@ function PlanAttachFailedNotice({ onDismiss }: { onDismiss: () => void }) {
         Couldn&rsquo;t attach plan.md — the agent will follow the plan from the
         conversation instead.
       </span>
-      <button
-        type="button"
-        onClick={onDismiss}
-        className="stg:shrink-0 stg:rounded stg:font-medium stg:text-foreground stg:underline-offset-2 stg:hover:underline stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
-      >
+      <Button variant="ghost" size="xs" onClick={onDismiss}>
         Dismiss
-      </button>
+      </Button>
     </div>
   );
 }
@@ -1470,13 +1463,9 @@ function ConnectTimedOutBanner({ onRetry }: { onRetry: () => void }) {
       <p className="stg:min-w-0 stg:flex-1 stg:text-sm stg:text-muted-foreground">
         The agent hasn&rsquo;t started yet. Your message is kept; try again to look once more.
       </p>
-      <button
-        type="button"
-        onClick={onRetry}
-        className="stg:inline-flex stg:shrink-0 stg:items-center stg:gap-1.5 stg:rounded-md stg:border stg:border-border stg:px-2 stg:py-1 stg:text-xs stg:font-medium stg:hover:bg-card"
-      >
+      <Button variant="outline" size="xs" onClick={onRetry}>
         Try again
-      </button>
+      </Button>
     </div>
   );
 }
@@ -1518,13 +1507,9 @@ function StreamErrorBanner({
       <p className="stg:min-w-0 stg:flex-1 stg:truncate stg:text-sm stg:text-muted-foreground">
         {getUserMessage(error)}
       </p>
-      <button
-        type="button"
-        onClick={onReconnect}
-        className="stg:inline-flex stg:shrink-0 stg:items-center stg:gap-1.5 stg:rounded-md stg:border stg:border-border stg:px-2 stg:py-1 stg:text-xs stg:font-medium stg:hover:bg-card"
-      >
+      <Button variant="outline" size="xs" onClick={onReconnect}>
         Reconnect
-      </button>
+      </Button>
     </div>
   );
 }

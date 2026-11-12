@@ -3,6 +3,7 @@
 import { useCallback } from "react";
 import { cn } from "@stigmer/design-tokens";
 import { DialogShell } from "../internal/DialogShell.js";
+import { IconButton } from "../button/IconButton.js";
 
 /** Props for {@link ImageLightbox}. */
 export interface ImageLightboxProps {
@@ -78,14 +79,7 @@ export function ImageLightbox({
             <span className="stg:min-w-0 stg:flex-1 stg:truncate stg:text-xs stg:font-semibold stg:text-foreground">
               {filename}
             </span>
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="Close image preview"
-              className="stg:shrink-0 stg:cursor-pointer stg:rounded stg:p-0.5 stg:text-muted-foreground stg:transition-colors stg:hover:text-foreground stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring"
-            >
-              <CloseIcon />
-            </button>
+            <IconButton label="Close image preview" icon={<CloseIcon />} onClick={onClose} />
           </div>
           <div className="stg:min-h-0 stg:overflow-auto stg:border-t stg:border-border">
             {src ? (

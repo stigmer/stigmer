@@ -21,6 +21,7 @@
  */
 
 import { getUserMessage } from "@stigmer/client";
+import { Button } from "../button/Button.js";
 
 /** Props for {@link AgentVersionNotice}. */
 export interface AgentVersionNoticeProps {
@@ -76,14 +77,9 @@ export function AgentVersionNotice({
           {getUserMessage(error)}
         </span>
       )}
-      <button
-        type="button"
-        onClick={onUpdate}
-        disabled={isUpdating}
-        className="stg:shrink-0 stg:rounded stg:font-medium stg:text-foreground stg:underline-offset-2 stg:hover:underline stg:disabled:opacity-50 stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
-      >
+      <Button variant="ghost" size="xs" onClick={onUpdate} disabled={isUpdating}>
         {isUpdating ? "Updating…" : "Update"}
-      </button>
+      </Button>
     </div>
   );
 }

@@ -39,6 +39,7 @@ import { CreateServiceAccountKeyForm } from "./CreateServiceAccountKeyForm.js";
 import { orgRoleOf } from "./org-role.js";
 import { ServiceAccountKeyListPanel } from "./ServiceAccountKeyListPanel.js";
 import { useDeleteServiceAccount } from "./useDeleteServiceAccount.js";
+import { Button } from "../button/Button.js";
 
 /** Props for {@link ServiceAccountDetailPanel}. */
 export interface ServiceAccountDetailPanelProps {
@@ -119,18 +120,6 @@ export function ServiceAccountDetailPanel({
 
 const SECTION_HEADING = "stg:text-xs stg:font-semibold stg:text-foreground";
 
-const PRIMARY_BUTTON = cn(
-  "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium",
-  "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
-  "stg:disabled:pointer-events-none stg:disabled:opacity-40",
-);
-
-const QUIET_BUTTON = cn(
-  "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs",
-  "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
-  "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-);
-
 function NameSection({
   serviceAccount,
   onRenamed,
@@ -184,16 +173,16 @@ function NameSection({
             What its keys create says it was created by {current}.
           </p>
         </div>
-        <button
-          type="button"
+        <Button
+          variant="ghost"
+          size="xs"
           onClick={() => {
             setDraft(current);
             setEditing(true);
           }}
-          className={QUIET_BUTTON}
         >
           Rename
-        </button>
+        </Button>
       </div>
     );
   }
@@ -223,21 +212,20 @@ function NameSection({
         </p>
       )}
       <div className="stg:flex stg:items-center stg:gap-2">
-        <button type="submit" disabled={!canSave} className={PRIMARY_BUTTON}>
-          {isUpdating && <SpinnerIcon size={12} />}
+        <Button type="submit" size="xs" disabled={!canSave} icon={isUpdating ? <SpinnerIcon size={12} /> : undefined}>
           Save
-        </button>
-        <button
-          type="button"
+        </Button>
+        <Button
+          variant="ghost"
+          size="xs"
           onClick={() => {
             clearError();
             setEditing(false);
           }}
           disabled={isUpdating}
-          className={QUIET_BUTTON}
         >
           Cancel
-        </button>
+        </Button>
       </div>
     </form>
   );
@@ -311,23 +299,17 @@ function RoleSection({
       )}
       {selected !== null && selected !== current?.role && (
         <div className="stg:flex stg:items-center stg:gap-2">
-          <button
-            type="button"
+          <Button
+            size="xs"
             onClick={() => void handleSave(selected)}
             disabled={isWorking}
-            className={PRIMARY_BUTTON}
+            icon={isWorking ? <SpinnerIcon size={12} /> : undefined}
           >
-            {isWorking && <SpinnerIcon size={12} />}
             {isWorking ? "Changing role…" : "Save role"}
-          </button>
-          <button
-            type="button"
-            onClick={() => setSelected(null)}
-            disabled={isWorking}
-            className={QUIET_BUTTON}
-          >
+          </Button>
+          <Button variant="ghost" size="xs" onClick={() => setSelected(null)} disabled={isWorking}>
             Cancel
-          </button>
+          </Button>
         </div>
       )}
     </div>
@@ -359,13 +341,9 @@ function KeysSection({
       <div className="stg:flex stg:items-center stg:justify-between">
         <h4 className={SECTION_HEADING}>API keys</h4>
         {flow.phase === "idle" && (
-          <button
-            type="button"
-            onClick={() => setFlow({ phase: "creating" })}
-            className="stg:text-primary stg:hover:text-foreground stg:text-xs stg:font-medium stg:transition-colors"
-          >
+          <Button variant="ghost" size="xs" onClick={() => setFlow({ phase: "creating" })}>
             + New key
-          </button>
+          </Button>
         )}
       </div>
 
@@ -428,13 +406,14 @@ function DeleteSection({
   if (!confirming) {
     return (
       <div className="stg:border-t stg:border-border stg:pt-4">
-        <button
-          type="button"
+        <Button
+          variant="ghost"
+          size="xs"
           onClick={() => setConfirming(true)}
-          className="stg:text-xs stg:font-medium stg:text-destructive stg:hover:underline"
+          className="stg:text-destructive stg:hover:bg-destructive-subtle"
         >
           Delete service account
-        </button>
+        </Button>
       </div>
     );
   }
@@ -456,31 +435,27 @@ function DeleteSection({
         </p>
       )}
       <div className="stg:flex stg:items-center stg:gap-1.5">
-        <button
-          type="button"
+        <Button
+          variant="destructive"
+          size="xs"
           onClick={handleDelete}
           disabled={isDeleting}
-          className={cn(
-            "stg:inline-flex stg:items-center stg:gap-1 stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
-            "stg:bg-destructive stg:text-destructive-foreground stg:hover:bg-destructive-hover",
-            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-          )}
+          icon={isDeleting ? <SpinnerIcon size={12} /> : undefined}
         >
-          {isDeleting && <SpinnerIcon size={12} />}
           Delete
-        </button>
-        <button
-          type="button"
+        </Button>
+        <Button
+          variant="ghost"
+          size="xs"
           onClick={() => {
             // A refused delete's reason belongs to that attempt, not the next.
             clearError();
             setConfirming(false);
           }}
           disabled={isDeleting}
-          className={QUIET_BUTTON}
         >
           Cancel
-        </button>
+        </Button>
       </div>
     </div>
   );

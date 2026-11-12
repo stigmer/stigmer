@@ -20,12 +20,10 @@
 import { Check } from "lucide-react";
 import { cn } from "@stigmer/design-tokens";
 import type { ResourceRef } from "@stigmer/client";
+import { LinkButton } from "../button/LinkButton.js";
 import { isJourneyAgentSlug } from "./journey-agents.js";
 import { useJourney, type JourneyStepId, type UseJourneyReturn } from "./useJourney.js";
 import { anchorLink, type JourneyLinks } from "./links.js";
-
-const ACT_CLASS =
-  "stg:shrink-0 stg:rounded-md stg:bg-primary stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium stg:text-primary-foreground stg:no-underline stg:hover:bg-primary-hover";
 
 /** Props for {@link JourneyNextLine}. */
 export interface JourneyNextLineProps {
@@ -73,7 +71,9 @@ export function JourneyNextLine({ org, agentRef, links }: JourneyNextLineProps) 
         <span className="stg:font-medium stg:text-foreground">Your first agent did a job.</span>{" "}
         <span className="stg:text-muted-foreground">Next: make it yours, with your own file or your own rules.</span>
       </span>
-      {render({ href: links.makeItYours(agentRef), className: ACT_CLASS, children: "Make it yours" })}
+      <LinkButton href={links.makeItYours(agentRef)} size="xs" renderLink={render}>
+        Make it yours
+      </LinkButton>
     </div>
   );
 }

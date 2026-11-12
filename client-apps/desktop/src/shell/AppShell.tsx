@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { PanelLeft } from "lucide-react";
 import { cn } from "@stigmer/design-tokens";
+import { IconButton } from "@stigmer/react-sdk";
 import { OrgGate } from "../org/OrgGate";
 import { ManagementSidebar } from "./ManagementSidebar";
 import { Sidebar } from "./Sidebar";
@@ -43,16 +44,13 @@ export function AppShell() {
     <OrgGate>
       <div className="flex h-screen overflow-hidden bg-background text-foreground">
         {/* Reopen button — visible when sidebar is collapsed */}
-        <button
+        <IconButton
+          label="Open sidebar"
+          size="xs"
+          icon={<PanelLeft className="size-4" />}
           onClick={sidebar.open}
-          aria-label="Open sidebar"
-          className={cn(
-            "fixed left-2 top-2 z-30 inline-flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground",
-            sidebar.isOpen && "hidden",
-          )}
-        >
-          <PanelLeft className="size-4" />
-        </button>
+          className={cn("fixed left-2 top-2 z-30", sidebar.isOpen && "hidden")}
+        />
 
         {/* Sidebar — collapsible */}
         <div

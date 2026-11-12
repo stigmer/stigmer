@@ -49,7 +49,8 @@ const page = vi.hoisted(() => ({
   confirms: [] as Array<{ title: string; description: string }>,
 }));
 
-vi.mock("@stigmer/react-sdk", () => {
+vi.mock("@stigmer/react-sdk", async () => {
+  const kit = await vi.importActual<typeof import("@stigmer/react-sdk")>("@stigmer/react-sdk");
   const Passthrough = ({ children }: { children?: ReactNode }) => (
     <>{children}</>
   );
@@ -74,6 +75,9 @@ vi.mock("@stigmer/react-sdk", () => {
     delete: async () => undefined,
   };
   return {
+    Button: kit.Button,
+    IconButton: kit.IconButton,
+    LinkButton: kit.LinkButton,
     ResourceWorkbench: (props: WorkbenchProps) => {
       page.workbench.push(props);
       // Render one row the way the workbench does: each column's cell,

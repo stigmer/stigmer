@@ -7,6 +7,8 @@ import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { Memory } from "@stigmer/apis/ai/stigmer/agentic/memory/v1/api_pb";
 import { MemoryLifecycleState } from "@stigmer/apis/ai/stigmer/agentic/memory/v1/enum_pb";
 import { formatRelativeTime } from "../activity/format-relative-time.js";
+import { Button } from "../button/Button.js";
+import { IconButton } from "../button/IconButton.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { formatMemoryProvenance, groupMemoriesByLifecycle } from "./memoryGroups.js";
 import { useConfirmMemory } from "./useConfirmMemory.js";
@@ -261,31 +263,18 @@ function MemoryRow({
           )}
         </div>
         <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-1.5">
-          <button
-            type="button"
+          <Button
+            variant="destructive"
+            size="xs"
             onClick={() => void act(deleteMemory)}
             disabled={isDeleting}
-            className={cn(
-              "stg:inline-flex stg:items-center stg:gap-1 stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
-              "stg:bg-destructive stg:text-destructive-foreground stg:hover:bg-destructive-hover",
-              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-            )}
+            icon={isDeleting ? <SpinnerIcon size={12} /> : undefined}
           >
-            {isDeleting && <SpinnerIcon size={12} />}
             Delete
-          </button>
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={isDeleting}
-            className={cn(
-              "stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs",
-              "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
-              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-            )}
-          >
+          </Button>
+          <Button variant="ghost" size="xs" onClick={onCancel} disabled={isDeleting}>
             Cancel
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -341,19 +330,14 @@ function MemoryRow({
               </RowButton>
             </>
           )}
-          <button
-            type="button"
+          <IconButton
+            label={`Delete memory: ${content}`}
+            size="xs"
+            icon={<TrashIcon />}
             onClick={onStartDelete}
             disabled={isBusy}
-            aria-label={`Delete memory: ${content}`}
-            className={cn(
-              "stg:shrink-0 stg:rounded stg:p-1",
-              "stg:text-muted-foreground stg:hover:text-destructive stg:hover:bg-destructive-subtle",
-              "stg:transition-colors stg:disabled:pointer-events-none stg:disabled:opacity-50",
-            )}
-          >
-            <TrashIcon />
-          </button>
+            className="stg:hover:text-destructive stg:hover:bg-destructive-subtle"
+          />
         </div>
       </div>
     </div>
@@ -474,22 +458,9 @@ function RowButton({
   readonly children: React.ReactNode;
 }) {
   return (
-    <button
-      type="button"
-      aria-label={label}
-      onClick={onClick}
-      disabled={disabled}
-      className={cn(
-        "stg:inline-flex stg:items-center stg:gap-1 stg:rounded-md stg:px-2 stg:py-1 stg:text-xs stg:font-medium",
-        emphasis === "primary"
-          ? "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover"
-          : "stg:border stg:border-input stg:bg-background stg:text-foreground stg:hover:bg-accent stg:hover:text-accent-foreground",
-        "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-        "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-      )}
-    >
+    <Button variant={emphasis === "primary" ? "primary" : "outline"} size="xs" aria-label={label} onClick={onClick} disabled={disabled}>
       {children}
-    </button>
+    </Button>
   );
 }
 

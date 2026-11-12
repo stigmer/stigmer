@@ -64,13 +64,9 @@ function PickFailure({ failure, onRetry, onJustChat }: { readonly failure: First
         <Button size="xs" onClick={onRetry}>
           Try again
         </Button>
-        <button
-          type="button"
-          onClick={onJustChat}
-          className="stg:text-xs stg:text-muted-foreground stg:underline stg:underline-offset-2 stg:hover:text-foreground"
-        >
+        <Button variant="ghost" size="xs" onClick={onJustChat}>
           {JUST_CHAT}
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -210,14 +206,9 @@ export function FirstQuestion({ examples = EXAMPLES, pending, failure, onPick, o
       )}
       <DescribeOwn pending={pending} failure={failure} onDescribe={onDescribe} onJustChat={onJustChat} />
       <div className="stg:flex stg:justify-end">
-        <button
-          type="button"
-          onClick={onJustChat}
-          disabled={pending !== null}
-          className="stg:text-xs stg:text-muted-foreground stg:underline-offset-2 stg:hover:text-foreground stg:hover:underline stg:disabled:opacity-60"
-        >
+        <Button variant="ghost" size="xs" onClick={onJustChat} disabled={pending !== null}>
           {JUST_CHAT}
-        </button>
+        </Button>
       </div>
     </section>
   );
@@ -264,13 +255,9 @@ export function ChosenBar({ choice, onChange }: ChosenBarProps): ReactNode {
       {choice.files.map((file) => (
         <FileChip key={file.name} name={file.name} />
       ))}
-      <button
-        type="button"
-        onClick={onChange}
-        className="stg:text-xs stg:text-muted-foreground stg:underline-offset-2 stg:hover:text-foreground stg:hover:underline"
-      >
+      <Button variant="ghost" size="xs" onClick={onChange}>
         Change
-      </button>
+      </Button>
     </div>
   );
 }

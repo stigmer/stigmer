@@ -21,6 +21,7 @@ import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import type { Vault } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
 import type { ResourceRef } from "@stigmer/client";
 import { isMyVault, useVaultList } from "./useVaultList.js";
+import { IconButton } from "../button/IconButton.js";
 
 /** The name My vault is shown with. */
 export const MY_VAULT_LABEL = "My vault";
@@ -327,18 +328,13 @@ function SelectedList({
                 onClick={() => onMoveDown(index)}
                 label={`Move ${resolveName(ref)} down`}
               />
-              <button
-                type="button"
+              <IconButton
+                label={`Remove ${resolveName(ref)}`}
+                size="xs"
                 onClick={() => onRemove(index)}
-                aria-label={`Remove ${resolveName(ref)}`}
-                className={cn(
-                  "stg:rounded stg:p-1 stg:text-muted-foreground",
-                  "stg:hover:text-destructive stg:hover:bg-destructive/10",
-                  "stg:focus:outline-none stg:focus:ring-1 stg:focus:ring-ring",
-                )}
-              >
-                <RemoveIcon />
-              </button>
+                icon={<RemoveIcon />}
+                className="stg:hover:bg-destructive-subtle stg:hover:text-destructive"
+              />
             </div>
           )}
         </li>
@@ -359,20 +355,13 @@ function ReorderButton({
   readonly label: string;
 }) {
   return (
-    <button
-      type="button"
+    <IconButton
+      label={label}
+      size="xs"
       disabled={disabled}
       onClick={onClick}
-      aria-label={label}
-      className={cn(
-        "stg:rounded stg:p-1 stg:text-muted-foreground",
-        "stg:hover:text-foreground stg:hover:bg-accent-hover",
-        "stg:focus:outline-none stg:focus:ring-1 stg:focus:ring-ring",
-        "stg:disabled:opacity-30 stg:disabled:cursor-not-allowed stg:disabled:hover:bg-transparent",
-      )}
-    >
-      {direction === "up" ? <ArrowUpIcon /> : <ArrowDownIcon />}
-    </button>
+      icon={direction === "up" ? <ArrowUpIcon /> : <ArrowDownIcon />}
+    />
   );
 }
 

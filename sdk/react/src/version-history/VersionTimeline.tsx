@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { cn } from "@stigmer/design-tokens";
+import { Button } from "../button/Button.js";
 import type { VersionTimelineProps } from "./types.js";
 import { VersionTimelineEntry } from "./VersionTimelineEntry.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
@@ -125,17 +126,9 @@ function CompareInfoBar({
           {selectedLabel}
         </code>
       </span>
-      <button
-        type="button"
-        onClick={onCancel}
-        className={cn(
-          "stg:rounded stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-muted-foreground stg:transition-colors",
-          "stg:hover:bg-accent-hover stg:hover:text-foreground",
-          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-        )}
-      >
+      <Button variant="ghost" size="xs" onClick={onCancel}>
         Cancel
-      </button>
+      </Button>
     </div>
   );
 }

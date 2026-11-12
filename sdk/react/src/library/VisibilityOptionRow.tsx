@@ -141,13 +141,12 @@ export const VisibilityOptionRow = forwardRef<
  * Inline-confirm (escalation prompt) treatment. Widening access is a
  * caution, so every level draws the kit's caution notice: the theme's
  * at-risk status fill with foreground text, which the contrast contract
- * audits in every preset and mode, and the kit's primary button to confirm.
+ * audits in every preset and mode; its Confirm and Cancel are the kit's
+ * Button.
  */
 export const ESCALATION_PROMPT_STYLES = {
   container: "stg:bg-status-degraded-subtle",
   text: "stg:text-foreground",
-  confirm: "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
-  cancel: "stg:text-foreground stg:hover:underline",
 } as const;
 
 // ---------------------------------------------------------------------------

@@ -26,7 +26,6 @@ import { ErrorMessage } from "../error/ErrorMessage.js";
 import { useVaultSignIn } from "../vault/useVaultSignIn.js";
 import { useActiveOrgId } from "../organization/OrgProvider.js";
 import { CreateVaultForm } from "../vault/CreateVaultForm.js";
-import { QUIET_BUTTON_CLASS } from "../vault/styles.js";
 import { useMyVault } from "../vault/useMyVault.js";
 import { VaultEntriesEditor } from "../vault/VaultEntriesEditor.js";
 import { VaultListPanel } from "../vault/VaultListPanel.js";
@@ -128,14 +127,9 @@ function MyVaultCard({ org }: { org: string }) {
           isMutating={myVault.isMutating || oauth.isInProgress}
           connectionAction={(address, connection) =>
             connection.source === VaultConnectionSource.sign_in ? (
-              <button
-                type="button"
-                disabled={oauth.isInProgress}
-                onClick={() => signInAgain(address)}
-                className={QUIET_BUTTON_CLASS}
-              >
+              <Button variant="ghost" size="xs" disabled={oauth.isInProgress} onClick={() => signInAgain(address)}>
                 Sign in again
-              </button>
+              </Button>
             ) : null
           }
         />

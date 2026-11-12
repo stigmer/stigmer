@@ -19,7 +19,6 @@
  */
 
 import { useCallback, useState } from "react";
-import { cn } from "@stigmer/design-tokens";
 import type { AgentSpec } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { ResourceRef } from "@stigmer/client";
 import { Section } from "../resource-detail/Section.js";
@@ -30,6 +29,7 @@ import { environmentName, useEnvironmentList } from "../environment/useEnvironme
 import { useOrganization } from "../organization/useOrganization.js";
 import { useEnvironmentAvailability } from "../server-info.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
+import { Button } from "../button/Button.js";
 
 /** Props for {@link AgentEnvironmentSection}. */
 export interface AgentEnvironmentSectionProps {
@@ -111,36 +111,20 @@ export function AgentEnvironmentSection({
             The packages and network a conversation on this agent gets when the conversation names no environment.
           </p>
           <div className="stg:flex stg:items-center stg:justify-end stg:gap-1.5">
-            <button
-              type="button"
-              onClick={() => setIsEditing(false)}
-              disabled={isSaving}
-              className={cn(
-                "stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
-                "stg:border stg:border-border stg:bg-background stg:text-foreground stg:hover:bg-accent stg:hover:text-accent-foreground",
-                "stg:disabled:opacity-50",
-                "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-              )}
-            >
+            <Button variant="outline" size="xs" onClick={() => setIsEditing(false)} disabled={isSaving}>
               Cancel
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              size="xs"
               onClick={async () => {
                 const ok = await onSave(draft);
                 if (ok) setIsEditing(false);
               }}
               disabled={isSaving}
-              className={cn(
-                "stg:inline-flex stg:items-center stg:gap-1 stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
-                "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
-                "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-                "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-              )}
+              icon={isSaving ? <SpinnerIcon size={14} /> : undefined}
             >
-              {isSaving && <SpinnerIcon size={14} />}
               Save
-            </button>
+            </Button>
           </div>
           {error && (
             <p className="stg:text-xs stg:text-destructive" role="alert">

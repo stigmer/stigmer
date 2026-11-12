@@ -13,6 +13,7 @@
 import { useMemo } from "react";
 import { cn } from "@stigmer/design-tokens";
 import { ActionMenu } from "../action-menu/index.js";
+import { Button } from "../button/Button.js";
 import type { PermissionCheckResource } from "../grant/useCheckPermission.js";
 import { useCheckPermissions } from "../grant/useCheckPermissions.js";
 import type { DetailAction } from "./types.js";
@@ -88,20 +89,9 @@ export function ResourceActionBar({
   return (
     <div className={cn("stg:flex stg:items-center stg:gap-2", className)}>
       {primaryAction && (
-        <button
-          type="button"
-          onClick={primaryAction.onAction}
-          disabled={primaryAction.disabled}
-          className={cn(
-            "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-sm stg:font-medium stg:transition-colors",
-            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-            "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
-            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-          )}
-        >
-          {primaryAction.icon}
+        <Button onClick={primaryAction.onAction} disabled={primaryAction.disabled} icon={primaryAction.icon}>
           {primaryAction.label}
-        </button>
+        </Button>
       )}
       {hasOverflow && <OverflowMenu actions={actions} label={menuLabel} />}
     </div>

@@ -9,6 +9,7 @@ import { useSingleOrg } from "../server-info.js";
 import { useChildOrganizations } from "./useChildOrganizations.js";
 import { useOptionalOrg } from "./OrgProvider.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
+import { Button } from "../button/Button.js";
 
 /** Props for {@link ChildOrganizationsList}. */
 export interface ChildOrganizationsListProps {
@@ -114,14 +115,14 @@ export function ChildOrganizationsList({
                 </td>
                 {setActiveOrg && (
                   <td className="stg:py-1.5 stg:text-right">
-                    <button
-                      type="button"
+                    <Button
+                      variant="ghost"
+                      size="xs"
                       onClick={() => open(child)}
                       aria-label={`Open ${child.metadata?.name || child.metadata?.slug || "organization"}`}
-                      className="stg:text-primary stg:text-xs stg:font-medium stg:hover:underline"
                     >
                       Open
-                    </button>
+                    </Button>
                   </td>
                 )}
               </tr>
@@ -135,14 +136,9 @@ export function ChildOrganizationsList({
         </p>
       )}
       {hasMore && (
-        <button
-          type="button"
-          onClick={loadMore}
-          disabled={isLoadingMore}
-          className="stg:text-primary stg:mt-2 stg:text-xs stg:font-medium stg:hover:underline stg:disabled:opacity-50"
-        >
+        <Button variant="ghost" size="xs" onClick={loadMore} disabled={isLoadingMore} className="stg:mt-2">
           {isLoadingMore ? "Loading…" : "Load more"}
-        </button>
+        </Button>
       )}
     </section>
   );

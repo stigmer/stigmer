@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@stigmer/design-tokens";
 import type { InlineEditBaseProps } from "./types.js";
 import { useInlineDraft } from "./useInlineDraft.js";
+import { Button } from "../button/Button.js";
 
 /** Props for {@link InlineEditTextarea}. */
 export interface InlineEditTextareaProps extends InlineEditBaseProps {
@@ -148,33 +149,12 @@ export function InlineEditTextarea({
           {isSaving ? "Saving..." : "Ctrl+Enter to save, Escape to cancel"}
         </span>
         <div className="stg:flex stg:items-center stg:gap-1.5">
-          <button
-            type="button"
-            onClick={handleCancel}
-            disabled={isSaving}
-            className={cn(
-              "stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
-              "stg:border stg:border-border stg:bg-background stg:text-foreground stg:hover:bg-accent stg:hover:text-accent-foreground",
-              "stg:disabled:opacity-50",
-              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-            )}
-          >
+          <Button variant="outline" size="xs" onClick={handleCancel} disabled={isSaving}>
             Cancel
-          </button>
-          <button
-            type="button"
-            onClick={handleConfirm}
-            disabled={isSaving}
-            className={cn(
-              "stg:inline-flex stg:items-center stg:gap-1 stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
-              "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
-              "stg:disabled:opacity-50",
-              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-            )}
-          >
-            {isSaving && <Spinner />}
+          </Button>
+          <Button size="xs" onClick={handleConfirm} disabled={isSaving} icon={isSaving ? <Spinner /> : undefined}>
             Save
-          </button>
+          </Button>
         </div>
       </div>
       {displayError && (

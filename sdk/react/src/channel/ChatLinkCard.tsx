@@ -9,8 +9,8 @@
 
 import { useCallback } from "react";
 import { Copy, MoreHorizontal, Pencil, RotateCcw, Trash2 } from "lucide-react";
-import { cn } from "@stigmer/design-tokens";
 import { appendLinkToken, chatPath, getUserMessage } from "@stigmer/client";
+import { IconButton } from "../button/IconButton.js";
 import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
 import { toast } from "../feedback/toast.js";
 import { ActionMenu } from "../action-menu/index.js";
@@ -134,18 +134,12 @@ export function ChatLinkCard({
               text={displayPath}
               className="stg:font-mono stg:text-xs stg:text-muted-foreground"
             />
-            <button
-              type="button"
+            <IconButton
+              size="xs"
+              label={`Copy link for ${name}`}
+              icon={<Copy className="stg:size-3" aria-hidden="true" />}
               onClick={handleCopyLink}
-              aria-label={`Copy link for ${name}`}
-              className={cn(
-                "stg:shrink-0 stg:rounded stg:p-1 stg:text-muted-foreground",
-                "stg:hover:bg-accent-hover stg:hover:text-foreground",
-                "stg:focus:outline-none stg:focus:ring-1 stg:focus:ring-ring",
-              )}
-            >
-              <Copy className="stg:size-3" aria-hidden="true" />
-            </button>
+            />
           </div>
           <p className="stg:mt-0.5 stg:text-xs stg:text-muted-foreground-faint">
             {audience === "org" ? "Organization members" : "Anyone with the link"}

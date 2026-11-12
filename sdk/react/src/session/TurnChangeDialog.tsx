@@ -7,6 +7,7 @@
 import type { DisplayFileChange } from "@stigmer/client";
 import { DialogShell } from "../internal/DialogShell.js";
 import { FileChangeDiff } from "../run/FileChangesView.js";
+import { Button } from "../button/Button.js";
 
 /** Props for {@link TurnChangeDialog}. */
 export interface TurnChangeDialogProps {
@@ -31,13 +32,9 @@ export function TurnChangeDialog({ change, onClose }: TurnChangeDialogProps) {
         <div className="stg:flex stg:max-h-[80vh] stg:flex-col stg:gap-3 stg:p-4">
           <div className="stg:flex stg:items-center stg:gap-3">
             <h2 className="stg:min-w-0 stg:flex-1 stg:truncate stg:font-mono stg:text-sm stg:font-semibold">{change.path}</h2>
-            <button
-              type="button"
-              onClick={onClose}
-              className="stg:rounded-md stg:border stg:border-border stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium stg:hover:bg-muted"
-            >
+            <Button variant="outline" onClick={onClose}>
               Close
-            </button>
+            </Button>
           </div>
           <FileChangeDiff change={change} showFileName={false} className="stg:min-h-0 stg:flex-1 stg:overflow-auto" />
         </div>

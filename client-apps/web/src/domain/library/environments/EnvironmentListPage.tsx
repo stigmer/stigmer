@@ -1,11 +1,13 @@
 "use client";
 
 import { useMemo, useReducer, useState } from "react";
-import Link from "next/link";
 import { Box, Plus, Upload } from "lucide-react";
 import type { Environment } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/api_pb";
 import { useLibraryNavigation } from "@/domain/library/library-navigation";
+import { renderJourneyLink } from "@/domain/journey/journey-links";
 import {
+  Button,
+  LinkButton,
   ApplyManifestDialog,
   EnvironmentsNotOnServerNotice,
   ResourceWorkbench,
@@ -36,25 +38,16 @@ export function EnvironmentListPage() {
   const columns = useMemo(() => createEnvironmentColumns(), []);
 
   const newEnvironmentButton = canCreate ? (
-    <Link
-      href="/library/environments/new"
-      className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-    >
-      <Plus className="size-3.5" aria-hidden="true" />
+    <LinkButton href="/library/environments/new" icon={<Plus className="size-3.5" aria-hidden="true" />} renderLink={renderJourneyLink}>
       New environment
-    </Link>
+    </LinkButton>
   ) : undefined;
 
   const headerActions = canCreate ? (
     <div className="flex items-center gap-2">
-      <button
-        type="button"
-        onClick={() => setImportOpen(true)}
-        className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      >
-        <Upload className="size-3.5" aria-hidden="true" />
+      <Button variant="ghost" icon={<Upload className="size-3.5" aria-hidden="true" />} onClick={() => setImportOpen(true)}>
         Apply YAML
-      </button>
+      </Button>
       {newEnvironmentButton}
     </div>
   ) : undefined;

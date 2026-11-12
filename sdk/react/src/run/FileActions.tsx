@@ -21,13 +21,13 @@
 
 import { useCallback, useState } from "react";
 import type { File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
-import { cn } from "@stigmer/design-tokens";
+import { Button } from "../button/Button.js";
 import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { useDeleteResource } from "../resource-detail/useDeleteResource.js";
 import { useApplyResource, type ApplyResourceResult } from "../library/useApplyResource.js";
 
-const ACTION_CLASSES =
-  "stg:inline-flex stg:items-center stg:gap-1.5 stg:text-xs stg:font-medium stg:text-muted-foreground stg:transition-colors stg:hover:text-foreground stg:disabled:opacity-50 stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:focus-visible:rounded-sm";
+/** A quiet destructive act: red words on the ghost button, a red tint on hover. */
+const DESTRUCTIVE_GHOST = "stg:text-destructive stg:hover:bg-destructive-subtle";
 
 /** Whether a File's name says it holds a zip archive, the shape a skill is pushed in. */
 export function isZipFile(file: StigmerFile): boolean {
@@ -75,31 +75,20 @@ export function FileDeleteAction({ file, onDeleted }: FileDeleteActionProps) {
     return (
       <span className="stg:inline-flex stg:items-center stg:gap-2">
         <span className="stg:text-xs stg:text-foreground">Delete this file?</span>
-        <button
-          type="button"
-          onClick={() => void remove()}
-          disabled={isDeleting}
-          className={cn(ACTION_CLASSES, "stg:text-destructive stg:hover:text-destructive-muted")}
-        >
+        <Button variant="ghost" size="xs" onClick={() => void remove()} disabled={isDeleting} className={DESTRUCTIVE_GHOST}>
           {isDeleting ? "Deleting…" : "Delete"}
-        </button>
-        <button
-          type="button"
-          onClick={() => setConfirming(false)}
-          disabled={isDeleting}
-          className={ACTION_CLASSES}
-        >
+        </Button>
+        <Button variant="ghost" size="xs" onClick={() => setConfirming(false)} disabled={isDeleting}>
           Cancel
-        </button>
+        </Button>
       </span>
     );
   }
 
   return (
-    <button type="button" onClick={() => setConfirming(true)} className={ACTION_CLASSES}>
-      <TrashIcon />
+    <Button variant="ghost" size="xs" icon={<TrashIcon />} onClick={() => setConfirming(true)}>
       Delete
-    </button>
+    </Button>
   );
 }
 
@@ -176,20 +165,20 @@ export function FileAddAsSkillAction({ file, onAdded }: FileAddAsSkillActionProp
           aria-label="Skill tag (optional)"
           className="stg:h-6 stg:w-28 stg:rounded stg:border stg:border-border stg:bg-background stg:px-1.5 stg:text-xs stg:text-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
         />
-        <button type="submit" disabled={isApplying} className={cn(ACTION_CLASSES, "stg:text-primary")}>
+        <Button type="submit" variant="ghost" size="xs" disabled={isApplying}>
           {isApplying ? "Adding…" : "Add"}
-        </button>
-        <button
-          type="button"
+        </Button>
+        <Button
+          variant="ghost"
+          size="xs"
           onClick={() => {
             clearError();
             setAsking(false);
           }}
           disabled={isApplying}
-          className={ACTION_CLASSES}
         >
           Cancel
-        </button>
+        </Button>
         {error && (
           <span className="stg:text-xs stg:text-destructive" role="alert">
             {error.message}
@@ -200,10 +189,9 @@ export function FileAddAsSkillAction({ file, onAdded }: FileAddAsSkillActionProp
   }
 
   return (
-    <button type="button" onClick={() => setAsking(true)} className={ACTION_CLASSES}>
-      <SkillIcon />
+    <Button variant="ghost" size="xs" icon={<SkillIcon />} onClick={() => setAsking(true)}>
       Add as skill
-    </button>
+    </Button>
   );
 }
 

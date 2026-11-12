@@ -23,17 +23,13 @@ import { useStigmer } from "@stigmer/react-core";
 import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
-import {
-  DANGER_BUTTON_CLASS,
-  INPUT_CLASS,
-  PRIMARY_BUTTON_CLASS,
-  QUIET_BUTTON_CLASS,
-} from "./styles.js";
+import { INPUT_CLASS } from "./styles.js";
 import { useUpdateVault } from "./useUpdateVault.js";
 import { useVaultEntries } from "./useVaultEntries.js";
 import { isMyVault, useVaultList } from "./useVaultList.js";
 import { VaultEntriesEditor } from "./VaultEntriesEditor.js";
 import { ResourceSlugField } from "../resource-detail/RenameSlugField.js";
+import { Button } from "../button/Button.js";
 
 /** Props for {@link VaultListPanel}. */
 export interface VaultListPanelProps {
@@ -302,26 +298,31 @@ function VaultDetailsForm({
         </p>
       )}
       <div className="stg:flex stg:items-center stg:gap-2">
-        <button type="button" disabled={!dirty || isUpdating || name.trim() === ""} onClick={() => void save()} className={PRIMARY_BUTTON_CLASS}>
+        <Button size="xs" disabled={!dirty || isUpdating || name.trim() === ""} onClick={() => void save()}>
           Save details
-        </button>
+        </Button>
         <PermissionGate resource={{ kind: "vault", id: vault.metadata?.id ?? "" }} relation="can_delete">
           {confirmingDelete ? (
             <>
               <span className="stg:text-xs stg:text-muted-foreground">
                 Delete this vault and every value in it? Surfaces that name it stop at their next run.
               </span>
-              <button type="button" onClick={() => void remove()} className={DANGER_BUTTON_CLASS}>
+              <Button
+                variant="ghost"
+                size="xs"
+                onClick={() => void remove()}
+                className="stg:text-destructive stg:hover:bg-destructive-subtle"
+              >
                 Delete
-              </button>
-              <button type="button" onClick={() => setConfirmingDelete(false)} className={QUIET_BUTTON_CLASS}>
+              </Button>
+              <Button variant="ghost" size="xs" onClick={() => setConfirmingDelete(false)}>
                 Cancel
-              </button>
+              </Button>
             </>
           ) : (
-            <button type="button" onClick={() => setConfirmingDelete(true)} className={DANGER_BUTTON_CLASS}>
+            <Button variant="ghost" size="xs" onClick={() => setConfirmingDelete(true)} className="stg:hover:bg-destructive-subtle stg:hover:text-destructive">
               Delete vault
-            </button>
+            </Button>
           )}
         </PermissionGate>
       </div>

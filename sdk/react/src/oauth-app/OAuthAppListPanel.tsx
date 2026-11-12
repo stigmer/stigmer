@@ -9,6 +9,7 @@ import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
 import { LoadMoreFooter } from "../internal/LoadMoreFooter.js";
+import { IconButton } from "../button/IconButton.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -164,18 +165,7 @@ function OAuthAppRow({
       </div>
 
       {onEdit && (
-        <button
-          type="button"
-          onClick={onEdit}
-          aria-label={`Edit ${provider}`}
-          className={cn(
-            "stg:shrink-0 stg:rounded stg:p-1",
-            "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
-            "stg:transition-colors",
-          )}
-        >
-          <PencilIcon />
-        </button>
+        <IconButton size="xs" label={`Edit ${provider}`} icon={<PencilIcon />} onClick={onEdit} />
       )}
     </div>
   );

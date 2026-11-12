@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
-import { cn } from "@stigmer/design-tokens";
+import { Button } from "../button/Button.js";
 import { DialogShell } from "../internal/DialogShell.js";
 import type { ConfirmState } from "./types.js";
 
@@ -68,31 +68,12 @@ export function ConfirmDialog({
           </p>
         </div>
         <div className="stg:flex stg:justify-end stg:gap-2">
-          <button
-            type="button"
-            onClick={onCancel}
-            className={cn(
-              "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-sm stg:font-medium stg:transition-colors",
-              "stg:border stg:border-input stg:bg-background stg:text-foreground",
-              "stg:hover:bg-accent stg:hover:text-accent-foreground",
-              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-            )}
-          >
+          <Button variant="outline" onClick={onCancel}>
             {state.cancelLabel ?? "Cancel"}
-          </button>
-          <button
-            type="button"
-            onClick={onConfirm}
-            className={cn(
-              "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-sm stg:font-medium stg:transition-colors",
-              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-              isDestructive
-                ? "stg:bg-destructive stg:text-destructive-foreground stg:hover:bg-destructive-hover"
-                : "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
-            )}
-          >
+          </Button>
+          <Button variant={isDestructive ? "destructive" : "primary"} onClick={onConfirm}>
             {state.confirmLabel ?? "Confirm"}
-          </button>
+          </Button>
         </div>
       </div>
     </DialogShell>

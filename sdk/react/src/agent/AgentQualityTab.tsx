@@ -19,7 +19,8 @@ import { ModelSelector } from "../models/ModelSelector.js";
 import { AgentQualityReportView } from "../score/AgentQualityReportView.js";
 import { Section } from "../resource-detail/Section.js";
 import { Switch } from "../switch/Switch.js";
-import { INPUT_CLASS, PRIMARY_BUTTON_CLASS } from "../vault/styles.js";
+import { INPUT_CLASS } from "../vault/styles.js";
+import { Button } from "../button/Button.js";
 
 /** Props for {@link AgentQualityTab}. */
 export interface AgentQualityTabProps {
@@ -250,14 +251,9 @@ function QualityForm({
           </div>
           {editable && (
             <div>
-              <button
-                type="button"
-                disabled={!dirty || !limitValid || isSaving}
-                onClick={() => void onSave()}
-                className={PRIMARY_BUTTON_CLASS}
-              >
+              <Button size="xs" disabled={!dirty || !limitValid || isSaving} onClick={() => void onSave()}>
                 {isSaving ? "Saving…" : "Save"}
-              </button>
+              </Button>
             </div>
           )}
           {saveError !== null && (

@@ -10,6 +10,7 @@ import { useInvitationPreview } from "./useInvitationPreview.js";
 import { useRedeemInvitation } from "./useRedeemInvitation.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
+import { Button } from "../button/Button.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -252,20 +253,14 @@ export function InvitationRedemption({
           <div className="stg:mt-5">
             {isAuthenticated ? (
               <>
-                <button
-                  type="button"
+                <Button
                   onClick={handleAccept}
                   disabled={isRedeeming}
-                  className={cn(
-                    "stg:w-full stg:inline-flex stg:items-center stg:justify-center stg:gap-1.5 stg:rounded-md stg:px-4 stg:py-2.5 stg:text-sm stg:font-medium",
-                    "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
-                    "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-                    "stg:transition-colors",
-                  )}
+                  icon={isRedeeming ? <SpinnerIcon size={14} /> : undefined}
+                  className="stg:w-full"
                 >
-                  {isRedeeming && <SpinnerIcon size={14} />}
                   {isRedeeming ? "Accepting\u2026" : "Accept Invitation"}
-                </button>
+                </Button>
                 {redeemError && (
                   <p className="stg:mt-2 stg:text-center stg:text-2xs stg:text-destructive" role="alert">
                     {getUserMessage(redeemError)}
@@ -273,17 +268,9 @@ export function InvitationRedemption({
                 )}
               </>
             ) : (
-              <button
-                type="button"
-                onClick={onAuthRequired}
-                className={cn(
-                  "stg:w-full stg:inline-flex stg:items-center stg:justify-center stg:gap-1.5 stg:rounded-md stg:px-4 stg:py-2.5 stg:text-sm stg:font-medium",
-                  "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
-                  "stg:transition-colors",
-                )}
-              >
+              <Button onClick={onAuthRequired} className="stg:w-full">
                 Accept Invitation
-              </button>
+              </Button>
             )}
           </div>
         )}
@@ -322,17 +309,9 @@ function ErrorCard({
     <div className="stg:rounded-lg stg:border stg:border-destructive/30 stg:bg-destructive-subtle stg:p-6 stg:text-center stg:shadow-sm">
       <p className="stg:text-sm stg:text-destructive">{message}</p>
       {onRetry && (
-        <button
-          type="button"
-          onClick={onRetry}
-          className={cn(
-            "stg:mt-3 stg:inline-flex stg:items-center stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium",
-            "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
-            "stg:transition-colors",
-          )}
-        >
+        <Button variant="ghost" size="xs" onClick={onRetry} className="stg:mt-3">
           Try again
-        </button>
+        </Button>
       )}
     </div>
   );

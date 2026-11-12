@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import { cn } from "@stigmer/design-tokens";
 import type { InlineEditBaseProps, ResourceRefRow } from "./types.js";
 import { useOrgIdForRef, useOrgSlugForId } from "../organization/useOrgRefs.js";
+import { Button } from "../button/Button.js";
+import { IconButton } from "../button/IconButton.js";
 
 /** Props for {@link InlineEditResourceList}. */
 export interface InlineEditResourceListProps extends InlineEditBaseProps {
@@ -175,18 +177,13 @@ export function InlineEditResourceList({
               <span className="stg:flex-1 stg:text-sm stg:font-medium stg:text-foreground">
                 {ref.label ?? ref.slug}
               </span>
-              <button
-                type="button"
+              <IconButton
+                label={`Remove ${ref.label ?? ref.slug}`}
+                size="xs"
                 onClick={() => removeItem(i)}
-                aria-label={`Remove ${ref.label ?? ref.slug}`}
-                className={cn(
-                  "stg:inline-flex stg:size-6 stg:items-center stg:justify-center stg:rounded-md stg:text-muted-foreground",
-                  "stg:hover:bg-destructive-subtle stg:hover:text-destructive",
-                  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-                )}
-              >
-                <XIcon className="stg:size-3.5" />
-              </button>
+                icon={<XIcon className="stg:size-3.5" />}
+                className="stg:hover:bg-destructive-subtle stg:hover:text-destructive"
+              />
             </div>
           ))}
         </div>
@@ -229,8 +226,10 @@ export function InlineEditResourceList({
               "stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring",
             )}
           />
-          <button
-            type="button"
+          <IconButton
+            label={`Add ${resourceLabel}`}
+            variant="primary"
+            size="xs"
             onClick={() => {
               if (addSlug.trim()) {
                 addItem({ org: orgIdFor(addOrg.trim()) || defaultOrg, slug: addSlug.trim(), label: addSlug.trim() });
@@ -239,61 +238,28 @@ export function InlineEditResourceList({
               }
             }}
             disabled={!addSlug.trim()}
-            className={cn(
-              "stg:inline-flex stg:size-6 stg:items-center stg:justify-center stg:rounded-md",
-              "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
-              "stg:disabled:opacity-50",
-              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-            )}
-          >
-            <PlusIcon className="stg:size-3" />
-          </button>
+            icon={<PlusIcon className="stg:size-3" />}
+          />
         </div>
       ) : (
-        <button
-          type="button"
+        <Button
+          variant="outline"
+          size="xs"
           onClick={() => renderPicker ? setShowPicker(true) : setShowGenericAdd(true)}
-          className={cn(
-            "stg:inline-flex stg:items-center stg:gap-1 stg:rounded-md stg:px-2.5 stg:py-1.5 stg:text-xs stg:font-medium",
-            "stg:border stg:border-dashed stg:border-border stg:text-muted-foreground",
-            "stg:hover:border-muted-foreground stg:hover:text-foreground stg:hover:bg-muted-subtle",
-            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-            "stg:transition-colors",
-          )}
+          icon={<PlusIcon className="stg:size-3" />}
+          className="stg:border-dashed"
         >
-          <PlusIcon className="stg:size-3" />
           Add {resourceLabel}
-        </button>
+        </Button>
       )}
 
       <div className="stg:flex stg:items-center stg:justify-end stg:gap-1.5">
-        <button
-          type="button"
-          onClick={handleCancel}
-          disabled={isSaving}
-          className={cn(
-            "stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
-            "stg:border stg:border-border stg:bg-background stg:text-foreground stg:hover:bg-accent",
-            "stg:disabled:opacity-50",
-            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-          )}
-        >
+        <Button variant="outline" size="xs" onClick={handleCancel} disabled={isSaving}>
           Cancel
-        </button>
-        <button
-          type="button"
-          onClick={handleSave}
-          disabled={isSaving}
-          className={cn(
-            "stg:inline-flex stg:items-center stg:gap-1 stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
-            "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
-            "stg:disabled:opacity-50",
-            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-          )}
-        >
-          {isSaving && <Spinner />}
+        </Button>
+        <Button size="xs" onClick={handleSave} disabled={isSaving} icon={isSaving ? <Spinner /> : undefined}>
           Save changes
-        </button>
+        </Button>
       </div>
 
       {error && (

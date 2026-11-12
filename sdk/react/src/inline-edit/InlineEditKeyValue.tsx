@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { cn } from "@stigmer/design-tokens";
 import type { InlineEditBaseProps, KeyValueRow } from "./types.js";
+import { Button } from "../button/Button.js";
+import { IconButton } from "../button/IconButton.js";
 
 /** Props for {@link InlineEditKeyValue}. */
 export interface InlineEditKeyValueProps extends InlineEditBaseProps {
@@ -197,64 +199,33 @@ export function InlineEditKeyValue({
               )}
             </div>
           </div>
-          <button
-            type="button"
+          <IconButton
+            label={`Remove ${row.key || "entry"}`}
+            size="xs"
             onClick={() => removeRow(i)}
-            aria-label={`Remove ${row.key || "entry"}`}
-            className={cn(
-              "stg:mt-1 stg:inline-flex stg:size-6 stg:items-center stg:justify-center stg:rounded-md stg:text-muted-foreground",
-              "stg:hover:bg-destructive-subtle stg:hover:text-destructive",
-              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-            )}
-          >
-            <TrashIcon className="stg:size-3.5" />
-          </button>
+            icon={<TrashIcon className="stg:size-3.5" />}
+            className="stg:mt-1 stg:hover:bg-destructive-subtle stg:hover:text-destructive"
+          />
         </div>
       ))}
 
-      <button
-        type="button"
+      <Button
+        variant="outline"
+        size="xs"
         onClick={addRow}
-        className={cn(
-          "stg:inline-flex stg:items-center stg:gap-1 stg:rounded-md stg:px-2.5 stg:py-1.5 stg:text-xs stg:font-medium",
-          "stg:border stg:border-dashed stg:border-border stg:text-muted-foreground",
-          "stg:hover:border-muted-foreground stg:hover:text-foreground stg:hover:bg-muted-subtle",
-          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-          "stg:transition-colors",
-        )}
+        icon={<PlusIcon className="stg:size-3" />}
+        className="stg:border-dashed"
       >
-        <PlusIcon className="stg:size-3" />
         Add entry
-      </button>
+      </Button>
 
       <div className="stg:flex stg:items-center stg:justify-end stg:gap-1.5">
-        <button
-          type="button"
-          onClick={handleCancel}
-          disabled={isSaving}
-          className={cn(
-            "stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
-            "stg:border stg:border-border stg:bg-background stg:text-foreground stg:hover:bg-accent",
-            "stg:disabled:opacity-50",
-            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-          )}
-        >
+        <Button variant="outline" size="xs" onClick={handleCancel} disabled={isSaving}>
           Cancel
-        </button>
-        <button
-          type="button"
-          onClick={handleSave}
-          disabled={isSaving}
-          className={cn(
-            "stg:inline-flex stg:items-center stg:gap-1 stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
-            "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
-            "stg:disabled:opacity-50",
-            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-          )}
-        >
-          {isSaving && <Spinner />}
+        </Button>
+        <Button size="xs" onClick={handleSave} disabled={isSaving} icon={isSaving ? <Spinner /> : undefined}>
           Save changes
-        </button>
+        </Button>
       </div>
 
       {error && (

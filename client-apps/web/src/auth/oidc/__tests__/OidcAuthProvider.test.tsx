@@ -21,7 +21,7 @@
 // ---------------------------------------------------------------------------
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { StrictMode, useEffect } from "react";
+import { StrictMode, useEffect, type ReactNode } from "react";
 import { render, waitFor } from "@testing-library/react";
 import type { User } from "oidc-client-ts";
 import type { OidcConfig } from "../types";
@@ -68,6 +68,17 @@ const mocks = vi.hoisted(() => {
 
 vi.mock("../oidc-manager", () => ({
   createUserManager: vi.fn(() => mocks.manager),
+}));
+
+// The failed-login screen's retry is the kit's Button. Each test re-imports
+// the provider (vi.resetModules), so the whole kit would be re-imported cold
+// per test; a plain button stands in, as no test here presses it.
+vi.mock("@stigmer/react-sdk", () => ({
+  Button: ({ children, onClick }: { children?: ReactNode; onClick?: () => void }) => (
+    <button type="button" onClick={onClick}>
+      {children}
+    </button>
+  ),
 }));
 
 /** Re-import the provider so its module-scoped single-flight memo is fresh. */

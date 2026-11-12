@@ -1,4 +1,7 @@
-import Link from "next/link";
+"use client";
+
+import { LinkButton } from "@stigmer/react-sdk";
+import { renderJourneyLink } from "@/domain/journey/journey-links";
 import { FileQuestion } from "lucide-react";
 
 export default function NotFound() {
@@ -17,12 +20,9 @@ export default function NotFound() {
           </p>
         </div>
 
-        <Link
-          href="/"
-          className="bg-primary text-primary-foreground hover:bg-primary-hover inline-flex h-8 items-center justify-center rounded-lg px-2.5 text-sm font-medium transition-colors"
-        >
+        <LinkButton href="/" renderLink={renderJourneyLink}>
           Go to Dashboard
-        </Link>
+        </LinkButton>
       </div>
     </div>
   );

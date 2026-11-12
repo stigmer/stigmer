@@ -14,6 +14,10 @@ export default defineConfig([
     rules: {
       "stigmer/sdk-import-boundaries": "error",
       "stigmer/no-native-title": "error",
+      // Error (not warn): the 2026-11 sweep moved every hand-drawn filled button
+      // onto the kit's Button, IconButton and LinkButton, so this fence starts
+      // at zero.
+      "stigmer/no-handrolled-button": "error",
       "stigmer/no-token-opacity-modifiers": "warn",
       // Every text size comes from the type scale (--stgm-text-* tokens, 11px floor).
       "stigmer/text-size-from-scale": "error",

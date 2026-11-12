@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useId, type ReactNode } from "react";
-import { cn } from "@stigmer/design-tokens";
+import { Button } from "../button/Button.js";
+import { IconButton } from "../button/IconButton.js";
 import { DialogShell } from "../internal/DialogShell.js";
 import { ApiResourceKind, hasGrantableRoles, hasTeamGrantableRoles } from "@stigmer/client";
 import { useResourceAvailable } from "@stigmer/react-core";
@@ -123,18 +124,7 @@ export function ManageAccessDialog({
                 </p>
               )}
             </div>
-            <button
-              type="button"
-              onClick={handleClose}
-              aria-label="Close"
-              className={cn(
-                "stg:rounded-md stg:p-1 stg:text-muted-foreground",
-                "stg:hover:text-foreground stg:hover:bg-accent-hover",
-                "stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring",
-              )}
-            >
-              <CloseIcon />
-            </button>
+            <IconButton label="Close" size="xs" icon={<CloseIcon />} onClick={handleClose} />
           </div>
 
           {/* Body */}
@@ -172,17 +162,7 @@ export function ManageAccessDialog({
 
           {/* Footer */}
           <div className="stg:flex stg:items-center stg:justify-end stg:border-t stg:border-border stg:px-6 stg:py-3">
-            <button
-              type="button"
-              onClick={handleClose}
-              className={cn(
-                "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-sm stg:font-medium",
-                "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
-                "stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring stg:focus:ring-offset-2",
-              )}
-            >
-              Done
-            </button>
+            <Button onClick={handleClose}>Done</Button>
           </div>
         </div>
       )}

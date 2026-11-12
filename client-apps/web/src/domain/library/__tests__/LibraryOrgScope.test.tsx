@@ -20,13 +20,17 @@ const page = vi.hoisted(() => ({
   agentView: [] as Array<Record<string, unknown>>,
 }));
 
-vi.mock("@stigmer/react-sdk", () => {
+vi.mock("@stigmer/react-sdk", async () => {
+  const kit = await vi.importActual<typeof import("@stigmer/react-sdk")>("@stigmer/react-sdk");
   const count = (org: string | null) => {
     page.counted.push(org);
     return { count: 0, isLoading: false };
   };
   const none = () => null;
   return {
+    Button: kit.Button,
+    IconButton: kit.IconButton,
+    LinkButton: kit.LinkButton,
     ApplyManifestDialog: none,
     ResourceCountCard: none,
     ConfirmDialog: none,

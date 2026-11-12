@@ -16,7 +16,7 @@ import {
 } from "./MessageFiles.js";
 import { PlanDocumentMessage } from "./PlanDocumentMessage.js";
 import { useRenderTracer } from "../internal/dev/index.js";
-import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
+import { IconButton } from "../button/IconButton.js";
 import { useCopyFeedback } from "../internal/useCopyFeedback.js";
 
 export type { ThreadMessage, UserMessageItem } from "@stigmer/react-core";
@@ -206,21 +206,14 @@ function HumanMessage({
       <div className="stg:absolute stg:-top-2.5 stg:-right-2.5 stg:flex stg:gap-1">
         <CopyMessageButton text={content} variant="bubble" />
         {onEdit && (
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                <button
-                  type="button"
-                  onClick={onEdit}
-                  aria-label="Edit message"
-                  className={BUBBLE_ACTION_CLASSES}
-                />
-              }
-            >
-              <EditIcon />
-            </TooltipTrigger>
-            <TooltipContent side="top">Edit</TooltipContent>
-          </Tooltip>
+          <IconButton
+            variant="outline"
+            size="xs"
+            label="Edit message"
+            icon={<EditIcon />}
+            onClick={onEdit}
+            className={BUBBLE_ACTION_CLASSES}
+          />
         )}
       </div>
     </div>
@@ -310,25 +303,22 @@ function AiMessage({
 // ---------------------------------------------------------------------------
 
 // The floating circular action on a human bubble's shoulder — shared by the
-// copy and edit buttons so the cluster reads as one control family.
+// copy and edit buttons so the cluster reads as one control family. An
+// outlined IconButton, round and lifted, revealed on hover or focus.
 const BUBBLE_ACTION_CLASSES = cn(
-  "stg:inline-flex stg:h-7 stg:w-7 stg:items-center stg:justify-center stg:rounded-full",
-  "stg:border stg:border-border stg:bg-card stg:text-muted-foreground stg:shadow-sm stg:transition",
-  "stg:hover:text-foreground stg:hover:bg-accent-hover",
+  "stg:rounded-full stg:text-muted-foreground stg:shadow-sm stg:transition",
+  "stg:hover:text-foreground",
   "stg:opacity-0 stg:group-hover:opacity-100 stg:focus-visible:opacity-100",
-  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
 );
 
-// The quiet in-flow variant for AI prose: no border or fill, one contrast
+// The quiet in-flow variant for AI prose: a ghost IconButton one contrast
 // step below the reading text (`muted-foreground-subtle`, rising to
 // `muted-foreground` on hover) — findable when wanted, invisible while
 // reading. The same hover/focus reveal keeps both variants keyboard-reachable.
 const QUIET_ACTION_CLASSES = cn(
-  "stg:inline-flex stg:h-6 stg:w-6 stg:items-center stg:justify-center stg:rounded-md",
   "stg:text-muted-foreground-subtle stg:transition",
-  "stg:hover:text-muted-foreground stg:hover:bg-accent-hover",
+  "stg:hover:text-muted-foreground",
   "stg:opacity-0 stg:group-hover:opacity-100 stg:focus-visible:opacity-100",
-  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
 );
 
 /**
@@ -346,23 +336,14 @@ function CopyMessageButton({
 }) {
   const { copy, copied } = useCopyFeedback();
   return (
-    <Tooltip>
-      <TooltipTrigger
-        render={
-          <button
-            type="button"
-            onClick={() => void copy(text)}
-            aria-label={copied ? "Copied" : "Copy message"}
-            className={
-              variant === "bubble" ? BUBBLE_ACTION_CLASSES : QUIET_ACTION_CLASSES
-            }
-          />
-        }
-      >
-        {copied ? <CheckIcon /> : <CopyMessageIcon />}
-      </TooltipTrigger>
-      <TooltipContent side="top">{copied ? "Copied" : "Copy"}</TooltipContent>
-    </Tooltip>
+    <IconButton
+      variant={variant === "bubble" ? "outline" : "ghost"}
+      size="xs"
+      label={copied ? "Copied" : "Copy message"}
+      icon={copied ? <CheckIcon /> : <CopyMessageIcon />}
+      onClick={() => void copy(text)}
+      className={variant === "bubble" ? BUBBLE_ACTION_CLASSES : QUIET_ACTION_CLASSES}
+    />
   );
 }
 

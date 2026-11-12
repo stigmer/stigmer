@@ -1,7 +1,7 @@
 "use client";
 
 import { Loader2, AlertCircle, RefreshCw, LogOut } from "lucide-react";
-import { useIdentityAccountGate } from "@stigmer/react-sdk";
+import { Button, useIdentityAccountGate } from "@stigmer/react-sdk";
 import { useAuth } from "@/auth";
 import { getRuntimeConfig } from "@/config/runtime-config";
 
@@ -58,13 +58,14 @@ function GateHeader() {
         </div>
         <span className="text-muted-foreground text-sm">{user.email}</span>
       </div>
-      <button
+      <Button
+        variant="ghost"
+        icon={<LogOut className="size-3.5" />}
         onClick={logout}
-        className="text-muted-foreground hover:text-foreground inline-flex cursor-pointer items-center gap-1.5 text-sm transition-colors"
+        className="text-muted-foreground hover:text-foreground"
       >
-        <LogOut className="size-3.5" />
         Sign out
-      </button>
+      </Button>
     </div>
   );
 }
@@ -135,13 +136,9 @@ function ErrorState({
       <p className="text-muted-foreground max-w-md text-center text-sm">
         {message}
       </p>
-      <button
-        onClick={onRetry}
-        className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary-hover"
-      >
-        <RefreshCw className="size-3" />
+      <Button icon={<RefreshCw className="size-3.5" />} onClick={onRetry}>
         Try again
-      </button>
+      </Button>
     </div>
   );
 }

@@ -62,6 +62,7 @@ import {
   ResolveSpinner,
   XIcon,
 } from "./icons.js";
+import { Button } from "../button/Button.js";
 
 /**
  * Imperative handle exposed by {@link SessionComposer} via `ref`.
@@ -2121,17 +2122,18 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
             >
               <AlertTriangleIcon />
               <span>Agent needs configuration before use</span>
-              <button
-                type="button"
+              <Button
+                variant="ghost"
+                size="xs"
                 onClick={() => {
                   setConfigOpen(true);
                   setConfigActivePanel("agent");
                 }}
                 disabled={isDisabled}
-                className="stg:ml-auto stg:shrink-0 stg:rounded stg:px-1.5 stg:py-0.5 stg:text-2xs stg:font-medium stg:hover:bg-status-degraded stg:hover:text-status-degraded-foreground stg:disabled:pointer-events-none stg:disabled:opacity-50"
+                className="stg:ml-auto stg:text-status-degraded stg:hover:bg-status-degraded stg:hover:text-status-degraded-foreground"
               >
                 Configure
-              </button>
+              </Button>
             </div>
           )}
 
@@ -2229,13 +2231,9 @@ function MyVaultLeftOutNote({ onInclude }: { readonly onInclude?: () => void }) 
           : "Keys and sign-ins are saved in My vault, which this conversation does not use: a tool that reads Signed in is signed in there. Only the person who started it can change its vaults."}
       </p>
       {onInclude && (
-        <button
-          type="button"
-          onClick={onInclude}
-          className="stg:shrink-0 stg:rounded-md stg:px-2 stg:py-1 stg:text-xs stg:font-medium stg:text-primary stg:hover:bg-accent-hover"
-        >
+        <Button variant="ghost" size="xs" onClick={onInclude}>
           Use My vault
-        </button>
+        </Button>
       )}
     </div>
   );

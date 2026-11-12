@@ -3,6 +3,7 @@
 import { memo } from "react";
 import { cn } from "@stigmer/design-tokens";
 import { formatFileSize } from "../file/file-size.js";
+import { Button } from "../button/Button.js";
 
 /** Props for {@link PlanStreamingCard}. */
 export interface PlanStreamingCardProps {
@@ -83,17 +84,9 @@ export const PlanStreamingCard = memo(function PlanStreamingCard({
       </div>
 
       {onOpenPlan && (
-        <button
-          type="button"
-          onClick={onOpenPlan}
-          className={cn(
-            "stg:ml-auto stg:inline-flex stg:items-center stg:gap-1 stg:text-xs stg:font-medium stg:text-muted-foreground stg:transition-colors stg:hover:text-foreground",
-            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:focus-visible:rounded-sm",
-          )}
-        >
-          <EyeIcon />
+        <Button variant="ghost" size="xs" onClick={onOpenPlan} icon={<EyeIcon />} className="stg:ml-auto">
           Open plan
-        </button>
+        </Button>
       )}
     </div>
   );

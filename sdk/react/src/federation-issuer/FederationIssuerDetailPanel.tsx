@@ -18,6 +18,7 @@ import { useUpdateFederationIssuer } from "./useUpdateFederationIssuer.js";
 import { PermissionGate } from "../grant/PermissionGate.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { ResourceSlugField } from "../resource-detail/RenameSlugField.js";
+import { Button } from "../button/Button.js";
 
 /** Props for {@link FederationIssuerDetailPanel}. */
 export interface FederationIssuerDetailPanelProps {
@@ -177,17 +178,9 @@ export function FederationIssuerDetailPanel({
             resource={{ kind: "federation_issuer", id: meta?.id ?? "" }}
             relation="can_edit"
           >
-            <button
-              type="button"
-              onClick={enterEdit}
-              className={cn(
-                "stg:shrink-0 stg:rounded-md stg:px-2.5 stg:py-1.5 stg:text-xs stg:font-medium",
-                "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
-                "stg:transition-colors",
-              )}
-            >
+            <Button variant="ghost" onClick={enterEdit}>
               Edit
-            </button>
+            </Button>
           </PermissionGate>
         )}
       </div>
@@ -274,30 +267,12 @@ export function FederationIssuerDetailPanel({
           )}
 
           <div className="stg:flex stg:items-center stg:gap-2 stg:pt-1">
-            <button
-              type="submit"
-              disabled={!canSave}
-              className={cn(
-                "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium",
-                "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
-                "stg:disabled:pointer-events-none stg:disabled:opacity-40",
-              )}
-            >
-              {isUpdating && <SpinnerIcon size={12} />}
+            <Button type="submit" disabled={!canSave} icon={isUpdating ? <SpinnerIcon size={12} /> : undefined}>
               Save changes
-            </button>
-            <button
-              type="button"
-              onClick={cancelEdit}
-              disabled={isUpdating}
-              className={cn(
-                "stg:rounded-md stg:px-2.5 stg:py-1.5 stg:text-xs",
-                "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
-                "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-              )}
-            >
+            </Button>
+            <Button variant="ghost" onClick={cancelEdit} disabled={isUpdating}>
               Cancel
-            </button>
+            </Button>
           </div>
         </form>
       )}

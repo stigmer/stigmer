@@ -8,6 +8,7 @@ import { ImageLightbox } from "./ImageLightbox.js";
 import { UNSTYLED_BUTTON } from "../internal/form-primitives.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { formatFileSize } from "../file/file-size.js";
+import { Button } from "../button/Button.js";
 
 /** Props for {@link FileChipList}. */
 export interface FileChipListProps {
@@ -280,18 +281,16 @@ function ImageChip({
         </button>
 
         {isError && (
-          <button
-            type="button"
+          <Button
+            variant="destructive"
+            size="xs"
             onClick={onRetry}
             disabled={disabled}
             aria-label={`Retry uploading ${entry.file.name}`}
-            className={cn(
-              UNSTYLED_BUTTON,
-              "stg:absolute stg:left-1/2 stg:top-1/2 stg:-translate-x-1/2 stg:-translate-y-1/2 stg:rounded-full stg:bg-destructive stg:px-1.5 stg:py-0.5 stg:text-2xs stg:font-medium stg:leading-none stg:text-destructive-foreground stg:shadow-sm stg:hover:bg-destructive-hover stg:disabled:pointer-events-none",
-            )}
+            className="stg:absolute stg:left-1/2 stg:top-1/2 stg:-translate-x-1/2 stg:-translate-y-1/2 stg:shadow-sm"
           >
             Retry
-          </button>
+          </Button>
         )}
 
         <button

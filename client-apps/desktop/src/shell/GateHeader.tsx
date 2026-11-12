@@ -4,6 +4,7 @@
 // signing out never depends on getting past the gate.
 
 import { LogOut } from "lucide-react";
+import { Button } from "@stigmer/react-sdk";
 import { useAuth } from "../auth/AuthProvider";
 
 export function GateHeader() {
@@ -21,13 +22,14 @@ export function GateHeader() {
         </div>
         <span className="text-sm text-muted-foreground">{user.email}</span>
       </div>
-      <button
+      <Button
+        variant="ghost"
+        icon={<LogOut className="size-3.5" />}
         onClick={logout}
-        className="inline-flex cursor-pointer items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+        className="text-muted-foreground hover:text-foreground"
       >
-        <LogOut className="size-3.5" />
         Sign out
-      </button>
+      </Button>
     </div>
   );
 }

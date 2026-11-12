@@ -9,6 +9,7 @@ import { cn } from "@stigmer/design-tokens";
 import { ADD_MCP_SERVER_HREF } from "@/domain/library/plugins/add-mcp-server";
 import {
   ApplyManifestDialog,
+  Button,
   useAgentCount,
   useRoutineCount,
   useEnvironmentCount,
@@ -185,19 +186,9 @@ export function LibraryLanding() {
 
       <div className="mt-6 flex items-center gap-2">
         <AddResourceMenu />
-        <button
-          type="button"
-          onClick={() => setApplyYamlOpen(true)}
-          className={cn(
-            "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm",
-            "text-muted-foreground transition-colors",
-            "hover:bg-accent hover:text-accent-foreground",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-          )}
-        >
-          <FileCode2 className="size-3.5" aria-hidden="true" />
+        <Button variant="ghost" icon={<FileCode2 className="size-3.5" aria-hidden="true" />} onClick={() => setApplyYamlOpen(true)}>
           Apply YAML
-        </button>
+        </Button>
       </div>
 
       <ApplyManifestDialog

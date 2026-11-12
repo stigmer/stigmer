@@ -31,6 +31,8 @@ import { EXAMPLES, skillById, type Example } from "@stigmer/examples";
 import { cn } from "@stigmer/design-tokens";
 import { useStigmer } from "@stigmer/react-core";
 import { useFetch } from "@stigmer/react-core/internal";
+import { Button } from "../button/Button.js";
+import { LinkButton } from "../button/LinkButton.js";
 import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { InlineEditTextarea } from "../inline-edit/InlineEditTextarea.js";
 import { keptReference } from "../internal/kept-reference.js";
@@ -72,10 +74,8 @@ export interface MakeItYoursTabProps {
   readonly onOpenVersions: () => void;
 }
 
-// Every act here is outlined: the page's one filled action is its header's
-// Start session.
-const OUTLINE =
-  "stg:inline-flex stg:items-center stg:rounded-md stg:border stg:border-border stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium stg:text-foreground stg:no-underline stg:hover:bg-accent-hover stg:disabled:pointer-events-none stg:disabled:opacity-50";
+// Every act here is an outlined Button or LinkButton: the page's one filled
+// action is its header's Start session.
 
 /** The example whose agent this is, or undefined for an agent described in the person's own words. */
 function exampleOf(slug: string): Example | undefined {
@@ -126,7 +126,9 @@ export function MakeItYoursTab({ agent, links, saveField, isSaving, saveError, o
                 <span role="status" className="stg:text-sm stg:font-medium stg:text-foreground">
                   Saved as a new version.
                 </span>
-                {render({ href: rerun.href, className: OUTLINE, children: rerun.words })}
+                <LinkButton href={rerun.href} variant="outline" size="xs" renderLink={render}>
+                  {rerun.words}
+                </LinkButton>
               </>
             )}
             <span className="stg:text-xs stg:text-muted-foreground">
@@ -143,7 +145,9 @@ export function MakeItYoursTab({ agent, links, saveField, isSaving, saveError, o
             Run it on a real file from your product, not the sample. It runs the same instructions; your file stays in this organization.
           </p>
           <div className="stg:mt-auto">
-            {render({ href: links.launch({ agent: ref, example: example?.id, mode: "own" }), className: OUTLINE, children: "Choose a file" })}
+            <LinkButton href={links.launch({ agent: ref, example: example?.id, mode: "own" })} variant="outline" size="xs" renderLink={render}>
+              Choose a file
+            </LinkButton>
           </div>
         </Card>
         <SkillCard agent={agent} saveField={saveField} isSaving={isSaving} saveError={saveError} sample={example ? rerun : undefined} renderLink={render} />
@@ -153,7 +157,9 @@ export function MakeItYoursTab({ agent, links, saveField, isSaving, saveError, o
           <span className="stg:min-w-[12rem] stg:flex-1 stg:text-sm stg:text-muted-foreground">
             When it does the job your way, put it where your users are.
           </span>
-          {render({ href: links.putInApp(ref), className: OUTLINE, children: "Put it in your app" })}
+          <LinkButton href={links.putInApp(ref)} variant="outline" size="xs" renderLink={render}>
+            Put it in your app
+          </LinkButton>
         </div>
       )}
     </div>
@@ -252,7 +258,13 @@ function SkillCard({
           <p role="status" className="stg:m-0 stg:text-sm stg:text-foreground">
             <span className="stg:font-medium">{skill.name}</span> is on. Its runs hand back a .csv beside the report.
           </p>
-          {sample && <div className="stg:mt-auto">{renderLink({ href: sample.href, className: OUTLINE, children: sample.words })}</div>}
+          {sample && (
+            <div className="stg:mt-auto">
+              <LinkButton href={sample.href} variant="outline" size="xs" renderLink={renderLink}>
+                {sample.words}
+              </LinkButton>
+            </div>
+          )}
         </>
       ) : (
         <>
@@ -264,9 +276,9 @@ function SkillCard({
             <p className="stg:m-0 stg:text-sm stg:text-muted-foreground">An admin of this organization adds skills.</p>
           ) : (
             <div className="stg:mt-auto">
-              <button type="button" className={OUTLINE} onClick={() => void add(skill)} disabled={!ready || adding || isSaving}>
+              <Button variant="outline" size="xs" onClick={() => void add(skill)} disabled={!ready || adding || isSaving}>
                 {adding ? "Adding…" : "Add it"}
-              </button>
+              </Button>
             </div>
           )}
           {readError !== null && (

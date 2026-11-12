@@ -31,6 +31,7 @@ import { useCreateRoutine } from "./useCreateRoutine.js";
 import { cadenceToCron, validateCron, type CadencePreset } from "./cadence.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { useOrgSlugForId } from "../organization/useOrgRefs.js";
+import { Button } from "../button/Button.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -440,22 +441,18 @@ export function RoutineForm({
             disabled={isCreating}
           />
           {modelName !== "" && (
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              size="xs"
               onClick={() => {
                 setModelName("");
                 setServiceTier("standard");
                 setThinkingMode("disabled");
               }}
               disabled={isCreating}
-              className={cn(
-                "stg:rounded-md stg:px-2 stg:py-1 stg:text-2xs stg:text-muted-foreground",
-                "stg:hover:text-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-                "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-              )}
             >
               Reset to platform default
-            </button>
+            </Button>
           )}
         </div>
         <p className={hintClasses}>
@@ -534,33 +531,14 @@ export function RoutineForm({
       )}
 
       <div className="stg:flex stg:items-center stg:gap-2">
-        <button
-          type="submit"
-          disabled={!canSubmit}
-          className={cn(
-            "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-sm stg:font-medium",
-            "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
-            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-            "stg:disabled:pointer-events-none stg:disabled:opacity-40",
-          )}
-        >
-          {isCreating && <SpinnerIcon size={14} />}
+        <Button type="submit" disabled={!canSubmit} icon={isCreating ? <SpinnerIcon size={14} /> : undefined}>
           Create routine
-        </button>
+        </Button>
 
         {onCancel && (
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={isCreating}
-            className={cn(
-              "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-sm",
-              "stg:text-muted-foreground stg:hover:bg-accent-hover stg:hover:text-foreground",
-              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-            )}
-          >
+          <Button variant="ghost" onClick={onCancel} disabled={isCreating}>
             Cancel
-          </button>
+          </Button>
         )}
       </div>
     </form>

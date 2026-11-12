@@ -1,5 +1,7 @@
 "use client";
 
+import { Button } from "../button/Button.js";
+
 /**
  * Armed-only indicator for the session-scoped auto-approve state, docked
  * above the composer. Renders nothing about approvals until auto-approve is
@@ -27,13 +29,9 @@ export function AutoApproveIndicator({ onTurnOff }: { readonly onTurnOff: () => 
         <span>Auto-approving tool calls for this session</span>
         <span>; hooks and tool lists still apply</span>
       </span>
-      <button
-        type="button"
-        onClick={onTurnOff}
-        className="stg:shrink-0 stg:rounded stg:font-medium stg:text-foreground stg:underline-offset-2 stg:hover:underline stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
-      >
+      <Button variant="ghost" size="xs" onClick={onTurnOff}>
         Turn off
-      </button>
+      </Button>
     </div>
   );
 }

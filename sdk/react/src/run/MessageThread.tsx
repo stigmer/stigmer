@@ -82,6 +82,7 @@ import { useAutoScroll, usePinToLatestOnSignal } from "../internal/useAutoScroll
 import { JumpToLatestButton } from "../internal/JumpToLatestButton.js";
 import { ApprovalPeekBar } from "../internal/ApprovalPeekBar.js";
 import { ThreadItemWrapper } from "../internal/ThreadItemWrapper.js";
+import { Button } from "../button/Button.js";
 
 const LazyVirtualizedThread = lazy(() =>
   import("../internal/VirtualizedThread.js").then((m) => ({
@@ -2085,13 +2086,9 @@ function FailedUserMessage({
       >
         <span className="stg:min-w-0 stg:flex-1 stg:truncate">Didn&rsquo;t send. Your message is kept here.</span>
         {onRetry && (
-          <button
-            type="button"
-            onClick={onRetry}
-            className="stg:shrink-0 stg:rounded stg:font-medium stg:underline-offset-2 stg:hover:underline stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
-          >
+          <Button variant="ghost" size="xs" onClick={onRetry} className="stg:text-destructive stg:hover:bg-destructive-subtle">
             Retry
-          </button>
+          </Button>
         )}
       </div>
     </div>

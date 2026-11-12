@@ -40,23 +40,29 @@ const page = vi.hoisted(() => ({
 
 const LIST_FN = vi.hoisted(() => ({ marker: "routine-list-fn" }));
 
-vi.mock("@stigmer/react-sdk", () => ({
-  ResourceWorkbench: (props: WorkbenchProps) => {
-    page.workbench.push(props);
-    return <>{props.headerAction}</>;
-  },
-  ApplyManifestDialog: (props: DialogProps) => {
-    page.dialog.push(props);
-    return null;
-  },
-  RoutineRowActions: () => null,
-  createRoutineColumns: () => [],
-  createRoutineListFn: () => LIST_FN,
-  useStigmer: () => ({}),
-  useActiveOrgId: () => "org_acme",
-  // The person's organizations: org_acme reads "acme" in a URL.
-  useOrgSlugForId: () => (id: string) => (id === "org_acme" ? "acme" : id),
-}));
+vi.mock("@stigmer/react-sdk", async () => {
+  const kit = await vi.importActual<typeof import("@stigmer/react-sdk")>("@stigmer/react-sdk");
+  return {
+    Button: kit.Button,
+    IconButton: kit.IconButton,
+    LinkButton: kit.LinkButton,
+    ResourceWorkbench: (props: WorkbenchProps) => {
+      page.workbench.push(props);
+      return <>{props.headerAction}</>;
+    },
+    ApplyManifestDialog: (props: DialogProps) => {
+      page.dialog.push(props);
+      return null;
+    },
+    RoutineRowActions: () => null,
+    createRoutineColumns: () => [],
+    createRoutineListFn: () => LIST_FN,
+    useStigmer: () => ({}),
+    useActiveOrgId: () => "org_acme",
+    // The person's organizations: org_acme reads "acme" in a URL.
+    useOrgSlugForId: () => (id: string) => (id === "org_acme" ? "acme" : id),
+  };
+});
 
 import RoutineListPage from "../library/RoutineListPage";
 

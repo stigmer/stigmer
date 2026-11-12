@@ -13,8 +13,8 @@
  */
 import { useCallback } from "react";
 import type { PrincipalAccess } from "@stigmer/apis/ai/stigmer/iam/grant/v1/io_pb";
-import { cn } from "@stigmer/design-tokens";
 import { granteeFromView, type Grantee } from "@stigmer/client";
+import { IconButton } from "../button/IconButton.js";
 import { GranteeAvatar } from "./GranteeAvatar.js";
 import { PermissionGate } from "./PermissionGate.js";
 
@@ -86,20 +86,14 @@ export function AccessRow({
         )}
         {grantee && (
           <PermissionGate resource={grantGate} relation="can_grant_access">
-            <button
-              type="button"
+            <IconButton
+              size="xs"
+              label={`Remove ${displayName}'s access`}
+              icon={<RemoveIcon />}
               onClick={handleRemove}
               disabled={isRemoving}
-              aria-label={`Remove ${displayName}'s access`}
-              className={cn(
-                "stg:rounded stg:p-0.5 stg:text-muted-foreground stg:opacity-0 stg:group-hover:opacity-100 stg:focus-visible:opacity-100",
-                "stg:hover:text-destructive stg:hover:bg-destructive-subtle",
-                "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-                "stg:transition-opacity",
-              )}
-            >
-              <RemoveIcon />
-            </button>
+              className="stg:opacity-0 stg:group-hover:opacity-100 stg:focus-visible:opacity-100 stg:hover:text-destructive stg:hover:bg-destructive-subtle"
+            />
           </PermissionGate>
         )}
       </div>

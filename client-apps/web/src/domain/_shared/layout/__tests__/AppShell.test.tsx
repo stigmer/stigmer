@@ -38,19 +38,25 @@ vi.mock("@/domain/session/session-navigation", () => ({
   }),
 }));
 
-vi.mock("@stigmer/react-sdk", () => ({
-  useResolveRunSession: (id: string | null) => {
-    shell.resolving.push(id);
-    return {
-      sessionId: id ? (shell.sessionFor.get(id) ?? null) : null,
-      isLoading: id !== null && shell.pending.has(id),
-      error: id !== null && shell.failing.has(id) ? new Error("connection refused") : null,
-      refetch: () => {
-        shell.retries += 1;
-      },
-    };
-  },
-}));
+vi.mock("@stigmer/react-sdk", async () => {
+  const kit = await vi.importActual<typeof import("@stigmer/react-sdk")>("@stigmer/react-sdk");
+  return {
+    Button: kit.Button,
+    IconButton: kit.IconButton,
+    LinkButton: kit.LinkButton,
+    useResolveRunSession: (id: string | null) => {
+      shell.resolving.push(id);
+      return {
+        sessionId: id ? (shell.sessionFor.get(id) ?? null) : null,
+        isLoading: id !== null && shell.pending.has(id),
+        error: id !== null && shell.failing.has(id) ? new Error("connection refused") : null,
+        refetch: () => {
+          shell.retries += 1;
+        },
+      };
+    },
+  };
+});
 
 vi.mock("@/domain/session/AttentionNotifier", () => ({ AttentionNotifier: () => null }));
 vi.mock("@/domain/runs/RunNotFound", () => ({ RunNotFound: () => <p>not found</p> }));

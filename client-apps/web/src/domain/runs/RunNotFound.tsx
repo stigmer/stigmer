@@ -3,7 +3,8 @@
 // names what is missing ("Run not found") rather than showing the generic
 // 404, because the route itself exists. Same shape as the app's not-found
 // page and the desktop console's run page.
-import Link from "next/link";
+import { LinkButton } from "@stigmer/react-sdk";
+import { renderJourneyLink } from "@/domain/journey/journey-links";
 import { FileQuestion } from "lucide-react";
 
 export function RunNotFound() {
@@ -22,12 +23,9 @@ export function RunNotFound() {
           </p>
         </div>
 
-        <Link
-          href="/"
-          className="bg-primary text-primary-foreground hover:bg-primary-hover inline-flex h-8 items-center justify-center rounded-lg px-2.5 text-sm font-medium transition-colors"
-        >
+        <LinkButton href="/" renderLink={renderJourneyLink}>
           Go to Dashboard
-        </Link>
+        </LinkButton>
       </div>
     </div>
   );
