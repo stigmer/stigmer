@@ -34,6 +34,7 @@ const SENTINEL = "STIGMER_ORGANIZATION_PROVIDER_KEY";
 // A provider that retries (429, 5xx, a dropped connection) fails only once
 // its retries are spent, over a minute later.
 const RETRIED_MS = 240_000;
+const STEP_LIMIT = 10;
 
 const ORG_KEY_REFUSED = { type: "error", error: { type: "authentication_error", message: `invalid x-api-key [code: ${SENTINEL}]` } };
 const ORG_KEY_NO_CREDIT = {
@@ -163,10 +164,12 @@ test.describe("Every way a turn ends badly, in its own words (deterministic mock
   });
 
   test("a step limit reads amber, and Continue sends Continue", async ({ page, stigmerClient }) => {
-    await control.enqueue(anthropicToolUses([shellBlock("call_1", "echo one")]));
-    await control.enqueue(anthropicToolUses([shellBlock("call_2", "echo two")]));
+    // The runner's floor for the limit is 10 rounds (`shared/tool-rounds.ts`): one more ends the turn.
+    for (let round = 1; round <= STEP_LIMIT + 1; round++) {
+      await control.enqueue(anthropicToolUses([shellBlock(`call_${round}`, `echo ${round}`)]));
+    }
     await control.enqueue(anthropicText("Stopped short."));
-    const seeded = await seedTurn(stigmerClient, Harness.STIGMER, { maxToolRounds: 1 });
+    const seeded = await seedTurn(stigmerClient, Harness.STIGMER, { maxToolRounds: STEP_LIMIT });
     expect(await awaitRunTerminal(stigmerClient, seeded.runId)).toBe(RunPhase.RUN_TERMINATED);
     await control.reset();
 
