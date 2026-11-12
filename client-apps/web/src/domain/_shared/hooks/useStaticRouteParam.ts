@@ -36,9 +36,7 @@ export function useStaticRouteParam(
 
   return useMemo(() => {
     if (raw !== PLACEHOLDER) return raw;
-    const path = pathname ?? (typeof window === "undefined" ? null : window.location.pathname);
-    if (path === null) return null;
-    const segments = path.split("/").filter(Boolean);
+    const segments = pathname.split("/").filter(Boolean);
     const actual = segments[segments.length - fromEnd];
     return actual && actual !== PLACEHOLDER ? decodeURIComponent(actual) : null;
   }, [raw, fromEnd, pathname]);

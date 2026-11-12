@@ -145,6 +145,22 @@ describe("web AgentDetailPageInner", () => {
     expect(view?.onConnectExternal).toBeUndefined();
   });
 
+  it("moves to the tab a client-side link names once the address holds it, and keeps a tab picked since", () => {
+    // A client-side arrival: the first render runs before the address moves.
+    window.history.replaceState({}, "", "/sessions/ses_9");
+    const { rerender } = render(<AgentDetailPageInner org="acme" slug="variance-reporter" />);
+    expect(page.view.at(-1)?.activeTab).toBe("overview");
+
+    window.history.replaceState({}, "", "/library/agents/acme/variance-reporter?tab=make-it-yours");
+    rerender(<AgentDetailPageInner org="acme" slug="variance-reporter" />);
+    expect(page.view.at(-1)?.activeTab).toBe("make-it-yours");
+
+    act(() => (page.view.at(-1) as { onTabChange: (tab: string) => void }).onTabChange("versions"));
+    rerender(<AgentDetailPageInner org="acme" slug="variance-reporter" />);
+    expect(page.view.at(-1)?.activeTab).toBe("versions");
+    window.history.replaceState({}, "", "/");
+  });
+
   it("offers the view's Make it yours tab with the journey's routes, and opens the tab a link names", () => {
     window.history.replaceState({}, "", "/library/agents/acme/variance-reporter?tab=make-it-yours");
     render(<AgentDetailPageInner org="acme" slug="variance-reporter" />);
