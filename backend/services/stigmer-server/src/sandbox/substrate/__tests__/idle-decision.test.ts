@@ -56,18 +56,21 @@ describe("decideIdle on a draining worker", () => {
     ["resuming", "resuming", false, 600, 25, "none"],
     ["crashed", "crashed", false, 600, 25, "none"],
   ];
-  it.each(cases)("%s", (_name, state, busy, idleMinutes, drainMinutes, expected) => {
-    expect(
-      decideIdle({
-        state,
-        busy,
-        lastActiveAt: minutes(idleMinutes),
-        now,
-        suspendAfterMs: 5 * 60_000,
-        drainingSince: minutes(drainMinutes),
-      }),
-    ).toBe(expected);
-  });
+  it.each(cases)(
+    "%s",
+    (_name, state, busy, idleMinutes, drainMinutes, expected) => {
+      expect(
+        decideIdle({
+          state,
+          busy,
+          lastActiveAt: minutes(idleMinutes),
+          now,
+          suspendAfterMs: 5 * 60_000,
+          drainingSince: minutes(drainMinutes),
+        }),
+      ).toBe(expected);
+    },
+  );
 
   it("forces the store twenty minutes after the drain was first seen, inside Substrate's thirty", () => {
     expect(DRAIN_DEADLINE_MS).toBe(20 * 60_000);
