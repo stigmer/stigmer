@@ -50,6 +50,13 @@ export const LIVE: readonly LiveDemo[] = [
   { name: "file-review-dock", scene: "file-review-dock", title: "The review dock over two edited files", height: 260, interactive: false },
   { name: "end-user", scene: "session-end-user", title: "The session view as an end user inside a product sees it", height: 640, interactive: true },
   { name: "from-hooks", scene: "from-hooks", title: "A chat built from the hooks alone", height: 560, interactive: true },
+  {
+    name: "parts",
+    scene: "parts",
+    title: "The console's shared parts: buttons, the page header, the status pill, the empty state and the error message",
+    height: 720,
+    interactive: false,
+  },
 ];
 
 /** The presets the playground offers, beside the default look (`default`, no preset): the theme package's own list, held to it by live.test.ts. */

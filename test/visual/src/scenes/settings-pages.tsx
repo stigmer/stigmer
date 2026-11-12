@@ -12,6 +12,7 @@
 // person is an owner of it, as the one who sets an organization up is.
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
+import { Code, ConnectError } from "@connectrpc/connect";
 import type { ConnectRouter } from "@connectrpc/connect";
 import { RunQueryController } from "@stigmer/apis/ai/stigmer/agentic/run/v1/query_pb";
 import { BillingCommandController } from "@stigmer/apis/ai/stigmer/billing/v1/command_pb";
@@ -25,6 +26,8 @@ import { GrantQueryController } from "@stigmer/apis/ai/stigmer/iam/grant/v1/quer
 import { IdentityAccountQueryController } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/query_pb";
 import { OrganizationQueryController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/query_pb";
 import { VaultQueryController } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/query_pb";
+import { VaultSecretSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/spec_pb";
+import type { Vault } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
 import { samples } from "@stigmer/react-sdk/test";
 import { BillingSection } from "@stigmer/react-sdk";
 import {
@@ -34,6 +37,7 @@ import {
   SETTINGS_NAV_GROUPS,
   SettingsOverview,
   SettingsPage,
+  ServiceAccountsSection,
   SettingsSkeleton,
   TeamsSection,
   UsageSection,
@@ -166,6 +170,59 @@ export function settingsVaultsScene(): Drawing {
           ],
         }),
       }),
+  );
+}
+
+/** A shared vault with what it is for and the names of the secrets it holds; the values are never read. */
+function sharedVault(n: number, name: string, description: string, secrets: Readonly<Record<string, string>>): Vault {
+  const vault = samples.vault({ id: `vlt_0000000000000000000000001${n}`, name, slug: name.toLowerCase().replace(/\s+/g, "-"), org: ORG_ID });
+  if (vault.spec) {
+    vault.spec.description = description;
+    vault.spec.secrets = Object.fromEntries(Object.entries(secrets).map(([key, what]) => [key, create(VaultSecretSchema, { description: what })]));
+  }
+  return vault;
+}
+
+/** An organization's eight shared vaults, the long list a busy organization has. */
+const SHARED_VAULTS: readonly Vault[] = [
+  sharedVault(0, "Production", "The keys the production agents run with", { STRIPE_KEY: "Charges and refunds", LEDGER_TOKEN: "Reads the general ledger", SLACK_BOT_TOKEN: "Posts the daily report" }),
+  sharedVault(1, "Ledger service", "The ledger's read-only service account", { LEDGER_TOKEN: "Reads the general ledger" }),
+  sharedVault(2, "Payroll", "The payroll provider's API", { PAYROLL_KEY: "Reads pay runs" }),
+  sharedVault(3, "Card statements", "The corporate card's export", { CARD_EXPORT_TOKEN: "Downloads statements" }),
+  sharedVault(4, "Vendor onboarding", "Tax forms and bank details intake", { DOCS_BUCKET_KEY: "Files the forms" }),
+  sharedVault(5, "Staging", "Keys for the staging agents", { STRIPE_TEST_KEY: "Test-mode charges" }),
+  sharedVault(6, "Support desk", "The helpdesk's API", { HELPDESK_TOKEN: "Reads and answers tickets" }),
+  sharedVault(7, "Analytics", "The warehouse's read-only role", { WAREHOUSE_URL: "Connects to the warehouse" }),
+];
+
+/** Vaults for an organization with many shared vaults, the first opened to its secrets: a long list with an open row. */
+export function settingsVaultsOpenScene(): Drawing {
+  return settingsScene(
+    () => <VaultsSection />,
+    (router) =>
+      router.service(VaultQueryController, {
+        getMine: () => samples.vault({ id: "vlt_00000000000000000000000002", name: "My vault", slug: "my-vault", org: ORG_ID }),
+        list: () => ({ entries: [...SHARED_VAULTS] }),
+      }),
+  );
+}
+
+/** Vaults when the server does not answer: both of the page's reads fail, each where its list would be. */
+export function settingsVaultsFailedScene(): Drawing {
+  const down = () => {
+    throw new ConnectError("the vault service did not answer", Code.Unavailable);
+  };
+  return settingsScene(
+    () => <VaultsSection />,
+    (router) => router.service(VaultQueryController, { getMine: down, list: down }),
+  );
+}
+
+/** Service accounts for a member of the organization, who may not manage them: the page's denial. */
+export function settingsServiceAccountsDeniedScene(): Drawing {
+  return settingsScene(
+    () => <ServiceAccountsSection />,
+    (router) => router.service(GrantQueryController, { checkMyPermission: () => ({ isAuthorized: false }) }),
   );
 }
 

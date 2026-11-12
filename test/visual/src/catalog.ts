@@ -84,6 +84,7 @@ export type SceneId =
   | "skill-detail"
   | "marketplace-admin"
   | "marketplace-member"
+  | "marketplace-no-match"
   | `session-${SessionSceneName}`
   | `story-${StorySceneName}`
   | "agent-chat-page"
@@ -95,6 +96,7 @@ export type SceneId =
   | "agent-chat-popup-closed"
   | "agent-chat-popup"
   | "from-hooks"
+  | "parts"
   | `preset-${Preset}`;
 
 /** The roles a control is pressed by: Playwright's own list, the one `getByRole` takes. */
@@ -350,12 +352,25 @@ const SETTINGS_SCENES = [
   { id: "settings-members", title: "Settings, Members: the owner and the people the organization holds", widths: ["desktop", "narrow"] },
   { id: "settings-api-keys", title: "Settings, API keys: Stigmer Cloud, before the first key", widths: ["desktop"] },
   { id: "settings-vaults", title: "Settings, Vaults: the organization's vaults", widths: ["desktop"] },
+  {
+    id: "settings-vaults-open",
+    title: "Settings, Vaults: eight shared vaults, the first opened to its secrets",
+    widths: ["desktop"],
+    opens: { press: "Production", role: "button", exact: false },
+  },
+  { id: "settings-vaults-failed", title: "Settings, Vaults: the server did not answer, so neither list could be read", widths: ["desktop"] },
+  { id: "settings-service-accounts-denied", title: "Settings, Service accounts: a member who may not manage them", widths: ["desktop"] },
   { id: "settings-billing", title: "Settings, Billing: Stigmer Cloud's plan and payment", widths: ["desktop"] },
   { id: "settings-usage", title: "Settings, Usage: the organization's figures", widths: ["desktop"] },
   { id: "settings-teams-oss", title: "Settings, Teams: the open-source server, which serves none", widths: ["desktop"] },
   { id: "settings-model-catalog", title: "Settings, Model catalogue: a platform operator's console", widths: ["desktop"] },
   { id: "settings-loading", title: "Settings, any page while its rows are read", widths: ["desktop"] },
-] as const satisfies readonly { readonly id: `settings-${string}`; readonly title: string; readonly widths: readonly WidthName[] }[];
+] as const satisfies readonly {
+  readonly id: `settings-${string}`;
+  readonly title: string;
+  readonly widths: readonly WidthName[];
+  readonly opens?: Act;
+}[];
 
 /**
  * The routines page's screens (docs/guides/routines/run-an-agent-on-a-schedule.mdx),
@@ -708,6 +723,12 @@ export const SCENES: readonly Scene[] = [
   { id: "skill-detail", title: "Skill page: the skills page's variance-report, its description over its rendered body", widths: ["desktop"] },
   { id: "marketplace-admin", title: "Marketplace: the official catalogue, for an admin", widths: ["desktop", "narrow"] },
   { id: "marketplace-member", title: "Marketplace: the official catalogue, for a member", widths: ["desktop"] },
+  {
+    id: "marketplace-no-match",
+    title: "Marketplace: a search that matches no plugin",
+    widths: ["desktop"],
+    opens: { fill: "Search plugins", with: "ledgr" },
+  },
   ...SESSION_SCENES,
   ...STORY_SCENES,
   ...ROUTINE_SCENES,
@@ -739,6 +760,7 @@ export const SCENES: readonly Scene[] = [
     title: "The hooks guide's chat: a completed turn, drawn by the program built from the hooks alone",
     widths: ["desktop", "narrow"],
   },
+  { id: "parts", title: "The console's shared parts, each in every variant and state it has", widths: ["desktop", "narrow"] },
   ...PRESETS.map((preset) => ({
     id: `preset-${preset}` as const,
     title: `The completed thread in the ${preset} preset`,
