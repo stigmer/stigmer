@@ -154,7 +154,7 @@ export function CollapsibleJsonBlock({ label, content }: CollapsibleJsonBlockPro
         </svg>
         {label}
         {!isExpanded && isLong && (
-          <span className="stg:font-normal stg:text-muted-foreground-subtle">
+          <span className="stg:font-normal stg:text-muted-foreground">
             ({lines.length} lines)
           </span>
         )}

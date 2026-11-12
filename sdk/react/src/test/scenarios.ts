@@ -21,6 +21,15 @@
 // is folded after the events and a page that replays the scenario sends it
 // as a frame), and `finished` the Files its turn returned and the routine
 // that started the session.
+//
+// Beside the states, whole stories: the scripted turn and the ledger turn
+// the docs play, and the step turns, one per family of step the session
+// viewer draws (a connected app's tools, twenty Files made, every file step,
+// every shell step). A step turn is a story, not a state, so the surfaces
+// pinned against every state (the terminal's frames, the CLI's goldens) do
+// not draw it; the gallery draws it in the session view. The shell turn
+// carries what its running commands printed so far, streamed like the
+// liveness preview.
 import { create, type JsonObject, type MessageInitShape } from "@bufbuild/protobuf";
 import { durationFromMs } from "@bufbuild/protobuf/wkt";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
@@ -63,8 +72,12 @@ export const SCENARIO_NAMES = [
 /** One of the catalogue's states. */
 export type ScenarioName = (typeof SCENARIO_NAMES)[number];
 
-/** A story the catalogue tells beside its states, whole: the scripted turn the docs play, or the first agent job's ledger turn. */
-export type StoryName = "scripted-turn" | "ledger-turn";
+/**
+ * A story the catalogue tells beside its states, whole: the scripted turn the
+ * docs play, the first agent job's ledger turn, or one of the step turns
+ * ({@link STEP_STORY_NAMES}).
+ */
+export type StoryName = "scripted-turn" | "ledger-turn" | StepStoryName;
 
 /** What the session's usage report says, in the few figures the surfaces show. */
 export interface ScenarioUsage {
@@ -100,6 +113,19 @@ export interface Scenario {
   readonly liveness: RunLiveness | undefined;
   /** The Files the session's turns returned (their outputs folder), oldest first. */
   readonly files: readonly StigmerFile[];
+  /**
+   * What the working turn's running commands printed so far, as the stream
+   * sent it (streamed, never stored), already in `fold`; a page that replays
+   * the scenario sends each as a frame after the events. Absent when nothing
+   * printed.
+   */
+  readonly outputs?: readonly ToolOutput[];
+}
+
+/** A fragment of a running tool's output, as the stream sends it. */
+export interface ToolOutput {
+  readonly toolUseId: string;
+  readonly delta: string;
 }
 
 const RUN_ID = samples.run().metadata!.id;
@@ -213,14 +239,19 @@ interface Beside {
   readonly session?: Session;
   /** The runner's estimated cost of each turn's run, in USD (display only). */
   readonly estimatedCostUsd?: number;
+  /** What running commands printed so far, streamed after the events. */
+  readonly outputs?: readonly ToolOutput[];
 }
 
-/** The events folded, then the liveness preview the stream sent after them. */
-function foldWithLiveness(events: readonly SessionEvent[], liveness: RunLiveness | undefined): SessionFold {
-  if (liveness === undefined) return samples.fold(events);
+/** The events folded, then the liveness preview and the running commands' output the stream sent after them. */
+function foldWithLiveness(events: readonly SessionEvent[], liveness: RunLiveness | undefined, outputs: readonly ToolOutput[] = []): SessionFold {
+  if (liveness === undefined && outputs.length === 0) return samples.fold(events);
   const log = new SessionLog();
   log.apply(numbered(events));
-  log.applyFrame(create(StreamSessionEventsResponseSchema, { frame: { case: "stigmerRunLiveness", value: liveness } }));
+  if (liveness !== undefined) {
+    log.applyFrame(create(StreamSessionEventsResponseSchema, { frame: { case: "stigmerRunLiveness", value: liveness } }));
+  }
+  for (const output of outputs) log.applyFrame(samples.toolOutputDeltaFrame(output.toolUseId, output.delta));
   return log.snapshot();
 }
 
@@ -306,7 +337,7 @@ function routineSession(): Session {
 /** Builds a loaded scenario from its events, its one turn's run phase and what it holds beside them. */
 function loaded(name: ScenarioName | StoryName, title: string, events: readonly SessionEvent[], beside: Beside = {}): Scenario {
   const ordered = numbered(events);
-  const fold = foldWithLiveness(events, beside.liveness);
+  const fold = foldWithLiveness(events, beside.liveness, beside.outputs);
   const runs = fold.turns.map((turn) =>
     samples.run({
       id: turn.runId,
@@ -332,6 +363,7 @@ function loaded(name: ScenarioName | StoryName, title: string, events: readonly 
     usage: beside.usage,
     liveness: beside.liveness,
     files: beside.files ?? [],
+    ...(beside.outputs === undefined ? {} : { outputs: beside.outputs }),
   };
 }
 
@@ -694,7 +726,7 @@ export function upTo(scenario: Scenario, n: number): Scenario {
   const whole = n === scenario.events.length;
   return loaded(scenario.name, scenario.title, scenario.events.slice(0, n), {
     ...(scenario.session === null ? {} : { session: scenario.session }),
-    ...(whole ? { usage: scenario.usage, liveness: scenario.liveness, files: scenario.files } : {}),
+    ...(whole ? { usage: scenario.usage, liveness: scenario.liveness, files: scenario.files, outputs: scenario.outputs } : {}),
   });
 }
 
@@ -757,3 +789,354 @@ export function ledgerStory(): Scenario {
     files: [LEDGER_REPORT],
   });
 }
+
+// ---------------------------------------------------------------------------
+// The step turns: one turn per family of step the session viewer draws, so
+// every kind of step has a picture: a connected app's tools, a turn that made
+// twenty Files, every file step, and every shell step
+// ---------------------------------------------------------------------------
+
+/** The step turns, in the order the gallery draws them. */
+export const STEP_STORY_NAMES = ["mcp-turn", "many-files", "file-steps", "shell-steps"] as const;
+
+/** One of the step turns. */
+export type StepStoryName = (typeof STEP_STORY_NAMES)[number];
+
+/** A call's use and result in the demo run: `atMs` after the frozen instant, returning `tookMs` later, as `id` when one tool is called twice. */
+interface Step {
+  readonly name: string;
+  readonly input: JsonObject;
+  readonly atMs: number;
+  readonly result: string;
+  readonly tookMs?: number;
+  readonly id?: string;
+  readonly isError?: boolean;
+  readonly mcpServerName?: string;
+}
+
+function step({ name, input, atMs, result, tookMs = 1_000, id, isError = false, mcpServerName }: Step): SessionEvent[] {
+  const toolUseId = id ?? `${RUN_ID}.tc-${name}`;
+  const use = samples.toolUseEvent(name, input, {
+    id: toolUseId,
+    processedAt: sampleInstant(atMs),
+    ...(mcpServerName === undefined ? {} : { mcpServerName }),
+  });
+  const result_ = samples.toolResultEvent(toolUseId, result, {
+    processedAt: sampleInstant(atMs + tookMs),
+    isError,
+    mcp: mcpServerName !== undefined,
+  });
+  return [use, result_];
+}
+
+/** The connected app the MCP turn files its issue in. */
+const ISSUE_TRACKER = "issue-tracker";
+
+/** A connected app's tools: the agent searches the issue tracker, files an issue, and says so. */
+function mcpTurn(): SessionEvent[] {
+  return [
+    samples.userMessageEvent("File an issue for the credit-note rounding so the billing team picks it up."),
+    samples.runStatusEvent("running"),
+    ...step({
+      name: "search_issues",
+      input: { query: "credit note rounding", state: "open" },
+      atMs: 3_000,
+      tookMs: 2_000,
+      result: "No open issues match.",
+      mcpServerName: ISSUE_TRACKER,
+    }),
+    ...step({
+      name: "create_issue",
+      input: { title: "Credit notes round per line", team: "billing", labels: ["bug", "rounding"], api_token: "itk_live_2b9f7c" },
+      atMs: 7_000,
+      tookMs: 4_000,
+      result: "Created BILL-219",
+      mcpServerName: ISSUE_TRACKER,
+    }),
+    samples.agentMessageEvent("Filed as **BILL-219** in the billing team's tracker, with the two invoices that show the drift.", {
+      processedAt: sampleInstant(16_000),
+    }),
+    samples.runStatusEvent("completed", { processedAt: sampleInstant(18_000) }),
+  ];
+}
+
+/** The twenty Files the long audit made: a summary, the cases, an audit per invoice that was off, and the month's invoices. */
+const MANY_FILES: readonly StigmerFile[] = [
+  samples.outputFile("invoice-audit.md", { mimeType: "text/markdown", sizeBytes: 4_210n }),
+  samples.outputFile("rounding-cases.csv", { mimeType: "text/csv", sizeBytes: 1_830n }),
+  samples.outputFile("credit-note-audit.md", { mimeType: "text/markdown", sizeBytes: 3_280n }),
+  samples.outputFile("half-cent-cases.csv", { mimeType: "text/csv", sizeBytes: 920n }),
+  samples.outputFile("invoices-2026-10.pdf", { mimeType: "application/pdf", sizeBytes: 421_900n }),
+  ...[1042, 1057, 1063, 1071, 1088, 1093, 1101, 1114, 1120, 1136, 1149, 1152].map((invoice) =>
+    samples.outputFile(`inv-${invoice}-audit.md`, { mimeType: "text/markdown", sizeBytes: 1_400n + BigInt(invoice % 7) * 90n }),
+  ),
+  ...["credit-notes-2026-10.pdf", "adjustments-2026-10.pdf", "statements-2026-10.pdf"].map((name) =>
+    samples.outputFile(name, { mimeType: "application/pdf", sizeBytes: 188_400n }),
+  ),
+];
+
+/** The long audit: it reads the billing code, edits three files, runs the tests twice and writes its twenty Files. */
+function manyFilesTurn(): SessionEvent[] {
+  const reads = ["src/billing/invoice.ts", "src/billing/credit-note.ts", "src/billing/line.ts", "src/billing/rounding.ts"].flatMap((path, index) =>
+    step({ name: "read_file", input: { path }, atMs: 4_000 + index * 2_000, result: "export function total(lines: readonly Line[]) {", id: `${RUN_ID}.tc-read-${index}` }),
+  );
+  const edits = [
+    { path: "src/billing/invoice.ts", old_string: "sum + roundCents(lineTotal(line))", new_string: "sum + lineTotal(line)" },
+    { path: "src/billing/credit-note.ts", old_string: "roundCents(line.amount)", new_string: "line.amount" },
+  ].flatMap((input, index) => step({ name: "edit_file", input, atMs: 30_000 + index * 4_000, result: "1 edit applied", id: `${RUN_ID}.tc-edit-${index}` }));
+  const writes = MANY_FILES.flatMap((file, index) =>
+    step({
+      name: "write_file",
+      input: { path: `/.stigmer/outputs/${file.spec!.filename}`, content: `# ${file.spec!.filename}\n` },
+      atMs: 120_000 + index * 9_000,
+      tookMs: 300,
+      result: "Wrote the file",
+      id: `${RUN_ID}.tc-write-${index}`,
+    }),
+  );
+  return [
+    samples.userMessageEvent("Audit every October invoice for rounding errors, fix the code, and write an audit file for each invoice that was off."),
+    samples.runStatusEvent("running"),
+    ...reads,
+    ...edits,
+    ...step({
+      name: "write_file",
+      input: { path: "src/billing/rounding.test.ts", content: 'import { roundHalfEven } from "./rounding";\n' },
+      atMs: 40_000,
+      tookMs: 300,
+      result: "Wrote the file",
+      id: `${RUN_ID}.tc-write-test`,
+    }),
+    ...step({ name: "execute", input: { command: "npm test -- billing" }, atMs: 50_000, tookMs: 21_000, result: "Tests: 19 passed, 19 total", id: `${RUN_ID}.tc-execute-0` }),
+    ...writes,
+    ...step({ name: "execute", input: { command: "npm test -- billing" }, atMs: 330_000, tookMs: 20_000, result: "Tests: 23 passed, 23 total", id: `${RUN_ID}.tc-execute-1` }),
+    samples.agentMessageEvent("Every October invoice is checked. Fourteen were a cent off; each has its own audit file, and the summary lists them all.", {
+      processedAt: sampleInstant(358_000),
+    }),
+    samples.runStatusEvent("completed", { processedAt: sampleInstant(362_000) }),
+  ];
+}
+
+/** The credit-note file as the agent read it: lines 14 to 17 of 88, in the Stigmer harness's frame. */
+const CREDIT_NOTE_READ = [
+  "@@ lines 14-17 of 88 | next offset 18 @@",
+  "export function creditNoteTotal(note: CreditNote): Cents {",
+  "  return note.lines.reduce(",
+  "    (sum, line) => sum + roundCents(line.amount), 0);",
+  "}",
+].join("\n");
+
+/** The test file the agent created: 24 lines. */
+const ROUNDING_TEST = [
+  'import { roundHalfEven } from "./rounding";',
+  'import { creditNoteTotal, invoiceTotal } from "./totals";',
+  "",
+  'test("0.335 rounds to 0.34", () => {',
+  "  expect(roundHalfEven(33.5)).toBe(34);",
+  "});",
+  "",
+  'test("0.325 rounds to 0.32", () => {',
+  "  expect(roundHalfEven(32.5)).toBe(32);",
+  "});",
+  "",
+  'test("a credit note rounds once", () => {',
+  "  const note = { lines: [{ amount: 33.5 }, { amount: 33.5 }] };",
+  "  expect(creditNoteTotal(note)).toBe(67);",
+  "});",
+  "",
+  'test("an invoice rounds once", () => {',
+  "  const lines = [{ amount: 33.5 }, { amount: 33.5 }];",
+  "  expect(invoiceTotal(lines)).toBe(67);",
+  "});",
+  "",
+  'test("zero stays zero", () => {',
+  "  expect(roundHalfEven(0)).toBe(0);",
+  "});",
+  "",
+].join("\n");
+
+/** The File the file-steps turn returns: the audit of what it changed. */
+const FILE_STEPS_AUDIT: StigmerFile = samples.outputFile("rounding-audit.md", { mimeType: "text/markdown", sizeBytes: 2_310n });
+
+/** Every file step: list, search, find, read, edit, create, delete, an edit that failed and its retry, and a File written. */
+function fileStepsTurn(): SessionEvent[] {
+  return [
+    samples.userMessageEvent("Make credit notes round like invoices, and replace the old rounding helper."),
+    samples.runStatusEvent("running"),
+    ...step({ name: "ls", input: { path: "src/billing" }, atMs: 3_000, tookMs: 200, result: "credit-note.ts\ninvoice.ts\nline.ts\nlegacy-rounding.ts\nrounding.ts\ntypes.ts" }),
+    ...step({
+      name: "grep",
+      input: { pattern: "round(", path: "src/billing" },
+      atMs: 6_000,
+      result: "src/billing/invoice.ts:41:      sum + roundCents(lineTotal(line))\nsrc/billing/credit-note.ts:18:  amount: roundCents(line.amount)",
+    }),
+    ...step({
+      name: "glob",
+      input: { pattern: "**/*.test.ts" },
+      atMs: 9_000,
+      tookMs: 200,
+      result: "src/billing/invoice.test.ts\nsrc/billing/line.test.ts\nsrc/billing/types.test.ts\nsrc/tax/vat.test.ts",
+    }),
+    ...step({ name: "read_file", input: { path: "src/billing/credit-note.ts", offset: 14, limit: 4 }, atMs: 12_000, tookMs: 200, result: CREDIT_NOTE_READ }),
+    ...step({
+      name: "edit_file",
+      input: {
+        path: "src/billing/credit-note.ts",
+        old_string: "  return note.lines.reduce(\n    (sum, line) => sum + roundCents(line.amount), 0);",
+        new_string: "  return roundHalfEven(note.lines.reduce(\n    (sum, line) => sum + line.amount, 0));",
+      },
+      atMs: 30_000,
+      result: "1 edit applied",
+      id: `${RUN_ID}.tc-edit-credit-note`,
+    }),
+    ...step({ name: "write_file", input: { path: "src/billing/rounding.test.ts", content: ROUNDING_TEST }, atMs: 48_000, tookMs: 300, result: "Wrote 24 lines", id: `${RUN_ID}.tc-write-test` }),
+    ...step({ name: "delete_file", input: { path: "src/billing/legacy-rounding.ts" }, atMs: 56_000, tookMs: 100, result: "" }),
+    ...step({
+      name: "edit_file",
+      input: { path: "src/billing/invoice.ts", old_string: "sum + roundCents(line.total)", new_string: "sum + line.total" },
+      atMs: 64_000,
+      tookMs: 200,
+      result: "Error: the text to replace was not found in src/billing/invoice.ts",
+      isError: true,
+      id: `${RUN_ID}.tc-edit-invoice-failed`,
+    }),
+    ...step({
+      name: "edit_file",
+      input: { path: "src/billing/invoice.ts", old_string: "sum + roundCents(lineTotal(line))", new_string: "sum + lineTotal(line)" },
+      atMs: 72_000,
+      result: "1 edit applied",
+      id: `${RUN_ID}.tc-edit-invoice`,
+    }),
+    ...step({
+      name: "write_file",
+      input: { path: "/.stigmer/outputs/rounding-audit.md", content: "# Rounding audit\n\nCredit notes now round once, at the total.\n" },
+      atMs: 110_000,
+      tookMs: 300,
+      result: "Wrote 2.3 KB",
+      id: `${RUN_ID}.tc-write-audit`,
+    }),
+    samples.agentMessageEvent("Credit notes now round once, like invoices. The old helper is gone and the new one has its own tests.", {
+      processedAt: sampleInstant(126_000),
+    }),
+    samples.runStatusEvent("completed", { processedAt: sampleInstant(130_000) }),
+  ];
+}
+
+/** The failed suite's output, ending in the shell's exit marker. */
+const FAILED_SUITE = [
+  " PASS  src/billing/invoice.test.ts",
+  " FAIL  src/billing/credit-note.test.ts",
+  "  ✕ half-cent credit note (4 ms)",
+  "    Expected: 0.34",
+  "    Received: 0.33",
+  "",
+  "Tests: 1 failed, 18 passed, 19 total",
+  "[Command failed with exit code 1]",
+].join("\n");
+
+const SHELL_RUNNING_ID = `${RUN_ID}.tc-execute-suite`;
+const SHELL_BACKGROUND_ID = `${RUN_ID}.tc-execute-dev`;
+const SHELL_ASK_ID = `${RUN_ID}.tc-execute-push`;
+
+/** What the running suite and the background dev server printed so far. */
+const SHELL_OUTPUTS: readonly ToolOutput[] = [
+  { toolUseId: SHELL_RUNNING_ID, delta: " PASS  src/billing/invoice.test.ts\n PASS  src/billing/credit-note.test.ts\n" },
+  { toolUseId: SHELL_BACKGROUND_ID, delta: "> billing-app@1.4.0 dev\n> vite\n\n  VITE v5.4.2  ready in 412 ms\n  ➜  Local:   http://localhost:5173/\n" },
+];
+
+/** What the shell turn had open when the stream last said: the suite for 30s, the dev server for 2m 4s. */
+const SHELL_LIVENESS: RunLiveness = create(RunLivenessSchema, {
+  runId: RUN_ID,
+  operations: [{ toolUseId: SHELL_RUNNING_ID, name: "execute", elapsed: durationFromMs(30_000) }],
+});
+
+/**
+ * Every shell step: a command and its output, one the agent described, one
+ * that exited 1, a quick one, the suite still running, a dev server in the
+ * background, and a push that waits for a yes.
+ */
+function shellStepsTurn(): SessionEvent[] {
+  const todos = [
+    { content: "Fix credit-note rounding", status: "completed" },
+    { content: "Run the credit-note tests", status: "completed" },
+    { content: "Fix the half-cent test", status: "completed" },
+    { content: "Try the change in the app", status: "completed" },
+    { content: "Push the fix", status: "in_progress" },
+  ];
+  return [
+    samples.userMessageEvent("Fix the credit-note rounding, prove it with the tests, try it in the app, and push the fix."),
+    samples.runStatusEvent("running"),
+    ...step({ name: "write_todos", input: { todos }, atMs: 2_000, tookMs: 200, result: "Updated the to-do list" }),
+    ...step({
+      name: "execute",
+      input: { command: "npm test -- billing/invoice" },
+      atMs: 10_000,
+      tookMs: 14_000,
+      result: "Tests: 12 passed, 12 total\nTime:  13.8 s\n[Command succeeded]",
+      id: `${RUN_ID}.tc-execute-invoice`,
+    }),
+    ...step({
+      name: "execute",
+      input: { command: "npm test -- billing/credit-note", description: "Run the credit-note tests" },
+      atMs: 40_000,
+      tookMs: 9_000,
+      result: "Tests: 7 passed, 7 total\n[Command succeeded]",
+      id: `${RUN_ID}.tc-execute-credit-note`,
+    }),
+    ...step({
+      name: "execute",
+      input: { command: "npm test -- billing", description: "Run the whole billing suite" },
+      atMs: 60_000,
+      tookMs: 31_000,
+      result: FAILED_SUITE,
+      id: `${RUN_ID}.tc-execute-billing`,
+    }),
+    ...step({ name: "execute", input: { command: "git diff --stat" }, atMs: 120_000, tookMs: 300, result: " src/billing/credit-note.ts | 4 ++--\n 1 file changed\n[Command succeeded]", id: `${RUN_ID}.tc-execute-diff` }),
+    samples.toolUseEvent("execute", { command: "npm run dev", background: true }, { id: SHELL_BACKGROUND_ID, processedAt: sampleInstant(136_000) }),
+    samples.toolResultEvent(SHELL_BACKGROUND_ID, "Started in the background.", { processedAt: sampleInstant(136_400) }),
+    samples.backgroundCommandStatusEvent(SHELL_BACKGROUND_ID, { processedAt: sampleInstant(136_500), timeoutSeconds: 1_800 }),
+    samples.toolUseEvent("execute", { command: "npm test -- billing" }, { id: SHELL_RUNNING_ID, processedAt: sampleInstant(230_000) }),
+    samples.toolUseEvent(
+      "execute",
+      { command: "git push origin fix/invoice-rounding", description: "Push the fix to its branch" },
+      { id: SHELL_ASK_ID, evaluatedPermission: "ask", processedAt: sampleInstant(255_000) },
+    ),
+    samples.permissionAskedEvent(SHELL_ASK_ID, {
+      processedAt: sampleInstant(255_100),
+      argsPreview: JSON.stringify({ command: "git push origin fix/invoice-rounding", description: "Push the fix to its branch" }),
+    }),
+    samples.runStatusEvent("waiting", { processedAt: sampleInstant(255_200) }),
+  ];
+}
+
+/** Builds the step turn `name`. */
+function buildStepStory(name: StepStoryName): Scenario {
+  switch (name) {
+    case "mcp-turn":
+      return loaded(name, "a connected app's tools: the agent searches the issue tracker, files an issue, and says so", mcpTurn());
+    case "many-files":
+      return loaded(name, "a long audit a routine started: three files changed and twenty Files made", manyFilesTurn(), {
+        files: MANY_FILES,
+        session: routineSession(),
+      });
+    case "file-steps":
+      return loaded(name, "every file step: list, search, find, read, edit, create, delete, a failed edit and its retry, and a File written", fileStepsTurn(), {
+        files: [FILE_STEPS_AUDIT],
+      });
+    case "shell-steps":
+      return loaded(
+        name,
+        "every shell step: output, a described command, exit 1, a quick one, the suite running, a dev server in the background, and a push that asks first",
+        shellStepsTurn(),
+        { liveness: SHELL_LIVENESS, outputs: SHELL_OUTPUTS },
+      );
+  }
+}
+
+/** Every step turn, by name. Built once; treat them as read-only. */
+export const stepStories: Readonly<Record<StepStoryName, Scenario>> = {
+  "mcp-turn": buildStepStory("mcp-turn"),
+  "many-files": buildStepStory("many-files"),
+  "file-steps": buildStepStory("file-steps"),
+  "shell-steps": buildStepStory("shell-steps"),
+};

@@ -40,7 +40,7 @@ import { RoutineQueryController } from "@stigmer/apis/ai/stigmer/agentic/routine
 import { PlatformQueryController } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
 import { OrganizationQueryController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/query_pb";
 import { SessionInspector, SessionViewer, type SessionAudience } from "@stigmer/react-sdk";
-import { samples, scenarios, type Scenario, type ScenarioName } from "@stigmer/react-sdk/test";
+import { samples, scenarios, stepStories, type Scenario, type ScenarioName, type StepStoryName } from "@stigmer/react-sdk/test";
 import { ACCOUNT } from "../fixtures.ts";
 import { LiveConversation } from "../live-server.ts";
 import type { Drawing } from "./drawing.ts";
@@ -54,7 +54,7 @@ const AUDIT_REPORT = new TextEncoder().encode(
 );
 
 /** What the scenes replay to the viewer: the parts of a scenario its calls read. */
-export type SessionReplay = Pick<Scenario, "session" | "events" | "runs" | "files" | "liveness" | "loadError">;
+export type SessionReplay = Pick<Scenario, "session" | "events" | "runs" | "files" | "liveness" | "loadError" | "outputs">;
 
 /** How the host frames the viewer: who looks, and whether it passes the builder's inspector. */
 export interface Framing {
@@ -75,7 +75,8 @@ export interface LiveFeed {
 
 /**
  * The follow: every event after the client's place, the scenario's liveness
- * preview, then open until the viewer leaves; with a live feed, each event
+ * preview and what its running commands printed so far, then open until the
+ * viewer leaves; with a live feed, each event
  * the feed appends as it comes. The client's call settles on the first
  * frame, so a scenario with no events would hold the scene unsettled; none
  * drawn here has none.
@@ -90,6 +91,7 @@ async function* follow(scenario: SessionReplay, request: StreamSessionEventsRequ
   if (scenario.liveness !== undefined) {
     yield create(StreamSessionEventsResponseSchema, { frame: { case: "stigmerRunLiveness", value: scenario.liveness } });
   }
+  for (const output of scenario.outputs ?? []) yield samples.toolOutputDeltaFrame(output.toolUseId, output.delta);
   if (live === undefined) {
     await new Promise((resolve) => context.signal.addEventListener("abort", resolve));
     return;
@@ -186,6 +188,27 @@ export function sessionRoutes(scenario: SessionReplay, { agent = samples.agent()
 /** The session view over the `name` state, framed as given (an embed's by default: the conversation alone). */
 export function sessionScene(name: ScenarioName, framing: Framing = {}): Drawing {
   return sessionDrawing(scenarios[name], framing);
+}
+
+/** The session view over the step turn `name`, framed as given. */
+export function stepStoryScene(name: StepStoryName, framing: Framing = {}): Drawing {
+  return sessionDrawing(stepStories[name], framing);
+}
+
+/**
+ * The session view before its session exists, as a host draws it while the
+ * session is being made: no id yet, so it reads nothing and says it starts.
+ */
+export function sessionStartingScene(): Drawing {
+  const drawing = sessionDrawing(scenarios.empty, { inspector: true });
+  return {
+    ...drawing,
+    render: () => (
+      <div style={{ height: "calc(100vh - 48px)" }}>
+        <SessionViewer sessionId="" org={samples.session().metadata!.org} inspector={<SessionInspector />} />
+      </div>
+    ),
+  };
 }
 
 /** The session view over `replay`, framed as given. */
