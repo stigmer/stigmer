@@ -24,6 +24,7 @@ import { clone, create } from "@bufbuild/protobuf";
 import { Code } from "@connectrpc/connect";
 import { unzipSync, strFromU8 } from "fflate";
 import { AgentSchema, type Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import { AgentStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/status_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import { StigmerError } from "@stigmer/client";
 import { SKILLS } from "@stigmer/examples";
@@ -91,8 +92,12 @@ function renderPage(props: Partial<AgentDetailViewProps> = {}, opts: Options = {
     const next = clone(AgentSchema, store.agent);
     for (const path of paths) Reflect.set(next.spec!, specField(path), Reflect.get(resource.spec!, specField(path)));
     next.metadata!.etag = String(Number(store.agent.metadata!.etag) + 1);
-    store.agent = next;
     store.versions += 1;
+    // A changed spec is a new version, named by its hash.
+    const status = next.status ?? create(AgentStatusSchema, {});
+    status.versionHash = `h${store.versions}`;
+    next.status = status;
+    store.agent = next;
     return clone(AgentSchema, next);
   });
   const push = vi.fn(async (_request: { org: string; artifact: Uint8Array }) => {
@@ -187,6 +192,8 @@ describe("CON-08 after the first job, the console says what comes next and leads
       `/?agent=${ACME_ID}/variance-reporter&example=variance-report&with=sample`,
     );
     expect(store.agent.spec?.instructions).toContain("5%");
+    // The new version shows in the Versions tab's count at once.
+    await waitFor(() => expect(screen.getByRole("tab", { name: /Versions/ }).textContent).toBe("Versions2"));
 
     // Overview reads the same copy: the change is there, and its next save is not refused.
     fireEvent.click(screen.getByRole("tab", { name: /Overview/ }));

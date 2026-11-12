@@ -391,9 +391,11 @@ export function AgentDetailView({
   });
 
   // The badge reads the history's first page; the tab pages it when opened.
+  // Read again when a save here makes a new version.
   const versionCount = useAgentVersionCount(
     agent?.metadata?.org ?? null,
     agent?.metadata?.slug ?? null,
+    agent?.status?.versionHash,
   );
   // One read of the agent's channels, shared by the profile header's count
   // and the Channels tab, so an add or a delete there changes both.
