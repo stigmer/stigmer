@@ -11,8 +11,8 @@
 //   - picking "Variance report" makes the Variance Reporter agent and fills
 //     the composer: the agent picked, ledger.csv attached, the first
 //     message written;
-//   - Send starts the conversation, and the agent's file is listed under
-//     what it saved.
+//   - Send starts the conversation on that agent (the server's session names
+//     it), and the agent's file is listed under what it saved.
 //
 // Skipped on the file-gate stack, where every write gates before it runs.
 import { test, expect } from "../../fixtures";
@@ -36,6 +36,7 @@ test.describe("CON-06 a newcomer's first question, end to end on the mock model"
   test("asks the question, a pick fills the composer with the agent, its sample and its message, and the run saves the report", async ({
     page,
     freshOrg,
+    stigmerClient,
   }) => {
     test.setTimeout(CASE_BUDGET_MS);
     void freshOrg;
@@ -70,10 +71,13 @@ test.describe("CON-06 a newcomer's first question, end to end on the mock model"
     const chip = composer.getByRole("list", { name: "Attached files" }).getByRole("listitem");
     await expect(chip).toHaveAttribute("aria-label", /^ledger\.csv/, { timeout: 15_000 });
     await expect(chip).not.toHaveAttribute("aria-label", /uploading/, { timeout: 15_000 });
-    await expect(composer.getByRole("button", { name: /Variance Reporter/ }).first()).toBeVisible({ timeout: 15_000 });
 
     await page.getByRole("button", { name: "Send message" }).click();
     await page.waitForURL(/\/sessions\/ses_/, { timeout: START_SESSION_WAITS_MS.sessionUrl });
+    // The conversation runs on the agent the pick made, as the server stores it.
+    const sessionId = /\/sessions\/(ses_[^/?#]+)/.exec(page.url())?.[1] ?? "";
+    const session = await stigmerClient.session.get(sessionId);
+    expect(session.spec?.agentRef?.slug).toBe("variance-reporter");
     await assertNoErrorBoundary(page);
     await waitForAIResponse(page, { timeout: TURN_BUDGET_MS });
     await assertTurnIdle(page);

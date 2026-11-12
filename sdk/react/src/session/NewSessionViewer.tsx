@@ -181,7 +181,8 @@ export interface NewSessionViewerProps {
    * first message in the composer; the key step comes first when nothing
    * can run yet. It ends once that launcher's first session is created.
    * Never shown to a guest, to a curated audience, or when
-   * `initialAgentRef` sends the person to a specific agent. Off unless
+   * `initialAgentRef` or `initialPluginRefs` sends the person to a specific
+   * agent or plugin. Off unless
    * the host asks, so an app embedding the launcher never shows Stigmer's
    * own onboarding. @default false
    */
@@ -314,9 +315,11 @@ export function NewSessionViewer({
   });
   const [interactionMode, setInteractionMode] = useState<InteractionModeOption>("agent");
   const isGuest = audience === "guest";
-  // A deep link to an agent wins: a person sent to a specific agent never
-  // meets the question. Neither does a guest or a curated audience.
-  const firstGate = useFirstQuestionGate(org, firstQuestion && audience === "integrator" && initialAgentRef == null);
+  // A deep link wins: a person sent to a specific agent, or to chat with a
+  // plugin (a plugin page's "Start a chat"), never meets the question.
+  // Neither does a guest or a curated audience.
+  const sentSomewhere = initialAgentRef != null || (initialPluginRefs?.length ?? 0) > 0;
+  const firstGate = useFirstQuestionGate(org, firstQuestion && audience === "integrator" && !sentSomewhere);
   const firstOpen = !firstDone && firstGate === "ask";
   const firstWaits = !firstDone && firstGate === "pending";
   const starts = useStartFromExample(org);

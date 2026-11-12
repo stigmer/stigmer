@@ -201,6 +201,14 @@ describe("CON-06 a new person's first screen asks what their agent should do for
       expect(getRunSummary).not.toHaveBeenCalled();
     });
 
+    it("never meets a person a plugin page's Start a chat sends to chat with that plugin", async () => {
+      const { client, getRunSummary } = setup();
+      launch(client, { initialPluginRefs: [{ org: "acme", slug: "ledger-tools" }] });
+      expect(await screen.findByRole("heading", { level: 1, name: TODAY })).toBeTruthy();
+      expect(screen.queryByText(QUESTION)).toBeNull();
+      expect(getRunSummary).not.toHaveBeenCalled();
+    });
+
     it("never meets a guest", async () => {
       const { client, getRunSummary } = setup();
       launch(client, { audience: "guest", initialAgentRef: { org: "acme", slug: "helper" } });
