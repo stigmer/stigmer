@@ -1,5 +1,13 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Config } from "../../../config/config.js";
+
+const checks = vi.hoisted(() => [] as Array<{ key: string; baseUrl: string }>);
+vi.mock("../../key-check.js", () => ({
+  checkAnthropicKey: async (key: string, baseUrl: string) => {
+    checks.push({ key, baseUrl });
+    return "accepted" as const;
+  },
+}));
 import { readLlm } from "../../llm-config.js";
 import { readOperator } from "../../operator-config.js";
 import {
@@ -8,6 +16,7 @@ import {
   applyOperatorIdentity,
   buildLlmForChoice,
   buildOperatorForInputs,
+  runInteractiveWizard,
   runKeyStep,
   type WizardKeyDeps,
 } from "../wizard.js";
@@ -136,4 +145,33 @@ describe("CLI-17 stigmer setup checks the key with Anthropic and asks again when
     const d = deps({}, [""], {});
     expect(readLlm(await runKeyStep(config({ llm: { provider: "anthropic" } }), d))).toBeUndefined();
   });
+
+  it("asks nothing of Anthropic for a key bound for a cloud backend: it is saved, not checked here", async () => {
+    const d = deps({ STIGMER_ANTHROPIC_BACKEND: "vertex", CLOUD_ML_REGION: "us-east5" }, ["sk-ant-any"], {});
+    expect(readLlm(await runKeyStep(config({}), d))).toEqual({ provider: "anthropic", api_key: "sk-ant-any" });
+    expect(d.said()).not.toContain("Checking with Anthropic");
+  });
 });
+
+describe("runInteractiveWizard", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    checks.length = 0;
+  });
+
+  it("checks an exported key with Anthropic on the terminal's behalf, and asks nothing the shell already says", async () => {
+    let said = "";
+    vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
+      said += String(chunk);
+      return true;
+    });
+    const updated = await runInteractiveWizard(config({}), {
+      ANTHROPIC_API_KEY: "sk-ant-env",
+      STIGMER_OPERATOR_EMAIL: "ada@example.com",
+    });
+    expect(readLlm(updated)).toEqual({ provider: "anthropic" });
+    expect(checks).toEqual([{ key: "sk-ant-env", baseUrl: "" }]);
+    expect(said).toContain("Using ANTHROPIC_API_KEY from environment (checked with Anthropic just now)");
+  });
+});
+

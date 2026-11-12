@@ -14,6 +14,7 @@
 
 import { Fragment, type ReactNode } from "react";
 import { ArrowRight } from "lucide-react";
+import { cn } from "@stigmer/design-tokens";
 import { DEFAULT_MODELS_HUB_HREF } from "../billing/ProviderKeyNotice.js";
 import { type HarnessOption } from "@stigmer/react-core";
 import { HARNESS_META } from "@stigmer/react-core/internal";
@@ -81,9 +82,19 @@ export function ConnectProviderPanel({
     <div className="stg:space-y-4">
       <div className="stg:text-center">
         {showHeading && <h1 className="stg:text-lg stg:font-medium stg:text-foreground">Connect a model provider to start</h1>}
-        <p className={showHeading ? "stg:mt-1 stg:text-sm stg:text-muted-foreground" : "stg:m-0 stg:text-sm stg:text-muted-foreground"}>
-          {lead} {then}
-        </p>
+        {hub.isLoading ? (
+          // Who adds the key is not known until the permission answers: an
+          // admin would read the member's lead, then the reason, so the
+          // lead holds its place until then.
+          // The card below says what is being checked; this only holds the place.
+          <LoadingRegion
+            className={cn("stg:mx-auto stg:h-5 stg:max-w-md stg:animate-pulse stg:rounded stg:bg-muted", showHeading && "stg:mt-1")}
+          />
+        ) : (
+          <p className={showHeading ? "stg:mt-1 stg:text-sm stg:text-muted-foreground" : "stg:m-0 stg:text-sm stg:text-muted-foreground"}>
+            {lead} {then}
+          </p>
+        )}
       </div>
       {hub.isLoading ? (
         <LoadingRegion label="Checking who can connect a provider" className="stg:h-40 stg:animate-pulse stg:rounded-xl stg:bg-muted" />

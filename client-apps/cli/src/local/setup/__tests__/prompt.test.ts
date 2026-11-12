@@ -51,4 +51,13 @@ describe("promptSecret", () => {
     for (const key of ["a", "b", "x", "\u007f", "c", "\n"]) stdin.emit("data", Buffer.from(key));
     await expect(answer).resolves.toBe("abc");
   });
+
+  it("leaves on Ctrl-C with code 130, the terminal out of raw mode", async () => {
+    const stdin = withFakeStdin();
+    const exit = vi.spyOn(process, "exit").mockImplementation(() => undefined as never);
+    void promptSecret("Anthropic API key");
+    stdin.emit("data", Buffer.from("sk-\u0003"));
+    expect(exit).toHaveBeenCalledWith(130);
+    expect(stdin.rawMode).toBe(false);
+  });
 });

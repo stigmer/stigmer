@@ -127,6 +127,20 @@ describe("ConnectProviderPanel", () => {
     expect(screen.getByText(`${WHY} Give this machine's runner a key, and you can send your first task.`)).toBeTruthy();
   });
 
+  it("holds the lead while the permission is pending, so an admin never reads the member's lead first", () => {
+    render(
+      <ConnectProviderPanel
+        hub={hub([ANTHROPIC_MISSING], { viewer: { canManage: false, local: false }, isLoading: true })}
+        harness="stigmer"
+        provider="anthropic"
+        modelName="Claude Sonnet 4.6"
+      />,
+      { wrapper: readinessWrapper(fakeClient(server()).client) },
+    );
+    expect(screen.queryByText(/runs on Anthropic/)).toBeNull();
+    expect(screen.queryByText(/your own Anthropic key/)).toBeNull();
+  });
+
   it("names the model and whose key it waits on for a member and a server's user, never their own key", () => {
     renderPanel(ANTHROPIC_MISSING, { canManage: false, local: false });
     expect(

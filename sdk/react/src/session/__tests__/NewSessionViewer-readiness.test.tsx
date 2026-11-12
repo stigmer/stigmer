@@ -123,9 +123,10 @@ describe("CON-03 the launcher says a provider is missing before a run fails", ()
     renderLauncher(server({ readiness: NOTHING_CONNECTED }));
 
     expect(await screen.findByRole("heading", { level: 1, name: "Connect a model provider to start" })).toBeTruthy();
-    // The admin adds the key, so the lead says why Stigmer wants it first.
+    // The admin adds the key, so the lead says why Stigmer wants it first,
+    // once the permission has said who is looking.
     expect(
-      screen.getByText(
+      await screen.findByText(
         "Your agents think with a model. Stigmer uses your own Anthropic key, so you pay Anthropic directly. Once Acme Research has an Anthropic key, you can send your first task.",
       ),
     ).toBeTruthy();
@@ -153,7 +154,7 @@ describe("CON-03 the launcher says a provider is missing before a run fails", ()
     expect(within(card).queryByLabelText("Anthropic API key")).toBeNull();
     // Someone else's key: no "your own key", and no link to get one.
     expect(
-      screen.getByText(
+      await screen.findByText(
         "Claude Sonnet 4.6 on Stigmer runs on Anthropic. Once Acme Research has an Anthropic key, you can send your first task.",
       ),
     ).toBeTruthy();

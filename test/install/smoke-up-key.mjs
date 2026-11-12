@@ -117,7 +117,7 @@ async function main() {
     const answerArgs = answers.flatMap(([text, keys]) => ["--answer", `${text}=${keys}`]);
     return spawnCommand(
       ["python3", PTY_RUN, "--timeout", String(UP_TIMEOUT_MS / 1000), "--cols", "120", ...answerArgs, "--"],
-      stack.command(),
+      [...stack.command(), ...args],
       env,
       UP_TIMEOUT_MS + 30_000,
     ).done;

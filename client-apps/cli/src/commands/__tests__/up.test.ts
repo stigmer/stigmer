@@ -39,6 +39,12 @@ const launched = vi.hoisted(() => ({
   failure: null as Error | null,
   failureAskedFor: [] as number[],
   key: undefined as KeyStepOutcome | undefined,
+  /** The key step fails (an unreadable config): the launch reports it, the card says nothing of a key. */
+  keyStepFails: false,
+  /** The key step uses every dependency `up` hands it, as the real one does. */
+  useDeps: false,
+  saved: [] as unknown[],
+  checked: [] as Array<{ key: string; baseUrl: string }>,
   /** What happened, in order: the refusal, the key step (and whether it could ask), the launch. */
   order: [] as string[],
 }));
@@ -74,9 +80,33 @@ vi.mock("../../local/daemon/launch.js", () => ({
 vi.mock("../../local/model-key-step.js", () => ({
   modelKeyStep: async (deps: KeyStepDeps): Promise<KeyStepOutcome | undefined> => {
     launched.order.push(deps.interactive ? "key step (asks)" : "key step");
+    if (launched.keyStepFails) throw new Error("config.yaml: bad indentation");
+    if (launched.useDeps) {
+      deps.saveConfig(deps.loadConfig());
+      deps.write("");
+      return { check: await deps.check("sk-ant-key", "http://gateway"), fromEnvironment: false };
+    }
     return launched.key;
   },
 }));
+
+vi.mock("../../local/key-check.js", () => ({
+  checkAnthropicKey: async (key: string, baseUrl: string) => {
+    launched.checked.push({ key, baseUrl });
+    return "accepted" as const;
+  },
+}));
+
+vi.mock("../../config/config.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../config/config.js")>();
+  return {
+    ...actual,
+    load: () => actual.getDefault(),
+    save: (config: unknown) => {
+      launched.saved.push(config);
+    },
+  };
+});
 
 vi.mock("../../local/webconsole/index.js", () => ({
   isWebConsoleAvailable: async (): Promise<boolean> => {
@@ -112,6 +142,10 @@ beforeEach(() => {
   launched.failureAskedFor.length = 0;
   launched.key = undefined;
   launched.order.length = 0;
+  launched.keyStepFails = false;
+  launched.useDeps = false;
+  launched.saved.length = 0;
+  launched.checked.length = 0;
 });
 
 /** Run `stigmer up …` and return what it wrote to stdout and stderr. */
@@ -253,6 +287,22 @@ describe("stigmer up — the model key's check", () => {
     expect(card.hints).toContain(
       "Export a working ANTHROPIC_API_KEY, or unset it and run stigmer setup, then stigmer down && stigmer up",
     );
+  });
+
+  it("hands the step the config file and Anthropic's check", async () => {
+    launched.report = { runnerReach: [{ provider: "anthropic", via: "gateway" }] };
+    launched.useDeps = true;
+
+    expect(fields(await upCard(), "Agents")).toEqual({ ready: "anthropic (gateway, key checked just now)" });
+    expect(launched.saved).toHaveLength(1);
+    expect(launched.checked).toEqual([{ key: "sk-ant-key", baseUrl: "http://gateway" }]);
+  });
+
+  it("leaves a key step that fails off a terminal to the launch, and the card says nothing of a key", async () => {
+    launched.report = { runnerReach: [{ provider: "anthropic", via: "key" }] };
+    launched.keyStepFails = true;
+
+    expect(fields(await upCard(), "Agents")).toEqual({ ready: "anthropic (key)" });
   });
 
   it("leaves a provider Stigmer cannot judge as it was", async () => {
