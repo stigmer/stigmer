@@ -26,6 +26,15 @@ const PLACEHOLDER = "__placeholder__";
  *
  * Returns null if the real value cannot be determined.
  */
+/** A path segment decoded; a malformed escape ("%E0%A4%A") is kept as written, so it reads as not found, not as a crash. */
+function decoded(segment: string): string {
+  try {
+    return decodeURIComponent(segment);
+  } catch {
+    return segment;
+  }
+}
+
 export function useStaticRouteParam(
   name: string,
   fromEnd = 1,
@@ -38,6 +47,6 @@ export function useStaticRouteParam(
     if (raw !== PLACEHOLDER) return raw;
     const segments = pathname.split("/").filter(Boolean);
     const actual = segments[segments.length - fromEnd];
-    return actual && actual !== PLACEHOLDER ? decodeURIComponent(actual) : null;
+    return actual && actual !== PLACEHOLDER ? decoded(actual) : null;
   }, [raw, fromEnd, pathname]);
 }

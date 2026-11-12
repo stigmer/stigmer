@@ -1,14 +1,16 @@
 /**
  * Pins the journey's one answer: each step done only on the server's word
- * (an agent listed; a provider serving a model; a run ever made; a journey
- * agent with a second version), in the journey's order, the first not done
+ * (an agent listed; a provider serving a model, or a run that completed; a
+ * run that completed, never one that failed; a journey agent with a second
+ * version), in the journey's order, the first not done
  * the current one; the version read made only for journey agents, newest
  * first, stopping at the first agent changed since it was made, so a
  * plugin's or another agent's versions never tick "Make it yours"; nothing
  * read without the host's opt-in or for a person the server refuses
  * `can_create_agent`; "pending" until every read is in and "off" when one
- * fails. Whether anything ran and what serves a model are stubbed (their
- * own suites pin them); the permission, the agent list and the versions
+ * fails; and whether anything ran at all, failed runs included, for a
+ * surface's layout. The run summary and what serves a model are stubbed
+ * (their own suites pin them); the permission, the agent list and the versions
  * are answered by a client, as the server would.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -20,12 +22,18 @@ import { useJourney } from "../useJourney";
 
 const state = vi.hoisted(() => ({
   ran: false as boolean | undefined,
+  failed: 0,
   ranError: null as Error | null,
   served: false,
 }));
 
-vi.mock("../../dashboard/useEverRan.js", () => ({
-  useEverRan: (org: string | null) => (org ? { ran: state.ran, error: state.ranError } : { ran: undefined, error: null }),
+vi.mock("../../dashboard/useRunSummary.js", () => ({
+  RunSummaryTimeWindow: { ALL_TIME: 4 },
+  // The all-time summary: `ran` completed runs, `failed` failed ones (phases 3 and 4).
+  useRunSummary: (options: { org: string | null }) => ({
+    summary: options.org && state.ran !== undefined ? { activeCount: 0, phaseCounts: { 3: state.ran ? 1 : 0, 4: state.failed } } : null,
+    error: options.org ? state.ranError : null,
+  }),
 }));
 
 vi.mock("../../models/useModelReadiness.js", () => ({
@@ -79,6 +87,7 @@ function renderJourney(enabled = true, org = "org_acme") {
 
 beforeEach(() => {
   state.ran = false;
+  state.failed = 0;
   state.ranError = null;
   state.served = false;
   listed = [];
@@ -203,6 +212,16 @@ describe("useJourney", () => {
 
     await waitFor(() => expect(result.current.status).toBe("ready"));
     expect(result.current.steps.slice(4).map((step) => step.state)).toEqual(["current", "todo"]);
+  });
+
+  it("counts a run that failed as no job done: the key and watch steps stay open, though something ran", async () => {
+    listed = [{ slug: "variance-reporter", name: "Variance Reporter", versions: 1 }];
+    state.failed = 2;
+    const { result } = renderJourney();
+
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    expect(result.current.steps.map((step) => step.state).slice(0, 3)).toEqual(["done", "current", "todo"]);
+    expect(result.current.everRan).toBe(true);
   });
 
   it("answers off when a read fails, claiming no step it could not see", async () => {

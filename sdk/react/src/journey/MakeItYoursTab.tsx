@@ -40,7 +40,7 @@ import { anchorLink, type RenderJourneyLink } from "./links.js";
 /** The ready-made skill the tab offers. */
 export const OFFERED_SKILL_ID = "spreadsheet-export";
 
-/** Its shipped SKILL.md; examples/scripts/generate.test.mjs holds it in the package. */
+/** Its shipped SKILL.md; examples/scripts/generate.test.mjs holds this id in the catalogue. */
 const OFFERED_SKILL = skillById(OFFERED_SKILL_ID);
 
 /** Where the tab's acts lead, in the host's routing. */
@@ -213,7 +213,7 @@ function SkillCard({
   const org = agent.metadata?.org ?? "";
   const refs = agent.spec?.skillRefs ?? [];
   const has = refs.some((ref) => ref.slug === OFFERED_SKILL_ID);
-  const { exists, error: readError } = useSkillExists(org, !has);
+  const { exists, error: readError, recheck } = useSkillExists(org, !has);
   // Making a skill is an act: asked only while the organization has none.
   const createSkill = useCheckPermission(!has && exists === false ? { kind: "organization", id: org } : null, "can_create_skill", { fail: "closed" });
   const [adding, setAdding] = useState(false);
@@ -227,6 +227,8 @@ function SkillCard({
         const { strToU8, zipSync } = await import("fflate");
         const artifact = zipSync({ "SKILL.md": strToU8(offered.text) });
         await stigmer.skill.push(create(PushSkillRequestSchema, { org, artifact }));
+        // Made now: a retry after a failed save adds it, never pushes again.
+        recheck();
       }
       const kept = refs.map((ref) => keptReference({ org: ref.org || org, slug: ref.slug, ...(ref.id ? { id: ref.id } : {}), ...(ref.version ? { version: ref.version } : {}) }));
       await saveField("skillRefs", [...kept, { org, slug: OFFERED_SKILL_ID }]);
@@ -235,9 +237,9 @@ function SkillCard({
     } finally {
       setAdding(false);
     }
-  }, [exists, stigmer, org, refs, saveField]);
+  }, [exists, stigmer, org, refs, saveField, recheck]);
 
-  /* v8 ignore next -- @preserve: the examples package ships this skill, and its generator test holds it there */
+  /* v8 ignore next -- @preserve: examples/scripts/generate.test.mjs holds the id spreadsheet-export in the shipped catalogue */
   if (skill === undefined) return null;
   const refused = exists === false && !createSkill.isLoading && !createSkill.allowed;
   const ready = has || exists === true || (exists === false && createSkill.allowed);

@@ -7,11 +7,12 @@
 //
 //   1 Say what it should do  an agent exists (the server's agent list)
 //   2 Add a model key        a provider serves a model (`useModelReadiness`),
-//                            or something has run: a run that ran had a
-//                            model, whatever readiness can attribute (a key
-//                            in the runners' own environment reads as
-//                            unknown, not served)
-//   3 Watch it work          something has run (`useEverRan`)
+//                            or a run has completed: a model answered it,
+//                            whatever readiness can attribute (a key in the
+//                            runners' own environment reads as unknown, not
+//                            served)
+//   3 Watch it work          a run has completed (the all-time run summary);
+//                            a run that failed or was stopped did no job
 //   4 Make it yours          a journey agent has a second version: its
 //                            instructions changed, or a skill was added
 //   5 Put it in your app     not read yet: never done
@@ -36,7 +37,8 @@ import type { ResourceRef } from "@stigmer/client";
 import { useStigmer } from "@stigmer/react-core";
 import { useFetch } from "@stigmer/react-core/internal";
 import { useCheckPermission } from "../grant/useCheckPermission.js";
-import { useEverRan } from "../dashboard/useEverRan.js";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunSummaryTimeWindow, useRunSummary } from "../dashboard/useRunSummary.js";
 import { useModelReadiness } from "../models/useModelReadiness.js";
 import { presentationOf } from "../models/provider-presentation.js";
 import { isJourneyAgentSlug } from "./journey-agents.js";
@@ -86,6 +88,13 @@ export interface UseJourneyReturn {
   readonly current: JourneyStep | undefined;
   /** The agent the journey made, or undefined when there is none. */
   readonly agent: JourneyAgent | undefined;
+  /**
+   * Whether anything has ever run here, a failed or stopped run included
+   * (`useEverRan`'s rule), for a surface that lays itself out on it; while
+   * `"ready"` only, undefined otherwise. The steps themselves count only
+   * runs that completed.
+   */
+  readonly everRan: boolean | undefined;
 }
 
 /** The six steps' names and what taking each means, in order. */
@@ -111,8 +120,8 @@ interface JourneyAgents {
 /** How many agents the list reads: one page, a new organization's whole list. */
 const AGENT_PAGE = 50;
 
-const OFF: UseJourneyReturn = { status: "off", steps: [], done: 0, current: undefined, agent: undefined };
-const PENDING: UseJourneyReturn = { status: "pending", steps: [], done: 0, current: undefined, agent: undefined };
+const OFF: UseJourneyReturn = { status: "off", steps: [], done: 0, current: undefined, agent: undefined, everRan: undefined };
+const PENDING: UseJourneyReturn = { status: "pending", steps: [], done: 0, current: undefined, agent: undefined, everRan: undefined };
 
 /**
  * Where `org` is on the journey from a first agent to its users. Pass
@@ -135,7 +144,11 @@ export function useJourney(org: string | null | undefined, options: { readonly e
   const allowed = permission.allowed;
   // The reads are made only for a person the steps are for.
   const reading = orgId !== null && allowed ? orgId : null;
-  const ever = useEverRan(reading);
+  // One all-time read answers both: whether anything ran, and whether a run completed.
+  const runs = useRunSummary({ org: reading, timeWindow: RunSummaryTimeWindow.ALL_TIME });
+  const summary = reading ? runs.summary : null;
+  const everRan = summary === null ? undefined : summary.activeCount + Object.values(summary.phaseCounts).reduce((sum, n) => sum + n, 0) > 0;
+  const completed = summary === null ? undefined : (summary.phaseCounts[RunPhase.RUN_COMPLETED] ?? 0) > 0;
   const readiness = useModelReadiness(reading);
   const agents = useFetch<JourneyAgents | undefined>(
     reading
@@ -176,16 +189,16 @@ export function useJourney(org: string | null | undefined, options: { readonly e
     if (orgId === null) return OFF;
     if (permission.isLoading) return PENDING;
     if (!allowed) return OFF;
-    if (ever.error !== null || agents.error !== null || readiness.error !== null) return OFF;
-    if (ever.ran === undefined || agents.data === undefined || readiness.providers === null) {
+    if (runs.error !== null || agents.error !== null || readiness.error !== null) return OFF;
+    if (everRan === undefined || completed === undefined || agents.data === undefined || readiness.providers === null) {
       return PENDING;
     }
     const known = agents.data;
     const agent = known.changed ?? known.newest;
     const facts: Record<JourneyStepId, string | undefined> = {
       describe: known.hasAgent ? (agent ? `${agent.name} is made` : "Your first agent is made") : undefined,
-      key: served !== undefined ? `${presentationOf(served).name} is connected` : ever.ran ? "A model answered its first job" : undefined,
-      watch: ever.ran ? "It ran its first job" : undefined,
+      key: served !== undefined ? `${presentationOf(served).name} is connected` : completed ? "A model answered its first job" : undefined,
+      watch: completed ? "It ran its first job" : undefined,
       "make-yours": known.changed ? `${known.changed.name} has your changes` : undefined,
       "in-app": undefined,
       others: undefined,
@@ -203,6 +216,6 @@ export function useJourney(org: string | null | undefined, options: { readonly e
       current ??= drawn;
       return drawn;
     });
-    return { status: "ready", steps, done, current, agent };
-  }, [orgId, permission.isLoading, allowed, ever.error, ever.ran, agents.error, agents.data, readiness.error, readiness.providers, served]);
+    return { status: "ready", steps, done, current, agent, everRan };
+  }, [orgId, permission.isLoading, allowed, runs.error, everRan, completed, agents.error, agents.data, readiness.error, readiness.providers, served]);
 }

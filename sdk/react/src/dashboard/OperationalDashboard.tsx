@@ -89,7 +89,9 @@ export const OperationalDashboard = memo(function OperationalDashboard({
   const journeyOn = firstStepLinks !== undefined && !!org && !hidden;
   const journey = useJourney(org, { enabled: journeyOn });
   const showsJourney = journeyOn && journey.status === "ready";
-  const nothingEverRan = showsJourney && journey.steps.some((step) => step.id === "watch" && step.state !== "done");
+  // Laid out on whether anything ran at all, a failed run included: its
+  // figures (and its failure) are the organization's to see.
+  const nothingEverRan = showsJourney && journey.everRan === false;
   // Until the journey is known, the figures wait as their skeleton, so a new
   // organization never sees zeros flash before its card, and the card never
   // pushes figures already drawn down the page.

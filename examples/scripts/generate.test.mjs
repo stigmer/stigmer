@@ -93,3 +93,10 @@ test("a skill whose frontmatter names another skill, or is missing, is caught", 
   const bare = broken((t) => (t.read = (folder, file) => (file.endsWith("SKILL.md") ? "# no frontmatter\n" : tree.read(folder, file))));
   assert.ok(bare.includes("skill spreadsheet-export: skills/spreadsheet-export/SKILL.md opens with no frontmatter"), bare.join("\n"));
 });
+
+test("the catalogue holds the skill the React kit's agent page offers by id", () => {
+  // sdk/react/src/journey/MakeItYoursTab.tsx offers `spreadsheet-export` by
+  // this id; renaming it here without there would leave the tab's skill card
+  // with nothing to offer.
+  assert.ok(tree.catalogue.skills.some((skill) => skill.id === "spreadsheet-export"));
+});

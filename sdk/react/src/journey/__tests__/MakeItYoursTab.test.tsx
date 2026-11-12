@@ -79,13 +79,19 @@ interface Options {
   readonly readFails?: boolean;
   /** The skill push is refused. */
   readonly pushFails?: boolean;
+  /** The first save of the agent is refused. */
+  readonly firstSaveFails?: boolean;
 }
 
 function renderPage(props: Partial<AgentDetailViewProps> = {}, opts: Options = {}) {
   const store = { agent: storedAgent(opts.slug ?? "variance-reporter"), versions: 1 };
   if (opts.hasSkill) store.agent.spec!.skillRefs = [create(ApiResourceReferenceSchema, { org: ACME_ID, slug: "spreadsheet-export", id: "skl_1" })];
   if (opts.otherSkill) store.agent.spec!.skillRefs = [create(ApiResourceReferenceSchema, { org: ACME_ID, slug: "ledger-rules", id: "skl_rules", version: "v2" })];
+  let saves = 0;
+  let pushed = false;
   const update = vi.fn(async (resource: Agent, paths: string[]) => {
+    saves += 1;
+    if (opts.firstSaveFails && saves === 1) throw new StigmerError("unavailable", "the store is busy", Code.Unavailable);
     if (resource.metadata?.etag !== store.agent.metadata?.etag) {
       throw new StigmerError("aborted", "ETAG_MISMATCH: the agent changed since it was read", Code.Aborted);
     }
@@ -102,10 +108,12 @@ function renderPage(props: Partial<AgentDetailViewProps> = {}, opts: Options = {
   });
   const push = vi.fn(async (_request: { org: string; artifact: Uint8Array }) => {
     if (opts.pushFails) throw new StigmerError("invalid-argument", "SKILL.md is not valid", Code.InvalidArgument);
+    pushed = true;
     return { metadata: { id: "skl_new", org: ACME_ID, slug: "spreadsheet-export" } };
   });
   const skillRead = vi.fn(async () => {
     if (opts.readFails) throw new StigmerError("unavailable", "the skill store is down", Code.Unavailable);
+    if (pushed) return { metadata: { id: "skl_new", org: ACME_ID, slug: "spreadsheet-export" } };
     if (opts.skillExists) return { metadata: { id: "skl_theirs", org: ACME_ID, slug: "spreadsheet-export" } };
     throw new StigmerError("not-found", "skill not found", Code.NotFound);
   });
@@ -289,6 +297,21 @@ describe("CON-08 after the first job, the console says what comes next and leads
 
     expect((await within(card).findByRole("alert")).textContent).toContain("Spreadsheet export wasn't added. SKILL.md is not valid");
     expect(update).not.toHaveBeenCalled();
+  });
+
+  it("never pushes twice: a retry after the agent's save failed adds the skill the first click made", async () => {
+    const { push, store } = renderPage({ makeItYours: LINKS, defaultTab: "make-it-yours" }, { firstSaveFails: true });
+    const card = await screen.findByRole("region", { name: "Give it a skill" });
+    const add = await within(card).findByRole("button", { name: "Add it" });
+    await waitFor(() => expect((add as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(add);
+    expect((await within(card).findByRole("alert")).textContent).toContain("the store is busy");
+
+    await waitFor(() => expect((within(card).getByRole("button", { name: "Add it" }) as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(within(card).getByRole("button", { name: "Add it" }));
+    await within(card).findByText(/is on\./);
+    expect(push).toHaveBeenCalledTimes(1);
+    expect(store.agent.spec?.skillRefs.map((ref) => ref.slug)).toEqual(["spreadsheet-export"]);
   });
 
   it("says a skill read that failed, and offers no add it could not judge", async () => {

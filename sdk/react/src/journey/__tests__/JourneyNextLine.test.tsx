@@ -26,7 +26,7 @@ vi.mock("../useJourney.js", () => ({
   useJourney: (org: unknown, options: { enabled: boolean }): UseJourneyReturn => {
     state.asked.push({ org, enabled: options.enabled });
     if (!options.enabled || state.status !== "ready") {
-      return { status: options.enabled ? state.status : "off", steps: [], done: 0, current: undefined, agent: undefined };
+      return { status: options.enabled ? state.status : "off", steps: [], done: 0, current: undefined, agent: undefined, everRan: undefined };
     }
     const steps = IDS.map((id, index) => ({
       id,
@@ -41,6 +41,7 @@ vi.mock("../useJourney.js", () => ({
       done: state.done,
       current: steps[state.done],
       agent: { ref: { org: "org_acme", slug: "variance-reporter" }, name: "Variance Reporter" },
+      everRan: true,
     };
   },
 }));

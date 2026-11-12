@@ -45,6 +45,7 @@ function journeyAt(done: number): UseJourneyReturn {
     done,
     current: steps[done],
     agent: { ref: { org: "org_acme", slug: "variance-reporter" }, name: "Variance Reporter" },
+    everRan: done >= 3,
   };
 }
 
@@ -151,11 +152,11 @@ describe("DashboardFirstSteps", () => {
   });
 
   it("draws nothing while the journey is read, or for a person it is not for", () => {
-    const { container, unmount } = renderCard({ status: "pending", steps: [], done: 0, current: undefined, agent: undefined });
+    const { container, unmount } = renderCard({ status: "pending", steps: [], done: 0, current: undefined, agent: undefined, everRan: undefined });
     expect(container.innerHTML).toBe("");
     unmount();
 
-    const off = renderCard({ status: "off", steps: [], done: 0, current: undefined, agent: undefined });
+    const off = renderCard({ status: "off", steps: [], done: 0, current: undefined, agent: undefined, everRan: undefined });
     expect(off.container.innerHTML).toBe("");
   });
 });

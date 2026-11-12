@@ -58,5 +58,9 @@ describe("useStaticRouteParam", () => {
 
     router.pathname = "/library/agents/acme/__placeholder__";
     expect(renderHook(() => useStaticRouteParam("slug")).result.current).toBeNull();
+
+    // A malformed escape is kept as written, to be looked up and not found.
+    router.pathname = "/library/agents/acme/%E0%A4%A";
+    expect(renderHook(() => useStaticRouteParam("slug")).result.current).toBe("%E0%A4%A");
   });
 });

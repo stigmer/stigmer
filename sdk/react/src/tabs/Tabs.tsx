@@ -124,10 +124,11 @@ export function Tabs({
         role="tablist"
         aria-label={ariaLabel}
         onKeyDown={handleKeyDown}
-        // A bar wider than its column scrolls sideways (its scrollbar hidden;
-        // the cut-off tab says there is more) rather than squeezing a
-        // label onto several lines.
-        className="stg:flex stg:overflow-x-auto stg:border-b stg:border-border stg:[scrollbar-width:none]"
+        // A bar wider than its column wraps its tabs onto another row rather
+        // than squeezing a label onto several lines. No overflow on the bar:
+        // a scroll container would clip the active tab's underline, which
+        // sits a pixel below it, and each tab's focus ring.
+        className="stg:flex stg:flex-wrap stg:border-b stg:border-border"
       >
         {tabs.map((tab) => {
           const isActive = tab.id === activeTab;

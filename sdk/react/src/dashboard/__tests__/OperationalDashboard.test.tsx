@@ -22,7 +22,7 @@ const state = vi.hoisted(() => ({
   asked: { summary: [] as unknown[], failed: [] as unknown[], journey: [] as Array<{ org: unknown; enabled: boolean }> },
   week: null as DashboardSummary | null,
   weekError: null as Error | null,
-  journey: "new" as "new" | "ran" | "off" | "pending",
+  journey: "new" as "new" | "ran" | "failed" | "off" | "pending",
   refetch: (() => {}) as () => void,
 }));
 
@@ -50,6 +50,7 @@ function journeyAt(done: number) {
     done,
     current: steps[done],
     agent: { ref: { org: "org_acme", slug: "variance-reporter" }, name: "Variance Reporter" },
+    everRan: done >= 3,
   };
 }
 
@@ -58,6 +59,7 @@ vi.mock("../../journey/useJourney.js", () => ({
     state.asked.journey.push({ org, enabled: options.enabled });
     if (!options.enabled || state.journey === "off") return { status: "off", steps: [], done: 0, current: undefined, agent: undefined };
     if (state.journey === "pending") return { status: "pending", steps: [], done: 0, current: undefined, agent: undefined };
+    if (state.journey === "failed") return { ...journeyAt(1), everRan: true };
     return journeyAt(state.journey === "new" ? 1 : 3);
   },
 }));
@@ -144,6 +146,15 @@ describe("OperationalDashboard", () => {
     expect(figures.nextElementSibling?.textContent).toBe("0");
     // The card comes first in the page.
     expect(card.compareDocumentPosition(figures) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("shows the figures beside the card for an organization whose only runs failed: nothing completed, but something ran", () => {
+    state.journey = "failed";
+    state.week = QUIET;
+    render(<OperationalDashboard org="acme" firstStepLinks={LINKS} />);
+
+    expect(screen.getByRole("region", { name: CARD }).textContent).toContain("1 of 6");
+    expect(screen.getByText("Nightly triage")).toBeTruthy();
   });
 
   it("CON-01 shows a person the journey is not for no card, only the figures", () => {

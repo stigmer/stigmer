@@ -33,6 +33,7 @@ function useJourney(org: string | null | undefined, options: { enabled: boolean 
     agent: { type: "JourneyAgent | undefined", description: "The agent the journey made, or undefined when there is none." },
     current: { type: "JourneyStep | undefined", description: "The first step not done, or undefined when all six are (or not `\"ready\"`)." },
     done: { type: "number", description: "How many steps are done (0 unless `\"ready\"`)." },
+    everRan: { type: "boolean | undefined", description: "Whether anything has ever run here, a failed or stopped run included (`useEverRan`'s rule), for a surface that lays itself out on it; while `\"ready\"` only, undefined otherwise. The steps themselves count only runs that completed." },
     status: { type: "\"pending\" | \"off\" | \"ready\"", description: "`\"off\"`: not asked (no opt-in, no organization, a person who may not make agents) or a read failed; `\"pending\"`: still reading; `\"ready\"`: every step is known." },
     steps: { type: "readonly JourneyStep[]", description: "The six steps while `\"ready\"`; empty otherwise." },
   }}
