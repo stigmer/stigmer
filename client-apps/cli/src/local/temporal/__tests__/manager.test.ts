@@ -1,12 +1,12 @@
 import { spawn } from "node:child_process";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { freePort } from "../../../__test-utils__/ports.js";
 import { temporalPidFile } from "../../paths.js";
-import { writePidFile } from "../../state/pidfile.js";
-import { isProcessAlive } from "../../state/proc.js";
+import { readPidFile, writePidFile } from "../../state/pidfile.js";
+import { isProcessAlive, processStartTime } from "../../state/proc.js";
 import { DEFAULT_TEMPORAL_VERSION, installedTemporalVersion, type TarballInstall, type TemporalDownloadTarget } from "../download.js";
 import { TemporalManager } from "../manager.js";
 
@@ -184,6 +184,62 @@ describe("TemporalManager", () => {
         await manager.stop();
         try {
           process.kill(-stranger, "SIGKILL");
+        } catch {
+          // already gone
+        }
+      }
+    });
+
+    // stigmer#2993: today's lock carries a one-time token line after the
+    // record; `up` still judges it by its owner.
+    it("starts its own server over a tokened lock its dead owner left", async () => {
+      const home = tempHome();
+      const lockFile = join(home, "temporal.lock");
+      writeFileSync(lockFile, `${2 ** 31 - 1}\nstarted=long ago\nlock=0123456789abcdef\n`);
+      const manager = new TemporalManager({
+        binPath: fakeTemporal(home),
+        dataDir: join(home, "temporal-data"),
+        logFile: join(home, "logs", "temporal.log"),
+        pidFile: join(home, "temporal.pid"),
+        lockFile,
+        port: await freePort(),
+        uiPort: await freePort(),
+      });
+      try {
+        await manager.start();
+        expect(await manager.isRunning()).toBe(true);
+        expect(readPidFile(lockFile)).toBe(process.pid);
+        expect(readFileSync(lockFile, "utf8")).not.toContain("lock=0123456789abcdef");
+      } finally {
+        await manager.stop();
+      }
+      expect(existsSync(lockFile)).toBe(false);
+    });
+
+    it("starts no second server beside a tokened lock a live owner holds", async () => {
+      const home = tempHome();
+      const holder = await detachedProcess([]);
+      const lockFile = join(home, "temporal.lock");
+      const held = `${holder}\nstarted=${processStartTime(holder)}\nlock=0123456789abcdef\n`;
+      writeFileSync(lockFile, held);
+      const pidFile = join(home, "temporal.pid");
+      const manager = new TemporalManager({
+        binPath: fakeTemporal(home),
+        dataDir: join(home, "temporal-data"),
+        logFile: join(home, "logs", "temporal.log"),
+        pidFile,
+        lockFile,
+        port: await freePort(),
+        uiPort: await freePort(),
+      });
+      try {
+        await expect(manager.start()).rejects.toThrow("Temporal lock held by another process but the service is not responding");
+        expect(existsSync(pidFile)).toBe(false);
+        expect(await manager.isRunning()).toBe(false);
+        expect(readFileSync(lockFile, "utf8")).toBe(held);
+      } finally {
+        try {
+          process.kill(-holder, "SIGKILL");
         } catch {
           // already gone
         }

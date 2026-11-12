@@ -114,16 +114,18 @@ function useRunSummary(options: UseRunSummaryOptions): UseRunSummaryReturn
 
 ### DashboardFirstSteps
 
-A new organization's first steps: connect a provider, say what the agent should do, start a session.
+The journey's six steps as a card: done, current with its act, and the quiet ones after it.
 
 **Props** — `DashboardFirstStepsProps`
 
 <TypeTable
   type={{
     className: { type: "string", description: "" },
+    journey: { type: "UseJourneyReturn", description: "The journey as the caller already read it (`useJourney`), so a page that decides its layout on it reads it once; the card reads it itself otherwise.", typeDescriptionLink: "/docs/sdk/react/journey#usejourneyreturn" },
     links: { type: "DashboardFirstStepLinks", description: "", required: true, typeDescriptionLink: "#dashboardfirststeplinks" },
+    onHide: { type: "() => void", description: "Hides the card for this person; the card offers \"Hide\" only with it." },
     org: { type: "string", description: "", required: true },
-    renderLink: { type: "(props: { children: ReactNode; className: string; href: string }) => ReactNode", description: "Draws a link; a host with its own router passes its link component. A plain anchor otherwise." },
+    renderLink: { type: "RenderJourneyLink", description: "Draws a link; a host with its own router passes its link component. A plain anchor otherwise.", typeDescriptionLink: "/docs/sdk/react/journey#renderjourneylink" },
   }}
 />
 
@@ -167,12 +169,15 @@ timestamp.
 
 ### DashboardFirstStepLinks
 
-Where each first step leads, as the host routes it.
+Where each step leads, as the host routes it; the later steps' destinations are the journey's ([`JourneyLinks`](/docs/sdk/react/journey#journeylinks)).
 
 <TypeTable
   type={{
+    bringOthers: { type: "string", description: "Where the team is invited (the console's members page)." },
     connectProvider: { type: "string", description: "Models & providers, where a provider key is connected.", required: true },
     createAgent: { type: "string", description: "Where a newcomer says what their agent should do: the launcher, whose first question offers the example jobs and \"Describe your own\".", required: true },
+    makeItYours: { type: "(agent: ResourceRef) => string", description: "The agent page's \"Make it yours\" tab for an agent (the console's `/library/agents/<org>/<slug>?tab=make-it-yours`)." },
+    putInApp: { type: "(agent: ResourceRef) => string", description: "Where an agent is put in front of users: today its Channels tab." },
     startSession: { type: "string", description: "The launcher, where a session starts.", required: true },
   }}
 />
@@ -226,9 +231,9 @@ Layout:
 - Row 1: KPI stat cards (Active | Completed | Failed | Tokens)
 - Row 2: Recent Failures
 
-For an organization where no run has ever been made, and a host that
-passes `firstStepLinks`, the first steps ([`DashboardFirstSteps`](#dashboardfirststeps))
-take both rows' place until something has run.
+For a host that passes `firstStepLinks`, the journey's card
+([`DashboardFirstSteps`](#dashboardfirststeps)) takes both rows' place while nothing has
+run, and sits above them after that until every step is done.
 
 Tokens come from the org usage report (`getOrgUsageReport`), which
 counts each run once, so the dashboard matches the Usage page.
@@ -251,10 +256,10 @@ function Home({ onOpen }: { onOpen: (href: string) => void }) {
 <TypeTable
   type={{
     className: { type: "string", description: "" },
-    firstStepLinks: { type: "DashboardFirstStepLinks", description: "Where a new organization's first steps lead, as the host routes them. With them, an organization where nothing has run yet sees its first steps alone instead of four zeros; without them, the figures as always.", typeDescriptionLink: "#dashboardfirststeplinks" },
+    firstStepLinks: { type: "DashboardFirstStepLinks", description: "Where the journey's steps lead, as the host routes them. With them, a person who may make agents sees the journey's card: alone, instead of four zeros, while nothing has run here; above the figures after that, until every step is done. Without them, the figures as always.", typeDescriptionLink: "#dashboardfirststeplinks" },
     onFailedRunClick: { type: "(id: string) => void", description: "Called with the run's ID when the user clicks \"View\" on a failed run." },
     org: { type: "string | null | undefined", description: "The organization whose runs and usage the dashboard shows.", required: true },
-    renderLink: { type: "(props: { children: ReactNode; className: string; href: string }) => ReactNode", description: "Draws a first step's link with the host's router; a plain anchor otherwise." },
+    renderLink: { type: "RenderJourneyLink", description: "Draws a first step's link with the host's router; a plain anchor otherwise.", typeDescriptionLink: "/docs/sdk/react/journey#renderjourneylink" },
   }}
 />
 

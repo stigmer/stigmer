@@ -42,6 +42,16 @@ import { modelSelectorScene } from "./settings.tsx";
 import { endingStoryScene, sessionScene, sessionStartingScene, stepStoryScene } from "./session.tsx";
 import { asksFirstScene, hoursScene, inProductScene, keysScene, ownComputerScene, wallsScene } from "./story.tsx";
 import { threadScene } from "./thread.tsx";
+import {
+  agentMakeItYoursScene,
+  dashboardJourneyFoldedScene,
+  dashboardJourneyScene,
+  launcherNextLineScene,
+  launcherOwnFileScene,
+  MADE_YOURS,
+  PICKED_NOT_RUN,
+  sessionFirstJobNextScene,
+} from "./journey.tsx";
 
 const threads = Object.fromEntries(THREAD_STATES.map((state) => [`thread-${state}`, () => threadScene(state)])) as Record<
   `thread-${ThreadState}`,
@@ -71,11 +81,16 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "launcher-example-unchecked": () => launcherFirstQuestionScene(NOTHING_CONNECTED, "unchecked"),
   "launcher-example-ready": () => launcherFirstQuestionScene(ANTHROPIC_ONLY),
   "launcher-describe-own": () => launcherFirstQuestionScene(ANTHROPIC_ONLY),
+  "launcher-own-file": launcherOwnFileScene,
+  "launcher-next-line": launcherNextLineScene,
   "model-selector-open": modelSelectorScene,
   "model-selector-not-ready": modelSelectorNotReadyScene,
   "dashboard-kpis": dashboardScene,
   "dashboard-busy": () => dashboardPageScene("busy"),
   "dashboard-new-org": () => dashboardPageScene("new-org"),
+  "dashboard-journey-new": () => dashboardJourneyScene(PICKED_NOT_RUN),
+  "dashboard-journey-mid": () => dashboardJourneyScene(MADE_YOURS),
+  "dashboard-journey-folded": dashboardJourneyFoldedScene,
   "settings-landing": settingsLandingScene,
   "settings-members": settingsMembersScene,
   "settings-api-keys": settingsApiKeysScene,
@@ -88,6 +103,8 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "agent-profile-owner": () => agentProfileScene("owner"),
   "agent-profile-viewer": () => agentProfileScene("reader"),
   "agent-profile-variance-reporter": varianceReporterScene,
+  "agent-make-it-yours": () => agentMakeItYoursScene(true),
+  "agent-make-it-yours-member": () => agentMakeItYoursScene(false),
   "skill-detail": skillDetailScene,
   "marketplace-admin": () => marketplaceScene("admin"),
   "marketplace-member": () => marketplaceScene("member"),
@@ -108,6 +125,7 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "session-shell-steps": () => stepStoryScene("shell-steps", { inspector: true, height: 2200 }),
   "session-slow": () => sessionScene("busy", { inspector: true }),
   "session-starting": () => sessionStartingScene(),
+  "session-first-job-next": sessionFirstJobNextScene,
   "session-fail-key-rejected": () => endingStoryScene("fail-key-rejected", { inspector: true }),
   "session-fail-key-missing": () => endingStoryScene("fail-key-missing", { inspector: true }),
   "session-fail-out-of-credit": () => endingStoryScene("fail-out-of-credit", { inspector: true }),

@@ -1,83 +1,126 @@
 /**
- * Pins a new organization's first steps: three steps in order, each a link
- * the host routes (through its own link component when it passes one); a
- * provider that already serves a model marks the first step done, with no
- * link, and an organization that has an agent marks the second. "Say what
- * your agent should do" leads to the launcher's first question; it asks the
- * server's `can_create_agent` on the organization and links only on its yes
- * (CON-01): a no says who makes agents; a check in flight, or one that
- * failed, offers no link and says nothing about who may. The provider and
- * agent reads are stubbed; the self-check is answered by a client, as the
- * server would.
+ * Pins the journey's card: six steps in the journey's order under "From
+ * first agent to your users", with the count done ("3 of 6"); a done step
+ * shows what the server says happened and no act; the current step has its
+ * one act, a link the host routes (through its own link component when it
+ * passes one), and the later steps sit quiet, with no line and no act. Each
+ * later step's destination is the host's: "Make it yours" and "Put it in
+ * your app" link the journey's agent, "Bring others in" the members page,
+ * and a destination the host does not pass offers no act. All six done
+ * folds the card to one line. "Hide" is offered only with `onHide`. A
+ * journey that is off (a person the steps are not for) or still read draws
+ * nothing. The journey is passed in, as the dashboard passes it; how it is
+ * read is `useJourney`'s suite.
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
-import type { ReactNode } from "react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render as renderPlain, screen, within } from "@testing-library/react";
+import type { ReactElement, ReactNode } from "react";
 import { StigmerContext } from "@stigmer/react-core";
-import { DashboardFirstSteps, type DashboardFirstStepsProps } from "../DashboardFirstSteps";
+import { DashboardFirstSteps, type DashboardFirstStepLinks, type DashboardFirstStepsProps } from "../DashboardFirstSteps";
+import type { JourneyStepId, UseJourneyReturn } from "../../journey/useJourney";
 
-const state = vi.hoisted(() => ({ served: false, agents: 0 }));
-
-vi.mock("../../models/useModelReadiness.js", () => ({
-  useModelReadiness: () => ({
-    providers: state.served ? [{ provider: "anthropic", availability: { state: "served", source: "organization", parentOrg: "" } }] : [],
-  }),
-}));
-
-vi.mock("../../agent/useAgentList.js", () => ({
-  useAgentList: () => ({ agents: Array.from({ length: state.agents }, (_, n) => ({ id: `agt_${n}` })) }),
-}));
-
-const LINKS = { connectProvider: "/models", createAgent: "/", startSession: "/" };
-
-/** How the server answers "may this person create an agent here?". */
-type CreateAnswer = "yes" | "no" | "asking" | "failing";
-
-beforeEach(() => {
-  state.served = false;
-  state.agents = 0;
-});
 afterEach(cleanup);
 
-function renderSteps(answer: CreateAnswer = "yes", props: Partial<DashboardFirstStepsProps> = {}) {
-  const checkMyPermission = vi.fn((input: { relation: string; resource?: { kind: string; id: string } }) => {
-    if (answer === "asking") return new Promise<never>(() => {});
-    if (answer === "failing") return Promise.reject(new Error("unavailable"));
-    return Promise.resolve({ isAuthorized: answer === "yes" && input.relation === "can_create_agent" });
-  });
-  const wrapper = ({ children }: { children: ReactNode }) => (
-    <StigmerContext.Provider value={{ grant: { checkMyPermission } } as never}>{children}</StigmerContext.Provider>
-  );
-  render(<DashboardFirstSteps org="org_acme" links={LINKS} {...props} />, { wrapper });
-  return { checkMyPermission };
+/** Renders inside a provider: the card reads the journey itself unless given one, so it needs a client either way. */
+function render(ui: ReactElement) {
+  const wrapper = ({ children }: { children: ReactNode }) => <StigmerContext.Provider value={{} as never}>{children}</StigmerContext.Provider>;
+  return renderPlain(ui, { wrapper });
 }
 
-function steps(): HTMLElement[] {
-  return within(screen.getByRole("region", { name: "Get your organization running" })).getAllByRole("listitem");
+const IDS: readonly JourneyStepId[] = ["describe", "key", "watch", "make-yours", "in-app", "others"];
+const TITLES = ["Say what it should do", "Add a model key", "Watch it work", "Make it yours", "Put it in your app", "Bring others in"];
+
+/** A ready journey with its first `done` steps done. */
+function journeyAt(done: number): UseJourneyReturn {
+  const steps = IDS.map((id, index) => ({
+    id,
+    number: index + 1,
+    title: TITLES[index]!,
+    state: index < done ? ("done" as const) : index === done ? ("current" as const) : ("todo" as const),
+    line: index < done ? `fact ${index + 1}` : `todo ${index + 1}`,
+  }));
+  return {
+    status: "ready",
+    steps,
+    done,
+    current: steps[done],
+    agent: { ref: { org: "org_acme", slug: "variance-reporter" }, name: "Variance Reporter" },
+    everRan: done >= 3,
+  };
+}
+
+const LINKS: DashboardFirstStepLinks = {
+  connectProvider: "/models",
+  createAgent: "/",
+  startSession: "/",
+  makeItYours: (agent) => `/agents/${agent.org}/${agent.slug}?tab=make-it-yours`,
+  putInApp: (agent) => `/agents/${agent.org}/${agent.slug}?tab=channels`,
+  bringOthers: "/settings/members",
+};
+
+function renderCard(journey: UseJourneyReturn, props: Partial<DashboardFirstStepsProps> = {}) {
+  return render(<DashboardFirstSteps org="org_acme" links={LINKS} journey={journey} {...props} />);
+}
+
+function rows(): HTMLElement[] {
+  return within(screen.getByRole("region", { name: "From first agent to your users" })).getAllByRole("listitem");
 }
 
 describe("DashboardFirstSteps", () => {
-  it("lists the three steps in order, each a link to where it is taken", async () => {
-    const { checkMyPermission } = renderSteps("yes");
+  it("lists the six steps in order with the count done, facts for the done ones and one act on the current", () => {
+    renderCard(journeyAt(3));
 
-    await waitFor(() => expect(within(steps()[1]!).queryByRole("link")).not.toBeNull());
-    expect(steps().map((step) => within(step).getByRole("link").textContent)).toEqual([
-      "Connect a provider",
-      "Pick an example",
-      "Start a session",
-    ]);
-    expect(screen.getByRole("link", { name: "Connect a provider" }).getAttribute("href")).toBe("/models");
-    expect(steps()[1]!.textContent).toContain("Say what your agent should do");
-    expect(steps()[1]!.textContent).toContain("Pick an example or describe your own; it runs on a sample file.");
-    expect(screen.getByRole("link", { name: "Start a session" }).getAttribute("href")).toBe("/");
-    expect(checkMyPermission.mock.calls[0]?.[0]).toMatchObject({
-      relation: "can_create_agent",
-      resource: { kind: "organization", id: "org_acme" },
-    });
+    // Each row's title is the first text of its first line.
+    expect(rows().map((row) => row.querySelector("p")?.firstChild?.textContent)).toEqual(TITLES);
+    expect(screen.getByRole("region", { name: "From first agent to your users" }).textContent).toContain("3 of 6");
+    for (const index of [0, 1, 2]) {
+      expect(rows()[index]!.textContent).toContain(`fact ${index + 1}`);
+      expect(rows()[index]!.textContent).toContain("(done)");
+      expect(within(rows()[index]!).queryByRole("link")).toBeNull();
+    }
+    expect(rows()[3]!.getAttribute("aria-current")).toBe("step");
+    expect(rows()[3]!.textContent).toContain("todo 4");
+    expect(within(rows()[3]!).getByRole("link", { name: "Make it yours" }).getAttribute("href")).toBe(
+      "/agents/org_acme/variance-reporter?tab=make-it-yours",
+    );
+    for (const index of [4, 5]) {
+      expect(rows()[index]!.textContent).not.toContain(`todo ${index + 1}`);
+      expect(within(rows()[index]!).queryByRole("link")).toBeNull();
+    }
   });
 
-  it("draws each link with the host's link component", async () => {
-    renderSteps("yes", {
+  it("links each step to where it is taken, as the host routes it", () => {
+    const hrefs = [0, 1, 2, 3, 4, 5].map((done) => {
+      const { unmount } = renderCard(journeyAt(done));
+      const href = within(rows()[done]!).getByRole("link").getAttribute("href");
+      unmount();
+      return href;
+    });
+    expect(hrefs).toEqual([
+      "/",
+      "/models",
+      "/",
+      "/agents/org_acme/variance-reporter?tab=make-it-yours",
+      "/agents/org_acme/variance-reporter?tab=channels",
+      "/settings/members",
+    ]);
+  });
+
+  it("offers no act on a step whose destination the host does not pass", () => {
+    render(
+      <DashboardFirstSteps
+        org="org_acme"
+        links={{ connectProvider: "/models", createAgent: "/", startSession: "/" }}
+        journey={journeyAt(4)}
+      />,
+    );
+
+    expect(within(rows()[4]!).queryByRole("link")).toBeNull();
+    expect(rows()[4]!.getAttribute("aria-current")).toBe("step");
+  });
+
+  it("draws each link with the host's link component", () => {
+    renderCard(journeyAt(1), {
       renderLink: ({ href, className, children }) => (
         <a href={`#${href}`} className={className}>
           {children}
@@ -85,45 +128,35 @@ describe("DashboardFirstSteps", () => {
       ),
     });
 
-    expect((await screen.findByRole("link", { name: "Pick an example" })).getAttribute("href")).toBe("#/");
+    expect(screen.getByRole("link", { name: "Add a key" }).getAttribute("href")).toBe("#/models");
   });
 
-  it("marks connecting a provider done once one serves a model", () => {
-    state.served = true;
-    renderSteps("yes");
+  it("folds to one line once all six are done", () => {
+    const all = journeyAt(6);
+    renderCard(all);
 
-    expect(within(steps()[0]!).queryByRole("link")).toBeNull();
-    expect(steps()[0]!.textContent).toContain("(done)");
+    expect(screen.queryByRole("list")).toBeNull();
+    expect(screen.getByText("Your organization is set up")).toBeTruthy();
+    expect(document.body.textContent).toContain("6 of 6");
   });
 
-  it("marks saying what the agent should do done once the organization has an agent", async () => {
-    state.agents = 1;
-    renderSteps("yes");
+  it("offers Hide only with onHide, and calls it", () => {
+    const { unmount } = renderCard(journeyAt(2));
+    expect(screen.queryByRole("button", { name: "Hide these steps" })).toBeNull();
+    unmount();
 
-    await waitFor(() => expect(steps()[1]!.textContent).toContain("(done)"));
-    expect(within(steps()[1]!).queryByRole("link")).toBeNull();
+    const onHide = vi.fn();
+    renderCard(journeyAt(2), { onHide });
+    fireEvent.click(screen.getByRole("button", { name: "Hide these steps" }));
+    expect(onHide).toHaveBeenCalledTimes(1);
   });
 
-  it("CON-01 says who makes agents, with no link, to a person the server refuses", async () => {
-    renderSteps("no");
+  it("draws nothing while the journey is read, or for a person it is not for", () => {
+    const { container, unmount } = renderCard({ status: "pending", steps: [], done: 0, current: undefined, agent: undefined, everRan: undefined });
+    expect(container.innerHTML).toBe("");
+    unmount();
 
-    await waitFor(() => expect(steps()[1]!.textContent).toContain("An admin of this organization makes agents"));
-    expect(within(steps()[1]!).queryByRole("link")).toBeNull();
-  });
-
-  it("CON-01 offers no link to make an agent while the server has not answered", () => {
-    renderSteps("asking");
-
-    expect(within(steps()[1]!).queryByRole("link")).toBeNull();
-    expect(steps()[1]!.textContent).not.toContain("An admin");
-  });
-
-  it("CON-01 offers no link to make an agent when the check failed, and claims nothing about who may", async () => {
-    const { checkMyPermission } = renderSteps("failing");
-    await waitFor(() => expect(checkMyPermission).toHaveBeenCalled());
-    await new Promise((resolve) => setTimeout(resolve, 10));
-
-    expect(within(steps()[1]!).queryByRole("link")).toBeNull();
-    expect(steps()[1]!.textContent).not.toContain("An admin");
+    const off = renderCard({ status: "off", steps: [], done: 0, current: undefined, agent: undefined, everRan: undefined });
+    expect(off.container.innerHTML).toBe("");
   });
 });

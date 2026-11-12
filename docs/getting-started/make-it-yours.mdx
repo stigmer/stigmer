@@ -1,0 +1,203 @@
+---
+title: Make it yours
+description:
+  Change what your first Agent does, run it on your own file, and give it a
+  Skill that hands back a spreadsheet file too.
+---
+
+## What you'll do
+
+[The quickstart](/docs/getting-started/quickstart) ran the variance reporter on
+a sample ledger. Now you'll make it yours, in three short acts:
+
+- change what it does, by editing its instructions;
+- run it on your own file instead of the sample;
+- give it a Skill, so it hands back a spreadsheet file beside the report.
+
+**Time**: about 10 minutes. **Prerequisites**: the quickstart, done in this
+folder, with Stigmer still running.
+
+<Steps>
+<Step>
+
+## Change what it does
+
+An Agent's instructions are plain words. Flag accounts at 5% instead of 10%:
+edit `variance-reporter.yaml` so it reads like this.
+
+```yaml title="variance-reporter.yaml"
+apiVersion: agentic.stigmer.ai/v1
+kind: Agent
+metadata:
+  name: variance-reporter
+spec:
+  description: Turns a customer's ledger into a variance report.
+  instructions: |
+    You review a customer's quarterly ledger. Each row has an account,
+    its budget and its actual amount.
+
+    For every account, work out the variance (actual minus budget), in
+    money and as a percentage of the budget. Flag each account that is
+    more than 5% over or under budget, and say in one line what could
+    explain it.
+
+    Save the report as variance-report.md in your outputs folder: a
+    two-sentence summary, then one table of every account, flagged
+    accounts first.
+  disallowed_tools: [Bash]
+```
+
+Send it to Stigmer again, then look at the Agent's history:
+
+```bash
+stigmer apply -f variance-reporter.yaml
+stigmer get agent variance-reporter --version-history
+```
+
+A changed definition is a new version, and Stigmer keeps every one. The history
+lists two: the one you made in the quickstart, and this one, marked current.
+Each run records the version it ran.
+
+</Step>
+<Step>
+
+## Run it on your own file
+
+Use one of your own ledgers, with the same three columns, or this one. Create
+`ledger-q4.csv`:
+
+```csv title="ledger-q4.csv"
+account,budget,actual
+Revenue,125000,129400
+Cost of goods sold,50000,51800
+Salaries,38000,40600
+Marketing,10000,9100
+Software,4200,4900
+Travel,3000,3150
+```
+
+Give the Agent the job, with your file in place of the sample:
+
+```bash
+stigmer run variance-reporter --attach ledger-q4.csv --download ./out --until turn -m "Here is one of our ledgers. Write the variance report."
+cat out/variance-report.md
+```
+
+The report now flags every account more than 5% from its budget, on your ledger.
+
+</Step>
+<Step>
+
+## Write a Skill
+
+A Skill is know-how an Agent can use: a folder with a `SKILL.md` that says what
+to do. Create `spreadsheet-export/SKILL.md`:
+
+```md title="spreadsheet-export/SKILL.md"
+---
+name: spreadsheet-export
+description: Use whenever your work makes a table, to save it as a .csv too.
+---
+
+# Spreadsheet export
+
+When your work makes a table (one row per account, ticket, clause or line), also
+save that table as a CSV file in your outputs folder, beside the file your
+instructions name.
+
+- Name it after that file, with `.csv` in place of its extension: a report saved
+  as `variance-report.md` comes with `variance-report.csv`.
+- Write a header row first, then one row per item, in the table's order.
+- Separate columns with commas. Put a value that holds a comma or a quote in
+  double quotes, and double each quote inside it.
+- Write numbers plainly: `5100`, not `$5,100`; `-60.0`, not `-60%`.
+
+Say in your answer, in one short line, that the CSV is there.
+```
+
+Push it to your Organization:
+
+```bash
+stigmer push skill spreadsheet-export
+```
+
+The `name` in its frontmatter is the Skill's name in your Organization. Pushing
+the folder again later makes a new version of the same Skill.
+
+</Step>
+<Step>
+
+## Give the Agent the Skill
+
+Add the Skill under `skill_refs`, at the end of `variance-reporter.yaml`:
+
+```yaml title="variance-reporter.yaml"
+apiVersion: agentic.stigmer.ai/v1
+kind: Agent
+metadata:
+  name: variance-reporter
+spec:
+  description: Turns a customer's ledger into a variance report.
+  instructions: |
+    You review a customer's quarterly ledger. Each row has an account,
+    its budget and its actual amount.
+
+    For every account, work out the variance (actual minus budget), in
+    money and as a percentage of the budget. Flag each account that is
+    more than 5% over or under budget, and say in one line what could
+    explain it.
+
+    Save the report as variance-report.md in your outputs folder: a
+    two-sentence summary, then one table of every account, flagged
+    accounts first.
+  disallowed_tools: [Bash]
+  skill_refs:
+    - kind: skill
+      slug: spreadsheet-export
+```
+
+Apply it, and run the job again:
+
+```bash
+stigmer apply -f variance-reporter.yaml
+stigmer run variance-reporter --attach ledger-q4.csv --download ./out --until turn -m "Here is one of our ledgers. Write the variance report."
+cat out/variance-report.csv
+```
+
+`out/` now holds `variance-report.csv` beside the report: the same table, ready
+to open in any spreadsheet. The Agent still has no shell. It wrote the CSV as
+text, the way it writes the report.
+
+</Step>
+</Steps>
+
+## What just happened
+
+Every change you made is a new version of the Agent, and every run records the
+version it ran, with each Skill it loaded. Your product's users get the Agent as
+it is now; the history keeps what it was.
+
+The console does the same three acts: open the Agent's page and choose **Make it
+yours**. To read more about versions and Skills, see
+[Agents](/docs/concepts/agents) and [Skills](/docs/concepts/skills).
+
+## Next step
+
+When the Agent does the job your way, put it where your users are.
+
+<Cards>
+  <Card
+    title="Put the agent in your app"
+    href="/docs/getting-started/embed-agent"
+  >
+    Give your signed-in users a chat with the Agent, with file uploads, inside
+    your React app.
+  </Card>
+  <Card
+    title="Do the same job from your app"
+    href="/docs/getting-started/call-from-your-app"
+  >
+    Upload a ledger, start the job and save the report from TypeScript, the way
+    your backend does it for a customer.
+  </Card>
+</Cards>

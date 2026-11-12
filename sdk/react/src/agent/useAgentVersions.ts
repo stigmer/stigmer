@@ -139,10 +139,14 @@ const NO_VERSION_COUNT: AgentVersionCount = { count: 0, isLowerBound: false };
  * How many versions an agent has, for a count (a tab badge): the length of
  * the history's first page, and whether more follow. `0` while loading,
  * for an agent with no version yet, and when `org` or `slug` is `null`.
+ * `currentVersion` (the agent's `status.versionHash`, as the caller holds
+ * it) reads the count again when it changes, so a save that made a new
+ * version shows in the count at once.
  */
 export function useAgentVersionCount(
   org: string | null,
   slug: string | null,
+  currentVersion?: string,
 ): AgentVersionCount {
   const stigmer = useStigmer();
   const { data } = useFetch(
@@ -157,7 +161,7 @@ export function useAgentVersionCount(
           };
         }
       : null,
-    [org, slug, stigmer],
+    [org, slug, stigmer, currentVersion],
     NO_VERSION_COUNT,
   );
   return data;

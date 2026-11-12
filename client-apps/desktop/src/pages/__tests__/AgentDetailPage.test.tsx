@@ -24,6 +24,10 @@
  * view offers it only on the server's yes; the view's own Edit YAML
  * declares `can_edit` (pinned in @stigmer/react-sdk).
  *
+ * And pins the journey's tab: the page offers the view's "Make it yours"
+ * tab with the app's routes, opens on the tab a `?tab=` link names (as the
+ * web page does), and moves to the tab a later link names.
+ *
  * And pins how an eval try's run opens from the Evals tab: a run is viewed
  * through its parent session, so the page resolves the run first and
  * navigates to `/sessions/<id>` only once the session is known; until then
@@ -31,7 +35,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, render, screen } from "@testing-library/react";
-import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { mockTauri } from "../../__test-utils__/tauri";
 import { CONSOLE_URL } from "../../config";
 
@@ -62,6 +66,8 @@ interface DetailProps {
   onRenamed: (agent: { metadata?: { slug: string } }) => void;
   onResourceLoad: (meta: { name: string; id: string; slug: string }) => void;
   yamlActions?: boolean;
+  makeItYours?: { launch: (input: { agent: { org: string; slug: string }; example: string | undefined; mode: "sample" | "own" }) => string };
+  activeTab?: string;
 }
 
 const page = vi.hoisted(() => ({
@@ -127,9 +133,17 @@ function Location() {
   );
 }
 
-function renderAgent() {
+let navigateTo: ((to: string) => void) | undefined;
+function Navigator() {
+  const navigate = useNavigate();
+  navigateTo = navigate;
+  return null;
+}
+
+function renderAgent(path = "/library/agents/acme/helper") {
   return render(
-    <MemoryRouter initialEntries={["/library/agents/acme/helper"]}>
+    <MemoryRouter initialEntries={[path]}>
+      <Navigator />
       <Routes>
         <Route path="/library/agents/:org/:slug" element={<AgentDetailPage />} />
         <Route path="*" element={null} />
@@ -146,6 +160,30 @@ beforeEach(() => {
   page.deletes = 0;
   page.resolving.length = 0;
   page.sessionFor.clear();
+});
+
+describe("desktop AgentDetailPage — the journey's tab", () => {
+  it("offers the view's Make it yours tab, with the app's launcher route", () => {
+    renderAgent();
+
+    expect(page.detail.at(-1)?.makeItYours?.launch({ agent: { org: ACME_ID, slug: "helper" }, example: "variance-report", mode: "own" })).toBe(
+      // The organization is written as its slug, as every app address names one.
+      `/?agent=${encodeURIComponent("acme/helper")}&example=variance-report&with=own`,
+    );
+  });
+
+  it("opens on the tab a link names, and moves to the tab a later link names", () => {
+    renderAgent("/library/agents/acme/helper?tab=make-it-yours");
+    expect(page.detail.at(-1)?.activeTab).toBe("make-it-yours");
+
+    act(() => navigateTo?.("/library/agents/acme/helper?tab=channels"));
+    expect(page.detail.at(-1)?.activeTab).toBe("channels");
+  });
+
+  it("opens on Overview when no link names a tab", () => {
+    renderAgent();
+    expect(page.detail.at(-1)?.activeTab).toBe("overview");
+  });
 });
 
 describe("desktop AgentDetailPage — the Channels tab", () => {

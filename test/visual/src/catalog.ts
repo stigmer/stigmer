@@ -65,15 +65,22 @@ export type SceneId =
   | "launcher-example-unchecked"
   | "launcher-example-ready"
   | "launcher-describe-own"
+  | "launcher-own-file"
+  | "launcher-next-line"
   | "model-selector-open"
   | "model-selector-not-ready"
   | "dashboard-kpis"
   | "dashboard-busy"
   | "dashboard-new-org"
+  | "dashboard-journey-new"
+  | "dashboard-journey-mid"
+  | "dashboard-journey-folded"
   | `settings-${SettingsSceneName}`
   | "agent-profile-owner"
   | "agent-profile-viewer"
   | "agent-profile-variance-reporter"
+  | "agent-make-it-yours"
+  | "agent-make-it-yours-member"
   | "skill-detail"
   | "marketplace-admin"
   | "marketplace-member"
@@ -246,6 +253,13 @@ const SESSION_SCENES = [
     elapse: 61_000,
   },
   { id: "session-starting", title: "Session: the session is being made and has no id yet", widths: ["desktop"] },
+  {
+    id: "session-first-job-next",
+    title: "Session: a newcomer's first agent finished its first job, with the line that leads to making it theirs",
+    // Desktop only: at phone width the thread scrolls, and where it comes to
+    // rest differs by machine.
+    widths: ["desktop"],
+  },
   // Every way a turn ends badly, one ending turn each (the catalogue's ENDING_STORY_NAMES).
   { id: "session-fail-key-rejected", title: "Session: the provider refused the organization's model key", widths: ["desktop"] },
   { id: "session-fail-key-missing", title: "Session: the organization has no key for the model's provider", widths: ["desktop"] },
@@ -642,6 +656,16 @@ export const SCENES: readonly Scene[] = [
     widths: ["desktop"],
     opens: [{ press: "Describe it", role: "button", exact: true }],
   },
+  {
+    id: "launcher-own-file",
+    title: "Launcher: the variance reporter on a file of the person's own, its message written and the attach invited",
+    widths: ["desktop", "narrow"],
+  },
+  {
+    id: "launcher-next-line",
+    title: "Launcher: after the first job, the journey's next step in one quiet line under the heading",
+    widths: ["desktop"],
+  },
   { id: "model-selector-open", title: "Model picker: open", widths: ["desktop"], opens: "Claude Sonnet 4.6" },
   {
     id: "model-selector-not-ready",
@@ -650,14 +674,35 @@ export const SCENES: readonly Scene[] = [
     opens: "Claude Sonnet 4.6",
   },
   { id: "dashboard-kpis", title: "Dashboard figures", widths: ["desktop"] },
-  { id: "dashboard-busy", title: "Dashboard: a busy week, with its failures", widths: ["desktop"] },
-  { id: "dashboard-new-org", title: "Dashboard: an organization that has run nothing yet", widths: ["desktop"] },
+  { id: "dashboard-busy", title: "Dashboard: a busy week, with its failures, as a member who may not make agents sees it", widths: ["desktop"] },
+  { id: "dashboard-new-org", title: "Dashboard: an organization that has made and run nothing yet, the journey's card alone", widths: ["desktop"] },
+  {
+    id: "dashboard-journey-new",
+    title: "Dashboard: an agent picked and a key in, nothing run yet; two of six, the card alone",
+    widths: ["desktop", "narrow"],
+  },
+  {
+    id: "dashboard-journey-mid",
+    title: "Dashboard: the agent ran and was made the newcomer's own; four of six, the card above the week's figures",
+    widths: ["desktop"],
+  },
+  { id: "dashboard-journey-folded", title: "Dashboard: every step of the journey done, the card folded to one line", widths: ["desktop"] },
   ...SETTINGS_SCENES,
   { id: "agent-profile-owner", title: "Agent page: the ledger agent, as its owner sees it", widths: ["desktop", "narrow"] },
   { id: "agent-profile-viewer", title: "Agent page: the ledger agent, as a person who may only read it sees it", widths: ["desktop"] },
   {
     id: "agent-profile-variance-reporter",
     title: "Agent page: the agents page's variance reporter, each section one of the YAML fields the page prints",
+    widths: ["desktop"],
+  },
+  {
+    id: "agent-make-it-yours",
+    title: "Agent page: the agent the first question made, open on Make it yours: its instructions, its own file, a skill",
+    widths: ["desktop", "narrow"],
+  },
+  {
+    id: "agent-make-it-yours-member",
+    title: "Agent page: Make it yours for an editor who may not make skills, told an admin adds them",
     widths: ["desktop"],
   },
   { id: "skill-detail", title: "Skill page: the skills page's variance-report, its description over its rendered body", widths: ["desktop"] },

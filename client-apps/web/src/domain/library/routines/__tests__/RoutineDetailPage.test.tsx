@@ -42,6 +42,8 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: (url: string) => page.pushed.push(url) }),
   // The static export prerenders one placeholder page; the address names the routine.
   useParams: () => ({ org: "__placeholder__", slug: "__placeholder__" }),
+  // The router's path, as the address the test sets.
+  usePathname: () => window.location.pathname,
 }));
 
 vi.mock("@/domain/library/library-navigation", () => ({

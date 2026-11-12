@@ -324,14 +324,22 @@ describe("lock", () => {
 
   // stigmer#2900: the lock is a PID record like every PID file, so a number
   // the OS has since handed to another program does not hold it.
-  it("records its own start time beside its PID", () => {
+  // stigmer#2993: a one-time token follows, so no two lock files are alike.
+  it("records its own start time beside its PID, then a one-time token", () => {
     const path = join(tempDir("stigmer-lock-"), "temporal.lock");
     const lock = acquireLock(path);
     expect(lock).not.toBeNull();
     const started = processStartTime(process.pid);
     expect(started).not.toBeNull();
-    expect(readFileSync(path, "utf8")).toBe(`${process.pid}\nstarted=${started}\n`);
+    const text = readFileSync(path, "utf8");
+    const token = /\nlock=([0-9a-f]{16})\n$/.exec(text)?.[1];
+    expect(token, `a lock= line in ${JSON.stringify(text)}`).toBeDefined();
+    expect(text).toBe(`${process.pid}\nstarted=${started}\nlock=${token}\n`);
     lock?.release();
+
+    const again = acquireLock(path);
+    expect(readFileSync(path, "utf8")).not.toContain(`lock=${token}\n`);
+    again?.release();
   });
 
   it("reclaims a lock whose owner PID is alive but started at another time", () => {

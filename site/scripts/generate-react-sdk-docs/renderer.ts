@@ -50,7 +50,9 @@ export const DOMAIN_GROUPS: readonly DomainGroup[] = [
   },
   {
     label: "Agents",
-    slugs: ["agent", "eval-run", "chat-link", "channel", "channel-app", "conversation", "routine"],
+    // journey is a newcomer's way from a first agent to its users: the
+    // agent page's tab and the lines that lead there.
+    slugs: ["agent", "journey", "eval-run", "chat-link", "channel", "channel-app", "conversation", "routine"],
   },
   {
     label: "Tools & Knowledge",

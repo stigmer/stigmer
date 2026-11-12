@@ -579,14 +579,22 @@ smoke-cli-cutover: build-runner build-server build-web ## Run the CLI E2E smoke:
 	@cd $(SERVER_DIR) && node scripts/bundle-slim.mjs
 	node test/install/smoke-cli-cutover.mjs
 
-# The Getting Started pages run as a reader runs them (the quickstart, then
-# the same job from code), on the same source CLI and slim server as the
-# smoke above; the SDK the second page installs is packed from this checkout.
-.PHONY: smoke-getting-started
+# The Getting Started pages run as a reader runs them (the quickstart, the
+# same job from code, then making the Agent yours), on the same source CLI
+# and slim server as the smoke above; the SDK the second page installs is
+# packed from this checkout. The live target runs them once on a real model
+# with ANTHROPIC_API_KEY (it fails without one, and spends money), asserting
+# structure only; it is in no lane.
+.PHONY: smoke-getting-started smoke-getting-started-live
 smoke-getting-started: build-runner build-server build-web ## Run the Getting Started pages as written: their files and commands, on `stigmer up` from source and the SDK packed from source
 	@command -v node >/dev/null 2>&1 || { echo "error: node not found"; exit 1; }
 	@cd $(SERVER_DIR) && node scripts/bundle-slim.mjs
 	node test/install/smoke-getting-started.mjs
+
+smoke-getting-started-live: build-runner build-server build-web ## Run the Getting Started pages once on a real model (ANTHROPIC_API_KEY; spends money): each report and the Skill's CSV come back
+	@command -v node >/dev/null 2>&1 || { echo "error: node not found"; exit 1; }
+	@cd $(SERVER_DIR) && node scripts/bundle-slim.mjs
+	node test/install/smoke-getting-started.mjs --live-model
 
 # Every example agent under examples/, run from its folder on `stigmer up`
 # from source: applied, run with its samples attached, and the file its

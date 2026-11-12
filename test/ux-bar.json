@@ -252,6 +252,10 @@
       "promise": "The key step says why, where to get a key, and checks it live; a rejected key is refused in plain words and an unchecked one is said."
     },
     {
+      "id": "CON-08",
+      "promise": "After the first job, the console says what comes next and leads to making the agent theirs: change its instructions, run it on their own file, give it a skill."
+    },
+    {
       "id": "DSK-01",
       "promise": "Clicking the Dock icon reopens a closed window.",
       "pending": [

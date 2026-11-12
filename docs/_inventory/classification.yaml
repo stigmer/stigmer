@@ -67,6 +67,15 @@ pages:
       back as a file.
     medium: none
 
+  getting-started/make-it-yours:
+    fate: keep
+    diataxis: tutorial
+    teaches:
+      Change the Agent's instructions and see a new version, run it on your own
+      ledger, and push a Skill that makes it hand back a CSV file beside the
+      report.
+    medium: none
+
   getting-started/call-from-your-app:
     fate: keep
     diataxis: tutorial

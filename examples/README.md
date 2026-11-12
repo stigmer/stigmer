@@ -13,7 +13,13 @@ the Agent and its sample files.
 
 The console asks a newcomer the same question with the same four jobs, and
 `catalogue.json` is the list both read: `scripts/generate.mjs` turns it, the
-manifests and the samples into the `@stigmer/examples` package.
+manifests, the samples and the skills into the `@stigmer/examples` package.
+
+[`skills/spreadsheet-export/`](skills/spreadsheet-export/SKILL.md) is a
+ready-made skill any of the four agents can be given: it hands back the job's
+table as a `.csv` file too, beside the report, which opens in any spreadsheet.
+[Make it yours](https://stigmer.ai/docs/getting-started/make-it-yours) gives it
+to the variance reporter.
 
 ## Variance report (`variance-report/`)
 
