@@ -39,6 +39,13 @@
  *     fresh read, so a sandbox a turn woke while the delete waited is
  *     skipped, never deleted; `prepare` readies the template and never
  *     rejects;
+ *   - workers leaving: `draining` lists the workers once and, when none is
+ *     draining, lists no actor; otherwise it names only the running
+ *     sandboxes on a draining worker, each with when this process first saw
+ *     that worker draining, kept across calls and forgotten once the worker
+ *     is gone; a refused worker read answers empty and warns once, naming
+ *     the grant; any other failure is thrown; a durable suspend asks the
+ *     gateway for one, and every other suspend does not;
  *   - a session's Environment: the driver can limit networking only while
  *     HTTPS egress is `all` and installs packages either way; an ensure
  *     with a limited Environment writes a policy without the HTTPS
@@ -68,6 +75,7 @@ import type { EgressRule } from "../gen/api/ateapi/v1/ateapi_pb.js";
 import {
   SubstrateAbortedError,
   SubstrateNoWorkerError,
+  SubstratePermissionError,
   type SubstrateSandboxState,
 } from "../gateway.js";
 
@@ -1360,5 +1368,108 @@ describe("configuration the driver refuses", () => {
         runnerSecretEnv: { GITHUB_TOKEN: "ghp" },
       }),
     ).toThrow(/cannot push GITHUB_TOKEN/);
+  });
+});
+
+describe("workers leaving", () => {
+  const A = "sbx-ses-00000000000a";
+  const B = "sbx-ses-00000000000b";
+  const C = "sbx-ses-00000000000c";
+
+  it("lists no actor when no worker is draining", async () => {
+    const h = harness();
+    h.substrate.workers.set("w-1", "active");
+    h.substrate.workers.set("w-2", "unavailable");
+    h.substrate.put({ name: A, state: "running", template: "t", worker: "w-1" });
+    expect(await h.driver.lifecycle.draining()).toEqual([]);
+    expect(h.substrate.calls).toEqual(["listWorkers "]);
+  });
+
+  it("names only the running sandboxes on a draining worker, each with when this process first saw the drain", async () => {
+    const h = harness();
+    const t0 = new Date(h.now());
+    h.substrate.workers.set("w-1", "draining");
+    h.substrate.workers.set("w-2", "active");
+    h.substrate.put({ name: A, state: "running", template: "t", worker: "w-1" });
+    h.substrate.put({ name: B, state: "running", template: "t", worker: "w-2" });
+    h.substrate.put({ name: C, state: "suspended", template: "t" });
+    const first = await h.driver.lifecycle.draining();
+    expect(first.map((d) => [d.actor.name, d.actor.worker, d.drainingSince])).toEqual([
+      [A, "w-1", t0],
+    ]);
+    expect(h.substrate.calls).toEqual(["listWorkers ", "listActors "]);
+
+    h.advance(5 * 60_000);
+    const t1 = new Date(h.now());
+    h.substrate.workers.set("w-2", "draining");
+    const second = await h.driver.lifecycle.draining();
+    expect(second.map((d) => [d.actor.name, d.drainingSince])).toEqual([
+      [A, t0],
+      [B, t1],
+    ]);
+  });
+
+  it("forgets a drain once its worker is gone, so a worker of that name starts its own clock", async () => {
+    const h = harness();
+    h.substrate.workers.set("w-1", "draining");
+    h.substrate.put({ name: A, state: "running", template: "t", worker: "w-1" });
+    await h.driver.lifecycle.draining();
+    h.substrate.workers.delete("w-1");
+    expect(await h.driver.lifecycle.draining()).toEqual([]);
+    h.advance(60_000);
+    h.substrate.workers.set("w-1", "draining");
+    const [again] = await h.driver.lifecycle.draining();
+    expect(again?.drainingSince).toEqual(new Date(h.now()));
+  });
+
+  it("answers empty when the worker read is refused, warning once with the grant named", async () => {
+    const warned: LogEntry[] = [];
+    const h = harness(
+      undefined,
+      undefined,
+      createLogger({
+        level: "warn",
+        pretty: false,
+        write: () => {},
+        sink: (entry) => warned.push(entry),
+      }),
+    );
+    const refusal = () =>
+      new SubstratePermissionError(
+        "Substrate's Control API refused to list workers (permission denied); ... needs the global viewer role ...",
+      );
+    h.substrate.fail("listWorkers", refusal);
+    h.substrate.fail("listWorkers", refusal);
+    h.substrate.put({ name: A, state: "running", template: "t", worker: "w-1" });
+    expect(await h.driver.lifecycle.draining()).toEqual([]);
+    expect(await h.driver.lifecycle.draining()).toEqual([]);
+    expect(h.substrate.calls).toEqual(["listWorkers ", "listWorkers "]);
+    expect(warned.map((entry) => entry.message)).toEqual([
+      "Substrate refused this server the worker list, so a sandbox awake on a leaving worker is not stored before it goes; grant the server's identity Substrate's global viewer role to protect them",
+    ]);
+    expect(String(warned[0]?.fields?.error)).toMatch(/global viewer/);
+  });
+
+  it("throws any other failure of the worker read", async () => {
+    const h = harness();
+    h.substrate.fail("listWorkers", new Error("unavailable"));
+    await expect(h.driver.lifecycle.draining()).rejects.toThrow("unavailable");
+  });
+
+  it("a durable suspend asks the gateway for one; every other suspend does not", async () => {
+    const h = harness();
+    h.substrate.put({ name: ACTOR, state: "running", template: "t", worker: "w-1" });
+    expect(
+      await h.driver.lifecycle.suspend("session", SESSION, undefined, {
+        durable: true,
+      }),
+    ).toBe("done");
+    await h.driver.lifecycle.resume("session", SESSION, facts);
+    await h.driver.lifecycle.suspend("session", SESSION);
+    expect(h.substrate.suspensions).toEqual([
+      { name: ACTOR, durable: true },
+      { name: ACTOR, durable: false },
+    ]);
+    expect(h.substrate.actors.get(ACTOR)?.worker).toBeUndefined();
   });
 });

@@ -20,7 +20,16 @@
  *     failed on are summed in one warning per pass, a count and a capped
  *     sample with each one's state, since when and a cut error;
  *   - start runs a pass at once; a stopping sweep ends its pass after the
- *     sandbox in hand.
+ *     sandbox in hand;
+ *   - on a draining worker a sandbox is stored (suspended durably) as soon
+ *     as its session is not busy, inside its idle window; a busy one runs
+ *     on until the drain deadline and is then stored, never thawed for the
+ *     turn it ended, while an idle store a turn races is thawed; a sandbox
+ *     that left the draining worker before the act (stored and woken by a
+ *     new turn) is not stored again; one on an active
+ *     worker follows the ladder, suspended asynchronously; an orphan on a
+ *     draining worker is stored; a worker read that fails is one warning
+ *     and the ladder runs as before.
  */
 import { describe, expect, it, vi } from "vitest";
 
@@ -35,7 +44,7 @@ import { FakeSubstrate, fakeRouter } from "../__test-utils__/fake-gateway.js";
 import type { SubstrateDriverSettings } from "../config.js";
 import { newSubstrateSandboxDriverOverGateway } from "../driver.js";
 import type { SubstrateSandboxState } from "../gateway.js";
-import { CLOCK_SKEW_ALLOWANCE_MS } from "../limits.js";
+import { CLOCK_SKEW_ALLOWANCE_MS, DRAIN_DEADLINE_MS } from "../limits.js";
 import {
   newSweepState,
   runSweepPass,
@@ -640,5 +649,130 @@ describe("failures and races", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe("a worker leaving", () => {
+  function onWorker(h: ReturnType<typeof harness>, name: string, worker: string) {
+    const actor = h.substrate.actors.get(name);
+    if (actor === undefined) throw new Error(`no actor ${name}`);
+    actor.worker = worker;
+  }
+
+  it("stores an idle session's sandbox at once, durably, inside its idle window", async () => {
+    const h = harness();
+    h.substrate.workers.set("w-1", "draining");
+    const name = known(h, "ses_a", "running", 1 * MIN);
+    onWorker(h, name, "w-1");
+    await h.pass();
+    expect(h.substrate.actors.get(name)?.state).toBe("suspended");
+    expect(h.substrate.suspensions).toEqual([{ name, durable: true }]);
+  });
+
+  it("lets a busy session's turn run until the drain deadline, then stores it", async () => {
+    const h = harness();
+    h.substrate.workers.set("w-1", "draining");
+    const name = known(h, "ses_a", "running", 0, true);
+    onWorker(h, name, "w-1");
+    await h.pass();
+    h.advance(DRAIN_DEADLINE_MS - MIN);
+    await h.pass();
+    expect(h.substrate.actors.get(name)?.state).toBe("running");
+    h.advance(MIN);
+    await h.pass();
+    expect(h.substrate.actors.get(name)?.state).toBe("suspended");
+    expect(h.substrate.suspensions).toEqual([{ name, durable: true }]);
+  });
+
+  it("an idle store that a turn races is thawed at once, as a suspend is", async () => {
+    const h = harness();
+    h.substrate.workers.set("w-1", "draining");
+    const raced = known(h, "ses_raced", "running", 1 * MIN);
+    onWorker(h, raced, "w-1");
+    // Reads: the pass's decision, the re-decision in the queue, then the
+    // check after the store, which sees the new turn.
+    h.sessions.onRead = (id, read) => {
+      if (id === "ses_raced" && read === 3)
+        h.sessions.activities.set("ses_raced", {
+          busy: true,
+          lastActiveAt: new Date(h.t()),
+        });
+    };
+    await h.pass();
+    expect(h.substrate.calls.filter((c) => c.endsWith(raced))).toEqual([
+      `getActor ${raced}`,
+      `suspendActor ${raced}`,
+      `resumeActor ${raced}`,
+    ]);
+    expect(h.substrate.suspensions).toEqual([{ name: raced, durable: true }]);
+  });
+
+  it("does not store a sandbox that left the draining worker before the act, even past the deadline", async () => {
+    const h = harness();
+    h.substrate.workers.set("w-1", "draining");
+    const name = known(h, "ses_a", "running", 0, true);
+    onWorker(h, name, "w-1");
+    await h.pass();
+    h.advance(DRAIN_DEADLINE_MS);
+    // Between the pass's read and the act, the sandbox was stored and woken
+    // by a new turn on a healthy worker.
+    h.sessions.onRead = (id) => {
+      if (id === "ses_a") onWorker(h, name, "w-2");
+    };
+    await h.pass();
+    expect(h.substrate.actors.get(name)?.state).toBe("running");
+    expect(h.substrate.suspensions).toEqual([]);
+  });
+
+  it("leaves a sandbox on an active worker to the ladder, suspended asynchronously", async () => {
+    const h = harness();
+    h.substrate.workers.set("w-1", "draining");
+    h.substrate.workers.set("w-2", "active");
+    const fresh = known(h, "ses_fresh", "running", 1 * MIN);
+    const idle = known(h, "ses_idle", "running", 6 * MIN);
+    onWorker(h, fresh, "w-2");
+    onWorker(h, idle, "w-2");
+    await h.pass();
+    expect(h.substrate.actors.get(fresh)?.state).toBe("running");
+    expect(h.substrate.suspensions).toEqual([{ name: idle, durable: false }]);
+  });
+
+  it("stores an orphan on a draining worker", async () => {
+    const h = harness();
+    h.substrate.workers.set("w-1", "draining");
+    const name = sandboxBaseName("session", "ses_gone");
+    h.substrate.put({
+      name,
+      state: "running",
+      template: "t",
+      createTime: new Date(h.t() - 60 * MIN),
+      worker: "w-1",
+    });
+    await h.pass();
+    expect(h.substrate.actors.get(name)?.state).toBe("suspended");
+    expect(h.substrate.suspensions).toEqual([{ name, durable: true }]);
+  });
+
+  it("a worker read that fails is one warning, and the ladder runs as before", async () => {
+    const warned: LogEntry[] = [];
+    const h = harness(
+      createLogger({
+        level: "warn",
+        pretty: false,
+        write: () => {},
+        sink: (entry) => warned.push(entry),
+      }),
+    );
+    h.substrate.fail("listWorkers", new Error("unavailable"));
+    const idle = known(h, "ses_idle", "running", 6 * MIN);
+    onWorker(h, idle, "w-1");
+    await h.pass();
+    expect(h.substrate.suspensions).toEqual([{ name: idle, durable: false }]);
+    expect(warned.map((entry) => [entry.message, entry.fields?.error])).toEqual([
+      [
+        "Substrate idle sweep could not read which workers are leaving; this pass protects no sandbox from one",
+        "unavailable",
+      ],
+    ]);
   });
 });

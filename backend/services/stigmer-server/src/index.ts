@@ -965,6 +965,7 @@ export type {
 export { newSubstrateSettingsFromEnv } from "./sandbox/substrate/config.js";
 export type {
   SubstrateActorSummary,
+  SubstrateDrainingSandbox,
   SubstrateMaintenance,
   SubstrateSandboxLifecycle,
   SubstrateSandboxState,
@@ -973,7 +974,11 @@ export type {
   SubstrateSleepGuard,
   SubstrateSleepOutcome,
   SubstrateSuspendGuard,
+  SubstrateSuspendOptions,
 } from "./sandbox/substrate/driver.js";
+// How long a sweep lets a turn run on a draining worker before it stores
+// the sandbox anyway, counted from the driver's first sight of the drain.
+export { DRAIN_DEADLINE_MS as SUBSTRATE_DRAIN_DEADLINE_MS } from "./sandbox/substrate/limits.js";
 export type { SubstrateRunnerMode } from "./sandbox/substrate/template.js";
 // The one queue a sandbox serves, for a composition that pushes to it
 // outside a turn (a renewed token).

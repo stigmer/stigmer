@@ -15,8 +15,13 @@
  *   - the atespace is read first and created only when it is missing, so
  *     an atespace granted to the server needs no global owner;
  *   - an actor's state is Substrate's, whatever snapshot it holds;
- *   - a suspend asks for Substrate's asynchronous mode, and a delete sends
- *     the actor's reference alone;
+ *   - a suspend asks for Substrate's asynchronous mode, a durable one for
+ *     the synchronous mode under a deadline long enough for the upload, and
+ *     a delete sends the actor's reference alone;
+ *   - workers are listed across pages with their state in the driver's
+ *     words, an actor names the worker hosting it (none when it has none),
+ *     a refused worker read names the global viewer grant it needs, and
+ *     any other failure of it passes through;
  *   - the atespace's access policy: created with the atespace, holding
  *     `editor` for the server's principal and nothing else; on an
  *     existing atespace, the binding it lacks added and none
@@ -73,6 +78,8 @@ import {
   DurabilityMode,
   EgressPolicySchema,
   EgressRuleSchema,
+  WorkerSchema,
+  WorkerState,
 } from "../gen/api/ateapi/v1/ateapi_pb.js";
 import {
   bearerFromFile,
@@ -638,6 +645,91 @@ describe("an existing egress policy", () => {
   });
 });
 
+describe("workers", () => {
+  const worker = (name: string, state: WorkerState) =>
+    create(WorkerSchema, { metadata: { name }, status: { state } });
+
+  it("are listed across pages, each with its state in the driver's words", async () => {
+    const tokens: string[] = [];
+    const gateway = gatewayOver({
+      listWorkers(request) {
+        tokens.push(request.options?.pageToken ?? "");
+        return (request.options?.pageToken ?? "") === ""
+          ? {
+              workers: [
+                worker("w-active", WorkerState.ACTIVE),
+                worker("w-draining", WorkerState.DRAINING),
+              ],
+              nextPageToken: "p2",
+            }
+          : {
+              workers: [
+                worker("w-unavailable", WorkerState.UNAVAILABLE),
+                worker("w-unset", WorkerState.UNSPECIFIED),
+                worker("w-other-release", 42 as WorkerState),
+              ],
+              nextPageToken: "",
+            };
+      },
+    });
+    expect(await gateway.listWorkers()).toEqual([
+      { name: "w-active", state: "active" },
+      { name: "w-draining", state: "draining" },
+      { name: "w-unavailable", state: "unavailable" },
+      { name: "w-unset", state: "unknown" },
+      { name: "w-other-release", state: "unknown" },
+    ]);
+    expect(tokens).toEqual(["", "p2"]);
+  });
+
+  it("an actor names the worker hosting it, and none when it has none", async () => {
+    const hosted = actor("a", ActorState.RUNNING);
+    hosted.status = create(ActorSchema, {
+      status: {
+        state: ActorState.RUNNING,
+        workerAssignment: {
+          worker: { name: "w-1" },
+          workerNamespace: "ate-workers",
+          workerPool: "pool",
+          workerPod: "pod-1",
+          nodeName: "node-1",
+        },
+      },
+    }).status;
+    const gateway = gatewayOver({
+      listActors: () => ({
+        actors: [hosted, actor("b", ActorState.SUSPENDED)],
+        nextPageToken: "",
+      }),
+    });
+    const [a, b] = await gateway.listActors();
+    expect(a?.worker).toBe("w-1");
+    expect(b?.worker).toBeUndefined();
+  });
+
+  it("a refused worker read names the global viewer grant it needs", async () => {
+    const gateway = gatewayOver({
+      listWorkers() {
+        throw new ConnectError("permission denied", Code.PermissionDenied);
+      },
+    });
+    const refusal = gateway.listWorkers();
+    await expect(refusal).rejects.toBeInstanceOf(SubstratePermissionError);
+    await expect(refusal).rejects.toThrow(/global viewer/);
+  });
+
+  it("passes on any other failure of the worker read", async () => {
+    const gateway = gatewayOver({
+      listWorkers() {
+        throw new ConnectError("control plane unavailable", Code.Unavailable);
+      },
+    });
+    const failure = gateway.listWorkers();
+    await expect(failure).rejects.toBeInstanceOf(ConnectError);
+    await expect(failure).rejects.not.toBeInstanceOf(SubstratePermissionError);
+  });
+});
+
 describe("lists and moves", () => {
   it("lists follow page tokens", async () => {
     const gateway = gatewayOver({
@@ -749,8 +841,10 @@ describe("the calls that succeed", () => {
       ),
       createActorEgressPolicy: record("createActorEgressPolicy", {}),
       resumeActor: record("resumeActor", { resumed: true }),
-      suspendActor(request) {
-        seen.push(`suspendActor mode=${DurabilityMode[request.options?.mode ?? 0]}`);
+      suspendActor(request, context) {
+        seen.push(
+          `suspendActor mode=${DurabilityMode[request.options?.mode ?? 0]} deadline=${(context.timeoutMs() ?? 0) > 120_000 ? "long" : "short"}`,
+        );
         return {};
       },
       revertActor: record("revertActor", {}),
@@ -789,6 +883,7 @@ describe("the calls that succeed", () => {
     await gateway.ensureEgressPolicy("a", []);
     await gateway.resumeActor("a");
     await gateway.suspendActor("a");
+    await gateway.suspendActor("a", { durable: true });
     await gateway.revertActor("a");
     await gateway.deleteActor("a");
     await gateway.deleteTemplate({
@@ -810,7 +905,8 @@ describe("the calls that succeed", () => {
       "createActorTemplate",
       "createActorEgressPolicy",
       "resumeActor",
-      "suspendActor mode=ASYNCHRONOUS",
+      "suspendActor mode=ASYNCHRONOUS deadline=short",
+      "suspendActor mode=SYNCHRONOUS deadline=long",
       "revertActor",
       "deleteActor a",
       "deleteActorTemplate",

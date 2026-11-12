@@ -108,6 +108,25 @@
  * sweep's own listing (a delete repeated, a sleeping sandbox moved to the
  * current template, unused templates retired); and
  * `prepare` readies the template before the first turn needs it.
+ *
+ * Workers leaving. A worker that is rolling, scaling down or draining
+ * (an in-place Substrate upgrade, a node upgrade, a node pool scaling
+ * down) sends SIGTERM to each actor's main process, and the actor then
+ * has 30 minutes to be suspended before its pod goes and it crashes,
+ * losing every file written since its last snapshot (Substrate's API
+ * guide, "Eviction"). Substrate does not suspend it: its driver must, and
+ * durably, because an asynchronous suspend's snapshot sits on the node
+ * that is leaving. The runner's attach entry stays up on SIGTERM so it
+ * can be suspended. `draining` names the running sandboxes on a draining
+ * worker, and a durable `suspend` stores one; which to store, and when,
+ * is the sweep's decision like every other (idle-decision.ts). `draining`
+ * lists the workers on every call, and the actors only while a worker is
+ * draining. Substrate records no drain time, so each sandbox carries when
+ * this process first saw its worker draining, the clock the sweep's
+ * deadline counts from. Listing workers needs Substrate's global viewer
+ * role, which this driver does not otherwise need: refused, `draining`
+ * answers empty, warns once naming the grant, and the server runs as
+ * before, its awake sandboxes unprotected from a leaving worker.
  */
 import type { Logger } from "../../boot/logger.js";
 import {
@@ -131,9 +150,11 @@ import type { EgressRule } from "./gen/api/ateapi/v1/ateapi_pb.js";
 import {
   SubstrateAbortedError,
   SubstrateNoWorkerError,
+  SubstratePermissionError,
   type SubstrateActorView,
   type SubstrateGateway,
   type SubstrateSandboxState,
+  type SubstrateSuspendOptions,
 } from "./gateway.js";
 import { pushAttach, type PushResult } from "./push.js";
 import {
@@ -144,7 +165,10 @@ import {
   type TemplateKeeper,
 } from "./template.js";
 
-export type { SubstrateSandboxState } from "./gateway.js";
+export type {
+  SubstrateSandboxState,
+  SubstrateSuspendOptions,
+} from "./gateway.js";
 
 /** One sandbox as a composition sees it. */
 export interface SubstrateActorSummary {
@@ -153,6 +177,15 @@ export interface SubstrateActorSummary {
   readonly template: string;
   readonly createTime: Date | undefined;
   readonly updateTime: Date | undefined;
+  /** The worker hosting it; absent while it has none (suspended, crashed). */
+  readonly worker?: string;
+}
+
+/** A running sandbox on a worker that is leaving (module header, "Workers leaving"). */
+export interface SubstrateDrainingSandbox {
+  readonly actor: SubstrateActorSummary;
+  /** When this process first saw the actor's worker draining; Substrate records no drain time. */
+  readonly drainingSince: Date;
 }
 
 /**
@@ -211,12 +244,24 @@ export interface SubstrateMaintenance {
  * records and its own sweep calls the same ones (module header).
  */
 export interface SubstrateSandboxLifecycle {
-  /** Suspends; with a guard, only if it proceeds, and thawed again if it is no longer idle afterwards. */
+  /**
+   * Suspends; with a guard, only if it proceeds, and thawed again if it is
+   * no longer idle afterwards. `durable` returns only once the snapshot is
+   * in storage: for a sandbox whose worker is leaving (`draining`).
+   */
   suspend(
     scope: SandboxScope,
     id: string,
     guard?: SubstrateSuspendGuard,
+    options?: SubstrateSuspendOptions,
   ): Promise<SubstrateSleepOutcome>;
+  /**
+   * The running sandboxes on a draining worker, each with when this
+   * process first saw that worker draining; empty, with one warning per
+   * process, when Substrate refuses this server the worker list (module
+   * header, "Workers leaving").
+   */
+  draining(): Promise<SubstrateDrainingSandbox[]>;
   /** The ensure: wakes (or creates) the sandbox and pushes its attachment. */
   resume(scope: SandboxScope, id: string, facts: SandboxFacts): Promise<void>;
   delete(scope: SandboxScope, id: string): Promise<void>;
@@ -397,6 +442,9 @@ export function newSubstrateSandboxDriverOverGateway(
    * it count as foreign, the safe reading (module header).
    */
   const startedHere = new Set<string>();
+  /** When this process first saw each worker draining, by worker name (module header). */
+  const drainSeenAt = new Map<string, number>();
+  let workerReadRefused = false;
 
   async function reconcileEgress(
     name: string,
@@ -721,11 +769,11 @@ export function newSubstrateSandboxDriverOverGateway(
   }
 
   const lifecycle: SubstrateSandboxLifecycle = {
-    suspend: (scope, id, guard) => {
+    suspend: (scope, id, guard, options) => {
       const name = sandboxBaseName(scope, id);
       return serialize(name, async (): Promise<SubstrateSleepOutcome> => {
         if ((await asked(name, guard)) !== "proceed") return "skipped";
-        await gateway.suspendActor(name);
+        await gateway.suspendActor(name, options);
         if (guard !== undefined && !(await guard.stillIdle())) {
           // A fresh runner, which the turn's own ensure pushes to.
           startedHere.add(name);
@@ -767,6 +815,44 @@ export function newSubstrateSandboxDriverOverGateway(
     },
     async list() {
       return (await gateway.listActors()).map(summaryOf);
+    },
+    async draining() {
+      let workers;
+      try {
+        workers = await gateway.listWorkers();
+      } catch (error) {
+        if (!(error instanceof SubstratePermissionError)) throw error;
+        if (!workerReadRefused) {
+          workerReadRefused = true;
+          logger.warn(
+            "Substrate refused this server the worker list, so a sandbox awake on a leaving worker is not stored before it goes; grant the server's identity Substrate's global viewer role to protect them",
+            { error: error.message },
+          );
+        }
+        return [];
+      }
+      const leaving = new Set(
+        workers
+          .filter((worker) => worker.state === "draining")
+          .map((worker) => worker.name),
+      );
+      // A worker gone from the list is gone; one of its name later is another.
+      for (const worker of drainSeenAt.keys()) {
+        if (!leaving.has(worker)) drainSeenAt.delete(worker);
+      }
+      if (leaving.size === 0) return [];
+      for (const worker of leaving) {
+        if (!drainSeenAt.has(worker)) drainSeenAt.set(worker, now());
+      }
+      const drained: SubstrateDrainingSandbox[] = [];
+      for (const actor of await gateway.listActors()) {
+        const seen =
+          actor.worker === undefined ? undefined : drainSeenAt.get(actor.worker);
+        if (actor.state === "running" && seen !== undefined) {
+          drained.push({ actor: summaryOf(actor), drainingSince: new Date(seen) });
+        }
+      }
+      return drained;
     },
     async maintain(listed, options) {
       const stopping = options?.stopping ?? (() => false);
@@ -887,5 +973,6 @@ function summaryOf(actor: SubstrateActorView): SubstrateActorSummary {
     template: actor.template,
     createTime: actor.createTime,
     updateTime: actor.updateTime,
+    ...(actor.worker !== undefined ? { worker: actor.worker } : {}),
   };
 }
