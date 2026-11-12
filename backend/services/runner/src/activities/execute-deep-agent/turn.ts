@@ -61,6 +61,7 @@ import type { TurnInput, TurnOutcome, TurnSink } from "../../harness/types.js";
 import type { McpConnectionResult } from "../../shared/mcp-manager.js";
 import { tryInferProvider } from "../../shared/llm-proxy.js";
 import { settleThrown } from "../../shared/stop-kind.js";
+import { registryIdOf } from "../../shared/model-registry.js";
 import { isToolCallBudgetStop } from "../../shared/tool-rounds.js";
 import { ToolListResolutionError } from "../../shared/tool-lists.js";
 import { HookSetupError } from "./hooks-setup.js";
@@ -95,6 +96,8 @@ export async function runDeepAgentTurn(
   let checkpointer: BaseCheckpointSaver | undefined;
   let connection: McpConnectionResult | undefined;
   let modelName: string | undefined;
+  // The model a failure names, by the registry's own id (`registryIdOf`).
+  let stopModel: string | undefined;
   let outcome: TurnOutcome | undefined;
   const stopBackground = (): void => void background.stopAll();
   sink.stopSignal.addEventListener("abort", stopBackground, { once: true });
@@ -103,6 +106,7 @@ export async function runDeepAgentTurn(
 
   const engineTurn = async (): Promise<TurnOutcome> => {
     modelName = await resolveModelName(input);
+    stopModel = await registryIdOf(modelName);
     checkpointer = await openCheckpointer(input, sink, config);
     const workspace = buildDeepAgentWorkspace(input);
     // What this engine observes touching CAS-owned paths — the one capture
@@ -137,7 +141,7 @@ export async function runDeepAgentTurn(
     outcome = await engineTurn();
     return outcome;
   } catch (err) {
-    outcome = classifyThrown(err, input, config, modelName);
+    outcome = classifyThrown(err, input, config, modelName, stopModel);
     return outcome;
   } finally {
     sink.stopSignal.removeEventListener("abort", stopBackground);
@@ -191,7 +195,7 @@ function stopsBeforeTheEngine(sink: TurnSink): boolean {
  * anything else on the `internal` surface: the runner or its transport
  * broke.
  */
-function classifyThrown(err: unknown, input: TurnInput, config: DeepAgentAdapterConfig, modelName: string | undefined): TurnOutcome {
+function classifyThrown(err: unknown, input: TurnInput, config: DeepAgentAdapterConfig, modelName: string | undefined, stopModel: string | undefined): TurnOutcome {
   if (isToolCallBudgetStop(err)) {
     console.log(`ExecuteDeepAgent reached the tool-call limit: execution=${input.executionId}`);
     return { kind: "tool_call_limit" };
@@ -204,7 +208,7 @@ function classifyThrown(err: unknown, input: TurnInput, config: DeepAgentAdapter
     proxyMode: !!config.proxyEndpoint,
     modelId: modelName,
     provider: modelName ? (tryInferProvider(modelName) ?? undefined) : undefined,
-  });
+  }, stopModel);
   console.error(`ExecuteDeepAgent failed: execution=${input.executionId}, ${failure.message}`);
   return { kind: "failed", surface: failure.surface, message: failure.message, stopDetail: failure.stopDetail, cause: err };
 }

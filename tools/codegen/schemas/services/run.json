@@ -3774,7 +3774,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "The model the turn called, for the model_error kinds, as its id (for\n example claude-sonnet-4-6); empty when unknown.",
+          "description": "The model the turn called, for the model_error kinds, by its id in the\n model registry (for example claude-sonnet-4.6); empty when unknown.",
           "required": false
         },
         {

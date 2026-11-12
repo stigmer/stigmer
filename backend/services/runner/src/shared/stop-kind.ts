@@ -189,9 +189,10 @@ export interface ThrownFailure {
  * the classifier recognises is the provider's (`engine`, so the stop cause
  * reads `model_error`) unless it was the platform's own token; anything else
  * is the platform's fault. The sentence is `describeExecutionError`'s, as
- * before, so `status.error` keeps its bytes.
+ * before, so `status.error` keeps its bytes. `stopModel` is the model the
+ * detail names, by the registry's own id (`registryIdOf`).
  */
-export function settleThrown(err: unknown, ctx: ModelErrorContext): ThrownFailure {
+export function settleThrown(err: unknown, ctx: ModelErrorContext, stopModel: string | undefined = ctx.modelId): ThrownFailure {
   const { errorType, errorMessage } = describeExecutionError(err, ctx);
   const message = `[${errorType}] ${errorMessage}`;
   const app = appStopOf(err);
@@ -199,7 +200,7 @@ export function settleThrown(err: unknown, ctx: ModelErrorContext): ThrownFailur
   const classified = classifyModelCallError(err, ctx);
   if (classified === undefined) return { surface: "internal", message, stopDetail: { kind: "internal" } };
   const stop = modelStopOfClassified(classified);
-  return { surface: stop.surface, message, stopDetail: stop.kind === "internal" ? { kind: "internal" } : withModel(stop.kind, ctx.modelId) };
+  return { surface: stop.surface, message, stopDetail: stop.kind === "internal" ? { kind: "internal" } : withModel(stop.kind, stopModel) };
 }
 
 /** A detail naming the model when one is known. */

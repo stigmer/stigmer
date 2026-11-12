@@ -2029,7 +2029,7 @@ StigmerStopDetail says which kind of ending a turn's stop cause was, and what it
 <TypeTable
   type={{
     kind: { type: "string", description: "The kind of ending, under its stop cause." },
-    model: { type: "string", description: "The model the turn called, for the model_error kinds, as its id (for example claude-sonnet-4-6); empty when unknown." },
+    model: { type: "string", description: "The model the turn called, for the model_error kinds, by its id in the model registry (for example claude-sonnet-4.6); empty when unknown." },
     app: { type: "string", description: "The connected app (MCP server) that failed, by its slug, for the app kinds." },
   }}
 />

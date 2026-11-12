@@ -249,8 +249,8 @@ export type StigmerStopDetail = Message<"ai.stigmer.agentic.session.v1.StigmerSt
   kind: string;
 
   /**
-   * The model the turn called, for the model_error kinds, as its id (for
-   * example claude-sonnet-4-6); empty when unknown.
+   * The model the turn called, for the model_error kinds, by its id in the
+   * model registry (for example claude-sonnet-4.6); empty when unknown.
    *
    * @generated from field: string model = 2;
    */

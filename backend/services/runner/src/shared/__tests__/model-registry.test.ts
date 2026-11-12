@@ -7,6 +7,7 @@ import {
   getRequestProfile,
   resolveToApiModelId,
   _resetRegistryCache,
+  registryIdOf,
 } from "../model-registry.js";
 
 describe("getSummarizationModel", () => {
@@ -493,3 +494,30 @@ function mockRegistryResponse(models: MockModel[]) {
     }),
   );
 }
+
+describe("registryIdOf", () => {
+  beforeEach(() => {
+    _resetRegistryCache();
+    vi.restoreAllMocks();
+  });
+
+  afterEach(() => {
+    _resetRegistryCache();
+  });
+
+  it("names a model by the registry's own id, whether the turn named it so or by the provider's id", async () => {
+    mockRegistryResponse([
+      { id: "claude-haiku-4.5", apiModelId: "claude-haiku-4-5-20251001", provider: "anthropic", costTier: "economy", harness: "stigmer" },
+    ]);
+
+    expect(await registryIdOf("claude-haiku-4.5")).toBe("claude-haiku-4.5");
+    expect(await registryIdOf("claude-haiku-4-5-20251001")).toBe("claude-haiku-4.5");
+    expect(await registryIdOf("a-model-it-does-not-list")).toBe("a-model-it-does-not-list");
+  });
+
+  it("passes the name through when the registry fetch fails", async () => {
+    vi.spyOn(globalThis, "fetch").mockRejectedValueOnce(new Error("network error"));
+
+    expect(await registryIdOf("claude-haiku-4-5-20251001")).toBe("claude-haiku-4-5-20251001");
+  });
+});

@@ -56,8 +56,8 @@ public interface StigmerStopDetailOrBuilder extends
 
   /**
    * <pre>
-   * The model the turn called, for the model_error kinds, as its id (for
-   * example claude-sonnet-4-6); empty when unknown.
+   * The model the turn called, for the model_error kinds, by its id in the
+   * model registry (for example claude-sonnet-4.6); empty when unknown.
    * </pre>
    *
    * <code>string model = 2 [json_name = "model"];</code>
@@ -66,8 +66,8 @@ public interface StigmerStopDetailOrBuilder extends
   java.lang.String getModel();
   /**
    * <pre>
-   * The model the turn called, for the model_error kinds, as its id (for
-   * example claude-sonnet-4-6); empty when unknown.
+   * The model the turn called, for the model_error kinds, by its id in the
+   * model registry (for example claude-sonnet-4.6); empty when unknown.
    * </pre>
    *
    * <code>string model = 2 [json_name = "model"];</code>

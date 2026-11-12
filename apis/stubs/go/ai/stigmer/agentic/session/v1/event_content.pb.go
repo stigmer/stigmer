@@ -402,8 +402,8 @@ type StigmerStopDetail struct {
 	// connected app needs a sign-in) or internal (a fault of the platform).
 	// Under infrastructure: runner_lost.
 	Kind string `protobuf:"bytes,1,opt,name=kind,proto3" json:"kind,omitempty"`
-	// The model the turn called, for the model_error kinds, as its id (for
-	// example claude-sonnet-4-6); empty when unknown.
+	// The model the turn called, for the model_error kinds, by its id in the
+	// model registry (for example claude-sonnet-4.6); empty when unknown.
 	Model string `protobuf:"bytes,2,opt,name=model,proto3" json:"model,omitempty"`
 	// The connected app (MCP server) that failed, by its slug, for the app
 	// kinds.

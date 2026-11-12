@@ -95,7 +95,7 @@ import { declaredServerCount } from "../../shared/mcp-resolver.js";
 import { settleThrown } from "../../shared/stop-kind.js";
 import { modelLaneUrl, modelLanes } from "../../shared/model-lanes.js";
 import { ensureLoaded as ensurePricingLoaded, getModelPricing } from "../../shared/model-pricing.js";
-import { getDefaultModel, getRequestProfile, resolveToApiModelId, type ThinkingProfile } from "../../shared/model-registry.js";
+import { getDefaultModel, getRequestProfile, registryIdOf, resolveToApiModelId, type ThinkingProfile } from "../../shared/model-registry.js";
 import { shouldPersistStreamingStatus } from "../../shared/persist-decision.js";
 import { readRootInstructionsWith, renderRepositoryInstructions } from "../../shared/repository-instructions.js";
 import { buildShellEnv } from "../../shared/shell-env.js";
@@ -231,6 +231,8 @@ function refuseUnsupported(input: TurnInput): void {
 /** The model the turn runs on: its registry id, priced by, and the provider's id, sent. */
 interface TurnModel {
   readonly registryId: string;
+  /** The model a failure names, by the registry's own id (`registryIdOf`): the default resolves to the provider's id. */
+  readonly stopId: string;
   readonly apiId: string;
   /** The thinking form the model's Claude row declares; undefined when no Claude row lists it. */
   readonly thinking: ThinkingProfile | undefined;
@@ -240,7 +242,7 @@ async function resolveModel(input: TurnInput): Promise<TurnModel> {
   const registryId = input.model.requested === "default" ? await getDefaultModel("claude") : input.model.requested;
   const apiId = await resolveToApiModelId(registryId);
   if (!apiId.startsWith("claude")) throw new Refusal(`Claude runs Claude models only, and "${registryId}" is not one. Choose a Claude model for this agent.`);
-  return { registryId, apiId, thinking: (await getRequestProfile(registryId, "claude"))?.thinking };
+  return { registryId, stopId: await registryIdOf(registryId), apiId, thinking: (await getRequestProfile(registryId, "claude"))?.thinking };
 }
 
 async function connectTools(input: TurnInput, sink: TurnSink, specs: readonly SubagentSpec[]): Promise<McpBridge> {
@@ -501,7 +503,7 @@ async function engineTurn(input: TurnInput, sink: TurnSink, config: ClaudeAdapte
       unattendedSkips: gate.unattendedSkips,
       propose: (callId) => proposeDeferred(sink, gate, bridge, callId),
     });
-    return end.resumeAgain ? { kind: "resume_again" } : settleClaudeTurn(sink, end, { model: model.registryId, proxyMode: config.proxyEndpoint !== null });
+    return end.resumeAgain ? { kind: "resume_again" } : settleClaudeTurn(sink, end, { model: model.stopId, proxyMode: config.proxyEndpoint !== null });
   } finally {
     await closeQuietly(input.executionId, "the tools' endpoint", () => endpoint?.close());
   }

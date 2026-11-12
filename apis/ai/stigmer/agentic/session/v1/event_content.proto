@@ -174,8 +174,8 @@ message StigmerStopDetail {
     ]
   }];
 
-  // The model the turn called, for the model_error kinds, as its id (for
-  // example claude-sonnet-4-6); empty when unknown.
+  // The model the turn called, for the model_error kinds, by its id in the
+  // model registry (for example claude-sonnet-4.6); empty when unknown.
   string model = 2;
 
   // The connected app (MCP server) that failed, by its slug, for the app
