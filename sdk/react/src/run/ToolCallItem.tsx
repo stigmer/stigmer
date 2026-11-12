@@ -17,8 +17,8 @@ import {
   XCircleIcon,
   SlashCircleIcon,
 } from "../internal/thread-card/index.js";
-import { TerminalTail } from "./TerminalSession.js";
 import { ToolCallDetail, formatHeaderDuration } from "./ToolCallDetail.js";
+import { hasResultBody, resultCounts, type ResultCounts } from "./ResultView.js";
 import { SubagentSection } from "./SubagentSection.js";
 import { ApprovalCardBody } from "./ApprovalCard.js";
 import { MemoryProposalCardBody } from "../memory/MemoryProposalCard.js";
@@ -28,13 +28,10 @@ import { useFileReviewRowState } from "@stigmer/react-core";
 import type { FileReviewRowState } from "@stigmer/react-core";
 import { FilePathLink } from "./FilePathLink.js";
 import { splitDisplayPath } from "./file-path-resolver.js";
-// ToolChrome is type-only here so the doc link below resolves; the strict
-// tsdoc gate (tsdoc:check) guards it against removal.
 import { subagentSubjectOf } from "@stigmer/react-core";
-import { isFileCategory, type ToolChrome } from "@stigmer/react-core/internal";
+import { isFileCategory } from "@stigmer/react-core/internal";
 import { type ToolCategory } from "@stigmer/react-core";
-import { useToolPresentation } from "./tool-presenter.js";
-import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
+import { getToolPresenter, useToolPresentation } from "./tool-presenter.js";
 
 /** Props for {@link ToolCallItem}. */
 export interface ToolCallItemProps {
@@ -63,58 +60,40 @@ export interface ToolCallItemProps {
 }
 
 /**
- * Renders a single tool call as a row in the tool call group.
+ * Renders a single tool call as one step: a line in plain words, closed
+ * until clicked, opening in place to what the step did.
  *
- * Four rendering modes, set by one rule — **does the body carry content the
- * one-line row cannot, and does it stay content once the call settles?**
+ * - **The line** says what the call did, in the tense it stands in, from
+ *   `stepPhrase` (`@stigmer/client`): "Editing invoice.ts" while it runs,
+ *   "Edited invoice.ts" once it returned, "Couldn't edit invoice.ts" when it
+ *   failed. A command reads as the agent's own description when it wrote one,
+ *   with the command beside it; a connected app's tool reads as its own name
+ *   with the app beside it. A host's `registerToolPresenter` label wins
+ *   over all of it. Beside the words: how much changed (`+2 −2`), the
+ *   matches or items found, a non-zero exit, and the folder of the file.
+ * - **Closed by default.** A settled step opens on a click to its body: the
+ *   diff, the lines read or written, the matches, the command's output, the
+ *   MCP call's fields and result, a subagent's own steps. A step with
+ *   nothing to show has no chevron and opens to nothing, never to an empty
+ *   box.
+ * - **Open while it matters.** {@link useAutoDisclosure} opens a step while
+ *   it runs (a command streams its output as it prints), while it waits for
+ *   a person (its decision inline), and, for a command, once it failed; a
+ *   manual click always wins thereafter.
+ * - **Preview** (a memory proposal, or a kind a host asks to preview): the
+ *   body is always in view under a plain line, because it is a decision
+ *   surface.
  *
- * - **Non-expandable** (completed/skipped Read): a static `<div>` row with a
- *   clickable {@link FilePathLink}. The path IS the complete information.
- * - **Preview** (content-bearing: edit / write / fetch / web-search /
- *   unknown / mcp): a plain (non-button) header above an **always-visible**
- *   {@link ToolCallDetail} body — Cursor-style "previews aren't collapsible".
- *   There is no header chevron; each content block self-bounds with its own
- *   single in-place reveal (`RevealToggle`), so a long diff or output
- *   never floods the thread. The body is suppressed only for an `empty` result,
- *   which stays a clean one-line row.
- * - **Tail** (shell): live like preview — the full terminal session streams in
- *   view while the command runs or awaits its gate — but a *successful* settle
- *   collapses the row to a {@link TerminalTail} teaser (the `$ command` line
- *   plus a dimmed tail of the last output lines) behind the header chevron.
- *   A settled failure stays open: error output is content, not context. A
- *   result that isn't a terminal session (e.g. an offloaded `outputRef`)
- *   falls back to the preview layout — never hide evidence we cannot condense.
- * - **Summary / subagent** (read / list / search / delete / think, and
- *   subagent delegations): a chevron-gated header (a toggle button laid
- *   over the whole row) that discloses a body hidden by default —
- *   {@link ToolCallDetail}, a {@link SubagentSection}, or, when gated, an
- *   inline {@link ApprovalCardBody}.
- *   {@link useAutoDisclosure} force-opens it while *running* or *awaiting
- *   approval*, then settles it closed; a manual click always wins thereafter.
- *
- * The two disclosure axes — the card-level chevron and a block's
- * content-overflow reveal — never govern the same body, which is what removes
- * the old "expand, then Show more" double control.
- *
- * Orthogonal to the layout modes is the **chrome tier** (the density axis,
- * stigmer#274): metadata-only categories (read / list / search / think)
- * render as quiet unboxed lines — no card frame — while content-bearing
- * categories keep their cards. A quiet row escalates to a card while gated
- * or failed; its disclosed body renders under a light left rail instead of a
- * border. See `ToolChrome`.
+ * Inside a list of steps (`bordered={false}`) a step is a divider row; on
+ * its own it is a card, or a quiet unboxed line for the metadata-only kinds
+ * (read, list, search, think) unless it waits or failed. A pending gate
+ * carries a restrained left accent.
  *
  * A call that started a command in the background (`toolUse.background`)
  * is the command's row: a "Background" chip and the command's state beside
- * the call's own, the running look (shimmer, spinner, forced open) for as
- * long as the command runs though the call itself returned, its output in
- * the body, and Stop while a stop handler is wired
- * ({@link BackgroundCommandContext}).
- *
- * Shows category-aware labels (e.g., "Shell", "Read", "Edit") with
- * the primary argument as a subtitle, a category-specific icon, and
- * an inline approval decision badge when applicable. A shell row whose
- * call carries a model-authored intent phrase is titled with that phrase
- * instead — the command becomes the subtitle (stigmer#276).
+ * the call's own, the running look (shimmer, spinner, open) for as long as
+ * the command runs though the call itself returned, its output in the body,
+ * and Stop while a stop handler is wired ({@link BackgroundCommandContext}).
  *
  * Wrapped in `React.memo` — the session fold keeps an unchanged tool use's
  * reference, so a settled row skips re-renders while sibling tools stream.
@@ -140,7 +119,11 @@ export const ToolCallItem = memo(function ToolCallItem({
   // returned: the call and the command are two facts, and the row shows the
   // one still moving.
   const backgroundRunning = isBackgroundRunning(toolUse);
-  const status = backgroundRunning ? "running" : ITEM_STATUS[toolUse.state];
+  const { kind, category, title, phrase, primaryArg, result, resultSummary, disclosure, chrome } = useToolPresentation(toolUse);
+  // A command that exited non-zero failed though the engine did not mark it
+  // an error: its line, its mark and its open default all say so.
+  const failed = phrase.tense === "failed" && toolUse.state !== "denied";
+  const status: ItemStatus = backgroundRunning ? "running" : failed ? "failed" : ITEM_STATUS[toolUse.state];
   const isRunning = status === "running";
   // Success is the silent default: a completed row renders NO status icon —
   // a green check on every settled row teaches the eye to ignore status
@@ -152,9 +135,6 @@ export const ToolCallItem = memo(function ToolCallItem({
   const duration = formatHeaderDuration(toolUse.processedAt, toolUse.result?.processedAt ?? "");
   const thread = toolUse.thread;
   const isSubagent = thread !== undefined;
-
-  const { category, label, intent, title, primaryArg, result, resultSummary, disclosure, chrome } =
-    useToolPresentation(toolUse);
   const CategoryIcon = CATEGORY_ICON[category];
 
   // The decision for this exact call when it waits for a person (parent or
@@ -162,227 +142,108 @@ export const ToolCallItem = memo(function ToolCallItem({
   // the row open.
   const approval = useApproval(toolUse);
 
-  // Tail rows (shell): a settled failure keeps the row open — the error output
-  // is the content the user needs next, so it must never settle into a dimmed
-  // teaser. Detected on the result, not just the status: a command that
-  // "completed" with a non-zero exit is a failure to the reader.
-  const isTailCategory = !isSubagent && disclosure === "tail";
-  const tailFailed =
-    isTailCategory &&
-    (toolUse.state === "failed" ||
-      result.type === "error" ||
-      (result.type === "terminal" &&
-        result.exitCode !== undefined &&
-        result.exitCode !== 0));
+  // A failed command stays open: its output is the content the person needs
+  // next.
+  const tailFailed = !isSubagent && disclosure === "tail" && failed;
 
-  // The card-level disclosure for *summary* and *tail* rows (preview rows
-  // ignore it — their body is always visible). Force-open only while the row
-  // carries live or actionable content: while it runs, while it awaits
-  // approval, or (tail rows) while it shows a failure; a manual toggle takes
-  // over from there. Called unconditionally to honour the rules of hooks even
-  // though preview rows do not read `expanded`.
-  const autoOpen =
-    toolUse.state === "running" ||
-    backgroundRunning ||
+  // What the step opens to. A running command opens to what it printed so
+  // far; a running call of another kind has nothing to show until it
+  // returns.
+  const liveOutput = (isRunning && category === "shell") || backgroundRunning;
+  const hasBody =
+    isSubagent ||
     approval != null ||
-    tailFailed;
+    result.type === "memoryProposal" ||
+    liveOutput ||
+    (toolUse.result !== undefined && hasResultBody(result));
+  const autoOpen = (isRunning && hasBody) || approval != null || tailFailed;
   const [expanded, handleToggle] = useAutoDisclosure(autoOpen, {
     initialOpen: defaultExpanded || autoOpen,
   });
 
-  // Subagents title the row with their subject; every other row titles with
-  // the resolved presentation `title` (host label override > model-authored
-  // shell intent > category label, stigmer#276).
-  const displayLabel = isSubagent
-    ? subagentSubjectOf(toolUse) || thread.agentName || label
-    : title;
+  // Subagents title the row with their subject; every other row with its
+  // step line (a host's label, else `stepPhrase`).
+  const displayLabel = isSubagent ? subagentSubjectOf(toolUse) || thread.agentName || title : title;
 
   const approvalBadge = getApprovalBadge(toolUse);
 
   // A file edit badges the live review state of the file it changed (pending
   // review / kept / discarded): its turn's file review, matched by the row's
-  // path. The observational record stays in place while the decision surface
-  // is the set's own bar. Null for any other row and for every
-  // honest-degradation case.
-  const reviewState = useFileReviewRowState(
-    toolUse.runId,
-    isFileEditCategory(category) ? primaryArg : null,
-  );
+  // path. Null for any other row and for every honest-degradation case.
+  const reviewState = useFileReviewRowState(toolUse.runId, isFileEditCategory(category) ? primaryArg : null);
   const reviewBadge = reviewState ? REVIEW_BADGE[reviewState] : null;
 
-  // Completed or denied Read items are non-expandable — the clickable
-  // path in the row is the complete information. Failed reads remain
-  // expandable to show the error.
-  const isNonExpandableRead =
-    !isSubagent &&
-    category === "read" &&
-    (toolUse.state === "completed" || toolUse.state === "denied");
+  // A file step names its file in its line; the name is the file's own
+  // control (it opens the file, or copies its path), so the line reads
+  // "Edited invoice.ts" with "invoice.ts" pressable. A host's label, or a
+  // name the line had to cut short, keeps the plain words.
+  const fileName = !isSubagent && primaryArg != null && isFileCategory(category) ? splitDisplayPath(primaryArg).base : "";
+  const linkedFile = fileName !== "" && displayLabel.endsWith(` ${fileName}`);
+  const verb = linkedFile ? displayLabel.slice(0, displayLabel.length - fileName.length - 1) : displayLabel;
 
-  // Shell headers stay minimal (icon + label + status + duration) — the
-  // command and exit summary live in the terminal session body — EXCEPT when
-  // the model authored an intent title (stigmer#276): the title then says
-  // *why*, so the command surfaces as the secondary text and a fully
-  // collapsed row still reads like a narrated log. Intent-less shell rows
-  // render byte-identically to before.
-  const displaySubtitle = isSubagent
+  // Beside the words: the command a command ran, a connected app's or an
+  // unknown tool's first argument, and a file's folder.
+  const detail = isSubagent
     ? null
-    : category === "shell"
-      ? (intent ? primaryArg : null)
-      : primaryArg;
+    : category === "shell" || category === "mcp" || category === "unknown" || category === "background-stop"
+      ? primaryArg
+      : phrase.folder !== ""
+        ? phrase.folder
+        : null;
+  // A host's registered summary (`registerToolPresenter({ summary })`) is
+  // its own words for the counts, shown in their place.
+  const hostSummary = !isSubagent && getToolPresenter(kind)?.summary !== undefined ? resultSummary : null;
+  const counts = isSubagent || toolUse.result === undefined || hostSummary !== null ? null : resultCounts(result, category === "write");
+  const countsText = hostSummary ?? (counts === null ? null : countsWords(counts));
 
-  // For file tools the subtitle is a path: render it filename-first through
-  // FilePathLink (full path on hover) rather than the raw, often-absolute string
-  // that buried the file name behind a long prefix.
-  const subtitleIsFilePath =
-    !isSubagent && primaryArg != null && isFileCategory(category);
+  const { ref: detailRef, isTruncated: detailTruncated } = useIsTextTruncated<HTMLSpanElement>(detail !== null);
 
-  // A tail row condenses only a terminal session. While gated it renders like
-  // preview — decision actions are never hidden behind a chevron — and any
-  // other result shape (an offloaded outputRef, bare error text) falls back to
-  // preview too: never hide evidence the tail cannot honestly condense.
-  const tailSession =
-    isTailCategory && approval == null && result.type === "terminal"
-      ? result
-      : null;
-
-  // Preview categories (edit, write, fetch, web-search, unknown, mcp) render
-  // their body ALWAYS — Cursor-style "previews aren't collapsible" — so no
-  // header chevron competes with the body's own in-place reveal. Summary
-  // categories and subagents keep the chevron: their body is genuinely hidden
-  // by default, so the chevron has a real job. The two disclosure axes
-  // (card-level chevron vs. content-overflow reveal) never govern one body.
-  const isPreviewLayout =
-    !isSubagent &&
-    (disclosure === "preview" || (isTailCategory && tailSession == null));
-
-  // The tail and summary layouts lay a toggle button over the header, which
-  // covers the plain subtitle, so the toggle carries the subtitle's full text
-  // on hover and focus instead (only while it is cut off). A preview header
-  // has no toggle and keeps the subtitle's own tooltip.
-  const headerIsToggle = !isNonExpandableRead && !isPreviewLayout;
-  const plainSubtitle = !subtitleIsFilePath && displaySubtitle ? displaySubtitle : null;
-
-  // Track whether the plain subtitle actually clips: search/list restate the
-  // full, wrapping value in the expanded detail only when it does (never a
-  // redundant repeat of a short value the header shows in full), and a toggle
-  // row shows its hint only when it does. Gated so only the rows that consume
-  // the signal pay for the measurement.
-  const measuresSubtitle = category === "search" || category === "list";
-  const measuresPlainSubtitle =
-    plainSubtitle !== null && (measuresSubtitle || headerIsToggle);
-  const { ref: subtitleRef, isTruncated: subtitleTruncated } =
-    useIsTextTruncated<HTMLSpanElement>(measuresPlainSubtitle);
-  const primaryArgTruncated = measuresSubtitle && subtitleTruncated;
-
-  // Cursor-style chrome via the shared ThreadCardShell: each tool call
-  // is its own self-contained card — a thin rounded neutral border. A pending
-  // gate carries a restrained left accent on the card itself (warning, or
-  // destructive for a delete); that accent is the only "awaiting you" cue now
-  // that the amber fill is gone. Nested inside a folded run chip the card
-  // degrades to a divider-separated row (via `bordered={false}`) so we never
-  // draw a card inside a card.
-  const gateAccent =
-    approval != null ? (category === "delete" ? "destructive" : "warning") : null;
-
-  // The chrome tier (the density axis, stigmer#274): metadata-only rows
-  // (read / list / search / think) render as quiet unboxed lines — no card
-  // frame — so the conversation reads as prose with quiet evidence attached.
-  // A row escalates to a card while it carries something a bare line cannot:
-  // a pending gate (the decision surface, including its accent) or a failure
-  // (error output is content). Running deliberately does NOT escalate — a
-  // quiet row's in-flight state rides its label and status glyph, not a
-  // frame. Nested rows (inside an expanded fold chip) stay divider rows:
-  // their container owns the frame.
-  const rowFailed =
-    toolUse.state === "failed" ||
-    result.type === "error";
+  const gateAccent = approval != null ? (category === "delete" ? "destructive" : "warning") : null;
+  // The chrome tier (the density axis, stigmer#274): inside a list of steps
+  // every step is a divider row; on its own a metadata-only step is a quiet
+  // line until it waits or fails.
   const variant: ThreadCardVariant = !bordered
     ? "row"
-    : chrome === "quiet" && !isSubagent && approval == null && !rowFailed
+    : chrome === "quiet" && !isSubagent && approval == null && !failed
       ? "quiet"
       : "card";
 
   const trailingContent = (
     <>
       {approvalBadge && (
-        <span
-          className={cn(
-            "stg:shrink-0 stg:rounded stg:px-1 stg:py-0.5 stg:text-2xs stg:font-medium stg:leading-none",
-            approvalBadge.colorClass,
-          )}
-        >
+        <span className={cn("stg:shrink-0 stg:rounded stg:px-1 stg:py-0.5 stg:text-2xs stg:font-medium stg:leading-none", approvalBadge.colorClass)}>
           {approvalBadge.label}
         </span>
       )}
 
       {reviewBadge && (
         <span
-          className={cn(
-            "stg:shrink-0 stg:rounded stg:px-1 stg:py-0.5 stg:text-2xs stg:font-medium stg:leading-none",
-            reviewBadge.colorClass,
-          )}
+          className={cn("stg:shrink-0 stg:rounded stg:px-1 stg:py-0.5 stg:text-2xs stg:font-medium stg:leading-none", reviewBadge.colorClass)}
           data-cursor-target="file-review-row-badge"
         >
           {reviewBadge.label}
         </span>
       )}
 
-      {toolUse.mcpServerName && (
-        <span className="stg:shrink-0 stg:rounded stg:bg-muted stg:px-1 stg:py-0.5 stg:font-mono stg:text-muted-foreground">
-          {toolUse.mcpServerName}
-        </span>
+      {phrase.app !== "" && (
+        <span className="stg:shrink-0 stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:text-xs stg:text-muted-foreground">{phrase.app}</span>
       )}
 
       <BackgroundCommandTrail toolUse={toolUse} />
 
       {StatusIcon && (
-        <span
-          className={cn("stg:shrink-0", STATUS_COLOR[status])}
-          aria-hidden="true"
-        >
+        <span className={cn("stg:shrink-0", STATUS_COLOR[status])} aria-hidden="true">
           <StatusIcon />
         </span>
       )}
 
-      {duration && (
-        <span className="stg:shrink-0 stg:tabular-nums stg:text-muted-foreground">
-          {duration}
-        </span>
-      )}
+      {duration && <span className="stg:shrink-0 stg:text-xs stg:tabular-nums stg:text-muted-foreground">{duration}</span>}
     </>
   );
 
-  if (isNonExpandableRead) {
-    return (
-      <ThreadCardShell
-        variant={variant}
-        accent={gateAccent}
-        cursorTarget="tool-call-row"
-        className={className}
-      >
-        <ThreadCardHeader>
-          <span className="stg:shrink-0 stg:text-muted-foreground" aria-hidden="true">
-            <CategoryIcon />
-          </span>
-
-          <span className="stg:min-w-0 stg:flex-1 stg:flex stg:items-center stg:gap-1.5 stg:overflow-hidden">
-            <span className="stg:shrink-0 stg:font-medium stg:text-foreground">
-              {displayLabel}
-            </span>
-            {primaryArg && (
-              <FilePathLink path={primaryArg} className="stg:min-w-0 stg:text-xs" />
-            )}
-          </span>
-
-          {trailingContent}
-        </ThreadCardHeader>
-      </ThreadCardShell>
-    );
-  }
-
-  // The disclosed body, shared by both layouts: a pending gate decides inline,
-  // a subagent shows its delegation, a settled remember call renders the
-  // memory-proposal consent surface, otherwise the category detail.
+  // The disclosed body: a pending gate decides inline, a subagent shows its
+  // delegation, a settled remember call renders the memory-proposal consent
+  // surface, otherwise the category detail.
   const body = isSubagent ? (
     <SubagentSection
       thread={thread}
@@ -392,96 +253,76 @@ export const ToolCallItem = memo(function ToolCallItem({
       collapsible={false}
     />
   ) : approval ? (
-    // The row above is this approval's header, so render only the body (preview
-    // + actions). The enclosing card already carries the border + warning/
-    // destructive accent for a pending gate, so the body renders borderless.
-    // The body reads the proposed write content from the tool's input, which
-    // the ask's sanitized preview cannot carry for a file of any real size
+    // The row above is this approval's header, so render only the body (its
+    // sentence + actions). The enclosing card carries the accent. The body
+    // reads the proposed write content from the tool's input, which the
+    // ask's sanitized preview cannot carry for a file of any real size
     // (stigmer#1107).
-    <ApprovalCardBody
-      toolUse={approval.toolUse}
-      onAnswer={approval.onAnswer}
-      isSubmitting={approval.isSubmitting}
-      error={approval.error}
-    />
+    <ApprovalCardBody toolUse={approval.toolUse} onAnswer={approval.onAnswer} isSubmitting={approval.isSubmitting} error={approval.error} />
   ) : result.type === "memoryProposal" ? (
-    // The remember tool's consent chip: verbatim fact +
-    // Confirm/Reject, with the record's CURRENT lifecycle fetched so a
-    // reloaded thread never shows stale action buttons. Borderless — this
-    // row's card owns the chrome (the ApprovalCardBody posture).
+    // The remember tool's consent chip: verbatim fact + Confirm/Reject, with
+    // the record's CURRENT lifecycle fetched so a reloaded thread never
+    // shows stale action buttons. Borderless — this row's card owns the
+    // chrome (the ApprovalCardBody posture).
     <MemoryProposalCardBody memoryId={result.memoryId} fact={result.fact} />
   ) : (
     <>
       <BackgroundStopError toolUse={toolUse} />
+      {/* A search or listing whose line had to cut its pattern restates it whole. */}
       <ToolCallDetail
         toolUse={toolUse}
-        primaryArgTruncated={primaryArgTruncated}
+        primaryArgTruncated={(category === "search" || category === "list") && primaryArg != null && !displayLabel.includes(primaryArg)}
       />
     </>
   );
 
-  // The header's metadata, identical in every layout (the chevron is appended
-  // only by the toggle layouts below).
-  const headerSummary = !isSubagent && category !== "shell" ? resultSummary : null;
   const headerInner = (
     <>
       <span className="stg:shrink-0 stg:text-muted-foreground" aria-hidden="true">
         <CategoryIcon />
       </span>
 
-      <span className="stg:min-w-0 stg:flex-1 stg:flex stg:items-baseline stg:gap-1.5 stg:overflow-hidden">
-        {/* While the call runs, the label carries the ambient-liveness sweep
+      <span className="stg:flex stg:min-w-0 stg:flex-1 stg:items-baseline stg:gap-2 stg:overflow-hidden">
+        {/* While the call runs, the line carries the ambient-liveness sweep
             (stigmer#277) — the shimmer class owns `color`, so it replaces
             (never joins) the static color utility. */}
         <span
           className={cn(
-            "stg:shrink-0 stg:font-medium",
-            isRunning ? "stgm-shimmer-label" : "stg:text-foreground",
+            "stg:min-w-0 stg:shrink-0 stg:max-w-full stg:truncate",
+            isRunning ? "stgm-shimmer-label" : failed ? "stg:font-medium stg:text-foreground" : "stg:text-foreground",
           )}
         >
-          {displayLabel}
-        </span>
-        {subtitleIsFilePath && primaryArg ? (
-          // Its own control, beside the row's toggle rather than inside it.
-          <ThreadCardHeaderControl className="stg:inline-flex stg:min-w-0">
-            <FilePathLink
-              path={primaryArg}
-              className="stg:min-w-0 stg:text-xs stg:text-muted-foreground"
-            />
-          </ThreadCardHeaderControl>
-        ) : (
-          plainSubtitle &&
-          (headerIsToggle ? (
-            // The toggle over the row carries this text's hint (see `hint`).
-            <span
-              ref={measuresPlainSubtitle ? subtitleRef : undefined}
-              className={SUBTITLE_CLASSES}
-            >
-              {plainSubtitle}
-            </span>
+          {linkedFile && primaryArg ? (
+            <>
+              {verb}{" "}
+              {/* Its own control, beside the row's toggle rather than inside it. */}
+              <ThreadCardHeaderControl className="stg:inline-flex stg:min-w-0">
+                <FilePathLink path={primaryArg} className="stg:min-w-0 stg:text-sm" />
+              </ThreadCardHeaderControl>
+            </>
           ) : (
-            // Not TruncatedText: the span must carry the external measurement
-            // ref (useIsTextTruncated) that the expanded detail reads.
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <span
-                    ref={measuresPlainSubtitle ? subtitleRef : undefined}
-                    className={SUBTITLE_CLASSES}
-                  />
-                }
-              >
-                {plainSubtitle}
-              </TooltipTrigger>
-              <TooltipContent side="top" className="stg:break-all">
-                {plainSubtitle}
-              </TooltipContent>
-            </Tooltip>
-          ))
+            displayLabel
+          )}
+        </span>
+        {counts?.kind === "lines" && (
+          <span className="stg:shrink-0 stg:font-mono stg:text-xs stg:tabular-nums">
+            <span className="stg:text-status-ready">+{counts.added}</span>{" "}
+            <span className="stg:text-status-failed">{"−"}{counts.removed}</span>
+          </span>
         )}
-        {headerSummary && (
-          <span className="stg:shrink-0 stg:tabular-nums stg:text-muted-foreground">
-            {headerSummary}
+        {counts?.kind === "exit" && (
+          <span className="stg:shrink-0 stg:rounded stg:bg-status-failed-subtle stg:px-1.5 stg:font-mono stg:text-2xs stg:text-status-failed">
+            exit {counts.code}
+          </span>
+        )}
+        {counts?.kind === "count" && <span className="stg:shrink-0 stg:text-xs stg:tabular-nums stg:text-muted-foreground">{counts.text}</span>}
+        {hostSummary !== null && <span className="stg:shrink-0 stg:text-xs stg:tabular-nums stg:text-muted-foreground">{hostSummary}</span>}
+        {detail !== null && (
+          <span
+            ref={detailRef}
+            className={cn("stg:min-w-0 stg:truncate stg:text-xs stg:text-muted-foreground", category === "shell" && "stg:font-mono")}
+          >
+            {detail}
           </span>
         )}
       </span>
@@ -490,102 +331,69 @@ export const ToolCallItem = memo(function ToolCallItem({
     </>
   );
 
-  // Preview layout: a plain (non-button) header above an always-visible body.
-  // The body renders only when it has something to show — a pending gate, or a
-  // non-empty result — so a tool that produced nothing stays a clean one-line
-  // row, never an empty padded box.
-  if (isPreviewLayout) {
-    const showBody = approval != null || result.type !== "empty";
+  // Preview: a plain line above an always-visible body (a decision surface,
+  // or a kind a host asks to preview).
+  if (!isSubagent && disclosure === "preview" && hasBody) {
     return (
-      <ThreadCardShell
-        variant={variant}
-        accent={gateAccent}
-        cursorTarget="tool-call-row"
-        className={className}
-      >
+      <ThreadCardShell variant={variant} accent={gateAccent} cursorTarget="tool-call-row" className={className}>
         <ThreadCardHeader>{headerInner}</ThreadCardHeader>
-        {showBody && (
-          <ThreadCardBody cursorTarget="tool-preview" rail={variant === "quiet"}>
-            {body}
-          </ThreadCardBody>
-        )}
+        <ThreadCardBody cursorTarget="tool-preview" rail={variant === "quiet"}>
+          {body}
+        </ThreadCardBody>
       </ThreadCardShell>
     );
   }
 
-  // The toggle's name says what the row is, from the header's own words: the
-  // title, the subtitle (a file's base name, never the file control's own
-  // "Copy path: …" name) and the result summary.
+  // Nothing to open: the line is the whole step.
+  if (!hasBody) {
+    return (
+      <ThreadCardShell variant={variant} accent={gateAccent} cursorTarget="tool-call-row" className={className}>
+        <ThreadCardHeader>{headerInner}</ThreadCardHeader>
+      </ThreadCardShell>
+    );
+  }
+
+  // The toggle's name says what the row is, from the header's own words.
   const toggleGesture = {
     kind: "expand",
     expanded,
     onToggle: handleToggle,
-    label: toggleLabel(
-      displayLabel,
-      subtitleIsFilePath && primaryArg ? splitDisplayPath(primaryArg).base : plainSubtitle,
-      headerSummary,
-    ),
-    ...(plainSubtitle && subtitleTruncated ? { hint: plainSubtitle } : {}),
+    label: toggleLabel(displayLabel, detail, countsText),
+    ...(detail !== null && detailTruncated ? { hint: detail } : {}),
   } as const;
 
-  // Tail layout: a chevron-gated header whose body is never fully hidden —
-  // expanded it is the live/full terminal session, collapsed it is the dimmed
-  // TerminalTail teaser. useAutoDisclosure keeps it open while the command
-  // runs and settles a *successful* session closed (tailFailed holds a failed
-  // one open); a manual toggle always wins.
-  if (tailSession) {
-    return (
-      <ThreadCardShell
-        variant={variant}
-        accent={gateAccent}
-        cursorTarget="tool-call-row"
-        className={className}
-      >
-        <ThreadCardHeader gesture={toggleGesture}>{headerInner}</ThreadCardHeader>
-        {expanded ? (
-          <ThreadCardBody cursorTarget="tool-preview">{body}</ThreadCardBody>
-        ) : (
-          <ThreadCardBody>
-            <TerminalTail
-              command={tailSession.command}
-              stdout={tailSession.stdout}
-              stderr={tailSession.stderr}
-              exitCode={tailSession.exitCode}
-            />
-          </ThreadCardBody>
-        )}
-      </ThreadCardShell>
-    );
-  }
-
-  // Summary / subagent layout: a chevron-gated header disclosing a body hidden
-  // by default. The shell's `expand` gesture lays the toggle button over the
-  // header and appends the chevron.
   return (
-    <ThreadCardShell
-      variant={variant}
-      accent={gateAccent}
-      cursorTarget="tool-call-row"
-      className={className}
-    >
+    <ThreadCardShell variant={variant} accent={gateAccent} cursorTarget="tool-call-row" className={className}>
       <ThreadCardHeader gesture={toggleGesture}>{headerInner}</ThreadCardHeader>
-
       {expanded && (
-        <ThreadCardBody rail={variant === "quiet"}>{body}</ThreadCardBody>
+        <ThreadCardBody cursorTarget="tool-preview" rail={variant === "quiet"}>
+          {body}
+        </ThreadCardBody>
       )}
     </ThreadCardShell>
   );
 });
 
-const SUBTITLE_CLASSES = "stg:min-w-0 stg:truncate stg:text-muted-foreground stg:font-mono";
+/** Counts as words, for the toggle's name: "+2 −2", "exit 1", "2 matches". */
+function countsWords(counts: ResultCounts): string {
+  switch (counts.kind) {
+    case "lines":
+      return `+${counts.added} −${counts.removed}`;
+    case "exit":
+      return `exit ${counts.code}`;
+    case "count":
+      return counts.text;
+  }
+}
 
 /**
- * The name of a row's toggle: "Read july-statement.csv", "Searched invoices,
- * 12 matches". Spoken in place of the header's text, so it carries what the
- * header says about the call; status and duration stay readable beside it.
+ * The name of a row's toggle: "Edited invoice.ts, +2 −2", "Searched for
+ * round( in src/billing, 2 matches", "Ran a command npm test". Spoken in
+ * place of the header's text, so it carries what the header says about the
+ * call; status and duration stay readable beside it.
  */
-function toggleLabel(title: string, subtitle: string | null, summary: string | null): string {
-  const named = subtitle ? `${title} ${subtitle}` : title;
+function toggleLabel(title: string, detail: string | null, summary: string | null): string {
+  const named = detail ? `${title} ${detail}` : title;
   return summary ? `${named}, ${summary}` : named;
 }
 

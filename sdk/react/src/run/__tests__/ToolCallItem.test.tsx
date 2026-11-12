@@ -1,18 +1,26 @@
-// Pins ToolCallItem over the session fold's tool uses: the four disclosure
-// modes (summary, preview, tail, subagent), the density tier, the status
+// Pins ToolCallItem over the session fold's tool uses: every step is one
+// line in plain words (`stepPhrase`, or a host presenter's label), at body
+// size, with its file linked in the line, its counts beside it (+N −M for a
+// change, an exit badge, matches or items found) and its folder, command or
+// first argument; a settled step closed behind a chevron that opens in place
+// to its body, a step with nothing to show a static line with no chevron;
+// auto-open while it runs with something to show, while it waits for a
+// person (ApprovalContext) and for a failed command; a command that exited
+// non-zero marked failed though the engine did not, a denied call not; the
+// preview layout a host asks for per kind; the density tier, the status
 // vocabulary read from `ToolUse.state`, duration chips from the use and
-// result times, the inline decision for a waiting call (ApprovalContext), the
-// Approved/Denied answer badge, the file-review badge a file-edit row
-// reads from its turn's review by path, and the header's controls: one
-// toggle laid over the row, named for what the row is and carrying a cut-off
-// subtitle's full text, with the file control a sibling that acts without
-// toggling.
+// result times, the Approved/Denied answer badge, the file-review badge a
+// file-edit row reads from its turn's review by path, and the header's
+// controls: one toggle laid over the row, named for what the row is and
+// carrying a cut-off detail's full text, with the file control a sibling
+// that acts without toggling.
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { render, screen, cleanup, fireEvent, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { FileReviewSet, ToolUse } from "@stigmer/client";
 import { ToolCallItem } from "../ToolCallItem";
 import { ApprovalContext, type ApprovalContextValue } from "../ApprovalContext";
+import { registerToolPresenter } from "../tool-presenter";
 import { FileReviewContext } from "@stigmer/react-core";
 import { reviewFile, reviewSet, thread, toolUse } from "./__fixtures__/fold-values";
 
@@ -22,9 +30,8 @@ function answering(onAnswer: ApprovalContextValue["onAnswer"] = () => {}, errors
   return { onAnswer, submittingIds: new Set(), errorsByToolUseId: errors };
 }
 
-// The card-level disclosure (header chevron) lives ONLY on summary / tail /
-// subagent rows: the header's toggle button. Preview (content-bearing) rows
-// have no such control — their body is always visible — so these helpers
+// The card-level disclosure (header chevron) lives on every step with a body
+// to open, except a preview step whose body is always in view. These helpers
 // target the toggle by its hook rather than "any [aria-expanded]" (a block's
 // own RevealToggle also carries aria-expanded, on another native <button>).
 function rowHeaderToggle(container: HTMLElement): HTMLElement | null {
@@ -41,59 +48,67 @@ function isExpanded(container: HTMLElement): boolean {
 function previewBody(container: HTMLElement): Element | null {
   return container.querySelector('[data-cursor-target="tool-preview"]');
 }
+function rowHeader(container: HTMLElement): HTMLElement {
+  return rowRoot(container).firstElementChild as HTMLElement;
+}
+// The aria-hidden glyphs in the row's header: the kind's icon, and the
+// status icon when the state says something.
+function headerGlyphs(container: HTMLElement): number {
+  return rowHeader(container).querySelectorAll('[aria-hidden="true"] > svg').length;
+}
 
 describe("ToolCallItem disclosure", () => {
-  // --- Summary categories keep the chevron ----------------------------------
+  // --- A settled step is closed behind its chevron ---------------------------
 
   it("keeps a settled summary tool collapsed behind a chevron", () => {
-    // Delete is a `summary` category — its one-line row (the file) tells the
-    // story, so its body stays hidden behind the header chevron.
+    // A delete that answered: its line names the file, and its answer is one
+    // click away.
     const { container } = render(
       <ToolCallItem
-        toolUse={toolUse({ name: "delete_file", input: { path: "/x.ts" } })}
+        toolUse={toolUse({ name: "delete_file", input: { path: "/x.ts" }, result: "Deleted /x.ts" })}
       />,
     );
+    expect(rowHeader(container).textContent).toContain("Deleted x.ts");
     expect(hasHeaderChevron(container)).toBe(true);
     expect(isExpanded(container)).toBe(false);
     expect(previewBody(container)).toBeNull();
+
+    fireEvent.click(rowHeaderToggle(container)!);
+    expect(isExpanded(container)).toBe(true);
+    expect(previewBody(container)?.textContent).toContain("Deleted /x.ts");
   });
 
   it("shows a loaded skill as the skill it loaded, on a quiet line", () => {
     const { container } = render(
-      <ToolCallItem toolUse={toolUse({ name: "Skill", input: { skill: "acme:lint" } })} />,
+      <ToolCallItem toolUse={toolUse({ name: "Skill", input: { skill: "acme:lint" }, result: "loaded" })} />,
     );
-    const row = container.querySelector('[data-cursor-target="tool-call-row"]');
-    expect(row?.textContent).toContain("Use skill");
-    expect(row?.textContent).toContain("acme:lint");
-    expect(row?.querySelector("svg")).not.toBeNull();
+    const row = rowRoot(container);
+    expect(row.textContent).toContain("Used the skill acme:lint");
+    expect(row.querySelector("svg")).not.toBeNull();
+    expect(isQuietLine(container)).toBe(true);
   });
 
   it("settles a summary tool closed once it finishes running", () => {
-    // A running summary tool foregrounds while live, then collapses to its
-    // compact summary the moment it completes (the user never touched it). The
-    // chevron is present throughout. Proves the React.memo + useAutoDisclosure
-    // composition recomputes autoOpen from the new ToolCall on re-render.
+    // While a delete runs it has nothing to show yet: a live line with no
+    // chevron. Once it answered, the line settles closed behind a chevron (the
+    // user never touched it). Proves the React.memo + useAutoDisclosure
+    // composition recomputes from the new tool use on re-render.
     const { container, rerender } = render(
       <ToolCallItem
-        toolUse={toolUse({
-          id: "tc-del",
-          name: "delete_file",
-          input: { path: "/x.ts" },
-          state: "running",
-        })}
+        toolUse={toolUse({ id: "tc-del", name: "delete_file", input: { path: "/x.ts" }, state: "running" })}
       />,
     );
-    expect(isExpanded(container)).toBe(true);
+    expect(rowHeader(container).textContent).toContain("Deleting x.ts");
+    expect(container.querySelector(".stg\\:animate-spin")).not.toBeNull();
+    expect(hasHeaderChevron(container)).toBe(false);
+    expect(previewBody(container)).toBeNull();
 
     rerender(
       <ToolCallItem
-        toolUse={toolUse({
-          id: "tc-del",
-          name: "delete_file",
-          input: { path: "/x.ts" },
-        })}
+        toolUse={toolUse({ id: "tc-del", name: "delete_file", input: { path: "/x.ts" }, result: "Deleted /x.ts" })}
       />,
     );
+    expect(rowHeader(container).textContent).toContain("Deleted x.ts");
     expect(hasHeaderChevron(container)).toBe(true);
     expect(isExpanded(container)).toBe(false);
   });
@@ -103,58 +118,48 @@ describe("ToolCallItem disclosure", () => {
   it("renders an interrupted row settled: collapsed, no spinner, neutral slash icon", () => {
     // A tool call the platform settled to INTERRUPTED when its run
     // terminalized mid-call. Before #207 a zombie RUNNING row spun forever and
-    // force-opened; the settled row must read as finished-by-interruption.
+    // force-opened; the settled row must read as finished-by-interruption,
+    // and with nothing returned it has nothing to open.
     const { container } = render(
       <ToolCallItem
-        toolUse={toolUse({
-          id: "tc-int",
-          name: "delete_file",
-          input: { path: "/x.ts" },
-          state: "stopped",
-        })}
+        toolUse={toolUse({ id: "tc-int", name: "delete_file", input: { path: "/x.ts" }, state: "stopped" })}
       />,
     );
     expect(container.querySelector(".stg\\:animate-spin")).toBeNull();
-    expect(hasHeaderChevron(container)).toBe(true);
-    expect(isExpanded(container)).toBe(false);
+    expect(container.querySelector(".stgm-shimmer-label")).toBeNull();
+    expect(container.querySelector(".stg\\:text-destructive")).toBeNull();
+    expect(hasHeaderChevron(container)).toBe(false);
+    expect(previewBody(container)).toBeNull();
+    // The kind's icon and the slash beside it.
+    expect(headerGlyphs(container)).toBe(2);
   });
 
   it("collapses a force-opened running row the moment it settles to interrupted", () => {
     // Mirrors the running→completed settle: the server-authored interruption
-    // arrives via a status update and the row must release its auto-open.
+    // arrives via a status update and the row must release its auto-open. A
+    // running command is open to what it printed so far.
     const { container, rerender } = render(
       <ToolCallItem
-        toolUse={toolUse({
-          id: "tc-int",
-          name: "delete_file",
-          input: { path: "/x.ts" },
-          state: "running",
-        })}
+        toolUse={toolUse({ id: "tc-int", name: "Bash", input: { command: "make" }, state: "running", liveOutput: "compiling\n" })}
       />,
     );
     expect(isExpanded(container)).toBe(true);
     expect(container.querySelector(".stg\\:animate-spin")).not.toBeNull();
 
     rerender(
-      <ToolCallItem
-        toolUse={toolUse({
-          id: "tc-int",
-          name: "delete_file",
-          input: { path: "/x.ts" },
-          state: "stopped",
-        })}
-      />,
+      <ToolCallItem toolUse={toolUse({ id: "tc-int", name: "Bash", input: { command: "make" }, state: "stopped" })} />,
     );
     expect(container.querySelector(".stg\\:animate-spin")).toBeNull();
     expect(isExpanded(container)).toBe(false);
+    expect(previewBody(container)).toBeNull();
   });
 
-  // --- Preview categories: no chevron, always-visible body ------------------
+  // --- Content-bearing steps are closed too ---------------------------------
 
-  it("renders a settled edit as an always-visible diff with no header chevron", () => {
-    // Edit is a `preview` category: the diff IS the information, so it renders
-    // inline with no competing card chevron. The diff "Show more" is layout-
-    // gated (jsdom computes no layout), so it is asserted in e2e, not here.
+  it("closes a settled edit behind a chevron that opens to its diff", () => {
+    // The line already says what changed ("Edited x.ts +1 −1"); the diff is
+    // one click away. The diff "Show more" is layout-gated (jsdom computes no
+    // layout), so it is asserted in e2e, not here.
     const { container } = render(
       <ToolCallItem
         toolUse={toolUse({
@@ -164,56 +169,61 @@ describe("ToolCallItem disclosure", () => {
         })}
       />,
     );
-    expect(hasHeaderChevron(container)).toBe(false);
-    expect(previewBody(container)).not.toBeNull();
+    expect(hasHeaderChevron(container)).toBe(true);
+    expect(isExpanded(container)).toBe(false);
+    expect(container.querySelector("table")).toBeNull();
+
+    fireEvent.click(rowHeaderToggle(container)!);
     // The diff renders as the accessible table.
-    expect(container.querySelector("table")).not.toBeNull();
+    expect(previewBody(container)?.querySelector("table")).not.toBeNull();
   });
 
-  it("settles a successful shell into a collapsed dimmed tail behind a chevron", () => {
-    // Shell is the `tail` category: a settled success collapses to the
-    // TerminalTail teaser — the `$ command` line plus the last output lines at
-    // reduced contrast — with the header chevron as the expand control.
+  it("settles a successful shell closed behind a chevron, its output one click away", () => {
+    // Shell is the `tail` category: a settled success closes to its line,
+    // with the command beside it; the session (prompt line and output) opens
+    // on a click. No teaser of its last lines stands in for it.
     const { container } = render(
-      <ToolCallItem
-        toolUse={toolUse({
-          name: "Bash",
-          input: { command: "echo hello" },
-          result: "hello",
-        })}
-      />,
+      <ToolCallItem toolUse={toolUse({ name: "Bash", input: { command: "echo hello" }, result: "hello" })} />,
     );
     expect(hasHeaderChevron(container)).toBe(true);
     expect(isExpanded(container)).toBe(false);
-    expect(
-      container.querySelector('[data-cursor-target="terminal-tail"]'),
-    ).not.toBeNull();
-    expect(
-      container.querySelector('[data-cursor-target="terminal-session"]'),
-    ).toBeNull();
-    // The teaser still carries the evidence: intent and last output.
-    expect(container.textContent).toContain("$ echo hello");
-    expect(screen.getByText("hello")).toBeTruthy();
+    expect(rowHeader(container).textContent).toContain("Ran a command");
+    expect(rowHeader(container).textContent).toContain("echo hello");
+    expect(container.querySelector('[data-cursor-target="terminal-tail"]')).toBeNull();
+    expect(container.querySelector('[data-cursor-target="terminal-session"]')).toBeNull();
+    expect(screen.queryByText("hello")).toBeNull();
+
+    fireEvent.click(rowHeaderToggle(container)!);
+    const session = container.querySelector('[data-cursor-target="terminal-session"]');
+    expect(session?.textContent).toContain("$ echo hello");
+    expect(session?.textContent).toContain("hello");
   });
 
-  it("renders a settled MCP tool's result inline with no chevron", () => {
+  it("closes a settled MCP tool behind a chevron: its name as the line, its app as a tag", () => {
     const { container } = render(
       <ToolCallItem
         toolUse={toolUse({
           name: "send_message",
           mcpServerName: "acme/slack",
+          input: { channel: "general" },
           result: '{"ok":true}',
         })}
       />,
     );
-    expect(hasHeaderChevron(container)).toBe(false);
-    expect(previewBody(container)).not.toBeNull();
+    const header = rowHeader(container);
+    expect(header.textContent).toContain("Send message");
+    expect(within(header).getByText("acme/slack")).toBeTruthy();
+    // The first argument sits beside the line.
+    expect(within(header).getByText("general")).toBeTruthy();
+    expect(hasHeaderChevron(container)).toBe(true);
+    expect(isExpanded(container)).toBe(false);
+    expect(previewBody(container)).toBeNull();
   });
 
-  it("keeps the shell header minimal — no command subtitle, no exit summary", () => {
-    // The command and exit code live in the terminal session body, so the plain
-    // header is just icon + label + status + duration. A failed command must not
-    // leak its command or "exit N" into the header row.
+  it("says a failed command in its header: the failed line, its exit, the command beside it", () => {
+    // A non-zero exit fails the step though the engine did not mark it an
+    // error: the line says so, the exit badges it, the failed mark shows, and
+    // the row stays open on its output.
     const { container } = render(
       <ToolCallItem
         toolUse={toolUse({
@@ -223,19 +233,20 @@ describe("ToolCallItem disclosure", () => {
         })}
       />,
     );
-    const row = container.querySelector('[data-cursor-target="tool-call-row"]')!;
-    const header = row.firstElementChild!;
-    expect(header.textContent).toContain("Shell");
-    expect(header.textContent).not.toContain("/secret/abs/path");
-    expect(header.textContent).not.toContain("exit 2");
-    // The exit DOES surface — in the body's terminal session.
-    expect(container.textContent).toContain("exit 2");
+    const header = rowHeader(container);
+    expect(header.textContent).toContain("Command failed");
+    expect(within(header).getByText("exit 2")).toBeTruthy();
+    const command = within(header).getByText("ls /secret/abs/path");
+    expect(command.className).toContain("stg:font-mono");
+    expect(header.querySelector(".stg\\:text-destructive")).not.toBeNull();
+    expect(within(header).getByText("Command failed").className).toContain("stg:font-medium");
+    expect(isExpanded(container)).toBe(true);
+    expect(rowHeaderToggle(container)?.getAttribute("aria-label")).toBe("Command failed ls /secret/abs/path, exit 2");
   });
 
   it("streams a running shell's full session in view (force-open, collapsible)", () => {
-    // The auto-open-while-running behaviour is untouched by the tail settle:
-    // an active command shows its output streaming. The chevron is present —
-    // a user may collapse a noisy long-running command, and their choice wins.
+    // An active command shows its output streaming. The chevron is present —
+    // a user may close a noisy long-running command, and their choice wins.
     const { container } = render(
       <ToolCallItem
         toolUse={toolUse({
@@ -253,9 +264,20 @@ describe("ToolCallItem disclosure", () => {
     ).toHaveLength(1);
   });
 
+  it("opens a running command to what it printed so far", () => {
+    const { container } = render(
+      <ToolCallItem
+        toolUse={toolUse({ name: "execute", input: { command: "npm test" }, state: "running", liveOutput: "PASS parser\n" })}
+      />,
+    );
+    expect(rowHeader(container).querySelector(".stgm-shimmer-label")?.textContent).toBe("Running a command");
+    expect(isExpanded(container)).toBe(true);
+    expect(container.querySelector('[data-cursor-target="terminal-live-output"]')?.textContent).toContain("PASS parser");
+  });
+
   // --- Tail settle lifecycle (issue #275) ------------------------------------
 
-  it("collapses a running shell to the dimmed tail the moment it succeeds", () => {
+  it("closes a running shell the moment it succeeds", () => {
     const running = toolUse({
       id: "tc-sh",
       name: "Bash",
@@ -277,16 +299,14 @@ describe("ToolCallItem disclosure", () => {
       />,
     );
     expect(isExpanded(container)).toBe(false);
-    expect(
-      container.querySelector('[data-cursor-target="terminal-tail"]'),
-    ).not.toBeNull();
-    expect(container.textContent).toContain("BUILD OK");
+    expect(previewBody(container)).toBeNull();
+    expect(container.textContent).not.toContain("BUILD OK");
   });
 
   it("keeps a failed shell open — error output is content, not context", () => {
     // A non-zero exit means the output is what the user needs next; the row
-    // must never settle into the dimmed teaser. The exit marker in the result
-    // string is the failure signal (status stays COMPLETED on the wire).
+    // must never close on it. The exit marker in the result string is the
+    // failure signal (status stays COMPLETED on the wire).
     const { container } = render(
       <ToolCallItem
         toolUse={toolUse({
@@ -304,22 +324,15 @@ describe("ToolCallItem disclosure", () => {
     expect(container.textContent).toContain("exit 2");
   });
 
-  it("keeps only the last lines in the collapsed tail, with an honest hidden-count", () => {
+  it("opens a settled shell to its whole output, not a tail of it", () => {
     const output = ["one", "two", "three", "four", "five"].join("\n");
     const { container } = render(
-      <ToolCallItem
-        toolUse={toolUse({
-          name: "Bash",
-          input: { command: "seq 5" },
-          result: output,
-        })}
-      />,
+      <ToolCallItem toolUse={toolUse({ name: "Bash", input: { command: "seq 5" }, result: output })} />,
     );
-    const tail = container.querySelector('[data-cursor-target="terminal-tail"]')!;
-    expect(tail.textContent).toContain("five");
-    expect(tail.textContent).toContain("three");
-    expect(tail.textContent).not.toContain("one");
-    expect(tail.textContent).toContain("+2 lines");
+    fireEvent.click(rowHeaderToggle(container)!);
+    const session = container.querySelector('[data-cursor-target="terminal-session"]')!;
+    for (const line of ["one", "two", "three", "four", "five"]) expect(session.textContent).toContain(line);
+    expect(session.textContent).not.toContain("+2 lines");
   });
 
   it("expands a collapsed tail to the full session on click, and the choice sticks", () => {
@@ -338,16 +351,15 @@ describe("ToolCallItem disclosure", () => {
       container.querySelector('[data-cursor-target="terminal-session"]'),
     ).not.toBeNull();
 
-    // A stream frame re-rendering the same settled call never recollapses a
+    // A stream frame re-rendering the same settled call never recloses a
     // row the user opened (useAutoDisclosure: the manual toggle wins).
     rerender(<ToolCallItem toolUse={settled} />);
     expect(isExpanded(container)).toBe(true);
   });
 
   it("suppresses the body for a content-bearing tool that produced nothing", () => {
-    // The regression guard: a preview-category tool whose result normalizes to
-    // `empty` (no output) must stay a clean one-line row, never an empty padded
-    // box. (Shell never hits this — it always carries its command line.)
+    // The regression guard: a tool whose result normalizes to `empty` (no
+    // output) stays a clean one-line row, never an empty padded box.
     const { container } = render(
       <ToolCallItem toolUse={toolUse({ name: "some_unknown_tool", result: "" })} />,
     );
@@ -355,11 +367,26 @@ describe("ToolCallItem disclosure", () => {
     expect(previewBody(container)).toBeNull();
   });
 
+  it("draws a step with nothing to show as a static line, never an empty box", () => {
+    // An edit with no text to diff and a whole-file write of nothing: no
+    // chevron, no body, no "no preview" notice standing in for one.
+    for (const tc of [
+      toolUse({ name: "Edit", input: { file_path: "/x.ts" }, result: "ok" }),
+      toolUse({ name: "Write", input: { file_path: "/x.ts", content: "" }, result: "ok" }),
+    ]) {
+      const { container, unmount } = render(<ToolCallItem toolUse={tc} />);
+      expect(hasHeaderChevron(container), tc.name).toBe(false);
+      expect(previewBody(container), tc.name).toBeNull();
+      expect(container.textContent, tc.name).not.toMatch(/preview/i);
+      // Nothing to count either.
+      expect(container.textContent, tc.name).not.toContain("+");
+      unmount();
+    }
+  });
+
   it("shows the +N -M summary once for an edit — header only, not the diff body", () => {
-    // The row header carries the result summary; the always-visible diff body
-    // must NOT repeat it. With added != removed the header's combined "+3 -0"
-    // node and a body "+3" stat span would be distinguishable — and the body has
-    // none (suppressed via showStats={false}).
+    // The row header carries the counts, with a true minus; the opened diff
+    // body must NOT repeat them (suppressed via showStats={false}).
     const { container } = render(
       <ToolCallItem
         toolUse={toolUse({
@@ -369,10 +396,37 @@ describe("ToolCallItem disclosure", () => {
         })}
       />,
     );
-    expect(hasHeaderChevron(container)).toBe(false);
-    expect(screen.getByText("+3 -0")).toBeTruthy();
-    expect(screen.queryAllByText("+3")).toHaveLength(0);
+    const header = rowHeader(container);
+    expect(within(header).getByText("+3")).toBeTruthy();
+    expect(within(header).getByText("−0")).toBeTruthy();
+    fireEvent.click(rowHeaderToggle(container)!);
     expect(container.querySelector("table")).not.toBeNull();
+    expect(screen.queryAllByText("+3")).toHaveLength(1);
+    expect(screen.queryAllByText("−0")).toHaveLength(1);
+  });
+
+  // --- Preview: a kind a host asks to keep open ------------------------------
+
+  it("keeps a host's preview kind open under a plain line, with no chevron", () => {
+    const dispose = registerToolPresenter("file_read", { disclosure: () => "preview" });
+    try {
+      const { container } = render(
+        <ToolCallItem toolUse={toolUse({ name: "Read", input: { path: "/notes.md" }, result: "# Notes\n" })} />,
+      );
+      expect(hasHeaderChevron(container)).toBe(false);
+      expect(previewBody(container)?.textContent).toContain("# Notes");
+      // A quiet line holds its body under a left rail, not a frame.
+      expect(isQuietLine(container)).toBe(true);
+      expect(previewBody(container)?.className).toContain("stg:border-l-2");
+      cleanup();
+
+      // With nothing to show, a preview kind is a static line as well.
+      const empty = render(<ToolCallItem toolUse={toolUse({ name: "Read", input: { path: "/notes.md" }, result: "" })} />);
+      expect(hasHeaderChevron(empty.container)).toBe(false);
+      expect(previewBody(empty.container)).toBeNull();
+    } finally {
+      dispose();
+    }
   });
 
   // --- Waiting calls (asks) ---------------------------------------------------
@@ -391,37 +445,42 @@ describe("ToolCallItem disclosure", () => {
 
     expect(hasHeaderChevron(container)).toBe(true);
     expect(isExpanded(container)).toBe(true);
-    expect(screen.getByLabelText("Approve")).toBeTruthy();
-    expect(screen.getByLabelText("Approve all file deletions")).toBeTruthy();
+    expect(screen.getByLabelText("Allow")).toBeTruthy();
+    expect(screen.getByLabelText("Allow all file deletions")).toBeTruthy();
   });
 
   it("shows no decision UI on a waiting call when no answer handler is wired", () => {
     const tu = toolUse({ id: "tc-gated", name: "delete_file", ask: {} });
     const { container } = render(<ToolCallItem toolUse={tu} />);
-    expect(screen.queryByLabelText("Approve")).toBeNull();
+    expect(screen.queryByLabelText("Allow")).toBeNull();
     // The waiting call still reads as waiting: the clock, in the at-risk
     // colour the theme contract measures as text on the page.
     expect(container.querySelector(".stg\\:text-status-degraded")).not.toBeNull();
   });
 
   it("renders a waiting preview tool's actions inline with no chevron", () => {
-    // A waiting shell (a preview category) shows its decision actions in the
+    // A kind a host asks to preview shows its decision actions in the
     // always-visible body — no header chevron, since there is nothing to reveal.
-    const tu = toolUse({
-      id: "tc-shell-gated",
-      name: "Bash",
-      input: { command: "rm -rf /tmp/x" },
-      ask: { argsPreview: '{"command":"rm -rf /tmp/x"}' },
-    });
-    const { container } = render(
-      <ApprovalContext.Provider value={answering()}>
-        <ToolCallItem toolUse={tu} />
-      </ApprovalContext.Provider>,
-    );
+    const dispose = registerToolPresenter("shell", { disclosure: () => "preview" });
+    try {
+      const tu = toolUse({
+        id: "tc-shell-gated",
+        name: "Bash",
+        input: { command: "rm -rf /tmp/x" },
+        ask: { argsPreview: '{"command":"rm -rf /tmp/x"}' },
+      });
+      const { container } = render(
+        <ApprovalContext.Provider value={answering()}>
+          <ToolCallItem toolUse={tu} />
+        </ApprovalContext.Provider>,
+      );
 
-    expect(hasHeaderChevron(container)).toBe(false);
-    expect(previewBody(container)).not.toBeNull();
-    expect(screen.getByLabelText("Approve")).toBeTruthy();
+      expect(hasHeaderChevron(container)).toBe(false);
+      expect(previewBody(container)).not.toBeNull();
+      expect(screen.getByLabelText("Allow")).toBeTruthy();
+    } finally {
+      dispose();
+    }
   });
 
   it("gives a waiting gate card a restrained destructive accent (no amber fill)", () => {
@@ -458,7 +517,7 @@ describe("ToolCallItem disclosure", () => {
     expect(row.textContent).not.toContain("gate line 30"); // bounded by lines
     expect(row.textContent).not.toContain("[381 chars]");
     expect(screen.getByRole("button", { name: /Show all \d+ lines/ })).toBeTruthy();
-    expect(screen.getByLabelText("Approve")).toBeTruthy();
+    expect(screen.getByLabelText("Allow")).toBeTruthy();
   });
 
   it("routes an inline grant with the waiting tool use's id", () => {
@@ -470,7 +529,7 @@ describe("ToolCallItem disclosure", () => {
       </ApprovalContext.Provider>,
     );
 
-    fireEvent.click(screen.getByLabelText("Approve all file deletions"));
+    fireEvent.click(screen.getByLabelText("Allow all file deletions"));
     expect(onAnswer).toHaveBeenCalledTimes(1);
     expect(onAnswer).toHaveBeenCalledWith("tc-gated", "grant", undefined);
   });
@@ -551,6 +610,12 @@ describe("ToolCallItem disclosure", () => {
     const tu = toolUse({ name: "task", thread: thread({ agentName: "researcher" }) });
     const { container } = render(<ToolCallItem toolUse={tu} />);
     expect(rowRoot(container).textContent).toContain("researcher");
+  });
+
+  it("falls back to the step's own line when the subagent has no name either", () => {
+    const tu = toolUse({ name: "task", thread: thread({ agentName: "" }), state: "running" });
+    const { container } = render(<ToolCallItem toolUse={tu} />);
+    expect(rowRoot(container).textContent).toContain("A helper is working");
   });
 
   it("shows an MCP tool's server beside its title", () => {
@@ -667,7 +732,7 @@ describe("ToolCallItem density tier", () => {
       state: "running",
     });
     const { container, rerender } = render(<ToolCallItem toolUse={running} />);
-    expect(container.querySelector(".stgm-shimmer-label")?.textContent).toBe("Shell");
+    expect(container.querySelector(".stgm-shimmer-label")?.textContent).toBe("Running a command");
 
     const settled = toolUse({
       name: "Bash",
@@ -818,24 +883,23 @@ describe("ToolCallItem file-review badge", () => {
 // ---------------------------------------------------------------------------
 
 describe("ToolCallItem header controls", () => {
-  const runningRead = () =>
-    toolUse({ name: "Read", input: { path: "/data/statements/july-statement.csv" }, state: "running" });
+  const settledRead = () =>
+    toolUse({ name: "Read", input: { path: "/data/statements/july-statement.csv" }, result: "date,amount\n" });
 
   it("names the toggle for what the row is: the title, a file's base name, the result summary", () => {
-    const { container, unmount } = render(<ToolCallItem toolUse={runningRead()} />);
-    expect(rowHeaderToggle(container)?.getAttribute("aria-label")).toBe("Read july-statement.csv");
+    const { container, unmount } = render(<ToolCallItem toolUse={settledRead()} />);
+    expect(rowHeaderToggle(container)?.getAttribute("aria-label")).toBe("Read july-statement.csv /data/statements");
     unmount();
 
     const search = render(
       <ToolCallItem toolUse={toolUse({ name: "Grep", input: { pattern: "invoices" }, result: "a.ts:1: x\nb.ts:2: y" })} />,
     );
-    expect(rowHeaderToggle(search.container)?.getAttribute("aria-label")).toBe("Search invoices, 2 files");
+    expect(rowHeaderToggle(search.container)?.getAttribute("aria-label")).toBe("Searched for invoices, 2 files");
   });
 
   it("keeps the file control out of the toggle: its own target, acting without opening or closing the row", () => {
-    const { container } = render(<ToolCallItem toolUse={runningRead()} />);
+    const { container } = render(<ToolCallItem toolUse={settledRead()} />);
     const toggle = rowHeaderToggle(container)!;
-    // The header's own: the open body carries the same file control too.
     const file = within(toggle.parentElement!).getByRole("button", {
       name: /: \/data\/statements\/july-statement\.csv$/,
     });
@@ -851,15 +915,16 @@ describe("ToolCallItem header controls", () => {
   });
 
   it("shows a cut-off subtitle's full text on the toggle's focus, and no hint while it fits", async () => {
-    const query = "invoices from the July statement run, every vendor, every currency";
-    const row = () => toolUse({ name: "Grep", input: { pattern: query }, result: "a.ts:1: x" });
+    // The subtitle is what sits beside the line: here a long command.
+    const command = "npx vitest run src/billing --reporter=verbose --coverage.enabled";
+    const row = () => toolUse({ name: "Bash", input: { command }, result: "ok" });
 
     const fits = render(<ToolCallItem toolUse={row()} />);
-    expect(rowHeaderToggle(fits.container)?.getAttribute("aria-label")).toContain(query);
+    expect(rowHeaderToggle(fits.container)?.getAttribute("aria-label")).toBe(`Ran a command ${command}`);
     await userEvent.tab();
     expect(document.activeElement).toBe(rowHeaderToggle(fits.container));
     await new Promise((resolve) => setTimeout(resolve, 100));
-    expect(screen.queryAllByText(query), "only the subtitle itself, no tooltip").toHaveLength(1);
+    expect(screen.queryAllByText(command), "only the subtitle itself, no tooltip").toHaveLength(1);
     fits.unmount();
 
     // happy-dom lays nothing out, so "cut off" is the measurement's word.
@@ -869,10 +934,149 @@ describe("ToolCallItem header controls", () => {
       const cut = render(<ToolCallItem toolUse={row()} />);
       await userEvent.tab();
       expect(document.activeElement).toBe(rowHeaderToggle(cut.container));
-      await waitFor(() => expect(screen.queryAllByText(query)).toHaveLength(2));
+      await waitFor(() => expect(screen.queryAllByText(command)).toHaveLength(2));
     } finally {
       scroll.mockRestore();
       client.mockRestore();
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The step's line — plain words, the file linked, the counts and the detail
+// ---------------------------------------------------------------------------
+
+describe("ToolCallItem step line", () => {
+  const edit = (path = "/src/billing/invoice.ts") =>
+    toolUse({ name: "Edit", input: { file_path: path, old_string: "a\nb\n", new_string: "c\n" }, result: "ok" });
+
+  it("reads at body size: the words, the file linked in them, the change counted, the folder beside", () => {
+    const { container } = render(<ToolCallItem toolUse={edit()} />);
+    const header = rowHeader(container);
+    expect(header.className).toContain("stg:text-sm");
+    expect(header.textContent).toContain("Edited invoice.ts");
+    // The file name is the file's own control, not plain words.
+    expect(within(header).getByRole("button", { name: /: \/src\/billing\/invoice\.ts$/ })).toBeTruthy();
+    // The true minus, never a hyphen.
+    expect(within(header).getByText("+1")).toBeTruthy();
+    expect(within(header).getByText("−2")).toBeTruthy();
+    expect(within(header).getByText("/src/billing")).toBeTruthy();
+    expect(rowHeaderToggle(container)?.getAttribute("aria-label")).toBe("Edited invoice.ts /src/billing, +1 −2");
+  });
+
+  it("keeps a host's label as plain words when it does not end with the file's name", () => {
+    const dispose = registerToolPresenter("file_edit", { label: () => "Patched the invoice" });
+    try {
+      const { container } = render(<ToolCallItem toolUse={edit()} />);
+      const header = rowHeader(container);
+      expect(header.textContent).toContain("Patched the invoice");
+      expect(within(header).queryByRole("button", { name: /invoice\.ts/ })).toBeNull();
+    } finally {
+      dispose();
+    }
+  });
+
+  it("keeps a file name the line had to cut short as plain words", () => {
+    const long = `/src/${"a-very-long-module-name-".repeat(3)}invoice.ts`;
+    const { container } = render(<ToolCallItem toolUse={edit(long)} />);
+    const header = rowHeader(container);
+    expect(header.textContent).toContain("Edited a-very-long");
+    expect(header.textContent).toContain("…");
+    expect(within(header).queryByRole("button", { name: /invoice\.ts$/ })).toBeNull();
+  });
+
+  it("names no folder for a file at the root", () => {
+    const { container } = render(<ToolCallItem toolUse={edit("invoice.ts")} />);
+    expect(rowHeaderToggle(container)?.getAttribute("aria-label")).toBe("Edited invoice.ts, +1 −2");
+  });
+
+  it("counts the lines a whole-file write wrote as added, with or without a final newline", () => {
+    const cases = [
+      ["a\nb\nc\n", "+3"],
+      ["a\nb", "+2"],
+    ] as const;
+    for (const [content, added] of cases) {
+      const { container, unmount } = render(
+        <ToolCallItem toolUse={toolUse({ name: "Write", input: { file_path: "/notes.md", content }, result: "ok" })} />,
+      );
+      const header = rowHeader(container);
+      expect(header.textContent).toContain("Wrote notes.md");
+      expect(within(header).getByText(added)).toBeTruthy();
+      expect(within(header).getByText("−0")).toBeTruthy();
+      unmount();
+    }
+  });
+
+  it("counts what a search found and what a listing held", () => {
+    const search = render(
+      <ToolCallItem toolUse={toolUse({ name: "Grep", input: { pattern: "round(", path: "src/billing" }, result: "  12: round(a)\n  40: round(b)" })} />,
+    );
+    expect(rowHeader(search.container).textContent).toContain("Searched for round( in src/billing");
+    expect(within(rowHeader(search.container)).getByText("2 matches")).toBeTruthy();
+    search.unmount();
+
+    const list = render(<ToolCallItem toolUse={toolUse({ name: "ls", input: { path: "/src" }, result: "a.ts\nb.ts\nc.ts" })} />);
+    expect(within(rowHeader(list.container)).getByText("3 items")).toBeTruthy();
+  });
+
+  it("counts nothing before a step returned", () => {
+    const { container } = render(
+      <ToolCallItem
+        toolUse={toolUse({ name: "Edit", input: { file_path: "/x.ts", old_string: "a", new_string: "b" }, state: "running" })}
+      />,
+    );
+    expect(rowHeader(container).textContent).toContain("Editing x.ts");
+    expect(within(rowHeader(container)).queryByText("+1")).toBeNull();
+  });
+
+  it("names an unknown tool's first argument beside its line", () => {
+    const { container } = render(
+      <ToolCallItem toolUse={toolUse({ name: "frobnicate_widget", input: { widget: "widget-42" }, result: "done" })} />,
+    );
+    const header = rowHeader(container);
+    expect(header.textContent).toContain("Frobnicate widget");
+    expect(within(header).getByText("widget-42")).toBeTruthy();
+  });
+
+  it("reads a denied call as one it could not do, without the failed look", () => {
+    const { container } = render(
+      <ToolCallItem toolUse={toolUse({ name: "delete_file", input: { path: "/x.ts" }, ask: {}, confirmation: "deny" })} />,
+    );
+    const header = rowHeader(container);
+    expect(header.textContent).toContain("Couldn't delete x.ts");
+    expect(header.querySelector(".stg\\:text-destructive")).toBeNull();
+    expect(header.querySelector(".stg\\:font-medium.stg\\:text-foreground")).toBeNull();
+    expect(headerGlyphs(container)).toBe(1);
+  });
+
+  it("restates a search pattern its line had to cut, whole, once the step opens", () => {
+    const pattern = "invoiceTotal\\(lines: readonly Line\\[\\]\\): Cents \\{ return roundHalfEven";
+    const { container } = render(<ToolCallItem toolUse={toolUse({ name: "grep", input: { pattern }, result: "  12: x" })} />);
+    expect(rowHeader(container).textContent).not.toContain(pattern);
+    fireEvent.click(rowHeaderToggle(container)!);
+    expect(screen.getByText(pattern)).toBeTruthy();
+  });
+
+  it("keeps a short pattern in its line alone, never restated in the body", () => {
+    const { container } = render(<ToolCallItem toolUse={toolUse({ name: "grep", input: { pattern: "round(" }, result: "  12: x" })} />);
+    fireEvent.click(rowHeaderToggle(container)!);
+    expect(screen.queryByText("Query")).toBeNull();
+  });
+
+  it("reads a call its turn stopped as one it could not do", () => {
+    const { container } = render(<ToolCallItem toolUse={toolUse({ name: "delete_file", input: { path: "/x.ts" }, state: "stopped" })} />);
+    expect(rowHeader(container).textContent).toContain("Couldn't delete x.ts");
+  });
+
+  it("shows a host's registered summary in place of the counts, in the row and its toggle's name", () => {
+    const unregister = registerToolPresenter("search", { summary: () => "3 hits in billing" });
+    try {
+      const { container } = render(<ToolCallItem toolUse={toolUse({ name: "grep", input: { pattern: "round(" }, result: "  12: a\n  13: b" })} />);
+      expect(within(rowHeader(container)).getByText("3 hits in billing")).toBeTruthy();
+      expect(within(rowHeader(container)).queryByText("2 matches")).toBeNull();
+      expect(rowHeaderToggle(container)!.getAttribute("aria-label")).toContain("3 hits in billing");
+    } finally {
+      unregister();
     }
   });
 });

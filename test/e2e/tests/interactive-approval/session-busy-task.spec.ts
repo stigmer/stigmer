@@ -6,11 +6,12 @@
 // command, which waits for the person's approval; once approved, it answers.
 //
 // Pins:
-//   - follow: while the turn waits, one line says so above the composer,
-//     with how far the to-do list has got and Stop on it;
+//   - follow: while the turn waits, the title's status pill says so with its
+//     time, beside how far the to-do list has got, and Stop stays in the
+//     composer;
 //   - steer: the approval is on screen and answering it resumes the turn;
-//   - receive: the ended turn closes with what it made, and the saved File
-//     opens from there in the console's inspector.
+//   - receive: the pill says Done, the turn's answer leads with what it
+//     made, and the saved File opens from there in the console's inspector.
 //
 // The guest's side of the same jobs runs on the local cloud's journey: a
 // chat link's guest token has no open-source implementation, so the framed
@@ -79,26 +80,29 @@ test.describe("A busy task in the session view (deterministic mock LLM)", () => 
 
     await page.goto(`/sessions/${seeded.sessionId}`);
 
-    // Follow: one line, above the composer, while the turn waits on the person.
-    const activity = page.getByRole("status").filter({ hasText: "Waiting for you" });
-    await expect(activity).toBeVisible({ timeout: 30_000 });
-    await expect(activity).toContainText("0 of 2 done");
-    await expect(activity.getByRole("button", { name: "Stop" })).toBeVisible();
+    // Follow: the title's pill, while the turn waits on the person, beside how
+    // far the to-do list has got; Stop stays in the composer.
+    const waiting = page.getByText(/^Waiting for you · \d/);
+    await expect(waiting).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText("0 of 2 to-dos done", { exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Stop generating" })).toBeVisible();
 
     // Steer: the approval is answered from the screen and the turn resumes.
     await approveButton(page).click();
     const phase = await awaitRunTerminal(stigmerClient, seeded.runId);
     expect(phase, "the approved turn completes").toBe(RunPhase.RUN_COMPLETED);
 
-    // Receive: the turn closes with what it made, and the File opens in place.
+    // Receive: the pill says Done, the turn shows what it made, and the File
+    // opens in place.
     const outcome = page.getByRole("region", { name: "What this turn produced" });
     await expect(outcome).toBeVisible({ timeout: 30_000 });
-    await expect(outcome).toContainText("Done");
-    await expect(page.getByRole("status").filter({ hasText: "Waiting for you" })).toHaveCount(0);
+    await expect(page.getByText("Done", { exact: true })).toBeVisible();
+    await expect(page.getByText(/^Waiting for you · \d/)).toHaveCount(0);
     await outcome.getByRole("button", { name: new RegExp(REPORT.replace(".", "\\.")) }).click();
     await expect(page.getByRole("button", { name: "Hide panel" })).toBeVisible({ timeout: 15_000 });
-    // The opened File renders its markdown; the write's card above shows the
-    // same text as raw source in a <pre>, so the check names the paragraph.
+    // The opened File renders its markdown; the write's step (closed under
+    // "How it got there") would show the same text as raw source in a <pre>,
+    // so the check names the paragraph.
     await expect(page.getByRole("paragraph").filter({ hasText: "Travel is 12% over plan." })).toBeVisible({ timeout: 15_000 });
   });
 });

@@ -6,7 +6,8 @@
  * or on the bottom backstop card, routed through `onAnswerToolUse` with the
  * tool use's id (allow, deny with a reason), its failure shown in-card, and
  * absent without the handler; the conversation's messages, version and
- * loaded-version markers, to-dos card, subagents and compactions; how a
+ * loaded-version markers, the plan card a to-do turn draws, subagents and
+ * compactions (a finished turn's under its "How it got there" line); how a
  * turn ended (badge, reason and Retry, a quiet cancel); the pending bubble
  * and its Retry; editing the live turn's message; the set-up placeholder
  * yielding to the first output; Plan turns (live collapse, the build card,
@@ -184,12 +185,12 @@ describe("MessageThread answers", () => {
     });
   }
 
-  it("renders a waiting call's decision INLINE on its row and routes Approve with its id", () => {
+  it("renders a waiting call's decision INLINE on its row and routes Allow with its id", () => {
     const onAnswer = vi.fn();
     renderThread(waiting("w", "c1", "delete_file"), { onAnswerToolUse: onAnswer });
 
     expect(screen.queryByRole("alert")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Approve" }));
+    fireEvent.click(screen.getByRole("button", { name: "Allow" }));
     expect(onAnswer).toHaveBeenCalledWith(toolId("w", "c1"), "allow", undefined);
   });
 
@@ -221,14 +222,14 @@ describe("MessageThread answers", () => {
     });
 
     expect(container.querySelector('[data-cursor-target="approval-error"]')?.textContent).toContain("network down");
-    expect(screen.getByRole("button", { name: "Approve" }).hasAttribute("disabled")).toBe(true);
+    expect(screen.getByRole("button", { name: "Allow" }).hasAttribute("disabled")).toBe(true);
   });
 
   it("renders no decision UI without onAnswerToolUse", () => {
     renderThread(waiting("w", "c1", "write_todos"));
 
     expect(screen.queryByRole("alert")).toBeNull();
-    expect(screen.queryByRole("button", { name: "Approve" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Allow" })).toBeNull();
   });
 });
 
@@ -313,9 +314,10 @@ describe("MessageThread", () => {
       }),
     );
 
-    const region = screen.getByRole("region", { name: "Agent to-dos" });
+    const region = screen.getByRole("region", { name: "Plan" });
     expect(region.textContent).toContain("Scaffold the component");
-    expect(region.textContent).toContain("0/2 completed");
+    expect(region.textContent).toContain("0 of 2 done");
+    expect(screen.queryByRole("region", { name: "Agent to-dos" })).toBeNull();
   });
 
   it("renders a subagent's card and a context compaction", () => {
@@ -333,6 +335,9 @@ describe("MessageThread", () => {
       }),
     );
 
+    // The finished turn leads with its answer; its working opens from one line.
+    expect(screen.queryByRole("group", { name: /Subagent: Research renewables/ })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /^How it got there/ }));
     expect(screen.getByRole("group", { name: /Subagent: Research renewables/ })).toBeTruthy();
     expect(screen.getByRole("status", { name: "Context compacted" })).toBeTruthy();
   });

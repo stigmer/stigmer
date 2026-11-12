@@ -57,7 +57,7 @@ describe("SubagentSection auto-disclosure", () => {
 
     expect(sectionExpanded(container)).toBe(true);
     // The nested gate's actions surface inside the subagent section.
-    expect(screen.getByLabelText("Approve")).toBeTruthy();
+    expect(screen.getByLabelText("Allow")).toBeTruthy();
   });
 
   it("opens for a call waiting in a subagent the subagent started", () => {

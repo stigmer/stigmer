@@ -387,14 +387,18 @@ export function withoutOffloadTail(text: string): string {
 /**
  * Normalizes a tool use into a typed ToolResultView for rendering.
  *
- * A result that is an error always yields an `error` view. Otherwise the kind
- * drives interpretation, and anything unrecognized degrades to `json`/`text`.
+ * A result that is an error yields an `error` view, except a foreground
+ * command's: a command that failed is still a command, so it reads as its
+ * terminal (the command, what it printed, and the exit code when the output
+ * names one). Otherwise the kind drives interpretation, and anything
+ * unrecognized degrades to `json`/`text`.
  */
 export function normalizeToolResult(tool: ToolViewInput): ToolResultView {
   const result = tool.result?.text ?? "";
   const args = tool.input as Args;
 
   if (tool.result?.isError === true && result !== "") {
+    if (tool.background === undefined && resolveToolKind(tool) === "shell") return failedShell(result, args);
     return { type: "error", message: result };
   }
 
@@ -554,6 +558,19 @@ function normalizeBackground(background: BackgroundCommandView, args: Args): Too
   }
 }
 
+/**
+ * A foreground command whose result is an error, as its terminal: an exit
+ * code only where the output names one (an error result with no exit line
+ * did not exit 0).
+ */
+function failedShell(result: string, args: Args): ToolResultView {
+  const view = normalizeShell(result, args);
+  if (view.type !== "terminal" || view.exitCode !== 0) return view;
+  return view.command === undefined
+    ? { type: "terminal", stdout: view.stdout, stderr: view.stderr }
+    : { type: "terminal", command: view.command, stdout: view.stdout, stderr: view.stderr };
+}
+
 function normalizeShell(result: string, args: Args): ToolResultView {
   // The command is the session's prompt line. "command" matches the shell
   // primaryField shared with the runner/Go classifier and both Stigmer and
@@ -562,9 +579,8 @@ function normalizeShell(result: string, args: Args): ToolResultView {
 
   // Stigmer-harness subagent steps emit structured shell output, a
   // {stdout,stderr,exitCode} record; read it so the real output surfaces
-  // instead of the raw JSON string. A failed shell never reaches here —
-  // normalizeToolResult routes TOOL_CALL_FAILED to the error view first — so
-  // only success is handled.
+  // instead of the raw JSON string. A failed shell reaches here through
+  // failedShell, which keeps a named exit code and drops an unnamed one.
   const shell = tryParseJson(result);
   if (hasShellFields(shell)) {
     return {

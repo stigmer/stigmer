@@ -59,8 +59,8 @@ packages, which platform builders embed too.
   sentinel, never scroll arithmetic. Only the changing row re-renders.
 - Reference stability is architectural: object-literal hook returns are memoised
   and callback dependencies name the method used, not the containing object.
-- New behaviour that changes DOM, scroll or bundle is opt-in with a
-  backward-compatible default; no automatic switching mid-session.
+- DOM, scroll or bundle changes are opt-in with a backward-compatible default,
+  never switching mid-session; a maintainer-ruled redesign excepted.
 - Relative specifiers carry `.js` (`scripts/verify-esm-node.mjs` gates the
   published output).
 - Embedded components announce new messages to screen readers and never trap

@@ -1,10 +1,13 @@
 /**
  * Positioning + emission of file-review records in buildThreadItems: each
  * SETTLED review of a turn (the fold's `Turn.fileReview`) renders as a
- * read-only `file-review-record` inside its own turn's segment, right after
- * the last row that edited one of its files (matched by the row's path),
- * with a segment-tail backstop for a review no row edited (shell-made
- * changes). A set still undecided on a live turn is never a thread item —
+ * read-only `file-review-record` inside its own turn's segment. While the
+ * turn works, or once it stopped or failed (time order), the record sits
+ * right after the last row that edited one of its files (matched by the
+ * row's path), with a segment-tail backstop for a review no row edited
+ * (shell-made changes); a finished turn draws its records right after its
+ * answer, outside the "How it got there" fold that holds the rows. A set
+ * still undecided on a live turn is never a thread item —
  * its decision surface is the composer-docked FileReviewDock — while one
  * left undecided by an ended turn is recorded honestly. An empty set and a
  * thread with records off emit nothing.
@@ -44,6 +47,11 @@ function build(...events: Array<SessionEvent | readonly SessionEvent[]>): Thread
   return buildThreadItems(turnsOf(...events), [], { includeFileReviewRecords: true });
 }
 
+/** A working turn's items, in time order, with no liveness line at the tail. */
+function buildLive(...events: Array<SessionEvent | readonly SessionEvent[]>): ThreadItem[] {
+  return buildThreadItems(turnsOf(...events), [], { includeFileReviewRecords: true, includeLiveness: false });
+}
+
 function recordIndex(items: readonly ThreadItem[], setId: string): number {
   return items.findIndex((i) => i.kind === "file-review-record" && i.fileReviewSet.changeSetId === setId);
 }
@@ -54,8 +62,9 @@ function groupHas(item: ThreadItem | undefined, id: string): boolean {
 
 describe("buildThreadItems — file-review record positioning", () => {
   it("places a settled record right after the LAST row that edited one of its files", () => {
-    const items = build(
+    const items = buildLive(
       user(R, "go"),
+      status(R, "running"),
       said(R, 0, "Let me edit."),
       edit(R, "e1", "/workspace/notes.md"),
       said(R, 1, "Running tests."),
@@ -63,7 +72,6 @@ describe("buildThreadItems — file-review record positioning", () => {
       said(R, 2, "One more edit."),
       edit(R, "e2", "README.md"),
       said(R, 3, "All done, summary follows."),
-      status(R, "completed"),
       changes(R, "cs1", files("notes.md", "README.md")),
       decided(R, "cs1", "keep"),
     );
@@ -76,19 +84,20 @@ describe("buildThreadItems — file-review record positioning", () => {
   });
 
   it("falls back to the segment tail for a review no row edited (shell-made changes)", () => {
-    const items = build(user(R, "go"), said(R, 0, "Shell only."), shell(R, "sh", "echo x > f.txt"), status(R, "completed"), changes(R, "cs1", files("f.txt")));
+    const items = buildLive(user(R, "go"), status(R, "running"), said(R, 0, "Shell only."), shell(R, "sh", "echo x > f.txt"), changes(R, "cs1", files("f.txt")), decided(R, "cs1", "keep"));
 
     expect(recordIndex(items, "cs1")).toBe(items.length - 1);
   });
 
   it("does not anchor to an edit row that names no path", () => {
-    const items = build(
+    const items = buildLive(
       user(R, "go"),
+      status(R, "running"),
       use(R, "e0", "edit_file", { old_string: "a", new_string: "b" }),
       result(R, "e0", "ok"),
       said(R, 0, "Done."),
-      status(R, "completed"),
       changes(R, "cs1", files("f.txt")),
+      decided(R, "cs1", "keep"),
     );
 
     expect(recordIndex(items, "cs1")).toBe(items.length - 1);
@@ -135,15 +144,17 @@ describe("buildThreadItems — file-review record positioning", () => {
   });
 
   it("anchors each of a turn's settled sets to its own rows, in transcript order", () => {
-    const items = build(
+    const items = buildLive(
       user(R, "go"),
+      status(R, "running"),
       said(R, 0, "Part one."),
       edit(R, "e1", "a.ts"),
       said(R, 1, "Part two."),
       edit(R, "e2", "b.ts"),
-      status(R, "completed"),
       changes(R, "cs0", files("a.ts")),
       changes(R, "cs1", files("b.ts")),
+      decided(R, "cs0", "keep"),
+      decided(R, "cs1", "keep"),
     );
     const rec0 = recordIndex(items, "cs0");
     const rec1 = recordIndex(items, "cs1");
@@ -154,16 +165,43 @@ describe("buildThreadItems — file-review record positioning", () => {
   });
 
   it("does not anchor to a row that only read a file of the set", () => {
-    const items = build(
+    const items = buildLive(
       user(R, "go"),
+      status(R, "running"),
       use(R, "r1", "read_file", { path: "a.ts" }),
       result(R, "r1", "contents"),
       said(R, 0, "Read it."),
-      status(R, "completed"),
       changes(R, "cs1", files("a.ts")),
+      decided(R, "cs1", "undo"),
     );
 
     expect(recordIndex(items, "cs1")).toBe(items.length - 1);
+  });
+
+  it("places a stopped or failed turn's record at its anchor, in time order", () => {
+    const items = build(user(R, "go"), said(R, 0, "Editing."), edit(R, "e1", "a.ts"), said(R, 1, "Then it broke."), status(R, "failed"), changes(R, "cs1", files("a.ts")));
+    const rec = recordIndex(items, "cs1");
+
+    expect(groupHas(items[rec - 1], toolId(R, "e1"))).toBe(true);
+    expect(items[rec + 1]?.kind === "message" && items[rec + 1]!.key).toBe(`${R}.root.m1`);
+  });
+
+  it("draws a finished turn's records right after its answer, outside the fold that holds the rows", () => {
+    const items = build(
+      user(R, "go"),
+      said(R, 0, "Part one."),
+      edit(R, "e1", "a.ts"),
+      shell(R, "sh", "echo x > f.txt"),
+      said(R, 1, "All done."),
+      status(R, "completed"),
+      changes(R, "cs0", files("a.ts")),
+      changes(R, "cs1", files("f.txt")),
+      decided(R, "cs0", "keep"),
+    );
+
+    expect(items.map((i) => i.key)).toEqual([`${R}-spec`, `${R}.root.m1`, "file-review-cs0", "file-review-cs1", `${R}-how`]);
+    const fold = items.at(-1);
+    expect(fold?.kind === "how-it-got-there" && fold.items.map((i) => i.kind)).toEqual(["message", "tool-group"]);
   });
 
   it("skips an empty set, and emits nothing when records are off", () => {

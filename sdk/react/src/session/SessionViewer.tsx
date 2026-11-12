@@ -15,14 +15,12 @@ import type { SessionInspectorProps } from "./inspector/SessionInspector.js";
 import type { SessionStreamingPlan } from "./inspector/SessionInspectorRegion.js";
 import { isTerminalPhase } from "@stigmer/react-core/internal";
 import { MessageThread, type MessageThreadSlots } from "../run/MessageThread.js";
-import { threadSaysBackgroundWait } from "../run/turn-tail.js";
 import { FileChangeProgressBar } from "../run/FileChangeProgressBar.js";
 import { FileReviewDock } from "../run/FileReviewDock.js";
 import { FilePathContext, type FilePathContextValue } from "../run/FilePathContext.js";
 import { ThreadSkeleton } from "../run/ThreadSkeleton.js";
 import { SessionComposer } from "../composer/index.js";
 import { AgentHoursNotice, agentHoursUsedUp } from "../billing/AgentHoursNotice.js";
-import { TurnActivityLine } from "./TurnActivityLine.js";
 import { ChatActivityReporterContext } from "../agent-chat/chat-activity.js";
 import { chatActivityOf } from "../agent-chat/chat-activity-of.js";
 import { TurnOutcome } from "./TurnOutcome.js";
@@ -31,6 +29,7 @@ import { TurnChangeDialog } from "./TurnChangeDialog.js";
 import { FilePreviewModal } from "../run/FilePreviewModal.js";
 import { deriveRunFileChanges } from "../run/deriveRunFileChanges.js";
 import { SessionSummary } from "./SessionSummary.js";
+import { CONVERSATION_FILES_VIEW_ID } from "./useSessionRailViews.js";
 import { useRunSettings } from "./run-settings.js";
 import { DEFAULT_MODELS_HUB_HREF, ProviderKeyNotice, providerKeyRequired } from "../billing/ProviderKeyNotice.js";
 import { SecretFlowErrorGuide, isSecretFlowError } from "../error/index.js";
@@ -247,9 +246,10 @@ export interface SessionViewerProps {
  * Full-featured agent session viewer.
  *
  * Owns `useSessionPageFlow` internally and composes the conversation: its
- * summary, the thread (each ended turn closed by what it produced), the
- * working turn's activity line with Stop, and the `SessionComposer` with
- * the run settings in its configure menu. A host that passes `inspector`
+ * summary with the status pill on the title's line, the thread (each step
+ * one plain line, a finished turn leading with its answer and what it
+ * produced), and the `SessionComposer` (Stop while a turn works) with the
+ * run settings in its configure menu. A host that passes `inspector`
  * (`<SessionInspector />`) adds the builder mode beside it: the explorer,
  * search, read-only editor and the Changes, Files and Usage facets,
  * collapsed to a top-right chip until opened.
@@ -471,6 +471,10 @@ export function SessionViewer({
     // can flip state or reach the host's callback.
     open: panelEnabled ? inspectorProps?.open : false,
     defaultOpen: inspectorProps?.defaultOpen,
+    // The panel opens on what the conversation made once it has Files, and
+    // on the Explorer before: an empty listing is known only after it
+    // loads, so the Explorer column itself always stays offered.
+    defaultView: files.length > 0 ? CONVERSATION_FILES_VIEW_ID : "files",
     onOpenChange: panelEnabled ? inspectorProps?.onOpenChange : undefined,
   });
 
@@ -651,11 +655,11 @@ export function SessionViewer({
 
   // The header's controls: host actions + the panel chip. The chip is the
   // panel's always-mounted toggle; while collapsed it carries only the
-  // pending-item count. Run status is never surfaced as header
-  // chrome: the activity line and each turn's outcome say it. A viewer
-  // without an inspector (an embed, or a guest) has no toggle: it is
-  // simply absent. Access and the transcript export are header actions
-  // for every viewer, inspector or not.
+  // pending-item count. How the session stands is the summary's status pill
+  // on the title's line (SessionSummary). A viewer without an inspector (an
+  // embed, or a guest) has no toggle: it is simply absent. Access and the
+  // transcript export are header actions for every viewer, inspector or
+  // not.
   const headerCorner = (
     <>
       {headerActions}
@@ -709,7 +713,6 @@ export function SessionViewer({
           isCurated={isCurated}
           isGuest={isGuest}
           isObserver={isReader}
-          readsOnly={readsOnly}
           isParticipant={isParticipant}
           creatorName={creatorName}
           runScores={runScores}
@@ -816,16 +819,13 @@ interface ConversationColumnProps {
   /** Guest audience: pure chat — additionally no model picker, mode picker, file uploads, or workspace. */
   readonly isGuest: boolean;
   /**
-   * Observer audience: a read-only transcript. No composer, no
-   * approval/edit/retry/build affordances, no decision surfaces — live
-   * stream indicators stay (watching an in-flight turn is the point).
+   * A reader (an observer, a viewer of a shared conversation, a channel
+   * conversation): a read-only transcript. No composer, no
+   * approval/edit/retry/build affordances, no decision surfaces, and a
+   * one-line footer saying so; live stream indicators stay (watching an
+   * in-flight turn is the point).
    */
   readonly isObserver: boolean;
-  /**
-   * A viewer of a shared conversation (not a channel or host observer):
-   * the observer presentation, with a line saying the reader can read it.
-   */
-  readonly readsOnly: boolean;
   /**
    * A participant in a shared conversation: sends messages, but stopping,
    * approvals and file decisions stay with its owners, so those controls
@@ -892,7 +892,6 @@ const ConversationColumn = memo(function ConversationColumn({
   isCurated,
   isGuest,
   isObserver,
-  readsOnly,
   isParticipant,
   creatorName,
   runScores,
@@ -1058,6 +1057,7 @@ const ConversationColumn = memo(function ConversationColumn({
             routineHref={routineHref}
             readsRoutine={!isGuest}
             actions={summaryActions}
+            decides={!isObserver && !isParticipant}
           />
         </div>
       )}
@@ -1117,9 +1117,9 @@ const ConversationColumn = memo(function ConversationColumn({
         slots={threadSlots}
         runScores={runScores}
         turnOutcome={renderTurnOutcome}
-        // The people who want the result fold a settled stretch into one
-        // step row; a builder keeps every row.
-        foldSettledSteps={isCurated}
+        // The header's pill and the plan say what the turn does; the
+        // thread's tail speaks only for the background commands a turn
+        // waits on.
         ambientLiveness={false}
         className="stg:flex-1"
       />
@@ -1133,20 +1133,9 @@ const ConversationColumn = memo(function ConversationColumn({
         {conv.connectTimedOut && (
           <ConnectTimedOutBanner onRetry={conv.reconnectStream} />
         )}
-        {/* What the turn is running and for how long, while its liveness
-            previews arrive; the slow hint only once nothing arrives. */}
+        {/* The slow hint once nothing has arrived for a while; what the turn
+            does and for how long is the header's pill and the plan. */}
         {conv.isSlow && !conv.connectTimedOut && <SlowIndicator />}
-        {/* The working turn's one line, unless the thread's tail is naming
-            the background commands the turn waits on. */}
-        {conv.activeTurn !== null && !conv.connectTimedOut && !threadSaysBackgroundWait(conv.activeTurn) && (
-          <TurnActivityLine
-            turn={conv.activeTurn}
-            onStop={!isObserver && conv.isStoppable && !isParticipant ? handleStop : undefined}
-            decides={!isObserver && !isParticipant}
-            isStopping={conv.isStopping}
-            className="stg:mx-4 stg:mb-2"
-          />
-        )}
         {conv.streamError && (
           <StreamErrorBanner
             error={conv.streamError}
@@ -1204,7 +1193,7 @@ const ConversationColumn = memo(function ConversationColumn({
         {/* Observers and viewers never get a composer: the server denies
             them can_create_run_in, so the send surface simply is not
             offered — read-only by construction, not by a disabled state. */}
-        {readsOnly && <ReadOnlyNotice />}
+        {isObserver && <ReadOnlyNotice />}
         {!isObserver && (
           <SessionComposer
             ref={composerRef}
@@ -1273,11 +1262,11 @@ function creatorDisplayName(session: Session | null): string {
   return creator?.displayName || creator?.email || "the conversation's owner";
 }
 
-/** A viewer's footer: what the missing composer means. */
+/** A reader's footer, where the composer would be: what its absence means. */
 function ReadOnlyNotice() {
   return (
-    <p className="stg:px-4 stg:py-3 stg:text-center stg:text-xs stg:text-muted-foreground" role="status">
-      You can read this conversation.
+    <p className="stg:border-t stg:border-border-muted stg:px-4 stg:py-3 stg:text-center stg:text-xs stg:text-muted-foreground" role="status">
+      You&rsquo;re reading this conversation. Only its members can reply.
     </p>
   );
 }
@@ -1318,13 +1307,22 @@ function SessionLoadError({ error }: { error: Error }) {
   );
 }
 
+/**
+ * A session being made: the header and the first message in outline, where
+ * they will be, so the page does not jump when they arrive.
+ */
 function SessionStarting() {
   return (
-    <div className="stg:flex stg:h-full stg:items-center stg:justify-center">
-      <div className="stg:space-y-2 stg:text-center">
-        <LoaderIcon />
-        <p className="stg:text-sm stg:text-muted-foreground">Starting session…</p>
+    <div className={cn("stg:flex stg:h-full stg:flex-col stg:gap-5 stg:pt-6", CONVERSATION_COLUMN_CLASS)} role="status" aria-label="Opening the session">
+      <div className="stg:space-y-2 stg:border-b stg:border-border stg:px-4 stg:pb-4">
+        <div className="stg:h-5 stg:w-56 stg:animate-pulse stg:rounded-md stg:bg-muted" />
+        <div className="stg:h-3 stg:w-36 stg:animate-pulse stg:rounded-md stg:bg-muted" />
       </div>
+      <div className="stg:mx-4 stg:h-16 stg:w-3/5 stg:self-end stg:animate-pulse stg:rounded-xl stg:bg-muted" />
+      <p className="stg:flex stg:items-center stg:gap-2 stg:px-4 stg:text-xs stg:text-muted-foreground">
+        <LoaderIcon />
+        Opening the session…
+      </p>
     </div>
   );
 }
@@ -1440,8 +1438,8 @@ function SlowIndicator() {
         <span className="stg:absolute stg:inline-flex stg:h-full stg:w-full stg:animate-ping stg:rounded-full stg:bg-muted-foreground stg:opacity-75 stg:motion-reduce:animate-none" />
         <span className="stg:relative stg:inline-flex stg:h-2 stg:w-2 stg:rounded-full stg:bg-muted-foreground" />
       </span>
-      <span className="stg:min-w-0 stg:flex-1 stg:truncate">
-        Still working — this is taking longer than usual.
+      <span className="stg:min-w-0 stg:flex-1">
+        This is taking longer than usual. It keeps going if you leave; the session will be here when it&rsquo;s done.
       </span>
     </div>
   );

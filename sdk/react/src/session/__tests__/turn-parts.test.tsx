@@ -1,9 +1,10 @@
 /**
  * Proves the small parts around a turn's ending: the folded step row leaves
  * a stretch it has no words for (thinking, a subagent, the agent's
- * bookkeeping) as its rows, at the inset every row has; the outcome sizes a File in bytes, kilobytes or
- * megabytes and says nothing for an empty one; the change dialog closes on Escape as
- * well as from its button.
+ * bookkeeping) as its rows, at the inset every row has; the outcome's card
+ * sizes a File in bytes, kilobytes or megabytes after its kind, and names
+ * only the kind for an empty one; the change dialog closes on Escape as well
+ * as from its button.
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
@@ -43,15 +44,16 @@ describe("TurnOutcome sizes", () => {
             samples.outputFile("empty.txt", { sizeBytes: 0n }),
             samples.outputFile("note.txt", { sizeBytes: 512n }),
             samples.outputFile("deck.pdf", { sizeBytes: 3n * 1024n * 1024n }),
+            samples.outputFile("notes.md", { sizeBytes: 2_048n }),
           ],
           changes: [],
           estimatedCostUsd: undefined,
         }}
+        onOpenFile={() => {}}
       />,
     );
-    expect(screen.getByRole("button", { name: "empty.txt" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "note.txt 512 B" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "deck.pdf 3.0 MB" })).toBeTruthy();
+    const cards = screen.getAllByRole("button").map((card) => card.textContent);
+    expect(cards).toEqual(["empty.txtText", "note.txtText · 512 B", "deck.pdfPDF · 3.0 MB", "notes.mdMarkdown · 2.0 KB"]);
   });
 });
 

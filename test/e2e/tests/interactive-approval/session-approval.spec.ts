@@ -35,6 +35,7 @@ import {
   approvalPeekBar,
   autoApproveIndicator,
   messageThread,
+  toolCallRow,
   type SeededGatedRun,
 } from "../../helpers/approval";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
@@ -212,7 +213,9 @@ test.describe("HITL approval flow (deterministic mock LLM)", () => {
     await page.goto(`/sessions/${seeded.sessionId}`);
     // A's gate is inline on A's row (keyed by its distinct path), no orphan card.
     // B has not been served yet, so its row must be absent.
-    await expect(page.getByText(nameA, { exact: false })).toBeVisible({ timeout: 30_000 });
+    // The row names the command beside its line and its open gate shows it
+    // again, so the row is found by it rather than the text alone.
+    await expect(toolCallRow(page).filter({ hasText: nameA })).toBeVisible({ timeout: 30_000 });
     await expect(page.getByText(nameB, { exact: false })).toHaveCount(0);
     await expect(approveButton(page)).toBeVisible();
     await expect(bottomApprovalCard(page)).toHaveCount(0);
@@ -231,7 +234,7 @@ test.describe("HITL approval flow (deterministic mock LLM)", () => {
 
     // Gate B is now the live, inline gate — proven by B's distinct row appearing
     // (it only renders after the resume consumed turn 2).
-    await expect(page.getByText(nameB, { exact: false })).toBeVisible({ timeout: 30_000 });
+    await expect(toolCallRow(page).filter({ hasText: nameB })).toBeVisible({ timeout: 30_000 });
     await expect(approveButton(page)).toBeVisible();
 
     await approveButton(page).click();

@@ -1,11 +1,11 @@
 // Tool-call disclosure end-to-end, made deterministic by the mock LLM proxy
 // (STIGMER_E2E_MOCK_LLM). What this layer proves that the jsdom suite cannot:
 // against the REAL stack (stigmer-server + Temporal + runner) rendering the real
-// web console, a turn's *completed* tool calls stay visible in the timeline
-// after the run settles — they are NOT hidden behind a single "Ran N tools"
-// collapse. That regression (the whole motivation for the persistent-row
-// rework) can only be observed end-to-end, where the runner emits real
-// COMPLETED tool calls into a real SessionViewer.
+// web console, a finished turn leads with its answer and keeps its completed
+// tool calls one click away under "How it got there": each a one-line step,
+// closed until clicked, opening in place to what it did. Never hidden behind
+// an opaque "Ran N tools" count. Only observable end-to-end, where the runner
+// emits real COMPLETED tool calls into a real SessionViewer.
 //
 // Determinism: the run is created with `auto_approve_all`, so no
 // pre-execution GATE interrupts the seeded turns. On this capture-substrate
@@ -14,9 +14,9 @@
 // opens even under the bypass), which the specs resolve through the real
 // file-review card ("Keep all") — making this file the e2e coverage of the
 // apply-then-review flow as well as of row persistence. Tool choice is the
-// Stigmer harness's built-ins (write_file / read_file); the shell/MCP
-// *bounded-preview* rendering is covered exhaustively at the jsdom layer where
-// the result shape is controllable.
+// Stigmer harness's built-ins (write_file / read_file); the shell and MCP
+// bodies are covered exhaustively at the jsdom layer where the result shape is
+// controllable.
 //
 // Serial + a shared single-FIFO mock queue: the project runs `--workers=1` and
 // resets the queue per test.
@@ -32,6 +32,7 @@ import {
   toolRunGroup,
   fileDiff,
   fileDiffExpand,
+  openHowItGotThere,
   type SeededGatedRun,
 } from "../../helpers/approval";
 
@@ -66,7 +67,10 @@ test.describe("tool-call disclosure timeline (deterministic mock LLM)", () => {
     // boundary; resolving it through the real card settles the run.
     await settleThroughFileReview(page, stigmerClient, seeded);
 
-    // The completed tool call persists as a visible row…
+    // The finished turn says how it got there in one line, naming the work…
+    await expect(page.getByRole("button", { name: /^How it got there: wrote 1 file/ })).toBeVisible({ timeout: 30_000 });
+    // …which opens to the completed tool call as its own row…
+    await openHowItGotThere(page);
     await expect(toolCallRow(page).first()).toBeVisible({ timeout: 30_000 });
     // …and its target file is shown right there, on the row (FilePathLink
     // strips the leading slash, so match the stable basename; the turn's
@@ -90,7 +94,9 @@ test.describe("tool-call disclosure timeline (deterministic mock LLM)", () => {
     });
     await settleThroughFileReview(page, stigmerClient, seeded);
 
-    // Both completed rows persist; neither is folded into a run chip.
+    // Both completed rows are there once the turn's steps open; neither is
+    // folded into a run chip.
+    await openHowItGotThere(page);
     await expect(toolCallRow(page)).toHaveCount(2, { timeout: 30_000 });
     await expect(toolRunGroup(page)).toHaveCount(0);
   });
@@ -99,20 +105,26 @@ test.describe("tool-call disclosure timeline (deterministic mock LLM)", () => {
     page,
     stigmerClient,
   }) => {
-    // The write is a `preview` category: its content surfaces as a bounded
-    // additive diff right in the timeline (filename-first), not hidden behind a
-    // click. This is the post-execution half of the gate's before/after diff.
+    // A settled write is one closed line; one click opens it in place to the
+    // additive diff of what it wrote (filename-first). This is the
+    // post-execution half of the gate's before/after diff.
     seeded = await seedToolRunSession(stigmerClient, control, {
       toolTurns: [[writeFileBlock("call_diff", "/tmp/e2e-additive.txt", "line one\nline two\n")]],
     });
     await settleThroughFileReview(page, stigmerClient, seeded);
+    await openHowItGotThere(page);
 
     const row = toolCallRow(page).first();
     await expect(row).toBeVisible({ timeout: 30_000 });
-    // The diff renders inline (no expansion needed) and shows the written lines.
-    await expect(fileDiff(page).first()).toBeVisible();
-    await expect(page.getByText("line one")).toBeVisible();
-    await expect(page.getByText("line two")).toBeVisible();
+    // Closed until clicked: the row's own toggle, and no diff yet.
+    const toggle = row.locator('[data-cursor-target="thread-card-toggle"]');
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await expect(fileDiff(row)).toHaveCount(0);
+    // Opened in place, it shows the written lines.
+    await toggle.click();
+    await expect(fileDiff(row).first()).toBeVisible();
+    await expect(row.getByText("line one")).toBeVisible();
+    await expect(row.getByText("line two")).toBeVisible();
   });
 
   test("a large completed write is bounded to the shared budget and reveals in place", async ({
@@ -120,25 +132,28 @@ test.describe("tool-call disclosure timeline (deterministic mock LLM)", () => {
     stigmerClient,
   }) => {
     // The settled-card counterpart to the gate's bounded diff: a large write must
-    // not render the whole file inline. The diff is always visible (no header
-    // chevron) but clamped to the same shared budget (max-h-48) as the gate, with
-    // a single in-place "Show more" that grows the clamp toward full height — it
-    // does NOT promote to a separate detail panel. The clamp is layout-driven, so
-    // it is only provable in a real browser — here.
+    // not render the whole file inline. Opened, the diff is clamped to the same
+    // shared budget (max-h-48) as the gate, with a single in-place "Show more"
+    // that grows the clamp toward full height — it does NOT promote to a
+    // separate detail panel. The clamp is layout-driven, so it is only provable
+    // in a real browser — here.
     const big = Array.from({ length: 30 }, (_, i) => `row ${i + 1}`).join("\n") + "\n";
     seeded = await seedToolRunSession(stigmerClient, control, {
       toolTurns: [[writeFileBlock("call_big_settled", "/tmp/e2e-big-settled.txt", big)]],
     });
     await settleThroughFileReview(page, stigmerClient, seeded);
+    await openHowItGotThere(page);
 
     const row = toolCallRow(page).first();
     await expect(row).toBeVisible({ timeout: 30_000 });
 
-    // A settled preview card has NO competing header chevron — the diff body is
-    // always visible, so the row carries no header toggle (the shell's
-    // `thread-card-toggle`; RevealToggle, the diff's own in-place reveal, is
-    // another button and deliberately does not match this pin).
-    await expect(row.locator('[data-cursor-target="thread-card-toggle"]')).toHaveCount(0);
+    // A settled step is closed until clicked: the row carries exactly one
+    // header toggle (the card's `thread-card-toggle`; RevealToggle, the diff's
+    // own in-place reveal, is another button and deliberately does not match
+    // this pin), and opening it shows the diff in place.
+    const toggle = row.locator('[data-cursor-target="thread-card-toggle"]');
+    await expect(toggle).toHaveCount(1);
+    await toggle.click();
 
     // Collapsed: the diff body is clipped to the budget — the shared
     // BoundedContent clamp (`stg:overflow-hidden` + the standard max height),

@@ -76,3 +76,30 @@ describe("normalizeToolResult — shell command capture", () => {
     expect(ok.type === "terminal" ? [ok.stdout, ok.exitCode] : ok.type).toEqual(["one\n", 0]);
   });
 });
+
+describe("normalizeToolResult — a failed command is still a command", () => {
+  function failedShell(args: Record<string, unknown>, error: string) {
+    return toolUseOf({ id: "tc-shell", name: "execute", status: "failed", args: args as JsonObject, error });
+  }
+
+  it("keeps the command, the output and the exit code the output names", () => {
+    expect(normalizeToolResult(failedShell({ command: "npm test" }, "1 failed\n[Command failed with exit code 1]"))).toEqual({
+      type: "terminal",
+      command: "npm test",
+      stdout: "1 failed",
+      stderr: "",
+      exitCode: 1,
+    });
+    expect(normalizeToolResult(failedShell({ command: "make" }, "[stderr] no rule\n\nExit code: 2"))).toMatchObject({ type: "terminal", exitCode: 2 });
+  });
+
+  it("names no exit code where the output names none, rather than reading it as 0", () => {
+    const view = normalizeToolResult(failedShell({ command: "sleep 999" }, "the command timed out"));
+    expect(view).toEqual({ type: "terminal", command: "sleep 999", stdout: "the command timed out", stderr: "" });
+  });
+
+  it("keeps any other kind's error as an error", () => {
+    const view = normalizeToolResult(toolUseOf({ id: "tc-read", name: "read_file", status: "failed", args: { path: "a.md" }, error: "ENOENT" }));
+    expect(view).toEqual({ type: "error", message: "ENOENT" });
+  });
+});

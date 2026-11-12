@@ -26,6 +26,7 @@ import {
   approveButton,
   awaitRunPhase,
   awaitRunTerminal,
+  openHowItGotThere,
   seedGatedSession,
   seedToolRunSession,
   shellBlock,
@@ -90,6 +91,9 @@ test.describe("Hooks deciding tool calls (deterministic mock LLM)", () => {
     expect(phase, "the run completes around the refusal").toBe(RunPhase.RUN_COMPLETED);
 
     await page.goto(`/sessions/${seeded.sessionId}`);
+    // The refused command is a step of the finished turn: it failed, so it
+    // stays open once its turn's steps are.
+    await openHowItGotThere(page);
     await expect(page.getByText(/the e2e hook refuses this command/).first()).toBeVisible({ timeout: 30_000 });
     await expect(approveButton(page)).toHaveCount(0);
   });

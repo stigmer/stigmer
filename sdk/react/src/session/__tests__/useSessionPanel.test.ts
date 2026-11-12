@@ -13,7 +13,8 @@ import { outputKey } from "../useSessionOutputs";
 // group, and the rail-view FSM ported from the retired inspector tabs. The
 // FSM rules under test: explicit picks are sticky; auto-switching happens only
 // in an OPEN panel (arrivals never auto-open); running⇄terminal transitions
-// reset stickiness.
+// reset stickiness; a home view that moves (the session's Files arrived) is
+// followed from the old home, never over an explicit pick or an auto-switch.
 // ---------------------------------------------------------------------------
 
 function renderPanel(initial?: Partial<UseSessionPanelOptions>) {
@@ -420,6 +421,30 @@ describe("useSessionPanel — defaultView (home view)", () => {
       defaultView: "configure",
     });
     expect(result.current.view).toBe("configure");
+  });
+
+  it("follows a home view that moves while the panel still sits on the old one", () => {
+    const { result, rerender } = renderPanel();
+    expect(result.current.view).toBe("files");
+    rerender({ phase: null, hasChanges: false, defaultView: "conversation-files" });
+    expect(result.current.view).toBe("conversation-files");
+  });
+
+  it("keeps an explicit pick when the home view moves", () => {
+    const { result, rerender } = renderPanel();
+    act(() => result.current.openPanel());
+    act(() => result.current.setView("usage"));
+    rerender({ phase: null, hasChanges: false, defaultView: "conversation-files" });
+    expect(result.current.view).toBe("usage");
+  });
+
+  it("keeps an auto-switched view when the home view moves", () => {
+    const { result, rerender } = renderPanel();
+    act(() => result.current.openPanel());
+    rerender({ phase: null, hasChanges: true });
+    expect(result.current.view).toBe("changes");
+    rerender({ phase: null, hasChanges: true, defaultView: "conversation-files" });
+    expect(result.current.view).toBe("changes");
   });
 
   it("defaults the home view to Explorer (files) when omitted", () => {

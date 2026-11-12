@@ -118,9 +118,9 @@ Dangerous rm command detected. Verify the path first.
 Ask the Agent to run `rm -rf` on something. The call is refused before it runs,
 and the Agent reads the rule's message as the reason. A hook that asks instead
 pauses the call for your decision, and the approval says the hook decided it:
-"decided by the hookify plugin's hook". **Approve all** at that approval
-approves the rest of what that hook asks about on that tool, for the rest of the
-run.
+"decided by the hookify plugin's hook". **Allow all … this turn** at that
+approval approves the rest of what that hook asks about on that tool, for the
+rest of the run.
 
 A hook's refusal holds when you trust the whole run (a Session's automatic
 approval, or `auto_approve_all` on an execution): the call still does not run.
@@ -233,12 +233,12 @@ differences:
   itself lets the call run.
 - When you approve a call, `PreToolUse` hooks run on it again before it runs,
   where Claude Code runs them once. The call runs on your approval only as the
-  approval showed it, whether you chose **Approve** or **Approve all**: if a
-  hook asks again with a different rewrite (`updatedInput`), or no longer
-  rewrites it, the call is not run, and the Agent reads that it changed after
-  you approved it. The Agent may make the call again, which asks again. A hook
-  that allows the call the second time decides it on its own, and the call runs
-  as that hook rewrote it. A hook that rewrites calls should rewrite the same
-  call the same way every time.
+  approval showed it, whether you chose **Allow** or **Allow all**: if a hook
+  asks again with a different rewrite (`updatedInput`), or no longer rewrites
+  it, the call is not run, and the Agent reads that it changed after you
+  approved it. The Agent may make the call again, which asks again. A hook that
+  allows the call the second time decides it on its own, and the call runs as
+  that hook rewrote it. A hook that rewrites calls should rewrite the same call
+  the same way every time.
 - Hook files in a repository (`.claude/settings.json`, `.cursor/hooks.json`)
   never run for the Agent; only the Agent's own hooks do.

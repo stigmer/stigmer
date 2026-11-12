@@ -5,21 +5,27 @@
  * name, else the paths its edit and write calls named (`path` or the Claude
  * engine's `file_path`) less the Files it saved in its `.stigmer/outputs/`;
  * its time; and its estimated cost, a zero or absent estimate reading as
- * none. The block (../TurnOutcome.tsx) says how the turn ended
- * and opens each File and change from the conversation itself, a change the
- * viewer cannot show reading as a plain label. Nothing closes a turn that
- * still works.
+ * none. The block (../TurnOutcome.tsx) draws what the turn Made and
+ * Changed as cards (name, then kind and size or folder) that open each File
+ * and change from the conversation itself, a change the viewer cannot show
+ * (or anything nothing can open) reading as a plain label; from five items
+ * on, a list of the first five, the rest counted by kind (largest first)
+ * and "Show all" opening them in place. A completed turn's ending is the
+ * header's pill, so the block says only how a turn that did not finish
+ * ended, with its time; it draws nothing for a completed turn that made and
+ * changed nothing, nor for a turn that still works. A File's kind reads in
+ * a person's words (`fileKind`): from its type, else its extension.
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, screen, cleanup, fireEvent } from "@testing-library/react";
+import { render, screen, cleanup, fireEvent, within } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import { RunStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { FileChangeKind } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { CapturedFileChangeSchema, FileChangeSetSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
 import { StreamingUsageSummarySchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/usage_pb";
 import { samples, scenarios } from "../../test";
-import { turnOutcome } from "../turn-outcome";
-import { TurnOutcome } from "../TurnOutcome";
+import { turnOutcome, type TurnOutcomeView } from "../turn-outcome";
+import { TurnOutcome, fileKind } from "../TurnOutcome";
 
 afterEach(cleanup);
 
@@ -111,6 +117,18 @@ describe("turnOutcome", () => {
   });
 });
 
+/** A completed turn's outcome holding `files` and `changes`. */
+function completedWith(files: TurnOutcomeView["files"], changes: readonly string[] = []): TurnOutcomeView {
+  return {
+    runId: "run_1",
+    phase: "completed",
+    elapsedMs: 3_000,
+    files,
+    changes: changes.map((path) => ({ path, captured: undefined })),
+    estimatedCostUsd: undefined,
+  };
+}
+
 describe("TurnOutcome", () => {
   it("KIT-06 opens each File and change the turn produced from the conversation itself", () => {
     const onOpenFile = vi.fn();
@@ -123,14 +141,18 @@ describe("TurnOutcome", () => {
       />,
     );
     const block = screen.getByRole("region", { name: "What this turn produced" });
-    expect(block.textContent).toContain("Done · 1 min 14 s");
+    expect(block.textContent).not.toContain("Done");
+    expect(within(block).getByRole("group", { name: "Made" })).toBeTruthy();
+    expect(within(block).getByRole("group", { name: "Changed" })).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: /invoice-audit\.md/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^invoice-audit\.md\s*Markdown · 4\.1 KB$/ }));
     expect(onOpenFile).toHaveBeenCalledWith(finished.files[0]);
-    expect(screen.getByRole("button", { name: /rounding-cases\.csv\s*1\.8 KB/ })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /^rounding-cases\.csv\s*Spreadsheet · 1\.8 KB$/ }));
+    expect(onOpenFile).toHaveBeenCalledWith(finished.files[1]);
 
-    fireEvent.click(screen.getByRole("button", { name: "invoice.ts" }));
+    fireEvent.click(screen.getByRole("button", { name: /^invoice\.ts\s*src\/billing$/ }));
     expect(onOpenChange).toHaveBeenCalledWith({ path: "src/billing/invoice.ts", captured: undefined });
+    expect(screen.queryByRole("list")).toBeNull();
   });
 
   it("shows a change this viewer cannot open as a label, not a dead button", () => {
@@ -141,17 +163,98 @@ describe("TurnOutcome", () => {
         onOpenChange={() => {}}
       />,
     );
-    expect((screen.getByRole("button", { name: "invoice.ts" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.queryByRole("button", { name: /invoice\.ts/ })).toBeNull();
+    expect(screen.getByText("invoice.ts")).toBeTruthy();
+    // Nothing opens a File here either: each reads as a label.
+    expect(screen.queryByRole("button")).toBeNull();
+    expect(screen.getByText("invoice-audit.md")).toBeTruthy();
   });
 
-  it("says how a turn that did not finish ended", () => {
+  it("opens a change the viewer can show", () => {
+    const onOpenChange = vi.fn();
+    render(<TurnOutcome outcome={completedWith([], ["README.md"])} canOpenChange={() => true} onOpenChange={onOpenChange} />);
+    // A change at the workspace's root names no folder.
+    const button = screen.getByRole("button", { name: "README.md" });
+    fireEvent.click(button);
+    expect(onOpenChange).toHaveBeenCalledWith({ path: "README.md", captured: undefined });
+  });
+
+  it("says how a turn that did not finish ended, with its time", () => {
     const failed = scenarios.failed;
-    render(<TurnOutcome outcome={turnOutcome(failed.fold.turns[0]!, [], failed.runs[0])} />);
-    expect(screen.getByRole("region").textContent).toContain("Failed");
+    const outcome = turnOutcome(failed.fold.turns[0]!, [], failed.runs[0]);
+    render(<TurnOutcome outcome={outcome} />);
+    expect(screen.getByRole("region").textContent).toMatch(/^Failed · /);
+  });
+
+  it("draws nothing under a completed turn that made and changed nothing", () => {
+    const { container } = render(<TurnOutcome outcome={completedWith([])} />);
+    expect(container.textContent).toBe("");
   });
 
   it("closes nothing while the turn works", () => {
     const { container } = render(<TurnOutcome outcome={turnOutcome(scenarios.busy.fold.turns[0]!, [], undefined)} />);
     expect(container.textContent).toBe("");
+  });
+
+  it("lists five Files or more, counts the rest by kind, largest first, and shows them all in place", () => {
+    const onOpenFile = vi.fn();
+    const files = [
+      samples.outputFile("a.md"),
+      samples.outputFile("b.md"),
+      samples.outputFile("c.md"),
+      samples.outputFile("d.md"),
+      samples.outputFile("e.md"),
+      samples.outputFile("f.pdf"),
+      samples.outputFile("g.md"),
+      samples.outputFile("h.pdf"),
+      samples.outputFile("i.pdf", { sizeBytes: 2_048n }),
+    ];
+    render(<TurnOutcome outcome={completedWith(files)} onOpenFile={onOpenFile} />);
+    const made = screen.getByRole("group", { name: "Made" });
+    expect(made.textContent).toContain("Made · 9 files");
+    expect(within(made).getAllByRole("listitem").map((row) => row.textContent)).toEqual(["a.mdMarkdown", "b.mdMarkdown", "c.mdMarkdown", "d.mdMarkdown", "e.mdMarkdown"]);
+    expect(within(made).getByText("4 more: 3 PDF, 1 Markdown")).toBeTruthy();
+
+    fireEvent.click(within(made).getByRole("button", { name: "Show all 9" }));
+    expect(within(made).getAllByRole("listitem")).toHaveLength(9);
+    expect(within(made).queryByRole("button", { name: /^Show all/ })).toBeNull();
+    expect(within(made).queryByText(/more:/)).toBeNull();
+    fireEvent.click(within(made).getByRole("button", { name: /^i\.pdf\s*PDF · 2\.0 KB$/ }));
+    expect(onOpenFile).toHaveBeenCalledWith(files[8]);
+  });
+
+  it("lists exactly five items with nothing left to count", () => {
+    const paths = ["src/a.ts", "src/b.ts", "src/c.ts", "lib/d.ts", "e.json"];
+    render(<TurnOutcome outcome={completedWith([], paths)} />);
+    const changed = screen.getByRole("group", { name: "Changed" });
+    expect(changed.textContent).toContain("Changed · 5 files");
+    expect(within(changed).getAllByRole("listitem").map((row) => row.textContent)).toEqual(["a.tssrc", "b.tssrc", "c.tssrc", "d.tslib", "e.json"]);
+    expect(within(changed).queryByRole("button")).toBeNull();
+    expect(within(changed).queryByText(/more:/)).toBeNull();
+  });
+
+  it("draws four items as cards, never a list", () => {
+    render(<TurnOutcome outcome={completedWith([], ["a.ts", "b.ts", "c.ts", "d.ts"])} />);
+    expect(screen.queryByRole("list")).toBeNull();
+    expect(screen.getByRole("group", { name: "Changed" }).textContent).toMatch(/^Changeda\.ts/);
+  });
+});
+
+describe("fileKind", () => {
+  it("names a File's kind from its type, else its extension", () => {
+    expect(fileKind("notes", "text/markdown")).toBe("Markdown");
+    expect(fileKind("NOTES.MD", "")).toBe("Markdown");
+    expect(fileKind("cases", "text/csv")).toBe("Spreadsheet");
+    expect(fileKind("cases.csv", "")).toBe("Spreadsheet");
+    expect(fileKind("ledger.xlsx", "application/octet-stream")).toBe("Spreadsheet");
+    expect(fileKind("deck", "application/pdf")).toBe("PDF");
+    expect(fileKind("deck.pdf", "")).toBe("PDF");
+    expect(fileKind("data", "application/json")).toBe("JSON");
+    expect(fileKind("data.json", "")).toBe("JSON");
+    expect(fileKind("chart.png", "image/png")).toBe("Image");
+    expect(fileKind("log", "text/plain")).toBe("Text");
+    expect(fileKind("log.txt", "")).toBe("Text");
+    expect(fileKind("bundle.tar.gz", "")).toBe("GZ");
+    expect(fileKind("Makefile", "")).toBe("File");
   });
 });

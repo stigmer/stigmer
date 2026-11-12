@@ -1,8 +1,9 @@
 /**
  * buildThreadItems and subagents: a `task` call whose thread has opened in
  * the session's events (`ToolUse.thread`) becomes a subagent item carrying
- * the thread and its call, whether the subagent still works or finished,
- * and never also a tool row; a `task` call whose thread has not opened yet
+ * the thread and its call, whether the subagent still works or finished
+ * (then inside its turn's "How it got there" fold), and never also a tool
+ * row; a `task` call whose thread has not opened yet
  * renders as an ordinary row, so it is never invisible.
  */
 import { describe, it, expect } from "vitest";
@@ -42,19 +43,22 @@ describe("buildThreadItems subagent correlation", () => {
   });
 
   it("renders a finished subagent as a subagent item", () => {
-    const item = subagentItem(
-      buildThreadItems(
-        turnsOf(
-          user(R, "go"),
-          use(R, "task1", "task"),
-          subagent(R, "task1", { finished: "completed", reply: "done" }),
-          result(R, "task1", "done"),
-          status(R, "completed"),
-        ),
-        [],
+    const items = buildThreadItems(
+      turnsOf(
+        user(R, "go"),
+        use(R, "task1", "task"),
+        subagent(R, "task1", { finished: "completed", reply: "done" }),
+        result(R, "task1", "done"),
+        status(R, "completed"),
       ),
+      [],
     );
+    // The finished turn folds its working, the subagent with it.
+    const fold = items.find((i): i is Extract<ThreadItem, { kind: "how-it-got-there" }> => i.kind === "how-it-got-there");
+    const item = subagentItem(fold?.items ?? []);
 
+    expect(subagentItem(items)).toBeUndefined();
+    expect(fold?.toolUses.map((tu) => tu.id)).toEqual([TASK]);
     expect(item?.thread.state).toBe("completed");
     expect(item?.thread.reply).toBe("done");
   });

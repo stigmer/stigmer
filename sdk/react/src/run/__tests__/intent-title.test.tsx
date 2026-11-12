@@ -1,6 +1,9 @@
 /**
  * Model-authored intent titles for shell tool calls (stigmer#276), read from
- * a tool use's input or, for a waiting call's card, its ask's preview.
+ * a tool use's input or, for a waiting call's card, its ask's preview: the
+ * intent is a shell row's line, with the command beside it; without one the
+ * line says what the step did ("Ran a command"); a waiting shell call's
+ * card says what the agent wants in its header and the intent in its body.
  *
  * The extraction contract is pinned by the cross-surface fixture
  * test/fixtures/tool-view/intent-title.json — the same file the runner's
@@ -20,7 +23,7 @@ import { extractShellIntentFromPreview } from "@stigmer/react-core";
 import { extractIntent, extractShellIntent, SHELL_INTENT_ARG_FIELD } from "@stigmer/react-core/internal";
 import { useToolPresentation, registerToolPresenter } from "../tool-presenter";
 import { ToolCallItem } from "../ToolCallItem";
-import { ApprovalCardHeader } from "../ApprovalCard";
+import { ApprovalCardBody, ApprovalCardHeader } from "../ApprovalCard";
 import { toolUse } from "./__fixtures__/fold-values";
 
 afterEach(cleanup);
@@ -131,12 +134,13 @@ describe("useToolPresentation title precedence", () => {
     expect(result.current.label).toBe("Shell");
   });
 
-  it("falls back to the category label when no intent is present", () => {
-    const tc = makeToolUse({ name: "Bash", args: { command: "ls" } });
+  it("falls back to what the step did when no intent is present", () => {
+    const tc = toolUse({ name: "Bash", input: { command: "ls" }, result: "a.ts" });
     const { result } = renderHook(() => useToolPresentation(tc));
 
     expect(result.current.intent).toBeNull();
-    expect(result.current.title).toBe("Shell");
+    expect(result.current.title).toBe("Ran a command");
+    expect(result.current.label).toBe("Shell");
   });
 
   it("a registered presenter label override outranks the intent", () => {
@@ -180,45 +184,45 @@ describe("ToolCallItem shell header", () => {
     expect(header.textContent).not.toContain("Shell");
   });
 
-  it("renders an intent-less shell row exactly as before: bare label, no subtitle", () => {
-    const tc = makeToolUse({
-      name: "Bash",
-      args: { command: "ls -la" },
-    });
+  it("renders an intent-less shell row as what it did, with the command beside it", () => {
+    const tc = toolUse({ name: "Bash", input: { command: "ls -la" }, result: "a.ts" });
     const { container } = render(<ToolCallItem toolUse={tc} />);
 
     const header = headerOf(container);
-    expect(header.textContent).toContain("Shell");
-    // The command lives in the terminal body only — never in the header.
-    expect(header.textContent).not.toContain("ls -la");
+    expect(header.textContent).toContain("Ran a command");
+    expect(header.textContent).toContain("ls -la");
+    expect(header.textContent).not.toContain("Shell");
   });
 });
 
 describe("ApprovalCardHeader shell title", () => {
-  it("titles a waiting shell call with the intent phrase from its ask's preview", () => {
+  it("says a waiting shell call's intent phrase from its ask's preview, before what waits", () => {
     const pending = toolUse({
       id: "tc-1",
       name: "execute",
       ask: {
         argsPreview: JSON.stringify({
           command: "rm -rf build",
-          [SHELL_INTENT_ARG_FIELD]: "Clean the build directory",
+          [SHELL_INTENT_ARG_FIELD]: "Clean the build directory.",
         }),
       },
     });
-    render(<ApprovalCardHeader toolUse={pending} />);
+    const { container } = render(<ApprovalCardBody toolUse={pending} onAnswer={() => {}} />);
 
-    expect(screen.getByText("Clean the build directory")).toBeDefined();
+    expect(container.querySelector('[data-cursor-target="approval-waits"]')?.textContent).toBe(
+      "Clean the build directory. Nothing runs until you allow it.",
+    );
   });
 
-  it("keeps the bare category label when no intent is present", () => {
-    const pending = toolUse({
-      id: "tc-2",
-      name: "execute",
-      ask: { argsPreview: JSON.stringify({ command: "rm -rf build" }) },
-    });
-    render(<ApprovalCardHeader toolUse={pending} />);
+  it("titles a waiting shell call with what the agent wants, intent or none", () => {
+    for (const args of [{ command: "rm -rf build" }, { command: "rm -rf build", [SHELL_INTENT_ARG_FIELD]: "Clean the build directory" }]) {
+      const pending = toolUse({ id: "tc-2", name: "execute", ask: { argsPreview: JSON.stringify(args) } });
+      const { unmount } = render(<ApprovalCardHeader toolUse={pending} />);
 
-    expect(screen.getByText("Shell")).toBeDefined();
+      expect(screen.getByText("The agent wants to run a command")).toBeDefined();
+      expect(screen.queryByText("Shell")).toBeNull();
+      expect(screen.queryByText("Clean the build directory")).toBeNull();
+      unmount();
+    }
   });
 });

@@ -100,24 +100,85 @@ export function ResultView({ view, showFileName = true, showStats = true, live =
 }
 
 /**
- * Returns a compact one-line summary fragment for a result view, suitable for a
- * collapsed tool row (e.g. "+40 -0", "exit 1", "2 matches"). Returns null when
- * there is nothing useful to summarize.
+ * How much a step did, as the line beside its words shows it: the lines a
+ * change added and removed, a command's non-zero exit, or how many matches
+ * or items came back.
  */
-export function summarizeResultView(view: ToolResultView): string | null {
+export type ResultCounts =
+  | { readonly kind: "lines"; readonly added: number; readonly removed: number }
+  | { readonly kind: "exit"; readonly code: number }
+  | { readonly kind: "count"; readonly text: string };
+
+/**
+ * The counts of a result view (see {@link ResultCounts}), or null when there
+ * is nothing to count. A whole-file write counts the lines it wrote as added
+ * (`written`), since its input holds the content and no before-image.
+ */
+export function resultCounts(view: ToolResultView, written = false): ResultCounts | null {
   switch (view.type) {
     case "diff": {
       const stats = diffStats(view);
-      return stats ? `+${stats.added} -${stats.removed}` : null;
+      return stats ? { kind: "lines", ...stats } : null;
     }
+    case "file":
+      return written && view.content !== "" ? { kind: "lines", added: lineCount(view.content), removed: 0 } : null;
     case "terminal":
-      return view.exitCode !== undefined && view.exitCode !== 0 ? `exit ${view.exitCode}` : null;
+      return view.exitCode !== undefined && view.exitCode !== 0 ? { kind: "exit", code: view.exitCode } : null;
     case "search":
-      return searchCountLabel(view.count, view.kind);
+      return { kind: "count", text: searchCountLabel(view.count, view.kind) };
     case "list":
-      return `${view.count} ${view.count === 1 ? "item" : "items"}`;
+      return { kind: "count", text: `${view.count} ${view.count === 1 ? "item" : "items"}` };
     default:
       return null;
+  }
+}
+
+/** The lines of `content`, a final newline ending the last line rather than starting another. */
+function lineCount(content: string): number {
+  const lines = content.split("\n").length;
+  return content.endsWith("\n") ? lines - 1 : lines;
+}
+
+/**
+ * Returns a compact one-line summary fragment for a result view, suitable for a
+ * collapsed tool row (e.g. "+40 −0", "exit 1", "2 matches"), with a true minus
+ * sign. Returns null when there is nothing useful to summarize.
+ */
+export function summarizeResultView(view: ToolResultView): string | null {
+  const counts = resultCounts(view);
+  if (counts === null) return null;
+  switch (counts.kind) {
+    case "lines":
+      return `+${counts.added} \u2212${counts.removed}`;
+    case "exit":
+      return `exit ${counts.code}`;
+    case "count":
+      return counts.text;
+  }
+}
+
+/**
+ * Whether a step has anything to open to: a body beyond the line itself. An
+ * edit with no text to diff, a read or write with no content, a delete with
+ * no answer and a call that returned nothing have none, so their line has no
+ * chevron and opens to nothing, never to an empty box.
+ */
+export function hasResultBody(view: ToolResultView): boolean {
+  switch (view.type) {
+    case "empty":
+      return false;
+    case "diff":
+      return view.oldText !== undefined && view.newText !== undefined && (view.oldText !== "" || view.newText !== "");
+    case "file":
+      return view.content !== "";
+    case "text":
+      return view.text.trim() !== "";
+    case "error":
+      return view.message.trim() !== "";
+    case "terminal":
+      return (view.command ?? "") !== "" || view.stdout !== "" || view.stderr !== "";
+    default:
+      return true;
   }
 }
 
@@ -195,7 +256,7 @@ function DiffResultView({
           {showStatsRow && stats && (
             <span className="stg:shrink-0 stg:tabular-nums stg:text-xs">
               <span className="stg:text-diff-added-fg">+{stats.added}</span>{" "}
-              <span className="stg:text-diff-removed-fg">-{stats.removed}</span>
+              <span className="stg:text-diff-removed-fg">{"\u2212"}{stats.removed}</span>
             </span>
           )}
         </div>

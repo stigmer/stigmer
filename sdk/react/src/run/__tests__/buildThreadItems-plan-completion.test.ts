@@ -4,7 +4,10 @@
  * superseded plan without a plan File is skipped), collapses its plan
  * message behind the card when the turn returned its plan File (lifting the
  * plan's H1 as the card's title) or promotes it to an inline plan document
- * when it was not; the live Plan turn's plan being written collapses behind
+ * when it was not; the finished Plan turn leads with that document (or, when
+ * collapsed, with the card), the card outside its "How it got there" fold
+ * and the turn's other messages inside it; the live Plan turn's plan being
+ * written collapses behind
  * a plan-writing card that shares the completion card's key; a
  * Build-from-plan turn shows no prompt and offers no inline Retry; and the
  * pending bubble yields to the turn it became, but never to an older one
@@ -153,11 +156,13 @@ describe("buildThreadItems plan-completion variant", () => {
 describe("buildThreadItems plan-message collapse (plan File returned)", () => {
   it("removes the plan message — the card is the turn's sole plan representation", () => {
     const items = build([{ id: "p", mode: PLAN, messages: ["Let me look around first.", "# The Plan\n\n1. Do the thing"], withPlanFile: true }]);
-    const keys = messageItems(items).map((i) => i.key);
 
-    expect(keys).toContain(m("p", 0));
-    expect(keys).not.toContain(m("p", 1));
-    expect(messageItems(items).some((i) => i.isPlanDocument === true)).toBe(false);
+    // The card leads; the turn's other message folds under how it got there.
+    expect(items.map((i) => i.key)).toEqual(["p-spec", "p-plan-completion", "p-how"]);
+    const fold = items[2]!;
+    const folded = fold.kind === "how-it-got-there" ? messageItems(fold.items) : [];
+    expect(folded.map((i) => i.key)).toEqual([m("p", 0)]);
+    expect([...messageItems(items), ...folded].some((i) => i.key === m("p", 1) || i.isPlanDocument === true)).toBe(false);
   });
 
   it("lifts the plan's leading H1 onto the card, through a plan-scoped fence, or none", () => {
@@ -178,6 +183,13 @@ describe("buildThreadItems plan-document stamping (no-plan-File fallback)", () =
     const items = build([{ id: "p", mode: PLAN, messages: ["Let me look around first.", "# The Plan\n\n1. Do the thing", "   "] }]);
 
     expect(docs(items).map((i) => i.key)).toEqual([m("p", 1)]);
+  });
+
+  it("leads the finished Plan turn with its plan document, then its card, then the fold", () => {
+    const items = build([{ id: "p", mode: PLAN, messages: ["Let me look around first.", "# The Plan\n\n1. Do the thing"] }]);
+
+    expect(items.map((i) => i.key)).toEqual(["p-spec", m("p", 1), "p-plan-completion", "p-how"]);
+    expect(items[1]?.kind === "message" && items[1].isPlanDocument).toBe(true);
   });
 
   it("stamps nothing on an Agent-mode turn or a live Plan turn", () => {

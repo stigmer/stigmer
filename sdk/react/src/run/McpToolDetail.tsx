@@ -73,6 +73,15 @@ export function McpToolDetail({ toolUse, className }: McpToolDetailProps) {
           fullOutput={toolUse.fullOutput}
           preview={view.type === "outputRef" ? view.preview : ""}
         />
+      ) : toolUse.result?.isError === true && result !== "" ? (
+        // A failed call's answer is an error, said as one, never laid out as
+        // the tool's fields.
+        <div className="stg:space-y-1" role="alert">
+          <span className="stg:font-medium stg:text-destructive">Error</span>
+          <pre className="stg:whitespace-pre-wrap stg:break-words stg:rounded-md stg:border stg:border-destructive/30 stg:bg-destructive-subtle stg:p-2 stg:font-mono stg:text-destructive">
+            {result}
+          </pre>
+        </div>
       ) : (
         result && <McpResultView result={result} />
       )}

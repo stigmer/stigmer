@@ -24,6 +24,12 @@ export interface ToolCallGroupProps {
    * collapse, so this labels each {@link ToolRunGroup} chip.
    */
   readonly formatSummary?: (toolUses: readonly ToolUse[]) => string;
+  /**
+   * Whether the steps draw their own card. Defaults to `true`; `false` when
+   * the group sits inside a container that already frames it (a folded
+   * stretch, a plan's to-do), so a card is never drawn inside a card.
+   */
+  readonly framed?: boolean;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -47,28 +53,19 @@ export function toolCallGroupPropsEqual(
   }
   return (
     prev.formatSummary === next.formatSummary &&
+    prev.framed === next.framed &&
     prev.className === next.className
   );
 }
 
 /**
- * Renders one AI turn's tool activity as a **persistent-row timeline** rather
- * than a collapsible "Ran N tools" box. Each call stays visible after it
- * settles, so completed work is never hidden behind a pill — the thread reads
- * like a virtual human at work.
+ * Renders a run of a turn's steps as one list: a card of one-line steps,
+ * each closed until clicked and opening in place to what it did (see
+ * {@link ToolCallItem}).
  *
- * The turn is segmented by {@link segmentToolCalls}:
- * - high-signal calls (edits, shell, MCP, subagents, …) render as persistent
- *   {@link ToolCallItem} rows; a content-bearing call shows its body inline
- *   (no card chevron), bounded by a single in-place reveal;
- * - runs of consecutive low-signal same-category calls (read / list / search)
- *   fold into one collapsible {@link ToolRunGroup} chip — the *only* collapse,
- *   because that is the only genuine noise.
- *
- * The rows are clustered under a light left rail (the neutral counterpart to
- * {@link SubagentSection}'s primary-tinted rail for delegated work), keeping a
- * turn's tools visually associated with their agent message without a tab that
- * hides things.
+ * The run is segmented by {@link segmentToolCalls}: consecutive reads,
+ * listings and searches fold into one {@link ToolRunGroup} line ("Read 3
+ * files") that opens to each; every other call is its own step.
  *
  * Wrapped in `React.memo` with a custom comparator that checks `toolUses`
  * elements by reference (the session fold keeps unchanged `ToolUse` objects
@@ -86,6 +83,7 @@ export function toolCallGroupPropsEqual(
 export const ToolCallGroup = memo(function ToolCallGroup({
   toolUses,
   formatSummary,
+  framed = true,
   className,
 }: ToolCallGroupProps) {
   useRenderTracer("ToolCallGroup", { toolCallCount: toolUses.length });
@@ -102,11 +100,7 @@ export const ToolCallGroup = memo(function ToolCallGroup({
       aria-label={ariaLabel}
       data-cursor-target="tool-call-group"
       className={cn(
-        // Cursor-style: each tool call (and folded run chip) is its own
-        // self-contained card; the turn's tools stack with a small gap between
-        // them rather than sharing a left rail, so the thread reads as a column
-        // of discrete cards.
-        "stg:flex stg:flex-col stg:gap-2",
+        framed && "stg:overflow-hidden stg:rounded-lg stg:border stg:border-border stg:bg-card",
         className,
       )}
     >
@@ -117,9 +111,10 @@ export const ToolCallGroup = memo(function ToolCallGroup({
             category={segment.category}
             toolUses={segment.toolUses}
             formatLabel={formatSummary}
+            className="stg:border-b stg:border-border-muted stg:last:border-b-0"
           />
         ) : (
-          <ToolCallItem key={segment.key} toolUse={segment.toolUse} />
+          <ToolCallItem key={segment.key} toolUse={segment.toolUse} bordered={false} />
         ),
       )}
     </div>

@@ -175,17 +175,17 @@ export type SessionSceneName = (typeof SESSION_SCENES)[number]["id"] extends `se
 
 const SESSION_SCENES = [
   { id: "session-busy", title: "Session: a long turn at work, in the console", widths: ["desktop", "narrow"] },
-  { id: "session-approval", title: "Session: a tool call waits for approval, in the console", widths: ["desktop"] },
+  { id: "session-approval", title: "Session: a tool call waits for approval, in the console", widths: ["desktop", "narrow"] },
   {
     id: "session-finished",
     title: "Session: a finished turn a routine started, with an edit and two Files returned, in the console",
-    widths: ["desktop"],
+    widths: ["desktop", "narrow"],
   },
   {
     id: "session-inspector",
     title: "Session: the finished turn with the console's panel open on a File it returned",
     widths: ["desktop"],
-    opens: ["Show panel", "invoice-audit.md 4.1 KB"],
+    opens: ["Show panel", "invoice-audit.md Markdown"],
   },
   { id: "session-failed", title: "Session: a failed turn, in the console", widths: ["desktop"] },
   {
@@ -198,14 +198,21 @@ const SESSION_SCENES = [
   { id: "session-load-failed", title: "Session: the conversation cannot load", widths: ["desktop"] },
   {
     id: "session-steps-opened",
-    title: "Session: the long turn at work with its steps opened: a search's matches and an edit",
+    title: "Session: the long turn at work with its steps opened: a search's matches and a command's output",
     widths: ["desktop"],
+    opens: ["Searched for round(", "Ran a command npm test -- billing/invoice"],
   },
-  { id: "session-how-opened", title: "Session: the finished turn with how it got there opened", widths: ["desktop"] },
+  {
+    id: "session-how-opened",
+    title: "Session: the finished turn with how it got there opened, and a read opened to its lines",
+    widths: ["desktop"],
+    opens: ["How it got there", "Read invoice.ts"],
+  },
   {
     id: "session-mcp",
     title: "Session: a finished turn that used a connected app's tools: a search and a new issue",
     widths: ["desktop"],
+    opens: ["How it got there", "Create issue"],
   },
   {
     id: "session-many-files",
@@ -216,11 +223,21 @@ const SESSION_SCENES = [
     id: "session-file-steps",
     title: "Session: every file step: list, search, find, read, edit, create, delete, a failed edit, a File written",
     widths: ["desktop"],
+    opens: [
+      "How it got there",
+      "Looked in billing",
+      "Searched 2 times",
+      "Searched for round(",
+      "Read credit-note.ts",
+      "Edited credit-note.ts",
+      "Wrote rounding.test.ts",
+    ],
   },
   {
     id: "session-shell-steps",
     title: "Session: every shell step: output, a described command, exit 1, running, in the background, and an ask",
     widths: ["desktop"],
+    opens: ["Ran a command npm test -- billing/invoice"],
   },
   {
     id: "session-slow",

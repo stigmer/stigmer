@@ -215,7 +215,7 @@ export interface UseSessionPageFlowReturn {
    * explicit choice always winning:
    *
    * 1. the user's run settings switch ({@link setAutoApproveAll});
-   * 2. "Approve all" of a class at an approval gate (see
+   * 2. "Allow all" of a class at an approval gate (see
    *    {@link answerToolUse});
    * 3. the account's `default_auto_approve` preference
    *    (`UseSessionPageFlowOptions.accountDefaults`, guests excluded);
@@ -427,7 +427,7 @@ export function useSessionPageFlow(
 
   const answerToolUse = useCallback<UseSessionConversationReturn["answerToolUse"]>(
     async (toolUseId, answer, denyMessage) => {
-      // "Approve all": remember the choice for the rest of this live session
+      // "Allow all": remember the choice for the rest of this live session
       // so future follow-ups carry auto_approve_all. The grant itself allows
       // every call of the class for the rest of the current turn.
       if (answer === "grant") {

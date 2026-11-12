@@ -1,15 +1,17 @@
 /**
  * buildThreadItems keys, the set-up indicator, internal-tool filtering and
- * the to-dos card. Keys come from the session's own event ids (a message's
+ * the plan card. Keys come from the session's own event ids (a message's
  * id, a group's first tool use, a subagent's `task` call, a turn's run), so
  * an item keeps its key as its turn goes from live to ended and the fold
- * grows; the pending bubble and the live turn's matching message share one
- * key so the bubble updates in place; no key repeats. The set-up indicator
- * shows only for a live turn that has not started responding (pending, then
- * awaiting the first output, under one key); to-do calls never render as
- * rows; and a turn's to-dos card anchors after its opening message or
- * thinking, before its first work, or at its tail, once per turn, carrying
- * the fold's list.
+ * grows, inside a finished turn's "How it got there" item (`<run>-how`) as
+ * well as outside it; the pending bubble and the live turn's matching
+ * message share one key so the bubble updates in place; no key repeats. The
+ * set-up indicator shows only for a live turn that has not started
+ * responding (pending, then awaiting the first output, under one key); to-do
+ * calls never render as rows; and a turn's plan card (`<run>-todos`, the
+ * to-dos card when the host keeps its own) anchors after its opening
+ * message or thinking, before its first work, or at its tail, once per
+ * turn, carrying the fold's list.
  */
 import { describe, it, expect } from "vitest";
 import type { JsonObject } from "@bufbuild/protobuf";
@@ -36,6 +38,29 @@ const R2 = "run_b";
 const keys = (items: readonly ThreadItem[]) => items.map((i) => i.key);
 const m = (runId: string, index: number) => `${runId}.root.m${index}`;
 
+type HowItem = Extract<ThreadItem, { kind: "how-it-got-there" }>;
+type PlanItem = Extract<ThreadItem, { kind: "plan" }>;
+
+/** A finished turn's "How it got there" item. */
+function how(items: readonly ThreadItem[]): HowItem | undefined {
+  return items.find((i): i is HowItem => i.kind === "how-it-got-there");
+}
+
+/** Every item, a finished turn's folded working spread in its place. */
+function flat(items: readonly ThreadItem[]): ThreadItem[] {
+  return items.flatMap((i) => (i.kind === "how-it-got-there" ? [i, ...flat(i.items)] : [i]));
+}
+
+/** The plan card, wherever it sits. */
+function plan(items: readonly ThreadItem[]): PlanItem | undefined {
+  return flat(items).find((i): i is PlanItem => i.kind === "plan");
+}
+
+/** A live turn's items with no liveness line at the tail. */
+function live(...events: ReadonlyArray<SessionEvent | readonly SessionEvent[]>): ThreadItem[] {
+  return buildThreadItems(turnsOf(...events), [], { includeLiveness: false });
+}
+
 /** A completed call. */
 function call(runId: string, id: string, name: string, input: JsonObject = {}): SessionEvent[] {
   return [use(runId, id, name, input), result(runId, id, "ok")];
@@ -50,7 +75,9 @@ describe("buildThreadItems key generation", () => {
   it("keys the person's message by run and each agent message by its event id", () => {
     const items = buildThreadItems(turnsOf(user(R, "Hello"), said(R, 0, "Hi"), said(R, 1, "there"), status(R, "completed")), []);
 
-    expect(keys(items)).toEqual([`${R}-spec`, m(R, 0), m(R, 1)]);
+    // The finished turn leads with its answer; the rest folds under one item.
+    expect(keys(items)).toEqual([`${R}-spec`, m(R, 1), `${R}-how`]);
+    expect(keys(how(items)!.items)).toEqual([m(R, 0)]);
   });
 
   it("keys a tool group by its first tool use and a subagent by its task call", () => {
@@ -68,8 +95,9 @@ describe("buildThreadItems key generation", () => {
       [],
     );
 
-    expect(keys(items)).toEqual([`${R}-spec`, m(R, 0), `${toolId(R, "c1")}-tc`, `sa-${toolId(R, "task1")}`]);
-    const group = items.find((i) => i.kind === "tool-group");
+    expect(keys(items)).toEqual([`${R}-spec`, m(R, 0), `${R}-how`]);
+    expect(keys(how(items)!.items)).toEqual([`${toolId(R, "c1")}-tc`, `sa-${toolId(R, "task1")}`]);
+    const group = flat(items).find((i) => i.kind === "tool-group");
     expect(group?.kind === "tool-group" && group.toolUses.map((tu) => tu.id)).toEqual([toolId(R, "c1"), toolId(R, "c2")]);
   });
 
@@ -164,7 +192,8 @@ describe("buildThreadItems key generation", () => {
   it("skips an empty agent message but still emits its tool group", () => {
     const items = buildThreadItems(turnsOf(user(R, "go"), said(R, 0, "  "), call(R, "c1", "read_file", { path: "a" }), status(R, "completed")), []);
 
-    expect(items.map((i) => i.kind)).toEqual(["message", "tool-group"]);
+    expect(items.map((i) => i.kind)).toEqual(["message", "how-it-got-there"]);
+    expect(how(items)!.items.map((i) => i.kind)).toEqual(["tool-group"]);
   });
 
   it("renders a platform note and a compaction in their places, ending a run of calls", () => {
@@ -175,11 +204,14 @@ describe("buildThreadItems key generation", () => {
 
     expect(items.map((i) => [i.kind, i.key])).toEqual([
       ["message", `${R}-spec`],
+      ["message", m(R, 0)],
+      ["how-it-got-there", `${R}-how`],
+    ]);
+    expect(how(items)!.items.map((i) => [i.kind, i.key])).toEqual([
       ["tool-group", `${toolId(R, "c1")}-tc`],
       ["message", `${R}.root.n0`],
       ["tool-group", `${toolId(R, "c2")}-tc`],
       ["context-compacted", "cmp1"],
-      ["message", m(R, 0)],
     ]);
   });
 
@@ -237,14 +269,15 @@ describe("buildThreadItems key generation", () => {
   describe("internal tool filtering", () => {
     it.each(["TodoWrite", "write_todos"])("never renders a %s call as a row", (name) => {
       const items = buildThreadItems(turnsOf(user(R, "go"), said(R, 0, "Planning..."), call(R, "c1", name), status(R, "completed")), []);
-      expect(items.filter((i) => i.kind === "tool-group")).toHaveLength(0);
+      expect(flat(items).filter((i) => i.kind === "tool-group")).toHaveLength(0);
     });
 
     it("keeps other calls of the same run", () => {
       const items = buildThreadItems(turnsOf(user(R, "go"), call(R, "c1", "Bash"), call(R, "c2", "TodoWrite"), status(R, "completed")), []);
-      const groups = items.filter((i): i is Extract<ThreadItem, { kind: "tool-group" }> => i.kind === "tool-group");
+      const groups = flat(items).filter((i): i is Extract<ThreadItem, { kind: "tool-group" }> => i.kind === "tool-group");
 
       expect(groups.map((g) => g.toolUses.map((tu) => tu.name))).toEqual([["Bash"]]);
+      expect(how(items)!.toolUses.map((tu) => tu.name)).toEqual(["Bash"]);
     });
   });
 });
@@ -254,32 +287,49 @@ describe("buildThreadItems todos card", () => {
 
   it("emits no card when the turn kept no to-dos", () => {
     const items = buildThreadItems(turnsOf(user(R, "go"), said(R, 0, "Done"), status(R, "completed")), []);
-    expect(items.filter((i) => i.kind === "todos")).toHaveLength(0);
+    expect(flat(items).filter((i) => i.kind === "todos" || i.kind === "plan")).toHaveLength(0);
   });
 
   it("anchors the card right after the opening agent message (anchor 1)", () => {
-    const items = buildThreadItems(turnsOf(user(R, "go"), todos(R, "t", TODOS), said(R, 0, "Here is my plan"), said(R, 1, "Working"), status(R, "completed")), []);
+    const items = live(user(R, "go"), status(R, "running"), todos(R, "t", TODOS), said(R, 0, "Here is my plan"), said(R, 1, "Working"));
     expect(keys(items).slice(1)).toEqual([m(R, 0), `${R}-todos`, m(R, 1)]);
+    expect(items[2]?.kind).toBe("plan");
   });
 
   it("anchors the card after the opening thinking", () => {
-    const items = buildThreadItems(turnsOf(user(R, "go"), todos(R, "t", TODOS), thought(R, 0, "Let me think"), said(R, 0, "Answer"), status(R, "completed")), []);
+    const items = live(user(R, "go"), status(R, "running"), todos(R, "t", TODOS), thought(R, 0, "Let me think"), said(R, 0, "Answer"));
     expect(keys(items).slice(1)).toEqual([`${R}.root.t0`, `${R}-todos`, m(R, 0)]);
   });
 
   it("anchors before the first work when it precedes any narration (anchor 2)", () => {
-    const items = buildThreadItems(turnsOf(user(R, "go"), todos(R, "t", TODOS), call(R, "c1", "Bash"), status(R, "completed")), []);
-    expect(keys(items).slice(1)).toEqual([`${R}-todos`, `${toolId(R, "c1")}-tc`]);
+    const events = [user(R, "go"), status(R, "running"), todos(R, "t", TODOS), call(R, "c1", "Bash"), said(R, 0, "Ran it")];
+    // The plan holds the call; the to-dos card a host keeps leads its row.
+    expect(keys(live(...events)).slice(1)).toEqual([`${R}-todos`, m(R, 0)]);
+    expect(keys(buildThreadItems(turnsOf(...events), [], { includeLiveness: false, planSteps: false })).slice(1)).toEqual([
+      `${R}-todos`,
+      `${toolId(R, "c1")}-tc`,
+      m(R, 0),
+    ]);
   });
 
   it("anchors before a subagent when one is the first work", () => {
-    const items = buildThreadItems(turnsOf(user(R, "go"), todos(R, "t", TODOS), use(R, "task1", "task"), subagent(R, "task1"), status(R, "running")), []);
-    expect(keys(items).slice(1)).toEqual([`${R}-todos`, `sa-${toolId(R, "task1")}`]);
+    const events = [user(R, "go"), status(R, "running"), todos(R, "t", TODOS), use(R, "task1", "task"), subagent(R, "task1"), said(R, 0, "Delegated")];
+    expect(keys(live(...events)).slice(1)).toEqual([`${R}-todos`, m(R, 0)]);
+    expect(plan(live(...events))!.steps.plan[0]!.calls.map((tu) => tu.id)).toEqual([toolId(R, "task1")]);
+    expect(keys(buildThreadItems(turnsOf(...events), [], { includeLiveness: false, planSteps: false })).slice(1)).toEqual([
+      `${R}-todos`,
+      `sa-${toolId(R, "task1")}`,
+      m(R, 0),
+    ]);
   });
 
   it("falls back to the turn's tail when nothing else renders (anchor 3)", () => {
-    const items = buildThreadItems(turnsOf(user(R, "go"), todos(R, "t", [{ content: "Step 1", status: "completed" }]), status(R, "completed")), []);
-    expect(keys(items)).toEqual([`${R}-spec`, `${R}-todos`]);
+    const events = [user(R, "go"), status(R, "running"), todos(R, "t", [{ content: "Step 1", status: "completed" }])];
+    expect(keys(live(...events))).toEqual([`${R}-spec`, `${R}-todos`]);
+    // Once the turn finished, the plan is part of how it got there.
+    const ended = buildThreadItems(turnsOf(...events, status(R, "completed")), []);
+    expect(keys(ended)).toEqual([`${R}-spec`, `${R}-how`]);
+    expect(keys(how(ended)!.items)).toEqual([`${R}-todos`]);
   });
 
   it("emits one card per turn, and none for a turn without to-dos", () => {
@@ -290,17 +340,22 @@ describe("buildThreadItems todos card", () => {
       ),
       [],
     );
-    expect(items.filter((i) => i.kind === "todos").map((i) => i.key)).toEqual([`${R}-todos`]);
+    expect(flat(items).filter((i) => i.kind === "plan").map((i) => i.key)).toEqual([`${R}-todos`]);
   });
 
   it("carries the turn's own to-do list, under one key as it changes", () => {
     const first = turnsOf(user(R, "go"), todos(R, "t1", TODOS), said(R, 0, "Plan"), status(R, "running"));
     const later = turnsOf(user(R, "go"), todos(R, "t1", TODOS), said(R, 0, "Plan"), todos(R, "t2", [{ content: "Step 1", status: "completed" }, { content: "Step 2", status: "in_progress" }]), status(R, "running"));
 
-    const card = buildThreadItems(first, []).find((i) => i.kind === "todos");
-    const laterCard = buildThreadItems(later, []).find((i) => i.kind === "todos");
-    expect(card?.kind === "todos" && card.todos).toBe(first[0]!.todos);
+    const card = plan(buildThreadItems(first, []));
+    const laterCard = plan(buildThreadItems(later, []));
+    expect(card?.steps.plan.map((item) => item.todo)).toEqual(first[0]!.todos);
     expect(card?.key).toBe(laterCard?.key);
-    expect(laterCard?.kind === "todos" && laterCard.todos.map((t) => t.status)).toEqual(["completed", "in_progress"]);
+    expect(laterCard?.steps.plan.map((item) => item.todo.status)).toEqual(["completed", "in_progress"]);
+
+    // The to-dos card a host keeps carries the fold's list itself.
+    const kept = buildThreadItems(first, [], { planSteps: false }).find((i) => i.kind === "todos");
+    expect(kept?.kind === "todos" && kept.todos).toBe(first[0]!.todos);
+    expect(kept?.key).toBe(card?.key);
   });
 });

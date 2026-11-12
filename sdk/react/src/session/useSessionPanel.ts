@@ -56,9 +56,10 @@ export interface UseSessionPanelOptions {
   /**
    * The panel's home view — the view it opens on and the one every automatic
    * reset returns to (running⇄terminal transition, selection cleared). Defaults
-   * to `"files"` (the Explorer), which suits both session viewers. A host
-   * building its own panel passes the id of the view it should land on.
-   * Auto-switches (Changes) and explicit rail picks still take over from here.
+   * to `"files"` (the Explorer). When it changes (the session viewer passes
+   * the conversation's Files view once the session has Files), the panel
+   * follows unless the person picked a view. Auto-switches (Changes) and
+   * explicit rail picks still take over from here.
    *
    * @default "files"
    */
@@ -252,6 +253,16 @@ export function useSessionPanel({
     setPrevPhase(phase);
     if (wasTerminal !== isNowTerminal) {
       userPickedViewRef.current = false;
+      setViewState(defaultView);
+    }
+  }
+
+  // The default moved (the session's Files arrived, so the panel opens on
+  // what the turn made) → follow it, never over an explicit pick.
+  const [prevDefaultView, setPrevDefaultView] = useState(defaultView);
+  if (defaultView !== prevDefaultView) {
+    setPrevDefaultView(defaultView);
+    if (!userPickedViewRef.current && view === prevDefaultView) {
       setViewState(defaultView);
     }
   }

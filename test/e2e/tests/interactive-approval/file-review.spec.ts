@@ -25,6 +25,7 @@ import {
   fileReviewRejectButton,
   toolCallRow,
   fileDiff,
+  openHowItGotThere,
   type SeededGatedRun,
 } from "../../helpers/approval";
 import { isFileGateStack } from "../../helpers/mock-llm-control";
@@ -77,8 +78,11 @@ test.describe("file-review card (deterministic mock LLM)", () => {
     await page.goto(`/sessions/${seeded.sessionId}`);
 
     // The review card is up with its bulk decision after the turn ended;
-    // the captured change's added lines render as the reviewable diff.
+    // the captured change's added lines render as the reviewable diff, on
+    // the write's step (one of the finished turn's steps, opened).
     await expect(fileReviewApproveButton(page)).toBeVisible({ timeout: 30_000 });
+    await openHowItGotThere(page);
+    await toolCallRow(page).first().locator('[data-cursor-target="thread-card-toggle"]').click();
     await expect(page.getByText("alpha")).toBeVisible();
   });
 
@@ -98,6 +102,8 @@ test.describe("file-review card (deterministic mock LLM)", () => {
 
     await fileReviewRejectButton(page).click({ timeout: 30_000 });
     await expect(fileReviewApproveButton(page)).toHaveCount(0, { timeout: 30_000 });
+    // The write is a step of the finished turn, under "How it got there".
+    await openHowItGotThere(page);
     await expect(toolCallRow(page).first().getByText("Discarded")).toBeVisible({ timeout: 30_000 });
   });
 
@@ -115,27 +121,31 @@ test.describe("file-review card (deterministic mock LLM)", () => {
     });
     await settleThroughFileReview(page, stigmerClient, seeded);
 
+    // The kept write is a closed step of the finished turn: open the turn's
+    // steps, then the step, which shows its diff in place.
+    await openHowItGotThere(page);
     // Scoped to the settled tool ROW: the page also renders the
     // file-changes summary section, whose diff legitimately carries its own
     // stats — the dedup contract under test is the row's inline preview.
     const settledRow = toolCallRow(page).first();
+    await settledRow.locator('[data-cursor-target="thread-card-toggle"]').click();
     const diff = fileDiff(settledRow).first();
     await expect(diff).toBeVisible({ timeout: 30_000 });
 
-    // De-duplicated: the row states the "+3 -0" summary exactly ONCE. (The
-    // pre-capture arrangement put it in the row header and suppressed the
-    // body's copy; the capture-fed diff carries it in the body instead —
-    // the invariant under test is "once per row", wherever it lives.)
-    await expect(settledRow.getByText("+3 -0")).toHaveCount(1);
+    // De-duplicated: the row states its "+3 −0" exactly ONCE, on its line;
+    // the capture-fed diff below it carries no second copy.
+    await expect(settledRow).toContainText("+3 \u22120");
+    expect((await settledRow.innerText()).split("+3").length - 1, "the row states its counts once").toBe(1);
 
-    // A settled (non-gate) tool card carries the same neutral border with no
-    // accent — guard its computed width so the layer fix covers plain cards
-    // too (a tolerant screenshot cannot see a 1px line; the kit's gallery
-    // holds the card's border in both colour modes with no tolerance).
-    // Polled: the row re-renders as the kept review settles, and a style read
-    // from a row detached mid-render comes back empty.
+    // The card the finished turn's steps sit in carries the same neutral
+    // border with no accent — guard its computed width so the layer fix
+    // covers plain cards too (a tolerant screenshot cannot see a 1px line;
+    // the kit's gallery holds the card's border in both colour modes with no
+    // tolerance). Polled: the steps re-render as the kept review settles,
+    // and a style read from a node detached mid-render comes back empty.
+    const stepsCard = page.getByRole("button", { name: /^How it got there/ }).first().locator("..");
     const readBorder = () =>
-      settledRow.evaluate((el) => {
+      stepsCard.evaluate((el) => {
         const s = getComputedStyle(el);
         return { top: s.borderTopWidth, color: s.borderTopColor };
       });

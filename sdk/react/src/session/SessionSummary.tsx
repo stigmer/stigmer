@@ -1,9 +1,12 @@
 "use client";
 
-// A finished conversation opens on its summary: what was asked, who or what
-// started it, how it ended, how long it took, what came out, and (for the
-// audiences that review runs) its estimated cost. While a turn works it
-// keeps only its first line.
+// A conversation opens on its summary: what was asked, and how it stands
+// in a status pill (Working · 1m 30s, Waiting for you, Done, Didn't
+// finish, Stopped) from `sessionStatus`. While a turn works, the pill's time
+// ticks and beside it reads how far the turn has got (the agent's to-do
+// list, else the steps it took). Once it ended: who or what started it, how
+// long it took, what came out, and (for the audiences that review runs) its
+// estimated cost.
 //
 // The routine that started a session is read by the session's routine id;
 // a reader the server refuses it to sees "Started by a routine" and no link,
@@ -17,14 +20,16 @@ import type { File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type { Routine } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
 import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
-import type { ReactNode } from "react";
-import type { Turn } from "@stigmer/client";
+import { useEffect, useState, type ReactNode } from "react";
+import { describeTurnActivity, formatElapsed, type Turn } from "@stigmer/client";
 import { cn } from "@stigmer/design-tokens";
 import { useStigmer } from "@stigmer/react-core";
 import { useFetch } from "@stigmer/react-core/internal";
 import { durationWords } from "./duration-words.js";
 import { turnOutcome } from "./turn-outcome.js";
 import { isChannelOriginSession } from "./channelOrigin.js";
+import { sessionStatus } from "./session-status.js";
+import { StatusBadge } from "../resource-workbench/components/StatusBadge.js";
 
 /** Props for {@link SessionSummary}. */
 export interface SessionSummaryProps {
@@ -40,7 +45,24 @@ export interface SessionSummaryProps {
   readonly readsRoutine?: boolean;
   /** Controls drawn at the end of the title's row (the session view's header actions). */
   readonly actions?: ReactNode;
+  /**
+   * Whether this reader answers what the turn waits on; false for an
+   * observer or a participant, who read that it waits for an answer.
+   * Defaults to true.
+   */
+  readonly decides?: boolean;
   readonly className?: string;
+}
+
+/** The clock, ticking each second while `running`. */
+function useNow(running: boolean): number {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!running) return;
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [running]);
+  return now;
 }
 
 function useRoutine(id: string): Routine | null | undefined {
@@ -51,11 +73,14 @@ function useRoutine(id: string): Routine | null | undefined {
 }
 
 /** The session's summary header (module header). */
-export function SessionSummary({ session, turns, runs, files, showCost, routineHref, readsRoutine = true, actions, className }: SessionSummaryProps) {
+export function SessionSummary({ session, turns, runs, files, showCost, routineHref, readsRoutine = true, actions, decides = true, className }: SessionSummaryProps) {
   const routineId = session.status?.routineId ?? "";
   const routine = useRoutine(readsRoutine ? routineId : "");
   const last = turns.at(-1);
   const working = last !== undefined && !last.ended;
+  const status = sessionStatus(last, decides);
+  const now = useNow(working);
+  const progress = working && last !== undefined ? describeTurnActivity(last, now) : undefined;
   const outcomes = turns.map((turn) => turnOutcome(turn, files, runs.find((run) => run.metadata?.id === turn.runId)));
   const elapsedMs = outcomes.reduce((sum, outcome) => sum + outcome.elapsedMs, 0);
   const made = outcomes.reduce((sum, outcome) => sum + outcome.files.length, 0);
@@ -79,8 +104,17 @@ export function SessionSummary({ session, turns, runs, files, showCost, routineH
       "Started by a routine"
     );
 
+  // How far a working turn has got: its to-do list's count, else the steps
+  // it settled once it has, never "0 steps".
+  const howFar =
+    progress === undefined
+      ? undefined
+      : progress.todos !== undefined
+        ? `${progress.todos.done} of ${progress.todos.total} to-dos done`
+        : progress.stepsSettled > 0
+          ? `${progress.stepsSettled} ${progress.stepsSettled === 1 ? "step" : "steps"}`
+          : undefined;
   const facts = [
-    working ? "Working" : last?.status?.phase === "completed" ? "Finished" : last?.status?.phase === "failed" ? "Failed" : "Ended",
     durationWords(elapsedMs),
     made > 0 ? `${made} ${made === 1 ? "file" : "files"} made` : undefined,
     changed > 0 ? `${changed} ${changed === 1 ? "change" : "changes"}` : undefined,
@@ -90,16 +124,26 @@ export function SessionSummary({ session, turns, runs, files, showCost, routineH
   return (
     <header className={cn("stg:space-y-1 stg:border-b stg:border-border stg:px-4 stg:pb-3 stg:pt-4", className)}>
       <div className="stg:flex stg:items-center stg:gap-2">
-        <h1 className="stg:min-w-0 stg:flex-1 stg:truncate stg:text-base stg:font-semibold">{asked}</h1>
+        <h1 className="stg:min-w-0 stg:flex-1 stg:truncate stg:text-lg stg:font-semibold">{asked}</h1>
         {actions != null && <div className="stg:-my-1 stg:flex stg:shrink-0 stg:items-center stg:gap-2">{actions}</div>}
       </div>
-      {!working && (
-        <p className="stg:text-xs stg:text-muted-foreground">
-          {origin}
-          {origin !== undefined && " · "}
-          {facts.join(" · ")}
-        </p>
-      )}
+      <div className="stg:flex stg:flex-wrap stg:items-center stg:gap-x-2 stg:gap-y-1 stg:text-xs stg:text-muted-foreground">
+        {status !== undefined && (
+          <StatusBadge
+            phase={status.phase}
+            label={status.timed && progress !== undefined ? `${status.label} · ${formatElapsed(progress.elapsedMs)}` : status.label}
+          />
+        )}
+        {working ? (
+          howFar !== undefined && <span>{howFar}</span>
+        ) : (
+          <span>
+            {origin}
+            {origin !== undefined && " · "}
+            {facts.join(" · ")}
+          </span>
+        )}
+      </div>
     </header>
   );
 }

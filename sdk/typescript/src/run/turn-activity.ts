@@ -9,7 +9,9 @@
 // harness's `Bash` read alike), the asks waiting on a person, a message or
 // thinking still streaming, and the to-do list.
 // It returns structure, never prose; `activityPhrase` beside it gives the
-// present-tense words, so a surface may lay the parts out as it likes.
+// present-tense words, so a surface may lay the parts out as it likes. The
+// words come from one table of every kind's tenses (step-words.ts), which
+// each step's own line reads too.
 //
 // Trade-offs:
 // - "How far" is a fraction only when the agent keeps a to-do list. Without
@@ -25,6 +27,7 @@
 //   summary and `stigmer status` all say "1h 3m", never "63m 0s".
 
 import type { ToolUse, Turn } from "@stigmer/session-log";
+import { KIND_WORDS, phraseOf, targetOf } from "./step-words.js";
 import { resolveToolKind, type ToolKind } from "./tool-view.js";
 
 /** What a working turn is doing now. */
@@ -63,9 +66,6 @@ export interface TurnProgress {
   /** The to-do list's progress; undefined when the agent keeps none. */
   readonly todos: TodoProgress | undefined;
 }
-
-/** The longest target a phrase carries before it is cut. */
-const TARGET_MAX = 48;
 
 /**
  * A span of time in at most two units, the larger first: "42s", "1m 12s",
@@ -125,72 +125,6 @@ function todoProgress(turn: Turn): TodoProgress | undefined {
   };
 }
 
-/** What a call acts on, in a few characters: a file's name, a search's pattern, a page's host, a subagent's task. */
-function targetOf(tool: ToolUse): string {
-  const input = tool.input;
-  const text = (key: string): string => {
-    const value = input[key];
-    return typeof value === "string" ? value : "";
-  };
-  const kind = resolveToolKind(tool);
-  switch (kind) {
-    case "file_read":
-    case "file_write":
-    case "file_edit":
-    case "file_delete":
-      return short(baseName(text("path") || text("file_path") || text("notebook_path")));
-    case "search":
-      return short(text("pattern") || text("query"));
-    case "fetch":
-      return short(hostOf(text("url")));
-    case "web_search":
-      return short(text("query"));
-    case "subagent":
-      return short(text("description"));
-    case "mcp":
-      return short(tool.name);
-    case "skill":
-      return short(text("skill") || text("name"));
-    case "list":
-      return short(baseName(text("path")));
-    case "shell":
-    case "think":
-    case "todo":
-    case "memory":
-    case "background_stop":
-    case "unknown":
-      return "";
-    /* v8 ignore next -- @preserve: the exhaustiveness guard over ToolKind; resolveToolKind answers only the arms above */
-    default: {
-      const never: never = kind;
-      return never;
-    }
-  }
-}
-
-// The path is the model's, so the trailing separators are trimmed by a loop:
-// a regular expression like /[\\/]+$/ backtracks quadratically on a long run
-// of them, and the activity line reads this every second.
-function baseName(path: string): string {
-  let end = path.length;
-  while (end > 0 && (path[end - 1] === "/" || path[end - 1] === "\\")) end -= 1;
-  const trimmed = path.slice(0, end);
-  return trimmed.slice(Math.max(trimmed.lastIndexOf("/"), trimmed.lastIndexOf("\\")) + 1);
-}
-
-function hostOf(url: string): string {
-  try {
-    return new URL(url).host;
-  } catch {
-    return "";
-  }
-}
-
-function short(value: string): string {
-  const flat = value.replace(/\s+/g, " ").trim();
-  return flat.length <= TARGET_MAX ? flat : `${flat.slice(0, TARGET_MAX - 1)}…`;
-}
-
 /**
  * The activity in present-tense words: "Editing invoice.ts", "Running a
  * command", "Waiting for you". A kind's words name the work, whichever
@@ -216,66 +150,10 @@ export function activityPhrase(activity: TurnActivity): string {
   }
 }
 
+/** A kind's present-tense words, on its target when it names one (step-words.ts). */
 function toolPhrase(kind: ToolKind, target: string): string {
-  const on = (verb: string, fallback: string): string => (target === "" ? fallback : `${verb} ${target}`);
-  switch (kind) {
-    case "file_read":
-      return on("Reading", "Reading a file");
-    case "file_write":
-      return on("Writing", "Writing a file");
-    case "file_edit":
-      return on("Editing", "Editing a file");
-    case "file_delete":
-      return on("Deleting", "Deleting a file");
-    case "shell":
-      return "Running a command";
-    case "search":
-      return on("Searching for", "Searching");
-    case "list":
-      return on("Looking in", "Looking through files");
-    case "fetch":
-      return on("Reading", "Reading a page");
-    case "web_search":
-      return on("Searching the web for", "Searching the web");
-    case "think":
-      return "Thinking";
-    case "todo":
-      return "Planning";
-    case "subagent":
-      return target === "" ? "A helper is working" : `A helper is working on ${target}`;
-    case "mcp":
-      return on("Using", "Using a tool");
-    case "memory":
-      return "Remembering";
-    case "background_stop":
-      return "Stopping a command";
-    case "skill":
-      return on("Using the skill", "Using a skill");
-    case "unknown":
-      return "Working";
-    /* v8 ignore next -- @preserve: the exhaustiveness guard over ToolKind; resolveToolKind answers only the arms above */
-    default: {
-      const never: never = kind;
-      return never;
-    }
-  }
+  return phraseOf(KIND_WORDS[kind].present, target);
 }
-
-/** The past-tense verb and the counted noun a settled call of each kind reads as. */
-const SETTLED_WORDS: Readonly<Partial<Record<ToolKind, readonly [verb: string, noun: string]>>> = {
-  file_read: ["read", "file"],
-  file_write: ["wrote", "file"],
-  file_edit: ["edited", "file"],
-  file_delete: ["deleted", "file"],
-  shell: ["ran", "command"],
-  search: ["searched", "pattern"],
-  list: ["looked through", "folder"],
-  fetch: ["read", "page"],
-  web_search: ["searched the web", "time"],
-  mcp: ["used", "tool"],
-  skill: ["used", "skill"],
-  unknown: ["used", "tool"],
-};
 
 /**
  * A stretch of settled calls in a few words, kinds in the order the agent
@@ -288,11 +166,11 @@ export function settledStepsPhrase(tools: readonly ToolUse[]): string {
   const byKind = new Map<ToolKind, ToolUse[]>();
   for (const tool of tools) {
     const kind = resolveToolKind(tool);
-    if (SETTLED_WORDS[kind] === undefined) continue;
+    if (KIND_WORDS[kind].counted === undefined) continue;
     byKind.set(kind, [...(byKind.get(kind) ?? []), tool]);
   }
   const parts = [...byKind].map(([kind, uses]) => {
-    const [verb, noun] = SETTLED_WORDS[kind]!;
+    const [verb, noun] = KIND_WORDS[kind].counted!;
     const only = uses.length === 1 ? targetOf(uses[0]!) : "";
     if (kind === "file_edit" && only !== "") return `${verb} ${only}`;
     return `${verb} ${uses.length} ${noun}${uses.length === 1 ? "" : "s"}`;

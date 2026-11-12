@@ -97,6 +97,12 @@ export function ThreadCardShell({
   ref,
   children,
 }: ThreadCardShellProps) {
+  // The pending gate's accent rides a card and a divider row alike: a step
+  // waiting for a person inside a list of steps keeps its "needs you" cue.
+  const accentChrome = cn(
+    accent === "warning" && "stg:border-l-2 stg:border-l-warning",
+    accent === "destructive" && "stg:border-l-2 stg:border-l-destructive",
+  );
   const chrome =
     variant === "card"
       ? cn(
@@ -104,10 +110,11 @@ export function ThreadCardShell({
           // eye actually catches — the default border token is white at 14%
           // opacity, which vanishes on the dark thread surface.
           "stg:rounded-lg stg:border stg:border-border-prominent stg:overflow-hidden",
-          accent === "warning" && "stg:border-l-2 stg:border-l-warning",
-          accent === "destructive" && "stg:border-l-2 stg:border-l-destructive",
+          accentChrome,
         )
-      : VARIANT_CHROME[variant];
+      : variant === "row"
+        ? cn(VARIANT_CHROME.row, accentChrome)
+        : VARIANT_CHROME.quiet;
 
   return (
     <div ref={ref} data-cursor-target={cursorTarget} className={cn(chrome, className)}>
@@ -155,8 +162,10 @@ export interface ThreadCardHeaderProps {
 
 // `isolate` keeps a lifted control's z-index inside the header, so it never
 // paints over the thread's own overlays (sticky bars, scroll fades).
+// A step reads at body size (14/20) on a 36px row, the kit's scale for a
+// line a person reads, not a caption.
 const HEADER_LAYOUT =
-  "stg:relative stg:isolate stg:flex stg:w-full stg:items-center stg:gap-2 stg:px-2.5 stg:py-1.5 stg:text-xs";
+  "stg:relative stg:isolate stg:flex stg:w-full stg:items-center stg:gap-2 stg:px-3 stg:py-2 stg:text-sm";
 
 const TOGGLE_CLASSES = cn(
   // z-1, not auto: a header child that draws with a transform (the open
@@ -259,8 +268,8 @@ export function ThreadCardBody({ id, cursorTarget, rail = false, children }: Thr
       data-cursor-target={cursorTarget}
       className={
         rail
-          ? "stg:ml-1.5 stg:border-l-2 stg:border-border-muted stg:py-1 stg:pl-3 stg:pr-2.5"
-          : "stg:px-2.5 stg:pb-2.5 stg:pt-1"
+          ? "stg:ml-1.5 stg:border-l-2 stg:border-border-muted stg:py-1 stg:pl-3 stg:pr-3"
+          : "stg:px-3 stg:pb-3 stg:pt-1"
       }
     >
       {children}

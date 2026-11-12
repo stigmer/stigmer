@@ -18,7 +18,7 @@ import { test, expect } from "../../fixtures";
 import { ensureDefaultOrg } from "../../fixtures/seed-helpers";
 import { anthropicText, anthropicToolUses } from "../../fixtures/mock-llm";
 import { getAIResponses, getNewSessionComposer, openLauncherForChat, START_SESSION_WAITS_MS } from "../../helpers/session";
-import { MockControl, approveButton, awaitMockRemaining, getMockControlUrl, toolCallRow } from "../../helpers/approval";
+import { MockControl, approveButton, awaitMockRemaining, getMockControlUrl, openHowItGotThere, toolCallRow } from "../../helpers/approval";
 
 const mockUrl = getMockControlUrl();
 
@@ -75,6 +75,8 @@ test.describe("A conversation on Claude (deterministic mock LLM)", () => {
 
       // Approved, the engine runs exactly that call and answers.
       await expect(getAIResponses(page).last()).toContainText("Printed the marker.", { timeout: 90_000 });
+      // The finished turn leads with its answer; the command is one of its steps.
+      await openHowItGotThere(page);
       await expect(toolCallRow(page).filter({ hasText: MARKER }).first()).toBeVisible();
       await awaitMockRemaining(control, 0);
 
