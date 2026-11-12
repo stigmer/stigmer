@@ -12,7 +12,9 @@
 // which answers with the PID only while the live process is still the one
 // recorded. The Temporal start lock (state/lock.ts) is such a record too, and
 // judges its owner the same way (stigmer#2900). The first line stays the bare
-// PID every reader, an older CLI's included, expects.
+// PID every reader, an older CLI's included, expects. Each reader comes as a
+// parse and a judge over a record already in hand (parsePidRecord,
+// liveRecordedProcess), so the lock can judge exactly the bytes it read.
 
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { basename, dirname } from "node:path";
@@ -61,6 +63,11 @@ export function readPidRecord(path: string): PidRecord | null {
   } catch {
     return null;
   }
+  return parsePidRecord(raw);
+}
+
+/** A PID record's text parsed; null when its first line is not a positive integer. */
+export function parsePidRecord(raw: string): PidRecord | null {
   const lines = raw.split("\n");
   const pid = Number.parseInt(lines[0]?.trim() ?? "", 10);
   if (!Number.isInteger(pid) || pid <= 0) return null;
@@ -78,11 +85,15 @@ export function readPidRecord(path: string): PidRecord | null {
  * existed, is trusted on liveness alone, as it always was.
  */
 export function recordedLiveProcess(path: string): number | null {
-  const record = readPidRecord(path);
+  return liveRecordedProcess(readPidRecord(path), basename(path));
+}
+
+/** recordedLiveProcess over a record already read; `name` labels its log line. */
+export function liveRecordedProcess(record: PidRecord | null, name: string): number | null {
   if (record === null || !isOtherLiveProcess(record.pid)) return null;
   if (record.started === null) return record.pid;
   if (processStartTime(record.pid) === record.started) return record.pid;
-  log.info(`${basename(path)} names another program now; leaving it alone`, { pid: record.pid });
+  log.info(`${name} names another program now; leaving it alone`, { pid: record.pid });
   return null;
 }
 
