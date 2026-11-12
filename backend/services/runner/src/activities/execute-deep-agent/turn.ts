@@ -25,9 +25,10 @@
  * a hook that cannot run as written (`HookSetupError`) is `failed` on the
  * `actionable` surface with the error's own sentence, since the fix is the
  * agent's author's, not the runner's; any other exception — a provider error unwrapped from LangChain's middleware
- * wrapper, an MCP connect failure, an empty stream — is `failed` on the
- * `internal` surface with `describeExecutionError`'s sentence as
- * `status.error` whole. Never branches on why `stopSignal`
+ * wrapper, an MCP connect failure, an empty stream — is `failed` with
+ * `describeExecutionError`'s sentence as `status.error` whole and its kind
+ * named by `shared/stop-kind.ts` `settleThrown`: a provider's failure on the
+ * `engine` surface (stop cause `model_error`), everything else `internal`. Never branches on why `stopSignal`
  * aborted, never writes a phase or a terminal copy, never imports
  * `@temporalio/*` (`__tests__/adapter-is-temporal-free.test.ts`).
  *
@@ -59,7 +60,7 @@ import type { BaseCheckpointSaver } from "@langchain/langgraph-checkpoint";
 import type { TurnInput, TurnOutcome, TurnSink } from "../../harness/types.js";
 import type { McpConnectionResult } from "../../shared/mcp-manager.js";
 import { tryInferProvider } from "../../shared/llm-proxy.js";
-import { describeExecutionError } from "../../shared/model-error.js";
+import { settleThrown } from "../../shared/stop-kind.js";
 import { isToolCallBudgetStop } from "../../shared/tool-rounds.js";
 import { ToolListResolutionError } from "../../shared/tool-lists.js";
 import { HookSetupError } from "./hooks-setup.js";
@@ -185,7 +186,9 @@ function stopsBeforeTheEngine(sink: TurnSink): boolean {
  * is described by `describeExecutionError` (a model error arrives
  * MiddlewareError-wrapped with raw provider prose and is unwrapped to its
  * stable platform code; a non-model error is named by its first layer under
- * those wrappers) on the `internal` surface: the runner or its transport
+ * those wrappers) and settled by `settleThrown`: a provider's failure on the
+ * `engine` surface (stigmer#2151), a connected app's naming the app, and
+ * anything else on the `internal` surface: the runner or its transport
  * broke.
  */
 function classifyThrown(err: unknown, input: TurnInput, config: DeepAgentAdapterConfig, modelName: string | undefined): TurnOutcome {
@@ -197,13 +200,13 @@ function classifyThrown(err: unknown, input: TurnInput, config: DeepAgentAdapter
     console.warn(`ExecuteDeepAgent refused the turn: execution=${input.executionId}, ${err.message}`);
     return { kind: "failed", surface: "actionable", message: err.message, cause: err };
   }
-  const { errorType, errorMessage } = describeExecutionError(err, {
+  const failure = settleThrown(err, {
     proxyMode: !!config.proxyEndpoint,
     modelId: modelName,
     provider: modelName ? (tryInferProvider(modelName) ?? undefined) : undefined,
   });
-  console.error(`ExecuteDeepAgent failed: execution=${input.executionId}, [${errorType}] ${errorMessage}`);
-  return { kind: "failed", surface: "internal", message: `[${errorType}] ${errorMessage}`, cause: err };
+  console.error(`ExecuteDeepAgent failed: execution=${input.executionId}, ${failure.message}`);
+  return { kind: "failed", surface: failure.surface, message: failure.message, stopDetail: failure.stopDetail, cause: err };
 }
 
 /** Best-effort teardown: a failed close is logged and never masks the turn's outcome. */

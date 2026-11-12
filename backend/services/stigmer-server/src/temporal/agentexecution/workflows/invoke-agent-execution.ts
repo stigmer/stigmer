@@ -998,10 +998,14 @@ async function updateStatusOnFailure(
         : modelStall !== undefined
           ? "timeout"
           : "failed";
+  // The cause's kind, as the runner's terminal table names its own: a lost
+  // runner, a stall, or the platform's fault.
+  const stopKind = stopCause === "infrastructure" ? "runner_lost" : stopCause === "timeout" ? "stalled" : "internal";
   const failedStatus = create(RunStatusSchema, {
     phase: RunPhase.RUN_FAILED,
     error: statusError,
     stopCause,
+    ...(stopCause !== "" ? { stopDetail: { kind: stopKind } } : {}),
   });
 
   await failurePathActivities[UPDATE_EXECUTION_STATUS_ACTIVITY_NAME](

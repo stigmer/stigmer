@@ -74,7 +74,7 @@
  */
 
 import { mkdir, rm } from "node:fs/promises";
-import type { McpServerConfig, Query, SDKResultMessage, SDKUserMessage } from "@anthropic-ai/claude-agent-sdk";
+import type { McpServerConfig, Query, SDKAssistantMessageError, SDKResultMessage, SDKUserMessage } from "@anthropic-ai/claude-agent-sdk";
 import type { JsonObject } from "@bufbuild/protobuf";
 import { InteractionMode, ServiceTier } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 
@@ -92,7 +92,7 @@ import { emitTimingLog } from "../../shared/cold-start-timing.js";
 import { getExecutionContext } from "../../shared/execution-context.js";
 import { isPathCapturable, resolvesIntoGitDirectory } from "../../shared/filereview/git-substrate.js";
 import { declaredServerCount } from "../../shared/mcp-resolver.js";
-import { describeExecutionError } from "../../shared/model-error.js";
+import { settleThrown } from "../../shared/stop-kind.js";
 import { modelLaneUrl, modelLanes } from "../../shared/model-lanes.js";
 import { ensureLoaded as ensurePricingLoaded, getModelPricing } from "../../shared/model-pricing.js";
 import { getDefaultModel, getRequestProfile, resolveToApiModelId, type ThinkingProfile } from "../../shared/model-registry.js";
@@ -205,9 +205,9 @@ export async function runClaudeTurn(input: TurnInput, sink: TurnSink, config: Cl
       console.warn(`ExecuteClaude refused the turn: execution=${input.executionId}, ${err.message}`);
       return { kind: "failed", surface: "actionable", message: err.message, cause: err };
     }
-    const { errorType, errorMessage } = describeExecutionError(err, { proxyMode: config.proxyEndpoint !== null });
-    console.error(`ExecuteClaude failed: execution=${input.executionId}, [${errorType}] ${errorMessage}`);
-    return { kind: "failed", surface: "internal", message: `[${errorType}] ${errorMessage}`, cause: err };
+    const failure = settleThrown(err, { proxyMode: config.proxyEndpoint !== null });
+    console.error(`ExecuteClaude failed: execution=${input.executionId}, ${failure.message}`);
+    return { kind: "failed", surface: failure.surface, message: failure.message, stopDetail: failure.stopDetail, cause: err };
   } finally {
     await closeQuietly(input.executionId, "MCP connections", () => bridge?.close());
     await closeQuietly(input.executionId, "engine directory", () => rm(home, { recursive: true, force: true }));
@@ -501,7 +501,7 @@ async function engineTurn(input: TurnInput, sink: TurnSink, config: ClaudeAdapte
       unattendedSkips: gate.unattendedSkips,
       propose: (callId) => proposeDeferred(sink, gate, bridge, callId),
     });
-    return end.resumeAgain ? { kind: "resume_again" } : settleClaudeTurn(sink, end);
+    return end.resumeAgain ? { kind: "resume_again" } : settleClaudeTurn(sink, end, { model: model.registryId, proxyMode: config.proxyEndpoint !== null });
   } finally {
     await closeQuietly(input.executionId, "the tools' endpoint", () => endpoint?.close());
   }
@@ -585,6 +585,7 @@ async function runEngine(input: TurnInput, sink: TurnSink, sdk: ClaudeSdk, run: 
   let yielding = false;
   let forceAbort: ReturnType<typeof setTimeout> | undefined;
   let result: SDKResultMessage | undefined;
+  let assistantError: SDKAssistantMessageError | undefined;
   let mirrorError: string | undefined;
   let deferred: string | undefined;
   let events = 0;
@@ -669,6 +670,9 @@ async function runEngine(input: TurnInput, sink: TurnSink, sdk: ClaudeSdk, run: 
           console.error(`[claude-turn] execution=${input.executionId} the session store lost a batch: ${message.error}`);
         }
       }
+      // The engine's typed reason for a failed model call rides on the main
+      // thread's assistant message (`stop-kind.ts` reads it at the settle).
+      if (message.type === "assistant" && message.parent_tool_use_id === null && message.error !== undefined) assistantError = message.error;
       if (message.type === "result") {
         result = message;
         deferred = stopped || yielding ? undefined : deferredCallOf(message);
@@ -712,6 +716,7 @@ async function runEngine(input: TurnInput, sink: TurnSink, sdk: ClaudeSdk, run: 
   return {
     stopped: stopped || yielding,
     result,
+    ...(assistantError !== undefined ? { assistantError } : {}),
     mirrorError,
     unattendedSkips: run.unattendedSkips,
     structuredOutput: input.structuredOutputSchema !== undefined,

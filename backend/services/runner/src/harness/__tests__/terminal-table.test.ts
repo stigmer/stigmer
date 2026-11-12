@@ -135,3 +135,36 @@ describe("the operation limit's copy", () => {
     expect(new OperationLimitError("shell", 1_000).message).toBe("`shell` ran for more than 1 second without finishing");
   });
 });
+
+describe("the stop detail beside the stop cause", () => {
+  it("names each stop's kind on the arms that know it", () => {
+    expect(table.stallArm(new StallTimeoutError(1_000)).stopDetail).toEqual({ kind: "stalled" });
+    expect(table.operationLimitArm(new OperationLimitError("task", 3_600_000)).stopDetail).toEqual({ kind: "operation_limit" });
+    expect(table.workspaceLockTimeoutArm(new WorkspaceLockTimeoutError("/w", 1_000)).stopDetail).toEqual({ kind: "workspace_busy" });
+    expect(table.costCapArm(5, 5.2).stopDetail).toEqual({ kind: "cost_cap" });
+    expect(table.toolCallLimitArm().stopDetail).toEqual({ kind: "tool_call_limit" });
+  });
+
+  it("leaves it out where the cause says it all", () => {
+    expect(table.platformStopArm().stopDetail).toBeUndefined();
+    expect(table.orchestratorStopArm().stopDetail).toBeUndefined();
+    expect(table.fileReviewResolvedArm({ failed: false, failureDetail: "", discardedPaths: [] }).stopDetail).toBeUndefined();
+  });
+
+  it("takes a failure's kind from its adapter, else from its surface", () => {
+    expect(table.failedArm("m", "engine", { kind: "provider_key_rejected", model: "claude-sonnet-4-6" }).stopDetail).toEqual({ kind: "provider_key_rejected", model: "claude-sonnet-4-6" });
+    expect(table.failedArm("m", "engine").stopDetail).toBeUndefined();
+    expect(table.failedArm("m", "actionable").stopDetail).toEqual({ kind: "agent_setup" });
+    expect(table.failedArm("m", "internal").stopDetail).toEqual({ kind: "internal" });
+    expect(table.unexpectedErrorArm("TypeError", "x").stopDetail).toEqual({ kind: "internal" });
+  });
+
+  it("writes it onto the status with the stop cause", () => {
+    const status = create(RunStatusSchema);
+    table.applyTerminalArm(status, create(TurnRowsSchema), table.failedArm("m", "internal", { kind: "app_unreachable", app: "issues" }));
+    expect(status.stopCause).toBe("failed");
+    expect(status.stopDetail?.kind).toBe("app_unreachable");
+    expect(status.stopDetail?.app).toBe("issues");
+    expect(status.stopDetail?.model).toBe("");
+  });
+});

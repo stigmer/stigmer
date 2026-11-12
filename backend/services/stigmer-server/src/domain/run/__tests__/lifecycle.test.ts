@@ -52,6 +52,7 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import { StigmerStopDetailSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_content_pb";
 import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentVersionEntrySchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/version_pb";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
@@ -199,6 +200,17 @@ describe("applyLifecyclePhaseTransition", () => {
     expect(exec.status?.phase).toBe(RunPhase.RUN_IN_PROGRESS);
     expect(exec.status?.completedAt).toBe("");
     expect(exec.status?.error).toBe("");
+  });
+
+  it("recover: IN_PROGRESS clears the ending's cause and detail, so the session shows no old ending", () => {
+    const exec = newTransitionFixture();
+    exec.status!.phase = RunPhase.RUN_FAILED;
+    exec.status!.stopCause = "model_error";
+    exec.status!.stopDetail = create(StigmerStopDetailSchema, { kind: "provider_key_rejected", model: "claude-sonnet-4-6" });
+    applyLifecyclePhaseTransition(exec, RunPhase.RUN_IN_PROGRESS, false, true, "");
+
+    expect(exec.status?.stopCause).toBe("");
+    expect(exec.status?.stopDetail).toBeUndefined();
   });
 
   it("cancel: terminal sets completed_at and the stop cause, and leaves the record", () => {

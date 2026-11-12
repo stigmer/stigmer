@@ -165,6 +165,31 @@ describe("the phase latch", () => {
     expect(resumed.status?.phase).toBe(RunPhase.RUN_IN_PROGRESS);
     expect(resumed.status?.stopCause, "the resumed turn has not stopped").toBe("");
   });
+
+  it("writes the stop detail with its cause, never alone, and drops it with the cause", () => {
+    const existing = create(RunSchema, {
+      metadata: { id: "exec-detail", name: "exec-detail" },
+      spec: {},
+      status: { phase: RunPhase.RUN_IN_PROGRESS },
+    });
+    const failed = runBuildStep(existing, {
+      phase: RunPhase.RUN_FAILED,
+      stopCause: "model_error",
+      stopDetail: { kind: "provider_overloaded", model: "claude-sonnet-4-6" }
+    });
+    expect(failed.status?.stopDetail?.kind).toBe("provider_overloaded");
+    const restated = runBuildStep(failed, { phase: RunPhase.RUN_FAILED });
+    expect(restated.status?.stopDetail?.kind, "a write with no cause keeps the detail").toBe("provider_overloaded");
+    const recaused = runBuildStep(failed, { phase: RunPhase.RUN_FAILED, stopCause: "failed" });
+    expect(recaused.status?.stopDetail, "a new cause with no detail leaves none from the old one").toBeUndefined();
+    const paused = create(RunSchema, {
+      metadata: { id: "exec-detail", name: "exec-detail" },
+      spec: {},
+      status: { phase: RunPhase.RUN_PAUSED, stopCause: "user", stopDetail: { kind: "stalled" } },
+    });
+    const working = runBuildStep(paused, { phase: RunPhase.RUN_IN_PROGRESS }, "platform");
+    expect(working.status?.stopDetail, "a turn that works again has no ending").toBeUndefined();
+  });
 });
 
 describe("the run's file record (file_changes)", () => {

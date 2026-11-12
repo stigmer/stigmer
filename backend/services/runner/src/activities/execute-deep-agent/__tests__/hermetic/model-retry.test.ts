@@ -153,6 +153,13 @@ describe("ExecuteDeepAgent hermetic — a model reply that fails after it began"
     expect((invocation.outcome as { value: Record<string, unknown> }).value.phase).toBe("RUN_FAILED");
     expect(parent.requests).toHaveLength(1);
     expect(record.lastFullStatus!.error).toMatch(/^\[LLM_AUTHENTICATION_ERROR\] Authentication failed/);
+    // The provider's failure, not the platform's (stigmer#2151): the model's
+    // stop cause and its kind, with no "contact support" row.
+    expect(record.lastFullStatus!.stopCause).toBe("model_error");
+    expect(record.lastFullStatus!.stopDetail?.kind).toBe("provider_key_rejected");
+    expect(record.lastFullStatus!.stopDetail?.model).not.toBe("");
+    const rows = record.rowsOf(record.lastFullStatus!).messages.map((m) => m.content);
+    expect(rows.some((content) => content.includes("Internal system error"))).toBe(false);
     expect(retryLines()).toEqual(["[MODEL-RETRY] phase=stream decision=stop reason=refused attempt=1/3 delay_ms=none"]);
   });
 

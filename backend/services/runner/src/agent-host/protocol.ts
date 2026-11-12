@@ -47,6 +47,7 @@
 import type { HarnessName } from "../harness/registry.js";
 import { causeChainOf, errorCodeOf } from "../shared/error-chain.js";
 import type { UsageDelta } from "../harness/types.js";
+import type { StopDetail } from "../shared/stop-kind.js";
 import type { TranscriptEvent } from "../harness/transcript/events.js";
 import type { TurnMessage } from "../harness/turn-input.js";
 import type { AgentFileKind } from "../shared/agent-fs.js";
@@ -165,6 +166,8 @@ export type WireOutcome =
       readonly message: string;
       readonly surface: "engine" | "actionable" | "internal";
       readonly cause?: WireError;
+      /** The failure's kind (`TurnOutcome`'s `stopDetail`); optional, so the version holds. */
+      readonly stopDetail?: StopDetail;
     };
 
 /**
