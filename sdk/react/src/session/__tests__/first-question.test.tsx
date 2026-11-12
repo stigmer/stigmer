@@ -333,6 +333,45 @@ describe("CON-06 a new person's first screen asks what their agent should do for
       expect(within(composer).getByText("placeholder: Attach one of your own files and say what you need")).toBeTruthy();
     });
 
+    it("describes the agent by the first line of their words, cut at a word when it runs long", async () => {
+      const { client, agent } = setup();
+      launch(client);
+      fireEvent.click(await screen.findByRole("button", { name: "Describe it" }));
+      const words = `${"Read every shipping manifest a user uploads and ".repeat(5)}list the late parcels.\nThen sort them by how late they are.`;
+      fireEvent.change(screen.getByLabelText("Describe your own"), { target: { value: words } });
+      fireEvent.click(screen.getByRole("button", { name: "Make this agent" }));
+      await screen.findByRole("heading", { level: 1, name: "Give it a first job" });
+      const description = agent.create.mock.calls[0]![0].description ?? "";
+      expect(description.endsWith("\u2026")).toBe(true);
+      expect(description.length).toBeLessThanOrEqual(161);
+      expect(words.startsWith(description.slice(0, -1))).toBe(true);
+      expect(description.slice(0, -1).endsWith(" ")).toBe(false);
+    });
+
+    it("goes back to the examples from the open box", async () => {
+      const { client } = setup();
+      launch(client);
+      fireEvent.click(await screen.findByRole("button", { name: "Describe it" }));
+      fireEvent.click(screen.getByRole("button", { name: "Back to examples" }));
+      expect(await screen.findByRole("button", { name: "Describe it" })).toBeTruthy();
+      expect(screen.queryByLabelText("Describe your own")).toBeNull();
+    });
+
+    it("says who can when the server refuses a described agent", async () => {
+      const { client } = setup({
+        create: async () => {
+          throw new StigmerError("permission-denied", "not allowed", Code.PermissionDenied);
+        },
+      });
+      launch(client);
+      fireEvent.click(await screen.findByRole("button", { name: "Describe it" }));
+      fireEvent.change(screen.getByLabelText("Describe your own"), { target: { value: "Summarize a report." } });
+      fireEvent.click(screen.getByRole("button", { name: "Make this agent" }));
+      const alert = await screen.findByRole("alert");
+      expect(within(alert).getByText("Your agent wasn't made.")).toBeTruthy();
+      expect(within(alert).getByText(/You can't make agents in this organization/)).toBeTruthy();
+    });
+
     it("says so after ten taken names instead of trying forever", async () => {
       const { client, agent } = setup({
         create: async () => {
