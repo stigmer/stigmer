@@ -152,6 +152,11 @@ describe("samples", () => {
         case: "stigmerRunStatus",
         value: { id: "run_00000000000000000000000001.status.failed", phase: "failed", error: "boom", stopCause: "failed" },
       });
+      expect(samples.runStatusEvent("failed", { stopCause: "failed", stopDetail: { kind: "app_unreachable", app: "issue-tracker" } }).event).toMatchObject({
+        value: { stopDetail: { kind: "app_unreachable", model: "", app: "issue-tracker" } },
+      });
+      const plain = samples.runStatusEvent("cancelled", { stopCause: "user" }).event;
+      expect(plain.case === "stigmerRunStatus" ? plain.value.stopDetail : "not a status").toBeUndefined();
     });
 
     it("writes a whole turn in log order, and folds it", () => {
