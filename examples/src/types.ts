@@ -1,4 +1,4 @@
-// The shape of one example agent, as every reader of the list sees it: the
+// The shape of one example agent, as a reader of the list sees it: the
 // card's words, the first message, the agent to make, the manifest people
 // download and the sample files the first run attaches. The data itself is
 // generated into catalogue.gen.ts from the folders beside this package's

@@ -122,8 +122,7 @@ export const PACKAGES = [
   "backend/libs/ts/session-log",
   // @stigmer/examples has no deps at all, so its position is order-free. It
   // MUST publish: @stigmer/react-sdk depends on it (the launcher's first
-  // question and the create picker's templates), and the CLI and the
-  // coding-agent plugin read the same list of example agents.
+  // question and the create picker's templates).
   "examples",
   "sdk/typescript",
   "sdk/theme",

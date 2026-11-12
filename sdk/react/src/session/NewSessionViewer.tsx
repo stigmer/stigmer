@@ -296,6 +296,10 @@ export function NewSessionViewer({
   // while "has anything run" has not been read again.
   const [firstDone, setFirstDone] = useState(false);
   const [choice, setChoice] = useState<FirstChoice | null>(null);
+  // Each organization is asked afresh: another organization's "Just chat" or
+  // unsent pick never carries over.
+  const [firstOrg, setFirstOrg] = useState(org);
+  const orgChanged = firstOrg !== org;
   const handleSessionCreated = useCallback(
     (sessionId: string) => {
       setFirstDone(true);
@@ -388,6 +392,17 @@ export function NewSessionViewer({
   // reference directly. Without the pin, submission fails closed in
   // useNewSessionFlow rather than falling back to the built-in assistant.
   const { setAgentRef, setResolution } = flow;
+  if (orgChanged) {
+    // Set during render, as React allows for a component's own state, so no
+    // frame shows the other organization's choice.
+    setFirstOrg(org);
+    setFirstDone(false);
+    if (choice !== null) {
+      setChoice(null);
+      setAgentRef(null);
+      setResolution(null);
+    }
+  }
   useEffect(() => {
     if (!isGuest || !initialAgentRef) return;
     setAgentRef(initialAgentRef);

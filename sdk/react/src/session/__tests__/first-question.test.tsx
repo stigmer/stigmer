@@ -21,6 +21,7 @@ import {
   ANTHROPIC_CONNECTED,
   NOTHING_CONNECTED,
   ORG_ID,
+  PARENT_ID,
   fakeClient,
   readinessWrapper,
   server,
@@ -112,11 +113,13 @@ interface Setup {
   readonly ran?: number;
   /** Never answers "has anything run", so the gate stays pending. */
   readonly summaryNeverAnswers?: boolean;
+  /** "Has anything run" fails. */
+  readonly summaryFails?: boolean;
   readonly create?: (input: AgentInput) => Promise<unknown>;
 }
 
 /** The fake server, with the reads and writes the first question adds. */
-function setup({ readiness = ANTHROPIC_CONNECTED, canManage = true, ran = 0, summaryNeverAnswers = false, create }: Setup = {}) {
+function setup({ readiness = ANTHROPIC_CONNECTED, canManage = true, ran = 0, summaryNeverAnswers = false, summaryFails = false, create }: Setup = {}) {
   const fake = server({ readiness, canManage });
   const calls = fakeClient(fake);
   calls.setKey.mockImplementation(async (input: { provider: string }) => {
@@ -124,7 +127,9 @@ function setup({ readiness = ANTHROPIC_CONNECTED, canManage = true, ran = 0, sum
     fake.keys = [storedKey(input.provider)];
     return storedKey(input.provider);
   });
-  const getRunSummary = vi.fn(() => (summaryNeverAnswers ? new Promise(() => {}) : Promise.resolve(summary(ran))));
+  const getRunSummary = vi.fn(() =>
+    summaryNeverAnswers ? new Promise(() => {}) : summaryFails ? Promise.reject(new Error("unavailable")) : Promise.resolve(summary(ran)),
+  );
   const made = (input: AgentInput) => ({ metadata: { org: ORG_ID, slug: input.slug ?? "", name: input.name } });
   const agent = {
     create: vi.fn(create ?? (async (input: AgentInput) => made(input))),
@@ -137,10 +142,12 @@ function setup({ readiness = ANTHROPIC_CONNECTED, canManage = true, ran = 0, sum
 
 function launch(client: unknown, props: Partial<NewSessionViewerProps> = {}) {
   const onSessionCreated = vi.fn();
-  render(<NewSessionViewer org={ORG_ID} onSessionCreated={onSessionCreated} firstQuestion {...props} />, {
+  const view = render(<NewSessionViewer org={ORG_ID} onSessionCreated={onSessionCreated} firstQuestion {...props} />, {
     wrapper: readinessWrapper(client),
   });
-  return { onSessionCreated };
+  const relaunch = (next: Partial<NewSessionViewerProps>) =>
+    view.rerender(<NewSessionViewer org={ORG_ID} onSessionCreated={onSessionCreated} firstQuestion {...props} {...next} />);
+  return { onSessionCreated, relaunch };
 }
 
 /** The Connect codes the refusals carry (connectrpc's `Code`, which this package does not depend on). */
@@ -207,6 +214,42 @@ describe("CON-06 a new person's first screen asks what their agent should do for
       expect(await screen.findByRole("heading", { level: 1, name: TODAY })).toBeTruthy();
       expect(screen.queryByText(QUESTION)).toBeNull();
       expect(getRunSummary).not.toHaveBeenCalled();
+    });
+
+    it("never meets a curated audience, whose agent the platform chose", async () => {
+      const { client, getRunSummary } = setup();
+      launch(client, { audience: "endUser" });
+      expect(await screen.findByRole("heading", { level: 1, name: TODAY })).toBeTruthy();
+      expect(screen.queryByText(QUESTION)).toBeNull();
+      expect(getRunSummary).not.toHaveBeenCalled();
+    });
+
+    it("is not asked when whether anything has run cannot be read", async () => {
+      const { client, getRunSummary } = setup({ summaryFails: true });
+      launch(client);
+      await waitFor(() => expect(getRunSummary).toHaveBeenCalled());
+      expect(await screen.findByRole("heading", { level: 1, name: TODAY })).toBeTruthy();
+      expect(screen.queryByText(QUESTION)).toBeNull();
+    });
+
+    it("gives way to a deep link that arrives after the question showed", async () => {
+      const { client } = setup();
+      const { relaunch } = launch(client);
+      await screen.findByRole("heading", { level: 1, name: QUESTION });
+      relaunch({ initialAgentRef: { org: "acme", slug: "reviewer" } });
+      expect(await screen.findByRole("heading", { level: 1, name: TODAY })).toBeTruthy();
+      expect(screen.queryByText(QUESTION)).toBeNull();
+    });
+
+    it("asks another organization afresh: one organization's Just chat or pick never carries over", async () => {
+      const { client } = setup();
+      const { relaunch } = launch(client);
+      fireEvent.click(await screen.findByRole("button", { name: VARIANCE.name }));
+      await screen.findByText("files: ledger.csv");
+      relaunch({ org: PARENT_ID });
+      expect(await screen.findByRole("heading", { level: 1, name: QUESTION })).toBeTruthy();
+      expect(screen.queryByText("files: ledger.csv")).toBeNull();
+      expect(flow.setAgentRef).toHaveBeenCalledWith(null);
     });
 
     it("never meets a guest", async () => {

@@ -1,6 +1,6 @@
-// Stigmer's example agents as one list every reader shares: the console's
-// first question and its create picker, the desktop app, the CLI and the
-// coding-agent plugin. Each is a job an agent does for a product's users,
+// Stigmer's example agents as one list every reader shares: today the React
+// kit's launcher (its first question) and its create picker, in the web
+// console and the desktop app. Each is a job an agent does for a product's users,
 // with a sample file in and a file out; the folders beside this package's
 // source are what people download, and catalogue.gen.ts is generated from
 // them (scripts/generate.mjs).

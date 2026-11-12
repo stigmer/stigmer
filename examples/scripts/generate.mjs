@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
 /**
- * Writes src/catalogue.gen.ts, the one list of Stigmer's example agents that
- * the console, the desktop app, the CLI and the coding-agent plugin read,
- * from the files people download: catalogue.json (the card's words, the first
+ * Writes src/catalogue.gen.ts, the one list of Stigmer's example agents (the
+ * React kit's launcher and create picker read it), from the files people
+ * download: catalogue.json (the card's words, the first
  * message, which files belong to each job), each example's manifest (the
  * agent's only definition) and its sample files (inlined: they are small
  * text files, so a reader needs no file system to attach them).

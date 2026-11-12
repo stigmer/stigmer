@@ -38,9 +38,12 @@ export function useFirstQuestionGate(org: string, enabled: boolean): FirstQuesti
   else if (permission.isLoading || ever.ran === undefined) answer = "pending";
   else answer = "ask";
 
+  // A launcher that stops asking (a deep link read after it opened) skips at
+  // once, whatever it settled on before.
+  if (!asking) return "skip";
   if (settled !== null && settled.org === org) return settled.answer;
   // Held from the first settled render on; set during render, which React
   // allows for a component's own state, so no frame shows the other screen.
-  if (answer !== "pending" && asking) setSettled({ org, answer });
+  if (answer !== "pending") setSettled({ org, answer });
   return answer;
 }
