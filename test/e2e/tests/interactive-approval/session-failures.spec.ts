@@ -41,7 +41,7 @@ const ORG_KEY_NO_CREDIT = {
   error: { type: "invalid_request_error", message: `Your credit balance is too low to access the Anthropic API. [code: ${SENTINEL}]` },
 };
 const PLATFORM_REFUSED = { type: "error", error: { type: "authentication_error", message: "invalid x-api-key" } };
-const TOO_LONG = { type: "error", error: { type: "invalid_request_error", message: "prompt is too long: 214031 tokens > 200000 maximum" } };
+const MALFORMED = { type: "error", error: { type: "invalid_request_error", message: "messages.0.content: Field required" } };
 
 interface Seeded {
   readonly sessionId: string;
@@ -154,7 +154,8 @@ test.describe("Every way a turn ends badly, in its own words (deterministic mock
   });
 
   test("a request the provider refused offers no Run again", async ({ page, stigmerClient }) => {
-    await control.enqueueError({ status: 400, body: TOO_LONG });
+    // Persistent: the runner may ask once more before it gives up.
+    await control.enqueueError({ status: 400, body: MALFORMED, persistent: true });
     const seeded = await seedTurn(stigmerClient, Harness.STIGMER);
     await awaitRunTerminal(stigmerClient, seeded.runId, { timeoutMs: RETRIED_MS });
     await expectNotice(page, seeded.sessionId, "Anthropic refused this request.");
