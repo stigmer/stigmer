@@ -52,6 +52,16 @@
  * sandbox. An orphan on a draining worker is stored too. A pass that
  * cannot read the workers warns once and runs the ladder as before.
  *
+ * The act re-decides inside the actor's queue, as every act does, and
+ * stores only while the sandbox is still on the worker that was draining:
+ * one stored and woken again by a new turn since the pass read it runs on
+ * a healthy worker, and is the ladder's again. Stores run one at a time,
+ * like every act of a pass, each waiting for its upload. So when a roll
+ * drains many workers at once, the sandboxes still busy at the deadline
+ * share the last ten of Substrate's thirty minutes one upload after
+ * another, and on a large enough install the last of them can still be
+ * lost; the self-hosting guide says so.
+ *
  * The suspend itself, and every pass's upkeep (egress
  * made current, a sleeping sandbox moved to the current template, unused
  * templates retired, a stuck delete repeated), are the driver's lifecycle
@@ -189,16 +199,16 @@ export async function runSweepPass(
         }
         continue;
       }
-      const drainingSince = draining.get(actor.name);
+      const drain = draining.get(actor.name);
       const action = decide(
         actor,
         await sessions.recentActivity(sessionId),
         driver,
         now(),
-        drainingSince,
+        drain?.since,
       );
       if (action !== "none") {
-        await act(sessionId, action, drainingSince, options, now);
+        await act(sessionId, action, drain, options, now);
       }
     } catch (error) {
       logger.warn("Substrate idle sweep skipped a sandbox", {
@@ -212,19 +222,25 @@ export async function runSweepPass(
   logUpkeepFailures(await lifecycle.maintain(actors, { stopping }), logger);
 }
 
+/** A sandbox's drain as the pass read it: its worker, and when the driver first saw that worker draining. */
+interface Drain {
+  readonly worker: string | undefined;
+  readonly since: Date;
+}
+
 /**
- * The running sandboxes on a draining worker, by name, with when the
- * driver first saw each drain; empty, after one warning, when the workers
- * cannot be read this pass (module header).
+ * The running sandboxes on a draining worker, by name, each with its
+ * drain; empty, after one warning, when the workers cannot be read this
+ * pass (module header).
  */
 async function leaving(
   options: SubstrateSweepOptions,
-): Promise<Map<string, Date>> {
+): Promise<Map<string, Drain>> {
   try {
     return new Map(
       (await options.lifecycle.draining()).map((sandbox) => [
         sandbox.actor.name,
-        sandbox.drainingSince,
+        { worker: sandbox.actor.worker, since: sandbox.drainingSince },
       ]),
     );
   } catch (error) {
@@ -313,7 +329,7 @@ function decide(
 async function act(
   sessionId: string,
   planned: IdleAction,
-  drainingSince: Date | undefined,
+  drain: Drain | undefined,
   options: SubstrateSweepOptions,
   now: () => number,
 ): Promise<void> {
@@ -325,7 +341,12 @@ async function act(
   const proceed = async (fresh: SubstrateActorSummary): Promise<boolean> => {
     const activity = await sessions.activity(sessionId);
     forced = planned === "store" && activity.busy;
-    return decide(fresh, activity, driver, now(), drainingSince) === planned;
+    // Still on the worker that was draining, or the drain no longer applies.
+    const since =
+      drain !== undefined && fresh.worker === drain.worker
+        ? drain.since
+        : undefined;
+    return decide(fresh, activity, driver, now(), since) === planned;
   };
   const outcome = await lifecycle.suspend(
     "session",

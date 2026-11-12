@@ -265,6 +265,15 @@ const CALL_TIMEOUT_MS = 30_000;
  * actor's worker to let go.
  */
 const LIFECYCLE_TIMEOUT_MS = 120_000;
+/**
+ * Deadline of a durable suspend, which waits for the snapshot's upload to
+ * storage too: atelet's own budget for that upload is 2 minutes plus the
+ * snapshot's size at 100 MiB/s, so the lifecycle deadline would cut a
+ * large workspace short and leave the actor suspending on a worker that is
+ * leaving. Ten minutes covers about 60 GiB and stays well inside the 30 a
+ * leaving worker gives (driver.ts, "Workers leaving").
+ */
+const DURABLE_SUSPEND_TIMEOUT_MS = 10 * 60_000;
 /** The largest page Substrate serves. */
 const PAGE_SIZE = 1000;
 /** An actor has at most one egress policy, and it is named so. */
@@ -516,6 +525,7 @@ export function newSubstrateGatewayOverTransport(
   const ref = (name: string) => create(ObjectRefSchema, { atespace, name });
   const call = { timeoutMs: CALL_TIMEOUT_MS };
   const lifecycle = { timeoutMs: LIFECYCLE_TIMEOUT_MS };
+  const durableSuspend = { timeoutMs: DURABLE_SUSPEND_TIMEOUT_MS };
 
   return {
     async ensureAtespace() {
@@ -701,7 +711,7 @@ export function newSubstrateGatewayOverTransport(
                   : DurabilityMode.ASYNCHRONOUS,
             },
           },
-          lifecycle,
+          options?.durable === true ? durableSuspend : lifecycle,
         );
       }),
     revertActor: (name) =>

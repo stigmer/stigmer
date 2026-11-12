@@ -16,7 +16,8 @@
  *     an atespace granted to the server needs no global owner;
  *   - an actor's state is Substrate's, whatever snapshot it holds;
  *   - a suspend asks for Substrate's asynchronous mode, a durable one for
- *     the synchronous mode, and a delete sends the actor's reference alone;
+ *     the synchronous mode under a deadline long enough for the upload, and
+ *     a delete sends the actor's reference alone;
  *   - workers are listed across pages with their state in the driver's
  *     words, an actor names the worker hosting it (none when it has none),
  *     a refused worker read names the global viewer grant it needs, and
@@ -840,8 +841,10 @@ describe("the calls that succeed", () => {
       ),
       createActorEgressPolicy: record("createActorEgressPolicy", {}),
       resumeActor: record("resumeActor", { resumed: true }),
-      suspendActor(request) {
-        seen.push(`suspendActor mode=${DurabilityMode[request.options?.mode ?? 0]}`);
+      suspendActor(request, context) {
+        seen.push(
+          `suspendActor mode=${DurabilityMode[request.options?.mode ?? 0]} deadline=${(context.timeoutMs() ?? 0) > 120_000 ? "long" : "short"}`,
+        );
         return {};
       },
       revertActor: record("revertActor", {}),
@@ -902,8 +905,8 @@ describe("the calls that succeed", () => {
       "createActorTemplate",
       "createActorEgressPolicy",
       "resumeActor",
-      "suspendActor mode=ASYNCHRONOUS",
-      "suspendActor mode=SYNCHRONOUS",
+      "suspendActor mode=ASYNCHRONOUS deadline=short",
+      "suspendActor mode=SYNCHRONOUS deadline=long",
       "revertActor",
       "deleteActor a",
       "deleteActorTemplate",

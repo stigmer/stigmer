@@ -24,7 +24,9 @@
  *   - on a draining worker a sandbox is stored (suspended durably) as soon
  *     as its session is not busy, inside its idle window; a busy one runs
  *     on until the drain deadline and is then stored, never thawed for the
- *     turn it ended, while an idle store a turn races is thawed; one on an active
+ *     turn it ended, while an idle store a turn races is thawed; a sandbox
+ *     that left the draining worker before the act (stored and woken by a
+ *     new turn) is not stored again; one on an active
  *     worker follows the ladder, suspended asynchronously; an orphan on a
  *     draining worker is stored; a worker read that fails is one warning
  *     and the ladder runs as before.
@@ -682,7 +684,7 @@ describe("a worker leaving", () => {
     expect(h.substrate.suspensions).toEqual([{ name, durable: true }]);
   });
 
-  it("an idle store that a turn races is thawed at once, as a suspend is; a forced one is not", async () => {
+  it("an idle store that a turn races is thawed at once, as a suspend is", async () => {
     const h = harness();
     h.substrate.workers.set("w-1", "draining");
     const raced = known(h, "ses_raced", "running", 1 * MIN);
@@ -703,6 +705,23 @@ describe("a worker leaving", () => {
       `resumeActor ${raced}`,
     ]);
     expect(h.substrate.suspensions).toEqual([{ name: raced, durable: true }]);
+  });
+
+  it("does not store a sandbox that left the draining worker before the act, even past the deadline", async () => {
+    const h = harness();
+    h.substrate.workers.set("w-1", "draining");
+    const name = known(h, "ses_a", "running", 0, true);
+    onWorker(h, name, "w-1");
+    await h.pass();
+    h.advance(DRAIN_DEADLINE_MS);
+    // Between the pass's read and the act, the sandbox was stored and woken
+    // by a new turn on a healthy worker.
+    h.sessions.onRead = (id) => {
+      if (id === "ses_a") onWorker(h, name, "w-2");
+    };
+    await h.pass();
+    expect(h.substrate.actors.get(name)?.state).toBe("running");
+    expect(h.substrate.suspensions).toEqual([]);
   });
 
   it("leaves a sandbox on an active worker to the ladder, suspended asynchronously", async () => {
