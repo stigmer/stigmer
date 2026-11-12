@@ -470,6 +470,13 @@ export class MockLlmProxy {
     return this;
   }
 
+  // Forget a persistent fault without retiring any run (reset() retires every
+  // run it heard from): the provider recovers, and a run that failed on the
+  // fault may be picked up again (a recover) and take the next queued turn.
+  clearFault(): void {
+    this.persistentError = undefined;
+  }
+
   // Append a turn that drops the connection without answering: the provider
   // unreachable, which the SDK raises as a connection error (no status).
   // `persistent` keeps dropping every later request until reset(), as a real

@@ -79,7 +79,8 @@ test.describe("Every way a turn ends badly, in its own words (deterministic mock
 
   for (const harness of [Harness.STIGMER, Harness.CLAUDE]) {
     test(`a refused key reads as the organization's, and Run again recovers the turn in place (${Harness[harness]})`, async ({ page, stigmerClient }) => {
-      await control.enqueueError({ status: 401, body: ORG_KEY_REFUSED });
+      // Persistent: an engine may ask again on a refused key before it gives up.
+      await control.enqueueError({ status: 401, body: ORG_KEY_REFUSED, persistent: true });
       const seeded = await seedTurn(stigmerClient, harness);
       expect(await awaitRunTerminal(stigmerClient, seeded.runId, { timeoutMs: RETRIED_MS })).toBe(RunPhase.RUN_FAILED);
 
@@ -88,6 +89,8 @@ test.describe("Every way a turn ends badly, in its own words (deterministic mock
       await expect(page.getByRole("link", { name: "Open Models & providers" })).toBeVisible();
       await expect(page.getByRole("button", { name: "Copy details" })).toBeVisible();
 
+      // The key is fixed: the provider answers again.
+      await control.clearFault();
       const calls = await control.scriptedCalls();
       await control.enqueue(anthropicText("Rounded once, at the total."));
       await page.getByRole("button", { name: "Run again" }).click();

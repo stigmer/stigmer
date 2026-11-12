@@ -68,6 +68,14 @@ export class MockControl {
     }
   }
 
+  /** Forget a persistent fault without retiring any run, so a failed run's recover can take the next turn. */
+  async clearFault(): Promise<void> {
+    const res = await fetch(`${this.baseUrl}/__mock/clear-fault`, { method: "POST" });
+    if (!res.ok) {
+      throw new Error(`mock clear-fault failed: ${res.status} ${await res.text()}`);
+    }
+  }
+
   /** Drop any unconsumed turns. Call between tests so leftovers can't leak. */
   async reset(): Promise<void> {
     const res = await fetch(`${this.baseUrl}/__mock/reset`, { method: "POST" });
