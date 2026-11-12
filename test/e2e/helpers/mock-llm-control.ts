@@ -76,6 +76,13 @@ export class MockControl {
     }
   }
 
+  /** How many model calls the proxy answered from the script (the turns it consumed, errors included). */
+  async scriptedCalls(): Promise<number> {
+    const res = await fetch(`${this.baseUrl}/__mock/requests`);
+    const body = (await res.json()) as { requests: readonly { readonly disposition: string }[] };
+    return body.requests.filter((request) => request.disposition === "scripted").length;
+  }
+
   /** Turns still waiting to be served (0 after a run consumed its full script). */
   async remaining(): Promise<number> {
     const res = await fetch(`${this.baseUrl}/__mock/remaining`);
