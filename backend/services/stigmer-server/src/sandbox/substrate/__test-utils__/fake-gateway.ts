@@ -7,6 +7,9 @@
  * scripted failures per method so a test can make one call answer
  * ABORTED, crash, or run out of workers. An egress policy is created when
  * missing and replaced when its rules differ, as the real gateway does.
+ * Workers are names with a state; an actor may name the worker hosting it,
+ * and a suspend unassigns it, as Substrate does. Each suspend's durability
+ * is recorded in `suspensions`.
  */
 import { equals } from "@bufbuild/protobuf";
 
@@ -23,7 +26,10 @@ import type {
   SubstrateActorView,
   SubstrateGateway,
   SubstrateSandboxState,
+  SubstrateSuspendOptions,
   SubstrateTemplateView,
+  SubstrateWorkerState,
+  SubstrateWorkerView,
 } from "../gateway.js";
 
 type Method = keyof SubstrateGateway;
@@ -37,6 +43,8 @@ export interface FakeActor {
   createTime: Date;
   updateTime: Date;
   policy: readonly EgressRule[] | undefined;
+  /** The worker hosting it, while it has one. */
+  worker?: string;
 }
 
 export interface FakeTemplate {
@@ -54,6 +62,10 @@ export class FakeSubstrate implements SubstrateGateway {
   readonly actors = new Map<string, FakeActor>();
   readonly templates = new Map<string, FakeTemplate>();
   readonly calls: string[] = [];
+  /** Every worker, by name, with its state. */
+  readonly workers = new Map<string, SubstrateWorkerState>();
+  /** Every suspend that reached an actor, in order, with its durability. */
+  readonly suspensions: Array<{ name: string; durable: boolean }> = [];
   /** Failures to throw, per method, oldest first. */
   readonly failures = new Map<
     Method,
@@ -196,9 +208,13 @@ export class FakeSubstrate implements SubstrateGateway {
     this.mutate(actor, "running");
   }
 
-  async suspendActor(name: string): Promise<void> {
+  async suspendActor(
+    name: string,
+    options?: SubstrateSuspendOptions,
+  ): Promise<void> {
     this.enter("suspendActor", name);
     const actor = this.need(name);
+    this.suspensions.push({ name, durable: options?.durable === true });
     if (actor.state === "suspended") return;
     this.precondition(
       name,
@@ -206,6 +222,7 @@ export class FakeSubstrate implements SubstrateGateway {
       `suspend from ${actor.state}`,
     );
     this.mutate(actor, "suspended");
+    delete actor.worker;
   }
 
   async revertActor(name: string): Promise<void> {
@@ -275,6 +292,11 @@ export class FakeSubstrate implements SubstrateGateway {
     this.goldenErrors.delete(template.name);
     this.templates.delete(template.name);
   }
+
+  async listWorkers(): Promise<SubstrateWorkerView[]> {
+    this.enter("listWorkers", "");
+    return [...this.workers].map(([name, state]) => ({ name, state }));
+  }
 }
 
 function view(actor: FakeActor): SubstrateActorView {
@@ -286,6 +308,7 @@ function view(actor: FakeActor): SubstrateActorView {
     template: actor.template,
     createTime: actor.createTime,
     updateTime: actor.updateTime,
+    ...(actor.worker !== undefined ? { worker: actor.worker } : {}),
   };
 }
 

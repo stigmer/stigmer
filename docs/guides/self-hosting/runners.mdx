@@ -705,6 +705,20 @@ What the driver needs:
   `editor` to `user:system:serviceaccount:<namespace>:<name>`
   (`kubectl ate create access-policy -a <atespace> -f <manifest>`). Without
   `editor` the first Session fails with a message naming it.
+- **Optional: global `viewer`, so a leaving worker's sandboxes keep their
+  files.** A worker that rolls, scales down or drains (a Substrate upgrade, a
+  node upgrade, a node pool shrinking) gives each sandbox on it 30 minutes to be
+  suspended before it goes. The server stores such a sandbox, a suspend that
+  returns once its files are in storage, as soon as its Session is between
+  turns, and ends a turn still running 20 minutes after it first saw the drain;
+  the Session's next message wakes it on another worker with its files. To see
+  which workers are leaving, the server lists them, and workers have no
+  atespace, so that needs `viewer` in Substrate's global access policy
+  (`kubectl ate update access-policy --global -f <manifest>`, binding `viewer`
+  to `user:system:serviceaccount:<namespace>:<name>`; a bootstrap owner already
+  holds it). Without it the server logs once that the grant is missing and
+  carries on, and a sandbox awake on a leaving worker loses what it wrote since
+  it last slept.
 - **A runner image pinned by digest** in `STIGMER_SANDBOX_RUNNER_IMAGE`
   (`…@sha256:…`), and fully qualified DNS names, not addresses, short names or
   patterns, in the backend and Temporal endpoints and the extra destinations:

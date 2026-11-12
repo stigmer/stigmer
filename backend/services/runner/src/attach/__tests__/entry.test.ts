@@ -1,8 +1,10 @@
 /**
  * Pins the attach entry (entry.ts): its configuration from the sandbox's
  * environment (defaults, overrides, a refused port), that the waiter reads the
- * sandbox name from the configured file on every push, and that SIGTERM or
- * SIGINT stops the waiter once and then exits 0, or 1 when stopping fails.
+ * sandbox name from the configured file on every push, that SIGTERM leaves
+ * the waiter and its runner up (logged once, so the platform can suspend the
+ * sandbox), and that SIGINT stops the waiter once and then exits 0, or 1 when
+ * stopping fails.
  */
 import { afterEach, describe, expect, it } from "vitest";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -47,12 +49,13 @@ describe("runAttachEntry", () => {
   function fakeHost() {
     const handlers = new Map<string, () => void>();
     const exits: number[] = [];
+    const logs: string[] = [];
     const host: AttachEntryHost = {
       onSignal: (signal, handler) => handlers.set(signal, handler),
       exit: (code) => exits.push(code),
-      log: () => {},
+      log: (message) => logs.push(message),
     };
-    return { host, handlers, exits };
+    return { host, handlers, exits, logs };
   }
 
   function fakeWaiter(close: () => Promise<void>): { start: (o: AttachWaiterOptions) => Promise<AttachWaiter>; seen: AttachWaiterOptions[]; closes: () => number } {
@@ -92,11 +95,26 @@ describe("runAttachEntry", () => {
     expect(options.readSandboxName()).toBe("sbx-ses-bbbbbbbbbbbb");
   });
 
-  it("stops the waiter once on SIGTERM or SIGINT, then exits 0", async () => {
+  it("stays up on SIGTERM, logging it once, so the platform can suspend the sandbox", async () => {
+    const { host, handlers, exits, logs } = fakeHost();
+    const waiter = fakeWaiter(async () => {});
+    await runAttachEntry({}, host, waiter.start);
+    handlers.get("SIGTERM")!();
+    handlers.get("SIGTERM")!();
+    await new Promise((r) => setTimeout(r, 10));
+    expect(waiter.closes()).toBe(0);
+    expect(exits).toEqual([]);
+    expect(logs.filter((line) => line.includes("SIGTERM"))).toEqual([
+      "[attach] received SIGTERM: eviction requested; staying up so the platform can suspend this sandbox",
+    ]);
+  });
+
+  it("stops the waiter once on SIGINT, after a SIGTERM too, then exits 0", async () => {
     const { host, handlers, exits } = fakeHost();
     const waiter = fakeWaiter(async () => {});
     await runAttachEntry({}, host, waiter.start);
     handlers.get("SIGTERM")!();
+    handlers.get("SIGINT")!();
     handlers.get("SIGINT")!();
     await new Promise((r) => setTimeout(r, 10));
     expect(waiter.closes()).toBe(1);

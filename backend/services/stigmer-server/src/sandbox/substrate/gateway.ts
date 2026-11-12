@@ -37,7 +37,18 @@
  * Substrate's asynchronous mode: the call returns once the snapshot is
  * captured on the actor's node, so a quick wake restores from there, and
  * Substrate copies it to storage in the background. Nothing here waits for
- * that copy or reads it: a wake takes the same call either way.
+ * that copy or reads it: a wake takes the same call either way. A durable
+ * suspend asks for the synchronous mode instead, which returns once the
+ * snapshot is in storage: an asynchronous one can lose the snapshot if the
+ * node goes away, so a sandbox on a worker that is leaving is suspended
+ * durably (driver.ts, `draining`).
+ *
+ * Workers. An actor names the worker hosting it (its status's worker
+ * assignment); a worker's state says whether it is leaving (DRAINING:
+ * rolling, scaling down or draining, and final). Workers have no
+ * atespace, so listing them needs Substrate's global viewer role, a grant
+ * the driver does not require: a refusal is thrown naming that grant, and
+ * the driver treats it as "no worker is known to be draining" (driver.ts).
  *
  * Substrate always enforces authorization (OpenFGA). The caller is its
  * token's subject, `system:serviceaccount:<namespace>:<name>`, and
@@ -85,9 +96,11 @@ import {
   EgressPolicySchema,
   EgressRuleSchema,
   ObjectRefSchema,
+  WorkerState,
   type Actor,
   type ActorTemplate,
   type EgressRule,
+  type Worker,
 } from "./gen/api/ateapi/v1/ateapi_pb.js";
 import type { SubstrateDriverSettings } from "./config.js";
 import { caFromFile } from "./pem-files.js";
@@ -151,6 +164,27 @@ export interface SubstrateActorView {
   readonly template: string;
   readonly createTime: Date | undefined;
   readonly updateTime: Date | undefined;
+  /** The worker hosting it; absent while it has none (suspended, crashed). */
+  readonly worker?: string;
+}
+
+/** A worker's state, in the platform's words: Substrate's (module header). */
+export type SubstrateWorkerState =
+  | "active"
+  | "draining"
+  | "unavailable"
+  | "unknown";
+
+/** One worker as the driver sees it. */
+export interface SubstrateWorkerView {
+  readonly name: string;
+  readonly state: SubstrateWorkerState;
+}
+
+/** How a suspend keeps its snapshot (module header). */
+export interface SubstrateSuspendOptions {
+  /** Return only once the snapshot is in storage, not just on the node. */
+  readonly durable?: boolean;
 }
 
 /** One template as the driver sees it. */
@@ -197,8 +231,11 @@ export interface SubstrateGateway {
     template: string,
   ): Promise<"moved" | "refused">;
   resumeActor(name: string): Promise<void>;
-  /** Returns once the snapshot is on the actor's node; storage follows in the background. */
-  suspendActor(name: string): Promise<void>;
+  /**
+   * Returns once the snapshot is on the actor's node, storage following in
+   * the background; a durable suspend, once it is in storage.
+   */
+  suspendActor(name: string, options?: SubstrateSuspendOptions): Promise<void>;
   revertActor(name: string): Promise<void>;
   /** In any state; an absent actor is success. */
   deleteActor(name: string): Promise<void>;
@@ -215,6 +252,8 @@ export interface SubstrateGateway {
   createTemplate(template: ActorTemplate): Promise<"created" | "exists">;
   /** Deletes the template at the version read; an absent one is success. */
   deleteTemplate(template: SubstrateTemplateView): Promise<void>;
+  /** Every worker, across pages; a refusal names the global viewer grant (module header). */
+  listWorkers(): Promise<SubstrateWorkerView[]>;
 }
 
 /** Deadline of an ordinary call. */
@@ -650,12 +689,17 @@ export function newSubstrateGatewayOverTransport(
       translate(async () => {
         await client.resumeActor({ actor: ref(name) }, lifecycle);
       }),
-    suspendActor: (name) =>
+    suspendActor: (name, options) =>
       translate(async () => {
         await client.suspendActor(
           {
             actor: ref(name),
-            options: { mode: DurabilityMode.ASYNCHRONOUS },
+            options: {
+              mode:
+                options?.durable === true
+                  ? DurabilityMode.SYNCHRONOUS
+                  : DurabilityMode.ASYNCHRONOUS,
+            },
           },
           lifecycle,
         );
@@ -771,6 +815,28 @@ export function newSubstrateGatewayOverTransport(
           if (!hasCode(error, Code.NotFound)) throw error;
         }
       }),
+
+    listWorkers: () =>
+      translate(async () => {
+        const workers: SubstrateWorkerView[] = [];
+        let pageToken = "";
+        try {
+          do {
+            const page = await client.listWorkers(
+              { options: { pageSize: PAGE_SIZE, pageToken } },
+              call,
+            );
+            workers.push(...page.workers.map(workerView));
+            pageToken = page.nextPageToken;
+          } while (pageToken !== "");
+        } catch (error) {
+          if (!hasCode(error, Code.PermissionDenied)) throw error;
+          throw new SubstratePermissionError(
+            `Substrate's Control API refused to list workers (${(error as ConnectError).rawMessage}); workers have no atespace, so reading them needs the global viewer role for the server's identity (its token's subject, system:serviceaccount:<namespace>:<name>). Without it the server cannot see a worker that is leaving, and a sandbox awake on one loses what it wrote since it last slept`,
+          );
+        }
+        return workers;
+      }),
   };
 }
 
@@ -826,7 +892,37 @@ function actorView(actor: Actor): SubstrateActorView {
     updateTime: actor.metadata?.updateTime
       ? timestampDate(actor.metadata.updateTime)
       : undefined,
+    ...(actor.status?.workerAssignment?.worker?.name
+      ? { worker: actor.status.workerAssignment.worker.name }
+      : {}),
   };
+}
+
+function workerView(worker: Worker): SubstrateWorkerView {
+  return {
+    name: worker.metadata?.name ?? "",
+    state: workerStateOf(worker.status?.state ?? WorkerState.UNSPECIFIED),
+  };
+}
+
+/** A worker's state in the driver's words (module header). */
+function workerStateOf(state: WorkerState): SubstrateWorkerState {
+  switch (state) {
+    case WorkerState.ACTIVE:
+      return "active";
+    case WorkerState.DRAINING:
+      return "draining";
+    case WorkerState.UNAVAILABLE:
+      return "unavailable";
+    case WorkerState.UNSPECIFIED:
+      return "unknown";
+    default: {
+      // Only a number outside the enum reaches here, from another release.
+      const unexpected: never = state;
+      void unexpected;
+      return "unknown";
+    }
+  }
 }
 
 function templateView(template: ActorTemplate): SubstrateTemplateView {

@@ -14,6 +14,21 @@
  * The runner it starts is the package's own entry, `../main.js` beside this
  * module, run by the same Node. Every other variable is passed to the runner
  * unchanged; these two are not (`WAITER_ENV_KEYS`).
+ *
+ * Signals. SIGTERM does not stop it. On Agent Substrate this process is the
+ * actor's main process, and SIGTERM is how a worker that is rolling,
+ * scaling down or draining asks its actors to be suspended: the actor then
+ * has 30 minutes for its driver to suspend it, and a process that has
+ * exited cannot be suspended, so the sandbox would crash and lose every
+ * file written since its last snapshot (Substrate's API guide,
+ * "Eviction"). So SIGTERM is logged once and the waiter keeps serving
+ * pushes and supervising the runner, and a turn in flight runs on; the
+ * server's sweep suspends the sandbox durably (the server's
+ * `sandbox/substrate/sweep.ts`). The runner never sees the signal, because
+ * Substrate signals only the main process. A platform that sends SIGTERM
+ * and never suspends ends this process at its grace period. SIGINT stops
+ * it: the runner first, waiting for its graceful shutdown, then the
+ * process.
  */
 
 import { readFileSync } from "node:fs";
@@ -55,8 +70,8 @@ export interface AttachEntryHost {
 }
 
 /**
- * Start the waiter for this sandbox and stop it on SIGTERM or SIGINT: the
- * runner first, waiting for its graceful shutdown, then the process.
+ * Start the waiter for this sandbox, stay up on SIGTERM and stop it on
+ * SIGINT (module header).
  */
 export async function runAttachEntry(
   env: NodeJS.ProcessEnv,
@@ -86,7 +101,12 @@ export async function runAttachEntry(
       },
     );
   };
-  host.onSignal("SIGTERM", () => stop("SIGTERM"));
+  let evicting = false;
+  host.onSignal("SIGTERM", () => {
+    if (evicting) return;
+    evicting = true;
+    host.log("[attach] received SIGTERM: eviction requested; staying up so the platform can suspend this sandbox");
+  });
   host.onSignal("SIGINT", () => stop("SIGINT"));
   return waiter;
 }

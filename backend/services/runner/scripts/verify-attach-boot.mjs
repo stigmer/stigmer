@@ -8,7 +8,9 @@
  * in the sandbox before it ever answers. This boots the compiled entry with a
  * free port and a scratch sandbox-name file, then proves it serves: readiness
  * answers 200, a push for a queue that is not this sandbox's is refused with
- * 403 (so the push checks loaded), and SIGTERM ends it with exit code 0. No
+ * 403 (so the push checks loaded), SIGTERM leaves it serving (a platform
+ * suspends the sandbox after SIGTERM, src/attach/entry.ts), and SIGINT ends it
+ * with exit code 0. No
  * runner is started. First it loads the entry's module graph in a child Node
  * with a resolve hook and refuses any module of the runner proper or of
  * `@temporalio`: the snapshot holds this process, so it must stay small (the
@@ -134,10 +136,17 @@ if (refused.status !== 403) {
   fail(`a push for another sandbox's queue answered ${refused.status}, not 403`);
 }
 proc.kill("SIGTERM");
+await new Promise((r) => setTimeout(r, 200));
+await serving();
+if (!output.includes("staying up so the platform can suspend this sandbox")) {
+  proc.kill("SIGKILL");
+  fail(`SIGTERM was not logged as an eviction.\n${output.slice(-2000)}`);
+}
+proc.kill("SIGINT");
 const { code, signal } = await exited;
 clearTimeout(timer);
-if (code !== 0) fail(`SIGTERM ended the entry with code ${code} (signal ${signal}).\n${output.slice(-2000)}`);
+if (code !== 0) fail(`SIGINT ended the entry with code ${code} (signal ${signal}).\n${output.slice(-2000)}`);
 const graph = options.artifact
   ? `${entry} (a bundle, its inputs held to the rule at build time)`
   : `dist/attach loads ${loaded.length} modules, none of the runner or @temporalio;`;
-console.log(`verify-attach-boot: PASS — ${graph} it served readiness, refused a foreign push and stopped cleanly`);
+console.log(`verify-attach-boot: PASS — ${graph} it served readiness, refused a foreign push, stayed up on SIGTERM and stopped cleanly on SIGINT`);

@@ -41,6 +41,17 @@
  * sandbox again. The check sits right before the call, so the window is
  * that narrow.
  *
+ * A worker leaving. Each pass asks the driver which running sandboxes sit
+ * on a draining worker (driver.ts, "Workers leaving"), and the decision
+ * (idle-decision.ts) stores each one, a durable suspend, as soon as its
+ * session is not busy, whatever its idle window, or once the drain
+ * deadline has passed; its next message wakes it on a healthy worker,
+ * with its files. A store past the deadline ends the turn in flight (a
+ * suspend keeps no runner), so it is not thawed for that turn: there is
+ * no runner left to hand it, and the session's next message wakes the
+ * sandbox. An orphan on a draining worker is stored too. A pass that
+ * cannot read the workers warns once and runs the ladder as before.
+ *
  * The suspend itself, and every pass's upkeep (egress
  * made current, a sleeping sandbox moved to the current template, unused
  * templates retired, a stuck delete repeated), are the driver's lifecycle
@@ -142,6 +153,7 @@ export async function runSweepPass(
   const now = options.now ?? Date.now;
   const stopping = options.stopping ?? (() => false);
   const actors = await lifecycle.list();
+  const draining = await leaving(options);
 
   const awake = actors.filter(
     (actor) =>
@@ -173,18 +185,20 @@ export async function runSweepPass(
           state.lastScanStartedAt !== undefined &&
           !createdAfter(actor, state.lastScanStartedAt)
         ) {
-          await suspendOrphan(actor, options);
+          await suspendOrphan(actor, draining.has(actor.name), options);
         }
         continue;
       }
+      const drainingSince = draining.get(actor.name);
       const action = decide(
         actor,
         await sessions.recentActivity(sessionId),
         driver,
         now(),
+        drainingSince,
       );
       if (action !== "none") {
-        await act(sessionId, action, options, now);
+        await act(sessionId, action, drainingSince, options, now);
       }
     } catch (error) {
       logger.warn("Substrate idle sweep skipped a sandbox", {
@@ -196,6 +210,30 @@ export async function runSweepPass(
 
   if (stopping()) return;
   logUpkeepFailures(await lifecycle.maintain(actors, { stopping }), logger);
+}
+
+/**
+ * The running sandboxes on a draining worker, by name, with when the
+ * driver first saw each drain; empty, after one warning, when the workers
+ * cannot be read this pass (module header).
+ */
+async function leaving(
+  options: SubstrateSweepOptions,
+): Promise<Map<string, Date>> {
+  try {
+    return new Map(
+      (await options.lifecycle.draining()).map((sandbox) => [
+        sandbox.actor.name,
+        sandbox.drainingSince,
+      ]),
+    );
+  } catch (error) {
+    options.logger.warn(
+      "Substrate idle sweep could not read which workers are leaving; this pass protects no sandbox from one",
+      { error: error instanceof Error ? error.message : String(error) },
+    );
+    return new Map();
+  }
 }
 
 /** One warning for every sandbox a pass's upkeep failed on: a count and a capped sample. */
@@ -250,6 +288,7 @@ function decide(
   activity: SessionActivity,
   driver: SubstrateDriverInternals,
   now: number,
+  drainingSince: Date | undefined,
 ): IdleAction {
   const stamps = [
     activity.lastActiveAt?.getTime(),
@@ -262,33 +301,52 @@ function decide(
     lastActiveAt: new Date(stamps.length > 0 ? Math.max(...stamps) : now),
     now: new Date(now),
     suspendAfterMs: driver.settings.suspendAfterSeconds * 1000,
+    ...(drainingSince !== undefined ? { drainingSince } : {}),
   });
 }
 
 /**
  * Acts through the lifecycle, whose guard re-decides inside the actor's
  * queue from fresh reads and, after the suspend, thaws the sandbox when a
- * turn has arrived (module header).
+ * turn has arrived (module header). A store is a durable suspend.
  */
 async function act(
   sessionId: string,
   planned: IdleAction,
+  drainingSince: Date | undefined,
   options: SubstrateSweepOptions,
   now: () => number,
 ): Promise<void> {
   const { driver, lifecycle, sessions, logger } = options;
   const actor = sandboxBaseName("session", sessionId);
-  const proceed = async (fresh: SubstrateActorSummary): Promise<boolean> =>
-    decide(fresh, await sessions.activity(sessionId), driver, now()) ===
-    planned;
-  const outcome = await lifecycle.suspend("session", sessionId, {
-    proceed,
-    stillIdle: async () => !(await sessions.activity(sessionId)).busy,
-  });
+  // A store decided while the session was busy is forced (the deadline
+  // passed): it ends that turn, so the turn is no reason to thaw.
+  let forced = false;
+  const proceed = async (fresh: SubstrateActorSummary): Promise<boolean> => {
+    const activity = await sessions.activity(sessionId);
+    forced = planned === "store" && activity.busy;
+    return decide(fresh, activity, driver, now(), drainingSince) === planned;
+  };
+  const outcome = await lifecycle.suspend(
+    "session",
+    sessionId,
+    {
+      proceed,
+      stillIdle: async () =>
+        forced || !(await sessions.activity(sessionId)).busy,
+    },
+    { durable: planned === "store" },
+  );
   if (outcome === "thawed") {
     logger.info("A turn arrived while its sandbox suspended; resumed it", {
       actor,
       sessionId,
+    });
+  } else if (outcome === "done" && planned === "store") {
+    logger.info("Substrate sandbox stored before its worker drained", {
+      actor,
+      sessionId,
+      endedTurn: forced,
     });
   } else if (outcome === "done") {
     logger.info("Substrate sandbox suspended (idle)", { actor, sessionId });
@@ -297,13 +355,14 @@ async function act(
 
 async function suspendOrphan(
   actor: SubstrateActorSummary,
+  durable: boolean,
   options: SubstrateSweepOptions,
 ): Promise<void> {
   const { driver, logger } = options;
   await driver.serialize(actor.name, async () => {
     // An ensure that named it while this waited in the queue wins.
     if (driver.sessionByActor.has(actor.name)) return;
-    await driver.gateway.suspendActor(actor.name);
+    await driver.gateway.suspendActor(actor.name, { durable });
     logger.error(
       "Substrate sandbox belongs to no session; suspended it (its workspace is kept)",
       { actor: actor.name },

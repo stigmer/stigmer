@@ -43,7 +43,7 @@
  *      (stigmer-agent, when this runs as root, as the image smoke does); and
  *      static mode's boot (check 6) logs the engine ready from that home.
  *   5. Attach entry (not on Windows) — attach/main.js beside the entry serves readiness,
- *      refuses a foreign push and stops cleanly (verify-attach-boot.mjs, run
+ *      refuses a foreign push, stays up on SIGTERM and stops cleanly on SIGINT (verify-attach-boot.mjs, run
  *      by the same Node). Skipped on Windows: the waiter runs only in a
  *      Linux sandbox, and Node on Windows cannot deliver SIGTERM as a signal
  *      (kill force-terminates), so the clean-stop check could never pass there
@@ -550,7 +550,7 @@ try {
     console.log("[attach] skipped on Windows: the attach waiter runs only in Linux sandboxes");
   } else {
     verifyAttachEntry();
-    console.log("[attach] OK: the attach entry served readiness, refused a foreign push and stopped cleanly");
+    console.log("[attach] OK: the attach entry served readiness, refused a foreign push, stayed up on SIGTERM and stopped cleanly on SIGINT");
   }
   verifyAgentHost();
   console.log("[host]   OK: the entry started as the agent host announced itself on its pipe and exited when it closed");
