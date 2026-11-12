@@ -155,8 +155,10 @@ export interface ThreadCardHeaderProps {
 
 // `isolate` keeps a lifted control's z-index inside the header, so it never
 // paints over the thread's own overlays (sticky bars, scroll fades).
+// A step reads at body size (14/20) on a 36px row, the kit's scale for a
+// line a person reads, not a caption.
 const HEADER_LAYOUT =
-  "stg:relative stg:isolate stg:flex stg:w-full stg:items-center stg:gap-2 stg:px-2.5 stg:py-1.5 stg:text-xs";
+  "stg:relative stg:isolate stg:flex stg:w-full stg:items-center stg:gap-2 stg:px-3 stg:py-2 stg:text-sm";
 
 const TOGGLE_CLASSES = cn(
   // z-1, not auto: a header child that draws with a transform (the open
@@ -259,8 +261,8 @@ export function ThreadCardBody({ id, cursorTarget, rail = false, children }: Thr
       data-cursor-target={cursorTarget}
       className={
         rail
-          ? "stg:ml-1.5 stg:border-l-2 stg:border-border-muted stg:py-1 stg:pl-3 stg:pr-2.5"
-          : "stg:px-2.5 stg:pb-2.5 stg:pt-1"
+          ? "stg:ml-1.5 stg:border-l-2 stg:border-border-muted stg:py-1 stg:pl-3 stg:pr-3"
+          : "stg:px-3 stg:pb-3 stg:pt-1"
       }
     >
       {children}

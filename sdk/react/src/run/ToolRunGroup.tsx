@@ -85,7 +85,7 @@ export const ToolRunGroup = memo(function ToolRunGroup({
         aria-expanded={expanded}
         onClick={handleToggle}
         className={cn(
-          "stg:flex stg:w-full stg:cursor-pointer stg:items-center stg:gap-2 stg:px-2.5 stg:py-1.5 stg:text-left stg:text-xs stg:text-muted-foreground stg:transition-colors",
+          "stg:flex stg:w-full stg:cursor-pointer stg:items-center stg:gap-2 stg:px-3 stg:py-2 stg:text-left stg:text-sm stg:text-muted-foreground stg:transition-colors",
           "stg:hover:bg-muted-subtle",
           "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring",
         )}
@@ -98,7 +98,7 @@ export const ToolRunGroup = memo(function ToolRunGroup({
             static color utility rather than fighting it. */}
         <span
           className={cn(
-            "stg:min-w-0 stg:flex-1 stg:truncate stg:font-medium",
+            "stg:min-w-0 stg:flex-1 stg:truncate",
             isShimmering ? "stgm-shimmer-label" : "stg:text-foreground",
           )}
         >
@@ -116,7 +116,7 @@ export const ToolRunGroup = memo(function ToolRunGroup({
         // With no card frame, the disclosed rows sit under a light left rail
         // (the quiet-tier body containment, mirroring ThreadCardBody's rail)
         // as divider-separated rows — their container owns the frame.
-        <div className="stg:ml-1.5 stg:border-l-2 stg:border-border-muted stg:pl-2">
+        <div className="stg:ml-4 stg:border-l-2 stg:border-border-muted stg:pl-2">
           {toolUses.map((tu) => (
             <ToolCallItem key={tu.id} toolUse={tu} bordered={false} />
           ))}

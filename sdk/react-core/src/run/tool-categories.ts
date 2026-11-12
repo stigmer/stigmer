@@ -43,22 +43,19 @@ export type ToolCategory =
 /**
  * How much of a settled tool call to reveal inline by default in the thread.
  *
- * - `"summary"` — a compact one-line row. Used when the label + primary arg +
- *   result summary already tell the story (`Read foo.ts`, `Edit bar.ts +40 -0`,
- *   `Search … 2 matches`). The full detail is one click away.
- * - `"preview"` — the row renders its result body **always** (no card chevron),
- *   because the one-liner cannot convey what happened so the content itself IS
- *   the information (an MCP result such as a screenshot, a fetched page, a
- *   web-search answer, or an unrecognised tool's output). The body's own
- *   in-place reveal expands it beyond the height budget.
- * - `"tail"` — live like `"preview"`, settled like a teaser: while the tool
- *   runs (or awaits approval) the full body streams in view; once it settles
- *   successfully the row collapses to a dimmed tail of its last output lines —
- *   at-a-glance evidence that it ran and what it printed last — expanding on
- *   demand via the header chevron. A settled *failure* stays open: error
- *   output is content, not context. Shell is the canonical tail category — a
- *   working session's compile/validate loops would otherwise dominate the
- *   transcript at full contrast (Cursor's chat is the reference UX).
+ * - `"summary"` — a closed one-line step that opens to its body on a click.
+ *   The line says what the step did (`Read foo.ts`, `Edited bar.ts +40 −0`,
+ *   `Searched for … 2 matches`); the diff, the matches or the output are one
+ *   click away. Every category but a memory proposal and shell.
+ * - `"preview"` — the row renders its result body **always** (no card
+ *   chevron), because the body is a decision surface: a memory proposal's
+ *   fact and its Confirm/Reject actions. A host may ask for it per kind
+ *   ({@link registerToolPresenter}).
+ * - `"tail"` — a summary step that stays open while it shows a failure: the
+ *   full body streams in view while the tool runs (or awaits approval), it
+ *   closes once it settles successfully, and a settled failure (an error or
+ *   a non-zero exit) stays open, because error output is the content the
+ *   person needs next. Shell is the tail category.
  *
  * This is the *disclosure* axis (how much of a result to show); it is
  * orthogonal to `isRunGroupableCategory` (whether consecutive same-kind
@@ -117,38 +114,24 @@ export function defaultChromeForCategory(category: ToolCategory): ToolChrome {
 }
 
 /**
- * Categories whose result is foregrounded as a persistent bounded preview by
- * default — those for which the compact one-liner cannot convey what happened,
- * so the output itself carries the meaning. All other categories default to
- * `"summary"`.
+ * Categories whose result is foregrounded as a persistent preview by default.
+ * Every other category is a closed one-line step that opens to its body on a
+ * click: the line already says what the step did ("Edited invoice.ts
+ * +2 −2"), and a turn of many steps reads as a list, not a wall of bodies.
  *
- * File edits and writes are previewed: a `+N -M` summary says how much changed
- * but not *what* — and the change is the decision-relevant content. Surfacing a
- * bounded diff inline (Cursor-style) is the point of a code agent. The body is
- * height-clamped with a single in-place reveal for the rest, so density stays
- * under control even in turns with many edits.
+ * A memory proposal is the exception: it is a decision surface, and the
+ * verbatim fact and its Confirm/Reject actions ARE the content, so it never
+ * folds behind a chevron (a proposal the user scrolled past is caught by the
+ * memory page, but the chip must not hide itself while in view).
  */
-const PREVIEW_CATEGORIES: ReadonlySet<ToolCategory> = new Set<ToolCategory>([
-  "edit",
-  "write",
-  "mcp",
-  "web-search",
-  "fetch",
-  // A memory proposal is a decision surface: the verbatim fact and the
-  // Confirm/Reject actions ARE the content — never fold it behind a chevron
-  // (a proposal the user scrolled past is caught by the memory
-  // page, but the chip must not hide itself while in view).
-  "memory",
-  "unknown",
-]);
+const PREVIEW_CATEGORIES: ReadonlySet<ToolCategory> = new Set<ToolCategory>(["memory"]);
 
 /**
- * Categories that stream in full while live but settle to a dimmed tail of
- * their last output lines (see the `"tail"` arm of {@link ToolDisclosure}).
- * Today that is shell alone: its output is evidence worth keeping at a
- * glance, but rarely worth reading line by line once the command succeeded.
- * Consumers can restore the always-expanded preview per kind via
- * {@link registerToolPresenter} (`disclosure: () => "preview"`).
+ * Categories that stream in full while live, close once they settle
+ * successfully, and stay open on a failure (see the `"tail"` arm of
+ * {@link ToolDisclosure}). Today that is shell alone. Consumers can restore
+ * the always-expanded preview per kind via {@link registerToolPresenter}
+ * (`disclosure: () => "preview"`).
  */
 const TAIL_CATEGORIES: ReadonlySet<ToolCategory> = new Set<ToolCategory>([
   "shell",

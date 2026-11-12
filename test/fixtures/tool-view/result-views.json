@@ -118,7 +118,7 @@
       "result": "",
       "error": "command not found: boom",
       "status": "TOOL_CALL_FAILED",
-      "expected": { "type": "error" }
+      "expected": { "type": "terminal", "command": "boom" }
     },
     {
       "name": "remember_proposal_plain",
@@ -165,7 +165,7 @@
       "result": "broken\n",
       "error": "[stderr] broken\n\nExit code: 3",
       "status": "TOOL_CALL_FAILED",
-      "expected": { "type": "error" }
+      "expected": { "type": "terminal", "exitCode": 3, "command": "echo broken >&2; exit 3" }
     },
     {
       "name": "claude_write",

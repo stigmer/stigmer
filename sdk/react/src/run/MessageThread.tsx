@@ -25,6 +25,9 @@ import {
   type QueuedMessage,
   type Turn,
   type TurnItem,
+  type TurnSteps,
+  isBackgroundRunning,
+  turnSteps,
 } from "@stigmer/client";
 import { cn } from "@stigmer/design-tokens";
 import { runPhaseOf } from "@stigmer/react-core";
@@ -35,6 +38,7 @@ import { messageFileViews, type MessageFileView } from "./MessageFiles.js";
 import { ToolCallGroup } from "./ToolCallGroup.js";
 import { backgroundCommandsHolding, hasStartedResponding, hasVisiblyRunningActivity } from "./turn-tail.js";
 import { SettledStepsRow } from "./SettledStepsRow.js";
+import { PlanSteps } from "./PlanSteps.js";
 import { ThreadPresentationContext, useThreadPresentation, type ThreadPresentation } from "./ThreadPresentationContext.js";
 import { SubagentSection } from "./SubagentSection.js";
 import { RunPhaseBadge } from "./RunPhaseBadge.js";
@@ -423,14 +427,6 @@ export interface MessageThreadProps {
    */
   readonly turnOutcome?: (turn: Turn) => ReactNode;
   /**
-   * Fold a stretch of settled tool calls into one step row that opens to
-   * them ("Read 1 file, edited invoice.ts · 56 s"), for people who want
-   * the result rather than the working. A builder keeps every row.
-   *
-   * @default false
-   */
-  readonly foldSettledSteps?: boolean;
-  /**
    * Whether the thread's tail shows its own working indicator while a turn
    * runs. `false` when the host shows the turn's activity itself (the
    * session view's activity line), so one place says what the agent does.
@@ -473,7 +469,32 @@ export const DROPPED_MESSAGE_LABEL = "Not read — the turn was stopped";
 export type ThreadItem =
   | { readonly kind: "queued-message"; readonly message: QueuedMessage; readonly key: string }
   | { readonly kind: "message"; readonly message: ThreadMessage; readonly key: string; readonly isPending?: boolean; readonly isFailed?: boolean; readonly isEditable?: boolean; readonly isPlanDocument?: boolean; readonly interactionMode?: InteractionMode; readonly files?: readonly MessageFileView[]; readonly executionId?: string; readonly scoresRunId?: string }
-  | { readonly kind: "tool-group"; readonly toolUses: readonly ToolUse[]; readonly key: string }
+  | {
+      readonly kind: "tool-group";
+      readonly toolUses: readonly ToolUse[];
+      readonly key: string;
+      /** Fold the stretch into one line that opens to it: the working turn's stretch once every call in it returned. */
+      readonly fold?: boolean;
+    }
+  | {
+      /** The turn's steps as the agent's plan: its to-do list, each item with the steps it took (`turnSteps`). */
+      readonly kind: "plan";
+      readonly key: string;
+      readonly steps: TurnSteps;
+      /** Whether the turn still works. */
+      readonly working: boolean;
+    }
+  | {
+      /**
+       * A finished turn's working, folded under one "How it got there" line
+       * after its answer and what it produced: the items in time order, and
+       * the calls the line counts.
+       */
+      readonly kind: "how-it-got-there";
+      readonly key: string;
+      readonly toolUses: readonly ToolUse[];
+      readonly items: readonly ThreadItem[];
+    }
   | { readonly kind: "subagent"; readonly toolUse: ToolUse; readonly thread: Thread; readonly key: string }
   | { readonly kind: "phase-badge"; readonly phase: RunPhase; readonly key: string }
   | { readonly kind: "outcome"; readonly turn: Turn; readonly key: string }
@@ -567,6 +588,12 @@ export interface BuildThreadItemsOptions {
   readonly agentVersionLabel?: (versionHash: string) => string;
   /** Each Plan-mode turn's plan File, by run id. */
   readonly planFiles?: ReadonlyMap<string, StigmerFile>;
+  /**
+   * Draw a turn that keeps a to-do list as its plan, its steps under the
+   * items they served (default true). False keeps the to-do card and the
+   * steps in time order, for a host that draws its own to-do card.
+   */
+  readonly planSteps?: boolean;
 }
 
 /** The phases a turn ends with a badge for: everything but a completion. */
@@ -719,6 +746,7 @@ export function buildThreadItems(
     planFiles,
     includeOutcomes = false,
     includeLiveness = true,
+    planSteps = true,
   } = options;
   const runsById = new Map<string, Run>();
   for (const run of runs) {
@@ -790,6 +818,18 @@ export function buildThreadItems(
     const fileReviewAnchors = new Map<string, number>();
     const reviewSets = includeFileReviewRecords ? turn.fileReview : [];
 
+    // A turn that keeps a to-do list draws it as its plan, every step under
+    // the item it served (turnSteps); a step that waits for a person stays
+    // out of it, so its ask is drawn as its own card (the backstop below).
+    const steps = planSteps && turn.todos.length > 0 ? turnSteps(turn) : undefined;
+    if (steps !== undefined) {
+      for (const tool of [...steps.plan.flatMap((item) => item.calls), ...steps.loose]) {
+        if (tool.state === "waiting") continue;
+        inlineToolUseIds.add(tool.id);
+        if (tool.thread) collectThreadToolUseIds(tool.thread, inlineToolUseIds);
+      }
+    }
+
     // The agent's plan renders as one inline card per turn, anchored to the
     // first of: the opening message or thinking, the first unit of work, or
     // — as a backstop — the turn's tail.
@@ -797,12 +837,11 @@ export function buildThreadItems(
     function emitTodos(): void {
       if (todosEmitted || turn.todos.length === 0) return;
       todosEmitted = true;
-      items.push({
-        kind: "todos",
-        executionId: runId,
-        todos: turn.todos,
-        key: `${runId}-todos`,
-      });
+      items.push(
+        steps !== undefined
+          ? { kind: "plan", key: `${runId}-todos`, steps, working: !turn.ended }
+          : { kind: "todos", executionId: runId, todos: turn.todos, key: `${runId}-todos` },
+      );
     }
 
     // The agent version this turn ran opens its segment when it differs
@@ -881,15 +920,21 @@ export function buildThreadItems(
       });
     }
 
+    // Where the agent's part of the turn starts: a finished turn reorders
+    // it below, answer first.
+    const segmentStart = items.length;
+
     // The turn's consecutive tool uses, waiting to be flushed as rows: one
     // group per run of calls between messages, a subagent in its own card.
+    // The working turn folds a stretch once every call in it returned.
     let group: ToolUse[] = [];
     const flushGroup = (): void => {
       if (group.length === 0) return;
       // Anchor (2): if work begins before any rendered narration, the plan
       // still leads it.
       emitTodos();
-      items.push({ kind: "tool-group", toolUses: group, key: `${group[0]!.id}-tc` });
+      const settled = group.every((tool) => tool.result !== undefined && !isBackgroundRunning(tool));
+      items.push({ kind: "tool-group", toolUses: group, key: `${group[0]!.id}-tc`, ...(isActiveTurn && settled ? { fold: true } : {}) });
       recordFileReviewAnchors(group, items.length - 1, reviewSets, fileReviewAnchors);
       for (const toolUse of group) inlineToolUseIds.add(toolUse.id);
       group = [];
@@ -900,6 +945,12 @@ export function buildThreadItems(
         case "tool_use":
           // A to-do call renders through the to-dos card, never as a row.
           if (isInternalTool(item.name)) break;
+          // A turn drawn as its plan draws its steps inside the plan, but
+          // for one that waits for a person: its ask is its own card.
+          if (steps !== undefined && item.threadId === "") {
+            emitTodos();
+            break;
+          }
           if (item.thread !== undefined) {
             flushGroup();
             emitTodos();
@@ -996,9 +1047,34 @@ export function buildThreadItems(
       insertFileReviewItems(items, reviewSets, fileReviewAnchors, turn.ended);
     }
 
+    // A turn that finished leads with its answer: the answer, what it made
+    // and changed (its outcome), its plan document and its file reviews,
+    // then one line that opens to how it got there, in time order. A turn
+    // at work keeps time order; one that stopped or failed keeps its steps
+    // in view, because there the steps are the story.
+    const finished = turn.ended && turn.status?.phase === "completed";
+    if (finished) {
+      const segment = items.splice(segmentStart);
+      const answerKey = scoredMessageId ?? (planMessageId !== undefined && !collapsePlanMessage ? planMessageId : undefined);
+      const lead = segment.filter((item) => item.key === answerKey);
+      const kept = segment.filter((item) => item.kind === "plan-completion" || item.kind === "file-review-record");
+      const working = segment.filter((item) => !lead.includes(item) && item.kind !== "plan-completion" && item.kind !== "file-review-record");
+      items.push(...lead);
+      if (includeOutcomes) items.push({ kind: "outcome", turn, key: `outcome-${turn.runId}` });
+      items.push(...kept);
+      if (working.length > 0) {
+        items.push({
+          kind: "how-it-got-there",
+          key: `${runId}-how`,
+          toolUses: turn.items.filter((item): item is ToolUse => item.kind === "tool_use" && item.threadId === "" && !isInternalTool(item.name)),
+          items: working,
+        });
+      }
+    }
+
     // Every ended turn but the last closes here; the last closes after its
-    // failure notice, below.
-    if (includeOutcomes && turn.ended && turn !== lastTurn) {
+    // failure notice, below. A finished turn closed above, after its answer.
+    if (includeOutcomes && turn.ended && turn !== lastTurn && !finished) {
       items.push({ kind: "outcome", turn, key: `outcome-${turn.runId}` });
     }
   }
@@ -1055,7 +1131,7 @@ export function buildThreadItems(
     }
   }
 
-  if (includeOutcomes && lastTurn?.ended) {
+  if (includeOutcomes && lastTurn?.ended && lastPhase !== "completed") {
     items.push({ kind: "outcome", turn: lastTurn, key: `outcome-${lastTurn.runId}` });
   }
 
@@ -1203,7 +1279,6 @@ export function MessageThread({
   slots,
   runScores = false,
   turnOutcome,
-  foldSettledSteps = false,
   ambientLiveness = true,
 }: MessageThreadProps) {
   useRenderTracer("MessageThread", { turns, runs });
@@ -1230,13 +1305,13 @@ export function MessageThread({
         planFiles,
         includeOutcomes: turnOutcome !== undefined,
         includeLiveness: ambientLiveness,
+        // A host that draws its own to-do card keeps it, with the steps in
+        // time order: its card takes only the list.
+        planSteps: slots?.TodoCard === undefined,
       }),
-    [turns, runs, pendingUserMessage, includeApprovals, resources, pendingMessageFailed, editableActiveTurn, showFileReviewRecords, collapseStreamingPlan, pendingFiles, queued, agentVersionLabel, planFiles, turnOutcome, ambientLiveness],
+    [turns, runs, pendingUserMessage, includeApprovals, resources, pendingMessageFailed, editableActiveTurn, showFileReviewRecords, collapseStreamingPlan, pendingFiles, queued, agentVersionLabel, planFiles, turnOutcome, ambientLiveness, slots?.TodoCard],
   );
-  const presentation = useMemo<ThreadPresentation>(
-    () => ({ foldSettledSteps, turnOutcome }),
-    [foldSettledSteps, turnOutcome],
-  );
+  const presentation = useMemo<ThreadPresentation>(() => ({ turnOutcome }), [turnOutcome]);
 
   useKeyStability(items);
 
@@ -1595,7 +1670,35 @@ export function ThreadItemRenderer({
       );
     }
     case "tool-group":
-      return <ToolGroupRow toolUses={item.toolUses} formatSummary={formatToolCallSummary} />;
+      return <ToolGroupRow toolUses={item.toolUses} fold={item.fold === true} formatSummary={formatToolCallSummary} />;
+    case "plan":
+      return <PlanSteps steps={item.steps} working={item.working} />;
+    case "how-it-got-there":
+      return (
+        <SettledStepsRow toolUses={item.toolUses} prefix="How it got there">
+          <div className="stg:flex stg:flex-col stg:gap-4 stg:py-3">
+            {item.items.map((inner) => (
+              <ThreadItemRenderer
+                key={inner.key}
+                item={inner}
+                formatToolCallSummary={formatToolCallSummary}
+                onAnswerToolUse={onAnswerToolUse}
+                answeringToolUseIds={answeringToolUseIds}
+                answerErrors={answerErrors}
+                onBuildFromPlan={onBuildFromPlan}
+                onOpenPlan={onOpenPlan}
+                org={org}
+                planActionsDisabled={planActionsDisabled}
+                planBuildPending={planBuildPending}
+                onRetrySend={onRetrySend}
+                onRetryRun={onRetryRun}
+                onEditMessage={onEditMessage}
+                slots={slots}
+              />
+            ))}
+          </div>
+        </SettledStepsRow>
+      );
     case "outcome":
       return <OutcomeRow turn={item.turn} />;
     case "subagent":
@@ -1724,21 +1827,22 @@ export function ThreadItemRenderer({
   }
 }
 
-/** A run of tool calls: today's rows, or one step row once every call returned and the thread folds them. */
+/** A run of tool calls: one list of steps, or one line that opens to them once the working turn's stretch has settled. */
 function ToolGroupRow({
   toolUses,
+  fold,
   formatSummary,
 }: {
   readonly toolUses: readonly ToolUse[];
+  readonly fold: boolean;
   readonly formatSummary?: (toolUses: readonly ToolUse[]) => string;
 }) {
-  const { foldSettledSteps } = useThreadPresentation();
-  if (!foldSettledSteps || toolUses.some((tool) => tool.result === undefined)) {
+  if (!fold) {
     return <ToolCallGroup toolUses={toolUses} formatSummary={formatSummary} className="stg:mx-4" />;
   }
   return (
     <SettledStepsRow toolUses={toolUses}>
-      <ToolCallGroup toolUses={toolUses} formatSummary={formatSummary} />
+      <ToolCallGroup toolUses={toolUses} formatSummary={formatSummary} framed={false} />
     </SettledStepsRow>
   );
 }

@@ -2,7 +2,7 @@
 
 import { memo, useCallback, useEffect, useId, useMemo, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
-import { resolveToolKind, type ToolUse } from "@stigmer/client";
+import { humanizeToolName, resolveToolKind, type ToolUse } from "@stigmer/client";
 import { cn } from "@stigmer/design-tokens";
 import {
   describeApprovalPolicySource,
@@ -20,7 +20,6 @@ import {
 import { type ToolCategory } from "@stigmer/react-core";
 import { CATEGORY_ICON } from "./ToolCallItem.js";
 import { ToolArgsView } from "./ToolArgsView.js";
-import { EmptyChangeNotice } from "./EmptyChangeNotice.js";
 import { FilePathLink } from "./FilePathLink.js";
 import { DecisionButton } from "../internal/DecisionButton.js";
 import { InCardDecisionError } from "../internal/InCardDecisionError.js";
@@ -36,8 +35,8 @@ export interface ApprovalCardProps {
    */
   readonly toolUse: ToolUse;
   /**
-   * Called when the person answers: Approve (`"allow"`), Deny (`"deny"`, with
-   * the optional reason they typed), or Approve all of the call's class
+   * Called when the person answers: Allow (`"allow"`), Deny (`"deny"`, with
+   * the optional reason they typed), or Allow all of the call's class
    * (`"grant"`). The consumer (typically {@link MessageThread} or a platform
    * builder's custom thread) sends it via {@link useAnswerToolUse}.
    */
@@ -59,14 +58,17 @@ export interface ApprovalCardProps {
  * Renders a tool use that waits for a person's answer with the same visual
  * structure as an expanded {@link ToolCallItem} in the history list.
  *
- * The compact header row matches the ToolCallItem layout:
- *   [CategoryIcon] Label  primaryArg  [⏳ waiting Xm]
+ * The header says what the agent wants, as a sentence from the call's kind,
+ * with what it acts on beside it:
+ *   [CategoryIcon] The agent wants to create a file  src/billing/rounding.ts  [⏳ waiting Xm]
  *
- * The body shows the proposed change from the tool's input (the call has
- * not run, so nothing is captured yet): the write/edit content when
- * present, an {@link EmptyChangeNotice} when only a path is known,
- * otherwise the shared {@link ToolArgsView} dispatch, keeping pixel-level
- * parity with the detail view.
+ * The body says that nothing happens until the person allows it (after the
+ * agent's own description of a command, when it wrote one), then shows the
+ * proposed change from the tool's input (the call has not run, so nothing
+ * is captured yet): the write/edit content when present, nothing when only
+ * a path is known (the header names it), otherwise the shared
+ * {@link ToolArgsView} dispatch. Then Allow, Deny, and Allow all of the
+ * call's class this turn.
  *
  * Wrapped in `React.memo`: the session fold keeps an unchanged tool use's
  * reference, so the card skips re-renders during unrelated stream updates.
@@ -155,19 +157,10 @@ export function ApprovalCardHeader({
     [toolUse.name, argsPreview, toolUse.mcpServerName],
   );
 
-  // A shell gate whose call carries a model-authored intent phrase titles
-  // the header with it (stigmer#276) — supplementary context only: the
-  // command stays foregrounded in the body's terminal preview, which remains
-  // the content the user is approving.
-  const intent = useMemo(
-    () => extractShellIntentFromPreview(toolUse.name, argsPreview, toolUse.mcpServerName),
-    [toolUse.name, argsPreview, toolUse.mcpServerName],
-  );
-
   return (
     <div
       className={cn(
-        "stg:flex stg:items-center stg:gap-2 stg:px-2.5 stg:py-1.5 stg:text-xs",
+        "stg:flex stg:items-center stg:gap-2 stg:px-3 stg:py-2 stg:text-sm",
         bordered && "stg:border-b stg:border-border-muted",
       )}
     >
@@ -177,7 +170,7 @@ export function ApprovalCardHeader({
 
       <span className="stg:min-w-0 stg:flex-1 stg:flex stg:items-center stg:gap-1.5 stg:overflow-hidden">
         <span className="stg:shrink-0 stg:font-medium stg:text-foreground">
-          {intent ?? categoryInfo.label}
+          {askSentence(categoryInfo.category, toolUse)}
         </span>
         {primaryArg &&
           categoryInfo.category !== "shell" &&
@@ -187,6 +180,7 @@ export function ApprovalCardHeader({
             <FilePathLink
               path={primaryArg}
               className="stg:min-w-0 stg:text-xs stg:text-muted-foreground"
+              dirDisplay="dim"
             />
           ) : (
             // Shell is the exception: its command is shown in the body's
@@ -228,8 +222,8 @@ export interface ApprovalCardBodyProps {
 
 /**
  * The decision panel of an approval: the optional message and gate reason, the
- * proposed change, and the actions — Approve, Deny (with an optional reason the
- * agent reads), and Approve all of the call's class for the rest of the turn.
+ * proposed change, and the actions — Allow, Deny (with an optional reason the
+ * agent reads), and Allow all of the call's class for the rest of the turn.
  * Reused in two places — the standalone {@link ApprovalCard} (with
  * {@link ApprovalCardHeader} above it) and inline inside a waiting
  * {@link ToolCallItem}'s expanded panel, where the item's own row is the
@@ -277,6 +271,11 @@ export function ApprovalCardBody({
   const policySource = ask?.policySource ?? "";
   const policyHook = ask?.policyHook ?? "";
   const categoryInfo = resolveToolCategoryFromCall(toolUse);
+  // The agent's own description of a command, said before what waits.
+  const intent = useMemo(
+    () => extractShellIntentFromPreview(toolUse.name, argsPreview, toolUse.mcpServerName)?.replace(/[.\s]+$/, "") ?? null,
+    [toolUse.name, argsPreview, toolUse.mcpServerName],
+  );
 
   // What the card shows: the preview's fields (the runner's sanitized summary),
   // with the proposed write/edit content overlaid from the tool's input — the
@@ -343,12 +342,9 @@ export function ApprovalCardBody({
   // changes are reviewed in FileReviewCard, not here.)
   let preview: ReactNode = null;
   if (isWriteEdit && writeContent === null) {
-    // No proposed content. A whole-file write is modeled as a create
-    // throughout the runner (FILE_WRITE -> CREATE), so the gate says plainly
-    // that a new file is being written; an edit cannot be proven a create,
-    // so it keeps the non-committal notice.
-    const kind = resolveToolKind(toolUse) === "file_write" ? "create" : "no-preview";
-    preview = <EmptyChangeNotice kind={kind} />;
+    // No proposed content: the header's sentence and path say what the
+    // agent wants, and no empty box stands in for a preview it does not have.
+    preview = null;
   } else if (displayArgs) {
     preview = (
       <ToolArgsView
@@ -365,6 +361,11 @@ export function ApprovalCardBody({
       {showMessage && (
         <p className="stg:text-xs stg:text-foreground">{message}</p>
       )}
+
+      <p className="stg:text-sm stg:text-foreground" data-cursor-target="approval-waits">
+        {intent !== null && `${intent}. `}
+        {WAIT_WORDS[categoryInfo.category] ?? "Nothing happens until you allow it."}
+      </p>
 
       {preview}
 
@@ -436,12 +437,12 @@ export function ApprovalCardBody({
         </form>
       ) : (
         // Decision actions — quiet, Cursor-grade hierarchy: one neutral-chip
-        // primary (Approve) and a ghost-danger Deny. The broad grant (Approve
-        // all of the class) is demoted to the far right via `ml-auto` so it
-        // never competes with — or is mis-clicked for — the per-call Approve.
+        // primary (Allow) and a ghost-danger Deny. The broad grant (Allow all
+        // of the class this turn) is demoted to the far right via `ml-auto` so
+        // it never competes with — or is mis-clicked for — the per-call Allow.
         <div className="stg:flex stg:items-center stg:gap-2 stg:pt-1">
           <DecisionButton
-            label="Approve"
+            label="Allow"
             variant="primary"
             onClick={() => handleAnswer("allow")}
             isActive={activeAnswer === "allow"}
@@ -503,7 +504,45 @@ export function ApprovalCardBody({
 // ---------------------------------------------------------------------------
 
 /**
- * Builds the truthful "Approve all" label for a tool's grant class.
+ * What the agent wants, as a sentence from the call's kind: "The agent
+ * wants to create a file", "… to run a command", "… to use Create issue". A
+ * whole-file write is a create throughout the runner (FILE_WRITE -> CREATE).
+ */
+function askSentence(category: ToolCategory, toolUse: ToolUse): string {
+  const want = (what: string) => `The agent wants to ${what}`;
+  switch (category) {
+    case "write":
+      return want(resolveToolKind(toolUse) === "file_write" ? "create a file" : "edit a file");
+    case "edit":
+      return want("edit a file");
+    case "delete":
+      return want("delete a file");
+    case "shell":
+      return want("run a command");
+    case "read":
+      return want("read a file");
+    case "fetch":
+      return want("open a web page");
+    case "web-search":
+      return want("search the web");
+    case "mcp":
+    case "unknown":
+      return want(`use ${humanizeToolName(toolUse.name)}`);
+    default:
+      return want("go ahead");
+  }
+}
+
+/** What waits for the answer, by kind: nothing happens until the person allows it. */
+const WAIT_WORDS: Readonly<Partial<Record<ToolCategory, string>>> = {
+  write: "Nothing is written until you allow it.",
+  edit: "Nothing is written until you allow it.",
+  delete: "Nothing is deleted until you allow it.",
+  shell: "Nothing runs until you allow it.",
+};
+
+/**
+ * Builds the truthful "Allow all … this turn" label for a tool's grant class.
  *
  * A grant is scoped to ONE class: when a hook asked, that hook's asks on that
  * one tool (`hookApproveAllLabel`); otherwise the MCP server for an MCP tool,
@@ -526,21 +565,21 @@ function buildApproveAllLabel(
 ): string {
   const { mcpServerName } = tool;
   if (tool.policySource === "hook") {
-    return hookApproveAllLabel(hookLeaseSubject(category, tool.name, mcpServerName), tool.policyHook);
+    return `${hookApproveAllLabel(hookLeaseSubject(category, tool.name, mcpServerName), tool.policyHook).replace(/^Approve/, "Allow")} this turn`;
   }
   if (mcpServerName) {
-    return `Approve all ${mcpServerName} tools`;
+    return `Allow all ${mcpServerName} tools this turn`;
   }
   switch (category) {
     case "shell":
-      return "Approve all shell commands";
+      return "Allow all commands this turn";
     case "delete":
-      return "Approve all file deletions";
+      return "Allow all file deletions this turn";
     case "write":
     case "edit":
-      return "Approve all file edits";
+      return "Allow all file edits this turn";
     default:
-      return "Approve all of this kind";
+      return "Allow all of this kind this turn";
   }
 }
 

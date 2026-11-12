@@ -430,6 +430,8 @@ export {
   type TurnActivity,
   type TurnProgress,
 } from "./run/turn-activity.js";
+export { humanizeToolName, stepPhrase, stepTense, type StepPhrase, type StepTense } from "./run/step-words.js";
+export { turnSteps, type PlanItem, type TurnSteps } from "./run/turn-steps.js";
 export { backgroundCommandText, backgroundEndingLine, backgroundEndingPhrase } from "./run/background-command.js";
 // A session's events, folded: the one model every client reads a
 // conversation from (@stigmer/session-log), and the helpers that follow a

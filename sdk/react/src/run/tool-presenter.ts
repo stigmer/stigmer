@@ -13,8 +13,8 @@
 // presentation seam.
 
 import { useMemo } from "react";
-import { backgroundCommandText, resolveToolKind, normalizeToolResult, type ToolKind } from "@stigmer/client";
-import type { ToolResultView, ToolUse } from "@stigmer/client";
+import { backgroundCommandText, resolveToolKind, normalizeToolResult, stepPhrase, type ToolKind } from "@stigmer/client";
+import type { StepPhrase, ToolResultView, ToolUse } from "@stigmer/client";
 import { resolveToolCategoryFromCall, extractPrimaryArg, defaultDisclosureForCategory } from "@stigmer/react-core";
 import { extractShellIntent, defaultChromeForCategory, isRunGroupableCategory } from "@stigmer/react-core/internal";
 import type { ToolDisclosure } from "@stigmer/react-core";
@@ -146,12 +146,19 @@ export interface ToolPresentation {
   readonly intent: string | null;
   /**
    * The row title: a registered presenter's `label` override wins (a host's
-   * explicit wording is never displaced by model output), then the
-   * model-authored {@link intent}, then the category {@link label}. Renderers
-   * that title a row use this; {@link label} stays the short kind label for
-   * chips and badges.
+   * explicit wording is never displaced by model output), then the step's
+   * own line ({@link phrase}: the agent's description of a command, else
+   * what the call did, in the tense it stands in). Renderers that title a
+   * row use this; {@link label} stays the short kind label for chips and
+   * badges.
    */
   readonly title: string;
+  /**
+   * The step's own words from `stepPhrase` (`@stigmer/client`): its line,
+   * whether it runs, returned or failed, the folder of the file it names,
+   * and the connected app it belongs to.
+   */
+  readonly phrase: StepPhrase;
   /** Primary argument (path, command, pattern...), or null. */
   readonly primaryArg: string | null;
   /** Normalized result view for rendering with {@link ResultView}. */
@@ -198,7 +205,8 @@ export function useToolPresentation(toolUse: ToolUse): ToolPresentation {
     const label = overrideLabel ?? categoryInfo.label;
     const intent = extractShellIntent(toolUse);
     const stop = categoryInfo.category === "background-stop" ? backgroundStopPresentation(toolUse) : undefined;
-    const title = overrideLabel ?? intent ?? stop?.title ?? categoryInfo.label;
+    const phrase = stepPhrase(toolUse);
+    const title = overrideLabel ?? stop?.title ?? phrase.text;
     const resultSummary =
       override?.summary?.(toolUse, result) ?? summarizeResultView(result);
     const disclosure =
@@ -217,6 +225,7 @@ export function useToolPresentation(toolUse: ToolUse): ToolPresentation {
       label,
       intent,
       title,
+      phrase,
       primaryArg: stop !== undefined ? stop.primaryArg : extractPrimaryArg(toolUse),
       result,
       resultSummary,

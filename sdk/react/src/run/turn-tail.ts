@@ -1,9 +1,7 @@
 // What a working turn's tail is showing: whether the agent has begun to
 // answer, whether something in the thread already shows it is working, and
 // which background commands hold the turn once its reply has ended. The
-// thread reads them to place its tail line; the session view reads
-// threadSaysBackgroundWait to step its activity line aside while that tail
-// line names the commands, so one line speaks for the turn.
+// thread reads them to place its tail line.
 
 import type { ToolUse, Turn, TurnItem } from "@stigmer/client";
 import { isBackgroundRunning } from "@stigmer/client";
@@ -53,20 +51,6 @@ export function backgroundCommandsHolding(turn: Turn): ToolUse[] {
   return turn.liveness !== undefined && turn.liveness.awaitingModelMs === undefined ? runningBackgroundCommands(turn.items) : [];
 }
 
-/**
- * Whether the thread's tail is saying what a working turn waits on: its
- * reply ended and only commands it runs in the background hold it. A host
- * that shows the turn's activity itself steps aside then, so one line speaks.
- */
-export function threadSaysBackgroundWait(turn: Turn): boolean {
-  return (
-    hasStartedResponding(turn) &&
-    turn.status?.phase === "running" &&
-    turn.asks.length === 0 &&
-    !hasVisiblyRunningActivity(turn.items) &&
-    backgroundCommandsHolding(turn).length > 0
-  );
-}
 
 /** The background commands running now among `items`, at any depth, oldest first. */
 function runningBackgroundCommands(items: ReadonlyArray<TurnItem>): ToolUse[] {

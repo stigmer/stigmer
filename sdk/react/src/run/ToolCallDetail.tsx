@@ -174,9 +174,8 @@ function CategoryDetail({
       // Bounding is keyed on the VIEW, not the category: BoundedContent is for
       // bodies with no internal truncation of their own — the diff and a FAILED
       // call's error `<pre>` — giving a large or still-streaming edit the same
-      // scannable clamp the approval gate uses. The `file` view self-truncates
-      // (CollapsibleCode's line cap), so wrapping it would stack two reveal
-      // controls on one block — exactly what BoundedContent's contract forbids.
+      // scannable clamp the approval gate uses. A write's proposed content
+      // reads as the file's own lines (FileContentBlock), bounded the same way.
       const body = (
         <ResultView view={result} showFileName={false} showStats={false} />
       );
@@ -184,7 +183,7 @@ function CategoryDetail({
         <>
           <ProvenanceNote toolUse={toolUse} />
           {result.type === "file" ? (
-            body
+            <FileContentBlock content={result.content} truncated={result.truncated} />
           ) : (
             <BoundedContent cursorTarget="tool-detail-expand">
               {body}
@@ -195,14 +194,27 @@ function CategoryDetail({
     }
 
     case "read":
-    case "delete":
-      // The input is the point (path, or path for a delete). Only surface a
-      // result body when it carries new information — i.e. an error.
+      // The line names the file; the body is what was read, bounded, or the
+      // error a failed read returned.
       return (
         <>
           <ProvenanceNote toolUse={toolUse} />
-          {args}
-          {result.type === "error" && <ResultView view={result} />}
+          {result.type === "file" && result.content !== "" ? (
+            <FileContentBlock content={result.content} truncated={result.truncated} />
+          ) : result.type === "error" ? (
+            <ResultView view={result} />
+          ) : (
+            args
+          )}
+        </>
+      );
+
+    case "delete":
+      // The line names the file; a delete's body is its answer, if any.
+      return (
+        <>
+          <ProvenanceNote toolUse={toolUse} />
+          {result.type !== "empty" && <ResultView view={result} />}
         </>
       );
 
@@ -261,6 +273,20 @@ function CategoryDetail({
         </>
       );
   }
+}
+
+// What a read returned or a write wrote, as the file's own lines: bounded to
+// the content budget with one in-place reveal for the rest, never a second
+// collapsed "Content" toggle inside an opened step.
+function FileContentBlock({ content, truncated }: { content: string; truncated: boolean }) {
+  return (
+    <BoundedContent cursorTarget="tool-detail-expand">
+      <pre className="stg:overflow-x-auto stg:whitespace-pre stg:rounded-md stg:border stg:border-border-muted stg:bg-muted-faint stg:px-3 stg:py-2 stg:font-mono stg:text-xs stg:text-foreground">
+        {content}
+      </pre>
+      {truncated && <p className="stg:mt-1 stg:text-xs stg:text-muted-foreground">Part of the file</p>}
+    </BoundedContent>
+  );
 }
 
 // The full, wrapping query (search) or path (list), shown in the body only when
