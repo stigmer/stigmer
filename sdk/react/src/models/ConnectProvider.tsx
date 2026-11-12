@@ -31,6 +31,12 @@ export interface ConnectProviderPanelProps {
   readonly modelName: string;
   /** Where Models & providers is, in the host's routing. Defaults to {@link DEFAULT_MODELS_HUB_HREF}. */
   readonly modelsHubHref?: string;
+  /**
+   * Whether the panel draws its own heading. A screen that already says
+   * what comes next above it (the launcher's chosen example) passes
+   * `false`, and the panel opens on its lead sentence. @default true
+   */
+  readonly showHeading?: boolean;
 }
 
 /**
@@ -45,6 +51,7 @@ export function ConnectProviderPanel({
   provider,
   modelName,
   modelsHubHref = DEFAULT_MODELS_HUB_HREF,
+  showHeading = true,
 }: ConnectProviderPanelProps) {
   const report = hub.providers?.find((entry) => entry.provider === provider);
   if (report === undefined || hub.models === null) return null;
@@ -61,8 +68,8 @@ export function ConnectProviderPanel({
   return (
     <div className="stg:space-y-4">
       <div className="stg:text-center">
-        <h1 className="stg:text-lg stg:font-medium stg:text-foreground">Connect a model provider to start</h1>
-        <p className="stg:mt-1 stg:text-sm stg:text-muted-foreground">
+        {showHeading && <h1 className="stg:text-lg stg:font-medium stg:text-foreground">Connect a model provider to start</h1>}
+        <p className={showHeading ? "stg:mt-1 stg:text-sm stg:text-muted-foreground" : "stg:m-0 stg:text-sm stg:text-muted-foreground"}>
           {runs} {then}
         </p>
       </div>

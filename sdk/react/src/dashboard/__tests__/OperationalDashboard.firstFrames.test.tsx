@@ -32,7 +32,7 @@ vi.mock("../DashboardKPICards.js", async (importOriginal) => {
 
 afterEach(cleanup);
 
-const LINKS = { connectProvider: "/models", createAgent: "/library/agents/new", startSession: "/" };
+const LINKS = { connectProvider: "/models", createAgent: "/", startSession: "/" };
 
 function renderNewOrganization() {
   let answerEver: () => void = () => {};

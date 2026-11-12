@@ -16,6 +16,7 @@ export default defineConfig({
       "@stigmer/client",
       "@stigmer/apis",
       "@stigmer/design-tokens",
+      "@stigmer/examples",
       "@stigmer/plugin-package",
       "@stigmer/session-log",
       "@stigmer/tool-vocabulary",

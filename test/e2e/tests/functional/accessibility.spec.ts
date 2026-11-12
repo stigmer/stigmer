@@ -2,6 +2,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { AXE_TAGS, describeViolations, judgeAxe } from "@stigmer/test-support/axe-policy";
 import { test, expect } from "../../fixtures";
 import { createTestAgent, ensureOrg } from "../../fixtures/seed-helpers";
+import { openLauncherForChat } from "../../helpers/session";
 
 /**
  * Accessibility tests.
@@ -187,8 +188,9 @@ test.describe("Keyboard navigation", () => {
   test("session composer textarea is focusable and supports keyboard input", async ({
     page,
   }) => {
-    await page.goto("/");
-
+    // An organization where nothing has run opens on the first question;
+    // this case is about the composer, so it goes on to plain chat.
+    await openLauncherForChat(page);
     const composerForm = page.getByRole("form", { name: "Start a new session" });
     await expect(composerForm).toBeVisible({ timeout: 15_000 });
 

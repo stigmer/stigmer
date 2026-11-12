@@ -2,11 +2,13 @@
  * Pins a new organization's first steps: three steps in order, each a link
  * the host routes (through its own link component when it passes one); a
  * provider that already serves a model marks the first step done, with no
- * link. "Make an agent" asks the server's `can_create_agent` on the
- * organization and links only on its yes (CON-01): a no says who makes
- * agents; a check in flight, or one that failed, offers no link and says
- * nothing about who may. The provider read is stubbed; the self-check is
- * answered by a client, as the server would.
+ * link, and an organization that has an agent marks the second. "Say what
+ * your agent should do" leads to the launcher's first question; it asks the
+ * server's `can_create_agent` on the organization and links only on its yes
+ * (CON-01): a no says who makes agents; a check in flight, or one that
+ * failed, offers no link and says nothing about who may. The provider and
+ * agent reads are stubbed; the self-check is answered by a client, as the
+ * server would.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
@@ -14,7 +16,7 @@ import type { ReactNode } from "react";
 import { StigmerContext } from "@stigmer/react-core";
 import { DashboardFirstSteps, type DashboardFirstStepsProps } from "../DashboardFirstSteps";
 
-const state = vi.hoisted(() => ({ served: false }));
+const state = vi.hoisted(() => ({ served: false, agents: 0 }));
 
 vi.mock("../../models/useModelReadiness.js", () => ({
   useModelReadiness: () => ({
@@ -22,13 +24,18 @@ vi.mock("../../models/useModelReadiness.js", () => ({
   }),
 }));
 
-const LINKS = { connectProvider: "/models", createAgent: "/library/agents/new", startSession: "/" };
+vi.mock("../../agent/useAgentList.js", () => ({
+  useAgentList: () => ({ agents: Array.from({ length: state.agents }, (_, n) => ({ id: `agt_${n}` })) }),
+}));
+
+const LINKS = { connectProvider: "/models", createAgent: "/", startSession: "/" };
 
 /** How the server answers "may this person create an agent here?". */
 type CreateAnswer = "yes" | "no" | "asking" | "failing";
 
 beforeEach(() => {
   state.served = false;
+  state.agents = 0;
 });
 afterEach(cleanup);
 
@@ -56,10 +63,12 @@ describe("DashboardFirstSteps", () => {
     await waitFor(() => expect(within(steps()[1]!).queryByRole("link")).not.toBeNull());
     expect(steps().map((step) => within(step).getByRole("link").textContent)).toEqual([
       "Connect a provider",
-      "Make an agent",
+      "Pick an example",
       "Start a session",
     ]);
     expect(screen.getByRole("link", { name: "Connect a provider" }).getAttribute("href")).toBe("/models");
+    expect(steps()[1]!.textContent).toContain("Say what your agent should do");
+    expect(steps()[1]!.textContent).toContain("Pick an example or describe your own; it runs on a sample file.");
     expect(screen.getByRole("link", { name: "Start a session" }).getAttribute("href")).toBe("/");
     expect(checkMyPermission.mock.calls[0]?.[0]).toMatchObject({
       relation: "can_create_agent",
@@ -76,7 +85,7 @@ describe("DashboardFirstSteps", () => {
       ),
     });
 
-    expect((await screen.findByRole("link", { name: "Make an agent" })).getAttribute("href")).toBe("#/library/agents/new");
+    expect((await screen.findByRole("link", { name: "Pick an example" })).getAttribute("href")).toBe("#/");
   });
 
   it("marks connecting a provider done once one serves a model", () => {
@@ -85,6 +94,14 @@ describe("DashboardFirstSteps", () => {
 
     expect(within(steps()[0]!).queryByRole("link")).toBeNull();
     expect(steps()[0]!.textContent).toContain("(done)");
+  });
+
+  it("marks saying what the agent should do done once the organization has an agent", async () => {
+    state.agents = 1;
+    renderSteps("yes");
+
+    await waitFor(() => expect(steps()[1]!.textContent).toContain("(done)"));
+    expect(within(steps()[1]!).queryByRole("link")).toBeNull();
   });
 
   it("CON-01 says who makes agents, with no link, to a person the server refuses", async () => {

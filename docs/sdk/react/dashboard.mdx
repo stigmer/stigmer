@@ -114,7 +114,7 @@ function useRunSummary(options: UseRunSummaryOptions): UseRunSummaryReturn
 
 ### DashboardFirstSteps
 
-A new organization's first steps: connect a provider, make an agent, start a session.
+A new organization's first steps: connect a provider, say what the agent should do, start a session.
 
 **Props** — `DashboardFirstStepsProps`
 
@@ -172,7 +172,7 @@ Where each first step leads, as the host routes it.
 <TypeTable
   type={{
     connectProvider: { type: "string", description: "Models & providers, where a provider key is connected.", required: true },
-    createAgent: { type: "string", description: "Where a new agent is made.", required: true },
+    createAgent: { type: "string", description: "Where a newcomer says what their agent should do: the launcher, whose first question offers the example jobs and \"Describe your own\".", required: true },
     startSession: { type: "string", description: "The launcher, where a session starts.", required: true },
   }}
 />
@@ -239,7 +239,7 @@ function Home({ onOpen }: { onOpen: (href: string) => void }) {
     <OperationalDashboard
       org="acme"
       onFailedRunClick={(id) => onOpen(`/runs/${id}`)}
-      firstStepLinks={{ connectProvider: "/models", createAgent: "/library/agents/new", startSession: "/" }}
+      firstStepLinks={{ connectProvider: "/models", createAgent: "/", startSession: "/" }}
     />
   );
 }

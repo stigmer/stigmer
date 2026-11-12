@@ -22,6 +22,12 @@ export interface UseComposerOptions {
   readonly maxHeight?: number;
   /** Auto-focus the textarea when `disabled` transitions from true to false. */
   readonly autoFocusOnEnable?: boolean;
+  /**
+   * The text the textarea starts with, read once when the hook mounts:
+   * a message written for the person, which they may send as it is or
+   * change. Later values are ignored, so what they typed is never replaced.
+   */
+  readonly initialMessage?: string;
 }
 
 /** Return value of {@link useComposer}. */
@@ -94,9 +100,10 @@ export function useComposer({
   disabled = false,
   maxHeight = 240,
   autoFocusOnEnable = true,
+  initialMessage,
 }: UseComposerOptions): UseComposerReturn {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(initialMessage ?? "");
   const prevDisabledRef = useRef(disabled);
 
   const canSubmit = message.trim().length > 0 && !disabled;
@@ -114,6 +121,14 @@ export function useComposer({
     el.style.height = "auto";
     el.style.height = `${Math.min(el.scrollHeight, maxHeight)}px`;
   }, [maxHeight]);
+
+  // A starting message is sized like typed text, once, when it first draws.
+  const startSized = useRef(false);
+  useEffect(() => {
+    if (startSized.current) return;
+    startSized.current = true;
+    if (initialMessage) resize();
+  }, [initialMessage, resize]);
 
   const resetHeight = useCallback(() => {
     const el = textareaRef.current;

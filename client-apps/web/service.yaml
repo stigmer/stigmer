@@ -39,6 +39,7 @@ spec:
       - backend/libs/ts/plugin-package
       - backend/libs/ts/tool-vocabulary
       - backend/libs/ts/session-log
+      - examples
       - sdk/typescript
       - sdk/theme
       - sdk/react-core

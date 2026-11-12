@@ -588,6 +588,23 @@ smoke-getting-started: build-runner build-server build-web ## Run the Getting St
 	@cd $(SERVER_DIR) && node scripts/bundle-slim.mjs
 	node test/install/smoke-getting-started.mjs
 
+# Every example agent under examples/, run from its folder on `stigmer up`
+# from source: applied, run with its samples attached, and the file its
+# instructions promise downloaded (test/install/smoke-examples.mjs). The
+# offline target scripts the fake model; the live one runs each example once
+# on a real model with ANTHROPIC_API_KEY (it fails without one, and spends
+# money), asserting the file's structure only. The live one is in no lane.
+.PHONY: smoke-examples smoke-examples-live
+smoke-examples: build-runner build-server build-web ## Run every example under examples/ from its folder on `stigmer up` from source, the model faked: each file comes back
+	@command -v node >/dev/null 2>&1 || { echo "error: node not found"; exit 1; }
+	@cd $(SERVER_DIR) && node scripts/bundle-slim.mjs
+	node test/install/smoke-examples.mjs
+
+smoke-examples-live: build-runner build-server build-web ## Run every example under examples/ once on a real model (ANTHROPIC_API_KEY; spends money): each makes the file its instructions promise
+	@command -v node >/dev/null 2>&1 || { echo "error: node not found"; exit 1; }
+	@cd $(SERVER_DIR) && node scripts/bundle-slim.mjs
+	node test/install/smoke-examples.mjs --live-model
+
 # The Go, Python and Java quick starts run as a developer runs them, on the
 # same source CLI and slim server as the smokes above: each must print the
 # agent's answer (test/install/smoke-sdk-quickstarts.mjs). Needs go, python3,

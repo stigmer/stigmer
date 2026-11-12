@@ -80,6 +80,9 @@ export function SessionLauncher() {
       initialAgentRef={initialAgentRef}
       initialPluginRefs={initialPluginRef ? [initialPluginRef] : undefined}
       rememberPluginPicks
+      // A newcomer's first visit asks what their agent should do for their
+      // users; a deep link to an agent (initialAgentRef) still wins.
+      firstQuestion
       className="h-full"
     />
   );

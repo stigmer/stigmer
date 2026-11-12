@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import type { Locator, Page } from "@playwright/test";
+import { openLauncherForChat } from "../../helpers/session";
 
 /**
  * Clipboard paste in the session composer (stigmer/stigmer#284).
@@ -39,12 +40,6 @@ async function pasteImage(textarea: Locator): Promise<void> {
   }, TINY_PNG_BASE64);
 }
 
-function getLauncherTextarea(page: Page): Locator {
-  return page
-    .getByRole("form", { name: "Start a new session" })
-    .locator("textarea");
-}
-
 function getAttachmentChips(page: Page): Locator {
   return page
     .getByRole("list", { name: "Attached files" })
@@ -55,9 +50,7 @@ test.describe("Composer clipboard paste", () => {
   test("pasting a screenshot attaches a chip with a synthesized unique name", async ({
     page,
   }) => {
-    await page.goto("/");
-    const textarea = getLauncherTextarea(page);
-    await textarea.waitFor({ state: "visible", timeout: 15_000 });
+    const textarea = await openLauncherForChat(page);
 
     await pasteImage(textarea);
 
@@ -67,9 +60,7 @@ test.describe("Composer clipboard paste", () => {
   });
 
   test("two pastes attach two distinctly-named chips", async ({ page }) => {
-    await page.goto("/");
-    const textarea = getLauncherTextarea(page);
-    await textarea.waitFor({ state: "visible", timeout: 15_000 });
+    const textarea = await openLauncherForChat(page);
 
     await pasteImage(textarea);
     await pasteImage(textarea);
@@ -83,9 +74,7 @@ test.describe("Composer clipboard paste", () => {
   });
 
   test("a text-only paste attaches nothing", async ({ page }) => {
-    await page.goto("/");
-    const textarea = getLauncherTextarea(page);
-    await textarea.waitFor({ state: "visible", timeout: 15_000 });
+    const textarea = await openLauncherForChat(page);
 
     await textarea.click();
     await textarea.evaluate((el) => {

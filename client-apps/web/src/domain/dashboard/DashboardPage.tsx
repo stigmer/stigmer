@@ -13,7 +13,8 @@ import { useRunNavigation } from "@/domain/runs/run-navigation";
 
 const FIRST_STEP_LINKS = {
   connectProvider: "/models",
-  createAgent: "/library/agents/new",
+  // The launcher: its first question offers the example jobs.
+  createAgent: "/",
   startSession: "/",
 } as const;
 

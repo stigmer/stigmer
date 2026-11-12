@@ -630,12 +630,13 @@ jobs:
 
       # The dist-exporting libs a consumer package imports (see the header),
       # with @stigmer/eval-runtime, which plugin-package imports, and
-      # @stigmer/tool-vocabulary, which session-log imports: the consumers
-      # resolve each from its dist, so all are built before they are
-      # typechecked.
+      # @stigmer/tool-vocabulary, which session-log imports, and
+      # @stigmer/examples, which the React kit imports: the consumers resolve
+      # each from its dist, so all are built before they are typechecked.
       - name: Build the dist-exporting libs the consumers import
         run: |
           npm run build -w @stigmer/apis
+          npm run build -w @stigmer/examples
           npm run build -w @stigmer/tool-vocabulary
           npm run build -w @stigmer/session-log
           npm run build -w @stigmer/eval-runtime

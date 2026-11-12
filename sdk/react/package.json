@@ -91,6 +91,7 @@
     "@codemirror/view": "^6.36.5",
     "@lezer/highlight": "^1.2.3",
     "@stigmer/design-tokens": "*",
+    "@stigmer/examples": "*",
     "@stigmer/plugin-package": "*",
     "@stigmer/react-core": "*",
     "@stigmer/tool-vocabulary": "*",

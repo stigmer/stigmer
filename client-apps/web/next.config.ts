@@ -7,6 +7,7 @@ const stigmerLibs = [
   "@stigmer/react-sdk",
   "@stigmer/design-tokens",
   "@stigmer/embed",
+  "@stigmer/examples",
   "@stigmer/plugin-package",
   "@stigmer/session-log",
   "@stigmer/tool-vocabulary",

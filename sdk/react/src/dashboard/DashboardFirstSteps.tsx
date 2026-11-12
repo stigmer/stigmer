@@ -2,7 +2,8 @@
 
 // What a new organization's dashboard says in place of four zeros: the
 // first things to do, in order, each a link the host routes. A step is
-// shown done when the server says so (a provider serves a model), and the
+// shown done when the server says so (a provider serves a model; the
+// organization has an agent), and the
 // step a person may not take (creating an agent, for a viewer) says who
 // can, rather than offering a link the server would refuse; its link
 // appears only once the server has said yes (`can_create_agent`, asked fail
@@ -11,6 +12,7 @@
 import { useId, type ReactNode } from "react";
 import { Check } from "lucide-react";
 import { cn } from "@stigmer/design-tokens";
+import { useAgentList } from "../agent/useAgentList.js";
 import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { useModelReadiness } from "../models/useModelReadiness.js";
 
@@ -18,7 +20,10 @@ import { useModelReadiness } from "../models/useModelReadiness.js";
 export interface DashboardFirstStepLinks {
   /** Models & providers, where a provider key is connected. */
   readonly connectProvider: string;
-  /** Where a new agent is made. */
+  /**
+   * Where a newcomer says what their agent should do: the launcher, whose
+   * first question offers the example jobs and "Describe your own".
+   */
   readonly createAgent: string;
   /** The launcher, where a session starts. */
   readonly startSession: string;
@@ -39,7 +44,7 @@ const anchor: NonNullable<DashboardFirstStepsProps["renderLink"]> = ({ href, cla
   </a>
 );
 
-/** A new organization's first steps: connect a provider, make an agent, start a session. */
+/** A new organization's first steps: connect a provider, say what the agent should do, start a session. */
 export function DashboardFirstSteps({ org, links, renderLink = anchor, className }: DashboardFirstStepsProps) {
   const headingId = useId();
   const { providers } = useModelReadiness(org);
@@ -48,6 +53,9 @@ export function DashboardFirstSteps({ org, links, renderLink = anchor, className
   // open, for the create surfaces that gate themselves on the server).
   const createAgent = useCheckPermission(org ? { kind: "organization", id: org } : null, "can_create_agent", { fail: "closed" });
   const providerServed = (providers ?? []).some((provider) => provider.availability.state === "served");
+  // Done once the organization has an agent, by the server's own list.
+  const { agents } = useAgentList(org || null, { pageSize: 1 });
+  const hasAgent = agents.length > 0;
   // Making an agent is an act: its link appears only on the server's yes,
   // never while the check is in flight; a refusal says who can instead.
   const mayCreateAgent = createAgent.allowed;
@@ -63,13 +71,13 @@ export function DashboardFirstSteps({ org, links, renderLink = anchor, className
       done: providerServed,
     },
     {
-      title: "Make an agent",
+      title: "Say what your agent should do",
       body: refusedCreateAgent
         ? "An admin of this organization makes agents; you can run the ones shared with you."
-        : "Give it instructions, the skills it needs and the tools it may use.",
+        : "Pick an example or describe your own; it runs on a sample file.",
       href: mayCreateAgent ? links.createAgent : undefined,
-      act: "Make an agent",
-      done: false,
+      act: "Pick an example",
+      done: hasAgent,
     },
     {
       title: "Start a session",

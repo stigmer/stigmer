@@ -43,6 +43,7 @@ on:
       - "backend/libs/ts/eval-runtime/**"
       - "backend/libs/ts/session-log/**"
       - "backend/libs/ts/tool-vocabulary/**"
+      - "examples/**"
       # The screens the site shows, which its build converts from the visual
       # suite's approved pictures within the image budget
       # (site/scripts/generate-screens.ts), so a redrawn screen reaches

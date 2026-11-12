@@ -12,8 +12,10 @@ import { NO_PROVIDERS_STACK } from "../../fixtures/no-providers";
  * - Models & providers (the sidebar's own row) shows every provider not
  *   connected, each with the command that gives this machine's runner its
  *   key, and a Copy button;
- * - the launcher's first screen is the connect step in the composer's
- *   place: no composer, no Send;
+ * - the launcher's first screen asks what the newcomer's agent should do
+ *   for their users (nothing has run here); a pick makes the example's
+ *   agent and shows the connect step under the chosen bar, in the
+ *   composer's place: no composer, no Send;
  * - a run created through the API is refused at create, FAILED_PRECONDITION
  *   with ErrorInfo reason PROVIDER_KEY_REQUIRED naming Anthropic, in the
  *   runners' words (the server's `runnersProviderMissingCopy`).
@@ -63,11 +65,16 @@ test.describe("a laptop whose runner reaches no model provider", () => {
     await expect(openai.locator("pre")).toHaveText("export OPENAI_API_KEY=<your key>\nstigmer down && stigmer up");
   });
 
-  test("the launcher's first screen is the connect step, with no composer and no Send", async ({ page }) => {
+  test("the launcher's first screen is the question; a pick shows the connect step, with no composer and no Send", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("heading", { name: "Connect a model provider to start" })).toBeVisible({
+    await expect(page.getByRole("heading", { level: 1, name: "What should your agent do for your users?" })).toBeVisible({
       timeout: 15_000,
     });
+    await page.getByRole("button", { name: "Variance report" }).click();
+    await expect(page.getByRole("heading", { level: 1, name: "One more thing before it runs" })).toBeVisible({
+      timeout: 15_000,
+    });
+    await expect(page.getByText("Variance Reporter is made. Its sample ledger is attached.")).toBeVisible();
     await expect(page.getByText("Give this machine's runner a key, and you can send your first task.")).toBeVisible();
     await expect(page.getByRole("article", { name: "Anthropic" }).locator("pre")).toContainText("stigmer setup");
     await expect(page.getByRole("link", { name: "every provider is in Models & providers" })).toHaveAttribute(

@@ -93,6 +93,23 @@ vi.mock("../useNewSessionFlow", () => ({
   useNewSessionFlow: () => mockFlow,
 }));
 
+// No StigmerProvider here either for the first question: the host does not
+// ask for it in this suite, so its gate answers "skip" and its picks are never
+// made (the first question has its own suite: first-question).
+vi.mock("../first-question/useFirstQuestionGate", () => ({
+  useFirstQuestionGate: () => "skip",
+}));
+vi.mock("../first-question/useStartFromExample", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../first-question/useStartFromExample")>()),
+  useStartFromExample: () => ({
+    pickExample: async () => null,
+    describeOwn: async () => null,
+    pending: null,
+    failure: null,
+    clearFailure: () => {},
+  }),
+}));
+
 // No StigmerProvider here: the launcher's readiness read answers nothing, so
 // it neither blocks Send nor shows its connect step (the readiness faces
 // have their own suites: launcher-readiness, con-02-first-run).

@@ -77,6 +77,11 @@ jobs:
       - name: Run the Getting Started pages
         run: make smoke-getting-started
 
+      # Every example agent under examples/, applied and run from its folder
+      # with its samples on the same build (test/install/smoke-examples.mjs).
+      - name: Run every example
+        run: make smoke-examples
+
 
   terminal-kit:
     name: the terminal kit from its pages
