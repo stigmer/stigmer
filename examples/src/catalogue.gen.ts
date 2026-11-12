@@ -184,8 +184,8 @@ export const SKILLS: readonly ExampleSkill[] = [
   {
     "id": "spreadsheet-export",
     "name": "Spreadsheet export",
-    "description": "Hands back a job's table as a .csv file too, for any spreadsheet.",
+    "description": "Use whenever your work makes a table, to save it as a .csv too.",
     "file": "skills/spreadsheet-export/SKILL.md",
-    "text": "---\nname: spreadsheet-export\ndescription: Hands back a job's table as a .csv file too, for any spreadsheet.\n---\n\n# Spreadsheet export\n\nWhen your work makes a table (one row per account, ticket, clause or line), also\nsave that table as a CSV file in your outputs folder, beside the file your\ninstructions name.\n\n- Name it after that file, with `.csv` in place of its extension: a report saved\n  as `variance-report.md` comes with `variance-report.csv`.\n- Write a header row first, then one row per item, in the table's order.\n- Separate columns with commas. Put a value that holds a comma or a quote in\n  double quotes, and double each quote inside it.\n- Write numbers plainly: `5100`, not `$5,100`; `-60.0`, not `-60%`.\n\nSay in your answer, in one short line, that the CSV is there.\n"
+    "text": "---\nname: spreadsheet-export\ndescription: Use whenever your work makes a table, to save it as a .csv too.\n---\n\n# Spreadsheet export\n\nWhen your work makes a table (one row per account, ticket, clause or line), also\nsave that table as a CSV file in your outputs folder, beside the file your\ninstructions name.\n\n- Name it after that file, with `.csv` in place of its extension: a report saved\n  as `variance-report.md` comes with `variance-report.csv`.\n- Write a header row first, then one row per item, in the table's order.\n- Separate columns with commas. Put a value that holds a comma or a quote in\n  double quotes, and double each quote inside it.\n- Write numbers plainly: `5100`, not `$5,100`; `-60.0`, not `-60%`.\n\nSay in your answer, in one short line, that the CSV is there.\n"
   }
 ];

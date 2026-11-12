@@ -1,6 +1,6 @@
 ---
 name: spreadsheet-export
-description: Hands back a job's table as a .csv file too, for any spreadsheet.
+description: Use whenever your work makes a table, to save it as a .csv too.
 ---
 
 # Spreadsheet export
