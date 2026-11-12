@@ -109,8 +109,8 @@ export function RunErrorNotice({
         {TONE_ICONS[ending.tone]}
       </span>
       <div className="stg:flex stg:min-w-0 stg:flex-col stg:gap-1 stg:text-sm stg:text-foreground">
-        <p className="stg:font-semibold">{ending.headline}</p>
-        <p className="stg:break-words">{ending.comfort}</p>
+        <p className="stg:m-0 stg:font-semibold">{ending.headline}</p>
+        <p className="stg:m-0 stg:break-words">{ending.comfort}</p>
         {(act !== undefined && label !== undefined) || link !== undefined || copyable ? (
           <div className="stg:mt-2 stg:flex stg:flex-wrap stg:items-center stg:gap-3">
             {act !== undefined && label !== undefined && (
