@@ -763,4 +763,40 @@ public interface RunStatusOrBuilder extends
    */
   ai.stigmer.agentic.session.v1.ContentBlockOrBuilder getMessageFilesOrBuilder(
       int index);
+
+  /**
+   * <pre>
+   * Which kind of ending stop_cause was (a refused key, a spending cap, a
+   * stall, a connected app that wouldn't connect), and the model or app it
+   * names. Unset while the turn works, when it ended on its own, and when the
+   * cause says it all.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerStopDetail stop_detail = 39 [json_name = "stopDetail"];</code>
+   * @return Whether the stopDetail field is set.
+   */
+  boolean hasStopDetail();
+  /**
+   * <pre>
+   * Which kind of ending stop_cause was (a refused key, a spending cap, a
+   * stall, a connected app that wouldn't connect), and the model or app it
+   * names. Unset while the turn works, when it ended on its own, and when the
+   * cause says it all.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerStopDetail stop_detail = 39 [json_name = "stopDetail"];</code>
+   * @return The stopDetail.
+   */
+  ai.stigmer.agentic.session.v1.StigmerStopDetail getStopDetail();
+  /**
+   * <pre>
+   * Which kind of ending stop_cause was (a refused key, a spending cap, a
+   * stall, a connected app that wouldn't connect), and the model or app it
+   * names. Unset while the turn works, when it ended on its own, and when the
+   * cause says it all.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerStopDetail stop_detail = 39 [json_name = "stopDetail"];</code>
+   */
+  ai.stigmer.agentic.session.v1.StigmerStopDetailOrBuilder getStopDetailOrBuilder();
 }

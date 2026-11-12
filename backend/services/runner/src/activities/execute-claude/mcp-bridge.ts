@@ -102,7 +102,8 @@ export async function connectBridge(
     const bridged: BridgedServer[] = [];
     for (const slug of Object.keys(config)) {
       const client = await connections.getClient(slug);
-      if (client === undefined) throw new Error(`MCP server '${slug}' did not connect`);
+      // `serverName` names the app as the MCP client's own errors do (`shared/stop-kind.ts` `appStopOf`).
+      if (client === undefined) throw Object.assign(new Error(`MCP server '${slug}' did not connect`), { serverName: slug });
       const listed = (tool: Tool): boolean => platformServerSlugs.has(slug) || inScope(slug, tool.name);
       bridged.push({ slug, client, tools: (await listAllTools(slug, client)).filter(listed) });
     }

@@ -39,7 +39,7 @@ import { conversationsScene } from "./conversations.tsx";
 import { agentEnvironmentScene, environmentNewScene, runSettingsScene } from "./environment.tsx";
 import { routineDetailScene, routineNewScene } from "./routine.tsx";
 import { modelSelectorScene } from "./settings.tsx";
-import { sessionScene, sessionStartingScene, stepStoryScene } from "./session.tsx";
+import { endingStoryScene, sessionScene, sessionStartingScene, stepStoryScene } from "./session.tsx";
 import { asksFirstScene, hoursScene, inProductScene, keysScene, ownComputerScene, wallsScene } from "./story.tsx";
 import { threadScene } from "./thread.tsx";
 import {
@@ -126,6 +126,28 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "session-slow": () => sessionScene("busy", { inspector: true }),
   "session-starting": () => sessionStartingScene(),
   "session-first-job-next": sessionFirstJobNextScene,
+  "session-fail-key-rejected": () => endingStoryScene("fail-key-rejected", { inspector: true }),
+  "session-fail-key-missing": () => endingStoryScene("fail-key-missing", { inspector: true }),
+  "session-fail-out-of-credit": () => endingStoryScene("fail-out-of-credit", { inspector: true }),
+  "session-fail-rate-limited": () => endingStoryScene("fail-rate-limited", { inspector: true }),
+  "session-fail-overloaded": () => endingStoryScene("fail-overloaded", { inspector: true }),
+  "session-fail-model-unavailable": () => endingStoryScene("fail-model-unavailable", { inspector: true }),
+  "session-fail-unreachable": () => endingStoryScene("fail-unreachable", { inspector: true }),
+  "session-fail-request-rejected": () => endingStoryScene("fail-request-rejected", { inspector: true }),
+  "session-fail-cost-cap": () => endingStoryScene("fail-cost-cap", { inspector: true }),
+  "session-fail-tool-call-limit": () => endingStoryScene("fail-tool-call-limit", { inspector: true }),
+  "session-fail-stalled": () => endingStoryScene("fail-stalled", { inspector: true }),
+  "session-fail-operation-limit": () => endingStoryScene("fail-operation-limit", { inspector: true }),
+  "session-fail-workspace-busy": () => endingStoryScene("fail-workspace-busy", { inspector: true }),
+  "session-fail-agent-setup": () => endingStoryScene("fail-agent-setup", { inspector: true }),
+  "session-fail-app-unreachable": () => endingStoryScene("fail-app-unreachable", { inspector: true }),
+  "session-fail-app-sign-in": () => endingStoryScene("fail-app-sign-in", { inspector: true }),
+  "session-fail-internal": () => endingStoryScene("fail-internal", { inspector: true }),
+  "session-fail-runner-lost": () => endingStoryScene("fail-runner-lost", { inspector: true }),
+  "session-fail-platform-stop": () => endingStoryScene("fail-platform-stop", { inspector: true }),
+  "session-fail-user-stop": () => endingStoryScene("fail-user-stop", { inspector: true }),
+  "session-fail-generic-model": () => endingStoryScene("fail-generic-model", { inspector: true }),
+  "session-fail-generic-failed": () => endingStoryScene("fail-generic-failed", { inspector: true }),
   "story-asks-first": asksFirstScene,
   "story-in-product": inProductScene,
   "story-own-computer": ownComputerScene,

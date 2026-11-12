@@ -214,3 +214,27 @@ describe("settleClaudeTurn", () => {
     expect(warn).not.toHaveBeenCalled();
   });
 });
+
+describe("settleClaudeTurn: the failure's kind", () => {
+  const call = { model: "claude-sonnet-4-6", proxyMode: false };
+
+  it("names a refused key from the SDK's typed error, with the model", () => {
+    const outcome = settleClaudeTurn(new RecordingTurnSink(), end({ assistantError: "authentication_failed", result: success({ is_error: true, result: "API Error: 401 invalid x-api-key" }) }), call);
+    expect(outcome).toEqual({
+      kind: "failed",
+      surface: "engine",
+      message: "API Error: 401 invalid x-api-key",
+      stopDetail: { kind: "provider_key_rejected", model: "claude-sonnet-4-6" },
+    });
+  });
+
+  it("names a busy provider from the result's HTTP status when the SDK's kind is unknown", () => {
+    const outcome = settleClaudeTurn(new RecordingTurnSink(), end({ assistantError: "unknown", result: success({ is_error: true, result: "API Error: 529", api_error_status: 529 }) }), call);
+    expect(outcome).toMatchObject({ surface: "engine", stopDetail: { kind: "provider_overloaded", model: "claude-sonnet-4-6" } });
+  });
+
+  it("names a proxied call's refused token as the platform's fault", () => {
+    const outcome = settleClaudeTurn(new RecordingTurnSink(), end({ assistantError: "authentication_failed", result: success({ is_error: true, result: "API Error: 401" }) }), { ...call, proxyMode: true });
+    expect(outcome).toEqual({ kind: "failed", surface: "internal", message: "API Error: 401", stopDetail: { kind: "internal" } });
+  });
+});

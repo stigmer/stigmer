@@ -180,6 +180,30 @@ export function sessionStatusOf(event: SessionEvent): SessionStatusNow | undefin
 }
 
 /**
+ * The Anthropic kind a failed turn's session.error takes, from its stop
+ * detail where Anthropic's vocabulary has the word (a rate limit, a busy
+ * provider, billing, a connected app that failed to connect or to sign in),
+ * else from its stop cause: a model failure is a failed model request, any
+ * other an unknown error.
+ */
+function sessionErrorTypeOf(stopCause: string, stopKind: string): string {
+  switch (stopKind) {
+    case "provider_rate_limited":
+      return "model_rate_limited_error";
+    case "provider_overloaded":
+      return "model_overloaded_error";
+    case "provider_out_of_credit":
+      return "billing_error";
+    case "app_unreachable":
+      return "mcp_connection_failed_error";
+    case "app_needs_sign_in":
+      return "mcp_authentication_failed_error";
+    default:
+      return stopCause === "model_error" ? "model_request_failed_error" : "unknown_error";
+  }
+}
+
+/**
  * The events a run transition appends, in order, given the session as
  * committed (module header).
  */
@@ -228,16 +252,19 @@ export function sessionEventsForTransition(
   const isWaiting = isWaitingPhase(nextPhase);
   const failed = wasActive && nextPhase === RunPhase.RUN_FAILED;
   const stopCause = transition.kind === "remove" ? "" : (transition.run.status?.stopCause ?? "");
+  const stopDetail = transition.kind === "remove" ? undefined : transition.run.status?.stopDetail;
   if (failed && transition.kind !== "remove") {
+    const app = stopDetail?.app ?? "";
     events.push(
       event({
         case: "sessionError",
         value: {
           id: id(),
           error: {
-            type: stopCause === "model_error" ? "model_request_failed_error" : "unknown_error",
+            type: sessionErrorTypeOf(stopCause, stopDetail?.kind ?? ""),
             message: transition.run.status?.error ?? "",
             retryStatus: { type: "terminal" },
+            ...(app !== "" && stopDetail?.kind.startsWith("app_") === true ? { mcpServerName: app } : {}),
           },
         },
       }),
@@ -256,6 +283,7 @@ export function sessionEventsForTransition(
           phase: phaseWord,
           stopCause: ended ? stopCause : "",
           error: ended ? (transition.run.status?.error ?? "") : "",
+          ...(ended && stopDetail !== undefined ? { stopDetail } : {}),
         },
       }),
     );

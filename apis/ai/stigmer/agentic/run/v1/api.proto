@@ -320,6 +320,15 @@ message RunStatus {
   // Written by the server when the run is created, from spec.file_ids, as it
   // writes run_config; the runner's status writes never touch it.
   repeated ai.stigmer.agentic.session.v1.ContentBlock message_files = 38;
+
+  // Which kind of ending stop_cause was (a refused key, a spending cap, a
+  // stall, a connected app that wouldn't connect), and the model or app it
+  // names. Unset while the turn works, when it ended on its own, and when the
+  // cause says it all.
+  //
+  // @internal
+  // Written and cleared with stop_cause, by the same writers.
+  ai.stigmer.agentic.session.v1.StigmerStopDetail stop_detail = 39;
 }
 
 // LoadedVersions lists what a run loaded besides its agent: one list per

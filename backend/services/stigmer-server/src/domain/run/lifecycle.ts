@@ -321,14 +321,21 @@ export function applyLifecyclePhaseTransition(
     status.completedAt = now;
     if (targetPhase === RunPhase.RUN_CANCELLED) {
       // A person stopped the turn: the cause the session's idle reads
-      // (RunStatus.stop_cause), recorded with the phase.
+      // (RunStatus.stop_cause), recorded with the phase. It says it all,
+      // so it carries no detail.
       status.stopCause = "user";
+      status.stopDetail = undefined;
     }
   }
 
-  // Clear completed_at for recovery / resume back to IN_PROGRESS.
+  // Clear completed_at for recovery / resume back to IN_PROGRESS, and the
+  // ending's cause and detail with it: a recovered turn works again, and
+  // its session must not show the ending it left (the runner's next write
+  // would clear them only once it runs).
   if (targetPhase === RunPhase.RUN_IN_PROGRESS) {
     status.completedAt = "";
+    status.stopCause = "";
+    status.stopDetail = undefined;
   }
 
   if (setError) {

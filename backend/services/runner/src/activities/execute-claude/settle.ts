@@ -11,7 +11,9 @@
  * turn already proposed (`turn.ts`).
  *
  * Failures, by who can fix them: the engine's own failed result is the
- * `engine` surface, its words the result's; a conversation the store lost
+ * `engine` surface, its words the result's, and its kind the SDK's typed
+ * error read through `shared/stop-kind.ts` (the platform's own token refused
+ * on a proxied call is `internal`); a conversation the store lost
  * part of is `internal`, naming the lost history, because the next turn
  * would resume from a transcript with a hole; an engine that ended with no
  * result is `internal`, and so is one that could not resume an answered
@@ -24,9 +26,10 @@
  */
 
 import type { JsonObject } from "@bufbuild/protobuf";
-import type { SDKResultMessage } from "@anthropic-ai/claude-agent-sdk";
+import type { SDKAssistantMessageError, SDKResultMessage } from "@anthropic-ai/claude-agent-sdk";
 
 import type { TurnOutcome, TurnSink } from "../../harness/types.js";
+import { modelStopOfClaude, withModel } from "../../shared/stop-kind.js";
 import { cancelInProgressSubAgentProtos } from "../../shared/subagent-rows.js";
 import { reconcileUnattendedSkips } from "../../shared/unattended-skips.js";
 
@@ -36,6 +39,8 @@ export interface InvocationEnd {
   readonly stopped: boolean;
   /** The engine's last result; undefined when none arrived. */
   readonly result: SDKResultMessage | undefined;
+  /** The typed error of the main thread's last failed model call, when one carried it. */
+  readonly assistantError?: SDKAssistantMessageError;
   /** The store's report of a batch it could not keep; undefined when none was lost. */
   readonly mirrorError: string | undefined;
   /** The gate's unattended skips. */
@@ -49,8 +54,14 @@ export interface InvocationEnd {
 /** What a result says when the engine could not resume an answered call. */
 export const DEFERRED_UNAVAILABLE_MESSAGE = "The call waiting for approval could not resume: its tool is no longer available in this conversation.";
 
+/** The model call a turn made: which model, and whether through the platform's proxy. */
+export interface ClaudeCall {
+  readonly model: string;
+  readonly proxyMode: boolean;
+}
+
 /** The outcome of an invocation (the header). */
-export function settleClaudeTurn(sink: TurnSink, end: InvocationEnd): TurnOutcome {
+export function settleClaudeTurn(sink: TurnSink, end: InvocationEnd, call?: ClaudeCall): TurnOutcome {
   const { rows } = sink;
   reconcileUnattendedSkips(rows, end.unattendedSkips);
 
@@ -69,13 +80,33 @@ export function settleClaudeTurn(sink: TurnSink, end: InvocationEnd): TurnOutcom
   if (result === undefined) return { kind: "failed", surface: "internal", message: "The Claude Agent SDK ended without a result." };
   if (result.subtype !== "success") {
     const detail = result.errors.length > 0 ? result.errors.join("; ") : result.subtype;
-    return { kind: "failed", surface: "engine", message: `The Claude Agent SDK failed: ${detail}` };
+    return engineFailure(`The Claude Agent SDK failed: ${detail}`, end, call);
   }
   if (result.terminal_reason === "tool_deferred_unavailable") return { kind: "failed", surface: "internal", message: DEFERRED_UNAVAILABLE_MESSAGE };
-  if (result.is_error) return { kind: "failed", surface: "engine", message: result.result || "The Claude Agent SDK failed." };
+  if (result.is_error) return engineFailure(result.result || "The Claude Agent SDK failed.", end, call);
   if (end.awaitingApproval) return { kind: "awaiting_approval" };
   if (end.structuredOutput) foldStructuredOutput(sink, result);
   return { kind: "completed" };
+}
+
+/**
+ * The engine's own failure, its kind named from the SDK's typed error and
+ * the result's HTTP status (`shared/stop-kind.ts`): a provider's failure on
+ * the `engine` surface, the platform's own token refused on `internal`. With
+ * neither (an engine that failed for its own reason), the engine surface
+ * with no kind, as before.
+ */
+function engineFailure(message: string, end: InvocationEnd, call: ClaudeCall | undefined): TurnOutcome {
+  const result = end.result;
+  const stop = modelStopOfClaude({
+    ...(end.assistantError !== undefined ? { sdkError: end.assistantError } : {}),
+    apiErrorStatus: result !== undefined && result.subtype === "success" ? (result.api_error_status ?? null) : null,
+    text: message,
+    proxyMode: call?.proxyMode ?? false,
+  });
+  if (stop === undefined) return { kind: "failed", surface: "engine", message };
+  const stopDetail = stop.kind === "internal" ? { kind: stop.kind } : withModel(stop.kind, call?.model);
+  return { kind: "failed", surface: stop.surface, message, stopDetail };
 }
 
 /** The engine's structured output onto the rows, when it is an object. */

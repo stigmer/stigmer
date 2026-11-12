@@ -239,6 +239,8 @@ export interface PermissionAskedOverrides extends SessionEventOverrides {
 export interface RunStatusEventOverrides extends SessionEventOverrides {
   readonly stopCause?: string;
   readonly error?: string;
+  /** Which kind of ending the cause was (`StigmerStopDetail`): its kind, and the model or connected app it names. */
+  readonly stopDetail?: { readonly kind: string; readonly model?: string; readonly app?: string };
 }
 
 /**
@@ -712,6 +714,7 @@ export const samples = {
         stopCause: o?.stopCause ?? "",
         error: o?.error ?? "",
         processedAt: at(o),
+        ...(o?.stopDetail === undefined ? {} : { stopDetail: o.stopDetail }),
       },
     });
   },

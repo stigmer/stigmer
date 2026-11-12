@@ -11,7 +11,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/session/v1/event_content.proto.
  */
 export const file_ai_stigmer_agentic_session_v1_event_content: GenFile = /*@__PURE__*/
-  fileDesc("CjFhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9ldmVudF9jb250ZW50LnByb3RvEh1haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MSKwAQoMQ29udGVudEJsb2NrEjQKBHR5cGUYASABKAlCJrpII3IhUgR0ZXh0UgVpbWFnZVIIZG9jdW1lbnRSCHJlZGFjdGVkEgwKBHRleHQYAiABKAkSPAoGc291cmNlGAMgASgLMiwuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuQ29udGVudFNvdXJjZRIPCgdjb250ZXh0GAQgASgJEg0KBXRpdGxlGAUgASgJIn0KDUNvbnRlbnRTb3VyY2USLAoEdHlwZRgBIAEoCUIeukgbchlSBmJhc2U2NFIEdGV4dFIDdXJsUgRmaWxlEgwKBGRhdGEYAiABKAkSEgoKbWVkaWFfdHlwZRgDIAEoCRILCgN1cmwYBCABKAkSDwoHZmlsZV9pZBgFIAEoCSJ7CgpTdG9wUmVhc29uEloKBHR5cGUYASABKAlCTLpISXJHUghlbmRfdHVyblIPcmVxdWlyZXNfYWN0aW9uUhFyZXRyaWVzX2V4aGF1c3RlZFIOYnVkZ2V0X3JlYWNoZWRSB3JlZnVzYWwSEQoJZXZlbnRfaWRzGAIgAygJIr8BCgtTdG9wRGV0YWlscxIcCgR0eXBlGAEgASgJQg66SAtyCVIHcmVmdXNhbBJbCghjYXRlZ29yeRgCIAEoCUJEukhBcj9SBWN5YmVyUgNiaW9SDGZyb250aWVyX2xsbVIUcmVhc29uaW5nX2V4dHJhY3Rpb25SDWdlbmVyYWxfaGFybXNIAIgBARIYCgtleHBsYW5hdGlvbhgDIAEoCUgBiAEBQgsKCV9jYXRlZ29yeUIOCgxfZXhwbGFuYXRpb24ivQIKDFNlc3Npb25FcnJvchLAAQoEdHlwZRgBIAEoCUKxAbpIrQFyqgFSDXVua25vd25fZXJyb3JSFm1vZGVsX292ZXJsb2FkZWRfZXJyb3JSGG1vZGVsX3JhdGVfbGltaXRlZF9lcnJvclIabW9kZWxfcmVxdWVzdF9mYWlsZWRfZXJyb3JSG21jcF9jb25uZWN0aW9uX2ZhaWxlZF9lcnJvclIfbWNwX2F1dGhlbnRpY2F0aW9uX2ZhaWxlZF9lcnJvclINYmlsbGluZ19lcnJvchIPCgdtZXNzYWdlGAIgASgJEkAKDHJldHJ5X3N0YXR1cxgDIAEoCzIqLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlJldHJ5U3RhdHVzEhcKD21jcF9zZXJ2ZXJfbmFtZRgEIAEoCSJBCgtSZXRyeVN0YXR1cxIyCgR0eXBlGAEgASgJQiS6SCFyH1IIcmV0cnlpbmdSCWV4aGF1c3RlZFIIdGVybWluYWwimwEKDlRvb2xFdmFsdWF0aW9uEjMKBHR5cGUYASABKAlCJbpIInIgUgxhbHdheXNfYWxsb3dSCmFsd2F5c19hc2tSBGF1dG8SVAoUZXZhbHVhdGVkX3Blcm1pc3Npb24YAiABKAsyNi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5BdXRvRXZhbHVhdGVkUGVybWlzc2lvbiJVChdBdXRvRXZhbHVhdGVkUGVybWlzc2lvbhIlCgR0eXBlGAEgASgJQhe6SBRyElIFYWxsb3dSA2Fza1IEZGVueRITCgtyZWFzb25fY29kZRgCIAEoCWIGcHJvdG8z", [file_buf_validate_validate]);
+  fileDesc("CjFhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9ldmVudF9jb250ZW50LnByb3RvEh1haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MSKwAQoMQ29udGVudEJsb2NrEjQKBHR5cGUYASABKAlCJrpII3IhUgR0ZXh0UgVpbWFnZVIIZG9jdW1lbnRSCHJlZGFjdGVkEgwKBHRleHQYAiABKAkSPAoGc291cmNlGAMgASgLMiwuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuQ29udGVudFNvdXJjZRIPCgdjb250ZXh0GAQgASgJEg0KBXRpdGxlGAUgASgJIn0KDUNvbnRlbnRTb3VyY2USLAoEdHlwZRgBIAEoCUIeukgbchlSBmJhc2U2NFIEdGV4dFIDdXJsUgRmaWxlEgwKBGRhdGEYAiABKAkSEgoKbWVkaWFfdHlwZRgDIAEoCRILCgN1cmwYBCABKAkSDwoHZmlsZV9pZBgFIAEoCSJ7CgpTdG9wUmVhc29uEloKBHR5cGUYASABKAlCTLpISXJHUghlbmRfdHVyblIPcmVxdWlyZXNfYWN0aW9uUhFyZXRyaWVzX2V4aGF1c3RlZFIOYnVkZ2V0X3JlYWNoZWRSB3JlZnVzYWwSEQoJZXZlbnRfaWRzGAIgAygJIr8BCgtTdG9wRGV0YWlscxIcCgR0eXBlGAEgASgJQg66SAtyCVIHcmVmdXNhbBJbCghjYXRlZ29yeRgCIAEoCUJEukhBcj9SBWN5YmVyUgNiaW9SDGZyb250aWVyX2xsbVIUcmVhc29uaW5nX2V4dHJhY3Rpb25SDWdlbmVyYWxfaGFybXNIAIgBARIYCgtleHBsYW5hdGlvbhgDIAEoCUgBiAEBQgsKCV9jYXRlZ29yeUIOCgxfZXhwbGFuYXRpb24ivQIKDFNlc3Npb25FcnJvchLAAQoEdHlwZRgBIAEoCUKxAbpIrQFyqgFSDXVua25vd25fZXJyb3JSFm1vZGVsX292ZXJsb2FkZWRfZXJyb3JSGG1vZGVsX3JhdGVfbGltaXRlZF9lcnJvclIabW9kZWxfcmVxdWVzdF9mYWlsZWRfZXJyb3JSG21jcF9jb25uZWN0aW9uX2ZhaWxlZF9lcnJvclIfbWNwX2F1dGhlbnRpY2F0aW9uX2ZhaWxlZF9lcnJvclINYmlsbGluZ19lcnJvchIPCgdtZXNzYWdlGAIgASgJEkAKDHJldHJ5X3N0YXR1cxgDIAEoCzIqLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlJldHJ5U3RhdHVzEhcKD21jcF9zZXJ2ZXJfbmFtZRgEIAEoCSKBAwoRU3RpZ21lclN0b3BEZXRhaWwSzwIKBGtpbmQYASABKAlCwAK6SLwCcrkCUhVwcm92aWRlcl9rZXlfcmVqZWN0ZWRSFHByb3ZpZGVyX2tleV9taXNzaW5nUhZwcm92aWRlcl9vdXRfb2ZfY3JlZGl0UhVwcm92aWRlcl9yYXRlX2xpbWl0ZWRSE3Byb3ZpZGVyX292ZXJsb2FkZWRSEW1vZGVsX3VuYXZhaWxhYmxlUhRwcm92aWRlcl91bnJlYWNoYWJsZVIQcmVxdWVzdF9yZWplY3RlZFIIY29zdF9jYXBSD3Rvb2xfY2FsbF9saW1pdFIHc3RhbGxlZFIPb3BlcmF0aW9uX2xpbWl0Ug53b3Jrc3BhY2VfYnVzeVILYWdlbnRfc2V0dXBSD2FwcF91bnJlYWNoYWJsZVIRYXBwX25lZWRzX3NpZ25faW5SCGludGVybmFsUgtydW5uZXJfbG9zdBINCgVtb2RlbBgCIAEoCRILCgNhcHAYAyABKAkiQQoLUmV0cnlTdGF0dXMSMgoEdHlwZRgBIAEoCUIkukghch9SCHJldHJ5aW5nUglleGhhdXN0ZWRSCHRlcm1pbmFsIpsBCg5Ub29sRXZhbHVhdGlvbhIzCgR0eXBlGAEgASgJQiW6SCJyIFIMYWx3YXlzX2FsbG93UgphbHdheXNfYXNrUgRhdXRvElQKFGV2YWx1YXRlZF9wZXJtaXNzaW9uGAIgASgLMjYuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuQXV0b0V2YWx1YXRlZFBlcm1pc3Npb24iVQoXQXV0b0V2YWx1YXRlZFBlcm1pc3Npb24SJQoEdHlwZRgBIAEoCUIXukgUchJSBWFsbG93UgNhc2tSBGRlbnkSEwoLcmVhc29uX2NvZGUYAiABKAliBnByb3RvMw", [file_buf_validate_validate]);
 
 /**
  * ContentBlock is one block of an event's content: text, an image, a
@@ -223,6 +223,56 @@ export const SessionErrorSchema: GenMessage<SessionError> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_session_v1_event_content, 4);
 
 /**
+ * StigmerStopDetail says which kind of ending a turn's stop cause was, and
+ * what it names: the model or the connected app involved.
+ *
+ * @generated from message ai.stigmer.agentic.session.v1.StigmerStopDetail
+ */
+export type StigmerStopDetail = Message<"ai.stigmer.agentic.session.v1.StigmerStopDetail"> & {
+  /**
+   * The kind of ending, under its stop cause. Under model_error:
+   * provider_key_rejected (the provider refused the key), provider_key_missing
+   * (no key for the model's provider), provider_out_of_credit,
+   * provider_rate_limited, provider_overloaded, model_unavailable (the key
+   * can't use this model), provider_unreachable (no connection to the
+   * provider) or request_rejected (the provider refused the request itself,
+   * such as one too long for the model). Under budget_reached: cost_cap or
+   * tool_call_limit. Under timeout: stalled (no progress), operation_limit (the
+   * turn's time limit) or workspace_busy (another turn held the workspace).
+   * Under failed: agent_setup (the agent can't run as configured),
+   * app_unreachable (a connected app wouldn't connect), app_needs_sign_in (a
+   * connected app needs a sign-in) or internal (a fault of the platform).
+   * Under infrastructure: runner_lost.
+   *
+   * @generated from field: string kind = 1;
+   */
+  kind: string;
+
+  /**
+   * The model the turn called, for the model_error kinds, by its id in the
+   * model registry (for example claude-sonnet-4.6); empty when unknown.
+   *
+   * @generated from field: string model = 2;
+   */
+  model: string;
+
+  /**
+   * The connected app (MCP server) that failed, by its slug, for the app
+   * kinds.
+   *
+   * @generated from field: string app = 3;
+   */
+  app: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.session.v1.StigmerStopDetail.
+ * Use `create(StigmerStopDetailSchema)` to create a new message.
+ */
+export const StigmerStopDetailSchema: GenMessage<StigmerStopDetail> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_session_v1_event_content, 5);
+
+/**
  * RetryStatus says whether work is retried after an error.
  *
  * @generated from message ai.stigmer.agentic.session.v1.RetryStatus
@@ -241,7 +291,7 @@ export type RetryStatus = Message<"ai.stigmer.agentic.session.v1.RetryStatus"> &
  * Use `create(RetryStatusSchema)` to create a new message.
  */
 export const RetryStatusSchema: GenMessage<RetryStatus> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_session_v1_event_content, 5);
+  messageDesc(file_ai_stigmer_agentic_session_v1_event_content, 6);
 
 /**
  * ToolEvaluation says how a tool use's permission was decided.
@@ -269,7 +319,7 @@ export type ToolEvaluation = Message<"ai.stigmer.agentic.session.v1.ToolEvaluati
  * Use `create(ToolEvaluationSchema)` to create a new message.
  */
 export const ToolEvaluationSchema: GenMessage<ToolEvaluation> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_session_v1_event_content, 6);
+  messageDesc(file_ai_stigmer_agentic_session_v1_event_content, 7);
 
 /**
  * AutoEvaluatedPermission is an automatic permission decision on a tool use.
@@ -297,5 +347,5 @@ export type AutoEvaluatedPermission = Message<"ai.stigmer.agentic.session.v1.Aut
  * Use `create(AutoEvaluatedPermissionSchema)` to create a new message.
  */
 export const AutoEvaluatedPermissionSchema: GenMessage<AutoEvaluatedPermission> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_session_v1_event_content, 7);
+  messageDesc(file_ai_stigmer_agentic_session_v1_event_content, 8);
 

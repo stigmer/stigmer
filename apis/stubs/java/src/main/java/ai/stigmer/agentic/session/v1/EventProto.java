@@ -591,58 +591,60 @@ public final class EventProto extends com.google.protobuf.GeneratedFile {
       "nt\030\001 \001(\0132+.ai.stigmer.agentic.session.v1" +
       ".ContentBlockB\006\272H\003\310\001\001R\007content\022(\n\004type\030\002" +
       " \001(\tB\024\272H\021r\017R\rcontent_deltaR\004type\022\035\n\005inde" +
-      "x\030\003 \001(\005B\007\272H\004\032\002(\000R\005index\"\225\002\n\025StigmerRunSt" +
+      "x\030\003 \001(\005B\007\272H\004\032\002(\000R\005index\"\350\002\n\025StigmerRunSt" +
       "atusEvent\022:\n\002id\030\001 \001(\tB*\272H\'r%2#^[A-Za-z0-" +
       "9][A-Za-z0-9_.:-]{0,127}$R\002id\022!\n\014process" +
       "ed_at\030\002 \001(\tR\013processedAt\022h\n\005phase\030\003 \001(\tB" +
       "R\272HOrMR\007pendingR\007runningR\007waitingR\006pause" +
       "dR\tcompletedR\006failedR\tcancelledR\ntermina" +
       "tedR\005phase\022\035\n\nstop_cause\030\004 \001(\tR\tstopCaus" +
-      "e\022\024\n\005error\030\005 \001(\tR\005error\"\327\002\n StigmerToolR" +
-      "esultFullOutputEvent\022:\n\002id\030\001 \001(\tB*\272H\'r%2" +
-      "#^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$R\002id" +
-      "\022!\n\014processed_at\030\002 \001(\tR\013processedAt\022\'\n\013t" +
-      "ool_use_id\030\003 \001(\tB\007\272H\004r\002\020\001R\ttoolUseId\022(\n\013" +
-      "storage_key\030\004 \001(\tB\007\272H\004r\002\020\001R\nstorageKey\022&" +
-      "\n\nsize_bytes\030\005 \001(\003B\007\272H\004\"\002(\000R\tsizeBytes\022!" +
-      "\n\014content_hash\030\006 \001(\tR\013contentHash\022\033\n\tmim" +
-      "e_type\030\007 \001(\tR\010mimeType\022\031\n\010is_image\030\010 \001(\010" +
-      "R\007isImage\"\346\004\n#StigmerBackgroundCommandSt" +
-      "atusEvent\022:\n\002id\030\001 \001(\tB*\272H\'r%2#^[A-Za-z0-" +
-      "9][A-Za-z0-9_.:-]{0,127}$R\002id\022!\n\014process" +
-      "ed_at\030\002 \001(\tR\013processedAt\022\'\n\013tool_use_id\030" +
-      "\003 \001(\tB\007\272H\004r\002\020\001R\ttoolUseId\022*\n\021session_thr" +
-      "ead_id\030\004 \001(\tR\017sessionThreadId\022+\n\005phase\030\005" +
-      " \001(\tB\025\272H\022r\020R\007runningR\005endedR\005phase\0220\n\017ti" +
-      "meout_seconds\030\006 \001(\005B\007\272H\004\032\002(\000R\016timeoutSec" +
-      "onds\022M\n\006ending\030\007 \001(\tB5\272H2r-R\006exitedR\ttim" +
-      "ed_outR\007stoppedR\017failed_to_start\330\001\001R\006end" +
-      "ing\022 \n\texit_code\030\010 \001(\005H\000R\010exitCode\210\001\001\022F\n" +
-      "\nstopped_by\030\t \001(\tB\'\272H$r\037R\005agentR\006personR" +
-      "\010approvalR\004turn\330\001\001R\tstoppedBy\0222\n\026stopped" +
-      "_by_tool_use_id\030\n \001(\tR\022stoppedByToolUseI" +
-      "d\022\026\n\006output\030\013 \001(\tR\006output\022\031\n\010ended_at\030\014 " +
-      "\001(\tR\007endedAtB\014\n\n_exit_code\"\340\001\n*StigmerBa" +
-      "ckgroundCommandStopRequestedEvent\022:\n\002id\030" +
-      "\001 \001(\tB*\272H\'r%2#^[A-Za-z0-9][A-Za-z0-9_.:-" +
-      "]{0,127}$R\002id\022!\n\014processed_at\030\002 \001(\tR\013pro" +
-      "cessedAt\022\'\n\013tool_use_id\030\003 \001(\tB\007\272H\004r\002\020\001R\t" +
-      "toolUseId\022*\n\021session_thread_id\030\004 \001(\tR\017se" +
-      "ssionThreadId\"\205\003\n\035StigmerMcpToolDefiniti" +
-      "onEvent\022:\n\002id\030\001 \001(\tB*\272H\'r%2#^[A-Za-z0-9]" +
-      "[A-Za-z0-9_.:-]{0,127}$R\002id\022!\n\014processed" +
-      "_at\030\002 \001(\tR\013processedAt\022\'\n\013tool_use_id\030\003 " +
-      "\001(\tB\007\272H\004r\002\020\001R\ttoolUseId\022/\n\017mcp_server_na" +
-      "me\030\004 \001(\tB\007\272H\004r\002\020\001R\rmcpServerName\022\033\n\004name" +
-      "\030\005 \001(\tB\007\272H\004r\002\020\001R\004name\022 \n\013description\030\006 \001" +
-      "(\tR\013description\022:\n\014input_schema\030\007 \001(\0132\027." +
-      "google.protobuf.StructR\013inputSchema\0220\n\024i" +
-      "nput_schema_omitted\030\010 \001(\010R\022inputSchemaOm" +
-      "ittedB\245\001B\nEventProtoP\001\242\002\004ASAS\252\002\035Ai.Stigm" +
-      "er.Agentic.Session.V1\312\002\035Ai\\Stigmer\\Agent" +
-      "ic\\Session\\V1\342\002)Ai\\Stigmer\\Agentic\\Sessi" +
-      "on\\V1\\GPBMetadata\352\002!Ai::Stigmer::Agentic" +
-      "::Session::V1b\006proto3"
+      "e\022\024\n\005error\030\005 \001(\tR\005error\022Q\n\013stop_detail\030\006" +
+      " \001(\01320.ai.stigmer.agentic.session.v1.Sti" +
+      "gmerStopDetailR\nstopDetail\"\327\002\n StigmerTo" +
+      "olResultFullOutputEvent\022:\n\002id\030\001 \001(\tB*\272H\'" +
+      "r%2#^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$R" +
+      "\002id\022!\n\014processed_at\030\002 \001(\tR\013processedAt\022\'" +
+      "\n\013tool_use_id\030\003 \001(\tB\007\272H\004r\002\020\001R\ttoolUseId\022" +
+      "(\n\013storage_key\030\004 \001(\tB\007\272H\004r\002\020\001R\nstorageKe" +
+      "y\022&\n\nsize_bytes\030\005 \001(\003B\007\272H\004\"\002(\000R\tsizeByte" +
+      "s\022!\n\014content_hash\030\006 \001(\tR\013contentHash\022\033\n\t" +
+      "mime_type\030\007 \001(\tR\010mimeType\022\031\n\010is_image\030\010 " +
+      "\001(\010R\007isImage\"\346\004\n#StigmerBackgroundComman" +
+      "dStatusEvent\022:\n\002id\030\001 \001(\tB*\272H\'r%2#^[A-Za-" +
+      "z0-9][A-Za-z0-9_.:-]{0,127}$R\002id\022!\n\014proc" +
+      "essed_at\030\002 \001(\tR\013processedAt\022\'\n\013tool_use_" +
+      "id\030\003 \001(\tB\007\272H\004r\002\020\001R\ttoolUseId\022*\n\021session_" +
+      "thread_id\030\004 \001(\tR\017sessionThreadId\022+\n\005phas" +
+      "e\030\005 \001(\tB\025\272H\022r\020R\007runningR\005endedR\005phase\0220\n" +
+      "\017timeout_seconds\030\006 \001(\005B\007\272H\004\032\002(\000R\016timeout" +
+      "Seconds\022M\n\006ending\030\007 \001(\tB5\272H2r-R\006exitedR\t" +
+      "timed_outR\007stoppedR\017failed_to_start\330\001\001R\006" +
+      "ending\022 \n\texit_code\030\010 \001(\005H\000R\010exitCode\210\001\001" +
+      "\022F\n\nstopped_by\030\t \001(\tB\'\272H$r\037R\005agentR\006pers" +
+      "onR\010approvalR\004turn\330\001\001R\tstoppedBy\0222\n\026stop" +
+      "ped_by_tool_use_id\030\n \001(\tR\022stoppedByToolU" +
+      "seId\022\026\n\006output\030\013 \001(\tR\006output\022\031\n\010ended_at" +
+      "\030\014 \001(\tR\007endedAtB\014\n\n_exit_code\"\340\001\n*Stigme" +
+      "rBackgroundCommandStopRequestedEvent\022:\n\002" +
+      "id\030\001 \001(\tB*\272H\'r%2#^[A-Za-z0-9][A-Za-z0-9_" +
+      ".:-]{0,127}$R\002id\022!\n\014processed_at\030\002 \001(\tR\013" +
+      "processedAt\022\'\n\013tool_use_id\030\003 \001(\tB\007\272H\004r\002\020" +
+      "\001R\ttoolUseId\022*\n\021session_thread_id\030\004 \001(\tR" +
+      "\017sessionThreadId\"\205\003\n\035StigmerMcpToolDefin" +
+      "itionEvent\022:\n\002id\030\001 \001(\tB*\272H\'r%2#^[A-Za-z0" +
+      "-9][A-Za-z0-9_.:-]{0,127}$R\002id\022!\n\014proces" +
+      "sed_at\030\002 \001(\tR\013processedAt\022\'\n\013tool_use_id" +
+      "\030\003 \001(\tB\007\272H\004r\002\020\001R\ttoolUseId\022/\n\017mcp_server" +
+      "_name\030\004 \001(\tB\007\272H\004r\002\020\001R\rmcpServerName\022\033\n\004n" +
+      "ame\030\005 \001(\tB\007\272H\004r\002\020\001R\004name\022 \n\013description\030" +
+      "\006 \001(\tR\013description\022:\n\014input_schema\030\007 \001(\013" +
+      "2\027.google.protobuf.StructR\013inputSchema\0220" +
+      "\n\024input_schema_omitted\030\010 \001(\010R\022inputSchem" +
+      "aOmittedB\245\001B\nEventProtoP\001\242\002\004ASAS\252\002\035Ai.St" +
+      "igmer.Agentic.Session.V1\312\002\035Ai\\Stigmer\\Ag" +
+      "entic\\Session\\V1\342\002)Ai\\Stigmer\\Agentic\\Se" +
+      "ssion\\V1\\GPBMetadata\352\002!Ai::Stigmer::Agen" +
+      "tic::Session::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -880,7 +882,7 @@ public final class EventProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_session_v1_StigmerRunStatusEvent_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_session_v1_StigmerRunStatusEvent_descriptor,
-        new java.lang.String[] { "Id", "ProcessedAt", "Phase", "StopCause", "Error", });
+        new java.lang.String[] { "Id", "ProcessedAt", "Phase", "StopCause", "Error", "StopDetail", });
     internal_static_ai_stigmer_agentic_session_v1_StigmerToolResultFullOutputEvent_descriptor =
       getDescriptor().getMessageType(38);
     internal_static_ai_stigmer_agentic_session_v1_StigmerToolResultFullOutputEvent_fieldAccessorTable = new

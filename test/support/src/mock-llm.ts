@@ -126,6 +126,9 @@ interface QueuedError {
   headers: Record<string, string>;
   body: unknown;
   persistent: boolean;
+  // Drop the connection instead of answering: the provider unreachable
+  // mid-call, as a network fault reaches the SDK (no status, no body).
+  drop?: boolean;
 }
 
 export interface EnqueueOptions {
@@ -147,6 +150,16 @@ export interface EnqueueErrorOptions extends EnqueueOptions {
   // "no queued response" 500 instead of the fault under test. Set it for any
   // status LangChain's AsyncCaller retries (5xx, 429).
   persistent?: boolean;
+}
+
+// An injected failure, answered: the scripted status and body, or a dropped
+// connection.
+function answerError(res: ServerResponse, error: QueuedError): void {
+  if (error.drop === true) {
+    res.socket?.destroy();
+    return;
+  }
+  writeJson(res, error.status, error.body, error.headers);
 }
 
 // The body an error turn carries when the arm supplies none: Anthropic's
@@ -452,6 +465,18 @@ export class MockLlmProxy {
         body: opts.body ?? DEFAULT_ERROR_BODY,
         persistent: opts.persistent ?? false,
       },
+      delayMs: opts.delayMs,
+    });
+    return this;
+  }
+
+  // Append a turn that drops the connection without answering: the provider
+  // unreachable, which the SDK raises as a connection error (no status).
+  // `persistent` keeps dropping every later request until reset(), as a real
+  // network fault outlasts the caller's retries.
+  enqueueDrop(opts: { persistent?: boolean; delayMs?: number } = {}): this {
+    this.queue.push({
+      error: { status: 0, headers: {}, body: undefined, persistent: opts.persistent ?? false, drop: true },
       delayMs: opts.delayMs,
     });
     return this;
@@ -777,7 +802,7 @@ export class MockLlmProxy {
     const request = this.capture({ path, body: parsedBody, disposition: next === undefined ? "unscripted" : "scripted", headers, receivedAt });
     if (next === undefined) {
       if (this.persistentError !== undefined) {
-        writeJson(res, this.persistentError.status, this.persistentError.body, this.persistentError.headers);
+        answerError(res, this.persistentError);
         return;
       }
       writeJson(res, 500, { error: `MockLlmProxy: no queued response (consumed ${this.consumedCount})` });
@@ -799,7 +824,7 @@ export class MockLlmProxy {
     // proxy relays a provider error.
     if (next.error !== undefined) {
       if (next.error.persistent) this.persistentError = next.error;
-      writeJson(res, next.error.status, next.error.body, next.error.headers);
+      answerError(res, next.error);
       return;
     }
 

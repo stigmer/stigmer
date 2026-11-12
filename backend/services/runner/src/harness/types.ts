@@ -79,6 +79,7 @@ import type { ArtifactStorage } from "../shared/artifact-storage.js";
 import type { TimingRecorder } from "../shared/cold-start-timing.js";
 import type { ResolvedBlueprint } from "../shared/blueprint-resolver.js";
 import type { SessionWorkspaceProvision } from "../shared/workspace/session-provision.js";
+import type { StopDetail } from "../shared/stop-kind.js";
 import type { ResolvedMcpServer } from "../shared/mcp-resolver.js";
 import type { ChannelMessagingInfo } from "../shared/channel-attachment.js";
 import type { ActiveLeases, McpApprovalDefault } from "../shared/approval-policy.js";
@@ -767,5 +768,12 @@ export type TurnOutcome =
   | { readonly kind: "completed" }
   | { readonly kind: "awaiting_approval" }
   | { readonly kind: "tool_call_limit" }
-  | { readonly kind: "failed"; readonly message: string; readonly surface: FailureSurface; readonly cause?: unknown }
+  | {
+      readonly kind: "failed";
+      readonly message: string;
+      readonly surface: FailureSurface;
+      readonly cause?: unknown;
+      /** Which kind of failure it was, and the model or app it names (`shared/stop-kind.ts`); the surface's own kind when absent. */
+      readonly stopDetail?: StopDetail;
+    }
   | { readonly kind: "interrupted" };

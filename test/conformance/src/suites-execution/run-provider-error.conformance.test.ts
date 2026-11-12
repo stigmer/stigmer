@@ -139,6 +139,7 @@ describe("Run provider-error attribution (proxy mode)", () => {
     for (const text of await transcriptTextsOf(final)) {
       expect(text, "the wrapper tag must not leak into the transcript").not.toContain("MiddlewareError");
     }
+    expectStopDetail(final, "model_error", "provider_out_of_credit");
   }, FAILURE_ARM_TIMEOUT_MS);
 
   it("a provider 401 behind the proxy is classified by its status, never labelled by the LangChain wrapper", async () => {
@@ -147,6 +148,9 @@ describe("Run provider-error attribution (proxy mode)", () => {
     const final = await runToFailure();
 
     await expectClassifiedByStatus(final);
+    // The platform's own token refused, not the organization's key: the
+    // platform's fault, by kind (the runner's stop-kind table).
+    expectStopDetail(final, "failed", "internal");
   }, FAILURE_ARM_TIMEOUT_MS);
 
   it("a 401 on the organization's own key is attributed to that key", async () => {
@@ -160,8 +164,16 @@ describe("Run provider-error attribution (proxy mode)", () => {
       "rejected your organization's own key",
     );
     expect(error, "never worded as the platform").not.toContain("Stigmer platform");
+    expectStopDetail(final, "model_error", "provider_key_rejected");
+    expect(final.status?.stopDetail?.model, "the refused key's model is named").not.toBe("");
   }, FAILURE_ARM_TIMEOUT_MS);
 });
+
+// The ending's cause and its kind, as a client reads them to pick its words.
+function expectStopDetail(final: Run, stopCause: string, kind: string): void {
+  expect(final.status?.stopCause, "the stop cause").toBe(stopCause);
+  expect(final.status?.stopDetail?.kind, "the stop detail's kind").toBe(kind);
+}
 
 // A failure the runner can only classify by its HTTP status: the stable code
 // present, and neither the wrapper class nor LangChain's troubleshooting link

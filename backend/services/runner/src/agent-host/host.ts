@@ -207,5 +207,6 @@ function toWireOutcome(outcome: TurnOutcome): WireOutcome {
     message: outcome.message,
     surface: outcome.surface,
     ...(outcome.cause !== undefined ? { cause: toWireErrorChain(outcome.cause) } : {}),
+    ...(outcome.stopDetail !== undefined ? { stopDetail: outcome.stopDetail } : {}),
   };
 }

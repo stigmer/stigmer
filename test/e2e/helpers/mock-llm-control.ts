@@ -47,6 +47,27 @@ export class MockControl {
     }
   }
 
+  /**
+   * Append one failed turn: the provider's HTTP error (`status`, its JSON
+   * `body`), or a dropped connection with `{ drop: true }`. `persistent`
+   * keeps failing every later call until reset, as a real fault outlasts
+   * the runner's retries (set it for 429 and 5xx).
+   */
+  async enqueueError(
+    failure:
+      | { readonly status: number; readonly body?: unknown; readonly headers?: Record<string, string>; readonly persistent?: boolean }
+      | { readonly drop: true; readonly persistent?: boolean },
+  ): Promise<void> {
+    const res = await fetch(`${this.baseUrl}/__mock/enqueue-error`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(failure),
+    });
+    if (!res.ok) {
+      throw new Error(`mock enqueue-error failed: ${res.status} ${await res.text()}`);
+    }
+  }
+
   /** Drop any unconsumed turns. Call between tests so leftovers can't leak. */
   async reset(): Promise<void> {
     const res = await fetch(`${this.baseUrl}/__mock/reset`, { method: "POST" });

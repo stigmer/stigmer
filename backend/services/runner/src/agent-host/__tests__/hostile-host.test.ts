@@ -370,6 +370,24 @@ describe("a host that does not follow the rules", () => {
     }
   });
 
+  it("takes a failure's stop detail only with a kind this runner knows, and drops the rest", async () => {
+    const cases: readonly (readonly [unknown, unknown])[] = [
+      [{ kind: "app_unreachable", app: "issues", model: "" }, { kind: "app_unreachable", app: "issues" }],
+      [{ kind: "provider_key_rejected", model: "claude-sonnet-4-6", app: 7 }, { kind: "provider_key_rejected", model: "claude-sonnet-4-6" }],
+      [{ kind: "chosen_by_the_host" }, undefined],
+      [{ kind: 3 }, undefined],
+      ["internal", undefined],
+    ];
+    for (const [stopDetail, expected] of cases) {
+      const adapter = hostileHarness(async () => {}, { kind: "failed", message: "m", surface: "engine", stopDetail });
+      await adapter.boot(testConfig());
+      const input = turnInputFixture();
+      const outcome = await adapter.runTurn(input, new RecordingTurnSink({ executionId: input.executionId }));
+      expect((outcome as { stopDetail?: unknown }).stopDetail, JSON.stringify(stopDetail)).toEqual(expected);
+      await adapter.shutdown();
+    }
+  });
+
   it("drops a notice for a turn that has settled", async () => {
     const adapter = hostileHarness(async (host, turnId) => {
       // Sent once the runTurn answer is on its way: a late fact about a turn the runtime has settled.

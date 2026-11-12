@@ -16,6 +16,9 @@
 // setup writes to the e2e state file (helpers/mock-llm-control.ts is the
 // client):
 //   POST /__mock/enqueue    one turn: a bare Anthropic body, or { body, delayMs }
+//   POST /__mock/enqueue-error  one failed turn: { status, body?, headers?,
+//                           persistent?, delayMs? } as the provider's error, or
+//                           { drop: true, persistent? } for a dropped connection
 //   POST /__mock/reset      drop every unconsumed turn and the captured requests
 //   GET  /__mock/remaining  { remaining }: turns still queued
 //   GET  /__mock/requests   { requests }: what the model received, each with the
@@ -54,6 +57,12 @@ export interface MockLlmEndpoints {
 // by the approval helpers, or an envelope carrying a serve delay.
 type EnqueueRequest = AnthropicMessageBody | { body: AnthropicMessageBody; delayMs?: number };
 
+// The body of POST /__mock/enqueue-error: a provider's failure, or a dropped
+// connection (the provider unreachable).
+type EnqueueErrorRequest =
+  | { status: number; body?: unknown; headers?: Record<string, string>; persistent?: boolean; delayMs?: number }
+  | { drop: true; persistent?: boolean; delayMs?: number };
+
 class MockLlmControl {
   private readonly proxy = new MockLlmProxy(diagEnabled() ? { onCapture: (request) => this.logRequest(request) } : {});
   private control: Server | undefined;
@@ -87,6 +96,21 @@ class MockLlmControl {
       const parsed = JSON.parse(await readBody(req)) as EnqueueRequest;
       if ("body" in parsed) this.proxy.enqueue(parsed.body, { delayMs: parsed.delayMs ?? 0 });
       else this.proxy.enqueue(parsed);
+      writeJson(res, 200, { ok: true, remaining: this.proxy.remaining() });
+      return;
+    }
+    if (req.method === "POST" && path === "/__mock/enqueue-error") {
+      const parsed = JSON.parse(await readBody(req)) as EnqueueErrorRequest;
+      if ("drop" in parsed) {
+        this.proxy.enqueueDrop({ persistent: parsed.persistent ?? false, delayMs: parsed.delayMs ?? 0 });
+      } else {
+        this.proxy.enqueueError(parsed.status, {
+          ...(parsed.body !== undefined ? { body: parsed.body } : {}),
+          ...(parsed.headers !== undefined ? { headers: parsed.headers } : {}),
+          persistent: parsed.persistent ?? false,
+          delayMs: parsed.delayMs ?? 0,
+        });
+      }
       writeJson(res, 200, { ok: true, remaining: this.proxy.remaining() });
       return;
     }

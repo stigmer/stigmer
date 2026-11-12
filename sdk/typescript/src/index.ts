@@ -483,6 +483,7 @@ export {
   type TurnOpenOperation,
   type TurnPhase,
   type TurnStatus,
+  type TurnStopDetail,
   type UserMessage,
   type UserMessageItem,
 } from "@stigmer/session-log";

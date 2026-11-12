@@ -427,6 +427,10 @@ export function applyUpdateStatusMerge(
   }
   if (requestStatus.stopCause !== "") {
     status.stopCause = requestStatus.stopCause;
+    // The detail is written with its cause, never alone: a cause that comes
+    // without one (a runner that predates it, a cause that says it all)
+    // leaves none from an earlier stop.
+    status.stopDetail = requestStatus.stopDetail;
   }
   if (requestStatus.startedAt !== "") {
     status.startedAt = requestStatus.startedAt;
@@ -447,8 +451,9 @@ export function applyUpdateStatusMerge(
   ) {
     status.completedAt = "";
     // A turn that works again has not stopped: a resumed pause drops its
-    // cause, so the turn's next stop is read alone.
+    // cause and its detail, so the turn's next stop is read alone.
     status.stopCause = "";
+    status.stopDetail = undefined;
   }
 
   // The file record, merged by change set id: nothing stored is removed
