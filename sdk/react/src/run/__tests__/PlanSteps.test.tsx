@@ -173,4 +173,36 @@ describe("PlanSteps", () => {
     expect(screen.queryByRole("button", { name: /^Steps so far/ })).toBeNull();
     expect(screen.getAllByRole("group")).toHaveLength(1);
   });
+
+  it("KIT-05 names what the agent is doing now: the item in progress, open to the step running", () => {
+    render(
+      <PlanSteps
+        working
+        steps={stepsOf(
+          todos("t", [{ content: "Check the build", status: "in_progress" }]),
+          use(R, "c1", "execute", { command: "npm test" }),
+        )}
+      />,
+    );
+    expect(itemLine("Check the build").querySelector('[aria-label="In progress"]')).not.toBeNull();
+    expect(itemToggle("Check the build").getAttribute("aria-expanded")).toBe("true");
+    expect(screen.getByText("Running a command")).toBeTruthy();
+  });
+
+  it("keeps a failed step and a command running in the background out of the 'Steps so far' fold", () => {
+    render(
+      <PlanSteps
+        working
+        steps={stepsOf(
+          use(R, "c1", "execute", { command: "npm test" }),
+          result(R, "c1", "1 failed\n[Command failed with exit code 1]"),
+          call("c2", "read_file", { path: "a.ts" }),
+          todos("t", [{ content: "Test it", status: "pending" }]),
+        )}
+      />,
+    );
+    const fold = screen.getByRole("button", { name: /^Steps so far: read 1 file/ });
+    expect(fold.getAttribute("aria-expanded")).toBe("false");
+    expect(screen.getByText("Command failed")).toBeTruthy();
+  });
 });

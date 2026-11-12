@@ -446,7 +446,7 @@ describe("ToolCallItem disclosure", () => {
     expect(hasHeaderChevron(container)).toBe(true);
     expect(isExpanded(container)).toBe(true);
     expect(screen.getByLabelText("Allow")).toBeTruthy();
-    expect(screen.getByLabelText("Allow all file deletions this turn")).toBeTruthy();
+    expect(screen.getByLabelText("Allow all file deletions")).toBeTruthy();
   });
 
   it("shows no decision UI on a waiting call when no answer handler is wired", () => {
@@ -529,7 +529,7 @@ describe("ToolCallItem disclosure", () => {
       </ApprovalContext.Provider>,
     );
 
-    fireEvent.click(screen.getByLabelText("Allow all file deletions this turn"));
+    fireEvent.click(screen.getByLabelText("Allow all file deletions"));
     expect(onAnswer).toHaveBeenCalledTimes(1);
     expect(onAnswer).toHaveBeenCalledWith("tc-gated", "grant", undefined);
   });
@@ -1066,5 +1066,17 @@ describe("ToolCallItem step line", () => {
   it("reads a call its turn stopped as one it could not do", () => {
     const { container } = render(<ToolCallItem toolUse={toolUse({ name: "delete_file", input: { path: "/x.ts" }, state: "stopped" })} />);
     expect(rowHeader(container).textContent).toContain("Couldn't delete x.ts");
+  });
+
+  it("shows a host's registered summary in place of the counts, in the row and its toggle's name", () => {
+    const unregister = registerToolPresenter("search", { summary: () => "3 hits in billing" });
+    try {
+      const { container } = render(<ToolCallItem toolUse={toolUse({ name: "grep", input: { pattern: "round(" }, result: "  12: a\n  13: b" })} />);
+      expect(within(rowHeader(container)).getByText("3 hits in billing")).toBeTruthy();
+      expect(within(rowHeader(container)).queryByText("2 matches")).toBeNull();
+      expect(rowHeaderToggle(container)!.getAttribute("aria-label")).toContain("3 hits in billing");
+    } finally {
+      unregister();
+    }
   });
 });

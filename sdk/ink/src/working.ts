@@ -1,7 +1,8 @@
 // The words of the terminal's working line and of the line a turn leaves
-// when it ends, from the derivation the browser's session header reads too
-// (`describeTurnActivity` and `activityPhrase` in @stigmer/client), so both
-// surfaces say the same thing about the same turn.
+// when it ends, from the derivation the browser reads too
+// (`describeTurnActivity` in @stigmer/client, and the one word table its
+// `activityPhrase` and the browser's step lines share), so both surfaces say
+// the same thing about the same turn.
 //
 // - While a turn works: what it is doing now and for how long, "Running a
 //   command · 1m 12s". Stopping, waiting on the person, and slowness take the

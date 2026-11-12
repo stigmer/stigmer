@@ -713,7 +713,6 @@ export function SessionViewer({
           isCurated={isCurated}
           isGuest={isGuest}
           isObserver={isReader}
-          readsOnly={readsOnly}
           isParticipant={isParticipant}
           creatorName={creatorName}
           runScores={runScores}
@@ -820,16 +819,13 @@ interface ConversationColumnProps {
   /** Guest audience: pure chat — additionally no model picker, mode picker, file uploads, or workspace. */
   readonly isGuest: boolean;
   /**
-   * Observer audience: a read-only transcript. No composer, no
-   * approval/edit/retry/build affordances, no decision surfaces — live
-   * stream indicators stay (watching an in-flight turn is the point).
+   * A reader (an observer, a viewer of a shared conversation, a channel
+   * conversation): a read-only transcript. No composer, no
+   * approval/edit/retry/build affordances, no decision surfaces, and a
+   * one-line footer saying so; live stream indicators stay (watching an
+   * in-flight turn is the point).
    */
   readonly isObserver: boolean;
-  /**
-   * A viewer of a shared conversation (not a channel or host observer):
-   * the observer presentation, with a line saying the reader can read it.
-   */
-  readonly readsOnly: boolean;
   /**
    * A participant in a shared conversation: sends messages, but stopping,
    * approvals and file decisions stay with its owners, so those controls
@@ -896,7 +892,6 @@ const ConversationColumn = memo(function ConversationColumn({
   isCurated,
   isGuest,
   isObserver,
-  readsOnly,
   isParticipant,
   creatorName,
   runScores,

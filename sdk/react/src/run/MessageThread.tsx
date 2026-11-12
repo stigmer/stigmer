@@ -27,6 +27,7 @@ import {
   type TurnItem,
   type TurnSteps,
   isBackgroundRunning,
+  stepTense,
   turnSteps,
 } from "@stigmer/client";
 import { cn } from "@stigmer/design-tokens";
@@ -938,7 +939,9 @@ export function buildThreadItems(
       // Anchor (2): if work begins before any rendered narration, the plan
       // still leads it.
       emitTodos();
-      const settled = group.every((tool) => tool.result !== undefined && !isBackgroundRunning(tool));
+      // A stretch folds once every call returned, none runs on in the
+      // background, and none failed: a failure stays in view.
+      const settled = group.every((tool) => tool.result !== undefined && !isBackgroundRunning(tool) && stepTense(tool) !== "failed");
       items.push({ kind: "tool-group", toolUses: group, key: `${group[0]!.id}-tc`, ...(isActiveTurn && settled ? { fold: true } : {}) });
       recordFileReviewAnchors(group, items.length - 1, reviewSets, fileReviewAnchors);
       for (const toolUse of group) inlineToolUseIds.add(toolUse.id);

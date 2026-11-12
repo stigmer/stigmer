@@ -15,7 +15,7 @@
 // degraded one; everything else is weight and the muted foreground.
 
 import { useId, type ReactNode } from "react";
-import type { PlanItem, ToolUse, TurnSteps } from "@stigmer/client";
+import { isBackgroundRunning, stepTense, type PlanItem, type ToolUse, type TurnSteps } from "@stigmer/client";
 import { cn } from "@stigmer/design-tokens";
 import { useAutoDisclosure } from "../internal/useAutoDisclosure.js";
 import { SpinnerIcon } from "../internal/thread-card/index.js";
@@ -32,6 +32,11 @@ export interface PlanStepsProps {
   readonly className?: string;
 }
 
+/** Whether a step may sit in a folded stretch: it returned, runs nothing on, and did not fail. */
+function folds(tool: ToolUse): boolean {
+  return tool.result !== undefined && !isBackgroundRunning(tool) && stepTense(tool) !== "failed";
+}
+
 /** Whether a step waits for a person (its ask is drawn as its own card). */
 function waits(tool: ToolUse): boolean {
   return tool.state === "waiting";
@@ -42,8 +47,10 @@ export function PlanSteps({ steps, working, className }: PlanStepsProps) {
   const counted = steps.plan.filter((item) => item.todo.status !== "cancelled");
   const done = counted.filter((item) => item.todo.status === "completed").length;
   const loose = steps.loose.filter((tool) => !waits(tool));
-  const settledLoose = loose.filter((tool) => tool.result !== undefined);
-  const openLoose = loose.filter((tool) => tool.result === undefined);
+  // Only a quiet stretch folds: a step still running (a background command
+  // runs on past its call) or one that failed stays in view.
+  const settledLoose = loose.filter((tool) => folds(tool));
+  const openLoose = loose.filter((tool) => !folds(tool));
   return (
     <section
       aria-label="Plan"

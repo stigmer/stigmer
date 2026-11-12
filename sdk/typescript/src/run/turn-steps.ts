@@ -23,6 +23,11 @@
 //   its list sits under the item that update put in progress.
 // - Only the primary thread's calls are steps here: a subagent's own calls
 //   belong to its card, as everywhere else.
+// - Items are matched by the fold's ids, and neither engine sends one, so
+//   an item's id is its place in the list (`todo-<i>`). A rewrite that
+//   inserts or reorders items moves the calls made under a place to
+//   whatever item now sits there; agents append and tick rather than
+//   reorder, so the plan reads right in practice.
 
 import type { Todo, ToolUse, Turn } from "@stigmer/session-log";
 import { applyTodoUpdate } from "@stigmer/session-log";

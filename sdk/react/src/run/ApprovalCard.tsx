@@ -273,7 +273,7 @@ export function ApprovalCardBody({
   const categoryInfo = resolveToolCategoryFromCall(toolUse);
   // The agent's own description of a command, said before what waits.
   const intent = useMemo(
-    () => extractShellIntentFromPreview(toolUse.name, argsPreview, toolUse.mcpServerName)?.replace(/[.\s]+$/, "") ?? null,
+    () => trimEndPeriods(extractShellIntentFromPreview(toolUse.name, argsPreview, toolUse.mcpServerName)),
     [toolUse.name, argsPreview, toolUse.mcpServerName],
   );
 
@@ -533,6 +533,18 @@ function askSentence(category: ToolCategory, toolUse: ToolUse): string {
   }
 }
 
+/**
+ * A description without its trailing periods and spaces, trimmed by a loop:
+ * the description is the model's, and a pattern like /[.\s]+$/ backtracks
+ * quadratically on a long run of them. Null when nothing is left.
+ */
+function trimEndPeriods(text: string | null): string | null {
+  if (text === null) return null;
+  let end = text.length;
+  while (end > 0 && (text[end - 1] === "." || /\s/.test(text[end - 1]!))) end -= 1;
+  return end === 0 ? null : text.slice(0, end);
+}
+
 /** What waits for the answer, by kind: nothing happens until the person allows it. */
 const WAIT_WORDS: Readonly<Partial<Record<ToolCategory, string>>> = {
   write: "Nothing is written until you allow it.",
@@ -542,7 +554,7 @@ const WAIT_WORDS: Readonly<Partial<Record<ToolCategory, string>>> = {
 };
 
 /**
- * Builds the truthful "Allow all … this turn" label for a tool's grant class.
+ * Builds the "Allow all …" label for a tool's grant class.
  *
  * A grant is scoped to ONE class: when a hook asked, that hook's asks on that
  * one tool (`hookApproveAllLabel`); otherwise the MCP server for an MCP tool,
@@ -565,21 +577,21 @@ function buildApproveAllLabel(
 ): string {
   const { mcpServerName } = tool;
   if (tool.policySource === "hook") {
-    return `${hookApproveAllLabel(hookLeaseSubject(category, tool.name, mcpServerName), tool.policyHook).replace(/^Approve/, "Allow")} this turn`;
+    return hookApproveAllLabel(hookLeaseSubject(category, tool.name, mcpServerName), tool.policyHook).replace(/^Approve/, "Allow");
   }
   if (mcpServerName) {
-    return `Allow all ${mcpServerName} tools this turn`;
+    return `Allow all ${mcpServerName} tools`;
   }
   switch (category) {
     case "shell":
-      return "Allow all commands this turn";
+      return "Allow all commands";
     case "delete":
-      return "Allow all file deletions this turn";
+      return "Allow all file deletions";
     case "write":
     case "edit":
-      return "Allow all file edits this turn";
+      return "Allow all file edits";
     default:
-      return "Allow all of this kind this turn";
+      return "Allow all of this kind";
   }
 }
 

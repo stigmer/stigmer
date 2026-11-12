@@ -11,7 +11,7 @@
  * tool's name and MCP server; the why-gated line from the ask's rule word,
  * suppressed for the everyday default; a file tool's restating message
  * suppressed; the three answers — Allow (`allow`), Deny with an optional
- * reason (`deny`), and Allow all of the call's class this turn (`grant`,
+ * reason (`deny`), and Allow all of the call's class (`grant`,
  * labelled by class, MCP server or the hook that asked); the proposed content
  * read from the tool's input over the ask's sanitized preview, never a
  * redacted field, and no preview at all for a write or edit with only a path;
@@ -208,6 +208,13 @@ describe("ApprovalCard wait line", () => {
     expect(waitLine(container)).toBe("Run the unit tests. Nothing runs until you allow it.");
   });
 
+  it("says no description for one made only of periods and spaces, trimmed in linear time", () => {
+    const { container } = render(
+      <ApprovalCardBody toolUse={waiting("shell", { argsPreview: JSON.stringify({ command: "npm test", description: ". .".repeat(2000) }) })} onAnswer={noop} />,
+    );
+    expect(waitLine(container)).toBe("Nothing runs until you allow it.");
+  });
+
   it("says no description for a command the agent did not describe", () => {
     const { container } = render(
       <ApprovalCardBody toolUse={waiting("shell", { argsPreview: '{"command":"npm test"}' })} onAnswer={noop} />,
@@ -240,9 +247,9 @@ describe("ApprovalCard quiet decision buttons", () => {
 
   it("demotes Allow all to the far right at the lowest weight, with no opacity modifiers", () => {
     renderGate();
-    const allowAll = screen.getByRole("button", { name: "Allow all file edits this turn" });
+    const allowAll = screen.getByRole("button", { name: "Allow all file edits" });
     expect(allowAll.className).toContain("stg:ml-auto");
-    for (const name of ["Allow", "Deny", "Allow all file edits this turn"]) {
+    for (const name of ["Allow", "Deny", "Allow all file edits"]) {
       expect(screen.getByRole("button", { name }).className).not.toMatch(/\/\d+(?:\s|$)/);
     }
   });
@@ -298,12 +305,12 @@ describe("ApprovalCard message redundancy", () => {
 describe("ApprovalCard answers", () => {
   it("labels Allow all by the call's class", () => {
     const cases: ReadonlyArray<{ name: string; mcpServerName?: string; expected: string }> = [
-      { name: "delete_file", expected: "Allow all file deletions this turn" },
-      { name: "write_file", expected: "Allow all file edits this turn" },
-      { name: "edit_file", expected: "Allow all file edits this turn" },
-      { name: "shell", expected: "Allow all commands this turn" },
-      { name: "web_fetch", expected: "Allow all of this kind this turn" },
-      { name: "create_issue", mcpServerName: "github", expected: "Allow all github tools this turn" },
+      { name: "delete_file", expected: "Allow all file deletions" },
+      { name: "write_file", expected: "Allow all file edits" },
+      { name: "edit_file", expected: "Allow all file edits" },
+      { name: "shell", expected: "Allow all commands" },
+      { name: "web_fetch", expected: "Allow all of this kind" },
+      { name: "create_issue", mcpServerName: "github", expected: "Allow all github tools" },
     ];
     for (const { name, mcpServerName, expected } of cases) {
       const init = mcpServerName === undefined ? {} : { mcpServerName };
@@ -315,12 +322,12 @@ describe("ApprovalCard answers", () => {
 
   it("labels Allow all of a call a hook asked about by that hook and that tool", () => {
     const cases: ReadonlyArray<{ name: string; mcpServerName?: string; hook: string; expected: string }> = [
-      { name: "execute", hook: "safety", expected: "Allow all shell commands the safety plugin asks about this turn" },
-      { name: "write_file", hook: "safety", expected: "Allow all file writes the safety plugin asks about this turn" },
-      { name: "edit_file", hook: "", expected: "Allow all file edits the agent's hooks ask about this turn" },
-      { name: "create_issue", mcpServerName: "github", hook: "safety", expected: "Allow all create_issue calls the safety plugin asks about this turn" },
-      { name: "delete_file", hook: "safety", expected: "Allow all file deletions the safety plugin asks about this turn" },
-      { name: "web_fetch", hook: "safety", expected: "Allow all web_fetch calls the safety plugin asks about this turn" },
+      { name: "execute", hook: "safety", expected: "Allow all shell commands the safety plugin asks about" },
+      { name: "write_file", hook: "safety", expected: "Allow all file writes the safety plugin asks about" },
+      { name: "edit_file", hook: "", expected: "Allow all file edits the agent's hooks ask about" },
+      { name: "create_issue", mcpServerName: "github", hook: "safety", expected: "Allow all create_issue calls the safety plugin asks about" },
+      { name: "delete_file", hook: "safety", expected: "Allow all file deletions the safety plugin asks about" },
+      { name: "web_fetch", hook: "safety", expected: "Allow all web_fetch calls the safety plugin asks about" },
     ];
     for (const { name, mcpServerName, hook, expected } of cases) {
       const init = { policySource: "hook", policyHook: hook, ...(mcpServerName === undefined ? {} : { mcpServerName }) };
@@ -334,7 +341,7 @@ describe("ApprovalCard answers", () => {
     const onAnswer = vi.fn();
     render(<ApprovalCard toolUse={waiting("delete_file")} onAnswer={onAnswer} />);
     fireEvent.click(screen.getByLabelText("Allow"));
-    fireEvent.click(screen.getByLabelText("Allow all file deletions this turn"));
+    fireEvent.click(screen.getByLabelText("Allow all file deletions"));
     expect(onAnswer.mock.calls).toEqual([["allow", undefined], ["grant", undefined]]);
   });
 

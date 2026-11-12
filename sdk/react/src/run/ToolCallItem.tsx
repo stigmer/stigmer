@@ -31,7 +31,7 @@ import { splitDisplayPath } from "./file-path-resolver.js";
 import { subagentSubjectOf } from "@stigmer/react-core";
 import { isFileCategory } from "@stigmer/react-core/internal";
 import { type ToolCategory } from "@stigmer/react-core";
-import { useToolPresentation } from "./tool-presenter.js";
+import { getToolPresenter, useToolPresentation } from "./tool-presenter.js";
 
 /** Props for {@link ToolCallItem}. */
 export interface ToolCallItemProps {
@@ -119,7 +119,7 @@ export const ToolCallItem = memo(function ToolCallItem({
   // returned: the call and the command are two facts, and the row shows the
   // one still moving.
   const backgroundRunning = isBackgroundRunning(toolUse);
-  const { category, title, phrase, primaryArg, result, disclosure, chrome } = useToolPresentation(toolUse);
+  const { kind, category, title, phrase, primaryArg, result, resultSummary, disclosure, chrome } = useToolPresentation(toolUse);
   // A command that exited non-zero failed though the engine did not mark it
   // an error: its line, its mark and its open default all say so.
   const failed = phrase.tense === "failed" && toolUse.state !== "denied";
@@ -190,8 +190,11 @@ export const ToolCallItem = memo(function ToolCallItem({
       : phrase.folder !== ""
         ? phrase.folder
         : null;
-  const counts = isSubagent || toolUse.result === undefined ? null : resultCounts(result, category === "write");
-  const countsText = counts === null ? null : countsWords(counts);
+  // A host's registered summary (`registerToolPresenter({ summary })`) is
+  // its own words for the counts, shown in their place.
+  const hostSummary = !isSubagent && getToolPresenter(kind)?.summary !== undefined ? resultSummary : null;
+  const counts = isSubagent || toolUse.result === undefined || hostSummary !== null ? null : resultCounts(result, category === "write");
+  const countsText = hostSummary ?? (counts === null ? null : countsWords(counts));
 
   const { ref: detailRef, isTruncated: detailTruncated } = useIsTextTruncated<HTMLSpanElement>(detail !== null);
 
@@ -313,6 +316,7 @@ export const ToolCallItem = memo(function ToolCallItem({
           </span>
         )}
         {counts?.kind === "count" && <span className="stg:shrink-0 stg:text-xs stg:tabular-nums stg:text-muted-foreground">{counts.text}</span>}
+        {hostSummary !== null && <span className="stg:shrink-0 stg:text-xs stg:tabular-nums stg:text-muted-foreground">{hostSummary}</span>}
         {detail !== null && (
           <span
             ref={detailRef}

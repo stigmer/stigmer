@@ -198,6 +198,17 @@ describe("buildThreadItems fold of a settled stretch", () => {
     ]);
   });
 
+  it("never folds a stretch with a failed step: the failure stays in view", () => {
+    const items = build([
+      user(R, "go"),
+      status(R, "running"),
+      use(R, "c1", "execute", { command: "npm test" }),
+      result(R, "c1", "1 failed\n[Command failed with exit code 1]"),
+      said(R, 0, "Fixing it."),
+    ]);
+    expect(groups(items).map((group) => group.fold)).toEqual([undefined]);
+  });
+
   it("never folds a stretch with a call still running", () => {
     const items = build([user(R, "go"), status(R, "running"), call(R, "c1", "read_file", { path: "a.ts" }), use(R, "c2", "execute", { command: "npm test" })]);
     expect(groups(items).map((group) => group.fold)).toEqual([undefined]);

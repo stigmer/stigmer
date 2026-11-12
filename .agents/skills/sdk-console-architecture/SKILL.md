@@ -110,6 +110,14 @@ with a backward-compatible default (`virtualized?: boolean` defaults to
 `false`). Automatic threshold switching mid-session is forbidden: it remounts,
 loses state and resets scroll.
 
+The one exception is a redesign the maintainer rules for every host, shipped
+as a breaking (`!`) change whose body says so. The session viewer's plain-line
+steps (stigmer/stigmer#3046) are one: a working turn's quiet stretch of steps
+folds into one line once every step in it returned (never one still running
+or one that failed), and a finished turn leads with its answer and folds its
+working under "How it got there", for every reader. A host gets the new
+presentation with the release; there is no prop for the old one.
+
 **Dependency licence policy.** The SDK packages use only MIT- or
 Apache-2.0-compatible dependencies. A commercial-licence dependency is isolated
 to a client app; a dependency that imposes obligations on SDK consumers is a
