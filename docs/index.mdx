@@ -1,6 +1,8 @@
 ---
 title: Stigmer Docs
-description: The open-source backend for the agents in your product.
+description:
+  Hand an Agent a customer's ledger and get a variance report back. Run it from
+  your terminal first, then from your own code.
 full: true
 hero: true
 ---
@@ -8,9 +10,7 @@ hero: true
 import {
   Building2,
   Compass,
-  FileCode,
   MessageSquare,
-  Rocket,
   Server,
   SquareCode,
   SquareTerminal,
@@ -18,33 +18,16 @@ import {
 
 <Hero
   eyebrow="Get started"
-  title="Put AI agents in your product."
-  description="The open-source backend for the agents in your product. It runs behind your app, the way your database does."
+  title="Run your first agent job."
+  description="Hand an Agent a customer's ledger and get a variance report back. Run it from your terminal first, then from your own code."
 >
-  <Diagram name="job-path" />
+  <FirstJob />
 </Hero>
 
-## Start here
+## Put it in your product
 
 {/* Viewport (not container) variant on purpose: Cards is itself the */}
 {/* @container, and a container query cannot respond to its own size. */}
-
-<Cards className="lg:grid-cols-2">
-  <Card
-    icon={<Rocket />}
-    title="Your first agent job"
-    description="Give an Agent a customer's ledger and get a variance report back as a file, on your machine or on Stigmer Cloud."
-    href="/docs/getting-started/quickstart"
-  />
-  <Card
-    icon={<FileCode />}
-    title="Do the same job from your app"
-    description="Upload the ledger, start the job and save the report from your own TypeScript code."
-    href="/docs/getting-started/call-from-your-app"
-  />
-</Cards>
-
-## Put it in your product
 
 <Cards className="lg:grid-cols-2">
   <Card

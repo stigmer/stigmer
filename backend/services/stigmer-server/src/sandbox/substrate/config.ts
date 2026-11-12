@@ -70,8 +70,6 @@ export interface SubstrateDriverSettings {
   readonly routerClientCertFile: string;
   /** The atespace this server's actors and templates live in; the server owns it. */
   readonly atespace: string;
-  /** The base object-storage prefix the template's snapshots are written under. */
-  readonly storageLocation: string;
   /** The labels of the WorkerPool the actors run on. */
   readonly workerSelector: Readonly<Record<string, string>>;
   readonly httpsEgress: SubstrateHttpsEgress;
@@ -162,7 +160,6 @@ export function newSubstrateSettingsFromEnv(
     routerServerName,
     routerClientCertFile,
     atespace: required("ATESPACE"),
-    storageLocation: required("STORAGE_LOCATION"),
     workerSelector: parseSelector(required("WORKER_SELECTOR")),
     httpsEgress,
     extraHttpEgress: parseDestinations(optional("EGRESS_HTTP", "")),

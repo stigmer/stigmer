@@ -8,8 +8,9 @@
  * and composer state follow the hook's rules; that its actions are inert;
  * and that no scenario carries a timestamp other than the frozen instant's.
  * Beside the states: the scripted turn the docs play, its parts in the order
- * a reader's acts choose between, and `upTo`, which draws any scenario part
- * of the way through.
+ * a reader's acts choose between; the ledger turn of the first agent job,
+ * read, written and answered with no ask; and `upTo`, which draws any
+ * scenario part of the way through.
  */
 import { describe, it, expect } from "vitest";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
@@ -17,8 +18,11 @@ import type { ToolUse } from "@stigmer/client";
 import {
   SCENARIO_CLOCK,
   SCENARIO_NAMES,
+  LEDGER_MESSAGE,
   SCRIPTED_MESSAGE,
   conversationOf,
+  ledgerStory,
+  ledgerTurn,
   scenarios,
   scriptedStory,
   scriptedTurn,
@@ -291,5 +295,39 @@ describe("the scripted turn the docs play", () => {
     const turn = scriptedTurn(undefined, "run_y");
     expect([...turn.untilAsk, ...turn.approved, ...turn.denied, ...turn.stopped].every((event) => event.runId === "run_y")).toBe(true);
     expect(samples.fold([...turn.untilAsk]).turns.at(-1)!.userMessage?.text).toBe(SCRIPTED_MESSAGE);
+  });
+});
+
+describe("the ledger turn the docs' front page plays", () => {
+  it("reads the ledger from its uploads, writes the report to its outputs, names the flagged accounts and completes at 38 s", () => {
+    const story = ledgerStory();
+    const turn = story.fold.turns[0]!;
+    expect(turn.userMessage?.text).toBe(LEDGER_MESSAGE);
+    const tools = turn.items.flatMap((item) => (item.kind === "tool_use" ? [[item.name, (item.input as { path?: string }).path] as const] : []));
+    expect(tools).toEqual([
+      ["read_file", "/.stigmer/uploads/ledger.csv"],
+      ["write_file", "/.stigmer/outputs/variance-report.md"],
+    ]);
+    expect(turn.asks).toEqual([]);
+    expect(turn.answer).toMatch(/Marketing.*cost of goods sold.*travel/s);
+    expect(turn.status?.phase).toBe("completed");
+    expect(Date.parse(turn.status!.processedAt) - Date.parse(SAMPLE_INSTANT)).toBe(38_000);
+    expect(story.runs.map((run) => run.status?.phase)).toEqual([RunPhase.RUN_COMPLETED]);
+  });
+
+  it("returns the report as a File of the turn, at its place in the outputs folder", () => {
+    const [report, ...rest] = ledgerStory().files;
+    expect(rest).toEqual([]);
+    expect(report!.status?.outputPath).toBe("variance-report.md");
+    expect(report!.status?.sizeBytes).toBe(696n);
+    expect(upTo(ledgerStory(), 3).files).toEqual([]);
+  });
+
+  it("stamps every event in order from the frozen instant, under the run it names", () => {
+    const events = ledgerTurn("run_z");
+    expect(events.every((event) => event.runId === "run_z")).toBe(true);
+    const stamps = events.map((e) => Date.parse((e.event.value as { processedAt?: string }).processedAt ?? ""));
+    expect(stamps.every((stamp, i) => i === 0 || stamp >= stamps[i - 1]!)).toBe(true);
+    expect(stamps[0]).toBe(Date.parse(SAMPLE_INSTANT));
   });
 });

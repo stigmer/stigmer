@@ -9,6 +9,9 @@
  *     creates as "exists"; FAILED_PRECONDITION moves as "refused";
  *   - ABORTED and RESOURCE_EXHAUSTED become the driver's two typed errors,
  *     and PERMISSION_DENIED one naming the grant the server needs;
+ *     UNIMPLEMENTED for an unknown service or method (gRPC's words, as
+ *     Substrate v1.0.0 answers a v0.6 path or a removed method) one naming
+ *     the release this server speaks, any other UNIMPLEMENTED passed on;
  *   - the atespace is read first and created only when it is missing, so
  *     an atespace granted to the server needs no global owner;
  *   - an actor's state is Substrate's, whatever snapshot it holds;
@@ -19,7 +22,8 @@
  *     existing atespace, the binding it lacks added and none
  *     removed, at the version read (read again after a lost race), nothing
  *     written when it holds them all; a refused write reported as denied,
- *     never thrown; the principal read from the token's subject;
+ *     never thrown, while a release skew is thrown; the principal read
+ *     from the token's subject;
  *   - the egress policy is read by its singleton name, "default";
  *   - lists follow page tokens, in Substrate's list options;
  *   - a move replaces the stored actor with only its template changed, and
@@ -69,7 +73,7 @@ import {
   DurabilityMode,
   EgressPolicySchema,
   EgressRuleSchema,
-} from "../gen/ateapipb/ateapi_pb.js";
+} from "../gen/api/ateapi/v1/ateapi_pb.js";
 import {
   bearerFromFile,
   newSubstrateClientGateway,
@@ -82,7 +86,9 @@ import {
   SubstrateAbortedError,
   SubstrateNoWorkerError,
   SubstratePermissionError,
+  SubstrateReleaseError,
 } from "../gateway.js";
+import { SUBSTRATE_RELEASE } from "../release.js";
 
 let dir: string;
 let tokenFile: string;
@@ -258,6 +264,48 @@ describe("error translation", () => {
       /needs the editor role on its atespace/,
     );
   });
+
+  // gRPC's own words, measured against Substrate v1.0.0 (2026-11-06): a
+  // v0.6 server's path, a v1 server's path on a v0.6 control plane, and a
+  // method the control plane's release lacks.
+  for (const message of [
+    "unknown service ateapi.Control",
+    "unknown service substrate.ateapi.v1.Control",
+    "unknown method MintActorCertificate for service substrate.ateapi.v1.Control",
+  ]) {
+    it(`UNIMPLEMENTED for an unknown call names the release skew (${message})`, async () => {
+      const gateway = gatewayOver({
+        createActor() {
+          throw new ConnectError(message, Code.Unimplemented);
+        },
+      });
+      const refusal = gateway.createActor("a", "t");
+      await expect(refusal).rejects.toBeInstanceOf(SubstrateReleaseError);
+      await expect(refusal).rejects.toThrow(
+        `Substrate's Control API does not serve a call this server makes (${message}): this server speaks Agent Substrate ${SUBSTRATE_RELEASE}, and the control plane at STIGMER_SANDBOX_SUBSTRATE_API_ENDPOINT runs another release. Install Agent Substrate ${SUBSTRATE_RELEASE} there, or run the Stigmer release that speaks the installed one`,
+      );
+    });
+  }
+
+  it("passes on any other UNIMPLEMENTED, and keeps the grant sentence for every PERMISSION_DENIED", async () => {
+    const gateway = gatewayOver({
+      createActor() {
+        throw new ConnectError("not implemented yet", Code.Unimplemented);
+      },
+      deleteActor() {
+        throw new ConnectError(
+          "permission denied: no authorization rule for /substrate.ateapi.v1.Control/DeleteActor",
+          Code.PermissionDenied,
+        );
+      },
+    });
+    const other = gateway.createActor("a", "t");
+    await expect(other).rejects.not.toBeInstanceOf(SubstrateReleaseError);
+    await expect(other).rejects.toMatchObject({ code: Code.Unimplemented });
+    await expect(gateway.deleteActor("a")).rejects.toThrow(
+      /needs the editor role on its atespace/,
+    );
+  });
 });
 
 describe("the atespace", () => {
@@ -405,6 +453,21 @@ describe("the atespace's access policy", () => {
       getAtespaceAccessPolicy: denied,
     });
     expect((await unreadable.ensureAtespace()).policy).toBe("denied");
+  });
+
+  it("throws, never reports as denied, a policy call the control plane does not serve: that is a release skew", async () => {
+    const skewed = withAccess({
+      getAtespace: () => ({ metadata: { name: "stigmer" } }),
+      getAtespaceAccessPolicy() {
+        throw new ConnectError(
+          "unknown method GetAtespaceAccessPolicy for service substrate.ateapi.v1.Control",
+          Code.Unimplemented,
+        );
+      },
+    });
+    await expect(skewed.ensureAtespace()).rejects.toBeInstanceOf(
+      SubstrateReleaseError,
+    );
   });
 
   it("creates the policy an existing atespace lacks, and reads it again after losing a race", async () => {
@@ -820,7 +883,6 @@ function liveSettings(
     routerServerName: "",
     routerClientCertFile: "",
     atespace: "stigmer",
-    storageLocation: "gs://b/p",
     workerSelector: { workload: "stigmer" },
     httpsEgress: "none",
     extraHttpEgress: [],
@@ -890,6 +952,8 @@ interface ControlApi {
   sessions: number;
   /** Connections the server holds open now. */
   readonly open: Set<http2.ServerHttp2Session>;
+  /** The `:path` of every request the server received, in order. */
+  readonly paths: string[];
   /** Serves `certificate` to every connection from now on, as a rotation does. */
   serve(certificate: TestServerCertificate): void;
   /** Drops every connection, which the gateway would hold open, and stops. */
@@ -915,6 +979,7 @@ describe("the live client's CA", () => {
       endpoint: "",
       sessions: 0,
       open: new Set<http2.ServerHttp2Session>(),
+      paths: [] as string[],
       serve: (certificate: TestServerCertificate) =>
         server.setSecureContext({
           cert: certificate.cert,
@@ -926,6 +991,9 @@ describe("the live client's CA", () => {
           for (const session of api.open) session.destroy();
         }),
     };
+    server.on("stream", (_stream, headers) => {
+      api.paths.push(String(headers[":path"]));
+    });
     server.on("session", (session: http2.ServerHttp2Session) => {
       api.sessions += 1;
       api.open.add(session);
@@ -943,6 +1011,19 @@ describe("the live client's CA", () => {
     getActor: (request: { actor?: { name: string } }) =>
       actor(request.actor?.name ?? "", ActorState.RUNNING),
   };
+
+  it("calls the Control service at Agent Substrate v1.0.0's method paths", async () => {
+    // v1.0.0 moved the API to the substrate.ateapi.v1 package, and its
+    // server answers only those paths; the fake serves whichever descriptor
+    // the stubs carry, so only the literal path catches stubs from another
+    // release.
+    const api = await controlApi(running);
+    const gateway = newSubstrateClientGateway(
+      liveSettings(api.endpoint, caFile(apiCa.pem)),
+    );
+    expect((await gateway.getActor("a"))?.state).toBe("running");
+    expect(api.paths).toEqual(["/substrate.ateapi.v1.Control/GetActor"]);
+  });
 
   it("trusts a CA file replaced on disk from the next call, on a new connection, and closes the one made under the old CA", async () => {
     const api = await controlApi(running);

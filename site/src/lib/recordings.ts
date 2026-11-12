@@ -11,13 +11,18 @@
  * them through this module.
  */
 import { RECORDINGS, type RecordedSession } from "../../../sdk/ink/src/recordings";
+import firstJob from "../../../sdk/ink/src/__tests__/__recordings__/first-job.json";
 import runApproval from "../../../sdk/ink/src/__tests__/__recordings__/run-approval.json";
 import { plainText } from "./sgr";
 
 export { RECORDINGS, type RecordedSession };
 
+/** What every played recording says beside it: the frames are the kit's, and nothing runs. */
+export const RECORDED_LINE = "Recorded from the terminal kit; no agent is running.";
+
 /** Every held recording, by name: one import per entry of the list. */
 const HELD: Readonly<Record<string, RecordedSession>> = {
+  "first-job": firstJob as RecordedSession,
   "run-approval": runApproval as RecordedSession,
 };
 
@@ -41,4 +46,13 @@ export function lastFrameText(name: string): string {
     .split("\n")
     .map((line) => line.trimEnd());
   return lines.slice(-held.rows).join("\n").replace(/^\n+/, "");
+}
+
+/**
+ * A recording as the markdown exports carry it: what it shows, then its last
+ * frame as a `text` block, as its own paragraph. The `<TerminalRecording>`
+ * tag and the first-job block's Terminal tab both export through it.
+ */
+export function recordingAsText(name: string, alt: string): string {
+  return `${alt.replace(/\s+/g, " ").trim().replace(/\.$/, "")}. The recording ends on this frame:\n\n\`\`\`text\n${lastFrameText(name)}\n\`\`\``;
 }
