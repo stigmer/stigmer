@@ -1,31 +1,33 @@
 /**
  * The dashboard route: the kit's page heading over `OperationalDashboard`,
- * with the app's routes for a new organization's first steps (the models
- * hub, a new agent, the launcher). Wired as the web console's page is;
- * only the link component differs (the router's, so the hash routes hold).
+ * with the app's routes for the journey's six steps (the launcher, the
+ * models hub, the agent page's tabs, the members page). Wired as the web
+ * console's page is; only the link component differs (the router's, so the
+ * hash routes hold).
  */
 
-import { useCallback } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { useOrg, OperationalDashboard, PageHeader, type DashboardFirstStepsProps } from "@stigmer/react-sdk";
-
-const FIRST_STEP_LINKS = {
-  connectProvider: "/models",
-  // The launcher: its first question offers the example jobs.
-  createAgent: "/",
-  startSession: "/",
-} as const;
-
-const renderLink: NonNullable<DashboardFirstStepsProps["renderLink"]> = ({ href, className, children }) => (
-  <Link to={href} className={className}>
-    {children}
-  </Link>
-);
+import { useCallback, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import { useOrg, OperationalDashboard, PageHeader, type DashboardFirstStepLinks } from "@stigmer/react-sdk";
+import { renderJourneyLink, useJourneyLinks } from "../../journey/journey-links";
 
 export default function DashboardPage() {
   const { activeOrg } = useOrg();
   const org = activeOrg?.metadata?.id ?? "";
   const navigate = useNavigate();
+  const { makeItYours, putInApp, bringOthers } = useJourneyLinks();
+  const firstStepLinks = useMemo<DashboardFirstStepLinks>(
+    () => ({
+      connectProvider: "/models",
+      // The launcher: its first question offers the example jobs.
+      createAgent: "/",
+      startSession: "/",
+      makeItYours,
+      putInApp,
+      bringOthers,
+    }),
+    [makeItYours, putInApp, bringOthers],
+  );
 
   const handleFailedRunClick = useCallback(
     (id: string) => {
@@ -45,8 +47,8 @@ export default function DashboardPage() {
       <OperationalDashboard
         org={org}
         onFailedRunClick={handleFailedRunClick}
-        firstStepLinks={FIRST_STEP_LINKS}
-        renderLink={renderLink}
+        firstStepLinks={firstStepLinks}
+        renderLink={renderJourneyLink}
       />
     </div>
   );

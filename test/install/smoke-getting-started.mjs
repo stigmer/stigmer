@@ -2,18 +2,24 @@
 
 /**
  * Getting Started, run from the pages themselves: the quickstart
- * (docs/getting-started/quickstart.mdx) and the same job from code
- * (call-from-your-app.mdx), every file written and every command run as the
- * page shows it, in a fresh folder, on the "On your machine" tab. The pages
- * are read by test/install/lib/doc-steps.mjs; there is no copy of them here
- * to keep in step, so a page edit that breaks a step breaks this smoke.
+ * (docs/getting-started/quickstart.mdx), the same job from code
+ * (call-from-your-app.mdx) and making the Agent yours (make-it-yours.mdx),
+ * every file written and every command run as the page shows it, in one
+ * fresh folder, on the "On your machine" tab, in that order. The pages are
+ * read by test/install/lib/doc-steps.mjs; there is no copy of them here to
+ * keep in step, so a page edit that breaks a step breaks this smoke.
  *
  * What it proves: a reader who installs the CLI and runs the quickstart gets
  * `stigmer up`, an applied Agent, a run that takes the ledger with
- * `--attach`, and the Agent's report in `out/` through `--download`; and a
+ * `--attach`, and the Agent's report in `out/` through `--download`; a
  * reader who then writes the page's TypeScript gets it to typecheck (strict)
  * against the SDK as npm installs it, and to save the same report by
- * uploading the ledger, `sendAndWait` and the turn's Files.
+ * uploading the ledger, `sendAndWait` and the turn's Files; and a reader who
+ * then makes the Agent theirs sees its changed definition listed as a second
+ * version, runs it on a ledger of their own, pushes the page's Skill and
+ * gives it to the Agent, and the run after that records the Skill among what
+ * it loaded (`RunStatus.loaded_versions`, read back with `stigmer get run`)
+ * and hands back the CSV the Skill asks for beside the report.
  *
  * The pages' lines run through `bash -c`, off a terminal. The quickstart's
  * `stigmer run` line runs once more on a pseudo-terminal
@@ -30,13 +36,16 @@
  * up` starts from. Everything else, `stigmer up` included, runs as written,
  * through a `stigmer` on PATH that is that install.
  *
- * The model is test/support's fake, scripted per job: the conversation's
- * title, then a `write_file` of the report into the outputs folder, then a
- * closing line. A conversation a run starts is titled by a model call the
- * runner makes beside the turn, in no fixed order, so the title's answer
- * goes only to the call whose system prompt is the title generator's, and
- * the turn's answers only to the others. The report the pages must hand back
- * is the text that script saves.
+ * The model is test/support's fake, scripted per job (each `stigmer run`
+ * line, and the code page's `npx tsx` line): the conversation's title, then
+ * a `write_file` of the report into the outputs folder, then a closing line;
+ * a job run after the page pushed its Skill also writes the CSV. A
+ * conversation a run starts is titled by a model call the runner makes
+ * beside the turn, in no fixed order, so the title's answer goes only to the
+ * call whose system prompt is the title generator's, and the turn's answers
+ * only to the others. The report the pages must hand back is the text that
+ * script saves. The fake proves the pages run and the Skill reaches the run;
+ * whether a model follows the Skill is what `--live-model` shows.
  *
  * `stigmer up` serves on port 7234, so the smoke refuses before anything
  * starts when that port is taken: another stack is running.
@@ -53,9 +62,17 @@
  *   --sdk-tarballs=<dir>   source mode: install the SDK from tarballs
  *       already packed there (publish-libs.mjs --pack-dir) instead of
  *       packing them.
- *   --docs=<dir>   read the two pages from <dir> instead of
+ *   --docs=<dir>   read the pages from <dir> instead of
  *       docs/getting-started (a scratch copy with a step broken is how the
  *       smoke is shown red).
+ *   --live-model   (`make smoke-getting-started-live`, in no lane) the
+ *       pages run on a real model with the shell's ANTHROPIC_API_KEY (a
+ *       missing key fails, never skips; it spends money), each `stigmer run`
+ *       line pinned with `--model` to the cheapest Stigmer-harness model, as
+ *       smoke-examples.mjs pins it. It asserts structure only, never a
+ *       model's words: each report names every account of the ledger it was
+ *       given, and the run after the Skill hands back a non-empty
+ *       `variance-report.csv` that opens with a header row.
  */
 
 import { spawnSync } from "node:child_process";
@@ -67,7 +84,7 @@ import { fileURLToPath } from "node:url";
 import { configuredRegistry, installGap, waitForRegistry } from "../../scripts/publish-standalone.mjs";
 import { anthropicText, anthropicToolUse } from "../support/src/llm-wire.ts";
 import { docSteps } from "./lib/doc-steps.mjs";
-import { fakeModelEnv, isTitleCall, startFakeModel } from "./lib/fake-model.mjs";
+import { LIVE_MODEL, fakeModelEnv, isTitleCall, liveModelEnv, startFakeModel } from "./lib/fake-model.mjs";
 import { CLI_SERVER_PORT, createCliInstall, spawnCommand } from "./lib/install-cli.mjs";
 import { assertPortFree } from "./lib/stigmer-smoke.mjs";
 import { typeChecker } from "./lib/type-checker.mjs";
@@ -92,6 +109,22 @@ Marketing and cost of goods sold ran over budget; travel ran under.
 `;
 const REPORT_PATH = "out/variance-report.md";
 
+/** What the scripted Agent saves once it has the Skill: the report's table as the Skill's CSV. */
+const CSV = `account,budget,actual,variance,variance_pct
+Marketing,9000,14100,5100,56.7
+Travel,3000,1200,-1800,-60.0
+`;
+const CSV_PATH = "out/variance-report.csv";
+
+/** The Skill make-it-yours.mdx writes and pushes, by the name its frontmatter gives it. */
+const SKILL = "spreadsheet-export";
+
+/** Every account in each ledger the pages hand over (the sample and make-it-yours.mdx's own): a live report names them all. */
+const ACCOUNTS = ["Revenue", "Cost of goods sold", "Salaries", "Marketing", "Software", "Travel"];
+
+/** The pages, in the order a reader takes them, in one folder. */
+const PAGES = ["quickstart", "call-from-your-app", "make-it-yours"];
+
 function log(step) {
   console.log(`smoke-getting-started: ${step}`);
 }
@@ -102,16 +135,17 @@ function usage(message) {
 }
 
 function parseArgs() {
-  const parsed = { published: false, version: "", sdkTarballs: "", docs: join(repoRoot, "docs", "getting-started") };
+  const parsed = { published: false, version: "", sdkTarballs: "", docs: join(repoRoot, "docs", "getting-started"), live: false };
   for (const arg of process.argv.slice(2)) {
     let m;
     if (arg === "--published") parsed.published = true;
+    else if (arg === "--live-model") parsed.live = true;
     else if ((m = arg.match(/^--version=(.+)$/)) !== null) parsed.version = m[1].replace(/^v/, "");
     else if ((m = arg.match(/^--sdk-tarballs=(.+)$/)) !== null) parsed.sdkTarballs = resolve(m[1]);
     else if ((m = arg.match(/^--docs=(.+)$/)) !== null) parsed.docs = resolve(m[1]);
     else
       usage(
-        `unknown argument: ${arg} (usage: node test/install/smoke-getting-started.mjs [--published --version=X.Y.Z] [--sdk-tarballs=<dir>] [--docs=<dir>])`,
+        `unknown argument: ${arg} (usage: node test/install/smoke-getting-started.mjs [--published --version=X.Y.Z] [--sdk-tarballs=<dir>] [--docs=<dir>] [--live-model])`,
       );
   }
   if (parsed.published && parsed.version === "") usage("--published requires --version=X.Y.Z (the published CLI and SDK)");
@@ -121,8 +155,9 @@ function parseArgs() {
 }
 
 // The job, as the fake model answers it: the conversation's title, the
-// report saved in the outputs folder, a closing line.
-function scriptTheJob(fake) {
+// report saved in the outputs folder, the Skill's CSV beside it once the
+// Agent has the Skill, a closing line.
+function scriptTheJob(fake, { csv }) {
   fake.enqueue({ kind: "anthropic", body: anthropicText("Q3 ledger variance review"), matches: isTitleCall });
   const turn = (request) => !isTitleCall(request);
   fake.enqueue({
@@ -133,7 +168,22 @@ function scriptTheJob(fake) {
       content: REPORT,
     }),
   });
+  if (csv) {
+    fake.enqueue({
+      kind: "anthropic",
+      matches: turn,
+      body: anthropicToolUse("toolu_variance_csv", "write_file", {
+        file_path: "/.stigmer/outputs/variance-report.csv",
+        content: CSV,
+      }),
+    });
+  }
   fake.enqueue({ kind: "anthropic", body: anthropicText("The variance report is saved as variance-report.md."), matches: turn });
+}
+
+/** Whether a page's command starts a job the model answers: a run from the terminal, or the code page's program. */
+function startsJob(line) {
+  return line.startsWith("stigmer run ") || line.startsWith("npx tsx ");
 }
 
 // The SDK a reader's `npm install @stigmer/client` gets: this build's
@@ -163,8 +213,8 @@ function sdkInstallArgs(args, scratch) {
 const args = parseArgs();
 const release = args.published ? { kind: "published", version: args.version } : { kind: "build" };
 
-// Both pages must parse before anything starts: a page the harness cannot run fails here.
-const pages = ["quickstart", "call-from-your-app"].map((name) => {
+// Every page must parse before anything starts: a page the harness cannot run fails here.
+const pages = PAGES.map((name) => {
   const path = join(args.docs, `${name}.mdx`);
   return { name, steps: docSteps(readFileSync(path, "utf8")) };
 });
@@ -175,8 +225,15 @@ try {
   usage(error instanceof Error ? error.message : String(error));
 }
 
-const fake = await startFakeModel();
-const stack = createCliInstall({ model: fakeModelEnv(fake), log });
+let liveModel;
+try {
+  liveModel = args.live ? liveModelEnv(process.env) : undefined;
+} catch (error) {
+  usage(error instanceof Error ? error.message : String(error));
+}
+const fake = args.live ? undefined : await startFakeModel();
+const stack = createCliInstall({ model: liveModel ?? fakeModelEnv(fake), log });
+log(`mode=${args.live ? `live (${LIVE_MODEL})` : "offline (fake model)"}`);
 const scratch = mkdtempSync(join(tmpdir(), "stigmer-getting-started-"));
 const work = join(scratch, "reader");
 mkdirSync(work, { recursive: true });
@@ -234,10 +291,11 @@ try {
 
   const outputs = new Map();
   const typeScriptFiles = [];
+  // Set once a page pushes the Skill: the jobs after it hand back its CSV.
+  let skillPushed = false;
   for (const page of pages) {
     log(`page ${page.name}: ${page.steps.length} steps`);
     rmSync(join(work, "out"), { recursive: true, force: true });
-    scriptTheJob(fake);
     for (const step of page.steps) {
       if (step.kind === "file") {
         log(`write ${step.path}`);
@@ -249,19 +307,68 @@ try {
         await performs[step.performs]();
       } else {
         if (step.line.startsWith("npx tsx ")) await typecheck(typeScriptFiles, run);
-        outputs.set(step.line, (await run(step.line)).stdout);
+        if (fake !== undefined && startsJob(step.line)) scriptTheJob(fake, { csv: skillPushed });
+        outputs.set(step.line, (await run(livePinned(step.line))).stdout);
+        if (step.line.startsWith(`stigmer push skill `)) skillPushed = true;
       }
     }
     assertReport(page.name);
+    if (page.name === "make-it-yours") await assertMadeYours(page);
   }
   await runOnTerminal(pages[0]);
-  if (!outputs.get(`cat ${REPORT_PATH}`)?.includes(REPORT.split("\n")[0])) {
+  const shown = outputs.get(`cat ${REPORT_PATH}`) ?? "";
+  if (!(args.live ? shown.toLowerCase().includes(ACCOUNTS[0].toLowerCase()) : shown.includes(REPORT.split("\n")[0]))) {
     throw new Error(`\`cat ${REPORT_PATH}\` did not print the report`);
   }
   if (!outputs.get("npx tsx variance-report.ts")?.includes(`Saved ${REPORT_PATH}`)) {
     throw new Error(`variance-report.ts did not print that it saved ${REPORT_PATH}`);
   }
-  log(`PASS (${fake.requests()} model calls)`);
+  log(`PASS (${fake !== undefined ? `${fake.requests()} model calls` : `live, ${LIVE_MODEL}`})`);
+
+  // A page's `stigmer run` line as it runs: as written, or, live, pinned to
+  // the cheapest model (the line is the page's; only the model is the smoke's).
+  function livePinned(line) {
+    return args.live && line.startsWith("stigmer run ") ? `${line} --model ${LIVE_MODEL}` : line;
+  }
+
+  // Make it yours, past its report: the changed Agent is a second version,
+  // the run after the Skill was given records the Skill among what it
+  // loaded, and the Skill's CSV came back beside the report.
+  async function assertMadeYours(page) {
+    const history = page.steps.find((step) => step.kind === "command" && step.line.includes("--version-history"))?.line;
+    if (history === undefined) throw new Error(`${page.name}: no \`--version-history\` line`);
+    if (!outputs.get(history)?.includes("Version History (2)")) {
+      throw new Error(`${page.name}: \`${history}\` did not list two versions:\n${outputs.get(history)}`);
+    }
+    log(`${page.name}: the changed Agent is listed as its second version`);
+
+    // The newest run is the page's last, the one after the Skill was given.
+    const runs = JSON.parse((await run("stigmer list runs --limit 1 -o json")).stdout);
+    const runId = runs.entries?.[0]?.metadata?.id;
+    if (typeof runId !== "string" || runId === "") throw new Error(`${page.name}: \`stigmer list runs\` named no run`);
+    const ran = JSON.parse((await run(`stigmer get run ${shellQuote(runId)} -o json`)).stdout);
+    const skill = JSON.parse((await run(`stigmer get skill ${SKILL} -o json`)).stdout);
+    const skillId = skill.metadata?.id;
+    const loaded = ran.status?.loaded_versions?.skills ?? [];
+    if (typeof skillId !== "string" || !loaded.some((entry) => entry.id === skillId)) {
+      throw new Error(`${page.name}: run ${runId} does not record ${SKILL} (${skillId}) among the skills it loaded: ${JSON.stringify(loaded)}`);
+    }
+    log(`${page.name}: run ${runId} loaded ${SKILL}`);
+
+    const csvPath = join(work, CSV_PATH);
+    if (!existsSync(csvPath)) throw new Error(`${page.name}: the run after the Skill left no ${CSV_PATH}`);
+    const csv = readFileSync(csvPath, "utf8");
+    if (args.live) {
+      const header = csv.split("\n")[0] ?? "";
+      if (!header.includes(",") || !/account/i.test(header)) {
+        throw new Error(`${page.name}: ${CSV_PATH} does not open with a header row:\n${csv}`);
+      }
+      console.log(`----- ${CSV_PATH} -----\n${csv}\n-----`);
+    } else if (csv !== CSV) {
+      throw new Error(`${page.name}: ${CSV_PATH} is not the CSV the Agent saved:\n${csv}`);
+    }
+    log(`${page.name}: ${CSV_PATH} came back beside the report`);
+  }
 
   // The quickstart's run line on a pseudo-terminal, as a person types it: it
   // returns by itself once the turn ends, exit 0, with the report saved.
@@ -269,14 +376,14 @@ try {
     const line = page.steps.find((step) => step.kind === "command" && step.line.startsWith("stigmer run "))?.line;
     if (line === undefined) throw new Error(`${page.name}: no \`stigmer run\` line to run on a terminal`);
     rmSync(join(work, "out"), { recursive: true, force: true });
-    scriptTheJob(fake);
+    if (fake !== undefined) scriptTheJob(fake, { csv: false });
     const env = { ...shell, TERM: "xterm-256color" };
     delete env.CI;
     delete env.CONTINUOUS_INTEGRATION;
     log(`$ ${line}   (on a terminal)`);
     const result = await spawnCommand(
       ["python3", PTY_RUN, "--timeout", "240", "--cols", "100", "--"],
-      ["bash", "-c", 'cd "$0" || exit 1; eval "$1"', work, line],
+      ["bash", "-c", 'cd "$0" || exit 1; eval "$1"', work, livePinned(line)],
       env,
       COMMAND_TIMEOUT_MS,
     ).done;
@@ -322,7 +429,7 @@ try {
   console.error(stack.diagnostics());
 } finally {
   await stack.stop({ keepHome: failed });
-  await fake.close();
+  await fake?.close();
   if (failed) log(`reader's folder kept for debugging: ${work}`);
   else rmSync(scratch, { recursive: true, force: true });
 }
@@ -332,6 +439,16 @@ function assertReport(page) {
   const path = join(work, REPORT_PATH);
   if (!existsSync(path)) throw new Error(`${page}: the page's steps left no ${REPORT_PATH}`);
   const saved = readFileSync(path, "utf8");
+  if (args.live) {
+    // A model's words differ run to run, its capitals too ("Cost of Goods
+    // Sold"): the report must name every account, in any case.
+    const lower = saved.toLowerCase();
+    const unnamed = ACCOUNTS.filter((account) => !lower.includes(account.toLowerCase()));
+    if (unnamed.length > 0) throw new Error(`${page}: ${REPORT_PATH} does not name ${unnamed.join(", ")}:\n${saved}`);
+    console.log(`----- ${page}: ${REPORT_PATH} -----\n${saved}\n-----`);
+    log(`${page}: ${REPORT_PATH} names every account`);
+    return;
+  }
   if (saved !== REPORT) throw new Error(`${page}: ${REPORT_PATH} is not the report the Agent saved:\n${saved}`);
   log(`${page}: ${REPORT_PATH} is the Agent's report`);
 }

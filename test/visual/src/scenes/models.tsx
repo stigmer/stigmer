@@ -71,7 +71,7 @@ export function modelsRoutes(
 }
 
 /** The calls the launcher's flow and composer make beyond `modelsRoutes`, answered as for a new person. */
-function launcherRoutes(answer: GetModelReadinessOutput, viewer: Viewer) {
+export function launcherRoutes(answer: GetModelReadinessOutput, viewer: Viewer) {
   return (router: ConnectRouter) => {
     modelsRoutes(answer, [], viewer)(router);
     router.service(OrganizationQueryController, {

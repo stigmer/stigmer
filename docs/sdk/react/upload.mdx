@@ -34,7 +34,7 @@ function useFileUploads(options?: UseFileUploadsOptions): UseFileUploadsReturn
 
 <TypeTable
   type={{
-    addFiles: { type: "(files: FileList | File[], addOptions?: AddFilesOptions) => void", description: "Add one or more files. Each is validated and uploaded at once; a file refused (too large, or past MAX_MESSAGE_FILES entries) is reported through `onValidationError` and not added." },
+    addFiles: { type: "(files: File[] | FileList, addOptions?: AddFilesOptions) => void", description: "Add one or more files. Each is validated and uploaded at once; a file refused (too large, or past MAX_MESSAGE_FILES entries) is reported through `onValidationError` and not added." },
     allReady: { type: "boolean", description: "True when there are entries and every one is ready." },
     clear: { type: "() => void", description: "Remove every entry and delete every File the entries uploaded." },
     entries: { type: "readonly FileUploadEntry[]", description: "Current entries (preparing, uploading, ready or failed)." },

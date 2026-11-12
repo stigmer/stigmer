@@ -2,32 +2,33 @@
 
 /**
  * The dashboard route: the kit's page heading over `OperationalDashboard`,
- * with the console's routes for a new organization's first steps (the
- * models hub, a new agent, the launcher). Wired as the desktop app's page
- * is; only the link component differs.
+ * with the console's routes for the journey's six steps (the launcher, the
+ * models hub, the agent page's tabs, the members page). Wired as the
+ * desktop app's page is; only the link component differs.
  */
 
-import Link from "next/link";
-import { useOrg, OperationalDashboard, PageHeader, type DashboardFirstStepsProps } from "@stigmer/react-sdk";
+import { useMemo } from "react";
+import { useOrg, OperationalDashboard, PageHeader, type DashboardFirstStepLinks } from "@stigmer/react-sdk";
 import { useRunNavigation } from "@/domain/runs/run-navigation";
-
-const FIRST_STEP_LINKS = {
-  connectProvider: "/models",
-  // The launcher: its first question offers the example jobs.
-  createAgent: "/",
-  startSession: "/",
-} as const;
-
-const renderLink: NonNullable<DashboardFirstStepsProps["renderLink"]> = ({ href, className, children }) => (
-  <Link href={href} className={className}>
-    {children}
-  </Link>
-);
+import { renderJourneyLink, useJourneyLinks } from "@/domain/journey/journey-links";
 
 export function DashboardPage() {
   const { activeOrg } = useOrg();
   const org = activeOrg?.metadata?.id ?? "";
   const { navigateToRun } = useRunNavigation();
+  const { makeItYours, putInApp, bringOthers } = useJourneyLinks();
+  const firstStepLinks = useMemo<DashboardFirstStepLinks>(
+    () => ({
+      connectProvider: "/models",
+      // The launcher: its first question offers the example jobs.
+      createAgent: "/",
+      startSession: "/",
+      makeItYours,
+      putInApp,
+      bringOthers,
+    }),
+    [makeItYours, putInApp, bringOthers],
+  );
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-8">
@@ -40,8 +41,8 @@ export function DashboardPage() {
       <OperationalDashboard
         org={org}
         onFailedRunClick={navigateToRun}
-        firstStepLinks={FIRST_STEP_LINKS}
-        renderLink={renderLink}
+        firstStepLinks={firstStepLinks}
+        renderLink={renderJourneyLink}
       />
     </div>
   );

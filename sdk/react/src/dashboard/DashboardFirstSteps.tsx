@@ -1,23 +1,22 @@
 "use client";
 
-// What a new organization's dashboard says in place of four zeros: the
-// first things to do, in order, each a link the host routes. A step is
-// shown done when the server says so (a provider serves a model; the
-// organization has an agent), and the
-// step a person may not take (creating an agent, for a viewer) says who
-// can, rather than offering a link the server would refuse; its link
-// appears only once the server has said yes (`can_create_agent`, asked fail
-// closed, so a failed check offers none).
+// The journey from a first agent to its users, as a dashboard card: six
+// steps in order, each done only when the server says so (`useJourney`), the
+// current one with its one act, the later ones quiet. Every link is the
+// host's route; a step whose destination the host does not pass has no act.
+// The card is for a person the server lets make agents (`can_create_agent`,
+// asked fail closed): the steps are acts, and a member sees no card. Once
+// all six are done it folds to one line. "Hide" is the host's to remember
+// (`onHide`); the operational dashboard keeps it in this browser.
 
-import { useId, type ReactNode } from "react";
+import { useId } from "react";
 import { Check } from "lucide-react";
 import { cn } from "@stigmer/design-tokens";
-import { useAgentList } from "../agent/useAgentList.js";
-import { useCheckPermission } from "../grant/useCheckPermission.js";
-import { useModelReadiness } from "../models/useModelReadiness.js";
+import { useJourney, type JourneyStep, type JourneyStepId, type UseJourneyReturn } from "../journey/useJourney.js";
+import type { JourneyLinks, RenderJourneyLink } from "../journey/links.js";
 
-/** Where each first step leads, as the host routes it. */
-export interface DashboardFirstStepLinks {
+/** Where each step leads, as the host routes it; the later steps' destinations are the journey's ({@link JourneyLinks}). */
+export interface DashboardFirstStepLinks extends Omit<JourneyLinks, "renderLink"> {
   /** Models & providers, where a provider key is connected. */
   readonly connectProvider: string;
   /**
@@ -34,7 +33,15 @@ export interface DashboardFirstStepsProps {
   readonly org: string;
   readonly links: DashboardFirstStepLinks;
   /** Draws a link; a host with its own router passes its link component. A plain anchor otherwise. */
-  readonly renderLink?: (props: { readonly href: string; readonly className: string; readonly children: ReactNode }) => ReactNode;
+  readonly renderLink?: RenderJourneyLink;
+  /**
+   * The journey as the caller already read it (`useJourney`), so a page
+   * that decides its layout on it reads it once; the card reads it itself
+   * otherwise.
+   */
+  readonly journey?: UseJourneyReturn;
+  /** Hides the card for this person; the card offers "Hide" only with it. */
+  readonly onHide?: () => void;
   readonly className?: string;
 }
 
@@ -44,96 +51,124 @@ const anchor: NonNullable<DashboardFirstStepsProps["renderLink"]> = ({ href, cla
   </a>
 );
 
-/** A new organization's first steps: connect a provider, say what the agent should do, start a session. */
-export function DashboardFirstSteps({ org, links, renderLink = anchor, className }: DashboardFirstStepsProps) {
-  const headingId = useId();
-  const { providers } = useModelReadiness(org);
-  // Asked fail closed: making an agent is an act, so a check in flight or
-  // one that failed offers no link (the shared `useCanCreateAgent` fails
-  // open, for the create surfaces that gate themselves on the server).
-  const createAgent = useCheckPermission(org ? { kind: "organization", id: org } : null, "can_create_agent", { fail: "closed" });
-  const providerServed = (providers ?? []).some((provider) => provider.availability.state === "served");
-  // Done once the organization has an agent, by the server's own list.
-  const { agents } = useAgentList(org || null, { pageSize: 1 });
-  const hasAgent = agents.length > 0;
-  // Making an agent is an act: its link appears only on the server's yes,
-  // never while the check is in flight; a refusal says who can instead.
-  const mayCreateAgent = createAgent.allowed;
-  // Only the server's no says who may; a failed check claims nothing.
-  const refusedCreateAgent = !createAgent.isLoading && createAgent.error === null && !createAgent.allowed;
+/** Each step's one act, in words. */
+const ACTS: Record<JourneyStepId, string> = {
+  describe: "Pick an example",
+  key: "Add a key",
+  watch: "Run it",
+  "make-yours": "Make it yours",
+  "in-app": "Put it in your app",
+  others: "Invite your team",
+};
 
-  const steps: readonly Step[] = [
-    {
-      title: "Connect a model provider",
-      body: "Add an Anthropic or OpenAI key, so your agents have a model to think with.",
-      href: links.connectProvider,
-      act: "Connect a provider",
-      done: providerServed,
-    },
-    {
-      title: "Say what your agent should do",
-      body: refusedCreateAgent
-        ? "An admin of this organization makes agents; you can run the ones shared with you."
-        : "Pick an example or describe your own; it runs on a sample file.",
-      href: mayCreateAgent ? links.createAgent : undefined,
-      act: "Pick an example",
-      done: hasAgent,
-    },
-    {
-      title: "Start a session",
-      body: "Ask an agent for something and watch it work: what it reads, what it runs, what it makes.",
-      href: links.startSession,
-      act: "Start a session",
-      done: false,
-    },
-  ];
+/** The card's title, which also names its region. */
+export const JOURNEY_CARD_TITLE = "From first agent to your users";
+
+/** The journey's six steps as a card: done, current with its act, and the quiet ones after it. */
+export function DashboardFirstSteps({ org, links, renderLink = anchor, journey: given, onHide, className }: DashboardFirstStepsProps) {
+  const headingId = useId();
+  const read = useJourney(org, { enabled: given === undefined });
+  const journey = given ?? read;
+  if (journey.status !== "ready") return null;
+
+  const agent = journey.agent?.ref;
+  // Each step's destination; a typed record, so a new step without one fails to compile.
+  const destinations: Record<JourneyStepId, () => string | undefined> = {
+    describe: () => links.createAgent,
+    key: () => links.connectProvider,
+    watch: () => links.startSession,
+    "make-yours": () => (agent && links.makeItYours ? links.makeItYours(agent) : undefined),
+    "in-app": () => (agent && links.putInApp ? links.putInApp(agent) : undefined),
+    others: () => links.bringOthers,
+  };
+  const hrefOf = (id: JourneyStepId): string | undefined => destinations[id]();
+
+  const count = `${journey.done} of ${journey.steps.length}`;
+
+  if (journey.current === undefined) {
+    return (
+      <section aria-labelledby={headingId} className={cn("stg:rounded-xl stg:border stg:border-border stg:bg-card stg:px-5 stg:py-3", className)}>
+        <p id={headingId} className="stg:m-0 stg:flex stg:items-center stg:gap-2 stg:text-sm stg:text-muted-foreground">
+          <Check aria-hidden="true" className="stg:size-4 stg:text-foreground" />
+          <span>
+            <span className="stg:font-medium stg:text-foreground">Your organization is set up</span> · {count}
+          </span>
+        </p>
+      </section>
+    );
+  }
 
   return (
     <section aria-labelledby={headingId} className={cn("stg:rounded-xl stg:border stg:border-border stg:bg-card", className)}>
-      <div className="stg:border-b stg:border-border stg:px-5 stg:py-4">
-        <h2 id={headingId} className="stg:m-0 stg:text-base stg:font-semibold stg:text-foreground">
-          Get your organization running
+      <div className="stg:flex stg:items-center stg:gap-3 stg:border-b stg:border-border stg:px-5 stg:py-3.5">
+        <h2 id={headingId} className="stg:m-0 stg:flex-1 stg:text-base stg:font-semibold stg:text-foreground">
+          {JOURNEY_CARD_TITLE}
         </h2>
-        <p className="stg:m-0 stg:mt-0.5 stg:text-sm stg:text-muted-foreground">Nothing has run here yet. Three steps to a first answer.</p>
+        <span className="stg:text-sm stg:text-muted-foreground">{count}</span>
+        {onHide && (
+          <button
+            type="button"
+            onClick={onHide}
+            aria-label="Hide these steps"
+            className="stg:rounded-md stg:px-2 stg:py-1 stg:text-xs stg:text-muted-foreground stg:hover:bg-accent-hover stg:hover:text-foreground"
+          >
+            Hide
+          </button>
+        )}
       </div>
       <ol className="stg:m-0 stg:list-none stg:divide-y stg:divide-border stg:p-0">
-        {steps.map((step, index) => (
-          <li key={step.title} className="stg:flex stg:items-center stg:gap-4 stg:px-5 stg:py-4">
-            <span
-              aria-hidden="true"
-              className={cn(
-                "stg:flex stg:size-7 stg:shrink-0 stg:items-center stg:justify-center stg:rounded-full stg:text-xs stg:font-semibold",
-                step.done ? "stg:bg-foreground stg:text-background" : "stg:border stg:border-border stg:text-muted-foreground",
-              )}
-            >
-              {step.done ? <Check className="stg:size-3.5" /> : index + 1}
-            </span>
-            <div className="stg:min-w-0 stg:flex-1">
-              <p className={cn("stg:m-0 stg:text-sm stg:font-medium", step.done ? "stg:text-muted-foreground stg:line-through" : "stg:text-foreground")}>
-                {step.title}
-                {step.done && <span className="stg:sr-only"> (done)</span>}
-              </p>
-              <p className="stg:m-0 stg:mt-0.5 stg:text-sm stg:text-muted-foreground">{step.body}</p>
-            </div>
-            {!step.done &&
-              step.href !== undefined &&
-              renderLink({
-                href: step.href,
-                className:
-                  "stg:shrink-0 stg:rounded-md stg:border stg:border-border stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium stg:text-foreground stg:no-underline stg:hover:bg-muted-subtle",
-                children: step.act,
-              })}
-          </li>
+        {journey.steps.map((step) => (
+          <StepRow key={step.id} step={step} href={step.state === "current" ? hrefOf(step.id) : undefined} renderLink={renderLink} />
         ))}
       </ol>
     </section>
   );
 }
 
-interface Step {
-  readonly title: string;
-  readonly body: string;
+function StepRow({
+  step,
+  href,
+  renderLink,
+}: {
+  readonly step: JourneyStep;
   readonly href: string | undefined;
-  readonly act: string;
-  readonly done: boolean;
+  readonly renderLink: NonNullable<DashboardFirstStepsProps["renderLink"]>;
+}) {
+  const done = step.state === "done";
+  const current = step.state === "current";
+  return (
+    <li
+      aria-current={current ? "step" : undefined}
+      className={cn("stg:flex stg:items-center stg:gap-4 stg:px-5", current ? "stg:py-4" : "stg:py-3")}
+    >
+      <span
+        aria-hidden="true"
+        className={cn(
+          "stg:flex stg:size-7 stg:shrink-0 stg:items-center stg:justify-center stg:rounded-full stg:text-xs stg:font-semibold",
+          done
+            ? "stg:bg-foreground stg:text-background"
+            : current
+              ? "stg:border-2 stg:border-foreground stg:text-foreground"
+              : "stg:border stg:border-border stg:text-muted-foreground",
+        )}
+      >
+        {done ? <Check className="stg:size-3.5" /> : step.number}
+      </span>
+      <div className="stg:min-w-0 stg:flex-1">
+        <p className={cn("stg:m-0 stg:text-sm stg:font-medium", current ? "stg:text-foreground" : "stg:text-muted-foreground")}>
+          {step.title}
+          {done && <span className="stg:sr-only"> (done)</span>}
+        </p>
+        {(done || current) && <p className="stg:m-0 stg:mt-0.5 stg:text-sm stg:text-muted-foreground">{step.line}</p>}
+      </div>
+      {current &&
+        href !== undefined &&
+        renderLink({
+          href,
+          className:
+            "stg:shrink-0 stg:rounded-md stg:bg-primary stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium stg:text-primary-foreground stg:no-underline stg:hover:bg-primary-hover",
+          children: ACTS[step.id],
+        })}
+    </li>
+  );
 }

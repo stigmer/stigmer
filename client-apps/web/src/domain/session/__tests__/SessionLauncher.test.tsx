@@ -7,7 +7,11 @@
  * link `getPluginChatUrl` builds starts a chat with no agent that lists the
  * plugin; a link that arrives after the launcher is open is read too, and
  * the address is cleaned once read; the person's plugin picks are
- * remembered; a newcomer's first question is turned on; and a refusal for want of a provider key raises no toast (the
+ * remembered; a newcomer's first question is turned on, with the journey's
+ * routes for its next line; a launch link the agent page's "Make it yours"
+ * tab builds (`getAgentLaunchUrl`, read by the kit's `useLinkedLaunch`) is
+ * handed over as a launch, never as a deep-linked agent, and the address is
+ * cleaned; and a refusal for want of a provider key raises no toast (the
  * launcher's own notice says it) while any other refusal does.
  * The viewer, and how a refusal is read, are pinned in @stigmer/react-sdk.
  */
@@ -37,6 +41,9 @@ vi.mock("@stigmer/react-sdk", () => ({
   useGitHubTreeLister: () => undefined,
   useGitHubFileReader: () => undefined,
   useWorkspaceSources: () => ({ enableGitHub: true, enableLocal: false }),
+  // The kit's launch reader, as its own suite pins it: a launch for a link with `with=`.
+  useLinkedLaunch: (params: { agent: string | null; example: string | null; with: string | null }) =>
+    params.with ? { key: `${params.agent}|${params.example}|${params.with}`, agentRef: params.agent } : undefined,
   // The SDK reads the refusal's reason; here one error stands for a
   // provider-key refusal and every other is not one.
   providerKeyRequired: (error: unknown) =>
@@ -55,12 +62,17 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => page.search,
 }));
 
+const JOURNEY_LINKS = vi.hoisted(() => ({ makeItYours: () => "/library/agents/acme/variance-reporter?tab=make-it-yours" }));
+vi.mock("@/domain/journey/journey-links", () => ({
+  useJourneyLinks: () => JOURNEY_LINKS,
+}));
+
 vi.mock("@/domain/session/session-navigation", () => ({
   useSessionNavigation: () => ({ navigateToSession: () => undefined }),
 }));
 
 import { SessionLauncher } from "../SessionLauncher";
-import { getAgentSessionUrl, getPluginChatUrl } from "../session-url";
+import { getAgentLaunchUrl, getAgentSessionUrl, getPluginChatUrl } from "../session-url";
 
 beforeEach(() => {
   page.viewer.length = 0;
@@ -136,10 +148,23 @@ describe("web SessionLauncher", () => {
     replaced.mockRestore();
   });
 
-  it("asks a newcomer's first question, which the viewer skips for a deep-linked agent", () => {
+  it("asks a newcomer's first question, which the viewer skips for a deep-linked agent, with the journey's routes", () => {
     render(<SessionLauncher />);
 
-    expect(page.viewer.at(-1)).toMatchObject({ firstQuestion: true, initialAgentRef: undefined });
+    expect(page.viewer.at(-1)).toMatchObject({ firstQuestion: true, initialAgentRef: undefined, journeyLinks: JOURNEY_LINKS });
+  });
+
+  it("hands a Make it yours link over as a launch, not as a deep-linked agent, and cleans the address", () => {
+    const replaced = vi.spyOn(window.history, "replaceState");
+    page.search = new URLSearchParams(getAgentLaunchUrl("acme", "variance-reporter", { example: "variance-report", mode: "own" }).slice(2));
+    render(<SessionLauncher />);
+
+    expect(page.viewer.at(-1)).toMatchObject({
+      launch: { key: "acme/variance-reporter|variance-report|own", agentRef: "acme/variance-reporter" },
+      initialAgentRef: undefined,
+    });
+    expect(replaced).toHaveBeenCalledWith({}, "", "/");
+    replaced.mockRestore();
   });
 
   it("remembers the person's plugin picks for the next conversation", () => {

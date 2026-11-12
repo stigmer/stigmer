@@ -2,8 +2,8 @@
  * A new organization's dashboard from its first frame, over the real data
  * hooks: the week's summary answers at once and quiet, the all-time
  * summary answers later. Until that answer lands the figures wait as their
- * skeleton, so no zero card ever renders before the first steps; then the
- * first steps stand alone. Pinned by recording every render of the cards,
+ * skeleton, so no zero card ever renders before the journey's card; then
+ * the card stands alone. Pinned by recording every render of the cards,
  * so a single render of settled figures (four zeros) fails the case.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -50,6 +50,10 @@ function renderNewOrganization() {
     },
     platform: { getModelReadiness: vi.fn(async () => ({ providers: [], models: [] })) },
     grant: { checkMyPermission: vi.fn(async () => ({ isAuthorized: true })) },
+    agent: {
+      list: vi.fn(async () => ({ entries: [], nextPageToken: "" })),
+      listVersions: vi.fn(async () => ({ entries: [], nextPageToken: "" })),
+    },
   };
   const wrapper = ({ children }: { children: ReactNode }) => (
     <FetchCacheContext.Provider value={null}>
@@ -63,14 +67,14 @@ function renderNewOrganization() {
 }
 
 describe("OperationalDashboard for a new organization, frame by frame", () => {
-  it("never shows a zero card before its first steps", async () => {
+  it("never shows a zero card before the journey's card", async () => {
     const { answerEver } = renderNewOrganization();
     // The week's quiet summary lands; the all-time read is still out.
     await act(async () => {});
     expect(screen.queryByText("Completed")).toBeNull();
 
     await act(async () => answerEver());
-    expect(await screen.findByRole("region", { name: "Get your organization running" })).toBeTruthy();
+    expect(await screen.findByRole("region", { name: "From first agent to your users" })).toBeTruthy();
 
     expect(cardRenders.length).toBeGreaterThan(0);
     expect(cardRenders.filter((frame) => frame.settled)).toEqual([]);

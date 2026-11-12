@@ -1,5 +1,5 @@
 {
-  "description": "Stigmer's example agents: each a job an agent does for a product's users, with a sample file in and a file out. scripts/generate.mjs reads this list, the manifests and the samples, and writes src/catalogue.gen.ts.",
+  "description": "Stigmer's example agents: each a job an agent does for a product's users, with a sample file in and a file out, and the ready-made skills a newcomer can give them. scripts/generate.mjs reads this list, the manifests, the samples and the skills, and writes src/catalogue.gen.ts.",
   "examples": [
     {
       "id": "variance-report",
@@ -13,7 +13,8 @@
       "sampleName": "ledger",
       "samples": ["ledger.csv"],
       "output": "variance-report.md",
-      "message": "Here is this quarter's ledger, ledger.csv. Write the variance report."
+      "message": "Here is this quarter's ledger, ledger.csv. Write the variance report.",
+      "ownFileMessage": "Here is one of our ledgers. Write the variance report."
     },
     {
       "id": "ticket-replies",
@@ -27,7 +28,8 @@
       "sampleName": "ticket export",
       "samples": ["open-tickets.csv"],
       "output": "replies.md",
-      "message": "Here are today's open tickets, open-tickets.csv. Draft a reply for each."
+      "message": "Here are today's open tickets, open-tickets.csv. Draft a reply for each.",
+      "ownFileMessage": "Here is an export of our open tickets. Draft a reply for each."
     },
     {
       "id": "contract-check",
@@ -41,7 +43,8 @@
       "sampleName": "contract",
       "samples": ["services-agreement.md"],
       "output": "contract-review.md",
-      "message": "Here is the contract, services-agreement.md. Find the clauses that put us at risk."
+      "message": "Here is the contract, services-agreement.md. Find the clauses that put us at risk.",
+      "ownFileMessage": "Here is one of our contracts. Find the clauses that put us at risk."
     },
     {
       "id": "invoice-match",
@@ -55,7 +58,15 @@
       "sampleName": "invoice and purchase order",
       "samples": ["invoice-4471.csv", "po-2210.csv"],
       "output": "mismatches.md",
-      "message": "Here is invoice-4471.csv and the purchase order it bills, po-2210.csv. Find every line that doesn't match."
+      "message": "Here is invoice-4471.csv and the purchase order it bills, po-2210.csv. Find every line that doesn't match.",
+      "ownFileMessage": "Here is one of our invoices and the purchase order it bills. Find every line that doesn't match."
+    }
+  ],
+  "skills": [
+    {
+      "id": "spreadsheet-export",
+      "name": "Spreadsheet export",
+      "file": "skills/spreadsheet-export/SKILL.md"
     }
   ]
 }

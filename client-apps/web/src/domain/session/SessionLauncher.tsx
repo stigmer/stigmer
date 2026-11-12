@@ -12,18 +12,21 @@ import {
   useGitHubFileReader,
   useWorkspaceSources,
   useActiveOrgId,
+  useLinkedLaunch,
   providerKeyRequired,
 } from "@stigmer/react-sdk";
 import type { ResourceRef } from "@stigmer/client";
 import { useSessionNavigation } from "@/domain/session/session-navigation";
+import { useJourneyLinks } from "@/domain/journey/journey-links";
 
 /**
  * Console-specific session launcher — thin shell that composes the SDK
  * `NewSessionViewer` with Console routing, org context, the
  * `?agent=org/slug` URL parameter a "Start session" action arrives with,
- * and the `?plugin=org/slug` one a plugin's "Start a chat" arrives with.
- * The person's plugin picks are remembered in this browser for the next
- * conversation.
+ * the `?plugin=org/slug` one a plugin's "Start a chat" arrives with, and
+ * the `?agent=…&example=…&with=sample|own` launch the agent page's "Make it
+ * yours" tab arrives with (a fresh composer on each arrival). The person's
+ * plugin picks are remembered in this browser for the next conversation.
  */
 export function SessionLauncher() {
   const rawSearchParams = useSearchParams();
@@ -42,15 +45,19 @@ export function SessionLauncher() {
 
   const liveAgentParam = rawSearchParams.get("agent");
   const livePluginParam = rawSearchParams.get("plugin");
+  const liveWithParam = rawSearchParams.get("with");
+  // A launch (`with=`) is read on every arrival, never as "Start session".
+  const launch = useLinkedLaunch({ agent: liveAgentParam, example: rawSearchParams.get("example"), with: liveWithParam });
+  const journeyLinks = useJourneyLinks();
 
   const [initialAgentRef, setInitialAgentRef] = useState<ResourceRef | undefined>(
-    () => parseRefParam(liveAgentParam),
+    () => (liveWithParam ? undefined : parseRefParam(liveAgentParam)),
   );
   const [initialPluginRef, setInitialPluginRef] = useState<ResourceRef | undefined>(
     () => parseRefParam(livePluginParam),
   );
 
-  if (initialAgentRef === undefined && liveAgentParam) {
+  if (initialAgentRef === undefined && liveAgentParam && !liveWithParam) {
     setInitialAgentRef(parseRefParam(liveAgentParam));
   }
   if (initialPluginRef === undefined && livePluginParam) {
@@ -79,6 +86,8 @@ export function SessionLauncher() {
       inspector={<SessionInspector workspaceFileLister={workspaceFileLister} workspaceFileReader={workspaceFileReader} />}
       initialAgentRef={initialAgentRef}
       initialPluginRefs={initialPluginRef ? [initialPluginRef] : undefined}
+      launch={launch}
+      journeyLinks={journeyLinks}
       rememberPluginPicks
       // A newcomer's first visit asks what their agent should do for their
       // users; a deep link to an agent (initialAgentRef) still wins.
