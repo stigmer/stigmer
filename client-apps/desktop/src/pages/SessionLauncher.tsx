@@ -7,6 +7,7 @@ import {
   useAccountExecutionDefaults,
   useWorkspaceSources,
   useActiveOrgId,
+  useLinkedLaunch,
   providerKeyRequired,
 } from "@stigmer/react-sdk";
 import type { ResourceRef } from "@stigmer/client";
@@ -14,14 +15,17 @@ import { useNativeFolderPicker } from "../hooks/useNativeFolderPicker";
 import { useNativeWorkspaceFiles } from "../hooks/useNativeWorkspaceFiles";
 import { useNativeWorkspaceFileReader } from "../hooks/useNativeWorkspaceFileReader";
 import { useNativeWorkspaceContentSearcher } from "../hooks/useNativeWorkspaceContentSearcher";
+import { useJourneyLinks } from "../journey/journey-links";
 
 /**
  * Desktop session launcher — thin shell that composes the SDK
  * `NewSessionViewer` with router navigation, org context, the native
  * workspace hooks, the `?agent=org/slug` URL parameter a "Start session"
- * action arrives with, and the `?plugin=org/slug` one a plugin's "Start a
- * chat" arrives with. The person's plugin picks are remembered on this
- * machine for the next conversation, as the web console remembers them.
+ * action arrives with, the `?plugin=org/slug` one a plugin's "Start a
+ * chat" arrives with, and the `?agent=…&example=…&with=sample|own` launch
+ * the agent page's "Make it yours" tab arrives with (a fresh composer on
+ * each arrival). The person's plugin picks are remembered on this machine
+ * for the next conversation, as the web console remembers them.
  */
 export function SessionLauncher() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -42,7 +46,11 @@ export function SessionLauncher() {
   // the URL can be cleaned without losing intent.
   // -------------------------------------------------------------------------
 
-  const liveAgentParam = searchParams.get("agent");
+  const liveWithParam = searchParams.get("with");
+  // A launch (`with=`) is read on every arrival, never as "Start session".
+  const launch = useLinkedLaunch({ agent: searchParams.get("agent"), example: searchParams.get("example"), with: liveWithParam });
+  const journeyLinks = useJourneyLinks();
+  const liveAgentParam = liveWithParam ? null : searchParams.get("agent");
   const livePluginParam = searchParams.get("plugin");
 
   const [initialAgentRef, setInitialAgentRef] = useState<ResourceRef | undefined>(
@@ -69,10 +77,10 @@ export function SessionLauncher() {
   }, [livePluginParam]);
 
   useEffect(() => {
-    if (liveAgentParam || livePluginParam) {
+    if (liveAgentParam || livePluginParam || liveWithParam) {
       setSearchParams({}, { replace: true });
     }
-  }, [liveAgentParam, livePluginParam, setSearchParams]);
+  }, [liveAgentParam, livePluginParam, liveWithParam, setSearchParams]);
 
   return (
     <NewSessionViewer
@@ -97,6 +105,8 @@ export function SessionLauncher() {
       }
       initialAgentRef={initialAgentRef}
       initialPluginRefs={initialPluginRef ? [initialPluginRef] : undefined}
+      launch={launch}
+      journeyLinks={journeyLinks}
       rememberPluginPicks
       // A newcomer's first visit asks what their agent should do for their
       // users; a deep link to an agent (initialAgentRef) still wins.

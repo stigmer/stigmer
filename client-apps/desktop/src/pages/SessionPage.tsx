@@ -11,12 +11,14 @@ import {
   useDeploymentMode,
   ManageAccessButton,
   ThreadSkeleton,
+  JourneyNextLine,
 } from "@stigmer/react-sdk";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { useNativeFolderPicker } from "../hooks/useNativeFolderPicker";
 import { useNativeWorkspaceFiles } from "../hooks/useNativeWorkspaceFiles";
 import { useNativeWorkspaceFileReader } from "../hooks/useNativeWorkspaceFileReader";
 import { useNativeWorkspaceContentSearcher } from "../hooks/useNativeWorkspaceContentSearcher";
+import { useJourneyLinks } from "../journey/journey-links";
 
 export default function SessionPage() {
   const { id } = useParams<{ id: string }>();
@@ -43,6 +45,7 @@ function SessionPageInner({ id }: { id: string }) {
   const accountDefaults = useAccountExecutionDefaults();
   const slugForOrg = useOrgSlugForId();
   const deploymentMode = useDeploymentMode();
+  const journeyLinks = useJourneyLinks();
 
   return (
     <div className="flex h-full w-full flex-col">
@@ -61,6 +64,9 @@ function SessionPageInner({ id }: { id: string }) {
           />
         }
         modelsHubHref="#/models"
+        // After a journey agent's first job, the line that leads to making
+        // it the person's own.
+        nextStep={({ agentRef }) => <JourneyNextLine org={orgId} agentRef={agentRef} links={journeyLinks} />}
         routineHref={(routine) =>
           `#/library/routines/${slugForOrg(routine.metadata?.org ?? "")}/${routine.metadata?.slug ?? ""}`
         }

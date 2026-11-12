@@ -10,6 +10,10 @@
 //     examples/variance-report;
 //   - those example files are byte-equal to the quickstart's;
 //   - the commands examples/README.md shows are the quickstart's, in its order;
+//   - "Make it yours" (make-it-yours.mdx) writes the ready-made skill byte for
+//     byte as examples/skills/spreadsheet-export/SKILL.md holds it, edits the
+//     quickstart's Agent by its one 10% line and then only adds the skill to
+//     it, and its second ledger has the sample's columns;
 //   - the README's React code is runs of consecutive lines of the src/App.tsx
 //     "Put the agent in your app" writes, each run split from the next by a
 //     `// …` line, so no line goes missing without a mark (the rule for
@@ -42,6 +46,9 @@ function readmeQuickStart() {
 }
 
 const isFetch = (line) => line.startsWith("curl ");
+
+const SKILL_FILE = "examples/skills/spreadsheet-export/SKILL.md";
+const makeItYoursFiles = docSteps(read("docs/getting-started/make-it-yours.mdx")).filter((step) => step.kind === "file");
 
 test("the README's quick start is the quickstart's commands, in its order", () => {
   const steps = readmeQuickStart();
@@ -95,4 +102,27 @@ test("a run that skips a line without a mark, or a line out of order, is named",
   assert.equal(firstUnmarkedGap([["d"], ["c"]], source), "c");
   assert.equal(firstOutOfOrder(["a", "c"], ["a", "b", "c"]), undefined);
   assert.equal(firstOutOfOrder(["c", "a"], ["a", "b", "c"]), "a");
+});
+
+test("Make it yours writes the ready-made skill as the examples hold it, byte for byte", () => {
+  const skill = makeItYoursFiles.find((step) => step.path === "spreadsheet-export/SKILL.md");
+  assert.ok(skill !== undefined, "make-it-yours.mdx writes spreadsheet-export/SKILL.md");
+  assert.equal(skill.content, read(SKILL_FILE), SKILL_FILE);
+});
+
+test("Make it yours changes the quickstart's Agent by its 10% line, then only adds the skill", () => {
+  const manifests = makeItYoursFiles.filter((step) => step.path === "variance-reporter.yaml");
+  assert.equal(manifests.length, 2, "the edited Agent, then the Agent with the skill");
+  const original = quickstartFiles.find((step) => step.path === "variance-reporter.yaml");
+  assert.ok(original !== undefined, "the quickstart writes variance-reporter.yaml");
+  const changed = original.content.replace("more than 10% over or under", "more than 5% over or under");
+  assert.notEqual(changed, original.content, "the quickstart's Agent flags at 10%");
+  assert.equal(manifests[0].content, changed);
+  assert.equal(manifests[1].content, `${changed}  skill_refs:\n    - kind: skill\n      slug: spreadsheet-export\n`);
+});
+
+test("Make it yours's own ledger has the sample's columns", () => {
+  const ledger = makeItYoursFiles.find((step) => step.path === "ledger-q4.csv");
+  assert.ok(ledger !== undefined, "make-it-yours.mdx writes ledger-q4.csv");
+  assert.equal(ledger.content.split("\n")[0], read(`${EXAMPLE_DIR}/ledger.csv`).split("\n")[0]);
 });

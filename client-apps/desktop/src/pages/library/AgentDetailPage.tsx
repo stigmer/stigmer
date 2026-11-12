@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { invoke } from "@tauri-apps/api/core";
 import {
   AgentDetailView,
@@ -16,6 +16,7 @@ import { buildChatUrl } from "@stigmer/client";
 import { CONSOLE_URL } from "../../config";
 import { AGENT_DELETE_DESCRIPTION } from "./agent-delete-confirmation";
 import { useCanonicalDetailSlug } from "./canonical-slug";
+import { useJourneyLinks } from "../../journey/journey-links";
 
 /**
  * Chat links must be reachable by anyone, so they point at the public
@@ -61,8 +62,18 @@ export default function AgentDetailPage() {
     }
   }, [sessionId, navigate]);
 
-  // Controlled tab state, wired identically to the web app.
-  const [activeTab, setActiveTab] = useState<string>("overview");
+  // Controlled tab state, wired identically to the web app: seeded from
+  // the `?tab=` a link names (the journey's "Make it yours", say), and moved
+  // when a later link names another.
+  const [searchParams] = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const [activeTab, setActiveTab] = useState<string>(() => tabParam ?? "overview");
+  const [seenTabParam, setSeenTabParam] = useState(tabParam);
+  if (tabParam !== seenTabParam) {
+    setSeenTabParam(tabParam);
+    if (tabParam !== null) setActiveTab(tabParam);
+  }
+  const journeyLinks = useJourneyLinks();
 
   // Tauri's Wry webview blocks window.open(), so the OAuth popup flow
   // cannot run in-app (the same posture as MCP OAuth, which is web-only).
@@ -190,6 +201,8 @@ export default function AgentDetailPage() {
         // Channel conversations open in the standard session route;
         // SessionViewer renders them read-only (observer audience).
         sessionHref={(id) => `#/sessions/${id}`}
+        // The journey's tab, for an agent the journey made.
+        makeItYours={journeyLinks}
         activeTab={activeTab}
         onTabChange={setActiveTab}
       />

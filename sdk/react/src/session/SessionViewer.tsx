@@ -83,6 +83,12 @@ const EMPTY_FILE = create(FileSchema, {});
  */
 const CONVERSATION_COLUMN_CLASS = "stg:mx-auto stg:w-full stg:max-w-3xl";
 
+/** What {@link SessionViewerProps.nextStep} is called with. */
+export interface SessionNextStepContext {
+  /** The agent the session runs, by organization and slug; undefined for the built-in assistant. */
+  readonly agentRef: ResourceRef | undefined;
+}
+
 /** Props for {@link SessionViewer}. */
 export interface SessionViewerProps {
   /** Session ID to load and display. */
@@ -227,6 +233,16 @@ export interface SessionViewerProps {
    * header beside the host's actions. Withheld from observers.
    */
   readonly accessSlot?: ReactNode;
+  /**
+   * What comes next, drawn at the foot of the conversation, under the
+   * newest turn and above the composer, only once that turn has settled
+   * (no run active, nothing waiting to send), and never for a guest, an
+   * observer or a participant. Called with the agent the session runs, as
+   * the view already holds it, so the host reads nothing twice. The console
+   * passes the journey's next line (`JourneyNextLine`); without it nothing
+   * is drawn.
+   */
+  readonly nextStep?: (session: SessionNextStepContext) => ReactNode;
   /** Called after a resource is applied, or a skill added, from the Files tab. */
   readonly onApplied?: (result: ApplyResourceResult) => void;
   /**
@@ -292,6 +308,7 @@ export function SessionViewer({
   headerActions,
   transcriptExport = true,
   accessSlot,
+  nextStep,
   onApplied,
   threadSlots,
   className,
@@ -725,6 +742,7 @@ export function SessionViewer({
           modelsHubHref={modelsHubHref}
           routineHref={routineHref}
           summaryActions={summaryShows ? headerCorner : undefined}
+          nextStep={nextStep}
         />
       }
       panel={
@@ -855,6 +873,8 @@ interface ConversationColumnProps {
   readonly routineHref?: (routine: Routine) => string;
   /** The header's controls, drawn on the summary's title row. */
   readonly summaryActions?: ReactNode;
+  /** The host's next step, drawn under a settled turn (see {@link SessionViewerProps.nextStep}). */
+  readonly nextStep?: (session: SessionNextStepContext) => ReactNode;
 }
 
 /**
@@ -904,6 +924,7 @@ const ConversationColumn = memo(function ConversationColumn({
   modelsHubHref,
   routineHref,
   summaryActions,
+  nextStep,
 }: ConversationColumnProps) {
   const { conv } = flow;
   useReportChatActivity(conv.activeTurn, conv.turns.at(-1), files);
@@ -939,7 +960,11 @@ const ConversationColumn = memo(function ConversationColumn({
   // the person's My vault are named. Guests and observers
   // never send on their own agent choice.
   const hasTurns = conv.turns.length > 0;
-  const runsSessionAgent = isSameAgent(flow.agentRef, agentRefOfSession(conv.session));
+  const sessionAgentRef = agentRefOfSession(conv.session);
+  const runsSessionAgent = isSameAgent(flow.agentRef, sessionAgentRef);
+  // The newest turn has settled: something ran, nothing runs now and
+  // nothing waits to be sent. The host's next step is drawn only then.
+  const settled = hasTurns && conv.activePhase === null && !conv.pendingUserMessage && !conv.isSending;
   // The vaults the conversation uses, as the composer's vault picker
   // starts from them, and who may change them: only its creator.
   const sessionVaultRefs = useMemo<ResourceRef[]>(
@@ -1124,6 +1149,7 @@ const ConversationColumn = memo(function ConversationColumn({
         className="stg:flex-1"
       />
       <div className={CONVERSATION_COLUMN_CLASS}>
+        {nextStep !== undefined && !isObserver && !isGuest && !isParticipant && settled && nextStep({ agentRef: sessionAgentRef ?? undefined })}
         {planAttachFailed && (
           <PlanAttachFailedNotice onDismiss={onDismissPlanAttachFailed} />
         )}

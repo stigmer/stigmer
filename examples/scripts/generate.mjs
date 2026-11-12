@@ -4,16 +4,21 @@
  * Writes src/catalogue.gen.ts, the one list of Stigmer's example agents (the
  * React kit's launcher and create picker read it), from the files people
  * download: catalogue.json (the card's words, the first
- * message, which files belong to each job), each example's manifest (the
- * agent's only definition) and its sample files (inlined: they are small
- * text files, so a reader needs no file system to attach them).
+ * message, the message for a person's own file, which files belong to each
+ * job), each example's manifest (the agent's only definition), its sample
+ * files (inlined: they are small text files, so a reader needs no file
+ * system to attach them) and the ready-made skills under skills/ (each
+ * SKILL.md inlined, so the console can make the skill without a download).
  *
  * The module is committed, so a changed example shows as a reviewable diff;
  * `--check` fails when it is not what this script would write now. Every
  * rule an example must keep (each folder listed, each listed file present,
  * the output named in the instructions, the first message naming its
- * samples, no two ids or agent slugs alike) is checked before anything is
- * written, by `problems`, which scripts/generate.test.mjs also drives.
+ * samples, a message for a person's own file, no two ids or agent slugs
+ * alike) and every rule a skill keeps (its SKILL.md present, its
+ * frontmatter naming it by its id with a description) is checked before
+ * anything is written, by `problems`, which scripts/generate.test.mjs also
+ * drives.
  *
  * Usage:
  *   node examples/scripts/generate.mjs           # write src/catalogue.gen.ts
@@ -29,8 +34,8 @@ import { parse } from "yaml";
 /** The examples folder: the package root, beside this script's folder. */
 export const ROOT = fileURLToPath(new URL("../", import.meta.url));
 
-/** Folders of the package itself, never an example. */
-const PACKAGE_DIRS = new Set(["scripts", "src", "dist", "node_modules"]);
+/** Folders of the package itself, never an example; `skills` holds the ready-made skills. */
+const PACKAGE_DIRS = new Set(["scripts", "src", "dist", "node_modules", "skills"]);
 
 /** The generated module's path, relative to the package root. */
 export const GENERATED = "src/catalogue.gen.ts";
@@ -64,6 +69,21 @@ export function readTree(root = ROOT) {
   return { catalogue, folders, read };
 }
 
+/**
+ * A SKILL.md's frontmatter as plain data, or undefined when the file does
+ * not open with one: the block between a first line of `---` and the next.
+ */
+export function frontmatterOf(text) {
+  const match = /^---\r?\n([\s\S]*?)\r?\n---\r?\n/.exec(text);
+  if (match === null) return undefined;
+  try {
+    const parsed = parse(match[1]);
+    return typeof parsed === "object" && parsed !== null ? parsed : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 /** Every rule the tree breaks, as one sentence each; empty when it keeps them all. */
 export function problems({ catalogue, folders, read }) {
   const found = [];
@@ -73,7 +93,7 @@ export function problems({ catalogue, folders, read }) {
   const slugs = new Set();
   for (const entry of entries) {
     const id = entry.id;
-    for (const field of ["id", "for", "name", "gives", "gets", "category", "manifest", "sampleName", "output", "message"]) {
+    for (const field of ["id", "for", "name", "gives", "gets", "category", "manifest", "sampleName", "output", "message", "ownFileMessage"]) {
       if (typeof entry[field] !== "string" || entry[field].trim() === "") found.push(`${id ?? "an example"}: "${field}" is missing`);
     }
     if (ids.has(id)) found.push(`${id}: two examples share this id`);
@@ -107,6 +127,28 @@ export function problems({ catalogue, folders, read }) {
   for (const folder of folders) {
     if (!ids.has(folder)) found.push(`${folder}: a folder catalogue.json doesn't list`);
   }
+  const skills = Array.isArray(catalogue?.skills) ? catalogue.skills : [];
+  const skillIds = new Set();
+  for (const skill of skills) {
+    const id = skill.id;
+    for (const field of ["id", "name", "file"]) {
+      if (typeof skill[field] !== "string" || skill[field].trim() === "") found.push(`skill ${id ?? "?"}: "${field}" is missing`);
+    }
+    if (skillIds.has(id)) found.push(`skill ${id}: two skills share this id`);
+    skillIds.add(id);
+    const text = typeof skill.file === "string" ? read(".", skill.file) : undefined;
+    if (text === undefined) {
+      found.push(`skill ${id}: ${skill.file} is not in the package`);
+      continue;
+    }
+    const front = frontmatterOf(text);
+    if (front === undefined) {
+      found.push(`skill ${id}: ${skill.file} opens with no frontmatter`);
+      continue;
+    }
+    if (front.name !== id) found.push(`skill ${id}: its frontmatter names it ${front.name ?? "nothing"}`);
+    if (typeof front.description !== "string" || front.description.trim() === "") found.push(`skill ${id}: its frontmatter has no description`);
+  }
   return found;
 }
 
@@ -125,6 +167,7 @@ export function render({ catalogue, read }) {
       category: entry.category,
       tags: entry.tags ?? [],
       message: entry.message,
+      ownFileMessage: entry.ownFileMessage,
       output: entry.output,
       agent: {
         name: displayName(manifest.metadata.name),
@@ -138,15 +181,29 @@ export function render({ catalogue, read }) {
       samples: entry.samples.map((name) => ({ name, type: mediaTypeOf(name), text: read(entry.id, name) })),
     };
   });
+  const skills = (catalogue.skills ?? []).map((skill) => {
+    const text = read(".", skill.file);
+    return { id: skill.id, name: skill.name, description: frontmatterOf(text).description, file: skill.file, text };
+  });
   return [
     "// Code generated by examples/scripts/generate.mjs from catalogue.json, the",
-    "// manifests and the samples. DO NOT EDIT: change those files and run",
-    "// `npm run generate -w @stigmer/examples`.",
+    "// manifests, the samples and the skills. DO NOT EDIT: change those files",
+    "// and run `npm run generate -w @stigmer/examples`.",
     "",
-    'import type { Example } from "./types.js";',
+    'import type { Example, ExampleSkill } from "./types.js";',
     "",
     "/** Every example, in the order the catalogue lists them. */",
     `export const EXAMPLES: readonly Example[] = ${JSON.stringify(examples, null, 2)};`,
+    "",
+    "/**",
+    " * Every example's agent slug, in the catalogue's order: a reader that only",
+    " * asks \"is this an example's agent?\" imports this, and a bundler leaves",
+    " * EXAMPLES, with its inlined samples, out of its download.",
+    " */",
+    `export const EXAMPLE_AGENT_SLUGS: readonly string[] = ${JSON.stringify(examples.map((e) => e.agent.slug))};`,
+    "",
+    "/** Every ready-made skill, in the order the catalogue lists them. */",
+    `export const SKILLS: readonly ExampleSkill[] = ${JSON.stringify(skills, null, 2)};`,
     "",
   ].join("\n");
 }

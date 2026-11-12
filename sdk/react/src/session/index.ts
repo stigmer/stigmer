@@ -129,7 +129,7 @@ export type {
 export { SessionViewer } from "./SessionViewer.js";
 export { SessionInspector } from "./inspector/SessionInspector.js";
 export type { SessionInspectorProps } from "./inspector/SessionInspector.js";
-export type { SessionViewerProps } from "./SessionViewer.js";
+export type { SessionViewerProps, SessionNextStepContext } from "./SessionViewer.js";
 
 // NewSessionViewer — launcher organism with progressive Setup panel
 export { NewSessionViewer } from "./NewSessionViewer.js";

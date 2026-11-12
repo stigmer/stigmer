@@ -55,9 +55,12 @@ import { useExportResource } from "../library/useExportResource.js";
 import { EditResourceYamlDialog } from "../manifest/EditResourceYamlDialog.js";
 import { keptReference } from "../internal/kept-reference.js";
 import type { RenamedResource } from "../resource-detail/useRenameResource.js";
+import { MakeItYoursTab, type MakeItYoursLinks } from "../journey/MakeItYoursTab.js";
+import { isJourneyAgentSlug } from "../journey/journey-agents.js";
 
 const INSTRUCTIONS_COLLAPSED_HEIGHT = "12rem";
 
+const MAKE_IT_YOURS_TAB: TabItem = { id: "make-it-yours", label: "Make it yours" };
 const OVERVIEW_TAB: TabItem = { id: "overview", label: "Overview" };
 const CHANNELS_TAB: TabItem = { id: "channels", label: "Channels" };
 const QUALITY_TAB: TabItem = { id: "quality", label: "Quality" };
@@ -216,6 +219,18 @@ export interface AgentDetailViewProps {
    * route. Tries and flagged runs are listed without links when omitted.
    */
   readonly onNavigateToRun?: (runId: string) => void;
+  /**
+   * Offer the "Make it yours" tab, with the host's routes for its acts:
+   * drawn first among the tabs for an agent the journey made (an example's
+   * agent, or one described in the person's own words) that the viewer may
+   * edit (`editable`, the server's `can_edit`, not a plugin's). It changes
+   * the instructions and adds a ready-made skill through this view's own
+   * save, so Overview shows each change at once, and links the launcher for
+   * a run on the sample or on the person's own file. The page opens on it
+   * only when asked (`activeTab` or `defaultTab` `"make-it-yours"`); the
+   * console's links say `?tab=make-it-yours`. Without it, no tab.
+   */
+  readonly makeItYours?: MakeItYoursLinks;
   /** Additional CSS classes for the root container. */
   readonly className?: string;
 }
@@ -289,6 +304,7 @@ export function AgentDetailView({
   onPluginClick,
   onAgentClick,
   onNavigateToRun,
+  makeItYours,
   className,
 }: AgentDetailViewProps) {
   const { agent, isLoading, error, refetch } = useAgent(org, slug);
@@ -383,8 +399,12 @@ export function AgentDetailView({
   // and the Channels tab, so an add or a delete there changes both.
   const channels = useChannelList(agent?.metadata?.id ?? "", agent?.metadata?.org ?? "");
 
+  // The journey's tab: a host that offers it, an agent the journey made,
+  // and a viewer who may edit it.
+  const offersMakeItYours = makeItYours !== undefined && editable && isJourneyAgentSlug(agent?.metadata?.slug ?? "");
   const builtInTabs = useMemo<readonly TabItem[]>(
     () => [
+      ...(offersMakeItYours ? [MAKE_IT_YOURS_TAB] : []),
       OVERVIEW_TAB,
       CHANNELS_TAB,
       QUALITY_TAB,
@@ -398,7 +418,7 @@ export function AgentDetailView({
         }),
       },
     ],
-    [noDeps, versionCount],
+    [offersMakeItYours, noDeps, versionCount],
   );
 
   const {
@@ -597,6 +617,22 @@ export function AgentDetailView({
     );
   } else if (effectiveActiveTab === "versions") {
     tabContent = <AgentVersionsTab agent={agent} />;
+  } else if (effectiveActiveTab === MAKE_IT_YOURS_TAB.id && offersMakeItYours && makeItYours) {
+    tabContent = (
+      <MakeItYoursTab
+        agent={agent}
+        links={makeItYours}
+        saveField={saveField}
+        isSaving={isUpdating}
+        saveError={saveError}
+        onOpenVersions={() => effectiveOnTabChange(VERSIONS_TAB.id)}
+      />
+    );
+  } else if (effectiveActiveTab === MAKE_IT_YOURS_TAB.id && makeItYours && editableProp && editCheck.isLoading) {
+    // Arrived on the tab by its link while the server is still asked
+    // whether this viewer may edit: hold its place rather than draw
+    // Overview and swap it.
+    tabContent = <LoadingRegion label="Loading" className="stg:h-48 stg:animate-pulse stg:rounded-xl stg:bg-muted" />;
   } else {
     tabContent = (
       <div className="stg:flex stg:flex-col stg:gap-6">

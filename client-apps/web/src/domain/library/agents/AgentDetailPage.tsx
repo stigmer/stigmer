@@ -20,6 +20,7 @@ import { useRunNavigation } from "@/domain/runs/run-navigation";
 import { getAgentSessionUrl } from "@/domain/session/session-url";
 import { chatLinkUrlFor } from "@/domain/chat-link/chat-link-url";
 import { AGENT_DELETE_DESCRIPTION } from "@/domain/library/agents/agent-delete-confirmation";
+import { useJourneyLinks } from "@/domain/journey/journey-links";
 
 /**
  * Read the `?tab=` deep-link target once, at mount.
@@ -56,6 +57,13 @@ export function AgentDetailPageInner({ org, slug }: AgentDetailPageInnerProps) {
   const [activeTab, setActiveTab] = useState<string>(
     () => initialTabFromUrl() ?? "overview",
   );
+  // A client-side arrival (the journey's "Make it yours" links) may render
+  // before the address holds its `?tab=`: read it again once committed.
+  useEffect(() => {
+    const tab = initialTabFromUrl();
+    if (tab !== undefined) setActiveTab(tab);
+  }, [org, slug]);
+  const journeyLinks = useJourneyLinks();
 
   useEffect(() => () => setLabel(null), [setLabel]);
 
@@ -157,6 +165,8 @@ export function AgentDetailPageInner({ org, slug }: AgentDetailPageInnerProps) {
         sessionHref={(id) => `/sessions/${id}`}
         activeTab={activeTab}
         onTabChange={setActiveTab}
+        // The journey's tab, for an agent the journey made.
+        makeItYours={journeyLinks}
       />
       <ConfirmDialog
         state={confirmState}

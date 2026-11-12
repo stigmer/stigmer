@@ -93,6 +93,7 @@ export type {
   TranscriptExportMenuProps,
   AgentVersionNoticeProps,
   SessionViewerProps,
+  SessionNextStepContext,
   SessionInspectorProps,
   NewSessionViewerProps,
   SessionViewerLayoutProps,
@@ -709,6 +710,25 @@ export type { StigmerToasterProps } from "./feedback/index.js";
 export { EmptyState, useEmptyState } from "./empty-state/index.js";
 export { PageHeader, type PageHeaderProps } from "./page/PageHeader.js";
 export { DashboardFirstSteps, type DashboardFirstStepsProps, type DashboardFirstStepLinks } from "./dashboard/DashboardFirstSteps.js";
+export {
+  useJourney,
+  isJourneyAgentSlug,
+  JourneyNextLine,
+  JourneyLauncherLine,
+  MakeItYoursTab,
+  type UseJourneyReturn,
+  type JourneyStep,
+  type JourneyStepId,
+  type JourneyStepState,
+  type JourneyAgent,
+  type JourneyNextLineProps,
+  type JourneyLauncherLineProps,
+  type MakeItYoursTabProps,
+  type MakeItYoursLinks,
+  type JourneyLinks,
+  type RenderJourneyLink,
+} from "./journey/index.js";
+export { exampleLaunch, useLinkedLaunch, type SessionLaunch, type LaunchMode, type LaunchParams } from "./session/launch.js";
 export { AgentProfileHeader, useAgentFacts, type AgentProfileHeaderProps, type AgentFact } from "./agent/AgentProfileHeader.js";
 export type { EmptyStateProps } from "./empty-state/index.js";
 

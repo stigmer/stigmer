@@ -14,9 +14,11 @@ import {
   useSession,
   useDeploymentMode,
   ManageAccessButton,
+  JourneyNextLine,
 } from "@stigmer/react-sdk";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam";
+import { useJourneyLinks } from "@/domain/journey/journey-links";
 import { ThreadSkeleton } from "@stigmer/react-sdk";
 
 export default function SessionPage() {
@@ -42,6 +44,7 @@ export function SessionPageInner({ id }: { id: string }) {
   const accountDefaults = useAccountExecutionDefaults();
   const slugForOrg = useOrgSlugForId();
   const deploymentMode = useDeploymentMode();
+  const journeyLinks = useJourneyLinks();
 
   return (
     <div className="flex h-full w-full flex-col">
@@ -53,6 +56,9 @@ export function SessionPageInner({ id }: { id: string }) {
         enableGitHub={enableGitHub}
         enableLocal={enableLocal}
         inspector={<SessionInspector workspaceFileLister={workspaceFileLister} workspaceFileReader={workspaceFileReader} />}
+        // After a journey agent's first job, the line that leads to making
+        // it the person's own.
+        nextStep={({ agentRef }) => <JourneyNextLine org={orgId} agentRef={agentRef} links={journeyLinks} />}
         routineHref={(routine) =>
           `/library/routines/${slugForOrg(routine.metadata?.org ?? "")}/${routine.metadata?.slug ?? ""}`
         }

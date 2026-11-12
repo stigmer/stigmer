@@ -20,15 +20,15 @@ import { StigmerError, getUserMessage } from "@stigmer/client";
 import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import type { Example } from "@stigmer/examples";
 import { useStigmer } from "@stigmer/react-core";
+import { OWN_AGENT_TRIES, ownAgentSlug } from "../../journey/journey-agents.js";
+
+export { OWN_AGENT_TRIES };
 
 /** The sentence added to an agent described in the person's own words, so what it makes comes back as a file. */
 export const OWN_AGENT_FILE_LINE = "When you make something for the person you're helping, save it as a file in your outputs folder.";
 
 /** The name an agent described in the person's own words is made under, before any number. */
 export const OWN_AGENT_NAME = "Your agent";
-const OWN_AGENT_SLUG = "your-agent";
-/** How many names (`your-agent`, `your-agent-2`, …) a described agent tries before saying so. */
-export const OWN_AGENT_TRIES = 10;
 
 /** What the launcher holds once a pick has made its agent. */
 export interface FirstChoice {
@@ -183,7 +183,7 @@ export function useStartFromExample(org: string): UseStartFromExampleReturn {
       try {
         for (let n = 1; n <= OWN_AGENT_TRIES; n++) {
           const name = n === 1 ? OWN_AGENT_NAME : `${OWN_AGENT_NAME} ${n}`;
-          const slug = n === 1 ? OWN_AGENT_SLUG : `${OWN_AGENT_SLUG}-${n}`;
+          const slug = ownAgentSlug(n);
           try {
             const made = await stigmer.agent.create({
               name,

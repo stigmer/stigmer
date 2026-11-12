@@ -1,6 +1,7 @@
 // The shape of one example agent, as a reader of the list sees it: the
 // card's words, the first message, the agent to make, the manifest people
-// download and the sample files the first run attaches. The data itself is
+// download and the sample files the first run attaches; and of one
+// ready-made skill a newcomer can give an agent. The data itself is
 // generated into catalogue.gen.ts from the folders beside this package's
 // source, so the downloadable files stay the only definition.
 
@@ -44,6 +45,12 @@ export interface Example {
   readonly tags: readonly string[];
   /** The first message, naming every sample it sends. */
   readonly message: string;
+  /**
+   * The message for a run on the person's own file instead of the samples
+   * ("Here is one of our ledgers. Write the variance report."): it names no
+   * file, since the person attaches their own.
+   */
+  readonly ownFileMessage: string;
   /** The file the agent's instructions promise to save ("variance-report.md"). */
   readonly output: string;
   readonly agent: ExampleAgent;
@@ -52,4 +59,22 @@ export interface Example {
   /** The samples in words, as a sentence names them ("ledger", "invoice and purchase order"). */
   readonly sampleName: string;
   readonly samples: readonly ExampleSample[];
+}
+
+/**
+ * A ready-made skill a newcomer can give an example's agent: its SKILL.md,
+ * inlined, so a console can make the skill in an organization without a
+ * download (zipped as the skill's only file).
+ */
+export interface ExampleSkill {
+  /** The skill's slug, its SKILL.md frontmatter `name` ("spreadsheet-export"). */
+  readonly id: string;
+  /** Its name in words ("Spreadsheet export"). */
+  readonly name: string;
+  /** Its SKILL.md frontmatter `description`. */
+  readonly description: string;
+  /** Its SKILL.md's path in this package's folder, as people download it ("skills/spreadsheet-export/SKILL.md"). */
+  readonly file: string;
+  /** The SKILL.md's text, byte for byte. */
+  readonly text: string;
 }

@@ -31,6 +31,9 @@ import { nothingRuns } from "../models/readiness.js";
 import { useModelRegistry } from "../models/useModelRegistry.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
 import { useFirstQuestionGate } from "./first-question/useFirstQuestionGate.js";
+import type { SessionLaunch } from "./launch.js";
+import { JourneyLauncherLine } from "../journey/JourneyNextLine.js";
+import type { JourneyLinks } from "../journey/links.js";
 import { useStartFromExample, type FirstChoice } from "./first-question/useStartFromExample.js";
 // The first question and its chosen bar, with the example list they carry,
 // load only when a launcher shows them: an embed or a returning person never
@@ -183,6 +186,20 @@ export interface NewSessionViewerProps {
   readonly initialMessage?: string;
 
   /**
+   * One launch into the launcher: the agent it starts on and what the
+   * composer starts with (files, a written message, a heading and a
+   * placeholder). Each new `key` mounts a fresh composer with its own agent,
+   * files and message, so a launch into a launcher that stayed mounted
+   * while a session was open is never mixed with the one before. Spent once
+   * its session is created: the launcher then shows its usual composer. A
+   * launch sends the person somewhere, so the first question is not shown.
+   * The agent page's "Make it yours" tab arrives here (`useLinkedLaunch`
+   * reads its link; `exampleLaunch` builds one from an example). Ignored
+   * for the `"guest"` audience.
+   */
+  readonly launch?: SessionLaunch;
+
+  /**
    * Open on the first question for a newcomer: in an organization where
    * nothing has ever run, a person the server lets make agents is asked
    * what their agent should do for their users, with example jobs (from
@@ -197,6 +214,15 @@ export interface NewSessionViewerProps {
    * own onboarding. @default false
    */
   readonly firstQuestion?: boolean;
+
+  /**
+   * Where the journey's later steps lead, in the host's routing. With
+   * `firstQuestion` on, a launcher whose first state has ended names the
+   * journey's next step in one quiet line under its heading, from "Make it
+   * yours" on ("Next: make Variance Reporter yours"), linking there. Not
+   * shown while a launch or a deep link sends the person somewhere.
+   */
+  readonly journeyLinks?: JourneyLinks;
 
   /** Heading text above the composer. @default "What would you like to work on?" */
   readonly heading?: string;
@@ -285,7 +311,9 @@ export function NewSessionViewer({
   rememberPluginPicks,
   initialFiles,
   initialMessage,
+  launch,
   firstQuestion = false,
+  journeyLinks,
   heading = "What would you like to work on?",
   placeholder = "Describe what you need help with\u2026",
   initialRows = 3,
@@ -306,13 +334,19 @@ export function NewSessionViewer({
   // unsent pick never carries over.
   const [firstOrg, setFirstOrg] = useState(org);
   const orgChanged = firstOrg !== org;
+  // A launch is spent once its session is created: the launcher, still
+  // mounted while the session is open, shows its usual composer on return.
+  const [spentLaunchKey, setSpentLaunchKey] = useState<string | null>(null);
+  const activeLaunch = launch !== undefined && audience !== "guest" && launch.key !== spentLaunchKey ? launch : undefined;
+  const activeLaunchKey = activeLaunch?.key;
   const handleSessionCreated = useCallback(
     (sessionId: string) => {
       setFirstDone(true);
       setChoice(null);
+      if (activeLaunchKey !== undefined) setSpentLaunchKey(activeLaunchKey);
       onSessionCreated(sessionId);
     },
-    [onSessionCreated],
+    [onSessionCreated, activeLaunchKey],
   );
   const flow = useNewSessionFlow({
     org,
@@ -332,7 +366,7 @@ export function NewSessionViewer({
   // A deep link wins: a person sent to a specific agent, or to chat with a
   // plugin (a plugin page's "Start a chat"), never meets the question.
   // Neither does a guest or a curated audience.
-  const sentSomewhere = initialAgentRef != null || (initialPluginRefs?.length ?? 0) > 0;
+  const sentSomewhere = initialAgentRef != null || (initialPluginRefs?.length ?? 0) > 0 || activeLaunch !== undefined;
   const firstGate = useFirstQuestionGate(org, firstQuestion && audience === "integrator" && !sentSomewhere);
   const firstOpen = !firstDone && firstGate === "ask";
   const firstWaits = !firstDone && firstGate === "pending";
@@ -456,6 +490,11 @@ export function NewSessionViewer({
   // A pick lands the person on what was made: the chosen bar takes focus
   // when it appears, and the live region below says it.
   const choiceFiles = useMemo(() => (choice === null ? undefined : [...choice.files]), [choice]);
+  const launchFiles = useMemo(() => (activeLaunch?.files === undefined ? undefined : [...activeLaunch.files]), [activeLaunch]);
+  // The journey's next step, under the plain launcher's heading, once its
+  // first state has ended and nothing sends the person somewhere.
+  const namesNextStep =
+    firstQuestion && journeyLinks !== undefined && audience === "integrator" && !sentSomewhere && !firstOpen && !firstWaits;
 
   // The unified-panel controller (shared with SessionViewer). The
   // launcher has no run yet, so the FSM inputs are static; the inspector
@@ -636,9 +675,12 @@ export function NewSessionViewer({
           />
         ) : (
           <>
-          <h1 className="stg:text-center stg:text-lg stg:font-medium stg:text-foreground">
-            {heading}
-          </h1>
+          <div className="stg:space-y-1.5">
+            <h1 className="stg:text-center stg:text-lg stg:font-medium stg:text-foreground">
+              {activeLaunch?.heading ?? heading}
+            </h1>
+            {journeyLinks !== undefined && <JourneyLauncherLine org={org} links={journeyLinks} enabled={namesNextStep} />}
+          </div>
           {keyUncheckedNote}
           {shownMissing && !hub.isLoading && (
             <ModelNeedsProvider
@@ -649,7 +691,20 @@ export function NewSessionViewer({
             />
           )}
 
-          <SessionComposer {...composerProps} initialMessage={initialMessage} />
+          {activeLaunch !== undefined ? (
+            <SessionComposer
+              // A new launch mounts a new composer: its agent, files and
+              // message are read once, when it mounts.
+              key={activeLaunch.key}
+              {...composerProps}
+              initialAgentRef={activeLaunch.agentRef}
+              initialFiles={launchFiles}
+              initialMessage={activeLaunch.message}
+              placeholder={activeLaunch.placeholder ?? placeholder}
+            />
+          ) : (
+            <SessionComposer {...composerProps} initialMessage={initialMessage} />
+          )}
           </>
         )}
 
