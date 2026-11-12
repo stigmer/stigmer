@@ -148,14 +148,16 @@ export interface KeySavedUncheckedNoteProps {
 export function KeySavedUncheckedNote({ provider }: KeySavedUncheckedNoteProps) {
   const name = presentationOf(provider).name;
   return (
-    <p
+    // A div, not a paragraph: the launcher's column spaces its rows, and a
+    // paragraph's margin reset would set the note flush on the composer.
+    <div
       role="status"
       data-stgm-key-unchecked=""
-      className="stg:m-0 stg:rounded-xl stg:border stg:border-border stg:bg-card stg:px-4 stg:py-2.5 stg:text-xs stg:text-muted-foreground"
+      className="stg:rounded-xl stg:border stg:border-border stg:bg-card stg:px-4 stg:py-2.5 stg:text-xs stg:text-muted-foreground"
     >
       {name} didn&apos;t answer, so the key is saved but not checked. You can send now; if the key doesn&apos;t work,
       the run stops and says why.
-    </p>
+    </div>
   );
 }
 
