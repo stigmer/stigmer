@@ -22,6 +22,7 @@ import {
   settingsUsageScene,
   settingsServiceAccountsDeniedScene,
   settingsVaultsFailedScene,
+  settingsVaultsOpenScene,
   settingsVaultsScene,
 } from "./settings-pages.tsx";
 import { partsScene } from "./parts.tsx";
@@ -98,6 +99,7 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "settings-members": settingsMembersScene,
   "settings-api-keys": settingsApiKeysScene,
   "settings-vaults": settingsVaultsScene,
+  "settings-vaults-open": settingsVaultsOpenScene,
   "settings-vaults-failed": settingsVaultsFailedScene,
   "settings-service-accounts-denied": settingsServiceAccountsDeniedScene,
   "settings-billing": settingsBillingScene,
@@ -113,6 +115,7 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "skill-detail": skillDetailScene,
   "marketplace-admin": () => marketplaceScene("admin"),
   "marketplace-member": () => marketplaceScene("member"),
+  "marketplace-no-match": () => marketplaceScene("admin"),
   "session-busy": () => sessionScene("busy", { inspector: true }),
   "session-approval": () => sessionScene("approval", { inspector: true }),
   "session-finished": () => sessionScene("finished", { inspector: true }),
