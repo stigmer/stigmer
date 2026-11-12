@@ -316,7 +316,8 @@ try {
     if (page.name === "make-it-yours") await assertMadeYours(page);
   }
   await runOnTerminal(pages[0]);
-  if (!(outputs.get(`cat ${REPORT_PATH}`) ?? "").includes(args.live ? ACCOUNTS[0] : REPORT.split("\n")[0])) {
+  const shown = outputs.get(`cat ${REPORT_PATH}`) ?? "";
+  if (!(args.live ? shown.toLowerCase().includes(ACCOUNTS[0].toLowerCase()) : shown.includes(REPORT.split("\n")[0]))) {
     throw new Error(`\`cat ${REPORT_PATH}\` did not print the report`);
   }
   if (!outputs.get("npx tsx variance-report.ts")?.includes(`Saved ${REPORT_PATH}`)) {
@@ -439,8 +440,10 @@ function assertReport(page) {
   if (!existsSync(path)) throw new Error(`${page}: the page's steps left no ${REPORT_PATH}`);
   const saved = readFileSync(path, "utf8");
   if (args.live) {
-    // A model's words differ run to run: the report must name every account.
-    const unnamed = ACCOUNTS.filter((account) => !saved.includes(account));
+    // A model's words differ run to run, its capitals too ("Cost of Goods
+    // Sold"): the report must name every account, in any case.
+    const lower = saved.toLowerCase();
+    const unnamed = ACCOUNTS.filter((account) => !lower.includes(account.toLowerCase()));
     if (unnamed.length > 0) throw new Error(`${page}: ${REPORT_PATH} does not name ${unnamed.join(", ")}:\n${saved}`);
     console.log(`----- ${page}: ${REPORT_PATH} -----\n${saved}\n-----`);
     log(`${page}: ${REPORT_PATH} names every account`);
