@@ -210,6 +210,7 @@ const ALL_DONE: UseJourneyReturn = (() => {
     done: steps.length,
     current: undefined,
     agent: { ref: { org: ORG_ID, slug: varianceExample().agent.slug }, name: varianceExample().agent.name },
+    everRan: true,
   };
 })();
 
