@@ -246,9 +246,10 @@ export interface SessionViewerProps {
  * Full-featured agent session viewer.
  *
  * Owns `useSessionPageFlow` internally and composes the conversation: its
- * summary, the thread (each ended turn closed by what it produced), the
- * working turn's activity line with Stop, and the `SessionComposer` with
- * the run settings in its configure menu. A host that passes `inspector`
+ * summary with the status pill on the title's line, the thread (each step
+ * one plain line, a finished turn leading with its answer and what it
+ * produced), and the `SessionComposer` (Stop while a turn works) with the
+ * run settings in its configure menu. A host that passes `inspector`
  * (`<SessionInspector />`) adds the builder mode beside it: the explorer,
  * search, read-only editor and the Changes, Files and Usage facets,
  * collapsed to a top-right chip until opened.

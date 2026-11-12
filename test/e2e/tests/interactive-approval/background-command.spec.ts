@@ -25,6 +25,7 @@ import {
   MockControl,
   awaitMockRemaining,
   getMockControlUrl,
+  openHowItGotThere,
   seedGatedSession,
   seedToolRunSession,
   shellBlock,
@@ -72,8 +73,12 @@ test.describe("a command the agent runs in the background (deterministic mock LL
     await expect(row.locator('[data-cursor-target="terminal-live-output"]')).toContainText(/tick-[1-7]/, { timeout: 30_000 });
     await expect(row).not.toContainText("Started in the background");
 
-    await expect(status).toHaveText("Exited · code 0", { timeout: 60_000 });
-    await expect(page.getByText("The ticks finished.")).toBeVisible({ timeout: 30_000 });
+    // Once the command exits the agent answers and the turn finishes: the
+    // command is then one of the turn's steps, saying how it ended.
+    await expect(page.getByText("The ticks finished.")).toBeVisible({ timeout: 90_000 });
+    await openHowItGotThere(page);
+    const ended = toolCallRow(page).filter({ hasText: "Background" }).first();
+    await expect(ended.locator('[data-cursor-target="background-command-status"]')).toHaveText("Exited · code 0", { timeout: 30_000 });
   });
 
   test("the row's Stop stops it while the turn waits, and the agent answers", async ({ page, stigmerClient }) => {
@@ -91,8 +96,11 @@ test.describe("a command the agent runs in the background (deterministic mock LL
 
     const row = toolCallRow(page).filter({ hasText: "Background" }).first();
     await row.locator('[data-cursor-target="background-command-stop"]').click();
-    await expect(row.locator('[data-cursor-target="background-command-status"]')).toHaveText("Stopped by a person", { timeout: 30_000 });
     await expect(page.getByText("You stopped the server.")).toBeVisible({ timeout: 30_000 });
+    // The finished turn's step says who stopped it.
+    await openHowItGotThere(page);
+    const stopped = toolCallRow(page).filter({ hasText: "Background" }).first();
+    await expect(stopped.locator('[data-cursor-target="background-command-status"]')).toHaveText("Stopped by a person", { timeout: 30_000 });
   });
 
   test("a page opened while the turn waits for the command names it at once", async ({ page, stigmerClient }) => {

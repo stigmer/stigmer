@@ -2,11 +2,13 @@
  * MessageThread slots: each slot renders in place of its built-in with the
  * built-in's props (the person's and agent's messages and the failed-send
  * bubble, the bottom approval card with its answer wiring, the to-dos card
- * and rows, the set-up placeholder, the recalled-memories card, the
- * liveness line, the plan cards, the error notice with its retry wiring),
- * every built-in renders when slots are omitted, overrides apply under the
- * virtualized path too, and a memoized slot is not re-rendered when the
- * thread re-renders with the same turns.
+ * with the to-do row slot forwarded, the set-up placeholder, the
+ * recalled-memories card, the liveness line, the plan cards, the error
+ * notice with its retry wiring); a host's own to-dos card replaces the plan
+ * card a to-do turn draws, while a to-do row slot alone leaves the plan
+ * card; every built-in renders when slots are omitted, overrides apply
+ * under the virtualized path too, and a memoized slot is not re-rendered
+ * when the thread re-renders with the same turns.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
@@ -170,19 +172,21 @@ describe("MessageThread slots", () => {
       </div>
     );
 
-    renderThread(conversation({ id: "e1", extra: todoWrite("e1") }), { slots: { TodoCard: CustomCard, TodoRow: CustomRow } });
+    renderThread(conversation({ id: "e1", phase: "running", extra: todoWrite("e1") }), { slots: { TodoCard: CustomCard, TodoRow: CustomRow } });
 
     expect(screen.getByTestId("custom-todo-card")).toBeTruthy();
+    expect(screen.queryByRole("region", { name: "Plan" })).toBeNull();
     expect(forwarded).toEqual(["write tests"]);
   });
 
   it("renders the TodoRow slot inside the built-in TodoCard when only TodoRow is overridden", () => {
     const CustomRow = ({ item }: TodoRowProps) => <li data-testid="custom-row">ROW: {item.content}</li>;
 
-    renderThread(conversation({ id: "e1", extra: todoWrite("e1") }), { slots: { TodoRow: CustomRow } });
+    renderThread(conversation({ id: "e1", phase: "running", extra: todoWrite("e1") }), { slots: { TodoRow: CustomRow } });
 
     expect(screen.getByRole("region", { name: "Agent to-dos" })).toBeTruthy();
     expect(screen.getByTestId("custom-row").textContent).toBe("ROW: write tests");
+    expect(screen.queryByRole("region", { name: "Plan" })).toBeNull();
   });
 
   it("renders the SetupProgress slot for the pre-first-output window", () => {
@@ -313,7 +317,7 @@ describe("MessageThread slots", () => {
     renderThread(conversation({ id: "e1", phase: "running", extra: [...todoWrite("e1"), ...waitingOnOrphan("e1")] }), { onAnswerToolUse: vi.fn() });
 
     expect(screen.getByRole("article", { name: "User message" })).toBeTruthy();
-    expect(screen.getByRole("region", { name: "Agent to-dos" })).toBeTruthy();
+    expect(screen.getByRole("region", { name: "Plan" })).toBeTruthy();
     expect(screen.getByRole("alert", { name: "Approval required for write_todos" })).toBeTruthy();
   });
 
@@ -336,7 +340,7 @@ describe("MessageThread slots", () => {
       return <div data-testid="custom-todo-card">{todos.length} todos</div>;
     });
     const slots: MessageThreadSlots = { TodoCard: CustomCard };
-    const conv = conversation({ id: "e1", extra: todoWrite("e1", "pending") });
+    const conv = conversation({ id: "e1", phase: "running", extra: todoWrite("e1", "pending") });
 
     const { rerender } = renderThread(conv, { slots });
     rerender(<MessageThread turns={conv.turns} runs={conv.runs} slots={slots} />);

@@ -2,7 +2,7 @@
 
 import { memo, useCallback, useEffect, useId, useMemo, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
-import { humanizeToolName, resolveToolKind, type ToolUse } from "@stigmer/client";
+import { humanizeToolName, type ToolUse } from "@stigmer/client";
 import { cn } from "@stigmer/design-tokens";
 import {
   describeApprovalPolicySource,
@@ -512,7 +512,7 @@ function askSentence(category: ToolCategory, toolUse: ToolUse): string {
   const want = (what: string) => `The agent wants to ${what}`;
   switch (category) {
     case "write":
-      return want(resolveToolKind(toolUse) === "file_write" ? "create a file" : "edit a file");
+      return want("create a file");
     case "edit":
       return want("edit a file");
     case "delete":

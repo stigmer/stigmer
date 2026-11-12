@@ -2,8 +2,8 @@
 // uses: its category-aware label, disclosure (closed when settled, open
 // while a folded call runs or waits for a person), its aggregate status read
 // from each `ToolUse.state` (a stopped call settles the chip), quiet chrome
-// with divider rows, the host's label formatter, and the memo comparator
-// that compares the folded tool uses one by one.
+// with a body-size line and divider rows, the host's label formatter, and
+// the memo comparator that compares the folded tool uses one by one.
 import { describe, it, expect, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import type { ToolUse, ToolUseState } from "@stigmer/client";
@@ -106,7 +106,7 @@ describe("ToolRunGroup", () => {
     expect(chipExpanded(container)).toBe(true);
     // The gate renders inline on its row inside the opened chip, with the
     // waiting clock on the chip.
-    expect(screen.getByLabelText("Approve")).toBeTruthy();
+    expect(screen.getByLabelText("Allow")).toBeTruthy();
     expect(container.querySelector("button .stg\\:text-status-degraded")).not.toBeNull();
   });
 
@@ -137,6 +137,8 @@ describe("ToolRunGroup", () => {
     const chip = container.querySelector('[data-cursor-target="tool-run-group"]')!;
     expect(chip.className).not.toContain("stg:rounded-lg");
     expect(chip.className).not.toContain("stg:border-border-prominent");
+    // The line reads at body size, like every step's line.
+    expect(container.querySelector("[aria-expanded]")!.className).toContain("stg:text-sm");
 
     fireEvent.click(screen.getByText("Read 2 files"));
 

@@ -1,8 +1,11 @@
 // Pins useToolPresentation over the session fold's tool uses: kind and
 // category classification (Claude and Stigmer names, MCP tools), labels,
-// primary argument, result views and summaries, and the presenter
-// registry's overrides (label, summary, disclosure, chrome, run-grouping)
-// with their disposers.
+// the step's own words (`phrase`, from `stepPhrase`) and the title's
+// precedence (a host's label, then a background stop's words, then the
+// phrase), primary argument, result views and summaries, the default
+// disclosure (every kind a closed summary step but shell's tail and a
+// memory proposal's preview), and the presenter registry's overrides
+// (label, summary, disclosure, chrome, run-grouping) with their disposers.
 import { describe, it, expect } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { useToolPresentation, registerToolPresenter } from "../tool-presenter";
@@ -21,7 +24,7 @@ describe("useToolPresentation", () => {
     expect(result.current.category).toBe("edit");
     expect(result.current.label).toBe("Edit");
     expect(result.current.result.type).toBe("diff");
-    expect(result.current.resultSummary).toBe("+1 -1");
+    expect(result.current.resultSummary).toBe("+1 \u22121");
   });
 
   it("summarizes a failed shell exit code", () => {
@@ -61,11 +64,54 @@ describe("useToolPresentation", () => {
     expect(result.current.label).toBe("Shell");
   });
 
+  describe("phrase and title", () => {
+    it("exposes the step's own words and titles the row with them", () => {
+      const tc = toolUse({
+        name: "Edit",
+        input: { file_path: "src/billing/invoice.ts", old_string: "a", new_string: "b" },
+        result: "ok",
+      });
+      const { result } = renderHook(() => useToolPresentation(tc));
+      expect(result.current.phrase).toEqual({ text: "Edited invoice.ts", tense: "past", folder: "src/billing", app: "" });
+      expect(result.current.title).toBe("Edited invoice.ts");
+      expect(result.current.label).toBe("Edit");
+    });
+
+    it("reads a connected app's tool as its own name, with the app beside it", () => {
+      const tc = toolUse({ name: "create_issue", mcpServerName: "acme-github", input: { title: "x" }, result: "{}" });
+      const { result } = renderHook(() => useToolPresentation(tc));
+      expect(result.current.title).toBe("Create issue");
+      expect(result.current.phrase.app).toBe("acme-github");
+    });
+
+    it("titles a failed step in the failed form", () => {
+      const tc = toolUse({ name: "Edit", input: { file_path: "invoice.ts" }, isError: true, result: "no match" });
+      const { result } = renderHook(() => useToolPresentation(tc));
+      expect(result.current.phrase.tense).toBe("failed");
+      expect(result.current.title).toBe("Couldn't edit invoice.ts");
+    });
+
+    it("lets a host's label outrank a background stop's words and the phrase", () => {
+      const stop = toolUse({
+        name: "stop_background_command",
+        input: { id: "bg-1" },
+        result: "stopped",
+        stoppedBackground: { toolUseId: "run_1.bg-1", input: { command: "npm run dev" } },
+      });
+      expect(renderHook(() => useToolPresentation(stop)).result.current.title).toBe("Stopped");
+      const dispose = registerToolPresenter("background_stop", { label: () => "Halted" });
+      try {
+        expect(renderHook(() => useToolPresentation(stop)).result.current.title).toBe("Halted");
+      } finally {
+        dispose();
+      }
+    });
+  });
+
   describe("disclosure", () => {
     it("keeps known compact tools as summary", () => {
-      // Shell/edit/write are intentionally excluded — shell is the `tail`
-      // category and edit/write are `preview` categories (output / diff is
-      // the information), asserted separately below.
+      // Shell is intentionally excluded — it is the `tail` category,
+      // asserted separately below.
       for (const name of ["Read", "Grep", "Glob"]) {
         const tc = toolUse({ name, input: { path: "/x", command: "ls", pattern: "p" } });
         const { result } = renderHook(() => useToolPresentation(tc));
@@ -73,18 +119,25 @@ describe("useToolPresentation", () => {
       }
     });
 
-    it("previews file edits and writes (the diff is the information)", () => {
+    it("closes file edits and writes as summary steps (the line counts the change)", () => {
       for (const name of ["Edit", "Write"]) {
         const tc = toolUse({
           name,
           input: { file_path: "/x.ts", content: "x", old_string: "a", new_string: "b" },
         });
         const { result } = renderHook(() => useToolPresentation(tc));
-        expect(result.current.disclosure).toBe("preview");
+        expect(result.current.disclosure).toBe("summary");
       }
     });
 
-    it("gives shell the tail disclosure (live preview, dimmed-tail settle)", () => {
+    it("keeps a memory proposal open as a preview (a decision surface)", () => {
+      const tc = toolUse({ name: "remember", mcpServerName: "stigmer-memory", input: { fact: "prefers tabs" } });
+      const { result } = renderHook(() => useToolPresentation(tc));
+      expect(result.current.category).toBe("memory");
+      expect(result.current.disclosure).toBe("preview");
+    });
+
+    it("gives shell the tail disclosure (open while live, open on a failure)", () => {
       const tc = toolUse({ name: "Bash", input: { command: "ls" }, result: "files" });
       const { result } = renderHook(() => useToolPresentation(tc));
       expect(result.current.category).toBe("shell");
@@ -105,7 +158,7 @@ describe("useToolPresentation", () => {
       }
     });
 
-    it("foregrounds MCP tools as preview", () => {
+    it("closes MCP tools as summary steps", () => {
       const tc = toolUse({
         name: "send_message",
         mcpServerName: "acme/slack",
@@ -113,14 +166,14 @@ describe("useToolPresentation", () => {
       });
       const { result } = renderHook(() => useToolPresentation(tc));
       expect(result.current.category).toBe("mcp");
-      expect(result.current.disclosure).toBe("preview");
+      expect(result.current.disclosure).toBe("summary");
     });
 
-    it("foregrounds an unrecognized tool as preview", () => {
+    it("closes an unrecognized tool as a summary step", () => {
       const tc = toolUse({ name: "frobnicate_widget", input: { x: "1" } });
       const { result } = renderHook(() => useToolPresentation(tc));
       expect(result.current.category).toBe("unknown");
-      expect(result.current.disclosure).toBe("preview");
+      expect(result.current.disclosure).toBe("summary");
     });
 
     it("lets a registered presenter override the disclosure", () => {

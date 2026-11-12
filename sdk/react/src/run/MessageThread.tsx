@@ -114,12 +114,17 @@ export interface MessageThreadSlots {
   readonly MessageEntry?: ComponentType<MessageEntryProps>;
   /** The card for a tool use that waits for a person, when it has no row of its own. */
   readonly ApprovalCard?: ComponentType<ApprovalCardProps>;
-  /** The collapsible in-thread to-dos card. */
+  /**
+   * The in-thread to-dos card. Overriding it keeps the to-do list as its own
+   * card with the turn's steps in time order, in place of the built-in plan
+   * (the to-do list with each step under the item it served).
+   */
   readonly TodoCard?: ComponentType<TodoCardProps>;
   /**
-   * One to-do row inside the built-in {@link TodoCard}'s list. Ignored
-   * when `TodoCard` is also overridden (the replacement receives it via
-   * {@link TodoCardProps.TodoRow} and may forward or ignore it).
+   * One to-do row inside the built-in {@link TodoCard}'s list. Overriding it
+   * keeps the to-dos card (as `TodoCard` does) so the row has a list to sit
+   * in. Ignored when `TodoCard` is also overridden (the replacement receives
+   * it via {@link TodoCardProps.TodoRow} and may forward or ignore it).
    */
   readonly TodoRow?: ComponentType<TodoRowProps>;
   /** Completed Plan turn that returned a plan File. */
@@ -429,7 +434,7 @@ export interface MessageThreadProps {
   /**
    * Whether the thread's tail shows its own working indicator while a turn
    * runs. `false` when the host shows the turn's activity itself (the
-   * session view's activity line), so one place says what the agent does.
+   * session view's status pill and plan), so one place says what the agent does.
    *
    * @default true
    */
@@ -1305,11 +1310,11 @@ export function MessageThread({
         planFiles,
         includeOutcomes: turnOutcome !== undefined,
         includeLiveness: ambientLiveness,
-        // A host that draws its own to-do card keeps it, with the steps in
-        // time order: its card takes only the list.
-        planSteps: slots?.TodoCard === undefined,
+        // A host that draws its own to-do card or row keeps today's card,
+        // with the steps in time order: its card and row take only the list.
+        planSteps: slots?.TodoCard === undefined && slots?.TodoRow === undefined,
       }),
-    [turns, runs, pendingUserMessage, includeApprovals, resources, pendingMessageFailed, editableActiveTurn, showFileReviewRecords, collapseStreamingPlan, pendingFiles, queued, agentVersionLabel, planFiles, turnOutcome, ambientLiveness, slots?.TodoCard],
+    [turns, runs, pendingUserMessage, includeApprovals, resources, pendingMessageFailed, editableActiveTurn, showFileReviewRecords, collapseStreamingPlan, pendingFiles, queued, agentVersionLabel, planFiles, turnOutcome, ambientLiveness, slots?.TodoCard, slots?.TodoRow],
   );
   const presentation = useMemo<ThreadPresentation>(() => ({ turnOutcome }), [turnOutcome]);
 

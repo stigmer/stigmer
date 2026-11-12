@@ -215,7 +215,7 @@ describe("SessionViewer without an inspector", () => {
 
   it("KIT-06 opens a change the run captured as its diff, from the turn's outcome", () => {
     render(<SessionViewer sessionId="ses_1" org="demo" audience="endUser" />);
-    fireEvent.click(screen.getByRole("button", { name: "invoice.ts" }));
+    fireEvent.click(screen.getByRole("button", { name: /^invoice\.ts\s*src\/billing$/ }));
     expect(dialogs.at(-1)?.path).toBe("src/billing/invoice.ts");
     act(() => dialogClosers.at(-1)!());
     expect(dialogs.at(-1)).toBeNull();

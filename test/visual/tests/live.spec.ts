@@ -105,7 +105,7 @@ test.describe("KIT-13 a message sent in a docs demo gets a scripted answer, neve
     const reply = page.getByRole("textbox", { name: "Reply…" });
     await reply.fill("What changed?");
     await page.getByRole("button", { name: "Send message" }).click();
-    await page.getByRole("button", { name: "Approve", exact: true }).click({ timeout: 15_000 });
+    await page.getByRole("button", { name: "Allow", exact: true }).click({ timeout: 15_000 });
     await expect(page.getByText(/^Two changes this week/)).toBeVisible({ timeout: 15_000 });
 
     await reply.fill("And last week?");

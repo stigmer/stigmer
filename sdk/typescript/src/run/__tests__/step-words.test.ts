@@ -4,7 +4,8 @@
 // a file line names the file and keeps its folder beside it; a search names
 // its pattern and the folder it searched, a search by file name says it found
 // files; a command reads as the agent's own description when it wrote one;
-// a connected app's tool and a tool the kit does not know read as their own
+// a call its turn stopped reads as one that couldn't; a connected app's tool
+// and a tool the kit does not know read as their own
 // names, humanized, with the app beside them; and the one word table the
 // working phrase and the settled roll-up also read.
 
@@ -13,7 +14,7 @@ import type { JsonObject } from "@bufbuild/protobuf";
 import type { ToolUse } from "@stigmer/session-log";
 import { humanizeToolName, KIND_WORDS, stepPhrase, stepTense } from "../step-words";
 
-type Outcome = "running" | "returned" | "failed" | "denied";
+type Outcome = "running" | "returned" | "failed" | "denied" | "stopped";
 
 function call(name: string, input: JsonObject, outcome: Outcome = "returned", text = "ok", mcpServerName = ""): ToolUse {
   const returned = outcome === "returned" || outcome === "failed";
@@ -26,7 +27,7 @@ function call(name: string, input: JsonObject, outcome: Outcome = "returned", te
     mcpServerName,
     input,
     evaluatedPermission: "",
-    state: outcome === "running" ? "running" : outcome === "denied" ? "denied" : outcome === "failed" ? "failed" : "completed",
+    state: outcome === "running" ? "running" : outcome === "denied" ? "denied" : outcome === "failed" ? "failed" : outcome === "stopped" ? "stopped" : "completed",
     ask: undefined,
     confirmation: undefined,
     grant: undefined,
@@ -76,6 +77,12 @@ describe("stepPhrase", () => {
   it("leaves a background command's tense to its start, never its exit", () => {
     const started = { ...call("execute", { command: "npm run dev", background: true }, "returned", "Started"), background: { state: "exited", timeoutSeconds: 0, startedAt: "", liveOutput: "", stopRequested: false, exitCode: 1, output: "", endedAt: "" } } as unknown as ToolUse;
     expect(stepTense(started)).toBe("past");
+  });
+
+  it("reads a call its turn stopped before it returned as one that couldn't, never as still running", () => {
+    expect(stepPhrase(call("delete_file", { path: "src/x.ts" }, "stopped"))).toMatchObject({ text: "Couldn't delete x.ts", tense: "stopped", folder: "src" });
+    expect(stepPhrase(call("execute", { command: "npm test" }, "stopped")).text).toBe("Command failed");
+    expect(stepPhrase(call("glob", { pattern: "*.md" }, "stopped")).text).toBe("Couldn't find files matching *.md");
   });
 
   it("reads a denied call as failed", () => {

@@ -281,7 +281,7 @@ function CategoryDetail({
 function FileContentBlock({ content, truncated }: { content: string; truncated: boolean }) {
   return (
     <BoundedContent cursorTarget="tool-detail-expand">
-      <pre className="stg:overflow-x-auto stg:whitespace-pre stg:rounded-md stg:border stg:border-border-muted stg:bg-muted-faint stg:px-3 stg:py-2 stg:font-mono stg:text-xs stg:text-foreground">
+      <pre tabIndex={0} className="stg:overflow-x-auto stg:whitespace-pre stg:rounded-md stg:border stg:border-border-muted stg:bg-muted-faint stg:px-3 stg:py-2 stg:font-mono stg:text-xs stg:text-foreground">
         {content}
       </pre>
       {truncated && <p className="stg:mt-1 stg:text-xs stg:text-muted-foreground">Part of the file</p>}
@@ -343,12 +343,11 @@ function ThinkToolDetail({ toolUse }: { toolUse: ToolUse }) {
 // A write row's inline diff: the captured change projected onto the
 // display FileChange and rendered through the same bounded FileChangeDiff the
 // review card's body uses — offloaded-body fetch, binary notices, and
-// truncation states included. The file name is suppressed (the owning row
-// header names it); the `+N −M` stats stay because a write row's header
-// summary carries none.
+// truncation states included. The file name and the `+N −M` stats are
+// suppressed: the owning row's line names the file and counts the lines.
 function CapturedRowDiff({ change }: { change: CapturedFileChange }) {
   const adapted = useMemo(() => toDisplayFileChange(change), [change]);
-  return <FileChangeDiff change={adapted} bounded showFileName={false} />;
+  return <FileChangeDiff change={adapted} bounded showFileName={false} showStats={false} />;
 }
 
 // The detail body's only metadata. Duration and the MCP slug live in the owning

@@ -185,7 +185,7 @@ export const ToolCallItem = memo(function ToolCallItem({
   // unknown tool's first argument, and a file's folder.
   const detail = isSubagent
     ? null
-    : category === "shell" || category === "mcp" || category === "unknown"
+    : category === "shell" || category === "mcp" || category === "unknown" || category === "background-stop"
       ? primaryArg
       : phrase.folder !== ""
         ? phrase.folder
@@ -265,7 +265,11 @@ export const ToolCallItem = memo(function ToolCallItem({
   ) : (
     <>
       <BackgroundStopError toolUse={toolUse} />
-      <ToolCallDetail toolUse={toolUse} primaryArgTruncated={false} />
+      {/* A search or listing whose line had to cut its pattern restates it whole. */}
+      <ToolCallDetail
+        toolUse={toolUse}
+        primaryArgTruncated={(category === "search" || category === "list") && primaryArg != null && !displayLabel.includes(primaryArg)}
+      />
     </>
   );
 

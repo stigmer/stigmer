@@ -4,7 +4,7 @@
  * so it mounts inside the enter animation's wrapper; the animation ending, by
  * its event or by the wrapper's fallback timer, and a re-render with
  * refetched props (new object identities, as a run refetch makes them) must
- * neither replace the row nor drop the keyboard focus a person put on Approve.
+ * neither replace the row nor drop the keyboard focus a person put on Allow.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent, act } from "@testing-library/react";
@@ -68,17 +68,17 @@ function thread(conv: { turns: readonly Turn[]; runs: Run[] }) {
 }
 
 function gateRow(): HTMLElement {
-  const approve = screen.getByRole("button", { name: "Approve" });
+  const approve = screen.getByRole("button", { name: "Allow" });
   const row = approve.closest<HTMLElement>('[data-cursor-target="tool-call-row"]');
   expect(row).not.toBeNull();
   return row!;
 }
 
 describe("the approval gate's row across the thread settling (stigmer/stigmer#1570)", () => {
-  it("stays the same element, focus on Approve kept, when the enter animation ends and the page refetches", () => {
+  it("stays the same element, focus on Allow kept, when the enter animation ends and the page refetches", () => {
     const { container, rerender } = render(thread(gatedWrite()));
     const row = gateRow();
-    const approve = screen.getByRole("button", { name: "Approve" });
+    const approve = screen.getByRole("button", { name: "Allow" });
     approve.focus();
     expect(document.activeElement).toBe(approve);
 
@@ -89,7 +89,7 @@ describe("the approval gate's row across the thread settling (stigmer/stigmer#15
 
     expect(container.querySelector(".stgm-thread-item-enter")).toBeNull();
     expect(gateRow()).toBe(row);
-    expect(screen.getByRole("button", { name: "Approve" })).toBe(approve);
+    expect(screen.getByRole("button", { name: "Allow" })).toBe(approve);
     expect(row.isConnected).toBe(true);
     expect(document.activeElement).toBe(approve);
   });
@@ -98,7 +98,7 @@ describe("the approval gate's row across the thread settling (stigmer/stigmer#15
     vi.useFakeTimers();
     const { container, rerender } = render(thread(gatedWrite()));
     const row = gateRow();
-    const approve = screen.getByRole("button", { name: "Approve" });
+    const approve = screen.getByRole("button", { name: "Allow" });
     approve.focus();
 
     act(() => {

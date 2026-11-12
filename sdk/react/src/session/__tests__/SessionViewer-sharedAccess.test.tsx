@@ -4,19 +4,20 @@
  *
  *   - a viewer (no can_create_run_in) gets the observer presentation: no
  *     composer, no approval, edit or retry callbacks, no file-review dock,
- *     and a line saying they can read the conversation;
+ *     and a footer saying they are reading it and only its members reply;
  *   - a participant (can_create_run_in, not can_edit) keeps the composer
  *     and plan building, but stop, approvals, edits, file decisions and
  *     auto-approve are withheld, the agent and vaults are locked, and a
  *     pending approval names the creator it waits on (file review holds no
- *     turn, so it names no one), and the working line says the turn waits
- *     for an answer, with no Stop;
- *   - an owner keeps every control.
+ *     turn, so it names no one), and the header's pill says the turn waits
+ *     for an answer, with no Stop on the composer;
+ *   - an owner keeps every control: the amber pill says the turn waits for
+ *     them, and the composer's Stop stays in reach.
  *
  * The thread and composer are prop-capturing probes.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, cleanup, within } from "@testing-library/react";
+import { render, screen, cleanup } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { conversationOf, scenarios } from "../../test";
 
@@ -170,7 +171,7 @@ describe("SessionViewer — a shared conversation", () => {
     render(<SessionViewer sessionId="ses_1" org="acme" />);
 
     expect(screen.queryByTestId("composer-probe")).toBeNull();
-    expect(screen.getByText("You can read this conversation.")).toBeTruthy();
+    expect(screen.getByRole("status").textContent).toBe("You\u2019re reading this conversation. Only its members can reply.");
     const props = threadProps.at(-1)!;
     expect(props.onAnswerToolUse).toBeUndefined();
     expect(props.onEditMessage).toBeUndefined();
@@ -183,7 +184,7 @@ describe("SessionViewer — a shared conversation", () => {
     render(<SessionViewer sessionId="ses_1" org="acme" />);
 
     expect(screen.getByTestId("composer-probe")).toBeTruthy();
-    expect(screen.queryByText("You can read this conversation.")).toBeNull();
+    expect(screen.queryByText(/reading this conversation/)).toBeNull();
     const composer = composerProps.at(-1)!;
     expect(composer.onStop).toBeUndefined();
     expect(composer.lockAgent).toBe(true);
@@ -207,34 +208,42 @@ describe("SessionViewer — a shared conversation", () => {
 
   it("tells a participant the turn waits for an answer, with no Stop and no auto-approve switch", () => {
     access.canDecide = false;
-    stubConv.activeTurn = conversationOf(scenarios.approval).activeTurn as never;
+    const waiting = conversationOf(scenarios.approval).activeTurn!;
+    stubConv.activeTurn = waiting as never;
+    stubConv.turns = [waiting] as never;
     stubConv.asks = [{ id: "call_1" }];
     try {
       render(<SessionViewer sessionId="ses_1" org="acme" />);
-      const line = screen.getAllByRole("status").find((status) => status.textContent?.includes("Waiting"))!;
-      expect(line.textContent).toContain("Waiting for an answer");
-      expect(within(line).queryByRole("button", { name: "Stop" })).toBeNull();
+      expect(screen.getByText(/^Waiting for an answer · /)).toBeTruthy();
+      expect(screen.queryByText(/Waiting for you/)).toBeNull();
+      expect(composerProps.at(-1)!.onStop).toBeUndefined();
       const settings = composerProps.at(-1)!.extraSettings as ReadonlyArray<{ panel: ReactNode }>;
       render(<>{settings[0]!.panel}</>);
       expect(screen.queryByRole("switch", { name: "Auto-approve" })).toBeNull();
     } finally {
       stubConv.activeTurn = null;
+      stubConv.turns = [];
     }
   });
 
-  it("tells an owner the turn waits for them, with Stop and the auto-approve switch", () => {
-    stubConv.activeTurn = conversationOf(scenarios.approval).activeTurn as never;
+  it("KIT-08 tells an owner the turn waits for them in the amber pill, with Stop in reach and the auto-approve switch", () => {
+    const waiting = conversationOf(scenarios.approval).activeTurn!;
+    stubConv.activeTurn = waiting as never;
+    stubConv.turns = [waiting] as never;
     stubConv.asks = [{ id: "call_1" }];
     try {
       render(<SessionViewer sessionId="ses_1" org="acme" />);
-      const line = screen.getAllByRole("status").find((status) => status.textContent?.includes("Waiting"))!;
-      expect(line.textContent).toContain("Waiting for you");
-      expect(within(line).getByRole("button", { name: "Stop" })).toBeTruthy();
-      const settings = composerProps.at(-1)!.extraSettings as ReadonlyArray<{ panel: ReactNode }>;
+      const pill = screen.getByText(/^Waiting for you · /);
+      expect(pill.className).toContain("--stgm-status-degraded");
+      expect(screen.getByRole("heading", { level: 1 }).parentElement!.parentElement!.contains(pill)).toBe(true);
+      const composer = composerProps.at(-1)!;
+      expect(composer.onStop).toBeTypeOf("function");
+      const settings = composer.extraSettings as ReadonlyArray<{ panel: ReactNode }>;
       render(<>{settings[0]!.panel}</>);
       expect(screen.getByRole("switch", { name: "Auto-approve" })).toBeTruthy();
     } finally {
       stubConv.activeTurn = null;
+      stubConv.turns = [];
     }
   });
 

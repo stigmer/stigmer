@@ -1,13 +1,17 @@
 // Pins ToolCallDetail over the session fold's tool uses: the body shows
-// content and never the header's metadata (duration), the provenance note
-// read from the ask's rule word (smart-suppressed), search and edit bodies
-// without duplicated stats, and a write's body: its turn's captured diff of
-// the file (matched through the turn's file review by path, the bytes from
-// the run's change set), with the proposed-content fallback for every
-// unresolvable case. A shell call that is still running shows what it has
-// printed so far, and its finished session once the result lands.
+// content and never the header's metadata (duration, counts), the provenance
+// note read from the ask's rule word (smart-suppressed), search and edit
+// bodies without duplicated stats, and a write's body: its turn's captured
+// diff of the file (matched through the turn's file review by path, the
+// bytes from the run's change set; its counts on the row's line, not here),
+// with the proposed content as the file's own lines, bounded once, for
+// every unresolvable case. A read opens to the lines it read (noting a part
+// of the file), the error it returned, or else its input; a delete to its
+// answer, if any; a connected app's failed call to its error, said as one.
+// A shell call that is still running shows what it has printed so far, and
+// its finished session once the result lands.
 import { describe, it, expect, afterEach, beforeEach, vi } from "vitest";
-import { render, cleanup } from "@testing-library/react";
+import { render, cleanup, screen } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import type { ToolUse } from "@stigmer/client";
 import {
@@ -264,33 +268,43 @@ describe("ToolCallDetail — write body", () => {
     // The captured before/after renders as a real diff table...
     expect(container.querySelector('[data-cursor-target="file-diff"]')).not.toBeNull();
     expect(container.textContent).toContain("captured-after");
-    // ...bounded by the shared pixel clamp, with the +N -M stats the write
-    // row's header does not carry, and without the fallback's raw args body.
-    // (The diff table itself carries a hidden a11y column header named
-    // "Content", so the discriminator is the body text, not the label.)
+    // ...bounded by the shared pixel clamp, without the +N −M stats (the
+    // row's line counts the write once), and without the fallback's
+    // proposed content.
     expect(container.querySelector(CLAMP)).not.toBeNull();
-    expect(container.textContent).toContain("+1");
+    expect(container.textContent).not.toContain("+1");
+    expect(container.textContent).not.toContain("\u22121");
     expect(container.textContent).not.toContain("proposed body");
   });
 
   it("renders exactly one reveal control for the content fallback (double-expander regression)", () => {
     const longBody = Array.from({ length: 55 }, (_, i) => `line ${i + 1}`).join("\n");
-    const { container, getAllByRole } = render(
-      <ToolCallDetail
-        toolUse={writeCall({ input: { file_path: "notes.md", content: longBody } })}
-      />,
-    );
-    // The file view self-truncates (line-count mechanism, one control)...
-    const reveals = getAllByRole("button").filter((b) =>
-      /^Show /.test(b.textContent ?? ""),
-    );
-    expect(reveals).toHaveLength(1);
-    expect(reveals[0].textContent).toContain("Show all 55 lines");
-    // ...and is never ALSO wrapped in BoundedContent's pixel clamp.
-    expect(container.querySelector(CLAMP)).toBeNull();
+    // happy-dom lays nothing out, so "taller than the clamp" is the
+    // measurement's word.
+    const scroll = vi.spyOn(HTMLElement.prototype, "scrollHeight", "get").mockReturnValue(2_000);
+    const client = vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(192);
+    try {
+      const { container, getAllByRole } = render(
+        <ToolCallDetail
+          toolUse={writeCall({ input: { file_path: "notes.md", content: longBody } })}
+        />,
+      );
+      // The proposed content reads as the file's own lines, bounded once by
+      // the pixel clamp, with its one in-place reveal: never a collapsed
+      // "Content" toggle and a second reveal inside it.
+      expect(container.querySelector(CLAMP)).not.toBeNull();
+      expect(container.querySelector(`${CLAMP} pre`)?.textContent).toBe(longBody);
+      const reveals = getAllByRole("button").filter((b) => /^Show /.test(b.textContent ?? ""));
+      expect(reveals).toHaveLength(1);
+      expect(reveals[0].textContent).toBe("Show more");
+      expect(container.textContent).not.toContain("Part of the file");
+    } finally {
+      scroll.mockRestore();
+      client.mockRestore();
+    }
   });
 
-  it("falls back to the Content block for every unresolvable capture", () => {
+  it("falls back to the proposed content for every unresolvable capture", () => {
     const cases: Array<[string, string | null, FileChangeSet | null]> = [
       ["no review for the turn", null, capturedSet()],
       ["capture missing from the runs", "notes.md", null],
@@ -306,8 +320,7 @@ describe("ToolCallDetail — write body", () => {
     ];
     for (const [label, reviewed, capture] of cases) {
       const { container } = renderWith(writeCall(), reviewed, capture);
-      expect(container.textContent, label).toContain("Content");
-      expect(container.textContent, label).toContain("proposed body");
+      expect(container.querySelector(`${CLAMP} pre`)?.textContent, label).toBe("proposed body\n");
       expect(
         container.querySelector('[data-cursor-target="file-diff"]'),
         label,
@@ -343,6 +356,77 @@ describe("ToolCallDetail — write body", () => {
     expect(container.textContent).not.toContain("captured-after");
     // ...still inside the shared pixel clamp (unchanged behavior).
     expect(container.querySelector(CLAMP)).not.toBeNull();
+  });
+});
+
+describe("ToolCallDetail — read body", () => {
+  const CLAMP = ".stg\\:max-h-48";
+
+  it("opens to the lines read, bounded once", () => {
+    const { container } = render(
+      <ToolCallDetail toolUse={toolUse({ name: "Read", input: { path: "notes.md" }, result: "# Notes\nfirst line\n" })} />,
+    );
+    expect(container.querySelector(`${CLAMP} pre`)?.textContent).toBe("# Notes\nfirst line\n");
+    expect(container.textContent).not.toContain("Part of the file");
+  });
+
+  it("says when the lines are only part of the file", () => {
+    const { container } = render(
+      <ToolCallDetail
+        toolUse={toolUse({ name: "Read", input: { path: "big.log" }, result: "head\n[truncated: 90000 chars total]" })}
+      />,
+    );
+    expect(container.querySelector(`${CLAMP} pre`)?.textContent).toContain("head");
+    expect(screen.getByText("Part of the file")).toBeTruthy();
+  });
+
+  it("opens a failed read to its error", () => {
+    const { container } = render(
+      <ToolCallDetail toolUse={toolUse({ name: "Read", input: { path: "secret.md" }, isError: true, result: "permission denied" })} />,
+    );
+    expect(container.textContent).toContain("permission denied");
+    expect(container.querySelector("pre.stg\\:bg-muted-faint")).toBeNull();
+  });
+
+  it("shows the input when the read returned nothing", () => {
+    const { container } = render(<ToolCallDetail toolUse={toolUse({ name: "Read", input: { path: "empty.md" }, result: "" })} />);
+    expect(container.textContent).toContain("empty.md");
+    expect(container.querySelector(CLAMP)).toBeNull();
+  });
+});
+
+describe("ToolCallDetail — delete body", () => {
+  it("opens to the delete's answer, and to nothing when it gave none", () => {
+    const answered = render(<ToolCallDetail toolUse={toolUse({ name: "delete_file", input: { path: "/tmp/x.ts" }, result: "deleted /tmp/x.ts" })} />);
+    expect(answered.container.textContent).toContain("deleted /tmp/x.ts");
+    cleanup();
+
+    const silent = render(<ToolCallDetail toolUse={toolUse({ name: "delete_file", input: { path: "/tmp/x.ts" }, result: "" })} />);
+    expect(silent.container.textContent).toBe("");
+  });
+});
+
+describe("ToolCallDetail — a connected app's call", () => {
+  it("says a failed call's answer as an error, never laid out as the tool's fields", () => {
+    render(
+      <ToolCallDetail
+        toolUse={toolUse({ name: "create_issue", mcpServerName: "acme-github", input: { title: "x" }, isError: true, result: "rate limited" })}
+      />,
+    );
+    const alert = screen.getByRole("alert");
+    expect(alert.textContent).toContain("Error");
+    expect(alert.textContent).toContain("rate limited");
+    expect(screen.queryByText("Result")).toBeNull();
+  });
+
+  it("lays a returned call's answer out as its result", () => {
+    render(
+      <ToolCallDetail
+        toolUse={toolUse({ name: "create_issue", mcpServerName: "acme-github", input: { title: "x" }, result: '{"number":7}' })}
+      />,
+    );
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.getByText("Result")).toBeTruthy();
   });
 });
 

@@ -2,12 +2,14 @@
 // read from the fold's `ToolUse.background`: the start's row is the
 // command's row (a "Background" chip, the command's state and clock, the
 // running look and forced-open body while it runs though the call returned,
-// its own output rather than the start's answer, how it ended in words);
+// its own output rather than the start's answer, how it ended in words, and
+// once it ended a closed line with its exit beside it);
 // Stop on the row while it runs and a handler is wired
 // (BackgroundCommandContext), "Stopping…" from the click and across a reload
 // (the log's stop request), and a failed stop shown on the row; the thread's
 // tail line while the turn waits only on such commands, with Stop for a lone
-// one; the agent's stop call read from the command's end; the approval
+// one; the agent's stop call read from the command's end, else as its own
+// line ("Stopped a command"); the approval
 // card's line for a background start; and the stop hook's call.
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
@@ -64,6 +66,15 @@ describe("a background command's row", () => {
       <ToolCallItem toolUse={backgroundStart({ state: "exited", exitCode: 1, output: "1 failed\nExit code: 1", endedAt: TOOL_STARTED_AT })} />,
     );
     expect(container.querySelector('[data-cursor-target="background-command-status"]')?.textContent).toBe("Exited · code 1");
+    const header = rowOf(container).firstElementChild as HTMLElement;
+    expect(header.textContent).toContain("exit 1");
+    expect(header.textContent).toContain("npm run dev");
+    expect(rowOf(container).querySelector(".stgm-shimmer-label"), "no running sweep once it ended").toBeNull();
+    // Closed once it ended, what it printed one click away.
+    const toggle = rowOf(container).querySelector('[data-cursor-target="thread-card-toggle"]')!;
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    expect(container.textContent).not.toContain("1 failed");
+    fireEvent.click(toggle);
     expect(container.textContent).toContain("1 failed");
     expect(container.textContent).not.toContain("Started in the background");
     expect(screen.queryByRole("button", { name: "Stop" }), "nothing to stop once it ended").toBeNull();
@@ -150,11 +161,11 @@ describe("the agent's stop of a background command", () => {
     expect(container.textContent).toContain("Stopping a command");
   });
 
-  it("keeps the kind's label when no end names it: the command had ended, or the id named none", () => {
+  it("reads as its own line when no end names it: the command had ended, or the id named none", () => {
     const stop = toolUse({ name: "stop_background_command", id: "run_1.stop-1", input: { id: "bg-1" }, result: "It had already ended." });
     const { container } = render(<ToolCallItem toolUse={stop} />);
-    expect(container.textContent).toContain("Stop command");
-    expect(container.textContent).not.toContain("Stopped");
+    expect(rowOf(container).firstElementChild?.textContent).toContain("Stopped a command");
+    expect(container.textContent).not.toContain("npm run dev");
   });
 });
 

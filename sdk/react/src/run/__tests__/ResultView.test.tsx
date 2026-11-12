@@ -1,6 +1,9 @@
 // Pins ResultView's rendering of every normalized tool result view (diff,
 // file, terminal, search, list, MCP content blocks, offloaded output, memory
-// proposals, errors) and the one-line summaries the row headers show.
+// proposals, errors), the counts a step's line shows (`resultCounts`, with a
+// whole-file write's lines counted as added), the one-line summaries with a
+// true minus (`summarizeResultView`), and whether a step has a body to open
+// to at all (`hasResultBody`).
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { render, cleanup, screen, fireEvent, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
@@ -8,7 +11,7 @@ import { normalizeToolResult } from "@stigmer/client";
 import type { ToolResultView } from "@stigmer/client";
 import type { Stigmer } from "@stigmer/client";
 import { StigmerContext } from "@stigmer/react-core";
-import { ResultView, summarizeResultView } from "../ResultView";
+import { ResultView, hasResultBody, resultCounts, summarizeResultView } from "../ResultView";
 import { toolUse } from "./__fixtures__/fold-values";
 
 afterEach(cleanup);
@@ -27,7 +30,9 @@ describe("ResultView", () => {
     };
     const { container } = render(<ResultView view={view} />);
     expect(container.textContent).toContain("+1");
-    expect(container.textContent).toContain("-0");
+    // A true minus, never a hyphen.
+    expect(container.textContent).toContain("\u22120");
+    expect(container.textContent).not.toContain("-0");
   });
 
   it("renders a computed diff hunk from old/new text", () => {
@@ -55,7 +60,7 @@ describe("ResultView", () => {
     // The diff content still renders, but the duplicate counts do not.
     expect(container.textContent).toContain("a b");
     expect(container.textContent).not.toContain("+1");
-    expect(container.textContent).not.toContain("-0");
+    expect(container.textContent).not.toContain("\u22120");
   });
 
   it("renders a terminal with a non-zero exit badge", () => {
@@ -324,7 +329,7 @@ describe("summarizeResultView", () => {
   it("summarizes a diff", () => {
     expect(
       summarizeResultView({ type: "diff", path: "x", oldText: "a\n", newText: "b\nc\n" }),
-    ).toBe("+2 -1");
+    ).toBe("+2 \u22121");
   });
 
   it("summarizes a failed terminal but not a successful one", () => {
@@ -348,5 +353,81 @@ describe("summarizeResultView", () => {
 
   it("returns null when there is nothing to summarize", () => {
     expect(summarizeResultView({ type: "text", text: "hi" })).toBeNull();
+  });
+});
+
+describe("resultCounts", () => {
+  it("counts a diff's added and removed lines", () => {
+    expect(resultCounts({ type: "diff", path: "x", oldText: "a\n", newText: "b\nc\n" })).toEqual({ kind: "lines", added: 2, removed: 1 });
+    expect(resultCounts({ type: "diff", path: "x" })).toBeNull();
+  });
+
+  it("counts a whole-file write's lines as added, a final newline ending the last line", () => {
+    const file = (content: string): ToolResultView => ({ type: "file", path: "x", content, truncated: false });
+    expect(resultCounts(file("a\nb\nc\n"), true)).toEqual({ kind: "lines", added: 3, removed: 0 });
+    expect(resultCounts(file("a\nb"), true)).toEqual({ kind: "lines", added: 2, removed: 0 });
+    expect(resultCounts(file(""), true)).toBeNull();
+    // A read's content is not a change.
+    expect(resultCounts(file("a\nb\n"))).toBeNull();
+    expect(resultCounts(file("a\nb\n"), false)).toBeNull();
+  });
+
+  it("counts a non-zero exit, and nothing for a clean or unknown one", () => {
+    expect(resultCounts({ type: "terminal", stdout: "", stderr: "", exitCode: 2 })).toEqual({ kind: "exit", code: 2 });
+    expect(resultCounts({ type: "terminal", stdout: "", stderr: "", exitCode: 0 })).toBeNull();
+    expect(resultCounts({ type: "terminal", stdout: "", stderr: "" })).toBeNull();
+  });
+
+  it("counts what a search found and what a listing held, in words", () => {
+    expect(resultCounts({ type: "search", matches: [], count: 1 })).toEqual({ kind: "count", text: "1 match" });
+    expect(resultCounts({ type: "search", kind: "files", matches: [], count: 2 })).toEqual({ kind: "count", text: "2 files" });
+    expect(resultCounts({ type: "list", entries: [], count: 2 })).toEqual({ kind: "count", text: "2 items" });
+    expect(resultCounts({ type: "list", entries: [], count: 1 })).toEqual({ kind: "count", text: "1 item" });
+  });
+
+  it("counts nothing for a view with nothing to count", () => {
+    expect(resultCounts({ type: "text", text: "hi" })).toBeNull();
+    expect(resultCounts({ type: "empty" })).toBeNull();
+  });
+});
+
+describe("hasResultBody", () => {
+  it("has no body for an empty result", () => {
+    expect(hasResultBody({ type: "empty" })).toBe(false);
+  });
+
+  it("has a diff body only with both sides and some text", () => {
+    expect(hasResultBody({ type: "diff", path: "x", oldText: "a", newText: "b" })).toBe(true);
+    expect(hasResultBody({ type: "diff", path: "x", oldText: "", newText: "b" })).toBe(true);
+    expect(hasResultBody({ type: "diff", path: "x", oldText: "a", newText: "" })).toBe(true);
+    expect(hasResultBody({ type: "diff", path: "x", oldText: "", newText: "" })).toBe(false);
+    expect(hasResultBody({ type: "diff", path: "x", newText: "b" })).toBe(false);
+    expect(hasResultBody({ type: "diff", path: "x", oldText: "a" })).toBe(false);
+  });
+
+  it("has a file body only with content", () => {
+    expect(hasResultBody({ type: "file", path: "x", content: "a", truncated: false })).toBe(true);
+    expect(hasResultBody({ type: "file", path: "x", content: "", truncated: false })).toBe(false);
+  });
+
+  it("has a text or error body only with more than whitespace", () => {
+    expect(hasResultBody({ type: "text", text: "hi" })).toBe(true);
+    expect(hasResultBody({ type: "text", text: " \n " })).toBe(false);
+    expect(hasResultBody({ type: "error", message: "boom" })).toBe(true);
+    expect(hasResultBody({ type: "error", message: "  " })).toBe(false);
+  });
+
+  it("has a terminal body with a command, output or errors", () => {
+    expect(hasResultBody({ type: "terminal", command: "ls", stdout: "", stderr: "" })).toBe(true);
+    expect(hasResultBody({ type: "terminal", stdout: "out", stderr: "" })).toBe(true);
+    expect(hasResultBody({ type: "terminal", stdout: "", stderr: "err" })).toBe(true);
+    expect(hasResultBody({ type: "terminal", command: "", stdout: "", stderr: "" })).toBe(false);
+    expect(hasResultBody({ type: "terminal", stdout: "", stderr: "" })).toBe(false);
+  });
+
+  it("has a body for every other view", () => {
+    expect(hasResultBody({ type: "search", matches: [], count: 0 })).toBe(true);
+    expect(hasResultBody({ type: "list", entries: [], count: 0 })).toBe(true);
+    expect(hasResultBody({ type: "json", value: {} })).toBe(true);
   });
 });

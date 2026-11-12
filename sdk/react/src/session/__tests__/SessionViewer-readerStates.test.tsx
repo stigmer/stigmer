@@ -1,0 +1,169 @@
+/**
+ * Proves what the session viewer says around the conversation in the states
+ * a reader meets beside the turns themselves:
+ *
+ *   - a session not made yet draws its header and first message in outline,
+ *     announced as "Opening the session", so the page does not jump when
+ *     they arrive;
+ *   - a turn nothing has been heard from for a while says it is taking
+ *     longer than usual, that it keeps going if the reader leaves, and that
+ *     the session will be here when it is done; a stream that timed out
+ *     says that instead;
+ *   - every reader without a composer (an observer, and anyone reading a
+ *     channel conversation) gets the footer saying they are reading it and
+ *     only its members reply; a member gets the composer and no footer.
+ *
+ * The thread and composer are probes; the conversation is the scenario
+ * catalogue's, changed per case.
+ */
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, screen, cleanup } from "@testing-library/react";
+import type { UseSessionConversationReturn } from "@stigmer/react-core";
+import { CHANNEL_SESSION_LABELS } from "../channelOrigin";
+import { conversationOf, samples, scenarios } from "../../test";
+
+vi.mock("../../run/MessageThread", () => ({
+  MessageThread: () => <div data-testid="thread-probe" />,
+}));
+
+vi.mock("../../composer", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../composer")>();
+  return {
+    ...actual,
+    SessionComposer: () => <div data-testid="composer-probe" />,
+  };
+});
+
+const state = vi.hoisted(() => ({ conv: undefined as unknown }));
+
+const workspace = {
+  entries: [],
+  hasEntries: false,
+  toInput: () => [],
+  addGitRepo: () => {},
+  addLocalPath: () => {},
+  removeEntry: () => {},
+  clear: () => {},
+};
+
+vi.mock("../useSessionPageFlow", () => ({
+  useSessionPageFlow: () => ({
+    conv: state.conv,
+    harness: "stigmer" as const,
+    executionTarget: undefined,
+    model: [undefined, () => {}] as const,
+    interactionMode: ["agent" as const, () => {}] as const,
+    agentRef: { org: "demo", slug: "support-bot" },
+    setAgentRef: () => {},
+    resolution: null,
+    setResolution: () => {},
+    agentVersion: {
+      pinnedHash: "",
+      currentHash: "",
+      agentName: "",
+      isOutdated: false,
+      labelOf: (hash: string) => hash,
+      update: () => {},
+      isUpdating: false,
+      updateError: null,
+    },
+    pluginRefs: [],
+    setPluginRefs: () => {},
+    skillRefs: [],
+    setSkillRefs: () => {},
+    workspace,
+    autoApproveAll: false,
+    setAutoApproveAll: () => {},
+    answerToolUse: () => {},
+    handleSubmit: () => {},
+    submitError: null,
+    displayRun: null,
+    allRuns: [],
+    sandboxWorkspaceRoot: undefined,
+  }),
+}));
+
+vi.mock("../useSessionAccess", () => ({
+  useSessionAccess: () => ({ canSend: true, canDecide: true }),
+}));
+
+vi.mock("../../file/useSessionFiles", () => ({
+  useSessionFiles: () => ({ files: [], isLoading: false, error: null, refetch: () => {} }),
+}));
+
+vi.mock("@stigmer/react-core", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@stigmer/react-core")>()),
+  useStigmer: () => ({
+    platform: { getServerInfo: async () => ({}) },
+    routine: { get: async () => Promise.reject(new Error("not found")) },
+    score: { listBySession: async () => ({ entries: [], nextPageToken: "" }) },
+    run: { getArtifactContent: vi.fn() },
+  }),
+  useWhoAmI: () => ({ account: null, isLoading: false, error: new Error("no account") }),
+}));
+
+import { SessionViewer } from "../SessionViewer";
+
+const SLOW_WORDS = "This is taking longer than usual. It keeps going if you leave; the session will be here when it’s done.";
+const READER_WORDS = "You’re reading this conversation. Only its members can reply.";
+
+/** The conversation the viewer reads: a scenario's, with `changes` over it. */
+function conversation(changes: Partial<UseSessionConversationReturn> = {}, scenario = scenarios.completed): void {
+  state.conv = { ...conversationOf(scenario), ...changes };
+}
+
+beforeEach(() => {
+  conversation();
+});
+
+afterEach(cleanup);
+
+describe("SessionViewer — what a reader is told around the conversation", () => {
+  it("outlines a session not made yet, announced as opening", () => {
+    conversation({ session: null });
+    render(<SessionViewer sessionId="" org="demo" />);
+    const opening = screen.getByRole("status", { name: "Opening the session" });
+    expect(opening.textContent).toBe("Opening the session…");
+    expect(screen.queryByTestId("thread-probe")).toBeNull();
+    expect(screen.queryByText(/Starting session/)).toBeNull();
+  });
+
+  it("says a slow turn keeps going if the reader leaves", () => {
+    conversation({ isSlow: true }, scenarios.busy);
+    render(<SessionViewer sessionId="ses_1" org="demo" />);
+    expect(screen.getByText(SLOW_WORDS)).toBeTruthy();
+    expect(screen.queryByText(/Still working/)).toBeNull();
+  });
+
+  it("says nothing of slowness once the stream timed out, nor while the turn is not slow", () => {
+    conversation({ isSlow: true, connectTimedOut: true }, scenarios.busy);
+    const { unmount } = render(<SessionViewer sessionId="ses_1" org="demo" />);
+    expect(screen.queryByText(SLOW_WORDS)).toBeNull();
+    unmount();
+
+    conversation({}, scenarios.busy);
+    render(<SessionViewer sessionId="ses_1" org="demo" />);
+    expect(screen.queryByText(SLOW_WORDS)).toBeNull();
+  });
+
+  it("tells an observer they are reading the conversation, where the composer would be", () => {
+    render(<SessionViewer sessionId="ses_1" org="demo" audience="observer" />);
+    expect(screen.queryByTestId("composer-probe")).toBeNull();
+    expect(screen.getByText(READER_WORDS).getAttribute("role")).toBe("status");
+  });
+
+  it("tells anyone reading a channel conversation that only its members reply", () => {
+    const session = samples.session({ subject: "Refund for order 1182" });
+    session.metadata!.labels = { [CHANNEL_SESSION_LABELS.channelId]: "chn_1", [CHANNEL_SESSION_LABELS.conversationKey]: "C1:1.0" };
+    conversation({ session });
+    render(<SessionViewer sessionId="ses_1" org="demo" />);
+    expect(screen.queryByTestId("composer-probe")).toBeNull();
+    expect(screen.getByText(READER_WORDS)).toBeTruthy();
+  });
+
+  it("gives a member the composer and no reader's footer", () => {
+    render(<SessionViewer sessionId="ses_1" org="demo" />);
+    expect(screen.getByTestId("composer-probe")).toBeTruthy();
+    expect(screen.queryByText(READER_WORDS)).toBeNull();
+  });
+});

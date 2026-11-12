@@ -11,8 +11,8 @@
 // plan, and the item it belongs to says it waits.
 //
 // Black and white but for status: a finished item's mark is the ready hue,
-// a waiting item's words the degraded one; everything else is weight and
-// the muted foreground.
+// the running one's spinner the running hue, a waiting item's words the
+// degraded one; everything else is weight and the muted foreground.
 
 import { useId, type ReactNode } from "react";
 import type { PlanItem, ToolUse, TurnSteps } from "@stigmer/client";
@@ -21,6 +21,7 @@ import { useAutoDisclosure } from "../internal/useAutoDisclosure.js";
 import { SpinnerIcon } from "../internal/thread-card/index.js";
 import { ToolCallGroup } from "./ToolCallGroup.js";
 import { SettledStepsRow } from "./SettledStepsRow.js";
+import { UNSTYLED_LIST } from "../internal/element-resets.js";
 
 /** Props for {@link PlanSteps}. */
 export interface PlanStepsProps {
@@ -55,7 +56,7 @@ export function PlanSteps({ steps, working, className }: PlanStepsProps) {
           {done} of {counted.length} done
         </span>
       </header>
-      <ul role="list">
+      <ul role="list" className={UNSTYLED_LIST}>
         {steps.plan.map((item) => (
           <PlanItemRow key={item.todo.id} item={item} working={working} />
         ))}
@@ -98,7 +99,7 @@ function PlanItemRow({ item, working }: { readonly item: PlanItem; readonly work
     </span>
   );
   return (
-    <li className={cn("stg:border-b stg:border-border-muted stg:last:border-b-0", live && "stg:bg-status-running-subtle")}>
+    <li className="stg:border-b stg:border-border-muted stg:last:border-b-0">
       {calls.length === 0 ? (
         <div className="stg:flex stg:items-start stg:gap-2 stg:px-3 stg:py-2 stg:text-sm">
           {mark}

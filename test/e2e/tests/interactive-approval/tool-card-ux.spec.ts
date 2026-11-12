@@ -119,18 +119,16 @@ test.describe("tool-card & approval-diff UX (deterministic mock LLM)", () => {
     await expect(gateRow.getByText("e2e-gate.txt", { exact: true })).toHaveCount(1);
   });
 
-  // --- Empty-file create: honest representation, no redundant filename ------
+  // --- Empty-file create: no empty box, no redundant filename ---------------
   test("an empty-file create gate shows the create notice and names the file once", async ({
     page,
     stigmerClient,
   }) => {
-    // An empty-content write carries no renderable content, so the card renders
-    // the honest create notice instead of a blank body — and must not restate
-    // the filename the header already shows. NOTE: the pre-capture gate proved
-    // emptiness from its captured change and said "New empty file"; the current
-    // args-derived gate cannot distinguish "empty" from "content unavailable",
-    // so it uses the non-committal create copy. (Flagged in oss#754's PR as a
-    // possible refinement: args carrying content === "" ARE proof of emptiness.)
+    // An empty-content write carries no renderable content. The card says what
+    // the agent wants in its header sentence and that nothing is written until
+    // the person allows it; it draws no "preview unavailable" box in place of
+    // a preview it does not have, and never restates the filename the header
+    // already shows.
     seeded = await seedGatedSession(stigmerClient, control, {
       gateBlocks: [writeFileBlock("call_empty", "/tmp/e2e-empty.txt", "")],
     });
@@ -139,9 +137,8 @@ test.describe("tool-card & approval-diff UX (deterministic mock LLM)", () => {
     const gateRow = toolCallRow(page).filter({ has: approveButton(page) }).first();
     await expect(gateRow).toBeVisible({ timeout: 30_000 });
 
-    await expect(
-      gateRow.getByText("New file — preview unavailable", { exact: true }),
-    ).toBeVisible();
+    await expect(gateRow.getByText("Nothing is written until you allow it.", { exact: true })).toBeVisible();
+    await expect(gateRow.getByText("New file — preview unavailable", { exact: true })).toHaveCount(0);
 
     // The filename appears exactly once — in the header, never restated by the
     // body.

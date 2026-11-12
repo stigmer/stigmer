@@ -223,7 +223,7 @@ export function FilesTab({
 function FileGroup({ title, children }: { readonly title: string; readonly children: ReactNode }) {
   return (
     <section aria-label={title} className="stg:flex stg:flex-col stg:pb-2">
-      <h3 className="stg:px-2 stg:pb-1 stg:pt-2 stg:text-2xs stg:font-medium stg:uppercase stg:tracking-wide stg:text-muted-foreground-faint">
+      <h3 className="stg:px-2 stg:pb-1 stg:pt-2 stg:text-2xs stg:font-medium stg:uppercase stg:tracking-wide stg:text-muted-foreground">
         {title}
       </h3>
       <ul role="list" className={`${UNSTYLED_LIST} stg:flex stg:flex-col`}>

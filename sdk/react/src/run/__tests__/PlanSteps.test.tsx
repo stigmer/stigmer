@@ -1,0 +1,176 @@
+/**
+ * Proves the plan card a to-do turn draws (PlanSteps): its head counts the
+ * items done, a dropped item not counted; each item's mark says done, in
+ * progress, not finished, dropped or to do; the item in progress is open
+ * to its steps while the turn works, a finished item opens on a click, and
+ * an item with no steps is a plain line; an item whose step waits for a
+ * person says "Waiting for you" and leaves that step to the bottom card;
+ * an item left in progress by an ended turn says "Not finished"; and the
+ * steps outside any item draw at the foot, the settled ones folded under
+ * "Steps so far" and the open ones as rows, a waiting one left out.
+ */
+import { describe, it, expect, afterEach } from "vitest";
+import { render, screen, cleanup, fireEvent, within } from "@testing-library/react";
+import type { JsonObject } from "@bufbuild/protobuf";
+import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
+import { turnSteps, type TurnSteps } from "@stigmer/client";
+import { PlanSteps } from "../PlanSteps";
+import { asked, result, status, turnsOf, use, user } from "./__fixtures__/thread-events";
+
+afterEach(cleanup);
+
+const R = "run_a";
+
+/** A to-do write that returned. */
+function todos(id: string, items: readonly { content: string; status: string }[]): SessionEvent[] {
+  return [use(R, id, "write_todos", { todos: items.map((t) => ({ ...t })) }), result(R, id, "ok")];
+}
+
+/** A call that returned. */
+function call(id: string, name: string, input: JsonObject = {}): SessionEvent[] {
+  return [use(R, id, name, input), result(R, id, "ok")];
+}
+
+/** The steps of one turn of `events`. */
+function stepsOf(...events: ReadonlyArray<SessionEvent | readonly SessionEvent[]>): TurnSteps {
+  return turnSteps(turnsOf(user(R, "go"), status(R, "running"), ...events)[0]!);
+}
+
+/** An item's line, by its words. */
+function itemLine(words: string): HTMLElement {
+  return screen.getByText(words).closest("li")!;
+}
+
+/** The control that opens an item to its steps. */
+function itemToggle(words: string): HTMLButtonElement {
+  return itemLine(words).querySelector<HTMLButtonElement>(":scope > button")!;
+}
+
+describe("PlanSteps", () => {
+  it("heads the plan with how many of its items are done, a dropped item not counted, and marks each", () => {
+    render(
+      <PlanSteps
+        working
+        steps={stepsOf(
+          todos("t", [
+            { content: "Read the code", status: "completed" },
+            { content: "Try the old way", status: "cancelled" },
+            { content: "Fix it", status: "in_progress" },
+            { content: "Test it", status: "pending" },
+          ]),
+        )}
+      />,
+    );
+    const plan = screen.getByRole("region", { name: "Plan" });
+
+    expect(within(plan).getByText("Plan")).toBeTruthy();
+    expect(within(plan).getByText("1 of 3 done")).toBeTruthy();
+    expect(within(itemLine("Read the code")).getByRole("img", { name: "Done" })).toBeTruthy();
+    expect(within(itemLine("Try the old way")).getByRole("img", { name: "Dropped" })).toBeTruthy();
+    expect(within(itemLine("Test it")).getByRole("img", { name: "To do" })).toBeTruthy();
+    // An item with no steps is a plain line, not a control.
+    expect(within(itemLine("Fix it")).queryByRole("button")).toBeNull();
+    expect(within(itemLine("Fix it")).getByRole("img", { name: "In progress" })).toBeTruthy();
+  });
+
+  it("opens the item in progress while the turn works, to the steps it takes", () => {
+    render(
+      <PlanSteps
+        working
+        steps={stepsOf(todos("t", [{ content: "Fix it", status: "in_progress" }]), call("c1", "read_file", { path: "a.ts" }), use(R, "c2", "execute", { command: "npm test" }))}
+      />,
+    );
+    const toggle = itemToggle("Fix it");
+
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    expect(toggle.textContent).toContain("2 steps");
+    expect(within(toggle).getByRole("img", { name: "In progress" })).toBeTruthy();
+    expect(document.getElementById(toggle.getAttribute("aria-controls")!)?.querySelector('[role="group"]')?.getAttribute("aria-label")).toBe("2 tool calls");
+  });
+
+  it("opens a finished item on a click to its steps", () => {
+    render(
+      <PlanSteps
+        working
+        steps={stepsOf(
+          todos("t1", [{ content: "Read the code", status: "in_progress" }]),
+          call("c1", "read_file", { path: "a.ts" }),
+          todos("t2", [{ content: "Read the code", status: "completed" }]),
+        )}
+      />,
+    );
+    const toggle = itemToggle("Read the code");
+
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    expect(toggle.textContent).toContain("1 step");
+    expect(screen.queryByRole("group", { name: "1 tool call" })).toBeNull();
+
+    fireEvent.click(toggle);
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    expect(screen.getByRole("group", { name: "1 tool call" })).toBeTruthy();
+
+    fireEvent.click(toggle);
+    expect(screen.queryByRole("group", { name: "1 tool call" })).toBeNull();
+  });
+
+  it("says an item waits for you, and leaves its waiting step to the bottom card", () => {
+    render(
+      <PlanSteps
+        working
+        steps={stepsOf(
+          todos("t", [{ content: "Push the fix", status: "in_progress" }]),
+          call("c1", "execute", { command: "git status" }),
+          use(R, "c2", "execute", { command: "git push" }, { ask: true }),
+          asked(R, "c2"),
+          status(R, "waiting"),
+        )}
+      />,
+    );
+    const line = itemLine("Push the fix");
+
+    expect(within(line).getByText("Waiting for you")).toBeTruthy();
+    expect(itemToggle("Push the fix").textContent).toContain("1 step");
+    expect(within(line).getByRole("group", { name: "1 tool call" })).toBeTruthy();
+  });
+
+  it("says an item its ended turn left in progress is not finished, closed", () => {
+    render(<PlanSteps working={false} steps={stepsOf(todos("t", [{ content: "Fix it", status: "in_progress" }]), call("c1", "read_file", { path: "a.ts" }))} />);
+    const line = itemLine("Fix it");
+    const toggle = itemToggle("Fix it");
+
+    expect(within(line).getAllByText("Not finished").length).toBe(1);
+    expect(within(line).getByRole("img", { name: "Not finished" })).toBeTruthy();
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+  });
+
+  it("folds the settled steps outside any item under 'Steps so far' and keeps the open ones as rows", () => {
+    render(
+      <PlanSteps
+        working
+        steps={stepsOf(
+          call("c0", "edit_file", { path: "a.ts" }),
+          use(R, "c1", "execute", { command: "npm run build" }),
+          use(R, "c2", "delete_file", { path: "b.ts" }, { ask: true }),
+          asked(R, "c2"),
+          todos("t", [{ content: "Test it", status: "pending" }]),
+        )}
+      />,
+    );
+    const fold = screen.getByRole("button", { name: /^Steps so far: edited a\.ts/ });
+
+    expect(fold.getAttribute("aria-expanded")).toBe("false");
+    // The open step draws as a row; the waiting one is the bottom card's.
+    expect(screen.getAllByRole("group", { name: "1 tool call" })).toHaveLength(1);
+    expect(screen.queryByText(/b\.ts/)).toBeNull();
+
+    fireEvent.click(fold);
+    expect(fold.getAttribute("aria-expanded")).toBe("true");
+    expect(screen.getAllByRole("group", { name: "1 tool call" })).toHaveLength(2);
+  });
+
+  it("draws no foot when every step sits under an item", () => {
+    render(<PlanSteps working steps={stepsOf(todos("t", [{ content: "Fix it", status: "in_progress" }]), call("c1", "read_file", { path: "a.ts" }))} />);
+    expect(screen.queryByRole("button", { name: /^Steps so far/ })).toBeNull();
+    expect(screen.getAllByRole("group")).toHaveLength(1);
+  });
+});

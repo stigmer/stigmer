@@ -88,7 +88,7 @@ export function FileRowView({
               </span>
             )}
           </span>
-          <span className="stg:shrink-0 stg:tabular-nums stg:text-2xs stg:text-muted-foreground-faint">
+          <span className="stg:shrink-0 stg:tabular-nums stg:text-2xs stg:text-muted-foreground">
             {formatFileSize(item.sizeBytes)}
           </span>
         </TooltipTrigger>

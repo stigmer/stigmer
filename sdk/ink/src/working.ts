@@ -1,5 +1,5 @@
 // The words of the terminal's working line and of the line a turn leaves
-// when it ends, from the derivation the browser's activity line reads too
+// when it ends, from the derivation the browser's session header reads too
 // (`describeTurnActivity` and `activityPhrase` in @stigmer/client), so both
 // surfaces say the same thing about the same turn.
 //

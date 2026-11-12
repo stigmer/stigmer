@@ -14,6 +14,7 @@ import { cn } from "@stigmer/design-tokens";
 import { durationWords } from "./duration-words.js";
 import { endingWord } from "./turn-endings.js";
 import type { TurnChange, TurnOutcomeView } from "./turn-outcome.js";
+import { UNSTYLED_LIST } from "../internal/element-resets.js";
 
 /** Props for {@link TurnOutcome}. */
 export interface TurnOutcomeProps {
@@ -127,7 +128,7 @@ function OutcomeGroup({ title, items }: { readonly title: string; readonly items
       </p>
       {asList ? (
         <div className="stg:overflow-hidden stg:rounded-lg stg:border stg:border-border stg:bg-card">
-          <ul role="list">
+          <ul role="list" className={UNSTYLED_LIST}>
             {shown.map((item) => (
               <li key={item.key} className="stg:border-b stg:border-border-muted stg:last:border-b-0">
                 <OutcomeEntry item={item} layout="row" />

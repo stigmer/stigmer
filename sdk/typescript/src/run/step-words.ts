@@ -24,8 +24,8 @@
 import type { ToolUse } from "@stigmer/session-log";
 import { normalizeToolResult, resolveToolKind, type ToolKind } from "./tool-view.js";
 
-/** How a step stands: running, returned, or failed. */
-export type StepTense = "present" | "past" | "failed";
+/** How a step stands: running, returned, failed, or stopped before it returned (its turn ended). */
+export type StepTense = "present" | "past" | "failed" | "stopped";
 
 /** A step's words: the line, how it stands, and what it names beside the line. */
 export interface StepPhrase {
@@ -159,9 +159,14 @@ export function targetOf(tool: Pick<ToolUse, "name" | "mcpServerName" | "input">
   }
 }
 
-/** How `tool` stands: open, returned, or failed (an error result, a denial, or a command that exited non-zero). */
+/**
+ * How `tool` stands: open, returned, failed (an error result, a denial, or a
+ * command that exited non-zero), or stopped before it returned. A background
+ * command's own end is its status line's to say, never the step's.
+ */
 export function stepTense(tool: ToolUse): StepTense {
   if (tool.state === "failed" || tool.state === "denied") return "failed";
+  if (tool.state === "stopped") return "stopped";
   if (tool.result === undefined) return "present";
   if (tool.result.isError) return "failed";
   if (resolveToolKind(tool) === "shell" && tool.background === undefined) {
@@ -174,24 +179,26 @@ export function stepTense(tool: ToolUse): StepTense {
 /** `tool`'s line, in the tense it stands in (module header). */
 export function stepPhrase(tool: ToolUse): StepPhrase {
   const tense = stepTense(tool);
+  // A step its turn stopped did not get done: it reads as one that couldn't.
+  const form: Exclude<StepTense, "stopped"> = tense === "stopped" ? "failed" : tense;
   const kind = resolveToolKind(tool);
   const app = tool.mcpServerName;
   if (kind === "mcp" || kind === "unknown") return { text: humanizeToolName(tool.name), tense, folder: "", app };
   if (kind === "shell") {
     const description = textAt(tool, "description").replace(/\s+/g, " ").trim();
-    return { text: description === "" ? phraseOf(KIND_WORDS.shell[tense], "") : short(description), tense, folder: "", app };
+    return { text: description === "" ? phraseOf(KIND_WORDS.shell[form], "") : short(description), tense, folder: "", app };
   }
   if (kind === "search" && FILE_NAME_SEARCHES.has(tool.name)) {
     const pattern = short(textAt(tool, "pattern"));
-    const words: Readonly<Record<StepTense, Form>> = {
+    const words: Readonly<Record<Exclude<StepTense, "stopped">, Form>> = {
       present: ["Finding files matching", "Finding files"],
       past: ["Found files matching", "Found files"],
       failed: ["Couldn't find files matching", "Couldn't find files"],
     };
-    return { text: phraseOf(words[tense], pattern), tense, folder: "", app };
+    return { text: phraseOf(words[form], pattern), tense, folder: "", app };
   }
   const target = targetOf(tool);
-  const text = phraseOf(KIND_WORDS[kind][tense], target);
+  const text = phraseOf(KIND_WORDS[kind][form], target);
   if (kind === "search") {
     const where = textAt(tool, "path");
     return { text: target !== "" && where !== "" ? `${text} in ${short(trimSeparators(where))}` : text, tense, folder: "", app };

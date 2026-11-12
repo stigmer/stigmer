@@ -1,7 +1,7 @@
 // Seeds the approval and tool-disclosure specs' runs over the node SDK: an
 // agent, a Stigmer session that names it by reference, and a turn scripted on
 // the mock LLM, so the browser only renders and resolves what was seeded.
-import type { Page, Locator } from "@playwright/test";
+import { expect, type Page, type Locator } from "@playwright/test";
 import { create } from "@bufbuild/protobuf";
 import type { HookSourceInput, Stigmer } from "@stigmer/client";
 import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
@@ -431,12 +431,23 @@ export async function awaitMockRemaining(
 // Approval / disclosure locators
 // ---------------------------------------------------------------------------
 
-/** The inline "Approve" button rendered on a gated tool row (and bottom card). */
+/**
+ * Opens a finished turn's "How it got there" line, where its steps live once
+ * the turn leads with its answer; `nth` picks the turn (the first by default).
+ */
+export async function openHowItGotThere(page: Page, nth = 0): Promise<void> {
+  const line = page.getByRole("button", { name: /^How it got there/ }).nth(nth);
+  await expect(line).toBeVisible({ timeout: 30_000 });
+  if ((await line.getAttribute("aria-expanded")) !== "true") await line.click();
+  await expect(line).toHaveAttribute("aria-expanded", "true");
+}
+
+/** The inline "Allow" button rendered on a gated tool row (and bottom card). */
 export function approveButton(scope: Page | Locator): Locator {
   return scope.locator('[data-cursor-target="approve-button"]');
 }
 
-/** The inline "Approve all <class>" escalation button. */
+/** The inline "Allow all <class> this turn" escalation button. */
 export function approveAllButton(scope: Page | Locator): Locator {
   return scope.locator('[data-cursor-target="approve-all-button"]');
 }
