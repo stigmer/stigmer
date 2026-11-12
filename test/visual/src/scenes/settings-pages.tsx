@@ -12,6 +12,7 @@
 // person is an owner of it, as the one who sets an organization up is.
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
+import { Code, ConnectError } from "@connectrpc/connect";
 import type { ConnectRouter } from "@connectrpc/connect";
 import { RunQueryController } from "@stigmer/apis/ai/stigmer/agentic/run/v1/query_pb";
 import { BillingCommandController } from "@stigmer/apis/ai/stigmer/billing/v1/command_pb";
@@ -34,6 +35,7 @@ import {
   SETTINGS_NAV_GROUPS,
   SettingsOverview,
   SettingsPage,
+  ServiceAccountsSection,
   SettingsSkeleton,
   TeamsSection,
   UsageSection,
@@ -166,6 +168,25 @@ export function settingsVaultsScene(): Drawing {
           ],
         }),
       }),
+  );
+}
+
+/** Vaults when the server does not answer: both of the page's reads fail, each where its list would be. */
+export function settingsVaultsFailedScene(): Drawing {
+  const down = () => {
+    throw new ConnectError("the vault service did not answer", Code.Unavailable);
+  };
+  return settingsScene(
+    () => <VaultsSection />,
+    (router) => router.service(VaultQueryController, { getMine: down, list: down }),
+  );
+}
+
+/** Service accounts for a member of the organization, who may not manage them: the page's denial. */
+export function settingsServiceAccountsDeniedScene(): Drawing {
+  return settingsScene(
+    () => <ServiceAccountsSection />,
+    (router) => router.service(GrantQueryController, { checkMyPermission: () => ({ isAuthorized: false }) }),
   );
 }
 
