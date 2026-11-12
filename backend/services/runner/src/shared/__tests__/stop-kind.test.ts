@@ -107,6 +107,17 @@ describe("modelStopOfClaude", () => {
     expect(modelStopOfClaude({ sdkError, text: "API Error", proxyMode: false })).toEqual({ surface: "engine", kind });
   });
 
+  it("reads every HTTP status the provider names when no SDK kind came", () => {
+    const kindOf = (apiErrorStatus: number) => modelStopOfClaude({ apiErrorStatus, text: "x", proxyMode: false });
+    expect(kindOf(401)).toEqual({ surface: "engine", kind: "provider_key_rejected" });
+    expect(kindOf(402)).toEqual({ surface: "engine", kind: "provider_out_of_credit" });
+    expect(kindOf(403)).toEqual({ surface: "engine", kind: "model_unavailable" });
+    expect(kindOf(413)).toEqual({ surface: "engine", kind: "request_rejected" });
+    expect(kindOf(429)).toEqual({ surface: "engine", kind: "provider_rate_limited" });
+    expect(kindOf(503)).toEqual({ surface: "engine", kind: "provider_overloaded" });
+    expect(kindOf(418)).toEqual({ surface: "internal", kind: "internal" });
+  });
+
   it("reads the HTTP status when the SDK's kind is unknown", () => {
     expect(modelStopOfClaude({ sdkError: "unknown", apiErrorStatus: 529, text: "overloaded", proxyMode: false })).toEqual({ surface: "engine", kind: "provider_overloaded" });
     expect(modelStopOfClaude({ apiErrorStatus: 404, text: "x", proxyMode: false })).toEqual({ surface: "engine", kind: "model_unavailable" });
