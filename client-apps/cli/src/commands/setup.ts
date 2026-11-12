@@ -11,6 +11,11 @@
 // (Anthropic + skip: the key setup saves; the runner reaches other providers
 // by keys exported in the shell, local/provider-reach.ts).
 //
+// A key given to setup is checked with Anthropic before it is saved, on both
+// paths (local/model-key-step.ts): the flag path refuses a key Anthropic
+// rejects with exit code 1 and saves nothing, and saves a key Anthropic did not
+// answer for with a line saying so; the interactive path asks again.
+//
 // Setup deliberately has NO model concept: the platform model registry owns
 // the execution default, and per-run overrides belong to `stigmer run
 // --model`. A setup-level pin would look authoritative and reach no
@@ -55,6 +60,7 @@ async function runSetup(options: SetupFlags): Promise<void> {
     options.operatorName !== undefined;
 
   let updated: typeof config;
+  let unchecked = false;
   if (nonInteractive) {
     updated = config;
     if (options.provider !== undefined) {
@@ -63,6 +69,9 @@ async function runSetup(options: SetupFlags): Promise<void> {
         throw new CliExitError(`unknown provider: ${options.provider}`, ExitCode.Usage, [
           `Valid providers: ${PROVIDER_CHOICES.join(", ")}`,
         ]);
+      }
+      if (provider === "anthropic" && (options.apiKey ?? "").trim() !== "") {
+        unchecked = await refuseRejectedKey(options.apiKey!.trim());
       }
       updated = applyChoice(updated, provider as (typeof PROVIDER_CHOICES)[number], {
         apiKey: options.apiKey,
@@ -90,8 +99,32 @@ async function runSetup(options: SetupFlags): Promise<void> {
   save(updated);
 
   const result = CommandResult.success("Configuration saved");
+  if (unchecked) {
+    const { KEY_UNCHECKED } = await import("../local/model-key-step.js");
+    result.hint(KEY_UNCHECKED);
+  }
   if (await isRunning(homedir())) {
     result.hint("Restart to apply: stigmer down && stigmer up");
   }
   renderResult(result, resultFormat(options));
+}
+
+/**
+ * Check a key given by flag with Anthropic, where the runner would send it:
+ * a refused key ends the command with exit code 1 before anything is saved.
+ * Returns whether Anthropic did not answer (the key is saved, and the card
+ * says so).
+ */
+async function refuseRejectedKey(key: string): Promise<boolean> {
+  const { ANTHROPIC_KEYS_URL, anthropicKeyTarget, KEY_REJECTED } = await import("../local/model-key-step.js");
+  const { checkAnthropicKey } = await import("../local/key-check.js");
+  const { CliExitError } = await import("../errors/cli-exit-error.js");
+  const { ExitCode } = await import("@stigmer/client/exit-codes");
+  const target = anthropicKeyTarget({ ...process.env, ANTHROPIC_API_KEY: key });
+  if (target === null) return false;
+  const check = await checkAnthropicKey(key, target.baseUrl);
+  if (check === "rejected") {
+    throw new CliExitError(`${KEY_REJECTED}.`, ExitCode.General, [`Nothing was saved. Get a key at ${ANTHROPIC_KEYS_URL}`]);
+  }
+  return check === "unchecked";
 }

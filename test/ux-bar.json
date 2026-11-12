@@ -74,6 +74,10 @@
       "promise": "Global options work before or after the command."
     },
     {
+      "id": "CLI-17",
+      "promise": "`stigmer up` and `stigmer setup` check a model key with the provider before calling it ready, and on a terminal ask again when it is rejected."
+    },
+    {
       "id": "INK-01",
       "promise": "Every state a run passes through has its own frame: loading, streaming, tools, approvals, file review, subagents, failure, completion."
     },
@@ -246,6 +250,10 @@
     {
       "id": "CON-06",
       "promise": "A new person's first screen asks what their agent should do for their users; one pick makes the agent and puts its sample and first message in front of them."
+    },
+    {
+      "id": "CON-07",
+      "promise": "The key step says why, where to get a key, and checks it live; a rejected key is refused in plain words and an unchecked one is said."
     },
     {
       "id": "DSK-01",

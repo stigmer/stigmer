@@ -8,7 +8,13 @@
 // Domain: test support (model fakes).
 import { request } from "node:http";
 import { afterEach, describe, expect, it } from "vitest";
-import { DEFAULT_REPLY_TEXT, FakeLlmUpstream, type FakeLlmUpstreamOptions } from "../fake-llm-upstream.ts";
+import {
+  DEFAULT_REPLY_TEXT,
+  FAKE_REJECTED_KEY,
+  FAKE_UNANSWERED_KEY,
+  FakeLlmUpstream,
+  type FakeLlmUpstreamOptions,
+} from "../fake-llm-upstream.ts";
 
 const ERROR_MESSAGE = "the fake is in error mode";
 
@@ -96,6 +102,19 @@ describe("FakeLlmUpstream in the install journeys' modes", () => {
     const response = await fetch(`${upstream.url()}/v1/models`, { headers: { "x-api-key": "sk-ant-check" } });
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ object: "list", data: [] });
+    expect(upstream.requests()).toEqual([]);
+  });
+
+  it("refuses the rejected key's check with 401 and leaves the unanswered key's with 503, by either header", async () => {
+    const upstream = await started({ defaultReply: true });
+    const rejected = await fetch(`${upstream.url()}/v1/models`, { headers: { "x-api-key": FAKE_REJECTED_KEY } });
+    expect(rejected.status).toBe(401);
+    const bearer = await fetch(`${upstream.url()}/v1/models`, { headers: { authorization: `Bearer ${FAKE_REJECTED_KEY}` } });
+    expect(bearer.status).toBe(401);
+    const unanswered = await fetch(`${upstream.url()}/v1/models`, { headers: { "x-api-key": FAKE_UNANSWERED_KEY } });
+    expect(unanswered.status).toBe(503);
+    const other = await fetch(`${upstream.url()}/v1/models`, { headers: { authorization: "Bearer sk-ant-anything-else" } });
+    expect(other.status).toBe(200);
     expect(upstream.requests()).toEqual([]);
   });
 

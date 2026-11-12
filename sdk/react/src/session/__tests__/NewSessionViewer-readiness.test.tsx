@@ -123,13 +123,15 @@ describe("CON-03 the launcher says a provider is missing before a run fails", ()
     renderLauncher(server({ readiness: NOTHING_CONNECTED }));
 
     expect(await screen.findByRole("heading", { level: 1, name: "Connect a model provider to start" })).toBeTruthy();
+    // The admin adds the key, so the lead says why Stigmer wants it first.
     expect(
       screen.getByText(
-        "Claude Sonnet 4.6 on Stigmer runs on Anthropic. Once Acme Research has an Anthropic key, you can send your first task.",
+        "Your agents think with a model. Stigmer uses your own Anthropic key, so you pay Anthropic directly. Once Acme Research has an Anthropic key, you can send your first task.",
       ),
     ).toBeTruthy();
     const card = await screen.findByRole("article", { name: "Anthropic" });
     await waitFor(() => expect(within(card).getByLabelText("Anthropic API key")).toBeTruthy());
+    expect(within(card).getByRole("link", { name: /Get a key at console\.anthropic\.com/ })).toBeTruthy();
     expect(screen.getByRole("link", { name: "every provider is in Models & providers" }).getAttribute("href")).toBe("/models");
     expect(screen.getByText(/Or connect OpenAI/)).toBeTruthy();
     expect(screen.queryByTestId("composer-probe")).toBeNull();
@@ -149,6 +151,14 @@ describe("CON-03 the launcher says a provider is missing before a run fails", ()
     const card = await screen.findByRole("article", { name: "Anthropic" });
     await waitFor(() => expect(within(card).getByText(/An admin of Acme Research connects Anthropic/)).toBeTruthy());
     expect(within(card).queryByLabelText("Anthropic API key")).toBeNull();
+    // Someone else's key: no "your own key", and no link to get one.
+    expect(
+      screen.getByText(
+        "Claude Sonnet 4.6 on Stigmer runs on Anthropic. Once Acme Research has an Anthropic key, you can send your first task.",
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByText(/Stigmer uses your own/)).toBeNull();
+    expect(within(card).queryByRole("link", { name: /Get a key/ })).toBeNull();
     expect(screen.queryByTestId("composer-probe")).toBeNull();
   });
 
@@ -157,11 +167,14 @@ describe("CON-03 the launcher says a provider is missing before a run fails", ()
 
     expect(
       await screen.findByText(
-        "Claude Sonnet 4.6 on Stigmer runs on Anthropic. Give this machine's runner a key, and you can send your first task.",
+        "Your agents think with a model. Stigmer uses your own Anthropic key, so you pay Anthropic directly. Give this machine's runner a key, and you can send your first task.",
       ),
     ).toBeTruthy();
     const card = await screen.findByRole("article", { name: "Anthropic" });
     expect(within(card).getByText(/stigmer setup\s+stigmer down && stigmer up/)).toBeTruthy();
+    expect(within(card).getByRole("link", { name: /Get a key at console\.anthropic\.com/ }).getAttribute("href")).toBe(
+      "https://console.anthropic.com/settings/keys",
+    );
     expect(screen.queryByTestId("composer-probe")).toBeNull();
   });
 

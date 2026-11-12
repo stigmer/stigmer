@@ -16,6 +16,7 @@ import { describe, it, expect, vi, afterEach, beforeAll, beforeEach } from "vite
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { StigmerError, type AgentInput, type ResourceRef } from "@stigmer/client";
 import { EXAMPLES } from "@stigmer/examples";
+import { ProviderKeyCheck } from "@stigmer/apis/ai/stigmer/billing/providerkey/v1/api_pb";
 import type { SessionComposerProps } from "../../composer";
 import {
   ANTHROPIC_CONNECTED,
@@ -116,16 +117,18 @@ interface Setup {
   /** "Has anything run" fails. */
   readonly summaryFails?: boolean;
   readonly create?: (input: AgentInput) => Promise<unknown>;
+  /** What the provider said of a saved key, as the stored key carries it. */
+  readonly keyCheck?: ProviderKeyCheck;
 }
 
 /** The fake server, with the reads and writes the first question adds. */
-function setup({ readiness = ANTHROPIC_CONNECTED, canManage = true, ran = 0, summaryNeverAnswers = false, summaryFails = false, create }: Setup = {}) {
+function setup({ readiness = ANTHROPIC_CONNECTED, canManage = true, ran = 0, summaryNeverAnswers = false, summaryFails = false, create, keyCheck }: Setup = {}) {
   const fake = server({ readiness, canManage });
   const calls = fakeClient(fake);
   calls.setKey.mockImplementation(async (input: { provider: string }) => {
     fake.readiness = ANTHROPIC_CONNECTED;
-    fake.keys = [storedKey(input.provider)];
-    return storedKey(input.provider);
+    fake.keys = [storedKey(input.provider, { check: keyCheck })];
+    return storedKey(input.provider, { check: keyCheck });
   });
   const getRunSummary = vi.fn(() =>
     summaryNeverAnswers ? new Promise(() => {}) : summaryFails ? Promise.reject(new Error("unavailable")) : Promise.resolve(summary(ran)),
@@ -345,6 +348,18 @@ describe("CON-06 a new person's first screen asks what their agent should do for
       expect(within(composer).getByRole("button", { name: "Send message" })).toHaveProperty("disabled", false);
     });
 
+    it("says why under the chosen bar instead of a second line about the model", async () => {
+      const { client } = setup({ readiness: NOTHING_CONNECTED });
+      launch(client);
+      fireEvent.click(await screen.findByRole("button", { name: VARIANCE.name }));
+
+      expect(await screen.findByRole("heading", { level: 1, name: "One more thing before it runs" })).toBeTruthy();
+      expect(
+        await screen.findByText(/^Your agents think with a model\. Stigmer uses your own Anthropic key, so you pay Anthropic directly\./),
+      ).toBeTruthy();
+      expect(screen.queryByText(/It needs a model to think with/)).toBeNull();
+    });
+
     it("goes back to the cards on Change, clearing the picked agent, and a second pick mounts its own composer", async () => {
       const { client } = setup();
       launch(client);
@@ -487,5 +502,59 @@ describe("CON-06 a new person's first screen asks what their agent should do for
       expect(await screen.findByRole("heading", { level: 1, name: TODAY })).toBeTruthy();
       expect(screen.queryByText(QUESTION)).toBeNull();
     });
+  });
+});
+
+describe("CON-07 the key step says why, where to get a key, and checks it live; a rejected key is refused in plain words and an unchecked one is said", () => {
+  const REJECTED = "Anthropic rejected this key. Check that it is a valid, active API key and try again.";
+  const UNCHECKED = "Anthropic didn't answer, so the key is saved but not checked. You can send now; if the key doesn't work, the run stops and says why.";
+
+  async function pickAndSaveKey(key: string) {
+    fireEvent.click(await screen.findByRole("button", { name: VARIANCE.name }));
+    const card = await screen.findByRole("article", { name: "Anthropic" });
+    expect(within(card).getByRole("link", { name: /Get a key at console\.anthropic\.com/ })).toBeTruthy();
+    fireEvent.change(await within(card).findByLabelText("Anthropic API key"), { target: { value: key } });
+    fireEvent.click(within(card).getByRole("button", { name: "Connect Anthropic" }));
+    return card;
+  }
+
+  it("refuses a rejected key in the provider check's words and keeps the box, then takes the right one", async () => {
+    const { client, calls } = setup({ readiness: NOTHING_CONNECTED, keyCheck: ProviderKeyCheck.checked });
+    const accept = calls.setKey.getMockImplementation()!;
+    calls.setKey.mockImplementationOnce(async () => {
+      throw new StigmerError("invalid-argument", REJECTED, 3);
+    });
+    launch(client);
+    const card = await pickAndSaveKey("sk-ant-typo");
+
+    expect((await within(card).findByRole("alert")).textContent).toContain(REJECTED);
+    expect((within(card).getByLabelText("Anthropic API key") as HTMLInputElement).value).toBe("sk-ant-typo");
+    expect(screen.queryByRole("group", { name: "Composer" })).toBeNull();
+
+    calls.setKey.mockImplementation(accept);
+    fireEvent.change(within(card).getByLabelText("Anthropic API key"), { target: { value: "sk-ant-right" } });
+    fireEvent.click(within(card).getByRole("button", { name: "Connect Anthropic" }));
+    expect(await screen.findByRole("heading", { level: 1, name: "Send it the sample" })).toBeTruthy();
+    expect(screen.queryByText(UNCHECKED)).toBeNull();
+  });
+
+  it("says once, above the composer, that a key the provider did not answer for is saved but not checked", async () => {
+    const { client } = setup({ readiness: NOTHING_CONNECTED, keyCheck: ProviderKeyCheck.unchecked });
+    launch(client);
+    await pickAndSaveKey("sk-ant-quiet");
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Send it the sample" })).toBeTruthy();
+    expect((await screen.findByRole("status")).textContent).toBe(UNCHECKED);
+    expect(screen.getByRole("button", { name: "Send message" })).toHaveProperty("disabled", false);
+  });
+
+  it("says nothing of the check on a later visit, when the key was saved elsewhere", async () => {
+    const { client, calls } = setup();
+    calls.listKeys.mockResolvedValue({ entries: [storedKey("anthropic", { check: ProviderKeyCheck.unchecked })], nextPageToken: "" });
+    launch(client);
+    fireEvent.click(await screen.findByRole("button", { name: VARIANCE.name }));
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Send it the sample" })).toBeTruthy();
+    expect(screen.queryByText(UNCHECKED)).toBeNull();
   });
 });

@@ -62,6 +62,15 @@ export function providerFace(availability: ProviderAvailability, viewer: Provide
   return viewer.canManage ? "admin-form" : "member-line";
 }
 
+/**
+ * Whether the person looking adds the key themselves: an admin through the
+ * form, or a laptop's owner through the setup command. On these faces the
+ * key is the reader's own, so the card says where to get one.
+ */
+export function keyingFace(face: ProviderFace): boolean {
+  return face === "admin-form" || face === "local-command";
+}
+
 /** Whether the kit can save a key for `provider` (the key slots the contract names). */
 export function isKeyProvider(provider: string): provider is ProviderKeyProvider {
   return provider === "anthropic" || provider === "openai";
@@ -242,7 +251,9 @@ export function ProviderCard({
           ) : (
             <ProviderAct face={face} provider={report.provider} orgName={orgName} />
           )}
-          {!confirming && face === "admin-form" && presentation.keysUrl !== null && (
+          {/* Where to get a key, wherever this person can add one: in the
+              form on Stigmer Cloud, and for the setup command on a laptop. */}
+          {!confirming && keyingFace(face) && presentation.keysUrl !== null && (
             <a
               href={presentation.keysUrl}
               target="_blank"

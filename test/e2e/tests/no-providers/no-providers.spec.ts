@@ -75,8 +75,19 @@ test.describe("a laptop whose runner reaches no model provider", () => {
       timeout: 15_000,
     });
     await expect(page.getByText("Variance Reporter is made. Its sample ledger is attached.")).toBeVisible();
-    await expect(page.getByText("Give this machine's runner a key, and you can send your first task.")).toBeVisible();
-    await expect(page.getByRole("article", { name: "Anthropic" }).locator("pre")).toContainText("stigmer setup");
+    // CON-07 on a laptop: why first, then the act, and where to get a key.
+    await expect(
+      page.getByText(
+        "Your agents think with a model. Stigmer uses your own Anthropic key, so you pay Anthropic directly. Give this machine's runner a key, and you can send your first task.",
+      ),
+    ).toBeVisible();
+    await expect(page.getByText(/It needs a model to think with/)).toHaveCount(0);
+    const anthropic = page.getByRole("article", { name: "Anthropic" });
+    await expect(anthropic.locator("pre")).toContainText("stigmer setup");
+    await expect(anthropic.getByRole("link", { name: /Get a key at console\.anthropic\.com/ })).toHaveAttribute(
+      "href",
+      "https://console.anthropic.com/settings/keys",
+    );
     await expect(page.getByRole("link", { name: "every provider is in Models & providers" })).toHaveAttribute(
       "href",
       "/models",

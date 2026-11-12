@@ -82,6 +82,12 @@ jobs:
       - name: Run every example
         run: make smoke-examples
 
+      # The model key checked before `stigmer up` and `stigmer setup` call it
+      # ready, asked again on a terminal when rejected, said on the card off
+      # one (test/install/smoke-up-key.mjs), on the same build.
+      - name: Check the model key at stigmer up
+        run: make smoke-up-key
+
 
   terminal-kit:
     name: the terminal kit from its pages

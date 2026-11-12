@@ -8,12 +8,17 @@
 //   - The agents line names the providers the started runner reaches, the
 //     answer the launcher computed over the runner's environment, or says
 //     to run `stigmer setup` when it reaches none (stigmer#1084).
+//   - The agents line says what Anthropic made of the runner's key: checked
+//     just now, not answered, or rejected, which is not ready (stigmer#3036).
+//     The key step runs before the launch on a terminal, after the
+//     running-stack refusal, and beside it off one; `--json`, `--quiet` and
+//     `--server-only` never ask.
 //   - A foreground stack that does not start ends with why: the failure the
 //     daemon recorded under this process's PID, or, with none, the pointer
 //     to the logs (stigmer#1845).
 //
-// The daemon launcher and the console probe are replaced (nothing boots, no
-// port is dialled); everything after them is real: the result card and the
+// The daemon launcher, the model key step and the console probe are replaced
+// (nothing boots, no port is dialled, no key is checked); everything after them is real: the result card and the
 // JSON and human renderers. The human card is frozen as goldens beside this
 // file, colour off.
 
@@ -22,6 +27,7 @@ import { expectGolden } from "../../__test-utils__/golden.js";
 import { CliExitError } from "../../errors/cli-exit-error.js";
 import { SERVER_PORT } from "../../local/constants.js";
 import type { UpReport } from "../../local/daemon/launch.js";
+import type { KeyStepDeps, KeyStepOutcome } from "../../local/model-key-step.js";
 import { buildProgram } from "../../program.js";
 
 const launched = vi.hoisted(() => ({
@@ -32,10 +38,17 @@ const launched = vi.hoisted(() => ({
   foregroundCode: 0,
   failure: null as Error | null,
   failureAskedFor: [] as number[],
+  key: undefined as KeyStepOutcome | undefined,
+  /** What happened, in order: the refusal, the key step (and whether it could ask), the launch. */
+  order: [] as string[],
 }));
 
 vi.mock("../../local/daemon/launch.js", () => ({
+  refuseRunningStack: (): void => {
+    launched.order.push("refuse");
+  },
   up: async (run: unknown): Promise<UpReport> => {
+    launched.order.push("launch");
     launched.runs.push(run);
     return launched.report;
   },
@@ -46,6 +59,7 @@ vi.mock("../../local/daemon/launch.js", () => ({
     _home: string,
     hooks: { readonly onReady: (report: UpReport) => Promise<void> },
   ): Promise<number> => {
+    launched.order.push("launch");
     launched.runs.push(run);
     if (launched.foregroundCode !== 0) return launched.foregroundCode;
     await hooks.onReady(launched.report);
@@ -54,6 +68,13 @@ vi.mock("../../local/daemon/launch.js", () => ({
   startupFailure: (_data: string, daemonPid: number): Error | null => {
     launched.failureAskedFor.push(daemonPid);
     return launched.failure;
+  },
+}));
+
+vi.mock("../../local/model-key-step.js", () => ({
+  modelKeyStep: async (deps: KeyStepDeps): Promise<KeyStepOutcome | undefined> => {
+    launched.order.push(deps.interactive ? "key step (asks)" : "key step");
+    return launched.key;
   },
 }));
 
@@ -89,6 +110,8 @@ beforeEach(() => {
   launched.foregroundCode = 0;
   launched.failure = null;
   launched.failureAskedFor.length = 0;
+  launched.key = undefined;
+  launched.order.length = 0;
 });
 
 /** Run `stigmer up …` and return what it wrote to stdout and stderr. */
@@ -190,8 +213,95 @@ describe("stigmer up — the agents line", () => {
   });
 });
 
+describe("stigmer up — the model key's check", () => {
+  it("calls a key Anthropic took checked just now, on the key route and through a gateway", async () => {
+    launched.report = { runnerReach: [{ provider: "anthropic", via: "key" }] };
+    launched.key = { check: "accepted", fromEnvironment: false };
+    expect(fields(await upCard(), "Agents")).toEqual({ ready: "anthropic (key checked just now)" });
+
+    launched.report = { runnerReach: [{ provider: "anthropic", via: "gateway" }] };
+    expect(fields(await upCard(), "Agents")).toEqual({ ready: "anthropic (gateway, key checked just now)" });
+  });
+
+  it("says a key Anthropic did not answer for is not checked, and still ready", async () => {
+    launched.report = { runnerReach: [{ provider: "anthropic", via: "key" }] };
+    launched.key = { check: "unchecked", fromEnvironment: false };
+
+    expect(fields(await upCard(), "Agents")).toEqual({ ready: "anthropic (key not checked: Anthropic didn't answer)" });
+  });
+
+  it("calls a rejected key not ready, keeps the other providers ready, and says how to fix a saved key", async () => {
+    launched.report = {
+      runnerReach: [
+        { provider: "anthropic", via: "key" },
+        { provider: "openai", via: "key" },
+      ],
+    };
+    launched.key = { check: "rejected", fromEnvironment: false };
+
+    const card = await upCard();
+    expect(fields(card, "Agents")).toEqual({ ready: "openai (key)", "not ready": "anthropic key rejected" });
+    expect(card.hints).toContain("Add a working key: stigmer setup, then stigmer down && stigmer up");
+  });
+
+  it("tells a person whose exported key was rejected to export a working one or unset it", async () => {
+    launched.report = { runnerReach: [{ provider: "anthropic", via: "key" }] };
+    launched.key = { check: "rejected", fromEnvironment: true };
+
+    const card = await upCard();
+    expect(fields(card, "Agents")).toEqual({ "not ready": "anthropic key rejected" });
+    expect(card.hints).toContain(
+      "Export a working ANTHROPIC_API_KEY, or unset it and run stigmer setup, then stigmer down && stigmer up",
+    );
+  });
+
+  it("leaves a provider Stigmer cannot judge as it was", async () => {
+    launched.report = { runnerReach: [{ provider: "anthropic", via: "vertex" }] };
+
+    expect(fields(await upCard(), "Agents")).toEqual({ ready: "anthropic (vertex)" });
+  });
+});
+
+describe("stigmer up — when the key step may ask", () => {
+  const tty = { stdin: process.stdin.isTTY, stderr: process.stderr.isTTY };
+  function onATerminal(on: boolean): void {
+    Object.defineProperty(process.stdin, "isTTY", { value: on, configurable: true });
+    Object.defineProperty(process.stderr, "isTTY", { value: on, configurable: true });
+  }
+  afterAll(() => {
+    Object.defineProperty(process.stdin, "isTTY", { value: tty.stdin, configurable: true });
+    Object.defineProperty(process.stderr, "isTTY", { value: tty.stderr, configurable: true });
+  });
+
+  it("on a terminal, refuses a running stack first, then asks, then starts", async () => {
+    onATerminal(true);
+    await runUp();
+    expect(launched.order).toEqual(["refuse", "key step (asks)", "launch"]);
+
+    launched.order.length = 0;
+    await runUp("--foreground");
+    expect(launched.order).toEqual(["refuse", "key step (asks)", "launch"]);
+  });
+
+  it("never asks under --json or --quiet, or off a terminal", async () => {
+    onATerminal(true);
+    await runUp("--json");
+    await runUp("--quiet");
+    onATerminal(false);
+    await runUp();
+    expect(launched.order.filter((step) => step.startsWith("key step"))).toEqual(["key step", "key step", "key step"]);
+    expect(launched.order).not.toContain("refuse");
+  });
+
+  it("has no key step for the control plane alone", async () => {
+    onATerminal(true);
+    await runUp("--server-only");
+    expect(launched.order).toEqual(["launch"]);
+  });
+});
+
 describe("CLI-14 stigmer up says where the console is and whether agents can run", () => {
-  it("prints the console and the providers agents run on", async () => {
+  it("prints the console and the providers agents run on, the Anthropic key checked", async () => {
     launched.consoleServed = true;
     launched.report = {
       runnerReach: [
@@ -199,6 +309,7 @@ describe("CLI-14 stigmer up says where the console is and whether agents can run
         { provider: "openai", via: "key" },
       ],
     };
+    launched.key = { check: "accepted", fromEnvironment: false };
 
     await expectGolden((await runUp()).stderr, "up-ready");
   });
@@ -213,6 +324,22 @@ describe("CLI-14 stigmer up says where the console is and whether agents can run
     launched.report = { runnerReach: [{ provider: "anthropic", via: "gateway" }] };
 
     await expectGolden((await runUp()).stderr, "up-no-console");
+  });
+
+  it("CLI-17 says a key Anthropic rejected is not ready, and how to add a working one", async () => {
+    launched.consoleServed = true;
+    launched.report = { runnerReach: [{ provider: "anthropic", via: "key" }] };
+    launched.key = { check: "rejected", fromEnvironment: false };
+
+    await expectGolden((await runUp()).stderr, "up-key-rejected");
+  });
+
+  it("CLI-17 says a key Anthropic did not answer for is saved but not checked", async () => {
+    launched.consoleServed = true;
+    launched.report = { runnerReach: [{ provider: "anthropic", via: "key" }] };
+    launched.key = { check: "unchecked", fromEnvironment: false };
+
+    await expectGolden((await runUp()).stderr, "up-key-unchecked");
   });
 
   it("prints the control plane alone, with no runner", async () => {

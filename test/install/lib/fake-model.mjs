@@ -32,7 +32,15 @@
  * else in that journey is the fake-model one.
  */
 
-import { DEFAULT_REPLY_TEXT, FakeLlmUpstream } from "../../support/src/fake-llm-upstream.ts";
+import {
+  DEFAULT_REPLY_TEXT,
+  FAKE_REJECTED_KEY,
+  FAKE_UNANSWERED_KEY,
+  FakeLlmUpstream,
+} from "../../support/src/fake-llm-upstream.ts";
+
+/** The keys the fake's key check refuses (401) and does not answer (503); any other key is accepted. */
+export { FAKE_REJECTED_KEY, FAKE_UNANSWERED_KEY };
 
 /** The text every reply carries: the shared fake's, plainly not a real model's answer. */
 export const FAKE_MODEL_REPLY_TEXT = DEFAULT_REPLY_TEXT;
@@ -102,8 +110,9 @@ export function parseFakeModelArg(arg) {
 /**
  * Start the fake on `host` (loopback by default; `0.0.0.0` when a container
  * reaches it through the host gateway) and an ephemeral port. Resolves
- * `{ url, port, replyText, requests, enqueue, close }`: `url` is the loopback
- * address, `requests()` the number of model calls answered so far, and
+ * `{ url, port, replyText, requests, anthropicKeys, enqueue, close }`: `url`
+ * is the loopback address, `requests()` the number of model calls answered so
+ * far, `anthropicKeys()` the key each Anthropic call carried, and
  * `enqueue(script)` queues one scripted answer (FakeLlmUpstream's
  * UpstreamScript) ahead of the mode's default, for a journey whose agent
  * must do something a canned reply cannot, such as save a file.
@@ -119,6 +128,8 @@ export async function startFakeModel({ host = "127.0.0.1", mode = "reply" } = {}
     port: fake.port(),
     replyText: FAKE_MODEL_REPLY_TEXT,
     requests: () => fake.requests().filter((request) => request.provider !== "unknown").length,
+    /** The key each Anthropic model call carried (`x-api-key`), in order: which key reached the runner. */
+    anthropicKeys: () => fake.requests().filter((request) => request.provider === "anthropic").map((request) => request.headers["x-api-key"] ?? ""),
     enqueue: (script) => void fake.enqueue(script),
     close: () => fake.close(),
   };

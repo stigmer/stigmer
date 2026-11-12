@@ -87,6 +87,17 @@ export function presentationOf(provider: string): ProviderPresentation {
   );
 }
 
+/**
+ * Why Stigmer asks for the person's own key, for the one who adds it:
+ * "Your agents think with a model. Stigmer uses your own Anthropic key, so
+ * you pay Anthropic directly." The same words on every edition and every
+ * client that asks for a key (the CLI's `stigmer up` says them too).
+ */
+export function keyReason(provider: string): string {
+  const name = presentationOf(provider).name;
+  return `Your agents think with a model. Stigmer uses your own ${name} key, so you pay ${name} directly.`;
+}
+
 /** "an Anthropic key", "an OpenAI key", "a Mistral key". */
 export function keyPhrase(provider: string): string {
   const name = presentationOf(provider).name;

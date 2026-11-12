@@ -5,7 +5,10 @@
 // model needs, as Models & providers draws it, with the act this person can
 // take right there (an admin saves the key, a member learns who does, a
 // laptop gets its command), so a new person's first screen is the step that
-// gets them a first answer. When another model could run but the chosen one
+// gets them a first answer. To the person who adds the key it first says
+// why Stigmer wants it (their agents think with a model, on their own key,
+// billed to them by the provider); to a member or a server's user it says
+// whose key it is instead, since theirs would be untrue. When another model could run but the chosen one
 // cannot, one line above the composer says why Send is held and what fixes
 // it. Both read the hub's data, so the launcher and the hub never disagree.
 
@@ -14,9 +17,10 @@ import { ArrowRight } from "lucide-react";
 import { DEFAULT_MODELS_HUB_HREF } from "../billing/ProviderKeyNotice.js";
 import { type HarnessOption } from "@stigmer/react-core";
 import { HARNESS_META } from "@stigmer/react-core/internal";
-import { ProviderCard, providerFace, type ProviderFace } from "./hub/ProviderCard.js";
+import { ProviderKeyCheck } from "@stigmer/apis/ai/stigmer/billing/providerkey/v1/api_pb";
+import { keyingFace, ProviderCard, providerFace, type ProviderFace } from "./hub/ProviderCard.js";
 import type { ModelsHubData } from "./hub/ModelsHub.js";
-import { keyPhrase, presentationOf, type SentencePart } from "./provider-presentation.js";
+import { keyPhrase, keyReason, presentationOf, type SentencePart } from "./provider-presentation.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
 
 /** Props for {@link ConnectProviderPanel}. */
@@ -37,6 +41,11 @@ export interface ConnectProviderPanelProps {
    * `false`, and the panel opens on its lead sentence. @default true
    */
   readonly showHeading?: boolean;
+  /**
+   * Called after this panel's card saves a key, beside the refresh, so the
+   * launcher can say once what the save's check found.
+   */
+  readonly onKeySaved?: () => void;
 }
 
 /**
@@ -52,13 +61,16 @@ export function ConnectProviderPanel({
   modelName,
   modelsHubHref = DEFAULT_MODELS_HUB_HREF,
   showHeading = true,
+  onKeySaved,
 }: ConnectProviderPanelProps) {
   const report = hub.providers?.find((entry) => entry.provider === provider);
   if (report === undefined || hub.models === null) return null;
   const others = (hub.providers ?? []).filter((entry) => entry.provider !== provider);
   const name = presentationOf(provider).name;
   const face = providerFace(report.availability, hub.viewer);
-  const runs = `${modelName} on ${HARNESS_META[harness].label} runs on ${name}.`;
+  // The person who adds the key hears why first; anyone else, which model
+  // waits on whose key.
+  const lead = keyingFace(face) ? keyReason(provider) : `${modelName} on ${HARNESS_META[harness].label} runs on ${name}.`;
   const then =
     face === "local-command"
       ? "Give this machine's runner a key, and you can send your first task."
@@ -70,7 +82,7 @@ export function ConnectProviderPanel({
       <div className="stg:text-center">
         {showHeading && <h1 className="stg:text-lg stg:font-medium stg:text-foreground">Connect a model provider to start</h1>}
         <p className={showHeading ? "stg:mt-1 stg:text-sm stg:text-muted-foreground" : "stg:m-0 stg:text-sm stg:text-muted-foreground"}>
-          {runs} {then}
+          {lead} {then}
         </p>
       </div>
       {hub.isLoading ? (
@@ -86,7 +98,10 @@ export function ConnectProviderPanel({
         prominent
         initiallyEditing
         models={hub.models.filter((model) => model.provider === provider)}
-        onChanged={hub.refresh}
+        onChanged={() => {
+          hub.refresh();
+          onKeySaved?.();
+        }}
       />
       )}
       <p className="stg:text-center stg:text-xs stg:text-muted-foreground">
@@ -99,6 +114,37 @@ export function ConnectProviderPanel({
         </a>
       </p>
     </div>
+  );
+}
+
+/** Whether the key that serves `provider` was saved without the provider answering the check. */
+export function keyUnchecked(hub: ModelsHubData, provider: string): boolean {
+  return hub.keyOf(provider)?.check === ProviderKeyCheck.unchecked;
+}
+
+/** Props for {@link KeySavedUncheckedNote}. */
+export interface KeySavedUncheckedNoteProps {
+  /** The provider whose key was just saved without the provider answering the check. */
+  readonly provider: string;
+}
+
+/**
+ * One quiet line above the composer, right after a key is saved that the
+ * provider did not answer the check for: the key is kept, Send works, and
+ * a key that turns out wrong is said by the run itself. Shown once, by the
+ * launcher that saved it; Models & providers keeps saying it on the card.
+ */
+export function KeySavedUncheckedNote({ provider }: KeySavedUncheckedNoteProps) {
+  const name = presentationOf(provider).name;
+  return (
+    <p
+      role="status"
+      data-stgm-key-unchecked=""
+      className="stg:m-0 stg:rounded-xl stg:border stg:border-border stg:bg-card stg:px-4 stg:py-2.5 stg:text-xs stg:text-muted-foreground"
+    >
+      {name} didn&apos;t answer, so the key is saved but not checked. You can send now; if the key doesn&apos;t work,
+      the run stops and says why.
+    </p>
   );
 }
 
