@@ -32,6 +32,8 @@ vi.mock("@stigmer/react-sdk", () => {
     ConfirmDialog: none,
     EditResourceYamlDialog: none,
     ChannelsPanel: none,
+    // The journey's routes, which the agent page hands its Make it yours tab.
+    useOrgSlugForId: () => (id: string) => id,
     AgentDetailView: (props: Record<string, unknown>) => {
       page.agentView.push(props);
       return null;

@@ -8,7 +8,9 @@
  * and Delete (stigmer/stigmer#2813). Also pins what the page hands the view's
  * Channels tab: no tab of its own (the view builds Channels), the chat-link
  * URL builder, the channel-apps settings route and the session route, and
- * no external connect hand-off (the browser runs the Slack popup itself).
+ * no external connect hand-off (the browser runs the Slack popup itself);
+ * the journey's routes for the view's "Make it yours" tab; and the tab a
+ * `?tab=` link names, read again once the address holds it.
  * The detail view itself is pinned in @stigmer/react-sdk; here it is stubbed to
  * capture its props.
  */
@@ -26,6 +28,8 @@ interface ViewProps {
   channelAppsHref?: string;
   sessionHref?: (sessionId: string) => string;
   onConnectExternal?: unknown;
+  makeItYours?: unknown;
+  activeTab?: string;
 }
 
 const page = vi.hoisted(() => ({
@@ -63,6 +67,11 @@ vi.mock("@/domain/library/library-navigation", () => ({
     canonicalSlug: (slug: string) => page.canonical.push(slug),
   }),
   useRouteDetailYieldsToOverlay: () => false,
+}));
+
+const JOURNEY_LINKS = vi.hoisted(() => ({ launch: () => "/?with=own" }));
+vi.mock("@/domain/journey/journey-links", () => ({
+  useJourneyLinks: () => JOURNEY_LINKS,
 }));
 
 vi.mock("@/domain/runs/run-navigation", () => ({
@@ -134,5 +143,15 @@ describe("web AgentDetailPageInner", () => {
     // The browser runs Slack's OAuth popup in-app; only a webview host
     // hands it off.
     expect(view?.onConnectExternal).toBeUndefined();
+  });
+
+  it("offers the view's Make it yours tab with the journey's routes, and opens the tab a link names", () => {
+    window.history.replaceState({}, "", "/library/agents/acme/variance-reporter?tab=make-it-yours");
+    render(<AgentDetailPageInner org="acme" slug="variance-reporter" />);
+
+    const view = page.view.at(-1);
+    expect(view?.makeItYours).toBe(JOURNEY_LINKS);
+    expect(view?.activeTab).toBe("make-it-yours");
+    window.history.replaceState({}, "", "/");
   });
 });

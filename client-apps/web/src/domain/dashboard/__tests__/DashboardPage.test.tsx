@@ -2,10 +2,11 @@
  * Pins the web dashboard's wiring: the operational dashboard reads the
  * active organization by its id, the way the server names every org, never
  * by its slug; a failed run picked on the dashboard opens that run through
- * run navigation; the page opens on the kit's page heading; and a new
- * organization's first steps lead to the console's routes (the models hub,
- * a new agent, the launcher), drawn with the console's link. The dashboard
- * widgets are pinned in @stigmer/react-sdk.
+ * run navigation; the page opens on the kit's page heading; and the
+ * journey's steps lead to the console's routes (the models hub, the
+ * launcher, the agent page's tabs, the members page), drawn with the
+ * console's link. The dashboard widgets are pinned in @stigmer/react-sdk;
+ * the journey's routes in journey-links' own suite.
  */
 import type { ReactNode } from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -28,6 +29,22 @@ vi.mock("@stigmer/react-sdk", () => ({
       <p>{description}</p>
     </header>
   ),
+}));
+
+const JOURNEY_LINKS = vi.hoisted(() => ({
+  makeItYours: (agent: { org: string; slug: string }) => `/library/agents/${agent.org}/${agent.slug}?tab=make-it-yours`,
+  putInApp: (agent: { org: string; slug: string }) => `/library/agents/${agent.org}/${agent.slug}?tab=channels`,
+  bringOthers: "/settings/members",
+  launch: () => "/?with=own",
+}));
+
+vi.mock("@/domain/journey/journey-links", () => ({
+  renderJourneyLink: ({ href, className, children }: { href: string; className: string; children?: ReactNode }) => (
+    <a href={href} className={className} data-next-link="">
+      {children}
+    </a>
+  ),
+  useJourneyLinks: () => JOURNEY_LINKS,
 }));
 
 vi.mock("next/link", () => ({
@@ -70,11 +87,18 @@ describe("web DashboardPage", () => {
     expect(screen.getByRole("heading", { level: 1, name: "Dashboard" })).toBeTruthy();
   });
 
-  it("leads a new organization's first steps to the console's routes, drawn with its link", () => {
+  it("leads the journey's steps to the console's routes, drawn with its link", () => {
     render(<DashboardPage />);
 
     const props = page.dashboard.at(-1);
-    expect(props?.firstStepLinks).toEqual({ connectProvider: "/models", createAgent: "/", startSession: "/" });
+    expect(props?.firstStepLinks).toEqual({
+      connectProvider: "/models",
+      createAgent: "/",
+      startSession: "/",
+      makeItYours: JOURNEY_LINKS.makeItYours,
+      putInApp: JOURNEY_LINKS.putInApp,
+      bringOthers: "/settings/members",
+    });
     const renderLink = props?.renderLink as (link: { href: string; className: string; children: ReactNode }) => ReactNode;
     render(<>{renderLink({ href: "/models", className: "step", children: "Connect a provider" })}</>);
     const link = screen.getByRole("link", { name: "Connect a provider" });

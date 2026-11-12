@@ -1,13 +1,17 @@
 // The dashboard: its figures alone, over a busy week's summary; and the
 // whole dashboard as the console frames it (a centred column under the
-// page's heading) for a busy organization and for one that has run nothing
-// yet, answered from the calls its hooks make.
+// page's heading) for a busy organization, as a member who may not make
+// agents sees it (the figures and failures alone: the journey's card is for
+// a person who may), and for one that has run nothing yet, as its admin
+// sees it (the journey's card alone, nothing made yet), answered from the
+// calls its hooks make. The journey's other states are journey.tsx's.
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import type { ConnectRouter } from "@connectrpc/connect";
 import { RunSchema, type Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { RunQueryController } from "@stigmer/apis/ai/stigmer/agentic/run/v1/query_pb";
+import { AgentQueryController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/query_pb";
 import { DashboardKPICards, OperationalDashboard, PageHeader } from "@stigmer/react-sdk";
 import { GrantQueryController } from "@stigmer/apis/ai/stigmer/iam/grant/v1/query_pb";
 import { PlatformQueryController } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
@@ -58,7 +62,12 @@ function dashboardRoutes(week: DashboardWeek) {
       list: () => samples.runList(failedRuns(week)),
     });
     router.service(PlatformQueryController, { getModelReadiness: () => NOTHING_CONNECTED });
-    router.service(GrantQueryController, { checkMyPermission: () => ({ isAuthorized: true }) });
+    // The busy week's viewer is a member, who may not make agents; the new
+    // organization's is its admin, with no agent made yet.
+    router.service(GrantQueryController, {
+      checkMyPermission: (input) => ({ isAuthorized: week === "new-org" || input.relation !== "can_create_agent" }),
+    });
+    router.service(AgentQueryController, { list: () => ({ entries: [], nextPageToken: "" }) });
   };
 }
 

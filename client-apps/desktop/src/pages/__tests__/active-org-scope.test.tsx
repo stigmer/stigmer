@@ -36,6 +36,9 @@ vi.mock("@stigmer/react-sdk", () => ({
   },
   useAccountExecutionDefaults: () => undefined,
   useWorkspaceSources: () => ({ enableGitHub: false, enableLocal: true }),
+  // The journey's routes and the launcher's link reader, which both pages wire.
+  useOrgSlugForId: () => (id: string) => id,
+  useLinkedLaunch: () => undefined,
 }));
 
 vi.mock("../../hooks/useNativeFolderPicker", () => ({ useNativeFolderPicker: () => undefined }));

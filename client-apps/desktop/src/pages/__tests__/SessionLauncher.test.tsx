@@ -30,6 +30,10 @@ vi.mock("@stigmer/react-sdk", () => ({
   },
   useAccountExecutionDefaults: () => undefined,
   useWorkspaceSources: () => ({ enableGitHub: false, enableLocal: true }),
+  useOrgSlugForId: () => (id: string) => id,
+  // The kit's launch reader, as its own suite pins it: a launch for a link with `with=`.
+  useLinkedLaunch: (params: { agent: string | null; example: string | null; with: string | null }) =>
+    params.with ? { key: `${params.agent}|${params.example}|${params.with}`, agentRef: params.agent } : undefined,
   // The SDK reads the refusal's reason; here one error stands for a
   // provider-key refusal and every other is not one.
   providerKeyRequired: (error: unknown) =>
@@ -119,10 +123,31 @@ describe("desktop SessionLauncher", () => {
     expect(screen.getByTestId("location").textContent).toBe("/");
   });
 
-  it("asks a newcomer's first question, which the viewer skips for a deep-linked agent", () => {
+  it("asks a newcomer's first question, which the viewer skips for a deep-linked agent, with the journey's routes", () => {
     renderAt("/");
 
+    const viewer = page.viewer.at(-1) as { journeyLinks?: { makeItYours: (agent: { org: string; slug: string }) => string } };
     expect(page.viewer.at(-1)).toMatchObject({ firstQuestion: true, initialAgentRef: undefined });
+    expect(viewer.journeyLinks?.makeItYours({ org: "acme", slug: "variance-reporter" })).toBe(
+      "/library/agents/acme/variance-reporter?tab=make-it-yours",
+    );
+  });
+
+  it("hands a Make it yours link over as a launch, not as a deep-linked agent, and cleans the address", () => {
+    render(
+      <MemoryRouter initialEntries={["/?agent=acme%2Fvariance-reporter&example=variance-report&with=own"]}>
+        <Routes>
+          <Route path="*" element={<SessionLauncher />} />
+        </Routes>
+        <RouterProbe />
+      </MemoryRouter>,
+    );
+
+    expect(page.viewer[0]).toMatchObject({
+      launch: { key: "acme/variance-reporter|variance-report|own", agentRef: "acme/variance-reporter" },
+      initialAgentRef: undefined,
+    });
+    expect(screen.getByTestId("location").textContent).toBe("/");
   });
 
   it("remembers the person's plugin picks for the next conversation", () => {
