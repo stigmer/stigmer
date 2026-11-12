@@ -170,27 +170,27 @@ test.describe("tool-card & approval-diff UX (deterministic mock LLM)", () => {
     const gateRow = toolCallRow(page).filter({ has: approveButton(page) }).first();
     await expect(gateRow).toBeVisible({ timeout: 30_000 });
 
+    // The gate is a step in its turn's list of steps: the list's card draws
+    // the neutral outline, and the gate's own row its "needs you" accent.
+    const card = gateRow.locator("xpath=ancestor::*[@data-cursor-target='tool-call-group'][1]");
     const border = () =>
-      gateRow.evaluate((el) => {
+      card.evaluate((el) => {
         const s = getComputedStyle(el);
-        return {
-          top: parseFloat(s.borderTopWidth),
-          left: parseFloat(s.borderLeftWidth),
-          color: s.borderTopColor,
-        };
+        return { top: parseFloat(s.borderTopWidth), color: s.borderTopColor };
       });
-    // The neutral outline is a real ~1px line on every side...
+    const accent = () => gateRow.evaluate((el) => parseFloat(getComputedStyle(el).borderLeftWidth));
+    // The neutral outline is a real ~1px line...
     await expect
-      .poll(async () => (await border()).top, { message: "the gate card has a top border" })
+      .poll(async () => (await border()).top, { message: "the steps card has a top border" })
       .toBeGreaterThanOrEqual(1);
     // ...with a visible (non-transparent) color, not the zeroed fallback
     // (`transparent`, or any rgba(..., 0)).
     await expect
-      .poll(async () => (await border()).color, { message: "the gate card's border has a visible color" })
+      .poll(async () => (await border()).color, { message: "the steps card's border has a visible color" })
       .not.toMatch(/^transparent$|,\s*0\)\s*$/);
     // The pending gate carries its "needs you" cue as a 2px left accent.
     await expect
-      .poll(async () => (await border()).left, { message: "the pending gate has a 2px left accent" })
+      .poll(accent, { message: "the pending gate has a 2px left accent" })
       .toBeGreaterThanOrEqual(2);
   });
 

@@ -57,6 +57,18 @@ describe("ThreadCardShell chrome", () => {
     expect(root.className).toContain("stg:border-l-warning");
   });
 
+  it("carries the gate accent on a divider row, so a waiting step in a list keeps it", () => {
+    const { container } = render(
+      <ThreadCardShell cursorTarget="row" variant="row" accent="destructive">
+        <span>x</span>
+      </ThreadCardShell>,
+    );
+    const cls = container.querySelector('[data-cursor-target="row"]')!.className;
+    expect(cls).toContain("stg:border-b");
+    expect(cls).toContain("stg:border-l-2");
+    expect(cls).toContain("stg:border-l-destructive");
+  });
+
   it("never draws the gate accent on a quiet shell — escalation is the caller's job", () => {
     // The quiet tier deliberately ignores `accent`: a gated row must be
     // escalated to variant="card" by its component, never rendered as an

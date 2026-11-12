@@ -78,8 +78,11 @@ test.describe("file-review card (deterministic mock LLM)", () => {
     await page.goto(`/sessions/${seeded.sessionId}`);
 
     // The review card is up with its bulk decision after the turn ended;
-    // the captured change's added lines render as the reviewable diff.
+    // the captured change's added lines render as the reviewable diff, on
+    // the write's step (one of the finished turn's steps, opened).
     await expect(fileReviewApproveButton(page)).toBeVisible({ timeout: 30_000 });
+    await openHowItGotThere(page);
+    await toolCallRow(page).first().locator('[data-cursor-target="thread-card-toggle"]').click();
     await expect(page.getByText("alpha")).toBeVisible();
   });
 
