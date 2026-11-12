@@ -36,6 +36,9 @@ export const KEY_QUESTION = "Anthropic API key (Enter to skip)";
 /** Cloud's sentence for a refused key, with what to do. */
 export const KEY_REJECTED = "Anthropic rejected this key. Check that it is a valid, active API key";
 
+/** Said on a terminal while a key already set is checked, which can take up to the check's timeout. */
+export const KEY_CHECKING_SAVED = "Checking the Anthropic key with Anthropic…\n";
+
 /** Said when Anthropic did not answer the check: the key is kept anyway. */
 export const KEY_UNCHECKED = "Anthropic didn't answer, so the key is saved but not checked.";
 
@@ -132,6 +135,8 @@ export async function modelKeyStep(deps: KeyStepDeps): Promise<KeyStepOutcome | 
 
   let saved: KeyStepOutcome | undefined;
   if (target !== null) {
+    // The check can take up to its timeout: a terminal says what it waits on.
+    if (deps.interactive) deps.write(KEY_CHECKING_SAVED);
     const check = await deps.check(key, target.baseUrl);
     saved = { check, fromEnvironment };
     if (check !== "rejected") return saved;
@@ -142,9 +147,11 @@ export async function modelKeyStep(deps: KeyStepDeps): Promise<KeyStepOutcome | 
     if (!deps.interactive) return saved;
     deps.write("\nAnthropic rejected the saved key.");
   } else {
-    // Ask only where a key would make Anthropic reachable: not over a cloud
-    // backend or the proxy, not over an exported key, and never off a terminal.
-    const keyWouldServe = anthropicKeyTarget(withKey(deps.env, "sk-ant-probe")) !== null;
+    // Ask only where a key would make Anthropic reachable and nothing reaches
+    // it yet: not over a keyless gateway, a cloud backend or the proxy, not
+    // over an exported key, and never off a terminal.
+    const reached = providerReach(withKey(deps.env, key)).some((entry) => entry.provider === "anthropic");
+    const keyWouldServe = !reached && anthropicKeyTarget(withKey(deps.env, "sk-ant-probe")) !== null;
     if (!deps.interactive || key !== "" || !keyWouldServe) return undefined;
   }
 

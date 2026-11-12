@@ -11,8 +11,9 @@
 // credit passes; the run's own failure names that. The base is the one the
 // runner sends the key to (ANTHROPIC_BASE_URL, else Anthropic's own API, the
 // runner's endpoint rule in backend/services/runner/src/agent-proxy/lanes.ts),
-// so a gateway's key is checked against the gateway. The response body is
-// never read and the key is never logged.
+// so a gateway's key is checked against the gateway. A redirect is never
+// followed (a 3xx is unchecked), so the key reaches only the host the runner
+// was given. The response body is never read and the key is never logged.
 
 /** What Anthropic said about a key: took it, refused it, or did not answer. */
 export type KeyCheck = "accepted" | "rejected" | "unchecked";
@@ -27,7 +28,10 @@ const ANTHROPIC_VERSION = "2023-06-01";
 export const KEY_CHECK_TIMEOUT_MS = 10_000;
 
 /** The fetch the check dials with; tests pass their own. */
-export type KeyCheckFetch = (url: string, init: { headers: Record<string, string>; signal: AbortSignal }) => Promise<{
+export type KeyCheckFetch = (
+  url: string,
+  init: { headers: Record<string, string>; signal: AbortSignal; redirect: "manual" },
+) => Promise<{
   readonly status: number;
 }>;
 
@@ -46,6 +50,7 @@ export async function checkAnthropicKey(
     const response = await fetchImpl(`${base}/v1/models`, {
       headers: { "x-api-key": key, "anthropic-version": ANTHROPIC_VERSION },
       signal: AbortSignal.timeout(timeoutMs),
+      redirect: "manual",
     });
     if (response.status === 401 || response.status === 403) return "rejected";
     if (response.status >= 200 && response.status < 300) return "accepted";

@@ -20,6 +20,7 @@ import type { KeyCheck } from "../key-check.js";
 import {
   anthropicKeyTarget,
   ENV_KEY_REJECTED,
+  KEY_CHECKING_SAVED,
   KEY_QUESTION,
   KEY_REASON_LINES,
   type KeyStepDeps,
@@ -172,7 +173,7 @@ describe("CLI-17 stigmer up checks the model key before calling it ready, and on
     const h = harness({ interactive: true, env: { ANTHROPIC_API_KEY: "sk-ant-bad" }, checks: { "sk-ant-bad": "rejected" } });
     expect(await modelKeyStep(h.deps)).toEqual({ check: "rejected", fromEnvironment: true });
     expect(h.asked).toEqual([]);
-    expect(h.said()).toBe(`${ENV_KEY_REJECTED}\n`);
+    expect(h.said()).toBe(`${KEY_CHECKING_SAVED}${ENV_KEY_REJECTED}\n`);
   });
 
   it("asks nothing where a key would not serve: a cloud backend or the proxy", async () => {
@@ -183,9 +184,31 @@ describe("CLI-17 stigmer up checks the model key before calling it ready, and on
     expect([...vertex.asked, ...proxy.asked]).toEqual([]);
   });
 
+  it("asks nothing behind a keyless gateway, which already reaches Anthropic", async () => {
+    const h = harness({ interactive: true, env: { ANTHROPIC_BASE_URL: GATEWAY } });
+    expect(await modelKeyStep(h.deps)).toBeUndefined();
+    expect(h.asked).toEqual([]);
+    expect(h.checked).toEqual([]);
+  });
+
   it("checks a pasted key against the gateway the shell set", async () => {
-    const h = harness({ interactive: true, env: { ANTHROPIC_BASE_URL: GATEWAY }, answers: ["sk-ant-new"] });
+    const h = harness({
+      interactive: true,
+      env: { ANTHROPIC_BASE_URL: GATEWAY },
+      savedKey: "sk-ant-old",
+      answers: ["sk-ant-new"],
+      checks: { "sk-ant-old": "rejected" },
+    });
     await modelKeyStep(h.deps);
-    expect(h.checked).toEqual([{ key: "sk-ant-new", baseUrl: GATEWAY }]);
+    expect(h.checked).toEqual([
+      { key: "sk-ant-old", baseUrl: GATEWAY },
+      { key: "sk-ant-new", baseUrl: GATEWAY },
+    ]);
+  });
+
+  it("says on a terminal that it is checking a key already set, before the wait", async () => {
+    const h = harness({ interactive: true, savedKey: "sk-ant-saved" });
+    expect(await modelKeyStep(h.deps)).toEqual({ check: "accepted", fromEnvironment: false });
+    expect(h.said()).toBe(KEY_CHECKING_SAVED);
   });
 });
