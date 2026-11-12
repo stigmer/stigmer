@@ -8,13 +8,13 @@
 // `nested-interactive`: a screen reader announced one button and could not
 // reach the file or Stop inside it. The audit pins every row shape that
 // carries a header control or a toggle (a running read, a failed read, a
-// delete, a running background command with Stop, a search whose query is
-// cut off) and the two that carry neither (a completed read, a preview edit).
+// delete, a running background command with Stop, a search whose pattern is
+// cut off, a completed read, an edit).
 //
 // Which element takes a click is a painting-order fact, so only a browser can
-// pin it: `elementFromPoint` at the title lands on the toggle, at the file
-// control and at Stop on those controls. The cut-off search shows its full
-// query on the toggle's hover, since the toggle covers the subtitle.
+// pin it: `elementFromPoint` at the step's words lands on the toggle, at the
+// file control and at Stop on those controls. A command cut off beside the
+// line shows in full on the toggle's hover, since the toggle covers it.
 
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { screen, within } from "@testing-library/react";
@@ -29,6 +29,7 @@ afterEach(resetAudit);
 
 const FILE = "/workspace/statements/july-statement.csv";
 const LONG_QUERY = "invoices from the July statement run across every vendor and every currency we hold";
+const LONG_COMMAND = "npm test -- billing/invoice billing/credit-note billing/statement --reporter=verbose";
 
 const stopping: BackgroundCommandContextValue = {
   onStop: () => undefined,
@@ -100,13 +101,16 @@ describe.each(COLOR_MODES)("tool-call rows (%s)", (mode) => {
 describe("a tool-call row's header in the browser", () => {
   it("sends a click on the title to the toggle, and one on the file control to the file", () => {
     const container = renderAudited(
-      <ToolCallItem toolUse={toolUse({ name: "Read", input: { path: FILE }, state: "running" })} />,
+      <ToolCallItem toolUse={toolUse({ name: "Read", input: { path: FILE }, result: "a,b\n1,2" })} />,
       "light",
       HIT_BOX,
     );
     const toggle = toggleOf(container);
     const header = toggle.parentElement!;
-    expect(hitAtCentre(within(header).getByText("Read"))).toBe(toggle);
+    // The step's words ("Read"), left of the file control the line names.
+    const line = within(header).getByText((_, element) => element?.textContent === "Read july-statement.csv" && element.tagName === "SPAN");
+    const box = line.getBoundingClientRect();
+    expect(document.elementFromPoint(box.left + 6, box.top + box.height / 2)).toBe(toggle);
     const file = within(header).getByRole("button", { name: new RegExp(`: ${FILE}$`) });
     expect(file.contains(hitAtCentre(file)), "the file control is lifted above the toggle").toBe(true);
   });
@@ -116,12 +120,12 @@ describe("a tool-call row's header in the browser", () => {
     // animation), which gives each its own stacking context: a toggle left at
     // z-index auto would paint under them and their clicks would reach nothing.
     const container = renderAudited(
-      <ToolCallItem toolUse={toolUse({ name: "Read", input: { path: FILE }, state: "running" })} />,
+      <ToolCallItem toolUse={toolUse({ name: "execute", input: { command: "npm test" }, state: "running" })} />,
       "light",
       HIT_BOX,
     );
     const toggle = toggleOf(container);
-    expect(toggle.getAttribute("aria-expanded"), "a running read opens on its own").toBe("true");
+    expect(toggle.getAttribute("aria-expanded"), "a running command opens on its own").toBe("true");
     const header = toggle.parentElement!;
     const chevron = header.querySelector('[class~="stg:rotate-90"]');
     const spinner = header.querySelector('[class~="stg:animate-spin"]');
@@ -144,19 +148,19 @@ describe("a tool-call row's header in the browser", () => {
     expect(stop.contains(hitAtCentre(stop)), "Stop is lifted above the toggle").toBe(true);
   });
 
-  it("shows a cut-off query in full on the toggle's hover, which the subtitle under it no longer can", async () => {
+  it("shows a cut-off command in full on the toggle's hover, which the detail under it no longer can", async () => {
     const container = renderAudited(
-      <ToolCallItem toolUse={toolUse({ name: "Grep", input: { pattern: LONG_QUERY }, result: "a.ts:1: x" })} />,
+      <ToolCallItem toolUse={toolUse({ name: "execute", input: { command: LONG_COMMAND }, result: "Tests: 3 passed" })} />,
       "light",
       { width: 320, height: 320 },
     );
     const toggle = toggleOf(container);
-    const subtitle = within(toggle.parentElement!).getByText(LONG_QUERY);
-    expect(subtitle.scrollWidth, "the query is cut off at this width").toBeGreaterThan(subtitle.clientWidth);
-    expect(hitAtCentre(subtitle), "the toggle covers the subtitle").toBe(toggle);
+    const detail = within(toggle.parentElement!).getByText(LONG_COMMAND);
+    expect(detail.scrollWidth, "the command is cut off at this width").toBeGreaterThan(detail.clientWidth);
+    expect(hitAtCentre(detail), "the toggle covers the detail").toBe(toggle);
 
     await userEvent.hover(toggle);
-    await vi.waitFor(() => expect(screen.getAllByText(LONG_QUERY)).toHaveLength(2), { timeout: 3000, interval: 50 });
+    await vi.waitFor(() => expect(screen.getAllByText(LONG_COMMAND)).toHaveLength(2), { timeout: 3000, interval: 50 });
     await userEvent.unhover(toggle);
   });
 });

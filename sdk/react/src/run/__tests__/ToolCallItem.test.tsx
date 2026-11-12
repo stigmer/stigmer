@@ -1031,11 +1031,11 @@ describe("ToolCallItem step line", () => {
 
   it("names an unknown tool's first argument beside its line", () => {
     const { container } = render(
-      <ToolCallItem toolUse={toolUse({ name: "frobnicate_widget", input: { widget: "w-42" }, result: "done" })} />,
+      <ToolCallItem toolUse={toolUse({ name: "frobnicate_widget", input: { widget: "widget-42" }, result: "done" })} />,
     );
     const header = rowHeader(container);
     expect(header.textContent).toContain("Frobnicate widget");
-    expect(within(header).getByText("w-42")).toBeTruthy();
+    expect(within(header).getByText("widget-42")).toBeTruthy();
   });
 
   it("reads a denied call as one it could not do, without the failed look", () => {

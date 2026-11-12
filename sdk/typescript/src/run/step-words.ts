@@ -170,7 +170,6 @@ export function stepTense(tool: ToolUse): StepTense {
   if (tool.state === "waiting") return "present";
   if (tool.state === "stopped") return "stopped";
   if (tool.result === undefined) return "present";
-  if (tool.result.isError) return "failed";
   if (resolveToolKind(tool) === "shell" && tool.background === undefined) {
     const view = normalizeToolResult(tool);
     if (view.type === "terminal" && view.exitCode !== undefined && view.exitCode !== 0) return "failed";

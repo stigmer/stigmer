@@ -112,10 +112,11 @@ conversation and memory tools are outside the lists.
 
 `auto_approve_all` on a run skips every approval, which suits automated
 processes where a human has already authorized the operation. At an approval,
-**Allow all … this turn** for one kind of tool (every shell command, or every tool of one
-server) stops asking about that kind for the rest of the run; at an approval a
-hook asked for, it approves the rest of what that hook asks about on that tool.
-Neither widens the Agent's tool lists, and a hook's refusal still holds.
+**Allow all … this turn** for one kind of tool (every shell command, or every
+tool of one server) stops asking about that kind for the rest of the run; at an
+approval a hook asked for, it approves the rest of what that hook asks about on
+that tool. Neither widens the Agent's tool lists, and a hook's refusal still
+holds.
 
 Embedding products can also set the _default_ for their interactive Sessions:
 `StigmerProvider`'s `approvalDefaults` prop pre-arms the session-scoped
