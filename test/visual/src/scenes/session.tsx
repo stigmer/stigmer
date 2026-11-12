@@ -61,6 +61,13 @@ export interface Framing {
   readonly audience?: SessionAudience;
   /** The console's framing: the inspector beside the conversation. */
   readonly inspector?: boolean;
+  /**
+   * How tall the view is drawn, in pixels; the viewport's height by
+   * default. A scene that opens steps is drawn tall enough to hold the whole
+   * turn, so its thread never scrolls: a click on a row in a scrolling
+   * thread races the thread's own pinning to its newest content.
+   */
+  readonly height?: number;
 }
 
 /**
@@ -219,7 +226,7 @@ export function sessionDrawing(replay: SessionReplay, framing: Framing = {}): Dr
     routes: sessionRoutes(replay),
     liveRoutes: () => new LiveConversation(replay).routes(),
     render: () => (
-      <div style={{ height: "calc(100vh - 48px)" }}>
+      <div style={{ height: framing.height === undefined ? "calc(100vh - 48px)" : `${framing.height}px` }}>
         <SessionViewer
           sessionId={session.metadata!.id}
           org={session.metadata!.org}

@@ -166,6 +166,8 @@ export function targetOf(tool: Pick<ToolUse, "name" | "mcpServerName" | "input">
  */
 export function stepTense(tool: ToolUse): StepTense {
   if (tool.state === "failed" || tool.state === "denied") return "failed";
+  // Waiting: worded as what it would do (stepPhrase), standing as open.
+  if (tool.state === "waiting") return "present";
   if (tool.state === "stopped") return "stopped";
   if (tool.result === undefined) return "present";
   if (tool.result.isError) return "failed";
@@ -176,17 +178,29 @@ export function stepTense(tool: ToolUse): StepTense {
   return "past";
 }
 
-/** `tool`'s line, in the tense it stands in (module header). */
+/**
+ * `tool`'s line, in the tense it stands in (module header). A call that
+ * waits for a person's yes has done nothing yet: it reads as what the agent
+ * wants to do ("Wants to write rounding.ts").
+ */
 export function stepPhrase(tool: ToolUse): StepPhrase {
+  const phrase = stepPhraseByTense(tool);
+  if (tool.state !== "waiting" || !phrase.text.startsWith("Couldn't ")) return phrase;
+  return { ...phrase, text: `Wants to ${phrase.text.slice("Couldn't ".length)}` };
+}
+
+function stepPhraseByTense(tool: ToolUse): StepPhrase {
   const tense = stepTense(tool);
   // A step its turn stopped did not get done: it reads as one that couldn't.
-  const form: Exclude<StepTense, "stopped"> = tense === "stopped" ? "failed" : tense;
+  // A waiting one takes the same form, which stepPhrase turns into a want.
+  const form: Exclude<StepTense, "stopped"> = tense === "stopped" || tool.state === "waiting" ? "failed" : tense;
   const kind = resolveToolKind(tool);
   const app = tool.mcpServerName;
   if (kind === "mcp" || kind === "unknown") return { text: humanizeToolName(tool.name), tense, folder: "", app };
   if (kind === "shell") {
     const description = textAt(tool, "description").replace(/\s+/g, " ").trim();
-    return { text: description === "" ? phraseOf(KIND_WORDS.shell[form], "") : short(description), tense, folder: "", app };
+    const words = tool.state === "waiting" ? "Wants to run a command" : phraseOf(KIND_WORDS.shell[form], "");
+    return { text: description === "" ? words : short(description), tense, folder: "", app };
   }
   if (kind === "search" && FILE_NAME_SEARCHES.has(tool.name)) {
     const pattern = short(textAt(tool, "pattern"));

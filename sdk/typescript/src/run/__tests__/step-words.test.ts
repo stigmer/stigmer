@@ -4,7 +4,8 @@
 // a file line names the file and keeps its folder beside it; a search names
 // its pattern and the folder it searched, a search by file name says it found
 // files; a command reads as the agent's own description when it wrote one;
-// a call its turn stopped reads as one that couldn't; a connected app's tool
+// a call its turn stopped reads as one that couldn't, one waiting for a yes
+// as what the agent wants to do; a connected app's tool
 // and a tool the kit does not know read as their own
 // names, humanized, with the app beside them; and the one word table the
 // working phrase and the settled roll-up also read.
@@ -14,7 +15,7 @@ import type { JsonObject } from "@bufbuild/protobuf";
 import type { ToolUse } from "@stigmer/session-log";
 import { humanizeToolName, KIND_WORDS, stepPhrase, stepTense } from "../step-words";
 
-type Outcome = "running" | "returned" | "failed" | "denied" | "stopped";
+type Outcome = "running" | "returned" | "failed" | "denied" | "stopped" | "waiting";
 
 function call(name: string, input: JsonObject, outcome: Outcome = "returned", text = "ok", mcpServerName = ""): ToolUse {
   const returned = outcome === "returned" || outcome === "failed";
@@ -27,7 +28,7 @@ function call(name: string, input: JsonObject, outcome: Outcome = "returned", te
     mcpServerName,
     input,
     evaluatedPermission: "",
-    state: outcome === "running" ? "running" : outcome === "denied" ? "denied" : outcome === "failed" ? "failed" : outcome === "stopped" ? "stopped" : "completed",
+    state: outcome === "running" ? "running" : outcome === "denied" ? "denied" : outcome === "failed" ? "failed" : outcome === "stopped" ? "stopped" : outcome === "waiting" ? "waiting" : "completed",
     ask: undefined,
     confirmation: undefined,
     grant: undefined,
@@ -83,6 +84,14 @@ describe("stepPhrase", () => {
     expect(stepPhrase(call("delete_file", { path: "src/x.ts" }, "stopped"))).toMatchObject({ text: "Couldn't delete x.ts", tense: "stopped", folder: "src" });
     expect(stepPhrase(call("execute", { command: "npm test" }, "stopped")).text).toBe("Command failed");
     expect(stepPhrase(call("glob", { pattern: "*.md" }, "stopped")).text).toBe("Couldn't find files matching *.md");
+  });
+
+  it("reads a call waiting for a person's yes as what the agent wants to do", () => {
+    expect(stepPhrase(call("write_file", { path: "src/billing/rounding.ts" }, "waiting"))).toMatchObject({ text: "Wants to write rounding.ts", tense: "present", folder: "src/billing" });
+    expect(stepPhrase(call("execute", { command: "git push" }, "waiting")).text).toBe("Wants to run a command");
+    expect(stepPhrase(call("execute", { command: "git push", description: "Push the fix" }, "waiting")).text).toBe("Push the fix");
+    expect(stepPhrase(call("glob", { pattern: "*.md" }, "waiting")).text).toBe("Wants to find files matching *.md");
+    expect(stepPhrase(call("create_issue", {}, "waiting", "", "tracker")).text).toBe("Create issue");
   });
 
   it("reads a denied call as failed", () => {
