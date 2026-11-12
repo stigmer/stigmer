@@ -288,17 +288,21 @@ function StartReporter({ onReady }: { onReady: () => void }) {
 How many versions an agent has, for a count (a tab badge): the length of
 the history's first page, and whether more follow. `0` while loading,
 for an agent with no version yet, and when `org` or `slug` is `null`.
+`currentVersion` (the agent's `status.versionHash`, as the caller holds
+it) reads the count again when it changes, so a save that made a new
+version shows in the count at once.
 
 **Signature**
 
 ```tsx
-function useAgentVersionCount(org: string | null, slug: string | null): AgentVersionCount
+function useAgentVersionCount(org: string | null, slug: string | null, currentVersion?: string): AgentVersionCount
 ```
 
 <TypeTable
   type={{
     org: { type: "string | null", description: "", required: true },
     slug: { type: "string | null", description: "", required: true },
+    currentVersion: { type: "string", description: "" },
   }}
 />
 

@@ -57,6 +57,7 @@ One quiet line under the launcher's heading naming the journey's next step, from
 
 <TypeTable
   type={{
+    className: { type: "string", description: "" },
     enabled: { type: "boolean", description: "Whether to read the journey at all; the launcher asks only once its first state has ended.", required: true },
     links: { type: "JourneyLinks", description: "", required: true, typeDescriptionLink: "#journeylinks" },
     org: { type: "string", description: "", required: true },
