@@ -77,7 +77,7 @@ export type ScenarioName = (typeof SCENARIO_NAMES)[number];
  * docs play, the first agent job's ledger turn, or one of the step turns
  * ({@link STEP_STORY_NAMES}).
  */
-export type StoryName = "scripted-turn" | "ledger-turn" | StepStoryName;
+export type StoryName = "scripted-turn" | "ledger-turn" | StepStoryName | EndingStoryName;
 
 /** What the session's usage report says, in the few figures the surfaces show. */
 export interface ScenarioUsage {
@@ -635,7 +635,7 @@ export interface ScriptedTurn {
   readonly approved: readonly SessionEvent[];
   /** After the person denies it: their answer, the agent's reply from the two files alone, and the turn's end. */
   readonly denied: readonly SessionEvent[];
-  /** After the person stops the turn: its end, interrupted. */
+  /** After the person stops the turn: its end, stopped by them (stop cause `user`). */
   readonly stopped: readonly SessionEvent[];
 }
 
@@ -696,7 +696,7 @@ export function scriptedTurn(message: string = SCRIPTED_MESSAGE, runId: string =
       ),
       samples.runStatusEvent("completed", o(9_500)),
     ],
-    stopped: [samples.runStatusEvent("cancelled", { ...o(8_000), stopCause: "interrupted" })],
+    stopped: [samples.runStatusEvent("cancelled", { ...o(8_000), stopCause: "user" })],
   };
 }
 
@@ -1140,3 +1140,270 @@ export const stepStories: Readonly<Record<StepStoryName, Scenario>> = {
   "file-steps": buildStepStory("file-steps"),
   "shell-steps": buildStepStory("shell-steps"),
 };
+
+// ---------------------------------------------------------------------------
+// The ending turns: every way a turn ends badly, one story per kind, so the
+// session view's failure words are pinned against each before they change
+// ---------------------------------------------------------------------------
+
+/**
+ * The ending turns, one per kind of ending the runner names
+ * (`StigmerStopDetail.kind`), then the stops whose cause says it all and the
+ * endings of a runner that named no kind. Stories, not states: the terminal's
+ * frames and the CLI's goldens draw the states, and these only the session
+ * view does.
+ */
+export const ENDING_STORY_NAMES = [
+  "fail-key-rejected",
+  "fail-key-missing",
+  "fail-out-of-credit",
+  "fail-rate-limited",
+  "fail-overloaded",
+  "fail-model-unavailable",
+  "fail-unreachable",
+  "fail-request-rejected",
+  "fail-cost-cap",
+  "fail-tool-call-limit",
+  "fail-stalled",
+  "fail-operation-limit",
+  "fail-workspace-busy",
+  "fail-agent-setup",
+  "fail-app-unreachable",
+  "fail-app-sign-in",
+  "fail-internal",
+  "fail-runner-lost",
+  "fail-platform-stop",
+  "fail-user-stop",
+  "fail-generic-model",
+  "fail-generic-failed",
+] as const;
+
+/** One of the ending turns. */
+export type EndingStoryName = (typeof ENDING_STORY_NAMES)[number];
+
+/** How an ending turn ends: its phase, cause, detail and error, and whether it stops part-way through the busy turn's plan. */
+interface Ending {
+  readonly title: string;
+  readonly phase: TurnPhase;
+  readonly stopCause: string;
+  readonly kind?: string;
+  readonly app?: string;
+  readonly error: string;
+  /** The turn had worked part-way when it ended: two of five to-dos done and the edit made. */
+  readonly midPlan?: boolean;
+}
+
+const ENDING_MODEL = "claude-sonnet-4-6";
+const ENDING_APP = "issue-tracker";
+const MODEL_LABEL = `model "${ENDING_MODEL}" (Anthropic)`;
+
+/** Each ending as the runner writes it today (its error's bytes from `backend/services/runner`). */
+const ENDINGS: Readonly<Record<EndingStoryName, Ending>> = {
+  "fail-key-rejected": {
+    title: "the provider refused the organization's model key",
+    phase: "failed",
+    stopCause: "model_error",
+    kind: "provider_key_rejected",
+    error: `[LLM_AUTHENTICATION_ERROR] Anthropic rejected your organization's own key (authentication, HTTP 401) for ${MODEL_LABEL}. Update the key on the Models & providers page.`,
+  },
+  "fail-key-missing": {
+    title: "the organization has no key for the model's provider",
+    phase: "failed",
+    stopCause: "model_error",
+    kind: "provider_key_missing",
+    error: "[LLM_PROVIDER_KEY_REQUIRED] This organization has no Anthropic key. An admin can add one on the Models & providers page.",
+  },
+  "fail-out-of-credit": {
+    title: "the provider account is out of credit",
+    phase: "failed",
+    stopCause: "model_error",
+    kind: "provider_out_of_credit",
+    error:
+      "[LLM_PROVIDER_BILLING] Your organization's own Anthropic key is out of credits or over quota. Add credits to that provider account, or update the key on the Models & providers page. Provider message: Your credit balance is too low to access the Anthropic API.",
+  },
+  "fail-rate-limited": {
+    title: "the provider limited the request rate",
+    phase: "failed",
+    stopCause: "model_error",
+    kind: "provider_rate_limited",
+    error: `[LLM_RATE_LIMIT] Rate limit exceeded for ${MODEL_LABEL}. Try again later or reduce request frequency.`,
+  },
+  "fail-overloaded": {
+    title: "the provider was overloaded",
+    phase: "failed",
+    stopCause: "model_error",
+    kind: "provider_overloaded",
+    error: `[LLM_PROVIDER_ERROR] Anthropic returned a server error (HTTP 529) for ${MODEL_LABEL}: Overloaded`,
+  },
+  "fail-model-unavailable": {
+    title: "the model isn't available to the key",
+    phase: "failed",
+    stopCause: "model_error",
+    kind: "model_unavailable",
+    error: `[LLM_MODEL_NOT_FOUND] Model not found: ${MODEL_LABEL}. Verify the model name is correct and available in your account.`,
+  },
+  "fail-unreachable": {
+    title: "the provider couldn't be reached",
+    phase: "failed",
+    stopCause: "model_error",
+    kind: "provider_unreachable",
+    error: `[LLM_CONNECTION_ERROR] Connection failed for ${MODEL_LABEL}: fetch failed`,
+  },
+  "fail-request-rejected": {
+    title: "the provider refused the request itself",
+    phase: "failed",
+    stopCause: "model_error",
+    kind: "request_rejected",
+    error: `[LLM_BAD_REQUEST] Invalid request to ${MODEL_LABEL}: prompt is too long: 214031 tokens > 200000 maximum`,
+  },
+  "fail-cost-cap": {
+    title: "the turn reached its spending cap",
+    phase: "terminated",
+    stopCause: "budget_reached",
+    kind: "cost_cap",
+    error: "Agent reached the cost limit for this message (~$5.0213 of the $5.00 budget). Send another message to continue.",
+    midPlan: true,
+  },
+  "fail-tool-call-limit": {
+    title: "the turn reached its step limit",
+    phase: "terminated",
+    stopCause: "budget_reached",
+    kind: "tool_call_limit",
+    error: "Agent reached the tool-call limit for this message. Send another message to continue.",
+    midPlan: true,
+  },
+  "fail-stalled": {
+    title: "the turn stopped making progress",
+    phase: "failed",
+    stopCause: "timeout",
+    kind: "stalled",
+    error: "[StallTimeoutError] Agent stream stalled: no activity for 600s (last tool: execute). Retry or resume.",
+    midPlan: true,
+  },
+  "fail-operation-limit": {
+    title: "a step ran past its time limit",
+    phase: "failed",
+    stopCause: "timeout",
+    kind: "operation_limit",
+    error: "[OperationLimitError] `execute` ran for more than 60 minutes without finishing. Retry or resume.",
+    midPlan: true,
+  },
+  "fail-workspace-busy": {
+    title: "another turn held the workspace",
+    phase: "failed",
+    stopCause: "timeout",
+    kind: "workspace_busy",
+    error:
+      "Workspace is in use by another session: /workspace/billing (waited 300s). Another agent execution is operating on this workspace directory; retry after it finishes.",
+  },
+  "fail-agent-setup": {
+    title: "the agent is set up wrong",
+    phase: "failed",
+    stopCause: "failed",
+    kind: "agent_setup",
+    error: "Billing fixer's tools list names no tool this turn has: [linear:create_issue]. Fix the list or remove it; an empty list means every tool.",
+  },
+  "fail-app-unreachable": {
+    title: "a connected app wouldn't connect",
+    phase: "failed",
+    stopCause: "failed",
+    kind: "app_unreachable",
+    app: ENDING_APP,
+    error: `[MCPClientError] Failed to connect to streamable HTTP server "${ENDING_APP}, url: https://mcp.tracker.example/mcp": fetch failed`,
+  },
+  "fail-app-sign-in": {
+    title: "a connected app needs a sign-in",
+    phase: "failed",
+    stopCause: "failed",
+    kind: "app_needs_sign_in",
+    app: ENDING_APP,
+    error: `[OAuthRequiredError] MCP server '${ENDING_APP}' requires OAuth: its endpoint returned an authentication challenge (HTTP 401). A manually-entered API token will not work here — connect it with the OAuth "Sign in" flow instead.`,
+  },
+  "fail-internal": {
+    title: "something broke on Stigmer's side",
+    phase: "failed",
+    stopCause: "failed",
+    kind: "internal",
+    error: "[TypeError] Cannot read properties of undefined (reading 'content')",
+  },
+  "fail-runner-lost": {
+    title: "the machine running the turn stopped",
+    phase: "failed",
+    stopCause: "infrastructure",
+    kind: "runner_lost",
+    error: "Execution interrupted: runner worker was shut down. Retry or resume.",
+    midPlan: true,
+  },
+  "fail-platform-stop": {
+    title: "Stigmer stopped the turn",
+    phase: "completed",
+    stopCause: "platform_stop",
+    error: "",
+    midPlan: true,
+  },
+  "fail-user-stop": {
+    title: "the person stopped the turn",
+    phase: "cancelled",
+    stopCause: "user",
+    error: "",
+    midPlan: true,
+  },
+  "fail-generic-model": {
+    title: "the model failed the turn, and the runner named no kind",
+    phase: "failed",
+    stopCause: "model_error",
+    error: "The Claude Agent SDK failed: error_during_execution",
+  },
+  "fail-generic-failed": {
+    title: "the turn failed, and the runner named no kind",
+    phase: "failed",
+    stopCause: "failed",
+    error: "[Error] socket hang up",
+  },
+};
+
+/** The busy turn's first steps: the to-do list, a search, a read and the edit, two of five to-dos done. */
+function partWayEvents(): SessionEvent[] {
+  const todos = [
+    { content: "Find every place invoices round", status: "completed" },
+    { content: "Round once, at the invoice total", status: "completed" },
+    { content: "Apply the same rule to credit notes", status: "in_progress" },
+    { content: "Add tests for the half-cent cases", status: "pending" },
+    { content: "Run the billing suite", status: "pending" },
+  ];
+  return [
+    samples.userMessageEvent("Invoices are off by a cent across the billing module. Find every place that rounds, fix it, and prove it with tests."),
+    samples.runStatusEvent("running"),
+    ...call("write_todos", { todos }, 3_000, "Updated the to-do list", 200),
+    ...call("grep", { pattern: "round(", path: "src/billing" }, 6_000, "src/billing/invoice.ts:41\nsrc/billing/credit-note.ts:18"),
+    ...call("read_file", { path: "src/billing/invoice.ts" }, 9_000, "export function invoiceTotal(lines: readonly Line[]) {"),
+    ...call("edit_file", { path: "src/billing/invoice.ts" }, 21_000, "1 edit applied", 800),
+    samples.agentMessageEvent("Invoice totals now round once. Next, credit notes.", { id: `${RUN_ID}.root.m1`, processedAt: sampleInstant(30_000) }),
+  ];
+}
+
+/** Builds the ending turn `name`. */
+function buildEndingStory(name: EndingStoryName): Scenario {
+  const ending = ENDINGS[name];
+  const detail =
+    ending.kind === undefined
+      ? {}
+      : {
+          stopDetail: {
+            kind: ending.kind,
+            ...(ending.stopCause === "model_error" ? { model: ENDING_MODEL } : {}),
+            ...(ending.app === undefined ? {} : { app: ending.app }),
+          },
+        };
+  const start = ending.midPlan === true ? partWayEvents() : samples.turnEvents({ message: "Invoices are off by a cent. Can you fix the rounding?", phase: "running", reply: "" });
+  const endAt = ending.midPlan === true ? 90_000 : 400;
+  return loaded(name, ending.title, [
+    ...start,
+    samples.runStatusEvent(ending.phase, { stopCause: ending.stopCause, error: ending.error, processedAt: sampleInstant(endAt), ...detail }),
+  ]);
+}
+
+/** Every ending turn, by name. Built once; treat them as read-only. */
+export const endingStories: Readonly<Record<EndingStoryName, Scenario>> = Object.fromEntries(
+  ENDING_STORY_NAMES.map((name) => [name, buildEndingStory(name)]),
+) as Record<EndingStoryName, Scenario>;

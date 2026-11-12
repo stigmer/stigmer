@@ -40,7 +40,16 @@ import { RoutineQueryController } from "@stigmer/apis/ai/stigmer/agentic/routine
 import { PlatformQueryController } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
 import { OrganizationQueryController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/query_pb";
 import { SessionInspector, SessionViewer, type SessionAudience } from "@stigmer/react-sdk";
-import { samples, scenarios, stepStories, type Scenario, type ScenarioName, type StepStoryName } from "@stigmer/react-sdk/test";
+import {
+  endingStories,
+  samples,
+  scenarios,
+  stepStories,
+  type EndingStoryName,
+  type Scenario,
+  type ScenarioName,
+  type StepStoryName,
+} from "@stigmer/react-sdk/test";
 import { ACCOUNT } from "../fixtures.ts";
 import { LiveConversation } from "../live-server.ts";
 import type { Drawing } from "./drawing.ts";
@@ -195,6 +204,11 @@ export function sessionRoutes(scenario: SessionReplay, { agent = samples.agent()
 /** The session view over the `name` state, framed as given (an embed's by default: the conversation alone). */
 export function sessionScene(name: ScenarioName, framing: Framing = {}): Drawing {
   return sessionDrawing(scenarios[name], framing);
+}
+
+/** The session view over the ending turn `name`, framed as given. */
+export function endingStoryScene(name: EndingStoryName, framing: Framing = {}): Drawing {
+  return sessionDrawing(endingStories[name], framing);
 }
 
 /** The session view over the step turn `name`, framed as given. */

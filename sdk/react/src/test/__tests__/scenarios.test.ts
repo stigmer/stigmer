@@ -29,6 +29,8 @@ import {
   scriptedStory,
   scriptedTurn,
   STEP_STORY_NAMES,
+  ENDING_STORY_NAMES,
+  endingStories,
   stepStories,
   upTo,
   usageOf,
@@ -401,5 +403,36 @@ describe("the step turns", () => {
     expect(turn.asks.map((ask) => ask.id)).toEqual([tools[6]!.id]);
     expect(story.outputs).toHaveLength(2);
     expect(upTo(story, story.events.length - 1).outputs).toBeUndefined();
+  });
+});
+
+describe("the ending turns", () => {
+  it("names every ending once, under its own name, outside the states every surface draws", () => {
+    expect(Object.keys(endingStories)).toEqual([...ENDING_STORY_NAMES]);
+    for (const name of ENDING_STORY_NAMES) {
+      expect(endingStories[name].name).toBe(name);
+      expect((SCENARIO_NAMES as readonly string[]).includes(name)).toBe(false);
+    }
+  });
+
+  it("ends each turn with its cause, and the kind the runner names, on the turn's status", () => {
+    const status = (name: (typeof ENDING_STORY_NAMES)[number]) => endingStories[name].fold.turns[0]!.status;
+    expect(status("fail-key-rejected")).toMatchObject({
+      phase: "failed",
+      stopCause: "model_error",
+      stopDetail: { kind: "provider_key_rejected", model: "claude-sonnet-4-6", app: "" },
+    });
+    expect(status("fail-app-unreachable")).toMatchObject({ stopCause: "failed", stopDetail: { kind: "app_unreachable", model: "", app: "issue-tracker" } });
+    expect(status("fail-cost-cap")).toMatchObject({ phase: "terminated", stopCause: "budget_reached", stopDetail: { kind: "cost_cap" } });
+    expect(status("fail-user-stop")).toMatchObject({ phase: "cancelled", stopCause: "user" });
+    expect(status("fail-user-stop")?.stopDetail).toBeUndefined();
+    expect(status("fail-generic-model")?.stopDetail).toBeUndefined();
+    for (const name of ENDING_STORY_NAMES) expect(endingStories[name].fold.turns[0]!.ended, name).toBe(true);
+  });
+
+  it("stops part-way through the plan where the ending interrupts work: two of five to-dos done", () => {
+    const todos = endingStories["fail-stalled"].fold.turns[0]!.todos;
+    expect(todos.map((todo) => todo.status)).toEqual(["completed", "completed", "in_progress", "pending", "pending"]);
+    expect(endingStories["fail-key-rejected"].fold.turns[0]!.todos).toEqual([]);
   });
 });
