@@ -607,6 +607,9 @@ export class SessionLog {
         turn.status = {
           phase: e.value.phase as TurnPhase,
           stopCause: e.value.stopCause,
+          ...(e.value.stopDetail === undefined || e.value.stopDetail.kind === ""
+            ? {}
+            : { stopDetail: { kind: e.value.stopDetail.kind, model: e.value.stopDetail.model, app: e.value.stopDetail.app } }),
           error: e.value.error,
           processedAt: at,
         };

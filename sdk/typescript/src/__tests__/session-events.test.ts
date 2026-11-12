@@ -314,11 +314,13 @@ describe("sendAndWait and waitForTurn", () => {
 
     const after = [
       event(6, R, { case: "userToolConfirmation", value: { id: "c", toolUseId: `${R}.c1`, result: "deny", denyMessage: "no" } }),
-      event(7, R, { case: "stigmerRunStatus", value: { id: "s3", phase: "failed", stopCause: "failed", error: "boom" } }),
+      event(7, R, { case: "stigmerRunStatus", value: { id: "s3", phase: "failed", stopCause: "failed", error: "boom", stopDetail: { kind: "app_unreachable", app: "issues" } } }),
     ];
     const { client: next } = logDouble([...waiting], [after]);
     const done = await waitForTurn(next, "ses_new", R, { afterSeq: asked.lastSeq, sleep: noWait });
     expect([done.phase, done.stopCause, done.error, done.asks, done.run]).toEqual(["failed", "failed", "boom", [], undefined]);
+    expect(done.stopDetail).toEqual({ kind: "app_unreachable", model: "", app: "issues" });
+    expect(asked.stopDetail, "a turn that waits has not ended").toBeUndefined();
   });
 
   it("an abort stops the wait with a cancelled error; a run that names no session is refused", async () => {

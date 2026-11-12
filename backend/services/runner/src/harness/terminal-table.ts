@@ -67,6 +67,7 @@
 import { create } from "@bufbuild/protobuf";
 import type { RunStatus } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { StigmerStopDetailSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_content_pb";
 
 import { COST_LIMIT_USER_COPY, formatCostLimitError } from "../shared/cost-guard.js";
 import { TOOL_CALL_LIMIT_USER_COPY, formatToolCallLimitError } from "../shared/tool-rounds.js";
@@ -75,6 +76,7 @@ import { formatOperationLimitFailure, type OperationLimitError } from "./open-op
 import { utcTimestamp } from "../shared/status.js";
 import type { WorkspaceLockTimeoutError } from "../shared/workspace/workspace-lock.js";
 import type { FailureSurface } from "./types.js";
+import type { StopDetail } from "../shared/stop-kind.js";
 import type { MockAbort } from "./stop-controller.js";
 import { formatTryStop } from "@stigmer/eval-runtime";
 import { AgentMessageSchema, type TurnRows } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
@@ -140,6 +142,12 @@ export interface TerminalArm {
   readonly completes: boolean;
   /** `status.stop_cause`; `null` for an arm whose turn waits rather than stops. */
   readonly stopCause: StopCause | null;
+  /**
+   * `status.stop_detail`: which kind of ending the stop cause was, and the
+   * model or app it names (`shared/stop-kind.ts`). Absent where the cause
+   * says it all (a person's stop, the platform's, an eval's, a review's).
+   */
+  readonly stopDetail?: StopDetail;
   readonly disposition: TerminalDisposition;
 }
 
@@ -198,6 +206,7 @@ export function stallArm(error: StallTimeoutError): TerminalArm {
     ],
     completes: true,
     stopCause: "timeout",
+    stopDetail: { kind: "stalled" },
     disposition: RETURN,
   };
 }
@@ -217,6 +226,7 @@ export function operationLimitArm(error: OperationLimitError): TerminalArm {
     rows: [`Execution failed: ${error.message} and was stopped. You can retry or resume.`],
     completes: true,
     stopCause: "timeout",
+    stopDetail: { kind: "operation_limit" },
     disposition: RETURN,
   };
 }
@@ -273,6 +283,7 @@ export function costCapArm(maxCostUsd: number, estimatedCostUsd: number): Termin
     rows: [COST_LIMIT_USER_COPY],
     completes: true,
     stopCause: "budget_reached",
+    stopDetail: { kind: "cost_cap" },
     disposition: RETURN,
   };
 }
@@ -291,6 +302,7 @@ export function toolCallLimitArm(): TerminalArm {
     rows: [TOOL_CALL_LIMIT_USER_COPY],
     completes: true,
     stopCause: "budget_reached",
+    stopDetail: { kind: "tool_call_limit" },
     disposition: RETURN,
   };
 }
@@ -406,6 +418,7 @@ export function workspaceLockTimeoutArm(error: WorkspaceLockTimeoutError): Termi
     rows: [`Execution failed: ${error.message}`],
     completes: true,
     stopCause: "timeout",
+    stopDetail: { kind: "workspace_busy" },
     disposition: RETURN,
   };
 }
@@ -439,8 +452,12 @@ export function fileReviewResolvedArm(settlement: {
  * The adapter settled `failed`. The surface picks the copy (the three
  * shapes of `types.ts` `FailureSurface`); `message` is
  * the adapter's user-facing sentence and becomes `status.error` whole.
+ * `detail` is the failure's kind when the adapter named one; absent, the
+ * surface's own applies: `actionable` is the agent's setup, `internal` the
+ * platform's fault, and the engine's own failure names none (its stop cause,
+ * `model_error`, is all that is known).
  */
-export function failedArm(message: string, surface: FailureSurface): TerminalArm {
+export function failedArm(message: string, surface: FailureSurface, detail?: StopDetail): TerminalArm {
   const rows = ((): readonly string[] => {
     switch (surface) {
       case "engine":
@@ -458,8 +475,24 @@ export function failedArm(message: string, surface: FailureSurface): TerminalArm
   // The engine's own failure is the model provider's (a refused or failed
   // model request); every other surface is a failure of the turn.
   const stopCause: StopCause = surface === "engine" ? "model_error" : "failed";
-  return { phase: RunPhase.RUN_FAILED, error: message, rows, completes: true, stopCause, disposition: RETURN };
+  const stopDetail = detail ?? SURFACE_KIND[surface];
+  return {
+    phase: RunPhase.RUN_FAILED,
+    error: message,
+    rows,
+    completes: true,
+    stopCause,
+    ...(stopDetail !== undefined ? { stopDetail } : {}),
+    disposition: RETURN,
+  };
 }
+
+/** A failure's kind when its adapter named none, by surface. */
+const SURFACE_KIND: Readonly<Record<FailureSurface, StopDetail | undefined>> = {
+  engine: undefined,
+  actionable: { kind: "agent_setup" },
+  internal: { kind: "internal" },
+};
 
 /**
  * An error the runtime caught itself, outside any adapter (a resolution
@@ -498,7 +531,8 @@ function appendSystemRows(rows: Pick<TurnRows, "messages">, contents: readonly s
 }
 
 /**
- * Write an arm onto the status (phase, error, completion stamp, stop cause)
+ * Write an arm onto the status (phase, error, completion stamp, stop cause
+ * and its detail)
  * and its rows and note onto the turn's rows. The caller persists and
  * disposes. Returns the root positions of the rows it appended: they repeat
  * the stop the session's status events and the stop cause already say, so
@@ -511,6 +545,7 @@ export function applyTerminalArm(status: RunStatus, rows: Pick<TurnRows, "messag
   if (arm.error !== undefined) status.error = arm.error;
   if (arm.completes) status.completedAt = utcTimestamp();
   if (arm.stopCause !== null) status.stopCause = arm.stopCause;
+  if (arm.stopDetail !== undefined) status.stopDetail = create(StigmerStopDetailSchema, arm.stopDetail);
   const first = rows.messages.length;
   appendSystemRows(rows, arm.rows);
   if (arm.note !== undefined) appendSystemRows(rows, [arm.note]);

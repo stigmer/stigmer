@@ -26,11 +26,19 @@ import type { RunTransition, SessionNow, SessionStatusNow } from "../transitions
 
 const P = RunPhase;
 
-function run(phase: RunPhase, extra: { error?: string; message?: string; stopCause?: string } = {}): Run {
+function run(
+  phase: RunPhase,
+  extra: { error?: string; message?: string; stopCause?: string; stopDetail?: { kind: string; model?: string; app?: string } } = {},
+): Run {
   return create(RunSchema, {
     metadata: { id: "run_1" },
     spec: { target: { case: "sessionId", value: "ses_1" }, message: extra.message ?? "summarise the repo" },
-    status: { phase, error: extra.error ?? "", stopCause: extra.stopCause ?? "" },
+    status: {
+      phase,
+      error: extra.error ?? "",
+      stopCause: extra.stopCause ?? "",
+      ...(extra.stopDetail !== undefined ? { stopDetail: extra.stopDetail } : {}),
+    },
   });
 }
 
@@ -198,6 +206,27 @@ describe("a run that stops working", () => {
     }
   });
 
+  it("a failed turn's stop detail picks Anthropic's kind where its vocabulary has the word", () => {
+    const failed = (stopCause: string, stopDetail: { kind: string; app?: string }) =>
+      eventsFor({ kind: "update", previousPhase: P.RUN_IN_PROGRESS, run: run(P.RUN_FAILED, { error: "x", stopCause, stopDetail }) })[0]!.event;
+    const cases: readonly (readonly [string, string, string])[] = [
+      ["model_error", "provider_rate_limited", "model_rate_limited_error"],
+      ["model_error", "provider_overloaded", "model_overloaded_error"],
+      ["model_error", "provider_out_of_credit", "billing_error"],
+      ["model_error", "provider_key_rejected", "model_request_failed_error"],
+      ["model_error", "model_unavailable", "model_request_failed_error"],
+      ["failed", "app_unreachable", "mcp_connection_failed_error"],
+      ["failed", "app_needs_sign_in", "mcp_authentication_failed_error"],
+      ["failed", "internal", "unknown_error"],
+      ["infrastructure", "runner_lost", "unknown_error"],
+    ];
+    for (const [stopCause, kind, type] of cases) {
+      const error = failed(stopCause, { kind, ...(kind.startsWith("app_") ? { app: "issues" } : {}) });
+      expect(error.case === "sessionError" && error.value.error?.type, kind).toBe(type);
+      expect(error.case === "sessionError" && error.value.error?.mcpServerName, kind).toBe(kind.startsWith("app_") ? "issues" : "");
+    }
+  });
+
   it("writes no idle while another run of the session still works; FAILED still reports its error", () => {
     expect(types(update(P.RUN_IN_PROGRESS, P.RUN_COMPLETED), 1)).toEqual([]);
     expect(types(update(P.RUN_IN_PROGRESS, P.RUN_FAILED, "x"), 1)).toEqual(["session.error"]);
@@ -218,6 +247,18 @@ describe("the turn's own status", () => {
       event.event.case === "stigmerRunStatus" ? [event.event.value] : [],
     );
   }
+
+  it("an ended turn carries its stop detail; a turn that ended without one carries none", () => {
+    const [ended] = runStatus({
+      kind: "update",
+      previousPhase: P.RUN_IN_PROGRESS,
+      run: run(P.RUN_FAILED, { error: "x", stopCause: "model_error", stopDetail: { kind: "provider_key_rejected", model: "claude-sonnet-4-6" } }),
+    });
+    expect(ended?.stopDetail?.kind).toBe("provider_key_rejected");
+    expect(ended?.stopDetail?.model).toBe("claude-sonnet-4-6");
+    const [plain] = runStatus({ kind: "update", previousPhase: P.RUN_IN_PROGRESS, run: run(P.RUN_CANCELLED, { stopCause: "user" }) });
+    expect(plain?.stopDetail).toBeUndefined();
+  });
 
   it("creation states the turn's phase after its message and before the session's status", () => {
     const events = allEventsFor({ kind: "create", run: run(P.RUN_PENDING) });

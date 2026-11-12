@@ -14,5 +14,8 @@
     "requestedServiceTier": "SERVICE_TIER_STANDARD",
     "requestedThinkingMode": "THINKING_MODE_DISABLED"
   },
-  "stopCause": "budget_reached"
+  "stopCause": "budget_reached",
+  "stopDetail": {
+    "kind": "tool_call_limit"
+  }
 }

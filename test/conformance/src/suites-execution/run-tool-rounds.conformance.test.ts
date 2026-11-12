@@ -123,6 +123,8 @@ describe("Run run_config.max_tool_rounds", () => {
     ).toBe(true);
     expect(error, `execution ${executionId}: the copy carries no internal event count`).not.toMatch(/\d+ events?/);
     expect(final.status?.completedAt, `execution ${executionId}: a budget stop is a finished run`).not.toBe("");
+    expect(final.status?.stopCause, `execution ${executionId}: the budget's cause`).toBe("budget_reached");
+    expect(final.status?.stopDetail?.kind, `execution ${executionId}: which budget it was`).toBe("tool_call_limit");
 
     expect(
       mcp.capturedRequests().filter((request) => request.method === "tools/call"),

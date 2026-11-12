@@ -542,18 +542,20 @@ class DeltaContent(_message.Message):
     def __init__(self, content: _Optional[_Union[_event_content_pb2.ContentBlock, _Mapping]] = ..., type: _Optional[str] = ..., index: _Optional[int] = ...) -> None: ...
 
 class StigmerRunStatusEvent(_message.Message):
-    __slots__ = ("id", "processed_at", "phase", "stop_cause", "error")
+    __slots__ = ("id", "processed_at", "phase", "stop_cause", "error", "stop_detail")
     ID_FIELD_NUMBER: _ClassVar[int]
     PROCESSED_AT_FIELD_NUMBER: _ClassVar[int]
     PHASE_FIELD_NUMBER: _ClassVar[int]
     STOP_CAUSE_FIELD_NUMBER: _ClassVar[int]
     ERROR_FIELD_NUMBER: _ClassVar[int]
+    STOP_DETAIL_FIELD_NUMBER: _ClassVar[int]
     id: str
     processed_at: str
     phase: str
     stop_cause: str
     error: str
-    def __init__(self, id: _Optional[str] = ..., processed_at: _Optional[str] = ..., phase: _Optional[str] = ..., stop_cause: _Optional[str] = ..., error: _Optional[str] = ...) -> None: ...
+    stop_detail: _event_content_pb2.StigmerStopDetail
+    def __init__(self, id: _Optional[str] = ..., processed_at: _Optional[str] = ..., phase: _Optional[str] = ..., stop_cause: _Optional[str] = ..., error: _Optional[str] = ..., stop_detail: _Optional[_Union[_event_content_pb2.StigmerStopDetail, _Mapping]] = ...) -> None: ...
 
 class StigmerToolResultFullOutputEvent(_message.Message):
     __slots__ = ("id", "processed_at", "tool_use_id", "storage_key", "size_bytes", "content_hash", "mime_type", "is_image")

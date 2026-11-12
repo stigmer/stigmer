@@ -65,6 +65,16 @@ class SessionError(_message.Message):
     mcp_server_name: str
     def __init__(self, type: _Optional[str] = ..., message: _Optional[str] = ..., retry_status: _Optional[_Union[RetryStatus, _Mapping]] = ..., mcp_server_name: _Optional[str] = ...) -> None: ...
 
+class StigmerStopDetail(_message.Message):
+    __slots__ = ("kind", "model", "app")
+    KIND_FIELD_NUMBER: _ClassVar[int]
+    MODEL_FIELD_NUMBER: _ClassVar[int]
+    APP_FIELD_NUMBER: _ClassVar[int]
+    kind: str
+    model: str
+    app: str
+    def __init__(self, kind: _Optional[str] = ..., model: _Optional[str] = ..., app: _Optional[str] = ...) -> None: ...
+
 class RetryStatus(_message.Message):
     __slots__ = ("type",)
     TYPE_FIELD_NUMBER: _ClassVar[int]

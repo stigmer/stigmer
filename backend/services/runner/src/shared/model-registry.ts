@@ -375,6 +375,17 @@ export async function getRequestProfile(
   return { maxOutputTokens: entry.maxOutputTokens, contextWindowTokens: entry.contextWindowTokens, thinking: entry.thinking };
 }
 
+/**
+ * The registry's own id for a model a turn named by either its registry id
+ * or its provider's id (the default model resolves to the provider's,
+ * `getDefaultModel`): the id a client's model registry names the model by.
+ * The name as given when the registry lists neither, or is unavailable.
+ */
+export async function registryIdOf(model: string): Promise<string> {
+  const registry = await getRegistry();
+  return registry.find((m) => m.id === model)?.id ?? registry.find((m) => m.apiModelId === model)?.id ?? model;
+}
+
 /** Exposed for testing — resets the in-memory cache. */
 export function _resetRegistryCache(): void {
   cache = null;

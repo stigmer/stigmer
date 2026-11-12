@@ -1722,6 +1722,7 @@ RunStatus contains all run results and state.
     evalFiles: { type: "EvalFiles", description: "The files an eval case's graders read, as the try's turn left them.", typeDescriptionLink: "#evalfiles" },
     stopCause: { type: "string", description: "Why the turn stopped, as one word: budget_reached (the cost cap or the tool-call limit), timeout (a stall or the workspace lock), infrastructure (the worker shut down or stopped answering), platform_stop, user (a pause or a cancel), model_error (the model provider failed the turn), failed (any other failure), eval_stopped (an eval case's mock or scaffold stopped the try) or review_resolved (a file review was settled)." },
     messageFiles: { type: "ContentBlock[]", description: "The files this turn's message carried, as content blocks: an image block for an image File, a document block for any other, each with a file source naming the conversation's own copy.", typeDescriptionLink: "#contentblock" },
+    stopDetail: { type: "StigmerStopDetail", description: "Which kind of ending stop_cause was (a refused key, a spending cap, a stall, a connected app that wouldn't connect), and the model or app it names.", typeDescriptionLink: "#stigmerstopdetail" },
   }}
 />
 
@@ -2018,6 +2019,18 @@ An immutable pointer to a captured workspace state.
     kind: { type: "SnapshotKind", description: "Which substrate holds this snapshot.", typeDescriptionLink: "#snapshotkind" },
     git: { type: "GitTreeRef", description: "Git no-commit tree reference; set when kind is GIT_TREE_REF or HYBRID.", typeDescriptionLink: "#gittreeref" },
     cas: { type: "CasManifestRef", description: "Content-addressed manifest reference for ignored/non-git paths; set when kind is CAS_MANIFEST or HYBRID.", typeDescriptionLink: "#casmanifestref" },
+  }}
+/>
+
+### StigmerStopDetail
+
+StigmerStopDetail says which kind of ending a turn's stop cause was, and what it names: the model or the connected app involved.
+
+<TypeTable
+  type={{
+    kind: { type: "string", description: "The kind of ending, under its stop cause." },
+    model: { type: "string", description: "The model the turn called, for the model_error kinds, by its id in the model registry (for example claude-sonnet-4.6); empty when unknown." },
+    app: { type: "string", description: "The connected app (MCP server) that failed, by its slug, for the app kinds." },
   }}
 />
 

@@ -262,11 +262,24 @@ export interface TurnError {
   readonly processedAt: string;
 }
 
+/**
+ * Which kind of ending a turn's stop cause was (RunStatus.stop_detail): a
+ * refused key, a spending cap, a stall, a connected app that wouldn't
+ * connect, with the model or app it names ("" when it names none).
+ */
+export interface TurnStopDetail {
+  readonly kind: string;
+  readonly model: string;
+  readonly app: string;
+}
+
 /** The turn's own phase: the newest `stigmer.run.status`. */
 export interface TurnStatus {
   readonly phase: TurnPhase;
   /** Why it ended (RunStatus.stop_cause), once it has; "" otherwise. */
   readonly stopCause: string;
+  /** Which kind of ending the cause was, once it ended and the runner said; absent otherwise. */
+  readonly stopDetail?: TurnStopDetail;
   readonly error: string;
   readonly processedAt: string;
 }

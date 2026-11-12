@@ -63,6 +63,12 @@ export interface ClassifiedModelError {
   readonly code: string;
   /** User-facing message; provider prose appears only quoted after it. */
   readonly message: string;
+  /**
+   * The platform refused its own token on a proxied call (a 401 or 403 with
+   * no organization-key sentinel): the platform's failure, not the
+   * provider's (`stop-kind.ts`).
+   */
+  readonly platformRefused?: true;
 }
 
 export interface ModelErrorContext {
@@ -313,6 +319,7 @@ function classifyByStatus(
     case 401:
       return {
         code: "LLM_AUTHENTICATION_ERROR",
+        ...(ctx.proxyMode ? { platformRefused: true as const } : {}),
         message: ctx.proxyMode
           ? `The Stigmer platform rejected this model call (authentication, HTTP 401) for ${context}. ` +
             `Your session token may have expired — retry the execution, and contact support if it persists.`
@@ -337,6 +344,7 @@ function classifyByStatus(
     case 403:
       return {
         code: "LLM_PERMISSION_DENIED",
+        ...(ctx.proxyMode ? { platformRefused: true as const } : {}),
         message: ctx.proxyMode
           ? `The Stigmer platform denied this model call (authorization, HTTP 403) for ${context}. ` +
             `Verify this execution is permitted to use the model, and contact support if it persists.`

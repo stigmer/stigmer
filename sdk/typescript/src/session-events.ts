@@ -50,7 +50,7 @@ import {
   StreamAttentionRequestSchema,
   StreamSessionEventsRequestSchema,
 } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
-import { SessionLog, type ToolUse, type Turn, type TurnPhase } from "@stigmer/session-log";
+import { SessionLog, type ToolUse, type Turn, type TurnPhase, type TurnStopDetail } from "@stigmer/session-log";
 
 import { StigmerError, wrapError } from "./gen/errors.js";
 import type { RunInput } from "./gen/run.js";
@@ -276,6 +276,8 @@ export interface TurnOutcome {
   readonly structuredOutput: JsonObject | undefined;
   /** Why it ended (RunStatus.stop_cause), once it has; "" otherwise. */
   readonly stopCause: string;
+  /** Which kind of ending the cause was (RunStatus.stop_detail), once it ended and the runner said; absent otherwise. */
+  readonly stopDetail?: TurnStopDetail;
   /** What went wrong, when it failed or was stopped with a reason. */
   readonly error: string;
   /** The tool uses that wait for an answer, when `phase` is waiting. */
@@ -369,6 +371,7 @@ export function turnOutcomeOf(turn: Turn, place: TurnPlace, lastSeq: bigint, wai
     answer: turn.answer,
     structuredOutput: turn.structuredOutput,
     stopCause: turn.status?.stopCause ?? "",
+    ...(ended && turn.status?.stopDetail !== undefined ? { stopDetail: turn.status.stopDetail } : {}),
     error: turn.status?.error ?? "",
     asks: ended ? [] : turn.asks,
     turn,

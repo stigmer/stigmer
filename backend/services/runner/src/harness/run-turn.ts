@@ -721,7 +721,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
         return settledLimit;
       }
       case "failed": {
-        const settledFailure = await settleWith(failedArm(outcome.message, outcome.surface));
+        const settledFailure = await settleWith(failedArm(outcome.message, outcome.surface, outcome.stopDetail));
         console.error(
           `${activityName} failed (${outcome.surface}): execution=${executionId}, error=${outcome.message}` +
             (outcome.cause instanceof Error ? `, cause=${describeCauseChain(outcome.cause)}` : ""),

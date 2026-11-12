@@ -945,6 +945,11 @@ message StigmerRunStatusEvent {
   // What went wrong, for a person, when the turn failed or was stopped
   // with a reason; empty otherwise.
   string error = 5;
+
+  // Which kind of ending the stop cause was, and the model or connected app
+  // it names, as the run's RunStatus.stop_detail states it; unset when the
+  // turn has not ended or the cause says it all.
+  StigmerStopDetail stop_detail = 6;
 }
 
 // StigmerToolResultFullOutputEvent says where the whole output of a tool
