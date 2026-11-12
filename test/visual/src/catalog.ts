@@ -256,7 +256,9 @@ const SESSION_SCENES = [
   {
     id: "session-first-job-next",
     title: "Session: a newcomer's first agent finished its first job, with the line that leads to making it theirs",
-    widths: ["desktop", "narrow"],
+    // Desktop only: at phone width the thread scrolls, and where it comes to
+    // rest differs by machine.
+    widths: ["desktop"],
   },
   // Every way a turn ends badly, one ending turn each (the catalogue's ENDING_STORY_NAMES).
   { id: "session-fail-key-rejected", title: "Session: the provider refused the organization's model key", widths: ["desktop"] },
