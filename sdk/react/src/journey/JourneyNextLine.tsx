@@ -42,13 +42,17 @@ export interface JourneyNextLineProps {
  *
  * @example
  * ```tsx
- * <SessionViewer
- *   sessionId={id}
- *   org={org}
- *   nextStep={({ agentRef }) => (
- *     <JourneyNextLine org={org} agentRef={agentRef} links={{ makeItYours: (a) => `/agents/${a.org}/${a.slug}?tab=make-it-yours` }} />
- *   )}
- * />
+ * function Conversation({ sessionId, org }: { sessionId: string; org: string }) {
+ *   return (
+ *     <SessionViewer
+ *       sessionId={sessionId}
+ *       org={org}
+ *       nextStep={({ agentRef }) => (
+ *         <JourneyNextLine org={org} agentRef={agentRef} links={{ makeItYours: (a) => `/agents/${a.org}/${a.slug}?tab=make-it-yours` }} />
+ *       )}
+ *     />
+ *   );
+ * }
  * ```
  */
 export function JourneyNextLine({ org, agentRef, links }: JourneyNextLineProps) {

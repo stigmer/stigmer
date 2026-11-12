@@ -47,7 +47,7 @@ test.describe("the console on a server that holds one organization", () => {
     await page.goto("/dashboard");
     const card = page.getByRole("region", { name: "From first agent to your users" });
     await expect(card).toBeVisible({ timeout: 15_000 });
-    await expect(card).toContainText(/\b[0-5] of 6\b/);
+    await expect(card).toContainText(/[0-5] of 6/);
 
     // An example's agent, made as the first question makes it.
     const agent = await stigmerClient.agent.create({

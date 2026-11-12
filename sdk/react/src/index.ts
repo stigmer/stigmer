@@ -729,6 +729,8 @@ export {
   type RenderJourneyLink,
 } from "./journey/index.js";
 export { exampleLaunch, useLinkedLaunch, type SessionLaunch, type LaunchMode, type LaunchParams } from "./session/launch.js";
+// The example a launch is built from, as `exampleLaunch` names it.
+export type { Example } from "@stigmer/examples";
 export { AgentProfileHeader, useAgentFacts, type AgentProfileHeaderProps, type AgentFact } from "./agent/AgentProfileHeader.js";
 export type { EmptyStateProps } from "./empty-state/index.js";
 
