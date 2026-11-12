@@ -248,7 +248,7 @@ describe("CON-06 a new person's first screen asks what their agent should do for
       expect(within(composer).getByText(`agent: ${ORG_ID}/variance-reporter`)).toBeTruthy();
       expect(within(composer).getByText("files: ledger.csv")).toBeTruthy();
       expect(within(composer).getByText(`message: ${VARIANCE.message}`)).toBeTruthy();
-      expect(screen.getByText("Variance Reporter is made. Its sample ledger is attached.")).toBeTruthy();
+      expect(await screen.findByText("Variance Reporter is made. Its sample ledger is attached.")).toBeTruthy();
     });
 
     it("lands focus on what was made and says so politely", async () => {
@@ -265,7 +265,7 @@ describe("CON-06 a new person's first screen asks what their agent should do for
       launch(client);
       fireEvent.click(await screen.findByRole("button", { name: INVOICE.name }));
       expect(await screen.findByText("files: invoice-4471.csv, po-2210.csv")).toBeTruthy();
-      expect(screen.getByText("Invoice Matcher is made. Its sample invoice and purchase order are attached.")).toBeTruthy();
+      expect(await screen.findByText("Invoice Matcher is made. Its sample invoice and purchase order are attached.")).toBeTruthy();
     });
 
     it("uses an agent whose name is taken as it is: read by its name, never applied over", async () => {
@@ -287,7 +287,7 @@ describe("CON-06 a new person's first screen asks what their agent should do for
       fireEvent.click(await screen.findByRole("button", { name: VARIANCE.name }));
 
       expect(await screen.findByRole("heading", { level: 1, name: "One more thing before it runs" })).toBeTruthy();
-      expect(screen.getByText("Variance Reporter is made. Its sample ledger is attached.")).toBeTruthy();
+      expect(await screen.findByText("Variance Reporter is made. Its sample ledger is attached.")).toBeTruthy();
       expect(screen.queryByText("Connect a model provider to start")).toBeNull();
       expect(screen.queryByRole("group", { name: "Composer" })).toBeNull();
       const card = await screen.findByRole("article", { name: "Anthropic" });

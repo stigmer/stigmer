@@ -1,10 +1,9 @@
 "use client";
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState, type ReactElement, type ReactNode } from "react";
 import type { ResourceRef } from "@stigmer/client";
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection.js";
 import type { InteractionModeOption } from "../composer/index.js";
 import { SessionComposer, type SessionComposerProps } from "../composer/index.js";
-import { EXAMPLES } from "@stigmer/examples";
 import type { HarnessOption } from "@stigmer/react-core";
 import type { AccountExecutionDefaults } from "../identity-account/useAccountExecutionDefaults.js";
 import { SessionViewerLayout } from "./SessionViewerLayout.js";
@@ -25,9 +24,14 @@ import { useModelsHubData } from "../models/hub/ModelsHub.js";
 import { nothingRuns } from "../models/readiness.js";
 import { useModelRegistry } from "../models/useModelRegistry.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
-import { ChosenBar, FirstQuestion } from "./first-question/FirstQuestion.js";
 import { useFirstQuestionGate } from "./first-question/useFirstQuestionGate.js";
 import { useStartFromExample, type FirstChoice } from "./first-question/useStartFromExample.js";
+// The first question and its chosen bar, with the example list they carry,
+// load only when a launcher shows them: an embed or a returning person never
+// downloads them.
+const FirstQuestion = lazy(() => import("./first-question/FirstQuestion.js").then((m) => ({ default: m.FirstQuestion })));
+const ChosenBar = lazy(() => import("./first-question/FirstQuestion.js").then((m) => ({ default: m.ChosenBar })));
+
 /** What an end user reads when the agent their launcher is pinned to cannot be found. */
 const PIN_UNAVAILABLE = "This agent isn't available. It may have been renamed or removed.";
 
@@ -323,7 +327,6 @@ export function NewSessionViewer({
   const firstOpen = !firstDone && firstGate === "ask";
   const firstWaits = !firstDone && firstGate === "pending";
   const starts = useStartFromExample(org);
-  const chosenRef = useRef<HTMLDivElement>(null);
   // A reference may name its org by slug (one a host or URL supplied) or by
   // id (a stored or picked one), so both sides are compared by id.
   const orgIdFor = useOrgIdForRef();
@@ -417,11 +420,8 @@ export function NewSessionViewer({
     },
     [],
   );
-  // A pick lands the person on what was made: focus moves to the chosen
-  // bar, and the live region below says it.
-  useEffect(() => {
-    if (choice !== null) chosenRef.current?.focus();
-  }, [choice]);
+  // A pick lands the person on what was made: the chosen bar takes focus
+  // when it appears, and the live region below says it.
   const choiceFiles = useMemo(() => (choice === null ? undefined : [...choice.files]), [choice]);
 
   // The unified-panel controller (shared with SessionViewer). The
@@ -538,14 +538,15 @@ export function NewSessionViewer({
           // someone's typing.
           <LoadingRegion label="Loading" className="stg:h-36 stg:animate-pulse stg:rounded-2xl stg:bg-muted" />
         ) : firstOpen && choice === null ? (
-          <FirstQuestion
-            examples={EXAMPLES}
-            pending={starts.pending}
-            failure={starts.failure}
-            onPick={(example) => pick(pickExample(example))}
-            onDescribe={(words) => pick(describeOwn(words))}
-            onJustChat={leaveFirst}
-          />
+          <Suspense fallback={FIRST_LOADING}>
+            <FirstQuestion
+              pending={starts.pending}
+              failure={starts.failure}
+              onPick={(example) => pick(pickExample(example))}
+              onDescribe={(words) => pick(describeOwn(words))}
+              onJustChat={leaveFirst}
+            />
+          </Suspense>
         ) : firstOpen && choice !== null ? (
           <>
             <div className="stg:text-center">
@@ -560,7 +561,9 @@ export function NewSessionViewer({
                     : "Attach one of your own files and say what you need."}
               </p>
             </div>
-            <ChosenBar choice={choice} onChange={changeChoice} focusRef={chosenRef} />
+            <Suspense fallback={null}>
+              <ChosenBar choice={choice} onChange={changeChoice} />
+            </Suspense>
             {showConnectPanel ? (
               <ConnectProviderPanel
                 hub={hub}
@@ -695,6 +698,9 @@ export function NewSessionViewer({
     />
   );
 }
+
+/** The place the first question holds while its module loads. */
+const FIRST_LOADING = <LoadingRegion label="Loading" className="stg:h-36 stg:animate-pulse stg:rounded-2xl stg:bg-muted" />;
 
 /** Whether nothing on the page holds focus, so a composer that mounts now may take it. */
 function focusIsFree(): boolean {

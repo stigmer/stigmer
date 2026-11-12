@@ -11,12 +11,14 @@
 // 20px lines, 14px padding inside a card, gaps set by the layout), one primary
 // act, state shown by form, hierarchy by weight and tone, a reading-width
 // column, and words from the user's side. The data comes from
-// `@stigmer/examples`, the one list every reader shares.
+// `@stigmer/examples`, the one list every reader shares; the launcher loads
+// this module only when it shows the question, so a launcher that never
+// asks it (an embed, a returning person) never downloads the list.
 
-import { useEffect, useId, useRef, useState, type ReactNode, type Ref } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Check, FileText, Loader2 } from "lucide-react";
 import { cn } from "@stigmer/design-tokens";
-import type { Example } from "@stigmer/examples";
+import { EXAMPLES, type Example } from "@stigmer/examples";
 import { Button } from "../../button/Button.js";
 import type { FirstChoice, FirstChoiceFailure, FirstChoicePending } from "./useStartFromExample.js";
 
@@ -30,7 +32,8 @@ export const JUST_CHAT = "Just chat with Stigmer";
 
 /** Props for {@link FirstQuestion}. */
 export interface FirstQuestionProps {
-  readonly examples: readonly Example[];
+  /** The jobs offered; Stigmer's examples unless a caller names its own. */
+  readonly examples?: readonly Example[];
   /** What is being made right now: an example's id, `"own"`, or `null`. */
   readonly pending: FirstChoicePending;
   /** The last pick's failure, shown beside what failed. */
@@ -180,7 +183,7 @@ function DescribeOwn({ pending, failure, onDescribe, onJustChat }: Pick<FirstQue
  * "Just chat with Stigmer". Presentational; {@link useStartFromExample}
  * makes the agents.
  */
-export function FirstQuestion({ examples, pending, failure, onPick, onDescribe, onJustChat }: FirstQuestionProps) {
+export function FirstQuestion({ examples = EXAMPLES, pending, failure, onPick, onDescribe, onJustChat }: FirstQuestionProps) {
   const headingId = useId();
   const failedExample = failure !== null ? examples.find((example) => example.id === failure.of) : undefined;
   return (
@@ -225,8 +228,6 @@ export interface ChosenBarProps {
   readonly choice: FirstChoice;
   /** Back to the cards; the agent stays made. */
   readonly onChange: () => void;
-  /** Receives focus after the pick, so a keyboard or screen-reader user lands on what was made. */
-  readonly focusRef?: Ref<HTMLDivElement>;
 }
 
 /** What a pick made and attached: "Variance Reporter is made. Its sample ledger is attached." */
@@ -237,11 +238,19 @@ export function chosenLine(choice: FirstChoice): string {
   return `${agentName} is made. Its sample ${example.sampleName} ${verb} attached.`;
 }
 
-/** The bar above the key step or the composer once a pick has made its agent. */
-export function ChosenBar({ choice, onChange, focusRef }: ChosenBarProps): ReactNode {
+/**
+ * The bar above the key step or the composer once a pick has made its
+ * agent. It takes focus when it appears, so a keyboard or screen-reader
+ * user lands on what was made.
+ */
+export function ChosenBar({ choice, onChange }: ChosenBarProps): ReactNode {
+  const bar = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    bar.current?.focus();
+  }, []);
   return (
     <div
-      ref={focusRef}
+      ref={bar}
       tabIndex={-1}
       className="stg:flex stg:flex-wrap stg:items-center stg:gap-2.5 stg:rounded-xl stg:border stg:border-border stg:bg-card stg:px-3 stg:py-2.5 stg:focus:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
     >
