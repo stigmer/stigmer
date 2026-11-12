@@ -167,6 +167,16 @@ describe("MockLlmProxy error turns", () => {
     expect(response.status).toBe(400);
     expect(await response.json()).toEqual(DEFAULT_ERROR_BODY);
   });
+  it("clearFault() forgets a persistent fault, and the same caller takes the next queued turn", async () => {
+    mock.enqueueError(401, { persistent: true });
+    expect((await post(ANTHROPIC_PATH, { model: "claude-sonnet-4-6", messages: [] })).status).toBe(401);
+    expect((await post(ANTHROPIC_PATH, { model: "claude-sonnet-4-6", messages: [] })).status).toBe(401);
+
+    mock.clearFault();
+    mock.enqueue(anthropicText("recovered"));
+    expect((await post(ANTHROPIC_PATH, { model: "claude-sonnet-4-6", messages: [] })).status).toBe(200);
+  });
+
   it("a dropped turn closes the connection without an answer, and a persistent one keeps dropping", async () => {
     mock.enqueueDrop({ persistent: true });
 

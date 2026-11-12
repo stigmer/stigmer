@@ -4,15 +4,12 @@
 // Made and the files it changed under Changed, each a card that opens it in
 // place. Up to four read as cards; from five on, a list of the first five
 // with the rest counted by type and "Show all" opening them in place, so
-// twenty Files never become a wall. How a finished turn ended is the
-// header's pill; a turn that didn't finish still says so here, with its
-// time.
+// twenty Files never become a wall. How the turn ended is the header's
+// pill, and for a turn that didn't finish its notice above this block.
 
 import { useState } from "react";
 import type { File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { cn } from "@stigmer/design-tokens";
-import { durationWords } from "./duration-words.js";
-import { endingWord } from "./turn-endings.js";
 import type { TurnChange, TurnOutcomeView } from "./turn-outcome.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 
@@ -99,15 +96,11 @@ export function TurnOutcome({ outcome, onOpenFile, canOpenChange, onOpenChange, 
     icon: "edit",
     ...(onOpenChange !== undefined && (canOpenChange?.(change) ?? true) ? { onOpen: () => onOpenChange(change) } : {}),
   }));
-  const ended = outcome.phase !== "completed";
-  if (!ended && made.length === 0 && changed.length === 0) return null;
+  // How a turn that didn't finish ended is said once, by its notice above
+  // and the session's pill; this block says only what the turn produced.
+  if (made.length === 0 && changed.length === 0) return null;
   return (
     <section aria-label="What this turn produced" className={cn("stg:mx-4 stg:space-y-4", className)}>
-      {ended && (
-        <p className="stg:text-xs stg:text-muted-foreground">
-          <span className="stg:font-medium stg:text-foreground">{endingWord(outcome.phase)}</span> · {durationWords(outcome.elapsedMs)}
-        </p>
-      )}
       {made.length > 0 && <OutcomeGroup title="Made" items={made} />}
       {changed.length > 0 && <OutcomeGroup title="Changed" items={changed} />}
     </section>

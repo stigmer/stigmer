@@ -188,7 +188,8 @@ export type {
 } from "./MessageThread.js";
 
 export { RunErrorNotice } from "./RunErrorNotice.js";
-export type { RunErrorNoticeProps } from "./RunErrorNotice.js";
+export type { RunErrorNoticeProps, RunErrorNoticeLink } from "./RunErrorNotice.js";
+export type { TurnEndingAction, TurnEndingWiring } from "./ThreadPresentationContext.js";
 
 export { ThreadSkeleton } from "./ThreadSkeleton.js";
 export type { ThreadSkeletonProps } from "./ThreadSkeleton.js";

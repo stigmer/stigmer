@@ -51,7 +51,11 @@ export function thought(runId: string, index: number, thinking: string): Session
 }
 
 /** A turn's phase. */
-export function status(runId: string, phase: TurnPhase, extra: { error?: string; stopCause?: string } = {}): SessionEvent {
+export function status(
+  runId: string,
+  phase: TurnPhase,
+  extra: { error?: string; stopCause?: string; stopDetail?: { kind: string; model?: string; app?: string } } = {},
+): SessionEvent {
   return samples.runStatusEvent(phase, { runId, id: `${runId}.status.${phase}`, ...extra });
 }
 
@@ -234,6 +238,9 @@ export interface TurnFixture {
   /** The agent's first message; "" for none. Defaults to "Hi there!". */
   readonly reply?: string;
   readonly error?: string;
+  /** Why it ended (`stop_cause`), and the kind the runner named. */
+  readonly stopCause?: string;
+  readonly stopDetail?: { readonly kind: string; readonly model?: string; readonly app?: string };
   /** Events between the reply and the turn's phase. */
   readonly extra?: readonly SessionEvent[];
 }
@@ -246,7 +253,9 @@ export function turnEventsOf(t: TurnFixture): SessionEvent[] {
     status(t.id, "running"),
     ...(t.reply === "" ? [] : [said(t.id, 0, t.reply ?? "Hi there!")]),
     ...(t.extra ?? []),
-    ...(phase === "running" ? [] : [status(t.id, phase, { error: t.error ?? "" })]),
+    ...(phase === "running"
+      ? []
+      : [status(t.id, phase, { error: t.error ?? "", stopCause: t.stopCause ?? "", ...(t.stopDetail === undefined ? {} : { stopDetail: t.stopDetail }) })]),
   ];
 }
 

@@ -14,7 +14,7 @@
  * the plan document, the mode badge); and the ambient liveness line.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, cleanup, fireEvent } from "@testing-library/react";
+import { render, screen, cleanup, fireEvent, within } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { LoadedVersionsSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
@@ -358,14 +358,48 @@ describe("MessageThread", () => {
   });
 
   describe("how a turn ended", () => {
-    it("renders the phase badge and the reason of a failed turn, with a Retry that resends its message", () => {
+    it("says a failed turn in words, never its raw error, and offers sending its message again", () => {
       const onRetryRun = vi.fn();
       renderThread(conversation({ id: "f", message: "do the thing", phase: "failed", error: "Activity task timed out" }), { onRetryRun });
 
-      expect(screen.getByText(/failed/i)).toBeTruthy();
-      expect(screen.getByText(/Activity task timed out/)).toBeTruthy();
-      fireEvent.click(screen.getByRole("button", { name: /retry/i }));
+      const notice = screen.getByRole("alert");
+      expect(notice.textContent).toContain("This turn didn't finish.");
+      expect(notice.textContent).not.toContain("Activity task timed out");
+      expect(within(notice).getByRole("button", { name: "Copy details" })).toBeTruthy();
+      fireEvent.click(within(notice).getByRole("button", { name: "Send it again" }));
       expect(onRetryRun).toHaveBeenCalledWith("do the thing");
+    });
+
+    it("offers no act where nothing can be sent again: a reader, a turn with no message, a request the provider refused", () => {
+      renderThread(conversation({ id: "r", message: "do the thing", phase: "failed", error: "boom" }));
+      expect(screen.queryByRole("button", { name: /again/ })).toBeNull();
+      cleanup();
+      renderThread(conversation({ id: "e", message: "execute", phase: "failed", error: "boom" }), { onRetryRun: vi.fn() });
+      expect(screen.queryByRole("button", { name: /again/ })).toBeNull();
+      cleanup();
+      renderThread(conversation({ id: "q", phase: "failed", stopCause: "model_error", stopDetail: { kind: "request_rejected" }, error: "boom" }), { onRetryRun: vi.fn() });
+      expect(screen.queryByRole("button", { name: /again/ })).toBeNull();
+    });
+
+    it("picks its words from the kind the runner named", () => {
+      renderThread(
+        conversation({ id: "k", phase: "failed", stopCause: "failed", stopDetail: { kind: "app_unreachable", app: "issue-tracker" }, error: "[MCPClientError] boom" }),
+        { onRetryRun: vi.fn() },
+      );
+
+      expect(screen.getByRole("alert").textContent).toContain("The issue-tracker app wouldn't connect.");
+    });
+
+    it("says a budget stop as a pause, and continues with a message", () => {
+      const onRetryRun = vi.fn();
+      renderThread(conversation({ id: "b", phase: "terminated", stopCause: "budget_reached", stopDetail: { kind: "cost_cap" }, error: "Agent reached the cost limit" }), {
+        onRetryRun,
+      });
+
+      expect(screen.getByText("This turn reached its spending cap.")).toBeTruthy();
+      expect(screen.queryByRole("button", { name: "Copy details" })).toBeNull();
+      fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+      expect(onRetryRun).toHaveBeenCalledWith("Continue");
     });
 
     it("surfaces no reason for a completed turn", () => {
@@ -375,11 +409,12 @@ describe("MessageThread", () => {
     });
 
     it("renders a cancelled turn quietly, even with an error", () => {
-      renderThread(conversation({ id: "c", message: "do the thing", phase: "cancelled", error: "Execution cancelled" }), { onRetryRun: vi.fn() });
+      renderThread(conversation({ id: "c", message: "do the thing", phase: "cancelled", stopCause: "user", error: "Execution cancelled" }), { onRetryRun: vi.fn() });
 
       expect(screen.getByText(/cancelled/i)).toBeTruthy();
       expect(screen.queryByRole("alert")).toBeNull();
       expect(screen.queryByText("Execution cancelled")).toBeNull();
+      expect(screen.getByText("This turn was stopped.")).toBeTruthy();
       expect(screen.queryByRole("button", { name: /retry/i })).toBeNull();
     });
   });

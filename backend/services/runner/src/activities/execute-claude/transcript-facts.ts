@@ -14,7 +14,11 @@
  *    engine is never handed the task again);
  *  - which messages a person sent while the turn worked it already read;
  *  - whether the engine had finished the run: its last word on the main
- *    thread is an assistant message with no tool call after it;
+ *    thread is an assistant message with no tool call after it. The
+ *    engine's own record of a failed model call is no word of the model's
+ *    (a synthetic assistant entry, `isApiErrorMessage`, model
+ *    `<synthetic>`): a run that ended on one is not finished, so its
+ *    recover asks the model again (stigmer#3057);
  *  - the call the main thread left pending: the last main-thread tool call
  *    with no result after it, which is where a deferral leaves the
  *    transcript (measured on SDK 0.3.310: the call's entry and a
@@ -52,7 +56,7 @@ export function transcriptFactsOf(entries: readonly SessionStoreEntry[] | null):
     if (entry.type === "user" && typeof entry.uuid === "string") taken.add(entry.uuid);
     const absorbed = (entry.attachment as { source_uuid?: unknown } | undefined)?.source_uuid;
     if (entry.type === "attachment" && typeof absorbed === "string") taken.add(absorbed);
-    if ((entry.type !== "user" && entry.type !== "assistant") || entry.isSidechain === true) continue;
+    if ((entry.type !== "user" && entry.type !== "assistant") || entry.isSidechain === true || isFailedCallRecord(entry)) continue;
     last = entry;
     for (const block of blocksOf(entry)) {
       if (entry.type === "assistant" && block.type === "tool_use" && typeof block.id === "string") calls.push(block.id);
@@ -61,6 +65,17 @@ export function transcriptFactsOf(entries: readonly SessionStoreEntry[] | null):
   }
   const finished = last !== undefined && last.type === "assistant" && !blocksOf(last).some((block) => block.type === "tool_use");
   return { exists: true, taken, finished, pendingCall: calls.filter((id) => !answered.has(id)).at(-1) };
+}
+
+/** The model the engine records on its own entries for a model call that failed. */
+const SYNTHETIC_MODEL = "<synthetic>";
+
+/** Whether an entry is the engine's record of a failed model call, not the model's word (the header). */
+function isFailedCallRecord(entry: SessionStoreEntry): boolean {
+  return (
+    entry.type === "assistant" &&
+    ((entry as { isApiErrorMessage?: unknown }).isApiErrorMessage === true || (entry.message as { model?: unknown } | undefined)?.model === SYNTHETIC_MODEL)
+  );
 }
 
 /** An entry's content blocks, read by shape. */

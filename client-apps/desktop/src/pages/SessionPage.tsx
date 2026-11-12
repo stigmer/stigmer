@@ -70,6 +70,7 @@ function SessionPageInner({ id }: { id: string }) {
         routineHref={(routine) =>
           `#/library/routines/${slugForOrg(routine.metadata?.org ?? "")}/${routine.metadata?.slug ?? ""}`
         }
+        agentHref={(agent) => `#/library/agents/${slugForOrg(agent.org)}/${agent.slug}`}
         // The open-source edition shares a session with no one (its grants
         // are on organizations only), so it offers no Manage access.
         accessSlot={

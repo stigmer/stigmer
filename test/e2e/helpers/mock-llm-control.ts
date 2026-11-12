@@ -68,12 +68,27 @@ export class MockControl {
     }
   }
 
+  /** Forget a persistent fault without retiring any run, so a failed run's recover can take the next turn. */
+  async clearFault(): Promise<void> {
+    const res = await fetch(`${this.baseUrl}/__mock/clear-fault`, { method: "POST" });
+    if (!res.ok) {
+      throw new Error(`mock clear-fault failed: ${res.status} ${await res.text()}`);
+    }
+  }
+
   /** Drop any unconsumed turns. Call between tests so leftovers can't leak. */
   async reset(): Promise<void> {
     const res = await fetch(`${this.baseUrl}/__mock/reset`, { method: "POST" });
     if (!res.ok) {
       throw new Error(`mock reset failed: ${res.status} ${await res.text()}`);
     }
+  }
+
+  /** How many model calls the proxy answered from the script (the turns it consumed, errors included). */
+  async scriptedCalls(): Promise<number> {
+    const res = await fetch(`${this.baseUrl}/__mock/requests`);
+    const body = (await res.json()) as { requests: readonly { readonly disposition: string }[] };
+    return body.requests.filter((request) => request.disposition === "scripted").length;
   }
 
   /** Turns still waiting to be served (0 after a run consumed its full script). */

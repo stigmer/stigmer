@@ -124,5 +124,7 @@ describe("desktop SessionPage", () => {
     expect(props.modelsHubHref).toBe("#/models");
     const routineHref = props.routineHref as (routine: { metadata: { org: string; slug: string } }) => string;
     expect(routineHref({ metadata: { org: "org_acme", slug: "nightly" } })).toBe("#/library/routines/acme/nightly");
+    const agentHref = props.agentHref as (agent: { org: string; slug: string }) => string;
+    expect(agentHref({ org: "org_acme", slug: "fixer" })).toBe("#/library/agents/acme/fixer");
   });
 });

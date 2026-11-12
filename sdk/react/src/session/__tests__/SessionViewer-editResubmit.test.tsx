@@ -129,6 +129,15 @@ vi.mock("../useSessionPageFlow", () => ({
 
 // The reader's own access to the conversation: an owner's, unless a case
 // says otherwise.
+// The ending notice's wiring asks the server (permissions, recover): its own tests prove it.
+vi.mock("../useTurnEndingWiring", () => ({
+  useTurnEndingWiring: () => ({
+    wiring: { viewer: { canManageProviders: false, canOpenAgent: false, canAct: true, stoppedIt: false } },
+    error: null,
+    clearError: () => {},
+  }),
+}));
+
 vi.mock("../useSessionAccess", () => ({
   useSessionAccess: () => ({ canSend: true, canDecide: true }),
 }));

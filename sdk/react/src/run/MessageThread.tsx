@@ -26,6 +26,10 @@ import {
   type Turn,
   type TurnItem,
   type TurnSteps,
+  type TurnEnding,
+  type TurnEndingNames,
+  type TurnEndingViewer,
+  describeTurnEnding,
   isBackgroundRunning,
   stepTense,
   turnSteps,
@@ -40,7 +44,7 @@ import { ToolCallGroup } from "./ToolCallGroup.js";
 import { backgroundCommandsHolding, hasStartedResponding, hasVisiblyRunningActivity } from "./turn-tail.js";
 import { SettledStepsRow } from "./SettledStepsRow.js";
 import { PlanSteps } from "./PlanSteps.js";
-import { ThreadPresentationContext, useThreadPresentation, type ThreadPresentation } from "./ThreadPresentationContext.js";
+import { ThreadPresentationContext, useThreadPresentation, type ThreadPresentation, type TurnEndingWiring } from "./ThreadPresentationContext.js";
 import { SubagentSection } from "./SubagentSection.js";
 import { RunPhaseBadge } from "./RunPhaseBadge.js";
 import { SetupProgress, type SetupProgressProps } from "./SetupProgress.js";
@@ -429,9 +433,17 @@ export interface MessageThreadProps {
    * What closes each ended turn (the session view passes its outcome block:
    * how the turn ended, its time, what it changed and returned). When set,
    * it takes the place of the ended-turn phase badge; a failure's notice
-   * and Retry stay above it.
+   * and its act stay above it.
    */
   readonly turnOutcome?: (turn: Turn) => ReactNode;
+  /**
+   * How the last turn's ending notice is wired: who reads it, the names
+   * its model resolves to, and the act and the link this viewer is offered
+   * (the session view passes recover, Continue, the model picker and the
+   * fix's link). Without it, the notice's act re-sends through
+   * {@link onRetryRun} and no link shows.
+   */
+  readonly turnEnding?: TurnEndingWiring;
   /**
    * Whether the thread's tail shows its own working indicator while a turn
    * runs. `false` when the host shows the turn's activity itself (the
@@ -489,6 +501,8 @@ export type ThreadItem =
       readonly steps: TurnSteps;
       /** Whether the turn still works. */
       readonly working: boolean;
+      /** What the to-do the turn stopped on reads ("Paused here"), from its ending. */
+      readonly stoppedNote: string;
     }
   | {
       /**
@@ -504,7 +518,15 @@ export type ThreadItem =
   | { readonly kind: "subagent"; readonly toolUse: ToolUse; readonly thread: Thread; readonly key: string }
   | { readonly kind: "phase-badge"; readonly phase: RunPhase; readonly key: string }
   | { readonly kind: "outcome"; readonly turn: Turn; readonly key: string }
-  | { readonly kind: "execution-error"; readonly error: string; readonly retryMessage?: string; readonly key: string }
+  | {
+      readonly kind: "execution-error";
+      readonly error: string;
+      readonly retryMessage?: string;
+      /** How the turn ended, in words (`describeTurnEnding`). */
+      readonly ending: TurnEnding;
+      readonly turn: Turn;
+      readonly key: string;
+    }
   | { readonly kind: "approval-request"; readonly toolUse: ToolUse; readonly key: string }
   | { readonly kind: "file-review-record"; readonly fileReviewSet: FileReviewSet; readonly key: string }
   | { readonly kind: "setup-progress"; readonly resources: readonly SessionResource[]; readonly serverPhase?: string; readonly isAwaitingResponse?: boolean; readonly key: string }
@@ -600,7 +622,14 @@ export interface BuildThreadItemsOptions {
    * steps in time order, for a host that draws its own to-do card.
    */
   readonly planSteps?: boolean;
+  /** Who reads the last turn's ending notice (default: one who can act and can fix nothing). */
+  readonly endingViewer?: TurnEndingViewer;
+  /** The provider's and the model's display names for a model id, for the ending's words. */
+  readonly endingNames?: (model: string) => TurnEndingNames;
 }
+
+/** Who reads an ending when the host says nothing: one who can act and can fix nothing. */
+const DEFAULT_ENDING_VIEWER: TurnEndingViewer = { canManageProviders: false, canOpenAgent: false, canAct: true, stoppedIt: false };
 
 /** The phases a turn ends with a badge for: everything but a completion. */
 const BADGED_END_PHASES: ReadonlySet<string> = new Set(["failed", "cancelled", "terminated"]);
@@ -753,6 +782,8 @@ export function buildThreadItems(
     includeOutcomes = false,
     includeLiveness = true,
     planSteps = true,
+    endingViewer = DEFAULT_ENDING_VIEWER,
+    endingNames,
   } = options;
   const runsById = new Map<string, Run>();
   for (const run of runs) {
@@ -845,7 +876,7 @@ export function buildThreadItems(
       todosEmitted = true;
       items.push(
         steps !== undefined
-          ? { kind: "plan", key: `${runId}-todos`, steps, working: !turn.ended }
+          ? { kind: "plan", key: `${runId}-todos`, steps, working: !turn.ended, stoppedNote: stoppedNoteOf(turn) }
           : { kind: "todos", executionId: runId, todos: turn.todos, key: `${runId}-todos` },
       );
     }
@@ -1118,25 +1149,31 @@ export function buildThreadItems(
       });
     }
 
-    // A failed or terminated turn carries its reason; surface it beside the
-    // badge so a failure that produced no messages still explains itself.
-    // A cancelled turn is a quiet end, not a failure (stigmer#282): the
-    // phase, not the error field, decides whether the loud notice renders.
-    const reason = lastTurn.status?.error;
-    if (reason && lastPhase !== "cancelled") {
-      const specMessage = lastRun?.spec?.message;
-      // A failed build turn offers no inline Retry: resending its label as an
-      // ordinary message would drop the buildFromPlan flag. The plan card
-      // above the error is the fully-wired retry.
-      const isBuildTurn = lastRun?.spec?.buildFromPlan === true;
-      items.push({
-        kind: "execution-error",
-        error: reason,
-        retryMessage:
-          specMessage && specMessage !== "execute" && !isBuildTurn ? specMessage : undefined,
-        key: `execution-error-${lastTurn.runId}`,
-      });
-    }
+  }
+
+  // The last turn's ending, when it didn't finish: one note under it in its
+  // own words (`describeTurnEnding`), read from the failure's kind, never
+  // from its error's text. A person's stop and the platform's read as
+  // quiet notes; an ending its own surface tells reads none.
+  const ending = lastTurn?.ended === true ? describeTurnEnding({ turn: lastTurn, viewer: endingViewer, names: namesOf(lastTurn, endingNames) }) : undefined;
+  if (lastTurn !== undefined && ending !== undefined) {
+    const specMessage = lastRun?.spec?.message;
+    // A build turn's label is no message to re-send: re-sending it as an
+    // ordinary message would drop the buildFromPlan flag.
+    const isBuildTurn = lastRun?.spec?.buildFromPlan === true;
+    const notice: ThreadItem = {
+      kind: "execution-error",
+      error: lastTurn.status?.error ?? "",
+      retryMessage: specMessage && specMessage !== "execute" && !isBuildTurn ? specMessage : undefined,
+      ending,
+      turn: lastTurn,
+      key: `execution-error-${lastTurn.runId}`,
+    };
+    // A turn that completed (the platform's stop) already closed with what
+    // it produced: the note goes above it, as on every other ending.
+    const outcomeAt = items.findIndex((item) => item.kind === "outcome" && item.turn === lastTurn);
+    if (outcomeAt === -1) items.push(notice);
+    else items.splice(outcomeAt, 0, notice);
   }
 
   if (includeOutcomes && lastTurn?.ended && lastPhase !== "completed") {
@@ -1287,6 +1324,7 @@ export function MessageThread({
   slots,
   runScores = false,
   turnOutcome,
+  turnEnding,
   ambientLiveness = true,
 }: MessageThreadProps) {
   useRenderTracer("MessageThread", { turns, runs });
@@ -1316,10 +1354,12 @@ export function MessageThread({
         // A host that draws its own to-do card or row keeps today's card,
         // with the steps in time order: its card and row take only the list.
         planSteps: slots?.TodoCard === undefined && slots?.TodoRow === undefined,
+        ...(turnEnding !== undefined ? { endingViewer: turnEnding.viewer } : {}),
+        ...(turnEnding?.names !== undefined ? { endingNames: turnEnding.names } : {}),
       }),
-    [turns, runs, pendingUserMessage, includeApprovals, resources, pendingMessageFailed, editableActiveTurn, showFileReviewRecords, collapseStreamingPlan, pendingFiles, queued, agentVersionLabel, planFiles, turnOutcome, ambientLiveness, slots?.TodoCard, slots?.TodoRow],
+    [turns, runs, pendingUserMessage, includeApprovals, resources, pendingMessageFailed, editableActiveTurn, showFileReviewRecords, collapseStreamingPlan, pendingFiles, queued, agentVersionLabel, planFiles, turnOutcome, ambientLiveness, slots?.TodoCard, slots?.TodoRow, turnEnding?.viewer, turnEnding?.names],
   );
-  const presentation = useMemo<ThreadPresentation>(() => ({ turnOutcome }), [turnOutcome]);
+  const presentation = useMemo<ThreadPresentation>(() => ({ turnOutcome, ...(turnEnding !== undefined ? { turnEnding } : {}) }), [turnOutcome, turnEnding]);
 
   useKeyStability(items);
 
@@ -1680,7 +1720,7 @@ export function ThreadItemRenderer({
     case "tool-group":
       return <ToolGroupRow toolUses={item.toolUses} fold={item.fold === true} formatSummary={formatToolCallSummary} />;
     case "plan":
-      return <PlanSteps steps={item.steps} working={item.working} />;
+      return <PlanSteps steps={item.steps} working={item.working} stoppedNote={item.stoppedNote} />;
     case "how-it-got-there":
       return (
         <SettledStepsRow toolUses={item.toolUses} prefix="How it got there">
@@ -1725,16 +1765,8 @@ export function ThreadItemRenderer({
           <RunPhaseBadge phase={item.phase} />
         </div>
       );
-    case "execution-error": {
-      const ErrorNotice = slots?.RunErrorNotice ?? RunErrorNotice;
-      return (
-        <ErrorNotice
-          error={item.error}
-          retryMessage={item.retryMessage}
-          onRetry={onRetryRun}
-        />
-      );
-    }
+    case "execution-error":
+      return <EndingNotice item={item} onRetryRun={onRetryRun} Notice={slots?.RunErrorNotice ?? RunErrorNotice} />;
     case "approval-request":
       return (
         <ApprovalCardRow
@@ -1853,6 +1885,74 @@ function ToolGroupRow({
       <ToolCallGroup toolUses={toolUses} formatSummary={formatSummary} framed={false} />
     </SettledStepsRow>
   );
+}
+
+/** What the to-do an ended turn stopped on reads, from its ending's words; "Stopped here" when it has none. */
+function stoppedNoteOf(turn: Turn): string {
+  if (!turn.ended) return "";
+  const ending = describeTurnEnding({ turn, viewer: { canManageProviders: false, canOpenAgent: false, canAct: false, stoppedIt: false } });
+  return ending?.stepNote ?? "Stopped here";
+}
+
+/** The names the ending's model resolves to, when the host resolves any. */
+function namesOf(turn: Turn, endingNames: ((model: string) => TurnEndingNames) | undefined): TurnEndingNames | undefined {
+  const model = turn.status?.stopDetail?.model ?? "";
+  return endingNames !== undefined && model !== "" ? endingNames(model) : undefined;
+}
+
+/** The fallback act's words when the host wires none: the act re-sends through `onRetryRun`. */
+const RESEND_LABELS: Readonly<Partial<Record<TurnEnding["act"], string>>> = {
+  run_again: "Send it again",
+  resume: "Send it again",
+  rerun: "Run again",
+  continue: "Continue",
+};
+
+/**
+ * The last turn's ending notice, with the act and the link the host wires
+ * (`TurnEndingWiring`). Without wiring, the act re-sends the turn's message
+ * (or "Continue") through `onRetryRun`, and no link shows.
+ */
+function EndingNotice({
+  item,
+  onRetryRun,
+  Notice,
+}: {
+  readonly item: Extract<ThreadItem, { kind: "execution-error" }>;
+  readonly onRetryRun?: (message: string) => void;
+  readonly Notice: ComponentType<RunErrorNoticeProps>;
+}) {
+  const { turnEnding } = useThreadPresentation();
+  const { ending, turn, retryMessage } = item;
+  const wired = turnEnding?.actOf?.(ending, turn);
+  const fallback = turnEnding?.actOf === undefined ? resendOf(ending, retryMessage, onRetryRun) : undefined;
+  const action = wired ?? fallback;
+  const link = turnEnding?.linkOf?.(ending, turn);
+  return (
+    <Notice
+      error={item.error}
+      ending={ending}
+      runId={turn.runId}
+      {...(retryMessage !== undefined ? { retryMessage } : {})}
+      {...(onRetryRun !== undefined ? { onRetry: onRetryRun } : {})}
+      {...(action !== undefined ? { actLabel: action.label, onAct: action.run } : {})}
+      {...(link !== undefined ? { link } : {})}
+      acting={turnEnding?.acting ?? false}
+    />
+  );
+}
+
+/** The re-send a notice falls back to: the turn's message, or "Continue". */
+function resendOf(
+  ending: TurnEnding,
+  retryMessage: string | undefined,
+  onRetryRun: ((message: string) => void) | undefined,
+): { readonly label: string; readonly run: () => void } | undefined {
+  const label = RESEND_LABELS[ending.act];
+  if (onRetryRun === undefined || label === undefined) return undefined;
+  if (ending.act === "continue") return { label, run: () => onRetryRun("Continue") };
+  if (retryMessage === undefined) return undefined;
+  return { label, run: () => onRetryRun(retryMessage) };
 }
 
 /** What closes an ended turn, from the thread's host. */
@@ -1983,7 +2083,7 @@ function FailedUserMessage({
         role="alert"
         className="stg:mx-4 stg:flex stg:items-center stg:gap-2 stg:text-xs stg:text-destructive"
       >
-        <span className="stg:min-w-0 stg:flex-1 stg:truncate">Couldn&rsquo;t send.</span>
+        <span className="stg:min-w-0 stg:flex-1 stg:truncate">Didn&rsquo;t send. Your message is kept here.</span>
         {onRetry && (
           <button
             type="button"

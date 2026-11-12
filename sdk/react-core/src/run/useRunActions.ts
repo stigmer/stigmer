@@ -6,6 +6,7 @@ import { create } from "@bufbuild/protobuf";
 import {
   TerminateRunInputSchema,
   PauseRunInputSchema,
+  RecoverRunInputSchema,
   ResumeRunInputSchema,
 } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import { useStigmer } from "../hooks.js";
@@ -14,7 +15,7 @@ import { toError } from "../internal/toError.js";
 /** Options for {@link useRunActions}. */
 export interface UseRunActionsOptions {
   /**
-   * Called after any lifecycle action (terminate, pause, resume)
+   * Called after any lifecycle action (terminate, pause, resume, recover)
    * succeeds. Receives the updated run returned by the server.
    * Useful for triggering a refetch so the UI reflects the new phase.
    */
@@ -29,6 +30,14 @@ export interface UseRunActionsReturn {
   readonly pause: (reason?: string) => Promise<Run | null>;
   /** Resume a paused run. */
   readonly resume: () => Promise<Run | null>;
+  /**
+   * Pick a FAILED run up where it stopped: the same turn runs again, steps
+   * that worked are not run again, and its values (a key fixed meanwhile)
+   * are read again. Needs `can_edit` on the run; refused for a run that was
+   * stopped (TERMINATED or CANCELLED) or while another turn of its session
+   * is unfinished.
+   */
+  readonly recover: () => Promise<Run | null>;
   /** `true` while any action is in flight. */
   readonly isSubmitting: boolean;
   /** Error from the last failed action, or `null`. */
@@ -39,7 +48,7 @@ export interface UseRunActionsReturn {
 
 /**
  * Behavior hook that encapsulates one run's lifecycle actions: terminate,
- * pause and resume.
+ * pause, resume and recover.
  *
  * Each action calls the corresponding RPC and returns the updated run, or
  * `null` on failure (with `error` populated).
@@ -139,10 +148,23 @@ export function useRunActions(
     [wrap],
   );
 
+  const recover = useCallback(
+    () =>
+      wrap(() =>
+        stigmerRef.current.run.recover(
+          create(RecoverRunInputSchema, {
+            id: executionIdRef.current!,
+          }),
+        ),
+      ),
+    [wrap],
+  );
+
   return {
     terminate,
     pause,
     resume,
+    recover,
     isSubmitting,
     error,
     clearError,

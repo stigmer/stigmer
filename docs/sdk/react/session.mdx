@@ -1425,6 +1425,7 @@ apps inject platform-specific values via props.
   type={{
     accessSlot: { type: "ReactNode", description: "Host-injected access management control (e.g. the Console's `ManageAccessButton` with its own permission gating), rendered in the header beside the host's actions. Withheld from observers." },
     accountDefaults: { type: "AccountExecutionDefaults", description: "The user's account-level execution defaults, typically from `useAccountExecutionDefaults()` — same seam as `NewSessionViewer.accountDefaults`. On the session page only the `autoApprove` default applies: it seeds the session-scoped auto-approve state so a declared `default_auto_approve` preference covers follow-ups on existing sessions too. An explicit flip of the run settings' switch wins for this session. Ignored for the `\"guest\"` audience.", typeDescriptionLink: "/docs/sdk/react/identity-account#accountexecutiondefaults" },
+    agentHref: { type: "(agent: SessionAgentRef) => string", description: "The agent's page, in the host's routing: a turn that ended on the agent's setup, a connected app or a budget links there (\"Open the agent\"), for a reader who may open it. No link when omitted." },
     audience: { type: "SessionAudience", description: "Presentation audience for the viewer. `\"endUser\"` locks the session's agent and hides the plugin, skill and vault configuration in both the composer and the inspector's Setup tab — for product-embedded chat where the agent is configured upstream by the platform. The model selector, interaction mode, file uploads, and workspace picker remain.  `\"guest\"` (anonymous visitor with a guest token) is pure chat: it additionally hides the model/mode pickers, file uploads, the workspace picker, and the session panel, and skips the org-level reads a guest principal cannot make — follow-ups simply continue on the agent and version the session pinned.  `\"observer\"` is a read-only transcript: no composer, no approval/edit/retry/build affordances, no access management. The viewer also self-selects observer for Slack and WhatsApp sessions (the `stigmer.ai/channel-conversation-key` label) regardless of this prop, since channel viewers hold `can_view` only.  See SessionAudience.", typeDescriptionLink: "#sessionaudience" },
     className: { type: "string", description: "Additional CSS classes for the root container." },
     enableGitHub: { type: "boolean", description: "Whether to enable GitHub workspace features in the composer." },
@@ -2004,6 +2005,18 @@ Tokens and calls served by one kind of provider credential.
     llmCallCount: { type: "number", description: "Metered LLM calls served this way.", required: true },
     providerKeySource: { type: "ProviderKeySource", description: "Whose credential served the calls; UNSPECIFIED when not known.", required: true },
     totalTokens: { type: "number", description: "Total tokens served this way.", required: true },
+  }}
+/>
+
+
+### SessionAgentRef
+
+The agent a session runs, as `agentHref` takes it.
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "", required: true },
+    slug: { type: "string", description: "", required: true },
   }}
 />
 

@@ -19,6 +19,8 @@
 //   POST /__mock/enqueue-error  one failed turn: { status, body?, headers?,
 //                           persistent?, delayMs? } as the provider's error, or
 //                           { drop: true, persistent? } for a dropped connection
+//   POST /__mock/clear-fault  forget a persistent fault, retiring no run (a
+//                           failed run's recover then takes the next turn)
 //   POST /__mock/reset      drop every unconsumed turn and the captured requests
 //   GET  /__mock/remaining  { remaining }: turns still queued
 //   GET  /__mock/requests   { requests }: what the model received, each with the
@@ -112,6 +114,11 @@ class MockLlmControl {
         });
       }
       writeJson(res, 200, { ok: true, remaining: this.proxy.remaining() });
+      return;
+    }
+    if (req.method === "POST" && path === "/__mock/clear-fault") {
+      this.proxy.clearFault();
+      writeJson(res, 200, { ok: true });
       return;
     }
     if (req.method === "POST" && path === "/__mock/reset") {

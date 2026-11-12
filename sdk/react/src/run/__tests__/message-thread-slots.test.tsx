@@ -303,9 +303,12 @@ describe("MessageThread slots", () => {
 
     renderThread(conversation({ id: "e-failed", message: "prompt text", phase: "failed", error: "model capacity exhausted" }), { onRetryRun });
 
-    expect(screen.getByRole("alert").textContent).toContain("model capacity exhausted");
-    expect(screen.getByRole("button", { name: "Show more" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    const notice = screen.getByRole("alert");
+    expect(notice.textContent).toContain("This turn didn't finish.");
+    // The raw error is the details a person copies, never the notice's words.
+    expect(notice.textContent).not.toContain("model capacity exhausted");
+    expect(screen.getByRole("button", { name: "Copy details" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Send it again" }));
     expect(onRetryRun).toHaveBeenCalledWith("prompt text");
   });
 

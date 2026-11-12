@@ -36,6 +36,14 @@ describe("transcriptFactsOf", () => {
     expect(facts.finished).toBe(false);
   });
 
+  it("reads a run whose last entry is the engine's record of a failed model call as not finished", () => {
+    const refused = assistant("a-err", [{ type: "text", text: "Invalid API key · Fix external API key" }], { isApiErrorMessage: true } as Partial<SessionStoreEntry>);
+    expect(transcriptFactsOf([user("u-1"), refused]).finished).toBe(false);
+    const synthetic = { type: "assistant", uuid: "a-syn", message: { role: "assistant", model: "<synthetic>", content: [{ type: "text", text: "API Error: 529" }] } } as SessionStoreEntry;
+    expect(transcriptFactsOf([user("u-1"), synthetic]).finished).toBe(false);
+    expect(transcriptFactsOf([user("u-1"), assistant("a-1", [{ type: "text", text: "done" }])]).finished).toBe(true);
+  });
+
   it("reads an empty transcript as existing but unfinished", () => {
     expect(transcriptFactsOf([])).toEqual({ exists: true, taken: new Set(), finished: false, pendingCall: undefined });
   });

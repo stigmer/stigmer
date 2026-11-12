@@ -196,6 +196,15 @@ vi.mock("../useSessionPageFlow", () => ({
 
 // The reader's own access to the conversation: an owner's, unless a case
 // says otherwise.
+// The ending notice's wiring asks the server (permissions, recover): its own tests prove it.
+vi.mock("../useTurnEndingWiring", () => ({
+  useTurnEndingWiring: () => ({
+    wiring: { viewer: { canManageProviders: false, canOpenAgent: false, canAct: true, stoppedIt: false } },
+    error: null,
+    clearError: () => {},
+  }),
+}));
+
 vi.mock("../useSessionAccess", () => ({
   useSessionAccess: () => ({ canSend: true, canDecide: true }),
 }));
@@ -551,6 +560,30 @@ describe("SessionViewer — audience wiring", () => {
   ] as const)("%s: the thread shows run scores = %s", (audience, shows) => {
     render(<SessionViewer sessionId="ses_1" org="acme" audience={audience} />);
     expect(lastThreadProps().runScores).toBe(shows);
+  });
+
+  it("says a session that didn't open in words, with Try again", () => {
+    const conv = stubConv as { loadError: Error | null };
+    conv.loadError = new Error("Unable to connect to the server.");
+    try {
+      render(<SessionViewer sessionId="ses_1" org="acme" />);
+      expect(screen.getByRole("heading", { name: "This session didn’t open" })).toBeTruthy();
+      expect(screen.getByRole("button", { name: "Try again" })).toBeTruthy();
+    } finally {
+      conv.loadError = null;
+    }
+  });
+
+  it("says the stream is reconnecting, and that the agent keeps working meanwhile", () => {
+    const conv = stubConv as { isReconnecting?: boolean };
+    const was = conv.isReconnecting;
+    conv.isReconnecting = true;
+    try {
+      render(<SessionViewer sessionId="ses_1" org="acme" />);
+      expect(screen.getByText(/Reconnecting… The agent keeps working/)).toBeTruthy();
+    } finally {
+      conv.isReconnecting = was;
+    }
   });
 
   it("renders the conversation's send error through the send-error banner", () => {

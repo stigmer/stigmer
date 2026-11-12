@@ -1,14 +1,14 @@
 // How the session stands, in the words of its title's status pill: what its
 // newest turn is doing or how it ended, in the kit's status hues. Blue while
-// the agent works, amber while it waits for a person, green once done, red
-// when it didn't finish, grey before it starts and once a person stopped it.
-// The session's header reads it; the words never come from anywhere else.
+// the agent works, amber while it waits for a person or paused at a limit,
+// green once done, red when it didn't finish, grey before it starts and once
+// a person or the platform stopped it. The session's header reads it.
 //
-// A turn's failure has kinds (a refused key, a provider gone, a cap
-// reached); the pill names none of them, only that the turn didn't finish:
-// the failure's own notice under the turn says which.
+// An ended turn's pill is its ending's (`describeTurnEnding`), so the pill
+// and the notice under the turn say the same thing: a spending cap reads
+// amber "Paused at its spending cap" in both places.
 
-import type { Turn } from "@stigmer/client";
+import { describeTurnEnding, type Turn, type TurnEndingTone } from "@stigmer/client";
 import type { StatusPhase } from "../resource-workbench/types.js";
 
 /** The pill's hue and words, and whether its words carry the turn's ticking time. */
@@ -36,9 +36,17 @@ export function sessionStatus(last: Turn | undefined, decides: boolean): Session
     if (phase === undefined || phase === "pending") return { phase: "pending", label: "Starting", timed: false };
     return { phase: "running", label: "Working", timed: true };
   }
-  if (phase === "completed") return { phase: "ready", label: "Done", timed: false };
-  // A person's stop is a quiet end, as is a cancel no cause explains.
-  const cause = last.status?.stopCause ?? "";
-  if (phase === "cancelled" && (cause === "user" || cause === "")) return { phase: "pending", label: "Stopped", timed: false };
-  return { phase: "failed", label: "Didn't finish", timed: false };
+  const ending = describeTurnEnding({
+    turn: last,
+    viewer: { canManageProviders: false, canOpenAgent: false, canAct: false, stoppedIt: decides },
+  });
+  if (ending !== undefined) return { phase: TONE_PHASES[ending.tone], label: ending.pill, timed: false };
+  return { phase: "ready", label: "Done", timed: false };
 }
+
+/** The pill's hue for an ending's tone. */
+const TONE_PHASES: Readonly<Record<TurnEndingTone, StatusPhase>> = {
+  failed: "failed",
+  paused: "degraded",
+  stopped: "pending",
+};

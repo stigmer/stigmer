@@ -7,7 +7,7 @@ import { test, expect } from "@playwright/test";
  * Error handling in Stigmer is layered:
  * - Unmatched routes → Next.js not-found.tsx (h1 "Page not found")
  * - Invalid run IDs → inline "Run not found"
- * - Invalid session IDs → SessionError ("Failed to load session", naming
+ * - Invalid session IDs → SessionError ("This session didn’t open", naming
  *   the id, with a retry)
  * - Invalid library slugs → inline not-found state ("Agent not found")
  *   with the access hint
@@ -46,7 +46,7 @@ test.describe("Error state resilience", () => {
   }) => {
     await page.goto("/sessions/nonexistent-e2e-test-id");
 
-    await expect(page.getByRole("heading", { name: "Failed to load session" })).toBeVisible({
+    await expect(page.getByRole("heading", { name: "This session didn’t open" })).toBeVisible({
       timeout: 15_000,
     });
     await expect(page.getByText("Session not found: nonexistent-e2e-test-id")).toBeVisible();

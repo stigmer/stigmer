@@ -15,6 +15,10 @@ export interface ProviderPresentation {
   readonly keysUrl: string | null;
   /** The keys page's address as shown, without the scheme. */
   readonly keysUrlLabel: string | null;
+  /** Where a person adds credit to the provider account; `null` for a provider this build does not know. */
+  readonly billingUrl: string | null;
+  /** The provider's own status page; `null` for a provider this build does not know. */
+  readonly statusUrl: string | null;
   /**
    * An example own endpoint, as the provider's SDK takes it, for a provider
    * that can be served from an endpoint of the organization's; `null` for
@@ -52,6 +56,8 @@ const PRESENTATIONS: Readonly<Record<string, ProviderPresentation>> = {
     placeholder: "sk-ant-…",
     keysUrl: "https://console.anthropic.com/settings/keys",
     keysUrlLabel: "console.anthropic.com",
+    billingUrl: "https://console.anthropic.com/settings/billing",
+    statusUrl: "https://status.anthropic.com",
     baseUrlExample: "https://gateway.example.com",
     runnerSetup: {
       lead: "Run stigmer setup in a terminal on this machine, then restart Stigmer:",
@@ -64,6 +70,8 @@ const PRESENTATIONS: Readonly<Record<string, ProviderPresentation>> = {
     placeholder: "sk-…",
     keysUrl: "https://platform.openai.com/api-keys",
     keysUrlLabel: "platform.openai.com",
+    billingUrl: "https://platform.openai.com/settings/organization/billing/overview",
+    statusUrl: "https://status.openai.com",
     baseUrlExample: "https://gateway.example.com/v1",
     runnerSetup: {
       lead: "Set OPENAI_API_KEY in the shell you start Stigmer from, then restart Stigmer:",
@@ -81,6 +89,8 @@ export function presentationOf(provider: string): ProviderPresentation {
       placeholder: "",
       keysUrl: null,
       keysUrlLabel: null,
+      billingUrl: null,
+      statusUrl: null,
       baseUrlExample: null,
       runnerSetup: null,
     }
