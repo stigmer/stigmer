@@ -216,6 +216,27 @@ describe("samples", () => {
       const frame = samples.eventFrame(samples.userMessageEvent("a"));
       expect(frame.frame.case).toBe("event");
     });
+
+    it("says a background command started, then how it ended, and folds onto its tool use", () => {
+      const started = samples.backgroundCommandStatusEvent("tu-bg");
+      expect(started.event).toMatchObject({
+        case: "stigmerBackgroundCommandStatus",
+        value: { id: "tu-bg.bg.running", toolUseId: "tu-bg", phase: "running", timeoutSeconds: 600, ending: "", stoppedBy: "", endedAt: "" },
+      });
+      const ended = samples.backgroundCommandStatusEvent("tu-bg", { phase: "ended", exitCode: 1, output: "boom", stoppedBy: "turn", ending: "stopped" });
+      expect(ended.event).toMatchObject({
+        value: { id: "tu-bg.bg.ended", phase: "ended", ending: "stopped", exitCode: 1, stoppedBy: "turn", output: "boom", endedAt: SAMPLE_INSTANT },
+      });
+      expect(samples.backgroundCommandStatusEvent("tu-bg", { phase: "ended" }).event).toMatchObject({ value: { ending: "exited", stoppedBy: "" } });
+      const use = samples.toolUseEvent("execute", { command: "npm run dev", background: true }, { id: "tu-bg" });
+      const running = samples.fold([use, samples.toolResultEvent("tu-bg", "Started in the background."), started]).turns[0]!.items[0];
+      expect(running).toMatchObject({ kind: "tool_use", background: { state: "running", timeoutSeconds: 600 } });
+    });
+
+    it("streams a running tool's output as a frame", () => {
+      const frame = samples.toolOutputDeltaFrame("tu-1", "PASS\n");
+      expect(frame.frame).toEqual({ case: "stigmerToolOutputDelta", value: expect.objectContaining({ toolUseId: "tu-1", delta: "PASS\n" }) });
+    });
   });
 
   describe("output File primitive", () => {
@@ -309,6 +330,8 @@ describe("samples determinism", () => {
     toolUse: () => samples.toolUse("lookup_order", "{}"),
     sessionEventList: () => samples.sessionEventList(samples.turnEvents()),
     eventFrame: () => samples.eventFrame(samples.userMessageEvent("x")),
+    backgroundCommandStatusEvent: () => samples.backgroundCommandStatusEvent("tu", { phase: "ended", exitCode: 0 }),
+    toolOutputDeltaFrame: () => samples.toolOutputDeltaFrame("tu", "x"),
     outputFile: () => samples.outputFile("report.md"),
     sessionList: () => samples.sessionList(),
     runList: () => samples.runList(),

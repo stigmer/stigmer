@@ -241,6 +241,25 @@ export interface RunStatusEventOverrides extends SessionEventOverrides {
   readonly error?: string;
 }
 
+/**
+ * A background command's status (`stigmer.background_command.status`): it
+ * started (`running`, with its time limit), or it ended, how, and by whom.
+ */
+export interface BackgroundCommandStatusOverrides extends SessionEventOverrides {
+  /** `running` (the default) when the command starts; `ended` when it stops. */
+  readonly phase?: "running" | "ended";
+  /** How long it may run, in seconds. Defaults to 600. */
+  readonly timeoutSeconds?: number;
+  /** How an ended command ended. Defaults to `exited`. */
+  readonly ending?: "exited" | "timed_out" | "stopped" | "failed_to_start";
+  /** The exit code of a command that exited. */
+  readonly exitCode?: number;
+  /** Who stopped a stopped command. */
+  readonly stoppedBy?: "agent" | "person" | "approval" | "turn";
+  /** The output it ended with. */
+  readonly output?: string;
+}
+
 /** One tool call of a {@link samples.turnEvents} turn: its use and, when it returned, its result. */
 export interface TurnToolOverrides {
   readonly name: string;
@@ -764,6 +783,40 @@ export const samples = {
   /** A session event list response (`listEvents`), its events numbered in order. */
   sessionEventList(events: readonly SessionEvent[]): SessionEventList {
     return create(SessionEventListSchema, { events: numbered(events) });
+  },
+
+  /**
+   * A background command's status (`stigmer.background_command.status`)
+   * for the tool use that started it. Id: `<tool use>.bg.<phase>`.
+   */
+  backgroundCommandStatusEvent(toolUseId: string, o?: BackgroundCommandStatusOverrides): SessionEvent {
+    const phase = o?.phase ?? "running";
+    const ended = phase === "ended";
+    return sessionEvent(o, {
+      case: "stigmerBackgroundCommandStatus",
+      value: {
+        id: o?.id ?? `${toolUseId}.bg.${phase}`,
+        processedAt: at(o),
+        toolUseId,
+        sessionThreadId: o?.threadId ?? "",
+        phase,
+        timeoutSeconds: o?.timeoutSeconds ?? 600,
+        ending: ended ? (o?.ending ?? "exited") : "",
+        ...(o?.exitCode === undefined ? {} : { exitCode: o.exitCode }),
+        stoppedBy: ended ? (o?.stoppedBy ?? "") : "",
+        output: o?.output ?? "",
+        endedAt: ended ? at(o) : "",
+      },
+    });
+  },
+
+  /**
+   * A stream frame carrying a fragment of a running tool's output
+   * (`stigmer.tool_output_delta`): streamed, never stored, so a page that
+   * replays a session sends it after the stored events.
+   */
+  toolOutputDeltaFrame(toolUseId: string, delta: string): StreamSessionEventsResponse {
+    return create(StreamSessionEventsResponseSchema, { frame: { case: "stigmerToolOutputDelta", value: { toolUseId, delta } } });
   },
 
   /** A stream frame carrying one stored event (`streamEvents`). */

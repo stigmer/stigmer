@@ -38,7 +38,7 @@ import { conversationsScene } from "./conversations.tsx";
 import { agentEnvironmentScene, environmentNewScene, runSettingsScene } from "./environment.tsx";
 import { routineDetailScene, routineNewScene } from "./routine.tsx";
 import { modelSelectorScene } from "./settings.tsx";
-import { sessionScene } from "./session.tsx";
+import { sessionScene, sessionStartingScene, stepStoryScene } from "./session.tsx";
 import { asksFirstScene, hoursScene, inProductScene, keysScene, ownComputerScene, wallsScene } from "./story.tsx";
 import { threadScene } from "./thread.tsx";
 
@@ -93,6 +93,14 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "session-guest": () => sessionScene("finished", { audience: "guest" }),
   "session-observer": () => sessionScene("finished", { audience: "observer", inspector: true }),
   "session-load-failed": () => sessionScene("load-failed", { inspector: true }),
+  "session-steps-opened": () => sessionScene("busy", { inspector: true }),
+  "session-how-opened": () => sessionScene("finished", { inspector: true }),
+  "session-mcp": () => stepStoryScene("mcp-turn", { inspector: true }),
+  "session-many-files": () => stepStoryScene("many-files", { inspector: true }),
+  "session-file-steps": () => stepStoryScene("file-steps", { inspector: true }),
+  "session-shell-steps": () => stepStoryScene("shell-steps", { inspector: true }),
+  "session-slow": () => sessionScene("busy", { inspector: true }),
+  "session-starting": () => sessionStartingScene(),
   "story-asks-first": asksFirstScene,
   "story-in-product": inProductScene,
   "story-own-computer": ownComputerScene,

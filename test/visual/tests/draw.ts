@@ -2,7 +2,9 @@
 // (gallery.spec.ts) and the pictures the site shows (shown.spec.ts), so a
 // shown picture is drawn exactly as its scene's approved screenshot is.
 //
-// A scene is drawn at the scenario catalogue's clock, so no duration moves,
+// A scene is drawn at the scenario catalogue's clock, so no duration moves
+// (one reached by time passing is held ten seconds past it, then run on by its
+// `elapse`),
 // with every request off the machine refused, and pictured once its calls
 // have settled and its fonts have loaded. A scene reached by acts (a
 // click that opens it, a form a docs page fills) is pictured, and audited,
@@ -21,10 +23,23 @@ export async function draw(page: Page, scene: Scene, mode: Mode, size: { readonl
     (url) => url.hostname !== "localhost" && url.hostname !== "127.0.0.1",
     (route) => route.abort("blockedbyclient"),
   );
-  await page.clock.setFixedTime(new Date(SCENARIO_CLOCK));
+  if (scene.elapse === undefined) await page.clock.setFixedTime(new Date(SCENARIO_CLOCK));
+  else await page.clock.install({ time: new Date(SCENARIO_CLOCK) });
   await page.setViewportSize(size);
   await page.goto(sceneUrl(scene.id, mode));
   await settled(page);
+  if (scene.elapse !== undefined) {
+    // Held ten seconds past the catalogue's clock, so what the load took
+    // never shows; then run on, firing each timer due, and fixed there with
+    // timers running again, as the other scenes are drawn (the audit waits
+    // on its own).
+    const held = Date.parse(SCENARIO_CLOCK) + 10_000;
+    await page.clock.pauseAt(new Date(held));
+    await page.clock.runFor(scene.elapse);
+    await page.clock.resume();
+    await page.clock.setFixedTime(new Date(held + scene.elapse));
+    await settled(page);
+  }
   for (const act of [scene.opens ?? []].flat()) {
     await perform(page, act);
     await settled(page);

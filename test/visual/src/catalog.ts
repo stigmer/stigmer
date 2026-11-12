@@ -123,6 +123,13 @@ export interface Scene {
    * is pictured filled.
    */
   readonly opens?: Act | readonly Act[];
+  /**
+   * How long the page's clock runs on, in milliseconds, once the scene has
+   * settled and before its acts: a state reached only by time passing (a
+   * working turn gone quiet past its slow window). Timers fire as they
+   * would; durations read that much later.
+   */
+  readonly elapse?: number;
 }
 
 /**
@@ -183,7 +190,46 @@ const SESSION_SCENES = [
   { id: "session-guest", title: "Session: the finished turn, for a chat link's guest", widths: ["desktop", "narrow"] },
   { id: "session-observer", title: "Session: the finished turn, for a reviewer who reads it", widths: ["desktop"] },
   { id: "session-load-failed", title: "Session: the conversation cannot load", widths: ["desktop"] },
-] as const satisfies readonly { readonly id: `session-${string}`; readonly title: string; readonly widths: readonly WidthName[]; readonly opens?: Act | readonly Act[] }[];
+  {
+    id: "session-steps-opened",
+    title: "Session: the long turn at work with its steps opened: a search's matches and an edit",
+    widths: ["desktop"],
+  },
+  { id: "session-how-opened", title: "Session: the finished turn with how it got there opened", widths: ["desktop"] },
+  {
+    id: "session-mcp",
+    title: "Session: a finished turn that used a connected app's tools: a search and a new issue",
+    widths: ["desktop"],
+  },
+  {
+    id: "session-many-files",
+    title: "Session: a finished audit a routine started, with three files changed and twenty Files made",
+    widths: ["desktop"],
+  },
+  {
+    id: "session-file-steps",
+    title: "Session: every file step: list, search, find, read, edit, create, delete, a failed edit, a File written",
+    widths: ["desktop"],
+  },
+  {
+    id: "session-shell-steps",
+    title: "Session: every shell step: output, a described command, exit 1, running, in the background, and an ask",
+    widths: ["desktop"],
+  },
+  {
+    id: "session-slow",
+    title: "Session: the long turn has said nothing for over a minute",
+    widths: ["desktop"],
+    elapse: 61_000,
+  },
+  { id: "session-starting", title: "Session: the session is being made and has no id yet", widths: ["desktop"] },
+] as const satisfies readonly {
+  readonly id: `session-${string}`;
+  readonly title: string;
+  readonly widths: readonly WidthName[];
+  readonly opens?: Act | readonly Act[];
+  readonly elapse?: number;
+}[];
 
 /**
  * The story's scenes: moments of the job every picture of Stigmer at work

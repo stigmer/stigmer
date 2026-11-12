@@ -9,8 +9,10 @@
  * and that no scenario carries a timestamp other than the frozen instant's.
  * Beside the states: the scripted turn the docs play, its parts in the order
  * a reader's acts choose between; the ledger turn of the first agent job,
- * read, written and answered with no ask; and `upTo`, which draws any
- * scenario part of the way through.
+ * read, written and answered with no ask; `upTo`, which draws any
+ * scenario part of the way through; and the step turns, each holding the
+ * family of steps its name claims (a connected app's tools, twenty Files,
+ * every file step, every shell step with what its running commands printed).
  */
 import { describe, it, expect } from "vitest";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
@@ -26,6 +28,8 @@ import {
   scenarios,
   scriptedStory,
   scriptedTurn,
+  STEP_STORY_NAMES,
+  stepStories,
   upTo,
   usageOf,
   type ScenarioName,
@@ -329,5 +333,73 @@ describe("the ledger turn the docs' front page plays", () => {
     const stamps = events.map((e) => Date.parse((e.event.value as { processedAt?: string }).processedAt ?? ""));
     expect(stamps.every((stamp, i) => i === 0 || stamp >= stamps[i - 1]!)).toBe(true);
     expect(stamps[0]).toBe(Date.parse(SAMPLE_INSTANT));
+  });
+});
+
+describe("the step turns", () => {
+  const toolsOf = (story: (typeof stepStories)[keyof typeof stepStories]): ToolUse[] => {
+    expect(story.fold.turns, `${story.name} has one turn`).toHaveLength(1);
+    return story.fold.turns[0]!.items.filter((item): item is ToolUse => item.kind === "tool_use");
+  };
+
+  it("names every step turn once, under its own name, outside the states every surface draws", () => {
+    expect(Object.keys(stepStories)).toEqual([...STEP_STORY_NAMES]);
+    for (const name of STEP_STORY_NAMES) {
+      expect(stepStories[name].name).toBe(name);
+      expect((SCENARIO_NAMES as readonly string[]).includes(name)).toBe(false);
+    }
+  });
+
+  it("uses a connected app's tools, both returned, and answers with the issue", () => {
+    const story = stepStories["mcp-turn"];
+    const tools = toolsOf(story);
+    expect(tools.map((tool) => [tool.name, tool.mcpServerName, tool.state])).toEqual([
+      ["search_issues", "issue-tracker", "completed"],
+      ["create_issue", "issue-tracker", "completed"],
+    ]);
+    expect(story.fold.turns[0]!.status?.phase).toBe("completed");
+  });
+
+  it("makes twenty Files in a routine's session, from a write each, after three files changed", () => {
+    const story = stepStories["many-files"];
+    expect(story.files).toHaveLength(20);
+    expect(story.session?.status?.routineId).not.toBe("");
+    const tools = toolsOf(story);
+    const outputs = tools.filter((tool) => tool.name === "write_file" && String(tool.input.path).startsWith("/.stigmer/outputs/"));
+    expect(outputs.map((tool) => String(tool.input.path).split("/").at(-1))).toEqual(story.files.map((file) => file.spec!.filename));
+    expect(tools.filter((tool) => tool.name === "edit_file")).toHaveLength(2);
+    expect(story.fold.turns[0]!.status?.phase).toBe("completed");
+  });
+
+  it("takes every file step once, with one edit that failed and its retry, and returns one File", () => {
+    const story = stepStories["file-steps"];
+    const tools = toolsOf(story);
+    expect(tools.map((tool) => tool.name)).toEqual(["ls", "grep", "glob", "read_file", "edit_file", "write_file", "delete_file", "edit_file", "edit_file", "write_file"]);
+    expect(tools.filter((tool) => tool.state === "failed").map((tool) => tool.input.path)).toEqual(["src/billing/invoice.ts"]);
+    expect(String(tools[5]!.input.content).split("\n")).toHaveLength(25);
+    expect(story.files.map((file) => file.spec!.filename)).toEqual(["rounding-audit.md"]);
+  });
+
+  it("takes every shell step: one exit 1, one described, the suite running with its output so far, a dev server in the background, and a push that asks", () => {
+    const story = stepStories["shell-steps"];
+    const turn = story.fold.turns[0]!;
+    const tools = toolsOf(story).filter((tool) => tool.name === "execute");
+    expect(tools.map((tool) => tool.input.command)).toEqual([
+      "npm test -- billing/invoice",
+      "npm test -- billing/credit-note",
+      "npm test -- billing",
+      "git diff --stat",
+      "npm run dev",
+      "npm test -- billing",
+      "git push origin fix/invoice-rounding",
+    ]);
+    expect(tools[2]!.result?.text).toContain("[Command failed with exit code 1]");
+    expect(tools[1]!.input.description).toBe("Run the credit-note tests");
+    expect(tools[4]!.background).toMatchObject({ state: "running", liveOutput: expect.stringContaining("ready in 412 ms") });
+    expect(tools[5]).toMatchObject({ state: "running", liveOutput: expect.stringContaining("PASS") });
+    expect(turn.status?.phase).toBe("waiting");
+    expect(turn.asks.map((ask) => ask.id)).toEqual([tools[6]!.id]);
+    expect(story.outputs).toHaveLength(2);
+    expect(upTo(story, story.events.length - 1).outputs).toBeUndefined();
   });
 });
