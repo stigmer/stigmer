@@ -147,7 +147,7 @@ export function ChatLinkCard({
               <Copy className="stg:size-3" aria-hidden="true" />
             </button>
           </div>
-          <p className="stg:mt-0.5 stg:text-xs stg:text-muted-foreground-faint">
+          <p className="stg:mt-0.5 stg:text-xs stg:text-muted-foreground">
             {audience === "org" ? "Organization members" : "Anyone with the link"}
           </p>
         </>

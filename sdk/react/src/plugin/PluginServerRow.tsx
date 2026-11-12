@@ -40,7 +40,7 @@ export function PluginServerRow({ org, pluginId, pluginName, server }: PluginSer
         <div className="stg:flex stg:min-w-0 stg:flex-col stg:gap-0.5">
           <span className="stg:text-sm stg:font-medium stg:text-foreground">{server.name}</span>
           <span className="stg:break-all stg:font-mono stg:text-xs stg:text-muted-foreground">{reachedBy(server)}</span>
-          <span className="stg:font-mono stg:text-xs stg:text-muted-foreground-faint">
+          <span className="stg:font-mono stg:text-xs stg:text-muted-foreground">
             mcp__{toolServerSegment(pluginName, server.name)}__*
           </span>
         </div>

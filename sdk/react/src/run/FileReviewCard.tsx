@@ -755,7 +755,7 @@ function FileListRow({
     >
       <FileKindBadge kind={fileChangeKindOf(file.change)} />
       {renamedFrom && (
-        <span className="stg:min-w-0 stg:truncate stg:font-mono stg:text-xs stg:text-muted-foreground-faint">
+        <span className="stg:min-w-0 stg:truncate stg:font-mono stg:text-xs stg:text-muted-foreground">
           {renamedFrom}&nbsp;→&nbsp;
         </span>
       )}

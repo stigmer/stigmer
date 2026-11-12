@@ -113,7 +113,7 @@ export const FileChangeProgressBar = memo(function FileChangeProgressBar({
             );
           })}
           {hiddenCount > 0 && (
-            <li className="stg:text-xs stg:text-muted-foreground-faint">
+            <li className="stg:text-xs stg:text-muted-foreground">
               … and {hiddenCount} more
             </li>
           )}

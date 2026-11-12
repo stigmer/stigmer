@@ -118,7 +118,7 @@ function HunkRows({
 // ---------------------------------------------------------------------------
 
 const LINE_NUM_CLASSES =
-  "stg:w-[1px] stg:min-w-10 stg:select-none stg:whitespace-nowrap stg:px-2 stg:text-right stg:text-2xs stg:text-muted-foreground-faint";
+  "stg:w-[1px] stg:min-w-10 stg:select-none stg:whitespace-nowrap stg:px-2 stg:text-right stg:text-2xs stg:text-muted-foreground";
 const MARKER_CLASSES = "stg:w-[1px] stg:select-none stg:px-1 stg:text-center";
 
 function DiffLineRow({ line }: { readonly line: DiffLine }) {

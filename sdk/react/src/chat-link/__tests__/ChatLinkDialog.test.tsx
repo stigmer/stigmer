@@ -989,6 +989,33 @@ describe("ChatLinkDialog", () => {
     );
   });
 
+  // stigmer/stigmer#2899: a snippet longer than the dialog scrolls, so a
+  // keyboard user must reach it to scroll it: each block is a named region
+  // in the tab order, with the kit's focus ring.
+  describe("snippet blocks take the keyboard", () => {
+    function expectScrollRegion(name: string) {
+      const region = screen.getByRole("region", { name, hidden: true });
+      expect(region.tabIndex).toBe(0);
+      expect(region.className).toContain("stg:focus-visible:ring-2");
+    }
+
+    it("names the embed, iframe and SDK snippets as focusable regions", () => {
+      renderOpenDialog(createMockStigmer(), {
+        channel: makeChatLink({ enabled: true }),
+      });
+
+      fireEvent.click(screen.getByRole("tab", { name: /Embed/, hidden: true }));
+      expectScrollRegion("Embed on your site");
+      fireEvent.click(
+        screen.getByRole("button", { name: /No-JavaScript alternative/, hidden: true }),
+      );
+      expectScrollRegion("Iframe embed");
+
+      fireEvent.click(screen.getByRole("tab", { name: /Developer/, hidden: true }));
+      expectScrollRegion("SDK integration");
+    });
+  });
+
   describe("Developer tab", () => {
     it("shows the user-token snippet and docs link", () => {
       renderOpenDialog(createMockStigmer(), {

@@ -274,7 +274,7 @@ function StepIndicator({ current }: { current: WizardStep }) {
                   ? "stg:text-primary"
                   : state === "done"
                     ? "stg:text-muted-foreground"
-                    : "stg:text-muted-foreground-faint",
+                    : "stg:text-muted-foreground",
               )}
             >
               {s.label}
