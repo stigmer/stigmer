@@ -10,10 +10,10 @@
  * and change from the conversation itself, a change the viewer cannot show
  * (or anything nothing can open) reading as a plain label; from five items
  * on, a list of the first five, the rest counted by kind (largest first)
- * and "Show all" opening them in place. A completed turn's ending is the
- * header's pill, so the block says only how a turn that did not finish
- * ended, with its time; it draws nothing for a completed turn that made and
- * changed nothing, nor for a turn that still works. A File's kind reads in
+ * and "Show all" opening them in place. How a turn ended is the header's
+ * pill, and for one that did not finish its notice, so the block says only
+ * what the turn produced: it draws nothing for a turn that made and changed
+ * nothing, nor for a turn that still works. A File's kind reads in
  * a person's words (`fileKind`): from its type, else its extension.
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
@@ -179,11 +179,11 @@ describe("TurnOutcome", () => {
     expect(onOpenChange).toHaveBeenCalledWith({ path: "README.md", captured: undefined });
   });
 
-  it("says how a turn that did not finish ended, with its time", () => {
+  it("leaves how a turn that did not finish ended to its notice and the pill: nothing made, nothing drawn", () => {
     const failed = scenarios.failed;
     const outcome = turnOutcome(failed.fold.turns[0]!, [], failed.runs[0]);
-    render(<TurnOutcome outcome={outcome} />);
-    expect(screen.getByRole("region").textContent).toMatch(/^Failed · /);
+    const { container } = render(<TurnOutcome outcome={outcome} />);
+    expect(container.textContent).toBe("");
   });
 
   it("draws nothing under a completed turn that made and changed nothing", () => {

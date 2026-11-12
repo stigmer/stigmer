@@ -316,11 +316,11 @@ describe("buildThreadItems finished turn", () => {
     expect(keys(items)).toEqual([`${R}-spec`, m(R, 0), `outcome-${R}`]);
   });
 
-  it.each(["failed", "cancelled"] as const)("keeps a turn that %s in time order", (phase) => {
+  it.each(["failed", "cancelled"] as const)("keeps a turn that %s in time order, its ending's notice before what it produced", (phase) => {
     const items = build([user(R, "go"), status(R, "running"), said(R, 0, "Looking."), call(R, "c1", "read_file", { path: "a.ts" }), said(R, 1, "Partial."), status(R, phase)], {
       includeOutcomes: true,
     });
-    expect(keys(items)).toEqual([`${R}-spec`, m(R, 0), tc(R, "c1"), m(R, 1), `outcome-${R}`]);
+    expect(keys(items)).toEqual([`${R}-spec`, m(R, 0), tc(R, "c1"), m(R, 1), `execution-error-${R}`, `outcome-${R}`]);
   });
 
   it("places each completed turn's outcome after its answer, and never again at the thread's end", () => {

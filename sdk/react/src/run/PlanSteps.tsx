@@ -29,6 +29,13 @@ export interface PlanStepsProps {
   readonly steps: TurnSteps;
   /** Whether the turn still works: its item in progress runs, and is open. */
   readonly working: boolean;
+  /**
+   * What the item in progress reads once the turn stopped on it, from the
+   * turn's ending ("Paused here", "Stalled here").
+   *
+   * @default "Stopped here"
+   */
+  readonly stoppedNote?: string;
   readonly className?: string;
 }
 
@@ -43,7 +50,7 @@ function waits(tool: ToolUse): boolean {
 }
 
 /** A turn's plan card (module header). */
-export function PlanSteps({ steps, working, className }: PlanStepsProps) {
+export function PlanSteps({ steps, working, stoppedNote = "Stopped here", className }: PlanStepsProps) {
   const counted = steps.plan.filter((item) => item.todo.status !== "cancelled");
   const done = counted.filter((item) => item.todo.status === "completed").length;
   const loose = steps.loose.filter((tool) => !waits(tool));
@@ -65,7 +72,7 @@ export function PlanSteps({ steps, working, className }: PlanStepsProps) {
       </header>
       <ul role="list" className={UNSTYLED_LIST}>
         {steps.plan.map((item) => (
-          <PlanItemRow key={item.todo.id} item={item} working={working} />
+          <PlanItemRow key={item.todo.id} item={item} working={working} stoppedNote={stoppedNote} />
         ))}
       </ul>
       {settledLoose.length > 0 && (
@@ -79,7 +86,7 @@ export function PlanSteps({ steps, working, className }: PlanStepsProps) {
 }
 
 /** One item of the plan: its mark, its words, and the steps it took when opened. */
-function PlanItemRow({ item, working }: { readonly item: PlanItem; readonly working: boolean }) {
+function PlanItemRow({ item, working, stoppedNote }: { readonly item: PlanItem; readonly working: boolean; readonly stoppedNote: string }) {
   const regionId = useId();
   const calls = item.calls.filter((tool) => !waits(tool));
   const waiting = item.calls.some(waits);
@@ -102,7 +109,7 @@ function PlanItemRow({ item, working }: { readonly item: PlanItem; readonly work
         {item.todo.content}
       </span>
       {waiting && <span className="stg:block stg:text-xs stg:text-status-degraded">Waiting for you</span>}
-      {status === "in_progress" && !working && <span className="stg:block stg:text-xs stg:text-muted-foreground">Not finished</span>}
+      {status === "in_progress" && !working && <span className="stg:block stg:text-xs stg:text-muted-foreground">{stoppedNote}</span>}
     </span>
   );
   return (
@@ -161,7 +168,7 @@ function PlanMark({ status, live }: { readonly status: PlanItem["todo"]["status"
   }
   return (
     <span
-      aria-label={status === "in_progress" ? "Not finished" : status === "cancelled" ? "Dropped" : "To do"}
+      aria-label={status === "in_progress" ? "Stopped" : status === "cancelled" ? "Dropped" : "To do"}
       role="img"
       className={cn(
         "stg:mt-0.5 stg:h-4 stg:w-4 stg:shrink-0 stg:rounded-full stg:border",

@@ -1,5 +1,5 @@
 /**
- * Proves useRunActions (../useRunActions.ts): terminate, pause and resume
+ * Proves useRunActions (../useRunActions.ts): terminate, pause, resume and recover
  * each call their run RPC with the run id (and reason), return the updated
  * run and report it to `onSuccess`; a failure returns null and keeps the
  * error until cleared or the next action; a null run id makes every action a
@@ -17,7 +17,8 @@ import { useRunActions } from "../useRunActions";
 const terminate = vi.fn();
 const pause = vi.fn();
 const resume = vi.fn();
-const client = { run: { terminate, pause, resume } } as unknown as Stigmer;
+const recover = vi.fn();
+const client = { run: { terminate, pause, resume, recover } } as unknown as Stigmer;
 
 function Wrapper({ children }: { children: ReactNode }) {
   return <StigmerContext.Provider value={client}>{children}</StigmerContext.Provider>;
@@ -61,6 +62,22 @@ describe("useRunActions", () => {
     expect(pause.mock.calls[0][0]).toMatchObject({ id: "run-1", reason: "" });
     expect(terminate.mock.calls[0][0]).toMatchObject({ id: "run-1", reason: "" });
     expect(resume.mock.calls[0][0]).toMatchObject({ id: "run-1" });
+  });
+
+  it("recovers a failed run by its id, returning the run back at work", async () => {
+    const run = samples.run({ phase: RunPhase.RUN_IN_PROGRESS });
+    recover.mockResolvedValueOnce(run);
+    const onSuccess = vi.fn();
+    const { result } = renderHook(() => useRunActions("run-1", { onSuccess }), { wrapper: Wrapper });
+
+    let returned: unknown;
+    await act(async () => {
+      returned = await result.current.recover();
+    });
+
+    expect(returned).toBe(run);
+    expect(recover.mock.calls[0][0]).toMatchObject({ id: "run-1" });
+    expect(onSuccess).toHaveBeenCalledWith(run);
   });
 
   it("returns null and keeps the error on failure, until cleared", async () => {

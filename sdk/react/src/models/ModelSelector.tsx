@@ -483,6 +483,8 @@ export function ModelSelector({
     <Popover.Root open={open} onOpenChange={setOpen}>
       <Popover.Trigger
         disabled={disabled}
+        // A failed turn's "Choose another model" opens the picker by this mark.
+        data-model-picker=""
         className={cn(
           "stg:inline-flex stg:min-w-0 stg:items-center stg:gap-1.5 stg:overflow-hidden stg:rounded-md stg:border stg:border-border",
           "stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
