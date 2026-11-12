@@ -19,7 +19,8 @@
  *     the synchronous mode, and a delete sends the actor's reference alone;
  *   - workers are listed across pages with their state in the driver's
  *     words, an actor names the worker hosting it (none when it has none),
- *     and a refused worker read names the global viewer grant it needs;
+ *     a refused worker read names the global viewer grant it needs, and
+ *     any other failure of it passes through;
  *   - the atespace's access policy: created with the atespace, holding
  *     `editor` for the server's principal and nothing else; on an
  *     existing atespace, the binding it lacks added and none
@@ -714,6 +715,17 @@ describe("workers", () => {
     const refusal = gateway.listWorkers();
     await expect(refusal).rejects.toBeInstanceOf(SubstratePermissionError);
     await expect(refusal).rejects.toThrow(/global viewer/);
+  });
+
+  it("passes on any other failure of the worker read", async () => {
+    const gateway = gatewayOver({
+      listWorkers() {
+        throw new ConnectError("control plane unavailable", Code.Unavailable);
+      },
+    });
+    const failure = gateway.listWorkers();
+    await expect(failure).rejects.toBeInstanceOf(ConnectError);
+    await expect(failure).rejects.not.toBeInstanceOf(SubstratePermissionError);
   });
 });
 
