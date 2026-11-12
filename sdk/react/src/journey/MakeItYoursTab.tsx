@@ -40,6 +40,9 @@ import { anchorLink, type RenderJourneyLink } from "./links.js";
 /** The ready-made skill the tab offers. */
 export const OFFERED_SKILL_ID = "spreadsheet-export";
 
+/** Its shipped SKILL.md; examples/scripts/generate.test.mjs holds it in the package. */
+const OFFERED_SKILL = skillById(OFFERED_SKILL_ID);
+
 /** Where the tab's acts lead, in the host's routing. */
 export interface MakeItYoursLinks {
   /**
@@ -206,7 +209,7 @@ function SkillCard({
   readonly renderLink: RenderJourneyLink;
 }) {
   const stigmer = useStigmer();
-  const skill = skillById(OFFERED_SKILL_ID);
+  const skill = OFFERED_SKILL;
   const org = agent.metadata?.org ?? "";
   const refs = agent.spec?.skillRefs ?? [];
   const has = refs.some((ref) => ref.slug === OFFERED_SKILL_ID);
@@ -216,25 +219,25 @@ function SkillCard({
   const [adding, setAdding] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
 
-  const add = useCallback(async () => {
-    if (skill === undefined) return;
+  const add = useCallback(async (offered: NonNullable<typeof OFFERED_SKILL>) => {
     setAdding(true);
     setFailure(null);
     try {
       if (exists === false) {
         const { strToU8, zipSync } = await import("fflate");
-        const artifact = zipSync({ "SKILL.md": strToU8(skill.text) });
+        const artifact = zipSync({ "SKILL.md": strToU8(offered.text) });
         await stigmer.skill.push(create(PushSkillRequestSchema, { org, artifact }));
       }
       const kept = refs.map((ref) => keptReference({ org: ref.org || org, slug: ref.slug, ...(ref.id ? { id: ref.id } : {}), ...(ref.version ? { version: ref.version } : {}) }));
       await saveField("skillRefs", [...kept, { org, slug: OFFERED_SKILL_ID }]);
     } catch (err) {
-      setFailure(`${skill.name} wasn't added. ${getUserMessage(err, "Stigmer couldn't reach the server")}`);
+      setFailure(`${offered.name} wasn't added. ${getUserMessage(err, "Stigmer couldn't reach the server")}`);
     } finally {
       setAdding(false);
     }
-  }, [skill, exists, stigmer, org, refs, saveField]);
+  }, [exists, stigmer, org, refs, saveField]);
 
+  /* v8 ignore next -- @preserve: the examples package ships this skill, and its generator test holds it there */
   if (skill === undefined) return null;
   const refused = exists === false && !createSkill.isLoading && !createSkill.allowed;
   const ready = has || exists === true || (exists === false && createSkill.allowed);
@@ -259,7 +262,7 @@ function SkillCard({
             <p className="stg:m-0 stg:text-sm stg:text-muted-foreground">An admin of this organization adds skills.</p>
           ) : (
             <div className="stg:mt-auto">
-              <button type="button" className={PRIMARY} onClick={() => void add()} disabled={!ready || adding || isSaving}>
+              <button type="button" className={PRIMARY} onClick={() => void add(skill)} disabled={!ready || adding || isSaving}>
                 {adding ? "Adding…" : "Add it"}
               </button>
             </div>

@@ -20,7 +20,7 @@
 import { Check } from "lucide-react";
 import type { ResourceRef } from "@stigmer/client";
 import { isJourneyAgentSlug } from "./journey-agents.js";
-import { useJourney, type UseJourneyReturn } from "./useJourney.js";
+import { useJourney, type JourneyStepId, type UseJourneyReturn } from "./useJourney.js";
 import { anchorLink, type JourneyLinks } from "./links.js";
 
 const ACT_CLASS =
@@ -85,23 +85,14 @@ export interface JourneyLauncherLineProps {
 function nextOf(journey: UseJourneyReturn, links: JourneyLinks): { readonly words: string; readonly href: string } | undefined {
   const step = journey.current;
   const agent = journey.agent;
-  if (journey.status !== "ready" || step === undefined || step.number < 4) return undefined;
-  switch (step.id) {
-    case "make-yours":
-      return agent && links.makeItYours ? { words: `make ${agent.name} yours`, href: links.makeItYours(agent.ref) } : undefined;
-    case "in-app":
-      return agent && links.putInApp ? { words: `put ${agent.name} in your app`, href: links.putInApp(agent.ref) } : undefined;
-    case "others":
-      return links.bringOthers ? { words: "bring your team in", href: links.bringOthers } : undefined;
-    case "describe":
-    case "key":
-    case "watch":
-      return undefined;
-    default: {
-      const never: never = step.id;
-      return never;
-    }
-  }
+  if (journey.status !== "ready" || step === undefined) return undefined;
+  // The steps from "Make it yours" on; the launcher itself leads the first three.
+  const later: Partial<Record<JourneyStepId, () => { readonly words: string; readonly href: string } | undefined>> = {
+    "make-yours": () => (agent && links.makeItYours ? { words: `make ${agent.name} yours`, href: links.makeItYours(agent.ref) } : undefined),
+    "in-app": () => (agent && links.putInApp ? { words: `put ${agent.name} in your app`, href: links.putInApp(agent.ref) } : undefined),
+    others: () => (links.bringOthers ? { words: "bring your team in", href: links.bringOthers } : undefined),
+  };
+  return later[step.id]?.();
 }
 
 /** One quiet line under the launcher's heading naming the journey's next step, from "Make it yours" on. */

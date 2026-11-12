@@ -71,27 +71,17 @@ export function DashboardFirstSteps({ org, links, renderLink = anchor, journey: 
   const journey = given ?? read;
   if (journey.status !== "ready") return null;
 
-  const hrefOf = (id: JourneyStepId): string | undefined => {
-    const agent = journey.agent?.ref;
-    switch (id) {
-      case "describe":
-        return links.createAgent;
-      case "key":
-        return links.connectProvider;
-      case "watch":
-        return links.startSession;
-      case "make-yours":
-        return agent && links.makeItYours ? links.makeItYours(agent) : undefined;
-      case "in-app":
-        return agent && links.putInApp ? links.putInApp(agent) : undefined;
-      case "others":
-        return links.bringOthers;
-      default: {
-        const never: never = id;
-        return never;
-      }
-    }
+  const agent = journey.agent?.ref;
+  // Each step's destination; a typed record, so a new step without one fails to compile.
+  const destinations: Record<JourneyStepId, () => string | undefined> = {
+    describe: () => links.createAgent,
+    key: () => links.connectProvider,
+    watch: () => links.startSession,
+    "make-yours": () => (agent && links.makeItYours ? links.makeItYours(agent) : undefined),
+    "in-app": () => (agent && links.putInApp ? links.putInApp(agent) : undefined),
+    others: () => links.bringOthers,
   };
+  const hrefOf = (id: JourneyStepId): string | undefined => destinations[id]();
 
   const count = `${journey.done} of ${journey.steps.length}`;
 

@@ -72,11 +72,18 @@ interface Options {
   readonly canCreateSkill?: boolean;
   readonly skillExists?: boolean;
   readonly hasSkill?: boolean;
+  /** Another skill the agent already has, which adding this one keeps. */
+  readonly otherSkill?: boolean;
+  /** The skill read fails with an error other than not-found. */
+  readonly readFails?: boolean;
+  /** The skill push is refused. */
+  readonly pushFails?: boolean;
 }
 
 function renderPage(props: Partial<AgentDetailViewProps> = {}, opts: Options = {}) {
   const store = { agent: storedAgent(opts.slug ?? "variance-reporter"), versions: 1 };
   if (opts.hasSkill) store.agent.spec!.skillRefs = [create(ApiResourceReferenceSchema, { org: ACME_ID, slug: "spreadsheet-export", id: "skl_1" })];
+  if (opts.otherSkill) store.agent.spec!.skillRefs = [create(ApiResourceReferenceSchema, { org: ACME_ID, slug: "ledger-rules", id: "skl_rules", version: "v2" })];
   const update = vi.fn(async (resource: Agent, paths: string[]) => {
     if (resource.metadata?.etag !== store.agent.metadata?.etag) {
       throw new StigmerError("aborted", "ETAG_MISMATCH: the agent changed since it was read", Code.Aborted);
@@ -88,8 +95,12 @@ function renderPage(props: Partial<AgentDetailViewProps> = {}, opts: Options = {
     store.versions += 1;
     return clone(AgentSchema, next);
   });
-  const push = vi.fn(async (_request: { org: string; artifact: Uint8Array }) => ({ metadata: { id: "skl_new", org: ACME_ID, slug: "spreadsheet-export" } }));
+  const push = vi.fn(async (_request: { org: string; artifact: Uint8Array }) => {
+    if (opts.pushFails) throw new StigmerError("invalid-argument", "SKILL.md is not valid", Code.InvalidArgument);
+    return { metadata: { id: "skl_new", org: ACME_ID, slug: "spreadsheet-export" } };
+  });
   const skillRead = vi.fn(async () => {
+    if (opts.readFails) throw new StigmerError("unavailable", "the skill store is down", Code.Unavailable);
     if (opts.skillExists) return { metadata: { id: "skl_theirs", org: ACME_ID, slug: "spreadsheet-export" } };
     throw new StigmerError("not-found", "skill not found", Code.NotFound);
   });
@@ -245,6 +256,48 @@ describe("CON-08 after the first job, the console says what comes next and leads
     expect(within(card).getByText(/is on\./)).toBeTruthy();
     expect(within(card).getByRole("link", { name: "Run it on the sample" })).toBeTruthy();
     expect(skillRead).not.toHaveBeenCalled();
+  });
+
+  it("keeps the agent's other skills, as stored, when it adds this one", async () => {
+    const { update } = renderPage({ makeItYours: LINKS, defaultTab: "make-it-yours" }, { otherSkill: true });
+    const card = await screen.findByRole("region", { name: "Give it a skill" });
+    const add = await within(card).findByRole("button", { name: "Add it" });
+    await waitFor(() => expect((add as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(add);
+
+    await within(card).findByText(/is on\./);
+    const sent = update.mock.calls.at(-1)![0].spec!.skillRefs.map((ref) => ({ id: ref.id, slug: ref.slug, version: ref.version }));
+    expect(sent).toEqual([
+      { id: "skl_rules", slug: "", version: "v2" },
+      { id: "", slug: "spreadsheet-export", version: "" },
+    ]);
+  });
+
+  it("says a push the server refused, in its words, and leaves the agent as it was", async () => {
+    const { update } = renderPage({ makeItYours: LINKS, defaultTab: "make-it-yours" }, { pushFails: true });
+    const card = await screen.findByRole("region", { name: "Give it a skill" });
+    const add = await within(card).findByRole("button", { name: "Add it" });
+    await waitFor(() => expect((add as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(add);
+
+    expect((await within(card).findByRole("alert")).textContent).toContain("Spreadsheet export wasn't added. SKILL.md is not valid");
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it("says a skill read that failed, and offers no add it could not judge", async () => {
+    renderPage({ makeItYours: LINKS, defaultTab: "make-it-yours" }, { readFails: true });
+    const card = await screen.findByRole("region", { name: "Give it a skill" });
+
+    expect((await within(card).findByRole("alert")).textContent).toContain("the skill store is down");
+    expect((within(card).getByRole("button", { name: "Add it" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("opens the Versions tab from the line that says every save is kept there", async () => {
+    renderPage({ makeItYours: LINKS, defaultTab: "make-it-yours" });
+    const card = await openTab();
+    fireEvent.click(within(card).getByRole("button", { name: "Versions" }));
+
+    await waitFor(() => expect(screen.getByRole("tab", { name: /Versions/ }).getAttribute("aria-selected")).toBe("true"));
   });
 
   it("leads to the next step: putting the agent where its users are", async () => {

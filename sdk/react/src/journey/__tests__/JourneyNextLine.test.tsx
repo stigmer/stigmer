@@ -129,6 +129,18 @@ describe("JourneyLauncherLine", () => {
     }
   });
 
+  it("says nothing while the journey is read, or once all six steps are done", () => {
+    state.status = "pending";
+    const { container, unmount } = render(<JourneyLauncherLine org="org_acme" links={LINKS} enabled />);
+    expect(container.innerHTML).toBe("");
+    unmount();
+
+    state.status = "ready";
+    state.done = 6;
+    const done = render(<JourneyLauncherLine org="org_acme" links={LINKS} enabled />);
+    expect(done.container.innerHTML).toBe("");
+  });
+
   it("says nothing when the launcher does not ask, or the host passes no destination", () => {
     const { container, unmount } = render(<JourneyLauncherLine org="org_acme" links={LINKS} enabled={false} />);
     expect(container.innerHTML).toBe("");
