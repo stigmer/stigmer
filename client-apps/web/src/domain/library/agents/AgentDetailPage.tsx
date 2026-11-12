@@ -57,12 +57,16 @@ export function AgentDetailPageInner({ org, slug }: AgentDetailPageInnerProps) {
   const [activeTab, setActiveTab] = useState<string>(
     () => initialTabFromUrl() ?? "overview",
   );
-  // A client-side arrival (the journey's "Make it yours" links) may render
-  // before the address holds its `?tab=`: read it again once committed.
-  useEffect(() => {
-    const tab = initialTabFromUrl();
-    if (tab !== undefined) setActiveTab(tab);
-  }, [org, slug]);
+  // A client-side arrival (the journey's "Make it yours" links) can first
+  // render before the address holds its `?tab=`; the next render reads it,
+  // and a `?tab=` not seen before moves the tab (set during render, as React
+  // allows for a component's own state). A tab the person picks later stays.
+  const linkedTab = initialTabFromUrl();
+  const [seenLinkedTab, setSeenLinkedTab] = useState(linkedTab);
+  if (linkedTab !== seenLinkedTab) {
+    setSeenLinkedTab(linkedTab);
+    if (linkedTab !== undefined) setActiveTab(linkedTab);
+  }
   const journeyLinks = useJourneyLinks();
 
   useEffect(() => () => setLabel(null), [setLabel]);
