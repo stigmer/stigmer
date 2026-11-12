@@ -232,10 +232,13 @@ describe.skipIf(process.platform === "win32")("the local-process driver with no 
         stigmerToken: "tok",
         callerClass: "user",
       });
-      await vi.waitFor(() => expect(existsSync(path.join(dir, "env.dump"))).toBe(true), {
+      // The shell creates env.dump before `env` writes into it, so wait for
+      // what it holds, not for the file.
+      const dumpPath = path.join(dir, "env.dump");
+      await vi.waitFor(() => expect(existsSync(dumpPath) ? readFileSync(dumpPath, "utf8") : "").toContain("TEMPORAL_SERVICE_ADDRESS="), {
         timeout: CHILD_SETTLE_TIMEOUT_MS,
       });
-      const dump = readFileSync(path.join(dir, "env.dump"), "utf8");
+      const dump = readFileSync(dumpPath, "utf8");
       expect(dump).toContain("STIGMER_BACKEND_ENDPOINT=http://localhost:7234");
       expect(dump).toContain("TEMPORAL_SERVICE_ADDRESS=localhost:7234");
     } finally {
