@@ -11,7 +11,8 @@ import { useOrg, OperationalDashboard, PageHeader, type DashboardFirstStepsProps
 
 const FIRST_STEP_LINKS = {
   connectProvider: "/models",
-  createAgent: "/library/agents/new",
+  // The launcher: its first question offers the example jobs.
+  createAgent: "/",
   startSession: "/",
 } as const;
 

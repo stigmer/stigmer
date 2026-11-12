@@ -39,6 +39,22 @@ describe("useComposer", () => {
     expect(result.current.textareaProps.value).toBe("");
   });
 
+  it("starts with a message written for the person, sendable as it is, and never replaces what they typed", () => {
+    const onSubmit = vi.fn();
+    const { result, rerender } = renderHook(({ initialMessage }) => useComposer({ onSubmit, initialMessage }), {
+      initialProps: { initialMessage: "Here is this quarter's ledger, ledger.csv." },
+    });
+
+    expect(result.current.message).toBe("Here is this quarter's ledger, ledger.csv.");
+    expect(result.current.canSubmit).toBe(true);
+
+    act(() => {
+      result.current.setMessage("My own words");
+    });
+    rerender({ initialMessage: "Another starting message" });
+    expect(result.current.message).toBe("My own words");
+  });
+
   it("canSubmit becomes true when message is non-empty", () => {
     const onSubmit = vi.fn();
     const { result } = renderHook(() => useComposer({ onSubmit }));

@@ -26,6 +26,7 @@ import type { Drawing } from "./drawing.ts";
 import {
   ANTHROPIC_ONLY,
   CONNECTED,
+  launcherFirstQuestionScene,
   launcherScene,
   modelSelectorNotReadyScene,
   modelsHubLocalScene,
@@ -64,6 +65,10 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "launcher-connect-admin": () => launcherScene(NOTHING_CONNECTED, "admin"),
   "launcher-connect-member": () => launcherScene(NOTHING_CONNECTED, "member"),
   "launcher-connect-local": () => launcherScene(NOTHING_ON_THE_RUNNER, "admin", true),
+  "launcher-first-question": () => launcherFirstQuestionScene(ANTHROPIC_ONLY),
+  "launcher-example-connect": () => launcherFirstQuestionScene(NOTHING_CONNECTED),
+  "launcher-example-ready": () => launcherFirstQuestionScene(ANTHROPIC_ONLY),
+  "launcher-describe-own": () => launcherFirstQuestionScene(ANTHROPIC_ONLY),
   "model-selector-open": modelSelectorScene,
   "model-selector-not-ready": modelSelectorNotReadyScene,
   "dashboard-kpis": dashboardScene,

@@ -74,7 +74,7 @@ describe("web DashboardPage", () => {
     render(<DashboardPage />);
 
     const props = page.dashboard.at(-1);
-    expect(props?.firstStepLinks).toEqual({ connectProvider: "/models", createAgent: "/library/agents/new", startSession: "/" });
+    expect(props?.firstStepLinks).toEqual({ connectProvider: "/models", createAgent: "/", startSession: "/" });
     const renderLink = props?.renderLink as (link: { href: string; className: string; children: ReactNode }) => ReactNode;
     render(<>{renderLink({ href: "/models", className: "step", children: "Connect a provider" })}</>);
     const link = screen.getByRole("link", { name: "Connect a provider" });

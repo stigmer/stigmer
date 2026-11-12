@@ -675,6 +675,15 @@ export interface SessionComposerProps {
    */
   readonly initialFiles?: File[];
 
+  /**
+   * The message the textarea starts with, read once on mount like
+   * `initialFiles` and `initialAgentRef`: a first message written for the
+   * person (the launcher's example pick), which they may send as it is or
+   * change. A later value never replaces what they typed; mount a new
+   * composer (a new `key`) for a new starting message.
+   */
+  readonly initialMessage?: string;
+
   /** Placeholder text for the textarea. @default "Reply\u2026" */
   readonly placeholder?: string;
   /** Initial number of visible rows. @default 1 */
@@ -802,6 +811,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   enableFileReferences = true,
   onFileValidationError,
   initialFiles,
+  initialMessage,
   placeholder = "Reply\u2026",
   initialRows = 1,
   autoFocus = false,
@@ -1411,6 +1421,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   const composer = useComposer({
     onSubmit: handleSubmit,
     disabled: isDisabled,
+    initialMessage,
   });
 
   useImperativeHandle(ref, () => ({

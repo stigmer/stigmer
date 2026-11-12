@@ -1,0 +1,61 @@
+{
+  "description": "Stigmer's example agents: each a job an agent does for a product's users, with a sample file in and a file out. scripts/generate.mjs reads this list, the manifests and the samples, and writes src/catalogue.gen.ts.",
+  "examples": [
+    {
+      "id": "variance-report",
+      "for": "For an accounting product",
+      "name": "Variance report",
+      "gives": "A quarter's ledger",
+      "gets": "A variance report, flagged accounts first",
+      "category": "data-analysis",
+      "tags": ["accounting", "ledger", "budget", "variance", "report", "file"],
+      "manifest": "variance-reporter.yaml",
+      "sampleName": "ledger",
+      "samples": ["ledger.csv"],
+      "output": "variance-report.md",
+      "message": "Here is this quarter's ledger, ledger.csv. Write the variance report."
+    },
+    {
+      "id": "ticket-replies",
+      "for": "For a help desk",
+      "name": "Ticket replies",
+      "gives": "An export of open tickets",
+      "gets": "A drafted reply for each, ready to review",
+      "category": "content",
+      "tags": ["support", "help desk", "tickets", "replies", "drafts", "file"],
+      "manifest": "ticket-replier.yaml",
+      "sampleName": "ticket export",
+      "samples": ["open-tickets.csv"],
+      "output": "replies.md",
+      "message": "Here are today's open tickets, open-tickets.csv. Draft a reply for each."
+    },
+    {
+      "id": "contract-check",
+      "for": "For a legal or HR tool",
+      "name": "Contract check",
+      "gives": "A contract",
+      "gets": "The risky clauses, each with a safer wording",
+      "category": "content",
+      "tags": ["legal", "hr", "contract", "clauses", "review", "file"],
+      "manifest": "contract-reviewer.yaml",
+      "sampleName": "contract",
+      "samples": ["services-agreement.md"],
+      "output": "contract-review.md",
+      "message": "Here is the contract, services-agreement.md. Find the clauses that put us at risk."
+    },
+    {
+      "id": "invoice-match",
+      "for": "For a procurement tool",
+      "name": "Invoice match",
+      "gives": "An invoice and its purchase order",
+      "gets": "Every line that doesn't match, with the amount at stake",
+      "category": "data-analysis",
+      "tags": ["procurement", "invoice", "purchase order", "reconciliation", "file"],
+      "manifest": "invoice-matcher.yaml",
+      "sampleName": "invoice and purchase order",
+      "samples": ["invoice-4471.csv", "po-2210.csv"],
+      "output": "mismatches.md",
+      "message": "Here is invoice-4471.csv and the purchase order it bills, po-2210.csv. Find every line that doesn't match."
+    }
+  ]
+}

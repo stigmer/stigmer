@@ -68,6 +68,11 @@ vi.mock("../../models/useModelReadiness.js", () => ({
   useModelReadiness: () => ({ providers: [] }),
 }));
 
+// The first steps ask whether the organization has an agent; here it has none.
+vi.mock("../../agent/useAgentList.js", () => ({
+  useAgentList: () => ({ agents: [] }),
+}));
+
 // The first steps ask the server who may create an agent; here the answer is yes.
 vi.mock("../../grant/useCheckPermission.js", () => ({
   useCheckPermission: () => ({ allowed: true, isLoading: false, error: null, refetch: () => {} }),
@@ -77,7 +82,7 @@ import { OperationalDashboard } from "../OperationalDashboard";
 
 const BUSY: DashboardSummary = { activeCount: 1, completedCount: 3, failedCount: 1, totalTokens: 0, orgUsage: null };
 const QUIET: DashboardSummary = { activeCount: 0, completedCount: 0, failedCount: 0, totalTokens: 0, orgUsage: null };
-const LINKS = { connectProvider: "/models", createAgent: "/library/agents/new", startSession: "/" };
+const LINKS = { connectProvider: "/models", createAgent: "/", startSession: "/" };
 
 beforeEach(() => {
   state.asked = { summary: [], failed: [], ever: [] };
@@ -111,7 +116,7 @@ describe("OperationalDashboard", () => {
 
     const region = screen.getByRole("region", { name: "Platform dashboard" });
     expect(within(region).getByRole("region", { name: "Get your organization running" })).toBeTruthy();
-    expect(within(region).getByRole("link", { name: "Make an agent" }).getAttribute("href")).toBe("/library/agents/new");
+    expect(within(region).getByRole("link", { name: "Pick an example" }).getAttribute("href")).toBe("/");
     expect(within(region).queryByText("Completed")).toBeNull();
     expect(within(region).queryByText("Nightly triage")).toBeNull();
     expect(state.asked.ever.at(-1)).toBe("acme");

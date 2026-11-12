@@ -7,7 +7,7 @@
  * link `getPluginChatUrl` builds starts a chat with no agent that lists the
  * plugin; a link that arrives after the launcher is open is read too, and
  * the address is cleaned once read; the person's plugin picks are
- * remembered; and a refusal for want of a provider key raises no toast (the
+ * remembered; a newcomer's first question is turned on; and a refusal for want of a provider key raises no toast (the
  * launcher's own notice says it) while any other refusal does.
  * The viewer, and how a refusal is read, are pinned in @stigmer/react-sdk.
  */
@@ -134,6 +134,12 @@ describe("web SessionLauncher", () => {
     });
     expect(replaced).toHaveBeenCalledWith({}, "", "/");
     replaced.mockRestore();
+  });
+
+  it("asks a newcomer's first question, which the viewer skips for a deep-linked agent", () => {
+    render(<SessionLauncher />);
+
+    expect(page.viewer.at(-1)).toMatchObject({ firstQuestion: true, initialAgentRef: undefined });
   });
 
   it("remembers the person's plugin picks for the next conversation", () => {

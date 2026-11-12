@@ -12,7 +12,7 @@ import { memo } from "react";
 import { cn } from "@stigmer/design-tokens";
 import { useDashboardSummary, type UseDashboardSummaryOptions } from "./useDashboardSummary.js";
 import { useDashboardFailedRuns } from "./useDashboardFailedRuns.js";
-import { RunSummaryTimeWindow, useRunSummary } from "./useRunSummary.js";
+import { useEverRan } from "./useEverRan.js";
 import { DashboardKPICards } from "./DashboardKPICards.js";
 import { DashboardFailedRuns } from "./DashboardFailedRuns.js";
 import { DashboardFirstSteps, type DashboardFirstStepLinks, type DashboardFirstStepsProps } from "./DashboardFirstSteps.js";
@@ -63,7 +63,7 @@ function quietWeek(summary: DashboardSummary | null): boolean {
  *     <OperationalDashboard
  *       org="acme"
  *       onFailedRunClick={(id) => onOpen(`/runs/${id}`)}
- *       firstStepLinks={{ connectProvider: "/models", createAgent: "/library/agents/new", startSession: "/" }}
+ *       firstStepLinks={{ connectProvider: "/models", createAgent: "/", startSession: "/" }}
  *     />
  *   );
  * }
@@ -87,16 +87,13 @@ export const OperationalDashboard = memo(function OperationalDashboard({
   // Only a quiet week, for a host that offers first steps, asks whether
   // anything has ever run here: a busy organization pays no extra read.
   const asksEver = firstStepLinks !== undefined && summaryError === null && quietWeek(summary);
-  const ever = useRunSummary({ org: asksEver ? org : null, timeWindow: RunSummaryTimeWindow.ALL_TIME });
-  const everCount = ever.summary
-    ? ever.summary.activeCount + Object.values(ever.summary.phaseCounts).reduce((sum, n) => sum + n, 0)
-    : null;
-  const nothingEverRan = asksEver && ever.error === null && everCount === 0;
+  const ever = useEverRan(asksEver ? org : null);
+  const nothingEverRan = asksEver && ever.ran === false;
   // Until that answer is in, the figures wait as their skeleton, so a new
   // organization never sees zeros flash before its first steps. "Not in"
   // includes the render in which the quiet week first arrives, before the
   // all-time read has started (its hook does not report loading yet).
-  const everPending = asksEver && ever.summary === null && ever.error === null;
+  const everPending = asksEver && ever.ran === undefined && ever.error === null;
   const figuresLoading = summaryLoading || everPending;
 
   if (!org) {

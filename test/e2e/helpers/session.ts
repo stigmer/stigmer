@@ -28,14 +28,37 @@ export function getAIResponses(page: Page): Locator {
  */
 export const START_SESSION_WAITS_MS = { composer: 15_000, sessionUrl: 30_000 } as const;
 
+/** The launcher's first question, which an organization where nothing has run opens on. */
+export const FIRST_QUESTION = "What should your agent do for your users?";
+
+/**
+ * Opens the launcher and leaves its first question for plain chat when it
+ * shows: an organization where nothing has run yet opens on it, so whichever
+ * spec first starts a session there meets it. Waits on whichever appears,
+ * the question or the composer, never on a fixed delay.
+ */
+export async function openLauncherForChat(page: Page): Promise<Locator> {
+  await page.goto("/");
+  return chatPastFirstQuestion(page);
+}
+
+/** On a launcher already open: leaves its first question for plain chat when it shows, and returns the composer's textarea. */
+export async function chatPastFirstQuestion(page: Page): Promise<Locator> {
+  const textarea = getNewSessionComposer(page).locator("textarea");
+  const question = page.getByRole("heading", { level: 1, name: FIRST_QUESTION });
+  await textarea.or(question).first().waitFor({ state: "visible", timeout: START_SESSION_WAITS_MS.composer });
+  if (await question.isVisible()) {
+    await page.getByRole("button", { name: "Just chat with Stigmer" }).click();
+  }
+  await textarea.waitFor({ state: "visible", timeout: START_SESSION_WAITS_MS.composer });
+  return textarea;
+}
+
 export async function startNewSession(
   page: Page,
   message: string,
 ): Promise<void> {
-  await page.goto("/");
-  const form = getNewSessionComposer(page);
-  const textarea = form.locator("textarea");
-  await textarea.waitFor({ state: "visible", timeout: START_SESSION_WAITS_MS.composer });
+  const textarea = await openLauncherForChat(page);
   await textarea.fill(message);
   await page.getByRole("button", { name: "Send message" }).click();
   await page.waitForURL(/\/sessions\/ses_/, { timeout: START_SESSION_WAITS_MS.sessionUrl });

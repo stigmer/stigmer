@@ -81,7 +81,7 @@ describe("desktop DashboardPage — opening a run", () => {
 
     expect(page.dashboard.at(-1)?.firstStepLinks).toEqual({
       connectProvider: "/models",
-      createAgent: "/library/agents/new",
+      createAgent: "/",
       startSession: "/",
     });
     fireEvent.click(screen.getByRole("link", { name: "Connect a provider" }));

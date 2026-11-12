@@ -59,6 +59,10 @@ export type SceneId =
   | "launcher-connect-admin"
   | "launcher-connect-member"
   | "launcher-connect-local"
+  | "launcher-first-question"
+  | "launcher-example-connect"
+  | "launcher-example-ready"
+  | "launcher-describe-own"
   | "model-selector-open"
   | "model-selector-not-ready"
   | "dashboard-kpis"
@@ -507,6 +511,29 @@ export const SCENES: readonly Scene[] = [
   },
   { id: "launcher-connect-member", title: "Launcher: nothing can run, a member is told who connects it", widths: ["desktop"] },
   { id: "launcher-connect-local", title: "Launcher: nothing can run on a laptop, with the command", widths: ["desktop"] },
+  {
+    id: "launcher-first-question",
+    title: "Launcher: a newcomer's first question, four example jobs, describe your own or just chat",
+    widths: ["desktop", "narrow"],
+  },
+  {
+    id: "launcher-example-connect",
+    title: "Launcher: an example picked before any key, its agent made and the key step under it",
+    widths: ["desktop", "narrow"],
+    opens: [{ press: "Variance report", role: "button", exact: true }],
+  },
+  {
+    id: "launcher-example-ready",
+    title: "Launcher: an example picked with a key in, the composer holding its agent, sample and message",
+    widths: ["desktop", "narrow"],
+    opens: [{ press: "Variance report", role: "button", exact: true }],
+  },
+  {
+    id: "launcher-describe-own",
+    title: "Launcher: describe your own, the box open in place",
+    widths: ["desktop"],
+    opens: [{ press: "Describe it", role: "button", exact: true }],
+  },
   { id: "model-selector-open", title: "Model picker: open", widths: ["desktop"], opens: "Claude Sonnet 4.6" },
   {
     id: "model-selector-not-ready",
