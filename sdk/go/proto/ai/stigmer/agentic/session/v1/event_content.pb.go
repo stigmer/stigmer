@@ -384,6 +384,85 @@ func (x *SessionError) GetMcpServerName() string {
 	return ""
 }
 
+// StigmerStopDetail says which kind of ending a turn's stop cause was, and
+// what it names: the model or the connected app involved.
+type StigmerStopDetail struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The kind of ending, under its stop cause. Under model_error:
+	// provider_key_rejected (the provider refused the key), provider_key_missing
+	// (no key for the model's provider), provider_out_of_credit,
+	// provider_rate_limited, provider_overloaded, model_unavailable (the key
+	// can't use this model), provider_unreachable (no connection to the
+	// provider) or request_rejected (the provider refused the request itself,
+	// such as one too long for the model). Under budget_reached: cost_cap or
+	// tool_call_limit. Under timeout: stalled (no progress), operation_limit (the
+	// turn's time limit) or workspace_busy (another turn held the workspace).
+	// Under failed: agent_setup (the agent can't run as configured),
+	// app_unreachable (a connected app wouldn't connect), app_needs_sign_in (a
+	// connected app needs a sign-in) or internal (a fault of the platform).
+	// Under infrastructure: runner_lost.
+	Kind string `protobuf:"bytes,1,opt,name=kind,proto3" json:"kind,omitempty"`
+	// The model the turn called, for the model_error kinds, as its id (for
+	// example claude-sonnet-4-6); empty when unknown.
+	Model string `protobuf:"bytes,2,opt,name=model,proto3" json:"model,omitempty"`
+	// The connected app (MCP server) that failed, by its slug, for the app
+	// kinds.
+	App           string `protobuf:"bytes,3,opt,name=app,proto3" json:"app,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StigmerStopDetail) Reset() {
+	*x = StigmerStopDetail{}
+	mi := &file_ai_stigmer_agentic_session_v1_event_content_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StigmerStopDetail) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StigmerStopDetail) ProtoMessage() {}
+
+func (x *StigmerStopDetail) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_session_v1_event_content_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StigmerStopDetail.ProtoReflect.Descriptor instead.
+func (*StigmerStopDetail) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_session_v1_event_content_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *StigmerStopDetail) GetKind() string {
+	if x != nil {
+		return x.Kind
+	}
+	return ""
+}
+
+func (x *StigmerStopDetail) GetModel() string {
+	if x != nil {
+		return x.Model
+	}
+	return ""
+}
+
+func (x *StigmerStopDetail) GetApp() string {
+	if x != nil {
+		return x.App
+	}
+	return ""
+}
+
 // RetryStatus says whether work is retried after an error.
 type RetryStatus struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -395,7 +474,7 @@ type RetryStatus struct {
 
 func (x *RetryStatus) Reset() {
 	*x = RetryStatus{}
-	mi := &file_ai_stigmer_agentic_session_v1_event_content_proto_msgTypes[5]
+	mi := &file_ai_stigmer_agentic_session_v1_event_content_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -407,7 +486,7 @@ func (x *RetryStatus) String() string {
 func (*RetryStatus) ProtoMessage() {}
 
 func (x *RetryStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_session_v1_event_content_proto_msgTypes[5]
+	mi := &file_ai_stigmer_agentic_session_v1_event_content_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -420,7 +499,7 @@ func (x *RetryStatus) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RetryStatus.ProtoReflect.Descriptor instead.
 func (*RetryStatus) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_session_v1_event_content_proto_rawDescGZIP(), []int{5}
+	return file_ai_stigmer_agentic_session_v1_event_content_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *RetryStatus) GetType() string {
@@ -443,7 +522,7 @@ type ToolEvaluation struct {
 
 func (x *ToolEvaluation) Reset() {
 	*x = ToolEvaluation{}
-	mi := &file_ai_stigmer_agentic_session_v1_event_content_proto_msgTypes[6]
+	mi := &file_ai_stigmer_agentic_session_v1_event_content_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -455,7 +534,7 @@ func (x *ToolEvaluation) String() string {
 func (*ToolEvaluation) ProtoMessage() {}
 
 func (x *ToolEvaluation) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_session_v1_event_content_proto_msgTypes[6]
+	mi := &file_ai_stigmer_agentic_session_v1_event_content_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -468,7 +547,7 @@ func (x *ToolEvaluation) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ToolEvaluation.ProtoReflect.Descriptor instead.
 func (*ToolEvaluation) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_session_v1_event_content_proto_rawDescGZIP(), []int{6}
+	return file_ai_stigmer_agentic_session_v1_event_content_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *ToolEvaluation) GetType() string {
@@ -498,7 +577,7 @@ type AutoEvaluatedPermission struct {
 
 func (x *AutoEvaluatedPermission) Reset() {
 	*x = AutoEvaluatedPermission{}
-	mi := &file_ai_stigmer_agentic_session_v1_event_content_proto_msgTypes[7]
+	mi := &file_ai_stigmer_agentic_session_v1_event_content_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -510,7 +589,7 @@ func (x *AutoEvaluatedPermission) String() string {
 func (*AutoEvaluatedPermission) ProtoMessage() {}
 
 func (x *AutoEvaluatedPermission) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_session_v1_event_content_proto_msgTypes[7]
+	mi := &file_ai_stigmer_agentic_session_v1_event_content_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -523,7 +602,7 @@ func (x *AutoEvaluatedPermission) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AutoEvaluatedPermission.ProtoReflect.Descriptor instead.
 func (*AutoEvaluatedPermission) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_session_v1_event_content_proto_rawDescGZIP(), []int{7}
+	return file_ai_stigmer_agentic_session_v1_event_content_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *AutoEvaluatedPermission) GetType() string {
@@ -572,7 +651,11 @@ const file_ai_stigmer_agentic_session_v1_event_content_proto_rawDesc = "" +
 	"\x04type\x18\x01 \x01(\tB\xb1\x01\xbaH\xad\x01r\xaa\x01R\runknown_errorR\x16model_overloaded_errorR\x18model_rate_limited_errorR\x1amodel_request_failed_errorR\x1bmcp_connection_failed_errorR\x1fmcp_authentication_failed_errorR\rbilling_errorR\x04type\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x12M\n" +
 	"\fretry_status\x18\x03 \x01(\v2*.ai.stigmer.agentic.session.v1.RetryStatusR\vretryStatus\x12&\n" +
-	"\x0fmcp_server_name\x18\x04 \x01(\tR\rmcpServerName\"G\n" +
+	"\x0fmcp_server_name\x18\x04 \x01(\tR\rmcpServerName\"\x93\x03\n" +
+	"\x11StigmerStopDetail\x12\xd5\x02\n" +
+	"\x04kind\x18\x01 \x01(\tB\xc0\x02\xbaH\xbc\x02r\xb9\x02R\x15provider_key_rejectedR\x14provider_key_missingR\x16provider_out_of_creditR\x15provider_rate_limitedR\x13provider_overloadedR\x11model_unavailableR\x14provider_unreachableR\x10request_rejectedR\bcost_capR\x0ftool_call_limitR\astalledR\x0foperation_limitR\x0eworkspace_busyR\vagent_setupR\x0fapp_unreachableR\x11app_needs_sign_inR\binternalR\vrunner_lostR\x04kind\x12\x14\n" +
+	"\x05model\x18\x02 \x01(\tR\x05model\x12\x10\n" +
+	"\x03app\x18\x03 \x01(\tR\x03app\"G\n" +
 	"\vRetryStatus\x128\n" +
 	"\x04type\x18\x01 \x01(\tB$\xbaH!r\x1fR\bretryingR\texhaustedR\bterminalR\x04type\"\xb6\x01\n" +
 	"\x0eToolEvaluation\x129\n" +
@@ -597,21 +680,22 @@ func file_ai_stigmer_agentic_session_v1_event_content_proto_rawDescGZIP() []byte
 	return file_ai_stigmer_agentic_session_v1_event_content_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_session_v1_event_content_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_ai_stigmer_agentic_session_v1_event_content_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_ai_stigmer_agentic_session_v1_event_content_proto_goTypes = []any{
 	(*ContentBlock)(nil),            // 0: ai.stigmer.agentic.session.v1.ContentBlock
 	(*ContentSource)(nil),           // 1: ai.stigmer.agentic.session.v1.ContentSource
 	(*StopReason)(nil),              // 2: ai.stigmer.agentic.session.v1.StopReason
 	(*StopDetails)(nil),             // 3: ai.stigmer.agentic.session.v1.StopDetails
 	(*SessionError)(nil),            // 4: ai.stigmer.agentic.session.v1.SessionError
-	(*RetryStatus)(nil),             // 5: ai.stigmer.agentic.session.v1.RetryStatus
-	(*ToolEvaluation)(nil),          // 6: ai.stigmer.agentic.session.v1.ToolEvaluation
-	(*AutoEvaluatedPermission)(nil), // 7: ai.stigmer.agentic.session.v1.AutoEvaluatedPermission
+	(*StigmerStopDetail)(nil),       // 5: ai.stigmer.agentic.session.v1.StigmerStopDetail
+	(*RetryStatus)(nil),             // 6: ai.stigmer.agentic.session.v1.RetryStatus
+	(*ToolEvaluation)(nil),          // 7: ai.stigmer.agentic.session.v1.ToolEvaluation
+	(*AutoEvaluatedPermission)(nil), // 8: ai.stigmer.agentic.session.v1.AutoEvaluatedPermission
 }
 var file_ai_stigmer_agentic_session_v1_event_content_proto_depIdxs = []int32{
 	1, // 0: ai.stigmer.agentic.session.v1.ContentBlock.source:type_name -> ai.stigmer.agentic.session.v1.ContentSource
-	5, // 1: ai.stigmer.agentic.session.v1.SessionError.retry_status:type_name -> ai.stigmer.agentic.session.v1.RetryStatus
-	7, // 2: ai.stigmer.agentic.session.v1.ToolEvaluation.evaluated_permission:type_name -> ai.stigmer.agentic.session.v1.AutoEvaluatedPermission
+	6, // 1: ai.stigmer.agentic.session.v1.SessionError.retry_status:type_name -> ai.stigmer.agentic.session.v1.RetryStatus
+	8, // 2: ai.stigmer.agentic.session.v1.ToolEvaluation.evaluated_permission:type_name -> ai.stigmer.agentic.session.v1.AutoEvaluatedPermission
 	3, // [3:3] is the sub-list for method output_type
 	3, // [3:3] is the sub-list for method input_type
 	3, // [3:3] is the sub-list for extension type_name
@@ -631,7 +715,7 @@ func file_ai_stigmer_agentic_session_v1_event_content_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_session_v1_event_content_proto_rawDesc), len(file_ai_stigmer_agentic_session_v1_event_content_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   8,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

@@ -117,4 +117,37 @@ public interface StigmerRunStatusEventOrBuilder extends
    */
   com.google.protobuf.ByteString
       getErrorBytes();
+
+  /**
+   * <pre>
+   * Which kind of ending the stop cause was, and the model or connected app
+   * it names, as the run's RunStatus.stop_detail states it; unset when the
+   * turn has not ended or the cause says it all.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerStopDetail stop_detail = 6 [json_name = "stopDetail"];</code>
+   * @return Whether the stopDetail field is set.
+   */
+  boolean hasStopDetail();
+  /**
+   * <pre>
+   * Which kind of ending the stop cause was, and the model or connected app
+   * it names, as the run's RunStatus.stop_detail states it; unset when the
+   * turn has not ended or the cause says it all.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerStopDetail stop_detail = 6 [json_name = "stopDetail"];</code>
+   * @return The stopDetail.
+   */
+  ai.stigmer.agentic.session.v1.StigmerStopDetail getStopDetail();
+  /**
+   * <pre>
+   * Which kind of ending the stop cause was, and the model or connected app
+   * it names, as the run's RunStatus.stop_detail states it; unset when the
+   * turn has not ended or the cause says it all.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerStopDetail stop_detail = 6 [json_name = "stopDetail"];</code>
+   */
+  ai.stigmer.agentic.session.v1.StigmerStopDetailOrBuilder getStopDetailOrBuilder();
 }

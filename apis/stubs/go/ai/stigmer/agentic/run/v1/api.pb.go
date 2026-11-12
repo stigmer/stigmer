@@ -222,7 +222,12 @@ type RunStatus struct {
 	// block for an image File, a document block for any other, each with a
 	// file source naming the conversation's own copy. The turn's
 	// user.message event carries them after its text.
-	MessageFiles  []*v1.ContentBlock `protobuf:"bytes,38,rep,name=message_files,json=messageFiles,proto3" json:"message_files,omitempty"`
+	MessageFiles []*v1.ContentBlock `protobuf:"bytes,38,rep,name=message_files,json=messageFiles,proto3" json:"message_files,omitempty"`
+	// Which kind of ending stop_cause was (a refused key, a spending cap, a
+	// stall, a connected app that wouldn't connect), and the model or app it
+	// names. Unset while the turn works, when it ended on its own, and when the
+	// cause says it all.
+	StopDetail    *v1.StigmerStopDetail `protobuf:"bytes,39,opt,name=stop_detail,json=stopDetail,proto3" json:"stop_detail,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -400,6 +405,13 @@ func (x *RunStatus) GetStopCause() string {
 func (x *RunStatus) GetMessageFiles() []*v1.ContentBlock {
 	if x != nil {
 		return x.MessageFiles
+	}
+	return nil
+}
+
+func (x *RunStatus) GetStopDetail() *v1.StigmerStopDetail {
+	if x != nil {
+		return x.StopDetail
 	}
 	return nil
 }
@@ -812,7 +824,7 @@ const file_ai_stigmer_agentic_run_v1_api_proto_rawDesc = "" +
 	"\x03RunR\x04kind\x12W\n" +
 	"\bmetadata\x18\x03 \x01(\v23.ai.stigmer.commons.apiresource.ApiResourceMetadataB\x06\xbaH\x03\xc8\x01\x01R\bmetadata\x126\n" +
 	"\x04spec\x18\x04 \x01(\v2\".ai.stigmer.agentic.run.v1.RunSpecR\x04spec\x12<\n" +
-	"\x06status\x18\x05 \x01(\v2$.ai.stigmer.agentic.run.v1.RunStatusR\x06status\"\x9a\f\n" +
+	"\x06status\x18\x05 \x01(\v2$.ai.stigmer.agentic.run.v1.RunStatusR\x06status\"\xed\f\n" +
 	"\tRunStatus\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x12C\n" +
 	"\x05phase\x18\x02 \x01(\x0e2#.ai.stigmer.agentic.run.v1.RunPhaseB\b\xbaH\x05\x82\x01\x02\x10\x01R\x05phase\x12\x14\n" +
@@ -838,7 +850,9 @@ const file_ai_stigmer_agentic_run_v1_api_proto_rawDesc = "" +
 	"eval_files\x18\" \x01(\v2$.ai.stigmer.agentic.run.v1.EvalFilesR\tevalFiles\x12\x99\x01\n" +
 	"\n" +
 	"stop_cause\x18# \x01(\tBz\xbaHw\xd8\x01\x01rrR\x0ebudget_reachedR\atimeoutR\x0einfrastructureR\rplatform_stopR\x04userR\vmodel_errorR\x06failedR\feval_stoppedR\x0freview_resolvedR\tstopCause\x12P\n" +
-	"\rmessage_files\x18& \x03(\v2+.ai.stigmer.agentic.session.v1.ContentBlockR\fmessageFiles\"\xe4\x02\n" +
+	"\rmessage_files\x18& \x03(\v2+.ai.stigmer.agentic.session.v1.ContentBlockR\fmessageFiles\x12Q\n" +
+	"\vstop_detail\x18' \x01(\v20.ai.stigmer.agentic.session.v1.StigmerStopDetailR\n" +
+	"stopDetail\"\xe4\x02\n" +
 	"\x0eLoadedVersions\x12\xa5\x01\n" +
 	"\x06skills\x18\x01 \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBW\xbaHP\x92\x01M\"K\xba\x01H\n" +
 	"\x18loaded_versions.skill_id\x12\x1da loaded skill is named by id\x1a\rthis.id != ''\xe0\x85,+R\x06skills\x12\xa9\x01\n" +
@@ -905,9 +919,10 @@ var file_ai_stigmer_agentic_run_v1_api_proto_goTypes = []any{
 	(ApprovalMode)(0),                        // 18: ai.stigmer.agentic.run.v1.ApprovalMode
 	(*EvalFiles)(nil),                        // 19: ai.stigmer.agentic.run.v1.EvalFiles
 	(*v1.ContentBlock)(nil),                  // 20: ai.stigmer.agentic.session.v1.ContentBlock
-	(*apiresource.ApiResourceReference)(nil), // 21: ai.stigmer.commons.apiresource.ApiResourceReference
-	(RunValueOrigin)(0),                      // 22: ai.stigmer.agentic.run.v1.RunValueOrigin
-	(RunValueDeclarerKind)(0),                // 23: ai.stigmer.agentic.run.v1.RunValueDeclarerKind
+	(*v1.StigmerStopDetail)(nil),             // 21: ai.stigmer.agentic.session.v1.StigmerStopDetail
+	(*apiresource.ApiResourceReference)(nil), // 22: ai.stigmer.commons.apiresource.ApiResourceReference
+	(RunValueOrigin)(0),                      // 23: ai.stigmer.agentic.run.v1.RunValueOrigin
+	(RunValueDeclarerKind)(0),                // 24: ai.stigmer.agentic.run.v1.RunValueDeclarerKind
 }
 var file_ai_stigmer_agentic_run_v1_api_proto_depIdxs = []int32{
 	7,  // 0: ai.stigmer.agentic.run.v1.Run.metadata:type_name -> ai.stigmer.commons.apiresource.ApiResourceMetadata
@@ -928,17 +943,18 @@ var file_ai_stigmer_agentic_run_v1_api_proto_depIdxs = []int32{
 	3,  // 15: ai.stigmer.agentic.run.v1.RunStatus.credentials:type_name -> ai.stigmer.agentic.run.v1.RunCredentials
 	19, // 16: ai.stigmer.agentic.run.v1.RunStatus.eval_files:type_name -> ai.stigmer.agentic.run.v1.EvalFiles
 	20, // 17: ai.stigmer.agentic.run.v1.RunStatus.message_files:type_name -> ai.stigmer.agentic.session.v1.ContentBlock
-	21, // 18: ai.stigmer.agentic.run.v1.LoadedVersions.skills:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	21, // 19: ai.stigmer.agentic.run.v1.LoadedVersions.plugins:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	4,  // 20: ai.stigmer.agentic.run.v1.RunCredentials.sources:type_name -> ai.stigmer.agentic.run.v1.RunValueSource
-	5,  // 21: ai.stigmer.agentic.run.v1.RunValueSource.declarer:type_name -> ai.stigmer.agentic.run.v1.RunValueDeclarer
-	22, // 22: ai.stigmer.agentic.run.v1.RunValueSource.origin:type_name -> ai.stigmer.agentic.run.v1.RunValueOrigin
-	23, // 23: ai.stigmer.agentic.run.v1.RunValueDeclarer.kind:type_name -> ai.stigmer.agentic.run.v1.RunValueDeclarerKind
-	24, // [24:24] is the sub-list for method output_type
-	24, // [24:24] is the sub-list for method input_type
-	24, // [24:24] is the sub-list for extension type_name
-	24, // [24:24] is the sub-list for extension extendee
-	0,  // [0:24] is the sub-list for field type_name
+	21, // 18: ai.stigmer.agentic.run.v1.RunStatus.stop_detail:type_name -> ai.stigmer.agentic.session.v1.StigmerStopDetail
+	22, // 19: ai.stigmer.agentic.run.v1.LoadedVersions.skills:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	22, // 20: ai.stigmer.agentic.run.v1.LoadedVersions.plugins:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	4,  // 21: ai.stigmer.agentic.run.v1.RunCredentials.sources:type_name -> ai.stigmer.agentic.run.v1.RunValueSource
+	5,  // 22: ai.stigmer.agentic.run.v1.RunValueSource.declarer:type_name -> ai.stigmer.agentic.run.v1.RunValueDeclarer
+	23, // 23: ai.stigmer.agentic.run.v1.RunValueSource.origin:type_name -> ai.stigmer.agentic.run.v1.RunValueOrigin
+	24, // 24: ai.stigmer.agentic.run.v1.RunValueDeclarer.kind:type_name -> ai.stigmer.agentic.run.v1.RunValueDeclarerKind
+	25, // [25:25] is the sub-list for method output_type
+	25, // [25:25] is the sub-list for method input_type
+	25, // [25:25] is the sub-list for extension type_name
+	25, // [25:25] is the sub-list for extension extendee
+	0,  // [0:25] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_run_v1_api_proto_init() }

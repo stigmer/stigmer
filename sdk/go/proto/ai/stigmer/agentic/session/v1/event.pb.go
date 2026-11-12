@@ -3504,7 +3504,11 @@ type StigmerRunStatusEvent struct {
 	StopCause string `protobuf:"bytes,4,opt,name=stop_cause,json=stopCause,proto3" json:"stop_cause,omitempty"`
 	// What went wrong, for a person, when the turn failed or was stopped
 	// with a reason; empty otherwise.
-	Error         string `protobuf:"bytes,5,opt,name=error,proto3" json:"error,omitempty"`
+	Error string `protobuf:"bytes,5,opt,name=error,proto3" json:"error,omitempty"`
+	// Which kind of ending the stop cause was, and the model or connected app
+	// it names, as the run's RunStatus.stop_detail states it; unset when the
+	// turn has not ended or the cause says it all.
+	StopDetail    *StigmerStopDetail `protobuf:"bytes,6,opt,name=stop_detail,json=stopDetail,proto3" json:"stop_detail,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3572,6 +3576,13 @@ func (x *StigmerRunStatusEvent) GetError() string {
 		return x.Error
 	}
 	return ""
+}
+
+func (x *StigmerRunStatusEvent) GetStopDetail() *StigmerStopDetail {
+	if x != nil {
+		return x.StopDetail
+	}
+	return nil
 }
 
 // StigmerToolResultFullOutputEvent says where the whole output of a tool
@@ -4307,7 +4318,7 @@ const file_ai_stigmer_agentic_session_v1_event_proto_rawDesc = "" +
 	"\fDeltaContent\x12M\n" +
 	"\acontent\x18\x01 \x01(\v2+.ai.stigmer.agentic.session.v1.ContentBlockB\x06\xbaH\x03\xc8\x01\x01R\acontent\x12(\n" +
 	"\x04type\x18\x02 \x01(\tB\x14\xbaH\x11r\x0fR\rcontent_deltaR\x04type\x12\x1d\n" +
-	"\x05index\x18\x03 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\x05index\"\x95\x02\n" +
+	"\x05index\x18\x03 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\x05index\"\xe8\x02\n" +
 	"\x15StigmerRunStatusEvent\x12:\n" +
 	"\x02id\x18\x01 \x01(\tB*\xbaH'r%2#^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$R\x02id\x12!\n" +
 	"\fprocessed_at\x18\x02 \x01(\tR\vprocessedAt\x12h\n" +
@@ -4315,7 +4326,9 @@ const file_ai_stigmer_agentic_session_v1_event_proto_rawDesc = "" +
 	"terminatedR\x05phase\x12\x1d\n" +
 	"\n" +
 	"stop_cause\x18\x04 \x01(\tR\tstopCause\x12\x14\n" +
-	"\x05error\x18\x05 \x01(\tR\x05error\"\xd7\x02\n" +
+	"\x05error\x18\x05 \x01(\tR\x05error\x12Q\n" +
+	"\vstop_detail\x18\x06 \x01(\v20.ai.stigmer.agentic.session.v1.StigmerStopDetailR\n" +
+	"stopDetail\"\xd7\x02\n" +
 	" StigmerToolResultFullOutputEvent\x12:\n" +
 	"\x02id\x18\x01 \x01(\tB*\xbaH'r%2#^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$R\x02id\x12!\n" +
 	"\fprocessed_at\x18\x02 \x01(\tR\vprocessedAt\x12'\n" +
@@ -4424,6 +4437,7 @@ var file_ai_stigmer_agentic_session_v1_event_proto_goTypes = []any{
 	(*structpb.Struct)(nil),                            // 46: google.protobuf.Struct
 	(*ToolEvaluation)(nil),                             // 47: ai.stigmer.agentic.session.v1.ToolEvaluation
 	(*durationpb.Duration)(nil),                        // 48: google.protobuf.Duration
+	(*StigmerStopDetail)(nil),                          // 49: ai.stigmer.agentic.session.v1.StigmerStopDetail
 }
 var file_ai_stigmer_agentic_session_v1_event_proto_depIdxs = []int32{
 	1,  // 0: ai.stigmer.agentic.session.v1.SessionEvent.user_message:type_name -> ai.stigmer.agentic.session.v1.UserMessageEvent
@@ -4482,12 +4496,13 @@ var file_ai_stigmer_agentic_session_v1_event_proto_depIdxs = []int32{
 	34, // 53: ai.stigmer.agentic.session.v1.StigmerPermissionGrantEvent.lease:type_name -> ai.stigmer.agentic.session.v1.StigmerPermissionLease
 	36, // 54: ai.stigmer.agentic.session.v1.EventDelta.delta:type_name -> ai.stigmer.agentic.session.v1.DeltaContent
 	42, // 55: ai.stigmer.agentic.session.v1.DeltaContent.content:type_name -> ai.stigmer.agentic.session.v1.ContentBlock
-	46, // 56: ai.stigmer.agentic.session.v1.StigmerMcpToolDefinitionEvent.input_schema:type_name -> google.protobuf.Struct
-	57, // [57:57] is the sub-list for method output_type
-	57, // [57:57] is the sub-list for method input_type
-	57, // [57:57] is the sub-list for extension type_name
-	57, // [57:57] is the sub-list for extension extendee
-	0,  // [0:57] is the sub-list for field type_name
+	49, // 56: ai.stigmer.agentic.session.v1.StigmerRunStatusEvent.stop_detail:type_name -> ai.stigmer.agentic.session.v1.StigmerStopDetail
+	46, // 57: ai.stigmer.agentic.session.v1.StigmerMcpToolDefinitionEvent.input_schema:type_name -> google.protobuf.Struct
+	58, // [58:58] is the sub-list for method output_type
+	58, // [58:58] is the sub-list for method input_type
+	58, // [58:58] is the sub-list for extension type_name
+	58, // [58:58] is the sub-list for extension extendee
+	0,  // [0:58] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_session_v1_event_proto_init() }

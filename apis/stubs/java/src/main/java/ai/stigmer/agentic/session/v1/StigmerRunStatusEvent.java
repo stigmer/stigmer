@@ -63,6 +63,7 @@ private static final long serialVersionUID = 0L;
             ai.stigmer.agentic.session.v1.StigmerRunStatusEvent.class, ai.stigmer.agentic.session.v1.StigmerRunStatusEvent.Builder.class);
   }
 
+  private int bitField0_;
   public static final int ID_FIELD_NUMBER = 1;
   @SuppressWarnings("serial")
   private volatile java.lang.Object id_ = "";
@@ -306,6 +307,50 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int STOP_DETAIL_FIELD_NUMBER = 6;
+  private ai.stigmer.agentic.session.v1.StigmerStopDetail stopDetail_;
+  /**
+   * <pre>
+   * Which kind of ending the stop cause was, and the model or connected app
+   * it names, as the run's RunStatus.stop_detail states it; unset when the
+   * turn has not ended or the cause says it all.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerStopDetail stop_detail = 6 [json_name = "stopDetail"];</code>
+   * @return Whether the stopDetail field is set.
+   */
+  @java.lang.Override
+  public boolean hasStopDetail() {
+    return ((bitField0_ & 0x00000001) != 0);
+  }
+  /**
+   * <pre>
+   * Which kind of ending the stop cause was, and the model or connected app
+   * it names, as the run's RunStatus.stop_detail states it; unset when the
+   * turn has not ended or the cause says it all.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerStopDetail stop_detail = 6 [json_name = "stopDetail"];</code>
+   * @return The stopDetail.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.session.v1.StigmerStopDetail getStopDetail() {
+    return stopDetail_ == null ? ai.stigmer.agentic.session.v1.StigmerStopDetail.getDefaultInstance() : stopDetail_;
+  }
+  /**
+   * <pre>
+   * Which kind of ending the stop cause was, and the model or connected app
+   * it names, as the run's RunStatus.stop_detail states it; unset when the
+   * turn has not ended or the cause says it all.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerStopDetail stop_detail = 6 [json_name = "stopDetail"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.session.v1.StigmerStopDetailOrBuilder getStopDetailOrBuilder() {
+    return stopDetail_ == null ? ai.stigmer.agentic.session.v1.StigmerStopDetail.getDefaultInstance() : stopDetail_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -335,6 +380,9 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(error_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 5, error_);
     }
+    if (((bitField0_ & 0x00000001) != 0)) {
+      output.writeMessage(6, getStopDetail());
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -358,6 +406,10 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(error_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(5, error_);
+    }
+    if (((bitField0_ & 0x00000001) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(6, getStopDetail());
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -384,6 +436,11 @@ private static final long serialVersionUID = 0L;
         .equals(other.getStopCause())) return false;
     if (!getError()
         .equals(other.getError())) return false;
+    if (hasStopDetail() != other.hasStopDetail()) return false;
+    if (hasStopDetail()) {
+      if (!getStopDetail()
+          .equals(other.getStopDetail())) return false;
+    }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -405,6 +462,10 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getStopCause().hashCode();
     hash = (37 * hash) + ERROR_FIELD_NUMBER;
     hash = (53 * hash) + getError().hashCode();
+    if (hasStopDetail()) {
+      hash = (37 * hash) + STOP_DETAIL_FIELD_NUMBER;
+      hash = (53 * hash) + getStopDetail().hashCode();
+    }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -534,13 +595,19 @@ private static final long serialVersionUID = 0L;
 
     // Construct using ai.stigmer.agentic.session.v1.StigmerRunStatusEvent.newBuilder()
     private Builder() {
-
+      maybeForceBuilderInitialization();
     }
 
     private Builder(
         com.google.protobuf.GeneratedMessage.BuilderParent parent) {
       super(parent);
-
+      maybeForceBuilderInitialization();
+    }
+    private void maybeForceBuilderInitialization() {
+      if (com.google.protobuf.GeneratedMessage
+              .alwaysUseFieldBuilders) {
+        internalGetStopDetailFieldBuilder();
+      }
     }
     @java.lang.Override
     public Builder clear() {
@@ -551,6 +618,11 @@ private static final long serialVersionUID = 0L;
       phase_ = "";
       stopCause_ = "";
       error_ = "";
+      stopDetail_ = null;
+      if (stopDetailBuilder_ != null) {
+        stopDetailBuilder_.dispose();
+        stopDetailBuilder_ = null;
+      }
       return this;
     }
 
@@ -599,6 +671,14 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000010) != 0)) {
         result.error_ = error_;
       }
+      int to_bitField0_ = 0;
+      if (((from_bitField0_ & 0x00000020) != 0)) {
+        result.stopDetail_ = stopDetailBuilder_ == null
+            ? stopDetail_
+            : stopDetailBuilder_.build();
+        to_bitField0_ |= 0x00000001;
+      }
+      result.bitField0_ |= to_bitField0_;
     }
 
     @java.lang.Override
@@ -637,6 +717,9 @@ private static final long serialVersionUID = 0L;
         error_ = other.error_;
         bitField0_ |= 0x00000010;
         onChanged();
+      }
+      if (other.hasStopDetail()) {
+        mergeStopDetail(other.getStopDetail());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -689,6 +772,13 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000010;
               break;
             } // case 42
+            case 50: {
+              input.readMessage(
+                  internalGetStopDetailFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00000020;
+              break;
+            } // case 50
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1184,6 +1274,181 @@ private static final long serialVersionUID = 0L;
       bitField0_ |= 0x00000010;
       onChanged();
       return this;
+    }
+
+    private ai.stigmer.agentic.session.v1.StigmerStopDetail stopDetail_;
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.session.v1.StigmerStopDetail, ai.stigmer.agentic.session.v1.StigmerStopDetail.Builder, ai.stigmer.agentic.session.v1.StigmerStopDetailOrBuilder> stopDetailBuilder_;
+    /**
+     * <pre>
+     * Which kind of ending the stop cause was, and the model or connected app
+     * it names, as the run's RunStatus.stop_detail states it; unset when the
+     * turn has not ended or the cause says it all.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerStopDetail stop_detail = 6 [json_name = "stopDetail"];</code>
+     * @return Whether the stopDetail field is set.
+     */
+    public boolean hasStopDetail() {
+      return ((bitField0_ & 0x00000020) != 0);
+    }
+    /**
+     * <pre>
+     * Which kind of ending the stop cause was, and the model or connected app
+     * it names, as the run's RunStatus.stop_detail states it; unset when the
+     * turn has not ended or the cause says it all.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerStopDetail stop_detail = 6 [json_name = "stopDetail"];</code>
+     * @return The stopDetail.
+     */
+    public ai.stigmer.agentic.session.v1.StigmerStopDetail getStopDetail() {
+      if (stopDetailBuilder_ == null) {
+        return stopDetail_ == null ? ai.stigmer.agentic.session.v1.StigmerStopDetail.getDefaultInstance() : stopDetail_;
+      } else {
+        return stopDetailBuilder_.getMessage();
+      }
+    }
+    /**
+     * <pre>
+     * Which kind of ending the stop cause was, and the model or connected app
+     * it names, as the run's RunStatus.stop_detail states it; unset when the
+     * turn has not ended or the cause says it all.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerStopDetail stop_detail = 6 [json_name = "stopDetail"];</code>
+     */
+    public Builder setStopDetail(ai.stigmer.agentic.session.v1.StigmerStopDetail value) {
+      if (stopDetailBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        stopDetail_ = value;
+      } else {
+        stopDetailBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x00000020;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Which kind of ending the stop cause was, and the model or connected app
+     * it names, as the run's RunStatus.stop_detail states it; unset when the
+     * turn has not ended or the cause says it all.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerStopDetail stop_detail = 6 [json_name = "stopDetail"];</code>
+     */
+    public Builder setStopDetail(
+        ai.stigmer.agentic.session.v1.StigmerStopDetail.Builder builderForValue) {
+      if (stopDetailBuilder_ == null) {
+        stopDetail_ = builderForValue.build();
+      } else {
+        stopDetailBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00000020;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Which kind of ending the stop cause was, and the model or connected app
+     * it names, as the run's RunStatus.stop_detail states it; unset when the
+     * turn has not ended or the cause says it all.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerStopDetail stop_detail = 6 [json_name = "stopDetail"];</code>
+     */
+    public Builder mergeStopDetail(ai.stigmer.agentic.session.v1.StigmerStopDetail value) {
+      if (stopDetailBuilder_ == null) {
+        if (((bitField0_ & 0x00000020) != 0) &&
+          stopDetail_ != null &&
+          stopDetail_ != ai.stigmer.agentic.session.v1.StigmerStopDetail.getDefaultInstance()) {
+          getStopDetailBuilder().mergeFrom(value);
+        } else {
+          stopDetail_ = value;
+        }
+      } else {
+        stopDetailBuilder_.mergeFrom(value);
+      }
+      if (stopDetail_ != null) {
+        bitField0_ |= 0x00000020;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Which kind of ending the stop cause was, and the model or connected app
+     * it names, as the run's RunStatus.stop_detail states it; unset when the
+     * turn has not ended or the cause says it all.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerStopDetail stop_detail = 6 [json_name = "stopDetail"];</code>
+     */
+    public Builder clearStopDetail() {
+      bitField0_ = (bitField0_ & ~0x00000020);
+      stopDetail_ = null;
+      if (stopDetailBuilder_ != null) {
+        stopDetailBuilder_.dispose();
+        stopDetailBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Which kind of ending the stop cause was, and the model or connected app
+     * it names, as the run's RunStatus.stop_detail states it; unset when the
+     * turn has not ended or the cause says it all.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerStopDetail stop_detail = 6 [json_name = "stopDetail"];</code>
+     */
+    public ai.stigmer.agentic.session.v1.StigmerStopDetail.Builder getStopDetailBuilder() {
+      bitField0_ |= 0x00000020;
+      onChanged();
+      return internalGetStopDetailFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * Which kind of ending the stop cause was, and the model or connected app
+     * it names, as the run's RunStatus.stop_detail states it; unset when the
+     * turn has not ended or the cause says it all.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerStopDetail stop_detail = 6 [json_name = "stopDetail"];</code>
+     */
+    public ai.stigmer.agentic.session.v1.StigmerStopDetailOrBuilder getStopDetailOrBuilder() {
+      if (stopDetailBuilder_ != null) {
+        return stopDetailBuilder_.getMessageOrBuilder();
+      } else {
+        return stopDetail_ == null ?
+            ai.stigmer.agentic.session.v1.StigmerStopDetail.getDefaultInstance() : stopDetail_;
+      }
+    }
+    /**
+     * <pre>
+     * Which kind of ending the stop cause was, and the model or connected app
+     * it names, as the run's RunStatus.stop_detail states it; unset when the
+     * turn has not ended or the cause says it all.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerStopDetail stop_detail = 6 [json_name = "stopDetail"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.session.v1.StigmerStopDetail, ai.stigmer.agentic.session.v1.StigmerStopDetail.Builder, ai.stigmer.agentic.session.v1.StigmerStopDetailOrBuilder> 
+        internalGetStopDetailFieldBuilder() {
+      if (stopDetailBuilder_ == null) {
+        stopDetailBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.session.v1.StigmerStopDetail, ai.stigmer.agentic.session.v1.StigmerStopDetail.Builder, ai.stigmer.agentic.session.v1.StigmerStopDetailOrBuilder>(
+                getStopDetail(),
+                getParentForChildren(),
+                isClean());
+        stopDetail_ = null;
+      }
+      return stopDetailBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.session.v1.StigmerRunStatusEvent)

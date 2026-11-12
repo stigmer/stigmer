@@ -52,6 +52,11 @@ public final class EventContentProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_session_v1_SessionError_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_session_v1_StigmerStopDetail_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_session_v1_StigmerStopDetail_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_agentic_session_v1_RetryStatus_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
@@ -105,21 +110,31 @@ public final class EventContentProto extends com.google.protobuf.GeneratedFile {
       "sage\030\002 \001(\tR\007message\022M\n\014retry_status\030\003 \001(" +
       "\0132*.ai.stigmer.agentic.session.v1.RetryS" +
       "tatusR\013retryStatus\022&\n\017mcp_server_name\030\004 " +
-      "\001(\tR\rmcpServerName\"G\n\013RetryStatus\0228\n\004typ" +
-      "e\030\001 \001(\tB$\272H!r\037R\010retryingR\texhaustedR\010ter" +
-      "minalR\004type\"\266\001\n\016ToolEvaluation\0229\n\004type\030\001" +
-      " \001(\tB%\272H\"r R\014always_allowR\nalways_askR\004a" +
-      "utoR\004type\022i\n\024evaluated_permission\030\002 \001(\0132" +
-      "6.ai.stigmer.agentic.session.v1.AutoEval" +
-      "uatedPermissionR\023evaluatedPermission\"g\n\027" +
-      "AutoEvaluatedPermission\022+\n\004type\030\001 \001(\tB\027\272" +
-      "H\024r\022R\005allowR\003askR\004denyR\004type\022\037\n\013reason_c" +
-      "ode\030\002 \001(\tR\nreasonCodeB\254\001B\021EventContentPr" +
-      "otoP\001\242\002\004ASAS\252\002\035Ai.Stigmer.Agentic.Sessio" +
-      "n.V1\312\002\035Ai\\Stigmer\\Agentic\\Session\\V1\342\002)A" +
-      "i\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata" +
-      "\352\002!Ai::Stigmer::Agentic::Session::V1b\006pr" +
-      "oto3"
+      "\001(\tR\rmcpServerName\"\223\003\n\021StigmerStopDetail" +
+      "\022\325\002\n\004kind\030\001 \001(\tB\300\002\272H\274\002r\271\002R\025provider_key_" +
+      "rejectedR\024provider_key_missingR\026provider" +
+      "_out_of_creditR\025provider_rate_limitedR\023p" +
+      "rovider_overloadedR\021model_unavailableR\024p" +
+      "rovider_unreachableR\020request_rejectedR\010c" +
+      "ost_capR\017tool_call_limitR\007stalledR\017opera" +
+      "tion_limitR\016workspace_busyR\013agent_setupR" +
+      "\017app_unreachableR\021app_needs_sign_inR\010int" +
+      "ernalR\013runner_lostR\004kind\022\024\n\005model\030\002 \001(\tR" +
+      "\005model\022\020\n\003app\030\003 \001(\tR\003app\"G\n\013RetryStatus\022" +
+      "8\n\004type\030\001 \001(\tB$\272H!r\037R\010retryingR\texhauste" +
+      "dR\010terminalR\004type\"\266\001\n\016ToolEvaluation\0229\n\004" +
+      "type\030\001 \001(\tB%\272H\"r R\014always_allowR\nalways_" +
+      "askR\004autoR\004type\022i\n\024evaluated_permission\030" +
+      "\002 \001(\01326.ai.stigmer.agentic.session.v1.Au" +
+      "toEvaluatedPermissionR\023evaluatedPermissi" +
+      "on\"g\n\027AutoEvaluatedPermission\022+\n\004type\030\001 " +
+      "\001(\tB\027\272H\024r\022R\005allowR\003askR\004denyR\004type\022\037\n\013re" +
+      "ason_code\030\002 \001(\tR\nreasonCodeB\254\001B\021EventCon" +
+      "tentProtoP\001\242\002\004ASAS\252\002\035Ai.Stigmer.Agentic." +
+      "Session.V1\312\002\035Ai\\Stigmer\\Agentic\\Session\\" +
+      "V1\342\002)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMe" +
+      "tadata\352\002!Ai::Stigmer::Agentic::Session::" +
+      "V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -156,20 +171,26 @@ public final class EventContentProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_session_v1_SessionError_descriptor,
         new java.lang.String[] { "Type", "Message", "RetryStatus", "McpServerName", });
-    internal_static_ai_stigmer_agentic_session_v1_RetryStatus_descriptor =
+    internal_static_ai_stigmer_agentic_session_v1_StigmerStopDetail_descriptor =
       getDescriptor().getMessageType(5);
+    internal_static_ai_stigmer_agentic_session_v1_StigmerStopDetail_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_session_v1_StigmerStopDetail_descriptor,
+        new java.lang.String[] { "Kind", "Model", "App", });
+    internal_static_ai_stigmer_agentic_session_v1_RetryStatus_descriptor =
+      getDescriptor().getMessageType(6);
     internal_static_ai_stigmer_agentic_session_v1_RetryStatus_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_session_v1_RetryStatus_descriptor,
         new java.lang.String[] { "Type", });
     internal_static_ai_stigmer_agentic_session_v1_ToolEvaluation_descriptor =
-      getDescriptor().getMessageType(6);
+      getDescriptor().getMessageType(7);
     internal_static_ai_stigmer_agentic_session_v1_ToolEvaluation_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_session_v1_ToolEvaluation_descriptor,
         new java.lang.String[] { "Type", "EvaluatedPermission", });
     internal_static_ai_stigmer_agentic_session_v1_AutoEvaluatedPermission_descriptor =
-      getDescriptor().getMessageType(7);
+      getDescriptor().getMessageType(8);
     internal_static_ai_stigmer_agentic_session_v1_AutoEvaluatedPermission_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_session_v1_AutoEvaluatedPermission_descriptor,

@@ -2226,6 +2226,17 @@
         },
         "description": "The files this turn's message carried, as content blocks: an image\n block for an image File, a document block for any other, each with a\n file source naming the conversation's own copy. The turn's\n user.message event carries them after its text.",
         "required": false
+      },
+      {
+        "name": "StopDetail",
+        "jsonName": "stopDetail",
+        "protoField": "stop_detail",
+        "type": {
+          "kind": "message",
+          "messageType": "StigmerStopDetail"
+        },
+        "description": "Which kind of ending stop_cause was (a refused key, a spending cap, a\n stall, a connected app that wouldn't connect), and the model or app it\n names. Unset while the turn works, when it ended on its own, and when the\n cause says it all.",
+        "required": false
       }
     ]
   },
@@ -3714,6 +3725,66 @@
             "messageType": "CasManifestRef"
           },
           "description": "Content-addressed manifest reference for ignored/non-git paths; set when\n kind is CAS_MANIFEST or HYBRID.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "StigmerStopDetail",
+      "description": "StigmerStopDetail says which kind of ending a turn's stop cause was, and\n what it names: the model or the connected app involved.",
+      "protoType": "ai.stigmer.agentic.session.v1.StigmerStopDetail",
+      "protoFile": "apis/ai/stigmer/agentic/session/v1/event_content.proto",
+      "fields": [
+        {
+          "name": "Kind",
+          "jsonName": "kind",
+          "protoField": "kind",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The kind of ending, under its stop cause. Under model_error:\n provider_key_rejected (the provider refused the key), provider_key_missing\n (no key for the model's provider), provider_out_of_credit,\n provider_rate_limited, provider_overloaded, model_unavailable (the key\n can't use this model), provider_unreachable (no connection to the\n provider) or request_rejected (the provider refused the request itself,\n such as one too long for the model). Under budget_reached: cost_cap or\n tool_call_limit. Under timeout: stalled (no progress), operation_limit (the\n turn's time limit) or workspace_busy (another turn held the workspace).\n Under failed: agent_setup (the agent can't run as configured),\n app_unreachable (a connected app wouldn't connect), app_needs_sign_in (a\n connected app needs a sign-in) or internal (a fault of the platform).\n Under infrastructure: runner_lost.",
+          "required": false,
+          "validation": {
+            "enum": [
+              "provider_key_rejected",
+              "provider_key_missing",
+              "provider_out_of_credit",
+              "provider_rate_limited",
+              "provider_overloaded",
+              "model_unavailable",
+              "provider_unreachable",
+              "request_rejected",
+              "cost_cap",
+              "tool_call_limit",
+              "stalled",
+              "operation_limit",
+              "workspace_busy",
+              "agent_setup",
+              "app_unreachable",
+              "app_needs_sign_in",
+              "internal",
+              "runner_lost"
+            ]
+          }
+        },
+        {
+          "name": "Model",
+          "jsonName": "model",
+          "protoField": "model",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The model the turn called, for the model_error kinds, as its id (for\n example claude-sonnet-4-6); empty when unknown.",
+          "required": false
+        },
+        {
+          "name": "App",
+          "jsonName": "app",
+          "protoField": "app",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The connected app (MCP server) that failed, by its slug, for the app\n kinds.",
           "required": false
         }
       ]
