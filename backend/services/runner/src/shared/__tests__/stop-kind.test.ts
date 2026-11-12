@@ -39,6 +39,16 @@ describe("modelStopOfClassified", () => {
     expect(modelStopOfClassified({ code, message: "m" })).toEqual({ surface: "engine", kind });
   });
 
+  it("names a gateway that could not reach the provider as unreachable, not busy", () => {
+    expect(modelStopOfClassified({ code: "LLM_PROVIDER_ERROR", message: "m" }, 502)).toEqual({ surface: "engine", kind: "provider_unreachable" });
+    expect(modelStopOfClassified({ code: "LLM_PROVIDER_ERROR", message: "m" }, 504)).toEqual({ surface: "engine", kind: "provider_unreachable" });
+    expect(modelStopOfClassified({ code: "LLM_PROVIDER_ERROR", message: "m" }, 529)).toEqual({ surface: "engine", kind: "provider_overloaded" });
+    expect(settleThrown(sdkError(502, "the upstream could not be reached: socket hang up"), { proxyMode: true, provider: "anthropic", modelId: "m" }).stopDetail).toEqual({
+      kind: "provider_unreachable",
+      model: "m",
+    });
+  });
+
   it("names a code it does not know as the platform's fault", () => {
     expect(modelStopOfClassified({ code: "LLM_SOMETHING_NEW", message: "m" })).toEqual({ surface: "internal", kind: "internal" });
   });
@@ -115,6 +125,7 @@ describe("modelStopOfClaude", () => {
     expect(kindOf(413)).toEqual({ surface: "engine", kind: "request_rejected" });
     expect(kindOf(429)).toEqual({ surface: "engine", kind: "provider_rate_limited" });
     expect(kindOf(503)).toEqual({ surface: "engine", kind: "provider_overloaded" });
+    expect(kindOf(502)).toEqual({ surface: "engine", kind: "provider_unreachable" });
     expect(kindOf(418)).toEqual({ surface: "internal", kind: "internal" });
   });
 

@@ -681,7 +681,7 @@ function KeepAll({ sessionId, set }: { sessionId: string; set: FileReviewSet }) 
 ### useRunActions
 
 Behavior hook that encapsulates one run's lifecycle actions: terminate,
-pause and resume.
+pause, resume and recover.
 
 Each action calls the corresponding RPC and returns the updated run, or
 `null` on failure (with `error` populated).
@@ -714,6 +714,7 @@ function useRunActions(executionId: string | null, options?: UseRunActionsOption
     error: { type: "Error | null", description: "Error from the last failed action, or `null`." },
     isSubmitting: { type: "boolean", description: "`true` while any action is in flight." },
     pause: { type: "(reason?: string) => Promise<Run | null>", description: "Pause a running run (PENDING or IN_PROGRESS only)." },
+    recover: { type: "() => Promise<Run | null>", description: "Pick a FAILED run up where it stopped: the same turn runs again, steps that worked are not run again, and its values (a key fixed meanwhile) are read again. Needs `can_edit` on the run; refused for a run that was stopped (TERMINATED or CANCELLED) or while another turn of its session is unfinished." },
     resume: { type: "() => Promise<Run | null>", description: "Resume a paused run." },
     terminate: { type: "(reason?: string) => Promise<Run | null>", description: "Terminate a running run immediately (PENDING or IN_PROGRESS only)." },
   }}
@@ -1492,7 +1493,8 @@ All visual properties flow through `--stgm-*` tokens.
     slots: { type: "MessageThreadSlots", description: "Component overrides for the thread's chrome — see MessageThreadSlots. Omitted slots render the built-ins; omitting the prop entirely changes nothing.", typeDescriptionLink: "#messagethreadslots" },
     stopBackgroundErrors: { type: "ReadonlyMap<string, Error>", description: "Each tool use's last failed background stop, keyed by its id, shown on its row. Supply useStopBackgroundCommand's `errorsByToolUseId`." },
     stoppingBackgroundToolUseIds: { type: "ReadonlySet<string>", description: "The tool uses whose background stop is in flight, by id. Only meaningful with `onStopBackgroundCommand`." },
-    turnOutcome: { type: "(turn: Turn) => ReactNode", description: "What closes each ended turn (the session view passes its outcome block: how the turn ended, its time, what it changed and returned). When set, it takes the place of the ended-turn phase badge; a failure's notice and Retry stay above it." },
+    turnEnding: { type: "TurnEndingWiring", description: "How the last turn's ending notice is wired: who reads it, the names its model resolves to, and the act and the link this viewer is offered (the session view passes recover, Continue, the model picker and the fix's link). Without it, the notice's act re-sends through onRetryRun and no link shows.", typeDescriptionLink: "#turnendingwiring" },
+    turnOutcome: { type: "(turn: Turn) => ReactNode", description: "What closes each ended turn (the session view passes its outcome block: how the turn ended, its time, what it changed and returned). When set, it takes the place of the ended-turn phase badge; a failure's notice and its act stay above it." },
     turns: { type: "readonly Turn[]", description: "The conversation's turns, in order: the session's events folded (`useSessionConversation().turns`, or `useSessionEvents().fold.turns`). Each turn renders its person's message, the agent's items, its asks, to-dos and file reviews. A turn that has not ended is the live one.", required: true },
     virtualized: { type: "boolean", description: "Enable virtualized rendering for long conversations. When enabled, only visible items are rendered in the DOM, improving performance for threads with 100+ items; `react-virtuoso`, which draws them, is downloaded on first use." },
   }}
@@ -1530,29 +1532,34 @@ compose custom tool UIs.
 
 ### RunErrorNotice
 
-Renders the server-reported failure reason (`RunStatus.error`)
-for a run that died — typically before producing any messages. The
-reason can be a long Temporal error, so it is clamped by default with a
-Show more / Show less toggle.
+How a turn that didn't finish ended, as one note under it: an icon, a
+bold sentence on what happened, one that says what wasn't lost or who
+can fix it, the one act that picks the turn back up, at most one link to
+the fix, and, when it failed, Copy details (the raw error, the run id and
+the ending's kind) for a builder or for support.
 
-A genuine failure renders as a destructive alert with a Retry. A *recoverable
-interruption* renders as a neutral notice with a Resume — both resend the
-originating message, which the server continues from the session's persisted
-conversation (the same data path; the framing differs so an interruption
-never looks like a dead-end crash).
+The words come from the ending (`describeTurnEnding`), which reads the
+failure's kind from the wire, never from the error's text. The tone is
+the status pill's: red for didn't finish, amber for paused at a limit or
+interrupted, grey for stopped.
 
 Slot-overridable via `MessageThreadSlots.RunErrorNotice`. An override
-receives the raw reason and the retry wiring and owns its own presentation —
-including whether to reproduce the interruption-vs-failure framing, which is
-an internal heuristic of this built-in, not part of the slot contract.
+receives the raw error, the ending and the act's wiring, and owns its own
+presentation.
 
 **Props** — `RunErrorNoticeProps`
 
 <TypeTable
   type={{
-    error: { type: "string", description: "The server-reported failure reason (`RunStatus.error`), raw.", required: true },
-    onRetry: { type: "(message: string) => void", description: "Resends retryMessage; the server continues from the session's persisted conversation. Retry renders only when both this handler and retryMessage are present." },
-    retryMessage: { type: "string", description: "The originating user message, resent verbatim on retry. Absent when the failed run has no resendable prompt — the retry affordance is hidden in that case." },
+    acting: { type: "boolean", description: "The act is in flight: its button waits." },
+    actLabel: { type: "string", description: "The act's words as this viewer is offered it (\"Run again\", \"Send it again\")." },
+    ending: { type: "TurnEnding", description: "How the turn ended, in words (`describeTurnEnding` from `@stigmer/client`): the headline, the comfort, the tone. Absent, the notice reads the generic \"This turn didn't finish.\"" },
+    error: { type: "string", description: "The server-reported failure reason (`RunStatus.error`), raw: what Copy details holds, never the headline.", required: true },
+    link: { type: "RunErrorNoticeLink", description: "The one link to the fix, when this viewer can follow it.", typeDescriptionLink: "#runerrornoticelink" },
+    onAct: { type: "() => void", description: "Takes the act. With no act label or handler, the notice offers none." },
+    onRetry: { type: "(message: string) => void", description: "Resends retryMessage: the act a notice falls back to when the thread wires no onAct (a host that renders the notice alone)." },
+    retryMessage: { type: "string", description: "The originating user message, resent verbatim by onRetry. Absent when the failed run has no resendable prompt." },
+    runId: { type: "string", description: "The turn's run id, which Copy details names." },
   }}
 />
 
@@ -3436,6 +3443,20 @@ Options narrowing a file-review decision to one file and binding its digest.
 />
 
 
+### RunErrorNoticeLink
+
+The fix a notice links to: its words, and where it goes or what it does.
+
+<TypeTable
+  type={{
+    external: { type: "boolean", description: "Opens outside the host (a provider's billing page): a new tab." },
+    href: { type: "string", description: "An address to open; absent when the link is an action (`onClick`)." },
+    label: { type: "string", description: "", required: true },
+    onClick: { type: "() => void", description: "" },
+  }}
+/>
+
+
 ### runIdFromStorageKey
 
 Extracts the run id from an artifact storage key of the form
@@ -4019,6 +4040,36 @@ function trailingDiffStatLine(diffSummary: string): string | null
 ```
 
 
+### TurnEndingAction
+
+The act a turn's ending offers this viewer: its words and what it does.
+
+<TypeTable
+  type={{
+    label: { type: "string", description: "", required: true },
+    run: { type: "() => void", description: "", required: true },
+  }}
+/>
+
+
+### TurnEndingWiring
+
+How an ended turn's notice is wired, from the host: who reads it, the
+names its model resolves to, and the act and the link this viewer is
+offered. Without it, a notice reads to a viewer who can act and fix
+nothing, and its act re-sends through `onRetryRun`.
+
+<TypeTable
+  type={{
+    acting: { type: "boolean", description: "An act is in flight." },
+    actOf: { type: "(ending: TurnEnding, turn: Turn) => TurnEndingAction | undefined", description: "The act for this ending, or undefined for none." },
+    linkOf: { type: "(ending: TurnEnding, turn: Turn) => RunErrorNoticeLink | undefined", description: "The link to the fix for this ending, or undefined for none." },
+    names: { type: "(model: string) => TurnEndingNames", description: "The provider's and the model's display names for a model id." },
+    viewer: { type: "TurnEndingViewer", description: "", required: true },
+  }}
+/>
+
+
 ### UseApprovalResult
 
 Resolved inline-approval state for one waiting tool use. Its shape is a
@@ -4102,7 +4153,7 @@ Options for [`useRunActions`](#userunactions).
 
 <TypeTable
   type={{
-    onSuccess: { type: "(execution: Run) => void", description: "Called after any lifecycle action (terminate, pause, resume) succeeds. Receives the updated run returned by the server. Useful for triggering a refetch so the UI reflects the new phase." },
+    onSuccess: { type: "(execution: Run) => void", description: "Called after any lifecycle action (terminate, pause, resume, recover) succeeds. Receives the updated run returned by the server. Useful for triggering a refetch so the UI reflects the new phase." },
   }}
 />
 

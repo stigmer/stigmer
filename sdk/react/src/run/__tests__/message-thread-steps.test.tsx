@@ -108,7 +108,7 @@ describe("MessageThread steps", () => {
     fireEvent.click(line);
     const plan = screen.getByRole("region", { name: "Plan" });
     expect(within(plan).getByText("0 of 1 done")).toBeTruthy();
-    expect(within(plan).getAllByText("Not finished")).toHaveLength(1);
+    expect(within(plan).getAllByText("Stopped here")).toHaveLength(1);
     expect(itemToggle("Fix it")?.getAttribute("aria-expanded")).toBe("false");
   });
 });

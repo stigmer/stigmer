@@ -133,6 +133,15 @@ vi.mock("../useSessionPageFlow", () => ({
 }));
 
 const access = vi.hoisted(() => ({ canSend: true, canDecide: true }));
+// The ending notice's wiring asks the server (permissions, recover): its own tests prove it.
+vi.mock("../useTurnEndingWiring", () => ({
+  useTurnEndingWiring: () => ({
+    wiring: { viewer: { canManageProviders: false, canOpenAgent: false, canAct: true, stoppedIt: false } },
+    error: null,
+    clearError: () => {},
+  }),
+}));
+
 vi.mock("../useSessionAccess", () => ({
   useSessionAccess: () => access,
 }));

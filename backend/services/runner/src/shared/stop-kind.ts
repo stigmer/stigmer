@@ -30,6 +30,7 @@ import {
   PROVIDER_KEY_REQUIRED_SENTINEL,
   classifyModelCallError,
   describeExecutionError,
+  unwrapModelError,
   type ClassifiedModelError,
   type ModelErrorContext,
 } from "./model-error.js";
@@ -88,6 +89,13 @@ const KIND_OF_CODE: Readonly<Record<string, StopKind>> = {
   LLM_CONNECTION_ERROR: "provider_unreachable",
 };
 
+/**
+ * The statuses a gateway answers when it could not reach the provider (a bad
+ * gateway, a gateway timeout): the platform's model proxy answers a dropped
+ * upstream with a 502. Every other 5xx is the provider's own trouble.
+ */
+const GATEWAY_UNREACHED: ReadonlySet<number> = new Set([502, 504]);
+
 /** The codes a proxied call reports when the platform refused its own token (`model-error.ts`, the proxy-mode wording). */
 const PLATFORM_REFUSAL_CODES: ReadonlySet<string> = new Set(["LLM_AUTHENTICATION_ERROR", "LLM_PERMISSION_DENIED"]);
 
@@ -96,8 +104,9 @@ const PLATFORM_REFUSAL_CODES: ReadonlySet<string> = new Set(["LLM_AUTHENTICATION
  * is the classifier's own reading that a proxied call's 401 or 403 was the
  * platform's token, not the organization's key.
  */
-export function modelStopOfClassified(classified: ClassifiedModelError): ModelStop {
+export function modelStopOfClassified(classified: ClassifiedModelError, status?: number): ModelStop {
   if (classified.platformRefused === true && PLATFORM_REFUSAL_CODES.has(classified.code)) return { surface: "internal", kind: "internal" };
+  if (classified.code === "LLM_PROVIDER_ERROR" && status !== undefined && GATEWAY_UNREACHED.has(status)) return { surface: "engine", kind: "provider_unreachable" };
   const kind = KIND_OF_CODE[classified.code];
   return kind === undefined ? { surface: "internal", kind: "internal" } : { surface: "engine", kind };
 }
@@ -125,6 +134,7 @@ function kindOfStatus(status: number): StopKind | undefined {
   if (status === 403 || status === 404) return "model_unavailable";
   if (status === 400 || status === 413 || status === 422) return "request_rejected";
   if (status === 429) return "provider_rate_limited";
+  if (GATEWAY_UNREACHED.has(status)) return "provider_unreachable";
   if (status >= 500) return "provider_overloaded";
   return undefined;
 }
@@ -199,7 +209,8 @@ export function settleThrown(err: unknown, ctx: ModelErrorContext, stopModel: st
   if (app !== undefined) return { surface: "internal", message, stopDetail: app };
   const classified = classifyModelCallError(err, ctx);
   if (classified === undefined) return { surface: "internal", message, stopDetail: { kind: "internal" } };
-  const stop = modelStopOfClassified(classified);
+  const status = (unwrapModelError(err) as { status?: unknown }).status;
+  const stop = modelStopOfClassified(classified, typeof status === "number" ? status : undefined);
   return { surface: stop.surface, message, stopDetail: stop.kind === "internal" ? { kind: "internal" } : withModel(stop.kind, stopModel) };
 }
 

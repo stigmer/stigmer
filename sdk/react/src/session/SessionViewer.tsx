@@ -49,6 +49,7 @@ import { TranscriptExportMenu } from "./TranscriptExportMenu.js";
 import { AutoApproveIndicator } from "./AutoApproveIndicator.js";
 import { AgentVersionNotice } from "./AgentVersionNotice.js";
 import { agentRefOfSession, isSameAgent } from "./agentRefOfSession.js";
+import { useTurnEndingWiring, type SessionAgentRef } from "./useTurnEndingWiring.js";
 import { useSessionWriteBacks } from "./useSessionWriteBacks.js";
 import { useSessionOutputs, outputKey } from "./useSessionOutputs.js";
 import { useSessionGivenFiles } from "./useSessionGivenFiles.js";
@@ -205,6 +206,12 @@ export interface SessionViewerProps {
    */
   readonly routineHref?: (routine: Routine) => string;
   /**
+   * The agent's page, in the host's routing: a turn that ended on the
+   * agent's setup, a connected app or a budget links there ("Open the
+   * agent"), for a reader who may open it. No link when omitted.
+   */
+  readonly agentHref?: (agent: SessionAgentRef) => string;
+  /**
    * Slot for host-injected header actions. Rendered in the top-right corner
    * of the viewer, beside the panel chip. Keeps the SDK organism
    * unopinionated about Console auth.
@@ -289,6 +296,7 @@ export function SessionViewer({
   inspector,
   modelsHubHref = DEFAULT_MODELS_HUB_HREF,
   routineHref,
+  agentHref,
   headerActions,
   transcriptExport = true,
   accessSlot,
@@ -724,6 +732,7 @@ export function SessionViewer({
           onOpenTurnChange={handleOpenTurnChange}
           modelsHubHref={modelsHubHref}
           routineHref={routineHref}
+          agentHref={agentHref}
           summaryActions={summaryShows ? headerCorner : undefined}
         />
       }
@@ -853,6 +862,7 @@ interface ConversationColumnProps {
   readonly onOpenTurnChange: (change: TurnChange) => void;
   readonly modelsHubHref: string;
   readonly routineHref?: (routine: Routine) => string;
+  readonly agentHref?: (agent: SessionAgentRef) => string;
   /** The header's controls, drawn on the summary's title row. */
   readonly summaryActions?: ReactNode;
 }
@@ -903,6 +913,7 @@ const ConversationColumn = memo(function ConversationColumn({
   onOpenTurnChange,
   modelsHubHref,
   routineHref,
+  agentHref,
   summaryActions,
 }: ConversationColumnProps) {
   const { conv } = flow;
@@ -931,7 +942,28 @@ const ConversationColumn = memo(function ConversationColumn({
   // ApprovalCard), matching the file-review card. A single banner cannot name
   // which of several concurrent gates failed. The scalar conv.answerError
   // stays available for headless/`ink` consumers.
-  const sendError = conv.sendError ?? conv.stopError;
+  // The last turn's ending notice: its act (recover, Continue, the model
+  // picker) and its link, for this reader (`useTurnEndingWiring`).
+  const columnRef = useRef<HTMLDivElement>(null);
+  const lastTurn = conv.turns.at(-1);
+  const lastRun = lastTurn === undefined ? undefined : conv.runs.find((run) => run.metadata?.id === lastTurn.runId);
+  const lastMessage = lastRun?.spec?.message ?? "";
+  const sessionAgent = agentRefOfSession(conv.session);
+  const ending = useTurnEndingWiring({
+    lastTurn,
+    orgId: conv.session?.metadata?.org ?? "",
+    canSend: !isObserver,
+    decides: !isObserver && !isParticipant,
+    send: flow.handleSubmit,
+    // A build turn's label is no message to send again: it would drop the build's flag.
+    retryMessage: lastMessage !== "" && lastMessage !== "execute" && lastRun?.spec?.buildFromPlan !== true ? lastMessage : undefined,
+    modelsHubHref,
+    ...(agentHref !== undefined && sessionAgent !== null ? { agentHref: agentHref({ org: sessionAgent.org, slug: sessionAgent.slug }) } : {}),
+    columnRef,
+  });
+  // A refused recover reads as a refused send does (its typed reason: the
+  // plan's hours, another turn unfinished), never as raw text.
+  const sendError = conv.sendError ?? conv.stopError ?? ending.error;
 
   // The next message starts a conversation on the selected agent when the
   // session has no turn yet, or when the person picked a different agent
@@ -1045,7 +1077,7 @@ const ConversationColumn = memo(function ConversationColumn({
   );
 
   return (
-    <div className="stg:flex stg:h-full stg:min-w-0 stg:flex-col">
+    <div ref={columnRef} className="stg:flex stg:h-full stg:min-w-0 stg:flex-col">
       {conv.session !== null && hasTurns && (
         <div className={CONVERSATION_COLUMN_CLASS}>
           <SessionSummary
@@ -1075,6 +1107,7 @@ const ConversationColumn = memo(function ConversationColumn({
         // a plan read-only in the panel remains — reading is the point.
         onRetrySend={isObserver ? undefined : conv.retryLastSend}
         onRetryRun={isObserver ? undefined : onRetryRun}
+        turnEnding={ending.wiring}
         // Approval mechanics are an OPERATOR surface, never a guest's:
         // the HITL gate protects the org's tools, and an anonymous
         // visitor is not its trustee. Guest runs run unattended
@@ -1292,7 +1325,7 @@ function SessionLoadError({ error }: { error: Error }) {
           <ErrorTriangleIcon />
         </div>
         <div className="stg:space-y-2">
-          <h1 className="stg:text-lg stg:font-semibold">Failed to load session</h1>
+          <h1 className="stg:text-lg stg:font-semibold">This session didn&rsquo;t open</h1>
           <p className="stg:text-sm stg:text-muted-foreground">{getUserMessage(error)}</p>
         </div>
         <button
@@ -1392,7 +1425,9 @@ function ReconnectingIndicator() {
       >
         <path d="M21 12a9 9 0 1 1-6.219-8.56" />
       </svg>
-      <span className="stg:truncate">Reconnecting…</span>
+      <span className="stg:min-w-0 stg:flex-1">
+        Reconnecting… The agent keeps working; what it did meanwhile appears when the connection is back.
+      </span>
     </div>
   );
 }
@@ -1406,15 +1441,15 @@ function ReconnectingIndicator() {
 function ConnectTimedOutBanner({ onRetry }: { onRetry: () => void }) {
   return (
     <div role="alert" className="stg:flex stg:items-center stg:gap-3 stg:border-t stg:border-border stg:bg-muted stg:px-4 stg:py-2.5">
-      <p className="stg:min-w-0 stg:flex-1 stg:truncate stg:text-sm stg:text-muted-foreground">
-        The agent hasn&rsquo;t started yet.
+      <p className="stg:min-w-0 stg:flex-1 stg:text-sm stg:text-muted-foreground">
+        The agent hasn&rsquo;t started yet. Your message is kept; try again to look once more.
       </p>
       <button
         type="button"
         onClick={onRetry}
         className="stg:inline-flex stg:shrink-0 stg:items-center stg:gap-1.5 stg:rounded-md stg:border stg:border-border stg:px-2 stg:py-1 stg:text-xs stg:font-medium stg:hover:bg-card"
       >
-        Retry
+        Try again
       </button>
     </div>
   );

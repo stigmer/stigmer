@@ -5,7 +5,8 @@
  * to its steps while the turn works, a finished item opens on a click, and
  * an item with no steps is a plain line; an item whose step waits for a
  * person says "Waiting for you" and leaves that step to the bottom card;
- * an item left in progress by an ended turn says "Not finished"; and the
+ * an item left in progress by an ended turn says where it stopped, in its
+ * ending's words ("Stopped here" unless told otherwise); and the
  * steps outside any item draw at the foot, the settled ones folded under
  * "Steps so far" and the open ones as rows, a waiting one left out.
  */
@@ -133,14 +134,20 @@ describe("PlanSteps", () => {
     expect(within(line).getByRole("group", { name: "1 tool call" })).toBeTruthy();
   });
 
-  it("says an item its ended turn left in progress is not finished, closed", () => {
+  it("says where its ended turn stopped on an item left in progress, closed", () => {
     render(<PlanSteps working={false} steps={stepsOf(todos("t", [{ content: "Fix it", status: "in_progress" }]), call("c1", "read_file", { path: "a.ts" }))} />);
     const line = itemLine("Fix it");
     const toggle = itemToggle("Fix it");
 
-    expect(within(line).getAllByText("Not finished").length).toBe(1);
-    expect(within(line).getByRole("img", { name: "Not finished" })).toBeTruthy();
+    expect(within(line).getAllByText("Stopped here").length).toBe(1);
+    expect(within(line).getByRole("img", { name: "Stopped" })).toBeTruthy();
     expect(toggle.getAttribute("aria-expanded")).toBe("false");
+  });
+
+  it("says the ending's own note: paused at a limit, stalled", () => {
+    const steps = stepsOf(todos("t", [{ content: "Fix it", status: "in_progress" }]));
+    render(<PlanSteps working={false} steps={steps} stoppedNote="Paused here" />);
+    expect(within(itemLine("Fix it")).getByText("Paused here")).toBeTruthy();
   });
 
   it("folds the settled steps outside any item under 'Steps so far' and keeps the open ones as rows", () => {

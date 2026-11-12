@@ -246,6 +246,7 @@ export function sessionDrawing(replay: SessionReplay, framing: Framing = {}): Dr
           org={session.metadata!.org}
           audience={framing.audience}
           inspector={framing.inspector ? <SessionInspector /> : undefined}
+          agentHref={(agent) => `/library/agents/${agent.org}/${agent.slug}`}
         />
       </div>
     ),

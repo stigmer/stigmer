@@ -408,7 +408,7 @@ function KeepAll({ sessionId, set }: { sessionId: string; set: FileReviewSet }) 
 ### useRunActions
 
 Behavior hook that encapsulates one run's lifecycle actions: terminate,
-pause and resume.
+pause, resume and recover.
 
 Each action calls the corresponding RPC and returns the updated run, or
 `null` on failure (with `error` populated).
@@ -424,7 +424,7 @@ and escalates to `UseRunActionsReturn.terminate` on a repeat press.
 
 <TypeTable
   type={{
-    onSuccess: { type: "(execution: Run) => void", description: "Called after any lifecycle action (terminate, pause, resume) succeeds. Receives the updated run returned by the server. Useful for triggering a refetch so the UI reflects the new phase." },
+    onSuccess: { type: "(execution: Run) => void", description: "Called after any lifecycle action (terminate, pause, resume, recover) succeeds. Receives the updated run returned by the server. Useful for triggering a refetch so the UI reflects the new phase." },
   }}
 />
 
@@ -436,6 +436,7 @@ and escalates to `UseRunActionsReturn.terminate` on a repeat press.
     error: { type: "Error | null", description: "Error from the last failed action, or `null`.", required: true },
     isSubmitting: { type: "boolean", description: "`true` while any action is in flight.", required: true },
     pause: { type: "(reason?: string) => Promise<Run | null>", description: "Pause a running run (PENDING or IN_PROGRESS only).", required: true },
+    recover: { type: "() => Promise<Run | null>", description: "Pick a FAILED run up where it stopped: the same turn runs again, steps that worked are not run again, and its values (a key fixed meanwhile) are read again. Needs `can_edit` on the run; refused for a run that was stopped (TERMINATED or CANCELLED) or while another turn of its session is unfinished.", required: true },
     resume: { type: "() => Promise<Run | null>", description: "Resume a paused run.", required: true },
     terminate: { type: "(reason?: string) => Promise<Run | null>", description: "Terminate a running run immediately (PENDING or IN_PROGRESS only).", required: true },
   }}
