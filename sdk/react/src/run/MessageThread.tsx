@@ -1161,14 +1161,19 @@ export function buildThreadItems(
     // A build turn's label is no message to re-send: re-sending it as an
     // ordinary message would drop the buildFromPlan flag.
     const isBuildTurn = lastRun?.spec?.buildFromPlan === true;
-    items.push({
+    const notice: ThreadItem = {
       kind: "execution-error",
       error: lastTurn.status?.error ?? "",
       retryMessage: specMessage && specMessage !== "execute" && !isBuildTurn ? specMessage : undefined,
       ending,
       turn: lastTurn,
       key: `execution-error-${lastTurn.runId}`,
-    });
+    };
+    // A turn that completed (the platform's stop) already closed with what
+    // it produced: the note goes above it, as on every other ending.
+    const outcomeAt = items.findIndex((item) => item.kind === "outcome" && item.turn === lastTurn);
+    if (outcomeAt === -1) items.push(notice);
+    else items.splice(outcomeAt, 0, notice);
   }
 
   if (includeOutcomes && lastTurn?.ended && lastPhase !== "completed") {

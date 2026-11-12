@@ -20,6 +20,9 @@
 // - The provider and the model are names the caller resolves from the
 //   detail's model id (the React kit's model registry); unknown, they read
 //   "the model provider" and "this model".
+// - The error's text is quoted once: an agent that can't run as it is set up
+//   fails with the runner's own sentence for a person (its actionable
+//   surface), which the comfort leads with.
 // - What a turn finished is counted from its own to-do list
 //   (`turnSteps`), never guessed from its steps: "2 of 5 to-dos are done".
 // - A turn the runner named no kind for (an older runner, a desktop app's
@@ -254,7 +257,7 @@ const BY_KIND: Readonly<Record<string, Entry>> = {
     tone: "failed",
     pill: DIDNT_FINISH,
     headline: "This agent can't run as it's set up.",
-    fixer: "Change the agent, then run this again. Copy details says what's wrong. Nothing was lost.",
+    fixer: "{error} Change the agent, then run this again. Nothing was lost.",
     reader: `${LOST_NOTHING} Its owner can fix the agent.`,
     act: "run_again",
     link: "agent",
@@ -432,6 +435,9 @@ function entryOf(phase: string, cause: string, kind: string): Entry | undefined 
 
 /** Fills a sentence's placeholders from the turn and its names. */
 function filler(turn: Turn, names: TurnEndingNames, app: string): (text: string) => string {
+  // The agent's setup failure is a person's sentence already (the runner's
+  // actionable surface): the one error the comfort quotes.
+  const error = (turn.status?.error ?? "").trim();
   const provider = names.provider ?? "the model provider";
   const model = names.model ?? "this model";
   const done = doneOf(turn);
@@ -441,7 +447,8 @@ function filler(turn: Turn, names: TurnEndingNames, app: string): (text: string)
       .replaceAll("{provider}", provider)
       .replaceAll("{model}", model)
       .replaceAll("{app}", app === "" ? "connected" : app)
-      .replaceAll("{done}", done);
+      .replaceAll("{done}", done)
+      .replaceAll("{error}", error);
 }
 
 /** What the turn finished, from its own to-do list: ": 2 of 5 to-dos are done", or nothing with no list. */

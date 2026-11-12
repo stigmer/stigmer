@@ -94,6 +94,12 @@ describe("describeTurnEnding", () => {
     expect(ending.comfort).not.toContain("agent's page");
   });
 
+  it("leads an agent's setup failure with the runner's own sentence, for one who can fix the agent", () => {
+    const turn = turnOf({ phase: "failed", stopCause: "failed", error: "Fixer's tools list names no tool this turn has: [x].", stopDetail: { kind: "agent_setup", model: "", app: "" } });
+    expect(describeTurnEnding({ turn, viewer: ADMIN })!.comfort).toBe("Fixer's tools list names no tool this turn has: [x]. Change the agent, then run this again. Nothing was lost.");
+    expect(describeTurnEnding({ turn, viewer: READER })!.comfort).not.toContain("tools list");
+  });
+
   it("reads an unknown provider and model as the model provider and this model", () => {
     expect(describeTurnEnding({ turn: failed("model_error", "provider_overloaded"), viewer: ADMIN })!.headline).toBe("The model provider was too busy to answer.");
     expect(describeTurnEnding({ turn: failed("model_error", "model_unavailable"), viewer: ADMIN })!.headline).toBe("This key can't use this model.");

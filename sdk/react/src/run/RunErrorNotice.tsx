@@ -120,7 +120,13 @@ export function RunErrorNotice({
             )}
             {link !== undefined && <NoticeLink link={link} />}
             {copyable && (
-              <Button size="xs" variant="ghost" onClick={copy} className="stg:text-muted-foreground">
+              <Button
+                size="xs"
+                variant="ghost"
+                onClick={copy}
+                // Alone in its row it sits flush with the words above it.
+                className={cn("stg:text-muted-foreground", act === undefined && link === undefined && "stg:-ml-2.5")}
+              >
                 {copied ? "Copied" : "Copy details"}
               </Button>
             )}
