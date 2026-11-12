@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { useParams } from "next/navigation";
+import { useParams, usePathname } from "next/navigation";
 
 const PLACEHOLDER = "__placeholder__";
 
@@ -11,7 +11,11 @@ const PLACEHOLDER = "__placeholder__";
  * When nginx serves __placeholder__.html for an unknown dynamic route,
  * useParams() returns "__placeholder__" from the pre-rendered RSC data
  * instead of the actual value from the URL.  This hook detects that
- * case and extracts the real value from window.location.pathname.
+ * case and extracts the real value from the router's pathname. The
+ * router's, not `window.location`'s: on a client-side arrival (a `Link`
+ * from another page) the first render runs before the address bar holds
+ * the new path, so `window.location` still names the page left behind
+ * (a session's `/sessions/ses_…` read as an agent's slug).
  *
  * @param name  The route parameter name (e.g. "slug", "org").
  * @param fromEnd  Position from the end of the URL path segments
@@ -28,12 +32,14 @@ export function useStaticRouteParam(
 ): string | null {
   const params = useParams();
   const raw = params[name] as string;
+  const pathname = usePathname();
 
   return useMemo(() => {
     if (raw !== PLACEHOLDER) return raw;
-    if (typeof window === "undefined") return null;
-    const segments = window.location.pathname.split("/").filter(Boolean);
+    const path = pathname ?? (typeof window === "undefined" ? null : window.location.pathname);
+    if (path === null) return null;
+    const segments = path.split("/").filter(Boolean);
     const actual = segments[segments.length - fromEnd];
-    return actual && actual !== PLACEHOLDER ? actual : null;
-  }, [raw, fromEnd]);
+    return actual && actual !== PLACEHOLDER ? decodeURIComponent(actual) : null;
+  }, [raw, fromEnd, pathname]);
 }
