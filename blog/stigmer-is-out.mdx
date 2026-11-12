@@ -1,0 +1,113 @@
+---
+title: "Stigmer is out, and it's open source"
+description:
+  "The open-source backend for the agents in your product. Version 0.1 is
+  released: run it yourself for free, or use Stigmer Cloud, starting on Free."
+github: "whysosuresh"
+date: 2026-11-12
+---
+
+So you have a product with customers, and you want each of them to get an agent
+that does real work inside it. Not a chat box that answers questions, but an
+agent that takes something from your customer, works on it, and hands back a
+result.
+
+Getting an agent to start is the easy part. What takes the time is everything
+under it: somewhere for it to run, a way for a job to keep going for hours, a
+way for it to ask before it does something it shouldn't do on its own, and walls
+so one customer never sees another's data. We built all of that once for
+Planton, our own product, and it became Stigmer.
+[How we put agents into Planton](/blog/how-we-put-agents-into-planton) tells
+that story.
+
+Stigmer 0.1 is released. It's open source under Apache 2.0, and you can try it
+on your own machine without signing up for anything.
+
+## Let's say you build accounting software
+
+Your customer uploads a ledger and asks for this quarter's variance report. With
+Stigmer, your app hands the ledger to that customer's agent. The agent works
+through it on a computer of its own, and the report comes back as a file your
+app can show them.
+
+Every agent gets four things:
+
+- **Its own computer.** A sandbox of its own, and its files stay there between
+  turns.
+- **Time.** It works on a job for hours, not one request, and the job survives a
+  restart.
+- **Manners.** It asks before acting on anything you mark as needing a yes.
+- **Walls.** Each customer's agents, files and keys stay apart from every other
+  customer's.
+
+Your app calls Stigmer the way it calls its database. You write the part that's
+about your product, and Stigmer runs the rest.
+
+## Try it in about ten minutes
+
+You need macOS or Linux and an Anthropic API key. Stigmer runs no model of its
+own, so the agent runs on your key.
+
+```bash
+brew install stigmer/tap/stigmer
+export ANTHROPIC_API_KEY=<your Anthropic API key>
+stigmer up
+curl -fsSLO https://raw.githubusercontent.com/stigmer/stigmer/main/examples/variance-report/variance-reporter.yaml
+curl -fsSLO https://raw.githubusercontent.com/stigmer/stigmer/main/examples/variance-report/ledger.csv
+stigmer apply -f variance-reporter.yaml
+stigmer run variance-reporter --attach ledger.csv --download ./out --until turn -m "Review this quarter's ledger."
+cat out/variance-report.md
+```
+
+The ledger goes in, and a report you didn't write comes out in `./out`.
+[Your first agent job](/docs/getting-started/quickstart) walks through each
+step, and
+[Do the same job from your app](/docs/getting-started/call-from-your-app) starts
+it from your own code.
+
+No Homebrew? `curl -fsSL https://stigmer.ai/install.sh | sh` brings its own
+Node.js, and `npm install -g @stigmer/cli` works with Node.js 22.13 or newer.
+
+## Three ways to run it
+
+- **Open source**, free under Apache 2.0. The whole engine, on a laptop, one
+  server or Kubernetes, with one organization.
+- **Stigmer Enterprise**, which you also run yourself, on an annual license. It
+  adds many organizations, teams, federation with the identity providers you
+  trust, and access history.
+- **Stigmer Cloud**, which we run for you at
+  [app.stigmer.ai](https://app.stigmer.ai).
+
+In all three, every model call runs on your own provider key, and your provider
+bills you directly. We never mark up a token.
+
+Cloud plans are a flat monthly fee with agent hours included. An agent hour
+counts only while an agent works, never while it waits for a person to reply.
+
+- **Free**: $0, 30 agent hours a month, 5 agents at once. When the hours run
+  out, new work pauses until the next month.
+- **Team**: $99 a month, 300 agent hours, 25 agents at once.
+- **Business**: $499 a month, 1,500 agent hours, 100 agents at once, and
+  organizations for your own customers under yours, five included, then $25 a
+  month each.
+
+On Team and Business, the hours past the allowance are $0.40 each, so they never
+pause. Enterprise Cloud is quoted for your organization. [Pricing](/pricing) has
+the details, and
+[the three editions compared](/docs/guides/self-hosting/cloud-vs-self-hosted)
+and [billing](/docs/concepts/billing) go deeper.
+
+## What isn't there yet
+
+It's 0.1, and I'd rather tell you what's missing than have you find it.
+
+- Enterprise, on your servers or ours, is quoted by talking to us. You can't buy
+  it online yet.
+- The quick start needs your own Anthropic key. That's on purpose, because your
+  agents always run on your keys, but it means there's no key of ours to try
+  with.
+- It's new, so there are no usage numbers here, only what we built and how to
+  try it.
+
+If you're putting agents in your product, I'd love to hear what you'd hand yours
+first. What would your customers ask their agent to do?
