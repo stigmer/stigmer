@@ -562,6 +562,30 @@ describe("SessionViewer — audience wiring", () => {
     expect(lastThreadProps().runScores).toBe(shows);
   });
 
+  it("says a session that didn't open in words, with Try again", () => {
+    const conv = stubConv as { loadError: Error | null };
+    conv.loadError = new Error("Unable to connect to the server.");
+    try {
+      render(<SessionViewer sessionId="ses_1" org="acme" />);
+      expect(screen.getByRole("heading", { name: "This session didn’t open" })).toBeTruthy();
+      expect(screen.getByRole("button", { name: "Try again" })).toBeTruthy();
+    } finally {
+      conv.loadError = null;
+    }
+  });
+
+  it("says the stream is reconnecting, and that the agent keeps working meanwhile", () => {
+    const conv = stubConv as { isReconnecting?: boolean };
+    const was = conv.isReconnecting;
+    conv.isReconnecting = true;
+    try {
+      render(<SessionViewer sessionId="ses_1" org="acme" />);
+      expect(screen.getByText(/Reconnecting… The agent keeps working/)).toBeTruthy();
+    } finally {
+      conv.isReconnecting = was;
+    }
+  });
+
   it("renders the conversation's send error through the send-error banner", () => {
     stubConv.sendError = new Error("the run could not start");
     render(<SessionViewer sessionId="ses_1" org="acme" />);

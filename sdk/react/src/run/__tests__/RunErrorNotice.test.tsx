@@ -88,6 +88,13 @@ describe("RunErrorNotice", () => {
     expect(onRetry).toHaveBeenCalledWith("do it");
   });
 
+  it("draws a link with no address as a button that acts", () => {
+    const onClick = vi.fn();
+    render(<RunErrorNotice error="x" ending={KEY} link={{ label: "Choose another model", onClick }} />);
+    fireEvent.click(screen.getByRole("button", { name: "Choose another model" }));
+    expect(onClick).toHaveBeenCalledOnce();
+  });
+
   it("offers no act when it is handed none and has nothing to re-send", () => {
     render(<RunErrorNotice error="boom" ending={{ ...KEY, act: "none" }} />);
     expect(screen.queryByRole("button", { name: /again/ })).toBeNull();

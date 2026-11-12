@@ -128,6 +128,7 @@ describe("useTurnEndingWiring", () => {
     expect(linkOf?.(ending("run_again", "provider_status"), known)?.href).toBe("https://status.anthropic.com");
     expect(linkOf?.(ending("run_again", "provider_status"), turn("failed", "model_error", "provider_overloaded", "grok"))).toBeUndefined();
     expect(wire({ agentHref: undefined }).linkOf?.(ending("run_again", "agent"), known)).toBeUndefined();
+    expect(linkOf?.(ending("run_again", "none"), known)).toBeUndefined();
   });
 
   it("names the model and its provider from the registry", () => {

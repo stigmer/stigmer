@@ -370,6 +370,17 @@ describe("MessageThread", () => {
       expect(onRetryRun).toHaveBeenCalledWith("do the thing");
     });
 
+    it("offers no act where nothing can be sent again: a reader, a turn with no message, a request the provider refused", () => {
+      renderThread(conversation({ id: "r", message: "do the thing", phase: "failed", error: "boom" }));
+      expect(screen.queryByRole("button", { name: /again/ })).toBeNull();
+      cleanup();
+      renderThread(conversation({ id: "e", message: "execute", phase: "failed", error: "boom" }), { onRetryRun: vi.fn() });
+      expect(screen.queryByRole("button", { name: /again/ })).toBeNull();
+      cleanup();
+      renderThread(conversation({ id: "q", phase: "failed", stopCause: "model_error", stopDetail: { kind: "request_rejected" }, error: "boom" }), { onRetryRun: vi.fn() });
+      expect(screen.queryByRole("button", { name: /again/ })).toBeNull();
+    });
+
     it("picks its words from the kind the runner named", () => {
       renderThread(
         conversation({ id: "k", phase: "failed", stopCause: "failed", stopDetail: { kind: "app_unreachable", app: "issue-tracker" }, error: "[MCPClientError] boom" }),

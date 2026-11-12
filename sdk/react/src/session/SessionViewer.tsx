@@ -954,7 +954,7 @@ const ConversationColumn = memo(function ConversationColumn({
     orgId: conv.session?.metadata?.org ?? "",
     canSend: !isObserver,
     decides: !isObserver && !isParticipant,
-    send: (message: string) => void flow.handleSubmit(message),
+    send: flow.handleSubmit,
     // A build turn's label is no message to send again: it would drop the build's flag.
     retryMessage: lastMessage !== "" && lastMessage !== "execute" && lastRun?.spec?.buildFromPlan !== true ? lastMessage : undefined,
     modelsHubHref,
