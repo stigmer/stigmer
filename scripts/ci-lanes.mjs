@@ -219,6 +219,10 @@ export const LANES = {
       // from these sources by publish-libs.mjs.
       "test/install/smoke-getting-started.mjs",
       "docs/getting-started/**",
+      // Every example agent run from its folder (test/install/smoke-examples.mjs):
+      // the manifests, samples and catalogue are its script.
+      "test/install/smoke-examples.mjs",
+      "examples/**",
       "sdk/typescript/src/**",
       "sdk/typescript/package.json",
       "scripts/publish-libs.mjs",
@@ -505,6 +509,9 @@ export const LANES = {
       "client-apps/web/**",
       "sdk/**",
       "apis/**",
+      // The example agents the launcher's first question offers, which the
+      // console builds in through @stigmer/react-sdk.
+      "examples/**",
       // The Temporal CLI the suites run against: its pin, downloader, installer
       // and the errors it exits with (scripts/lane-triggers.test.mjs fails when
       // one is missing).
@@ -733,6 +740,9 @@ export const LANES = {
       "backend/libs/ts/tool-vocabulary/package.json",
       "backend/libs/ts/tool-vocabulary/tsconfig.json",
       "backend/libs/ts/tool-vocabulary/tsconfig.build.json",
+      // @stigmer/examples, which the React kit reads its example agents from;
+      // its build checks the generated list against the folders first.
+      "examples/**",
       "backend/libs/ts/plugin-package/src/**",
       "backend/libs/ts/plugin-package/package.json",
       "backend/libs/ts/plugin-package/tsconfig.json",

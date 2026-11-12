@@ -17,7 +17,7 @@ import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { test, expect } from "../../fixtures";
 import { ensureDefaultOrg } from "../../fixtures/seed-helpers";
 import { anthropicText, anthropicToolUses } from "../../fixtures/mock-llm";
-import { getAIResponses, getNewSessionComposer, START_SESSION_WAITS_MS } from "../../helpers/session";
+import { getAIResponses, getNewSessionComposer, openLauncherForChat, START_SESSION_WAITS_MS } from "../../helpers/session";
 import { MockControl, approveButton, awaitMockRemaining, getMockControlUrl, toolCallRow } from "../../helpers/approval";
 
 const mockUrl = getMockControlUrl();
@@ -50,9 +50,8 @@ test.describe("A conversation on Claude (deterministic mock LLM)", () => {
     );
     await control.enqueue(anthropicText("Printed the marker."));
 
-    await page.goto("/");
+    await openLauncherForChat(page);
     const composer = getNewSessionComposer(page);
-    await composer.locator("textarea").waitFor({ state: "visible", timeout: START_SESSION_WAITS_MS.composer });
 
     // The model picker names the engine; its harness menu offers Claude.
     await composer.getByRole("button", { name: /Stigmer/ }).click();

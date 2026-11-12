@@ -27,6 +27,7 @@ test.describe("Dashboard", () => {
     const summary = page.getByRole("region", { name: "Platform dashboard" });
     const steps = summary.getByRole("region", { name: "Get your organization running" });
     await expect(steps).toBeVisible({ timeout: 15_000 });
+    await expect(steps.getByRole("link", { name: "Pick an example" })).toHaveAttribute("href", "/");
     await expect(steps.getByRole("link", { name: "Start a session" })).toHaveAttribute("href", "/");
     for (const counter of ["Active", "Completed", "Failed", "Tokens"]) {
       await expect(summary.getByText(counter, { exact: true })).toHaveCount(0);

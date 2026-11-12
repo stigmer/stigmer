@@ -9,6 +9,8 @@ export {
   type UseRunSummaryReturn,
 } from "./useRunSummary.js";
 
+export { useEverRan, type UseEverRanReturn } from "./useEverRan.js";
+
 export {
   useDashboardSummary,
   type UseDashboardSummaryOptions,

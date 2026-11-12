@@ -244,6 +244,10 @@
       "promise": "Type and spacing come from tokens; no text is smaller than the scale allows."
     },
     {
+      "id": "CON-06",
+      "promise": "A new person's first screen asks what their agent should do for their users; one pick makes the agent and puts its sample and first message in front of them."
+    },
+    {
       "id": "DSK-01",
       "promise": "Clicking the Dock icon reopens a closed window.",
       "pending": [

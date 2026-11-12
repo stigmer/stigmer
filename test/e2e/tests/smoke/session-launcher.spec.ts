@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { isAuthGate } from "../../helpers/auth-gate";
+import { chatPastFirstQuestion } from "../../helpers/session";
 
 test.describe("Session launcher", () => {
   test("renders the session composer on the home page", async ({ page }) => {
@@ -21,6 +22,9 @@ test.describe("Session launcher", () => {
     // is no session composer. The composer flow only exists once authenticated.
     test.skip(await isAuthGate(page), "the unauthenticated home redirects to the identity provider; no composer");
 
+    // An organization where nothing has run opens on the first question;
+    // this case is about sending, so it goes on to plain chat.
+    await chatPastFirstQuestion(page);
     const textarea = page.locator('textarea, [role="textbox"], [contenteditable="true"]');
     await expect(textarea.first()).toBeVisible({ timeout: 10_000 });
 

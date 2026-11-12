@@ -7,6 +7,9 @@ import { SINGLE_ORG_STACK } from "../../fixtures/single-org";
  * every request that names none (getServerInfo answers `single_org`).
  *
  * What a person sees, end to end:
+ * - the first screen asks what their agent should do for their users, the
+ *   question every edition asks a newcomer, with no organization screen
+ *   before it (first in this file, so nothing has run on the stack yet);
  * - the library opens straight away: no create-an-organization onboarding,
  *   and no organization switcher in the sidebar;
  * - settings name no organization: the first group is "General", with no
@@ -24,6 +27,18 @@ test.describe("the console on a server that holds one organization", () => {
     !SINGLE_ORG_STACK,
     "needs the single-organization stack shape — run with STIGMER_E2E_SINGLE_ORG=1",
   );
+
+  test("CON-06 the first screen is the newcomer's question, with no organization screen before it", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByRole("heading", { level: 1, name: "What should your agent do for your users?" })).toBeVisible({
+      timeout: 15_000,
+    });
+    for (const job of ["Variance report", "Ticket replies", "Contract check", "Invoice match"]) {
+      await expect(page.getByRole("button", { name: job })).toBeVisible();
+    }
+    await expect(page.getByText("Welcome to Stigmer")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Organization menu" })).toHaveCount(0);
+  });
 
   test("the library opens with no onboarding and no organization switcher", async ({ page }) => {
     await page.goto("/library/agents");

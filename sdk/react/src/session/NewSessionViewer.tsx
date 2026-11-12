@@ -1,9 +1,9 @@
 "use client";
-import { useEffect, useMemo, useState, type ReactElement, type ReactNode } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState, type ReactElement, type ReactNode } from "react";
 import type { ResourceRef } from "@stigmer/client";
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection.js";
 import type { InteractionModeOption } from "../composer/index.js";
-import { SessionComposer } from "../composer/index.js";
+import { SessionComposer, type SessionComposerProps } from "../composer/index.js";
 import type { HarnessOption } from "@stigmer/react-core";
 import type { AccountExecutionDefaults } from "../identity-account/useAccountExecutionDefaults.js";
 import { SessionViewerLayout } from "./SessionViewerLayout.js";
@@ -24,6 +24,14 @@ import { useModelsHubData } from "../models/hub/ModelsHub.js";
 import { nothingRuns } from "../models/readiness.js";
 import { useModelRegistry } from "../models/useModelRegistry.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
+import { useFirstQuestionGate } from "./first-question/useFirstQuestionGate.js";
+import { useStartFromExample, type FirstChoice } from "./first-question/useStartFromExample.js";
+// The first question and its chosen bar, with the example list they carry,
+// load only when a launcher shows them: an embed or a returning person never
+// downloads them.
+const FirstQuestion = lazy(() => import("./first-question/FirstQuestion.js").then((m) => ({ default: m.FirstQuestion })));
+const ChosenBar = lazy(() => import("./first-question/FirstQuestion.js").then((m) => ({ default: m.ChosenBar })));
+
 /** What an end user reads when the agent their launcher is pinned to cannot be found. */
 const PIN_UNAVAILABLE = "This agent isn't available. It may have been renamed or removed.";
 
@@ -161,6 +169,28 @@ export interface NewSessionViewerProps {
   readonly rememberPluginPicks?: boolean;
   /** Files to auto-attach on mount (used for edit flows). */
   readonly initialFiles?: File[];
+  /**
+   * The message the composer starts with, read once on mount like
+   * `initialFiles`: written for the person, who may send it as it is or
+   * change it. A later value never replaces what they typed.
+   */
+  readonly initialMessage?: string;
+
+  /**
+   * Open on the first question for a newcomer: in an organization where
+   * nothing has ever run, a person the server lets make agents is asked
+   * what their agent should do for their users, with example jobs (from
+   * `@stigmer/examples`), a way to describe their own and a way to just
+   * chat. A pick makes the agent and puts it, its sample files and its
+   * first message in the composer; the key step comes first when nothing
+   * can run yet. It ends once that launcher's first session is created.
+   * Never shown to a guest, to a curated audience, or when
+   * `initialAgentRef` or `initialPluginRefs` sends the person to a specific
+   * agent or plugin. Off unless
+   * the host asks, so an app embedding the launcher never shows Stigmer's
+   * own onboarding. @default false
+   */
+  readonly firstQuestion?: boolean;
 
   /** Heading text above the composer. @default "What would you like to work on?" */
   readonly heading?: string;
@@ -248,6 +278,8 @@ export function NewSessionViewer({
   initialPluginRefs,
   rememberPluginPicks,
   initialFiles,
+  initialMessage,
+  firstQuestion = false,
   heading = "What would you like to work on?",
   placeholder = "Describe what you need help with\u2026",
   initialRows = 3,
@@ -258,9 +290,27 @@ export function NewSessionViewer({
 }: NewSessionViewerProps) {
   const [pinError, setPinError] = useState<Error | null>(null);
   const includesMyVault = includeMyVault ?? includesMyVaultByDefault(audience);
+  // The first question ends for good in this launcher once it is left
+  // ("Just chat") or its session is created: the hosts keep the launcher
+  // mounted while a session is open, so it must not come back on return
+  // while "has anything run" has not been read again.
+  const [firstDone, setFirstDone] = useState(false);
+  const [choice, setChoice] = useState<FirstChoice | null>(null);
+  // Each organization is asked afresh: another organization's "Just chat" or
+  // unsent pick never carries over.
+  const [firstOrg, setFirstOrg] = useState(org);
+  const orgChanged = firstOrg !== org;
+  const handleSessionCreated = useCallback(
+    (sessionId: string) => {
+      setFirstDone(true);
+      setChoice(null);
+      onSessionCreated(sessionId);
+    },
+    [onSessionCreated],
+  );
   const flow = useNewSessionFlow({
     org,
-    onSessionCreated,
+    onSessionCreated: handleSessionCreated,
     onError,
     includeMyVault: includesMyVault,
     vaults,
@@ -273,6 +323,14 @@ export function NewSessionViewer({
   });
   const [interactionMode, setInteractionMode] = useState<InteractionModeOption>("agent");
   const isGuest = audience === "guest";
+  // A deep link wins: a person sent to a specific agent, or to chat with a
+  // plugin (a plugin page's "Start a chat"), never meets the question.
+  // Neither does a guest or a curated audience.
+  const sentSomewhere = initialAgentRef != null || (initialPluginRefs?.length ?? 0) > 0;
+  const firstGate = useFirstQuestionGate(org, firstQuestion && audience === "integrator" && !sentSomewhere);
+  const firstOpen = !firstDone && firstGate === "ask";
+  const firstWaits = !firstDone && firstGate === "pending";
+  const starts = useStartFromExample(org);
   // A reference may name its org by slug (one a host or URL supplied) or by
   // id (a stored or picked one), so both sides are compared by id.
   const orgIdFor = useOrgIdForRef();
@@ -334,11 +392,52 @@ export function NewSessionViewer({
   // reference directly. Without the pin, submission fails closed in
   // useNewSessionFlow rather than falling back to the built-in assistant.
   const { setAgentRef, setResolution } = flow;
+  if (orgChanged) {
+    // Set during render, as React allows for a component's own state, so no
+    // frame shows the other organization's choice.
+    setFirstOrg(org);
+    setFirstDone(false);
+    if (choice !== null) {
+      setChoice(null);
+      setAgentRef(null);
+      setResolution(null);
+    }
+  }
   useEffect(() => {
     if (!isGuest || !initialAgentRef) return;
     setAgentRef(initialAgentRef);
     setResolution({ mode: "direct" });
   }, [isGuest, initialAgentRef, setAgentRef, setResolution]);
+
+  // Leaving a pick (back to the cards, or to plain chat) clears the agent
+  // it selected, so the next composer starts from the person's own choice;
+  // the agent itself stays made.
+  const clearPickedAgent = useCallback(() => {
+    setAgentRef(null);
+    setResolution(null);
+  }, [setAgentRef, setResolution]);
+  const leaveFirst = useCallback(() => {
+    clearPickedAgent();
+    setChoice(null);
+    starts.clearFailure();
+    setFirstDone(true);
+  }, [clearPickedAgent, starts]);
+  const changeChoice = useCallback(() => {
+    clearPickedAgent();
+    setChoice(null);
+  }, [clearPickedAgent]);
+  const { pickExample, describeOwn } = starts;
+  const pick = useCallback(
+    (made: Promise<FirstChoice | null>) => {
+      void made.then((next) => {
+        if (next !== null) setChoice(next);
+      });
+    },
+    [],
+  );
+  // A pick lands the person on what was made: the chosen bar takes focus
+  // when it appears, and the live region below says it.
+  const choiceFiles = useMemo(() => (choice === null ? undefined : [...choice.files]), [choice]);
 
   // The unified-panel controller (shared with SessionViewer). The
   // launcher has no run yet, so the FSM inputs are static; the inspector
@@ -372,6 +471,63 @@ export function NewSessionViewer({
     [isGuest, isCurated, flow.harness, flow.modelId, flow.autoApproveAll, flow.setAutoApproveAll],
   );
 
+  const composerProps: SessionComposerProps = {
+      extraSettings: runSettings,
+      sendBlockedReason,
+      modelReadinessOf: isGuest ? undefined : hub.readinessOf,
+      onSubmit: flow.submit,
+      isSubmitting: flow.isSubmitting,
+      org,
+      workspace: isGuest ? undefined : flow.workspace,
+      gitHubConnection: enableGitHub && !isGuest ? gitHubConnection : undefined,
+      enableGitHub: enableGitHub && !isGuest,
+      enableLocal: enableLocal && !isGuest,
+      onBrowseLocalFolder,
+      agentRef: flow.agentRef,
+      // Guests get no agent machinery at all — the binding is applied
+      // by the launcher's pin effect above, not by picker resolution.
+      onAgentRefChange: isGuest ? undefined : flow.setAgentRef,
+      onAgentResolutionChange: isGuest ? undefined : flow.setResolution,
+      initialAgentRef: isGuest ? undefined : initialAgentRef,
+      onAgentSetupErrorChange: pinsAgent ? setPinError : undefined,
+      // Every message here starts a conversation, so the keys the
+      // selected agent will read from the person's My vault are named
+      // first. A guest has no vault, and brings none.
+      disclosePersonalKeys: !isGuest,
+      enableVaultPicker: !isGuest && !isCurated,
+      initialIncludeMyVault: includesMyVault,
+      initialVaultRefs: vaults,
+      // The Environment is the new conversation's to pick, beside its
+      // vaults; the flow says where it applies at all.
+      enableEnvironmentPicker: flow.offersEnvironment && !isCurated,
+      environmentDefaults: flow.environmentDefaults,
+      initialFiles: isGuest ? undefined : initialFiles,
+      lockAgent: isCurated && initialAgentRef != null,
+      pluginRefs: isCurated ? undefined : flow.pluginRefs,
+      onPluginRefsChange: isCurated ? undefined : flow.setPluginRefs,
+      skillRefs: isCurated ? undefined : flow.skillRefs,
+      onSkillRefsChange: isCurated ? undefined : flow.setSkillRefs,
+      showHarnessSelector: !isGuest,
+      harness: flow.harness,
+      onHarnessChange: flow.setHarness,
+      interactionMode,
+      onInteractionModeChange: setInteractionMode,
+      showInteractionModePicker: !isGuest,
+      showModelSelector: modelSelectorVisible,
+      enableFiles: !isGuest,
+      defaultModelId: flow.modelId,
+      agentRunDefaults: flow.agentRunDefaults,
+      onModelChange: flow.setModelId,
+      onModelPickCleared: flow.clearModelPick,
+      placeholder,
+      initialRows,
+      // The composer appears once readiness answers, which can be after
+      // the person has moved focus elsewhere; it takes focus only from
+      // the page itself, never from what they chose.
+      autoFocus: autoFocus && focusIsFree(),
+      ariaLabel: "Start a new session",
+  };
+
   const composerNode = (
     // `my-auto` centers the composer vertically whether or not context is
     // attached — safe-centering, not a special case: auto margins absorb free
@@ -382,11 +538,69 @@ export function NewSessionViewer({
     // move as context is attached (layout stability — chrome
     // that shifts with attached context reads as instability).
     <div className="stg:flex stg:h-full stg:flex-col stg:items-center stg:overflow-y-auto stg:px-4 stg:py-6">
-      <div className="stg:my-auto stg:w-full stg:max-w-2xl stg:space-y-6">
-        {!isGuest && hub.readinessLoading ? (
-          // What can run is not known yet: hold the place rather than draw
-          // a composer the connect step might replace under someone's typing.
+      <div
+        className={
+          firstOpen
+            ? // The first state is a reading-width column whose parts sit closer.
+              "stg:my-auto stg:w-full stg:max-w-[760px] stg:space-y-4"
+            : "stg:my-auto stg:w-full stg:max-w-2xl stg:space-y-6"
+        }
+      >
+        {!isGuest && (hub.readinessLoading || firstWaits) ? (
+          // What can run, or whether this is a newcomer's first visit, is
+          // not known yet: hold the place rather than draw a composer the
+          // connect step or the first question might replace under
+          // someone's typing.
           <LoadingRegion label="Loading" className="stg:h-36 stg:animate-pulse stg:rounded-2xl stg:bg-muted" />
+        ) : firstOpen && choice === null ? (
+          <Suspense fallback={FIRST_LOADING}>
+            <FirstQuestion
+              pending={starts.pending}
+              failure={starts.failure}
+              onPick={(example) => pick(pickExample(example))}
+              onDescribe={(words) => pick(describeOwn(words))}
+              onJustChat={leaveFirst}
+            />
+          </Suspense>
+        ) : firstOpen && choice !== null ? (
+          <>
+            <div className="stg:text-center">
+              <h1 className="stg:m-0 stg:text-xl stg:font-semibold stg:tracking-tight stg:text-balance stg:text-foreground">
+                {showConnectPanel ? "One more thing before it runs" : choice.example ? "Send it the sample" : "Give it a first job"}
+              </h1>
+              <p className="stg:mx-auto stg:mt-1.5 stg:mb-0 stg:max-w-[60ch] stg:text-sm stg:leading-5 stg:text-muted-foreground">
+                {showConnectPanel
+                  ? `${choice.agentName} is ready to go. It needs a model to think with.`
+                  : choice.example
+                    ? `The message is written and the ${choice.example.sampleName} ${choice.example.samples.length > 1 ? "are" : "is"} attached. Send it and watch the agent work.`
+                    : "Attach one of your own files and say what you need."}
+              </p>
+            </div>
+            <Suspense fallback={null}>
+              <ChosenBar choice={choice} onChange={changeChoice} />
+            </Suspense>
+            {showConnectPanel ? (
+              <ConnectProviderPanel
+                hub={hub}
+                harness={flow.harness}
+                provider={connectProvider}
+                modelName={shownModelName}
+                modelsHubHref={modelsHubHref}
+                showHeading={false}
+              />
+            ) : (
+              <SessionComposer
+                // A new pick mounts a new composer: its agent, files and
+                // message are read once, when it mounts.
+                key={`${choice.agentRef.org}/${choice.agentRef.slug}`}
+                {...composerProps}
+                initialAgentRef={choice.agentRef}
+                initialFiles={choiceFiles}
+                initialMessage={choice.message}
+                placeholder={choice.example ? placeholder : "Attach one of your own files and say what you need"}
+              />
+            )}
+          </>
         ) : showConnectPanel ? (
           <ConnectProviderPanel
             hub={hub}
@@ -409,63 +623,14 @@ export function NewSessionViewer({
             />
           )}
 
-          <SessionComposer
-            extraSettings={runSettings}
-            sendBlockedReason={sendBlockedReason}
-            modelReadinessOf={isGuest ? undefined : hub.readinessOf}
-            onSubmit={flow.submit}
-            isSubmitting={flow.isSubmitting}
-            org={org}
-            workspace={isGuest ? undefined : flow.workspace}
-            gitHubConnection={enableGitHub && !isGuest ? gitHubConnection : undefined}
-            enableGitHub={enableGitHub && !isGuest}
-            enableLocal={enableLocal && !isGuest}
-            onBrowseLocalFolder={onBrowseLocalFolder}
-            agentRef={flow.agentRef}
-            // Guests get no agent machinery at all — the binding is applied
-            // by the launcher's pin effect above, not by picker resolution.
-            onAgentRefChange={isGuest ? undefined : flow.setAgentRef}
-            onAgentResolutionChange={isGuest ? undefined : flow.setResolution}
-            initialAgentRef={isGuest ? undefined : initialAgentRef}
-            onAgentSetupErrorChange={pinsAgent ? setPinError : undefined}
-            // Every message here starts a conversation, so the keys the
-            // selected agent will read from the person's My vault are named
-            // first. A guest has no vault, and brings none.
-            disclosePersonalKeys={!isGuest}
-            enableVaultPicker={!isGuest && !isCurated}
-            initialIncludeMyVault={includesMyVault}
-            initialVaultRefs={vaults}
-            // The Environment is the new conversation's to pick, beside its
-            // vaults; the flow says where it applies at all.
-            enableEnvironmentPicker={flow.offersEnvironment && !isCurated}
-            environmentDefaults={flow.environmentDefaults}
-            initialFiles={isGuest ? undefined : initialFiles}
-            lockAgent={isCurated && initialAgentRef != null}
-            pluginRefs={isCurated ? undefined : flow.pluginRefs}
-            onPluginRefsChange={isCurated ? undefined : flow.setPluginRefs}
-            skillRefs={isCurated ? undefined : flow.skillRefs}
-            onSkillRefsChange={isCurated ? undefined : flow.setSkillRefs}
-            showHarnessSelector={!isGuest}
-            harness={flow.harness}
-            onHarnessChange={flow.setHarness}
-            interactionMode={interactionMode}
-            onInteractionModeChange={setInteractionMode}
-            showInteractionModePicker={!isGuest}
-            showModelSelector={modelSelectorVisible}
-            enableFiles={!isGuest}
-            defaultModelId={flow.modelId}
-            agentRunDefaults={flow.agentRunDefaults}
-            onModelChange={flow.setModelId}
-            onModelPickCleared={flow.clearModelPick}
-            placeholder={placeholder}
-            initialRows={initialRows}
-            // The composer appears once readiness answers, which can be after
-            // the person has moved focus elsewhere; it takes focus only from
-            // the page itself, never from what they chose.
-            autoFocus={autoFocus && focusIsFree()}
-            ariaLabel="Start a new session"
-          />
+          <SessionComposer {...composerProps} initialMessage={initialMessage} />
           </>
+        )}
+
+        {firstOpen && (
+          <p aria-live="polite" className="stg:sr-only">
+            {choice !== null ? `${choice.agentName} is made.` : ""}
+          </p>
         )}
 
         {/* A run refused for want of a provider key says where an admin
@@ -495,7 +660,7 @@ export function NewSessionViewer({
 
         {footerContent}
 
-        {!showConnectPanel && !(!isGuest && hub.readinessLoading) && (
+        {!showConnectPanel && !(!isGuest && (hub.readinessLoading || firstWaits)) && !(firstOpen && choice === null) && (
           <p className="stg:text-center stg:text-2xs stg:text-muted-foreground">
             Press Enter to send, Shift+Enter for a new line
           </p>
@@ -548,6 +713,9 @@ export function NewSessionViewer({
     />
   );
 }
+
+/** The place the first question holds while its module loads. */
+const FIRST_LOADING = <LoadingRegion label="Loading" className="stg:h-36 stg:animate-pulse stg:rounded-2xl stg:bg-muted" />;
 
 /** Whether nothing on the page holds focus, so a composer that mounts now may take it. */
 function focusIsFree(): boolean {

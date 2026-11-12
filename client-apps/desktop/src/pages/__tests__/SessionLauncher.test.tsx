@@ -4,7 +4,8 @@
  * (`/?plugin=org/slug`) starts a chat with no agent that lists the plugin,
  * an `?agent=org/slug` link preselects the agent, a link that arrives after
  * the launcher is open is read too and the address cleaned once read, the
- * person's plugin picks are remembered for the next conversation, and a
+ * person's plugin picks are remembered for the next conversation, a
+ * newcomer's first question is turned on, and a
  * refusal for want of a provider key raises no toast (the launcher's own
  * notice says it) while any other refusal does. The viewer, and how a
  * refusal is read, are pinned in @stigmer/react-sdk.
@@ -116,6 +117,12 @@ describe("desktop SessionLauncher", () => {
       initialPluginRefs: [{ org: "acme", slug: "linear" }],
     });
     expect(screen.getByTestId("location").textContent).toBe("/");
+  });
+
+  it("asks a newcomer's first question, which the viewer skips for a deep-linked agent", () => {
+    renderAt("/");
+
+    expect(page.viewer.at(-1)).toMatchObject({ firstQuestion: true, initialAgentRef: undefined });
   });
 
   it("remembers the person's plugin picks for the next conversation", () => {

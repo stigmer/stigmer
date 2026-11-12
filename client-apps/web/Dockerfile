@@ -13,6 +13,7 @@ COPY backend/libs/ts/eval-runtime/package.json backend/libs/ts/eval-runtime/
 COPY backend/libs/ts/plugin-package/package.json backend/libs/ts/plugin-package/
 COPY backend/libs/ts/tool-vocabulary/package.json backend/libs/ts/tool-vocabulary/
 COPY backend/libs/ts/session-log/package.json backend/libs/ts/session-log/
+COPY examples/package.json examples/
 COPY sdk/typescript/package.json sdk/typescript/
 COPY sdk/theme/package.json sdk/theme/
 COPY sdk/react-core/package.json sdk/react-core/
@@ -25,6 +26,8 @@ COPY sdk/embed/package.json sdk/embed/
 # is @stigmer/eval-runtime, which its eval suite reader imports. The SDK
 # folds a session's events with @stigmer/session-log, which names to-do
 # tools through @stigmer/tool-vocabulary, so both are in the closure too.
+# The launcher's first question and the create picker read the example
+# agents from @stigmer/examples, so it is in the closure as well.
 # @stigmer/react-sdk builds its conversation on @stigmer/react-core, which
 # exports source that next.config.ts transpiles, so it is copied and not
 # built. scripts/console-image-closure.test.mjs fails when a package the
@@ -34,6 +37,7 @@ COPY backend/libs/ts/eval-runtime/ backend/libs/ts/eval-runtime/
 COPY backend/libs/ts/plugin-package/ backend/libs/ts/plugin-package/
 COPY backend/libs/ts/tool-vocabulary/ backend/libs/ts/tool-vocabulary/
 COPY backend/libs/ts/session-log/ backend/libs/ts/session-log/
+COPY examples/ examples/
 COPY sdk/typescript/ sdk/typescript/
 COPY sdk/theme/ sdk/theme/
 COPY sdk/react-core/ sdk/react-core/
@@ -44,10 +48,10 @@ COPY sdk/embed/ sdk/embed/
 COPY client-apps/web/ client-apps/web/
 COPY brand/ brand/
 
-# Install dependencies and build. Five workspace packages are built
+# Install dependencies and build. Six workspace packages are built
 # explicitly because transpilePackages reaches source, not compiled
-# artifacts: @stigmer/plugin-package's, @stigmer/tool-vocabulary's and
-# @stigmer/session-log's exports maps point at dist/ (the published shape
+# artifacts: @stigmer/plugin-package's, @stigmer/tool-vocabulary's,
+# @stigmer/session-log's and @stigmer/examples' exports maps point at dist/ (the published shape
 # every consumer resolves, the site's yarn link included);
 # @stigmer/embed's IIFE loader (copied to public/embed.js by the web build)
 # is a Vite bundle; @stigmer/react-sdk's stylesheet is imported by globals.css
@@ -58,6 +62,7 @@ RUN npm ci && \
     npm run build -w @stigmer/plugin-package && \
     npm run build -w @stigmer/tool-vocabulary && \
     npm run build -w @stigmer/session-log && \
+    npm run build -w @stigmer/examples && \
     npm run build -w @stigmer/embed && \
     npm run build:css -w @stigmer/react-sdk && \
     npm run build -w client-apps/web

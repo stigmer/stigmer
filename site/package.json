@@ -63,6 +63,7 @@
   },
   "resolutions": {
     "@stigmer/eval-runtime": "file:../backend/libs/ts/eval-runtime",
+    "@stigmer/examples": "file:../examples",
     "@stigmer/plugin-package": "file:../backend/libs/ts/plugin-package",
     "@stigmer/react-core": "file:../sdk/react-core",
     "@stigmer/session-log": "file:../backend/libs/ts/session-log",

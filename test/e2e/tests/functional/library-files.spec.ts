@@ -75,9 +75,16 @@ test.describe("The Library's Files page", () => {
       await expect(workbench.getByText(notes)).toBeVisible();
       await expect(workbench.getByText(given)).toHaveCount(0);
 
-      const listed = await stigmerClient.file.list(
-        create(ListFilesRequestSchema, { org, withoutSession: true, pageSize: 100 }),
-      );
+      // The upload button shows each file's name while it is still uploading,
+      // so the server's list is read once it holds both, not at first sight.
+      const listOrg = () =>
+        stigmerClient.file.list(create(ListFilesRequestSchema, { org, withoutSession: true, pageSize: 100 }));
+      await expect
+        .poll(async () => (await listOrg()).entries.filter((f) => f.spec?.filename === ledger || f.spec?.filename === notes).length, {
+          timeout: 15_000,
+        })
+        .toBe(2);
+      const listed = await listOrg();
       for (const file of listed.entries) {
         if (file.spec?.filename === ledger || file.spec?.filename === notes) created.push(file.metadata?.id ?? "");
       }
