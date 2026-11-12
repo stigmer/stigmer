@@ -12,6 +12,15 @@ anything goes. Nothing else is installed: a conversation started with no agent
 runs the built-in assistant, so a fresh install answers its first message at
 once.
 
+Before it calls agents ready, `stigmer up` checks the Anthropic key the runner
+will use with Anthropic (or with the gateway in `ANTHROPIC_BASE_URL`), and the
+card says what it found: `key checked just now`, `key not checked` when
+Anthropic didn't answer, or `not ready  anthropic key rejected`. In a terminal,
+when there's no key or the saved one is rejected, it asks for one first (press
+Enter to skip), so the key you paste reaches the runner in this start. It never
+asks when output isn't a terminal or with `--json` or `--quiet`, and never
+prompts over an exported `ANTHROPIC_API_KEY`.
+
 Use `stigmer up server` to start only the control plane (Temporal and
 `stigmer-server`) when you manage your own runners — for example, the desktop
 app with an embedded runner, your own customer code, or cloud sandboxes.

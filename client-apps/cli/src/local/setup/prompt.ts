@@ -43,25 +43,29 @@ export function promptSecret(question: string): Promise<string> {
       resolve(value);
     };
 
+    // One chunk can hold many keys: a paste, or a terminal driver typing a
+    // whole answer in one write, arrives with its Enter in the same chunk,
+    // so each character is read on its own and the first Enter finishes.
     const onData = (chunk: Buffer): void => {
-      const char = chunk.toString("utf8");
-      switch (char) {
-        case "\n":
-        case "\r":
-        case "\u0004": // Ctrl-D
-          finish();
-          break;
-        case "\u0003": // Ctrl-C
-          stdin.setRawMode(false);
-          process.stderr.write("\n");
-          process.exit(130);
-          break;
-        case "\u007f": // Backspace
-        case "\b":
-          value = value.slice(0, -1);
-          break;
-        default:
-          value += char;
+      for (const char of chunk.toString("utf8")) {
+        switch (char) {
+          case "\n":
+          case "\r":
+          case "\u0004": // Ctrl-D
+            finish();
+            return;
+          case "\u0003": // Ctrl-C
+            stdin.setRawMode(false);
+            process.stderr.write("\n");
+            process.exit(130);
+            return;
+          case "\u007f": // Backspace
+          case "\b":
+            value = value.slice(0, -1);
+            break;
+          default:
+            value += char;
+        }
       }
     };
 

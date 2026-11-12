@@ -4,15 +4,17 @@
  * the line above the composer for a member (who learns an admin connects
  * it) and for a remote server's runners (whoever runs them gives them a
  * key), with the link to Models & providers rather than a connect act; no
- * line for a provider that serves; and neither face for a provider the
- * server did not report, or before the server has judged any model.
+ * line for a provider that serves; neither face for a provider the server
+ * did not report, or before the server has judged any model; and the panel's
+ * lead by who adds the key: the reason Stigmer wants their own key for the
+ * person who adds it, and whose key it is for anyone else.
  */
 import { describe, it, expect, afterEach } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import { ConnectProviderPanel, ModelNeedsProvider } from "../ConnectProvider";
 import type { ModelsHubData } from "../hub/ModelsHub";
 import type { ProviderReadiness } from "../readiness";
-import { ORG_ID } from "./readiness-fixture";
+import { ORG_ID, fakeClient, readinessWrapper, server } from "./readiness-fixture";
 
 afterEach(cleanup);
 
@@ -106,4 +108,53 @@ describe("ConnectProviderPanel", () => {
     expect(container.childElementCount).toBe(0);
     expect(screen.queryByRole("heading", { name: "Connect a model provider to start" })).toBeNull();
   });
+
+  const WHY = "Your agents think with a model. Stigmer uses your own Anthropic key, so you pay Anthropic directly.";
+
+  function renderPanel(report: ProviderReadiness, viewer: ModelsHubData["viewer"]) {
+    render(
+      <ConnectProviderPanel hub={hub([report], { viewer })} harness="stigmer" provider="anthropic" modelName="Claude Sonnet 4.6" />,
+      { wrapper: readinessWrapper(fakeClient(server()).client) },
+    );
+  }
+
+  it("tells the person who adds the key why Stigmer wants their own, on Cloud and on a laptop", () => {
+    renderPanel(ANTHROPIC_MISSING, { canManage: true, local: false });
+    expect(screen.getByText(`${WHY} Once Acme Research has an Anthropic key, you can send your first task.`)).toBeTruthy();
+    cleanup();
+
+    renderPanel({ provider: "anthropic", availability: { state: "missing", scope: "runners" } }, { canManage: false, local: true });
+    expect(screen.getByText(`${WHY} Give this machine's runner a key, and you can send your first task.`)).toBeTruthy();
+  });
+
+  it("holds the lead while the permission is pending, so an admin never reads the member's lead first", () => {
+    render(
+      <ConnectProviderPanel
+        hub={hub([ANTHROPIC_MISSING], { viewer: { canManage: false, local: false }, isLoading: true })}
+        harness="stigmer"
+        provider="anthropic"
+        modelName="Claude Sonnet 4.6"
+      />,
+      { wrapper: readinessWrapper(fakeClient(server()).client) },
+    );
+    expect(screen.queryByText(/runs on Anthropic/)).toBeNull();
+    expect(screen.queryByText(/your own Anthropic key/)).toBeNull();
+  });
+
+  it("names the model and whose key it waits on for a member and a server's user, never their own key", () => {
+    renderPanel(ANTHROPIC_MISSING, { canManage: false, local: false });
+    expect(
+      screen.getByText("Claude Sonnet 4.6 on Stigmer runs on Anthropic. Once Acme Research has an Anthropic key, you can send your first task."),
+    ).toBeTruthy();
+    cleanup();
+
+    renderPanel({ provider: "anthropic", availability: { state: "missing", scope: "runners" } }, { canManage: false, local: false });
+    expect(
+      screen.getByText(
+        "Claude Sonnet 4.6 on Stigmer runs on Anthropic. Once this server's runners have an Anthropic key, you can send your first task.",
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByText(/your own/)).toBeNull();
+  });
 });
+

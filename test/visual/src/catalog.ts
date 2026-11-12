@@ -61,6 +61,8 @@ export type SceneId =
   | "launcher-connect-local"
   | "launcher-first-question"
   | "launcher-example-connect"
+  | "launcher-example-rejected"
+  | "launcher-example-unchecked"
   | "launcher-example-ready"
   | "launcher-describe-own"
   | "model-selector-open"
@@ -567,6 +569,26 @@ export const SCENES: readonly Scene[] = [
     title: "Launcher: an example picked before any key, its agent made and the key step under it",
     widths: ["desktop", "narrow"],
     opens: [{ press: "Variance report", role: "button", exact: true }],
+  },
+  {
+    id: "launcher-example-rejected",
+    title: "Launcher: a key the provider rejects, refused in plain words with the box kept",
+    widths: ["desktop", "narrow"],
+    opens: [
+      { press: "Variance report", role: "button", exact: true },
+      { fill: "Anthropic API key", with: "sk-ant-typo" },
+      { press: "Connect Anthropic", role: "button", exact: true },
+    ],
+  },
+  {
+    id: "launcher-example-unchecked",
+    title: "Launcher: a key saved while the provider did not answer, said once above the composer",
+    widths: ["desktop", "narrow"],
+    opens: [
+      { press: "Variance report", role: "button", exact: true },
+      { fill: "Anthropic API key", with: "sk-ant-quiet" },
+      { press: "Connect Anthropic", role: "button", exact: true },
+    ],
   },
   {
     id: "launcher-example-ready",

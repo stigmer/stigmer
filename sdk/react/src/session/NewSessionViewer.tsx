@@ -19,7 +19,13 @@ import { includesMyVaultByDefault, type SessionAudience } from "./audience.js";
 import type { SessionRunConfig } from "./run-config.js";
 import { AgentHoursNotice, agentHoursUsedUp } from "../billing/AgentHoursNotice.js";
 import { DEFAULT_MODELS_HUB_HREF, ProviderKeyNotice, providerKeyRequired } from "../billing/ProviderKeyNotice.js";
-import { ConnectProviderPanel, connectReason, ModelNeedsProvider } from "../models/ConnectProvider.js";
+import {
+  ConnectProviderPanel,
+  connectReason,
+  keyUnchecked,
+  KeySavedUncheckedNote,
+  ModelNeedsProvider,
+} from "../models/ConnectProvider.js";
 import { useModelsHubData } from "../models/hub/ModelsHub.js";
 import { nothingRuns } from "../models/readiness.js";
 import { useModelRegistry } from "../models/useModelRegistry.js";
@@ -358,6 +364,18 @@ export function NewSessionViewer({
     // drawn and then swapped for the connect step under someone's typing
     // (stigmer#2699). Only the step's own content waits for the permission.
     !isGuest && !hub.readinessLoading && nothingRuns(hub.models) && connectProvider !== undefined && connectProvider !== "";
+  // A key saved on this screen whose check the provider did not answer is
+  // said once, above the composer that comes back; a later visit, or a key
+  // the provider checked, says nothing here (the card keeps saying it).
+  const [keySaved, setKeySaved] = useState<{ readonly org: string; readonly provider: string } | null>(null);
+  const noteKeyUnchecked =
+    keySaved !== null &&
+    keySaved.org === hub.org &&
+    !showConnectPanel &&
+    keyUnchecked(hub, keySaved.provider);
+  const keyUncheckedNote = noteKeyUnchecked ? <KeySavedUncheckedNote provider={keySaved.provider} /> : null;
+  const onKeySaved =
+    connectProvider === undefined ? undefined : () => setKeySaved({ org: hub.org, provider: connectProvider });
   // An end user's launcher pinned to an agent never sends without it
   // (stigmer#2748): Send waits while the pin resolves, and a pin that cannot
   // resolve says so here, where the locked composer's own agent panel is
@@ -568,13 +586,15 @@ export function NewSessionViewer({
               <h1 className="stg:m-0 stg:text-xl stg:font-semibold stg:tracking-tight stg:text-balance stg:text-foreground">
                 {showConnectPanel ? "One more thing before it runs" : choice.example ? "Send it the sample" : "Give it a first job"}
               </h1>
-              <p className="stg:mx-auto stg:mt-1.5 stg:mb-0 stg:max-w-[60ch] stg:text-sm stg:leading-5 stg:text-muted-foreground">
-                {showConnectPanel
-                  ? `${choice.agentName} is ready to go. It needs a model to think with.`
-                  : choice.example
+              {/* While the key step shows, its own lead says why a model is
+                  needed, and the chosen bar below says what was made. */}
+              {!showConnectPanel && (
+                <p className="stg:mx-auto stg:mt-1.5 stg:mb-0 stg:max-w-[60ch] stg:text-sm stg:leading-5 stg:text-muted-foreground">
+                  {choice.example
                     ? `The message is written and the ${choice.example.sampleName} ${choice.example.samples.length > 1 ? "are" : "is"} attached. Send it and watch the agent work.`
                     : "Attach one of your own files and say what you need."}
-              </p>
+                </p>
+              )}
             </div>
             <Suspense fallback={null}>
               <ChosenBar choice={choice} onChange={changeChoice} />
@@ -587,8 +607,11 @@ export function NewSessionViewer({
                 modelName={shownModelName}
                 modelsHubHref={modelsHubHref}
                 showHeading={false}
+                onKeySaved={onKeySaved}
               />
             ) : (
+              <>
+              {keyUncheckedNote}
               <SessionComposer
                 // A new pick mounts a new composer: its agent, files and
                 // message are read once, when it mounts.
@@ -599,6 +622,7 @@ export function NewSessionViewer({
                 initialMessage={choice.message}
                 placeholder={choice.example ? placeholder : "Attach one of your own files and say what you need"}
               />
+              </>
             )}
           </>
         ) : showConnectPanel ? (
@@ -608,12 +632,14 @@ export function NewSessionViewer({
             provider={connectProvider}
             modelName={shownModelName}
             modelsHubHref={modelsHubHref}
+            onKeySaved={onKeySaved}
           />
         ) : (
           <>
           <h1 className="stg:text-center stg:text-lg stg:font-medium stg:text-foreground">
             {heading}
           </h1>
+          {keyUncheckedNote}
           {shownMissing && !hub.isLoading && (
             <ModelNeedsProvider
               hub={hub}

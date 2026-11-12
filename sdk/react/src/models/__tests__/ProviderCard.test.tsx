@@ -5,7 +5,8 @@
  * unlocks no model (no models row); a provider served while the key list
  * cannot be read (it says whose key serves, the parent's unnamed one
  * included); a key on an endpoint that is not a full address (shown as
- * saved); and the check's words for a value newer than this build (none).
+ * saved); the check's words for a value newer than this build (none); and
+ * where to get a key, on every face where the reader adds one and no other.
  */
 import { describe, it, expect, afterEach } from "vitest";
 import { cleanup, render, screen, within } from "@testing-library/react";
@@ -75,4 +76,32 @@ describe("ProviderCard", () => {
     expect(checkWords(ProviderKeyCheck.checked, "Anthropic")).toBe("Checked with Anthropic");
     expect(checkWords(99 as ProviderKeyCheck, "Anthropic")).toBeNull();
   });
+
+  it("says where to get a key to a laptop's owner, beside the setup command", () => {
+    const card = renderCard({
+      report: { provider: "anthropic", availability: { state: "missing", scope: "runners" } },
+      viewer: { canManage: false, local: true },
+    });
+
+    expect(within(card).getByText(/stigmer setup\s+stigmer down && stigmer up/)).toBeTruthy();
+    expect(within(card).getByRole("link", { name: /Get a key at console\.anthropic\.com/ }).getAttribute("href")).toBe(
+      "https://console.anthropic.com/settings/keys",
+    );
+  });
+
+  it("offers no key link to someone who cannot add the key: a member, or a remote server's user", () => {
+    const member = renderCard({
+      report: { provider: "anthropic", availability: { state: "missing", scope: "organization" } },
+      viewer: { canManage: false, local: false },
+    });
+    expect(within(member).queryByRole("link", { name: /Get a key/ })).toBeNull();
+    cleanup();
+
+    const runners = renderCard({
+      report: { provider: "anthropic", availability: { state: "missing", scope: "runners" } },
+      viewer: { canManage: true, local: false },
+    });
+    expect(within(runners).queryByRole("link", { name: /Get a key/ })).toBeNull();
+  });
 });
+

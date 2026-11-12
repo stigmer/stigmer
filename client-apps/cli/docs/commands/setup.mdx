@@ -9,6 +9,14 @@ configuration, preserving every other setting.
 
 Supported providers: `anthropic`, and `skip` to clear the configuration.
 
+Setup checks the key with Anthropic before it saves it. A key Anthropic
+rejects is refused: the interactive prompt says so and asks again (press Enter
+to skip), and `--api-key` exits with code 1 and saves nothing. If Anthropic
+doesn't answer, the key is saved and setup says it wasn't checked. When
+`ANTHROPIC_API_KEY` is exported, setup uses it without asking and says what
+Anthropic made of it. The check only lists models, so it costs nothing; a key
+with no credit still passes, and the first run says so.
+
 You don't pick a model during setup: the platform model registry selects the
 default automatically, so it stays current without CLI updates. To run a
 specific model, pass `--model` to [`stigmer run`](./run) — model choice is a

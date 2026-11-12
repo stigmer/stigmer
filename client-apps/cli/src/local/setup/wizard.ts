@@ -7,7 +7,9 @@
 // Setup saves the one key the Stigmer and Claude engines run the catalog's
 // models on, Anthropic's, so the interactive flow is a single API-key prompt
 // rather than a provider menu, followed by the skippable operator-identity
-// prompt (oss#796). The runner reaches the other providers (OpenAI, and
+// prompt (oss#796). The key prompt is `stigmer up`'s (local/model-key-step.ts):
+// it says why, checks the key with Anthropic, and asks again when Anthropic
+// refuses it; an exported key is checked and its answer said. The runner reaches the other providers (OpenAI, and
 // Anthropic through Vertex, Bedrock, Foundry or a gateway) by settings
 // exported in the shell; local/provider-reach.ts says which it reaches. There
 // is no model concept here at all: the platform model registry owns the
@@ -16,6 +18,8 @@
 
 import type { Config } from "../../config/config.js";
 import { type LlmSettings, setLlm } from "../llm-config.js";
+import { type KeyCheck, checkAnthropicKey } from "../key-check.js";
+import { anthropicKeyTarget, askForKey, ENV_KEY_REJECTED, type KeyStepDeps } from "../model-key-step.js";
 import {
   type OperatorSettings,
   setOperator,
@@ -88,25 +92,48 @@ export function applyOperatorIdentity(config: Config, email: string, name: strin
  * env precedence makes a copy redundant); an empty entry is an explicit skip.
  */
 export async function runInteractiveWizard(config: Config, env: NodeJS.ProcessEnv = process.env): Promise<Config> {
-  process.stderr.write("\nStigmer runs local agents on Anthropic Claude models.\n");
-  process.stderr.write("The model is chosen automatically from the platform model registry.\n\n");
-
-  let updated: Config;
-  if (env.ANTHROPIC_API_KEY) {
-    process.stderr.write("Using ANTHROPIC_API_KEY from environment\n");
-    updated = applyChoice(config, "anthropic");
-  } else {
-    const key = (await promptSecret("Enter your Anthropic API key (press Enter to skip)")).trim();
-    if (key === "") {
-      process.stderr.write("Skipped. Agents won't execute until a provider is configured (stigmer setup).\n");
-      updated = applyChoice(config, "skip");
-    } else {
-      updated = applyChoice(config, "anthropic", { apiKey: key });
-    }
-  }
-
+  const updated = await runKeyStep(config, {
+    env,
+    promptSecret,
+    write: (text) => process.stderr.write(text),
+    check: (key, baseUrl) => checkAnthropicKey(key, baseUrl),
+  });
   return runOperatorIdentityStep(updated, env);
 }
+
+/** What the interactive key step needs: the terminal and the check, which tests replace. */
+export type WizardKeyDeps = Pick<KeyStepDeps, "env" | "promptSecret" | "write" | "check">;
+
+/**
+ * The interactive key step: an exported key is used without prompting (and
+ * never persisted, env precedence makes a copy redundant), checked, and its
+ * answer said; otherwise the shared prompt asks until Anthropic takes a key,
+ * does not answer, or the person presses Enter, which skips.
+ */
+export async function runKeyStep(config: Config, deps: WizardKeyDeps): Promise<Config> {
+  deps.write("\nThe model is chosen automatically from the platform model registry.\n");
+  const exported = deps.env.ANTHROPIC_API_KEY ?? "";
+  if (exported !== "") {
+    const target = anthropicKeyTarget(deps.env);
+    const check: KeyCheck | undefined = target === null ? undefined : await deps.check(exported, target.baseUrl);
+    deps.write(`Using ANTHROPIC_API_KEY from environment${check === undefined ? "" : ENV_CHECK_WORDS[check]}\n`);
+    if (check === "rejected") deps.write(`${ENV_KEY_REJECTED}\n`);
+    return applyChoice(config, "anthropic");
+  }
+  const answer = await askForKey(deps);
+  if (answer === undefined) {
+    deps.write("Skipped. Agents won't execute until a provider is configured (stigmer setup).\n");
+    return applyChoice(config, "skip");
+  }
+  return applyChoice(config, "anthropic", { apiKey: answer.key });
+}
+
+/** What an exported key's check adds to its "Using" line. */
+const ENV_CHECK_WORDS: Readonly<Record<KeyCheck, string>> = {
+  accepted: " (checked with Anthropic just now)",
+  rejected: " (rejected by Anthropic)",
+  unchecked: " (not checked: Anthropic didn't answer)",
+};
 
 /**
  * The operator-identity step (oss#796): opt-in, skippable, and env-aware in

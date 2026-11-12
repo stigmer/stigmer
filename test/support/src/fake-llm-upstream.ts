@@ -15,10 +15,16 @@
 // Provider is decided by PATH, since both base URLs point here:
 //   POST /v1/messages          → Anthropic (SSE when `stream: true`, else JSON)
 //   POST /v1/chat/completions  → OpenAI    (SSE when `stream: true`, else JSON)
-//   GET  /v1/models            → the provider-key check a key save makes
-//                                (an empty model list, 200), never captured:
-//                                it is not a model call, and a suite that
-//                                saves a key must still read an empty log
+//   GET  /v1/models            → the provider-key check a key save makes,
+//                                never captured: it is not a model call, and
+//                                a suite that saves a key must still read an
+//                                empty log. It answers by the key it is sent
+//                                (`x-api-key`, or a bearer token): 401 for
+//                                FAKE_REJECTED_KEY, 503 for
+//                                FAKE_UNANSWERED_KEY, and an empty model list
+//                                (200) for any other key, so a stack on the
+//                                fake can show a check's three answers
+//                                (accepted, rejected, not answered)
 // Anything else answers 404 with a loud body — a lane the suite did not mean
 // to exercise must fail legibly, never consume a queued turn.
 //
@@ -55,6 +61,12 @@ import {
   type AnthropicMessageBody,
   type OpenAiChatCompletionBody,
 } from "./llm-wire.ts";
+
+/** The key the fake's key check refuses (401), as a provider refuses a wrong key. */
+export const FAKE_REJECTED_KEY = "sk-ant-fake-rejected";
+
+/** The key the fake's key check does not answer (503), as a provider that is down. */
+export const FAKE_UNANSWERED_KEY = "sk-ant-fake-unanswered";
 
 /** The text every default reply carries: plainly not a real model's answer. */
 export const DEFAULT_REPLY_TEXT = "This is the Stigmer fake model's default reply; no real model was called.";
@@ -184,7 +196,14 @@ export class FakeLlmUpstream {
     const rawBody = await readBody(req);
     const path = new URL(req.url ?? "/", "http://fake").pathname;
     if (req.method === "GET" && path === "/v1/models") {
-      writeJson(res, 200, { object: "list", data: [] });
+      const key = presentedKey(req);
+      if (key === FAKE_REJECTED_KEY) {
+        writeJson(res, 401, { type: "error", error: { type: "authentication_error", message: "invalid x-api-key" } });
+      } else if (key === FAKE_UNANSWERED_KEY) {
+        writeJson(res, 503, { type: "error", error: { type: "overloaded_error", message: "the fake is not answering key checks for this key" } });
+      } else {
+        writeJson(res, 200, { object: "list", data: [] });
+      }
       return;
     }
     const provider = path === "/v1/messages" ? "anthropic" : path === "/v1/chat/completions" ? "openai" : "unknown";
@@ -316,6 +335,14 @@ function flattenHeaders(req: IncomingMessage): Record<string, string> {
     headers[name] = Array.isArray(value) ? value.join(", ") : value;
   }
   return headers;
+}
+
+/** The key a request presents: Anthropic's `x-api-key`, else an OpenAI-style bearer token. */
+function presentedKey(req: IncomingMessage): string | undefined {
+  const header = req.headers["x-api-key"];
+  if (typeof header === "string" && header !== "") return header;
+  const auth = req.headers.authorization;
+  return auth?.startsWith("Bearer ") === true ? auth.slice("Bearer ".length) : undefined;
 }
 
 export async function readBody(req: IncomingMessage): Promise<string> {

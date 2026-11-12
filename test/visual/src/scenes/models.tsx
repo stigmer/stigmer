@@ -2,8 +2,10 @@
 // each face a provider card takes (an admin with nothing connected, two
 // providers connected, a laptop, a member), the launcher ready and in its
 // connect step for each of those faces, its first question (asked in an
-// organization where nothing has run, and an example picked before and after
-// a key), and the model picker marking the models that cannot run here.
+// organization where nothing has run, an example picked before and after a
+// key, and the key step's two check answers after a save: refused in the
+// check's words, and saved but not checked), and the model picker marking the
+// models that cannot run here.
 //
 // Every scene answers the server's readiness from fixtures.ts, the person's
 // organizations (`modelsRoutes`, which the story's console moment reuses), the key list, the billing permission and the person's
@@ -18,7 +20,12 @@ import { AgentQueryController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/
 import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { FileCommandController } from "@stigmer/apis/ai/stigmer/agentic/file/v1/command_pb";
 import { RunQueryController } from "@stigmer/apis/ai/stigmer/agentic/run/v1/query_pb";
-import type { ProviderKey } from "@stigmer/apis/ai/stigmer/billing/providerkey/v1/api_pb";
+import {
+  ProviderKeyCheck,
+  ProviderKeySchema,
+  type ProviderKey,
+} from "@stigmer/apis/ai/stigmer/billing/providerkey/v1/api_pb";
+import { ProviderKeyCommandController } from "@stigmer/apis/ai/stigmer/billing/providerkey/v1/command_pb";
 import { EnvironmentQueryController } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/query_pb";
 import { VaultQueryController } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/query_pb";
 import { ProviderKeyQueryController } from "@stigmer/apis/ai/stigmer/billing/providerkey/v1/query_pb";
@@ -129,17 +136,48 @@ export function launcherScene(answer: GetModelReadinessOutput, viewer: Viewer, l
   };
 }
 
+/** Stigmer Cloud's words for a key its provider refuses (its provider-key save's refusal). */
+export const KEY_REJECTED_WORDS = "Anthropic rejected this key. Check that it is a valid, active API key and try again.";
+
+/**
+ * How the scene's server answers a key save: refused as Cloud refuses a key
+ * the provider rejects, or saved without the provider answering the check
+ * (readiness then serves, and the key list holds the unchecked key).
+ */
+export type KeySave = "rejected" | "unchecked";
+
 /**
  * The launcher as the console draws it for a newcomer: the first question,
  * in an organization where nothing has run, for an admin. A pick makes the
  * example's agent (the create answers it as made), the composer reads that
- * agent back by its name, and the sample uploads.
+ * agent back by its name, and the sample uploads. `keySave` says how a key
+ * saved in the key step is answered.
  */
-export function launcherFirstQuestionScene(answer: GetModelReadinessOutput): Drawing {
+export function launcherFirstQuestionScene(answer: GetModelReadinessOutput, keySave?: KeySave): Drawing {
   return {
     inOrganization: true,
     routes: (router: ConnectRouter) => {
       launcherRoutes(answer, "admin")(router);
+      if (keySave !== undefined) {
+        let current = answer;
+        let keys: ProviderKey[] = [];
+        router.service(PlatformQueryController, { getModelReadiness: () => current, getServerInfo: () => ({}) });
+        router.service(ProviderKeyQueryController, { list: () => ({ entries: keys, nextPageToken: "" }) });
+        router.service(ProviderKeyCommandController, {
+          set: (input) => {
+            if (keySave === "rejected") throw new ConnectError(KEY_REJECTED_WORDS, Code.InvalidArgument);
+            const saved = create(ProviderKeySchema, {
+              org: ORG_ID,
+              provider: input.provider,
+              keyHint: input.apiKey.slice(-4),
+              check: ProviderKeyCheck.unchecked,
+            });
+            keys = [saved];
+            current = ANTHROPIC_ONLY;
+            return saved;
+          },
+        });
+      }
       router.service(RunQueryController, { getRunSummary: () => NO_RUNS });
       const made = (name: string, slug: string) =>
         create(AgentSchema, { metadata: { id: `agt_${slug}`, org: ORG_ID, name, slug }, spec: { description: "", instructions: "" } });

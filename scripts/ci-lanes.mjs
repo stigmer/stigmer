@@ -223,6 +223,9 @@ export const LANES = {
       // the manifests, samples and catalogue are its script.
       "test/install/smoke-examples.mjs",
       "examples/**",
+      // The model key's check and prompt on `stigmer up` and `stigmer setup`
+      // (test/install/smoke-up-key.mjs), on and off a terminal.
+      "test/install/smoke-up-key.mjs",
       "sdk/typescript/src/**",
       "sdk/typescript/package.json",
       "scripts/publish-libs.mjs",

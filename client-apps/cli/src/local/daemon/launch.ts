@@ -332,11 +332,12 @@ function stigmerPortHolder(port: number): number | null {
 }
 
 // Refuse to start beside a stack that is running, still starting or still
-// stopping: the daemon on record is alive. Nothing is touched; `down` is the
+// stopping: the daemon on record is alive. `stigmer up` also calls it before
+// asking for a model key on a terminal, so it never asks, then refuses. Nothing is touched; `down` is the
 // one way to stop it. A recorded PID that is dead, our own, or names another
 // program now is a leftover, never a stack: its record is dropped here, so the
 // sweep after (cleanupOrphans) neither re-reads nor re-reports it.
-function refuseRunningStack(data: string): void {
+export function refuseRunningStack(data: string): void {
   const pidPath = join(data, DAEMON_PID_FILE);
   const pid = recordedLiveProcess(pidPath);
   if (pid === null) {

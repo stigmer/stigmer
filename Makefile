@@ -605,6 +605,18 @@ smoke-examples-live: build-runner build-server build-web ## Run every example un
 	@cd $(SERVER_DIR) && node scripts/bundle-slim.mjs
 	node test/install/smoke-examples.mjs --live-model
 
+# The model key on `stigmer up` and `stigmer setup` from source: a rejected
+# key refused by setup's flag, asked again on a terminal and carried to the
+# runner with no restart, said on the card off a terminal, a key the provider
+# does not answer for said not checked, and Enter skipping the prompt
+# (test/install/smoke-up-key.mjs). The fake model refuses and ignores marked keys.
+.PHONY: smoke-up-key
+smoke-up-key: build-runner build-server build-web ## Check the model key at stigmer up and stigmer setup from source, the fake model refusing a marked key: refused, asked again, said on the card
+	@command -v node >/dev/null 2>&1 || { echo "error: node not found"; exit 1; }
+	@command -v python3 >/dev/null 2>&1 || { echo "error: python3 not found (the smoke types at a pseudo-terminal)"; exit 1; }
+	@cd $(SERVER_DIR) && node scripts/bundle-slim.mjs
+	node test/install/smoke-up-key.mjs
+
 # The Go, Python and Java quick starts run as a developer runs them, on the
 # same source CLI and slim server as the smokes above: each must print the
 # agent's answer (test/install/smoke-sdk-quickstarts.mjs). Needs go, python3,

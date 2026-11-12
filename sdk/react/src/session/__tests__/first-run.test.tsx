@@ -15,6 +15,7 @@ import { describe, it, expect, vi, afterEach, beforeAll } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { useState } from "react";
 import type { ResourceRef } from "@stigmer/client";
+import { ProviderKeyCheck } from "@stigmer/apis/ai/stigmer/billing/providerkey/v1/api_pb";
 import type { SessionComposerProps } from "../../composer";
 import { conversationOf, scenarios } from "../../test";
 import { MessageThread } from "../../run/MessageThread";
@@ -129,9 +130,32 @@ describe("CON-02 a new person is led from sign-in to a provider key and a first 
     expect(screen.getByRole("heading", { level: 1, name: "What would you like to work on?" })).toBeTruthy();
     expect(send).toHaveProperty("disabled", false);
 
+    // The key was checked, so nothing more is said about it.
+    expect(screen.queryByText(/saved but not checked/)).toBeNull();
+
     // The first message starts a conversation, and its answer streams in.
     fireEvent.click(send);
     expect(await screen.findByText("Invoices are off by a cent. Can you fix the rounding?")).toBeTruthy();
     expect(await screen.findByText(/Looking at how invoices are totalled/)).toBeTruthy();
+  });
+
+  it("says above the composer that a key the provider did not answer for is saved but not checked", async () => {
+    const fake = server();
+    const calls = fakeClient(fake);
+    calls.setKey.mockImplementation(async (input: { provider: string }) => {
+      fake.readiness = ANTHROPIC_CONNECTED;
+      fake.keys = [storedKey(input.provider, { check: ProviderKeyCheck.unchecked })];
+      return storedKey(input.provider, { check: ProviderKeyCheck.unchecked });
+    });
+    render(<FirstRun />, { wrapper: readinessWrapper(calls.client) });
+
+    const card = await screen.findByRole("article", { name: "Anthropic" });
+    fireEvent.change(await within(card).findByLabelText("Anthropic API key"), { target: { value: "sk-ant-quiet" } });
+    fireEvent.click(within(card).getByRole("button", { name: "Connect Anthropic" }));
+
+    expect(await screen.findByRole("button", { name: "Send message" })).toHaveProperty("disabled", false);
+    expect(
+      (await screen.findByRole("status")).textContent,
+    ).toBe("Anthropic didn't answer, so the key is saved but not checked. You can send now; if the key doesn't work, the run stops and says why.");
   });
 });

@@ -152,6 +152,7 @@ composer comes back with Send enabled.
     hub: { type: "ModelsHubData", description: "The hub's data for the launcher's organization, from `useModelsHubData`.", required: true, typeDescriptionLink: "#modelshubdata" },
     modelName: { type: "string", description: "The chosen model's name, as the picker shows it.", required: true },
     modelsHubHref: { type: "string", description: "Where Models & providers is, in the host's routing. Defaults to DEFAULT_MODELS_HUB_HREF." },
+    onKeySaved: { type: "() => void", description: "Called after this panel's card saves a key, beside the refresh, so the launcher can say once what the save's check found." },
     provider: { type: "string", description: "The provider to connect: the one the chosen model needs.", required: true },
     showHeading: { type: "boolean", description: "Whether the panel draws its own heading. A screen that already says what comes next above it (the launcher's chosen example) passes `false`, and the panel opens on its lead sentence." },
   }}

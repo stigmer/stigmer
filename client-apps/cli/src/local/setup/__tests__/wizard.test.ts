@@ -1,5 +1,13 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Config } from "../../../config/config.js";
+
+const checks = vi.hoisted(() => [] as Array<{ key: string; baseUrl: string }>);
+vi.mock("../../key-check.js", () => ({
+  checkAnthropicKey: async (key: string, baseUrl: string) => {
+    checks.push({ key, baseUrl });
+    return "accepted" as const;
+  },
+}));
 import { readLlm } from "../../llm-config.js";
 import { readOperator } from "../../operator-config.js";
 import {
@@ -8,7 +16,12 @@ import {
   applyOperatorIdentity,
   buildLlmForChoice,
   buildOperatorForInputs,
+  runInteractiveWizard,
+  runKeyStep,
+  type WizardKeyDeps,
 } from "../wizard.js";
+import type { KeyCheck } from "../../key-check.js";
+import { ENV_KEY_REJECTED } from "../../model-key-step.js";
 
 function config(local?: unknown): Config {
   return { backend: { local } };
@@ -92,3 +105,73 @@ describe("applyOperatorIdentity", () => {
     expect(readOperator(updated)).toEqual({ email: "keep@example.com" });
   });
 });
+
+// stigmer setup's key prompt is stigmer up's: it says why, checks the key with
+// Anthropic, asks again on a rejection; an exported key is checked and said.
+describe("CLI-17 stigmer setup checks the key with Anthropic and asks again when it is rejected", () => {
+  function deps(env: NodeJS.ProcessEnv, answers: string[], checks: Record<string, KeyCheck>): WizardKeyDeps & { said: () => string } {
+    let said = "";
+    return {
+      env,
+      promptSecret: async () => answers.shift() ?? "",
+      write: (text) => {
+        said += text;
+      },
+      check: async (key) => checks[key] ?? "accepted",
+      said: () => said,
+    };
+  }
+
+  it("asks again after a rejected key and saves the one Anthropic takes", async () => {
+    const d = deps({}, ["sk-ant-typo", "sk-ant-right"], { "sk-ant-typo": "rejected" });
+    const updated = await runKeyStep(config({}), d);
+    expect(readLlm(updated)).toEqual({ provider: "anthropic", api_key: "sk-ant-right" });
+    expect(d.said()).toContain("Anthropic rejected this key.");
+    expect(d.said()).toContain("Stigmer uses your own Anthropic key");
+  });
+
+  it("says what Anthropic made of an exported key, and what to do when it was rejected", async () => {
+    const good = deps({ ANTHROPIC_API_KEY: "sk-ant-env" }, [], {});
+    expect(readLlm(await runKeyStep(config({}), good))).toEqual({ provider: "anthropic" });
+    expect(good.said()).toContain("Using ANTHROPIC_API_KEY from environment (checked with Anthropic just now)");
+
+    const bad = deps({ ANTHROPIC_API_KEY: "sk-ant-env" }, [], { "sk-ant-env": "rejected" });
+    await runKeyStep(config({}), bad);
+    expect(bad.said()).toContain("Using ANTHROPIC_API_KEY from environment (rejected by Anthropic)");
+    expect(bad.said()).toContain(ENV_KEY_REJECTED);
+  });
+
+  it("clears the section on Enter", async () => {
+    const d = deps({}, [""], {});
+    expect(readLlm(await runKeyStep(config({ llm: { provider: "anthropic" } }), d))).toBeUndefined();
+  });
+
+  it("asks nothing of Anthropic for a key bound for a cloud backend: it is saved, not checked here", async () => {
+    const d = deps({ STIGMER_ANTHROPIC_BACKEND: "vertex", CLOUD_ML_REGION: "us-east5" }, ["sk-ant-any"], {});
+    expect(readLlm(await runKeyStep(config({}), d))).toEqual({ provider: "anthropic", api_key: "sk-ant-any" });
+    expect(d.said()).not.toContain("Checking with Anthropic");
+  });
+});
+
+describe("runInteractiveWizard", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    checks.length = 0;
+  });
+
+  it("checks an exported key with Anthropic on the terminal's behalf, and asks nothing the shell already says", async () => {
+    let said = "";
+    vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
+      said += String(chunk);
+      return true;
+    });
+    const updated = await runInteractiveWizard(config({}), {
+      ANTHROPIC_API_KEY: "sk-ant-env",
+      STIGMER_OPERATOR_EMAIL: "ada@example.com",
+    });
+    expect(readLlm(updated)).toEqual({ provider: "anthropic" });
+    expect(checks).toEqual([{ key: "sk-ant-env", baseUrl: "" }]);
+    expect(said).toContain("Using ANTHROPIC_API_KEY from environment (checked with Anthropic just now)");
+  });
+});
+
