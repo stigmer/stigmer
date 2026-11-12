@@ -1193,7 +1193,7 @@ interface Ending {
   readonly midPlan?: boolean;
 }
 
-const ENDING_MODEL = "claude-sonnet-4-6";
+const ENDING_MODEL = "claude-sonnet-4.6";
 const ENDING_APP = "issue-tracker";
 const MODEL_LABEL = `model "${ENDING_MODEL}" (Anthropic)`;
 

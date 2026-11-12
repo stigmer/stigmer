@@ -420,7 +420,7 @@ describe("the ending turns", () => {
     expect(status("fail-key-rejected")).toMatchObject({
       phase: "failed",
       stopCause: "model_error",
-      stopDetail: { kind: "provider_key_rejected", model: "claude-sonnet-4-6", app: "" },
+      stopDetail: { kind: "provider_key_rejected", model: "claude-sonnet-4.6", app: "" },
     });
     expect(status("fail-app-unreachable")).toMatchObject({ stopCause: "failed", stopDetail: { kind: "app_unreachable", model: "", app: "issue-tracker" } });
     expect(status("fail-cost-cap")).toMatchObject({ phase: "terminated", stopCause: "budget_reached", stopDetail: { kind: "cost_cap" } });
