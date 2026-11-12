@@ -32,7 +32,6 @@ import { useModelRegistry } from "../models/useModelRegistry.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
 import { useFirstQuestionGate } from "./first-question/useFirstQuestionGate.js";
 import type { SessionLaunch } from "./launch.js";
-import { JourneyLauncherLine } from "../journey/JourneyNextLine.js";
 import type { JourneyLinks } from "../journey/links.js";
 import { useStartFromExample, type FirstChoice } from "./first-question/useStartFromExample.js";
 // The first question and its chosen bar, with the example list they carry,
@@ -40,6 +39,9 @@ import { useStartFromExample, type FirstChoice } from "./first-question/useStart
 // downloads them.
 const FirstQuestion = lazy(() => import("./first-question/FirstQuestion.js").then((m) => ({ default: m.FirstQuestion })));
 const ChosenBar = lazy(() => import("./first-question/FirstQuestion.js").then((m) => ({ default: m.ChosenBar })));
+// The journey's next line, and the reads behind it, load only for a host that
+// passes `journeyLinks`: an embed never downloads them.
+const JourneyLauncherLine = lazy(() => import("../journey/JourneyNextLine.js").then((m) => ({ default: m.JourneyLauncherLine })));
 
 /** What an end user reads when the agent their launcher is pinned to cannot be found. */
 const PIN_UNAVAILABLE = "This agent isn't available. It may have been renamed or removed.";
@@ -680,7 +682,9 @@ export function NewSessionViewer({
           </h1>
           {/* Close under the heading it continues; the column's gap would set it apart. */}
           {journeyLinks !== undefined && (
-            <JourneyLauncherLine org={org} links={journeyLinks} enabled={namesNextStep} className="stg:-mt-4" />
+            <Suspense fallback={null}>
+              <JourneyLauncherLine org={org} links={journeyLinks} enabled={namesNextStep} className="stg:-mt-4" />
+            </Suspense>
           )}
           {keyUncheckedNote}
           {shownMissing && !hub.isLoading && (

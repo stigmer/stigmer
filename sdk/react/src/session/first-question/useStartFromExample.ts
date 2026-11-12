@@ -20,7 +20,7 @@ import { StigmerError, getUserMessage } from "@stigmer/client";
 import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import type { Example } from "@stigmer/examples";
 import { useStigmer } from "@stigmer/react-core";
-import { OWN_AGENT_TRIES, ownAgentSlug } from "../../journey/journey-agents.js";
+import { OWN_AGENT_TRIES, ownAgentSlug } from "../../journey/own-agent.js";
 
 export { OWN_AGENT_TRIES };
 

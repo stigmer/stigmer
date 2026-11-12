@@ -173,9 +173,10 @@ export const EXAMPLES: readonly Example[] = [
 ];
 
 /**
- * Every example's agent slug, in the catalogue's order: a reader that only
- * asks "is this an example's agent?" imports this, and a bundler leaves
- * EXAMPLES, with its inlined samples, out of its download.
+ * Every example's agent slug, in the catalogue's order, for a reader that
+ * only asks "is this an example's agent?". It sits in the same module as
+ * EXAMPLES, so a bundle that imports it may still carry the samples: keep
+ * it out of a first download that must stay light.
  */
 export const EXAMPLE_AGENT_SLUGS: readonly string[] = ["variance-reporter","ticket-replier","contract-reviewer","invoice-matcher"];
 

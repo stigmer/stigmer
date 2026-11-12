@@ -12,7 +12,7 @@
  * (its own suite is the journey's).
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { act, render, screen, cleanup } from "@testing-library/react";
+import { act, render, screen, cleanup, waitFor } from "@testing-library/react";
 import { useEffect, useState } from "react";
 import type { ResourceRef } from "@stigmer/client";
 
@@ -227,17 +227,19 @@ describe("NewSessionViewer launch", () => {
 });
 
 describe("NewSessionViewer journey line", () => {
-  it("names the journey's next step under the heading once the first state is over", () => {
+  it("names the journey's next step under the heading once the first state is over", async () => {
     render(<NewSessionViewer org="acme" onSessionCreated={vi.fn()} firstQuestion journeyLinks={LINKS} />);
 
+    // The line loads on demand, for a host that passes the journey's links.
+    const line = await screen.findByTestId("next-line");
     expect(lineAsked.at(-1)).toBe(true);
     const heading = screen.getByRole("heading", { level: 1 });
-    const line = screen.getByTestId("next-line");
     expect(heading.compareDocumentPosition(line) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it("asks nothing while a launch sends the person somewhere, or without the first question", () => {
+  it("asks nothing while a launch sends the person somewhere, or without the first question", async () => {
     const { unmount } = render(<NewSessionViewer org="acme" onSessionCreated={vi.fn()} firstQuestion journeyLinks={LINKS} launch={OWN} />);
+    await waitFor(() => expect(lineAsked.length).toBeGreaterThan(0));
     expect(lineAsked.every((asked) => !asked)).toBe(true);
     unmount();
 
