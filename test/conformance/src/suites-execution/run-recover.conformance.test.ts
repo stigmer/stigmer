@@ -37,6 +37,7 @@ import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText } from "@stigmer/test-support/mock-llm";
 import { type AgentRefInit, agentRefOf, makeAgent } from "../support/agents";
 import { awaitPhase, makeAgentExecution, requireLlmProxy, sessionIdOf } from "../support/runs";
+import { turnOfRun } from "../support/turn";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
 
@@ -94,6 +95,8 @@ describe("Run recover — happy path", () => {
 
     const failed = await awaitPhase(clients, executionId, RunPhase.RUN_FAILED);
     expect(failed.status?.error, "a FAILED execution carries an error message").toBeTruthy();
+    expect(failed.status?.stopCause, "the provider's refusal is the model's failure").toBe("model_error");
+    expect(failed.status?.stopDetail?.kind, "a request the provider refused").toBe("request_rejected");
     expect(mock.consumed(), "the failure turn should be consumed").toBe(1);
     expect(mock.remaining(), "the recovery turn should still be queued").toBe(1);
 
@@ -102,6 +105,13 @@ describe("Run recover — happy path", () => {
       recovered.status?.phase,
       `recover should move the execution out of FAILED; got ${RunPhase[recovered.status?.phase ?? 0]}`,
     ).not.toBe(RunPhase.RUN_FAILED);
+    // The recovered turn works again, so it carries no ending: not on the
+    // run the recover answers, and not on the session's view of the turn.
+    expect(recovered.status?.stopCause, "recover clears the failure's cause at once").toBe("");
+    expect(recovered.status?.stopDetail, "recover clears the failure's kind at once").toBeUndefined();
+    const reopened = await turnOfRun(clients, recovered);
+    expect(reopened.ended, "the session reopens the same turn").toBe(false);
+    expect(reopened.status?.stopDetail, "the reopened turn shows no old ending").toBeUndefined();
 
     const running = await awaitPhase(clients, executionId, RunPhase.RUN_IN_PROGRESS);
     expect(running.status?.error, "recover clears the prior failure's error").toBeFalsy();

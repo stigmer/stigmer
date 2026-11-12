@@ -60,8 +60,18 @@ function result(runId: string, call: string, output: string, extra: { isError?: 
     ? ev(runId, { case: "agentMcpToolResult", value: { id: `${useId}.r`, mcpToolUseId: useId, content: text(output), isError: extra.isError ?? false, processedAt: "tr" } }, extra.threadId ?? "")
     : ev(runId, { case: "agentToolResult", value: { id: `${useId}.r`, toolUseId: useId, content: text(output), isError: extra.isError ?? false, processedAt: "tr" } }, extra.threadId ?? "");
 }
-function phase(runId: string, word: string, extra: { stopCause?: string; error?: string } = {}): SessionEvent {
-  return ev(runId, { case: "stigmerRunStatus", value: { id: `${runId}.status.${word}.${seq}`, phase: word, stopCause: extra.stopCause ?? "", error: extra.error ?? "", processedAt: "ts" } });
+function phase(runId: string, word: string, extra: { stopCause?: string; error?: string; stopDetail?: { kind: string; model?: string; app?: string } } = {}): SessionEvent {
+  return ev(runId, {
+    case: "stigmerRunStatus",
+    value: {
+      id: `${runId}.status.${word}.${seq}`,
+      phase: word,
+      stopCause: extra.stopCause ?? "",
+      error: extra.error ?? "",
+      processedAt: "ts",
+      ...(extra.stopDetail !== undefined ? { stopDetail: extra.stopDetail } : {}),
+    },
+  });
 }
 function frame(init: MessageInitShape<typeof StreamSessionEventsResponseSchema>["frame"]): StreamSessionEventsResponse {
   return create(StreamSessionEventsResponseSchema, { frame: init });
@@ -110,6 +120,22 @@ describe("turns", () => {
       ["unknown_error", "boom"],
       ["unknown_error", "late"],
     ]);
+  });
+
+  it("an ended turn carries its stop detail; a recovered turn drops it with its newest status", () => {
+    const fold = foldSession([
+      user(R, "go"),
+      phase(R, "failed", { stopCause: "model_error", error: "refused", stopDetail: { kind: "provider_key_rejected", model: "claude-sonnet-4-6" } }),
+    ]);
+    expect(fold.turns[0]!.status?.stopDetail).toEqual({ kind: "provider_key_rejected", model: "claude-sonnet-4-6", app: "" });
+    const recovered = foldSession([
+      user(R, "go"),
+      phase(R, "failed", { stopCause: "model_error", stopDetail: { kind: "provider_overloaded" } }),
+      phase(R, "running"),
+    ]);
+    expect(recovered.turns[0]!.ended).toBe(false);
+    expect(recovered.turns[0]!.status?.stopDetail).toBeUndefined();
+    expect(foldSession([user(R, "go"), phase(R, "cancelled", { stopCause: "user" })]).turns[0]!.status).not.toHaveProperty("stopDetail");
   });
 
   it("an error with no run and no turn yet is dropped; an event holding nothing is skipped", () => {
