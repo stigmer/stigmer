@@ -144,7 +144,7 @@ describe("useJourney", () => {
     expect(result.current.steps.slice(0, 3).map((step) => step.line)).toEqual([
       "Variance Reporter is made",
       "Anthropic is connected",
-      "It ran and handed back its work",
+      "It ran its first job",
     ]);
     expect(result.current.current?.id).toBe("make-yours");
     expect(result.current.agent).toEqual({ ref: { org: "org_acme", slug: "variance-reporter" }, name: "Variance Reporter" });
@@ -170,6 +170,16 @@ describe("useJourney", () => {
     expect(result.current.done).toBe(4);
     expect(result.current.current?.id).toBe("in-app");
     expect(result.current.agent?.name).toBe("Variance Reporter");
+  });
+
+  it("counts the key step done once something has run, though no provider reads as serving (a key in the runners' environment)", async () => {
+    listed = [{ slug: "variance-reporter", name: "Variance Reporter", versions: 1 }];
+    state.ran = true;
+    const { result } = renderJourney();
+
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    expect(result.current.steps[1]).toMatchObject({ state: "done", line: "A model answered its first job" });
+    expect(result.current.current?.id).toBe("make-yours");
   });
 
   it("never ticks Make it yours for an agent the journey did not make, however many versions it has", async () => {

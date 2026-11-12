@@ -675,12 +675,13 @@ export function NewSessionViewer({
           />
         ) : (
           <>
-          <div className="stg:space-y-1.5">
-            <h1 className="stg:text-center stg:text-lg stg:font-medium stg:text-foreground">
-              {activeLaunch?.heading ?? heading}
-            </h1>
-            {journeyLinks !== undefined && <JourneyLauncherLine org={org} links={journeyLinks} enabled={namesNextStep} />}
-          </div>
+          <h1 className="stg:text-center stg:text-lg stg:font-medium stg:text-foreground">
+            {activeLaunch?.heading ?? heading}
+          </h1>
+          {/* Close under the heading it continues; the column's gap would set it apart. */}
+          {journeyLinks !== undefined && (
+            <JourneyLauncherLine org={org} links={journeyLinks} enabled={namesNextStep} className="stg:-mt-4" />
+          )}
           {keyUncheckedNote}
           {shownMissing && !hub.isLoading && (
             <ModelNeedsProvider

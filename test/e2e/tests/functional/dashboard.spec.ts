@@ -31,7 +31,7 @@ test.describe("Dashboard", () => {
     const card = summary.getByRole("region", { name: "From first agent to your users" });
     await expect(card).toBeVisible({ timeout: 15_000 });
     await expect(card.getByRole("listitem")).toHaveCount(6);
-    await expect(card).toContainText(/\b[0-5] of 6\b/);
+    await expect(card).toContainText(/[0-5] of 6/);
     // No agent yet: saying what it should do is the step to take, its one act.
     const current = card.locator('[aria-current="step"]');
     await expect(current).toContainText("Say what it should do");

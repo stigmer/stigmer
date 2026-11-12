@@ -18,6 +18,7 @@
 // drawn and then taken back.
 
 import { Check } from "lucide-react";
+import { cn } from "@stigmer/design-tokens";
 import type { ResourceRef } from "@stigmer/client";
 import { isJourneyAgentSlug } from "./journey-agents.js";
 import { useJourney, type JourneyStepId, type UseJourneyReturn } from "./useJourney.js";
@@ -79,6 +80,7 @@ export interface JourneyLauncherLineProps {
   readonly links: JourneyLinks;
   /** Whether to read the journey at all; the launcher asks only once its first state has ended. */
   readonly enabled: boolean;
+  readonly className?: string;
 }
 
 /** The step a launcher line names, in words and with its destination, or undefined to say nothing. */
@@ -96,7 +98,7 @@ function nextOf(journey: UseJourneyReturn, links: JourneyLinks): { readonly word
 }
 
 /** One quiet line under the launcher's heading naming the journey's next step, from "Make it yours" on. */
-export function JourneyLauncherLine({ org, links, enabled }: JourneyLauncherLineProps) {
+export function JourneyLauncherLine({ org, links, enabled, className }: JourneyLauncherLineProps) {
   const journey = useJourney(org, { enabled });
   const next = enabled ? nextOf(journey, links) : undefined;
   if (next === undefined) return null;
@@ -105,7 +107,7 @@ export function JourneyLauncherLine({ org, links, enabled }: JourneyLauncherLine
     <div
       role="status"
       data-stgm-journey-launcher=""
-      className="stg:flex stg:items-center stg:justify-center stg:gap-1.5 stg:text-xs stg:text-muted-foreground"
+      className={cn("stg:flex stg:items-center stg:justify-center stg:gap-1.5 stg:text-xs stg:text-muted-foreground", className)}
     >
       <span>Next:</span>
       {render({

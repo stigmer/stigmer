@@ -72,10 +72,10 @@ export interface MakeItYoursTabProps {
   readonly onOpenVersions: () => void;
 }
 
-const PRIMARY =
-  "stg:inline-flex stg:items-center stg:rounded-md stg:bg-primary stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium stg:text-primary-foreground stg:no-underline stg:hover:bg-primary-hover stg:disabled:pointer-events-none stg:disabled:opacity-50";
+// Every act here is outlined: the page's one filled action is its header's
+// Start session.
 const OUTLINE =
-  "stg:inline-flex stg:items-center stg:rounded-md stg:border stg:border-border stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium stg:text-foreground stg:no-underline stg:hover:bg-accent-hover";
+  "stg:inline-flex stg:items-center stg:rounded-md stg:border stg:border-border stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium stg:text-foreground stg:no-underline stg:hover:bg-accent-hover stg:disabled:pointer-events-none stg:disabled:opacity-50";
 
 /** The example whose agent this is, or undefined for an agent described in the person's own words. */
 function exampleOf(slug: string): Example | undefined {
@@ -126,7 +126,7 @@ export function MakeItYoursTab({ agent, links, saveField, isSaving, saveError, o
                 <span role="status" className="stg:text-sm stg:font-medium stg:text-foreground">
                   Saved as a new version.
                 </span>
-                {render({ href: rerun.href, className: PRIMARY, children: rerun.words })}
+                {render({ href: rerun.href, className: OUTLINE, children: rerun.words })}
               </>
             )}
             <span className="stg:text-xs stg:text-muted-foreground">
@@ -153,7 +153,7 @@ export function MakeItYoursTab({ agent, links, saveField, isSaving, saveError, o
           <span className="stg:min-w-[12rem] stg:flex-1 stg:text-sm stg:text-muted-foreground">
             When it does the job your way, put it where your users are.
           </span>
-          {render({ href: links.putInApp(ref), className: PRIMARY, children: "Put it in your app" })}
+          {render({ href: links.putInApp(ref), className: OUTLINE, children: "Put it in your app" })}
         </div>
       )}
     </div>
@@ -262,7 +262,7 @@ function SkillCard({
             <p className="stg:m-0 stg:text-sm stg:text-muted-foreground">An admin of this organization adds skills.</p>
           ) : (
             <div className="stg:mt-auto">
-              <button type="button" className={PRIMARY} onClick={() => void add(skill)} disabled={!ready || adding || isSaving}>
+              <button type="button" className={OUTLINE} onClick={() => void add(skill)} disabled={!ready || adding || isSaving}>
                 {adding ? "Adding…" : "Add it"}
               </button>
             </div>

@@ -6,7 +6,11 @@
 // this one hook, so the three never disagree.
 //
 //   1 Say what it should do  an agent exists (the server's agent list)
-//   2 Add a model key        a provider serves a model (`useModelReadiness`)
+//   2 Add a model key        a provider serves a model (`useModelReadiness`),
+//                            or something has run: a run that ran had a
+//                            model, whatever readiness can attribute (a key
+//                            in the runners' own environment reads as
+//                            unknown, not served)
 //   3 Watch it work          something has run (`useEverRan`)
 //   4 Make it yours          a journey agent has a second version: its
 //                            instructions changed, or a skill was added
@@ -180,8 +184,8 @@ export function useJourney(org: string | null | undefined, options: { readonly e
     const agent = known.changed ?? known.newest;
     const facts: Record<JourneyStepId, string | undefined> = {
       describe: known.hasAgent ? (agent ? `${agent.name} is made` : "Your first agent is made") : undefined,
-      key: served !== undefined ? `${presentationOf(served).name} is connected` : undefined,
-      watch: ever.ran ? "It ran and handed back its work" : undefined,
+      key: served !== undefined ? `${presentationOf(served).name} is connected` : ever.ran ? "A model answered its first job" : undefined,
+      watch: ever.ran ? "It ran its first job" : undefined,
       "make-yours": known.changed ? `${known.changed.name} has your changes` : undefined,
       "in-app": undefined,
       others: undefined,

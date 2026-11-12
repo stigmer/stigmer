@@ -198,7 +198,7 @@ const ALL_DONE: UseJourneyReturn = (() => {
   const lines: readonly (readonly [JourneyStep["id"], string, string])[] = [
     ["describe", "Say what it should do", "Variance Reporter is made"],
     ["key", "Add a model key", "Anthropic is connected"],
-    ["watch", "Watch it work", "It ran and handed back its work"],
+    ["watch", "Watch it work", "It ran its first job"],
     ["make-yours", "Make it yours", "Variance Reporter has your changes"],
     ["in-app", "Put it in your app", "Its chat is in your app"],
     ["others", "Bring others in", "Your team is here"],

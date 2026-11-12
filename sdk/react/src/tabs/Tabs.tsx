@@ -124,7 +124,10 @@ export function Tabs({
         role="tablist"
         aria-label={ariaLabel}
         onKeyDown={handleKeyDown}
-        className="stg:flex stg:border-b stg:border-border"
+        // A bar wider than its column scrolls sideways (its scrollbar hidden;
+        // the cut-off tab says there is more) rather than squeezing a
+        // label onto several lines.
+        className="stg:flex stg:overflow-x-auto stg:border-b stg:border-border stg:[scrollbar-width:none]"
       >
         {tabs.map((tab) => {
           const isActive = tab.id === activeTab;
@@ -144,7 +147,7 @@ export function Tabs({
               onClick={() => onTabChange(tab.id)}
               data-cursor-target={`tab-${tab.id}`}
               className={cn(
-                "stg:relative stg:inline-flex stg:items-center stg:gap-1.5 stg:px-3 stg:py-2 stg:text-xs stg:font-medium stg:transition-colors",
+                "stg:relative stg:inline-flex stg:shrink-0 stg:items-center stg:gap-1.5 stg:whitespace-nowrap stg:px-3 stg:py-2 stg:text-xs stg:font-medium stg:transition-colors",
                 "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:focus-visible:ring-offset-1",
                 isActive
                   ? "stg:text-foreground"
