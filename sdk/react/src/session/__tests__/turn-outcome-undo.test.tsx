@@ -181,6 +181,24 @@ describe("KIT-14 a turn's changed and made files appear once, and only someone w
     expect(onOpenChange).toHaveBeenCalledTimes(1);
   });
 
+  it("says nothing on a kept file, and offers it no Undo", () => {
+    const files = [reviewFile("f1", "src/billing/invoice.ts", { state: "kept" }), reviewFile("f2", "src/billing/rounding.ts")];
+    render(<TurnOutcome outcome={turnOutcome(turnWith(files), [], undefined)} undo={undoProps()} />);
+    expect(screen.queryByRole("button", { name: "Undo invoice.ts" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Undo rounding.ts" })).toBeTruthy();
+    expect(screen.queryByText("Undone")).toBeNull();
+  });
+
+  it("undoes all across a turn's sets, skipping a set nothing in which is undecided", () => {
+    const onUndo = vi.fn();
+    const turn = turnWith([reviewFile("f1", "src/billing/invoice.ts")]);
+    const decided: FileReviewSet = { ...reviewSet([reviewFile("g1", "src/billing/line.ts", { state: "undone" })]), changeSetId: "cs-0", undecided: false };
+    const open: FileReviewSet = { ...reviewSet([reviewFile("f2", "src/billing/rounding.ts"), reviewFile("f3", "src/billing/credit-note.ts")]), changeSetId: "cs-2" };
+    render(<TurnOutcome outcome={turnOutcome({ ...turn, fileReview: [decided, ...turn.fileReview, open] }, [], undefined)} undo={undoProps({ onUndo })} />);
+    fireEvent.click(screen.getByRole("button", { name: "Undo all" }));
+    expect(onUndo.mock.calls.map(([id]) => id)).toEqual(["cs-1", "cs-2"]);
+  });
+
   it("says a binary file is binary, with no line counts", () => {
     render(<TurnOutcome outcome={turnOutcome(turnWith([reviewFile("f1", "src/billing/invoice.ts", { reviewable: "binary", linesAdded: 0, linesRemoved: 0 })]), [], undefined)} />);
     expect(screen.getByText("Binary")).toBeTruthy();

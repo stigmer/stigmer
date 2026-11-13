@@ -396,10 +396,8 @@ function ChangeTrailing({ name, state, onUndo }: { readonly name: string; readon
       </>
     );
   }
-  if (state === "undecided" && onUndo !== undefined) {
-    return <IconButton size="xs" label={CHANGE_WORDS.undo(name)} icon={<UndoGlyph />} onClick={onUndo} data-cursor-target="turn-file-undo" />;
-  }
-  return null;
+  // An undecided file, for whoever may undo it (the caller draws nothing otherwise).
+  return onUndo === undefined ? null : <IconButton size="xs" label={CHANGE_WORDS.undo(name)} icon={<UndoGlyph />} onClick={onUndo} data-cursor-target="turn-file-undo" />;
 }
 
 function UndoGlyph() {
