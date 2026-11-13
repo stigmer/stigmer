@@ -268,17 +268,39 @@ function StepIndicator({ current }: { current: WizardStep }) {
                 )}
               />
             )}
+            {/* Finished and upcoming labels share the muted tone (faint is
+                below AA for text), so a finished step carries a check mark
+                and a spoken "completed": the difference never rests on
+                colour alone. */}
             <span
+              aria-current={state === "active" ? "step" : undefined}
               className={cn(
-                "stg:text-2xs stg:font-medium",
-                state === "active"
-                  ? "stg:text-primary"
-                  : state === "done"
-                    ? "stg:text-muted-foreground"
-                    : "stg:text-muted-foreground-faint",
+                "stg:inline-flex stg:items-center stg:gap-1 stg:text-2xs stg:font-medium",
+                state === "active" ? "stg:text-primary" : "stg:text-muted-foreground",
               )}
             >
-              {s.label}
+              {state === "done" && (
+                <svg
+                  className="stg:size-2.5 stg:shrink-0"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="m3 8.5 3.5 3.5L13 5" />
+                </svg>
+              )}
+              {state === "done" ? (
+                <span>
+                  {s.label}
+                  <span className="stg:sr-only">, completed</span>
+                </span>
+              ) : (
+                s.label
+              )}
             </span>
           </span>
         );

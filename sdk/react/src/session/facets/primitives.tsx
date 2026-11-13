@@ -32,10 +32,10 @@ export function FacetSection({
       <h3 className="stg:px-2 stg:text-2xs stg:font-semibold stg:uppercase stg:tracking-wider stg:text-muted-foreground">
         {heading}
         {count != null && count > 0 && (
-          <span className="stg:ml-1 stg:text-muted-foreground-faint">({count})</span>
+          <span className="stg:ml-1 stg:text-muted-foreground">({count})</span>
         )}
         {annotation && (
-          <span className="stg:ml-1 stg:font-normal stg:normal-case stg:tracking-normal stg:text-muted-foreground-faint">
+          <span className="stg:ml-1 stg:font-normal stg:normal-case stg:tracking-normal stg:text-muted-foreground">
             ({annotation})
           </span>
         )}
@@ -123,7 +123,7 @@ export function FacetRemoveButton({
 /** Muted empty-state line for a facet section with nothing to list. */
 export function FacetEmptyHint({ children }: { readonly children: React.ReactNode }) {
   return (
-    <p className="stg:px-2 stg:text-xs stg:text-muted-foreground-faint">{children}</p>
+    <p className="stg:px-2 stg:text-xs stg:text-muted-foreground">{children}</p>
   );
 }
 

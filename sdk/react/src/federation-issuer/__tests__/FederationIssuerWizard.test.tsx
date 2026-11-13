@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import {
   FederationIssuerSchema,
@@ -21,7 +21,10 @@ import { FederationIssuerWizard } from "../FederationIssuerWizard";
  * Also pins the sign-in settings the create call carries: neither account
  * creation nor a role unless chosen, and both once the admin chooses them;
  * that Done on the success step hands the created issuer to onCreated; and
- * that a failed auto-discovery says so in the kit's caution notice.
+ * that a failed auto-discovery says so in the kit's caution notice; and
+ * that the progress line tells finished steps from upcoming ones without
+ * colour (a check mark, and "completed" for a screen reader) and marks the
+ * current step, since finished and upcoming labels share the muted tone.
  */
 
 const CREATED: FederationIssuer = create(FederationIssuerSchema, {
@@ -180,5 +183,18 @@ describe("FederationIssuerWizard success", () => {
 
     expect(onCreated).toHaveBeenCalledTimes(1);
     expect(onCreated.mock.calls[0]![0]).toBe(CREATED);
+  });
+});
+
+describe("FederationIssuerWizard progress", () => {
+  it("marks finished steps with a check and the current step as current", async () => {
+    renderWizard(vi.fn());
+    await reachReview();
+
+    const progress = screen.getByRole("navigation", { name: "Wizard progress" });
+    expect(progress.textContent).toBe("Provider, completedConfigure, completedReviewDone");
+    expect(progress.querySelectorAll("svg[aria-hidden='true']")).toHaveLength(2);
+    expect(within(progress).getByText("Review").getAttribute("aria-current")).toBe("step");
+    expect(within(progress).getByText("Done").getAttribute("aria-current")).toBeNull();
   });
 });

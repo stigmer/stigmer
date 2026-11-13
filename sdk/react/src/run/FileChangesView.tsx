@@ -183,7 +183,7 @@ export function FileChangeDiff({
           {showFileName &&
             change.changeType === "renamed" &&
             change.renameFrom && (
-              <span className="stg:min-w-0 stg:truncate stg:font-mono stg:text-muted-foreground-faint">
+              <span className="stg:min-w-0 stg:truncate stg:font-mono stg:text-muted-foreground">
                 {change.renameFrom} →
               </span>
             )}

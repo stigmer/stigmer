@@ -41,15 +41,16 @@ export type ColorMode = (typeof COLOR_MODES)[number];
  * than failing the suite — mirroring the e2e audit's graduated rollout, which
  * ships fixing only some severities first.
  *
- * `color-contrast`: the SDK's deliberately dense small muted text (the
- * workspace panel's tree labels and `text-2xs` path subtitles, count
- * badges, captions across the consoles) falls below WCAG AA 4.5:1 in both
- * modes. This is a PRE-EXISTING, app-wide design-token/density concern (the
- * `--stgm-muted-foreground` token at small sizes), and its fix needs a
- * deliberate design pass across presets.
+ * `color-contrast`: readable lines set in `--stgm-muted-foreground-subtle`
+ * fall below WCAG AA 4.5:1 in dark mode (about 4.1:1 on the page, 3.7:1 on a
+ * card). That tone is contracted as a 3:1 supporting tone for marks, not for
+ * text (`sdk/theme/src/contract/pairs.ts`); `--stgm-muted-foreground`, the
+ * readable secondary tone, holds 4.5:1 on every surface the contract
+ * registers. The faint tone's readable lines moved to muted in
+ * stigmer/stigmer#2898; the subtle tone's move is stigmer/stigmer#3064.
  * Kept advisory so the audits guard the STRUCTURAL accessibility (roles,
- * names, relationships, nesting) now. Promote back to blocking once the
- * contrast pass ships.
+ * names, relationships, nesting) now. Promote back to blocking when
+ * stigmer/stigmer#3064 lands.
  */
 const ADVISORY_RULE_IDS = new Set<string>(["color-contrast"]);
 

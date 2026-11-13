@@ -208,6 +208,18 @@ export const CONTRAST_PAIRS: readonly ContrastPair[] = [
   pair("--stgm-muted-foreground", "--stgm-muted", "text", "supporting text in muted panels (ExecutionErrorNotice interrupted state)"),
   pair("--stgm-muted-foreground", "--stgm-background", "text", "Thinking indicator, timestamps, captions (SetupProgress, ThinkingMessage)"),
   pair("--stgm-muted-foreground", "--stgm-card", "text", "supporting text inside cards"),
+  pair(
+    "--stgm-muted-foreground",
+    "--stgm-popover",
+    "text",
+    "supporting text in a dialog (ChatLinkDialog notes, ChannelConversationsDialog ages, FederationIssuerWizard pending steps)",
+  ),
+  pair(
+    "--stgm-muted-foreground",
+    "--stgm-primary-subtle",
+    "text",
+    "timestamps and secondary lines on a quiet primary fill (ConversationTimelineView business bubble, ConversationListPane selected row)",
+  ),
   pair("--stgm-foreground", "--stgm-muted-subtle", "text", "user message bubble text (MessageEntry HumanMessage), markdown table headers"),
   pair("--stgm-muted-foreground", "--stgm-muted-subtle", "text", "secondary affordances inside the user bubble"),
 
@@ -292,7 +304,15 @@ export const CONTRAST_PAIRS: readonly ContrastPair[] = [
 
   // ── Deliberately de-emphasized text (readability floor, not AA) ─────
   pair("--stgm-muted-foreground-subtle", "--stgm-background", "supporting", "tertiary captions"),
-  pair("--stgm-muted-foreground-faint", "--stgm-background", "supporting", "faintest hints (placeholder-level text)"),
+  // Placeholders and non-text marks only (icons, glyphs, a diff's context
+  // marker): never a line a person must read, which is
+  // --stgm-muted-foreground's, held to 4.5:1 above.
+  pair(
+    "--stgm-muted-foreground-faint",
+    "--stgm-background",
+    "supporting",
+    "placeholders and decorative marks (ConversationComposer placeholder, EmptyState icon, DiffViewer context marker)",
+  ),
 ];
 
 /**

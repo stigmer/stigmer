@@ -141,7 +141,7 @@ export function ChatLinkCard({
               onClick={handleCopyLink}
             />
           </div>
-          <p className="stg:mt-0.5 stg:text-xs stg:text-muted-foreground-faint">
+          <p className="stg:mt-0.5 stg:text-xs stg:text-muted-foreground">
             {audience === "org" ? "Organization members" : "Anyone with the link"}
           </p>
         </>
