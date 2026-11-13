@@ -37,7 +37,9 @@ export interface IconButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonEle
  * ```tsx
  * import { Trash2 } from "lucide-react";
  *
- * <IconButton label="Remove Grace Hopper" size="xs" icon={<Trash2 aria-hidden="true" />} onClick={remove} />
+ * function RemoveMember({ onRemove }: { onRemove: () => void }) {
+ *   return <IconButton label="Remove Grace Hopper" size="xs" icon={<Trash2 aria-hidden="true" />} onClick={onRemove} />;
+ * }
  * ```
  */
 export function IconButton({ label, icon, variant = "ghost", size = "sm", type = "button", className, disabled, ...rest }: IconButtonProps) {
