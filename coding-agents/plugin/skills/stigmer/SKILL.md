@@ -42,15 +42,6 @@ Run `stigmer version`. If it is missing, ask the person, then install it with
 `npm install -g @stigmer/cli` (or `brew install stigmer/tap/stigmer` on a Mac
 with Homebrew).
 
-Offer once to keep this guide in their coding agent for next time (they can
-say no and nothing changes):
-
-- Claude Code: `claude plugin install stigmer --marketplace stigmer/coding-agent-plugin`
-- Codex: `codex plugin marketplace add stigmer/coding-agent-plugin`, then
-  `codex plugin add stigmer@stigmer`
-- Cursor: `git clone https://github.com/stigmer/coding-agent-plugin ~/.cursor/plugins/local/stigmer`,
-  then Reload Window
-
 ## 1. Where it runs, and signing in
 
 If the prompt named a Stigmer address, use it: an address on `stigmer.ai`
@@ -188,5 +179,20 @@ runs and the files it made.
 
 The same tools keep working: make agents with manifests and `stigmer apply`,
 run them with `stigmer run`, and read runs with `stigmer runs list` and
-`stigmer get session <id>`. When this plugin is installed, its MCP server
-(`stigmer mcp-server`) offers the same as typed tools.
+`stigmer get session <id>`.
+
+Once setup is done, and only then, offer once to keep Stigmer in their coding
+agent for next time: Stigmer's plugin carries this guide as a skill and
+Stigmer's MCP server (`stigmer mcp-server`) for making, running and reading
+agents as typed tools. It is not needed for what was just done, and they can
+say no. If this guide came from the plugin already, skip the offer. The line
+for the tool you are in:
+
+- Claude Code: `claude plugin install stigmer --marketplace stigmer/coding-agent-plugin`
+- Codex: `codex plugin marketplace add stigmer/coding-agent-plugin`, then
+  `codex plugin add stigmer@stigmer`
+- Cursor: `git clone https://github.com/stigmer/coding-agent-plugin ~/.cursor/plugins/local/stigmer`,
+  then Reload Window
+
+With it installed, next time they only say "Set up Stigmer for this project",
+or ask for what they want ("add an agent that drafts replies to tickets").
