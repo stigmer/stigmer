@@ -22,18 +22,23 @@
 // answered from the session it asks for, by its id, with every session's
 // organization in the person's list.
 import { Code, ConnectError, type ConnectRouter, type HandlerContext } from "@connectrpc/connect";
-import { clone, create } from "@bufbuild/protobuf";
+import { clone, create, type MessageInitShape } from "@bufbuild/protobuf";
 import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import { AgentStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/status_pb";
+import type { File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { AgentQueryController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/query_pb";
 import { FileQueryController } from "@stigmer/apis/ai/stigmer/agentic/file/v1/query_pb";
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { FileChangeKind, InteractionMode, RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { FileChangeProgressSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
 import { RunQueryController } from "@stigmer/apis/ai/stigmer/agentic/run/v1/query_pb";
+import { RecalledMemoriesSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/spec_pb";
+import { WorkspaceWriteBackPhase, WorkspaceWriteBackSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/writeback_pb";
 import { ScoreQueryController } from "@stigmer/apis/ai/stigmer/agentic/score/v1/query_pb";
 import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/status_pb";
-import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
+import { SessionEventSchema, type SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
+import { ContentBlockSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_content_pb";
 import {
   StreamSessionEventsResponseSchema,
   type StreamSessionEventsRequest,
@@ -152,10 +157,12 @@ export interface Answering {
   readonly live?: LiveFeed;
   /** The relations the person is refused on the session (`can_edit` for a teammate); every other check is allowed. */
   readonly refused?: readonly string[];
+  /** Files a turn's message carried, read by id (`get`), whose download address is `url` (an image's preview). */
+  readonly attachments?: readonly { readonly file: StigmerFile; readonly url: string }[];
 }
 
 /** The calls the viewer makes for `scenario`, answered as for the session's owner. */
-export function sessionRoutes(scenario: SessionReplay, { agent = samples.agent(), others = [], live, refused = [] }: Answering = {}) {
+export function sessionRoutes(scenario: SessionReplay, { agent = samples.agent(), others = [], live, refused = [], attachments = [] }: Answering = {}) {
   const replays = [scenario, ...others];
   // With one conversation every call is answered from it, whatever id it
   // names, as the scenes always have; with more, from the one it names.
@@ -202,9 +209,16 @@ export function sessionRoutes(scenario: SessionReplay, { agent = samples.agent()
       }),
       // A File opened in the inspector reads its first bytes.
       getContent: () => ({ data: AUDIT_REPORT, truncated: false }),
+      // A file a message carried: its record, and where its bytes are (an inline address; the page reads no network).
+      get: (request) => {
+        const attachment = attachments.find((candidate) => candidate.file.metadata?.id === request.value);
+        if (attachment === undefined) throw new ConnectError(`no file ${request.value}`, Code.NotFound);
+        return attachment.file;
+      },
+      getDownloadUrl: (request) => ({ url: attachments.find((candidate) => candidate.file.metadata?.id === request.value)?.url ?? "" }),
     });
     router.service(ScoreQueryController, { listBySession: () => ({ entries: [] }) });
-    router.service(AgentQueryController, { getByReference: () => agent });
+    router.service(AgentQueryController, { getByReference: () => agent, get: () => agent });
     router.service(OrganizationQueryController, { listMine: () => samples.organizationList(organizations) });
     router.service(IdentityAccountQueryController, { whoAmI: () => ACCOUNT });
     router.service(GrantQueryController, { checkMyPermission: (request) => ({ isAuthorized: !refused.includes(request.relation) }) });
@@ -330,14 +344,14 @@ function startedByOwner(session: SessionReplay["session"]): SessionReplay["sessi
   return theirs;
 }
 
-/** The session view over `replay`, framed as given. */
-export function sessionDrawing(source: SessionReplay, framing: Framing = {}): Drawing {
+/** The session view over `replay`, framed as given; `answering` names what the scene's server answers beyond the replay. */
+export function sessionDrawing(source: SessionReplay, framing: Framing = {}, answering: Answering = {}): Drawing {
   const participant = framing.role === "participant";
   const replay = participant ? { ...source, session: startedByOwner(source.session) } : source;
   const session = replay.session ?? samples.session();
   return {
     inOrganization: true,
-    routes: sessionRoutes(replay, participant ? { refused: ["can_edit"] } : {}),
+    routes: sessionRoutes(replay, participant ? { ...answering, refused: ["can_edit"] } : answering),
     liveRoutes: () => new LiveConversation(replay).routes(),
     render: () => (
       <div style={{ height: framing.height === undefined ? "calc(100vh - 48px)" : `${framing.height}px` }}>
@@ -351,4 +365,267 @@ export function sessionDrawing(source: SessionReplay, framing: Framing = {}): Dr
       </div>
     ),
   };
+}
+
+// ---------------------------------------------------------------------------
+// The viewer's quieter parts: how a settled review, a compacted context,
+// recalled memories, a message's attachments, a plan being written, the
+// panel's write-back and usage views, the file preview window and the two
+// strips a conversation's settings raise look, each drawn over a session
+// built from the kit's samples.
+// ---------------------------------------------------------------------------
+
+/** The demo run, the turn every scene below draws. */
+const RUN_ID = samples.run().metadata!.id;
+
+/** The demo session's events, numbered 1.. in order, as the log holds them. */
+function logged(events: readonly SessionEvent[]): SessionEvent[] {
+  return events.map((event, index) => ({ ...event, seq: BigInt(index + 1) }));
+}
+
+/** An event of the demo session under the demo run. */
+function sessionEvent(init: SessionEventInit, runId: string = RUN_ID): SessionEvent {
+  return create(SessionEventSchema, { sessionId: samples.session().metadata!.id, runId, threadId: "", event: init });
+}
+
+type SessionEventInit = MessageInitShape<typeof SessionEventSchema>["event"];
+
+/** The review set a finished turn recorded, with the decisions and outcomes given after it. */
+const REVIEW_SET_EVENT_ID = `${RUN_ID}.review.cs-1`;
+
+/**
+ * The session view after its owner undid two of a turn's three edits: one
+ * put back, one whose put-back failed, and a changed image (a binary file,
+ * no line counts) still standing.
+ */
+export function sessionFileUndoneScene(): Drawing {
+  const message = "Invoices are off by a cent. Can you fix the rounding?";
+  const file = (id: string, path: string, change: string, linesAdded: number, linesRemoved: number, reviewable = "complete") => ({
+    fileChangeId: id,
+    path,
+    previousPath: "",
+    change,
+    digest: `fd-${id}`,
+    linesAdded,
+    linesRemoved,
+    reviewable,
+  });
+  const undo = (id: string, fileChangeId: string) =>
+    sessionEvent({
+      case: "stigmerFileReviewDecided",
+      value: { id, changeSetId: "cs-1", scope: "file", fileChangeId, action: "undo", expectedDigest: `fd-${fileChangeId}`, origin: "person", processedAt: sampleInstant(80_000) },
+    });
+  const events = logged([
+    ...samples.turnEvents({
+      message,
+      tools: [
+        { name: "edit_file", input: { path: "src/billing/invoice.ts" }, result: "1 edit applied" },
+        { name: "write_file", input: { path: "src/billing/rounding.ts" }, result: "Wrote 30 lines" },
+        { name: "write_file", input: { path: "docs/invoice-sample.png" }, result: "Wrote 18 KB" },
+      ],
+      reply: "Invoices now round once, at the total. I added a rounding helper and redrew the sample invoice.",
+      phase: "running",
+    }),
+    sessionEvent({
+      case: "stigmerFileReviewChanges",
+      value: {
+        id: REVIEW_SET_EVENT_ID,
+        changeSetId: "cs-1",
+        aggregateDigest: "agg-1",
+        files: [
+          file("f1", "src/billing/invoice.ts", "modified", 12, 4),
+          file("f2", "src/billing/rounding.ts", "added", 30, 0),
+          file("f3", "docs/invoice-sample.png", "modified", 0, 0, "binary"),
+        ],
+      },
+    }),
+    samples.runStatusEvent("completed"),
+    undo(`${RUN_ID}.undo-f1`, "f1"),
+    undo(`${RUN_ID}.undo-f2`, "f2"),
+    sessionEvent({
+      case: "stigmerFileReviewReconciled",
+      value: { id: `${REVIEW_SET_EVENT_ID}.r.${RUN_ID}.undo-f1`, changeSetId: "cs-1", undonePaths: ["src/billing/invoice.ts"], processedAt: sampleInstant(82_000) },
+    }),
+    sessionEvent({
+      case: "stigmerFileReviewReconciled",
+      value: {
+        id: `${REVIEW_SET_EVENT_ID}.r.${RUN_ID}.undo-f2`,
+        changeSetId: "cs-1",
+        undonePaths: [],
+        failure: "reconcile_failed",
+        failureDetail: "src/billing/rounding.ts could not be removed: the file is open in another process",
+        processedAt: sampleInstant(83_000),
+      },
+    }),
+  ]);
+  const run = samples.run({ phase: RunPhase.RUN_COMPLETED, message });
+  const session = samples.session({ subject: "Fix invoice rounding" });
+  session.spec!.fileReview = true;
+  // Drawn tall enough that the whole turn shows above the review: the thread never scrolls.
+  return sessionDrawing({ session, events, runs: [run], files: [], liveness: undefined, loadError: null }, { inspector: true, height: 1300 });
+}
+
+/** The memories the turn recalled, as the run records them. */
+const RECALLED_FACTS = [
+  { memoryId: "mem-rounding", content: "Invoices round half-even to the cent, at the total only." },
+  { memoryId: "mem-tests", content: "Billing tests live beside the code: src/billing/__tests__." },
+  { memoryId: "mem-credit", content: "Credit notes follow the invoice's rounding rule." },
+];
+
+/**
+ * The session view over a turn that recalled three of the agent's
+ * memories, chosen by meaning, and whose context was compacted part-way:
+ * the earlier messages summarized to make room.
+ */
+export function sessionCompactedScene(): Drawing {
+  const message = "Apply the same rounding fix to credit notes.";
+  const [user, running, ...rest] = samples.turnEvents({
+    message,
+    tools: [
+      { name: "read_file", input: { path: "src/billing/credit-note.ts" }, result: "export function creditTotal(note: CreditNote): Cents {" },
+      { name: "edit_file", input: { path: "src/billing/credit-note.ts" }, result: "1 edit applied" },
+    ],
+    reply: "Credit notes now round once, at the total, as invoices do.",
+  });
+  const events = logged([
+    user!,
+    running!,
+    sessionEvent({
+      case: "stigmerMemoryRecalled",
+      value: {
+        id: `${RUN_ID}.memory`,
+        processedAt: sampleInstant(1_000),
+        selectionActive: true,
+        injectedMemoryIds: RECALLED_FACTS.map((fact) => fact.memoryId),
+        embeddingModel: "text-embedding-3-small",
+      },
+    }),
+    rest[0]!,
+    rest[1]!,
+    sessionEvent({ case: "agentThreadContextCompacted", value: { id: `${RUN_ID}.compacted`, processedAt: sampleInstant(30_000) } }),
+    ...rest.slice(2),
+  ]);
+  const run = samples.run({ phase: RunPhase.RUN_COMPLETED, message });
+  run.status!.recalledMemories = create(RecalledMemoriesSchema, { enabled: true, facts: RECALLED_FACTS });
+  return sessionDrawing(
+    { session: samples.session({ subject: "Round credit notes" }), events, runs: [run], files: [], liveness: undefined, loadError: null },
+    { inspector: true, height: 1100 },
+  );
+}
+
+/** A small picture of an invoice, drawn inline: the image a person attached. */
+const INVOICE_IMAGE = `data:image/svg+xml;base64,${btoa(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="112" height="112" viewBox="0 0 112 112"><rect width="112" height="112" fill="#f4f4f5"/><rect x="18" y="14" width="76" height="84" rx="4" fill="#ffffff" stroke="#d4d4d8"/><rect x="28" y="26" width="34" height="6" rx="2" fill="#a1a1aa"/><rect x="28" y="44" width="56" height="4" rx="2" fill="#d4d4d8"/><rect x="28" y="54" width="56" height="4" rx="2" fill="#d4d4d8"/><rect x="28" y="64" width="40" height="4" rx="2" fill="#d4d4d8"/><rect x="58" y="80" width="26" height="6" rx="2" fill="#52525b"/></svg>',
+)}`;
+
+/**
+ * The session view over a turn whose message carried two files: a
+ * screenshot of the invoice that was a cent off, and the ledger it came
+ * from.
+ */
+export function sessionAttachmentsScene(): Drawing {
+  const message = "This invoice is a cent off. The ledger's attached too.";
+  const screenshot = samples.outputFile("inv-1042.png", { mimeType: "image/png", sizeBytes: 48_213n, outputPath: "given/inv-1042.png" });
+  const ledger = samples.outputFile("ledger-october.csv", { mimeType: "text/csv", sizeBytes: 9_412n, outputPath: "given/ledger-october.csv" });
+  const block = (type: "image" | "document", file: StigmerFile) =>
+    create(ContentBlockSchema, { type, title: file.spec!.filename, source: { type: "file", fileId: file.metadata!.id } });
+  const events = logged(
+    samples.turnEvents({
+      message,
+      tools: [{ name: "read_file", input: { path: "ledger-october.csv" }, result: "INV-1042,118.07" }],
+      reply: "INV-1042 rounds each line before the total, so it lands a cent high. The ledger shows thirteen more like it.",
+    }),
+  );
+  const run = samples.run({ phase: RunPhase.RUN_COMPLETED, message });
+  run.status!.messageFiles = [block("image", screenshot), block("document", ledger)];
+  return sessionDrawing(
+    { session: samples.session({ subject: "Invoice a cent off" }), events, runs: [run], files: [], liveness: undefined, loadError: null },
+    { inspector: true },
+    { attachments: [{ file: screenshot, url: INVOICE_IMAGE }, { file: ledger, url: "" }] },
+  );
+}
+
+/**
+ * The session view while a Plan-mode turn writes its plan: the thread's
+ * live plan card, and the panel's plan document it opens on its own.
+ */
+export function sessionPlanWritingScene(): Drawing {
+  const message = "Plan how invoices should round. Don't change anything yet.";
+  const partial = ROUNDING_PLAN.split("\n").slice(0, 4).join("\n");
+  const events = logged(
+    samples.turnEvents({
+      message,
+      phase: "running",
+      tools: [{ name: "grep", input: { pattern: "round(", path: "src/billing" }, result: "src/billing/invoice.ts:41\nsrc/billing/credit-note.ts:18" }],
+      reply: partial,
+    }),
+  );
+  const run = samples.run({ phase: RunPhase.RUN_IN_PROGRESS, message });
+  run.spec!.interactionMode = InteractionMode.PLAN;
+  return sessionDrawing({ session: samples.session({ subject: "Plan invoice rounding" }), events, runs: [run], files: [], liveness: undefined, loadError: null }, { inspector: true });
+}
+
+/** The finished scenario with its turn's work pushed to the session's branch and opened as a pull request. */
+function finishedWithWriteBack(): SessionReplay {
+  const finished = scenarios.finished;
+  const runs = finished.runs.map((run) => {
+    const pushed = clone(RunSchema, run);
+    pushed.status!.workspaceWriteBacks = [
+      create(WorkspaceWriteBackSchema, {
+        workspaceEntryName: "billing-service",
+        branchName: "stigmer/fix-invoice-rounding",
+        baseBranch: "main",
+        commitSha: "3f9a1c2e8b7d4a6f0c1e2d3b4a5f6e7d8c9b0a1f",
+        pullRequestUrl: "https://github.com/acme/billing-service/pull/482",
+        pullRequestNumber: 482,
+        diffSummary: "2 files changed, 18 insertions(+), 6 deletions(-)",
+        phase: WorkspaceWriteBackPhase.WORKSPACE_WRITE_BACK_PR_CREATED,
+      }),
+    ];
+    return pushed;
+  });
+  return { ...finished, runs };
+}
+
+/** The session view over the finished turn with the panel open on where its work was pushed. */
+export function sessionPullRequestsScene(): Drawing {
+  return sessionDrawing(finishedWithWriteBack(), { inspector: true });
+}
+
+/**
+ * The session view over the finished scenario as an app's user reads it:
+ * no panel, so a File the turn made opens in the preview window.
+ */
+export function sessionFilePreviewScene(): Drawing {
+  return sessionDrawing(scenarios.finished, { audience: "endUser" });
+}
+
+/**
+ * The session view over the long turn with auto-approve armed for it: the
+ * strip above the composer says so and offers the way off.
+ */
+export function sessionAutoApproveScene(): Drawing {
+  const busy = scenarios.busy;
+  const runs = busy.runs.map((run) => {
+    const armed = clone(RunSchema, run);
+    armed.spec!.autoApproveAll = true;
+    return armed;
+  });
+  return sessionDrawing({ ...busy, runs }, { inspector: true });
+}
+
+/**
+ * The session view over the finished scenario after the agent's author
+ * saved a newer version: the conversation keeps the one it started on, and
+ * the strip above the composer offers the move.
+ */
+export function sessionAgentVersionScene(): Drawing {
+  const finished = scenarios.finished;
+  const session = clone(SessionSchema, finished.session!);
+  session.status ??= create(SessionStatusSchema);
+  session.status.agentId = "agt_00000000000000000000000001";
+  session.status.agentVersionHash = "1a2b3c".repeat(10) + "1a2b";
+  const agent = samples.agent({ name: "Billing fixer", slug: "billing-fixer" });
+  agent.status = create(AgentStatusSchema, { versionHash: "4d5e6f".repeat(10) + "4d5e" });
+  return sessionDrawing({ ...finished, session }, { inspector: true }, { agent });
 }
