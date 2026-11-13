@@ -28,8 +28,11 @@ import { OrganizationSchema } from "@stigmer/apis/ai/stigmer/tenancy/organizatio
 import { OrganizationQueryController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/query_pb";
 import { BringOthersIn, BRING_OTHERS_IN_LINK_DAYS, BRING_OTHERS_IN_LINK_LABEL } from "@stigmer/react-sdk";
 import { sampleDate, samples } from "@stigmer/react-sdk/test";
-import { ACCOUNT, ORGANIZATION } from "../fixtures.ts";
+import { RunQueryController } from "@stigmer/apis/ai/stigmer/agentic/run/v1/query_pb";
+import { ACCOUNT, BUSY_WEEK_RUNS, ORGANIZATION } from "../fixtures.ts";
 import type { Drawing } from "./drawing.ts";
+import { journeyRoutes, MADE_YOURS } from "./journey.tsx";
+import { ANTHROPIC_ONLY } from "./models.tsx";
 
 /** Which moment of the page a scene draws. */
 export type BringOthersInFace = "unnamed" | "link" | "joined" | "local";
@@ -37,10 +40,10 @@ export type BringOthersInFace = "unnamed" | "link" | "joined" | "local";
 const DAY_MS = 86_400_000;
 const ADDRESS = "ada-lovelace";
 
-/** An access-list entry: a person with their direct organization role. */
-function person(id: string, name: string, role: string) {
+/** An access-list entry: an account of `mode` with its direct organization role. */
+function person(id: string, name: string, role: string, mode = IdentityAccountProvisioningMode.direct) {
   return {
-    principal: { kind: "identity_account", id, name, email: "", identityOrigin: { provisioningMode: IdentityAccountProvisioningMode.direct } },
+    principal: { kind: "identity_account", id, name, email: "", identityOrigin: { provisioningMode: mode } },
     roles: [{ role: { code: role, name: role }, isInherited: false }],
   };
 }
@@ -62,14 +65,28 @@ export function bringOthersInScene(face: BringOthersInFace): Drawing {
   });
   const people = [
     person(ACCOUNT.metadata?.id ?? "", ACCOUNT.metadata?.name ?? "", "owner"),
-    ...(face === "joined" ? [person("ia-sam", "Sam Ortiz", "member"), person("ia-priya", "Priya Shah", "admin")] : []),
+    ...(face === "joined"
+      ? [
+          person("ia-sam", "Sam Ortiz", "member"),
+          person("ia-priya", "Priya Shah", "admin"),
+          // The app's first user, who ticked step 5: the page leaves them out.
+          person("ia-dana", "Dana Lee", "member", IdentityAccountProvisioningMode.app_user),
+        ]
+      : []),
   ];
   return {
     inOrganization: true,
     deploymentMode: signsIn ? "cloud" : "local",
     routes: (router: ConnectRouter) => {
+      // The joined team's page reads the journey for its headline: an
+      // organization whose agent was made, changed and run (steps 1 to 4);
+      // the access list below holds the app's first user (step 5) and the
+      // teammates (step 6). Named first, so the services after it win.
+      journeyRoutes(MADE_YOURS)(router);
+      router.service(RunQueryController, { getRunSummary: () => BUSY_WEEK_RUNS });
       router.service(PlatformQueryController, {
         getServerInfo: () => ({ authenticationRequired: signsIn, singleOrg: !signsIn, version: "0.1.3" }),
+        getModelReadiness: () => ANTHROPIC_ONLY,
       });
       router.service(OrganizationQueryController, { listMine: () => samples.organizationList([organization]), get: () => organization });
       router.service(GrantQueryController, {
