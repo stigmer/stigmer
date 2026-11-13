@@ -75,7 +75,8 @@ export function TeamListPanel({
         variant="first-use"
         title="No teams yet"
         description="A team is a group of people you share agents, vaults and other resources with at once."
-        action={emptyAction}        className={className}
+        action={emptyAction}
+        className={className}
       />
     );
   }

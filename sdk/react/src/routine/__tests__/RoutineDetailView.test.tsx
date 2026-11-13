@@ -320,7 +320,7 @@ describe("RoutineDetailView", () => {
     expect(banner?.className).toContain("stg:bg-status-degraded-subtle");
     expect(banner?.className).not.toContain("warning");
     expect(title.parentElement?.className).toContain("stg:text-foreground");
-    expect(title.nextElementSibling?.textContent).not.toBe("");
+    expect(title.nextElementSibling?.textContent).toMatch(/This routine is staged disabled/);
     expect(screen.getByText("Disabled")).toBeTruthy();
     // Owner-disabled routines have no meaningful countdown.
     expect(screen.queryByText("in 3h")).toBeNull();

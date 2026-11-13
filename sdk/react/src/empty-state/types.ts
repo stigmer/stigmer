@@ -79,7 +79,8 @@ export interface EmptyStateProps {
   /**
    * `"panel"` (default): the page's empty state, on its own faint card with
    * the icon, the title, one line and the act. `"inline"`: one line inside a
-   * card or a list that has nothing in it, with no frame of its own.
+   * card or a list that has nothing in it, with no frame of its own; a
+   * first-use one draws only the caller's `description`, no default line.
    */
   readonly size?: EmptyStateSize;
   /** Primary action button. */

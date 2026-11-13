@@ -89,7 +89,8 @@ export function ServiceAccountListPanel({
         variant="first-use"
         title="No service accounts yet"
         description="Make one for each CI job, script or integration, so it keeps working when the person who set it up leaves."
-        action={emptyAction}        className={className}
+        action={emptyAction}
+        className={className}
       />
     );
   }

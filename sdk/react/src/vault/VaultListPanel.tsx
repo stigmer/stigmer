@@ -95,7 +95,8 @@ export function VaultListPanel({
         variant="first-use"
         title="No shared vaults yet"
         description="A shared vault holds the organization's own keys; a conversation, a routine or a channel can name one so its runs use it."
-        action={emptyAction}        className={className}
+        action={emptyAction}
+        className={className}
       />
     );
   }

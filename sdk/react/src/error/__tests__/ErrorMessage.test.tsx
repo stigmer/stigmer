@@ -49,6 +49,11 @@ describe("ErrorMessage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Try again" }));
     expect(retry).toHaveBeenCalledTimes(1);
 
+    // A cancelled read was stopped, not refused: asking again can finish it.
+    rerender(<ErrorMessage error={new ConnectError("x", Code.Canceled)} retry={retry} />);
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(retry).toHaveBeenCalledTimes(2);
+
     rerender(<ErrorMessage error={new ConnectError("x", Code.PermissionDenied)} retry={retry} />);
     expect(screen.queryByRole("button", { name: "Try again" })).toBeNull();
   });

@@ -5,7 +5,6 @@ import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { Ban, Check, CheckCheck, Clock, Info, MessageSquare, TriangleAlert } from "lucide-react";
 import { cn } from "@stigmer/design-tokens";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
-import { getUserMessage } from "@stigmer/client";
 import type { ConversationTimelineItem } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/conversation_io_pb";
 import { channelProviderOf, type ChannelProviderId } from "../channel/providers.js";
 import { Button } from "../button/Button.js";

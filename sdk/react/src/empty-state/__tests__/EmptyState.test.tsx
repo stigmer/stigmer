@@ -57,4 +57,11 @@ describe("EmptyState", () => {
     expect(line.className).not.toContain("stg:bg-muted-faint");
     expect(line.textContent).toBe("No secrets yet Add one to use it in a run.");
   });
+
+  it("draws no default line under an inline first-use title, and keeps a search's default line inline", () => {
+    const { rerender } = render(<EmptyState variant="first-use" size="inline" title="No secrets saved." />);
+    expect(screen.getByRole("status").textContent).toBe("No secrets saved.");
+    rerender(<EmptyState variant="zero-results" size="inline" resourceLabel="models" query="gpt" />);
+    expect(screen.getByRole("status").textContent).toBe("Nothing matches \u201cgpt\u201d Check the spelling, or clear the search to see every model.");
+  });
 });

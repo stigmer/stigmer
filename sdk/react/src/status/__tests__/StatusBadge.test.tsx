@@ -1,8 +1,8 @@
 /**
  * Pins the console's one status pill: the state in words beside a dot
  * (never colour alone), 12px on a 20px pill whatever the state, the
- * state's own tint and hue from the status tokens, a caller's word in
- * place of the phase's, and the tooltip only when one is given.
+ * state's own tint and hue from the status tokens, and a caller's word in
+ * place of the phase's.
  */
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";

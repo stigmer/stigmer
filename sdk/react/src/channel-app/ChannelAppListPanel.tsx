@@ -97,7 +97,8 @@ export function ChannelAppListPanel({
         variant="first-use"
         title={emptyState}
         description={emptyDescription}
-        action={emptyAction}        className={className}
+        action={emptyAction}
+        className={className}
       />
     );
   }

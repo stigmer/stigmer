@@ -53,7 +53,10 @@ export function EmptyState({
     variant,
     resourceLabel,
     title,
-    description,
+    // An inline first-use line sits inside a card or a list whose page holds
+    // the act, so it draws only the caller's line, never the default "Create
+    // a ... to get started." (a viewer who may not create would be told to).
+    description: description ?? (size === "inline" && variant === "first-use" ? "" : undefined),
     errorMessage,
     query,
   });
