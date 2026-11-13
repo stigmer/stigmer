@@ -602,6 +602,8 @@ describe("what an ensure came to", () => {
     expect(await ensureWith(fakeProvisioner(), await seeded("ready", ExecutionTarget.CLOUD))).toBe("ready");
     expect(await ensureWith(fakeProvisioner(), await seeded("local", ExecutionTarget.LOCAL))).toBe("skipped");
     expect(await ensureWith(fakeProvisioner(), await seeded("off", ExecutionTarget.CLOUD), false)).toBe("skipped");
+    const sessionless = create(RunSchema, { metadata: { id: "axr_no_session", name: "no-session" }, spec: {} });
+    expect(await ensureWith(fakeProvisioner(), sessionless), "a run in no session").toBe("skipped");
     expect(
       await ensureWith(fakeProvisioner({ ensureError: new Error("quota") }), await seeded("broken", ExecutionTarget.CLOUD)),
     ).toBe("failed");

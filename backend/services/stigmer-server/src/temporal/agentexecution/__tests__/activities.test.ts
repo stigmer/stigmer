@@ -24,7 +24,9 @@
  *     session's liveness streams how long the turn has waited, and on
  *     another answer after a wait it sends a liveness without the wait; a
  *     turn that never waited sends nothing; a run since deleted is
- *     `skipped`; and it heartbeats while the ensure runs.
+ *     `skipped`, and a store fault reading it fails the activity; and it
+ *     heartbeats while the ensure runs, through the running activity's own
+ *     context unless a test hands it one.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -555,7 +557,7 @@ describe("EnsureSessionSandbox activity", () => {
   }
 
   /** A CLOUD session and its run, the activity over `provisioner`, and a stream that asked for liveness. */
-  async function sandboxFixture(provisioner: SandboxProvisioner, heartbeat: () => void = () => undefined) {
+  async function sandboxFixture(provisioner: SandboxProvisioner, heartbeat?: () => void) {
     const temp = tempStore();
     cleanups.push(() => temp.cleanup());
     await temp.store.saveResource(
@@ -588,7 +590,7 @@ describe("EnsureSessionSandbox activity", () => {
         ROUTING_SESSION,
         DEFAULT_EXECUTION_TARGET_CLOUD,
       ),
-      heartbeat,
+      ...(heartbeat !== undefined ? { heartbeat } : {}),
       now: () => 100_000,
     })[ENSURE_SESSION_SANDBOX_ACTIVITY_NAME] as Ensure;
     /** The liveness the stream received since the last read: its run, and its sandbox wait in ms. */
@@ -602,12 +604,12 @@ describe("EnsureSessionSandbox activity", () => {
       }
       return received;
     };
-    return { ensure, sent };
+    return { ensure, sent, store: temp.store };
   }
 
   it("runs the request's ensure with the caller's facts and answers ready, telling no stream when the turn never waited", async () => {
     const { provisioner, facts } = scriptedProvisioner(["ready"]);
-    const { ensure, sent } = await sandboxFixture(provisioner);
+    const { ensure, sent } = await sandboxFixture(provisioner, () => undefined);
     expect(await ensure({ execution_id: "run_wait", caller_class: "user", routine_id: "rtn_1", caller_identity_id: "ida_1" })).toBe("ready");
     expect(facts).toHaveLength(1);
     expect(facts[0]).toMatchObject({ taskQueue: "session:ses_wait", callerClass: "user", routineId: "rtn_1" });
@@ -616,7 +618,7 @@ describe("EnsureSessionSandbox activity", () => {
 
   it("on no_room tells the streams how long the turn has waited, then clears it once room comes", async () => {
     const { provisioner } = scriptedProvisioner(["no_room", "no_room", "ready"]);
-    const { ensure, sent } = await sandboxFixture(provisioner);
+    const { ensure, sent } = await sandboxFixture(provisioner, () => undefined);
     expect(await ensure({ execution_id: "run_wait", caller_class: "user" })).toBe("no_room");
     expect(sent(), "the first ask: the wait has just begun").toEqual([{ runId: "run_wait", sandboxMs: 0 }]);
     expect(await ensure({ execution_id: "run_wait", caller_class: "user", waiting_since_ms: 20_000 })).toBe("no_room");
@@ -627,9 +629,43 @@ describe("EnsureSessionSandbox activity", () => {
 
   it("answers skipped for a run since deleted", async () => {
     const { provisioner, facts } = scriptedProvisioner(["ready"]);
-    const { ensure } = await sandboxFixture(provisioner);
+    const { ensure } = await sandboxFixture(provisioner, () => undefined);
     expect(await ensure({ execution_id: "run_gone", caller_class: "user" })).toBe("skipped");
     expect(facts).toEqual([]);
+  });
+
+  it("fails on a store fault reading the run, so Temporal retries it", async () => {
+    const { provisioner, facts } = scriptedProvisioner(["ready"]);
+    const { ensure, store } = await sandboxFixture(provisioner, () => undefined);
+    await store.close();
+    await expect(ensure({ execution_id: "run_wait", caller_class: "user" })).rejects.toThrow();
+    expect(facts).toEqual([]);
+  });
+
+  it("heartbeats through the running activity's own context when no heartbeat is given", async () => {
+    vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
+    try {
+      const { MockActivityEnvironment } = await import("@temporalio/testing");
+      let finish: () => void = () => undefined;
+      const slow = new Promise<void>((resolve) => {
+        finish = resolve;
+      });
+      const { provisioner, facts } = scriptedProvisioner([slow]);
+      const { ensure } = await sandboxFixture(provisioner);
+      const activity = new MockActivityEnvironment();
+      let beats = 0;
+      activity.on("heartbeat", () => {
+        beats += 1;
+      });
+      const running = activity.run(ensure, { execution_id: "run_wait", caller_class: "user" });
+      await vi.waitFor(() => expect(facts).toHaveLength(1));
+      vi.advanceTimersByTime(10_000);
+      expect(beats).toBe(1);
+      finish();
+      expect(await running).toBe("ready");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("heartbeats while the ensure runs, and stops when it ends", async () => {
