@@ -40,6 +40,8 @@ const mockUrl = getMockControlUrl();
 const REPORT = "variance-report.md";
 /** The person the handed-over route signs in until its builder wires their own sign-in. */
 const DEV_USER = "dana@app.example";
+/** How the console names that person: the server names an account made from an email alone by its local part. */
+const APP_USER_NAME = "dana";
 
 /** Signs in to the console as the issuer's person and returns the bearer its RPCs carry. */
 async function ownerBearer(page: Page): Promise<string> {
@@ -54,9 +56,9 @@ async function ownerBearer(page: Page): Promise<string> {
   return bearer!;
 }
 
-/** The tab's row whose title is `title`. */
+/** The tab's row whose title is `title` (a done row's title also says so to a screen reader). */
 function row(page: Page, title: string) {
-  return page.getByRole("listitem").filter({ has: page.getByText(title, { exact: true }) });
+  return page.getByRole("listitem").filter({ hasText: title });
 }
 
 test.describe("CON-10 a scratch app built from exactly what the In your app tab hands over shows the agent's chat, and the console says its first user arrived", () => {
@@ -94,7 +96,9 @@ test.describe("CON-10 a scratch app built from exactly what the In your app tab 
     // Node; the service account made in place, its key read once from the page.
     await page.getByRole("radio", { name: "Node" }).click();
     await account.getByRole("button", { name: "Make it" }).click();
-    const apiKey = ((await account.getByRole("alert").locator("code").textContent()) ?? "").trim();
+    const shownOnce = account.getByRole("alert").locator("code");
+    await expect(shownOnce).toBeVisible({ timeout: 15_000 });
+    const apiKey = ((await shownOnce.textContent()) ?? "").trim();
     expect(apiKey, "the key is shown once").not.toBe("");
     await embedding.getByRole("switch").click();
     await expect(embedding).toContainText("On for this organization", { timeout: 15_000 });
@@ -139,10 +143,11 @@ test.describe("CON-10 a scratch app built from exactly what the In your app tab 
     await expect(outcome).toContainText(REPORT);
 
     // Back in the console: the tab's last row ticks by itself, and so does the card.
-    await expect(first).toContainText(`${DEV_USER} signed in from your app`, { timeout: 30_000 });
-    await page.goto("/");
-    const step = page.getByRole("listitem").filter({ hasText: "Put it in your app" });
-    await expect(step).toContainText(`${DEV_USER} signed in from your app`, { timeout: 30_000 });
+    await expect(first).toContainText(`${APP_USER_NAME} signed in from your app`, { timeout: 30_000 });
+    await page.goto("/dashboard");
+    const card = page.getByRole("region", { name: "From first agent to your users" });
+    const step = card.getByRole("listitem").filter({ hasText: "Put it in your app" });
+    await expect(step).toContainText(`${APP_USER_NAME} signed in from your app`, { timeout: 30_000 });
     await expect(step).toContainText("(done)");
   });
 });
