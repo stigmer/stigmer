@@ -678,6 +678,7 @@ The working turn's line (module header).
     hint: { type: "string", description: "A last part in the host's words, such as the key that stops the turn; none by default." },
     isSlow: { type: "boolean", description: "The turn has gone quiet for longer than usual." },
     isStopping: { type: "boolean", description: "A stop was asked for and the turn is winding down." },
+    livenessAgeMs: { type: "number", description: "How long ago the turn's newest liveness arrived; a wait it carries counts on by this much. 0 by default." },
     turn: { type: "Turn | null", description: "The working turn; null while the turn has not reached the session's events yet.", required: true },
   }}
 />
