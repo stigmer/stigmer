@@ -1,13 +1,10 @@
 "use client";
 
-import type { ReactNode } from "react";
-import { cn } from "@stigmer/design-tokens";
 import type { TurnEnding, TurnEndingTone } from "@stigmer/client";
-import { Button } from "../button/Button.js";
-import { useCopy } from "../internal/CopyBlock.js";
+import { Notice, type NoticeLinkSpec, type NoticeTone } from "../internal/surface/Notice.js";
 
 /** The fix a notice links to: its words, and where it goes or what it does. */
-export interface RunErrorNoticeLink {
+export interface RunErrorNoticeLink extends NoticeLinkSpec {
   readonly label: string;
   /** An address to open; absent when the link is an action (`onClick`). */
   readonly href?: string;
@@ -59,10 +56,10 @@ const GENERIC: TurnEnding = {
   kind: "",
 };
 
-const TONE_CLASSES: Readonly<Record<TurnEndingTone, { readonly box: string; readonly icon: string }>> = {
-  failed: { box: "stg:bg-status-failed-subtle", icon: "stg:text-status-failed" },
-  paused: { box: "stg:bg-status-degraded-subtle", icon: "stg:text-status-degraded" },
-  stopped: { box: "stg:bg-muted", icon: "stg:text-muted-foreground" },
+const NOTICE_TONE: Readonly<Record<TurnEndingTone, NoticeTone>> = {
+  failed: "failed",
+  paused: "paused",
+  stopped: "plain",
 };
 
 /**
@@ -92,92 +89,22 @@ export function RunErrorNotice({
   acting = false,
   link,
 }: RunErrorNoticeProps) {
-  const tone = TONE_CLASSES[ending.tone];
   const details = [error, runId !== "" ? `Run: ${runId}` : "", ending.kind !== "" ? `Kind: ${ending.kind}` : ""].filter((line) => line !== "").join("\n");
-  const { copied, copy } = useCopy(details);
   const fallbackAct = onAct === undefined && onRetry !== undefined && retryMessage !== undefined && ending.act !== "none";
   const act = onAct ?? (fallbackAct ? () => onRetry!(retryMessage!) : undefined);
   const label = actLabel ?? (fallbackAct ? "Run again" : undefined);
   const copyable = ending.tone === "failed" && error !== "";
 
   return (
-    <div
-      role={ending.tone === "failed" ? "alert" : "status"}
-      className={cn("stg:mx-4 stg:flex stg:items-start stg:gap-3 stg:rounded-lg stg:p-4", tone.box)}
+    <Notice
+      tone={NOTICE_TONE[ending.tone]}
+      headline={ending.headline}
+      act={act !== undefined && label !== undefined ? { label, onClick: act, busy: acting } : undefined}
+      link={link}
+      details={copyable ? details : ""}
+      className="stg:mx-4"
     >
-      <span className={cn("stg:mt-0.5 stg:shrink-0", tone.icon)} aria-hidden="true">
-        {TONE_ICONS[ending.tone]}
-      </span>
-      <div className="stg:flex stg:min-w-0 stg:flex-col stg:gap-1 stg:text-sm stg:text-foreground">
-        <p className="stg:m-0 stg:font-semibold">{ending.headline}</p>
-        <p className="stg:m-0 stg:break-words">{ending.comfort}</p>
-        {(act !== undefined && label !== undefined) || link !== undefined || copyable ? (
-          <div className="stg:mt-2 stg:flex stg:flex-wrap stg:items-center stg:gap-3">
-            {act !== undefined && label !== undefined && (
-              <Button size="sm" onClick={act} disabled={acting} aria-busy={acting}>
-                {label}
-              </Button>
-            )}
-            {link !== undefined && <NoticeLink link={link} />}
-            {copyable && (
-              <Button
-                size="xs"
-                variant="ghost"
-                onClick={copy}
-                // Alone in its row it sits flush with the words above it.
-                className={cn("stg:text-muted-foreground", act === undefined && link === undefined && "stg:-ml-2.5")}
-              >
-                {copied ? "Copied" : "Copy details"}
-              </Button>
-            )}
-          </div>
-        ) : null}
-      </div>
-    </div>
+      <p className="stg:m-0 stg:break-words">{ending.comfort}</p>
+    </Notice>
   );
 }
-
-function NoticeLink({ link }: { readonly link: RunErrorNoticeLink }) {
-  const className =
-    "stg:text-sm stg:text-foreground stg:underline stg:decoration-border stg:underline-offset-4 stg:hover:decoration-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:rounded-sm";
-  if (link.href === undefined) {
-    return (
-      <button type="button" onClick={link.onClick} className={className}>
-        {link.label}
-      </button>
-    );
-  }
-  return (
-    <a
-      href={link.href}
-      onClick={link.onClick}
-      className={className}
-      {...(link.external === true ? { target: "_blank", rel: "noreferrer" } : {})}
-    >
-      {link.label}
-    </a>
-  );
-}
-
-const ICON_PROPS = { width: 16, height: 16, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" } as const;
-
-const TONE_ICONS: Readonly<Record<TurnEndingTone, ReactNode>> = {
-  failed: (
-    <svg {...ICON_PROPS}>
-      <circle cx="12" cy="12" r="10" />
-      <path d="M12 8v4M12 16h.01" />
-    </svg>
-  ),
-  paused: (
-    <svg {...ICON_PROPS}>
-      <circle cx="12" cy="12" r="10" />
-      <path d="M12 6v6l4 2" />
-    </svg>
-  ),
-  stopped: (
-    <svg {...ICON_PROPS}>
-      <circle cx="12" cy="12" r="10" />
-      <path d="M12 16v-4M12 8h.01" />
-    </svg>
-  ),
-};
