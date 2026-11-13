@@ -210,6 +210,17 @@ describe("SessionViewer — Undo on a turn's changed files", () => {
     });
   });
 
+  it("leaves a refused undo to the decision errors, with no unhandled rejection", async () => {
+    stubConv.turns = [older, newest];
+    stubConv.reviewFileChanges = vi.fn().mockRejectedValue(new Error("the change no longer matches"));
+    render(<SessionViewer sessionId="ses_1" org="acme" />);
+    renderOutcomeOf(lastThreadProps(), newest);
+
+    fireEvent.click(screen.getByRole("button", { name: "Undo a.ts" }));
+    await Promise.resolve();
+    expect(stubConv.reviewFileChanges).toHaveBeenCalledTimes(1);
+  });
+
   it("offers no Undo on an older turn", () => {
     stubConv.turns = [older, newest];
     render(<SessionViewer sessionId="ses_1" org="acme" />);
