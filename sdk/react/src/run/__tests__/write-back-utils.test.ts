@@ -150,4 +150,8 @@ describe("pullRequestHostName", () => {
     expect(pullRequestHostName("")).toBeNull();
     expect(pullRequestHostName("not a url")).toBeNull();
   });
+
+  it("returns null for a URL that names no host", () => {
+    expect(pullRequestHostName("file:///tmp/pr.diff")).toBeNull();
+  });
 });

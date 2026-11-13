@@ -60,6 +60,12 @@ describe("WriteBackCard", () => {
     expect(screen.getByText("-3 deletions")).toBeTruthy();
   });
 
+  it("draws no change counts for a record with no --stat summary", () => {
+    render(<WriteBackCard writeBack={makeWriteBack({ diffSummary: "" })} />);
+    expect(screen.queryByText(/files? changed/)).toBeNull();
+    expect(screen.getByText("Pull request open")).toBeTruthy();
+  });
+
   it("falls back to the raw trailing --stat line when the summary is unparseable", () => {
     render(
       <WriteBackCard

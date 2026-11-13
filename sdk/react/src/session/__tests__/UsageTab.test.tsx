@@ -77,6 +77,14 @@ function executionWithTier(id: string, tier?: ServiceTier) {
 
 afterEach(cleanup);
 
+describe("UsageTab with no model to name", () => {
+  it("lists no By model rows when the report names neither a breakdown nor a primary model", () => {
+    usageMock.mockReturnValue(usageWith({ primaryModel: "", primaryProvider: "", modelBreakdown: [] }));
+    render(<UsageTab runs={[]} />);
+    expect(screen.queryByText("By model")).toBeNull();
+  });
+});
+
 describe("UsageTab (#362 model provenance)", () => {
   it("says there is no usage yet, and what will appear once a turn runs", () => {
     usageMock.mockReturnValue(EMPTY_USAGE);
