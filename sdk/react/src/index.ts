@@ -462,6 +462,7 @@ export type { ManageAccessDialogProps, ManageAccessButtonProps } from "./access/
 // Organization — context provider, hooks, data hooks, behavior hooks, styled form, profile panel, org switcher, and child organizations
 export {
   OrgProvider,
+  rememberActiveOrg,
   OrgSlugText,
   CreateOrganizationForm,
   OrgProfilePanel,

@@ -248,6 +248,33 @@ describe.skipIf(!capabilities.invitations)("Invitation conformance — the invit
     expect(unknown.rawMessage).toBe(COPY.notFound);
   });
 
+  // The invite page meets people who have never signed in to Stigmer: their
+  // first credential is admitted with no account (idp-shaped), and the page
+  // redeems before it makes the account. The role must be the account's the
+  // moment it exists, or the person joins with nothing and the link is spent.
+  it("[rpc:InvitationCommandController.redeem] a person who has never signed in redeems the link, then makes their account, and holds its role", async (ctx) => {
+    const mintStranger = lane.unprovisionedCaller;
+    if (mintStranger === undefined) {
+      return ctx.skip("the lane cannot mint an admitted subject with no account");
+    }
+    const invitation = await invite({ role: IamRole.member });
+    const token = invitation.status?.token ?? "";
+    const stranger = await mintStranger();
+
+    const redeemed = await stranger.invitationCommand.redeem({ token });
+    expect(redeemed.status?.redemptionCount).toBe(1);
+
+    await stranger.identityAccountCommand.provisionMyAccount({});
+    const accountId = await lane.accountIdOf(stranger);
+    expect(
+      redeemed.status?.redemptions.map((entry) => entry.identityAccountId),
+      "the redemption names the account the person was given",
+    ).toEqual([accountId]);
+    expect(await organizationRolesOf(org, accountId)).toEqual(["member"]);
+    const again = await expectGrpcCode(() => stranger.invitationCommand.redeem({ token }), Code.AlreadyExists, "a redeem after joining");
+    expect(again.rawMessage).toBe(COPY.alreadyMember);
+  });
+
   it("[rpc:InvitationCommandController.redeem] a link of one use refuses a second person, and its preview says it is used up", async () => {
     const invitation = await invite({ maxRedemptions: 1 });
     const token = invitation.status?.token ?? "";

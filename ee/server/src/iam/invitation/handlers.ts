@@ -36,7 +36,11 @@
  *               organization refused (the composition's credential
  *               binding: such a credential joins nothing), the membership
  *               check, then the guarded atomic redemption (store.ts)
- *               before the grant; a lost slot has granted nothing and
+ *               before the grant, both naming the account the person
+ *               stands for or will (`accountIdForCaller`: the invite page
+ *               redeems a first-time visitor's link before their account
+ *               is made, and a grant naming their raw subject would
+ *               belong to nobody once it is); a lost slot has granted nothing and
  *               refuses with the honest copy re-read from the row, and a
  *               failed grant releases its own record
  *   get         Authorize (`can_view` on the invitation) → LoadTarget
@@ -133,8 +137,9 @@ import type {
   RequestContext,
   ResourceAuthorizationLifecycle,
 } from "@stigmer/server";
-import type { ServiceAccountLookup } from "@stigmer/server";
+import type { AccountsByCaller } from "@stigmer/server";
 import {
+  accountIdForCaller,
   internalError,
   notFoundError,
   listPageFingerprint,
@@ -193,8 +198,11 @@ export interface InvitationLaneDeps {
    * refused here when the invitation is another's.
    */
   readonly credentialBinding: Pick<CredentialBinding, "admitsOrganization">;
-  /** The identity-account port: whether the caller is a service account, which invites nobody. */
-  readonly accounts: ServiceAccountLookup;
+  /**
+   * The identity-account port: whether the caller is a service account,
+   * which invites nobody, and which account a redeemer stands for.
+   */
+  readonly accounts: AccountsByCaller;
 }
 
 type Commands = ServiceImpl<typeof InvitationCommandController>;
@@ -390,10 +398,14 @@ async function redeemInvitation(
   await refuseBoundElsewhere(deps.credentialBinding, caller, org);
   await refuseExistingMember(deps.authorizer, caller, org);
 
+  // The account the redeemer stands for, or the one their first sign-in
+  // will make (the header's redeem row).
+  const redeemer = await accountIdForCaller(deps.accounts, caller);
+
   // Record before grant: a lost slot then has nothing to undo, so no
   // redemption ever revokes a role row another one stands on (the header).
   const redeemedAt = new Date();
-  const recorded = await deps.store.recordRedemption(invitationId, caller.identityId, redeemedAt);
+  const recorded = await deps.store.recordRedemption(invitationId, redeemer, redeemedAt);
   if (recorded.kind === "refused") {
     const current = await deps.store.findById(invitationId);
     const currentState = current?.status?.state ?? InvitationState.invitation_state_unspecified;
@@ -408,7 +420,7 @@ async function redeemInvitation(
   const role = create(GrantSpecSchema, {
     principal: create(ApiResourceRefSchema, {
       kind: "identity_account",
-      id: caller.identityId,
+      id: redeemer,
     }),
     relation: IamRole[invitation.spec?.role ?? IamRole.iam_role_unspecified],
     resource: create(ApiResourceRefSchema, { kind: "organization", id: org }),
@@ -421,14 +433,14 @@ async function redeemInvitation(
     await deps.grants.create(role, inviter);
   } catch (grantError) {
     try {
-      const released = await deps.store.releaseRedemption(invitationId, caller.identityId, redeemedAt);
+      const released = await deps.store.releaseRedemption(invitationId, redeemer, redeemedAt);
       if (released.kind === "absent") {
         // The row, or this redemption's entry, went away between the
         // record and the release (a delete, a hand edit): nothing to undo,
         // but the trace is what finds a ledger that disagrees.
         deps.logger.warn("a failed grant found no redemption to release", {
           invitationId,
-          caller: caller.identityId,
+          caller: redeemer,
           org,
         });
       }
@@ -437,7 +449,7 @@ async function redeemInvitation(
         "releasing a redemption FAILED after its grant failed — reconcile manually",
         {
           invitationId,
-          caller: caller.identityId,
+          caller: redeemer,
           org,
           grantError: grantError instanceof Error ? grantError.message : String(grantError),
           error: releaseError instanceof Error ? releaseError.message : String(releaseError),
