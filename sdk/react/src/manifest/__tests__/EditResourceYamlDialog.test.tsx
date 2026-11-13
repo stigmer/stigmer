@@ -5,7 +5,7 @@
 // applying will do: an edited slug on a document that keeps its id reads
 // as a rename, a kind that cannot rename says it keeps its slug, and a
 // kind that cannot change its visibility says it keeps that, before Apply
-// is pressed.
+// is pressed. Cancel closes the dialog without applying.
 
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
@@ -61,11 +61,11 @@ const RESOURCE = create(AgentSchema, {
   metadata: { id: "agt_1", slug: "clinic", org: "acme", name: "Clinic" },
 });
 
-function renderDialog() {
+function renderDialog(onOpenChange: (open: boolean) => void = vi.fn()) {
   return render(
     <EditResourceYamlDialog
       open
-      onOpenChange={vi.fn()}
+      onOpenChange={onOpenChange}
       resource={RESOURCE}
       onApplied={vi.fn()}
     />,
@@ -193,5 +193,18 @@ describe("EditResourceYamlDialog — what applying will do", () => {
     editState = { target: { action: "create", slug: "second-bot" } };
     renderDialog();
     expect(screen.getByText("Applying will create second-bot.")).toBeTruthy();
+  });
+});
+
+describe("EditResourceYamlDialog — Cancel", () => {
+  it("closes the dialog without applying", () => {
+    editState = {};
+    applyMock.mockClear();
+    const onOpenChange = vi.fn();
+    renderDialog(onOpenChange);
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+    expect(applyMock).not.toHaveBeenCalled();
   });
 });

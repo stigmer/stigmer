@@ -1,7 +1,8 @@
 /**
  * InvitationRedemption names the organization from the preview's org_name,
  * before and after the invitation is accepted, and falls back to a plain
- * phrase when the preview carries none. The preview and redeem hooks are
+ * phrase when the preview carries none. A preview that fails to load
+ * shows why, and Try again reads it again. The preview and redeem hooks are
  * stubbed.
  */
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
@@ -9,15 +10,20 @@ import { create } from "@bufbuild/protobuf";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { InvitationSchema } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/api_pb";
+import { getUserMessage } from "@stigmer/client";
 
-const state = vi.hoisted(() => ({ orgName: "Acme Robotics" }));
+const state = vi.hoisted(() => ({
+  orgName: "Acme Robotics",
+  error: null as Error | null,
+  refetch: (() => {}) as () => void,
+}));
 
 vi.mock("../useInvitationPreview.js", () => ({
   useInvitationPreview: () => ({
     preview: { isValid: true, orgName: state.orgName, orgLogoUrl: "", role: 0 },
     isLoading: false,
-    error: null,
-    refetch: () => {},
+    error: state.error,
+    refetch: state.refetch,
   }),
 }));
 
@@ -35,6 +41,8 @@ import { InvitationRedemption } from "../InvitationRedemption";
 afterEach(() => {
   cleanup();
   state.orgName = "Acme Robotics";
+  state.error = null;
+  state.refetch = () => {};
 });
 
 describe("InvitationRedemption names the organization from org_name", () => {
@@ -51,5 +59,19 @@ describe("InvitationRedemption names the organization from org_name", () => {
     expect(screen.getAllByText(/Unknown organization/).length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole("button", { name: /accept invitation/i }));
     expect(await screen.findByText(/joined the organization/)).toBeTruthy();
+  });
+});
+
+describe("InvitationRedemption when the preview fails to load", () => {
+  it("says why, and Try again reads the preview again", () => {
+    const refetch = vi.fn();
+    state.error = new Error("network down");
+    state.refetch = refetch;
+    render(<InvitationRedemption token="tok_1" isAuthenticated />);
+
+    expect(screen.getByText(getUserMessage(state.error))).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /accept invitation/i })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(refetch).toHaveBeenCalledTimes(1);
   });
 });

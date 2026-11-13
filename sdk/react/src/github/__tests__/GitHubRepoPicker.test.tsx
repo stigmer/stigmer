@@ -4,13 +4,15 @@
  *     count, and marks each one private or public;
  *   - "All GitHub" says how many repositories the search matched;
  *   - picking a repository opens its Branch choice on the default branch,
- *     and Add hands back the clone URL and the chosen branch.
+ *     and Add hands back the clone URL and the chosen branch;
+ *   - "Paste a URL" swaps the list for the URL entry, and its back arrow
+ *     brings the list back with the search box focused.
  *
  * The repository and search hooks are stubbed; their server reads are
  * proven in serverReads.test.tsx.
  */
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { GitHubBranch, GitHubRepo, UseGitHubReposReturn } from "../useGitHubRepos";
 import type { UseGitHubSearchReturn } from "../useGitHubSearch";
 
@@ -118,5 +120,20 @@ describe("GitHubRepoPicker", () => {
     fireEvent.change(branch, { target: { value: "release" } });
     fireEvent.click(screen.getByRole("button", { name: "Add" }));
     expect(onSelect).toHaveBeenCalledWith("https://github.com/acme/api.git", "release");
+  });
+
+  it("goes back from the pasted-URL entry to the repo list with the search focused", async () => {
+    render(<GitHubRepoPicker org="acme" onSelect={() => {}} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Paste a URL" }));
+    expect(screen.getByPlaceholderText("https://github.com/org/repo")).toBeTruthy();
+    expect(screen.queryByRole("listbox", { name: "Repositories" })).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Back to repo list" }));
+    expect(screen.queryByPlaceholderText("https://github.com/org/repo")).toBeNull();
+    const list = screen.getByRole("listbox", { name: "Repositories" });
+    expect(within(list).getByRole("option", { name: /api/ })).toBeTruthy();
+    const search = screen.getByPlaceholderText("Search repositories...");
+    await waitFor(() => expect(document.activeElement).toBe(search));
   });
 });
