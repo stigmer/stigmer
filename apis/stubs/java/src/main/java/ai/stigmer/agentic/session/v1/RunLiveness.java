@@ -225,10 +225,11 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * How long the turn has waited for a sandbox with room to start in,
    * measured by the server when it sent this: before the turn's runner
-   * starts, the server sends this liveness itself each time it asks the
-   * sandbox fleet for room and is told there is none, at most 15 seconds
-   * apart. Unset when it is not waiting for one; the server sends a
-   * liveness without it once the turn has a sandbox.
+   * starts, the server sends this liveness itself each time the sandbox
+   * fleet answers that it has no room. It asks again after a pause of at
+   * most 15 seconds, and one ask can itself take longer. Unset when it is
+   * not waiting for one; the server sends a liveness without it once the
+   * turn has a sandbox.
    * </pre>
    *
    * <code>.google.protobuf.Duration awaiting_sandbox_for = 4 [json_name = "awaitingSandboxFor"];</code>
@@ -242,10 +243,11 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * How long the turn has waited for a sandbox with room to start in,
    * measured by the server when it sent this: before the turn's runner
-   * starts, the server sends this liveness itself each time it asks the
-   * sandbox fleet for room and is told there is none, at most 15 seconds
-   * apart. Unset when it is not waiting for one; the server sends a
-   * liveness without it once the turn has a sandbox.
+   * starts, the server sends this liveness itself each time the sandbox
+   * fleet answers that it has no room. It asks again after a pause of at
+   * most 15 seconds, and one ask can itself take longer. Unset when it is
+   * not waiting for one; the server sends a liveness without it once the
+   * turn has a sandbox.
    * </pre>
    *
    * <code>.google.protobuf.Duration awaiting_sandbox_for = 4 [json_name = "awaitingSandboxFor"];</code>
@@ -259,10 +261,11 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * How long the turn has waited for a sandbox with room to start in,
    * measured by the server when it sent this: before the turn's runner
-   * starts, the server sends this liveness itself each time it asks the
-   * sandbox fleet for room and is told there is none, at most 15 seconds
-   * apart. Unset when it is not waiting for one; the server sends a
-   * liveness without it once the turn has a sandbox.
+   * starts, the server sends this liveness itself each time the sandbox
+   * fleet answers that it has no room. It asks again after a pause of at
+   * most 15 seconds, and one ask can itself take longer. Unset when it is
+   * not waiting for one; the server sends a liveness without it once the
+   * turn has a sandbox.
    * </pre>
    *
    * <code>.google.protobuf.Duration awaiting_sandbox_for = 4 [json_name = "awaitingSandboxFor"];</code>
@@ -1336,10 +1339,11 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * How long the turn has waited for a sandbox with room to start in,
      * measured by the server when it sent this: before the turn's runner
-     * starts, the server sends this liveness itself each time it asks the
-     * sandbox fleet for room and is told there is none, at most 15 seconds
-     * apart. Unset when it is not waiting for one; the server sends a
-     * liveness without it once the turn has a sandbox.
+     * starts, the server sends this liveness itself each time the sandbox
+     * fleet answers that it has no room. It asks again after a pause of at
+     * most 15 seconds, and one ask can itself take longer. Unset when it is
+     * not waiting for one; the server sends a liveness without it once the
+     * turn has a sandbox.
      * </pre>
      *
      * <code>.google.protobuf.Duration awaiting_sandbox_for = 4 [json_name = "awaitingSandboxFor"];</code>
@@ -1352,10 +1356,11 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * How long the turn has waited for a sandbox with room to start in,
      * measured by the server when it sent this: before the turn's runner
-     * starts, the server sends this liveness itself each time it asks the
-     * sandbox fleet for room and is told there is none, at most 15 seconds
-     * apart. Unset when it is not waiting for one; the server sends a
-     * liveness without it once the turn has a sandbox.
+     * starts, the server sends this liveness itself each time the sandbox
+     * fleet answers that it has no room. It asks again after a pause of at
+     * most 15 seconds, and one ask can itself take longer. Unset when it is
+     * not waiting for one; the server sends a liveness without it once the
+     * turn has a sandbox.
      * </pre>
      *
      * <code>.google.protobuf.Duration awaiting_sandbox_for = 4 [json_name = "awaitingSandboxFor"];</code>
@@ -1372,10 +1377,11 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * How long the turn has waited for a sandbox with room to start in,
      * measured by the server when it sent this: before the turn's runner
-     * starts, the server sends this liveness itself each time it asks the
-     * sandbox fleet for room and is told there is none, at most 15 seconds
-     * apart. Unset when it is not waiting for one; the server sends a
-     * liveness without it once the turn has a sandbox.
+     * starts, the server sends this liveness itself each time the sandbox
+     * fleet answers that it has no room. It asks again after a pause of at
+     * most 15 seconds, and one ask can itself take longer. Unset when it is
+     * not waiting for one; the server sends a liveness without it once the
+     * turn has a sandbox.
      * </pre>
      *
      * <code>.google.protobuf.Duration awaiting_sandbox_for = 4 [json_name = "awaitingSandboxFor"];</code>
@@ -1397,10 +1403,11 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * How long the turn has waited for a sandbox with room to start in,
      * measured by the server when it sent this: before the turn's runner
-     * starts, the server sends this liveness itself each time it asks the
-     * sandbox fleet for room and is told there is none, at most 15 seconds
-     * apart. Unset when it is not waiting for one; the server sends a
-     * liveness without it once the turn has a sandbox.
+     * starts, the server sends this liveness itself each time the sandbox
+     * fleet answers that it has no room. It asks again after a pause of at
+     * most 15 seconds, and one ask can itself take longer. Unset when it is
+     * not waiting for one; the server sends a liveness without it once the
+     * turn has a sandbox.
      * </pre>
      *
      * <code>.google.protobuf.Duration awaiting_sandbox_for = 4 [json_name = "awaitingSandboxFor"];</code>
@@ -1420,10 +1427,11 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * How long the turn has waited for a sandbox with room to start in,
      * measured by the server when it sent this: before the turn's runner
-     * starts, the server sends this liveness itself each time it asks the
-     * sandbox fleet for room and is told there is none, at most 15 seconds
-     * apart. Unset when it is not waiting for one; the server sends a
-     * liveness without it once the turn has a sandbox.
+     * starts, the server sends this liveness itself each time the sandbox
+     * fleet answers that it has no room. It asks again after a pause of at
+     * most 15 seconds, and one ask can itself take longer. Unset when it is
+     * not waiting for one; the server sends a liveness without it once the
+     * turn has a sandbox.
      * </pre>
      *
      * <code>.google.protobuf.Duration awaiting_sandbox_for = 4 [json_name = "awaitingSandboxFor"];</code>
@@ -1450,10 +1458,11 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * How long the turn has waited for a sandbox with room to start in,
      * measured by the server when it sent this: before the turn's runner
-     * starts, the server sends this liveness itself each time it asks the
-     * sandbox fleet for room and is told there is none, at most 15 seconds
-     * apart. Unset when it is not waiting for one; the server sends a
-     * liveness without it once the turn has a sandbox.
+     * starts, the server sends this liveness itself each time the sandbox
+     * fleet answers that it has no room. It asks again after a pause of at
+     * most 15 seconds, and one ask can itself take longer. Unset when it is
+     * not waiting for one; the server sends a liveness without it once the
+     * turn has a sandbox.
      * </pre>
      *
      * <code>.google.protobuf.Duration awaiting_sandbox_for = 4 [json_name = "awaitingSandboxFor"];</code>
@@ -1472,10 +1481,11 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * How long the turn has waited for a sandbox with room to start in,
      * measured by the server when it sent this: before the turn's runner
-     * starts, the server sends this liveness itself each time it asks the
-     * sandbox fleet for room and is told there is none, at most 15 seconds
-     * apart. Unset when it is not waiting for one; the server sends a
-     * liveness without it once the turn has a sandbox.
+     * starts, the server sends this liveness itself each time the sandbox
+     * fleet answers that it has no room. It asks again after a pause of at
+     * most 15 seconds, and one ask can itself take longer. Unset when it is
+     * not waiting for one; the server sends a liveness without it once the
+     * turn has a sandbox.
      * </pre>
      *
      * <code>.google.protobuf.Duration awaiting_sandbox_for = 4 [json_name = "awaitingSandboxFor"];</code>
@@ -1489,10 +1499,11 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * How long the turn has waited for a sandbox with room to start in,
      * measured by the server when it sent this: before the turn's runner
-     * starts, the server sends this liveness itself each time it asks the
-     * sandbox fleet for room and is told there is none, at most 15 seconds
-     * apart. Unset when it is not waiting for one; the server sends a
-     * liveness without it once the turn has a sandbox.
+     * starts, the server sends this liveness itself each time the sandbox
+     * fleet answers that it has no room. It asks again after a pause of at
+     * most 15 seconds, and one ask can itself take longer. Unset when it is
+     * not waiting for one; the server sends a liveness without it once the
+     * turn has a sandbox.
      * </pre>
      *
      * <code>.google.protobuf.Duration awaiting_sandbox_for = 4 [json_name = "awaitingSandboxFor"];</code>
@@ -1509,10 +1520,11 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * How long the turn has waited for a sandbox with room to start in,
      * measured by the server when it sent this: before the turn's runner
-     * starts, the server sends this liveness itself each time it asks the
-     * sandbox fleet for room and is told there is none, at most 15 seconds
-     * apart. Unset when it is not waiting for one; the server sends a
-     * liveness without it once the turn has a sandbox.
+     * starts, the server sends this liveness itself each time the sandbox
+     * fleet answers that it has no room. It asks again after a pause of at
+     * most 15 seconds, and one ask can itself take longer. Unset when it is
+     * not waiting for one; the server sends a liveness without it once the
+     * turn has a sandbox.
      * </pre>
      *
      * <code>.google.protobuf.Duration awaiting_sandbox_for = 4 [json_name = "awaitingSandboxFor"];</code>

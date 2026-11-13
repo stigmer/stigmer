@@ -83,7 +83,7 @@ The session's `interrupt` also stops a turn that is pending, waiting for an answ
 A turn that runs in a provisioned sandbox (a session whose execution target is `CLOUD`) gets its sandbox before its runner starts. When the sandbox fleet has no room for it, the turn waits instead of failing:
 
 - **The run stays `RUN_PENDING`,** with `status.setup_progress.current_phase` "Waiting for a sandbox". A run started again with `recover` waits the same way, back in `RUN_PENDING`.
-- **The wait is live on the session's stream:** `RunLiveness.awaiting_sandbox_for` says how long the turn has waited, sent by the server at most 15 seconds apart.
+- **The wait is live on the session's stream:** `RunLiveness.awaiting_sandbox_for` says how long the turn has waited, sent by the server each time the fleet answers that it has no room.
 - **It starts as soon as room appears,** however long that takes within the server's limit (`STIGMER_SANDBOX_WAIT_SECONDS`, 15 minutes by default).
 - **A wait past the limit ends the run** `RUN_FAILED`, with stop cause `infrastructure`, stop detail `no_sandbox_room`, and an error that says every sandbox was busy and nothing was lost.
 - **A pause takes no sandbox,** and the wait starts over on `resume`; a `cancel` ends the wait as it ends a working turn.
