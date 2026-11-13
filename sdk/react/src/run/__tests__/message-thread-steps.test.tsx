@@ -60,13 +60,14 @@ function itemToggle(words: string): HTMLButtonElement | null {
 }
 
 describe("MessageThread steps", () => {
-  it("draws a working to-do turn as its plan, the item in progress open to its steps", () => {
+  it("draws a working to-do turn as its plan, the item in progress open to its steps and each done item closed over its own", () => {
     renderScenario(scenarios.busy);
     const plan = screen.getByRole("region", { name: "Plan" });
 
     expect(within(plan).getByText("2 of 5 done")).toBeTruthy();
     expect(itemToggle("Apply the same rule to credit notes")?.getAttribute("aria-expanded")).toBe("true");
-    expect(itemToggle("Find every place invoices round")).toBeNull();
+    expect(itemToggle("Find every place invoices round")?.getAttribute("aria-expanded")).toBe("false");
+    expect(itemToggle("Add tests for the half-cent cases")).toBeNull();
     // Every step sits in the plan: no group of rows is drawn beside it.
     const groups = screen.getAllByRole("group", { name: /tool call/ });
     expect(groups.length).toBeGreaterThan(0);

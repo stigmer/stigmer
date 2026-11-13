@@ -1,0 +1,169 @@
+{
+  "screen": "S26",
+  "title": "Provider unreachable",
+  "source": "the session page, version 15",
+  "drawings": [
+    {
+      "caption": "Provider unreachable",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "session-fail-unreachable",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Fix invoice rounding",
+          "type": [
+            18,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Didn't finish",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "0s",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Invoices are off by a cent. Can you fix the rounding?",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Stigmer couldn't reach Anthropic.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "The connection dropped before Anthropic answered. Nothing was lost; Run again picks up where it stopped.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Run again",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Anthropic's status page",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Reply…",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Agent",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Export transcript",
+          "height": 32
+        },
+        {
+          "name": "Show panel",
+          "height": 32
+        },
+        {
+          "name": "Run again",
+          "height": 26
+        },
+        {
+          "name": "Copy details",
+          "height": 26
+        },
+        {
+          "name": "Agent",
+          "height": 28
+        },
+        {
+          "name": "Claude Sonnet 4.6",
+          "height": 30
+        },
+        {
+          "name": "Workspace",
+          "height": 32
+        },
+        {
+          "name": "Attach files",
+          "height": 32
+        },
+        {
+          "name": "Configure agent, tools, and skills",
+          "height": 32
+        },
+        {
+          "name": "Send message",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {
+        "button Copy details": "Endings: a notice's acts at xs, with their icons",
+        "button Export transcript": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
+        "button Run again": "Endings: a notice's acts at xs, with their icons",
+        "button Show panel": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
+        "type Didn't finish": "The session's frame: the header pill reads at the drawn weight (drawn regular, built medium)",
+        "type Run again": "Endings: a notice's acts at xs, with their icons",
+        "word 0s": "The session's frame: one duration format, \"1m 30s\"",
+        "word Anthropic's status page": "Endings: the ending's words name the button and the status page"
+      }
+    }
+  ]
+}

@@ -1,0 +1,112 @@
+{
+  "screen": "G10",
+  "title": "The session, where parts move",
+  "source": "the Console parts page, version 3",
+  "drawings": [
+    {
+      "caption": "The session, where parts move",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "session-fail-key-rejected",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Fix invoice rounding",
+          "type": [
+            18,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Didn't finish",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "0s",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Invoices are off by a cent. Can you fix the rounding?",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Anthropic refused this organization's model key.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "The key on Models & providers isn't valid any more. Replace it, then Run again: the turn picks up where it stopped, and your message isn't sent twice. Nothing was lost.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Run again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Open Models & providers",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Download",
+          "height": 32
+        },
+        {
+          "name": "Run again",
+          "height": 32
+        },
+        {
+          "name": "Copy details",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {
+        "button Download": "The session's frame: the header's icon buttons at the drawn size",
+        "word 0s": "The session's frame: one duration format, \"1m 30s\"",
+        "word The key on Models & providers isn't valid any more. Replace it, then Run again: the turn picks up where it stopped, and your message isn't sent twice. Nothing was lost.": "Endings: the ending's words name the button"
+      }
+    }
+  ]
+}

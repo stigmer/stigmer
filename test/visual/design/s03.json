@@ -1,0 +1,225 @@
+{
+  "screen": "S03",
+  "title": "Finished",
+  "source": "the session page, version 15",
+  "drawings": [
+    {
+      "caption": "Finished",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "session-finished",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Nightly billing check",
+          "type": [
+            18,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Done",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Started by routine Nightly billing check",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "1m 14s",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "about $0.42, estimated",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Audit last month's invoices for rounding errors and fix what you find.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Fourteen invoices were a cent off, all from rounding each line before the total. invoiceTotal now rounds once, at the total. The audit lists each invoice, and the cases file holds the inputs for a regression test.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Made",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "invoice-audit.md",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Markdown · 4.1 KB",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "rounding-cases.csv",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Spreadsheet · 1.8 KB",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Changed",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "invoice.ts",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "src/billing · 1 edit",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "How it got there: read 1 file, edited invoice.ts, wrote 2 files",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "56s",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Reply…",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Agent",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Export transcript",
+          "height": 32
+        },
+        {
+          "name": "Show panel",
+          "height": 32
+        },
+        {
+          "name": "Agent",
+          "height": 28
+        },
+        {
+          "name": "Claude Sonnet 4.6",
+          "height": 30
+        },
+        {
+          "name": "Workspace",
+          "height": 32
+        },
+        {
+          "name": "Attach files",
+          "height": 32
+        },
+        {
+          "name": "Configure agent, tools, and skills",
+          "height": 32
+        },
+        {
+          "name": "Send message",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {
+        "button Export transcript": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
+        "button Show panel": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
+        "type Done": "The session's frame: the header pill reads at the drawn weight (drawn regular, built medium)",
+        "type Fourteen invoices were a cent off, all from rounding each line before the total. invoiceTotal now rounds once, at the total. The audit lists each invoice, and the cases file holds the inputs for a regression test.": "The session's frame: the answer's lines at the scale's 20px, its acts in no reserved row",
+        "word 1m 14s": "The session's frame: one duration format, \"1m 30s\"",
+        "word 56s": "The session's frame: one duration format, \"1m 30s\"",
+        "word Started by routine Nightly billing check": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "word src/billing · 1 edit": "Steps, approvals and the finished turn: the screen's parts as drawn"
+      }
+    }
+  ]
+}

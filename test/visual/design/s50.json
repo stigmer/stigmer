@@ -1,0 +1,482 @@
+{
+  "screen": "S50",
+  "title": "A file, opened",
+  "source": "the session page, version 15",
+  "drawings": [
+    {
+      "caption": "The preview window: name, kind and size, then the acts, quiet, with Delete last.",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "session-file-preview",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "invoice-audit.md",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Markdown · 4.1 KB",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Copy",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Download",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Add as skill",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Delete",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Rendered",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Source",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Invoice rounding audit",
+          "type": [
+            18,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Fourteen invoices were a cent off. Each rounded every line before the total.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Invoice",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Billed",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Correct",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "INV-1042",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "INV-1057",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Copy",
+          "height": 28
+        },
+        {
+          "name": "Download",
+          "height": 28
+        },
+        {
+          "name": "Add as skill",
+          "height": 28
+        },
+        {
+          "name": "Delete",
+          "height": 28
+        },
+        {
+          "name": "Close",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {
+        "button Add as skill": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "button Close": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "button Delete": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "type Billed": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "type Correct": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "type Fourteen invoices were a cent off. Each rounded every line before the total.": "The session's frame: the answer's lines at the scale's 20px, its acts in no reserved row",
+        "type INV-1042": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "type INV-1057": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "type Invoice": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "type Source": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "type invoice-audit.md": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "word Add as skill": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "word Delete": "Steps, approvals and the finished turn: the screen's parts as drawn"
+      }
+    },
+    {
+      "caption": "The panel's file tab draws the same frame.",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "session-inspector",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Nightly billing check",
+          "type": [
+            18,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Done",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "1m 14s",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Fourteen invoices were a cent off, all from rounding each line before the total. invoiceTotal now rounds once, at the total. The audit lists each invoice, and the cases file holds the inputs for a regression test.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Made",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "invoice-audit.md",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Markdown · 4.1 KB",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "rounding-cases.csv",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Spreadsheet · 1.8 KB",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Reply…",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Agent",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "invoice-audit.md",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Markdown · 4.1 KB",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Copy",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Download",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Add as skill",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Delete",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Rendered",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Source",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Invoice rounding audit",
+          "type": [
+            18,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Fourteen invoices were a cent off. Each rounded every line before the total.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Invoice",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Billed",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Correct",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "INV-1042",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "INV-1057",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Export transcript",
+          "height": 32
+        },
+        {
+          "name": "Show panel",
+          "height": 32
+        },
+        {
+          "name": "Agent",
+          "height": 28
+        },
+        {
+          "name": "Claude Sonnet 4.6",
+          "height": 30
+        },
+        {
+          "name": "Workspace",
+          "height": 32
+        },
+        {
+          "name": "Attach files",
+          "height": 32
+        },
+        {
+          "name": "Configure agent, tools, and skills",
+          "height": 32
+        },
+        {
+          "name": "Send message",
+          "height": 32
+        },
+        {
+          "name": "Copy",
+          "height": 28
+        },
+        {
+          "name": "Download",
+          "height": 28
+        },
+        {
+          "name": "Add as skill",
+          "height": 28
+        },
+        {
+          "name": "Delete",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {
+        "button Agent": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included",
+        "button Attach files": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included",
+        "button Claude Sonnet 4.6": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included",
+        "button Workspace": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included",
+        "type Claude Sonnet 4.6": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included",
+        "type Reply…": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included"
+      },
+      "pending": {
+        "button Add as skill": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "button Export transcript": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
+        "button Show panel": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
+        "type Billed": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "type Correct": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "type Done": "The session's frame: the header pill reads at the drawn weight (drawn regular, built medium)",
+        "type Fourteen invoices were a cent off, all from rounding each line before the total. invoiceTotal now rounds once, at the total. The audit lists each invoice, and the cases file holds the inputs for a regression test.": "The session's frame: the answer's lines at the scale's 20px, its acts in no reserved row",
+        "type Fourteen invoices were a cent off. Each rounded every line before the total.": "The session's frame: the answer's lines at the scale's 20px, its acts in no reserved row",
+        "type INV-1042": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "type INV-1057": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "type Invoice": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "type Source": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "type invoice-audit.md": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "word 1m 14s": "The session's frame: one duration format, \"1m 30s\"",
+        "word Add as skill": "Steps, approvals and the finished turn: the screen's parts as drawn"
+      }
+    }
+  ]
+}

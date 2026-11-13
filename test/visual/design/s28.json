@@ -1,0 +1,229 @@
+{
+  "screen": "S28",
+  "title": "Step limit",
+  "source": "the session page, version 15",
+  "drawings": [
+    {
+      "caption": "Step limit",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "session-fail-tool-call-limit",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Fix invoice rounding",
+          "type": [
+            18,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Paused at its step limit",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "4m 02s",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "2 of 5 to-dos done",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Invoices are off by a cent across the billing module. Find every place that rounds, fix it, and prove it with tests.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Plan",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "2 of 5 done",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Find every place invoices round",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Round once, at the invoice total",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Apply the same rule to credit notes",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Paused here",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Add tests for the half-cent cases",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Run the billing suite",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "This turn reached its step limit.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Agents pause after so many tool calls in one turn, so a loop can't run forever. What it finished is kept: 2 of 5 to-dos are done. Continue sends “Continue” and it carries on.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Continue",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Open the agent",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Reply…",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Agent",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Export transcript",
+          "height": 32
+        },
+        {
+          "name": "Show panel",
+          "height": 32
+        },
+        {
+          "name": "Continue",
+          "height": 26
+        },
+        {
+          "name": "Agent",
+          "height": 28
+        },
+        {
+          "name": "Claude Sonnet 4.6",
+          "height": 30
+        },
+        {
+          "name": "Workspace",
+          "height": 32
+        },
+        {
+          "name": "Attach files",
+          "height": 32
+        },
+        {
+          "name": "Configure agent, tools, and skills",
+          "height": 32
+        },
+        {
+          "name": "Send message",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {
+        "button Continue": "Endings: a notice's acts at xs, with their icons",
+        "button Export transcript": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
+        "button Show panel": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
+        "type Continue": "Endings: a notice's acts at xs, with their icons",
+        "type Paused at its step limit": "The session's frame: the header pill reads at the drawn weight (drawn regular, built medium)",
+        "word 2 of 5 to-dos done": "The session's frame: an ended turn keeps its to-do count first among its facts",
+        "word 4m 02s": "The session's frame: one duration format, \"1m 30s\"",
+        "word Agents pause after so many tool calls in one turn, so a loop can't run forever. What it finished is kept: 2 of 5 to-dos are done. Continue sends “Continue” and it carries on.": "Endings: the ending turn as drawn"
+      }
+    }
+  ]
+}

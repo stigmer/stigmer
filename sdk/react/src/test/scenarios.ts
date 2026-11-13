@@ -189,24 +189,32 @@ function threadEvents(taskId: string, state: "running" | "completed", reply: str
 }
 
 /** A review set's `stigmer.file_review.changes`: two edited files, both still undecided (each can be undone). */
-function reviewEvent(): SessionEvent {
-  const file = (id: string, path: string, change: string, linesAdded: number, linesRemoved: number) => ({
-    fileChangeId: id,
-    path,
-    previousPath: "",
-    change,
-    digest: `fd-${id}`,
-    linesAdded,
-    linesRemoved,
-    reviewable: "complete",
-  });
+/** One file of a review set: its id, path, how it changed and its line counts. */
+type ReviewFile = readonly [id: string, path: string, change: string, linesAdded: number, linesRemoved: number];
+
+/** The review set the file-review turn ends with: the invoice edit and the rounding helper it added. */
+const REVIEW_FILES: readonly ReviewFile[] = [
+  ["f1", "src/billing/invoice.ts", "modified", 12, 4],
+  ["f2", "src/billing/rounding.ts", "added", 30, 0],
+];
+
+function reviewEvent(files: readonly ReviewFile[] = REVIEW_FILES, changeSetId = "cs-1"): SessionEvent {
   return event({
     case: "stigmerFileReviewChanges",
     value: {
-      id: `${RUN_ID}.review.cs-1`,
-      changeSetId: "cs-1",
-      aggregateDigest: "agg-1",
-      files: [file("f1", "src/billing/invoice.ts", "modified", 12, 4), file("f2", "src/billing/rounding.ts", "added", 30, 0)],
+      id: `${RUN_ID}.review.${changeSetId}`,
+      changeSetId,
+      aggregateDigest: `agg-${changeSetId}`,
+      files: files.map(([id, path, change, linesAdded, linesRemoved]) => ({
+        fileChangeId: id,
+        path,
+        previousPath: "",
+        change,
+        digest: `fd-${id}`,
+        linesAdded,
+        linesRemoved,
+        reviewable: "complete",
+      })),
     },
   });
 }
@@ -299,23 +307,49 @@ function call(name: string, input: JsonObject, atMs: number, result?: string, to
 const BUSY_TASK_ID = `${RUN_ID}.tc-task`;
 const BUSY_TEST_RUN_ID = `${RUN_ID}.tc-execute-suite`;
 
-/** The busy turn: a to-do list, settled searches, an edit and a test run, a note, then a subagent and the full suite still running. */
+/** The edit every invoice turn makes: round once, at the total. */
+const INVOICE_EDIT = {
+  old_string: "  return lines.reduce((sum, line) => sum + round(line.amount), 0);",
+  new_string: "  return round(lines.reduce((sum, line) => sum + line.amount, 0));",
+} as const;
+
+/** The busy turn's to-do list with the first `done` items ticked and the next one in progress. */
+function busyTodos(done: number): { readonly content: string; readonly status: string }[] {
+  return BUSY_TODOS.map((content, i) => ({ content, status: i < done ? "completed" : i === done ? "in_progress" : "pending" }));
+}
+
+/** The busy turn's plan, in the agent's words. */
+const BUSY_TODOS = [
+  "Find every place invoices round",
+  "Round once, at the invoice total",
+  "Apply the same rule to credit notes",
+  "Add tests for the half-cent cases",
+  "Run the billing suite",
+] as const;
+
+/**
+ * The busy turn: the agent writes its to-do list and ticks it as it works,
+ * so each finished to-do holds its own steps (the search and the read under
+ * the first, the edit and the test run under the second), then a note, a
+ * subagent and the full suite still running under the third.
+ */
 function busyEvents(): SessionEvent[] {
-  const todos = [
-    { content: "Find every place invoices round", status: "completed" },
-    { content: "Round once, at the invoice total", status: "completed" },
-    { content: "Apply the same rule to credit notes", status: "in_progress" },
-    { content: "Add tests for the half-cent cases", status: "pending" },
-    { content: "Run the billing suite", status: "pending" },
-  ];
   return [
     samples.userMessageEvent("Invoices are off by a cent across the billing module. Find every place that rounds, fix it, and prove it with tests."),
     samples.runStatusEvent("running"),
-    ...call("write_todos", { todos }, 3_000, "Updated the to-do list", 200),
+    ...call("write_todos", { todos: busyTodos(0) }, 3_000, "Updated the to-do list", 200, `${RUN_ID}.tc-write_todos-1`),
     ...call("grep", { pattern: "round(", path: "src/billing" }, 6_000, "src/billing/invoice.ts:41\nsrc/billing/credit-note.ts:18"),
     ...call("read_file", { path: "src/billing/invoice.ts" }, 9_000, "export function invoiceTotal(lines: readonly Line[]) {"),
-    ...call("edit_file", { path: "src/billing/invoice.ts" }, 21_000, "1 edit applied", 800),
+    ...call("write_todos", { todos: busyTodos(1) }, 12_000, "Updated the to-do list", 200, `${RUN_ID}.tc-write_todos-2`),
+    ...call(
+      "edit_file",
+      { path: "src/billing/invoice.ts", ...INVOICE_EDIT },
+      21_000,
+      "1 edit applied",
+      800,
+    ),
     ...call("execute", { command: "npm test -- billing/invoice" }, 30_000, "Tests: 12 passed, 12 total", 14_000),
+    ...call("write_todos", { todos: busyTodos(2) }, 46_000, "Updated the to-do list", 200, `${RUN_ID}.tc-write_todos-3`),
     samples.agentMessageEvent("Invoice totals now round once. A researcher is mapping where credit notes round while the full suite runs.", {
       id: `${RUN_ID}.root.m1`,
       processedAt: sampleInstant(48_000),
@@ -341,6 +375,11 @@ const BUSY_LIVENESS: RunLiveness = create(RunLivenessSchema, {
   ],
 });
 
+/** What the busy turn's full suite printed so far: one file passed, the next running. */
+const BUSY_OUTPUTS: readonly ToolOutput[] = [
+  { toolUseId: BUSY_TEST_RUN_ID, delta: "PASS src/billing/invoice.test.ts (12 tests)\nRUNS src/billing/credit-note.test.ts\n" },
+];
+
 /** The Files the finished turn returned: the audit it wrote and the cases it found. */
 const FINISHED_FILES: readonly StigmerFile[] = [
   samples.outputFile("invoice-audit.md", { mimeType: "text/markdown", sizeBytes: 4_210n }),
@@ -353,7 +392,7 @@ function finishedEvents(): SessionEvent[] {
     samples.userMessageEvent("Audit last month's invoices for rounding errors and fix what you find."),
     samples.runStatusEvent("running"),
     ...call("read_file", { path: "src/billing/invoice.ts" }, 4_000, "export function invoiceTotal(lines: readonly Line[]) {"),
-    ...call("edit_file", { path: "src/billing/invoice.ts" }, 18_000, "1 edit applied", 800),
+    ...call("edit_file", { path: "src/billing/invoice.ts", ...INVOICE_EDIT }, 18_000, "1 edit applied", 800),
     ...call("write_file", { path: "/.stigmer/outputs/invoice-audit.md" }, 52_000, "Wrote 4.1 KB", 300),
     ...call("write_file", { path: "/.stigmer/outputs/rounding-cases.csv" }, 60_000, "Wrote 1.8 KB", 300, `${RUN_ID}.tc-write_file-2`),
     samples.agentMessageEvent(
@@ -527,9 +566,9 @@ function build(name: ScenarioName): Scenario {
     case "busy":
       return loaded(
         name,
-        "a long turn at work: two of five to-dos done, commands and an edit settled, a subagent and the test run still going",
+        "a long turn at work: two of five to-dos done, each holding its own steps, a subagent and the test run still going under the third",
         busyEvents(),
-        { liveness: BUSY_LIVENESS },
+        { liveness: BUSY_LIVENESS, outputs: BUSY_OUTPUTS },
       );
     case "finished":
       return loaded(
@@ -938,6 +977,13 @@ const MANY_FILES: readonly StigmerFile[] = [
   ),
 ];
 
+/** The long audit's review set: the two edits and the test it created. */
+const MANY_FILES_REVIEW: readonly ReviewFile[] = [
+  ["m1", "src/billing/invoice.ts", "modified", 1, 1],
+  ["m2", "src/billing/credit-note.ts", "modified", 1, 1],
+  ["m3", "src/billing/rounding.test.ts", "added", 1, 0],
+];
+
 /** The long audit: it reads the billing code, edits three files, runs the tests twice and writes its twenty Files. */
 function manyFilesTurn(): SessionEvent[] {
   const reads = ["src/billing/invoice.ts", "src/billing/credit-note.ts", "src/billing/line.ts", "src/billing/rounding.ts"].flatMap((path, index) =>
@@ -976,6 +1022,7 @@ function manyFilesTurn(): SessionEvent[] {
     samples.agentMessageEvent("Every October invoice is checked. Fourteen were a cent off; each has its own audit file, and the summary lists them all.", {
       processedAt: sampleInstant(358_000),
     }),
+    reviewEvent(MANY_FILES_REVIEW, "cs-many"),
     samples.runStatusEvent("completed", { processedAt: sampleInstant(362_000) }),
   ];
 }
@@ -1257,6 +1304,8 @@ interface Ending {
   readonly midPlan?: boolean;
   /** The turn never started: its run went from pending to its ending, with nothing between. */
   readonly neverStarted?: boolean;
+  /** When the turn ended, after the frozen instant: its limit's time, as the session page draws it. */
+  readonly endsAtMs?: number;
 }
 
 const ENDING_MODEL = "claude-sonnet-4.6";
@@ -1329,6 +1378,7 @@ const ENDINGS: Readonly<Record<EndingStoryName, Ending>> = {
     kind: "cost_cap",
     error: "Agent reached the cost limit for this message (~$5.0213 of the $5.00 budget). Send another message to continue.",
     midPlan: true,
+    endsAtMs: 90_000,
   },
   "fail-tool-call-limit": {
     title: "the turn reached its step limit",
@@ -1337,6 +1387,7 @@ const ENDINGS: Readonly<Record<EndingStoryName, Ending>> = {
     kind: "tool_call_limit",
     error: "Agent reached the tool-call limit for this message. Send another message to continue.",
     midPlan: true,
+    endsAtMs: 242_000,
   },
   "fail-stalled": {
     title: "the turn stopped making progress",
@@ -1345,6 +1396,7 @@ const ENDINGS: Readonly<Record<EndingStoryName, Ending>> = {
     kind: "stalled",
     error: "[StallTimeoutError] Agent stream stalled: no activity for 600s (last tool: execute). Retry or resume.",
     midPlan: true,
+    endsAtMs: 690_000,
   },
   "fail-operation-limit": {
     title: "a step ran past its time limit",
@@ -1353,6 +1405,7 @@ const ENDINGS: Readonly<Record<EndingStoryName, Ending>> = {
     kind: "operation_limit",
     error: "[OperationLimitError] `execute` ran for more than 60 minutes without finishing. Retry or resume.",
     midPlan: true,
+    endsAtMs: 3_600_000,
   },
   "fail-workspace-busy": {
     title: "another turn held the workspace",
@@ -1361,6 +1414,7 @@ const ENDINGS: Readonly<Record<EndingStoryName, Ending>> = {
     kind: "workspace_busy",
     error:
       "Workspace is in use by another session: /workspace/billing (waited 300s). Another agent execution is operating on this workspace directory; retry after it finishes.",
+    endsAtMs: 300_000,
   },
   "fail-agent-setup": {
     title: "the agent is set up wrong",
@@ -1391,6 +1445,8 @@ const ENDINGS: Readonly<Record<EndingStoryName, Ending>> = {
     stopCause: "failed",
     kind: "internal",
     error: "[TypeError] Cannot read properties of undefined (reading 'content')",
+    midPlan: true,
+    endsAtMs: 52_000,
   },
   "fail-runner-lost": {
     title: "the machine running the turn stopped",
@@ -1399,6 +1455,7 @@ const ENDINGS: Readonly<Record<EndingStoryName, Ending>> = {
     kind: "runner_lost",
     error: "Execution interrupted: runner worker was shut down. Retry or resume.",
     midPlan: true,
+    endsAtMs: 90_000,
   },
   "fail-no-sandbox-room": {
     title: "every sandbox stayed busy, so the turn never started",
@@ -1414,6 +1471,7 @@ const ENDINGS: Readonly<Record<EndingStoryName, Ending>> = {
     stopCause: "platform_stop",
     error: "",
     midPlan: true,
+    endsAtMs: 65_000,
   },
   "fail-user-stop": {
     title: "the person stopped the turn",
@@ -1421,6 +1479,7 @@ const ENDINGS: Readonly<Record<EndingStoryName, Ending>> = {
     stopCause: "user",
     error: "",
     midPlan: true,
+    endsAtMs: 90_000,
   },
   "fail-generic-model": {
     title: "the model failed the turn, and the runner named no kind",
@@ -1436,23 +1495,21 @@ const ENDINGS: Readonly<Record<EndingStoryName, Ending>> = {
   },
 };
 
-/** The busy turn's first steps: the to-do list, a search, a read and the edit, two of five to-dos done. */
+/**
+ * The busy turn's first steps, as the turn ticked its list: the search and
+ * the read under the first to-do, the edit under the second, the third in
+ * progress when the turn ends.
+ */
 function partWayEvents(): SessionEvent[] {
-  const todos = [
-    { content: "Find every place invoices round", status: "completed" },
-    { content: "Round once, at the invoice total", status: "completed" },
-    { content: "Apply the same rule to credit notes", status: "in_progress" },
-    { content: "Add tests for the half-cent cases", status: "pending" },
-    { content: "Run the billing suite", status: "pending" },
-  ];
   return [
     samples.userMessageEvent("Invoices are off by a cent across the billing module. Find every place that rounds, fix it, and prove it with tests."),
     samples.runStatusEvent("running"),
-    ...call("write_todos", { todos }, 3_000, "Updated the to-do list", 200),
+    ...call("write_todos", { todos: busyTodos(0) }, 3_000, "Updated the to-do list", 200, `${RUN_ID}.tc-write_todos-1`),
     ...call("grep", { pattern: "round(", path: "src/billing" }, 6_000, "src/billing/invoice.ts:41\nsrc/billing/credit-note.ts:18"),
     ...call("read_file", { path: "src/billing/invoice.ts" }, 9_000, "export function invoiceTotal(lines: readonly Line[]) {"),
-    ...call("edit_file", { path: "src/billing/invoice.ts" }, 21_000, "1 edit applied", 800),
-    samples.agentMessageEvent("Invoice totals now round once. Next, credit notes.", { id: `${RUN_ID}.root.m1`, processedAt: sampleInstant(30_000) }),
+    ...call("write_todos", { todos: busyTodos(1) }, 12_000, "Updated the to-do list", 200, `${RUN_ID}.tc-write_todos-2`),
+    ...call("edit_file", { path: "src/billing/invoice.ts", ...INVOICE_EDIT }, 21_000, "1 edit applied", 800),
+    ...call("write_todos", { todos: busyTodos(2) }, 30_000, "Updated the to-do list", 200, `${RUN_ID}.tc-write_todos-3`),
   ];
 }
 
@@ -1477,7 +1534,7 @@ function buildEndingStory(name: EndingStoryName): Scenario {
         ? [samples.userMessageEvent(message), samples.runStatusEvent("pending")]
         : samples.turnEvents({ message, phase: "running", reply: "" });
   // A turn that never started ends when the server's wait for a sandbox runs out: 15 minutes.
-  const endAt = ending.midPlan === true ? 90_000 : ending.neverStarted === true ? 900_000 : 400;
+  const endAt = ending.endsAtMs ?? (ending.midPlan === true ? 90_000 : ending.neverStarted === true ? 900_000 : 400);
   return loaded(name, ending.title, [
     ...start,
     samples.runStatusEvent(ending.phase, { stopCause: ending.stopCause, error: ending.error, processedAt: sampleInstant(endAt), ...detail }),

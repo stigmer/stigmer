@@ -1,0 +1,161 @@
+{
+  "screen": "S54",
+  "title": "Attachments, and the Plan tag",
+  "source": "the session page, version 15",
+  "drawings": [
+    {
+      "caption": "An image and a document on one message, one shape family; and the Plan tag on a Plan-mode message.",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "session-attachments",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Invoice a cent off",
+          "type": [
+            18,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Done",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "8s",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "ledger-october.csv · 9.2 KB",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "This invoice is a cent off. The ledger's attached too.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "INV-1042 rounds each line before the total, so it lands a cent high. The ledger shows thirteen more like it.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "How it got there: read 1 file",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "1s",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Plan Plan how invoices should round. Don't change anything yet.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Reply…",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Agent",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Export transcript",
+          "height": 32
+        },
+        {
+          "name": "Show panel",
+          "height": 32
+        },
+        {
+          "name": "Agent",
+          "height": 28
+        },
+        {
+          "name": "Claude Sonnet 4.6",
+          "height": 30
+        },
+        {
+          "name": "Workspace",
+          "height": 32
+        },
+        {
+          "name": "Attach files",
+          "height": 32
+        },
+        {
+          "name": "Configure agent, tools, and skills",
+          "height": 32
+        },
+        {
+          "name": "Send message",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {
+        "button Export transcript": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
+        "button Show panel": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
+        "type Done": "The session's frame: the header pill reads at the drawn weight (drawn regular, built medium)",
+        "type INV-1042 rounds each line before the total, so it lands a cent high. The ledger shows thirteen more like it.": "The session's frame: the answer's lines at the scale's 20px, its acts in no reserved row",
+        "word 1s": "The session's frame: one duration format, \"1m 30s\"",
+        "word 8s": "The session's frame: one duration format, \"1m 30s\"",
+        "word Plan Plan how invoices should round. Don't change anything yet.": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "word ledger-october.csv · 9.2 KB": "Steps, approvals and the finished turn: the finished turn's cards, sizes and downloads"
+      }
+    }
+  ]
+}

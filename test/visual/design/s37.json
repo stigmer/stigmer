@@ -1,0 +1,462 @@
+{
+  "screen": "S37",
+  "title": "Every file step",
+  "source": "the session page, version 15",
+  "drawings": [
+    {
+      "caption": "Every file step",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "session-file-steps",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Fix invoice rounding",
+          "type": [
+            18,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Done",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "2m 10s",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Credit notes now round once, like invoices. The old helper is gone and the new one has its own tests.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "How it got there, opened",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "9 steps · 1m 52s",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Looking",
+          "type": [
+            11,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Looked in src/billing",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "6 files",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "credit-note.ts invoice.ts line.ts legacy-rounding.ts rounding.ts types.ts",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Searched for round( in src/billing",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "2 matches in 2 files",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "invoice.ts:41 sum + roundCents(lineTotal(line)) credit-note.ts:18 amount: roundCents(line.amount)",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "1s",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Found files matching **/*.test.ts",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "4 files",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Read credit-note.ts",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "src/billing · 88 lines",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "export function creditNoteTotal(note: CreditNote): Cents { return note.lines.reduce( (sum, line) => sum + roundCents(line.amount), 0); }",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Lines 14–17 of 88 · Open the whole file",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Changing",
+          "type": [
+            11,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Edited credit-note.ts",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "+2−2 · src/billing",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "src/billing/credit-note.ts · line 16",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "- (sum, line) => sum + roundCents(line.amount), 0);",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "+ (sum, line) => sum + line.amount, 0);",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "- return note.lines.reduce(",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "+ return roundHalfEven(note.lines.reduce(",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "1s",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Created rounding.test.ts",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "+24 · src/billing · new file",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "import { roundHalfEven } from \"./rounding\"; test(\"0.335 rounds to 0.34\", () => { expect(roundHalfEven(33.5)).toBe(34); });",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Lines 1–5 of 24 · Open the whole file",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Deleted legacy-rounding.ts",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "src/billing",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Couldn't edit invoice.ts",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The text to replace wasn't in the file, so nothing changed. The agent read the file again and retried.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Edited invoice.ts",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "+1−1 · src/billing",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "1s",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Made",
+          "type": [
+            11,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Wrote rounding-audit.md",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Markdown · 2.3 KB · opens in the panel",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Reply…",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Agent",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Export transcript",
+          "height": 32
+        },
+        {
+          "name": "Show panel",
+          "height": 32
+        },
+        {
+          "name": "Agent",
+          "height": 28
+        },
+        {
+          "name": "Claude Sonnet 4.6",
+          "height": 30
+        },
+        {
+          "name": "Workspace",
+          "height": 32
+        },
+        {
+          "name": "Attach files",
+          "height": 32
+        },
+        {
+          "name": "Configure agent, tools, and skills",
+          "height": 32
+        },
+        {
+          "name": "Send message",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {
+        "button Export transcript": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
+        "button Show panel": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
+        "type Credit notes now round once, like invoices. The old helper is gone and the new one has its own tests.": "The session's frame: the answer's lines at the scale's 20px, its acts in no reserved row",
+        "type Done": "The session's frame: the header pill reads at the drawn weight (drawn regular, built medium)",
+        "type Made": "Steps, approvals and the finished turn: the finished turn's cards, sizes and downloads",
+        "word + (sum, line) => sum + line.amount, 0);": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "word + return roundHalfEven(note.lines.reduce(": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "word +1−1 · src/billing": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "word +24 · src/billing · new file": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "word +2−2 · src/billing": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "word - (sum, line) => sum + roundCents(line.amount), 0);": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "word - return note.lines.reduce(": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "word 1s": "The session's frame: one duration format, \"1m 30s\"",
+        "word 2 matches in 2 files": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "word 2m 10s": "The session's frame: one duration format, \"1m 30s\"",
+        "word 6 files": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "word 9 steps · 1m 52s": "The session's frame: one duration format, \"1m 30s\"",
+        "word Changing": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "word Couldn't edit invoice.ts": "Steps, approvals and the finished turn: step rows: the state mark, detail on a second line, names in the sans",
+        "word Created rounding.test.ts": "Steps, approvals and the finished turn: step rows: the state mark, detail on a second line, names in the sans",
+        "word Deleted legacy-rounding.ts": "Steps, approvals and the finished turn: step rows: the state mark, detail on a second line, names in the sans",
+        "word Edited credit-note.ts": "Steps, approvals and the finished turn: step rows: the state mark, detail on a second line, names in the sans",
+        "word Edited invoice.ts": "Steps, approvals and the finished turn: step rows: the state mark, detail on a second line, names in the sans",
+        "word How it got there, opened": "Steps, approvals and the finished turn: \"How it got there\" as the card's header with its count and span",
+        "word Lines 14–17 of 88 · Open the whole file": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "word Lines 1–5 of 24 · Open the whole file": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "word Looked in src/billing": "Steps, approvals and the finished turn: step rows: the state mark, detail on a second line, names in the sans",
+        "word Looking": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "word Markdown · 2.3 KB · opens in the panel": "Steps, approvals and the finished turn: the finished turn's cards, sizes and downloads",
+        "word Read credit-note.ts": "Steps, approvals and the finished turn: step rows: the state mark, detail on a second line, names in the sans",
+        "word The text to replace wasn't in the file, so nothing changed. The agent read the file again and retried.": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "word Wrote rounding-audit.md": "Steps, approvals and the finished turn: step rows: the state mark, detail on a second line, names in the sans",
+        "word credit-note.ts invoice.ts line.ts legacy-rounding.ts rounding.ts types.ts": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "word import { roundHalfEven } from \"./rounding\"; test(\"0.335 rounds to 0.34\", () => { expect(roundHalfEven(33.5)).toBe(34); });": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "word invoice.ts:41 sum + roundCents(lineTotal(line)) credit-note.ts:18 amount: roundCents(line.amount)": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "word src/billing · 88 lines": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "word src/billing/credit-note.ts · line 16": "Steps, approvals and the finished turn: the screen's parts as drawn"
+      }
+    }
+  ]
+}

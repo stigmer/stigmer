@@ -1,0 +1,228 @@
+{
+  "screen": "S32",
+  "title": "Stopped by Stigmer",
+  "source": "the session page, version 15",
+  "drawings": [
+    {
+      "caption": "Stopped by Stigmer",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "session-fail-platform-stop",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Fix invoice rounding",
+          "type": [
+            18,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Stopped by Stigmer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "1m 05s",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "2 of 5 to-dos done",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Invoices are off by a cent across the billing module. Find every place that rounds, fix it, and prove it with tests.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Plan",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "2 of 5 done",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Find every place invoices round",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Round once, at the invoice total",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Apply the same rule to credit notes",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Stopped here",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Add tests for the half-cent cases",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Run the billing suite",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Stigmer stopped this turn.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "It wasn't the agent and it wasn't you. What it finished is kept; run it again when you're ready. If it can't run, sending will say why.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Run again",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Reply…",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Agent",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Export transcript",
+          "height": 32
+        },
+        {
+          "name": "Show panel",
+          "height": 32
+        },
+        {
+          "name": "Run again",
+          "height": 26
+        },
+        {
+          "name": "Agent",
+          "height": 28
+        },
+        {
+          "name": "Claude Sonnet 4.6",
+          "height": 30
+        },
+        {
+          "name": "Workspace",
+          "height": 32
+        },
+        {
+          "name": "Attach files",
+          "height": 32
+        },
+        {
+          "name": "Configure agent, tools, and skills",
+          "height": 32
+        },
+        {
+          "name": "Send message",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {
+        "button Export transcript": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
+        "button Run again": "Endings: a notice's acts at xs, with their icons",
+        "button Show panel": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
+        "type Run again": "Endings: a notice's acts at xs, with their icons",
+        "type Stopped by Stigmer": "The session's frame: the header pill reads at the drawn weight (drawn regular, built medium)",
+        "word 1m 05s": "The session's frame: one duration format, \"1m 30s\"",
+        "word 2 of 5 done": "Endings: the ending turn as drawn",
+        "word 2 of 5 to-dos done": "The session's frame: an ended turn keeps its to-do count first among its facts",
+        "word Add tests for the half-cent cases": "Endings: the ending turn as drawn",
+        "word Apply the same rule to credit notes": "Endings: the ending turn as drawn",
+        "word Find every place invoices round": "Endings: the ending turn as drawn",
+        "word Plan": "Endings: the ending turn as drawn",
+        "word Round once, at the invoice total": "Endings: the ending turn as drawn",
+        "word Run the billing suite": "Endings: the ending turn as drawn",
+        "word Stopped here": "Endings: the ending turn as drawn"
+      }
+    }
+  ]
+}

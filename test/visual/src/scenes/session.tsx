@@ -239,9 +239,9 @@ export function sessionScene(name: ScenarioName, framing: Framing = {}): Drawing
   return sessionDrawing(scenarios[name], framing);
 }
 
-/** The session view over the ending turn `name`, framed as given. */
-export function endingStoryScene(name: EndingStoryName, framing: Framing = {}): Drawing {
-  return sessionDrawing(endingStories[name], framing);
+/** The session view over the ending turn `name`, framed as given, its server answering as `answering` names. */
+export function endingStoryScene(name: EndingStoryName, framing: Framing = {}, answering: Answering = {}): Drawing {
+  return sessionDrawing(endingStories[name], framing, answering);
 }
 
 /** The session view over the step turn `name`, framed as given. */

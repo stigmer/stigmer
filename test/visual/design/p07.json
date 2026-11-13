@@ -1,0 +1,116 @@
+{
+  "screen": "P07",
+  "title": "Empty state",
+  "source": "the Console parts page, version 3",
+  "drawings": [
+    {
+      "caption": "Empty state",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "settings-api-keys",
+          "width": "desktop"
+        },
+        {
+          "scene": "parts",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "No API keys yet",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "A key lets the CLI on a server, a CI job or a script act as you. You see its value once, when it's made.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "New API key",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Nothing matches “ledgr”",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Check the spelling, or clear the search to see every agent.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Clear search",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Only an admin can open Service accounts",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Your organization's admins manage its service accounts.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "No fires yet. The routine's first fire shows here.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "New API key",
+          "height": 32
+        },
+        {
+          "name": "Clear search",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {
+        "button Clear search": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word A key lets the CLI on a server, a CI job or a script act as you. You see its value once, when it's made.": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word Check the spelling, or clear the search to see every agent.": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word Clear search": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word No fires yet. The routine's first fire shows here.": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word Nothing matches “ledgr”": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word Your organization's admins manage its service accounts.": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene"
+      }
+    }
+  ]
+}

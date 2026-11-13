@@ -3,7 +3,8 @@
 // widths, and audited with axe in both modes.
 //
 // A scene is drawn as tests/draw.ts draws it: at the scenario catalogue's
-// clock, settled, and opened if its state opens on a click.
+// clock, settled, opened if its state opens on a click, and grown whole if
+// the catalogue pictures it whole, so its picture holds the whole page.
 //
 // A changed look fails until its screenshots are minted again
 // (`make test-visual UPDATE=1`) and the difference is approved in review.
@@ -27,7 +28,7 @@ const SCREENSHOTS = fileURLToPath(new URL("./__screenshots__/", import.meta.url)
 test.describe("KIT-03 the look changes only on purpose", () => {
   for (const shot of screenshotsOf(SCENES)) {
     test(`${shot.scene.id} ${shot.mode} ${shot.width} looks as approved`, async ({ page }) => {
-      await draw(page, shot.scene, shot.mode, WIDTHS[shot.width]);
+      await draw(page, shot.scene, shot.mode, WIDTHS[shot.width], { whole: true });
       await expect(page).toHaveScreenshot(shot.file, { fullPage: true });
     });
   }

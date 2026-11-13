@@ -1,0 +1,364 @@
+{
+  "screen": "G04",
+  "title": "Models, none connected",
+  "source": "the Console parts page, version 3",
+  "drawings": [
+    {
+      "caption": "Models, none connected",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "models-hub-none",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Models & providers",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Which models Acme Corp's agents can run, and the provider keys behind them.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Providers",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "A",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Anthropic",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Not connected",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Runs that need Anthropic are refused until a key is added.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Connect Anthropic",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Paste an Anthropic API key, and every member of Acme Corp can run these models. Anthropic bills Acme Corp directly.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Get a key at console.anthropic.com",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Unlocks",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stigmer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Claude Haiku 4.5",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Opus 4.8",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.5",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Agent",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Claude Haiku 4.5",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Opus 4.8",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "O",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "OpenAI",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Not connected",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Runs that need OpenAI are refused until a key is added.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Connect OpenAI",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Paste an OpenAI API key, and every member of Acme Corp can run these models. OpenAI bills Acme Corp directly.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Get a key at platform.openai.com",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Unlocks",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Stigmer",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "GPT-5.2",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Your default models",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "The model a new conversation starts on, for each engine, on every device and in the CLI. A pick in the composer wins for that conversation.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Stigmer",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Stigmer's own harness: runs any catalog model, open source end to end",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Platform default (Claude Sonnet 4.6)",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Needs an Anthropic key",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Claude Agent",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Anthropic's Claude Agent SDK: Claude models on your Anthropic key",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Platform default (Claude Sonnet 4.6)",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Needs an Anthropic key",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Connect Anthropic",
+          "height": 32
+        },
+        {
+          "name": "Connect OpenAI",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {
+        "type Anthropic's Claude Agent SDK: Claude models on your Anthropic key": "The console's parts: the part at its drawn size and weight",
+        "type Claude Agent": "The console's parts: the part at its drawn size and weight",
+        "type Get a key at console.anthropic.com": "The console's parts: the part at its drawn size and weight",
+        "type Get a key at platform.openai.com": "The console's parts: the part at its drawn size and weight",
+        "type Needs an Anthropic key": "The console's parts: the part at its drawn size and weight",
+        "type Platform default (Claude Sonnet 4.6)": "The console's parts: the part at its drawn size and weight",
+        "type Stigmer": "The console's parts: the part at its drawn size and weight",
+        "type Stigmer's own harness: runs any catalog model, open source end to end": "The console's parts: the part at its drawn size and weight",
+        "type Unlocks": "The console's parts: the part at its drawn size and weight",
+        "word Paste an Anthropic API key, and every member of Acme Corp can run these models. Anthropic bills Acme Corp directly.": "The console's parts: the page says and offers what its drawing does",
+        "word Paste an OpenAI API key, and every member of Acme Corp can run these models. OpenAI bills Acme Corp directly.": "The console's parts: the page says and offers what its drawing does"
+      }
+    }
+  ]
+}

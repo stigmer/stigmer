@@ -154,7 +154,7 @@ describe("the scenario catalogue", () => {
     expect(text).toContain("| Case | Before | After |");
   });
 
-  it("keeps a long turn at work: two of five to-dos done, settled calls, and a subagent and the suite open", () => {
+  it("keeps a long turn at work: its list ticked as it works, two of five to-dos done, settled calls, and a subagent and the suite open", () => {
     const turn = onlyTurn("busy");
     expect(turn.ended).toBe(false);
     expect(turn.status?.phase).toBe("running");
@@ -164,11 +164,15 @@ describe("the scenario catalogue", () => {
       ["write_todos", false],
       ["grep", false],
       ["read_file", false],
+      ["write_todos", false],
       ["edit_file", false],
       ["execute", false],
+      ["write_todos", false],
       ["task", true],
       ["execute", true],
     ]);
+    expect(tools.find((tool) => tool.name === "edit_file")?.input).toMatchObject({ old_string: expect.any(String), new_string: expect.any(String) });
+    expect(tools.at(-1)?.liveOutput).toContain("RUNS src/billing/credit-note.test.ts");
     expect(taskOf("busy").thread?.state).toBe("running");
     expect(turn.liveness?.operations.map((operation) => [operation.name, operation.elapsedMs])).toEqual([
       ["task", 38_000],
@@ -451,9 +455,31 @@ describe("the ending turns", () => {
     for (const name of ENDING_STORY_NAMES) expect(endingStories[name].fold.turns[0]!.ended, name).toBe(true);
   });
 
-  it("stops part-way through the plan where the ending interrupts work: two of five to-dos done", () => {
-    const todos = endingStories["fail-stalled"].fold.turns[0]!.todos;
-    expect(todos.map((todo) => todo.status)).toEqual(["completed", "completed", "in_progress", "pending", "pending"]);
+  it("stops part-way through the plan where the ending interrupts work: two of five to-dos done, each holding its own steps", () => {
+    const turn = endingStories["fail-stalled"].fold.turns[0]!;
+    expect(turn.todos.map((todo) => todo.status)).toEqual(["completed", "completed", "in_progress", "pending", "pending"]);
+    expect(turn.items.filter((item) => item.kind === "message"), "no answer line beside the plan").toEqual([]);
     expect(endingStories["fail-key-rejected"].fold.turns[0]!.todos).toEqual([]);
+  });
+
+  it("ends each turn at the time the session page draws for it", () => {
+    const anchor = Date.parse(SAMPLE_INSTANT);
+    const endsAt = (name: (typeof ENDING_STORY_NAMES)[number]): number => {
+      const last = endingStories[name].events.at(-1)!;
+      return Date.parse((last.event.value as { processedAt?: string }).processedAt ?? "") - anchor;
+    };
+    expect(
+      Object.fromEntries((["fail-cost-cap", "fail-tool-call-limit", "fail-stalled", "fail-operation-limit", "fail-workspace-busy", "fail-internal", "fail-runner-lost", "fail-platform-stop", "fail-user-stop"] as const).map((name) => [name, endsAt(name)])),
+    ).toEqual({
+      "fail-cost-cap": 90_000,
+      "fail-tool-call-limit": 242_000,
+      "fail-stalled": 690_000,
+      "fail-operation-limit": 3_600_000,
+      "fail-workspace-busy": 300_000,
+      "fail-internal": 52_000,
+      "fail-runner-lost": 90_000,
+      "fail-platform-stop": 65_000,
+      "fail-user-stop": 90_000,
+    });
   });
 });

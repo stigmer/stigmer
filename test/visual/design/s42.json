@@ -1,0 +1,160 @@
+{
+  "screen": "S42",
+  "title": "Thinking",
+  "source": "the session page, version 15",
+  "drawings": [
+    {
+      "caption": "A stored thought reads \"Thought\" and opens to its words; one still open reads \"Thinking\" with a small spinner.",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "session-thinking",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Fix invoice rounding",
+          "type": [
+            18,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Working · 1m 30s",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Invoices are off by a cent. Can you fix the rounding?",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Thought",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "A cent off on many invoices sounds like rounding each line before the total. If lineTotal rounds and invoiceTotal adds the rounded lines, three lines of 0.335 give 1.02 where the exact total rounds to 1.01. Read invoice.ts before changing anything.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Read invoice.ts",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "src/billing",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "1s",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Thinking",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Reply…",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Agent",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Export transcript",
+          "height": 32
+        },
+        {
+          "name": "Show panel",
+          "height": 32
+        },
+        {
+          "name": "Agent",
+          "height": 28
+        },
+        {
+          "name": "Claude Sonnet 4.6",
+          "height": 30
+        },
+        {
+          "name": "Workspace",
+          "height": 32
+        },
+        {
+          "name": "Attach files",
+          "height": 32
+        },
+        {
+          "name": "Configure agent, tools, and skills",
+          "height": 32
+        },
+        {
+          "name": "Stop generating",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {
+        "button Export transcript": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
+        "button Show panel": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
+        "type Working · 1m 30s": "The session's frame: the header pill reads at the drawn weight (drawn regular, built medium)",
+        "word 1s": "The session's frame: one duration format, \"1m 30s\"",
+        "word A cent off on many invoices sounds like rounding each line before the total. If lineTotal rounds and invoiceTotal adds the rounded lines, three lines of 0.335 give 1.02 where the exact total rounds to 1.01. Read invoice.ts before changing anything.": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "word Read invoice.ts": "Steps, approvals and the finished turn: step rows: the state mark, detail on a second line, names in the sans",
+        "word src/billing": "Steps, approvals and the finished turn: the screen's parts as drawn"
+      }
+    }
+  ]
+}

@@ -1,0 +1,220 @@
+{
+  "screen": "G08",
+  "title": "Library: agents",
+  "source": "the Console parts page, version 3",
+  "drawings": [
+    {
+      "caption": "Library: agents",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "the Library's agents page is drawn by the console, not the gallery: its Built picture comes from the local console",
+      "words": [
+        {
+          "text": "Agents",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Create agent",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Browse and manage agents in your organization.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Search agents…",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "V",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Variance reporter",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "acme",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Reads the ledger each morning and reports every account that moved more than its threshold.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "R",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Receipts matcher",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "acme",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Matches card receipts to the statement and lists what is missing.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "P",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Payroll reconciler",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "acme",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Reconciles the payroll clearing account against the bank feed.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "I",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Invoice auditor",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "acme",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Audits last month's invoices for rounding errors and fixes what it finds.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "V",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Vendor onboarding",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "acme",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Collects a new vendor's tax forms and bank details and files them.",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Apply YAML",
+          "height": 32
+        },
+        {
+          "name": "Create agent",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

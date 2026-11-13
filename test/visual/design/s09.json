@@ -1,0 +1,57 @@
+{
+  "screen": "S09",
+  "title": "The session didn't load",
+  "source": "the session page, version 15",
+  "drawings": [
+    {
+      "caption": "The session didn't load",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "session-load-failed",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "This session didn't open",
+          "type": [
+            18,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Stigmer's server didn't answer. The session itself is safe; nothing in it was lost.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Try again",
+          "height": 34
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {
+        "button Try again": "The screens still in their old look: this screen is still its pre-redesign self",
+        "type Try again": "The screens still in their old look: this screen is still its pre-redesign self",
+        "word Stigmer's server didn't answer. The session itself is safe; nothing in it was lost.": "The screens still in their old look: this screen is still its pre-redesign self",
+        "word This session didn't open": "The screens still in their old look: this screen is still its pre-redesign self"
+      }
+    }
+  ]
+}

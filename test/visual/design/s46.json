@@ -1,0 +1,298 @@
+{
+  "screen": "S46",
+  "title": "A Plan-mode turn, finished",
+  "source": "the session page, version 15",
+  "drawings": [
+    {
+      "caption": "The plan shows once, as its card: the title, its size, Open, Copy and Download, and Build. The header says \"1 plan\".",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "session-plan-build",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Plan invoice rounding",
+          "type": [
+            18,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Done",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "24s",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "1 plan",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Plan Plan how invoices should round. Don't change anything yet.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "How it got there: searched 1 pattern, read invoice.ts",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "18s",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Round invoices once, at the total",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Plan · 312 B",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Build",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Reply…",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Agent",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Export transcript",
+          "height": 32
+        },
+        {
+          "name": "Show panel",
+          "height": 32
+        },
+        {
+          "name": "Open",
+          "height": 28
+        },
+        {
+          "name": "Copy",
+          "height": 28
+        },
+        {
+          "name": "Download",
+          "height": 28
+        },
+        {
+          "name": "Build",
+          "height": 26
+        },
+        {
+          "name": "Agent",
+          "height": 28
+        },
+        {
+          "name": "Claude Sonnet 4.6",
+          "height": 30
+        },
+        {
+          "name": "Workspace",
+          "height": 32
+        },
+        {
+          "name": "Attach files",
+          "height": 32
+        },
+        {
+          "name": "Configure agent, tools, and skills",
+          "height": 32
+        },
+        {
+          "name": "Send message",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {
+        "button Agent": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included",
+        "word Agent": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included"
+      },
+      "pending": {
+        "button Build": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "button Export transcript": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
+        "button Show panel": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
+        "type Build": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "type Done": "The session's frame: the header pill reads at the drawn weight (drawn regular, built medium)",
+        "word 18s": "The session's frame: one duration format, \"1m 30s\"",
+        "word 24s": "The session's frame: one duration format, \"1m 30s\"",
+        "word How it got there: searched 1 pattern, read invoice.ts": "Steps, approvals and the finished turn: \"How it got there\" as the card's header with its count and span",
+        "word Plan Plan how invoices should round. Don't change anything yet.": "Steps, approvals and the finished turn: the screen's parts as drawn"
+      }
+    },
+    {
+      "caption": "Open shows the same frame as any file, with Build as the one primary act.",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "the plan opened in the preview window: no gallery scene opens it",
+      "words": [
+        {
+          "text": "Round invoices once, at the total",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Markdown · 312 B",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Plan",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Copy",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Download",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Build",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Keep full precision in lineTotal; stop rounding each line.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Round invoiceTotal half-even to the cent.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Apply the same rule to credit notes.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Add tests for the half-cent cases from last month's audit.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Copy",
+          "height": 28
+        },
+        {
+          "name": "Download",
+          "height": 28
+        },
+        {
+          "name": "Build",
+          "height": 26
+        },
+        {
+          "name": "Close",
+          "height": 28
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

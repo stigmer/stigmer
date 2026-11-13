@@ -1,0 +1,221 @@
+{
+  "screen": "S13",
+  "title": "Stopped by you",
+  "source": "the session page, version 15",
+  "drawings": [
+    {
+      "caption": "Stopped by you",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "session-fail-user-stop",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Fix invoice rounding",
+          "type": [
+            18,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Stopped by you",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "1m 30s",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "2 of 5 to-dos done",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Invoices are off by a cent across the billing module. Find every place that rounds, fix it, and prove it with tests.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Plan",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "2 of 5 done",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Find every place invoices round",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Round once, at the invoice total",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Apply the same rule to credit notes",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Stopped here",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Add tests for the half-cent cases",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Run the billing suite",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "You stopped this turn.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "What it finished is kept: 2 of 5 to-dos are done. Continue sends “Continue” as your next message, and it carries on from here.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Continue",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Reply…",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Agent",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Export transcript",
+          "height": 32
+        },
+        {
+          "name": "Show panel",
+          "height": 32
+        },
+        {
+          "name": "Continue",
+          "height": 26
+        },
+        {
+          "name": "Agent",
+          "height": 28
+        },
+        {
+          "name": "Claude Sonnet 4.6",
+          "height": 30
+        },
+        {
+          "name": "Workspace",
+          "height": 32
+        },
+        {
+          "name": "Attach files",
+          "height": 32
+        },
+        {
+          "name": "Configure agent, tools, and skills",
+          "height": 32
+        },
+        {
+          "name": "Send message",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {
+        "button Continue": "Endings: a notice's acts at xs, with their icons",
+        "button Export transcript": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
+        "button Show panel": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
+        "type Continue": "Endings: a notice's acts at xs, with their icons",
+        "type Stopped by you": "The session's frame: the header pill reads at the drawn weight (drawn regular, built medium)",
+        "word 1m 30s": "The session's frame: one duration format, \"1m 30s\"",
+        "word 2 of 5 to-dos done": "The session's frame: an ended turn keeps its to-do count first among its facts",
+        "word What it finished is kept: 2 of 5 to-dos are done. Continue sends “Continue” as your next message, and it carries on from here.": "Endings: the ending turn as drawn"
+      }
+    }
+  ]
+}

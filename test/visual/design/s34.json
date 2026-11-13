@@ -1,0 +1,305 @@
+{
+  "screen": "S34",
+  "title": "How it got there, opened",
+  "source": "the session page, version 15",
+  "drawings": [
+    {
+      "caption": "How it got there, opened",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "session-how-opened",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Nightly billing check",
+          "type": [
+            18,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Done",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Started by routine Nightly billing check",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "1m 14s",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "about $0.42, estimated",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Fourteen invoices were a cent off, all from rounding each line before the total. invoiceTotal now rounds once, at the total. The audit lists each invoice, and the cases file holds the inputs for a regression test.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Made",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "invoice-audit.md",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Markdown · 4.1 KB",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "rounding-cases.csv",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Spreadsheet · 1.8 KB",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "How it got there",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "4 steps · 56s",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Read invoice.ts",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "src/billing",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "1s",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Edited invoice.ts",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "1 change",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "src/billing/invoice.ts · line 41",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "- return lines.reduce((sum, line) => sum + roundCents(lineTotal(line)), 0);",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "+ return roundHalfEven(lines.reduce((sum, line) => sum + lineTotal(line), 0));",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "1s",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Wrote invoice-audit.md",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Markdown · 4.1 KB · opens in the panel",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Wrote rounding-cases.csv",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Spreadsheet · 1.8 KB · opens in the panel",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Reply…",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Agent",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Export transcript",
+          "height": 32
+        },
+        {
+          "name": "Show panel",
+          "height": 32
+        },
+        {
+          "name": "Agent",
+          "height": 28
+        },
+        {
+          "name": "Claude Sonnet 4.6",
+          "height": 30
+        },
+        {
+          "name": "Workspace",
+          "height": 32
+        },
+        {
+          "name": "Attach files",
+          "height": 32
+        },
+        {
+          "name": "Configure agent, tools, and skills",
+          "height": 32
+        },
+        {
+          "name": "Send message",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {
+        "button Export transcript": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
+        "button Show panel": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
+        "type Done": "The session's frame: the header pill reads at the drawn weight (drawn regular, built medium)",
+        "type Fourteen invoices were a cent off, all from rounding each line before the total. invoiceTotal now rounds once, at the total. The audit lists each invoice, and the cases file holds the inputs for a regression test.": "The session's frame: the answer's lines at the scale's 20px, its acts in no reserved row",
+        "word + return roundHalfEven(lines.reduce((sum, line) => sum + lineTotal(line), 0));": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "word - return lines.reduce((sum, line) => sum + roundCents(lineTotal(line)), 0);": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "word 1m 14s": "The session's frame: one duration format, \"1m 30s\"",
+        "word 1s": "The session's frame: one duration format, \"1m 30s\"",
+        "word 4 steps · 56s": "The session's frame: one duration format, \"1m 30s\"",
+        "word Markdown · 4.1 KB · opens in the panel": "Steps, approvals and the finished turn: the finished turn's cards, sizes and downloads",
+        "word Read invoice.ts": "Steps, approvals and the finished turn: step rows: the state mark, detail on a second line, names in the sans",
+        "word Spreadsheet · 1.8 KB · opens in the panel": "Steps, approvals and the finished turn: the finished turn's cards, sizes and downloads",
+        "word Started by routine Nightly billing check": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "word Wrote invoice-audit.md": "Steps, approvals and the finished turn: step rows: the state mark, detail on a second line, names in the sans",
+        "word Wrote rounding-cases.csv": "Steps, approvals and the finished turn: step rows: the state mark, detail on a second line, names in the sans",
+        "word src/billing/invoice.ts · line 41": "Steps, approvals and the finished turn: the screen's parts as drawn"
+      }
+    }
+  ]
+}

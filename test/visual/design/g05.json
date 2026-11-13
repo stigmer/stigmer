@@ -1,0 +1,135 @@
+{
+  "screen": "G05",
+  "title": "Dashboard",
+  "source": "the Console parts page, version 3",
+  "drawings": [
+    {
+      "caption": "Dashboard",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "dashboard-busy",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Dashboard",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "What your organization's agents did this week.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Active",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Completed",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Failed",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Tokens",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "18.4M",
+          "type": [
+            24,
+            32,
+            600
+          ]
+        },
+        {
+          "text": "Recent Failures",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Match the July receipts to the card statement",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The card statement export was empty",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "3h",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Reconcile the payroll clearing account",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "The ledger server refused the read: its token expired",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "1d",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

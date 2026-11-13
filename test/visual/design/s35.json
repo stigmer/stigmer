@@ -1,0 +1,278 @@
+{
+  "screen": "S35",
+  "title": "A tool from a connected app",
+  "source": "the session page, version 15",
+  "drawings": [
+    {
+      "caption": "A tool from a connected app",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "session-mcp",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Fix invoice rounding",
+          "type": [
+            18,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Done",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "18s",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "File an issue for the credit-note rounding so the billing team picks it up.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Filed as BILL-219 in the billing team's tracker, with the two invoices that show the drift.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "How it got there",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "2 steps · 8s",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Search issues issue-tracker",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "I",
+          "type": [
+            11,
+            16,
+            600
+          ]
+        },
+        {
+          "text": "“credit note rounding” · no open issue",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "2s",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Create issue issue-tracker",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "I",
+          "type": [
+            11,
+            16,
+            600
+          ]
+        },
+        {
+          "text": "Credit notes round per line",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "title",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Credit notes round per line",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "team",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "billing",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "labels",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "bug, rounding",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "result",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Created BILL-219",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "4s",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Reply…",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Agent",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Export transcript",
+          "height": 32
+        },
+        {
+          "name": "Show panel",
+          "height": 32
+        },
+        {
+          "name": "Agent",
+          "height": 28
+        },
+        {
+          "name": "Claude Sonnet 4.6",
+          "height": 30
+        },
+        {
+          "name": "Workspace",
+          "height": 32
+        },
+        {
+          "name": "Attach files",
+          "height": 32
+        },
+        {
+          "name": "Configure agent, tools, and skills",
+          "height": 32
+        },
+        {
+          "name": "Send message",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {
+        "button Export transcript": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
+        "button Show panel": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
+        "type Done": "The session's frame: the header pill reads at the drawn weight (drawn regular, built medium)",
+        "type Filed as BILL-219 in the billing team's tracker, with the two invoices that show the drift.": "The session's frame: the answer's lines at the scale's 20px, its acts in no reserved row",
+        "type labels": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "word 18s": "The session's frame: one duration format, \"1m 30s\"",
+        "word 2 steps · 8s": "The session's frame: one duration format, \"1m 30s\"",
+        "word 2s": "The session's frame: one duration format, \"1m 30s\"",
+        "word 4s": "The session's frame: one duration format, \"1m 30s\"",
+        "word Create issue issue-tracker": "Steps, approvals and the finished turn: step rows: the state mark, detail on a second line, names in the sans",
+        "word Search issues issue-tracker": "Steps, approvals and the finished turn: step rows: the state mark, detail on a second line, names in the sans",
+        "word bug, rounding": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "word “credit note rounding” · no open issue": "Steps, approvals and the finished turn: the screen's parts as drawn"
+      }
+    }
+  ]
+}

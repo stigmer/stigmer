@@ -170,6 +170,7 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "session-starting": () => sessionStartingScene(),
   "session-first-job-next": sessionFirstJobNextScene,
   "session-fail-key-rejected": () => endingStoryScene("fail-key-rejected", { inspector: true }),
+  "session-fail-key-rejected-member": () => endingStoryScene("fail-key-rejected", { inspector: true }, { refused: ["can_manage_billing"] }),
   "session-fail-key-missing": () => endingStoryScene("fail-key-missing", { inspector: true }),
   "session-fail-out-of-credit": () => endingStoryScene("fail-out-of-credit", { inspector: true }),
   "session-fail-rate-limited": () => endingStoryScene("fail-rate-limited", { inspector: true }),

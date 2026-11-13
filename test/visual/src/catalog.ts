@@ -151,6 +151,15 @@ export interface Scene {
    * would; durations read that much later.
    */
   readonly elapse?: number;
+  /**
+   * The scene is pictured whole: a page that scrolls inside itself (the
+   * session view's thread, a settings page under the console's frame) is
+   * drawn in a viewport grown until nothing in it scrolls, so the picture
+   * holds the whole turn or page, its top included, and not one screen
+   * scrolled to its end. A Built look compares these pictures with the
+   * drawings whole (`tests/whole.spec.ts`).
+   */
+  readonly whole?: boolean;
 }
 
 /**
@@ -294,7 +303,7 @@ const SESSION_SCENES = [
     id: "session-steps-opened",
     title: "Session: the long turn at work with its steps opened: a search's matches and a command's output",
     widths: ["desktop"],
-    opens: ["Searched for round(", "Ran a command npm test -- billing/invoice"],
+    opens: ["Find every place invoices round", "Searched for round(", "Round once, at the invoice total", "Ran a command npm test -- billing/invoice"],
   },
   {
     id: "session-how-opened",
@@ -348,12 +357,22 @@ const SESSION_SCENES = [
     widths: ["desktop"],
   },
   // Every way a turn ends badly, one ending turn each (the catalogue's ENDING_STORY_NAMES).
-  { id: "session-fail-key-rejected", title: "Session: the provider refused the organization's model key", widths: ["desktop"] },
+  { id: "session-fail-key-rejected", title: "Session: the provider refused the organization's model key", widths: ["desktop", "narrow"] },
+  {
+    id: "session-fail-key-rejected-member",
+    title: "Session: the provider refused the organization's model key, for a member who may not replace it",
+    widths: ["desktop"],
+  },
   { id: "session-fail-key-missing", title: "Session: the organization has no key for the model's provider", widths: ["desktop"] },
   { id: "session-fail-out-of-credit", title: "Session: the provider account is out of credit", widths: ["desktop"] },
   { id: "session-fail-rate-limited", title: "Session: the provider limited the request rate", widths: ["desktop"] },
   { id: "session-fail-overloaded", title: "Session: the provider was overloaded", widths: ["desktop"] },
-  { id: "session-fail-model-unavailable", title: "Session: the model isn't available to the key", widths: ["desktop"] },
+  {
+    id: "session-fail-model-unavailable",
+    title: "Session: the model isn't available to the key, its picker opened by the notice's act",
+    widths: ["desktop"],
+    opens: "Choose another model",
+  },
   { id: "session-fail-unreachable", title: "Session: the provider couldn't be reached", widths: ["desktop"] },
   { id: "session-fail-request-rejected", title: "Session: the provider refused the request itself", widths: ["desktop"] },
   { id: "session-fail-cost-cap", title: "Session: the turn reached its spending cap part-way through its plan", widths: ["desktop"] },
@@ -691,8 +710,20 @@ const THREAD_TITLES: Readonly<Record<(typeof THREAD_STATES)[number], string>> = 
   markdown: "a long reply in markdown: a heading, lists, code and a table",
 };
 
-/** Every scene, in the order the index page lists them. */
-export const SCENES: readonly Scene[] = [
+/** The scene, pictured whole (`Scene.whole`). */
+function whole<S extends Scene>(scene: S): S & { readonly whole: true } {
+  return { ...scene, whole: true };
+}
+
+/**
+ * The scene groups pictured whole: the session view, whose thread scrolls
+ * inside it, and the console pages the shared parts are drawn on, whose
+ * lower halves scroll under the console's frame.
+ */
+const WHOLE_PREFIXES = ["session-", "settings-", "models-hub-", "dashboard-", "marketplace-", "routine-", "agent-profile-"] as const;
+
+/** Every scene as listed, before the groups pictured whole are marked. */
+const LISTED: readonly Scene[] = [
   ...THREAD_STATES.map((state) => ({
     id: `thread-${state}` as const,
     title: `Thread: ${THREAD_TITLES[state]}`,
@@ -879,6 +910,11 @@ export const SCENES: readonly Scene[] = [
     widths: ["desktop"] as const,
   })),
 ];
+
+/** Every scene, in the order the index page lists them. */
+export const SCENES: readonly Scene[] = LISTED.map((scene) =>
+  scene.id === "parts" || WHOLE_PREFIXES.some((prefix) => scene.id.startsWith(prefix)) ? whole(scene) : scene,
+);
 
 /** One picture: a scene in one mode at one width, and the file it is compared with. */
 export interface Shot {

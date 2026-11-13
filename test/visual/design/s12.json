@@ -1,0 +1,158 @@
+{
+  "screen": "S12",
+  "title": "Failed, on a phone",
+  "source": "the session page, version 15",
+  "drawings": [
+    {
+      "caption": "Failed, on a phone",
+      "narrow": true,
+      "built": [
+        {
+          "scene": "session-fail-key-rejected",
+          "width": "narrow"
+        }
+      ],
+      "words": [
+        {
+          "text": "Fix invoice rounding",
+          "type": [
+            18,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Didn't finish",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "0s",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Invoices are off by a cent. Can you fix the rounding?",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Anthropic refused this organization's model key.",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "The key on Models & providers isn't valid any more. Replace it, then Run again: the turn picks up where it stopped, and your message isn't sent twice. Nothing was lost.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Run again",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Open Models & providers",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Copy details",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Reply…",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Export transcript",
+          "height": 32
+        },
+        {
+          "name": "Run again",
+          "height": 26
+        },
+        {
+          "name": "Copy details",
+          "height": 26
+        },
+        {
+          "name": "Claude Sonnet 4.6",
+          "height": 30
+        },
+        {
+          "name": "Workspace",
+          "height": 32
+        },
+        {
+          "name": "Attach files",
+          "height": 32
+        },
+        {
+          "name": "Configure agent, tools, and skills",
+          "height": 32
+        },
+        {
+          "name": "Send message",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {
+        "button Attach files": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included",
+        "button Claude Sonnet 4.6": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included",
+        "button Workspace": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included",
+        "type Claude Sonnet 4.6": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included",
+        "type Reply…": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included"
+      },
+      "pending": {
+        "button Copy details": "Endings: a notice's acts at xs, with their icons",
+        "button Export transcript": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
+        "button Run again": "Endings: a notice's acts at xs, with their icons",
+        "type Didn't finish": "The session's frame: the header pill reads at the drawn weight (drawn regular, built medium)",
+        "type Run again": "Endings: a notice's acts at xs, with their icons",
+        "word 0s": "The session's frame: one duration format, \"1m 30s\"",
+        "word The key on Models & providers isn't valid any more. Replace it, then Run again: the turn picks up where it stopped, and your message isn't sent twice. Nothing was lost.": "Endings: the ending's words name the button and the status page"
+      }
+    }
+  ]
+}

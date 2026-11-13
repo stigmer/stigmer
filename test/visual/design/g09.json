@@ -1,0 +1,55 @@
+{
+  "screen": "G09",
+  "title": "Service accounts, not allowed",
+  "source": "the Console parts page, version 3",
+  "drawings": [
+    {
+      "caption": "Service accounts, not allowed",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "settings-service-accounts-denied",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Service accounts",
+          "type": [
+            20,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Your organization's own accounts for automation. A CI job or a script acts as one through its API keys, so it keeps working when the person who set it up leaves, and what it creates says the service account created it. Each holds one organization role and is never an owner.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Only an admin can open Service accounts",
+          "type": [
+            14,
+            20,
+            600
+          ]
+        },
+        {
+          "text": "Your organization's admins manage its service accounts.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}

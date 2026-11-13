@@ -1,0 +1,338 @@
+{
+  "screen": "P01",
+  "title": "Buttons",
+  "source": "the Console parts page, version 3",
+  "drawings": [
+    {
+      "caption": "Buttons",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "parts",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Save",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Skip",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Delete",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "New API key",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Saving…",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Install",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Install",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Edit",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Remove",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Install again",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Run now",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Skip",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Save",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Cancel",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Skip",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Save",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Save",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Change role",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Create agent",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Open Models & providers",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "View all runs",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Save",
+          "height": 32
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        },
+        {
+          "name": "Skip",
+          "height": 32
+        },
+        {
+          "name": "Delete",
+          "height": 32
+        },
+        {
+          "name": "New API key",
+          "height": 32
+        },
+        {
+          "name": "Saving…",
+          "height": 32
+        },
+        {
+          "name": "Install",
+          "height": 28
+        },
+        {
+          "name": "Install",
+          "height": 28
+        },
+        {
+          "name": "Edit",
+          "height": 28
+        },
+        {
+          "name": "Remove",
+          "height": 28
+        },
+        {
+          "name": "Install again",
+          "height": 28
+        },
+        {
+          "name": "Run now",
+          "height": 32
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        },
+        {
+          "name": "Skip",
+          "height": 32
+        },
+        {
+          "name": "Save",
+          "height": 32
+        },
+        {
+          "name": "Cancel",
+          "height": 32
+        },
+        {
+          "name": "Skip",
+          "height": 32
+        },
+        {
+          "name": "Save",
+          "height": 32
+        },
+        {
+          "name": "Save",
+          "height": 32
+        },
+        {
+          "name": "Change role",
+          "height": 32
+        },
+        {
+          "name": "Remove",
+          "height": 32
+        },
+        {
+          "name": "More actions",
+          "height": 32
+        },
+        {
+          "name": "Apply YAML",
+          "height": 32
+        },
+        {
+          "name": "Change role",
+          "height": 28
+        },
+        {
+          "name": "Remove",
+          "height": 28
+        },
+        {
+          "name": "Create agent",
+          "height": 32
+        },
+        {
+          "name": "Open Models & providers",
+          "height": 32
+        },
+        {
+          "name": "View all runs",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {
+        "button Apply YAML": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "button Change role": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "button Create agent": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "button Install again": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "button More actions": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "button Open Models & providers": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "button Remove": "The console's parts: the part at its drawn size and weight",
+        "button Run now": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "button Saving…": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "button View all runs": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word Change role": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word Create agent": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word Install again": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word Open Models & providers": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word Run now": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word Saving…": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word View all runs": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene"
+      }
+    }
+  ]
+}

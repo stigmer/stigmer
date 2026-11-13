@@ -1,0 +1,896 @@
+{
+  "screen": "S45",
+  "title": "A turn's changes, with Undo",
+  "source": "the session page, version 15",
+  "drawings": [
+    {
+      "caption": "A finished turn with two edits. Each file shows once, with its line counts and Undo. Nothing asks to approve: the edits are in place and stay unless undone.",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "session-file-review",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Fix invoice rounding",
+          "type": [
+            18,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Done",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "42s",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "2 changes",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Invoices are off by a cent. Can you fix the rounding?",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Invoices now round once, at the total. I added a rounding helper with tests for the half-cent cases.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Changed",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Undo all",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "invoice.ts",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "src/billing",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "rounding.ts",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "src/billing",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "New",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "How it got there: read invoice.ts, edited invoice.ts, wrote rounding.ts",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "40s",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Reply…",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Agent",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Export transcript",
+          "height": 32
+        },
+        {
+          "name": "Show panel",
+          "height": 32
+        },
+        {
+          "name": "Undo all",
+          "height": 28
+        },
+        {
+          "name": "Undo invoice.ts",
+          "height": 28
+        },
+        {
+          "name": "Undo rounding.ts",
+          "height": 28
+        },
+        {
+          "name": "Agent",
+          "height": 28
+        },
+        {
+          "name": "Claude Sonnet 4.6",
+          "height": 30
+        },
+        {
+          "name": "Workspace",
+          "height": 32
+        },
+        {
+          "name": "Attach files",
+          "height": 32
+        },
+        {
+          "name": "Configure agent, tools, and skills",
+          "height": 32
+        },
+        {
+          "name": "Send message",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {
+        "button Export transcript": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
+        "button Show panel": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
+        "type Done": "The session's frame: the header pill reads at the drawn weight (drawn regular, built medium)",
+        "word 40s": "The session's frame: one duration format, \"1m 30s\"",
+        "word 42s": "The session's frame: one duration format, \"1m 30s\"",
+        "word How it got there: read invoice.ts, edited invoice.ts, wrote rounding.ts": "Steps, approvals and the finished turn: \"How it got there\" as the card's header with its count and span",
+        "word Invoices now round once, at the total. I added a rounding helper with tests for the half-cent cases.": "Steps, approvals and the finished turn: the helper's body as step rows"
+      }
+    },
+    {
+      "caption": "After an Undo and a failed Undo, with a binary file left as it is. “Undone” is neutral (a choice, not a failure); the header counts what still stands.",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "session-file-undone",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Fix invoice rounding",
+          "type": [
+            18,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Done",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "42s",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "2 changes",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Invoices are off by a cent. Can you fix the rounding?",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Invoices now round once, at the total. I added a rounding helper with tests for the half-cent cases.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Changed",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Undo all",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "invoice.ts",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "src/billing",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Undone",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "rounding.ts",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "src/billing",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "New",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Couldn't undo",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Try again",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "invoice-sample.png",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "docs",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Binary",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "How it got there: read invoice.ts, edited invoice.ts, wrote rounding.ts",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "40s",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Reply…",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Agent",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Export transcript",
+          "height": 32
+        },
+        {
+          "name": "Show panel",
+          "height": 32
+        },
+        {
+          "name": "Undo all",
+          "height": 28
+        },
+        {
+          "name": "Try again",
+          "height": 28
+        },
+        {
+          "name": "Undo invoice-sample.png",
+          "height": 28
+        },
+        {
+          "name": "Agent",
+          "height": 28
+        },
+        {
+          "name": "Claude Sonnet 4.6",
+          "height": 30
+        },
+        {
+          "name": "Workspace",
+          "height": 32
+        },
+        {
+          "name": "Attach files",
+          "height": 32
+        },
+        {
+          "name": "Configure agent, tools, and skills",
+          "height": 32
+        },
+        {
+          "name": "Send message",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {
+        "button Export transcript": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
+        "button Show panel": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
+        "button Try again": "Endings: a notice's acts at xs, with their icons",
+        "button Undo all": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "type Done": "The session's frame: the header pill reads at the drawn weight (drawn regular, built medium)",
+        "word 40s": "The session's frame: one duration format, \"1m 30s\"",
+        "word 42s": "The session's frame: one duration format, \"1m 30s\"",
+        "word How it got there: read invoice.ts, edited invoice.ts, wrote rounding.ts": "Steps, approvals and the finished turn: \"How it got there\" as the card's header with its count and span",
+        "word Invoices now round once, at the total. I added a rounding helper with tests for the half-cent cases.": "Steps, approvals and the finished turn: the helper's body as step rows",
+        "word Try again": "Endings: a notice's acts at xs, with their icons",
+        "word Undo all": "Steps, approvals and the finished turn: the screen's parts as drawn"
+      }
+    },
+    {
+      "caption": "An older turn has no Undo: only the newest turn's files can still be undone. The next message keeps the rest, as the server already does.",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "an older turn's files without Undo: no gallery scene draws a second turn after edits",
+      "words": [
+        {
+          "text": "Fix invoice rounding",
+          "type": [
+            18,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Done",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "1m 12s",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "3 changes",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Invoices are off by a cent. Can you fix the rounding?",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Invoices now round once, at the total.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Changed",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "invoice.ts",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "src/billing",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "rounding.ts",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "src/billing",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "New",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Apply the same rule to credit notes.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Credit notes now round once, as invoices do.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Changed",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "credit-note.ts",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "src/billing",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Reply…",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Agent",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Export transcript",
+          "height": 32
+        },
+        {
+          "name": "Show panel",
+          "height": 32
+        },
+        {
+          "name": "Undo credit-note.ts",
+          "height": 28
+        },
+        {
+          "name": "Agent",
+          "height": 28
+        },
+        {
+          "name": "Claude Sonnet 4.6",
+          "height": 30
+        },
+        {
+          "name": "Workspace",
+          "height": 32
+        },
+        {
+          "name": "Attach files",
+          "height": 32
+        },
+        {
+          "name": "Configure agent, tools, and skills",
+          "height": 32
+        },
+        {
+          "name": "Send message",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    },
+    {
+      "caption": "At 390px.",
+      "narrow": true,
+      "built": [
+        {
+          "scene": "session-file-review",
+          "width": "narrow"
+        }
+      ],
+      "words": [
+        {
+          "text": "Fix invoice rounding",
+          "type": [
+            18,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Done",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "42s",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "2 changes",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Invoices are off by a cent. Can you fix the rounding?",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Invoices now round once, at the total. I added a rounding helper with tests for the half-cent cases.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Changed",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Undo all",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "invoice.ts",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "src/billing",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "rounding.ts",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "src/billing",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "New",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "How it got there: read invoice.ts, edited invoice.ts, wrote rounding.ts",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "40s",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Reply…",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Export transcript",
+          "height": 32
+        },
+        {
+          "name": "Undo all",
+          "height": 28
+        },
+        {
+          "name": "Undo invoice.ts",
+          "height": 28
+        },
+        {
+          "name": "Undo rounding.ts",
+          "height": 28
+        },
+        {
+          "name": "Claude Sonnet 4.6",
+          "height": 30
+        },
+        {
+          "name": "Workspace",
+          "height": 32
+        },
+        {
+          "name": "Attach files",
+          "height": 32
+        },
+        {
+          "name": "Configure agent, tools, and skills",
+          "height": 32
+        },
+        {
+          "name": "Send message",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {
+        "button Attach files": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included",
+        "button Claude Sonnet 4.6": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included",
+        "button Workspace": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included",
+        "type Claude Sonnet 4.6": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included",
+        "type Reply…": "The owner ruled on 2026-11-13 that the composer stays as built, its narrow form and placeholder size included"
+      },
+      "pending": {
+        "button Export transcript": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
+        "type Done": "The session's frame: the header pill reads at the drawn weight (drawn regular, built medium)",
+        "word 40s": "The session's frame: one duration format, \"1m 30s\"",
+        "word 42s": "The session's frame: one duration format, \"1m 30s\"",
+        "word How it got there: read invoice.ts, edited invoice.ts, wrote rounding.ts": "Steps, approvals and the finished turn: \"How it got there\" as the card's header with its count and span",
+        "word Invoices now round once, at the total. I added a rounding helper with tests for the half-cent cases.": "Steps, approvals and the finished turn: the helper's body as step rows"
+      }
+    }
+  ]
+}

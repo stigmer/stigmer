@@ -13,8 +13,20 @@ import type { Locator, Page } from "@playwright/test";
 import { SCENARIO_CLOCK } from "@stigmer/react-sdk/test";
 import { sceneUrl, type Act, type Mode, type Scene } from "../src/catalog.ts";
 
-/** Draws `scene` in `mode` in a viewport of `size`, settled: its calls answered, its fonts loaded, and opened if it opens. */
-export async function draw(page: Page, scene: Scene, mode: Mode, size: { readonly width: number; readonly height: number }): Promise<void> {
+/** How a caller wants a scene drawn beyond its catalogue entry. */
+export interface DrawOptions {
+  /** Grow the viewport until nothing scrolls, for a scene the catalogue pictures whole. */
+  readonly whole?: boolean;
+}
+
+/** Draws `scene` in `mode` in a viewport of `size`, settled: its calls answered, its fonts loaded, opened if it opens, and grown whole if asked. */
+export async function draw(
+  page: Page,
+  scene: Scene,
+  mode: Mode,
+  size: { readonly width: number; readonly height: number },
+  options: DrawOptions = {},
+): Promise<void> {
   // The page reads no network: a request for anything but the gallery itself
   // (a publisher's avatar a marketplace card shows) fails at once, so the
   // part falls back the same way on every machine instead of drawing
@@ -44,6 +56,53 @@ export async function draw(page: Page, scene: Scene, mode: Mode, size: { readonl
     await perform(page, act);
     await settled(page);
   }
+  if (options.whole === true && scene.whole === true) await growWhole(page, size);
+}
+
+/** What a scrolling region may hide and still count as whole, in CSS pixels. */
+const HIDDEN_SLOP = 4;
+
+/** The most rounds a page is grown: a thread that grows as it is given room settles in two. */
+const GROW_ROUNDS = 4;
+
+/**
+ * Grows the viewport by what the page's scrolling regions hide, round by
+ * round, until none scrolls: a region whose content is taller than its box
+ * and that scrolls (`overflow-y` auto or scroll). A region that clips
+ * without scrolling (a truncated line), or that keeps its own height
+ * whatever the page's (a capped list), is drawn as the page draws it: a
+ * round that hides no less than the one before ends the growing. The width
+ * stays the scene's.
+ */
+async function growWhole(page: Page, size: { readonly width: number; readonly height: number }): Promise<void> {
+  let height = size.height;
+  let before = Number.POSITIVE_INFINITY;
+  for (let round = 0; round < GROW_ROUNDS; round += 1) {
+    const hidden = await page.evaluate(() => {
+      let most = 0;
+      for (const element of document.querySelectorAll<HTMLElement>("*")) {
+        const overflow = getComputedStyle(element).overflowY;
+        if (overflow !== "auto" && overflow !== "scroll") continue;
+        most = Math.max(most, element.scrollHeight - element.clientHeight);
+      }
+      return most;
+    });
+    // A region hiding a few pixels (a focus ring's room, a rounding) hides
+    // no content.
+    if (hidden <= HIDDEN_SLOP) return;
+    if (hidden >= before) {
+      // The last round's room went to no region: give it back.
+      height -= before;
+      await page.setViewportSize({ width: size.width, height });
+      await settled(page);
+      return;
+    }
+    before = hidden;
+    height += hidden;
+    await page.setViewportSize({ width: size.width, height });
+    await settled(page);
+  }
+  throw new Error(`still scrolling after ${GROW_ROUNDS} rounds of growing to ${height}px`);
 }
 
 /** Performs one act as a reader would: presses a control by its role and name, or types into a field by its label. */

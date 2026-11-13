@@ -1,0 +1,154 @@
+{
+  "screen": "P06",
+  "title": "Tags",
+  "source": "the Console parts page, version 3",
+  "drawings": [
+    {
+      "caption": "Tags",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "settings-members",
+          "width": "desktop"
+        },
+        {
+          "scene": "settings-vaults",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "owner",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "admin",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "member",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "viewer",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "You",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "stigmer",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "2 keys",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "G",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Grace Hopper",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "admin",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Anthropic",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Not connected",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Haiku 4.5",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        }
+      ],
+      "buttons": [],
+      "sample": {},
+      "ruled": {},
+      "pending": {
+        "word 2 keys": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word Anthropic": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word Claude Haiku 4.5": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word Claude Sonnet 4.6": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word Not connected": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene",
+        "word stigmer": "The drawn variant is on a page this file does not build yet: the console's check names its scene, or The console's parts change draws it on the parts scene"
+      }
+    }
+  ]
+}

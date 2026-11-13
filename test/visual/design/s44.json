@@ -1,0 +1,478 @@
+{
+  "screen": "S44",
+  "title": "Files changing",
+  "source": "the session page, version 15",
+  "drawings": [
+    {
+      "caption": "While the turn works: one strip above the composer, the counts beside the words.",
+      "narrow": false,
+      "built": [
+        {
+          "scene": "session-file-progress",
+          "width": "desktop"
+        }
+      ],
+      "words": [
+        {
+          "text": "Fix invoice rounding",
+          "type": [
+            18,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Working · 1m 30s",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "2 of 5 to-dos done",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Invoices are off by a cent across the billing module. Find every place that rounds, fix it, and prove it with tests.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Plan",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "2 of 5 done",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Find every place invoices round",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Round once, at the invoice total",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Apply the same rule to credit notes",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "A helper is working on map where credit notes round",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Searching for round( · nothing found yet",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "38s",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Running a command",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "npm test -- billing",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "30s",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Add tests for the half-cent cases",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Run the billing suite",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Changing 2 files +10−5",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Reply…",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Agent",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Export transcript",
+          "height": 32
+        },
+        {
+          "name": "Show panel",
+          "height": 32
+        },
+        {
+          "name": "Agent",
+          "height": 28
+        },
+        {
+          "name": "Claude Sonnet 4.6",
+          "height": 30
+        },
+        {
+          "name": "Workspace",
+          "height": 32
+        },
+        {
+          "name": "Attach files",
+          "height": 32
+        },
+        {
+          "name": "Configure agent, tools, and skills",
+          "height": 32
+        },
+        {
+          "name": "Stop generating",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {
+        "button Export transcript": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
+        "button Show panel": "The session's frame: the header's icon buttons at the drawn size; the panel button an IconButton with a corner count",
+        "type Running a command": "Steps, approvals and the finished turn: step rows: the state mark, detail on a second line, names in the sans",
+        "type Working · 1m 30s": "The session's frame: the header pill reads at the drawn weight (drawn regular, built medium)",
+        "word 38s": "The session's frame: one duration format, \"1m 30s\"",
+        "word A helper is working on map where credit notes round": "Steps, approvals and the finished turn: the helper's body as step rows",
+        "word Changing 2 files +10−5": "Steps, approvals and the finished turn: the screen's parts as drawn",
+        "word Searching for round( · nothing found yet": "Steps, approvals and the finished turn: the helper's body as step rows"
+      }
+    },
+    {
+      "caption": "Opened: the same rows the Changed group draws when the turn ends, so the files read as one thing moving from changing to changed.",
+      "narrow": false,
+      "built": [],
+      "unbuilt": "the files-changing strip opened: no gallery scene opens it",
+      "words": [
+        {
+          "text": "Fix invoice rounding",
+          "type": [
+            18,
+            28,
+            600
+          ]
+        },
+        {
+          "text": "Working · 1m 30s",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "2 of 5 to-dos done",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Invoices are off by a cent across the billing module. Find every place that rounds, fix it, and prove it with tests.",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Plan",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "2 of 5 done",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Find every place invoices round",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Round once, at the invoice total",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Apply the same rule to credit notes",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "A helper is working on map where credit notes round",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "Searching for round( · nothing found yet",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "38s",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Running a command",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "npm test -- billing",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "30s",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Add tests for the half-cent cases",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Run the billing suite",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Changing 2 files +10−5",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "invoice.ts",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "src/billing",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "credit-note.ts",
+          "type": [
+            14,
+            20,
+            500
+          ]
+        },
+        {
+          "text": "src/billing",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        },
+        {
+          "text": "Reply…",
+          "type": [
+            14,
+            20,
+            400
+          ]
+        },
+        {
+          "text": "Agent",
+          "type": [
+            12,
+            16,
+            500
+          ]
+        },
+        {
+          "text": "Claude Sonnet 4.6",
+          "type": [
+            12,
+            16,
+            400
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "name": "Export transcript",
+          "height": 32
+        },
+        {
+          "name": "Show panel",
+          "height": 32
+        },
+        {
+          "name": "Agent",
+          "height": 28
+        },
+        {
+          "name": "Claude Sonnet 4.6",
+          "height": 30
+        },
+        {
+          "name": "Workspace",
+          "height": 32
+        },
+        {
+          "name": "Attach files",
+          "height": 32
+        },
+        {
+          "name": "Configure agent, tools, and skills",
+          "height": 32
+        },
+        {
+          "name": "Stop generating",
+          "height": 32
+        }
+      ],
+      "sample": {},
+      "ruled": {},
+      "pending": {}
+    }
+  ]
+}
