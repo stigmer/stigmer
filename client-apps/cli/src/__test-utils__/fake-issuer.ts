@@ -18,7 +18,14 @@ import { once } from "node:events";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 
-export type DeviceAnswer = "authorization_pending" | "slow_down" | "access_denied" | "expired_token" | "approve";
+export type DeviceAnswer =
+  | "authorization_pending"
+  | "slow_down"
+  | "access_denied"
+  | "expired_token"
+  | "server_error"
+  | "not_json"
+  | "approve";
 
 export interface FakeIssuerOptions {
   readonly clientId?: string;
@@ -28,6 +35,10 @@ export interface FakeIssuerOptions {
   readonly deviceAnswers?: readonly DeviceAnswer[];
   /** The issuer the discovery document names; defaults to the issuer's own address. */
   readonly documentIssuer?: (issuer: string) => string;
+  /** How `/device/code` answers, in place of a device code (a refusal, or an answer missing its fields). */
+  readonly deviceCodeAnswer?: { readonly status: number; readonly body: unknown };
+  /** The state `/authorize` sends back, in place of the one it was given (a forged callback). */
+  readonly stateOverride?: string;
 }
 
 export interface FakeIssuer {
@@ -80,7 +91,7 @@ export async function startFakeIssuer(options: FakeIssuerOptions = {}): Promise<
       codes.set(code, { challenge: q.get("code_challenge") ?? "", redirectUri });
       const target = new URL(redirectUri);
       target.searchParams.set("code", code);
-      target.searchParams.set("state", q.get("state") ?? "");
+      target.searchParams.set("state", options.stateOverride ?? q.get("state") ?? "");
       res.statusCode = 302;
       res.setHeader("location", target.toString());
       res.end();
@@ -93,6 +104,10 @@ export async function startFakeIssuer(options: FakeIssuerOptions = {}): Promise<
       return;
     }
     if (url.pathname === "/device/code" && options.device === true) {
+      if (options.deviceCodeAnswer !== undefined) {
+        json(res, options.deviceCodeAnswer.status, options.deviceCodeAnswer.body);
+        return;
+      }
       json(res, 200, {
         device_code: "device-code-1",
         user_code: USER_CODE,
@@ -129,7 +144,11 @@ export async function startFakeIssuer(options: FakeIssuerOptions = {}): Promise<
       case "urn:ietf:params:oauth:grant-type:device_code": {
         const answer = deviceAnswers.length > 1 ? deviceAnswers.shift() : deviceAnswers[0];
         if (answer === "approve") json(res, 200, tokens());
-        else json(res, 400, { error: answer });
+        else if (answer === "server_error") json(res, 500, { error: "server_error", error_description: "the tenant is down" });
+        else if (answer === "not_json") {
+          res.statusCode = 502;
+          res.end("<html>bad gateway</html>");
+        } else json(res, 400, { error: answer });
         return;
       }
       default:
