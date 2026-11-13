@@ -2,7 +2,7 @@
 // embedded server's environment (commands/mcp-server.ts). Pinned: the active
 // named backend supplies the endpoint, read from a config file as `stigmer auth
 // login` writes it. A self-hosted entry's API key is bridged as a fixed key; a
-// cloud login's token is not copied into the environment, because it expires
+// sign-in's token (a cloud entry's, or a self-hosted one's) is not copied into the environment, because it expires
 // while the server runs: the command names the signed-in backend instead and
 // hands the server a token provider over it, which refreshes the sign-in. The
 // local daemon gets its fixed address and no credential; a value already in the
@@ -92,6 +92,28 @@ describe("applyConfigEnv", () => {
     expect(applyConfigEnv(roundTrip(selfHosted), env)).toBeUndefined();
     expect(env.STIGMER_SERVER_ADDRESS).toBe("stigmer.example.com:7234");
     expect(env.STIGMER_API_KEY).toBe("stk_x");
+  });
+
+  it("names a self-hosted backend's sign-in instead of bridging its API key", () => {
+    const selfHosted = getDefault();
+    selfHosted.backends = {
+      staging: {
+        type: "selfhost",
+        endpoint: "stigmer.example.com:7234",
+        api_key: "stk_x",
+        token: "signed-in",
+        refresh_token: "r",
+        oidc_issuer: "https://id.example.com/",
+        oidc_client_id: "native",
+      },
+    };
+    selfHosted.current_backend = "staging";
+    const env: NodeJS.ProcessEnv = {};
+    expect(applyConfigEnv(roundTrip(selfHosted), env)).toEqual({
+      name: "staging",
+      endpoint: "stigmer.example.com:7234",
+    });
+    expect(env).toEqual({ STIGMER_SERVER_ADDRESS: "stigmer.example.com:7234" });
   });
 
   it("bridges no stored credential to an address other than its backend's", () => {

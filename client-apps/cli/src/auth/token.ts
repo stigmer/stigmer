@@ -1,5 +1,13 @@
-// Auth0 token operations: exchange an authorization code for tokens, refresh an
-// expired access token, and expose token providers that refresh silently.
+// Keeping a sign-in fresh: refresh an expired access token at the provider
+// that issued it, and expose token providers that refresh silently.
+//
+// A signed-in entry (a `cloud` or `selfhost` backend that `stigmer auth login`
+// wrote) keeps its token set beside the issuer and the native client it came
+// from (`oidc_issuer`, `oidc_client_id`); a refresh reads that issuer's token
+// endpoint from its discovery document and sends that client's id, so every
+// server's sign-in refreshes the same way. An entry with no issuer (written by
+// a CLI from before servers announced their sign-in) is not refreshed: the
+// server refuses its stale token and the person is told to sign in again.
 //
 // Two providers share one refresh path (freshCloudToken), so they cannot drift:
 //   - createRefreshingTokenProvider serves a short-lived command. It reads the
@@ -20,21 +28,15 @@ import {
   type Config,
   type NamedBackendConfig,
   activeBackend,
+  hasSignIn,
   load,
   save,
 } from "../config/index.js";
 import { DEFAULT_CLOUD_ENDPOINT } from "../config/resolve.js";
 import { CliExitError, ExitCode } from "../errors/index.js";
-import { CLIENT_ID, callbackUrl, TOKEN_URL } from "./auth0.js";
+import { discover, postTokenForm, type TokenSet } from "./oidc.js";
 
-/** Normalized result of an Auth0 token endpoint call. */
-export interface TokenSet {
-  readonly accessToken: string;
-  /** Present when `offline_access` was granted; may rotate on refresh. */
-  readonly refreshToken?: string;
-  /** Absolute expiry as an RFC 3339 string, derived from `expires_in`. */
-  readonly expiresAt?: string;
-}
+export type { TokenSet } from "./oidc.js";
 
 // Refresh this many ms before the real expiry so an in-flight request never
 // races the token going stale.
@@ -46,37 +48,30 @@ const EXPIRY_SKEW_MS = 60_000;
 // picks up a new sign-in later.
 const NO_EXPIRY_REREAD_MS = 5 * 60_000;
 
-interface Auth0TokenResponse {
-  access_token?: string;
-  refresh_token?: string;
-  expires_in?: number;
-  error?: string;
-  error_description?: string;
-}
-
-/** Exchange a PKCE authorization code for an access (+refresh) token. */
-export async function exchangeCode(params: {
-  code: string;
-  codeVerifier: string;
-}): Promise<TokenSet> {
-  return postToken({
-    grant_type: "authorization_code",
-    client_id: CLIENT_ID,
-    code: params.code,
-    redirect_uri: callbackUrl(),
-    code_verifier: params.codeVerifier,
-  });
-}
-
-/** Exchange a refresh token for a fresh access token. */
-export async function refreshAccessToken(
-  refreshToken: string,
-): Promise<TokenSet> {
-  return postToken({
+/**
+ * Exchange a refresh token for a fresh access token at the provider the entry
+ * signed in with. An entry that names no provider cannot be refreshed.
+ */
+export async function refreshAccessToken(entry: NamedBackendConfig, refreshToken: string): Promise<TokenSet> {
+  const issuer = entry.oidc_issuer;
+  const clientId = entry.oidc_client_id;
+  if (issuer === undefined || issuer === "" || clientId === undefined || clientId === "") {
+    throw new CliExitError("this sign-in names no provider to refresh it at", ExitCode.Auth, [
+      "Sign in again:  stigmer auth login",
+    ]);
+  }
+  const { tokenEndpoint } = await discover(issuer);
+  return postTokenForm(tokenEndpoint, {
     grant_type: "refresh_token",
-    client_id: CLIENT_ID,
+    client_id: clientId,
     refresh_token: refreshToken,
   });
+}
+
+/** Whether a long-running source may serve this entry's sign-in. */
+function servesSignIn(entry: NamedBackendConfig | undefined, endpoint: string): entry is NamedBackendConfig {
+  if (entry === undefined || cloudEndpoint(entry) !== endpoint) return false;
+  return entry.type === "cloud" || hasSignIn(entry);
 }
 
 /**
@@ -85,10 +80,11 @@ export async function refreshAccessToken(
  * Precedence and behavior, evaluated per request against the ACTIVE named
  * backend:
  *   1. STIGMER_API_KEY (env / bridged --api-key) wins and is never refreshed.
- *   2. selfhost backends return their stored api_key (no refresh machinery —
- *      server-minted `stk_` tokens are opaque and live until deleted or
- *      expired server-side); local returns null (no auth).
- *   3. A cloud backend's non-expired access token is returned as-is.
+ *   2. A selfhost backend with no sign-in returns its stored api_key (no
+ *      refresh machinery — server-minted `stk_` tokens are opaque and live
+ *      until deleted or expired server-side); local returns null (no auth).
+ *   3. A signed-in backend's (any cloud backend, or a selfhost one `stigmer
+ *      auth login` signed in to) non-expired access token is returned as-is.
  *   4. An expired token with a refresh token is refreshed; the new token,
  *      rotated refresh token, and expiry are set INTO THE ENTRY and patched
  *      into that entry on disk, then returned. Calls made while a refresh is
@@ -109,7 +105,7 @@ export function createRefreshingTokenProvider(config: Config): TokenProvider {
 
     const { name, entry } = activeBackend(config);
     if (entry === undefined) return null;
-    if (entry.type === "selfhost") return entry.api_key ?? null;
+    if (entry.type === "selfhost" && !hasSignIn(entry)) return entry.api_key ?? null;
 
     if (inFlight?.entry !== entry) {
       const endpoint = cloudEndpoint(entry);
@@ -128,14 +124,15 @@ export function createRefreshingTokenProvider(config: Config): TokenProvider {
 
 /**
  * The token source for a long-running process whose server dials one fixed
- * address: the cloud backend `backendName` at `endpoint`, as they were when
- * it started. Built on the SDK's token cache, so a token is kept until a
+ * address: the signed-in backend `backendName` at `endpoint`, as they were
+ * when it started. Built on the SDK's token cache, so a token is kept until a
  * minute before it expires, concurrent calls share one fetch, and a failed
  * fetch is not kept. Each fetch:
  *   1. reads the config file as it is now, so it sees a refresh, a rotated
  *      refresh token or a login another command saved;
  *   2. answers null (no credential, never another backend's) when the entry
- *      is gone, is no longer a cloud backend, or now points elsewhere;
+ *      is gone, no longer holds a sign-in (a selfhost entry signed out), or
+ *      now points elsewhere;
  *   3. otherwise refreshes the token when it is expired, persisting it as the
  *      short-lived provider does;
  *   4. keeps a token with no usable expiry for {@link NO_EXPIRY_REREAD_MS}.
@@ -149,9 +146,7 @@ export function createRefreshingTokenProvider(config: Config): TokenProvider {
 export function createBackendTokenSource(backendName: string, endpoint: string): TokenCache {
   return createTokenCache(async () => {
     const entry = load().backends?.[backendName];
-    if (entry === undefined || entry.type !== "cloud" || cloudEndpoint(entry) !== endpoint) {
-      return null;
-    }
+    if (!servesSignIn(entry, endpoint)) return null;
     const fresh = await freshCloudToken(entry, (next) =>
       persistRefreshedTokens(backendName, endpoint, next),
     );
@@ -164,21 +159,21 @@ export function createBackendTokenSource(backendName: string, endpoint: string):
   });
 }
 
-/** The address a cloud entry is dialed at: its own, else Stigmer Cloud's. */
+/** The address an entry is dialed at: its own, else (a cloud entry) Stigmer Cloud's. */
 function cloudEndpoint(entry: NamedBackendConfig): string {
   return entry.endpoint !== undefined && entry.endpoint !== ""
     ? entry.endpoint
     : DEFAULT_CLOUD_ENDPOINT;
 }
 
-/** A cloud entry's access token and its stored expiry, if any. */
+/** A signed-in entry's access token and its stored expiry, if any. */
 interface CloudToken {
   readonly accessToken: string;
   readonly expiresAt: string | undefined;
 }
 
 /**
- * The cloud entry's access token, refreshed first when it is missing or
+ * The entry's access token, refreshed first when it is missing or
  * expired and a refresh token is stored. A refresh sets the new token set into
  * `entry` and hands it to `persist`. A refused refresh (a revoked or expired
  * sign-in) answers the current token, if any: the server rejects it and the
@@ -197,7 +192,7 @@ async function freshCloudToken(
 
   let next: TokenSet;
   try {
-    next = await refreshAccessToken(entry.refresh_token);
+    next = await refreshAccessToken(entry, entry.refresh_token);
   } catch {
     return current;
   }
@@ -208,14 +203,14 @@ async function freshCloudToken(
 
 /**
  * Write a refreshed token set into the file as it is on disk now, patching
- * only the token fields of `backendName`, and only while that entry is still
- * the cloud backend at `endpoint`: a backend removed or re-pointed meanwhile
- * is left as the person left it.
+ * only the token fields of `backendName`, and only while that entry still
+ * holds a sign-in for `endpoint`: a backend removed, signed out or re-pointed
+ * meanwhile is left as the person left it.
  */
 function persistRefreshedTokens(backendName: string, endpoint: string, next: TokenSet): void {
   const config = load();
   const entry = config.backends?.[backendName];
-  if (entry === undefined || entry.type !== "cloud" || cloudEndpoint(entry) !== endpoint) return;
+  if (!servesSignIn(entry, endpoint)) return;
   applyTokenSet(entry, next);
   save(config);
 }
@@ -234,36 +229,4 @@ function isExpired(expiresAt: string | undefined): boolean {
   const expiryMs = Date.parse(expiresAt);
   if (Number.isNaN(expiryMs)) return false;
   return Date.now() >= expiryMs - EXPIRY_SKEW_MS;
-}
-
-async function postToken(form: Record<string, string>): Promise<TokenSet> {
-  let response: Response;
-  try {
-    response = await fetch(TOKEN_URL, {
-      method: "POST",
-      headers: { "content-type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams(form).toString(),
-    });
-  } catch (err) {
-    throw new CliExitError(
-      `failed to reach the authentication server: ${(err as Error).message}`,
-      ExitCode.Connection,
-    );
-  }
-
-  const body = (await response.json().catch(() => ({}))) as Auth0TokenResponse;
-  if (!response.ok || body.access_token === undefined) {
-    const detail =
-      body.error_description ?? body.error ?? `HTTP ${response.status}`;
-    throw new CliExitError(`authentication failed: ${detail}`, ExitCode.Auth);
-  }
-
-  return {
-    accessToken: body.access_token,
-    refreshToken: body.refresh_token,
-    expiresAt:
-      body.expires_in !== undefined
-        ? new Date(Date.now() + body.expires_in * 1000).toISOString()
-        : undefined,
-  };
 }

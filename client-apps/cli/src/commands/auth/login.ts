@@ -1,10 +1,11 @@
-// `stigmer auth login` — the browser PKCE flow, then the account.
+// `stigmer auth login` — sign in where the server says, then the account.
 //
-// The auth module's login() persists the tokens and switches the backend to
-// cloud. This command then runs the SDK's ensureMyIdentityAccount — the
-// console's first-sign-in flow — so a person who signs in
-// from the CLI alone is provisioned, not left for the server's authorizer
-// to lock out as an unknown principal.
+// The auth module's login() signs in through the server's announced native
+// client, persists the tokens into the backend's entry and makes it active.
+// This command then runs the SDK's ensureMyIdentityAccount — the console's
+// first-sign-in flow — so a person who signs in from the CLI alone is
+// provisioned, not left for the server's authorizer to lock out as an unknown
+// principal.
 //
 // The order matters for the result: the tokens are already saved when the
 // account step runs, so its failure is a WARNING that says the login stood
@@ -12,6 +13,8 @@
 // sends the person back to the browser.
 
 import { ensureMyIdentityAccount } from "@stigmer/client";
+import type { LoginOptions, LoginOutcome } from "../../auth/index.js";
+import { DEFAULT_CLOUD_ENDPOINT } from "../../config/resolve.js";
 import { classify } from "../../errors/index.js";
 import { CommandResult } from "../../output/index.js";
 
@@ -20,26 +23,30 @@ export type AccountSetup =
   | { readonly status: "ensured"; readonly created: boolean }
   | { readonly status: "failed"; readonly message: string };
 
-const CLOUD_HINTS = [
-  "Run commands against the cloud backend, e.g.:",
-  "  stigmer list agents",
-];
+/** Where the sign-in landed, as the result names it. */
+export type SignedIn = Pick<LoginOutcome, "backendName" | "type" | "address">;
+
+/** "Stigmer Cloud" for Cloud's own address, else the server's host. */
+export function serverLabel(signedIn: SignedIn): string {
+  if (signedIn.type === "cloud" && signedIn.address === DEFAULT_CLOUD_ENDPOINT) return "Stigmer Cloud";
+  return signedIn.address.replace(/:443$/, "");
+}
 
 /** Render the login outcome. Pure: the command layer supplies `setup`. */
-export function loginResult(setup: AccountSetup): CommandResult {
+export function loginResult(signedIn: SignedIn, setup: AccountSetup): CommandResult {
+  const label = serverLabel(signedIn);
   switch (setup.status) {
-    case "ensured": {
-      const result = CommandResult.success(
+    case "ensured":
+      return CommandResult.success(
         setup.created
-          ? "Authenticated with Stigmer Cloud — your account was created on this first sign-in"
-          : "Authenticated with Stigmer Cloud",
-      );
-      for (const hint of CLOUD_HINTS) result.hint(hint);
-      return result;
-    }
+          ? `Authenticated with ${label} — your account was created on this first sign-in`
+          : `Authenticated with ${label}`,
+      )
+        .hint(`Run commands against backend "${signedIn.backendName}", e.g.:`)
+        .hint("  stigmer list agents");
     case "failed":
       return CommandResult.warning(
-        `Authenticated with Stigmer Cloud, but your account could not be set up: ${setup.message}`,
+        `Authenticated with ${label}, but your account could not be set up: ${setup.message}`,
       ).hint("Run 'stigmer auth whoami' to finish setting up your account.");
     default: {
       const _exhaustive: never = setup;
@@ -48,10 +55,10 @@ export function loginResult(setup: AccountSetup): CommandResult {
   }
 }
 
-export async function runLogin(): Promise<CommandResult> {
+export async function runLogin(options: LoginOptions = {}): Promise<CommandResult> {
   const { login } = await import("../../auth/index.js");
-  await login();
-  return loginResult(await ensureAccount());
+  const outcome = await login(options);
+  return loginResult(outcome, await ensureAccount());
 }
 
 // The tokens are on disk by now; connectBackend() reads them fresh.

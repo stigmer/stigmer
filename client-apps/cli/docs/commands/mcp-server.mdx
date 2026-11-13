@@ -7,10 +7,11 @@ process and communicates over stdin/stdout.
 
 When running via the CLI, the server address and API key are automatically
 resolved from the active backend in `~/.stigmer/config.yaml`. The local backend
-connects without authentication; a cloud backend uses your `stigmer auth login`
-sign-in, and a self-hosted backend its API key.
+connects without authentication; a backend you signed in to with
+`stigmer auth login` uses that sign-in, and a self-hosted backend with no
+sign-in its API key.
 
-A cloud sign-in is refreshed while the server runs, so an MCP client can keep it
+A sign-in is refreshed while the server runs, so an MCP client can keep it
 running all day: when the access token expires, the next tool call gets a fresh
 one and saves it as every other command does. Signing in again with
 `stigmer auth login` takes effect without restarting the server. An API key you

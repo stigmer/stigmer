@@ -226,6 +226,15 @@ export const LANES = {
       // The model key's check and prompt on `stigmer up` and `stigmer setup`
       // (test/install/smoke-up-key.mjs), on and off a terminal.
       "test/install/smoke-up-key.mjs",
+      // `stigmer auth login` where a signed-in server says
+      // (test/install/smoke-cli-sign-in.mjs), through test/support's issuer.
+      "test/install/smoke-cli-sign-in.mjs",
+      "test/support/src/local-oidc-issuer.ts",
+      "test/support/src/jwt.ts",
+      "test/support/src/server-process.ts",
+      "test/support/src/child-process.ts",
+      "test/support/src/ports.ts",
+      "test/support/src/ts-build.ts",
       "sdk/typescript/src/**",
       "sdk/typescript/package.json",
       "scripts/publish-libs.mjs",

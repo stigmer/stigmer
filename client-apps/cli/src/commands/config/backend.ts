@@ -104,9 +104,11 @@ function buildStatus(config: Config): CommandResult {
   if (entry?.type === "selfhost") {
     section.field(
       "Auth",
-      entry.api_key
-        ? "API key stored"
-        : "No credential (unauthenticated server, or STIGMER_API_KEY)",
+      entry.token
+        ? "Logged in"
+        : entry.api_key
+          ? "API key stored"
+          : "No credential (unauthenticated server, or STIGMER_API_KEY)",
     );
   }
   return result;
@@ -160,8 +162,20 @@ function applyAdd(name: string, options: AddOptions): CommandResult {
   const config = load();
   const backends = (config.backends ??= {});
   const existing = backends[name];
+  // A sign-in belongs to the server it was made with: re-pointing the entry
+  // drops it, so its token is never sent to the new address.
+  const moved = existing !== undefined && (existing.endpoint ?? "") !== endpoint;
   backends[name] = {
     ...existing,
+    ...(moved
+      ? {
+          token: undefined,
+          refresh_token: undefined,
+          token_expiry: undefined,
+          oidc_issuer: undefined,
+          oidc_client_id: undefined,
+        }
+      : {}),
     type: type as NamedBackendType,
     endpoint,
     ...(options.apiKey !== undefined ? { api_key: options.apiKey } : {}),
@@ -173,9 +187,9 @@ function applyAdd(name: string, options: AddOptions): CommandResult {
   ).hint(`Switch to it:  stigmer config backend use ${name}`);
   if (type === "selfhost" && backends[name].api_key === undefined) {
     result.hint(
-      "No API key stored. For an authenticated server, mint one on that backend:",
+      "No credential stored. For a server that signs people in, switch to it and sign in:",
     );
-    result.hint("  stigmer apikey create --name cli");
+    result.hint(`  stigmer config backend use ${name} && stigmer auth login`);
   }
   return result;
 }
@@ -208,7 +222,7 @@ function buildList(config: Config): CommandResult {
     if (entry?.type === "cloud") {
       section.field("Auth", entry.token ? "Logged in" : "Not logged in");
     } else if (entry?.type === "selfhost") {
-      section.field("Auth", entry.api_key ? "API key stored" : "None");
+      section.field("Auth", entry.token ? "Logged in" : entry.api_key ? "API key stored" : "None");
     }
   }
   return result;

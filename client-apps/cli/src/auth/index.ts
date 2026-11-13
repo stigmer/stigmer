@@ -1,6 +1,7 @@
 // Public surface of the auth module.
 
-export { AUDIENCE, AUTH0_DOMAIN, buildAuthorizeUrl, callbackUrl, CLIENT_ID } from "./auth0.js";
-export { login } from "./login.js";
+export { canOpenBrowser, openBrowser } from "./browser.js";
+export { login, LOOPBACK_PORTS, type LoginOptions, type LoginOutcome } from "./login.js";
+export { authorizeUrl, discover, type NativeSignIn, providerOnServersSite, type TokenSet } from "./oidc.js";
 export { challengeS256, generateState, generateVerifier } from "./pkce.js";
-export { createRefreshingTokenProvider, exchangeCode, refreshAccessToken, type TokenSet } from "./token.js";
+export { createRefreshingTokenProvider, refreshAccessToken } from "./token.js";

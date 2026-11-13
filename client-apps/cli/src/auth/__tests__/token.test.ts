@@ -1,5 +1,11 @@
-// Unit tests for the CLI's token providers (auth/token.ts), with the Auth0
-// token endpoint stubbed through `fetch` and HOME in a throwaway folder.
+// Unit tests for the CLI's token providers (auth/token.ts), with the issuer's
+// discovery document and token endpoint stubbed through `fetch` and HOME in a
+// throwaway folder.
+//
+// A refresh goes to the issuer the entry signed in with (its discovery
+// document's token endpoint, its client id); an entry that names no issuer is
+// never refreshed, and a selfhost entry that holds a sign-in is served and
+// refreshed as a cloud one is.
 //
 // The short-lived provider: an API key in the environment wins, a valid token
 // is served as is, an expired one is refreshed, and concurrent calls share one
@@ -23,10 +29,31 @@ import {
   load,
   save,
 } from "../../config/index.js";
+import { forgetDiscovery } from "../oidc.js";
 import {
   createBackendTokenSource,
   createRefreshingTokenProvider,
 } from "../token.js";
+
+const ISSUER = "https://id.example.test/";
+const TOKEN_ENDPOINT = "https://id.example.test/oauth/token";
+const CLIENT = "native-client";
+/** The provider a sign-in came from, as login stores it. */
+const SIGNED_IN = { oidc_issuer: ISSUER, oidc_client_id: CLIENT } as const;
+
+/** The issuer's discovery document, for a GET of it; undefined for any other request. */
+function discoveryAnswer(url: string): { ok: boolean; status: number; json: () => Promise<unknown> } | undefined {
+  if (!url.endsWith("/.well-known/openid-configuration")) return undefined;
+  return {
+    ok: true,
+    status: 200,
+    json: async () => ({
+      issuer: ISSUER,
+      authorization_endpoint: "https://id.example.test/authorize",
+      token_endpoint: TOKEN_ENDPOINT,
+    }),
+  };
+}
 
 // The provider persists refreshed tokens via config.save(), which writes to
 // ~/.stigmer/config.yaml. Redirect HOME to a throwaway dir so tests never touch
@@ -37,7 +64,7 @@ function cloudConfig(overrides: Partial<NamedBackendConfig>): Config {
   return {
     backend: {},
     backends: {
-      cloud: { type: "cloud", endpoint: "api.stigmer.ai:443", ...overrides },
+      cloud: { type: "cloud", endpoint: "api.stigmer.ai:443", ...SIGNED_IN, ...overrides },
     },
     current_backend: "cloud",
   };
@@ -64,11 +91,13 @@ function mockFetch(response: {
 }): void {
   vi.stubGlobal(
     "fetch",
-    vi.fn(async () => ({
-      ok: response.ok,
-      status: response.status ?? (response.ok ? 200 : 400),
-      json: async () => response.body,
-    })),
+    vi.fn(async (url: string) =>
+      discoveryAnswer(url) ?? {
+        ok: response.ok,
+        status: response.status ?? (response.ok ? 200 : 400),
+        json: async () => response.body,
+      },
+    ),
   );
 }
 
@@ -76,6 +105,7 @@ beforeEach(() => {
   originalHome = process.env.HOME;
   process.env.HOME = mkdtempSync(join(tmpdir(), "stigmer-token-"));
   delete process.env.STIGMER_API_KEY;
+  forgetDiscovery();
 });
 
 afterEach(() => {
@@ -91,12 +121,19 @@ const ENDPOINT = "api.stigmer.ai:443";
 function tokenEndpoint(
   answers: Array<{ access_token: string; refresh_token?: string; expires_in?: number }>,
   during?: () => void,
-): { readonly refreshTokensSent: string[] } {
+): { readonly refreshTokensSent: string[]; readonly forms: URLSearchParams[]; readonly urls: string[] } {
   const refreshTokensSent: string[] = [];
+  const forms: URLSearchParams[] = [];
+  const urls: string[] = [];
   vi.stubGlobal(
     "fetch",
-    vi.fn(async (_url: string, init: { body: string }) => {
-      refreshTokensSent.push(new URLSearchParams(init.body).get("refresh_token") ?? "");
+    vi.fn(async (url: string, init?: { body: string }) => {
+      const discovery = discoveryAnswer(url);
+      if (discovery !== undefined) return discovery;
+      urls.push(url);
+      const form = new URLSearchParams(init?.body ?? "");
+      forms.push(form);
+      refreshTokensSent.push(form.get("refresh_token") ?? "");
       during?.();
       const body = answers.shift();
       return {
@@ -106,7 +143,7 @@ function tokenEndpoint(
       };
     }),
   );
-  return { refreshTokensSent };
+  return { refreshTokensSent, forms, urls };
 }
 
 /** Write the cloud entry (and anything else in `config`) to the on-disk file. */
@@ -115,7 +152,7 @@ function writeCloud(overrides: Partial<NamedBackendConfig>, config?: Partial<Con
     backend: {},
     current_backend: "cloud",
     ...config,
-    backends: { cloud: { type: "cloud", endpoint: ENDPOINT, ...overrides }, ...config?.backends },
+    backends: { cloud: { type: "cloud", endpoint: ENDPOINT, ...SIGNED_IN, ...overrides }, ...config?.backends },
   });
 }
 
@@ -243,6 +280,48 @@ describe("createRefreshingTokenProvider", () => {
 
     expect(await createRefreshingTokenProvider(config)()).toBe("fresh");
     expect(onDisk()).toMatchObject({ endpoint: "elsewhere.example.com:443", token: "theirs" });
+  });
+
+  it("refreshes at the issuer the entry signed in with, as its client", async () => {
+    const endpoint = tokenEndpoint([{ access_token: "fresh", expires_in: 3600 }]);
+    const provider = createRefreshingTokenProvider(
+      cloudConfig({ token: "expired", token_expiry: past(), refresh_token: "r1" }),
+    );
+    expect(await provider()).toBe("fresh");
+    expect(endpoint.urls).toEqual([TOKEN_ENDPOINT]);
+    expect(endpoint.forms[0]?.get("grant_type")).toBe("refresh_token");
+    expect(endpoint.forms[0]?.get("client_id")).toBe(CLIENT);
+  });
+
+  it("never refreshes an entry that names no issuer, leaving the verdict to the server", async () => {
+    const fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+    const provider = createRefreshingTokenProvider(
+      cloudConfig({
+        oidc_issuer: undefined,
+        oidc_client_id: undefined,
+        token: "from-an-older-cli",
+        token_expiry: past(),
+        refresh_token: "r-old",
+      }),
+    );
+    expect(await provider()).toBe("from-an-older-cli");
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("serves a signed-in selfhost entry's token over its api_key, and refreshes it", async () => {
+    const endpoint = tokenEndpoint([{ access_token: "fresh-selfhost", expires_in: 3600 }]);
+    const provider = createRefreshingTokenProvider(
+      selfhostConfig({
+        ...SIGNED_IN,
+        api_key: "stk_stored",
+        token: "expired",
+        token_expiry: past(),
+        refresh_token: "r-self",
+      }),
+    );
+    expect(await provider()).toBe("fresh-selfhost");
+    expect(endpoint.refreshTokensSent).toEqual(["r-self"]);
   });
 
   it("treats a token without an expiry as valid, leaving the verdict to the server", async () => {
@@ -375,6 +454,27 @@ describe("createBackendTokenSource", () => {
 
     expect(await source.getAccessToken()).toBe("after-login");
     expect(endpoint.refreshTokensSent).toEqual(["revoked"]);
+  });
+
+  it("serves and refreshes a selfhost backend that holds a sign-in", async () => {
+    save({
+      backend: {},
+      current_backend: "staging",
+      backends: {
+        staging: {
+          type: "selfhost",
+          endpoint: "stigmer.example.com:7234",
+          ...SIGNED_IN,
+          token: "expired",
+          token_expiry: past(),
+          refresh_token: "r-self",
+        },
+      },
+    });
+    tokenEndpoint([{ access_token: "fresh-selfhost", expires_in: 3600 }]);
+    const source = createBackendTokenSource("staging", "stigmer.example.com:7234");
+    expect(await source.getAccessToken()).toBe("fresh-selfhost");
+    expect(onDisk("staging")?.token).toBe("fresh-selfhost");
   });
 
   it("answers null when nobody is signed in to the backend", async () => {
