@@ -160,6 +160,7 @@ function useServerInfo(options?: { enabled?: boolean }): UseServerInfoReturn
   type={{
     error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
     isLoading: { type: "boolean", description: "`true` while the initial fetch is in flight." },
+    refetch: { type: "() => void", description: "Asks the server again, after a failed read." },
     serverInfo: { type: "ServerInfo | null", description: "The connected server's edition, version and posture, or `null` while loading / on error." },
   }}
 />

@@ -112,10 +112,13 @@ let shell;
 let signedIn;
 let failed = false;
 
-/** Runs a line in bash in `cwd` with the developer's shell; throws on a non-zero exit. */
-async function run(line, cwd) {
+/**
+ * Runs a line in bash in `cwd` with the developer's shell, and `env` over it
+ * (a secret goes there, never into the logged line); throws on a non-zero exit.
+ */
+async function run(line, cwd, env = {}) {
   log(`$ ${line}`);
-  const result = await spawnCommand(["bash", "-c", 'cd "$0" || exit 1; eval "$1"'], [cwd, line], shell, COMMAND_TIMEOUT_MS).done;
+  const result = await spawnCommand(["bash", "-c", 'cd "$0" || exit 1; eval "$1"'], [cwd, line], { ...shell, ...env }, COMMAND_TIMEOUT_MS).done;
   if (result.error !== undefined || result.status !== 0) {
     throw new Error(`failed: ${line} (${result.error?.message ?? `exit ${result.status}`})\nstdout:\n${result.stdout}\nstderr:\n${result.stderr}`);
   }
@@ -396,8 +399,8 @@ test("CON-10 the handed-over Next.js route handler answers a token for an app us
       ].join("\n"),
     );
     const ask = async (devUser) => {
-      const env = devUser ? `STIGMER_DEV_USER=${shellQuote(DEV_USER)} ` : "";
-      const result = await run(`STIGMER_API_KEY=${shellQuote(signedIn.apiKey)} ${env}${TSX} ask.ts`, folder);
+      const env = { STIGMER_API_KEY: signedIn.apiKey, ...(devUser ? { STIGMER_DEV_USER: DEV_USER } : {}) };
+      const result = await run(`${TSX} ask.ts`, folder, env);
       return JSON.parse(result.stdout.trim().split("\n").at(-1));
     };
     await holdRoute("nextjs", await ask(true), await ask(false));

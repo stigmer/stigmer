@@ -110,7 +110,7 @@ export function InAppTab({ agent, links, onOpenChannels }: InAppTabProps) {
   let body: ReactNode;
   if (server.error !== null || org.error !== null) {
     const error = server.error ?? org.error;
-    body = <ErrorMessage error={error} title="This tab couldn't be read" retry={org.error ? org.refetch : undefined} />;
+    body = <ErrorMessage error={error} title="This tab couldn't be read" retry={server.error ? server.refetch : org.refetch} />;
   } else if (server.serverInfo === null || org.organization === null) {
     body = <LoadingRegion label="Loading" className="stg:h-48 stg:animate-pulse stg:rounded-xl stg:bg-muted" />;
   } else if (baseUrl === null) {
@@ -471,9 +471,11 @@ function EmbeddingRow({
   const permission = useCheckPermission(org ? { kind: "organization", id: org } : null, "can_edit", { fail: "closed" });
   const canEdit = !permission.isLoading && permission.allowed;
   const update = useUpdateOrganizationEmbedding();
-  // The server's answer to a save, until the page's read catches up.
-  const [saved, setSaved] = useState<Organization | null>(null);
-  const stored = organizationEmbeddingOf(saved ?? organization);
+  // The server's answer to a save, until the page's next read arrives: held
+  // against the read it answered, so a newer read (another admin's change)
+  // always wins, and the next save starts from it.
+  const [saved, setSaved] = useState<{ readonly after: Organization; readonly value: Organization } | null>(null);
+  const stored = organizationEmbeddingOf(saved !== null && saved.after === organization ? saved.value : organization);
   const chats = CHATTING_ROLES.has(stored.signInRole);
   const on = stored.createAccountsOnSignIn;
   const done = on && chats;
@@ -488,13 +490,13 @@ function EmbeddingRow({
           // Turned on, a role that can chat: kept if it already can.
           signInRole: createAccountsOnSignIn && !chats ? IamRole.member : stored.signInRole,
         });
-        setSaved(next);
+        setSaved({ after: organization, value: next });
         onSaved();
       } catch {
         // The hook holds the error; the row says it.
       }
     },
-    [update, org, stored, chats, onSaved],
+    [update, org, stored, chats, onSaved, organization],
   );
 
   const settings = embeddingHref ? renderLink({ href: embeddingHref, className: LINK, children: "Embedding settings" }) : "Embedding settings";

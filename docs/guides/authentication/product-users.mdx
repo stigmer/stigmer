@@ -170,7 +170,9 @@ result, err := client.Tokens.MintUserToken(ctx, &stigmer.MintUserTokenInput{
     UserName:  user.Name,
 })
 if err != nil {
-    log.Fatal(err)
+    log.Print(err)
+    http.Error(w, "Stigmer refused the token", http.StatusBadGateway)
+    return
 }
 
 // Your /api/stigmer-token endpoint answers the browser:

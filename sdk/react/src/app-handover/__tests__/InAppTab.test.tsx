@@ -78,6 +78,10 @@ interface Options {
   readonly accessFails?: boolean;
   /** The server refuses to make a service account. */
   readonly createRefused?: boolean;
+  /** The server-info read fails this many times before it answers. */
+  readonly serverInfoFailures?: number;
+  /** Another admin changes the origins right after this person's save. */
+  readonly otherAdminAfterSave?: boolean;
   /** The organization read fails. */
   readonly orgFails?: boolean;
   /** Key creation fails this many times before it succeeds. */
@@ -118,8 +122,11 @@ function renderPage(props: Partial<AgentDetailViewProps> = {}, opts: Options = {
   });
   const updateEmbedding = vi.fn(async (input: { orgId: string; embedding: typeof state.embedding }) => {
     state.embedding = input.embedding;
-    return organization();
+    const answer = organization();
+    if (opts.otherAdminAfterSave) state.embedding = create(OrganizationEmbeddingSchema, { ...input.embedding, allowedOrigins: ["https://other.acme.example"] });
+    return answer;
   });
+  let serverInfoFailures = opts.serverInfoFailures ?? 0;
   const listResourceAccessByPrincipal = vi.fn(async () => {
     if (opts.accessFails) throw new StigmerError("unavailable", "the access store is down", Code.Unavailable);
     return {
@@ -151,7 +158,15 @@ function renderPage(props: Partial<AgentDetailViewProps> = {}, opts: Options = {
         },
         identityAccount: { createServiceAccount },
         apiKey: { createForServiceAccount },
-        platform: { getServerInfo: vi.fn(async () => ({ singleOrg: false, authenticationRequired: opts.signsIn ?? true, version: "0.1.3" })) },
+        platform: {
+          getServerInfo: vi.fn(async () => {
+            if (serverInfoFailures > 0) {
+              serverInfoFailures -= 1;
+              throw new StigmerError("unavailable", "the server is restarting", Code.Unavailable);
+            }
+            return { singleOrg: false, authenticationRequired: opts.signsIn ?? true, version: "0.1.3" };
+          }),
+        },
         environment: { list: vi.fn(async () => ({ entries: [], nextPageToken: "" })) },
         grant: {
           checkMyPermission: vi.fn(async (input: { relation: string }) => ({ isAuthorized: !refused.has(input.relation) })),
@@ -302,6 +317,13 @@ describe("CON-10 the console hands over what puts an agent in the builder's own 
     await within(embedding).findByText(/they join as Member, from https:\/\/app\.acme\.example/);
   });
 
+  it("shows a newer read of the organization over its own saved answer", async () => {
+    renderPage({ defaultTab: "in-app" }, { otherAdminAfterSave: true });
+    const embedding = await row("Your users get accounts the first time your app signs them in");
+    fireEvent.click(await within(embedding).findByRole("switch"));
+    expect(await within(embedding).findByText(/from https:\/\/other\.acme\.example/)).toBeTruthy();
+  });
+
   it("offers Member when accounts are made with a role that cannot chat", async () => {
     const { updateEmbedding } = renderPage({ defaultTab: "in-app" }, { embedding: { createAccountsOnSignIn: true, signInRole: IamRole.iam_role_unspecified } });
     const embedding = await row("Your users get accounts the first time your app signs them in");
@@ -331,6 +353,12 @@ describe("CON-10 the console hands over what puts an agent in the builder's own 
   it("says the tab couldn't be read when the organization read fails", async () => {
     renderPage({ defaultTab: "in-app" }, { orgFails: true });
     expect(await screen.findByText("This tab couldn't be read")).toBeTruthy();
+  });
+
+  it("asks the server again when its first answer failed", async () => {
+    renderPage({ defaultTab: "in-app" }, { serverInfoFailures: 1 });
+    fireEvent.click(await screen.findByRole("button", { name: /retry/i }));
+    expect(await screen.findByRole("radio", { name: "Next.js" })).toBeTruthy();
   });
 
   it("says it can't show the code when the server's public address is unknown", async () => {

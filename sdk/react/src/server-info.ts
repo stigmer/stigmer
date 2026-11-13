@@ -12,6 +12,8 @@ export interface UseServerInfoReturn {
   readonly isLoading: boolean;
   /** Error from the last failed request, or `null` when healthy. */
   readonly error: Error | null;
+  /** Asks the server again, after a failed read. */
+  readonly refetch: () => void;
 }
 
 /**
@@ -48,13 +50,14 @@ export function useServerInfo(options?: { readonly enabled?: boolean }): UseServ
     data: serverInfo,
     isLoading,
     error,
+    refetch,
   } = useFetch<ServerInfo | null>(
     enabled ? () => stigmer.platform.getServerInfo() : null,
     [stigmer, enabled],
     null,
     { cacheKey: "server-info" },
   );
-  return { serverInfo, isLoading, error };
+  return { serverInfo, isLoading, error, refetch };
 }
 
 /**
