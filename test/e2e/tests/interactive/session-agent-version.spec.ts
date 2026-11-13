@@ -21,8 +21,8 @@ import {
  * between it and the conversation), and the server pins the agent's
  * current version on the session (`status.agent_id`,
  * `status.agent_version_hash`). The author then saves a new version of the
- * agent. Reopened, the conversation says it runs an older version and
- * offers to update; the update control re-pins the session to the agent's
+ * agent. Reopened, the conversation says a newer version of its agent is
+ * out and offers to update; the update control re-pins the session to the agent's
  * new head (a session update with `agent_ref.version = "latest"`), which
  * the spec reads back over the API.
  *
@@ -31,7 +31,7 @@ import {
  * provider key, as the session chat canary (session-flow.spec.ts).
  *
  * The notice and its control are found by accessible text: the notice by
- * "older version", the control by a button named "Update" inside the same
+ * "newer version", the control by a button named "Update" inside the same
  * notice, so a copy edit that keeps those words keeps the spec.
  */
 
@@ -114,7 +114,7 @@ test.describe("A conversation's agent version", () => {
       expect(await pinnedVersionOf(stigmerClient, sessionId)).toBe(startedOn);
       await page.reload();
       const notice = page
-        .getByText(/older version/i)
+        .getByText(/newer version/i)
         .locator("xpath=ancestor-or-self::*[.//button][1]");
       await expect(notice).toBeVisible({ timeout: 15_000 });
 
@@ -125,7 +125,7 @@ test.describe("A conversation's agent version", () => {
           timeout: 15_000,
         })
         .toBe(head);
-      await expect(page.getByText(/older version/i)).toHaveCount(0);
+      await expect(page.getByText(/newer version/i)).toHaveCount(0);
     } finally {
       await stigmerClient.session.delete(sessionId).catch(() => {});
     }
