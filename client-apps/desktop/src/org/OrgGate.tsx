@@ -1,7 +1,7 @@
 import { useCallback, type ReactNode } from "react";
 import { useLocation } from "react-router-dom";
 import { Loader2, AlertCircle, RefreshCw, Building2 } from "lucide-react";
-import { CreateOrganizationForm, useOrgGate } from "@stigmer/react-sdk";
+import { Button, CreateOrganizationForm, useOrgGate } from "@stigmer/react-sdk";
 import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import { GateHeader } from "../shell/GateHeader";
 
@@ -61,13 +61,9 @@ function ErrorState({
       <p className="max-w-md text-center text-sm text-muted-foreground">
         {message}
       </p>
-      <button
-        onClick={onRetry}
-        className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary-hover"
-      >
-        <RefreshCw className="size-3" />
+      <Button icon={<RefreshCw className="size-3.5" />} onClick={onRetry}>
         Try again
-      </button>
+      </Button>
     </div>
   );
 }

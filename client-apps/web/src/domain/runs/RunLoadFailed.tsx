@@ -4,10 +4,10 @@
 // the app's error page.
 "use client";
 
-import Link from "next/link";
 import { AlertTriangle, RotateCcw } from "lucide-react";
 import { getUserMessage } from "@stigmer/client";
-import { Button } from "@/domain/_shared/ui/button";
+import { Button, LinkButton } from "@stigmer/react-sdk";
+import { renderJourneyLink } from "@/domain/journey/journey-links";
 
 export function RunLoadFailed({ error, onRetry }: { error: Error; onRetry: () => void }) {
   return (
@@ -23,16 +23,12 @@ export function RunLoadFailed({ error, onRetry }: { error: Error; onRetry: () =>
         </div>
 
         <div className="flex items-center justify-center gap-3">
-          <Button variant="outline" onClick={onRetry}>
-            <RotateCcw className="mr-1.5 size-3.5" />
+          <Button variant="outline" onClick={onRetry} icon={<RotateCcw className="size-3.5" />}>
             Try again
           </Button>
-          <Link
-            href="/"
-            className="hover:bg-muted hover:text-foreground inline-flex h-8 items-center justify-center rounded-lg px-2.5 text-sm font-medium transition-colors"
-          >
+          <LinkButton href="/" variant="ghost" renderLink={renderJourneyLink}>
             Go to Dashboard
-          </Link>
+          </LinkButton>
         </div>
       </div>
     </div>

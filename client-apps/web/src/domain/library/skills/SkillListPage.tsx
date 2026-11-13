@@ -1,10 +1,11 @@
 "use client";
 
 import { useCallback, useMemo, useReducer } from "react";
-import Link from "next/link";
 import { Plus, Sparkles, MoreHorizontal, Copy, ExternalLink, Trash2 } from "lucide-react";
 import { useLibraryNavigation } from "@/domain/library/library-navigation";
+import { renderJourneyLink } from "@/domain/journey/journey-links";
 import {
+  LinkButton,
   ResourceWorkbench,
   ActionMenu,
   useStigmer,
@@ -115,22 +116,14 @@ export function SkillListPage() {
         emptyTitle="No skills yet"
         emptyDescription="Upload a skill package to provide reusable instructions and context for your agents."
         headerAction={
-          <Link
-            href="/library/skills/new"
-            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <Plus className="size-3.5" aria-hidden="true" />
+          <LinkButton href="/library/skills/new" icon={<Plus className="size-3.5" aria-hidden="true" />} renderLink={renderJourneyLink}>
             Upload skill
-          </Link>
+          </LinkButton>
         }
         emptyAction={
-          <Link
-            href="/library/skills/new"
-            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <Plus className="size-3.5" aria-hidden="true" />
+          <LinkButton href="/library/skills/new" icon={<Plus className="size-3.5" aria-hidden="true" />} renderLink={renderJourneyLink}>
             Upload skill
-          </Link>
+          </LinkButton>
         }
         onItemClick={(item) => navigateToDetail("skills", item.org, item.slug)}
         renderItemAction={(item) => (

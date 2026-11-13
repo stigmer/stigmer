@@ -16,6 +16,7 @@ import { PermissionGate } from "../grant/PermissionGate.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { parseAddressList } from "./addresses.js";
 import { ResourceSlugField } from "../resource-detail/RenameSlugField.js";
+import { Button } from "../button/Button.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -238,36 +239,25 @@ export function OAuthAppDetailPanel({
               resource={{ kind: "oauth_app", id: meta?.id ?? "" }}
               relation="can_edit"
             >
-              <button
-                type="button"
-                onClick={enterEdit}
-                className={cn(
-                  "stg:shrink-0 stg:rounded-md stg:px-2.5 stg:py-1.5 stg:text-xs stg:font-medium",
-                  "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
-                  "stg:transition-colors",
-                )}
-              >
+              <Button variant="ghost" size="xs" onClick={enterEdit}>
                 Edit
-              </button>
+              </Button>
             </PermissionGate>
             <PermissionGate
               resource={{ kind: "oauth_app", id: meta?.id ?? "" }}
               relation="can_delete"
             >
-              <button
-                type="button"
+              <Button
+                variant="ghost"
+                size="xs"
                 onClick={() => {
                   clearDeleteError();
                   setConfirmingDelete(true);
                 }}
-                className={cn(
-                  "stg:shrink-0 stg:rounded-md stg:px-2.5 stg:py-1.5 stg:text-xs stg:font-medium",
-                  "stg:text-destructive-muted stg:hover:text-destructive stg:hover:bg-destructive-subtle",
-                  "stg:transition-colors",
-                )}
+                className="stg:text-destructive-muted stg:hover:text-destructive stg:hover:bg-destructive-subtle"
               >
                 Delete
-              </button>
+              </Button>
             </PermissionGate>
           </div>
         )}
@@ -303,34 +293,26 @@ export function OAuthAppDetailPanel({
             </p>
           )}
           <div className="stg:flex stg:items-center stg:gap-2">
-            <button
-              type="button"
+            <Button
+              variant="destructive"
+              size="xs"
               onClick={handleDelete}
               disabled={isDeleting}
-              className={cn(
-                "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium",
-                "stg:bg-destructive stg:text-destructive-foreground stg:hover:bg-destructive-hover",
-                "stg:disabled:pointer-events-none stg:disabled:opacity-40",
-              )}
+              icon={isDeleting ? <SpinnerIcon size={12} /> : undefined}
             >
-              {isDeleting && <SpinnerIcon size={12} />}
               Delete permanently
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="ghost"
+              size="xs"
               onClick={() => {
                 setConfirmingDelete(false);
                 clearDeleteError();
               }}
               disabled={isDeleting}
-              className={cn(
-                "stg:rounded-md stg:px-2.5 stg:py-1.5 stg:text-xs",
-                "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
-                "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-              )}
             >
               Cancel
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -508,30 +490,12 @@ export function OAuthAppDetailPanel({
           )}
 
           <div className="stg:flex stg:items-center stg:gap-2 stg:pt-1">
-            <button
-              type="submit"
-              disabled={!canSave}
-              className={cn(
-                "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium",
-                "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
-                "stg:disabled:pointer-events-none stg:disabled:opacity-40",
-              )}
-            >
-              {isUpdating && <SpinnerIcon size={12} />}
+            <Button type="submit" size="xs" disabled={!canSave} icon={isUpdating ? <SpinnerIcon size={12} /> : undefined}>
               Save changes
-            </button>
-            <button
-              type="button"
-              onClick={cancelEdit}
-              disabled={isUpdating}
-              className={cn(
-                "stg:rounded-md stg:px-2.5 stg:py-1.5 stg:text-xs",
-                "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
-                "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-              )}
-            >
+            </Button>
+            <Button variant="ghost" size="xs" onClick={cancelEdit} disabled={isUpdating}>
               Cancel
-            </button>
+            </Button>
           </div>
         </form>
       )}

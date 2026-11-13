@@ -9,6 +9,7 @@ import {
   type ErrorCategory,
 } from "@stigmer/client";
 import { cn } from "@stigmer/design-tokens";
+import { Button } from "../button/Button.js";
 
 /** Props for {@link ErrorMessage}. */
 export interface ErrorMessageProps {
@@ -127,18 +128,15 @@ export function ErrorMessage({
         </div>
 
         {retry && retryable && (
-          <button
-            type="button"
+          <Button
+            variant="outline"
+            size="xs"
+            icon={<RotateCcwIcon className="stg:size-3" />}
             onClick={retry}
-            className={cn(
-              "stg:inline-flex stg:shrink-0 stg:items-center stg:gap-1.5 stg:rounded-md stg:border stg:px-2.5 stg:py-1.5 stg:text-xs stg:font-medium",
-              "stg:border-destructive/20 stg:text-destructive stg:hover:bg-destructive-subtle",
-              "stg:transition-colors",
-            )}
+            className="stg:text-destructive stg:hover:bg-destructive-subtle"
           >
-            <RotateCcwIcon className="stg:size-3" />
             Retry
-          </button>
+          </Button>
         )}
       </div>
     </div>

@@ -5,6 +5,7 @@ import { Popover } from "@base-ui/react/popover";
 import { cn } from "@stigmer/design-tokens";
 import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 import { useStigmerPortalContainer } from "../portal-container.js";
+import { Button } from "../button/Button.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { ConfirmDialog } from "../resource-detail/ConfirmDialog.js";
 import { useConfirmAction } from "../resource-detail/useConfirmAction.js";
@@ -374,28 +375,12 @@ export function VisibilitySelector({
                   >
                     {pendingOption.confirmPrompt}
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => setPendingInline(null)}
-                    className={cn(
-                      "stg:rounded stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium",
-                      "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-                      ESCALATION_PROMPT_STYLES.cancel,
-                    )}
-                  >
+                  <Button variant="ghost" size="xs" onClick={() => setPendingInline(null)}>
                     Cancel
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => apply(pendingOption.value)}
-                    className={cn(
-                      "stg:rounded stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium",
-                      "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-                      ESCALATION_PROMPT_STYLES.confirm,
-                    )}
-                  >
+                  </Button>
+                  <Button size="xs" onClick={() => apply(pendingOption.value)}>
                     Confirm
-                  </button>
+                  </Button>
                 </div>
               )}
             </Popover.Popup>

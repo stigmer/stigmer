@@ -13,6 +13,7 @@ import {
 } from "./useApplyManifest.js";
 import { useOrgSlugForId } from "../organization/useOrgRefs.js";
 import { YamlEditor } from "./YamlEditor.js";
+import { Button } from "../button/Button.js";
 
 
 /** Props for {@link ApplyManifestDialog}. */
@@ -205,35 +206,14 @@ export function ApplyManifestDialog({
             {manifest.isValidating ? "Validating…" : ""}
           </p>
           <div className="stg:flex stg:gap-2">
-            <button
-              type="button"
-              onClick={closeAndMaybeRefresh}
-              disabled={manifest.isApplying}
-              className={cn(
-                "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-sm stg:font-medium stg:transition-colors",
-                "stg:border stg:border-input stg:bg-background stg:text-foreground",
-                "stg:hover:bg-accent stg:hover:text-accent-foreground",
-                "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-                "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-              )}
-            >
+            <Button variant="outline" onClick={closeAndMaybeRefresh} disabled={manifest.isApplying}>
               Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleApply}
-              disabled={!canApply}
-              className={cn(
-                "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-sm stg:font-medium stg:transition-colors",
-                "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
-                "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-                "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-              )}
-            >
+            </Button>
+            <Button onClick={handleApply} disabled={!canApply}>
               {manifest.isApplying
                 ? "Applying…"
                 : applyLabel(manifest.entries?.length ?? 0)}
-            </button>
+            </Button>
           </div>
         </div>
       </div>

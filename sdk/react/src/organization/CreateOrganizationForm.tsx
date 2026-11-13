@@ -10,6 +10,7 @@ import { useCreateOrganization } from "./useCreateOrganization.js";
 import { generateSlug } from "../internal/slug.js";
 import { validateMessage, getFieldError } from "../internal/validate.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
+import { Button } from "../button/Button.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -226,32 +227,14 @@ export function CreateOrganizationForm({
       )}
 
       <div className="stg:flex stg:items-center stg:gap-2">
-        <button
-          type="submit"
-          disabled={!canSubmit}
-          className={cn(
-            "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium",
-            "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
-            "stg:disabled:pointer-events-none stg:disabled:opacity-40",
-          )}
-        >
-          {isCreating && <SpinnerIcon size={12} />}
+        <Button type="submit" disabled={!canSubmit} icon={isCreating ? <SpinnerIcon size={12} /> : undefined}>
           Create organization
-        </button>
+        </Button>
 
         {onCancel && (
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={isCreating}
-            className={cn(
-              "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs",
-              "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
-              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-            )}
-          >
+          <Button variant="ghost" onClick={onCancel} disabled={isCreating}>
             Cancel
-          </button>
+          </Button>
         )}
       </div>
     </form>

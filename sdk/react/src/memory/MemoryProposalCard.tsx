@@ -5,6 +5,7 @@ import { cn } from "@stigmer/design-tokens";
 import { getUserMessage } from "@stigmer/client";
 import type { Memory } from "@stigmer/apis/ai/stigmer/agentic/memory/v1/api_pb";
 import { MemoryLifecycleState } from "@stigmer/apis/ai/stigmer/agentic/memory/v1/enum_pb";
+import { Button } from "../button/Button.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { formatMemoryProvenance } from "./memoryGroups.js";
 import { useConfirmMemory } from "./useConfirmMemory.js";
@@ -112,23 +113,25 @@ export function MemoryProposalCardBody({
         </p>
       ) : showActions ? (
         <div className="stg:flex stg:items-center stg:gap-1.5">
-          <ChipButton
-            label={`Confirm memory: ${displayFact}`}
+          <Button
+            size="xs"
+            aria-label={`Confirm memory: ${displayFact}`}
             onClick={() => void act(confirmMemory)}
             disabled={isBusy || isLoading}
-            emphasis="primary"
+            icon={isConfirming ? <SpinnerIcon size={12} /> : undefined}
           >
-            {isConfirming && <SpinnerIcon size={12} />}
             Confirm
-          </ChipButton>
-          <ChipButton
-            label={`Reject memory: ${displayFact}`}
+          </Button>
+          <Button
+            variant="outline"
+            size="xs"
+            aria-label={`Reject memory: ${displayFact}`}
             onClick={() => void act(rejectMemory)}
             disabled={isBusy || isLoading}
+            icon={isRejecting ? <SpinnerIcon size={12} /> : undefined}
           >
-            {isRejecting && <SpinnerIcon size={12} />}
             Reject
-          </ChipButton>
+          </Button>
         </div>
       ) : (
         <p className="stg:text-xs stg:text-muted-foreground" role="status">
@@ -144,38 +147,5 @@ export function MemoryProposalCardBody({
         </p>
       )}
     </div>
-  );
-}
-
-function ChipButton({
-  label,
-  onClick,
-  disabled,
-  emphasis,
-  children,
-}: {
-  readonly label: string;
-  readonly onClick: () => void;
-  readonly disabled?: boolean;
-  readonly emphasis?: "primary";
-  readonly children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      onClick={onClick}
-      disabled={disabled}
-      className={cn(
-        "stg:inline-flex stg:items-center stg:gap-1 stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
-        emphasis === "primary"
-          ? "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover"
-          : "stg:border stg:border-input stg:bg-background stg:text-foreground stg:hover:bg-accent stg:hover:text-accent-foreground",
-        "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-        "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-      )}
-    >
-      {children}
-    </button>
   );
 }

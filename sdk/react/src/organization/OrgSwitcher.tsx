@@ -22,6 +22,7 @@ import {
 } from "../internal/menu.js";
 import { findOrgByRef, useOrg } from "./OrgProvider.js";
 import { CreateOrganizationForm } from "./CreateOrganizationForm.js";
+import { IconButton } from "../button/IconButton.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -108,13 +109,13 @@ export function OrgSwitcher({ onOrgChanged, className }: OrgSwitcherProps) {
       <div className={cn("stg:flex stg:items-center stg:gap-2 stg:px-2 stg:py-1.5", className)}>
         <AlertCircle className="stg:text-destructive stg:size-4 stg:shrink-0" />
         <span className="stg:text-destructive stg:truncate stg:text-xs">{error}</span>
-        <button
+        <IconButton
+          label="Retry loading organizations"
+          size="xs"
           onClick={retry}
-          className="stg:text-sidebar-muted-foreground stg:hover:text-sidebar-foreground stg:shrink-0 stg:rounded stg:p-0.5 stg:transition-colors"
-          aria-label="Retry loading organizations"
-        >
-          <RefreshCw className="stg:size-3" />
-        </button>
+          icon={<RefreshCw className="stg:size-3" aria-hidden="true" />}
+          className="stg:text-sidebar-muted-foreground stg:hover:bg-sidebar-accent stg:hover:text-sidebar-foreground"
+        />
       </div>
     );
   }

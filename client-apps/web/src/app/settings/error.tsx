@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect } from "react";
-import Link from "next/link";
 import { AlertTriangle, RotateCcw, ShieldX } from "lucide-react";
 import {
   classifyError,
   getUserMessage,
   type ErrorCategory,
 } from "@stigmer/client";
-import { Button } from "@/domain/_shared/ui/button";
+import { Button, LinkButton } from "@stigmer/react-sdk";
+import { renderJourneyLink } from "@/domain/journey/journey-links";
 
 interface SettingsErrorProps {
   error: Error & { digest?: string };
@@ -54,16 +54,12 @@ export default function SettingsError({ error, reset }: SettingsErrorProps) {
         </div>
 
         <div className="flex items-center justify-center gap-3">
-          <Button variant="outline" onClick={reset}>
-            <RotateCcw className="mr-1.5 size-3.5" />
+          <Button variant="outline" onClick={reset} icon={<RotateCcw className="size-3.5" />}>
             Try again
           </Button>
-          <Link
-            href="/settings/members"
-            className="hover:bg-muted hover:text-foreground inline-flex h-8 items-center justify-center rounded-lg px-2.5 text-sm font-medium transition-colors"
-          >
+          <LinkButton href="/settings/members" variant="ghost" renderLink={renderJourneyLink}>
             Go to Members
-          </Link>
+          </LinkButton>
         </div>
 
         {error.digest && (

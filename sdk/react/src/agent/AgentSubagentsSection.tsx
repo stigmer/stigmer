@@ -22,6 +22,8 @@ import { useOrgSlugForId } from "../organization/useOrgRefs.js";
 import { AgentPicker } from "./AgentPicker.js";
 import { useAgent } from "./useAgent.js";
 import { keptReference } from "../internal/kept-reference.js";
+import { Button } from "../button/Button.js";
+import { IconButton } from "../button/IconButton.js";
 
 /** The most agents one agent may list; the server refuses more. */
 export const MAX_SUBAGENTS = 20;
@@ -160,34 +162,21 @@ export function AgentSubagentsSection({
                   disabled={isSaving}
                 />
                 <div>
-                  <button
-                    type="button"
-                    onClick={() => setIsPicking(false)}
-                    className={cn(
-                      "stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
-                      "stg:border stg:border-border stg:bg-background stg:text-foreground stg:hover:bg-accent",
-                      "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-                    )}
-                  >
+                  <Button variant="outline" size="xs" onClick={() => setIsPicking(false)}>
                     Cancel
-                  </button>
+                  </Button>
                 </div>
               </div>
             ) : (
-              <button
-                type="button"
+              <Button
+                variant="outline"
+                size="xs"
                 onClick={() => setIsPicking(true)}
-                className={cn(
-                  "stg:inline-flex stg:items-center stg:gap-1 stg:rounded-md stg:px-2.5 stg:py-1.5 stg:text-xs stg:font-medium",
-                  "stg:border stg:border-dashed stg:border-border stg:text-muted-foreground",
-                  "stg:hover:border-muted-foreground stg:hover:text-foreground stg:hover:bg-muted-subtle",
-                  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-                  "stg:transition-colors",
-                )}
+                icon={<PlusIcon className="stg:size-3" />}
+                className="stg:border-dashed"
               >
-                <PlusIcon className="stg:size-3" />
                 Add subagent
-              </button>
+              </Button>
             )}
           </div>
         )}
@@ -284,38 +273,27 @@ function SubagentRow({
             <>
               <span className="stg:text-xs stg:text-muted-foreground">A newer version exists</span>
               {canUpdate && (
-                <button
-                  type="button"
+                <Button
+                  variant="outline"
+                  size="xs"
                   onClick={onUpdate}
                   disabled={isSaving}
                   aria-label={`Update ${label} to its latest version`}
-                  className={cn(
-                    "stg:rounded-md stg:px-2 stg:py-0.5 stg:text-xs stg:font-medium",
-                    "stg:border stg:border-border stg:bg-background stg:text-foreground stg:hover:bg-accent",
-                    "stg:disabled:opacity-50",
-                    "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-                  )}
                 >
                   Update
-                </button>
+                </Button>
               )}
             </>
           )}
           {canRemove && (
-            <button
-              type="button"
+            <IconButton
+              label={`Remove ${label}`}
+              size="xs"
               onClick={onRemove}
               disabled={isSaving}
-              aria-label={`Remove ${label}`}
-              className={cn(
-                "stg:inline-flex stg:size-6 stg:items-center stg:justify-center stg:rounded-md stg:text-muted-foreground",
-                "stg:hover:bg-destructive-subtle stg:hover:text-destructive",
-                "stg:disabled:opacity-50",
-                "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-              )}
-            >
-              <XIcon className="stg:size-3.5" />
-            </button>
+              icon={<XIcon className="stg:size-3.5" />}
+              className="stg:hover:bg-destructive-subtle stg:hover:text-destructive"
+            />
           )}
         </span>
       </div>

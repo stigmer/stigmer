@@ -3,7 +3,7 @@
 import { useCallback, useMemo } from "react";
 import { useTheme } from "next-themes";
 import { Stigmer } from "@stigmer/client";
-import { StigmerProvider } from "@stigmer/react-sdk";
+import { Button, StigmerProvider } from "@stigmer/react-sdk";
 import type { ResolvedColorMode } from "@stigmer/react-sdk";
 import { getApiBaseUrl } from "@/config/env";
 import { resolveAuthConfig } from "@/auth/config";
@@ -55,13 +55,9 @@ export function LoginPageView() {
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={handleIssuerLogin}
-            className="border-input bg-background text-foreground hover:bg-accent focus-visible:ring-ring block w-full rounded-md border px-4 py-2.5 text-center text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none"
-          >
+          <Button variant="outline" onClick={handleIssuerLogin} className="w-full">
             Sign in
-          </button>
+          </Button>
         </div>
       </div>
     </StigmerProvider>

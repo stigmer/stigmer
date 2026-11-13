@@ -10,6 +10,8 @@ import {
 } from "react";
 import { useGitHubRepos, type GitHubRepo, type GitHubBranch } from "./useGitHubRepos.js";
 import { useGitHubSearch } from "./useGitHubSearch.js";
+import { Button } from "../button/Button.js";
+import { IconButton } from "../button/IconButton.js";
 
 /** Props for {@link GitHubRepoPicker}. */
 export interface GitHubRepoPickerProps {
@@ -380,18 +382,16 @@ export function GitHubRepoPicker({
     return (
       <div className={["stg:space-y-2", className].filter(Boolean).join(" ")}>
         <div className="stg:flex stg:items-center stg:gap-2 stg:text-xs stg:text-foreground">
-          <button
-            type="button"
+          <IconButton
+            size="xs"
+            label="Back to repo list"
+            icon={<ChevronLeftIcon />}
             onClick={() => {
               setSelectedRepo(null);
               setBranches([]);
               setTimeout(() => searchRef.current?.focus(), 0);
             }}
-            className="stg:text-muted-foreground stg:hover:text-foreground stg:transition-colors"
-            aria-label="Back to repo list"
-          >
-            <ChevronLeftIcon />
-          </button>
+          />
           <span className="stg:font-medium stg:truncate">
             {selectedRepo.owner}/{selectedRepo.name}
           </span>
@@ -421,14 +421,9 @@ export function GitHubRepoPicker({
         </div>
 
         <div className="stg:flex stg:justify-end">
-          <button
-            type="button"
-            onClick={handleAdd}
-            disabled={!selectedBranch}
-            className="stg:rounded-md stg:bg-primary stg:px-2.5 stg:py-1 stg:text-xs stg:text-primary-foreground stg:hover:bg-primary-hover stg:transition-colors stg:disabled:opacity-40"
-          >
+          <Button size="xs" onClick={handleAdd} disabled={!selectedBranch}>
             Add
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -439,17 +434,15 @@ export function GitHubRepoPicker({
     return (
       <div className={["stg:space-y-2", className].filter(Boolean).join(" ")}>
         <div className="stg:flex stg:items-center stg:gap-2 stg:text-xs stg:text-foreground">
-          <button
-            type="button"
+          <IconButton
+            size="xs"
+            label="Back to repo list"
+            icon={<ChevronLeftIcon />}
             onClick={() => {
               setShowManualEntry(false);
               setTimeout(() => searchRef.current?.focus(), 0);
             }}
-            className="stg:text-muted-foreground stg:hover:text-foreground stg:transition-colors"
-            aria-label="Back to repo list"
-          >
-            <ChevronLeftIcon />
-          </button>
+          />
           <span className="stg:font-medium">Paste a repository URL</span>
         </div>
 
@@ -472,14 +465,9 @@ export function GitHubRepoPicker({
         />
 
         <div className="stg:flex stg:justify-end">
-          <button
-            type="button"
-            onClick={handleManualAdd}
-            disabled={!manualUrl.trim()}
-            className="stg:rounded-md stg:bg-primary stg:px-2.5 stg:py-1 stg:text-xs stg:text-primary-foreground stg:hover:bg-primary-hover stg:transition-colors stg:disabled:opacity-40"
-          >
+          <Button size="xs" onClick={handleManualAdd} disabled={!manualUrl.trim()}>
             Add
-          </button>
+          </Button>
         </div>
       </div>
     );

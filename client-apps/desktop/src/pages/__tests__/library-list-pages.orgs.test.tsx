@@ -66,7 +66,8 @@ const page = vi.hoisted(() => ({
 
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
 
-vi.mock("@stigmer/react-sdk", () => {
+vi.mock("@stigmer/react-sdk", async () => {
+  const kit = await vi.importActual<typeof import("@stigmer/react-sdk")>("@stigmer/react-sdk");
   const ActionMenu = Object.assign(
     ({ children }: { children: ReactNode }) => <>{children}</>,
     {
@@ -83,6 +84,9 @@ vi.mock("@stigmer/react-sdk", () => {
   const noop = () => undefined;
   const resourceClient = { list: noop, delete: noop };
   return {
+    Button: kit.Button,
+    IconButton: kit.IconButton,
+    LinkButton: kit.LinkButton,
     ActionMenu,
     // Stands in for the kit's bar: an act that requires a relation is offered
     // only when the row's resource holds it (the rule is pinned in the kit).

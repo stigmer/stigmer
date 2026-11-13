@@ -17,19 +17,25 @@ const page = vi.hoisted(() => ({
   retries: 0,
 }));
 
-vi.mock("@stigmer/react-sdk", () => ({
-  useResolveRunSession: (id: string | null) => {
-    page.resolving.push(id);
-    return {
-      sessionId: id ? (page.sessionFor.get(id) ?? null) : null,
-      isLoading: id !== null && page.pending.has(id),
-      error: id !== null && page.failing.has(id) ? new Error("connection refused") : null,
-      refetch: () => {
-        page.retries += 1;
-      },
-    };
-  },
-}));
+vi.mock("@stigmer/react-sdk", async () => {
+  const kit = await vi.importActual<typeof import("@stigmer/react-sdk")>("@stigmer/react-sdk");
+  return {
+    Button: kit.Button,
+    IconButton: kit.IconButton,
+    LinkButton: kit.LinkButton,
+    useResolveRunSession: (id: string | null) => {
+      page.resolving.push(id);
+      return {
+        sessionId: id ? (page.sessionFor.get(id) ?? null) : null,
+        isLoading: id !== null && page.pending.has(id),
+        error: id !== null && page.failing.has(id) ? new Error("connection refused") : null,
+        refetch: () => {
+          page.retries += 1;
+        },
+      };
+    },
+  };
+});
 
 import RunPage from "../runs/RunPage";
 

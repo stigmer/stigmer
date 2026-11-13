@@ -27,6 +27,7 @@ import { LIST_PAGE_MAX, readEveryPage } from "@stigmer/react-core/internal";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { listLibraryFilesPage } from "./fileListFn.js";
 import { FileUploadButton } from "./FileUploadButton.js";
+import { Button } from "../button/Button.js";
 
 const NO_FILES: readonly StigmerFile[] = [];
 
@@ -112,15 +113,15 @@ export function FilePicker({ org, value, onChange, disabled = false, className }
               className="stg:flex stg:items-center stg:gap-2 stg:rounded-md stg:border stg:border-border stg:px-2.5 stg:py-1.5 stg:text-sm"
             >
               <span className="stg:min-w-0 stg:flex-1 stg:truncate stg:text-foreground">{nameOf(id)}</span>
-              <button
-                type="button"
+              <Button
+                variant="ghost"
+                size="xs"
                 disabled={disabled}
                 onClick={() => onChange(value.filter((chosenId) => chosenId !== id))}
                 aria-label={`Remove ${nameOf(id)}`}
-                className="stg:shrink-0 stg:text-xs stg:text-muted-foreground stg:transition-colors stg:hover:text-foreground stg:disabled:opacity-50 stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
               >
                 Remove
-              </button>
+              </Button>
             </li>
           ))}
         </ul>

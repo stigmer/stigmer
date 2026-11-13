@@ -2,7 +2,8 @@
  * Pins TeamDetailPanel's save payload: an edit names the name and the
  * description alone, on the team's id, so the fields the form does not
  * show (the slug, the labels) keep their stored values; and a delete the
- * server refuses stays on the confirmation with the refusal's message. The
+ * server refuses stays on the confirmation with the refusal's message, while
+ * Cancel leaves the confirmation and deletes nothing. The
  * members panel and the permission gate are stubbed; they are proven
  * elsewhere.
  */
@@ -113,5 +114,24 @@ describe("TeamDetailPanel delete refusal", () => {
     expect(message.getAttribute("role")).toBe("alert");
     expect(del).toHaveBeenCalledWith({ resourceId: "tm_sre" });
     expect(onDeleted).not.toHaveBeenCalled();
+  });
+
+  it("backs out of the confirmation on Cancel, deleting nothing", () => {
+    const del = vi.fn();
+    render(
+      <StigmerContext.Provider
+        value={{ team: { delete: del }, grant: { checkMyPermission: async () => ({ isAuthorized: false }) } } as never}
+      >
+        <TeamDetailPanel team={TEAM} org="org_acme" onDeleted={vi.fn()} />
+      </StigmerContext.Provider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Delete team" }));
+    expect(screen.getByText(/loses the access shared with the team/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(screen.queryByText(/loses the access shared with the team/)).toBeNull();
+    expect(screen.getAllByRole("button", { name: "Delete team" })).toHaveLength(1);
+    expect(del).not.toHaveBeenCalled();
   });
 });

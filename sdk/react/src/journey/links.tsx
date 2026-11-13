@@ -3,11 +3,11 @@
 // job. The kit has no router: each destination is the host's, and a step
 // whose destination is not passed has no act.
 
-import type { ReactNode } from "react";
 import type { ResourceRef } from "@stigmer/client";
+import { anchorLink as plainAnchor, type RenderLink } from "../button/LinkButton.js";
 
-/** Draws a journey link; a host with its own router passes its link component. */
-export type RenderJourneyLink = (props: { readonly href: string; readonly className: string; readonly children: ReactNode }) => ReactNode;
+/** Draws a journey link; a host with its own router passes its link component. The kit's {@link RenderLink}, under the name the journey first shipped it with. */
+export type RenderJourneyLink = RenderLink;
 
 /** The journey's destinations past the first job, in the host's routing. */
 export interface JourneyLinks {
@@ -25,8 +25,4 @@ export interface JourneyLinks {
 }
 
 /** A plain anchor, for a host that passes no link component. */
-export const anchorLink: RenderJourneyLink = ({ href, className, children }) => (
-  <a href={href} className={className}>
-    {children}
-  </a>
-);
+export const anchorLink: RenderJourneyLink = plainAnchor;

@@ -7,7 +7,7 @@
 
 import type { ReactNode } from "react";
 import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
-import { useIdentityAccountGate } from "@stigmer/react-sdk";
+import { Button, useIdentityAccountGate } from "@stigmer/react-sdk";
 import { useAuth } from "../auth/AuthProvider";
 import { GateHeader } from "../shell/GateHeader";
 
@@ -93,13 +93,9 @@ function ErrorState({
       <p className="max-w-md text-center text-sm text-muted-foreground">
         {message}
       </p>
-      <button
-        onClick={onRetry}
-        className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary-hover"
-      >
-        <RefreshCw className="size-3" />
+      <Button icon={<RefreshCw className="size-3.5" />} onClick={onRetry}>
         Try again
-      </button>
+      </Button>
     </div>
   );
 }

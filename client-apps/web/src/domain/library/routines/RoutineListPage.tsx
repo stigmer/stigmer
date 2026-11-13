@@ -1,11 +1,13 @@
 "use client";
 
 import { useMemo, useReducer, useState } from "react";
-import Link from "next/link";
 import { CalendarClock, Plus, Upload } from "lucide-react";
 import type { Routine } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
 import { useLibraryNavigation } from "@/domain/library/library-navigation";
+import { renderJourneyLink } from "@/domain/journey/journey-links";
 import {
+  Button,
+  LinkButton,
   ResourceWorkbench,
   ApplyManifestDialog,
   RoutineRowActions,
@@ -31,24 +33,15 @@ export function RoutineListPage() {
   // Form-based creation is the primary path; Apply YAML stays as the
   // secondary, declarative/GitOps path.
   const newRoutineButton = (
-    <Link
-      href="/library/routines/new"
-      className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-    >
-      <Plus className="size-3.5" aria-hidden="true" />
+    <LinkButton href="/library/routines/new" icon={<Plus className="size-3.5" aria-hidden="true" />} renderLink={renderJourneyLink}>
       New routine
-    </Link>
+    </LinkButton>
   );
 
   const applyYamlButton = (
-    <button
-      type="button"
-      onClick={() => setImportOpen(true)}
-      className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-    >
-      <Upload className="size-3.5" aria-hidden="true" />
+    <Button variant="ghost" icon={<Upload className="size-3.5" aria-hidden="true" />} onClick={() => setImportOpen(true)}>
       Apply YAML
-    </button>
+    </Button>
   );
 
   const headerActions = (

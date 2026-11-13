@@ -58,11 +58,8 @@ import { usePluginList } from "../plugin/usePluginList.js";
 import { Section } from "../resource-detail/Section.js";
 import { Switch } from "../switch/Switch.js";
 import { useEvals } from "./useEvals.js";
-import {
-  INPUT_CLASS,
-  PRIMARY_BUTTON_CLASS,
-  QUIET_BUTTON_CLASS,
-} from "../vault/styles.js";
+import { INPUT_CLASS } from "../vault/styles.js";
+import { Button } from "../button/Button.js";
 import {
   DEFAULT_EVAL_FORM,
   MAX_EVAL_CONCURRENCY,
@@ -315,13 +312,9 @@ function AboutEvalRunsOnAgent({
             </p>
             {onOpenPlugins !== undefined && (
               <div>
-                <button
-                  type="button"
-                  onClick={onOpenPlugins}
-                  className={QUIET_BUTTON_CLASS}
-                >
+                <Button variant="ghost" size="xs" onClick={onOpenPlugins}>
                   Go to the agent&apos;s plugins
-                </button>
+                </Button>
               </div>
             )}
           </>
@@ -693,14 +686,9 @@ function RunEvalsForm({
           <p className="stg:text-xs stg:text-destructive">{problem}</p>
         )}
         <div>
-          <button
-            type="button"
-            disabled={problem !== null || isStarting}
-            onClick={() => void onRun()}
-            className={PRIMARY_BUTTON_CLASS}
-          >
+          <Button disabled={problem !== null || isStarting} onClick={() => void onRun()}>
             {isStarting ? "Starting…" : "Run evals"}
-          </button>
+          </Button>
         </div>
         {error !== null && (
           <p role="alert" className="stg:text-xs stg:text-destructive">

@@ -28,6 +28,7 @@ import { EditCheckFailed } from "./EditCheckFailed.js";
 import { Switch } from "../switch/Switch.js";
 import { VaultPicker } from "../vault/VaultPicker.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
+import { Button } from "../button/Button.js";
 import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { UNSTYLED_FIELDSET, UNSTYLED_LIST } from "../internal/element-resets.js";
@@ -299,18 +300,9 @@ function EmbeddingForm({
             disabled={locked}
             className={INPUT_CLASS}
           />
-          <button
-            type="button"
-            onClick={addOrigin}
-            disabled={locked || originInput.trim() === ""}
-            className={cn(
-              "stg:shrink-0 stg:rounded-md stg:px-2.5 stg:py-1.5 stg:text-xs stg:font-medium",
-              "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
-              "stg:disabled:pointer-events-none stg:disabled:opacity-50 stg:transition-colors",
-            )}
-          >
+          <Button variant="ghost" size="xs" onClick={addOrigin} disabled={locked || originInput.trim() === ""}>
             Add
-          </button>
+          </Button>
         </div>
         {draft.allowedOrigins.length > 0 && (
           <ul className={cn(UNSTYLED_LIST, "stg:flex stg:flex-wrap stg:gap-1.5")} aria-label="Allowed origins">
@@ -359,18 +351,9 @@ function EmbeddingForm({
 
       {canEdit ? (
         <div className="stg:flex stg:items-center stg:gap-2">
-          <button
-            type="submit"
-            disabled={isUpdating}
-            className={cn(
-              "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium",
-              "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
-              "stg:disabled:pointer-events-none stg:disabled:opacity-40",
-            )}
-          >
-            {isUpdating && <SpinnerIcon size={12} />}
+          <Button type="submit" disabled={isUpdating} icon={isUpdating ? <SpinnerIcon size={12} /> : undefined}>
             Save
-          </button>
+          </Button>
           {saved && !isUpdating && (
             <span className="stg:text-2xs stg:text-muted-foreground" role="status">
               Saved

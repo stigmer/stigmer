@@ -9,6 +9,7 @@ import {
   extractLeadingH1,
   unwrapEnclosingMarkdownFence,
 } from "../internal/markdown-components.js";
+import { Button } from "../button/Button.js";
 import { useFileContent } from "../file/useFileContent.js";
 import { useBuildFromPlanHotkey } from "../run/use-build-from-plan-hotkey.js";
 import type { SessionPlan } from "../library/detect-plan-file.js";
@@ -108,13 +109,9 @@ export function PlanEditor({
           <p className="stg:text-xs stg:text-muted-foreground">
             Couldn&rsquo;t load the plan{error ? `: ${error.message}` : "."}
           </p>
-          <button
-            type="button"
-            onClick={refetch}
-            className="stg:rounded stg:text-xs stg:font-medium stg:text-foreground stg:underline-offset-2 stg:hover:underline stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
-          >
+          <Button variant="ghost" size="xs" onClick={refetch}>
             Retry
-          </button>
+          </Button>
         </div>
       </PlanEditorFrame>
     );
@@ -170,13 +167,9 @@ export function PlanEditor({
               <span className="stg:rounded-md stg:bg-accent stg:px-1.5 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-muted-foreground">
                 Edited
               </span>
-              <button
-                type="button"
-                onClick={() => activeDraft.setDraft(null)}
-                className="stg:rounded stg:text-2xs stg:font-medium stg:text-muted-foreground stg:underline-offset-2 stg:hover:text-foreground stg:hover:underline stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
-              >
+              <Button variant="ghost" size="xs" onClick={() => activeDraft.setDraft(null)}>
                 Revert
-              </button>
+              </Button>
             </span>
           )}
           {readOnly ? (
@@ -188,23 +181,17 @@ export function PlanEditor({
             </span>
           ) : (
             onBuildFromPlan && (
-              <button
-                type="button"
+              <Button
+                size="xs"
                 disabled={buildDisabled}
                 onClick={onBuildFromPlan}
-                className={cn(
-                  "stg:inline-flex stg:min-w-0 stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5",
-                  "stg:text-xs stg:font-medium stg:transition-colors",
-                  "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
-                  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-                  "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-                )}
+                icon={<ImplementIcon />}
+                className="stg:min-w-0 stg:shrink"
               >
-                <ImplementIcon />
                 <span className="stg:truncate">
                   {buildDisabled ? "Starting build…" : "Build"}
                 </span>
-              </button>
+              </Button>
             )
           )}
         </div>

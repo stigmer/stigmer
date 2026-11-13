@@ -21,6 +21,7 @@
 import { type ReactNode, useCallback, useEffect, useId, useState } from "react";
 import { cn } from "@stigmer/design-tokens";
 import { getUserMessage } from "@stigmer/client";
+import { Button } from "../button/Button.js";
 import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import {
@@ -125,19 +126,9 @@ export function RenameSlugField<T>({
             "stg:disabled:pointer-events-none stg:disabled:opacity-50",
           )}
         />
-        <button
-          type="button"
-          onClick={() => void submit()}
-          disabled={!canRename}
-          className={cn(
-            "stg:inline-flex stg:shrink-0 stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium",
-            "stg:border stg:border-input stg:text-foreground stg:hover:bg-accent-hover",
-            "stg:disabled:pointer-events-none stg:disabled:opacity-40",
-          )}
-        >
-          {busy && <SpinnerIcon size={12} />}
+        <Button variant="outline" size="xs" onClick={() => void submit()} disabled={!canRename} icon={busy ? <SpinnerIcon size={12} /> : undefined}>
           Rename
-        </button>
+        </Button>
       </div>
       {error ? (
         <p className="stg:text-destructive stg:text-2xs" role="alert">

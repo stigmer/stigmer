@@ -14,12 +14,12 @@
 // `steps/__tests__/CapabilitiesStep.test.tsx`.
 
 import { type ReactNode, useCallback, useId, useState } from "react";
-import { cn } from "@stigmer/design-tokens";
 import { Button } from "../button/Button.js";
 import { INPUT_CLASS } from "../vault/styles.js";
 import { McpServerIcon } from "../plugin/McpServerIcon.js";
 import { type HeaderRow, HeaderRowsEditor, headerRowsOf } from "../plugin/HeaderRowsEditor.js";
 import { type AgentMcpServerValue, agentMcpServerProblem, headerValueShown } from "./agentMcpServers.js";
+import { IconButton } from "../button/IconButton.js";
 
 /** Props for {@link AgentMcpServerList}. */
 export interface AgentMcpServerListProps {
@@ -93,20 +93,15 @@ export function AgentMcpServerList({ servers, editing, isSaving, onChange, rende
             />
           ) : (
             isOpen === null && (
-              <button
-                type="button"
+              <Button
+                variant="outline"
+                size="xs"
                 onClick={() => setOpen("new")}
-                className={cn(
-                  "stg:inline-flex stg:items-center stg:gap-1 stg:rounded-md stg:px-2.5 stg:py-1.5 stg:text-xs stg:font-medium",
-                  "stg:border stg:border-dashed stg:border-border stg:text-muted-foreground",
-                  "stg:hover:border-muted-foreground stg:hover:text-foreground stg:hover:bg-muted-subtle",
-                  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-                  "stg:transition-colors",
-                )}
+                icon={<PlusIcon className="stg:size-3" />}
+                className="stg:border-dashed"
               >
-                <PlusIcon className="stg:size-3" />
                 Add MCP server
-              </button>
+              </Button>
             )
           )}
         </div>
@@ -149,20 +144,14 @@ function ServerRow({
               <Button type="button" variant="ghost" size="xs" onClick={onEdit} disabled={isSaving} aria-label={`Change ${server.name}`}>
                 Change
               </Button>
-              <button
-                type="button"
+              <IconButton
+                label={`Remove ${server.name}`}
+                size="xs"
                 onClick={onRemove}
                 disabled={isSaving}
-                aria-label={`Remove ${server.name}`}
-                className={cn(
-                  "stg:inline-flex stg:size-6 stg:items-center stg:justify-center stg:rounded-md stg:text-muted-foreground",
-                  "stg:hover:bg-destructive-subtle stg:hover:text-destructive",
-                  "stg:disabled:opacity-50",
-                  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-                )}
-              >
-                <XIcon className="stg:size-3.5" />
-              </button>
+                icon={<XIcon className="stg:size-3.5" />}
+                className="stg:hover:bg-destructive-subtle stg:hover:text-destructive"
+              />
             </>
           )}
         </span>

@@ -4,6 +4,8 @@ import { useCallback, useRef } from "react";
 import { cn } from "@stigmer/design-tokens";
 import { selectElementText } from "../internal/select-element-text.js";
 import { useCopyFeedback } from "../internal/useCopyFeedback.js";
+import { Button } from "../button/Button.js";
+import { IconButton } from "../button/IconButton.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -73,18 +75,7 @@ export function InvitationCreatedAlert({
             Share this link to invite people to your organization.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={onDismiss}
-          aria-label="Dismiss"
-          className={cn(
-            "stg:shrink-0 stg:rounded stg:p-1",
-            "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
-            "stg:transition-colors",
-          )}
-        >
-          <CloseIcon />
-        </button>
+        <IconButton size="xs" label="Dismiss" icon={<CloseIcon />} onClick={onDismiss} />
       </div>
 
       <div className="stg:flex stg:items-center stg:gap-2">
@@ -99,18 +90,9 @@ export function InvitationCreatedAlert({
           {inviteUrl}
         </code>
 
-        <button
-          type="button"
-          onClick={handleCopy}
-          className={cn(
-            "stg:inline-flex stg:shrink-0 stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium",
-            "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
-            "stg:transition-colors",
-          )}
-        >
-          {copied ? <CheckIcon /> : <CopyIcon />}
+        <Button size="xs" onClick={handleCopy} icon={copied ? <CheckIcon /> : <CopyIcon />}>
           {copied ? "Copied" : "Copy"}
-        </button>
+        </Button>
       </div>
     </div>
   );

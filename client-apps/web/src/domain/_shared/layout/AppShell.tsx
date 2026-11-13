@@ -4,8 +4,7 @@ import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { PanelLeft } from "lucide-react";
 import { cn } from "@stigmer/design-tokens";
-import { useResolveRunSession } from "@stigmer/react-sdk";
-import { Button } from "@/domain/_shared/ui/button";
+import { IconButton, useResolveRunSession } from "@stigmer/react-sdk";
 import { useSessionNavigation } from "@/domain/session/session-navigation";
 import { useRunNavigation } from "@/domain/runs/run-navigation";
 import { SessionLauncher } from "@/domain/session/SessionLauncher";
@@ -83,18 +82,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         )}
 
         {/* Reopen button — visible on all screen sizes when sidebar is collapsed */}
-        <Button
-          variant="ghost"
-          size="icon-sm"
+        <IconButton
+          label="Open sidebar"
+          size="xs"
+          icon={<PanelLeft className="size-4" />}
           onClick={sidebar.open}
-          aria-label="Open sidebar"
           className={cn(
             "fixed top-2 left-2 z-30",
             sidebar.isOpen && "hidden",
           )}
-        >
-          <PanelLeft className="size-4" />
-        </Button>
+        />
 
         {/* Sidebar — collapsible on all screen sizes */}
         <div

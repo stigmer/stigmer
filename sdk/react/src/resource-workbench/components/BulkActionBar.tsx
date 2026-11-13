@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { cn } from "@stigmer/design-tokens";
 import type { BulkAction } from "../types.js";
+import { Button } from "../../button/Button.js";
 
 /** Props for {@link BulkActionBar}. */
 export interface BulkActionBarProps<TData> {
@@ -79,17 +80,9 @@ export function BulkActionBar<TData>({
         ))}
       </div>
 
-      <button
-        type="button"
-        onClick={onCancel}
-        className={cn(
-          "stg:ml-auto stg:text-xs stg:text-muted-foreground stg:transition-colors",
-          "stg:hover:text-foreground",
-          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:focus-visible:rounded-sm",
-        )}
-      >
+      <Button variant="ghost" size="xs" onClick={onCancel} className="stg:ml-auto">
         Cancel
-      </button>
+      </Button>
     </div>
   );
 }
@@ -104,25 +97,21 @@ function BulkActionButton<TData>({
   const isDestructive = action.variant === "destructive";
 
   return (
-    <button
-      type="button"
+    <Button
+      variant="ghost"
+      size="xs"
       disabled={action.disabled}
       onClick={() => action.onAction(selectedItems)}
-      className={cn(
-        "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium stg:transition-colors",
-        "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-        "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-        isDestructive
-          ? "stg:text-destructive stg:hover:bg-destructive-subtle"
-          : "stg:text-foreground stg:hover:bg-accent-hover",
-      )}
+      className={isDestructive ? "stg:text-destructive stg:hover:bg-destructive-subtle" : undefined}
+      icon={
+        action.icon ? (
+          <span className="stg:shrink-0" aria-hidden="true">
+            {action.icon}
+          </span>
+        ) : undefined
+      }
     >
-      {action.icon && (
-        <span className="stg:shrink-0" aria-hidden="true">
-          {action.icon}
-        </span>
-      )}
       {action.label}
-    </button>
+    </Button>
   );
 }

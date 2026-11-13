@@ -6,11 +6,14 @@
  * section shows only to someone the server says may add one
  * (`can_create_plugin` on the organization); a server added there is
  * checked first and written to the wizard's `mcpServers`, after the ones
- * it holds, and one removed leaves the others.
+ * it holds, and one removed leaves the others. The Environment Variables
+ * section opens on the variables the wizard holds, and removing one writes
+ * the others back to the wizard's `env`.
  */
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { AgentMcpServerInput } from "@stigmer/client";
+import type { EnvVarEntry } from "../types";
 import type { SearchResult } from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
@@ -35,7 +38,11 @@ const LINEAR_REF = { org: ACME_ID, slug: "linear", kind: ApiResourceKind.plugin 
 
 function renderStep(
   plugins: (typeof LINEAR_REF)[],
-  options: { readonly admin?: boolean; readonly mcpServers?: AgentMcpServerInput[] } = {},
+  options: {
+    readonly admin?: boolean;
+    readonly mcpServers?: AgentMcpServerInput[];
+    readonly env?: EnvVarEntry[];
+  } = {},
 ) {
   const updateData = vi.fn();
   const checkMyPermission = vi.fn(async (input: { relation: string }) => ({
@@ -44,7 +51,7 @@ function renderStep(
   render(
     <CapabilitiesStep
       org={ACME_ID}
-      data={{ ...createInitialWizardData(), plugins, mcpServers: options.mcpServers ?? [] }}
+      data={{ ...createInitialWizardData(), plugins, mcpServers: options.mcpServers ?? [], env: options.env ?? [] }}
       updateData={updateData}
     />,
     {
@@ -122,5 +129,19 @@ describe("CapabilitiesStep (agent) MCP servers", () => {
     expect((await screen.findByRole("button", { name: /MCP servers/ })).getAttribute("aria-expanded")).toBe("true");
     fireEvent.click(screen.getByRole("button", { name: "Remove zendesk" }));
     expect(updateData).toHaveBeenCalledWith({ mcpServers: [linear] });
+  });
+});
+
+describe("CapabilitiesStep (agent) environment variables", () => {
+  it("opens on the variables the wizard holds, and removes one leaving the others", async () => {
+    const token: EnvVarEntry = { key: "GITHUB_TOKEN", description: "", isSecret: true, optional: false };
+    const region: EnvVarEntry = { key: "REGION", description: "", isSecret: false, optional: true };
+    const { updateData } = renderStep([], { env: [token, region] });
+
+    expect(
+      (await screen.findByRole("button", { name: /Environment Variables/ })).getAttribute("aria-expanded"),
+    ).toBe("true");
+    fireEvent.click(screen.getByRole("button", { name: "Remove GITHUB_TOKEN" }));
+    expect(updateData).toHaveBeenCalledWith({ env: [region] });
   });
 });

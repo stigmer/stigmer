@@ -12,7 +12,7 @@ import {
   isPermissionDenied,
 } from "@stigmer/client";
 import { isEmbedded, notifyParent, resolveParentOrigin } from "@stigmer/embed";
-import { StigmerProvider, VisitorChat } from "@stigmer/react-sdk";
+import { Button, StigmerProvider, VisitorChat } from "@stigmer/react-sdk";
 import type { ResolvedColorMode } from "@stigmer/react-sdk";
 import { useAuth } from "@/auth";
 import { getApiBaseUrl } from "@/config/env";
@@ -288,13 +288,9 @@ function SignInIfYouHaveAccess({ onSignIn }: { readonly onSignIn: () => void }) 
           The link may be incorrect, it may have been turned off, or the
           agent may be restricted to members of its organization.
         </p>
-        <button
-          type="button"
-          onClick={onSignIn}
-          className="mt-4 inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover"
-        >
+        <Button onClick={onSignIn} className="mt-4">
           Sign in if you have access
-        </button>
+        </Button>
       </div>
     </div>
   );

@@ -14,6 +14,7 @@
  */
 
 import { cn } from "@stigmer/design-tokens";
+import { Button } from "../button/Button.js";
 
 /** Props for {@link Pagination}. */
 export interface PaginationProps {
@@ -35,12 +36,6 @@ export interface PaginationProps {
   readonly className?: string;
 }
 
-const buttonClasses = cn(
-  "stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium stg:text-muted-foreground stg:transition-colors",
-  "stg:hover:bg-accent stg:hover:text-foreground",
-  "stg:disabled:pointer-events-none stg:disabled:opacity-40",
-);
-
 export function Pagination({
   pageNumber,
   hasPrevious,
@@ -57,25 +52,15 @@ export function Pagination({
       role="navigation"
       aria-label={ariaLabel}
     >
-      <button
-        type="button"
-        disabled={!hasPrevious}
-        onClick={onPrevious}
-        className={buttonClasses}
-      >
+      <Button variant="ghost" size="xs" disabled={!hasPrevious} onClick={onPrevious}>
         Previous
-      </button>
+      </Button>
       <span className="stg:text-xs stg:tabular-nums stg:text-muted-foreground">
         {pageCount === undefined ? `Page ${pageNumber}` : `Page ${pageNumber} of ${pageCount}`}
       </span>
-      <button
-        type="button"
-        disabled={!hasNext}
-        onClick={onNext}
-        className={buttonClasses}
-      >
+      <Button variant="ghost" size="xs" disabled={!hasNext} onClick={onNext}>
         Next
-      </button>
+      </Button>
     </div>
   );
 }

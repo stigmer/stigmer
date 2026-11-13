@@ -27,6 +27,7 @@ import { ScrollFade } from "../internal/ScrollFade.js";
 import { OrgSlugText } from "../organization/OrgSlugText.js";
 import { useOrgIdForRef, useSameResourceRef } from "../organization/useOrgRefs.js";
 import { PluginIcon } from "./PluginIcon.js";
+import { IconButton } from "../button/IconButton.js";
 
 /** Props for {@link PluginPicker}. */
 export interface PluginPickerProps {
@@ -181,15 +182,14 @@ export function PluginPicker({
                     <span className="stg:min-w-0 stg:flex-1 stg:truncate stg:text-foreground">
                       {label}
                     </span>
-                    <button
-                      type="button"
+                    <IconButton
+                      size="xs"
+                      label={`Remove ${label}`}
+                      icon={<XIcon />}
                       onClick={() => handleRemove(ref)}
                       disabled={disabled}
-                      className="stg:shrink-0 stg:text-muted-foreground stg:hover:text-destructive stg:disabled:pointer-events-none"
-                      aria-label={`Remove ${label}`}
-                    >
-                      <XIcon />
-                    </button>
+                      className="stg:hover:text-destructive stg:hover:bg-destructive-subtle"
+                    />
                   </div>
                 );
               })}

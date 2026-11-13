@@ -8,6 +8,7 @@ import { useChannelAppList } from "./useChannelAppList.js";
 import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
+import { IconButton } from "../button/IconButton.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -167,17 +168,7 @@ function ChannelAppRow({
       </div>
 
       {onEdit && (
-        <button
-          type="button"
-          onClick={onEdit}
-          aria-label={`Edit ${name}`}
-          className={cn(
-            "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
-            "stg:shrink-0 stg:rounded-md stg:p-1.5 stg:transition-colors",
-          )}
-        >
-          <PencilIcon />
-        </button>
+        <IconButton size="xs" label={`Edit ${name}`} icon={<PencilIcon />} onClick={onEdit} />
       )}
     </div>
   );

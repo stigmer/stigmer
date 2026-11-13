@@ -140,9 +140,9 @@ describe("scoped form-control preflight (#374)", () => {
       expect(style.backgroundColor, "bg-primary must win over the preflight").not.toBe(
         TRANSPARENT,
       );
-      // size "sm" = px-3 py-1.5 → 12px / 6px.
+      // size "sm" = px-3 at a set h-8 → 12px sides, 32px tall.
       expect(style.paddingLeft, "p-* utilities must win over the preflight").toBe("12px");
-      expect(style.paddingTop).toBe("6px");
+      expect(style.height, "h-* utilities must win over the preflight").toBe("32px");
     });
 
     it("the ghost Button is transparent by design and stays that way", () => {

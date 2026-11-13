@@ -4,6 +4,7 @@ import { useCallback, useRef, useState } from "react";
 import { cn } from "@stigmer/design-tokens";
 import type { InlineEditBaseProps } from "./types.js";
 import { useInlineDraft } from "./useInlineDraft.js";
+import { IconButton } from "../button/IconButton.js";
 
 /** Props for {@link InlineEditText}. */
 export interface InlineEditTextProps extends InlineEditBaseProps {
@@ -140,34 +141,22 @@ export function InlineEditText({
             displayError && "stg:border-destructive",
           )}
         />
-        <button
-          type="button"
+        <IconButton
+          label="Save"
+          variant="primary"
+          size="xs"
           onClick={handleConfirm}
           disabled={isSaving}
-          aria-label="Save"
-          className={cn(
-            "stg:inline-flex stg:size-7 stg:items-center stg:justify-center stg:rounded-md",
-            "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
-            "stg:disabled:opacity-50",
-            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-          )}
-        >
-          {isSaving ? <Spinner /> : <CheckIcon className="stg:size-3.5" />}
-        </button>
-        <button
-          type="button"
+          icon={isSaving ? <Spinner /> : <CheckIcon className="stg:size-3.5" />}
+        />
+        <IconButton
+          label="Cancel"
+          variant="outline"
+          size="xs"
           onClick={handleCancel}
           disabled={isSaving}
-          aria-label="Cancel"
-          className={cn(
-            "stg:inline-flex stg:size-7 stg:items-center stg:justify-center stg:rounded-md",
-            "stg:border stg:border-border stg:bg-background stg:text-foreground stg:hover:bg-accent stg:hover:text-accent-foreground",
-            "stg:disabled:opacity-50",
-            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-          )}
-        >
-          <XIcon className="stg:size-3.5" />
-        </button>
+          icon={<XIcon className="stg:size-3.5" />}
+        />
       </div>
       {displayError && (
         <p className="stg:px-1 stg:text-xs stg:text-destructive" role="alert">{displayError}</p>

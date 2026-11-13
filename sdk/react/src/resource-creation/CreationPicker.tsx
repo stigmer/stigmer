@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { cn } from "@stigmer/design-tokens";
+import { IconButton } from "../button/IconButton.js";
 import type { ResourceTemplate } from "./templates/types.js";
 import { TemplateGallery } from "./TemplateGallery.js";
 
@@ -101,19 +102,7 @@ export function CreationPicker<TData>({
     return (
       <div className={cn("stg:flex stg:flex-col stg:gap-4", className)}>
         <div className="stg:flex stg:items-center stg:gap-2">
-          <button
-            type="button"
-            onClick={handleBackToOptions}
-            aria-label="Back to creation options"
-            className={cn(
-              "stg:inline-flex stg:items-center stg:justify-center stg:rounded-md stg:p-1.5",
-              "stg:text-muted-foreground stg:transition-colors",
-              "stg:hover:bg-accent stg:hover:text-accent-foreground",
-              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-            )}
-          >
-            <BackArrowIcon />
-          </button>
+          <IconButton label="Back to creation options" icon={<BackArrowIcon />} onClick={handleBackToOptions} />
           <h2 className="stg:text-base stg:font-semibold stg:text-foreground">
             Choose a template
           </h2>

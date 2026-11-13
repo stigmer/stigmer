@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { User, UserManager } from "oidc-client-ts";
+import { Button } from "@stigmer/react-sdk";
 import { AuthContext } from "../context";
 import { setAuthToken } from "../token-store";
 import type { AuthState, AuthUser } from "../types";
@@ -207,12 +208,7 @@ export default function OidcAuthProvider({
         <p className="text-muted-foreground max-w-md text-center text-sm">
           {callbackError}
         </p>
-        <button
-          onClick={login}
-          className="bg-primary text-primary-foreground hover:bg-primary-hover rounded-md px-4 py-2 text-sm font-medium transition-colors"
-        >
-          Try Again
-        </button>
+        <Button onClick={login}>Try Again</Button>
       </div>
     );
   }

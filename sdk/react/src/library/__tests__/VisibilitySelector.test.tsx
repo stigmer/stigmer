@@ -229,6 +229,25 @@ describe("VisibilitySelector — manage mode (popover + confirmation)", () => {
     expect(onChange).toHaveBeenCalledWith(ApiResourceVisibility.visibility_org);
   });
 
+  it("drops the inline prompt on Cancel, leaving the level unchanged", async () => {
+    const onChange = vi.fn();
+    render(
+      <VisibilitySelector
+        visibility={ApiResourceVisibility.visibility_private}
+        options={BLUEPRINT_LEVELS}
+        onVisibilityChange={onChange}
+      />,
+    );
+
+    await openPopover();
+    fireEvent.click(optionByLabel("Organization"));
+    const alert = await screen.findByRole("alert");
+
+    fireEvent.click(within(alert).getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
   it("requires the confirm dialog before escalating to Child organizations", async () => {
     const onChange = vi.fn();
     render(

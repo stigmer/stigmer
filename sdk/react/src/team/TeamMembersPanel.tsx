@@ -31,6 +31,7 @@ import { AccessRow, accessEntryKey } from "../grant/AccessRow.js";
 import { PermissionGate } from "../grant/PermissionGate.js";
 import { PrincipalPicker, type SelectedGrantee } from "../grant/PrincipalPicker.js";
 import { useShareFlow } from "../grant/useShareFlow.js";
+import { Button } from "../button/Button.js";
 
 /** Props for {@link TeamMembersPanel}. */
 export interface TeamMembersPanelProps {
@@ -147,19 +148,14 @@ export function TeamMembersPanel({ teamId, org, className }: TeamMembersPanelPro
             autoFocus={false}
             className="stg:flex-1"
           />
-          <button
-            type="button"
+          <Button
+            size="xs"
             onClick={addMember}
             disabled={adding === null || isGranting}
-            className={cn(
-              "stg:inline-flex stg:shrink-0 stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium",
-              "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
-              "stg:disabled:pointer-events-none stg:disabled:opacity-40",
-            )}
+            icon={isGranting ? <SpinnerIcon size={12} /> : undefined}
           >
-            {isGranting && <SpinnerIcon size={12} />}
             Add member
-          </button>
+          </Button>
         </div>
         {grantError && planUpgradeFeature(grantError) === Feature.teams ? (
           <UpgradeNotice feature={Feature.teams} error={grantError} className="stg:mt-1" />

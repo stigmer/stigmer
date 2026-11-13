@@ -3,6 +3,9 @@
 import { useCallback, useId, useMemo, useRef, useState, type FormEvent } from "react";
 import { cn } from "@stigmer/design-tokens";
 import { DialogShell } from "../internal/DialogShell.js";
+import { Button } from "../button/Button.js";
+import { IconButton } from "../button/IconButton.js";
+import { LinkButton, type RenderLink } from "../button/LinkButton.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import {
   MAX_ALLOWED_ORIGINS,
@@ -216,18 +219,7 @@ function ChatLinkDialogBody({
             {agent.metadata?.name || agent.metadata?.slug}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close"
-          className={cn(
-            "stg:rounded-md stg:p-1 stg:text-muted-foreground",
-            "stg:hover:text-foreground stg:hover:bg-accent-hover",
-            "stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring",
-          )}
-        >
-          <CloseIcon />
-        </button>
+        <IconButton size="xs" label="Close" icon={<CloseIcon />} onClick={onClose} />
       </div>
 
       {isCreating ? (
@@ -249,19 +241,9 @@ function ChatLinkDialogBody({
 
       {/* Footer */}
       <div className="stg:flex stg:items-center stg:justify-end stg:border-t stg:border-border stg:px-6 stg:py-3">
-        <button
-          type="button"
-          onClick={onClose}
-          className={cn(
-            "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-sm stg:font-medium",
-            isCreating
-              ? "stg:border stg:border-border stg:text-foreground stg:hover:bg-accent-hover"
-              : "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
-            "stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring stg:focus:ring-offset-2",
-          )}
-        >
+        <Button variant={isCreating ? "outline" : "primary"} onClick={onClose}>
           {isCreating ? "Cancel" : "Done"}
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -483,18 +465,9 @@ function CreateChatLinkForm({
       )}
 
       <div className="stg:flex stg:items-center stg:justify-end">
-        <button
-          type="submit"
-          disabled={!canSubmit}
-          className={cn(
-            "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-sm stg:font-medium",
-            "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
-            "stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring stg:focus:ring-offset-2",
-            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-          )}
-        >
+        <Button type="submit" disabled={!canSubmit}>
           {isPending ? "Creating…" : "Create chat link"}
-        </button>
+        </Button>
       </div>
     </form>
   );
@@ -961,19 +934,9 @@ function ResetLinkControl({
               : "Got forwarded further than you wanted? Resetting locks the link behind a secret and kills the plain address immediately."}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={onResetLink}
-          disabled={!enabled || isRotating}
-          className={cn(
-            "stg:shrink-0 stg:rounded-md stg:px-2.5 stg:py-1.5 stg:text-xs stg:font-medium",
-            "stg:border stg:border-border stg:text-foreground stg:hover:bg-accent-hover",
-            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-          )}
-        >
+        <Button variant="outline" size="xs" onClick={onResetLink} disabled={!enabled || isRotating}>
           {isRotating ? "Resetting…" : "Reset link"}
-        </button>
+        </Button>
       </div>
     </section>
   );
@@ -1296,20 +1259,14 @@ function OriginsEditor({
               <code className="stg:truncate stg:font-mono stg:text-xs stg:text-foreground">
                 {origin}
               </code>
-              <button
-                type="button"
+              <IconButton
+                size="xs"
+                label={`Remove ${origin}`}
+                icon={<RemoveIcon />}
                 onClick={() => handleRemove(origin)}
                 disabled={isPending}
-                aria-label={`Remove ${origin}`}
-                className={cn(
-                  "stg:inline-flex stg:size-5 stg:shrink-0 stg:items-center stg:justify-center stg:rounded stg:text-muted-foreground",
-                  "stg:hover:bg-destructive-subtle stg:hover:text-destructive",
-                  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-                  "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-                )}
-              >
-                <RemoveIcon />
-              </button>
+                className="stg:hover:bg-destructive-subtle stg:hover:text-destructive"
+              />
             </li>
           ))}
         </ul>
@@ -1344,19 +1301,9 @@ function OriginsEditor({
             </p>
           )}
         </div>
-        <button
-          type="button"
-          onClick={() => void handleAdd()}
-          disabled={isPending || !newOrigin.trim()}
-          className={cn(
-            "stg:shrink-0 stg:rounded-md stg:px-2.5 stg:py-1.5 stg:text-xs stg:font-medium",
-            "stg:border stg:border-border stg:text-foreground stg:hover:bg-accent-hover",
-            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-          )}
-        >
+        <Button variant="outline" size="xs" onClick={() => void handleAdd()} disabled={isPending || !newOrigin.trim()}>
           Add
-        </button>
+        </Button>
       </div>
     </section>
   );
@@ -1445,31 +1392,12 @@ function MessagesEditor({
           ))}
           {isDirty && (
             <div className="stg:flex stg:items-center stg:justify-end stg:gap-1.5">
-              <button
-                type="button"
-                onClick={() => setLocalMessages(draft.messages)}
-                disabled={isPending}
-                className={cn(
-                  "stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
-                  "stg:border stg:border-border stg:text-foreground stg:hover:bg-accent-hover",
-                  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-                )}
-              >
+              <Button variant="outline" size="xs" onClick={() => setLocalMessages(draft.messages)} disabled={isPending}>
                 Reset
-              </button>
-              <button
-                type="button"
-                onClick={handleSave}
-                disabled={isPending}
-                className={cn(
-                  "stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
-                  "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
-                  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-                  "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-                )}
-              >
+              </Button>
+              <Button size="xs" onClick={handleSave} disabled={isPending}>
                 Save messages
-              </button>
+              </Button>
             </div>
           )}
         </div>
@@ -1587,6 +1515,13 @@ function DeveloperTab({ agent }: { readonly agent: { readonly org: string; reado
 // Copy field — labeled value with copy (and optional open) affordances
 // ---------------------------------------------------------------------------
 
+/** Opens the chat link in a new tab, as the hand-drawn Open link did. */
+const newTabLink: RenderLink = ({ href, className, children }) => (
+  <a href={href} target="_blank" rel="noreferrer" className={className}>
+    {children}
+  </a>
+);
+
 function CopyField({
   label,
   value,
@@ -1629,32 +1564,13 @@ function CopyField({
           />
         )}
         <div className="stg:flex stg:shrink-0 stg:flex-col stg:gap-1.5">
-          <button
-            type="button"
-            onClick={() => void copy(value, copyLabel)}
-            disabled={disabled}
-            className={cn(
-              "stg:rounded-md stg:px-2.5 stg:py-1.5 stg:text-xs stg:font-medium",
-              "stg:border stg:border-border stg:text-foreground stg:hover:bg-accent-hover",
-              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-            )}
-          >
+          <Button variant="outline" size="xs" onClick={() => void copy(value, copyLabel)} disabled={disabled}>
             Copy
-          </button>
+          </Button>
           {openHref && (
-            <a
-              href={openHref}
-              target="_blank"
-              rel="noreferrer"
-              className={cn(
-                "stg:rounded-md stg:px-2.5 stg:py-1.5 stg:text-center stg:text-xs stg:font-medium",
-                "stg:border stg:border-border stg:text-foreground stg:hover:bg-accent-hover",
-                "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-              )}
-            >
+            <LinkButton variant="outline" size="xs" href={openHref} renderLink={newTabLink}>
               Open
-            </a>
+            </LinkButton>
           )}
         </div>
       </div>

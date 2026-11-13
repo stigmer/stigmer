@@ -24,6 +24,8 @@ import { cn } from "@stigmer/design-tokens";
 import { useStigmer } from "@stigmer/react-core";
 import { toError } from "@stigmer/react-core/internal";
 import { TruncatedText } from "../internal/truncated-text.js";
+import { Button } from "../button/Button.js";
+import { IconButton } from "../button/IconButton.js";
 
 /** How many uploads run at once. */
 export const LIBRARY_UPLOAD_CONCURRENCY = 4;
@@ -114,8 +116,7 @@ export function FileUploadButton({ org, onUploaded, label = "Upload", className 
 
   return (
     <div className="stg:relative stg:inline-flex">
-      <button
-        type="button"
+      <Button
         onClick={() => inputRef.current?.click()}
         onDragOver={(event) => {
           event.preventDefault();
@@ -124,16 +125,11 @@ export function FileUploadButton({ org, onUploaded, label = "Upload", className 
         onDragLeave={() => setDragging(false)}
         onDrop={handleDrop}
         aria-busy={busy}
-        className={cn(
-          "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:bg-primary stg:px-3 stg:py-1.5 stg:text-sm stg:font-medium stg:text-primary-foreground stg:transition-colors stg:hover:bg-primary-hover",
-          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-          dragging && "stg:ring-2 stg:ring-ring stg:ring-offset-2",
-          className,
-        )}
+        icon={<UploadIcon />}
+        className={cn(dragging && "stg:ring-2 stg:ring-ring stg:ring-offset-2", className)}
       >
-        <UploadIcon />
         {label}
-      </button>
+      </Button>
       <input
         ref={inputRef}
         type="file"
@@ -158,14 +154,12 @@ export function FileUploadButton({ org, onUploaded, label = "Upload", className 
               {status.phase === "failed" ? (
                 <>
                   <TruncatedText text={status.error ?? ""} className="stg:max-w-36 stg:text-destructive" />
-                  <button
-                    type="button"
+                  <IconButton
+                    size="xs"
+                    label={`Dismiss ${status.filename}`}
+                    icon={<span aria-hidden="true">{"×"}</span>}
                     onClick={() => update(status.id, null)}
-                    aria-label={`Dismiss ${status.filename}`}
-                    className="stg:shrink-0 stg:text-muted-foreground stg:hover:text-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
-                  >
-                    {"×"}
-                  </button>
+                  />
                 </>
               ) : (
                 <span className="stg:shrink-0 stg:text-muted-foreground">

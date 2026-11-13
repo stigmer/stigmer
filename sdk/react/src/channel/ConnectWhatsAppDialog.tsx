@@ -8,6 +8,7 @@ import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
 import { ChannelInstallState } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/status_pb";
 import { Button } from "../button/Button.js";
+import { IconButton } from "../button/IconButton.js";
 import { useChannelAppList } from "../channel-app/useChannelAppList.js";
 import { useDeploymentMode } from "@stigmer/react-core";
 import { channelInstallsAvailable } from "./providers.js";
@@ -313,18 +314,7 @@ function ConnectWhatsAppDialogBody({
             {channel ? "Reconnect to WhatsApp" : "Connect to WhatsApp"}
           </h2>
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close dialog"
-          className={cn(
-            "stg:rounded stg:p-1 stg:text-muted-foreground",
-            "stg:hover:bg-accent-hover stg:hover:text-foreground",
-            "stg:focus:outline-none stg:focus:ring-1 stg:focus:ring-ring",
-          )}
-        >
-          <CloseIcon />
-        </button>
+        <IconButton size="xs" label="Close dialog" icon={<CloseIcon />} onClick={onClose} />
       </div>
 
       <div className="stg:space-y-4 stg:px-5 stg:py-4">

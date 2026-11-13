@@ -44,7 +44,7 @@ import { ErrorMessage } from "../error/ErrorMessage.js";
 import { useWhoAmI } from "@stigmer/react-core";
 import { downloadTextFile } from "../internal/download.js";
 import { Section } from "../resource-detail/Section.js";
-import { DANGER_BUTTON_CLASS, QUIET_BUTTON_CLASS } from "../vault/styles.js";
+import { Button } from "../button/Button.js";
 import { EvalCaseTable, type EvalCaseTableArms } from "./EvalCaseTable.js";
 import {
   evalRunLabelOf,
@@ -165,22 +165,19 @@ export function EvalRunResults({
       className={className}
       headerActions={
         <>
-          <button
-            type="button"
-            onClick={onDownload}
-            className={QUIET_BUTTON_CLASS}
-          >
+          <Button variant="ghost" size="xs" onClick={onDownload}>
             Download results
-          </button>
+          </Button>
           {canEdit && isEvalActive(evalRun) && (
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              size="xs"
               disabled={isCancelling}
               onClick={() => void onCancel()}
-              className={DANGER_BUTTON_CLASS}
+              className="stg:text-muted-foreground stg:hover:text-destructive stg:hover:bg-destructive-subtle"
             >
               {isCancelling ? "Cancelling…" : "Cancel"}
-            </button>
+            </Button>
           )}
         </>
       }

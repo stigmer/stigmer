@@ -19,6 +19,7 @@ import { getUserMessage, type EnvironmentAvailability } from "@stigmer/client";
 import type { Environment } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/api_pb";
 import { useServerInfo } from "../server-info.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
+import { Button } from "../button/Button.js";
 import {
   EMPTY_PACKAGES_DRAFT,
   NetworkingFields,
@@ -166,32 +167,13 @@ function EnvironmentFormBody({
       )}
 
       <div className="stg:flex stg:items-center stg:gap-2">
-        <button
-          type="submit"
-          disabled={!canSubmit}
-          className={cn(
-            "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-sm stg:font-medium",
-            "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
-            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-            "stg:disabled:pointer-events-none stg:disabled:opacity-40",
-          )}
-        >
-          {isCreating && <SpinnerIcon size={14} />}
+        <Button type="submit" disabled={!canSubmit} icon={isCreating ? <SpinnerIcon size={14} /> : undefined}>
           Create environment
-        </button>
+        </Button>
         {onCancel && (
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={isCreating}
-            className={cn(
-              "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-sm",
-              "stg:text-muted-foreground stg:hover:bg-accent-hover stg:hover:text-foreground",
-              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-            )}
-          >
+          <Button variant="ghost" onClick={onCancel} disabled={isCreating}>
             Cancel
-          </button>
+          </Button>
         )}
       </div>
     </form>

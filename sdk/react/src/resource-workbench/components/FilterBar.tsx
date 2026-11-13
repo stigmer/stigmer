@@ -2,6 +2,7 @@
 
 import { cn } from "@stigmer/design-tokens";
 import type { FilterValue, FilterDef } from "../types.js";
+import { Button } from "../../button/Button.js";
 
 /** Props for {@link FilterBar}. */
 export interface FilterBarProps {
@@ -72,17 +73,9 @@ export function FilterBar({
       })}
 
       {filters.length > 1 && (
-        <button
-          type="button"
-          onClick={onClearAll}
-          className={cn(
-            "stg:text-xs stg:text-muted-foreground stg:transition-colors",
-            "stg:hover:text-foreground",
-            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:focus-visible:rounded-sm",
-          )}
-        >
+        <Button variant="ghost" size="xs" onClick={onClearAll}>
           Clear all
-        </button>
+        </Button>
       )}
     </div>
   );

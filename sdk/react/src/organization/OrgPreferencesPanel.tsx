@@ -15,6 +15,7 @@ import { StandingContextField } from "../internal/StandingContextField.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
+import { Button } from "../button/Button.js";
 
 /** The memory row's copy where each member's own switch must also be on. */
 const MEMBER_CONSENT_MEMORY_HELPER_TEXT =
@@ -255,30 +256,14 @@ export function OrgPreferencesPanel({
 
       {canEdit && (
         <div className="stg:flex stg:items-center stg:gap-2">
-          <button
-            type="submit"
-            disabled={!canSubmit}
-            className={cn(
-              "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium",
-              "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
-              "stg:disabled:pointer-events-none stg:disabled:opacity-40",
-            )}
-          >
-            {isUpdating && <SpinnerIcon size={12} />}
+          <Button type="submit" disabled={!canSubmit} icon={isUpdating ? <SpinnerIcon size={12} /> : undefined}>
             Save changes
-          </button>
+          </Button>
 
           {hasChanges && !isUpdating && (
-            <button
-              type="button"
-              onClick={handleDiscard}
-              className={cn(
-                "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs",
-                "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
-              )}
-            >
+            <Button variant="ghost" onClick={handleDiscard}>
               Discard
-            </button>
+            </Button>
           )}
         </div>
       )}

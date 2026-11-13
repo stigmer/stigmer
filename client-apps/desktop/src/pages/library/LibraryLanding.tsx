@@ -1,8 +1,8 @@
 import { useReducer, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Blocks, Bot, Box, CalendarClock, FileCode2, Files, Sparkles } from "lucide-react";
-import { cn } from "@stigmer/design-tokens";
 import {
+  Button,
   ApplyManifestDialog,
   useAgentCount,
   useRoutineCount,
@@ -80,19 +80,9 @@ export default function LibraryLanding() {
 
       {/* Declarative entry point — wired identically to the web Library
           landing. */}
-      <button
-        type="button"
-        onClick={() => setApplyYamlOpen(true)}
-        className={cn(
-          "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm",
-          "text-muted-foreground transition-colors",
-          "hover:bg-accent hover:text-accent-foreground",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        )}
-      >
-        <FileCode2 className="size-3.5" aria-hidden="true" />
+      <Button variant="ghost" icon={<FileCode2 className="size-3.5" aria-hidden="true" />} onClick={() => setApplyYamlOpen(true)}>
         Apply YAML
-      </button>
+      </Button>
 
       <ApplyManifestDialog
         open={applyYamlOpen}

@@ -2,6 +2,7 @@
 
 import { memo } from "react";
 import { cn } from "@stigmer/design-tokens";
+import { Button } from "../button/Button.js";
 import { useBuildFromPlanHotkey } from "./use-build-from-plan-hotkey.js";
 
 /** Props for {@link PlanCompletionCard}. */
@@ -53,22 +54,9 @@ export const PlanCompletionCard = memo(function PlanCompletionCard({
       <span className="stg:min-w-0 stg:flex-1 stg:text-xs stg:font-medium stg:text-muted-foreground">
         Plan complete — ready to build?
       </span>
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={onImplement}
-        className={cn(
-          "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5",
-          "stg:text-xs stg:font-medium stg:transition-colors",
-          "stg:bg-primary stg:text-primary-foreground",
-          "stg:hover:bg-primary-hover",
-          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-          "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-        )}
-      >
-        <ImplementIcon />
+      <Button size="xs" disabled={disabled} onClick={onImplement} icon={<ImplementIcon />}>
         Build
-      </button>
+      </Button>
     </div>
   );
 });

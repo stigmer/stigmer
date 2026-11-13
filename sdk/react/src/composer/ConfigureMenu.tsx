@@ -5,6 +5,7 @@ import { Popover } from "@base-ui/react/popover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { useStigmerPortalContainer } from "../portal-container.js";
 import { ConfigureIcon } from "./icons.js";
+import { IconButton } from "../button/IconButton.js";
 
 export interface ConfigureMenuItem {
   readonly id: string;
@@ -224,14 +225,7 @@ function PanelView({
   return (
     <div>
       <div className="stg:flex stg:items-center stg:gap-2 stg:border-b stg:border-border-muted stg:px-3 stg:py-2">
-        <button
-          type="button"
-          onClick={onBack}
-          className="stg:shrink-0 stg:rounded stg:p-0.5 stg:text-muted-foreground stg:transition-colors stg:hover:bg-accent-hover stg:hover:text-foreground"
-          aria-label="Back to configuration menu"
-        >
-          <ChevronLeftIcon />
-        </button>
+        <IconButton size="xs" label="Back to configuration menu" icon={<ChevronLeftIcon />} onClick={onBack} />
         <span className="stg:shrink-0 stg:text-muted-foreground">{item.icon}</span>
         <span className="stg:text-sm stg:font-medium stg:text-foreground">
           {item.label}

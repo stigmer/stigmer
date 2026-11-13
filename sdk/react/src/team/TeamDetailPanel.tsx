@@ -28,6 +28,7 @@ import { TEAM_DESCRIPTION_MAX_LENGTH } from "./CreateTeamForm.js";
 import { TeamMembersPanel } from "./TeamMembersPanel.js";
 import { useDeleteTeam, useUpdateTeam } from "./useTeamMutations.js";
 import { ResourceSlugField } from "../resource-detail/RenameSlugField.js";
+import { Button } from "../button/Button.js";
 
 /** Props for {@link TeamDetailPanel}. */
 export interface TeamDetailPanelProps {
@@ -88,17 +89,9 @@ export function TeamDetailPanel({
         </div>
         {!editing && (
           <PermissionGate resource={gate} relation="can_edit">
-            <button
-              type="button"
-              onClick={() => setEditing(true)}
-              className={cn(
-                "stg:shrink-0 stg:rounded-md stg:px-2.5 stg:py-1.5 stg:text-xs stg:font-medium",
-                "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
-                "stg:transition-colors",
-              )}
-            >
+            <Button variant="ghost" size="xs" onClick={() => setEditing(true)}>
               Edit
-            </button>
+            </Button>
           </PermissionGate>
         )}
       </div>
@@ -200,30 +193,12 @@ function EditTeamForm({
         </p>
       )}
       <div className="stg:flex stg:items-center stg:gap-2">
-        <button
-          type="submit"
-          disabled={!canSave}
-          className={cn(
-            "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium",
-            "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
-            "stg:disabled:pointer-events-none stg:disabled:opacity-40",
-          )}
-        >
-          {isUpdating && <SpinnerIcon size={12} />}
+        <Button type="submit" size="xs" disabled={!canSave} icon={isUpdating ? <SpinnerIcon size={12} /> : undefined}>
           Save
-        </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          disabled={isUpdating}
-          className={cn(
-            "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs",
-            "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
-            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-          )}
-        >
+        </Button>
+        <Button variant="ghost" size="xs" onClick={onCancel} disabled={isUpdating}>
           Cancel
-        </button>
+        </Button>
       </div>
     </form>
   );
@@ -253,16 +228,14 @@ function DeleteTeam({
   if (!confirming) {
     return (
       <div className="stg:border-t stg:border-border stg:pt-4">
-        <button
-          type="button"
+        <Button
+          variant="ghost"
+          size="xs"
           onClick={() => setConfirming(true)}
-          className={cn(
-            "stg:rounded-md stg:px-2.5 stg:py-1.5 stg:text-xs stg:font-medium",
-            "stg:text-destructive stg:hover:bg-destructive-subtle stg:transition-colors",
-          )}
+          className="stg:text-destructive stg:hover:bg-destructive-subtle"
         >
           Delete team
-        </button>
+        </Button>
       </div>
     );
   }
@@ -279,31 +252,18 @@ function DeleteTeam({
         </p>
       )}
       <div className="stg:flex stg:items-center stg:gap-1.5">
-        <button
-          type="button"
+        <Button
+          variant="destructive"
+          size="xs"
           onClick={handleDelete}
           disabled={isDeleting}
-          className={cn(
-            "stg:inline-flex stg:items-center stg:gap-1 stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
-            "stg:bg-destructive stg:text-destructive-foreground stg:hover:bg-destructive-hover",
-            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-          )}
+          icon={isDeleting ? <SpinnerIcon size={12} /> : undefined}
         >
-          {isDeleting && <SpinnerIcon size={12} />}
           Delete team
-        </button>
-        <button
-          type="button"
-          onClick={() => setConfirming(false)}
-          disabled={isDeleting}
-          className={cn(
-            "stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs",
-            "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
-            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-          )}
-        >
+        </Button>
+        <Button variant="ghost" size="xs" onClick={() => setConfirming(false)} disabled={isDeleting}>
           Cancel
-        </button>
+        </Button>
       </div>
     </div>
   );

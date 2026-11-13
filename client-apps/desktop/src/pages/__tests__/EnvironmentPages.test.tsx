@@ -27,12 +27,16 @@ const page = vi.hoisted(() => ({
   labels: [] as Array<string | null>,
 }));
 
-vi.mock("@stigmer/react-sdk", () => {
+vi.mock("@stigmer/react-sdk", async () => {
+  const kit = await vi.importActual<typeof import("@stigmer/react-sdk")>("@stigmer/react-sdk");
   const capture = (name: string) => (props: Props) => {
     page.props.set(name, props);
     return null;
   };
   return {
+    Button: kit.Button,
+    IconButton: kit.IconButton,
+    LinkButton: kit.LinkButton,
     ResourceWorkbench: (props: Props) => {
       page.props.set("ResourceWorkbench", props);
       return <div>{props.headerAction as ReactNode}</div>;

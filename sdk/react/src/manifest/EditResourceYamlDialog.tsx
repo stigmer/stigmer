@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect } from "react";
 import type { Message } from "@bufbuild/protobuf";
-import { cn } from "@stigmer/design-tokens";
 import { DialogShell } from "../internal/DialogShell.js";
 import { getUserMessage, type AppliedManifest } from "@stigmer/client";
 import { toast } from "../feedback/toast.js";
@@ -10,6 +9,7 @@ import { keptChangeSentences } from "./keptChanges.js";
 import { RedactedSecretsNotice } from "./RedactedSecretsNotice.js";
 import { useEditResourceYaml } from "./useEditResourceYaml.js";
 import { YamlEditor } from "./YamlEditor.js";
+import { Button } from "../button/Button.js";
 
 
 /** Props for {@link EditResourceYamlDialog}. */
@@ -141,31 +141,17 @@ export function EditResourceYamlDialog({
               {getUserMessage(edit.error)}
             </p>
             <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-2">
-              <button
-                type="button"
+              <Button
+                variant="outline"
+                size="xs"
                 onClick={handleApply}
                 disabled={edit.validation.status !== "valid" || edit.isApplying}
-                className={cn(
-                  "stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2 stg:py-1 stg:text-xs stg:font-medium stg:text-foreground",
-                  "stg:hover:bg-accent stg:hover:text-accent-foreground",
-                  "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
-                  "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-                )}
               >
                 Try again
-              </button>
-              <button
-                type="button"
-                onClick={edit.clearError}
-                aria-label="Dismiss error"
-                className={cn(
-                  "stg:rounded-md stg:px-2 stg:py-1 stg:text-xs stg:font-medium stg:text-muted-foreground",
-                  "stg:hover:bg-accent stg:hover:text-foreground",
-                  "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
-                )}
-              >
+              </Button>
+              <Button variant="ghost" size="xs" onClick={edit.clearError} aria-label="Dismiss error">
                 Dismiss
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -176,33 +162,12 @@ export function EditResourceYamlDialog({
             {targetSummary(edit.validation, edit.isDirty, edit.target)}
           </p>
           <div className="stg:flex stg:gap-2">
-            <button
-              type="button"
-              onClick={() => onOpenChange(false)}
-              disabled={edit.isApplying}
-              className={cn(
-                "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-sm stg:font-medium stg:transition-colors",
-                "stg:border stg:border-input stg:bg-background stg:text-foreground",
-                "stg:hover:bg-accent stg:hover:text-accent-foreground",
-                "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-                "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-              )}
-            >
+            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={edit.isApplying}>
               Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleApply}
-              disabled={!canApply}
-              className={cn(
-                "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-sm stg:font-medium stg:transition-colors",
-                "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
-                "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-                "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-              )}
-            >
+            </Button>
+            <Button onClick={handleApply} disabled={!canApply}>
               {edit.isApplying ? "Applying…" : "Apply changes"}
-            </button>
+            </Button>
           </div>
         </div>
       </div>

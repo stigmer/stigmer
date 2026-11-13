@@ -56,7 +56,8 @@ const page = vi.hoisted(() => ({
   installAsked: [] as Array<string | null>,
 }));
 
-vi.mock("@stigmer/react-sdk", () => {
+vi.mock("@stigmer/react-sdk", async () => {
+  const kit = await vi.importActual<typeof import("@stigmer/react-sdk")>("@stigmer/react-sdk");
   const Passthrough = ({ children }: { children?: ReactNode }) => <>{children}</>;
   const ActionMenu = Object.assign(Passthrough, {
     Trigger: () => null,
@@ -69,6 +70,9 @@ vi.mock("@stigmer/react-sdk", () => {
     ),
   });
   return {
+    Button: kit.Button,
+    IconButton: kit.IconButton,
+    LinkButton: kit.LinkButton,
     ResourceWorkbench: (props: WorkbenchProps) => {
       page.workbench.push(props);
       return (

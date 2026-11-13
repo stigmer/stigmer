@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useReducer, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   Plus,
   Sparkles,
@@ -9,6 +9,7 @@ import {
   Trash2,
 } from "lucide-react";
 import {
+  LinkButton,
   ResourceWorkbench,
   ActionMenu,
   useStigmer,
@@ -23,6 +24,7 @@ import {
 } from "@stigmer/react-sdk";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { SearchResult } from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
+import { renderJourneyLink } from "../../journey/journey-links";
 
 const VIEW_MODE_STORAGE_KEY = "stigmer:workbench:skills:viewMode";
 
@@ -120,22 +122,14 @@ export default function SkillListPage() {
         emptyTitle="No skills yet"
         emptyDescription="Upload a skill package to provide reusable instructions and context for your agents."
         headerAction={
-          <Link
-            to="/library/skills/new"
-            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <Plus className="size-3.5" aria-hidden="true" />
+          <LinkButton href="/library/skills/new" icon={<Plus className="size-3.5" aria-hidden="true" />} renderLink={renderJourneyLink}>
             Upload skill
-          </Link>
+          </LinkButton>
         }
         emptyAction={
-          <Link
-            to="/library/skills/new"
-            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <Plus className="size-3.5" aria-hidden="true" />
+          <LinkButton href="/library/skills/new" icon={<Plus className="size-3.5" aria-hidden="true" />} renderLink={renderJourneyLink}>
             Upload skill
-          </Link>
+          </LinkButton>
         }
         onItemClick={(item) =>
           navigate(`/library/skills/${slugForOrg(item.org)}/${item.slug}`)

@@ -3,10 +3,7 @@
 import { useId, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { cn } from "@stigmer/design-tokens";
 import {
-  Tooltip,
-  TooltipContent,
   TooltipProvider,
-  TooltipTrigger,
 } from "../internal/tooltip.js";
 import { ContextPopover } from "./ContextPopover.js";
 import { ConfigureMenu, type ConfigureMenuItem } from "./ConfigureMenu.js";
@@ -25,6 +22,7 @@ import {
   StopIcon,
 } from "./icons.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
+import { IconButton } from "../button/IconButton.js";
 
 export interface ComposerToolbarProps {
   readonly disabled: boolean;
@@ -191,33 +189,23 @@ export function ComposerToolbar({
             // from Send→Stop signals the running state at a glance. Always
             // enabled, so the button itself is the tooltip trigger (keyboard
             // focus opens it too).
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <button
-                    type="button"
-                    onClick={onStop}
-                    className="stg:flex stg:h-8 stg:w-8 stg:shrink-0 stg:items-center stg:justify-center stg:rounded-full stg:bg-primary stg:text-primary-foreground stg:transition-colors stg:hover:bg-primary-hover"
-                    aria-label="Stop generating"
-                  />
-                }
-              >
-                {isStopping ? <SpinnerIcon /> : <StopIcon />}
-              </TooltipTrigger>
-              <TooltipContent side="top">Stop</TooltipContent>
-            </Tooltip>
+            <IconButton
+              variant="primary"
+              label="Stop generating"
+              icon={isStopping ? <SpinnerIcon /> : <StopIcon />}
+              onClick={onStop}
+              className="stg:rounded-full"
+            />
           ) : (
             <>
-              <button
-                type="button"
+              <IconButton
+                variant="primary"
+                label="Send message"
+                icon={isSubmitting ? <SpinnerIcon /> : <ArrowUpIcon />}
                 disabled={!canSend}
                 onClick={onSend}
-                className="stg:flex stg:h-8 stg:w-8 stg:shrink-0 stg:items-center stg:justify-center stg:rounded-lg stg:bg-primary stg:text-primary-foreground stg:transition-colors stg:hover:bg-primary-hover stg:disabled:pointer-events-none stg:disabled:opacity-40"
-                aria-label="Send message"
                 aria-describedby={sendBlockedReason === undefined ? undefined : sendBlockedId}
-              >
-                {isSubmitting ? <SpinnerIcon /> : <ArrowUpIcon />}
-              </button>
+              />
               {sendBlockedReason !== undefined && (
                 <span id={sendBlockedId} className="stg:sr-only">
                   {sendBlockedReason}
@@ -228,31 +216,21 @@ export function ComposerToolbar({
 
   const workspaceButton = showWorkspace && (
             onWorkspaceDirectAction
-              ? <Tooltip>
-                  <TooltipTrigger render={<span className="stg:inline-flex" />}>
-                    <button
-                      type="button"
+              ? <IconButton
+                      label="Workspace"
                       disabled={disabled}
                       onClick={onWorkspaceDirectAction}
-                      className={cn(
-                        "stg:inline-flex stg:h-8 stg:w-8 stg:items-center stg:justify-center stg:rounded-md stg:text-xs stg:transition-colors",
-                        "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
-                        "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-                      )}
-                      aria-label="Workspace"
-                    >
-                      <span className="stg:relative">
-                        <WorkspaceIcon />
-                        {workspaceCount > 0 && (
-                          <span className="stg:absolute stg:-right-1.5 stg:-top-1.5 stg:flex stg:h-3.5 stg:min-w-3.5 stg:items-center stg:justify-center stg:rounded-full stg:bg-primary stg:px-0.5 stg:text-2xs stg:font-medium stg:leading-none stg:text-primary-foreground">
-                            {workspaceCount}
-                          </span>
-                        )}
-                      </span>
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="top">Workspace</TooltipContent>
-                </Tooltip>
+                      icon={
+                        <span className="stg:relative">
+                          <WorkspaceIcon />
+                          {workspaceCount > 0 && (
+                            <span className="stg:absolute stg:-right-1.5 stg:-top-1.5 stg:flex stg:h-3.5 stg:min-w-3.5 stg:items-center stg:justify-center stg:rounded-full stg:bg-primary stg:px-0.5 stg:text-2xs stg:font-medium stg:leading-none stg:text-primary-foreground">
+                              {workspaceCount}
+                            </span>
+                          )}
+                        </span>
+                      }
+                    />
               : <ContextPopover
                   icon={<WorkspaceIcon />}
                   label="Workspace"
@@ -264,31 +242,21 @@ export function ComposerToolbar({
           );
 
   const attachButton = showAttach && (
-            <Tooltip>
-              <TooltipTrigger render={<span className="stg:inline-flex" />}>
-                <button
-                  type="button"
-                  disabled={disabled}
-                  onClick={onAttachClick}
-                  className={cn(
-                    "stg:inline-flex stg:h-8 stg:w-8 stg:items-center stg:justify-center stg:rounded-md stg:text-xs stg:transition-colors",
-                    "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
-                    "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-                  )}
-                  aria-label="Attach files"
-                >
-                  <span className="stg:relative">
-                    <PaperclipIcon />
-                    {fileCount > 0 && (
-                      <span className="stg:absolute stg:-right-1.5 stg:-top-1.5 stg:flex stg:h-3.5 stg:min-w-3.5 stg:items-center stg:justify-center stg:rounded-full stg:bg-primary stg:px-0.5 stg:text-2xs stg:font-medium stg:leading-none stg:text-primary-foreground">
-                        {fileCount}
-                      </span>
-                    )}
-                  </span>
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="top">Attach files</TooltipContent>
-            </Tooltip>
+            <IconButton
+                      label="Attach files"
+                      disabled={disabled}
+                      onClick={onAttachClick}
+                      icon={
+                        <span className="stg:relative">
+                          <PaperclipIcon />
+                          {fileCount > 0 && (
+                            <span className="stg:absolute stg:-right-1.5 stg:-top-1.5 stg:flex stg:h-3.5 stg:min-w-3.5 stg:items-center stg:justify-center stg:rounded-full stg:bg-primary stg:px-0.5 stg:text-2xs stg:font-medium stg:leading-none stg:text-primary-foreground">
+                              {fileCount}
+                            </span>
+                          )}
+                        </span>
+                      }
+                    />
           );
 
   if (narrow) {

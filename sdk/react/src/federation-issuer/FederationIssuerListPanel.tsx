@@ -13,6 +13,8 @@ import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
+import { Button } from "../button/Button.js";
+import { IconButton } from "../button/IconButton.js";
 
 /** Props for {@link FederationIssuerListPanel}. */
 export interface FederationIssuerListPanelProps {
@@ -182,31 +184,18 @@ function IssuerRow({
         </div>
 
         <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-1.5">
-          <button
-            type="button"
+          <Button
+            variant="destructive"
+            size="xs"
             onClick={handleDelete}
             disabled={isDeleting}
-            className={cn(
-              "stg:inline-flex stg:items-center stg:gap-1 stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
-              "stg:bg-destructive stg:text-destructive-foreground stg:hover:bg-destructive-hover",
-              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-            )}
+            icon={isDeleting ? <SpinnerIcon size={12} /> : undefined}
           >
-            {isDeleting && <SpinnerIcon size={12} />}
             Delete
-          </button>
-          <button
-            type="button"
-            onClick={onCancelDelete}
-            disabled={isDeleting}
-            className={cn(
-              "stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs",
-              "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
-              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-            )}
-          >
+          </Button>
+          <Button variant="ghost" size="xs" onClick={onCancelDelete} disabled={isDeleting}>
             Cancel
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -256,36 +245,20 @@ function IssuerRow({
             resource={{ kind: "federation_issuer", id }}
             relation="can_edit"
           >
-            <button
-              type="button"
-              onClick={onEdit}
-              aria-label={`Edit ${name}`}
-              className={cn(
-                "stg:shrink-0 stg:rounded stg:p-1",
-                "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
-                "stg:transition-colors",
-              )}
-            >
-              <PencilIcon />
-            </button>
+            <IconButton label={`Edit ${name}`} size="xs" onClick={onEdit} icon={<PencilIcon />} />
           </PermissionGate>
         )}
         <PermissionGate
           resource={{ kind: "federation_issuer", id }}
           relation="can_delete"
         >
-          <button
-            type="button"
+          <IconButton
+            label={`Delete ${name}`}
+            size="xs"
             onClick={onConfirmDelete}
-            aria-label={`Delete ${name}`}
-            className={cn(
-              "stg:shrink-0 stg:rounded stg:p-1",
-              "stg:text-muted-foreground stg:hover:text-destructive stg:hover:bg-destructive-subtle",
-              "stg:transition-colors",
-            )}
-          >
-            <TrashIcon />
-          </button>
+            icon={<TrashIcon />}
+            className="stg:hover:bg-destructive-subtle stg:hover:text-destructive"
+          />
         </PermissionGate>
       </div>
     </div>

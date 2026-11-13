@@ -24,6 +24,8 @@ import { useCopyFeedback } from "../internal/useCopyFeedback.js";
 import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
+import { Button } from "../button/Button.js";
+import { IconButton } from "../button/IconButton.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -161,13 +163,9 @@ export function InvitationManager({
           )}
         </div>
         {flow.phase === "idle" && (
-          <button
-            type="button"
-            onClick={() => setFlow({ phase: "creating" })}
-            className="stg:text-primary stg:hover:text-foreground stg:text-xs stg:font-medium stg:transition-colors"
-          >
+          <Button variant="ghost" size="xs" onClick={() => setFlow({ phase: "creating" })}>
             + Create invite link
-          </button>
+          </Button>
         )}
       </div>
 
@@ -393,31 +391,13 @@ function CreateInvitationForm({
       )}
 
       <div className="stg:flex stg:items-center stg:gap-2">
-        <button
-          type="submit"
-          disabled={!canSubmit}
-          className={cn(
-            "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium",
-            "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
-            "stg:disabled:pointer-events-none stg:disabled:opacity-40",
-          )}
-        >
-          {isCreating && <SpinnerIcon size={12} />}
+        <Button type="submit" size="xs" disabled={!canSubmit} icon={isCreating ? <SpinnerIcon size={12} /> : undefined}>
           Create invite link
-        </button>
+        </Button>
 
-        <button
-          type="button"
-          onClick={onCancel}
-          disabled={isCreating}
-          className={cn(
-            "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs",
-            "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
-            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-          )}
-        >
+        <Button variant="ghost" size="xs" onClick={onCancel} disabled={isCreating}>
           Cancel
-        </button>
+        </Button>
       </div>
     </form>
   );
@@ -527,29 +507,22 @@ function InvitationRow({
       {/* Actions */}
       <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-1">
         {isActive && (
-          <button
-            type="button"
+          <IconButton
+            size="xs"
+            label={copied ? "Link copied" : `Copy invite link for ${label}`}
+            icon={copied ? <CheckIcon /> : <CopyIcon />}
             onClick={handleCopy}
-            aria-label={copied ? "Link copied" : `Copy invite link for ${label}`}
-            className={cn(
-              "stg:shrink-0 stg:rounded stg:p-1 stg:transition-colors",
-              copied
-                ? "stg:text-primary"
-                : "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
-            )}
-          >
-            {copied ? <CheckIcon /> : <CopyIcon />}
-          </button>
+            className={copied ? "stg:text-primary" : undefined}
+          />
         )}
         {isActive && (
-          <button
-            type="button"
+          <IconButton
+            size="xs"
+            label={`Revoke ${label}`}
+            icon={<RevokeIcon />}
             onClick={onStartRevoke}
-            aria-label={`Revoke ${label}`}
-            className="stg:shrink-0 stg:rounded stg:p-1 stg:text-muted-foreground stg:hover:text-destructive stg:hover:bg-destructive-subtle stg:transition-colors"
-          >
-            <RevokeIcon />
-          </button>
+            className="stg:hover:text-destructive stg:hover:bg-destructive-subtle"
+          />
         )}
       </div>
     </div>
@@ -599,31 +572,18 @@ function RevokeConfirmation({
       </div>
 
       <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-1.5 stg:ml-3">
-        <button
-          type="button"
+        <Button
+          variant="destructive"
+          size="xs"
           onClick={handleConfirm}
           disabled={isRevoking}
-          className={cn(
-            "stg:inline-flex stg:items-center stg:gap-1 stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
-            "stg:bg-destructive stg:text-destructive-foreground stg:hover:bg-destructive-hover",
-            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-          )}
+          icon={isRevoking ? <SpinnerIcon size={12} /> : undefined}
         >
-          {isRevoking && <SpinnerIcon size={12} />}
           Revoke
-        </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          disabled={isRevoking}
-          className={cn(
-            "stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs",
-            "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
-            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-          )}
-        >
+        </Button>
+        <Button variant="ghost" size="xs" onClick={onCancel} disabled={isRevoking}>
           Cancel
-        </button>
+        </Button>
       </div>
     </div>
   );

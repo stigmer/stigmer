@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { cn } from "@stigmer/design-tokens";
+import { IconButton } from "../../button/IconButton.js";
 
 /** Props for {@link ResourceInspector}. */
 export interface ResourceInspectorProps {
@@ -50,18 +51,7 @@ export function ResourceInspector({
         <span className="stg:text-xs stg:font-medium stg:text-muted-foreground">
           Preview
         </span>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close inspector"
-          className={cn(
-            "stg:inline-flex stg:items-center stg:justify-center stg:rounded-sm stg:p-1",
-            "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
-            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-          )}
-        >
-          <CloseIcon />
-        </button>
+        <IconButton size="xs" label="Close inspector" icon={<CloseIcon />} onClick={onClose} />
       </div>
       <div className="stg:flex-1 stg:overflow-y-auto stg:p-4">
         {children}

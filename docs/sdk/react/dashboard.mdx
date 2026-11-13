@@ -125,7 +125,7 @@ The journey's six steps as a card: done, current with its act, and the quiet one
     links: { type: "DashboardFirstStepLinks", description: "", required: true, typeDescriptionLink: "#dashboardfirststeplinks" },
     onHide: { type: "() => void", description: "Hides the card for this person; the card offers \"Hide\" only with it." },
     org: { type: "string", description: "", required: true },
-    renderLink: { type: "RenderJourneyLink", description: "Draws a link; a host with its own router passes its link component. A plain anchor otherwise.", typeDescriptionLink: "/docs/sdk/react/journey#renderjourneylink" },
+    renderLink: { type: "RenderLink", description: "Draws a link; a host with its own router passes its link component. A plain anchor otherwise.", typeDescriptionLink: "/docs/sdk/react/button#renderlink" },
   }}
 />
 
@@ -259,7 +259,7 @@ function Home({ onOpen }: { onOpen: (href: string) => void }) {
     firstStepLinks: { type: "DashboardFirstStepLinks", description: "Where the journey's steps lead, as the host routes them. With them, a person who may make agents sees the journey's card: alone, instead of four zeros, while nothing has run here; above the figures after that, until every step is done. Without them, the figures as always.", typeDescriptionLink: "#dashboardfirststeplinks" },
     onFailedRunClick: { type: "(id: string) => void", description: "Called with the run's ID when the user clicks \"View\" on a failed run." },
     org: { type: "string | null | undefined", description: "The organization whose runs and usage the dashboard shows.", required: true },
-    renderLink: { type: "RenderJourneyLink", description: "Draws a first step's link with the host's router; a plain anchor otherwise.", typeDescriptionLink: "/docs/sdk/react/journey#renderjourneylink" },
+    renderLink: { type: "RenderLink", description: "Draws a first step's link with the host's router; a plain anchor otherwise.", typeDescriptionLink: "/docs/sdk/react/button#renderlink" },
   }}
 />
 

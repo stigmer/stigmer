@@ -5,6 +5,7 @@ import { Popover } from "@base-ui/react/popover";
 import { KeyRound } from "lucide-react";
 import { cn } from "@stigmer/design-tokens";
 import { useStigmerPortalContainer } from "../portal-container.js";
+import { Button } from "../button/Button.js";
 import { Switch } from "../switch/Switch.js";
 import { useModelRegistry } from "./useModelRegistry.js";
 import type { ModelInfo, CostTier } from "@stigmer/react-core";
@@ -692,16 +693,9 @@ export function ModelSelector({
                 {visibleModels.length === 0 && !isLoading && error != null && (
                   <div className="stg:flex stg:flex-col stg:items-center stg:gap-1.5 stg:px-2 stg:py-3">
                     <span className="stg:text-xs stg:text-muted-foreground">Failed to load models</span>
-                    <button
-                      type="button"
-                      className={cn(
-                        "stg:rounded-md stg:border stg:border-border stg:bg-background stg:px-2.5 stg:py-1 stg:text-xs stg:text-foreground",
-                        "stg:hover:bg-accent-hover stg:transition-colors stg:cursor-pointer",
-                      )}
-                      onClick={refetch}
-                    >
+                    <Button variant="outline" size="xs" onClick={refetch}>
                       Retry
-                    </button>
+                    </Button>
                   </div>
                 )}
 
