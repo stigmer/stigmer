@@ -61,16 +61,17 @@ roles in plain words, and who has joined. Mount inside an
 <TypeTable
   type={{
     billingHref: { type: "string", description: "Where the plans are, for the upgrade notice, in the host's routing." },
-    buildInviteUrl: { type: "(token: string) => string", description: "Build the full invite URL from a token, when invitees accept somewhere other than this origin's `/invite/<token>` (a desktop app's links open the web console)." },
+    buildInviteUrl: { type: "((token: string) => string) | null", description: "Build the full invite URL from a token, when invitees accept somewhere other than this origin's `/invite/<token>` (a desktop app's links open the web console). `null` when this host knows no address an invitee can open (a desktop app connected to a server whose web console it does not know): the page then makes no link, and sends the person to that server's web console to make one, since a link at the wrong address would hand the invitation's token to another site." },
     className: { type: "string", description: "Additional CSS class names for the page's root." },
-    consoleUrl: { type: "string", description: "The address people sign in at, where the edition has no invitations and people join by signing in." },
+    consoleUrl: { type: "string | null", description: "The address people sign in at, where the edition has no invitations and people join by signing in; `null` when this host does not know it." },
     membersHref: { type: "string", description: "Where roles are set (the console's members page), in the host's routing." },
     renderLink: { type: "RenderLink", description: "Draws each link; a plain anchor otherwise.", typeDescriptionLink: "/docs/sdk/react/button#renderlink" },
   }}
 />
 
 ```tsx
-<BringOthersIn membersHref="/settings/members" renderLink={nextLink} />
+// renderLink is where the host's router link goes; a plain anchor works too.
+<BringOthersIn membersHref="/settings/members" renderLink={({ href, children, ...rest }) => <a href={href} {...rest}>{children}</a>} />
 ```
 
 
