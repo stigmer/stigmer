@@ -33,7 +33,6 @@ export function threadScene(state: ThreadState, preset?: Preset): Drawing {
           onStopBackgroundCommand={inert}
           stoppingBackgroundToolUseIds={conversation.stoppingBackgroundToolUseIds}
           stopBackgroundErrors={conversation.stopBackgroundErrors}
-          showFileReviewRecords
           onEditMessage={conversation.isStoppable ? inert : undefined}
           resources={conversation.resources}
           org={conversation.org}
