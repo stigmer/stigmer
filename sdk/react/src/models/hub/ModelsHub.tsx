@@ -10,9 +10,8 @@
 
 import { useCallback, useId, useMemo } from "react";
 import { cn } from "@stigmer/design-tokens";
-import { getUserMessage } from "@stigmer/client";
 import type { ProviderKey } from "@stigmer/apis/ai/stigmer/billing/providerkey/v1/api_pb";
-import { Button } from "../../button/index.js";
+import { ErrorMessage } from "../../error/ErrorMessage.js";
 import { useProviderKeys } from "../../billing/useProviderKeys.js";
 import { useDeploymentMode, useResourceAvailable } from "@stigmer/react-core";
 import { ApiResourceKind } from "@stigmer/react-core/internal";
@@ -210,14 +209,7 @@ function HubBody({ hub }: { readonly hub: ModelsHubData }) {
   const providersHeadingId = useId();
   if (hub.providers === null || hub.models === null) {
     if (hub.error !== null) {
-      return (
-        <div role="alert" className="stg:space-y-2 stg:rounded-xl stg:border stg:border-border stg:bg-card stg:p-4">
-          <p className="stg:text-sm stg:text-destructive">{getUserMessage(hub.error)}</p>
-          <Button size="sm" variant="outline" onClick={hub.refresh}>
-            Try again
-          </Button>
-        </div>
-      );
+      return <ErrorMessage error={hub.error} retry={hub.refresh} />;
     }
     return <HubSkeleton />;
   }

@@ -247,7 +247,7 @@ describe("OrgEmbeddingPanel — failures and absence", () => {
       .mockRejectedValueOnce(new ConnectError("store down", Code.Unavailable))
       .mockResolvedValueOnce(orgWith(STORED));
     renderPanel(client);
-    fireEvent.click(await screen.findByRole("button", { name: "Retry" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Try again" }));
     expect(await screen.findByLabelText("Sign-in role")).toBeTruthy();
     expect(client.organization.get).toHaveBeenCalledTimes(2);
   });

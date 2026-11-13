@@ -545,34 +545,6 @@ property set via ref for proper browser + screen reader support.
 />
 
 
-### StatusBadge
-
-Accessible status indicator that combines a color dot with a text label.
-
-Never communicates status through color alone — the text label is always
-present (WCAG 1.4.1). Colors come from `--stgm-status-*` design tokens
-defined in `@stigmer/design-tokens`, ensuring correct appearance in both light
-and dark modes.
-
-**Props** — `StatusBadgeProps`
-
-<TypeTable
-  type={{
-    className: { type: "string", description: "Additional CSS classes for the root element." },
-    label: { type: "string", description: "Optional human-readable label override. When omitted, the phase name is title-cased (e.g. \"ready\" becomes \"Ready\")." },
-    phase: { type: "StatusPhase", description: "The status phase to display. Maps to `--stgm-status-*` tokens.", required: true, typeDescriptionLink: "#statusphase" },
-    tooltip: { type: "string", description: "Tooltip text shown on hover. When omitted, no tooltip renders." },
-  }}
-/>
-
-```tsx
-<>
-  <StatusBadge phase="ready" />
-  <StatusBadge phase="failed" label="Unreachable" tooltip="Last checked 2m ago" />
-</>
-```
-
-
 ### ViewSwitcher
 
 Toggle button group for switching between table, cards, and list views.

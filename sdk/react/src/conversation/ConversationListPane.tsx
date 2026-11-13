@@ -16,6 +16,7 @@ import { formatRelativeTime } from "../activity/format-relative-time.js";
 import { channelProviderOf } from "../channel/providers.js";
 import { Button } from "../button/Button.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
+import { ErrorMessage } from "../error/ErrorMessage.js";
 import {
   Tooltip,
   TooltipContent,
@@ -160,9 +161,7 @@ export function ConversationListPane({
         {isLoading ? (
           <ListSkeleton />
         ) : error ? (
-          <p className="stg:px-2 stg:py-6 stg:text-center stg:text-sm stg:text-destructive">
-            {getUserMessage(error)}
-          </p>
+          <ErrorMessage error={error} title="Couldn't load the conversations." />
         ) : conversations.length === 0 ? (
           channels.length === 0 ? (
             <EmptyState

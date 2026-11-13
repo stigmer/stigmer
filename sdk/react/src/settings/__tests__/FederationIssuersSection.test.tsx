@@ -149,7 +149,8 @@ describe("FederationIssuersSection", () => {
     cleanup();
     stubs.allowed = new Set(["can_create_federation_issuer"]);
     renderSection("cloud");
-    expect(screen.getByRole("button", { name: /New federation issuer/ })).toBeTruthy();
+    // The header offers it, and so does the empty list.
+    expect(screen.getAllByRole("button", { name: /New federation issuer/ })).toHaveLength(2);
   });
 
   it("names the organization's admins, not an empty configuration, to a caller who may not create providers", () => {

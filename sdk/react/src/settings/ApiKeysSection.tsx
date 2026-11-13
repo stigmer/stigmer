@@ -40,13 +40,15 @@ export function ApiKeysSection() {
     setFlow({ phase: "idle" });
   }, []);
 
+  const startCreate = useCallback(() => setFlow({ phase: "creating" }), []);
+
   return (
     <SettingsPage
       title="API keys"
       description="Keys sign the CLI and your own programs in to Stigmer as you. A key works in every organization you belong to, unless you limit it to one."
       actions={
         flow.phase === "idle" && (
-          <Button size="sm" onClick={() => setFlow({ phase: "creating" })}>
+          <Button size="sm" onClick={startCreate}>
             New API key
           </Button>
         )
@@ -60,7 +62,10 @@ export function ApiKeysSection() {
           <CreateApiKeyForm org={org} onCreated={handleCreated} onCancel={() => setFlow({ phase: "idle" })} />
         </Card>
       )}
-      <ApiKeyListPanel onRefetchRef={handleRefetchRef} />
+      <ApiKeyListPanel
+        onRefetchRef={handleRefetchRef}
+        emptyAction={flow.phase === "idle" ? { label: "New API key", onClick: startCreate } : undefined}
+      />
     </SettingsPage>
   );
 }

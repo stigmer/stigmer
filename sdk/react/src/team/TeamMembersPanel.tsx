@@ -32,6 +32,9 @@ import { PermissionGate } from "../grant/PermissionGate.js";
 import { PrincipalPicker, type SelectedGrantee } from "../grant/PrincipalPicker.js";
 import { useShareFlow } from "../grant/useShareFlow.js";
 import { Button } from "../button/Button.js";
+import { EmptyState } from "../empty-state/EmptyState.js";
+import { ErrorMessage } from "../error/ErrorMessage.js";
+import { Tag } from "../internal/surface/Tag.js";
 
 /** Props for {@link TeamMembersPanel}. */
 export interface TeamMembersPanelProps {
@@ -57,6 +60,7 @@ export function TeamMembersPanel({ teamId, org, className }: TeamMembersPanelPro
     accessList,
     isLoading,
     fetchError,
+    refetch,
     grant,
     isGranting,
     grantError,
@@ -93,23 +97,17 @@ export function TeamMembersPanel({ teamId, org, className }: TeamMembersPanelPro
       <div className="stg:flex stg:items-center stg:gap-2">
         <h4 className="stg:text-xs stg:font-semibold stg:text-foreground">Members</h4>
         {!isLoading && accessList.length > 0 && (
-          <span className="stg:inline-flex stg:items-center stg:rounded-full stg:bg-muted stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-muted-foreground">
-            {accessList.length}
-          </span>
+          <Tag>{accessList.length}</Tag>
         )}
       </div>
 
       {isLoading && <p className="stg:text-xs stg:text-muted-foreground">Loading members...</p>}
 
       {!isLoading && !fetchError && accessList.length === 0 && (
-        <p className="stg:text-xs stg:text-muted-foreground">No one is in this team yet.</p>
+        <EmptyState variant="first-use" size="inline" title="No one is in this team yet." className="stg:px-0" />
       )}
 
-      {fetchError && (
-        <p className="stg:text-destructive stg:text-2xs" role="alert">
-          {getUserMessage(fetchError)}
-        </p>
-      )}
+      <ErrorMessage error={fetchError} title="Couldn't load the members." retry={refetch} />
 
       {!isLoading && accessList.length > 0 && (
         // The rows inset their hover surface; the list steps out by the same

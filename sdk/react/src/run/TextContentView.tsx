@@ -5,6 +5,7 @@
 
 import { TextContentRenderer } from "./TextContentRenderer.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
+import { ErrorMessage } from "../error/ErrorMessage.js";
 
 /** Props for {@link TextContentView}. */
 export interface TextContentViewProps {
@@ -58,9 +59,8 @@ export function TextContentView({
 
   if (error) {
     return (
-      <div className="stg:flex stg:flex-col stg:items-center stg:justify-center stg:gap-2 stg:p-8 stg:text-center">
-        <ErrorAlertIcon />
-        <p className="stg:text-sm stg:text-destructive">{error.message}</p>
+      <div className="stg:p-4">
+        <ErrorMessage error={error} title="Couldn't load the file." />
       </div>
     );
   }
@@ -80,30 +80,5 @@ export function TextContentView({
       contentType={contentType}
       isTruncated={isTruncated}
     />
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Inline SVG icons (SDK independence — no lucide dependency)
-// ---------------------------------------------------------------------------
-
-function ErrorAlertIcon() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="stg:text-destructive"
-      aria-hidden="true"
-    >
-      <circle cx="8" cy="8" r="6.5" />
-      <path d="M8 5.5V8.5" />
-      <circle cx="8" cy="11" r="0.5" fill="currentColor" stroke="none" />
-    </svg>
   );
 }

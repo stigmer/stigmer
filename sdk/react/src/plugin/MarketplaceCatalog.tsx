@@ -165,8 +165,9 @@ export function MarketplaceCatalog({ org, onInstalled, fetchImpl, className }: M
       {!settling && entries.length > 0 && matching.length === 0 && searching && (
         <EmptyState
           variant="zero-results"
-          title={`Nothing matches '${query.trim()}'`}
-          description="Try another word, or search every source."
+          resourceLabel="plugins"
+          query={query.trim()}
+          action={{ label: "Clear search", onClick: () => changeQuery("") }}
         />
       )}
       {!settling && !anyReading && failed.length === 0 && entries.length === 0 && (
@@ -297,7 +298,7 @@ function FailedSources({
   if (whole) {
     const [read] = failed;
     if (read === undefined || read.state.kind !== "failed") return null;
-    return <ErrorMessage error={read.state.error} retry={() => refetch(read.marketplace.name)} title={`${read.marketplace.name} cannot be read right now`} />;
+    return <ErrorMessage error={read.state.error} retry={() => refetch(read.marketplace.name)} title={`Couldn't load ${read.marketplace.name}.`} />;
   }
   return (
     <ul className={cn(UNSTYLED_LIST, "stg:flex stg:flex-col stg:gap-1")} aria-label="Sources that cannot be read">
@@ -306,8 +307,8 @@ function FailedSources({
           <li key={read.marketplace.name} className="stg:flex stg:flex-wrap stg:items-baseline stg:gap-x-2 stg:text-xs stg:text-muted-foreground">
             <span className="stg:font-medium stg:text-foreground">{read.marketplace.name}</span>
             <span>cannot be read right now: {read.state.error.message}</span>
-            <Button variant="ghost" size="xs" onClick={() => refetch(read.marketplace.name)} aria-label={`Retry ${read.marketplace.name}`}>
-              Retry
+            <Button variant="ghost" size="xs" onClick={() => refetch(read.marketplace.name)} aria-label={`Try again to load ${read.marketplace.name}`}>
+              Try again
             </Button>
           </li>
         ) : null,

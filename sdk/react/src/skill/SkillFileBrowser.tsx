@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Markdown from "react-markdown";
 import { cn } from "@stigmer/design-tokens";
+import { ErrorMessage } from "../error/ErrorMessage.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { MARKDOWN_COMPONENTS, REMARK_PLUGINS, stripFrontmatter } from "../internal/markdown-components.js";
 import { buildFileTree, FileTreeNode } from "../internal/file-tree/index.js";
@@ -51,7 +52,7 @@ export function SkillFileBrowser({
   artifactStorageKey,
   className,
 }: SkillFileBrowserProps) {
-  const { files, isLoading, error, getFileContent } = useSkillArtifact(artifactStorageKey);
+  const { files, isLoading, error, getFileContent, refetch } = useSkillArtifact(artifactStorageKey);
   // Only the user's explicit click is state; the initial selection is derived
   // from the loaded file list below, so it exists the moment files do.
   const [userSelectedPath, setUserSelectedPath] = useState<string | null>(null);
@@ -105,13 +106,7 @@ export function SkillFileBrowser({
   }
 
   if (error) {
-    return (
-      <div className={cn("stg:rounded-lg stg:border stg:border-border stg:p-4", className)}>
-        <p className="stg:text-sm stg:text-destructive">
-          Failed to load skill package: {error.message}
-        </p>
-      </div>
-    );
+    return <ErrorMessage error={error} title="Couldn't load the skill package." retry={refetch} className={className} />;
   }
 
   if (!files || files.length === 0) return null;

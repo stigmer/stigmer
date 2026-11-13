@@ -12,6 +12,7 @@ import {
 } from "react";
 import { cn } from "@stigmer/design-tokens";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
+import { EmptyState } from "../empty-state/EmptyState.js";
 import type { WorkspaceEntry } from "./useWorkspaceEntries.js";
 import type {
   WorkspaceContentMatch,
@@ -233,7 +234,20 @@ export function WorkspaceContentSearch({
         ) : isLoading ? (
           <MessageState>Searching…</MessageState>
         ) : groups.length === 0 ? (
-          <MessageState>No files containing &ldquo;{trimmed}&rdquo;.</MessageState>
+          <EmptyState
+            variant="zero-results"
+            size="inline"
+            query={trimmed}
+            title={`No files containing \u201c${trimmed}\u201d.`}
+            description=""
+            action={{
+              label: "Clear search",
+              onClick: () => {
+                setQuery("");
+                inputRef.current?.focus();
+              },
+            }}
+          />
         ) : (
           <>
             <ul id={listboxId} role="listbox" aria-label="Search results" className={cn(UNSTYLED_LIST, "stg:py-0.5")}>

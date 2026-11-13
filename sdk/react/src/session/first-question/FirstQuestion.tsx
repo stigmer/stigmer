@@ -20,6 +20,7 @@ import { Check, FileText, Loader2 } from "lucide-react";
 import { cn } from "@stigmer/design-tokens";
 import { EXAMPLES, type Example } from "@stigmer/examples";
 import { Button } from "../../button/Button.js";
+import { Notice } from "../../internal/surface/Notice.js";
 import type { FirstChoice, FirstChoiceFailure, FirstChoicePending } from "./useStartFromExample.js";
 
 /** The question, as the person reads it. */
@@ -57,18 +58,15 @@ export function FileChip({ name }: { readonly name: string }) {
 /** A failed pick: what happened, why, and the one act. */
 function PickFailure({ failure, onRetry, onJustChat }: { readonly failure: FirstChoiceFailure; readonly onRetry: () => void; readonly onJustChat: () => void }) {
   return (
-    <div role="alert" className="stg:space-y-2 stg:rounded-lg stg:border stg:border-destructive-muted stg:bg-destructive-subtle stg:px-3.5 stg:py-3 stg:text-sm">
-      <p className="stg:m-0 stg:font-medium stg:text-foreground">{failure.title}</p>
-      <p className="stg:m-0 stg:leading-5 stg:text-muted-foreground">{failure.detail}</p>
-      <div className="stg:flex stg:flex-wrap stg:items-center stg:gap-3">
-        <Button size="xs" onClick={onRetry}>
-          Try again
-        </Button>
-        <Button variant="ghost" size="xs" onClick={onJustChat}>
-          {JUST_CHAT}
-        </Button>
-      </div>
-    </div>
+    <Notice
+      tone="failed"
+      role="alert"
+      headline={failure.title}
+      act={{ label: "Try again", onClick: onRetry }}
+      link={{ label: JUST_CHAT, onClick: onJustChat }}
+    >
+      <p className="stg:m-0">{failure.detail}</p>
+    </Notice>
   );
 }
 

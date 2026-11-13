@@ -255,7 +255,7 @@ export function AccountPreferencesPanel({
   // -----------------------------------------------------------------------
 
   if (fetchError) {
-    return <ErrorMessage error={fetchError} title="Your preferences could not be read" retry={refetch} className={className} />;
+    return <ErrorMessage error={fetchError} title="Couldn't load your preferences." retry={refetch} className={className} />;
   }
 
   if (!account) return null;

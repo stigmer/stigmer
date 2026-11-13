@@ -1,6 +1,5 @@
 "use client";
 
-import { cn } from "@stigmer/design-tokens";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { OAuthApp } from "@stigmer/apis/ai/stigmer/iam/oauthapp/v1/api_pb";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
@@ -8,6 +7,7 @@ import { useOAuthAppList } from "./useOAuthAppList.js";
 import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
+import type { EmptyStateAction } from "../empty-state/types.js";
 import { LoadMoreFooter } from "../internal/LoadMoreFooter.js";
 import { IconButton } from "../button/IconButton.js";
 import { List, ListRow } from "../internal/surface/List.js";
@@ -40,6 +40,12 @@ export interface OAuthAppListPanelProps {
   readonly emptyDescription?: string;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
+  /**
+   * The page's create act, carried by the empty list (the same label and
+   * handler as the page header's button). Absent when the caller may not
+   * create one, or a create is already open.
+   */
+  readonly emptyAction?: EmptyStateAction;
 }
 
 /**
@@ -73,6 +79,7 @@ export function OAuthAppListPanel({
   onRefetchRef,
   emptyState = "No OAuth apps configured yet.",
   emptyDescription = "Add your own login app, and sign-ins at the addresses it lists use it.",
+  emptyAction,
   className,
 }: OAuthAppListPanelProps) {
   const { oauthApps, isLoading, error, refetch, hasMore, loadMore, isLoadingMore, loadMoreError } =
@@ -87,7 +94,7 @@ export function OAuthAppListPanel({
   }
 
   if (error) {
-    return <ErrorMessage error={error} title="The OAuth apps could not be read" retry={refetch} className={className} />;
+    return <ErrorMessage error={error} title="Couldn't load the OAuth apps." retry={refetch} className={className} />;
   }
 
   if (oauthApps.length === 0) {
@@ -96,7 +103,7 @@ export function OAuthAppListPanel({
         variant="first-use"
         title={emptyState}
         description={emptyDescription}
-        className={cn("stg:rounded-lg stg:border stg:border-dashed stg:border-border", className)}
+        action={emptyAction}        className={className}
       />
     );
   }

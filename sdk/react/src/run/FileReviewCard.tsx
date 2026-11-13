@@ -14,6 +14,7 @@ import { FilePathLink } from "./FilePathLink.js";
 import { DiffSummary } from "../version-history/DiffSummary.js";
 import { DecisionButton } from "../internal/DecisionButton.js";
 import { InCardDecisionError } from "../internal/InCardDecisionError.js";
+import { Tag } from "../internal/surface/Tag.js";
 import { fileDecisionKey, type FileReviewAction, type ReviewFileChangesOptions } from "@stigmer/react-core";
 import { useChangeSetCapture } from "./useChangeSetCapture.js";
 import {
@@ -978,13 +979,9 @@ function CaptureBadge({ captured }: { captured: CapturedFileChange | undefined }
   const provenance = PROVENANCE[captured.captureClass];
   if (!provenance) return null;
   return (
-    <span
-      className="stg:inline-flex stg:w-fit stg:items-center stg:rounded stg:border stg:border-border stg:bg-muted-subtle stg:px-1.5 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-muted-foreground"
-      aria-label={provenance.aria}
-      data-cursor-target="file-review-capture"
-    >
+    <Tag className="stg:w-fit" aria-label={provenance.aria} data-cursor-target="file-review-capture">
       {provenance.label}
-    </span>
+    </Tag>
   );
 }
 

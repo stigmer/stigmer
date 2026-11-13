@@ -127,7 +127,7 @@ function AccessHistoryList({ org }: { readonly org: string }) {
     return feature !== null ? (
       <UpgradeNotice feature={feature} error={history.error} />
     ) : (
-      <ErrorMessage error={history.error} title="The access history could not be read" retry={history.refetch} />
+      <ErrorMessage error={history.error} title="Couldn't load the access history." retry={history.refetch} />
     );
   }
 
@@ -155,7 +155,6 @@ function AccessHistoryList({ org }: { readonly org: string }) {
           variant="first-use"
           title="No access changes recorded yet"
           description="When someone is given or loses access, it is written here."
-          className="stg:rounded-lg stg:border stg:border-dashed stg:border-border"
         />
       ) : (
         // A change is a sentence that wraps, not a name that truncates, so

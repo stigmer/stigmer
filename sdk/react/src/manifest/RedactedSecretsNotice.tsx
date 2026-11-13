@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@stigmer/design-tokens";
+import { Notice } from "../internal/surface/Notice.js";
 
 /** Props for {@link RedactedSecretsNotice}. */
 export interface RedactedSecretsNoticeProps {
@@ -17,14 +17,16 @@ export interface RedactedSecretsNoticeProps {
  */
 export function RedactedSecretsNotice({ className }: RedactedSecretsNoticeProps) {
   return (
-    <p
-      className={cn(
-        "stg:rounded-md stg:border stg:border-border stg:bg-muted stg:px-3 stg:py-2 stg:text-xs stg:text-muted-foreground",
-        className,
-      )}
+    <Notice
+      tone="plain"
+      headline={
+        <>
+          Secret values are shown as <code className="stg:font-mono">***REDACTED***</code>.
+        </>
+      }
+      className={className}
     >
-      Secret values are shown as <code className="stg:font-mono">***REDACTED***</code>.
-      Applying keeps the stored secrets; replace a marker to set a new value.
-    </p>
+      <p className="stg:m-0">Applying keeps the stored secrets; replace a marker to set a new value.</p>
+    </Notice>
   );
 }

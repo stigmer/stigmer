@@ -201,7 +201,7 @@ export function EvalRunResults({
         {status?.error ? (
           <ErrorMessage
             error={new Error(status.error)}
-            title="The eval run could not run"
+            title="Couldn't run the eval."
           />
         ) : null}
         {sections.map((section) => (

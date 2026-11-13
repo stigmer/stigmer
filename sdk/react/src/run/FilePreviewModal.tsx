@@ -6,6 +6,7 @@ import { cn } from "@stigmer/design-tokens";
 import { Button } from "../button/Button.js";
 import { IconButton } from "../button/IconButton.js";
 import { DialogShell } from "../internal/DialogShell.js";
+import { Tag } from "../internal/surface/Tag.js";
 import { useFileDownload } from "../file/useFile.js";
 import { FileBody } from "./FileBody.js";
 import { FileApplyButton } from "./FileApplyButton.js";
@@ -345,9 +346,7 @@ function ContentHeader({
             />
           )}
           {detectionLabel && (
-            <span className="stg:inline-flex stg:items-center stg:rounded-full stg:bg-primary-subtle stg:px-2 stg:py-0.5 stg:text-xs stg:font-medium stg:text-primary">
-              {detectionLabel}
-            </span>
+            <Tag>{detectionLabel}</Tag>
           )}
         </div>
       </div>

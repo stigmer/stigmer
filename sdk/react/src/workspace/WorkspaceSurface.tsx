@@ -34,6 +34,7 @@ import { FileViewer, type FileViewerHandle } from "./FileViewer.js";
 import { EditorTabs, editorTabDomId } from "./EditorTabs.js";
 import { ExplorerTree } from "./ExplorerTree.js";
 import { Button } from "../button/Button.js";
+import { EmptyState } from "../empty-state/EmptyState.js";
 import { IconButton } from "../button/IconButton.js";
 
 /** The surface's built-in rail views (offered by default, opt-out per host). */
@@ -448,7 +449,7 @@ function ExplorerSidebar({
       <SidebarHeader title="Explorer" />
       <div className="stg:min-h-0 stg:flex-1 stg:overflow-y-auto stg:py-1.5">
         {!lister || entries.length === 0 ? (
-          <SidebarEmpty>No workspace attached.</SidebarEmpty>
+          <EmptyState variant="first-use" size="inline" title="No workspace attached." description="" />
         ) : (
           <ExplorerTree
             entries={entries}
@@ -831,14 +832,6 @@ function SidebarHeader({ title }: { readonly title: string }) {
       )}
     >
       {title}
-    </div>
-  );
-}
-
-function SidebarEmpty({ children }: { readonly children: React.ReactNode }) {
-  return (
-    <div className="stg:px-2 stg:py-6 stg:text-center stg:text-xs stg:text-muted-foreground">
-      {children}
     </div>
   );
 }

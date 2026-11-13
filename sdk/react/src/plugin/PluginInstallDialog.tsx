@@ -167,7 +167,7 @@ function InstallDialogContent({
 
       {prepared && !isPreparing && <InstallPreview prepared={prepared} relation={relation} />}
 
-      {installError && <ErrorMessage error={installError} title="The server refused the install" />}
+      {installError && <ErrorMessage error={installError} title="The install didn't go through." />}
 
       {outcome && (
         <div role="status" className="stg:rounded-md stg:border stg:border-border stg:bg-muted stg:p-3 stg:text-sm stg:text-foreground">

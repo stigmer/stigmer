@@ -260,7 +260,7 @@ describe("FileViewer", () => {
     expect(document.querySelector("img")).toBeNull();
   });
 
-  it("shows the error state with a working Retry", async () => {
+  it("shows the error state with a working Try again", async () => {
     let attempt = 0;
     const reader: WorkspaceFileReader = vi.fn(async () => {
       attempt += 1;
@@ -277,7 +277,7 @@ describe("FileViewer", () => {
 
     await waitFor(() => expect(screen.getByText("network down")).toBeTruthy());
 
-    fireEvent.click(screen.getByText("Retry"));
+    fireEvent.click(screen.getByText("Try again"));
 
     await waitFor(() => expect(screen.getByText("recovered")).toBeTruthy());
     expect(reader).toHaveBeenCalledTimes(2);
@@ -477,7 +477,7 @@ describe("FileViewer — not-found and captured-content fallback", () => {
       expect(screen.getByText(/As of the agent.s last change/i)).toBeTruthy(),
     );
     expect(screen.getByText("beta")).toBeTruthy();
-    expect(screen.queryByText("Retry")).toBeNull();
+    expect(screen.queryByText("Try again")).toBeNull();
     expect(screen.queryByText(/Live — may differ/i)).toBeNull();
   });
 
@@ -513,7 +513,7 @@ describe("FileViewer — not-found and captured-content fallback", () => {
     );
     // A calm notice, not a failure: retry is offered as "Check again".
     expect(screen.getByText("Check again")).toBeTruthy();
-    expect(screen.queryByText("Retry")).toBeNull();
+    expect(screen.queryByText("Try again")).toBeNull();
   });
 
   it("Check again re-reads and renders content once the file lands at the ref", async () => {
@@ -556,7 +556,7 @@ describe("FileViewer — not-found and captured-content fallback", () => {
     expect(screen.queryByText(/As of the agent.s last change/i)).toBeNull();
   });
 
-  it("a generic reader error still shows the error state with Retry, never the fallback", async () => {
+  it("a generic reader error still shows the error state with Try again, never the fallback", async () => {
     const reader: WorkspaceFileReader = vi.fn(async () => {
       throw new Error("rate limited (HTTP 429)");
     });
@@ -572,7 +572,7 @@ describe("FileViewer — not-found and captured-content fallback", () => {
     fireEvent.click(screen.getByRole("radio", { name: "File" }));
 
     await waitFor(() => expect(screen.getByText(/rate limited/i)).toBeTruthy());
-    expect(screen.getByText("Retry")).toBeTruthy();
+    expect(screen.getByText("Try again")).toBeTruthy();
     expect(screen.queryByText(/As of the agent.s last change/i)).toBeNull();
   });
 });

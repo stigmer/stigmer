@@ -10,6 +10,7 @@ import { SkillState } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/status_pb"
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { useSkill } from "./useSkill.js";
 import { SkillFileBrowser } from "./SkillFileBrowser.js";
+import { EmptyState } from "../empty-state/EmptyState.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { VisibilityBadge } from "../library/VisibilitySelector.js";
 import { useManageAccess } from "../access/useManageAccess.js";
@@ -699,21 +700,13 @@ function LoadingSkeleton({ className }: { readonly className?: string }) {
 
 function NotFoundState({ className }: { readonly className?: string }) {
   return (
-    <div
-      role="status"
-      className={cn(
-        "stg:flex stg:flex-col stg:items-center stg:gap-2 stg:py-12 stg:text-center",
-        className,
-      )}
-    >
-      <SkillIcon className="stg:size-10 stg:text-muted-foreground-faint" />
-      <p className="stg:text-sm stg:font-medium stg:text-muted-foreground">
-        Skill not found
-      </p>
-      <p className="stg:text-xs stg:text-muted-foreground-subtle">
-        This skill doesn&apos;t exist or you don&apos;t have access to it.
-      </p>
-    </div>
+    <EmptyState
+      variant="first-use"
+      icon={<SkillIcon />}
+      title="Skill not found"
+      description="This skill doesn't exist or you don't have access to it."
+      className={className}
+    />
   );
 }
 

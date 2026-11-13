@@ -3,6 +3,7 @@
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { cn } from "@stigmer/design-tokens";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
+import { Tag } from "../internal/surface/Tag.js";
 import { useSessionWriteBacks } from "../session/useSessionWriteBacks.js";
 import { WriteBackCard } from "./WriteBackCard.js";
 
@@ -62,9 +63,7 @@ export function WriteBacksWidget({
     <section aria-label="Pull Requests" className={cn(className)}>
       <div className="stg:mb-2 stg:flex stg:items-center stg:gap-2">
         <h3 className="stg:text-sm stg:font-medium stg:text-foreground">Pull Requests</h3>
-        <span className="stg:inline-flex stg:min-w-[1.25rem] stg:items-center stg:justify-center stg:rounded-full stg:bg-muted stg:px-1.5 stg:text-xs stg:tabular-nums stg:text-muted-foreground">
-          {writeBackCount}
-        </span>
+        <Tag>{writeBackCount}</Tag>
       </div>
 
       <ul role="list" className={cn(UNSTYLED_LIST, "stg:flex stg:flex-col stg:gap-3")}>

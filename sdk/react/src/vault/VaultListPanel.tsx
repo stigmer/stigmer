@@ -23,6 +23,7 @@ import { useStigmer } from "@stigmer/react-core";
 import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
+import type { EmptyStateAction } from "../empty-state/types.js";
 import { INPUT_CLASS } from "./styles.js";
 import { useUpdateVault } from "./useUpdateVault.js";
 import { useVaultEntries } from "./useVaultEntries.js";
@@ -42,6 +43,12 @@ export interface VaultListPanelProps {
   readonly onRefetchRef?: (refetch: () => void) => void;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
+  /**
+   * The page's create act, carried by the empty list (the same label and
+   * handler as the page header's button). Absent when the caller may not
+   * create one, or a create is already open.
+   */
+  readonly emptyAction?: EmptyStateAction;
 }
 
 /**
@@ -56,6 +63,7 @@ export function VaultListPanel({
   org,
   readOnly = false,
   onRefetchRef,
+  emptyAction,
   className,
 }: VaultListPanelProps) {
   const { vaults, isLoading, error, refetch } = useVaultList(org);
@@ -70,7 +78,15 @@ export function VaultListPanel({
   }
 
   if (error) {
-    return <ErrorMessage error={error} title="The shared vaults could not be read" retry={refetch} className={className} />;
+    return (
+      <ErrorMessage
+        error={error}
+        title="Couldn't load the shared vaults."
+        comfort="Your organization's vaults are safe; only this page's read failed."
+        retry={refetch}
+        className={className}
+      />
+    );
   }
 
   if (shared.length === 0) {
@@ -79,7 +95,7 @@ export function VaultListPanel({
         variant="first-use"
         title="No shared vaults yet"
         description="A shared vault holds the organization's own keys; a conversation, a routine or a channel can name one so its runs use it."
-        className={cn("stg:rounded-lg stg:border stg:border-dashed stg:border-border", className)}
+        action={emptyAction}        className={className}
       />
     );
   }

@@ -24,6 +24,7 @@ import { NetworkingType } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { useManageAccess } from "../access/useManageAccess.js";
 import { Button } from "../button/Button.js";
+import { EmptyState } from "../empty-state/EmptyState.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
@@ -514,13 +515,13 @@ function LoadingSkeleton({ className }: { readonly className?: string }) {
 
 function NotFoundState({ className }: { readonly className?: string }) {
   return (
-    <div role="status" className={cn("stg:flex stg:flex-col stg:items-center stg:gap-2 stg:py-12 stg:text-center", className)}>
-      <EnvironmentIcon className="stg:size-10 stg:text-muted-foreground-faint" />
-      <p className="stg:text-sm stg:font-medium stg:text-muted-foreground">Environment not found</p>
-      <p className="stg:text-xs stg:text-muted-foreground">
-        No environment with this name exists in the organization, or you may not view it.
-      </p>
-    </div>
+    <EmptyState
+      variant="first-use"
+      icon={<EnvironmentIcon />}
+      title="Environment not found"
+      description="No environment with this name exists in the organization, or you may not view it."
+      className={className}
+    />
   );
 }
 

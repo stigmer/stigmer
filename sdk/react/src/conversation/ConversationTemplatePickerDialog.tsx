@@ -11,6 +11,8 @@ import type {
 } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/message_io_pb";
 import { Button } from "../button/Button.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
+import { Tag } from "../internal/surface/Tag.js";
+import { ErrorMessage } from "../error/ErrorMessage.js";
 import { DialogShell } from "../internal/DialogShell.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
@@ -233,9 +235,7 @@ function TemplateChoiceList({
     // Past the fetch, the server's copy is the teaching state — its
     // refusals name the fix verbatim (the templates-dialog posture).
     return (
-      <p className="stg:px-2 stg:py-6 stg:text-center stg:text-sm stg:text-destructive">
-        {getUserMessage(error)}
-      </p>
+      <ErrorMessage error={error} title="Couldn't load the templates." />
     );
   }
   if (templates.length === 0) {
@@ -290,9 +290,7 @@ function TemplateChoiceList({
                   {template.language}
                 </span>
                 {template.headerFormat && (
-                  <span className="stg:shrink-0 stg:rounded stg:bg-muted-subtle stg:px-1.5 stg:py-0.5 stg:text-xs stg:text-muted-foreground">
-                    {template.headerFormat} header
-                  </span>
+                  <Tag>{template.headerFormat} header</Tag>
                 )}
               </div>
               {template.bodyText && (

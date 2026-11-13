@@ -315,12 +315,12 @@ describe("RoutineDetailView", () => {
     renderView(client);
 
     const title = await screen.findByText("Routine is disabled");
-    // The banner is the kit's caution notice: foreground title, at-risk detail.
+    // The banner is the kit's at-risk notice: the at-risk fill, the title and its detail in the foreground.
     const banner = title.closest('[role="status"]');
     expect(banner?.className).toContain("stg:bg-status-degraded-subtle");
     expect(banner?.className).not.toContain("warning");
-    expect(title.className).toContain("stg:text-foreground");
-    expect(title.nextElementSibling?.className).toContain("stg:text-status-degraded");
+    expect(title.parentElement?.className).toContain("stg:text-foreground");
+    expect(title.nextElementSibling?.textContent).not.toBe("");
     expect(screen.getByText("Disabled")).toBeTruthy();
     // Owner-disabled routines have no meaningful countdown.
     expect(screen.queryByText("in 3h")).toBeNull();
@@ -453,7 +453,7 @@ describe("RoutineDetailView", () => {
 
     await screen.findByRole("heading", { name: "daily-fee-reminders" });
     fireEvent.click(screen.getByRole("tab", { name: /History/ }));
-    expect(await screen.findByText(/No fires yet\./)).toBeTruthy();
+    expect(await screen.findByText("No fires yet")).toBeTruthy();
     expect(screen.queryByRole("table", { name: "Fire history" })).toBeNull();
   });
 
@@ -604,7 +604,8 @@ describe("RoutineDetailView", () => {
     // no invented sentence — with the time zone shown alongside.
     expect(screen.getByText("*/5 9-17 * * 1-5")).toBeTruthy();
     expect(screen.getByText("Asia/Kolkata")).toBeTruthy();
-    expect(screen.queryByText(/^Every /)).toBeNull();
+    // (The empty fire history's own line, "Every fire, …", is not a cadence.)
+    expect(screen.queryByText(/^Every (?!fire,)/)).toBeNull();
   });
 
   // -------------------------------------------------------------------------

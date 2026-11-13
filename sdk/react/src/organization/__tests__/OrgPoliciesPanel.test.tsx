@@ -130,7 +130,7 @@ describe("OrgPoliciesPanel — failures and absence", () => {
     );
     renderPanel(client);
 
-    fireEvent.click(await screen.findByRole("button", { name: "Retry" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Try again" }));
 
     expect(await screen.findByRole("switch", { name: "Members can create agents" })).toBeTruthy();
     expect(client.organization.get).toHaveBeenCalledTimes(2);

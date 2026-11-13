@@ -252,8 +252,8 @@ function PreviewPhase({
 
       <InstallPreview prepared={prepared} relation={relation.relation} />
 
-      {relation.error && <ErrorMessage error={relation.error} title="The organization could not be asked what it holds" />}
-      {installError && <ErrorMessage error={installError} title="The server refused the install" />}
+      {relation.error && <ErrorMessage error={relation.error} title="Couldn't load what this organization holds." />}
+      {installError && <ErrorMessage error={installError} title="The install didn't go through." />}
 
       {outcome && (
         <div role="status" className="stg:rounded-md stg:border stg:border-border stg:bg-muted stg:p-3 stg:text-sm stg:text-foreground">

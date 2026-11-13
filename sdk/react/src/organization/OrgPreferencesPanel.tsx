@@ -201,7 +201,7 @@ export function OrgPreferencesPanel({
   // -----------------------------------------------------------------------
 
   if (fetchError) {
-    return <ErrorMessage error={fetchError} title="The preferences could not be read" retry={refetch} className={className} />;
+    return <ErrorMessage error={fetchError} title="Couldn't load the preferences." retry={refetch} className={className} />;
   }
 
   if (!organization) return null;

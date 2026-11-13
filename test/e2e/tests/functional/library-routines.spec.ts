@@ -231,7 +231,7 @@ test.describe("Routine detail tabs and inline editing", () => {
         page.getByRole("tab", { name: "Overview" }),
       ).toBeVisible({ timeout: 15_000 });
       // A fresh routine has an empty fire ledger — stated, not blank.
-      await expect(page.getByText("No fires yet.")).toBeVisible();
+      await expect(page.getByText("No fires yet")).toBeVisible();
 
       // Overview: the cadence humanizes; the raw cron stays visible.
       await page.getByRole("tab", { name: "Overview" }).click();

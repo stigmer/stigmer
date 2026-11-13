@@ -15,6 +15,7 @@ import {
   OAUTH_BROADCAST_CHANNEL,
 } from "../internal/oauthPopup.js";
 import type { OAuthCallbackMessage } from "../internal/oauthPopup.js";
+import { Notice } from "../internal/surface/Notice.js";
 
 /** Parameters extracted from the OAuth callback URL. */
 export interface OAuthCallbackParams {
@@ -219,17 +220,9 @@ export function OAuthCallbackHandler({
         )}
 
         {status === "error" && (
-          <>
-            <WarningIcon />
-            <p className="stg:mt-3 stg:text-sm stg:font-medium stg:text-destructive">
-              Authentication failed
-            </p>
-            {errorMessage && (
-              <p className="stg:mt-1 stg:text-xs stg:text-muted-foreground">
-                {errorMessage}
-              </p>
-            )}
-          </>
+          <Notice tone="failed" headline="Authentication failed" className="stg:text-left">
+            {errorMessage && <p className="stg:m-0 stg:break-words">{errorMessage}</p>}
+          </Notice>
         )}
       </div>
     </div>
@@ -277,23 +270,3 @@ function CheckIcon() {
   );
 }
 
-function WarningIcon() {
-  return (
-    <svg
-      width="24"
-      height="24"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="stg:mx-auto stg:text-destructive"
-      aria-hidden="true"
-    >
-      <path d="M8 1.5 1 14h14L8 1.5Z" />
-      <path d="M8 6v3.5" />
-      <circle cx="8" cy="11.5" r="0.5" fill="currentColor" stroke="none" />
-    </svg>
-  );
-}

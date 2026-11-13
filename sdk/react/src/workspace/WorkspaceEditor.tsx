@@ -11,6 +11,7 @@ import { ScrollFade } from "../internal/ScrollFade.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { Button } from "../button/Button.js";
 import { IconButton } from "../button/IconButton.js";
+import { Tag } from "../internal/surface/Tag.js";
 
 type ActivePanel = "github" | null;
 
@@ -193,9 +194,7 @@ export function WorkspaceEditor({
                 className="stg:flex stg:items-center stg:gap-2 stg:rounded-md stg:border stg:border-border stg:bg-muted-faint stg:px-2.5 stg:py-1.5 stg:text-xs"
               >
                 {TYPE_LABELS[entry.type] ? (
-                  <span className="stg:shrink-0 stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:text-2xs stg:text-muted-foreground">
-                    {TYPE_LABELS[entry.type]}
-                  </span>
+                  <Tag>{TYPE_LABELS[entry.type]}</Tag>
                 ) : (
                   <span className="stg:shrink-0 stg:text-muted-foreground">
                     <FolderIcon />

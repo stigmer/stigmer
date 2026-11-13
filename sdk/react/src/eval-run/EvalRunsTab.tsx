@@ -862,7 +862,7 @@ function CompareEvalRuns({
               <ErrorMessage
                 key={label}
                 error={read.error}
-                title={`Could not read the ${label} eval run`}
+                title={`Couldn't load the ${label} eval run.`}
                 retry={read.refetch}
               />
             ))}

@@ -1,6 +1,5 @@
 "use client";
 
-import { cn } from "@stigmer/design-tokens";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { ChannelApp } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { channelProviderOf } from "../channel/providers.js";
@@ -8,6 +7,7 @@ import { useChannelAppList } from "./useChannelAppList.js";
 import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
+import type { EmptyStateAction } from "../empty-state/types.js";
 import { IconButton } from "../button/IconButton.js";
 import { List, ListRow } from "../internal/surface/List.js";
 
@@ -38,6 +38,12 @@ export interface ChannelAppListPanelProps {
   readonly emptyDescription?: string;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
+  /**
+   * The page's create act, carried by the empty list (the same label and
+   * handler as the page header's button). Absent when the caller may not
+   * create one, or a create is already open.
+   */
+  readonly emptyAction?: EmptyStateAction;
 }
 
 /**
@@ -68,6 +74,7 @@ export function ChannelAppListPanel({
   onRefetchRef,
   emptyState = "No channel apps registered yet.",
   emptyDescription = "Register your Slack or Meta app here, and every channel can install through it.",
+  emptyAction,
   className,
 }: ChannelAppListPanelProps) {
   const { channelApps, isLoading, error, refetch } = useChannelAppList(org);
@@ -81,7 +88,7 @@ export function ChannelAppListPanel({
   }
 
   if (error) {
-    return <ErrorMessage error={error} title="The channel apps could not be read" retry={refetch} className={className} />;
+    return <ErrorMessage error={error} title="Couldn't load the channel apps." retry={refetch} className={className} />;
   }
 
   if (channelApps.length === 0) {
@@ -90,7 +97,7 @@ export function ChannelAppListPanel({
         variant="first-use"
         title={emptyState}
         description={emptyDescription}
-        className={cn("stg:rounded-lg stg:border stg:border-dashed stg:border-border", className)}
+        action={emptyAction}        className={className}
       />
     );
   }

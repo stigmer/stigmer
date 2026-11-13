@@ -3,6 +3,7 @@
 import { useCallback, useState, type KeyboardEvent } from "react";
 import { cn } from "@stigmer/design-tokens";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
+import { Tag } from "../internal/surface/Tag.js";
 import { PluginIcon } from "../plugin/PluginIcon.js";
 import { McpServerIcon } from "../plugin/McpServerIcon.js";
 import type { DependencyNode, NodeKind } from "./types.js";
@@ -85,14 +86,7 @@ export function DependencyTreeNode({
       )}
       <NodeIcon kind={node.kind} className="stg:size-4 stg:shrink-0 stg:text-muted-foreground" />
       {!isRoot && (
-        <span
-          className={cn(
-            "stg:shrink-0 stg:rounded stg:px-1.5 stg:py-px stg:text-2xs stg:font-medium stg:leading-tight",
-            kindBadgeClasses(node.kind),
-          )}
-        >
-          {KIND_LABELS[node.kind]}
-        </span>
+        <Tag>{KIND_LABELS[node.kind]}</Tag>
       )}
       <span className="stg:min-w-0 stg:truncate stg:text-sm stg:font-medium stg:text-foreground">
         {node.qualifiedLabel ?? node.label}
@@ -171,27 +165,6 @@ export function DependencyTreeNode({
       )}
     </li>
   );
-}
-
-// ---------------------------------------------------------------------------
-// Kind badge styling — uses --stgm-* tokens, no hardcoded colors
-// ---------------------------------------------------------------------------
-
-function kindBadgeClasses(kind: NodeKind): string {
-  switch (kind) {
-    case "plugin":
-    // An agent's own server is a tool source as a plugin is: one hue.
-    case "mcp-server":
-      return "stg:bg-[var(--stgm-status-running-subtle)] stg:text-[var(--stgm-status-running)]";
-    case "skill":
-      return "stg:bg-[var(--stgm-status-pending-subtle)] stg:text-[var(--stgm-status-pending)]";
-    // Badges borrow status hues as category colors (plugin=running,
-    // skill=pending, subagent=ready).
-    case "subagent":
-      return "stg:bg-[var(--stgm-status-ready-subtle)] stg:text-[var(--stgm-status-ready)]";
-    case "agent":
-      return "stg:bg-muted stg:text-muted-foreground";
-  }
 }
 
 // ---------------------------------------------------------------------------

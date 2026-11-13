@@ -33,6 +33,7 @@ import { ErrorMessage } from "../error/ErrorMessage.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
 import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
 import { List, ListRow } from "../internal/surface/List.js";
+import { Tag, tagClasses } from "../internal/surface/Tag.js";
 import { SERVICE_ACCOUNTS_SETTINGS_HREF } from "../service-account/copy.js";
 
 /**
@@ -161,7 +162,7 @@ export function OrgMembersPanel({
   }
 
   if (error) {
-    return <ErrorMessage error={error} title="The members could not be read" retry={refetch} className={className} />;
+    return <ErrorMessage error={error} title="Couldn't load the members." retry={refetch} className={className} />;
   }
 
   return (
@@ -170,9 +171,7 @@ export function OrgMembersPanel({
       <div className="stg:flex stg:items-center stg:gap-2">
         <span className="stg:text-sm stg:font-semibold stg:text-foreground">People</span>
         {people.length > 0 && (
-          <span className="stg:inline-flex stg:items-center stg:rounded-full stg:bg-muted stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-muted-foreground">
-            {people.length}
-          </span>
+          <Tag>{people.length}</Tag>
         )}
       </div>
 
@@ -182,7 +181,6 @@ export function OrgMembersPanel({
           variant="first-use"
           title="No members yet"
           description="People appear here once they join this organization."
-          className="stg:rounded-lg stg:border stg:border-dashed stg:border-border"
         />
       ) : (
         <List aria-label="Organization members">
@@ -204,9 +202,7 @@ export function OrgMembersPanel({
             <span className="stg:text-xs stg:font-medium stg:text-foreground">
               Users from your product
             </span>
-            <span className="stg:inline-flex stg:items-center stg:rounded-full stg:bg-muted stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-muted-foreground">
-              {productUsers.length}
-            </span>
+            <Tag>{productUsers.length}</Tag>
           </button>
           <p className="stg:text-muted-foreground stg:text-xs">
             Signed in from your product. They use Stigmer through your
@@ -236,9 +232,7 @@ export function OrgMembersPanel({
             <span className="stg:text-xs stg:font-medium stg:text-foreground">
               Service accounts
             </span>
-            <span className="stg:inline-flex stg:items-center stg:rounded-full stg:bg-muted stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-muted-foreground">
-              {serviceAccounts.length}
-            </span>
+            <Tag>{serviceAccounts.length}</Tag>
           </button>
           <p className="stg:text-muted-foreground stg:text-xs">
             Your automation acts as these accounts through their API keys. They
@@ -401,9 +395,7 @@ function MemberRow({
       nameAdornment={
         <>
           {isSelf && (
-            <span className="stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-muted-foreground">
-              You
-            </span>
+            <Tag>You</Tag>
           )}
           <ProviderBadge principal={principal} />
         </>
@@ -452,21 +444,12 @@ function RoleBadge({ grant }: { grant: RoleGrant }) {
     <Tooltip>
       <TooltipTrigger
         render={
-          <span
-            className={cn(
-              "stg:inline-flex stg:items-center stg:rounded-md stg:border stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium",
-              grant.isInherited
-                ? "stg:border-border-muted stg:text-muted-foreground stg:bg-muted-subtle stg:italic"
-                : "stg:border-border stg:bg-muted stg:text-foreground",
-            )}
-          />
+          <span className={cn(tagClasses(), grant.isInherited && "stg:text-muted-foreground")} />
         }
       >
         {roleName}
         {grant.isInherited && (
-          <span className="stg:ml-1 stg:text-2xs stg:text-muted-foreground">
-            (inherited)
-          </span>
+          <span className="stg:font-normal">(inherited)</span>
         )}
       </TooltipTrigger>
       <TooltipContent side="top">

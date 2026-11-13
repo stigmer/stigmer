@@ -2,6 +2,7 @@
 
 import { forwardRef } from "react";
 import { cn } from "@stigmer/design-tokens";
+import { tagClasses } from "../internal/surface/Tag.js";
 import type { VisibilityLevelOption } from "./visibilityLevels.js";
 
 /** Icon key shared by every visibility surface. */
@@ -12,9 +13,8 @@ export type VisibilityTone = VisibilityLevelOption["tone"];
 // two states are visually identical apart from the trigger's caret affordance.
 // ---------------------------------------------------------------------------
 
-/** Base classes for the visibility chip (badge + selector trigger). */
-export const VISIBILITY_CHIP_CLASS =
-  "stg:inline-flex stg:shrink-0 stg:items-center stg:gap-1 stg:rounded-full stg:bg-muted stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-muted-foreground";
+/** Base classes for the visibility chip (badge + selector trigger): the kit's neutral tag. */
+export const VISIBILITY_CHIP_CLASS = tagClasses();
 
 // ---------------------------------------------------------------------------
 // Option row — one selectable level inside the popover (role="option") or the

@@ -103,7 +103,7 @@ function Parts() {
         <EmptyState variant="permission" resourceLabel="service accounts" />
       </Group>
       <Group label="Error message">
-        <ErrorMessage error={UNAVAILABLE} title="The shared vaults could not be read" retry={() => {}} />
+        <ErrorMessage error={UNAVAILABLE} title="Couldn't load the shared vaults." retry={() => {}} />
         <ErrorMessage error={UNAVAILABLE} />
       </Group>
     </div>

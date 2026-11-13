@@ -435,6 +435,7 @@ Lists the organization's shared vaults with their entries and access.
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
+    emptyAction: { type: "EmptyStateAction", description: "The page's create act, carried by the empty list (the same label and handler as the page header's button). Absent when the caller may not create one, or a create is already open." },
     onRefetchRef: { type: "(refetch: () => void) => void", description: "Re-expose refetch so parents can refresh the list after a create." },
     org: { type: "string", description: "Organization to list shared vaults for (id or slug).", required: true },
     readOnly: { type: "boolean", description: "Show every vault without write controls." },

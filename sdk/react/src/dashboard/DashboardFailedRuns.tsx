@@ -1,6 +1,7 @@
 "use client";
 
 import { memo } from "react";
+import { EmptyState } from "../empty-state/EmptyState.js";
 import { Card, cardHeaderClasses } from "../internal/surface/Card.js";
 import { List, ListRow } from "../internal/surface/List.js";
 import type { DashboardFailedRun } from "./types.js";
@@ -47,9 +48,7 @@ export const DashboardFailedRuns = memo(function DashboardFailedRuns({
         </h3>
       </div>
       {failedRuns.length === 0 ? (
-        <p className="stg:py-6 stg:text-center stg:text-xs stg:text-muted-foreground">
-          No recent failures
-        </p>
+        <EmptyState variant="first-use" size="inline" title="No recent failures" description="" />
       ) : (
         <List bare>
           {failedRuns.map((run) => (

@@ -12,11 +12,11 @@
  */
 import type { Team } from "@stigmer/apis/ai/stigmer/iam/team/v1/api_pb";
 import { ChevronRight, UsersRound } from "lucide-react";
-import { cn } from "@stigmer/design-tokens";
 import { List, ListRow } from "../internal/surface/List.js";
 import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
+import type { EmptyStateAction } from "../empty-state/types.js";
 
 /** Props for {@link TeamListPanel}. */
 export interface TeamListPanelProps {
@@ -29,6 +29,12 @@ export interface TeamListPanelProps {
   readonly onRetry?: () => void;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
+  /**
+   * The page's create act, carried by the empty list (the same label and
+   * handler as the page header's button). Absent when the caller may not
+   * create one, or a create is already open.
+   */
+  readonly emptyAction?: EmptyStateAction;
 }
 
 /**
@@ -52,6 +58,7 @@ export function TeamListPanel({
   error,
   onOpen,
   onRetry,
+  emptyAction,
   className,
 }: TeamListPanelProps) {
   if (isLoading) {
@@ -59,7 +66,7 @@ export function TeamListPanel({
   }
 
   if (error) {
-    return <ErrorMessage error={error} title="The teams could not be read" retry={onRetry} className={className} />;
+    return <ErrorMessage error={error} title="Couldn't load the teams." retry={onRetry} className={className} />;
   }
 
   if (teams.length === 0) {
@@ -68,7 +75,7 @@ export function TeamListPanel({
         variant="first-use"
         title="No teams yet"
         description="A team is a group of people you share agents, vaults and other resources with at once."
-        className={cn("stg:rounded-lg stg:border stg:border-dashed stg:border-border", className)}
+        action={emptyAction}        className={className}
       />
     );
   }

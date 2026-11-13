@@ -17,6 +17,7 @@ import { toolServerSegment } from "@stigmer/plugin-package";
 import type { McpServerEntry } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
 import { Button } from "../button/Button.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
+import { Tag } from "../internal/surface/Tag.js";
 import { PluginServerSignIn } from "./PluginServerSignIn.js";
 import { usePluginTools } from "./usePluginTools.js";
 
@@ -69,7 +70,7 @@ export function PluginServerRow({ org, pluginId, pluginName, server }: PluginSer
                 <span className="stg:flex stg:items-center stg:gap-2">
                   <span className="stg:font-mono stg:text-xs stg:text-foreground">{tool.name}</span>
                   {tool.destructive && (
-                    <span className="stg:rounded stg:border stg:border-destructive stg:px-1 stg:text-xs stg:text-destructive">Destructive</span>
+                    <Tag>Destructive</Tag>
                   )}
                 </span>
                 {tool.description && <span className="stg:text-xs stg:text-muted-foreground">{tool.description}</span>}

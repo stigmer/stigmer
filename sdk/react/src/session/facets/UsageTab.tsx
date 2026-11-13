@@ -17,6 +17,7 @@ import { ServiceTier } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { useSessionUsage, type RunUsageEntry } from "@stigmer/react-core";
 import { UsageWidget } from "../../run/UsageWidget.js";
 import { formatTokens, formatWorkingTime } from "../../usage/format.js";
+import { Tag } from "../../internal/surface/Tag.js";
 import { FacetSection } from "./primitives.js";
 
 export interface UsageTabProps {
@@ -114,9 +115,7 @@ function ExecutionModelList({
 /** Quiet inline qualifier chip for a provenance row. */
 function RowBadge({ children }: { readonly children: React.ReactNode }) {
   return (
-    <span className="stg:ml-1 stg:rounded stg:bg-muted stg:px-1 stg:py-0.5 stg:text-2xs stg:font-medium stg:leading-none stg:text-muted-foreground">
-      {children}
-    </span>
+    <Tag className="stg:ml-1">{children}</Tag>
   );
 }
 

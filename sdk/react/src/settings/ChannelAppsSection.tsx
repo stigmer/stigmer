@@ -67,6 +67,7 @@ export function ChannelAppsSection() {
   const deniedCreate = !createCheck.isLoading && !createCheck.allowed;
 
   const [flow, setFlow] = useState<FlowState>({ phase: "idle" });
+  const startCreate = useCallback(() => setFlow({ phase: "creating" }), []);
   const listRefetchRef = useRef<(() => void) | null>(null);
 
   const handleRefetchRef = useCallback((refetch: () => void) => {
@@ -102,7 +103,7 @@ export function ChannelAppsSection() {
         org &&
         canCreate &&
         flow.phase === "idle" && (
-          <Button size="sm" onClick={() => setFlow({ phase: "creating" })}>
+          <Button size="sm" onClick={startCreate}>
             New channel app
           </Button>
         )
@@ -135,6 +136,7 @@ export function ChannelAppsSection() {
           onRefetchRef={handleRefetchRef}
           emptyState={deniedCreate ? CHANNEL_APPS_MANAGED_BY_ADMINS : undefined}
           emptyDescription={deniedCreate ? ASK_AN_ADMIN : undefined}
+          emptyAction={canCreate ? { label: "New channel app", onClick: startCreate } : undefined}
         />
       )}
     </SettingsPage>

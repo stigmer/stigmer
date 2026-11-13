@@ -145,7 +145,7 @@ describe("OrgUsagePanel", () => {
     render(<OrgUsagePanel org="acme" />);
 
     const alert = screen.getByRole("alert");
-    expect(alert.textContent).toContain("The usage could not be read");
+    expect(alert.textContent).toContain("Couldn't load the usage.");
     expect(alert.textContent).toContain(getUserMessage(error));
     expect(screen.queryByRole("group", { name: "Usage summary" })).toBeNull();
   });

@@ -5,7 +5,7 @@
 // when this edition sells no plans and when the person is not a platform
 // operator.
 
-import { useState, type ReactNode } from "react";
+import { useCallback, useState, type ReactNode } from "react";
 import { cn } from "@stigmer/design-tokens";
 import { getUserMessage, isUnimplemented } from "@stigmer/client";
 import type { Plan } from "@stigmer/apis/ai/stigmer/billing/plan/v1/api_pb";
@@ -62,6 +62,7 @@ export function PlanCatalogConsole({ className }: PlanCatalogConsoleProps) {
   const retirer = useRetirePlan();
   const { confirmState, confirm, handleConfirm, handleCancel } = useConfirmAction();
   const [creating, setCreating] = useState(false);
+  const startCreate = useCallback(() => setCreating(true), []);
 
   const unavailable = !available || (catalog.error !== null && isUnimplemented(catalog.error));
   const checking = operator.isLoading || (operator.allowed && catalog.plans === null && catalog.error === null);
@@ -73,7 +74,7 @@ export function PlanCatalogConsole({ className }: PlanCatalogConsoleProps) {
       actions={
         operator.allowed &&
         !creating && (
-          <Button size="sm" onClick={() => setCreating(true)}>
+          <Button size="sm" onClick={startCreate}>
             New plan
           </Button>
         )
@@ -96,7 +97,7 @@ export function PlanCatalogConsole({ className }: PlanCatalogConsoleProps) {
     return frame(<SettingsSkeleton label="Loading plans" rows={3} />);
   }
   if (catalog.error) {
-    return frame(<ErrorMessage error={catalog.error} title="The plans could not be read" retry={catalog.refetch} />);
+    return frame(<ErrorMessage error={catalog.error} title="Couldn't load the plans." retry={catalog.refetch} />);
   }
 
   const retire = async (plan: Plan) => {
@@ -136,7 +137,7 @@ export function PlanCatalogConsole({ className }: PlanCatalogConsoleProps) {
           variant="first-use"
           title="No plans yet"
           description="Create the first plan organizations can subscribe to."
-          className="stg:rounded-lg stg:border stg:border-dashed stg:border-border"
+          action={creating ? undefined : { label: "New plan", onClick: startCreate }}
         />
       ) : (
         <ul className={cn(UNSTYLED_LIST, cardClasses({ flush: true }), "stg:divide-y stg:divide-border-muted")} aria-label="Plan catalog">

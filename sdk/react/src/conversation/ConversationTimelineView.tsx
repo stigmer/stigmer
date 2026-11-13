@@ -10,6 +10,7 @@ import type { ConversationTimelineItem } from "@stigmer/apis/ai/stigmer/agentic/
 import { channelProviderOf, type ChannelProviderId } from "../channel/providers.js";
 import { Button } from "../button/Button.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
+import { ErrorMessage } from "../error/ErrorMessage.js";
 import { JumpToLatestButton } from "../internal/JumpToLatestButton.js";
 import { SCROLL_REGION_FOCUS, scrollRegion } from "../internal/scroll-region.js";
 import {
@@ -152,9 +153,7 @@ export function ConversationTimelineView({
           {isLoading ? (
             <TimelineSkeleton />
           ) : error ? (
-            <p className="stg:px-2 stg:py-6 stg:text-center stg:text-sm stg:text-destructive">
-              {getUserMessage(error)}
-            </p>
+            <ErrorMessage error={error} title="Couldn't load the messages." />
           ) : items.length === 0 ? (
             <EmptyState
               variant="first-use"

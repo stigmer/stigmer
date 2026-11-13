@@ -11,7 +11,7 @@
  *     notice in place of "New team", naming the cheapest plan that
  *     includes them; Enterprise never reads a plan or the catalog.
  *
- * The data hooks and the permission gate are stubbed; the panels are real.
+ * The data hooks and the permission check are stubbed; the panels are real.
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
@@ -63,18 +63,10 @@ vi.mock("../../billing/usePlans.js", async () => {
     },
   };
 });
-vi.mock("../../grant/PermissionGate.js", () => ({
-  PermissionGate: ({
-    resource,
-    relation,
-    children,
-  }: {
-    resource: { kind: string; id: string };
-    relation: string;
-    children: React.ReactNode;
-  }) => {
-    stubs.checked.push([resource.kind, resource.id, relation]);
-    return stubs.allowed.has(relation) ? <>{children}</> : null;
+vi.mock("../../grant/useCheckPermission.js", () => ({
+  useCheckPermission: (resource: { kind: string; id: string } | null, relation: string) => {
+    if (resource) stubs.checked.push([resource.kind, resource.id, relation]);
+    return { allowed: stubs.allowed.has(relation), isLoading: false, error: null, refetch: () => {} };
   },
 }));
 
@@ -128,7 +120,8 @@ describe("TeamsSection", () => {
     cleanup();
     stubs.allowed = new Set(["can_create_team"]);
     renderSection("cloud");
-    expect(screen.getByRole("button", { name: /New team/ })).toBeTruthy();
+    // The header offers it, and so does the empty list.
+    expect(screen.getAllByRole("button", { name: /New team/ })).toHaveLength(2);
   });
 
   it("on Cloud, shows the upgrade notice in place of New team when the plan lacks teams", () => {
@@ -145,7 +138,8 @@ describe("TeamsSection", () => {
     stubs.allowed = new Set(["can_create_team"]);
     stubs.planAllowsTeams = false;
     renderSection("enterprise");
-    expect(screen.getByRole("button", { name: /New team/ })).toBeTruthy();
+    // The header offers it, and so does the empty list.
+    expect(screen.getAllByRole("button", { name: /New team/ })).toHaveLength(2);
     expect(stubs.entitlementsRead.every((read) => read.enabled === false)).toBe(true);
     expect(stubs.catalogReads.every((enabled) => enabled === false)).toBe(true);
   });

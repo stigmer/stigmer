@@ -30,6 +30,7 @@ import {
   type WorkspaceFileReader,
 } from "./WorkspaceFileReader.js";
 import { Button } from "../button/Button.js";
+import { ErrorMessage } from "../error/ErrorMessage.js";
 import { IconButton } from "../button/IconButton.js";
 
 /** Line-skeleton widths, mirroring `TextContentView` in `execution/`. */
@@ -411,12 +412,8 @@ function FileViewerBody({
 
   if (error) {
     return (
-      <div className="stg:flex stg:flex-col stg:items-center stg:justify-center stg:gap-2 stg:p-8 stg:text-center">
-        <ErrorAlertIcon />
-        <p className="stg:text-sm stg:text-destructive">{error.message}</p>
-        <Button variant="ghost" size="xs" onClick={onRetry}>
-          Retry
-        </Button>
+      <div className="stg:p-4">
+        <ErrorMessage error={error} title="Couldn't load the file." retry={onRetry} />
       </div>
     );
   }
@@ -718,16 +715,6 @@ function RefreshIcon() {
     <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M1.5 6a4.5 4.5 0 017.794-3.073M10.5 6a4.5 4.5 0 01-7.794 3.073" />
       <path d="M9.5 1v2.5H7M2.5 11V8.5H5" />
-    </svg>
-  );
-}
-
-function ErrorAlertIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="stg:text-destructive" aria-hidden="true">
-      <circle cx="8" cy="8" r="6.5" />
-      <path d="M8 5.5V8.5" />
-      <circle cx="8" cy="11" r="0.5" fill="currentColor" stroke="none" />
     </svg>
   );
 }

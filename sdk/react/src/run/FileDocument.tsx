@@ -10,6 +10,7 @@ import { useFileDownload } from "../file/useFile.js";
 import type { ApplyResourceResult } from "../library/useApplyResource.js";
 import { formatFileSize } from "../file/file-size.js";
 import { Button } from "../button/Button.js";
+import { Tag } from "../internal/surface/Tag.js";
 
 /** Props for {@link FileDocument}. */
 export interface FileDocumentProps {
@@ -102,9 +103,7 @@ export function FileDocument({
           />
         )}
         {inspection.detectionLabel && (
-          <span className="stg:inline-flex stg:shrink-0 stg:items-center stg:rounded-full stg:bg-primary-subtle stg:px-2 stg:py-0.5 stg:text-xs stg:font-medium stg:text-primary">
-            {inspection.detectionLabel}
-          </span>
+          <Tag>{inspection.detectionLabel}</Tag>
         )}
 
         <div className="stg:ml-auto stg:flex stg:min-w-0 stg:flex-wrap stg:items-center stg:gap-3">

@@ -87,6 +87,7 @@ export const DOMAIN_GROUPS: readonly DomainGroup[] = [
       "sidebar",
       "page",
       "page-frame",
+      "status",
       "resource-workbench",
       "resource-creation",
       "resource-detail",

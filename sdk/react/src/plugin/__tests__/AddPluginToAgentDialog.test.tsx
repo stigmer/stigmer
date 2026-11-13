@@ -139,7 +139,7 @@ describe("AddPluginToAgentDialog", () => {
     await waitFor(() => expect(add).toHaveProperty("disabled", false));
     fireEvent.click(add);
 
-    expect(await screen.findByText("The agent could not be changed")).toBeTruthy();
+    expect(await screen.findByText("Couldn't save the agent.")).toBeTruthy();
     expect(screen.getByText(/you may not change this agent/)).toBeTruthy();
     expect(update).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole("status")).toBeNull();

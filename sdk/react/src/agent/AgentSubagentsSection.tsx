@@ -17,6 +17,7 @@ import { useCallback, useMemo, useState } from "react";
 import { cn } from "@stigmer/design-tokens";
 import type { ApiResourceReference } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import { isDeletedReference, type ResourceRef } from "@stigmer/client";
+import { Tag } from "../internal/surface/Tag.js";
 import { Section } from "../resource-detail/Section.js";
 import { useOrgSlugForId } from "../organization/useOrgRefs.js";
 import { AgentPicker } from "./AgentPicker.js";
@@ -261,12 +262,10 @@ function SubagentRow({
           name
         )}
         {pin && (
-          <span
-            className="stg:shrink-0 stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:font-mono stg:text-2xs stg:text-muted-foreground"
-          >
+          <Tag mono>
             <span className="stg:sr-only">Pinned version </span>
             {pin.slice(0, SHORT_HASH)}
-          </span>
+          </Tag>
         )}
         <span className="stg:ml-auto stg:flex stg:shrink-0 stg:items-center stg:gap-2">
           {isBehind && (

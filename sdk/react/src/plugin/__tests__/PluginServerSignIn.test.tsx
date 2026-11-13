@@ -180,7 +180,7 @@ describe("PluginServerSignIn: signed in", () => {
     stubs.myVault.vault = vaultWithLogins([LINEAR_URL]);
     renderCell(LINEAR);
 
-    expect(screen.getByText("Signed in").className.split(" ")).toContain("stg:text-status-ready");
+    expect(screen.getByText("Signed in").className.split(" ")).toContain("stg:text-[var(--stgm-status-ready)]");
     fireEvent.click(screen.getByRole("button", { name: "Sign out of linear" }));
     expect(screen.getByText(/Sign out of linear\? Its login is removed from My vault\./)).toBeTruthy();
 

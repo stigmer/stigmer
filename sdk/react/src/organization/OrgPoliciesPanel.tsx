@@ -88,7 +88,7 @@ export function OrgPoliciesPanel({ org, onUpdated, className }: OrgPoliciesPanel
   }
 
   if (fetchError) {
-    return <ErrorMessage error={fetchError} title="The policies could not be read" retry={refetch} className={className} />;
+    return <ErrorMessage error={fetchError} title="Couldn't load the policies." retry={refetch} className={className} />;
   }
 
   if (!organization) return null;

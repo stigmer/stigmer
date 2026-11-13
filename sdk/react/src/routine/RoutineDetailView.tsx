@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { cn } from "@stigmer/design-tokens";
 import { useFile } from "../file/useFile.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
+import { Notice } from "../internal/surface/Notice.js";
 import { create } from "@bufbuild/protobuf";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { Routine } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
@@ -11,6 +12,7 @@ import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/ap
 import { ApiResourceReferenceSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import { isDeletedReference, type ResourceRef } from "@stigmer/client";
 import { formatRelativeTime } from "../activity/format-relative-time.js";
+import { EmptyState } from "../empty-state/EmptyState.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { InlineEditTextarea } from "../inline-edit/InlineEditTextarea.js";
 import { EditResourceYamlDialog } from "../manifest/EditResourceYamlDialog.js";
@@ -888,19 +890,15 @@ function StateBanner({
   readonly actionBusy: boolean;
 }) {
   return (
-    <div
+    <Notice
+      tone="paused"
       role="status"
-      className="stg:flex stg:items-start stg:gap-2.5 stg:rounded-lg stg:bg-status-degraded-subtle stg:px-4 stg:py-3"
+      icon={<WarningIcon className="stg:size-4" />}
+      headline={title}
+      act={{ label: actionLabel, onClick: onAction, busy: actionBusy }}
     >
-      <WarningIcon className="stg:mt-0.5 stg:size-4 stg:shrink-0 stg:text-status-degraded" />
-      <div className="stg:min-w-0 stg:flex-1">
-        <p className="stg:text-sm stg:font-medium stg:text-foreground">{title}</p>
-        <p className="stg:mt-0.5 stg:text-xs stg:text-status-degraded">{children}</p>
-      </div>
-      <Button variant="outline" size="xs" onClick={onAction} disabled={actionBusy}>
-        {actionLabel}
-      </Button>
-    </div>
+      <p className="stg:m-0">{children}</p>
+    </Notice>
   );
 }
 
@@ -1801,18 +1799,13 @@ function LoadingSkeleton({ className }: { readonly className?: string }) {
 
 function NotFoundState({ className }: { readonly className?: string }) {
   return (
-    <div
-      role="status"
-      className={cn("stg:flex stg:flex-col stg:items-center stg:gap-2 stg:py-12 stg:text-center", className)}
-    >
-      <RoutineIcon className="stg:size-10 stg:text-muted-foreground-faint" />
-      <p className="stg:text-sm stg:font-medium stg:text-muted-foreground">
-        Routine not found
-      </p>
-      <p className="stg:text-xs stg:text-muted-foreground-subtle">
-        This routine doesn&apos;t exist or you don&apos;t have access to it.
-      </p>
-    </div>
+    <EmptyState
+      variant="first-use"
+      icon={<RoutineIcon />}
+      title="Routine not found"
+      description="This routine doesn't exist or you don't have access to it."
+      className={className}
+    />
   );
 }
 

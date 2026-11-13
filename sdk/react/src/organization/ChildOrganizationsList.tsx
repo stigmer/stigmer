@@ -90,7 +90,7 @@ export function ChildOrganizationsList({
         {setActiveOrg && " Open one to work in it as its admin."}
       </p>
       {error !== null ? (
-        <ErrorMessage error={error} title="The child organizations could not be read" retry={refetch} />
+        <ErrorMessage error={error} title="Couldn't load the child organizations." retry={refetch} />
       ) : (
         <table className="stg:w-full stg:text-left stg:text-xs">
           <thead className="stg:text-muted-foreground">

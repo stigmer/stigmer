@@ -12,8 +12,8 @@
  * when the resource is nobody's.
  */
 
-import { cn } from "@stigmer/design-tokens";
 import type { Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
+import { Notice } from "../internal/surface/Notice.js";
 import { PluginIcon } from "./PluginIcon.js";
 
 /** Props for {@link ManagedByPluginNotice}. */
@@ -32,30 +32,33 @@ export function ManagedByPluginNotice({ plugin, onPluginClick, className }: Mana
   const name = meta?.name || meta?.slug || "a plugin";
   const ref = meta ? { org: meta.org, slug: meta.slug } : null;
   return (
-    <div
+    <Notice
+      tone="plain"
       role="note"
-      className={cn(
-        "stg:flex stg:items-start stg:gap-2 stg:rounded-md stg:border stg:border-border stg:bg-muted stg:px-3 stg:py-2 stg:text-sm stg:text-foreground",
-        className,
-      )}
+      icon={<PluginIcon className="stg:size-4" />}
+      headline={
+        <>
+          Installed by the plugin{" "}
+          {onPluginClick && ref ? (
+            <button
+              type="button"
+              onClick={() => onPluginClick(ref)}
+              className="stg:cursor-pointer stg:font-semibold stg:underline stg:decoration-dotted stg:underline-offset-2 stg:hover:text-primary"
+            >
+              {name}
+            </button>
+          ) : (
+            name
+          )}
+          .
+        </>
+      }
+      className={className}
     >
-      <PluginIcon className="stg:mt-0.5 stg:size-4 stg:shrink-0 stg:text-muted-foreground" />
-      <p>
-        Installed by the plugin{" "}
-        {onPluginClick && ref ? (
-          <button
-            type="button"
-            onClick={() => onPluginClick(ref)}
-            className="stg:cursor-pointer stg:font-medium stg:underline stg:decoration-dotted stg:underline-offset-2 stg:hover:text-primary"
-          >
-            {name}
-          </button>
-        ) : (
-          <span className="stg:font-medium">{name}</span>
-        )}
-        . To change it, change the plugin and push it again; to customise, compose your own agent over its skills and
+      <p className="stg:m-0">
+        To change it, change the plugin and push it again; to customise, compose your own agent over its skills and
         servers.
       </p>
-    </div>
+    </Notice>
   );
 }

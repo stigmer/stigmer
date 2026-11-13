@@ -32,7 +32,7 @@ import { SessionSummary } from "./SessionSummary.js";
 import { CONVERSATION_FILES_VIEW_ID } from "./useSessionRailViews.js";
 import { useRunSettings } from "./run-settings.js";
 import { DEFAULT_MODELS_HUB_HREF, ProviderKeyNotice, providerKeyRequired } from "../billing/ProviderKeyNotice.js";
-import { SecretFlowErrorGuide, isSecretFlowError } from "../error/index.js";
+import { ErrorMessage, SecretFlowErrorGuide, isSecretFlowError } from "../error/index.js";
 import { useStigmer } from "@stigmer/react-core";
 import { findLatestSessionPlan, planFilesByRun } from "../library/detect-plan-file.js";
 import { useSessionFiles } from "../file/useSessionFiles.js";
@@ -1416,11 +1416,7 @@ function SendErrorBanner({ error, modelsHubHref }: { readonly error: Error; read
   if (agentHoursUsedUp(error) !== null) {
     return <AgentHoursNotice error={error} className="stg:mx-4 stg:my-2" />;
   }
-  return (
-    <div role="alert" className="stg:border-t stg:border-border stg:px-4 stg:py-2 stg:text-xs stg:text-destructive">
-      {getUserMessage(error)}
-    </div>
-  );
+  return <ErrorMessage error={error} className="stg:mx-4 stg:my-2" />;
 }
 
 function ReconnectingIndicator() {

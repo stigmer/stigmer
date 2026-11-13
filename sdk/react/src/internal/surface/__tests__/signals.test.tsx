@@ -19,8 +19,8 @@ describe("Tag", () => {
   });
 
   it("draws an identifier in the monospace face", () => {
-    render(<Tag mono>sk_live</Tag>);
-    expect(screen.getByText("sk_live").className).toContain("stg:font-mono");
+    render(<Tag mono>acme/triage</Tag>);
+    expect(screen.getByText("acme/triage").className).toContain("stg:font-mono");
   });
 });
 

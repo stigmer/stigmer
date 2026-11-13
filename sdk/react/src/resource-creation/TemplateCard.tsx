@@ -3,6 +3,7 @@
 import { useCallback } from "react";
 import { cn } from "@stigmer/design-tokens";
 import { cardClasses } from "../internal/surface/Card.js";
+import { Tag } from "../internal/surface/Tag.js";
 import type { ResourceTemplate } from "./templates/types.js";
 import { TEMPLATE_CATEGORY_LABELS } from "./templates/types.js";
 
@@ -85,9 +86,7 @@ export function TemplateCard<TData>({
 
         <div className="stg:min-w-0 stg:flex-1">
           <p className="stg:text-sm stg:font-medium stg:text-foreground">{template.name}</p>
-          <span className="stg:mt-1 stg:inline-block stg:rounded-full stg:bg-muted stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-muted-foreground">
-            {categoryLabel}
-          </span>
+          <Tag className="stg:mt-1">{categoryLabel}</Tag>
         </div>
       </div>
 

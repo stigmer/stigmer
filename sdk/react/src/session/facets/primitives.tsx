@@ -10,6 +10,7 @@
 
 import { cn } from "@stigmer/design-tokens";
 import { IconButton } from "../../button/IconButton.js";
+import { EmptyState } from "../../empty-state/EmptyState.js";
 
 /**
  * A titled facet section: uppercase micro-heading over flush content.
@@ -120,11 +121,9 @@ export function FacetRemoveButton({
   );
 }
 
-/** Muted empty-state line for a facet section with nothing to list. */
-export function FacetEmptyHint({ children }: { readonly children: React.ReactNode }) {
-  return (
-    <p className="stg:px-2 stg:text-xs stg:text-muted-foreground">{children}</p>
-  );
+/** The empty line for a facet section with nothing to list: the kit's inline empty state, aligned to the facet rows. */
+export function FacetEmptyHint({ children }: { readonly children: string }) {
+  return <EmptyState variant="first-use" size="inline" title={children} description="" className="stg:px-2" />;
 }
 
 /**

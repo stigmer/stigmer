@@ -80,7 +80,7 @@ export function OrgUsagePanel({ org, className }: OrgUsagePanelProps) {
   }
 
   if (error) {
-    return <ErrorMessage error={error} title="The usage could not be read" retry={refetch} className={className} />;
+    return <ErrorMessage error={error} title="Couldn't load the usage." retry={refetch} className={className} />;
   }
 
   if (!report) return null;
@@ -436,7 +436,6 @@ function NoUsageYet() {
       variant="first-use"
       title="No usage data yet"
       description="Usage data will appear here once agents start runs in this organization."
-      className="stg:rounded-lg stg:border stg:border-dashed stg:border-border"
     />
   );
 }

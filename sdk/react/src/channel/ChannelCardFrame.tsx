@@ -8,9 +8,10 @@
 // the menu differ, and those are each card's own.
 
 import type { ComponentType, ReactNode } from "react";
-import { cn } from "@stigmer/design-tokens";
 import { Card } from "../internal/surface/Card.js";
 import { TruncatedText } from "../internal/truncated-text.js";
+import type { StatusPhase } from "../resource-workbench/types.js";
+import { StatusBadge } from "../status/StatusBadge.js";
 
 /** Props for {@link ChannelCardFrame}. */
 export interface ChannelCardFrameProps {
@@ -72,13 +73,14 @@ export function ChannelCardFrame({
 /** Tone of a {@link ChannelStatePill}. */
 export type ChannelStateTone = "success" | "destructive" | "muted";
 
-const TONE_CLASSES: Record<ChannelStateTone, string> = {
-  success: "stg:text-status-ready",
-  destructive: "stg:text-destructive",
-  muted: "stg:text-muted-foreground",
+/** The status pill's phase for each tone. */
+const TONE_PHASES: Record<ChannelStateTone, StatusPhase> = {
+  success: "ready",
+  destructive: "failed",
+  muted: "disabled",
 };
 
-/** A channel's state beside its name: a dot and a word ("Active", "Pending install"). */
+/** A channel's state beside its name, on the status pill ("Active", "Pending install"). */
 export function ChannelStatePill({
   label,
   tone,
@@ -86,15 +88,5 @@ export function ChannelStatePill({
   readonly label: string;
   readonly tone: ChannelStateTone;
 }) {
-  return (
-    <span
-      className={cn(
-        "stg:inline-flex stg:shrink-0 stg:items-center stg:gap-1.5 stg:text-xs",
-        TONE_CLASSES[tone],
-      )}
-    >
-      <span aria-hidden="true" className="stg:size-1.5 stg:rounded-full stg:bg-current" />
-      {label}
-    </span>
-  );
+  return <StatusBadge phase={TONE_PHASES[tone]} label={label} />;
 }

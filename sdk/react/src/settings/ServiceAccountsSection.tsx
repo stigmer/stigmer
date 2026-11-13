@@ -56,6 +56,7 @@ export function ServiceAccountsSection() {
   const deniedManage = !manageCheck.isLoading && !manageCheck.allowed;
 
   const [flow, setFlow] = useState<FlowState>({ phase: "idle" });
+  const startCreate = useCallback(() => setFlow({ phase: "creating" }), []);
   const listRefetchRef = useRef<(() => void) | null>(null);
 
   const handleRefetchRef = useCallback((refetch: () => void) => {
@@ -80,7 +81,7 @@ export function ServiceAccountsSection() {
         canManage &&
         keysAuthenticate &&
         flow.phase === "idle" && (
-          <Button size="sm" onClick={() => setFlow({ phase: "creating" })}>
+          <Button size="sm" onClick={startCreate}>
             New service account
           </Button>
         )
@@ -130,6 +131,7 @@ export function ServiceAccountsSection() {
           org={org}
           onOpen={(serviceAccount) => setFlow({ phase: "viewing", serviceAccount })}
           onRefetchRef={handleRefetchRef}
+          emptyAction={keysAuthenticate ? { label: "New service account", onClick: startCreate } : undefined}
         />
       )}
     </SettingsPage>

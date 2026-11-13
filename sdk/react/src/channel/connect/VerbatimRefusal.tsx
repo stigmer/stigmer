@@ -1,7 +1,11 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { getUserMessage } from "@stigmer/client";
+import { ErrorMessage } from "../../error/ErrorMessage.js";
+import { Notice } from "../../internal/surface/Notice.js";
+
+/** What every install refusal says first. */
+const REFUSAL_HEADLINE = "The install didn't go through.";
 
 /**
  * The plain install-refusal alert: the server's copy rendered verbatim —
@@ -11,17 +15,14 @@ import { getUserMessage } from "@stigmer/client";
  * and reuse {@link RefusalBox} for the chrome.
  */
 export function VerbatimRefusal({ error }: { readonly error: Error }) {
-  return <RefusalBox>{getUserMessage(error)}</RefusalBox>;
+  return <ErrorMessage error={error} title={REFUSAL_HEADLINE} />;
 }
 
-/** The refusal alert chrome, shared by verbatim and guided refusals. */
+/** The refusal alert chrome for a guided refusal: the kit's failed notice, its lines under the headline. */
 export function RefusalBox({ children }: { readonly children: ReactNode }) {
   return (
-    <div
-      role="alert"
-      className="stg:space-y-1 stg:rounded-md stg:border stg:border-destructive/30 stg:bg-destructive-subtle stg:px-3 stg:py-2 stg:text-xs stg:text-destructive"
-    >
-      {children}
-    </div>
+    <Notice tone="failed" role="alert" headline={REFUSAL_HEADLINE}>
+      <div className="stg:space-y-1">{children}</div>
+    </Notice>
   );
 }

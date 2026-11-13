@@ -6,6 +6,7 @@ import { DialogShell } from "../internal/DialogShell.js";
 import { getUserMessage, type AppliedManifest } from "@stigmer/client";
 import { toast } from "../feedback/toast.js";
 import { keptChangeSentences } from "./keptChanges.js";
+import { Notice } from "../internal/surface/Notice.js";
 import { RedactedSecretsNotice } from "./RedactedSecretsNotice.js";
 import { useEditResourceYaml } from "./useEditResourceYaml.js";
 import { YamlEditor } from "./YamlEditor.js";
@@ -120,12 +121,7 @@ export function EditResourceYamlDialog({
 
         {/* Validation error */}
         {edit.validation.status === "invalid" && (
-          <div
-            role="alert"
-            className="stg:rounded-md stg:border stg:border-destructive stg:bg-card stg:px-3 stg:py-2.5 stg:text-sm stg:text-destructive"
-          >
-            {edit.validation.message}
-          </div>
+          <Notice tone="failed" headline={edit.validation.message} />
         )}
 
         {/* Apply error — the server's refusal rendered verbatim, with an
@@ -133,27 +129,18 @@ export function EditResourceYamlDialog({
             guard, edits or decides, and re-applies without reopening
             the dialog. */}
         {edit.error && (
-          <div
-            role="alert"
-            className="stg:flex stg:items-start stg:gap-3 stg:rounded-md stg:border stg:border-destructive stg:bg-card stg:px-3 stg:py-2.5"
+          <Notice
+            tone="failed"
+            headline="Couldn't apply the YAML."
+            act={
+              edit.validation.status === "valid"
+                ? { label: "Try again", onClick: handleApply, busy: edit.isApplying }
+                : undefined
+            }
+            link={{ label: "Dismiss", onClick: edit.clearError }}
           >
-            <p className="stg:flex-1 stg:text-sm stg:text-destructive">
-              {getUserMessage(edit.error)}
-            </p>
-            <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-2">
-              <Button
-                variant="outline"
-                size="xs"
-                onClick={handleApply}
-                disabled={edit.validation.status !== "valid" || edit.isApplying}
-              >
-                Try again
-              </Button>
-              <Button variant="ghost" size="xs" onClick={edit.clearError} aria-label="Dismiss error">
-                Dismiss
-              </Button>
-            </div>
-          </div>
+            <p className="stg:m-0 stg:break-words">{getUserMessage(edit.error)}</p>
+          </Notice>
         )}
 
         {/* Footer: target summary + actions */}

@@ -6,10 +6,11 @@
  * never shown. The organization context is a real OrgProvider over a
  * stubbed `listMine` (and `get`, for an organization the person has open
  * outside their list, which names its keys by slug too); the list runs
- * through the real hook over a stubbed `apiKey.list`.
+ * through the real hook over a stubbed `apiKey.list`. With no keys, the
+ * empty list carries the header's "New API key".
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import { create } from "@bufbuild/protobuf";
 import {
@@ -86,5 +87,19 @@ describe("ApiKeysSection key scope", () => {
 
     expect(await screen.findByText("Only in acme-customer")).toBeTruthy();
     expect(screen.queryByText("Limited to one organization")).toBeNull();
+  });
+});
+
+describe("ApiKeysSection with no keys", () => {
+  it("carries the header's New API key in the empty list, and both open the same form", async () => {
+    renderSection([]);
+
+    const empty = (await screen.findByText("No API keys yet")).closest("[role=status]");
+    expect(empty).not.toBeNull();
+    expect(screen.getAllByRole("button", { name: "New API key" })).toHaveLength(2);
+
+    fireEvent.click(within(empty as HTMLElement).getByRole("button", { name: "New API key" }));
+    // The create form is open, and neither act is offered while it is.
+    expect(screen.queryByRole("button", { name: "New API key" })).toBeNull();
   });
 });

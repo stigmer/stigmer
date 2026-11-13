@@ -6,6 +6,8 @@ import { Button } from "../button/index.js";
 import { Card } from "../internal/surface/Card.js";
 import type { ModelCatalogRow } from "./useModelCatalogView.js";
 import { ZERO, formatRate } from "./pricing-format.js";
+import { Tag } from "../internal/surface/Tag.js";
+import { EmptyState } from "../empty-state/EmptyState.js";
 
 // ---------------------------------------------------------------------------
 // ModelCatalogDetail — the read-only record of one model: catalog
@@ -45,9 +47,7 @@ export function ModelCatalogDetail({
           <h4 className="stg:flex stg:flex-wrap stg:items-center stg:gap-2 stg:text-sm stg:font-semibold stg:text-foreground">
             {baseline.displayName || baseline.modelId}
             {baseline.featured && (
-              <span className="stg:rounded stg:bg-accent stg:px-1.5 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-primary">
-                Featured
-              </span>
+              <Tag>Featured</Tag>
             )}
           </h4>
           <p className="stg:mt-0.5 stg:text-2xs stg:text-muted-foreground">
@@ -150,9 +150,12 @@ export function ModelCatalogDetail({
           Revision History
         </h5>
         {row.history.length === 0 ? (
-          <p className="stg:text-2xs stg:text-muted-foreground">
-            No previous revisions — this is the original entry.
-          </p>
+          <EmptyState
+            variant="first-use"
+            size="inline"
+            title="No previous revisions — this is the original entry."
+            className="stg:px-0"
+          />
         ) : (
           <div className="stg:space-y-1">
             {row.history.map((revision) => (

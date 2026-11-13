@@ -115,7 +115,7 @@ describe("MarketplaceCatalog: the sources first", () => {
     await waitFor(() => expect(screen.getByRole("list", { name: "Sources that cannot be read" })).toBeTruthy());
     const failed = within(screen.getByRole("list", { name: "Sources that cannot be read" })).getAllByRole("listitem");
     expect(failed.map((item) => item.textContent)).toEqual([expect.stringMatching(/^stigmer.*development build/)]);
-    expect(screen.getByRole("button", { name: "Retry stigmer" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Try again to load stigmer" })).toBeTruthy();
   });
 
   it("choosing a chip narrows the grid to that source; a failed source shows its sentence whole with a retry", async () => {
@@ -127,7 +127,7 @@ describe("MarketplaceCatalog: the sources first", () => {
     expect(chip("stigmer").getAttribute("aria-checked")).toBe("true");
     expect(screen.queryByRole("button", { name: "Install thermos" })).toBeNull();
     expect(screen.getByText(/development build/)).toBeTruthy();
-    expect(screen.getByText("stigmer cannot be read right now")).toBeTruthy();
+    expect(screen.getByText("Couldn't load stigmer.")).toBeTruthy();
     // The Upload tile stays: uploading is not a source's business.
     expect(screen.getByRole("button", { name: /Upload a plugin/ })).toBeTruthy();
 
@@ -168,7 +168,9 @@ describe("MarketplaceCatalog: the grid", () => {
     expect(screen.getByRole("button", { name: "Install github" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /Upload a plugin/ })).toBeNull();
     fireEvent.change(screen.getByLabelText("Search plugins"), { target: { value: "nothing-here" } });
-    expect(screen.getByRole("status").textContent).toContain("Nothing matches 'nothing-here'");
+    expect(screen.getByRole("status").textContent).toContain("Nothing matches \u201cnothing-here\u201d");
+    fireEvent.click(screen.getByRole("button", { name: "Clear search" }));
+    expect(screen.getByRole("button", { name: "Install thermos" })).toBeTruthy();
   });
 
   it("marks a plugin the organization holds as Installed and still offers to install it again", async () => {

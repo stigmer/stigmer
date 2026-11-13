@@ -70,7 +70,7 @@ describe("ResourceWorkbench searchable prop", () => {
       { wrapper: Wrapper },
     );
 
-    await waitFor(() => expect(screen.getByText("No resources found")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("No resources yet")).toBeTruthy());
     expect(screen.queryByRole("textbox")).toBeNull();
   });
 });

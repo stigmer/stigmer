@@ -114,7 +114,7 @@ export const OperationalDashboard = memo(function OperationalDashboard({
       aria-label="Platform dashboard"
       className={cn("stg:space-y-6", className)}
     >
-      {summaryError && <ErrorMessage error={summaryError} title="The week's figures could not be read" retry={refetch} />}
+      {summaryError && <ErrorMessage error={summaryError} title="Couldn't load this week's figures." retry={refetch} />}
       {showsJourney && firstStepLinks && (
         <DashboardFirstSteps org={org} links={firstStepLinks} renderLink={renderLink} journey={journey} onHide={hide} />
       )}

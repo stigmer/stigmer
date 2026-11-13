@@ -136,7 +136,7 @@ function DialogContent({
               call them.
             </p>
           )}
-          {flow.error && <ErrorMessage error={flow.error} title="The agent could not be changed" />}
+          {flow.error && <ErrorMessage error={flow.error} title="Couldn't save the agent." />}
         </>
       )}
 

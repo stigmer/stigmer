@@ -12,6 +12,7 @@ import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/ap
 import { InvitationState } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/enum_pb";
 import type { Invitation } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/api_pb";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
+import { Plus } from "lucide-react";
 import { useOrgInvitations } from "./useOrgInvitations.js";
 import { useCreateInvitation } from "./useCreateInvitation.js";
 import { useRevokeInvitation } from "./useRevokeInvitation.js";
@@ -27,6 +28,9 @@ import { EmptyState } from "../empty-state/EmptyState.js";
 import { Button } from "../button/Button.js";
 import { IconButton } from "../button/IconButton.js";
 import { Card } from "../internal/surface/Card.js";
+import { Tag } from "../internal/surface/Tag.js";
+import { StatusBadge } from "../status/StatusBadge.js";
+import type { StatusPhase } from "../resource-workbench/types.js";
 import { List, ListRow } from "../internal/surface/List.js";
 
 // ---------------------------------------------------------------------------
@@ -106,6 +110,7 @@ export function InvitationManager({
     refetch,
   } = useOrgInvitations(org);
   const [flow, setFlow] = useState<FlowState>({ phase: "idle" });
+  const startCreate = useCallback(() => setFlow({ phase: "creating" }), []);
   const [revokingId, setRevokingId] = useState<string | null>(null);
   // A refetch re-reads only the first page, so a link revoked from a page
   // loaded later would keep its stale copy: the revoke's own answer stands
@@ -145,7 +150,7 @@ export function InvitationManager({
   }
 
   if (error) {
-    return <ErrorMessage error={error} title="The invite links could not be read" retry={refetch} className={className} />;
+    return <ErrorMessage error={error} title="Couldn't load the invite links." retry={refetch} className={className} />;
   }
 
   return (
@@ -159,13 +164,11 @@ export function InvitationManager({
           {/* The count covers the loaded pages only, so it is shown once
               they are all loaded rather than undercount. */}
           {activeCount > 0 && !hasMore && (
-            <span className="stg:inline-flex stg:items-center stg:rounded-full stg:bg-muted stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-muted-foreground">
-              {activeCount} active
-            </span>
+            <Tag>{activeCount} active</Tag>
           )}
         </div>
         {flow.phase === "idle" && (
-          <Button variant="ghost" size="xs" onClick={() => setFlow({ phase: "creating" })}>
+          <Button variant="ghost" size="xs" onClick={startCreate}>
             + Create invite link
           </Button>
         )}
@@ -197,7 +200,11 @@ export function InvitationManager({
           variant="first-use"
           title="No invite links yet"
           description="Create one to start inviting people."
-          className="stg:rounded-lg stg:border stg:border-dashed stg:border-border"
+          action={
+            flow.phase === "idle"
+              ? { label: "Create invite link", onClick: startCreate, icon: <Plus className="stg:size-3.5" aria-hidden="true" /> }
+              : undefined
+          }
         />
       ) : (
         <List aria-label="Invitation links">
@@ -456,12 +463,10 @@ function InvitationRow({
         <>
           {/* Metadata columns */}
           <div className="stg:hidden stg:sm:flex stg:shrink-0 stg:items-center stg:gap-3">
-            {/* Role badge */}
-            <span className="stg:inline-flex stg:items-center stg:rounded-md stg:border stg:border-border stg:bg-muted stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-foreground">
-              {iamRoleDisplayName(role)}
-            </span>
+            {/* Role */}
+            <Tag>{iamRoleDisplayName(role)}</Tag>
 
-            {/* State badge */}
+            {/* State */}
             <StateBadge state={state} />
 
             {/* Expiry */}
@@ -578,39 +583,16 @@ function RevokeConfirmation({
 
 function StateBadge({ state }: { state: InvitationState }) {
   const config = STATE_BADGE_CONFIG[state] ?? STATE_BADGE_CONFIG[InvitationState.invitation_state_unspecified];
-  return (
-    <span
-      className={cn(
-        "stg:inline-flex stg:items-center stg:rounded-full stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium",
-        config.className,
-      )}
-    >
-      {config.label}
-    </span>
-  );
+  return <StatusBadge phase={config.phase} label={config.label} />;
 }
 
-const STATE_BADGE_CONFIG: Record<InvitationState, { label: string; className: string }> = {
-  [InvitationState.invitation_state_unspecified]: {
-    label: "Unknown",
-    className: "stg:bg-muted stg:text-muted-foreground",
-  },
-  [InvitationState.active]: {
-    label: "Active",
-    className: "stg:bg-primary-subtle stg:text-primary",
-  },
-  [InvitationState.expired]: {
-    label: "Expired",
-    className: "stg:bg-muted stg:text-muted-foreground",
-  },
-  [InvitationState.revoked]: {
-    label: "Revoked",
-    className: "stg:bg-muted stg:text-muted-foreground",
-  },
-  [InvitationState.fully_redeemed]: {
-    label: "Fully redeemed",
-    className: "stg:bg-muted stg:text-muted-foreground",
-  },
+/** A live link reads as ready; one that no longer lets anyone in, as disabled. */
+const STATE_BADGE_CONFIG: Record<InvitationState, { label: string; phase: StatusPhase }> = {
+  [InvitationState.invitation_state_unspecified]: { label: "Unknown", phase: "disabled" },
+  [InvitationState.active]: { label: "Active", phase: "ready" },
+  [InvitationState.expired]: { label: "Expired", phase: "disabled" },
+  [InvitationState.revoked]: { label: "Revoked", phase: "disabled" },
+  [InvitationState.fully_redeemed]: { label: "Fully redeemed", phase: "disabled" },
 };
 
 // ---------------------------------------------------------------------------

@@ -20,6 +20,7 @@ import { useState } from "react";
 import { cn } from "@stigmer/design-tokens";
 import type { McpServerEntry } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
 import { Button } from "../button/Button.js";
+import { StatusBadge } from "../status/StatusBadge.js";
 import type { VaultSignInPhase } from "../vault/useVaultSignIn.js";
 import { type UsePluginServerSignInReturn, usePluginServerSignIn } from "./usePluginServerSignIn.js";
 
@@ -114,9 +115,8 @@ function PluginServerSignInView({
       }
       return (
         <span className={root}>
-          <span className="stg:inline-flex stg:items-center stg:gap-1.5 stg:text-status-ready" role="status">
-            <Dot className="stg:bg-success" />
-            Signed in
+          <span className="stg:inline-flex" role="status">
+            <StatusBadge phase="ready" label="Signed in" />
           </span>
           {signIn.connection !== null && (
             <Button variant="ghost" size="xs" onClick={() => setConfirming(true)} aria-label={`Sign out of ${name}`}>
@@ -131,10 +131,7 @@ function PluginServerSignInView({
         <span className={root}>
           {failure}
           {!signIn.isSigningIn && (
-            <span className="stg:inline-flex stg:items-center stg:gap-1.5 stg:text-muted-foreground">
-              <Dot className="stg:bg-muted-foreground" />
-              Not signed in
-            </span>
+            <StatusBadge phase="disabled" label="Not signed in" />
           )}
           <Button variant="primary" size="sm" onClick={signIn.signIn} disabled={signIn.isSigningIn} aria-label={`Sign in to ${name}`}>
             {signIn.isSigningIn ? phaseLabel(signIn.phase) : "Sign in"}
@@ -186,8 +183,4 @@ export function phaseLabel(phase: VaultSignInPhase): string {
       return exhaustive;
     }
   }
-}
-
-function Dot({ className }: { readonly className: string }) {
-  return <span aria-hidden="true" className={cn("stg:inline-block stg:size-2 stg:rounded-full", className)} />;
 }

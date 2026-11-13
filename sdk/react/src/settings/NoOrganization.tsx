@@ -17,7 +17,6 @@ export function NoOrganization({ what }: { readonly what: string }) {
       variant="first-use"
       title="No organization selected"
       description={`Choose an organization to see ${what}.`}
-      className="stg:rounded-lg stg:border stg:border-dashed stg:border-border"
     />
   );
 }

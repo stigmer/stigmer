@@ -32,6 +32,9 @@ import { subagentSubjectOf } from "@stigmer/react-core";
 import { isFileCategory } from "@stigmer/react-core/internal";
 import { type ToolCategory } from "@stigmer/react-core";
 import { getToolPresenter, useToolPresentation } from "./tool-presenter.js";
+import { StatusBadge } from "../status/StatusBadge.js";
+import type { StatusPhase } from "../resource-workbench/types.js";
+import { Tag } from "../internal/surface/Tag.js";
 
 /** Props for {@link ToolCallItem}. */
 export interface ToolCallItemProps {
@@ -210,23 +213,16 @@ export const ToolCallItem = memo(function ToolCallItem({
 
   const trailingContent = (
     <>
-      {approvalBadge && (
-        <span className={cn("stg:shrink-0 stg:rounded stg:px-1 stg:py-0.5 stg:text-2xs stg:font-medium stg:leading-none", approvalBadge.colorClass)}>
-          {approvalBadge.label}
-        </span>
-      )}
+      {approvalBadge && <StatusBadge phase={approvalBadge.phase} label={approvalBadge.label} />}
 
       {reviewBadge && (
-        <span
-          className={cn("stg:shrink-0 stg:rounded stg:px-1 stg:py-0.5 stg:text-2xs stg:font-medium stg:leading-none", reviewBadge.colorClass)}
-          data-cursor-target="file-review-row-badge"
-        >
-          {reviewBadge.label}
+        <span className="stg:inline-flex stg:shrink-0" data-cursor-target="file-review-row-badge">
+          <StatusBadge phase={reviewBadge.phase} label={reviewBadge.label} />
         </span>
       )}
 
       {phrase.app !== "" && (
-        <span className="stg:shrink-0 stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:text-xs stg:text-muted-foreground">{phrase.app}</span>
+        <Tag>{phrase.app}</Tag>
       )}
 
       <BackgroundCommandTrail toolUse={toolUse} />
@@ -311,9 +307,7 @@ export const ToolCallItem = memo(function ToolCallItem({
           </span>
         )}
         {counts?.kind === "exit" && (
-          <span className="stg:shrink-0 stg:rounded stg:bg-status-failed-subtle stg:px-1.5 stg:font-mono stg:text-2xs stg:text-status-failed">
-            exit {counts.code}
-          </span>
+          <StatusBadge phase="failed" label={`exit ${counts.code}`} />
         )}
         {counts?.kind === "count" && <span className="stg:shrink-0 stg:text-xs stg:tabular-nums stg:text-muted-foreground">{counts.text}</span>}
         {hostSummary !== null && <span className="stg:shrink-0 stg:text-xs stg:tabular-nums stg:text-muted-foreground">{hostSummary}</span>}
@@ -403,7 +397,7 @@ function toggleLabel(title: string, detail: string | null, summary: string | nul
 
 interface ApprovalBadgeInfo {
   readonly label: string;
-  readonly colorClass: string;
+  readonly phase: StatusPhase;
 }
 
 /**
@@ -414,10 +408,10 @@ interface ApprovalBadgeInfo {
 function getApprovalBadge(toolUse: ToolUse): ApprovalBadgeInfo | null {
   if (toolUse.ask === undefined) return null;
   if (toolUse.confirmation?.result === "deny") {
-    return { label: "Denied", colorClass: "stg:bg-status-failed-subtle stg:text-status-failed" };
+    return { label: "Denied", phase: "failed" };
   }
   if (toolUse.confirmation?.result === "allow" || toolUse.grant !== undefined) {
-    return { label: "Approved", colorClass: "stg:bg-status-ready-subtle stg:text-status-ready" };
+    return { label: "Approved", phase: "ready" };
   }
   return null;
 }
@@ -438,10 +432,10 @@ function isFileEditCategory(category: ToolCategory): boolean {
  * the same language.
  */
 const REVIEW_BADGE: Record<FileReviewRowState, ApprovalBadgeInfo> = {
-  pending: { label: "Pending review", colorClass: "stg:bg-status-degraded-subtle stg:text-status-degraded" },
-  kept: { label: "Kept", colorClass: "stg:bg-status-ready-subtle stg:text-status-ready" },
-  discarded: { label: "Discarded", colorClass: "stg:bg-status-failed-subtle stg:text-status-failed" },
-  failed: { label: "Review failed", colorClass: "stg:bg-status-failed-subtle stg:text-status-failed" },
+  pending: { label: "Pending review", phase: "degraded" },
+  kept: { label: "Kept", phase: "ready" },
+  discarded: { label: "Discarded", phase: "failed" },
+  failed: { label: "Review failed", phase: "failed" },
 };
 
 // ---------------------------------------------------------------------------

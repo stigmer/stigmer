@@ -24,6 +24,7 @@ import { cn } from "@stigmer/design-tokens";
 
 import { Button } from "../button/Button.js";
 import { cardClasses } from "../internal/surface/Card.js";
+import { StatusBadge } from "../status/StatusBadge.js";
 import { UploadIcon } from "../internal/UploadIcon.js";
 import { PluginFace } from "./PluginFace.js";
 import { SourceMark } from "./SourceMark.js";
@@ -64,9 +65,7 @@ export function PluginCard({ entry, installed, onInstall, className }: PluginCar
           <div className="stg:flex stg:items-start stg:justify-between stg:gap-2">
             <h3 className="stg:m-0 stg:truncate stg:text-sm stg:font-medium stg:text-foreground">{displayName}</h3>
             {installed && (
-              <span className="stg:shrink-0 stg:rounded-full stg:border stg:border-border stg:bg-muted stg:px-2 stg:py-0.5 stg:text-xs stg:text-muted-foreground">
-                Installed
-              </span>
+              <StatusBadge phase="ready" label="Installed" />
             )}
           </div>
           {byline && <p className="stg:truncate stg:text-xs stg:text-muted-foreground">{byline}</p>}

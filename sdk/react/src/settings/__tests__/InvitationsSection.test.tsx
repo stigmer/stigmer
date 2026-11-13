@@ -216,7 +216,8 @@ describe("InvitationsSection", () => {
     const server = newServer(answerLater(true));
     renderSection("enterprise", server);
 
-    expect(await screen.findByRole("button", { name: /Create invite link/ })).toBeTruthy();
+    // The manager offers it, and so does its empty list.
+    expect(await screen.findAllByRole("button", { name: /Create invite link/ })).toHaveLength(2);
     await settle();
     expect(server.listedOrgs).toEqual(["org_acme"]);
     expect(screen.queryByText(MANAGED_BY_ADMINS)).toBeNull();
@@ -316,7 +317,8 @@ describe("InvitationsSection", () => {
     });
     renderSection("cloud", server);
 
-    expect(await screen.findByRole("button", { name: /Create invite link/ })).toBeTruthy();
+    // The manager offers it, and so does its empty list.
+    expect(await screen.findAllByRole("button", { name: /Create invite link/ })).toHaveLength(2);
     expect(screen.queryByText(MANAGED_BY_ADMINS)).toBeNull();
   });
 });

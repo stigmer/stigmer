@@ -48,6 +48,7 @@ export function FederationIssuersSection() {
   const deniedCreate = !createCheck.isLoading && !createCheck.allowed;
 
   const [flow, setFlow] = useState<FlowState>({ phase: "idle" });
+  const startCreate = useCallback(() => setFlow({ phase: "creating" }), []);
   const listRefetchRef = useRef<(() => void) | null>(null);
 
   const handleRefetchRef = useCallback((refetch: () => void) => {
@@ -72,7 +73,7 @@ export function FederationIssuersSection() {
         orgId &&
         canCreate &&
         flow.phase === "idle" && (
-          <Button size="sm" onClick={() => setFlow({ phase: "creating" })}>
+          <Button size="sm" onClick={startCreate}>
             New federation issuer
           </Button>
         )
@@ -103,6 +104,7 @@ export function FederationIssuersSection() {
           onRefetchRef={handleRefetchRef}
           emptyState={deniedCreate ? FEDERATION_ISSUERS_MANAGED_BY_ADMINS : undefined}
           emptyDescription={deniedCreate ? ASK_AN_ADMIN : undefined}
+          emptyAction={canCreate ? { label: "New federation issuer", onClick: startCreate } : undefined}
         />
       )}
     </SettingsPage>

@@ -6,6 +6,7 @@
 // bespoke dark box — so it tracks the host theme, preset, and color mode.
 
 import { cn } from "@stigmer/design-tokens";
+import { StatusBadge } from "../status/StatusBadge.js";
 import { CollapsiblePre, TRUNCATION_LINE_LIMIT } from "./tool-rendering-primitives.js";
 import { useSandboxNormalize } from "./SandboxContext.js";
 
@@ -199,11 +200,8 @@ function ExitBadge({ exitCode }: { exitCode?: number }) {
   return (
     <div>
       <span className="stg:sr-only">Command exited with code {exitCode}</span>
-      <span
-        aria-hidden="true"
-        className="stg:inline-block stg:rounded stg:bg-destructive-subtle stg:px-1 stg:py-0.5 stg:text-2xs stg:font-medium stg:leading-none stg:tabular-nums stg:text-destructive"
-      >
-        exit {exitCode}
+      <span aria-hidden="true" className="stg:inline-flex">
+        <StatusBadge phase="failed" label={`exit ${exitCode}`} />
       </span>
     </div>
   );

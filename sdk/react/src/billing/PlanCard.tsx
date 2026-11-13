@@ -84,7 +84,7 @@ export function PlanCard({
       {!child && !agentHours && agentHoursError && (
         <ErrorMessage
           error={agentHoursError}
-          title="Agent hours could not be read"
+          title="Couldn't load the agent hours."
           retry={onRetryAgentHours}
           className="stg:mt-3"
         />
@@ -94,7 +94,7 @@ export function PlanCard({
       {!child && !estimate && estimateError && (
         <ErrorMessage
           error={estimateError}
-          title="This period's estimate could not be read"
+          title="Couldn't load this period's estimate."
           retry={onRetryEstimate}
           className="stg:mt-3"
         />
