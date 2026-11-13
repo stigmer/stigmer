@@ -171,7 +171,7 @@ export function BringOthersIn({
         </Notice>
       ) : (
         <div className="stg:flex stg:flex-col stg:gap-4">
-          {singleOrg === false && <NameYourOrganization orgId={orgId} onRenamed={() => orgContext?.refresh(orgId)} />}
+          {singleOrg === false && <NameYourOrganization key={orgId} orgId={orgId} onRenamed={() => orgContext?.refresh(orgId)} />}
           <InviteYourTeam orgId={orgId} buildInviteUrl={buildInviteUrl} consoleUrl={consoleUrl} membersHref={membersHref} renderLink={renderLink} />
           <WhosHere
             orgId={orgId}
@@ -231,21 +231,15 @@ function NameYourOrganization({ orgId, onRenamed }: { readonly orgId: string; re
   const slug = organization?.metadata?.slug ?? "";
   // A sign-up that named the organization from an email left name and
   // address equal; nothing else marks it, and a person who chose that name
-  // answers "Keep" once.
-  const [kept, setKept] = useState(false);
-  useEffect(() => setKept(readKept(orgId)), [orgId]);
+  // answers "Keep" once. Read as the first state, so a kept name never
+  // flashes the question.
+  const [kept, setKept] = useState(() => readKept(orgId));
   const unnamed = name !== "" && name === slug && !kept;
   const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState("");
   const asking = unnamed || editing;
-  useEffect(() => {
-    setDraft(unnamed ? "" : name);
-  }, [unnamed, name]);
 
   const save = useCallback(
-    async (event: FormEvent) => {
-      event.preventDefault();
-      const next = draft.trim();
+    async (next: string) => {
       if (organization === null || next === "") return;
       clearError();
       try {
@@ -258,7 +252,7 @@ function NameYourOrganization({ orgId, onRenamed }: { readonly orgId: string; re
         // The update hook holds the error the form shows.
       }
     },
-    [draft, organization, clearError, update, refetch, onRenamed],
+    [organization, clearError, update, refetch, onRenamed],
   );
 
   if (organization === null) {
@@ -295,25 +289,16 @@ function NameYourOrganization({ orgId, onRenamed }: { readonly orgId: string; re
         </p>
       )}
       {canEdit ? (
-        <form onSubmit={save} className="stg:flex stg:flex-col stg:gap-2">
-          <label htmlFor={inputId} className="stg:text-xs stg:font-medium stg:text-foreground">
-            Name
-          </label>
-          <div className="stg:flex stg:flex-wrap stg:items-center stg:gap-2">
-            <input
-              id={inputId}
-              type="text"
-              value={draft}
-              placeholder="Your company's name"
-              onChange={(event) => setDraft(event.target.value)}
-              disabled={isUpdating}
-              required
-              className={cn(INPUT_CLASSES, "stg:max-w-xs stg:flex-1 stg:text-sm")}
-            />
-            <Button type="submit" size="sm" disabled={isUpdating || draft.trim() === ""}>
-              {isUpdating ? "Saving…" : "Save"}
-            </Button>
-            {unnamed ? (
+        <NameForm
+          // A new start whenever the question changes: blank while the name
+          // is still the address, the name itself when renaming.
+          key={unnamed ? "unnamed" : `rename:${name}`}
+          inputId={inputId}
+          initial={unnamed ? "" : name}
+          isUpdating={isUpdating}
+          onSave={save}
+          secondary={
+            unnamed ? (
               <Button
                 size="sm"
                 variant="ghost"
@@ -328,14 +313,10 @@ function NameYourOrganization({ orgId, onRenamed }: { readonly orgId: string; re
               <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
                 Cancel
               </Button>
-            )}
-          </div>
-          {error !== null && (
-            <p role="alert" className="stg:m-0 stg:text-xs stg:text-destructive">
-              {saveErrorMessage(error, "organization")}
-            </p>
-          )}
-        </form>
+            )
+          }
+          error={error === null ? null : saveErrorMessage(error, "organization")}
+        />
       ) : (
         <p className="stg:m-0 stg:text-sm stg:text-muted-foreground">
           It&rsquo;s called <span className="stg:font-medium stg:text-foreground">{name}</span>. Only organization admins can rename it.
@@ -343,6 +324,56 @@ function NameYourOrganization({ orgId, onRenamed }: { readonly orgId: string; re
       )}
       {address}
     </Part>
+  );
+}
+
+function NameForm({
+  inputId,
+  initial,
+  isUpdating,
+  onSave,
+  secondary,
+  error,
+}: {
+  readonly inputId: string;
+  readonly initial: string;
+  readonly isUpdating: boolean;
+  readonly onSave: (name: string) => Promise<void>;
+  readonly secondary: ReactNode;
+  readonly error: string | null;
+}) {
+  const [draft, setDraft] = useState(initial);
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    void onSave(draft.trim());
+  };
+  return (
+    <form onSubmit={submit} className="stg:flex stg:flex-col stg:gap-2">
+      <label htmlFor={inputId} className="stg:text-xs stg:font-medium stg:text-foreground">
+        Name
+      </label>
+      <div className="stg:flex stg:flex-wrap stg:items-center stg:gap-2">
+        <input
+          id={inputId}
+          type="text"
+          value={draft}
+          placeholder="Your company's name"
+          onChange={(event) => setDraft(event.target.value)}
+          disabled={isUpdating}
+          required
+          className={cn(INPUT_CLASSES, "stg:max-w-xs stg:flex-1 stg:text-sm")}
+        />
+        <Button type="submit" size="sm" disabled={isUpdating || draft.trim() === ""}>
+          {isUpdating ? "Saving…" : "Save"}
+        </Button>
+        {secondary}
+      </div>
+      {error !== null && (
+        <p role="alert" className="stg:m-0 stg:text-xs stg:text-destructive">
+          {error}
+        </p>
+      )}
+    </form>
   );
 }
 
