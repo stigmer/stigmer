@@ -157,7 +157,7 @@ agent's `skill_refs`). Apply the manifest again and run again.
    - Pick the stack's env file (`.env.local` for Next.js, `.env` otherwise) and
      check it is git-ignored (`git check-ignore <file>`); add it to
      `.gitignore` if not. Then
-     `stigmer apikey create --service-account app-backend --name <the app's name> --env-file <that file>`.
+     `stigmer apikey create --service-account app-backend --name <the app's name> --save-to-env <that file>`.
      The CLI writes `STIGMER_API_KEY` into the file and prints only where it
      went.
    - `stigmer embedding set --create-accounts-on-sign-in on --sign-in-role member`,

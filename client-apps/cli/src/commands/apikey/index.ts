@@ -10,7 +10,8 @@
 // holds a role in, unless the CLI's own credential is limited to one, whose
 // organization it then takes.
 //
-// `--env-file <path>` appends `STIGMER_API_KEY=<key>` to that file instead of
+// `--save-to-env <path>` (not `--env-file`, which Node and tsx claim for
+// themselves on a source run) appends `STIGMER_API_KEY=<key>` to that file instead of
 // printing the key (made 0600 when new; refused before anything is created
 // when the file already sets the variable), and prints only where it went, so
 // a key made by a coding agent never passes through its transcript.
@@ -61,10 +62,10 @@ export interface ApiKeyCreateFlags extends OutputFlags {
   expiresIn?: string;
   boundOrg?: string;
   serviceAccount?: string;
-  envFile?: string;
+  saveToEnv?: string;
 }
 
-/** The variable `--env-file` sets: the one the token routes `stigmer app-handover` writes read. */
+/** The variable `--save-to-env` sets: the one the token routes `stigmer app-handover` writes read. */
 export const ENV_FILE_VARIABLE = "STIGMER_API_KEY";
 
 export function registerApiKey(program: Command): void {
@@ -87,7 +88,7 @@ export function registerApiKey(program: Command): void {
       "create the key for this service account of the organization; it speaks for the service account, not for you",
     )
     .option(
-      "--env-file <path>",
+      "--save-to-env <path>",
       `append ${ENV_FILE_VARIABLE}=<key> to this file instead of printing the key (0600 when new)`,
     )
     .action(async (options: ApiKeyCreateFlags, command: Command) => {
@@ -108,7 +109,7 @@ async function runCreate(options: ApiKeyCreateFlags, command: Command): Promise<
   const expiresAt = resolveExpiry(options);
   const serviceAccount = options.serviceAccount?.trim() ?? "";
   if (serviceAccount !== "") refuseServiceAccountMisuse(options);
-  const envFile = options.envFile?.trim() ?? "";
+  const envFile = options.saveToEnv?.trim() ?? "";
   if (envFile !== "") refuseEnvFileThatSetsTheKey(envFile);
 
   const { connectBackend } = await import("../../backend.js");
@@ -193,7 +194,7 @@ export function saveToEnvFile(path: string, key: string): void {
   appendFileSync(path, text === "" || text.endsWith("\n") ? line : `\n${line}`);
 }
 
-/** What `--env-file` prints: where the key went, never the key. */
+/** What `--save-to-env` prints: where the key went, never the key. */
 export function renderSavedKey(key: ApiKey, serviceAccount: string, path: string, format: OutputFormat): string {
   const where = relative(process.cwd(), resolve(path)) || path;
   const fields = {

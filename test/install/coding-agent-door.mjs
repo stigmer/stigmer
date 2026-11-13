@@ -43,8 +43,15 @@
  * are the ones packed from this checkout (the registry's may predate the
  * handover), installed before the browser step.
  *
+ * With `--local`, the server trusts every caller, as `stigmer up` does: the
+ * guide skips signing in, the key and the service account, and hands over the
+ * development chat alone. Pass then needs no sign-in, no key and no route;
+ * the manifest, the run's file and the chat answering on the page are the
+ * same.
+ *
  * Usage:
- *   node test/install/coding-agent-door.mjs [--keep] [--max-turns=<n>]
+ *   node test/install/coding-agent-door.mjs [--local] [--keep] [--max-turns=<n>]
+ *   --local           a server that trusts every caller (the development chat)
  *   --keep            keep the scratch folder (app, stream, CLI home)
  *   --max-turns=<n>   how many times to answer the coding agent (default 8)
  * Needs `claude` signed in, and `make build-server build-runner build-libs`.
@@ -91,9 +98,10 @@ function log(step) {
 }
 
 function parseArgs() {
-  const out = { keep: false, maxTurns: 8 };
+  const out = { keep: false, local: false, maxTurns: 8 };
   for (const arg of process.argv.slice(2)) {
     if (arg === "--keep") out.keep = true;
+    else if (arg === "--local") out.local = true;
     else if (arg.startsWith("--max-turns=")) out.maxTurns = Number(arg.slice("--max-turns=".length));
     else throw new Error(`unknown argument ${arg}`);
   }
@@ -347,11 +355,13 @@ async function main() {
     server = await spawnServer(process.execPath, {
       args: [tsServerEntryPath()],
       temporalHostPort: temporal.hostPort,
-      env: {
-        STIGMER_OIDC_ISSUER: issuer.issuer,
-        STIGMER_OIDC_AUDIENCE: AUDIENCE,
-        STIGMER_OIDC_NATIVE_CLIENT_ID: NATIVE_CLIENT,
-      },
+      env: args.local
+        ? {}
+        : {
+            STIGMER_OIDC_ISSUER: issuer.issuer,
+            STIGMER_OIDC_AUDIENCE: AUDIENCE,
+            STIGMER_OIDC_NATIVE_CLIENT_ID: NATIVE_CLIENT,
+          },
     });
     runner = await spawnRunner({
       entryPath: runnerEntryPath(),
@@ -361,7 +371,7 @@ async function main() {
       artifactDir: server.artifactBaseDir,
       env: fakeModelEnv(fake),
     });
-    log(`a server that signs its callers in is serving on ${server.baseUrl}, its runner on the fake model`);
+    log(`a server that ${args.local ? "trusts every caller" : "signs its callers in"} is serving on ${server.baseUrl}, its runner on the fake model`);
     scriptFirstRun(fake);
 
     writeFileSync(join(scratch, "browser.mjs"), FOLLOWER);
@@ -379,7 +389,11 @@ async function main() {
     const prompt = `${PROMPT} Use the Stigmer at ${server.baseUrl}.`;
     log(`claude -p in ${appDir}: ${prompt}`);
     let turn = await runClaude(appDir, env, sessionId, prompt, true, streamPath, stop.signal);
-    for (let i = 0; i < args.maxTurns && !existsSync(join(appDir, "app", "api", "stigmer-token", "route.ts")); i++) {
+    const handedOver = () =>
+      args.local
+        ? filesUnder(join(appDir, "app")).some((f) => f.endsWith("page.tsx") && readFileSync(join(appDir, "app", f), "utf8").includes("StigmerAgentChat"))
+        : existsSync(join(appDir, "app", "api", "stigmer-token", "route.ts"));
+    for (let i = 0; i < args.maxTurns && !handedOver(); i++) {
       log(`the coding agent stopped (${turn.result.slice(0, 160).replace(/\n/g, " ")}); answering`);
       turn = await runClaude(appDir, env, sessionId, ANSWER, false, streamPath, stop.signal);
     }
@@ -387,21 +401,25 @@ async function main() {
 
     // What the door must have left behind.
     const config = readFileSync(join(cliHome, ".stigmer", "config.yaml"), "utf8");
-    check(config.includes(`oidc_issuer: ${issuer.issuer}`), "the CLI never signed in through the server's issuer");
+    if (!args.local) check(config.includes(`oidc_issuer: ${issuer.issuer}`), "the CLI never signed in through the server's issuer");
     const manifests = filesUnder(join(appDir, "stigmer")).filter((f) => f.endsWith(".yaml"));
     check(manifests.length > 0, "no agent manifest under stigmer/");
     const outputs = filesUnder(join(appDir, "stigmer-output"));
     check(outputs.some((f) => f.endsWith(DOOR_FILE)), `the first run's ${DOOR_FILE} is not in stigmer-output/ (found: ${outputs.join(", ") || "nothing"})`);
     check(readFileSync(join(appDir, ".gitignore"), "utf8").includes("stigmer-output"), ".gitignore does not name stigmer-output/");
     const envFile = [".env.local", ".env"].map((f) => join(appDir, f)).find((p) => existsSync(p) && readFileSync(p, "utf8").includes("STIGMER_API_KEY="));
-    check(envFile !== undefined, "no env file holds STIGMER_API_KEY");
-    const key = /STIGMER_API_KEY=(\S+)/.exec(readFileSync(envFile, "utf8"))?.[1] ?? "";
-    check(key.length > 8 && !readFileSync(streamPath, "utf8").includes(key), "the key appears in the coding agent's stream");
-    const route = readFileSync(join(appDir, "app", "api", "stigmer-token", "route.ts"), "utf8");
-    check(/getSession/.test(route), "the token route does not read the app's own session (getSession)");
+    if (args.local) {
+      check(!existsSync(join(appDir, "app", "api", "stigmer-token", "route.ts")), "a token route on a server that trusts every caller");
+    } else {
+      check(envFile !== undefined, "no env file holds STIGMER_API_KEY");
+      const key = /STIGMER_API_KEY=(\S+)/.exec(readFileSync(envFile, "utf8"))?.[1] ?? "";
+      check(key.length > 8 && !readFileSync(streamPath, "utf8").includes(key), "the key appears in the coding agent's stream");
+      const route = readFileSync(join(appDir, "app", "api", "stigmer-token", "route.ts"), "utf8");
+      check(/getSession/.test(route), "the token route does not read the app's own session (getSession)");
+    }
     const chatPage = filesUnder(join(appDir, "app")).find((f) => f.endsWith("page.tsx") && readFileSync(join(appDir, "app", f), "utf8").includes("StigmerAgentChat"));
     check(chatPage !== undefined, "no page renders <StigmerAgentChat />");
-    log(`left behind: ${manifests.join(", ")}; stigmer-output/${DOOR_FILE}; the key in ${envFile}; the route; the chat on app/${chatPage}`);
+    log(`left behind: ${manifests.join(", ")}; stigmer-output/${DOOR_FILE}; ${args.local ? "the development chat" : `the key in ${envFile}; the route; the chat`} on app/${chatPage}`);
 
     // The app, with this checkout's packages, and its chat in a browser.
     const packDir = join(scratch, "packs");

@@ -1,13 +1,13 @@
 // The coding-agent door's commands through the real program and flag parsing
 // (commands/example.ts, embedding.ts, app-handover.ts, coding-agent.ts, and
-// apikey's --env-file), with the backend replaced at its module seam by a
+// apikey's --save-to-env), with the backend replaced at its module seam by a
 // fake client: `example list|get` write files in a scratch folder;
 // `coding-agent` prints the released guide; `embedding` reads the
 // organization and `set` saves the two settings keeping its origins and
 // vaults, and an admin-only refusal comes back in plain words;
 // `app-handover` prints or writes the handover for the organization's slug,
 // refuses an agent the organization lacks, and hands the development chat on
-// a server that trusts every caller; `apikey create --env-file` writes the
+// a server that trusts every caller; `apikey create --save-to-env` writes the
 // key and prints only where it went. currentOrganization reads the named
 // organization, or a one-organization server's own.
 
@@ -176,10 +176,10 @@ describe("stigmer app-handover", () => {
   });
 });
 
-describe("stigmer apikey create --env-file", () => {
+describe("stigmer apikey create --save-to-env", () => {
   it("writes the new key into the file and prints only where it went", async () => {
     fake.createKey.mockResolvedValue({ metadata: { id: "key_1", name: "my-app" }, spec: { keyHash: "stk_secret_value_1234" } });
-    const { out: text } = await run("apikey", "create", "--name", "my-app", "--env-file", ".env.local");
+    const { out: text } = await run("apikey", "create", "--name", "my-app", "--save-to-env", ".env.local");
     expect(readFileSync(join(cwd, ".env.local"), "utf8")).toBe("STIGMER_API_KEY=stk_secret_value_1234\n");
     expect(text).toContain("saved as STIGMER_API_KEY in .env.local");
     expect(text).not.toContain("stk_secret_value_1234");

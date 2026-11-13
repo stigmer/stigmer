@@ -1,7 +1,7 @@
 // The two ways a key reaches the CLI without passing through a shell's
 // history or a coding agent's transcript: `stigmer setup --api-key-stdin`
 // (commands/setup.ts withStdinKey) reads it from stdin, refusing a terminal
-// and `--api-key` beside it; `stigmer apikey create --env-file`
+// and `--api-key` beside it; `stigmer apikey create --save-to-env`
 // (commands/apikey) writes `STIGMER_API_KEY` into a file (0600 when new,
 // appended on its own line otherwise, refused before a key is made when the
 // file already sets it) and prints only where it went, never the key.
@@ -33,7 +33,7 @@ describe("setup --api-key-stdin", () => {
   });
 });
 
-describe("apikey create --env-file", () => {
+describe("apikey create --save-to-env", () => {
   it("makes a new file readable by its owner alone", () => {
     const path = join(mkdtempSync(join(tmpdir(), "stigmer-env-")), ".env.local");
     saveToEnvFile(path, SECRET);
