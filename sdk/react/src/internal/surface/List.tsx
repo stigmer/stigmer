@@ -110,7 +110,7 @@ export function ListRow({
           interactive && "stg:transition-colors stg:hover:bg-accent",
         )}
       >
-        {leading != null && <div className="stg:flex stg:shrink-0 stg:items-center">{leading}</div>}
+        {leading != null && <div className="stg:relative stg:z-10 stg:flex stg:shrink-0 stg:items-center">{leading}</div>}
         <div className="stg:flex stg:min-w-0 stg:flex-1 stg:flex-col">
           <div className="stg:flex stg:min-w-0 stg:items-center stg:gap-2 stg:font-medium stg:text-foreground">
             {nameNode}
