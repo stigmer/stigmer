@@ -64,6 +64,10 @@ the reason: `No worker available to execute activity`, followed by the three
 usual causes, starting with "the Stigmer runner is not running". The console and
 the CLI both show it. Start the run again once the runner is back.
 
+That is the external runner's case. With the `substrate` driver, a full sandbox
+fleet doesn't end a run this way: the run waits for room, as
+[When every sandbox is busy](#when-every-sandbox-is-busy) describes.
+
 A runner that dies in the middle of an Agent turn is a different case. The
 runner reports to Temporal every 30 seconds while it works; when two minutes
 pass without a report, the server resumes the turn from the runner's last
@@ -777,6 +781,32 @@ lists them.
   holds its atespace only, leave it out of the bootstrap owners, and have an
   owner create its atespace and grant it `editor` there.
 </Callout>
+
+### When every sandbox is busy
+
+Substrate places each awake Session on a worker with room, and when no worker
+has room it says so. The run then waits instead of failing. It stays pending,
+its status says it is waiting for a sandbox, and the server asks again after a
+pause of at most 15 seconds. The run starts as soon as room appears, whether
+another Session goes to sleep or ends, or a worker joins, even after many
+minutes.
+
+A run waits at most `STIGMER_SANDBOX_WAIT_SECONDS` (900 by default, 15 minutes).
+If no room comes by then, the run ends `RUN_FAILED` with stop cause
+`infrastructure` and the stop detail `no_sandbox_room`, and its status says
+every sandbox was busy and that nothing was lost. Running it again waits again.
+`0` ends such a run at once. The server refuses to boot with any other value
+than a whole number of seconds. A paused run takes no sandbox, and its wait
+starts over when it resumes.
+
+Room comes from your workers: the sandboxes a worker can hold, times the
+replicas of your Substrate WorkerPool. Add replicas, or let an autoscaler add
+them, and waiting runs start on the new workers. The server keeps no count of
+its own. It logs `A run is waiting for a sandbox` when a wait begins and
+`A run's wait for a sandbox ended`, with `waitedMs` and an `outcome` of `ready`
+or `ran_out`, when it ends: the first numbers to watch when you size the fleet.
+Waiting runs get room in no set order: whichever asks first after room appears
+starts.
 
 ## Next step
 

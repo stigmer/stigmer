@@ -41,10 +41,36 @@ export interface InvokeAgentExecutionWorkflowInput {
   readonly harness?: number;
   /**
    * Resolved execution target as the proto enum numeric value (0=UNSPEC,
-   * 1=LOCAL, 2=CLOUD). Cloud uses it for sandbox provisioning; the OSS
-   * workflow ignores it (every edition's input carries the same keys).
+   * 1=LOCAL, 2=CLOUD). On CLOUD the workflow ensures the session's sandbox
+   * before the turn's first runner activity and waits while the fleet has
+   * no room (sandbox-wait.ts).
    */
   readonly execution_target?: number;
+  /**
+   * The class of the caller whose request started the run (the identity
+   * interceptor's word, CallerIdentity.callerClass), which the workflow's
+   * sandbox ensure hands the driver (sandbox/provisioner.ts SandboxFacts).
+   * Absent in an input from a server that predates the workflow's ensure:
+   * such a run's sandbox was ensured by its request alone, and the
+   * workflow does not wait for room.
+   */
+  readonly caller_class?: string;
+  /** The routine whose fire started the run (CallerIdentity.routineId); absent for every other request. */
+  readonly routine_id?: string;
+  /**
+   * The caller's id (CallerIdentity.identityId). The sandbox ensure mints
+   * its runner credential for it only under the trusted-local posture
+   * (sandbox/steps.ts). Not a secret; history is operator-only, as for
+   * `invoker_identity_account_id`.
+   */
+  readonly caller_identity_id?: string;
+  /**
+   * How long the turn may wait for a sandbox with room, in seconds
+   * (STIGMER_SANDBOX_WAIT_SECONDS at dispatch; `0` = not at all). Carried
+   * on CLOUD only, zero included; absent means the default
+   * (sandbox-wait.ts DEFAULT_SANDBOX_WAIT_SECONDS).
+   */
+  readonly sandbox_wait_seconds?: number;
   /**
    * The run is a reconcile turn (`RunSpec.reconcile_file_review`): it puts
    * back undone files and sends no message, so its workflow titles no

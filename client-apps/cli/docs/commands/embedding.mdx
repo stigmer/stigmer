@@ -1,0 +1,39 @@
+How people sign in to your Organization from your own app: whether their account
+is made the first time your app signs them in, and the role it gets.
+
+Your app's backend signs its users in to Stigmer by minting a token for each one
+with an admin service account's key (the route `stigmer app-handover` writes).
+While account creation is on, the server makes that person's account on their
+first sign-in and gives it the sign-in role; while it is off, your app makes
+accounts first. `set` changes those two and keeps everything else as it stands
+(the allowed origins and the vaults), which the console's Settings change. A
+role needs account creation on, so turning creation off clears the role. Only
+the Organization's admins can change these.
+
+{/* AUTO_USAGE */}
+
+### Common patterns
+
+```bash
+# The settings as they stand
+stigmer embedding
+
+# Make an app user's account on their first sign-in, as a Member
+stigmer embedding set --create-accounts-on-sign-in on --sign-in-role member
+
+# Your app makes accounts itself
+stigmer embedding set --create-accounts-on-sign-in off
+```
+
+{/* AUTO_FLAGS */}
+
+{/* AUTO_SUBCOMMANDS */}
+
+{/* AUTO_GLOBAL_FLAGS */}
+
+## Related commands
+
+| Command                                          | Description                         |
+| ------------------------------------------------ | ----------------------------------- |
+| [`stigmer app-handover`](./app-handover)         | The token route and chat for your app |
+| [`stigmer service-account`](./service-account)   | The account your app's backend acts as |

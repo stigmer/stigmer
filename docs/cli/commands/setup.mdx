@@ -46,21 +46,26 @@ stigmer setup
 # Non-interactive: configure Anthropic
 stigmer setup --provider anthropic --api-key sk-ant-xxx
 
+# The key through stdin: it stays out of your shell's history and out of a
+# coding agent's transcript (or: printenv ANTHROPIC_API_KEY | stigmer setup --api-key-stdin)
+stigmer setup --api-key-stdin < anthropic.key
+
 # Clear the LLM configuration
 stigmer setup --provider skip
 ```
 
 ## Options
 
-| Flag               | Type     | Default | Description                                                      |
-| ------------------ | -------- | ------- | ---------------------------------------------------------------- |
-| `--api-key`        | `string` |         | Anthropic API key                                                |
-| `--json`           | `bool`   |         | emit the result as JSON                                          |
-| `--operator-email` | `string` |         | operator identity for local caller attribution (non-interactive) |
-| `--operator-name`  | `string` |         | operator display name (requires --operator-email)                |
-| `--output`, `-o`   | `string` |         | output format: table or json                                     |
-| `--provider`       | `string` |         | provider: anthropic, or skip to clear (non-interactive)          |
-| `--quiet`          | `bool`   |         | print only the status line                                       |
+| Flag               | Type     | Default | Description                                                                     |
+| ------------------ | -------- | ------- | ------------------------------------------------------------------------------- |
+| `--api-key`        | `string` |         | Anthropic API key                                                               |
+| `--api-key-stdin`  | `bool`   |         | read the Anthropic API key from stdin (keeps it out of history and transcripts) |
+| `--json`           | `bool`   |         | emit the result as JSON                                                         |
+| `--operator-email` | `string` |         | operator identity for local caller attribution (non-interactive)                |
+| `--operator-name`  | `string` |         | operator display name (requires --operator-email)                               |
+| `--output`, `-o`   | `string` |         | output format: table or json                                                    |
+| `--provider`       | `string` |         | provider: anthropic, or skip to clear (non-interactive)                         |
+| `--quiet`          | `bool`   |         | print only the status line                                                      |
 
 ## Examples
 

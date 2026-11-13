@@ -30,6 +30,7 @@ import { tempStore } from "../../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../../store/sqlite/__tests__/support.js";
 import type { Store } from "../../../../store/interface.js";
 import { createAgentExecutionActivities } from "../../../../temporal/agentexecution/activities.js";
+import { WITHOUT_SANDBOX } from "../../../../temporal/agentexecution/__tests__/activity-deps.js";
 import { COUNT_OPEN_GATES_ACTIVITY_NAME } from "../../../../temporal/agentexecution/names.js";
 import { stubConnectedEngine } from "../../../run/__tests__/engine-stub.js";
 import type { ExecutionEngineState } from "../../../run/engine.js";
@@ -132,6 +133,7 @@ async function seedLogOnly(asks: ReadonlyArray<Ask>): Promise<void> {
 
 async function openGateCount(): Promise<number> {
   const activities = createAgentExecutionActivities({
+    ...WITHOUT_SANDBOX,
     store: temp.store,
     logger: silentLogger,
     statusWriter: () => {

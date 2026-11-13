@@ -39,6 +39,8 @@ const OUT_DIR = fileURLToPath(
 // consumed per agent invocation, open-gate counts per HITL read.
 let executeBehaviors: Array<() => Promise<Record<string, unknown>>> = [];
 let gateCounts: number[] = [];
+// The sandbox ensure's answers, one per ask; "ready" once used up.
+let sandboxAnswers: string[] = [];
 
 const activities = {
   EnsureThread: async () => "thread-1",
@@ -61,6 +63,8 @@ const activities = {
   CloseFileReview: async () => {},
   // The session's queued turn, started as the workflow ends.
   StartQueuedTurn: async () => {},
+  // The turn's sandbox, asked for on a CLOUD target before the runner.
+  EnsureSessionSandbox: async () => sandboxAnswers.shift() ?? "ready",
 };
 
 /** The run every scenario dispatches, under the kinds' id prefixes. */
@@ -298,6 +302,21 @@ async function main(): Promise<void> {
     async (handle) => {
       await new Promise((resolve) => setTimeout(resolve, 1500));
       await handle.signal("approvalGateResolved");
+      await handle.result();
+    },
+  );
+
+  // 9. A turn that waited for a sandbox with room: on a CLOUD target the
+  //    workflow asks for the sandbox (the patch marker), hears "no room",
+  //    writes the run waiting, sleeps one backoff and asks again; room
+  //    comes, and the turn runs and completes.
+  executeBehaviors = [async () => slim("RUN_COMPLETED")];
+  gateCounts = [];
+  sandboxAnswers = ["no_room"];
+  await capture(
+    "sandbox-waited",
+    { ...RUN_INPUT, execution_target: 2, caller_class: "user", sandbox_wait_seconds: 900 },
+    async (handle) => {
       await handle.result();
     },
   );

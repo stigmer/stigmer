@@ -26,6 +26,15 @@ describe("FinalCTA", () => {
     );
   });
 
+  it("offers the coding-agent door between the two, to its own page", () => {
+    render(<FinalCTA />);
+    const links = screen.getAllByRole("link").map((link) => link.textContent?.trim());
+    expect(links.slice(0, 3)).toEqual(["Start free", "Let your coding agent set it up", "Run the quickstart"]);
+    expect(screen.getByRole("link", { name: "Let your coding agent set it up" }).getAttribute("href")).toBe(
+      "/docs/getting-started/coding-agent",
+    );
+  });
+
   it("shows one terminal, from install to the report, and no language tabs", () => {
     const { container } = render(<FinalCTA />);
 

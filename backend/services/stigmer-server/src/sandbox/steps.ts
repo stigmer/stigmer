@@ -9,7 +9,18 @@
  *     at its ScheduleToStartTimeout minutes later the user sees the root
  *     cause instead of a generic timeout. A warn-and-swallow here would
  *     hide a provisioning outage (a cloud quota, say) behind that
- *     timeout — the pre-stamp posture is contract.
+ *     timeout — the pre-stamp posture is contract. The one exception is
+ *     the fleet's "no room" (SandboxNoRoomError anywhere in the error's
+ *     cause chain, provisioner.ts `isSandboxNoRoom`): it is
+ *     logged at info and never stamped, because it is not a failure. The
+ *     agent-execution workflow runs the same body as its own activity
+ *     before the turn's first runner activity
+ *     (temporal/agentexecution/activities.ts), and on "no room" waits and
+ *     asks again (temporal/agentexecution/sandbox-wait.ts). The request's
+ *     ensure stays beside it for now: a second ensure of an awake sandbox
+ *     only rotates the token its runner would restart with, and a run
+ *     created while an older server still runs the workflow's tasks during
+ *     a rolling update is woken by the request's.
  *   - DeprovisionSessionSandbox (session delete): best-effort teardown,
  *     ERROR-logged on failure, never fails the delete.
  *
@@ -65,6 +76,8 @@ import {
 } from "../temporal/agentexecution/dispatch.js";
 import type { Store } from "../store/interface.js";
 import { mintSandboxToken, type SandboxLane } from "./lane.js";
+import { isSandboxNoRoom } from "./provisioner.js";
+import type { SandboxEnsureOutcome } from "../temporal/agentexecution/sandbox-wait.js";
 import { sessionIdOf } from "../domain/run/target.js";
 import { sessionEnvironmentFacts } from "../domain/run/environment-admission.js";
 
@@ -141,20 +154,23 @@ export function newEnsureSessionSandboxStep(
  * driver may decide durability by.
  * The chain always has a caller: the in-process transport mints
  * `internal` for the server's own calls.
+ *
+ * Returns what the ensure came to (SandboxEnsureOutcome): the request's
+ * steps ignore it, and the workflow's activity waits on `no_room`.
  */
 export async function ensureSessionSandboxForExecution(
   deps: EnsureSessionSandboxDeps,
   execution: Run,
   caller: SandboxCaller,
-): Promise<void> {
+): Promise<SandboxEnsureOutcome> {
   if (!deps.lane.enabled) {
-    return;
+    return "skipped";
   }
   const lane = deps.lane;
   const executionId = execution.metadata?.id ?? "";
   const sessionId = sessionIdOf(execution.spec);
   if (sessionId === "") {
-    return;
+    return "skipped";
   }
   try {
     const dispatch = await resolveActivityTaskQueue(
@@ -164,7 +180,7 @@ export async function ensureSessionSandboxForExecution(
       deps.logger,
     );
     if (dispatch.executionTarget !== ExecutionTarget.CLOUD) {
-      return;
+      return "skipped";
     }
     if (dispatch.taskQueue !== formatSessionTaskQueue(sessionId)) {
       // CLOUD target under global routing: the sandbox would have to
@@ -175,7 +191,7 @@ export async function ensureSessionSandboxForExecution(
         "Sandbox provisioning skipped: session routing is not per-session",
         { executionId, sessionId, taskQueue: dispatch.taskQueue },
       );
-      return;
+      return "skipped";
     }
     const environment = await sessionEnvironmentFacts(
       deps.store,
@@ -198,7 +214,17 @@ export async function ensureSessionSandboxForExecution(
       ...(caller.routineId !== undefined ? { routineId: caller.routineId } : {}),
       ...(environment !== undefined ? { environment } : {}),
     });
+    return "ready";
   } catch (error) {
+    if (isSandboxNoRoom(error)) {
+      // Not a failure (module header): the turn waits and asks again.
+      deps.logger.info("No sandbox has room for the session now", {
+        executionId,
+        sessionId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return "no_room";
+    }
     // Non-critical: never fail the launch — but never silent either
     // (module header). The real error goes to the log; the sanitized
     // root cause is pre-stamped for the timeout the user will see.
@@ -211,6 +237,7 @@ export async function ensureSessionSandboxForExecution(
       },
     );
     await stampProvisioningFailure(deps.store, deps.logger, executionId, error);
+    return "failed";
   }
 }
 

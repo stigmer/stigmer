@@ -41,9 +41,10 @@
  *
  * Any call answering ABORTED (another operation holds the actor, or it
  * crashed while resuming) sends the ensure back to reading the actor; no
- * free worker is thrown unretried, so the session step stamps it and the
- * connect lane refuses, as for any provisioning failure. The walk is
- * bounded, so an actor that never settles fails loudly.
+ * free worker is thrown unretried as SandboxNoRoomError, the contract's
+ * "no room" (provisioner.ts): a session's turn asks again while it waits
+ * for room, and the connect lane refuses. The walk is bounded, so an actor
+ * that never settles fails loudly.
  *
  * A rotated secret: the waiter keeps its first push's secrets for the
  * runner's life and refuses a push that changes them (`secrets_changed`),
@@ -135,12 +136,13 @@ import {
   sandboxTaskQueue,
 } from "../naming.js";
 import { RUNNER_SECRET_NAMES } from "../runner-secret-names.js";
-import type {
-  SandboxDriverConfig,
-  SandboxFacts,
-  SandboxProbeState,
-  SandboxProvisioner,
-  SandboxScope,
+import {
+  SandboxNoRoomError,
+  type SandboxDriverConfig,
+  type SandboxFacts,
+  type SandboxProbeState,
+  type SandboxProvisioner,
+  type SandboxScope,
 } from "../provisioner.js";
 import type { SubstrateDriverSettings } from "./config.js";
 import { delay } from "./delay.js";
@@ -638,7 +640,7 @@ export function newSubstrateSandboxDriverOverGateway(
             continue;
           }
           if (error instanceof SubstrateNoWorkerError) {
-            throw new Error(
+            throw new SandboxNoRoomError(
               `no free Substrate worker for sandbox ${name}: ${error.message}`,
             );
           }

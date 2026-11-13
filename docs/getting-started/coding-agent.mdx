@@ -1,0 +1,110 @@
+---
+title: Let your coding agent set it up
+description:
+  Paste one prompt into Claude Code, Cursor or Codex, in your app's folder, and
+  it sets Stigmer up with you, from signing in to your agent's chat in your app.
+---
+
+## The prompt
+
+If you work in a coding agent, it can do the whole setup with you. Open your
+app's folder in Claude Code, Cursor or Codex and paste this:
+
+```text title="Paste into your coding agent"
+Set up Stigmer for this project. Install its command line
+(`npm install -g @stigmer/cli`, or `brew install stigmer/tap/stigmer`),
+run `stigmer coding-agent`, and follow what it prints.
+```
+
+The console offers the same prompt under its first question ("Let your coding
+agent set it up"), with its own address added, so a coding agent you start from
+your own server's console sets up against that server.
+
+`stigmer coding-agent` prints the guide your coding agent follows. It comes with
+the command line you installed, so it names only the commands that version has.
+
+## What happens
+
+Your coding agent asks before each choice that is yours, and tells you what to
+look at after each step.
+
+1. **It installs the command line** if it's missing.
+2. **It asks where Stigmer runs**: Stigmer Cloud, your own server, or this
+   computer (`stigmer up`). Then it signs you in: your browser opens, or, where
+   no browser can open (an SSH session, a remote sandbox), it shows an address
+   and a short code to enter on any device.
+3. **It reads your app** and suggests the agent that fits your users: one of the
+   [example agents](/docs/getting-started/quickstart), or one it drafts from
+   what your app does. You choose. The agent's manifest is written into your
+   repository, under `stigmer/`, and made.
+4. **It checks your model key without seeing it.** The key goes from your
+   environment (`ANTHROPIC_API_KEY`) or from a hidden prompt you type into,
+   straight to the command line, never through the chat.
+5. **It runs the agent once** on a sample file and opens the file the agent
+   made.
+6. **It offers one change** (sharper instructions, your own file, or a
+   ready-made skill) and runs it again.
+7. **It puts the agent in your app**: an admin service account's key saved to
+   your app's env file (never printed), accounts made on your users' first
+   sign-in, then the token route and the chat component, fitted to your app's
+   own sign-in, and opens the page.
+
+Bringing your team in stays in the console, under **Settings → Members**. Last,
+it offers to keep Stigmer in your coding agent for next time (below).
+
+## Keep it in your coding agent
+
+You don't need anything installed to start: the prompt above is the way in. Once
+Stigmer is set up, Stigmer's plugin keeps it in your coding agent for next time.
+It carries the same guide as a skill, and Stigmer's MCP server
+(`stigmer mcp-server`) for making, running and reading agents. It needs the
+command line.
+
+With the plugin installed, you only say "Set up Stigmer for this project" in
+another app, or ask for what you want ("add an agent that drafts replies to our
+tickets").
+
+<Tabs items={["Claude Code", "Codex", "Cursor"]}>
+<Tab value="Claude Code">
+
+```bash
+claude plugin install stigmer --marketplace stigmer/coding-agent-plugin
+```
+
+Inside Claude Code, `/plugin` lists it once the marketplace is added.
+
+</Tab>
+<Tab value="Codex">
+
+```bash
+codex plugin marketplace add stigmer/coding-agent-plugin
+codex plugin add stigmer@stigmer
+```
+
+</Tab>
+<Tab value="Cursor">
+
+```bash
+git clone https://github.com/stigmer/coding-agent-plugin ~/.cursor/plugins/local/stigmer
+```
+
+Then run **Developer: Reload Window**. The skill and the MCP server show under
+**Customize**.
+
+</Tab>
+</Tabs>
+
+## In a remote sandbox
+
+A coding agent that runs in the cloud (Claude Code on the web, Codex's cloud
+tasks, Cursor's background agents) usually blocks outbound network by default.
+Sign-in works there with a code, but the sandbox must be allowed to reach your
+Stigmer address; that is the sandbox's own network setting.
+
+## Next
+
+- [Make it yours](/docs/getting-started/make-it-yours): the same changes, by
+  hand.
+- [Embed an agent](/docs/getting-started/embed-agent): what the token route and
+  the chat do, in detail.
+- [`stigmer coding-agent`](/docs/cli/commands/coding-agent): the guide itself.

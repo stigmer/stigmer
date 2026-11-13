@@ -308,6 +308,17 @@ const BY_KIND: Readonly<Record<string, Entry>> = {
     fixedBy: "actor",
     stepNote: "Interrupted here",
   },
+  no_sandbox_room: {
+    tone: "failed",
+    pill: "Didn't start",
+    headline: "Every sandbox was busy, so this turn didn't start.",
+    fixer: `${LOST_NOTHING} Run again waits for room again.`,
+    reader: LOST_NOTHING,
+    act: "run_again",
+    link: "none",
+    fixedBy: "actor",
+    stepNote: "Didn't start",
+  },
 };
 
 /** One entry per stop cause, for a turn the runner named no kind for, and the stops whose cause says it all. */

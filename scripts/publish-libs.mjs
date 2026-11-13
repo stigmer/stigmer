@@ -143,6 +143,12 @@ export const PACKAGES = [
   // acquires it at its exact version for `stigmer install`, and the console
   // reads it at the server's version from the npm CDN, so it MUST publish too.
   "plugins",
+  // @stigmer/coding-agent-plugin is Stigmer's plugin for coding agents (Claude
+  // Code, Codex, Cursor): the guide `stigmer coding-agent` prints and the
+  // plugin tree reconcile-coding-agent-plugin.yaml copies to its own
+  // repository. No @stigmer/* runtime deps; @stigmer/cli depends on it, so it
+  // MUST publish, before the CLI.
+  "coding-agents",
   // @stigmer/cli depends on @stigmer/apis + @stigmer/client + @stigmer/ink-ui, all
   // above it, so it publishes last with its deps already resolved.
   "client-apps/cli",

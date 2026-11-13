@@ -88,3 +88,11 @@ export const COUNT_OPEN_GATES_ACTIVITY_NAME = "CountOpenGates";
  * Byte-pinned.
  */
 export const START_QUEUED_TURN_ACTIVITY_NAME = "StartQueuedTurn";
+
+/**
+ * The ensure of the run's session sandbox, run by the workflow before the
+ * turn's first runner activity when the run's target is CLOUD: it answers
+ * whether the sandbox fleet had room (sandbox-wait.ts), and the workflow
+ * asks again while it has none. Byte-pinned.
+ */
+export const ENSURE_SESSION_SANDBOX_ACTIVITY_NAME = "EnsureSessionSandbox";

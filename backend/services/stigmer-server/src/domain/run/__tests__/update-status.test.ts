@@ -5,7 +5,9 @@
  *
  *   - the phase latch: a terminal phase is final against a straggler, and
  *     a PAUSED run moves only on the platform's own write (stigmer#1370);
- *     completed_at and the stop cause clear once the turn works again;
+ *     completed_at and the stop cause clear once the turn works again; the
+ *     platform's own waiting write moves a recovered run back to PENDING
+ *     with its phase text, which goes once the turn leaves PENDING;
  *   - the run's file record (file_changes) is merged by change set id: a
  *     set the write carries replaces the one with its id where it stands,
  *     a new one is added after the others, and no stored set is removed,
@@ -189,6 +191,25 @@ describe("the phase latch", () => {
     });
     const working = runBuildStep(paused, { phase: RunPhase.RUN_IN_PROGRESS }, "platform");
     expect(working.status?.stopDetail, "a turn that works again has no ending").toBeUndefined();
+  });
+
+  it("lets the platform's waiting write move a recovered run back to PENDING with its phase text, until it starts", () => {
+    const recovered = existingWith(RunPhase.RUN_IN_PROGRESS);
+    const waiting = runBuildStep(
+      recovered,
+      { phase: RunPhase.RUN_PENDING, setupProgress: { currentPhase: "Waiting for a sandbox" } },
+      "platform",
+    );
+    expect(waiting.status?.phase).toBe(RunPhase.RUN_PENDING);
+    expect(waiting.status?.setupProgress?.currentPhase).toBe("Waiting for a sandbox");
+    const started = runBuildStep(waiting, { phase: RunPhase.RUN_IN_PROGRESS });
+    expect(started.status?.setupProgress, "the phase text goes once the turn leaves PENDING").toBeUndefined();
+    const ended = runBuildStep(
+      existingWith(RunPhase.RUN_FAILED),
+      { phase: RunPhase.RUN_PENDING, setupProgress: { currentPhase: "Waiting for a sandbox" } },
+      "platform",
+    );
+    expect(ended.status?.phase, "an ended run stays ended").toBe(RunPhase.RUN_FAILED);
   });
 });
 

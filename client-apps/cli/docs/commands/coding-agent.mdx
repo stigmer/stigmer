@@ -1,0 +1,30 @@
+Prints the guide a coding agent (Claude Code, Cursor, Codex) follows to set
+Stigmer up for the project it is in: signing in, an agent for your app's users,
+the model key, a first run, and the agent's chat in your own app.
+
+You rarely run it yourself. The prompt on
+[Let your coding agent set it up](/docs/getting-started/coding-agent) installs
+the command line and asks your coding agent to run this and follow it. The guide
+comes with the command line you installed, so it names only the commands and
+flags that version has. Stigmer's plugin for coding agents carries the same
+guide as a skill.
+
+{/* AUTO_USAGE */}
+
+### Common patterns
+
+```bash
+# The guide, as your coding agent reads it
+stigmer coding-agent
+```
+
+{/* AUTO_FLAGS */}
+
+{/* AUTO_GLOBAL_FLAGS */}
+
+## Related commands
+
+| Command                                  | Description                         |
+| ---------------------------------------- | ----------------------------------- |
+| [`stigmer example`](./example)           | The example agents it suggests from |
+| [`stigmer app-handover`](./app-handover) | The route and chat it puts in your app |

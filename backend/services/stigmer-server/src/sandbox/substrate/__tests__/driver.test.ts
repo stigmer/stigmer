@@ -60,10 +60,11 @@ import { describe, expect, it } from "vitest";
 import { createLogger, type LogEntry } from "../../../boot/logger.js";
 import { sandboxBaseName } from "../../naming.js";
 import { runnerEnvironmentOf } from "../../environment.js";
-import type {
-  EnvironmentFacts,
-  SandboxDriverConfig,
-  SandboxFacts,
+import {
+  SandboxNoRoomError,
+  type EnvironmentFacts,
+  type SandboxDriverConfig,
+  type SandboxFacts,
 } from "../../provisioner.js";
 import { FakeSubstrate, fakeRouter } from "../__test-utils__/fake-gateway.js";
 import type { SubstrateDriverSettings } from "../config.js";
@@ -385,7 +386,7 @@ describe("failures", () => {
     expect(h.substrate.actors.get(ACTOR)?.state).toBe("running");
   });
 
-  it("no free worker: throws at once, naming it", async () => {
+  it("no free worker: throws the contract's no-room error at once, naming it", async () => {
     const h = harness();
     h.substrate.put({
       name: ACTOR,
@@ -396,9 +397,11 @@ describe("failures", () => {
       "resumeActor",
       new SubstrateNoWorkerError("no free workers available"),
     );
-    await expect(
-      h.driver.provisioner.ensureSessionSandbox(SESSION, facts),
-    ).rejects.toThrow(/no free Substrate worker/);
+    const thrown = await h.driver.provisioner
+      .ensureSessionSandbox(SESSION, facts)
+      .then(() => undefined, (error: unknown) => error);
+    expect(thrown).toBeInstanceOf(SandboxNoRoomError);
+    expect((thrown as Error).message).toMatch(/no free Substrate worker/);
     expect(
       h.substrate.calls.filter((c) => c === `resumeActor ${ACTOR}`),
     ).toHaveLength(1);

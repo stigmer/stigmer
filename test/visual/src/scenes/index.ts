@@ -94,6 +94,7 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "launcher-connect-member": () => launcherScene(NOTHING_CONNECTED, "member"),
   "launcher-connect-local": () => launcherScene(NOTHING_ON_THE_RUNNER, "admin", true),
   "launcher-first-question": () => launcherFirstQuestionScene(ANTHROPIC_ONLY),
+  "launcher-coding-agent": () => ({ ...launcherFirstQuestionScene(ANTHROPIC_ONLY), publicBaseUrl: "https://stigmer.acme.example" }),
   "launcher-example-connect": () => launcherFirstQuestionScene(NOTHING_CONNECTED),
   "launcher-example-rejected": () => launcherFirstQuestionScene(NOTHING_CONNECTED, "rejected"),
   "launcher-example-unchecked": () => launcherFirstQuestionScene(NOTHING_CONNECTED, "unchecked"),

@@ -10,7 +10,11 @@
  * the failures' words, and that the question ends once its session is
  * created. The composer is a probe that shows what it was mounted with; the
  * real composer's starting message is pinned in useComposer's own suite.
- * The suite's title holds CON-06 on the UX bar (test/ux-bar.json).
+ * The suite's title holds CON-06 on the UX bar (test/ux-bar.json). Under the
+ * cards, the coding-agent door (CON-11): one line that opens the prompt a
+ * person pastes into Claude Code, Cursor or Codex, with this console's own
+ * public address in it, and Copy; a member who may not make agents never
+ * meets it, since they never meet the question.
  */
 import { describe, it, expect, vi, afterEach, beforeAll, beforeEach } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
@@ -502,6 +506,51 @@ describe("CON-06 a new person's first screen asks what their agent should do for
       expect(await screen.findByRole("heading", { level: 1, name: TODAY })).toBeTruthy();
       expect(screen.queryByText(QUESTION)).toBeNull();
     });
+  });
+});
+
+describe("CON-11 the console offers the coding-agent door from the first question, with its own address in the prompt", () => {
+  const LINK = "Let your coding agent set it up";
+  const PROMPT =
+    "Set up Stigmer for this project. Install its command line (`npm install -g @stigmer/cli`, or `brew install stigmer/tap/stigmer`), run `stigmer coding-agent`, and follow what it prints.";
+
+  it("offers one quiet line under the cards that opens the prompt, naming this console's address", async () => {
+    const { client } = setup();
+    launch({ ...client, baseUrl: "https://stigmer.acme.test/" });
+    const link = await screen.findByRole("button", { name: LINK });
+    expect(screen.getByText(/Rather hand it to Claude Code, Cursor or Codex\?/)).toBeTruthy();
+    expect(link.getAttribute("aria-expanded")).toBe("false");
+    expect(screen.queryByText(/stigmer coding-agent/)).toBeNull();
+
+    fireEvent.click(link);
+    expect(link.getAttribute("aria-expanded")).toBe("true");
+    expect(screen.getByText(`${PROMPT} Use the Stigmer at https://stigmer.acme.test.`)).toBeTruthy();
+    expect(screen.getByText(/Paste this into your coding agent, in your app's folder/)).toBeTruthy();
+  });
+
+  it("copies the prompt as shown", async () => {
+    const writeText = vi.fn(async () => {});
+    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+    const { client } = setup();
+    launch({ ...client, baseUrl: "https://stigmer.acme.test" });
+    fireEvent.click(await screen.findByRole("button", { name: LINK }));
+    fireEvent.click(screen.getByRole("button", { name: "Copy" }));
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith(`${PROMPT} Use the Stigmer at https://stigmer.acme.test.`));
+    expect(await screen.findByRole("button", { name: "Copied" })).toBeTruthy();
+  });
+
+  it("leaves the address out when the console does not know its public one", async () => {
+    const { client } = setup();
+    launch(client);
+    fireEvent.click(await screen.findByRole("button", { name: LINK }));
+    expect(screen.getByText(PROMPT)).toBeTruthy();
+  });
+
+  it("is never shown to a member who may not make agents", async () => {
+    const { client } = setup({ canManage: false });
+    launch({ ...client, baseUrl: "https://stigmer.acme.test" });
+    expect(await screen.findByRole("heading", { level: 1, name: TODAY })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: LINK })).toBeNull();
   });
 });
 

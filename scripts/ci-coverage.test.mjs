@@ -56,6 +56,7 @@ const SUBJECTS = {
   "backend/services/runner": { script: "test", jobs: [["ci.runner.yaml", "runner-vitest"]] },
   "backend/services/stigmer-server": { script: "test", jobs: [["ci.stigmer-server.yaml", "server-tests"]] },
   "client-apps/cli": { script: "test", jobs: [LIBS] },
+  "coding-agents": { script: "test", jobs: [LIBS] },
   "ee/server": { script: "test", jobs: [["ci.ee.yaml", "ee"]] },
   "client-apps/desktop": { script: "test", jobs: [["ci.ts-workspace.yaml", "desktop-tests"]] },
   "client-apps/web": { script: "test", jobs: [["ci.ts-workspace.yaml", "web-tests"]] },

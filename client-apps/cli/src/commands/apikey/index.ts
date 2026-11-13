@@ -10,6 +10,12 @@
 // holds a role in, unless the CLI's own credential is limited to one, whose
 // organization it then takes.
 //
+// `--save-to-env <path>` (not `--env-file`, which Node and tsx claim for
+// themselves on a source run) appends `STIGMER_API_KEY=<key>` to that file instead of
+// printing the key (made 0600 when new; refused before anything is created
+// when the file already sets the variable), and prints only where it went, so
+// a key made by a coding agent never passes through its transcript.
+//
 // `--service-account <name>` creates the key for one of the organization's
 // service accounts instead of for the caller: the key speaks for the service
 // account, keeps working when the caller leaves, and works only in the
@@ -19,6 +25,8 @@
 // `STIGMER_ORG`, then the context), and the key needs a `--name` of its own.
 
 import { createHash } from "node:crypto";
+import { accessSync, appendFileSync, constants, existsSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, relative, resolve } from "node:path";
 import { create } from "@bufbuild/protobuf";
 import { timestampDate, timestampFromDate } from "@bufbuild/protobuf/wkt";
 import {
@@ -54,7 +62,11 @@ export interface ApiKeyCreateFlags extends OutputFlags {
   expiresIn?: string;
   boundOrg?: string;
   serviceAccount?: string;
+  saveToEnv?: string;
 }
+
+/** The variable `--save-to-env` sets: the one the token routes `stigmer app-handover` writes read. */
+export const ENV_FILE_VARIABLE = "STIGMER_API_KEY";
 
 export function registerApiKey(program: Command): void {
   const apikey = program
@@ -75,6 +87,10 @@ export function registerApiKey(program: Command): void {
       "--service-account <name>",
       "create the key for this service account of the organization; it speaks for the service account, not for you",
     )
+    .option(
+      "--save-to-env <path>",
+      `append ${ENV_FILE_VARIABLE}=<key> to this file instead of printing the key (0600 when new)`,
+    )
     .action(async (options: ApiKeyCreateFlags, command: Command) => {
       await runCreate(options, command);
     });
@@ -93,6 +109,8 @@ async function runCreate(options: ApiKeyCreateFlags, command: Command): Promise<
   const expiresAt = resolveExpiry(options);
   const serviceAccount = options.serviceAccount?.trim() ?? "";
   if (serviceAccount !== "") refuseServiceAccountMisuse(options);
+  const envFile = options.saveToEnv?.trim() ?? "";
+  if (envFile !== "") refuseEnvFileThatSetsTheKey(envFile);
 
   const { connectBackend } = await import("../../backend.js");
   const client = connectBackend();
@@ -115,6 +133,11 @@ async function runCreate(options: ApiKeyCreateFlags, command: Command): Promise<
         });
 
   const format = readFormat(options);
+  if (envFile !== "") {
+    saveToEnvFile(envFile, created.spec?.keyHash ?? "");
+    process.stdout.write(renderSavedKey(created, serviceAccount, envFile, format));
+    return;
+  }
   if (format === "json") {
     process.stdout.write(renderProtoJson(ApiKeySchema, created));
     return;
@@ -144,6 +167,68 @@ function refuseServiceAccountMisuse(options: ApiKeyCreateFlags): void {
         "Pass --name, e.g. --name github-actions, so its keys can be told apart.",
     );
   }
+}
+
+/**
+ * Refuse, before a key is made, a file the key could not be saved to (its
+ * folder missing or not writable), and one that already sets the variable: a
+ * second key would shadow or lose the first. A key made and then not saved
+ * would be live and shown to nobody.
+ */
+export function refuseEnvFileThatSetsTheKey(path: string): void {
+  if (!existsSync(path)) {
+    const folder = dirname(resolve(path));
+    try {
+      accessSync(folder, constants.W_OK);
+    } catch {
+      throw new UsageError(`${path} cannot be written: ${folder} is missing or not writable\n\nNo key was created.`);
+    }
+    return;
+  }
+  try {
+    accessSync(path, constants.W_OK);
+  } catch {
+    throw new UsageError(`${path} is not writable\n\nNo key was created.`);
+  }
+  const setsIt = readFileSync(path, "utf8")
+    .split(/\r?\n/)
+    .some((line) => new RegExp(`^\\s*(export\\s+)?${ENV_FILE_VARIABLE}\\s*=`).test(line));
+  if (setsIt) {
+    throw new UsageError(
+      `${path} already sets ${ENV_FILE_VARIABLE}\n\n` +
+        "Keep that key, or remove its line and run this again. No key was created.",
+    );
+  }
+}
+
+/** Append the variable to the file, creating it readable by its owner alone. */
+export function saveToEnvFile(path: string, key: string): void {
+  const line = `${ENV_FILE_VARIABLE}=${key}\n`;
+  if (!existsSync(path)) {
+    writeFileSync(path, line, { mode: 0o600 });
+    return;
+  }
+  const text = readFileSync(path, "utf8");
+  appendFileSync(path, text === "" || text.endsWith("\n") ? line : `\n${line}`);
+}
+
+/** What `--save-to-env` prints: where the key went, never the key. */
+export function renderSavedKey(key: ApiKey, serviceAccount: string, path: string, format: OutputFormat): string {
+  const where = relative(process.cwd(), resolve(path)) || path;
+  const fields = {
+    id: key.metadata?.id ?? "",
+    name: key.metadata?.name ?? "",
+    ...(serviceAccount === "" ? {} : { serviceAccount }),
+    envFile: where,
+    variable: ENV_FILE_VARIABLE,
+    expires: formatExpiry(key),
+  };
+  if (format === "json") return `${JSON.stringify(fields, null, 2)}\n`;
+  const lines = [`API key created and saved as ${ENV_FILE_VARIABLE} in ${where}`, "", `  ID:          ${fields.id}`];
+  if (fields.name !== "") lines.push(`  Name:        ${fields.name}`);
+  if (serviceAccount !== "") lines.push(`  Speaks for:  service account ${serviceAccount}`);
+  lines.push(`  Expires:     ${fields.expires}`, "", `Keep ${where} out of git; the key is shown nowhere else.`);
+  return `${lines.join("\n")}\n`;
 }
 
 /** Resolve the service account by name, then create the key that speaks for it. */

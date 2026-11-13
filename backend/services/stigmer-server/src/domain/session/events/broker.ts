@@ -448,7 +448,7 @@ function remember(subscription: SessionEventSubscription, id: string): void {
   }
 }
 
-/** A copy of `liveness` with every age (each operation's elapsed, the model wait) longer by `ms`. */
+/** A copy of `liveness` with every age (each operation's elapsed, the model wait, the sandbox wait) longer by `ms`. */
 function aged(liveness: RunLiveness, ms: number): RunLiveness {
   const copy = clone(RunLivenessSchema, liveness);
   for (const operation of copy.operations) {
@@ -458,6 +458,9 @@ function aged(liveness: RunLiveness, ms: number): RunLiveness {
   }
   if (copy.awaitingModelFor !== undefined) {
     copy.awaitingModelFor = longer(copy.awaitingModelFor, ms);
+  }
+  if (copy.awaitingSandboxFor !== undefined) {
+    copy.awaitingSandboxFor = longer(copy.awaitingSandboxFor, ms);
   }
   return copy;
 }

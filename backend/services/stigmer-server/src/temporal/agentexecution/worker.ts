@@ -27,6 +27,8 @@ import { resolveWorkflowSource } from "../workflow-source.js";
 import type { ExecutionStatusWriter } from "./activities.js";
 import { createAgentExecutionActivities } from "./activities.js";
 import type { QueuedTurnStarter } from "../../domain/run/queued-turn.js";
+import type { AccountsByCaller } from "../../domain/identityaccount/resolve.js";
+import type { SandboxLane } from "../../sandbox/lane.js";
 
 export interface AgentExecutionWorkerDeps {
   readonly store: Store;
@@ -43,6 +45,10 @@ export interface AgentExecutionWorkerDeps {
   /** Starts the turn a session's queued messages wait for (the StartQueuedTurn activity). */
   readonly queuedTurns: QueuedTurnStarter;
   readonly temporalConfig: AgentExecutionTemporalConfig;
+  /** The sandbox lane the EnsureSessionSandbox activity provisions through. */
+  readonly sandboxLane: SandboxLane;
+  /** Resolves a session's creator for its sandbox's runner credential; undefined under the trusted-local posture (sandbox/steps.ts). */
+  readonly personAccounts: AccountsByCaller | undefined;
 }
 
 export function newAgentExecutionWorkerFactory(
@@ -55,6 +61,9 @@ export function newAgentExecutionWorkerFactory(
       statusWriter: deps.statusWriter,
       sessionEventBroker: deps.sessionEventBroker,
       queuedTurns: deps.queuedTurns,
+      sandboxLane: deps.sandboxLane,
+      personAccounts: deps.personAccounts,
+      temporalConfig: deps.temporalConfig,
     });
 
     const workflowSource = resolveWorkflowSource({
