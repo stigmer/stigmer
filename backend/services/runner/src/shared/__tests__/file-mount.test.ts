@@ -24,7 +24,12 @@
  *  - this message's Files are found among the mounted ones by id, in the
  *    message's order, and a message File the conversation lacks is refused;
  *  - a mounted image is offered to the vision budget under its mount path,
- *    not its filename, read from disk only when it could be accepted;
+ *    not its filename, read from disk only when it could be accepted, and
+ *    the accepted image names its File;
+ *  - a File's bytes are read back by its id, never by a path: nothing for a
+ *    File the conversation dropped (the File that later took its path
+ *    answers its own bytes), for a copy the agent edited or replaced with a
+ *    link, or for an index entry bent out of `uploads/`;
  *  - the door is asked under the run's scoped credential.
  */
 
@@ -47,6 +52,7 @@ import {
   FLUSH_BYTES,
   mountFiles,
   offerMountedImage,
+  readMountedFile,
   splitMessageFiles,
   UPLOADS_INDEX_FILE,
   type MountedFile,
@@ -396,7 +402,10 @@ describe("offerMountedImage", () => {
   it("reads the mounted bytes and offers them to the budget under the mount path", async () => {
     await mount([served("file_img", "shot-2.png", PNG, { mimeType: "image/png", filename: "shot.png" })]);
     const outcome = await offerMountedImage(image(PNG.length), sessionId, new VisionBudget(DEEP_AGENT_VISION_PROFILE));
-    expect(outcome).toMatchObject({ kind: "accepted", image: { filename: "shot-2.png", mimeType: "image/png", byteSize: PNG.length } });
+    expect(outcome).toMatchObject({
+      kind: "accepted",
+      image: { fileId: "file_img", filename: "shot-2.png", mimeType: "image/png", byteSize: PNG.length },
+    });
   });
 
   it("settles a blind model and an oversized image without reading the file", async () => {
@@ -411,6 +420,46 @@ describe("offerMountedImage", () => {
       restore();
     }
     expect(read).not.toHaveBeenCalled();
+  });
+});
+
+describe("readMountedFile", () => {
+  it("answers a mounted File's bytes by its id, and nothing for a File the mount does not hold", async () => {
+    await mount([served("file_img", "shots/shot-2.png", PNG), served("file_doc", "notes.md", Buffer.from("notes"))]);
+    expect(await readMountedFile(sessionId, "file_img")).toEqual(PNG);
+    expect(await readMountedFile(sessionId, "file_doc")).toEqual(Buffer.from("notes"));
+    expect(await readMountedFile(sessionId, "file_none")).toBeUndefined();
+    expect(await readMountedFile("ses_never_mounted", "file_img")).toBeUndefined();
+  });
+
+  it("answers nothing for a dropped File, while the File that took its path answers its own bytes", async () => {
+    const other = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 9, 9, 9, 9]);
+    await mount([served("file_old", "image.png", PNG)]);
+    await mount([served("file_new", "image.png", other)]);
+    expect(await readMountedFile(sessionId, "file_old")).toBeUndefined();
+    expect(await readMountedFile(sessionId, "file_new")).toEqual(other);
+  });
+
+  it("answers nothing for a copy the agent edited or replaced with a link", async () => {
+    await mount([served("file_a", "a.png", PNG), served("file_b", "b.png", PNG)]);
+    writeFileSync(uploads("a.png"), Buffer.from("edited, same length"));
+    rmSync(uploads("b.png"));
+    writeFileSync(join(root, "elsewhere.png"), PNG);
+    symlinkSync(join(root, "elsewhere.png"), uploads("b.png"));
+    expect(await readMountedFile(sessionId, "file_a")).toBeUndefined();
+    expect(await readMountedFile(sessionId, "file_b")).toBeUndefined();
+  });
+
+  it("answers nothing for an index entry bent out of uploads/", async () => {
+    await mount([served("file_a", "a.png", PNG)]);
+    const outside = join(getPlatformDir(sessionId), "secret.txt");
+    writeFileSync(outside, "secret");
+    const { mtimeMs, size } = lstatSync(outside);
+    writeFileSync(
+      join(getPlatformDir(sessionId), UPLOADS_INDEX_FILE),
+      JSON.stringify({ files: { "../secret.txt": { fileId: "file_bent", sizeBytes: size, mtimeMs } } }),
+    );
+    expect(await readMountedFile(sessionId, "file_bent")).toBeUndefined();
   });
 });
 

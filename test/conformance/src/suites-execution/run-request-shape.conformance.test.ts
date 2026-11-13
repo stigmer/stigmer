@@ -63,6 +63,14 @@
 //   the arm finds it. A changed system byte re-writes the provider's cached
 //   prompt and the whole conversation after it, so this is a cost and
 //   latency contract, not a matter of taste.
+// - An image stays in the conversation: an image File given with the
+//   first turn's message reaches the model inline on that turn and on every
+//   later one, with the bytes uploaded, in a first user message that later
+//   turns send byte for byte (the prefix cache again). The runner's thread
+//   holds a pointer to the File and reads its bytes back at each model call
+//   (runner execute-deep-agent/image-ref-middleware.ts, stigmer/stigmer#3087);
+//   the wire is the one place that shows the pointer never reaches the
+//   model.
 //
 // The goldens depend on two things the header names so a moved golden is
 // diagnosed, not guessed at: (1) the model the runner resolves for a bare
@@ -343,6 +351,53 @@ describe("Run request shape — the system prompt is the session's, the payload 
     expect(readLastUserText(third.body), "the referenced path is named in the message of the turn that references it").toContain(
       referenced,
     );
+  });
+});
+
+// The Anthropic wire's first user message: where the conversation's first
+// turn, and its images, sit on every later request.
+function firstUserContentOf(body: unknown): unknown {
+  const messages = (body as { messages?: Array<{ role?: unknown; content?: unknown }> } | null)?.messages ?? [];
+  const first = messages.find((message) => message.role === "user");
+  if (first === undefined) throw new Error(`the request carries no user message among its ${messages.length}`);
+  return first.content;
+}
+
+describe("Run request shape — an image stays in the conversation", () => {
+  it("an image given on the first turn is sent with its bytes on every later turn, in a first message that does not change", async () => {
+    const { org, agentRef } = await createBareAgent();
+    const filename = "conversation-photo.png";
+    // A real (sniffable) PNG whose payload spells nothing else.
+    const png = Buffer.concat([
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+      Buffer.from(Array.from({ length: 2048 }, (_, i) => (i * 7 + 13) % 251)),
+    ]);
+    const file = await clients.fileCommand.upload({ org, filename, source: { case: "data", value: png } });
+    const fileId = file.metadata!.id;
+    fixtures.defer(() => clients.fileCommand.delete({ value: fileId }).catch(() => undefined));
+
+    const first = await runAgentTurn(org, agentRef, undefined, { message: "What is in this image?", fileIds: [fileId] });
+    const sessionId = sessionIdOf(first.final);
+    expect(sessionId, "the first turn's session is where the later turns run").toBeTruthy();
+    const second = await runAgentTurn(org, agentRef, sessionId, { message: "And its colours?" });
+    const third = await runAgentTurn(org, agentRef, sessionId, { message: "Thanks." });
+
+    const image = { type: "image", source: { type: "base64", media_type: "image/png", data: png.toString("base64") } };
+    for (const [turn, { body }] of [[1, first], [2, second], [3, third]] as const) {
+      const content = firstUserContentOf(body);
+      expect(Array.isArray(content), `turn ${turn}'s first user message carries blocks`).toBe(true);
+      const blocks = content as Array<{ type?: string; text?: string }>;
+      const at = blocks.findIndex((block) => block.type === "image");
+      expect(at, `turn ${turn} sends the first turn's image inline`).toBeGreaterThan(0);
+      expect(blocks[at - 1], `turn ${turn}: the image's label precedes it`).toEqual({ type: "text", text: `Image 1: ${filename}` });
+      expect(blocks[at], `turn ${turn}: the uploaded bytes, with the sniffed type`).toEqual(image);
+      expect(JSON.stringify(body), `turn ${turn}: no pointer reaches the model`).not.toContain("stigmer-image");
+    }
+    for (const [turn, later] of [[2, second], [3, third]] as const) {
+      expect(JSON.stringify(firstUserContentOf(later.body)), `turn ${turn} sends turn 1's message byte for byte`).toBe(
+        JSON.stringify(firstUserContentOf(first.body)),
+      );
+    }
   });
 });
 

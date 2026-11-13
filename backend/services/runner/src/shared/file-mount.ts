@@ -31,6 +31,13 @@
  * stops part-way leaves records only for what was already there; a File
  * written part-way has no record whose time matches, and is fetched again.
  *
+ * The index also answers a File's bytes by its id ({@link readMountedFile}),
+ * by the same rule a mount keeps a File: the record names the File and the
+ * file on disk is unchanged since it was written. The deep agent's model
+ * call reads an earlier turn's image back this way (`attachment-vision.ts`,
+ * pointers); a File the conversation dropped has no record, and answers
+ * nothing.
+ *
  * Every operation goes through `agent-fs.ts`, so in the runner the agent
  * host performs it with the agent's rights. The links stay in the runner:
  * the bytes cross to the host, the URL never does, and no error carries
@@ -201,7 +208,31 @@ export async function offerMountedImage(
   if (budget.modelCannotSee()) return budget.offerBlind();
   if (budget.exceedsImageCap(file.sizeBytes)) return budget.offerOversized();
   const bytes = await agentFs().readFile(join(getPlatformDir(sessionId), UPLOADS_SUBDIR, file.mountPath));
-  return budget.offer(file.mountPath, file.mimeType, bytes);
+  return budget.offer(file.fileId, file.mountPath, file.mimeType, bytes);
+}
+
+/**
+ * The bytes of the File `fileId` as the session's last mount wrote them,
+ * found by id in the index (see the module header), or `undefined` when
+ * the mount holds no such File, or its file on disk is no longer the one
+ * written (edited, replaced, removed). Never throws: a reader that finds
+ * nothing decides what to say about it.
+ */
+export async function readMountedFile(sessionId: string, fileId: string): Promise<Buffer | undefined> {
+  const platformDir = getPlatformDir(sessionId);
+  const uploadsDir = join(platformDir, UPLOADS_SUBDIR);
+  for (const [path, record] of await readIndex(platformDir)) {
+    if (record.fileId !== fileId) continue;
+    try {
+      // The index sits where the agent can write; a path it bent out of
+      // `uploads/` is refused here, as a mount refuses one.
+      const file = entryPathIn(uploadsDir, path, "File mount");
+      return unchangedSince(await agentFs().lstat(file), record) ? await agentFs().readFile(file) : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+  return undefined;
 }
 
 /** The entry's mount path, refused when empty or when it would leave `uploads/`. */
@@ -263,8 +294,12 @@ async function keptRecord(
 ): Promise<IndexRecord | undefined> {
   if (entry === undefined || record === undefined || record.fileId !== entry.fileId) return undefined;
   const stats = await agentFs().lstat(path);
-  const unchanged = stats.size === record.sizeBytes && stats.mtimeMs === record.mtimeMs && stats.size === Number(entry.sizeBytes);
-  return unchanged ? record : undefined;
+  return unchangedSince(stats, record) && stats.size === Number(entry.sizeBytes) ? record : undefined;
+}
+
+/** Whether a file on disk is still the one its record noted: a plain file, with the size and modification time written. */
+function unchangedSince(stats: AgentStats, record: IndexRecord): boolean {
+  return stats.isFile() && stats.size === record.sizeBytes && stats.mtimeMs === record.mtimeMs;
 }
 
 /**

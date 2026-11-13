@@ -9,9 +9,22 @@
  * bounded by a budget, delivered as vision payload alongside the user's turn
  * message. The runtime's File phase offers each image the message carried to
  * {@link VisionBudget.offer} (`file-mount.ts` `offerMountedImage`), and the
- * harnesses adapt the accepted images to their transport shape (the Stigmer
- * harness via {@link toLangChainImageBlocks}). No eligibility or
- * budget rule lives anywhere else.
+ * harnesses adapt the accepted images to their transport shape. No
+ * eligibility or budget rule lives anywhere else.
+ *
+ * Pointers, not bytes, in the Stigmer harness's thread
+ * (stigmer/stigmer#3087): the graph's state is its checkpoint, saved on
+ * every step and kept, so an image held inline there was written again with
+ * every step of every later turn. The thread holds a pointer instead
+ * ({@link toLangChainImageRefs}): the image's label, then a text block whose
+ * whole text names its File by id. The model call reads the File back from
+ * the mount and sends the inline block in the pointer's place
+ * (`execute-deep-agent/image-ref-middleware.ts`, through
+ * {@link imageRefOf} and {@link toLangChainImageBlock}). A File id, never a
+ * mount path: a path a dropped File freed can name another File later, and
+ * a File's bytes never change. A pointer that ever reached a provider would
+ * read as harmless text. The Claude engine appends its transcript once per
+ * turn, so it keeps the bytes inline ({@link toAnthropicImageBlocks}).
  *
  * Trust model: a File's `mime_type` is the uploader's declaration, never
  * verified against the bytes, so the magic-byte sniff here is
@@ -52,12 +65,8 @@
 export const MAX_VISION_IMAGE_BYTES = 3 * 1024 * 1024;
 
 /**
- * Per-turn cap on the SUM of raw image bytes sent inline. Kept at
- * 4 MB deliberately: on the deep-agent's durable checkpointers the full
- * message history — image base64 included — is re-persisted every superstep,
- * so a turn's total image payload is written roughly once per tool call. The
- * total budget is therefore also a write-amplification bound, not just a
- * request-size bound.
+ * Per-turn cap on the SUM of raw image bytes sent inline: a turn's images
+ * ride one request together.
  */
 export const MAX_VISION_TOTAL_BYTES = 4 * 1024 * 1024;
 
@@ -77,6 +86,8 @@ export type VisionMimeType =
 
 /** An image accepted into the turn's vision payload. */
 export interface VisionImage {
+  /** The File the image is: what a pointer in the deep agent's thread names ({@link toLangChainImageRefs}). */
+  readonly fileId: string;
   readonly filename: string;
   /** Sniffed from magic bytes — never the caller-declared content type. */
   readonly mimeType: VisionMimeType;
@@ -219,8 +230,8 @@ export class VisionBudget {
     this.modelVision = options?.modelVision;
   }
 
-  /** Evaluate one attachment's bytes against every eligibility and budget rule. */
-  offer(filename: string, declaredType: string, bytes: Buffer): VisionOutcome {
+  /** Evaluate one attachment's bytes, the File `fileId`, against every eligibility and budget rule. */
+  offer(fileId: string, filename: string, declaredType: string, bytes: Buffer): VisionOutcome {
     const sniffed = sniffImageMime(bytes);
     const declaredIsImage = declaredType.toLowerCase().startsWith("image/");
 
@@ -256,6 +267,7 @@ export class VisionBudget {
     return {
       kind: "accepted",
       image: {
+        fileId,
         filename,
         mimeType: sniffed,
         base64: bytes.toString("base64"),
@@ -313,13 +325,14 @@ export class VisionBudget {
  */
 export type LangChainContentBlock =
   | { type: "text"; text: string }
-  | { type: "image_url"; image_url: { url: string } };
+  | LangChainImageBlock;
+
+/** The one inline image shape the Stigmer harness sends (see {@link toLangChainImageBlock}). */
+export type LangChainImageBlock = { type: "image_url"; image_url: { url: string } };
 
 /**
- * LangChain multimodal content blocks for the deep-agent's initial
- * HumanMessage. Each image is preceded by a one-line label block so the model
- * can associate pixels with filenames; the caller appends its own text block
- * LAST — images-before-text follows Anthropic's own prompting guidance.
+ * The inline block a model call sends for one image: `image_url` with a
+ * data URL.
  *
  * The `image_url` + data-URL shape is deliberate, and looks outdated on
  * purpose. Do NOT "modernize" it:
@@ -333,18 +346,50 @@ export type LangChainContentBlock =
  * `image_url` with a data URL is the one shape converted correctly by both
  * installed providers (verified by executing the converters).
  */
-export function toLangChainImageBlocks(
-  images: readonly VisionImage[],
-): LangChainContentBlock[] {
-  const blocks: LangChainContentBlock[] = [];
-  images.forEach((img, i) => {
-    blocks.push({ type: "text", text: `Image ${i + 1}: ${img.filename}` });
-    blocks.push({
-      type: "image_url",
-      image_url: { url: `data:${img.mimeType};base64,${img.base64}` },
-    });
-  });
-  return blocks;
+export function toLangChainImageBlock(image: Pick<VisionImage, "mimeType" | "base64">): LangChainImageBlock {
+  return { type: "image_url", image_url: { url: `data:${image.mimeType};base64,${image.base64}` } };
+}
+
+/** A File id a pointer can carry: the characters a pointer's strict match accepts. */
+const IMAGE_REF_ID = /^[A-Za-z0-9_-]+$/;
+
+/** A pointer block's whole text, and nothing else (the File id is group 1). */
+const IMAGE_REF_TEXT = /^\[stigmer-image file="([A-Za-z0-9_-]+)"\]$/;
+
+/** The text of the pointer block that names the File `fileId`. */
+export function imageRefText(fileId: string): string {
+  return `[stigmer-image file="${fileId}"]`;
+}
+
+/**
+ * The deep agent's user-message blocks for its inline images, as its
+ * thread holds them: each image's one-line label block, so the model can
+ * associate pixels with filenames, then a pointer to its File (the
+ * header); the caller appends its own text block LAST — images-before-text
+ * follows Anthropic's own prompting guidance. The pointer is a plain text
+ * block with no other key: both providers' converters pass a text block's
+ * text alone, while a custom key could reach OpenAI on its legacy path.
+ *
+ * An id a pointer cannot carry keeps its bytes inline: the image is still
+ * seen, at the cost of carrying its bytes in every checkpoint.
+ */
+export function toLangChainImageRefs(images: readonly VisionImage[]): LangChainContentBlock[] {
+  return images.flatMap((img, i) => [
+    { type: "text" as const, text: `Image ${i + 1}: ${img.filename}` },
+    IMAGE_REF_ID.test(img.fileId) ? { type: "text" as const, text: imageRefText(img.fileId) } : toLangChainImageBlock(img),
+  ]);
+}
+
+/**
+ * The File id a pointer block names, or undefined for any other block:
+ * only a text block whose whole text is a pointer matches, so a person's
+ * message that quotes one among other words stays their text.
+ */
+export function imageRefOf(block: unknown): string | undefined {
+  if (typeof block !== "object" || block === null) return undefined;
+  const { type, text } = block as { readonly type?: unknown; readonly text?: unknown };
+  if (type !== "text" || typeof text !== "string") return undefined;
+  return IMAGE_REF_TEXT.exec(text)?.[1];
 }
 
 /** An Anthropic Messages API content block — only the shapes this module emits. */
@@ -354,7 +399,7 @@ export type AnthropicContentBlock =
 
 /**
  * Anthropic Messages API content blocks for the Claude engine's user message:
- * the same order as {@link toLangChainImageBlocks}, each image after a one-line
+ * the same order as {@link toLangChainImageRefs}, each image after a one-line
  * label block naming it, and the caller's text block last. The engine takes
  * a user message's content as the API's own blocks, raw base64 with the
  * sniffed media type.

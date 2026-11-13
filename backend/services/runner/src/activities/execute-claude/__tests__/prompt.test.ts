@@ -342,7 +342,7 @@ describe("composeTurnMessage", () => {
         message: [messageFile("notes.txt", ".stigmer/uploads/notes.txt"), messageFile("shot.png", ".stigmer/uploads/shot.png", "image")],
         conversation: [conversationFile],
         references: [{ filename: "ref.md", relativePath: ".stigmer/inputs/ref.md", sizeBytes: 5 }],
-        visionImages: [{ filename: "shot.png", mimeType: "image/png", base64: "AAAA", byteSize: 3 }],
+        visionImages: [{ fileId: "file_shot", filename: "shot.png", mimeType: "image/png", base64: "AAAA", byteSize: 3 }],
         visionNotViewable: [],
       },
       standing: { ...turnInputFixture().standing, conversationCatchup: "They discussed the release." },
