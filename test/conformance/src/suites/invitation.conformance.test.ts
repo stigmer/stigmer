@@ -263,6 +263,8 @@ describe.skipIf(!capabilities.invitations)("Invitation conformance — the invit
 
     const redeemed = await stranger.invitationCommand.redeem({ token });
     expect(redeemed.status?.redemptionCount).toBe(1);
+    const twice = await expectGrpcCode(() => stranger.invitationCommand.redeem({ token }), Code.AlreadyExists, "a second redeem before the account exists");
+    expect(twice.rawMessage).toBe(COPY.alreadyMember);
 
     await stranger.identityAccountCommand.provisionMyAccount({});
     const accountId = await lane.accountIdOf(stranger);

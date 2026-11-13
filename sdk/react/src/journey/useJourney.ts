@@ -39,9 +39,11 @@
 // second version, and only once the agent list has one; a plugin upgrade's
 // new version never counts.
 //
-// Asked only for a host that opts in and a person the server lets make
-// agents (`can_create_agent`, asked fail closed, the first question's
-// rule): the steps are acts. Until every read is in, the answer is
+// Asked only for a host that opts in and an admin of the organization
+// (`can_edit` on it, asked fail closed, the first question's rule): the
+// journey is the organization's, and its steps are an admin's acts. A
+// member, a teammate who joined by invitation among them, gets no journey
+// and the ordinary launcher, though a member may make agents. Until every read is in, the answer is
 // "pending", so no surface draws a step and then takes it back; a read that
 // fails answers "off", so nothing claims a step it could not see.
 
@@ -158,7 +160,7 @@ export function useJourney(org: string | null | undefined, options: { readonly e
   const stigmer = useStigmer();
   const asking = options.enabled && !!org;
   const orgId = asking ? (org as string) : null;
-  const permission = useCheckPermission(orgId ? { kind: "organization", id: orgId } : null, "can_create_agent", { fail: "closed" });
+  const permission = useCheckPermission(orgId ? { kind: "organization", id: orgId } : null, "can_edit", { fail: "closed" });
   const allowed = permission.allowed;
   // The reads are made only for a person the steps are for.
   const reading = orgId !== null && allowed ? orgId : null;

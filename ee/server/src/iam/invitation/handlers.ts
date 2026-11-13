@@ -396,11 +396,18 @@ async function redeemInvitation(
   }
 
   await refuseBoundElsewhere(deps.credentialBinding, caller, org);
-  await refuseExistingMember(deps.authorizer, caller, org);
-
   // The account the redeemer stands for, or the one their first sign-in
   // will make (the header's redeem row).
   const redeemer = await accountIdForCaller(deps.accounts, caller);
+  if (redeemer === caller.identityId) {
+    await refuseExistingMember(deps.authorizer, caller, org);
+  } else {
+    // A person not yet provisioned: the Authorizer knows them only by their
+    // subject, which no row names, so a second redeem before their account
+    // is made would pass it and take a second seat. Their membership is
+    // asked of the account the earlier redeem granted.
+    await refuseExistingAccountMember(deps.authorizationQueries, redeemer, org);
+  }
 
   // Record before grant: a lost slot then has nothing to undo, so no
   // redemption ever revokes a role row another one stands on (the header).
@@ -678,6 +685,30 @@ async function refuseExistingMember(
       const exhaustive: never = decision;
       throw new Error(`unknown decision ${JSON.stringify(exhaustive)}`);
     }
+  }
+}
+
+/** `refuseExistingMember` for an account not yet provisioned, asked of the engine by its id. */
+async function refuseExistingAccountMember(
+  queries: Pick<AuthorizationQueryEngine, "check">,
+  accountId: string,
+  org: string,
+): Promise<void> {
+  let holds: boolean;
+  try {
+    holds = await queries.check(
+      create(GrantSpecSchema, {
+        principal: create(ApiResourceRefSchema, { kind: "identity_account", id: accountId }),
+        relation: IamPermission[IamPermission.can_view],
+        resource: create(ApiResourceRefSchema, { kind: "organization", id: org }),
+      }),
+      [],
+    );
+  } catch (error) {
+    throw internalError(error, "failed to verify organization membership");
+  }
+  if (holds) {
+    throw new ConnectError("You are already a member of this organization", Code.AlreadyExists);
   }
 }
 

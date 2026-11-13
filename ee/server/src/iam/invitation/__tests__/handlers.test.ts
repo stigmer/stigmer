@@ -48,7 +48,9 @@
  *     organization it is for, redeems only into that organization;
  *   - a person admitted before their account exists (the invite page
  *     redeems a first visit's link) is recorded and granted as the account
- *     provisionMyAccount will give them, never as their raw subject;
+ *     provisionMyAccount will give them, never as their raw subject, and
+ *     redeeming again before that account is made is ALREADY_EXISTS, the
+ *     account's role asked of the engine, with no second seat taken;
  *   - the preview answers the organization's display and the link's
  *     validity, asking what redeem asks before it grants, so a link whose
  *     creator can no longer grant its role previews invalid with redeem's
@@ -288,7 +290,14 @@ function rig(
     },
     authorizationQueries: {
       check: (grant) => {
-        creatorChecks.push(`${grant.relation} ${grant.principal?.id ?? ""}`);
+        const principal = grant.principal?.id ?? "";
+        if (principal !== CREATOR) {
+          // A redeemer's membership: any role row this suite's grants left.
+          const prefix = `${principal}#`;
+          const suffix = `@${grant.resource?.id ?? ""}`;
+          return Promise.resolve([...held].some((row) => row.startsWith(prefix) && row.endsWith(suffix)));
+        }
+        creatorChecks.push(`${grant.relation} ${principal}`);
         if (options.creatorFault !== undefined) {
           return Promise.reject(options.creatorFault);
         }
@@ -701,6 +710,14 @@ describe("redeem", () => {
     const account = accountIdFor("auth0|first-visit");
     expect(redeemed.status?.redemptions.map((entry) => entry.identityAccountId)).toEqual([account]);
     expect(r.granted[0]?.principal).toMatchObject({ kind: "identity_account", id: account });
+
+    // Again before their account is made: the role the first redeem granted
+    // refuses it, and no second seat is taken.
+    const again = await failure(r.commands.redeem({ token: "Go" }));
+    expect(again.code).toBe(Code.AlreadyExists);
+    expect(again.rawMessage).toBe("You are already a member of this organization");
+    expect((await r.store.findById("inv_a"))?.status?.redemptionCount).toBe(1);
+    expect(r.granted).toHaveLength(1);
   });
 
   // Only `user` redeems: open source's own non-person classes, a class a

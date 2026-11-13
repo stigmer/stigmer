@@ -9,7 +9,7 @@
  * first, stopping at the first agent changed since it was made, so a
  * plugin's or another agent's versions never tick "Make it yours"; nothing
  * read without the host's opt-in or for a person the server refuses
- * `can_create_agent`; "pending" until every read is in and "off" when one
+ * `can_edit` (the organization's admins; a member gets no journey); "pending" until every read is in and "off" when one
  * fails; and whether anything ran at all, failed runs included, for a
  * surface's layout. Step 5's read is a lower bar: on a server that trusts
  * every caller it is not made, and refused or failed it leaves the step open
@@ -154,13 +154,13 @@ describe("useJourney", () => {
     expect(stigmer.agent.list).not.toHaveBeenCalled();
   });
 
-  it("CON-01 reads no step for a person the server refuses can_create_agent", async () => {
+  it("CON-01 reads no step for a person who is no admin of the organization (can_edit), a member who may make agents included", async () => {
     allowed = "no";
     const { result, stigmer } = renderJourney();
 
     await waitFor(() => expect(result.current.status).toBe("off"));
     expect(stigmer.grant.checkMyPermission.mock.calls[0]?.[0]).toMatchObject({
-      relation: "can_create_agent",
+      relation: "can_edit",
       resource: { kind: "organization", id: "org_acme" },
     });
     expect(stigmer.agent.list).not.toHaveBeenCalled();

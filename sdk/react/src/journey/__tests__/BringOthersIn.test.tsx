@@ -38,7 +38,14 @@ import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization
 import { ACME_ID, orgWrapper } from "../../organization/__tests__/org-fixture";
 import { BringOthersIn, BRING_OTHERS_IN_LINK_LABEL } from "../BringOthersIn";
 
-const stubs = vi.hoisted(() => ({ planAllowsChildren: null as boolean | null }));
+const stubs = vi.hoisted(() => ({ planAllowsChildren: null as boolean | null, journeyDone: true }));
+// The headline reads the journey's own answer, which its suite pins.
+vi.mock("../useJourney.js", () => ({
+  useJourney: () =>
+    stubs.journeyDone
+      ? { status: "ready", steps: [], done: 6, current: undefined, agent: undefined, everRan: true }
+      : { status: "ready", steps: [], done: 5, current: { id: "make-yours" }, agent: undefined, everRan: true },
+}));
 vi.mock("../../billing/useEntitlements.js", () => ({
   useEntitlements: (_org: string | null, options?: { enabled?: boolean }) => ({
     entitlements: null,
@@ -73,6 +80,8 @@ interface World {
   allowed: Set<string>;
   invitations: Invitation[];
   people: { id: string; name: string; mode: IdentityAccountProvisioningMode; role?: string }[];
+  /** whoAmI never answers. */
+  meUnknown: boolean;
 }
 
 let world: World;
@@ -85,8 +94,10 @@ beforeEach(() => {
     allowed: new Set(["can_edit", "can_grant_access", "can_view_access"]),
     invitations: [],
     people: [{ id: "ida_dana", name: "Dana Lee", mode: PERSON, role: "owner" }],
+    meUnknown: false,
   };
   stubs.planAllowsChildren = null;
+  stubs.journeyDone = true;
   localStorage.clear();
 });
 afterEach(cleanup);
@@ -116,7 +127,9 @@ function renderPage(mode: DeploymentMode = "cloud") {
         })),
       })),
     },
-    identityAccount: { whoAmI: vi.fn(async () => ({ metadata: { id: "ida_dana" } })) },
+    identityAccount: {
+      whoAmI: vi.fn(() => (world.meUnknown ? new Promise<never>(() => {}) : Promise.resolve({ metadata: { id: "ida_dana" } }))),
+    },
     organization: {
       get: vi.fn(async () => org()),
       update: vi.fn(async (resource: Organization) => {
@@ -301,6 +314,24 @@ describe("CON-12 BringOthersIn — who's here", () => {
       "https://stigmer.ai/docs/getting-started/one-organization-per-customer",
     );
     expect(screen.queryByText(/need the Business plan/)).toBeNull();
+  });
+
+  it("says only that the team is here while the journey's earlier steps are open", async () => {
+    world.name = "Ledgerly";
+    world.people.push({ id: "ida_sam", name: "Sam", mode: PERSON, role: "member" });
+    stubs.journeyDone = false;
+    renderPage();
+    await screen.findByText("Your team is here.");
+    expect(screen.queryByText("All six steps done.")).toBeNull();
+  });
+
+  it("counts nobody as joined until the viewer is known", async () => {
+    world.name = "Ledgerly";
+    world.people.push({ id: "ida_sam", name: "Sam", mode: PERSON, role: "member" });
+    world.meUnknown = true;
+    renderPage();
+    await screen.findByRole("list", { name: "People in this organization" });
+    expect(screen.queryByText(/All six steps done|Your team is here/)).toBeNull();
   });
 
   it("on a Cloud plan without child organizations, names the plan that has them", async () => {

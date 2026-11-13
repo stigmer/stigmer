@@ -30,7 +30,8 @@
 //                            left out, re-read while nobody else is there.
 //                            An access entry carries no time, so it says who
 //                            is here, never when they came. Once someone
-//                            else is, the page says the journey is done and
+//                            else is, the page says so (the journey done when
+//                            the card reads six of six), and
 //                            what a company selling to other companies needs
 //                            next: an organization per customer where the
 //                            edition has them (Cloud's plan read first), a
@@ -54,6 +55,7 @@ import { anchorLink, type RenderLink } from "../button/LinkButton.js";
 import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { useAppAccess } from "../app-handover/useAppAccess.js";
 import { useMyIdentityAccount } from "../identity-account/useMyIdentityAccount.js";
+import { useJourney } from "./useJourney.js";
 import { useCreateInvitation } from "../invitation/useCreateInvitation.js";
 import { useOrgInvitations } from "../invitation/useOrgInvitations.js";
 import { useRevokeInvitation } from "../invitation/useRevokeInvitation.js";
@@ -598,12 +600,14 @@ function WhosHere({
   readonly billingHref: string | undefined;
   readonly renderLink: RenderLink;
 }) {
+  // The viewer must be known before anyone else is: until whoAmI answers,
+  // or if it fails, nobody counts as having joined (the journey's own rule).
   const me = useMyIdentityAccount({ enabled: signsIn });
-  const myId = me.account?.metadata?.id ?? "";
+  const myId = me.account?.metadata?.id;
   const [someoneElse, setSomeoneElse] = useState(false);
   const access = useAppAccess(orgId, { enabled: signsIn, refetchInterval: someoneElse ? false : WAITING_FOR_TEAM_MS });
   const people = access.people;
-  const others = people?.filter((person) => person.id !== myId) ?? [];
+  const others = myId === undefined || myId === "" ? [] : (people?.filter((person) => person.id !== myId) ?? []);
   useEffect(() => setSomeoneElse(others.length > 0), [others.length]);
 
   if (access.allowed === false || access.error !== null) {
@@ -655,10 +659,14 @@ function DoneLine({
   const lacksChildren = plan.allows(Feature.child_orgs) === false;
   const catalog = usePlans({ enabled: lacksChildren });
   const unlocking = unlockingPlanName(catalog.plans ?? [], Feature.child_orgs);
+  // The headline claims the whole journey only when the journey itself does
+  // (the card's six of six); a team that joined early is just here.
+  const journey = useJourney(orgId, { enabled: true });
+  const allDone = journey.status === "ready" && journey.current === undefined;
 
   return (
     <div role="status" className="stg:flex stg:flex-col stg:gap-2 stg:border-t stg:border-border-muted stg:pt-3">
-      <p className="stg:m-0 stg:text-sm stg:font-medium stg:text-foreground">All six steps done.</p>
+      <p className="stg:m-0 stg:text-sm stg:font-medium stg:text-foreground">{allDone ? "All six steps done." : "Your team is here."}</p>
       {singleOrg ? (
         <p className="stg:m-0 stg:text-sm stg:text-muted-foreground">
           Building for several customers on this server?{" "}
