@@ -1235,6 +1235,7 @@ export const ENDING_STORY_NAMES = [
   "fail-app-sign-in",
   "fail-internal",
   "fail-runner-lost",
+  "fail-no-sandbox-room",
   "fail-platform-stop",
   "fail-user-stop",
   "fail-generic-model",
@@ -1254,6 +1255,8 @@ interface Ending {
   readonly error: string;
   /** The turn had worked part-way when it ended: two of five to-dos done and the edit made. */
   readonly midPlan?: boolean;
+  /** The turn never started: its run went from pending to its ending, with nothing between. */
+  readonly neverStarted?: boolean;
 }
 
 const ENDING_MODEL = "claude-sonnet-4.6";
@@ -1397,6 +1400,14 @@ const ENDINGS: Readonly<Record<EndingStoryName, Ending>> = {
     error: "Execution interrupted: runner worker was shut down. Retry or resume.",
     midPlan: true,
   },
+  "fail-no-sandbox-room": {
+    title: "every sandbox stayed busy, so the turn never started",
+    phase: "failed",
+    stopCause: "infrastructure",
+    kind: "no_sandbox_room",
+    error: "Every sandbox was busy for 15 minutes, so this turn didn't start. Nothing was lost: run it again to wait for room.",
+    neverStarted: true,
+  },
   "fail-platform-stop": {
     title: "Stigmer stopped the turn",
     phase: "completed",
@@ -1458,8 +1469,15 @@ function buildEndingStory(name: EndingStoryName): Scenario {
             ...(ending.app === undefined ? {} : { app: ending.app }),
           },
         };
-  const start = ending.midPlan === true ? partWayEvents() : samples.turnEvents({ message: "Invoices are off by a cent. Can you fix the rounding?", phase: "running", reply: "" });
-  const endAt = ending.midPlan === true ? 90_000 : 400;
+  const message = "Invoices are off by a cent. Can you fix the rounding?";
+  const start =
+    ending.midPlan === true
+      ? partWayEvents()
+      : ending.neverStarted === true
+        ? [samples.userMessageEvent(message), samples.runStatusEvent("pending")]
+        : samples.turnEvents({ message, phase: "running", reply: "" });
+  // A turn that never started ends when the server's wait for a sandbox runs out: 15 minutes.
+  const endAt = ending.midPlan === true ? 90_000 : ending.neverStarted === true ? 900_000 : 400;
   return loaded(name, ending.title, [
     ...start,
     samples.runStatusEvent(ending.phase, { stopCause: ending.stopCause, error: ending.error, processedAt: sampleInstant(endAt), ...detail }),

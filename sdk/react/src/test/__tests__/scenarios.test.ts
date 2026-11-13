@@ -443,6 +443,8 @@ describe("the ending turns", () => {
     });
     expect(status("fail-app-unreachable")).toMatchObject({ stopCause: "failed", stopDetail: { kind: "app_unreachable", model: "", app: "issue-tracker" } });
     expect(status("fail-cost-cap")).toMatchObject({ phase: "terminated", stopCause: "budget_reached", stopDetail: { kind: "cost_cap" } });
+    expect(status("fail-no-sandbox-room")).toMatchObject({ phase: "failed", stopCause: "infrastructure", stopDetail: { kind: "no_sandbox_room" } });
+    expect(endingStories["fail-no-sandbox-room"].fold.turns[0]!.items, "a turn that never started did nothing").toEqual([]);
     expect(status("fail-user-stop")).toMatchObject({ phase: "cancelled", stopCause: "user" });
     expect(status("fail-user-stop")?.stopDetail).toBeUndefined();
     expect(status("fail-generic-model")?.stopDetail).toBeUndefined();
