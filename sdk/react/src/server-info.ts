@@ -32,21 +32,25 @@ export interface UseServerInfoReturn {
  * Cached across mounts under a {@link FetchCacheProvider}: the answer is a
  * property of the server, so a revisit renders it immediately.
  *
+ * Pass `enabled: false` to skip the read (the answer stays `null`), for a
+ * surface that asks only in some states.
+ *
  * @example
  * ```tsx
  * const { serverInfo } = useServerInfo();
  * const trustsEveryRequest = serverInfo?.authenticationRequired === false;
  * ```
  */
-export function useServerInfo(): UseServerInfoReturn {
+export function useServerInfo(options?: { readonly enabled?: boolean }): UseServerInfoReturn {
   const stigmer = useStigmer();
+  const enabled = options?.enabled ?? true;
   const {
     data: serverInfo,
     isLoading,
     error,
   } = useFetch<ServerInfo | null>(
-    () => stigmer.platform.getServerInfo(),
-    [stigmer],
+    enabled ? () => stigmer.platform.getServerInfo() : null,
+    [stigmer, enabled],
     null,
     { cacheKey: "server-info" },
   );

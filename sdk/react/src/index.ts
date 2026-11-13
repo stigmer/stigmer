@@ -732,6 +732,7 @@ export {
   type JourneyLinks,
   type RenderJourneyLink,
 } from "./journey/index.js";
+export { InAppTab, type InAppTabProps, type InAppLinks } from "./app-handover/index.js";
 export { exampleLaunch, useLinkedLaunch, type SessionLaunch, type LaunchMode, type LaunchParams } from "./session/launch.js";
 // The example a launch is built from, as `exampleLaunch` names it.
 export type { Example } from "@stigmer/examples";

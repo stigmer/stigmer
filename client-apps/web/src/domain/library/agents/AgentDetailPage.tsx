@@ -171,6 +171,7 @@ export function AgentDetailPageInner({ org, slug }: AgentDetailPageInnerProps) {
         onTabChange={setActiveTab}
         // The journey's tab, for an agent the journey made.
         makeItYours={journeyLinks}
+        inApp={journeyLinks}
       />
       <ConfirmDialog
         state={confirmState}

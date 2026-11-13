@@ -52,7 +52,7 @@ export interface MakeItYoursLinks {
    * reads with `useLinkedLaunch`.
    */
   readonly launch: (input: { readonly agent: ResourceRef; readonly example: string | undefined; readonly mode: LaunchMode }) => string;
-  /** Where the agent is put in front of users (today its Channels tab); the tab's last line links there. */
+  /** Where the agent is put in its builder's own app (its "In your app" tab); the tab's last line links there. */
   readonly putInApp?: (agent: ResourceRef) => string;
   /** Draws each link; a plain anchor otherwise. */
   readonly renderLink?: RenderJourneyLink;

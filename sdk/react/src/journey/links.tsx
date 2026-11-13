@@ -16,7 +16,7 @@ export interface JourneyLinks {
    * `/library/agents/<org>/<slug>?tab=make-it-yours`).
    */
   readonly makeItYours?: (agent: ResourceRef) => string;
-  /** Where an agent is put in front of users: today its Channels tab. */
+  /** Where an agent is put in its builder's own app: its "In your app" tab (`?tab=in-app`). */
   readonly putInApp?: (agent: ResourceRef) => string;
   /** Where the team is invited (the console's members page). */
   readonly bringOthers?: string;

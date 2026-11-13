@@ -203,6 +203,7 @@ export default function AgentDetailPage() {
         sessionHref={(id) => `#/sessions/${id}`}
         // The journey's tab, for an agent the journey made.
         makeItYours={journeyLinks}
+        inApp={journeyLinks}
         activeTab={activeTab}
         onTabChange={setActiveTab}
       />
