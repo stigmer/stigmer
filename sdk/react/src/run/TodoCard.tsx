@@ -28,7 +28,7 @@ export interface TodoCardProps {
  * The agent's plan, rendered inline in the message thread as a collapsible
  * card — the "what I'm going to do, and how far I've got" surface. The
  * thread draws it only when a host passes a `TodoCard` or `TodoRow` slot to
- * `MessageThread`; otherwise the turn's plan card ({@link PlanSteps}) shows
+ * `MessageThread`; otherwise the turn's plan card (`PlanSteps`) shows
  * the same list.
  *
  * Drawn in the plan card's look so the two read as one object: a bordered

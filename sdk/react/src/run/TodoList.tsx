@@ -29,7 +29,7 @@ const STATUS_SORT_ORDER: Readonly<Record<Todo["status"], number>> = {
 
 /**
  * Renders a sorted checklist of `Todo` entries, in the look of a turn's
- * plan card ({@link PlanSteps}): 14/20 rows with 8px padding split by a
+ * plan card (`PlanSteps`): 14/20 rows with 8px padding split by a
  * muted rule, each with the plan's mark (a ready tick once done, a running
  * spinner while in progress, an empty ring before, a ring and struck words
  * once dropped).
