@@ -14,7 +14,11 @@
  *     conversation is shared with never takes the runner over, and a
  *     creator stamp that names nobody mints nothing (tokenless, fail
  *     closed). Under the trusted-local posture (no accounts port) the
- *     caller, the one operator, is minted for.
+ *     caller, the one operator, is minted for;
+ *   - the ensure answers in one word (ready, no_room, skipped, failed),
+ *     and the fleet's "no room" (SandboxNoRoomError) is not a failure:
+ *     nothing is stamped, so a turn that waits and then starts carries no
+ *     false root cause.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -45,7 +49,11 @@ import type {
 } from "../../runnerauth/runner-credential-provider.js";
 import { SqliteStore } from "../../store/sqlite/store.js";
 import type { SandboxLane } from "../lane.js";
-import type { SandboxFacts, SandboxProvisioner } from "../provisioner.js";
+import {
+  SandboxNoRoomError,
+  type SandboxFacts,
+  type SandboxProvisioner,
+} from "../provisioner.js";
 import {
   deprovisionSessionSandboxBestEffort,
   ensureSessionSandboxForExecution,
@@ -544,6 +552,81 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
       RunSchema,
     );
     expect(after.status?.error).toBe("the real root cause");
+  });
+});
+
+describe("what an ensure came to", () => {
+  let dir: string;
+  let store: SqliteStore;
+
+  beforeAll(() => {
+    dir = mkdtempSync(path.join(tmpdir(), "sandbox-outcome-"));
+    store = SqliteStore.open(path.join(dir, "test.db"));
+  });
+  afterAll(async () => {
+    await store.close();
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  async function seeded(id: string, target: ExecutionTarget, error = ""): Promise<Run> {
+    await store.saveResource(
+      ApiResourceKind.session,
+      `ses_${id}`,
+      SessionSchema,
+      create(SessionSchema, { metadata: { id: `ses_${id}`, name: id }, spec: { executionTarget: target } }),
+    );
+    const execution = create(RunSchema, {
+      metadata: { id: `axr_${id}`, name: id },
+      spec: { target: { case: "sessionId", value: `ses_${id}` } },
+      ...(error !== "" ? { status: { error } } : {}),
+    });
+    await store.saveResource(ApiResourceKind.run, `axr_${id}`, RunSchema, execution);
+    return execution;
+  }
+
+  function ensureWith(provisioner: SandboxProvisioner, execution: Run, enabled = true) {
+    return ensureSessionSandboxForExecution(
+      {
+        store,
+        logger: silentLogger,
+        lane: enabled ? lane(provisioner) : { enabled: false },
+        temporalConfig: sessionRoutingCloudDefault,
+        accounts: undefined,
+      },
+      execution,
+      TEST_CALLER,
+    );
+  }
+
+  it("answers ready, skipped and failed for the arms that already were", async () => {
+    expect(await ensureWith(fakeProvisioner(), await seeded("ready", ExecutionTarget.CLOUD))).toBe("ready");
+    expect(await ensureWith(fakeProvisioner(), await seeded("local", ExecutionTarget.LOCAL))).toBe("skipped");
+    expect(await ensureWith(fakeProvisioner(), await seeded("off", ExecutionTarget.CLOUD), false)).toBe("skipped");
+    const sessionless = create(RunSchema, { metadata: { id: "axr_no_session", name: "no-session" }, spec: {} });
+    expect(await ensureWith(fakeProvisioner(), sessionless), "a run in no session").toBe("skipped");
+    expect(
+      await ensureWith(fakeProvisioner({ ensureError: new Error("quota") }), await seeded("broken", ExecutionTarget.CLOUD)),
+    ).toBe("failed");
+  });
+
+  it("answers no_room for the fleet's no-room, and stamps nothing", async () => {
+    const execution = await seeded("full", ExecutionTarget.CLOUD);
+    const outcome = await ensureWith(
+      fakeProvisioner({ ensureError: new SandboxNoRoomError("no free Substrate worker for sandbox s: none") }),
+      execution,
+    );
+    expect(outcome).toBe("no_room");
+    const after = await store.getResource(ApiResourceKind.run, "axr_full", RunSchema);
+    expect(after.status?.error ?? "").toBe("");
+  });
+
+  it("reads no room through a wrapping driver's cause, as the cloud's provisioner wraps substrate's", async () => {
+    const wrapped = new Error("Failed to wake session sandbox for ses_wrapped: no free Substrate worker", {
+      cause: new SandboxNoRoomError("no free Substrate worker for sandbox s: none"),
+    });
+    const execution = await seeded("wrapped", ExecutionTarget.CLOUD);
+    expect(await ensureWith(fakeProvisioner({ ensureError: wrapped }), execution)).toBe("no_room");
+    expect((await store.getResource(ApiResourceKind.run, "axr_wrapped", RunSchema)).status?.error ?? "").toBe("");
   });
 });
 

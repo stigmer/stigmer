@@ -27,7 +27,8 @@ function words(line: string): string[] {
   const pattern = /"((?:[^"\\]|\\.)*)"|'([^']*)'|(\S+)/g;
   for (const match of line.matchAll(pattern)) {
     const bare = match[3];
-    if (bare !== undefined && /^(>|>>|\||&&|;)$/.test(bare)) break;
+    // A redirection or a pipe ends the command's own words (`< key`, `> out`).
+    if (bare !== undefined && /^(<|>|>>|\||&&|;)$/.test(bare)) break;
     out.push(match[1] ?? match[2] ?? bare ?? "");
   }
   return out;

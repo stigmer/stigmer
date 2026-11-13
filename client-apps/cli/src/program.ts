@@ -52,6 +52,10 @@ import { registerUsage } from "./commands/usage.js";
 import { registerValidate } from "./commands/validate.js";
 import { registerVault } from "./commands/vault.js";
 import { registerVersion } from "./commands/version.js";
+import { registerAppHandover } from "./commands/app-handover.js";
+import { registerCodingAgent } from "./commands/coding-agent.js";
+import { registerEmbedding } from "./commands/embedding.js";
+import { registerExample } from "./commands/example.js";
 import { applyHelp } from "./commands/help.js";
 import { setActionCommand, setDebug, setStandalone } from "./runtime.js";
 import { commandPath } from "./command-tree.js";
@@ -88,6 +92,8 @@ export function buildProgram(): Command {
   registerRun(program);
   registerResume(program);
   registerRuns(program);
+  registerAppHandover(program);
+  registerCodingAgent(program);
   // Your library
   registerGet(program);
   registerList(program);
@@ -102,6 +108,7 @@ export function buildProgram(): Command {
   registerVault(program);
   registerFile(program);
   registerConnect(program);
+  registerExample(program);
   // Packages
   registerPush(program);
   registerInstall(program);
@@ -121,6 +128,7 @@ export function buildProgram(): Command {
   registerAuth(program);
   registerApiKey(program);
   registerServiceAccount(program);
+  registerEmbedding(program);
   registerProviderKey(program);
   registerAccessHistory(program);
   registerUsage(program);

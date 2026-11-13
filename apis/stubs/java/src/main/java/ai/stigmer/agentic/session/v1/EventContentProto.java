@@ -110,8 +110,8 @@ public final class EventContentProto extends com.google.protobuf.GeneratedFile {
       "sage\030\002 \001(\tR\007message\022M\n\014retry_status\030\003 \001(" +
       "\0132*.ai.stigmer.agentic.session.v1.RetryS" +
       "tatusR\013retryStatus\022&\n\017mcp_server_name\030\004 " +
-      "\001(\tR\rmcpServerName\"\223\003\n\021StigmerStopDetail" +
-      "\022\325\002\n\004kind\030\001 \001(\tB\300\002\272H\274\002r\271\002R\025provider_key_" +
+      "\001(\tR\rmcpServerName\"\244\003\n\021StigmerStopDetail" +
+      "\022\346\002\n\004kind\030\001 \001(\tB\321\002\272H\315\002r\312\002R\025provider_key_" +
       "rejectedR\024provider_key_missingR\026provider" +
       "_out_of_creditR\025provider_rate_limitedR\023p" +
       "rovider_overloadedR\021model_unavailableR\024p" +
@@ -119,22 +119,22 @@ public final class EventContentProto extends com.google.protobuf.GeneratedFile {
       "ost_capR\017tool_call_limitR\007stalledR\017opera" +
       "tion_limitR\016workspace_busyR\013agent_setupR" +
       "\017app_unreachableR\021app_needs_sign_inR\010int" +
-      "ernalR\013runner_lostR\004kind\022\024\n\005model\030\002 \001(\tR" +
-      "\005model\022\020\n\003app\030\003 \001(\tR\003app\"G\n\013RetryStatus\022" +
-      "8\n\004type\030\001 \001(\tB$\272H!r\037R\010retryingR\texhauste" +
-      "dR\010terminalR\004type\"\266\001\n\016ToolEvaluation\0229\n\004" +
-      "type\030\001 \001(\tB%\272H\"r R\014always_allowR\nalways_" +
-      "askR\004autoR\004type\022i\n\024evaluated_permission\030" +
-      "\002 \001(\01326.ai.stigmer.agentic.session.v1.Au" +
-      "toEvaluatedPermissionR\023evaluatedPermissi" +
-      "on\"g\n\027AutoEvaluatedPermission\022+\n\004type\030\001 " +
-      "\001(\tB\027\272H\024r\022R\005allowR\003askR\004denyR\004type\022\037\n\013re" +
-      "ason_code\030\002 \001(\tR\nreasonCodeB\254\001B\021EventCon" +
-      "tentProtoP\001\242\002\004ASAS\252\002\035Ai.Stigmer.Agentic." +
-      "Session.V1\312\002\035Ai\\Stigmer\\Agentic\\Session\\" +
-      "V1\342\002)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMe" +
-      "tadata\352\002!Ai::Stigmer::Agentic::Session::" +
-      "V1b\006proto3"
+      "ernalR\013runner_lostR\017no_sandbox_roomR\004kin" +
+      "d\022\024\n\005model\030\002 \001(\tR\005model\022\020\n\003app\030\003 \001(\tR\003ap" +
+      "p\"G\n\013RetryStatus\0228\n\004type\030\001 \001(\tB$\272H!r\037R\010r" +
+      "etryingR\texhaustedR\010terminalR\004type\"\266\001\n\016T" +
+      "oolEvaluation\0229\n\004type\030\001 \001(\tB%\272H\"r R\014alwa" +
+      "ys_allowR\nalways_askR\004autoR\004type\022i\n\024eval" +
+      "uated_permission\030\002 \001(\01326.ai.stigmer.agen" +
+      "tic.session.v1.AutoEvaluatedPermissionR\023" +
+      "evaluatedPermission\"g\n\027AutoEvaluatedPerm" +
+      "ission\022+\n\004type\030\001 \001(\tB\027\272H\024r\022R\005allowR\003askR" +
+      "\004denyR\004type\022\037\n\013reason_code\030\002 \001(\tR\nreason" +
+      "CodeB\254\001B\021EventContentProtoP\001\242\002\004ASAS\252\002\035Ai" +
+      ".Stigmer.Agentic.Session.V1\312\002\035Ai\\Stigmer" +
+      "\\Agentic\\Session\\V1\342\002)Ai\\Stigmer\\Agentic" +
+      "\\Session\\V1\\GPBMetadata\352\002!Ai::Stigmer::A" +
+      "gentic::Session::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

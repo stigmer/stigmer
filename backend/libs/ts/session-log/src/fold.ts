@@ -319,6 +319,7 @@ export class SessionLog {
               elapsedMs: durationMs(operation.elapsed),
             })),
             awaitingModelMs: liveness.awaitingModelFor === undefined ? undefined : durationMs(liveness.awaitingModelFor),
+            ...(liveness.awaitingSandboxFor === undefined ? {} : { awaitingSandboxMs: durationMs(liveness.awaitingSandboxFor) }),
           };
           this.touch(turn);
         }

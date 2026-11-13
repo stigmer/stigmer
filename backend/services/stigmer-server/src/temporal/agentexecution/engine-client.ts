@@ -26,9 +26,16 @@
  * the recover path ignorant of credentials; a provider without the
  * capability (an edition credentialed another way) leaves the key off.
  *
+ * The caller's facts ride the input too (`caller_class`, `routine_id`,
+ * `caller_identity_id`): the workflow's own sandbox ensure hands them to
+ * the driver as the request's would, and on a CLOUD target the input
+ * carries the server's limit on a turn's wait for room
+ * (`sandbox_wait_seconds`, sandbox-wait.ts).
+ *
  * Proven by the agentexecution suites on local-execution.
  */
 import type { Client } from "@temporalio/client";
+import { ExecutionTarget } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { WorkflowNotFoundError } from "@temporalio/common";
 
 import type { Logger } from "../../boot/logger.js";
@@ -63,6 +70,8 @@ export interface TemporalExecutionEngineDeps {
   readonly store: Store;
   /** The composed credential provider — the dispatch reads its run-credential capability (module header). */
   readonly runnerCredentials: RunCredentialMint;
+  /** How long a turn may wait for a sandbox with room (ServerConfig.sandboxWaitSeconds). */
+  readonly sandboxWaitSeconds: number;
   readonly logger: Logger;
 }
 
@@ -70,7 +79,7 @@ export class TemporalExecutionEngine implements ConnectedExecutionEngine {
   constructor(private readonly deps: TemporalExecutionEngineDeps) {}
 
   async startInvokeWorkflow(input: StartInvokeWorkflowInput): Promise<void> {
-    const { client, config, store, runnerCredentials, logger } = this.deps;
+    const { client, config, store, runnerCredentials, sandboxWaitSeconds, logger } = this.deps;
 
     let dispatch;
     try {
@@ -111,6 +120,17 @@ export class TemporalExecutionEngine implements ConnectedExecutionEngine {
         : {}),
       ...(input.reconcileFileReview === true
         ? { reconcile_file_review: true }
+        : {}),
+      caller_class: input.caller.callerClass,
+      ...(input.caller.routineId !== undefined && input.caller.routineId !== ""
+        ? { routine_id: input.caller.routineId }
+        : {}),
+      ...(input.caller.identityId !== ""
+        ? { caller_identity_id: input.caller.identityId }
+        : {}),
+      // Zero included: `0` says the turn does not wait at all.
+      ...(dispatch.executionTarget === ExecutionTarget.CLOUD
+        ? { sandbox_wait_seconds: sandboxWaitSeconds }
         : {}),
     };
 
@@ -205,6 +225,8 @@ export interface EngineStateProviderDeps {
   readonly config: AgentExecutionTemporalConfig;
   readonly store: Store;
   readonly runnerCredentials: RunCredentialMint;
+  /** How long a turn may wait for a sandbox with room (ServerConfig.sandboxWaitSeconds). */
+  readonly sandboxWaitSeconds: number;
   readonly logger: Logger;
 }
 
@@ -236,6 +258,7 @@ export function newExecutionEngineStateProvider(
             config: deps.config,
             store: deps.store,
             runnerCredentials: deps.runnerCredentials,
+            sandboxWaitSeconds: deps.sandboxWaitSeconds,
             logger: deps.logger,
           }),
         },

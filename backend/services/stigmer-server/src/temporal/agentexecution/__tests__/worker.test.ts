@@ -28,6 +28,7 @@ import type { CreateWorkerOptions, WorkerFactoryDeps } from "../../manager.js";
 import {
   CLOSE_FILE_REVIEW_ACTIVITY_NAME,
   COUNT_OPEN_GATES_ACTIVITY_NAME,
+  ENSURE_SESSION_SANDBOX_ACTIVITY_NAME,
   START_QUEUED_TURN_ACTIVITY_NAME,
   UPDATE_EXECUTION_STATUS_ACTIVITY_NAME,
 } from "../names.js";
@@ -59,6 +60,8 @@ describe("the agent-execution worker factory", () => {
         },
         sessionEventBroker,
         queuedTurns: async () => undefined,
+        sandboxLane: { enabled: false },
+        personAccounts: undefined,
         temporalConfig: new AgentExecutionTemporalConfig(
           "agent_execution_custom",
           "runner_custom",
@@ -74,6 +77,7 @@ describe("the agent-execution worker factory", () => {
         [
           CLOSE_FILE_REVIEW_ACTIVITY_NAME,
           COUNT_OPEN_GATES_ACTIVITY_NAME,
+          ENSURE_SESSION_SANDBOX_ACTIVITY_NAME,
           START_QUEUED_TURN_ACTIVITY_NAME,
           UPDATE_EXECUTION_STATUS_ACTIVITY_NAME,
         ].sort(),

@@ -9,7 +9,8 @@
  * broker ends every stream with UNAVAILABLE. A working turn's newest
  * liveness is kept until the turn stops working or goes a minute without a
  * newer one, and a stream that asked for liveness receives it, aged by the
- * time it was held, right after its first read of the log.
+ * time it was held (each operation, the model wait and the sandbox wait),
+ * right after its first read of the log.
  */
 import { create } from "@bufbuild/protobuf";
 import { DurationSchema, type Duration } from "@bufbuild/protobuf/wkt";
@@ -194,6 +195,24 @@ describe("the broker", () => {
       millisOf(livenessOf(broker.currentLiveness("s1")).find((l) => l.runId === "r1")?.operations[0]?.elapsed),
       "handing it back does not age the kept one",
     ).toBe(10_500);
+  });
+
+  it("ages a turn's wait for a sandbox as it ages a model wait, and keeps it while the turn is pending", () => {
+    let clock = 0;
+    const broker = new SessionEventBroker(silentLogger, () => clock);
+    broker.publishPreviews("s1", [
+      create(SessionEventPreviewSchema, {
+        preview: {
+          case: "stigmerRunLiveness",
+          value: { runId: "r1", awaitingSandboxFor: create(DurationSchema, { seconds: 30n }) },
+        },
+      }),
+    ]);
+    clock += 4_000;
+    broker.publish("s1", "acme", [runStatus("r1", "pending")]);
+    const [held] = livenessOf(broker.currentLiveness("s1"));
+    expect(millisOf(held?.awaitingSandboxFor), "30 s when sent, held 4 s").toBe(34_000);
+    expect(held?.awaitingModelFor).toBeUndefined();
   });
 
   it("forgets a turn's liveness once that turn stops working, and only that turn's", () => {

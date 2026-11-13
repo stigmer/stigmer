@@ -1,0 +1,12 @@
+{
+  "name": "stigmer",
+  "description": "Stigmer's plugin for coding agents.",
+  "owner": { "name": "Stigmer", "url": "https://stigmer.ai" },
+  "plugins": [
+    {
+      "name": "stigmer",
+      "source": "./",
+      "description": "Stigmer for your coding agent: set Stigmer up for your project, from signing in to your agent's chat in your own app, then make, run and read agents."
+    }
+  ]
+}

@@ -10,8 +10,9 @@ package ai.stigmer.agentic.session.v1;
  * RunLiveness says a working turn is alive and what it is doing:
  * stigmer.run.liveness. The runner sends it when the turn's open operations
  * change and at an interval while the turn runs (30 seconds by default, and
- * always under a minute). Streamed, never stored; the newest one replaces
- * the one before. A stream that asks for it and opens while the turn works
+ * always under a minute); before the runner starts, the server sends it for
+ * a turn waiting for a sandbox (awaiting_sandbox_for). Streamed, never
+ * stored; the newest one replaces the one before. A stream that asks for it and opens while the turn works
  * receives the turn's newest one right after the stored events it reads
  * first, its ages moved forward by the time the server held it, when the
  * server process serving the stream received that one within the last
@@ -218,6 +219,62 @@ private static final long serialVersionUID = 0L;
     return awaitingModelFor_ == null ? com.google.protobuf.Duration.getDefaultInstance() : awaitingModelFor_;
   }
 
+  public static final int AWAITING_SANDBOX_FOR_FIELD_NUMBER = 4;
+  private com.google.protobuf.Duration awaitingSandboxFor_;
+  /**
+   * <pre>
+   * How long the turn has waited for a sandbox with room to start in,
+   * measured by the server when it sent this: before the turn's runner
+   * starts, the server sends this liveness itself each time the sandbox
+   * fleet answers that it has no room. It asks again after a pause of at
+   * most 15 seconds, and one ask can itself take longer. Unset when it is
+   * not waiting for one; the server sends a liveness without it once the
+   * turn has a sandbox.
+   * </pre>
+   *
+   * <code>.google.protobuf.Duration awaiting_sandbox_for = 4 [json_name = "awaitingSandboxFor"];</code>
+   * @return Whether the awaitingSandboxFor field is set.
+   */
+  @java.lang.Override
+  public boolean hasAwaitingSandboxFor() {
+    return ((bitField0_ & 0x00000002) != 0);
+  }
+  /**
+   * <pre>
+   * How long the turn has waited for a sandbox with room to start in,
+   * measured by the server when it sent this: before the turn's runner
+   * starts, the server sends this liveness itself each time the sandbox
+   * fleet answers that it has no room. It asks again after a pause of at
+   * most 15 seconds, and one ask can itself take longer. Unset when it is
+   * not waiting for one; the server sends a liveness without it once the
+   * turn has a sandbox.
+   * </pre>
+   *
+   * <code>.google.protobuf.Duration awaiting_sandbox_for = 4 [json_name = "awaitingSandboxFor"];</code>
+   * @return The awaitingSandboxFor.
+   */
+  @java.lang.Override
+  public com.google.protobuf.Duration getAwaitingSandboxFor() {
+    return awaitingSandboxFor_ == null ? com.google.protobuf.Duration.getDefaultInstance() : awaitingSandboxFor_;
+  }
+  /**
+   * <pre>
+   * How long the turn has waited for a sandbox with room to start in,
+   * measured by the server when it sent this: before the turn's runner
+   * starts, the server sends this liveness itself each time the sandbox
+   * fleet answers that it has no room. It asks again after a pause of at
+   * most 15 seconds, and one ask can itself take longer. Unset when it is
+   * not waiting for one; the server sends a liveness without it once the
+   * turn has a sandbox.
+   * </pre>
+   *
+   * <code>.google.protobuf.Duration awaiting_sandbox_for = 4 [json_name = "awaitingSandboxFor"];</code>
+   */
+  @java.lang.Override
+  public com.google.protobuf.DurationOrBuilder getAwaitingSandboxForOrBuilder() {
+    return awaitingSandboxFor_ == null ? com.google.protobuf.Duration.getDefaultInstance() : awaitingSandboxFor_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -240,6 +297,9 @@ private static final long serialVersionUID = 0L;
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(3, getAwaitingModelFor());
+    }
+    if (((bitField0_ & 0x00000002) != 0)) {
+      output.writeMessage(4, getAwaitingSandboxFor());
     }
     getUnknownFields().writeTo(output);
   }
@@ -266,6 +326,10 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(3, getAwaitingModelFor());
     }
+    if (((bitField0_ & 0x00000002) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(4, getAwaitingSandboxFor());
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -290,6 +354,11 @@ private static final long serialVersionUID = 0L;
       if (!getAwaitingModelFor()
           .equals(other.getAwaitingModelFor())) return false;
     }
+    if (hasAwaitingSandboxFor() != other.hasAwaitingSandboxFor()) return false;
+    if (hasAwaitingSandboxFor()) {
+      if (!getAwaitingSandboxFor()
+          .equals(other.getAwaitingSandboxFor())) return false;
+    }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -310,6 +379,10 @@ private static final long serialVersionUID = 0L;
     if (hasAwaitingModelFor()) {
       hash = (37 * hash) + AWAITING_MODEL_FOR_FIELD_NUMBER;
       hash = (53 * hash) + getAwaitingModelFor().hashCode();
+    }
+    if (hasAwaitingSandboxFor()) {
+      hash = (37 * hash) + AWAITING_SANDBOX_FOR_FIELD_NUMBER;
+      hash = (53 * hash) + getAwaitingSandboxFor().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -413,8 +486,9 @@ private static final long serialVersionUID = 0L;
    * RunLiveness says a working turn is alive and what it is doing:
    * stigmer.run.liveness. The runner sends it when the turn's open operations
    * change and at an interval while the turn runs (30 seconds by default, and
-   * always under a minute). Streamed, never stored; the newest one replaces
-   * the one before. A stream that asks for it and opens while the turn works
+   * always under a minute); before the runner starts, the server sends it for
+   * a turn waiting for a sandbox (awaiting_sandbox_for). Streamed, never
+   * stored; the newest one replaces the one before. A stream that asks for it and opens while the turn works
    * receives the turn's newest one right after the stored events it reads
    * first, its ages moved forward by the time the server held it, when the
    * server process serving the stream received that one within the last
@@ -456,6 +530,7 @@ private static final long serialVersionUID = 0L;
               .alwaysUseFieldBuilders) {
         internalGetOperationsFieldBuilder();
         internalGetAwaitingModelForFieldBuilder();
+        internalGetAwaitingSandboxForFieldBuilder();
       }
     }
     @java.lang.Override
@@ -474,6 +549,11 @@ private static final long serialVersionUID = 0L;
       if (awaitingModelForBuilder_ != null) {
         awaitingModelForBuilder_.dispose();
         awaitingModelForBuilder_ = null;
+      }
+      awaitingSandboxFor_ = null;
+      if (awaitingSandboxForBuilder_ != null) {
+        awaitingSandboxForBuilder_.dispose();
+        awaitingSandboxForBuilder_ = null;
       }
       return this;
     }
@@ -531,6 +611,12 @@ private static final long serialVersionUID = 0L;
             : awaitingModelForBuilder_.build();
         to_bitField0_ |= 0x00000001;
       }
+      if (((from_bitField0_ & 0x00000008) != 0)) {
+        result.awaitingSandboxFor_ = awaitingSandboxForBuilder_ == null
+            ? awaitingSandboxFor_
+            : awaitingSandboxForBuilder_.build();
+        to_bitField0_ |= 0x00000002;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -579,6 +665,9 @@ private static final long serialVersionUID = 0L;
       }
       if (other.hasAwaitingModelFor()) {
         mergeAwaitingModelFor(other.getAwaitingModelFor());
+      }
+      if (other.hasAwaitingSandboxFor()) {
+        mergeAwaitingSandboxFor(other.getAwaitingSandboxFor());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -631,6 +720,13 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000004;
               break;
             } // case 26
+            case 34: {
+              input.readMessage(
+                  internalGetAwaitingSandboxForFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00000008;
+              break;
+            } // case 34
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1234,6 +1330,217 @@ private static final long serialVersionUID = 0L;
         awaitingModelFor_ = null;
       }
       return awaitingModelForBuilder_;
+    }
+
+    private com.google.protobuf.Duration awaitingSandboxFor_;
+    private com.google.protobuf.SingleFieldBuilder<
+        com.google.protobuf.Duration, com.google.protobuf.Duration.Builder, com.google.protobuf.DurationOrBuilder> awaitingSandboxForBuilder_;
+    /**
+     * <pre>
+     * How long the turn has waited for a sandbox with room to start in,
+     * measured by the server when it sent this: before the turn's runner
+     * starts, the server sends this liveness itself each time the sandbox
+     * fleet answers that it has no room. It asks again after a pause of at
+     * most 15 seconds, and one ask can itself take longer. Unset when it is
+     * not waiting for one; the server sends a liveness without it once the
+     * turn has a sandbox.
+     * </pre>
+     *
+     * <code>.google.protobuf.Duration awaiting_sandbox_for = 4 [json_name = "awaitingSandboxFor"];</code>
+     * @return Whether the awaitingSandboxFor field is set.
+     */
+    public boolean hasAwaitingSandboxFor() {
+      return ((bitField0_ & 0x00000008) != 0);
+    }
+    /**
+     * <pre>
+     * How long the turn has waited for a sandbox with room to start in,
+     * measured by the server when it sent this: before the turn's runner
+     * starts, the server sends this liveness itself each time the sandbox
+     * fleet answers that it has no room. It asks again after a pause of at
+     * most 15 seconds, and one ask can itself take longer. Unset when it is
+     * not waiting for one; the server sends a liveness without it once the
+     * turn has a sandbox.
+     * </pre>
+     *
+     * <code>.google.protobuf.Duration awaiting_sandbox_for = 4 [json_name = "awaitingSandboxFor"];</code>
+     * @return The awaitingSandboxFor.
+     */
+    public com.google.protobuf.Duration getAwaitingSandboxFor() {
+      if (awaitingSandboxForBuilder_ == null) {
+        return awaitingSandboxFor_ == null ? com.google.protobuf.Duration.getDefaultInstance() : awaitingSandboxFor_;
+      } else {
+        return awaitingSandboxForBuilder_.getMessage();
+      }
+    }
+    /**
+     * <pre>
+     * How long the turn has waited for a sandbox with room to start in,
+     * measured by the server when it sent this: before the turn's runner
+     * starts, the server sends this liveness itself each time the sandbox
+     * fleet answers that it has no room. It asks again after a pause of at
+     * most 15 seconds, and one ask can itself take longer. Unset when it is
+     * not waiting for one; the server sends a liveness without it once the
+     * turn has a sandbox.
+     * </pre>
+     *
+     * <code>.google.protobuf.Duration awaiting_sandbox_for = 4 [json_name = "awaitingSandboxFor"];</code>
+     */
+    public Builder setAwaitingSandboxFor(com.google.protobuf.Duration value) {
+      if (awaitingSandboxForBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        awaitingSandboxFor_ = value;
+      } else {
+        awaitingSandboxForBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x00000008;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * How long the turn has waited for a sandbox with room to start in,
+     * measured by the server when it sent this: before the turn's runner
+     * starts, the server sends this liveness itself each time the sandbox
+     * fleet answers that it has no room. It asks again after a pause of at
+     * most 15 seconds, and one ask can itself take longer. Unset when it is
+     * not waiting for one; the server sends a liveness without it once the
+     * turn has a sandbox.
+     * </pre>
+     *
+     * <code>.google.protobuf.Duration awaiting_sandbox_for = 4 [json_name = "awaitingSandboxFor"];</code>
+     */
+    public Builder setAwaitingSandboxFor(
+        com.google.protobuf.Duration.Builder builderForValue) {
+      if (awaitingSandboxForBuilder_ == null) {
+        awaitingSandboxFor_ = builderForValue.build();
+      } else {
+        awaitingSandboxForBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00000008;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * How long the turn has waited for a sandbox with room to start in,
+     * measured by the server when it sent this: before the turn's runner
+     * starts, the server sends this liveness itself each time the sandbox
+     * fleet answers that it has no room. It asks again after a pause of at
+     * most 15 seconds, and one ask can itself take longer. Unset when it is
+     * not waiting for one; the server sends a liveness without it once the
+     * turn has a sandbox.
+     * </pre>
+     *
+     * <code>.google.protobuf.Duration awaiting_sandbox_for = 4 [json_name = "awaitingSandboxFor"];</code>
+     */
+    public Builder mergeAwaitingSandboxFor(com.google.protobuf.Duration value) {
+      if (awaitingSandboxForBuilder_ == null) {
+        if (((bitField0_ & 0x00000008) != 0) &&
+          awaitingSandboxFor_ != null &&
+          awaitingSandboxFor_ != com.google.protobuf.Duration.getDefaultInstance()) {
+          getAwaitingSandboxForBuilder().mergeFrom(value);
+        } else {
+          awaitingSandboxFor_ = value;
+        }
+      } else {
+        awaitingSandboxForBuilder_.mergeFrom(value);
+      }
+      if (awaitingSandboxFor_ != null) {
+        bitField0_ |= 0x00000008;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * How long the turn has waited for a sandbox with room to start in,
+     * measured by the server when it sent this: before the turn's runner
+     * starts, the server sends this liveness itself each time the sandbox
+     * fleet answers that it has no room. It asks again after a pause of at
+     * most 15 seconds, and one ask can itself take longer. Unset when it is
+     * not waiting for one; the server sends a liveness without it once the
+     * turn has a sandbox.
+     * </pre>
+     *
+     * <code>.google.protobuf.Duration awaiting_sandbox_for = 4 [json_name = "awaitingSandboxFor"];</code>
+     */
+    public Builder clearAwaitingSandboxFor() {
+      bitField0_ = (bitField0_ & ~0x00000008);
+      awaitingSandboxFor_ = null;
+      if (awaitingSandboxForBuilder_ != null) {
+        awaitingSandboxForBuilder_.dispose();
+        awaitingSandboxForBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * How long the turn has waited for a sandbox with room to start in,
+     * measured by the server when it sent this: before the turn's runner
+     * starts, the server sends this liveness itself each time the sandbox
+     * fleet answers that it has no room. It asks again after a pause of at
+     * most 15 seconds, and one ask can itself take longer. Unset when it is
+     * not waiting for one; the server sends a liveness without it once the
+     * turn has a sandbox.
+     * </pre>
+     *
+     * <code>.google.protobuf.Duration awaiting_sandbox_for = 4 [json_name = "awaitingSandboxFor"];</code>
+     */
+    public com.google.protobuf.Duration.Builder getAwaitingSandboxForBuilder() {
+      bitField0_ |= 0x00000008;
+      onChanged();
+      return internalGetAwaitingSandboxForFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * How long the turn has waited for a sandbox with room to start in,
+     * measured by the server when it sent this: before the turn's runner
+     * starts, the server sends this liveness itself each time the sandbox
+     * fleet answers that it has no room. It asks again after a pause of at
+     * most 15 seconds, and one ask can itself take longer. Unset when it is
+     * not waiting for one; the server sends a liveness without it once the
+     * turn has a sandbox.
+     * </pre>
+     *
+     * <code>.google.protobuf.Duration awaiting_sandbox_for = 4 [json_name = "awaitingSandboxFor"];</code>
+     */
+    public com.google.protobuf.DurationOrBuilder getAwaitingSandboxForOrBuilder() {
+      if (awaitingSandboxForBuilder_ != null) {
+        return awaitingSandboxForBuilder_.getMessageOrBuilder();
+      } else {
+        return awaitingSandboxFor_ == null ?
+            com.google.protobuf.Duration.getDefaultInstance() : awaitingSandboxFor_;
+      }
+    }
+    /**
+     * <pre>
+     * How long the turn has waited for a sandbox with room to start in,
+     * measured by the server when it sent this: before the turn's runner
+     * starts, the server sends this liveness itself each time the sandbox
+     * fleet answers that it has no room. It asks again after a pause of at
+     * most 15 seconds, and one ask can itself take longer. Unset when it is
+     * not waiting for one; the server sends a liveness without it once the
+     * turn has a sandbox.
+     * </pre>
+     *
+     * <code>.google.protobuf.Duration awaiting_sandbox_for = 4 [json_name = "awaitingSandboxFor"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        com.google.protobuf.Duration, com.google.protobuf.Duration.Builder, com.google.protobuf.DurationOrBuilder> 
+        internalGetAwaitingSandboxForFieldBuilder() {
+      if (awaitingSandboxForBuilder_ == null) {
+        awaitingSandboxForBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            com.google.protobuf.Duration, com.google.protobuf.Duration.Builder, com.google.protobuf.DurationOrBuilder>(
+                getAwaitingSandboxFor(),
+                getParentForChildren(),
+                isClean());
+        awaitingSandboxFor_ = null;
+      }
+      return awaitingSandboxForBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.session.v1.RunLiveness)

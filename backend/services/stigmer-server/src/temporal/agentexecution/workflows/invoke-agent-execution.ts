@@ -10,6 +10,17 @@
  * queue or in-process (local activities).
  *
  * Its shape:
+ *   - A sandbox with room first: on a CLOUD target the workflow ensures the
+ *     session's sandbox itself (the EnsureSessionSandbox activity) before
+ *     the turn's first runner activity, and while the sandbox fleet answers
+ *     "no room" it keeps the run PENDING with the waiting phase text and
+ *     asks again, until room comes or the limit the input carries runs out
+ *     (../sandbox-wait.ts). A wait that runs out fails the run as
+ *     `infrastructure` / `no_sandbox_room` with a person's sentence. A pause
+ *     while it waits is honoured there (the run takes no sandbox, and the
+ *     wait starts over on resume); a cancel ends it as any cancel does. The
+ *     wait is behind `patched()` and only on a CLOUD target whose input
+ *     carries the caller's class, so every other history replays as before.
  *   - Harness dispatch, one exhaustive switch: STIGMER/UNSPECIFIED and
  *     CLAUDE → the deterministic-state flow (EnsureThread once, thread
  *     stable across re-invocations; the engine derives its own state from
@@ -64,8 +75,8 @@
  * WORKFLOW-BUNDLE IMPORT DISCIPLINE: this file runs in Temporal's
  * deterministic sandbox. Only @temporalio/workflow, @temporalio/common,
  * @bufbuild/protobuf, generated protos, and verified-pure modules
- * (../recovery-window.js, ../runner-result.js, ../../runner-failure.js)
- * may be imported. The SDK bundler hard-fails otherwise.
+ * (../recovery-window.js, ../runner-result.js, ../sandbox-wait.js,
+ * ../../runner-failure.js) may be imported. The SDK bundler hard-fails otherwise.
  */
 import { create, toJson } from "@bufbuild/protobuf";
 import type { JsonValue } from "@bufbuild/protobuf";
@@ -81,6 +92,7 @@ import {
   defineSignal,
   isCancellation,
   log,
+  patched,
   proxyActivities,
   proxyLocalActivities,
   setHandler,
@@ -91,7 +103,7 @@ import {
 import { RunStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type { RunStatus } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
-import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { ExecutionTarget, Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import {
   ENSURE_THREAD_ACTIVITY_NAME,
   EXECUTE_CLAUDE_ACTIVITY_NAME,
@@ -111,6 +123,7 @@ import {
   CLOSE_FILE_REVIEW_ACTIVITY_NAME,
   COUNT_OPEN_GATES_ACTIVITY_NAME,
   DEFAULT_ACTIVITY_TASK_QUEUE,
+  ENSURE_SESSION_SANDBOX_ACTIVITY_NAME,
   MEMO_ACTIVITY_TASK_QUEUE,
   SIGNAL_APPROVAL_GATE_RESOLVED,
   SIGNAL_PAUSE,
@@ -124,6 +137,17 @@ import {
   RunnerReportedFailure,
   type RunnerActivityResult,
 } from "../runner-result.js";
+import {
+  DEFAULT_SANDBOX_WAIT_SECONDS,
+  SANDBOX_WAIT_PATCH_ID,
+  SANDBOX_WAIT_STOP_CAUSE,
+  SANDBOX_WAIT_STOP_KIND,
+  SANDBOX_WAITING_PHASE_TEXT,
+  SandboxWaitRanOut,
+  sandboxWaitBackoffMs,
+  type EnsureSessionSandboxInput,
+  type SandboxEnsureOutcome,
+} from "../sandbox-wait.js";
 import type { InvokeAgentExecutionWorkflowInput } from "../workflow-input.js";
 
 // ─── Loop-safety bounds (values are contract) ───────────────────────────
@@ -296,6 +320,9 @@ interface ServerActivities {
     statusJson: JsonValue,
   ) => Promise<void>;
   [START_QUEUED_TURN_ACTIVITY_NAME]: (sessionId: string) => Promise<void>;
+  [ENSURE_SESSION_SANDBOX_ACTIVITY_NAME]: (
+    input: EnsureSessionSandboxInput,
+  ) => Promise<SandboxEnsureOutcome>;
 }
 
 /**
@@ -322,6 +349,23 @@ const queuedTurnActivities = proxyActivities<
 >({
   startToCloseTimeout: "2m",
   retry: { maximumAttempts: 10, initialInterval: "2s", backoffCoefficient: 2, maximumInterval: "1m" },
+});
+
+/**
+ * The turn's sandbox ensure, a regular activity on the workflow's own
+ * (stigmer) queue. An ensure may rightly take minutes (a template being
+ * built, an actor settling), so the window is long and the activity
+ * heartbeats: a server that dies mid-ensure is noticed within 30 s and the
+ * ensure retried, which is safe because it is idempotent. Retries are few:
+ * the workflow's own loop asks again on "no room"; a failure after them is
+ * treated as any provisioning failure (logged, the turn goes on).
+ */
+const sandboxActivities = proxyActivities<
+  Pick<ServerActivities, typeof ENSURE_SESSION_SANDBOX_ACTIVITY_NAME>
+>({
+  startToCloseTimeout: "10m",
+  heartbeatTimeout: "30s",
+  retry: { maximumAttempts: 3, initialInterval: "2s" },
 });
 
 interface LocalActivities {
@@ -531,6 +575,8 @@ async function executeDeterministicStateFlow(
   const executionId = input.execution_id;
   const sessionId = input.session_id;
 
+  const pauseCyclesWaiting = await waitForSandboxRoom(input, signals);
+
   log.info("Step 1: Ensuring thread", { sessionId, agentId: input.agent_id });
   const ensureThread = newEnsureThreadProxy(activityTaskQueue);
   let threadId: string;
@@ -554,6 +600,7 @@ async function executeDeterministicStateFlow(
     activityLabel: executeActivity,
     signals,
     isWorkflowCancelled,
+    pauseCyclesSpent: pauseCyclesWaiting,
     executeWithHitl: () =>
       executeWithHitlLoop({
         executionId,
@@ -573,6 +620,146 @@ async function executeDeterministicStateFlow(
           "activity returned null status after approval - this should never happen",
       }),
   });
+}
+
+/**
+ * The wait for a sandbox with room (module header): asks for the turn's
+ * sandbox and, while the fleet answers "no room", keeps the run PENDING
+ * with the waiting phase text and asks again `sandboxWaitBackoffMs` apart,
+ * until another answer or the input's limit. Any answer but "no room" goes
+ * on exactly as before the wait existed: `failed` keeps its stamped root
+ * cause and the runner activity's own window. Returns the pause cycles it
+ * spent, which count against the turn's MAX_PAUSE_CYCLES.
+ *
+ * A pause while it waits is taken in the sleep: the run is written PAUSED
+ * with cause `user` and takes no sandbox; on resume it is written waiting
+ * again and the wait starts over, so a pause spends none of the limit. The
+ * waiting write repeats on every "no room" (a session event is appended
+ * only when the phase changes, so repeats are quiet), which also heals a
+ * recover's IN_PROGRESS write that lands after the first one. `Date.now()`
+ * is workflow time, so a replay measures the same wait.
+ */
+async function waitForSandboxRoom(
+  input: InvokeAgentExecutionWorkflowInput,
+  signals: SignalBuffers,
+): Promise<number> {
+  const callerClass = input.caller_class;
+  if (
+    input.execution_target !== ExecutionTarget.CLOUD ||
+    callerClass === undefined ||
+    !patched(SANDBOX_WAIT_PATCH_ID)
+  ) {
+    return 0;
+  }
+  const executionId = input.execution_id;
+  const limitSeconds = input.sandbox_wait_seconds ?? DEFAULT_SANDBOX_WAIT_SECONDS;
+  let pauseCycles = 0;
+  let since: number | undefined;
+  let attempt = 0;
+
+  for (;;) {
+    const outcome = await ensureTurnSandbox(input, callerClass, since);
+    if (outcome !== "no_room") {
+      if (since !== undefined) {
+        log.info("A run's wait for a sandbox ended", {
+          executionId,
+          waitedMs: Date.now() - since,
+          outcome,
+        });
+      }
+      return pauseCycles;
+    }
+
+    const now = Date.now();
+    if (since === undefined) {
+      since = now;
+      log.info("A run is waiting for a sandbox", {
+        executionId,
+        sessionId: input.session_id,
+        limitSeconds,
+      });
+    }
+    const waitedMs = now - since;
+    if (waitedMs >= limitSeconds * 1000) {
+      log.info("A run's wait for a sandbox ended", {
+        executionId,
+        waitedMs,
+        outcome: "ran_out",
+      });
+      throw new SandboxWaitRanOut(limitSeconds, waitedMs);
+    }
+
+    if (signals.pauseQueue.length === 0) {
+      await persistWaitingStatus(executionId);
+    }
+    attempt++;
+    const pauseRequested = await condition(
+      () => signals.pauseQueue.length > 0,
+      sandboxWaitBackoffMs(attempt),
+    );
+    if (!pauseRequested) {
+      continue;
+    }
+
+    const reason = signals.pauseQueue.shift() ?? "";
+    pauseCycles++;
+    if (pauseCycles > MAX_PAUSE_CYCLES) {
+      log.error("Max pause cycles reached", { executionId, cycles: pauseCycles });
+      throw new Error(
+        `max pause cycles (${MAX_PAUSE_CYCLES}) reached - possible infinite loop`,
+      );
+    }
+    log.info("Paused while waiting for a sandbox; waiting for resume signal", {
+      executionId,
+      reason,
+      pauseCycle: pauseCycles,
+    });
+    await persistFinalStatus(
+      executionId,
+      create(RunStatusSchema, {
+        phase: RunPhase.RUN_PAUSED,
+        stopCause: "user",
+      }),
+      "Failed to persist PAUSED status (non-fatal)",
+    );
+    await signals.consumeResume();
+    log.info("Resumed; waiting for a sandbox again", { executionId, pauseCycle: pauseCycles });
+    await persistWaitingStatus(executionId);
+    since = undefined;
+    attempt = 0;
+  }
+}
+
+/**
+ * One ask for the turn's sandbox. A failure after the activity's retries
+ * is a provisioning failure like any other (`failed`: logged, and the turn
+ * goes on); a cancellation propagates.
+ */
+async function ensureTurnSandbox(
+  input: InvokeAgentExecutionWorkflowInput,
+  callerClass: string,
+  waitingSince: number | undefined,
+): Promise<SandboxEnsureOutcome> {
+  try {
+    return await sandboxActivities[ENSURE_SESSION_SANDBOX_ACTIVITY_NAME]({
+      execution_id: input.execution_id,
+      caller_class: callerClass,
+      ...(input.routine_id !== undefined ? { routine_id: input.routine_id } : {}),
+      ...(input.caller_identity_id !== undefined
+        ? { caller_identity_id: input.caller_identity_id }
+        : {}),
+      ...(waitingSince !== undefined ? { waiting_since_ms: waitingSince } : {}),
+    });
+  } catch (error) {
+    if (isCancellation(error)) {
+      throw error;
+    }
+    log.warn("Ensuring the turn's sandbox failed (non-critical)", {
+      executionId: input.execution_id,
+      error: errorMessage(error),
+    });
+    return "failed";
+  }
 }
 
 /**
@@ -645,6 +832,8 @@ interface PauseRecoveryOptions {
   readonly activityLabel: DeterministicStateActivityName;
   readonly signals: SignalBuffers;
   readonly isWorkflowCancelled: () => boolean;
+  /** Pause cycles the turn already spent waiting for a sandbox; they count against MAX_PAUSE_CYCLES. */
+  readonly pauseCyclesSpent: number;
   readonly executeWithHitl: () => Promise<RunnerActivityResult>;
 }
 
@@ -663,7 +852,7 @@ async function runWithPauseAndRecovery(
   const { executionId, activityLabel, signals, isWorkflowCancelled } = options;
 
   let finalResult: RunnerActivityResult;
-  let pauseCycle = 0;
+  let pauseCycle = options.pauseCyclesSpent;
   let recoveryCycle = 0;
   const recoveryInstants: number[] = [];
 
@@ -980,6 +1169,25 @@ async function updateStatusOnFailure(
 ): Promise<void> {
   log.info("Updating execution status to FAILED", { executionId });
 
+  if (originalError instanceof SandboxWaitRanOut) {
+    // No sandbox had room within the limit: the person's sentence, under
+    // the platform's cause and its own kind (../sandbox-wait.ts).
+    await failurePathActivities[UPDATE_EXECUTION_STATUS_ACTIVITY_NAME](
+      executionId,
+      toJson(
+        RunStatusSchema,
+        create(RunStatusSchema, {
+          phase: RunPhase.RUN_FAILED,
+          error: originalError.message,
+          stopCause: SANDBOX_WAIT_STOP_CAUSE,
+          stopDetail: { kind: SANDBOX_WAIT_STOP_KIND },
+        }),
+      ),
+    );
+    log.info("Updated execution status to FAILED", { executionId });
+    return;
+  }
+
   const shutdown = endsAsWorkerShutdown(originalError);
   // A stall the model owed, given up: the runner's own stall copy and the
   // stall's cause, as a stall the runner ended itself would read.
@@ -1094,6 +1302,24 @@ async function persistInterruptedStatus(executionId: string): Promise<void> {
       phase: RunPhase.RUN_IN_PROGRESS,
     }),
     "Failed to persist interrupted/resuming status (non-fatal)",
+  );
+}
+
+/**
+ * The run while its turn waits for a sandbox with room: PENDING, with the
+ * waiting phase text as its setup progress (the merge clears it once the
+ * phase leaves PENDING). Through the platform writer, so it moves a
+ * recovered run's IN_PROGRESS back to PENDING; a terminal run is latched
+ * by the merge.
+ */
+async function persistWaitingStatus(executionId: string): Promise<void> {
+  await persistFinalStatus(
+    executionId,
+    create(RunStatusSchema, {
+      phase: RunPhase.RUN_PENDING,
+      setupProgress: { currentPhase: SANDBOX_WAITING_PHASE_TEXT },
+    }),
+    "Failed to persist the waiting-for-a-sandbox status (non-fatal)",
   );
 }
 
