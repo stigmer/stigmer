@@ -214,8 +214,10 @@ test.describe("Settings sections", () => {
         // No edition notice. A status is not the test: an empty list's
         // "nothing here yet" is a status too, and a page that works shows it.
         await expect(region.getByText(/with Stigmer (Enterprise|Cloud)/)).toHaveCount(0);
+        // An empty list repeats its page's create act in the empty panel, so
+        // the first is the header's.
         await expect(
-          region.getByRole(posture.works.role, { name: posture.works.name }),
+          region.getByRole(posture.works.role, { name: posture.works.name }).first(),
         ).toBeVisible();
       }
     });
