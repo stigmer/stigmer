@@ -495,9 +495,9 @@ describe.skipIf(!proxyServed)("Side-channel proxy conformance (sideChannelProxy 
       expect((await proxyFetch(`/v1/proxy/checkpoints/checkpoint?thread_id=${threadId}`, { token })).status).toBe(403);
       expect((await proxyFetch("/v1/proxy/checkpoints/checkpoint", { method: "PUT", token, headers: { "content-type": "application/json" }, body: JSON.stringify(document) })).status).toBe(403);
 
-      // The lane's cap is 16 MiB (the inventory row says so): one byte over
+      // The lane's cap is 4 MiB (the inventory row says so): one byte over
       // it is refused before the handler runs.
-      const huge = JSON.stringify({ ...document, checkpoint: { blob: "z".repeat(16 * 1024 * 1024 + 1) } });
+      const huge = JSON.stringify({ ...document, checkpoint: { blob: "z".repeat(4 * 1024 * 1024 + 1) } });
       expect((await proxyFetch("/v1/proxy/checkpoints/checkpoint", { method: "PUT", headers: { "content-type": "application/json" }, body: huge })).status).toBe(413);
 
       expect((await proxyFetch(`/v1/proxy/checkpoints/thread?thread_id=${threadId}`, { method: "DELETE" })).status).toBe(204);

@@ -1267,7 +1267,7 @@ rows:
     lane: >-
       checkpointer
     behavior: >-
-      A checkpoint or writes document larger than the lane's 16 MiB cap answers 413.
+      A checkpoint or writes document larger than the lane's 4 MiB cap answers 413.
     class: adversarial
     disposition: conformance
     observability: launcher
