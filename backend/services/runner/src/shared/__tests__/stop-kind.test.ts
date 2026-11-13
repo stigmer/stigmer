@@ -2,14 +2,17 @@
  * The kind of a turn's ending, named once for both engines: every
  * classifier code of the built-in engine and every typed error of the Claude
  * engine lands on the kind a client picks its words from, a proxied call's
- * refused token is the platform's (stigmer#2151), and a connected app's
- * connect failure names the app by the field the MCP client set.
+ * refused token is the platform's (stigmer#2151), a connected app's
+ * connect failure names the app by the field the MCP client set, and a
+ * checkpoint the platform refused as too large is a rejected request
+ * (stigmer#3091).
  */
 
 import { describe, expect, it } from "vitest";
 import type { SDKAssistantMessageError } from "@anthropic-ai/claude-agent-sdk";
 
 import { ORGANIZATION_PROVIDER_KEY_SENTINEL, PROVIDER_KEY_REQUIRED_SENTINEL } from "../model-error.js";
+import { CheckpointTooLargeError } from "../checkpointer/http-saver.js";
 import { OAuthRequiredError } from "../mcp-oauth-detect.js";
 import { appStopOf, isStopKind, modelStopOfClassified, modelStopOfClaude, settleThrown, type StopKind } from "../stop-kind.js";
 
@@ -86,6 +89,13 @@ describe("settleThrown", () => {
   it("settles a connected app's connect failure naming the app, before any model reading", () => {
     const err = Object.assign(new Error('Failed to connect to streamable HTTP server "issues"'), { serverName: "issues" });
     expect(settleThrown(err, { proxyMode: false })).toMatchObject({ surface: "internal", stopDetail: { kind: "app_unreachable", app: "issues" } });
+  });
+
+  it("settles a checkpoint refused as too large as a rejected request: start a new session, never Run again", () => {
+    const failure = settleThrown(new CheckpointTooLargeError("Checkpoint PUT", 413), { proxyMode: true, provider: "anthropic", modelId: "claude-sonnet-4-6" });
+    expect(failure.surface).toBe("engine");
+    expect(failure.stopDetail).toEqual({ kind: "request_rejected", model: "claude-sonnet-4-6" });
+    expect(failure.message).toMatch(/^\[CheckpointTooLargeError\] .*start a new session/i);
   });
 
   it("settles anything else as the platform's fault", () => {

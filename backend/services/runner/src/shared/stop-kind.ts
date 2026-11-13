@@ -16,6 +16,12 @@
  * on a proxied call (a 401 or 403 with no organization-key sentinel) is the
  * platform's, stop cause `failed`, kind `internal` (stigmer#2151).
  *
+ * A checkpoint the platform refused as too large is a rejected request: the
+ * conversation outgrew what the platform saves between steps, so the turn
+ * ends with "start a new session" and no Run again, which would fail the
+ * same way (`checkpointer/http-saver.ts`, stigmer#3091). It is named by the
+ * error's name, before any model reading.
+ *
  * A connected app (MCP server) that would not connect is named by the
  * failing server's slug on the error the MCP client raised: its
  * `serverName` field, or an `OAuthRequiredError`'s `serverSlug`. No text is
@@ -24,6 +30,7 @@
 
 import type { SDKAssistantMessageError } from "@anthropic-ai/claude-agent-sdk";
 
+import { CHECKPOINT_TOO_LARGE_ERROR } from "./checkpointer/http-saver.js";
 import { causeChainOf } from "./error-chain.js";
 import {
   ORGANIZATION_PROVIDER_KEY_SENTINEL,
@@ -205,6 +212,9 @@ export interface ThrownFailure {
 export function settleThrown(err: unknown, ctx: ModelErrorContext, stopModel: string | undefined = ctx.modelId): ThrownFailure {
   const { errorType, errorMessage } = describeExecutionError(err, ctx);
   const message = `[${errorType}] ${errorMessage}`;
+  if (causeChainOf(err).some((link) => link.name === CHECKPOINT_TOO_LARGE_ERROR)) {
+    return { surface: "engine", message, stopDetail: withModel("request_rejected", stopModel) };
+  }
   const app = appStopOf(err);
   if (app !== undefined) return { surface: "internal", message, stopDetail: app };
   const classified = classifyModelCallError(err, ctx);
