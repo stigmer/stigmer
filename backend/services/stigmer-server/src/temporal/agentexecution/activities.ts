@@ -2,7 +2,8 @@
  * Server-side activity implementations for the agent-execution worker: the
  * status merge (UpdateExecutionStatus), the count of a waiting turn's open
  * gates (CountOpenGates), the close of the previous turn's file review
- * (CloseFileReview) and the start of a session's queued turn
+ * (CloseFileReview), the ensure of the turn's sandbox
+ * (EnsureSessionSandbox) and the start of a session's queued turn
  * (StartQueuedTurn).
  *
  * Payload boundary: statuses and
@@ -56,6 +57,20 @@
  * log read under its lock. Idempotent, so a retry or a replay that runs
  * it again records nothing new.
  *
+ * EnsureSessionSandbox is the request's sandbox ensure
+ * (sandbox/steps.ts `ensureSessionSandboxForExecution`), run by the
+ * workflow before the turn's first runner activity on a CLOUD target, with
+ * the caller's facts from the workflow input. It answers in one word
+ * (sandbox-wait.ts SandboxEnsureOutcome), and the workflow asks again while
+ * the answer is `no_room`. Ensuring the sandbox can rightly take minutes (a
+ * template being built, an actor settling), so the activity heartbeats
+ * while it runs: a server that dies mid-ensure is retried in seconds. On
+ * `no_room` it tells the session's live streams how long the turn has
+ * waited (RunLiveness.awaiting_sandbox_for, the broker's kept liveness),
+ * and on any other answer after a wait it sends a liveness without the
+ * wait, so a stream stops counting while the runner starts. A run since
+ * deleted has nothing to ensure.
+ *
  * StartQueuedTurn is the workflow's last act: the start of the turn its
  * session's queued messages wait for (domain/run/queued-turn.ts), which
  * runs a whole run create in-process as the newest sender. Idempotent,
@@ -70,6 +85,8 @@
  */
 import { create } from "@bufbuild/protobuf";
 import type { JsonValue } from "@bufbuild/protobuf";
+import { durationFromMs } from "@bufbuild/protobuf/wkt";
+import { Context } from "@temporalio/activity";
 
 import {
   RunSchema,
@@ -81,6 +98,8 @@ import type {
 } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import { RunUpdateStatusInputSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunLivenessSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
+import { SessionEventPreviewSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../boot/logger.js";
@@ -96,14 +115,21 @@ import { eventOf } from "../../domain/session/events/codec.js";
 import type { SessionEventBroker } from "../../domain/session/events/broker.js";
 import { updateRunAppendingEvents } from "../../domain/session/events/run-writes.js";
 import { sessionIdOfRun } from "../../domain/session/events/transitions.js";
+import type { AccountsByCaller } from "../../domain/identityaccount/resolve.js";
+import type { AgentExecutionTemporalConfig } from "../../domain/run/temporal/config.js";
+import { sessionIdOf } from "../../domain/run/target.js";
+import type { SandboxLane } from "../../sandbox/lane.js";
+import { ensureSessionSandboxForExecution } from "../../sandbox/steps.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import {
   CLOSE_FILE_REVIEW_ACTIVITY_NAME,
   COUNT_OPEN_GATES_ACTIVITY_NAME,
+  ENSURE_SESSION_SANDBOX_ACTIVITY_NAME,
   START_QUEUED_TURN_ACTIVITY_NAME,
   UPDATE_EXECUTION_STATUS_ACTIVITY_NAME,
 } from "./names.js";
+import type { EnsureSessionSandboxInput, SandboxEnsureOutcome } from "./sandbox-wait.js";
 import type { QueuedTurnStarter } from "../../domain/run/queued-turn.js";
 import { decodeRunStatusJson } from "./execution-json.js";
 
@@ -134,7 +160,19 @@ export interface AgentExecutionActivityDeps {
   readonly sessionEventBroker: SessionEventBroker;
   /** Starts the turn a session's queued messages wait for (StartQueuedTurn). */
   readonly queuedTurns: QueuedTurnStarter;
+  /** The sandbox lane EnsureSessionSandbox provisions through. */
+  readonly sandboxLane: SandboxLane;
+  /** Resolves a session's creator for its sandbox's credential; undefined under the trusted-local posture. */
+  readonly personAccounts: AccountsByCaller | undefined;
+  readonly temporalConfig: AgentExecutionTemporalConfig;
+  /** Records the activity's heartbeat; the running activity's own by default (a test passes its own). */
+  readonly heartbeat?: () => void;
+  /** The wall clock the wait's age is read on, epoch ms; Date.now by default. */
+  readonly now?: () => number;
 }
+
+/** How often EnsureSessionSandbox heartbeats while the ensure runs (the workflow's proxy allows 30 s between two). */
+export const ENSURE_SESSION_SANDBOX_HEARTBEAT_MS = 10_000;
 
 /** The event that opens a message turn: the user message its run was created with. */
 const TURN_MESSAGE_TYPE = "user.message";
@@ -242,11 +280,84 @@ export function createAgentExecutionActivities(
       });
     },
 
+    /** The turn's sandbox, ensured for the workflow (module header). */
+    [ENSURE_SESSION_SANDBOX_ACTIVITY_NAME]: async (
+      input: EnsureSessionSandboxInput,
+    ): Promise<SandboxEnsureOutcome> => {
+      let run: Run;
+      try {
+        run = await store.getResource(ApiResourceKind.run, input.execution_id, RunSchema);
+      } catch (error) {
+        if (error instanceof ResourceNotFoundError) {
+          return "skipped";
+        }
+        throw error;
+      }
+      const heartbeat = deps.heartbeat ?? activityHeartbeat();
+      const beat = setInterval(heartbeat, ENSURE_SESSION_SANDBOX_HEARTBEAT_MS);
+      let outcome: SandboxEnsureOutcome;
+      try {
+        outcome = await ensureSessionSandboxForExecution(
+          {
+            store,
+            logger,
+            lane: deps.sandboxLane,
+            temporalConfig: deps.temporalConfig,
+            accounts: deps.personAccounts,
+          },
+          run,
+          {
+            identityId: input.caller_identity_id ?? "",
+            callerClass: input.caller_class,
+            ...(input.routine_id !== undefined ? { routineId: input.routine_id } : {}),
+          },
+        );
+      } finally {
+        clearInterval(beat);
+      }
+      publishSandboxWait(deps, run, input, outcome);
+      return outcome;
+    },
+
     /** The session's queued turn, started as the run's workflow ends (module header). */
     [START_QUEUED_TURN_ACTIVITY_NAME]: async (sessionId: string): Promise<void> => {
       await deps.queuedTurns(sessionId);
     },
   };
+}
+
+/** The running activity's heartbeat, its context read once, where the activity starts. */
+function activityHeartbeat(): () => void {
+  const context = Context.current();
+  return () => context.heartbeat();
+}
+
+/**
+ * Tells the run's session's live streams about the turn's wait for room
+ * (module header): its age on `no_room`, and a liveness without it on any
+ * other answer that follows a wait. Nothing for a turn that never waited.
+ */
+function publishSandboxWait(
+  deps: AgentExecutionActivityDeps,
+  run: Run,
+  input: EnsureSessionSandboxInput,
+  outcome: SandboxEnsureOutcome,
+): void {
+  const sessionId = sessionIdOf(run.spec);
+  if (sessionId === "" || (outcome !== "no_room" && input.waiting_since_ms === undefined)) {
+    return;
+  }
+  const now = (deps.now ?? Date.now)();
+  const waitedMs = Math.max(0, now - (input.waiting_since_ms ?? now));
+  const liveness = create(RunLivenessSchema, {
+    runId: input.execution_id,
+    ...(outcome === "no_room" ? { awaitingSandboxFor: durationFromMs(waitedMs) } : {}),
+  });
+  deps.sessionEventBroker.publishPreviews(sessionId, [
+    create(SessionEventPreviewSchema, {
+      preview: { case: "stigmerRunLiveness", value: liveness },
+    }),
+  ]);
 }
 
 /** One page of the messages read back from the run's first; a session rarely holds many unread. */

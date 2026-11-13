@@ -219,6 +219,7 @@ describe("a run that stops working", () => {
       ["failed", "app_needs_sign_in", "mcp_authentication_failed_error"],
       ["failed", "internal", "unknown_error"],
       ["infrastructure", "runner_lost", "unknown_error"],
+      ["infrastructure", "no_sandbox_room", "unknown_error"],
     ];
     for (const [stopCause, kind, type] of cases) {
       const error = failed(stopCause, { kind, ...(kind.startsWith("app_") ? { app: "issues" } : {}) });

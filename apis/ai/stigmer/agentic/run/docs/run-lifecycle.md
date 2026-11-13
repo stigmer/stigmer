@@ -78,6 +78,18 @@ The session's `interrupt` also stops a turn that is pending, waiting for an answ
 `status.stop_cause` says in one word why a turn stopped (`budget_reached`, `timeout`, `infrastructure`, `platform_stop`, `user`, `model_error`, `failed`, `eval_stopped`, `review_resolved`); it is empty while the turn works and when it ended on its own.
 
 
+### A turn waits for a sandbox with room
+
+A turn that runs in a provisioned sandbox (a session whose execution target is `CLOUD`) gets its sandbox before its runner starts. When the sandbox fleet has no room for it, the turn waits instead of failing:
+
+- **The run stays `RUN_PENDING`,** with `status.setup_progress.current_phase` "Waiting for a sandbox". A run started again with `recover` waits the same way, back in `RUN_PENDING`.
+- **The wait is live on the session's stream:** `RunLiveness.awaiting_sandbox_for` says how long the turn has waited, sent by the server each time the fleet answers that it has no room.
+- **It starts as soon as room appears,** however long that takes within the server's limit (`STIGMER_SANDBOX_WAIT_SECONDS`, 15 minutes by default).
+- **A wait past the limit ends the run** `RUN_FAILED`, with stop cause `infrastructure`, stop detail `no_sandbox_room`, and an error that says every sandbox was busy and nothing was lost.
+- **A pause takes no sandbox,** and the wait starts over on `resume`; a `cancel` ends the wait as it ends a working turn.
+
+Only a driver whose fleet can be full says it has no room (the `substrate` driver); with any other, a turn starts as before.
+
 ### A turn outlives its runner
 
 A turn is not ended by what happens to the machine running it. When its runner drains (a deploy, the platform moving it), dies, loses its model provider mid-reply, or has its connection ended by the agent's vendor, the turn stays `RUN_IN_PROGRESS` and continues on the next runner from where it was:

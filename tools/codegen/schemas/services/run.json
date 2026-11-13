@@ -3742,7 +3742,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "The kind of ending, under its stop cause. Under model_error:\n provider_key_rejected (the provider refused the key), provider_key_missing\n (no key for the model's provider), provider_out_of_credit,\n provider_rate_limited, provider_overloaded, model_unavailable (the key\n can't use this model), provider_unreachable (no connection to the\n provider) or request_rejected (the provider refused the request itself,\n such as one too long for the model). Under budget_reached: cost_cap or\n tool_call_limit. Under timeout: stalled (no progress), operation_limit (the\n turn's time limit) or workspace_busy (another turn held the workspace).\n Under failed: agent_setup (the agent can't run as configured),\n app_unreachable (a connected app wouldn't connect), app_needs_sign_in (a\n connected app needs a sign-in) or internal (a fault of the platform).\n Under infrastructure: runner_lost.",
+          "description": "The kind of ending, under its stop cause. Under model_error:\n provider_key_rejected (the provider refused the key), provider_key_missing\n (no key for the model's provider), provider_out_of_credit,\n provider_rate_limited, provider_overloaded, model_unavailable (the key\n can't use this model), provider_unreachable (no connection to the\n provider) or request_rejected (the provider refused the request itself,\n such as one too long for the model). Under budget_reached: cost_cap or\n tool_call_limit. Under timeout: stalled (no progress), operation_limit (the\n turn's time limit) or workspace_busy (another turn held the workspace).\n Under failed: agent_setup (the agent can't run as configured),\n app_unreachable (a connected app wouldn't connect), app_needs_sign_in (a\n connected app needs a sign-in) or internal (a fault of the platform).\n Under infrastructure: runner_lost (the machine running the turn stopped)\n or no_sandbox_room (no sandbox had room for the turn within the server's\n wait, so it never started).",
           "required": false,
           "validation": {
             "enum": [
@@ -3763,7 +3763,8 @@
               "app_unreachable",
               "app_needs_sign_in",
               "internal",
-              "runner_lost"
+              "runner_lost",
+              "no_sandbox_room"
             ]
           }
         },

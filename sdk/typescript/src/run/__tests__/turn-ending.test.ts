@@ -5,7 +5,8 @@
 // "the model provider" and "this model"; the comfort counts what the turn's
 // own to-do list finished; a viewer who can't fix the cause gets the
 // reader's comfort and no link, and one who can't act gets no act; a
-// person's own stop reads "Stopped by you"; and a turn still working, one
+// person's own stop reads "Stopped by you"; a turn no sandbox had room for
+// reads as one that didn't start, not as a lost runner; and a turn still working, one
 // that finished on its own, and an ending its own surface tells read
 // nothing.
 
@@ -115,6 +116,21 @@ describe("describeTurnEnding", () => {
     expect(actOf("failed", "internal")).toBe("run_again");
   });
 
+  it("reads a turn no sandbox had room for as one that didn't start, never as a lost runner", () => {
+    const turn = failed("infrastructure", "no_sandbox_room");
+    expect(describeTurnEnding({ turn, viewer: MEMBER })).toEqual({
+      tone: "failed",
+      pill: "Didn't start",
+      headline: "Every sandbox was busy, so this turn didn't start.",
+      comfort: "Nothing was lost: your message is still here. Run again waits for room again.",
+      stepNote: "Didn't start",
+      act: "run_again",
+      link: "none",
+      kind: "no_sandbox_room",
+    });
+    expect(describeTurnEnding({ turn, viewer: READER })).toMatchObject({ comfort: "Nothing was lost: your message is still here.", act: "none" });
+  });
+
   it("reads a budget stop amber, counts what the to-do list finished, and continues", () => {
     const turn = turnOf({ phase: "terminated", stopCause: "budget_reached", stopDetail: { kind: "cost_cap", model: "", app: "" } }, [
       todoCall(["completed", "completed", "in_progress", "pending", "pending"]),
@@ -165,7 +181,7 @@ describe("describeTurnEnding", () => {
     const kinds = [
       "provider_key_rejected", "provider_key_missing", "provider_out_of_credit", "provider_rate_limited", "provider_overloaded",
       "model_unavailable", "provider_unreachable", "request_rejected", "cost_cap", "tool_call_limit", "stalled", "operation_limit",
-      "workspace_busy", "agent_setup", "app_unreachable", "app_needs_sign_in", "internal", "runner_lost",
+      "workspace_busy", "agent_setup", "app_unreachable", "app_needs_sign_in", "internal", "runner_lost", "no_sandbox_room",
     ];
     for (const kind of kinds) {
       const ending = describeTurnEnding({ turn: failed("x", kind, { app: "crm" }), viewer: ADMIN, names: NAMES })!;

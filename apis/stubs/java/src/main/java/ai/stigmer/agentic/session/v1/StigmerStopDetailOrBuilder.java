@@ -24,7 +24,9 @@ public interface StigmerStopDetailOrBuilder extends
    * Under failed: agent_setup (the agent can't run as configured),
    * app_unreachable (a connected app wouldn't connect), app_needs_sign_in (a
    * connected app needs a sign-in) or internal (a fault of the platform).
-   * Under infrastructure: runner_lost.
+   * Under infrastructure: runner_lost (the machine running the turn stopped)
+   * or no_sandbox_room (no sandbox had room for the turn within the server's
+   * wait, so it never started).
    * </pre>
    *
    * <code>string kind = 1 [json_name = "kind", (.buf.validate.field) = { ... }</code>
@@ -45,7 +47,9 @@ public interface StigmerStopDetailOrBuilder extends
    * Under failed: agent_setup (the agent can't run as configured),
    * app_unreachable (a connected app wouldn't connect), app_needs_sign_in (a
    * connected app needs a sign-in) or internal (a fault of the platform).
-   * Under infrastructure: runner_lost.
+   * Under infrastructure: runner_lost (the machine running the turn stopped)
+   * or no_sandbox_room (no sandbox had room for the turn within the server's
+   * wait, so it never started).
    * </pre>
    *
    * <code>string kind = 1 [json_name = "kind", (.buf.validate.field) = { ... }</code>

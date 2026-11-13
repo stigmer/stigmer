@@ -928,6 +928,7 @@ function newStartFreshWorkflowStep(
           agentId: execution.status?.agentId ?? "",
           autoApproveAll: execution.spec?.autoApproveAll ?? false,
           reconcileFileReview: execution.spec?.reconcileFileReview ?? false,
+          caller: ctx.callerIdentity,
         });
       } catch (error) {
         if (error instanceof EngineDispatchError) {

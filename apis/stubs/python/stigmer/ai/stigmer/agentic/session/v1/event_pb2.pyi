@@ -388,14 +388,16 @@ class ToolOutputDelta(_message.Message):
     def __init__(self, tool_use_id: _Optional[str] = ..., delta: _Optional[str] = ...) -> None: ...
 
 class RunLiveness(_message.Message):
-    __slots__ = ("run_id", "operations", "awaiting_model_for")
+    __slots__ = ("run_id", "operations", "awaiting_model_for", "awaiting_sandbox_for")
     RUN_ID_FIELD_NUMBER: _ClassVar[int]
     OPERATIONS_FIELD_NUMBER: _ClassVar[int]
     AWAITING_MODEL_FOR_FIELD_NUMBER: _ClassVar[int]
+    AWAITING_SANDBOX_FOR_FIELD_NUMBER: _ClassVar[int]
     run_id: str
     operations: _containers.RepeatedCompositeFieldContainer[RunOpenOperation]
     awaiting_model_for: _duration_pb2.Duration
-    def __init__(self, run_id: _Optional[str] = ..., operations: _Optional[_Iterable[_Union[RunOpenOperation, _Mapping]]] = ..., awaiting_model_for: _Optional[_Union[datetime.timedelta, _duration_pb2.Duration, _Mapping]] = ...) -> None: ...
+    awaiting_sandbox_for: _duration_pb2.Duration
+    def __init__(self, run_id: _Optional[str] = ..., operations: _Optional[_Iterable[_Union[RunOpenOperation, _Mapping]]] = ..., awaiting_model_for: _Optional[_Union[datetime.timedelta, _duration_pb2.Duration, _Mapping]] = ..., awaiting_sandbox_for: _Optional[_Union[datetime.timedelta, _duration_pb2.Duration, _Mapping]] = ...) -> None: ...
 
 class RunOpenOperation(_message.Message):
     __slots__ = ("tool_use_id", "name", "elapsed", "thread_id")
