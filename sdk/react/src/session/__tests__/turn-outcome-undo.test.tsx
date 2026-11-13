@@ -141,7 +141,7 @@ describe("KIT-14 a turn's changed and made files appear once, and only someone w
     ]);
   });
 
-  it("says Undoing… while a file's undo is sent or put back, Undone once it is, and Couldn't undo with Try again when it failed", () => {
+  it("says Undoing… while a file's undo is sent or put back, Undone once it is, and Couldn't undo, with no Try again, when the put-back failed", () => {
     const onUndo = vi.fn();
     const files = [
       reviewFile("f1", "src/billing/invoice.ts", { state: "undone" }),
@@ -154,10 +154,12 @@ describe("KIT-14 a turn's changed and made files appear once, and only someone w
     expect(within(changed).getByText("Undone")).toBeTruthy();
     expect(within(changed).getByText("Couldn't undo")).toBeTruthy();
     expect(within(changed).getAllByText("Undoing…")).toHaveLength(2);
-    fireEvent.click(within(changed).getByRole("button", { name: "Try again" }));
-    expect(onUndo).toHaveBeenCalledWith("cs-1", { scope: "file", fileChangeId: "f2", expectedDigest: "fd-f2" });
+    // The server recorded that undo and could not carry it out; sending it
+    // again records nothing new and starts no put-back, so nothing offers to.
+    expect(within(changed).queryByRole("button", { name: "Try again" })).toBeNull();
     expect(screen.getByRole("status").textContent).toContain("1 undone");
   });
+
 
   it("names a refused undo on its file, with Try again", () => {
     const onUndo = vi.fn();

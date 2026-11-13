@@ -468,7 +468,7 @@ describe.skipIf(!proxyServed)("Side-channel proxy conformance (sideChannelProxy 
       expect(badMime.status).toBe(400);
     });
 
-    it("[proxy.checkpointer.round-trip-by-session-scope] [proxy.checkpointer.foreign-session-403] [proxy.checkpointer.document-over-4mb-413] checkpoints round-trip for the session's owner, refuse outsiders, and refuse oversized documents", async () => {
+    it("[proxy.checkpointer.round-trip-by-session-scope] [proxy.checkpointer.foreign-session-403] [proxy.checkpointer.document-over-cap-413] checkpoints round-trip for the session's owner, refuse outsiders, and refuse oversized documents", async () => {
       const { org } = await keyedOrg();
       const sessionId = await ownedSession(org);
       const threadId = `thread-${sessionId}`;
@@ -495,6 +495,8 @@ describe.skipIf(!proxyServed)("Side-channel proxy conformance (sideChannelProxy 
       expect((await proxyFetch(`/v1/proxy/checkpoints/checkpoint?thread_id=${threadId}`, { token })).status).toBe(403);
       expect((await proxyFetch("/v1/proxy/checkpoints/checkpoint", { method: "PUT", token, headers: { "content-type": "application/json" }, body: JSON.stringify(document) })).status).toBe(403);
 
+      // The lane's cap is 4 MiB (the inventory row says so): one byte over
+      // it is refused before the handler runs.
       const huge = JSON.stringify({ ...document, checkpoint: { blob: "z".repeat(4 * 1024 * 1024 + 1) } });
       expect((await proxyFetch("/v1/proxy/checkpoints/checkpoint", { method: "PUT", headers: { "content-type": "application/json" }, body: huge })).status).toBe(413);
 

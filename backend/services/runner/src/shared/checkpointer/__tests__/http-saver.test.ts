@@ -1,6 +1,7 @@
 /**
  * HttpCheckpointSaver: the proxy wire shape ($binary transport, the routes,
- * the header), the bounded retry loop and its classification, and the one
+ * the header), the bounded retry loop and its classification, a refusal as
+ * too large named so the turn ends with "start a new session", and the one
  * thing that must never regress silently — the bearer credential is read
  * from the shared ref on every request, so a rotation between two requests
  * of one saver reaches the second (a sandbox token renewed in place; a
@@ -8,7 +9,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { HttpCheckpointSaver } from "../http-saver.js";
+import { CHECKPOINT_TOO_LARGE_ERROR, CheckpointTooLargeError, HttpCheckpointSaver } from "../http-saver.js";
 import type { TokenRef } from "../../../config.js";
 import type { Checkpoint, CheckpointMetadata } from "@langchain/langgraph-checkpoint";
 
@@ -274,6 +275,20 @@ describe("HttpCheckpointSaver", () => {
         .rejects.toThrow("Checkpoint PUT failed: 400");
       expect(fetchSpy).toHaveBeenCalledTimes(1);
       expect(recordedDelays).toEqual([]);
+    });
+
+    it("names a checkpoint the platform refuses as too large, never retried, so the turn can say start a new session", async () => {
+      fetchSpy.mockResolvedValue({ status: 413, ok: false, statusText: "Payload Too Large" });
+
+      const refused = await saver.put(makeConfig(), makeCheckpoint(), md, {}).catch((err: unknown) => err);
+      expect(refused).toBeInstanceOf(CheckpointTooLargeError);
+      expect((refused as Error).name).toBe(CHECKPOINT_TOO_LARGE_ERROR);
+      expect((refused as Error).message).toMatch(/start a new session/i);
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+
+      fetchSpy.mockClear();
+      await expect(saver.putWrites(makeConfig(), [["messages", { a: 1 }]], "t1")).rejects.toBeInstanceOf(CheckpointTooLargeError);
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
     });
 
     it("never retries a rejected credential (401)", async () => {
