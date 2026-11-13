@@ -2,6 +2,7 @@
 
 import { cn } from "@stigmer/design-tokens";
 import { SpinnerIcon } from "../internal/thread-card/glyphs.js";
+import { BUTTON_SIZE_CLASSES } from "../button/buttonClasses.js";
 
 /** The visual weight of a {@link DecisionButton}. */
 export type DecisionVariant = "primary" | "ghost" | "danger";
@@ -39,9 +40,12 @@ export interface DecisionButtonProps {
   readonly ariaDescribedby?: string;
 }
 
+// Its height, padding and type are the kit's xs button's (button/buttonClasses.ts),
+// so the approval card's actions and every other row action are one size; its
+// corner and borderless fills stay the approval card's own look.
 const BASE = cn(
-  "stg:inline-flex stg:items-center stg:justify-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5",
-  "stg:text-xs stg:font-medium stg:transition-colors",
+  "stg:inline-flex stg:items-center stg:justify-center stg:rounded-md stg:font-medium stg:transition-colors",
+  BUTTON_SIZE_CLASSES.xs,
   "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:focus-visible:ring-offset-2",
   // Disabled dimming is ELEMENT opacity (allowed), never a `bg-token/NN` opacity
   // modifier — each preset keeps full control of the token colors themselves.

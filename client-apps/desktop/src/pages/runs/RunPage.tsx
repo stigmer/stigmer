@@ -9,10 +9,11 @@
  * failure never reads as a missing run.
  */
 import { useEffect } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { AlertTriangle, FileQuestion, RotateCcw } from "lucide-react";
 import { getUserMessage } from "@stigmer/client";
-import { useResolveRunSession } from "@stigmer/react-sdk";
+import { Button, LinkButton, useResolveRunSession } from "@stigmer/react-sdk";
+import { renderJourneyLink } from "../../journey/journey-links";
 
 export default function RunPage() {
   const { id } = useParams<{ id: string }>();
@@ -44,14 +45,9 @@ function RunLoadFailed({ error, onRetry }: { error: Error; onRetry: () => void }
           <p className="text-muted-foreground text-sm">{getUserMessage(error)}</p>
         </div>
 
-        <button
-          type="button"
-          onClick={onRetry}
-          className="border-border bg-card hover:bg-muted inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border px-2.5 text-sm font-medium transition-colors"
-        >
-          <RotateCcw className="size-3.5" />
+        <Button variant="outline" icon={<RotateCcw className="size-3.5" />} onClick={onRetry}>
           Try again
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -73,12 +69,9 @@ function RunNotFound() {
           </p>
         </div>
 
-        <Link
-          to="/dashboard"
-          className="bg-primary text-primary-foreground hover:bg-primary-hover inline-flex h-8 items-center justify-center rounded-lg px-2.5 text-sm font-medium transition-colors"
-        >
+        <LinkButton href="/dashboard" renderLink={renderJourneyLink}>
           Go to Dashboard
-        </Link>
+        </LinkButton>
       </div>
     </div>
   );

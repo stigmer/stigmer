@@ -24,12 +24,8 @@ import {
 } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/spec_pb";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { normalizeAddress } from "./address.js";
-import {
-  DANGER_BUTTON_CLASS,
-  INPUT_CLASS,
-  PRIMARY_BUTTON_CLASS,
-  QUIET_BUTTON_CLASS,
-} from "./styles.js";
+import { INPUT_CLASS } from "./styles.js";
+import { Button } from "../button/Button.js";
 
 const SECRET_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
@@ -263,29 +259,30 @@ function EntryRow({
         {extra}
         {!readOnly && (
           <>
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              size="xs"
               disabled={disabled}
               onClick={() => {
                 setConfirmingRemove(false);
                 setReplacing((r) => !r);
               }}
-              className={QUIET_BUTTON_CLASS}
             >
               Replace
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="ghost"
+              size="xs"
               disabled={disabled}
               onClick={() => {
                 setReplacing(false);
                 setConfirmingRemove(true);
               }}
               aria-label={`Remove ${title}`}
-              className={DANGER_BUTTON_CLASS}
+              className="stg:hover:bg-destructive-subtle stg:hover:text-destructive"
             >
               Remove
-            </button>
+            </Button>
           </>
         )}
       </div>
@@ -295,25 +292,21 @@ function EntryRow({
             Remove {title}? Its value cannot be read back, so it cannot be restored; you would enter it again.
           </p>
           <div className="stg:flex stg:items-center stg:gap-2">
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              size="xs"
               disabled={disabled}
               onClick={() => {
                 setConfirmingRemove(false);
                 void onRemove();
               }}
-              className={DANGER_BUTTON_CLASS}
+              className="stg:text-destructive stg:hover:bg-destructive-subtle"
             >
               Remove
-            </button>
-            <button
-              type="button"
-              disabled={disabled}
-              onClick={() => setConfirmingRemove(false)}
-              className={QUIET_BUTTON_CLASS}
-            >
+            </Button>
+            <Button variant="ghost" size="xs" disabled={disabled} onClick={() => setConfirmingRemove(false)}>
               Keep
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -329,9 +322,9 @@ function EntryRow({
             className={INPUT_CLASS}
             autoFocus
           />
-          <button type="submit" disabled={disabled || value === ""} className={PRIMARY_BUTTON_CLASS}>
+          <Button type="submit" size="xs" disabled={disabled || value === ""}>
             Save
-          </button>
+          </Button>
         </form>
       )}
     </li>
@@ -393,9 +386,9 @@ function AddSecretForm({
         disabled={disabled}
         className={INPUT_CLASS}
       />
-      <button type="submit" disabled={!canSubmit} className={PRIMARY_BUTTON_CLASS}>
+      <Button type="submit" size="xs" disabled={!canSubmit}>
         Add
-      </button>
+      </Button>
       {!nameValid && (
         <p className="stg:col-span-full stg:text-destructive stg:text-2xs" role="alert">
           A name starts with a letter or underscore and holds only letters, digits and underscores.
@@ -458,9 +451,9 @@ function AddConnectionForm({
         disabled={disabled}
         className={INPUT_CLASS}
       />
-      <button type="submit" disabled={!canSubmit} className={PRIMARY_BUTTON_CLASS}>
+      <Button type="submit" size="xs" disabled={!canSubmit}>
         Add
-      </button>
+      </Button>
       {!addressValid && (
         <p className="stg:col-span-full stg:text-destructive stg:text-2xs" role="alert">
           Enter a tool&apos;s full URL (https://…) or a Git host such as github.com.

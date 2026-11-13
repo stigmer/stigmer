@@ -29,6 +29,8 @@ import {
   workspaceImageMimeType,
   type WorkspaceFileReader,
 } from "./WorkspaceFileReader.js";
+import { Button } from "../button/Button.js";
+import { IconButton } from "../button/IconButton.js";
 
 /** Line-skeleton widths, mirroring `TextContentView` in `execution/`. */
 const SKELETON_LINE_WIDTHS = [85, 72, 90, 65, 78, 88, 70, 82] as const;
@@ -400,13 +402,9 @@ function FileViewerBody({
           This file isn&rsquo;t available in the workspace source yet. The
           agent&rsquo;s latest changes may still be syncing.
         </p>
-        <button
-          type="button"
-          onClick={onRetry}
-          className="stg:text-xs stg:font-medium stg:text-foreground stg:underline stg:underline-offset-2 stg:hover:text-muted-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:focus-visible:rounded-sm"
-        >
+        <Button variant="ghost" size="xs" onClick={onRetry}>
           Check again
-        </button>
+        </Button>
       </div>
     );
   }
@@ -416,13 +414,9 @@ function FileViewerBody({
       <div className="stg:flex stg:flex-col stg:items-center stg:justify-center stg:gap-2 stg:p-8 stg:text-center">
         <ErrorAlertIcon />
         <p className="stg:text-sm stg:text-destructive">{error.message}</p>
-        <button
-          type="button"
-          onClick={onRetry}
-          className="stg:text-xs stg:font-medium stg:text-foreground stg:underline stg:underline-offset-2 stg:hover:text-muted-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:focus-visible:rounded-sm"
-        >
+        <Button variant="ghost" size="xs" onClick={onRetry}>
           Retry
-        </button>
+        </Button>
       </div>
     );
   }
@@ -669,24 +663,10 @@ function ViewerHeader({
         )}
       </div>
       {onRefresh && (
-        <button
-          type="button"
-          onClick={onRefresh}
-          aria-label={`Reload ${basename}`}
-          className="stg:shrink-0 stg:rounded stg:p-0.5 stg:text-muted-foreground stg:transition-colors stg:hover:text-foreground stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring"
-        >
-          <RefreshIcon />
-        </button>
+        <IconButton size="xs" label={`Reload ${basename}`} icon={<RefreshIcon />} onClick={onRefresh} />
       )}
       {onClose && (
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close file viewer"
-          className="stg:shrink-0 stg:rounded stg:p-0.5 stg:text-muted-foreground stg:transition-colors stg:hover:text-foreground stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring"
-        >
-          <CloseIcon />
-        </button>
+        <IconButton size="xs" label="Close file viewer" icon={<CloseIcon />} onClick={onClose} />
       )}
     </div>
   );

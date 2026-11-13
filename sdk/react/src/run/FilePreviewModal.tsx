@@ -3,6 +3,8 @@
 import { useCallback, type ReactNode } from "react";
 import type { File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { cn } from "@stigmer/design-tokens";
+import { Button } from "../button/Button.js";
+import { IconButton } from "../button/IconButton.js";
 import { DialogShell } from "../internal/DialogShell.js";
 import { useFileDownload } from "../file/useFile.js";
 import { FileBody } from "./FileBody.js";
@@ -308,13 +310,6 @@ export function FilePreviewModal({
 }
 
 // ---------------------------------------------------------------------------
-// Shared style constants
-// ---------------------------------------------------------------------------
-
-const FOCUS_RING_CLASSES =
-  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:focus-visible:rounded-sm";
-
-// ---------------------------------------------------------------------------
 // ContentHeader (internal)
 // ---------------------------------------------------------------------------
 
@@ -357,17 +352,7 @@ function ContentHeader({
         </div>
       </div>
 
-      <button
-        type="button"
-        onClick={onClose}
-        aria-label="Close preview"
-        className={cn(
-          "stg:shrink-0 stg:rounded-sm stg:p-1 stg:text-muted-foreground stg:transition-colors stg:hover:text-foreground",
-          FOCUS_RING_CLASSES,
-        )}
-      >
-        <CloseIcon />
-      </button>
+      <IconButton label="Close preview" icon={<CloseIcon />} onClick={onClose} />
     </div>
   );
 }
@@ -416,35 +401,27 @@ function ActionBar({
     <div className="stg:flex stg:flex-wrap stg:items-center stg:justify-between stg:gap-3 stg:border-t stg:border-border stg:px-4 stg:py-3">
       <div className="stg:flex stg:min-w-0 stg:flex-wrap stg:items-center stg:gap-3">
         {hasContent && (
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="xs"
             onClick={onCopy}
             aria-label={copied ? "Copied to clipboard" : "Copy content"}
-            className={cn(
-              "stg:inline-flex stg:items-center stg:gap-1.5 stg:text-xs stg:font-medium stg:transition-colors",
-              copied
-                ? "stg:text-status-ready"
-                : "stg:text-muted-foreground stg:hover:text-foreground",
-              FOCUS_RING_CLASSES,
-            )}
+            icon={copied ? <CheckIcon /> : <CopyIcon />}
+            className={copied ? "stg:text-status-ready" : undefined}
           >
-            {copied ? <CheckIcon /> : <CopyIcon />}
             {copied ? "Copied" : "Copy"}
-          </button>
+          </Button>
         )}
 
-        <button
-          type="button"
+        <Button
+          variant="ghost"
+          size="xs"
           onClick={() => download(file.metadata?.id ?? "", file.spec?.filename)}
           disabled={isDownloading}
-          className={cn(
-            "stg:inline-flex stg:items-center stg:gap-1.5 stg:text-xs stg:font-medium stg:text-muted-foreground stg:transition-colors stg:hover:text-foreground stg:disabled:opacity-50",
-            FOCUS_RING_CLASSES,
-          )}
+          icon={<DownloadIcon />}
         >
-          <DownloadIcon />
           {isDownloading ? "Preparing…" : "Download"}
-        </button>
+        </Button>
         {!readOnly && <FileAddAsSkillAction file={file} onAdded={onApplied} />}
         {!readOnly && onDeleted && <FileDeleteAction file={file} onDeleted={onDeleted} />}
         {accessSlot}
@@ -452,18 +429,9 @@ function ActionBar({
 
       <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-3">
         {onImplement && (
-          <button
-            type="button"
-            onClick={onImplement}
-            className={cn(
-              "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-4 stg:py-1.5 stg:text-xs stg:font-medium stg:transition-colors",
-              "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
-              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:focus-visible:ring-offset-2",
-            )}
-          >
-            <ImplementIcon />
+          <Button size="xs" onClick={onImplement} icon={<ImplementIcon />}>
             Build
-          </button>
+          </Button>
         )}
         {applyResult ? (
           <span className="stg:inline-flex stg:items-center stg:gap-1.5 stg:text-xs stg:font-medium stg:text-status-ready">
@@ -475,16 +443,9 @@ function ActionBar({
             <span className="stg:text-xs stg:text-destructive">
               {applyError.message}
             </span>
-            <button
-              type="button"
-              onClick={onApply}
-              className={cn(
-                "stg:text-xs stg:font-medium stg:text-destructive stg:underline stg:transition-colors stg:hover:text-destructive-muted",
-                FOCUS_RING_CLASSES,
-              )}
-            >
+            <Button variant="ghost" size="xs" onClick={onApply} className="stg:text-destructive stg:hover:bg-destructive-subtle">
               Retry
-            </button>
+            </Button>
           </span>
         ) : !readOnly && isDetected && ctaLabel ? (
           <span data-cursor-target="apply-resource-button">

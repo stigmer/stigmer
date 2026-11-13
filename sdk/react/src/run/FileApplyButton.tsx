@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@stigmer/design-tokens";
+import { Button } from "../button/Button.js";
 import { SpinnerIcon } from "../internal/thread-card/glyphs.js";
 
 /** Props for {@link FileApplyButton}. */
@@ -36,29 +36,15 @@ export function FileApplyButton({
   const canApply = isTerminal && !isApplying;
 
   return (
-    <button
-      type="button"
+    <Button
+      size="xs"
       onClick={canApply ? onApply : undefined}
       disabled={!canApply}
       aria-busy={isApplying}
-      className={cn(
-        "stg:rounded-md stg:px-4 stg:py-1.5 stg:text-xs stg:font-medium stg:transition-colors",
-        "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:focus-visible:ring-offset-2",
-        "stg:disabled:cursor-not-allowed",
-        canApply
-          ? "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover"
-          : "stg:bg-muted stg:text-muted-foreground",
-      )}
+      icon={isApplying ? <SpinnerIcon size={12} className="stg:shrink-0" /> : undefined}
     >
-      {isApplying ? (
-        <span className="stg:inline-flex stg:items-center stg:gap-1.5">
-          <SpinnerIcon size={12} className="stg:shrink-0" />
-          Applying{"\u2026"}
-        </span>
-      ) : (
-        label
-      )}
-    </button>
+      {isApplying ? <>Applying{"\u2026"}</> : label}
+    </Button>
   );
 }
 

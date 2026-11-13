@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@stigmer/design-tokens";
+import { IconButton } from "../button/IconButton.js";
 import type { ReactNode } from "react";
 
 export interface SectionProps {
@@ -59,19 +60,7 @@ export function Section({
           <div className="stg:ml-auto stg:flex stg:items-center stg:gap-1">
             {headerActions}
             {onEdit && (
-              <button
-                type="button"
-                onClick={onEdit}
-                aria-label={`Edit ${title.toLowerCase()}`}
-                className={cn(
-                  "stg:inline-flex stg:size-6 stg:items-center stg:justify-center stg:rounded-md stg:text-muted-foreground",
-                  "stg:hover:bg-accent-hover stg:hover:text-foreground",
-                  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-                  "stg:transition-colors",
-                )}
-              >
-                <PencilIcon className="stg:size-3.5" />
-              </button>
+              <IconButton label={`Edit ${title.toLowerCase()}`} size="xs" icon={<PencilIcon className="stg:size-3.5" />} onClick={onEdit} />
             )}
           </div>
         )}

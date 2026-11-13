@@ -1,7 +1,8 @@
 // The desktop's wiring of the organization gate: with no organization yet it
 // shows the onboarding form, and a newly created organization becomes the
 // active one by its minted id (the gate refreshes targeting that id, not the
-// slug the person typed). The gate derivation and the form are the SDK's,
+// slug the person typed); a failed organization load shows the reason and a
+// "Try again" that re-runs the gate's retry. The gate derivation and the form are the SDK's,
 // pinned by its own suite; here they are stubbed so each state holds still.
 
 import { create } from "@bufbuild/protobuf";
@@ -9,24 +10,34 @@ import {
   OrganizationSchema,
   type Organization,
 } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { OrgGate } from "../OrgGate";
 
 const gate = vi.hoisted(() => ({
   status: "no-orgs" as string,
+  message: "",
+  retry: vi.fn<() => void>(),
   refresh: vi.fn<(target?: string) => void>(),
   onCreated: null as ((org: Organization) => void) | null,
 }));
 
-vi.mock("@stigmer/react-sdk", () => ({
-  useOrgGate: () => ({ state: { status: gate.status }, retry: () => undefined, refresh: gate.refresh }),
-  CreateOrganizationForm: ({ onCreated }: { onCreated: (org: Organization) => void }) => {
-    gate.onCreated = onCreated;
-    return <p>create organization form</p>;
-  },
-}));
+vi.mock("@stigmer/react-sdk", async () => {
+  const kit = await vi.importActual<typeof import("@stigmer/react-sdk")>("@stigmer/react-sdk");
+  return {
+    Button: kit.Button,
+    useOrgGate: () => ({
+      state: { status: gate.status, message: gate.message },
+      retry: gate.retry,
+      refresh: gate.refresh,
+    }),
+    CreateOrganizationForm: ({ onCreated }: { onCreated: (org: Organization) => void }) => {
+      gate.onCreated = onCreated;
+      return <p>create organization form</p>;
+    },
+  };
+});
 
 vi.mock("../../shell/GateHeader", () => ({ GateHeader: () => null }));
 
@@ -42,6 +53,8 @@ function renderGate(): void {
 
 beforeEach(() => {
   gate.status = "no-orgs";
+  gate.message = "";
+  gate.retry.mockClear();
   gate.refresh.mockClear();
   gate.onCreated = null;
 });
@@ -67,5 +80,19 @@ describe("desktop OrgGate", () => {
     act(() => gate.onCreated?.(created));
 
     expect(gate.refresh).toHaveBeenCalledWith("org_01jaaaaaaaaaaaaaaaaaaaaaaa");
+  });
+
+  it("shows why the organizations failed to load and retries on Try again", () => {
+    gate.status = "error";
+    gate.message = "The server could not be reached.";
+    renderGate();
+
+    expect(screen.getByText("Failed to load organizations")).toBeTruthy();
+    expect(screen.getByText("The server could not be reached.")).toBeTruthy();
+    expect(screen.queryByText("the app")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+
+    expect(gate.retry).toHaveBeenCalledTimes(1);
   });
 });

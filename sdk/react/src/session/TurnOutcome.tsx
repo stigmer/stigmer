@@ -12,6 +12,7 @@ import type { File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/
 import { cn } from "@stigmer/design-tokens";
 import type { TurnChange, TurnOutcomeView } from "./turn-outcome.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
+import { Button } from "../button/Button.js";
 
 /** Props for {@link TurnOutcome}. */
 export interface TurnOutcomeProps {
@@ -133,13 +134,9 @@ function OutcomeGroup({ title, items }: { readonly title: string; readonly items
               <span>
                 {rest.length} more: {countByKind(rest)}
               </span>
-              <button
-                type="button"
-                onClick={() => setAll(true)}
-                className="stg:rounded-md stg:border stg:border-border stg:bg-card stg:px-2 stg:py-1 stg:font-medium stg:text-foreground stg:hover:bg-muted"
-              >
+              <Button variant="outline" size="xs" onClick={() => setAll(true)}>
                 Show all {items.length}
-              </button>
+              </Button>
             </div>
           )}
         </div>

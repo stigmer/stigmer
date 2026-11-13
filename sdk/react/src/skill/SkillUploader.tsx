@@ -9,6 +9,7 @@ import { UploadIcon } from "../internal/UploadIcon.js";
 import { useSkillUpload } from "./useSkillUpload.js";
 import { usePushSkill } from "./usePushSkill.js";
 import { useSkillDuplicateCheck } from "./useSkillDuplicateCheck.js";
+import { Button } from "../button/Button.js";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -245,18 +246,9 @@ function DropZonePhase({
 
       {onCancel && (
         <div className="stg:flex stg:justify-end stg:border-t stg:border-border stg:px-4 stg:py-3">
-          <button
-            type="button"
-            onClick={onCancel}
-            className={cn(
-              "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-sm stg:font-medium stg:text-muted-foreground",
-              "stg:hover:text-foreground stg:hover:bg-muted",
-              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-              "stg:transition-colors",
-            )}
-          >
+          <Button variant="ghost" onClick={onCancel}>
             Cancel
-          </button>
+          </Button>
         </div>
       )}
     </div>
@@ -387,48 +379,19 @@ function PreviewPhase({
 
       {/* Footer actions */}
       <div className="stg:flex stg:items-center stg:justify-between stg:px-4 stg:py-3">
-        <button
-          type="button"
-          onClick={onReset}
-          className={cn(
-            "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-sm stg:font-medium stg:text-muted-foreground",
-            "stg:hover:text-foreground stg:hover:bg-muted",
-            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-            "stg:transition-colors",
-          )}
-        >
+        <Button variant="ghost" onClick={onReset}>
           Choose Different File
-        </button>
+        </Button>
 
         <div className="stg:flex stg:items-center stg:gap-2">
           {onCancel && (
-            <button
-              type="button"
-              onClick={onCancel}
-              className={cn(
-                "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-sm stg:font-medium stg:text-muted-foreground",
-                "stg:hover:text-foreground stg:hover:bg-muted",
-                "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-                "stg:transition-colors",
-              )}
-            >
+            <Button variant="ghost" onClick={onCancel}>
               Cancel
-            </button>
+            </Button>
           )}
-          <button
-            type="button"
-            onClick={onPush}
-            disabled={isPushing}
-            className={cn(
-              "stg:rounded-md stg:bg-primary stg:px-4 stg:py-1.5 stg:text-sm stg:font-medium stg:text-primary-foreground",
-              "stg:hover:bg-primary-hover",
-              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-              "stg:disabled:opacity-50 stg:disabled:cursor-not-allowed",
-              "stg:transition-colors",
-            )}
-          >
+          <Button onClick={onPush} disabled={isPushing}>
             {isPushing ? "Pushing..." : isDuplicate ? "Push Anyway" : "Push Skill"}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

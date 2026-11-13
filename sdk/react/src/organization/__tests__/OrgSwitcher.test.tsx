@@ -6,7 +6,8 @@
  * active one once the list is fetched again. The create dialog is a form, so
  * a click outside it leaves it open with what was typed. An organization open outside
  * the caller's list (a child its parent's admin opened) is the menu's first,
- * checked item, "Child of" its parent, until another is chosen.
+ * checked item, "Child of" its parent, until another is chosen. A list that
+ * fails to load shows its error and loads again on Retry.
  */
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
@@ -195,5 +196,21 @@ describe("OrgSwitcher", () => {
     expect(first.textContent).toBe(`elsewhere${detail}`);
     expect(first.getAttribute("aria-checked")).toBe("true");
   });
-});
 
+  it("shows a failed load and loads the list again on Retry", async () => {
+    let calls = 0;
+    const listMine = vi.fn(async () => {
+      calls += 1;
+      if (calls === 1) throw new Error("organizations unavailable");
+      return { entries: [ACME], nextPageToken: "" };
+    });
+    renderSwitcher({ organization: { listMine, create: vi.fn(), get: vi.fn() } });
+
+    expect(await screen.findByText("organizations unavailable")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Retry loading organizations" }));
+
+    await waitFor(() => expect(screen.getByLabelText("active org").textContent).toBe(ACME_ID));
+    expect(listMine).toHaveBeenCalledTimes(2);
+    expect(screen.queryByText("organizations unavailable")).toBeNull();
+  });
+});

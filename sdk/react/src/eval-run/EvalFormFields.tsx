@@ -19,7 +19,8 @@ import { type HarnessOption } from "@stigmer/react-core";
 import { HARNESS_OPTIONS } from "@stigmer/react-core/internal";
 import { ModelSelector } from "../models/ModelSelector.js";
 import { Switch } from "../switch/Switch.js";
-import { INPUT_CLASS, QUIET_BUTTON_CLASS } from "../vault/styles.js";
+import { INPUT_CLASS } from "../vault/styles.js";
+import { Button } from "../button/Button.js";
 import { MAX_EVAL_TARGETS, type EvalRunSettings } from "./eval-view.js";
 
 /** A form field's label. */
@@ -97,8 +98,9 @@ export function EvalModelsField<S extends EvalRunSettings>({
                 placeholderLabel="Default model"
               />
               {settings.targets.length > 1 && (
-                <button
-                  type="button"
+                <Button
+                  variant="ghost"
+                  size="xs"
                   aria-label={`Remove model ${index + 1}`}
                   onClick={() =>
                     onChange({
@@ -106,17 +108,17 @@ export function EvalModelsField<S extends EvalRunSettings>({
                       targets: settings.targets.filter((_, i) => i !== index),
                     })
                   }
-                  className={QUIET_BUTTON_CLASS}
                 >
                   Remove
-                </button>
+                </Button>
               )}
             </div>
           ))}
           {settings.targets.length < MAX_EVAL_TARGETS && (
             <div>
-              <button
-                type="button"
+              <Button
+                variant="ghost"
+                size="xs"
                 onClick={() =>
                   onChange({
                     ...settings,
@@ -126,10 +128,9 @@ export function EvalModelsField<S extends EvalRunSettings>({
                     ],
                   })
                 }
-                className={QUIET_BUTTON_CLASS}
               >
                 Add a model
-              </button>
+              </Button>
             </div>
           )}
         </fieldset>

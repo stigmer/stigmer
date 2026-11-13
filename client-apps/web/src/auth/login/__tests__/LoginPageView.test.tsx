@@ -22,9 +22,15 @@ vi.mock("@stigmer/client", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@stigmer/client")>()),
   Stigmer: class {},
 }));
-vi.mock("@stigmer/react-sdk", () => ({
-  StigmerProvider: ({ children }: { children: React.ReactNode }) => children,
-}));
+vi.mock("@stigmer/react-sdk", async () => {
+  const kit = await vi.importActual<typeof import("@stigmer/react-sdk")>("@stigmer/react-sdk");
+  return {
+    Button: kit.Button,
+    IconButton: kit.IconButton,
+    LinkButton: kit.LinkButton,
+    StigmerProvider: ({ children }: { children: React.ReactNode }) => children,
+  };
+});
 vi.mock("@/config/env", () => ({
   getApiBaseUrl: () => "https://stigmer.example.com",
 }));

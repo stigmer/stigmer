@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback } from "react";
-import { cn } from "@stigmer/design-tokens";
 import { DialogShell } from "../internal/DialogShell.js";
+import { IconButton } from "../button/IconButton.js";
 import { useSkillDiff } from "./useSkillDiff.js";
 import { MultiFileDiffView } from "../version-history/MultiFileDiffView.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
@@ -95,18 +95,7 @@ export function SkillDiffDialog({ state, onClose }: SkillDiffDialogProps) {
               {state.toLabel}
             </code>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close diff viewer"
-            className={cn(
-              "stg:rounded-md stg:p-1.5 stg:text-muted-foreground stg:transition-colors",
-              "stg:hover:bg-accent-hover stg:hover:text-foreground",
-              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-            )}
-          >
-            <CloseIcon className="stg:size-4" />
-          </button>
+          <IconButton label="Close diff viewer" icon={<CloseIcon className="stg:size-4" />} onClick={onClose} />
         </div>
 
         {/* Body */}

@@ -78,6 +78,7 @@ import { keptReference } from "../internal/kept-reference.js";
 import { ResourceSlugField } from "../resource-detail/RenameSlugField.js";
 import { describeEnvironmentChoice } from "../environment/copy.js";
 import { RoutineEnvironmentField, useRoutineEnvironmentDefault } from "./RoutineEnvironmentField.js";
+import { Button } from "../button/Button.js";
 
 /** Props for {@link RoutineDetailView}. */
 export interface RoutineDetailViewProps {
@@ -896,19 +897,9 @@ function StateBanner({
         <p className="stg:text-sm stg:font-medium stg:text-foreground">{title}</p>
         <p className="stg:mt-0.5 stg:text-xs stg:text-status-degraded">{children}</p>
       </div>
-      <button
-        type="button"
-        onClick={onAction}
-        disabled={actionBusy}
-        className={cn(
-          "stg:shrink-0 stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium stg:text-foreground",
-          "stg:hover:bg-accent stg:hover:text-accent-foreground",
-          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-          "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-        )}
-      >
+      <Button variant="outline" size="xs" onClick={onAction} disabled={actionBusy}>
         {actionLabel}
-      </button>
+      </Button>
     </div>
   );
 }
@@ -1248,18 +1239,18 @@ function EngineModelInlineEditor({
           disabled={isSaving}
         />
         {modelName !== "" && (
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="xs"
             onClick={() => {
               setModelName("");
               setServiceTier("standard");
               setThinkingMode("disabled");
             }}
             disabled={isSaving}
-            className="stg:rounded-md stg:px-2 stg:py-1 stg:text-2xs stg:text-muted-foreground stg:hover:text-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:disabled:pointer-events-none stg:disabled:opacity-50"
           >
             Reset to platform default
-          </button>
+          </Button>
         )}
       </div>
       <p className="stg:text-2xs stg:text-muted-foreground">
@@ -1515,33 +1506,12 @@ function InlineEditActions({
   return (
     <div className="stg:flex stg:flex-col stg:gap-1.5">
       <div className="stg:flex stg:items-center stg:justify-end stg:gap-1.5">
-        <button
-          type="button"
-          onClick={onCancel}
-          disabled={isSaving}
-          className={cn(
-            "stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
-            "stg:border stg:border-border stg:bg-background stg:text-foreground stg:hover:bg-accent stg:hover:text-accent-foreground",
-            "stg:disabled:opacity-50",
-            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-          )}
-        >
+        <Button variant="outline" size="xs" onClick={onCancel} disabled={isSaving}>
           Cancel
-        </button>
-        <button
-          type="button"
-          onClick={onSave}
-          disabled={!canSave || isSaving}
-          className={cn(
-            "stg:inline-flex stg:items-center stg:gap-1 stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
-            "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
-            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-          )}
-        >
-          {isSaving && <SpinnerIcon size={14} />}
+        </Button>
+        <Button size="xs" onClick={onSave} disabled={!canSave || isSaving} icon={isSaving ? <SpinnerIcon size={14} /> : undefined}>
           Save
-        </button>
+        </Button>
       </div>
       {error && (
         <p className="stg:text-xs stg:text-destructive" role="alert">

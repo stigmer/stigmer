@@ -2,7 +2,8 @@
 // (serving switch, link, embed, origins, credentials, messages, link reset),
 // every edit naming the dialog's fields on the channel as loaded. An agent
 // whose only tools are a subagent's warns and opens its credentials once the
-// subagent is read, unless the person shut the section first.
+// subagent is read, unless the person shut the section first. A live link's
+// Copy writes the link to the clipboard; Reset drops unsaved message edits.
 
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
 import { sentRefs, sentUpdate } from "../../internal/__tests__/sent-update";
@@ -17,6 +18,7 @@ import { FetchCacheContext } from "@stigmer/react-core/internal";
 import { DeploymentModeContext } from "@stigmer/react-core";
 import { PublicBaseUrlContext } from "../../public-base-url-context";
 import { ChatLinkDialog } from "../ChatLinkDialog";
+import { toast } from "../../feedback/toast";
 
 // Toasts are visual feedback owned by the feedback module; keep them inert.
 vi.mock("../../feedback/toast", () => ({
@@ -495,6 +497,23 @@ describe("ChatLinkDialog", () => {
     });
   });
 
+  it("copies a live link to the clipboard and says so", async () => {
+    const writeText = vi.fn(async () => undefined);
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText },
+      configurable: true,
+    });
+    renderOpenDialog(createMockStigmer(), {
+      channel: makeChatLink({ enabled: true }),
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Copy", hidden: true }));
+    await waitFor(() =>
+      expect(writeText).toHaveBeenCalledWith("https://app.example.com/chat/chn_1"),
+    );
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Link copied"));
+  });
+
   it("shows the indexability warning", () => {
     renderOpenDialog(createMockStigmer(), {
       channel: makeChatLink({ enabled: true }),
@@ -959,6 +978,27 @@ describe("ChatLinkDialog", () => {
       expect(input.messages?.rateLimited).toBe("Please slow down.");
       expect(input.enabled).toBe(true);
       expect(input.allowedOrigins).toEqual(["https://example.com"]);
+    });
+
+    it("Reset puts back the saved messages and saves nothing", () => {
+      const update = vi.fn().mockResolvedValue({});
+      renderOpenDialog(createMockStigmer({ update }), {
+        channel: makeChatLink({
+          enabled: true,
+          messages: { rateLimited: "Too many messages." },
+        }),
+      });
+
+      fireEvent.click(screen.getByText("Customize visitor messages"));
+      const field = screen.getByLabelText(/Rate limited/) as HTMLTextAreaElement;
+      fireEvent.change(field, { target: { value: "Please slow down." } });
+      fireEvent.click(screen.getByRole("button", { name: "Reset", hidden: true }));
+
+      expect((screen.getByLabelText(/Rate limited/) as HTMLTextAreaElement).value).toBe(
+        "Too many messages.",
+      );
+      expect(screen.queryByText("Save messages")).toBeNull();
+      expect(update).not.toHaveBeenCalled();
     });
 
     it("caps each message at 300 characters", () => {

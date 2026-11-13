@@ -18,9 +18,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useAuth, type AuthState } from "../../auth/AuthProvider";
 import { IdentityAccountGate } from "../IdentityAccountGate";
 
-vi.mock("@stigmer/react-sdk", () => ({
-  useIdentityAccountGate: vi.fn(),
-}));
+vi.mock("@stigmer/react-sdk", async () => {
+  const kit = await vi.importActual<typeof import("@stigmer/react-sdk")>("@stigmer/react-sdk");
+  return {
+    Button: kit.Button,
+    IconButton: kit.IconButton,
+    LinkButton: kit.LinkButton,
+    useIdentityAccountGate: vi.fn(),
+  };
+});
 
 vi.mock("../../auth/AuthProvider", () => ({
   useAuth: vi.fn(),

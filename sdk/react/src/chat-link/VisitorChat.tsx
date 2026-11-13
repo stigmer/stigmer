@@ -8,6 +8,7 @@ import { AgentChat } from "../agent-chat/AgentChat.js";
 import { useChannelAgentProfile } from "./useChannelAgentProfile.js";
 import type { ChatLinkAudience } from "./webChannelDraft.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
+import { Button } from "../button/Button.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -278,17 +279,9 @@ function StateCard({
       <h2 className="stg:text-base stg:font-semibold stg:text-foreground">{title}</h2>
       <p className="stg:mt-1 stg:text-sm stg:text-muted-foreground">{message}</p>
       {onRetry && (
-        <button
-          type="button"
-          onClick={onRetry}
-          className={cn(
-            "stg:mt-4 stg:inline-flex stg:items-center stg:justify-center stg:rounded-md stg:px-4 stg:py-2 stg:text-sm stg:font-medium",
-            "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
-            "stg:transition-colors",
-          )}
-        >
+        <Button onClick={onRetry} className="stg:mt-4">
           Try again
-        </button>
+        </Button>
       )}
     </div>
   );

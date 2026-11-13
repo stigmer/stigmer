@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { cn } from "@stigmer/design-tokens";
+import { Button } from "../button/Button.js";
 import { PermissionGate } from "../grant/PermissionGate.js";
 import { ManageAccessDialog } from "./ManageAccessDialog.js";
 import type {
@@ -60,19 +60,9 @@ export function ManageAccessButton({
       resource={{ kind: resource.kindString, id: resource.id }}
       relation="can_view_access"
     >
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className={cn(
-          "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
-          "stg:border stg:border-border stg:text-foreground stg:hover:bg-accent-hover",
-          "stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring",
-          className,
-        )}
-      >
-        <ShareIcon />
+      <Button variant="outline" size="xs" icon={<ShareIcon />} onClick={() => setOpen(true)} className={className}>
         {label}
-      </button>
+      </Button>
       <ManageAccessDialog
         open={open}
         onOpenChange={setOpen}

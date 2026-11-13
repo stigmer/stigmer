@@ -11,6 +11,7 @@
 
 import { cn } from "@stigmer/design-tokens";
 import { getUserMessage } from "@stigmer/client";
+import { Button } from "../button/Button.js";
 
 /** Props for {@link LoadMoreFooter}. */
 export interface LoadMoreFooterProps {
@@ -42,14 +43,9 @@ export function LoadMoreFooter({
         </p>
       )}
       {hasMore && (
-        <button
-          type="button"
-          onClick={loadMore}
-          disabled={isLoadingMore}
-          className="stg:text-primary stg:text-xs stg:font-medium stg:hover:underline stg:disabled:opacity-50"
-        >
+        <Button variant="ghost" size="xs" onClick={loadMore} disabled={isLoadingMore}>
           {isLoadingMore ? "Loading…" : "Load more"}
-        </button>
+        </Button>
       )}
     </div>
   );

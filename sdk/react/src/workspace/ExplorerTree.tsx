@@ -10,6 +10,8 @@ import { useWorkspaceFiles } from "./useWorkspaceFiles.js";
 import type { WorkspaceEntry } from "./useWorkspaceEntries.js";
 import type { WorkspaceFileLister } from "./WorkspaceFileLister.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
+import { Button } from "../button/Button.js";
+import { IconButton } from "../button/IconButton.js";
 
 /** Props for {@link ExplorerTree}. */
 export interface ExplorerTreeProps {
@@ -121,27 +123,13 @@ function ExplorerRoot({
           </TooltipContent>
         </Tooltip>
         {onRemove && (
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                <button
-                  type="button"
-                  onClick={() => onRemove(entry.id)}
-                  aria-label={`Remove ${entry.name} from workspace`}
-                  className={cn(
-                    "stg:shrink-0 stg:px-1.5 stg:text-muted-foreground stg:opacity-0 stg:transition-opacity",
-                    "stg:group-hover/root:opacity-100 stg:focus-visible:opacity-100",
-                    "stg:hover:text-destructive stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring",
-                  )}
-                />
-              }
-            >
-              <RemoveIcon />
-            </TooltipTrigger>
-            <TooltipContent side="top">
-              {`Remove ${entry.name} from workspace`}
-            </TooltipContent>
-          </Tooltip>
+          <IconButton
+            size="xs"
+            label={`Remove ${entry.name} from workspace`}
+            icon={<RemoveIcon />}
+            onClick={() => onRemove(entry.id)}
+            className="stg:opacity-0 stg:transition-opacity stg:group-hover/root:opacity-100 stg:focus-visible:opacity-100 stg:hover:text-destructive"
+          />
         )}
       </div>
 
@@ -208,13 +196,9 @@ function ExplorerRootBody({
     return (
       <div className="stg:px-2 stg:py-2 stg:text-xs stg:text-destructive">
         Failed to list files: {error.message}
-        <button
-          type="button"
-          onClick={onRetry}
-          className="stg:ml-2 stg:rounded-sm stg:underline stg:transition-colors stg:hover:text-destructive stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
-        >
+        <Button variant="ghost" size="xs" onClick={onRetry} className="stg:ml-2 stg:text-destructive stg:hover:bg-destructive-subtle">
           Retry
-        </button>
+        </Button>
       </div>
     );
   }

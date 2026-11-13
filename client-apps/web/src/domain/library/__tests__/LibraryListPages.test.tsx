@@ -7,7 +7,8 @@
  * the agents list confirms in the agent detail page's words, the same
  * confirmation for the same act. The plugins list offers "Add MCP server"
  * in the active organization, open on arrival through `?add=mcp-server`
- * (the Library's Add menu), and goes to the new plugin's page. The
+ * (the Library's Add menu), and goes to the new plugin's page. The routines
+ * list's "Apply YAML" opens the manifest dialog in the active org. The
  * workbench, OrgSlugText and the form are pinned in @stigmer/react-sdk.
  */
 import type { ReactNode } from "react";
@@ -47,9 +48,11 @@ const page = vi.hoisted(() => ({
   detail: [] as Array<{ type: string; org: string; slug: string }>,
   search: new URLSearchParams(),
   confirms: [] as Array<{ title: string; description: string }>,
+  applyDialog: [] as Array<{ open: boolean; org: string }>,
 }));
 
-vi.mock("@stigmer/react-sdk", () => {
+vi.mock("@stigmer/react-sdk", async () => {
+  const kit = await vi.importActual<typeof import("@stigmer/react-sdk")>("@stigmer/react-sdk");
   const Passthrough = ({ children }: { children?: ReactNode }) => (
     <>{children}</>
   );
@@ -74,6 +77,9 @@ vi.mock("@stigmer/react-sdk", () => {
     delete: async () => undefined,
   };
   return {
+    Button: kit.Button,
+    IconButton: kit.IconButton,
+    LinkButton: kit.LinkButton,
     ResourceWorkbench: (props: WorkbenchProps) => {
       page.workbench.push(props);
       // Render one row the way the workbench does: each column's cell,
@@ -111,7 +117,10 @@ vi.mock("@stigmer/react-sdk", () => {
           ))}
       </div>
     ),
-    ApplyManifestDialog: () => null,
+    ApplyManifestDialog: (props: { open: boolean; org: string }) => {
+      page.applyDialog.push({ open: props.open, org: props.org });
+      return null;
+    },
     ConfirmDialog: () => null,
     AddMcpServerDialog: (props: Record<string, unknown>) => {
       page.addServer.push(props);
@@ -181,6 +190,7 @@ beforeEach(() => {
   page.detail.length = 0;
   page.search = new URLSearchParams();
   page.confirms.length = 0;
+  page.applyDialog.length = 0;
   copied = [];
   vi.spyOn(navigator.clipboard, "writeText").mockImplementation(
     async (text: string) => {
@@ -266,6 +276,17 @@ describe("web RoutineListPage", () => {
     render(<RoutineListPage />);
 
     expect(page.workbench.at(-1)?.org).toBe("org_acme");
+  });
+
+  it("opens the Apply YAML dialog in the active org from the header", () => {
+    render(<RoutineListPage />);
+    expect(page.applyDialog.at(-1)).toEqual({ open: false, org: "org_acme" });
+    const header = page.workbench.at(-1)?.headerAction;
+    const { getByRole } = render(<>{header}</>);
+
+    fireEvent.click(getByRole("button", { name: "Apply YAML" }));
+
+    expect(page.applyDialog.at(-1)).toEqual({ open: true, org: "org_acme" });
   });
 
   it("is the page /library/routines serves, and a row opens its routine", () => {

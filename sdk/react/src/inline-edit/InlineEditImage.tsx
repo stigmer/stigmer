@@ -4,6 +4,8 @@ import { useCallback, useRef, useState } from "react";
 import { cn } from "@stigmer/design-tokens";
 import type { InlineEditBaseProps } from "./types.js";
 import { useInlineDraft } from "./useInlineDraft.js";
+import { Button } from "../button/Button.js";
+import { IconButton } from "../button/IconButton.js";
 
 /** Props for {@link InlineEditImage}. */
 export interface InlineEditImageProps extends InlineEditBaseProps {
@@ -129,27 +131,26 @@ export function InlineEditImage({
             displayError && "stg:border-destructive",
           )}
         />
-        <button type="button" onClick={handleConfirm} disabled={isSaving} aria-label="Save"
-          className={cn(
-            "stg:inline-flex stg:size-7 stg:items-center stg:justify-center stg:rounded-md",
-            "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover stg:disabled:opacity-50",
-            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-          )}>
-          {isSaving ? <Spinner /> : <CheckIcon className="stg:size-3.5" />}
-        </button>
-        <button type="button" onClick={handleCancel} disabled={isSaving} aria-label="Cancel"
-          className={cn(
-            "stg:inline-flex stg:size-7 stg:items-center stg:justify-center stg:rounded-md",
-            "stg:border stg:border-border stg:bg-background stg:text-foreground stg:hover:bg-accent stg:disabled:opacity-50",
-            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-          )}>
-          <XIcon className="stg:size-3.5" />
-        </button>
+        <IconButton
+          label="Save"
+          variant="primary"
+          size="xs"
+          onClick={handleConfirm}
+          disabled={isSaving}
+          icon={isSaving ? <Spinner /> : <CheckIcon className="stg:size-3.5" />}
+        />
+        <IconButton
+          label="Cancel"
+          variant="outline"
+          size="xs"
+          onClick={handleCancel}
+          disabled={isSaving}
+          icon={<XIcon className="stg:size-3.5" />}
+        />
         {draft && (
-          <button type="button" onClick={() => setDraft("")} disabled={isSaving} aria-label="Clear"
-            className="stg:text-xs stg:text-muted-foreground stg:underline stg:decoration-muted-foreground/40 stg:underline-offset-2 stg:hover:text-foreground">
+          <Button variant="ghost" size="xs" onClick={() => setDraft("")} disabled={isSaving} aria-label="Clear">
             Clear
-          </button>
+          </Button>
         )}
       </div>
       {displayError && (

@@ -146,7 +146,7 @@ The journey's destinations past the first job, in the host's routing.
     bringOthers: { type: "string", description: "Where the team is invited (the console's members page)." },
     makeItYours: { type: "(agent: ResourceRef) => string", description: "The agent page's \"Make it yours\" tab for an agent (the console's `/library/agents/<org>/<slug>?tab=make-it-yours`)." },
     putInApp: { type: "(agent: ResourceRef) => string", description: "Where an agent is put in front of users: today its Channels tab." },
-    renderLink: { type: "RenderJourneyLink", description: "Draws each link; a plain anchor otherwise.", typeDescriptionLink: "#renderjourneylink" },
+    renderLink: { type: "RenderLink", description: "Draws each link; a plain anchor otherwise.", typeDescriptionLink: "/docs/sdk/react/button#renderlink" },
   }}
 />
 
@@ -184,12 +184,12 @@ Where the tab's acts lead, in the host's routing.
   type={{
     launch: { type: "(input: { agent: ResourceRef; example: string | undefined; mode: LaunchMode }) => string", description: "The launcher on `agent`: on its example's sample, or on a file of the person's own (`mode`). The console builds `/?agent=<org>/<slug>&example=<id>&with=<mode>`, which its launcher reads with `useLinkedLaunch`.", required: true },
     putInApp: { type: "(agent: ResourceRef) => string", description: "Where the agent is put in front of users (today its Channels tab); the tab's last line links there." },
-    renderLink: { type: "RenderJourneyLink", description: "Draws each link; a plain anchor otherwise.", typeDescriptionLink: "#renderjourneylink" },
+    renderLink: { type: "RenderLink", description: "Draws each link; a plain anchor otherwise.", typeDescriptionLink: "/docs/sdk/react/button#renderlink" },
   }}
 />
 
 
 ### RenderJourneyLink
 
-Draws a journey link; a host with its own router passes its link component.
+Draws a journey link; a host with its own router passes its link component. The kit's [`RenderLink`](/docs/sdk/react/button#renderlink), under the name the journey first shipped it with.
 

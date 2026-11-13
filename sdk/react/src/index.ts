@@ -761,8 +761,8 @@ export { Switch } from "./switch/index.js";
 export type { SwitchProps } from "./switch/index.js";
 
 // Button — shared action primitive (variants for the console's action tiers)
-export { Button } from "./button/index.js";
-export type { ButtonProps } from "./button/index.js";
+export { Button, IconButton, LinkButton } from "./button/index.js";
+export type { ButtonProps, IconButtonProps, LinkButtonProps, RenderLink } from "./button/index.js";
 
 // Resource Detail — headless hooks, action bar, and composed shell for resource detail pages
 export {

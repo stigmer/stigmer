@@ -2,6 +2,8 @@
 
 import { useCallback, useRef } from "react";
 import { cn } from "@stigmer/design-tokens";
+import { Button } from "../button/Button.js";
+import { IconButton } from "../button/IconButton.js";
 import { selectElementText } from "../internal/select-element-text.js";
 import { useCopyFeedback } from "../internal/useCopyFeedback.js";
 
@@ -73,18 +75,7 @@ export function ApiKeyCreatedAlert({
             Copy this key now. It will not be shown again.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={onDismiss}
-          aria-label="Dismiss"
-          className={cn(
-            "stg:shrink-0 stg:rounded stg:p-1",
-            "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
-            "stg:transition-colors",
-          )}
-        >
-          <CloseIcon />
-        </button>
+        <IconButton label="Dismiss" size="xs" icon={<CloseIcon />} onClick={onDismiss} />
       </div>
 
       <div className="stg:flex stg:items-center stg:gap-2">
@@ -99,18 +90,9 @@ export function ApiKeyCreatedAlert({
           {rawKey}
         </code>
 
-        <button
-          type="button"
-          onClick={handleCopy}
-          className={cn(
-            "stg:inline-flex stg:shrink-0 stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium",
-            "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
-            "stg:transition-colors",
-          )}
-        >
-          {copied ? <CheckIcon /> : <CopyIcon />}
+        <Button size="xs" icon={copied ? <CheckIcon /> : <CopyIcon />} onClick={handleCopy}>
           {copied ? "Copied" : "Copy"}
-        </button>
+        </Button>
       </div>
     </div>
   );

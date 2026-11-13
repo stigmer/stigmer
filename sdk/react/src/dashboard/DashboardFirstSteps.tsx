@@ -12,6 +12,8 @@
 import { useId } from "react";
 import { Check } from "lucide-react";
 import { cn } from "@stigmer/design-tokens";
+import { Button } from "../button/Button.js";
+import { LinkButton } from "../button/LinkButton.js";
 import { useJourney, type JourneyStep, type JourneyStepId, type UseJourneyReturn } from "../journey/useJourney.js";
 import type { JourneyLinks, RenderJourneyLink } from "../journey/links.js";
 
@@ -106,14 +108,9 @@ export function DashboardFirstSteps({ org, links, renderLink = anchor, journey: 
         </h2>
         <span className="stg:text-sm stg:text-muted-foreground">{count}</span>
         {onHide && (
-          <button
-            type="button"
-            onClick={onHide}
-            aria-label="Hide these steps"
-            className="stg:rounded-md stg:px-2 stg:py-1 stg:text-xs stg:text-muted-foreground stg:hover:bg-accent-hover stg:hover:text-foreground"
-          >
+          <Button variant="ghost" size="xs" onClick={onHide} aria-label="Hide these steps">
             Hide
-          </button>
+          </Button>
         )}
       </div>
       <ol className="stg:m-0 stg:list-none stg:divide-y stg:divide-border stg:p-0">
@@ -161,14 +158,11 @@ function StepRow({
         </p>
         {(done || current) && <p className="stg:m-0 stg:mt-0.5 stg:text-sm stg:text-muted-foreground">{step.line}</p>}
       </div>
-      {current &&
-        href !== undefined &&
-        renderLink({
-          href,
-          className:
-            "stg:shrink-0 stg:rounded-md stg:bg-primary stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium stg:text-primary-foreground stg:no-underline stg:hover:bg-primary-hover",
-          children: ACTS[step.id],
-        })}
+      {current && href !== undefined && (
+        <LinkButton href={href} size="xs" renderLink={renderLink}>
+          {ACTS[step.id]}
+        </LinkButton>
+      )}
     </li>
   );
 }

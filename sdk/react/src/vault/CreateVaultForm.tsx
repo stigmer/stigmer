@@ -11,8 +11,9 @@ import { cn } from "@stigmer/design-tokens";
 import { getUserMessage } from "@stigmer/client";
 import type { Vault } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
-import { INPUT_CLASS, PRIMARY_BUTTON_CLASS, QUIET_BUTTON_CLASS } from "./styles.js";
+import { INPUT_CLASS } from "./styles.js";
 import { useCreateVault } from "./useCreateVault.js";
+import { Button } from "../button/Button.js";
 
 /** Props for {@link CreateVaultForm}. */
 export interface CreateVaultFormProps {
@@ -124,14 +125,13 @@ export function CreateVaultForm({
         </p>
       )}
       <div className="stg:flex stg:items-center stg:gap-2">
-        <button type="submit" disabled={!canSubmit} className={PRIMARY_BUTTON_CLASS}>
-          {isCreating && <SpinnerIcon />}
+        <Button type="submit" disabled={!canSubmit} icon={isCreating ? <SpinnerIcon /> : undefined}>
           Create vault
-        </button>
+        </Button>
         {onCancel && (
-          <button type="button" onClick={onCancel} disabled={isCreating} className={QUIET_BUTTON_CLASS}>
+          <Button variant="ghost" onClick={onCancel} disabled={isCreating}>
             Cancel
-          </button>
+          </Button>
         )}
       </div>
     </form>

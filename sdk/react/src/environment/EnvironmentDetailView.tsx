@@ -23,6 +23,7 @@ import type { Environment } from "@stigmer/apis/ai/stigmer/agentic/environment/v
 import { NetworkingType } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { useManageAccess } from "../access/useManageAccess.js";
+import { Button } from "../button/Button.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
@@ -465,32 +466,12 @@ function EditorFrame({
         </p>
       )}
       <div className="stg:flex stg:items-center stg:gap-2">
-        <button
-          type="button"
-          onClick={onSave}
-          disabled={isSaving}
-          className={cn(
-            "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium",
-            "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
-            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-            "stg:disabled:pointer-events-none stg:disabled:opacity-40",
-          )}
-        >
-          {isSaving && <SpinnerIcon size={12} />}
+        <Button size="xs" onClick={onSave} disabled={isSaving} icon={isSaving ? <SpinnerIcon size={12} /> : undefined}>
           Save
-        </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          disabled={isSaving}
-          className={cn(
-            "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs",
-            "stg:text-muted-foreground stg:hover:bg-accent-hover stg:hover:text-foreground",
-            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-          )}
-        >
+        </Button>
+        <Button variant="ghost" size="xs" onClick={onCancel} disabled={isSaving}>
           Cancel
-        </button>
+        </Button>
       </div>
     </div>
   );

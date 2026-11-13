@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { ExternalLink, Loader2, RefreshCw } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
+import { Button } from "@stigmer/react-sdk";
 import { SIGN_IN_CANCELLED, useAuth } from "./AuthProvider";
 import { useServer } from "../server/ServerProvider";
 import { hostOf } from "../server/connect";
@@ -116,14 +117,9 @@ function ErrorView({ message, onRetry }: { message: string; onRetry: () => void 
       <p role="alert" className="max-w-xs text-center text-sm text-destructive">
         {message}
       </p>
-      <button
-        type="button"
-        onClick={onRetry}
-        className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover"
-      >
-        <RefreshCw className="size-4" />
+      <Button icon={<RefreshCw className="size-4" />} onClick={onRetry}>
         Try again
-      </button>
+      </Button>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@stigmer/design-tokens";
+import { Button } from "../button/Button.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 
 /** Props for {@link WizardNav}. */
@@ -52,57 +53,28 @@ export function WizardNav({
     >
       <div className="stg:flex stg:items-center stg:gap-2">
         {onCancel && (
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={isSubmitting}
-            className={cn(
-              "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-sm",
-              "stg:text-muted-foreground stg:transition-colors",
-              "stg:hover:text-foreground stg:hover:bg-accent-hover",
-              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-            )}
-          >
+          <Button variant="ghost" onClick={onCancel} disabled={isSubmitting}>
             Cancel
-          </button>
+          </Button>
         )}
       </div>
 
       <div className="stg:flex stg:items-center stg:gap-2">
         {showBack && (
-          <button
-            type="button"
-            onClick={onBack}
-            disabled={isSubmitting}
-            className={cn(
-              "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-3 stg:py-1.5 stg:text-sm stg:font-medium stg:text-foreground stg:transition-colors",
-              "stg:hover:bg-accent-hover",
-              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-            )}
-          >
-            <ArrowLeftIcon className="stg:size-3.5" />
+          <Button variant="outline" onClick={onBack} disabled={isSubmitting} icon={<ArrowLeftIcon className="stg:size-3.5" />}>
             Back
-          </button>
+          </Button>
         )}
 
-        <button
-          type="button"
+        <Button
           onClick={onNext}
           disabled={nextDisabled || isSubmitting}
           data-cursor-target="wizard-next"
-          className={cn(
-            "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:bg-primary stg:px-4 stg:py-1.5 stg:text-sm stg:font-medium stg:text-primary-foreground stg:transition-colors",
-            "stg:hover:bg-primary-hover",
-            "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-            "stg:disabled:pointer-events-none stg:disabled:opacity-40",
-          )}
+          icon={isSubmitting ? <SpinnerIcon size={14} /> : undefined}
         >
-          {isSubmitting && <SpinnerIcon size={14} />}
           {nextLabel}
           {!isSubmitting && <ArrowRightIcon className="stg:size-3.5" />}
-        </button>
+        </Button>
       </div>
     </div>
   );

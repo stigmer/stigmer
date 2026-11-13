@@ -9,7 +9,7 @@ import {
   Building2,
   LogOut,
 } from "lucide-react";
-import { CreateOrganizationForm, useOrgGate } from "@stigmer/react-sdk";
+import { Button, CreateOrganizationForm, useOrgGate } from "@stigmer/react-sdk";
 import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import { useAuth } from "@/auth";
 
@@ -74,13 +74,14 @@ function GateHeader() {
         </div>
         <span className="text-muted-foreground text-sm">{user.email}</span>
       </div>
-      <button
+      <Button
+        variant="ghost"
+        icon={<LogOut className="size-3.5" />}
         onClick={logout}
-        className="text-muted-foreground hover:text-foreground inline-flex cursor-pointer items-center gap-1.5 text-sm transition-colors"
+        className="text-muted-foreground hover:text-foreground"
       >
-        <LogOut className="size-3.5" />
         Sign out
-      </button>
+      </Button>
     </div>
   );
 }
@@ -118,13 +119,9 @@ function ErrorState({
       <p className="text-muted-foreground max-w-md text-center text-sm">
         {message}
       </p>
-      <button
-        onClick={onRetry}
-        className="bg-primary text-primary-foreground hover:bg-primary-hover inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium"
-      >
-        <RefreshCw className="size-3" />
+      <Button icon={<RefreshCw className="size-3.5" />} onClick={onRetry}>
         Try again
-      </button>
+      </Button>
     </div>
   );
 }

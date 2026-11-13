@@ -1,8 +1,10 @@
 import { useMemo, useReducer, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Box, Plus, Upload } from "lucide-react";
 import type { Environment } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/api_pb";
 import {
+  Button,
+  LinkButton,
   ApplyManifestDialog,
   EnvironmentsNotOnServerNotice,
   ResourceWorkbench,
@@ -13,6 +15,7 @@ import {
   useOrgSlugForId,
   useStigmer,
 } from "@stigmer/react-sdk";
+import { renderJourneyLink } from "../../journey/journey-links";
 
 /**
  * The organization's Environments, wired identically to the web Library's
@@ -34,25 +37,16 @@ export default function EnvironmentListPage() {
   const columns = useMemo(() => createEnvironmentColumns(), []);
 
   const newEnvironmentButton = canCreate ? (
-    <Link
-      to="/library/environments/new"
-      className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-    >
-      <Plus className="size-3.5" aria-hidden="true" />
+    <LinkButton href="/library/environments/new" icon={<Plus className="size-3.5" aria-hidden="true" />} renderLink={renderJourneyLink}>
       New environment
-    </Link>
+    </LinkButton>
   ) : undefined;
 
   const headerActions = canCreate ? (
     <div className="flex items-center gap-2">
-      <button
-        type="button"
-        onClick={() => setImportOpen(true)}
-        className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      >
-        <Upload className="size-3.5" aria-hidden="true" />
+      <Button variant="ghost" icon={<Upload className="size-3.5" aria-hidden="true" />} onClick={() => setImportOpen(true)}>
         Apply YAML
-      </button>
+      </Button>
       {newEnvironmentButton}
     </div>
   ) : undefined;

@@ -27,6 +27,8 @@ import { useDeleteGrant } from "./useDeleteGrant.js";
 import { RoleSelector } from "./RoleSelector.js";
 import { ProviderBadge } from "./ProviderBadge.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
+import { Button } from "../button/Button.js";
+import { IconButton } from "../button/IconButton.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
 import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
@@ -432,22 +434,19 @@ function MemberRow({
       {/* Actions */}
       {mayAct && (
         <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-1">
-          <button
-            type="button"
+          <IconButton
+            size="xs"
+            label={`Change role for ${name}`}
+            icon={<EditIcon />}
             onClick={() => startAction("change-role")}
-            aria-label={`Change role for ${name}`}
-            className="stg:shrink-0 stg:rounded stg:p-1 stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover stg:transition-colors"
-          >
-            <EditIcon />
-          </button>
-          <button
-            type="button"
+          />
+          <IconButton
+            size="xs"
+            label={`Remove ${name}`}
+            icon={<TrashIcon />}
             onClick={() => startAction("remove")}
-            aria-label={`Remove ${name}`}
-            className="stg:shrink-0 stg:rounded stg:p-1 stg:text-muted-foreground stg:hover:text-destructive stg:hover:bg-destructive-subtle stg:transition-colors"
-          >
-            <TrashIcon />
-          </button>
+            className="stg:hover:text-destructive stg:hover:bg-destructive-subtle"
+          />
         </div>
       )}
     </div>
@@ -537,31 +536,18 @@ function RemoveConfirmation({
       </div>
 
       <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-1.5 stg:ml-3">
-        <button
-          type="button"
+        <Button
+          variant="destructive"
+          size="xs"
           onClick={handleConfirm}
           disabled={isRevoking}
-          className={cn(
-            "stg:inline-flex stg:items-center stg:gap-1 stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
-            "stg:bg-destructive stg:text-destructive-foreground stg:hover:bg-destructive-hover",
-            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-          )}
+          icon={isRevoking ? <SpinnerIcon size={12} /> : undefined}
         >
-          {isRevoking && <SpinnerIcon size={12} />}
           Remove
-        </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          disabled={isRevoking}
-          className={cn(
-            "stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs",
-            "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
-            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-          )}
-        >
+        </Button>
+        <Button variant="ghost" size="xs" onClick={onCancel} disabled={isRevoking}>
           Cancel
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -712,31 +698,17 @@ function ChangeRoleRow({
       )}
 
       <div className="stg:flex stg:items-center stg:gap-1.5">
-        <button
-          type="button"
+        <Button
+          size="xs"
           onClick={handleConfirm}
           disabled={!canConfirm}
-          className={cn(
-            "stg:inline-flex stg:items-center stg:gap-1 stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
-            "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
-            "stg:disabled:pointer-events-none stg:disabled:opacity-40",
-          )}
+          icon={isWorking ? <SpinnerIcon size={12} /> : undefined}
         >
-          {isWorking && <SpinnerIcon size={12} />}
           {isWorking ? "Changing role…" : "Confirm"}
-        </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          disabled={isWorking}
-          className={cn(
-            "stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs",
-            "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
-            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-          )}
-        >
+        </Button>
+        <Button variant="ghost" size="xs" onClick={onCancel} disabled={isWorking}>
           Cancel
-        </button>
+        </Button>
       </div>
     </div>
   );

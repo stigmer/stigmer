@@ -5,7 +5,6 @@ import type { WorkspaceWriteBack } from "@stigmer/apis/ai/stigmer/agentic/run/v1
 import { WorkspaceWriteBackPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/writeback_pb";
 import { cn } from "@stigmer/design-tokens";
 import { DiffSummary } from "../version-history/DiffSummary.js";
-import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { TruncatedText } from "../internal/truncated-text.js";
 import { useCopyFeedback } from "../internal/useCopyFeedback.js";
 import {
@@ -13,6 +12,7 @@ import {
   trailingDiffStatLine,
   writeBackDisplayName,
 } from "./write-back-utils.js";
+import { IconButton } from "../button/IconButton.js";
 
 /** Props for {@link WriteBackCard}. */
 export interface WriteBackCardProps {
@@ -233,30 +233,16 @@ function BranchRow({
           </span>
         )}
       </div>
-      <Tooltip>
-        <TooltipTrigger
-          render={
-            <button
-              type="button"
-              onClick={handleCopy}
-              aria-label={copied ? "Branch name copied" : `Copy branch name ${branchName}`}
-              className={cn(
-                "stg:flex stg:shrink-0 stg:items-center stg:px-2 stg:text-muted-foreground stg:transition-opacity",
-                copied
-                  ? "stg:opacity-100"
-                  : "stg:opacity-0 stg:group-hover:opacity-100 stg:focus-visible:opacity-100",
-                "stg:hover:text-foreground",
-                "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring",
-              )}
-            />
-          }
-        >
-          {copied ? <CheckIcon /> : <CopyIcon />}
-        </TooltipTrigger>
-        <TooltipContent side="top">
-          {copied ? "Copied" : "Copy branch name"}
-        </TooltipContent>
-      </Tooltip>
+      <IconButton
+        size="xs"
+        label={copied ? "Branch name copied" : `Copy branch name ${branchName}`}
+        icon={copied ? <CheckIcon /> : <CopyIcon />}
+        onClick={handleCopy}
+        className={cn(
+          "stg:self-center stg:transition-opacity",
+          copied ? "stg:opacity-100" : "stg:opacity-0 stg:group-hover:opacity-100 stg:focus-visible:opacity-100",
+        )}
+      />
     </div>
   );
 }

@@ -9,6 +9,7 @@
 // tokens.
 
 import { cn } from "@stigmer/design-tokens";
+import { IconButton } from "../../button/IconButton.js";
 
 /**
  * A titled facet section: uppercase micro-heading over flush content.
@@ -109,19 +110,13 @@ export function FacetRemoveButton({
   readonly label: string;
 }) {
   return (
-    <button
-      type="button"
+    <IconButton
+      size="xs"
+      label={label}
+      icon={<FacetXIcon />}
       onClick={onClick}
-      aria-label={label}
-      className={cn(
-        "stg:flex stg:shrink-0 stg:items-center stg:text-muted-foreground stg:opacity-0 stg:transition-opacity",
-        "stg:group-hover:opacity-100 stg:focus-visible:opacity-100",
-        "stg:hover:text-destructive",
-        "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring",
-      )}
-    >
-      <FacetXIcon />
-    </button>
+      className="stg:opacity-0 stg:transition-opacity stg:group-hover:opacity-100 stg:focus-visible:opacity-100 stg:hover:text-destructive"
+    />
   );
 }
 

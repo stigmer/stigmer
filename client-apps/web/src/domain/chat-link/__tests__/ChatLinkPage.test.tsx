@@ -77,15 +77,21 @@ vi.mock("@stigmer/client", async (importOriginal) => {
 });
 
 const visitorChatProps: Record<string, unknown>[] = [];
-vi.mock("@stigmer/react-sdk", () => ({
-  StigmerProvider: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="provider">{children}</div>
-  ),
-  VisitorChat: (props: Record<string, unknown>) => {
-    visitorChatProps.push(props);
-    return <div data-testid="chat-probe" />;
-  },
-}));
+vi.mock("@stigmer/react-sdk", async () => {
+  const kit = await vi.importActual<typeof import("@stigmer/react-sdk")>("@stigmer/react-sdk");
+  return {
+    Button: kit.Button,
+    IconButton: kit.IconButton,
+    LinkButton: kit.LinkButton,
+    StigmerProvider: ({ children }: { children: React.ReactNode }) => (
+      <div data-testid="provider">{children}</div>
+    ),
+    VisitorChat: (props: Record<string, unknown>) => {
+      visitorChatProps.push(props);
+      return <div data-testid="chat-probe" />;
+    },
+  };
+});
 
 import { StigmerError } from "@stigmer/client";
 import ChatLinkPage from "../ChatLinkPage";

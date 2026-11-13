@@ -4,6 +4,7 @@ import { cn } from "@stigmer/design-tokens";
 import { getUserMessage } from "@stigmer/client";
 import { DEAD_CONNECT_LINK_MESSAGE, useConnectLink } from "./useConnectLink.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
+import { Button } from "../button/Button.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
 
 /** Props for {@link ConnectLinkView}. */
@@ -50,20 +51,14 @@ export function ConnectLinkView({ token, className }: ConnectLinkViewProps) {
               will be sent back to it.
             </p>
           </div>
-          <button
-            type="button"
+          <Button
             onClick={() => void link.start()}
             disabled={link.isStarting}
-            className={cn(
-              "stg:inline-flex stg:w-full stg:items-center stg:justify-center stg:gap-2 stg:rounded-md stg:px-4 stg:py-2 stg:text-sm stg:font-medium",
-              "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
-              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-            )}
+            icon={link.isStarting ? <SpinnerIcon className="stg:size-3.5" /> : undefined}
+            className="stg:w-full"
           >
-            {link.isStarting && <SpinnerIcon className="stg:size-3.5" />}
             Continue
-          </button>
+          </Button>
           {link.error !== null && (
             <p role="alert" className="stg:text-xs stg:text-destructive">
               {getUserMessage(link.error)}

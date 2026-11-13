@@ -9,6 +9,8 @@ import { SkillPicker } from "../../skill/SkillPicker.js";
 import { AgentMcpServerList } from "../AgentMcpServerList.js";
 import type { AgentMcpServerValue } from "../agentMcpServers.js";
 import type { AgentWizardData, EnvVarEntry } from "./types.js";
+import { Button } from "../../button/Button.js";
+import { IconButton } from "../../button/IconButton.js";
 
 /** Props for {@link CapabilitiesStep}. */
 export interface CapabilitiesStepProps {
@@ -297,18 +299,13 @@ function EnvVarEditor({
                 )}
               />
             </div>
-            <button
-              type="button"
+            <IconButton
+              label={`Remove ${entry.key || "variable"}`}
+              size="xs"
               onClick={() => removeEntry(index)}
-              aria-label={`Remove ${entry.key || "variable"}`}
-              className={cn(
-                "stg:mt-1 stg:rounded stg:p-1 stg:text-muted-foreground stg:transition-colors",
-                "stg:hover:bg-accent-hover stg:hover:text-destructive",
-                "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-              )}
-            >
-              <RemoveIcon className="stg:size-3.5" />
-            </button>
+              icon={<RemoveIcon className="stg:size-3.5" />}
+              className="stg:mt-1 stg:hover:text-destructive"
+            />
           </div>
 
           <div className="stg:flex stg:items-center stg:gap-4">
@@ -334,18 +331,15 @@ function EnvVarEditor({
         </div>
       ))}
 
-      <button
-        type="button"
+      <Button
+        variant="outline"
+        size="xs"
         onClick={addEntry}
-        className={cn(
-          "stg:inline-flex stg:w-fit stg:items-center stg:gap-1.5 stg:rounded-md stg:border stg:border-dashed stg:border-input stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium stg:text-muted-foreground stg:transition-colors",
-          "stg:hover:border-border stg:hover:text-foreground stg:hover:bg-accent-hover",
-          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-        )}
+        icon={<PlusIcon className="stg:size-3" />}
+        className="stg:w-fit stg:border-dashed"
       >
-        <PlusIcon className="stg:size-3" />
         Add variable
-      </button>
+      </Button>
     </div>
   );
 }

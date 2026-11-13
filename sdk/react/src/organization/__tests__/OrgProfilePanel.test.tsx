@@ -8,7 +8,8 @@
  * that holds one organization. A rename lands once: the Rename action stays
  * disabled until the panel shows the renamed slug. A save or a rename inside
  * an OrgProvider refreshes its organizations once, keeps the active one
- * selected, and lists the renamed one by its new slug.
+ * selected, and lists the renamed one by its new slug. The organization
+ * id's Copy action writes the id to the clipboard and reads "Copied".
  */
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -587,5 +588,23 @@ describe("OrgProfilePanel rename", () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(rename).not.toHaveBeenCalled();
     expect(screen.queryByRole("alert")).toBeNull();
+  });
+});
+
+describe("OrgProfilePanel identity fields", () => {
+  it("copies the organization id to the clipboard and says so", async () => {
+    const writeText = vi.fn(async () => undefined);
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText },
+      configurable: true,
+    });
+    renderPanel(createMockStigmer());
+
+    const copyId = await screen.findByRole("button", { name: "Copy Organization ID" });
+    expect(copyId.textContent).toBe("Copy");
+    fireEvent.click(copyId);
+
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith(ACME_ID));
+    await waitFor(() => expect(copyId.textContent).toBe("Copied"));
   });
 });

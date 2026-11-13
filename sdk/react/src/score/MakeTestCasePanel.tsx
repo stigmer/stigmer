@@ -31,6 +31,7 @@ import { useEvals } from "../eval-run/useEvals.js";
 import { useStigmer } from "@stigmer/react-core";
 import { downloadBinaryFile } from "../internal/download.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
+import { Button } from "../button/Button.js";
 
 /** Props for {@link MakeTestCasePanel}. */
 export interface MakeTestCasePanelProps {
@@ -39,13 +40,6 @@ export interface MakeTestCasePanelProps {
   /** The run's organization, whose evals the case may join. */
   readonly org: string;
 }
-
-const ACTION_CLASSES = cn(
-  "stg:inline-flex stg:h-7 stg:items-center stg:rounded-md stg:border stg:border-border stg:px-2 stg:text-xs stg:text-foreground stg:transition",
-  "stg:hover:bg-accent-hover",
-  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-  "stg:disabled:cursor-not-allowed stg:disabled:opacity-50",
-);
 
 /** Downloads a run as a test case, or adds it to an eval (the module header). */
 export function MakeTestCasePanel({ runId, org }: MakeTestCasePanelProps) {
@@ -105,9 +99,9 @@ export function MakeTestCasePanel({ runId, org }: MakeTestCasePanelProps) {
         rubric to fill in.
       </p>
       <div className="stg:flex stg:flex-wrap stg:items-center stg:gap-2">
-        <button type="button" disabled={busy} onClick={() => void onDownload()} className={ACTION_CLASSES}>
+        <Button variant="outline" size="xs" disabled={busy} onClick={() => void onDownload()}>
           Download the case folder
-        </button>
+        </Button>
         {evals.length > 0 && (
           <>
             <select
@@ -123,15 +117,15 @@ export function MakeTestCasePanel({ runId, org }: MakeTestCasePanelProps) {
                 </option>
               ))}
             </select>
-            <button type="button" disabled={busy} onClick={() => void onAdd()} className={ACTION_CLASSES}>
+            <Button variant="outline" size="xs" disabled={busy} onClick={() => void onAdd()}>
               Add to eval
-            </button>
+            </Button>
           </>
         )}
         {hasMore && (
-          <button type="button" disabled={isLoadingMore} onClick={loadMore} className={ACTION_CLASSES}>
+          <Button variant="outline" size="xs" disabled={isLoadingMore} onClick={loadMore}>
             Load more evals
-          </button>
+          </Button>
         )}
       </div>
       {isLoading ? (

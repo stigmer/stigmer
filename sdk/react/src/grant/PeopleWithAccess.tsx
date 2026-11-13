@@ -20,6 +20,7 @@ import { useDeploymentMode } from "@stigmer/react-core";
 import { useShareFlow, type ShareFlowResource } from "./useShareFlow.js";
 import { AccessRow, accessEntryKey } from "./AccessRow.js";
 import { GrantAccessForm } from "./GrantAccessForm.js";
+import { Button } from "../button/Button.js";
 import { PermissionGate } from "./PermissionGate.js";
 
 /**
@@ -165,18 +166,14 @@ export function PeopleWithAccess({
                 onCancel={() => setShowGrantForm(false)}
               />
             ) : (
-              <button
-                type="button"
+              <Button
+                variant="outline"
+                size="xs"
                 onClick={() => setShowGrantForm(true)}
-                className={cn(
-                  "stg:w-full stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium stg:text-center",
-                  "stg:border stg:border-dashed stg:border-border",
-                  "stg:text-muted-foreground stg:hover:text-foreground stg:hover:border-border-prominent",
-                  "stg:hover:bg-accent-hover stg:transition-colors",
-                )}
+                className="stg:w-full stg:border-dashed stg:text-muted-foreground stg:hover:text-foreground stg:hover:border-border-prominent"
               >
                 {canShareWithTeams ? "+ Add people or teams" : "+ Add people"}
-              </button>
+              </Button>
             )}
           </div>
         </PermissionGate>

@@ -9,6 +9,7 @@ import { FileAddAsSkillAction, FileDeleteAction } from "./FileActions.js";
 import { useFileDownload } from "../file/useFile.js";
 import type { ApplyResourceResult } from "../library/useApplyResource.js";
 import { formatFileSize } from "../file/file-size.js";
+import { Button } from "../button/Button.js";
 
 /** Props for {@link FileDocument}. */
 export interface FileDocumentProps {
@@ -108,36 +109,28 @@ export function FileDocument({
 
         <div className="stg:ml-auto stg:flex stg:min-w-0 stg:flex-wrap stg:items-center stg:gap-3">
           {showCopy && (
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              size="xs"
               onClick={inspection.copy}
               aria-label={
                 inspection.copied ? "Copied to clipboard" : "Copy content"
               }
-              className={cn(
-                "stg:inline-flex stg:items-center stg:gap-1.5 stg:text-xs stg:font-medium stg:transition-colors",
-                inspection.copied
-                  ? "stg:text-status-ready"
-                  : "stg:text-muted-foreground stg:hover:text-foreground",
-                FOCUS_RING_CLASSES,
-              )}
+              icon={inspection.copied ? <CheckIcon /> : <CopyIcon />}
+              className={inspection.copied ? "stg:text-status-ready" : undefined}
             >
-              {inspection.copied ? <CheckIcon /> : <CopyIcon />}
               {inspection.copied ? "Copied" : "Copy"}
-            </button>
+            </Button>
           )}
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="xs"
             onClick={() => download(file.metadata?.id ?? "", name)}
             disabled={isDownloading}
-            className={cn(
-              "stg:inline-flex stg:items-center stg:gap-1.5 stg:text-xs stg:font-medium stg:text-muted-foreground stg:transition-colors stg:hover:text-foreground stg:disabled:opacity-50",
-              FOCUS_RING_CLASSES,
-            )}
+            icon={<DownloadIcon />}
           >
-            <DownloadIcon />
             {isDownloading ? "Preparing\u2026" : "Download"}
-          </button>
+          </Button>
           <FileAddAsSkillAction file={file} onAdded={onApplied} />
           {onDeleted && <FileDeleteAction file={file} onDeleted={onDeleted} />}
           <ApplyCluster
@@ -203,16 +196,9 @@ function ApplyCluster({
     return (
       <span className="stg:inline-flex stg:items-center stg:gap-2" role="alert">
         <span className="stg:text-xs stg:text-destructive">{applyError.message}</span>
-        <button
-          type="button"
-          onClick={onApply}
-          className={cn(
-            "stg:text-xs stg:font-medium stg:text-destructive stg:underline stg:transition-colors stg:hover:text-destructive-muted",
-            FOCUS_RING_CLASSES,
-          )}
-        >
+        <Button variant="ghost" size="xs" onClick={onApply} className="stg:text-destructive stg:hover:bg-destructive-subtle">
           Retry
-        </button>
+        </Button>
       </span>
     );
   }
@@ -230,13 +216,6 @@ function ApplyCluster({
   }
   return null;
 }
-
-// ---------------------------------------------------------------------------
-// Shared style constants
-// ---------------------------------------------------------------------------
-
-const FOCUS_RING_CLASSES =
-  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:focus-visible:rounded-sm";
 
 // ---------------------------------------------------------------------------
 // Inline SVG icons (SDK independence — no lucide dependency)

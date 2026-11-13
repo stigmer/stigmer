@@ -19,6 +19,7 @@ import {
   type RunHealthView,
 } from "./score-view.js";
 import { useRateRun } from "./useRateRun.js";
+import { Button } from "../button/Button.js";
 
 /** Props for {@link RunScores}. */
 export interface RunScoresProps {
@@ -146,13 +147,9 @@ export function RunScores({ runId, className }: RunScoresProps) {
               "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
             )}
           />
-          <button
-            type="submit"
-            disabled={isRating}
-            className="stg:h-7 stg:rounded-md stg:px-2 stg:text-xs stg:text-muted-foreground stg:hover:bg-accent-hover stg:hover:text-foreground"
-          >
+          <Button type="submit" variant="ghost" size="xs" disabled={isRating}>
             Save
-          </button>
+          </Button>
         </form>
       )}
       {error !== null && (

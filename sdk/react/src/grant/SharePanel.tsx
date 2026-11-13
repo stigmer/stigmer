@@ -4,6 +4,7 @@ import type { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresour
 import { cn } from "@stigmer/design-tokens";
 import type { ShareFlowResource } from "./useShareFlow.js";
 import { PeopleWithAccess } from "./PeopleWithAccess.js";
+import { IconButton } from "../button/IconButton.js";
 
 /** Props for {@link SharePanel}. */
 export interface SharePanelProps {
@@ -66,17 +67,7 @@ export function SharePanel({
           Share access
         </h3>
         {onClose && (
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close share panel"
-            className={cn(
-              "stg:rounded-md stg:p-1 stg:text-muted-foreground",
-              "stg:hover:text-foreground stg:hover:bg-accent-hover",
-            )}
-          >
-            <CloseIcon />
-          </button>
+          <IconButton size="xs" label="Close share panel" icon={<CloseIcon />} onClick={onClose} />
         )}
       </div>
 

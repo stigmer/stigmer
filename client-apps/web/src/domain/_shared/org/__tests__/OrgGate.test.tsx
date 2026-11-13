@@ -25,25 +25,31 @@ const gate = vi.hoisted(() => ({
   refresh: vi.fn(),
 }));
 
-vi.mock("@stigmer/react-sdk", () => ({
-  useOrgGate: ({ isBypassed }: { isBypassed: boolean }) => {
-    gate.bypassArgs.push(isBypassed);
-    return { state: gate.state, retry: gate.retry, refresh: gate.refresh };
-  },
-  CreateOrganizationForm: ({
-    onCreated,
-  }: {
-    onCreated: (org: { metadata?: { id?: string; slug?: string } }) => void;
-  }) => (
-    <button
-      onClick={() =>
-        onCreated({ metadata: { id: "org_01jnnnnnnnnnnnnnnnnnnnnnnn", slug: "new-org" } })
-      }
-    >
-      create org
-    </button>
-  ),
-}));
+vi.mock("@stigmer/react-sdk", async () => {
+  const kit = await vi.importActual<typeof import("@stigmer/react-sdk")>("@stigmer/react-sdk");
+  return {
+    Button: kit.Button,
+    IconButton: kit.IconButton,
+    LinkButton: kit.LinkButton,
+    useOrgGate: ({ isBypassed }: { isBypassed: boolean }) => {
+      gate.bypassArgs.push(isBypassed);
+      return { state: gate.state, retry: gate.retry, refresh: gate.refresh };
+    },
+    CreateOrganizationForm: ({
+      onCreated,
+    }: {
+      onCreated: (org: { metadata?: { id?: string; slug?: string } }) => void;
+    }) => (
+      <button
+        onClick={() =>
+          onCreated({ metadata: { id: "org_01jnnnnnnnnnnnnnnnnnnnnnnn", slug: "new-org" } })
+        }
+      >
+        create org
+      </button>
+    ),
+  };
+});
 
 const auth = vi.hoisted(() => ({
   user: null as AuthUser | null,

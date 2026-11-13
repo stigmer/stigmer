@@ -40,7 +40,7 @@ import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
 import { useActiveOrgId, useOrg } from "../organization/OrgProvider.js";
 import { Section } from "../resource-detail/Section.js";
-import { QUIET_BUTTON_CLASS } from "../vault/styles.js";
+import { Button } from "../button/Button.js";
 import {
   DEFAULT_QUALITY_WINDOW,
   QUALITY_WINDOWS,
@@ -550,14 +550,9 @@ function FlaggedRuns({
         )}
         {hasMore && (
           <div>
-            <button
-              type="button"
-              onClick={loadMore}
-              disabled={isLoadingMore}
-              className={QUIET_BUTTON_CLASS}
-            >
+            <Button variant="ghost" size="xs" onClick={loadMore} disabled={isLoadingMore}>
               {isLoadingMore ? "Loading…" : items.length === 0 ? "Look further back" : "Load more"}
-            </button>
+            </Button>
           </div>
         )}
       </div>

@@ -29,6 +29,7 @@ import { ResourceAvatar } from "./ResourceAvatar.js";
 import { useSingleOrg } from "../../server-info.js";
 import { ORG_COLUMN_ID } from "../types.js";
 import { OrgSlugText } from "../../organization/OrgSlugText.js";
+import { IconButton } from "../../button/IconButton.js";
 
 // ---------------------------------------------------------------------------
 // Props
@@ -640,41 +641,31 @@ function PaginationBar({
   readonly onPreviousPage: () => void;
   readonly onNextPage: () => void;
 }) {
-  const navBtnClass = cn(
-    "stg:inline-flex stg:items-center stg:rounded-md stg:p-1.5",
-    "stg:border stg:border-input stg:bg-background stg:text-foreground",
-    "stg:hover:bg-accent stg:hover:text-accent-foreground",
-    "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-    "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-  );
-
   return (
     <nav
       aria-label="Pagination"
       className="stg:flex stg:items-center stg:justify-end stg:border-t stg:border-border stg:pt-3"
     >
       <div className="stg:flex stg:items-center stg:gap-2">
-        <button
-          type="button"
+        <IconButton
+          variant="outline"
+          size="xs"
+          label="Previous page"
+          icon={<ChevronLeftIcon />}
           onClick={onPreviousPage}
           disabled={!hasPreviousPage}
-          aria-label="Previous page"
-          className={navBtnClass}
-        >
-          <ChevronLeftIcon />
-        </button>
+        />
         <span className="stg:text-xs stg:text-muted-foreground">
           Page {pageNumber}
         </span>
-        <button
-          type="button"
+        <IconButton
+          variant="outline"
+          size="xs"
+          label="Next page"
+          icon={<ChevronRightIcon />}
           onClick={onNextPage}
           disabled={!hasNextPage}
-          aria-label="Next page"
-          className={navBtnClass}
-        >
-          <ChevronRightIcon />
-        </button>
+        />
       </div>
     </nav>
   );

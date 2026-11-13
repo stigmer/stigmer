@@ -9,6 +9,8 @@ import { GitHubRepoPicker } from "../github/GitHubRepoPicker.js";
 import { useScrollShadows } from "../internal/useScrollShadows.js";
 import { ScrollFade } from "../internal/ScrollFade.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
+import { Button } from "../button/Button.js";
+import { IconButton } from "../button/IconButton.js";
 
 type ActivePanel = "github" | null;
 
@@ -140,14 +142,9 @@ export function WorkspaceEditor({
   if (activePanel === "github" && enableGitHub) {
     return (
       <div className={cn("stg:space-y-2", className)}>
-        <button
-          type="button"
-          onClick={goBack}
-          className="stg:inline-flex stg:items-center stg:gap-1 stg:rounded-sm stg:text-2xs stg:text-muted-foreground stg:transition-colors stg:hover:text-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
-        >
-          <ChevronLeftIcon />
+        <Button variant="ghost" size="xs" onClick={goBack} icon={<ChevronLeftIcon />}>
           Back
-        </button>
+        </Button>
         {gitHubConnection ? (
           <GitHubPanel
             connection={gitHubConnection}
@@ -224,15 +221,14 @@ export function WorkspaceEditor({
                     {entry.name}
                   </TooltipContent>
                 </Tooltip>
-                <button
-                  type="button"
+                <IconButton
+                  size="xs"
+                  label={`Remove ${entry.name}`}
+                  icon={<XIcon />}
                   onClick={() => workspace.remove(entry.id)}
                   disabled={disabled}
-                  className="stg:shrink-0 stg:rounded-sm stg:text-muted-foreground stg:transition-colors stg:hover:text-destructive stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:disabled:pointer-events-none"
-                  aria-label={`Remove ${entry.name}`}
-                >
-                  <XIcon />
-                </button>
+                  className="stg:hover:text-destructive"
+                />
               </div>
             ))}
           </div>
@@ -316,25 +312,15 @@ function GitHubPanel({
               Popup was blocked by your browser. Allow popups for this site, then try again.
             </p>
             <div className="stg:flex stg:items-center stg:justify-center stg:gap-2">
-              <button
-                type="button"
-                onClick={() => void connection.connect().catch(() => {})}
-                className="stg:inline-flex stg:items-center stg:gap-2 stg:rounded-md stg:bg-foreground stg:px-3 stg:py-1.5 stg:text-xs stg:text-background stg:transition-colors stg:hover:bg-foreground-hover stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
-              >
-                <GitHubIcon />
+              <Button size="xs" onClick={() => void connection.connect().catch(() => {})} icon={<GitHubIcon />}>
                 <span>Try again</span>
-              </button>
+              </Button>
             </div>
           </div>
         ) : (
-          <button
-            type="button"
-            onClick={() => void connection.connect().catch(() => {})}
-            className="stg:inline-flex stg:items-center stg:gap-2 stg:rounded-md stg:bg-foreground stg:px-3 stg:py-1.5 stg:text-xs stg:text-background stg:transition-colors stg:hover:bg-foreground-hover stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
-          >
-            <GitHubIcon />
+          <Button size="xs" onClick={() => void connection.connect().catch(() => {})} icon={<GitHubIcon />}>
             <span>Connect GitHub</span>
-          </button>
+          </Button>
         )}
         {connection.connectError && !connection.popupBlocked && (
           <p role="alert" className="stg:text-2xs stg:text-destructive">
@@ -360,13 +346,14 @@ function GitHubPanel({
             {connection.user?.login ?? "Connected"}
           </span>
         </div>
-        <button
-          type="button"
+        <Button
+          variant="ghost"
+          size="xs"
           onClick={connection.disconnect}
-          className="stg:rounded-sm stg:text-2xs stg:text-muted-foreground stg:transition-colors stg:hover:text-destructive stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
+          className="stg:hover:text-destructive stg:hover:bg-destructive-subtle"
         >
           Disconnect
-        </button>
+        </Button>
       </div>
       {connection.disconnectError && (
         <p role="alert" className="stg:text-2xs stg:text-destructive">
@@ -425,21 +412,12 @@ function ManualGitPanel({
         className="stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground stg:placeholder:text-muted-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
       />
       <div className="stg:flex stg:justify-end stg:gap-2">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:text-muted-foreground stg:transition-colors stg:hover:text-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
-        >
+        <Button variant="ghost" size="xs" onClick={onCancel}>
           Cancel
-        </button>
-        <button
-          type="button"
-          onClick={onAdd}
-          disabled={!url.trim()}
-          className="stg:rounded-md stg:bg-primary stg:px-2.5 stg:py-1 stg:text-xs stg:text-primary-foreground stg:transition-colors stg:hover:bg-primary-hover stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:disabled:opacity-40"
-        >
+        </Button>
+        <Button size="xs" onClick={onAdd} disabled={!url.trim()}>
           Add
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -467,13 +445,9 @@ function GitHubConnectingState({ onCancel }: { onCancel: () => void }) {
           ? "Taking longer than expected..."
           : "Connecting to GitHub..."}
       </p>
-      <button
-        type="button"
-        onClick={onCancel}
-        className="stg:rounded-sm stg:text-2xs stg:text-muted-foreground stg:transition-colors stg:hover:text-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
-      >
+      <Button variant="ghost" size="xs" onClick={onCancel}>
         Cancel
-      </button>
+      </Button>
     </div>
   );
 }

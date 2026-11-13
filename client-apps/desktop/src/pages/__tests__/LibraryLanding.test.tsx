@@ -34,23 +34,29 @@ function counter(count: number) {
   };
 }
 
-vi.mock("@stigmer/react-sdk", () => ({
-  ApplyManifestDialog: (props: DialogProps) => {
-    page.dialog.push(props);
-    return null;
-  },
-  ResourceCountCard: (props: CardProps) => {
-    page.cards.set(props.label, props);
-    return null;
-  },
-  useAgentCount: counter(3),
-  useSkillCount: counter(5),
-  useRoutineCount: counter(4),
-  usePluginCount: counter(0),
-  useEnvironmentCount: counter(2),
-  useFileCount: counter(7),
-  useActiveOrgId: () => "org_acme",
-}));
+vi.mock("@stigmer/react-sdk", async () => {
+  const kit = await vi.importActual<typeof import("@stigmer/react-sdk")>("@stigmer/react-sdk");
+  return {
+    Button: kit.Button,
+    IconButton: kit.IconButton,
+    LinkButton: kit.LinkButton,
+    ApplyManifestDialog: (props: DialogProps) => {
+      page.dialog.push(props);
+      return null;
+    },
+    ResourceCountCard: (props: CardProps) => {
+      page.cards.set(props.label, props);
+      return null;
+    },
+    useAgentCount: counter(3),
+    useSkillCount: counter(5),
+    useRoutineCount: counter(4),
+    usePluginCount: counter(0),
+    useEnvironmentCount: counter(2),
+    useFileCount: counter(7),
+    useActiveOrgId: () => "org_acme",
+  };
+});
 
 import LibraryLanding from "../library/LibraryLanding";
 

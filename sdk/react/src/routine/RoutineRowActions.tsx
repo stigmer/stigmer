@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { cn } from "@stigmer/design-tokens";
 import type { Routine } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
 import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { deriveRoutineState } from "./routineState.js";
 import { RunRoutineDialog } from "./RunRoutineDialog.js";
 import { useResumeRoutine } from "./useResumeRoutine.js";
 import { useFireRoutine } from "./useFireRoutine.js";
+import { Button } from "../button/Button.js";
 
 /** Props for {@link RoutineRowActions}. */
 export interface RoutineRowActionsProps {
@@ -111,19 +111,8 @@ function RowActionButton({
   readonly children: React.ReactNode;
 }) {
   return (
-    <button
-      type="button"
-      aria-label={label}
-      onClick={onClick}
-      disabled={busy}
-      className={cn(
-        "stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2 stg:py-1 stg:text-xs stg:font-medium stg:text-foreground",
-        "stg:hover:bg-accent stg:hover:text-accent-foreground",
-        "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-        "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-      )}
-    >
+    <Button variant="outline" size="xs" aria-label={label} onClick={onClick} disabled={busy}>
       {children}
-    </button>
+    </Button>
   );
 }

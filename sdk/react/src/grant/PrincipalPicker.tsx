@@ -31,6 +31,7 @@ import { getUserMessage, granteeKey, isServiceAccount, type Grantee } from "@sti
 import { SERVICE_ACCOUNT_LABEL } from "../service-account/copy.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { GranteeAvatar } from "./GranteeAvatar.js";
+import { IconButton } from "../button/IconButton.js";
 import { ProviderBadge, providerLabel } from "./ProviderBadge.js";
 import {
   useGranteeCandidates,
@@ -209,19 +210,13 @@ export function PrincipalPicker({
               <SelectedSubline value={value} />
             </div>
           </div>
-          <button
-            type="button"
+          <IconButton
+            size="xs"
+            label={value.kind === "team" ? "Clear selected team" : "Clear selected person"}
+            icon={<ClearIcon />}
             onClick={() => onChange(null)}
             disabled={disabled}
-            aria-label={value.kind === "team" ? "Clear selected team" : "Clear selected person"}
-            className={cn(
-              "stg:shrink-0 stg:rounded stg:p-0.5 stg:text-muted-foreground",
-              "stg:hover:text-foreground stg:hover:bg-accent-hover",
-              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-            )}
-          >
-            <ClearIcon />
-          </button>
+          />
         </div>
       </div>
     );

@@ -18,11 +18,15 @@
 // not (Dex, and any issuer with no logout endpoint) it clears the local
 // session and lands on /login. It never builds a vendor URL — the Auth0
 // `/v2/logout` fallback is gone.
+//
+// A failed code exchange: the provider shows "Login Failed" with the
+// exchange's reason instead of looping back into the issuer, and its
+// "Try Again" starts a fresh sign-in redirect.
 // ---------------------------------------------------------------------------
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { StrictMode, useEffect } from "react";
-import { render, waitFor } from "@testing-library/react";
+import { StrictMode, useEffect, type ReactNode } from "react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { User } from "oidc-client-ts";
 import type { OidcConfig } from "../types";
 
@@ -68,6 +72,17 @@ const mocks = vi.hoisted(() => {
 
 vi.mock("../oidc-manager", () => ({
   createUserManager: vi.fn(() => mocks.manager),
+}));
+
+// The failed-login screen's retry is the kit's Button. Each test re-imports
+// the provider (vi.resetModules), so the whole kit would be re-imported cold
+// per test; a plain button stands in, pressed by the failed-login test.
+vi.mock("@stigmer/react-sdk", () => ({
+  Button: ({ children, onClick }: { children?: ReactNode; onClick?: () => void }) => (
+    <button type="button" onClick={onClick}>
+      {children}
+    </button>
+  ),
 }));
 
 /** Re-import the provider so its module-scoped single-flight memo is fresh. */
@@ -204,5 +219,41 @@ describe("OidcAuthProvider sign-out speaks only the standard", () => {
       expect(String(call[0])).not.toContain("/v2/logout");
       expect(String(call[0])).not.toContain(CONFIG.issuer);
     }
+  });
+});
+
+describe("OidcAuthProvider failed callback", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    vi.clearAllMocks();
+    sessionStorage.clear();
+    const happyDom = (
+      window as unknown as { happyDOM: { setURL(url: string): void } }
+    ).happyDOM;
+    happyDom.setURL("http://localhost:3000/auth/callback");
+    vi.spyOn(window.location, "replace").mockImplementation(() => undefined);
+    // The provider logs the failed exchange; keep the run's output quiet.
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+  });
+
+  it("shows the exchange's reason and starts a fresh sign-in on Try Again", async () => {
+    mocks.manager.signinRedirectCallback.mockRejectedValueOnce(
+      new Error("Invalid authorization code"),
+    );
+    const OidcAuthProvider = await importProvider();
+    render(
+      <OidcAuthProvider config={CONFIG}>
+        <div>app</div>
+      </OidcAuthProvider>,
+    );
+
+    expect(await screen.findByText("Login Failed")).toBeTruthy();
+    expect(screen.getByText("Invalid authorization code")).toBeTruthy();
+    expect(screen.queryByText("app")).toBeNull();
+    expect(mocks.manager.signinRedirect).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Try Again" }));
+
+    expect(mocks.manager.signinRedirect).toHaveBeenCalledTimes(1);
   });
 });

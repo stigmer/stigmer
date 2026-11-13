@@ -256,6 +256,10 @@
       "promise": "After the first job, the console says what comes next and leads to making the agent theirs: change its instructions, run it on their own file, give it a skill."
     },
     {
+      "id": "CON-09",
+      "promise": "Every action button is the kit's Button, IconButton or LinkButton, so every action in the console has one height, one size scale and one focus ring."
+    },
+    {
       "id": "DSK-01",
       "promise": "Clicking the Dock icon reopens a closed window.",
       "pending": [

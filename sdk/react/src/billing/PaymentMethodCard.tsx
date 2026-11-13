@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@stigmer/design-tokens";
+import { Button } from "../button/Button.js";
 import type { PaymentMethodSummary } from "@stigmer/apis/ai/stigmer/billing/v1/billing_account_pb";
 import { BillingAccountStatus } from "@stigmer/apis/ai/stigmer/billing/v1/enum_pb";
 
@@ -93,19 +94,15 @@ export function PaymentMethodCard({
           Payment Method
         </h3>
         {hasPm && (
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="xs"
             disabled={!isAccountActive || isPortalLoading}
             onClick={onManage}
-            className={cn(
-              "stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium stg:transition-colors",
-              "stg:text-muted-foreground stg:hover:bg-accent stg:hover:text-foreground",
-              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-            )}
             aria-busy={isPortalLoading}
           >
             {isPortalLoading ? "Opening\u2026" : "Manage"}
-          </button>
+          </Button>
         )}
       </div>
 
@@ -130,19 +127,16 @@ export function PaymentMethodCard({
             a plan; each period&apos;s invoice is charged to it.
           </p>
           {onAdd && (
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              size="xs"
               disabled={!isAccountActive || isAdding}
               onClick={onAdd}
-              className={cn(
-                "stg:mt-2 stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium stg:transition-colors",
-                "stg:text-primary stg:hover:bg-accent",
-                "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-              )}
               aria-busy={isAdding}
+              className="stg:mt-2"
             >
               {isAdding ? "Opening\u2026" : "Add payment method"}
-            </button>
+            </Button>
           )}
         </div>
       )}

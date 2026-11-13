@@ -5,7 +5,8 @@ import { create } from "@bufbuild/protobuf";
 import { cn } from "@stigmer/design-tokens";
 import type { File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { GetFileContentInputSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/io_pb";
-import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
+import { Button } from "../button/Button.js";
+import { IconButton } from "../button/IconButton.js";
 import { useCopyFeedback } from "../internal/useCopyFeedback.js";
 import { useStigmer } from "@stigmer/react-core";
 import { useFileDownload } from "../file/useFile.js";
@@ -143,21 +144,9 @@ export const PlanFileCard = memo(function PlanFileCard({
           icon={<DownloadIcon />}
         />
         {onImplement && (
-          <button
-            type="button"
-            disabled={disabled}
-            onClick={onImplement}
-            className={cn(
-              "stg:ml-1.5 stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5",
-              "stg:text-xs stg:font-medium stg:transition-colors",
-              "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
-              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-            )}
-          >
-            <ImplementIcon />
+          <Button size="xs" disabled={disabled} onClick={onImplement} icon={<ImplementIcon />} className="stg:ml-1.5">
             {buildPending ? "Starting build…" : "Build"}
-          </button>
+          </Button>
         )}
       </div>
 
@@ -208,16 +197,7 @@ function useFileTextCopy() {
   return { copy, isCopying, copied };
 }
 
-const FOCUS_RING =
-  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:focus-visible:rounded-sm";
-
-/**
- * An icon-only secondary action. The accessible name doubles as the house
- * tooltip's content; the trigger is a wrapper span so the hint stays
- * hoverable while the action is disabled (`pointer-events-none` on the
- * button would otherwise take the tooltip down with it). The padded hit
- * area keeps the target comfortable despite the compact glyph.
- */
+/** An icon-only secondary action: the kit's small IconButton, whose name is its tooltip, shown even while it is disabled. */
 function IconAction({
   label,
   onClick,
@@ -229,27 +209,7 @@ function IconAction({
   readonly icon: ReactNode;
   readonly disabled?: boolean;
 }) {
-  return (
-    <Tooltip>
-      <TooltipTrigger render={<span className="stg:inline-flex" />}>
-        <button
-          type="button"
-          aria-label={label}
-          onClick={onClick}
-          disabled={disabled}
-          className={cn(
-            "stg:inline-flex stg:items-center stg:rounded-md stg:p-1.5 stg:text-muted-foreground",
-            "stg:transition-colors stg:hover:bg-accent-hover stg:hover:text-foreground",
-            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-            FOCUS_RING,
-          )}
-        >
-          {icon}
-        </button>
-      </TooltipTrigger>
-      <TooltipContent side="top">{label}</TooltipContent>
-    </Tooltip>
-  );
+  return <IconButton label={label} icon={icon} size="xs" onClick={onClick} disabled={disabled} />;
 }
 
 function PlanIcon() {

@@ -22,12 +22,18 @@ const gate = vi.hoisted(() => ({
   retry: vi.fn(),
 }));
 
-vi.mock("@stigmer/react-sdk", () => ({
-  useIdentityAccountGate: ({ isEnabled }: { isEnabled: boolean }) => {
-    gate.enabledArgs.push(isEnabled);
-    return { state: gate.state, retry: gate.retry };
-  },
-}));
+vi.mock("@stigmer/react-sdk", async () => {
+  const kit = await vi.importActual<typeof import("@stigmer/react-sdk")>("@stigmer/react-sdk");
+  return {
+    Button: kit.Button,
+    IconButton: kit.IconButton,
+    LinkButton: kit.LinkButton,
+    useIdentityAccountGate: ({ isEnabled }: { isEnabled: boolean }) => {
+      gate.enabledArgs.push(isEnabled);
+      return { state: gate.state, retry: gate.retry };
+    },
+  };
+});
 
 const runtime = vi.hoisted(() => ({
   authMode: "oidc" as RuntimeConfig["authMode"],

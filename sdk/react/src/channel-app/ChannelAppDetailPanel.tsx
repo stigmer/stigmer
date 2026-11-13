@@ -23,6 +23,7 @@ import { CopyRow, FormField, UnknownAddressRow } from "./internal.js";
 import { PermissionGate } from "../grant/PermissionGate.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { ResourceSlugField } from "../resource-detail/RenameSlugField.js";
+import { Button } from "../button/Button.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -162,36 +163,28 @@ export function ChannelAppDetailPanel({
                 Delete this channel app? Channels installing through it must be
                 disconnected first.
               </p>
-              <button
-                type="button"
+              <Button
+                variant="destructive"
+                size="xs"
                 onClick={handleDelete}
                 disabled={isDeleting}
-                className={cn(
-                  "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
-                  "stg:bg-destructive stg:text-destructive-foreground stg:hover:opacity-90",
-                  "stg:disabled:pointer-events-none stg:disabled:opacity-40",
-                )}
+                icon={isDeleting ? <SpinnerIcon size={12} /> : undefined}
               >
-                {isDeleting && <SpinnerIcon size={12} />}
                 Delete
-              </button>
-              <button
-                type="button"
-                onClick={() => setConfirmingDelete(false)}
-                disabled={isDeleting}
-                className="stg:text-muted-foreground stg:hover:text-foreground stg:text-xs stg:transition-colors"
-              >
+              </Button>
+              <Button variant="ghost" size="xs" onClick={() => setConfirmingDelete(false)} disabled={isDeleting}>
                 Keep
-              </button>
+              </Button>
             </div>
           ) : (
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              size="xs"
               onClick={() => setConfirmingDelete(true)}
-              className="stg:text-destructive stg:text-xs stg:font-medium stg:hover:opacity-80"
+              className="stg:text-destructive stg:hover:bg-destructive-subtle"
             >
               Delete channel app
-            </button>
+            </Button>
           )}
         </section>
       </PermissionGate>
@@ -351,18 +344,9 @@ function SlackAppDetail({
             </p>
           )}
 
-          <button
-            type="submit"
-            disabled={!canSave}
-            className={cn(
-              "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium",
-              "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
-              "stg:disabled:pointer-events-none stg:disabled:opacity-40",
-            )}
-          >
-            {isUpdating && <SpinnerIcon size={12} />}
+          <Button type="submit" size="xs" disabled={!canSave} icon={isUpdating ? <SpinnerIcon size={12} /> : undefined}>
             Save credentials
-          </button>
+          </Button>
         </form>
       </PermissionGate>
     </>
@@ -545,18 +529,9 @@ function WhatsAppAppDetail({
             </p>
           )}
 
-          <button
-            type="submit"
-            disabled={!canSave}
-            className={cn(
-              "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium",
-              "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
-              "stg:disabled:pointer-events-none stg:disabled:opacity-40",
-            )}
-          >
-            {isUpdating && <SpinnerIcon size={12} />}
+          <Button type="submit" size="xs" disabled={!canSave} icon={isUpdating ? <SpinnerIcon size={12} /> : undefined}>
             Save credentials
-          </button>
+          </Button>
         </form>
       </PermissionGate>
     </>

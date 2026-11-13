@@ -7,9 +7,11 @@
  */
 
 import { useCallback, useMemo, useReducer, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Blocks, Copy, ExternalLink, Server, Trash2, Store, Upload } from "lucide-react";
 import {
+  Button,
+  LinkButton,
   AddMcpServerDialog,
   ResourceWorkbench,
   useCanCreatePlugin,
@@ -26,6 +28,7 @@ import {
 } from "@stigmer/react-sdk";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { SearchResult } from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
+import { renderJourneyLink } from "../../journey/journey-links";
 
 const VIEW_MODE_STORAGE_KEY = "stigmer:workbench:plugins:viewMode";
 
@@ -61,42 +64,36 @@ const PLUGIN_COLUMNS: WorkbenchColumnDef<SearchResult>[] = [
   },
 ];
 
-const PRIMARY_LINK_CLASSES =
-  "inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 font-medium text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
-const SECONDARY_LINK_CLASSES =
-  "inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
-
 /**
  * The ways in, side by side: the Marketplace (what you can get), an upload from disk (what you have), and one MCP server
  * by its address. Installing is an organization admin's act (`can_create_plugin`, asked fail closed), so a member is
  * offered the Marketplace to browse and no upload or server form the server would refuse.
  */
 function WaysIn({
-  size,
   mayInstall,
   onAddMcpServer,
 }: {
-  readonly size: "sm" | "xs";
   readonly mayInstall: boolean;
   readonly onAddMcpServer: () => void;
 }) {
-  const text = size === "sm" ? "text-sm" : "text-xs";
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Link to="/marketplace" className={`${PRIMARY_LINK_CLASSES} ${text}`}>
-        <Store className="size-3.5" aria-hidden="true" />
+      <LinkButton href="/marketplace" icon={<Store className="size-3.5" aria-hidden="true" />} renderLink={renderJourneyLink}>
         Browse Marketplace
-      </Link>
+      </LinkButton>
       {mayInstall && (
         <>
-          <Link to="/library/plugins/upload" className={`${SECONDARY_LINK_CLASSES} ${text}`}>
-            <Upload className="size-3.5" aria-hidden="true" />
+          <LinkButton
+            href="/library/plugins/upload"
+            variant="outline"
+            icon={<Upload className="size-3.5" aria-hidden="true" />}
+            renderLink={renderJourneyLink}
+          >
             Upload plugin
-          </Link>
-          <button type="button" onClick={onAddMcpServer} className={`${SECONDARY_LINK_CLASSES} ${text}`}>
-            <Server className="size-3.5" aria-hidden="true" />
+          </LinkButton>
+          <Button variant="outline" icon={<Server className="size-3.5" aria-hidden="true" />} onClick={onAddMcpServer}>
             Add MCP server
-          </button>
+          </Button>
         </>
       )}
     </div>
@@ -172,8 +169,8 @@ export default function PluginListPage() {
         emptyIcon={<Blocks className="size-10" aria-hidden="true" />}
         emptyTitle="No plugins installed"
         emptyDescription={mayInstall ? EMPTY_FOR_ADMIN : EMPTY_FOR_MEMBER}
-        headerAction={<WaysIn size="sm" mayInstall={mayInstall} onAddMcpServer={openAddServer} />}
-        emptyAction={<WaysIn size="xs" mayInstall={mayInstall} onAddMcpServer={openAddServer} />}
+        headerAction={<WaysIn mayInstall={mayInstall} onAddMcpServer={openAddServer} />}
+        emptyAction={<WaysIn mayInstall={mayInstall} onAddMcpServer={openAddServer} />}
         onItemClick={(item) => navigate(`/library/plugins/${slugForOrg(item.org)}/${item.slug}`)}
         renderItemAction={(item) => (
           <div onClick={(e) => e.stopPropagation()}>

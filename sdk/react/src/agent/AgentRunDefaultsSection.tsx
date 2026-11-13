@@ -42,6 +42,7 @@ import { thinkingLocked } from "@stigmer/react-core";
 import { type ThinkingModeOption } from "@stigmer/react-core";
 import { agentHarnessOf } from "./run-defaults.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
+import { Button } from "../button/Button.js";
 
 /** What a save writes: the two spec fields, together. */
 export interface AgentRunDefaultsSave {
@@ -187,12 +188,6 @@ const inputClasses = cn(
   "stg:disabled:pointer-events-none stg:disabled:opacity-50",
 );
 
-const quietButtonClasses = cn(
-  "stg:rounded-md stg:px-2 stg:py-1 stg:text-xs stg:text-muted-foreground stg:hover:text-foreground",
-  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-  "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-);
-
 function RunDefaultsEditor({
   spec,
   isSaving,
@@ -264,18 +259,15 @@ function RunDefaultsEditor({
         <span className="stg:text-xs stg:font-medium stg:text-foreground">Harness and model</span>
         {engine === undefined ? (
           <div>
-            <button
-              type="button"
+            <Button
+              variant="outline"
+              size="xs"
               onClick={() => changeEngine("stigmer")}
               disabled={isSaving}
-              className={cn(
-                "stg:rounded-md stg:border stg:border-dashed stg:border-border stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-muted-foreground",
-                "stg:hover:text-foreground stg:hover:border-muted-foreground",
-                "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-              )}
+              className="stg:border-dashed"
             >
               Choose a harness
-            </button>
+            </Button>
           </div>
         ) : (
           <div className="stg:flex stg:flex-wrap stg:items-center stg:gap-2">
@@ -295,18 +287,13 @@ function RunDefaultsEditor({
               disabled={isSaving}
             />
             {modelName !== "" && (
-              <button type="button" onClick={clearModel} disabled={isSaving} className={quietButtonClasses}>
+              <Button variant="ghost" size="xs" onClick={clearModel} disabled={isSaving}>
                 Clear model
-              </button>
+              </Button>
             )}
-            <button
-              type="button"
-              onClick={() => changeEngine(undefined)}
-              disabled={isSaving}
-              className={quietButtonClasses}
-            >
+            <Button variant="ghost" size="xs" onClick={() => changeEngine(undefined)} disabled={isSaving}>
               No harness
-            </button>
+            </Button>
           </div>
         )}
         <p className="stg:text-2xs stg:text-muted-foreground">
@@ -336,33 +323,12 @@ function RunDefaultsEditor({
 
       <div className="stg:flex stg:flex-col stg:gap-1.5">
         <div className="stg:flex stg:items-center stg:justify-end stg:gap-1.5">
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={isSaving}
-            className={cn(
-              "stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
-              "stg:border stg:border-border stg:bg-background stg:text-foreground stg:hover:bg-accent stg:hover:text-accent-foreground",
-              "stg:disabled:opacity-50",
-              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-            )}
-          >
+          <Button variant="outline" size="xs" onClick={onCancel} disabled={isSaving}>
             Cancel
-          </button>
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={!costValid || isSaving}
-            className={cn(
-              "stg:inline-flex stg:items-center stg:gap-1 stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
-              "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
-              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-            )}
-          >
-            {isSaving && <SpinnerIcon size={14} />}
+          </Button>
+          <Button size="xs" onClick={handleSave} disabled={!costValid || isSaving} icon={isSaving ? <SpinnerIcon size={14} /> : undefined}>
             Save
-          </button>
+          </Button>
         </div>
         {!costValid && (
           <p className="stg:text-xs stg:text-destructive" role="alert">

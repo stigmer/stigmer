@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useReducer, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   Bot,
   Plus,
@@ -10,6 +10,8 @@ import {
   Trash2,
 } from "lucide-react";
 import {
+  IconButton,
+  LinkButton,
   ResourceWorkbench,
   ActionMenu,
   ApplyManifestDialog,
@@ -27,6 +29,7 @@ import {
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { SearchResult } from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
 import { AGENT_DELETE_DESCRIPTION } from "./agent-delete-confirmation";
+import { renderJourneyLink } from "../../journey/journey-links";
 
 const VIEW_MODE_STORAGE_KEY = "stigmer:workbench:agents:viewMode";
 
@@ -130,34 +133,24 @@ export default function AgentListPage() {
         emptyDescription="Create an agent to define instructions, tools, skills, and execution behavior."
         headerAction={
           <div className="flex items-center gap-1.5">
-            <button
-              type="button"
+            <IconButton
+              variant="outline"
+              label="Apply YAML"
+              icon={<Upload className="size-3.5" aria-hidden="true" />}
               onClick={() => setImportOpen(true)}
-              aria-label="Apply YAML"
-              className="inline-flex items-center justify-center rounded-md border border-input bg-background p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <Upload className="size-3.5" aria-hidden="true" />
-            </button>
+            />
             {canCreateAgent && (
-              <Link
-                to={createUrl}
-                className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <Plus className="size-3.5" aria-hidden="true" />
+              <LinkButton href={createUrl} icon={<Plus className="size-3.5" aria-hidden="true" />} renderLink={renderJourneyLink}>
                 Create agent
-              </Link>
+              </LinkButton>
             )}
           </div>
         }
         emptyAction={
           canCreateAgent ? (
-            <Link
-              to={createUrl}
-              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <Plus className="size-3.5" aria-hidden="true" />
+            <LinkButton href={createUrl} icon={<Plus className="size-3.5" aria-hidden="true" />} renderLink={renderJourneyLink}>
               Create agent
-            </Link>
+            </LinkButton>
           ) : undefined
         }
         onItemClick={(item) =>

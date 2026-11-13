@@ -4,6 +4,7 @@ import { useCallback } from "react";
 import { cn } from "@stigmer/design-tokens";
 import { SCROLL_REGION_FOCUS, scrollRegion } from "./scroll-region.js";
 import { useCopyFeedback } from "./useCopyFeedback.js";
+import { Button } from "../button/Button.js";
 
 /**
  * Copyable values shared across domains: a multi-line block (a channel
@@ -59,20 +60,16 @@ export function CopyButton({
   copyTargetId?: string;
 }) {
   return (
-    <button
-      type="button"
+    <Button
+      variant="outline"
+      size="xs"
       onClick={onCopy}
       data-cursor-target={copyTargetId}
-      className={cn(
-        "stg:shrink-0 stg:rounded-md stg:border stg:border-border stg:px-2 stg:py-1 stg:text-2xs stg:font-medium stg:transition-colors",
-        copied
-          ? "stg:text-status-ready"
-          : "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
-      )}
+      className={copied ? "stg:text-status-ready" : undefined}
       aria-live="polite"
     >
       {copied ? "Copied" : "Copy"}
-    </button>
+    </Button>
   );
 }
 

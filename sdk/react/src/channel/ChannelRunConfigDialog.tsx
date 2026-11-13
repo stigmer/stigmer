@@ -7,6 +7,7 @@ import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb
 import type { RunConfig } from "@stigmer/apis/ai/stigmer/agentic/run/v1/invocation_pb";
 import { ServiceTier, ThinkingMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { Button } from "../button/Button.js";
+import { IconButton } from "../button/IconButton.js";
 import { DialogShell } from "../internal/DialogShell.js";
 import { ModelSelector } from "../models/ModelSelector.js";
 import type { HarnessOption } from "@stigmer/react-core";
@@ -171,18 +172,7 @@ function ChannelRunConfigDialogBody({
             {channelName}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close dialog"
-          className={cn(
-            "stg:rounded stg:p-1 stg:text-muted-foreground",
-            "stg:hover:bg-accent-hover stg:hover:text-foreground",
-            "stg:focus:outline-none stg:focus:ring-1 stg:focus:ring-ring",
-          )}
-        >
-          <CloseIcon />
-        </button>
+        <IconButton size="xs" label="Close dialog" icon={<CloseIcon />} onClick={onClose} />
       </div>
 
       <div className="stg:space-y-4 stg:px-5 stg:py-4">
@@ -208,22 +198,18 @@ function ChannelRunConfigDialogBody({
               disabled={isPending}
             />
             {modelName !== "" && (
-              <button
-                type="button"
+              <Button
+                variant="ghost"
+                size="xs"
                 onClick={() => {
                   setModelName("");
                   setServiceTier("standard");
                   setThinkingMode("disabled");
                 }}
                 disabled={isPending}
-                className={cn(
-                  "stg:rounded-md stg:px-2 stg:py-1 stg:text-2xs stg:text-muted-foreground",
-                  "stg:hover:text-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-                  "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-                )}
               >
                 Reset to platform default
-              </button>
+              </Button>
             )}
           </div>
           <p className={hintClasses}>
