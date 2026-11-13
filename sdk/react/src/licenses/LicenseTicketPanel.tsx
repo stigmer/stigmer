@@ -5,6 +5,7 @@ import { Check, Copy, Eye, EyeOff } from "lucide-react";
 import { cn } from "@stigmer/design-tokens";
 import { getUserMessage } from "@stigmer/client";
 import { Button } from "../button/index.js";
+import { SCROLL_REGION_FOCUS, scrollRegion } from "../internal/scroll-region.js";
 import { selectElementText } from "../internal/select-element-text.js";
 import { useCopyFeedback } from "../internal/useCopyFeedback.js";
 
@@ -105,10 +106,12 @@ export function LicenseTicketPanel({
       {revealed && ticket && (
         <code
           ref={ticketRef}
+          {...scrollRegion("License ticket")}
           className={cn(
             "stg:block stg:max-h-40 stg:overflow-y-auto stg:break-all stg:select-all stg:rounded-md",
             "stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5",
             "stg:font-mono stg:text-xs stg:text-foreground",
+            SCROLL_REGION_FOCUS,
           )}
         >
           {ticket}

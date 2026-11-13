@@ -227,7 +227,7 @@ function BranchRow({
           className="stg:min-w-0 stg:font-mono stg:text-foreground"
         />
         {baseBranch && (
-          <span className="stg:shrink-0 stg:font-mono stg:text-muted-foreground-faint">
+          <span className="stg:shrink-0 stg:font-mono stg:text-muted-foreground">
             {"\u2190 "}
             {baseBranch}
           </span>

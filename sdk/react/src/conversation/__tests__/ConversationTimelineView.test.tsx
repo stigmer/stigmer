@@ -426,6 +426,29 @@ describe("ConversationTimelineView", () => {
     expect(container.querySelectorAll("li button")).toHaveLength(0);
   });
 
+  // stigmer/stigmer#2899: the timeline scrolls inside its pane, so the
+  // scrolling element itself is the named region a keyboard user tabs to
+  // and scrolls with the arrow keys, with the kit's focus ring.
+  it("makes its scroller a named region in the tab order", () => {
+    render(
+      <ConversationTimelineView
+        {...baseProps()}
+        items={[
+          item("wa:1", {
+            author: ConversationItemAuthor.author_customer,
+            text: "where is my order?",
+          }),
+        ]}
+      />,
+    );
+
+    const region = screen.getByRole("region", { name: "Conversation timeline" });
+    expect(region.tabIndex).toBe(0);
+    expect(region.className).toContain("stg:overflow-y-auto");
+    expect(region.className).toContain("stg:focus-visible:ring-2");
+    expect(region.textContent).toContain("where is my order?");
+  });
+
   it("renders internal-lane events as system rows the customer never saw", () => {
     render(
       <ConversationTimelineView
