@@ -82,11 +82,9 @@ function renderInPane(ui: ReactElement) {
 }
 
 function scroller(): HTMLElement {
-  // The component's scroll container is the timeline's direct child pane
-  // (ConversationTimelineView.tsx: the overflow-y-auto div under the
-  // aria-labelled root).
-  const rootEl = document.querySelector('[aria-label="Conversation timeline"]');
-  return rootEl?.firstElementChild as HTMLElement;
+  // The component's scroll container is the named, focusable region a
+  // keyboard user scrolls (ConversationTimelineView.tsx, stigmer/stigmer#2899).
+  return document.querySelector('[role="region"][aria-label="Conversation timeline"]') as HTMLElement;
 }
 
 function jumpButton(): HTMLElement {

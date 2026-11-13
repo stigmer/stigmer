@@ -205,7 +205,7 @@ function ConversationRow({
         )}
       </div>
       {lastActivity && (
-        <span className="stg:shrink-0 stg:text-xs stg:text-muted-foreground-faint">
+        <span className="stg:shrink-0 stg:text-xs stg:text-muted-foreground">
           {formatRelativeTime(lastActivity)}
         </span>
       )}
