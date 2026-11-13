@@ -40,8 +40,9 @@ export interface DecisionButtonProps {
   readonly ariaDescribedby?: string;
 }
 
-// Its height, padding and type are the kit's small button's (button/buttonClasses.ts),
-// so the approval card's actions and every other row action are one size.
+// Its height, padding and type are the kit's xs button's (button/buttonClasses.ts),
+// so the approval card's actions and every other row action are one size; its
+// corner and borderless fills stay the approval card's own look.
 const BASE = cn(
   "stg:inline-flex stg:items-center stg:justify-center stg:rounded-md stg:font-medium stg:transition-colors",
   BUTTON_SIZE_CLASSES.xs,

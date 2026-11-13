@@ -37,9 +37,9 @@ const WIDTH_CLASSES: Record<PageFrameWidth, string> = {
  *
  * @example
  * ```tsx
- * <PageFrame>
- *   <PageHeader title="Agents" description="The agents your organization runs." />
- *   <AgentList />
+ * <PageFrame width="reading">
+ *   <h1>Profile</h1>
+ *   <p>Your name and how Stigmer reaches you.</p>
  * </PageFrame>
  * ```
  */

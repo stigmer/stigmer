@@ -4,7 +4,10 @@
 // carrying the primary or destructive fill is reported anywhere but the
 // button folder, in the kit's prefixed classes and an app's plain ones,
 // through cn() and conditionals. Each valid case differs from a reported one
-// in one respect, so none passes for an unrelated reason. It is the bar's
+// in one respect, so none passes for an unrelated reason. The fill is also
+// found past an opacity suffix or the important mark, on a member element
+// (`motion.button`) and through a constant declared in the same file; only
+// the kit's own button folder is exempt, not any folder named `button`. It is the bar's
 // CON-09 ("Every action button is the kit's Button, IconButton or LinkButton"). Run via the root
 // `npm run test:scripts` (the `test:root` globs in package.json).
 
@@ -59,6 +62,9 @@ describe("CON-09 every action button is the kit's Button, IconButton or LinkButt
       { code: '<button role="switch" aria-checked="true" className="stg:bg-primary" />' },
       { code: '<button role="tab" aria-selected="true" className="stg:bg-primary" />' },
       { code: '<button aria-pressed={on} className={cn(on && "stg:bg-primary")} />' },
+      // A constant that holds no fill, and one that is never a class.
+      { code: 'const QUIET = "stg:hover:bg-accent"; <button className={QUIET} />' },
+      { code: 'let PRIMARY = "stg:bg-primary"; PRIMARY = "stg:bg-muted"; <button className={PRIMARY} />' },
       // The kit's parts themselves.
       { code: '<Button variant="primary">Save</Button>' },
       { code: '<LinkButton href="/new">Create agent</LinkButton>' },
@@ -76,6 +82,16 @@ describe("CON-09 every action button is the kit's Button, IconButton or LinkButt
       { code: '<button role="button" className="stg:bg-primary" />', errors: primary },
       // A variant does not hide the fill.
       { code: '<button className="stg:data-[on]:bg-primary" />', errors: primary },
+      // An opacity suffix or the important mark does not hide the fill.
+      { code: '<button className="stg:bg-primary/90" />', errors: primary },
+      { code: '<button className="stg:bg-destructive!" />', errors: destructive },
+      // A member element is still a button.
+      { code: '<motion.button className="stg:bg-primary" />', errors: primary },
+      // A same-file constant, alone or through cn().
+      { code: 'const PRIMARY = "stg:inline-flex stg:bg-primary stg:px-3"; <button className={PRIMARY} />', errors: primary },
+      { code: 'const DANGER = `stg:bg-destructive stg:text-destructive-foreground`; <a className={cn(DANGER, "stg:px-2")} />', errors: destructive },
+      // Only the kit's button folder is exempt, not any folder named button.
+      { code: '<button className="stg:bg-primary" />', filename: "/repo/client-apps/web/src/components/button/X.tsx", errors: primary },
     ],
   });
 });
