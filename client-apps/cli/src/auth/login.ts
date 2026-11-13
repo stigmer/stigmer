@@ -111,7 +111,7 @@ export async function login(options: LoginOptions = {}, deps: LoginDeps = defaul
     ? await signInWithCode(discovery, signIn, deps)
     : await signInWithBrowser(discovery, signIn, target.address, deps);
 
-  persist(target.name, target.entry, signIn, tokens);
+  persist(target, signIn, tokens);
   return { backendName: target.name, type: target.entry.type, address: target.address, provider: hostOf(signIn.issuer) };
 }
 
@@ -240,13 +240,24 @@ async function signInWithCode(discovery: Discovery, signIn: NativeSignIn, deps: 
 
 /**
  * Store the token set in the backend's entry, as the file is on disk now (a
- * command saved while the browser was open survives), and make it active.
+ * command saved while the browser was open survives), and make it active;
+ * refused when the entry was re-pointed at another server meanwhile, since
+ * the token would then be sent there.
  */
-function persist(name: string, entry: NamedBackendConfig, signIn: NativeSignIn, tokens: TokenSet): void {
+function persist(target: SignInTarget, signIn: NativeSignIn, tokens: TokenSet): void {
+  const { name, entry } = target;
   const config = load();
   const backends = (config.backends ??= {});
+  const onDisk = backends[name];
+  if (onDisk !== undefined && signInTarget({ ...config, current_backend: name }).address !== target.address) {
+    throw new CliExitError(
+      `backend "${name}" was pointed at another server while you signed in; nothing was saved`,
+      ExitCode.Auth,
+      ["Sign in again:  stigmer auth login"],
+    );
+  }
   backends[name] = {
-    ...(backends[name] ?? entry),
+    ...(onDisk ?? entry),
     token: tokens.accessToken,
     refresh_token: tokens.refreshToken,
     token_expiry: tokens.expiresAt,

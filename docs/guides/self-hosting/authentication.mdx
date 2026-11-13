@@ -355,8 +355,8 @@ client with your provider:
 - **Client type: public native app, using PKCE, with no client secret.** In
   Keycloak a client with "Client authentication" off; in Auth0 a "Native"
   application; in Okta a "Native App"; in Dex a public client.
-- **Redirect URIs**: `stigmer://auth/callback`, and for builds that sign in
-  through a local port, `http://127.0.0.1:17234/auth/callback`,
+- **Redirect URIs**: `stigmer://auth/callback`, and for the CLI and builds that
+  sign in through a local port, `http://127.0.0.1:17234/auth/callback`,
   `http://127.0.0.1:17235/auth/callback` and
   `http://127.0.0.1:17236/auth/callback`.
 - **Refresh tokens allowed**, so the app keeps people signed in.
@@ -390,7 +390,8 @@ the CLI says so and the person signs in with a browser or a key.
 The CLI signs in only at a provider on your server's own site, the same
 registrable domain or both on one machine, unless the person passes
 `--trust-provider`. A server can name another site's provider to collect tokens
-that site's servers accept, so the CLI names both hosts and asks first.
+that site's servers accept, so the CLI refuses it, naming both hosts, until the
+person runs `stigmer auth login --trust-provider`.
 
 ### Where the app's agents run
 

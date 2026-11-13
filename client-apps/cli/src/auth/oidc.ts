@@ -10,8 +10,9 @@
 //     holds the same rule) and whose endpoints must be `https`, or `http` on
 //     this machine; read once per process per issuer;
 //   - `providerOnServersSite`: whether the provider sits on the server's own
-//     site (the same registrable domain, by the Public Suffix List, the same
-//     host, or both on this computer). A server the person was talked into
+//     site (the same registrable domain, by the Public Suffix List with its
+//     private section, so `evil.github.io` and `victim.github.io` are two
+//     sites; the same host; or both on this computer). A server the person was talked into
 //     adding could announce another server's provider to collect tokens that
 //     server accepts; a provider elsewhere is shown and needs the person's yes;
 //   - `authorizeUrl`: S256 PKCE, `state`, `openid profile email
@@ -176,8 +177,10 @@ export function providerOnServersSite(serverAddress: string, issuer: string): bo
   if (server === "" || provider === "") return false;
   if (isLoopbackHost(server) && isLoopbackHost(provider)) return true;
   if (server === provider) return true;
-  const a = getDomain(server);
-  const b = getDomain(provider);
+  // The private section too: hosting suffixes (github.io, fly.dev) give each
+  // tenant its own site, as the desktop app's check does.
+  const a = getDomain(server, { allowPrivateDomains: true });
+  const b = getDomain(provider, { allowPrivateDomains: true });
   return a !== null && b !== null && a === b;
 }
 

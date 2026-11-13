@@ -222,6 +222,20 @@ describe("login through the browser", () => {
     expect(load().backends?.acme?.token).toMatch(/^access-/);
   });
 
+  it("saves nothing when the backend is pointed at another server while the person signs in", async () => {
+    issuer = await startFakeIssuer();
+    useSelfhost();
+    const h = await harness(announced(issuer), {
+      openBrowser: async (url) => {
+        save({ backend: {}, current_backend: "acme", backends: { acme: { type: "selfhost", endpoint: "elsewhere.test:443" } } });
+        setTimeout(() => void followAuthorize(url), 0);
+      },
+    });
+    const err = await refusal(login({}, h.deps));
+    expect(err.message).toBe('backend "acme" was pointed at another server while you signed in; nothing was saved');
+    expect(load().backends?.acme?.token).toBeUndefined();
+  });
+
   it("refuses STIGMER_SERVER_ADDRESS pointing at another server than the backend", async () => {
     useSelfhost();
     process.env.STIGMER_SERVER_ADDRESS = "elsewhere.test:443";

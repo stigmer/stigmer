@@ -84,6 +84,10 @@ describe("providerOnServersSite", () => {
     ["stigmer.internal:7234", "https://stigmer.internal/realms/x", true],
     ["api.evil.test:443", "https://id.stigmer.ai/", false],
     ["stigmer.evil.co.uk:443", "https://login.acme.co.uk/", false],
+    // The Public Suffix List's private section: each tenant is its own site.
+    ["evil.github.io:443", "https://victim.github.io/", false],
+    ["evil.fly.dev:443", "https://victim.fly.dev/", false],
+    ["stigmer.victim.fly.dev:443", "https://id.victim.fly.dev/", true],
     ["stigmer.acme.test:443", "http://127.0.0.1:4000", false],
   ])("%s with %s -> %s", (server, issuer, same) => {
     expect(providerOnServersSite(server, issuer)).toBe(same);

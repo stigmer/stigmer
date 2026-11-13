@@ -81,6 +81,32 @@ describe("config backend add/use/list/remove", () => {
     expect(entry?.api_key).toBe("stk_x");
   });
 
+  it("add re-pointing an entry drops its sign-in, so the token never reaches the new server", async () => {
+    const { save } = await import("../../../config/index.js");
+    save({
+      backend: {},
+      current_backend: "staging",
+      backends: {
+        staging: {
+          type: "selfhost",
+          endpoint: "old:7234",
+          token: "t",
+          refresh_token: "r",
+          oidc_issuer: "https://id.old/",
+          oidc_client_id: "c",
+        },
+      },
+    });
+    await run("add", "staging", "--endpoint", "old:7234");
+    expect(load().backends?.["staging"]?.token).toBe("t");
+    await run("add", "staging", "--endpoint", "new:7234");
+    const entry = load().backends?.["staging"];
+    expect(entry?.endpoint).toBe("new:7234");
+    expect(entry?.token).toBeUndefined();
+    expect(entry?.refresh_token).toBeUndefined();
+    expect(entry?.oidc_issuer).toBeUndefined();
+  });
+
   it("use switches the current backend; unknown names refuse", async () => {
     await run("add", "staging", "--endpoint", "host:7234");
     expect((await run("use", "staging")).exitCode).toBe(ExitCode.Success);
