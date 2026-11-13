@@ -86,7 +86,7 @@ export function FileDeleteAction({ file, onDeleted }: FileDeleteActionProps) {
   }
 
   return (
-    <Button variant="ghost" size="xs" icon={<TrashIcon />} onClick={() => setConfirming(true)}>
+    <Button variant="ghost" size="xs" icon={<TrashIcon />} onClick={() => setConfirming(true)} className={DESTRUCTIVE_GHOST}>
       Delete
     </Button>
   );

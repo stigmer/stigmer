@@ -1,14 +1,25 @@
 "use client";
 
-import { useCallback } from "react";
+// One git write-back as a card in the session panel's Pull requests view:
+// the repository and a status pill for its phase, the branch as a tag with
+// its copy control and its base, then the pull request link and the change
+// counts. The suite in `__tests__/WriteBackCard.test.tsx` pins each phase's
+// word, the branch tag and copy, the link, and the error rules.
+
+import { useCallback, type ReactNode } from "react";
 import type { WorkspaceWriteBack } from "@stigmer/apis/ai/stigmer/agentic/run/v1/writeback_pb";
 import { WorkspaceWriteBackPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/writeback_pb";
 import { cn } from "@stigmer/design-tokens";
 import { DiffSummary } from "../version-history/DiffSummary.js";
 import { TruncatedText } from "../internal/truncated-text.js";
 import { useCopyFeedback } from "../internal/useCopyFeedback.js";
+import { Card } from "../internal/surface/Card.js";
+import { Tag } from "../internal/surface/Tag.js";
+import { StatusBadge } from "../status/StatusBadge.js";
+import type { StatusPhase } from "../resource-workbench/types.js";
 import {
   parseDiffStatSummary,
+  pullRequestHostName,
   trailingDiffStatLine,
   writeBackDisplayName,
 } from "./write-back-utils.js";
@@ -23,15 +34,18 @@ export interface WriteBackCardProps {
 }
 
 /**
- * Renders a single workspace write-back outcome as a dense, VS Code
- * Source-Control-style row group: a header (workspace name + quiet phase
- * caption), a pull-request row that opens the PR on the remote, a branch row
- * with a hover-revealed copy control, and an aggregate change-stat line.
+ * Renders a single workspace write-back outcome as a card, rows 8px apart:
  *
- * Row geometry, hover, and focus treatment match {@link FileRow}, so the
- * session panel's Changes and Files facets read as one surface. The PR
- * link and the copy control are SIBLING interactive elements, never nested
- * (axe `nested-interactive`, WCAG 4.1.2).
+ * 1. The repository (or entry) name and, at the right, a status pill for
+ *    its phase: "Committed" (not yet pushed), "Pushed", "Pull request
+ *    open" when it has a pull request, or "Failed".
+ * 2. The branch as a mono tag, a "Copy branch name" control, and "into
+ *    {base}".
+ * 3. The pull request as a link ("#482 on GitHub") that opens it on the
+ *    remote in a new tab, then the change and line counts.
+ *
+ * The PR link and the copy control are SIBLING interactive elements, never
+ * nested (axe `nested-interactive`, WCAG 4.1.2).
  *
  * Error rendering follows the record's phase honestly:
  * a FAILED record's error is destructive (the work did not reach the
@@ -39,8 +53,8 @@ export interface WriteBackCardProps {
  * degraded notice — the branch is live and its info stays usable; only
  * the PR step failed.
  *
- * The stat line is parsed from the record's `git diff --stat` summary and
- * rendered through the shared {@link DiffSummary} component; unparseable
+ * The change counts are parsed from the record's `git diff --stat` summary
+ * and rendered through the shared {@link DiffSummary} component; unparseable
  * text degrades to the raw trailing line rather than showing wrong numbers.
  *
  * Themed via standard semantic tokens — no hardcoded colors, no
@@ -65,35 +79,25 @@ export function WriteBackCard({ writeBack, className }: WriteBackCardProps) {
     writeBack.phase === WorkspaceWriteBackPhase.WORKSPACE_WRITE_BACK_FAILED;
   const hasPR = !!writeBack.pullRequestUrl;
   const displayName = writeBackDisplayName(writeBack);
+  const pill = phasePill(writeBack.phase, hasPR);
+  const stats = statLine(writeBack.diffSummary);
 
   return (
-    <div
+    <Card
       role="article"
       aria-label={`Write-back: ${displayName}`}
-      className={cn("stg:flex stg:flex-col", className)}
+      className={cn("stg:flex stg:flex-col stg:gap-2 stg:p-3", className)}
     >
-      {/* Header: workspace name + quiet phase caption */}
-      <div className="stg:flex stg:items-center stg:gap-2 stg:px-2 stg:py-1">
+      {/* Row 1: the repository and its phase */}
+      <div className="stg:flex stg:min-w-0 stg:items-center stg:gap-2">
         <TruncatedText
           text={displayName}
-          className="stg:min-w-0 stg:flex-1 stg:text-xs stg:font-medium stg:text-foreground"
+          className="stg:min-w-0 stg:flex-1 stg:text-sm stg:font-semibold stg:text-foreground"
         />
-        <PhaseCaption
-          phase={writeBack.phase}
-          pullRequestNumber={writeBack.pullRequestNumber}
-        />
+        {pill && <StatusBadge phase={pill.phase} label={pill.label} />}
       </div>
 
-      {/* Pull-request row — the primary action when the PR exists */}
-      {hasPR && (
-        <PullRequestRow
-          url={writeBack.pullRequestUrl}
-          number={writeBack.pullRequestNumber}
-        />
-      )}
-
-      {/* Branch row — primary when no PR was created; the branch is still
-          the user's handle on the pushed work */}
+      {/* Row 2: the branch, the user's handle on the pushed work */}
       {writeBack.branchName && (
         <BranchRow
           branchName={writeBack.branchName}
@@ -101,12 +105,26 @@ export function WriteBackCard({ writeBack, className }: WriteBackCardProps) {
         />
       )}
 
+      {/* Row 3: the pull request and the change counts */}
+      {(hasPR || stats) && (
+        <div className="stg:flex stg:min-w-0 stg:flex-wrap stg:items-center stg:gap-x-2 stg:gap-y-1 stg:text-xs stg:text-muted-foreground">
+          {hasPR && (
+            <PullRequestLink
+              url={writeBack.pullRequestUrl}
+              number={writeBack.pullRequestNumber}
+            />
+          )}
+          {hasPR && stats && <span aria-hidden="true">&middot;</span>}
+          {stats}
+        </div>
+      )}
+
       {/* Error message: destructive when the write-back itself failed,
           degraded when the branch pushed but a later step (the PR) did not. */}
       {writeBack.error && (
         <div
           className={cn(
-            "stg:mx-2 stg:my-1 stg:rounded stg:px-2 stg:py-1 stg:text-xs",
+            "stg:rounded-md stg:px-2 stg:py-1 stg:text-xs",
             isFailed
               ? "stg:bg-destructive-subtle stg:text-destructive"
               : "stg:bg-status-degraded-subtle stg:text-status-degraded",
@@ -115,90 +133,73 @@ export function WriteBackCard({ writeBack, className }: WriteBackCardProps) {
           {writeBack.error}
         </div>
       )}
-
-      {/* Aggregate change stats */}
-      {writeBack.diffSummary && <StatLine diffSummary={writeBack.diffSummary} />}
-    </div>
+    </Card>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Phase caption — quiet header text, replacing the retired pill badge
+// Phase pill
 // ---------------------------------------------------------------------------
 
-function PhaseCaption({
-  phase,
-  pullRequestNumber,
-}: {
-  phase: WorkspaceWriteBackPhase;
-  pullRequestNumber: number;
-}) {
-  let label: string;
+/**
+ * The status pill for a phase, in a word that is true of it: a commit not
+ * yet pushed is pending, a pushed branch or an open pull request is ready,
+ * a failure is failed. A record with a pull request reads "Pull request
+ * open" unless it failed. `null` for a phase the record does not name.
+ */
+function phasePill(
+  phase: WorkspaceWriteBackPhase,
+  hasPR: boolean,
+): { readonly phase: StatusPhase; readonly label: string } | null {
+  if (phase === WorkspaceWriteBackPhase.WORKSPACE_WRITE_BACK_FAILED) {
+    return { phase: "failed", label: "Failed" };
+  }
+  if (hasPR || phase === WorkspaceWriteBackPhase.WORKSPACE_WRITE_BACK_PR_CREATED) {
+    return { phase: "ready", label: "Pull request open" };
+  }
   switch (phase) {
-    case WorkspaceWriteBackPhase.WORKSPACE_WRITE_BACK_COMMITTED:
-      label = "Committed";
-      break;
     case WorkspaceWriteBackPhase.WORKSPACE_WRITE_BACK_PUSHED:
-      label = "Pushed";
-      break;
-    case WorkspaceWriteBackPhase.WORKSPACE_WRITE_BACK_PR_CREATED:
-      label = pullRequestNumber > 0 ? `PR #${pullRequestNumber}` : "PR created";
-      break;
-    case WorkspaceWriteBackPhase.WORKSPACE_WRITE_BACK_FAILED:
-      label = "Failed";
-      break;
+      return { phase: "ready", label: "Pushed" };
+    case WorkspaceWriteBackPhase.WORKSPACE_WRITE_BACK_COMMITTED:
+      return { phase: "pending", label: "Committed" };
     default:
       return null;
   }
-
-  return (
-    <span
-      className={cn(
-        "stg:shrink-0 stg:text-2xs stg:font-medium stg:tabular-nums",
-        phase === WorkspaceWriteBackPhase.WORKSPACE_WRITE_BACK_FAILED
-          ? "stg:text-destructive"
-          : "stg:text-muted-foreground",
-      )}
-    >
-      {label}
-    </span>
-  );
 }
 
 // ---------------------------------------------------------------------------
-// Pull-request row
+// Pull-request link
 // ---------------------------------------------------------------------------
 
-function PullRequestRow({ url, number }: { url: string; number: number }) {
+function PullRequestLink({ url, number }: { url: string; number: number }) {
+  const host = pullRequestHostName(url);
+  const text =
+    number > 0
+      ? host ? `#${number} on ${host}` : `#${number}`
+      : host ? `Pull request on ${host}` : "Pull request";
+  // The name carries "Pull request" for a screen reader, and keeps the
+  // visible words inside it (WCAG 2.5.3, label in name).
+  const name = number > 0 ? `Pull request ${text}` : text;
+
   return (
     <a
       href={url}
       target="_blank"
       rel="noopener noreferrer"
+      aria-label={name}
       className={cn(
-        "stg:group stg:flex stg:items-center stg:gap-2 stg:px-2 stg:py-1 stg:text-xs stg:text-muted-foreground stg:transition-colors",
-        "stg:hover:bg-muted stg:hover:text-foreground",
+        "stg:inline-flex stg:min-w-0 stg:items-center stg:gap-1 stg:rounded-sm stg:text-foreground stg:underline-offset-2 stg:hover:underline",
         FOCUS_RING_CLASSES,
       )}
     >
-      <span className="stg:shrink-0">
-        <PullRequestIcon />
-      </span>
-      <span className="stg:min-w-0 stg:flex-1 stg:truncate stg:text-foreground">
-        {number > 0 ? `Pull Request #${number}` : "Pull Request"}
-      </span>
-      <span
-        className="stg:shrink-0 stg:opacity-0 stg:transition-opacity stg:group-hover:opacity-100 stg:group-focus-visible:opacity-100"
-        aria-hidden="true"
-      >
-        <ExternalLinkIcon />
-      </span>
+      <span className="stg:truncate">{text}</span>
+      <ExternalLinkIcon />
     </a>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Branch row — info + sibling hover-revealed copy control
+// Branch row — the branch tag, its sibling copy control, and its base
 // ---------------------------------------------------------------------------
 
 function BranchRow({
@@ -214,35 +215,27 @@ function BranchRow({
   }, [copy, branchName]);
 
   return (
-    <div className="stg:group stg:flex stg:items-stretch">
-      {/* The old row title restated "branch ← base", which is already visible
-          text; only the branch name can clip, so it alone carries the
+    <div className="stg:flex stg:min-w-0 stg:items-center stg:gap-1">
+      {/* Only the branch name can clip, so it alone carries the
           overflow-gated tooltip. */}
-      <div className="stg:flex stg:min-w-0 stg:flex-1 stg:items-center stg:gap-2 stg:px-2 stg:py-1 stg:text-xs">
+      <Tag mono className="stg:min-w-0 stg:shrink">
         <span className="stg:shrink-0 stg:text-muted-foreground">
           <GitBranchIcon />
         </span>
-        <TruncatedText
-          text={branchName}
-          className="stg:min-w-0 stg:font-mono stg:text-foreground"
-        />
-        {baseBranch && (
-          <span className="stg:shrink-0 stg:font-mono stg:text-muted-foreground">
-            {"\u2190 "}
-            {baseBranch}
-          </span>
-        )}
-      </div>
+        <TruncatedText text={branchName} className="stg:min-w-0" />
+      </Tag>
       <IconButton
         size="xs"
-        label={copied ? "Branch name copied" : `Copy branch name ${branchName}`}
+        label={copied ? "Branch name copied" : "Copy branch name"}
         icon={copied ? <CheckIcon /> : <CopyIcon />}
         onClick={handleCopy}
-        className={cn(
-          "stg:self-center stg:transition-opacity",
-          copied ? "stg:opacity-100" : "stg:opacity-0 stg:group-hover:opacity-100 stg:focus-visible:opacity-100",
-        )}
+        className="stg:shrink-0"
       />
+      {baseBranch && (
+        <span className="stg:min-w-0 stg:truncate stg:text-xs stg:text-muted-foreground">
+          into {baseBranch}
+        </span>
+      )}
     </div>
   );
 }
@@ -251,7 +244,9 @@ function BranchRow({
 // Stat line — parsed --stat summary through the shared DiffSummary
 // ---------------------------------------------------------------------------
 
-function StatLine({ diffSummary }: { diffSummary: string }) {
+/** The change counts for row 3, or `null` when the record has none to show. */
+function statLine(diffSummary: string): ReactNode {
+  if (!diffSummary) return null;
   const stats = parseDiffStatSummary(diffSummary);
 
   if (stats) {
@@ -260,7 +255,7 @@ function StatLine({ diffSummary }: { diffSummary: string }) {
         fileCount={stats.filesChanged}
         additions={stats.insertions}
         deletions={stats.deletions}
-        className="stg:px-2 stg:py-1"
+        className="stg:min-w-0"
       />
     );
   }
@@ -271,9 +266,7 @@ function StatLine({ diffSummary }: { diffSummary: string }) {
   if (!raw) return null;
 
   return (
-    <div className="stg:px-2 stg:py-1 stg:font-mono stg:text-xs stg:text-muted-foreground">
-      {raw}
-    </div>
+    <span className="stg:min-w-0 stg:truncate stg:font-mono">{raw}</span>
   );
 }
 
@@ -282,7 +275,7 @@ function StatLine({ diffSummary }: { diffSummary: string }) {
 // ---------------------------------------------------------------------------
 
 const FOCUS_RING_CLASSES =
-  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring";
+  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring";
 
 // ---------------------------------------------------------------------------
 // Inline SVG icons — monochrome, `currentColor`-tinted (SDK
@@ -292,8 +285,8 @@ const FOCUS_RING_CLASSES =
 function GitBranchIcon() {
   return (
     <svg
-      width="14"
-      height="14"
+      width="12"
+      height="12"
       viewBox="0 0 14 14"
       fill="none"
       stroke="currentColor"
@@ -308,29 +301,6 @@ function GitBranchIcon() {
       <path d="M4 5V9" />
       <path d="M10 7V5.5" />
       <path d="M4 5C4 5 4 7 7 7C10 7 10 5.5 10 5.5" />
-    </svg>
-  );
-}
-
-/** Git pull-request glyph: base branch line joined to the merge commit. */
-function PullRequestIcon() {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 14 14"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <circle cx="3.5" cy="3.5" r="1.5" />
-      <circle cx="3.5" cy="10.5" r="1.5" />
-      <circle cx="10.5" cy="10.5" r="1.5" />
-      <path d="M3.5 5V9" />
-      <path d="M7 3.5H8.5C9.6 3.5 10.5 4.4 10.5 5.5V9" />
     </svg>
   );
 }

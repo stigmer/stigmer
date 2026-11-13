@@ -1,6 +1,7 @@
 /**
- * The session Usage tab: the session's tokens (never money) and working
- * time, and per run its tokens, working time and primary model (the
+ * The session Usage tab: the session's total tokens first, as a figure
+ * (never money), with its working time under it; then "By turn" and "By
+ * model" lists. Per run, its tokens, working time and primary model (the
  * after-the-fact truth of which model served) paired with the tier the
  * runner REQUESTED (the streaming summary's audit record that the account
  * default was never left in control, #362), marked "Estimated" for a run
@@ -8,7 +9,7 @@
  */
 
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { render, screen, cleanup } from "@testing-library/react";
+import { render, screen, cleanup, within } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { ServiceTier } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
@@ -76,11 +77,75 @@ function executionWithTier(id: string, tier?: ServiceTier) {
 
 afterEach(cleanup);
 
+describe("UsageTab with no model to name", () => {
+  it("lists no By model rows when the report names neither a breakdown nor a primary model", () => {
+    usageMock.mockReturnValue(usageWith({ primaryModel: "", primaryProvider: "", modelBreakdown: [] }));
+    render(<UsageTab runs={[]} />);
+    expect(screen.queryByText("By model")).toBeNull();
+  });
+});
+
 describe("UsageTab (#362 model provenance)", () => {
-  it("shows the empty state when no usage exists", () => {
+  it("says there is no usage yet, and what will appear once a turn runs", () => {
     usageMock.mockReturnValue(EMPTY_USAGE);
     render(<UsageTab runs={[]} />);
-    expect(screen.getByText(/No usage data yet/)).toBeTruthy();
+    expect(screen.getByRole("status").textContent).toBe(
+      "No usage yet Tokens and working time appear here once a turn runs.",
+    );
+  });
+
+  it("leads with the total as a figure and its unit, marked Estimated when the figures are estimates", () => {
+    usageMock.mockReturnValue(usageWith({ totalTokens: 41_210, workingSeconds: 74, isEstimated: true }));
+
+    render(<UsageTab runs={[executionWithTier("exe_1")]} />);
+
+    const summary = screen.getByRole("region", { name: "Session usage summary" });
+    const figure = within(summary).getByText("41,210");
+    expect(figure.className).toContain("stg:text-xl");
+    expect(figure.className).toContain("stg:font-semibold");
+    expect(within(summary).getByText("tokens")).toBeTruthy();
+    expect(within(summary).getByText("Estimated")).toBeTruthy();
+    expect(within(summary).getByText("1m 14s working")).toBeTruthy();
+  });
+
+  it("leaves out the Estimated tag and the working time when they do not exist", () => {
+    usageMock.mockReturnValue(usageWith({ totalTokens: 1, workingSeconds: 0, isEstimated: false }));
+
+    render(<UsageTab runs={[executionWithTier("exe_1")]} />);
+
+    const summary = screen.getByRole("region", { name: "Session usage summary" });
+    expect(within(summary).getByText("token")).toBeTruthy();
+    expect(within(summary).queryByText("Estimated")).toBeNull();
+    expect(summary.textContent).not.toContain("working");
+  });
+
+  it("titles its sections in sentence case: By turn, then By model", () => {
+    usageMock.mockReturnValue(usageWith({
+      runBreakdown: [{ runId: "exe_1", resolvedModel: "claude-sonnet", totalTokens: 900, isEstimated: false, workingSeconds: 0 }],
+    }));
+
+    render(<UsageTab runs={[executionWithTier("exe_1")]} />);
+
+    const headings = screen.getAllByRole("heading").map((h) => h.textContent);
+    expect(headings).toEqual(["By turn", "By model"]);
+  });
+
+  it("lists the tokens by model, each with its calls and its input and output", () => {
+    usageMock.mockReturnValue(usageWith({
+      modelBreakdown: [
+        { model: "claude-sonnet", provider: "anthropic", totalTokens: 41_210, inputTokens: 36_904, outputTokens: 4_306, cacheCreationTokens: 0, cacheReadTokens: 0, callCount: 7 },
+        { model: "gpt-5.3", provider: "openai", totalTokens: 2_400, inputTokens: 2_000, outputTokens: 400, cacheCreationTokens: 0, cacheReadTokens: 0, callCount: 1 },
+      ],
+    }));
+
+    render(<UsageTab runs={[executionWithTier("exe_1")]} />);
+
+    const rows = within(screen.getByRole("list", { name: "Tokens by model" })).getAllByRole("listitem");
+    expect(rows).toHaveLength(2);
+    expect(rows[0]!.textContent).toContain("claude-sonnet");
+    expect(rows[0]!.textContent).toContain("41,210");
+    expect(rows[0]!.textContent).toContain("anthropic · 7 model calls · Input 36,904 · output 4,306");
+    expect(rows[1]!.textContent).toContain("1 model call · Input 2,000 · output 400");
   });
 
   it("shows the session's tokens and each run's model with its tokens, and no money", () => {
@@ -96,10 +161,11 @@ describe("UsageTab (#362 model provenance)", () => {
 
     const { container } = render(<UsageTab runs={[executionWithTier("exe_1", ServiceTier.STANDARD)]} />);
 
-    expect(screen.getByRole("region", { name: "Session usage summary" }).textContent).toContain("18.4k tokens");
-    const list = screen.getByRole("list", { name: "Per-run tokens, working time, model and tier" });
+    expect(screen.getByRole("region", { name: "Session usage summary" }).textContent).toContain("18,400");
+    const list = screen.getByRole("list", { name: "Tokens by turn" });
+    expect(list.textContent).toContain("Turn 1");
     expect(list.textContent).toContain("claude-opus-4-8-fast");
-    expect(list.textContent).toContain("12.3k tokens");
+    expect(list.textContent).toContain("12,300");
     expect(container.textContent).not.toContain("$");
   });
 
@@ -114,10 +180,16 @@ describe("UsageTab (#362 model provenance)", () => {
 
     render(<UsageTab runs={[executionWithTier("exe_1"), executionWithTier("exe_2")]} />);
 
-    expect(screen.getByText("1h 6m")).toBeTruthy();
-    const items = screen.getAllByRole("listitem").map((item) => item.textContent);
-    expect(items[0]).toContain("900 tokens · 4m 12s");
-    expect(items[1]).toContain("300 tokens · 1h 2m");
+    expect(screen.getByText("1h 6m working")).toBeTruthy();
+    const items = within(screen.getByRole("list", { name: "Tokens by turn" }))
+      .getAllByRole("listitem")
+      .map((item) => item.textContent);
+    expect(items[0]).toContain("Turn 1");
+    expect(items[0]).toContain("900");
+    expect(items[0]).toContain("claude-sonnet · 4m 12s");
+    expect(items[1]).toContain("Turn 2");
+    expect(items[1]).toContain("300");
+    expect(items[1]).toContain("claude-sonnet · 1h 2m");
   });
 
   it("marks a run counted from its runner's report as estimated", () => {
@@ -128,9 +200,9 @@ describe("UsageTab (#362 model provenance)", () => {
 
     render(<UsageTab runs={[executionWithTier("exe_1")]} />);
 
-    const list = screen.getByRole("list", { name: "Per-run tokens, working time, model and tier" });
+    const list = screen.getByRole("list", { name: "Tokens by turn" });
     expect(list.textContent).toContain("Estimated");
-    expect(list.textContent).toContain("900 tokens");
+    expect(list.textContent).toContain("900");
   });
 
   it("pairs the run with the tier the runner requested", () => {
@@ -166,21 +238,23 @@ describe("UsageTab (#362 model provenance)", () => {
     expect(screen.queryByText(/requested/)).toBeNull();
   });
 
-  it("the session widget shows the cache split, read and write", () => {
+  it("shows the input, output and cache split, read and write, by model", () => {
     usageMock.mockReturnValue(usageWith({ inputTokens: 1_200, outputTokens: 800, cacheReadTokens: 13_000, cacheCreationTokens: 400 }));
 
     render(<UsageTab runs={[executionWithTier("exe_1")]} />);
 
-    const summary = screen.getByRole("region", { name: "Session usage summary" }).textContent;
-    expect(summary).toContain("prompt 1.2k · completion 800");
-    expect(summary).toContain("cache 13.0k read · 400 write");
+    // With no per-model rows in the report, the primary model carries the
+    // session's own split.
+    const byModel = screen.getByRole("list", { name: "Tokens by model" }).textContent;
+    expect(byModel).toContain("claude-sonnet-4-6");
+    expect(byModel).toContain("Input 1,200 · output 800 · cache read 13,000 · cache write 400");
   });
 
-  it("renders no per-run list before the report lists any run", () => {
+  it("renders no By turn list before the report lists any run", () => {
     usageMock.mockReturnValue(usageWith({ runBreakdown: [] }));
 
     render(<UsageTab runs={[executionWithTier("exe_1", ServiceTier.STANDARD)]} />);
 
-    expect(screen.queryByRole("list", { name: "Per-run tokens, working time, model and tier" })).toBeNull();
+    expect(screen.queryByRole("list", { name: "Tokens by turn" })).toBeNull();
   });
 });

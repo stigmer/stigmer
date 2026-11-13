@@ -3,17 +3,10 @@
 import { useCallback, type ReactNode } from "react";
 import type { File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { cn } from "@stigmer/design-tokens";
-import { Button } from "../button/Button.js";
-import { IconButton } from "../button/IconButton.js";
 import { DialogShell } from "../internal/DialogShell.js";
-import { Tag } from "../internal/surface/Tag.js";
-import { useFileDownload } from "../file/useFile.js";
-import { FileBody } from "./FileBody.js";
-import { FileApplyButton } from "./FileApplyButton.js";
-import { FileAddAsSkillAction, FileDeleteAction } from "./FileActions.js";
+import { FileFrame } from "./FileFrame.js";
 import { useFileInspection } from "./useFileInspection.js";
 import type { ApplyResourceResult } from "../library/useApplyResource.js";
-import { formatFileSize } from "../file/file-size.js";
 
 // ---------------------------------------------------------------------------
 // FilePreviewContent — standalone content component
@@ -30,7 +23,7 @@ export interface FilePreviewContentProps {
    * availability:
    *
    * - `true` — CTA renders as an enabled primary button
-   * - `false` — CTA renders as a disabled secondary button
+   * - `false` — CTA renders disabled (a later turn may still save over it)
    */
   readonly isTerminal: boolean;
   /** Called when the close button is clicked. */
@@ -49,21 +42,22 @@ export interface FilePreviewContentProps {
    */
   readonly readOnly?: boolean;
   /**
-   * Optional plan-build action. When provided, a "Build" primary button
-   * appears in the action bar (used for a plan: turn the plan into a Run).
-   * Clicking it calls `onImplement` then closes the modal. Omit for
+   * Optional plan-build action. When provided, "Build" is the header's
+   * primary act (used for a plan: turn the plan into a Run), in place of
+   * Apply. Clicking it calls `onImplement` then closes the modal. Omit for
    * non-actionable Files.
    */
   readonly onImplement?: () => void;
   /**
-   * Called once the File is deleted. When provided, the action bar offers
-   * Delete to a caller holding `can_delete` on the File; the host re-reads
-   * its list (the content stays mounted until the host closes it).
+   * Called once the File is deleted. When provided, the header offers
+   * Delete (last of its acts) to a caller holding `can_delete` on the File;
+   * the host re-reads its list (the content stays mounted until the host
+   * closes it).
    */
   readonly onDeleted?: () => void;
   /**
    * Host-owned controls for who may see the File (the Library's visibility
-   * and Manage access), rendered in the action bar's leading group.
+   * and Manage access), rendered among the header's acts, before Delete.
    */
   readonly accessSlot?: ReactNode;
   /** Additional CSS classes for the root container. */
@@ -73,11 +67,13 @@ export interface FilePreviewContentProps {
 /**
  * One File's preview content with detection pipeline and Apply CTA.
  *
- * Renders the header (name, size, detection badge, close button),
- * content body, and action bar (copy, download, add as skill, delete,
- * Apply). The parent is responsible for rendering
- * it inside a `<dialog>`, modal, sheet, overlay, or inline context as
- * needed.
+ * Drawn through the same frame as the session panel's {@link FileDocument},
+ * so the two read as one object: a header with the file glyph in a muted
+ * square, the name with "{kind} · {size}" under it and the detection tag,
+ * and at its right the acts (at most one primary, Build or Apply; then
+ * Copy, Download, Add as skill, the host's access controls, Delete last)
+ * and Close; under it the body. The parent is responsible for rendering it
+ * inside a `<dialog>`, modal, sheet, overlay, or inline context as needed.
  *
  * Orchestrates the shared detection pipeline (see {@link useFileInspection}):
  *
@@ -133,52 +129,19 @@ export function FilePreviewContent({
   }, [onImplement, onClose]);
 
   return (
-    <div className={cn("stg:flex stg:max-h-[80vh] stg:flex-col", className)}>
-      <ContentHeader
-        file={file}
-        detectionLabel={inspection.detectionLabel}
-        isDetecting={inspection.isDetecting}
-        onClose={onClose}
-      />
-
-      <FileBody
-        file={file}
-        content={inspection.content}
-        contentType={inspection.contentType}
-        isLoading={inspection.isLoading}
-        error={inspection.error}
-        isTruncated={inspection.isTruncated}
-        className="stg:min-h-0 stg:flex-1 stg:overflow-y-auto stg:border-t stg:border-border"
-      />
-
-      <ActionBar
-        file={file}
-        hasContent={inspection.content !== null}
-        copied={inspection.copied}
-        onCopy={inspection.copy}
-        isDetected={inspection.isDetected}
-        ctaLabel={inspection.ctaLabel}
-        isTerminal={isTerminal}
-        isApplying={inspection.isApplying}
-        applyResult={inspection.applyResult}
-        applyError={inspection.applyError}
-        onApply={inspection.apply}
-        onImplement={onImplement ? handleImplement : undefined}
-        onApplied={onApplied}
-        onDeleted={onDeleted}
-        readOnly={readOnly}
-        accessSlot={accessSlot}
-      />
-
-      <div
-        role="status"
-        aria-live="polite"
-        aria-atomic="true"
-        className="stg:sr-only"
-      >
-        {inspection.copied && "Content copied to clipboard"}
-      </div>
-    </div>
+    <FileFrame
+      file={file}
+      inspection={inspection}
+      isTerminal={isTerminal}
+      layout="window"
+      readOnly={readOnly}
+      onBuild={onImplement ? handleImplement : undefined}
+      onApplied={onApplied}
+      onDeleted={onDeleted}
+      accessSlot={accessSlot}
+      onClose={onClose}
+      className={className}
+    />
   );
 }
 
@@ -197,7 +160,7 @@ export interface FilePreviewModalProps {
    * availability:
    *
    * - `true` — CTA renders as an enabled primary button
-   * - `false` — CTA renders as a disabled secondary button
+   * - `false` — CTA renders disabled (a later turn may still save over it)
    */
   readonly isTerminal: boolean;
   /** Controls modal visibility. `true` opens the dialog via `showModal()`. */
@@ -219,7 +182,7 @@ export interface FilePreviewModalProps {
   readonly readOnly?: boolean;
   /**
    * Optional plan-build action (see {@link FilePreviewContentProps.onImplement}).
-   * When provided, a "Build" primary button appears; clicking it calls
+   * When provided, "Build" is the header's primary act; clicking it calls
    * `onImplement` then closes the modal.
    */
   readonly onImplement?: () => void;
@@ -309,276 +272,3 @@ export function FilePreviewModal({
     </DialogShell>
   );
 }
-
-// ---------------------------------------------------------------------------
-// ContentHeader (internal)
-// ---------------------------------------------------------------------------
-
-function ContentHeader({
-  file,
-  detectionLabel,
-  isDetecting,
-  onClose,
-}: {
-  readonly file: StigmerFile;
-  readonly detectionLabel: string | null;
-  readonly isDetecting: boolean;
-  readonly onClose: () => void;
-}) {
-  return (
-    <div className="stg:flex stg:items-start stg:gap-3 stg:p-4 stg:pb-3">
-      <span className="stg:mt-0.5 stg:shrink-0 stg:text-muted-foreground">
-        <FileIcon />
-      </span>
-
-      <div className="stg:min-w-0 stg:flex-1">
-        <h2 className="stg:truncate stg:text-sm stg:font-semibold stg:text-foreground">
-          {file.spec?.filename ?? ""}
-        </h2>
-        <div className="stg:mt-0.5 stg:flex stg:flex-wrap stg:items-center stg:gap-2">
-          <span className="stg:text-xs stg:tabular-nums stg:text-muted-foreground">
-            {formatFileSize(file.status?.sizeBytes ?? BigInt(0))}
-          </span>
-          {isDetecting && !detectionLabel && (
-            <span
-              className="stg:h-4 stg:w-24 stg:animate-pulse stg:rounded-full stg:bg-muted"
-              aria-hidden="true"
-            />
-          )}
-          {detectionLabel && (
-            <Tag>{detectionLabel}</Tag>
-          )}
-        </div>
-      </div>
-
-      <IconButton label="Close preview" icon={<CloseIcon />} onClick={onClose} />
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// ActionBar (internal)
-// ---------------------------------------------------------------------------
-
-function ActionBar({
-  file,
-  hasContent,
-  copied,
-  onCopy,
-  isDetected,
-  ctaLabel,
-  isTerminal,
-  isApplying,
-  applyResult,
-  applyError,
-  onApply,
-  onImplement,
-  onApplied,
-  onDeleted,
-  readOnly,
-  accessSlot,
-}: {
-  readonly file: StigmerFile;
-  readonly hasContent: boolean;
-  readonly copied: boolean;
-  readonly onCopy: () => void;
-  readonly isDetected: boolean;
-  readonly ctaLabel: string | null;
-  readonly isTerminal: boolean;
-  readonly isApplying: boolean;
-  readonly applyResult: ApplyResourceResult | null;
-  readonly applyError: Error | null;
-  readonly onApply: () => void;
-  readonly onImplement?: () => void;
-  readonly onApplied?: (result: ApplyResourceResult) => void;
-  readonly onDeleted?: () => void;
-  readonly readOnly: boolean;
-  readonly accessSlot?: ReactNode;
-}) {
-  const { download, isDownloading } = useFileDownload();
-  return (
-    <div className="stg:flex stg:flex-wrap stg:items-center stg:justify-between stg:gap-3 stg:border-t stg:border-border stg:px-4 stg:py-3">
-      <div className="stg:flex stg:min-w-0 stg:flex-wrap stg:items-center stg:gap-3">
-        {hasContent && (
-          <Button
-            variant="ghost"
-            size="xs"
-            onClick={onCopy}
-            aria-label={copied ? "Copied to clipboard" : "Copy content"}
-            icon={copied ? <CheckIcon /> : <CopyIcon />}
-            className={copied ? "stg:text-status-ready" : undefined}
-          >
-            {copied ? "Copied" : "Copy"}
-          </Button>
-        )}
-
-        <Button
-          variant="ghost"
-          size="xs"
-          onClick={() => download(file.metadata?.id ?? "", file.spec?.filename)}
-          disabled={isDownloading}
-          icon={<DownloadIcon />}
-        >
-          {isDownloading ? "Preparing…" : "Download"}
-        </Button>
-        {!readOnly && <FileAddAsSkillAction file={file} onAdded={onApplied} />}
-        {!readOnly && onDeleted && <FileDeleteAction file={file} onDeleted={onDeleted} />}
-        {accessSlot}
-      </div>
-
-      <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-3">
-        {onImplement && (
-          <Button size="xs" onClick={onImplement} icon={<ImplementIcon />}>
-            Build
-          </Button>
-        )}
-        {applyResult ? (
-          <span className="stg:inline-flex stg:items-center stg:gap-1.5 stg:text-xs stg:font-medium stg:text-status-ready">
-            <CheckIcon />
-            Applied {"\u00B7"} {applyResult.name || applyResult.kind}
-          </span>
-        ) : applyError ? (
-          <span className="stg:inline-flex stg:items-center stg:gap-2" role="alert">
-            <span className="stg:text-xs stg:text-destructive">
-              {applyError.message}
-            </span>
-            <Button variant="ghost" size="xs" onClick={onApply} className="stg:text-destructive stg:hover:bg-destructive-subtle">
-              Retry
-            </Button>
-          </span>
-        ) : !readOnly && isDetected && ctaLabel ? (
-          <span data-cursor-target="apply-resource-button">
-            <FileApplyButton
-              label={ctaLabel}
-              isTerminal={isTerminal}
-              isApplying={isApplying}
-              onApply={onApply}
-            />
-          </span>
-        ) : null}
-      </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Inline SVG icons (SDK pattern: no external icon dependency)
-// ---------------------------------------------------------------------------
-
-function CloseIcon() {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 14 14"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M3 3L11 11" />
-      <path d="M11 3L3 11" />
-    </svg>
-  );
-}
-
-function FileIcon() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M9.5 1.5H5C4.17 1.5 3.5 2.17 3.5 3V13C3.5 13.83 4.17 14.5 5 14.5H11C11.83 14.5 12.5 13.83 12.5 13V4.5L9.5 1.5Z" />
-      <path d="M9.5 1.5V4.5H12.5" />
-    </svg>
-  );
-}
-
-function CopyIcon() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 12 12"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="stg:shrink-0"
-      aria-hidden="true"
-    >
-      <rect x="4" y="4" width="6.5" height="6.5" rx="1" />
-      <path d="M8 4V2.5C8 1.95 7.55 1.5 7 1.5H2.5C1.95 1.5 1.5 1.95 1.5 2.5V7C1.5 7.55 1.95 8 2.5 8H4" />
-    </svg>
-  );
-}
-
-function DownloadIcon() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 12 12"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="stg:shrink-0"
-      aria-hidden="true"
-    >
-      <path d="M6 1.5V8.5" />
-      <path d="M3 6L6 9L9 6" />
-      <path d="M2 10.5H10" />
-    </svg>
-  );
-}
-
-function ImplementIcon() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 12 12"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="stg:shrink-0"
-      aria-hidden="true"
-    >
-      <path d="M2 6h8M7 3l3 3-3 3" />
-    </svg>
-  );
-}
-
-function CheckIcon() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 12 12"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="stg:shrink-0"
-      aria-hidden="true"
-    >
-      <path d="M2 6.5L4.5 9L10 3" />
-    </svg>
-  );
-}
-

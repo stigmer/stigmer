@@ -99,6 +99,15 @@ describe("useSessionRailViews", () => {
     ]);
   });
 
+  it("labels the write-back view \"Pull requests\", keeping its id and badge", () => {
+    writeBacksState.hasWriteBacks = true;
+    writeBacksState.writeBackCount = 3;
+    const { result } = renderViews();
+    const view = result.current.find((v) => v.id === "changes");
+    expect(view?.label).toBe("Pull requests");
+    expect(view?.badge).toBe(3);
+  });
+
   it("offers Changes pre-push when a write-back is expected, without a zero badge", () => {
     const { result } = renderViews({ expectsWriteBack: true });
     const changes = result.current.find((v) => v.id === "changes");
