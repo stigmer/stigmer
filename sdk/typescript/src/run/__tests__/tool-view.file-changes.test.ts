@@ -1,7 +1,7 @@
 // Covers normalizeToolResult's file-edit / file-write views, reconstructed from
 // the tool args. An earlier change removed the ToolCall.file_changes capture
 // (message.proto field 22), so the args are the single source for the inline
-// transcript diff; captured file review renders via FileReviewCard / the
+// transcript diff; a captured change renders via FileChangeDiff / the
 // FileChangeSet ledger, tested separately.
 
 import { describe, it, expect } from "vitest";
