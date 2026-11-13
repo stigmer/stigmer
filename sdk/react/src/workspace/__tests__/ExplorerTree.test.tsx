@@ -226,11 +226,12 @@ describe("ExplorerTree", () => {
       />,
     );
 
-    expect(await screen.findByText(/Failed to list files: repository unreachable/)).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(await screen.findByText("Couldn't load the files.")).toBeTruthy();
+    expect(screen.getByText(/repository unreachable/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
 
     expect(await screen.findByText("a.ts")).toBeTruthy();
-    expect(screen.queryByText(/Failed to list files/)).toBeNull();
+    expect(screen.queryByText("Couldn't load the files.")).toBeNull();
     expect(failingOnce).toHaveBeenCalledTimes(2);
   });
 });
