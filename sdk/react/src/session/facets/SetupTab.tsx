@@ -36,7 +36,7 @@ export interface SetupTabMutationCallbacks {
 }
 
 /**
- * Wiring for the Run Config section's auto-approve switch — the session-level
+ * Wiring for the Run config section's auto-approve switch — the session-level
  * arming control (stigmer/stigmer#816 rework: config lives in Config, not the
  * composer). Session-scoped: an explicit flip beats the account's
  * `default_auto_approve` preference and the host's `approvalDefaults` for
@@ -70,7 +70,7 @@ export interface SetupTabProps {
    */
   readonly environment?: EnvironmentChoice;
   /**
-   * Session-level auto-approve switch in the Run Config section. When
+   * Session-level auto-approve switch in the Run config section. When
    * provided, the switch renders and is interactive at all times — including
    * mid-run, where flipping it ON releases the in-flight run's pending
    * gates (the flow's standing responder). When absent (read-only audiences,
@@ -195,7 +195,7 @@ export function RunConfigSection({
   const autoApproveLabelId = useId();
 
   return (
-    <FacetSection heading="Run Config">
+    <FacetSection heading="Run config">
       {!curated && (
         <FacetKeyValueRow label="Harness">
           {HARNESS_META[harness]?.label ?? harness}

@@ -1,11 +1,11 @@
 "use client";
 
-// Shared visual vocabulary for the session-panel facets (Config / Changes /
-// Files / Usage): one dense, VS Code-style row-and-section language so the
-// facets read as one surface instead of three eras of styling. The Files
-// facet's `FileRowView` set the idiom — compact rows, quiet metadata,
-// hover/focus-revealed actions — and these primitives carry it to the
-// non-file-list facets. All visual properties flow through `--stgm-*`
+// Shared visual vocabulary for the session-panel facets (Config / Pull
+// requests / Files / Usage): one dense, VS Code-style row-and-section
+// language so the facets read as one surface instead of three eras of
+// styling. The Files facet's `FileRowView` set the idiom — compact rows,
+// quiet metadata, hover/focus-revealed actions — and these primitives
+// carry it to the non-file-list facets. All visual properties flow through `--stgm-*`
 // tokens.
 
 import { cn } from "@stigmer/design-tokens";
@@ -13,7 +13,8 @@ import { IconButton } from "../../button/IconButton.js";
 import { EmptyState } from "../../empty-state/EmptyState.js";
 
 /**
- * A titled facet section: uppercase micro-heading over flush content.
+ * A titled facet section: a 12/16 medium, sentence-case, muted heading over
+ * flush content.
  * `count` renders the "(N)" suffix the retired inspector used; `annotation`
  * renders a normal-case, muted trailing note (e.g. "next message only").
  */
@@ -30,15 +31,13 @@ export function FacetSection({
 }) {
   return (
     <section className="stg:flex stg:flex-col stg:gap-1">
-      <h3 className="stg:px-2 stg:text-2xs stg:font-semibold stg:uppercase stg:tracking-wider stg:text-muted-foreground">
+      <h3 className="stg:px-2 stg:text-xs stg:font-medium stg:text-muted-foreground">
         {heading}
         {count != null && count > 0 && (
-          <span className="stg:ml-1 stg:text-muted-foreground">({count})</span>
+          <span className="stg:ml-1 stg:tabular-nums">({count})</span>
         )}
         {annotation && (
-          <span className="stg:ml-1 stg:font-normal stg:normal-case stg:tracking-normal stg:text-muted-foreground">
-            ({annotation})
-          </span>
+          <span className="stg:ml-1 stg:font-normal">({annotation})</span>
         )}
       </h3>
       {children}

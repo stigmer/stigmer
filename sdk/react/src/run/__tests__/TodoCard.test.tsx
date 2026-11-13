@@ -1,13 +1,16 @@
-// Pins TodoCard over a turn's folded to-do list: its region, header and
-// progress, nothing for an empty list, open while an item is in progress and
-// collapsed once every item is resolved (completed or cancelled), the
-// header toggle, its by-reference memo comparator, and the done marks (the
-// resolved plan's header icon and a completed row's icon) drawn in the ready
-// colour the theme contract measures as text, never the badge-fill green.
+// Pins TodoCard over a turn's folded to-do list, drawn in the plan card's
+// (PlanSteps) look: its region, the 12/16 muted header ("Plan" and "N of M
+// done", dropped items not counted), nothing for an empty list, open while
+// an item is in progress and collapsed once every item is resolved
+// (completed or cancelled), the header toggle, its by-reference memo
+// comparator, and TodoList's rows in the plan's marks (a ready tick, a
+// running spinner, an empty ring) at 14/20 with 8px padding, with no
+// opacity modifier anywhere.
 import { describe, it, expect, afterEach } from "vitest";
-import { render, fireEvent, cleanup } from "@testing-library/react";
+import { render, fireEvent, cleanup, screen } from "@testing-library/react";
 import type { Todo } from "@stigmer/client";
 import { TodoCard, todoCardPropsEqual } from "../TodoCard";
+import { TodoList } from "../TodoList";
 
 afterEach(cleanup);
 
@@ -27,15 +30,22 @@ const DONE: readonly Todo[] = [
 ];
 
 describe("TodoCard", () => {
-  it("renders an 'Agent to-dos' region with the To-dos header and progress", () => {
+  it("renders an 'Agent to-dos' region with the plan card's header: Plan and how many are done", () => {
     const { container } = render(<TodoCard todos={ACTIVE} />);
 
     const region = container.querySelector("[role='region']") as HTMLElement;
     expect(region).toBeTruthy();
     expect(region.getAttribute("aria-label")).toBe("Agent to-dos");
-    expect(region.textContent).toContain("To-dos");
-    // 1 of 3 completed.
-    expect(region.textContent).toContain("1/3 completed");
+    const header = container.querySelector("button")!;
+    expect(header.textContent).toBe("Plan1 of 3 done");
+    for (const cls of ["stg:text-xs", "stg:text-muted-foreground", "stg:px-3", "stg:py-2"]) {
+      expect(header.className.split(" ")).toContain(cls);
+    }
+  });
+
+  it("leaves a dropped item out of the count, as the plan card does", () => {
+    const { container } = render(<TodoCard todos={DONE} />);
+    expect(container.querySelector("button")!.textContent).toContain("1 of 1 done");
   });
 
   it("renders nothing when there are no todos", () => {
@@ -77,18 +87,41 @@ describe("TodoCard", () => {
   });
 });
 
-describe("TodoCard done marks", () => {
-  it("draws a resolved plan's header icon in the measured ready colour", () => {
-    const { container } = render(<TodoCard todos={DONE} />);
-    const icon = container.querySelector("button > span[aria-hidden='true']") as HTMLElement;
-    expect(icon.className.split(" ")).toContain("stg:text-status-ready");
+describe("TodoList rows in the plan's marks", () => {
+  const ALL: readonly Todo[] = [
+    todo("t1", "Design the card", "completed"),
+    todo("t2", "Wire the thread", "in_progress"),
+    todo("t3", "Write tests", "pending"),
+    todo("t4", "Ship a banner", "cancelled"),
+  ];
+
+  it("marks a done row with the ready tick, the live row with the running spinner, a due or dropped row with an empty ring", () => {
+    render(<TodoList todos={ALL} />);
+    const mark = (content: string) => screen.getByText(content).closest("li")!.querySelector("[role='img']")!;
+
+    expect(mark("Design the card").getAttribute("aria-label")).toBe("Done");
+    expect(mark("Design the card").className.split(" ")).toContain("stg:bg-status-ready");
+    expect(mark("Wire the thread").getAttribute("aria-label")).toBe("In progress");
+    expect(mark("Wire the thread").className.split(" ")).toContain("stg:text-status-running");
+    expect(mark("Wire the thread").querySelector("svg.stg\\:animate-spin")).toBeTruthy();
+    expect(mark("Write tests").getAttribute("aria-label")).toBe("To do");
+    expect(mark("Ship a banner").getAttribute("aria-label")).toBe("Dropped");
+    expect(screen.getByText("Ship a banner").className.split(" ")).toContain("stg:line-through");
   });
 
-  it("draws a completed row's icon in the measured ready colour", () => {
-    const { getByText } = render(<TodoCard todos={ACTIVE} />);
-    const row = getByText("Design the card").closest("li") as HTMLElement;
-    const icon = row.querySelector("span[aria-hidden='true']") as HTMLElement;
-    expect(icon.className.split(" ")).toContain("stg:text-status-ready");
+  it("draws 14/20 rows with 8px padding, the live one in the foreground's weight", () => {
+    render(<TodoList todos={ALL} />);
+    const row = screen.getByText("Write tests").closest("li")!;
+    for (const cls of ["stg:text-sm", "stg:px-3", "stg:py-2"]) expect(row.className.split(" ")).toContain(cls);
+    expect(screen.getByText("Wire the thread").className.split(" ")).toContain("stg:font-medium");
+  });
+
+  it("uses no opacity modifier in the card or its rows", () => {
+    const { container } = render(<TodoCard todos={ACTIVE} />);
+    for (const element of container.querySelectorAll("*")) {
+      const classes = element.getAttribute("class") ?? "";
+      expect(classes).not.toMatch(/opacity|\/\d+/);
+    }
   });
 });
 

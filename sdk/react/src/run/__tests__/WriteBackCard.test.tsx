@@ -1,10 +1,13 @@
 /**
  * WriteBackCard — phase-honest rendering of a workspace write-back record
- * as a dense VS Code-style row group.
+ * as a card: the repository and its status pill, the branch as a tag with
+ * its copy control and base, then the pull request link and the change
+ * counts.
  *
- * The high-stakes matrix is the error treatment: FAILED errors are
- * destructive, while a PUSHED record carrying a PR error renders it as a
- * degraded notice with the branch info intact (the branch IS live).
+ * The high-stakes matrix is the phase: each phase reads in a truthful
+ * word on the right pill, FAILED errors are destructive, and a PUSHED
+ * record carrying a PR error renders it as a degraded notice with the
+ * branch info intact (the branch IS live).
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
@@ -32,25 +35,35 @@ function makeWriteBack(overrides: Record<string, unknown> = {}) {
 afterEach(() => cleanup());
 
 describe("WriteBackCard", () => {
-  it("renders the header name, PR row, branch row, and parsed stats for a PR_CREATED record", () => {
+  it("renders the name, the open pull request pill, the branch tag, the PR link and parsed stats for a PR_CREATED record", () => {
     render(<WriteBackCard writeBack={makeWriteBack()} />);
 
     expect(screen.getByText("acme/api")).toBeTruthy();
-    // Quiet phase caption in the header.
-    expect(screen.getByText("PR #12")).toBeTruthy();
+    const pill = screen.getByText("Pull request open");
+    expect(pill.className).toContain("--stgm-status-ready");
 
-    const link = screen.getByRole("link", { name: /pull request #12/i });
+    const link = screen.getByRole("link", { name: /pull request #12 on github/i });
+    expect(link.textContent).toBe("#12 on GitHub");
     expect(link.getAttribute("href")).toBe("https://github.com/acme/api/pull/12");
     expect(link.getAttribute("target")).toBe("_blank");
     expect(link.getAttribute("rel")).toContain("noopener");
+    expect(link.getAttribute("rel")).toContain("noreferrer");
 
-    expect(screen.getByText("stigmer/ses-01test")).toBeTruthy();
-    expect(screen.getByText(/main/)).toBeTruthy();
+    // The branch is a mono tag, with its base said in words.
+    const branch = screen.getByText("stigmer/ses-01test");
+    expect(branch.closest(".stg\\:font-mono")).toBeTruthy();
+    expect(screen.getByText("into main")).toBeTruthy();
 
     // The --stat summary line renders structured, not as raw mono text.
     expect(screen.getByText("2 files changed")).toBeTruthy();
     expect(screen.getByText("+10 additions")).toBeTruthy();
     expect(screen.getByText("-3 deletions")).toBeTruthy();
+  });
+
+  it("draws no change counts for a record with no --stat summary", () => {
+    render(<WriteBackCard writeBack={makeWriteBack({ diffSummary: "" })} />);
+    expect(screen.queryByText(/files? changed/)).toBeNull();
+    expect(screen.getByText("Pull request open")).toBeTruthy();
   });
 
   it("falls back to the raw trailing --stat line when the summary is unparseable", () => {
@@ -72,6 +85,41 @@ describe("WriteBackCard", () => {
     expect(
       screen.getByRole("article", { name: "Write-back: acme/api" }),
     ).toBeTruthy();
+  });
+
+  it("pills each phase in a truthful word on the right status", () => {
+    const cases = [
+      [WorkspaceWriteBackPhase.WORKSPACE_WRITE_BACK_COMMITTED, "Committed", "--stgm-status-pending"],
+      [WorkspaceWriteBackPhase.WORKSPACE_WRITE_BACK_PUSHED, "Pushed", "--stgm-status-ready"],
+      [WorkspaceWriteBackPhase.WORKSPACE_WRITE_BACK_PR_CREATED, "Pull request open", "--stgm-status-ready"],
+      [WorkspaceWriteBackPhase.WORKSPACE_WRITE_BACK_FAILED, "Failed", "--stgm-status-failed"],
+    ] as const;
+    for (const [phase, word, token] of cases) {
+      const hasPR = phase === WorkspaceWriteBackPhase.WORKSPACE_WRITE_BACK_PR_CREATED;
+      render(
+        <WriteBackCard
+          writeBack={makeWriteBack({
+            phase,
+            pullRequestUrl: hasPR ? "https://github.com/acme/api/pull/12" : "",
+            pullRequestNumber: hasPR ? 12 : 0,
+          })}
+        />,
+      );
+      expect(screen.getByText(word).className, word).toContain(token);
+      cleanup();
+    }
+  });
+
+  it("names the pull request's host, and falls back to words when it has no number", () => {
+    render(
+      <WriteBackCard
+        writeBack={makeWriteBack({
+          pullRequestUrl: "https://gitlab.example.com/acme/api/pull/7",
+          pullRequestNumber: 0,
+        })}
+      />,
+    );
+    expect(screen.getByRole("link").textContent).toBe("Pull request on gitlab.example.com");
   });
 
   it("copies the branch name with transient feedback", async () => {
@@ -105,8 +153,8 @@ describe("WriteBackCard", () => {
     );
     const error = screen.getByText(/git push failed/);
     expect(error.className).toContain("stg:text-destructive");
-    const caption = screen.getByText("Failed");
-    expect(caption.className).toContain("stg:text-destructive");
+    const pill = screen.getByText("Failed");
+    expect(pill.className).toContain("--stgm-status-failed");
   });
 
   it("renders a PUSHED record's PR error as a degraded notice, branch info intact", () => {
@@ -122,7 +170,7 @@ describe("WriteBackCard", () => {
     );
     // The branch is live — never styled as a failure.
     expect(screen.getByText("stigmer/ses-01test")).toBeTruthy();
-    expect(screen.getByText("Pushed")).toBeTruthy();
+    expect(screen.getByText("Pushed").className).toContain("--stgm-status-ready");
     const notice = screen.getByText(/no github token/i);
     expect(notice.className).toContain("stg:text-status-degraded");
     expect(notice.className).not.toContain("stg:text-destructive");

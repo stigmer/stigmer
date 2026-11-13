@@ -1,23 +1,25 @@
 "use client";
 
 /**
- * Session Usage facet: the session totals ({@link UsageWidget}), the
- * session's working time and, per run, its tokens, working time and primary
- * model with the tier the runner requested.
+ * Session Usage facet: the session's total tokens first, as a figure, with
+ * its working time under it; then "By turn" (per run, its tokens, primary
+ * model, working time and the tier the runner requested) and "By model".
  *
  * Usage is tokens, never money. The suite in
- * `session/__tests__/UsageTab.test.tsx` pins the empty state, the per-run
- * rows (tokens, working time, model, tier, "Estimated"), the session's
- * working time, and their absence before the
- * report lists any run.
+ * `session/__tests__/UsageTab.test.tsx` pins the empty line, the total
+ * figure and its "Estimated" tag, the per-turn rows (tokens, working time,
+ * model, tier, "Estimated"), the per-model rows, and the per-turn list's
+ * absence before the report lists any run.
  */
 
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { ServiceTier } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { useSessionUsage, type RunUsageEntry } from "@stigmer/react-core";
-import { UsageWidget } from "../../run/UsageWidget.js";
-import { formatTokens, formatWorkingTime } from "../../usage/format.js";
+import { TokenFigure, UsageByModel, UsageTotal } from "../../run/UsageWidget.js";
+import { formatWorkingTime } from "../../usage/format.js";
+import { EmptyState } from "../../empty-state/EmptyState.js";
 import { Tag } from "../../internal/surface/Tag.js";
+import { List, ListRow } from "../../internal/surface/List.js";
 import { FacetSection } from "./primitives.js";
 
 export interface UsageTabProps {
@@ -27,55 +29,49 @@ export interface UsageTabProps {
 /**
  * Usage facet for the session panel (a `useSessionRailViews` rail view).
  *
- * Renders the session totals ({@link UsageWidget}) plus the #362 model
- * provenance list: per run, its primary model with its tokens — what the
+ * Renders the session's total ({@link UsageTotal}), then "By turn" — the
+ * #362 model provenance list: per run, its primary model with its tokens — what the
  * provider actually served — paired with the tier the runner REQUESTED (the streaming summary's audit record
  * that the account default was never left in control). Requested-vs-served
  * divergence is a platform alarm (`stigmer.billing.service_tier.mismatch`),
  * not a per-row UI concern.
  *
  * Rendered in the session panel's shared facet vocabulary (see
- * `./primitives.tsx`). Shows an empty state when no usage data is available.
+ * `./primitives.tsx`) on the kit's `List`. Shows one inline line, "No usage
+ * yet", when no usage data is available.
  */
 export function UsageTab({ runs }: UsageTabProps) {
   const usage = useSessionUsage(runs);
 
   if (!usage.hasUsage) {
     return (
-      <div className="stg:flex stg:flex-col stg:items-center stg:justify-center stg:px-4 stg:py-8 stg:text-center">
-        <p className="stg:text-xs stg:text-muted-foreground">
-          No usage data yet. Token counts will appear here.
-        </p>
-      </div>
+      <EmptyState
+        variant="first-use"
+        size="inline"
+        title="No usage yet"
+        description="Tokens and working time appear here once a turn runs."
+      />
     );
   }
 
   return (
     <div className="stg:flex stg:flex-col stg:gap-5">
-      <UsageWidget runs={runs} />
-      <FacetSection heading="Working time">
-        <p className="stg:px-2 stg:text-xs stg:tabular-nums stg:text-foreground">
-          {formatWorkingTime(usage.workingSeconds)}
-        </p>
-        <p className="stg:px-2 stg:pt-1 stg:text-2xs stg:text-muted-foreground">
-          Time an agent was working on this session; waiting for a person is not counted.
-        </p>
-      </FacetSection>
+      <UsageTotal usage={usage} />
       {usage.runBreakdown.length > 0 && (
-        <ExecutionModelList
-          entries={usage.runBreakdown}
-          runs={runs}
-        />
+        <UsageByTurn entries={usage.runBreakdown} runs={runs} />
       )}
+      <UsageByModel usage={usage} />
     </div>
   );
 }
 
 /**
- * Per-execution model provenance rows, in the report's chronological
- * order: `#N model [tier requested] [Estimated]  18.4k tokens · 4m 12s`.
+ * "By turn": per run, in the report's chronological order, its tokens at
+ * the right and its model and working time under its name, tagged with the
+ * tier the runner requested and "Estimated" when it is counted from its
+ * runner's own report.
  */
-function ExecutionModelList({
+function UsageByTurn({
   entries,
   runs,
 }: {
@@ -83,39 +79,33 @@ function ExecutionModelList({
   readonly runs: readonly Run[];
 }) {
   return (
-    <FacetSection heading="Per run">
-      <div role="list" aria-label="Per-run tokens, working time, model and tier" className="stg:flex stg:flex-col">
+    <FacetSection heading="By turn">
+      <List aria-label="Tokens by turn">
         {entries.map((entry, index) => {
           const requestedTier = requestedTierLabel(runs, entry.runId);
+          const detail = [
+            entry.resolvedModel,
+            entry.workingSeconds > 0 ? formatWorkingTime(entry.workingSeconds) : "",
+          ].filter(Boolean).join(" · ");
           return (
-            <div
+            <ListRow
               key={entry.runId}
-              className="stg:flex stg:items-baseline stg:justify-between stg:gap-2 stg:px-2 stg:py-1 stg:text-xs"
-              role="listitem"
-            >
-              <span className="stg:min-w-0 stg:truncate stg:text-foreground">
-                <span className="stg:tabular-nums stg:text-muted-foreground">
-                  #{index + 1}
-                </span>{" "}
-                {entry.resolvedModel || "—"}
-                {requestedTier && <RowBadge>{requestedTier} requested</RowBadge>}
-                {entry.isEstimated && <RowBadge>Estimated</RowBadge>}
-              </span>
-              <span className="stg:shrink-0 stg:tabular-nums stg:text-2xs stg:text-muted-foreground">
-                {formatTokens(entry.totalTokens)} · {formatWorkingTime(entry.workingSeconds)}
-              </span>
-            </div>
+              name={`Turn ${index + 1}`}
+              nameAdornment={
+                requestedTier || entry.isEstimated ? (
+                  <>
+                    {requestedTier && <Tag>{requestedTier} requested</Tag>}
+                    {entry.isEstimated && <Tag>Estimated</Tag>}
+                  </>
+                ) : undefined
+              }
+              description={detail || undefined}
+              trailing={<TokenFigure count={entry.totalTokens} />}
+            />
           );
         })}
-      </div>
+      </List>
     </FacetSection>
-  );
-}
-
-/** Quiet inline qualifier chip for a provenance row. */
-function RowBadge({ children }: { readonly children: React.ReactNode }) {
-  return (
-    <Tag className="stg:ml-1">{children}</Tag>
   );
 }
 

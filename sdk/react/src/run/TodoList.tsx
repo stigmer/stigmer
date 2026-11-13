@@ -4,6 +4,7 @@ import { useMemo, type ComponentType } from "react";
 import type { Todo } from "@stigmer/client";
 import { cn } from "@stigmer/design-tokens";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
+import { SpinnerIcon } from "../internal/thread-card/index.js";
 
 /** Props for {@link TodoList}. */
 export interface TodoListProps {
@@ -27,14 +28,17 @@ const STATUS_SORT_ORDER: Readonly<Record<Todo["status"], number>> = {
 };
 
 /**
- * Renders a sorted checklist of `Todo` entries.
+ * Renders a sorted checklist of `Todo` entries, in the look of a turn's
+ * plan card (`PlanSteps`): 14/20 rows with 8px padding split by a
+ * muted rule, each with the plan's mark (a ready tick once done, a running
+ * spinner while in progress, an empty ring before, a ring and struck words
+ * once dropped).
  *
- * Shared by {@link RunProgress} (main agent sidebar widget)
- * and {@link TodoCard} (the in-thread card).
+ * The list inside {@link TodoCard}, which a host's `TodoCard` or `TodoRow`
+ * slot on `MessageThread` brings in place of the plan card.
  *
  * Items are sorted by activity: in-progress first, then pending,
- * completed, and cancelled. Each row shows a status icon and the
- * task description.
+ * completed, and cancelled.
  *
  * All visual properties flow through `--stgm-*` tokens.
  *
@@ -62,7 +66,7 @@ export function TodoList({
   return (
     <ul
       role="list"
-      className={cn(UNSTYLED_LIST, "stg:flex stg:flex-col stg:gap-1", className)}
+      className={cn(UNSTYLED_LIST, className)}
       aria-label="Tasks"
     >
       {sortedTodos.map((item) => (
@@ -105,25 +109,23 @@ export interface TodoRowProps {
 }
 
 /**
- * One to-do checklist row: status icon plus task description, rendered as
- * an `<li>`. The default row for {@link TodoList} — replace it via the
- * `TodoRow` prop (or `MessageThread`'s `slots.TodoRow`) to restyle rows or
- * bring host iconography while keeping the built-in card chrome.
+ * One to-do checklist row: the plan's mark plus the task description,
+ * rendered as an `<li>` in the plan card's row look. The default row for
+ * {@link TodoList} — replace it via the `TodoRow` prop (or
+ * `MessageThread`'s `slots.TodoRow`) to restyle rows or bring host
+ * iconography while keeping the built-in card chrome.
  */
 export function TodoRow({ item }: TodoRowProps) {
-  const Icon = TODO_ICONS[item.status];
-  const colorClass = TODO_COLORS[item.status];
-  const cancelled = item.status === "cancelled";
-
+  const status = item.status;
   return (
-    <li className="stg:flex stg:items-start stg:gap-1.5 stg:text-xs">
-      <span className={cn("stg:mt-0.5 stg:shrink-0", colorClass)} aria-hidden="true">
-        <Icon />
-      </span>
+    <li className="stg:flex stg:items-start stg:gap-2 stg:border-b stg:border-border-muted stg:px-3 stg:py-2 stg:text-sm stg:last:border-b-0">
+      <TodoMark status={status} />
       <span
         className={cn(
-          "stg:min-w-0 stg:break-words",
-          cancelled ? "stg:text-muted-foreground stg:line-through" : "stg:text-foreground",
+          "stg:min-w-0 stg:flex-1 stg:break-words",
+          (status === "completed" || status === "pending") && "stg:text-muted-foreground",
+          status === "cancelled" && "stg:text-muted-foreground stg:line-through",
+          status === "in_progress" && "stg:font-medium stg:text-foreground",
         )}
       >
         {item.content}
@@ -133,82 +135,40 @@ export function TodoRow({ item }: TodoRowProps) {
 }
 
 // ---------------------------------------------------------------------------
-// Status icon / color mapping
+// Marks: the plan card's (PlanSteps) tick, spinner and ring
 // ---------------------------------------------------------------------------
 
-const TODO_ICONS: Readonly<Record<Todo["status"], () => React.JSX.Element>> = {
-  pending: TodoPendingIcon,
-  in_progress: TodoInProgressIcon,
-  completed: TodoCompletedIcon,
-  cancelled: TodoCancelledIcon,
-};
-
-const TODO_COLORS: Readonly<Record<Todo["status"], string>> = {
-  pending: "stg:text-muted-foreground",
-  in_progress: "stg:text-foreground",
-  completed: "stg:text-status-ready",
-  cancelled: "stg:text-muted-foreground",
-};
-
-// ---------------------------------------------------------------------------
-// Inline SVG icons — no external icon dependency in SDK
-// ---------------------------------------------------------------------------
-
-function TodoPendingIcon() {
+/** A row's mark: a ready tick once done, a running spinner while in progress, an empty ring before or once dropped. */
+function TodoMark({ status }: { readonly status: Todo["status"] }) {
+  if (status === "completed") {
+    return (
+      <span aria-label="Done" role="img" className="stg:mt-0.5 stg:flex stg:h-4 stg:w-4 stg:shrink-0 stg:items-center stg:justify-center stg:rounded-full stg:bg-status-ready stg:text-background">
+        <svg viewBox="0 0 12 12" className="stg:h-2.5 stg:w-2.5" aria-hidden="true">
+          <path d="M2.5 6.5 5 9l4.5-5.5" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </span>
+    );
+  }
+  if (status === "in_progress") {
+    return (
+      <span aria-label="In progress" role="img" className="stg:mt-0.5 stg:flex stg:h-4 stg:w-4 stg:shrink-0 stg:items-center stg:justify-center stg:text-status-running">
+        <TodoInProgressIcon />
+      </span>
+    );
+  }
   return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 12 12"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-    >
-      <circle cx="6" cy="6" r="4.5" />
-    </svg>
+    <span
+      aria-label={status === "cancelled" ? "Dropped" : "To do"}
+      role="img"
+      className="stg:mt-0.5 stg:h-4 stg:w-4 stg:shrink-0 stg:rounded-full stg:border stg:border-border"
+    />
   );
 }
 
-/** The in-progress glyph, exported for hosts composing their own to-do rows. */
+/**
+ * The in-progress glyph (the plan card's spinner, drawn in the current
+ * colour), exported for hosts composing their own to-do rows.
+ */
 export function TodoInProgressIcon() {
-  return (
-    <span className="stg:relative stg:flex stg:h-3 stg:w-3 stg:items-center stg:justify-center">
-      <span className="stg:absolute stg:inline-flex stg:h-2 stg:w-2 stg:animate-ping stg:rounded-full stg:bg-current stg:opacity-75" />
-      <span className="stg:relative stg:inline-flex stg:h-2 stg:w-2 stg:rounded-full stg:bg-current" />
-    </span>
-  );
-}
-
-function TodoCompletedIcon() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 12 12"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M2.5 6L5 8.5L9.5 3.5" />
-    </svg>
-  );
-}
-
-function TodoCancelledIcon() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 12 12"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M3 3L9 9M9 3L3 9" />
-    </svg>
-  );
+  return <SpinnerIcon />;
 }

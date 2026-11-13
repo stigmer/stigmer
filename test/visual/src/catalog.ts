@@ -239,7 +239,7 @@ const SESSION_SCENES = [
     id: "session-pull-requests",
     title: "Session: the finished turn with the panel open on the pull request its work was pushed to",
     widths: ["desktop"],
-    opens: ["Show panel", { press: "Changes", role: "radio" }],
+    opens: ["Show panel", { press: "Pull requests", role: "radio" }],
   },
   {
     id: "session-usage",

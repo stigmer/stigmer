@@ -894,14 +894,16 @@ function useSessionPanel(options: UseSessionPanelOptions): SessionPanelControlle
 
 ### useSessionRailViews
 
-Composes the session facets (Config / Changes / Files / Usage)
+Composes the session facets (Config / Pull requests / Files / Usage)
 as [`SurfaceRailView`](/docs/sdk/react/workspace#surfacerailview)s for the workspace surface's activity rail.
 
 This is the session-domain half of the unified panel: the surface stays a
 domain-pure workspace organism and these views are injected into its rail
 (composition by injection). Contextual visibility mirrors the retired
-inspector's tab rules — Changes/Files surface only when data exists
-(with count badges).
+inspector's tab rules — Pull requests/Files surface only when data exists
+(with count badges). The Pull requests view keeps the id `changes`: it
+holds the session's git write-backs, while the thread says "Changed" for
+a turn's local edits.
 
 **Signature**
 
@@ -1536,7 +1538,7 @@ All visual properties flow through `--stgm-*` tokens.
   type={{
     accessSlot: { type: "ReactNode", description: "Host-injected access management control (e.g. the Console's `ManageAccessButton`) rendered as the facet's final section. A slot keeps the SDK auth-agnostic; the injected control owns its own visibility (permission gating), so this section renders no chrome of its own — an empty heading over a denied control would read as breakage." },
     agentRef: { type: "ResourceRef | null", description: "The session's agent; `null` is the built-in assistant.", required: true },
-    autoApprove: { type: "SetupTabAutoApprove", description: "Session-level auto-approve switch in the Run Config section. When provided, the switch renders and is interactive at all times — including mid-run, where flipping it ON releases the in-flight run's pending gates (the flow's standing responder). When absent (read-only audiences, demo fixtures), the section shows no approval control at all.", typeDescriptionLink: "#setuptabautoapprove" },
+    autoApprove: { type: "SetupTabAutoApprove", description: "Session-level auto-approve switch in the Run config section. When provided, the switch renders and is interactive at all times — including mid-run, where flipping it ON releases the in-flight run's pending gates (the flow's standing responder). When absent (read-only audiences, demo fixtures), the section shows no approval control at all.", typeDescriptionLink: "#setuptabautoapprove" },
     environment: { type: "EnvironmentChoice", description: "The Environment the conversation runs in and why (`conversationEnvironment`), shown after the target. Omit where no conversation exists yet: the server resolves it at creation.", typeDescriptionLink: "/docs/sdk/react/environment#environmentchoice" },
     executionTarget: { type: "ExecutionTargetOption | undefined", description: "", required: true },
     harness: { type: "HarnessOption", description: "", required: true, typeDescriptionLink: "/docs/sdk/react/models#harnessoption" },
@@ -2257,7 +2259,7 @@ for traceability in the UI (e.g., tooltip or detail view).
 
 ### SetupTabAutoApprove
 
-Wiring for the Run Config section's auto-approve switch — the session-level
+Wiring for the Run config section's auto-approve switch — the session-level
 arming control (stigmer/stigmer#816 rework: config lives in Config, not the
 composer). Session-scoped: an explicit flip beats the account's
 `default_auto_approve` preference and the host's `approvalDefaults` for
@@ -2460,11 +2462,11 @@ Options for [`useSessionRailViews`](#usesessionrailviews).
 
 <TypeTable
   type={{
-    allRuns: { type: "readonly Run[]", description: "All runs in the session — drives Changes/Usage.", required: true },
-    changesSettled: { type: "boolean", description: "Whether the session's latest run is settled (terminal) — forwarded to the Changes facet's pre-push states (its `isSettled` prop)." },
-    expectsWriteBack: { type: "boolean", description: "Whether the session is expected to push approved changes to a git remote (a cloud session with git workspace entries). When `true` the Changes facet is offered from the start — with an honest pre-push state — instead of only materializing once a write-back exists, so \"where does my work go?\" always has an answer (the facet's `expectsWriteBack` prop)." },
+    allRuns: { type: "readonly Run[]", description: "All runs in the session — drives Pull requests/Usage.", required: true },
+    changesSettled: { type: "boolean", description: "Whether the session's latest run is settled (terminal) — forwarded to the Pull requests facet's pre-push states (its `isSettled` prop)." },
+    expectsWriteBack: { type: "boolean", description: "Whether the session is expected to push its work to a git remote (a cloud session with git workspace entries). When `true` the Pull requests facet is offered from the start — with an honest pre-push state — instead of only materializing once a write-back exists, so \"where does my work go?\" always has an answer (the facet's `expectsWriteBack` prop)." },
     given: { type: "readonly SessionGivenEntry[]", description: "What was given to the conversation (`useSessionGivenFiles`)." },
-    includeRunFacets: { type: "boolean", description: "Whether to offer the execution-derived facets (Changes / Files / Usage). The launcher passes `false` — before a session exists there are no runs to aggregate, so only Config applies." },
+    includeRunFacets: { type: "boolean", description: "Whether to offer the execution-derived facets (Pull requests / Files / Usage). The launcher passes `false` — before a session exists there are no runs to aggregate, so only Config applies." },
     onActivateFileDocument: { type: "(documentKey: string) => void", description: "Pin a (non-plan) File's document tab — the double-click half of the Files facet's open/activate split. Routed through to the facet's rows." },
     onApplied: { type: "(result: ApplyResourceResult) => void", description: "Called after a resource is applied, or a skill added, from the Files facet." },
     onFileDeleted: { type: "() => void", description: "Re-read the session's Files once one is deleted from a preview." },

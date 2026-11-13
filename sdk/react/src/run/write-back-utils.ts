@@ -105,3 +105,37 @@ export function writeBackDisplayName(writeBack: WorkspaceWriteBack): string {
 
   return "Workspace";
 }
+
+// ---------------------------------------------------------------------------
+// Pull request host
+// ---------------------------------------------------------------------------
+
+/** The well-known git hosts, by hostname, named as their owners write them. */
+const KNOWN_GIT_HOSTS: Readonly<Record<string, string>> = {
+  "github.com": "GitHub",
+  "gitlab.com": "GitLab",
+  "bitbucket.org": "Bitbucket",
+};
+
+/**
+ * Names the host a pull request lives on, for the card's "#482 on GitHub"
+ * link: the well-known hosts by name, any other (a self-hosted GitLab, a
+ * GitHub Enterprise) by its hostname, and `null` when the URL is empty or
+ * does not parse, so the link never names a host it cannot prove.
+ *
+ * @example
+ * ```ts
+ * pullRequestHostName("https://github.com/acme/api/pull/482"); // "GitHub"
+ * pullRequestHostName("https://git.example.com/acme/api/pull/9"); // "git.example.com"
+ * ```
+ */
+export function pullRequestHostName(pullRequestUrl: string): string | null {
+  let hostname: string;
+  try {
+    hostname = new URL(pullRequestUrl).hostname.toLowerCase();
+  } catch {
+    return null;
+  }
+  if (!hostname) return null;
+  return KNOWN_GIT_HOSTS[hostname] ?? hostname;
+}
