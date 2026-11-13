@@ -291,6 +291,11 @@ const SESSION_SCENES = [
     title: "Session: a long turn at work, inside a customer's product (no inspector)",
     widths: ["desktop"],
   },
+  {
+    id: "session-end-user-framed",
+    title: "Session: the same long turn inside a customer's product, at the screen's own height, the thread scrolled under its header and composer",
+    widths: ["desktop"],
+  },
   { id: "session-guest", title: "Session: the finished turn, for a chat link's guest", widths: ["desktop", "narrow"] },
   { id: "session-observer", title: "Session: the finished turn, for a reviewer who reads it", widths: ["desktop"] },
   {
@@ -726,9 +731,9 @@ const WHOLE_PREFIXES = ["session-", "settings-", "models-hub-", "dashboard-", "m
  * The scenes of those groups kept at their viewport's height: the session
  * view as a person sees it, the thread scrolled under its header and its
  * composer, so a fault that shows only when the thread overflows is still
- * pictured.
+ * pictured. Each is a copy of a scene pictured whole, under its own id.
  */
-const FRAMED: readonly SceneId[] = ["session-end-user"];
+const FRAMED: readonly SceneId[] = ["session-end-user-framed"];
 
 /** Every scene as listed, before the groups pictured whole are marked. */
 const LISTED: readonly Scene[] = [

@@ -157,6 +157,7 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "session-inspector": () => sessionScene("finished", { inspector: true }),
   "session-failed": () => sessionScene("failed", { inspector: true }),
   "session-end-user": () => sessionScene("busy", { audience: "endUser" }),
+  "session-end-user-framed": () => sessionScene("busy", { audience: "endUser" }),
   "session-guest": () => sessionScene("finished", { audience: "guest" }),
   "session-observer": () => sessionScene("finished", { audience: "observer", inspector: true }),
   "session-load-failed": () => sessionScene("load-failed", { inspector: true }),
