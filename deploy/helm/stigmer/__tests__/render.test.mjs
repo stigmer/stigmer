@@ -856,7 +856,7 @@ test("Chart.yaml pins the Kubernetes floor and the GHCR source linkage", () => {
   assert.equal(
     chart.version,
     chart.appVersion,
-    "the chart version is the release version (the fourth release pin)",
+    "the chart version is the release version (a release pin)",
   );
   assert.match(chart.kubeVersion ?? "", />=\s*1\.27/);
   assert.deepEqual(chart.sources, ["https://github.com/stigmer/stigmer"]);

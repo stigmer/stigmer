@@ -2,8 +2,8 @@
 # with its posture (secrets are explicit keys the operator supplies, and a
 # missing one fails loudly at render instead of being generated silently).
 #
-# version == appVersion == the release version. This file is the FOURTH
-# release pin: `make release-pins version=X.Y.Z` bumps both lines and
+# version == appVersion == the release version. This file is a release
+# pin: `make release-pins version=X.Y.Z` bumps both lines and
 # `make release` refuses to tag until they name the new version, so the
 # chart the train publishes always pins the images the same train pushed.
 # Image tags default to v{{ appVersion }} (see values.yaml `image`).
