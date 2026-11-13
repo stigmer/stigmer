@@ -9,6 +9,9 @@
  *     longer than usual, that it keeps going if the reader leaves, and that
  *     the session will be here when it is done; a stream that timed out
  *     says that instead;
+ *   - a session that did not open says so and reloads the page on Try
+ *     again; a stream that broke under an open conversation offers
+ *     Reconnect, which reconnects it;
  *   - every reader without a composer (an observer, and anyone reading a
  *     channel conversation) gets the footer saying they are reading it and
  *     only its members reply; a member gets the composer and no footer.
@@ -17,7 +20,7 @@
  * catalogue's, changed per case.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, cleanup } from "@testing-library/react";
+import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import type { UseSessionConversationReturn } from "@stigmer/react-core";
 import { CHANNEL_SESSION_LABELS } from "../channelOrigin";
 import { conversationOf, samples, scenarios } from "../../test";
@@ -174,5 +177,35 @@ describe("SessionViewer — what a reader is told around the conversation", () =
     render(<SessionViewer sessionId="ses_1" org="demo" />);
     expect(screen.getByTestId("composer-probe")).toBeTruthy();
     expect(screen.queryByText(READER_WORDS)).toBeNull();
+  });
+
+  it("says a session that did not open, and reloads the page on Try again", () => {
+    const reload = vi.fn();
+    const location = window.location;
+    Object.defineProperty(window, "location", {
+      value: { ...location, reload },
+      configurable: true,
+    });
+    try {
+      conversation({ loadError: new Error("session not found") });
+      render(<SessionViewer sessionId="ses_1" org="demo" />);
+      expect(screen.getByRole("heading", { name: "This session didn’t open" })).toBeTruthy();
+      expect(screen.queryByTestId("thread-probe")).toBeNull();
+
+      fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+      expect(reload).toHaveBeenCalledTimes(1);
+    } finally {
+      Object.defineProperty(window, "location", { value: location, configurable: true });
+    }
+  });
+
+  it("says a broken stream beside the conversation, and reconnects on Reconnect", () => {
+    const reconnectStream = vi.fn();
+    conversation({ streamError: new Error("stream closed"), reconnectStream }, scenarios.busy);
+    render(<SessionViewer sessionId="ses_1" org="demo" />);
+    expect(screen.getByTestId("thread-probe")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Reconnect" }));
+    expect(reconnectStream).toHaveBeenCalledTimes(1);
   });
 });

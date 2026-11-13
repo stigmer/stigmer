@@ -3,7 +3,8 @@
  * its id, the way the server names every org: the landing's resource
  * counts; the agent page shows the agent where it lives. The Add menu
  * offers Agent, Environment and File only to someone the server lets
- * create each, and Environment and File not until the server has answered. The views and
+ * create each, and Environment and File not until the server has answered.
+ * "Apply YAML" opens the manifest dialog for the active org. The views and
  * count hooks are pinned in @stigmer/react-sdk.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -18,6 +19,7 @@ const page = vi.hoisted(() => ({
   canCreateFile: { allowed: true, isLoading: false },
   counted: [] as Array<string | null>,
   agentView: [] as Array<Record<string, unknown>>,
+  applyDialog: [] as Array<{ open: boolean; org: string }>,
 }));
 
 vi.mock("@stigmer/react-sdk", async () => {
@@ -32,7 +34,10 @@ vi.mock("@stigmer/react-sdk", async () => {
     IconButton: kit.IconButton,
     LinkButton: kit.LinkButton,
     PageHeader: kit.PageHeader,
-    ApplyManifestDialog: none,
+    ApplyManifestDialog: (props: { open: boolean; org: string }) => {
+      page.applyDialog.push({ open: props.open, org: props.org });
+      return null;
+    },
     ResourceCountCard: none,
     ConfirmDialog: none,
     EditResourceYamlDialog: none,
@@ -103,6 +108,7 @@ beforeEach(() => {
   page.canCreateFile = { allowed: true, isLoading: false };
   page.counted.length = 0;
   page.agentView.length = 0;
+  page.applyDialog.length = 0;
 });
 
 describe("web library org scope", () => {
@@ -111,6 +117,15 @@ describe("web library org scope", () => {
 
     expect(page.counted).toHaveLength(6);
     expect(new Set(page.counted)).toEqual(new Set(["org_acme"]));
+  });
+
+  it("LibraryLanding opens the Apply YAML dialog for the active org", () => {
+    render(<LibraryLanding />);
+    expect(page.applyDialog.at(-1)).toEqual({ open: false, org: "org_acme" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Apply YAML" }));
+
+    expect(page.applyDialog.at(-1)).toEqual({ open: true, org: "org_acme" });
   });
 
   it("AgentDetailPageInner shows the agent where it lives, with no instances to scope", () => {

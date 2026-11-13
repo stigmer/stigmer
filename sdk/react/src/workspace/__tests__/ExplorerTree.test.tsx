@@ -1,3 +1,10 @@
+/**
+ * ExplorerTree: each workspace entry is a root listing its files, folders
+ * start collapsed, a click previews a file and a double click pins it, the
+ * selected file is highlighted within its entry, roots can be removed only
+ * when the host allows it, a truncated listing shows a banner, and a failed
+ * listing says so and lists again on Retry.
+ */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { ExplorerTree } from "../ExplorerTree";
@@ -200,5 +207,30 @@ describe("ExplorerTree", () => {
     expect(banner.textContent).not.toMatch(/repository/i);
     // The notice advisory is never an openable tree leaf.
     expect(screen.queryByText("... (listing truncated)")).toBeNull();
+  });
+
+  it("says a listing failed, and lists the files again on Retry", async () => {
+    let calls = 0;
+    const failingOnce: WorkspaceFileLister = vi.fn(async () => {
+      calls += 1;
+      if (calls === 1) throw new Error("repository unreachable");
+      return [{ path: "a.ts", isDirectory: false }];
+    });
+    render(
+      <ExplorerTree
+        entries={[entry("x10")]}
+        lister={failingOnce}
+        selectedFile={null}
+        onOpenFile={vi.fn()}
+        onActivateFile={vi.fn()}
+      />,
+    );
+
+    expect(await screen.findByText(/Failed to list files: repository unreachable/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+
+    expect(await screen.findByText("a.ts")).toBeTruthy();
+    expect(screen.queryByText(/Failed to list files/)).toBeNull();
+    expect(failingOnce).toHaveBeenCalledTimes(2);
   });
 });
