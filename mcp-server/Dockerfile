@@ -39,8 +39,10 @@ ENV NODE_ENV=production
 
 WORKDIR /app
 
-# Refuse a missing or non-release version first (see MCP_SERVER_VERSION),
-# then install the published package globally; this pulls its full runtime
+# Refuse a missing or non-release version first (see MCP_SERVER_VERSION); the
+# `case` refuses any character outside a version's, a newline included, which
+# `grep -x` alone would let through by matching one line of several. Then
+# install the published package globally; this pulls its full runtime
 # dependency tree and exposes the `mcp-server-stigmer` bin on PATH.
 #
 # The install RETRIES until the whole pinned tree is installable (up to 10
@@ -52,7 +54,8 @@ WORKDIR /app
 # one of them), so the only reliable signal is the install itself succeeding. Retrying the
 # install (npm install is idempotent on failure: nothing is left half
 # installed under --global) fixes every builder of this file at once.
-RUN printf '%s\n' "${MCP_SERVER_VERSION}" | grep -Eqx '[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?' || \
+RUN case "${MCP_SERVER_VERSION}" in *[!0-9A-Za-z.-]*) false ;; esac && \
+    printf '%s\n' "${MCP_SERVER_VERSION}" | grep -Eqx '[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?' || \
         { echo "MCP_SERVER_VERSION is '${MCP_SERVER_VERSION}', not a release version: pass --build-arg MCP_SERVER_VERSION=<release>, such as 0.1.4 or 0.1.4-rc.1" >&2; exit 1; }; \
     for i in $(seq 1 60); do \
         npm install --global --omit=dev "@stigmer/mcp-server@${MCP_SERVER_VERSION}" && break; \

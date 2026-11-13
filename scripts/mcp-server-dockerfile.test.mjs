@@ -84,14 +84,21 @@ for (const version of [
   "0.1.3 ",
   "^0.1.3",
   "0.1.x",
+  "0.1.3\nlatest",
+  "latest\n0.1.3",
+  "0.1.3\n",
 ]) {
-  test(`the guard refuses ${JSON.stringify(version)} with one line naming the flag`, () => {
+  test(`the guard refuses ${JSON.stringify(version)} with one message naming the flag`, () => {
     const result = runGuard(version);
     assert.notEqual(result.status, 0);
-    const lines = result.stderr.trim().split("\n");
-    assert.equal(lines.length, 1, result.stderr);
-    assert.match(lines[0], /not a release version/);
-    assert.match(lines[0], /--build-arg MCP_SERVER_VERSION=<release>/);
+    // One echo: the message spans only the lines the value itself carries.
+    assert.equal(
+      result.stderr.split("\n").length - 1,
+      version.split("\n").length,
+      result.stderr,
+    );
+    assert.match(result.stderr, /not a release version/);
+    assert.match(result.stderr, /--build-arg MCP_SERVER_VERSION=<release>/);
   });
 }
 
