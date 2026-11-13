@@ -357,7 +357,7 @@ describe("CON-10 the console hands over what puts an agent in the builder's own 
 
   it("asks the server again when its first answer failed", async () => {
     renderPage({ defaultTab: "in-app" }, { serverInfoFailures: 1 });
-    fireEvent.click(await screen.findByRole("button", { name: /retry/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /try again/i }));
     expect(await screen.findByRole("radio", { name: "Next.js" })).toBeTruthy();
   });
 

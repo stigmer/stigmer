@@ -52,6 +52,7 @@ import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { CopyBlock } from "../internal/CopyBlock.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
 import { cardClasses } from "../internal/surface/Card.js";
+import { Notice } from "../internal/surface/Notice.js";
 import { UnknownPublicAddressNotice } from "../internal/UnknownPublicAddressNotice.js";
 import { anchorLink, type RenderJourneyLink } from "../journey/links.js";
 import { useOrganization } from "../organization/useOrganization.js";
@@ -170,11 +171,16 @@ function LocalHandover({
   });
   return (
     <>
-      <p role="note" className="stg:m-0 stg:rounded-lg stg:border stg:border-border stg:bg-muted-subtle stg:px-3.5 stg:py-3 stg:text-sm stg:text-foreground">
-        This Stigmer runs on your computer and trusts every caller, so your app talks to it with no sign-in while you build.{" "}
-        <span className="stg:font-medium">Going live needs a Stigmer that signs people in:</span> Stigmer Cloud, or{" "}
-        {renderLink({ href: SELF_HOSTED_SIGN_IN_DOCS_URL, className: "stg:text-foreground stg:underline stg:underline-offset-2", children: "your own server with sign-in turned on" })}.
-      </p>
+      <Notice
+        tone="plain"
+        role="note"
+        headline="This Stigmer runs on your computer and trusts every caller, so your app talks to it with no sign-in while you build."
+      >
+        <p className="stg:m-0">
+          Going live needs a Stigmer that signs people in: Stigmer Cloud, or{" "}
+          {renderLink({ href: SELF_HOSTED_SIGN_IN_DOCS_URL, className: "stg:text-foreground stg:underline stg:underline-offset-2", children: "your own server with sign-in turned on" })}.
+        </p>
+      </Notice>
       <section aria-label="Show the chat in your app" className={cn(cardClasses(), "stg:flex stg:flex-col stg:gap-3")}>
         <h4 className="stg:m-0 stg:text-sm stg:font-semibold stg:text-foreground">Show the chat in your app</h4>
         <HandedOverFile file={chat} />
