@@ -44,28 +44,6 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      # Pre-publish hard gate: the MCP server image (mcp-server/Dockerfile)
-      # installs the npm version named by its pinned ARG default whenever a
-      # build passes none, such as a hand `docker build`, and a moved pin is
-      # what re-runs that install past Docker's layer cache. If the pin does
-      # not move with the release, a build of the release's commit installs
-      # the previous version, which is what happened on five consecutive
-      # releases (3.5.0 → 3.6.0) until the 2026-08-05 stale-roster incident.
-      # The rule is now enforced, not remembered: bump the pin in the commit
-      # you tag, or this release fails here.
-      - name: Verify mcp-server Dockerfile pin matches release (pre-publish gate)
-        run: |
-          PIN="$(sed -n 's/^ARG MCP_SERVER_VERSION=//p' mcp-server/Dockerfile)"
-          VERSION="${NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION}"
-          if [ "$PIN" != "$VERSION" ]; then
-            echo "ERROR: mcp-server/Dockerfile pins MCP_SERVER_VERSION=$PIN but this release publishes $VERSION."
-            echo "A build of the tagged commit installs the pin — bump the pin in the same commit you tag."
-            exit 1
-          fi
-          echo "mcp-server/Dockerfile pin $PIN matches release version $VERSION"
-        env:
-          NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION: ${{ needs.determine-version.outputs.version }}
-
       - name: Set up Buf
         uses: bufbuild/buf-setup-action@a47c93e0b1648d5651a065437926377d060baa99 # v1.50.0
         with:
@@ -1513,18 +1491,18 @@ jobs:
   # blocked the v3.13.0 lane; the direct push (owner ruling, oss#915) is
   # refused by main's branch protection (GH006) with the workflow's own
   # GITHUB_TOKEN, which failed loudly on v3.14.0 and v3.14.1. The pin now
-  # travels with the mcp-server bridge pin in the release commit that the
-  # tag is cut from (`make release` refuses to tag without it; the
-  # @release-stigmer-oss rule's step 5). The published-tag compose smokes
-  # above still gate `latest`: a red smoke is a broken release, acted on
-  # by a human, and the pin ahead of it by minutes points a fresh clone at
-  # images the same run is proving.
+  # travels with the other release pins in the release commit that the tag
+  # is cut from (`make release` refuses to tag without it; the
+  # release-stigmer-oss skill's "Bump the pins and commit them"). The
+  # published-tag compose smokes above still gate `latest`: a red smoke is a
+  # broken release, acted on by a human, and the pin ahead of it by minutes
+  # points a fresh clone at images the same run is proving.
 
   # ---------------------------------------------------------------------------
   # The Helm chart: oci://ghcr.io/<owner>/charts/stigmer. docker-compose.yml
   # translated for
   # Kubernetes, pinning the two images this same run pushed. Chart.yaml is
-  # the fourth release pin (version == appVersion == the release version;
+  # a release pin (version == appVersion == the release version;
   # `make release` refuses to tag otherwise), verified here before anything
   # is packaged. Order: package once → install the PACKAGED chart on kind
   # against the PUSHED image tags, natively on amd64 and arm64, with the

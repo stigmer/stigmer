@@ -28,7 +28,7 @@ image:
     # `repository`.
     enterpriseRepository: stigmer-server-ee
     # Empty means v<appVersion> — the release train bumps Chart.yaml and the
-    # images together (the fourth release pin). Set only to run a different
+    # images together (a release pin). Set only to run a different
     # released version, as compose's STIGMER_VERSION does.
     tag: ""
   runner:
