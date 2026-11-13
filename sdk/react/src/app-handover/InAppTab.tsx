@@ -51,6 +51,7 @@ import { ErrorMessage } from "../error/ErrorMessage.js";
 import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { CopyBlock } from "../internal/CopyBlock.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
+import { cardClasses } from "../internal/surface/Card.js";
 import { UnknownPublicAddressNotice } from "../internal/UnknownPublicAddressNotice.js";
 import { anchorLink, type RenderJourneyLink } from "../journey/links.js";
 import { useOrganization } from "../organization/useOrganization.js";
@@ -174,7 +175,7 @@ function LocalHandover({
         <span className="stg:font-medium">Going live needs a Stigmer that signs people in:</span> Stigmer Cloud, or{" "}
         {renderLink({ href: SELF_HOSTED_SIGN_IN_DOCS_URL, className: "stg:text-foreground stg:underline stg:underline-offset-2", children: "your own server with sign-in turned on" })}.
       </p>
-      <section aria-label="Show the chat in your app" className="stg:flex stg:flex-col stg:gap-3 stg:rounded-xl stg:border stg:border-border stg:bg-card stg:p-4">
+      <section aria-label="Show the chat in your app" className={cn(cardClasses(), "stg:flex stg:flex-col stg:gap-3")}>
         <h4 className="stg:m-0 stg:text-sm stg:font-semibold stg:text-foreground">Show the chat in your app</h4>
         <HandedOverFile file={chat} />
         <p className="stg:m-0 stg:text-sm stg:text-muted-foreground">
@@ -231,7 +232,7 @@ function SignInHandover({
   return (
     <>
       <StackPicker stack={stack} onPick={pickStack} />
-      <ol className="stg:m-0 stg:list-none stg:divide-y stg:divide-border stg:rounded-xl stg:border stg:border-border stg:bg-card stg:p-0">
+      <ol className={cn(cardClasses({ flush: true }), "stg:m-0 stg:list-none stg:divide-y stg:divide-border stg:p-0")}>
         <ServiceAccountRow org={orgId} access={access} serviceAccountsHref={links.serviceAccounts} renderLink={render} />
         <EmbeddingRow org={orgId} organization={organization} onSaved={onOrganizationSaved} embeddingHref={links.embedding} renderLink={render} />
         <Row number={3} state="todo" title="Add a token route to your backend">
