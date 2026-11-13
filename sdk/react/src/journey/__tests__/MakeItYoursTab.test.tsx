@@ -51,7 +51,7 @@ const INSTRUCTIONS = "Flag each account more than 10% over or under budget.";
 
 const LINKS: MakeItYoursLinks = {
   launch: ({ agent, example, mode }) => `/?agent=${agent.org}/${agent.slug}&example=${example ?? ""}&with=${mode}`,
-  putInApp: (agent) => `/agents/${agent.slug}?tab=channels`,
+  putInApp: (agent) => `/agents/${agent.slug}?tab=in-app`,
 };
 
 function storedAgent(slug: string): Agent {
@@ -334,6 +334,6 @@ describe("CON-08 after the first job, the console says what comes next and leads
     renderPage({ makeItYours: LINKS, defaultTab: "make-it-yours" });
     await openTab();
 
-    expect(screen.getByRole("link", { name: "Put it in your app" }).getAttribute("href")).toBe("/agents/variance-reporter?tab=channels");
+    expect(screen.getByRole("link", { name: "Put it in your app" }).getAttribute("href")).toBe("/agents/variance-reporter?tab=in-app");
   });
 });

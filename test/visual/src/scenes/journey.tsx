@@ -96,7 +96,7 @@ function journeyVersions(changed: boolean): ListAgentVersionsResponse {
 /** Where the journey's later steps lead in these scenes: the console's addresses, drawn as plain anchors. */
 const JOURNEY_LINKS: JourneyLinks & MakeItYoursLinks = {
   makeItYours: (agent) => `/library/agents/${ORG_SLUG}/${agent.slug}?tab=make-it-yours`,
-  putInApp: (agent) => `/library/agents/${ORG_SLUG}/${agent.slug}?tab=channels`,
+  putInApp: (agent) => `/library/agents/${ORG_SLUG}/${agent.slug}?tab=in-app`,
   bringOthers: "/settings/members",
   launch: ({ agent, example, mode }) => `/?agent=${ORG_SLUG}/${agent.slug}${example ? `&example=${example}` : ""}&with=${mode}`,
 };

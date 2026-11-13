@@ -145,10 +145,14 @@ app.get("/api/stigmer-token", async (req, res) => {
 
 ```go
 var user struct{ ID, Email, Name string }
+var w http.ResponseWriter
 // ---cut---
 import (
+	"encoding/json"
 	"log"
+	"net/http"
 	"os"
+	"time"
 
 	stigmer "go.stigmer.ai/sdk"
 )
@@ -164,6 +168,18 @@ result, err := client.Tokens.MintUserToken(ctx, &stigmer.MintUserTokenInput{
     UserID:    user.ID,
     UserEmail: user.Email,
     UserName:  user.Name,
+})
+if err != nil {
+    log.Print(err)
+    http.Error(w, "Stigmer refused the token", http.StatusBadGateway)
+    return
+}
+
+// Your /api/stigmer-token endpoint answers the browser:
+w.Header().Set("Content-Type", "application/json")
+json.NewEncoder(w).Encode(map[string]string{
+    "accessToken": result.AccessToken,
+    "expiresAt":   result.ExpiresAt.Format(time.RFC3339),
 })
 ```
 
@@ -191,6 +207,9 @@ with StigmerClient(os.environ["STIGMER_API_KEY"]) as client:
         user_email=current_user.email,
         user_name=current_user.name,
     )
+
+# Your /api/stigmer-token endpoint answers the browser with this JSON:
+body = {"accessToken": result.access_token, "expiresAt": result.expires_at.isoformat()}
 ```
 
 ### Java
@@ -203,6 +222,7 @@ CurrentUser currentUser;
 import ai.stigmer.sdk.MintUserTokenInput;
 import ai.stigmer.sdk.MintUserTokenResult;
 import ai.stigmer.sdk.StigmerClient;
+import java.util.Map;
 
 try (StigmerClient client = StigmerClient.builder(System.getenv("STIGMER_API_KEY")).build()) {
     MintUserTokenResult result = client.tokens().mintUserToken(MintUserTokenInput.builder()
@@ -211,6 +231,11 @@ try (StigmerClient client = StigmerClient.builder(System.getenv("STIGMER_API_KEY
         .userEmail(currentUser.getEmail())
         .userName(currentUser.getName())
         .build());
+
+    // Your /api/stigmer-token endpoint answers the browser with this JSON:
+    Map<String, String> body = Map.of(
+        "accessToken", result.accessToken(),
+        "expiresAt", result.expiresAt().toString());
 }
 ```
 

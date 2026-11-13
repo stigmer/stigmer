@@ -1084,6 +1084,7 @@ Options for [`useResourceAccess`](#useresourceaccess).
 <TypeTable
   type={{
     includeInherited: { type: "boolean", description: "Include roles inherited from parent resources. Defaults to `false`." },
+    refetchInterval: { type: "number | false", description: "Re-read the list on this interval, in milliseconds, for a surface waiting for someone to arrive. `false`, `0` or unset reads it once." },
   }}
 />
 

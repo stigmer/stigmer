@@ -177,7 +177,7 @@ Where each step leads, as the host routes it; the later steps' destinations are 
     connectProvider: { type: "string", description: "Models & providers, where a provider key is connected.", required: true },
     createAgent: { type: "string", description: "Where a newcomer says what their agent should do: the launcher, whose first question offers the example jobs and \"Describe your own\".", required: true },
     makeItYours: { type: "(agent: ResourceRef) => string", description: "The agent page's \"Make it yours\" tab for an agent (the console's `/library/agents/<org>/<slug>?tab=make-it-yours`)." },
-    putInApp: { type: "(agent: ResourceRef) => string", description: "Where an agent is put in front of users: today its Channels tab." },
+    putInApp: { type: "(agent: ResourceRef) => string", description: "Where an agent is put in its builder's own app: its \"In your app\" tab (`?tab=in-app`)." },
     startSession: { type: "string", description: "The launcher, where a session starts.", required: true },
   }}
 />

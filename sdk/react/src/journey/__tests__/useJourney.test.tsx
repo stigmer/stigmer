@@ -2,22 +2,28 @@
  * Pins the journey's one answer: each step done only on the server's word
  * (an agent listed; a provider serving a model, or a run that completed; a
  * run that completed, never one that failed; a journey agent with a second
- * version), in the journey's order, the first not done
+ * version; a person signed in from the builder's own app, an app user on
+ * the organization's access list, on a server that signs people in), in
+ * the journey's order, the first not done
  * the current one; the version read made only for journey agents, newest
  * first, stopping at the first agent changed since it was made, so a
  * plugin's or another agent's versions never tick "Make it yours"; nothing
  * read without the host's opt-in or for a person the server refuses
  * `can_create_agent`; "pending" until every read is in and "off" when one
  * fails; and whether anything ran at all, failed runs included, for a
- * surface's layout. The run summary and what serves a model are stubbed
- * (their own suites pin them); the permission, the agent list and the versions
- * are answered by a client, as the server would.
+ * surface's layout. Step 5's read is a lower bar: on a server that trusts
+ * every caller it is not made, and refused or failed it leaves the step open
+ * and every other step drawn. The run summary and what serves a model are
+ * stubbed (their own suites pin them); the permission, the server's posture,
+ * the access list, the agent list and the versions are answered by a client,
+ * as the server would.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { StigmerContext } from "@stigmer/react-core";
 import { FetchCacheContext } from "@stigmer/react-core/internal";
+import { IdentityAccountProvisioningMode } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/enum_pb";
 import { useJourney } from "../useJourney";
 
 const state = vi.hoisted(() => ({
@@ -52,14 +58,38 @@ interface Listed {
 
 let listed: Listed[] = [];
 let allowed: "yes" | "no" | "asking" = "yes";
+/** Whether the viewer may read the access list (`can_view_access`). */
+let viewAccess = true;
+/** Whether the server signs its callers in. */
+let signsIn = true;
+/** The organization's access list: people, service accounts and app users. */
+let access: { kind: string; id: string; name: string; mode: number }[] = [];
+let accessError: Error | null = null;
+
+const APP_USER = IdentityAccountProvisioningMode.app_user;
+const SERVICE_ACCOUNT = IdentityAccountProvisioningMode.service_account;
+const PERSON = IdentityAccountProvisioningMode.direct;
 
 function client() {
   return {
     grant: {
-      checkMyPermission: vi.fn(async (_input: { relation: string; resource?: { kind: string; id: string } }) => {
+      checkMyPermission: vi.fn(async (input: { relation: string; resource?: { kind: string; id: string } }) => {
+        if (input.relation === "can_view_access") return { isAuthorized: viewAccess };
         if (allowed === "asking") return new Promise<never>(() => {});
         return { isAuthorized: allowed === "yes" };
       }),
+      listResourceAccessByPrincipal: vi.fn(async () => {
+        if (accessError) throw accessError;
+        return {
+          entries: access.map((entry) => ({
+            principal: { kind: "identity_account", id: entry.id, name: entry.name, email: "", identityOrigin: { provisioningMode: entry.mode } },
+            roles: [],
+          })),
+        };
+      }),
+    },
+    platform: {
+      getServerInfo: vi.fn(async () => ({ authenticationRequired: signsIn, version: "0.1.3" })),
     },
     agent: {
       list: vi.fn(async (input: { org: string }) => ({
@@ -92,6 +122,10 @@ beforeEach(() => {
   state.served = false;
   listed = [];
   allowed = "yes";
+  viewAccess = true;
+  signsIn = true;
+  access = [];
+  accessError = null;
 });
 afterEach(cleanup);
 
@@ -204,14 +238,68 @@ describe("useJourney", () => {
     expect(result.current.agent).toBeUndefined();
   });
 
-  it("never marks steps 5 and 6 done: no read answers them yet", async () => {
+  it("leaves Put it in your app open while nobody has signed in from the builder's app, people and service accounts not counted", async () => {
     listed = [{ slug: "variance-reporter", name: "Variance Reporter", versions: 2 }];
     state.served = true;
     state.ran = true;
-    const { result } = renderJourney();
+    access = [
+      { kind: "identity_account", id: "ida_owner", name: "Suresh", mode: PERSON },
+      { kind: "identity_account", id: "ida_backend", name: "app-backend", mode: SERVICE_ACCOUNT },
+    ];
+    const { result, stigmer } = renderJourney();
 
     await waitFor(() => expect(result.current.status).toBe("ready"));
     expect(result.current.steps.slice(4).map((step) => step.state)).toEqual(["current", "todo"]);
+    expect(result.current.steps[4]?.line).toBe("Give your users the chat, from the agent's In your app tab.");
+    expect(stigmer.grant.checkMyPermission.mock.calls.map((call) => call[0].relation)).toContain("can_view_access");
+  });
+
+  it("ticks Put it in your app on the first person signed in from the builder's app, by name; Bring others in stays open", async () => {
+    listed = [{ slug: "variance-reporter", name: "Variance Reporter", versions: 2 }];
+    state.served = true;
+    state.ran = true;
+    access = [
+      { kind: "identity_account", id: "ida_owner", name: "Suresh", mode: PERSON },
+      { kind: "identity_account", id: "ida_dana", name: "Dana Lee", mode: APP_USER },
+    ];
+    const { result } = renderJourney();
+
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    expect(result.current.steps[4]).toMatchObject({ state: "done", line: "Dana Lee signed in from your app" });
+    expect(result.current.steps[5]?.state).toBe("current");
+    expect(result.current.done).toBe(5);
+  });
+
+  it("never reads the access list on a server that trusts every caller: nobody signs in there", async () => {
+    signsIn = false;
+    access = [{ kind: "identity_account", id: "ida_dana", name: "Dana Lee", mode: APP_USER }];
+    const { result, stigmer } = renderJourney();
+
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    expect(result.current.steps[4]?.state).not.toBe("done");
+    expect(stigmer.grant.listResourceAccessByPrincipal).not.toHaveBeenCalled();
+  });
+
+  it("CON-01 leaves Put it in your app open without can_view_access, reading no list and drawing every other step", async () => {
+    viewAccess = false;
+    listed = [{ slug: "variance-reporter", name: "Variance Reporter", versions: 1 }];
+    access = [{ kind: "identity_account", id: "ida_dana", name: "Dana Lee", mode: APP_USER }];
+    const { result, stigmer } = renderJourney();
+
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    expect(result.current.steps[0]?.state).toBe("done");
+    expect(result.current.steps[4]?.state).toBe("todo");
+    expect(stigmer.grant.listResourceAccessByPrincipal).not.toHaveBeenCalled();
+  });
+
+  it("a failed access read leaves Put it in your app open and the journey drawn, never off", async () => {
+    accessError = new Error("unavailable");
+    listed = [{ slug: "variance-reporter", name: "Variance Reporter", versions: 1 }];
+    const { result } = renderJourney();
+
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    expect(result.current.steps[0]?.state).toBe("done");
+    expect(result.current.steps[4]?.state).toBe("todo");
   });
 
   it("counts a run that failed as no job done: the key and watch steps stay open, though something ran", async () => {

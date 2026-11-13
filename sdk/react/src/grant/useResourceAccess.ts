@@ -21,6 +21,11 @@ export interface ResourceAccessRef {
 export interface UseResourceAccessOptions {
   /** Include roles inherited from parent resources. Defaults to `false`. */
   readonly includeInherited?: boolean;
+  /**
+   * Re-read the list on this interval, in milliseconds, for a surface
+   * waiting for someone to arrive. `false`, `0` or unset reads it once.
+   */
+  readonly refetchInterval?: number | false;
 }
 
 /** Return value of {@link useResourceAccess}. */
@@ -67,6 +72,7 @@ export function useResourceAccess(
   const kind = resource?.kind ?? null;
   const id = resource?.id ?? null;
   const includeInherited = options?.includeInherited ?? false;
+  const refetchInterval = options?.refetchInterval ?? false;
 
   const { data: members, isLoading, isRefetching, error, refetch } = useFetch(
     kind && id
@@ -82,6 +88,7 @@ export function useResourceAccess(
       : null,
     [kind, id, includeInherited, stigmer],
     [] as PrincipalAccess[],
+    { refetchInterval },
   );
 
   return { members, isLoading, isRefetching, error, refetch };

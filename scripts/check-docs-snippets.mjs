@@ -34,8 +34,9 @@
  *     [--base=<git ref>] [--prune] [--init-list] [--docs-root=<dir>] [--summary]
  *
  * The theme playground's code (`site/src/lib/theme-snippet.mjs`) is compiled
- * too, for every look it offers, when the tree has it and the run is not
- * narrowed to other pages.
+ * too, for every look it offers, and so is the code the console hands a
+ * builder for their app (`sdk/typescript/src/app-handover.ts`), for every
+ * stack, each when the tree has it and the run is not narrowed to other pages.
  *
  * `--docs-root` reads the pages (and the list) from another checkout, with
  * this checkout's compilers and libraries. `--init-list` writes the list
@@ -66,6 +67,7 @@ import {
   prune,
   within,
 } from "./lib/docs-snippets/ratchet.mjs";
+import { HANDOVER_FILE, handoverSnippetUnits } from "./lib/docs-snippets/handover-snippets.mjs";
 import { THEME_SNIPPET_FILE, themeSnippetUnits } from "./lib/docs-snippets/theme-snippets.mjs";
 import { checkTypeScript } from "./lib/docs-snippets/typescript.mjs";
 
@@ -81,15 +83,18 @@ export function docsPages(root) {
 }
 
 /**
- * Compiles the pages' fences, and with `withTheme` the theme playground's
- * code for every look it offers (lib/docs-snippets/theme-snippets.mjs), and
- * returns what it found; the CLI weighs it against the list.
- * @param {{root: string, docsRoot?: string, pages: string[], languages: string[], python?: string, javaClasspath?: string, withTheme?: boolean}} opts
+ * Compiles the pages' fences, with `withTheme` the theme playground's code
+ * for every look it offers (lib/docs-snippets/theme-snippets.mjs), and with
+ * `withHandover` the code the console hands a builder for their app
+ * (lib/docs-snippets/handover-snippets.mjs), and returns what it found; the
+ * CLI weighs it against the list.
+ * @param {{root: string, docsRoot?: string, pages: string[], languages: string[], python?: string, javaClasspath?: string, withTheme?: boolean, withHandover?: boolean}} opts
  */
-export async function runGate({ root, docsRoot = root, pages, languages, python, javaClasspath, withTheme = false }) {
+export async function runGate({ root, docsRoot = root, pages, languages, python, javaClasspath, withTheme = false, withHandover = false }) {
   const { units: fenceUnits, skipped, problems } = collectUnits(docsRoot, pages);
   const theme = withTheme && languages.includes("typescript") ? await themeSnippetUnits(docsRoot, fenceUnits.length) : [];
-  const units = [...fenceUnits, ...theme];
+  const handover = withHandover ? await handoverSnippetUnits(docsRoot, fenceUnits.length + theme.length) : [];
+  const units = [...fenceUnits, ...theme, ...handover];
   const counted = units.filter((u) => languages.includes(u.language));
   const errors = [];
   const checkers = {
@@ -110,7 +115,7 @@ export async function runGate({ root, docsRoot = root, pages, languages, python,
     errors: dedupe(
       errors.map((e) => {
         const unit = byUnit.get(e.id);
-        // The playground's code has no page line: name the look and the line of what it wrote.
+        // Generated code has no page line: name what was written and its line.
         const where = unit?.variant === undefined ? e : { ...e, line: 1, message: `in the code written for ${unit.variant}, its line ${e.line}: ${e.message}` };
         return { ...where, generated: unit?.generated === true };
       }),
@@ -132,19 +137,22 @@ function dedupe(errors) {
 
 /**
  * The pages a run answers for on the list: the pages it read, the theme
- * playground's writer when it compiled its code, and, in a full run, every
- * page the list names, so an entry for a page no longer in the tree is stale.
- * The writer is the exception: a tree without it has no such units to judge.
+ * playground's and the handover's writers when it compiled their code, and,
+ * in a full run, every page the list names, so an entry for a page no longer
+ * in the tree is stale. The writers are the exception: a tree without one has
+ * no such units to judge.
  * @param {{pages: string[], units: {page: string}[], listed: Map<string, number>, full: boolean}} opts
  * @returns {Set<string>}
  */
 export function scopeOf({ pages, units, listed, full }) {
   const scope = new Set(pages);
-  if (units.some((u) => u.page === THEME_SNIPPET_FILE)) scope.add(THEME_SNIPPET_FILE);
+  for (const writer of [THEME_SNIPPET_FILE, HANDOVER_FILE]) {
+    if (units.some((u) => u.page === writer)) scope.add(writer);
+  }
   if (full) {
     for (const key of listed.keys()) {
       const page = key.split("\u0000")[0];
-      if (page !== THEME_SNIPPET_FILE) scope.add(page);
+      if (page !== THEME_SNIPPET_FILE && page !== HANDOVER_FILE) scope.add(page);
     }
   }
   return scope;
@@ -211,7 +219,8 @@ async function main() {
   }
   const pages = docsPages(docsRoot).filter((p) => values.page === undefined || p.startsWith(values.page));
   const withTheme = values.page === undefined || THEME_SNIPPET_FILE.startsWith(values.page);
-  const run = await runGate({ root: repoRoot, docsRoot, pages, languages, python: values.python, javaClasspath: values["java-classpath"], withTheme });
+  const withHandover = values.page === undefined || HANDOVER_FILE.startsWith(values.page);
+  const run = await runGate({ root: repoRoot, docsRoot, pages, languages, python: values.python, javaClasspath: values["java-classpath"], withTheme, withHandover });
 
   if (values["init-list"]) {
     const failing = failingMultiset(run.units, new Set(run.errors.map((e) => e.id)));

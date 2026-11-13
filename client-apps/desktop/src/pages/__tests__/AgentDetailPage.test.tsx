@@ -66,6 +66,7 @@ interface DetailProps {
   onRenamed: (agent: { metadata?: { slug: string } }) => void;
   onResourceLoad: (meta: { name: string; id: string; slug: string }) => void;
   yamlActions?: boolean;
+  inApp?: { serviceAccounts?: string; embedding?: string };
   makeItYours?: { launch: (input: { agent: { org: string; slug: string }; example: string | undefined; mode: "sample" | "own" }) => string };
   activeTab?: string;
 }
@@ -170,6 +171,12 @@ describe("desktop AgentDetailPage — the journey's tab", () => {
       // The organization is written as its slug, as every app address names one.
       `/?agent=${encodeURIComponent("acme/helper")}&example=variance-report&with=own`,
     );
+  });
+
+  it("offers the view's In your app tab, with the app's settings routes", () => {
+    renderAgent();
+
+    expect(page.detail.at(-1)?.inApp).toMatchObject({ serviceAccounts: "/settings/service-accounts", embedding: "/settings/org-embedding" });
   });
 
   it("opens on the tab a link names, and moves to the tab a later link names", () => {

@@ -538,7 +538,9 @@ export const LANES = {
   },
   "ci.docs-snippets.yaml": {
     // Every TypeScript, Go, Python and Java block under docs/ compiles against
-    // the SDK it shows, and the theme playground's code for every look
+    // the SDK it shows, and so do the theme playground's code for every look
+    // and the code the console hands a builder for their app, whose writer
+    // (sdk/typescript/src/app-handover.ts) `sdk/**` names
     // (scripts/check-docs-snippets.mjs, the UX bar's LIB-04 and SDK-03). It
     // runs on what the blocks are and what they compile against: the docs,
     // every SDK and the stubs beneath them, the generators that write the
@@ -844,8 +846,20 @@ export const LANES = {
     // or CLI change does not run it, to keep three toolchains off every such
     // pull request: a server rule that refuses what a quick start sends is
     // caught by the next SDK change or a dispatched run, not by the server's
-    // own pull request. The shared turn cases hold the readers.
+    // own pull request. The shared turn cases hold the readers. The token
+    // routes the console hands a builder run here too (the UX bar's CON-10),
+    // on a server that signs its callers in: their writer, the client their
+    // setup calls through, and the test/support modules that server and its
+    // issuer come from.
     paths: [
+      "sdk/typescript/src/app-handover.ts",
+      "sdk/typescript/src/node.ts",
+      "test/support/src/local-oidc-issuer.ts",
+      "test/support/src/jwt.ts",
+      "test/support/src/server-process.ts",
+      "test/support/src/child-process.ts",
+      "test/support/src/ports.ts",
+      "test/support/src/ts-build.ts",
       "sdk/go/**",
       "sdk/python/**",
       "sdk/java/**",

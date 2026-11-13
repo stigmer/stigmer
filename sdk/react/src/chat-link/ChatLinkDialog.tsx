@@ -11,6 +11,7 @@ import {
   MAX_ALLOWED_ORIGINS,
   StigmerError,
   appendLinkToken,
+  buildAppHandover,
   buildEmbedSnippet,
   chatPath,
   getUserMessage,
@@ -43,7 +44,6 @@ import {
 } from "./webChannelDraft.js";
 import { useRotateChannelLink } from "./useRotateChannelLink.js";
 import { useChatLinkToolReadiness } from "./useChatLinkToolReadiness.js";
-import { trimTrailing } from "../internal/trim.js";
 import { SCROLL_REGION_FOCUS, scrollRegion } from "../internal/scroll-region.js";
 import { useOrgSlugForId } from "../organization/useOrgRefs.js";
 import { useToolCredentialsDisclosure } from "../vault/useToolCredentialsDisclosure.js";
@@ -658,7 +658,14 @@ function ChatLinkForm({
                 commit={commit}
               />
             )}
-            {activeTab === "developer" && <DeveloperTab org={org} slug={slug} />}
+            {activeTab === "developer" && (
+              <DeveloperTab
+                agent={{
+                  org: channel.spec?.agentRef?.org || org,
+                  slug: channel.spec?.agentRef?.slug ?? "",
+                }}
+              />
+            )}
           </div>
         </Tabs>
       </div>
@@ -1438,50 +1445,25 @@ function MessageField({
 // ---------------------------------------------------------------------------
 
 /**
- * The user-token snippet, aimed at the server the console is connected
- * to — a self-hosted admin copies code for their own server, not Stigmer
- * Cloud. `apiBaseUrl` is the server's public base URL (`usePublicBaseUrl`),
- * the address the channel-app webhook URLs are built from too, JSON-quoted
- * so the line is always a valid string literal.
+ * The Node token route that signs a product's users in to this link's
+ * agent, from the one writer every surface hands over (`buildAppHandover`),
+ * aimed at the server the console is connected to (a self-hosted admin
+ * copies code for their own server, not Stigmer Cloud) and naming the
+ * agent's organization by its slug. The rest (the chat, the other
+ * languages, the service account and sign-in setting) is the agent page's
+ * "In your app" tab, which the line under it names.
  */
-function buildDeveloperSnippet(
-  apiBaseUrl: string,
-  org: string,
-  slug: string,
-): string {
-  const baseUrl = JSON.stringify(trimTrailing(apiBaseUrl, "/"));
-  return [
-    `import { createNodeClient } from "@stigmer/client/node";`,
-    ``,
-    `// A key of a service account with the admin role in ${org}`,
-    `const stigmer = createNodeClient({`,
-    `  baseUrl: ${baseUrl},`,
-    `  apiKey: process.env.STIGMER_API_KEY,`,
-    `});`,
-    ``,
-    `// Mint tokens for your own users, then chat with ${org}/${slug}`,
-    `const { accessToken } = await stigmer.tokens.mintUserToken({`,
-    `  org: ${JSON.stringify(org)},`,
-    `  userId: "user-123",`,
-    `});`,
-  ].join("\n");
-}
-
-function DeveloperTab({
-  org,
-  slug,
-}: {
-  readonly org: string;
-  readonly slug: string;
-}) {
+function DeveloperTab({ agent }: { readonly agent: { readonly org: string; readonly slug: string } }) {
   const publicBaseUrl = usePublicBaseUrl();
+  const slugForOrg = useOrgSlugForId();
+  const orgSlug = slugForOrg(agent.org);
   // `null` while the server's public address is unknown: the field says so.
   const snippet = useMemo(
     () =>
       publicBaseUrl === null
         ? null
-        : buildDeveloperSnippet(publicBaseUrl, org, slug),
-    [publicBaseUrl, org, slug],
+        : buildAppHandover({ mode: "sign-in", stack: "node", baseUrl: publicBaseUrl, org: orgSlug, agent: agent.slug }).backend?.code ?? null,
+    [publicBaseUrl, orgSlug, agent.slug],
   );
 
   return (
@@ -1492,12 +1474,18 @@ function DeveloperTab({
         Stigmer SDK — the same runtime, full control.
       </p>
       {snippet !== null ? (
-        <CopyField
-          label="SDK integration"
-          value={snippet}
-          copyLabel="Code"
-          multiline
-        />
+        <>
+          <CopyField
+            label="SDK integration"
+            value={snippet}
+            copyLabel="Code"
+            multiline
+          />
+          <p className="stg:text-xs stg:text-muted-foreground">
+            The chat for your React app, and this route in Next.js, Python, Go
+            and Java, are on this agent&apos;s In your app tab.
+          </p>
+        </>
       ) : (
         <section>
           <h3 className="stg:text-xs stg:font-medium stg:text-muted-foreground">

@@ -28,7 +28,9 @@ describe("desktop journey links", () => {
     const { result } = renderHook(() => useJourneyLinks());
 
     expect(result.current.makeItYours?.(AGENT)).toBe("/library/agents/acme/variance-reporter?tab=make-it-yours");
-    expect(result.current.putInApp?.(AGENT)).toBe("/library/agents/acme/variance-reporter?tab=channels");
+    expect(result.current.putInApp?.(AGENT)).toBe("/library/agents/acme/variance-reporter?tab=in-app");
+    expect(result.current.serviceAccounts).toBe("/settings/service-accounts");
+    expect(result.current.embedding).toBe("/settings/org-embedding");
     expect(result.current.bringOthers).toBe("/settings/members");
     expect(result.current.launch({ agent: AGENT, example: "variance-report", mode: "own" })).toBe(
       agentLaunchUrl("acme", "variance-reporter", { example: "variance-report", mode: "own" }),

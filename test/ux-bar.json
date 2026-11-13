@@ -260,6 +260,10 @@
       "promise": "Every action button is the kit's Button, IconButton or LinkButton, so every action in the console has one height, one size scale and one focus ring."
     },
     {
+      "id": "CON-10",
+      "promise": "The console hands over what puts an agent in the builder's own app, for their stack, with their organization and agent filled in, makes what the route needs in place, and says when their app's first user arrives."
+    },
+    {
       "id": "DSK-01",
       "promise": "Clicking the Dock icon reopens a closed window.",
       "pending": [

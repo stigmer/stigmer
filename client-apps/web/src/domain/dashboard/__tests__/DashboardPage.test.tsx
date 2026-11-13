@@ -33,7 +33,7 @@ vi.mock("@stigmer/react-sdk", () => ({
 
 const JOURNEY_LINKS = vi.hoisted(() => ({
   makeItYours: (agent: { org: string; slug: string }) => `/library/agents/${agent.org}/${agent.slug}?tab=make-it-yours`,
-  putInApp: (agent: { org: string; slug: string }) => `/library/agents/${agent.org}/${agent.slug}?tab=channels`,
+  putInApp: (agent: { org: string; slug: string }) => `/library/agents/${agent.org}/${agent.slug}?tab=in-app`,
   bringOthers: "/settings/members",
   launch: () => "/?with=own",
 }));

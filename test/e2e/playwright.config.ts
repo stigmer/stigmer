@@ -128,12 +128,26 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"] },
     },
     {
+      // The same OIDC stack with the mock model (STIGMER_E2E_MOCK_LLM): an
+      // app built from exactly what the agent page's In your app tab hands
+      // over. It needs the organization as console-login leaves it, before
+      // the embedding tutorial turns account creation on and signs a person
+      // in, so it runs between the two.
+      name: "in-your-app",
+      testDir: "./tests/in-your-app",
+      fullyParallel: false,
+      dependencies: ["console-login"],
+      use: { ...devices["Desktop Chrome"] },
+    },
+    {
       // The same OIDC stack with the mock model (STIGMER_E2E_MOCK_LLM):
       // the embedding tutorial run from its page, as a person signed in to
-      // the reader's app. Runs in the same invocation as console-login.
+      // the reader's app. Runs in the same invocation as console-login,
+      // after in-your-app.
       name: "embed-tutorial",
       testDir: "./tests/embed-tutorial",
       fullyParallel: false,
+      dependencies: ["in-your-app"],
       use: { ...devices["Desktop Chrome"] },
     },
     {
