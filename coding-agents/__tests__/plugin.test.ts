@@ -9,12 +9,13 @@
 // own pack check (npm keeps every staged file, dot-folders included) runs in
 // beforeAll, so a file npm would drop fails this suite.
 
-import { execFileSync } from "node:child_process";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { cpSync, mkdtempSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { inMemoryPluginFiles, readMarketplace, readPluginPackage } from "@stigmer/plugin-package";
 import { beforeAll, describe, expect, it } from "vitest";
+import { build, packOmissions } from "../scripts/build.mjs";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const built = join(root, "dist", "plugin");
@@ -39,7 +40,7 @@ function tree(dir: string): Map<string, string> {
 let files: Map<string, string>;
 
 beforeAll(() => {
-  execFileSync(process.execPath, [join(root, "scripts", "build.mjs")], { cwd: root, stdio: "pipe" });
+  expect(build(root).version).toBe(version);
   files = tree(built);
 });
 
@@ -73,6 +74,22 @@ describe("the plugin", () => {
     if (!outcome.ok) return;
     expect(outcome.marketplace.name).toBe("stigmer");
     expect(outcome.marketplace.plugins.map((entry) => entry.name)).toEqual(["stigmer"]);
+  });
+});
+
+describe("the pack check", () => {
+  it("fails the build, naming each staged file npm would drop", () => {
+    const copy = mkdtempSync(join(tmpdir(), "coding-agent-plugin-"));
+    cpSync(join(root, "package.json"), join(copy, "package.json"));
+    cpSync(join(root, "plugin"), join(copy, "plugin"), { recursive: true });
+    writeFileSync(join(copy, "plugin", ".npmignore"), "README.md\n");
+    expect(() => build(copy)).toThrow(/npm would leave out of the tarball: .*dist\/plugin\/README\.md/);
+  });
+
+
+  it("names every staged file a tarball listing lacks", () => {
+    expect(packOmissions(["dist/plugin/.mcp.json", "dist/index.js"], ["dist/index.js"])).toEqual(["dist/plugin/.mcp.json"]);
+    expect(packOmissions(["dist/index.js"], ["dist/index.js", "package.json"])).toEqual([]);
   });
 });
 

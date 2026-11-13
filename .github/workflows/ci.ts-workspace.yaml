@@ -240,6 +240,7 @@ jobs:
             sdk/ink/coverage/
             mcp-server/coverage/
             plugins/coverage/
+            coding-agents/coverage/
             client-apps/cli/coverage/
           if-no-files-found: ignore
           retention-days: 14
