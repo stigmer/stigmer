@@ -19,7 +19,8 @@ function commandLines(guide: string): string[] {
   const spans = [...guide.matchAll(/```[a-z]*\n([\s\S]*?)```/g)].flatMap((m) => m[1]?.split("\n") ?? []);
   const inline = [...guide.replace(/```[\s\S]*?```/g, "").matchAll(/`([^`\n]+)`/g)].map((m) => m[1] ?? "");
   return [...spans, ...inline]
-    .flatMap((text) => text.split(/\s*(?:\||&&)\s*/))
+    // A pipe or && between commands separates them; one inside a `<a|b>` placeholder does not.
+    .flatMap((text) => text.split(/\s*(?:\|(?![^<]*>)|&&)\s*/))
     .map((text) => text.trim().replace(/^!\s*/, ""))
     .filter((text) => /^stigmer\s+\S/.test(text));
 }

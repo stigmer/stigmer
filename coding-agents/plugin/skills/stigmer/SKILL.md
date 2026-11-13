@@ -53,8 +53,10 @@ say no and nothing changes):
 
 ## 1. Where it runs, and signing in
 
-If the prompt named a Stigmer address, use it. Otherwise ask: Stigmer Cloud,
-their own Stigmer server (its address), or this computer.
+If the prompt named a Stigmer address, use it: an address on `stigmer.ai`
+(`https://api.stigmer.ai`) is Stigmer Cloud; any other is their own server, or
+this computer when it is `localhost:7234`. Otherwise ask: Stigmer Cloud, their
+own Stigmer server (its address), or this computer.
 
 - **Stigmer Cloud**: `stigmer config backend set cloud`.
 - **Their own server**: `stigmer config backend add <name> --endpoint <host:port>`

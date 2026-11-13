@@ -52,6 +52,17 @@ describe("apikey create --save-to-env", () => {
     expect(() => refuseEnvFileThatSetsTheKey(path)).toThrow(/already sets STIGMER_API_KEY/);
     expect(() => refuseEnvFileThatSetsTheKey(join(path, "..", "missing.env"))).not.toThrow();
   });
+  it("refuses, before a key is made, a file whose folder is missing", () => {
+    const path = join(mkdtempSync(join(tmpdir(), "stigmer-env-")), "app", ".env.local");
+    expect(() => refuseEnvFileThatSetsTheKey(path)).toThrow(/cannot be written: .* is missing or not writable/);
+  });
+
+  it("refuses, before a key is made, a file it may not write", () => {
+    const path = join(mkdtempSync(join(tmpdir(), "stigmer-env-")), ".env");
+    writeFileSync(path, "A=1\n", { mode: 0o400 });
+    expect(() => refuseEnvFileThatSetsTheKey(path)).toThrow(/is not writable/);
+  });
+
   it("prints where the key went and never the key, in either format", () => {
     const key = create(ApiKeySchema, { metadata: { id: "key_1", name: "my-app" }, spec: { keyHash: SECRET } });
     for (const format of ["table", "json"] as const) {

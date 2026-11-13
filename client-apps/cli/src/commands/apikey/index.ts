@@ -25,8 +25,8 @@
 // `STIGMER_ORG`, then the context), and the key needs a `--name` of its own.
 
 import { createHash } from "node:crypto";
-import { appendFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
-import { relative, resolve } from "node:path";
+import { accessSync, appendFileSync, constants, existsSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, relative, resolve } from "node:path";
 import { create } from "@bufbuild/protobuf";
 import { timestampDate, timestampFromDate } from "@bufbuild/protobuf/wkt";
 import {
@@ -169,9 +169,27 @@ function refuseServiceAccountMisuse(options: ApiKeyCreateFlags): void {
   }
 }
 
-/** Refuse, before a key is made, a file that already sets the variable: a second key would shadow or lose the first. */
+/**
+ * Refuse, before a key is made, a file the key could not be saved to (its
+ * folder missing or not writable), and one that already sets the variable: a
+ * second key would shadow or lose the first. A key made and then not saved
+ * would be live and shown to nobody.
+ */
 export function refuseEnvFileThatSetsTheKey(path: string): void {
-  if (!existsSync(path)) return;
+  if (!existsSync(path)) {
+    const folder = dirname(resolve(path));
+    try {
+      accessSync(folder, constants.W_OK);
+    } catch {
+      throw new UsageError(`${path} cannot be written: ${folder} is missing or not writable\n\nNo key was created.`);
+    }
+    return;
+  }
+  try {
+    accessSync(path, constants.W_OK);
+  } catch {
+    throw new UsageError(`${path} is not writable\n\nNo key was created.`);
+  }
   const setsIt = readFileSync(path, "utf8")
     .split(/\r?\n/)
     .some((line) => new RegExp(`^\\s*(export\\s+)?${ENV_FILE_VARIABLE}\\s*=`).test(line));

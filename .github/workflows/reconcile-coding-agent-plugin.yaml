@@ -54,7 +54,11 @@ jobs:
         run: |
           set -euo pipefail
           PKG="@stigmer/coding-agent-plugin"
-          TARGET=$(npm view "$PKG" dist-tags.latest)
+          # Until a release publishes the package, there is nothing to copy.
+          if ! TARGET=$(npm view "$PKG" dist-tags.latest 2>/dev/null) || [ -z "$TARGET" ]; then
+            echo "$PKG is not on npm yet; nothing to do until a release publishes it."
+            exit 0
+          fi
           echo "npm latest: $TARGET"
 
           # The published tarball, as every installer of the release reads it.
