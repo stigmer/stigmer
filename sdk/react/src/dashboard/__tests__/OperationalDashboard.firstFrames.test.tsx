@@ -48,8 +48,14 @@ function renderNewOrganization() {
       getOrgUsageReport: vi.fn(async () => ({})),
       list: vi.fn(async () => ({ entries: [], nextPageToken: "" })),
     },
-    platform: { getModelReadiness: vi.fn(async () => ({ providers: [], models: [] })) },
-    grant: { checkMyPermission: vi.fn(async () => ({ isAuthorized: true })) },
+    platform: {
+      getModelReadiness: vi.fn(async () => ({ providers: [], models: [] })),
+      getServerInfo: vi.fn(async () => ({ authenticationRequired: true, version: "0.1.3" })),
+    },
+    grant: {
+      checkMyPermission: vi.fn(async () => ({ isAuthorized: true })),
+      listResourceAccessByPrincipal: vi.fn(async () => ({ entries: [] })),
+    },
     agent: {
       list: vi.fn(async () => ({ entries: [], nextPageToken: "" })),
       listVersions: vi.fn(async () => ({ entries: [], nextPageToken: "" })),
