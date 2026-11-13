@@ -203,6 +203,11 @@ function CodingAgentDoor({ address, disabled, onJustChat }: { readonly address: 
   const { copied, copy } = useCopy(prompt);
   const panelId = useId();
   const labelId = useId();
+  const panel = useRef<HTMLDivElement>(null);
+  // The prompt opens under the cards, often below the fold: bring it into view.
+  useEffect(() => {
+    if (open) panel.current?.scrollIntoView?.({ block: "nearest" });
+  }, [open]);
   return (
     <>
       <div role="separator" className="stg:flex stg:items-center stg:gap-2.5 stg:text-xs stg:text-muted-foreground stg:before:h-px stg:before:flex-1 stg:before:bg-border stg:after:h-px stg:after:flex-1 stg:after:bg-border">
@@ -226,7 +231,7 @@ function CodingAgentDoor({ address, disabled, onJustChat }: { readonly address: 
         </Button>
       </div>
       {open && (
-        <div id={panelId} className="stg:flex stg:flex-col stg:gap-2.5 stg:rounded-xl stg:border stg:border-border stg:bg-card stg:p-3.5">
+        <div ref={panel} id={panelId} className="stg:flex stg:flex-col stg:gap-2.5 stg:rounded-xl stg:border stg:border-border stg:bg-card stg:p-3.5">
           <p className="stg:m-0 stg:text-xs stg:leading-5 stg:text-muted-foreground">
             Paste this into your coding agent, in your app&apos;s folder. It installs Stigmer&apos;s command line, signs you in, suggests an agent from what your app does, runs it once, and puts its chat in your app with you.
           </p>
