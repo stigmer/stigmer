@@ -77,6 +77,13 @@ describe("Hero", () => {
     );
   });
 
+  it("offers a third door, for people who hand setup to their coding agent", () => {
+    render(<Hero />);
+    expect(screen.getByRole("link", { name: "Let your coding agent set it up" }).getAttribute("href")).toBe(
+      "/docs/getting-started/coding-agent",
+    );
+  });
+
   it("loads the ask first: eager, at high priority, outside every reveal, never faded, so it always shows", () => {
     const { container } = render(<Hero />);
     const img = picture(container, HERO_BASE);

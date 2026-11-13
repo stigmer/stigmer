@@ -80,6 +80,11 @@
       "branches": 79.8,
       "cases": 201
     },
+    "coding-agents": {
+      "lines": 100,
+      "branches": 87.5,
+      "cases": 9
+    },
     "plugins": {
       "lines": 72.3,
       "branches": 68.4,

@@ -1,0 +1,47 @@
+{
+  "name": "@stigmer/coding-agent-plugin",
+  "version": "0.0.0-dev",
+  "description": "Stigmer's plugin for coding agents (Claude Code, Codex, Cursor): the guide that sets Stigmer up for a project and the bundled stigmer mcp-server, published at the CLI's own version so `stigmer coding-agent` prints the guide its CLI follows",
+  "license": "Apache-2.0",
+  "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "clean": "rm -rf dist",
+    "test": "vitest run"
+  },
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "stigmer",
+    "claude-code",
+    "codex",
+    "cursor",
+    "plugin",
+    "mcp"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stigmer/stigmer.git",
+    "directory": "coding-agents"
+  },
+  "devDependencies": {
+    "@stigmer/plugin-package": "*",
+    "@types/node": "^22.0.0",
+    "vitest": "^3.2.4"
+  }
+}

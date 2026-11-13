@@ -67,6 +67,15 @@ pages:
       back as a file.
     medium: none
 
+  getting-started/coding-agent:
+    fate: keep
+    diataxis: tutorial
+    teaches:
+      Paste one prompt into Claude Code, Cursor or Codex and follow it to an
+      Agent made, run once and chatting in your own app, and install the plugin
+      that keeps the guide there.
+    medium: none
+
   getting-started/make-it-yours:
     fate: keep
     diataxis: tutorial

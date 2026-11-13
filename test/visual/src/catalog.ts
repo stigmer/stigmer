@@ -60,6 +60,7 @@ export type SceneId =
   | "launcher-connect-member"
   | "launcher-connect-local"
   | "launcher-first-question"
+  | "launcher-coding-agent"
   | "launcher-example-connect"
   | "launcher-example-rejected"
   | "launcher-example-unchecked"
@@ -712,6 +713,12 @@ export const SCENES: readonly Scene[] = [
     id: "launcher-first-question",
     title: "Launcher: a newcomer's first question, four example jobs, describe your own or just chat",
     widths: ["desktop", "narrow"],
+  },
+  {
+    id: "launcher-coding-agent",
+    title: "Launcher: the coding-agent door under the first question, its prompt open with this console's address",
+    widths: ["desktop", "narrow"],
+    opens: [{ press: "Let your coding agent set it up", role: "button", exact: true }],
   },
   {
     id: "launcher-example-connect",

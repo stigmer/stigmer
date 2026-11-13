@@ -20,6 +20,7 @@
     "sdk/ink",
     "mcp-server",
     "plugins",
+    "coding-agents",
     "client-apps/cli",
     "client-apps/web",
     "client-apps/desktop",

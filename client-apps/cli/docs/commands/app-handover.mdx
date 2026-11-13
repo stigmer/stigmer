@@ -1,0 +1,42 @@
+The code that puts an agent's chat in your own app: a token route for your
+backend and the chat component for your React app, exactly what the console's
+agent page hands over on its **In your app** tab.
+
+On a server that signs people in (Stigmer Cloud, or your own with sign-in on),
+the route, `GET /api/stigmer-token`, mints a token for the user your app has
+signed in, with an admin service account's key read from `STIGMER_API_KEY`; you
+replace its `currentUser` with your app's own sign-in. On a server that trusts
+every caller (`stigmer up`), the handover is the development chat alone, with no
+token, since there is nobody to sign in.
+
+It prints the files by default. `--write <dir>` writes them under your app's
+folder at their own paths (for Next.js, `app/api/stigmer-token/route.ts`) and
+says what to install. It never overwrites a file unless you pass `--force`.
+
+{/* AUTO_USAGE */}
+
+### Common patterns
+
+```bash
+# Print the route and chat for a Next.js app
+stigmer app-handover --stack nextjs --agent invoice-matcher
+
+# Write them into the app you are in
+stigmer app-handover --stack node --agent invoice-matcher --write .
+```
+
+The stacks are `nextjs`, `node`, `python`, `go` and `java`. The address written
+into the code is your backend's as a browser reaches it: `https://<host>` for a
+TLS endpoint, `http://<host>:<port>` otherwise.
+
+{/* AUTO_FLAGS */}
+
+{/* AUTO_GLOBAL_FLAGS */}
+
+## Related commands
+
+| Command                                        | Description                                  |
+| ---------------------------------------------- | -------------------------------------------- |
+| [`stigmer apikey`](./apikey)                   | The service account's key, `--save-to-env`      |
+| [`stigmer embedding`](./embedding)             | Make your users' accounts on first sign-in   |
+| [`stigmer service-account`](./service-account) | The admin account the route's key speaks for |
