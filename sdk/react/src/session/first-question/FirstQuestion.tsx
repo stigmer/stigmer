@@ -4,8 +4,11 @@
 // asks what the newcomer's agent should do for their users, says in one line
 // why they would make one at all, and offers four example jobs (each naming
 // what a user hands over and what comes back), a way to describe their own,
-// and a way to just chat. After a pick, the chosen bar says what was made and
-// what is attached, with a way back to the cards.
+// and a way to just chat. Under them, for a person who would rather hand
+// setup to Claude Code, Cursor or Codex, one quiet line opens the prompt to
+// paste into their coding agent, with this console's own address in it, so
+// the coding agent sets up against this server. After a pick, the chosen bar
+// says what was made and what is attached, with a way back to the cards.
 //
 // Built to the onboarding design's principles: room before size (14px text on
 // 20px lines, 14px padding inside a card, gaps set by the layout), one primary
@@ -21,6 +24,7 @@ import { cn } from "@stigmer/design-tokens";
 import { EXAMPLES, type Example } from "@stigmer/examples";
 import { Button } from "../../button/Button.js";
 import { Notice } from "../../internal/surface/Notice.js";
+import { CopyButton, useCopy } from "../../internal/CopyBlock.js";
 import type { FirstChoice, FirstChoiceFailure, FirstChoicePending } from "./useStartFromExample.js";
 
 /** The question, as the person reads it. */
@@ -30,6 +34,20 @@ export const FIRST_QUESTION_WHY =
   "Stigmer runs agents inside your product, doing jobs for your users. Pick an example and watch one do its job on a sample file, or describe your own.";
 /** The way out to today's launcher. */
 export const JUST_CHAT = "Just chat with Stigmer";
+/** The coding-agent door's link, under the cards. */
+export const CODING_AGENT_LINK = "Let your coding agent set it up";
+/** The prompt's body, the same words stigmer.ai's coding-agent page gives. */
+export const CODING_AGENT_PROMPT =
+  "Set up Stigmer for this project. Install its command line (`npm install -g @stigmer/cli`, or `brew install stigmer/tap/stigmer`), run `stigmer coding-agent`, and follow what it prints.";
+
+/**
+ * The prompt a person pastes into their coding agent: {@link CODING_AGENT_PROMPT},
+ * then, when the console knows its public address, one sentence that sends
+ * the coding agent to this server rather than asking where Stigmer runs.
+ */
+export function codingAgentPrompt(address: string | null | undefined): string {
+  return address ? `${CODING_AGENT_PROMPT} Use the Stigmer at ${address}.` : CODING_AGENT_PROMPT;
+}
 
 /** Props for {@link FirstQuestion}. */
 export interface FirstQuestionProps {
@@ -43,6 +61,12 @@ export interface FirstQuestionProps {
   readonly onDescribe: (words: string) => void;
   /** Leaves the question for today's launcher, for this visit. */
   readonly onJustChat: () => void;
+  /**
+   * This console's public API address (`usePublicBaseUrl`), written into the
+   * coding-agent prompt; without one the prompt leaves the coding agent to
+   * ask where Stigmer runs.
+   */
+  readonly codingAgentAddress?: string | null;
 }
 
 /** A file's name in a chip, the way the composer shows an attachment. */
@@ -172,12 +196,64 @@ function DescribeOwn({ pending, failure, onDescribe, onJustChat }: Pick<FirstQue
   );
 }
 
+/** The coding-agent door: the line under the cards, and the prompt with Copy once opened. */
+function CodingAgentDoor({ address, disabled, onJustChat }: { readonly address: string | null | undefined; readonly disabled: boolean; readonly onJustChat: () => void }) {
+  const [open, setOpen] = useState(false);
+  const prompt = codingAgentPrompt(address);
+  const { copied, copy } = useCopy(prompt);
+  const panelId = useId();
+  const labelId = useId();
+  return (
+    <>
+      <div role="separator" className="stg:flex stg:items-center stg:gap-2.5 stg:text-xs stg:text-muted-foreground stg:before:h-px stg:before:flex-1 stg:before:bg-border stg:after:h-px stg:after:flex-1 stg:after:bg-border">
+        or
+      </div>
+      <div className="stg:flex stg:flex-wrap stg:items-center stg:justify-between stg:gap-x-4 stg:gap-y-1">
+        <p className="stg:m-0 stg:text-xs stg:leading-5 stg:text-muted-foreground">
+          Rather hand it to Claude Code, Cursor or Codex?{" "}
+          <button
+            type="button"
+            onClick={() => setOpen((was) => !was)}
+            aria-expanded={open}
+            aria-controls={panelId}
+            className="stg:cursor-pointer stg:border-0 stg:bg-transparent stg:p-0 stg:text-xs stg:text-foreground stg:underline stg:decoration-border-prominent stg:underline-offset-[3px] stg:hover:decoration-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:rounded-sm"
+          >
+            {CODING_AGENT_LINK}
+          </button>
+        </p>
+        <Button variant="ghost" size="xs" onClick={onJustChat} disabled={disabled}>
+          {JUST_CHAT}
+        </Button>
+      </div>
+      {open && (
+        <div id={panelId} className="stg:flex stg:flex-col stg:gap-2.5 stg:rounded-xl stg:border stg:border-border stg:bg-card stg:p-3.5">
+          <p className="stg:m-0 stg:text-xs stg:leading-5 stg:text-muted-foreground">
+            Paste this into your coding agent, in your app&apos;s folder. It installs Stigmer&apos;s command line, signs you in, suggests an agent from what your app does, runs it once, and puts its chat in your app with you.
+          </p>
+          <div className="stg:flex stg:items-center stg:justify-between">
+            <p id={labelId} className="stg:m-0 stg:text-2xs stg:font-medium stg:text-muted-foreground">
+              The prompt
+            </p>
+            <CopyButton copied={copied} onCopy={copy} />
+          </div>
+          <p
+            aria-labelledby={labelId}
+            className="stg:m-0 stg:rounded-lg stg:border stg:border-border stg:bg-muted-subtle stg:px-3 stg:py-2.5 stg:text-sm stg:leading-5 stg:text-foreground stg:whitespace-pre-wrap stg:break-words"
+          >
+            {prompt}
+          </p>
+        </div>
+      )}
+    </>
+  );
+}
+
 /**
  * The launcher's first question: four example jobs, "Describe your own" and
  * "Just chat with Stigmer". Presentational; {@link useStartFromExample}
  * makes the agents.
  */
-export function FirstQuestion({ examples = EXAMPLES, pending, failure, onPick, onDescribe, onJustChat }: FirstQuestionProps) {
+export function FirstQuestion({ examples = EXAMPLES, pending, failure, onPick, onDescribe, onJustChat, codingAgentAddress }: FirstQuestionProps) {
   const headingId = useId();
   const failedExample = failure !== null ? examples.find((example) => example.id === failure.of) : undefined;
   return (
@@ -203,11 +279,7 @@ export function FirstQuestion({ examples = EXAMPLES, pending, failure, onPick, o
         <PickFailure failure={failure} onRetry={() => onPick(failedExample)} onJustChat={onJustChat} />
       )}
       <DescribeOwn pending={pending} failure={failure} onDescribe={onDescribe} onJustChat={onJustChat} />
-      <div className="stg:flex stg:justify-end">
-        <Button variant="ghost" size="xs" onClick={onJustChat} disabled={pending !== null}>
-          {JUST_CHAT}
-        </Button>
-      </div>
+      <CodingAgentDoor address={codingAgentAddress} disabled={pending !== null} onJustChat={onJustChat} />
     </section>
   );
 }

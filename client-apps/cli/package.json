@@ -61,6 +61,8 @@
     "@stigmer/apis": "*",
     "@stigmer/artifact-fetch": "*",
     "@stigmer/client": "*",
+    "@stigmer/coding-agent-plugin": "*",
+    "@stigmer/examples": "*",
     "@stigmer/ink-ui": "*",
     "@stigmer/mcp-server": "*",
     "@stigmer/plugin-package": "*",

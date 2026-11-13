@@ -89,6 +89,11 @@ function Hero({ className, ...props }: HeroProps) {
                 </a>
               </Button>
               <Button asChild variant="outline" size="lg">
+                <Link href="/docs/getting-started/coding-agent">
+                  Let your coding agent set it up
+                </Link>
+              </Button>
+              <Button asChild variant="outline" size="lg">
                 <Link href="/docs/getting-started/quickstart">
                   Run the quickstart
                 </Link>

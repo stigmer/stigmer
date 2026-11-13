@@ -1,0 +1,100 @@
+name: reconcile-coding-agent-plugin
+
+# Keeps stigmer/coding-agent-plugin, the repository Claude Code, Codex and
+# Cursor install Stigmer's plugin for coding agents from, equal to the npm
+# `latest` of @stigmer/coding-agent-plugin: the package's dist/plugin/ is the
+# repository's whole tree. The package is built from coding-agents/ and
+# published by the release train at the CLI's own version, so the plugin a
+# person installs is always the one released with the CLI they install, never
+# `main` ahead of it.
+#
+# Unlike the Homebrew tap, nothing here installs dependencies at the target
+# version, so there is no age window: a run after a release takes it at once.
+#
+# The job is idempotent: it is a no-op when the repository's tree already is
+# the package's plugin.
+
+on:
+  schedule:
+    # Daily at 08:41 UTC (off the top of the hour to avoid scheduler congestion).
+    - cron: '41 8 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: reconcile-coding-agent-plugin
+  cancel-in-progress: false
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout coding-agent-plugin
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          repository: stigmer/coding-agent-plugin
+          path: plugin
+          # A write deploy key of that repository alone (not a token with the
+          # owner's reach). gh adds it tied to the token that added it, so a
+          # revoked token removes it; re-add it with
+          # `gh repo deploy-key add <pub> -R stigmer/coding-agent-plugin --allow-write`.
+          ssh-key: ${{ secrets.CODING_AGENT_PLUGIN_DEPLOY_KEY }}
+          # This job pushes the plugin's tree with git, so the checkout keeps its key.
+          persist-credentials: true # zizmor: ignore[artipacked]
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '20'
+
+      - name: Reconcile the repository to npm latest
+        working-directory: plugin
+        run: |
+          set -euo pipefail
+          PKG="@stigmer/coding-agent-plugin"
+          TARGET=$(npm view "$PKG" dist-tags.latest)
+          echo "npm latest: $TARGET"
+
+          # The published tarball, as every installer of the release reads it.
+          mkdir -p "$RUNNER_TEMP/pkg"
+          (cd "$RUNNER_TEMP/pkg" && npm pack "$PKG@$TARGET" --silent >/dev/null && tar -xzf ./*.tgz)
+          SOURCE="$RUNNER_TEMP/pkg/package/dist/plugin"
+          if [ ! -f "$SOURCE/.claude-plugin/plugin.json" ]; then
+            echo "ERROR: $PKG@$TARGET carries no dist/plugin/.claude-plugin/plugin.json"
+            exit 1
+          fi
+
+          # The tree becomes the package's plugin exactly: every tracked file
+          # goes, then the package's files come in, dot-folders included.
+          git rm -rq --ignore-unmatch .
+          cp -R "$SOURCE"/. .
+          git add -A
+          if git diff --cached --quiet; then
+            echo "The repository already is the plugin of $TARGET; nothing to do."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git commit -qm "Update the plugin to ${TARGET}"
+          git push
+
+  # Scheduled runs are unattended; manual dispatches are watched.
+  # Shared file-or-comment mechanics live in notify-failure.yaml.
+  notify-failure:
+    name: File Coding-Agent Plugin Reconcile Failure Issue
+    needs: reconcile
+    if: failure() && github.event_name == 'schedule'
+    permissions:
+      issues: write
+    uses: ./.github/workflows/notify-failure.yaml
+    with:
+      label: reconcile-coding-agent-plugin-failure
+      title: "reconcile-coding-agent-plugin: the plugin repository's daily reconciliation is failing"
+      body-context: >-
+        This job replaces stigmer/coding-agent-plugin's tree with the npm
+        latest of @stigmer/coding-agent-plugin's dist/plugin/; while it is red,
+        people who install the plugin get an older guide than their CLI.
+        Usual suspects: a removed deploy key (CODING_AGENT_PLUGIN_DEPLOY_KEY), or a release
+        that published the package without its plugin folder.

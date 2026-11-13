@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "stigmer": {
+      "command": "stigmer",
+      "args": ["mcp-server"]
+    }
+  }
+}

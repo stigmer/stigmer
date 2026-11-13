@@ -53,6 +53,13 @@ test("PACKAGES is exactly the workspace members that are not private", () => {
   );
 });
 
+test("PACKAGES publishes @stigmer/coding-agent-plugin and @stigmer/examples before the CLI that depends on them", () => {
+  for (const dir of ["coding-agents", "examples"]) {
+    assert.ok(PACKAGES.includes(dir), `${dir} must be in PACKAGES`);
+    assert.ok(PACKAGES.indexOf(dir) < PACKAGES.indexOf("client-apps/cli"), `${dir} must publish before client-apps/cli`);
+  }
+});
+
 test("PACKAGES publishes @stigmer/plugins before the CLI that acquires it", () => {
   // A published @stigmer/cli acquires @stigmer/plugins at its exact version on
   // demand, so plugins must be in the publish set. Order is not load-bearing
@@ -231,8 +238,9 @@ test("the checked-in @stigmer/cli closure is exactly what the compose-runner ima
   // the CLI's path is a visible change here, not a silent registry fetch in
   // the image build. The SDK folds a session's events with session-log,
   // which reads the tool vocabulary; the Temporal download reads
-  // artifact-fetch. plugins, embed and temporal-codecs are
-  // NOT on the CLI's path and stay out of the image.
+  // artifact-fetch; `stigmer example` reads examples and `stigmer
+  // coding-agent` prints coding-agents' guide. plugins, embed and
+  // temporal-codecs are NOT on the CLI's path and stay out of the image.
   assert.deepEqual(packageClosure("@stigmer/cli"), [
     "apis/stubs/ts",
     "backend/libs/ts/zip-structure",
@@ -241,10 +249,12 @@ test("the checked-in @stigmer/cli closure is exactly what the compose-runner ima
     "backend/libs/ts/plugin-package",
     "backend/libs/ts/tool-vocabulary",
     "backend/libs/ts/session-log",
+    "examples",
     "sdk/typescript",
     "sdk/react-core",
     "sdk/ink",
     "mcp-server",
+    "coding-agents",
     "client-apps/cli",
   ]);
 });

@@ -78,6 +78,10 @@
       "promise": "`stigmer up` and `stigmer setup` check a model key with the provider before calling it ready, and on a terminal ask again when it is rejected."
     },
     {
+      "id": "CLI-18",
+      "promise": "A coding agent can take a newcomer from one prompt to their agent's chat in their own app: sign-in, an example or their own agent, a live key check with no key in the chat, a first run, and the app's route and chat."
+    },
+    {
       "id": "INK-01",
       "promise": "Every state a run passes through has its own frame: loading, streaming, tools, approvals, file review, subagents, failure, completion."
     },
@@ -262,6 +266,10 @@
     {
       "id": "CON-10",
       "promise": "The console hands over what puts an agent in the builder's own app, for their stack, with their organization and agent filled in, makes what the route needs in place, and says when their app's first user arrives."
+    },
+    {
+      "id": "CON-11",
+      "promise": "The console offers the coding-agent door from the first question, with its own address in the prompt."
     },
     {
       "id": "DSK-01",

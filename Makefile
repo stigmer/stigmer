@@ -625,6 +625,17 @@ smoke-up-key: build-runner build-server build-web ## Check the model key at stig
 	@cd $(SERVER_DIR) && node scripts/bundle-slim.mjs
 	node test/install/smoke-up-key.mjs
 
+# The coding-agent door end to end (test/install/coding-agent-door.mjs): the
+# console's prompt pasted into Claude Code (`claude -p`, signed in to its own
+# model) in a scratch Next.js app, against a server that signs its callers in
+# with a runner on the fake model; it ends with the agent made, run once, and
+# its chat answering on the app's page in a browser. Needs a coding agent, so
+# it is in no lane; DOOR_ARGS passes its flags (--keep, --max-turns=<n>).
+.PHONY: door-coding-agent
+door-coding-agent: build-libs build-server build-runner ## Paste the coding-agent prompt into Claude Code in a scratch app and check the chat lands (by hand; needs claude signed in)
+	@command -v claude >/dev/null 2>&1 || { echo "error: claude not found (Claude Code, signed in)"; exit 1; }
+	node test/install/coding-agent-door.mjs $(DOOR_ARGS)
+
 # The Go, Python and Java quick starts run as a developer runs them, on the
 # same source CLI and slim server as the smokes above: each must print the
 # agent's answer (test/install/smoke-sdk-quickstarts.mjs). Needs go, python3,

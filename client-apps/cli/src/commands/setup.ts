@@ -11,6 +11,12 @@
 // (Anthropic + skip: the key setup saves; the runner reaches other providers
 // by keys exported in the shell, local/provider-reach.ts).
 //
+// `--api-key-stdin` reads the key from stdin instead of the command line,
+// where a shell's history and a coding agent's transcript would keep it
+// (`printenv ANTHROPIC_API_KEY | stigmer setup --provider anthropic
+// --api-key-stdin`); it implies `--provider anthropic` and refuses a terminal,
+// where the interactive `stigmer setup` asks at a hidden prompt instead.
+//
 // A key given to setup is checked with Anthropic before it is saved, on both
 // paths (local/model-key-step.ts): the flag path refuses a key Anthropic
 // rejects with exit code 1 and saves nothing, and saves a key Anthropic did not
@@ -26,9 +32,10 @@ import { homedir } from "node:os";
 import { type OutputFlags, CommandResult, renderResult } from "../output/index.js";
 import { addResultFlags, resultFormat } from "./shared.js";
 
-interface SetupFlags extends OutputFlags {
+export interface SetupFlags extends OutputFlags {
   provider?: string;
   apiKey?: string;
+  apiKeyStdin?: boolean;
   operatorEmail?: string;
   operatorName?: string;
 }
@@ -39,13 +46,15 @@ export function registerSetup(program: Command): void {
     .description("configure the LLM provider and operator identity for local execution")
     .option("--provider <name>", "provider: anthropic, or skip to clear (non-interactive)")
     .option("--api-key <key>", "Anthropic API key")
+    .option("--api-key-stdin", "read the Anthropic API key from stdin (keeps it out of history and transcripts)")
     .option("--operator-email <email>", "operator identity for local caller attribution (non-interactive)")
     .option("--operator-name <name>", "operator display name (requires --operator-email)")
     .action((options: SetupFlags) => runSetup(options));
   addResultFlags(setup);
 }
 
-async function runSetup(options: SetupFlags): Promise<void> {
+async function runSetup(flags: SetupFlags): Promise<void> {
+  const options = await withStdinKey(flags);
   const { load, save } = await import("../config/config.js");
   const { PROVIDER_CHOICES, applyChoice, applyOperatorIdentity, runInteractiveWizard } =
     await import("../local/setup/wizard.js");
@@ -107,6 +116,38 @@ async function runSetup(options: SetupFlags): Promise<void> {
     result.hint("Restart to apply: stigmer down && stigmer up");
   }
   renderResult(result, resultFormat(options));
+}
+
+/**
+ * The flags with `--api-key-stdin` read into `apiKey`: refused beside
+ * `--api-key`, on a terminal, and when stdin is empty; the provider is
+ * Anthropic unless the flags said it.
+ */
+export async function withStdinKey(
+  flags: SetupFlags,
+  io: { readonly stdinIsTty: boolean; readonly readStdin: () => Promise<string> } = {
+    stdinIsTty: process.stdin.isTTY === true,
+    readStdin: async () => {
+      const chunks: Buffer[] = [];
+      for await (const chunk of process.stdin) chunks.push(chunk as Buffer);
+      return Buffer.concat(chunks).toString("utf8");
+    },
+  },
+): Promise<SetupFlags> {
+  if (flags.apiKeyStdin !== true) return flags;
+  const { UsageError } = await import("../errors/usage-error.js");
+  if (flags.apiKey !== undefined) {
+    throw new UsageError("--api-key and --api-key-stdin both give the key\n\nUse one.");
+  }
+  if (io.stdinIsTty) {
+    throw new UsageError(
+      "--api-key-stdin reads a key piped in, and stdin is a terminal\n\n" +
+        "Pipe it:  printenv ANTHROPIC_API_KEY | stigmer setup --api-key-stdin\nor type it at a hidden prompt:  stigmer setup",
+    );
+  }
+  const key = (await io.readStdin()).trim();
+  if (key === "") throw new UsageError("--api-key-stdin read nothing from stdin");
+  return { ...flags, provider: flags.provider ?? "anthropic", apiKey: key };
 }
 
 /**

@@ -31,6 +31,7 @@ import { nothingRuns } from "../models/readiness.js";
 import { useModelRegistry } from "../models/useModelRegistry.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
 import { useFirstQuestionGate } from "./first-question/useFirstQuestionGate.js";
+import { usePublicBaseUrl } from "../public-base-url-context.js";
 import type { SessionLaunch } from "./launch.js";
 import type { JourneyLinks } from "../journey/links.js";
 import { useStartFromExample, type FirstChoice } from "./first-question/useStartFromExample.js";
@@ -371,6 +372,8 @@ export function NewSessionViewer({
   const sentSomewhere = initialAgentRef != null || (initialPluginRefs?.length ?? 0) > 0 || activeLaunch !== undefined;
   const firstGate = useFirstQuestionGate(org, firstQuestion && audience === "integrator" && !sentSomewhere);
   const firstOpen = !firstDone && firstGate === "ask";
+  // The address the coding-agent prompt sends a person's coding agent to.
+  const publicBaseUrl = usePublicBaseUrl();
   const firstWaits = !firstDone && firstGate === "pending";
   const starts = useStartFromExample(org);
   // A reference may name its org by slug (one a host or URL supplied) or by
@@ -619,6 +622,7 @@ export function NewSessionViewer({
               onPick={(example) => pick(pickExample(example))}
               onDescribe={(words) => pick(describeOwn(words))}
               onJustChat={leaveFirst}
+              codingAgentAddress={publicBaseUrl}
             />
           </Suspense>
         ) : firstOpen && choice !== null ? (

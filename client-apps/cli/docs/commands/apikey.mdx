@@ -20,6 +20,9 @@ stigmer apikey create --name "automation" --never-expires
 # Create a key for a service account of the Organization
 stigmer apikey create --service-account ci-deploy --name "github-actions"
 
+# Save a key for your app's backend to its env file, never printing it
+stigmer apikey create --service-account app-backend --name my-app --env-file .env.local
+
 # Look up which key matches a raw token
 stigmer apikey fingerprint stk_abc123...
 

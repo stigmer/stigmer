@@ -1,0 +1,97 @@
+// The coding-agent plugin as each tool reads it (coding-agents/plugin, built
+// by scripts/build.mjs into dist/plugin): one plugin named `stigmer` under
+// the Claude Code, Cursor and Codex manifests, each stamped with the
+// package's version; its guide (skills/stigmer/SKILL.md) and the bundled
+// `stigmer mcp-server` read with no warning by `@stigmer/plugin-package`,
+// which knows all three dialects; each tool's marketplace file offering that
+// one plugin at the repository's root; and dist/index.js exporting the guide
+// without its frontmatter, as `stigmer coding-agent` prints it. The build's
+// own pack check (npm keeps every staged file, dot-folders included) runs in
+// beforeAll, so a file npm would drop fails this suite.
+
+import { execFileSync } from "node:child_process";
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { join, relative } from "node:path";
+import { fileURLToPath } from "node:url";
+import { inMemoryPluginFiles, readMarketplace, readPluginPackage } from "@stigmer/plugin-package";
+import { beforeAll, describe, expect, it } from "vitest";
+
+const root = fileURLToPath(new URL("..", import.meta.url));
+const built = join(root, "dist", "plugin");
+const { version } = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as { version: string };
+
+const MARKETPLACES = [".claude-plugin/marketplace.json", ".cursor-plugin/marketplace.json", ".agents/plugins/marketplace.json"];
+const MANIFESTS = [".claude-plugin/plugin.json", ".cursor-plugin/plugin.json", ".codex-plugin/plugin.json"];
+
+function tree(dir: string): Map<string, string> {
+  const files = new Map<string, string>();
+  const walk = (at: string): void => {
+    for (const name of readdirSync(at)) {
+      const path = join(at, name);
+      if (statSync(path).isDirectory()) walk(path);
+      else files.set(relative(dir, path), readFileSync(path, "utf8"));
+    }
+  };
+  walk(dir);
+  return files;
+}
+
+let files: Map<string, string>;
+
+beforeAll(() => {
+  execFileSync(process.execPath, [join(root, "scripts", "build.mjs")], { cwd: root, stdio: "pipe" });
+  files = tree(built);
+});
+
+describe("the plugin", () => {
+  it("is one plugin named stigmer under all three manifests, at the package's version", () => {
+    for (const manifest of MANIFESTS) {
+      const json = JSON.parse(files.get(manifest) ?? "{}") as { name?: string; version?: string };
+      expect(json.name, manifest).toBe("stigmer");
+      expect(json.version, manifest).toBe(version);
+    }
+  });
+
+  it("reads with no error or warning: the guide's skill and the bundled MCP server", () => {
+    const outcome = readPluginPackage(inMemoryPluginFiles(files));
+    expect(outcome.warnings).toEqual([]);
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.plugin.name).toBe("stigmer");
+    expect(outcome.plugin.skills.map((skill) => skill.name)).toEqual(["stigmer"]);
+    expect(JSON.parse(files.get(".mcp.json") ?? "{}")).toEqual({
+      mcpServers: { stigmer: { command: "stigmer", args: ["mcp-server"] } },
+    });
+    expect(outcome.plugin.mcpServers.map((server) => server.name)).toEqual(["stigmer"]);
+  });
+
+  it.each(MARKETPLACES)("%s offers the one plugin at the repository's root", (marketplace) => {
+    const only = new Map([...files].filter(([path]) => !MARKETPLACES.includes(path) || path === marketplace));
+    const outcome = readMarketplace(inMemoryPluginFiles(only));
+    expect(outcome.warnings).toEqual([]);
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.marketplace.name).toBe("stigmer");
+    expect(outcome.marketplace.plugins.map((entry) => entry.name)).toEqual(["stigmer"]);
+  });
+});
+
+describe("the guide", () => {
+  it("is exported without its frontmatter, as stigmer coding-agent prints it", async () => {
+    const { GUIDE, VERSION, PLUGIN_REPOSITORY } = (await import(join(root, "dist", "index.js"))) as {
+      GUIDE: string;
+      VERSION: string;
+      PLUGIN_REPOSITORY: string;
+    };
+    expect(GUIDE.startsWith("# Set up Stigmer for this project\n")).toBe(true);
+    expect(GUIDE).not.toMatch(/^name: stigmer$/m);
+    expect(VERSION).toBe(version);
+    expect(PLUGIN_REPOSITORY).toBe("stigmer/coding-agent-plugin");
+  });
+
+  it("names no key-shaped value and never asks for a key in the chat", () => {
+    const guide = files.get("skills/stigmer/SKILL.md") ?? "";
+    expect(guide).not.toMatch(/sk-ant-|stk_[A-Za-z0-9]{8}/);
+    expect(guide).toContain("Never print, echo or ask for a key");
+  });
+});

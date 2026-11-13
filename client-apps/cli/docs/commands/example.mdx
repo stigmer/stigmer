@@ -1,0 +1,41 @@
+Stigmer's example agents and ready-made skills, written into your repository as
+files.
+
+Each example is a job an agent does for your product's users, with a sample file
+in and a file out: the same list the console's first question offers. `get`
+writes an example's manifest and its sample files into a folder (by default
+`stigmer/<id>`), or a skill's `SKILL.md` (by default `stigmer/skills/<id>`), and
+says the commands that make the agent and run it once on the samples. It never
+overwrites a file unless you pass `--force`, so a manifest you edited stays
+yours.
+
+{/* AUTO_USAGE */}
+
+### Common patterns
+
+```bash
+# See the examples and the skills
+stigmer example list
+
+# Write one into this repository, then make it and run it on its samples
+stigmer example get invoice-match
+stigmer apply -f stigmer/invoice-match/invoice-matcher.yaml
+
+# A ready-made skill to push and add to an agent
+stigmer example get spreadsheet-export
+stigmer push skill stigmer/skills/spreadsheet-export
+```
+
+{/* AUTO_FLAGS */}
+
+{/* AUTO_SUBCOMMANDS */}
+
+{/* AUTO_GLOBAL_FLAGS */}
+
+## Related commands
+
+| Command                      | Description                         |
+| ---------------------------- | ----------------------------------- |
+| [`stigmer apply`](./apply)   | Make or update the agent            |
+| [`stigmer run`](./run)       | Run it on the samples               |
+| [`stigmer push`](./push)     | Push a skill to your organization   |
