@@ -81,6 +81,10 @@ export type SceneId =
   | "agent-profile-variance-reporter"
   | "agent-make-it-yours"
   | "agent-make-it-yours-member"
+  | "agent-in-app"
+  | "agent-in-app-done"
+  | "agent-in-app-member"
+  | "agent-in-app-local"
   | "skill-detail"
   | "marketplace-admin"
   | "marketplace-member"
@@ -719,6 +723,26 @@ export const SCENES: readonly Scene[] = [
     id: "agent-make-it-yours-member",
     title: "Agent page: Make it yours for an editor who may not make skills, told an admin adds them",
     widths: ["desktop"],
+  },
+  {
+    id: "agent-in-app",
+    title: "Agent page: In your app on a server that signs people in, for an admin with the service account, sign-in and first user still to do",
+    widths: ["desktop", "narrow"],
+  },
+  {
+    id: "agent-in-app-done",
+    title: "Agent page: In your app once an admin service account exists, accounts are made as Member and the app's first users signed in",
+    widths: ["desktop"],
+  },
+  {
+    id: "agent-in-app-member",
+    title: "Agent page: In your app for a member, told an admin makes the service account and turns sign-in on",
+    widths: ["desktop"],
+  },
+  {
+    id: "agent-in-app-local",
+    title: "Agent page: In your app on a laptop's server that trusts every caller: the development chat alone",
+    widths: ["desktop", "narrow"],
   },
   { id: "skill-detail", title: "Skill page: the skills page's variance-report, its description over its rendered body", widths: ["desktop"] },
   { id: "marketplace-admin", title: "Marketplace: the official catalogue, for an admin", widths: ["desktop", "narrow"] },

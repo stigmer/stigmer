@@ -65,9 +65,9 @@ import { useAppAccess } from "./useAppAccess.js";
 
 /** Where the tab's settings links lead, in the host's routing. */
 export interface InAppLinks {
-  /** Settings → Service accounts; row 1 links it. */
+  /** Settings → Service accounts, linked from the service account's row. */
   readonly serviceAccounts?: string;
-  /** Settings → Embedding; row 2 links it. */
+  /** Settings → Embedding, linked from the sign-in row. */
   readonly embedding?: string;
   /** Draws each link; a plain anchor otherwise. */
   readonly renderLink?: RenderJourneyLink;
@@ -77,6 +77,7 @@ export interface InAppLinks {
 export interface InAppTabProps {
   /** The agent, as the page holds it. */
   readonly agent: Agent;
+  /** Where its settings links lead. */
   readonly links: InAppLinks;
   /** Opens the agent's Channels tab, where a chat link's Embed tab is; the embed line is drawn only with it. */
   readonly onOpenChannels?: () => void;
@@ -314,7 +315,7 @@ function Row({ number, state, title, children }: { readonly number: number; read
         {state === "done" ? (
           <Check className="stg:size-3.5" />
         ) : state === "waiting" ? (
-          <span className="stg:size-3 stg:animate-spin stg:rounded-full stg:border-2 stg:border-muted-foreground stg:border-r-transparent stg:motion-reduce:animate-none" />
+          <span className="stg:size-2 stg:animate-pulse stg:rounded-full stg:bg-muted-foreground stg:motion-reduce:animate-none" />
         ) : (
           number
         )}
@@ -437,7 +438,8 @@ function ServiceAccountRow({
       </p>
       {canCreate ? (
         <div>
-          <Button variant={done ? "outline" : "primary"} onClick={() => void make()} disabled={busy}>
+          {/* Outlined: the page's one filled act is its header's Start session. */}
+          <Button variant="outline" onClick={() => void make()} disabled={busy}>
             {busy ? "Making…" : keyMissing ? "Make its key" : done ? "Make another" : "Make it"}
           </Button>
         </div>

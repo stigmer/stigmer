@@ -1,6 +1,7 @@
 // Every scene's drawing, by the catalogue's id. The map is typed by
 // `SceneId`, so a scene the catalogue lists without a drawing here, or a
 // drawing for an id it does not list, fails the typecheck.
+import { agentInAppScene } from "./in-app.tsx";
 import { PRESETS, THREAD_STATES, type Preset, type SceneId, type ThreadState } from "../catalog.ts";
 import { inheritedOpenAiKey, NOTHING_CONNECTED, NOTHING_ON_THE_RUNNER, ownAnthropicKey } from "../fixtures.ts";
 import { fileReviewDockScene } from "./conversation.tsx";
@@ -112,6 +113,10 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "agent-profile-variance-reporter": varianceReporterScene,
   "agent-make-it-yours": () => agentMakeItYoursScene(true),
   "agent-make-it-yours-member": () => agentMakeItYoursScene(false),
+  "agent-in-app": () => agentInAppScene("todo"),
+  "agent-in-app-done": () => agentInAppScene("done"),
+  "agent-in-app-member": () => agentInAppScene("member"),
+  "agent-in-app-local": () => agentInAppScene("local"),
   "skill-detail": skillDetailScene,
   "marketplace-admin": () => marketplaceScene("admin"),
   "marketplace-member": () => marketplaceScene("member"),

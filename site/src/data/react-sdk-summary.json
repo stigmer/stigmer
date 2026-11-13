@@ -36,6 +36,13 @@
       "components": 3
     },
     {
+      "slug": "app-handover",
+      "title": "app-handover",
+      "description": "",
+      "hooks": 0,
+      "components": 1
+    },
+    {
       "slug": "billing",
       "title": "Billing",
       "description": "Hooks and components for subscription plans, payment methods, and invoices.",
