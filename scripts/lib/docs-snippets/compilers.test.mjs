@@ -114,15 +114,16 @@ const java = page("java", [
   { lang: "java", label: "broken", body: ["var agents = client.agents();"] },
 ]);
 
-const gate = (pages, languages, withTheme = false) =>
+const gate = (pages, languages, withTheme = false, { withHandover = false, root = docsRoot } = {}) =>
   runGate({
     root: repoRoot,
-    docsRoot,
+    docsRoot: root,
     pages: pages.map((p) => p.path),
     languages,
     python: languages.includes("python") ? required("DOCS_SNIPPETS_PYTHON") : undefined,
     javaClasspath: languages.includes("java") ? required("DOCS_SNIPPETS_JAVA_CLASSPATH") : undefined,
     withTheme,
+    withHandover,
   });
 
 /** The pages and lines a run reported, as `page:line`. */
@@ -196,4 +197,47 @@ test("LIB-04 the theme playground's code compiles for every look it offers, and 
   assert.equal(run.errors[0].page, "site/src/lib/theme-snippet.mjs");
   assert.match(run.errors[0].message, /preset corporate, dark, radius 0\.75/);
   assert.match(run.errors[0].message, /shade/);
+});
+
+test("LIB-04 SDK-03 the code the console hands a builder for their app compiles in every language, every stack and both kinds of server", async () => {
+  // The real writer, as this tree's build emits it.
+  const run = await gate([], ["typescript", "go", "python", "java"], false, { withHandover: true, root: repoRoot });
+  const languages = run.units.map((u) => u.language).sort();
+  assert.deepEqual(languages, ["go", "go", "java", "java", "python", "python", "typescript", "typescript", "typescript", "typescript", "typescript", "typescript"]);
+  assert.deepEqual(run.errors, []);
+});
+
+test("LIB-04 SDK-03 a handover stack whose code does not compile is named, with what was written", async () => {
+  // A writer shaped like sdk/typescript/src/app-handover.ts whose Go route at
+  // a plaintext address calls an option the SDK lacks.
+  mkdirSync(join(docsRoot, "sdk", "typescript", "src"), { recursive: true });
+  mkdirSync(join(docsRoot, "sdk", "typescript", "dist"), { recursive: true });
+  writeFileSync(join(docsRoot, "sdk", "typescript", "src", "app-handover.ts"), "export {};\n");
+  writeFileSync(
+    join(docsRoot, "sdk", "typescript", "dist", "app-handover.js"),
+    [
+      'export const APP_HANDOVER_STACKS = [{ id: "go", name: "Go" }];',
+      "export function buildAppHandover({ baseUrl }) {",
+      '  const option = baseUrl.startsWith("http:") ? "stigmer.WithPlaintext()" : "stigmer.WithInsecure()";',
+      "  const code = [",
+      '    "package main",',
+      '    "",',
+      '    \'import stigmer "go.stigmer.ai/sdk"\',',
+      '    "",',
+      '    "func main() {",',
+      "    `\\t_, _ = stigmer.NewClient(${option})`,",
+      '    "}",',
+      '    "",',
+      '  ].join("\\n");',
+      '  const chat = { file: "StigmerAgentChat.tsx", language: "tsx", code: "export const ok = 1;\\n" };',
+      '  return { backend: { file: "main.go", language: "go", code }, chat };',
+      "}",
+    ].join("\n"),
+  );
+  const run = await gate([], ["typescript", "go"], false, { withHandover: true });
+  assert.equal(run.units.length, 4);
+  assert.equal(run.errors.length, 1);
+  assert.equal(run.errors[0].page, "sdk/typescript/src/app-handover.ts");
+  assert.match(run.errors[0].message, /the go token route at http:\/\/localhost:7234/);
+  assert.match(run.errors[0].message, /WithPlaintext/);
 });
