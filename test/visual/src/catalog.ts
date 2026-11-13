@@ -111,6 +111,8 @@ export type AriaRole = Parameters<Page["getByRole"]>[0];
  *   radio, a menu item, a picker's option or a link. A picker is a press on
  *   it, then a press on its option.
  * - `{ fill, with }` types `with` into the field labelled `fill`.
+ * - `first` presses the first of several controls that share the name: a
+ *   page's create act, which its empty list repeats under the header's.
  *
  * A name matches as a part of the control's or label's, as Playwright's
  * locators do (a label that wraps its hint names the field with both),
@@ -122,7 +124,7 @@ export type AriaRole = Parameters<Page["getByRole"]>[0];
  */
 export type Act =
   | string
-  | { readonly press: string; readonly role: AriaRole; readonly exact?: boolean }
+  | { readonly press: string; readonly role: AriaRole; readonly exact?: boolean; readonly first?: boolean }
   | { readonly fill: string; readonly with: string; readonly exact?: boolean };
 
 /** One scene and how it is pictured. */
@@ -494,7 +496,7 @@ const CHANNEL_SCENES = [
     title: "Settings, Channel Apps: Register channel app, Slack, named Acme Books, with its ready-to-paste manifest",
     widths: ["desktop"],
     opens: [
-      { press: SLACK_APP_EXAMPLE.newLabel, role: "button", exact: true },
+      { press: SLACK_APP_EXAMPLE.newLabel, role: "button", exact: true, first: true },
       { fill: SLACK_APP_EXAMPLE.nameLabel, with: SLACK_APP_EXAMPLE.name, exact: true },
     ],
   },
@@ -529,7 +531,7 @@ export type AccessSceneName = (typeof ACCESS_SCENES)[number]["id"] extends `acce
 
 /** The service account form, filled with the page's name: the reader's first step. */
 const SERVICE_ACCOUNT_NEW: readonly Act[] = [
-  { press: SERVICE_ACCOUNT_EXAMPLE.newLabel, role: "button", exact: true },
+  { press: SERVICE_ACCOUNT_EXAMPLE.newLabel, role: "button", exact: true, first: true },
   { fill: "Name", with: SERVICE_ACCOUNT_EXAMPLE.name, exact: true },
 ];
 
@@ -571,7 +573,7 @@ const ACCESS_SCENES = [
     title: "Settings, OAuth apps: New OAuth app filled for the page's Slack app, its advanced settings open",
     widths: ["desktop"],
     opens: [
-      { press: OAUTH_APP_EXAMPLE.newLabel, role: "button", exact: true },
+      { press: OAUTH_APP_EXAMPLE.newLabel, role: "button", exact: true, first: true },
       // Whole: Advanced settings adds Scope parameter name, which holds "name".
       { fill: OAUTH_APP_EXAMPLE.nameLabel, with: OAUTH_APP_EXAMPLE.name, exact: true },
       { fill: OAUTH_APP_EXAMPLE.providerLabel, with: OAUTH_APP_EXAMPLE.provider, exact: true },
