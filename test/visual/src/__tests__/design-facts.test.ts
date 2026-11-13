@@ -5,11 +5,11 @@
 // ruled, pending) one the drawing has, judged once; and the import that
 // writes them keeps those judgements when the drawing is exported again.
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, onTestFinished } from "vitest";
 import { SCENES } from "../catalog.ts";
 
 const DESIGN = fileURLToPath(new URL("../../design/", import.meta.url));
@@ -79,6 +79,7 @@ describe("the drawings' facts", () => {
 describe("importing a design's export", () => {
   it("writes the drawing's facts and keeps the scenes, the judgements and a replacement already recorded", () => {
     const into = mkdtempSync(join(tmpdir(), "design-facts-"));
+    onTestFinished(() => rmSync(into, { recursive: true, force: true }));
     const exported = join(into, "design-facts.json");
     const drawing = (words: string[]) => ({
       id: "s99",
@@ -115,5 +116,10 @@ describe("importing a design's export", () => {
     writeFileSync(join(into, "s99.json"), JSON.stringify({ ...second, replacedBy: "S100" }));
     expect(run().status).toBe(0);
     expect(JSON.parse(readFileSync(join(into, "s99.json"), "utf8"))).toMatchObject({ replacedBy: "S100", drawings: [] });
+
+    writeFileSync(exported, JSON.stringify([{ ...drawing(["Words"]), id: "../s99" }]));
+    const refused = run();
+    expect(refused.status).toBe(1);
+    expect(refused.stderr).toContain("refusing screen id");
   });
 });

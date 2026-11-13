@@ -352,8 +352,8 @@ const SESSION_SCENES = [
   {
     id: "session-first-job-next",
     title: "Session: a newcomer's first agent finished its first job, with the line that leads to making it theirs",
-    // Desktop only: at phone width the thread scrolls, and where it comes to
-    // rest differs by machine.
+    // Desktop only: at phone width the thread scrolls in the browser's own
+    // view of it, and where it comes to rest differs by machine.
     widths: ["desktop"],
   },
   // Every way a turn ends badly, one ending turn each (the catalogue's ENDING_STORY_NAMES).
@@ -722,6 +722,14 @@ function whole<S extends Scene>(scene: S): S & { readonly whole: true } {
  */
 const WHOLE_PREFIXES = ["session-", "settings-", "models-hub-", "dashboard-", "marketplace-", "routine-", "agent-profile-"] as const;
 
+/**
+ * The scenes of those groups kept at their viewport's height: the session
+ * view as a person sees it, the thread scrolled under its header and its
+ * composer, so a fault that shows only when the thread overflows is still
+ * pictured.
+ */
+const FRAMED: readonly SceneId[] = ["session-end-user"];
+
 /** Every scene as listed, before the groups pictured whole are marked. */
 const LISTED: readonly Scene[] = [
   ...THREAD_STATES.map((state) => ({
@@ -913,7 +921,7 @@ const LISTED: readonly Scene[] = [
 
 /** Every scene, in the order the index page lists them. */
 export const SCENES: readonly Scene[] = LISTED.map((scene) =>
-  scene.id === "parts" || WHOLE_PREFIXES.some((prefix) => scene.id.startsWith(prefix)) ? whole(scene) : scene,
+  !FRAMED.includes(scene.id) && (scene.id === "parts" || WHOLE_PREFIXES.some((prefix) => scene.id.startsWith(prefix))) ? whole(scene) : scene,
 );
 
 /** One picture: a scene in one mode at one width, and the file it is compared with. */

@@ -9,7 +9,7 @@ What each drawing that passed the owner's look says, so the build is held to the
 - `built`: the gallery scenes and widths that build the drawing. A drawing several scenes build between them (S53's strips) names each, and a fact holds when any of them holds it. A drawing no scene builds yet has `built: []` and says why in `unbuilt`.
 - `words`: each block's own words and their type (size, line height, weight), and `buttons`: each button's name and height. These are the drawing's, exported by the design page; nobody edits them by hand.
 - `sample`: words the drawing invents that the scene's data differs in (a time, a name, a figure), each with what the scene shows instead. Not checked.
-- `ruled`: a difference the owner ruled, with his ruling and where it is recorded. Not checked.
+- `ruled`: a difference the owner ruled, with his ruling in plain words and its date, or the issue or pull request that holds it. Not checked.
 - `pending`: a fact known to fail, with the change that fixes it. The test fails when a pending fact holds, so the change that fixes it takes its line out: the list is the work left.
 
 A screen a later look replaced names it in `replacedBy` and has no drawings (S16 and S17, replaced by S53's strips).

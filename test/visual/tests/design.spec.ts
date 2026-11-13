@@ -19,8 +19,8 @@
 // is listed under `sample`; a difference the owner ruled under `ruled`,
 // with his reason. Neither is checked. A fact known to fail is listed under
 // `pending` with the change that fixes it, and fails here once it holds, so
-// its line comes off in that change: the list is the milestone's remaining
-// work, and the milestone is done when only ruled differences remain.
+// its line comes off in that change: the list is the work left between the
+// build and its drawings, and they agree when only ruled differences remain.
 //
 // The layout audit reads every scene of the catalogue, drawn or not, for
 // the families of drift no drawing has to name: text off the type scale,
