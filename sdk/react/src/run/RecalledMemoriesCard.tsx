@@ -99,7 +99,7 @@ export const RecalledMemoriesCard = memo(function RecalledMemoriesCard({
           {recall.embeddingModel && (
             <>
               <span aria-hidden="true" className="stg:text-muted-foreground/50">&middot;</span>
-              <span className="stg:text-muted-foreground/80">{recall.embeddingModel}</span>
+              <span className="stg:text-muted-foreground">{recall.embeddingModel}</span>
             </>
           )}
         </span>

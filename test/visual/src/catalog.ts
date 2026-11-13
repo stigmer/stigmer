@@ -215,6 +215,55 @@ const SESSION_SCENES = [
     widths: ["desktop", "narrow"],
   },
   {
+    id: "session-file-undone",
+    title: "Session: the owner undid two of a turn's edits, one put back and one that failed, with a changed image still standing",
+    widths: ["desktop", "narrow"],
+  },
+  {
+    id: "session-plan-writing",
+    title: "Session: a Plan-mode turn is writing its plan, live in the thread and in the panel",
+    widths: ["desktop"],
+  },
+  {
+    id: "session-compacted",
+    title: "Session: a turn that recalled three memories and had its earlier messages summarized part-way, both opened",
+    widths: ["desktop"],
+    opens: ["Recalled 3 of 3 memories", "How it got there"],
+  },
+  {
+    id: "session-attachments",
+    title: "Session: a turn whose message carried a screenshot and a ledger",
+    widths: ["desktop", "narrow"],
+  },
+  {
+    id: "session-pull-requests",
+    title: "Session: the finished turn with the panel open on the pull request its work was pushed to",
+    widths: ["desktop"],
+    opens: ["Show panel", { press: "Changes", role: "radio" }],
+  },
+  {
+    id: "session-usage",
+    title: "Session: the finished turn with the panel open on its usage",
+    widths: ["desktop"],
+    opens: ["Show panel", { press: "Usage", role: "radio" }],
+  },
+  {
+    id: "session-file-preview",
+    title: "Session: a File the finished turn made, opened in the preview window by an app's user",
+    widths: ["desktop"],
+    opens: ["invoice-audit.md"],
+  },
+  {
+    id: "session-auto-approve",
+    title: "Session: the long turn at work with tool calls approved automatically, said above the composer",
+    widths: ["desktop"],
+  },
+  {
+    id: "session-agent-version",
+    title: "Session: the finished turn after the agent's author saved a newer version, offered above the composer",
+    widths: ["desktop"],
+  },
+  {
     id: "session-inspector",
     title: "Session: the finished turn with the console's panel open on a File it returned",
     // Desktop only: at phone width the panel lists the File by its size, not its kind, so the act that opens it differs.
@@ -284,7 +333,7 @@ const SESSION_SCENES = [
     widths: ["desktop"],
     elapse: 61_000,
   },
-  { id: "session-starting", title: "Session: the session is being made and has no id yet", widths: ["desktop"] },
+  { id: "session-starting", title: "Session: the session is being made and has no id yet", widths: ["desktop", "narrow"] },
   {
     id: "session-first-job-next",
     title: "Session: a newcomer's first agent finished its first job, with the line that leads to making it theirs",
