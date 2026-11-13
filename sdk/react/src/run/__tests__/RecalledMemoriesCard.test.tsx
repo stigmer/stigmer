@@ -15,8 +15,8 @@ import {
 } from "@stigmer/apis/ai/stigmer/agentic/run/v1/spec_pb";
 import {
   RecalledMemoriesCard,
-  resolveInjectedFacts,
 } from "../RecalledMemoriesCard";
+import { resolveInjectedFacts } from "../recalled-facts";
 
 function makeFact(id: string, content: string): RecalledMemoryFact {
   return create(RecalledMemoryFactSchema, { memoryId: id, content });

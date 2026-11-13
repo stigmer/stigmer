@@ -17,7 +17,7 @@ import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import type { ToolUse } from "@stigmer/client";
 import { ToolCallItem } from "../ToolCallItem";
 import { BackgroundCommandContext, type BackgroundCommandContextValue } from "../BackgroundCommandContext";
-import { backgroundStatusLabel } from "../BackgroundCommandStatus";
+import { backgroundStatusLabel } from "../background-status-label";
 import { LivenessStatusLine, backgroundWaitLabel } from "../LivenessStatusLine";
 import { ApprovalCardBody } from "../ApprovalCard";
 import { buildThreadItems } from "../MessageThread";

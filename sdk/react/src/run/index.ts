@@ -27,7 +27,8 @@ export type { UsageWidgetProps } from "./UsageWidget.js";
 
 export { SummarizationCard } from "./SummarizationCard.js";
 export type { SummarizationCardProps } from "./SummarizationCard.js";
-export { RecalledMemoriesCard, resolveInjectedFacts } from "./RecalledMemoriesCard.js";
+export { RecalledMemoriesCard } from "./RecalledMemoriesCard.js";
+export { resolveInjectedFacts } from "./recalled-facts.js";
 export type { RecalledMemoriesCardProps } from "./RecalledMemoriesCard.js";
 
 export { PlanCompletionCard } from "./PlanCompletionCard.js";
@@ -262,7 +263,8 @@ export { ApprovalContext, useApproval } from "./ApprovalContext.js";
 export type { ApprovalContextValue, UseApprovalResult } from "./ApprovalContext.js";
 export { BackgroundCommandContext, useBackgroundStop } from "./BackgroundCommandContext.js";
 export type { BackgroundCommandContextValue, UseBackgroundStopResult } from "./BackgroundCommandContext.js";
-export { BackgroundCommandTrail, backgroundStatusLabel } from "./BackgroundCommandStatus.js";
+export { BackgroundCommandTrail } from "./BackgroundCommandStatus.js";
+export { backgroundStatusLabel } from "./background-status-label.js";
 
 export { FileReviewContext, useFileReviewRowState, useFileReviewRowChange } from "@stigmer/react-core";
 export type { FileReviewContextValue } from "@stigmer/react-core";
