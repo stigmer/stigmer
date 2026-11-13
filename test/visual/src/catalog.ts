@@ -85,6 +85,10 @@ export type SceneId =
   | "agent-in-app-done"
   | "agent-in-app-member"
   | "agent-in-app-local"
+  | "bring-others-in"
+  | "bring-others-in-link"
+  | "bring-others-in-joined"
+  | "bring-others-in-local"
   | "skill-detail"
   | "marketplace-admin"
   | "marketplace-member"
@@ -794,6 +798,26 @@ export const SCENES: readonly Scene[] = [
     widths: ["desktop"],
   },
   { id: "dashboard-journey-folded", title: "Dashboard: every step of the journey done, the card folded to one line", widths: ["desktop"] },
+  {
+    id: "bring-others-in",
+    title: "Bring others in: an organization named from the email at sign-up, asked for its company's name before the invite",
+    widths: ["desktop", "narrow"],
+  },
+  {
+    id: "bring-others-in-link",
+    title: "Bring others in: the organization named, its invite link live for a week, nobody else here yet",
+    widths: ["desktop"],
+  },
+  {
+    id: "bring-others-in-joined",
+    title: "Bring others in: two teammates joined, the journey done, and the next line for a company with customers",
+    widths: ["desktop", "narrow"],
+  },
+  {
+    id: "bring-others-in-local",
+    title: "Bring others in: a Stigmer on the person's own computer, which nobody else can reach",
+    widths: ["desktop"],
+  },
   ...SETTINGS_SCENES,
   { id: "agent-profile-owner", title: "Agent page: the ledger agent, as its owner sees it", widths: ["desktop", "narrow"] },
   { id: "agent-profile-viewer", title: "Agent page: the ledger agent, as a person who may only read it sees it", widths: ["desktop"] },

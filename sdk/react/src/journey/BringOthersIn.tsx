@@ -98,6 +98,7 @@ export interface BringOthersInProps {
   readonly billingHref?: string;
   /** Draws each link; a plain anchor otherwise. */
   readonly renderLink?: RenderLink;
+  /** Additional CSS class names for the page's root. */
   readonly className?: string;
 }
 

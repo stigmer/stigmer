@@ -243,7 +243,7 @@ describe("InvitePageClient", () => {
     });
   });
 
-  it("makes the account, remembers the organization joined, then goes home", async () => {
+  it("CON-12 makes the account, remembers the organization joined, then goes home", async () => {
     render(<InvitePageClient />);
     latest().onAccepted({ metadata: { org: "org_acme" } });
     await waitFor(() => expect(page.steps).toHaveLength(3));

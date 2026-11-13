@@ -152,7 +152,7 @@ function renderPage(mode: DeploymentMode = "cloud") {
   return client;
 }
 
-describe("BringOthersIn — naming the organization", () => {
+describe("CON-12 BringOthersIn — naming the organization", () => {
   it("asks for the company's name while the name is still the address, and saves only the name", async () => {
     const client = renderPage();
 
@@ -200,7 +200,7 @@ describe("BringOthersIn — naming the organization", () => {
   });
 });
 
-describe("BringOthersIn — inviting the team", () => {
+describe("CON-12 BringOthersIn — inviting the team", () => {
   it("makes one link of many uses for a week, Member by default, and shows it with Copy", async () => {
     world.name = "Ledgerly";
     const client = renderPage();
@@ -272,7 +272,7 @@ describe("BringOthersIn — inviting the team", () => {
   });
 });
 
-describe("BringOthersIn — who's here", () => {
+describe("CON-12 BringOthersIn — who's here", () => {
   it("lists the team's people with their roles, the viewer marked, app users and service accounts left out", async () => {
     world.name = "Ledgerly";
     world.people.push(
@@ -323,7 +323,7 @@ describe("BringOthersIn — who's here", () => {
   });
 });
 
-describe("BringOthersIn — a server that trusts every caller", () => {
+describe("CON-12 BringOthersIn — a server that trusts every caller", () => {
   it("says nobody else can reach it, and reads neither invitations nor the access list", async () => {
     world.signsIn = false;
     world.singleOrg = true;

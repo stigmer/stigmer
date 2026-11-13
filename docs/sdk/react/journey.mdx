@@ -50,6 +50,30 @@ function NextStep({ org }: { org: string }) {
 
 ## Components
 
+### BringOthersIn
+
+The journey's last step: the organization named, an invite link with its
+roles in plain words, and who has joined. Mount inside an
+[`OrgProvider`](/docs/sdk/react/organization#orgprovider), in the settings frame.
+
+**Props** — `BringOthersInProps`
+
+<TypeTable
+  type={{
+    billingHref: { type: "string", description: "Where the plans are, for the upgrade notice, in the host's routing." },
+    buildInviteUrl: { type: "(token: string) => string", description: "Build the full invite URL from a token, when invitees accept somewhere other than this origin's `/invite/<token>` (a desktop app's links open the web console)." },
+    className: { type: "string", description: "" },
+    consoleUrl: { type: "string", description: "The address people sign in at, where the edition has no invitations and people join by signing in." },
+    membersHref: { type: "string", description: "Where roles are set (the console's members page), in the host's routing." },
+    renderLink: { type: "RenderLink", description: "Draws each link; a plain anchor otherwise.", typeDescriptionLink: "/docs/sdk/react/button#renderlink" },
+  }}
+/>
+
+```tsx
+<BringOthersIn membersHref="/settings/members" renderLink={nextLink} />
+```
+
+
 ### JourneyLauncherLine
 
 One quiet line under the launcher's heading naming the journey's next step, from "Make it yours" on.
@@ -116,6 +140,16 @@ The "Make it yours" tab's body: three acts on the agent, and the next step.
 
 ## Types
 
+### BRING_OTHERS_IN_LINK_DAYS
+
+How long the journey's link lives: a week, since it is a credential sent through a chat.
+
+
+### BRING_OTHERS_IN_LINK_LABEL
+
+The label the journey's links carry, so a return visit finds the one still live.
+
+
 ### isJourneyAgentSlug
 
 Whether `slug` is an agent the journey made: an example's, or one described in the person's own words.
@@ -143,7 +177,7 @@ The journey's destinations past the first job, in the host's routing.
 
 <TypeTable
   type={{
-    bringOthers: { type: "string", description: "Where the team is invited (the console's members page)." },
+    bringOthers: { type: "string", description: "Where the team is brought in: the journey's last page (the console's `/settings/bring-others-in`)." },
     makeItYours: { type: "(agent: ResourceRef) => string", description: "The agent page's \"Make it yours\" tab for an agent (the console's `/library/agents/<org>/<slug>?tab=make-it-yours`)." },
     putInApp: { type: "(agent: ResourceRef) => string", description: "Where an agent is put in its builder's own app: its \"In your app\" tab (`?tab=in-app`)." },
     renderLink: { type: "RenderLink", description: "Draws each link; a plain anchor otherwise.", typeDescriptionLink: "/docs/sdk/react/button#renderlink" },

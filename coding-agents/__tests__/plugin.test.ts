@@ -7,7 +7,8 @@
 // one plugin at the repository's root; and dist/index.js exporting the guide
 // without its frontmatter, as `stigmer coding-agent` prints it. The build's
 // own pack check (npm keeps every staged file, dot-folders included) runs in
-// beforeAll, so a file npm would drop fails this suite.
+// beforeAll, so a file npm would drop fails this suite. The guide's last
+// step names a console address, so the page it names must exist.
 
 import { cpSync, mkdtempSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -110,5 +111,13 @@ describe("the guide", () => {
     const guide = files.get("skills/stigmer/SKILL.md") ?? "";
     expect(guide).not.toMatch(/sk-ant-|stk_[A-Za-z0-9]{8}/);
     expect(guide).toContain("Never print, echo or ask for a key");
+  });
+
+  it("sends the last step to a console page that exists", () => {
+    const guide = files.get("skills/stigmer/SKILL.md") ?? "";
+    const path = /<console>(\/settings\/[a-z-]+)/.exec(guide)?.[1];
+    expect(path).toBe("/settings/bring-others-in");
+    const page = join(root, "..", "client-apps", "web", "src", "app", ...(path ?? "").split("/").filter(Boolean), "page.tsx");
+    expect(statSync(page).isFile()).toBe(true);
   });
 });

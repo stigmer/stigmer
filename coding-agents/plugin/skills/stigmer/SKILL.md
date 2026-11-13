@@ -171,9 +171,13 @@ agent's `skill_refs`). Apply the manifest again and run again.
 
 ## 7. Bring others in
 
-Tell the person their team joins from the console (the Stigmer address in a
-browser, Settings, Members), and that the console shows the same agent, its
-runs and the files it made.
+The last step is the person's, in the console: send them to
+`<console>/settings/bring-others-in`, the console address from step 1. There
+they name their organization (Stigmer Cloud named it from their email), then
+copy an invite link for their team and send it in their own chat or email. The
+team sees the same agent, its runs and the files it made. On this computer
+(`stigmer up`) nobody else can reach Stigmer, so say that bringing others in
+needs Stigmer Cloud or a server that signs people in.
 
 ## After setup
 
