@@ -103,8 +103,13 @@ interface OutcomeItem {
   readonly undone?: boolean;
 }
 
-/** A changed file's state and act, from its review file and the decision in flight. */
-type ChangeState = "undecided" | "undoing" | "undone" | "failed" | "none";
+/**
+ * A changed file's state and act, from its review file and the decision in
+ * flight. `refused` is an undo the server refused to record (it can be sent
+ * again); `failed` is one it recorded and could not carry out, which sending
+ * again does not retry (the decision stands as recorded).
+ */
+type ChangeState = "undecided" | "undoing" | "undone" | "failed" | "refused" | "none";
 
 function changeState(change: TurnChange, undo: TurnOutcomeUndo | undefined): ChangeState {
   const review = change.review;
@@ -117,7 +122,7 @@ function changeState(change: TurnChange, undo: TurnOutcomeUndo | undefined): Cha
   if (state !== "undecided") return "none";
   if (undo === undefined) return "none";
   if (undo.busyKeys.has(key) || undo.busyKeys.has(review.changeSetId)) return "undoing";
-  if (undo.errors.has(key) || undo.errors.has(review.changeSetId)) return "failed";
+  if (undo.errors.has(key) || undo.errors.has(review.changeSetId)) return "refused";
   return "undecided";
 }
 
@@ -146,7 +151,7 @@ function stateSummary(states: readonly ChangeState[]): string {
   return [
     count("undoing") > 0 ? `${count("undoing")} undoing` : "",
     count("undone") > 0 ? `${count("undone")} undone` : "",
-    count("failed") > 0 ? `${count("failed")} couldn't be undone` : "",
+    count("failed") + count("refused") > 0 ? `${count("failed") + count("refused")} couldn't be undone` : "",
   ]
     .filter((part) => part !== "")
     .join(", ");
@@ -384,7 +389,8 @@ function ChangeTrailing({ name, state, onUndo }: { readonly name: string; readon
       </span>
     );
   }
-  if (state === "failed") {
+  if (state === "failed") return <StatusBadge phase="failed" label={CHANGE_WORDS.undoFailed} />;
+  if (state === "refused") {
     return (
       <>
         <StatusBadge phase="failed" label={CHANGE_WORDS.undoFailed} />
