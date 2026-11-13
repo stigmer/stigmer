@@ -11,16 +11,19 @@
 // from its own repository for next time.
 
 import type { Command } from "commander";
+import { type OutputFlags, renderValue } from "../output/index.js";
 import { VERSION } from "../version.js";
+import { addValueFlags, resultFormat } from "./shared.js";
 
 export function registerCodingAgent(program: Command): void {
-  program
+  const command = program
     .command("coding-agent")
     .description("print the guide a coding agent follows to set Stigmer up for your project")
-    .action(async () => {
+    .action(async (options: OutputFlags) => {
       const { GUIDE } = await import("@stigmer/coding-agent-plugin");
-      process.stdout.write(codingAgentGuide(GUIDE, VERSION));
+      renderValue(codingAgentGuide(GUIDE, VERSION), { version: VERSION, guide: GUIDE }, resultFormat(options));
     });
+  addValueFlags(command);
 }
 
 /** The printed guide: one line that says what it is, then the guide. Pure. */

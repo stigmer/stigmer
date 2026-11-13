@@ -35,7 +35,7 @@ export const RUN_OUTPUT_DIR = "stigmer-output";
 export function registerExample(program: Command): void {
   const group = program
     .command("example")
-    .description("Stigmer's example agents and skills, written into your repository as files");
+    .description("the example agents and skills, written into your repository as files");
 
   const list = group
     .command("list")

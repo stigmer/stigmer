@@ -33,9 +33,9 @@ stigmer setup
 # Non-interactive: configure Anthropic
 stigmer setup --provider anthropic --api-key sk-ant-xxx
 
-# The key from your environment, through stdin: it stays out of your shell's
-# history and out of a coding agent's transcript
-printenv ANTHROPIC_API_KEY | stigmer setup --api-key-stdin
+# The key through stdin: it stays out of your shell's history and out of a
+# coding agent's transcript (or: printenv ANTHROPIC_API_KEY | stigmer setup --api-key-stdin)
+stigmer setup --api-key-stdin < anthropic.key
 
 # Clear the LLM configuration
 stigmer setup --provider skip
