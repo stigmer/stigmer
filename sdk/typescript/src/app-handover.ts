@@ -178,23 +178,17 @@ function lit(value: string): string {
   return JSON.stringify(value);
 }
 
+/** Each stack's route; a typed record, so a stack without one fails to compile. */
+const BACKENDS: Record<AppHandoverStack, (code: Code, sdkVersion: string | undefined) => AppHandoverFile> = {
+  nextjs: (code) => ({ install: "npm install @stigmer/client", installLanguage: "bash", file: "app/api/stigmer-token/route.ts", language: "typescript", code: nextRoute(code) }),
+  node: (code) => ({ install: "npm install @stigmer/client", installLanguage: "bash", file: "server.ts", language: "typescript", code: nodeRoute(code) }),
+  python: (code) => ({ install: "pip install stigmer-sdk", installLanguage: "bash", file: "stigmer_token.py", language: "python", code: pythonRoute(code) }),
+  go: (code) => ({ install: "go get go.stigmer.ai/sdk", installLanguage: "bash", file: "main.go", language: "go", code: goRoute(code) }),
+  java: (code, sdkVersion) => ({ install: mavenDependency(sdkVersion), installLanguage: "xml", file: "StigmerToken.java", language: "java", code: javaRoute(code) }),
+};
+
 function backendFor(stack: AppHandoverStack, code: Code, sdkVersion: string | undefined): AppHandoverFile {
-  switch (stack) {
-    case "nextjs":
-      return { install: "npm install @stigmer/client", installLanguage: "bash", file: "app/api/stigmer-token/route.ts", language: "typescript", code: nextRoute(code) };
-    case "node":
-      return { install: "npm install @stigmer/client", installLanguage: "bash", file: "server.ts", language: "typescript", code: nodeRoute(code) };
-    case "python":
-      return { install: "pip install stigmer-sdk", installLanguage: "bash", file: "stigmer_token.py", language: "python", code: pythonRoute(code) };
-    case "go":
-      return { install: "go get go.stigmer.ai/sdk", installLanguage: "bash", file: "main.go", language: "go", code: goRoute(code) };
-    case "java":
-      return { install: mavenDependency(sdkVersion), installLanguage: "xml", file: "StigmerToken.java", language: "java", code: javaRoute(code) };
-    default: {
-      const unknown: never = stack;
-      throw new Error(`buildAppHandover: unknown stack ${String(unknown)}`);
-    }
-  }
+  return BACKENDS[stack](code, sdkVersion);
 }
 
 /** A version is pinned only when it is a plain release; anything else (a dev build) is not on Maven Central. */

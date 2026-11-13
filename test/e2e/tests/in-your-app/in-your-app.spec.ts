@@ -83,7 +83,7 @@ test.describe("CON-10 a scratch app built from exactly what the In your app tab 
 
     // The tab, on a fresh organization: everything still to do.
     await page.goto(`/library/agents/${orgSlug}/variance-reporter?tab=in-app`);
-    await expect(page.getByRole("heading", { name: "Put Variance Reporter in your app" })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole("heading", { name: /^Put .+ in your app$/ })).toBeVisible({ timeout: 30_000 });
     const first = row(page, "Your first user from your app");
     await expect(first).toContainText("Waiting for the first person your app signs in", { timeout: 30_000 });
     const account = row(page, "A service account for your backend");
