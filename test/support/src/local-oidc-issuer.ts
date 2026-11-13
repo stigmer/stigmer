@@ -35,6 +35,11 @@
 //     id_token (`aud` = the client, the request's `nonce` echoed — what
 //     oidc-client-ts validates) and, when `offline_access` was requested, a
 //     refresh token the refresh grant redeems for a fresh access token;
+//   - `/device/code` and the device grant on `/token` (RFC 8628) serve a
+//     command line where no browser opens: the device code is approved as
+//     the configured `person` at once, as `/authorize` auto-consents, so a
+//     poll after the first answers tokens; `deviceApproval: "manual"` keeps
+//     it pending until `approveDevice()` (the `authorization_pending` arm);
 //   - `/end-session` exists only under `{ endSession: true }`, so both of
 //     the console's sign-out arms are drivable — RP-initiated where an
 //     issuer publishes the endpoint, local where it does not;
@@ -108,6 +113,9 @@ export interface LocalOidcIssuerOptions {
   // `https://`. The certificate must name 127.0.0.1; the client decides
   // whether to trust it.
   readonly tls?: { readonly certPem: string; readonly keyPem: string };
+  // How a device code is approved: at once (the default, as `/authorize`
+  // auto-consents), or only when the test calls `approveDevice()`.
+  readonly deviceApproval?: "auto" | "manual";
 }
 
 export interface LocalOidcIssuer {
@@ -129,6 +137,8 @@ export interface LocalOidcIssuer {
   mint(input: { sub: string; email: string; ttlSeconds?: number; audience?: string }): Promise<string>;
   // Make /userinfo answer 503 for one subject; `undefined` clears the lever.
   refuseUserinfoFor(sub: string | undefined): void;
+  // Approve every device code issued so far (under `deviceApproval: "manual"`).
+  approveDevice(): void;
   close(): Promise<void>;
 }
 
@@ -141,6 +151,17 @@ interface PendingCode {
   readonly nonce: string | undefined;
   readonly issuedAt: number;
 }
+
+/** A device code `/device/code` issued, until `/token` redeems it. */
+interface PendingDevice {
+  readonly clientId: string;
+  readonly scope: string;
+  readonly issuedAt: number;
+  approved: boolean;
+}
+
+// A device code lives as long as a person takes to type it somewhere else.
+const DEVICE_CODE_TTL_SECONDS = 10 * 60;
 
 /** What a refresh token stands for. */
 interface RefreshGrant {
@@ -171,6 +192,8 @@ export async function startLocalOidcIssuer(
   let refusedSub: string | undefined;
   const pendingCodes = new Map<string, PendingCode>();
   const refreshGrants = new Map<string, RefreshGrant>();
+  const pendingDevices = new Map<string, PendingDevice>();
+  const autoApproveDevice = options.deviceApproval !== "manual";
 
   const mintAccessToken = (input: { sub: string; email: string; ttlSeconds?: number; audience?: string }): string => {
     const now = Math.floor(Date.now() / 1000);
@@ -257,11 +280,16 @@ export async function startLocalOidcIssuer(
             userinfo_endpoint: `${issuer}/userinfo`,
             authorization_endpoint: `${issuer}/authorize`,
             token_endpoint: `${issuer}/token`,
+            device_authorization_endpoint: `${issuer}/device/code`,
             ...(endSession
               ? { end_session_endpoint: `${issuer}/end-session` }
               : {}),
             response_types_supported: ["code"],
-            grant_types_supported: ["authorization_code", "refresh_token"],
+            grant_types_supported: [
+              "authorization_code",
+              "refresh_token",
+              "urn:ietf:params:oauth:grant-type:device_code",
+            ],
             code_challenge_methods_supported: ["S256"],
             subject_types_supported: ["public"],
             id_token_signing_alg_values_supported: ["RS256"],
@@ -283,8 +311,12 @@ export async function startLocalOidcIssuer(
             res,
             pendingCodes,
             refreshGrants,
+            pendingDevices,
             tokenResponse,
           );
+          return;
+        case "/device/code":
+          void answerDeviceCode(req, res, issuer, pendingDevices, autoApproveDevice);
           return;
         case "/end-session":
           if (!endSession) {
@@ -325,6 +357,9 @@ export async function startLocalOidcIssuer(
     },
     refuseUserinfoFor(sub) {
       refusedSub = sub;
+    },
+    approveDevice() {
+      for (const device of pendingDevices.values()) device.approved = true;
     },
     async close() {
       // Keep-alive sockets from the server under test would otherwise hold
@@ -399,6 +434,7 @@ async function answerToken(
   res: ServerResponse,
   pendingCodes: Map<string, PendingCode>,
   refreshGrants: Map<string, RefreshGrant>,
+  pendingDevices: Map<string, PendingDevice>,
   tokenResponse: (grant: {
     clientId: string;
     scope: string;
@@ -471,7 +507,76 @@ async function answerToken(
     return;
   }
 
+  if (grantType === "urn:ietf:params:oauth:grant-type:device_code") {
+    const deviceCode = form.get("device_code") ?? "";
+    const device = pendingDevices.get(deviceCode);
+    if (device === undefined || device.clientId !== (form.get("client_id") ?? "")) {
+      json(res, 400, { error: "invalid_grant" });
+      return;
+    }
+    if (Date.now() - device.issuedAt > DEVICE_CODE_TTL_SECONDS * 1000) {
+      pendingDevices.delete(deviceCode);
+      json(res, 400, { error: "expired_token" });
+      return;
+    }
+    if (!device.approved) {
+      json(res, 400, { error: "authorization_pending" });
+      return;
+    }
+    pendingDevices.delete(deviceCode);
+    json(
+      res,
+      200,
+      tokenResponse({
+        clientId: device.clientId,
+        scope: device.scope,
+        nonce: undefined,
+        issueRefresh: device.scope.split(" ").includes("offline_access"),
+      }),
+    );
+    return;
+  }
+
   json(res, 400, { error: "unsupported_grant_type" });
+}
+
+// ---------------------------------------------------------------------------
+// /device/code — the device authorization request (RFC 8628, section 3.1)
+// ---------------------------------------------------------------------------
+
+async function answerDeviceCode(
+  req: IncomingMessage,
+  res: ServerResponse,
+  issuer: string,
+  pendingDevices: Map<string, PendingDevice>,
+  autoApprove: boolean,
+): Promise<void> {
+  if (req.method !== "POST") {
+    json(res, 405, { error: "invalid_request" });
+    return;
+  }
+  const form = new URLSearchParams(await readBody(req));
+  const clientId = form.get("client_id") ?? "";
+  if (clientId === "") {
+    json(res, 400, { error: "invalid_request", error_description: "client_id is required" });
+    return;
+  }
+  const deviceCode = randomBytes(24).toString("base64url");
+  const userCode = `${randomBytes(2).toString("hex")}-${randomBytes(2).toString("hex")}`.toUpperCase();
+  pendingDevices.set(deviceCode, {
+    clientId,
+    scope: form.get("scope") ?? "openid",
+    issuedAt: Date.now(),
+    approved: autoApprove,
+  });
+  json(res, 200, {
+    device_code: deviceCode,
+    user_code: userCode,
+    verification_uri: `${issuer}/activate`,
+    verification_uri_complete: `${issuer}/activate?user_code=${userCode}`,
+    expires_in: DEVICE_CODE_TTL_SECONDS,
+    interval: 1,
+  });
 }
 
 // ---------------------------------------------------------------------------

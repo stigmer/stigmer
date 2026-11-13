@@ -74,6 +74,7 @@
     "open": "^10.1.0",
     "react": "^19.0.0",
     "string-width": "^8.2.0",
+    "tldts": "^7.0.26",
     "yaml": "^2.8.2"
   },
   "devDependencies": {

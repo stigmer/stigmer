@@ -1,15 +1,19 @@
-Manage authentication with Stigmer Cloud.
+Sign in to the server the CLI points at: Stigmer Cloud, a self-hosted
+server, or any backend you added with `stigmer config backend add`.
 
-`stigmer auth` handles browser-based PKCE OAuth authentication. Use it to
-log in, log out, and check your current identity.
+`stigmer auth` signs you in where that server says, the way the desktop app
+does. Use it to log in, log out, and check your current identity.
 
 {/* AUTO_USAGE */}
 
 ### Common patterns
 
 ```bash
-# Log in to Stigmer Cloud
+# Sign in to the active backend's server in your browser
 stigmer auth login
+
+# Where no browser can open here (SSH, a remote sandbox): a code for any device
+stigmer auth login --device
 
 # Check who you're logged in as
 stigmer auth whoami
@@ -22,9 +26,24 @@ stigmer auth logout
 
 ### How authentication works
 
-`stigmer auth login` opens your default browser to the Stigmer login page.
-After you authenticate, the CLI receives an access token and saves it to
-`~/.stigmer/config.yaml`. The backend is automatically set to cloud mode.
+`stigmer auth login` asks the active backend's server how it signs people
+in: the identity provider, the audience and the client registered for
+installed apps. It opens your browser there (the `BROWSER` command when you
+set one), receives the sign-in on `http://127.0.0.1:17234`, `17235` or `17236`,
+and saves the tokens in `~/.stigmer/config.yaml` under that backend, beside the
+provider they came from, so the CLI refreshes them there. Run from the local
+server, which trusts every caller, it signs you in to Stigmer Cloud and
+switches to it.
+
+`--device` prints an address and a short code instead: open it on any device,
+enter the code, and the CLI finishes. The CLI picks it by itself where no
+browser can open, when the provider offers it.
+
+A server that trusts every caller has nothing to sign in to; a server whose
+operator has not registered a client for installed apps says so, and an API
+key is the way in. The CLI signs in only at a provider on the server's own
+site unless you pass `--trust-provider`.
+
 On your first sign-in the CLI also creates your identity account, the same
 way the web console does; `stigmer auth whoami` tells you when a call did.
 

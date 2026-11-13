@@ -239,19 +239,26 @@ attributed.
 
 ### Point the CLI at the stack
 
-Add the stack as a named backend with your own key, switch to it, and point it
-at your Organization:
+Add the stack as a named backend, switch to it, sign in, and point it at your
+Organization:
 
 ```bash
-stigmer config backend add prod --endpoint stigmer.example.com:443 --api-key stk_...
+stigmer config backend add prod --endpoint stigmer.example.com:443
 stigmer config backend use prod
+stigmer auth login
 stigmer config context set --org <your-org-slug>
 ```
 
-Port 443 is the one port the CLI dials with TLS. A named backend keeps its key,
-so switching between this stack, your laptop and Stigmer Cloud stays one
-command. The context command checks, with your key, that you belong to the
-Organization before it saves it.
+`stigmer auth login` signs you in through your provider, once you have
+registered the client for installed apps
+([Let the desktop app sign in](#let-the-desktop-app-sign-in)). Until then, or
+for a script, give the backend your own key instead: `--api-key stk_...` on
+`config backend add`.
+
+Port 443 is the one port the CLI dials with TLS. A named backend keeps its own
+sign-in or key, so switching between this stack, your laptop and Stigmer Cloud
+stays one command. The context command checks, with your credential, that you
+belong to the Organization before it saves it.
 
 </Steps>
 
@@ -348,8 +355,8 @@ client with your provider:
 - **Client type: public native app, using PKCE, with no client secret.** In
   Keycloak a client with "Client authentication" off; in Auth0 a "Native"
   application; in Okta a "Native App"; in Dex a public client.
-- **Redirect URIs**: `stigmer://auth/callback`, and for builds that sign in
-  through a local port, `http://127.0.0.1:17234/auth/callback`,
+- **Redirect URIs**: `stigmer://auth/callback`, and for the CLI and builds that
+  sign in through a local port, `http://127.0.0.1:17234/auth/callback`,
   `http://127.0.0.1:17235/auth/callback` and
   `http://127.0.0.1:17236/auth/callback`.
 - **Refresh tokens allowed**, so the app keeps people signed in.
@@ -363,6 +370,28 @@ people this server has not been set up for it.
 The app connects only over `https` to another machine, so give people the
 address your TLS setup serves, `https://stigmer.example.com`. It keeps sign-in
 keys in the system keychain.
+
+### The CLI signs in through the same client
+
+`stigmer auth login` asks the server the same question and signs in through the
+same client, returning to the first free of the three `http://127.0.0.1` ports
+above. It keeps the sign-in in its config file beside the issuer it came from,
+and refreshes it there.
+
+Where no browser can open on the person's machine (an SSH session, a remote
+sandbox, a coding agent's container), `stigmer auth login --device` prints an
+address and a short code to type on any device, the OAuth device grant. It works
+when your provider publishes a `device_authorization_endpoint` in its discovery
+document and allows that grant for the native client: in Auth0, the Device Code
+grant on the Native application; in Keycloak, "OAuth 2.0 Device Authorization
+Grant" on the client; in Okta, the Device Authorization grant type. Without it,
+the CLI says so and the person signs in with a browser or a key.
+
+The CLI signs in only at a provider on your server's own site, the same
+registrable domain or both on one machine, unless the person passes
+`--trust-provider`. A server can name another site's provider to collect tokens
+that site's servers accept, so the CLI refuses it, naming both hosts, until the
+person runs `stigmer auth login --trust-provider`.
 
 ### Where the app's agents run
 

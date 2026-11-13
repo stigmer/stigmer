@@ -7,7 +7,7 @@
 // never clobbers either side's login state. Two names are reserved:
 // "local" (the managed daemon, never stored in the map — its endpoint and
 // no-auth posture are fixed) and "cloud" (where `stigmer auth login` lands
-// by default).
+// when run from the local daemon, which has nothing to sign in to).
 //
 // The `backend.local` section (daemon/LLM/Temporal settings owned by the
 // local-mode modules) is carried through verbatim, so a save never drops a key
@@ -48,13 +48,14 @@ export const CLOUD_BACKEND_NAME = "cloud";
  * One named backend: endpoint + its own credentials. Property names are
  * snake_case to keep the YAML in the file's established dialect.
  *
- * Credential lanes by type:
- *   - cloud: the OAuth token set (token / refresh_token / token_expiry),
- *     written by `stigmer auth login` and rotated by the token provider.
- *   - selfhost: `api_key` — a server-minted `stk_` token
- *     (`stigmer apikey create`). Browser login against self-hosted
- *     issuers is deliberately not modeled here; the API token is the
- *     self-host credential story.
+ * Credentials, on any backend:
+ *   - a sign-in: the OAuth token set (token / refresh_token / token_expiry)
+ *     beside the issuer and the native client it came from (oidc_issuer /
+ *     oidc_client_id), written by `stigmer auth login` from what the server
+ *     announces and refreshed at that issuer by the token provider;
+ *   - `api_key`: a server-minted `stk_` token (`stigmer apikey create`), set
+ *     with `config backend add --api-key`. On a selfhost entry holding both,
+ *     the sign-in is sent; a cloud entry sends only its sign-in.
  */
 export interface NamedBackendConfig {
   type: NamedBackendType;
@@ -64,6 +65,10 @@ export interface NamedBackendConfig {
   env_id?: string;
   refresh_token?: string;
   token_expiry?: string;
+  /** The issuer the sign-in came from, exactly as the server announced it. */
+  oidc_issuer?: string;
+  /** The public native client the sign-in used at that issuer. */
+  oidc_client_id?: string;
   api_key?: string;
 }
 
@@ -209,6 +214,11 @@ export function activeBackend(config: Config): {
     );
   }
   return { name, entry };
+}
+
+/** Whether an entry holds a sign-in's token set (as opposed to an API key or nothing). */
+export function hasSignIn(entry: NamedBackendConfig): boolean {
+  return (entry.token !== undefined && entry.token !== "") || (entry.refresh_token !== undefined && entry.refresh_token !== "");
 }
 
 /** True when the active backend is Stigmer Cloud. */

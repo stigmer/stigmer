@@ -21,6 +21,12 @@
 // token; /end-session exists only when asked for, so both of the console's
 // sign-out arms are drivable; every browser-facing document answers CORS.
 //
+// For a command line where no browser opens, the issuer serves the device
+// grant (RFC 8628): /device/code issues a device code and a user code, and
+// the device grant on /token answers tokens once the code is approved (at
+// once by default; under `deviceApproval: "manual"`, `authorization_pending`
+// until `approveDevice()`).
+//
 // Under the `tls` option the issuer is an outside provider a server reads
 // over HTTPS: it spells itself `https://`, and a client that trusts the
 // certificate it was handed reads its discovery document and key set. The
@@ -265,6 +271,62 @@ describe("local OIDC issuer: the browser's code flow", () => {
       expect(pinned.issuer).toBe(`http://127.0.0.1:${port}`);
     } finally {
       await pinned.close();
+    }
+  });
+});
+
+describe("local OIDC issuer: the device grant", () => {
+  const DEVICE_GRANT = "urn:ietf:params:oauth:grant-type:device_code";
+
+  async function deviceCode(target: LocalOidcIssuer): Promise<Record<string, unknown>> {
+    const response = await fetch(`${target.issuer}/device/code`, {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ client_id: CLIENT_ID, scope: "openid offline_access" }),
+    });
+    expect(response.status).toBe(200);
+    return (await response.json()) as Record<string, unknown>;
+  }
+
+  function poll(target: LocalOidcIssuer, code: unknown): Promise<Response> {
+    return fetch(`${target.issuer}/token`, {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ grant_type: DEVICE_GRANT, device_code: String(code), client_id: CLIENT_ID }),
+    });
+  }
+
+  it("publishes the device endpoint and grant", async () => {
+    const document = (await (
+      await fetch(`${issuer.issuer}/.well-known/openid-configuration`)
+    ).json()) as Record<string, unknown>;
+    expect(document.device_authorization_endpoint).toBe(`${issuer.issuer}/device/code`);
+    expect(document.grant_types_supported).toContain(DEVICE_GRANT);
+  });
+
+  it("approves a device code as its person at once, and redeems it once", async () => {
+    const issued = await deviceCode(issuer);
+    expect(issued.user_code).toMatch(/^[0-9A-F]{4}-[0-9A-F]{4}$/);
+    expect(issued.verification_uri).toBe(`${issuer.issuer}/activate`);
+    const first = await poll(issuer, issued.device_code);
+    expect(first.status).toBe(200);
+    const body = (await first.json()) as Record<string, unknown>;
+    expect(decodeClaims(String(body.access_token)).sub).toBe(issuer.person.sub);
+    expect(body.refresh_token).toBeTruthy();
+    expect((await poll(issuer, issued.device_code)).status).toBe(400);
+  });
+
+  it("under manual approval, answers authorization_pending until approved", async () => {
+    const manual = await startLocalOidcIssuer({ deviceApproval: "manual" });
+    try {
+      const issued = await deviceCode(manual);
+      const pending = await poll(manual, issued.device_code);
+      expect(pending.status).toBe(400);
+      expect(((await pending.json()) as Record<string, unknown>).error).toBe("authorization_pending");
+      manual.approveDevice();
+      expect((await poll(manual, issued.device_code)).status).toBe(200);
+    } finally {
+      await manual.close();
     }
   });
 });

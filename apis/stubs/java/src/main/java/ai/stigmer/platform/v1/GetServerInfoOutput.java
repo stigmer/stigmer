@@ -280,13 +280,15 @@ private static final long serialVersionUID = 0L;
   private ai.stigmer.platform.v1.NativeSignIn nativeSignIn_;
   /**
    * <pre>
-   * How an app installed on a person's computer (the desktop app) signs
-   * its person in to this server.
+   * How an app installed on a person's computer (the desktop app, the
+   * command line) signs its person in to this server.
    *
    * Set when the server signs its callers in and its operator registered
    * a public native client at the identity provider (RFC 8252: an
    * Authorization Code flow with PKCE, a `stigmer://auth/callback` or
-   * loopback redirect, no client secret). Absent when the server trusts
+   * loopback redirect, no client secret; the command line also uses the
+   * device grant, RFC 8628, where the issuer's discovery document offers
+   * it). Absent when the server trusts
    * every request (`authentication_required` false: nothing to sign in
    * to), and when no native client is registered, which a client says
    * instead of guessing an identity provider. Read before sign-in, like
@@ -302,13 +304,15 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * How an app installed on a person's computer (the desktop app) signs
-   * its person in to this server.
+   * How an app installed on a person's computer (the desktop app, the
+   * command line) signs its person in to this server.
    *
    * Set when the server signs its callers in and its operator registered
    * a public native client at the identity provider (RFC 8252: an
    * Authorization Code flow with PKCE, a `stigmer://auth/callback` or
-   * loopback redirect, no client secret). Absent when the server trusts
+   * loopback redirect, no client secret; the command line also uses the
+   * device grant, RFC 8628, where the issuer's discovery document offers
+   * it). Absent when the server trusts
    * every request (`authentication_required` false: nothing to sign in
    * to), and when no native client is registered, which a client says
    * instead of guessing an identity provider. Read before sign-in, like
@@ -324,13 +328,15 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * How an app installed on a person's computer (the desktop app) signs
-   * its person in to this server.
+   * How an app installed on a person's computer (the desktop app, the
+   * command line) signs its person in to this server.
    *
    * Set when the server signs its callers in and its operator registered
    * a public native client at the identity provider (RFC 8252: an
    * Authorization Code flow with PKCE, a `stigmer://auth/callback` or
-   * loopback redirect, no client secret). Absent when the server trusts
+   * loopback redirect, no client secret; the command line also uses the
+   * device grant, RFC 8628, where the issuer's discovery document offers
+   * it). Absent when the server trusts
    * every request (`authentication_required` false: nothing to sign in
    * to), and when no native client is registered, which a client says
    * instead of guessing an identity provider. Read before sign-in, like
@@ -1369,13 +1375,15 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.platform.v1.NativeSignIn, ai.stigmer.platform.v1.NativeSignIn.Builder, ai.stigmer.platform.v1.NativeSignInOrBuilder> nativeSignInBuilder_;
     /**
      * <pre>
-     * How an app installed on a person's computer (the desktop app) signs
-     * its person in to this server.
+     * How an app installed on a person's computer (the desktop app, the
+     * command line) signs its person in to this server.
      *
      * Set when the server signs its callers in and its operator registered
      * a public native client at the identity provider (RFC 8252: an
      * Authorization Code flow with PKCE, a `stigmer://auth/callback` or
-     * loopback redirect, no client secret). Absent when the server trusts
+     * loopback redirect, no client secret; the command line also uses the
+     * device grant, RFC 8628, where the issuer's discovery document offers
+     * it). Absent when the server trusts
      * every request (`authentication_required` false: nothing to sign in
      * to), and when no native client is registered, which a client says
      * instead of guessing an identity provider. Read before sign-in, like
@@ -1390,13 +1398,15 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * How an app installed on a person's computer (the desktop app) signs
-     * its person in to this server.
+     * How an app installed on a person's computer (the desktop app, the
+     * command line) signs its person in to this server.
      *
      * Set when the server signs its callers in and its operator registered
      * a public native client at the identity provider (RFC 8252: an
      * Authorization Code flow with PKCE, a `stigmer://auth/callback` or
-     * loopback redirect, no client secret). Absent when the server trusts
+     * loopback redirect, no client secret; the command line also uses the
+     * device grant, RFC 8628, where the issuer's discovery document offers
+     * it). Absent when the server trusts
      * every request (`authentication_required` false: nothing to sign in
      * to), and when no native client is registered, which a client says
      * instead of guessing an identity provider. Read before sign-in, like
@@ -1415,13 +1425,15 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * How an app installed on a person's computer (the desktop app) signs
-     * its person in to this server.
+     * How an app installed on a person's computer (the desktop app, the
+     * command line) signs its person in to this server.
      *
      * Set when the server signs its callers in and its operator registered
      * a public native client at the identity provider (RFC 8252: an
      * Authorization Code flow with PKCE, a `stigmer://auth/callback` or
-     * loopback redirect, no client secret). Absent when the server trusts
+     * loopback redirect, no client secret; the command line also uses the
+     * device grant, RFC 8628, where the issuer's discovery document offers
+     * it). Absent when the server trusts
      * every request (`authentication_required` false: nothing to sign in
      * to), and when no native client is registered, which a client says
      * instead of guessing an identity provider. Read before sign-in, like
@@ -1445,13 +1457,15 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * How an app installed on a person's computer (the desktop app) signs
-     * its person in to this server.
+     * How an app installed on a person's computer (the desktop app, the
+     * command line) signs its person in to this server.
      *
      * Set when the server signs its callers in and its operator registered
      * a public native client at the identity provider (RFC 8252: an
      * Authorization Code flow with PKCE, a `stigmer://auth/callback` or
-     * loopback redirect, no client secret). Absent when the server trusts
+     * loopback redirect, no client secret; the command line also uses the
+     * device grant, RFC 8628, where the issuer's discovery document offers
+     * it). Absent when the server trusts
      * every request (`authentication_required` false: nothing to sign in
      * to), and when no native client is registered, which a client says
      * instead of guessing an identity provider. Read before sign-in, like
@@ -1473,13 +1487,15 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * How an app installed on a person's computer (the desktop app) signs
-     * its person in to this server.
+     * How an app installed on a person's computer (the desktop app, the
+     * command line) signs its person in to this server.
      *
      * Set when the server signs its callers in and its operator registered
      * a public native client at the identity provider (RFC 8252: an
      * Authorization Code flow with PKCE, a `stigmer://auth/callback` or
-     * loopback redirect, no client secret). Absent when the server trusts
+     * loopback redirect, no client secret; the command line also uses the
+     * device grant, RFC 8628, where the issuer's discovery document offers
+     * it). Absent when the server trusts
      * every request (`authentication_required` false: nothing to sign in
      * to), and when no native client is registered, which a client says
      * instead of guessing an identity provider. Read before sign-in, like
@@ -1508,13 +1524,15 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * How an app installed on a person's computer (the desktop app) signs
-     * its person in to this server.
+     * How an app installed on a person's computer (the desktop app, the
+     * command line) signs its person in to this server.
      *
      * Set when the server signs its callers in and its operator registered
      * a public native client at the identity provider (RFC 8252: an
      * Authorization Code flow with PKCE, a `stigmer://auth/callback` or
-     * loopback redirect, no client secret). Absent when the server trusts
+     * loopback redirect, no client secret; the command line also uses the
+     * device grant, RFC 8628, where the issuer's discovery document offers
+     * it). Absent when the server trusts
      * every request (`authentication_required` false: nothing to sign in
      * to), and when no native client is registered, which a client says
      * instead of guessing an identity provider. Read before sign-in, like
@@ -1535,13 +1553,15 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * How an app installed on a person's computer (the desktop app) signs
-     * its person in to this server.
+     * How an app installed on a person's computer (the desktop app, the
+     * command line) signs its person in to this server.
      *
      * Set when the server signs its callers in and its operator registered
      * a public native client at the identity provider (RFC 8252: an
      * Authorization Code flow with PKCE, a `stigmer://auth/callback` or
-     * loopback redirect, no client secret). Absent when the server trusts
+     * loopback redirect, no client secret; the command line also uses the
+     * device grant, RFC 8628, where the issuer's discovery document offers
+     * it). Absent when the server trusts
      * every request (`authentication_required` false: nothing to sign in
      * to), and when no native client is registered, which a client says
      * instead of guessing an identity provider. Read before sign-in, like
@@ -1557,13 +1577,15 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * How an app installed on a person's computer (the desktop app) signs
-     * its person in to this server.
+     * How an app installed on a person's computer (the desktop app, the
+     * command line) signs its person in to this server.
      *
      * Set when the server signs its callers in and its operator registered
      * a public native client at the identity provider (RFC 8252: an
      * Authorization Code flow with PKCE, a `stigmer://auth/callback` or
-     * loopback redirect, no client secret). Absent when the server trusts
+     * loopback redirect, no client secret; the command line also uses the
+     * device grant, RFC 8628, where the issuer's discovery document offers
+     * it). Absent when the server trusts
      * every request (`authentication_required` false: nothing to sign in
      * to), and when no native client is registered, which a client says
      * instead of guessing an identity provider. Read before sign-in, like
@@ -1582,13 +1604,15 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * How an app installed on a person's computer (the desktop app) signs
-     * its person in to this server.
+     * How an app installed on a person's computer (the desktop app, the
+     * command line) signs its person in to this server.
      *
      * Set when the server signs its callers in and its operator registered
      * a public native client at the identity provider (RFC 8252: an
      * Authorization Code flow with PKCE, a `stigmer://auth/callback` or
-     * loopback redirect, no client secret). Absent when the server trusts
+     * loopback redirect, no client secret; the command line also uses the
+     * device grant, RFC 8628, where the issuer's discovery document offers
+     * it). Absent when the server trusts
      * every request (`authentication_required` false: nothing to sign in
      * to), and when no native client is registered, which a client says
      * instead of guessing an identity provider. Read before sign-in, like

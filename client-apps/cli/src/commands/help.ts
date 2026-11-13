@@ -79,7 +79,7 @@ export const HELP_EXAMPLES: ReadonlyMap<string, readonly HelpExample[]> = new Ma
   ["stigmer app-handover", [{ say: "print the token route and chat for a Next.js app", run: "stigmer app-handover --stack nextjs --agent invoice-matcher" }, { say: "write them into the app you are in", run: "stigmer app-handover --stack node --agent invoice-matcher --write ." }]],
   ["stigmer apikey fingerprint", [{ say: "look up which key matches a raw token", run: "stigmer apikey fingerprint stk_abc123..." }]],
   ["stigmer apply", [{ say: "apply a single resource file", run: "stigmer apply -f agent.yaml" }, { say: "apply all resources in a directory", run: "stigmer apply -f ./manifests/" }]],
-  ["stigmer auth login", [{ say: "log in to Stigmer Cloud", run: "stigmer auth login" }]],
+  ["stigmer auth login", [{ say: "sign in to the active backend's server in your browser", run: "stigmer auth login" }, { say: "where no browser opens here, sign in with a code on any device", run: "stigmer auth login --device" }]],
   ["stigmer auth logout", [{ say: "log out", run: "stigmer auth logout" }]],
   ["stigmer auth whoami", [{ say: "check who you're logged in as", run: "stigmer auth whoami" }]],
   ["stigmer channel disable", [{ say: "pause any channel (web, Slack or WhatsApp), keeping its configuration", run: "stigmer channel disable acme-corp/variance-reporter-slack" }]],

@@ -12,6 +12,7 @@ export {
   activeBackend,
   activeBackendName,
   getDefault,
+  hasSignIn,
   isCloudMode,
   load,
   save,

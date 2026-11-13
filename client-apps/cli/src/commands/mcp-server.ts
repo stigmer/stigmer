@@ -24,10 +24,10 @@
 // environment) still wins and is never refreshed.
 
 import type { Command } from "commander";
-import { type Config, activeBackend } from "../config/config.js";
+import { type Config, activeBackend, hasSignIn } from "../config/config.js";
 import { DEFAULT_CLOUD_ENDPOINT } from "../config/resolve.js";
 
-/** The cloud backend whose sign-in the server's credential comes from. */
+/** The signed-in backend the server's credential comes from. */
 export interface CloudSignIn {
   readonly name: string;
   /** The address the server dials, the entry's own or Stigmer Cloud's. */
@@ -102,8 +102,8 @@ async function runMcpServer(flags: McpServerFlags): Promise<void> {
  * Bridge the active backend into the server's environment, but only where
  * unset, so a pre-existing environment variable (or a flag bridged before this)
  * wins. The local daemon is reached without auth; a named backend contributes
- * its endpoint, and a self-hosted entry its API key. A cloud entry's sign-in is
- * returned instead of bridged, for the caller to hand the server as a token
+ * its endpoint, and a self-hosted entry with no sign-in its API key. A sign-in
+ * (any cloud entry, or a selfhost one signed in to) is returned instead of bridged, for the caller to hand the server as a token
  * provider. The credential goes only to its own backend: when the environment
  * already names another address (a runner spawning this command for its
  * server), none applies, and none does when a key was already given.
@@ -122,7 +122,7 @@ export function applyConfigEnv(config: Config, env: NodeJS.ProcessEnv): CloudSig
   if (endpoint === undefined) return undefined;
   setIfEmpty(env, "STIGMER_SERVER_ADDRESS", endpoint);
   if (env.STIGMER_SERVER_ADDRESS !== endpoint || isSet(env.STIGMER_API_KEY)) return undefined;
-  if (entry.type === "cloud") return { name, endpoint };
+  if (entry.type === "cloud" || hasSignIn(entry)) return { name, endpoint };
   setIfEmpty(env, "STIGMER_API_KEY", entry.api_key);
   return undefined;
 }

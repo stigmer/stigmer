@@ -15,6 +15,9 @@
 # The published path (`--published --version`) is re-proven by the release
 # (release.npm-libs.yaml), against the CLI it just published.
 #
+# The same job also signs the CLI in from source where a server that signs
+# its callers in says (test/install/smoke-cli-sign-in.mjs).
+#
 # The same job then runs the Getting Started pages as a reader does
 # (test/install/smoke-getting-started.mjs): their files written and commands
 # run from the pages themselves, on a second `stigmer up` and the SDK packed
@@ -87,6 +90,11 @@ jobs:
       # one (test/install/smoke-up-key.mjs), on the same build.
       - name: Check the model key at stigmer up
         run: make smoke-up-key
+
+      # `stigmer auth login` where a signed-in server says: the browser, logout
+      # and a device code (test/install/smoke-cli-sign-in.mjs), on the same build.
+      - name: Sign the CLI in where the server says
+        run: make smoke-cli-sign-in
 
 
   terminal-kit:

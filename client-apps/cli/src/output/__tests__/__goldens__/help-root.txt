@@ -60,7 +60,7 @@ Local stack:
                    coding assistants
 
 Account and access:
-  auth             manage authentication with Stigmer Cloud
+  auth             sign in to the server the CLI points at
   apikey           manage API keys for Stigmer Cloud authentication
   service-account  manage the organization's service accounts, the accounts its
                    automation acts as

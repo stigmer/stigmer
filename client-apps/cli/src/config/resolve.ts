@@ -4,7 +4,8 @@
 //
 // All resolvers read the ACTIVE named backend (config.ts): local is the
 // managed daemon (fixed endpoint, never requires auth), cloud entries carry
-// the OAuth token set, selfhost entries carry an endpoint + api_key.
+// a sign-in's token set, selfhost entries an endpoint and a sign-in or an
+// api_key.
 
 import { CliExitError, ExitCode } from "../errors/index.js";
 import { SERVER_PORT } from "../local/constants.js";
@@ -66,7 +67,7 @@ export function resolveServerAddress(config: Config): ServerAddress {
 /**
  * Resolve the auth token.
  *   STIGMER_API_KEY   (env, also where the --api-key global is bridged)
- *   > the active entry's credential (cloud: login token; selfhost: api_key)
+ *   > the active entry's credential (its sign-in's token; else a selfhost api_key)
  *   > ""              (unauthenticated)
  */
 export function resolveToken(config: Config): string {
@@ -78,7 +79,8 @@ export function resolveToken(config: Config): string {
   if (entry === undefined) {
     return "";
   }
-  return (entry.type === "cloud" ? entry.token : entry.api_key) ?? "";
+  if (entry.token !== undefined && entry.token !== "") return entry.token;
+  return (entry.type === "selfhost" ? entry.api_key : undefined) ?? "";
 }
 
 /**
