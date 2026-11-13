@@ -787,7 +787,7 @@ lists them.
 Substrate places each awake Session on a worker with room, and when no worker
 has room it says so. The run then waits instead of failing. It stays pending,
 its status says it is waiting for a sandbox, and the server asks again at most
-15 seconds apart. The agent starts as soon as room appears, whether another
+15 seconds apart. The run starts as soon as room appears, whether another
 Session goes to sleep or ends, or a worker joins, even after many minutes.
 
 A run waits at most `STIGMER_SANDBOX_WAIT_SECONDS` (900 by default, 15 minutes).
