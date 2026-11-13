@@ -134,8 +134,8 @@ describe("PlanEditor", () => {
     fireEvent.click(screen.getByText("Edit"));
 
     const editor = screen.getByRole("textbox", { name: "Edit plan" });
-    fireEvent.change(editor, { target: { value: "# Edited" } });
-    expect(setDraft).toHaveBeenCalledWith("# Edited");
+    fireEvent.change(editor, { target: { value: "# Rollout Plan v2" } });
+    expect(setDraft).toHaveBeenCalledWith("# Rollout Plan v2");
 
     // Draft active → indicator + revert, and the editor shows the draft.
     // Same client instance, so the content fetch is not re-triggered.
@@ -143,7 +143,7 @@ describe("PlanEditor", () => {
       <StigmerContext.Provider value={stigmer}>
         <PlanEditor
           plan={plan}
-          draft={draftMock({ draftText: "# Edited", isEdited: true, setDraft })}
+          draft={draftMock({ draftText: "# Rollout Plan v2", isEdited: true, setDraft })}
         />
       </StigmerContext.Provider>,
     );
@@ -178,7 +178,7 @@ describe("PlanEditor", () => {
 });
 
 describe("PlanEditor — read-only (superseded plan)", () => {
-  it("renders the document with a superseded notice, no Edit and no Build", async () => {
+  it("renders the document saying it was replaced by a newer plan, no Edit and no Build", async () => {
     renderEditor({
       readOnly: true,
       draft: undefined,
@@ -188,7 +188,7 @@ describe("PlanEditor — read-only (superseded plan)", () => {
     await waitFor(() =>
       expect(screen.getByText("Rollout Plan")).toBeTruthy(),
     );
-    expect(screen.getByText("Superseded by a newer plan")).toBeTruthy();
+    expect(screen.getByText("Replaced by a newer plan")).toBeTruthy();
     expect(screen.queryByText("Edit")).toBeNull();
     expect(screen.queryByText("Build")).toBeNull();
   });

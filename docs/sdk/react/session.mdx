@@ -1223,8 +1223,9 @@ function EntryRefs({ runs, entries }: { runs: readonly Run[]; entries: readonly 
 
 ### AgentVersionNotice
 
-"This conversation runs an older version of \<agent>." with an Update
-control.
+"A newer version of \<agent> is out" with an Update control, one strip
+above the composer. The keys the current version reads from the person's
+My vault, and a failed update, follow the words on the same strip.
 
 **Props** — `AgentVersionNoticeProps`
 
@@ -1315,9 +1316,14 @@ The plan document for the workspace surface's editor area — the wide-pane
 successor of the retired Plan sidebar facet, mounted as a virtual document
 (`SurfaceVirtualDocument`) under the [`PLAN_DOCUMENT_ENTRY_ID`](#plan_document_entry_id) tab.
 
+The header is the thread's plan card header: the list glyph, the plan's
+title (lifted from the leading H1, else "Plan") over "Plan · 4.1 KB", or
+"Replaced by a newer plan" for a read-only plan, with Edited, Revert and
+Build at the right.
+
 Three views over one text:
 - **Rendered** — the plan as a document (same typography as the thread's
-  plan rendering, title lifted from the leading H1).
+  plan rendering, its title in the header).
 - **Source** — the raw markdown.
 - **Edit** — a plain-textarea editor over a LOCAL draft
   ([`PlanDraftController`](#plandraftcontroller)); the plan File is never mutated.
@@ -1348,7 +1354,7 @@ All visual properties flow through `--stgm-*` tokens.
     draft: { type: "PlanDraftController", description: "Draft controller owned by the viewer (survives panel collapse/unmounts). Consulted only when editable — a read-only (superseded) plan renders its own text, never the current plan's draft.", typeDescriptionLink: "#plandraftcontroller" },
     onBuildFromPlan: { type: "() => void", description: "Builds from the plan — the same action as the thread card's primary." },
     plan: { type: "SessionPlan", description: "The plan to display (latest, or a superseded plan opened from its card).", required: true, typeDescriptionLink: "/docs/sdk/react/library#sessionplan" },
-    readOnly: { type: "boolean", description: "Renders the plan as a historical, read-only document: no Edit view, no Build action, and a \"superseded\" notice. Used when the user opens a plan that a newer plan has since replaced." },
+    readOnly: { type: "boolean", description: "Renders the plan as a historical, read-only document: no Edit view, no Build action, and a header that says \"Replaced by a newer plan\". Used when the user opens a plan that a newer plan has since replaced." },
   }}
 />
 
@@ -1357,15 +1363,16 @@ All visual properties flow through `--stgm-*` tokens.
 
 The plan document tab's LIVE view: renders the plan as it streams, before
 the plan File exists. The streaming counterpart of [`PlanEditor`](#planeditor) — same
-centered document column, same header-lifted title, same plan-document
-typography — so the moment the turn completes and the File-backed
-editor takes over, the document simply stops moving rather than changing
-shape.
+centered document column, same header (the plan card's: list glyph, the
+title lifted from the leading H1, else "Plan", and a subline), same
+plan-document typography — so the moment the turn completes and the
+File-backed editor takes over, the document simply stops moving rather
+than changing shape.
 
 Deliberately capability-free: no view tabs, no Edit, no Build — a plan in
 flight cannot be edited or implemented, and offering dead controls would
-misstate the turn's state. A "Writing…" status pill stands where the
-editor's toolbar will appear.
+misstate the turn's state. The header's subline says "Writing the plan…",
+a live status, pulsing unless motion is reduced.
 
 Rendering goes through `Streamdown` (the same streaming-aware renderer the
 thread's `AiMessage` uses: block-level memoization, incomplete-syntax

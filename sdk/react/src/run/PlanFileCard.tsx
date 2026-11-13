@@ -1,18 +1,16 @@
 "use client";
 
-import { memo, useCallback, useState, type ReactNode } from "react";
+import { memo, useCallback, useState } from "react";
 import { create } from "@bufbuild/protobuf";
 import { cn } from "@stigmer/design-tokens";
 import type { File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { GetFileContentInputSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/io_pb";
-import { Button } from "../button/Button.js";
-import { IconButton } from "../button/IconButton.js";
 import { useCopyFeedback } from "../internal/useCopyFeedback.js";
 import { useStigmer } from "@stigmer/react-core";
 import { useFileDownload } from "../file/useFile.js";
 import { FilePreviewModal } from "./FilePreviewModal.js";
 import { useBuildFromPlanHotkey } from "./use-build-from-plan-hotkey.js";
-import { formatFileSize } from "../file/file-size.js";
+import { PlanCard } from "./PlanCard.js";
 
 /** Props for {@link PlanFileCard}. */
 export interface PlanFileCardProps {
@@ -31,7 +29,7 @@ export interface PlanFileCardProps {
    * prominent "Build" action and the download icon remain.
    */
   readonly org?: string;
-  /** Called when the user clicks "Build". Hidden when omitted. */
+  /** Called when the user clicks "Build". Hidden when omitted, and on a `replaced` plan. */
   readonly onImplement?: () => void;
   /**
    * Opens the plan in the session panel's plan document tab — the
@@ -45,30 +43,32 @@ export interface PlanFileCardProps {
   readonly disabled?: boolean;
   /** When true, the primary button reads "Starting build…" (upload in flight). */
   readonly buildPending?: boolean;
+  /**
+   * A newer plan replaced this one: the subline says "Replaced by a newer
+   * plan" and the card offers Open and Copy only, never Download or Build.
+   * @default false
+   */
+  readonly replaced?: boolean;
   /** Additional CSS classes for the root element. */
   readonly className?: string;
 }
 
 /**
- * The compact plan card — a completed Plan turn's sole representation in the
- * thread. The plan document itself lives in the session panel's plan tab
- * (`PlanEditor`), Cursor-style: chat carries a recognizable, actionable card;
- * the panel carries the document.
+ * The plan card over a Plan-mode turn's plan File: a completed Plan turn's
+ * one representation in the thread. The plan document itself lives in the
+ * session panel's plan tab (`PlanEditor`): chat carries a recognizable,
+ * actionable card; the panel carries the document.
  *
- * Anatomy: a document-style identity block (plan icon, the plan's title, a
- * `<name> · size` meta line) with the actions trailing — open, copy, and
- * download as icon-only secondaries (labelled via `aria-label`/`title`) and
- * one prominent, themeable primary, **Build** — so the next step is
- * unmistakable.
+ * Drawn as the thread's one plan card: a list glyph on a muted square, the
+ * plan's title over "Plan · 4.1 KB" (never the File's raw name), and the
+ * acts at the right: Open, Copy and Download as icons (each named, its name
+ * its tooltip), then **Build**, the one primary.
  *
- * Action-label rule (shared with `PlanStreamingCard`, which keeps its
- * labelled "Open plan"): a lone secondary keeps its text label; a row of
- * secondaries competing with a primary collapses to icons, so the primary
- * carries the card's one visible verb.
- *
- * Only the LATEST plan's card carries `onImplement`; a superseded plan's card
- * is review-only (its `onOpenPlan` opens the document read-only), so a stale
- * plan can never be implemented by accident.
+ * Only the LATEST plan's card carries `onImplement`. A plan a newer one
+ * replaced is marked `replaced`: its subline says "Replaced by a newer plan"
+ * and it offers Open and Copy only, never Build, so a stale plan can never
+ * be implemented by accident (its `onOpenPlan` opens the document
+ * read-only).
  *
  * All visual properties flow through `--stgm-*` tokens; the component is
  * self-contained and embeddable.
@@ -81,75 +81,43 @@ export const PlanFileCard = memo(function PlanFileCard({
   onOpenPlan,
   disabled,
   buildPending,
+  replaced,
   className,
 }: PlanFileCardProps) {
   const [previewOpen, setPreviewOpen] = useState(false);
-  const handleKeyDown = useBuildFromPlanHotkey(onImplement, disabled);
+  const build = replaced ? undefined : onImplement;
+  const handleKeyDown = useBuildFromPlanHotkey(build, disabled);
   const { copy, isCopying, copied } = useFileTextCopy();
   const { download, isDownloading } = useFileDownload();
   const fileId = file.metadata?.id ?? "";
   const name = file.spec?.filename ?? "";
+  // The panel's plan tab when the host has one, else the preview modal,
+  // which needs the org; one review affordance, never two.
+  const openPlan = onOpenPlan ?? (org ? () => setPreviewOpen(true) : undefined);
 
   return (
-    <div
+    <PlanCard
       role="region"
       aria-label="Plan"
       onKeyDown={handleKeyDown}
-      className={cn(
-        "stg:mx-4 stg:flex stg:flex-wrap stg:items-center stg:gap-x-3 stg:gap-y-2 stg:rounded-lg",
-        "stg:border stg:border-border-muted stg:bg-card stg:px-3 stg:py-2.5",
-        className,
-      )}
+      state={replaced ? "replaced" : "ready"}
+      title={title ?? "Plan"}
+      sizeBytes={file.status?.sizeBytes}
+      open={openPlan === undefined ? undefined : { label: "Open plan", onClick: openPlan }}
+      copy={{
+        label: copied ? "Copied" : isCopying ? "Copying…" : "Copy plan",
+        onClick: () => copy(fileId),
+        disabled: isCopying,
+        copied,
+      }}
+      download={{
+        label: isDownloading ? "Preparing…" : `Download ${name}`,
+        onClick: () => download(fileId, name),
+        disabled: isDownloading,
+      }}
+      build={build === undefined ? undefined : { onClick: build, disabled, pending: buildPending }}
+      className={cn("stg:mx-4", className)}
     >
-      <PlanIcon />
-      <div className="stg:min-w-0 stg:flex-1 stg:basis-48">
-        <div className="stg:truncate stg:text-sm stg:font-medium stg:text-foreground">
-          {title ?? "Plan"}
-        </div>
-        <div className="stg:text-2xs stg:text-muted-foreground">
-          {name}
-          <span aria-hidden="true"> · </span>
-          <span className="stg:tabular-nums">
-            {formatFileSize(file.status?.sizeBytes ?? BigInt(0))}
-          </span>
-        </div>
-      </div>
-
-      <div className="stg:ml-auto stg:flex stg:flex-wrap stg:items-center stg:gap-x-1.5 stg:gap-y-1.5">
-        {onOpenPlan ? (
-          <IconAction
-            label="Open plan"
-            onClick={onOpenPlan}
-            icon={<EyeIcon />}
-          />
-        ) : (
-          org && (
-            <IconAction
-              label="Open plan"
-              onClick={() => setPreviewOpen(true)}
-              icon={<EyeIcon />}
-            />
-          )
-        )}
-        <IconAction
-          label={copied ? "Copied" : isCopying ? "Copying…" : "Copy plan"}
-          onClick={() => copy(fileId)}
-          disabled={isCopying}
-          icon={copied ? <CheckIcon /> : <CopyIcon />}
-        />
-        <IconAction
-          label={isDownloading ? "Preparing…" : `Download ${name}`}
-          onClick={() => download(fileId, name)}
-          disabled={isDownloading}
-          icon={<DownloadIcon />}
-        />
-        {onImplement && (
-          <Button size="xs" disabled={disabled} onClick={onImplement} icon={<ImplementIcon />} className="stg:ml-1.5">
-            {buildPending ? "Starting build…" : "Build"}
-          </Button>
-        )}
-      </div>
-
       <div role="status" aria-live="polite" aria-atomic="true" className="stg:sr-only">
         {copied && "Plan copied to clipboard"}
       </div>
@@ -164,10 +132,10 @@ export const PlanFileCard = memo(function PlanFileCard({
           isTerminal
           open
           onClose={() => setPreviewOpen(false)}
-          onImplement={onImplement}
+          onImplement={build}
         />
       )}
-    </div>
+    </PlanCard>
   );
 });
 
@@ -195,139 +163,4 @@ function useFileTextCopy() {
     [stigmer, writeClipboard],
   );
   return { copy, isCopying, copied };
-}
-
-/** An icon-only secondary action: the kit's small IconButton, whose name is its tooltip, shown even while it is disabled. */
-function IconAction({
-  label,
-  onClick,
-  icon,
-  disabled,
-}: {
-  readonly label: string;
-  readonly onClick: () => void;
-  readonly icon: ReactNode;
-  readonly disabled?: boolean;
-}) {
-  return <IconButton label={label} icon={icon} size="xs" onClick={onClick} disabled={disabled} />;
-}
-
-function PlanIcon() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="stg:shrink-0 stg:text-muted-foreground-faint"
-      aria-hidden="true"
-    >
-      <path d="M3 4h10M3 8h7M3 12h8" />
-      <path d="M12.5 10.5l1.5 1.5-1.5 1.5" />
-    </svg>
-  );
-}
-
-function ImplementIcon() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 12 12"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M2 6h8M7 3l3 3-3 3" />
-    </svg>
-  );
-}
-
-function DownloadIcon() {
-  return (
-    <svg
-      width="13"
-      height="13"
-      viewBox="0 0 12 12"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="stg:shrink-0"
-      aria-hidden="true"
-    >
-      <path d="M6 1.5V8.5" />
-      <path d="M3 6L6 9L9 6" />
-      <path d="M2 10.5H10" />
-    </svg>
-  );
-}
-
-function CopyIcon() {
-  return (
-    <svg
-      width="13"
-      height="13"
-      viewBox="0 0 12 12"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="stg:shrink-0"
-      aria-hidden="true"
-    >
-      <rect x="4" y="4" width="6.5" height="6.5" rx="1" />
-      <path d="M8 4V2.5C8 1.95 7.55 1.5 7 1.5H2.5C1.95 1.5 1.5 1.95 1.5 2.5V7C1.5 7.55 1.95 8 2.5 8H4" />
-    </svg>
-  );
-}
-
-/** A check glyph — transient confirmation that the copy succeeded. */
-function CheckIcon() {
-  return (
-    <svg
-      width="13"
-      height="13"
-      viewBox="0 0 12 12"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="stg:shrink-0 stg:text-status-ready"
-      aria-hidden="true"
-    >
-      <path d="M2 6.5L4.5 9L10 3" />
-    </svg>
-  );
-}
-
-/** An eye glyph — "view/open the plan to read it". */
-function EyeIcon() {
-  return (
-    <svg
-      width="13"
-      height="13"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="stg:shrink-0"
-      aria-hidden="true"
-    >
-      <path d="M1.5 8S4 3.5 8 3.5s6.5 4.5 6.5 4.5-2.5 4.5-6.5 4.5S1.5 8 1.5 8Z" />
-      <circle cx="8" cy="8" r="1.75" />
-    </svg>
-  );
 }

@@ -228,7 +228,7 @@ const SESSION_SCENES = [
     id: "session-compacted",
     title: "Session: a turn that recalled three memories and had its earlier messages summarized part-way, both opened",
     widths: ["desktop"],
-    opens: ["Recalled 3 of 3 memories", "How it got there"],
+    opens: ["Recalled 3 memories", "How it got there"],
   },
   {
     id: "session-attachments",

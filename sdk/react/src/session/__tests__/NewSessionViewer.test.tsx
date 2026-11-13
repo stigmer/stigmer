@@ -195,7 +195,7 @@ describe("NewSessionViewer — persistent panel chip", () => {
 });
 
 describe("NewSessionViewer — auto-approve placement (#816 rework)", () => {
-  const INDICATOR_TEXT = "Auto-approving tool calls for this session";
+  const INDICATOR_TEXT = "Approving tool calls automatically";
 
   it("shows no indicator while auto-approve is off — the launcher stays clean", () => {
     render(<NewSessionViewer org="acme" onSessionCreated={vi.fn()} />);

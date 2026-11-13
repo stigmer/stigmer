@@ -8,20 +8,33 @@ import {
   extractLeadingH1,
   unwrapEnclosingMarkdownFence,
 } from "../internal/markdown-components.js";
+import { PlanCard } from "./PlanCard.js";
+import { useBuildFromPlanHotkey } from "./use-build-from-plan-hotkey.js";
 
 /** Props for {@link PlanDocumentMessage}. */
 export interface PlanDocumentMessageProps {
   /** The plan message's markdown content (the agent's final Plan-mode reply). */
   readonly content: string;
+  /**
+   * Builds from the plan: a Build primary on the plan's own card, with the
+   * card-scoped `Cmd/Ctrl+Enter` accelerator. Pass it to the latest plan
+   * only; no Build when omitted (a host that passes it here draws no
+   * separate `PlanCompletionCard`, so the plan shows once).
+   */
+  readonly onImplement?: () => void;
+  /** Disables Build (e.g., while a run is active). */
+  readonly disabled?: boolean;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
 
 /**
  * Renders a Plan-mode turn's plan as a first-class document instead of a chat
- * bubble: a bordered card with a title header (the plan's leading `# H1`,
- * lifted out of the prose) and document-grade typography
- * ({@link PLAN_DOCUMENT_MARKDOWN_COMPONENTS}).
+ * bubble: the thread's one plan card, its header the list glyph and the
+ * plan's title (its leading `# H1`, lifted out of the prose, else "Plan"),
+ * the plan under it in document-grade typography
+ * ({@link PLAN_DOCUMENT_MARKDOWN_COMPONENTS}), and Build when `onImplement`
+ * is given.
  *
  * This is the thread's NO-PLAN-FILE fallback: a completed Plan turn that never
  * published `plan.md` (older runs, a failed upload) keeps its plan
@@ -42,27 +55,25 @@ export interface PlanDocumentMessageProps {
  */
 export const PlanDocumentMessage = memo(function PlanDocumentMessage({
   content,
+  onImplement,
+  disabled,
   className,
 }: PlanDocumentMessageProps) {
   const { title, body } = useMemo(
     () => extractLeadingH1(unwrapEnclosingMarkdownFence(content, true)),
     [content],
   );
+  const handleKeyDown = useBuildFromPlanHotkey(onImplement, disabled);
 
   return (
-    <div
+    <PlanCard
       role="article"
       aria-label="Plan document"
-      className={cn("stg:mx-4", className)}
-    >
-      <div className="stg:overflow-hidden stg:rounded-lg stg:border stg:border-border-muted stg:bg-card">
-        <header className="stg:flex stg:items-center stg:gap-2 stg:border-b stg:border-border-muted stg:bg-muted-faint stg:px-4 stg:py-2.5">
-          <PlanDocIcon />
-          <span className="stg:min-w-0 stg:flex-1 stg:truncate stg:text-sm stg:font-semibold stg:text-foreground">
-            {title ?? "Plan"}
-          </span>
-        </header>
-        <div className="stgm-prose stg:px-4 stg:py-4">
+      onKeyDown={handleKeyDown}
+      state="text"
+      title={title ?? "Plan"}
+      body={
+        <div className="stgm-prose">
           <Streamdown
             components={PLAN_DOCUMENT_MARKDOWN_COMPONENTS}
             isAnimating={false}
@@ -70,27 +81,9 @@ export const PlanDocumentMessage = memo(function PlanDocumentMessage({
             {body}
           </Streamdown>
         </div>
-      </div>
-    </div>
+      }
+      build={onImplement === undefined ? undefined : { onClick: onImplement, disabled }}
+      className={cn("stg:mx-4", className)}
+    />
   );
 });
-
-function PlanDocIcon() {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="stg:shrink-0 stg:text-muted-foreground"
-      aria-hidden="true"
-    >
-      <path d="M3 4h10M3 8h7M3 12h8" />
-      <path d="M12.5 10.5l1.5 1.5-1.5 1.5" />
-    </svg>
-  );
-}

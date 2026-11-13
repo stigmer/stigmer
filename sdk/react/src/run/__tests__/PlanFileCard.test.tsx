@@ -1,6 +1,7 @@
 /**
- * The compact plan card over a Plan-mode turn's plan File: title, filename
- * and size; one Build action; copy and download read the File by id at click
+ * The compact plan card over a Plan-mode turn's plan File: title, then
+ * "Plan · size", never the File's raw name; one Build action, none and no
+ * Download on a plan a newer one replaced; copy and download read the File by id at click
  * time; the open action routes to the panel or falls back to the preview
  * modal when the host has an org. The copied tick is drawn in the ready
  * colour the theme contract measures as text, on the card and on the icon
@@ -69,7 +70,7 @@ beforeEach(() => {
 });
 
 describe("PlanFileCard — compact document card", () => {
-  it("is an accessible region with the plan's title, filename, and size", () => {
+  it("is an accessible region with the plan's title and 'Plan · size', never the File's name", () => {
     renderCard(
       <PlanFileCard
         file={planFile}
@@ -80,8 +81,19 @@ describe("PlanFileCard — compact document card", () => {
 
     const region = screen.getByRole("region", { name: "Plan" });
     expect(region.textContent).toContain("Refactor the auth flow");
-    expect(region.textContent).toContain("plan.md");
-    expect(region.textContent).toContain("KB");
+    expect(screen.getByText("Plan · 4.4 KB")).toBeTruthy();
+    expect(region.textContent).not.toContain("plan.md");
+  });
+
+  it("says a replaced plan was replaced, and offers Open and Copy but no Download or Build", () => {
+    renderCard(
+      <PlanFileCard file={planFile} title="Refactor the auth flow" org="acme" onImplement={vi.fn()} replaced />,
+    );
+    expect(screen.getByText("Replaced by a newer plan")).toBeTruthy();
+    expect(screen.getAllByRole("button").map((button) => button.getAttribute("aria-label") ?? button.textContent)).toEqual([
+      "Open plan",
+      "Copy plan",
+    ]);
   });
 
   it("falls back to 'Plan' when the plan has no title", () => {

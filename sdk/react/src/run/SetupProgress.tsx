@@ -1,91 +1,32 @@
 "use client";
 
-import { memo, useEffect, useMemo, useState } from "react";
-import type { SessionResource } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
+import { memo } from "react";
 import { cn } from "@stigmer/design-tokens";
+import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 
 /** Props for {@link SetupProgress}. */
 export interface SetupProgressProps {
   /**
-   * The conversation's resources from the session spec. When a git
-   * repository is among them, the fallback indicator shows
-   * workspace-specific messaging (e.g. "Setting up workspace...").
-   */
-  readonly resources?: readonly SessionResource[];
-  /**
-   * Server-reported setup phase label from
-   * `RunStatus.setup_progress.current_phase`.
-   *
-   * When non-empty, rendered directly — the timer-based fallback is
-   * bypassed.  When absent or empty (older backends that don't emit
-   * setup progress), the component falls back to the time-based
-   * step sequence derived from `resources`.
+   * The server's setup phase, `RunStatus.setup_progress.current_phase`:
+   * shown as it is while the run starts. Absent or empty, the line says
+   * "Starting".
    */
   readonly serverPhase?: string;
   /**
-   * When `true`, the run has moved past `PENDING` into
-   * `IN_PROGRESS` but the agent has not yet produced any agent messages.
-   * Renders a static "Thinking\u2026" label instead of the setup
-   * phase sequence or server-reported phase.
+   * `true` once the run is past starting and waits on the agent's first
+   * words: the line says "Thinking".
    */
   readonly isAwaitingResponse?: boolean;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
 
-/* ── Timer-based fallback (used when no serverPhase is available) ─── */
-
-interface SetupStep {
-  readonly message: string;
-  readonly durationMs: number;
-}
-
-const STEP_INTERVAL_MS = 4000;
-
-function buildSteps(
-  resources: readonly SessionResource[] | undefined,
-): SetupStep[] {
-  const hasGitRepo = resources?.some(
-    (r) => r.resource.case === "gitRepository",
-  );
-
-  const steps: SetupStep[] = [
-    { message: "Initializing run\u2026", durationMs: STEP_INTERVAL_MS },
-  ];
-
-  if (hasGitRepo) {
-    steps.push({
-      message: "Setting up workspace\u2026",
-      durationMs: STEP_INTERVAL_MS,
-    });
-  }
-
-  steps.push(
-    {
-      message: "Preparing agent environment\u2026",
-      durationMs: STEP_INTERVAL_MS,
-    },
-    { message: "Almost ready\u2026", durationMs: STEP_INTERVAL_MS },
-  );
-
-  return steps;
-}
-
 /**
- * Animated inline indicator shown in the message thread while an
- * run has not yet produced agent messages.
- *
- * Operates in three modes (highest-priority first):
- *
- * 1. **Awaiting response** — `isAwaitingResponse` is `true`. The
- *    run has moved past `PENDING` into `IN_PROGRESS` but no AI
- *    messages have arrived yet. Shows a static "Thinking\u2026" label.
- *
- * 2. **Server-driven** — `serverPhase` is non-empty. Renders the
- *    server-reported `setup_progress.current_phase` label directly.
- *
- * 3. **Timer-based fallback** — neither of the above. Cycles through
- *    contextual status messages derived from `resources`.
+ * The one live line a turn shows before the agent's first words, in the
+ * step rows' look (a 12px spinner, 14/20, the live sweep): the server's
+ * phase while the run starts, else "Starting"; "Thinking" once the run
+ * waits on its first words. It says only what the run records; nothing
+ * cycles on a timer.
  *
  * All visual properties flow through `--stgm-*` tokens.
  *
@@ -100,65 +41,17 @@ function buildSteps(
  * ```
  */
 export const SetupProgress = memo(function SetupProgress({
-  resources,
   serverPhase,
   isAwaitingResponse,
   className,
 }: SetupProgressProps) {
-  const useServerPhase = !isAwaitingResponse && !!serverPhase;
-
-  /* ── Timer-based fallback state ─────────────────────────────────── */
-  const steps = useMemo(() => buildSteps(resources), [resources]);
-  const [stepIndex, setStepIndex] = useState(0);
-
-  useEffect(() => {
-    setStepIndex(0);
-  }, [steps]);
-
-  useEffect(() => {
-    if (isAwaitingResponse || useServerPhase) return;
-    if (stepIndex >= steps.length - 1) return;
-
-    const timer = setTimeout(() => {
-      setStepIndex((i) => Math.min(i + 1, steps.length - 1));
-    }, steps[stepIndex].durationMs);
-
-    return () => clearTimeout(timer);
-  }, [isAwaitingResponse, useServerPhase, stepIndex, steps]);
-
-  /* ── Resolve display message ────────────────────────────────────── */
-  let currentMessage: string;
-  if (isAwaitingResponse) {
-    currentMessage = "Thinking\u2026";
-  } else if (serverPhase) {
-    currentMessage = serverPhase;
-  } else {
-    currentMessage = steps[Math.min(stepIndex, steps.length - 1)].message;
-  }
-
+  const words = isAwaitingResponse ? "Thinking" : serverPhase || "Starting";
   return (
-    <div
-      role="status"
-      aria-label={currentMessage}
-      className={cn("stg:flex stg:items-center stg:gap-2.5 stg:px-4 stg:py-2", className)}
-    >
-      <PulseIndicator />
-      {/* The setup/thinking label carries the ambient-liveness sweep
-          (stigmer#277): this indicator only exists while the run is
-          live, so it always shimmers. The shimmer class owns `color`,
-          replacing the static muted utility. */}
-      <span className="stg:text-sm stg:animate-in stg:fade-in stg:duration-300 stgm-shimmer-label">
-        {currentMessage}
-      </span>
+    <div role="status" aria-label={words} className={cn("stg:mx-4 stg:flex stg:items-center stg:gap-2 stg:px-3 stg:py-2 stg:text-sm", className)}>
+      <SpinnerIcon size={12} className="stg:shrink-0 stg:text-muted-foreground stg:motion-reduce:animate-none" />
+      {/* The line exists only while the run is live, so it always carries
+          the ambient-liveness sweep (stigmer#277); the shimmer owns the colour. */}
+      <span className="stgm-shimmer-label">{words}</span>
     </div>
   );
 });
-
-function PulseIndicator() {
-  return (
-    <span className="stg:relative stg:flex stg:h-2 stg:w-2 stg:shrink-0" aria-hidden="true">
-      <span className="stg:absolute stg:inline-flex stg:h-full stg:w-full stg:animate-ping stg:rounded-full stg:bg-muted-foreground stg:opacity-75" />
-      <span className="stg:relative stg:inline-flex stg:h-2 stg:w-2 stg:rounded-full stg:bg-muted-foreground" />
-    </span>
-  );
-}

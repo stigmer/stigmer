@@ -4,7 +4,7 @@
 // as a plain bubble, a platform note as muted italic text, and a thinking as
 // a collapsible block that hides once settled empty.
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { render, cleanup, waitFor } from "@testing-library/react";
+import { render, cleanup, waitFor, screen, fireEvent } from "@testing-library/react";
 import { MessageEntry, type ThreadMessage } from "../MessageEntry";
 import { MermaidLoaderContext, type MermaidModule } from "../../mermaid-loader-context";
 
@@ -323,6 +323,22 @@ describe("MessageEntry — Thinking messages", () => {
     const article = queryArticle(container, "Model thinking");
     const svg = article!.querySelector("svg.stg\\:animate-spin");
     expect(svg).not.toBeNull();
+  });
+
+  it("says Thought for a stored thought and opens to all of it, never a cut preview", () => {
+    const words = "A cent off on many invoices sounds like rounding each line before the total, so read invoice.ts before changing anything.";
+    render(<MessageEntry message={makeMessage("thinking", words)} />);
+
+    const toggle = screen.getByRole("button", { name: "Thought" });
+    expect(screen.queryByText(words)).toBeNull();
+    expect(document.body.textContent).not.toContain("...");
+    fireEvent.click(toggle);
+    expect(screen.getByText(words)).toBeTruthy();
+  });
+
+  it("says Thinking while the stream holds the thought open", () => {
+    render(<MessageEntry message={makeMessage("thinking", "", { isStreaming: true })} />);
+    expect(screen.getByText("Thinking")).toBeTruthy();
   });
 
   it("returns null for empty non-streaming thinking", () => {

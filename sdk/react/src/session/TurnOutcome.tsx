@@ -24,6 +24,7 @@ import { fileDecisionKey, type ReviewFileChangesOptions } from "@stigmer/react-c
 import type { TurnChange, TurnOutcomeView } from "./turn-outcome.js";
 import { CHANGE_WORDS, changeWords } from "./turn-change-words.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
+import { sizeWords } from "../internal/size-words.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { Tag } from "../internal/surface/Tag.js";
 import { Button } from "../button/Button.js";
@@ -71,14 +72,6 @@ function baseName(path: string): string {
 function folderOf(path: string): string {
   const at = path.lastIndexOf("/");
   return at <= 0 ? "" : path.slice(0, at);
-}
-
-function sizeWords(bytes: bigint | undefined): string {
-  const n = Number(bytes ?? BigInt(0));
-  if (n <= 0) return "";
-  if (n < 1024) return `${n} B`;
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
-  return `${(n / 1024 / 1024).toFixed(1)} MB`;
 }
 
 /** A File's kind, in words a person uses: from its type, else its extension. */

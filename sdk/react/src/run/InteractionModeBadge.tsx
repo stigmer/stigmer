@@ -3,6 +3,7 @@
 import { memo } from "react";
 import { InteractionMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { cn } from "@stigmer/design-tokens";
+import { Tag } from "../internal/surface/Tag.js";
 
 /** Props for {@link InteractionModeBadge}. */
 export interface InteractionModeBadgeProps {
@@ -13,11 +14,12 @@ export interface InteractionModeBadgeProps {
 }
 
 /**
- * Displays the interaction mode of a run as a compact inline badge.
+ * Displays the interaction mode of a run as the kit's neutral `Tag`
+ * ("Plan"), drawn inline so it reads before the message's first line.
  *
  * Only renders for non-default modes (PLAN). Returns `null` for AGENT
  * and UNSPECIFIED since agent mode is the default and does not need
- * visual distinction.
+ * visual distinction. Its accessible name is "Plan mode".
  *
  * All visual properties flow through `--stgm-*` tokens.
  *
@@ -32,41 +34,13 @@ export const InteractionModeBadge = memo(function InteractionModeBadge({
   mode,
   className,
 }: InteractionModeBadgeProps) {
-  if (
-    mode !== InteractionMode.PLAN
-  ) {
+  if (mode !== InteractionMode.PLAN) {
     return null;
   }
 
   return (
-    <span
-      role="status"
-      aria-label="Plan mode"
-      className={cn(
-        "stg:inline-flex stg:items-center stg:gap-1 stg:rounded-md stg:px-1.5 stg:py-0.5 stg:text-2xs stg:font-medium",
-        "stg:bg-accent stg:text-muted-foreground",
-        className,
-      )}
-    >
-      <PlanIcon />
+    <Tag role="status" aria-label="Plan mode" className={cn("stg:me-2 stg:align-middle", className)}>
       Plan
-    </span>
+    </Tag>
   );
 });
-
-function PlanIcon() {
-  return (
-    <svg
-      width="10"
-      height="10"
-      viewBox="0 0 12 12"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M2 3h8M2 6h5M2 9h6" />
-    </svg>
-  );
-}

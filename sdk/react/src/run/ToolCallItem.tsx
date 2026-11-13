@@ -22,7 +22,7 @@ import { hasResultBody, resultCounts, type ResultCounts } from "./ResultView.js"
 import { SubagentSection } from "./SubagentSection.js";
 import { ApprovalCardBody } from "./ApprovalCard.js";
 import { MemoryProposalCardBody } from "../memory/MemoryProposalCard.js";
-import { useApproval } from "./ApprovalContext.js";
+import { useApproval, useWaitingWords } from "./ApprovalContext.js";
 import { BackgroundCommandTrail, BackgroundStopError } from "./BackgroundCommandStatus.js";
 import { useFileReviewRowState } from "@stigmer/react-core";
 import { CHANGE_WORDS } from "../session/turn-change-words.js";
@@ -35,6 +35,7 @@ import { getToolPresenter, useToolPresentation } from "./tool-presenter.js";
 import { StatusBadge } from "../status/StatusBadge.js";
 import type { StatusPhase } from "../resource-workbench/types.js";
 import { Tag } from "../internal/surface/Tag.js";
+import { HelperEndingBadge, HelperGlyph, helperTagWord } from "./helper-step.js";
 
 /** Props for {@link ToolCallItem}. */
 export interface ToolCallItemProps {
@@ -92,11 +93,17 @@ export interface ToolCallItemProps {
  * (read, list, search, think) unless it waits or failed. A pending gate
  * carries a restrained left accent.
  *
+ * A call that started a helper (`toolUse.thread`) draws the helper's header:
+ * its subject as the line, its agent's name as a tag beside it ("Helper"
+ * when it has none), and a pill only once the helper failed or stopped; the
+ * body is the helper's work ({@link SubagentSection}'s flat form).
+ *
  * A call that started a command in the background (`toolUse.background`)
- * is the command's row: a "Background" chip and the command's state beside
- * the call's own, the running look (shimmer, spinner, open) for as long as
- * the command runs though the call itself returned, its output in the body,
- * and Stop while a stop handler is wired ({@link BackgroundCommandContext}).
+ * is the command's row: one line saying how the command stands ("Running in
+ * the background · 12s", or how it ended), the running look (shimmer,
+ * spinner, open) for as long as the command runs though the call itself
+ * returned, its output in the body, and a quiet Stop while a stop handler is
+ * wired ({@link BackgroundCommandContext}).
  *
  * Wrapped in `React.memo` — the session fold keeps an unchanged tool use's
  * reference, so a settled row skips re-renders while sibling tools stream.
@@ -144,6 +151,9 @@ export const ToolCallItem = memo(function ToolCallItem({
   // nested subagent), or null. Drives the inline approval panel and forces
   // the row open.
   const approval = useApproval(toolUse);
+  // A step waiting on a person this viewer is not: it says whom it waits on.
+  const waitingWords = useWaitingWords();
+  const waitsOnSomeoneElse = status === "waiting" && approval == null;
 
   // A failed command stays open: its output is the content the person needs
   // next.
@@ -167,6 +177,10 @@ export const ToolCallItem = memo(function ToolCallItem({
   // Subagents title the row with their subject; every other row with its
   // step line (a host's label, else `stepPhrase`).
   const displayLabel = isSubagent ? subagentSubjectOf(toolUse) || thread.agentName || title : title;
+  // A helper's row carries its agent's name as a tag beside the subject, and
+  // its ending as a pill in place of the status mark.
+  const helperTag = isSubagent ? helperTagWord(thread.agentName, displayLabel) : null;
+  const helperEnded = isSubagent && (thread.state === "failed" || thread.state === "stopped");
 
   const approvalBadge = getApprovalBadge(toolUse);
 
@@ -226,7 +240,9 @@ export const ToolCallItem = memo(function ToolCallItem({
 
       <BackgroundCommandTrail toolUse={toolUse} />
 
-      {StatusIcon && (
+      {isSubagent && <HelperEndingBadge state={thread.state} />}
+
+      {StatusIcon && !helperEnded && (
         <span className={cn("stg:shrink-0", STATUS_COLOR[status])} aria-hidden="true">
           <StatusIcon />
         </span>
@@ -299,6 +315,7 @@ export const ToolCallItem = memo(function ToolCallItem({
             displayLabel
           )}
         </span>
+        {helperTag !== null && <Tag>{helperTag}</Tag>}
         {counts?.kind === "lines" && (
           <span className="stg:shrink-0 stg:font-mono stg:text-xs stg:tabular-nums">
             <span className="stg:text-status-ready">+{counts.added}</span>{" "}
@@ -318,6 +335,7 @@ export const ToolCallItem = memo(function ToolCallItem({
             {detail}
           </span>
         )}
+        {waitsOnSomeoneElse && <span className="stg:shrink-0 stg:text-xs stg:text-status-degraded">{waitingWords}</span>}
       </span>
 
       {trailingContent}
@@ -351,7 +369,7 @@ export const ToolCallItem = memo(function ToolCallItem({
     kind: "expand",
     expanded,
     onToggle: handleToggle,
-    label: toggleLabel(displayLabel, detail, countsText),
+    label: toggleLabel(displayLabel, detail, isSubagent ? helperTag : countsText),
     ...(detail !== null && detailTruncated ? { hint: detail } : {}),
   } as const;
 
@@ -464,7 +482,7 @@ export const CATEGORY_ICON: Record<ToolCategory, () => React.JSX.Element> = {
   fetch: GlobeIcon,
   "web-search": GlobeIcon,
   think: BrainIcon,
-  "subagent": BotIcon,
+  "subagent": HelperGlyph,
   internal: WrenchIcon,
   mcp: McpPlugIcon,
   memory: BookmarkIcon,
@@ -571,18 +589,6 @@ function BrainIcon() {
       <path d="M6 2C4.9 2 4 2.9 4 4C3.17 4 2.5 4.67 2.5 5.5C2.5 6.33 3 6.87 3 6.87C2.5 7.37 2.5 8.13 3 8.63C3.5 9.13 4.3 9.13 4.8 8.63L6 7.5" />
       <path d="M6 2C7.1 2 8 2.9 8 4C8.83 4 9.5 4.67 9.5 5.5C9.5 6.33 9 6.87 9 6.87C9.5 7.37 9.5 8.13 9 8.63C8.5 9.13 7.7 9.13 7.2 8.63L6 7.5" />
       <path d="M6 7.5V11" />
-    </svg>
-  );
-}
-
-function BotIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="2" y="4" width="8" height="6" rx="1.5" />
-      <circle cx="4.5" cy="7" r="0.75" fill="currentColor" stroke="none" />
-      <circle cx="7.5" cy="7" r="0.75" fill="currentColor" stroke="none" />
-      <path d="M6 1V4" />
-      <circle cx="6" cy="1" r="0.75" />
     </svg>
   );
 }

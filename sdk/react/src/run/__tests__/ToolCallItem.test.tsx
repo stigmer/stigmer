@@ -9,7 +9,8 @@
 // non-zero marked failed though the engine did not, a denied call not; the
 // preview layout a host asks for per kind; the density tier, the status
 // vocabulary read from `ToolUse.state`, duration chips from the use and
-// result times, the Approved/Denied answer badge, the file-review badge a
+// result times, the Approved/Denied answer badge, a task row's helper tag
+// and its pill only once the helper failed or stopped, the file-review badge a
 // file-edit row reads from its turn's review by path ("Undone" or "Couldn't
 // undo"; nothing for an undecided or kept file), and the header's
 // controls: one toggle laid over the row, named for what the row is and
@@ -24,6 +25,8 @@ import { ApprovalContext, type ApprovalContextValue } from "../ApprovalContext";
 import { registerToolPresenter } from "../tool-presenter";
 import { FileReviewContext } from "@stigmer/react-core";
 import { reviewFile, reviewSet, thread, toolUse } from "./__fixtures__/fold-values";
+import { tagClasses } from "../../internal/surface/Tag";
+import { samples } from "../../test";
 
 afterEach(cleanup);
 
@@ -619,6 +622,43 @@ describe("ToolCallItem disclosure", () => {
     expect(rowRoot(container).textContent).toContain("A helper is working");
   });
 
+  it("tags a task row with its helper's name beside the subject, Helper without one, and repeats no header in its body", () => {
+    const tu = toolUse({
+      name: "task",
+      input: { description: "Find the rounding code" },
+      thread: thread({ agentName: "researcher", input: "Look in billing", state: "running" }),
+      state: "running",
+    });
+    const { container } = render(<ToolCallItem toolUse={tu} />);
+    const header = rowRoot(container).firstElementChild as HTMLElement;
+    expect(within(header).getByText("researcher").className).toBe(tagClasses());
+    expect(within(header).queryByText("Running")).toBeNull();
+    // The row's header is the helper's header: its body opens to the work.
+    expect(container.textContent?.match(/researcher/g)).toHaveLength(1);
+    expect(container.textContent).toContain("Look in billing");
+    cleanup();
+
+    render(<ToolCallItem toolUse={toolUse({ name: "task", input: { description: "Find it" }, thread: thread({ agentName: "" }), state: "running" })} />);
+    expect(screen.getByText("Helper").className).toBe(tagClasses());
+  });
+
+  it("shows no Completed pill on a finished task row, and a pill once its helper failed or stopped", () => {
+    const finished = render(
+      <ToolCallItem toolUse={toolUse({ name: "task", input: { description: "Find it" }, thread: thread({ state: "completed" }), result: "done" })} />,
+    );
+    expect(finished.queryByText("Completed")).toBeNull();
+    cleanup();
+
+    for (const [state, label] of [["failed", "Failed"], ["stopped", "Stopped"]] as const) {
+      const { container } = render(
+        <ToolCallItem toolUse={toolUse({ name: "task", input: { description: "Find it" }, thread: thread({ state }), result: "" })} />,
+      );
+      const header = rowRoot(container).firstElementChild as HTMLElement;
+      expect(within(header).getByText(label).className).toContain("stg:rounded-full");
+      cleanup();
+    }
+  });
+
   it("shows an MCP tool's server beside its title", () => {
     const { container } = render(
       <ToolCallItem toolUse={toolUse({ name: "send_message", mcpServerName: "acme-slack", result: "{}" })} />,
@@ -1081,5 +1121,28 @@ describe("ToolCallItem step line", () => {
     } finally {
       unregister();
     }
+  });
+});
+
+describe("a waiting step, for a viewer who cannot answer it", () => {
+  it("says whom it waits on, by name or as the owner, and says nothing extra to whoever answers", () => {
+    const waiting = samples.fold([
+      samples.toolUseEvent("write_file", { path: "src/billing/rounding.ts" }, { id: "w1", evaluatedPermission: "ask" }),
+      samples.permissionAskedEvent("w1", { argsPreview: '{"path":"src/billing/rounding.ts"}' }),
+    ]).turns[0]!.items.find((item): item is ToolUse => item.kind === "tool_use")!;
+    const { unmount } = render(
+      <ApprovalContext.Provider value={{ submittingIds: new Set(), errorsByToolUseId: new Map(), approverName: "Maya Okafor" }}>
+        <ToolCallItem toolUse={waiting} />
+      </ApprovalContext.Provider>,
+    );
+    expect(screen.getByText("Waiting for Maya Okafor to approve")).toBeTruthy();
+    unmount();
+
+    render(
+      <ApprovalContext.Provider value={{ onAnswer: () => undefined, submittingIds: new Set(), errorsByToolUseId: new Map() }}>
+        <ToolCallItem toolUse={waiting} />
+      </ApprovalContext.Provider>,
+    );
+    expect(screen.queryByText(/Waiting for .* to approve/)).toBeNull();
   });
 });

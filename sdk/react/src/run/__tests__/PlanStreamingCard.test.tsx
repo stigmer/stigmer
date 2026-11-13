@@ -1,3 +1,9 @@
+/**
+ * The live plan card while a Plan turn writes its plan: the plan card's
+ * writing state, a busy region with the streaming title (else "Plan") over
+ * "Writing the plan…", no File's name and no size, and one act, Open, that
+ * opens the plan tab. Nothing final exists yet, so no Download or Build.
+ */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { PlanStreamingCard } from "../PlanStreamingCard";
@@ -5,7 +11,7 @@ import { PlanStreamingCard } from "../PlanStreamingCard";
 afterEach(cleanup);
 
 describe("PlanStreamingCard — live plan stand-in", () => {
-  it("is a busy region with the streaming title, status, and live size", () => {
+  it("is a busy region with the streaming title over a live 'Writing the plan…' status", () => {
     render(
       <PlanStreamingCard
         title="Refactor the auth flow"
@@ -17,8 +23,8 @@ describe("PlanStreamingCard — live plan stand-in", () => {
     const region = screen.getByRole("region", { name: "Plan being written" });
     expect(region.getAttribute("aria-busy")).toBe("true");
     expect(region.textContent).toContain("Refactor the auth flow");
-    expect(region.textContent).toContain("Writing…");
-    expect(region.textContent).toContain("2.0 KB");
+    expect(screen.getByRole("status").textContent).toBe("Writing the plan…");
+    expect(region.textContent).toBe("Refactor the auth flowWriting the plan…Open");
   });
 
   it("shows no filename mid-stream (the final name is not known yet)", () => {
@@ -29,16 +35,17 @@ describe("PlanStreamingCard — live plan stand-in", () => {
     expect(region.textContent).not.toContain("plan.md");
   });
 
-  it("falls back to 'Writing plan…' until the title has streamed in", () => {
+  it("falls back to 'Plan' until the title has streamed in", () => {
     render(<PlanStreamingCard sizeBytes={12} onOpenPlan={vi.fn()} />);
-    expect(screen.getByText("Writing plan…")).toBeTruthy();
+    expect(screen.getByText("Plan")).toBeTruthy();
+    expect(screen.getByText("Writing the plan…")).toBeTruthy();
   });
 
-  it("routes 'Open plan' to onOpenPlan", () => {
+  it("routes Open to onOpenPlan", () => {
     const onOpenPlan = vi.fn();
     render(<PlanStreamingCard sizeBytes={64} onOpenPlan={onOpenPlan} />);
 
-    fireEvent.click(screen.getByText("Open plan"));
+    fireEvent.click(screen.getByRole("button", { name: "Open plan" }));
     expect(onOpenPlan).toHaveBeenCalledTimes(1);
   });
 
@@ -50,7 +57,6 @@ describe("PlanStreamingCard — live plan stand-in", () => {
 
   it("renders without an action when onOpenPlan is absent", () => {
     render(<PlanStreamingCard sizeBytes={64} />);
-    expect(screen.queryByText("Open plan")).toBeNull();
     expect(screen.queryByRole("button")).toBeNull();
   });
 });

@@ -1,14 +1,21 @@
 "use client";
 
 // One rendered terminal session: the `$ command` prompt line followed by its
-// output, as a single block. Rendered on the same `bg-muted-subtle` surface as
-// every other code/output block (CollapsibleCode, search, list) — not a
-// bespoke dark box — so it tracks the host theme, preset, and color mode.
+// output, as a single block. Inside a step's card it draws no frame of its own:
+// the step's body is the frame, so the session is monospace lines at the
+// body's padding. Drawn on its own (`framed`), it takes the muted surface every
+// other code/output block uses, so it tracks the host theme, preset and mode.
 
 import { cn } from "@stigmer/design-tokens";
 import { StatusBadge } from "../status/StatusBadge.js";
 import { CollapsiblePre, TRUNCATION_LINE_LIMIT } from "./tool-rendering-primitives.js";
 import { useSandboxNormalize } from "./SandboxContext.js";
+
+/** The session's lines: monospace meta type, one step apart. */
+const SESSION_LAYOUT = "stg:space-y-1 stg:font-mono stg:text-xs";
+
+/** Its own frame, for a session drawn outside a step's card. */
+const STANDALONE_FRAME = "stg:rounded-md stg:border stg:border-border stg:bg-muted-subtle stg:p-2.5";
 
 /** Props for {@link TerminalSession}. */
 export interface TerminalSessionProps {
@@ -31,6 +38,12 @@ export interface TerminalSessionProps {
    * returns, the row renders its finished session instead.
    */
   readonly live?: boolean;
+  /**
+   * Draw the block's own border, corner and muted fill, for a session shown
+   * on its own. Defaults to `false`: every place the kit draws one is inside a
+   * step's card (a tool row's body, an approval card), whose body is the frame.
+   */
+  readonly framed?: boolean;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -38,7 +51,8 @@ export interface TerminalSessionProps {
 /**
  * Renders a shell tool call as a single, cohesive terminal session — the
  * command prompt line immediately followed by its output — instead of a
- * separate command box and output box.
+ * separate command box and output box. Inside a card it has no frame of its
+ * own (the card's body is the frame); pass `framed` to draw it on its own.
  *
  * Used by {@link ResultView} (full session) and the approval gate's
  * {@link ToolArgsView} (command-only, pre-execution). Importable on its own by
@@ -48,7 +62,7 @@ export interface TerminalSessionProps {
  * ```tsx
  * <>
  *   <TerminalSession command="ls -la" stdout="total 8" exitCode={0} />
- *   <TerminalSession command="npm test" />
+ *   <TerminalSession command="npm test" framed />
  * </>
  * ```
  */
@@ -58,6 +72,7 @@ export function TerminalSession({
   stderr,
   exitCode,
   live = false,
+  framed = false,
   className,
 }: TerminalSessionProps) {
   const normalize = useSandboxNormalize();
@@ -66,10 +81,7 @@ export function TerminalSession({
   return (
     <div
       data-cursor-target="terminal-session"
-      className={cn(
-        "stg:space-y-1 stg:rounded-md stg:border stg:border-border stg:bg-muted-subtle stg:p-2.5 stg:font-mono stg:text-xs",
-        className,
-      )}
+      className={cn(SESSION_LAYOUT, framed && STANDALONE_FRAME, className)}
     >
       {command && (
         // A plain <pre> (not CollapsiblePre): the command is the user's intent
@@ -126,6 +138,12 @@ export interface TerminalTailProps {
   readonly stderr?: string;
   /** Process exit code. A non-zero code renders a trailing `exit N` badge. */
   readonly exitCode?: number;
+  /**
+   * Draw the block's own border, corner and muted fill, for a session shown
+   * on its own. Defaults to `false`: every place the kit draws one is inside a
+   * step's card (a tool row's body, an approval card), whose body is the frame.
+   */
+  readonly framed?: boolean;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -144,13 +162,15 @@ export interface TerminalTailProps {
  *
  * Rendered by the tool-call row's `"tail"` disclosure state (see
  * {@link ToolCallItem}); the row's header chevron is the expand control, so
- * this component is presentation-only.
+ * this component is presentation-only. Like {@link TerminalSession}, it has
+ * no frame of its own inside a card; pass `framed` to draw it on its own.
  */
 export function TerminalTail({
   command,
   stdout,
   stderr,
   exitCode,
+  framed = false,
   className,
 }: TerminalTailProps) {
   const normalize = useSandboxNormalize();
@@ -169,10 +189,7 @@ export function TerminalTail({
   return (
     <div
       data-cursor-target="terminal-tail"
-      className={cn(
-        "stg:space-y-1 stg:rounded-md stg:border stg:border-border stg:bg-muted-subtle stg:p-2.5 stg:font-mono stg:text-xs",
-        className,
-      )}
+      className={cn(SESSION_LAYOUT, framed && STANDALONE_FRAME, className)}
     >
       {command && (
         <pre className="stg:whitespace-pre-wrap stg:break-words stg:text-foreground">

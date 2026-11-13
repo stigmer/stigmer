@@ -64,7 +64,7 @@ test.describe("a command the agent runs in the background (deterministic mock LL
     });
     await page.goto(`/sessions/${seeded.sessionId}`);
 
-    const row = toolCallRow(page).filter({ hasText: "Background" }).first();
+    const row = toolCallRow(page).filter({ has: page.locator('[data-cursor-target="background-command-status"]') }).first();
     const status = row.locator('[data-cursor-target="background-command-status"]');
     await expect(status).toContainText("Running in the background", { timeout: 30_000 });
     // Previews are not replayed to a page that opens late, so the first ticks
@@ -77,7 +77,7 @@ test.describe("a command the agent runs in the background (deterministic mock LL
     // command is then one of the turn's steps, saying how it ended.
     await expect(page.getByText("The ticks finished.")).toBeVisible({ timeout: 90_000 });
     await openHowItGotThere(page);
-    const ended = toolCallRow(page).filter({ hasText: "Background" }).first();
+    const ended = toolCallRow(page).filter({ has: page.locator('[data-cursor-target="background-command-status"]') }).first();
     await expect(ended.locator('[data-cursor-target="background-command-status"]')).toHaveText("Exited · code 0", { timeout: 30_000 });
   });
 
@@ -94,12 +94,12 @@ test.describe("a command the agent runs in the background (deterministic mock LL
     await expect(page.getByText("I will wait for the server.")).toBeVisible({ timeout: 30_000 });
     await expect(page.locator('[data-cursor-target="liveness-status-line"]')).toContainText("Waiting for `sleep 300`", { timeout: 30_000 });
 
-    const row = toolCallRow(page).filter({ hasText: "Background" }).first();
+    const row = toolCallRow(page).filter({ has: page.locator('[data-cursor-target="background-command-status"]') }).first();
     await row.locator('[data-cursor-target="background-command-stop"]').click();
     await expect(page.getByText("You stopped the server.")).toBeVisible({ timeout: 30_000 });
     // The finished turn's step says who stopped it.
     await openHowItGotThere(page);
-    const stopped = toolCallRow(page).filter({ hasText: "Background" }).first();
+    const stopped = toolCallRow(page).filter({ has: page.locator('[data-cursor-target="background-command-status"]') }).first();
     await expect(stopped.locator('[data-cursor-target="background-command-status"]')).toHaveText("Stopped by a person", { timeout: 30_000 });
   });
 
@@ -121,7 +121,7 @@ test.describe("a command the agent runs in the background (deterministic mock LL
     // Well under the runner's 30 s interval: only a liveness the server kept can meet it.
     await expect(page.locator('[data-cursor-target="liveness-status-line"]')).toContainText("Waiting for `sleep 300`", { timeout: 10_000 });
 
-    const row = toolCallRow(page).filter({ hasText: "Background" }).first();
+    const row = toolCallRow(page).filter({ has: page.locator('[data-cursor-target="background-command-status"]') }).first();
     await row.locator('[data-cursor-target="background-command-stop"]').click();
     await expect(page.getByText("You stopped the server.")).toBeVisible({ timeout: 30_000 });
   });

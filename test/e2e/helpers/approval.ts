@@ -527,7 +527,7 @@ export async function settleThroughFileReview(
 
 /** The session-scoped auto-approve indicator (shown after APPROVE_ALL). */
 export function autoApproveIndicator(page: Page): Locator {
-  return page.getByRole("status").filter({ hasText: /Auto-approving tool calls/ });
+  return page.getByRole("status").filter({ hasText: /Approving tool calls automatically/ });
 }
 
 /** The scrollable message thread container. */

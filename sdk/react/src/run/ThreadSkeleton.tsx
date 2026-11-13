@@ -9,15 +9,11 @@ export interface ThreadSkeletonProps {
   readonly className?: string;
 }
 
-const AI_LINE_WIDTHS = [
-  [85, 72, 90],
-  [78, 65, 88, 70],
-] as const;
-
 /**
- * Pulse-animated skeleton that mimics the shape of a conversation
- * thread. Renders alternating human-bubble and AI-response
- * silhouettes so the loading state feels purposeful.
+ * The conversation's shape while it loads, in outline: the header's title
+ * and meta line, the first message, the start of the answer. The same
+ * shapes the session viewer draws while a new session is being made, so
+ * loading and starting look alike; no words, since nothing is known yet.
  *
  * Intended as an opt-in building block for consumers to show while
  * session data loads. Not auto-rendered by {@link MessageThread}.
@@ -33,42 +29,15 @@ const AI_LINE_WIDTHS = [
  */
 export function ThreadSkeleton({ className }: ThreadSkeletonProps) {
   return (
-    <LoadingRegion
-      className={cn("stg:flex stg:flex-col stg:gap-4 stg:pt-6 stg:pb-4", className)}
-      label="Loading conversation"
-    >
-      <div className="stg:animate-pulse stg:space-y-4">
-        {/* Turn 1: Human bubble */}
-        <div className="stg:ms-[20%] stg:rounded-lg stg:bg-muted-subtle stg:px-4 stg:py-3">
-          <div className="stg:h-4 stg:w-3/5 stg:rounded stg:bg-muted" />
-        </div>
-
-        {/* Turn 1: AI response */}
-        <div className="stg:space-y-2 stg:px-4">
-          {AI_LINE_WIDTHS[0].map((w, i) => (
-            <div
-              key={i}
-              className="stg:h-4 stg:rounded stg:bg-muted"
-              style={{ width: `${w}%` }}
-            />
-          ))}
-        </div>
-
-        {/* Turn 2: Human bubble */}
-        <div className="stg:ms-[20%] stg:rounded-lg stg:bg-muted-subtle stg:px-4 stg:py-3">
-          <div className="stg:h-4 stg:w-2/5 stg:rounded stg:bg-muted" />
-        </div>
-
-        {/* Turn 2: AI response */}
-        <div className="stg:space-y-2 stg:px-4">
-          {AI_LINE_WIDTHS[1].map((w, i) => (
-            <div
-              key={i}
-              className="stg:h-4 stg:rounded stg:bg-muted"
-              style={{ width: `${w}%` }}
-            />
-          ))}
-        </div>
+    <LoadingRegion className={cn("stg:flex stg:flex-col stg:gap-5 stg:pt-6 stg:pb-4", className)} label="Loading conversation">
+      <div className="stg:space-y-2 stg:border-b stg:border-border stg:px-4 stg:pb-4">
+        <div className="stg:h-5 stg:w-56 stg:max-w-full stg:animate-pulse stg:rounded-md stg:bg-muted" />
+        <div className="stg:h-3 stg:w-36 stg:max-w-full stg:animate-pulse stg:rounded-md stg:bg-muted" />
+      </div>
+      <div className="stg:mx-4 stg:h-16 stg:w-3/5 stg:self-end stg:animate-pulse stg:rounded-xl stg:bg-muted" />
+      <div className="stg:space-y-2 stg:px-4">
+        <div className="stg:h-3 stg:w-[88%] stg:animate-pulse stg:rounded stg:bg-muted" />
+        <div className="stg:h-3 stg:w-[72%] stg:animate-pulse stg:rounded stg:bg-muted" />
       </div>
     </LoadingRegion>
   );

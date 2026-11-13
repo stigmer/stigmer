@@ -148,7 +148,7 @@ vi.mock("@stigmer/react-core", async (importOriginal) => ({
 
 import { SessionViewer } from "../SessionViewer";
 
-const INDICATOR_TEXT = "Auto-approving tool calls for this session";
+const INDICATOR_TEXT = "Approving tool calls automatically";
 
 function lastComposerProps(): CapturedProps {
   expect(composerProps.length).toBeGreaterThan(0);

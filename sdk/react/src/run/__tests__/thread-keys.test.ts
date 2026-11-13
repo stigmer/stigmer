@@ -233,7 +233,7 @@ describe("buildThreadItems key generation", () => {
       const item = setup(buildThreadItems(turnsOf(user(R, "Hello")), []));
 
       expect(item?.serverPhase).toBeUndefined();
-      expect(item?.resources).toEqual([]);
+      expect(item?.isAwaitingResponse).toBeUndefined();
     });
 
     it("shows as awaiting the first output while the live turn runs with nothing yet", () => {

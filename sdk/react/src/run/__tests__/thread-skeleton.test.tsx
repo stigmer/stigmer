@@ -15,21 +15,14 @@ describe("ThreadSkeleton", () => {
     expect(root.contains(name)).toBe(true);
   });
 
-  it("renders human message bubble silhouettes", () => {
+  it("draws the opening's shapes: the header's two lines, the first message, the answer's start", () => {
     const { container } = render(<ThreadSkeleton />);
 
-    const humanBubbles = container.querySelectorAll("[class*='ms-']");
-    expect(humanBubbles.length).toBe(2);
-  });
-
-  it("renders AI response line silhouettes", () => {
-    const { container } = render(<ThreadSkeleton />);
-
-    const pulseContainer = container.querySelector(".stg\\:animate-pulse");
-    expect(pulseContainer).toBeTruthy();
-
-    const lines = pulseContainer!.querySelectorAll("[style]");
-    expect(lines.length).toBe(7);
+    const bars = container.querySelectorAll(".stg\\:animate-pulse");
+    expect(bars.length).toBe(5);
+    expect(container.querySelector(".stg\\:self-end.stg\\:rounded-xl")).toBeTruthy();
+    // No words beyond the region's hidden name: nothing is known yet.
+    expect(container.textContent).toBe("Loading conversation");
   });
 
   it("applies custom className", () => {

@@ -31,6 +31,11 @@ export interface ApprovalContextValue {
    * {@link submittingIds}), surfaced in-card beside the gate that failed.
    */
   readonly errorsByToolUseId: ReadonlyMap<string, Error>;
+  /**
+   * Who answers when this viewer cannot (no {@link onAnswer}): the
+   * conversation's owner by name, for a teammate's or a reviewer's view.
+   */
+  readonly approverName?: string;
 }
 
 const DEFAULT_VALUE: ApprovalContextValue = {
@@ -94,4 +99,15 @@ export function useApproval(toolUse: ToolUse): UseApprovalResult | null {
     isSubmitting: submittingIds.has(toolUseId),
     error: errorsByToolUseId.get(toolUseId) ?? null,
   };
+}
+
+/**
+ * What a step waiting on a person says to this viewer: "Waiting for you"
+ * for whoever answers; else who does ("Waiting for Maya Okafor to
+ * approve"), or "Waiting for the owner" when the name is not known.
+ */
+export function useWaitingWords(): string {
+  const { onAnswer, approverName } = useContext(ApprovalContext);
+  if (onAnswer !== undefined) return "Waiting for you";
+  return approverName ? `Waiting for ${approverName} to approve` : "Waiting for the owner";
 }

@@ -1,9 +1,15 @@
+/**
+ * The Build card after a Plan turn whose plan is held only as message text:
+ * the plan card's no-File state ("Plan" and Build), named "Plan complete"
+ * for assistive tech, with the card-scoped Cmd/Ctrl+Enter accelerator, and
+ * nothing at all without a Build to offer.
+ */
 import { describe, it, expect, vi } from "vitest";
 import { render, fireEvent, cleanup } from "@testing-library/react";
 import { PlanCompletionCard } from "../PlanCompletionCard";
 
 describe("PlanCompletionCard", () => {
-  it("renders the card with status text and a 'Build' button", () => {
+  it("renders the plan card with 'Plan' and a 'Build' button, and no question", () => {
     const { container } = render(<PlanCompletionCard onImplement={() => {}} />);
 
     const root = container.firstElementChild as HTMLElement;
@@ -15,7 +21,7 @@ describe("PlanCompletionCard", () => {
     expect(button).toBeTruthy();
     expect(button!.textContent).toContain("Build");
 
-    expect(root.textContent).toContain("Plan complete");
+    expect(root.textContent).toBe("PlanBuild");
     cleanup();
   });
 

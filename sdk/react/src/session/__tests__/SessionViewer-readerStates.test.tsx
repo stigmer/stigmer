@@ -161,7 +161,7 @@ describe("SessionViewer — what a reader is told around the conversation", () =
   it("tells an observer they are reading the conversation, where the composer would be", () => {
     render(<SessionViewer sessionId="ses_1" org="demo" audience="observer" />);
     expect(screen.queryByTestId("composer-probe")).toBeNull();
-    expect(screen.getByText(READER_WORDS).getAttribute("role")).toBe("status");
+    expect(screen.getByText(READER_WORDS).closest("[role='status']")).toBeTruthy();
   });
 
   it("tells anyone reading a channel conversation that only its members reply", () => {

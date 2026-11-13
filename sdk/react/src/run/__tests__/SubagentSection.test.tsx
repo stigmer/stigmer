@@ -1,12 +1,13 @@
-// Pins SubagentSection over a subagent's folded thread: disclosure (open
-// while it runs or one of its calls waits for a person, at any depth;
-// settled closed), its title (the task's subject, else the agent's name),
-// its status badges (running, completed, failed with the reply as error,
-// stopped), the running counter and the static duration, the flat layout
-// with a completed subagent's icon in the ready colour the theme contract
-// measures as text, and its items as rows: messages, thinking and notes on
-// their own, runs of tool calls as groups, internal to-do calls and
-// compactions left out.
+// Pins SubagentSection over a subagent's folded thread: a helper drawn as a
+// step (the step row's shell, its subject as the line, its agent's name as a
+// tag, "Helper" without one, no opacity modifiers, its messages at the body's
+// padding); disclosure (open while it runs or one of its calls waits for a
+// person, at any depth; settled closed, opening on a click); a pill only when
+// it failed (its reply as the error) or stopped, never Running or Completed;
+// the running counter and the static duration; the flat layout as the work
+// alone, with no header of its own; and its items as rows: messages, thinking
+// and notes on their own, runs of tool calls as groups, internal to-do calls
+// and compactions left out.
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { render, screen, cleanup, act, fireEvent } from "@testing-library/react";
 import type { MessageItem, NoteItem, ThinkingItem, Thread, TurnItem } from "@stigmer/client";
@@ -14,6 +15,7 @@ import { SubagentSection } from "../SubagentSection";
 import { subagentSubjectOf } from "@stigmer/react-core";
 import { ApprovalContext, type ApprovalContextValue } from "../ApprovalContext";
 import { thread, toolUse } from "./__fixtures__/fold-values";
+import { tagClasses } from "../../internal/surface/Tag";
 
 afterEach(cleanup);
 
@@ -27,15 +29,64 @@ function message(id: string, text: string): MessageItem {
   return { kind: "message", id, text, live: false, processedAt: "" };
 }
 
-/** The CollapsibleCard's own toggle is the first button under its role=group. */
+/** The card's own toggle is the first step-row toggle under its role=group. */
 function sectionExpanded(container: HTMLElement): boolean {
-  const toggle = container.querySelector('[role="group"] > button');
+  const toggle = container.querySelector('[role="group"] [data-cursor-target="thread-card-toggle"]');
   return toggle?.getAttribute("aria-expanded") === "true";
 }
 
 function waitingCall(id: string) {
   return toolUse({ id, name: "delete_file", ask: { argsPreview: '{"path":"/tmp/x"}' } });
 }
+
+// A helper reads as a step: the step row's shell, its subject as the line,
+// its agent's name as a neutral tag, its time on the right, and a pill only
+// when it failed or stopped (a running or finished helper says nothing).
+describe("SubagentSection as a step", () => {
+  it("shows a running helper's subject, its agent's name as a tag, and no Running pill", () => {
+    const { container } = render(
+      <SubagentSection thread={thread({ state: "running", agentName: "researcher" })} subject="Find the rounding code" />,
+    );
+    expect(screen.getByText("Find the rounding code")).toBeTruthy();
+    expect(screen.getByText("researcher").className).toBe(tagClasses());
+    expect(screen.queryByText("Running")).toBeNull();
+    expect(sectionExpanded(container), "open while it runs").toBe(true);
+  });
+
+  it("tags a helper with no name of its own as Helper", () => {
+    render(<SubagentSection thread={thread({ state: "running", agentName: "" })} subject="Find the rounding code" />);
+    expect(screen.getByText("Helper").className).toBe(tagClasses());
+  });
+
+  it("shows a finished helper closed, with no Completed pill, and opens on a click", () => {
+    const { container } = render(
+      <SubagentSection thread={thread({ state: "completed", input: "Look in billing" })} subject="Find the rounding code" />,
+    );
+    expect(screen.queryByText("Completed")).toBeNull();
+    expect(sectionExpanded(container)).toBe(false);
+    expect(container.textContent).not.toContain("Look in billing");
+    fireEvent.click(container.querySelector('[data-cursor-target="thread-card-toggle"]')!);
+    expect(container.textContent).toContain("Look in billing");
+  });
+
+  it.each([
+    ["failed", "Failed"],
+    ["stopped", "Stopped"],
+  ] as const)("shows a %s helper's pill", (state, label) => {
+    render(<SubagentSection thread={thread({ state })} subject="Find the rounding code" />);
+    expect(screen.getByText(label).className).toContain("stg:rounded-full");
+  });
+
+  it("draws on the step row's shell with no opacity modifiers, its own steps at the body's padding", () => {
+    const { container } = render(
+      <SubagentSection thread={thread({ state: "running", input: "Look in billing", items: [message("m1", "Looking.")] })} subject="Find it" />,
+    );
+    expect(container.querySelector('[data-cursor-target="subagent-row"]')?.className).toContain("stg:border-border-prominent");
+    const classes = Array.from(container.querySelectorAll("[class]")).flatMap((el) => (el.getAttribute("class") ?? "").split(" "));
+    expect(classes.filter((c) => /\/\d+$/.test(c)), "no opacity modifiers").toEqual([]);
+    expect(screen.getByRole("article", { name: "AI response" }).className).not.toContain("stg:px-4");
+  });
+});
 
 describe("SubagentSection auto-disclosure", () => {
   it("auto-opens while the subagent is running", () => {
@@ -94,7 +145,7 @@ describe("SubagentSection header", () => {
       <SubagentSection thread={thread({ state: "failed", reply: "the tool crashed" })} />,
     );
     expect(screen.getByText("Failed")).toBeTruthy();
-    fireEvent.click(container.querySelector('[role="group"] > button')!);
+    fireEvent.click(container.querySelector('[data-cursor-target="thread-card-toggle"]')!);
     expect(screen.getByText("the tool crashed")).toBeTruthy();
   });
 
@@ -117,7 +168,7 @@ describe("SubagentSection flat layout and items", () => {
     return render(<SubagentSection thread={t} subject={subject} collapsible={false} />);
   }
 
-  it("renders the name, subject, input and every item kind as rows", () => {
+  it("renders the input and every item kind as rows, with no header of its own", () => {
     const thinking: ThinkingItem = { kind: "thinking", id: "t1", text: "weighing", live: false, processedAt: "" };
     const note: NoteItem = { kind: "note", id: "n1", text: "tools are off", processedAt: "" };
     const items: TurnItem[] = [
@@ -134,8 +185,9 @@ describe("SubagentSection flat layout and items", () => {
       "Locate config",
     );
     const text = container.textContent ?? "";
-    expect(text).toContain("researcher");
-    expect(text).toContain("Locate config");
+    // The parent row draws the helper's header; the flat form is the work.
+    expect(text).not.toContain("researcher");
+    expect(text).not.toContain("Locate config");
     expect(text).toContain("Find the config");
     expect(text).toContain("Looking around.");
     expect(text).toContain("tools are off");
@@ -158,24 +210,6 @@ describe("SubagentSection flat layout and items", () => {
     const groups = container.querySelectorAll('[data-cursor-target="tool-call-group"]');
     expect(groups).toHaveLength(2);
     expect(groups[0]!.querySelectorAll('[data-cursor-target="tool-call-row"]')).toHaveLength(2);
-  });
-
-  it("draws a completed subagent's header icon in the measured ready colour", () => {
-    const { container } = renderFlat(thread({ state: "completed" }));
-    const icon = container.querySelector("span[aria-hidden='true']") as HTMLElement;
-    expect(icon.className.split(" ")).toContain("stg:text-status-ready");
-  });
-
-  it("shows the static duration in the flat header once finished", () => {
-    render(
-      <SubagentSection
-        thread={thread({ state: "completed" })}
-        startedAt="2026-07-02T12:00:00Z"
-        completedAt="2026-07-02T12:00:05Z"
-        collapsible={false}
-      />,
-    );
-    expect(screen.getByText("5.0s")).toBeTruthy();
   });
 });
 
