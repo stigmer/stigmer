@@ -54,7 +54,9 @@
  *     input's limit fails the run as infrastructure / no_sandbox_room
  *     with the person's sentence and runs nothing; a cancel while waiting
  *     ends it CANCELLED; a pause while waiting takes no sandbox until
- *     resume, then waits again on a fresh clock; a LOCAL target, and an
+ *     resume, then waits again on a fresh clock; an ensure that answers
+ *     `failed`, or fails as an older server's worker would (the activity
+ *     not registered), goes on to the runner; a LOCAL target, and an
  *     input without the caller's class, never ask. These waits are short
  *     real seconds (the asks are 5 s apart), on the same local server.
  *
@@ -156,7 +158,7 @@ interface ActivityScript {
   subjectArguments: unknown[];
   /** Consumed per EnsureSessionSandbox call, in order; `sandboxDefault` once empty. */
   sandboxAnswers: string[];
-  /** EnsureSessionSandbox's answer once `sandboxAnswers` is used up. */
+  /** EnsureSessionSandbox's answer once `sandboxAnswers` is used up; "throw" fails the call. */
   sandboxDefault: string;
   /** Each EnsureSessionSandbox call's input, in order. */
   sandboxCalls: Array<Record<string, unknown>>;
@@ -298,7 +300,13 @@ function scriptedActivities(): Record<string, (...args: never[]) => Promise<unkn
     EnsureSessionSandbox: async (input: Record<string, unknown>): Promise<string> => {
       script.sandboxCalls.push(input);
       script.order.push("sandbox");
-      return script.sandboxAnswers.shift() ?? script.sandboxDefault;
+      const answer = script.sandboxAnswers.shift() ?? script.sandboxDefault;
+      if (answer === "throw") {
+        // What an older server's worker answers for an activity it never registered, past every retry.
+        const { ApplicationFailure } = await import("@temporalio/common");
+        throw ApplicationFailure.create({ message: "Activity function EnsureSessionSandbox is not registered on this Worker", nonRetryable: true });
+      }
+      return answer;
     },
     CountOpenGates: async (executionId: string, sessionId: string): Promise<number> => {
       script.gateCalls.push([executionId, sessionId]);
@@ -1041,6 +1049,19 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
       expect(phases.slice(phases.indexOf(RunPhase.RUN_PAUSED) + 1)[0], "waiting again right after resume").toBe(RunPhase.RUN_PENDING);
       expect(script.sandboxCalls[asked], "the wait starts over").not.toHaveProperty("waiting_since_ms");
       expect(script.executeCalls).toHaveLength(1);
+    }, 60_000);
+
+    it("goes on to the runner when the ensure fails or cannot run at all", async (testCtx) => {    if (!envReady) return testCtx.skip();
+      script.executeBehaviors = [async () => slimResult(RunPhase.RUN_COMPLETED), async () => slimResult(RunPhase.RUN_COMPLETED)];
+
+      script.sandboxAnswers = ["failed"];
+      await (await startWorkflow(cloud())).result();
+      script.sandboxAnswers = ["throw"];
+      await (await startWorkflow(cloud())).result();
+
+      expect(script.sandboxCalls, "one ask each: neither is a wait").toHaveLength(2);
+      expect(script.executeCalls, "both turns ran on the runner's own window").toHaveLength(2);
+      expect(persisted(RunPhase.RUN_PENDING), "no waiting write").toEqual([]);
     }, 60_000);
 
     it("never asks on a LOCAL target, nor for an input without the caller's class", async (testCtx) => {    if (!envReady) return testCtx.skip();
