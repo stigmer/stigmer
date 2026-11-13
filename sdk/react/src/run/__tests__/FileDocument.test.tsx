@@ -1,7 +1,8 @@
 /**
  * The editor-pane document over one File: toolbar (name, Download, Copy
  * once text arrives), the File's text read through the Files API, Agent
- * detection with its Apply CTA, an image drawn from its download link, a
+ * detection with its Apply CTA (a refused apply shows the refusal with a
+ * Retry that applies again), an image drawn from its download link, a
  * binary File offering only its download, Delete only where the host asks
  * for it and the server allows it, and "Add as skill" only for a `.zip`
  * File in an organization where the caller may create skills. Its
@@ -110,6 +111,28 @@ describe("FileDocument", () => {
     const applied = await screen.findByText(/Applied/);
     expect(apply).toHaveBeenCalledTimes(1);
     expect(classesOf(applied)).toContain("stg:text-status-ready");
+  });
+
+  it("shows a refused apply with Retry, and applies again on Retry", async () => {
+    const apply = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("agent my-agent is locked"))
+      .mockResolvedValueOnce({ yamlKind: "Agent", name: "my-agent", org: "acme", slug: "my-agent" });
+    const stigmer = {
+      file: { getContent: vi.fn().mockResolvedValue({ data: new TextEncoder().encode(AGENT_YAML), truncated: false }) },
+      manifest: { apply },
+    } as unknown as Stigmer;
+    renderDoc(stigmer, outputFile("agent.yaml"));
+
+    fireEvent.click(await screen.findByText("Apply to acme"));
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toContain("agent my-agent is locked");
+    expect(screen.queryByText(/Applied/)).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(await screen.findByText(/Applied/)).toBeTruthy();
+    expect(apply).toHaveBeenCalledTimes(2);
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 
   it("renders a binary File with Download and no Copy, reading no bytes", () => {

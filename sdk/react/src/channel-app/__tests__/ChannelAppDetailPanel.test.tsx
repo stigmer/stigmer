@@ -16,7 +16,8 @@ import { ChannelAppDetailPanel } from "../ChannelAppDetailPanel";
  * deletion section only with `can_delete` on the app, so a caller granted
  * viewer on a channel app is never handed a control the server would
  * refuse (stigmer/stigmer#1384). The setup values stay readable to every
- * caller who may open the app. The save payload is pinned beside it
+ * caller who may open the app. Deletion asks first, and Keep backs out
+ * without deleting. The save payload is pinned beside it
  * (channelAppWipeSafety.test.tsx, channelAppWhatsApp.test.tsx).
  */
 
@@ -39,10 +40,13 @@ const SLACK_APP: ChannelApp = create(ChannelAppSchema, {
   },
 });
 
-function renderPanel(checkMyPermission: ReturnType<typeof vi.fn>) {
+function renderPanel(
+  checkMyPermission: ReturnType<typeof vi.fn>,
+  deleteApp: ReturnType<typeof vi.fn> = vi.fn(),
+) {
   const client = {
     baseUrl: "https://api.stigmer.ai",
-    channelapp: { update: vi.fn(), delete: vi.fn() },
+    channelapp: { update: vi.fn(), delete: deleteApp },
     grant: { checkMyPermission },
   } as never;
   return render(
@@ -117,6 +121,24 @@ describe("ChannelAppDetailPanel credentials and delete gates", () => {
     expect(
       await screen.findByRole("button", { name: "Delete channel app" }),
     ).toBeTruthy();
+  });
+});
+
+describe("ChannelAppDetailPanel delete confirmation", () => {
+  it("asks before deleting, and Keep backs out without deleting", async () => {
+    const deleteApp = vi.fn();
+    renderPanel(
+      vi.fn(async (_input: CheckMyPermissionInput) => ({ isAuthorized: true })),
+      deleteApp,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "Delete channel app" }));
+    expect(screen.getByText(/Delete this channel app\?/)).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Keep" }));
+    expect(screen.queryByText(/Delete this channel app\?/)).toBeNull();
+    expect(screen.getByRole("button", { name: "Delete channel app" })).toBeTruthy();
+    expect(deleteApp).not.toHaveBeenCalled();
   });
 });
 

@@ -12,7 +12,8 @@
  * - a stored value that changes while the editor is open leaves an edited
  *   draft alone, and an untouched draft follows it, so saving never writes a
  *   stale copy over the change;
- * - cancel and reopen show the latest stored value, and save sends the draft.
+ * - cancel and reopen show the latest stored value, and save sends the draft;
+ * - the image editor's Clear empties the draft, and saving it removes the icon.
  */
 import type { ComponentType } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -167,5 +168,20 @@ describe("InlineEditTextarea caret", () => {
 
     expect(field().selectionStart).toBe(value.length);
     expect(field().selectionEnd).toBe(value.length);
+  });
+});
+
+describe("InlineEditImage Clear", () => {
+  it("empties the draft, and saving it removes the icon", async () => {
+    const onSave = vi.fn<(v: string) => Promise<boolean>>().mockResolvedValue(true);
+    render(<InlineEditImage value="https://assets.example.com/old.png" onSave={onSave} />);
+    fireEvent.click(screen.getByRole("button", { name: "Change icon" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Clear" }));
+
+    expect(field().value).toBe("");
+    expect(screen.queryByRole("button", { name: "Clear" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    await vi.waitFor(() => expect(onSave).toHaveBeenCalledWith(""));
   });
 });
