@@ -127,7 +127,11 @@ Organization, and, in a child organization, can read and run the Agents, Skills
 and Plugins its parent shares with its child organizations. It cannot create an
 Organization, except a child of its own Organization, or accept an invitation to
 another one. A call it makes into any other Organization fails with
-`PERMISSION_DENIED`.
+`PERMISSION_DENIED`. A minted user token is held tighter still: it reaches the
+person's account only to read it, and their keys only to list or delete them. It
+cannot create an API key, a service account or any Organization, a child
+included, change a role in the Organization, or change or delete the account
+([product users](/docs/guides/authentication/product-users#security-notes)).
 
 A person who signs in at the Stigmer Console with their own Stigmer sign-in, not
 through a Federation Issuer or a minted user token, is not bound: they move

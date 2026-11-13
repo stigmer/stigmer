@@ -8,6 +8,12 @@
  *     lane class an edition mints) is refused with no read, whatever row it
  *     names: it acts as its person with the person's whole role, and must
  *     not outlive its work as a key or a membership change (stigmer#2946);
+ *   - a user token an app user's product minted (a platform token carrying
+ *     the `minted_by` claim) is refused with no read: it is meant to end in
+ *     15 minutes and with the service account that minted it, so it must
+ *     not leave a key, an account or a membership change behind
+ *     (stigmer#2955); the same caller without the claim, or composed by the
+ *     server, is a person;
  *   - the `service_account` class is refused with no read;
  *   - a person's own or a machine credential that speaks for a service
  *     account's row is refused too, read once by id;
@@ -31,9 +37,12 @@ import { IdentityAccountProvisioningMode } from "@stigmer/apis/ai/stigmer/iam/id
 
 import { createLogger } from "../../../boot/logger.js";
 import type { CallerIdentity } from "../../../extensions/identity.js";
+import { PLATFORM_TOKEN_ISSUER } from "../../../platformtoken/envelope.js";
+import { USER_TOKEN_CLAIMS } from "../../../domain/token/constants.js";
 import { newPipeline } from "../../pipeline.js";
 import { RequestContext } from "../../request-context.js";
 import {
+  mintedTokenRefusedMessage,
   newRefuseServiceAccountCallerStep,
   refuseServiceAccountCaller,
   serviceAccountRefusedMessage,
@@ -79,6 +88,22 @@ function caller(callerClass: string, identityId: string): CallerIdentity {
   return { identityId, callerClass, issuer: "", rawToken: "stk_x" };
 }
 
+/** A JWT carrying `payload`, unsigned: the refusal reads the claim, never verifies. */
+function jwtWith(payload: Record<string, unknown>): string {
+  const segment = (value: object) => Buffer.from(JSON.stringify(value)).toString("base64url");
+  return `${segment({ alg: "RS256", typ: "JWT" })}.${segment(payload)}.signature`;
+}
+
+/** A person's user token, as a minter's mint signs it when `minted` holds. */
+function userToken(minted: boolean): CallerIdentity {
+  const claims = { iss: PLATFORM_TOKEN_ISSUER, sub: PERSON_ID };
+  return {
+    ...caller("user", PERSON_ID),
+    issuer: PLATFORM_TOKEN_ISSUER,
+    rawToken: jwtWith(minted ? { ...claims, [USER_TOKEN_CLAIMS.mintedBy]: SERVICE_ACCOUNT_ID } : claims),
+  };
+}
+
 async function refusalOf(work: Promise<unknown>): Promise<ConnectError> {
   const error = await work.then(
     () => undefined,
@@ -118,6 +143,28 @@ describe("refuseServiceAccountCaller", () => {
   it("admits a request the server composed for a run's credential (it entered in-process)", async () => {
     const composed = { ...caller("runner", PERSON_ID), origin: "in-process" as const };
     expect(speaksForOnePieceOfWork(composed)).toBe(false);
+    await expect(refuseServiceAccountCaller(composed, ACT, lookup())).resolves.toBeUndefined();
+  });
+
+  it("refuses a minted user token with PERMISSION_DENIED and no read, naming the act and who may do it", async () => {
+    const rows = lookup();
+    const refused = await refusalOf(refuseServiceAccountCaller(userToken(true), ACT, rows));
+    expect(refused.code).toBe(Code.PermissionDenied);
+    expect(refused.rawMessage).toBe(
+      "a user token minted for an app user cannot create API keys; an organization admin must do it",
+    );
+    expect(refused.rawMessage).toBe(mintedTokenRefusedMessage(ACT));
+    expect(rows.reads()).toBe(0);
+  });
+
+  it("passes the same person's user token without the minted_by claim", async () => {
+    const rows = lookup();
+    await expect(refuseServiceAccountCaller(userToken(false), ACT, rows)).resolves.toBeUndefined();
+    expect(rows.reads()).toBe(1);
+  });
+
+  it("admits a request the server composed for a minted user token (it entered in-process)", async () => {
+    const composed = { ...userToken(true), origin: "in-process" as const };
     await expect(refuseServiceAccountCaller(composed, ACT, lookup())).resolves.toBeUndefined();
   });
 
@@ -194,6 +241,14 @@ describe("newRefuseServiceAccountCallerStep", () => {
     const refused = ConnectError.from(await chain.run().catch((e: unknown) => e));
     expect(refused.code).toBe(Code.PermissionDenied);
     expect(refused.rawMessage).toBe(workCredentialRefusedMessage(ACT));
+    expect(chain.laterStepRan()).toBe(false);
+  });
+
+  it("refuses a minted user token before any later step runs", async () => {
+    const chain = chainFor(userToken(true));
+    const refused = ConnectError.from(await chain.run().catch((e: unknown) => e));
+    expect(refused.code).toBe(Code.PermissionDenied);
+    expect(refused.rawMessage).toBe(mintedTokenRefusedMessage(ACT));
     expect(chain.laterStepRan()).toBe(false);
   });
 

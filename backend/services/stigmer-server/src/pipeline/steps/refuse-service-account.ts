@@ -32,6 +32,20 @@
  * the server composed itself (`internal`, or anything that entered
  * in-process).
  *
+ * The same acts are refused to a user token an organization's product
+ * minted for one of its app users (a platform token carrying the
+ * `minted_by` claim, domain/token/mint.ts), though its class is `user`.
+ * That token is meant to end in 15 minutes and with the service account
+ * that minted it; a key it created would outlive both, so a person the
+ * product removed, or anyone holding a stolen browser token, would keep
+ * working. And an app user who deletes their own account is created again
+ * by the next mint with the embedding sign-in role, which would undo an
+ * admin's demotion or removal of that person (stigmer#2955). The
+ * organization's admins do these acts; how they remove an app user's
+ * account is stigmer#3104. The claim is read from the raw token, as
+ * `isFirstPartyHumanOperator` reads it (extensions/identity.ts), and a
+ * request the server composed is never refused for it.
+ *
  * So a leaked key, acting as itself, can neither outlive its revocation, by
  * minting another credential, nor widen the organization. What it reaches
  * through the mint is its app users' own reach, the trust an organization
@@ -55,9 +69,9 @@
  *
  * Placement: right after the chain's Authorize step, before any read or
  * write the request names. The refusal is PERMISSION_DENIED with the act
- * named and who may do it: an admin, for a service account's credential;
- * the person, signed in as themselves, for a credential for one piece of
- * work.
+ * named and who may do it: an admin, for a service account's credential
+ * or a minted user token; the person, signed in as themselves, for a
+ * credential for one piece of work.
  */
 import type { DescMessage } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
@@ -66,6 +80,7 @@ import type { IdentityAccount } from "@stigmer/apis/ai/stigmer/iam/identityaccou
 import { IdentityAccountProvisioningMode } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/enum_pb";
 
 import {
+  carriesMintedByClaim,
   isServerComposedRequest,
   isServiceAccountCaller,
   SERVICE_ACCOUNT_CALLER_CLASS,
@@ -93,6 +108,14 @@ export function workCredentialRefusedMessage(act: string): string {
   return `a credential for one run or lane cannot ${act}; the person must do it signed in as themselves`;
 }
 
+/**
+ * The refusal when a user token minted for an app user asks for one of the
+ * acts; `act` completes "a user token minted for an app user cannot …".
+ */
+export function mintedTokenRefusedMessage(act: string): string {
+  return `a user token minted for an app user cannot ${act}; an organization admin must do it`;
+}
+
 /** The classes that speak for a person or the platform itself; `service_account` has its own refusal. */
 const PERSON_OR_PLATFORM_CLASSES: ReadonlySet<string> = new Set([
   "user",
@@ -110,6 +133,15 @@ export function speaksForOnePieceOfWork(caller: CallerIdentity): boolean {
     !isServerComposedRequest(caller) &&
     !PERSON_OR_PLATFORM_CLASSES.has(caller.callerClass)
   );
+}
+
+/**
+ * Whether `caller` presents a user token an organization's product minted
+ * for one of its app users: the platform token's `minted_by` claim
+ * answers, with no read; a request the server composed never does.
+ */
+export function speaksForMintedAppUser(caller: CallerIdentity): boolean {
+  return !isServerComposedRequest(caller) && carriesMintedByClaim(caller.rawToken);
 }
 
 /** An account id's shape (`ida_…`), the only principal a row can be read for. */
@@ -140,7 +172,8 @@ export async function speaksForServiceAccount(
 
 /**
  * Throws PERMISSION_DENIED when `caller` is a credential for one piece of
- * work or speaks for a service account.
+ * work, a user token minted for an app user, or speaks for a service
+ * account; the first two answer with no read.
  */
 export async function refuseServiceAccountCaller(
   caller: CallerIdentity,
@@ -153,6 +186,12 @@ export async function refuseServiceAccountCaller(
       Code.PermissionDenied,
     );
   }
+  if (speaksForMintedAppUser(caller)) {
+    throw new ConnectError(
+      mintedTokenRefusedMessage(act),
+      Code.PermissionDenied,
+    );
+  }
   if (await speaksForServiceAccount(caller, lookup)) {
     throw new ConnectError(
       serviceAccountRefusedMessage(act),
@@ -162,8 +201,9 @@ export async function refuseServiceAccountCaller(
 }
 
 /**
- * The step form; `act` completes both refusals, "a credential for one run
- * or lane cannot …" and "a service account cannot …".
+ * The step form; `act` completes every refusal: "a credential for one run
+ * or lane cannot …", "a user token minted for an app user cannot …" and
+ * "a service account cannot …".
  */
 export function newRefuseServiceAccountCallerStep<Desc extends DescMessage>(
   act: string,
