@@ -933,8 +933,9 @@ export type { SecretCodec } from "./encryption/codec.js";
 
 // The sandbox driver seam: the sandbox-provisioner contract an extension
 // implements to register its own isolation driver (selected through the
-// SANDBOX_PROVISIONER_TYPE knob), plus the reserved built-in names its
-// registrations may never shadow.
+// SANDBOX_PROVISIONER_TYPE knob), the error a driver throws when its fleet
+// has no room for a sandbox now (a turn then waits for room), plus the
+// reserved built-in names its registrations may never shadow.
 export type {
   EnvironmentFacts,
   EnvironmentHost,
@@ -951,7 +952,10 @@ export type {
   SessionActivity,
   SessionActivityReader,
 } from "./sandbox/provisioner.js";
-export { BUILT_IN_SANDBOX_PROVISIONER_TYPES } from "./sandbox/provisioner.js";
+export {
+  BUILT_IN_SANDBOX_PROVISIONER_TYPES,
+  SandboxNoRoomError,
+} from "./sandbox/provisioner.js";
 
 // The substrate driver (Agent Substrate actors that sleep and wake with
 // their files) for a composition that builds it itself: its provisioner,

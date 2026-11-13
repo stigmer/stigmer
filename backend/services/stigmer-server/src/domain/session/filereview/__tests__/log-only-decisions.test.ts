@@ -25,6 +25,7 @@ import { newPermissiveSingleTeamAuthorizer } from "../../../../pipeline/steps/au
 import { tempStore } from "../../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../../store/sqlite/__tests__/support.js";
 import { createAgentExecutionActivities } from "../../../../temporal/agentexecution/activities.js";
+import { WITHOUT_SANDBOX } from "../../../../temporal/agentexecution/__tests__/activity-deps.js";
 import { CLOSE_FILE_REVIEW_ACTIVITY_NAME } from "../../../../temporal/agentexecution/names.js";
 import { fileReviewSeed } from "../../../run/__tests__/file-review-seed.js";
 import { fileReviewDecidedEventId } from "../../../run/filereview/decided.js";
@@ -201,6 +202,7 @@ describe("file review decided from the session's log alone", () => {
     await appendToLog("run_c", [decidedInLog("run_c", "run_c:0", "undo", seed.aggregate)]);
     await storeTurn("run_d", { phase: RunPhase.RUN_PENDING });
     const activities = createAgentExecutionActivities({
+      ...WITHOUT_SANDBOX,
       store: temp.store,
       logger: silentLogger,
       statusWriter: () => {

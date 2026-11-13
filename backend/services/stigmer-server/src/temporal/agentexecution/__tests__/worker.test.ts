@@ -59,6 +59,8 @@ describe("the agent-execution worker factory", () => {
         },
         sessionEventBroker,
         queuedTurns: async () => undefined,
+        sandboxLane: { enabled: false },
+        personAccounts: undefined,
         temporalConfig: new AgentExecutionTemporalConfig(
           "agent_execution_custom",
           "runner_custom",

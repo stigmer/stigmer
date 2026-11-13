@@ -49,6 +49,7 @@ import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
 import type { Store } from "../../../store/interface.js";
 import { createAgentExecutionActivities } from "../activities.js";
+import { WITHOUT_SANDBOX } from "./activity-deps.js";
 import type { ExecutionStatusWriter } from "../activities.js";
 import {
   CLOSE_FILE_REVIEW_ACTIVITY_NAME,
@@ -97,6 +98,7 @@ function newFixture() {
   };
 
   const activities = createAgentExecutionActivities({
+    ...WITHOUT_SANDBOX,
     store,
     logger: silentLogger,
     statusWriter: () => statusWriter,
@@ -185,6 +187,7 @@ describe("StartQueuedTurn activity", () => {
     const started: string[] = [];
     let fail = false;
     const activities = createAgentExecutionActivities({
+      ...WITHOUT_SANDBOX,
       store: temp.store,
       logger: silentLogger,
       statusWriter: () => {
@@ -216,6 +219,7 @@ describe("CountOpenGates activity", () => {
     cleanups.push(() => temp.cleanup());
     const sessionEventBroker = new SessionEventBroker(silentLogger);
     const activities = createAgentExecutionActivities({
+      ...WITHOUT_SANDBOX,
       store: temp.store,
       logger: silentLogger,
       statusWriter: () => {
@@ -307,6 +311,7 @@ describe("CloseFileReview activity", () => {
     cleanups.push(() => temp.cleanup());
     const sessionEventBroker = new SessionEventBroker(silentLogger);
     const activities = createAgentExecutionActivities({
+      ...WITHOUT_SANDBOX,
       store: temp.store,
       logger: silentLogger,
       statusWriter: () => {

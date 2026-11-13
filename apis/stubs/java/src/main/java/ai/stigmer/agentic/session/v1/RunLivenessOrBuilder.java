@@ -108,4 +108,46 @@ public interface RunLivenessOrBuilder extends
    * <code>.google.protobuf.Duration awaiting_model_for = 3 [json_name = "awaitingModelFor"];</code>
    */
   com.google.protobuf.DurationOrBuilder getAwaitingModelForOrBuilder();
+
+  /**
+   * <pre>
+   * How long the turn has waited for a sandbox with room to start in,
+   * measured by the server when it sent this: before the turn's runner
+   * starts, the server sends this liveness itself each time it asks the
+   * sandbox fleet for room and is told there is none, at most 15 seconds
+   * apart. Unset when it is not waiting for one; the server sends a
+   * liveness without it once the turn has a sandbox.
+   * </pre>
+   *
+   * <code>.google.protobuf.Duration awaiting_sandbox_for = 4 [json_name = "awaitingSandboxFor"];</code>
+   * @return Whether the awaitingSandboxFor field is set.
+   */
+  boolean hasAwaitingSandboxFor();
+  /**
+   * <pre>
+   * How long the turn has waited for a sandbox with room to start in,
+   * measured by the server when it sent this: before the turn's runner
+   * starts, the server sends this liveness itself each time it asks the
+   * sandbox fleet for room and is told there is none, at most 15 seconds
+   * apart. Unset when it is not waiting for one; the server sends a
+   * liveness without it once the turn has a sandbox.
+   * </pre>
+   *
+   * <code>.google.protobuf.Duration awaiting_sandbox_for = 4 [json_name = "awaitingSandboxFor"];</code>
+   * @return The awaitingSandboxFor.
+   */
+  com.google.protobuf.Duration getAwaitingSandboxFor();
+  /**
+   * <pre>
+   * How long the turn has waited for a sandbox with room to start in,
+   * measured by the server when it sent this: before the turn's runner
+   * starts, the server sends this liveness itself each time it asks the
+   * sandbox fleet for room and is told there is none, at most 15 seconds
+   * apart. Unset when it is not waiting for one; the server sends a
+   * liveness without it once the turn has a sandbox.
+   * </pre>
+   *
+   * <code>.google.protobuf.Duration awaiting_sandbox_for = 4 [json_name = "awaitingSandboxFor"];</code>
+   */
+  com.google.protobuf.DurationOrBuilder getAwaitingSandboxForOrBuilder();
 }

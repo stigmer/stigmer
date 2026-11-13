@@ -18,6 +18,15 @@
  *     has no poller, since boot requires a per-queue routing mode beside
  *     one. Without a provisioner, connect keeps the shared queue.
  *
+ * "No room" is part of the contract: a driver whose sandboxes share a fleet
+ * with a fixed room (the `substrate` driver's workers) throws
+ * SandboxNoRoomError when the fleet has no room for the sandbox now, and a
+ * composed driver may too. The agent-execution workflow answers it by
+ * asking again until room comes or the server's wait runs out
+ * (temporal/agentexecution/sandbox-wait.ts); every other throw is a
+ * provisioning failure. The built-in `local-process`, `docker` and
+ * `agent-sandbox` drivers never throw it.
+ *
  * The probe is ensure-time LIVE-STATE inspection, never a boot-readiness
  * wait: the verified cloud design has NO readiness
  * probes — a sandbox that never polls its queue surfaces as the
@@ -137,6 +146,19 @@ export interface EnvironmentSupport {
   readonly packages: boolean;
 }
 
+/**
+ * The fleet has no room for this sandbox now; asking again later may
+ * succeed (module header). Thrown by `ensureSessionSandbox` and
+ * `createConnectSandbox`; the message names the sandbox and the fleet's own
+ * answer, for the log.
+ */
+export class SandboxNoRoomError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "SandboxNoRoomError";
+  }
+}
+
 /** One sandbox's observed live state (the live-state probe's result). */
 export type SandboxProbeState = "absent" | "stopped" | "running";
 
@@ -169,7 +191,9 @@ export interface SandboxProvisioner {
   /**
    * Ensure-as-state-machine for a session sandbox: absent → provision;
    * stopped → start; running → fast path. Idempotent; safe to invoke on
-   * every execution create/recover for the session.
+   * every execution create/recover for the session, and again while a
+   * turn waits for room. Throws SandboxNoRoomError when the fleet has no
+   * room for it now (module header).
    */
   ensureSessionSandbox(sessionId: string, facts: SandboxFacts): Promise<void>;
   /** Tears down the session sandbox; missing is success (idempotent). */

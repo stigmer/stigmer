@@ -45,6 +45,7 @@ import {
   SANDBOX_IMAGE_DRIVER_OWNED_RUNNER_ENV,
 } from "../sandbox/provisioner.js";
 import { RUNNER_SECRET_NAMES } from "../sandbox/runner-secret-names.js";
+import { DEFAULT_SANDBOX_WAIT_SECONDS } from "../temporal/agentexecution/sandbox-wait.js";
 
 export interface ServerConfig {
   /** Unified transport port: gRPC, gRPC-Web, Connect, and the REST lanes. */
@@ -369,6 +370,16 @@ export interface ServerConfig {
    */
   readonly sandboxRunnerSecretEnv: Readonly<Record<string, string>>;
   /**
+   * How long a turn may wait for a sandbox with room before it ends with a
+   * plain message (STIGMER_SANDBOX_WAIT_SECONDS; default 900, 15 minutes;
+   * `0` = not at all). A driver whose fleet can be full (`substrate`) says
+   * "no room", and the turn asks again until room comes or this runs out
+   * (temporal/agentexecution/sandbox-wait.ts). It says how long a person
+   * waits, never how many sandboxes run. A value that is not a
+   * non-negative whole number fails the boot.
+   */
+  readonly sandboxWaitSeconds: number;
+  /**
    * The model providers this server's runners reach
    * (STIGMER_RUNNER_PROVIDERS: a comma-separated list of `anthropic` and
    * `openai`), as names, never values. Undefined when unset:
@@ -465,6 +476,21 @@ function loadSharedRunnerAcknowledgement(env: NodeJS.ProcessEnv): boolean {
     );
   }
   return true;
+}
+
+/** STIGMER_SANDBOX_WAIT_SECONDS (ServerConfig.sandboxWaitSeconds): unset or empty is the default; anything else must be a whole number of seconds, 0 or more. */
+function loadSandboxWaitSeconds(env: NodeJS.ProcessEnv): number {
+  const value = env["STIGMER_SANDBOX_WAIT_SECONDS"];
+  if (value === undefined || value === "") {
+    return DEFAULT_SANDBOX_WAIT_SECONDS;
+  }
+  const seconds = envOptionalInt(env, "STIGMER_SANDBOX_WAIT_SECONDS");
+  if (seconds === undefined || seconds < 0) {
+    throw new Error(
+      `STIGMER_SANDBOX_WAIT_SECONDS is "${value}"; it takes a whole number of seconds a turn may wait for a sandbox with room, 0 or more (0: not at all), or leave it unset for ${DEFAULT_SANDBOX_WAIT_SECONDS}`,
+    );
+  }
+  return seconds;
 }
 
 /**
@@ -588,6 +614,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
       "stigmer-sandboxes",
     ),
     ...loadSandboxRunnerEnv(env),
+    sandboxWaitSeconds: loadSandboxWaitSeconds(env),
     runnerProviders: loadRunnerProviders(env),
     routineFiresPerHour: envInt(
       env,

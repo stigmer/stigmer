@@ -21,7 +21,11 @@
  *     (an edition credentialed another way), when it is keyless, and
  *     when the mint throws — a dispatch never fails on a mint;
  *   - a reconcile turn's input carries `reconcile_file_review`, and every
- *     other run's omits the key.
+ *     other run's omits the key;
+ *   - the caller's facts ride every input (`caller_class`, and the
+ *     routine and the caller's id when set), and a CLOUD target's input
+ *     carries the server's limit on a wait for room, zero included, which
+ *     a LOCAL target's omits.
  */
 import { randomBytes } from "node:crypto";
 import { mkdtempSync, rmSync } from "node:fs";
@@ -88,6 +92,7 @@ function newEngine(
     config: config(),
     store: overrides.store ?? newStore(),
     runnerCredentials: keyedCredentials,
+    sandboxWaitSeconds: 900,
     logger: silentLogger,
     ...overrides,
   });
@@ -172,6 +177,7 @@ function startInput(overrides: Partial<Parameters<TemporalExecutionEngine["start
     sessionId: "",
     agentId: "agt_1",
     autoApproveAll: false,
+    caller: { identityId: "", callerClass: "internal" },
     ...overrides,
   };
 }
@@ -204,6 +210,7 @@ describe("TemporalExecutionEngine.startInvokeWorkflow", () => {
         execution_target: ExecutionTarget.LOCAL,
         // The run credential, minted per dispatch (its own arms below).
         execution_context_token: expect.any(String),
+        caller_class: "internal",
       },
     ]);
   });
@@ -299,6 +306,44 @@ describe("TemporalExecutionEngine.startInvokeWorkflow", () => {
     expect(input["execution_target"]).toBe(ExecutionTarget.CLOUD);
     // Omitempty shape: a false auto_approve_all carries NO key.
     expect("auto_approve_all" in input).toBe(false);
+    // A CLOUD turn carries the server's limit on its wait for room.
+    expect(input["sandbox_wait_seconds"]).toBe(900);
+  });
+
+  it("carries the caller's facts, and a CLOUD target's wait limit even when it is zero", async () => {
+    const store = newStore();
+    await store.saveResource(
+      ApiResourceKind.session,
+      "ses_cloud",
+      SessionSchema,
+      create(SessionSchema, {
+        apiVersion: "agentic.stigmer.ai/v1",
+        kind: "Session",
+        metadata: { id: "ses_cloud", name: "s", org: "o" },
+        spec: { executionTarget: ExecutionTarget.CLOUD },
+      }),
+    );
+    const fire = stubClient();
+    await newEngine(fire.client, { store, sandboxWaitSeconds: 0 }).startInvokeWorkflow(
+      startInput({
+        sessionId: "ses_cloud",
+        caller: { identityId: "ida_owner", callerClass: "user", routineId: "rtn_1" },
+      }),
+    );
+    const input = dispatchedInput(fire.startCalls);
+    expect(input).toMatchObject({
+      caller_class: "user",
+      routine_id: "rtn_1",
+      caller_identity_id: "ida_owner",
+      sandbox_wait_seconds: 0,
+    });
+
+    const local = stubClient();
+    await newEngine(local.client).startInvokeWorkflow(startInput());
+    const localInput = dispatchedInput(local.startCalls);
+    expect("sandbox_wait_seconds" in localInput).toBe(false);
+    expect("routine_id" in localInput).toBe(false);
+    expect("caller_identity_id" in localInput).toBe(false);
   });
 
   it("wraps dispatch-resolution failures in EngineDispatchError with the message verbatim", async () => {
@@ -370,6 +415,7 @@ describe("newExecutionEngineStateProvider", () => {
       config: config(),
       store: newStore(),
       runnerCredentials: keyedCredentials,
+      sandboxWaitSeconds: 900,
       logger: silentLogger,
     });
 

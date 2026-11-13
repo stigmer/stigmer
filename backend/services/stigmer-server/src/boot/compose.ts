@@ -1268,6 +1268,12 @@ export async function composeServer(
         sessionEventBroker,
         queuedTurns,
         temporalConfig,
+        // The workflow's own sandbox ensure, the request's body
+        // (sandbox/steps.ts) under the same lane and accounts; its
+        // activity also tells the session's streams while a turn waits
+        // for room, through the broker above.
+        sandboxLane,
+        personAccounts,
       }),
       newRoutineWorkerFactory({
         store,
@@ -1325,6 +1331,7 @@ export async function composeServer(
     config: temporalConfig,
     store,
     runnerCredentials,
+    sandboxWaitSeconds: config.sandboxWaitSeconds,
     logger,
   });
   // The artifact blob store (shared by run attachments and run files,

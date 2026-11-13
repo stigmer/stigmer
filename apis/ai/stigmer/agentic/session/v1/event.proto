@@ -604,8 +604,9 @@ message ToolOutputDelta {
 // RunLiveness says a working turn is alive and what it is doing:
 // stigmer.run.liveness. The runner sends it when the turn's open operations
 // change and at an interval while the turn runs (30 seconds by default, and
-// always under a minute). Streamed, never stored; the newest one replaces
-// the one before. A stream that asks for it and opens while the turn works
+// always under a minute); before the runner starts, the server sends it for
+// a turn waiting for a sandbox (awaiting_sandbox_for). Streamed, never
+// stored; the newest one replaces the one before. A stream that asks for it and opens while the turn works
 // receives the turn's newest one right after the stored events it reads
 // first, its ages moved forward by the time the server held it, when the
 // server process serving the stream received that one within the last
@@ -622,6 +623,14 @@ message RunLiveness {
   // How long the turn has waited on its model's reply, measured by the
   // runner when it sent this. Unset when it is not waiting on the model.
   google.protobuf.Duration awaiting_model_for = 3;
+
+  // How long the turn has waited for a sandbox with room to start in,
+  // measured by the server when it sent this: before the turn's runner
+  // starts, the server sends this liveness itself each time it asks the
+  // sandbox fleet for room and is told there is none, at most 15 seconds
+  // apart. Unset when it is not waiting for one; the server sends a
+  // liveness without it once the turn has a sandbox.
+  google.protobuf.Duration awaiting_sandbox_for = 4;
 }
 
 // RunOpenOperation is one operation a working turn has open.

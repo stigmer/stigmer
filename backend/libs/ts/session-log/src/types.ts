@@ -383,15 +383,21 @@ export interface Turn {
 
 /**
  * A working turn's newest liveness preview (`stigmer.run.liveness`). The
- * durations are the runner's, measured when it sent the preview: a client
- * that shows them ticking counts on from the moment the preview arrived,
- * never from its own clock against the runner's.
+ * durations are the sender's (the runner's, or the server's while the turn
+ * waits for a sandbox), measured when it sent the preview: a client that
+ * shows them ticking counts on from the moment the preview arrived, never
+ * from its own clock against the sender's.
  */
 export interface TurnLiveness {
   /** The operations open, oldest first; one whose result the log already holds is left out. */
   readonly operations: ReadonlyArray<TurnOpenOperation>;
   /** How long the turn had waited on its model's reply; undefined when it was not waiting. */
   readonly awaitingModelMs: number | undefined;
+  /**
+   * How long the turn had waited for a sandbox with room, before its
+   * runner started; absent when it was not waiting for one.
+   */
+  readonly awaitingSandboxMs?: number;
 }
 
 /** One operation a working turn has open. */

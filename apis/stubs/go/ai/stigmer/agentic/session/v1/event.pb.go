@@ -2512,8 +2512,9 @@ func (x *ToolOutputDelta) GetDelta() string {
 // RunLiveness says a working turn is alive and what it is doing:
 // stigmer.run.liveness. The runner sends it when the turn's open operations
 // change and at an interval while the turn runs (30 seconds by default, and
-// always under a minute). Streamed, never stored; the newest one replaces
-// the one before. A stream that asks for it and opens while the turn works
+// always under a minute); before the runner starts, the server sends it for
+// a turn waiting for a sandbox (awaiting_sandbox_for). Streamed, never
+// stored; the newest one replaces the one before. A stream that asks for it and opens while the turn works
 // receives the turn's newest one right after the stored events it reads
 // first, its ages moved forward by the time the server held it, when the
 // server process serving the stream received that one within the last
@@ -2529,8 +2530,15 @@ type RunLiveness struct {
 	// How long the turn has waited on its model's reply, measured by the
 	// runner when it sent this. Unset when it is not waiting on the model.
 	AwaitingModelFor *durationpb.Duration `protobuf:"bytes,3,opt,name=awaiting_model_for,json=awaitingModelFor,proto3" json:"awaiting_model_for,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	// How long the turn has waited for a sandbox with room to start in,
+	// measured by the server when it sent this: before the turn's runner
+	// starts, the server sends this liveness itself each time it asks the
+	// sandbox fleet for room and is told there is none, at most 15 seconds
+	// apart. Unset when it is not waiting for one; the server sends a
+	// liveness without it once the turn has a sandbox.
+	AwaitingSandboxFor *durationpb.Duration `protobuf:"bytes,4,opt,name=awaiting_sandbox_for,json=awaitingSandboxFor,proto3" json:"awaiting_sandbox_for,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *RunLiveness) Reset() {
@@ -2580,6 +2588,13 @@ func (x *RunLiveness) GetOperations() []*RunOpenOperation {
 func (x *RunLiveness) GetAwaitingModelFor() *durationpb.Duration {
 	if x != nil {
 		return x.AwaitingModelFor
+	}
+	return nil
+}
+
+func (x *RunLiveness) GetAwaitingSandboxFor() *durationpb.Duration {
+	if x != nil {
+		return x.AwaitingSandboxFor
 	}
 	return nil
 }
@@ -4241,13 +4256,14 @@ const file_ai_stigmer_agentic_session_v1_event_proto_rawDesc = "" +
 	"\x0fembedding_model\x18\x05 \x01(\tR\x0eembeddingModel\"s\n" +
 	"\x0fToolOutputDelta\x12J\n" +
 	"\vtool_use_id\x18\x01 \x01(\tB*\xbaH'r%2#^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$R\ttoolUseId\x12\x14\n" +
-	"\x05delta\x18\x02 \x01(\tR\x05delta\"\xd2\x01\n" +
+	"\x05delta\x18\x02 \x01(\tR\x05delta\"\x9f\x02\n" +
 	"\vRunLiveness\x12\x1e\n" +
 	"\x06run_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x05runId\x12Z\n" +
 	"\n" +
 	"operations\x18\x02 \x03(\v2/.ai.stigmer.agentic.session.v1.RunOpenOperationB\t\xbaH\x06\x92\x01\x03\x10\x80\x02R\n" +
 	"operations\x12G\n" +
-	"\x12awaiting_model_for\x18\x03 \x01(\v2\x19.google.protobuf.DurationR\x10awaitingModelFor\"\x87\x02\n" +
+	"\x12awaiting_model_for\x18\x03 \x01(\v2\x19.google.protobuf.DurationR\x10awaitingModelFor\x12K\n" +
+	"\x14awaiting_sandbox_for\x18\x04 \x01(\v2\x19.google.protobuf.DurationR\x12awaitingSandboxFor\"\x87\x02\n" +
 	"\x10RunOpenOperation\x12J\n" +
 	"\vtool_use_id\x18\x01 \x01(\tB*\xbaH'r%2#^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$R\ttoolUseId\x12\x1e\n" +
 	"\x04name\x18\x02 \x01(\tB\n" +
@@ -4490,19 +4506,20 @@ var file_ai_stigmer_agentic_session_v1_event_proto_depIdxs = []int32{
 	46, // 47: ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEvent.output:type_name -> google.protobuf.Struct
 	26, // 48: ai.stigmer.agentic.session.v1.RunLiveness.operations:type_name -> ai.stigmer.agentic.session.v1.RunOpenOperation
 	48, // 49: ai.stigmer.agentic.session.v1.RunLiveness.awaiting_model_for:type_name -> google.protobuf.Duration
-	48, // 50: ai.stigmer.agentic.session.v1.RunOpenOperation.elapsed:type_name -> google.protobuf.Duration
-	28, // 51: ai.stigmer.agentic.session.v1.EventStart.event:type_name -> ai.stigmer.agentic.session.v1.EventPreview
-	30, // 52: ai.stigmer.agentic.session.v1.StigmerFileReviewChangesEvent.files:type_name -> ai.stigmer.agentic.session.v1.StigmerFileReviewChange
-	34, // 53: ai.stigmer.agentic.session.v1.StigmerPermissionGrantEvent.lease:type_name -> ai.stigmer.agentic.session.v1.StigmerPermissionLease
-	36, // 54: ai.stigmer.agentic.session.v1.EventDelta.delta:type_name -> ai.stigmer.agentic.session.v1.DeltaContent
-	42, // 55: ai.stigmer.agentic.session.v1.DeltaContent.content:type_name -> ai.stigmer.agentic.session.v1.ContentBlock
-	49, // 56: ai.stigmer.agentic.session.v1.StigmerRunStatusEvent.stop_detail:type_name -> ai.stigmer.agentic.session.v1.StigmerStopDetail
-	46, // 57: ai.stigmer.agentic.session.v1.StigmerMcpToolDefinitionEvent.input_schema:type_name -> google.protobuf.Struct
-	58, // [58:58] is the sub-list for method output_type
-	58, // [58:58] is the sub-list for method input_type
-	58, // [58:58] is the sub-list for extension type_name
-	58, // [58:58] is the sub-list for extension extendee
-	0,  // [0:58] is the sub-list for field type_name
+	48, // 50: ai.stigmer.agentic.session.v1.RunLiveness.awaiting_sandbox_for:type_name -> google.protobuf.Duration
+	48, // 51: ai.stigmer.agentic.session.v1.RunOpenOperation.elapsed:type_name -> google.protobuf.Duration
+	28, // 52: ai.stigmer.agentic.session.v1.EventStart.event:type_name -> ai.stigmer.agentic.session.v1.EventPreview
+	30, // 53: ai.stigmer.agentic.session.v1.StigmerFileReviewChangesEvent.files:type_name -> ai.stigmer.agentic.session.v1.StigmerFileReviewChange
+	34, // 54: ai.stigmer.agentic.session.v1.StigmerPermissionGrantEvent.lease:type_name -> ai.stigmer.agentic.session.v1.StigmerPermissionLease
+	36, // 55: ai.stigmer.agentic.session.v1.EventDelta.delta:type_name -> ai.stigmer.agentic.session.v1.DeltaContent
+	42, // 56: ai.stigmer.agentic.session.v1.DeltaContent.content:type_name -> ai.stigmer.agentic.session.v1.ContentBlock
+	49, // 57: ai.stigmer.agentic.session.v1.StigmerRunStatusEvent.stop_detail:type_name -> ai.stigmer.agentic.session.v1.StigmerStopDetail
+	46, // 58: ai.stigmer.agentic.session.v1.StigmerMcpToolDefinitionEvent.input_schema:type_name -> google.protobuf.Struct
+	59, // [59:59] is the sub-list for method output_type
+	59, // [59:59] is the sub-list for method input_type
+	59, // [59:59] is the sub-list for extension type_name
+	59, // [59:59] is the sub-list for extension extendee
+	0,  // [0:59] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_session_v1_event_proto_init() }

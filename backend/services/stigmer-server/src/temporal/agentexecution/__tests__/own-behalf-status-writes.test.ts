@@ -51,6 +51,7 @@ import type { CallerIdentity } from "../../../extensions/identity.js";
 import type { ServerExtension } from "../../../extensions/registry.js";
 import type { RunStatusTransition } from "../../../extensions/status-hooks.js";
 import { createAgentExecutionActivities } from "../activities.js";
+import { WITHOUT_SANDBOX } from "./activity-deps.js";
 import type { ExecutionStatusWriter } from "../activities.js";
 import { UPDATE_EXECUTION_STATUS_ACTIVITY_NAME } from "../names.js";
 
@@ -124,6 +125,7 @@ describe("own-behalf status writes under an enforcing Authorizer", () => {
     );
     statusWriter = { updateStatus: (input) => command.updateStatus(input) };
     updateStatus = createAgentExecutionActivities({
+      ...WITHOUT_SANDBOX,
       store: server.store,
       logger: createLogger({ level: "error", pretty: false, write: () => {} }),
       statusWriter: () => statusWriter,

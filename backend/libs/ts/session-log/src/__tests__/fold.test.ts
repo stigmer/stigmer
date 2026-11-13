@@ -433,6 +433,16 @@ describe("previews", () => {
     expect(log.snapshot().turns[0]!.liveness).toBeUndefined();
   });
 
+  it("a turn waiting for a sandbox carries the server's wait until a liveness without it arrives", () => {
+    const log = new SessionLog();
+    log.apply([user(R, "go"), phase(R, "pending")]);
+    log.applyFrame(frame({ case: "stigmerRunLiveness", value: { runId: R, awaitingSandboxFor: { seconds: 80n } } }));
+    expect(log.snapshot().turns[0]!.liveness).toEqual({ operations: [], awaitingModelMs: undefined, awaitingSandboxMs: 80_000 });
+    log.applyFrame(frame({ case: "stigmerRunLiveness", value: { runId: R } }));
+    expect(log.snapshot().turns[0]!.liveness?.awaitingSandboxMs).toBeUndefined();
+    expect(log.snapshot().turns[0]!.liveness?.operations).toEqual([]);
+  });
+
   it("a liveness for a run the log has not shown changes nothing", () => {
     const log = new SessionLog();
     log.apply([user(R, "go")]);

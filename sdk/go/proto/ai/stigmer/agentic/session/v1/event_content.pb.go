@@ -400,7 +400,9 @@ type StigmerStopDetail struct {
 	// Under failed: agent_setup (the agent can't run as configured),
 	// app_unreachable (a connected app wouldn't connect), app_needs_sign_in (a
 	// connected app needs a sign-in) or internal (a fault of the platform).
-	// Under infrastructure: runner_lost.
+	// Under infrastructure: runner_lost (the machine running the turn stopped)
+	// or no_sandbox_room (no sandbox had room for the turn within the server's
+	// wait, so it never started).
 	Kind string `protobuf:"bytes,1,opt,name=kind,proto3" json:"kind,omitempty"`
 	// The model the turn called, for the model_error kinds, by its id in the
 	// model registry (for example claude-sonnet-4.6); empty when unknown.
@@ -651,9 +653,9 @@ const file_ai_stigmer_agentic_session_v1_event_content_proto_rawDesc = "" +
 	"\x04type\x18\x01 \x01(\tB\xb1\x01\xbaH\xad\x01r\xaa\x01R\runknown_errorR\x16model_overloaded_errorR\x18model_rate_limited_errorR\x1amodel_request_failed_errorR\x1bmcp_connection_failed_errorR\x1fmcp_authentication_failed_errorR\rbilling_errorR\x04type\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x12M\n" +
 	"\fretry_status\x18\x03 \x01(\v2*.ai.stigmer.agentic.session.v1.RetryStatusR\vretryStatus\x12&\n" +
-	"\x0fmcp_server_name\x18\x04 \x01(\tR\rmcpServerName\"\x93\x03\n" +
-	"\x11StigmerStopDetail\x12\xd5\x02\n" +
-	"\x04kind\x18\x01 \x01(\tB\xc0\x02\xbaH\xbc\x02r\xb9\x02R\x15provider_key_rejectedR\x14provider_key_missingR\x16provider_out_of_creditR\x15provider_rate_limitedR\x13provider_overloadedR\x11model_unavailableR\x14provider_unreachableR\x10request_rejectedR\bcost_capR\x0ftool_call_limitR\astalledR\x0foperation_limitR\x0eworkspace_busyR\vagent_setupR\x0fapp_unreachableR\x11app_needs_sign_inR\binternalR\vrunner_lostR\x04kind\x12\x14\n" +
+	"\x0fmcp_server_name\x18\x04 \x01(\tR\rmcpServerName\"\xa4\x03\n" +
+	"\x11StigmerStopDetail\x12\xe6\x02\n" +
+	"\x04kind\x18\x01 \x01(\tB\xd1\x02\xbaH\xcd\x02r\xca\x02R\x15provider_key_rejectedR\x14provider_key_missingR\x16provider_out_of_creditR\x15provider_rate_limitedR\x13provider_overloadedR\x11model_unavailableR\x14provider_unreachableR\x10request_rejectedR\bcost_capR\x0ftool_call_limitR\astalledR\x0foperation_limitR\x0eworkspace_busyR\vagent_setupR\x0fapp_unreachableR\x11app_needs_sign_inR\binternalR\vrunner_lostR\x0fno_sandbox_roomR\x04kind\x12\x14\n" +
 	"\x05model\x18\x02 \x01(\tR\x05model\x12\x10\n" +
 	"\x03app\x18\x03 \x01(\tR\x03app\"G\n" +
 	"\vRetryStatus\x128\n" +
