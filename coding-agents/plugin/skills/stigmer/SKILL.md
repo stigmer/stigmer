@@ -118,8 +118,9 @@ environment or their own keyboard straight to the CLI, never through you:
   running `stigmer setup` themselves. Then `stigmer down` and `stigmer up`, so
   the runner takes the key.
 - **Their own server**: it keeps no keys; its runners use the keys whoever
-  runs them gives them. Say so, and who runs them; go on once
-  `stigmer provider-key list` reads ready.
+  runs them gives them. Say so, and who runs them. When
+  `stigmer provider-key list` reads "not known", the server cannot see its
+  runners' keys: go on to step 4, whose run shows whether a runner has one.
 
 The CLI checks the key with the provider. A key it rejects: quote the CLI's
 words, and offer the same two ways again.
