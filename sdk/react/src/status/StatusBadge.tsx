@@ -1,8 +1,14 @@
 "use client";
 
+// The console's one status pill: a dot and a word on the status tint, 12px
+// on a 20px pill. Every state in the console (a session, a run, a routine's
+// fire, a provider, an invite, a version) reads through it, so a state looks
+// the same wherever it shows, and a neutral word never borrows its look
+// (`Tag` is the neutral label).
+
 import { cn } from "@stigmer/design-tokens";
-import { Tooltip, TooltipContent, TooltipTrigger } from "../../internal/tooltip.js";
-import type { StatusPhase } from "../types.js";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
+import type { StatusPhase } from "../resource-workbench/types.js";
 
 /** Props for {@link StatusBadge}. */
 export interface StatusBadgeProps {
@@ -56,7 +62,7 @@ export function StatusBadge({
   const badge = (
     <span
       className={cn(
-        "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-full stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium stg:leading-none",
+        "stg:inline-flex stg:h-5 stg:shrink-0 stg:items-center stg:gap-1.5 stg:whitespace-nowrap stg:rounded-full stg:px-2 stg:text-xs stg:font-medium",
         statusClasses(phase),
         className,
       )}

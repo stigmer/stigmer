@@ -12,7 +12,7 @@ import { Button } from "../button/Button.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
 import { TruncatedText } from "../internal/truncated-text.js";
-import { StatusBadge } from "../resource-workbench/components/StatusBadge.js";
+import { StatusBadge } from "../status/StatusBadge.js";
 import {
   channelPresentationOf,
   DEFAULT_CHANNEL_PRESENTATION,

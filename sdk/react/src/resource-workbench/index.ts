@@ -40,8 +40,6 @@ export type {
 } from "./hooks/useResourceFilters.js";
 
 // Components
-export { StatusBadge } from "./components/StatusBadge.js";
-export type { StatusBadgeProps } from "./components/StatusBadge.js";
 
 export { ColumnHeader } from "./components/ColumnHeader.js";
 export type { ColumnHeaderProps } from "./components/ColumnHeader.js";

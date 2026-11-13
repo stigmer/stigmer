@@ -19,7 +19,7 @@ import { ErrorMessage } from "../error/ErrorMessage.js";
 import { cardClasses } from "../internal/surface/Card.js";
 import { SettingsPage } from "../settings/SettingsPage.js";
 import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
-import { StatusBadge } from "../resource-workbench/components/StatusBadge.js";
+import { StatusBadge } from "../status/StatusBadge.js";
 import { deriveLicenseCustomers } from "./license-customers.js";
 import {
   coveredThroughDay,

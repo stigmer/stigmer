@@ -1,51 +1,65 @@
 "use client";
 
-import { useState } from "react";
+import type { ReactNode } from "react";
 import {
   classifyError,
   getUserMessage,
   getRpcMetadata,
-  isRetryableError,
   type ErrorCategory,
 } from "@stigmer/client";
-import { cn } from "@stigmer/design-tokens";
-import { Button } from "../button/Button.js";
+import { Notice } from "../internal/surface/Notice.js";
 
 /** Props for {@link ErrorMessage}. */
 export interface ErrorMessageProps {
   /** The error to display. Renders nothing when `null`. */
   readonly error: Error | null;
-  /** Override the default title derived from the error category. */
+  /**
+   * The headline, in the page's words ("Couldn't load the members.").
+   * When omitted, a plain sentence for the error's category.
+   */
   readonly title?: string;
   /**
-   * Callback to retry the failed operation.
-   * Shows a "Retry" button when provided **and** the error is retryable
-   * (server or unavailable category).
+   * What wasn't lost, when the page knows ("Your organization's vaults
+   * are safe; only this page's read failed."). Drawn under the error's own
+   * line.
+   */
+  readonly comfort?: ReactNode;
+  /**
+   * Callback to retry the failed operation. Shows "Try again" when
+   * provided and trying again can help (the server failed or didn't
+   * answer, the request was cancelled, or the cause is unknown).
    */
   readonly retry?: () => void;
+  /** Signs the person in again. Shows "Sign in again" when the error is that they're signed out. */
+  readonly signIn?: () => void;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
 
-const CATEGORY_TITLES: Record<ErrorCategory, string> = {
-  auth: "Authentication required",
-  permission: "Access denied",
-  "not-found": "Not found",
-  validation: "Invalid request",
-  server: "Server error",
-  unavailable: "Service unavailable",
-  cancelled: "Request cancelled",
-  unknown: "Something went wrong",
+/** The headline for each category when the caller gives none: what happened, in a sentence. */
+const CATEGORY_HEADLINES: Record<ErrorCategory, string> = {
+  auth: "You're signed out.",
+  permission: "You don't have access to this.",
+  "not-found": "This isn't here any more.",
+  validation: "Stigmer couldn't accept that.",
+  server: "Something went wrong on Stigmer's side.",
+  unavailable: "Stigmer didn't answer.",
+  cancelled: "That was cancelled before it finished.",
+  unknown: "Something went wrong.",
 };
 
+/** The categories where trying again can help. */
+const RETRYABLE: ReadonlySet<ErrorCategory> = new Set(["server", "unavailable", "cancelled", "unknown"]);
+
 /**
- * Inline error display that classifies errors and renders a
- * category-appropriate message with optional retry and expandable
- * technical details (RPC method and path).
+ * A failure, as the console draws one: a note in the failed tone with a
+ * bold sentence on what happened, the error's own message under it, what
+ * wasn't lost when the page knows, one act (Try again, or Sign in again),
+ * and Copy details (the category, and the RPC method and path) for
+ * whoever fixes it.
  *
- * Uses `classifyError()`, `getUserMessage()`, `getRpcMetadata()`, and
- * `isRetryableError()` from `@stigmer/client` to provide structured,
- * user-friendly error rendering.
+ * Uses `classifyError()`, `getUserMessage()` and `getRpcMetadata()` from
+ * `@stigmer/client`.
  *
  * All visual properties flow through `--stgm-*` design tokens. No
  * Console-specific dependencies — safe for platform builder embedding.
@@ -54,7 +68,7 @@ const CATEGORY_TITLES: Record<ErrorCategory, string> = {
  * ```tsx
  * function AgentName({ slug }: { slug: string }) {
  *   const { agent, error, refetch } = useAgent("acme", slug);
- *   if (error) return <ErrorMessage error={error} retry={refetch} />;
+ *   if (error) return <ErrorMessage error={error} title="Couldn't load the agent." retry={refetch} />;
  *   return <h1>{agent?.metadata?.name}</h1>;
  * }
  * ```
@@ -62,111 +76,51 @@ const CATEGORY_TITLES: Record<ErrorCategory, string> = {
 export function ErrorMessage({
   error,
   title,
+  comfort,
   retry,
+  signIn,
   className,
 }: ErrorMessageProps) {
-  const [detailsOpen, setDetailsOpen] = useState(false);
-
   if (!error) return null;
 
   const category = classifyError(error);
   const message = getUserMessage(error);
   const metadata = getRpcMetadata(error);
-  const retryable = isRetryableError(error);
-  const isShield = category === "auth" || category === "permission";
+  const details = [
+    message,
+    `Category: ${category}`,
+    metadata ? `Method: ${metadata.method}` : "",
+    metadata ? `Path: ${metadata.path}` : "",
+  ]
+    .filter((line) => line !== "")
+    .join("\n");
+
+  const act =
+    category === "auth" && signIn
+      ? { label: "Sign in again", onClick: signIn }
+      : retry && RETRYABLE.has(category)
+        ? { label: "Try again", onClick: retry, icon: <RotateCcwIcon className="stg:size-3.5" /> }
+        : undefined;
 
   return (
-    <div
+    <Notice
+      tone="failed"
       role="alert"
-      className={cn(
-        "stg:bg-destructive-subtle stg:border-destructive/20 stg:text-destructive stg:rounded-lg stg:border stg:p-4",
-        className,
-      )}
+      icon={category === "auth" || category === "permission" ? <ShieldXIcon /> : undefined}
+      headline={title ?? CATEGORY_HEADLINES[category]}
+      act={act}
+      details={details}
+      className={className}
     >
-      <div className="stg:flex stg:items-start stg:gap-3">
-        {isShield ? (
-          <ShieldXIcon className="stg:mt-0.5 stg:size-4 stg:shrink-0" />
-        ) : (
-          <AlertTriangleIcon className="stg:mt-0.5 stg:size-4 stg:shrink-0" />
-        )}
-
-        <div className="stg:min-w-0 stg:flex-1 stg:space-y-1">
-          <p className="stg:text-sm stg:font-medium">
-            {title ?? CATEGORY_TITLES[category]}
-          </p>
-          <p className="stg:m-0 stg:text-destructive stg:text-sm">{message}</p>
-
-          {metadata && (
-            <div className="stg:pt-1">
-              <button
-                type="button"
-                onClick={() => setDetailsOpen((prev) => !prev)}
-                className="stg:text-destructive stg:hover:underline stg:inline-flex stg:items-center stg:gap-1 stg:text-xs stg:transition-colors"
-              >
-                <ChevronDownIcon
-                  className={cn(
-                    "stg:size-3 stg:transition-transform",
-                    detailsOpen && "stg:rotate-180",
-                  )}
-                />
-                Technical details
-              </button>
-              {detailsOpen && (
-                <dl className="stg:text-destructive stg:mt-1.5 stg:space-y-0.5 stg:font-mono stg:text-xs">
-                  <div className="stg:flex stg:gap-2">
-                    <dt className="stg:shrink-0">Method:</dt>
-                    <dd className="stg:truncate">{metadata.method}</dd>
-                  </div>
-                  <div className="stg:flex stg:gap-2">
-                    <dt className="stg:shrink-0">Path:</dt>
-                    <dd className="stg:truncate">{metadata.path}</dd>
-                  </div>
-                </dl>
-              )}
-            </div>
-          )}
-        </div>
-
-        {retry && retryable && (
-          <Button
-            variant="outline"
-            size="xs"
-            icon={<RotateCcwIcon className="stg:size-3" />}
-            onClick={retry}
-            className="stg:text-destructive stg:hover:bg-destructive-subtle"
-          >
-            Retry
-          </Button>
-        )}
-      </div>
-    </div>
+      <p className="stg:m-0 stg:break-words">{message}</p>
+      {comfort != null && <p className="stg:m-0 stg:text-muted-foreground">{comfort}</p>}
+    </Notice>
   );
 }
 
 // ---------------------------------------------------------------------------
 // Icons (inline SVGs — SDK components avoid icon library dependencies)
 // ---------------------------------------------------------------------------
-
-function AlertTriangleIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-      aria-hidden="true"
-    >
-      <path d="M7.13 2.5a1 1 0 0 1 1.74 0l5.5 9.5A1 1 0 0 1 13.5 13.5h-11a1 1 0 0 1-.87-1.5l5.5-9.5z" />
-      <path d="M8 6v3" />
-      <circle cx="8" cy="11" r="0.5" fill="currentColor" stroke="none" />
-    </svg>
-  );
-}
 
 function ShieldXIcon({ className }: { className?: string }) {
   return (
@@ -184,25 +138,6 @@ function ShieldXIcon({ className }: { className?: string }) {
     >
       <path d="M8 1.5l5 2v4c0 3.5-2.5 5.5-5 6.5-2.5-1-5-3-5-6.5v-4l5-2z" />
       <path d="M6 6.5l4 4M10 6.5l-4 4" />
-    </svg>
-  );
-}
-
-function ChevronDownIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-      aria-hidden="true"
-    >
-      <path d="M4 6l4 4 4-4" />
     </svg>
   );
 }

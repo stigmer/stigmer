@@ -26,7 +26,7 @@ import { Card, cardClasses } from "../internal/surface/Card.js";
 import { FEATURE_COPY, isNamedFeature } from "../internal/features.js";
 import { ConfirmDialog } from "../resource-detail/ConfirmDialog.js";
 import { useConfirmAction } from "../resource-detail/useConfirmAction.js";
-import { StatusBadge } from "../resource-workbench/components/StatusBadge.js";
+import { StatusBadge } from "../status/StatusBadge.js";
 import { PlanCreateForm } from "./PlanCreateForm.js";
 import { PLANS_DENIAL } from "./PlansAccessNotice.js";
 import { useRetirePlan } from "./usePlanMutations.js";

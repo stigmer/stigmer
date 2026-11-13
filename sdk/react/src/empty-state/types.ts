@@ -10,6 +10,9 @@ export type EmptyStateVariant =
   | "permission"
   | "error";
 
+/** How much room an empty state takes: a page's panel, or one line inside a card or a list. */
+export type EmptyStateSize = "panel" | "inline";
+
 /** Action rendered as a button within the empty state. */
 export interface EmptyStateAction {
   /** Button label. */
@@ -35,6 +38,8 @@ export interface UseEmptyStateOptions {
   readonly description?: string;
   /** Error message to display — relevant for the "error" variant. */
   readonly errorMessage?: string;
+  /** The search that matched nothing — relevant for the "zero-results" variant, named in its title. */
+  readonly query?: string;
 }
 
 /** Return value of the {@link useEmptyState} behavior hook. */
@@ -69,6 +74,14 @@ export interface EmptyStateProps {
   readonly description?: string;
   /** Error message — only used when variant is "error". */
   readonly errorMessage?: string;
+  /** The search that matched nothing — only used when variant is "zero-results". */
+  readonly query?: string;
+  /**
+   * `"panel"` (default): the page's empty state, on its own faint card with
+   * the icon, the title, one line and the act. `"inline"`: one line inside a
+   * card or a list that has nothing in it, with no frame of its own.
+   */
+  readonly size?: EmptyStateSize;
   /** Primary action button. */
   readonly action?: EmptyStateAction;
   /**

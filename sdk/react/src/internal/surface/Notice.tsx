@@ -71,7 +71,7 @@ export function Notice({ tone, headline, children, icon, act, link, details = ""
   return (
     <div
       role={role ?? (tone === "failed" ? "alert" : "status")}
-      className={cn("stg:flex stg:items-start stg:gap-3 stg:rounded-lg stg:p-4", classes.box, className)}
+      className={cn("stg:flex stg:items-start stg:gap-3 stg:rounded-xl stg:p-4", classes.box, className)}
     >
       <span className={cn("stg:mt-0.5 stg:shrink-0", classes.icon)} aria-hidden="true">
         {icon ?? TONE_ICONS[tone]}

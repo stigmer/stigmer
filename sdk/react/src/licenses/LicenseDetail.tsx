@@ -7,7 +7,7 @@ import type { License } from "@stigmer/apis/ai/stigmer/billing/license/v1/api_pb
 import { Button } from "../button/index.js";
 import { cardClasses } from "../internal/surface/Card.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
-import { StatusBadge } from "../resource-workbench/components/StatusBadge.js";
+import { StatusBadge } from "../status/StatusBadge.js";
 import {
   coveredThroughDay,
   formatDayFromToday,

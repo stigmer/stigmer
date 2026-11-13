@@ -8,7 +8,7 @@ import {
 import type { AgentHours } from "@stigmer/apis/ai/stigmer/billing/subscription/v1/io_pb";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { Card } from "../internal/surface/Card.js";
-import { StatusBadge } from "../resource-workbench/components/StatusBadge.js";
+import { StatusBadge } from "../status/StatusBadge.js";
 import { AgentHoursStanding } from "./AgentHoursStanding.js";
 import { formatUsd } from "./format.js";
 import { formatAgentHours, formatDay, formatPeriodDay } from "./plan-features.js";
