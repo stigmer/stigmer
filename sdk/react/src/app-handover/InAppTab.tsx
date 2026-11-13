@@ -335,7 +335,7 @@ function HandedOverFile({ file }: { readonly file: AppHandoverFile }) {
   return (
     <div className="stg:flex stg:flex-col stg:gap-2">
       <CopyBlock label={file.installLanguage === "xml" ? "Add to pom.xml" : "Install"} value={file.install} />
-      <CopyBlock label={file.file} value={file.code} />
+      <CopyBlock label={file.file} value={file.code} tall />
     </div>
   );
 }

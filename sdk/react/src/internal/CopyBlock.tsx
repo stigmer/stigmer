@@ -13,16 +13,19 @@ import { useCopyFeedback } from "./useCopyFeedback.js";
 
 /**
  * A multi-line copyable value (an app manifest, a command) in a scrollable
- * block, which the keyboard reaches as a region named by `label`.
+ * block, which the keyboard reaches as a region named by `label`. `tall`
+ * gives a whole source file room to be read in place.
  */
 export function CopyBlock({
   label,
   value,
   copyTargetId,
+  tall = false,
 }: {
   label: string;
   value: string;
   copyTargetId?: string;
+  tall?: boolean;
 }) {
   const { copied, copy } = useCopy(value);
 
@@ -37,7 +40,8 @@ export function CopyBlock({
       <pre
         {...scrollRegion(label)}
         className={cn(
-          "stg:max-h-40 stg:overflow-auto stg:rounded-md stg:border stg:border-border stg:bg-muted-subtle",
+          tall ? "stg:max-h-96" : "stg:max-h-40",
+          "stg:overflow-auto stg:rounded-md stg:border stg:border-border stg:bg-muted-subtle",
           "stg:px-2.5 stg:py-2 stg:font-mono stg:text-2xs stg:leading-relaxed stg:text-foreground",
           SCROLL_REGION_FOCUS,
         )}

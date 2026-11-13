@@ -1036,6 +1036,17 @@ describe("ChatLinkDialog", () => {
       return screen.getByText(/mintUserToken/).textContent ?? "";
     }
 
+    it("hands over the token route for the link's agent, by its organization, from the writer every surface shares", () => {
+      const snippet = openDeveloperSnippet(CLOUD_API_BASE_URL);
+
+      expect(snippet).toContain('const ORG = "acme";');
+      expect(snippet).toContain("GET /api/stigmer-token");
+      expect(snippet).toContain("STIGMER_DEV_USER");
+      expect(snippet).not.toContain("user-123");
+      expect(snippet).not.toContain("help-desk");
+      expect(screen.getByText(/on this agent's In your app tab/)).toBeTruthy();
+    });
+
     it("targets the server the console is connected to, not Stigmer Cloud", () => {
       const snippet = openDeveloperSnippet("https://stigmer.acme.internal:8443/");
 
