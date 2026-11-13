@@ -19,6 +19,11 @@
 // - The newest open call on the primary thread is "now": it is the one the
 //   agent started last, and a subagent's own calls belong to its card. A
 //   turn with nothing open and nothing streaming is waiting on its model.
+// - A turn that has not started and whose liveness carries the server's
+//   wait for a sandbox (`TurnLiveness.awaitingSandboxMs`) is waiting for a
+//   sandbox with room. The wait is the server's, measured when it sent the
+//   liveness: a surface that shows it ticking counts on from the liveness's
+//   arrival, never from its own clock against the server's.
 // - Time is the caller's clock (`nowMs`) against the turn's own start, the
 //   person's message as the log stamped it, so a page that reloads mid-turn
 //   reads the same elapsed time.
@@ -41,7 +46,12 @@ export type TurnActivity =
   /** The agent is thinking (its thinking is streaming). */
   | { readonly kind: "thinking" }
   /** Nothing is open: the turn waits on its model's next step. */
-  | { readonly kind: "waiting_on_model" };
+  | { readonly kind: "waiting_on_model" }
+  /** The turn has not started: every sandbox is busy. `waitedMs` is the server's measure when it last said so (module header). */
+  | { readonly kind: "waiting_for_sandbox"; readonly waitedMs: number };
+
+/** The words for a turn waiting for a sandbox with room. */
+export const SANDBOX_WAIT_PHRASE = "Waiting for a sandbox";
 
 /** How far a turn's to-do list has got. */
 export interface TodoProgress {
@@ -101,6 +111,8 @@ export function describeTurnActivity(turn: Turn, nowMs: number): TurnProgress {
 }
 
 function activityOf(turn: Turn, open: readonly ToolUse[]): TurnActivity {
+  const sandboxWait = turn.liveness?.awaitingSandboxMs;
+  if (sandboxWait !== undefined && !turn.ended) return { kind: "waiting_for_sandbox", waitedMs: sandboxWait };
   if (turn.asks.length > 0) return { kind: "waiting_for_you", count: turn.asks.length };
   const last = turn.items.at(-1);
   if (last?.kind === "message" && last.live) return { kind: "writing" };
@@ -127,7 +139,7 @@ function todoProgress(turn: Turn): TodoProgress | undefined {
 
 /**
  * The activity in present-tense words: "Editing invoice.ts", "Running a
- * command", "Waiting for you". A kind's words name the work, whichever
+ * command", "Waiting for you", "Waiting for a sandbox". A kind's words name the work, whichever
  * harness ran it; a target the input did not name leaves the generic words.
  */
 export function activityPhrase(activity: TurnActivity): string {
@@ -140,6 +152,8 @@ export function activityPhrase(activity: TurnActivity): string {
       return "Thinking";
     case "waiting_on_model":
       return "Working";
+    case "waiting_for_sandbox":
+      return SANDBOX_WAIT_PHRASE;
     case "tool":
       return toolPhrase(activity.toolKind, activity.target);
     /* v8 ignore next -- @preserve: the exhaustiveness guard over TurnActivity; describeTurnActivity answers only the arms above */

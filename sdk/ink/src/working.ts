@@ -7,6 +7,10 @@
 // - While a turn works: what it is doing now and for how long, "Running a
 //   command · 1m 12s". Stopping, waiting on the person, and slowness take the
 //   phrase over, in that order.
+// - While a turn waits for a sandbox with room, before it starts: how long it
+//   has waited, "Waiting for a sandbox · 1m 20s", the server's measure
+//   counted on from when its liveness arrived (`livenessAgeMs`), never the
+//   turn's own time since the message.
 // - When a turn completes: "Worked for 1m 12s", one quiet line left in the
 //   history. A failed or stopped turn keeps its badge instead.
 //
@@ -33,6 +37,8 @@ export interface WorkingState {
   readonly isStopping?: boolean;
   /** The turn has gone quiet for longer than usual. */
   readonly isSlow?: boolean;
+  /** How long ago the turn's newest liveness arrived; a wait it carries counts on by this much. 0 by default. */
+  readonly livenessAgeMs?: number;
 }
 
 /** The phrase a slow turn reads. */
@@ -45,6 +51,10 @@ export function workingWords(turn: Turn | null, nowMs: number, state: WorkingSta
   if (turn === null) return { phrase: state.isStopping === true ? STOPPING_PHRASE : "Starting", elapsed: "", waiting: false };
   const progress = describeTurnActivity(turn, nowMs);
   const waiting = progress.activity.kind === "waiting_for_you";
+  if (progress.activity.kind === "waiting_for_sandbox" && state.isStopping !== true) {
+    const waitedMs = progress.activity.waitedMs + Math.max(0, state.livenessAgeMs ?? 0);
+    return { phrase: activityPhrase(progress.activity), elapsed: formatElapsed(waitedMs), waiting: false };
+  }
   const elapsed = progress.startedAt === "" ? "" : formatElapsed(progress.elapsedMs);
   if (state.isStopping === true) return { phrase: STOPPING_PHRASE, elapsed, waiting: false };
   if (waiting) return { phrase: activityPhrase(progress.activity), elapsed, waiting };
