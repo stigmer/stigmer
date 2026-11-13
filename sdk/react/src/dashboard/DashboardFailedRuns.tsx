@@ -1,8 +1,8 @@
 "use client";
 
 import { memo } from "react";
-import { cn } from "@stigmer/design-tokens";
-import { UNSTYLED_LIST } from "../internal/element-resets.js";
+import { Card, cardHeaderClasses } from "../internal/surface/Card.js";
+import { List, ListRow } from "../internal/surface/List.js";
 import type { DashboardFailedRun } from "./types.js";
 import { formatRelativeTime } from "../activity/format-relative-time.js";
 
@@ -28,60 +28,55 @@ export const DashboardFailedRuns = memo(function DashboardFailedRuns({
 }: DashboardFailedRunsProps) {
   if (isLoading) {
     return (
-      <div
-        className={cn("stg:rounded-lg stg:border stg:border-border stg:bg-card stg:p-4", className)}
-        aria-busy="true"
-      >
+      <Card className={className} aria-busy="true">
         <div className="stg:mb-3 stg:h-4 stg:w-32 stg:animate-pulse stg:rounded stg:bg-muted" />
         <div className="stg:space-y-2">
           {Array.from({ length: 3 }, (_, i) => (
-            <div key={i} className="stg:h-10 stg:animate-pulse stg:rounded stg:bg-muted/50" />
+            <div key={i} className="stg:h-10 stg:animate-pulse stg:rounded stg:bg-muted" />
           ))}
         </div>
-      </div>
+      </Card>
     );
   }
 
   return (
-    <div className={cn("stg:rounded-lg stg:border stg:border-border stg:bg-card stg:p-4", className)}>
-      <h3 className="stg:mb-3 stg:text-sm stg:font-semibold stg:text-foreground">
-        Recent Failures
-      </h3>
+    <Card flush className={className}>
+      <div className={cardHeaderClasses()}>
+        <h3 className="stg:m-0 stg:text-sm stg:font-semibold stg:text-foreground">
+          Recent Failures
+        </h3>
+      </div>
       {failedRuns.length === 0 ? (
         <p className="stg:py-6 stg:text-center stg:text-xs stg:text-muted-foreground">
           No recent failures
         </p>
       ) : (
-        <ul className={cn(UNSTYLED_LIST, "stg:space-y-1.5")} role="list">
+        <List bare>
           {failedRuns.map((run) => (
-            <li
+            <ListRow
               key={run.id}
-              className="stg:flex stg:items-start stg:gap-2 stg:rounded-md stg:px-2 stg:py-1.5 stg:text-xs stg:hover:bg-muted/50"
-            >
-              <div className="stg:min-w-0 stg:flex-1">
-                <p className="stg:truncate stg:font-medium stg:text-foreground">
-                  {run.name}
-                </p>
-                {run.error && (
-                  <p className="stg:truncate stg:text-muted-foreground">{run.error}</p>
-                )}
-              </div>
-              <span className="stg:shrink-0 stg:text-muted-foreground">
-                {formatRelativeTime(run.failedAt)}
-              </span>
-              {onViewClick && (
-                <button
-                  type="button"
-                  onClick={() => onViewClick(run.id)}
-                  className="stg:shrink-0 stg:text-primary stg:hover:underline"
-                >
-                  View
-                </button>
-              )}
-            </li>
+              name={run.name}
+              description={run.error || undefined}
+              trailing={
+                <>
+                  <span className="stg:text-xs stg:text-muted-foreground">
+                    {formatRelativeTime(run.failedAt)}
+                  </span>
+                  {onViewClick && (
+                    <button
+                      type="button"
+                      onClick={() => onViewClick(run.id)}
+                      className="stg:text-xs stg:text-primary stg:hover:underline"
+                    >
+                      View
+                    </button>
+                  )}
+                </>
+              }
+            />
           ))}
-        </ul>
+        </List>
       )}
-    </div>
+    </Card>
   );
 });

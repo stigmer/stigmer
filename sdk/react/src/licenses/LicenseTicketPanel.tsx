@@ -5,6 +5,7 @@ import { Check, Copy, Eye, EyeOff } from "lucide-react";
 import { cn } from "@stigmer/design-tokens";
 import { getUserMessage } from "@stigmer/client";
 import { Button } from "../button/index.js";
+import { cardClasses } from "../internal/surface/Card.js";
 import { selectElementText } from "../internal/select-element-text.js";
 import { useCopyFeedback } from "../internal/useCopyFeedback.js";
 
@@ -55,10 +56,7 @@ export function LicenseTicketPanel({
   return (
     <section
       aria-label="Ticket"
-      className={cn(
-        "stg:space-y-3 stg:rounded-lg stg:border stg:border-border stg:bg-card stg:p-4",
-        className,
-      )}
+      className={cn(cardClasses(), "stg:space-y-3", className)}
     >
       <div className="stg:flex stg:flex-wrap stg:items-start stg:justify-between stg:gap-3">
         <div className="stg:min-w-0 stg:space-y-1">

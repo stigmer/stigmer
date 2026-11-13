@@ -81,6 +81,13 @@ afterEach(() => {
   asked.answer = "pages";
 });
 
+/** The list row an account's Open button names: the button is the row's name, its role and date sit beside it. */
+function rowOf(openButton: HTMLElement): HTMLElement {
+  const row = openButton.closest("li");
+  if (row === null) throw new Error("the Open button is not inside a list row");
+  return row;
+}
+
 describe("ServiceAccountListPanel", () => {
   it("reads every page, in order, and stops when no token follows", async () => {
     render(<ServiceAccountListPanel org="org_acme" />, { wrapper });
@@ -97,10 +104,10 @@ describe("ServiceAccountListPanel", () => {
 
   it("names each account's organization role, and lists one with none", async () => {
     render(<ServiceAccountListPanel org="org_acme" />, { wrapper });
-    const deploy = await screen.findByRole("button", { name: "Open ci-deploy" });
+    const deploy = rowOf(await screen.findByRole("button", { name: "Open ci-deploy" }));
     expect(await within(deploy).findByText("Admin")).toBeTruthy();
     expect(
-      within(screen.getByRole("button", { name: "Open nightly-evals" })).getByText("No role"),
+      within(rowOf(screen.getByRole("button", { name: "Open nightly-evals" }))).getByText("No role"),
     ).toBeTruthy();
   });
 
@@ -113,7 +120,7 @@ describe("ServiceAccountListPanel", () => {
 
   it("says when each account was created", async () => {
     render(<ServiceAccountListPanel org="org_acme" />, { wrapper });
-    const row = await screen.findByRole("button", { name: "Open nightly-evals" });
+    const row = rowOf(await screen.findByRole("button", { name: "Open nightly-evals" }));
     expect(row.textContent).toMatch(/Created .*2026/);
   });
 

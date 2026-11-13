@@ -8,6 +8,7 @@ import {
   useActiveOrgSlug,
   useOrgSlugForId,
 } from "@stigmer/react-sdk";
+import { PageFrame } from "@stigmer/react-sdk/console";
 
 /**
  * The Marketplace: where a user finds and installs plugins.
@@ -29,7 +30,7 @@ export function MarketplacePage() {
   if (!org) return null;
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-6 py-8">
+    <PageFrame width="wide">
       <PageHeader
         className="mb-6"
         title="Marketplace"
@@ -41,6 +42,6 @@ export function MarketplacePage() {
           router.push(`/library/plugins/${slugForOrg(plugin.metadata?.org ?? "")}/${plugin.metadata?.slug}`)
         }
       />
-    </div>
+    </PageFrame>
   );
 }

@@ -14,6 +14,7 @@ import { getUserMessage } from "@stigmer/client";
 import { saveErrorMessage } from "@stigmer/react-core/internal";
 import { LoadingRegion } from "../../internal/LoadingRegion.js";
 import { UNSTYLED_LIST } from "../../internal/element-resets.js";
+import { cardClasses } from "../../internal/surface/Card.js";
 import { ACCOUNT_DEFAULT_MODELS } from "../../identity-account/useAccountExecutionDefaults.js";
 import { useMyIdentityAccount } from "../../identity-account/useMyIdentityAccount.js";
 import { useUpdateIdentityAccount } from "../../identity-account/useUpdateIdentityAccount.js";
@@ -85,9 +86,9 @@ export function ModelDefaults({ readinessOf, className }: ModelDefaultsProps) {
   return (
     <section
       aria-labelledby={headingId}
-      className={cn("stg:rounded-xl stg:border stg:border-border stg:bg-card", className)}
+      className={cn(cardClasses({ flush: true }), className)}
     >
-      <div className="stg:border-b stg:border-border stg:px-4 stg:py-3">
+      <div className="stg:border-b stg:border-border-muted stg:px-4 stg:py-3">
         <h2 id={headingId} className="stg:text-sm stg:font-semibold stg:text-foreground">
           Your default models
         </h2>
@@ -106,7 +107,7 @@ export function ModelDefaults({ readinessOf, className }: ModelDefaultsProps) {
           {getUserMessage(error)}
         </p>
       ) : (
-        <ul className={cn(UNSTYLED_LIST, "stg:divide-y stg:divide-border")}>
+        <ul className={cn(UNSTYLED_LIST, "stg:divide-y stg:divide-border-muted")}>
           {HARNESS_OPTIONS.map((harness) => (
             <DefaultRow
               key={harness}
@@ -154,7 +155,7 @@ function DefaultRow({
   const status =
     readiness === undefined ? "" : readiness.availability.state === "missing" ? needsKeyLabel(readiness.provider) : "Ready";
   return (
-    <li className="stg:grid stg:items-center stg:gap-2 stg:px-4 stg:py-3 stg:sm:grid-cols-[12rem_1fr_11rem] stg:sm:gap-4">
+    <li className="stg:grid stg:items-center stg:gap-2 stg:px-3.5 stg:py-2.5 stg:sm:grid-cols-[12rem_1fr_11rem] stg:sm:gap-4">
       <div>
         <label htmlFor={selectId} className="stg:block stg:text-xs stg:font-medium stg:text-foreground">
           {HARNESS_META[harness].label}

@@ -31,7 +31,9 @@ export interface ListProps {
 /** A list of rows in a card, with hairline dividers between them. */
 export function List({ children, bare, className, ...aria }: ListProps) {
   return (
+    // role="list": Safari drops list semantics from a `ul` drawn without bullets.
     <ul
+      role="list"
       {...aria}
       className={cn(UNSTYLED_LIST, !bare && cardClasses({ flush: true }), "stg:divide-y stg:divide-border-muted", className)}
     >

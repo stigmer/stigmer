@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * The organization's shared vaults, each an expandable card: what it is
+ * The organization's shared vaults, each an expandable row: what it is
  * for, its entries (write-only), who may use it, and its own fields.
  *
  * Who may use a shared vault is the Manage access dialog's: organization
@@ -30,6 +30,7 @@ import { isMyVault, useVaultList } from "./useVaultList.js";
 import { VaultEntriesEditor } from "./VaultEntriesEditor.js";
 import { ResourceSlugField } from "../resource-detail/RenameSlugField.js";
 import { Button } from "../button/Button.js";
+import { List, ListRow } from "../internal/surface/List.js";
 
 /** Props for {@link VaultListPanel}. */
 export interface VaultListPanelProps {
@@ -84,11 +85,11 @@ export function VaultListPanel({
   }
 
   return (
-    <div className={cn("stg:space-y-2", className)} role="list" aria-label="Shared vaults">
+    <List aria-label="Shared vaults" className={className}>
       {shared.map((vault) => {
         const id = vault.metadata?.id ?? "";
         return (
-          <SharedVaultCard
+          <SharedVaultRow
             key={id}
             vault={vault}
             org={org}
@@ -99,11 +100,11 @@ export function VaultListPanel({
           />
         );
       })}
-    </div>
+    </List>
   );
 }
 
-function SharedVaultCard({
+function SharedVaultRow({
   vault,
   org,
   isExpanded,
@@ -127,45 +128,33 @@ function SharedVaultCard({
   const visibility = vault.metadata?.visibility ?? ApiResourceVisibility.visibility_private;
 
   return (
-    <div
-      role="listitem"
-      className={cn(
-        "stg:rounded-lg stg:border stg:transition-colors",
-        isExpanded ? "stg:border-border stg:bg-card" : "stg:border-border-muted stg:hover:border-border",
-      )}
-    >
-      <div className="stg:flex stg:w-full stg:items-center stg:gap-3 stg:px-3 stg:py-2.5">
-        <button
-          type="button"
-          onClick={onToggle}
-          aria-expanded={isExpanded}
-          className="stg:flex stg:min-w-0 stg:flex-1 stg:items-center stg:gap-3 stg:text-left"
-        >
-          <ChevronIcon expanded={isExpanded} />
-          <div className="stg:min-w-0 stg:flex-1">
-            <span className="stg:block stg:truncate stg:text-sm stg:font-medium stg:text-foreground">{name}</span>
-            {description && (
-              <span className="stg:block stg:truncate stg:text-xs stg:text-muted-foreground">{description}</span>
-            )}
-          </div>
-        </button>
-        <span className="stg:shrink-0 stg:text-xs stg:text-muted-foreground">
-          {visibility === ApiResourceVisibility.visibility_org ? "Everyone can use" : "Admins and granted"}
-        </span>
-        {!readOnly && id !== "" && (
-          <ManageAccessButton
-            resource={{ kind: ApiResourceKind.vault, kindString: "vault", id, org }}
-            visibility={{ kind: "vault", current: visibility, onChanged }}
-            label="Who can use"
-            className="stg:shrink-0"
-          />
-        )}
-        <span className="stg:shrink-0 stg:text-xs stg:text-muted-foreground">
-          {entryCount} {entryCount === 1 ? "entry" : "entries"}
-        </span>
-      </div>
-      {isExpanded && id !== "" && (
-        <div className="stg:border-border-muted stg:space-y-4 stg:border-t stg:px-3 stg:pb-3 stg:pt-2">
+    <ListRow
+      leading={<ChevronIcon expanded={isExpanded} />}
+      name={name}
+      description={description || undefined}
+      onClick={onToggle}
+      aria-expanded={isExpanded}
+      trailing={
+        <>
+          <span className="stg:shrink-0 stg:text-xs stg:text-muted-foreground">
+            {visibility === ApiResourceVisibility.visibility_org ? "Everyone can use" : "Admins and granted"}
+          </span>
+          {!readOnly && id !== "" && (
+            <ManageAccessButton
+              resource={{ kind: ApiResourceKind.vault, kindString: "vault", id, org }}
+              visibility={{ kind: "vault", current: visibility, onChanged }}
+              label="Who can use"
+              className="stg:shrink-0"
+            />
+          )}
+          <span className="stg:shrink-0 stg:text-xs stg:text-muted-foreground">
+            {entryCount} {entryCount === 1 ? "entry" : "entries"}
+          </span>
+        </>
+      }
+      open={isExpanded && id !== ""}
+      expanded={
+        <div className="stg:space-y-4">
           <SharedVaultEntries vault={vault} org={org} readOnly={readOnly} onChanged={onChanged} />
           {!readOnly && (
             <PermissionGate resource={{ kind: "vault", id }} relation="can_edit">
@@ -173,8 +162,8 @@ function SharedVaultCard({
             </PermissionGate>
           )}
         </div>
-      )}
-    </div>
+      }
+    />
   );
 }
 

@@ -30,7 +30,6 @@ interface WorkbenchProps {
   org: string | null;
   columns: ColumnDef[];
   renderItemAction?: (item: Row) => ReactNode;
-  headerAction?: ReactNode;
   emptyAction?: ReactNode;
   onItemClick?: (item: { metadata: { org: string; slug: string } }) => void;
 }
@@ -78,6 +77,7 @@ vi.mock("@stigmer/react-sdk", async () => {
     Button: kit.Button,
     IconButton: kit.IconButton,
     LinkButton: kit.LinkButton,
+    PageHeader: kit.PageHeader,
     ResourceWorkbench: (props: WorkbenchProps) => {
       page.workbench.push(props);
       // Render one row the way the workbench does: each column's cell,
@@ -286,7 +286,6 @@ describe("web AgentListPage — who may create agents", () => {
     if (!props) throw new Error("the workbench was not rendered");
     return render(
       <>
-        {props.headerAction}
         {props.emptyAction}
       </>,
     );

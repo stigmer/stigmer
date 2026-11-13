@@ -120,5 +120,5 @@ export type {
 
 // Page frame — the column every console zone frames its pages in (settings,
 // the Library, models, the dashboard, the marketplace), in both apps.
-export { PageFrame } from "./page/PageFrame.js";
-export type { PageFrameProps, PageFrameWidth } from "./page/PageFrame.js";
+export { PageFrame } from "./page-frame/PageFrame.js";
+export type { PageFrameProps, PageFrameWidth } from "./page-frame/PageFrame.js";

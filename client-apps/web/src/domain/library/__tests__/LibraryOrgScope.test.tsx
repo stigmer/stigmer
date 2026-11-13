@@ -31,6 +31,7 @@ vi.mock("@stigmer/react-sdk", async () => {
     Button: kit.Button,
     IconButton: kit.IconButton,
     LinkButton: kit.LinkButton,
+    PageHeader: kit.PageHeader,
     ApplyManifestDialog: none,
     ResourceCountCard: none,
     ConfirmDialog: none,

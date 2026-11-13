@@ -13,7 +13,7 @@
 import type { Team } from "@stigmer/apis/ai/stigmer/iam/team/v1/api_pb";
 import { ChevronRight, UsersRound } from "lucide-react";
 import { cn } from "@stigmer/design-tokens";
-import { UNSTYLED_LIST } from "../internal/element-resets.js";
+import { List, ListRow } from "../internal/surface/List.js";
 import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
@@ -74,38 +74,22 @@ export function TeamListPanel({
   }
 
   return (
-    <ul className={cn(UNSTYLED_LIST, "stg:space-y-2", className)} aria-label="Teams">
+    <List aria-label="Teams" className={className}>
       {teams.map((team) => {
         const id = team.metadata?.id ?? "";
         const name = team.metadata?.name || id;
         const description = team.spec?.description ?? "";
         return (
-          <li key={id}>
-            <button
-              type="button"
-              onClick={() => onOpen(team)}
-              className={cn(
-                "stg:flex stg:w-full stg:items-center stg:gap-3 stg:rounded-lg stg:border stg:border-border-muted stg:px-3 stg:py-2.5 stg:text-left",
-                "stg:hover:border-border stg:hover:bg-accent-hover stg:transition-colors",
-                "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
-              )}
-            >
-              <UsersRound className="stg:h-3.5 stg:w-3.5 stg:shrink-0 stg:text-muted-foreground" aria-hidden="true" />
-              <span className="stg:min-w-0 stg:flex-1">
-                <span className="stg:block stg:truncate stg:text-sm stg:font-medium stg:text-foreground">
-                  {name}
-                </span>
-                {description && (
-                  <span className="stg:block stg:truncate stg:text-xs stg:text-muted-foreground">
-                    {description}
-                  </span>
-                )}
-              </span>
-              <ChevronRight className="stg:h-3.5 stg:w-3.5 stg:shrink-0 stg:text-muted-foreground" aria-hidden="true" />
-            </button>
-          </li>
+          <ListRow
+            key={id}
+            onClick={() => onOpen(team)}
+            leading={<UsersRound className="stg:h-3.5 stg:w-3.5 stg:shrink-0 stg:text-muted-foreground" aria-hidden="true" />}
+            name={name}
+            description={description || undefined}
+            trailing={<ChevronRight className="stg:h-3.5 stg:w-3.5 stg:shrink-0 stg:text-muted-foreground" aria-hidden="true" />}
+          />
         );
       })}
-    </ul>
+    </List>
   );
 }

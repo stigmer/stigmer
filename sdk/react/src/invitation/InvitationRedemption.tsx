@@ -10,6 +10,7 @@ import { useInvitationPreview } from "./useInvitationPreview.js";
 import { useRedeemInvitation } from "./useRedeemInvitation.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
+import { Card } from "../internal/surface/Card.js";
 import { Button } from "../button/Button.js";
 
 // ---------------------------------------------------------------------------
@@ -201,7 +202,7 @@ export function InvitationRedemption({
 
   return (
     <div className={cn("stg:mx-auto stg:max-w-sm", className)}>
-      <div className="stg:rounded-lg stg:border stg:border-border stg:bg-card stg:p-6 stg:shadow-sm">
+      <Card>
         {/* Org identity */}
         <div className="stg:flex stg:flex-col stg:items-center stg:text-center">
           {orgLogo ? (
@@ -274,7 +275,7 @@ export function InvitationRedemption({
             )}
           </div>
         )}
-      </div>
+      </Card>
     </div>
   );
 }
@@ -323,7 +324,7 @@ function ErrorCard({
 
 function LoadingSkeleton() {
   return (
-    <div className="stg:rounded-lg stg:border stg:border-border stg:bg-card stg:p-6 stg:shadow-sm stg:space-y-4">
+    <Card className="stg:space-y-4">
       <div className="stg:flex stg:flex-col stg:items-center stg:gap-3">
         <div className="stg:size-14 stg:rounded-full stg:bg-muted-subtle stg:animate-pulse" />
         <div className="stg:h-5 stg:w-40 stg:rounded stg:bg-muted-subtle stg:animate-pulse" />
@@ -335,7 +336,7 @@ function LoadingSkeleton() {
         <div className="stg:h-3 stg:w-24 stg:rounded stg:bg-muted-subtle stg:animate-pulse" />
       </div>
       <div className="stg:h-[42px] stg:w-full stg:rounded-md stg:bg-muted-subtle stg:animate-pulse" />
-    </div>
+    </Card>
   );
 }
 

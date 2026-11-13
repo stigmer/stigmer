@@ -25,6 +25,7 @@ import {
   toast,
   type WorkbenchColumnDef,
   createLibraryListFn,
+  PageHeader,
 } from "@stigmer/react-sdk";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { SearchResult } from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
@@ -150,12 +151,13 @@ export default function PluginListPage() {
 
   return (
     <>
-      <div className="mb-6">
-        <h1 className="text-foreground text-xl font-semibold">Plugins</h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          What you have installed. A plugin is what you install; the agent it installs is what runs.
-        </p>
-      </div>
+      <PageHeader
+        className="mb-6"
+        headingLevel={1}
+        title="Plugins"
+        description="What you have installed. A plugin is what you install; the agent it installs is what runs."
+        actions={<WaysIn mayInstall={mayInstall} onAddMcpServer={openAddServer} />}
+      />
 
       <ResourceWorkbench
         refetchToken={refetchToken}
@@ -169,7 +171,6 @@ export default function PluginListPage() {
         emptyIcon={<Blocks className="size-10" aria-hidden="true" />}
         emptyTitle="No plugins installed"
         emptyDescription={mayInstall ? EMPTY_FOR_ADMIN : EMPTY_FOR_MEMBER}
-        headerAction={<WaysIn mayInstall={mayInstall} onAddMcpServer={openAddServer} />}
         emptyAction={<WaysIn mayInstall={mayInstall} onAddMcpServer={openAddServer} />}
         onItemClick={(item) => navigate(`/library/plugins/${slugForOrg(item.org)}/${item.slug}`)}
         renderItemAction={(item) => (

@@ -30,6 +30,7 @@ import { usePlans } from "../billing/usePlans.js";
 import { useDeploymentMode, useResourceAvailable } from "@stigmer/react-core";
 import { ApiResourceKind } from "@stigmer/react-core/internal";
 import { Button } from "../button/Button.js";
+import { Card } from "../internal/surface/Card.js";
 import { NoOrganization } from "./NoOrganization.js";
 import { SettingsPage } from "./SettingsPage.js";
 import { PermissionGate } from "../grant/PermissionGate.js";
@@ -104,11 +105,11 @@ export function TeamsSection() {
       {!orgId ? (
         <NoOrganization what="its teams" />
       ) : flow.phase === "creating" ? (
-        <div className="stg:rounded-lg stg:border stg:border-border stg:bg-card stg:p-4">
+        <Card>
           <CreateTeamForm org={orgId} onCreated={handleCreated} onCancel={() => setFlow({ phase: "idle" })} />
-        </div>
+        </Card>
       ) : flow.phase === "viewing" ? (
-        <div className="stg:rounded-lg stg:border stg:border-border stg:bg-card stg:p-4">
+        <Card>
           <TeamDetailPanel
             key={flow.team.metadata?.id}
             team={flow.team}
@@ -117,7 +118,7 @@ export function TeamsSection() {
             onDeleted={handleDeleted}
             onBack={() => setFlow({ phase: "idle" })}
           />
-        </div>
+        </Card>
       ) : (
         <TeamListPanel
           teams={list.teams}

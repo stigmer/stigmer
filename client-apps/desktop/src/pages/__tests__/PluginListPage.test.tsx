@@ -31,7 +31,6 @@ interface Row {
 interface WorkbenchProps {
   refetchToken: number;
   renderItemAction?: (item: Row) => ReactNode;
-  headerAction?: ReactNode;
   emptyDescription?: string;
 }
 
@@ -73,11 +72,11 @@ vi.mock("@stigmer/react-sdk", async () => {
     Button: kit.Button,
     IconButton: kit.IconButton,
     LinkButton: kit.LinkButton,
+    PageHeader: kit.PageHeader,
     ResourceWorkbench: (props: WorkbenchProps) => {
       page.workbench.push(props);
       return (
         <div>
-          {props.headerAction}
           {props.renderItemAction?.(ROW)}
         </div>
       );

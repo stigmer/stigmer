@@ -26,6 +26,8 @@ import { ErrorMessage } from "../error/ErrorMessage.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
 import { Button } from "../button/Button.js";
 import { IconButton } from "../button/IconButton.js";
+import { Card } from "../internal/surface/Card.js";
+import { List, ListRow } from "../internal/surface/List.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -180,13 +182,13 @@ export function InvitationManager({
 
       {/* Create form */}
       {flow.phase === "creating" && (
-        <div className="stg:border-border stg:bg-card stg:rounded-lg stg:border stg:p-4">
+        <Card>
           <CreateInvitationForm
             org={org}
             onCreated={handleCreated}
             onCancel={() => setFlow({ phase: "idle" })}
           />
-        </div>
+        </Card>
       )}
 
       {/* Invitation list */}
@@ -198,11 +200,7 @@ export function InvitationManager({
           className="stg:rounded-lg stg:border stg:border-dashed stg:border-border"
         />
       ) : (
-        <div
-          role="list"
-          aria-label="Invitation links"
-          className="stg:space-y-2"
-        >
+        <List aria-label="Invitation links">
           {invitations.map((inv) => {
             const id = inv.metadata?.id ?? "";
             return (
@@ -217,7 +215,7 @@ export function InvitationManager({
               />
             );
           })}
-        </div>
+        </List>
       )}
       {loadMoreError !== null && (
         <p className="stg:text-destructive stg:text-xs" role="alert">
@@ -450,82 +448,68 @@ function InvitationRow({
   }
 
   return (
-    <div
-      role="listitem"
-      className="stg:flex stg:items-center stg:gap-3 stg:rounded-lg stg:border stg:border-border-muted stg:px-3 stg:py-2.5 stg:hover:border-border stg:transition-colors"
-    >
-      {/* Icon */}
-      <LinkIcon active={isActive} />
+    <ListRow
+      leading={<LinkIcon active={isActive} />}
+      name={<span className={isActive ? undefined : "stg:text-muted-foreground"}>{label}</span>}
+      description={formatRedemptions(redemptionCount, maxRedemptions)}
+      trailing={
+        <>
+          {/* Metadata columns */}
+          <div className="stg:hidden stg:sm:flex stg:shrink-0 stg:items-center stg:gap-3">
+            {/* Role badge */}
+            <span className="stg:inline-flex stg:items-center stg:rounded-md stg:border stg:border-border stg:bg-muted stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-foreground">
+              {iamRoleDisplayName(role)}
+            </span>
 
-      {/* Label + redemption info */}
-      <div className="stg:min-w-0 stg:flex-1">
-        <span
-          className={cn(
-            "stg:block stg:truncate stg:text-sm stg:font-medium",
-            isActive ? "stg:text-foreground" : "stg:text-muted-foreground",
-          )}
-        >
-          {label}
-        </span>
-        <span className="stg:block stg:text-xs stg:text-muted-foreground">
-          {formatRedemptions(redemptionCount, maxRedemptions)}
-        </span>
-      </div>
+            {/* State badge */}
+            <StateBadge state={state} />
 
-      {/* Metadata columns */}
-      <div className="stg:hidden stg:sm:flex stg:shrink-0 stg:items-center stg:gap-3">
-        {/* Role badge */}
-        <span className="stg:inline-flex stg:items-center stg:rounded-md stg:border stg:border-border stg:bg-muted stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-foreground">
-          {iamRoleDisplayName(role)}
-        </span>
+            {/* Expiry */}
+            {expiresAt && (
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <time
+                      dateTime={timestampDate(expiresAt).toISOString()}
+                      className="stg:text-xs stg:text-muted-foreground"
+                    />
+                  }
+                >
+                  {isActive
+                    ? formatRelativeExpiry(timestampDate(expiresAt))
+                    : formatShortDate(timestampDate(expiresAt))}
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  {timestampDate(expiresAt).toISOString()}
+                </TooltipContent>
+              </Tooltip>
+            )}
+          </div>
 
-        {/* State badge */}
-        <StateBadge state={state} />
-
-        {/* Expiry */}
-        {expiresAt && (
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                <time
-                  dateTime={timestampDate(expiresAt).toISOString()}
-                  className="stg:text-xs stg:text-muted-foreground"
-                />
-              }
-            >
-              {isActive
-                ? formatRelativeExpiry(timestampDate(expiresAt))
-                : formatShortDate(timestampDate(expiresAt))}
-            </TooltipTrigger>
-            <TooltipContent side="top">
-              {timestampDate(expiresAt).toISOString()}
-            </TooltipContent>
-          </Tooltip>
-        )}
-      </div>
-
-      {/* Actions */}
-      <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-1">
-        {isActive && (
-          <IconButton
-            size="xs"
-            label={copied ? "Link copied" : `Copy invite link for ${label}`}
-            icon={copied ? <CheckIcon /> : <CopyIcon />}
-            onClick={handleCopy}
-            className={copied ? "stg:text-primary" : undefined}
-          />
-        )}
-        {isActive && (
-          <IconButton
-            size="xs"
-            label={`Revoke ${label}`}
-            icon={<RevokeIcon />}
-            onClick={onStartRevoke}
-            className="stg:hover:text-destructive stg:hover:bg-destructive-subtle"
-          />
-        )}
-      </div>
-    </div>
+          {/* Actions */}
+          <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-1">
+            {isActive && (
+              <IconButton
+                size="xs"
+                label={copied ? "Link copied" : `Copy invite link for ${label}`}
+                icon={copied ? <CheckIcon /> : <CopyIcon />}
+                onClick={handleCopy}
+                className={copied ? "stg:text-primary" : undefined}
+              />
+            )}
+            {isActive && (
+              <IconButton
+                size="xs"
+                label={`Revoke ${label}`}
+                icon={<RevokeIcon />}
+                onClick={onStartRevoke}
+                className="stg:hover:text-destructive stg:hover:bg-destructive-subtle"
+              />
+            )}
+          </div>
+        </>
+      }
+    />
   );
 }
 
@@ -555,10 +539,9 @@ function RevokeConfirmation({
   }, [invitationId, revoke, onRevoked]);
 
   return (
-    <div
-      role="listitem"
-      className="stg:flex stg:items-center stg:justify-between stg:rounded-lg stg:border stg:border-destructive/30 stg:bg-destructive-subtle stg:px-3 stg:py-2.5"
-    >
+    // The confirmation's sentence wraps, so it keeps its own markup on the
+    // list's row padding rather than a ListRow's one truncated line.
+    <li className="stg:flex stg:min-h-10 stg:items-center stg:justify-between stg:bg-destructive-subtle stg:px-3.5 stg:py-2.5">
       <div className="stg:min-w-0 stg:flex-1">
         <p className="stg:text-xs stg:text-foreground">
           Revoke <span className="stg:font-medium">{label}</span>? The link will
@@ -585,7 +568,7 @@ function RevokeConfirmation({
           Cancel
         </Button>
       </div>
-    </div>
+    </li>
   );
 }
 

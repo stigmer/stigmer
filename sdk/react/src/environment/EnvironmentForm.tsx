@@ -20,6 +20,7 @@ import type { Environment } from "@stigmer/apis/ai/stigmer/agentic/environment/v
 import { useServerInfo } from "../server-info.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { Button } from "../button/Button.js";
+import { PageHeader } from "../page/PageHeader.js";
 import {
   EMPTY_PACKAGES_DRAFT,
   NetworkingFields,
@@ -114,12 +115,11 @@ function EnvironmentFormBody({
 
   return (
     <form onSubmit={handleSubmit} className={cn("stg:max-w-2xl stg:space-y-5", className)} aria-label="New environment">
-      <div className="stg:space-y-1">
-        <h1 className="stg:text-xl stg:font-semibold stg:text-foreground">New environment</h1>
-        <p className={hintClasses}>
-          The packages and network access the sandboxes of the agents, routines and conversations that use it get.
-        </p>
-      </div>
+      <PageHeader
+        title="New environment"
+        description="The packages and network access the sandboxes of the agents, routines and conversations that use it get."
+        headingLevel={1}
+      />
 
       <EnvironmentsNotOnServerNotice />
 
@@ -181,7 +181,6 @@ function EnvironmentFormBody({
 }
 
 const labelClasses = "stg:block stg:text-xs stg:font-medium stg:text-foreground";
-const hintClasses = "stg:text-2xs stg:text-muted-foreground";
 const inputClasses = cn(
   "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
   "stg:placeholder:text-muted-foreground",

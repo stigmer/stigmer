@@ -16,6 +16,7 @@ import { cn } from "@stigmer/design-tokens";
 import type { HarnessUsage } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import { type HarnessOption } from "@stigmer/react-core";
 import { HARNESS_META, isNamedHarness } from "@stigmer/react-core/internal";
+import { Card } from "../internal/surface/Card.js";
 import { formatCalls, formatTokens, sharePercent } from "./format.js";
 
 /** Props for {@link HarnessSplitCard}. */
@@ -60,7 +61,7 @@ export function HarnessSplitCard({
       <h3 className="stg:mb-2 stg:text-xs stg:font-semibold stg:text-foreground">
         Harness Split
       </h3>
-      <div className="stg:rounded-lg stg:border stg:border-border stg:bg-card stg:px-3.5 stg:py-3">
+      <Card>
         {/* Segmented bar */}
         <div
           className="stg:flex stg:h-3 stg:w-full stg:overflow-hidden stg:rounded-full"
@@ -108,7 +109,7 @@ export function HarnessSplitCard({
             );
           })}
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

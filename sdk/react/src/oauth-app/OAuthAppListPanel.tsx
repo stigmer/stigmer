@@ -10,6 +10,7 @@ import { ErrorMessage } from "../error/ErrorMessage.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
 import { LoadMoreFooter } from "../internal/LoadMoreFooter.js";
 import { IconButton } from "../button/IconButton.js";
+import { List, ListRow } from "../internal/surface/List.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -102,7 +103,7 @@ export function OAuthAppListPanel({
 
   return (
     <div className={className}>
-      <div className="stg:space-y-2" role="list" aria-label="OAuth apps">
+      <List aria-label="OAuth apps">
         {oauthApps.map((app) => (
           <OAuthAppRow
             key={app.metadata?.id ?? ""}
@@ -110,7 +111,7 @@ export function OAuthAppListPanel({
             onEdit={onEdit ? () => onEdit(app) : undefined}
           />
         ))}
-      </div>
+      </List>
       <LoadMoreFooter hasMore={hasMore} loadMore={loadMore} isLoadingMore={isLoadingMore} loadMoreError={loadMoreError} />
     </div>
   );
@@ -132,42 +133,33 @@ function OAuthAppRow({
   const createdAt = oauthApp.status?.audit?.specAudit?.createdAt;
 
   return (
-    <div
-      role="listitem"
-      className="stg:flex stg:items-center stg:gap-3 stg:rounded-lg stg:border stg:border-border-muted stg:px-3 stg:py-2.5 stg:transition-colors stg:hover:border-border"
-    >
-      <OAuthIcon />
+    <ListRow
+      leading={<OAuthIcon />}
+      name={provider}
+      description={clientId ? <span className="stg:font-mono">{clientId}</span> : undefined}
+      trailing={
+        <>
+          <div className="stg:hidden stg:shrink-0 stg:items-center stg:gap-4 stg:text-xs stg:text-muted-foreground stg:sm:flex">
+            {createdAt && (
+              <Tooltip>
+                <TooltipTrigger
+                  render={<time dateTime={timestampDate(createdAt).toISOString()} />}
+                >
+                  {formatShortDate(timestampDate(createdAt))}
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  {`Created ${timestampDate(createdAt).toISOString()}`}
+                </TooltipContent>
+              </Tooltip>
+            )}
+          </div>
 
-      <div className="stg:min-w-0 stg:flex-1">
-        <span className="stg:block stg:truncate stg:text-sm stg:font-medium stg:text-foreground">
-          {provider}
-        </span>
-        {clientId && (
-          <span className="stg:block stg:truncate stg:text-xs stg:font-mono stg:text-muted-foreground">
-            {clientId}
-          </span>
-        )}
-      </div>
-
-      <div className="stg:hidden stg:shrink-0 stg:items-center stg:gap-4 stg:text-xs stg:text-muted-foreground stg:sm:flex">
-        {createdAt && (
-          <Tooltip>
-            <TooltipTrigger
-              render={<time dateTime={timestampDate(createdAt).toISOString()} />}
-            >
-              {formatShortDate(timestampDate(createdAt))}
-            </TooltipTrigger>
-            <TooltipContent side="top">
-              {`Created ${timestampDate(createdAt).toISOString()}`}
-            </TooltipContent>
-          </Tooltip>
-        )}
-      </div>
-
-      {onEdit && (
-        <IconButton size="xs" label={`Edit ${provider}`} icon={<PencilIcon />} onClick={onEdit} />
-      )}
-    </div>
+          {onEdit && (
+            <IconButton size="xs" label={`Edit ${provider}`} icon={<PencilIcon />} onClick={onEdit} />
+          )}
+        </>
+      }
+    />
   );
 }
 

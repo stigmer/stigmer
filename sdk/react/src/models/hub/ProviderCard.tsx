@@ -18,6 +18,7 @@ import { ArrowUpRight } from "lucide-react";
 import { Button } from "../../button/index.js";
 import { CopyButton, useCopy } from "../../internal/CopyBlock.js";
 import { UNSTYLED_LIST } from "../../internal/element-resets.js";
+import { cardClasses } from "../../internal/surface/Card.js";
 import { useProviderKeyActions, type ProviderKeyProvider } from "../../billing/useProviderKeys.js";
 import { HARNESS_META, HARNESS_OPTIONS } from "@stigmer/react-core/internal";
 import { presentationOf } from "../provider-presentation.js";
@@ -166,11 +167,7 @@ export function ProviderCard({
   return (
     <article
       aria-labelledby={headingId}
-      className={cn(
-        "stg:rounded-xl stg:border stg:bg-card stg:text-card-foreground",
-        served ? "stg:border-border" : "stg:border-dashed stg:border-border-prominent",
-        className,
-      )}
+      className={cn(cardClasses({ flush: true }), className)}
     >
       {/* The actions sit beside the name where there is room, and wrap to
           their own row below it on a phone, so the name never squeezes. */}

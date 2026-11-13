@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { cn } from "@stigmer/design-tokens";
 import type { BulkAction } from "../types.js";
 import { Button } from "../../button/Button.js";
+import { cardClasses } from "../../internal/surface/Card.js";
 
 /** Props for {@link BulkActionBar}. */
 export interface BulkActionBarProps<TData> {
@@ -60,7 +61,8 @@ export function BulkActionBar<TData>({
       aria-label="Bulk actions"
       aria-live="polite"
       className={cn(
-        "stg:flex stg:items-center stg:gap-3 stg:rounded-lg stg:border stg:border-border stg:bg-card stg:px-4 stg:py-2 stg:shadow-md",
+        cardClasses(),
+        "stg:flex stg:items-center stg:gap-3 stg:px-4 stg:py-2 stg:shadow-md",
         className,
       )}
     >

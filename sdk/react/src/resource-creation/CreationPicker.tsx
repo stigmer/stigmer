@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 import { cn } from "@stigmer/design-tokens";
 import { IconButton } from "../button/IconButton.js";
+import { cardClasses } from "../internal/surface/Card.js";
 import type { ResourceTemplate } from "./templates/types.js";
 import { TemplateGallery } from "./TemplateGallery.js";
 
@@ -187,9 +188,8 @@ function OptionCard({
       onClick={onClick}
       data-cursor-target={cursorTarget}
       className={cn(
-        "stg:group stg:flex stg:flex-col stg:items-center stg:gap-3 stg:rounded-lg stg:border stg:border-border stg:bg-card stg:p-6 stg:text-center",
-        "stg:transition-colors stg:hover:border-primary stg:hover:bg-accent",
-        "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+        cardClasses({ interactive: true }),
+        "stg:group stg:flex stg:flex-col stg:items-center stg:gap-3 stg:text-center",
       )}
     >
       <span className="stg:text-muted-foreground stg:transition-colors stg:group-hover:text-foreground">

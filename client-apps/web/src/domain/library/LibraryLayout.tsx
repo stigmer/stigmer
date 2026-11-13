@@ -8,6 +8,7 @@ import {
 } from "@/domain/library/library-navigation";
 import { LibraryBreadcrumb } from "@/domain/library/LibraryBreadcrumb";
 import { LibraryBreadcrumbProvider } from "@stigmer/react-sdk";
+import { PageFrame } from "@stigmer/react-sdk/console";
 import { AgentDetailPageInner } from "@/domain/library/agents/AgentDetailPage";
 import { SkillDetailPageInner } from "@/domain/library/skills/SkillDetailPage";
 import { RoutineDetailPageInner } from "@/domain/library/routines/RoutineDetailPage";
@@ -48,7 +49,7 @@ function LibraryLayoutContent({ children }: { children: React.ReactNode }) {
   // case exists there. That divergence is inherent to the static-export
   // constraint, not drift.
   return (
-    <div className="mx-auto max-w-4xl px-6 py-8">
+    <PageFrame width="wide">
       <LibraryBreadcrumb />
       <div
         data-slot="library-route-children"
@@ -63,7 +64,7 @@ function LibraryLayoutContent({ children }: { children: React.ReactNode }) {
           key={detailKey(activeDetail)}
         />
       )}
-    </div>
+    </PageFrame>
   );
 }
 

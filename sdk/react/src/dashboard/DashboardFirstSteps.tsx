@@ -14,6 +14,7 @@ import { Check } from "lucide-react";
 import { cn } from "@stigmer/design-tokens";
 import { Button } from "../button/Button.js";
 import { LinkButton } from "../button/LinkButton.js";
+import { cardClasses, cardHeaderClasses } from "../internal/surface/Card.js";
 import { useJourney, type JourneyStep, type JourneyStepId, type UseJourneyReturn } from "../journey/useJourney.js";
 import type { JourneyLinks, RenderJourneyLink } from "../journey/links.js";
 
@@ -89,7 +90,7 @@ export function DashboardFirstSteps({ org, links, renderLink = anchor, journey: 
 
   if (journey.current === undefined) {
     return (
-      <section aria-labelledby={headingId} className={cn("stg:rounded-xl stg:border stg:border-border stg:bg-card stg:px-5 stg:py-3", className)}>
+      <section aria-labelledby={headingId} className={cn(cardClasses(), className)}>
         <p id={headingId} className="stg:m-0 stg:flex stg:items-center stg:gap-2 stg:text-sm stg:text-muted-foreground">
           <Check aria-hidden="true" className="stg:size-4 stg:text-foreground" />
           <span>
@@ -101,8 +102,8 @@ export function DashboardFirstSteps({ org, links, renderLink = anchor, journey: 
   }
 
   return (
-    <section aria-labelledby={headingId} className={cn("stg:rounded-xl stg:border stg:border-border stg:bg-card", className)}>
-      <div className="stg:flex stg:items-center stg:gap-3 stg:border-b stg:border-border stg:px-5 stg:py-3.5">
+    <section aria-labelledby={headingId} className={cn(cardClasses({ flush: true }), className)}>
+      <div className={cardHeaderClasses()}>
         <h2 id={headingId} className="stg:m-0 stg:flex-1 stg:text-base stg:font-semibold stg:text-foreground">
           {JOURNEY_CARD_TITLE}
         </h2>
@@ -113,7 +114,7 @@ export function DashboardFirstSteps({ org, links, renderLink = anchor, journey: 
           </Button>
         )}
       </div>
-      <ol className="stg:m-0 stg:list-none stg:divide-y stg:divide-border stg:p-0">
+      <ol className="stg:m-0 stg:list-none stg:divide-y stg:divide-border-muted stg:p-0">
         {journey.steps.map((step) => (
           <StepRow key={step.id} step={step} href={step.state === "current" ? hrefOf(step.id) : undefined} renderLink={renderLink} />
         ))}
@@ -136,7 +137,7 @@ function StepRow({
   return (
     <li
       aria-current={current ? "step" : undefined}
-      className={cn("stg:flex stg:items-center stg:gap-4 stg:px-5", current ? "stg:py-4" : "stg:py-3")}
+      className={cn("stg:flex stg:items-center stg:gap-4 stg:px-3.5", current ? "stg:py-4" : "stg:py-2.5")}
     >
       <span
         aria-hidden="true"

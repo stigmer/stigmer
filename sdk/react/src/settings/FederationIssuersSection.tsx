@@ -15,6 +15,7 @@ import { useResourceAvailable } from "@stigmer/react-core";
 import { ApiResourceKind } from "@stigmer/react-core/internal";
 import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { Button } from "../button/Button.js";
+import { Card } from "../internal/surface/Card.js";
 import { useOrg } from "../organization/OrgProvider.js";
 import { ASK_AN_ADMIN, NoOrganization } from "./NoOrganization.js";
 import { SettingsPage } from "./SettingsPage.js";
@@ -84,17 +85,17 @@ export function FederationIssuersSection() {
       {!orgId ? (
         <NoOrganization what="its federation issuers" />
       ) : flow.phase === "creating" ? (
-        <div className="stg:border-border stg:bg-card stg:rounded-lg stg:border stg:p-4">
+        <Card>
           <FederationIssuerWizard org={orgId} onCreated={handleCreated} onCancel={() => setFlow({ phase: "idle" })} />
-        </div>
+        </Card>
       ) : flow.phase === "editing" ? (
-        <div className="stg:border-border stg:bg-card stg:rounded-lg stg:border stg:p-4">
+        <Card>
           <FederationIssuerDetailPanel
             federationIssuer={flow.federationIssuer}
             onUpdated={handleUpdated}
             onBack={() => setFlow({ phase: "idle" })}
           />
-        </div>
+        </Card>
       ) : (
         <FederationIssuerListPanel
           org={orgId}
