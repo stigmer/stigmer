@@ -15,6 +15,7 @@ import { ErrorMessage } from "../error/ErrorMessage.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
 import { Button } from "../button/Button.js";
 import { IconButton } from "../button/IconButton.js";
+import { List, ListRow } from "../internal/surface/List.js";
 
 /** Props for {@link FederationIssuerListPanel}. */
 export interface FederationIssuerListPanelProps {
@@ -99,11 +100,7 @@ export function FederationIssuerListPanel({
   }
 
   return (
-    <div
-      className={cn("stg:space-y-2", className)}
-      role="list"
-      aria-label="Federation issuers"
-    >
+    <List aria-label="Federation issuers" className={className}>
       {federationIssuers.map((issuer) => {
         const id = issuer.metadata?.id ?? "";
         return (
@@ -121,7 +118,7 @@ export function FederationIssuerListPanel({
           />
         );
       })}
-    </div>
+    </List>
   );
 }
 
@@ -168,10 +165,9 @@ function IssuerRow({
 
   if (isConfirming) {
     return (
-      <div
-        role="listitem"
-        className="stg:flex stg:items-center stg:justify-between stg:rounded-lg stg:border stg:border-destructive/30 stg:bg-destructive-subtle stg:px-3 stg:py-2.5"
-      >
+      // The confirmation's sentence wraps, so it keeps its own markup on the
+      // list's row padding rather than a ListRow's one truncated line.
+      <li className="stg:flex stg:min-h-10 stg:items-center stg:justify-between stg:gap-3 stg:bg-destructive-subtle stg:px-3.5 stg:py-2.5">
         <div className="stg:min-w-0 stg:flex-1">
           <p className="stg:text-xs stg:text-foreground">
             Delete <span className="stg:font-medium">{name}</span>?
@@ -197,71 +193,62 @@ function IssuerRow({
             Cancel
           </Button>
         </div>
-      </div>
+      </li>
     );
   }
 
   return (
-    <div
-      role="listitem"
-      className="stg:flex stg:items-center stg:gap-3 stg:rounded-lg stg:border stg:border-border-muted stg:px-3 stg:py-2.5 stg:hover:border-border stg:transition-colors"
-    >
-      <ShieldIcon />
+    <ListRow
+      leading={<ShieldIcon />}
+      name={name}
+      description={slug ? <span className="stg:font-mono">{slug}</span> : undefined}
+      trailing={
+        <>
+          <div className="stg:hidden stg:sm:flex stg:shrink-0 stg:items-center stg:gap-3 stg:text-xs stg:text-muted-foreground">
+            {isJit && (
+              <span className="stg:inline-flex stg:items-center stg:rounded-full stg:border stg:border-primary/30 stg:bg-primary-subtle stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-primary">
+                JIT
+              </span>
+            )}
+            {createdAt && (
+              <Tooltip>
+                <TooltipTrigger
+                  render={<time dateTime={timestampDate(createdAt).toISOString()} />}
+                >
+                  {formatShortDate(timestampDate(createdAt))}
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  {`Created ${timestampDate(createdAt).toISOString()}`}
+                </TooltipContent>
+              </Tooltip>
+            )}
+          </div>
 
-      <div className="stg:min-w-0 stg:flex-1">
-        <span className="stg:block stg:truncate stg:text-sm stg:font-medium stg:text-foreground">
-          {name}
-        </span>
-        {slug && (
-          <span className="stg:block stg:text-xs stg:text-muted-foreground stg:font-mono">
-            {slug}
-          </span>
-        )}
-      </div>
-
-      <div className="stg:hidden stg:sm:flex stg:shrink-0 stg:items-center stg:gap-3 stg:text-xs stg:text-muted-foreground">
-        {isJit && (
-          <span className="stg:inline-flex stg:items-center stg:rounded-full stg:border stg:border-primary/30 stg:bg-primary-subtle stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-primary">
-            JIT
-          </span>
-        )}
-        {createdAt && (
-          <Tooltip>
-            <TooltipTrigger
-              render={<time dateTime={timestampDate(createdAt).toISOString()} />}
+          <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-1">
+            {onEdit && (
+              <PermissionGate
+                resource={{ kind: "federation_issuer", id }}
+                relation="can_edit"
+              >
+                <IconButton label={`Edit ${name}`} size="xs" onClick={onEdit} icon={<PencilIcon />} />
+              </PermissionGate>
+            )}
+            <PermissionGate
+              resource={{ kind: "federation_issuer", id }}
+              relation="can_delete"
             >
-              {formatShortDate(timestampDate(createdAt))}
-            </TooltipTrigger>
-            <TooltipContent side="top">
-              {`Created ${timestampDate(createdAt).toISOString()}`}
-            </TooltipContent>
-          </Tooltip>
-        )}
-      </div>
-
-      <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-1">
-        {onEdit && (
-          <PermissionGate
-            resource={{ kind: "federation_issuer", id }}
-            relation="can_edit"
-          >
-            <IconButton label={`Edit ${name}`} size="xs" onClick={onEdit} icon={<PencilIcon />} />
-          </PermissionGate>
-        )}
-        <PermissionGate
-          resource={{ kind: "federation_issuer", id }}
-          relation="can_delete"
-        >
-          <IconButton
-            label={`Delete ${name}`}
-            size="xs"
-            onClick={onConfirmDelete}
-            icon={<TrashIcon />}
-            className="stg:hover:bg-destructive-subtle stg:hover:text-destructive"
-          />
-        </PermissionGate>
-      </div>
-    </div>
+              <IconButton
+                label={`Delete ${name}`}
+                size="xs"
+                onClick={onConfirmDelete}
+                icon={<TrashIcon />}
+                className="stg:hover:bg-destructive-subtle stg:hover:text-destructive"
+              />
+            </PermissionGate>
+          </div>
+        </>
+      }
+    />
   );
 }
 

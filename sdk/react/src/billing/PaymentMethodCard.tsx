@@ -1,7 +1,7 @@
 "use client";
 
-import { cn } from "@stigmer/design-tokens";
 import { Button } from "../button/Button.js";
+import { Card } from "../internal/surface/Card.js";
 import type { PaymentMethodSummary } from "@stigmer/apis/ai/stigmer/billing/v1/billing_account_pb";
 import { BillingAccountStatus } from "@stigmer/apis/ai/stigmer/billing/v1/enum_pb";
 
@@ -83,12 +83,7 @@ export function PaymentMethodCard({
     paymentMethod != null && paymentMethod.paymentMethodId !== "";
 
   return (
-    <div
-      className={cn(
-        "stg:rounded-lg stg:border stg:border-border stg:bg-card stg:px-4 stg:py-4",
-        className,
-      )}
-    >
+    <Card className={className}>
       <div className="stg:flex stg:items-center stg:justify-between">
         <h3 className="stg:text-xs stg:font-semibold stg:text-foreground">
           Payment Method
@@ -140,7 +135,7 @@ export function PaymentMethodCard({
           )}
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 

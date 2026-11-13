@@ -5,6 +5,7 @@ import Markdown from "react-markdown";
 import { cn } from "@stigmer/design-tokens";
 import type { Skill } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
 import { MARKDOWN_COMPONENTS, REMARK_PLUGINS, stripFrontmatter } from "../internal/markdown-components.js";
+import { cardClasses } from "../internal/surface/Card.js";
 import { UploadIcon } from "../internal/UploadIcon.js";
 import { useSkillUpload } from "./useSkillUpload.js";
 import { usePushSkill } from "./usePushSkill.js";
@@ -108,7 +109,7 @@ export function SkillUploader({
   }, [upload, dupCheck]);
 
   return (
-    <div className={cn("stg:flex stg:flex-col stg:gap-0 stg:rounded-lg stg:border stg:border-border stg:bg-card", className)}>
+    <div className={cn(cardClasses({ flush: true }), "stg:flex stg:flex-col stg:gap-0", className)}>
       {upload.preview ? (
         <PreviewPhase
           preview={upload.preview}

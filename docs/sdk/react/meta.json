@@ -46,6 +46,7 @@
     "---Platform Building Blocks---",
     "sidebar",
     "page",
+    "page-frame",
     "resource-workbench",
     "resource-creation",
     "resource-detail",

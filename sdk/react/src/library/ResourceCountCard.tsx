@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@stigmer/design-tokens";
+import { cardClasses } from "../internal/surface/Card.js";
 
 /** Props for {@link ResourceCountCard}. */
 export interface ResourceCountCardProps {
@@ -129,11 +130,8 @@ export function ResourceCountCard({
   const showSkeleton = isLoading && count === undefined;
 
   const rootClasses = cn(
-    "stg:flex stg:flex-col stg:rounded-lg stg:border stg:border-border stg:bg-card stg:p-4 stg:text-left stg:no-underline",
-    isInteractive && [
-      "stg:cursor-pointer stg:transition-colors stg:hover:bg-accent-hover",
-      "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-    ],
+    cardClasses({ interactive: isInteractive }),
+    "stg:flex stg:flex-col stg:text-left stg:no-underline",
     className,
   );
 

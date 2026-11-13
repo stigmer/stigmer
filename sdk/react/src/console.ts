@@ -117,3 +117,8 @@ export type {
   SidebarLinkRenderProps,
   RenderSidebarLink,
 } from "./sidebar/index.js";
+
+// Page frame — the column every console zone frames its pages in (settings,
+// the Library, models, the dashboard, the marketplace), in both apps.
+export { PageFrame } from "./page-frame/PageFrame.js";
+export type { PageFrameProps, PageFrameWidth } from "./page-frame/PageFrame.js";

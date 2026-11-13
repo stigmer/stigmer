@@ -49,6 +49,7 @@ import { Button } from "../button/Button.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { DialogShell } from "../internal/DialogShell.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
+import { cardClasses } from "../internal/surface/Card.js";
 import { INPUT_CLASSES } from "../internal/form-primitives.js";
 import { Pagination } from "../internal/Pagination.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
@@ -250,7 +251,7 @@ function CatalogSkeleton({ label }: { readonly label: string }) {
   return (
     <LoadingRegion label={label} className={CATALOG_GRID}>
       {[0, 1, 2, 3, 4, 5].map((slot) => (
-        <div key={slot} className="stg:flex stg:flex-col stg:gap-3 stg:rounded-lg stg:border stg:border-border stg:bg-card stg:p-4">
+        <div key={slot} className={cn(cardClasses(), "stg:flex stg:flex-col stg:gap-3")}>
           <div className="stg:flex stg:items-start stg:gap-3">
             <div className="stg:size-10 stg:shrink-0 stg:animate-pulse stg:rounded-lg stg:bg-muted" />
             <div className="stg:flex-1 stg:space-y-2">

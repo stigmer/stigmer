@@ -21,6 +21,7 @@ import { Check } from "lucide-react";
 import { cn } from "@stigmer/design-tokens";
 import type { ResourceRef } from "@stigmer/client";
 import { LinkButton } from "../button/LinkButton.js";
+import { cardClasses } from "../internal/surface/Card.js";
 import { isJourneyAgentSlug } from "./journey-agents.js";
 import { useJourney, type JourneyStepId, type UseJourneyReturn } from "./useJourney.js";
 import { anchorLink, type JourneyLinks } from "./links.js";
@@ -62,7 +63,7 @@ export function JourneyNextLine({ org, agentRef, links }: JourneyNextLineProps) 
     <div
       role="status"
       data-stgm-journey-next=""
-      className="stg:mx-4 stg:mb-1 stg:mt-2 stg:flex stg:flex-wrap stg:items-center stg:gap-3 stg:rounded-xl stg:border stg:border-border stg:bg-card stg:px-4 stg:py-3 stg:text-sm"
+      className={cn(cardClasses(), "stg:mx-4 stg:mb-1 stg:mt-2 stg:flex stg:flex-wrap stg:items-center stg:gap-3 stg:text-sm")}
     >
       <span aria-hidden="true" className="stg:flex stg:size-5 stg:shrink-0 stg:items-center stg:justify-center stg:rounded-full stg:bg-foreground stg:text-background">
         <Check className="stg:size-3" />

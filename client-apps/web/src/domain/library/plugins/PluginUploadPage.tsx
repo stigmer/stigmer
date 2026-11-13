@@ -8,6 +8,7 @@ import {
   useActiveOrgSlug,
   useBreadcrumbOverride,
   useOrgSlugForId,
+  PageHeader,
 } from "@stigmer/react-sdk";
 
 /**
@@ -33,13 +34,17 @@ export function PluginUploadPage() {
 
   return (
     <>
-      <div className="mb-6">
-        <h1 className="text-foreground text-xl font-semibold">Upload a plugin</h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          A plugin folder from your computer, or a .zip of one, installed into {orgSlug}. A Cursor, Claude Code, Codex or
-          Agent Plugins folder installs unchanged.
-        </p>
-      </div>
+      <PageHeader
+        className="mb-6"
+        headingLevel={1}
+        title="Upload a plugin"
+        description={
+          <>
+            A plugin folder from your computer, or a .zip of one, installed into {orgSlug}. A Cursor, Claude Code, Codex or
+            Agent Plugins folder installs unchanged.
+          </>
+        }
+      />
       <PluginUploader
         org={org}
         onComplete={({ plugin }) =>

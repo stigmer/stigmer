@@ -13,6 +13,7 @@ import {
   useStigmer,
   useActiveOrgId,
   useOrgSlugForId,
+  PageHeader,
 } from "@stigmer/react-sdk";
 import { renderJourneyLink } from "../../journey/journey-links";
 
@@ -45,20 +46,21 @@ export default function RoutineListPage() {
   );
 
   const headerActions = (
-    <div className="flex items-center gap-2">
+    <>
       {applyYamlButton}
       {newRoutineButton}
-    </div>
+    </>
   );
 
   return (
     <>
-      <div className="mb-6">
-        <h1 className="text-foreground text-xl font-semibold">Routines</h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          Start an agent on a routine, by hand, or from another system.
-        </p>
-      </div>
+      <PageHeader
+        className="mb-6"
+        headingLevel={1}
+        title="Routines"
+        description="Start an agent on a routine, by hand, or from another system."
+        actions={headerActions}
+      />
 
       {/*
         Routines are the one Library kind listed via the direct query
@@ -81,7 +83,6 @@ export default function RoutineListPage() {
         emptyIcon={<CalendarClock className="size-10" aria-hidden="true" />}
         emptyTitle="No routines yet"
         emptyDescription="Create a routine to start an agent on a routine, by hand, or from another system."
-        headerAction={headerActions}
         emptyAction={newRoutineButton}
         onItemClick={(item) =>
           navigate(

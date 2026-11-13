@@ -9,6 +9,7 @@ import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
 import { IconButton } from "../button/IconButton.js";
+import { List, ListRow } from "../internal/surface/List.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -95,11 +96,7 @@ export function ChannelAppListPanel({
   }
 
   return (
-    <div
-      className={cn("stg:space-y-2", className)}
-      role="list"
-      aria-label="Channel apps"
-    >
+    <List aria-label="Channel apps" className={className}>
       {channelApps.map((app) => (
         <ChannelAppRow
           key={app.metadata?.id ?? ""}
@@ -107,7 +104,7 @@ export function ChannelAppListPanel({
           onEdit={onEdit ? () => onEdit(app) : undefined}
         />
       ))}
-    </div>
+    </List>
   );
 }
 
@@ -136,41 +133,31 @@ function ChannelAppRow({
   const createdAt = channelApp.status?.audit?.specAudit?.createdAt;
 
   return (
-    <div
-      role="listitem"
-      className={cn(
-        "stg:border-border stg:bg-card stg:flex stg:items-center stg:gap-3 stg:rounded-lg stg:border stg:px-3 stg:py-2.5",
-      )}
-    >
-      <div className="stg:min-w-0 stg:flex-1">
-        <div className="stg:flex stg:items-baseline stg:gap-2">
-          <span className="stg:truncate stg:text-xs stg:font-medium stg:text-foreground">
-            {name}
+    <ListRow
+      name={name}
+      nameAdornment={
+        // Fall back to the raw oneof case for providers this UI
+        // doesn't know yet — honest, and never an empty label.
+        <span className="stg:text-2xs stg:font-normal stg:text-muted-foreground">
+          {provider?.label ?? providerCase ?? ""}
+        </span>
+      }
+      description={
+        providerAppId || createdAt ? (
+          <span className="stg:flex stg:items-baseline stg:gap-2">
+            {providerAppId && (
+              <span className="stg:truncate stg:font-mono">{providerAppId}</span>
+            )}
+            {createdAt && (
+              <span className="stg:shrink-0">{timestampDate(createdAt).toLocaleDateString()}</span>
+            )}
           </span>
-          {/* Fall back to the raw oneof case for providers this UI
-              doesn't know yet — honest, and never an empty label. */}
-          <span className="stg:text-2xs stg:text-muted-foreground">
-            {provider?.label ?? providerCase ?? ""}
-          </span>
-        </div>
-        <div className="stg:flex stg:items-baseline stg:gap-2">
-          {providerAppId && (
-            <span className="stg:truncate stg:font-mono stg:text-2xs stg:text-muted-foreground">
-              {providerAppId}
-            </span>
-          )}
-          {createdAt && (
-            <span className="stg:shrink-0 stg:text-2xs stg:text-muted-foreground">
-              {timestampDate(createdAt).toLocaleDateString()}
-            </span>
-          )}
-        </div>
-      </div>
-
-      {onEdit && (
-        <IconButton size="xs" label={`Edit ${name}`} icon={<PencilIcon />} onClick={onEdit} />
-      )}
-    </div>
+        ) : undefined
+      }
+      trailing={
+        onEdit ? <IconButton size="xs" label={`Edit ${name}`} icon={<PencilIcon />} onClick={onEdit} /> : undefined
+      }
+    />
   );
 }
 

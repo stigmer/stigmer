@@ -21,6 +21,7 @@ import { ErrorMessage } from "../error/ErrorMessage.js";
 import { SettingsPage } from "../settings/SettingsPage.js";
 import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
+import { cardClasses } from "../internal/surface/Card.js";
 import { INPUT_CLASSES } from "../internal/form-primitives.js";
 import { TruncatedText } from "../internal/truncated-text.js";
 import { ZERO, formatRate } from "./pricing-format.js";
@@ -234,13 +235,13 @@ function ModelCatalogBody({
         aria-label="Search models"
       />
 
-      <div className="stg:rounded-lg stg:border stg:border-border stg:bg-card">
+      <div className={cardClasses({ flush: true })}>
         {/* Presentational column guide — each row is a self-describing
             button (its full text content is its accessible name), so
             the header is a visual aid, not an ARIA table header. */}
         <div
           aria-hidden="true"
-          className="stg:grid stg:grid-cols-[2fr_1fr_1fr_1fr_0.7fr] stg:gap-2 stg:border-b stg:border-border stg:px-3 stg:py-2 stg:text-2xs stg:font-medium stg:text-muted-foreground"
+          className="stg:grid stg:grid-cols-[2fr_1fr_1fr_1fr_0.7fr] stg:gap-2 stg:border-b stg:border-border stg:px-3.5 stg:py-2.5 stg:text-2xs stg:font-medium stg:text-muted-foreground"
         >
           <span>Model</span>
           <span>Harness</span>
@@ -249,7 +250,7 @@ function ModelCatalogBody({
           <span className="stg:text-right">Variants</span>
         </div>
         {view.models.length === 0 ? (
-          <p className="stg:px-3 stg:py-2 stg:text-xs stg:text-muted-foreground">
+          <p className="stg:px-3.5 stg:py-2.5 stg:text-xs stg:text-muted-foreground">
             {view.modelQuery.trim() !== ""
               ? `No models match "${view.modelQuery.trim()}".`
               : "The catalog is empty — has the baseline seed migration run?"}
@@ -283,12 +284,12 @@ function ModelRow({
   const variantCount = Object.keys(baseline.pricingVariants).length;
 
   return (
-    <li className="stg:border-b stg:border-border stg:last:border-b-0">
+    <li className="stg:border-b stg:border-border-muted stg:last:border-b-0">
       <button
         type="button"
         onClick={onOpen}
         className={cn(
-          "stg:grid stg:w-full stg:grid-cols-[2fr_1fr_1fr_1fr_0.7fr] stg:items-center stg:gap-2 stg:px-3 stg:py-2 stg:text-left stg:text-xs",
+          "stg:grid stg:w-full stg:grid-cols-[2fr_1fr_1fr_1fr_0.7fr] stg:items-center stg:gap-2 stg:px-3.5 stg:py-2.5 stg:text-left stg:text-xs",
           "stg:transition-colors stg:hover:bg-accent",
           "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
         )}

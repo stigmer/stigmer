@@ -19,6 +19,7 @@ import { ApiResourceKind } from "@stigmer/react-core/internal";
 import { useCheckPermission } from "../../grant/useCheckPermission.js";
 import { LoadingRegion } from "../../internal/LoadingRegion.js";
 import { useKnownOrgs } from "../../organization/OrgProvider.js";
+import { PageHeader } from "../../page/PageHeader.js";
 import type { ModelReadinessLookup, ProviderReadiness } from "../readiness.js";
 import { modelKey } from "@stigmer/react-core";
 import { useModelReadiness } from "../useModelReadiness.js";
@@ -191,14 +192,15 @@ export function ModelsHub({ org, className }: ModelsHubProps) {
   const hub = useModelsHubData(org === "" ? null : org);
   return (
     <div className={cn("stg:space-y-6", className)}>
-      <div>
-        <h1 className="stg:text-xl stg:font-semibold stg:text-foreground">Models &amp; providers</h1>
-        <p className="stg:mt-1 stg:text-sm stg:text-muted-foreground">
-          {hub.viewer.local
+      <PageHeader
+        title="Models & providers"
+        description={
+          hub.viewer.local
             ? "Which models your agents can run on this machine, and the providers behind them."
-            : `Which models ${hub.orgName}'s agents can run, and the provider keys behind them.`}
-        </p>
-      </div>
+            : `Which models ${hub.orgName}'s agents can run, and the provider keys behind them.`
+        }
+        headingLevel={1}
+      />
       <HubBody hub={hub} />
     </div>
   );

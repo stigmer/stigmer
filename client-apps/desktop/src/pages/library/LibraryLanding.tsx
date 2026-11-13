@@ -12,6 +12,7 @@ import {
   usePluginCount,
   ResourceCountCard,
   useActiveOrgId,
+  PageHeader,
 } from "@stigmer/react-sdk";
 
 export default function LibraryLanding() {
@@ -28,8 +29,19 @@ export default function LibraryLanding() {
   const [applyYamlOpen, setApplyYamlOpen] = useState(false);
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-lg font-semibold">Library</h1>
+    <>
+      <PageHeader
+        className="mb-6"
+        headingLevel={1}
+        title="Library"
+        actions={
+          // Declarative entry point, wired identically to the web Library
+          // landing.
+          <Button variant="ghost" icon={<FileCode2 className="size-3.5" aria-hidden="true" />} onClick={() => setApplyYamlOpen(true)}>
+            Apply YAML
+          </Button>
+        }
+      />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <ResourceCountCard
           icon={<Bot className="size-5" aria-hidden="true" />}
@@ -78,18 +90,12 @@ export default function LibraryLanding() {
         />
       </div>
 
-      {/* Declarative entry point — wired identically to the web Library
-          landing. */}
-      <Button variant="ghost" icon={<FileCode2 className="size-3.5" aria-hidden="true" />} onClick={() => setApplyYamlOpen(true)}>
-        Apply YAML
-      </Button>
-
       <ApplyManifestDialog
         open={applyYamlOpen}
         onOpenChange={setApplyYamlOpen}
         org={org ?? ""}
         onApplied={refreshCounts}
       />
-    </div>
+    </>
   );
 }

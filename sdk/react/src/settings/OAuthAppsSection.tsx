@@ -14,6 +14,7 @@ import { useResourceAvailable } from "@stigmer/react-core";
 import { ApiResourceKind } from "@stigmer/react-core/internal";
 import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { Button } from "../button/Button.js";
+import { Card } from "../internal/surface/Card.js";
 import { useActiveOrgId } from "../organization/OrgProvider.js";
 import { ASK_AN_ADMIN, NoOrganization } from "./NoOrganization.js";
 import { SettingsPage } from "./SettingsPage.js";
@@ -81,18 +82,18 @@ export function OAuthAppsSection() {
       {!org ? (
         <NoOrganization what="its OAuth apps" />
       ) : flow.phase === "creating" ? (
-        <div className="stg:border-border stg:bg-card stg:rounded-lg stg:border stg:p-4">
+        <Card>
           <CreateOAuthAppForm org={org} onCreated={handleCreated} onCancel={() => setFlow({ phase: "idle" })} />
-        </div>
+        </Card>
       ) : flow.phase === "editing" ? (
-        <div className="stg:border-border stg:bg-card stg:rounded-lg stg:border stg:p-4">
+        <Card>
           <OAuthAppDetailPanel
             oauthApp={flow.oauthApp}
             onUpdated={handleUpdated}
             onDeleted={handleDeleted}
             onBack={() => setFlow({ phase: "idle" })}
           />
-        </div>
+        </Card>
       ) : (
         <OAuthAppListPanel
           org={org}

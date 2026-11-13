@@ -1,6 +1,5 @@
 "use client";
 
-import { cn } from "@stigmer/design-tokens";
 import {
   PeriodEstimateLineKind,
   type PeriodEstimate,
@@ -8,6 +7,7 @@ import {
 } from "@stigmer/apis/ai/stigmer/billing/subscription/v1/io_pb";
 import type { AgentHours } from "@stigmer/apis/ai/stigmer/billing/subscription/v1/io_pb";
 import { ErrorMessage } from "../error/ErrorMessage.js";
+import { Card } from "../internal/surface/Card.js";
 import { StatusBadge } from "../resource-workbench/components/StatusBadge.js";
 import { AgentHoursStanding } from "./AgentHoursStanding.js";
 import { formatUsd } from "./format.js";
@@ -62,12 +62,7 @@ export function PlanCard({
 }: PlanCardProps) {
   const child = billedToParent !== undefined;
   return (
-    <div
-      className={cn(
-        "stg:rounded-lg stg:border stg:border-border stg:bg-card stg:px-4 stg:py-4",
-        className,
-      )}
-    >
+    <Card className={className}>
       <div className="stg:flex stg:items-center stg:justify-between stg:gap-3">
         <h3 className="stg:text-xs stg:font-semibold stg:text-foreground">Plan</h3>
         {!child && <StandingBadge standing={standing} />}
@@ -104,7 +99,7 @@ export function PlanCard({
           className="stg:mt-3"
         />
       )}
-    </div>
+    </Card>
   );
 }
 

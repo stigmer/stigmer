@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { LibraryBreadcrumbProvider, useCanonicalOrgSlug } from "@stigmer/react-sdk";
+import { PageFrame } from "@stigmer/react-sdk/console";
 import { LibraryBreadcrumb } from "./LibraryBreadcrumb";
 
 export default function LibraryLayout() {
@@ -43,9 +44,9 @@ function LibraryLayoutContent() {
   useCanonicalLibraryUrl();
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-8">
+    <PageFrame width="wide">
       <LibraryBreadcrumb />
       <Outlet />
-    </div>
+    </PageFrame>
   );
 }

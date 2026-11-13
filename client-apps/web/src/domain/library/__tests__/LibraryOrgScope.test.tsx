@@ -33,6 +33,7 @@ vi.mock("@stigmer/react-sdk", async () => {
     Button: kit.Button,
     IconButton: kit.IconButton,
     LinkButton: kit.LinkButton,
+    PageHeader: kit.PageHeader,
     ApplyManifestDialog: (props: { open: boolean; org: string }) => {
       page.applyDialog.push({ open: props.open, org: props.org });
       return null;

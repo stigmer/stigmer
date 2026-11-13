@@ -5,6 +5,7 @@ import { ArrowLeft, RefreshCw } from "lucide-react";
 import { cn } from "@stigmer/design-tokens";
 import type { License } from "@stigmer/apis/ai/stigmer/billing/license/v1/api_pb";
 import { Button } from "../button/index.js";
+import { cardClasses } from "../internal/surface/Card.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { StatusBadge } from "../resource-workbench/components/StatusBadge.js";
 import {
@@ -109,7 +110,7 @@ export function LicenseDetail({
 
       <LicenseTicketPanel ticket={ticket} isLoading={!issuedTicket && read.isLoading} error={read.error} />
 
-      <dl className="stg:m-0 stg:grid stg:grid-cols-1 stg:gap-x-6 stg:gap-y-4 stg:rounded-lg stg:border stg:border-border stg:bg-card stg:p-4 stg:sm:grid-cols-2">
+      <dl className={cn(cardClasses(), "stg:m-0 stg:grid stg:grid-cols-1 stg:gap-x-6 stg:gap-y-4 stg:sm:grid-cols-2")}>
         <Row label="Customer">
           <span className="stg:block">{customer?.displayName}</span>
           <span className="stg:block stg:text-muted-foreground">{customer?.contactEmail}</span>

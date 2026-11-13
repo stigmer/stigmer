@@ -37,9 +37,10 @@ vi.mock("@stigmer/react-sdk", async () => {
     Button: kit.Button,
     IconButton: kit.IconButton,
     LinkButton: kit.LinkButton,
+    PageHeader: kit.PageHeader,
     ResourceWorkbench: (props: Props) => {
       page.props.set("ResourceWorkbench", props);
-      return <div>{props.headerAction as ReactNode}</div>;
+      return null;
     },
     ApplyManifestDialog: capture("ApplyManifestDialog"),
     EnvironmentsNotOnServerNotice: () => null,

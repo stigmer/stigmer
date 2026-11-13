@@ -12,6 +12,7 @@
 
 import type { ReactElement } from "react";
 import { cn } from "@stigmer/design-tokens";
+import { Card } from "../internal/surface/Card.js";
 import type { RenderSidebarLink } from "../sidebar/types.js";
 import type { SettingsNavGroup } from "./settings-nav.js";
 import { SettingsPage } from "./SettingsPage.js";
@@ -77,10 +78,7 @@ function OverviewBody({
     >
       <div className="stg:grid stg:gap-4 stg:md:grid-cols-2">
         {groups.map((group) => (
-          <div
-            key={group.label}
-            className="stg:flex stg:flex-col stg:gap-3 stg:rounded-lg stg:border stg:border-border stg:bg-card stg:p-4"
-          >
+          <Card key={group.label} className="stg:flex stg:flex-col stg:gap-3">
             <div className="stg:flex stg:flex-col stg:gap-1 stg:px-2">
               <h3 className="stg:m-0 stg:text-sm stg:font-semibold stg:text-foreground">{group.label}</h3>
               <p className="stg:m-0 stg:text-xs stg:text-muted-foreground">{group.description}</p>
@@ -105,7 +103,7 @@ function OverviewBody({
                 </li>
               ))}
             </ul>
-          </div>
+          </Card>
         ))}
       </div>
     </SettingsPage>

@@ -18,6 +18,7 @@ import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
 import { LoadMoreFooter } from "../internal/LoadMoreFooter.js";
+import { List, ListRow } from "../internal/surface/List.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -166,7 +167,7 @@ export function ApiKeyListView({
 
   return (
     <div className={className}>
-      <div className="stg:space-y-2" role="list" aria-label="API keys">
+      <List aria-label="API keys">
         {apiKeys.map((key) => {
           const id = key.metadata?.id ?? "";
           return (
@@ -185,7 +186,7 @@ export function ApiKeyListView({
             />
           );
         })}
-      </div>
+      </List>
       <LoadMoreFooter hasMore={pager.hasMore} loadMore={pager.loadMore} isLoadingMore={pager.isLoadingMore} loadMoreError={pager.loadMoreError} />
     </div>
   );
@@ -233,10 +234,9 @@ function ApiKeyRow({
 
   if (isConfirming) {
     return (
-      <div
-        role="listitem"
-        className="stg:flex stg:items-center stg:justify-between stg:rounded-lg stg:border stg:border-destructive/30 stg:bg-destructive-subtle stg:px-3 stg:py-2.5"
-      >
+      // The confirmation's sentence wraps, so it keeps its own markup on the
+      // list's row padding rather than a ListRow's one truncated line.
+      <li className="stg:flex stg:min-h-10 stg:items-center stg:justify-between stg:gap-3 stg:bg-destructive-subtle stg:px-3.5 stg:py-2.5">
         <div className="stg:min-w-0 stg:flex-1">
           <p className="stg:text-xs stg:text-foreground">
             Delete <span className="stg:font-medium">{name}</span>?
@@ -268,66 +268,57 @@ function ApiKeyRow({
             Cancel
           </Button>
         </div>
-      </div>
+      </li>
     );
   }
 
   return (
-    <div
-      role="listitem"
-      className="stg:flex stg:items-center stg:gap-3 stg:rounded-lg stg:border stg:border-border-muted stg:px-3 stg:py-2.5 stg:hover:border-border stg:transition-colors"
-    >
-      {/* Key icon */}
-      <KeyIcon />
+    <ListRow
+      leading={<KeyIcon />}
+      name={name}
+      description={
+        <>
+          {fingerprint && <span className="stg:block stg:font-mono">…{fingerprint}</span>}
+          <span className="stg:block stg:truncate">{scope}</span>
+        </>
+      }
+      trailing={
+        <>
+          {/* Metadata columns */}
+          <div className="stg:hidden stg:sm:flex stg:shrink-0 stg:items-center stg:gap-4 stg:text-xs stg:text-muted-foreground">
+            {createdAt && (
+              <Tooltip>
+                <TooltipTrigger
+                  render={<time dateTime={timestampDate(createdAt).toISOString()} />}
+                >
+                  {formatShortDate(timestampDate(createdAt))}
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  {`Created ${timestampDate(createdAt).toISOString()}`}
+                </TooltipContent>
+              </Tooltip>
+            )}
+            <span>
+              {neverExpires
+                ? "No expiry"
+                : expiresAt
+                  ? `Expires ${formatShortDate(timestampDate(expiresAt))}`
+                  : "No expiry"}
+            </span>
+            <LastUsedLabel at={lastUsedAt} now={now} />
+          </div>
 
-      {/* Name + fingerprint */}
-      <div className="stg:min-w-0 stg:flex-1">
-        <span className="stg:block stg:truncate stg:text-sm stg:font-medium stg:text-foreground">
-          {name}
-        </span>
-        {fingerprint && (
-          <span className="stg:block stg:text-xs stg:text-muted-foreground stg:font-mono">
-            …{fingerprint}
-          </span>
-        )}
-        <span className="stg:block stg:truncate stg:text-xs stg:text-muted-foreground">
-          {scope}
-        </span>
-      </div>
-
-      {/* Metadata columns */}
-      <div className="stg:hidden stg:sm:flex stg:shrink-0 stg:items-center stg:gap-4 stg:text-xs stg:text-muted-foreground">
-        {createdAt && (
-          <Tooltip>
-            <TooltipTrigger
-              render={<time dateTime={timestampDate(createdAt).toISOString()} />}
-            >
-              {formatShortDate(timestampDate(createdAt))}
-            </TooltipTrigger>
-            <TooltipContent side="top">
-              {`Created ${timestampDate(createdAt).toISOString()}`}
-            </TooltipContent>
-          </Tooltip>
-        )}
-        <span>
-          {neverExpires
-            ? "No expiry"
-            : expiresAt
-              ? `Expires ${formatShortDate(timestampDate(expiresAt))}`
-              : "No expiry"}
-        </span>
-        <LastUsedLabel at={lastUsedAt} now={now} />
-      </div>
-
-      {/* Delete button */}
-      <IconButton
-        label={`Delete ${name}`}
-        size="xs"
-        icon={<TrashIcon />}
-        onClick={onConfirmDelete}
-        className="stg:hover:text-destructive stg:hover:bg-destructive-subtle"
-      />
-    </div>
+          {/* Delete button */}
+          <IconButton
+            label={`Delete ${name}`}
+            size="xs"
+            icon={<TrashIcon />}
+            onClick={onConfirmDelete}
+            className="stg:hover:text-destructive stg:hover:bg-destructive-subtle"
+          />
+        </>
+      }
+    />
   );
 }
 

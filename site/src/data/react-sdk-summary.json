@@ -246,6 +246,13 @@
       "components": 1
     },
     {
+      "slug": "page-frame",
+      "title": "page-frame",
+      "description": "",
+      "hooks": 0,
+      "components": 1
+    },
+    {
       "slug": "plugin",
       "title": "plugin",
       "description": "",

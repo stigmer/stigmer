@@ -12,6 +12,7 @@
  */
 
 import { cn } from "@stigmer/design-tokens";
+import { cardClasses } from "../internal/surface/Card.js";
 import type { AgentUsageSummary } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import { formatCompactCount, formatWorkingTime, sharePercent } from "./format.js";
 
@@ -49,13 +50,13 @@ export function AgentBreakdownList({
         Top Agents by Tokens
       </h3>
       <div
-        className="stg:rounded-lg stg:border stg:border-border stg:bg-card"
+        className={cardClasses({ flush: true })}
         role="table"
         aria-label="Agent token breakdown"
       >
         <div
           role="row"
-          className="stg:grid stg:grid-cols-[1fr_auto_auto_auto] stg:gap-x-4 stg:border-b stg:border-border stg:px-3.5 stg:py-2 stg:text-2xs stg:font-medium stg:uppercase stg:tracking-wider stg:text-muted-foreground"
+          className="stg:grid stg:grid-cols-[1fr_auto_auto_auto] stg:gap-x-4 stg:border-b stg:border-border stg:px-3.5 stg:py-2.5 stg:text-2xs stg:font-medium stg:uppercase stg:tracking-wider stg:text-muted-foreground"
         >
           <span role="columnheader">Agent</span>
           <span role="columnheader" className="stg:text-right">
@@ -81,7 +82,7 @@ export function AgentBreakdownList({
           return (
             <div
               key={agent.agentId}
-              className="stg:border-b stg:border-border-muted stg:px-3.5 stg:py-2 stg:last:border-b-0"
+              className="stg:border-b stg:border-border-muted stg:px-3.5 stg:py-2.5 stg:last:border-b-0"
             >
               <div
                 role="row"

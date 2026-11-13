@@ -32,12 +32,15 @@ import { IconButton } from "../button/IconButton.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
 import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
+import { List, ListRow } from "../internal/surface/List.js";
 import { SERVICE_ACCOUNTS_SETTINGS_HREF } from "../service-account/copy.js";
 
-/** A group of people: one card, a row each, divided. */
-const MEMBER_LIST = "stg:overflow-hidden stg:rounded-lg stg:border stg:border-border stg:bg-card stg:divide-y stg:divide-border";
-/** One person's row in a {@link MEMBER_LIST}. */
-const MEMBER_ROW = "stg:flex stg:items-center stg:gap-3 stg:px-4 stg:py-3";
+/**
+ * A row that turns into an inline act (a remove confirmation, a role
+ * change): its sentence wraps and its picker spans the row, so it keeps its
+ * own markup on the list's row padding rather than a ListRow's one line.
+ */
+const ACTION_ROW = "stg:min-h-10 stg:px-3.5 stg:py-2.5";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -182,9 +185,9 @@ export function OrgMembersPanel({
           className="stg:rounded-lg stg:border stg:border-dashed stg:border-border"
         />
       ) : (
-        <div role="list" aria-label="Organization members" className={MEMBER_LIST}>
+        <List aria-label="Organization members">
           {people.map((entry) => renderRow(entry, "member"))}
-        </div>
+        </List>
       )}
 
       {/* The product's users: signed in by a mint, not members */}
@@ -210,13 +213,10 @@ export function OrgMembersPanel({
             product and are not members of this organization.
           </p>
           {productUsersOpen && (
-            <div
-              id={productUsersId}
-              role="list"
-              aria-label="Users from your product"
-              className={MEMBER_LIST}
-            >
-              {productUsers.map((entry) => renderRow(entry, "productUser"))}
+            <div id={productUsersId}>
+              <List aria-label="Users from your product">
+                {productUsers.map((entry) => renderRow(entry, "productUser"))}
+              </List>
             </div>
           )}
         </div>
@@ -251,15 +251,12 @@ export function OrgMembersPanel({
             </a>
           </p>
           {serviceAccountsOpen && (
-            <div
-              id={serviceAccountsId}
-              role="list"
-              aria-label="Service accounts"
-              className={MEMBER_LIST}
-            >
-              {serviceAccounts.map((entry) => (
-                <ServiceAccountRow key={entry.principal?.id ?? ""} entry={entry} />
-              ))}
+            <div id={serviceAccountsId}>
+              <List aria-label="Service accounts">
+                {serviceAccounts.map((entry) => (
+                  <ServiceAccountRow key={entry.principal?.id ?? ""} entry={entry} />
+                ))}
+              </List>
             </div>
           )}
         </div>
@@ -282,22 +279,21 @@ function ServiceAccountRow({ entry }: { entry: PrincipalAccess }) {
   const name = principal?.name || principal?.id || "";
   const directRoles = entry.roles.filter((r) => !r.isInherited);
   return (
-    <div
-      role="listitem"
-      className={MEMBER_ROW}
-    >
-      <div className="stg:flex stg:size-8 stg:shrink-0 stg:items-center stg:justify-center stg:rounded-md stg:bg-muted stg:text-xs stg:font-medium stg:text-muted-foreground">
-        {name.charAt(0).toUpperCase()}
-      </div>
-      <span className="stg:min-w-0 stg:flex-1 stg:truncate stg:text-sm stg:font-medium stg:text-foreground">
-        {name}
-      </span>
-      <div className="stg:hidden stg:sm:flex stg:shrink-0 stg:items-center stg:gap-1.5">
-        {directRoles.map((grant) => (
-          <RoleBadge key={grant.role?.code ?? ""} grant={grant} />
-        ))}
-      </div>
-    </div>
+    <ListRow
+      leading={
+        <div className="stg:flex stg:size-8 stg:shrink-0 stg:items-center stg:justify-center stg:rounded-md stg:bg-muted stg:text-xs stg:font-medium stg:text-muted-foreground">
+          {name.charAt(0).toUpperCase()}
+        </div>
+      }
+      name={name}
+      trailing={
+        <div className="stg:hidden stg:sm:flex stg:shrink-0 stg:items-center stg:gap-1.5">
+          {directRoles.map((grant) => (
+            <RoleBadge key={grant.role?.code ?? ""} grant={grant} />
+          ))}
+        </div>
+      }
+    />
   );
 }
 
@@ -395,61 +391,54 @@ function MemberRow({
   }
 
   return (
-    <div
-      role="listitem"
-      className={MEMBER_ROW}
-    >
-      {/* Avatar */}
-      <div className="stg:flex stg:size-8 stg:shrink-0 stg:items-center stg:justify-center stg:rounded-full stg:bg-muted stg:text-xs stg:font-medium stg:text-muted-foreground">
-        {initial}
-      </div>
-
-      {/* Name + email */}
-      <div className="stg:min-w-0 stg:flex-1">
-        <div className="stg:flex stg:items-center stg:gap-1.5">
-          <span className="stg:truncate stg:text-sm stg:font-medium stg:text-foreground">
-            {name}
-          </span>
+    <ListRow
+      leading={
+        <div className="stg:flex stg:size-8 stg:shrink-0 stg:items-center stg:justify-center stg:rounded-full stg:bg-muted stg:text-xs stg:font-medium stg:text-muted-foreground">
+          {initial}
+        </div>
+      }
+      name={name}
+      nameAdornment={
+        <>
           {isSelf && (
             <span className="stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-muted-foreground">
               You
             </span>
           )}
           <ProviderBadge principal={principal} />
-        </div>
-        {email && email !== name && (
-          <span className="stg:block stg:truncate stg:text-xs stg:text-muted-foreground">
-            {email}
-          </span>
-        )}
-      </div>
+        </>
+      }
+      description={email && email !== name ? email : undefined}
+      trailing={
+        <>
+          {/* Role badges */}
+          <div className="stg:hidden stg:sm:flex stg:shrink-0 stg:items-center stg:gap-1.5">
+            {directRoles.map((grant) => (
+              <RoleBadge key={grant.role?.code ?? ""} grant={grant} />
+            ))}
+          </div>
 
-      {/* Role badges */}
-      <div className="stg:hidden stg:sm:flex stg:shrink-0 stg:items-center stg:gap-1.5">
-        {directRoles.map((grant) => (
-          <RoleBadge key={grant.role?.code ?? ""} grant={grant} />
-        ))}
-      </div>
-
-      {/* Actions */}
-      {mayAct && (
-        <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-1">
-          <IconButton
-            size="xs"
-            label={`Change role for ${name}`}
-            icon={<EditIcon />}
-            onClick={() => startAction("change-role")}
-          />
-          <IconButton
-            size="xs"
-            label={`Remove ${name}`}
-            icon={<TrashIcon />}
-            onClick={() => startAction("remove")}
-            className="stg:hover:text-destructive stg:hover:bg-destructive-subtle"
-          />
-        </div>
-      )}
-    </div>
+          {/* Actions */}
+          {mayAct && (
+            <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-1">
+              <IconButton
+                size="xs"
+                label={`Change role for ${name}`}
+                icon={<EditIcon />}
+                onClick={() => startAction("change-role")}
+              />
+              <IconButton
+                size="xs"
+                label={`Remove ${name}`}
+                icon={<TrashIcon />}
+                onClick={() => startAction("remove")}
+                className="stg:hover:text-destructive stg:hover:bg-destructive-subtle"
+              />
+            </div>
+          )}
+        </>
+      }
+    />
   );
 }
 
@@ -520,10 +509,7 @@ function RemoveConfirmation({
   }, [memberId, orgId, revoke, onDone]);
 
   return (
-    <div
-      role="listitem"
-      className="stg:flex stg:items-center stg:justify-between stg:rounded-lg stg:border stg:border-destructive/30 stg:bg-destructive-subtle stg:px-3 stg:py-2.5"
-    >
+    <li className={cn(ACTION_ROW, "stg:flex stg:items-center stg:justify-between stg:bg-destructive-subtle")}>
       <div className="stg:min-w-0 stg:flex-1">
         <p className="stg:text-xs stg:text-foreground">
           <RemoveCopy audience={audience} memberName={memberName} />
@@ -549,7 +535,7 @@ function RemoveConfirmation({
           Cancel
         </Button>
       </div>
-    </div>
+    </li>
   );
 }
 
@@ -675,10 +661,7 @@ function ChangeRoleRow({
   ]);
 
   return (
-    <div
-      role="listitem"
-      className="stg:rounded-lg stg:border stg:border-primary/30 stg:bg-primary-subtle stg:px-3 stg:py-2.5 stg:space-y-2"
-    >
+    <li className={cn(ACTION_ROW, "stg:space-y-2 stg:bg-primary-subtle")}>
       <p className="stg:text-xs stg:text-foreground">
         Change role for <span className="stg:font-medium">{memberName}</span>
       </p>
@@ -710,7 +693,7 @@ function ChangeRoleRow({
           Cancel
         </Button>
       </div>
-    </div>
+    </li>
   );
 }
 

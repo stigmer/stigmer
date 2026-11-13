@@ -27,9 +27,17 @@ vi.mock("@stigmer/react-sdk", () => {
     return null;
   };
   return {
+    // The kit's page heading, standing in with its title, words and acts.
+    PageHeader: ({ title, description, actions }: { title: ReactNode; description?: ReactNode; actions?: ReactNode }) => (
+      <header>
+        <h1>{title}</h1>
+        <p>{description}</p>
+        {actions}
+      </header>
+    ),
     ResourceWorkbench: (props: Props) => {
       page.props.set("ResourceWorkbench", props);
-      return <div>{props.headerAction as ReactNode}</div>;
+      return null;
     },
     FileUploadButton: (props: Props) => {
       page.props.set("FileUploadButton", props);

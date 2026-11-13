@@ -9,6 +9,7 @@
 
 import { memo } from "react";
 import { cn } from "@stigmer/design-tokens";
+import { Card } from "../internal/surface/Card.js";
 import { formatCompactCount } from "../usage/format.js";
 import type { DashboardSummary } from "./types.js";
 
@@ -64,10 +65,7 @@ export const DashboardKPICards = memo(function DashboardKPICards({
       <div className={cn("stg:space-y-3", className)} aria-busy="true">
         <div className="stg:grid stg:gap-3 stg:sm:grid-cols-2 stg:lg:grid-cols-4">
           {Array.from({ length: 4 }, (_, i) => (
-            <div
-              key={i}
-              className="stg:h-[72px] stg:animate-pulse stg:rounded-lg stg:border stg:border-border stg:bg-muted/50"
-            />
+            <Card key={i} className="stg:h-[72px] stg:animate-pulse stg:bg-muted" />
           ))}
         </div>
       </div>
@@ -79,17 +77,14 @@ export const DashboardKPICards = memo(function DashboardKPICards({
   return (
     <div className={cn("stg:grid stg:gap-3 stg:sm:grid-cols-2 stg:lg:grid-cols-4", className)}>
       {STAT_CARDS.map((card) => (
-        <div
-          key={card.label}
-          className="stg:rounded-lg stg:border stg:border-border stg:bg-card stg:px-4 stg:py-3"
-        >
+        <Card key={card.label}>
           <p className="stg:text-xs stg:font-medium stg:text-muted-foreground">
             {card.label}
           </p>
           <p className={cn("stg:mt-1 stg:text-2xl stg:font-semibold", card.valueClass)}>
             {card.getValue(summary)}
           </p>
-        </div>
+        </Card>
       ))}
     </div>
   );

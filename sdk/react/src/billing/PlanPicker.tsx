@@ -4,6 +4,7 @@ import { cn } from "@stigmer/design-tokens";
 import type { Plan } from "@stigmer/apis/ai/stigmer/billing/plan/v1/api_pb";
 import { Button } from "../button/index.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
+import { cardClasses } from "../internal/surface/Card.js";
 import { FEATURE_COPY } from "../internal/features.js";
 import { ENTERPRISE_CLOUD_PLAN, FREE_PLAN, formatMonthlyFee, offeredFeatures, planTermLines } from "./plan-features.js";
 import { planMove, type PlanMove, type PlanStanding } from "./plan-state.js";
@@ -84,7 +85,7 @@ export function PlanPicker({
           />
         );
       })}
-      <li className="stg:flex stg:flex-col stg:rounded-lg stg:border stg:border-border stg:bg-card stg:p-4">
+      <li className={cn(cardClasses(), "stg:flex stg:flex-col")}>
         <div className="stg:flex stg:items-baseline stg:justify-between stg:gap-2">
           <p className="stg:text-sm stg:font-medium stg:text-foreground">{ENTERPRISE_CLOUD_PLAN.name}</p>
           <p className="stg:text-xs stg:text-foreground">Quoted</p>
@@ -130,10 +131,7 @@ function PlanOption({
 }) {
   return (
     <li
-      className={cn(
-        "stg:flex stg:flex-col stg:rounded-lg stg:border stg:bg-card stg:p-4",
-        current ? "stg:border-primary" : "stg:border-border",
-      )}
+      className={cn(cardClasses({ selected: current }), "stg:flex stg:flex-col")}
       aria-current={current ? "true" : undefined}
     >
       <div className="stg:flex stg:items-baseline stg:justify-between stg:gap-2">

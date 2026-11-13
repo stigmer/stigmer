@@ -22,6 +22,7 @@ import { getUserMessage } from "@stigmer/client";
 import { VaultConnectionSource } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/spec_pb";
 import { PermissionGate } from "../grant/PermissionGate.js";
 import { Button } from "../button/Button.js";
+import { Card } from "../internal/surface/Card.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { useVaultSignIn } from "../vault/useVaultSignIn.js";
 import { useActiveOrgId } from "../organization/OrgProvider.js";
@@ -171,9 +172,9 @@ function SharedVaultsCard({
       </div>
 
       {showCreate && (
-        <div className="stg:border-border stg:bg-card stg:rounded-lg stg:border stg:p-4">
+        <Card>
           <CreateVaultForm org={org} onCreated={onCreated} onCancel={onCancelCreate} />
-        </div>
+        </Card>
       )}
 
       <VaultListPanel org={org} onRefetchRef={onRefetchRef} />

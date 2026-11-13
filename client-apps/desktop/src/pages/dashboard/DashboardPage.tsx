@@ -9,6 +9,7 @@
 import { useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useOrg, OperationalDashboard, PageHeader, type DashboardFirstStepLinks } from "@stigmer/react-sdk";
+import { PageFrame } from "@stigmer/react-sdk/console";
 import { renderJourneyLink, useJourneyLinks } from "../../journey/journey-links";
 
 export default function DashboardPage() {
@@ -37,7 +38,7 @@ export default function DashboardPage() {
   );
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-8">
+    <PageFrame width="wide">
       <PageHeader
         className="mb-8"
         title="Dashboard"
@@ -50,6 +51,6 @@ export default function DashboardPage() {
         firstStepLinks={firstStepLinks}
         renderLink={renderJourneyLink}
       />
-    </div>
+    </PageFrame>
   );
 }

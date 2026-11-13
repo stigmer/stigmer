@@ -16,6 +16,7 @@ import {
   useActiveOrgId,
   useCanCreateEnvironment,
   useStigmer,
+  PageHeader,
 } from "@stigmer/react-sdk";
 
 /**
@@ -44,22 +45,23 @@ export function EnvironmentListPage() {
   ) : undefined;
 
   const headerActions = canCreate ? (
-    <div className="flex items-center gap-2">
+    <>
       <Button variant="ghost" icon={<Upload className="size-3.5" aria-hidden="true" />} onClick={() => setImportOpen(true)}>
         Apply YAML
       </Button>
       {newEnvironmentButton}
-    </div>
+    </>
   ) : undefined;
 
   return (
     <>
-      <div className="mb-6">
-        <h1 className="text-foreground text-xl font-semibold">Environments</h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          Packages and network access for the sandboxes your agents run in.
-        </p>
-      </div>
+      <PageHeader
+        className="mb-6"
+        headingLevel={1}
+        title="Environments"
+        description="Packages and network access for the sandboxes your agents run in."
+        actions={headerActions}
+      />
 
       <EnvironmentsNotOnServerNotice className="mb-6" />
 
@@ -77,7 +79,6 @@ export function EnvironmentListPage() {
         emptyIcon={<Box className="size-10" aria-hidden="true" />}
         emptyTitle="No environments yet"
         emptyDescription="Create an environment to give your agents' sandboxes packages and a network policy."
-        headerAction={headerActions}
         emptyAction={newEnvironmentButton}
         onItemClick={(item) =>
           navigateToDetail("environments", item.metadata?.org ?? "", item.metadata?.slug ?? "")

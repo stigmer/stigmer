@@ -17,6 +17,7 @@ import { CHANNEL_APPS_MANAGED_BY_ADMINS } from "../channel-app/copy.js";
 import { useDeploymentMode } from "@stigmer/react-core";
 import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { Button } from "../button/Button.js";
+import { Card } from "../internal/surface/Card.js";
 import { useActiveOrgId } from "../organization/OrgProvider.js";
 import { ASK_AN_ADMIN, NoOrganization } from "./NoOrganization.js";
 import { SettingsPage } from "./SettingsPage.js";
@@ -114,11 +115,11 @@ export function ChannelAppsSection() {
       {!org ? (
         <NoOrganization what="its channel apps" />
       ) : flow.phase === "creating" ? (
-        <div className="stg:border-border stg:bg-card stg:rounded-lg stg:border stg:p-4">
+        <Card>
           <CreateChannelAppForm org={org} onCreated={handleCreated} onCancel={() => setFlow({ phase: "idle" })} />
-        </div>
+        </Card>
       ) : flow.phase === "editing" ? (
-        <div className="stg:border-border stg:bg-card stg:rounded-lg stg:border stg:p-4">
+        <Card>
           <ChannelAppDetailPanel
             channelApp={flow.channelApp}
             createHandoff={flow.createHandoff}
@@ -126,7 +127,7 @@ export function ChannelAppsSection() {
             onDeleted={handleDeleted}
             onBack={() => setFlow({ phase: "idle" })}
           />
-        </div>
+        </Card>
       ) : (
         <ChannelAppListPanel
           org={org}

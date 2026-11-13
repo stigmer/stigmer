@@ -5,7 +5,7 @@
  * action refetches the list in place. The workbench is pinned in
  * @stigmer/react-sdk.
  */
-import type { ReactElement, ReactNode } from "react";
+import type { ReactElement } from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
@@ -24,7 +24,6 @@ interface WorkbenchProps {
   getItemId: (item: Item) => string;
   renderItemAction: (item: Item) => ReactElement<{ routine: Item; onChanged: () => void }>;
   onItemClick: (item: Item) => void;
-  headerAction: ReactNode;
 }
 
 interface DialogProps {
@@ -46,9 +45,10 @@ vi.mock("@stigmer/react-sdk", async () => {
     Button: kit.Button,
     IconButton: kit.IconButton,
     LinkButton: kit.LinkButton,
+    PageHeader: kit.PageHeader,
     ResourceWorkbench: (props: WorkbenchProps) => {
       page.workbench.push(props);
-      return <>{props.headerAction}</>;
+      return null;
     },
     ApplyManifestDialog: (props: DialogProps) => {
       page.dialog.push(props);

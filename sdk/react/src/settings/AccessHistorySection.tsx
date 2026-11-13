@@ -58,6 +58,7 @@ import { EmptyState } from "../empty-state/EmptyState.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { downloadTextFile } from "../internal/download.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
+import { cardClasses } from "../internal/surface/Card.js";
 import { useOrg } from "../organization/OrgProvider.js";
 import { NoOrganization } from "./NoOrganization.js";
 import { SettingsPage } from "./SettingsPage.js";
@@ -157,7 +158,12 @@ function AccessHistoryList({ org }: { readonly org: string }) {
           className="stg:rounded-lg stg:border stg:border-dashed stg:border-border"
         />
       ) : (
-        <ol aria-label="Access changes" className={cn(UNSTYLED_LIST, "stg:space-y-1")}>
+        // A change is a sentence that wraps, not a name that truncates, so
+        // the rows keep their own markup inside the list's card and dividers.
+        <ol
+          aria-label="Access changes"
+          className={cn(UNSTYLED_LIST, cardClasses({ flush: true }), "stg:divide-y stg:divide-border-muted")}
+        >
           {history.entries.map((entry) => (
             <AccessHistoryRow key={entry.sequence.toString()} entry={entry} />
           ))}
@@ -194,7 +200,7 @@ function AccessHistoryRow({ entry }: { readonly entry: AccessHistoryEntry }) {
       ? `${actorName(entry)} removed ${grantee}'s ${role} role on ${what}`
       : `${actorName(entry)} gave ${grantee} the ${role} role on ${what}`;
   return (
-    <li className="stg:rounded-md stg:px-2 stg:py-1.5 stg:hover:bg-accent-hover">
+    <li className="stg:px-3.5 stg:py-2.5">
       <p className="stg:text-foreground stg:text-xs">{sentence}</p>
       <p className="stg:text-muted-foreground stg:text-2xs">
         {when ? `${when} · ` : ""}

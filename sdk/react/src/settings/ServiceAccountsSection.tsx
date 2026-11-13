@@ -30,6 +30,7 @@ import { CreateServiceAccountForm } from "../service-account/CreateServiceAccoun
 import { ServiceAccountDetailPanel } from "../service-account/ServiceAccountDetailPanel.js";
 import { ServiceAccountListPanel } from "../service-account/ServiceAccountListPanel.js";
 import { Button } from "../button/Button.js";
+import { Card } from "../internal/surface/Card.js";
 import { NoOrganization } from "./NoOrganization.js";
 import { SettingsPage } from "./SettingsPage.js";
 import { SettingsSkeleton } from "./SettingsSkeleton.js";
@@ -103,18 +104,18 @@ export function ServiceAccountsSection() {
         <SettingsSkeleton label="Loading service accounts" rows={3} />
       ) : flow.phase === "creating" ? (
         <div className="stg:space-y-4">
-          <div className="stg:border-border stg:bg-card stg:rounded-lg stg:border stg:p-4">
+          <Card>
             <CreateServiceAccountForm
               org={org}
               onCreated={refetchList}
               onDone={backToList}
               onCancel={() => setFlow({ phase: "idle" })}
             />
-          </div>
+          </Card>
           <ServiceAccountListPanel org={org} onRefetchRef={handleRefetchRef} />
         </div>
       ) : flow.phase === "viewing" ? (
-        <div className="stg:border-border stg:bg-card stg:rounded-lg stg:border stg:p-4">
+        <Card>
           <ServiceAccountDetailPanel
             key={flow.serviceAccount.metadata?.id ?? ""}
             serviceAccount={flow.serviceAccount}
@@ -123,7 +124,7 @@ export function ServiceAccountsSection() {
             onDeleted={backToList}
             onBack={backToList}
           />
-        </div>
+        </Card>
       ) : (
         <ServiceAccountListPanel
           org={org}

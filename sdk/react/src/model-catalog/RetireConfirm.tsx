@@ -5,6 +5,7 @@ import { getUserMessage } from "@stigmer/client";
 import type { ModelPricingBaseline } from "@stigmer/apis/ai/stigmer/billing/v1/model_pricing_baseline_pb";
 import { Button } from "../button/index.js";
 import { INPUT_CLASSES } from "../internal/form-primitives.js";
+import { Card } from "../internal/surface/Card.js";
 
 // ---------------------------------------------------------------------------
 // RetireConfirm — typed confirmation for retiring a catalog entry (a
@@ -31,7 +32,7 @@ export function RetireConfirm({
   const confirmed = typed === target.modelId;
 
   return (
-    <div className="stg:space-y-2 stg:rounded-lg stg:border stg:border-destructive stg:bg-card stg:px-3 stg:py-3">
+    <Card className="stg:space-y-2 stg:border-destructive">
       <h4 className="stg:text-xs stg:font-semibold stg:text-foreground">
         Retire {target.displayName || target.modelId}?
       </h4>
@@ -76,6 +77,6 @@ export function RetireConfirm({
           Cancel
         </Button>
       </div>
-    </div>
+    </Card>
   );
 }

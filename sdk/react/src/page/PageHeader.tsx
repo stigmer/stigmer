@@ -43,12 +43,12 @@ export interface PageHeaderProps {
 export function PageHeader({ title, description, actions, headingLevel = 1, headingId, className }: PageHeaderProps) {
   const Heading = headingLevel === 1 ? "h1" : "h2";
   return (
-    <header className={cn("stg:flex stg:flex-col stg:gap-1", className)}>
+    <header className={cn("stg:flex stg:flex-col stg:gap-2", className)}>
       <div className="stg:flex stg:min-h-8 stg:flex-wrap stg:items-center stg:justify-between stg:gap-x-6 stg:gap-y-2">
         <Heading id={headingId} className="stg:m-0 stg:text-xl stg:font-semibold stg:tracking-tight stg:text-foreground">
           {title}
         </Heading>
-        {actions != null && actions !== false && <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-2">{actions}</div>}
+        {actions != null && actions !== false && <div className="stg:flex stg:flex-wrap stg:items-center stg:gap-2">{actions}</div>}
       </div>
       {description != null && <p className="stg:m-0 stg:max-w-2xl stg:text-sm stg:text-muted-foreground">{description}</p>}
     </header>

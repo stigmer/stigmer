@@ -21,6 +21,7 @@ import {
   toast,
   type WorkbenchColumnDef,
   createLibraryListFn,
+  PageHeader,
 } from "@stigmer/react-sdk";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { SearchResult } from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
@@ -102,12 +103,17 @@ export default function SkillListPage() {
 
   return (
     <>
-      <div className="mb-6">
-        <h1 className="text-foreground text-xl font-semibold">Skills</h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          Browse and manage skills in your organization.
-        </p>
-      </div>
+      <PageHeader
+        className="mb-6"
+        headingLevel={1}
+        title="Skills"
+        description="Browse and manage skills in your organization."
+        actions={
+          <LinkButton href="/library/skills/new" icon={<Plus className="size-3.5" aria-hidden="true" />} renderLink={renderJourneyLink}>
+            Upload skill
+          </LinkButton>
+        }
+      />
 
       <ResourceWorkbench
         refetchToken={refetchToken}
@@ -121,11 +127,6 @@ export default function SkillListPage() {
         emptyIcon={<Sparkles className="size-10" aria-hidden="true" />}
         emptyTitle="No skills yet"
         emptyDescription="Upload a skill package to provide reusable instructions and context for your agents."
-        headerAction={
-          <LinkButton href="/library/skills/new" icon={<Plus className="size-3.5" aria-hidden="true" />} renderLink={renderJourneyLink}>
-            Upload skill
-          </LinkButton>
-        }
         emptyAction={
           <LinkButton href="/library/skills/new" icon={<Plus className="size-3.5" aria-hidden="true" />} renderLink={renderJourneyLink}>
             Upload skill
