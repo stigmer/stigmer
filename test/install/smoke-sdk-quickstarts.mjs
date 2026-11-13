@@ -29,6 +29,18 @@
  * Its cases are top-level `node:test` cases titled with the UX bar's promise
  * (test/ux-bar.json SDK-01), read by scripts/ux-bar.mjs and the scorecard.
  *
+ * Then the token routes the console hands a builder (`buildAppHandover`,
+ * sdk/typescript/src/app-handover.ts; the UX bar's CON-10), each run as
+ * written: Python, Go and Java with the same toolchains, Node and Next.js
+ * with tsx. They mint, so they need a Stigmer that signs its callers in,
+ * which `stigmer up` is not: a second server, from the built entry, trusts
+ * test/support's hermetic issuer and is made ready as the console's tab
+ * makes it (lib/signed-in-server.mjs). Each route, given the service
+ * account's key and STIGMER_DEV_USER, must answer one GET with a token the
+ * server reads as an app user's; started without STIGMER_DEV_USER, it must
+ * refuse with 401. The address is http://, so Go, Python and Java take their
+ * SDK's plaintext option, the branch a server on a laptop takes.
+ *
  * Usage:
  *   node test/install/smoke-sdk-quickstarts.mjs [--keep] [--maven-repo=<dir>] [--fake-model=error]
  *   --keep              keep this run's folder and the stack's home.
@@ -37,11 +49,13 @@
  *   --fake-model=error  every model call fails: each quick start must then
  *                       print the server's words and exit non-zero, which is
  *                       how this smoke is shown red.
- * `make smoke-sdk-quickstarts` builds what the source CLI needs first.
+ * `make smoke-sdk-quickstarts` builds what the source CLI needs first, and the
+ * workspace libraries the handover's writer and client come from.
  * Needs node, go, python3, java and mvn on PATH.
  */
-import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { spawn, spawnSync } from "node:child_process";
+import { copyFileSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { createServer } from "node:net";
 import { homedir, tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import process from "node:process";
@@ -50,6 +64,7 @@ import { fileURLToPath } from "node:url";
 import { anthropicText } from "../support/src/llm-wire.ts";
 import { fakeModelEnv, isTitleCall, parseFakeModelArg, startFakeModel } from "./lib/fake-model.mjs";
 import { CLI_SERVER_PORT, createCliInstall, spawnCommand } from "./lib/install-cli.mjs";
+import { startSignedInServer } from "./lib/signed-in-server.mjs";
 import { assertPortFree } from "./lib/stigmer-smoke.mjs";
 
 const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
@@ -94,6 +109,7 @@ const mavenRepo = args.mavenRepo === "" ? join(scratch, "m2") : args.mavenRepo;
 let fake;
 let stack;
 let shell;
+let signedIn;
 let failed = false;
 
 /** Runs a line in bash in `cwd` with the developer's shell; throws on a non-zero exit. */
@@ -144,6 +160,10 @@ before(async () => {
 });
 
 after(async () => {
+  if (signedIn !== undefined) {
+    if (failed) console.error(signedIn.logTail());
+    await signedIn.stop();
+  }
   if (stack !== undefined) {
     if (failed) console.error(stack.diagnostics());
     await stack.stop({ keepHome: failed || args.keep });
@@ -168,8 +188,10 @@ test("SDK-01 the Go quick start prints the agent's answer", () =>
     await runQuickStart("go run ./examples/quickstart", join(repoRoot, "sdk", "go"));
   }));
 
-test("SDK-01 the Python quick start prints the agent's answer", () =>
-  guarded(async () => {
+/** A virtual environment with the in-tree stubs and SDK installed, made once: its python. */
+let pythonMade;
+function pythonVenv() {
+  pythonMade ??= (async () => {
     const venv = join(scratch, "venv");
     const python = join(venv, "bin", "python");
     await run(`python3 -m venv ${shellQuote(venv)}`, scratch);
@@ -177,11 +199,15 @@ test("SDK-01 the Python quick start prints the agent's answer", () =>
       `${shellQuote(python)} -m pip install --quiet --disable-pip-version-check ${shellQuote(join(repoRoot, "apis", "stubs", "python", "stigmer"))} ${shellQuote(join(repoRoot, "sdk", "python"))}`,
       scratch,
     );
-    await runQuickStart(`${shellQuote(python)} examples/quickstart.py`, join(repoRoot, "sdk", "python"));
-  }));
+    return python;
+  })();
+  return pythonMade;
+}
 
-test("SDK-01 the Java quick start prints the agent's answer", () =>
-  guarded(async () => {
+/** The stubs and SDK installed into the Maven repository, made once: the `-cp` a single-file program runs with. */
+let javaMade;
+function javaClasspath() {
+  javaMade ??= (async () => {
     mkdirSync(mavenRepo, { recursive: true });
     const repo = `-Dmaven.repo.local=${shellQuote(mavenRepo)}`;
     await run(`mvn -q -B install -DskipTests ${repo}`, join(repoRoot, "apis", "stubs", "java"));
@@ -193,8 +219,186 @@ test("SDK-01 the Java quick start prints the agent's answer", () =>
       encoding: "utf8",
     }).stdout.trim();
     if (sdkJar === "") throw new Error("the Java SDK's install left no target/stigmer-sdk-*.jar");
-    await runQuickStart(
-      `java -cp ${shellQuote(sdkJar)}:"$(cat ${shellQuote(classpathFile)})" examples/Quickstart.java`,
-      join(repoRoot, "sdk", "java"),
+    return `${shellQuote(join(repoRoot, "sdk", "java", sdkJar))}:"$(cat ${shellQuote(classpathFile)})"`;
+  })();
+  return javaMade;
+}
+
+test("SDK-01 the Python quick start prints the agent's answer", () =>
+  guarded(async () => {
+    const python = await pythonVenv();
+    await runQuickStart(`${shellQuote(python)} examples/quickstart.py`, join(repoRoot, "sdk", "python"));
+  }));
+
+test("SDK-01 the Java quick start prints the agent's answer", () =>
+  guarded(async () => {
+    const classpath = await javaClasspath();
+    await runQuickStart(`java -cp ${classpath} examples/Quickstart.java`, join(repoRoot, "sdk", "java"));
+  }));
+
+// ---------------------------------------------------------------------------
+// The token routes the console hands a builder
+// ---------------------------------------------------------------------------
+
+/** The person a route signs in while its builder has not wired their own sign-in. */
+const DEV_USER = "dana@handover.stigmer.test";
+/** How long a route may take to answer its first request: Go and Java compile first. */
+const ROUTE_READY_MS = 300_000;
+/** An app user, as the server provisions one (IdentityAccountProvisioningMode.app_user). */
+const APP_USER = 4;
+
+/** A port nothing listens on now. */
+function freePort() {
+  return new Promise((resolvePort, reject) => {
+    const probe = createServer();
+    probe.once("error", reject);
+    probe.listen(0, "127.0.0.1", () => {
+      const { port } = probe.address();
+      probe.close(() => resolvePort(port));
+    });
+  });
+}
+
+/** The handover's writer, as the workspace's build emits it. */
+async function handoverFor(stack) {
+  signedIn ??= await startSignedInServer({ log });
+  const { buildAppHandover } = await import(new URL("../../sdk/typescript/dist/app-handover.js", import.meta.url).href);
+  const { backend } = buildAppHandover({ mode: "sign-in", stack, baseUrl: signedIn.baseUrl, org: signedIn.orgSlug, agent: "greeter" });
+  if (backend === undefined) throw new Error(`the handover wrote no ${stack} route`);
+  return backend;
+}
+
+/** Writes the route's file into a folder of its own (its path may hold folders). */
+function writeRoute(folder, backend) {
+  const file = join(folder, backend.file);
+  mkdirSync(join(file, ".."), { recursive: true });
+  writeFileSync(file, backend.code);
+  log(`wrote ${backend.file} in ${folder}`);
+}
+
+/** Starts a route's process and asks GET /api/stigmer-token until it answers (any status); kills it after. */
+async function askRoute(command, cwd, { devUser }) {
+  const port = await freePort();
+  const env = { ...shell, STIGMER_API_KEY: signedIn.apiKey, PORT: String(port) };
+  if (devUser) env.STIGMER_DEV_USER = DEV_USER;
+  else delete env.STIGMER_DEV_USER;
+  log(`$ ${command} (port ${port}${devUser ? `, STIGMER_DEV_USER=${DEV_USER}` : ", no STIGMER_DEV_USER"})`);
+  const child = spawn("bash", ["-c", command], { cwd, env, stdio: ["ignore", "pipe", "pipe"], detached: true });
+  let output = "";
+  child.stdout.on("data", (chunk) => (output += chunk));
+  child.stderr.on("data", (chunk) => (output += chunk));
+  let exited = false;
+  child.once("exit", () => (exited = true));
+  try {
+    const deadline = Date.now() + ROUTE_READY_MS;
+    while (Date.now() < deadline) {
+      if (exited) throw new Error(`${command} exited before answering:
+${output}`);
+      try {
+        const res = await fetch(`http://127.0.0.1:${port}/api/stigmer-token`);
+        return { status: res.status, body: await res.text() };
+      } catch {
+        await new Promise((r) => setTimeout(r, 500));
+      }
+    }
+    throw new Error(`${command} did not answer within ${ROUTE_READY_MS} ms:
+${output}`);
+  } finally {
+    if (!exited) process.kill(-child.pid, "SIGKILL");
+  }
+}
+
+/** Holds a route's two answers to the promise: a token the server reads as an app user's, then a refusal. */
+async function holdRoute(stack, signedInAnswer, refusedAnswer) {
+  if (signedInAnswer.status !== 200) throw new Error(`the ${stack} route answered ${signedInAnswer.status}: ${signedInAnswer.body}`);
+  const { accessToken, expiresAt } = JSON.parse(signedInAnswer.body);
+  if (!(new Date(expiresAt).getTime() > Date.now())) throw new Error(`the ${stack} route's expiresAt is not a future time: ${expiresAt}`);
+  const mode = await signedIn.provisioningModeOf(accessToken);
+  if (mode !== APP_USER) throw new Error(`the ${stack} route's token names an account provisioned as ${mode}, not an app user`);
+  if (refusedAnswer.status !== 401) throw new Error(`with nobody signed in, the ${stack} route answered ${refusedAnswer.status}, not 401: ${refusedAnswer.body}`);
+  log(`the ${stack} route answered a token for an app user, and refused with nobody signed in`);
+}
+
+/** Runs a route twice, signed in and not, and holds it to the promise. */
+async function runRoute(stack, command, cwd) {
+  const signedInAnswer = await askRoute(command, cwd, { devUser: true });
+  const refusedAnswer = await askRoute(command, cwd, { devUser: false });
+  await holdRoute(stack, signedInAnswer, refusedAnswer);
+}
+
+/** A folder whose `node_modules` is the workspace's, so the TypeScript routes resolve the client as a builder's install does. */
+function nodeFolder(name) {
+  const folder = join(scratch, name);
+  mkdirSync(folder, { recursive: true });
+  symlinkSync(join(repoRoot, "node_modules"), join(folder, "node_modules"), "dir");
+  return folder;
+}
+
+const TSX = shellQuote(join(repoRoot, "node_modules", ".bin", "tsx"));
+
+test("CON-10 the handed-over Python token route answers a token for an app user, and refuses when nobody is signed in", () =>
+  guarded(async () => {
+    const python = await pythonVenv();
+    const backend = await handoverFor("python");
+    const folder = join(scratch, "route-python");
+    writeRoute(folder, backend);
+    await runRoute("python", `exec ${shellQuote(python)} ${backend.file}`, folder);
+  }));
+
+test("CON-10 the handed-over Go token route answers a token for an app user, and refuses when nobody is signed in", () =>
+  guarded(async () => {
+    const backend = await handoverFor("go");
+    const folder = join(scratch, "route-go");
+    writeRoute(folder, backend);
+    // A builder's own module, joined to the SDK in this tree as go.work joins it.
+    writeFileSync(join(folder, "go.mod"), "module example.com/handover\n\ngo 1.25.6\n");
+    writeFileSync(
+      join(folder, "go.work"),
+      `go 1.25.6\n\nuse (\n\t.\n\t${join(repoRoot, "sdk", "go")}\n\t${join(repoRoot, "apis", "stubs", "go")}\n)\n\nreplace google.golang.org/genproto => google.golang.org/genproto v0.0.0-20260519071638-aa98bba5eb94\n`,
     );
+    copyFileSync(join(repoRoot, "go.work.sum"), join(folder, "go.work.sum"));
+    await run("go build -o route .", folder);
+    await runRoute("go", "exec ./route", folder);
+  }));
+
+test("CON-10 the handed-over Java token route answers a token for an app user, and refuses when nobody is signed in", () =>
+  guarded(async () => {
+    const classpath = await javaClasspath();
+    const backend = await handoverFor("java");
+    const folder = join(scratch, "route-java");
+    writeRoute(folder, backend);
+    await runRoute("java", `exec java -cp ${classpath} ${backend.file}`, folder);
+  }));
+
+test("CON-10 the handed-over Node token route answers a token for an app user, and refuses when nobody is signed in", () =>
+  guarded(async () => {
+    const backend = await handoverFor("node");
+    const folder = nodeFolder("route-node");
+    writeRoute(folder, backend);
+    await runRoute("node", `exec ${TSX} ${backend.file}`, folder);
+  }));
+
+test("CON-10 the handed-over Next.js route handler answers a token for an app user, and refuses when nobody is signed in", () =>
+  guarded(async () => {
+    const backend = await handoverFor("nextjs");
+    const folder = nodeFolder("route-nextjs");
+    writeRoute(folder, backend);
+    // A Next.js app's modules are ES modules, and the runner below awaits at its top.
+    writeFileSync(join(folder, "package.json"), '{ "type": "module" }\n');
+    // Next.js calls the module's GET with the request; so does this.
+    writeFileSync(
+      join(folder, "ask.ts"),
+      [
+        `import { GET } from "./${backend.file}";`,
+        `const res = await GET(new Request("http://localhost/api/stigmer-token"));`,
+        `console.log(JSON.stringify({ status: res.status, body: await res.text() }));`,
+        "",
+      ].join("\n"),
+    );
+    const ask = async (devUser) => {
+      const env = devUser ? `STIGMER_DEV_USER=${shellQuote(DEV_USER)} ` : "";
+      const result = await run(`STIGMER_API_KEY=${shellQuote(signedIn.apiKey)} ${env}${TSX} ask.ts`, folder);
+      return JSON.parse(result.stdout.trim().split("\n").at(-1));
+    };
+    await holdRoute("nextjs", await ask(true), await ask(false));
   }));

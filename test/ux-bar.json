@@ -256,6 +256,10 @@
       "promise": "After the first job, the console says what comes next and leads to making the agent theirs: change its instructions, run it on their own file, give it a skill."
     },
     {
+      "id": "CON-10",
+      "promise": "The console hands over what puts an agent in the builder's own app, for their stack, with their organization and agent filled in, makes what the route needs in place, and says when their app's first user arrives."
+    },
+    {
       "id": "DSK-01",
       "promise": "Clicking the Dock icon reopens a closed window.",
       "pending": [

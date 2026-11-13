@@ -12,7 +12,8 @@
 //   - Admin service accounts: the accounts a backend's key can mint with
 //     (minting is an admin's), by their direct organization role.
 //
-// The list has no page, so it is read whole, as the members page reads it;
+// The list has no page (stigmer#3072), so it is read whole, as the members
+// page reads it;
 // a surface waiting for the first app user polls it (`refetchInterval`) and
 // stops once one arrives. Asked only with `can_view_access` (fail closed),
 // which every member of an organization holds: a host whose model differs

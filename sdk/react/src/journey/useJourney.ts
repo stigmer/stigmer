@@ -26,7 +26,7 @@
 //   6 Bring others in        not read yet: never done
 //
 // Nothing is stored: every answer is a read the server already serves. The
-// access list has no page, so step 5 reads it whole wherever the journey
+// access list has no page (stigmer#3072), so step 5 reads it whole wherever the journey
 // shows, as the members page does on every visit. The version read is made
 // only for journey agents
 // (`journey-agents.ts`), newest first, stopping at the first agent with a

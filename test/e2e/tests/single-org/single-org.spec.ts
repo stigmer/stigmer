@@ -13,6 +13,9 @@ import { SINGLE_ORG_STACK } from "../../fixtures/single-org";
  * - the journey reads the same: the dashboard's card "From first agent to
  *   your users" stands in the figures' place while nothing has run, and an
  *   example's agent offers its "Make it yours" tab, opened by its link;
+ * - an agent's "In your app" tab hands over the chat for development, with
+ *   no service account, sign-in switch or first-user row: a server that
+ *   trusts every caller signs nobody in;
  * - the library opens straight away: no create-an-organization onboarding,
  *   and no organization switcher in the sidebar;
  * - settings name no organization: the first group is "General", with no
@@ -63,6 +66,28 @@ test.describe("the console on a server that holds one organization", () => {
       for (const act of ["Change what it does", "Try your own file", "Give it a skill"]) {
         await expect(page.getByRole("region", { name: act })).toBeVisible();
       }
+    } finally {
+      await stigmerClient.agent.delete(agent.metadata?.id ?? "");
+    }
+  });
+
+  test("CON-10 an agent's In your app tab hands over the development chat, and nothing a server that signs people in needs", async ({ page, stigmerClient }) => {
+    const agent = await stigmerClient.agent.create({
+      name: "Variance Reporter",
+      slug: "variance-reporter",
+      org: "",
+      instructions: "Flag each account more than 10% over or under budget.",
+    });
+    try {
+      await page.goto(`/library/agents/${agent.metadata?.org ?? ""}/variance-reporter?tab=in-app`);
+      await expect(page.getByRole("tab", { name: "In your app", selected: true })).toBeVisible({ timeout: 15_000 });
+      await expect(page.getByText(/trusts every caller, so your app talks to it with no sign-in/)).toBeVisible();
+      const chat = page.getByRole("region", { name: "StigmerAgentChat.tsx" });
+      await expect(chat).toContainText("getAccessToken: () => null");
+      await expect(chat).toContainText("/variance-reporter\"}");
+      await expect(page.getByText("A service account for your backend")).toHaveCount(0);
+      await expect(page.getByRole("switch")).toHaveCount(0);
+      await expect(page.getByText("Your first user from your app")).toHaveCount(0);
     } finally {
       await stigmerClient.agent.delete(agent.metadata?.id ?? "");
     }
