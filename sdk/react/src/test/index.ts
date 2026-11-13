@@ -27,6 +27,7 @@ export {
   type StepStoryName,
   type EndingStoryName,
   type ToolOutput,
+  type Draft,
   type Scenario,
   type ScenarioName,
   type ScenarioUsage,

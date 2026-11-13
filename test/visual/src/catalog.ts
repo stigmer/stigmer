@@ -162,6 +162,7 @@ export interface Scene {
 export const THREAD_STATES = [
   "loading",
   "empty",
+  "thinking",
   "streaming",
   "tools",
   "approval",
@@ -189,7 +190,14 @@ export const THREAD_DRAWN_ELSEWHERE: Readonly<Partial<Record<ScenarioName, strin
 export type SessionSceneName = (typeof SESSION_SCENES)[number]["id"] extends `session-${infer Name}` ? Name : never;
 
 const SESSION_SCENES = [
+  { id: "session-thinking", title: "Session: the agent thought, read a file, and is thinking again, in the console", widths: ["desktop", "narrow"] },
   { id: "session-busy", title: "Session: a long turn at work, in the console", widths: ["desktop", "narrow"] },
+  { id: "session-helper", title: "Session: a helper agent at work on part of the job, in the console", widths: ["desktop", "narrow"] },
+  {
+    id: "session-file-progress",
+    title: "Session: the long turn at work, with the files it is changing counted above the composer",
+    widths: ["desktop", "narrow"],
+  },
   { id: "session-approval", title: "Session: a tool call waits for approval, in the console", widths: ["desktop", "narrow"] },
   {
     id: "session-finished",
@@ -197,12 +205,23 @@ const SESSION_SCENES = [
     widths: ["desktop", "narrow"],
   },
   {
+    id: "session-file-review",
+    title: "Session: the turn ended and its two file edits wait above the composer for Keep or Undo",
+    widths: ["desktop", "narrow"],
+  },
+  {
+    id: "session-plan-build",
+    title: "Session: a Plan-mode turn finished and returned its plan, shown as a card with Build",
+    widths: ["desktop", "narrow"],
+  },
+  {
     id: "session-inspector",
     title: "Session: the finished turn with the console's panel open on a File it returned",
+    // Desktop only: at phone width the panel lists the File by its size, not its kind, so the act that opens it differs.
     widths: ["desktop"],
     opens: ["Show panel", "invoice-audit.md Markdown"],
   },
-  { id: "session-failed", title: "Session: a failed turn, in the console", widths: ["desktop"] },
+  { id: "session-failed", title: "Session: a failed turn, in the console", widths: ["desktop", "narrow"] },
   {
     id: "session-end-user",
     title: "Session: a long turn at work, inside a customer's product (no inspector)",
@@ -210,6 +229,11 @@ const SESSION_SCENES = [
   },
   { id: "session-guest", title: "Session: the finished turn, for a chat link's guest", widths: ["desktop", "narrow"] },
   { id: "session-observer", title: "Session: the finished turn, for a reviewer who reads it", widths: ["desktop"] },
+  {
+    id: "session-participant",
+    title: "Session: a tool call waits for approval, for a teammate who can send but leaves the approval to the owner",
+    widths: ["desktop", "narrow"],
+  },
   { id: "session-load-failed", title: "Session: the conversation cannot load", widths: ["desktop"] },
   {
     id: "session-steps-opened",
@@ -599,6 +623,7 @@ export const PRESETS = ["corporate", "startup", "friendly", "fintech", "monochro
 const THREAD_TITLES: Readonly<Record<(typeof THREAD_STATES)[number], string>> = {
   loading: "the thread while the session loads",
   empty: "a new session with no turns",
+  thinking: "the agent's thinking: one thought settled, one under way",
   streaming: "the agent's reply streaming",
   tools: "tool calls: one returned, one still running",
   approval: "a tool call waiting for approval, with its decision",

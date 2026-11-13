@@ -242,6 +242,14 @@ describe("samples", () => {
       const frame = samples.toolOutputDeltaFrame("tu-1", "PASS\n");
       expect(frame.frame).toEqual({ case: "stigmerToolOutputDelta", value: expect.objectContaining({ toolUseId: "tu-1", delta: "PASS\n" }) });
     });
+
+    it("opens a thought or a message the stream has begun as a frame, under the id its stored event will carry", () => {
+      const run = samples.run().metadata!.id;
+      const thought = samples.draftFrame(`${run}.root.t1`, "thinking");
+      expect(thought.frame.case === "eventStart" && thought.frame.value.event).toMatchObject({ id: `${run}.root.t1`, type: "agent.thinking" });
+      const message = samples.draftFrame(`${run}.root.m1`, "message");
+      expect(message.frame.case === "eventStart" && message.frame.value.event).toMatchObject({ type: "agent.message" });
+    });
   });
 
   describe("output File primitive", () => {
@@ -334,6 +342,7 @@ describe("samples determinism", () => {
     turn: () => samples.turn(),
     toolUse: () => samples.toolUse("lookup_order", "{}"),
     sessionEventList: () => samples.sessionEventList(samples.turnEvents()),
+    draftFrame: () => samples.draftFrame("run.root.t0", "thinking"),
     eventFrame: () => samples.eventFrame(samples.userMessageEvent("x")),
     backgroundCommandStatusEvent: () => samples.backgroundCommandStatusEvent("tu", { phase: "ended", exitCode: 0 }),
     toolOutputDeltaFrame: () => samples.toolOutputDeltaFrame("tu", "x"),
