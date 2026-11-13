@@ -36,6 +36,13 @@
 //     next request after the list changes; a request without an Origin header
 //     never is.
 //
+// What a minted token never does, whatever its sign-in role: create an API
+// key, a service account or a child organization, or delete its own account
+// (stigmer#2955). It is meant to end in 15 minutes and with its minter, so it
+// leaves no lasting credential and no membership change behind; refused
+// PERMISSION_DENIED with the pinned copy, and the token still works for the
+// product (its keys listed, a session created).
+//
 // Who changes the settings: a service account's key is refused, whatever its
 // role, and a member is refused.
 //
@@ -50,7 +57,8 @@ import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
-import { organizationSlug } from "../support/organizations";
+import { makeApiKey } from "../support/apikeys";
+import { createChildOrganization, organizationSlug } from "../support/organizations";
 import { makeSession } from "../support/sessions";
 import { uniqueName } from "../support/naming";
 import {
@@ -79,6 +87,10 @@ const DELETED_MINTER_MESSAGE =
   "The service account that minted this token has been deleted, so the " +
   "token is no longer accepted. Mint a new user token with an active " +
   "service account's key.";
+
+function mintedTokenRefusedMessage(act: string): string {
+  return `a user token minted for an app user cannot ${act}; an organization admin must do it`;
+}
 
 function originRefusalMessage(origin: string): string {
   return (
@@ -343,6 +355,61 @@ describe.skipIf(!enforcementServed)(
         .clientsPresenting(token, { origin: "https://ALLOWED.example" })
         .organizationQuery.listMine({});
       await lane.clientsPresenting(token).organizationQuery.listMine({});
+    });
+  },
+);
+
+describe.skipIf(!enforcementServed)(
+  "user-token enforcement — what a minted token never does (userTokens targets)",
+  () => {
+    it("[rpc:ApiKeyCommandController.create] [rpc:IdentityAccountCommandController.createServiceAccount] [rpc:OrganizationCommandController.create] [rpc:IdentityAccountCommandController.delete] an app user signed in as an admin creates no key, service account or child organization, and cannot delete their own account", async () => {
+      const context = await tenancy({ signInRole: IamRole.admin });
+      const admin = await minter(context.org);
+      const asUser = lane.clientsPresenting(
+        await mintUserToken(admin.as, context.org, uniqueName("user")),
+      );
+      const accountId = await lane.accountIdOf(asUser);
+
+      const refusals: ReadonlyArray<readonly [string, string, () => Promise<unknown>]> = [
+        [
+          "create API keys",
+          "an API key created with a minted token",
+          () => asUser.apiKeyCommand.create(makeApiKey({ org: context.org, name: uniqueName("key") })),
+        ],
+        [
+          "create service accounts",
+          "a service account created with a minted token",
+          () =>
+            asUser.identityAccountCommand.createServiceAccount({
+              org: context.org,
+              name: uniqueName("robot"),
+              role: IamRole.admin,
+            }),
+        ],
+        [
+          "create organizations",
+          "a child organization created with a minted token",
+          () => createChildOrganization(asUser.organizationCommand, context.org, "a minted token's child"),
+        ],
+        [
+          "change or delete identity accounts",
+          "an app user deleting their own account with a minted token",
+          () => asUser.identityAccountCommand.delete({ value: accountId }),
+        ],
+      ];
+      for (const [act, label, attempt] of refusals) {
+        const refused = await expectGrpcCode(attempt, Code.PermissionDenied, label);
+        expect(refused.rawMessage, label).toBe(mintedTokenRefusedMessage(act));
+      }
+
+      // Nothing lasting was left, and the token still works for the product.
+      expect(await lane.accountIdOf(asUser), "the app user's account still exists").toBe(accountId);
+      const keys = await asUser.apiKeyQuery.listByAccount({ accountId });
+      expect(keys.entries, "the app user holds no key").toEqual([]);
+      const session = await asUser.sessionCommand.create(
+        makeSession({ org: context.org, name: uniqueName("user-session") }),
+      );
+      fixtures.defer(() => asUser.sessionCommand.delete({ value: session.metadata!.id }));
     });
   },
 );

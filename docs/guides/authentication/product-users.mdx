@@ -326,6 +326,12 @@ All SDKs return structured errors with actionable messages:
 - Tokens live 15 minutes. Deleting the service account ends every token it
   minted on its next request; rotating its key does not, so a rotation never
   signs your users out.
+- A minted token leaves nothing behind that outlives it: it cannot create an API
+  key, a service account or an Organization, change a role in the Organization,
+  or change or delete the user's account. Otherwise a user you removed, or
+  anyone holding a stolen browser token, could keep working with a key that
+  never expires, or delete their account so the next mint re-creates it with the
+  sign-in role.
 - The email and name you pass to `mintUserToken` are your assertion. Stigmer
   shows them and grants nothing because of them.
 - Tokens are signed by the server's own platform-token key and verified
@@ -381,9 +387,15 @@ origin is not in the allowed origins. Add it under Settings > Embedding.
 A minted token works only in the Organization it was minted for, and in that
 Organization's children as far as the user's role allows, whatever roles the
 user holds elsewhere. `PERMISSION_DENIED` on a call that names another
-Organization's resource means the token is bound elsewhere. The token can still
-reach the user's own account and API keys, and, in a child organization, read
-and run the Agents, Skills and Plugins its parent shares with its children.
+Organization's resource means the token is bound elsewhere. The token can read
+the user's own account and list or delete their API keys, and, in a child
+organization, read and run the Agents, Skills and Plugins its parent shares with
+its children. It cannot create or change an API key, a service account, an
+Organization or anyone's role in the Organization, nor change or delete the
+account, whatever role the user holds: those calls fail with
+`PERMISSION_DENIED`, and an Organization admin does them. An admin removing an
+app user's account is tracked in
+[stigmer#3104](https://github.com/stigmer/stigmer/issues/3104).
 
 </Step>
 </Steps>
