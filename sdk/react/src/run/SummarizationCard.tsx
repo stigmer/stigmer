@@ -41,7 +41,7 @@ export const SummarizationCard = memo(function SummarizationCard({
       <div className="stg:flex stg:min-w-0 stg:flex-1 stg:items-baseline stg:gap-1.5 stg:text-xs stg:font-medium stg:text-muted-foreground">
         <span>Context compacted</span>
         {compacted.processedAt && (
-          <time dateTime={compacted.processedAt} className="stg:ml-auto stg:tabular-nums stg:text-muted-foreground-subtle">
+          <time dateTime={compacted.processedAt} className="stg:ml-auto stg:tabular-nums stg:text-muted-foreground">
             {formatTime(compacted.processedAt)}
           </time>
         )}
