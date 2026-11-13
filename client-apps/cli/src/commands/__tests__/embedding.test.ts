@@ -57,6 +57,14 @@ describe("embeddingResult", () => {
     ]);
     expect(result.hints).toEqual([]);
   });
+  it("names a role set does not offer by its own name", () => {
+    const organization = create(OrganizationSchema, {
+      metadata: { slug: "acme" },
+      spec: { embedding: { createAccountsOnSignIn: true, signInRole: IamRole.owner } },
+    });
+    expect(embeddingResult(organization, "Embedding settings").sections[0]?.fields[2]).toEqual({ key: "Their role", value: "owner" });
+  });
+
   it("says how to let an app's users in when creation is off", () => {
     const result = embeddingResult(create(OrganizationSchema, { metadata: { slug: "acme" } }), "Embedding settings");
     expect(result.sections[0]?.fields[1]).toEqual({ key: "Accounts on sign-in", value: "off: your app makes them first" });

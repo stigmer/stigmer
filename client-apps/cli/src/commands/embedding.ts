@@ -176,7 +176,8 @@ export function embeddingResult(organization: Organization, message: string): Co
 
 function roleWord(role: IamRole): string {
   for (const [word, value] of ROLES) if (value === role) return word;
-  return "none";
+  // A role `set` does not offer (an organization that holds one from before): its own name.
+  return IamRole[role] ?? "none";
 }
 
 /** A refusal in plain words, or undefined for any other failure. */
