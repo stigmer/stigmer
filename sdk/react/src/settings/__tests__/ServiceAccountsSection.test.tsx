@@ -131,6 +131,7 @@ function answering(authenticationRequired: boolean | undefined): UseServerInfoRe
     },
     isLoading: false,
     error: null,
+    refetch: () => {},
   };
 }
 
@@ -201,7 +202,7 @@ describe("ServiceAccountsSection's posture gate", () => {
   });
 
   it("offers no create button while the server's answer loads", () => {
-    serverInfo = { serverInfo: null, isLoading: true, error: null };
+    serverInfo = { serverInfo: null, isLoading: true, error: null, refetch: () => {} };
     render(<ServiceAccountsSection />);
     expect(screen.queryByRole("button", NEW_BUTTON)).toBeNull();
   });

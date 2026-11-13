@@ -29,6 +29,7 @@ interface ViewProps {
   sessionHref?: (sessionId: string) => string;
   onConnectExternal?: unknown;
   makeItYours?: unknown;
+  inApp?: unknown;
   activeTab?: string;
 }
 
@@ -168,6 +169,16 @@ describe("web AgentDetailPageInner", () => {
     const view = page.view.at(-1);
     expect(view?.makeItYours).toBe(JOURNEY_LINKS);
     expect(view?.activeTab).toBe("make-it-yours");
+    window.history.replaceState({}, "", "/");
+  });
+
+  it("offers the view's In your app tab with the console's settings routes, and opens it from the journey's link", () => {
+    window.history.replaceState({}, "", "/library/agents/acme/variance-reporter?tab=in-app");
+    render(<AgentDetailPageInner org="acme" slug="variance-reporter" />);
+
+    const view = page.view.at(-1);
+    expect(view?.inApp).toBe(JOURNEY_LINKS);
+    expect(view?.activeTab).toBe("in-app");
     window.history.replaceState({}, "", "/");
   });
 });

@@ -57,11 +57,13 @@ import { keptReference } from "../internal/kept-reference.js";
 import type { RenamedResource } from "../resource-detail/useRenameResource.js";
 import { MakeItYoursTab, type MakeItYoursLinks } from "../journey/MakeItYoursTab.js";
 import { isJourneyAgentSlug } from "../journey/journey-agents.js";
+import { InAppTab, type InAppLinks } from "../app-handover/InAppTab.js";
 
 const INSTRUCTIONS_COLLAPSED_HEIGHT = "12rem";
 
 const MAKE_IT_YOURS_TAB: TabItem = { id: "make-it-yours", label: "Make it yours" };
 const OVERVIEW_TAB: TabItem = { id: "overview", label: "Overview" };
+const IN_APP_TAB: TabItem = { id: "in-app", label: "In your app" };
 const CHANNELS_TAB: TabItem = { id: "channels", label: "Channels" };
 const QUALITY_TAB: TabItem = { id: "quality", label: "Quality" };
 const EVALS_TAB: TabItem = { id: "evals", label: "Evals" };
@@ -231,6 +233,15 @@ export interface AgentDetailViewProps {
    * console's links say `?tab=make-it-yours`. Without it, no tab.
    */
   readonly makeItYours?: MakeItYoursLinks;
+  /**
+   * Offer the "In your app" tab, with the host's settings routes: what puts
+   * this agent's chat in the builder's own product (the token route and the
+   * chat for their stack, the service account and sign-in setting they
+   * need, and the first person their app signs in), drawn after Overview
+   * for every agent the viewer can see. The console's links say
+   * `?tab=in-app`. Without it, no tab.
+   */
+  readonly inApp?: InAppLinks;
   /** Additional CSS classes for the root container. */
   readonly className?: string;
 }
@@ -305,6 +316,7 @@ export function AgentDetailView({
   onAgentClick,
   onNavigateToRun,
   makeItYours,
+  inApp,
   className,
 }: AgentDetailViewProps) {
   const { agent, isLoading, error, refetch } = useAgent(org, slug);
@@ -404,10 +416,12 @@ export function AgentDetailView({
   // The journey's tab: a host that offers it, an agent the journey made,
   // and a viewer who may edit it.
   const offersMakeItYours = makeItYours !== undefined && editable && isJourneyAgentSlug(agent?.metadata?.slug ?? "");
+  const offersInApp = inApp !== undefined;
   const builtInTabs = useMemo<readonly TabItem[]>(
     () => [
       ...(offersMakeItYours ? [MAKE_IT_YOURS_TAB] : []),
       OVERVIEW_TAB,
+      ...(offersInApp ? [IN_APP_TAB] : []),
       CHANNELS_TAB,
       QUALITY_TAB,
       EVALS_TAB,
@@ -420,7 +434,7 @@ export function AgentDetailView({
         }),
       },
     ],
-    [offersMakeItYours, noDeps, versionCount],
+    [offersMakeItYours, offersInApp, noDeps, versionCount],
   );
 
   const {
@@ -619,6 +633,8 @@ export function AgentDetailView({
     );
   } else if (effectiveActiveTab === "versions") {
     tabContent = <AgentVersionsTab agent={agent} />;
+  } else if (effectiveActiveTab === IN_APP_TAB.id && inApp) {
+    tabContent = <InAppTab agent={agent} links={inApp} onOpenChannels={() => effectiveOnTabChange(CHANNELS_TAB.id)} />;
   } else if (effectiveActiveTab === MAKE_IT_YOURS_TAB.id && offersMakeItYours && makeItYours) {
     tabContent = (
       <MakeItYoursTab

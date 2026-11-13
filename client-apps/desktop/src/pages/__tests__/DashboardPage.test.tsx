@@ -87,7 +87,7 @@ describe("desktop DashboardPage — opening a run", () => {
     };
     expect(links).toMatchObject({ connectProvider: "/models", createAgent: "/", startSession: "/", bringOthers: "/settings/members" });
     expect(links.makeItYours({ org: "acme", slug: "variance-reporter" })).toBe("/library/agents/acme/variance-reporter?tab=make-it-yours");
-    expect(links.putInApp({ org: "acme", slug: "variance-reporter" })).toBe("/library/agents/acme/variance-reporter?tab=channels");
+    expect(links.putInApp({ org: "acme", slug: "variance-reporter" })).toBe("/library/agents/acme/variance-reporter?tab=in-app");
     fireEvent.click(screen.getByRole("link", { name: "Connect a provider" }));
     expect(screen.getByTestId("location").textContent).toBe("/models");
   });

@@ -31,6 +31,7 @@ function answering(authenticationRequired: boolean | undefined): UseServerInfoRe
     },
     isLoading: false,
     error: null,
+    refetch: () => {},
   };
 }
 
@@ -316,7 +317,7 @@ describe("AccountPreferencesPanel", () => {
     });
 
     it("offers the switch when the posture could not be read: an unknown posture lets the server decide", async () => {
-      serverInfo = { serverInfo: null, isLoading: false, error: new Error("unreachable") };
+      serverInfo = { serverInfo: null, isLoading: false, error: new Error("unreachable"), refetch: () => {} };
       renderPanel(createMockStigmer(), "local");
       await findSyncedField("Keep answers terse.");
 
@@ -324,7 +325,7 @@ describe("AccountPreferencesPanel", () => {
     });
 
     it("renders neither while the server's answer is loading, so no switch flashes and disappears", async () => {
-      serverInfo = { serverInfo: null, isLoading: true, error: null };
+      serverInfo = { serverInfo: null, isLoading: true, error: null, refetch: () => {} };
       renderPanel(createMockStigmer(), "local");
       await findSyncedField("Keep answers terse.");
 

@@ -7,6 +7,9 @@
 # does: against `stigmer up` from source with the fake model, each must exit
 # 0 with the agent's answer as its last line
 # (test/install/smoke-sdk-quickstarts.mjs). It holds the UX bar's SDK-01.
+# Then the token routes the console hands a builder, in Python, Go, Java,
+# Node and Next.js, each run against a second server that signs its callers
+# in, must answer a token for an app user (CON-10).
 #
 # When it runs (its list in scripts/ci-lanes.mjs): the three SDKs and their
 # proto stubs, the smoke and the install layer it drives, and the shared turn

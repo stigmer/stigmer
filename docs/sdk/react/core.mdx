@@ -139,11 +139,20 @@ explicit `false` means the server trusts every request.
 Cached across mounts under a [`FetchCacheProvider`](#fetchcacheprovider): the answer is a
 property of the server, so a revisit renders it immediately.
 
+Pass `enabled: false` to skip the read (the answer stays `null`), for a
+surface that asks only in some states.
+
 **Signature**
 
 ```tsx
-function useServerInfo(): UseServerInfoReturn
+function useServerInfo(options?: { enabled?: boolean }): UseServerInfoReturn
 ```
+
+<TypeTable
+  type={{
+    options: { type: "{ enabled?: boolean }", description: "" },
+  }}
+/>
 
 **Returns** — `UseServerInfoReturn`
 
@@ -151,6 +160,7 @@ function useServerInfo(): UseServerInfoReturn
   type={{
     error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
     isLoading: { type: "boolean", description: "`true` while the initial fetch is in flight." },
+    refetch: { type: "() => void", description: "Asks the server again, after a failed read." },
     serverInfo: { type: "ServerInfo | null", description: "The connected server's edition, version and posture, or `null` while loading / on error." },
   }}
 />

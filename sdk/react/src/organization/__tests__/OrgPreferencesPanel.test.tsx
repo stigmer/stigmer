@@ -30,6 +30,7 @@ function answering(authenticationRequired: boolean): UseServerInfoReturn {
     },
     isLoading: false,
     error: null,
+    refetch: () => {},
   };
 }
 

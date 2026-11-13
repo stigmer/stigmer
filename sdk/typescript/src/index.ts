@@ -40,6 +40,26 @@ export {
   buildEmbedSnippet,
 } from "./chat-link.js";
 
+// The code that puts an agent's chat in a builder's own app (token route and
+// chat, per stack; framework-free)
+export {
+  APP_HANDOVER_STACKS,
+  APP_TOKEN_ROUTE,
+  APP_API_KEY_VARIABLE,
+  APP_DEV_USER_VARIABLE,
+  APP_CHAT_COMPONENT,
+  APP_TOKEN_ROUTE_PORT,
+  buildAppHandover,
+} from "./app-handover.js";
+export type {
+  AppHandover,
+  AppHandoverFile,
+  AppHandoverInput,
+  AppHandoverLanguage,
+  AppHandoverMode,
+  AppHandoverStack,
+} from "./app-handover.js";
+
 // References the server returned (a deleted target has an id and no slug)
 export {
   isDeletedReference,

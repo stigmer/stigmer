@@ -14,6 +14,9 @@
 //     started in the background with the page's environment, and stopped
 //     when the run ends.
 // Every other line runs in bash as written, `cd` carried to the next.
+//
+// The same Vite app and processes serve a second reader: a builder who copies
+// what the console's "In your app" tab hands over (`runHandedOverApp`).
 
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
 import { mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
@@ -242,4 +245,61 @@ export async function runTutorial(folder: string, tarballs: readonly string[], e
     throw error;
   }
   return { appDir: cwd, stop };
+}
+
+/** What the console's "In your app" tab handed over, as read from its code blocks. */
+export interface HandedOver {
+  /** The Node token route, `server.ts`. */
+  readonly route: string;
+  /** The chat, `StigmerAgentChat.tsx`. */
+  readonly chat: string;
+}
+
+/**
+ * Builds a Vite React app from exactly the text the console handed over (the
+ * route as `server.ts` beside it, the chat as `src/StigmerAgentChat.tsx`,
+ * mounted by a one-line `App.tsx`), installs the kit this checkout packs,
+ * checks it builds and typechecks (strict), and starts the route with the
+ * service account's key and the person it signs in, and the app, with the
+ * app's `/api` proxied to the route as the tab says.
+ */
+export async function runHandedOverApp(
+  folder: string,
+  tarballs: readonly string[],
+  handedOver: HandedOver,
+  env: { readonly apiKey: string; readonly devUser: string },
+): Promise<TutorialRun> {
+  const appDir = join(folder, "my-app");
+  viteApp(appDir);
+  const shellEnv: NodeJS.ProcessEnv = {
+    ...process.env,
+    STIGMER_API_KEY: env.apiKey,
+    STIGMER_DEV_USER: env.devUser,
+    npm_config_yes: "true",
+  };
+  const files: Record<string, string> = {
+    "server.ts": handedOver.route,
+    "src/StigmerAgentChat.tsx": handedOver.chat,
+    "src/App.tsx": 'import { StigmerAgentChat } from "./StigmerAgentChat";\n\nexport default function App() {\n  return (\n    <main style={{ height: "100vh" }}>\n      <StigmerAgentChat />\n    </main>\n  );\n}\n',
+    "vite.config.ts": `import { defineConfig } from "vite";\nimport react from "@vitejs/plugin-react";\n\nexport default defineConfig({\n  plugins: [react()],\n  server: { proxy: { "/api": "http://localhost:${BACKEND_PORT}" } },\n});\n`,
+  };
+  for (const [path, content] of Object.entries(files)) {
+    mkdirSync(dirname(join(appDir, path)), { recursive: true });
+    writeFileSync(join(appDir, path), content);
+  }
+  const running: ChildProcess[] = [];
+  const stop = () => {
+    for (const child of running) stopGroup(child);
+  };
+  try {
+    run("npm install", appDir, shellEnv);
+    run(`npm install ${[...tarballs, "@bufbuild/protobuf"].map((arg) => JSON.stringify(arg)).join(" ")}`, appDir, shellEnv);
+    run("npm run build", appDir, shellEnv);
+    running.push(await background("npx tsx server.ts", appDir, shellEnv, BACKEND_PORT));
+    running.push(await background("npm run dev", appDir, shellEnv, APP_PORT));
+  } catch (error) {
+    stop();
+    throw error;
+  }
+  return { appDir, stop };
 }
