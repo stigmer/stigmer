@@ -18,6 +18,10 @@
  *     journey is done, and the next line is the edition's: an organization
  *     per customer (with the plan that unlocks them on a Cloud plan that
  *     lacks them), or a vault per customer on one organization;
+ *   - a host that knows no address an invitee can open (a desktop app on a
+ *     server whose web console it does not know) makes no link and says
+ *     where to make one, and names no sign-in address it does not know;
+ *   - a failed read of the organization says so, with Try again;
  *   - a server that trusts every caller: one note on why nobody else can
  *     reach it, and no read of invitations or of the access list.
  *
@@ -36,7 +40,7 @@ import { IdentityAccountProvisioningMode } from "@stigmer/apis/ai/stigmer/iam/id
 import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import { ACME_ID, orgWrapper } from "../../organization/__tests__/org-fixture";
-import { BringOthersIn, BRING_OTHERS_IN_LINK_LABEL } from "../BringOthersIn";
+import { BringOthersIn, BRING_OTHERS_IN_LINK_LABEL, type BringOthersInProps } from "../BringOthersIn";
 
 const stubs = vi.hoisted(() => ({ planAllowsChildren: null as boolean | null, journeyDone: true }));
 // The headline reads the journey's own answer, which its suite pins.
@@ -82,6 +86,8 @@ interface World {
   people: { id: string; name: string; mode: IdentityAccountProvisioningMode; role?: string }[];
   /** whoAmI never answers. */
   meUnknown: boolean;
+  /** The organization's read fails. */
+  orgReadFails: boolean;
 }
 
 let world: World;
@@ -95,6 +101,7 @@ beforeEach(() => {
     invitations: [],
     people: [{ id: "ida_dana", name: "Dana Lee", mode: PERSON, role: "owner" }],
     meUnknown: false,
+    orgReadFails: false,
   };
   stubs.planAllowsChildren = null;
   stubs.journeyDone = true;
@@ -114,7 +121,7 @@ function invitation(fields: { id: string; token: string; label?: string; role?: 
   });
 }
 
-function renderPage(mode: DeploymentMode = "cloud") {
+function renderPage(mode: DeploymentMode = "cloud", props: Partial<BringOthersInProps> = {}) {
   const org = (): Organization => ({ metadata: { id: ACME_ID, slug: "acme", name: world.name, etag: "1" } }) as Organization;
   const client = {
     platform: { getServerInfo: vi.fn(async () => ({ singleOrg: world.singleOrg, authenticationRequired: world.signsIn })) },
@@ -131,7 +138,10 @@ function renderPage(mode: DeploymentMode = "cloud") {
       whoAmI: vi.fn(() => (world.meUnknown ? new Promise<never>(() => {}) : Promise.resolve({ metadata: { id: "ida_dana" } }))),
     },
     organization: {
-      get: vi.fn(async () => org()),
+      get: vi.fn(async () => {
+        if (world.orgReadFails) throw new Error("unavailable");
+        return org();
+      }),
       update: vi.fn(async (resource: Organization) => {
         world.name = resource.metadata?.name ?? world.name;
         return org();
@@ -159,7 +169,12 @@ function renderPage(mode: DeploymentMode = "cloud") {
     </DeploymentModeContext.Provider>
   );
   render(
-    <BringOthersIn buildInviteUrl={(token) => `https://console.test/invite/${token}`} consoleUrl="https://console.test" membersHref="/settings/members" />,
+    <BringOthersIn
+      buildInviteUrl={(token) => `https://console.test/invite/${token}`}
+      consoleUrl="https://console.test"
+      membersHref="/settings/members"
+      {...props}
+    />,
     { wrapper },
   );
   return client;
@@ -195,6 +210,16 @@ describe("CON-12 BringOthersIn — naming the organization", () => {
     await screen.findByRole("region", { name: "Your organization" });
     fireEvent.click(screen.getByRole("button", { name: "Rename" }));
     expect((screen.getByLabelText("Name") as HTMLInputElement).value).toBe("Ledgerly");
+  });
+
+  it("says a failed read in place of loading for ever, with Try again", async () => {
+    world.orgReadFails = true;
+    const client = renderPage();
+    await screen.findByText("Couldn’t load your organization’s name.");
+    world.orgReadFails = false;
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    await screen.findByLabelText("Name");
+    expect(client.organization.get.mock.calls.length).toBeGreaterThan(1);
   });
 
   it("tells a person who may not edit it who can", async () => {
@@ -266,6 +291,21 @@ describe("CON-12 BringOthersIn — inviting the team", () => {
     renderPage();
     await screen.findByRole("button", { name: "Make an invite link" });
     expect(screen.queryByText(/tok-gone|tok-old/)).toBeNull();
+  });
+
+  it("makes no link where the host knows no address an invitee can open, and says where to make one", async () => {
+    world.name = "Ledgerly";
+    const client = renderPage("cloud", { buildInviteUrl: null });
+    await screen.findByText("This app doesn't know your server's web console. Open it in a browser to make an invite link there.");
+    expect(screen.queryByRole("button", { name: "Make an invite link" })).toBeNull();
+    expect(client.invitation.list).not.toHaveBeenCalled();
+  });
+
+  it("names no sign-in address the host does not know", async () => {
+    world.singleOrg = true;
+    renderPage("local", { consoleUrl: null });
+    await screen.findByText(/People join by signing in to your server’s web console/);
+    expect(screen.queryByRole("button", { name: "Copy the address" })).toBeNull();
   });
 
   it("tells a viewer who may not grant access that only an admin can invite", async () => {

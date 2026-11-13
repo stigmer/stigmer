@@ -82,18 +82,22 @@ export interface BringOthersInProps {
   /**
    * Build the full invite URL from a token, when invitees accept somewhere
    * other than this origin's `/invite/<token>` (a desktop app's links open
-   * the web console).
+   * the web console). `null` when this host knows no address an invitee
+   * can open (a desktop app connected to a server whose web console it does
+   * not know): the page then makes no link, and sends the person to that
+   * server's web console to make one, since a link at the wrong address
+   * would hand the invitation's token to another site.
    *
    * @default `${window.location.origin}/invite/${token}`
    */
-  readonly buildInviteUrl?: (token: string) => string;
+  readonly buildInviteUrl?: ((token: string) => string) | null;
   /**
    * The address people sign in at, where the edition has no invitations and
-   * people join by signing in.
+   * people join by signing in; `null` when this host does not know it.
    *
    * @default `window.location.origin`
    */
-  readonly consoleUrl?: string;
+  readonly consoleUrl?: string | null;
   /** Where roles are set (the console's members page), in the host's routing. */
   readonly membersHref?: string;
   /** Where the plans are, for the upgrade notice, in the host's routing. */
@@ -132,7 +136,8 @@ const ROLE_CHOICES: readonly { readonly role: IamRole; readonly label: string }[
  *
  * @example
  * ```tsx
- * <BringOthersIn membersHref="/settings/members" renderLink={nextLink} />
+ * // renderLink is where the host's router link goes; a plain anchor works too.
+ * <BringOthersIn membersHref="/settings/members" renderLink={({ href, children, ...rest }) => <a href={href} {...rest}>{children}</a>} />
  * ```
  */
 export function BringOthersIn({
@@ -188,6 +193,9 @@ export function BringOthersIn({
   );
 }
 
+const NO_KNOWN_CONSOLE =
+  "This app doesn't know your server's web console. Open it in a browser to make an invite link there.";
+
 function defaultBuildInviteUrl(token: string): string {
   return typeof window === "undefined" ? `/invite/${token}` : `${window.location.origin}/invite/${token}`;
 }
@@ -226,7 +234,7 @@ function writeKept(orgId: string): void {
 
 function NameYourOrganization({ orgId, onRenamed }: { readonly orgId: string; readonly onRenamed: () => void }) {
   const inputId = useId();
-  const { organization, refetch } = useOrganization(orgId);
+  const { organization, error: readError, refetch } = useOrganization(orgId);
   const editCheck = useCheckPermission({ kind: "organization", id: orgId }, "can_edit", { fail: "closed" });
   const { update, isUpdating, error, clearError } = useUpdateOrganization();
   const name = organization?.metadata?.name ?? "";
@@ -258,6 +266,20 @@ function NameYourOrganization({ orgId, onRenamed }: { readonly orgId: string; re
   );
 
   if (organization === null) {
+    if (readError !== null) {
+      return (
+        <Part title="Your organization">
+          <p role="alert" className="stg:m-0 stg:text-sm stg:text-muted-foreground">
+            Couldn&rsquo;t load your organization&rsquo;s name.
+          </p>
+          <div>
+            <Button size="xs" variant="outline" onClick={refetch}>
+              Try again
+            </Button>
+          </div>
+        </Part>
+      );
+    }
     return <SettingsSkeleton label="Loading your organization" rows={1} />;
   }
   const canEdit = !editCheck.isLoading && editCheck.allowed;
@@ -391,8 +413,8 @@ function InviteYourTeam({
   renderLink,
 }: {
   readonly orgId: string;
-  readonly buildInviteUrl: (token: string) => string;
-  readonly consoleUrl: string | undefined;
+  readonly buildInviteUrl: ((token: string) => string) | null;
+  readonly consoleUrl: string | null | undefined;
   readonly membersHref: string | undefined;
   readonly renderLink: RenderLink;
 }) {
@@ -400,14 +422,22 @@ function InviteYourTeam({
   const grant = useCheckPermission(served ? { kind: "organization", id: orgId } : null, "can_grant_access", { fail: "closed" });
 
   if (!served) {
-    const address = consoleUrl ?? (typeof window === "undefined" ? "" : window.location.origin);
+    const address = consoleUrl === undefined ? (typeof window === "undefined" ? "" : window.location.origin) : consoleUrl;
+    const members = membersHref ? renderLink({ href: membersHref, className: INLINE_LINK, children: "Members" }) : "Members";
     return (
       <Part title="Invite your team">
-        <p className="stg:m-0 stg:text-sm stg:text-muted-foreground">
-          People join by signing in at this console&rsquo;s address. You set their roles under{" "}
-          {membersHref ? renderLink({ href: membersHref, className: INLINE_LINK, children: "Members" }) : "Members"}.
-        </p>
-        <CopyLine value={address} label="Copy the address" />
+        {address === null ? (
+          <p className="stg:m-0 stg:text-sm stg:text-muted-foreground">
+            People join by signing in to your server&rsquo;s web console. You set their roles under {members}.
+          </p>
+        ) : (
+          <>
+            <p className="stg:m-0 stg:text-sm stg:text-muted-foreground">
+              People join by signing in at this console&rsquo;s address. You set their roles under {members}.
+            </p>
+            <CopyLine value={address} label="Copy the address" />
+          </>
+        )}
       </Part>
     );
   }
@@ -418,6 +448,13 @@ function InviteYourTeam({
     return (
       <Part title="Invite your team">
         <p className="stg:m-0 stg:text-sm stg:text-muted-foreground">Only an admin can invite people.</p>
+      </Part>
+    );
+  }
+  if (buildInviteUrl === null) {
+    return (
+      <Part title="Invite your team">
+        <p className="stg:m-0 stg:text-sm stg:text-muted-foreground">{NO_KNOWN_CONSOLE}</p>
       </Part>
     );
   }

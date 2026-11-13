@@ -1,7 +1,7 @@
 /**
  * Pins the app's journey routes, as the web console's: "Make it yours" and
- * "Put it in your app" open the agent page on its tab, the team is invited
- * on the members page, and a launch opens the launcher on the agent with
+ * "Put it in your app" open the agent page on its tab, the team is brought
+ * in on the journey's last page, and a launch opens the launcher on the agent with
  * its example and mode; an organization named by id is written as its
  * slug; each link is drawn with the router's `Link`, so the hash routes
  * hold.
