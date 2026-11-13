@@ -1262,12 +1262,12 @@ rows:
     observability: launcher
     caller: outsider
     needs: [session]
-  - id: proxy.checkpointer.document-over-4mb-413
+  - id: proxy.checkpointer.document-over-cap-413
     surface: proxy
     lane: >-
       checkpointer
     behavior: >-
-      A checkpoint or writes document larger than 4 MiB answers 413.
+      A checkpoint or writes document larger than the lane's 16 MiB cap answers 413.
     class: adversarial
     disposition: conformance
     observability: launcher
