@@ -48,9 +48,16 @@ export interface LinkButtonProps {
  *
  * @example
  * ```tsx
- * import Link from "next/link";
+ * import { LinkButton, type RenderLink } from "@stigmer/react-sdk";
  *
- * <LinkButton href="/library/agents/new" renderLink={(p) => <Link {...p} />}>
+ * // A host with its own router passes its link component here (Next's `Link`, react-router's).
+ * const renderLink: RenderLink = ({ href, className, children }) => (
+ *   <a href={href} className={className}>
+ *     {children}
+ *   </a>
+ * );
+ *
+ * <LinkButton href="/library/agents/new" renderLink={renderLink}>
  *   Create agent
  * </LinkButton>
  * ```
