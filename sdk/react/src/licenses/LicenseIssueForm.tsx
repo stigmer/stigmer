@@ -17,6 +17,7 @@ import { LicenseTerm } from "@stigmer/apis/ai/stigmer/platform/v1/license_pb";
 import { Button } from "../button/index.js";
 import { UNSTYLED_FIELDSET, UNSTYLED_LIST } from "../internal/element-resets.js";
 import { Field, INPUT_CLASSES } from "../internal/form-primitives.js";
+import { cardClasses } from "../internal/surface/Card.js";
 import { validateMessage } from "../internal/validate.js";
 import {
   DEFAULT_GRACE_DAYS,
@@ -538,7 +539,7 @@ export function LicenseIssueForm({
 function FormSection({ title, children }: { readonly title: string; readonly children: ReactNode }) {
   return (
     <section
-      className="stg:space-y-3 stg:rounded-lg stg:border stg:border-border stg:bg-card stg:p-4"
+      className={cn(cardClasses(), "stg:space-y-3")}
       aria-label={title}
     >
       <h4 className="stg:m-0 stg:text-sm stg:font-semibold stg:text-foreground">{title}</h4>

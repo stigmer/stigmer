@@ -86,6 +86,7 @@ export const DOMAIN_GROUPS: readonly DomainGroup[] = [
     slugs: [
       "sidebar",
       "page",
+      "page-frame",
       "resource-workbench",
       "resource-creation",
       "resource-detail",

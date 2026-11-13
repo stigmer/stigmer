@@ -36,6 +36,7 @@ import { LinkButton } from "../button/LinkButton.js";
 import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { InlineEditTextarea } from "../inline-edit/InlineEditTextarea.js";
 import { keptReference } from "../internal/kept-reference.js";
+import { cardClasses } from "../internal/surface/Card.js";
 import type { LaunchMode } from "../session/launch.js";
 import { anchorLink, type RenderJourneyLink } from "./links.js";
 
@@ -153,7 +154,7 @@ export function MakeItYoursTab({ agent, links, saveField, isSaving, saveError, o
         <SkillCard agent={agent} saveField={saveField} isSaving={isSaving} saveError={saveError} sample={example ? rerun : undefined} renderLink={render} />
       </div>
       {links.putInApp && (
-        <div className="stg:flex stg:flex-wrap stg:items-center stg:gap-3 stg:rounded-xl stg:border stg:border-border stg:bg-card stg:px-4 stg:py-3">
+        <div className={cn(cardClasses(), "stg:flex stg:flex-wrap stg:items-center stg:gap-3")}>
           <span className="stg:min-w-[12rem] stg:flex-1 stg:text-sm stg:text-muted-foreground">
             When it does the job your way, put it where your users are.
           </span>
@@ -170,7 +171,7 @@ function Card({ title, className, children }: { readonly title: string; readonly
   return (
     <section
       aria-label={title}
-      className={cn("stg:flex stg:flex-col stg:gap-3 stg:rounded-xl stg:border stg:border-border stg:bg-card stg:p-4", className)}
+      className={cn(cardClasses(), "stg:flex stg:flex-col stg:gap-3", className)}
     >
       <h3 className="stg:m-0 stg:text-sm stg:font-semibold stg:text-foreground">{title}</h3>
       {children}

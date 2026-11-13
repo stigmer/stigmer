@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState, type FormEvent } from "react";
+import { cn } from "@stigmer/design-tokens";
 import { UNSTYLED_FIELDSET } from "../internal/element-resets.js";
 import { create } from "@bufbuild/protobuf";
 import { getUserMessage } from "@stigmer/client";
@@ -12,6 +13,7 @@ import {
 } from "@stigmer/apis/ai/stigmer/billing/v1/model_pricing_baseline_pb";
 import { Button } from "../button/index.js";
 import { Field, INPUT_CLASSES } from "../internal/form-primitives.js";
+import { Card, cardClasses } from "../internal/surface/Card.js";
 import { HARNESS_OPTIONS } from "@stigmer/react-core/internal";
 import {
   ZERO,
@@ -366,7 +368,7 @@ export function BaselineEditor({
   if (pendingBaseline) {
     const changes = diffRates(initial, pendingBaseline);
     return (
-      <div className="stg:space-y-3 stg:rounded-lg stg:border stg:border-border stg:bg-card stg:px-3 stg:py-3">
+      <Card className="stg:space-y-3">
         <h4 className="stg:text-xs stg:font-semibold stg:text-foreground">
           {initial ? "Confirm baseline revision" : "Confirm new catalog entry"}
           {" · "}
@@ -412,7 +414,7 @@ export function BaselineEditor({
             Back
           </Button>
         </div>
-      </div>
+      </Card>
     );
   }
 
@@ -420,7 +422,7 @@ export function BaselineEditor({
   return (
     <form
       onSubmit={handleReview}
-      className="stg:space-y-3 stg:rounded-lg stg:border stg:border-border stg:bg-card stg:px-3 stg:py-3"
+      className={cn(cardClasses(), "stg:space-y-3")}
     >
       <h4 className="stg:text-xs stg:font-semibold stg:text-foreground">
         {initial ? `Edit ${initial.modelId}` : "Add model"}

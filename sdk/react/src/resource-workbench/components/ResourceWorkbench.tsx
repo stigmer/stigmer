@@ -30,6 +30,7 @@ import { useSingleOrg } from "../../server-info.js";
 import { ORG_COLUMN_ID } from "../types.js";
 import { OrgSlugText } from "../../organization/OrgSlugText.js";
 import { IconButton } from "../../button/IconButton.js";
+import { cardClasses } from "../../internal/surface/Card.js";
 
 // ---------------------------------------------------------------------------
 // Props
@@ -322,38 +323,40 @@ export function ResourceWorkbench<TData = SearchResult>({
       aria-label={ariaLabel}
       className={cn("stg:flex stg:flex-col stg:gap-3", className)}
     >
-      {/* --- Toolbar: search + filters + view switcher --- */}
-      <div className="stg:flex stg:flex-wrap stg:items-center stg:gap-2">
-        {searchable ? (
-          <div className="stg:relative stg:flex-1">
-            <SearchIcon className="stg:pointer-events-none stg:absolute stg:left-2.5 stg:top-1/2 stg:h-3.5 stg:w-3.5 stg:-translate-y-1/2 stg:text-muted-foreground-subtle" />
-            <input
-              type="text"
-              value={filtersHook.query}
-              onChange={(e) => filtersHook.setQuery(e.target.value)}
-              placeholder={searchPlaceholder}
-              aria-label={searchPlaceholder}
-              className={cn(
-                "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:py-1.5 stg:pl-8 stg:pr-3 stg:text-sm",
-                "stg:placeholder:text-muted-foreground-subtle",
-                "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-              )}
+      {/* --- Toolbar: search + filters + view switcher; none when it would hold nothing --- */}
+      {(searchable || viewModes.length > 1 || (headerAction != null && headerAction !== false)) && (
+        <div className="stg:flex stg:flex-wrap stg:items-center stg:gap-2">
+          {searchable ? (
+            <div className="stg:relative stg:flex-1">
+              <SearchIcon className="stg:pointer-events-none stg:absolute stg:left-2.5 stg:top-1/2 stg:h-3.5 stg:w-3.5 stg:-translate-y-1/2 stg:text-muted-foreground-subtle" />
+              <input
+                type="text"
+                value={filtersHook.query}
+                onChange={(e) => filtersHook.setQuery(e.target.value)}
+                placeholder={searchPlaceholder}
+                aria-label={searchPlaceholder}
+                className={cn(
+                  "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:py-1.5 stg:pl-8 stg:pr-3 stg:text-sm",
+                  "stg:placeholder:text-muted-foreground-subtle",
+                  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+                )}
+              />
+            </div>
+          ) : (
+            // Spacer keeps the view switcher / header action right-aligned,
+            // matching the searchable layout.
+            <div className="stg:flex-1" aria-hidden="true" />
+          )}
+          {viewModes.length > 1 && (
+            <ViewSwitcher
+              value={viewMode}
+              onChange={setViewMode}
+              modes={viewModes}
             />
-          </div>
-        ) : (
-          // Spacer keeps the view switcher / header action right-aligned,
-          // matching the searchable layout.
-          <div className="stg:flex-1" aria-hidden="true" />
-        )}
-        {viewModes.length > 1 && (
-          <ViewSwitcher
-            value={viewMode}
-            onChange={setViewMode}
-            modes={viewModes}
-          />
-        )}
-        {headerAction}
-      </div>
+          )}
+          {headerAction}
+        </div>
+      )}
 
       {/* --- Active filter chips --- */}
       <FilterBar
@@ -582,7 +585,7 @@ function SkeletonPlaceholder({
         {Array.from({ length: 6 }, (_, i) => (
           <div
             key={i}
-            className="stg:flex stg:flex-col stg:gap-3 stg:rounded-lg stg:border stg:border-border stg:bg-card stg:p-4"
+            className={cn(cardClasses(), "stg:flex stg:flex-col stg:gap-3")}
             aria-hidden="true"
           >
             <div className="stg:h-4 stg:w-3/5 stg:animate-pulse stg:rounded stg:bg-muted" />
@@ -595,11 +598,11 @@ function SkeletonPlaceholder({
   }
 
   return (
-    <div aria-busy="true">
+    <div aria-busy="true" className={cn(cardClasses({ flush: true }), "stg:divide-y stg:divide-border-muted")}>
       {Array.from({ length: 5 }, (_, i) => (
         <div
           key={i}
-          className="stg:flex stg:items-center stg:gap-3 stg:px-3 stg:py-2.5"
+          className="stg:flex stg:items-center stg:gap-3 stg:px-3.5 stg:py-2.5"
           aria-hidden="true"
         >
           <div className="stg:h-4 stg:w-4 stg:shrink-0 stg:animate-pulse stg:rounded stg:bg-muted" />

@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { cn } from "@stigmer/design-tokens";
+import { cardClasses } from "../../internal/surface/Card.js";
 import { SelectionCheckbox } from "./SelectionCheckbox.js";
 
 /** Props for {@link ResourceCards}. */
@@ -88,9 +89,8 @@ export function ResourceCards<TData>({
                 : undefined
             }
             className={cn(
-              "stg:relative stg:flex stg:rounded-lg stg:border stg:border-border stg:bg-card stg:p-4 stg:transition-colors",
-              isSelected && "stg:border-primary/40 stg:bg-primary-subtle",
-              isClickable && "stg:cursor-pointer stg:hover:border-primary/40 stg:hover:bg-accent-hover",
+              cardClasses({ interactive: isClickable, selected: isSelected }),
+              "stg:relative stg:flex",
               isClickable && "stg:focus-within:ring-2 stg:focus-within:ring-ring",
             )}
           >

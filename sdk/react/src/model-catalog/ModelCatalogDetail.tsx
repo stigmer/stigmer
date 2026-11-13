@@ -3,6 +3,7 @@
 import { ModelPricingBaselineStatus } from "@stigmer/apis/ai/stigmer/billing/v1/model_pricing_baseline_pb";
 import type { PricingBlock } from "@stigmer/apis/ai/stigmer/billing/v1/model_pricing_baseline_pb";
 import { Button } from "../button/index.js";
+import { Card } from "../internal/surface/Card.js";
 import type { ModelCatalogRow } from "./useModelCatalogView.js";
 import { ZERO, formatRate } from "./pricing-format.js";
 
@@ -37,7 +38,7 @@ export function ModelCatalogDetail({
   const { baseline } = row;
 
   return (
-    <div className="stg:space-y-4 stg:rounded-lg stg:border stg:border-border stg:bg-card stg:px-4 stg:py-3">
+    <Card className="stg:space-y-4">
       {/* ── header: identity + actions ──────────────────────────────────── */}
       <div className="stg:flex stg:items-start stg:justify-between stg:gap-3">
         <div className="stg:min-w-0">
@@ -170,7 +171,7 @@ export function ModelCatalogDetail({
           </div>
         )}
       </section>
-    </div>
+    </Card>
   );
 }
 

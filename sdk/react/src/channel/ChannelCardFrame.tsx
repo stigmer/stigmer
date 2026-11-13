@@ -9,6 +9,7 @@
 
 import type { ComponentType, ReactNode } from "react";
 import { cn } from "@stigmer/design-tokens";
+import { Card } from "../internal/surface/Card.js";
 import { TruncatedText } from "../internal/truncated-text.js";
 
 /** Props for {@link ChannelCardFrame}. */
@@ -40,11 +41,7 @@ export function ChannelCardFrame({
   children,
 }: ChannelCardFrameProps) {
   return (
-    <div
-      role="group"
-      aria-label={`${typeLabel}: ${name}`}
-      className="stg:rounded-lg stg:border stg:border-border stg:p-4"
-    >
+    <Card role="group" aria-label={`${typeLabel}: ${name}`}>
       <div className="stg:flex stg:items-start stg:justify-between stg:gap-3">
         <div className="stg:flex stg:min-w-0 stg:items-center stg:gap-2.5">
           <Icon className="stg:size-5 stg:shrink-0 stg:text-foreground" />
@@ -68,7 +65,7 @@ export function ChannelCardFrame({
         </div>
       </div>
       {children}
-    </div>
+    </Card>
   );
 }
 

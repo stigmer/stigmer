@@ -37,6 +37,7 @@ import { ServedByLine } from "./ServedByLine.js";
 import { formatCompactCount, formatTokens, formatWorkingTime } from "./format.js";
 import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
+import { Card, cardClasses } from "../internal/surface/Card.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
 
 // ---------------------------------------------------------------------------
@@ -185,30 +186,30 @@ function SummaryCards({ report }: { report: GetOrgUsageReportOutput }) {
     <div role="group" aria-label="Usage summary" className="stg:space-y-2">
       {/* Primary row */}
       <div className="stg:grid stg:grid-cols-2 stg:gap-3 stg:sm:grid-cols-4">
-        <div className="stg:rounded-lg stg:border stg:border-border stg:bg-card stg:px-3.5 stg:py-3">
+        <Card>
           <div className="stg:text-lg stg:font-semibold stg:tabular-nums stg:text-foreground">
             {formatCompactCount(totalTokens)}
           </div>
           <div className="stg:text-xs stg:text-muted-foreground">Tokens</div>
-        </div>
-        <div className="stg:rounded-lg stg:border stg:border-border stg:bg-card stg:px-3.5 stg:py-3">
+        </Card>
+        <Card>
           <div className="stg:text-lg stg:font-semibold stg:tabular-nums stg:text-foreground">
             {formatCompactCount(report.totalRuns)}
           </div>
           <div className="stg:text-xs stg:text-muted-foreground">Runs</div>
-        </div>
-        <div className="stg:rounded-lg stg:border stg:border-border stg:bg-card stg:px-3.5 stg:py-3">
+        </Card>
+        <Card>
           <div className="stg:text-lg stg:font-semibold stg:tabular-nums stg:text-foreground">
             {formatCompactCount(llmCalls)}
           </div>
           <div className="stg:text-xs stg:text-muted-foreground">LLM Calls</div>
-        </div>
-        <div className="stg:rounded-lg stg:border stg:border-border stg:bg-card stg:px-3.5 stg:py-3">
+        </Card>
+        <Card>
           <div className="stg:text-lg stg:font-semibold stg:tabular-nums stg:text-foreground">
             {formatWorkingTime(workingSeconds)}
           </div>
           <div className="stg:text-xs stg:text-muted-foreground">Working time</div>
-        </div>
+        </Card>
       </div>
 
       {/* Secondary row */}
@@ -246,7 +247,7 @@ function DailyTokenChart({ entries }: { entries: readonly DailyUsage[] }) {
       <h3 className="stg:mb-2 stg:text-xs stg:font-semibold stg:text-foreground">
         Daily Tokens
       </h3>
-      <div className="stg:rounded-lg stg:border stg:border-border stg:bg-card stg:px-3 stg:pb-2 stg:pt-3">
+      <Card>
         {/* Tooltip */}
         <div className="stg:mb-1 stg:h-4">
           {hovered && (
@@ -315,7 +316,7 @@ function DailyTokenChart({ entries }: { entries: readonly DailyUsage[] }) {
             )}
           </div>
         )}
-      </div>
+      </Card>
     </div>
   );
 }
@@ -335,13 +336,13 @@ function ModelBreakdownList({
         Model Breakdown
       </h3>
       <div
-        className="stg:rounded-lg stg:border stg:border-border stg:bg-card"
+        className={cardClasses({ flush: true })}
         role="table"
         aria-label="Model usage breakdown"
       >
         <div
           role="row"
-          className="stg:grid stg:grid-cols-[1fr_auto_auto_auto_auto] stg:gap-x-4 stg:border-b stg:border-border stg:px-3.5 stg:py-2 stg:text-2xs stg:font-medium stg:uppercase stg:tracking-wider stg:text-muted-foreground"
+          className="stg:grid stg:grid-cols-[1fr_auto_auto_auto_auto] stg:gap-x-4 stg:border-b stg:border-border stg:px-3.5 stg:py-2.5 stg:text-2xs stg:font-medium stg:uppercase stg:tracking-wider stg:text-muted-foreground"
         >
           <span role="columnheader">Model</span>
           <span role="columnheader" className="stg:text-right">
@@ -367,7 +368,7 @@ function ModelBreakdownList({
           return (
             <div
               key={`${m.model}\0${m.provider}`}
-              className="stg:border-b stg:border-border-muted stg:px-3.5 stg:py-2 stg:last:border-b-0"
+              className="stg:border-b stg:border-border-muted stg:px-3.5 stg:py-2.5 stg:last:border-b-0"
             >
               <div
                 role="row"

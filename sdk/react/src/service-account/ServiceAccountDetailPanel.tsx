@@ -34,6 +34,7 @@ import { useCreateGrant } from "../grant/useCreateGrant.js";
 import { useDeleteGrant } from "../grant/useDeleteGrant.js";
 import { useResourceAccess } from "../grant/useResourceAccess.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
+import { Card } from "../internal/surface/Card.js";
 import { SERVICE_ACCOUNT_OMITTED_ROLES } from "./copy.js";
 import { CreateServiceAccountKeyForm } from "./CreateServiceAccountKeyForm.js";
 import { orgRoleOf } from "./org-role.js";
@@ -348,7 +349,7 @@ function KeysSection({
       </div>
 
       {flow.phase === "creating" && (
-        <div className="stg:border-border stg:bg-card stg:rounded-lg stg:border stg:p-4">
+        <Card>
           <CreateServiceAccountKeyForm
             serviceAccountId={accountId}
             serviceAccountName={name}
@@ -362,7 +363,7 @@ function KeysSection({
             }}
             onCancel={() => setFlow({ phase: "idle" })}
           />
-        </div>
+        </Card>
       )}
 
       {flow.phase === "revealed" && (

@@ -23,6 +23,7 @@
 import { cn } from "@stigmer/design-tokens";
 
 import { Button } from "../button/Button.js";
+import { cardClasses } from "../internal/surface/Card.js";
 import { UploadIcon } from "../internal/UploadIcon.js";
 import { PluginFace } from "./PluginFace.js";
 import { SourceMark } from "./SourceMark.js";
@@ -43,7 +44,7 @@ export interface PluginCardProps {
   readonly className?: string;
 }
 
-const CARD = "stg:flex stg:flex-col stg:gap-3 stg:rounded-lg stg:border stg:border-border stg:bg-card stg:p-4";
+const CARD_LAYOUT = "stg:flex stg:flex-col stg:gap-3";
 
 export function PluginCard({ entry, installed, onInstall, className }: PluginCardProps) {
   const { presentation, logoUrl } = usePluginPresentation(entry.opened, entry.entry);
@@ -56,7 +57,7 @@ export function PluginCard({ entry, installed, onInstall, className }: PluginCar
   const byline = author ? `by ${author}` : displayName !== name ? name : null;
 
   return (
-    <li className={cn(CARD, className)}>
+    <li className={cn(cardClasses(), CARD_LAYOUT, className)}>
       <div className="stg:flex stg:items-start stg:gap-3 stg:min-w-0">
         <PluginFace name={name} displayName={displayName} logoUrl={logoUrl} />
         <div className="stg:min-w-0 stg:flex-1">
@@ -97,14 +98,11 @@ export interface UploadTileProps {
 
 export function UploadTile({ onUpload, className }: UploadTileProps) {
   return (
-    <li className={cn(CARD, "stg:border-dashed stg:bg-transparent", className)}>
+    <li className={cn("stg:flex", className)}>
       <button
         type="button"
         onClick={onUpload}
-        className={cn(
-          "stg:flex stg:h-full stg:w-full stg:cursor-pointer stg:flex-col stg:items-start stg:gap-3 stg:rounded-md stg:text-left",
-          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-        )}
+        className={cn(cardClasses({ placeholder: true, interactive: true }), CARD_LAYOUT, "stg:h-full stg:w-full stg:items-start")}
       >
         <span className="stg:flex stg:size-10 stg:items-center stg:justify-center stg:rounded-lg stg:border stg:border-dashed stg:border-border stg:text-muted-foreground">
           <UploadIcon className="stg:size-5" />

@@ -16,6 +16,7 @@ import { useResourceAvailable } from "@stigmer/react-core";
 import { ApiResourceKind } from "@stigmer/react-core/internal";
 import { EmptyState } from "../empty-state/index.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
+import { cardClasses } from "../internal/surface/Card.js";
 import { SettingsPage } from "../settings/SettingsPage.js";
 import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
 import { StatusBadge } from "../resource-workbench/components/StatusBadge.js";
@@ -76,7 +77,7 @@ type Flow =
  * table scrolls instead of crushing a column.
  */
 const ROW_GRID =
-  "stg:grid stg:grid-cols-[minmax(0,2fr)_4rem_minmax(0,1.4fr)_9rem_6rem] stg:items-center stg:gap-3 stg:px-3 stg:py-2";
+  "stg:grid stg:grid-cols-[minmax(0,2fr)_4rem_minmax(0,1.4fr)_9rem_6rem] stg:items-center stg:gap-3 stg:px-3.5 stg:py-2.5";
 
 /**
  * The platform-operator console for Stigmer licenses: the renewal calendar
@@ -222,7 +223,7 @@ export function LicensesConsole({ className, now }: LicensesConsoleProps) {
       // Narrow-host guard (the ResourceTable idiom): the scroll container
       // carries the card chrome and the ARIA table starts inside it, so
       // rows stay directly owned by the table.
-      <div className="stg:overflow-x-auto stg:rounded-lg stg:border stg:border-border stg:bg-card">
+      <div className={cn(cardClasses({ flush: true }), "stg:overflow-x-auto")}>
         <div role="table" aria-label="Licenses" className="stg:min-w-[42rem]">
           <div
             role="row"
@@ -287,7 +288,7 @@ function LicenseRow({
       role="row"
       className={cn(
         ROW_GRID,
-        "stg:relative stg:border-b stg:border-border stg:text-xs stg:text-muted-foreground stg:last:border-b-0",
+        "stg:relative stg:border-b stg:border-border-muted stg:text-xs stg:text-muted-foreground stg:last:border-b-0",
         "stg:transition-colors stg:hover:bg-accent stg:motion-reduce:transition-none",
       )}
     >

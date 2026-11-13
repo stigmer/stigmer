@@ -22,6 +22,7 @@ import { ErrorMessage } from "../error/ErrorMessage.js";
 import { SettingsPage } from "../settings/SettingsPage.js";
 import { SettingsSkeleton } from "../settings/SettingsSkeleton.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
+import { Card, cardClasses } from "../internal/surface/Card.js";
 import { FEATURE_COPY, isNamedFeature } from "../internal/features.js";
 import { ConfirmDialog } from "../resource-detail/ConfirmDialog.js";
 import { useConfirmAction } from "../resource-detail/useConfirmAction.js";
@@ -115,7 +116,7 @@ export function PlanCatalogConsole({ className }: PlanCatalogConsoleProps) {
   return frame(
     <div className="stg:space-y-4">
       {creating ? (
-        <div className="stg:rounded-lg stg:border stg:border-border stg:bg-card stg:p-4">
+        <Card>
           <PlanCreateForm
             onCreated={() => {
               setCreating(false);
@@ -123,7 +124,7 @@ export function PlanCatalogConsole({ className }: PlanCatalogConsoleProps) {
             }}
             onCancel={() => setCreating(false)}
           />
-        </div>
+        </Card>
       ) : null}
       {retirer.error && (
         <p className="stg:text-xs stg:text-destructive" role="alert">
@@ -138,7 +139,7 @@ export function PlanCatalogConsole({ className }: PlanCatalogConsoleProps) {
           className="stg:rounded-lg stg:border stg:border-dashed stg:border-border"
         />
       ) : (
-        <ul className={cn(UNSTYLED_LIST, "stg:space-y-2")} aria-label="Plan catalog">
+        <ul className={cn(UNSTYLED_LIST, cardClasses({ flush: true }), "stg:divide-y stg:divide-border-muted")} aria-label="Plan catalog">
           {plans.map((plan) => (
             <PlanRow key={plan.metadata?.id} plan={plan} onRetire={() => void retire(plan)} busy={retirer.isSubmitting} />
           ))}
@@ -157,7 +158,7 @@ function PlanRow({ plan, onRetire, busy }: { readonly plan: Plan; readonly onRet
   const offered = new Set(offeredFeatures(plan.spec?.entitlements).map((f) => f.label));
   const managed = formatChildOrgs(plan.spec?.entitlements, terms);
   return (
-    <li className="stg:rounded-lg stg:border stg:border-border stg:bg-card stg:p-3">
+    <li className="stg:px-3.5 stg:py-2.5">
       <div className="stg:flex stg:items-center stg:justify-between stg:gap-3">
         <div className="stg:min-w-0">
           <p className="stg:truncate stg:text-sm stg:font-medium stg:text-foreground">

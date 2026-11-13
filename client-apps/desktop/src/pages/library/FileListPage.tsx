@@ -12,6 +12,7 @@ import {
   useCanCreateFile,
   useOrgSlugForId,
   useStigmer,
+  PageHeader,
 } from "@stigmer/react-sdk";
 
 /**
@@ -39,13 +40,21 @@ export default function FileListPage() {
 
   return (
     <>
-      <div className="mb-6">
-        <h1 className="text-foreground text-xl font-semibold">Files</h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          Files you keep to reuse: name one in a routine and every run gets its own copy. A
-          conversation&rsquo;s files stay with that conversation.
-        </p>
-      </div>
+      <PageHeader
+        className="mb-6"
+        headingLevel={1}
+        title="Files"
+        description={
+          <>
+            Files you keep to reuse: name one in a routine and every run gets its own copy. A
+            conversation&rsquo;s files stay with that conversation.
+          </>
+        }
+        // One Upload, in the page's header, which the empty list shows too: a
+        // second copy in the empty state would unmount with its uploads'
+        // status once the first one fills the list.
+        actions={uploadButton}
+      />
 
       {/* Files are not in search: listed through the direct query, hence
           searchable={false}. */}
@@ -61,10 +70,6 @@ export default function FileListPage() {
         emptyIcon={<Files className="size-10" aria-hidden="true" />}
         emptyTitle="No files yet"
         emptyDescription="Upload a file to keep it here and hand it to your routines."
-        // One Upload, in the header, which the empty list shows too: a second
-        // copy in the empty state would unmount with its uploads' status
-        // once the first one fills the list.
-        headerAction={uploadButton}
         onItemClick={setPreview}
         aria-label="File workbench"
       />

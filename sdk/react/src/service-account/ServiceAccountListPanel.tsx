@@ -19,6 +19,7 @@ import { ErrorMessage } from "../error/ErrorMessage.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
 import { orgRoleOf } from "./org-role.js";
 import { useServiceAccountList } from "./useServiceAccountList.js";
+import { List, ListRow } from "../internal/surface/List.js";
 
 /** Props for {@link ServiceAccountListPanel}. */
 export interface ServiceAccountListPanelProps {
@@ -86,41 +87,38 @@ export function ServiceAccountListPanel({
   }
 
   return (
-    <div className={cn("stg:space-y-2", className)} role="list" aria-label="Service accounts">
+    <List aria-label="Service accounts" className={className}>
       {serviceAccounts.map((account) => {
         const id = account.metadata?.id ?? "";
         const name = account.metadata?.name || id;
         const role = orgRoleOf(access.members, id);
         const createdAt = account.status?.audit?.specAudit?.createdAt;
         return (
-          <div role="listitem" key={id}>
-            <button
-              type="button"
-              onClick={() => onOpen?.(account)}
-              aria-label={`Open ${name}`}
-              className="stg:flex stg:w-full stg:items-center stg:gap-3 stg:rounded-lg stg:border stg:border-border-muted stg:px-3 stg:py-2.5 stg:text-left stg:hover:border-border stg:transition-colors"
-            >
+          <ListRow
+            key={id}
+            onClick={() => onOpen?.(account)}
+            leading={
               <span className="stg:flex stg:size-8 stg:shrink-0 stg:items-center stg:justify-center stg:rounded-md stg:bg-muted stg:text-xs stg:font-medium stg:text-muted-foreground">
                 {name.charAt(0).toUpperCase()}
               </span>
-              <span className="stg:min-w-0 stg:flex-1">
-                <span className="stg:block stg:truncate stg:text-sm stg:font-medium stg:text-foreground">
-                  {name}
-                </span>
-                {createdAt && (
-                  <span className="stg:block stg:text-xs stg:text-muted-foreground">
-                    Created {formatShortDate(timestampDate(createdAt))}
-                  </span>
-                )}
-              </span>
+            }
+            name={
+              <>
+                {/* The row's button is named "Open <name>", as it was when the whole row was the button. */}
+                <span className="stg:sr-only">Open </span>
+                {name}
+              </>
+            }
+            description={createdAt ? `Created ${formatShortDate(timestampDate(createdAt))}` : undefined}
+            trailing={
               <span className="stg:shrink-0 stg:rounded-md stg:border stg:border-border stg:bg-muted stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-foreground">
                 {access.isLoading ? "…" : role ? iamRoleDisplayName(role.role) : "No role"}
               </span>
-            </button>
-          </div>
+            }
+          />
         );
       })}
-    </div>
+    </List>
   );
 }
 

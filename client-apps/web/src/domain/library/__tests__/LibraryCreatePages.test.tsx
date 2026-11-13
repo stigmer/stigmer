@@ -8,6 +8,7 @@
  * draws no upload control of its own (CON-01), so a person the server
  * would refuse sees the kit's notice that an admin installs plugins.
  */
+import type { ReactNode } from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, render, screen } from "@testing-library/react";
 
@@ -32,6 +33,14 @@ vi.mock("@stigmer/react-sdk", () => {
     PluginUploader: capture("PluginUploader"),
     RoutineForm: capture("RoutineForm"),
     SkillUploader: capture("SkillUploader"),
+    // The kit's page heading, standing in with its title, words and acts.
+    PageHeader: ({ title, description, actions }: { title: ReactNode; description?: ReactNode; actions?: ReactNode }) => (
+      <header>
+        <h1>{title}</h1>
+        <p>{description}</p>
+        {actions}
+      </header>
+    ),
     AGENT_TEMPLATES: [],
     useActiveOrgId: () => "org_acme",
     useCanCreateAgent: () => page.canCreate,

@@ -6,6 +6,7 @@
 
 import { useId, useState } from "react";
 import { Switch } from "../switch/Switch.js";
+import { Card } from "../internal/surface/Card.js";
 import { SettingsPage } from "./SettingsPage.js";
 import { useAttentionNotificationsSetting } from "../session/attentionNotificationsSetting.js";
 
@@ -52,7 +53,7 @@ export function NotificationsSection({ requestPermission, unsupported = false }:
 
   return (
     <SettingsPage title="Notifications" description="When this device tells you about your conversations. Applies on this device only.">
-      <div className="stg:space-y-1 stg:rounded-lg stg:border stg:border-border stg:bg-card stg:p-4">
+      <Card className="stg:space-y-1">
         <div className="stg:flex stg:items-start stg:justify-between stg:gap-3">
           <div className="stg:min-w-0 stg:flex-1">
             <span id={`${switchId}-title`} className="stg:block stg:text-xs stg:font-medium stg:text-foreground">
@@ -83,7 +84,7 @@ export function NotificationsSection({ requestPermission, unsupported = false }:
             Notifications are blocked. Allow them for this site in your browser or system settings, then turn this on.
           </p>
         )}
-      </div>
+      </Card>
     </SettingsPage>
   );
 }

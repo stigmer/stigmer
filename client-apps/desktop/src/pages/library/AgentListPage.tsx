@@ -25,6 +25,7 @@ import {
   toast,
   type WorkbenchColumnDef,
   createLibraryListFn,
+  PageHeader,
 } from "@stigmer/react-sdk";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { SearchResult } from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
@@ -112,12 +113,27 @@ export default function AgentListPage() {
 
   return (
     <>
-      <div className="mb-6">
-        <h1 className="text-foreground text-xl font-semibold">Agents</h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          Browse and manage agents in your organization.
-        </p>
-      </div>
+      <PageHeader
+        className="mb-6"
+        headingLevel={1}
+        title="Agents"
+        description="Browse and manage agents in your organization."
+        actions={
+          <>
+            <IconButton
+              variant="outline"
+              label="Apply YAML"
+              icon={<Upload className="size-3.5" aria-hidden="true" />}
+              onClick={() => setImportOpen(true)}
+            />
+            {canCreateAgent && (
+              <LinkButton href={createUrl} icon={<Plus className="size-3.5" aria-hidden="true" />} renderLink={renderJourneyLink}>
+                Create agent
+              </LinkButton>
+            )}
+          </>
+        }
+      />
 
       <ResourceWorkbench
         refetchToken={refetchToken}
@@ -131,21 +147,6 @@ export default function AgentListPage() {
         emptyIcon={<Bot className="size-10" aria-hidden="true" />}
         emptyTitle="No agents yet"
         emptyDescription="Create an agent to define instructions, tools, skills, and execution behavior."
-        headerAction={
-          <div className="flex items-center gap-1.5">
-            <IconButton
-              variant="outline"
-              label="Apply YAML"
-              icon={<Upload className="size-3.5" aria-hidden="true" />}
-              onClick={() => setImportOpen(true)}
-            />
-            {canCreateAgent && (
-              <LinkButton href={createUrl} icon={<Plus className="size-3.5" aria-hidden="true" />} renderLink={renderJourneyLink}>
-                Create agent
-              </LinkButton>
-            )}
-          </div>
-        }
         emptyAction={
           canCreateAgent ? (
             <LinkButton href={createUrl} icon={<Plus className="size-3.5" aria-hidden="true" />} renderLink={renderJourneyLink}>

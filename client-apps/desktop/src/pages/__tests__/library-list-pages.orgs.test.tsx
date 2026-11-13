@@ -35,7 +35,6 @@ interface WorkbenchProps {
   columns: Column[];
   onItemClick: (item: Item) => void;
   renderItemAction?: (item: Item) => ReactNode;
-  headerAction?: ReactNode;
   emptyAction?: ReactNode;
 }
 
@@ -87,6 +86,7 @@ vi.mock("@stigmer/react-sdk", async () => {
     Button: kit.Button,
     IconButton: kit.IconButton,
     LinkButton: kit.LinkButton,
+    PageHeader: kit.PageHeader,
     ActionMenu,
     // Stands in for the kit's bar: an act that requires a relation is offered
     // only when the row's resource holds it (the rule is pinned in the kit).
@@ -270,7 +270,6 @@ describe("desktop AgentListPage — who may create agents", () => {
     if (!props) throw new Error("the workbench was not rendered");
     return render(
       <MemoryRouter>
-        {props.headerAction}
         {props.emptyAction}
       </MemoryRouter>,
     );

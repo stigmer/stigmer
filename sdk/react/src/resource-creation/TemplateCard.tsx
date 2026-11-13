@@ -2,6 +2,7 @@
 
 import { useCallback } from "react";
 import { cn } from "@stigmer/design-tokens";
+import { cardClasses } from "../internal/surface/Card.js";
 import type { ResourceTemplate } from "./templates/types.js";
 import { TEMPLATE_CATEGORY_LABELS } from "./templates/types.js";
 
@@ -68,9 +69,8 @@ export function TemplateCard<TData>({
       onKeyDown={handleKeyDown}
       aria-label={`Use ${template.name} template`}
       className={cn(
-        "stg:group stg:flex stg:cursor-pointer stg:flex-col stg:gap-3 stg:rounded-lg stg:border stg:border-border stg:bg-card stg:p-4",
-        "stg:transition-colors stg:hover:border-primary stg:hover:bg-accent",
-        "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+        cardClasses({ interactive: true }),
+        "stg:group stg:flex stg:flex-col stg:gap-3",
         className,
       )}
     >

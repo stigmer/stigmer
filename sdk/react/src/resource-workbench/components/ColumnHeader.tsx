@@ -42,7 +42,7 @@ export function ColumnHeader({
       <th
         scope="col"
         className={cn(
-          "stg:px-3 stg:py-2 stg:text-left stg:text-xs stg:font-medium stg:text-muted-foreground",
+          "stg:px-3.5 stg:py-2.5 stg:text-left stg:text-xs stg:font-medium stg:text-muted-foreground",
           className,
         )}
       >
@@ -56,7 +56,7 @@ export function ColumnHeader({
       scope="col"
       aria-sort={ariaSort}
       className={cn(
-        "stg:px-3 stg:py-2 stg:text-left stg:text-xs stg:font-medium stg:text-muted-foreground",
+        "stg:px-3.5 stg:py-2.5 stg:text-left stg:text-xs stg:font-medium stg:text-muted-foreground",
         className,
       )}
     >

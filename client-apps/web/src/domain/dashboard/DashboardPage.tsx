@@ -9,6 +9,7 @@
 
 import { useMemo } from "react";
 import { useOrg, OperationalDashboard, PageHeader, type DashboardFirstStepLinks } from "@stigmer/react-sdk";
+import { PageFrame } from "@stigmer/react-sdk/console";
 import { useRunNavigation } from "@/domain/runs/run-navigation";
 import { renderJourneyLink, useJourneyLinks } from "@/domain/journey/journey-links";
 
@@ -31,7 +32,7 @@ export function DashboardPage() {
   );
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-8">
+    <PageFrame width="wide">
       <PageHeader
         className="mb-8"
         title="Dashboard"
@@ -44,6 +45,6 @@ export function DashboardPage() {
         firstStepLinks={firstStepLinks}
         renderLink={renderJourneyLink}
       />
-    </div>
+    </PageFrame>
   );
 }

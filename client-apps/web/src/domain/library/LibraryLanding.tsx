@@ -21,6 +21,7 @@ import {
   useCanCreateAgent,
   useCanCreateEnvironment,
   useCanCreateFile,
+  PageHeader,
 } from "@stigmer/react-sdk";
 
 function isPlainClick(e: MouseEvent): boolean {
@@ -156,10 +157,20 @@ export function LibraryLanding() {
 
   return (
     <>
-      <h1 className="text-foreground mb-1 text-xl font-semibold">Library</h1>
-      <p className="text-muted-foreground mb-8 text-sm">
-        Browse and manage your agents, skills, plugins, environments, and files.
-      </p>
+      <PageHeader
+        className="mb-6"
+        headingLevel={1}
+        title="Library"
+        description="Browse and manage your agents, skills, plugins, environments, and files."
+        actions={
+          <>
+            <AddResourceMenu />
+            <Button variant="ghost" icon={<FileCode2 className="size-3.5" aria-hidden="true" />} onClick={() => setApplyYamlOpen(true)}>
+              Apply YAML
+            </Button>
+          </>
+        }
+      />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {RESOURCE_CARDS.map((card) => {
@@ -182,13 +193,6 @@ export function LibraryLanding() {
             />
           );
         })}
-      </div>
-
-      <div className="mt-6 flex items-center gap-2">
-        <AddResourceMenu />
-        <Button variant="ghost" icon={<FileCode2 className="size-3.5" aria-hidden="true" />} onClick={() => setApplyYamlOpen(true)}>
-          Apply YAML
-        </Button>
       </div>
 
       <ApplyManifestDialog

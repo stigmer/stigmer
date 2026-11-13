@@ -1,6 +1,7 @@
 "use client";
 
 import { ModelsHub, useActiveOrgId } from "@stigmer/react-sdk";
+import { PageFrame } from "@stigmer/react-sdk/console";
 
 /**
  * Models & providers: which models the organization's agents can run, the
@@ -16,8 +17,8 @@ export function ModelsPage() {
   const org = useActiveOrgId();
   if (!org) return null;
   return (
-    <div className="mx-auto w-full max-w-4xl px-6 py-8">
+    <PageFrame width="wide">
       <ModelsHub org={org} />
-    </div>
+    </PageFrame>
   );
 }

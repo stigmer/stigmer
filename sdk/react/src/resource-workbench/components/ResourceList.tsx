@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { cn } from "@stigmer/design-tokens";
+import { cardClasses } from "../../internal/surface/Card.js";
 import { SelectionCheckbox } from "./SelectionCheckbox.js";
 
 /** Props for {@link ResourceList}. */
@@ -34,8 +35,9 @@ export interface ResourceListProps<TData> {
 /**
  * Compact list view for the resource workbench.
  *
- * Renders items as a single-column vertical list of rows. Each row
- * supports selection, an action slot, and click handling. Row content
+ * Renders items as the console's list: one card of rows with hairline
+ * dividers, each row 40px for one line, as every settings list draws. Each
+ * row supports selection, an action slot, and click handling. Row content
  * is customizable via the `renderRow` prop.
  *
  * This component renders **only the list**. Search, filters, and
@@ -57,7 +59,7 @@ export function ResourceList<TData>({
     <div
       role="list"
       aria-label={ariaLabel}
-      className={cn("stg:flex stg:flex-col", className)}
+      className={cn(cardClasses({ flush: true }), "stg:flex stg:flex-col stg:divide-y stg:divide-border-muted", className)}
     >
       {items.map((item, index) => {
         const id = getItemId(item);
@@ -85,9 +87,9 @@ export function ResourceList<TData>({
                 : undefined
             }
             className={cn(
-              "stg:flex stg:items-center stg:gap-3 stg:rounded-lg stg:px-3 stg:py-2.5 stg:transition-colors",
+              "stg:flex stg:min-h-10 stg:items-center stg:gap-3 stg:px-3.5 stg:py-2.5 stg:text-sm stg:transition-colors",
               isSelected && "stg:bg-primary-subtle",
-              isClickable && "stg:cursor-pointer stg:hover:bg-accent-hover",
+              isClickable && "stg:cursor-pointer stg:hover:bg-accent",
               isClickable && "stg:focus-within:ring-2 stg:focus-within:ring-inset stg:focus-within:ring-ring",
             )}
           >

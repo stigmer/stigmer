@@ -13,7 +13,7 @@
  */
 import type { ReactNode } from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 
 interface ColumnDef {
   id: string;
@@ -31,7 +31,6 @@ interface WorkbenchProps {
   org: string | null;
   columns: ColumnDef[];
   renderItemAction?: (item: Row) => ReactNode;
-  headerAction?: ReactNode;
   emptyAction?: ReactNode;
   onItemClick?: (item: { metadata: { org: string; slug: string } }) => void;
 }
@@ -80,6 +79,7 @@ vi.mock("@stigmer/react-sdk", async () => {
     Button: kit.Button,
     IconButton: kit.IconButton,
     LinkButton: kit.LinkButton,
+    PageHeader: kit.PageHeader,
     ResourceWorkbench: (props: WorkbenchProps) => {
       page.workbench.push(props);
       // Render one row the way the workbench does: each column's cell,
@@ -279,12 +279,10 @@ describe("web RoutineListPage", () => {
   });
 
   it("opens the Apply YAML dialog in the active org from the header", () => {
-    render(<RoutineListPage />);
+    const { getByRole } = render(<RoutineListPage />);
     expect(page.applyDialog.at(-1)).toEqual({ open: false, org: "org_acme" });
-    const header = page.workbench.at(-1)?.headerAction;
-    const { getByRole } = render(<>{header}</>);
 
-    fireEvent.click(getByRole("button", { name: "Apply YAML" }));
+    fireEvent.click(within(getByRole("banner")).getByRole("button", { name: "Apply YAML" }));
 
     expect(page.applyDialog.at(-1)).toEqual({ open: true, org: "org_acme" });
   });
@@ -303,7 +301,6 @@ describe("web AgentListPage — who may create agents", () => {
     if (!props) throw new Error("the workbench was not rendered");
     return render(
       <>
-        {props.headerAction}
         {props.emptyAction}
       </>,
     );
