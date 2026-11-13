@@ -21,7 +21,10 @@
  * "No room" is part of the contract: a driver whose sandboxes share a fleet
  * with a fixed room (the `substrate` driver's workers) throws
  * SandboxNoRoomError when the fleet has no room for the sandbox now, and a
- * composed driver may too. The agent-execution workflow answers it by
+ * composed driver may too. A driver that wraps another keeps the inner
+ * error as its error's `cause` (the cloud's provisioner over `substrate`
+ * does), and `isSandboxNoRoom` reads the whole chain. The agent-execution
+ * workflow answers it by
  * asking again until room comes or the server's wait runs out
  * (temporal/agentexecution/sandbox-wait.ts); every other throw is a
  * provisioning failure. The built-in `local-process`, `docker` and
@@ -157,6 +160,18 @@ export class SandboxNoRoomError extends Error {
     super(message);
     this.name = "SandboxNoRoomError";
   }
+}
+
+/** Whether `error`, or any error in its `cause` chain, is SandboxNoRoomError (module header). */
+export function isSandboxNoRoom(error: unknown): boolean {
+  const seen = new Set<unknown>();
+  for (let e: unknown = error; e instanceof Error && !seen.has(e); e = e.cause) {
+    if (e instanceof SandboxNoRoomError) {
+      return true;
+    }
+    seen.add(e);
+  }
+  return false;
 }
 
 /** One sandbox's observed live state (the live-state probe's result). */

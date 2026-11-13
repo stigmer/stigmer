@@ -13,7 +13,8 @@
  * image, so do HOME, the server's release and the Node settings the runner
  * layer clears at start, which `local-process` passes through. The OIDC
  * issuer is a third: https, or http on this machine's loopback alone, or the
- * boot fails.
+ * boot fails. The wait for a sandbox with room is a fourth: a whole number
+ * of seconds, 0 or more, or the boot fails.
  */
 import { describe, expect, it } from "vitest";
 
@@ -23,6 +24,21 @@ import {
   defaultSandboxRunnerImage,
   loadConfig,
 } from "../config.js";
+
+describe("STIGMER_SANDBOX_WAIT_SECONDS", () => {
+  it("is 15 minutes unset, takes a whole number of seconds, 0 included", () => {
+    expect(loadConfig({}).sandboxWaitSeconds).toBe(900);
+    expect(loadConfig({ STIGMER_SANDBOX_WAIT_SECONDS: "" }).sandboxWaitSeconds).toBe(900);
+    expect(loadConfig({ STIGMER_SANDBOX_WAIT_SECONDS: "120" }).sandboxWaitSeconds).toBe(120);
+    expect(loadConfig({ STIGMER_SANDBOX_WAIT_SECONDS: "0" }).sandboxWaitSeconds).toBe(0);
+  });
+
+  it("fails the boot on anything else, naming the setting", () => {
+    for (const value of ["-1", "15m", "1.5", "ten"]) {
+      expect(() => loadConfig({ STIGMER_SANDBOX_WAIT_SECONDS: value }), value).toThrow(/STIGMER_SANDBOX_WAIT_SECONDS is ".*"; it takes a whole number of seconds/);
+    }
+  });
+});
 
 describe("loadConfig", () => {
   it("returns the defaults for an empty environment", () => {

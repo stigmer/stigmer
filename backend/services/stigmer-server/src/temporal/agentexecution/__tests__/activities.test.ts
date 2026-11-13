@@ -18,7 +18,13 @@
  *     own message and not the newest, once; a first turn, a run whose
  *     message is not in the log, a previous turn since deleted, and one
  *     the log shows a person decided close nothing; a store fault reading
- *     the previous turn fails the activity.
+ *     the previous turn fails the activity;
+ *   - EnsureSessionSandbox runs the request's ensure with the caller's
+ *     facts from the input and answers its word; on `no_room` it tells the
+ *     session's liveness streams how long the turn has waited, and on
+ *     another answer after a wait it sends a liveness without the wait; a
+ *     turn that never waited sends nothing; a run since deleted is
+ *     `skipped`; and it heartbeats while the ensure runs.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -49,11 +55,24 @@ import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
 import type { Store } from "../../../store/interface.js";
 import { createAgentExecutionActivities } from "../activities.js";
+import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import { ExecutionTarget } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import {
+  AgentExecutionTemporalConfig,
+  DEFAULT_EXECUTION_TARGET_CLOUD,
+  ROUTING_SESSION,
+} from "../../../domain/run/temporal/config.js";
+import { SESSION_EVENT_LIVENESS_TYPE } from "../../../domain/session/events/broker.js";
+import { SandboxNoRoomError, type SandboxFacts, type SandboxProvisioner } from "../../../sandbox/provisioner.js";
+import type { EnsureSessionSandboxInput } from "../sandbox-wait.js";
+import type { RunnerCredentialProvider } from "../../../runnerauth/runner-credential-provider.js";
 import { WITHOUT_SANDBOX } from "./activity-deps.js";
 import type { ExecutionStatusWriter } from "../activities.js";
 import {
   CLOSE_FILE_REVIEW_ACTIVITY_NAME,
   COUNT_OPEN_GATES_ACTIVITY_NAME,
+  DEFAULT_ACTIVITY_TASK_QUEUE,
+  ENSURE_SESSION_SANDBOX_ACTIVITY_NAME,
   START_QUEUED_TURN_ACTIVITY_NAME,
   UPDATE_EXECUTION_STATUS_ACTIVITY_NAME,
 } from "../names.js";
@@ -496,5 +515,145 @@ describe("CloseFileReview activity", () => {
 
     expect(await decisions("run_a")).toEqual(["person"]);
     expect(await decidedRuns(), "the person's decided event, and no keep").toEqual(["run_a"]);
+  });
+});
+
+describe("EnsureSessionSandbox activity", () => {
+  type Ensure = (input: EnsureSessionSandboxInput) => Promise<string>;
+
+  /** No mint: these pins are about the ensure's answer, not its credential. */
+  const credentials: RunnerCredentialProvider = {
+    isEnabled: () => false,
+    mint: () => {
+      throw new Error("the lane mints nothing here");
+    },
+    verify: () => {
+      throw new Error("verify is not under test");
+    },
+  };
+
+  /** A provisioner whose ensure answers each call in turn: room, no room, or a promise the test settles. */
+  function scriptedProvisioner(answers: Array<"ready" | "no_room" | Promise<void>>) {
+    const facts: SandboxFacts[] = [];
+    const provisioner: SandboxProvisioner = {
+      ensureSessionSandbox: async (_id, given) => {
+        facts.push(given);
+        const answer = answers.shift() ?? "ready";
+        if (answer === "no_room") {
+          throw new SandboxNoRoomError("no free Substrate worker for sandbox s: none");
+        }
+        if (answer !== "ready") {
+          await answer;
+        }
+      },
+      deprovisionSessionSandbox: async () => undefined,
+      createConnectSandbox: async (id) => id,
+      deprovisionConnectSandbox: async () => undefined,
+      probe: async () => "absent",
+    };
+    return { provisioner, facts };
+  }
+
+  /** A CLOUD session and its run, the activity over `provisioner`, and a stream that asked for liveness. */
+  async function sandboxFixture(provisioner: SandboxProvisioner, heartbeat: () => void = () => undefined) {
+    const temp = tempStore();
+    cleanups.push(() => temp.cleanup());
+    await temp.store.saveResource(
+      ApiResourceKind.session,
+      "ses_wait",
+      SessionSchema,
+      create(SessionSchema, { metadata: { id: "ses_wait", name: "ses_wait" }, spec: { executionTarget: ExecutionTarget.CLOUD } }),
+    );
+    await temp.store.saveResource(
+      ApiResourceKind.run,
+      "run_wait",
+      RunSchema,
+      create(RunSchema, { metadata: { id: "run_wait", name: "run_wait" }, spec: { target: { case: "sessionId", value: "ses_wait" } } }),
+    );
+    const broker = new SessionEventBroker(silentLogger);
+    const stream = broker.subscribe("ses_wait", [SESSION_EVENT_LIVENESS_TYPE]);
+    const ensure = createAgentExecutionActivities({
+      store: temp.store,
+      logger: silentLogger,
+      statusWriter: () => {
+        throw new Error("the ensure writes no status");
+      },
+      sessionEventBroker: broker,
+      queuedTurns: async () => undefined,
+      sandboxLane: { enabled: true, provisioner, credentials },
+      personAccounts: undefined,
+      temporalConfig: new AgentExecutionTemporalConfig(
+        "agent_execution_stigmer",
+        DEFAULT_ACTIVITY_TASK_QUEUE,
+        ROUTING_SESSION,
+        DEFAULT_EXECUTION_TARGET_CLOUD,
+      ),
+      heartbeat,
+      now: () => 100_000,
+    })[ENSURE_SESSION_SANDBOX_ACTIVITY_NAME] as Ensure;
+    /** The liveness the stream received since the last read: its run, and its sandbox wait in ms. */
+    const sent = (): Array<{ runId: string; sandboxMs: number | undefined }> => {
+      const received: Array<{ runId: string; sandboxMs: number | undefined }> = [];
+      for (let frame = broker.take(stream); frame !== undefined; frame = broker.take(stream)) {
+        if (frame.frame.case === "stigmerRunLiveness") {
+          const wait = frame.frame.value.awaitingSandboxFor;
+          received.push({ runId: frame.frame.value.runId, sandboxMs: wait === undefined ? undefined : Number(wait.seconds) * 1000 });
+        }
+      }
+      return received;
+    };
+    return { ensure, sent };
+  }
+
+  it("runs the request's ensure with the caller's facts and answers ready, telling no stream when the turn never waited", async () => {
+    const { provisioner, facts } = scriptedProvisioner(["ready"]);
+    const { ensure, sent } = await sandboxFixture(provisioner);
+    expect(await ensure({ execution_id: "run_wait", caller_class: "user", routine_id: "rtn_1", caller_identity_id: "ida_1" })).toBe("ready");
+    expect(facts).toHaveLength(1);
+    expect(facts[0]).toMatchObject({ taskQueue: "session:ses_wait", callerClass: "user", routineId: "rtn_1" });
+    expect(sent()).toEqual([]);
+  });
+
+  it("on no_room tells the streams how long the turn has waited, then clears it once room comes", async () => {
+    const { provisioner } = scriptedProvisioner(["no_room", "no_room", "ready"]);
+    const { ensure, sent } = await sandboxFixture(provisioner);
+    expect(await ensure({ execution_id: "run_wait", caller_class: "user" })).toBe("no_room");
+    expect(sent(), "the first ask: the wait has just begun").toEqual([{ runId: "run_wait", sandboxMs: 0 }]);
+    expect(await ensure({ execution_id: "run_wait", caller_class: "user", waiting_since_ms: 20_000 })).toBe("no_room");
+    expect(sent()).toEqual([{ runId: "run_wait", sandboxMs: 80_000 }]);
+    expect(await ensure({ execution_id: "run_wait", caller_class: "user", waiting_since_ms: 20_000 })).toBe("ready");
+    expect(sent(), "a liveness without the wait, so the stream stops counting").toEqual([{ runId: "run_wait", sandboxMs: undefined }]);
+  });
+
+  it("answers skipped for a run since deleted", async () => {
+    const { provisioner, facts } = scriptedProvisioner(["ready"]);
+    const { ensure } = await sandboxFixture(provisioner);
+    expect(await ensure({ execution_id: "run_gone", caller_class: "user" })).toBe("skipped");
+    expect(facts).toEqual([]);
+  });
+
+  it("heartbeats while the ensure runs, and stops when it ends", async () => {
+    vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
+    try {
+      let finish: () => void = () => undefined;
+      const slow = new Promise<void>((resolve) => {
+        finish = resolve;
+      });
+      const { provisioner, facts } = scriptedProvisioner([slow]);
+      let beats = 0;
+      const { ensure } = await sandboxFixture(provisioner, () => {
+        beats += 1;
+      });
+      const running = ensure({ execution_id: "run_wait", caller_class: "user" });
+      await vi.waitFor(() => expect(facts).toHaveLength(1));
+      vi.advanceTimersByTime(25_000);
+      expect(beats, "every 10 s").toBe(2);
+      finish();
+      expect(await running).toBe("ready");
+      vi.advanceTimersByTime(60_000);
+      expect(beats, "no beat once the ensure ended").toBe(2);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

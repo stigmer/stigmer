@@ -45,7 +45,18 @@
  *   - the run credential handed on (2026-09-16): the workflow input's
  *     `execution_context_token` reaches EVERY Execute* invocation, first
  *     turn and re-invocation, both harnesses, and the key is absent when
- *     the dispatch carried none.
+ *     the dispatch carried none;
+ *   - the wait for a sandbox with room (../sandbox-wait.ts): on a CLOUD
+ *     target whose input carries the caller's class, EnsureSessionSandbox
+ *     runs before the runner with the caller's facts; while it answers
+ *     no_room the run is written PENDING with the waiting phase text and
+ *     asked again, and the turn runs once room comes; a wait past the
+ *     input's limit fails the run as infrastructure / no_sandbox_room
+ *     with the person's sentence and runs nothing; a cancel while waiting
+ *     ends it CANCELLED; a pause while waiting takes no sandbox until
+ *     resume, then waits again on a fresh clock; a LOCAL target, and an
+ *     input without the caller's class, never ask. These waits are short
+ *     real seconds (the asks are 5 s apart), on the same local server.
  *
  * Recorder discipline (oss#892): Temporal activities are at-least-once —
  * a workflow task whose completion fails to commit re-executes its local
@@ -67,7 +78,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { RunStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type { RunStatus } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
-import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { ExecutionTarget, Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 
 import {
   ENSURE_THREAD_ACTIVITY_NAME,
@@ -143,6 +154,12 @@ interface ActivityScript {
    * the typed object, carrying the run credential when the dispatch did.
    */
   subjectArguments: unknown[];
+  /** Consumed per EnsureSessionSandbox call, in order; `sandboxDefault` once empty. */
+  sandboxAnswers: string[];
+  /** EnsureSessionSandbox's answer once `sandboxAnswers` is used up. */
+  sandboxDefault: string;
+  /** Each EnsureSessionSandbox call's input, in order. */
+  sandboxCalls: Array<Record<string, unknown>>;
   /** Consumed per CountOpenGates call, in order; last one sticks. An Error fails the call. */
   openGateCounts: Array<number | Error>;
   /** Each CountOpenGates call's (execution id, session id), in order. */
@@ -184,6 +201,9 @@ function resetScript(): void {
     queuedTurnFault: undefined,
     executeCredentials: [],
     subjectArguments: [],
+    sandboxAnswers: [],
+    sandboxDefault: "ready",
+    sandboxCalls: [],
     openGateCounts: [],
     gateCalls: [],
     persistedStatuses: [],
@@ -274,6 +294,11 @@ function scriptedActivities(): Record<string, (...args: never[]) => Promise<unkn
         const { ApplicationFailure } = await import("@temporalio/common");
         throw ApplicationFailure.create({ message: script.queuedTurnFault, nonRetryable: true });
       }
+    },
+    EnsureSessionSandbox: async (input: Record<string, unknown>): Promise<string> => {
+      script.sandboxCalls.push(input);
+      script.order.push("sandbox");
+      return script.sandboxAnswers.shift() ?? script.sandboxDefault;
     },
     CountOpenGates: async (executionId: string, sessionId: string): Promise<number> => {
       script.gateCalls.push([executionId, sessionId]);
@@ -930,4 +955,100 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
 
     expect(script.subjectArguments).toEqual([{ execution_id: currentExecutionId }]);
   }, 30_000);
+
+  describe("the wait for a sandbox with room", () => {
+    const cloud = (overrides: Partial<InvokeAgentExecutionWorkflowInput> = {}) =>
+      workflowInput({ execution_target: ExecutionTarget.CLOUD, caller_class: "user", ...overrides });
+
+    const persisted = (phase: RunPhase) => script.persistedStatuses.filter((entry) => entry.status.phase === phase);
+
+    /** Polls until EnsureSessionSandbox has been asked `count` times. */
+    async function waitForSandboxCalls(count: number, timeoutMs = 20_000): Promise<void> {
+      const deadline = Date.now() + timeoutMs;
+      while (script.sandboxCalls.length < count) {
+        if (Date.now() > deadline) throw new Error(`EnsureSessionSandbox was asked ${script.sandboxCalls.length} times, not ${count}`);
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      }
+    }
+
+    it("asks for the sandbox first with the caller's facts, waits PENDING while there is no room, then runs", async (testCtx) => {    if (!envReady) return testCtx.skip();
+      script.sandboxAnswers = ["no_room"];
+      script.executeBehaviors = [async () => slimResult(RunPhase.RUN_COMPLETED)];
+
+      await (await startWorkflow(cloud({ routine_id: "rtn_1", caller_identity_id: "ida_1" }))).result();
+
+      expect(script.order.slice(0, 4)).toEqual(["close", "sandbox", "sandbox", "execute"]);
+      expect(script.sandboxCalls[0]).toEqual({ execution_id: currentExecutionId, caller_class: "user", routine_id: "rtn_1", caller_identity_id: "ida_1" });
+      expect(typeof script.sandboxCalls[1]!["waiting_since_ms"], "the second ask says when the wait began").toBe("number");
+      const waiting = persisted(RunPhase.RUN_PENDING);
+      expect(waiting).toHaveLength(1);
+      expect(waiting[0]!.status.setupProgress?.currentPhase).toBe("Waiting for a sandbox");
+    }, 60_000);
+
+    it("ends a wait past its limit as no_sandbox_room with the person's sentence, running nothing", async (testCtx) => {    if (!envReady) return testCtx.skip();
+      script.sandboxDefault = "no_room";
+
+      await expect((await startWorkflow(cloud({ sandbox_wait_seconds: 1 }))).result()).rejects.toThrow(/Workflow execution failed/);
+
+      expect(script.executeCalls).toEqual([]);
+      const failed = persisted(RunPhase.RUN_FAILED);
+      expect(failed).toHaveLength(1);
+      expect(failed[0]!.status.stopCause).toBe("infrastructure");
+      expect(failed[0]!.status.stopDetail?.kind).toBe("no_sandbox_room");
+      expect(failed[0]!.status.error).toBe(
+        "Every sandbox was busy for 1 second, so this turn didn't start. Nothing was lost: run it again to wait for room.",
+      );
+      expect(script.queuedTurnCalls, "the session's queue still moves").toEqual(["ses_1"]);
+    }, 60_000);
+
+    it("ends at once on a zero limit", async (testCtx) => {    if (!envReady) return testCtx.skip();
+      script.sandboxDefault = "no_room";
+      await expect((await startWorkflow(cloud({ sandbox_wait_seconds: 0 }))).result()).rejects.toThrow(/Workflow execution failed/);
+      expect(script.sandboxCalls).toHaveLength(1);
+      expect(persisted(RunPhase.RUN_PENDING), "no waiting write for a wait that never began").toEqual([]);
+      expect(persisted(RunPhase.RUN_FAILED)[0]!.status.stopDetail?.kind).toBe("no_sandbox_room");
+    }, 60_000);
+
+    it("a cancel while waiting ends the run CANCELLED, quietly", async (testCtx) => {    if (!envReady) return testCtx.skip();
+      script.sandboxDefault = "no_room";
+      const handle = await startWorkflow(cloud());
+      await waitForPersistedPhase(RunPhase.RUN_PENDING);
+      await handle.cancel();
+      await expect(handle.result()).rejects.toThrow();
+
+      await waitForPersistedPhase(RunPhase.RUN_CANCELLED);
+      expect(persisted(RunPhase.RUN_CANCELLED)[0]!.status.stopCause).toBe("user");
+      expect(script.executeCalls).toEqual([]);
+    }, 60_000);
+
+    it("a pause while waiting takes no sandbox until resume, then waits again on a fresh clock", async (testCtx) => {    if (!envReady) return testCtx.skip();
+      script.sandboxAnswers = ["no_room", "no_room"];
+      script.executeBehaviors = [async () => slimResult(RunPhase.RUN_COMPLETED)];
+      const handle = await startWorkflow(cloud());
+      await waitForPersistedPhase(RunPhase.RUN_PENDING);
+      await handle.signal(SIGNAL_PAUSE, "Paused by user");
+      await waitForPersistedPhase(RunPhase.RUN_PAUSED);
+      const asked = script.sandboxCalls.length;
+      // Longer than the next ask would have been: a paused run asks nothing.
+      await new Promise((resolve) => setTimeout(resolve, 6_000));
+      expect(script.sandboxCalls.length, "no ask while paused").toBe(asked);
+      expect(persisted(RunPhase.RUN_PAUSED)[0]!.status.stopCause).toBe("user");
+
+      await handle.signal(SIGNAL_RESUME);
+      await handle.result();
+
+      const phases = script.persistedStatuses.map((entry) => entry.status.phase);
+      expect(phases.slice(phases.indexOf(RunPhase.RUN_PAUSED) + 1)[0], "waiting again right after resume").toBe(RunPhase.RUN_PENDING);
+      expect(script.sandboxCalls[asked], "the wait starts over").not.toHaveProperty("waiting_since_ms");
+      expect(script.executeCalls).toHaveLength(1);
+    }, 60_000);
+
+    it("never asks on a LOCAL target, nor for an input without the caller's class", async (testCtx) => {    if (!envReady) return testCtx.skip();
+      script.executeBehaviors = [async () => slimResult(RunPhase.RUN_COMPLETED), async () => slimResult(RunPhase.RUN_COMPLETED)];
+      await (await startWorkflow(workflowInput({ execution_target: ExecutionTarget.LOCAL, caller_class: "user" }))).result();
+      await (await startWorkflow(workflowInput({ execution_target: ExecutionTarget.CLOUD }))).result();
+      expect(script.sandboxCalls).toEqual([]);
+      expect(script.executeCalls).toHaveLength(2);
+    }, 60_000);
+  });
 });

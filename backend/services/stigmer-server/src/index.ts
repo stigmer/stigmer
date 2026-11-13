@@ -954,6 +954,7 @@ export type {
 } from "./sandbox/provisioner.js";
 export {
   BUILT_IN_SANDBOX_PROVISIONER_TYPES,
+  isSandboxNoRoom,
   SandboxNoRoomError,
 } from "./sandbox/provisioner.js";
 

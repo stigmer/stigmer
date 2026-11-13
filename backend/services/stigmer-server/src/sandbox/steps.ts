@@ -10,7 +10,8 @@
  *     cause instead of a generic timeout. A warn-and-swallow here would
  *     hide a provisioning outage (a cloud quota, say) behind that
  *     timeout — the pre-stamp posture is contract. The one exception is
- *     the fleet's "no room" (SandboxNoRoomError, provisioner.ts): it is
+ *     the fleet's "no room" (SandboxNoRoomError anywhere in the error's
+ *     cause chain, provisioner.ts `isSandboxNoRoom`): it is
  *     logged at info and never stamped, because it is not a failure. The
  *     agent-execution workflow runs the same body as its own activity
  *     before the turn's first runner activity
@@ -75,7 +76,7 @@ import {
 } from "../temporal/agentexecution/dispatch.js";
 import type { Store } from "../store/interface.js";
 import { mintSandboxToken, type SandboxLane } from "./lane.js";
-import { SandboxNoRoomError } from "./provisioner.js";
+import { isSandboxNoRoom } from "./provisioner.js";
 import type { SandboxEnsureOutcome } from "../temporal/agentexecution/sandbox-wait.js";
 import { sessionIdOf } from "../domain/run/target.js";
 import { sessionEnvironmentFacts } from "../domain/run/environment-admission.js";
@@ -215,12 +216,12 @@ export async function ensureSessionSandboxForExecution(
     });
     return "ready";
   } catch (error) {
-    if (error instanceof SandboxNoRoomError) {
+    if (isSandboxNoRoom(error)) {
       // Not a failure (module header): the turn waits and asks again.
       deps.logger.info("No sandbox has room for the session now", {
         executionId,
         sessionId,
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
       });
       return "no_room";
     }

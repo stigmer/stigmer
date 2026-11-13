@@ -33,9 +33,10 @@ describe("invoke-agent-execution replay determinism", () => {
     // One history per scenario of scripts/capture-replay-histories.ts: a
     // completed turn, a HITL approval cycle, a pause and resume, a failure
     // the runner reported, a user's cancel, a drained turn recovered, a
-    // drained turn that continued, and a Claude turn's HITL cycle on the
-    // deterministic-state flow.
-    expect(historyFiles.length).toBeGreaterThanOrEqual(8);
+    // drained turn that continued, a Claude turn's HITL cycle on the
+    // deterministic-state flow, and a CLOUD turn that waited for a sandbox
+    // with room (the first history past a patch marker).
+    expect(historyFiles.length).toBeGreaterThanOrEqual(9);
   });
 
   it("replays every committed history deterministically", async () => {
