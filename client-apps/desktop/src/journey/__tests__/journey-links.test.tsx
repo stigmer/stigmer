@@ -31,7 +31,7 @@ describe("desktop journey links", () => {
     expect(result.current.putInApp?.(AGENT)).toBe("/library/agents/acme/variance-reporter?tab=in-app");
     expect(result.current.serviceAccounts).toBe("/settings/service-accounts");
     expect(result.current.embedding).toBe("/settings/org-embedding");
-    expect(result.current.bringOthers).toBe("/settings/members");
+    expect(result.current.bringOthers).toBe("/settings/bring-others-in");
     expect(result.current.launch({ agent: AGENT, example: "variance-report", mode: "own" })).toBe(
       agentLaunchUrl("acme", "variance-reporter", { example: "variance-report", mode: "own" }),
     );
@@ -47,12 +47,12 @@ describe("desktop journey links", () => {
   it("draws each link with the router, so the hash routes hold", () => {
     render(
       <MemoryRouter initialEntries={["/dashboard"]}>
-        {renderJourneyLink({ href: "/settings/members", className: "act", children: "Invite your team" })}
+        {renderJourneyLink({ href: "/settings/bring-others-in", className: "act", children: "Invite your team" })}
         <Location />
       </MemoryRouter>,
     );
 
     fireEvent.click(screen.getByRole("link", { name: "Invite your team" }));
-    expect(screen.getByTestId("location").textContent).toBe("/settings/members");
+    expect(screen.getByTestId("location").textContent).toBe("/settings/bring-others-in");
   });
 });

@@ -18,7 +18,7 @@ export interface JourneyLinks {
   readonly makeItYours?: (agent: ResourceRef) => string;
   /** Where an agent is put in its builder's own app: its "In your app" tab (`?tab=in-app`). */
   readonly putInApp?: (agent: ResourceRef) => string;
-  /** Where the team is invited (the console's members page). */
+  /** Where the team is brought in: the journey's last page (the console's `/settings/bring-others-in`). */
   readonly bringOthers?: string;
   /** Draws each link; a plain anchor otherwise. */
   readonly renderLink?: RenderJourneyLink;

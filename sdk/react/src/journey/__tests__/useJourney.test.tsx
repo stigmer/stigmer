@@ -13,7 +13,12 @@
  * fails; and whether anything ran at all, failed runs included, for a
  * surface's layout. Step 5's read is a lower bar: on a server that trusts
  * every caller it is not made, and refused or failed it leaves the step open
- * and every other step drawn. The run summary and what serves a model are
+ * and every other step drawn. Step 6 reads the same list: done when a
+ * person who signed in to Stigmer itself (a direct or federated account),
+ * other than the viewer, is on it, named ("Sam joined", "Sam and 2 others
+ * joined"); app users, service accounts and unresolved entries never count,
+ * and it keeps step 5's rules: never on a trusting server, open when a read
+ * is refused or fails. The run summary and what serves a model are
  * stubbed (their own suites pin them); the permission, the server's posture,
  * the access list, the agent list and the versions are answered by a client,
  * as the server would.
@@ -65,10 +70,14 @@ let signsIn = true;
 /** The organization's access list: people, service accounts and app users. */
 let access: { kind: string; id: string; name: string; mode: number }[] = [];
 let accessError: Error | null = null;
+/** The viewer's own account id, as whoAmI answers it; null makes whoAmI fail. */
+let me: string | null = "ida_owner";
 
 const APP_USER = IdentityAccountProvisioningMode.app_user;
 const SERVICE_ACCOUNT = IdentityAccountProvisioningMode.service_account;
 const PERSON = IdentityAccountProvisioningMode.direct;
+const FEDERATED = IdentityAccountProvisioningMode.federated;
+const UNRESOLVED = IdentityAccountProvisioningMode.identity_account_provisioning_mode_unspecified;
 
 function client() {
   return {
@@ -90,6 +99,12 @@ function client() {
     },
     platform: {
       getServerInfo: vi.fn(async () => ({ authenticationRequired: signsIn, version: "0.1.3" })),
+    },
+    identityAccount: {
+      whoAmI: vi.fn(async () => {
+        if (me === null) throw new Error("unavailable");
+        return { metadata: { id: me } };
+      }),
     },
     agent: {
       list: vi.fn(async (input: { org: string }) => ({
@@ -126,6 +141,7 @@ beforeEach(() => {
   signsIn = true;
   access = [];
   accessError = null;
+  me = "ida_owner";
 });
 afterEach(cleanup);
 
@@ -300,6 +316,72 @@ describe("useJourney", () => {
     await waitFor(() => expect(result.current.status).toBe("ready"));
     expect(result.current.steps[0]?.state).toBe("done");
     expect(result.current.steps[4]?.state).toBe("todo");
+  });
+
+  it("ticks Bring others in once someone besides the viewer has joined, by name", async () => {
+    access = [
+      { kind: "identity_account", id: "ida_owner", name: "Dana Lee", mode: PERSON },
+      { kind: "identity_account", id: "ida_sam", name: "Sam Ortiz", mode: PERSON },
+    ];
+    const { result } = renderJourney();
+
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    expect(result.current.steps[5]).toMatchObject({ state: "done", line: "Sam Ortiz joined" });
+  });
+
+  it("names two who joined, then the first and how many others", async () => {
+    access = [
+      { kind: "identity_account", id: "ida_owner", name: "Dana Lee", mode: PERSON },
+      { kind: "identity_account", id: "ida_sam", name: "Sam", mode: PERSON },
+      { kind: "identity_account", id: "ida_priya", name: "Priya", mode: FEDERATED },
+    ];
+    const two = renderJourney();
+    await waitFor(() => expect(two.result.current.status).toBe("ready"));
+    expect(two.result.current.steps[5]?.line).toBe("Sam and Priya joined");
+    cleanup();
+
+    access = [...access, { kind: "identity_account", id: "ida_lee", name: "Lee", mode: PERSON }];
+    const three = renderJourney();
+    await waitFor(() => expect(three.result.current.status).toBe("ready"));
+    expect(three.result.current.steps[5]?.line).toBe("Sam and 2 others joined");
+  });
+
+  it("leaves Bring others in open with only the viewer, app users, service accounts and unresolved entries on the list", async () => {
+    access = [
+      { kind: "identity_account", id: "ida_owner", name: "Dana Lee", mode: PERSON },
+      { kind: "identity_account", id: "ida_user", name: "A customer", mode: APP_USER },
+      { kind: "identity_account", id: "ida_backend", name: "app-backend", mode: SERVICE_ACCOUNT },
+      { kind: "identity_account", id: "ida_gone", name: "", mode: UNRESOLVED },
+    ];
+    const { result } = renderJourney();
+
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    expect(result.current.steps[5]).toMatchObject({ state: "todo", line: "Name your organization and invite your team." });
+  });
+
+  it("never ticks Bring others in on a server that trusts every caller, nor asks who the viewer is", async () => {
+    signsIn = false;
+    access = [{ kind: "identity_account", id: "ida_sam", name: "Sam", mode: PERSON }];
+    const { result, stigmer } = renderJourney();
+
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    expect(result.current.steps[5]?.state).not.toBe("done");
+    expect(stigmer.identityAccount.whoAmI).not.toHaveBeenCalled();
+  });
+
+  it("leaves Bring others in open, the journey drawn, when the access read fails or the viewer cannot be read", async () => {
+    accessError = new Error("unavailable");
+    access = [{ kind: "identity_account", id: "ida_sam", name: "Sam", mode: PERSON }];
+    const failedList = renderJourney();
+    await waitFor(() => expect(failedList.result.current.status).toBe("ready"));
+    expect(failedList.result.current.steps[5]?.state).not.toBe("done");
+    cleanup();
+
+    accessError = null;
+    me = null;
+    const failedMe = renderJourney();
+    await waitFor(() => expect(failedMe.result.current.status).toBe("ready"));
+    expect(failedMe.result.current.steps[5]?.state).not.toBe("done");
   });
 
   it("counts a run that failed as no job done: the key and watch steps stay open, though something ran", async () => {

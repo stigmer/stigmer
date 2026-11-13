@@ -119,6 +119,27 @@ export function isAppUserAccount(
 }
 
 /**
+ * Whether an access-list entry is a person who signed in to Stigmer itself:
+ * a person kind whose identity origin is `direct` (the deployment's own
+ * sign-in) or `federated` (an organization's own identity provider). App
+ * users and service accounts read `false`, and so does an entry the server
+ * could not resolve, which carries no origin, and a team. This is the
+ * positive rule for "someone joined the team", where reading everything
+ * that is not an app user or a service account would count an unresolved
+ * entry as a teammate.
+ */
+export function isPersonAccount(
+  view: Pick<ApiResourceRefView, "kind" | "identityOrigin">,
+): boolean {
+  const mode = view.identityOrigin?.provisioningMode;
+  return (
+    view.kind === PERSON_KIND &&
+    (mode === IdentityAccountProvisioningMode.direct ||
+      mode === IdentityAccountProvisioningMode.federated)
+  );
+}
+
+/**
  * Whether an access-list entry is an organization's service account: a
  * person kind whose identity origin is `service_account`. An entry the
  * server could not resolve carries no origin and reads `false`.

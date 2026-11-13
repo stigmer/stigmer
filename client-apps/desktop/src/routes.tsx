@@ -24,11 +24,23 @@ import {
   TeamsSection,
   UsageSection,
 } from "@stigmer/react-sdk/console";
+import { BringOthersIn } from "@stigmer/react-sdk";
+import { CONSOLE_URL } from "./config";
+import { MEMBERS_HREF, renderJourneyLink } from "./journey/journey-links";
 import { AppShell } from "./shell/AppShell";
 import { requestDesktopNotificationPermission } from "./hooks/useDesktopAttentionNotifications";
 import { SessionLauncher } from "./pages/SessionLauncher";
 
 const SessionPage = lazy(() => import("./pages/SessionPage"));
+
+/**
+ * An invite link the app makes opens the web console, where the person who
+ * accepts it is: the app's own window has an origin nobody else can reach,
+ * and the app has no page that accepts an invitation.
+ */
+function webConsoleInviteUrl(token: string): string {
+  return `${CONSOLE_URL}/invite/${token}`;
+}
 const LibraryLayout = lazy(() => import("./pages/library/LibraryLayout"));
 const LibraryLanding = lazy(() => import("./pages/library/LibraryLanding"));
 const AgentListPage = lazy(() => import("./pages/library/AgentListPage"));
@@ -342,7 +354,19 @@ const routes: RouteObject[] = [
                 element: <NotificationsSection requestPermission={requestDesktopNotificationPermission} />,
               },
               { path: "memory", element: <MemorySection /> },
-              { path: "invitations", element: <InvitationsSection /> },
+              { path: "invitations", element: <InvitationsSection buildInviteUrl={webConsoleInviteUrl} /> },
+              {
+                path: "bring-others-in",
+                element: (
+                  <BringOthersIn
+                    buildInviteUrl={webConsoleInviteUrl}
+                    consoleUrl={CONSOLE_URL}
+                    membersHref={MEMBERS_HREF}
+                    billingHref="#/settings/billing"
+                    renderLink={renderJourneyLink}
+                  />
+                ),
+              },
               { path: "federation-issuers", element: <FederationIssuersSection /> },
               { path: "service-accounts", element: <ServiceAccountsSection /> },
               { path: "access-history", element: <AccessHistorySection /> },

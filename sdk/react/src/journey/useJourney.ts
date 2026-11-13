@@ -23,7 +23,13 @@
 //                            and only for a viewer the server lets read the
 //                            list; that read failing or refused leaves the
 //                            step open and the rest drawn, never "off"
-//   6 Bring others in        not read yet: never done
+//   6 Bring others in        someone besides the viewer has joined: a
+//                            person (a direct or federated account) on the
+//                            same access list step 5 reads, other than the
+//                            viewer's own account (`useMyIdentityAccount`).
+//                            The same rules as step 5: a trusting server
+//                            never ticks it, and a refused or failed read
+//                            leaves it open
 //
 // Nothing is stored: every answer is a read the server already serves. The
 // access list has no page (stigmer#3072), so step 5 reads it whole wherever the journey
@@ -53,6 +59,7 @@ import { presentationOf } from "../models/provider-presentation.js";
 import { isJourneyAgentSlug } from "./journey-agents.js";
 import { useAppAccess } from "../app-handover/useAppAccess.js";
 import { useServerInfo } from "../server-info.js";
+import { useMyIdentityAccount } from "../identity-account/useMyIdentityAccount.js";
 
 /** The six steps, in the journey's order. */
 export type JourneyStepId = "describe" | "key" | "watch" | "make-yours" | "in-app" | "others";
@@ -115,7 +122,7 @@ const STEPS: readonly { readonly id: JourneyStepId; readonly title: string; read
   { id: "watch", title: "Watch it work", todo: "Send it the sample and watch it work, step by step. A file comes back." },
   { id: "make-yours", title: "Make it yours", todo: "Change its instructions, run it on your own file, give it a skill." },
   { id: "in-app", title: "Put it in your app", todo: "Give your users the chat, from the agent's In your app tab." },
-  { id: "others", title: "Bring others in", todo: "Invite your team to this organization." },
+  { id: "others", title: "Bring others in", todo: "Name your organization and invite your team." },
 ];
 
 /** The journey agents the server lists, newest first, and the one changed since it was made. */
@@ -204,6 +211,17 @@ export function useJourney(org: string | null | undefined, options: { readonly e
   else if (appAccess.appUsers === undefined) appUser = undefined;
   else appUser = appAccess.appUsers[0]?.name ?? null;
 
+  // Step 6: the people on the same list, the viewer left out. Undefined while
+  // asking; null when nobody else is here or the reads cannot say.
+  const me = useMyIdentityAccount({ enabled: reading !== null && signsIn });
+  const myId = me.account?.metadata?.id;
+  let joined: string | null | undefined;
+  if (appUser === null && appAccess.appUsers === undefined) joined = null;
+  else if (appUser === undefined || appAccess.people === undefined) joined = undefined;
+  else if (me.error !== null) joined = null;
+  else if (myId === undefined) joined = undefined;
+  else joined = joinedLine(appAccess.people.filter((person) => person.id !== myId).map((person) => person.name));
+
   const served = useMemo(
     () => (readiness.providers ?? []).find((report) => report.availability.state === "served")?.provider,
     [readiness.providers],
@@ -214,7 +232,7 @@ export function useJourney(org: string | null | undefined, options: { readonly e
     if (permission.isLoading) return PENDING;
     if (!allowed) return OFF;
     if (runs.error !== null || agents.error !== null || readiness.error !== null) return OFF;
-    if (everRan === undefined || completed === undefined || agents.data === undefined || readiness.providers === null || appUser === undefined) {
+    if (everRan === undefined || completed === undefined || agents.data === undefined || readiness.providers === null || appUser === undefined || joined === undefined) {
       return PENDING;
     }
     const known = agents.data;
@@ -225,7 +243,7 @@ export function useJourney(org: string | null | undefined, options: { readonly e
       watch: completed ? "It ran its first job" : undefined,
       "make-yours": known.changed ? `${known.changed.name} has your changes` : undefined,
       "in-app": appUser === null ? undefined : `${appUser} signed in from your app`,
-      others: undefined,
+      others: joined ?? undefined,
     };
     let current: JourneyStep | undefined;
     let done = 0;
@@ -241,5 +259,14 @@ export function useJourney(org: string | null | undefined, options: { readonly e
       return drawn;
     });
     return { status: "ready", steps, done, current, agent, everRan };
-  }, [orgId, permission.isLoading, allowed, runs.error, everRan, completed, agents.error, agents.data, readiness.error, readiness.providers, served, appUser]);
+  }, [orgId, permission.isLoading, allowed, runs.error, everRan, completed, agents.error, agents.data, readiness.error, readiness.providers, served, appUser, joined]);
+}
+
+/** "Sam joined", "Sam and Priya joined", "Sam and 2 others joined"; null for nobody. */
+function joinedLine(names: readonly string[]): string | null {
+  const [first] = names;
+  if (first === undefined) return null;
+  if (names.length === 1) return `${first} joined`;
+  if (names.length === 2) return `${first} and ${names[1]} joined`;
+  return `${first} and ${names.length - 1} others joined`;
 }

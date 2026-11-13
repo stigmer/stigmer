@@ -15,6 +15,9 @@
  *     any other kind read as not one;
  *   - an entry is an organization's service account by the same rule with
  *     the `service_account` origin, and the two predicates never both hold;
+ *   - an entry is a person who signed in to Stigmer itself only with a
+ *     `direct` or `federated` origin: an app user, a service account, an
+ *     unresolved entry and a team are not;
  *   - a team may only ever be offered a subset of a person's roles, never
  *     `owner`, and nothing on `organization` (the circular grant the
  *     model's membership bound forbids).
@@ -37,6 +40,7 @@ import {
   granteeFromView,
   granteeRef,
   isAppUserAccount,
+  isPersonAccount,
   isServiceAccount,
   personGrantee,
   teamGrantee,
@@ -129,6 +133,34 @@ describe("isServiceAccount — telling an organization's automation from its peo
         kind: "team",
         identityOrigin: origin(IdentityAccountProvisioningMode.service_account),
       }),
+    ).toBe(false);
+  });
+});
+
+describe("isPersonAccount — the people who signed in to Stigmer itself", () => {
+  const origin = (provisioningMode: IdentityAccountProvisioningMode) =>
+    create(IdentityOriginSchema, { provisioningMode });
+  const account = (provisioningMode: IdentityAccountProvisioningMode) => ({
+    kind: "identity_account",
+    identityOrigin: origin(provisioningMode),
+  });
+
+  it("is true for a direct or a federated account", () => {
+    expect(isPersonAccount(account(IdentityAccountProvisioningMode.direct))).toBe(true);
+    expect(isPersonAccount(account(IdentityAccountProvisioningMode.federated))).toBe(true);
+  });
+
+  it("is false for an app user, a service account, an unresolved entry and a team", () => {
+    for (const mode of [
+      IdentityAccountProvisioningMode.app_user,
+      IdentityAccountProvisioningMode.service_account,
+      IdentityAccountProvisioningMode.identity_account_provisioning_mode_unspecified,
+    ]) {
+      expect(isPersonAccount(account(mode)), IdentityAccountProvisioningMode[mode]).toBe(false);
+    }
+    expect(isPersonAccount({ kind: "identity_account", identityOrigin: undefined })).toBe(false);
+    expect(
+      isPersonAccount({ kind: "team", identityOrigin: origin(IdentityAccountProvisioningMode.direct) }),
     ).toBe(false);
   });
 });
