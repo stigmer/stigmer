@@ -625,6 +625,15 @@ smoke-up-key: build-runner build-server build-web ## Check the model key at stig
 	@cd $(SERVER_DIR) && node scripts/bundle-slim.mjs
 	node test/install/smoke-up-key.mjs
 
+# `stigmer auth login` from source against a server that signs its callers in
+# through test/support's hermetic issuer and announces a client for installed
+# apps: through a stand-in browser, then logout, then a code on any device
+# (test/install/smoke-cli-sign-in.mjs). No `stigmer up` and no Temporal.
+.PHONY: smoke-cli-sign-in
+smoke-cli-sign-in: build-libs build-server ## Sign the CLI in from source where a signed-in server says: the browser, logout, and a device code
+	@command -v node >/dev/null 2>&1 || { echo "error: node not found"; exit 1; }
+	node test/install/smoke-cli-sign-in.mjs
+
 # The Go, Python and Java quick starts run as a developer runs them, on the
 # same source CLI and slim server as the smokes above: each must print the
 # agent's answer (test/install/smoke-sdk-quickstarts.mjs). Needs go, python3,

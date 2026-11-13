@@ -13,6 +13,11 @@
  *
  * The person's calls go through the TypeScript client as the workspace builds
  * it (`sdk/typescript/dist`, from `npm run build:libs`).
+ *
+ * `nativeClientId` registers a client for installed apps with the server
+ * (`STIGMER_OIDC_NATIVE_CLIENT_ID`), so its `getServerInfo` announces the
+ * sign-in the desktop app and the CLI use; `issuer` is returned for a caller
+ * that signs in through it.
  */
 import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -28,16 +33,20 @@ export const BACKEND_NAME = "app-backend";
 
 /**
  * Starts the server and readies it. `log` prints a step.
- * @param {{ log: (step: string) => void }} opts
+ * @param {{ log: (step: string) => void, nativeClientId?: string }} opts
  */
-export async function startSignedInServer({ log }) {
+export async function startSignedInServer({ log, nativeClientId }) {
   const { createNodeClient } = await import(pathToFileURL(join(repoRoot, "sdk", "typescript", "dist", "node.js")).href);
   const issuer = await startLocalOidcIssuer({ audience: AUDIENCE });
   let server;
   try {
     server = await spawnServer(process.execPath, {
       args: [tsServerEntryPath()],
-      env: { STIGMER_OIDC_ISSUER: issuer.issuer, STIGMER_OIDC_AUDIENCE: AUDIENCE },
+      env: {
+        STIGMER_OIDC_ISSUER: issuer.issuer,
+        STIGMER_OIDC_AUDIENCE: AUDIENCE,
+        ...(nativeClientId === undefined ? {} : { STIGMER_OIDC_NATIVE_CLIENT_ID: nativeClientId }),
+      },
     });
     log(`a server that signs its callers in is serving on ${server.baseUrl}`);
     const personToken = await issuer.mint({ sub: "handover|owner", email: "owner@handover.stigmer.test", ttlSeconds: 3600 });
@@ -55,6 +64,7 @@ export async function startSignedInServer({ log }) {
     log(`organization ${org.metadata.slug}: ${BACKEND_NAME} made as an admin, accounts made on sign-in as Member`);
     return {
       baseUrl: server.baseUrl,
+      issuer,
       orgSlug: org.metadata.slug,
       apiKey: key.spec?.keyHash ?? "",
       /** How the server provisioned the account a token names (4 is an app user). */

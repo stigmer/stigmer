@@ -60,11 +60,12 @@ stigmer config backend remove staging
 
 Backend types:
 
-- `selfhost` (the default for `add`) — any OSS Stigmer server. Its
-  credential is an API key (`--api-key`, or the `STIGMER_API_KEY`
-  environment variable per invocation). A server running without
-  authentication needs no credential at all.
-- `cloud` — a Stigmer Cloud endpoint. Its credential is the browser login
+- `selfhost` (the default for `add`) — any OSS Stigmer server. Its credential
+  is a sign-in (`stigmer auth login`, where the server signs people in) or an
+  API key (`--api-key`, or the `STIGMER_API_KEY` environment variable per
+  invocation). A server running without authentication needs no credential at
+  all.
+- `cloud` — a Stigmer Cloud endpoint. Its credential is the sign-in
   (`stigmer auth login`).
 
 {/* AUTO_FLAGS */}
