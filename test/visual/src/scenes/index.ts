@@ -44,7 +44,22 @@ import { conversationsScene } from "./conversations.tsx";
 import { agentEnvironmentScene, environmentNewScene, runSettingsScene } from "./environment.tsx";
 import { routineDetailScene, routineNewScene } from "./routine.tsx";
 import { modelSelectorScene } from "./settings.tsx";
-import { endingStoryScene, sessionFileProgressScene, sessionPlanBuildScene, sessionScene, sessionStartingScene, stepStoryScene } from "./session.tsx";
+import {
+  endingStoryScene,
+  sessionAgentVersionScene,
+  sessionAttachmentsScene,
+  sessionAutoApproveScene,
+  sessionCompactedScene,
+  sessionFilePreviewScene,
+  sessionFileProgressScene,
+  sessionFileUndoneScene,
+  sessionPlanBuildScene,
+  sessionPlanWritingScene,
+  sessionPullRequestsScene,
+  sessionScene,
+  sessionStartingScene,
+  stepStoryScene,
+} from "./session.tsx";
 import { asksFirstScene, hoursScene, inProductScene, keysScene, ownComputerScene, wallsScene } from "./story.tsx";
 import { threadScene } from "./thread.tsx";
 import {
@@ -128,6 +143,15 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "session-file-progress": () => sessionFileProgressScene(),
   "session-file-review": () => sessionScene("file-review", { inspector: true }),
   "session-plan-build": () => sessionPlanBuildScene(),
+  "session-file-undone": () => sessionFileUndoneScene(),
+  "session-plan-writing": () => sessionPlanWritingScene(),
+  "session-compacted": () => sessionCompactedScene(),
+  "session-attachments": () => sessionAttachmentsScene(),
+  "session-pull-requests": () => sessionPullRequestsScene(),
+  "session-usage": () => sessionScene("finished", { inspector: true }),
+  "session-file-preview": () => sessionFilePreviewScene(),
+  "session-auto-approve": () => sessionAutoApproveScene(),
+  "session-agent-version": () => sessionAgentVersionScene(),
   "session-participant": () => sessionScene("approval", { inspector: true, role: "participant" }),
   "session-approval": () => sessionScene("approval", { inspector: true }),
   "session-finished": () => sessionScene("finished", { inspector: true }),
