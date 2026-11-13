@@ -24,7 +24,7 @@ export const CONVERSATION_FILES_VIEW_ID = "conversation-files";
 
 /** Options for {@link useSessionRailViews}. */
 export interface UseSessionRailViewsOptions {
-  /** All runs in the session — drives Changes/Usage. */
+  /** All runs in the session — drives Pull requests/Usage. */
   readonly allRuns: readonly Run[];
   /**
    * What the agent saved (`useSessionOutputs` over the session's Files):
@@ -66,15 +66,15 @@ export interface UseSessionRailViewsOptions {
    */
   readonly onActivateFileDocument?: (documentKey: string) => void;
   /**
-   * Whether to offer the execution-derived facets (Changes / Files /
+   * Whether to offer the execution-derived facets (Pull requests / Files /
    * Usage). The launcher passes `false` — before a session exists there are no
    * runs to aggregate, so only Config applies.
    * @default true
    */
   readonly includeRunFacets?: boolean;
   /**
-   * Whether the session is expected to push approved changes to a git remote
-   * (a cloud session with git workspace entries). When `true` the Changes
+   * Whether the session is expected to push its work to a git remote (a
+   * cloud session with git workspace entries). When `true` the Pull requests
    * facet is offered from the start — with an honest pre-push state — instead
    * of only materializing once a write-back exists, so "where does my work
    * go?" always has an answer (the facet's `expectsWriteBack` prop).
@@ -83,21 +83,23 @@ export interface UseSessionRailViewsOptions {
   readonly expectsWriteBack?: boolean;
   /**
    * Whether the session's latest run is settled (terminal) — forwarded
-   * to the Changes facet's pre-push states (its `isSettled` prop).
+   * to the Pull requests facet's pre-push states (its `isSettled` prop).
    * @default false
    */
   readonly changesSettled?: boolean;
 }
 
 /**
- * Composes the session facets (Config / Changes / Files / Usage)
+ * Composes the session facets (Config / Pull requests / Files / Usage)
  * as {@link SurfaceRailView}s for the workspace surface's activity rail.
  *
  * This is the session-domain half of the unified panel: the surface stays a
  * domain-pure workspace organism and these views are injected into its rail
  * (composition by injection). Contextual visibility mirrors the retired
- * inspector's tab rules — Changes/Files surface only when data exists
- * (with count badges).
+ * inspector's tab rules — Pull requests/Files surface only when data exists
+ * (with count badges). The Pull requests view keeps the id `changes`: it
+ * holds the session's git write-backs, while the thread says "Changed" for
+ * a turn's local edits.
  */
 export function useSessionRailViews({
   allRuns,
@@ -138,8 +140,8 @@ export function useSessionRailViews({
       if (hasWriteBacks || expectsWriteBack) {
         views.push({
           id: "changes",
-          label: "Changes",
-          icon: <ChangesIcon />,
+          label: "Pull requests",
+          icon: <PullRequestsIcon />,
           badge: writeBackCount > 0 ? writeBackCount : undefined,
           content: (
             <ChangesTab
@@ -220,7 +222,7 @@ function GearIcon() {
 }
 
 /** Source-control style branch glyph — the session's git write-backs. */
-function ChangesIcon() {
+function PullRequestsIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <circle cx="6" cy="6" r="2.5" />

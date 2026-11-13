@@ -1,7 +1,10 @@
 "use client";
 
+// The session panel's Pull requests view: one card per git write-back, and
+// before any push one inline line saying truthfully where a turn's work
+// goes. The suite in `__tests__/ChangesTab.test.tsx` pins the words.
+
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
-import { GitPullRequest } from "lucide-react";
 import { EmptyState } from "../../empty-state/EmptyState.js";
 import { UNSTYLED_LIST } from "../../internal/element-resets.js";
 import { useSessionWriteBacks } from "../useSessionWriteBacks.js";
@@ -10,8 +13,8 @@ import { WriteBackCard } from "../../run/WriteBackCard.js";
 export interface ChangesTabProps {
   readonly runs: readonly Run[];
   /**
-   * Whether this session is expected to push its approved changes back to a
-   * git remote — a CLOUD session with at least one git workspace entry (local
+   * Whether this session is expected to push its work back to a git
+   * remote — a CLOUD session with at least one git workspace entry (local
    * sessions edit the user's own working tree and never write back). Enables
    * the pre-write-back states below, so the facet answers "where does my work
    * go?" before any push exists. Defaults to `false`: a bare `ChangesTab`
@@ -20,8 +23,9 @@ export interface ChangesTabProps {
   readonly expectsWriteBack?: boolean;
   /**
    * Whether the session's latest run is settled (terminal). Selects
-   * between the pre-write-back states: a live turn shows the "will be pushed
-   * here" promise, a settled one shows the honest "nothing pushed yet".
+   * between the pre-write-back states: a live turn says its work is pushed
+   * when it ends; a settled session says each turn's work is pushed when the
+   * turn ends, and an Undo after it.
    * Only consulted when {@link expectsWriteBack} is set and no write-back
    * exists yet.
    */
@@ -29,10 +33,12 @@ export interface ChangesTabProps {
 }
 
 /**
- * Changes facet for the session panel — the definitive "where did my work go"
- * surface: the session's git write-backs (branch/commit/PR), one
- * `WriteBackCard` per entry, with honest pre-push states for cloud git
- * sessions whose write-back hasn't happened yet.
+ * The session panel's Pull requests view (the rail's `changes` view) — the
+ * definitive "where did my work go" surface: the session's git write-backs
+ * (branch/commit/PR), one `WriteBackCard` per entry, with honest pre-push
+ * lines for cloud git sessions whose write-back hasn't happened yet. A turn
+ * pushes the tree it left when it ends, and an Undo is pushed after it by
+ * the turn that puts the files back; nothing waits for an approval.
  *
  * Local file changes deliberately do NOT render here: they live in the
  * transcript, where each edit row shows its diff in place and each finished
@@ -48,8 +54,7 @@ export function ChangesTab({
   const { writeBacks, hasWriteBacks } = useSessionWriteBacks(executions);
 
   if (hasWriteBacks) {
-    // Dense row groups matching the Files facet's list — gap separates
-    // entries only in multi-repo sessions (single-entry lists stay seamless).
+    // One card per repository, 12px apart.
     return (
       <ul role="list" className={`${UNSTYLED_LIST} stg:flex stg:flex-col stg:gap-3`}>
         {writeBacks.map((entry) => (
@@ -65,16 +70,16 @@ export function ChangesTab({
     return isSettled ? (
       <EmptyState
         variant="first-use"
-        icon={<GitPullRequest />}
-        title="No changes have been pushed yet."
-        description="When the agent changes files and you approve them, they are pushed to a branch and pull request here."
+        size="inline"
+        title="Nothing pushed yet"
+        description="Each turn's work is pushed to the session's branch when the turn ends, and an Undo is pushed after it."
       />
     ) : (
       <EmptyState
         variant="first-use"
-        icon={<GitPullRequest />}
-        title="Changes stay in the session workspace while you review them."
-        description="Approved changes are pushed to a branch and pull request here."
+        size="inline"
+        title="Nothing pushed yet"
+        description="This turn's work is pushed to the session's branch when it ends."
       />
     );
   }
@@ -82,9 +87,9 @@ export function ChangesTab({
   return (
     <EmptyState
       variant="first-use"
-      icon={<GitPullRequest />}
-      title="No changes yet."
-      description="Pull requests will appear here once the agent pushes its work back to your repository."
+      size="inline"
+      title="No pull requests yet"
+      description="Pull requests appear here when the agent pushes its work to your repository."
     />
   );
 }

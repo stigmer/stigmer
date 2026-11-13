@@ -9,6 +9,7 @@ import { create } from "@bufbuild/protobuf";
 import { WorkspaceWriteBackSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/writeback_pb";
 import {
   parseDiffStatSummary,
+  pullRequestHostName,
   trailingDiffStatLine,
   writeBackDisplayName,
 } from "../write-back-utils";
@@ -131,5 +132,22 @@ describe("writeBackDisplayName", () => {
       pullRequestUrl: "https://github.com/acme/my-app",
     });
     expect(writeBackDisplayName(wb)).toBe("Workspace");
+  });
+});
+
+describe("pullRequestHostName", () => {
+  it("names the well-known git hosts", () => {
+    expect(pullRequestHostName("https://github.com/acme/api/pull/12")).toBe("GitHub");
+    expect(pullRequestHostName("https://gitlab.com/acme/api/-/merge_requests/3")).toBe("GitLab");
+    expect(pullRequestHostName("https://bitbucket.org/acme/api/pull-requests/4")).toBe("Bitbucket");
+  });
+
+  it("names any other host by its hostname", () => {
+    expect(pullRequestHostName("https://git.example.com/acme/api/pull/9")).toBe("git.example.com");
+  });
+
+  it("returns null for an empty or unparseable URL", () => {
+    expect(pullRequestHostName("")).toBeNull();
+    expect(pullRequestHostName("not a url")).toBeNull();
   });
 });

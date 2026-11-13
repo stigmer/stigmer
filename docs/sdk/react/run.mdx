@@ -993,13 +993,15 @@ the archive, the size cap and the caller's view of the File.
 ### FileBody
 
 The shared body of one File's view: an image drawn from its download
-link, or the file-content states (loading / error / binary / text via
-[`TextContentRenderer`](#textcontentrenderer)).
+link, or the file-content states: loading, a failed read through the
+kit's [`ErrorMessage`](/docs/sdk/react/error#errormessage) ("Couldn't load the file.", with Try again when
+`onRetry` is given), nothing to preview through `EmptyState`
+("Content not available for preview.", a binary or unread File), or the
+text via [`TextContentRenderer`](#textcontentrenderer).
 
-Shared so the preview modal and the editor-area `FileDocument` render
-bodies identically — only the surrounding chrome (modal header + action
-bar vs. document toolbar) differs. Pair with [`useFileInspection`](#usefileinspection),
-which supplies every prop here.
+Shared so the preview window and the session panel's `FileDocument`
+render bodies identically under one header. Pair with
+[`useFileInspection`](#usefileinspection), which supplies every prop here.
 
 An image is shown the way a message's image chip is: through a link the
 server mints for the File, so its bytes never pass through the API. The
@@ -1019,6 +1021,7 @@ All visual properties flow through `--stgm-*` tokens.
     file: { type: "File", description: "The File whose body is rendered.", required: true },
     isLoading: { type: "boolean", description: "`true` while the content request is in-flight.", required: true },
     isTruncated: { type: "boolean", description: "Whether the fetched content was truncated by the server's size cap.", required: true },
+    onRetry: { type: "() => void", description: "Reads the content again (`useFileInspection`'s `refetch`). When given, a failed read offers \"Try again\" where trying again can help." },
   }}
 />
 
@@ -1106,13 +1109,14 @@ popup, mounted as a File-family virtual document under
 panel's Files facet lands here (VS Code "each file is a tab") rather than
 a modal.
 
-Shares the modal's exact behavior and body via the two extracted pieces —
-[`useFileInspection`](#usefileinspection) (content + detection + apply + copy) and
-[`FileBody`](#filebody) (loading / error / binary / text) —
-so the two surfaces can never drift. Only the chrome differs: a document
-toolbar (name + size + detection badge; Copy / Download / Add as skill /
-Delete / Apply) over the
-shared body, instead of the modal's header + footer action bar.
+Drawn through the same frame as the modal, over the same
+[`useFileInspection`](#usefileinspection) pipeline, so the two surfaces can never drift:
+a header with the file glyph in a muted square, the name with "\{kind\} ·
+\{size\}" under it and the detection tag, and at its right the acts (Apply
+as the one primary when the File is a manifest; Copy, Download, Add as
+skill; Delete last), over the shared [`FileBody`](#filebody). Only scrolling
+differs: the header sticks to the top of the pane while the body
+scrolls, and the tab has no Close (its tab strip closes it).
 
 Holds no must-survive local state: the panel region unmounts on collapse and
 switching tabs remounts the active document, resetting transient apply/copy
@@ -1129,7 +1133,7 @@ All visual properties flow through `--stgm-*` tokens.
     file: { type: "File", description: "The File: one a turn returned, or one given to the conversation.", required: true },
     isTerminal: { type: "boolean", description: "Whether the run that returned the File has ended. Gates the Apply action (a later turn may still save over the same path).", required: true },
     onApplied: { type: "(result: ApplyResourceResult) => void", description: "Called after a resource is applied, or a `.zip` File is added as a skill — the same host callback the preview modal fires, so a document-apply behaves identically (toast / Library refresh)." },
-    onDeleted: { type: "() => void", description: "Called once the File is deleted. When provided, the toolbar offers Delete to a caller holding `can_delete` on the File; the host re-reads its list and closes the document." },
+    onDeleted: { type: "() => void", description: "Called once the File is deleted. When provided, the header offers Delete (last of its acts) to a caller holding `can_delete` on the File; the host re-reads its list and closes the document." },
     org: { type: "string", description: "Organization for the \"Apply to [org]\" CTA.", required: true },
   }}
 />
@@ -1177,11 +1181,13 @@ Platform builders can override the default behavior via the
 
 One File's preview content with detection pipeline and Apply CTA.
 
-Renders the header (name, size, detection badge, close button),
-content body, and action bar (copy, download, add as skill, delete,
-Apply). The parent is responsible for rendering
-it inside a `<dialog>`, modal, sheet, overlay, or inline context as
-needed.
+Drawn through the same frame as the session panel's [`FileDocument`](#filedocument),
+so the two read as one object: a header with the file glyph in a muted
+square, the name with "\{kind\} · \{size\}" under it and the detection tag,
+and at its right the acts (at most one primary, Build or Apply; then
+Copy, Download, Add as skill, the host's access controls, Delete last)
+and Close; under it the body. The parent is responsible for rendering it
+inside a `<dialog>`, modal, sheet, overlay, or inline context as needed.
 
 Orchestrates the shared detection pipeline (see [`useFileInspection`](#usefileinspection)):
 
@@ -1199,14 +1205,14 @@ mount this component rather than passing an `active` flag.
 
 <TypeTable
   type={{
-    accessSlot: { type: "ReactNode", description: "Host-owned controls for who may see the File (the Library's visibility and Manage access), rendered in the action bar's leading group." },
+    accessSlot: { type: "ReactNode", description: "Host-owned controls for who may see the File (the Library's visibility and Manage access), rendered among the header's acts, before Delete." },
     className: { type: "string", description: "Additional CSS classes for the root container." },
     file: { type: "File", description: "The File to preview.", required: true },
-    isTerminal: { type: "boolean", description: "Whether the run that returned the File has ended. Controls Apply CTA availability:  - `true` — CTA renders as an enabled primary button - `false` — CTA renders as a disabled secondary button", required: true },
+    isTerminal: { type: "boolean", description: "Whether the run that returned the File has ended. Controls Apply CTA availability:  - `true` — CTA renders as an enabled primary button - `false` — CTA renders disabled (a later turn may still save over it)", required: true },
     onApplied: { type: "(result: ApplyResourceResult) => void", description: "Called after a resource is successfully applied. The consumer can use this for post-apply behavior such as showing a toast or navigating to the Library." },
     onClose: { type: "() => void", description: "Called when the close button is clicked.", required: true },
-    onDeleted: { type: "() => void", description: "Called once the File is deleted. When provided, the action bar offers Delete to a caller holding `can_delete` on the File; the host re-reads its list (the content stays mounted until the host closes it)." },
-    onImplement: { type: "() => void", description: "Optional plan-build action. When provided, a \"Build\" primary button appears in the action bar (used for a plan: turn the plan into a Run). Clicking it calls `onImplement` then closes the modal. Omit for non-actionable Files." },
+    onDeleted: { type: "() => void", description: "Called once the File is deleted. When provided, the header offers Delete (last of its acts) to a caller holding `can_delete` on the File; the host re-reads its list (the content stays mounted until the host closes it)." },
+    onImplement: { type: "() => void", description: "Optional plan-build action. When provided, \"Build\" is the header's primary act (used for a plan: turn the plan into a Run), in place of Apply. Clicking it calls `onImplement` then closes the modal. Omit for non-actionable Files." },
     org: { type: "string", description: "Organization id for the \"Apply to [org]\" CTA (a slug is also accepted).", required: true },
     readOnly: { type: "boolean", description: "The reader may only read, copy and download the File: no Apply, no adding it as a skill and no delete, and no permission read for them. For a reader whose credential the server refuses those acts, such as a chat link's guest." },
   }}
@@ -1243,11 +1249,11 @@ automatically when the dialog closes.
     accessSlot: { type: "ReactNode", description: "See FilePreviewContentProps.accessSlot." },
     className: { type: "string", description: "Additional CSS classes for the dialog element." },
     file: { type: "File", description: "The File to preview.", required: true },
-    isTerminal: { type: "boolean", description: "Whether the run that returned the File has ended. Controls Apply CTA availability:  - `true` — CTA renders as an enabled primary button - `false` — CTA renders as a disabled secondary button", required: true },
+    isTerminal: { type: "boolean", description: "Whether the run that returned the File has ended. Controls Apply CTA availability:  - `true` — CTA renders as an enabled primary button - `false` — CTA renders disabled (a later turn may still save over it)", required: true },
     onApplied: { type: "(result: ApplyResourceResult) => void", description: "Called after a resource is successfully applied. The consumer can use this for post-apply behavior such as showing a toast or navigating to the Library." },
     onClose: { type: "() => void", description: "Called when the modal should close (Escape key or close button).", required: true },
     onDeleted: { type: "() => void", description: "See FilePreviewContentProps.onDeleted." },
-    onImplement: { type: "() => void", description: "Optional plan-build action (see FilePreviewContentProps.onImplement). When provided, a \"Build\" primary button appears; clicking it calls `onImplement` then closes the modal." },
+    onImplement: { type: "() => void", description: "Optional plan-build action (see FilePreviewContentProps.onImplement). When provided, \"Build\" is the header's primary act; clicking it calls `onImplement` then closes the modal." },
     open: { type: "boolean", description: "Controls modal visibility. `true` opens the dialog via `showModal()`.", required: true },
     org: { type: "string", description: "Organization id for the \"Apply to [org]\" CTA (a slug is also accepted).", required: true },
     readOnly: { type: "boolean", description: "The reader may only read, copy and download the File: no Apply, no adding it as a skill and no delete, and no permission read for them. For a reader whose credential the server refuses those acts, such as a chat link's guest." },
@@ -1507,42 +1513,6 @@ presentation.
 />
 
 
-### RunProgress
-
-Displays run lifecycle phase and, when present, the agent's
-todo checklist showing multi-step task progress.
-
-The phase badge is always visible so the user knows the run
-state at a glance. When the agent keeps a to-do list (`todos`, from
-the turn's fold), it appears as a compact checklist sorted by
-activity: in-progress items first, then pending, completed, and
-cancelled.
-
-Renders its content without card chrome (no border, background, or
-elevation). The consumer controls the container styling.
-
-All visual properties flow through `--stgm-*` tokens.
-
-**Props** — `RunProgressProps`
-
-<TypeTable
-  type={{
-    className: { type: "string", description: "Additional CSS class names for the root container." },
-    run: { type: "Run | null", description: "The run to display progress for: its phase and error. Renders nothing when null.", required: true },
-    todos: { type: "readonly Todo[]", description: "The turn's to-do list, from the session's fold (`Turn.todos`); omitted or empty shows none." },
-  }}
-/>
-
-```tsx
-import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
-import type { Turn } from "@stigmer/client";
-
-function TurnProgress({ run, turn }: { run: Run; turn: Turn }) {
-  return <RunProgress run={run} todos={turn.todos} />;
-}
-```
-
-
 ### TerminalSession
 
 Renders a shell tool call as a single, cohesive terminal session — the
@@ -1574,38 +1544,6 @@ platform builders composing custom tool UIs.
   <TerminalSession command="npm test" framed />
 </>
 ```
-
-
-### TerminalTail
-
-The collapsed teaser of a settled terminal session: the `$ command` prompt
-line plus a dimmed tail of the last few output lines — enough to see at a
-glance that the command ran and what it printed last, without the full
-output competing with the conversation.
-
-The reduced contrast is deliberate and load-bearing: the tail is *context*,
-not content, so it renders one contrast step below the reading text
-(`muted-foreground`), while the command — the user-relevant intent — keeps
-full contrast. stderr is not colored here for the same reason; the full
-session (one disclosure away) restores the destructive treatment.
-
-Rendered by the tool-call row's `"tail"` disclosure state (see
-[`ToolCallItem`](#toolcallitem)); the row's header chevron is the expand control, so
-this component is presentation-only. Like [`TerminalSession`](#terminalsession), it has
-no frame of its own inside a card; pass `framed` to draw it on its own.
-
-**Props** — `TerminalTailProps`
-
-<TypeTable
-  type={{
-    className: { type: "string", description: "Additional CSS class names for the root container." },
-    command: { type: "string", description: "The command that was run, shown as the `$ <command>` prompt line." },
-    exitCode: { type: "number", description: "Process exit code. A non-zero code renders a trailing `exit N` badge." },
-    framed: { type: "boolean", description: "Draw the block's own border, corner and muted fill, for a session shown on its own. Defaults to `false`: every place the kit draws one is inside a step's card (a tool row's body, an approval card), whose body is the frame." },
-    stderr: { type: "string", description: "Standard error." },
-    stdout: { type: "string", description: "Standard output." },
-  }}
-/>
 
 
 ### TextContentRenderer
@@ -1710,19 +1648,23 @@ function Thread({ isLoading, children }: { isLoading: boolean; children: ReactNo
 
 ### TodoInProgressIcon
 
-The in-progress glyph, exported for hosts composing their own to-do rows.
+The in-progress glyph (the plan card's spinner, drawn in the current
+colour), exported for hosts composing their own to-do rows.
 
 
 ### TodoList
 
-Renders a sorted checklist of `Todo` entries.
+Renders a sorted checklist of `Todo` entries, in the look of a turn's
+plan card (`PlanSteps`): 14/20 rows with 8px padding split by a
+muted rule, each with the plan's mark (a ready tick once done, a running
+spinner while in progress, an empty ring before, a ring and struck words
+once dropped).
 
-Shared by [`RunProgress`](#runprogress) (main agent sidebar widget)
-and [`TodoCard`](#todocard) (the in-thread card).
+The list inside [`TodoCard`](#todocard), which a host's `TodoCard` or `TodoRow`
+slot on `MessageThread` brings in place of the plan card.
 
 Items are sorted by activity: in-progress first, then pending,
-completed, and cancelled. Each row shows a status icon and the
-task description.
+completed, and cancelled.
 
 All visual properties flow through `--stgm-*` tokens.
 
@@ -1822,13 +1764,13 @@ function ToolCall({ toolUse }: { toolUse: ToolUse }) {
 
 Right-sidebar widget that displays the session's token usage.
 
-Shows the session's total tokens (marked "Estimated" when any run is
-counted from its runner's own report), the model or per-model tokens,
-metered call count, the prompt/completion and cache split, and who
-served the tokens when that is known.
+Leads with the session's total tokens as a figure ("41,210 tokens",
+tagged "Estimated" when any run is counted from its runner's own report),
+with its working time and who served the tokens under it when they are
+known. Then "By model": one row per model with its tokens, its metered
+calls, and its input, output and cache split.
 
-Returns `null` when the session has no usage, matching the
-conditional-render pattern of [`WriteBacksWidget`](#writebackswidget).
+Returns `null` when the session has no usage.
 
 All visual properties flow through `--stgm-*` tokens. Zero
 Console dependencies.
@@ -1852,15 +1794,18 @@ function ConversationUsage({ sessionId, org }: { sessionId: string; org: string 
 
 ### WriteBackCard
 
-Renders a single workspace write-back outcome as a dense, VS Code
-Source-Control-style row group: a header (workspace name + quiet phase
-caption), a pull-request row that opens the PR on the remote, a branch row
-with a hover-revealed copy control, and an aggregate change-stat line.
+Renders a single workspace write-back outcome as a card, rows 8px apart:
 
-Row geometry, hover, and focus treatment match [`FileRow`](#filerow), so the
-session panel's Changes and Files facets read as one surface. The PR
-link and the copy control are SIBLING interactive elements, never nested
-(axe `nested-interactive`, WCAG 4.1.2).
+1. The repository (or entry) name and, at the right, a status pill for
+   its phase: "Committed" (not yet pushed), "Pushed", "Pull request
+   open" when it has a pull request, or "Failed".
+2. The branch as a mono tag, a "Copy branch name" control, and "into
+   \{base\}".
+3. The pull request as a link ("#482 on GitHub") that opens it on the
+   remote in a new tab, then the change and line counts.
+
+The PR link and the copy control are SIBLING interactive elements, never
+nested (axe `nested-interactive`, WCAG 4.1.2).
 
 Error rendering follows the record's phase honestly:
 a FAILED record's error is destructive (the work did not reach the
@@ -1868,8 +1813,8 @@ remote), while a PUSHED record carrying an error renders it as a
 degraded notice — the branch is live and its info stays usable; only
 the PR step failed.
 
-The stat line is parsed from the record's `git diff --stat` summary and
-rendered through the shared [`DiffSummary`](/docs/sdk/react/version-history#diffsummary) component; unparseable
+The change counts are parsed from the record's `git diff --stat` summary
+and rendered through the shared [`DiffSummary`](/docs/sdk/react/version-history#diffsummary) component; unparseable
 text degrades to the raw trailing line rather than showing wrong numbers.
 
 Themed via standard semantic tokens — no hardcoded colors, no
@@ -1891,39 +1836,6 @@ import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 function RunWriteBacks({ run }: { run: Run }) {
   const { writeBacks } = useWorkspaceWriteBacks(run);
   return <>{writeBacks.map((wb) => <WriteBackCard key={wb.workspaceEntryName} writeBack={wb} />)}</>;
-}
-```
-
-
-### WriteBacksWidget
-
-Right-sidebar widget that surfaces pull requests created by the
-platform's incremental git write-back workflow.
-
-Write-backs from multiple runs are aggregated and
-deduplicated by `workspace_entry_name` (latest run wins),
-presenting the user with a flat list of PRs — one per workspace
-entry.
-
-Returns `null` when no run has write-backs, matching the
-conditional-render pattern of [`RunProgress`](#runprogress).
-
-All visual properties flow through `--stgm-*` tokens.  Zero
-Console dependencies.
-
-**Props** — `WriteBacksWidgetProps`
-
-<TypeTable
-  type={{
-    className: { type: "string", description: "Additional CSS classes for the root element." },
-    runs: { type: "readonly Run[]", description: "All runs for the current session — both completed and actively streaming.  The widget aggregates write-backs across every run, deduplicates by `workspace_entry_name` (latest wins), and sorts alphabetically.  Renders nothing when the list is empty or no run has write-backs.", required: true },
-  }}
-/>
-
-```tsx
-function ConversationWriteBacks({ sessionId, org }: { sessionId: string; org: string }) {
-  const conv = useSessionConversation(sessionId, org);
-  return <WriteBacksWidget runs={conv.runs} />;
 }
 ```
 
@@ -3602,15 +3514,15 @@ function toDisplayFileChange(captured: CapturedFileChange): DisplayFileChange
 ### TodoCard
 
 The agent's plan, rendered inline in the message thread as a collapsible
-card — the Cursor-style "what I'm going to do, and how far I've got"
-surface. It is the in-thread home of the todo list that previously lived
-in the right-side Plan tab.
+card — the "what I'm going to do, and how far I've got" surface. The
+thread draws it only when a host passes a `TodoCard` or `TodoRow` slot to
+`MessageThread`; otherwise the turn's plan card (`PlanSteps`) shows
+the same list.
 
-The card chrome matches the rest of the thread's tool cards (a single
-neutral ``border-border-prominent`` line) and
-wraps the chrome-less [`TodoList`](#todolist) primitive — the same list the
-subagent section renders bare, so there is exactly one todo renderer and no
-card-in-a-card.
+Drawn in the plan card's look so the two read as one object: a bordered
+card on the card fill, a 12/16 muted header ("Plan" at the left, "2 of 5
+done" at the right, dropped items not counted), and the chrome-less
+[`TodoList`](#todolist) under it with the plan's row marks.
 
 Disclosure follows the thread's `useAutoDisclosure` convention: open
 while the plan is active (any item in progress), settling closed once the

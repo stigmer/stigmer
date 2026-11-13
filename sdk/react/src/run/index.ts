@@ -136,8 +136,8 @@ export type { ToolArgsViewProps } from "./ToolArgsView.js";
 export { ResultView, summarizeResultView } from "./ResultView.js";
 export type { ResultViewProps } from "./ResultView.js";
 
-export { TerminalSession, TerminalTail } from "./TerminalSession.js";
-export type { TerminalSessionProps, TerminalTailProps } from "./TerminalSession.js";
+export { TerminalSession } from "./TerminalSession.js";
+export type { TerminalSessionProps } from "./TerminalSession.js";
 
 export {
   useToolPresentation,
@@ -193,9 +193,6 @@ export type { TurnEndingAction, TurnEndingWiring } from "./ThreadPresentationCon
 
 export { ThreadSkeleton } from "./ThreadSkeleton.js";
 export type { ThreadSkeletonProps } from "./ThreadSkeleton.js";
-
-export { RunProgress } from "./RunProgress.js";
-export type { RunProgressProps } from "./RunProgress.js";
 
 export {
   TodoList,
@@ -300,10 +297,6 @@ export type {
 
 export { FilePreviewContent, FilePreviewModal } from "./FilePreviewModal.js";
 export type { FilePreviewContentProps, FilePreviewModalProps } from "./FilePreviewModal.js";
-
-
-export { WriteBacksWidget } from "./WriteBacksWidget.js";
-export type { WriteBacksWidgetProps } from "./WriteBacksWidget.js";
 
 export {
   resolveToolCategory,
