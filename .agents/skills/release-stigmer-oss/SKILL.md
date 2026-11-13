@@ -112,11 +112,8 @@ the user's confirmation.
 
 ## 3. Bump the pins and commit them
 
-Five pins travel in the commit the tag is cut from, and `make release` refuses
-to tag until all five name the new version: the MCP server image version in
-`mcp-server/Dockerfile` (the npm publish lane refuses a version that does not
-match it; a hand build of the image installs the pin, and a moved pin is what
-re-runs that install past Docker's layer cache), the compose stack's
+The release pins travel in the commit the tag is cut from, and `make release`
+refuses to tag until every one names the new version: the compose stack's
 `STIGMER_VERSION` in `docker-compose.yml` and `.env.example` (the stack a fresh
 clone runs), `version` and `appVersion` in `deploy/helm/stigmer/Chart.yaml` (the
 chart's image tags default to the app version), and the two upgrade examples on
@@ -133,7 +130,7 @@ git switch -c chore/release-pins-<X.Y.Z> origin/main
 make release-pins version=<X.Y.Z>
 git commit -am "chore(release): bump the release pins to <X.Y.Z>"
 git push -u origin chore/release-pins-<X.Y.Z>
-gh pr create --title "chore(release): bump the release pins to <X.Y.Z>" --body "The five release pins for v<X.Y.Z>."
+gh pr create --title "chore(release): bump the release pins to <X.Y.Z>" --body "The release pins for v<X.Y.Z>."
 # review it when the brief's "When a review is needed" says so (.agents/skills/review-pull-request/SKILL.md)
 gh pr merge <n> --auto --match-head-commit "$(git rev-parse HEAD)"   # add --squash when the brief's ruleset read gives queue: false
 gh pr view <n> --json state,mergeCommit   # repeat until MERGED
